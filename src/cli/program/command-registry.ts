@@ -8,6 +8,7 @@ import {
   registerCoreCliCommands,
 } from "./command-registry-core.js";
 import type { ProgramContext } from "./context.js";
+import { registerProliferationCli } from "./proliferation-commands.js";
 import { registerSubCliCommands } from "./register.subclis.js";
 
 export {
@@ -26,4 +27,5 @@ export function registerProgramCommands(
 ) {
   registerCoreCliCommands(program, ctx, argv);
   registerSubCliCommands(program, argv);
+  registerProliferationCli(program);
 }
