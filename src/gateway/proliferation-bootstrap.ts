@@ -1,6 +1,7 @@
 import type { AstroclawConfig } from "../config/config.js";
 import {
   createProliferationEvents,
+  type ProliferationEventMap,
   type ProliferationEvents,
 } from "./proliferation-events.js";
 
@@ -34,6 +35,26 @@ let currentSidecar: AstroclawSidecarHandle | null = null;
 let currentBeforeChannelSend: BeforeChannelSendHook | null = null;
 
 /**
+ * Module-scope reference to the lifecycle event emitter so other gateway
+ * modules can emit proliferation events without threading a handle through.
+ * Always non-null between gateway start and shutdown, even when the sidecar
+ * itself is inactive — emits are silently no-op when nobody subscribes.
+ */
+let currentEvents: ProliferationEvents | null = null;
+
+/**
+ * Emit a proliferation lifecycle event. Used by gateway modules that
+ * announce work happening (session checkpoint, workspace write, etc.).
+ * Safe to call before bootstrap has run; emits are dropped.
+ */
+export function emitProliferationEvent<K extends keyof ProliferationEventMap>(
+  event: K,
+  ...args: ProliferationEventMap[K]
+): void {
+  currentEvents?.emit(event, ...args);
+}
+
+/**
  * Called by the gateway's /healthz handler. Merges sidecar-reported health
  * fields into the response. Returns undefined when the sidecar is inactive,
  * in which case /healthz is unchanged.
@@ -65,6 +86,7 @@ export async function checkBeforeChannelSend(msg: {
 
 const inactiveHandle = (events: ProliferationEvents): ProliferationHandle => ({
   shutdown: async () => {
+    currentEvents = null;
     events.removeAllListeners();
   },
   events,
@@ -84,6 +106,7 @@ export async function tryStartProliferation(params: {
   log: { info: (msg: string) => void; warn: (msg: string) => void };
 }): Promise<ProliferationHandle> {
   const events = createProliferationEvents();
+  currentEvents = events;
   const cfg = params.cfg.proliferation;
   if (!cfg?.enabled) {
     return inactiveHandle(events);
@@ -115,6 +138,7 @@ export async function tryStartProliferation(params: {
         } finally {
           currentSidecar = null;
           currentBeforeChannelSend = null;
+          currentEvents = null;
           events.removeAllListeners();
         }
       },
