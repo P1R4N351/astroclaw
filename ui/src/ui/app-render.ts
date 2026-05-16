@@ -1769,8 +1769,9 @@ export function renderApp(state: AppViewState) {
               m.renderSiblings({
                 loading: state.healthLoading,
                 error: state.healthError,
-                proliferation: (state.healthResult as { proliferation?: unknown } | null)
-                  ?.proliferation as Parameters<typeof m.renderSiblings>[0]["proliferation"],
+                proliferation: state.healthResult?.proliferation as
+                  | Parameters<typeof m.renderSiblings>[0]["proliferation"]
+                  | undefined,
                 onRefresh: () => loadHealthState(state),
               }),
             )
