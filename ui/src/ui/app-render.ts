@@ -106,6 +106,7 @@ import {
   saveExecApprovals,
   updateExecApprovalsFormValue,
 } from "./controllers/exec-approvals.ts";
+import { loadHealthState } from "./controllers/health.ts";
 import { loadLogs } from "./controllers/logs.ts";
 import { loadNodes } from "./controllers/nodes.ts";
 import { loadPresence } from "./controllers/presence.ts";
@@ -189,6 +190,7 @@ const lazyInstances = createLazyView(() => import("./views/instances.ts"), notif
 const lazyLogs = createLazyView(() => import("./views/logs.ts"), notifyLazyViewChanged);
 const lazyNodes = createLazyView(() => import("./views/nodes.ts"), notifyLazyViewChanged);
 const lazySessions = createLazyView(() => import("./views/sessions.ts"), notifyLazyViewChanged);
+const lazySiblings = createLazyView(() => import("./views/siblings.ts"), notifyLazyViewChanged);
 const lazySkills = createLazyView(() => import("./views/skills.ts"), notifyLazyViewChanged);
 
 function formatDreamNextCycle(nextRunAtMs: number | undefined): string | null {
@@ -1759,6 +1761,17 @@ export function renderApp(state: AppViewState) {
                 lastError: state.presenceError,
                 statusMessage: state.presenceStatus,
                 onRefresh: () => loadPresence(state),
+              }),
+            )
+          : nothing}
+        ${state.tab === "siblings"
+          ? renderLazyView(lazySiblings, (m) =>
+              m.renderSiblings({
+                loading: state.healthLoading,
+                error: state.healthError,
+                proliferation: (state.healthResult as { proliferation?: unknown } | null)
+                  ?.proliferation as Parameters<typeof m.renderSiblings>[0]["proliferation"],
+                onRefresh: () => loadHealthState(state),
               }),
             )
           : nothing}
