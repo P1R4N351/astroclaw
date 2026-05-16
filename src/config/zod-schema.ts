@@ -21,6 +21,7 @@ import {
   SecretsConfigSchema,
 } from "./zod-schema.core.js";
 import { HookMappingSchema, HooksGmailSchema, InternalHooksSchema } from "./zod-schema.hooks.js";
+import { ProliferationConfigSchema } from "./zod-schema.proliferation.js";
 import { ProxyConfigSchema } from "./zod-schema.proxy.js";
 import { sensitive } from "./zod-schema.sensitive.js";
 import {
@@ -1185,6 +1186,7 @@ export const AstroclawSchema = z
       )
       .optional(),
     proxy: ProxyConfigSchema,
+    proliferation: ProliferationConfigSchema,
   })
   .strict()
   .superRefine((cfg, ctx) => {
