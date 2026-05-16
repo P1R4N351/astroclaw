@@ -24,6 +24,7 @@ import type {
 import type { ModelsConfig } from "./types.models.js";
 import type { NodeHostConfig } from "./types.node-host.js";
 import type { PluginsConfig } from "./types.plugins.js";
+import type { ProliferationConfig } from "./types.proliferation.js";
 import type { SecretsConfig } from "./types.secrets.js";
 import type { SkillsConfig } from "./types.skills.js";
 import type { ToolsConfig } from "./types.tools.js";
@@ -151,6 +152,8 @@ export type AstroclawConfig = {
   mcp?: McpConfig;
   /** Network-level SSRF protection via an operator-managed forward proxy. */
   proxy?: ProxyConfig;
+  /** Astroclaw proliferation sidecar. Opt-in mesh of siblings. */
+  proliferation?: ProliferationConfig;
 };
 
 declare const astroClawConfigStateBrand: unique symbol;
