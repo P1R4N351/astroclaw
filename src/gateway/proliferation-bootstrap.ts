@@ -4,10 +4,14 @@ import {
   type ProliferationEvents,
 } from "./proliferation-events.js";
 
+type AstroclawSidecarHandle = {
+  shutdown: () => Promise<void>;
+  /** Optional health contribution merged into /healthz responses. */
+  getHealth?: () => Record<string, unknown> | undefined;
+};
+
 type AstroclawRuntimeModule = {
-  init: (args: { astroclaw: unknown; config: unknown }) => Promise<{
-    shutdown: () => Promise<void>;
-  }>;
+  init: (args: { astroclaw: unknown; config: unknown }) => Promise<AstroclawSidecarHandle>;
 };
 
 export type ProliferationHandle = {
@@ -15,6 +19,18 @@ export type ProliferationHandle = {
   /** Always-present event emitter — emit sites are no-ops when sidecar is inactive. */
   events: ProliferationEvents;
 };
+
+/** Module-scope reference for cross-module health contribution lookup. */
+let currentSidecar: AstroclawSidecarHandle | null = null;
+
+/**
+ * Called by the gateway's /healthz handler. Merges sidecar-reported health
+ * fields into the response. Returns undefined when the sidecar is inactive,
+ * in which case /healthz is unchanged.
+ */
+export function getProliferationHealth(): Record<string, unknown> | undefined {
+  return currentSidecar?.getHealth?.();
+}
 
 const inactiveHandle = (events: ProliferationEvents): ProliferationHandle => ({
   shutdown: async () => {
@@ -53,6 +69,7 @@ export async function tryStartProliferation(params: {
   try {
     const adapter = { events };
     const sidecarHandle = await astroclawModule.init({ astroclaw: adapter, config: cfg });
+    currentSidecar = sidecarHandle;
     params.log.info(`astroclaw/runtime started for node ${cfg.nodeId ?? "(unset)"}`);
     return {
       events,
@@ -60,6 +77,7 @@ export async function tryStartProliferation(params: {
         try {
           await sidecarHandle.shutdown();
         } finally {
+          currentSidecar = null;
           events.removeAllListeners();
         }
       },
