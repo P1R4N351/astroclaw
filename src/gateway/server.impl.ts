@@ -1439,7 +1439,7 @@ export async function startGatewayServer(
       broadcast,
       context: gatewayRequestContext,
     });
-    const proliferationHandle: ProliferationHandle | null = await tryStartProliferation({
+    const proliferationHandle: ProliferationHandle = await tryStartProliferation({
       cfg: cfgAtStart,
       log,
     });
