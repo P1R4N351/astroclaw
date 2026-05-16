@@ -10,6 +10,14 @@ type AstroclawSidecarHandle = {
   getHealth?: () => Record<string, unknown> | undefined;
 };
 
+/** Decision the sidecar returns from beforeChannelSend. */
+export type ChannelSendDecision = "allow" | "queue" | "deny";
+
+export type BeforeChannelSendHook = (msg: {
+  channelId: string;
+  accountId?: string;
+}) => Promise<ChannelSendDecision> | ChannelSendDecision;
+
 type AstroclawRuntimeModule = {
   init: (args: { astroclaw: unknown; config: unknown }) => Promise<AstroclawSidecarHandle>;
 };
@@ -23,6 +31,8 @@ export type ProliferationHandle = {
 /** Module-scope reference for cross-module health contribution lookup. */
 let currentSidecar: AstroclawSidecarHandle | null = null;
 
+let currentBeforeChannelSend: BeforeChannelSendHook | null = null;
+
 /**
  * Called by the gateway's /healthz handler. Merges sidecar-reported health
  * fields into the response. Returns undefined when the sidecar is inactive,
@@ -30,6 +40,27 @@ let currentSidecar: AstroclawSidecarHandle | null = null;
  */
 export function getProliferationHealth(): Record<string, unknown> | undefined {
   return currentSidecar?.getHealth?.();
+}
+
+/**
+ * Called by channel send paths immediately before dispatch. Returns 'allow'
+ * when the sidecar is inactive, so absence of sidecar leaves send behaviour
+ * unchanged. Returns 'queue' or 'deny' when the sidecar wants to short-
+ * circuit (e.g. this node is not the channel lease holder).
+ */
+export async function checkBeforeChannelSend(msg: {
+  channelId: string;
+  accountId?: string;
+}): Promise<ChannelSendDecision> {
+  if (!currentBeforeChannelSend) {
+    return "allow";
+  }
+  try {
+    return await currentBeforeChannelSend(msg);
+  } catch {
+    // Sidecar errors should never block sends — fail open.
+    return "allow";
+  }
 }
 
 const inactiveHandle = (events: ProliferationEvents): ProliferationHandle => ({
@@ -67,7 +98,12 @@ export async function tryStartProliferation(params: {
     return inactiveHandle(events);
   }
   try {
-    const adapter = { events };
+    const adapter = {
+      events,
+      setBeforeChannelSend: (hook: BeforeChannelSendHook | null) => {
+        currentBeforeChannelSend = hook;
+      },
+    };
     const sidecarHandle = await astroclawModule.init({ astroclaw: adapter, config: cfg });
     currentSidecar = sidecarHandle;
     params.log.info(`astroclaw/runtime started for node ${cfg.nodeId ?? "(unset)"}`);
@@ -78,6 +114,7 @@ export async function tryStartProliferation(params: {
           await sidecarHandle.shutdown();
         } finally {
           currentSidecar = null;
+          currentBeforeChannelSend = null;
           events.removeAllListeners();
         }
       },
