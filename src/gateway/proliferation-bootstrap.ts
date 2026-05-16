@@ -29,10 +29,27 @@ export type ProliferationHandle = {
   events: ProliferationEvents;
 };
 
+/**
+ * Channel-send-gate timeout. A slow sidecar must not be able to stall the
+ * gateway's send path. After this timeout, the gate fails open (returns
+ * "allow") and increments a counter so persistent timeouts surface in logs.
+ */
+const CHANNEL_SEND_GATE_TIMEOUT_MS = 1000;
+
+/**
+ * After this many consecutive failures (timeout, sidecar throw, etc.) we
+ * log a warning. Reset on next successful invocation. Catches "the sidecar
+ * is in a bad state" without spamming on every single tick.
+ */
+const PERSISTENT_FAILURE_LOG_THRESHOLD = 5;
+
 /** Module-scope reference for cross-module health contribution lookup. */
 let currentSidecar: AstroclawSidecarHandle | null = null;
 
 let currentBeforeChannelSend: BeforeChannelSendHook | null = null;
+
+let consecutiveChannelGateFailures = 0;
+let currentLog: { info: (msg: string) => void; warn: (msg: string) => void } | null = null;
 
 /**
  * Module-scope reference to the lifecycle event emitter so other gateway
@@ -76,17 +93,50 @@ export async function checkBeforeChannelSend(msg: {
   if (!currentBeforeChannelSend) {
     return "allow";
   }
+  const hook = currentBeforeChannelSend;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let succeeded = false;
+  type Outcome = { ok: true; decision: ChannelSendDecision } | { ok: false };
+  const timeoutPromise = new Promise<Outcome>((resolve) => {
+    timer = setTimeout(() => resolve({ ok: false }), CHANNEL_SEND_GATE_TIMEOUT_MS);
+  });
+  const hookPromise = Promise.resolve()
+    .then(() => hook(msg))
+    .then<Outcome>((decision) => ({ ok: true, decision }))
+    .catch<Outcome>(() => ({ ok: false }));
   try {
-    return await currentBeforeChannelSend(msg);
-  } catch {
-    // Sidecar errors should never block sends — fail open.
+    const outcome = await Promise.race([hookPromise, timeoutPromise]);
+    if (outcome.ok) {
+      succeeded = true;
+      return outcome.decision;
+    }
     return "allow";
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    if (succeeded) {
+      consecutiveChannelGateFailures = 0;
+    } else {
+      consecutiveChannelGateFailures += 1;
+      if (consecutiveChannelGateFailures === PERSISTENT_FAILURE_LOG_THRESHOLD) {
+        currentLog?.warn(
+          `astroclaw beforeChannelSend has failed/timed out ${PERSISTENT_FAILURE_LOG_THRESHOLD}+ times in a row; channel sends are fail-open`,
+        );
+      }
+    }
   }
+}
+
+/** Test-only helper to inspect the failure counter. */
+export function _channelGateFailureCount(): number {
+  return consecutiveChannelGateFailures;
 }
 
 const inactiveHandle = (events: ProliferationEvents): ProliferationHandle => ({
   shutdown: async () => {
     currentEvents = null;
+    currentLog = null;
     events.removeAllListeners();
   },
   events,
@@ -97,14 +147,34 @@ const inactiveHandle = (events: ProliferationEvents): ProliferationHandle => ({
  *
  * No-op when `cfg.proliferation.enabled` is absent or false. When enabled,
  * dynamically imports `@astroclaw/runtime` so gateways that don't install the
- * sidecar pay no cost. Subsequent astroclaw hook patches extend the adapter
- * handed to the sidecar (lifecycle events, WorkspaceWriter, channel-send
- * gate, etc.); this initial patch only wires the call.
+ * sidecar pay no cost. The adapter handed to the sidecar carries the
+ * lifecycle event emitter and the channel-send-gate setter.
+ *
+ * Idempotent: if called while a previous sidecar is still live, the prior
+ * sidecar is shut down before the new one starts. This protects against
+ * double-init on hot config reload paths.
  */
 export async function tryStartProliferation(params: {
   cfg: AstroclawConfig;
   log: { info: (msg: string) => void; warn: (msg: string) => void };
 }): Promise<ProliferationHandle> {
+  // Idempotency: tear down any pre-existing sidecar before starting fresh.
+  if (currentSidecar) {
+    try {
+      await currentSidecar.shutdown();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      params.log.warn(`astroclaw/runtime stale-shutdown during re-init failed: ${msg}`);
+    }
+    currentSidecar = null;
+    currentBeforeChannelSend = null;
+    consecutiveChannelGateFailures = 0;
+  }
+  if (currentEvents) {
+    currentEvents.removeAllListeners();
+    currentEvents = null;
+  }
+  currentLog = params.log;
   const events = createProliferationEvents();
   currentEvents = events;
   const cfg = params.cfg.proliferation;
@@ -139,6 +209,8 @@ export async function tryStartProliferation(params: {
           currentSidecar = null;
           currentBeforeChannelSend = null;
           currentEvents = null;
+          currentLog = null;
+          consecutiveChannelGateFailures = 0;
           events.removeAllListeners();
         }
       },
