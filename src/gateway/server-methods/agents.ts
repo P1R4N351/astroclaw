@@ -29,6 +29,7 @@ import type { IdentityConfig } from "../../config/types.base.js";
 import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { root, FsSafeError, type ReadResult } from "../../infra/fs-safe.js";
 import { movePathToTrash } from "../../plugin-sdk/browser-maintenance.js";
+import { notifyProliferationWorkspaceWrite } from "../proliferation-bootstrap.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../../routing/session-key.js";
 import { resolveUserPath } from "../../utils.js";
 import {
@@ -845,6 +846,11 @@ export const agentsHandlers: GatewayRequestHandlers = {
       respondWorkspaceFileUnsafe(respond, name);
       return;
     }
+    // Fire-and-forget replication notification for the astroclaw sidecar. No-op
+    // when the sidecar is inactive. The local write above is canonical;
+    // replication failures are surfaced via the sidecar's logger and never
+    // block the gateway response.
+    notifyProliferationWorkspaceWrite({ workspaceDir, path: name, body: content, agentId });
     const meta = await statWorkspaceFileSafely(workspaceRoot, workspaceDir, name);
     respond(
       true,

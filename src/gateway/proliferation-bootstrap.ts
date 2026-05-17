@@ -19,6 +19,23 @@ export type BeforeChannelSendHook = (msg: {
   accountId?: string;
 }) => Promise<ChannelSendDecision> | ChannelSendDecision;
 
+/**
+ * Workspace-write replicator hook. Called fire-and-forget after a
+ * successful local workspace write. Sidecar installs an implementation
+ * that fans the write out to the replicated-state postgres tables
+ * (astroclaw_workspace_docs + astroclaw_blobs from phase-3 step 1).
+ *
+ * Local writes are canonical and are never blocked by replication. If
+ * the replicator throws or hangs, the gateway already responded to the
+ * client; the failure is the sidecar's to surface.
+ */
+export type WorkspaceReplicator = (msg: {
+  workspaceDir: string;
+  path: string;
+  body: Uint8Array | string;
+  agentId?: string;
+}) => Promise<void> | void;
+
 type AstroclawRuntimeModule = {
   init: (args: { astroclaw: unknown; config: unknown }) => Promise<AstroclawSidecarHandle>;
 };
@@ -47,6 +64,9 @@ const PERSISTENT_FAILURE_LOG_THRESHOLD = 5;
 let currentSidecar: AstroclawSidecarHandle | null = null;
 
 let currentBeforeChannelSend: BeforeChannelSendHook | null = null;
+
+let currentWorkspaceReplicator: WorkspaceReplicator | null = null;
+let consecutiveWorkspaceReplicateFailures = 0;
 
 let consecutiveChannelGateFailures = 0;
 let currentLog: { info: (msg: string) => void; warn: (msg: string) => void } | null = null;
@@ -133,6 +153,51 @@ export function _channelGateFailureCount(): number {
   return consecutiveChannelGateFailures;
 }
 
+/**
+ * Called by workspace-write paths AFTER a successful local write. Hands
+ * the (path, body) off to the sidecar for replication to mesh peers.
+ *
+ * Fire-and-forget. The caller does not await; we manage the promise
+ * internally and surface persistent failures via the captured gateway
+ * logger after PERSISTENT_FAILURE_LOG_THRESHOLD consecutive errors.
+ *
+ * When the sidecar is inactive (no replicator installed), this is a
+ * cheap no-op returning immediately.
+ */
+export function notifyProliferationWorkspaceWrite(msg: {
+  workspaceDir: string;
+  path: string;
+  body: Uint8Array | string;
+  agentId?: string;
+}): void {
+  const replicator = currentWorkspaceReplicator;
+  if (!replicator) {
+    return;
+  }
+  // Detach the promise: we don't block the gateway response on
+  // replication completion. Errors are tracked + surfaced via the
+  // consecutive-failure counter, never re-thrown.
+  void Promise.resolve()
+    .then(() => replicator(msg))
+    .then(() => {
+      consecutiveWorkspaceReplicateFailures = 0;
+    })
+    .catch((err: unknown) => {
+      consecutiveWorkspaceReplicateFailures += 1;
+      if (consecutiveWorkspaceReplicateFailures === PERSISTENT_FAILURE_LOG_THRESHOLD) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        currentLog?.warn(
+          `astroclaw workspace-replicate has failed ${PERSISTENT_FAILURE_LOG_THRESHOLD}+ times in a row: ${errMsg}`,
+        );
+      }
+    });
+}
+
+/** Test-only helper to inspect the workspace-replicate failure counter. */
+export function _workspaceReplicateFailureCount(): number {
+  return consecutiveWorkspaceReplicateFailures;
+}
+
 const inactiveHandle = (events: ProliferationEvents): ProliferationHandle => ({
   shutdown: async () => {
     currentEvents = null;
@@ -168,7 +233,9 @@ export async function tryStartProliferation(params: {
     }
     currentSidecar = null;
     currentBeforeChannelSend = null;
+    currentWorkspaceReplicator = null;
     consecutiveChannelGateFailures = 0;
+    consecutiveWorkspaceReplicateFailures = 0;
   }
   if (currentEvents) {
     currentEvents.removeAllListeners();
@@ -196,6 +263,10 @@ export async function tryStartProliferation(params: {
       setBeforeChannelSend: (hook: BeforeChannelSendHook | null) => {
         currentBeforeChannelSend = hook;
       },
+      setWorkspaceReplicator: (replicator: WorkspaceReplicator | null) => {
+        currentWorkspaceReplicator = replicator;
+        consecutiveWorkspaceReplicateFailures = 0;
+      },
     };
     const sidecarHandle = await astroclawModule.init({ astroclaw: adapter, config: cfg });
     currentSidecar = sidecarHandle;
@@ -208,9 +279,11 @@ export async function tryStartProliferation(params: {
         } finally {
           currentSidecar = null;
           currentBeforeChannelSend = null;
+          currentWorkspaceReplicator = null;
           currentEvents = null;
           currentLog = null;
           consecutiveChannelGateFailures = 0;
+          consecutiveWorkspaceReplicateFailures = 0;
           events.removeAllListeners();
         }
       },
