@@ -280,11 +280,21 @@ describe("resolveCopilotForwardCompatModel", () => {
 });
 
 describe("fetchCopilotUsage", () => {
-  it("returns HTTP errors for failed requests", async () => {
-    const mockFetch = createProviderUsageFetch(async () => makeResponse(500, "boom"));
+  it("returns HTTP errors with message for failed requests", async () => {
+    const mockFetch = createProviderUsageFetch(async () =>
+      makeResponse(500, { message: "internal server error" }),
+    );
     const result = await fetchCopilotUsage("token", 5000, mockFetch);
 
-    expect(result.error).toBe("HTTP 500");
+    expect(result.error).toBe("HTTP 500: internal server error");
+    expect(result.windows).toHaveLength(0);
+  });
+
+  it("maps 401/403 to a Token expired error", async () => {
+    const mockFetch = createProviderUsageFetch(async () => makeResponse(401, "unauthorized"));
+    const result = await fetchCopilotUsage("token", 5000, mockFetch);
+
+    expect(result.error).toBe("Token expired");
     expect(result.windows).toHaveLength(0);
   });
 
@@ -312,23 +322,43 @@ describe("fetchCopilotUsage", () => {
     ]);
   });
 
-  it("defaults missing snapshot values and clamps invalid remaining percentages", async () => {
+  it("skips unlimited and unknown snapshots instead of pegging them at 100%", async () => {
     const mockFetch = createProviderUsageFetch(async () =>
       makeResponse(200, {
         quota_snapshots: {
-          premium_interactions: { percent_remaining: null },
-          chat: { percent_remaining: 140 },
+          premium_interactions: { percent_remaining: 60, unlimited: false },
+          chat: { percent_remaining: 100, unlimited: true },
+          completions: { percent_remaining: null },
         },
+        copilot_plan: "business",
       }),
     );
 
     const result = await fetchCopilotUsage("token", 5000, mockFetch);
 
+    expect(result.plan).toBe("business");
+    expect(result.windows).toEqual([{ label: "Premium", usedPercent: 40 }]);
+  });
+
+  it("propagates quota_reset_date to every rendered window", async () => {
+    const resetIso = "2026-06-01T00:00:00.000Z";
+    const mockFetch = createProviderUsageFetch(async () =>
+      makeResponse(200, {
+        quota_snapshots: {
+          premium_interactions: { percent_remaining: 80 },
+          completions: { percent_remaining: 50 },
+        },
+        quota_reset_date: resetIso,
+      }),
+    );
+
+    const result = await fetchCopilotUsage("token", 5000, mockFetch);
+
+    const resetAt = new Date(resetIso).getTime();
     expect(result.windows).toEqual([
-      { label: "Premium", usedPercent: 100 },
-      { label: "Chat", usedPercent: 0 },
+      { label: "Premium", usedPercent: 20, resetAt },
+      { label: "Completions", usedPercent: 50, resetAt },
     ]);
-    expect(result.plan).toBeUndefined();
   });
 
   it("returns an empty window list when quota snapshots are missing", async () => {

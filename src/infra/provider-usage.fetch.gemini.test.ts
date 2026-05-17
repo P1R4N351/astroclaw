@@ -23,6 +23,16 @@ describe("fetchGeminiUsage", () => {
     expect(result.windows).toHaveLength(0);
   });
 
+  it("maps 401 to a Token expired error so revoked OAuth surfaces clearly", async () => {
+    const mockFetch = createProviderUsageFetch(async () =>
+      makeResponse(401, { error: "unauthorized" }),
+    );
+    const result = await fetchGeminiUsage("token", 5000, mockFetch, usageProvider);
+
+    expect(result.error).toBe("Token expired");
+    expect(result.windows).toHaveLength(0);
+  });
+
   it("selects the lowest remaining fraction per model family", async () => {
     const mockFetch = createProviderUsageFetch(async (_url, init) => {
       const headers = (init?.headers as Record<string, string> | undefined) ?? {};

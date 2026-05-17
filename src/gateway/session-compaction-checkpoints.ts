@@ -477,6 +477,7 @@ export async function persistSessionCompactionCheckpoint(params: {
   emitProliferationEvent("after-session-checkpoint", {
     sessionId: params.sessionId,
     cid: checkpoint.checkpointId,
+    snapshotFile: params.snapshot.sessionFile,
   });
   return checkpoint;
 }

@@ -39,6 +39,7 @@ export async function fetchGeminiUsage(
     return buildUsageHttpErrorSnapshot({
       provider,
       status: res.status,
+      tokenExpiredStatuses: [401],
     });
   }
 
