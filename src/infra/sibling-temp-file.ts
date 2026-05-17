@@ -3,4 +3,4 @@ export {
   writeSiblingTempFile,
   type WriteSiblingTempFileOptions,
   type WriteSiblingTempFileResult,
-} from "@astroclaw/fs-safe/advanced";
+} from "@openclaw/fs-safe/advanced";

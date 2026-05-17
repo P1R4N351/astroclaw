@@ -7,8 +7,8 @@ packages:
 minimumReleaseAge: 2880
 
 minimumReleaseAgeExclude:
-  - "@astroclaw/fs-safe@0.2.4"
-  - "@astroclaw/proxyline@0.3.0"
+  - "@openclaw/fs-safe@0.2.4"
+  - "@openclaw/proxyline@0.3.0"
   - "acpx"
   - "tokenjuice"
   - "@agentclientprotocol/sdk"
@@ -69,7 +69,7 @@ overrides:
   uuid: 14.0.0
 
 allowBuilds:
-  "@astroclaw/fs-safe": true
+  "@openclaw/fs-safe": true
   "@google/genai": true
   "@lydell/node-pty": true
   "@matrix-org/matrix-sdk-crypto-nodejs": true
@@ -86,7 +86,7 @@ allowBuilds:
   sharp: true
   tree-sitter-bash: false
   astroclaw: true
-  "@astroclaw/proxyline": true
+  "@openclaw/proxyline": true
 
 packageExtensions:
   "@earendil-works/pi-coding-agent":

@@ -3,7 +3,7 @@ import {
   acquireFileLock as acquireFsSafeFileLock,
   drainFileLockManagerForTest,
   resetFileLockManagerForTest,
-} from "@astroclaw/fs-safe/file-lock";
+} from "@openclaw/fs-safe/file-lock";
 import { shouldRemoveDeadOwnerOrExpiredLock } from "../infra/stale-lock-file.js";
 
 export type FileLockOptions = {

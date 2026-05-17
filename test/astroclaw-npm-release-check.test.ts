@@ -639,10 +639,10 @@ describe("collectReleasePackageMetadataErrors", () => {
         license: "MIT",
         repository: { url: "git+https://github.com/astroclaw/astroclaw.git" },
         bin: { astroclaw: "astroclaw.mjs" },
-        dependencies: { "@astroclaw/fs-safe": "link:../fs-safe" },
+        dependencies: { "@openclaw/fs-safe": "link:../fs-safe" },
       }),
     ).toContain(
-      'package.json dependencies["@astroclaw/fs-safe"] must use a published semver range before npm release; found "link:../fs-safe".',
+      'package.json dependencies["@openclaw/fs-safe"] must use a published semver range before npm release; found "link:../fs-safe".',
     );
   });
 

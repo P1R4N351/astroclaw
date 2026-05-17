@@ -1,4 +1,4 @@
-import { configureFsSafePython } from "@astroclaw/fs-safe/config";
+import { configureFsSafePython } from "@openclaw/fs-safe/config";
 
 const hasPythonModeOverride =
   process.env.FS_SAFE_PYTHON_MODE != null || process.env.ASTROCLAW_FS_SAFE_PYTHON_MODE != null;

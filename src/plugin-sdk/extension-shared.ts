@@ -1,4 +1,4 @@
-import { createAmbientNodeProxyAgent, hasAmbientNodeProxyConfigured } from "@astroclaw/proxyline";
+import { createAmbientNodeProxyAgent, hasAmbientNodeProxyConfigured } from "@openclaw/proxyline";
 import type { z } from "zod";
 import type { AstroclawConfig } from "../config/config.js";
 import { resolveDefaultSecretProviderAlias } from "../secrets/ref-contract.js";

@@ -9,4 +9,4 @@ export {
   statRegularFileSync,
   type AppendRegularFileOptions,
   type RegularFileStatResult,
-} from "@astroclaw/fs-safe/advanced";
+} from "@openclaw/fs-safe/advanced";

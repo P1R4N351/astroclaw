@@ -5,4 +5,4 @@ export {
   type FileStoreOptions,
   type FileStorePruneOptions,
   type FileStoreWriteOptions,
-} from "@astroclaw/fs-safe/store";
+} from "@openclaw/fs-safe/store";

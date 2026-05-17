@@ -5,7 +5,7 @@ read_when:
 title: "Secure file operations"
 ---
 
-Astroclaw uses [`@astroclaw/fs-safe`](https://github.com/astroclaw/fs-safe) for security-sensitive local file operations: root-bounded reads/writes, atomic replacement, archive extraction, temp workspaces, JSON state, and secret-file handling.
+Astroclaw uses [`@openclaw/fs-safe`](https://github.com/openclaw/fs-safe) for security-sensitive local file operations: root-bounded reads/writes, atomic replacement, archive extraction, temp workspaces, JSON state, and secret-file handling.
 
 The goal is a consistent **library guardrail** for trusted Astroclaw code that receives untrusted path names. It is not a sandbox. Host filesystem permissions, OS users, containers, and the agent/tool policy still define the real blast radius.
 

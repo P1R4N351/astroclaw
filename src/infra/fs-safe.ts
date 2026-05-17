@@ -5,10 +5,10 @@ import {
   ensureDirectoryWithinRoot,
   findExistingAncestor,
   writeViaSiblingTempPath,
-} from "@astroclaw/fs-safe/advanced";
-import { root as fsSafeRoot, type ReadResult } from "@astroclaw/fs-safe/root";
+} from "@openclaw/fs-safe/advanced";
+import { root as fsSafeRoot, type ReadResult } from "@openclaw/fs-safe/root";
 
-export { FsSafeError, type FsSafeErrorCode } from "@astroclaw/fs-safe/errors";
+export { FsSafeError, type FsSafeErrorCode } from "@openclaw/fs-safe/errors";
 export {
   assertAbsolutePathInput,
   canonicalPathFromExistingAncestor,
@@ -20,10 +20,10 @@ export {
   type EnsureAbsoluteDirectoryResult,
   type ResolvedAbsolutePath,
   type ResolvedWritableAbsolutePath,
-} from "@astroclaw/fs-safe/advanced";
-export { isPathInside } from "@astroclaw/fs-safe/path";
-export { pathExists, pathExistsSync } from "@astroclaw/fs-safe/advanced";
-export { readLocalFileFromRoots, resolveLocalPathFromRootsSync } from "@astroclaw/fs-safe/advanced";
+} from "@openclaw/fs-safe/advanced";
+export { isPathInside } from "@openclaw/fs-safe/path";
+export { pathExists, pathExistsSync } from "@openclaw/fs-safe/advanced";
+export { readLocalFileFromRoots, resolveLocalPathFromRootsSync } from "@openclaw/fs-safe/advanced";
 export {
   appendRegularFile,
   appendRegularFileSync,
@@ -31,7 +31,7 @@ export {
   readRegularFileSync,
   resolveRegularFileAppendFlags,
   statRegularFileSync,
-} from "@astroclaw/fs-safe/advanced";
+} from "@openclaw/fs-safe/advanced";
 export {
   openLocalFileSafely,
   readLocalFileSafely,
@@ -39,21 +39,21 @@ export {
   root,
   type OpenResult,
   type ReadResult,
-} from "@astroclaw/fs-safe/root";
-export { sanitizeUntrustedFileName } from "@astroclaw/fs-safe/advanced";
+} from "@openclaw/fs-safe/root";
+export { sanitizeUntrustedFileName } from "@openclaw/fs-safe/advanced";
 export {
   readSecureFile,
   type SecureFileReadOptions,
   type SecureFileReadResult,
-} from "@astroclaw/fs-safe/secure-file";
+} from "@openclaw/fs-safe/secure-file";
 export {
   walkDirectory,
   walkDirectorySync,
   type WalkDirectoryEntry,
   type WalkDirectoryOptions,
   type WalkDirectoryResult,
-} from "@astroclaw/fs-safe/walk";
-export { withTimeout } from "@astroclaw/fs-safe/advanced";
+} from "@openclaw/fs-safe/walk";
+export { withTimeout } from "@openclaw/fs-safe/advanced";
 
 export type ExternalFileWriteOptions = {
   rootDir: string;

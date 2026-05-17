@@ -6,7 +6,7 @@ export {
   safeStat,
   type PermissionCheck,
   type PermissionCheckOptions,
-} from "@astroclaw/fs-safe/permissions";
+} from "@openclaw/fs-safe/permissions";
 export {
   createIcaclsResetCommand,
   formatIcaclsResetCommand,
@@ -18,4 +18,4 @@ export {
   type PermissionExec as ExecFn,
   type WindowsAclEntry,
   type WindowsAclSummary,
-} from "@astroclaw/fs-safe/advanced";
+} from "@openclaw/fs-safe/advanced";
