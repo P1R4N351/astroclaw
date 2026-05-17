@@ -437,7 +437,9 @@ export async function refreshActiveTab(host: SettingsHost) {
         // Siblings panel, so load both data sources when the tab opens.
         // healthState is already kicked off by app-gateway on connect;
         // loadNodes covers the paired-nodes card.
-        await loadNodes(app);
+        // astroclaw/0027: also load presence so the connected-instances card
+        // populates (was the canonical content of the Instances tab).
+        await Promise.allSettled([loadNodes(app), loadPresence(app)]);
         break;
       case "dreams":
         await loadConfig(app);

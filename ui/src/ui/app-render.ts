@@ -1765,6 +1765,13 @@ export function renderApp(state: AppViewState) {
                 pairedNodes: state.nodes,
                 pairedNodesLoading: state.nodesLoading,
                 onPairedNodesRefresh: () => loadNodes(state),
+                // astroclaw/0027: surface connected instances (presence) inside
+                // the Siblings panel too — same merged-view rationale.
+                connectedInstances: state.presenceEntries,
+                connectedInstancesLoading: state.presenceLoading,
+                connectedInstancesError: state.presenceError,
+                connectedInstancesStatus: state.presenceStatus,
+                onConnectedInstancesRefresh: () => loadPresence(state),
               }),
             )
           : nothing}

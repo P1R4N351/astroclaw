@@ -1,6 +1,8 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { t } from "../../i18n/index.ts";
 import { formatRelativeTimestamp } from "../format.ts";
+import { formatPresenceAge } from "../presenter.ts";
+import type { PresenceEntry } from "../types.ts";
 
 /**
  * Siblings view — surfaces the mesh state exposed by the astroclaw sidecar's
@@ -91,6 +93,19 @@ export type SiblingsProps = {
   pairedNodes?: Array<Record<string, unknown>>;
   pairedNodesLoading?: boolean;
   onPairedNodesRefresh?: () => void;
+  /**
+   * astroclaw/0027: connected instances (presence entries — chat clients,
+   * mobile, glasses, scripts holding an active gateway session). Was
+   * the canonical content of the dedicated Instances page. When
+   * provided, renders below the paired-nodes card as a "Connected
+   * instances" card. Optional so callers without presence state still
+   * compile.
+   */
+  connectedInstances?: PresenceEntry[];
+  connectedInstancesLoading?: boolean;
+  connectedInstancesError?: string | null;
+  connectedInstancesStatus?: string | null;
+  onConnectedInstancesRefresh?: () => void;
 };
 
 export function renderSiblings(props: SiblingsProps): TemplateResult {
@@ -172,6 +187,13 @@ export function renderSiblings(props: SiblingsProps): TemplateResult {
         Boolean(props.pairedNodesLoading),
         props.onPairedNodesRefresh,
       )}
+      ${renderConnectedInstances({
+        entries: props.connectedInstances,
+        loading: Boolean(props.connectedInstancesLoading),
+        error: props.connectedInstancesError ?? null,
+        statusMessage: props.connectedInstancesStatus ?? null,
+        onRefresh: props.onConnectedInstancesRefresh,
+      })}
     </section>
   `;
 }
@@ -250,6 +272,115 @@ function renderPairedNodeRow(node: Record<string, unknown>): TemplateResult {
         </div>
       </div>
     </li>
+  `;
+}
+
+/**
+ * astroclaw/0027: connected instances card. Lives inside the Siblings
+ * panel below the paired-nodes card so the operator sees mesh
+ * siblings, paired peers, and active client sessions on the same
+ * page. Hosts/IPs stay masked by default — same control as the
+ * standalone Instances page.
+ */
+let connectedInstancesHostsRevealed = false;
+
+function renderConnectedInstances(args: {
+  entries: PresenceEntry[] | undefined;
+  loading: boolean;
+  error: string | null;
+  statusMessage: string | null;
+  onRefresh: (() => void) | undefined;
+}): TemplateResult | typeof nothing {
+  if (!args.entries || !args.onRefresh) {
+    return nothing;
+  }
+  const entries = args.entries;
+  const masked = !connectedInstancesHostsRevealed;
+  return html`
+    <section class="card" style="margin-top: 16px;">
+      <div class="row" style="justify-content: space-between; align-items: flex-start;">
+        <div>
+          <div class="card-title">${t("instances.title")} (${entries.length})</div>
+          <div class="card-sub">${t("instances.subtitle")}</div>
+        </div>
+        <div class="row" style="gap: 8px;">
+          <button
+            class="btn btn--icon ${masked ? "" : "active"}"
+            @click=${() => {
+              connectedInstancesHostsRevealed = !connectedInstancesHostsRevealed;
+              args.onRefresh?.();
+            }}
+            title=${masked ? t("instances.showHosts") : t("instances.hideHosts")}
+            aria-label=${t("instances.toggleHostVisibility")}
+            aria-pressed=${!masked}
+            style="width: 32px; height: 32px;"
+          >
+            ${masked ? "👁︎" : "👁"}
+          </button>
+          <button class="btn" ?disabled=${args.loading} @click=${args.onRefresh}>
+            ${args.loading ? t("common.loading") : t("common.refresh")}
+          </button>
+        </div>
+      </div>
+      ${args.error
+        ? html`<div class="callout danger" style="margin-top: 12px;">${args.error}</div>`
+        : nothing}
+      ${args.statusMessage
+        ? html`<div class="callout" style="margin-top: 12px;">${args.statusMessage}</div>`
+        : nothing}
+      <div class="list" style="margin-top: 12px;">
+        ${entries.length === 0
+          ? html`<div class="muted">${t("instances.noInstances")}</div>`
+          : entries.map((entry) => renderConnectedInstanceRow(entry, masked))}
+      </div>
+    </section>
+  `;
+}
+
+function renderConnectedInstanceRow(entry: PresenceEntry, masked: boolean): TemplateResult {
+  const lastInput =
+    entry.lastInputSeconds != null
+      ? t("common.secondsAgo", { count: String(entry.lastInputSeconds) })
+      : t("common.na");
+  const mode = entry.mode ?? "unknown";
+  const host = entry.host ?? "unknown host";
+  const ip = entry.ip ?? null;
+  const roles = Array.isArray(entry.roles) ? entry.roles.filter(Boolean) : [];
+  const scopes = Array.isArray(entry.scopes) ? entry.scopes.filter(Boolean) : [];
+  const scopesLabel =
+    scopes.length > 0
+      ? scopes.length > 3
+        ? `${scopes.length} scopes`
+        : `scopes: ${scopes.join(", ")}`
+      : null;
+  return html`
+    <div class="list-item">
+      <div class="list-main">
+        <div class="list-title">
+          <span class="${masked ? "redacted" : ""}">${host}</span>
+        </div>
+        <div class="list-sub">
+          ${ip ? html`<span class="${masked ? "redacted" : ""}">${ip}</span> ` : nothing}${mode}
+          ${entry.version ?? ""}
+        </div>
+        <div class="chip-row">
+          <span class="chip">${mode}</span>
+          ${roles.map((role) => html`<span class="chip">${role}</span>`)}
+          ${scopesLabel ? html`<span class="chip">${scopesLabel}</span>` : nothing}
+          ${entry.platform ? html`<span class="chip">${entry.platform}</span>` : nothing}
+          ${entry.deviceFamily ? html`<span class="chip">${entry.deviceFamily}</span>` : nothing}
+          ${entry.modelIdentifier
+            ? html`<span class="chip">${entry.modelIdentifier}</span>`
+            : nothing}
+          ${entry.version ? html`<span class="chip">${entry.version}</span>` : nothing}
+        </div>
+      </div>
+      <div class="list-meta">
+        <div>${formatPresenceAge(entry)}</div>
+        <div class="muted">${t("instances.lastInput", { time: lastInput })}</div>
+        <div class="muted">${t("instances.reason", { reason: entry.reason ?? "" })}</div>
+      </div>
+    </div>
   `;
 }
 
@@ -477,7 +608,9 @@ function renderEidetic(
           >
         </div>
       </div>
-      <dl style="margin: 8px 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px;">
+      <dl
+        style="margin: 8px 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px;"
+      >
         ${eidetic.endpoint
           ? html`
               <dt style="opacity: 0.7; font-size: 0.85em;">Endpoint</dt>
@@ -516,8 +649,8 @@ function renderEidetic(
           ? html`
               <dt style="opacity: 0.7; font-size: 0.85em;">pgvector</dt>
               <dd style="margin: 0;">
-                ${eidetic.pgvector.embeddings} embeddings${typeof eidetic.pgvector.dimensions ===
-                "number"
+                ${eidetic.pgvector.embeddings}
+                embeddings${typeof eidetic.pgvector.dimensions === "number"
                   ? html` <span class="muted">· dim ${eidetic.pgvector.dimensions}</span>`
                   : nothing}
               </dd>
