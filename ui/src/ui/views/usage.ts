@@ -1,43 +1,13 @@
 import { html, nothing } from "lit";
 import { t } from "../../i18n/index.ts";
 import { getUsageCacheRefreshTitle } from "../usage-cache-status.ts";
-import { extractQueryTerms, filterSessionsByQuery } from "../usage-helpers.ts";
-import {
-  buildAggregatesFromSessions,
-  buildPeakErrorHours,
-  buildUsageInsightStats,
-  formatCost,
-  formatIsoDate,
-  formatTokens,
-  renderUsageMosaic,
-  sessionTouchesSelectedHours,
-} from "./usage-metrics.ts";
-import {
-  addQueryToken,
-  applySuggestionToQuery,
-  buildDailyCsv,
-  buildQuerySuggestions,
-  buildSessionsCsv,
-  downloadTextFile,
-  normalizeQueryText,
-  removeQueryToken,
-  setQueryTokensForKey,
-} from "./usage-query.ts";
-import { renderSessionDetailPanel } from "./usage-render-details.ts";
-import {
-  renderCostBreakdownCompact,
-  renderDailyChartCompact,
-  renderFilterChips,
-  renderSessionsCard,
-  renderUsageInsights,
-} from "./usage-render-overview.ts";
-import {
+import { formatCost, formatIsoDate, formatTokens } from "./usage-metrics.ts";
+import type {
   SessionLogEntry,
   SessionLogRole,
   UsageColumnId,
   UsageFilterState,
   UsageProps,
-  UsageSessionEntry,
   UsageTotals,
 } from "./usageTypes.ts";
 
