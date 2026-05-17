@@ -6,13 +6,11 @@ export const TAB_GROUPS = [
   { label: "chat", tabs: ["chat"] },
   {
     label: "control",
-    tabs: ["overview", "channels", "siblings", "sessions", "usage", "cron"],
+    tabs: ["overview", "channels", "siblings", "sessions", "cron"],
   },
-  // astroclaw/0020: Nodes merged into the Siblings page (CONTROL group).
-  // astroclaw/0027: Instances merged into the Siblings page too. Both
-  // /nodes and /instances routes + Tab types stay defined so deep
-  // links keep working and the fallback pages still render if someone
-  // navigates to them directly, but they're gone from the sidebar.
+  // astroclaw/0020: Nodes → Siblings. 0027: Instances → Siblings. 0032: /usage dropped.
+  // /nodes, /instances, /usage routes + Tab types stay defined so deep
+  // links keep working and the stripped pages still render if navigated directly.
   { label: "agent", tabs: ["agents", "skills", "dreams"] },
   {
     label: "settings",
