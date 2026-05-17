@@ -383,14 +383,14 @@ export const en: TranslationMap = {
   nav: {
     chat: "Chat",
     control: "Control",
-    agent: "Agent",
+    agent: "Persona",
     settings: "Settings",
     expand: "Expand sidebar",
     collapse: "Collapse sidebar",
     resize: "Resize sidebar",
   },
   tabs: {
-    agents: "Agents",
+    agents: "Personas",
     overview: "Overview",
     channels: "Channels",
     instances: "Instances",
@@ -412,7 +412,7 @@ export const en: TranslationMap = {
     dreams: "Dreaming",
   },
   subtitles: {
-    agents: "Workspaces, tools, identities.",
+    agents: "Personas — identity, daily memory, lease, capability filter.",
     overview: "Status, entry points, health.",
     channels: "Channels and settings.",
     instances: "Connected clients and nodes.",
