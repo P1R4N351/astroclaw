@@ -71,8 +71,8 @@ export function formatCliBannerLine(version: string, options: BannerOptions = {}
     emojiOptions,
   );
   const rich = options.richTty ?? isRich();
-  const title = decorativePrefix("🦞", "Astroclaw", emojiOptions);
-  const prefix = decorativeEmoji("🦞", emojiOptions);
+  const title = decorativePrefix("🌿", "Astroclaw", emojiOptions);
+  const prefix = decorativeEmoji("🌿", emojiOptions);
   const indent = prefix ? `${prefix} ` : "";
   const columns = options.columns ?? process.stdout.columns ?? 120;
   const plainBaseLine = `${title} ${version} (${commitLabel})`;
@@ -125,7 +125,7 @@ function centerText(text: string, width: number): string {
 function formatCliBannerArtLines(options: BannerOptions): string[] {
   const width = visibleWidth(LOBSTER_ASCII_BODY[0] ?? "");
   const emojiOptions = resolveEmojiOptions(options);
-  const title = supportsDecorativeEmoji(emojiOptions) ? "🦞 ASTROCLAW 🦞" : "ASTROCLAW";
+  const title = supportsDecorativeEmoji(emojiOptions) ? "🌿 ASTROCLAW 🌿" : "ASTROCLAW";
   return [...LOBSTER_ASCII_BODY, centerText(title, width), " "];
 }
 
@@ -150,7 +150,7 @@ export function formatCliBannerArt(options: BannerOptions = {}): string {
   };
 
   const emojiOptions = resolveEmojiOptions(options);
-  const icon = decorativeEmoji("🦞", emojiOptions);
+  const icon = decorativeEmoji("🌿", emojiOptions);
   const colored = lines.map((line) => {
     if (line.includes("ASTROCLAW")) {
       if (!icon) {
