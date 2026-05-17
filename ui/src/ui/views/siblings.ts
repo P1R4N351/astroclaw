@@ -42,6 +42,9 @@ export type ProliferationHealth = {
   };
   events_observed?: Record<string, number>;
   channel_sends_allowed?: number;
+  workspace_replications_applied?: number;
+  session_snapshots_recorded?: number;
+  session_snapshot_body_cid_populated?: number;
   replication?: {
     peers: number;
     lag_ms: number;
@@ -67,7 +70,7 @@ export function renderSiblings(props: SiblingsProps): TemplateResult {
         </div>
         <pre
           style="margin-top: 12px; padding: 12px; background: var(--surface-2, #f4f4f5); border-radius: 6px; overflow: auto;"
-><code>// In astroclaw.json:
+        ><code>// In astroclaw.json:
 "proliferation": {
   "enabled": true,
   "nodeId": "this-host",
@@ -114,13 +117,19 @@ export function renderSiblings(props: SiblingsProps): TemplateResult {
         </button>
       </div>
 
-      <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
-        ${node ? renderThisNode(node) : nothing}
-        ${renderMesh(mesh, node?.id)}
-        ${renderLeases(leases)}
-        ${renderHeartbeat(heartbeat)}
+      <div
+        class="grid"
+        style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;"
+      >
+        ${node ? renderThisNode(node) : nothing} ${renderMesh(mesh, node?.id)}
+        ${renderLeases(leases)} ${renderHeartbeat(heartbeat)}
         ${renderReplication(p.postgres, p.replication)}
         ${renderEvents(events, p.channel_sends_allowed)}
+        ${renderReplicationActivity({
+          workspaceReplications: p.workspace_replications_applied,
+          sessionSnapshots: p.session_snapshots_recorded,
+          snapshotBodiesPushed: p.session_snapshot_body_cid_populated,
+        })}
       </div>
     </section>
   `;
@@ -167,7 +176,9 @@ function renderMesh(
               ${mesh.members.map(
                 (id) => html`
                   <li>
-                    <code>${id}</code>${id === selfId ? html` <span class="muted">(self)</span>` : nothing}
+                    <code>${id}</code>${id === selfId
+                      ? html` <span class="muted">(self)</span>`
+                      : nothing}
                   </li>
                 `,
               )}
@@ -180,9 +191,7 @@ function renderMesh(
 function renderLeases(leases: string[]): TemplateResult {
   return html`
     <div class="card" style="padding: 12px;">
-      <div class="card-title" style="font-size: 0.9em;">
-        Leases held (${leases.length})
-      </div>
+      <div class="card-title" style="font-size: 0.9em;">Leases held (${leases.length})</div>
       ${leases.length === 0
         ? html`<div class="muted">None.</div>`
         : html`
@@ -195,9 +204,7 @@ function renderLeases(leases: string[]): TemplateResult {
 }
 
 function renderHeartbeat(
-  heartbeat:
-    | { last_tick_at_ms: number; tick_seq: number; gap_ms: number }
-    | undefined,
+  heartbeat: { last_tick_at_ms: number; tick_seq: number; gap_ms: number } | undefined,
 ): TemplateResult {
   if (!heartbeat) {
     return html`
@@ -207,7 +214,8 @@ function renderHeartbeat(
       </div>
     `;
   }
-  const gapColor = heartbeat.gap_ms > 5000 ? "#dc2626" : heartbeat.gap_ms > 2000 ? "#f59e0b" : "#10b981";
+  const gapColor =
+    heartbeat.gap_ms > 5000 ? "#dc2626" : heartbeat.gap_ms > 2000 ? "#f59e0b" : "#10b981";
   return html`
     <div class="card" style="padding: 12px;">
       <div class="card-title" style="font-size: 0.9em;">Heartbeat</div>
@@ -283,6 +291,41 @@ function renderEvents(
                 : nothing}
             </table>
           `}
+    </div>
+  `;
+}
+
+function renderReplicationActivity(args: {
+  workspaceReplications: number | undefined;
+  sessionSnapshots: number | undefined;
+  snapshotBodiesPushed: number | undefined;
+}): TemplateResult {
+  const rows: Array<[string, number]> = [];
+  if (typeof args.workspaceReplications === "number") {
+    rows.push(["workspace writes replicated", args.workspaceReplications]);
+  }
+  if (typeof args.sessionSnapshots === "number") {
+    rows.push(["session snapshots observed", args.sessionSnapshots]);
+  }
+  if (typeof args.snapshotBodiesPushed === "number") {
+    rows.push(["snapshot bodies pushed (CAS)", args.snapshotBodiesPushed]);
+  }
+  if (rows.length === 0) {
+    return html``;
+  }
+  return html`
+    <div class="card" style="padding: 12px; grid-column: span 2;">
+      <div class="card-title" style="font-size: 0.9em;">Replication activity (phase-3)</div>
+      <table style="width: 100%; margin-top: 8px; border-collapse: collapse;">
+        ${rows.map(
+          ([name, count]) => html`
+            <tr>
+              <td style="padding: 4px 0; opacity: 0.7;">${name}</td>
+              <td style="padding: 4px 0; text-align: right;">${count}</td>
+            </tr>
+          `,
+        )}
+      </table>
     </div>
   `;
 }
