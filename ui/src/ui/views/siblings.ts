@@ -49,6 +49,31 @@ export type ProliferationHealth = {
     peers: number;
     lag_ms: number;
   };
+  /**
+   * astroclaw/0025: eidetic warm-spare + snapshot pipeline state. Optional so
+   * phase-1 (in-memory) and pre-phase-3 (cron-puller, no sidecar surface)
+   * deploys render nothing. After phase-3 cutover the same shape is
+   * populated by the logical-replica side of proliferation-postgres.
+   */
+  eidetic?: {
+    role: string;
+    endpoint?: string;
+    lag_ms?: number;
+    last_pull_at_ms?: number;
+    snapshots?: {
+      count: number;
+      last_at_ms?: number;
+      last_bytes?: number;
+    };
+    pgvector?: {
+      embeddings: number;
+      dimensions?: number;
+    };
+    dispatch_queue?: {
+      pending: number;
+      in_flight: number;
+    };
+  };
 };
 
 export type SiblingsProps = {
@@ -140,6 +165,7 @@ export function renderSiblings(props: SiblingsProps): TemplateResult {
           sessionSnapshots: p.session_snapshots_recorded,
           snapshotBodiesPushed: p.session_snapshot_body_cid_populated,
         })}
+        ${renderEidetic(p.eidetic)}
       </div>
       ${renderPairedNodes(
         props.pairedNodes,
@@ -420,6 +446,102 @@ function renderReplicationActivity(args: {
       </table>
     </div>
   `;
+}
+
+function renderEidetic(
+  eidetic: NonNullable<ProliferationHealth["eidetic"]> | undefined,
+): TemplateResult {
+  if (!eidetic) {
+    return html``;
+  }
+  const isReplica = eidetic.role === "replica";
+  const roleBg = eidetic.role === "primary" ? "#86efac" : isReplica ? "#bae6fd" : "#fde68a";
+  const lagColor =
+    typeof eidetic.lag_ms === "number"
+      ? eidetic.lag_ms > 60_000
+        ? "#dc2626"
+        : eidetic.lag_ms > 10_000
+          ? "#f59e0b"
+          : "#10b981"
+      : undefined;
+  return html`
+    <div class="card" style="padding: 12px; grid-column: span 2;">
+      <div class="row" style="justify-content: space-between; align-items: flex-start;">
+        <div class="card-title" style="font-size: 0.9em;">
+          Eidetic
+          <span
+            class="badge"
+            style="margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+                   background: ${roleBg}; color: #052e16; font-size: 0.75em;"
+            >${eidetic.role}</span
+          >
+        </div>
+      </div>
+      <dl style="margin: 8px 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px;">
+        ${eidetic.endpoint
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">Endpoint</dt>
+              <dd style="margin: 0;"><code>${eidetic.endpoint}</code></dd>
+            `
+          : nothing}
+        ${typeof eidetic.lag_ms === "number"
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">Replica lag</dt>
+              <dd style="margin: 0; color: ${lagColor};">${formatDurationMs(eidetic.lag_ms)}</dd>
+            `
+          : nothing}
+        ${typeof eidetic.last_pull_at_ms === "number"
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">Last pull</dt>
+              <dd style="margin: 0;">${formatRelativeTimestamp(eidetic.last_pull_at_ms)}</dd>
+            `
+          : nothing}
+        ${eidetic.snapshots
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">Snapshots</dt>
+              <dd style="margin: 0;">
+                ${eidetic.snapshots.count}
+                ${typeof eidetic.snapshots.last_at_ms === "number"
+                  ? html` <span class="muted"
+                      >· last ${formatRelativeTimestamp(eidetic.snapshots.last_at_ms)}</span
+                    >`
+                  : nothing}
+                ${typeof eidetic.snapshots.last_bytes === "number"
+                  ? html` <span class="muted">· ${formatBytes(eidetic.snapshots.last_bytes)}</span>`
+                  : nothing}
+              </dd>
+            `
+          : nothing}
+        ${eidetic.pgvector
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">pgvector</dt>
+              <dd style="margin: 0;">
+                ${eidetic.pgvector.embeddings} embeddings${typeof eidetic.pgvector.dimensions ===
+                "number"
+                  ? html` <span class="muted">· dim ${eidetic.pgvector.dimensions}</span>`
+                  : nothing}
+              </dd>
+            `
+          : nothing}
+        ${eidetic.dispatch_queue
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">DISPATCH queue</dt>
+              <dd style="margin: 0;">
+                ${eidetic.dispatch_queue.pending} pending
+                <span class="muted">· ${eidetic.dispatch_queue.in_flight} in-flight</span>
+              </dd>
+            `
+          : nothing}
+      </dl>
+    </div>
+  `;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KiB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MiB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GiB`;
 }
 
 function formatDurationMs(ms: number): string {
