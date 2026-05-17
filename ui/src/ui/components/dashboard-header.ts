@@ -11,6 +11,11 @@ export class DashboardHeader extends LitElement {
   @property() basePath = "";
   @property() agentLabel = "";
 
+  private get astroclawIconSrc(): string {
+    const base = this.basePath.trim().replace(/\/$/, "");
+    return base ? `${base}/favicon.svg` : "favicon.svg";
+  }
+
   private readonly handleOverviewClick = (event: MouseEvent) => {
     if (
       event.defaultPrevented ||
@@ -39,7 +44,16 @@ export class DashboardHeader extends LitElement {
             class="dashboard-header__breadcrumb-link"
             href=${pathForTab("overview", this.basePath)}
             @click=${this.handleOverviewClick}
+            style="display:inline-flex;align-items:center;gap:6px;"
           >
+            <img
+              src=${this.astroclawIconSrc}
+              alt=""
+              aria-hidden="true"
+              width="20"
+              height="20"
+              style="display:inline-block;vertical-align:middle;border-radius:4px;"
+            />
             Astroclaw
           </a>
           ${agentLabel
