@@ -381,14 +381,13 @@ export function renderSiblings(props: SiblingsProps): TemplateResult {
         style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;"
       >
         ${node ? renderThisNode(node) : nothing} ${renderLeases(leases)}
-        ${renderHeartbeat(heartbeat)} ${renderReplication(p.postgres, p.replication)}
+        ${renderHeartbeat(heartbeat)} ${renderInfrastructure(p.postgres, p.replication, p.eidetic)}
         ${renderEvents(events, p.channel_sends_allowed)}
         ${renderReplicationActivity({
           workspaceReplications: p.workspace_replications_applied,
           sessionSnapshots: p.session_snapshots_recorded,
           snapshotBodiesPushed: p.session_snapshot_body_cid_populated,
         })}
-        ${renderEidetic(p.eidetic)}
       </div>
       ${renderCategorizedSiblings({
         mesh,
@@ -780,28 +779,162 @@ function renderHeartbeat(
   `;
 }
 
-function renderReplication(
+/**
+ * astroclaw/0029: merged "Infrastructure" card — collapses the previous
+ * standalone Replication card (postgres + peers/lag) and the standalone
+ * Eidetic card (warm-spare role/endpoint/lag + snapshots + pgvector +
+ * DISPATCH queue) into a single 2-col panel with three subsections.
+ * All three are independently optional so phase-1 (in-memory) deploys
+ * render only "Postgres: not configured", phase-2 deploys add Peers +
+ * Lag, and phase-3 + warm-spare deploys fill in Eidetic too.
+ *
+ * The card always renders at least the Postgres subsection because the
+ * Postgres line was previously its own always-on card; suppressing it
+ * would silently hide a state the operator was already used to seeing.
+ */
+function renderInfrastructure(
   postgres: { connected: boolean; configured: boolean } | undefined,
   replication: { peers: number; lag_ms: number } | undefined,
+  eidetic: NonNullable<ProliferationHealth["eidetic"]> | undefined,
 ): TemplateResult {
   return html`
-    <div class="card" style="padding: 12px;">
-      <div class="card-title" style="font-size: 0.9em;">Replication</div>
-      <dl style="margin: 8px 0;">
-        <dt style="opacity: 0.7; font-size: 0.85em;">Postgres</dt>
-        <dd style="margin: 0 0 6px 0;">
-          ${postgres?.connected
-            ? html`<span style="color: #10b981;">connected</span>`
-            : postgres?.configured
-              ? html`<span style="color: #f59e0b;">configured but not connected</span>`
-              : html`<span class="muted">not configured (phase-1)</span>`}
-        </dd>
-        ${replication
+    <div class="card" style="padding: 12px; grid-column: span 2;">
+      <div class="card-title" style="font-size: 0.9em;">Infrastructure</div>
+      <div
+        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 24px; margin-top: 8px;"
+      >
+        ${renderInfraPostgres(postgres)} ${renderInfraReplication(replication)}
+        ${renderInfraEidetic(eidetic)}
+      </div>
+    </div>
+  `;
+}
+
+function renderInfraPostgres(
+  postgres: { connected: boolean; configured: boolean } | undefined,
+): TemplateResult {
+  return html`
+    <div>
+      <div class="card-sub" style="font-size: 0.8em; margin-bottom: 6px;">Postgres</div>
+      <div>
+        ${postgres?.connected
+          ? html`<span style="color: #10b981;">connected</span>`
+          : postgres?.configured
+            ? html`<span style="color: #f59e0b;">configured but not connected</span>`
+            : html`<span class="muted">not configured (phase-1)</span>`}
+      </div>
+    </div>
+  `;
+}
+
+function renderInfraReplication(
+  replication: { peers: number; lag_ms: number } | undefined,
+): TemplateResult {
+  if (!replication) {
+    return html`
+      <div>
+        <div class="card-sub" style="font-size: 0.8em; margin-bottom: 6px;">Replication</div>
+        <div class="muted">no peers</div>
+      </div>
+    `;
+  }
+  return html`
+    <div>
+      <div class="card-sub" style="font-size: 0.8em; margin-bottom: 6px;">Replication</div>
+      <dl style="margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px 8px;">
+        <dt style="opacity: 0.7; font-size: 0.85em;">Peers</dt>
+        <dd style="margin: 0;">${replication.peers}</dd>
+        <dt style="opacity: 0.7; font-size: 0.85em;">Lag</dt>
+        <dd style="margin: 0;">${formatDurationMs(replication.lag_ms)}</dd>
+      </dl>
+    </div>
+  `;
+}
+
+function renderInfraEidetic(
+  eidetic: NonNullable<ProliferationHealth["eidetic"]> | undefined,
+): TemplateResult {
+  if (!eidetic) {
+    return html`
+      <div>
+        <div class="card-sub" style="font-size: 0.8em; margin-bottom: 6px;">Eidetic</div>
+        <div class="muted">not configured</div>
+      </div>
+    `;
+  }
+  const isReplica = eidetic.role === "replica";
+  const roleBg = eidetic.role === "primary" ? "#86efac" : isReplica ? "#bae6fd" : "#fde68a";
+  const lagColor =
+    typeof eidetic.lag_ms === "number"
+      ? eidetic.lag_ms > 60_000
+        ? "#dc2626"
+        : eidetic.lag_ms > 10_000
+          ? "#f59e0b"
+          : "#10b981"
+      : undefined;
+  return html`
+    <div>
+      <div class="card-sub" style="font-size: 0.8em; margin-bottom: 6px;">
+        Eidetic
+        <span
+          class="badge"
+          style="margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+                 background: ${roleBg}; color: #052e16; font-size: 0.85em;"
+          >${eidetic.role}</span
+        >
+      </div>
+      <dl style="margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px 8px;">
+        ${eidetic.endpoint
           ? html`
-              <dt style="opacity: 0.7; font-size: 0.85em;">Peers</dt>
-              <dd style="margin: 0 0 6px 0;">${replication.peers}</dd>
+              <dt style="opacity: 0.7; font-size: 0.85em;">Endpoint</dt>
+              <dd style="margin: 0;"><code>${eidetic.endpoint}</code></dd>
+            `
+          : nothing}
+        ${typeof eidetic.lag_ms === "number"
+          ? html`
               <dt style="opacity: 0.7; font-size: 0.85em;">Lag</dt>
-              <dd style="margin: 0;">${formatDurationMs(replication.lag_ms)}</dd>
+              <dd style="margin: 0; color: ${lagColor};">${formatDurationMs(eidetic.lag_ms)}</dd>
+            `
+          : nothing}
+        ${typeof eidetic.last_pull_at_ms === "number"
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">Last pull</dt>
+              <dd style="margin: 0;">${formatRelativeTimestamp(eidetic.last_pull_at_ms)}</dd>
+            `
+          : nothing}
+        ${eidetic.snapshots
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">Snapshots</dt>
+              <dd style="margin: 0;">
+                ${eidetic.snapshots.count}
+                ${typeof eidetic.snapshots.last_at_ms === "number"
+                  ? html` <span class="muted"
+                      >· ${formatRelativeTimestamp(eidetic.snapshots.last_at_ms)}</span
+                    >`
+                  : nothing}
+                ${typeof eidetic.snapshots.last_bytes === "number"
+                  ? html` <span class="muted">· ${formatBytes(eidetic.snapshots.last_bytes)}</span>`
+                  : nothing}
+              </dd>
+            `
+          : nothing}
+        ${eidetic.pgvector
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">pgvector</dt>
+              <dd style="margin: 0;">
+                ${eidetic.pgvector.embeddings}${typeof eidetic.pgvector.dimensions === "number"
+                  ? html` <span class="muted">· dim ${eidetic.pgvector.dimensions}</span>`
+                  : nothing}
+              </dd>
+            `
+          : nothing}
+        ${eidetic.dispatch_queue
+          ? html`
+              <dt style="opacity: 0.7; font-size: 0.85em;">DISPATCH</dt>
+              <dd style="margin: 0;">
+                ${eidetic.dispatch_queue.pending} pending
+                <span class="muted">· ${eidetic.dispatch_queue.in_flight} in-flight</span>
+              </dd>
             `
           : nothing}
       </dl>
@@ -874,97 +1007,6 @@ function renderReplicationActivity(args: {
           `,
         )}
       </table>
-    </div>
-  `;
-}
-
-function renderEidetic(
-  eidetic: NonNullable<ProliferationHealth["eidetic"]> | undefined,
-): TemplateResult {
-  if (!eidetic) {
-    return html``;
-  }
-  const isReplica = eidetic.role === "replica";
-  const roleBg = eidetic.role === "primary" ? "#86efac" : isReplica ? "#bae6fd" : "#fde68a";
-  const lagColor =
-    typeof eidetic.lag_ms === "number"
-      ? eidetic.lag_ms > 60_000
-        ? "#dc2626"
-        : eidetic.lag_ms > 10_000
-          ? "#f59e0b"
-          : "#10b981"
-      : undefined;
-  return html`
-    <div class="card" style="padding: 12px; grid-column: span 2;">
-      <div class="row" style="justify-content: space-between; align-items: flex-start;">
-        <div class="card-title" style="font-size: 0.9em;">
-          Eidetic
-          <span
-            class="badge"
-            style="margin-left: 8px; padding: 2px 8px; border-radius: 999px;
-                   background: ${roleBg}; color: #052e16; font-size: 0.75em;"
-            >${eidetic.role}</span
-          >
-        </div>
-      </div>
-      <dl
-        style="margin: 8px 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px;"
-      >
-        ${eidetic.endpoint
-          ? html`
-              <dt style="opacity: 0.7; font-size: 0.85em;">Endpoint</dt>
-              <dd style="margin: 0;"><code>${eidetic.endpoint}</code></dd>
-            `
-          : nothing}
-        ${typeof eidetic.lag_ms === "number"
-          ? html`
-              <dt style="opacity: 0.7; font-size: 0.85em;">Replica lag</dt>
-              <dd style="margin: 0; color: ${lagColor};">${formatDurationMs(eidetic.lag_ms)}</dd>
-            `
-          : nothing}
-        ${typeof eidetic.last_pull_at_ms === "number"
-          ? html`
-              <dt style="opacity: 0.7; font-size: 0.85em;">Last pull</dt>
-              <dd style="margin: 0;">${formatRelativeTimestamp(eidetic.last_pull_at_ms)}</dd>
-            `
-          : nothing}
-        ${eidetic.snapshots
-          ? html`
-              <dt style="opacity: 0.7; font-size: 0.85em;">Snapshots</dt>
-              <dd style="margin: 0;">
-                ${eidetic.snapshots.count}
-                ${typeof eidetic.snapshots.last_at_ms === "number"
-                  ? html` <span class="muted"
-                      >· last ${formatRelativeTimestamp(eidetic.snapshots.last_at_ms)}</span
-                    >`
-                  : nothing}
-                ${typeof eidetic.snapshots.last_bytes === "number"
-                  ? html` <span class="muted">· ${formatBytes(eidetic.snapshots.last_bytes)}</span>`
-                  : nothing}
-              </dd>
-            `
-          : nothing}
-        ${eidetic.pgvector
-          ? html`
-              <dt style="opacity: 0.7; font-size: 0.85em;">pgvector</dt>
-              <dd style="margin: 0;">
-                ${eidetic.pgvector.embeddings}
-                embeddings${typeof eidetic.pgvector.dimensions === "number"
-                  ? html` <span class="muted">· dim ${eidetic.pgvector.dimensions}</span>`
-                  : nothing}
-              </dd>
-            `
-          : nothing}
-        ${eidetic.dispatch_queue
-          ? html`
-              <dt style="opacity: 0.7; font-size: 0.85em;">DISPATCH queue</dt>
-              <dd style="margin: 0;">
-                ${eidetic.dispatch_queue.pending} pending
-                <span class="muted">· ${eidetic.dispatch_queue.in_flight} in-flight</span>
-              </dd>
-            `
-          : nothing}
-      </dl>
     </div>
   `;
 }
