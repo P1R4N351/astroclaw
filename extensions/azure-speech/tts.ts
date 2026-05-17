@@ -1,10 +1,10 @@
-import { assertOkOrThrowProviderError } from "openclaw/plugin-sdk/provider-http";
-import type { SpeechVoiceOption } from "openclaw/plugin-sdk/speech-core";
-import { trimToUndefined } from "openclaw/plugin-sdk/speech-core";
+import { assertOkOrThrowProviderError } from "astroclaw/plugin-sdk/provider-http";
+import type { SpeechVoiceOption } from "astroclaw/plugin-sdk/speech-core";
+import { trimToUndefined } from "astroclaw/plugin-sdk/speech-core";
 import {
   fetchWithSsrFGuard,
   ssrfPolicyFromHttpBaseUrlAllowedHostname,
-} from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/ssrf-runtime";
 
 export const DEFAULT_AZURE_SPEECH_VOICE = "en-US-JennyNeural";
 export const DEFAULT_AZURE_SPEECH_LANG = "en-US";
@@ -187,7 +187,7 @@ export async function azureSpeechTTS(params: {
         "Content-Type": "application/ssml+xml",
         "Ocp-Apim-Subscription-Key": params.apiKey,
         "X-Microsoft-OutputFormat": outputFormat,
-        "User-Agent": "OpenClaw",
+        "User-Agent": "Astroclaw",
       },
       body: buildAzureSpeechSsml({
         text: params.text,

@@ -4,11 +4,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import {
-  ensureOpenClawModelsJson,
+  ensureAstroclawModelsJson,
   resetModelsJsonReadyCacheForTest,
 } from "../../src/agents/models-config.js";
 import { resolveModelAsync } from "../../src/agents/pi-embedded-runner/model.js";
-import type { OpenClawConfig } from "../../src/config/types.openclaw.js";
+import type { AstroclawConfig } from "../../src/config/types.astroclaw.js";
 
 type Options = {
   agentCount: number;
@@ -121,7 +121,7 @@ function parseOptions(): Options {
 }
 
 function printUsage(): void {
-  process.stdout.write(`OpenClaw issue #78851 model-resolution profiler
+  process.stdout.write(`Astroclaw issue #78851 model-resolution profiler
 
 Usage:
   pnpm perf:issue-78851 -- [options]
@@ -175,8 +175,8 @@ function modelRef(providerIndex: number, modelIndex: number): string {
   return `perf-${providerIndex}/perf-model-${modelIndex}`;
 }
 
-function buildConfig(options: Options, workspaceDir: string): OpenClawConfig {
-  const providers: NonNullable<NonNullable<OpenClawConfig["models"]>["providers"]> = {};
+function buildConfig(options: Options, workspaceDir: string): AstroclawConfig {
+  const providers: NonNullable<NonNullable<AstroclawConfig["models"]>["providers"]> = {};
   for (let providerIndex = 0; providerIndex < options.providers; providerIndex += 1) {
     providers[`perf-${providerIndex}`] = {
       api: providerIndex % 2 === 0 ? "openai-responses" : "openai-completions",
@@ -296,7 +296,7 @@ async function startCpuProfile(params: { dir?: string; output?: string }): Promi
 
 async function measurePhase(params: {
   agentDir: string;
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   lookups: number;
   modelIndexOffset: number;
   providerCount: number;
@@ -306,7 +306,7 @@ async function measurePhase(params: {
 }): Promise<PhaseSample> {
   const started = performance.now();
   const ensureStarted = performance.now();
-  const ensureResult = await ensureOpenClawModelsJson(params.config, params.agentDir, {
+  const ensureResult = await ensureAstroclawModelsJson(params.config, params.agentDir, {
     // Keep this harness deterministic by measuring configured-model scale.
     // Live provider catalog timing belongs in a separate Crabbox lane with secrets.
     providerDiscoveryProviderIds: [],
@@ -342,7 +342,7 @@ async function measurePhase(params: {
 }
 
 async function runOne(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   index: number;
   options: Options;
   tempRoot: string;
@@ -430,7 +430,7 @@ async function main(): Promise<void> {
     return;
   }
   const options = parseOptions();
-  const tempRoot = await mkdtemp(path.join(tmpdir(), "openclaw-issue-78851-"));
+  const tempRoot = await mkdtemp(path.join(tmpdir(), "astroclaw-issue-78851-"));
   const workspaceDir = path.join(tempRoot, "workspace");
   await mkdir(workspaceDir, { recursive: true });
   const config = buildConfig(options, workspaceDir);

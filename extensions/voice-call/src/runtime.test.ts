@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { VoiceCallConfig } from "./config.js";
 import type { CoreConfig } from "./core-bridge.js";
@@ -160,7 +160,7 @@ function requireRealtimeConsultToolHandler(): RealtimeConsultToolHandler {
     mocks.realtimeHandlerRegisterToolHandler.mock.calls,
     "realtime tool handler registration",
   );
-  expect(registeredToolHandler[0]).toBe("openclaw_agent_consult");
+  expect(registeredToolHandler[0]).toBe("astroclaw_agent_consult");
   if (typeof registeredToolHandler[1] !== "function") {
     throw new Error("expected realtime tool handler callback");
   }
@@ -251,7 +251,7 @@ describe("createVoiceCallRuntime lifecycle", () => {
           openai: { enabled: true },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await createVoiceCallRuntime({
       config: createBaseConfig(),
@@ -397,7 +397,7 @@ describe("createVoiceCallRuntime lifecycle", () => {
       throw new Error("expected realtime handler tools to be an array");
     }
     expect(tools.map((tool) => requireRecord(tool, "realtime tool").name)).toEqual([
-      "openclaw_agent_consult",
+      "astroclaw_agent_consult",
       "custom_tool",
     ]);
     const handler = requireRealtimeConsultToolHandler();
@@ -527,7 +527,7 @@ describe("createVoiceCallRuntime lifecycle", () => {
     mocks.resolveRealtimeFastContextConsult.mockResolvedValue({
       handled: true,
       result: {
-        text: "Fast OpenClaw memory or session context found.\nThe caller's basement lights are on.",
+        text: "Fast Astroclaw memory or session context found.\nThe caller's basement lights are on.",
       },
     });
 

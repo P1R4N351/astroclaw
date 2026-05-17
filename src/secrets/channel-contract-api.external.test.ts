@@ -57,7 +57,7 @@ module.exports = {
     {
       id: "channels.${channelId}.token",
       targetType: "channels.${channelId}.token",
-      configFile: "openclaw.json",
+      configFile: "astroclaw.json",
       pathPattern: "channels.${channelId}.token",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -79,7 +79,7 @@ module.exports = {
 }
 
 function writeExternalChannelPlugin(params: { pluginId: string; channelId: string }) {
-  const rootDir = makeTrackedTempDir("openclaw-channel-secret-contract", tempDirs);
+  const rootDir = makeTrackedTempDir("astroclaw-channel-secret-contract", tempDirs);
   fs.writeFileSync(
     path.join(rootDir, "secret-contract-api.cjs"),
     channelSecretContractModuleSource(params.channelId),
@@ -125,7 +125,7 @@ describe("external channel secret contract api", () => {
   });
 
   it("loads dist/ secret-contract-api sidecars for compiled npm-published external channel plugins", () => {
-    const rootDir = makeTrackedTempDir("openclaw-channel-secret-contract-dist", tempDirs);
+    const rootDir = makeTrackedTempDir("astroclaw-channel-secret-contract-dist", tempDirs);
     fs.mkdirSync(path.join(rootDir, "dist"), { recursive: true });
     fs.writeFileSync(
       path.join(rootDir, "dist", "secret-contract-api.cjs"),
@@ -158,9 +158,9 @@ describe("external channel secret contract api", () => {
   it.runIf(process.platform !== "win32")(
     "loads hardlinked external channel contracts when the plugin hardlink policy allows them",
     () => {
-      const rootDir = makeTrackedTempDir("openclaw-channel-secret-contract-hardlink", tempDirs);
+      const rootDir = makeTrackedTempDir("astroclaw-channel-secret-contract-hardlink", tempDirs);
       const outsideDir = makeTrackedTempDir(
-        "openclaw-channel-secret-contract-hardlink-outside",
+        "astroclaw-channel-secret-contract-hardlink-outside",
         tempDirs,
       );
       const outsideContractPath = path.join(outsideDir, "secret-contract-api.cjs");
@@ -175,7 +175,7 @@ describe("external channel secret contract api", () => {
         channelConfigs: {},
         rootDir,
       };
-      const env = { OPENCLAW_NIX_MODE: "1" };
+      const env = { ASTROCLAW_NIX_MODE: "1" };
       loadPluginMetadataSnapshotMock.mockReturnValue({
         plugins: [record],
       });

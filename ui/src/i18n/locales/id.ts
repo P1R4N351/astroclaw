@@ -423,7 +423,7 @@ export const id: TranslationMap = {
     skills: "Skills dan kunci API.",
     nodes: "Perangkat yang dipasangkan dan perintah.",
     chat: "Chat Gateway untuk intervensi cepat.",
-    config: "Edit openclaw.json.",
+    config: "Edit astroclaw.json.",
     communications: "Saluran, pesan, dan pengaturan audio.",
     appearance: "Tema, UI, dan pengaturan wizard penyiapan.",
     automation: "Perintah, hook, cron, dan plugin.",
@@ -498,7 +498,7 @@ export const id: TranslationMap = {
       metadataUpgradeSummary:
         "Perangkat ini sudah dipasangkan, tetapi perubahan metadata sedang menunggu persetujuan.",
       mobileHint:
-        "Di seluler? Salin URL lengkap (termasuk #token=...) dari openclaw dashboard --no-open di desktop Anda.",
+        "Di seluler? Salin URL lengkap (termasuk #token=...) dari astroclaw dashboard --no-open di desktop Anda.",
       docsTitle: "Dokumentasi pemasangan perangkat (dibuka di tab baru)",
       docsLink: "Dokumentasi: Pemasangan perangkat",
     },
@@ -536,7 +536,7 @@ export const id: TranslationMap = {
       modelAuthExpiresIn: "kedaluwarsa {when}",
       modelAuthAttentionExpiredTitle: "Autentikasi model kedaluwarsa",
       modelAuthAttentionExpiringTitle: "Autentikasi model akan segera kedaluwarsa",
-      modelAuthAttentionExpiredDesc: "{providers} — autentikasi ulang dengan openclaw models auth",
+      modelAuthAttentionExpiredDesc: "{providers} — autentikasi ulang dengan astroclaw models auth",
       modelAuthAttentionExpiringEntry: "{provider} ({when})",
     },
     attention: {
@@ -958,9 +958,9 @@ export const id: TranslationMap = {
         summary:
           "Gateway dapat dijangkau, tetapi memerlukan token atau kata sandi yang cocok sebelum browser ini dapat terhubung.",
         stepPaste:
-          "Tempel token dari openclaw dashboard --no-open atau masukkan kata sandi yang dikonfigurasi.",
+          "Tempel token dari astroclaw dashboard --no-open atau masukkan kata sandi yang dikonfigurasi.",
         stepGenerate:
-          "Jika belum ada token yang dikonfigurasi, jalankan openclaw doctor --generate-gateway-token di host Gateway.",
+          "Jika belum ada token yang dikonfigurasi, jalankan astroclaw doctor --generate-gateway-token di host Gateway.",
         stepConnect: "Klik Connect lagi setelah memperbarui kredensial.",
       },
       authFailed: {
@@ -968,7 +968,7 @@ export const id: TranslationMap = {
         summary:
           "Kredensial yang diberikan ditolak. Penyebab paling umum adalah token kedaluwarsa atau token yang disalin dari URL Gateway lain.",
         stepDashboard:
-          "Jalankan openclaw dashboard --no-open lalu buka URL baru atau tempel tokennya.",
+          "Jalankan astroclaw dashboard --no-open lalu buka URL baru atau tempel tokennya.",
         stepReplace:
           "Ganti nilai token/kata sandi yang lama; jangan gunakan ulang token dari URL Gateway lain.",
         stepMode:
@@ -992,8 +992,8 @@ export const id: TranslationMap = {
           "Browser ini memerlukan persetujuan satu kali dari host Gateway sebelum dapat menggunakan Control UI.",
         upgradeSummary:
           "Browser ini sudah dikenal, tetapi akses yang diminta berubah dan memerlukan persetujuan baru.",
-        stepList: "Jalankan openclaw devices list di host Gateway.",
-        stepApproveId: "Setujui permintaan ini: openclaw devices approve {requestId}.",
+        stepList: "Jalankan astroclaw devices list di host Gateway.",
+        stepApproveId: "Setujui permintaan ini: astroclaw devices approve {requestId}.",
         stepApprove: "Setujui permintaan browser/perangkat yang tertunda dari daftar tersebut.",
         stepReconnect: "Hubungkan ulang setelah persetujuan selesai.",
       },
@@ -1020,21 +1020,21 @@ export const id: TranslationMap = {
         summary:
           "Control UI yang disajikan dan Gateway yang berjalan tidak sepakat tentang protokol koneksi yang didukung.",
         stepDashboard:
-          "Buka kembali dashboard yang disajikan dengan openclaw dashboard agar UI dan Gateway berasal dari instalasi yang sama.",
+          "Buka kembali dashboard yang disajikan dengan astroclaw dashboard agar UI dan Gateway berasal dari instalasi yang sama.",
         stepDevUi:
           "Jika menggunakan pnpm ui:dev, bangun ulang atau mulai ulang UI dev terhadap checkout saat ini.",
         stepRestart:
-          "Mulai ulang Gateway setelah memperbarui OpenClaw agar menyajikan protokol saat ini.",
+          "Mulai ulang Gateway setelah memperbarui Astroclaw agar menyajikan protokol saat ini.",
       },
       network: {
         title: "Tidak dapat terhubung",
         summary:
           "Browser tidak dapat menyelesaikan koneksi Gateway. Periksa target dan transport sebelum mencoba ulang kredensial.",
-        stepGateway: "Pastikan Gateway berjalan dengan openclaw status atau openclaw gateway run.",
+        stepGateway: "Pastikan Gateway berjalan dengan astroclaw status atau astroclaw gateway run.",
         stepUrl:
           "Periksa URL WebSocket dan gunakan wss:// saat Gateway berada di belakang HTTPS/Tailscale Serve.",
         stepDashboard:
-          "Buka kembali dashboard dengan openclaw dashboard --no-open untuk menyalin ulang URL dan detail auth saat ini.",
+          "Buka kembali dashboard dengan astroclaw dashboard --no-open untuk menyalin ulang URL dan detail auth saat ini.",
       },
     },
   },

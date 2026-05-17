@@ -1,5 +1,5 @@
-import { jsonResult, readStringParam } from "openclaw/plugin-sdk/provider-web-search";
-import { getRuntimeConfigSnapshot } from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { jsonResult, readStringParam } from "astroclaw/plugin-sdk/provider-web-search";
+import { getRuntimeConfigSnapshot } from "astroclaw/plugin-sdk/runtime-config-snapshot";
 import { Type } from "typebox";
 import {
   buildXaiCodeExecutionPayload,
@@ -108,8 +108,8 @@ export function createCodeExecutionTool(options?: {
         return jsonResult({
           error: "missing_xai_api_key",
           message:
-            "code_execution needs an xAI API key. Run openclaw onboard --auth-choice xai-api-key, set XAI_API_KEY in the Gateway environment, or configure plugins.entries.xai.config.webSearch.apiKey.",
-          docs: "https://docs.openclaw.ai/tools/code-execution",
+            "code_execution needs an xAI API key. Run astroclaw onboard --auth-choice xai-api-key, set XAI_API_KEY in the Gateway environment, or configure plugins.entries.xai.config.webSearch.apiKey.",
+          docs: "https://docs.astroclaw.ai/tools/code-execution",
         });
       }
 

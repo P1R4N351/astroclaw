@@ -22,12 +22,12 @@ import { ensureAuthStoreFile } from "./paths.js";
 // isn't tested.
 
 describe("path-resolve helpers (direct-import coverage attribution)", () => {
-  const envSnapshot = captureEnv(["OPENCLAW_STATE_DIR"]);
+  const envSnapshot = captureEnv(["ASTROCLAW_STATE_DIR"]);
   let stateDir = "";
 
   beforeEach(async () => {
-    stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-path-direct-"));
-    process.env.OPENCLAW_STATE_DIR = stateDir;
+    stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-path-direct-"));
+    process.env.ASTROCLAW_STATE_DIR = stateDir;
   });
 
   afterEach(async () => {
@@ -44,7 +44,7 @@ describe("path-resolve helpers (direct-import coverage attribution)", () => {
 
   it("resolveAuthStorePath falls back to the default agent dir when agentDir is omitted", () => {
     // Omitting agentDir exercises the default agent-dir branch. With
-    // OPENCLAW_STATE_DIR set to our tempdir, the resolved path must live under it.
+    // ASTROCLAW_STATE_DIR set to our tempdir, the resolved path must live under it.
     const resolved = resolveAuthStorePath();
     expect(resolved.startsWith(stateDir)).toBe(true);
     expect(path.basename(resolved)).toMatch(/auth-profiles/);
@@ -83,7 +83,7 @@ describe("path-resolve helpers (direct-import coverage attribution)", () => {
     // Exercises the `pathname.startsWith(\"~\")` branch. We use a contrived
     // agentDir that already starts with `~` so the resolver echoes the
     // tilde path back instead of expanding it via resolveUserPath.
-    const tildeAgentDir = "~fake-openclaw-no-expand";
+    const tildeAgentDir = "~fake-astroclaw-no-expand";
     const resolved = resolveAuthStorePathForDisplay(tildeAgentDir);
     expect(resolved).toBe(path.resolve(tildeAgentDir, "auth-profiles.json"));
   });
@@ -96,12 +96,12 @@ describe("path-resolve helpers (direct-import coverage attribution)", () => {
 });
 
 describe("ensureAuthStoreFile (direct-import coverage attribution)", () => {
-  const envSnapshot = captureEnv(["OPENCLAW_STATE_DIR"]);
+  const envSnapshot = captureEnv(["ASTROCLAW_STATE_DIR"]);
   let stateDir = "";
 
   beforeEach(async () => {
-    stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-path-ensure-"));
-    process.env.OPENCLAW_STATE_DIR = stateDir;
+    stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-path-ensure-"));
+    process.env.ASTROCLAW_STATE_DIR = stateDir;
   });
 
   afterEach(async () => {

@@ -12,9 +12,9 @@ import type {
   MSTeamsFederatedCredentials,
 } from "./token.js";
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/ssrf-runtime")>(
-    "openclaw/plugin-sdk/ssrf-runtime",
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>(
+    "astroclaw/plugin-sdk/ssrf-runtime",
   );
   return {
     ...actual,
@@ -188,7 +188,7 @@ function readFirstCreatedActivity(createFn: ReturnType<typeof vi.fn>): {
 
 describe("createMSTeamsApp", () => {
   it("creates app without the Express 5 wildcard route regression (#55161)", async () => {
-    // Regression test for: https://github.com/openclaw/openclaw/issues/55161
+    // Regression test for: https://github.com/astroclaw/astroclaw/issues/55161
     // createMSTeamsApp passes a no-op httpServerAdapter to prevent the SDK from
     // creating its default HttpPlugin (which registers `/api*` — invalid in Express 5).
     const { App } = await import("@microsoft/teams.apps");
@@ -248,7 +248,7 @@ describe("createMSTeamsAdapter", () => {
     expect(options.headers?.Authorization).toBe("Bearer bot-token");
   });
 
-  it("passes the OpenClaw User-Agent to the Bot Framework connector client", async () => {
+  it("passes the Astroclaw User-Agent to the Bot Framework connector client", async () => {
     const creds = {
       type: "secret",
       appId: "app-id",
@@ -279,7 +279,7 @@ describe("createMSTeamsAdapter", () => {
     const clientCall = clientConstructorState.calls[0];
     expect(clientCall?.serviceUrl).toBe("https://service.example.com/");
     const options = clientCall?.options as { headers?: { "User-Agent"?: string } } | undefined;
-    expect(options?.headers?.["User-Agent"]).toMatch(/^teams\.ts\[apps\]\/.+ OpenClaw\/.+$/);
+    expect(options?.headers?.["User-Agent"]).toMatch(/^teams\.ts\[apps\]\/.+ Astroclaw\/.+$/);
   });
 });
 

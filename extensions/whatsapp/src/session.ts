@@ -2,15 +2,15 @@ import { randomUUID } from "node:crypto";
 import fsSync from "node:fs";
 import type { Agent } from "node:https";
 import { HttpsProxyAgent } from "https-proxy-agent";
-import { formatCliCommand } from "openclaw/plugin-sdk/cli-runtime";
-import { VERSION } from "openclaw/plugin-sdk/cli-runtime";
+import { formatCliCommand } from "astroclaw/plugin-sdk/cli-runtime";
+import { VERSION } from "astroclaw/plugin-sdk/cli-runtime";
 import {
   resolveEnvHttpProxyUrl,
   shouldUseEnvHttpProxyForUrl,
-} from "openclaw/plugin-sdk/fetch-runtime";
-import { danger, success } from "openclaw/plugin-sdk/runtime-env";
-import { getChildLogger, toPinoLikeLogger } from "openclaw/plugin-sdk/runtime-env";
-import { ensureDir, resolveUserPath } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/fetch-runtime";
+import { danger, success } from "astroclaw/plugin-sdk/runtime-env";
+import { getChildLogger, toPinoLikeLogger } from "astroclaw/plugin-sdk/runtime-env";
+import { ensureDir, resolveUserPath } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   readCredsJsonRaw,
   restoreCredsFromBackupIfNeeded,
@@ -171,7 +171,7 @@ export async function createWaSocket(
     version,
     logger,
     printQRInTerminal: false,
-    browser: ["openclaw", "cli", VERSION],
+    browser: ["astroclaw", "cli", VERSION],
     syncFullHistory: false,
     markOnlineOnConnect: false,
     ...socketTiming,
@@ -199,7 +199,7 @@ export async function createWaSocket(
         if (status === LOGGED_OUT_STATUS) {
           console.error(
             danger(
-              `WhatsApp session logged out. Run: ${formatCliCommand("openclaw channels login")}`,
+              `WhatsApp session logged out. Run: ${formatCliCommand("astroclaw channels login")}`,
             ),
           );
         }

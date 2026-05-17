@@ -1,6 +1,6 @@
 import { resolveDefaultAgentDir } from "../agents/agent-scope.js";
 import { resolveReadOnlyChannelPluginsForConfig } from "../channels/plugins/read-only.js";
-import type { OpenClawConfig } from "../config/types.js";
+import type { AstroclawConfig } from "../config/types.js";
 import type { HeartbeatEventPayload } from "../infra/heartbeat-events.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";
 import type { HealthSummary } from "./health.js";
@@ -25,8 +25,8 @@ function loadGatewayCallModule() {
 }
 
 export async function resolveStatusSecurityAudit(params: {
-  config: OpenClawConfig;
-  sourceConfig: OpenClawConfig;
+  config: AstroclawConfig;
+  sourceConfig: AstroclawConfig;
 }) {
   const { runSecurityAudit } = await loadSecurityAuditModule();
   const readOnlyPlugins = resolveReadOnlyChannelPluginsForConfig(params.config, {
@@ -47,7 +47,7 @@ export async function resolveStatusSecurityAudit(params: {
 }
 
 type StatusUsageSummaryOptions = {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   timeoutMs?: number;
   agentDir?: string;
 };
@@ -66,7 +66,7 @@ export async function loadStatusProviderUsageModule() {
 }
 
 export async function resolveStatusGatewayHealth(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   timeoutMs?: number;
 }) {
   const { callGateway } = await loadGatewayCallModule();
@@ -79,7 +79,7 @@ export async function resolveStatusGatewayHealth(params: {
 }
 
 export async function resolveStatusGatewayHealthSafe(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   timeoutMs?: number;
   gatewayReachable: boolean;
   gatewayProbeError?: string | null;
@@ -103,7 +103,7 @@ export async function resolveStatusGatewayHealthSafe(params: {
 }
 
 export async function resolveStatusLastHeartbeat(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   timeoutMs?: number;
   gatewayReachable: boolean;
 }) {
@@ -131,7 +131,7 @@ type StatusNodeServiceSummary = Awaited<ReturnType<typeof getNodeDaemonStatusSum
 type StatusSecurityAudit = Awaited<ReturnType<typeof resolveStatusSecurityAudit>>;
 
 export async function resolveStatusRuntimeDetails(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   timeoutMs?: number;
   usage?: boolean;
   deep?: boolean;
@@ -139,7 +139,7 @@ export async function resolveStatusRuntimeDetails(params: {
   suppressHealthErrors?: boolean;
   resolveUsage?: (input: StatusUsageSummaryOptions) => Promise<StatusUsageSummary>;
   resolveHealth?: (input: {
-    config: OpenClawConfig;
+    config: AstroclawConfig;
     timeoutMs?: number;
   }) => Promise<StatusGatewayHealth>;
 }) {
@@ -187,8 +187,8 @@ export async function resolveStatusRuntimeDetails(params: {
 }
 
 export async function resolveStatusRuntimeSnapshot(params: {
-  config: OpenClawConfig;
-  sourceConfig: OpenClawConfig;
+  config: AstroclawConfig;
+  sourceConfig: AstroclawConfig;
   timeoutMs?: number;
   usage?: boolean;
   deep?: boolean;
@@ -196,12 +196,12 @@ export async function resolveStatusRuntimeSnapshot(params: {
   includeSecurityAudit?: boolean;
   suppressHealthErrors?: boolean;
   resolveSecurityAudit?: (input: {
-    config: OpenClawConfig;
-    sourceConfig: OpenClawConfig;
+    config: AstroclawConfig;
+    sourceConfig: AstroclawConfig;
   }) => Promise<StatusSecurityAudit>;
   resolveUsage?: (input: StatusUsageSummaryOptions) => Promise<StatusUsageSummary>;
   resolveHealth?: (input: {
-    config: OpenClawConfig;
+    config: AstroclawConfig;
     timeoutMs?: number;
   }) => Promise<StatusGatewayHealth>;
 }) {

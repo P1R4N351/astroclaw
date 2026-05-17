@@ -1,7 +1,7 @@
-import { agentCommandFromIngress } from "openclaw/plugin-sdk/agent-runtime";
-import type { DiscordAccountConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createSubsystemLogger, type RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { agentCommandFromIngress } from "astroclaw/plugin-sdk/agent-runtime";
+import type { DiscordAccountConfig, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createSubsystemLogger, type RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { formatMention } from "../mentions.js";
 import { normalizeDiscordSlug } from "../monitor/allow-list.js";
 import { buildDiscordGroupSystemPrompt } from "../monitor/inbound-context.js";
@@ -63,7 +63,7 @@ function summarizeAgentTurnPayloads(payloads: readonly unknown[]): string {
 export async function resolveDiscordVoiceIngressContext(params: {
   entry: VoiceSessionEntry;
   userId: string;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   discordConfig: DiscordAccountConfig;
   ownerAllowFrom?: string[];
   fetchGuildName: (guildId: string) => Promise<string | undefined>;
@@ -106,7 +106,7 @@ export async function runDiscordVoiceAgentTurn(params: {
   entry: VoiceSessionEntry;
   userId: string;
   message: string;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   discordConfig: DiscordAccountConfig;
   runtime: RuntimeEnv;
   context?: DiscordVoiceIngressContext;

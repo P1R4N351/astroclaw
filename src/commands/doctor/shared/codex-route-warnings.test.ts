@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveAgentHarnessPolicy } from "../../../agents/harness/policy.js";
 import type { SessionEntry } from "../../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
 
 const mocks = vi.hoisted(() => ({
   ensureAuthProfileStore: vi.fn(),
@@ -62,14 +62,14 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
     });
 
     expect(warnings).toStrictEqual([
       [
         "- Legacy `openai-codex/*` model refs should be rewritten to `openai/*`.",
         "- agents.defaults.model: openai-codex/gpt-5.5 should become openai/gpt-5.5.",
-        "- Run `openclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
+        "- Run `astroclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
       ].join("\n"),
     ]);
   });
@@ -85,19 +85,19 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
     });
 
     expect(warnings).toStrictEqual([
       [
         "- Legacy `openai-codex/*` model refs should be rewritten to `openai/*`.",
         '- agents.defaults.model: openai-codex/gpt-5.5 should become openai/gpt-5.5; current runtime is "codex".',
-        "- Run `openclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
+        "- Run `astroclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
       ].join("\n"),
     ]);
   });
 
-  it("still warns when OPENCLAW_AGENT_RUNTIME selects native Codex with a legacy model ref", () => {
+  it("still warns when ASTROCLAW_AGENT_RUNTIME selects native Codex with a legacy model ref", () => {
     const warnings = collectCodexRouteWarnings({
       cfg: {
         agents: {
@@ -105,9 +105,9 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       env: {
-        OPENCLAW_AGENT_RUNTIME: "codex",
+        ASTROCLAW_AGENT_RUNTIME: "codex",
       },
     });
 
@@ -115,7 +115,7 @@ describe("collectCodexRouteWarnings", () => {
       [
         "- Legacy `openai-codex/*` model refs should be rewritten to `openai/*`.",
         '- agents.defaults.model: openai-codex/gpt-5.5 should become openai/gpt-5.5; current runtime is "codex".',
-        "- Run `openclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
+        "- Run `astroclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
       ].join("\n"),
     ]);
   });
@@ -128,7 +128,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai/gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
     });
 
     expect(warnings).toStrictEqual([]);
@@ -149,19 +149,19 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
     });
 
     expect(warnings).toStrictEqual([
       [
         "- Codex runtime is selected, but the Codex plugin is disabled.",
         "- agents.defaults.model.primary: gpt-5.5 resolves to openai/gpt-5.5 with Codex runtime while the Codex plugin is disabled by config.",
-        "- Run `openclaw doctor --fix`: it enables plugins.entries.codex, or set the affected OpenAI models to a PI runtime policy.",
+        "- Run `astroclaw doctor --fix`: it enables plugins.entries.codex, or set the affected OpenAI models to a PI runtime policy.",
       ].join("\n"),
     ]);
   });
 
-  it("warns when Codex runtime has OpenClaw compaction summarizer overrides", () => {
+  it("warns when Codex runtime has Astroclaw compaction summarizer overrides", () => {
     const warnings = collectCodexRouteWarnings({
       cfg: {
         agents: {
@@ -173,15 +173,15 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
     });
 
     expect(warnings).toStrictEqual([
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.model: openai/gpt-5.4 is ignored while this agent uses Codex runtime.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
-        "- Run `openclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
+        "- Run `astroclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
       ].join("\n"),
     ]);
   });
@@ -197,15 +197,15 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
     });
 
     expect(warnings).toStrictEqual([
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.model: openai/gpt-5.4 is ignored while this agent uses Codex runtime.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
-        "- Run `openclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
+        "- Run `astroclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
       ].join("\n"),
     ]);
   });
@@ -223,15 +223,15 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
     });
 
     expect(warnings).toStrictEqual([
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.model: openai/gpt-5.4 is ignored while this agent uses Codex runtime.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
-        "- Run `openclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
+        "- Run `astroclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
       ].join("\n"),
     ]);
   });
@@ -249,7 +249,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -275,7 +275,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -303,7 +303,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -335,7 +335,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -362,7 +362,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -409,7 +409,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -450,7 +450,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -478,7 +478,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -513,7 +513,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -537,7 +537,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -571,7 +571,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -610,7 +610,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -660,7 +660,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -718,7 +718,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -801,7 +801,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -857,7 +857,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -917,7 +917,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -993,7 +993,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1053,7 +1053,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.4",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1094,7 +1094,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.4",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1133,13 +1133,13 @@ describe("collectCodexRouteWarnings", () => {
           model: "openai-codex/gpt-5.4",
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     expect(collectCodexRouteWarnings({ cfg })).toStrictEqual([
       [
         "- Legacy `openai-codex/*` model refs should be rewritten to `openai/*`.",
         "- hooks.gmail.model: openai-codex/gpt-5.4 should become openai/gpt-5.4.",
-        "- Run `openclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
+        "- Run `astroclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
       ].join("\n"),
     ]);
   });
@@ -1167,7 +1167,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1211,7 +1211,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1251,7 +1251,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1292,7 +1292,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1337,7 +1337,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1349,7 +1349,7 @@ describe("collectCodexRouteWarnings", () => {
     });
     expect(result.warnings).toStrictEqual([
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.model: openai/gpt-5.4 is ignored while this agent uses Codex runtime.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
         "- Move or remove shared `agents.defaults.compaction.model/provider` settings manually; doctor keeps shared defaults while non-Codex agents can inherit them.",
@@ -1375,7 +1375,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1386,7 +1386,7 @@ describe("collectCodexRouteWarnings", () => {
     });
     expect(result.warnings).toStrictEqual([
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.model: openai/gpt-5.4 is ignored while this agent uses Codex runtime.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
         "- Move or remove shared `agents.defaults.compaction.model/provider` settings manually; doctor keeps shared defaults while non-Codex agents can inherit them.",
@@ -1418,7 +1418,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1431,7 +1431,7 @@ describe("collectCodexRouteWarnings", () => {
     });
     expect(result.warnings).toStrictEqual([
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
         "- Move or remove shared `agents.defaults.compaction.model/provider` settings manually; doctor keeps shared defaults while non-Codex agents can inherit them.",
       ].join("\n"),
@@ -1457,7 +1457,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1470,7 +1470,7 @@ describe("collectCodexRouteWarnings", () => {
     expect(result.changes.join("\n")).not.toContain("Removed agents.defaults.compaction");
     expect(result.warnings).toStrictEqual([
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.model: openai/gpt-5.4 is ignored while this agent uses Codex runtime.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
         "- Move or remove shared `agents.defaults.compaction.model/provider` settings manually; doctor keeps shared defaults while non-Codex agents can inherit them.",
@@ -1497,7 +1497,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1529,7 +1529,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1565,7 +1565,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1613,19 +1613,19 @@ describe("collectCodexRouteWarnings", () => {
           model: "openai-codex/gpt-5.4",
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     expect(collectCodexRouteWarnings({ cfg })).toStrictEqual([
       [
         "- Legacy `openai-codex/*` model refs should be rewritten to `openai/*`.",
         "- hooks.gmail.model: openai-codex/gpt-5.4 should become openai/gpt-5.4.",
-        "- Run `openclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
+        "- Run `astroclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
       ].join("\n"),
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.model: openai/gpt-5.4 is ignored while this agent uses Codex runtime.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
-        "- Run `openclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
+        "- Run `astroclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
       ].join("\n"),
     ]);
 
@@ -1661,7 +1661,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.4",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1703,19 +1703,19 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
     });
 
     expect(warnings).toStrictEqual([
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
         "- Move or remove shared `agents.defaults.compaction.model/provider` settings manually; doctor keeps shared defaults while non-Codex agents can inherit them.",
       ].join("\n"),
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.list.codex.compaction.model: openai/gpt-5.4 is ignored while this agent uses Codex runtime.",
-        "- Run `openclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
+        "- Run `astroclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
       ].join("\n"),
     ]);
   });
@@ -1738,7 +1738,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1750,7 +1750,7 @@ describe("collectCodexRouteWarnings", () => {
     expect(result.cfg.agents?.defaults?.agentRuntime).toBeUndefined();
     expect(result.warnings).toStrictEqual([
       [
-        "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+        "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
         "- agents.defaults.compaction.model: openai/gpt-5.4 is ignored while this agent uses Codex runtime.",
         "- agents.defaults.compaction.provider: custom-summary is ignored while this agent uses Codex runtime.",
         "- Move or remove shared `agents.defaults.compaction.model/provider` settings manually; doctor keeps shared defaults while non-Codex agents can inherit them.",
@@ -1789,7 +1789,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -1876,7 +1876,7 @@ describe("collectCodexRouteWarnings", () => {
             summaryModel: "openai-codex/gpt-5.4-mini",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
       codexRuntimeReady: true,
     });
@@ -1955,7 +1955,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
       codexRuntimeReady: true,
     });
@@ -1985,7 +1985,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2014,7 +2014,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2050,7 +2050,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2079,7 +2079,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2111,7 +2111,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2140,7 +2140,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2172,7 +2172,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2205,7 +2205,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2232,7 +2232,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2262,7 +2262,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2292,7 +2292,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2320,7 +2320,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2341,7 +2341,7 @@ describe("collectCodexRouteWarnings", () => {
             codex: { enabled: false },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2366,7 +2366,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2395,7 +2395,7 @@ describe("collectCodexRouteWarnings", () => {
         agents: {
           defaults: {},
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2422,7 +2422,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2449,7 +2449,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2483,7 +2483,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2507,7 +2507,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openrouter:auto",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2537,7 +2537,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2564,7 +2564,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2593,7 +2593,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2625,7 +2625,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2648,7 +2648,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2673,7 +2673,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2701,7 +2701,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2729,7 +2729,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2763,7 +2763,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2797,7 +2797,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2826,7 +2826,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "qwen-max",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2855,7 +2855,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "qwen-max",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2884,7 +2884,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "qwen-max",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2912,7 +2912,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2956,7 +2956,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -2998,7 +2998,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -3039,7 +3039,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -3078,7 +3078,7 @@ describe("collectCodexRouteWarnings", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -3097,7 +3097,7 @@ describe("collectCodexRouteWarnings", () => {
       [
         "- Legacy `openai-codex/*` model refs should be rewritten to `openai/*`.",
         "- agents.defaults.heartbeat.model: openai-codex/gpt-5.4 should become openai/gpt-5.4.",
-        "- Run `openclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
+        "- Run `astroclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
       ].join("\n"),
     ]);
   });
@@ -3133,7 +3133,7 @@ describe("collectCodexRouteWarnings", () => {
             summaryModel: "openai-codex/gpt-5.4",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -3171,7 +3171,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.4",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -3190,7 +3190,7 @@ describe("collectCodexRouteWarnings", () => {
       [
         "- Legacy `openai-codex/*` model refs should be rewritten to `openai/*`.",
         "- hooks.gmail.model: openai-codex/gpt-5.4 should become openai/gpt-5.4.",
-        "- Run `openclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
+        "- Run `astroclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
       ].join("\n"),
     ]);
   });
@@ -3341,7 +3341,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 
@@ -3387,7 +3387,7 @@ describe("collectCodexRouteWarnings", () => {
             model: "openai-codex/gpt-5.5",
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       shouldRepair: true,
     });
 

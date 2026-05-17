@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { normalizeOptionalLowercaseString } from "../shared/string-coerce.js";
 import { normalizeEmbeddedAgentRuntime } from "./pi-embedded-runner/runtime.js";
 import { resolveProviderIdForAuth } from "./provider-auth-aliases.js";
@@ -26,7 +26,7 @@ function isOfficialOpenAIBaseUrl(baseUrl: unknown): boolean {
   }
 }
 
-function openAIProviderUsesCustomBaseUrl(config: OpenClawConfig | undefined): boolean {
+function openAIProviderUsesCustomBaseUrl(config: AstroclawConfig | undefined): boolean {
   return !isOfficialOpenAIBaseUrl(config?.models?.providers?.openai?.baseUrl);
 }
 
@@ -40,7 +40,7 @@ export function isOpenAICodexProvider(provider: string | undefined): boolean {
 
 export function openAIProviderUsesCodexRuntimeByDefault(params: {
   provider?: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 }): boolean {
   return isOpenAIProvider(params.provider) && !openAIProviderUsesCustomBaseUrl(params.config);
 }
@@ -62,7 +62,7 @@ export function modelRefUsesOpenAIProvider(value: unknown): boolean {
 
 export function modelSelectionShouldEnsureCodexPlugin(params: {
   model?: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 }): boolean {
   const provider = parseModelRefProvider(params.model);
   if (provider === OPENAI_CODEX_PROVIDER_ID) {
@@ -78,7 +78,7 @@ export function hasOpenAICodexAuthProfileOverride(value: unknown): boolean {
   );
 }
 
-function configuredOpenAIAuthOrderStartsWithCodexProfile(config: OpenClawConfig | undefined) {
+function configuredOpenAIAuthOrderStartsWithCodexProfile(config: AstroclawConfig | undefined) {
   if (!openAIProviderUsesCodexRuntimeByDefault({ provider: OPENAI_PROVIDER_ID, config })) {
     return false;
   }
@@ -98,7 +98,7 @@ export function shouldRouteOpenAIPiThroughCodexAuthProvider(params: {
   agentHarnessId?: string;
   authProfileProvider?: string;
   authProfileId?: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   workspaceDir?: string;
 }): boolean {
   if (!isOpenAIProvider(params.provider)) {
@@ -126,7 +126,7 @@ export function listOpenAIAuthProfileProvidersForAgentRuntime(params: {
   provider: string;
   harnessRuntime?: string;
   agentHarnessId?: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 }): string[] {
   if (!isOpenAIProvider(params.provider)) {
     return [params.provider];
@@ -160,7 +160,7 @@ export function resolveOpenAIRuntimeProviderForPi(params: {
   agentHarnessId?: string;
   authProfileProvider?: string;
   authProfileId?: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   workspaceDir?: string;
 }): string {
   return shouldRouteOpenAIPiThroughCodexAuthProvider(params)
@@ -174,7 +174,7 @@ export function resolveSelectedOpenAIPiRuntimeProvider(params: {
   agentHarnessId?: string;
   authProfileProvider?: string;
   authProfileId?: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   workspaceDir?: string;
 }): string {
   if (shouldRouteOpenAIPiThroughCodexAuthProvider(params)) {

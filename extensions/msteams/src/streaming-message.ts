@@ -9,8 +9,8 @@
  * Uses the shared draft-stream-loop for throttling (avoids rate limits).
  */
 
-import { createDraftStreamLoop, type DraftStreamLoop } from "openclaw/plugin-sdk/channel-lifecycle";
-import { readStringValue } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { createDraftStreamLoop, type DraftStreamLoop } from "astroclaw/plugin-sdk/channel-lifecycle";
+import { readStringValue } from "astroclaw/plugin-sdk/string-coerce-runtime";
 
 /** Default throttle interval between stream updates (ms).
  * Teams docs recommend buffering tokens for 1.5-2s; limit is 1 req/s. */

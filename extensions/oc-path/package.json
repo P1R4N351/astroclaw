@@ -1,8 +1,8 @@
 {
-  "name": "@openclaw/oc-path",
+  "name": "@astroclaw/oc-path",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw oc:// workspace path plugin",
+  "description": "Astroclaw oc:// workspace path plugin",
   "type": "module",
   "dependencies": {
     "commander": "14.0.3",
@@ -11,18 +11,18 @@
     "yaml": "2.9.0"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*",
-    "openclaw": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*",
+    "astroclaw": "workspace:*"
   },
   "peerDependencies": {
-    "openclaw": ">=2026.5.17"
+    "astroclaw": ">=2026.5.17"
   },
   "peerDependenciesMeta": {
-    "openclaw": {
+    "astroclaw": {
       "optional": true
     }
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

@@ -1,6 +1,6 @@
 import type { SessionManager } from "@earendil-works/pi-coding-agent";
 
-const RAW_APPEND_MESSAGE = Symbol("openclaw.session.rawAppendMessage");
+const RAW_APPEND_MESSAGE = Symbol("astroclaw.session.rawAppendMessage");
 
 type SessionManagerWithRawAppend = SessionManager & {
   [RAW_APPEND_MESSAGE]?: SessionManager["appendMessage"];

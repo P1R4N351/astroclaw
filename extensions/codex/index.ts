@@ -1,6 +1,6 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolveLivePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
-import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveLivePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
 import { createCodexAppServerAgentHarness } from "./harness.js";
 import { buildCodexMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import { buildCodexProvider } from "./provider.js";
@@ -26,7 +26,7 @@ export default definePluginEntry({
     const resolveCurrentPluginConfig = () =>
       resolveLivePluginConfigObject(
         api.runtime.config?.current
-          ? () => api.runtime.config.current() as OpenClawConfig
+          ? () => api.runtime.config.current() as AstroclawConfig
           : undefined,
         "codex",
         api.pluginConfig as Record<string, unknown>,

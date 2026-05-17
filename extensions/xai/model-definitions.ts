@@ -1,5 +1,5 @@
-import type { ModelDefinitionConfig } from "openclaw/plugin-sdk/provider-model-shared";
-import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { ModelDefinitionConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 
 export const XAI_BASE_URL = "https://api.x.ai/v1";
 export const XAI_DEFAULT_IMAGE_MODEL = "grok-imagine-image";

@@ -1,5 +1,5 @@
 ---
-summary: "Adds Anthropic model provider support to OpenClaw."
+summary: "Adds Anthropic model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the anthropic plugin
 title: "Anthropic plugin"
@@ -7,12 +7,12 @@ title: "Anthropic plugin"
 
 # Anthropic plugin
 
-Adds Anthropic model provider support to OpenClaw.
+Adds Anthropic model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/anthropic-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/anthropic-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

@@ -1,8 +1,8 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.BuildConfig
-import ai.openclaw.app.CameraHudKind
-import ai.openclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.BuildConfig
+import ai.astroclaw.app.CameraHudKind
+import ai.astroclaw.app.gateway.GatewaySession
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,7 +60,7 @@ class CameraHandler(
       if (!BuildConfig.DEBUG) return
       val ts = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
       logFile?.appendText("[$ts] $msg\n")
-      android.util.Log.w("openclaw", "camera.snap: $msg")
+      android.util.Log.w("astroclaw", "camera.snap: $msg")
     }
     try {
       logFile?.writeText("") // clear
@@ -99,7 +99,7 @@ class CameraHandler(
       if (!BuildConfig.DEBUG) return
       val ts = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
       clipLogFile?.appendText("[CLIP $ts] $msg\n")
-      android.util.Log.w("openclaw", "camera.clip: $msg")
+      android.util.Log.w("astroclaw", "camera.clip: $msg")
     }
     val includeAudio = parseIncludeAudio(paramsJson) ?: true
     if (includeAudio) externalAudioCaptureActive.value = true

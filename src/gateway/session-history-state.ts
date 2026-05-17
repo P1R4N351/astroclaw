@@ -4,7 +4,7 @@ import {
   projectChatDisplayMessages,
 } from "./chat-display-projection.js";
 import {
-  attachOpenClawTranscriptMeta,
+  attachAstroclawTranscriptMeta,
   readRecentSessionMessagesWithStatsAsync,
   readSessionMessagesAsync,
 } from "./session-utils.js";
@@ -14,7 +14,7 @@ type SessionHistoryTranscriptMeta = {
 };
 
 type SessionHistoryMessage = Record<string, unknown> & {
-  __openclaw?: SessionHistoryTranscriptMeta;
+  __astroclaw?: SessionHistoryTranscriptMeta;
 };
 
 type PaginatedSessionHistory = {
@@ -89,7 +89,7 @@ function buildPaginatedSessionHistory(params: {
 }
 
 function resolveMessageSeq(message: SessionHistoryMessage | undefined): number | undefined {
-  return asPositiveSafeInteger(message?.__openclaw?.seq);
+  return asPositiveSafeInteger(message?.__astroclaw?.seq);
 }
 
 function paginateSessionMessages(
@@ -244,7 +244,7 @@ export class SessionHistorySseState {
     } else {
       this.rawTranscriptSeq += 1;
     }
-    const nextMessage = attachOpenClawTranscriptMeta(update.message, {
+    const nextMessage = attachAstroclawTranscriptMeta(update.message, {
       ...(typeof update.messageId === "string" ? { id: update.messageId } : {}),
       seq: this.rawTranscriptSeq,
     });

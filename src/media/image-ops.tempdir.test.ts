@@ -1,14 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { getImageMetadata } from "./image-ops.js";
 
 describe("image-ops temp dir", () => {
   let createdTempDir = "";
 
   beforeEach(() => {
-    process.env.OPENCLAW_IMAGE_BACKEND = "sips";
+    process.env.ASTROCLAW_IMAGE_BACKEND = "sips";
     const originalMkdtemp = fs.mkdtemp.bind(fs);
     vi.spyOn(fs, "mkdtemp").mockImplementation(async (prefix) => {
       createdTempDir = await originalMkdtemp(prefix);
@@ -17,12 +17,12 @@ describe("image-ops temp dir", () => {
   });
 
   afterEach(() => {
-    delete process.env.OPENCLAW_IMAGE_BACKEND;
+    delete process.env.ASTROCLAW_IMAGE_BACKEND;
     vi.restoreAllMocks();
   });
 
-  it("creates sips temp dirs under the secured OpenClaw tmp root", async () => {
-    const secureRoot = await fs.realpath(resolvePreferredOpenClawTmpDir());
+  it("creates sips temp dirs under the secured Astroclaw tmp root", async () => {
+    const secureRoot = await fs.realpath(resolvePreferredAstroclawTmpDir());
 
     await getImageMetadata(Buffer.from("image"));
 
@@ -33,7 +33,7 @@ describe("image-ops temp dir", () => {
     }
     const [prefix] = mkdtempCall;
     expect(typeof prefix).toBe("string");
-    const uuidPrefix = path.join(secureRoot, "openclaw-img-");
+    const uuidPrefix = path.join(secureRoot, "astroclaw-img-");
     expect(prefix?.startsWith(uuidPrefix)).toBe(true);
     expect(prefix?.endsWith("-")).toBe(true);
     const uuid = prefix?.slice(uuidPrefix.length, -1) ?? "";

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { MIGRATION_REASON_TARGET_EXISTS } from "openclaw/plugin-sdk/migration";
+import { MIGRATION_REASON_TARGET_EXISTS } from "astroclaw/plugin-sdk/migration";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildHermesMigrationProvider } from "./provider.js";
 import { cleanupTempRoots, makeContext, makeTempRoot, writeFile } from "./test/provider-helpers.js";
@@ -170,7 +170,7 @@ describe("Hermes migration file and skill items", () => {
     expect(plannedAuth?.action).toBe("archive");
     expect(plannedAuth?.status).toBe("planned");
     expect(plan.warnings).toEqual([
-      "Some Hermes files are archive-only. They will be copied into the migration report for manual review, not loaded into OpenClaw.",
+      "Some Hermes files are archive-only. They will be copied into the migration report for manual review, not loaded into Astroclaw.",
     ]);
 
     const result = await provider.apply(makeContext({ source, stateDir, workspaceDir, reportDir }));

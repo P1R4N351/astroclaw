@@ -1,8 +1,8 @@
 import { messagingApi } from "@line/bot-sdk";
-import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
 import { resolveLineAccount } from "./accounts.js";
 import { resolveLineChannelAccessToken } from "./channel-access-token.js";
 import { validateLineMediaUrl } from "./outbound-media.js";
@@ -28,7 +28,7 @@ const userProfileCache = new Map<
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface LineSendOpts {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   channelAccessToken?: string;
   accountId?: string;
   verbose?: boolean;
@@ -73,7 +73,7 @@ function normalizeTarget(to: string): string {
   // Reject values that match the LINE id shape but lost their leading capital
   // so the failure is surfaced as a permanent error (recovery moves the entry
   // to failed/ immediately instead of silently retrying 5 times). Short test
-  // fixtures (e.g. "U123") are left alone. openclaw/openclaw#81628
+  // fixtures (e.g. "U123") are left alone. astroclaw/astroclaw#81628
   if (normalized.length >= 33 && !/^[CUR]/.test(normalized)) {
     throw new Error(
       `Recipient is not a valid LINE id (case-sensitive; expected leading capital C/U/R): ${normalized.slice(0, 4)}…`,

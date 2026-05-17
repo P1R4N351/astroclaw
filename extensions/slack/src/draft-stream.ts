@@ -1,7 +1,7 @@
 import type { MessageMetadata } from "@slack/types";
 import type { Block, KnownBlock } from "@slack/web-api";
-import { createDraftStreamLoop } from "openclaw/plugin-sdk/channel-lifecycle";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createDraftStreamLoop } from "astroclaw/plugin-sdk/channel-lifecycle";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { deleteSlackMessage, editSlackMessage } from "./actions.js";
 import { formatSlackError } from "./errors.js";
 import { SLACK_TEXT_LIMIT } from "./limits.js";
@@ -31,7 +31,7 @@ export type SlackDraftStreamUpdate =
 
 export function createSlackDraftStream(params: {
   target: string;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   token: string;
   accountId?: string;
   identity?: SlackSendIdentity;

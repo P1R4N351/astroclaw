@@ -34,7 +34,7 @@ Not every agent run creates a task. Heartbeat turns and normal interactive chat 
 - Isolated cron runs and subagent completions best-effort clean up tracked browser tabs/processes for their child session before final cleanup bookkeeping.
 - Isolated cron delivery suppresses stale interim parent replies while descendant subagent work is still draining, and it prefers final descendant output when that arrives before delivery.
 - Completion notifications are delivered directly to a channel or queued for the next heartbeat.
-- `openclaw tasks list` shows all tasks; `openclaw tasks audit` surfaces issues.
+- `astroclaw tasks list` shows all tasks; `astroclaw tasks audit` surfaces issues.
 - Terminal records are kept for 7 days, then automatically pruned.
 
 ## Quick start
@@ -43,47 +43,47 @@ Not every agent run creates a task. Heartbeat turns and normal interactive chat 
   <Tab title="List and filter">
     ```bash
     # List all tasks (newest first)
-    openclaw tasks list
+    astroclaw tasks list
 
     # Filter by runtime or status
-    openclaw tasks list --runtime acp
-    openclaw tasks list --status running
+    astroclaw tasks list --runtime acp
+    astroclaw tasks list --status running
     ```
 
   </Tab>
   <Tab title="Inspect">
     ```bash
     # Show details for a specific task (by ID, run ID, or session key)
-    openclaw tasks show <lookup>
+    astroclaw tasks show <lookup>
     ```
   </Tab>
   <Tab title="Cancel and notify">
     ```bash
     # Cancel a running task (kills the child session)
-    openclaw tasks cancel <lookup>
+    astroclaw tasks cancel <lookup>
 
     # Change notification policy for a task
-    openclaw tasks notify <lookup> state_changes
+    astroclaw tasks notify <lookup> state_changes
     ```
 
   </Tab>
   <Tab title="Audit and maintenance">
     ```bash
     # Run a health audit
-    openclaw tasks audit
+    astroclaw tasks audit
 
     # Preview or apply maintenance
-    openclaw tasks maintenance
-    openclaw tasks maintenance --apply
+    astroclaw tasks maintenance
+    astroclaw tasks maintenance --apply
     ```
 
   </Tab>
   <Tab title="Task flow">
     ```bash
     # Inspect TaskFlow state
-    openclaw tasks flow list
-    openclaw tasks flow show <lookup>
-    openclaw tasks flow cancel <lookup>
+    astroclaw tasks flow list
+    astroclaw tasks flow show <lookup>
+    astroclaw tasks flow cancel <lookup>
     ```
   </Tab>
 </Tabs>
@@ -95,14 +95,14 @@ Not every agent run creates a task. Heartbeat turns and normal interactive chat 
 | ACP background runs    | `acp`        | Spawning a child ACP session                                           | `done_only`           |
 | Subagent orchestration | `subagent`   | Spawning a subagent via `sessions_spawn`                               | `done_only`           |
 | Cron jobs (all types)  | `cron`       | Every cron execution (main-session and isolated)                       | `silent`              |
-| CLI operations         | `cli`        | `openclaw agent` commands that run through the gateway                 | `silent`              |
+| CLI operations         | `cli`        | `astroclaw agent` commands that run through the gateway                 | `silent`              |
 | Agent media jobs       | `cli`        | Session-backed `image_generate`/`music_generate`/`video_generate` runs | `silent`              |
 
 <AccordionGroup>
   <Accordion title="Notify defaults for cron and media">
     Main-session cron tasks use `silent` notify policy by default - they create records for tracking but do not generate notifications. Isolated cron tasks also default to `silent` but are more visible because they run in their own session.
 
-    Session-backed `image_generate`, `music_generate`, and `video_generate` runs also use `silent` notify policy. They still create task records, but completion is handed back to the original agent session as an internal wake so the agent can write the follow-up message and attach the finished media itself. Group/channel completions follow the normal visible-reply policy, so the agent uses the message tool when source delivery requires it. If the completion agent fails to produce message-tool delivery evidence in a tool-only route, OpenClaw sends the completion fallback directly to the original channel instead of leaving the media private.
+    Session-backed `image_generate`, `music_generate`, and `video_generate` runs also use `silent` notify policy. They still create task records, but completion is handed back to the original agent session as an internal wake so the agent can write the follow-up message and attach the finished media itself. Group/channel completions follow the normal visible-reply policy, so the agent uses the message tool when source delivery requires it. If the completion agent fails to produce message-tool delivery evidence in a tool-only route, Astroclaw sends the completion fallback directly to the original channel instead of leaving the media private.
 
   </Accordion>
   <Accordion title="Concurrent media-generation guardrail">
@@ -137,7 +137,7 @@ stateDiagram-v2
 | `succeeded` | Completed successfully                                                     |
 | `failed`    | Completed with an error                                                    |
 | `timed_out` | Exceeded the configured timeout                                            |
-| `cancelled` | Stopped by the operator via `openclaw tasks cancel`                        |
+| `cancelled` | Stopped by the operator via `astroclaw tasks cancel`                        |
 | `lost`      | The runtime lost authoritative backing state after a 5-minute grace period |
 
 Transitions happen automatically - when the associated agent run ends, the task status updates to match.
@@ -154,15 +154,15 @@ Agent run completion is authoritative for active task records. A successful deta
 - CLI tasks: tasks with a run id/source id use the live run context, so
   lingering child-session or chat-session rows do not keep them alive after the
   gateway-owned run disappears. Legacy CLI tasks without run identity still fall
-  back to the child session. Gateway-backed `openclaw agent` runs also finalize
+  back to the child session. Gateway-backed `astroclaw agent` runs also finalize
   from their run result, so completed runs do not sit active until the sweeper
   marks them `lost`.
 
 ## Delivery and notifications
 
-When a task reaches a terminal state, OpenClaw notifies you. There are two delivery paths:
+When a task reaches a terminal state, Astroclaw notifies you. There are two delivery paths:
 
-**Direct delivery** - if the task has a channel target (the `requesterOrigin`), the completion message goes straight to that channel (Telegram, Discord, Slack, etc.). Group and channel task completions are instead routed through the requester session so the parent agent can write the visible reply. For subagent completions, OpenClaw also preserves bound thread/topic routing when available and can fill a missing `to` / account from the requester session's stored route (`lastChannel` / `lastTo` / `lastAccountId`) before giving up on direct delivery.
+**Direct delivery** - if the task has a channel target (the `requesterOrigin`), the completion message goes straight to that channel (Telegram, Discord, Slack, etc.). Group and channel task completions are instead routed through the requester session so the parent agent can write the visible reply. For subagent completions, Astroclaw also preserves bound thread/topic routing when available and can fill a missing `to` / account from the requester session's stored route (`lastChannel` / `lastTo` / `lastAccountId`) before giving up on direct delivery.
 
 **Session-queued delivery** - if direct delivery fails or no origin is set, the update is queued as a system event in the requester's session and surfaces on the next heartbeat.
 
@@ -185,7 +185,7 @@ Control how much you hear about each task:
 Change the policy while a task is running:
 
 ```bash
-openclaw tasks notify <lookup> state_changes
+astroclaw tasks notify <lookup> state_changes
 ```
 
 ## CLI reference
@@ -193,7 +193,7 @@ openclaw tasks notify <lookup> state_changes
 <AccordionGroup>
   <Accordion title="tasks list">
     ```bash
-    openclaw tasks list [--runtime <acp|subagent|cron|cli>] [--status <status>] [--json]
+    astroclaw tasks list [--runtime <acp|subagent|cron|cli>] [--status <status>] [--json]
     ```
 
     Output columns: Task ID, Kind, Status, Delivery, Run ID, Child Session, Summary.
@@ -201,7 +201,7 @@ openclaw tasks notify <lookup> state_changes
   </Accordion>
   <Accordion title="tasks show">
     ```bash
-    openclaw tasks show <lookup>
+    astroclaw tasks show <lookup>
     ```
 
     The lookup token accepts a task ID, run ID, or session key. Shows the full record including timing, delivery state, error, and terminal summary.
@@ -209,7 +209,7 @@ openclaw tasks notify <lookup> state_changes
   </Accordion>
   <Accordion title="tasks cancel">
     ```bash
-    openclaw tasks cancel <lookup>
+    astroclaw tasks cancel <lookup>
     ```
 
     For ACP and subagent tasks, this kills the child session. For CLI-tracked tasks, cancellation is recorded in the task registry (there is no separate child runtime handle). Status transitions to `cancelled` and a delivery notification is sent when applicable.
@@ -217,15 +217,15 @@ openclaw tasks notify <lookup> state_changes
   </Accordion>
   <Accordion title="tasks notify">
     ```bash
-    openclaw tasks notify <lookup> <done_only|state_changes|silent>
+    astroclaw tasks notify <lookup> <done_only|state_changes|silent>
     ```
   </Accordion>
   <Accordion title="tasks audit">
     ```bash
-    openclaw tasks audit [--json]
+    astroclaw tasks audit [--json]
     ```
 
-    Surfaces operational issues. Findings also appear in `openclaw status` when issues are detected.
+    Surfaces operational issues. Findings also appear in `astroclaw status` when issues are detected.
 
     | Finding                   | Severity   | Trigger                                                                                                      |
     | ------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
@@ -239,8 +239,8 @@ openclaw tasks notify <lookup> state_changes
   </Accordion>
   <Accordion title="tasks maintenance">
     ```bash
-    openclaw tasks maintenance [--json]
-    openclaw tasks maintenance --apply [--json]
+    astroclaw tasks maintenance [--json]
+    astroclaw tasks maintenance --apply [--json]
     ```
 
     Use this to preview or apply reconciliation, cleanup stamping, and pruning for tasks, Task Flow state, and stale cron run session registry rows.
@@ -260,14 +260,14 @@ openclaw tasks notify <lookup> state_changes
     - Subagent completion delivery prefers the latest visible assistant text; if that is empty it falls back to sanitized latest tool/toolResult text, and timeout-only tool-call runs can collapse to a short partial-progress summary. Terminal failed runs announce failure status without replaying captured reply text.
     - Cleanup failures do not mask the real task outcome.
 
-    When applying maintenance, OpenClaw also removes stale `cron:<jobId>:run:<uuid>` session registry rows older than 7 days, while preserving rows for currently running cron jobs and leaving non-cron session rows untouched.
+    When applying maintenance, Astroclaw also removes stale `cron:<jobId>:run:<uuid>` session registry rows older than 7 days, while preserving rows for currently running cron jobs and leaving non-cron session rows untouched.
 
   </Accordion>
   <Accordion title="tasks flow list | show | cancel">
     ```bash
-    openclaw tasks flow list [--status <status>] [--json]
-    openclaw tasks flow show <lookup> [--json]
-    openclaw tasks flow cancel <lookup>
+    astroclaw tasks flow list [--status <status>] [--json]
+    astroclaw tasks flow show <lookup> [--json]
+    astroclaw tasks flow cancel <lookup>
     ```
 
     Use these when the orchestrating Task Flow is the thing you care about rather than one individual background task record.
@@ -281,11 +281,11 @@ Use `/tasks` in any chat session to see background tasks linked to that session.
 
 When the current session has no visible linked tasks, `/tasks` falls back to agent-local task counts so you still get an overview without leaking other-session details.
 
-For the full operator ledger, use the CLI: `openclaw tasks list`.
+For the full operator ledger, use the CLI: `astroclaw tasks list`.
 
 ## Status integration (task pressure)
 
-`openclaw status` includes an at-a-glance task summary:
+`astroclaw status` includes an at-a-glance task summary:
 
 ```
 Tasks: 3 queued · 2 running · 1 issues
@@ -306,7 +306,7 @@ Both `/status` and the `session_status` tool use a cleanup-aware task snapshot: 
 Task records persist in SQLite at:
 
 ```
-$OPENCLAW_STATE_DIR/tasks/runs.sqlite
+$ASTROCLAW_STATE_DIR/tasks/runs.sqlite
 ```
 
 The registry loads into memory at gateway start and syncs writes to SQLite for durability across restarts.
@@ -340,13 +340,13 @@ A sweeper runs every **60 seconds** and handles four things:
 
 <AccordionGroup>
   <Accordion title="Tasks and Task Flow">
-    [Task Flow](/automation/taskflow) is the flow orchestration layer above background tasks. A single flow may coordinate multiple tasks over its lifetime using managed or mirrored sync modes. Use `openclaw tasks` to inspect individual task records and `openclaw tasks flow` to inspect the orchestrating flow.
+    [Task Flow](/automation/taskflow) is the flow orchestration layer above background tasks. A single flow may coordinate multiple tasks over its lifetime using managed or mirrored sync modes. Use `astroclaw tasks` to inspect individual task records and `astroclaw tasks flow` to inspect the orchestrating flow.
 
     See [Task Flow](/automation/taskflow) for details.
 
   </Accordion>
   <Accordion title="Tasks and cron">
-    A cron job **definition** lives in `~/.openclaw/cron/jobs.json`; runtime execution state lives beside it in `~/.openclaw/cron/jobs-state.json`. **Every** cron execution creates a task record - both main-session and isolated. Main-session cron tasks default to `silent` notify policy so they track without generating notifications.
+    A cron job **definition** lives in `~/.astroclaw/cron/jobs.json`; runtime execution state lives beside it in `~/.astroclaw/cron/jobs-state.json`. **Every** cron execution creates a task record - both main-session and isolated. Main-session cron tasks default to `silent` notify policy so they track without generating notifications.
 
     See [Cron Jobs](/automation/cron-jobs).
 

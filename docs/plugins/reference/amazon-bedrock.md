@@ -1,5 +1,5 @@
 ---
-summary: "Adds Amazon Bedrock model provider support to OpenClaw."
+summary: "Adds Amazon Bedrock model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the amazon-bedrock plugin
 title: "Amazon Bedrock plugin"
@@ -7,11 +7,11 @@ title: "Amazon Bedrock plugin"
 
 # Amazon Bedrock plugin
 
-Adds Amazon Bedrock model provider support to OpenClaw.
+Adds Amazon Bedrock model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/amazon-bedrock-provider`
+- Package: `@astroclaw/amazon-bedrock-provider`
 - Install route: npm; ClawHub
 
 ## Surface

@@ -54,7 +54,7 @@ type NodeInvokeResult = {
   error?: { code?: string; message?: string } | null;
 };
 
-const SERIALIZED_EVENT_PAYLOAD = Symbol("openclaw.serializedEventPayload");
+const SERIALIZED_EVENT_PAYLOAD = Symbol("astroclaw.serializedEventPayload");
 const AUTHORIZED_SYSTEM_RUN_EVENT_GRACE_MS = 5 * 60 * 1000;
 
 export type SerializedEventPayload = {
@@ -477,7 +477,7 @@ export class NodeRegistry {
     const node = this.nodesById.get(params.nodeId);
     return (
       node?.connId === params.connId &&
-      node.clientId === "openclaw-macos" &&
+      node.clientId === "astroclaw-macos" &&
       node.platform === "darwin"
     );
   }

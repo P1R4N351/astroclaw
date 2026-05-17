@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { detectMime } from "openclaw/plugin-sdk/media-mime";
+import { detectMime } from "astroclaw/plugin-sdk/media-mime";
 import {
   FsSafeError,
   resolveAbsolutePathForRead,
   root,
-} from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/security-runtime";
 
 export const FILE_FETCH_HARD_MAX_BYTES = 16 * 1024 * 1024;
 export const FILE_FETCH_DEFAULT_MAX_BYTES = 8 * 1024 * 1024;

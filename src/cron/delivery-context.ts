@@ -1,5 +1,5 @@
 import { extractDeliveryInfo } from "../config/sessions/delivery-info.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   normalizeDeliveryContext,
   type DeliveryContext,
@@ -28,7 +28,7 @@ export function cronDeliveryFromContext(context?: DeliveryContext): CronDelivery
 }
 
 export function resolveCronStoredDeliveryContext(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   sessionKey?: string;
 }): DeliveryContext | undefined {
   const sessionKey = params.sessionKey?.trim();
@@ -43,7 +43,7 @@ export function resolveCronStoredDeliveryContext(params: {
 }
 
 export function resolveCronCreationDelivery(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   currentDeliveryContext?: DeliveryContext;
   agentSessionKey?: string;
 }): CronDelivery | null {

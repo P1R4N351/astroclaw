@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo="openclaw/openclaw"
+repo="astroclaw/astroclaw"
 months="12"
 include_global="0"
 

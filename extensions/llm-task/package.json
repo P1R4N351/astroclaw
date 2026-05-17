@@ -1,16 +1,16 @@
 {
-  "name": "@openclaw/llm-task",
+  "name": "@astroclaw/llm-task",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw JSON-only LLM task plugin",
+  "description": "Astroclaw JSON-only LLM task plugin",
   "type": "module",
   "dependencies": {
     "typebox": "1.1.38"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

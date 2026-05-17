@@ -1,7 +1,7 @@
 #if os(macOS)
 import AppKit
 import Testing
-@testable import OpenClawChatUI
+@testable import AstroclawChatUI
 
 @Suite
 @MainActor

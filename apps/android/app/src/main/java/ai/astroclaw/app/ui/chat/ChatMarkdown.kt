@@ -1,11 +1,11 @@
-package ai.openclaw.app.ui.chat
+package ai.astroclaw.app.ui.chat
 
-import ai.openclaw.app.ui.mobileAccent
-import ai.openclaw.app.ui.mobileCallout
-import ai.openclaw.app.ui.mobileCaption1
-import ai.openclaw.app.ui.mobileCodeBg
-import ai.openclaw.app.ui.mobileCodeText
-import ai.openclaw.app.ui.mobileTextSecondary
+import ai.astroclaw.app.ui.mobileAccent
+import ai.astroclaw.app.ui.mobileCallout
+import ai.astroclaw.app.ui.mobileCaption1
+import ai.astroclaw.app.ui.mobileCodeBg
+import ai.astroclaw.app.ui.mobileCodeText
+import ai.astroclaw.app.ui.mobileTextSecondary
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

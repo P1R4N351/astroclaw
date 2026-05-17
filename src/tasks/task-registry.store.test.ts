@@ -2,7 +2,7 @@ import { mkdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { requireNodeSqlite } from "../infra/node-sqlite.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withAstroclawTestState } from "../test-utils/astroclaw-test-state.js";
 import { createManagedTaskFlow, resetTaskFlowRegistryForTests } from "./task-flow-registry.js";
 import {
   createTaskRecord,
@@ -20,7 +20,7 @@ import {
 } from "./task-registry.store.js";
 import type { TaskRecord } from "./task-registry.types.js";
 
-const ORIGINAL_STATE_DIR = process.env.OPENCLAW_STATE_DIR;
+const ORIGINAL_STATE_DIR = process.env.ASTROCLAW_STATE_DIR;
 
 function requireFirstUpsertParams(upsertTaskWithDeliveryState: ReturnType<typeof vi.fn>): {
   task?: { taskId?: string };
@@ -59,9 +59,9 @@ function createStoredTask(): TaskRecord {
 describe("task-registry store runtime", () => {
   afterEach(() => {
     if (ORIGINAL_STATE_DIR === undefined) {
-      delete process.env.OPENCLAW_STATE_DIR;
+      delete process.env.ASTROCLAW_STATE_DIR;
     } else {
-      process.env.OPENCLAW_STATE_DIR = ORIGINAL_STATE_DIR;
+      process.env.ASTROCLAW_STATE_DIR = ORIGINAL_STATE_DIR;
     }
     resetTaskRegistryForTests();
     resetTaskFlowRegistryForTests({ persist: false });
@@ -276,8 +276,8 @@ describe("task-registry store runtime", () => {
   });
 
   it("drops malformed requester origin json from sqlite delivery state", async () => {
-    await withOpenClawTestState(
-      { layout: "state-only", prefix: "openclaw-task-store-origin-shape-" },
+    await withAstroclawTestState(
+      { layout: "state-only", prefix: "astroclaw-task-store-origin-shape-" },
       async () => {
         const created = createTaskRecord({
           runtime: "acp",
@@ -344,8 +344,8 @@ describe("task-registry store runtime", () => {
     if (process.platform === "win32") {
       return;
     }
-    await withOpenClawTestState(
-      { layout: "state-only", prefix: "openclaw-task-store-" },
+    await withAstroclawTestState(
+      { layout: "state-only", prefix: "astroclaw-task-store-" },
       async () => {
         createTaskRecord({
           runtime: "cron",
@@ -368,8 +368,8 @@ describe("task-registry store runtime", () => {
   });
 
   it("migrates legacy ownerless cron rows to system scope", async () => {
-    await withOpenClawTestState(
-      { layout: "state-only", prefix: "openclaw-task-store-legacy-" },
+    await withAstroclawTestState(
+      { layout: "state-only", prefix: "astroclaw-task-store-legacy-" },
       async () => {
         const sqlitePath = resolveTaskRegistrySqlitePath(process.env);
         mkdirSync(path.dirname(sqlitePath), { recursive: true });
@@ -452,8 +452,8 @@ describe("task-registry store runtime", () => {
   });
 
   it("keeps legacy requester_session_key rows writable after restore", async () => {
-    await withOpenClawTestState(
-      { layout: "state-only", prefix: "openclaw-task-store-legacy-write-" },
+    await withAstroclawTestState(
+      { layout: "state-only", prefix: "astroclaw-task-store-legacy-write-" },
       async () => {
         const sqlitePath = resolveTaskRegistrySqlitePath(process.env);
         mkdirSync(path.dirname(sqlitePath), { recursive: true });

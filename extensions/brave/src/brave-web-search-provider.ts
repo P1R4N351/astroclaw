@@ -1,10 +1,10 @@
-import { isDiagnosticFlagEnabled } from "openclaw/plugin-sdk/diagnostic-runtime";
+import { isDiagnosticFlagEnabled } from "astroclaw/plugin-sdk/diagnostic-runtime";
 import type {
   SearchConfigRecord,
   WebSearchProviderPlugin,
   WebSearchProviderToolDefinition,
-} from "openclaw/plugin-sdk/provider-web-search";
-import { createWebSearchProviderContractFields } from "openclaw/plugin-sdk/provider-web-search-config-contract";
+} from "astroclaw/plugin-sdk/provider-web-search";
+import { createWebSearchProviderContractFields } from "astroclaw/plugin-sdk/provider-web-search-config-contract";
 
 const BRAVE_CREDENTIAL_PATH = "plugins.entries.brave.config.webSearch.apiKey";
 
@@ -162,7 +162,7 @@ export function createBraveWebSearchProvider(): WebSearchProviderPlugin {
     envVars: ["BRAVE_API_KEY"],
     placeholder: "BSA...",
     signupUrl: "https://brave.com/search/api/",
-    docsUrl: "https://docs.openclaw.ai/tools/brave-search",
+    docsUrl: "https://docs.astroclaw.ai/tools/brave-search",
     autoDetectOrder: 10,
     credentialPath: BRAVE_CREDENTIAL_PATH,
     ...createWebSearchProviderContractFields({

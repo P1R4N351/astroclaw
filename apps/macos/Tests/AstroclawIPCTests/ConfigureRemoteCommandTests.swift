@@ -1,21 +1,21 @@
 import Foundation
 import Testing
-@testable import OpenClawMacCLI
+@testable import AstroclawMacCLI
 
 @Suite(.serialized)
 struct ConfigureRemoteCommandTests {
     @Test @MainActor func `configure remote writes ssh config and app defaults`() async throws {
         let configURL = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-configure-remote-\(UUID().uuidString).json")
+            .appendingPathComponent("astroclaw-configure-remote-\(UUID().uuidString).json")
         defer { try? FileManager().removeItem(at: configURL) }
 
-        let defaultSuites = ["ai.openclaw.mac", "ai.openclaw.mac.debug"]
+        let defaultSuites = ["ai.astroclaw.mac", "ai.astroclaw.mac.debug"]
         let keys = [
-            "openclaw.connectionMode",
-            "openclaw.remoteTarget",
-            "openclaw.onboardingSeen",
-            "openclaw.onboardingVersion",
-            "openclaw.remoteCliPath",
+            "astroclaw.connectionMode",
+            "astroclaw.remoteTarget",
+            "astroclaw.onboardingSeen",
+            "astroclaw.onboardingVersion",
+            "astroclaw.remoteCliPath",
         ]
         let defaultsBySuite = defaultSuites.compactMap { suite in
             UserDefaults(suiteName: suite).map { (suite, $0) }
@@ -35,7 +35,7 @@ struct ConfigureRemoteCommandTests {
             }
         }
 
-        try await TestIsolation.withIsolatedState(env: ["OPENCLAW_CONFIG_PATH": configURL.path]) {
+        try await TestIsolation.withIsolatedState(env: ["ASTROCLAW_CONFIG_PATH": configURL.path]) {
             let output = try configureRemote(.init(
                 sshTarget: "alice@gateway.example",
                 localPort: 19089,
@@ -44,7 +44,7 @@ struct ConfigureRemoteCommandTests {
                 password: nil,
                 identity: nil,
                 projectRoot: nil,
-                cliPath: "/opt/homebrew/bin/openclaw"))
+                cliPath: "/opt/homebrew/bin/astroclaw"))
 
             #expect(output.status == "ok")
             #expect(output.localUrl == "ws://127.0.0.1:19089")
@@ -63,17 +63,17 @@ struct ConfigureRemoteCommandTests {
             #expect(remote["token"] as? String == "test-token") // pragma: allowlist secret
 
             for (_, defaults) in defaultsBySuite {
-                #expect(defaults.string(forKey: "openclaw.connectionMode") == "remote")
-                #expect(defaults.string(forKey: "openclaw.remoteTarget") == "alice@gateway.example")
-                #expect(defaults.bool(forKey: "openclaw.onboardingSeen") == true)
-                #expect(defaults.string(forKey: "openclaw.remoteCliPath") == "/opt/homebrew/bin/openclaw")
+                #expect(defaults.string(forKey: "astroclaw.connectionMode") == "remote")
+                #expect(defaults.string(forKey: "astroclaw.remoteTarget") == "alice@gateway.example")
+                #expect(defaults.bool(forKey: "astroclaw.onboardingSeen") == true)
+                #expect(defaults.string(forKey: "astroclaw.remoteCliPath") == "/opt/homebrew/bin/astroclaw")
             }
         }
     }
 
     @Test @MainActor func `configure remote preserves existing optional credentials when flags omitted`() async throws {
         let configURL = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-configure-remote-preserve-\(UUID().uuidString).json")
+            .appendingPathComponent("astroclaw-configure-remote-preserve-\(UUID().uuidString).json")
         defer { try? FileManager().removeItem(at: configURL) }
 
         let initial: [String: Any] = [
@@ -88,7 +88,7 @@ struct ConfigureRemoteCommandTests {
         try FileManager().createDirectory(at: configURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try initialData.write(to: configURL)
 
-        try await TestIsolation.withIsolatedState(env: ["OPENCLAW_CONFIG_PATH": configURL.path]) {
+        try await TestIsolation.withIsolatedState(env: ["ASTROCLAW_CONFIG_PATH": configURL.path]) {
             try configureRemote(.init(sshTarget: "alice@gateway.example"))
 
             let data = try Data(contentsOf: configURL)
@@ -120,7 +120,7 @@ struct ConfigureRemoteCommandTests {
 
     @Test @MainActor func `configure remote can write direct private url`() async throws {
         let configURL = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-configure-direct-\(UUID().uuidString).json")
+            .appendingPathComponent("astroclaw-configure-direct-\(UUID().uuidString).json")
         defer { try? FileManager().removeItem(at: configURL) }
 
         let initial: [String: Any] = [
@@ -132,13 +132,13 @@ struct ConfigureRemoteCommandTests {
         try FileManager().createDirectory(at: configURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try initialData.write(to: configURL)
 
-        let defaultSuites = ["ai.openclaw.mac", "ai.openclaw.mac.debug"]
+        let defaultSuites = ["ai.astroclaw.mac", "ai.astroclaw.mac.debug"]
         let keys = [
-            "openclaw.connectionMode",
-            "openclaw.remoteTarget",
-            "openclaw.onboardingSeen",
-            "openclaw.onboardingVersion",
-            "openclaw.remoteCliPath",
+            "astroclaw.connectionMode",
+            "astroclaw.remoteTarget",
+            "astroclaw.onboardingSeen",
+            "astroclaw.onboardingVersion",
+            "astroclaw.remoteCliPath",
         ]
         let defaultsBySuite = defaultSuites.compactMap { suite in
             UserDefaults(suiteName: suite).map { (suite, $0) }
@@ -158,7 +158,7 @@ struct ConfigureRemoteCommandTests {
             }
         }
 
-        try await TestIsolation.withIsolatedState(env: ["OPENCLAW_CONFIG_PATH": configURL.path]) {
+        try await TestIsolation.withIsolatedState(env: ["ASTROCLAW_CONFIG_PATH": configURL.path]) {
             let output = try configureRemote(.init(
                 directUrl: "ws://192.168.0.202:18789",
                 token: "test-token")) // pragma: allowlist secret
@@ -184,10 +184,10 @@ struct ConfigureRemoteCommandTests {
 
     @Test @MainActor func `configure remote rejects plaintext public prefix bypass`() async throws {
         let configURL = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-configure-direct-reject-\(UUID().uuidString).json")
+            .appendingPathComponent("astroclaw-configure-direct-reject-\(UUID().uuidString).json")
         defer { try? FileManager().removeItem(at: configURL) }
 
-        _ = await TestIsolation.withIsolatedState(env: ["OPENCLAW_CONFIG_PATH": configURL.path]) {
+        _ = await TestIsolation.withIsolatedState(env: ["ASTROCLAW_CONFIG_PATH": configURL.path]) {
             #expect(throws: Error.self) {
                 try configureRemote(.init(directUrl: "ws://fd-example.com:18789"))
             }

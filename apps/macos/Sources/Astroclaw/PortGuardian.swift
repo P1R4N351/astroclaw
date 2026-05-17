@@ -22,13 +22,13 @@ actor PortGuardian {
     }
 
     private var records: [Record] = []
-    private let logger = Logger(subsystem: "ai.openclaw", category: "portguard")
+    private let logger = Logger(subsystem: "ai.astroclaw", category: "portguard")
     #if DEBUG
     private var testingDescriptors: [Int: Descriptor] = [:]
     #endif
     private nonisolated static let appSupportDir: URL = {
         let base = FileManager().urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return base.appendingPathComponent("OpenClaw", isDirectory: true)
+        return base.appendingPathComponent("Astroclaw", isDirectory: true)
     }()
 
     private nonisolated static var recordPath: URL {
@@ -283,7 +283,7 @@ actor PortGuardian {
     {
         let expectedDesc: String
         let okPredicate: (Listener) -> Bool
-        let expectedCommands = ["node", "openclaw", "tsx", "pnpm", "bun"]
+        let expectedCommands = ["node", "astroclaw", "tsx", "pnpm", "bun"]
 
         switch mode {
         case .remote:
@@ -377,13 +377,13 @@ actor PortGuardian {
             return false
         case .local:
             // Preserve both the legacy hidden alias and the current service process title.
-            if full.contains("gateway-daemon") || full.contains("openclaw-gateway")
-                || cmd.contains("openclaw-gateway")
+            if full.contains("gateway-daemon") || full.contains("astroclaw-gateway")
+                || cmd.contains("astroclaw-gateway")
             {
                 return true
             }
             // If args are unavailable, treat a CLI listener as expected.
-            if cmd.contains("openclaw"), full == cmd { return true }
+            if cmd.contains("astroclaw"), full == cmd { return true }
             return false
         case .unconfigured:
             return false

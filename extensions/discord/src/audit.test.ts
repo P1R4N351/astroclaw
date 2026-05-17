@@ -1,5 +1,5 @@
 import { ChannelType } from "discord-api-types/v10";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   auditDiscordChannelPermissionsWithFetcher,
@@ -9,7 +9,7 @@ import {
 
 const fetchChannelPermissionsDiscordMock = vi.fn();
 
-function readDiscordGuilds(cfg: OpenClawConfig) {
+function readDiscordGuilds(cfg: AstroclawConfig) {
   const guilds = cfg.channels?.discord?.guilds;
   if (!guilds) {
     throw new Error("expected discord guilds config");
@@ -40,7 +40,7 @@ describe("discord audit", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     const collected = collectDiscordAuditChannelIdsForGuilds(readDiscordGuilds(cfg));
     expect(collected.channelIds).toEqual(["111", "222"]);
@@ -90,7 +90,7 @@ describe("discord audit", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     const collected = collectDiscordAuditChannelIdsForGuilds(readDiscordGuilds(cfg));
     expect(collected.channelIds).toEqual(["111"]);
@@ -113,7 +113,7 @@ describe("discord audit", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     const collected = collectDiscordAuditChannelIdsForGuilds(readDiscordGuilds(cfg));
     expect(collected.channelIds).toStrictEqual([]);
@@ -140,7 +140,7 @@ describe("discord audit", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     const collected = collectDiscordAuditChannelIdsForGuilds(readDiscordGuilds(cfg));
     expect(collected.channelIds).toEqual(["111"]);
@@ -178,7 +178,7 @@ describe("discord audit", () => {
             token: "t",
           },
         },
-      } as unknown as OpenClawConfig;
+      } as unknown as AstroclawConfig;
 
       fetchChannelPermissionsDiscordMock.mockResolvedValueOnce({
         channelId: "222",

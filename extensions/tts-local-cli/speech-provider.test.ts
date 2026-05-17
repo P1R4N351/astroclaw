@@ -1,24 +1,24 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { SpeechProviderConfig, SpeechSynthesisRequest } from "openclaw/plugin-sdk/speech-core";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { SpeechProviderConfig, SpeechSynthesisRequest } from "astroclaw/plugin-sdk/speech-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type SpeechSynthesisTarget = SpeechSynthesisRequest["target"];
 
 const runFfmpegMock = vi.hoisted(() => vi.fn<(args: string[]) => Promise<string | void>>());
 
-vi.mock("openclaw/plugin-sdk/media-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/media-runtime", () => ({
   runFfmpeg: runFfmpegMock,
 }));
 
 import { buildCliSpeechProvider } from "./speech-provider.js";
 
-const TEST_CFG = {} as OpenClawConfig;
+const TEST_CFG = {} as AstroclawConfig;
 
 function createCliFixture(): { dir: string; script: string } {
-  const dir = mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-tts-test-"));
+  const dir = mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-tts-test-"));
   const script = path.join(dir, "write-audio.mjs");
   writeFileSync(
     script,
@@ -256,12 +256,12 @@ describe("buildCliSpeechProvider", () => {
   });
 
   it("can synthesize through a real local CLI fixture and ffmpeg", async () => {
-    if (process.env.OPENCLAW_LIVE_TEST !== "1") {
+    if (process.env.ASTROCLAW_LIVE_TEST !== "1") {
       return;
     }
     const fixture = createCliFixture();
-    const rawFfmpeg = await vi.importActual<typeof import("openclaw/plugin-sdk/media-runtime")>(
-      "openclaw/plugin-sdk/media-runtime",
+    const rawFfmpeg = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-runtime")>(
+      "astroclaw/plugin-sdk/media-runtime",
     );
     runFfmpegMock.mockImplementation(async (args) => {
       await rawFfmpeg.runFfmpeg(args);

@@ -1,6 +1,6 @@
-package ai.openclaw.app.chat
+package ai.astroclaw.app.chat
 
-import ai.openclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.gateway.GatewaySession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

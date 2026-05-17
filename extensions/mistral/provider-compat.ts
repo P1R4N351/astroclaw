@@ -1,8 +1,8 @@
-import { resolveProviderRequestCapabilities } from "openclaw/plugin-sdk/provider-http";
+import { resolveProviderRequestCapabilities } from "astroclaw/plugin-sdk/provider-http";
 import {
   normalizeLowercaseStringOrEmpty,
   readStringValue,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { MISTRAL_MODEL_TRANSPORT_PATCH } from "./api.js";
 
 const MISTRAL_MODEL_HINTS = [

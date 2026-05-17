@@ -1,7 +1,7 @@
 import type { IMessagePayload } from "./types.js";
 
 // Keep the coalescing contract narrow (caps, ID tracking, reply-context
-// preference) so a future SDK lift into `openclaw/plugin-sdk/channel-inbound`
+// preference) so a future SDK lift into `astroclaw/plugin-sdk/channel-inbound`
 // is a mechanical extraction instead of a behavioral redesign. Apple's
 // split-send pipeline is the behavior this protects.
 

@@ -1,6 +1,6 @@
 import { repairMissingConfiguredPluginInstalls } from "../../commands/doctor/shared/missing-configured-plugin-install.js";
 import { UPDATE_POST_CORE_CONVERGENCE_ENV } from "../../commands/doctor/shared/update-phase.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
 import { normalizePluginsConfig, resolveEffectiveEnableState } from "../../plugins/config-state.js";
 import {
@@ -37,9 +37,9 @@ export type PostCoreConvergenceResult = {
   installRecords: Record<string, PluginInstallRecord>;
 };
 
-const REPAIR_GUIDANCE = "Run `openclaw doctor --fix` to retry plugin repair.";
+const REPAIR_GUIDANCE = "Run `astroclaw doctor --fix` to retry plugin repair.";
 const inspectGuidance = (pluginId: string) =>
-  `Run \`openclaw plugins inspect ${pluginId} --runtime --json\` for details.`;
+  `Run \`astroclaw plugins inspect ${pluginId} --runtime --json\` for details.`;
 
 /**
  * Mandatory post-core convergence pass. Runs AFTER the core package files
@@ -48,7 +48,7 @@ const inspectGuidance = (pluginId: string) =>
  * never restart with a configured plugin whose payload is unloadable.
  */
 export async function runPostCorePluginConvergence(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env: NodeJS.ProcessEnv;
   /**
    * Optional in-memory install records from earlier post-core steps (e.g.
@@ -118,7 +118,7 @@ export async function runPostCorePluginConvergence(params: {
  * enable state is the right precision boundary.
  */
 export function filterRecordsToActive(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   records: Record<string, PluginInstallRecord>;
 }): Record<string, PluginInstallRecord> {
   const normalizedPluginConfig = normalizePluginsConfig(params.cfg.plugins);

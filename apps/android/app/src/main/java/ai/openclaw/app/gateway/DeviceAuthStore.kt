@@ -1,6 +1,6 @@
-package ai.openclaw.app.gateway
+package ai.astroclaw.app.gateway
 
-import ai.openclaw.app.SecurePrefs
+import ai.astroclaw.app.SecurePrefs
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

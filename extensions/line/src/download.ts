@@ -1,6 +1,6 @@
 import { messagingApi } from "@line/bot-sdk";
-import { saveMediaStream } from "openclaw/plugin-sdk/media-store";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { saveMediaStream } from "astroclaw/plugin-sdk/media-store";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
 
 interface DownloadResult {
   path: string;

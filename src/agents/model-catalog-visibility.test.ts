@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { resolveVisibleModelCatalog } from "./model-catalog-visibility.js";
 import type { ModelCatalogEntry } from "./model-catalog.types.js";
 import { createProviderAuthChecker } from "./model-provider-auth.js";
@@ -30,7 +30,7 @@ describe("resolveVisibleModelCatalog", () => {
       { provider: "anthropic", id: "claude-test", name: "Claude Test" },
       { provider: "openai", id: "gpt-test", name: "GPT Test" },
     ];
-    const cfg = {} as OpenClawConfig;
+    const cfg = {} as AstroclawConfig;
 
     const result = resolveVisibleModelCatalog({
       cfg,
@@ -74,7 +74,7 @@ describe("resolveVisibleModelCatalog", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     const result = resolveVisibleModelCatalog({
       cfg,
@@ -115,7 +115,7 @@ describe("resolveVisibleModelCatalog", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     const result = resolveVisibleModelCatalog({
       cfg,

@@ -1,19 +1,19 @@
 services:
   - type: web
-    name: openclaw
+    name: astroclaw
     runtime: docker
     plan: starter
     healthCheckPath: /health
     envVars:
-      - key: OPENCLAW_GATEWAY_PORT
+      - key: ASTROCLAW_GATEWAY_PORT
         value: "8080"
-      - key: OPENCLAW_STATE_DIR
-        value: /data/.openclaw
-      - key: OPENCLAW_WORKSPACE_DIR
+      - key: ASTROCLAW_STATE_DIR
+        value: /data/.astroclaw
+      - key: ASTROCLAW_WORKSPACE_DIR
         value: /data/workspace
-      - key: OPENCLAW_GATEWAY_TOKEN
+      - key: ASTROCLAW_GATEWAY_TOKEN
         generateValue: true
     disk:
-      name: openclaw-data
+      name: astroclaw-data
       mountPath: /data
       sizeGB: 1

@@ -8,9 +8,9 @@
 
 import fs from "node:fs/promises";
 import nodePath from "node:path";
-import { resolveFetch } from "openclaw/plugin-sdk/fetch-runtime";
-import { detectMime } from "openclaw/plugin-sdk/media-runtime";
-import { readResponseWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
+import { resolveFetch } from "astroclaw/plugin-sdk/fetch-runtime";
+import { detectMime } from "astroclaw/plugin-sdk/media-runtime";
+import { readResponseWithLimit } from "astroclaw/plugin-sdk/response-limit-runtime";
 import WebSocket from "ws";
 
 export type ContainerRpcOptions = {

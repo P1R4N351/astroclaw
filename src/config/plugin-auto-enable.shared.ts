@@ -30,7 +30,7 @@ import type {
 } from "./plugin-auto-enable.types.js";
 import { ensurePluginAllowlisted } from "./plugins-allowlist.js";
 import { isBlockedObjectKey } from "./prototype-keys.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { AstroclawConfig } from "./types.astroclaw.js";
 export type {
   PluginAutoEnableCandidate,
   PluginAutoEnableResult,
@@ -55,7 +55,7 @@ function resolveAutoEnableProviderPluginIds(
   return Object.fromEntries(entries);
 }
 
-function canReuseUnscopedCurrentPluginMetadataSnapshot(config: OpenClawConfig): boolean {
+function canReuseUnscopedCurrentPluginMetadataSnapshot(config: AstroclawConfig): boolean {
   return normalizePluginsConfig(config.plugins).loadPaths.length === 0;
 }
 
@@ -68,7 +68,7 @@ function extractProviderFromModelRef(value: string): string | null {
   return normalizeProviderId(trimmed.slice(0, slash));
 }
 
-function hasConfiguredEmbeddedHarnessRuntime(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): boolean {
+function hasConfiguredEmbeddedHarnessRuntime(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): boolean {
   return collectConfiguredAgentHarnessRuntimes(cfg, env, { includeEnvRuntime: false }).length > 0;
 }
 
@@ -90,7 +90,7 @@ function resolveAgentHarnessOwnerPluginIds(
     .toSorted((left, right) => left.localeCompare(right));
 }
 
-function isProviderConfigured(cfg: OpenClawConfig, providerId: string): boolean {
+function isProviderConfigured(cfg: AstroclawConfig, providerId: string): boolean {
   const normalized = normalizeProviderId(providerId);
   const profiles = cfg.auth?.profiles;
   if (profiles && typeof profiles === "object") {
@@ -126,12 +126,12 @@ function isProviderConfigured(cfg: OpenClawConfig, providerId: string): boolean 
   return false;
 }
 
-function hasPluginOwnedWebSearchConfig(cfg: OpenClawConfig, pluginId: string): boolean {
+function hasPluginOwnedWebSearchConfig(cfg: AstroclawConfig, pluginId: string): boolean {
   const pluginConfig = cfg.plugins?.entries?.[pluginId]?.config;
   return isRecord(pluginConfig) && isRecord(pluginConfig.webSearch);
 }
 
-function hasPluginOwnedWebFetchConfig(cfg: OpenClawConfig, pluginId: string): boolean {
+function hasPluginOwnedWebFetchConfig(cfg: AstroclawConfig, pluginId: string): boolean {
   const pluginConfig = cfg.plugins?.entries?.[pluginId]?.config;
   return isRecord(pluginConfig) && isRecord(pluginConfig.webFetch);
 }
@@ -147,7 +147,7 @@ function resolvePluginOwnedToolConfigKeys(plugin: PluginManifestRecord): string[
   return Object.keys(properties).filter((key) => key !== "webSearch" && key !== "webFetch");
 }
 
-function hasPluginOwnedToolConfig(cfg: OpenClawConfig, plugin: PluginManifestRecord): boolean {
+function hasPluginOwnedToolConfig(cfg: AstroclawConfig, plugin: PluginManifestRecord): boolean {
   const pluginConfig = cfg.plugins?.entries?.[plugin.id]?.config;
   if (!isRecord(pluginConfig)) {
     return false;
@@ -265,7 +265,7 @@ function collectPluginIdsForConfiguredChannel(
   return [claims[0]?.plugin.id ?? builtInId ?? normalizedChannelId];
 }
 
-function collectConfiguredChannelIds(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): string[] {
+function collectConfiguredChannelIds(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): string[] {
   const configuredStateChannelIds = new Set(listBundledChannelIdsWithConfiguredState());
   return listPotentialConfiguredChannelPresenceSignals(cfg, env, {
     includePersistedAuthState: false,
@@ -287,7 +287,7 @@ function collectConfiguredChannelIds(cfg: OpenClawConfig, env: NodeJS.ProcessEnv
 }
 
 function isAutoEnableConfiguredChannelSignal(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env: NodeJS.ProcessEnv;
   channelId: string;
   source: ChannelPresenceSignalSource;
@@ -307,7 +307,7 @@ function isAutoEnableConfiguredChannelSignal(params: {
   return isChannelConfigured(params.cfg, params.channelId, params.env);
 }
 
-function hasConfiguredWebSearchPluginEntry(cfg: OpenClawConfig): boolean {
+function hasConfiguredWebSearchPluginEntry(cfg: AstroclawConfig): boolean {
   const entries = cfg.plugins?.entries;
   return (
     !!entries &&
@@ -318,14 +318,14 @@ function hasConfiguredWebSearchPluginEntry(cfg: OpenClawConfig): boolean {
   );
 }
 
-function hasConfiguredWebSearchProviderSelection(cfg: OpenClawConfig): boolean {
+function hasConfiguredWebSearchProviderSelection(cfg: AstroclawConfig): boolean {
   const provider = cfg.tools?.web?.search?.provider;
   return (
     cfg.tools?.web?.search?.enabled !== false && typeof provider === "string" && !!provider.trim()
   );
 }
 
-function hasConfiguredWebFetchPluginEntry(cfg: OpenClawConfig): boolean {
+function hasConfiguredWebFetchPluginEntry(cfg: AstroclawConfig): boolean {
   const entries = cfg.plugins?.entries;
   return (
     !!entries &&
@@ -336,7 +336,7 @@ function hasConfiguredWebFetchPluginEntry(cfg: OpenClawConfig): boolean {
   );
 }
 
-function hasConfiguredPluginConfigEntry(cfg: OpenClawConfig): boolean {
+function hasConfiguredPluginConfigEntry(cfg: AstroclawConfig): boolean {
   const entries = cfg.plugins?.entries;
   return (
     !!entries &&
@@ -360,7 +360,7 @@ function toolPolicyReferencesBrowser(value: unknown): boolean {
   );
 }
 
-function hasBrowserToolReference(cfg: OpenClawConfig): boolean {
+function hasBrowserToolReference(cfg: AstroclawConfig): boolean {
   if (toolPolicyReferencesBrowser(cfg.tools)) {
     return true;
   }
@@ -370,7 +370,7 @@ function hasBrowserToolReference(cfg: OpenClawConfig): boolean {
     : false;
 }
 
-function collectConfiguredPluginEntryIds(cfg: OpenClawConfig): string[] {
+function collectConfiguredPluginEntryIds(cfg: AstroclawConfig): string[] {
   const entries = cfg.plugins?.entries;
   if (!entries || typeof entries !== "object") {
     return [];
@@ -380,23 +380,23 @@ function collectConfiguredPluginEntryIds(cfg: OpenClawConfig): string[] {
     .filter((pluginId) => pluginId && !isPluginEntryExplicitlyDisabled(cfg, pluginId));
 }
 
-function hasOwnPluginEntry(cfg: OpenClawConfig, pluginId: string): boolean {
+function hasOwnPluginEntry(cfg: AstroclawConfig, pluginId: string): boolean {
   const entries = cfg.plugins?.entries;
   return !!entries && typeof entries === "object" && Object.hasOwn(entries, pluginId);
 }
 
-function isPluginEntryExplicitlyDisabled(cfg: OpenClawConfig, pluginId: string): boolean {
+function isPluginEntryExplicitlyDisabled(cfg: AstroclawConfig, pluginId: string): boolean {
   return cfg.plugins?.entries?.[pluginId]?.enabled === false;
 }
 
-function hasNonDisabledPluginEntry(cfg: OpenClawConfig, pluginId: string): boolean {
+function hasNonDisabledPluginEntry(cfg: AstroclawConfig, pluginId: string): boolean {
   if (!hasOwnPluginEntry(cfg, pluginId)) {
     return false;
   }
   return !isPluginEntryExplicitlyDisabled(cfg, pluginId);
 }
 
-function hasBrowserSetupAutoEnableRelevantConfig(cfg: OpenClawConfig): boolean {
+function hasBrowserSetupAutoEnableRelevantConfig(cfg: AstroclawConfig): boolean {
   if (cfg.browser?.enabled === false || isPluginEntryExplicitlyDisabled(cfg, "browser")) {
     return false;
   }
@@ -409,7 +409,7 @@ function hasBrowserSetupAutoEnableRelevantConfig(cfg: OpenClawConfig): boolean {
   return hasBrowserToolReference(cfg);
 }
 
-function hasAcpxSetupAutoEnableRelevantConfig(cfg: OpenClawConfig): boolean {
+function hasAcpxSetupAutoEnableRelevantConfig(cfg: AstroclawConfig): boolean {
   if (isPluginEntryExplicitlyDisabled(cfg, "acpx")) {
     return false;
   }
@@ -424,7 +424,7 @@ function hasAcpxSetupAutoEnableRelevantConfig(cfg: OpenClawConfig): boolean {
   return configured && (!backend || backend === "acpx");
 }
 
-function hasXaiSetupAutoEnableRelevantConfig(cfg: OpenClawConfig): boolean {
+function hasXaiSetupAutoEnableRelevantConfig(cfg: AstroclawConfig): boolean {
   if (isPluginEntryExplicitlyDisabled(cfg, "xai")) {
     return false;
   }
@@ -436,7 +436,7 @@ function hasXaiSetupAutoEnableRelevantConfig(cfg: OpenClawConfig): boolean {
   );
 }
 
-function resolveRelevantSetupAutoEnablePluginIds(cfg: OpenClawConfig): string[] {
+function resolveRelevantSetupAutoEnablePluginIds(cfg: AstroclawConfig): string[] {
   const pluginIds = new Set<string>(collectConfiguredPluginEntryIds(cfg));
   if (hasBrowserSetupAutoEnableRelevantConfig(cfg)) {
     pluginIds.add("browser");
@@ -450,7 +450,7 @@ function resolveRelevantSetupAutoEnablePluginIds(cfg: OpenClawConfig): string[] 
   return [...pluginIds].toSorted((left, right) => left.localeCompare(right));
 }
 
-function hasSetupAutoEnableRelevantConfig(cfg: OpenClawConfig): boolean {
+function hasSetupAutoEnableRelevantConfig(cfg: AstroclawConfig): boolean {
   return (
     hasBrowserSetupAutoEnableRelevantConfig(cfg) ||
     hasAcpxSetupAutoEnableRelevantConfig(cfg) ||
@@ -459,12 +459,12 @@ function hasSetupAutoEnableRelevantConfig(cfg: OpenClawConfig): boolean {
   );
 }
 
-function hasPluginEntries(cfg: OpenClawConfig): boolean {
+function hasPluginEntries(cfg: AstroclawConfig): boolean {
   const entries = cfg.plugins?.entries;
   return !!entries && typeof entries === "object" && Object.keys(entries).length > 0;
 }
 
-function hasPluginAllowlistWithMaterialEntries(cfg: OpenClawConfig): boolean {
+function hasPluginAllowlistWithMaterialEntries(cfg: AstroclawConfig): boolean {
   if (
     !Array.isArray(cfg.plugins?.allow) ||
     cfg.plugins.allow.length === 0 ||
@@ -479,7 +479,7 @@ function hasPluginAllowlistWithMaterialEntries(cfg: OpenClawConfig): boolean {
   return Object.values(entries).some(hasMaterialPluginEntryConfig);
 }
 
-function hasConfiguredProviderModelOrHarness(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): boolean {
+function hasConfiguredProviderModelOrHarness(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): boolean {
   if (cfg.auth?.profiles && Object.keys(cfg.auth.profiles).length > 0) {
     return true;
   }
@@ -492,11 +492,11 @@ function hasConfiguredProviderModelOrHarness(cfg: OpenClawConfig, env: NodeJS.Pr
   return hasConfiguredEmbeddedHarnessRuntime(cfg, env);
 }
 
-function arePluginsGloballyDisabled(cfg: OpenClawConfig): boolean {
+function arePluginsGloballyDisabled(cfg: AstroclawConfig): boolean {
   return cfg.plugins?.enabled === false;
 }
 
-function configMayNeedPluginManifestRegistry(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): boolean {
+function configMayNeedPluginManifestRegistry(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): boolean {
   if (arePluginsGloballyDisabled(cfg)) {
     return false;
   }
@@ -526,14 +526,14 @@ function configMayNeedPluginManifestRegistry(cfg: OpenClawConfig, env: NodeJS.Pr
 }
 
 export function configMayNeedPluginAutoEnable(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   env: NodeJS.ProcessEnv,
 ): boolean {
   return resolvePluginAutoEnableReadiness(cfg, env).mayNeedAutoEnable;
 }
 
 export function resolvePluginAutoEnableReadiness(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   env: NodeJS.ProcessEnv,
 ): { mayNeedAutoEnable: boolean; configuredChannelIds: string[] } {
   if (arePluginsGloballyDisabled(cfg)) {
@@ -602,7 +602,7 @@ export function resolvePluginAutoEnableCandidateReason(
 }
 
 export function resolveConfiguredPluginAutoEnableCandidates(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   env: NodeJS.ProcessEnv;
   registry: PluginManifestRegistry;
   configuredChannelIds?: readonly string[];
@@ -729,7 +729,7 @@ export function resolveConfiguredPluginAutoEnableCandidates(params: {
   return changes;
 }
 
-function isPluginExplicitlyDisabled(cfg: OpenClawConfig, pluginId: string): boolean {
+function isPluginExplicitlyDisabled(cfg: AstroclawConfig, pluginId: string): boolean {
   const builtInChannelId = normalizeChatChannelId(pluginId);
   if (builtInChannelId) {
     const channels = cfg.channels as Record<string, unknown> | undefined;
@@ -746,12 +746,12 @@ function isPluginExplicitlyDisabled(cfg: OpenClawConfig, pluginId: string): bool
   return cfg.plugins?.entries?.[pluginId]?.enabled === false;
 }
 
-function isPluginDenied(cfg: OpenClawConfig, pluginId: string): boolean {
+function isPluginDenied(cfg: AstroclawConfig, pluginId: string): boolean {
   const deny = cfg.plugins?.deny;
   return Array.isArray(deny) && deny.includes(pluginId);
 }
 
-function isPluginExplicitlySelected(cfg: OpenClawConfig, pluginId: string): boolean {
+function isPluginExplicitlySelected(cfg: AstroclawConfig, pluginId: string): boolean {
   const allow = cfg.plugins?.allow;
   if (Array.isArray(allow) && allow.includes(pluginId)) {
     return true;
@@ -760,11 +760,11 @@ function isPluginExplicitlySelected(cfg: OpenClawConfig, pluginId: string): bool
 }
 
 function disableImplicitPreferredOverPlugin(params: {
-  config: OpenClawConfig;
-  originalConfig: OpenClawConfig;
+  config: AstroclawConfig;
+  originalConfig: AstroclawConfig;
   pluginId: string;
   manifestRegistry: PluginManifestRegistry;
-}): OpenClawConfig {
+}): AstroclawConfig {
   if (isPluginExplicitlySelected(params.originalConfig, params.pluginId)) {
     return params.config;
   }
@@ -790,7 +790,7 @@ function disableImplicitPreferredOverPlugin(params: {
   };
 }
 
-function isBuiltInChannelAlreadyEnabled(cfg: OpenClawConfig, channelId: string): boolean {
+function isBuiltInChannelAlreadyEnabled(cfg: AstroclawConfig, channelId: string): boolean {
   const channels = cfg.channels as Record<string, unknown> | undefined;
   const channelConfig = channels?.[channelId];
   return (
@@ -825,10 +825,10 @@ function resolveAutoEnableChannelId(params: {
 }
 
 function registerPluginEntry(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   entry: PluginAutoEnableCandidate,
   manifestRegistry: PluginManifestRegistry,
-): OpenClawConfig {
+): AstroclawConfig {
   const builtInChannelId = resolveAutoEnableChannelId({ entry, manifestRegistry });
   if (builtInChannelId) {
     const channels = cfg.channels as Record<string, unknown> | undefined;
@@ -887,10 +887,10 @@ function isKnownPluginId(pluginId: string, manifestRegistry: PluginManifestRegis
 }
 
 function materializeConfiguredPluginEntryAllowlist(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   changes: string[];
   manifestRegistry: PluginManifestRegistry;
-}): OpenClawConfig {
+}): AstroclawConfig {
   let next = params.config;
   const allow = next.plugins?.allow;
   const entries = next.plugins?.entries;
@@ -945,7 +945,7 @@ function formatAutoEnableChange(
 }
 
 export function resolvePluginAutoEnableManifestRegistry(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   env: NodeJS.ProcessEnv;
   manifestRegistry?: PluginManifestRegistry;
 }): PluginManifestRegistry {
@@ -985,7 +985,7 @@ export function resolvePluginAutoEnableManifestRegistry(params: {
 }
 
 export function materializePluginAutoEnableCandidatesInternal(params: {
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   candidates: readonly PluginAutoEnableCandidate[];
   env: NodeJS.ProcessEnv;
   manifestRegistry: PluginManifestRegistry;

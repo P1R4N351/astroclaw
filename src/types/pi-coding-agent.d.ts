@@ -1,8 +1,8 @@
-export type OpenClawPiCodingAgentSkillSourceAugmentation = never;
+export type AstroclawPiCodingAgentSkillSourceAugmentation = never;
 
 declare module "@earendil-works/pi-coding-agent" {
   interface Skill {
-    // OpenClaw relies on the source identifier returned by pi skill loaders.
+    // Astroclaw relies on the source identifier returned by pi skill loaders.
     source: string;
   }
 }

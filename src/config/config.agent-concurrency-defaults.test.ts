@@ -7,7 +7,7 @@ import {
   resolveSubagentMaxConcurrent,
 } from "./agent-limits.js";
 import { applyAgentDefaults } from "./defaults.js";
-import { OpenClawSchema } from "./zod-schema.js";
+import { AstroclawSchema } from "./zod-schema.js";
 
 describe("agent concurrency defaults", () => {
   it("resolves defaults when unset", () => {
@@ -29,7 +29,7 @@ describe("agent concurrency defaults", () => {
   });
 
   it("accepts subagent spawn depth and per-agent child limits", () => {
-    const parsed = OpenClawSchema.parse({
+    const parsed = AstroclawSchema.parse({
       agents: {
         defaults: {
           subagents: {

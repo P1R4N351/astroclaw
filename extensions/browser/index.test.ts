@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { describe, expect, it, vi } from "vitest";
 import {
   browserPluginNodeHostCommands,
@@ -8,10 +8,10 @@ import {
   browserSecurityAuditCollectors,
   registerBrowserPlugin,
 } from "./plugin-registration.js";
-import type { OpenClawPluginApi } from "./runtime-api.js";
+import type { AstroclawPluginApi } from "./runtime-api.js";
 import setupPlugin from "./setup-api.js";
 
-type BrowserAutoEnableProbe = Parameters<OpenClawPluginApi["registerAutoEnableProbe"]>[0];
+type BrowserAutoEnableProbe = Parameters<AstroclawPluginApi["registerAutoEnableProbe"]>[0];
 
 const runtimeApiMocks = vi.hoisted(() => ({
   createBrowserPluginService: vi.fn(() => ({ id: "browser-control", start: vi.fn() })),
@@ -54,7 +54,7 @@ function createApi() {
     name: "Browser",
     source: "test",
     config: {},
-    runtime: {} as OpenClawPluginApi["runtime"],
+    runtime: {} as AstroclawPluginApi["runtime"],
     registerCli,
     registerGatewayMethod,
     registerService,
@@ -99,7 +99,7 @@ describe("browser plugin", () => {
 
   it("bundles the browser automation skill with the plugin", () => {
     const manifest = JSON.parse(
-      fs.readFileSync(path.join(__dirname, "openclaw.plugin.json"), "utf8"),
+      fs.readFileSync(path.join(__dirname, "astroclaw.plugin.json"), "utf8"),
     ) as { skills?: string[] };
     const skillPath = path.join(__dirname, "skills", "browser-automation", "SKILL.md");
 
@@ -149,7 +149,7 @@ describe("browser plugin", () => {
       descriptors: [
         {
           name: "browser",
-          description: "Manage OpenClaw's dedicated browser (Chrome/Chromium)",
+          description: "Manage Astroclaw's dedicated browser (Chrome/Chromium)",
           hasSubcommands: true,
         },
       ],
@@ -199,21 +199,21 @@ describe("browser plugin", () => {
     expect(typeof service?.stop).toBe("function");
     expect(runtimeApiMocks.createBrowserPluginService).not.toHaveBeenCalled();
 
-    await service.start({ config: {}, stateDir: "/tmp/openclaw", logger: { warn: vi.fn() } });
+    await service.start({ config: {}, stateDir: "/tmp/astroclaw", logger: { warn: vi.fn() } });
     expect(runtimeApiMocks.createBrowserPluginService).toHaveBeenCalledOnce();
   });
 
   it("declares setup auto-enable reasons for browser config surfaces", () => {
     const probe = registerBrowserAutoEnableProbe();
 
-    expect(probe({ config: { browser: { defaultProfile: "openclaw" } }, env: {} })).toBe(
+    expect(probe({ config: { browser: { defaultProfile: "astroclaw" } }, env: {} })).toBe(
       "browser configured",
     );
     expect(probe({ config: { tools: { alsoAllow: ["browser"] } }, env: {} })).toBe(
       "browser tool referenced",
     );
     expect(
-      probe({ config: { browser: { defaultProfile: "openclaw", enabled: false } }, env: {} }),
+      probe({ config: { browser: { defaultProfile: "astroclaw", enabled: false } }, env: {} }),
     ).toBeNull();
   });
 });

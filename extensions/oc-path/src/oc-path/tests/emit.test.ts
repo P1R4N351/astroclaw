@@ -26,7 +26,7 @@ describe("emit — round-trip mode (default)", () => {
     // Round-trip trusts parsed bytes — see emit.ts policy comment.
     // Strict mode (acceptPreExistingSentinel: false) is the opt-in
     // path for callers that want LKG-style fingerprint verification.
-    const raw = "## Section\n\n- token: __OPENCLAW_REDACTED__\n";
+    const raw = "## Section\n\n- token: __ASTROCLAW_REDACTED__\n";
     const { ast } = parseMd(raw);
     expect(emitMd(ast)).toBe(raw);
     expect(() => emitMd(ast, { acceptPreExistingSentinel: false })).toThrow(OcEmitSentinelError);
@@ -85,13 +85,13 @@ describe("emit — render mode", () => {
           heading: "Secrets",
           slug: "secrets",
           line: 1,
-          bodyText: "- token: __OPENCLAW_REDACTED__",
+          bodyText: "- token: __ASTROCLAW_REDACTED__",
           items: [
             {
-              text: "token: __OPENCLAW_REDACTED__",
+              text: "token: __ASTROCLAW_REDACTED__",
               slug: "token",
               line: 2,
-              kv: { key: "token", value: "__OPENCLAW_REDACTED__" },
+              kv: { key: "token", value: "__ASTROCLAW_REDACTED__" },
             },
           ],
           tables: [],

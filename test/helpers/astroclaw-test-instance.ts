@@ -8,13 +8,13 @@ import {
   RUNTIME_POSTBUILD_STAMP_FILE,
 } from "../../scripts/lib/local-build-metadata-paths.mjs";
 import {
-  createOpenClawTestState,
-  type OpenClawTestState,
-  type OpenClawTestStateOptions,
-} from "../../src/test-utils/openclaw-test-state.js";
+  createAstroclawTestState,
+  type AstroclawTestState,
+  type AstroclawTestStateOptions,
+} from "../../src/test-utils/astroclaw-test-state.js";
 import { sleep } from "../../src/utils.js";
 
-export type OpenClawTestInstanceOptions = {
+export type AstroclawTestInstanceOptions = {
   name: string;
   cwd?: string;
   port?: number;
@@ -22,20 +22,20 @@ export type OpenClawTestInstanceOptions = {
   hookToken?: string;
   config?: Record<string, unknown>;
   env?: Record<string, string | undefined>;
-  state?: Omit<OpenClawTestStateOptions, "applyEnv" | "gateway" | "env">;
+  state?: Omit<AstroclawTestStateOptions, "applyEnv" | "gateway" | "env">;
   gatewayArgs?: string[];
   startTimeoutMs?: number;
   stopTimeoutMs?: number;
 };
 
-export type OpenClawTestInstanceCommandResult = {
+export type AstroclawTestInstanceCommandResult = {
   code: number | null;
   signal: NodeJS.Signals | null;
   stdout: string;
   stderr: string;
 };
 
-export type OpenClawTestInstance = {
+export type AstroclawTestInstance = {
   name: string;
   port: number;
   url: string;
@@ -44,7 +44,7 @@ export type OpenClawTestInstance = {
   homeDir: string;
   stateDir: string;
   configPath: string;
-  state: OpenClawTestState;
+  state: AstroclawTestState;
   stdout: string[];
   stderr: string[];
   child?: ChildProcessWithoutNullStreams;
@@ -53,7 +53,7 @@ export type OpenClawTestInstance = {
   cli: (
     args: string[],
     options?: { timeoutMs?: number },
-  ) => Promise<OpenClawTestInstanceCommandResult>;
+  ) => Promise<AstroclawTestInstanceCommandResult>;
   startGateway: () => Promise<void>;
   stopGateway: () => Promise<void>;
   logs: () => string;
@@ -233,15 +233,15 @@ function createInstanceEnv(params: {
 }): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...params.stateEnv,
-    OPENCLAW_GATEWAY_TOKEN: "",
-    OPENCLAW_GATEWAY_PASSWORD: "",
-    OPENCLAW_SKIP_CHANNELS: "1",
-    OPENCLAW_SKIP_PROVIDERS: "1",
-    OPENCLAW_SKIP_GMAIL_WATCHER: "1",
-    OPENCLAW_SKIP_CRON: "1",
-    OPENCLAW_SKIP_BROWSER_CONTROL_SERVER: "1",
-    OPENCLAW_SKIP_CANVAS_HOST: "1",
-    OPENCLAW_TEST_MINIMAL_GATEWAY: "1",
+    ASTROCLAW_GATEWAY_TOKEN: "",
+    ASTROCLAW_GATEWAY_PASSWORD: "",
+    ASTROCLAW_SKIP_CHANNELS: "1",
+    ASTROCLAW_SKIP_PROVIDERS: "1",
+    ASTROCLAW_SKIP_GMAIL_WATCHER: "1",
+    ASTROCLAW_SKIP_CRON: "1",
+    ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER: "1",
+    ASTROCLAW_SKIP_CANVAS_HOST: "1",
+    ASTROCLAW_TEST_MINIMAL_GATEWAY: "1",
     VITEST: "1",
   };
   for (const [key, value] of Object.entries(params.extraEnv)) {
@@ -254,14 +254,14 @@ function createInstanceEnv(params: {
   return env;
 }
 
-export async function createOpenClawTestInstance(
-  options: OpenClawTestInstanceOptions,
-): Promise<OpenClawTestInstance> {
+export async function createAstroclawTestInstance(
+  options: AstroclawTestInstanceOptions,
+): Promise<AstroclawTestInstance> {
   const cwd = options.cwd ?? process.cwd();
   const port = options.port ?? (await getFreePort());
   const gatewayToken = options.gatewayToken ?? `gateway-${options.name}-${randomUUID()}`;
   const hookToken = options.hookToken ?? `token-${options.name}-${randomUUID()}`;
-  const state = await createOpenClawTestState({
+  const state = await createAstroclawTestState({
     label: options.name,
     layout: "home",
     ...options.state,
@@ -291,7 +291,7 @@ export async function createOpenClawTestInstance(
   let child: ChildProcessWithoutNullStreams | undefined;
   let cleaned = false;
 
-  const instance: OpenClawTestInstance = {
+  const instance: AstroclawTestInstance = {
     name: options.name,
     port,
     url: `ws://127.0.0.1:${port}`,
@@ -405,7 +405,7 @@ async function runCommand(params: {
   cwd: string;
   env: NodeJS.ProcessEnv;
   timeoutMs: number;
-}): Promise<OpenClawTestInstanceCommandResult> {
+}): Promise<AstroclawTestInstanceCommandResult> {
   const [command, ...args] = params.args;
   if (!command) {
     throw new Error("missing command");

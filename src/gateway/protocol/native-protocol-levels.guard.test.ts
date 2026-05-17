@@ -62,7 +62,7 @@ describe("native Gateway protocol levels", () => {
     }
 
     const swiftGeneratedPath =
-      "apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift";
+      "apps/shared/AstroclawKit/Sources/AstroclawProtocol/GatewayModels.swift";
     const swiftGenerated = await readRepoFile(swiftGeneratedPath);
     assertLevelsMatch(swiftGeneratedPath, {
       min: extractInteger(
@@ -79,7 +79,7 @@ describe("native Gateway protocol levels", () => {
       ),
     });
 
-    const androidPath = "apps/android/app/src/main/java/ai/openclaw/app/gateway/GatewayProtocol.kt";
+    const androidPath = "apps/android/app/src/main/java/ai/astroclaw/app/gateway/GatewayProtocol.kt";
     const android = await readRepoFile(androidPath);
     assertLevelsMatch(androidPath, {
       min: extractInteger(
@@ -99,8 +99,8 @@ describe("native Gateway protocol levels", () => {
 
   it("uses the min constant for native connect compatibility ranges", async () => {
     const swiftConnectFiles = [
-      "apps/shared/OpenClawKit/Sources/OpenClawKit/GatewayChannel.swift",
-      "apps/macos/Sources/OpenClawMacCLI/WizardCommand.swift",
+      "apps/shared/AstroclawKit/Sources/AstroclawKit/GatewayChannel.swift",
+      "apps/macos/Sources/AstroclawMacCLI/WizardCommand.swift",
     ];
     for (const relativePath of swiftConnectFiles) {
       const content = await readRepoFile(relativePath);
@@ -118,7 +118,7 @@ describe("native Gateway protocol levels", () => {
       );
     }
 
-    const androidPath = "apps/android/app/src/main/java/ai/openclaw/app/gateway/GatewaySession.kt";
+    const androidPath = "apps/android/app/src/main/java/ai/astroclaw/app/gateway/GatewaySession.kt";
     const android = await readRepoFile(androidPath);
     assertPattern(
       android,

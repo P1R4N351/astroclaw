@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { resetLogger, setLoggerOverride } from "../logging/logger.js";
 import { loggingState } from "../logging/state.js";
 import {
@@ -28,11 +28,11 @@ vi.mock("../plugins/manifest-registry.js", async () => {
   const path = await import("node:path");
   return {
     loadPluginManifestRegistry: (params: { workspaceDir?: string }) => {
-      const extensionsRoot = path.join(params.workspaceDir ?? "", ".openclaw", "extensions");
+      const extensionsRoot = path.join(params.workspaceDir ?? "", ".astroclaw", "extensions");
       const plugins = [];
       for (const id of ["open-prose", "browser"]) {
         const rootDir = path.join(extensionsRoot, id);
-        const manifestPath = path.join(rootDir, "openclaw.plugin.json");
+        const manifestPath = path.join(rootDir, "astroclaw.plugin.json");
         if (!fs.existsSync(manifestPath)) {
           continue;
         }
@@ -62,11 +62,11 @@ let tempRoot = "";
 let workspaceCaseIndex = 0;
 
 function createWorkspacePluginRegistry(workspaceDir: string): PluginManifestRegistry {
-  const extensionsRoot = path.join(workspaceDir, ".openclaw", "extensions");
+  const extensionsRoot = path.join(workspaceDir, ".astroclaw", "extensions");
   const plugins: PluginManifestRecord[] = [];
   for (const id of ["open-prose", "browser"]) {
     const rootDir = path.join(extensionsRoot, id);
-    const manifestPath = path.join(rootDir, "openclaw.plugin.json");
+    const manifestPath = path.join(rootDir, "astroclaw.plugin.json");
     if (!fsSync.existsSync(manifestPath)) {
       continue;
     }
@@ -98,7 +98,7 @@ function createWorkspacePluginRegistry(workspaceDir: string): PluginManifestRegi
 
 function createWorkspacePluginMetadataSnapshot(params: {
   workspaceDir: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   manifestRegistry: PluginManifestRegistry;
 }): PluginMetadataSnapshot {
   const policyHash = resolveInstalledPluginIndexPolicyHash(params.config);
@@ -143,7 +143,7 @@ function createWorkspacePluginMetadataSnapshot(params: {
   };
 }
 
-function setWorkspacePluginMetadataSnapshot(workspaceDir: string, config?: OpenClawConfig): void {
+function setWorkspacePluginMetadataSnapshot(workspaceDir: string, config?: AstroclawConfig): void {
   const manifestRegistry = createWorkspacePluginRegistry(workspaceDir);
   setCurrentPluginMetadataSnapshot(
     createWorkspacePluginMetadataSnapshot({
@@ -215,7 +215,7 @@ function loadTestWorkspaceSkillEntries(
 }
 
 beforeAll(async () => {
-  tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-skills-workspace-"));
+  tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-skills-workspace-"));
   fakeHome = path.join(tempRoot, "home");
   await fs.mkdir(fakeHome, { recursive: true });
   envSnapshot = setMockSkillsHomeEnv(fakeHome);
@@ -240,7 +240,7 @@ async function setupWorkspaceWithProsePlugin() {
   const workspaceDir = await createTempWorkspaceDir();
   const managedDir = path.join(workspaceDir, ".managed");
   const bundledDir = path.join(workspaceDir, ".bundled");
-  const pluginRoot = path.join(workspaceDir, ".openclaw", "extensions", "open-prose");
+  const pluginRoot = path.join(workspaceDir, ".astroclaw", "extensions", "open-prose");
 
   await writePluginWithSkill({
     pluginRoot,
@@ -301,7 +301,7 @@ describe("loadWorkspaceSkillEntries", () => {
   it("loads the browser plugin automation skill when the bundled plugin is enabled", async () => {
     const workspaceDir = await createTempWorkspaceDir();
     const managedDir = path.join(workspaceDir, ".managed");
-    const pluginRoot = path.join(workspaceDir, ".openclaw", "extensions", "browser");
+    const pluginRoot = path.join(workspaceDir, ".astroclaw", "extensions", "browser");
 
     await writePluginWithSkill({
       pluginRoot,
@@ -310,7 +310,7 @@ describe("loadWorkspaceSkillEntries", () => {
       skillDescription: "Browser automation",
     });
     await fs.writeFile(
-      path.join(pluginRoot, "openclaw.plugin.json"),
+      path.join(pluginRoot, "astroclaw.plugin.json"),
       JSON.stringify(
         {
           id: "browser",
@@ -422,7 +422,7 @@ describe("loadWorkspaceSkillEntries", () => {
       dir: path.join(workspaceDir, "skills", "remote-only"),
       name: "remote-only",
       description: "Needs a remote bin",
-      metadata: '{"openclaw":{"requires":{"anyBins":["missingbin","sandboxbin"]}}}',
+      metadata: '{"astroclaw":{"requires":{"anyBins":["missingbin","sandboxbin"]}}}',
     });
 
     const entries = loadTestWorkspaceSkillEntries(workspaceDir, {
@@ -484,7 +484,7 @@ describe("loadWorkspaceSkillEntries", () => {
       const warningLine = firstWarningLine(warn);
       expect(warningLine).toContain("Skipping escaped skill path outside its configured root:");
       expect(warningLine).toContain("reason=symlink-escape");
-      expect(warningLine).toContain("source=openclaw-workspace");
+      expect(warningLine).toContain("source=astroclaw-workspace");
       expect(warningLine).toContain(`root=${path.join(workspaceDir, "skills")}`);
       expect(warningLine).toContain(`requested=${requestedPath}`);
       expect(warningLine).toContain("resolved=");
@@ -587,7 +587,7 @@ describe("loadWorkspaceSkillEntries", () => {
         expect(entries.map((entry) => entry.skill.name)).not.toContain(skillName);
         const warningLine = firstWarningLine(warn);
         expect(warningLine).toContain("Skipping escaped skill path outside its configured root:");
-        expect(warningLine).toContain("source=openclaw-managed");
+        expect(warningLine).toContain("source=astroclaw-managed");
         expect(warningLine).toContain("reason=symlink-escape");
       } finally {
         await fs.unlink(symlinkPath).catch(() => undefined);
@@ -608,7 +608,7 @@ describe("loadWorkspaceSkillEntries", () => {
       expect(entries.map((entry) => entry.skill.name)).not.toContain("outside-bundled-skill");
       const warningLine = firstWarningLine(warn);
       expect(warningLine).toContain("Skipping escaped skill path outside its configured root:");
-      expect(warningLine).toContain("source=openclaw-bundled");
+      expect(warningLine).toContain("source=astroclaw-bundled");
       expect(warningLine).toContain("reason=bundled-symlink-escape");
       expect(warningLine).toContain("hint=likely-stray-local-symlink-or-checkout-mutation");
       expect(warningLine).toContain(`requested=${requestedPath}`);

@@ -78,7 +78,7 @@ describe("buildEmbeddedSystemPrompt", () => {
 
   it("forwards provider prompt contributions into the embedded prompt", () => {
     const prompt = buildEmbeddedSystemPrompt({
-      workspaceDir: "/tmp/openclaw",
+      workspaceDir: "/tmp/astroclaw",
       reasoningTagHint: false,
       runtimeInfo: {
         host: "local",
@@ -111,7 +111,7 @@ describe("buildEmbeddedSystemPrompt", () => {
         },
       },
       agentId: "main",
-      workspaceDir: "/tmp/openclaw",
+      workspaceDir: "/tmp/astroclaw",
       reasoningTagHint: false,
       runtimeInfo: {
         agentId: "main",
@@ -134,7 +134,7 @@ describe("buildEmbeddedSystemPrompt", () => {
     registerMemoryPromptSection(() => ["## Memory Recall", "Use memory carefully.", ""]);
 
     const prompt = buildEmbeddedSystemPrompt({
-      workspaceDir: "/tmp/openclaw",
+      workspaceDir: "/tmp/astroclaw",
       reasoningTagHint: false,
       runtimeInfo: {
         host: "local",
@@ -155,7 +155,7 @@ describe("buildEmbeddedSystemPrompt", () => {
 
   it("includes active background process references in the embedded prompt", () => {
     const prompt = buildEmbeddedSystemPrompt({
-      workspaceDir: "/tmp/openclaw",
+      workspaceDir: "/tmp/astroclaw",
       reasoningTagHint: false,
       runtimeInfo: {
         host: "local",

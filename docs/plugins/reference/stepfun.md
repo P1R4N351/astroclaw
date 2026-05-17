@@ -1,5 +1,5 @@
 ---
-summary: "Adds StepFun, StepFun Plan model provider support to OpenClaw."
+summary: "Adds StepFun, StepFun Plan model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the stepfun plugin
 title: "StepFun plugin"
@@ -7,12 +7,12 @@ title: "StepFun plugin"
 
 # StepFun plugin
 
-Adds StepFun, StepFun Plan model provider support to OpenClaw.
+Adds StepFun, StepFun Plan model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/stepfun-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/stepfun-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

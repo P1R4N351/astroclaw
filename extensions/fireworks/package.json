@@ -1,16 +1,16 @@
 {
-  "name": "@openclaw/fireworks-provider",
+  "name": "@astroclaw/fireworks-provider",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Fireworks provider plugin",
+  "description": "Astroclaw Fireworks provider plugin",
   "type": "module",
   "dependencies": {
     "@earendil-works/pi-ai": "0.74.0"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

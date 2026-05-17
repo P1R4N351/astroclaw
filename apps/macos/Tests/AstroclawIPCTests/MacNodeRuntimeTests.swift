@@ -1,8 +1,8 @@
 import CoreLocation
 import Foundation
-import OpenClawKit
+import AstroclawKit
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct MacNodeRuntimeTests {
     actor CanvasRefreshProbe {
@@ -30,7 +30,7 @@ struct MacNodeRuntimeTests {
     final class ScreenSnapshotProbeServices: MacNodeRuntimeMainActorServices, @unchecked Sendable {
         typealias SnapshotResult = (
             data: Data,
-            format: OpenClawScreenSnapshotFormat,
+            format: AstroclawScreenSnapshotFormat,
             width: Int,
             height: Int)
 
@@ -51,7 +51,7 @@ struct MacNodeRuntimeTests {
             screenIndex: Int?,
             maxWidth: Int?,
             quality: Double?,
-            format: OpenClawScreenSnapshotFormat?) async throws -> SnapshotResult
+            format: AstroclawScreenSnapshotFormat?) async throws -> SnapshotResult
         {
             self.snapshotCallCount += 1
             self.receivedSnapshotParams = MacNodeScreenSnapshotParams(
@@ -73,7 +73,7 @@ struct MacNodeRuntimeTests {
             outPath: String?) async throws -> (path: String, hasAudio: Bool)
         {
             let url = FileManager().temporaryDirectory
-                .appendingPathComponent("openclaw-test-screen-record-\(UUID().uuidString).mp4")
+                .appendingPathComponent("astroclaw-test-screen-record-\(UUID().uuidString).mp4")
             try Data("ok".utf8).write(to: url)
             return (path: url.path, hasAudio: false)
         }
@@ -87,7 +87,7 @@ struct MacNodeRuntimeTests {
         }
 
         func currentLocation(
-            desiredAccuracy: OpenClawLocationAccuracy,
+            desiredAccuracy: AstroclawLocationAccuracy,
             maxAgeMs: Int?,
             timeoutMs: Int?) async throws -> CLLocation
         {
@@ -112,35 +112,35 @@ struct MacNodeRuntimeTests {
             refreshCanvasSurfaceUrl: { await probe.refresh() })
 
         let current = await runtime.resolveA2UIHostUrlWithCapabilityRefresh()
-        #expect(current == "http://127.0.0.1:18789/current/__openclaw__/a2ui/?platform=macos")
+        #expect(current == "http://127.0.0.1:18789/current/__astroclaw__/a2ui/?platform=macos")
         #expect(await probe.calls == 0)
 
         let refreshed = await runtime.resolveA2UIHostUrlWithCapabilityRefresh(forceRefresh: true)
-        #expect(refreshed == "http://127.0.0.1:18789/refreshed/__openclaw__/a2ui/?platform=macos")
+        #expect(refreshed == "http://127.0.0.1:18789/refreshed/__astroclaw__/a2ui/?platform=macos")
         #expect(await probe.calls == 1)
     }
 
     @Test func `handle invoke rejects empty system run`() async throws {
         let runtime = MacNodeRuntime()
-        let params = OpenClawSystemRunParams(command: [])
+        let params = AstroclawSystemRunParams(command: [])
         let json = try String(data: JSONEncoder().encode(params), encoding: .utf8)
         let response = await runtime.handleInvoke(
-            BridgeInvokeRequest(id: "req-2", command: OpenClawSystemCommand.run.rawValue, paramsJSON: json))
+            BridgeInvokeRequest(id: "req-2", command: AstroclawSystemCommand.run.rawValue, paramsJSON: json))
         #expect(response.ok == false)
     }
 
     @Test func `system run denied event preserves gateway run id`() async throws {
         let stateDir = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-state-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("astroclaw-state-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager().removeItem(at: stateDir) }
 
-        try await TestIsolation.withEnvValues(["OPENCLAW_STATE_DIR": stateDir.path]) {
+        try await TestIsolation.withEnvValues(["ASTROCLAW_STATE_DIR": stateDir.path]) {
             let probe = ExecEventProbe()
             let runtime = MacNodeRuntime()
             await runtime.setEventSender { event, json in
                 await probe.append(event: event, json: json)
             }
-            let params = OpenClawSystemRunParams(
+            let params = AstroclawSystemRunParams(
                 command: ["/bin/sh", "-lc", "printf ok"],
                 sessionKey: "agent:main:main",
                 runId: "gateway-run-1")
@@ -148,7 +148,7 @@ struct MacNodeRuntimeTests {
             let response = await runtime.handleInvoke(
                 BridgeInvokeRequest(
                     id: "req-run-id",
-                    command: OpenClawSystemCommand.run.rawValue,
+                    command: AstroclawSystemCommand.run.rawValue,
                     paramsJSON: json))
 
             #expect(response.ok == false)
@@ -165,12 +165,12 @@ struct MacNodeRuntimeTests {
 
     @Test func `handle invoke rejects blocked system run env override before execution`() async throws {
         let runtime = MacNodeRuntime()
-        let params = OpenClawSystemRunParams(
+        let params = AstroclawSystemRunParams(
             command: ["/bin/sh", "-lc", "echo ok"],
             env: ["CLASSPATH": "/tmp/evil-classpath"])
         let json = try String(data: JSONEncoder().encode(params), encoding: .utf8)
         let response = await runtime.handleInvoke(
-            BridgeInvokeRequest(id: "req-2c", command: OpenClawSystemCommand.run.rawValue, paramsJSON: json))
+            BridgeInvokeRequest(id: "req-2c", command: AstroclawSystemCommand.run.rawValue, paramsJSON: json))
         #expect(response.ok == false)
         #expect(response.error?.message.contains("SYSTEM_RUN_DENIED: environment override rejected") == true)
         #expect(response.error?.message.contains("CLASSPATH") == true)
@@ -178,12 +178,12 @@ struct MacNodeRuntimeTests {
 
     @Test func `handle invoke rejects invalid system run env override key before execution`() async throws {
         let runtime = MacNodeRuntime()
-        let params = OpenClawSystemRunParams(
+        let params = AstroclawSystemRunParams(
             command: ["/bin/sh", "-lc", "echo ok"],
             env: ["BAD-KEY": "x"])
         let json = try String(data: JSONEncoder().encode(params), encoding: .utf8)
         let response = await runtime.handleInvoke(
-            BridgeInvokeRequest(id: "req-2d", command: OpenClawSystemCommand.run.rawValue, paramsJSON: json))
+            BridgeInvokeRequest(id: "req-2d", command: AstroclawSystemCommand.run.rawValue, paramsJSON: json))
         #expect(response.ok == false)
         #expect(response.error?.message.contains("SYSTEM_RUN_DENIED: environment override rejected") == true)
         #expect(response.error?.message.contains("BAD-KEY") == true)
@@ -191,19 +191,19 @@ struct MacNodeRuntimeTests {
 
     @Test func `handle invoke rejects empty system which`() async throws {
         let runtime = MacNodeRuntime()
-        let params = OpenClawSystemWhichParams(bins: [])
+        let params = AstroclawSystemWhichParams(bins: [])
         let json = try String(data: JSONEncoder().encode(params), encoding: .utf8)
         let response = await runtime.handleInvoke(
-            BridgeInvokeRequest(id: "req-2b", command: OpenClawSystemCommand.which.rawValue, paramsJSON: json))
+            BridgeInvokeRequest(id: "req-2b", command: AstroclawSystemCommand.which.rawValue, paramsJSON: json))
         #expect(response.ok == false)
     }
 
     @Test func `handle invoke rejects empty notification`() async throws {
         let runtime = MacNodeRuntime()
-        let params = OpenClawSystemNotifyParams(title: "", body: "")
+        let params = AstroclawSystemNotifyParams(title: "", body: "")
         let json = try String(data: JSONEncoder().encode(params), encoding: .utf8)
         let response = await runtime.handleInvoke(
-            BridgeInvokeRequest(id: "req-3", command: OpenClawSystemCommand.notify.rawValue, paramsJSON: json))
+            BridgeInvokeRequest(id: "req-3", command: AstroclawSystemCommand.notify.rawValue, paramsJSON: json))
         #expect(response.ok == false)
     }
 
@@ -211,7 +211,7 @@ struct MacNodeRuntimeTests {
         await TestIsolation.withUserDefaultsValues([cameraEnabledKey: false]) {
             let runtime = MacNodeRuntime()
             let response = await runtime.handleInvoke(
-                BridgeInvokeRequest(id: "req-4", command: OpenClawCameraCommand.list.rawValue))
+                BridgeInvokeRequest(id: "req-4", command: AstroclawCameraCommand.list.rawValue))
             #expect(response.ok == false)
             #expect(response.error?.message.contains("CAMERA_DISABLED") == true)
         }
@@ -224,8 +224,8 @@ struct MacNodeRuntimeTests {
                 screenIndex: Int?,
                 maxWidth: Int?,
                 quality: Double?,
-                format: OpenClawScreenSnapshotFormat?) async throws
-                -> (data: Data, format: OpenClawScreenSnapshotFormat, width: Int, height: Int)
+                format: AstroclawScreenSnapshotFormat?) async throws
+                -> (data: Data, format: AstroclawScreenSnapshotFormat, width: Int, height: Int)
             {
                 _ = screenIndex
                 _ = maxWidth
@@ -241,7 +241,7 @@ struct MacNodeRuntimeTests {
                 outPath: String?) async throws -> (path: String, hasAudio: Bool)
             {
                 let url = FileManager().temporaryDirectory
-                    .appendingPathComponent("openclaw-test-screen-record-\(UUID().uuidString).mp4")
+                    .appendingPathComponent("astroclaw-test-screen-record-\(UUID().uuidString).mp4")
                 try Data("ok".utf8).write(to: url)
                 return (path: url.path, hasAudio: false)
             }
@@ -255,7 +255,7 @@ struct MacNodeRuntimeTests {
             }
 
             func currentLocation(
-                desiredAccuracy: OpenClawLocationAccuracy,
+                desiredAccuracy: AstroclawLocationAccuracy,
                 maxAgeMs: Int?,
                 timeoutMs: Int?) async throws -> CLLocation
             {
@@ -291,8 +291,8 @@ struct MacNodeRuntimeTests {
                 screenIndex: Int?,
                 maxWidth: Int?,
                 quality: Double?,
-                format: OpenClawScreenSnapshotFormat?) async throws
-                -> (data: Data, format: OpenClawScreenSnapshotFormat, width: Int, height: Int)
+                format: AstroclawScreenSnapshotFormat?) async throws
+                -> (data: Data, format: AstroclawScreenSnapshotFormat, width: Int, height: Int)
             {
                 self.snapshotCalledAtMs = Int64(Date().timeIntervalSince1970 * 1000)
                 #expect(screenIndex == 0)
@@ -309,7 +309,7 @@ struct MacNodeRuntimeTests {
                 outPath: String?) async throws -> (path: String, hasAudio: Bool)
             {
                 let url = FileManager().temporaryDirectory
-                    .appendingPathComponent("openclaw-test-screen-record-\(UUID().uuidString).mp4")
+                    .appendingPathComponent("astroclaw-test-screen-record-\(UUID().uuidString).mp4")
                 try Data("ok".utf8).write(to: url)
                 return (path: url.path, hasAudio: false)
             }
@@ -323,7 +323,7 @@ struct MacNodeRuntimeTests {
             }
 
             func currentLocation(
-                desiredAccuracy: OpenClawLocationAccuracy,
+                desiredAccuracy: AstroclawLocationAccuracy,
                 maxAgeMs: Int?,
                 timeoutMs: Int?) async throws -> CLLocation
             {
@@ -572,7 +572,7 @@ struct MacNodeRuntimeTests {
         let response = await runtime.handleInvoke(
             BridgeInvokeRequest(
                 id: "req-browser",
-                command: OpenClawBrowserCommand.proxy.rawValue,
+                command: AstroclawBrowserCommand.proxy.rawValue,
                 paramsJSON: paramsJSON))
 
         #expect(response.ok == true)
@@ -581,7 +581,7 @@ struct MacNodeRuntimeTests {
 
     @Test func `handle invoke browser proxy rejects disabled browser control`() async throws {
         let override = TestIsolation.tempConfigPath()
-        try await TestIsolation.withEnvValues(["OPENCLAW_CONFIG_PATH": override]) {
+        try await TestIsolation.withEnvValues(["ASTROCLAW_CONFIG_PATH": override]) {
             try JSONSerialization.data(withJSONObject: ["browser": ["enabled": false]])
                 .write(to: URL(fileURLWithPath: override))
 
@@ -592,7 +592,7 @@ struct MacNodeRuntimeTests {
             let response = await runtime.handleInvoke(
                 BridgeInvokeRequest(
                     id: "req-browser-disabled",
-                    command: OpenClawBrowserCommand.proxy.rawValue,
+                    command: AstroclawBrowserCommand.proxy.rawValue,
                     paramsJSON: #"{"method":"GET","path":"/tabs"}"#))
 
             #expect(response.ok == false)

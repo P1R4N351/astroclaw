@@ -1,6 +1,6 @@
-import { withFileLock as withPathLock } from "openclaw/plugin-sdk/file-lock";
-import { readJsonFileWithFallback, writeJsonFileAtomically } from "openclaw/plugin-sdk/json-store";
-import { pathExists } from "openclaw/plugin-sdk/security-runtime";
+import { withFileLock as withPathLock } from "astroclaw/plugin-sdk/file-lock";
+import { readJsonFileWithFallback, writeJsonFileAtomically } from "astroclaw/plugin-sdk/json-store";
+import { pathExists } from "astroclaw/plugin-sdk/security-runtime";
 
 const STORE_LOCK_OPTIONS = {
   retries: {

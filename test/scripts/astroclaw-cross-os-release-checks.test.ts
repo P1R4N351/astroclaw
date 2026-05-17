@@ -71,9 +71,9 @@ import {
   verifyDevUpdateStatus,
   verifyPackagedUpgradeUpdateResult,
   writePackageDistInventoryForCandidate,
-} from "../../scripts/openclaw-cross-os-release-checks.ts";
+} from "../../scripts/astroclaw-cross-os-release-checks.ts";
 
-describe("scripts/openclaw-cross-os-release-checks", () => {
+describe("scripts/astroclaw-cross-os-release-checks", () => {
   it("keeps dashboard smoke patient enough for cold packaged gateway startup", () => {
     expect(CROSS_OS_DASHBOARD_SMOKE_TIMEOUT_MS).toBeGreaterThanOrEqual(120_000);
     expect(CROSS_OS_DASHBOARD_FETCH_TIMEOUT_MS).toBeGreaterThanOrEqual(10_000);
@@ -88,7 +88,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
     expect(CROSS_OS_WINDOWS_GATEWAY_READY_TIMEOUT_MS).toBeGreaterThanOrEqual(300_000);
   });
 
-  it("gives the Windows packaged updater wrapper enough headroom for OpenClaw timeout output", () => {
+  it("gives the Windows packaged updater wrapper enough headroom for Astroclaw timeout output", () => {
     expect(CROSS_OS_WINDOWS_PACKAGED_UPGRADE_STEP_TIMEOUT_SECONDS).toBeLessThanOrEqual(10 * 60);
     expect(CROSS_OS_WINDOWS_PACKAGED_UPGRADE_WRAPPER_TIMEOUT_MS).toBeGreaterThan(
       CROSS_OS_WINDOWS_PACKAGED_UPGRADE_STEP_TIMEOUT_SECONDS * 1000,
@@ -108,7 +108,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   });
 
   it("accepts OK agent output from the captured log when stdout is empty", () => {
-    const dir = mkdtempSync(join(tmpdir(), "openclaw-cross-os-agent-output-"));
+    const dir = mkdtempSync(join(tmpdir(), "astroclaw-cross-os-agent-output-"));
     try {
       const logPath = join(dir, "agent.log");
       writeFileSync(
@@ -154,7 +154,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   });
 
   it("skips optional live agent turns only for model availability failures", () => {
-    const dir = mkdtempSync(join(tmpdir(), "openclaw-cross-os-agent-skip-"));
+    const dir = mkdtempSync(join(tmpdir(), "astroclaw-cross-os-agent-skip-"));
     try {
       const logPath = join(dir, "agent.log");
       writeFileSync(
@@ -197,12 +197,12 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   it("allows cross-OS provider smoke models to use faster CI overrides", () => {
     expect(
       resolveProviderConfig("openai", {
-        OPENCLAW_CROSS_OS_OPENAI_MODEL: "openai/gpt-5.4-mini",
+        ASTROCLAW_CROSS_OS_OPENAI_MODEL: "openai/gpt-5.4-mini",
       })?.model,
     ).toBe("openai/gpt-5.4-mini");
     expect(
       resolveProviderConfig("openai", {
-        OPENCLAW_CROSS_OS_MODEL: "openai/gpt-5.4-nano",
+        ASTROCLAW_CROSS_OS_MODEL: "openai/gpt-5.4-nano",
       })?.model,
     ).toBe("openai/gpt-5.4-nano");
     expect(resolveProviderConfig("openai", {})?.model).toBe("openai/gpt-5.4");
@@ -210,13 +210,13 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
 
   it("keeps release cross-OS OpenAI smoke on GPT-5.4", () => {
     const workflow = readFileSync(
-      ".github/workflows/openclaw-cross-os-release-checks-reusable.yml",
+      ".github/workflows/astroclaw-cross-os-release-checks-reusable.yml",
       "utf8",
     );
-    const releaseChecks = readFileSync(".github/workflows/openclaw-release-checks.yml", "utf8");
+    const releaseChecks = readFileSync(".github/workflows/astroclaw-release-checks.yml", "utf8");
 
     expect(workflow).toContain(
-      "OPENCLAW_CROSS_OS_OPENAI_MODEL: ${{ inputs.openai_model || vars.OPENCLAW_CROSS_OS_OPENAI_MODEL || 'openai/gpt-5.4' }}",
+      "ASTROCLAW_CROSS_OS_OPENAI_MODEL: ${{ inputs.openai_model || vars.ASTROCLAW_CROSS_OS_OPENAI_MODEL || 'openai/gpt-5.4' }}",
     );
     expect(releaseChecks).toContain("openai_model: openai/gpt-5.4");
   });
@@ -236,10 +236,10 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   });
 
   it("can stage packaged-upgrade baselines without npm lifecycle scripts", () => {
-    expect(buildNpmGlobalInstallArgs("openclaw@2026.5.2", { ignoreScripts: true })).toEqual([
+    expect(buildNpmGlobalInstallArgs("astroclaw@2026.5.2", { ignoreScripts: true })).toEqual([
       "install",
       "-g",
-      "openclaw@2026.5.2",
+      "astroclaw@2026.5.2",
       "--omit=dev",
       "--no-fund",
       "--no-audit",
@@ -249,11 +249,11 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   });
 
   it("keeps packaged-upgrade release updates out of service restart flow", () => {
-    const args = buildPackagedUpgradeUpdateArgs("http://127.0.0.1:49152/openclaw-current.tgz");
+    const args = buildPackagedUpgradeUpdateArgs("http://127.0.0.1:49152/astroclaw-current.tgz");
     expect(args.slice(0, 6)).toEqual([
       "update",
       "--tag",
-      "http://127.0.0.1:49152/openclaw-current.tgz",
+      "http://127.0.0.1:49152/astroclaw-current.tgz",
       "--yes",
       "--json",
       "--no-restart",
@@ -262,7 +262,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   });
 
   it("keeps cross-OS live smoke agent turns on GPT-5-safe timeouts and minimal context", () => {
-    const source = readFileSync("scripts/openclaw-cross-os-release-checks.ts", "utf8");
+    const source = readFileSync("scripts/astroclaw-cross-os-release-checks.ts", "utf8");
     const providerOverride = "models.providers.${params.providerConfig.extensionId}";
 
     expect(CROSS_OS_RELEASE_SMOKE_TOOLS_PROFILE).toBe("minimal");
@@ -398,7 +398,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   });
 
   it("keeps matrix resolution independent of package dependency imports", () => {
-    const source = readFileSync("scripts/openclaw-cross-os-release-checks.ts", "utf8");
+    const source = readFileSync("scripts/astroclaw-cross-os-release-checks.ts", "utf8");
     const topLevelImports = source.slice(0, source.indexOf("const SCRIPT_PATH"));
 
     expect(topLevelImports).not.toContain("package-dist-inventory");
@@ -482,8 +482,8 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
     );
     expect(script).toContain("Get-Command npm.cmd -ErrorAction SilentlyContinue");
     expect(script).toContain('$env:Path = "$npmPrefix;$env:Path"');
-    expect(script).toContain("(Join-Path $npmPrefix 'openclaw.cmd')");
-    expect(script).toContain("$cmd = Get-Command openclaw -ErrorAction Stop");
+    expect(script).toContain("(Join-Path $npmPrefix 'astroclaw.cmd')");
+    expect(script).toContain("$cmd = Get-Command astroclaw -ErrorAction Stop");
   });
 
   it("keeps Windows dev-update toolchain checks compatible with setup-node PATH shims", () => {
@@ -503,9 +503,9 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
         VAR_UBUNTU_RUNNER: "workflow-linux",
         VAR_WINDOWS_RUNNER: "workflow-windows",
         VAR_MACOS_RUNNER: "workflow-macos",
-        OPENCLAW_RELEASE_CHECKS_UBUNTU_RUNNER: "legacy-linux",
-        OPENCLAW_RELEASE_CHECKS_WINDOWS_RUNNER: "legacy-windows",
-        OPENCLAW_RELEASE_CHECKS_MACOS_RUNNER: "legacy-macos",
+        ASTROCLAW_RELEASE_CHECKS_UBUNTU_RUNNER: "legacy-linux",
+        ASTROCLAW_RELEASE_CHECKS_WINDOWS_RUNNER: "legacy-windows",
+        ASTROCLAW_RELEASE_CHECKS_MACOS_RUNNER: "legacy-macos",
       }),
     ).toEqual({
       varUbuntuRunner: "workflow-linux",
@@ -520,9 +520,9 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
         VAR_UBUNTU_RUNNER: "",
         VAR_WINDOWS_RUNNER: " ",
         VAR_MACOS_RUNNER: "",
-        OPENCLAW_RELEASE_CHECKS_UBUNTU_RUNNER: "legacy-linux",
-        OPENCLAW_RELEASE_CHECKS_WINDOWS_RUNNER: "legacy-windows",
-        OPENCLAW_RELEASE_CHECKS_MACOS_RUNNER: "legacy-macos",
+        ASTROCLAW_RELEASE_CHECKS_UBUNTU_RUNNER: "legacy-linux",
+        ASTROCLAW_RELEASE_CHECKS_WINDOWS_RUNNER: "legacy-windows",
+        ASTROCLAW_RELEASE_CHECKS_MACOS_RUNNER: "legacy-macos",
       }),
     ).toEqual({
       varUbuntuRunner: "legacy-linux",
@@ -534,13 +534,13 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   it("serves installer scripts as UTF-8 text and package payloads as binary", () => {
     expect(resolveStaticFileContentType("scripts/install.sh")).toBe("text/plain; charset=utf-8");
     expect(resolveStaticFileContentType("scripts/install.ps1")).toBe("text/plain; charset=utf-8");
-    expect(resolveStaticFileContentType("openclaw-2026.4.14.tgz")).toBe("application/octet-stream");
+    expect(resolveStaticFileContentType("astroclaw-2026.4.14.tgz")).toBe("application/octet-stream");
   });
 
   it("uses the published installer URLs for native installer lanes", () => {
-    expect(resolvePublishedInstallerUrl("darwin")).toBe("https://openclaw.ai/install.sh");
-    expect(resolvePublishedInstallerUrl("linux")).toBe("https://openclaw.ai/install.sh");
-    expect(resolvePublishedInstallerUrl("win32")).toBe("https://openclaw.ai/install.ps1");
+    expect(resolvePublishedInstallerUrl("darwin")).toBe("https://astroclaw.ai/install.sh");
+    expect(resolvePublishedInstallerUrl("linux")).toBe("https://astroclaw.ai/install.sh");
+    expect(resolvePublishedInstallerUrl("win32")).toBe("https://astroclaw.ai/install.ps1");
   });
 
   it("uses managed gateway services only on native Windows runners", () => {
@@ -602,34 +602,34 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
     expect(shouldRunWindowsInstalledBrowserOverrideImportSmoke("linux")).toBe(false);
 
     const script = buildInstalledBrowserOverrideImportProbeScript();
-    expect(script).toContain('from "openclaw/plugin-sdk/plugin-runtime"');
-    expect(script).toContain('overrideEnvVar: "OPENCLAW_BROWSER_CONTROL_MODULE"');
+    expect(script).toContain('from "astroclaw/plugin-sdk/plugin-runtime"');
+    expect(script).toContain('overrideEnvVar: "ASTROCLAW_BROWSER_CONTROL_MODULE"');
     expect(script).toContain("startBrowserControlService");
     expect(script).toContain("stopBrowserControlService");
     expect(script).toContain("Browser control override start sentinel was not written.");
 
     const installedScript = buildInstalledBrowserOverrideImportProbeScript(
-      "file:///C:/Users/runner/AppData/Roaming/npm/node_modules/openclaw/dist/plugin-sdk/plugin-runtime.js",
+      "file:///C:/Users/runner/AppData/Roaming/npm/node_modules/astroclaw/dist/plugin-sdk/plugin-runtime.js",
     );
     expect(installedScript).toContain(
-      'from "file:///C:/Users/runner/AppData/Roaming/npm/node_modules/openclaw/dist/plugin-sdk/plugin-runtime.js"',
+      'from "file:///C:/Users/runner/AppData/Roaming/npm/node_modules/astroclaw/dist/plugin-sdk/plugin-runtime.js"',
     );
-    expect(readFileSync("scripts/openclaw-cross-os-release-checks.ts", "utf8")).toContain(
-      "OPENCLAW_BROWSER_CONTROL_MODULE: pathToFileURL(overridePath).href",
+    expect(readFileSync("scripts/astroclaw-cross-os-release-checks.ts", "utf8")).toContain(
+      "ASTROCLAW_BROWSER_CONTROL_MODULE: pathToFileURL(overridePath).href",
     );
   });
 
   it("normalizes Windows installed CLI paths to the cmd shim", () => {
     expect(
       normalizeWindowsInstalledCliPath(
-        String.raw`C:\Users\runner\AppData\Roaming\npm\openclaw.ps1`,
+        String.raw`C:\Users\runner\AppData\Roaming\npm\astroclaw.ps1`,
       ),
-    ).toBe(String.raw`C:\Users\runner\AppData\Roaming\npm\openclaw.cmd`);
+    ).toBe(String.raw`C:\Users\runner\AppData\Roaming\npm\astroclaw.cmd`);
     expect(
       normalizeWindowsInstalledCliPath(
-        String.raw`C:\Users\runner\AppData\Roaming\npm\openclaw.cmd`,
+        String.raw`C:\Users\runner\AppData\Roaming\npm\astroclaw.cmd`,
       ),
-    ).toBe(String.raw`C:\Users\runner\AppData\Roaming\npm\openclaw.cmd`);
+    ).toBe(String.raw`C:\Users\runner\AppData\Roaming\npm\astroclaw.cmd`);
   });
 
   it("normalizes generic Windows PowerShell shims to cmd shims", () => {
@@ -647,37 +647,37 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   it("derives the installed prefix from resolved CLI paths", () => {
     expect(
       resolveInstalledPrefixDirFromCliPath(
-        String.raw`C:\Users\runner\AppData\Roaming\npm\openclaw.ps1`,
+        String.raw`C:\Users\runner\AppData\Roaming\npm\astroclaw.ps1`,
         "win32",
       ),
     ).toBe(String.raw`C:\Users\runner\AppData\Roaming\npm`);
     expect(
-      resolveInstalledPrefixDirFromCliPath("/Users/runner/.npm-global/bin/openclaw", "darwin"),
+      resolveInstalledPrefixDirFromCliPath("/Users/runner/.npm-global/bin/astroclaw", "darwin"),
     ).toBe("/Users/runner/.npm-global");
   });
 
   it("resolves Linux npm package roots when the CLI is a user-local shim", () => {
-    const homeDir = mkdtempSync(join(tmpdir(), "openclaw-cross-os-linux-home-"));
+    const homeDir = mkdtempSync(join(tmpdir(), "astroclaw-cross-os-linux-home-"));
     try {
-      const packageRoot = join(homeDir, ".npm-global", "lib", "node_modules", "openclaw");
+      const packageRoot = join(homeDir, ".npm-global", "lib", "node_modules", "astroclaw");
       const distDir = join(packageRoot, "dist");
       const cliDir = join(homeDir, ".local", "bin");
       mkdirSync(distDir, { recursive: true });
       mkdirSync(cliDir, { recursive: true });
-      writeFileSync(join(packageRoot, "package.json"), JSON.stringify({ name: "openclaw" }));
+      writeFileSync(join(packageRoot, "package.json"), JSON.stringify({ name: "astroclaw" }));
       writeFileSync(join(distDir, "entry.js"), "#!/usr/bin/env node\n");
 
       expect(
-        resolveInstalledPackageRootFromCliPath(join(cliDir, "openclaw"), "linux", {
+        resolveInstalledPackageRootFromCliPath(join(cliDir, "astroclaw"), "linux", {
           HOME: homeDir,
         }),
       ).toBe(packageRoot);
 
-      rmSync(join(cliDir, "openclaw"), { force: true });
-      symlinkSync(join(distDir, "entry.js"), join(cliDir, "openclaw"));
+      rmSync(join(cliDir, "astroclaw"), { force: true });
+      symlinkSync(join(distDir, "entry.js"), join(cliDir, "astroclaw"));
 
       expect(
-        resolveInstalledPackageRootFromCliPath(join(cliDir, "openclaw"), "linux", {
+        resolveInstalledPackageRootFromCliPath(join(cliDir, "astroclaw"), "linux", {
           HOME: homeDir,
         }),
       ).toBe(realpathSync(packageRoot));
@@ -748,8 +748,8 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
     expect(
       buildRealUpdateEnv({
         FOO: "bar",
-        NODE_COMPILE_CACHE: "/tmp/stale-openclaw-cache",
-        OPENCLAW_DISABLE_BUNDLED_PLUGIN_POSTINSTALL: "1",
+        NODE_COMPILE_CACHE: "/tmp/stale-astroclaw-cache",
+        ASTROCLAW_DISABLE_BUNDLED_PLUGIN_POSTINSTALL: "1",
       }),
     ).toEqual({
       FOO: "bar",
@@ -768,7 +768,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
             steps: [{ name: "global update", exitCode: 0 }],
           }),
           stderr:
-            "[openclaw] Failed to start CLI: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/tmp/prefix/lib/node_modules/openclaw/dist/memory-state-old.js'",
+            "[astroclaw] Failed to start CLI: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/tmp/prefix/lib/node_modules/astroclaw/dist/memory-state-old.js'",
         },
         { candidateVersion: "2026.4.27" },
       ),
@@ -786,7 +786,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
             steps: [{ name: "global update", exitCode: 0 }],
           }),
           stderr:
-            "[openclaw] Failed to start CLI: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/tmp/prefix/lib/node_modules/openclaw/dist/memory-state-old.js'",
+            "[astroclaw] Failed to start CLI: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/tmp/prefix/lib/node_modules/astroclaw/dist/memory-state-old.js'",
         },
         { candidateVersion: "2026.4.27" },
       ),
@@ -804,7 +804,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
             steps: [{ name: "global update", exitCode: 1 }],
           }),
           stderr:
-            "[openclaw] Failed to start CLI: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/tmp/prefix/lib/node_modules/openclaw/dist/memory-state-old.js'",
+            "[astroclaw] Failed to start CLI: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/tmp/prefix/lib/node_modules/astroclaw/dist/memory-state-old.js'",
         },
         { candidateVersion: "2026.4.27" },
       ),
@@ -825,7 +825,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
                 name: "global install swap",
                 exitCode: 1,
                 stderrTail:
-                  "EPERM: operation not permitted, unlink 'C:\\Users\\runner\\prefix\\node_modules\\.openclaw-5748-1777776287462\\node_modules\\@mariozechner\\clipboard-win32-x64-msvc\\clipboard.win32-x64-msvc.node'",
+                  "EPERM: operation not permitted, unlink 'C:\\Users\\runner\\prefix\\node_modules\\.astroclaw-5748-1777776287462\\node_modules\\@mariozechner\\clipboard-win32-x64-msvc\\clipboard.win32-x64-msvc.node'",
               },
             ],
           }),
@@ -838,14 +838,14 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
 
   it("recognizes the shipped Windows updater packaged-upgrade timeout", () => {
     const error = new Error(
-      "Command timed out: C:\\hostedtoolcache\\windows\\node\\24.15.0\\x64\\node.exe C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\openclaw-upgrade-q9DsA7\\prefix\\node_modules\\openclaw\\openclaw.mjs update --tag http://127.0.0.1:49951/openclaw-2026.5.4-beta.1.tgz --yes --json --no-restart --timeout 1500",
+      "Command timed out: C:\\hostedtoolcache\\windows\\node\\24.15.0\\x64\\node.exe C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\astroclaw-upgrade-q9DsA7\\prefix\\node_modules\\astroclaw\\astroclaw.mjs update --tag http://127.0.0.1:49951/astroclaw-2026.5.4-beta.1.tgz --yes --json --no-restart --timeout 1500",
     );
 
     expect(isRecoverableWindowsPackagedUpgradeTimeoutError(error, "win32")).toBe(true);
     expect(
       isRecoverableWindowsPackagedUpgradeTimeoutError(
         new Error(
-          "Command timed out: C:\\prefix\\node_modules\\openclaw\\openclaw.mjs update --tag http://127.0.0.1:49951/openclaw-current.tgz --yes --json --timeout 1500",
+          "Command timed out: C:\\prefix\\node_modules\\astroclaw\\astroclaw.mjs update --tag http://127.0.0.1:49951/astroclaw-current.tgz --yes --json --timeout 1500",
         ),
         "win32",
       ),
@@ -853,7 +853,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
     expect(isRecoverableWindowsPackagedUpgradeTimeoutError(error, "linux")).toBe(false);
     expect(
       isRecoverableWindowsPackagedUpgradeTimeoutError(
-        new Error("Command timed out: node openclaw.mjs update --tag openclaw@beta"),
+        new Error("Command timed out: node astroclaw.mjs update --tag astroclaw@beta"),
         "win32",
       ),
     ).toBe(false);
@@ -900,7 +900,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
         {
           exitCode: 1,
           stdout:
-            "EPERM: operation not permitted, unlink '/tmp/prefix/node_modules/.openclaw-1-2/native.node'",
+            "EPERM: operation not permitted, unlink '/tmp/prefix/node_modules/.astroclaw-1-2/native.node'",
           stderr: "",
         },
         "linux",
@@ -910,23 +910,23 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
 
   it("only treats pinned baseline specs as exact installer version assertions", () => {
     expect(resolveExplicitBaselineVersion("")).toBe("");
-    expect(resolveExplicitBaselineVersion("openclaw@latest")).toBe("");
-    expect(resolveExplicitBaselineVersion("openclaw@2026.4.10")).toBe("2026.4.10");
+    expect(resolveExplicitBaselineVersion("astroclaw@latest")).toBe("");
+    expect(resolveExplicitBaselineVersion("astroclaw@2026.4.10")).toBe("2026.4.10");
     expect(resolveExplicitBaselineVersion("2026.4.10")).toBe("2026.4.10");
   });
 
   it("reads an installed baseline version without requiring build metadata", () => {
-    const prefixDir = mkdtempSync(join(tmpdir(), "openclaw-cross-os-installed-version-"));
+    const prefixDir = mkdtempSync(join(tmpdir(), "astroclaw-cross-os-installed-version-"));
     try {
       const packageRoot =
         process.platform === "win32"
-          ? join(prefixDir, "node_modules", "openclaw")
-          : join(prefixDir, "lib", "node_modules", "openclaw");
+          ? join(prefixDir, "node_modules", "astroclaw")
+          : join(prefixDir, "lib", "node_modules", "astroclaw");
       mkdirSync(packageRoot, { recursive: true });
       writeFileSync(
         join(packageRoot, "package.json"),
         JSON.stringify({
-          name: "openclaw",
+          name: "astroclaw",
           version: "2026.4.10",
         }),
         "utf8",
@@ -939,12 +939,12 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   });
 
   it("treats missing package scripts as optional in older refs", () => {
-    const packageRoot = mkdtempSync(join(tmpdir(), "openclaw-cross-os-scripts-"));
+    const packageRoot = mkdtempSync(join(tmpdir(), "astroclaw-cross-os-scripts-"));
     try {
       writeFileSync(
         join(packageRoot, "package.json"),
         JSON.stringify({
-          name: "openclaw",
+          name: "astroclaw",
           scripts: {
             build: "pnpm build",
           },
@@ -960,14 +960,14 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   });
 
   it("rejects legacy plugin dependency staging debris before candidate inventory generation", async () => {
-    const packageRoot = mkdtempSync(join(tmpdir(), "openclaw-cross-os-stage-debris-"));
+    const packageRoot = mkdtempSync(join(tmpdir(), "astroclaw-cross-os-stage-debris-"));
     try {
       mkdirSync(
-        join(packageRoot, "dist", "Extensions", "demo", ".OpenClaw-Install-Stage", "node_modules"),
+        join(packageRoot, "dist", "Extensions", "demo", ".Astroclaw-Install-Stage", "node_modules"),
         { recursive: true },
       );
       writeFileSync(
-        join(packageRoot, "dist", "Extensions", "demo", ".OpenClaw-Install-Stage", "package.json"),
+        join(packageRoot, "dist", "Extensions", "demo", ".Astroclaw-Install-Stage", "package.json"),
         "{}\n",
         "utf8",
       );
@@ -984,12 +984,12 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
   });
 
   it("omits local build metadata from candidate package inventories", async () => {
-    const packageRoot = mkdtempSync(join(tmpdir(), "openclaw-cross-os-local-stamps-"));
+    const packageRoot = mkdtempSync(join(tmpdir(), "astroclaw-cross-os-local-stamps-"));
     try {
       mkdirSync(join(packageRoot, "dist"), { recursive: true });
       writeFileSync(
         join(packageRoot, "package.json"),
-        JSON.stringify({ name: "openclaw-fixture", version: "0.0.0", files: ["dist/"] }),
+        JSON.stringify({ name: "astroclaw-fixture", version: "0.0.0", files: ["dist/"] }),
         "utf8",
       );
       writeFileSync(join(packageRoot, "dist", "index.js"), "export {};\n", "utf8");

@@ -26,8 +26,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   NODE_VERSION: "24.x"
   PNPM_VERSION: "11.0.8"
-  OPENCLAW_BUILD_PRIVATE_QA: "1"
-  OPENCLAW_ENABLE_PRIVATE_QA_CLI: "1"
+  ASTROCLAW_BUILD_PRIVATE_QA: "1"
+  ASTROCLAW_ENABLE_PRIVATE_QA_CLI: "1"
 
 jobs:
   authorize_actor:
@@ -151,17 +151,17 @@ jobs:
       - name: Run Mantis Discord smoke
         shell: bash
         env:
-          OPENCLAW_QA_DISCORD_MANTIS_BOT_TOKEN: ${{ secrets.OPENCLAW_QA_DISCORD_MANTIS_BOT_TOKEN }}
-          OPENCLAW_QA_DISCORD_GUILD_ID: ${{ secrets.OPENCLAW_QA_DISCORD_GUILD_ID }}
-          OPENCLAW_QA_DISCORD_CHANNEL_ID: ${{ secrets.OPENCLAW_QA_DISCORD_CHANNEL_ID }}
-          OPENCLAW_QA_REDACT_PUBLIC_METADATA: "1"
+          ASTROCLAW_QA_DISCORD_MANTIS_BOT_TOKEN: ${{ secrets.ASTROCLAW_QA_DISCORD_MANTIS_BOT_TOKEN }}
+          ASTROCLAW_QA_DISCORD_GUILD_ID: ${{ secrets.ASTROCLAW_QA_DISCORD_GUILD_ID }}
+          ASTROCLAW_QA_DISCORD_CHANNEL_ID: ${{ secrets.ASTROCLAW_QA_DISCORD_CHANNEL_ID }}
+          ASTROCLAW_QA_REDACT_PUBLIC_METADATA: "1"
         run: |
           set -euo pipefail
           args=()
           if [[ "${{ inputs.post_message }}" != "true" ]]; then
             args+=(--skip-post)
           fi
-          pnpm openclaw qa mantis discord-smoke \
+          pnpm astroclaw qa mantis discord-smoke \
             --repo-root . \
             --output-dir .artifacts/qa-e2e/mantis/discord-smoke \
             "${args[@]}"

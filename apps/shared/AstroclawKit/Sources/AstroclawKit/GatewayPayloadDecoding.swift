@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawProtocol
+import AstroclawProtocol
 
 public enum GatewayPayloadDecoding {
     public static func decode<T: Decodable>(

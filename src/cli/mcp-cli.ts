@@ -6,7 +6,7 @@ import {
   unsetConfiguredMcpServer,
 } from "../config/mcp-config.js";
 import { formatErrorMessage } from "../infra/errors.js";
-import { serveOpenClawChannelMcp } from "../mcp/channel-server.js";
+import { serveAstroclawChannelMcp } from "../mcp/channel-server.js";
 import { defaultRuntime } from "../runtime.js";
 import {
   normalizeLowercaseStringOrEmpty,
@@ -27,11 +27,11 @@ function printJson(value: unknown): void {
 }
 
 export function registerMcpCli(program: Command) {
-  const mcp = program.command("mcp").description("Manage OpenClaw MCP config and channel bridge");
+  const mcp = program.command("mcp").description("Manage Astroclaw MCP config and channel bridge");
 
   mcp
     .command("serve")
-    .description("Expose OpenClaw channels over MCP stdio")
+    .description("Expose Astroclaw channels over MCP stdio")
     .option("--url <url>", "Gateway WebSocket URL (defaults to gateway.remote.url when configured)")
     .option("--token <token>", "Gateway token (if required)")
     .option("--token-file <path>", "Read gateway token from file")
@@ -56,7 +56,7 @@ export function registerMcpCli(program: Command) {
         ) {
           throw new Error('Invalid --claude-channel-mode value. Use "auto", "on", or "off".');
         }
-        await serveOpenClawChannelMcp({
+        await serveAstroclawChannelMcp({
           gatewayUrl: opts.url as string | undefined,
           gatewayToken,
           gatewayPassword,
@@ -65,7 +65,7 @@ export function registerMcpCli(program: Command) {
         });
       } catch (err) {
         defaultRuntime.error(
-          `MCP server failed to start: ${formatErrorMessage(err)}. Run ${formatCliCommand("openclaw mcp list")} to inspect configured servers.`,
+          `MCP server failed to start: ${formatErrorMessage(err)}. Run ${formatCliCommand("astroclaw mcp list")} to inspect configured servers.`,
         );
         defaultRuntime.exit(1);
       }
@@ -87,7 +87,7 @@ export function registerMcpCli(program: Command) {
       const names = Object.keys(loaded.mcpServers).toSorted();
       if (names.length === 0) {
         defaultRuntime.log(
-          `No MCP servers configured in ${loaded.path}. Add one with ${formatCliCommand('openclaw mcp set <name> \'{"command":"uvx","args":["context7-mcp"]}\'')}.`,
+          `No MCP servers configured in ${loaded.path}. Add one with ${formatCliCommand('astroclaw mcp set <name> \'{"command":"uvx","args":["context7-mcp"]}\'')}.`,
         );
         return;
       }
@@ -110,7 +110,7 @@ export function registerMcpCli(program: Command) {
       const value = name ? loaded.mcpServers[name] : loaded.mcpServers;
       if (name && !value) {
         fail(
-          `No MCP server named "${name}" in ${loaded.path}. Run ${formatCliCommand("openclaw mcp list")} to see configured servers.`,
+          `No MCP server named "${name}" in ${loaded.path}. Run ${formatCliCommand("astroclaw mcp list")} to see configured servers.`,
         );
       }
       if (opts.json) {
@@ -153,7 +153,7 @@ export function registerMcpCli(program: Command) {
       }
       if (!result.removed) {
         fail(
-          `No MCP server named "${name}" in ${result.path}. Run ${formatCliCommand("openclaw mcp list")} to see configured servers.`,
+          `No MCP server named "${name}" in ${result.path}. Run ${formatCliCommand("astroclaw mcp list")} to see configured servers.`,
         );
       }
       defaultRuntime.log(`Removed MCP server "${name}" from ${result.path}.`);

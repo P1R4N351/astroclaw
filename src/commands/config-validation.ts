@@ -1,7 +1,7 @@
 import { formatCliCommand } from "../cli/command-format.js";
 import {
   type ConfigFileSnapshot,
-  type OpenClawConfig,
+  type AstroclawConfig,
   readConfigFileSnapshot,
 } from "../config/config.js";
 import { formatConfigIssueLines } from "../config/issue-format.js";
@@ -21,9 +21,9 @@ export async function requireValidConfigFileSnapshot(
       snapshot.issues.length > 0
         ? formatConfigIssueLines(snapshot.issues, "-").join("\n")
         : "Unknown validation issue.";
-    runtime.error(`OpenClaw config is invalid: ${snapshot.path}\n${issues}`);
-    runtime.error(`Fix: ${formatCliCommand("openclaw doctor --fix")}`);
-    runtime.error(`Inspect: ${formatCliCommand("openclaw config validate")}`);
+    runtime.error(`Astroclaw config is invalid: ${snapshot.path}\n${issues}`);
+    runtime.error(`Fix: ${formatCliCommand("astroclaw doctor --fix")}`);
+    runtime.error(`Inspect: ${formatCliCommand("astroclaw config validate")}`);
     runtime.exit(1);
     return null;
   }
@@ -39,7 +39,7 @@ export async function requireValidConfigFileSnapshot(
           .slice(0, 3)
           .map((notice) => `- ${formatPluginCompatibilityNotice(notice)}`),
         ...(compatibility.length > 3 ? [`- ... +${compatibility.length - 3} more`] : []),
-        `Review: ${formatCliCommand("openclaw doctor")}`,
+        `Review: ${formatCliCommand("astroclaw doctor")}`,
       ].join("\n"),
     );
   }
@@ -49,6 +49,6 @@ export async function requireValidConfigFileSnapshot(
 export async function requireValidConfigSnapshot(
   runtime: RuntimeEnv,
   opts?: { includeCompatibilityAdvisory?: boolean },
-): Promise<OpenClawConfig | null> {
+): Promise<AstroclawConfig | null> {
   return (await requireValidConfigFileSnapshot(runtime, opts))?.config ?? null;
 }

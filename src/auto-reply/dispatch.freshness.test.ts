@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { resetGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import type { ReplyDispatchBeforeDeliver } from "./reply/reply-dispatcher.js";
 import { buildTestCtx } from "./reply/test-ctx.js";
@@ -63,7 +63,7 @@ function dispatchWithDeliveries(
 ) {
   return dispatchInboundMessageWithBufferedDispatcher({
     ctx,
-    cfg: {} as OpenClawConfig,
+    cfg: {} as AstroclawConfig,
     dispatcherOptions: {
       ...dispatcherOptions,
       deliver: async (payload: ReplyPayload, info: { kind: Delivery["kind"] }) => {

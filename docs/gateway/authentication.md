@@ -10,7 +10,7 @@ title: "Authentication"
 This page is the **model provider** authentication reference (API keys, OAuth, Claude CLI reuse, and Anthropic setup-token). For **gateway connection** authentication (token, password, trusted-proxy), see [Configuration](/gateway/configuration) and [Trusted Proxy Auth](/gateway/trusted-proxy-auth).
 </Note>
 
-OpenClaw supports OAuth and API keys for model providers. For always-on gateway
+Astroclaw supports OAuth and API keys for model providers. For always-on gateway
 hosts, API keys are usually the most predictable option. Subscription/OAuth
 flows are also supported when they match your provider account model.
 
@@ -25,21 +25,21 @@ For credential eligibility/reason-code rules used by `models status --probe`, se
 If you're running a long-lived gateway, start with an API key for your chosen
 provider.
 For Anthropic specifically, API key auth is still the most predictable server
-setup, but OpenClaw also supports reusing a local Claude CLI login.
+setup, but Astroclaw also supports reusing a local Claude CLI login.
 
 1. Create an API key in your provider console.
-2. Put it on the **gateway host** (the machine running `openclaw gateway`).
+2. Put it on the **gateway host** (the machine running `astroclaw gateway`).
 
 ```bash
 export <PROVIDER>_API_KEY="..."
-openclaw models status
+astroclaw models status
 ```
 
 3. If the Gateway runs under systemd/launchd, prefer putting the key in
-   `~/.openclaw/.env` so the daemon can read it:
+   `~/.astroclaw/.env` so the daemon can read it:
 
 ```bash
-cat >> ~/.openclaw/.env <<'EOF'
+cat >> ~/.astroclaw/.env <<'EOF'
 <PROVIDER>_API_KEY=...
 EOF
 ```
@@ -47,21 +47,21 @@ EOF
 Then restart the daemon (or restart your Gateway process) and re-check:
 
 ```bash
-openclaw models status
-openclaw doctor
+astroclaw models status
+astroclaw doctor
 ```
 
 If you'd rather not manage env vars yourself, onboarding can store
-API keys for daemon use: `openclaw onboard`.
+API keys for daemon use: `astroclaw onboard`.
 
 See [Help](/help) for details on env inheritance (`env.shellEnv`,
-`~/.openclaw/.env`, systemd/launchd).
+`~/.astroclaw/.env`, systemd/launchd).
 
 ## Anthropic: Claude CLI and token compatibility
 
-Anthropic setup-token auth is still available in OpenClaw as a supported token
-path. Anthropic staff has since told us that OpenClaw-style Claude CLI usage is
-allowed again, so OpenClaw treats Claude CLI reuse and `claude -p` usage as
+Anthropic setup-token auth is still available in Astroclaw as a supported token
+path. Anthropic staff has since told us that Astroclaw-style Claude CLI usage is
+allowed again, so Astroclaw treats Claude CLI reuse and `claude -p` usage as
 sanctioned for this integration unless Anthropic publishes a new policy. When
 Claude CLI reuse is available on the host, that is now the preferred path.
 
@@ -75,14 +75,14 @@ Recommended host setup for Claude CLI reuse:
 # Run on the gateway host
 claude auth login
 claude auth status --text
-openclaw models auth login --provider anthropic --method cli --set-default
+astroclaw models auth login --provider anthropic --method cli --set-default
 ```
 
 This is a two-step setup:
 
 1. Log Claude Code itself into Anthropic on the gateway host.
-2. Tell OpenClaw to switch Anthropic model selection to the local `claude-cli`
-   backend and store the matching OpenClaw auth profile.
+2. Tell Astroclaw to switch Anthropic model selection to the local `claude-cli`
+   backend and store the matching Astroclaw auth profile.
 
 If `claude` is not on `PATH`, either install Claude Code first or set
 `agents.defaults.cliBackends.claude-cli.command` to the real binary path.
@@ -90,7 +90,7 @@ If `claude` is not on `PATH`, either install Claude Code first or set
 Manual token entry (any provider; writes `auth-profiles.json` + updates config):
 
 ```bash
-openclaw models auth paste-token --provider openrouter
+astroclaw models auth paste-token --provider openrouter
 ```
 
 `auth-profiles.json` stores credentials only. The canonical shape is:
@@ -108,9 +108,9 @@ openclaw models auth paste-token --provider openrouter
 }
 ```
 
-OpenClaw expects the canonical `version` + `profiles` shape at runtime. If an older install still has a flat file such as `{ "openrouter": { "apiKey": "..." } }`, run `openclaw doctor --fix` to rewrite it as an `openrouter:default` API-key profile; doctor keeps a `.legacy-flat.*.bak` copy beside the original. Endpoint details such as `baseUrl`, `api`, model ids, headers, and timeouts belong under `models.providers.<id>` in `openclaw.json` or `models.json`, not in `auth-profiles.json`.
+Astroclaw expects the canonical `version` + `profiles` shape at runtime. If an older install still has a flat file such as `{ "openrouter": { "apiKey": "..." } }`, run `astroclaw doctor --fix` to rewrite it as an `openrouter:default` API-key profile; doctor keeps a `.legacy-flat.*.bak` copy beside the original. Endpoint details such as `baseUrl`, `api`, model ids, headers, and timeouts belong under `models.providers.<id>` in `astroclaw.json` or `models.json`, not in `auth-profiles.json`.
 
-External auth routes such as Bedrock `auth: "aws-sdk"` are also not credentials. If you want a named Bedrock route, put `auth.profiles.<id>.mode: "aws-sdk"` in `openclaw.json`; do not write `type: "aws-sdk"` into `auth-profiles.json`. `openclaw doctor --fix` moves legacy AWS SDK markers from the credential store into config metadata.
+External auth routes such as Bedrock `auth: "aws-sdk"` are also not credentials. If you want a named Bedrock route, put `auth.profiles.<id>.mode: "aws-sdk"` in `astroclaw.json`; do not write `type: "aws-sdk"` into `auth-profiles.json`. `astroclaw doctor --fix` moves legacy AWS SDK markers from the credential store into config metadata.
 
 Auth profile refs are also supported for static credentials:
 
@@ -121,13 +121,13 @@ Auth profile refs are also supported for static credentials:
 Automation-friendly check (exit `1` when expired/missing, `2` when expiring):
 
 ```bash
-openclaw models status --check
+astroclaw models status --check
 ```
 
 Live auth probes:
 
 ```bash
-openclaw models status --probe
+astroclaw models status --probe
 ```
 
 Notes:
@@ -135,7 +135,7 @@ Notes:
 - Probe rows can come from auth profiles, env credentials, or `models.json`.
 - If explicit `auth.order.<provider>` omits a stored profile, probe reports
   `excluded_by_auth_order` for that profile instead of trying it.
-- If auth exists but OpenClaw cannot resolve a probeable model candidate for
+- If auth exists but Astroclaw cannot resolve a probeable model candidate for
   that provider, probe reports `status: no_model`.
 - Rate-limit cooldowns can be model-scoped. A profile cooling down for one
   model can still be usable for a sibling model on the same provider.
@@ -147,8 +147,8 @@ Optional ops scripts (systemd/Termux) are documented here:
 
 The Anthropic `claude-cli` backend is supported again.
 
-- Anthropic staff told us this OpenClaw integration path is allowed again.
-- OpenClaw therefore treats Claude CLI reuse and `claude -p` usage as sanctioned
+- Anthropic staff told us this Astroclaw integration path is allowed again.
+- Astroclaw therefore treats Claude CLI reuse and `claude -p` usage as sanctioned
   for Anthropic-backed runs unless Anthropic publishes a new policy.
 - Anthropic API keys remain the most predictable choice for long-lived gateway
   hosts and explicit server-side billing control.
@@ -156,8 +156,8 @@ The Anthropic `claude-cli` backend is supported again.
 ## Checking model auth status
 
 ```bash
-openclaw models status
-openclaw doctor
+astroclaw models status
+astroclaw doctor
 ```
 
 ## API key rotation behavior (gateway)
@@ -166,13 +166,13 @@ Some providers support retrying a request with alternative keys when an API call
 hits a provider rate limit.
 
 - Priority order:
-  - `OPENCLAW_LIVE_<PROVIDER>_KEY` (single override)
+  - `ASTROCLAW_LIVE_<PROVIDER>_KEY` (single override)
   - `<PROVIDER>_API_KEYS`
   - `<PROVIDER>_API_KEY`
   - `<PROVIDER>_API_KEY_*`
 - Google providers also include `GOOGLE_API_KEY` as an additional fallback.
 - The same key list is deduplicated before use.
-- OpenClaw retries with the next key only for rate-limit errors (for example
+- Astroclaw retries with the next key only for rate-limit errors (for example
   `429`, `rate_limit`, `quota`, `resource exhausted`, `Too many concurrent
 requests`, `ThrottlingException`, `concurrency limit reached`, or
   `workers_ai ... quota limit exceeded`).
@@ -181,7 +181,7 @@ requests`, `ThrottlingException`, `concurrency limit reached`, or
 
 ## Removing provider auth while the gateway is running
 
-When provider auth is removed through the Gateway control plane, OpenClaw deletes
+When provider auth is removed through the Gateway control plane, Astroclaw deletes
 the saved auth profiles for that provider and aborts active chat or agent runs
 whose selected model provider matches the removed provider. The aborted runs emit
 the normal chat cancellation and lifecycle events with
@@ -204,13 +204,13 @@ Use `/model` (or `/model list`) for a compact picker; use `/model status` for th
 Set an explicit auth profile order override for an agent (stored in that agent's `auth-state.json`):
 
 ```bash
-openclaw models auth order get --provider anthropic
-openclaw models auth order set --provider anthropic anthropic:default
-openclaw models auth order clear --provider anthropic
+astroclaw models auth order get --provider anthropic
+astroclaw models auth order set --provider anthropic anthropic:default
+astroclaw models auth order clear --provider anthropic
 ```
 
 Use `--agent <id>` to target a specific agent; omit it to use the configured default agent.
-When you debug order issues, `openclaw models status --probe` shows omitted
+When you debug order issues, `astroclaw models status --probe` shows omitted
 stored profiles as `excluded_by_auth_order` instead of silently skipping them.
 When you debug cooldown issues, remember that rate-limit cooldowns can be tied
 to one model id rather than the whole provider profile.
@@ -223,12 +223,12 @@ If the Anthropic profile is missing, configure an Anthropic API key on the
 **gateway host** or set up the Anthropic setup-token path, then re-check:
 
 ```bash
-openclaw models status
+astroclaw models status
 ```
 
 ### Token expiring/expired
 
-Run `openclaw models status` to confirm which profile is expiring. If an
+Run `astroclaw models status` to confirm which profile is expiring. If an
 Anthropic token profile is missing or expired, refresh that setup via
 setup-token or migrate to an Anthropic API key.
 

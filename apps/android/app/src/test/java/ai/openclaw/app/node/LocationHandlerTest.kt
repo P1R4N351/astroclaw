@@ -1,4 +1,4 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
 import android.content.Context
 import android.location.LocationManager

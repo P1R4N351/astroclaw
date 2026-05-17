@@ -12,7 +12,7 @@ export type GatewayEvent = {
   stateVersion?: unknown;
 };
 
-export type OpenClawTransport = {
+export type AstroclawTransport = {
   request<T = unknown>(
     method: string,
     params?: unknown,
@@ -22,7 +22,7 @@ export type OpenClawTransport = {
   close?(): Promise<void> | void;
 };
 
-export type ConnectableOpenClawTransport = OpenClawTransport & {
+export type ConnectableAstroclawTransport = AstroclawTransport & {
   connect(): Promise<void>;
 };
 
@@ -217,7 +217,7 @@ export type RunResult = {
   raw?: unknown;
 };
 
-export type OpenClawEventType =
+export type AstroclawEventType =
   | "run.created"
   | "run.queued"
   | "run.started"
@@ -247,11 +247,11 @@ export type OpenClawEventType =
   | "git.pr"
   | "raw";
 
-export type OpenClawEvent<TData = unknown> = {
+export type AstroclawEvent<TData = unknown> = {
   version: 1;
   id: string;
   ts: number;
-  type: OpenClawEventType;
+  type: AstroclawEventType;
   runId?: string;
   sessionId?: string;
   sessionKey?: string;

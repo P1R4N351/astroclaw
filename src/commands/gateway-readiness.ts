@@ -150,9 +150,9 @@ function readinessFailureReason(status: DaemonStatus): string {
 
 function printGatewayNotReadyHints(runtime: RuntimeEnv, reason: string): void {
   runtime.log(reason);
-  runtime.log("Run `openclaw gateway status --deep` for details.");
-  runtime.log("Run `openclaw gateway start` to start a managed gateway.");
-  runtime.log("Run `openclaw gateway run` for a foreground gateway.");
+  runtime.log("Run `astroclaw gateway status --deep` for details.");
+  runtime.log("Run `astroclaw gateway start` to start a managed gateway.");
+  runtime.log("Run `astroclaw gateway run` for a foreground gateway.");
 }
 
 async function confirmRecovery(params: {
@@ -231,8 +231,8 @@ export async function ensureGatewayReadyForOperation(
   }
 
   const prompt = shouldInstall
-    ? `Gateway is not installed. Install and start it now so OpenClaw can ${options.operation}?`
-    : `Gateway is not running. Start it now so OpenClaw can ${options.operation}?`;
+    ? `Gateway is not installed. Install and start it now so Astroclaw can ${options.operation}?`
+    : `Gateway is not running. Start it now so Astroclaw can ${options.operation}?`;
   const approved = await confirmRecovery({
     message: prompt,
     yes: options.yes,

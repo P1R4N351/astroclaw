@@ -1,8 +1,8 @@
 {
-  "name": "@openclaw/qa-channel",
+  "name": "@astroclaw/qa-channel",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw QA synthetic channel plugin",
+  "description": "Astroclaw QA synthetic channel plugin",
   "type": "module",
   "exports": {
     ".": "./index.ts",
@@ -15,18 +15,18 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*",
-    "openclaw": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*",
+    "astroclaw": "workspace:*"
   },
   "peerDependencies": {
-    "openclaw": ">=2026.5.17"
+    "astroclaw": ">=2026.5.17"
   },
   "peerDependenciesMeta": {
-    "openclaw": {
+    "astroclaw": {
       "optional": true
     }
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ],
@@ -38,7 +38,7 @@
       "detailLabel": "QA Channel",
       "docsPath": "/channels/qa-channel",
       "docsLabel": "qa-channel",
-      "blurb": "Synthetic Slack-class transport for automated OpenClaw QA scenarios.",
+      "blurb": "Synthetic Slack-class transport for automated Astroclaw QA scenarios.",
       "systemImage": "checklist",
       "order": 999,
       "exposure": {

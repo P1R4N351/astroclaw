@@ -3,7 +3,7 @@ import type {
   AgentToolResultMiddleware,
   AgentToolResultMiddlewareContext,
   AgentToolResultMiddlewareEvent,
-  OpenClawAgentToolResult,
+  AstroclawAgentToolResult,
 } from "../../plugins/agent-tool-result-middleware-types.js";
 import { createLazyPromiseLoader } from "../../shared/lazy-promise.js";
 import { truncateUtf16Safe } from "../../utils.js";
@@ -93,7 +93,7 @@ function isValidMiddlewareDetails(
   return true;
 }
 
-function isValidMiddlewareToolResult(value: unknown): value is OpenClawAgentToolResult {
+function isValidMiddlewareToolResult(value: unknown): value is AstroclawAgentToolResult {
   if (!isRecord(value) || !Array.isArray(value.content)) {
     return false;
   }
@@ -149,7 +149,7 @@ function sanitizeMiddlewareDetailsValue(value: unknown): unknown {
  * harness owes a registered middleware a JSON-safe view of that payload;
  * subsequent middleware-side mutations are still validated strictly.
  */
-function sanitizeToolResultForMiddleware(result: OpenClawAgentToolResult): OpenClawAgentToolResult {
+function sanitizeToolResultForMiddleware(result: AstroclawAgentToolResult): AstroclawAgentToolResult {
   if (result.details === undefined || result.details === null) {
     return result;
   }
@@ -159,7 +159,7 @@ function sanitizeToolResultForMiddleware(result: OpenClawAgentToolResult): OpenC
   return { ...result, details: sanitizeMiddlewareDetailsValue(result.details) };
 }
 
-function buildMiddlewareFailureResult(): OpenClawAgentToolResult {
+function buildMiddlewareFailureResult(): AstroclawAgentToolResult {
   return {
     content: [
       {
@@ -197,7 +197,7 @@ export function createAgentToolResultMiddlewareRunner(
   return {
     async applyToolResultMiddleware(
       event: AgentToolResultMiddlewareEvent,
-    ): Promise<OpenClawAgentToolResult> {
+    ): Promise<AstroclawAgentToolResult> {
       const handlersForRun = await resolveHandlers();
       // Fast path: with no middleware registered the result is delivered
       // unchanged; skip validation entirely so tool emitters that produce

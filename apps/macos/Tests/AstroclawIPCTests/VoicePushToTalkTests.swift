@@ -1,6 +1,6 @@
 import AVFoundation
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct VoicePushToTalkTests {
     @Test func `speech normalizer passes through mono buffers`() throws {

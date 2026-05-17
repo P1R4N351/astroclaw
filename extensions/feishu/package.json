@@ -1,10 +1,10 @@
 {
-  "name": "@openclaw/feishu",
+  "name": "@astroclaw/feishu",
   "version": "2026.5.17",
-  "description": "OpenClaw Feishu/Lark channel plugin (community maintained by @m1heng)",
+  "description": "Astroclaw Feishu/Lark channel plugin (community maintained by @m1heng)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/openclaw/openclaw"
+    "url": "https://github.com/astroclaw/astroclaw"
   },
   "type": "module",
   "dependencies": {
@@ -13,18 +13,18 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*",
-    "openclaw": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*",
+    "astroclaw": "workspace:*"
   },
   "peerDependencies": {
-    "openclaw": ">=2026.5.17"
+    "astroclaw": ">=2026.5.17"
   },
   "peerDependenciesMeta": {
-    "openclaw": {
+    "astroclaw": {
       "optional": true
     }
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ],
@@ -43,7 +43,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@openclaw/feishu",
+      "npmSpec": "@astroclaw/feishu",
       "defaultChoice": "npm",
       "minHostVersion": ">=2026.4.25"
     },
@@ -51,7 +51,7 @@
       "pluginApi": ">=2026.5.17"
     },
     "build": {
-      "openclawVersion": "2026.5.17"
+      "astroclawVersion": "2026.5.17"
     },
     "release": {
       "publishToClawHub": true,

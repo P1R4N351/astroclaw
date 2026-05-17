@@ -1,7 +1,7 @@
 import path from "node:path";
 import { describe, test, expect, vi } from "vitest";
 import * as thinking from "../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { resetConfigRuntimeState, setRuntimeConfigSnapshot } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
@@ -23,14 +23,14 @@ import { listSessionsFromStore } from "./session-utils.js";
  */
 describe("listSessionsFromStore resolver cache", () => {
   test("collapses non-lightweight per-row resolver work to O(unique provider/model tuples)", async () => {
-    await withStateDirEnv("openclaw-perf-", async ({ stateDir }) => {
+    await withStateDirEnv("astroclaw-perf-", async ({ stateDir }) => {
       resetPluginRuntimeStateForTest();
       setActivePluginRegistry(createEmptyPluginRegistry());
-      const cfg: OpenClawConfig = {
+      const cfg: AstroclawConfig = {
         agents: {
           defaults: { model: { primary: "google-vertex/gemini-3-flash-preview" } },
         },
-      } as OpenClawConfig;
+      } as AstroclawConfig;
       resetConfigRuntimeState();
       setRuntimeConfigSnapshot(cfg);
 

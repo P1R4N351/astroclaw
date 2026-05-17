@@ -499,7 +499,7 @@ describe("exec approvals CLI", () => {
       "tools.exec askFallback",
       {
         effective: "full",
-        source: "OpenClaw default (full)",
+        source: "Astroclaw default (full)",
       },
     );
 
@@ -516,7 +516,7 @@ describe("exec approvals CLI", () => {
     });
     expectFields(requireRecord(agentScope.askFallback, "agent askFallback"), "agent askFallback", {
       effective: "allowlist",
-      source: "OpenClaw default (full)",
+      source: "Astroclaw default (full)",
     });
   });
 

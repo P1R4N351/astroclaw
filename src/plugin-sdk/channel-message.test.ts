@@ -5,10 +5,10 @@ describe("defineChannelMessageAdapter", () => {
   it("keeps new and legacy channel plugin SDK subpaths importable", async () => {
     const [channelMessage, channelMessageRuntime, channelReplyPipeline, compat] = await Promise.all(
       [
-        import("openclaw/plugin-sdk/channel-message"),
-        import("openclaw/plugin-sdk/channel-message-runtime"),
-        import("openclaw/plugin-sdk/channel-reply-pipeline"),
-        import("openclaw/plugin-sdk/compat"),
+        import("astroclaw/plugin-sdk/channel-message"),
+        import("astroclaw/plugin-sdk/channel-message-runtime"),
+        import("astroclaw/plugin-sdk/channel-reply-pipeline"),
+        import("astroclaw/plugin-sdk/compat"),
       ],
     );
 

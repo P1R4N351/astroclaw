@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_IMESSAGE_ATTACHMENT_ROOTS,
@@ -24,7 +24,7 @@ describe("iMessage channel-inbound-roots contract", () => {
         },
       },
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 
   it("resolves configured attachment roots with account overrides", () => {
     expectResolvedRootsCase(
@@ -56,7 +56,7 @@ describe("iMessage channel-inbound-roots contract", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectResolvedRootsCase(
       () => resolveIMessageAttachmentRoots({ cfg, accountId: "work" }),
@@ -66,14 +66,14 @@ describe("iMessage channel-inbound-roots contract", () => {
 
   it("falls back to default iMessage attachment roots", () => {
     expectResolvedRootsCase(
-      () => resolveIMessageAttachmentRoots({ cfg: {} as OpenClawConfig }),
+      () => resolveIMessageAttachmentRoots({ cfg: {} as AstroclawConfig }),
       [...DEFAULT_IMESSAGE_ATTACHMENT_ROOTS],
     );
   });
 
   it("falls back to default iMessage remote attachment roots", () => {
     expectResolvedRootsCase(
-      () => resolveIMessageRemoteAttachmentRoots({ cfg: {} as OpenClawConfig }),
+      () => resolveIMessageRemoteAttachmentRoots({ cfg: {} as AstroclawConfig }),
       [...DEFAULT_IMESSAGE_ATTACHMENT_ROOTS],
     );
   });

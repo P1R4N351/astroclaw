@@ -1,12 +1,12 @@
-import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-harness";
-import { wrapToolWithBeforeToolCallHook } from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { AnyAgentTool } from "astroclaw/plugin-sdk/agent-harness";
+import { wrapToolWithBeforeToolCallHook } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   installCodexToolResultMiddleware,
-  installOpenClawOwnedToolHooks,
+  installAstroclawOwnedToolHooks,
   mediaToolResult,
-  resetOpenClawOwnedToolHooks,
+  resetAstroclawOwnedToolHooks,
   textToolResult,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCodexDynamicToolBridge } from "./dynamic-tools.js";
 
@@ -78,15 +78,15 @@ function expectAfterToolCall(
   expectHookContext(call[1], contextFields);
 }
 
-describe("OpenClaw-owned tool runtime contract — Codex app-server adapter", () => {
+describe("Astroclaw-owned tool runtime contract — Codex app-server adapter", () => {
   afterEach(() => {
-    resetOpenClawOwnedToolHooks();
+    resetAstroclawOwnedToolHooks();
   });
 
   it("wraps unwrapped dynamic tools with before/after tool hooks", async () => {
     const adjustedParams = { mode: "safe" };
     const mergedParams = { command: "pwd", mode: "safe" };
-    const hooks = installOpenClawOwnedToolHooks({ adjustedParams });
+    const hooks = installAstroclawOwnedToolHooks({ adjustedParams });
     const execute = vi.fn(async () => textToolResult("done", { ok: true }));
     const bridge = createCodexDynamicToolBridge({
       tools: [createContractTool({ name: "exec", execute })],
@@ -154,7 +154,7 @@ describe("OpenClaw-owned tool runtime contract — Codex app-server adapter", ()
   it("runs tool_result middleware before after_tool_call observes the result", async () => {
     const adjustedParams = { mode: "safe" };
     const mergedParams = { command: "status", mode: "safe" };
-    const hooks = installOpenClawOwnedToolHooks({ adjustedParams });
+    const hooks = installAstroclawOwnedToolHooks({ adjustedParams });
     const middleware = installCodexToolResultMiddleware((event) => {
       const eventRecord = requireRecord(event, "tool_result middleware event");
       expectRecordFields(eventRecord, {
@@ -215,7 +215,7 @@ describe("OpenClaw-owned tool runtime contract — Codex app-server adapter", ()
   });
 
   it("fails closed when before_tool_call blocks a dynamic tool", async () => {
-    const hooks = installOpenClawOwnedToolHooks({ blockReason: "blocked by policy" });
+    const hooks = installAstroclawOwnedToolHooks({ blockReason: "blocked by policy" });
     const execute = vi.fn(async () => textToolResult("should not run"));
     const bridge = createCodexDynamicToolBridge({
       tools: [createContractTool({ name: "message", execute })],
@@ -274,7 +274,7 @@ describe("OpenClaw-owned tool runtime contract — Codex app-server adapter", ()
   it("reports dynamic tool execution errors through after_tool_call", async () => {
     const adjustedParams = { timeoutSec: 1 };
     const mergedParams = { command: "false", timeoutSec: 1 };
-    const hooks = installOpenClawOwnedToolHooks({ adjustedParams });
+    const hooks = installAstroclawOwnedToolHooks({ adjustedParams });
     const execute = vi.fn(async () => {
       throw new Error("tool failed");
     });
@@ -316,7 +316,7 @@ describe("OpenClaw-owned tool runtime contract — Codex app-server adapter", ()
   });
 
   it("records successful Codex messaging text, media, and target telemetry", async () => {
-    const hooks = installOpenClawOwnedToolHooks();
+    const hooks = installAstroclawOwnedToolHooks();
     const execute = vi.fn(async () => textToolResult("Sent."));
     const bridge = createCodexDynamicToolBridge({
       tools: [createContractTool({ name: "message", execute })],
@@ -378,7 +378,7 @@ describe("OpenClaw-owned tool runtime contract — Codex app-server adapter", ()
   });
 
   it("records successful Codex media artifacts from tool results", async () => {
-    const hooks = installOpenClawOwnedToolHooks();
+    const hooks = installAstroclawOwnedToolHooks();
     const execute = vi.fn(async () =>
       mediaToolResult("Generated media reply.", "/tmp/reply.opus", true),
     );
@@ -426,7 +426,7 @@ describe("OpenClaw-owned tool runtime contract — Codex app-server adapter", ()
   it("does not double-wrap dynamic tools that already have before_tool_call", async () => {
     const adjustedParams = { mode: "safe" };
     const mergedParams = { command: "pwd", mode: "safe" };
-    const hooks = installOpenClawOwnedToolHooks({ adjustedParams });
+    const hooks = installAstroclawOwnedToolHooks({ adjustedParams });
     const execute = vi.fn(async () => textToolResult("done"));
     const tool = wrapToolWithBeforeToolCallHook(createContractTool({ name: "exec", execute }), {
       runId: "run-wrapped",

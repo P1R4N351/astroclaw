@@ -1,5 +1,5 @@
 ---
-summary: "Adds Venice model provider support to OpenClaw."
+summary: "Adds Venice model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the venice plugin
 title: "Venice plugin"
@@ -7,12 +7,12 @@ title: "Venice plugin"
 
 # Venice plugin
 
-Adds Venice model provider support to OpenClaw.
+Adds Venice model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/venice-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/venice-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

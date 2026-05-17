@@ -136,8 +136,8 @@ export { toText };
 export function resolveMessageId(entry: Record<string, unknown>): string | undefined {
   return (
     toText(entry.id) ??
-    (entry.__openclaw && typeof entry.__openclaw === "object"
-      ? toText((entry.__openclaw as { id?: unknown }).id)
+    (entry.__astroclaw && typeof entry.__astroclaw === "object"
+      ? toText((entry.__astroclaw as { id?: unknown }).id)
       : undefined)
   );
 }

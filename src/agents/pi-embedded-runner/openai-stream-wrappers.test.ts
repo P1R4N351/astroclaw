@@ -185,7 +185,7 @@ describe("createCodexNativeWebSearchWrapper", () => {
       {},
     );
 
-    expect(observedOptions[0]?.openclawCodeModeToolSurface).toBeUndefined();
+    expect(observedOptions[0]?.astroclawCodeModeToolSurface).toBeUndefined();
     expect(payloads[0]).toEqual({ model: "gpt-5.5" });
   });
 });
@@ -414,7 +414,7 @@ describe("createOpenAIThinkingLevelWrapper", () => {
 });
 
 describe("createOpenAIAttributionHeadersWrapper", () => {
-  it("routes native Codex traffic through the OpenClaw transport so attribution survives PI defaults", () => {
+  it("routes native Codex traffic through the Astroclaw transport so attribution survives PI defaults", () => {
     let codexCalls = 0;
     let capturedHeaders: Record<string, string> | undefined;
     const codexTransport: StreamFn = (_model, _context, options) => {
@@ -441,8 +441,8 @@ describe("createOpenAIAttributionHeadersWrapper", () => {
     );
 
     expect(codexCalls).toBe(1);
-    expect(capturedHeaders?.originator).toBe("openclaw");
-    expect(capturedHeaders?.["User-Agent"]).toMatch(/^openclaw\//);
+    expect(capturedHeaders?.originator).toBe("astroclaw");
+    expect(capturedHeaders?.["User-Agent"]).toMatch(/^astroclaw\//);
   });
 
   it("keeps existing wrapped Codex streams so runtime OAuth injection is preserved", () => {
@@ -485,7 +485,7 @@ describe("createOpenAIAttributionHeadersWrapper", () => {
     expect(upstreamCalls).toBe(1);
     expect(codexCalls).toBe(0);
     expect(capturedOptions?.apiKey).toBe("oauth-bearer-token");
-    expect(capturedOptions?.headers?.originator).toBe("openclaw");
-    expect(capturedOptions?.headers?.["User-Agent"]).toMatch(/^openclaw\//);
+    expect(capturedOptions?.headers?.originator).toBe("astroclaw");
+    expect(capturedOptions?.headers?.["User-Agent"]).toMatch(/^astroclaw\//);
   });
 });

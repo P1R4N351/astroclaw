@@ -205,7 +205,7 @@ function directRegistration(nodeId: string) {
     nodeId,
     transport: "direct" as const,
     token: "abcd1234abcd1234abcd1234abcd1234",
-    topic: "ai.openclaw.ios",
+    topic: "ai.astroclaw.ios",
     environment: "sandbox" as const,
     updatedAtMs: 1,
   };
@@ -218,7 +218,7 @@ function relayRegistration(nodeId: string) {
     relayHandle: "relay-handle-123",
     sendGrant: "send-grant-123",
     installationId: "install-123",
-    topic: "ai.openclaw.ios",
+    topic: "ai.astroclaw.ios",
     environment: "production" as const,
     distribution: "official" as const,
     updatedAtMs: 1,
@@ -240,7 +240,7 @@ function mockDirectWakeConfig(nodeId: string, overrides: WakeResultOverrides = {
     ok: true,
     status: 200,
     tokenSuffix: "1234abcd",
-    topic: "ai.openclaw.ios",
+    topic: "ai.astroclaw.ios",
     environment: "sandbox",
     transport: "direct",
     ...overrides,
@@ -266,7 +266,7 @@ function mockRelayWakeConfig(nodeId: string, overrides: WakeResultOverrides = {}
     ok: true,
     status: 200,
     tokenSuffix: "abcd1234",
-    topic: "ai.openclaw.ios",
+    topic: "ai.astroclaw.ios",
     environment: "production",
     transport: "relay",
     ...overrides,
@@ -439,7 +439,7 @@ describe("node plugin surface refresh", () => {
         client: { id: "node-1", mode: "node" },
       },
       pluginSurfaceUrls: {
-        canvas: "http://127.0.0.1:18789/__openclaw__/cap/old-token",
+        canvas: "http://127.0.0.1:18789/__astroclaw__/cap/old-token",
       },
       pluginNodeCapabilitySurfaces: {
         canvas: { surface: "canvas", ttlMs: 100 },
@@ -466,8 +466,8 @@ describe("node plugin surface refresh", () => {
     const canvasUrl = requireString(pluginSurfaceUrls.canvas, "refresh canvas url");
     const parsedCanvasUrl = new URL(canvasUrl);
     expect(parsedCanvasUrl.origin).toBe("http://127.0.0.1:18789");
-    expect(parsedCanvasUrl.pathname.startsWith("/__openclaw__/cap/")).toBe(true);
-    const capabilityToken = parsedCanvasUrl.pathname.slice("/__openclaw__/cap/".length);
+    expect(parsedCanvasUrl.pathname.startsWith("/__astroclaw__/cap/")).toBe(true);
+    const capabilityToken = parsedCanvasUrl.pathname.slice("/__astroclaw__/cap/".length);
     expect(capabilityToken.length).toBeGreaterThan(0);
     expect(capabilityToken).not.toBe("old-token");
     expect(client.pluginSurfaceUrls.canvas).toBe(canvasUrl);
@@ -552,7 +552,7 @@ describe("node.invoke APNs wake path", () => {
       ok: true,
       status: 200,
       tokenSuffix: "1234abcd",
-      topic: "ai.openclaw.ios",
+      topic: "ai.astroclaw.ios",
       environment: "sandbox",
       transport: "direct",
     });
@@ -743,7 +743,7 @@ describe("node.invoke APNs wake path", () => {
         status: 410,
         reason: "Unregistered",
         tokenSuffix: "abcd1234",
-        topic: "ai.openclaw.ios",
+        topic: "ai.astroclaw.ios",
         environment: "production",
         transport: "relay",
       },

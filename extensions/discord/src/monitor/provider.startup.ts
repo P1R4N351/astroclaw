@@ -1,10 +1,10 @@
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
-import { danger } from "openclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { resolveStateDir } from "openclaw/plugin-sdk/state-paths";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
+import { danger } from "astroclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { resolveStateDir } from "astroclaw/plugin-sdk/state-paths";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   Client,
   ReadyListener,
@@ -237,7 +237,7 @@ export async function fetchDiscordBotIdentity(params: {
 }
 
 export function registerDiscordMonitorListeners(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   client: Pick<Client, "listeners">;
   accountId: string;
   discordConfig: DiscordListenerConfig;

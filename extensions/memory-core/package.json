@@ -1,8 +1,8 @@
 {
-  "name": "@openclaw/memory-core",
+  "name": "@astroclaw/memory-core",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw core memory search plugin",
+  "description": "Astroclaw core memory search plugin",
   "type": "module",
   "dependencies": {
     "chokidar": "5.0.0",
@@ -10,18 +10,18 @@
     "typebox": "1.1.38"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*",
-    "openclaw": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*",
+    "astroclaw": "workspace:*"
   },
   "peerDependencies": {
-    "openclaw": ">=2026.5.17"
+    "astroclaw": ">=2026.5.17"
   },
   "peerDependenciesMeta": {
-    "openclaw": {
+    "astroclaw": {
       "optional": true
     }
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

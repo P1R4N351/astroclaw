@@ -1,3 +1,3 @@
-import OpenClawProtocol
+import AstroclawProtocol
 
-public typealias AnyCodable = OpenClawProtocol.AnyCodable
+public typealias AnyCodable = AstroclawProtocol.AnyCodable

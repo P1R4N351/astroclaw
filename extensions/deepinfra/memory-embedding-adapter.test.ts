@@ -1,4 +1,4 @@
-import { isMissingEmbeddingApiKeyError } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import { isMissingEmbeddingApiKeyError } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_DEEPINFRA_EMBEDDING_MODEL } from "./embedding-provider.js";
 import { deepinfraMemoryEmbeddingProviderAdapter } from "./memory-embedding-adapter.js";

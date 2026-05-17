@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { pathExists } from "openclaw/plugin-sdk/security-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { pathExists } from "astroclaw/plugin-sdk/security-runtime";
 import { ensureRepoBoundDirectory, resolveRepoRelativeOutputDir } from "../cli-paths.js";
 import {
   acquireQaCredentialLease,
@@ -124,18 +124,18 @@ const DEFAULT_CREDENTIAL_SOURCE = "convex";
 const DEFAULT_CREDENTIAL_ROLE = "maintainer";
 const DEFAULT_HYDRATE_MODE: MantisTelegramDesktopHydrateMode = "source";
 const DEFAULT_TELEGRAM_PROFILE_DIR = "$HOME/.local/share/TelegramDesktop";
-const CRABBOX_BIN_ENV = "OPENCLAW_MANTIS_CRABBOX_BIN";
-const CRABBOX_PROVIDER_ENV = "OPENCLAW_MANTIS_CRABBOX_PROVIDER";
-const CRABBOX_CLASS_ENV = "OPENCLAW_MANTIS_CRABBOX_CLASS";
-const CRABBOX_LEASE_ID_ENV = "OPENCLAW_MANTIS_CRABBOX_LEASE_ID";
-const CRABBOX_KEEP_ENV = "OPENCLAW_MANTIS_KEEP_VM";
-const CRABBOX_IDLE_TIMEOUT_ENV = "OPENCLAW_MANTIS_CRABBOX_IDLE_TIMEOUT";
-const CRABBOX_TTL_ENV = "OPENCLAW_MANTIS_CRABBOX_TTL";
-const HYDRATE_MODE_ENV = "OPENCLAW_MANTIS_HYDRATE_MODE";
-const TELEGRAM_PROFILE_ARCHIVE_ENV = "OPENCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_TGZ_B64";
+const CRABBOX_BIN_ENV = "ASTROCLAW_MANTIS_CRABBOX_BIN";
+const CRABBOX_PROVIDER_ENV = "ASTROCLAW_MANTIS_CRABBOX_PROVIDER";
+const CRABBOX_CLASS_ENV = "ASTROCLAW_MANTIS_CRABBOX_CLASS";
+const CRABBOX_LEASE_ID_ENV = "ASTROCLAW_MANTIS_CRABBOX_LEASE_ID";
+const CRABBOX_KEEP_ENV = "ASTROCLAW_MANTIS_KEEP_VM";
+const CRABBOX_IDLE_TIMEOUT_ENV = "ASTROCLAW_MANTIS_CRABBOX_IDLE_TIMEOUT";
+const CRABBOX_TTL_ENV = "ASTROCLAW_MANTIS_CRABBOX_TTL";
+const HYDRATE_MODE_ENV = "ASTROCLAW_MANTIS_HYDRATE_MODE";
+const TELEGRAM_PROFILE_ARCHIVE_ENV = "ASTROCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_TGZ_B64";
 const TELEGRAM_PROFILE_ARCHIVE_ENV_NAME_ENV =
-  "OPENCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_ARCHIVE_ENV";
-const TELEGRAM_PROFILE_DIR_ENV = "OPENCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_DIR";
+  "ASTROCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_ARCHIVE_ENV";
+const TELEGRAM_PROFILE_DIR_ENV = "ASTROCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_DIR";
 
 function trimToValue(value: string | undefined) {
   const trimmed = value?.trim();
@@ -206,20 +206,20 @@ function defaultOutputDir(repoRoot: string, startedAt: Date) {
 
 function buildCrabboxEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const next = { ...env };
-  if (!trimToValue(next.OPENCLAW_LIVE_OPENAI_KEY) && trimToValue(next.OPENAI_API_KEY)) {
-    next.OPENCLAW_LIVE_OPENAI_KEY = next.OPENAI_API_KEY;
+  if (!trimToValue(next.ASTROCLAW_LIVE_OPENAI_KEY) && trimToValue(next.OPENAI_API_KEY)) {
+    next.ASTROCLAW_LIVE_OPENAI_KEY = next.OPENAI_API_KEY;
   }
-  if (!trimToValue(next.OPENCLAW_MANTIS_TELEGRAM_GROUP_ID)) {
-    next.OPENCLAW_MANTIS_TELEGRAM_GROUP_ID = trimToValue(next.OPENCLAW_QA_TELEGRAM_GROUP_ID);
+  if (!trimToValue(next.ASTROCLAW_MANTIS_TELEGRAM_GROUP_ID)) {
+    next.ASTROCLAW_MANTIS_TELEGRAM_GROUP_ID = trimToValue(next.ASTROCLAW_QA_TELEGRAM_GROUP_ID);
   }
-  if (!trimToValue(next.OPENCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN)) {
-    next.OPENCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN = trimToValue(
-      next.OPENCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN,
+  if (!trimToValue(next.ASTROCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN)) {
+    next.ASTROCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN = trimToValue(
+      next.ASTROCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN,
     );
   }
-  if (!trimToValue(next.OPENCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN)) {
-    next.OPENCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN = trimToValue(
-      next.OPENCLAW_QA_TELEGRAM_SUT_BOT_TOKEN,
+  if (!trimToValue(next.ASTROCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN)) {
+    next.ASTROCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN = trimToValue(
+      next.ASTROCLAW_QA_TELEGRAM_SUT_BOT_TOKEN,
     );
   }
   return next;
@@ -228,12 +228,12 @@ function buildCrabboxEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
 function resolveTelegramGatewayEnvPayload(
   env: NodeJS.ProcessEnv,
 ): TelegramGatewayCredentialPayload {
-  const groupId = trimToValue(env.OPENCLAW_QA_TELEGRAM_GROUP_ID);
-  const driverToken = trimToValue(env.OPENCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN);
-  const sutToken = trimToValue(env.OPENCLAW_QA_TELEGRAM_SUT_BOT_TOKEN);
+  const groupId = trimToValue(env.ASTROCLAW_QA_TELEGRAM_GROUP_ID);
+  const driverToken = trimToValue(env.ASTROCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN);
+  const sutToken = trimToValue(env.ASTROCLAW_QA_TELEGRAM_SUT_BOT_TOKEN);
   if (!groupId || !driverToken || !sutToken) {
     throw new Error(
-      "Telegram desktop builder requires OPENCLAW_QA_TELEGRAM_GROUP_ID, OPENCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN, and OPENCLAW_QA_TELEGRAM_SUT_BOT_TOKEN when using --credential-source env.",
+      "Telegram desktop builder requires ASTROCLAW_QA_TELEGRAM_GROUP_ID, ASTROCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN, and ASTROCLAW_QA_TELEGRAM_SUT_BOT_TOKEN when using --credential-source env.",
     );
   }
   return { driverToken, groupId, sutToken };
@@ -268,9 +268,9 @@ async function prepareGatewayCredentialEnv(params: {
     return {};
   }
   if (
-    trimToValue(params.env.OPENCLAW_MANTIS_TELEGRAM_GROUP_ID) &&
-    trimToValue(params.env.OPENCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN) &&
-    trimToValue(params.env.OPENCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN)
+    trimToValue(params.env.ASTROCLAW_MANTIS_TELEGRAM_GROUP_ID) &&
+    trimToValue(params.env.ASTROCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN) &&
+    trimToValue(params.env.ASTROCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN)
   ) {
     return {};
   }
@@ -284,15 +284,15 @@ async function prepareGatewayCredentialEnv(params: {
   });
   const leaseHeartbeat = startQaCredentialLeaseHeartbeat(credentialLease);
   const payload = credentialLease.payload;
-  params.env.OPENCLAW_MANTIS_TELEGRAM_GROUP_ID = payload.groupId;
-  params.env.OPENCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN = payload.driverToken;
-  params.env.OPENCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN = payload.sutToken;
-  params.env.OPENCLAW_QA_TELEGRAM_GROUP_ID =
-    trimToValue(params.env.OPENCLAW_QA_TELEGRAM_GROUP_ID) ?? payload.groupId;
-  params.env.OPENCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN =
-    trimToValue(params.env.OPENCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN) ?? payload.driverToken;
-  params.env.OPENCLAW_QA_TELEGRAM_SUT_BOT_TOKEN =
-    trimToValue(params.env.OPENCLAW_QA_TELEGRAM_SUT_BOT_TOKEN) ?? payload.sutToken;
+  params.env.ASTROCLAW_MANTIS_TELEGRAM_GROUP_ID = payload.groupId;
+  params.env.ASTROCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN = payload.driverToken;
+  params.env.ASTROCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN = payload.sutToken;
+  params.env.ASTROCLAW_QA_TELEGRAM_GROUP_ID =
+    trimToValue(params.env.ASTROCLAW_QA_TELEGRAM_GROUP_ID) ?? payload.groupId;
+  params.env.ASTROCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN =
+    trimToValue(params.env.ASTROCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN) ?? payload.driverToken;
+  params.env.ASTROCLAW_QA_TELEGRAM_SUT_BOT_TOKEN =
+    trimToValue(params.env.ASTROCLAW_QA_TELEGRAM_SUT_BOT_TOKEN) ?? payload.sutToken;
   return {
     credentialLease,
     leaseHeartbeat,
@@ -368,8 +368,8 @@ telegram_profile_dir=${telegramProfileDir}
 rm -rf "$out"
 mkdir -p "$out"
 export DISPLAY="\${DISPLAY:-:99}"
-if [ -n "\${OPENCLAW_LIVE_OPENAI_KEY:-}" ] && [ -z "\${OPENAI_API_KEY:-}" ]; then
-  export OPENAI_API_KEY="$OPENCLAW_LIVE_OPENAI_KEY"
+if [ -n "\${ASTROCLAW_LIVE_OPENAI_KEY:-}" ] && [ -z "\${OPENAI_API_KEY:-}" ]; then
+  export OPENAI_API_KEY="$ASTROCLAW_LIVE_OPENAI_KEY"
 fi
 if ! command -v node >/dev/null 2>&1; then
   sudo apt-get update -y >"$out/node-apt.log" 2>&1
@@ -384,7 +384,7 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
   sudo apt-get update -y >>"$out/apt.log" 2>&1 || true
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ffmpeg >>"$out/apt.log" 2>&1 || true
 fi
-telegram_root="$HOME/.local/share/openclaw-mantis/telegram-desktop-bin"
+telegram_root="$HOME/.local/share/astroclaw-mantis/telegram-desktop-bin"
 telegram_bin="$telegram_root/Telegram/Telegram"
 if [ ! -x "$telegram_bin" ]; then
   mkdir -p "$telegram_root"
@@ -396,8 +396,8 @@ if [ -z "$telegram_profile_dir" ] || [ "$telegram_profile_dir" = "\\$HOME/.local
 fi
 mkdir -p "$telegram_profile_dir"
 telegram_profile_restored=false
-if [ -n "\${OPENCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_TGZ_B64:-}" ]; then
-  printf '%s' "$OPENCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_TGZ_B64" | base64 -d >"$out/telegram-profile.tgz"
+if [ -n "\${ASTROCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_TGZ_B64:-}" ]; then
+  printf '%s' "$ASTROCLAW_MANTIS_TELEGRAM_DESKTOP_PROFILE_TGZ_B64" | base64 -d >"$out/telegram-profile.tgz"
   tar -xzf "$out/telegram-profile.tgz" -C "$telegram_profile_dir"
   telegram_profile_restored=true
 fi
@@ -447,23 +447,23 @@ qa_status=0
     exit 3
   fi
   if [ "$setup_gateway" = "1" ]; then
-    export TELEGRAM_BOT_TOKEN="\${OPENCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN:-\${TELEGRAM_BOT_TOKEN:-}}"
-    telegram_group_id="\${OPENCLAW_MANTIS_TELEGRAM_GROUP_ID:-}"
-    driver_token="\${OPENCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN:-}"
+    export TELEGRAM_BOT_TOKEN="\${ASTROCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN:-\${TELEGRAM_BOT_TOKEN:-}}"
+    telegram_group_id="\${ASTROCLAW_MANTIS_TELEGRAM_GROUP_ID:-}"
+    driver_token="\${ASTROCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN:-}"
     if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$telegram_group_id" ] || [ -z "$driver_token" ]; then
-      echo "Gateway setup requires OPENCLAW_MANTIS_TELEGRAM_GROUP_ID, OPENCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN, and OPENCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN." >&2
+      echo "Gateway setup requires ASTROCLAW_MANTIS_TELEGRAM_GROUP_ID, ASTROCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN, and ASTROCLAW_MANTIS_TELEGRAM_SUT_BOT_TOKEN." >&2
       exit 2
     fi
     driver_user_id="$(node --input-type=module >"$out/telegram-driver-getme.json" 2>"$out/telegram-driver-getme.err" <<'MANTIS_TELEGRAM_GETME'
-const token = process.env.OPENCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN;
+const token = process.env.ASTROCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN;
 const response = await fetch(\`https://api.telegram.org/bot\${token}/getMe\`);
 const body = await response.json();
 process.stdout.write(JSON.stringify({ ok: body.ok, id: body.result?.id, username: body.result?.username }));
 if (!body.ok || !body.result?.id) process.exit(1);
 MANTIS_TELEGRAM_GETME
 node --input-type=module -e 'import fs from "node:fs"; const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(String(value.id || ""));' "$out/telegram-driver-getme.json")"
-    export OPENCLAW_HOME="$HOME/.openclaw-mantis/telegram-openclaw"
-    mkdir -p "$OPENCLAW_HOME"
+    export ASTROCLAW_HOME="$HOME/.astroclaw-mantis/telegram-astroclaw"
+    mkdir -p "$ASTROCLAW_HOME"
     cat >"$out/telegram.patch.json5" <<MANTIS_TELEGRAM_PATCH
 {
   gateway: {
@@ -487,11 +487,11 @@ node --input-type=module -e 'import fs from "node:fs"; const value = JSON.parse(
   },
 }
 MANTIS_TELEGRAM_PATCH
-    pnpm openclaw config patch --file "$out/telegram.patch.json5" --dry-run
-    pnpm openclaw config patch --file "$out/telegram.patch.json5"
+    pnpm astroclaw config patch --file "$out/telegram.patch.json5" --dry-run
+    pnpm astroclaw config patch --file "$out/telegram.patch.json5"
     node --input-type=module >"$out/telegram-ready-message.json" 2>"$out/telegram-ready-message.err" <<'MANTIS_TELEGRAM_READY'
-const token = process.env.OPENCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN;
-const chatId = process.env.OPENCLAW_MANTIS_TELEGRAM_GROUP_ID;
+const token = process.env.ASTROCLAW_MANTIS_TELEGRAM_DRIVER_BOT_TOKEN;
+const chatId = process.env.ASTROCLAW_MANTIS_TELEGRAM_GROUP_ID;
 const text = \`Mantis Telegram desktop builder ready: \${new Date().toISOString()}\`;
 const response = await fetch(\`https://api.telegram.org/bot\${token}/sendMessage\`, {
   method: "POST",
@@ -502,12 +502,12 @@ const body = await response.json();
 process.stdout.write(JSON.stringify({ ok: body.ok, message_id: body.result?.message_id }));
 if (!body.ok) process.exit(1);
 MANTIS_TELEGRAM_READY
-    nohup pnpm openclaw gateway run --dev --allow-unconfigured --port 38974 --cli-backend-logs </dev/null >"$out/openclaw-gateway.log" 2>&1 &
+    nohup pnpm astroclaw gateway run --dev --allow-unconfigured --port 38974 --cli-backend-logs </dev/null >"$out/astroclaw-gateway.log" 2>&1 &
     gateway_pid="$!"
-    echo "$gateway_pid" >"$out/openclaw-gateway.pid"
+    echo "$gateway_pid" >"$out/astroclaw-gateway.pid"
     sleep 12
     if ! kill -0 "$gateway_pid" >/dev/null 2>&1; then
-      echo "OpenClaw gateway exited during startup." >&2
+      echo "Astroclaw gateway exited during startup." >&2
       wait "$gateway_pid" || true
       exit 1
     fi
@@ -527,8 +527,8 @@ cat >"$out/remote-metadata.json" <<MANTIS_REMOTE_METADATA
   "telegramProfileDir": "$telegram_profile_dir",
   "telegramProfileRestored": $telegram_profile_restored,
   "gatewaySetup": $setup_gateway,
-  "gatewayAlive": $(if [ "$setup_gateway" = "1" ] && [ -f "$out/openclaw-gateway.pid" ] && kill -0 "$(cat "$out/openclaw-gateway.pid")" >/dev/null 2>&1; then echo true; else echo false; fi),
-  "gatewayPid": "$(if [ -f "$out/openclaw-gateway.pid" ]; then cat "$out/openclaw-gateway.pid"; fi)",
+  "gatewayAlive": $(if [ "$setup_gateway" = "1" ] && [ -f "$out/astroclaw-gateway.pid" ] && kill -0 "$(cat "$out/astroclaw-gateway.pid")" >/dev/null 2>&1; then echo true; else echo false; fi),
+  "gatewayPid": "$(if [ -f "$out/astroclaw-gateway.pid" ]; then cat "$out/astroclaw-gateway.pid"; fi)",
   "gatewayPort": 38974,
   "qaExitCode": $qa_status,
   "credentialSource": "$credential_source",
@@ -586,7 +586,7 @@ function renderReport(summary: MantisTelegramDesktopBuilderSummary) {
     "- Remote metadata: `remote-metadata.json`",
     "- Remote command log: `telegram-desktop-builder-command.log`",
     "- Telegram Desktop log: `telegram-desktop.log`",
-    "- OpenClaw gateway log: `openclaw-gateway.log`",
+    "- Astroclaw gateway log: `astroclaw-gateway.log`",
     summary.error ? `- Error: ${summary.error}` : undefined,
     "",
   ].filter((line) => line !== undefined);
@@ -670,7 +670,7 @@ export async function runMantisTelegramDesktopBuilder(
   const explicitLeaseId = trimToValue(opts.leaseId) ?? trimToValue(env[CRABBOX_LEASE_ID_ENV]);
   const keepLease = opts.keepLease ?? (gatewaySetup || isTruthyOptIn(env[CRABBOX_KEEP_ENV]));
   const createdLease = explicitLeaseId === undefined;
-  const remoteOutputDir = `/tmp/openclaw-mantis-telegram-desktop-${startedAt
+  const remoteOutputDir = `/tmp/astroclaw-mantis-telegram-desktop-${startedAt
     .toISOString()
     .replace(/[^0-9A-Za-z]/gu, "-")}`;
   let credentialLease: TelegramGatewayCredentialLease | undefined;
@@ -784,7 +784,7 @@ export async function runMantisTelegramDesktopBuilder(
       throw remoteRunError;
     }
     if (gatewaySetup && !gatewaySetupCompleted) {
-      throw new Error("Telegram desktop builder did not report a live OpenClaw gateway.");
+      throw new Error("Telegram desktop builder did not report a live Astroclaw gateway.");
     }
     summary = {
       artifacts: {

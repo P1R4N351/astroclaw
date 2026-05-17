@@ -22,12 +22,12 @@ describe("npm project install env", () => {
     try {
       expect(
         createNpmProjectInstallEnv({
-          PATH: "/tmp/openclaw-npm-global/bin",
+          PATH: "/tmp/astroclaw-npm-global/bin",
         }),
       ).toEqual({
         ...EXPECTED_MIN_FRESHNESS_ENV,
         NPM_CONFIG_SCRIPT_SHELL: "/bin/sh",
-        PATH: "/tmp/openclaw-npm-global/bin",
+        PATH: "/tmp/astroclaw-npm-global/bin",
         npm_config_dry_run: "false",
         npm_config_fetch_retries: "5",
         npm_config_fetch_retry_maxtimeout: "120000",
@@ -86,7 +86,7 @@ describe("npm project install env", () => {
     }
   });
 
-  it("bypasses npm release-age filters for OpenClaw-managed installs", () => {
+  it("bypasses npm release-age filters for Astroclaw-managed installs", () => {
     const env = createNpmProjectInstallEnv({
       NPM_CONFIG_BEFORE: "2026-01-01T00:00:00.000Z",
       NPM_CONFIG_MIN_RELEASE_AGE: "7",
@@ -121,7 +121,7 @@ describe("npm project install env", () => {
   });
 
   it("uses a current before override for explicit npm before policy", () => {
-    const dir = fsSync.mkdtempSync(path.join(os.tmpdir(), "openclaw-npmrc-"));
+    const dir = fsSync.mkdtempSync(path.join(os.tmpdir(), "astroclaw-npmrc-"));
     try {
       const npmrc = path.join(dir, "npmrc");
       fsSync.writeFileSync(npmrc, "before=2026-01-01T00:00:00.000Z\n", "utf-8");

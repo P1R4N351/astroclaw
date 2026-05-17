@@ -259,7 +259,7 @@ describe("browser server-context existing-session profile", () => {
 
     const pending = live.ensureBrowserAvailable();
     const assertion = expect(pending).rejects.toThrow(
-      /could not connect to Chrome.*managed "openclaw" profile.*DevToolsActivePort/s,
+      /could not connect to Chrome.*managed "astroclaw" profile.*DevToolsActivePort/s,
     );
     await vi.advanceTimersByTimeAsync(8_000);
     await assertion;

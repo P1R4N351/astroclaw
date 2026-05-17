@@ -6,7 +6,7 @@ const DEFAULT_ACQUIRE_TIMEOUT_MS = 90_000;
 const DEFAULT_HTTP_TIMEOUT_MS = 15_000;
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
 const DEFAULT_LEASE_TTL_MS = 20 * 60 * 1_000;
-const CHUNKED_PAYLOAD_MARKER = "__openclawQaCredentialPayloadChunksV1";
+const CHUNKED_PAYLOAD_MARKER = "__astroclawQaCredentialPayloadChunksV1";
 const RETRY_BACKOFF_MS = [500, 1_000, 2_000, 4_000, 5_000];
 const RETRYABLE_ACQUIRE_CODES = new Set(["POOL_EXHAUSTED", "NO_CREDENTIAL_AVAILABLE"]);
 
@@ -71,8 +71,8 @@ function parsePositiveInteger(value, fallback, label) {
 
 function normalizeCredentialRole() {
   const raw =
-    process.env.OPENCLAW_NPM_TELEGRAM_CREDENTIAL_ROLE?.trim() ||
-    process.env.OPENCLAW_QA_CREDENTIAL_ROLE?.trim() ||
+    process.env.ASTROCLAW_NPM_TELEGRAM_CREDENTIAL_ROLE?.trim() ||
+    process.env.ASTROCLAW_QA_CREDENTIAL_ROLE?.trim() ||
     (process.env.CI ? "ci" : "maintainer");
   const normalized = raw.toLowerCase();
   if (normalized === "ci" || normalized === "maintainer") {
@@ -82,69 +82,69 @@ function normalizeCredentialRole() {
 }
 
 function normalizeEndpointPrefix() {
-  const raw = process.env.OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX?.trim() || DEFAULT_ENDPOINT_PREFIX;
+  const raw = process.env.ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX?.trim() || DEFAULT_ENDPOINT_PREFIX;
   if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\") || raw.includes("..")) {
     throw new Error(
-      "OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX must be an absolute path like /qa-credentials/v1.",
+      "ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX must be an absolute path like /qa-credentials/v1.",
     );
   }
   return raw.replace(/\/+$/u, "") || "/";
 }
 
 function resolveConfig() {
-  const siteUrl = process.env.OPENCLAW_QA_CONVEX_SITE_URL?.trim();
+  const siteUrl = process.env.ASTROCLAW_QA_CONVEX_SITE_URL?.trim();
   if (!siteUrl) {
-    throw new Error("Missing OPENCLAW_QA_CONVEX_SITE_URL for --credential-source convex.");
+    throw new Error("Missing ASTROCLAW_QA_CONVEX_SITE_URL for --credential-source convex.");
   }
   const parsed = new URL(siteUrl);
-  const allowInsecure = /^(1|true|yes)$/iu.test(process.env.OPENCLAW_QA_ALLOW_INSECURE_HTTP ?? "");
+  const allowInsecure = /^(1|true|yes)$/iu.test(process.env.ASTROCLAW_QA_ALLOW_INSECURE_HTTP ?? "");
   const isLoopback = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
   if (
     parsed.protocol !== "https:" &&
     !(parsed.protocol === "http:" && allowInsecure && isLoopback)
   ) {
-    throw new Error("OPENCLAW_QA_CONVEX_SITE_URL must use https://.");
+    throw new Error("ASTROCLAW_QA_CONVEX_SITE_URL must use https://.");
   }
   const role = normalizeCredentialRole();
   const authToken =
     role === "ci"
-      ? process.env.OPENCLAW_QA_CONVEX_SECRET_CI?.trim()
-      : process.env.OPENCLAW_QA_CONVEX_SECRET_MAINTAINER?.trim();
+      ? process.env.ASTROCLAW_QA_CONVEX_SECRET_CI?.trim()
+      : process.env.ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER?.trim();
   if (!authToken) {
     throw new Error(
       role === "ci"
-        ? "Missing OPENCLAW_QA_CONVEX_SECRET_CI for CI credential access."
-        : "Missing OPENCLAW_QA_CONVEX_SECRET_MAINTAINER for maintainer credential access.",
+        ? "Missing ASTROCLAW_QA_CONVEX_SECRET_CI for CI credential access."
+        : "Missing ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER for maintainer credential access.",
     );
   }
   const endpointPrefix = normalizeEndpointPrefix();
   const ownerId =
-    process.env.OPENCLAW_QA_CREDENTIAL_OWNER_ID?.trim() ||
+    process.env.ASTROCLAW_QA_CREDENTIAL_OWNER_ID?.trim() ||
     `npm-telegram-rtt-${process.pid}-${Date.now()}`;
   const joinEndpoint = (endpoint) =>
     `${siteUrl.replace(/\/+$/u, "")}${endpointPrefix}/${endpoint.replace(/^\/+/u, "")}`;
   return {
     acquireUrl: joinEndpoint("acquire"),
     acquireTimeoutMs: parsePositiveInteger(
-      process.env.OPENCLAW_QA_CREDENTIAL_ACQUIRE_TIMEOUT_MS,
+      process.env.ASTROCLAW_QA_CREDENTIAL_ACQUIRE_TIMEOUT_MS,
       DEFAULT_ACQUIRE_TIMEOUT_MS,
-      "OPENCLAW_QA_CREDENTIAL_ACQUIRE_TIMEOUT_MS",
+      "ASTROCLAW_QA_CREDENTIAL_ACQUIRE_TIMEOUT_MS",
     ),
     heartbeatIntervalMs: parsePositiveInteger(
-      process.env.OPENCLAW_QA_CREDENTIAL_HEARTBEAT_INTERVAL_MS,
+      process.env.ASTROCLAW_QA_CREDENTIAL_HEARTBEAT_INTERVAL_MS,
       DEFAULT_HEARTBEAT_INTERVAL_MS,
-      "OPENCLAW_QA_CREDENTIAL_HEARTBEAT_INTERVAL_MS",
+      "ASTROCLAW_QA_CREDENTIAL_HEARTBEAT_INTERVAL_MS",
     ),
     heartbeatUrl: joinEndpoint("heartbeat"),
     httpTimeoutMs: parsePositiveInteger(
-      process.env.OPENCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS,
+      process.env.ASTROCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS,
       DEFAULT_HTTP_TIMEOUT_MS,
-      "OPENCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
+      "ASTROCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
     ),
     leaseTtlMs: parsePositiveInteger(
-      process.env.OPENCLAW_QA_CREDENTIAL_LEASE_TTL_MS,
+      process.env.ASTROCLAW_QA_CREDENTIAL_LEASE_TTL_MS,
       DEFAULT_LEASE_TTL_MS,
-      "OPENCLAW_QA_CREDENTIAL_LEASE_TTL_MS",
+      "ASTROCLAW_QA_CREDENTIAL_LEASE_TTL_MS",
     ),
     ownerId,
     payloadChunkUrl: joinEndpoint("payload-chunk"),
@@ -261,9 +261,9 @@ async function writeCredentialEnv(pathname, payload) {
   await fs.writeFile(
     pathname,
     [
-      `export OPENCLAW_QA_TELEGRAM_GROUP_ID=${shellQuote(payload.groupId)}`,
-      `export OPENCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN=${shellQuote(payload.driverToken)}`,
-      `export OPENCLAW_QA_TELEGRAM_SUT_BOT_TOKEN=${shellQuote(payload.sutToken)}`,
+      `export ASTROCLAW_QA_TELEGRAM_GROUP_ID=${shellQuote(payload.groupId)}`,
+      `export ASTROCLAW_QA_TELEGRAM_DRIVER_BOT_TOKEN=${shellQuote(payload.driverToken)}`,
+      `export ASTROCLAW_QA_TELEGRAM_SUT_BOT_TOKEN=${shellQuote(payload.sutToken)}`,
       "",
     ].join("\n"),
     { mode: 0o600 },

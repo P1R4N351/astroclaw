@@ -24,7 +24,7 @@ afterEach(() => {
   resetAgentEventsForTest();
 });
 
-describe("emitAcpLifecycleError preserves AcpRuntimeError detail (regression: openclaw-4a8)", () => {
+describe("emitAcpLifecycleError preserves AcpRuntimeError detail (regression: astroclaw-4a8)", () => {
   it("renders the AcpRuntimeError code into the error string so existing consumers surface it", () => {
     const acpError = new AcpRuntimeError("ACP_TURN_FAILED", "ACP turn failed before completion.");
 

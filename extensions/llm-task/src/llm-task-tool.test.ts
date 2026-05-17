@@ -4,7 +4,7 @@ vi.mock("../api.js", async () => {
   const actual = await vi.importActual<typeof import("../api.js")>("../api.js");
   return {
     ...actual,
-    resolvePreferredOpenClawTmpDir: () => "/tmp",
+    resolvePreferredAstroclawTmpDir: () => "/tmp",
   };
 });
 

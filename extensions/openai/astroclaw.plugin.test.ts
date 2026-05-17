@@ -5,7 +5,7 @@ import { buildOpenAIProvider } from "./openai-provider.js";
 import { buildOpenAICodexSetupProvider, buildOpenAISetupProvider } from "./setup-api.js";
 
 const manifest = JSON.parse(
-  readFileSync(new URL("./openclaw.plugin.json", import.meta.url), "utf8"),
+  readFileSync(new URL("./astroclaw.plugin.json", import.meta.url), "utf8"),
 ) as {
   mediaUnderstandingProviderMetadata?: Record<
     string,

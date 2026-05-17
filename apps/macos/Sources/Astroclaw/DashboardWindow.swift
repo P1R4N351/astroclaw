@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import OSLog
 
-let dashboardWindowLogger = Logger(subsystem: "ai.openclaw", category: "DashboardWindow")
+let dashboardWindowLogger = Logger(subsystem: "ai.astroclaw", category: "DashboardWindow")
 
 enum DashboardWindowLayout {
     static let windowSize = NSSize(width: 1240, height: 860)

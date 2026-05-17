@@ -10,18 +10,18 @@ export type {
   ChannelPlugin,
   ChatType,
   HistoryEntry,
-  OpenClawConfig,
-  OpenClawPluginApi,
+  AstroclawConfig,
+  AstroclawPluginApi,
   PluginRuntime,
-} from "openclaw/plugin-sdk/core";
-export type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
-export type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
-export type { ModelsProviderData } from "openclaw/plugin-sdk/models-provider-runtime";
+} from "astroclaw/plugin-sdk/core";
+export type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+export type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+export type { ModelsProviderData } from "astroclaw/plugin-sdk/models-provider-runtime";
 export type {
   BlockStreamingCoalesceConfig,
   DmPolicy,
   GroupPolicy,
-} from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/config-contracts";
 export {
   DEFAULT_ACCOUNT_ID,
   buildChannelConfigSchema,
@@ -29,32 +29,32 @@ export {
   parseStrictPositiveInteger,
   resolveClientIp,
   isTrustedProxyAddress,
-} from "openclaw/plugin-sdk/core";
-export { buildComputedAccountStatusSnapshot } from "openclaw/plugin-sdk/channel-status";
-export { createAccountStatusSink } from "openclaw/plugin-sdk/channel-lifecycle";
-export { buildAgentMediaPayload } from "openclaw/plugin-sdk/agent-media-payload";
+} from "astroclaw/plugin-sdk/core";
+export { buildComputedAccountStatusSnapshot } from "astroclaw/plugin-sdk/channel-status";
+export { createAccountStatusSink } from "astroclaw/plugin-sdk/channel-lifecycle";
+export { buildAgentMediaPayload } from "astroclaw/plugin-sdk/agent-media-payload";
 export {
   listSkillCommandsForAgents,
   resolveControlCommandGate,
   resolveStoredModelOverride,
-} from "openclaw/plugin-sdk/command-auth-native";
-export { buildModelsProviderData } from "openclaw/plugin-sdk/models-provider-runtime";
+} from "astroclaw/plugin-sdk/command-auth-native";
+export { buildModelsProviderData } from "astroclaw/plugin-sdk/models-provider-runtime";
 export {
   GROUP_POLICY_BLOCKED_LABEL,
   resolveAllowlistProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "openclaw/plugin-sdk/runtime-group-policy";
-export { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
-export { loadSessionStore, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-export { formatInboundFromLabel } from "openclaw/plugin-sdk/channel-inbound";
-export { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";
-export { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
-export { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-message";
-export { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
-export { loadOutboundMediaFromUrl } from "openclaw/plugin-sdk/outbound-media";
-export { rawDataToString } from "openclaw/plugin-sdk/webhook-ingress";
-export { chunkTextForOutbound } from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/runtime-group-policy";
+export { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
+export { loadSessionStore, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+export { formatInboundFromLabel } from "astroclaw/plugin-sdk/channel-inbound";
+export { logInboundDrop } from "astroclaw/plugin-sdk/channel-inbound";
+export { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
+export { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-message";
+export { logTypingFailure } from "astroclaw/plugin-sdk/channel-feedback";
+export { loadOutboundMediaFromUrl } from "astroclaw/plugin-sdk/outbound-media";
+export { rawDataToString } from "astroclaw/plugin-sdk/webhook-ingress";
+export { chunkTextForOutbound } from "astroclaw/plugin-sdk/text-chunking";
 // Legacy map-helper exports stay for older plugin consumers. New message-turn
 // code should use createChannelHistoryWindow.
 export {
@@ -63,22 +63,22 @@ export {
   buildPendingHistoryContextFromMap,
   clearHistoryEntriesIfEnabled,
   recordPendingHistoryEntryIfEnabled,
-} from "openclaw/plugin-sdk/reply-history";
-export { normalizeAccountId, resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
-export { resolveAllowlistMatchSimple } from "openclaw/plugin-sdk/allow-from";
-export { registerPluginHttpRoute } from "openclaw/plugin-sdk/webhook-targets";
+} from "astroclaw/plugin-sdk/reply-history";
+export { normalizeAccountId, resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
+export { resolveAllowlistMatchSimple } from "astroclaw/plugin-sdk/allow-from";
+export { registerPluginHttpRoute } from "astroclaw/plugin-sdk/webhook-targets";
 export {
   isRequestBodyLimitError,
   readRequestBodyWithLimit,
-} from "openclaw/plugin-sdk/webhook-ingress";
+} from "astroclaw/plugin-sdk/webhook-ingress";
 export {
   applyAccountNameToChannelSection,
   applySetupAccountConfigPatch,
   migrateBaseNameToDefaultAccount,
-} from "openclaw/plugin-sdk/setup";
+} from "astroclaw/plugin-sdk/setup";
 export {
   getAgentScopedMediaLocalRoots,
   resolveChannelMediaMaxBytes,
-} from "openclaw/plugin-sdk/media-runtime";
-export { normalizeProviderId } from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/media-runtime";
+export { normalizeProviderId } from "astroclaw/plugin-sdk/provider-model-shared";
 export { setMattermostRuntime } from "./src/runtime.js";

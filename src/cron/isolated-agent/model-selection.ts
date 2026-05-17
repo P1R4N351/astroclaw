@@ -1,5 +1,5 @@
 import type { AgentConfig } from "../../config/types.agents.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import type { CronJob } from "../types.js";
 import {
   DEFAULT_MODEL,
@@ -21,8 +21,8 @@ type CronSessionModelOverrides = {
 type CronModelSelectionSource = "default" | "subagent" | "agent" | "hook" | "payload" | "session";
 
 export type ResolveCronModelSelectionParams = {
-  cfg: OpenClawConfig;
-  cfgWithAgentDefaults: OpenClawConfig;
+  cfg: AstroclawConfig;
+  cfgWithAgentDefaults: AstroclawConfig;
   agentConfigOverride?: Pick<AgentConfig, "model" | "subagents">;
   sessionEntry: CronSessionModelOverrides;
   payload: CronJob["payload"];
@@ -42,7 +42,7 @@ export type ResolveCronModelSelectionResult =
       error: string;
     };
 
-function formatAllowedModelRefs(params: { cfg: OpenClawConfig }): string {
+function formatAllowedModelRefs(params: { cfg: AstroclawConfig }): string {
   const configured = params.cfg.agents?.defaults?.models;
   if (configured && typeof configured === "object" && Object.keys(configured).length > 0) {
     return Object.keys(configured).toSorted().join(", ");
@@ -51,7 +51,7 @@ function formatAllowedModelRefs(params: { cfg: OpenClawConfig }): string {
 }
 
 function formatCronPayloadModelRejection(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   modelOverride: string;
   error: string;
 }): string {

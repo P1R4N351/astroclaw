@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawProtocol
+import AstroclawProtocol
 import Testing
 
 struct GatewayFrameDecodeTests {

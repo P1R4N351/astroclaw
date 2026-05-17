@@ -1,24 +1,24 @@
-package ai.openclaw.app.ui.chat
+package ai.astroclaw.app.ui.chat
 
-import ai.openclaw.app.chat.ChatMessage
-import ai.openclaw.app.chat.ChatMessageContent
-import ai.openclaw.app.chat.ChatPendingToolCall
-import ai.openclaw.app.tools.ToolDisplayRegistry
-import ai.openclaw.app.ui.mobileAccent
-import ai.openclaw.app.ui.mobileAccentSoft
-import ai.openclaw.app.ui.mobileBorder
-import ai.openclaw.app.ui.mobileBorderStrong
-import ai.openclaw.app.ui.mobileCallout
-import ai.openclaw.app.ui.mobileCaption1
-import ai.openclaw.app.ui.mobileCaption2
-import ai.openclaw.app.ui.mobileCardSurface
-import ai.openclaw.app.ui.mobileCodeBg
-import ai.openclaw.app.ui.mobileCodeBorder
-import ai.openclaw.app.ui.mobileCodeText
-import ai.openclaw.app.ui.mobileText
-import ai.openclaw.app.ui.mobileTextSecondary
-import ai.openclaw.app.ui.mobileWarning
-import ai.openclaw.app.ui.mobileWarningSoft
+import ai.astroclaw.app.chat.ChatMessage
+import ai.astroclaw.app.chat.ChatMessageContent
+import ai.astroclaw.app.chat.ChatPendingToolCall
+import ai.astroclaw.app.tools.ToolDisplayRegistry
+import ai.astroclaw.app.ui.mobileAccent
+import ai.astroclaw.app.ui.mobileAccentSoft
+import ai.astroclaw.app.ui.mobileBorder
+import ai.astroclaw.app.ui.mobileBorderStrong
+import ai.astroclaw.app.ui.mobileCallout
+import ai.astroclaw.app.ui.mobileCaption1
+import ai.astroclaw.app.ui.mobileCaption2
+import ai.astroclaw.app.ui.mobileCardSurface
+import ai.astroclaw.app.ui.mobileCodeBg
+import ai.astroclaw.app.ui.mobileCodeBorder
+import ai.astroclaw.app.ui.mobileCodeText
+import ai.astroclaw.app.ui.mobileText
+import ai.astroclaw.app.ui.mobileTextSecondary
+import ai.astroclaw.app.ui.mobileWarning
+import ai.astroclaw.app.ui.mobileWarningSoft
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -191,7 +191,7 @@ fun ChatPendingToolsBubble(toolCalls: List<ChatPendingToolCall>) {
 fun ChatStreamingAssistantBubble(text: String) {
   ChatBubbleContainer(
     style = bubbleStyle("assistant").copy(borderColor = mobileAccent),
-    roleLabel = "OpenClaw · Live",
+    roleLabel = "Astroclaw · Live",
   ) {
     ChatMarkdown(text = text, textColor = mobileText)
   }
@@ -229,7 +229,7 @@ private fun roleLabel(role: String): String =
   when (role) {
     "user" -> "You"
     "system" -> "System"
-    else -> "OpenClaw"
+    else -> "Astroclaw"
   }
 
 @Composable

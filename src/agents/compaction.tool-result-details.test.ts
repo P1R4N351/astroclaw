@@ -123,7 +123,7 @@ describe("compaction toolResult details stripping", () => {
       { role: "user", content: "visible ask", timestamp: 1 },
       {
         role: "custom",
-        customType: "openclaw.runtime-context",
+        customType: "astroclaw.runtime-context",
         content: "secret runtime context",
         display: false,
         timestamp: 2,
@@ -151,7 +151,7 @@ describe("compaction toolResult details stripping", () => {
     ]);
     const serialized = JSON.stringify(chunk);
     expect(serialized).toContain("visible ask");
-    expect(serialized).not.toContain("openclaw.runtime-context");
+    expect(serialized).not.toContain("astroclaw.runtime-context");
     expect(serialized).not.toContain("secret runtime context");
   });
 

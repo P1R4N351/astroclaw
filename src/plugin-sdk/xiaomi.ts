@@ -1,10 +1,10 @@
 // Manual facade. Keep loader boundary explicit.
-import type { ModelProviderConfig, OpenClawConfig } from "../config/types.js";
+import type { ModelProviderConfig, AstroclawConfig } from "../config/types.js";
 import { loadBundledPluginPublicSurfaceModuleSync } from "./facade-loader.js";
 
 type FacadeModule = {
-  applyXiaomiConfig: (cfg: OpenClawConfig) => OpenClawConfig;
-  applyXiaomiProviderConfig: (cfg: OpenClawConfig) => OpenClawConfig;
+  applyXiaomiConfig: (cfg: AstroclawConfig) => AstroclawConfig;
+  applyXiaomiProviderConfig: (cfg: AstroclawConfig) => AstroclawConfig;
   buildXiaomiProvider: () => ModelProviderConfig;
   XIAOMI_DEFAULT_MODEL_ID: string;
   XIAOMI_DEFAULT_MODEL_REF: string;

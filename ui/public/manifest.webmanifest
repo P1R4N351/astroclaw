@@ -1,6 +1,6 @@
 {
-  "name": "OpenClaw Control",
-  "short_name": "OpenClaw",
+  "name": "Astroclaw Control",
+  "short_name": "Astroclaw",
   "description": "Multi-channel AI gateway control panel",
   "start_url": "./",
   "display": "standalone",

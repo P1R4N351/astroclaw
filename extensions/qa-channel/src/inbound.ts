@@ -1,11 +1,11 @@
-import { resolveStableChannelMessageIngress } from "openclaw/plugin-sdk/channel-ingress-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolveInboundRouteEnvelopeBuilderWithRuntime } from "openclaw/plugin-sdk/inbound-envelope";
+import { resolveStableChannelMessageIngress } from "astroclaw/plugin-sdk/channel-ingress-runtime";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveInboundRouteEnvelopeBuilderWithRuntime } from "astroclaw/plugin-sdk/inbound-envelope";
 import {
   buildAgentMediaPayload,
   saveMediaBuffer,
   saveMediaSource,
-} from "openclaw/plugin-sdk/media-runtime";
+} from "astroclaw/plugin-sdk/media-runtime";
 import { buildQaTarget, sendQaBusMessage, type QaBusMessage } from "./bus-client.js";
 import { getQaChannelRuntime } from "./runtime.js";
 import type { CoreConfig, ResolvedQaChannelAccount } from "./types.js";
@@ -100,7 +100,7 @@ export async function handleQaInbound(params: {
     threadId: inbound.threadId,
   });
   const { route, buildEnvelope } = resolveInboundRouteEnvelopeBuilderWithRuntime({
-    cfg: params.config as OpenClawConfig,
+    cfg: params.config as AstroclawConfig,
     channel: params.channelId,
     accountId: params.account.accountId,
     peer: {
@@ -120,7 +120,7 @@ export async function handleQaInbound(params: {
     ? runtime.channel.mentions.matchesMentionPatterns(
         inbound.text,
         runtime.channel.mentions.buildMentionRegexes(
-          params.config as OpenClawConfig,
+          params.config as AstroclawConfig,
           route.agentId,
         ),
       )
@@ -213,7 +213,7 @@ export async function handleQaInbound(params: {
   });
 
   await runtime.channel.turn.runAssembled({
-    cfg: params.config as OpenClawConfig,
+    cfg: params.config as AstroclawConfig,
     channel: params.channelId,
     accountId: params.account.accountId,
     agentId: route.agentId,

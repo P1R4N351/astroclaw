@@ -79,7 +79,7 @@ describe("artifacts RPC handlers", () => {
             alt: "result.png",
           },
         ],
-        __openclaw: { seq: 2 },
+        __astroclaw: { seq: 2 },
       },
     ]);
   });
@@ -172,7 +172,7 @@ describe("artifacts RPC handlers", () => {
       {
         role: "assistant",
         content: [{ type: "file", data: "aGVsbG8=", mimeType: "text/plain", title: "out.txt" }],
-        __openclaw: { seq: 2, runId: "run-global" },
+        __astroclaw: { seq: 2, runId: "run-global" },
       },
     ]);
 
@@ -209,7 +209,7 @@ describe("artifacts RPC handlers", () => {
       {
         role: "assistant",
         content: [{ type: "file", data: "aGVsbG8=", mimeType: "text/plain", title: "task.txt" }],
-        __openclaw: { seq: 2, taskId: "task-global" },
+        __astroclaw: { seq: 2, taskId: "task-global" },
       },
     ]);
 
@@ -248,7 +248,7 @@ describe("artifacts RPC handlers", () => {
               alt: "result.png",
             },
           ],
-          __openclaw: { seq: 2 },
+          __astroclaw: { seq: 2 },
         },
       ],
     });
@@ -295,7 +295,7 @@ describe("artifacts RPC handlers", () => {
       {
         role: "assistant",
         content: [{ type: "image", data: "aGVsbG8=", alt: "run-result.png" }],
-        __openclaw: { seq: 2, runId: "run-1" },
+        __astroclaw: { seq: 2, runId: "run-1" },
       },
     ]);
     const { calls, respond } = createResponder();
@@ -323,7 +323,7 @@ describe("artifacts RPC handlers", () => {
       {
         role: "assistant",
         content: [{ type: "image", data: "aGVsbG8=", alt: "run-result.png" }],
-        __openclaw: { seq: 2, runId: "run-1" },
+        __astroclaw: { seq: 2, runId: "run-1" },
       },
     ]);
     const { respond } = createResponder();
@@ -353,7 +353,7 @@ describe("artifacts RPC handlers", () => {
       {
         role: "assistant",
         content: [{ type: "image", data: "dGFyZ2V0", alt: "task-result.png" }],
-        __openclaw: { seq: 2, messageTaskId: "task-1" },
+        __astroclaw: { seq: 2, messageTaskId: "task-1" },
       },
     ]);
     const { calls, respond } = createResponder();
@@ -384,17 +384,17 @@ describe("artifacts RPC handlers", () => {
       {
         role: "assistant",
         content: [{ type: "image", data: "dGFyZ2V0", alt: "task-result.png" }],
-        __openclaw: { seq: 2, messageTaskId: "task-1" },
+        __astroclaw: { seq: 2, messageTaskId: "task-1" },
       },
       {
         role: "assistant",
         content: [{ type: "image", data: "b3RoZXI=", alt: "other-task.png" }],
-        __openclaw: { seq: 3, messageTaskId: "task-2" },
+        __astroclaw: { seq: 3, messageTaskId: "task-2" },
       },
       {
         role: "assistant",
         content: [{ type: "image", data: "dW50YWdnZWQ=", alt: "untagged.png" }],
-        __openclaw: { seq: 4 },
+        __astroclaw: { seq: 4 },
       },
     ]);
 
@@ -558,7 +558,7 @@ describe("artifacts RPC handlers", () => {
       {
         role: "assistant",
         content: [{ type: "image", data: "dGFyZ2V0", alt: "task-result.png" }],
-        __openclaw: { seq: 2, messageTaskId: "task-1" },
+        __astroclaw: { seq: 2, messageTaskId: "task-1" },
       },
     ]);
     const { calls, respond } = createResponder();
@@ -618,7 +618,7 @@ describe("artifacts RPC handlers", () => {
             alt: "uploaded.png",
           },
         ],
-        __openclaw: { seq: 3 },
+        __astroclaw: { seq: 3 },
       },
     ]);
     const { calls, respond } = createResponder();
@@ -658,7 +658,7 @@ describe("artifacts RPC handlers", () => {
               alt: "uploaded.txt",
             },
           ],
-          __openclaw: { seq: 4 },
+          __astroclaw: { seq: 4 },
         },
       ],
     });
@@ -685,7 +685,7 @@ describe("artifacts RPC handlers", () => {
               title: "plain.txt",
             },
           ],
-          __openclaw: { seq: 5 },
+          __astroclaw: { seq: 5 },
         },
       ],
     });
@@ -705,7 +705,7 @@ describe("artifacts RPC handlers", () => {
         {
           role: "assistant",
           content: [{ type: "file", title: "secret.txt", url: "file:///etc/passwd" }],
-          __openclaw: { seq: 4 },
+          __astroclaw: { seq: 4 },
         },
       ],
     });

@@ -1,7 +1,7 @@
-package ai.openclaw.app.ui
+package ai.astroclaw.app.ui
 
-import ai.openclaw.app.MainViewModel
-import ai.openclaw.app.ui.chat.ChatSheetContent
+import ai.astroclaw.app.MainViewModel
+import ai.astroclaw.app.ui.chat.ChatSheetContent
 import androidx.compose.runtime.Composable
 
 @Composable

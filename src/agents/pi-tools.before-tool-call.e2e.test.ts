@@ -690,7 +690,7 @@ describe("before_tool_call requireApproval handling", () => {
     mockGetGlobalHookRunner.mockReturnValue(hookRunner as any);
     // Keep the global singleton aligned as a fallback in case another setup path
     // preloads hook-runner-global before this test's module reset/mocks take effect.
-    const hookRunnerGlobalStateKey = Symbol.for("openclaw.plugins.hook-runner-global-state");
+    const hookRunnerGlobalStateKey = Symbol.for("astroclaw.plugins.hook-runner-global-state");
     const hookRunnerGlobalState = globalThis as Record<
       symbol,
       { hookRunner: unknown; registry?: unknown } | undefined
@@ -799,7 +799,7 @@ describe("before_tool_call requireApproval handling", () => {
   });
 
   it("passes host-derived apply_patch paths to before_tool_call hooks", async () => {
-    const cwd = path.join("/tmp", "openclaw-hooks");
+    const cwd = path.join("/tmp", "astroclaw-hooks");
     const patch = [
       "*** Begin Patch",
       "*** Add File: src/new.ts",
@@ -936,7 +936,7 @@ describe("before_tool_call requireApproval handling", () => {
   });
 
   it("recomputes host-derived paths after trusted policy param rewrites", async () => {
-    const cwd = path.join("/tmp", "openclaw-hooks");
+    const cwd = path.join("/tmp", "astroclaw-hooks");
     const originalPatch = [
       "*** Begin Patch",
       "*** Add File: src/old.ts",

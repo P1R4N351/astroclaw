@@ -4,9 +4,9 @@ import { DEFAULT_PLUGIN_APPROVAL_TIMEOUT_MS } from "../infra/plugin-approvals.js
 import { getActiveRuntimePluginRegistry } from "../plugins/active-runtime-registry.js";
 import type { PluginRegistry } from "../plugins/registry-types.js";
 import type {
-  OpenClawPluginNodeInvokePolicyContext,
-  OpenClawPluginNodeInvokePolicyResult,
-  OpenClawPluginNodeInvokeTransportResult,
+  AstroclawPluginNodeInvokePolicyContext,
+  AstroclawPluginNodeInvokePolicyResult,
+  AstroclawPluginNodeInvokeTransportResult,
 } from "../plugins/types.js";
 import { normalizeOptionalString } from "../shared/string-coerce.js";
 import type { NodeSession } from "./node-registry.js";
@@ -47,7 +47,7 @@ function createApprovalRuntime(params: {
   context: GatewayRequestContext;
   client: GatewayClient | null;
   pluginId: string;
-}): OpenClawPluginNodeInvokePolicyContext["approvals"] | undefined {
+}): AstroclawPluginNodeInvokePolicyContext["approvals"] | undefined {
   const manager = params.context.pluginApprovalManager;
   if (!manager) {
     return undefined;
@@ -121,7 +121,7 @@ export async function applyPluginNodeInvokePolicy(params: {
   params: unknown;
   timeoutMs?: number;
   idempotencyKey?: string;
-}): Promise<OpenClawPluginNodeInvokePolicyResult | null> {
+}): Promise<AstroclawPluginNodeInvokePolicyResult | null> {
   const registry = getActiveRuntimePluginRegistry();
   const entry = registry?.nodeInvokePolicies?.find((candidate) =>
     candidate.policy.commands.includes(params.command),
@@ -138,9 +138,9 @@ export async function applyPluginNodeInvokePolicy(params: {
     return null;
   }
 
-  const invokeNode: OpenClawPluginNodeInvokePolicyContext["invokeNode"] = async (
+  const invokeNode: AstroclawPluginNodeInvokePolicyContext["invokeNode"] = async (
     override = {},
-  ): Promise<OpenClawPluginNodeInvokeTransportResult> => {
+  ): Promise<AstroclawPluginNodeInvokeTransportResult> => {
     const res = await params.context.nodeRegistry.invoke({
       nodeId: params.nodeSession.nodeId,
       command: params.command,

@@ -1,12 +1,12 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { applyDockerOpenAiProviderConfig, type OpenClawConfig } from "./docker-openai-seed.ts";
+import { applyDockerOpenAiProviderConfig, type AstroclawConfig } from "./docker-openai-seed.ts";
 
 async function main() {
-  const stateDir = process.env.OPENCLAW_STATE_DIR?.trim() || path.join(os.homedir(), ".openclaw");
+  const stateDir = process.env.ASTROCLAW_STATE_DIR?.trim() || path.join(os.homedir(), ".astroclaw");
   const configPath =
-    process.env.OPENCLAW_CONFIG_PATH?.trim() || path.join(stateDir, "openclaw.json");
+    process.env.ASTROCLAW_CONFIG_PATH?.trim() || path.join(stateDir, "astroclaw.json");
   const sessionsDir = path.join(stateDir, "agents", "main", "sessions");
   const sessionFile = path.join(sessionsDir, "sess-main.jsonl");
   const storePath = path.join(sessionsDir, "sessions.json");
@@ -33,7 +33,7 @@ async function main() {
       plugins: {
         enabled: false,
       },
-    } satisfies OpenClawConfig,
+    } satisfies AstroclawConfig,
     "sk-docker-smoke-test",
   );
 

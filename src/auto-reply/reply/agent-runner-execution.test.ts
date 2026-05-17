@@ -4096,7 +4096,7 @@ describe("runAgentTurnWithFallback", () => {
     expect(result.kind).toBe("final");
     if (result.kind === "final") {
       expect(result.payload.text).toBe(
-        "⚠️ Model login expired on the gateway for openai-codex. Re-auth with `openclaw models auth login --provider openai-codex`, then try again.",
+        "⚠️ Model login expired on the gateway for openai-codex. Re-auth with `astroclaw models auth login --provider openai-codex`, then try again.",
       );
     }
   });
@@ -4214,7 +4214,7 @@ describe("runAgentTurnWithFallback", () => {
     expect(result.kind).toBe("final");
     if (result.kind === "final") {
       expect(result.payload.text).toBe(
-        "⚠️ Model login expired on the gateway. Re-auth with `openclaw models auth login`, then try again.",
+        "⚠️ Model login expired on the gateway. Re-auth with `astroclaw models auth login`, then try again.",
       );
     }
   });
@@ -4295,7 +4295,7 @@ describe("runAgentTurnWithFallback", () => {
     if (result.kind === "final") {
       expect(result.payload.text).toContain("Agent failed before reply");
       expect(result.payload.text).toContain("INVALID_ARGUMENT: some other failure");
-      expect(result.payload.text).toContain("Logs: openclaw logs --follow");
+      expect(result.payload.text).toContain("Logs: astroclaw logs --follow");
     }
   });
 
@@ -4583,7 +4583,7 @@ describe("runAgentTurnWithFallback", () => {
     const followupRun = createFollowupRun();
     followupRun.run.provider = "anthropic";
     followupRun.run.model = "claude-opus";
-    followupRun.run.authProfileId = "anthropic:openclaw";
+    followupRun.run.authProfileId = "anthropic:astroclaw";
     followupRun.run.authProfileIdSource = "user";
 
     const sessionEntry: SessionEntry = {
@@ -4904,7 +4904,7 @@ describe("runAgentTurnWithFallback", () => {
     const entry = {
       sessionId: "session",
       updatedAt: 1,
-      authProfileOverride: "anthropic:openclaw",
+      authProfileOverride: "anthropic:astroclaw",
       authProfileOverrideSource: "user" as const,
     } as SessionEntry;
 
@@ -4913,7 +4913,7 @@ describe("runAgentTurnWithFallback", () => {
       run: {
         provider: "anthropic",
         model: "claude-opus",
-        authProfileId: "anthropic:openclaw",
+        authProfileId: "anthropic:astroclaw",
         authProfileIdSource: "user",
       } as FollowupRun["run"],
       provider: "anthropic",
@@ -4929,7 +4929,7 @@ describe("runAgentTurnWithFallback", () => {
       modelOverrideSource: "auto",
       modelOverrideFallbackOriginProvider: "anthropic",
       modelOverrideFallbackOriginModel: "claude-opus",
-      authProfileOverride: "anthropic:openclaw",
+      authProfileOverride: "anthropic:astroclaw",
       authProfileOverrideSource: "user",
     });
   });

@@ -128,14 +128,14 @@ export function shouldUseEnvHttpProxyForUrl(
  * - Subdomain suffix match (`openai.com` matches `api.openai.com`)
  * - Optional `:port` suffix; when present, must match target port
  * - IPv6 literals in bracketed form (`[::1]`)
- * - OpenClaw extension: IPv4 CIDR and octet-wildcard entries
+ * - Astroclaw extension: IPv4 CIDR and octet-wildcard entries
  *   (`100.64.0.0/10`, `100.64.*`) bypass the trusted env proxy mode before
  *   undici's EnvHttpProxyAgent is selected.
  *
  * Undici does not export its matcher, so this is a targeted reimplementation
  * kept in sync with the upstream file above. Paired with
  * `hasEnvHttpProxyConfigured` this gates the trusted-env-proxy auto-upgrade
- * in provider HTTP helpers; see openclaw#64974 review thread on NO_PROXY
+ * in provider HTTP helpers; see astroclaw#64974 review thread on NO_PROXY
  * SSRF bypass.
  */
 export function matchesNoProxy(targetUrl: string, env: NodeJS.ProcessEnv = process.env): boolean {

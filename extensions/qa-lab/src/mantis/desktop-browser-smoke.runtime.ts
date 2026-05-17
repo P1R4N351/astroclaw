@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { pathExists } from "openclaw/plugin-sdk/security-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { pathExists } from "astroclaw/plugin-sdk/security-runtime";
 import { ensureRepoBoundDirectory, resolveRepoRelativeOutputDir } from "../cli-paths.js";
 import {
   type CommandRunner,
@@ -72,20 +72,20 @@ type MantisDesktopBrowserSmokeSummary = {
   status: "pass" | "fail";
 };
 
-const DEFAULT_BROWSER_URL = "https://openclaw.ai";
+const DEFAULT_BROWSER_URL = "https://astroclaw.ai";
 const DEFAULT_PROVIDER = "hetzner";
 const DEFAULT_CLASS = "beast";
 const DEFAULT_IDLE_TIMEOUT = "60m";
 const DEFAULT_TTL = "120m";
-const CRABBOX_BIN_ENV = "OPENCLAW_MANTIS_CRABBOX_BIN";
-const CRABBOX_PROVIDER_ENV = "OPENCLAW_MANTIS_CRABBOX_PROVIDER";
-const CRABBOX_CLASS_ENV = "OPENCLAW_MANTIS_CRABBOX_CLASS";
-const CRABBOX_LEASE_ID_ENV = "OPENCLAW_MANTIS_CRABBOX_LEASE_ID";
-const CRABBOX_KEEP_ENV = "OPENCLAW_MANTIS_KEEP_VM";
-const CRABBOX_IDLE_TIMEOUT_ENV = "OPENCLAW_MANTIS_CRABBOX_IDLE_TIMEOUT";
-const CRABBOX_TTL_ENV = "OPENCLAW_MANTIS_CRABBOX_TTL";
-const BROWSER_PROFILE_ARCHIVE_ENV = "OPENCLAW_MANTIS_BROWSER_PROFILE_TGZ_B64";
-const BROWSER_PROFILE_DIR_ENV = "OPENCLAW_MANTIS_BROWSER_PROFILE_DIR";
+const CRABBOX_BIN_ENV = "ASTROCLAW_MANTIS_CRABBOX_BIN";
+const CRABBOX_PROVIDER_ENV = "ASTROCLAW_MANTIS_CRABBOX_PROVIDER";
+const CRABBOX_CLASS_ENV = "ASTROCLAW_MANTIS_CRABBOX_CLASS";
+const CRABBOX_LEASE_ID_ENV = "ASTROCLAW_MANTIS_CRABBOX_LEASE_ID";
+const CRABBOX_KEEP_ENV = "ASTROCLAW_MANTIS_KEEP_VM";
+const CRABBOX_IDLE_TIMEOUT_ENV = "ASTROCLAW_MANTIS_CRABBOX_IDLE_TIMEOUT";
+const CRABBOX_TTL_ENV = "ASTROCLAW_MANTIS_CRABBOX_TTL";
+const BROWSER_PROFILE_ARCHIVE_ENV = "ASTROCLAW_MANTIS_BROWSER_PROFILE_TGZ_B64";
+const BROWSER_PROFILE_DIR_ENV = "ASTROCLAW_MANTIS_BROWSER_PROFILE_DIR";
 const DEFAULT_VIDEO_DURATION_SECONDS = 10;
 
 function trimToValue(value: string | undefined) {
@@ -175,7 +175,7 @@ mkdir -p "$profile"
 profile_restored=false
 profile_archive_b64="\${${profileArchiveEnv}:-}"
 if [ -n "$profile_archive_b64" ]; then
-  profile_archive="$profile/openclaw-mantis-browser-profile.tgz"
+  profile_archive="$profile/astroclaw-mantis-browser-profile.tgz"
   printf '%s' "$profile_archive_b64" | base64 -d >"$profile_archive"
   tar -xzf "$profile_archive" -C "$profile"
   rm -f "$profile_archive"
@@ -357,7 +357,7 @@ export async function runMantisDesktopBrowserSmoke(
     : (trimToValue(opts.browserUrl) ?? DEFAULT_BROWSER_URL);
   const browserProfileArchiveEnv =
     trimToValue(opts.browserProfileArchiveEnv) ??
-    trimToValue(env.OPENCLAW_MANTIS_BROWSER_PROFILE_ARCHIVE_ENV) ??
+    trimToValue(env.ASTROCLAW_MANTIS_BROWSER_PROFILE_ARCHIVE_ENV) ??
     BROWSER_PROFILE_ARCHIVE_ENV;
   assertSafeEnvName(browserProfileArchiveEnv, "Mantis browser profile archive env");
   const browserProfileDir =
@@ -373,7 +373,7 @@ export async function runMantisDesktopBrowserSmoke(
   const explicitLeaseId = trimToValue(opts.leaseId) ?? trimToValue(env[CRABBOX_LEASE_ID_ENV]);
   const keepLease = opts.keepLease ?? isTruthyOptIn(env[CRABBOX_KEEP_ENV]);
   const createdLease = explicitLeaseId === undefined;
-  const remoteOutputDir = `/tmp/openclaw-mantis-desktop-${startedAt
+  const remoteOutputDir = `/tmp/astroclaw-mantis-desktop-${startedAt
     .toISOString()
     .replace(/[^0-9A-Za-z]/gu, "-")}`;
   let leaseId = explicitLeaseId;

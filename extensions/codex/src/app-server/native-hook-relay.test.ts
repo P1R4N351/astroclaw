@@ -1,4 +1,4 @@
-import type { NativeHookRelayRegistrationHandle } from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { NativeHookRelayRegistrationHandle } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { describe, expect, it } from "vitest";
 import {
   buildCodexNativeHookRelayConfig,
@@ -20,10 +20,10 @@ describe("Codex native hook relay config", () => {
             {
               type: "command",
               command:
-                "openclaw hooks relay --provider codex --relay-id relay-1 --event pre_tool_use",
+                "astroclaw hooks relay --provider codex --relay-id relay-1 --event pre_tool_use",
               timeout: 7,
               async: false,
-              statusMessage: "OpenClaw native hook relay",
+              statusMessage: "Astroclaw native hook relay",
             },
           ],
         },
@@ -34,10 +34,10 @@ describe("Codex native hook relay config", () => {
             {
               type: "command",
               command:
-                "openclaw hooks relay --provider codex --relay-id relay-1 --event post_tool_use",
+                "astroclaw hooks relay --provider codex --relay-id relay-1 --event post_tool_use",
               timeout: 7,
               async: false,
-              statusMessage: "OpenClaw native hook relay",
+              statusMessage: "Astroclaw native hook relay",
             },
           ],
         },
@@ -48,10 +48,10 @@ describe("Codex native hook relay config", () => {
             {
               type: "command",
               command:
-                "openclaw hooks relay --provider codex --relay-id relay-1 --event permission_request",
+                "astroclaw hooks relay --provider codex --relay-id relay-1 --event permission_request",
               timeout: 7,
               async: false,
-              statusMessage: "OpenClaw native hook relay",
+              statusMessage: "Astroclaw native hook relay",
             },
           ],
         },
@@ -62,10 +62,10 @@ describe("Codex native hook relay config", () => {
             {
               type: "command",
               command:
-                "openclaw hooks relay --provider codex --relay-id relay-1 --event before_agent_finalize",
+                "astroclaw hooks relay --provider codex --relay-id relay-1 --event before_agent_finalize",
               timeout: 7,
               async: false,
-              statusMessage: "OpenClaw native hook relay",
+              statusMessage: "Astroclaw native hook relay",
             },
           ],
         },
@@ -125,10 +125,10 @@ describe("Codex native hook relay config", () => {
             {
               type: "command",
               command:
-                "openclaw hooks relay --provider codex --relay-id relay-1 --event permission_request",
+                "astroclaw hooks relay --provider codex --relay-id relay-1 --event permission_request",
               timeout: 5,
               async: false,
-              statusMessage: "OpenClaw native hook relay",
+              statusMessage: "Astroclaw native hook relay",
             },
           ],
         },
@@ -181,7 +181,7 @@ function createRelay(): NativeHookRelayRegistrationHandle {
     allowedEvents: ["pre_tool_use", "post_tool_use", "permission_request", "before_agent_finalize"],
     expiresAtMs: Date.now() + 1000,
     commandForEvent: (event) =>
-      `openclaw hooks relay --provider codex --relay-id relay-1 --event ${event}`,
+      `astroclaw hooks relay --provider codex --relay-id relay-1 --event ${event}`,
     renew: () => undefined,
     unregister: () => undefined,
   };

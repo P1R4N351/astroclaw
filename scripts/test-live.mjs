@@ -28,9 +28,9 @@ const env = {
   CI: process.env.CI || "1",
   PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: process.env.PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN || "false",
   pnpm_config_verify_deps_before_run: process.env.pnpm_config_verify_deps_before_run || "false",
-  OPENCLAW_LIVE_TEST: process.env.OPENCLAW_LIVE_TEST || "1",
-  OPENCLAW_LIVE_TEST_QUIET: quietOverride ?? process.env.OPENCLAW_LIVE_TEST_QUIET ?? "1",
-  ...(forceCodexHarness ? { OPENCLAW_LIVE_CODEX_HARNESS: "1" } : {}),
+  ASTROCLAW_LIVE_TEST: process.env.ASTROCLAW_LIVE_TEST || "1",
+  ASTROCLAW_LIVE_TEST_QUIET: quietOverride ?? process.env.ASTROCLAW_LIVE_TEST_QUIET ?? "1",
+  ...(forceCodexHarness ? { ASTROCLAW_LIVE_CODEX_HARNESS: "1" } : {}),
 };
 
 function parsePositiveInt(value, fallback) {
@@ -41,7 +41,7 @@ function parsePositiveInt(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-const heartbeatMs = parsePositiveInt(process.env.OPENCLAW_LIVE_WRAPPER_HEARTBEAT_MS, 20_000);
+const heartbeatMs = parsePositiveInt(process.env.ASTROCLAW_LIVE_WRAPPER_HEARTBEAT_MS, 20_000);
 const startedAt = Date.now();
 let lastOutputAt = startedAt;
 

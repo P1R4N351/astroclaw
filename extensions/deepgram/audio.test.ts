@@ -2,7 +2,7 @@ import {
   createAuthCaptureJsonFetch,
   createRequestCaptureJsonFetch,
   installPinnedHostnameTestHooks,
-} from "openclaw/plugin-sdk/test-env";
+} from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it, vi } from "vitest";
 import { transcribeDeepgramAudio } from "./audio.js";
 

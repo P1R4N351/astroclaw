@@ -1,5 +1,5 @@
-import { expectChannelInboundContextContract } from "openclaw/plugin-sdk/channel-contract-testing";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { expectChannelInboundContextContract } from "astroclaw/plugin-sdk/channel-contract-testing";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, it } from "vitest";
 import { buildTelegramMessageContextForTest } from "./bot-message-context.test-harness.js";
 
@@ -18,7 +18,7 @@ describe("Telegram inbound context contract", () => {
             groups: { "*": { requireMention: false } },
           },
         },
-      } satisfies OpenClawConfig,
+      } satisfies AstroclawConfig,
       message: {
         chat: { id: 42, type: "group", title: "Ops" },
         text: "hello",

@@ -11,9 +11,9 @@ describe("scripts/test-live-codex-harness-docker.sh", () => {
   it("mounts cache and npm tool dirs outside the bind-mounted Docker home", () => {
     const script = fs.readFileSync(SCRIPT_PATH, "utf8");
 
-    expect(script).toContain('DOCKER_CACHE_CONTAINER_DIR="/tmp/openclaw-cache"');
-    expect(script).toContain('DOCKER_CLI_TOOLS_CONTAINER_DIR="/tmp/openclaw-npm-global"');
-    expect(script).toContain("openclaw_live_codex_harness_is_ci()");
+    expect(script).toContain('DOCKER_CACHE_CONTAINER_DIR="/tmp/astroclaw-cache"');
+    expect(script).toContain('DOCKER_CLI_TOOLS_CONTAINER_DIR="/tmp/astroclaw-npm-global"');
+    expect(script).toContain("astroclaw_live_codex_harness_is_ci()");
     expect(script).toContain('[[ -n "${CI:-}" && "${CI:-}" != "false" ]]');
     expect(script).toContain('-e XDG_CACHE_HOME="$DOCKER_CACHE_CONTAINER_DIR"');
     expect(script).toContain('-e NPM_CONFIG_PREFIX="$DOCKER_CLI_TOOLS_CONTAINER_DIR"');
@@ -28,13 +28,13 @@ describe("scripts/test-live-codex-harness-docker.sh", () => {
     const script = fs.readFileSync(SCRIPT_PATH, "utf8");
 
     expect(script).toContain(
-      "OPENCLAW_LIVE_CODEX_HARNESS_AUTH=codex-auth requires ~/.codex/auth.json before building the live Docker image",
+      "ASTROCLAW_LIVE_CODEX_HARNESS_AUTH=codex-auth requires ~/.codex/auth.json before building the live Docker image",
     );
     expect(script).toContain(
-      "If this is a Testbox/API-key run, set OPENCLAW_LIVE_CODEX_HARNESS_AUTH=api-key and run through openclaw-testbox-env.",
+      "If this is a Testbox/API-key run, set ASTROCLAW_LIVE_CODEX_HARNESS_AUTH=api-key and run through astroclaw-testbox-env.",
     );
     expect(script.indexOf("requires ~/.codex/auth.json before building")).toBeLessThan(
-      script.indexOf('OPENCLAW_LIVE_DOCKER_REPO_ROOT="$ROOT_DIR"'),
+      script.indexOf('ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$ROOT_DIR"'),
     );
   });
 
@@ -60,13 +60,13 @@ describe("scripts/test-live-codex-harness-docker.sh", () => {
     );
     expect(script).not.toContain('DOCKER_USER="0:0"');
     expect(script).toContain(
-      'DOCKER_HOME_DIR="$(mktemp -d "${RUNNER_TEMP:-/tmp}/openclaw-docker-home.XXXXXX")"',
+      'DOCKER_HOME_DIR="$(mktemp -d "${RUNNER_TEMP:-/tmp}/astroclaw-docker-home.XXXXXX")"',
     );
     expect(script).toContain(
-      'CONFIG_DIR="$(mktemp -d "${RUNNER_TEMP:-/tmp}/openclaw-docker-config.XXXXXX")"',
+      'CONFIG_DIR="$(mktemp -d "${RUNNER_TEMP:-/tmp}/astroclaw-docker-config.XXXXXX")"',
     );
     expect(script).toContain(
-      'WORKSPACE_DIR="$(mktemp -d "${RUNNER_TEMP:-/tmp}/openclaw-docker-workspace.XXXXXX")"',
+      'WORKSPACE_DIR="$(mktemp -d "${RUNNER_TEMP:-/tmp}/astroclaw-docker-workspace.XXXXXX")"',
     );
     expect(script).toContain('DOCKER_CACHE_CONTAINER_DIR="/home/node/.cache"');
     expect(script).toContain('DOCKER_CLI_TOOLS_CONTAINER_DIR="/home/node/.npm-global"');
@@ -78,7 +78,7 @@ describe("scripts/test-live-codex-harness-docker.sh", () => {
       'if [[ "$CODEX_HARNESS_AUTH_MODE" != "api-key" ]]; then',
     );
     expect(script.indexOf('PROFILE_STATUS="api-key-env"')).toBeLessThan(
-      script.indexOf("openclaw_live_append_array DOCKER_RUN_ARGS PROFILE_MOUNT"),
+      script.indexOf("astroclaw_live_append_array DOCKER_RUN_ARGS PROFILE_MOUNT"),
     );
     expect(script).toContain("cleanup_codex_live_mounts() {");
     expect(script).toContain(
@@ -94,7 +94,7 @@ describe("scripts/test-live-codex-harness-docker.sh", () => {
     const script = fs.readFileSync(SCRIPT_PATH, "utf8");
 
     expect(script).toContain(
-      '-e OPENCLAW_LIVE_CODEX_BIND_PROVIDER="${OPENCLAW_LIVE_CODEX_BIND_PROVIDER:-}"',
+      '-e ASTROCLAW_LIVE_CODEX_BIND_PROVIDER="${ASTROCLAW_LIVE_CODEX_BIND_PROVIDER:-}"',
     );
   });
 });

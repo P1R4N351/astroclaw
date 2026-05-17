@@ -17,13 +17,13 @@ import { msteamsRuntimeStub } from "./test-runtime.js";
 const createdTempDirs: string[] = [];
 
 async function makeTempStateDir(): Promise<string> {
-  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "openclaw-msteams-pending-"));
+  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "astroclaw-msteams-pending-"));
   createdTempDirs.push(dir);
   return dir;
 }
 
 function makeEnv(stateDir: string): NodeJS.ProcessEnv {
-  return { ...process.env, OPENCLAW_STATE_DIR: stateDir };
+  return { ...process.env, ASTROCLAW_STATE_DIR: stateDir };
 }
 
 async function requirePendingUpload(id: string, env: NodeJS.ProcessEnv) {
@@ -224,8 +224,8 @@ describe("prepareFileConsentActivityFs end-to-end", () => {
     const stateDir = await makeTempStateDir();
     const env = makeEnv(stateDir);
     // Redirect state dir via env so the helper's FS writes land under our tmp
-    const originalEnv = process.env.OPENCLAW_STATE_DIR;
-    process.env.OPENCLAW_STATE_DIR = stateDir;
+    const originalEnv = process.env.ASTROCLAW_STATE_DIR;
+    process.env.ASTROCLAW_STATE_DIR = stateDir;
 
     try {
       const result = await prepareFileConsentActivityFs({
@@ -252,9 +252,9 @@ describe("prepareFileConsentActivityFs end-to-end", () => {
       expect(loaded.buffer.toString("utf8")).toBe("cli file");
     } finally {
       if (originalEnv === undefined) {
-        delete process.env.OPENCLAW_STATE_DIR;
+        delete process.env.ASTROCLAW_STATE_DIR;
       } else {
-        process.env.OPENCLAW_STATE_DIR = originalEnv;
+        process.env.ASTROCLAW_STATE_DIR = originalEnv;
       }
     }
   });

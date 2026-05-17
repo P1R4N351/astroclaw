@@ -1,5 +1,5 @@
-import { readProviderJsonResponse } from "openclaw/plugin-sdk/provider-http";
-import type { SearchConfigRecord } from "openclaw/plugin-sdk/provider-web-search";
+import { readProviderJsonResponse } from "astroclaw/plugin-sdk/provider-http";
+import type { SearchConfigRecord } from "astroclaw/plugin-sdk/provider-web-search";
 import {
   buildSearchCacheKey,
   DEFAULT_SEARCH_COUNT,
@@ -19,14 +19,14 @@ import {
   withTrustedWebSearchEndpoint,
   wrapWebContent,
   writeCachedSearchPayload,
-} from "openclaw/plugin-sdk/provider-web-search";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/provider-web-search";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
 import {
   assertHttpUrlTargetsPrivateNetwork,
   isBlockedHostnameOrIp,
   isPrivateIpAddress,
   resolvePinnedHostnameWithPolicy,
-} from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   type BraveLlmContextResponse,
   mapBraveLlmContextResults,
@@ -149,8 +149,8 @@ async function validateBraveBaseUrl(baseUrl: string): Promise<BraveEndpointMode>
 function missingBraveKeyPayload() {
   return {
     error: "missing_brave_api_key",
-    message: `web_search (brave) needs a Brave Search API key. Run \`${formatCliCommand("openclaw configure --section web")}\` to store it, or set BRAVE_API_KEY in the Gateway environment. If you do not want to configure a search API key, use web_fetch for a specific URL or the browser tool for interactive pages.`,
-    docs: "https://docs.openclaw.ai/tools/web",
+    message: `web_search (brave) needs a Brave Search API key. Run \`${formatCliCommand("astroclaw configure --section web")}\` to store it, or set BRAVE_API_KEY in the Gateway environment. If you do not want to configure a search API key, use web_fetch for a specific URL or the browser tool for interactive pages.`,
+    docs: "https://docs.astroclaw.ai/tools/web",
   };
 }
 
@@ -373,14 +373,14 @@ export async function executeBraveSearch(
       error: "invalid_search_lang",
       message:
         "search_lang must be a Brave-supported language code like 'en', 'en-gb', 'zh-hans', or 'zh-hant'.",
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
   if (normalizedLanguage.invalidField === "ui_lang") {
     return {
       error: "invalid_ui_lang",
       message: "ui_lang must be a language-region locale like 'en-US'.",
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
   if (normalizedLanguage.ui_lang && braveMode === "llm-context") {
@@ -388,7 +388,7 @@ export async function executeBraveSearch(
       error: "unsupported_ui_lang",
       message:
         "ui_lang is not supported by Brave llm-context mode. Remove ui_lang or use Brave web mode for locale-based UI hints.",
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
 
@@ -398,7 +398,7 @@ export async function executeBraveSearch(
     return {
       error: "invalid_freshness",
       message: "freshness must be day, week, month, or year.",
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
 
@@ -409,7 +409,7 @@ export async function executeBraveSearch(
       error: "conflicting_time_filters",
       message:
         "freshness and date_after/date_before cannot be used together. Use either freshness (day/week/month/year) or a date range (date_after/date_before), not both.",
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
   const parsedDateRange = parseIsoDateRange({
@@ -430,7 +430,7 @@ export async function executeBraveSearch(
       return {
         error: "invalid_date_range",
         message: "date_after cannot be in the future for Brave llm-context mode.",
-        docs: "https://docs.openclaw.ai/tools/web",
+        docs: "https://docs.astroclaw.ai/tools/web",
       };
     }
     if (dateBefore && !dateAfter) {
@@ -438,7 +438,7 @@ export async function executeBraveSearch(
         error: "unsupported_date_filter",
         message:
           "Brave llm-context mode requires date_after when date_before is set. Use a bounded date range or freshness.",
-        docs: "https://docs.openclaw.ai/tools/web",
+        docs: "https://docs.astroclaw.ai/tools/web",
       };
     }
   }

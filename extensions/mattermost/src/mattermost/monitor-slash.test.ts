@@ -91,12 +91,12 @@ describe("mattermost monitor slash", () => {
   });
 
   it("registers deduped default and native skill commands across teams", async () => {
-    vi.stubEnv("OPENCLAW_GATEWAY_PORT", "18888");
+    vi.stubEnv("ASTROCLAW_GATEWAY_PORT", "18888");
     resolveSlashCommandConfig.mockReturnValue({ enabled: true, nativeSkills: true });
     isSlashCommandsEnabled.mockReturnValue(true);
     parseStrictPositiveInteger.mockReturnValue(18888);
     fetchMattermostUserTeams.mockResolvedValue([{ id: "team-1" }, { id: "team-2" }]);
-    resolveCallbackUrl.mockReturnValue("https://openclaw.test/slash");
+    resolveCallbackUrl.mockReturnValue("https://astroclaw.test/slash");
     listSkillCommandsForAgents.mockReturnValue([
       { name: "skill", description: "Skill run" },
       { name: "oc_ping", description: "Already prefixed" },
@@ -129,7 +129,7 @@ describe("mattermost monitor slash", () => {
       client,
       teamId: "team-1",
       creatorUserId: "bot-user",
-      callbackUrl: "https://openclaw.test/slash",
+      callbackUrl: "https://astroclaw.test/slash",
       commands: [
         { trigger: "ping", description: "ping" },
         {
@@ -162,7 +162,7 @@ describe("mattermost monitor slash", () => {
       ]),
     );
     expect(runtime.log).toHaveBeenCalledWith(
-      "mattermost: slash commands registered (2 commands across 2 teams, callback=https://openclaw.test/slash)",
+      "mattermost: slash commands registered (2 commands across 2 teams, callback=https://astroclaw.test/slash)",
     );
   });
 

@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   resolveVoiceCallEffectiveConfig,
   resolveVoiceCallSessionKey,

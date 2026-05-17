@@ -13,7 +13,7 @@ import {
   runCommandWithTimeoutMock,
   scanDirectoryWithSummaryMock,
 } from "./skills-install.test-mocks.js";
-import { resolveOpenClawMetadata, resolveSkillInvocationPolicy } from "./skills/frontmatter.js";
+import { resolveAstroclawMetadata, resolveSkillInvocationPolicy } from "./skills/frontmatter.js";
 import { loadSkillsFromDirSafe, readSkillFrontmatterSafe } from "./skills/local-loader.js";
 import type { SkillEntry } from "./skills/types.js";
 
@@ -37,7 +37,7 @@ async function writeInstallableSkill(workspaceDir: string, name: string): Promis
     `---
 name: ${name}
 description: test skill
-metadata: {"openclaw":{"install":[{"id":"deps","kind":"node","package":"example-package"}]}}
+metadata: {"astroclaw":{"install":[{"id":"deps","kind":"node","package":"example-package"}]}}
 ---
 
 # ${name}
@@ -70,7 +70,7 @@ function mockDangerousSkillScanFinding(skillDir: string) {
 function loadTestWorkspaceSkillEntries(workspaceDir: string): SkillEntry[] {
   const skills = loadSkillsFromDirSafe({
     dir: path.join(workspaceDir, "skills"),
-    source: "openclaw-workspace",
+    source: "astroclaw-workspace",
   }).skills;
   return skills.map((skill) => {
     const frontmatter =
@@ -82,7 +82,7 @@ function loadTestWorkspaceSkillEntries(workspaceDir: string): SkillEntry[] {
     return {
       skill,
       frontmatter,
-      metadata: resolveOpenClawMetadata(frontmatter),
+      metadata: resolveAstroclawMetadata(frontmatter),
       invocation,
       exposure: {
         includeInRuntimeRegistry: true,
@@ -98,7 +98,7 @@ function lastRunCommandCall(): unknown[] | undefined {
   return calls[calls.length - 1];
 }
 
-const workspaceSuite = createFixtureSuite("openclaw-skills-install-");
+const workspaceSuite = createFixtureSuite("astroclaw-skills-install-");
 
 beforeAll(async () => {
   await workspaceSuite.setup();
@@ -115,9 +115,9 @@ async function withWorkspaceCase(
 ): Promise<void> {
   const workspaceDir = await workspaceSuite.createCaseDir("case");
   const stateDir = path.join(workspaceDir, "state");
-  const envSnapshot = captureEnv(["OPENCLAW_STATE_DIR"]);
+  const envSnapshot = captureEnv(["ASTROCLAW_STATE_DIR"]);
   try {
-    process.env.OPENCLAW_STATE_DIR = stateDir;
+    process.env.ASTROCLAW_STATE_DIR = stateDir;
     await run({ workspaceDir, stateDir });
   } finally {
     envSnapshot.restore();
@@ -132,9 +132,9 @@ describe("installSkill code safety scanning", () => {
     skillsInstallTesting.setDepsForTest({
       loadWorkspaceSkillEntries: loadTestWorkspaceSkillEntries,
       resolveNodeInstallStateDir: () => {
-        const stateDir = process.env.OPENCLAW_STATE_DIR;
+        const stateDir = process.env.ASTROCLAW_STATE_DIR;
         if (!stateDir) {
-          throw new Error("OPENCLAW_STATE_DIR missing in skills install test");
+          throw new Error("ASTROCLAW_STATE_DIR missing in skills install test");
         }
         return stateDir;
       },
@@ -198,7 +198,7 @@ describe("installSkill code safety scanning", () => {
     });
   });
 
-  it("runs npm node installs with an OpenClaw-managed user prefix", async () => {
+  it("runs npm node installs with an Astroclaw-managed user prefix", async () => {
     await withWorkspaceCase(async ({ workspaceDir, stateDir }) => {
       await writeInstallableSkill(workspaceDir, "node-prefix-skill");
 
@@ -222,10 +222,10 @@ describe("installSkill code safety scanning", () => {
   });
 
   it("keeps the default npm prefix out of env-overridden state paths", () => {
-    const envSnapshot = captureEnv(["OPENCLAW_STATE_DIR", "OPENCLAW_CONFIG_PATH"]);
+    const envSnapshot = captureEnv(["ASTROCLAW_STATE_DIR", "ASTROCLAW_CONFIG_PATH"]);
     try {
-      process.env.OPENCLAW_STATE_DIR = "/tmp/untrusted-state";
-      process.env.OPENCLAW_CONFIG_PATH = "/tmp/untrusted-config/openclaw.json";
+      process.env.ASTROCLAW_STATE_DIR = "/tmp/untrusted-state";
+      process.env.ASTROCLAW_CONFIG_PATH = "/tmp/untrusted-config/astroclaw.json";
 
       expect(
         skillsInstallTesting.resolveDefaultNodeInstallStateDir({
@@ -233,7 +233,7 @@ describe("installSkill code safety scanning", () => {
           homedir: () => "/Users/tester",
           platform: "darwin",
         }),
-      ).toBe("/Users/tester/.openclaw");
+      ).toBe("/Users/tester/.astroclaw");
     } finally {
       envSnapshot.restore();
     }
@@ -242,12 +242,12 @@ describe("installSkill code safety scanning", () => {
   it("uses a fixed system state root for root npm installs", () => {
     expect(
       skillsInstallTesting.resolveDefaultNodeInstallStateDir({
-        cwd: "/workspace/openclaw",
+        cwd: "/workspace/astroclaw",
         getuid: () => 0,
         homedir: () => "/root",
         platform: "linux",
       }),
-    ).toBe("/var/lib/openclaw");
+    ).toBe("/var/lib/astroclaw");
   });
 
   it("blocks install when skill scan fails", async () => {
@@ -309,7 +309,7 @@ describe("installSkill code safety scanning", () => {
         | undefined;
       expect(payload?.targetName).toBe("policy-skill");
       expect(payload?.targetType).toBe("skill");
-      expect(payload?.origin).toBe("openclaw-workspace");
+      expect(payload?.origin).toBe("astroclaw-workspace");
       expect(payload?.sourcePath).toContain("policy-skill");
       expect(payload?.sourcePathKind).toBe("directory");
       expect(payload?.request).toEqual({
@@ -322,7 +322,7 @@ describe("installSkill code safety scanning", () => {
       expect(payload?.skill?.installSpec?.kind).toBe("node");
       expect(payload?.skill?.installSpec?.package).toBe("example-package");
       expect(handlerCall?.[1]).toEqual({
-        origin: "openclaw-workspace",
+        origin: "astroclaw-workspace",
         targetType: "skill",
         requestKind: "skill-install",
       });

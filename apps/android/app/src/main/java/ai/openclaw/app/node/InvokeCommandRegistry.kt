@@ -1,20 +1,20 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.protocol.OpenClawCalendarCommand
-import ai.openclaw.app.protocol.OpenClawCallLogCommand
-import ai.openclaw.app.protocol.OpenClawCameraCommand
-import ai.openclaw.app.protocol.OpenClawCanvasA2UICommand
-import ai.openclaw.app.protocol.OpenClawCanvasCommand
-import ai.openclaw.app.protocol.OpenClawCapability
-import ai.openclaw.app.protocol.OpenClawContactsCommand
-import ai.openclaw.app.protocol.OpenClawDeviceCommand
-import ai.openclaw.app.protocol.OpenClawLocationCommand
-import ai.openclaw.app.protocol.OpenClawMotionCommand
-import ai.openclaw.app.protocol.OpenClawNotificationsCommand
-import ai.openclaw.app.protocol.OpenClawPhotosCommand
-import ai.openclaw.app.protocol.OpenClawSmsCommand
-import ai.openclaw.app.protocol.OpenClawSystemCommand
-import ai.openclaw.app.protocol.OpenClawTalkCommand
+import ai.astroclaw.app.protocol.AstroclawCalendarCommand
+import ai.astroclaw.app.protocol.AstroclawCallLogCommand
+import ai.astroclaw.app.protocol.AstroclawCameraCommand
+import ai.astroclaw.app.protocol.AstroclawCanvasA2UICommand
+import ai.astroclaw.app.protocol.AstroclawCanvasCommand
+import ai.astroclaw.app.protocol.AstroclawCapability
+import ai.astroclaw.app.protocol.AstroclawContactsCommand
+import ai.astroclaw.app.protocol.AstroclawDeviceCommand
+import ai.astroclaw.app.protocol.AstroclawLocationCommand
+import ai.astroclaw.app.protocol.AstroclawMotionCommand
+import ai.astroclaw.app.protocol.AstroclawNotificationsCommand
+import ai.astroclaw.app.protocol.AstroclawPhotosCommand
+import ai.astroclaw.app.protocol.AstroclawSmsCommand
+import ai.astroclaw.app.protocol.AstroclawSystemCommand
+import ai.astroclaw.app.protocol.AstroclawTalkCommand
 
 data class NodeRuntimeFlags(
   val cameraEnabled: Boolean,
@@ -66,36 +66,36 @@ data class InvokeCommandSpec(
 object InvokeCommandRegistry {
   val capabilityManifest: List<NodeCapabilitySpec> =
     listOf(
-      NodeCapabilitySpec(name = OpenClawCapability.Canvas.rawValue),
-      NodeCapabilitySpec(name = OpenClawCapability.Device.rawValue),
-      NodeCapabilitySpec(name = OpenClawCapability.Notifications.rawValue),
-      NodeCapabilitySpec(name = OpenClawCapability.System.rawValue),
+      NodeCapabilitySpec(name = AstroclawCapability.Canvas.rawValue),
+      NodeCapabilitySpec(name = AstroclawCapability.Device.rawValue),
+      NodeCapabilitySpec(name = AstroclawCapability.Notifications.rawValue),
+      NodeCapabilitySpec(name = AstroclawCapability.System.rawValue),
       NodeCapabilitySpec(
-        name = OpenClawCapability.Camera.rawValue,
+        name = AstroclawCapability.Camera.rawValue,
         availability = NodeCapabilityAvailability.CameraEnabled,
       ),
       NodeCapabilitySpec(
-        name = OpenClawCapability.Sms.rawValue,
+        name = AstroclawCapability.Sms.rawValue,
         availability = NodeCapabilityAvailability.SmsAvailable,
       ),
       NodeCapabilitySpec(
-        name = OpenClawCapability.VoiceWake.rawValue,
+        name = AstroclawCapability.VoiceWake.rawValue,
         availability = NodeCapabilityAvailability.VoiceWakeEnabled,
       ),
-      NodeCapabilitySpec(name = OpenClawCapability.Talk.rawValue),
+      NodeCapabilitySpec(name = AstroclawCapability.Talk.rawValue),
       NodeCapabilitySpec(
-        name = OpenClawCapability.Location.rawValue,
+        name = AstroclawCapability.Location.rawValue,
         availability = NodeCapabilityAvailability.LocationEnabled,
       ),
-      NodeCapabilitySpec(name = OpenClawCapability.Photos.rawValue),
-      NodeCapabilitySpec(name = OpenClawCapability.Contacts.rawValue),
-      NodeCapabilitySpec(name = OpenClawCapability.Calendar.rawValue),
+      NodeCapabilitySpec(name = AstroclawCapability.Photos.rawValue),
+      NodeCapabilitySpec(name = AstroclawCapability.Contacts.rawValue),
+      NodeCapabilitySpec(name = AstroclawCapability.Calendar.rawValue),
       NodeCapabilitySpec(
-        name = OpenClawCapability.Motion.rawValue,
+        name = AstroclawCapability.Motion.rawValue,
         availability = NodeCapabilityAvailability.MotionAvailable,
       ),
       NodeCapabilitySpec(
-        name = OpenClawCapability.CallLog.rawValue,
+        name = AstroclawCapability.CallLog.rawValue,
         availability = NodeCapabilityAvailability.CallLogAvailable,
       ),
     )
@@ -103,122 +103,122 @@ object InvokeCommandRegistry {
   val all: List<InvokeCommandSpec> =
     listOf(
       InvokeCommandSpec(
-        name = OpenClawCanvasCommand.Present.rawValue,
+        name = AstroclawCanvasCommand.Present.rawValue,
         requiresForeground = true,
       ),
       InvokeCommandSpec(
-        name = OpenClawCanvasCommand.Hide.rawValue,
+        name = AstroclawCanvasCommand.Hide.rawValue,
         requiresForeground = true,
       ),
       InvokeCommandSpec(
-        name = OpenClawCanvasCommand.Navigate.rawValue,
+        name = AstroclawCanvasCommand.Navigate.rawValue,
         requiresForeground = true,
       ),
       InvokeCommandSpec(
-        name = OpenClawCanvasCommand.Eval.rawValue,
+        name = AstroclawCanvasCommand.Eval.rawValue,
         requiresForeground = true,
       ),
       InvokeCommandSpec(
-        name = OpenClawCanvasCommand.Snapshot.rawValue,
+        name = AstroclawCanvasCommand.Snapshot.rawValue,
         requiresForeground = true,
       ),
       InvokeCommandSpec(
-        name = OpenClawCanvasA2UICommand.Push.rawValue,
+        name = AstroclawCanvasA2UICommand.Push.rawValue,
         requiresForeground = true,
       ),
       InvokeCommandSpec(
-        name = OpenClawCanvasA2UICommand.PushJSONL.rawValue,
+        name = AstroclawCanvasA2UICommand.PushJSONL.rawValue,
         requiresForeground = true,
       ),
       InvokeCommandSpec(
-        name = OpenClawCanvasA2UICommand.Reset.rawValue,
+        name = AstroclawCanvasA2UICommand.Reset.rawValue,
         requiresForeground = true,
       ),
       InvokeCommandSpec(
-        name = OpenClawSystemCommand.Notify.rawValue,
+        name = AstroclawSystemCommand.Notify.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawTalkCommand.PttStart.rawValue,
+        name = AstroclawTalkCommand.PttStart.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawTalkCommand.PttStop.rawValue,
+        name = AstroclawTalkCommand.PttStop.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawTalkCommand.PttCancel.rawValue,
+        name = AstroclawTalkCommand.PttCancel.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawTalkCommand.PttOnce.rawValue,
+        name = AstroclawTalkCommand.PttOnce.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawCameraCommand.List.rawValue,
-        requiresForeground = true,
-        availability = InvokeCommandAvailability.CameraEnabled,
-      ),
-      InvokeCommandSpec(
-        name = OpenClawCameraCommand.Snap.rawValue,
+        name = AstroclawCameraCommand.List.rawValue,
         requiresForeground = true,
         availability = InvokeCommandAvailability.CameraEnabled,
       ),
       InvokeCommandSpec(
-        name = OpenClawCameraCommand.Clip.rawValue,
+        name = AstroclawCameraCommand.Snap.rawValue,
         requiresForeground = true,
         availability = InvokeCommandAvailability.CameraEnabled,
       ),
       InvokeCommandSpec(
-        name = OpenClawLocationCommand.Get.rawValue,
+        name = AstroclawCameraCommand.Clip.rawValue,
+        requiresForeground = true,
+        availability = InvokeCommandAvailability.CameraEnabled,
+      ),
+      InvokeCommandSpec(
+        name = AstroclawLocationCommand.Get.rawValue,
         availability = InvokeCommandAvailability.LocationEnabled,
       ),
       InvokeCommandSpec(
-        name = OpenClawDeviceCommand.Status.rawValue,
+        name = AstroclawDeviceCommand.Status.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawDeviceCommand.Info.rawValue,
+        name = AstroclawDeviceCommand.Info.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawDeviceCommand.Permissions.rawValue,
+        name = AstroclawDeviceCommand.Permissions.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawDeviceCommand.Health.rawValue,
+        name = AstroclawDeviceCommand.Health.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawNotificationsCommand.List.rawValue,
+        name = AstroclawNotificationsCommand.List.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawNotificationsCommand.Actions.rawValue,
+        name = AstroclawNotificationsCommand.Actions.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawPhotosCommand.Latest.rawValue,
+        name = AstroclawPhotosCommand.Latest.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawContactsCommand.Search.rawValue,
+        name = AstroclawContactsCommand.Search.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawContactsCommand.Add.rawValue,
+        name = AstroclawContactsCommand.Add.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawCalendarCommand.Events.rawValue,
+        name = AstroclawCalendarCommand.Events.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawCalendarCommand.Add.rawValue,
+        name = AstroclawCalendarCommand.Add.rawValue,
       ),
       InvokeCommandSpec(
-        name = OpenClawMotionCommand.Activity.rawValue,
+        name = AstroclawMotionCommand.Activity.rawValue,
         availability = InvokeCommandAvailability.MotionActivityAvailable,
       ),
       InvokeCommandSpec(
-        name = OpenClawMotionCommand.Pedometer.rawValue,
+        name = AstroclawMotionCommand.Pedometer.rawValue,
         availability = InvokeCommandAvailability.MotionPedometerAvailable,
       ),
       InvokeCommandSpec(
-        name = OpenClawSmsCommand.Send.rawValue,
+        name = AstroclawSmsCommand.Send.rawValue,
         availability = InvokeCommandAvailability.SendSmsAvailable,
       ),
       InvokeCommandSpec(
-        name = OpenClawSmsCommand.Search.rawValue,
+        name = AstroclawSmsCommand.Search.rawValue,
         availability = InvokeCommandAvailability.RequestableSmsSearchAvailable,
       ),
       InvokeCommandSpec(
-        name = OpenClawCallLogCommand.Search.rawValue,
+        name = AstroclawCallLogCommand.Search.rawValue,
         availability = InvokeCommandAvailability.CallLogAvailable,
       ),
       InvokeCommandSpec(

@@ -13,7 +13,7 @@ const INSTALL_BASE_CHANGED_ABORT_WARNING =
 const INSTALL_BASE_CHANGED_BACKUP_WARNING =
   "Install base directory changed before backup cleanup; leaving backup in place.";
 const STAGED_NPM_PROJECT_CONFIG_NAME = ".npmrc";
-const STAGED_NPM_PROJECT_CONFIG_PREFIX = ".openclaw-install-hidden-npmrc-";
+const STAGED_NPM_PROJECT_CONFIG_PREFIX = ".astroclaw-install-hidden-npmrc-";
 
 type HiddenProjectConfigFile = {
   hiddenDir: string;
@@ -224,7 +224,7 @@ export async function installPackageDir(params: {
       installBaseDir: installBaseRealPath,
       candidatePaths: [canonicalTargetDir],
     });
-    stageDir = await fs.mkdtemp(path.join(installBaseRealPath, ".openclaw-install-stage-"));
+    stageDir = await fs.mkdtemp(path.join(installBaseRealPath, ".astroclaw-install-stage-"));
     await fs.cp(params.sourceDir, stageDir, {
       recursive: true,
       // Keep relative symlinks relative to the staged copy. Node's default
@@ -286,7 +286,7 @@ export async function installPackageDir(params: {
   }
 
   if (params.mode === "update" && (await pathExists(canonicalTargetDir))) {
-    const backupRoot = path.join(installBaseRealPath, ".openclaw-install-backups");
+    const backupRoot = path.join(installBaseRealPath, ".astroclaw-install-backups");
     backupDir = path.join(backupRoot, `${path.basename(canonicalTargetDir)}-${Date.now()}`);
     try {
       await fs.mkdir(backupRoot, { recursive: true });

@@ -1,7 +1,7 @@
 {
   "id": "oc-path",
   "name": "OC Path",
-  "description": "Adds the openclaw path CLI for oc:// workspace file addressing.",
+  "description": "Adds the astroclaw path CLI for oc:// workspace file addressing.",
   "activation": {
     "onStartup": false,
     "onCommands": ["path"]

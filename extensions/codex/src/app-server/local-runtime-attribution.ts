@@ -1,4 +1,4 @@
-import type { EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness-runtime";
 
 const OPENAI_PROVIDER_ID = "openai";
 const OPENAI_RESPONSES_API = "openai-responses";

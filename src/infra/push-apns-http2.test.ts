@@ -238,8 +238,8 @@ describe("connectApnsHttp2Session", () => {
     expect(fakeSession.request).toHaveBeenCalledWith({
       ":method": "POST",
       ":path": `/3/device/${"0".repeat(64)}`,
-      authorization: "bearer intentionally.invalid.openclaw.proxy.validation",
-      "apns-topic": "ai.openclaw.ios",
+      authorization: "bearer intentionally.invalid.astroclaw.proxy.validation",
+      "apns-topic": "ai.astroclaw.ios",
       "apns-push-type": "alert",
       "apns-priority": "10",
     });

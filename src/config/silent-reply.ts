@@ -6,10 +6,10 @@ import {
   type SilentReplyPolicyShape,
 } from "../shared/silent-reply-policy.js";
 import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { AstroclawConfig } from "./types.astroclaw.js";
 
 type ResolveSilentReplyParams = {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   sessionKey?: string;
   surface?: string;
   conversationType?: SilentReplyConversationType;

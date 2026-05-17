@@ -7,7 +7,7 @@ import {
 } from "../plugin-sdk/agent-harness.js";
 import { listAgentToolResultMiddlewares } from "../plugins/agent-tool-result-middleware.js";
 import { listCodexAppServerExtensionFactories } from "../plugins/codex-app-server-extension-factory.js";
-import { loadOpenClawPlugins } from "../plugins/loader.js";
+import { loadAstroclawPlugins } from "../plugins/loader.js";
 import {
   cleanupTempPluginTestEnvironment,
   createTempPluginDir,
@@ -15,8 +15,8 @@ import {
   writeTempPlugin,
 } from "./test-helpers/temp-plugin-extension-fixtures.js";
 
-const originalBundledPluginsDir = process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
-const originalDisableBundledPlugins = process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+const originalBundledPluginsDir = process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
+const originalDisableBundledPlugins = process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
 const tempDirs: string[] = [];
 
 function findDiagnostic(
@@ -30,12 +30,12 @@ function findDiagnostic(
 }
 
 function createTempDir(): string {
-  return createTempPluginDir(tempDirs, "openclaw-codex-ext-");
+  return createTempPluginDir(tempDirs, "astroclaw-codex-ext-");
 }
 
 function createBundledTempDir(): string {
-  delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
-  return createTempPluginDir(tempDirs, "openclaw-codex-ext-", {
+  delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
+  return createTempPluginDir(tempDirs, "astroclaw-codex-ext-", {
     parentDir: path.join(process.cwd(), "dist-runtime", "extensions"),
   });
 }
@@ -52,7 +52,7 @@ afterEach(() => {
 describe("agent tool result middleware", () => {
   it("includes plugin-registered middleware and restores it from cache", async () => {
     const tmp = createBundledTempDir();
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = tmp;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = tmp;
 
     writeTempPlugin({
       dir: tmp,
@@ -83,14 +83,14 @@ describe("agent tool result middleware", () => {
       onlyPluginIds: ["tool-result-middleware"],
     };
 
-    loadOpenClawPlugins(options);
+    loadAstroclawPlugins(options);
     expect(listAgentToolResultMiddlewares("codex")).toHaveLength(1);
     expect(listAgentToolResultMiddlewares("pi")).toHaveLength(0);
 
     resetActivePluginRegistryForTest();
     expect(listAgentToolResultMiddlewares("codex")).toHaveLength(0);
 
-    loadOpenClawPlugins(options);
+    loadAstroclawPlugins(options);
     const runner = createAgentToolResultMiddlewareRunner({ runtime: "codex" });
     const result = await runner.applyToolResultMiddleware({
       threadId: "thread-1",
@@ -106,7 +106,7 @@ describe("agent tool result middleware", () => {
 
   it("rejects middleware when the manifest omits the runtime contract", () => {
     const tmp = createBundledTempDir();
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = tmp;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = tmp;
 
     writeTempPlugin({
       dir: tmp,
@@ -122,7 +122,7 @@ describe("agent tool result middleware", () => {
 } };`,
     });
 
-    const registry = loadOpenClawPlugins({
+    const registry = loadAstroclawPlugins({
       onlyPluginIds: ["tool-result-middleware"],
       config: {
         plugins: {
@@ -146,7 +146,7 @@ describe("agent tool result middleware", () => {
 
   it("rejects middleware from non-bundled plugins even when they declare the contract", () => {
     const tmp = createTempDir();
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
 
     const pluginFile = writeTempPlugin({
       dir: tmp,
@@ -161,7 +161,7 @@ describe("agent tool result middleware", () => {
 } };`,
     });
 
-    const registry = loadOpenClawPlugins({
+    const registry = loadAstroclawPlugins({
       workspaceDir: tmp,
       onlyPluginIds: ["tool-result-middleware"],
       config: {
@@ -183,7 +183,7 @@ describe("agent tool result middleware", () => {
 
   it("merges runtimes when a plugin registers the same middleware function twice", () => {
     const tmp = createBundledTempDir();
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = tmp;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = tmp;
 
     writeTempPlugin({
       dir: tmp,
@@ -201,7 +201,7 @@ export default { id: "tool-result-middleware", register(api) {
 } };`,
     });
 
-    loadOpenClawPlugins({
+    loadAstroclawPlugins({
       onlyPluginIds: ["tool-result-middleware"],
       config: {
         plugins: {
@@ -220,7 +220,7 @@ export default { id: "tool-result-middleware", register(api) {
 
   it("lazily loads bundled middleware owners from manifest contracts", async () => {
     const tmp = createBundledTempDir();
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = tmp;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = tmp;
 
     writeTempPlugin({
       dir: tmp,
@@ -272,7 +272,7 @@ export default { id: "tool-result-middleware", register(api) {
 describe("Codex app-server extension factories", () => {
   it("includes plugin-registered Codex app-server extension factories and restores them from cache", async () => {
     const tmp = createBundledTempDir();
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = tmp;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = tmp;
 
     writeTempPlugin({
       dir: tmp,
@@ -305,13 +305,13 @@ describe("Codex app-server extension factories", () => {
       onlyPluginIds: ["codex-ext"],
     };
 
-    loadOpenClawPlugins(options);
+    loadAstroclawPlugins(options);
     expect(listCodexAppServerExtensionFactories()).toHaveLength(1);
 
     resetActivePluginRegistryForTest();
     expect(listCodexAppServerExtensionFactories()).toHaveLength(0);
 
-    loadOpenClawPlugins(options);
+    loadAstroclawPlugins(options);
     const runner = createCodexAppServerToolResultExtensionRunner({});
     const result = await runner.applyToolResultExtensions({
       threadId: "thread-1",
@@ -327,7 +327,7 @@ describe("Codex app-server extension factories", () => {
 
   it("rejects Codex app-server extension factories from non-bundled plugins even when they declare the contract", () => {
     const tmp = createTempDir();
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
 
     const pluginFile = writeTempPlugin({
       dir: tmp,
@@ -342,7 +342,7 @@ describe("Codex app-server extension factories", () => {
 } };`,
     });
 
-    const registry = loadOpenClawPlugins({
+    const registry = loadAstroclawPlugins({
       workspaceDir: tmp,
       onlyPluginIds: ["codex-ext"],
       config: {
@@ -364,7 +364,7 @@ describe("Codex app-server extension factories", () => {
 
   it("rejects bundled plugins that omit the Codex app-server extension contract", () => {
     const tmp = createBundledTempDir();
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = tmp;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = tmp;
 
     writeTempPlugin({
       dir: tmp,
@@ -375,7 +375,7 @@ describe("Codex app-server extension factories", () => {
 } };`,
     });
 
-    const registry = loadOpenClawPlugins({
+    const registry = loadAstroclawPlugins({
       onlyPluginIds: ["codex-ext"],
       config: {
         plugins: {
@@ -399,7 +399,7 @@ describe("Codex app-server extension factories", () => {
 
   it("rejects non-function Codex app-server extension factories from bundled plugins", () => {
     const tmp = createBundledTempDir();
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = tmp;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = tmp;
 
     writeTempPlugin({
       dir: tmp,
@@ -415,7 +415,7 @@ describe("Codex app-server extension factories", () => {
 } };`,
     });
 
-    const registry = loadOpenClawPlugins({
+    const registry = loadAstroclawPlugins({
       onlyPluginIds: ["codex-ext"],
       config: {
         plugins: {

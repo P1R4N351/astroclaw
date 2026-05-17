@@ -8,7 +8,7 @@ const upsertChannelPairingRequest = vi.hoisted(() =>
   vi.fn(async () => ({ code: "PAIRCODE", created: true })),
 );
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   createSubsystemLogger: () => ({
     child: () => ({
       info: telegramInboundInfo,
@@ -110,7 +110,7 @@ describe("telegram bot message processor", () => {
         ChatType: "direct",
         RawBody: "hello there",
       },
-      primaryCtx: { me: { username: "openclaw_bot" } },
+      primaryCtx: { me: { username: "astroclaw_bot" } },
       route: { sessionKey: "agent:main:main" },
       sendTyping: vi.fn().mockResolvedValue(undefined),
       ...context,
@@ -134,7 +134,7 @@ describe("telegram bot message processor", () => {
       dispatchTelegramMessage.mock.invocationCallOrder[0],
     );
     expect(telegramInboundInfo).toHaveBeenCalledWith(
-      "Inbound message telegram:123 -> @openclaw_bot (direct, 11 chars)",
+      "Inbound message telegram:123 -> @astroclaw_bot (direct, 11 chars)",
     );
   });
 
@@ -172,20 +172,20 @@ describe("telegram bot message processor", () => {
     expect(
       formatTelegramInboundLogLine({
         from: "telegram:123",
-        to: "@openclaw_bot",
+        to: "@astroclaw_bot",
         chatType: "direct",
         body: "secret message",
       }),
-    ).toBe("Inbound message telegram:123 -> @openclaw_bot (direct, 14 chars)");
+    ).toBe("Inbound message telegram:123 -> @astroclaw_bot (direct, 14 chars)");
     expect(
       formatTelegramInboundLogLine({
         from: "telegram:group:-100",
-        to: "@openclaw_bot",
+        to: "@astroclaw_bot",
         chatType: "group",
         body: "<media:image>",
         mediaType: "image/jpeg",
       }),
-    ).toBe("Inbound message telegram:group:-100 -> @openclaw_bot (group, image/jpeg, 13 chars)");
+    ).toBe("Inbound message telegram:group:-100 -> @astroclaw_bot (group, image/jpeg, 13 chars)");
   });
 
   it("keeps dispatch running when the early typing cue fails", async () => {

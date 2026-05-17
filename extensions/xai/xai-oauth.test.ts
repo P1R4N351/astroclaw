@@ -27,7 +27,7 @@ describe("xAI OAuth", () => {
     expect(isTrustedXaiOAuthEndpoint("not a url")).toBe(false);
   });
 
-  it("builds the xAI authorize URL for OpenClaw", () => {
+  it("builds the xAI authorize URL for Astroclaw", () => {
     const url = new URL(
       buildXaiOAuthAuthorizeUrl({
         authorizationEndpoint: "https://auth.x.ai/oauth2/authorize",
@@ -47,7 +47,7 @@ describe("xAI OAuth", () => {
     expect(url.searchParams.get("state")).toBe("state-1");
     expect(url.searchParams.get("nonce")).toBe("nonce-1");
     expect(url.searchParams.get("plan")).toBe("generic");
-    expect(url.searchParams.get("referrer")).toBe("openclaw");
+    expect(url.searchParams.get("referrer")).toBe("astroclaw");
     expect(XAI_OAUTH_REDIRECT_URI).toContain(`:${XAI_OAUTH_CALLBACK_PORT}/`);
   });
 

@@ -2,7 +2,7 @@ import type {
   AudioTranscriptionRequest,
   AudioTranscriptionResult,
   MediaUnderstandingProvider,
-} from "openclaw/plugin-sdk/media-understanding";
+} from "astroclaw/plugin-sdk/media-understanding";
 import {
   assertOkOrThrowHttpError,
   buildAudioTranscriptionFormData,
@@ -10,7 +10,7 @@ import {
   readProviderJsonObjectResponse,
   resolveProviderHttpRequestConfig,
   requireTranscriptionText,
-} from "openclaw/plugin-sdk/provider-http";
+} from "astroclaw/plugin-sdk/provider-http";
 import { DEFAULT_ELEVENLABS_BASE_URL, normalizeElevenLabsBaseUrl } from "./shared.js";
 
 const DEFAULT_ELEVENLABS_STT_MODEL = "scribe_v2";

@@ -1,5 +1,5 @@
 import type { ChannelId } from "../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   expandAllowFromWithAccessGroups,
   type AccessGroupMembershipResolver,
@@ -12,7 +12,7 @@ import {
 export type { AccessGroupMembershipResolver } from "./access-groups.js";
 
 export type DirectDmCommandAuthorizationRuntime = {
-  shouldComputeCommandAuthorized: (rawBody: string, cfg: OpenClawConfig) => boolean;
+  shouldComputeCommandAuthorized: (rawBody: string, cfg: AstroclawConfig) => boolean;
   /** @deprecated Command authorization is resolved by channel ingress. Kept for runtime injection compatibility. */
   resolveCommandAuthorizedFromAuthorizers?: (params: {
     useAccessGroups: boolean;
@@ -21,7 +21,7 @@ export type DirectDmCommandAuthorizationRuntime = {
   }) => boolean;
 };
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export type ResolvedInboundDirectDmAccess = {
   access: {
     decision: "allow" | "block" | "pairing";
@@ -47,9 +47,9 @@ function toLegacyDmReasonCode(reasonCode: string): DmGroupAccessReasonCode {
   }
 }
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export async function resolveInboundDirectDmAccessWithRuntime(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   channel: ChannelId;
   accountId: string;
   dmPolicy?: string | null;
@@ -135,7 +135,7 @@ export async function resolveInboundDirectDmAccessWithRuntime(params: {
   };
 }
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export function createPreCryptoDirectDmAuthorizer(params: {
   resolveAccess: (
     senderId: string,

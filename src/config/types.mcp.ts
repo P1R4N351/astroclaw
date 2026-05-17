@@ -1,7 +1,7 @@
 export type McpCodexToolApprovalMode = "auto" | "prompt" | "approve";
 
 export type McpServerCodexConfig = {
-  /** OpenClaw agent ids that should receive this server in Codex app-server threads. */
+  /** Astroclaw agent ids that should receive this server in Codex app-server threads. */
   agents?: string[];
   /** Codex MCP tool approval mode emitted as default_tools_approval_mode. */
   defaultToolsApprovalMode?: McpCodexToolApprovalMode;
@@ -34,7 +34,7 @@ export type McpServerConfig = {
 };
 
 export type McpConfig = {
-  /** Named MCP server definitions managed by OpenClaw. */
+  /** Named MCP server definitions managed by Astroclaw. */
   servers?: Record<string, McpServerConfig>;
   /**
    * Idle TTL for session-scoped bundled MCP runtimes, in milliseconds.

@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import {
-  type OpenClawTestState,
-  withOpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+  type AstroclawTestState,
+  withAstroclawTestState,
+} from "../../test-utils/astroclaw-test-state.js";
 import { resolveSessionAuthProfileOverride } from "./session-override.js";
 import type { AuthProfileStore } from "./types.js";
 
@@ -30,7 +30,7 @@ const authStoreMocks = vi.hoisted(() => {
         store,
         provider,
       }: {
-        cfg?: OpenClawConfig;
+        cfg?: AstroclawConfig;
         store: AuthProfileStore;
         provider: string;
       }) => {
@@ -72,7 +72,7 @@ vi.mock("./order.js", () => ({
     provider,
     credential,
   }: {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
     provider: string;
     credential: { type: string; provider: string };
   }) => {
@@ -91,7 +91,7 @@ vi.mock("./order.js", () => ({
     provider,
     profileId,
   }: {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
     provider: string;
     profileId: string;
   }) => {
@@ -109,11 +109,11 @@ vi.mock("./usage.js", () => ({
   isProfileInCooldown: authStoreMocks.isProfileInCooldown,
 }));
 
-async function withAuthState<T>(run: (state: OpenClawTestState) => Promise<T>): Promise<T> {
-  return await withOpenClawTestState(
+async function withAuthState<T>(run: (state: AstroclawTestState) => Promise<T>): Promise<T> {
+  return await withAstroclawTestState(
     {
       layout: "state-only",
-      prefix: "openclaw-auth-",
+      prefix: "astroclaw-auth-",
     },
     run,
   );
@@ -163,7 +163,7 @@ describe("resolveSessionAuthProfileOverride", () => {
       const sessionStore = { "agent:main:main": sessionEntry };
 
       const resolved = await resolveSessionAuthProfileOverride({
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         provider: "openrouter",
         agentDir,
         sessionEntry,
@@ -201,7 +201,7 @@ describe("resolveSessionAuthProfileOverride", () => {
       const sessionStore = { "agent:main:main": sessionEntry };
 
       const resolved = await resolveSessionAuthProfileOverride({
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         provider: "z.ai",
         agentDir,
         sessionEntry,
@@ -251,7 +251,7 @@ describe("resolveSessionAuthProfileOverride", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
         provider: "amazon-bedrock",
         agentDir,
         sessionEntry,
@@ -309,7 +309,7 @@ describe("resolveSessionAuthProfileOverride", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
         provider: "amazon-bedrock",
         agentDir,
         sessionEntry,
@@ -357,7 +357,7 @@ describe("resolveSessionAuthProfileOverride", () => {
       const sessionStore = { "agent:main:main": sessionEntry };
 
       const resolved = await resolveSessionAuthProfileOverride({
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         provider: "openai-codex",
         agentDir,
         sessionEntry,
@@ -400,7 +400,7 @@ describe("resolveSessionAuthProfileOverride", () => {
       const sessionStore = { "agent:main:main": sessionEntry };
 
       const resolved = await resolveSessionAuthProfileOverride({
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         provider: "codex-cli",
         agentDir,
         sessionEntry,
@@ -442,7 +442,7 @@ describe("resolveSessionAuthProfileOverride", () => {
       const sessionStore = { "agent:main:main": sessionEntry };
 
       const resolved = await resolveSessionAuthProfileOverride({
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         provider: "openai",
         acceptedProviderIds: ["openai-codex"],
         agentDir,
@@ -490,7 +490,7 @@ describe("resolveSessionAuthProfileOverride", () => {
       const sessionStore = { "agent:main:main": sessionEntry };
 
       const resolved = await resolveSessionAuthProfileOverride({
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         provider: "openai",
         acceptedProviderIds: ["openai-codex"],
         agentDir,
@@ -542,7 +542,7 @@ describe("resolveSessionAuthProfileOverride", () => {
       const sessionStore = { "agent:main:main": sessionEntry };
 
       const resolved = await resolveSessionAuthProfileOverride({
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         provider: "openai-codex",
         agentDir,
         sessionEntry,

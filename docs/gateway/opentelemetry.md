@@ -1,13 +1,13 @@
 ---
-summary: "Export OpenClaw diagnostics to any OpenTelemetry collector via the diagnostics-otel plugin (OTLP/HTTP)"
+summary: "Export Astroclaw diagnostics to any OpenTelemetry collector via the diagnostics-otel plugin (OTLP/HTTP)"
 title: "OpenTelemetry export"
 read_when:
-  - You want to send OpenClaw model usage, message flow, or session metrics to an OpenTelemetry collector
+  - You want to send Astroclaw model usage, message flow, or session metrics to an OpenTelemetry collector
   - You are wiring traces, metrics, or logs into Grafana, Datadog, Honeycomb, New Relic, Tempo, or another OTLP backend
   - You need the exact metric names, span names, or attribute shapes to build dashboards or alerts
 ---
 
-OpenClaw exports diagnostics through the official `diagnostics-otel` plugin
+Astroclaw exports diagnostics through the official `diagnostics-otel` plugin
 using **OTLP/HTTP (protobuf)**. Any collector or backend that accepts OTLP/HTTP
 works without code changes. For local file logs and how to read them, see
 [Logging](/logging).
@@ -19,7 +19,7 @@ works without code changes. For local file logs and how to read them, see
   and exec.
 - **`diagnostics-otel` plugin** subscribes to those events and exports them as
   OpenTelemetry **metrics**, **traces**, and **logs** over OTLP/HTTP.
-- **Provider calls** receive a W3C `traceparent` header from OpenClaw's
+- **Provider calls** receive a W3C `traceparent` header from Astroclaw's
   trusted model-call span context when the provider transport accepts custom
   headers. Plugin-emitted trace context is not propagated.
 - Exporters only attach when both the diagnostics surface and the plugin are
@@ -30,7 +30,7 @@ works without code changes. For local file logs and how to read them, see
 For packaged installs, install the plugin first:
 
 ```bash
-openclaw plugins install clawhub:@openclaw/diagnostics-otel
+astroclaw plugins install clawhub:@astroclaw/diagnostics-otel
 ```
 
 ```json5
@@ -47,7 +47,7 @@ openclaw plugins install clawhub:@openclaw/diagnostics-otel
       enabled: true,
       endpoint: "http://otel-collector:4318",
       protocol: "http/protobuf",
-      serviceName: "openclaw-gateway",
+      serviceName: "astroclaw-gateway",
       traces: true,
       metrics: true,
       logs: true,
@@ -61,7 +61,7 @@ openclaw plugins install clawhub:@openclaw/diagnostics-otel
 You can also enable the plugin from the CLI:
 
 ```bash
-openclaw plugins enable diagnostics-otel
+astroclaw plugins enable diagnostics-otel
 ```
 
 <Note>
@@ -92,7 +92,7 @@ when `diagnostics.otel.enabled` is true.
       metricsEndpoint: "http://otel-collector:4318/v1/metrics",
       logsEndpoint: "http://otel-collector:4318/v1/logs",
       protocol: "http/protobuf", // grpc is ignored
-      serviceName: "openclaw-gateway",
+      serviceName: "astroclaw-gateway",
       headers: { "x-collector-token": "..." },
       traces: true,
       metrics: true,
@@ -121,7 +121,7 @@ when `diagnostics.otel.enabled` is true.
 | `OTEL_SERVICE_NAME`                                                                                               | Override `diagnostics.otel.serviceName`.                                                                                                                                                                                                   |
 | `OTEL_EXPORTER_OTLP_PROTOCOL`                                                                                     | Override the wire protocol (only `http/protobuf` is honored today).                                                                                                                                                                        |
 | `OTEL_SEMCONV_STABILITY_OPT_IN`                                                                                   | Set to `gen_ai_latest_experimental` to emit the latest experimental GenAI span attribute (`gen_ai.provider.name`) instead of the legacy `gen_ai.system`. GenAI metrics always use bounded, low-cardinality semantic attributes regardless. |
-| `OPENCLAW_OTEL_PRELOADED`                                                                                         | Set to `1` when another preload or host process already registered the global OpenTelemetry SDK. The plugin then skips its own NodeSDK lifecycle but still wires diagnostic listeners and honors `traces`/`metrics`/`logs`.                |
+| `ASTROCLAW_OTEL_PRELOADED`                                                                                         | Set to `1` when another preload or host process already registered the global OpenTelemetry SDK. The plugin then skips its own NodeSDK lifecycle but still wires diagnostic listeners and honors `traces`/`metrics`/`logs`.                |
 
 ## Privacy and content capture
 
@@ -134,7 +134,7 @@ provider, and event type. They do not include transcripts, audio payloads,
 session ids, turn ids, call ids, room ids, or handoff tokens.
 
 Outbound model requests may include a W3C `traceparent` header. That header is
-generated only from OpenClaw-owned diagnostic trace context for the active model
+generated only from Astroclaw-owned diagnostic trace context for the active model
 call. Existing caller-supplied `traceparent` headers are replaced, so plugins or
 custom provider options cannot spoof cross-service trace ancestry.
 
@@ -149,7 +149,7 @@ text. Each subkey is opt-in independently:
 - `systemPrompt` - assembled system/developer prompt.
 
 When any subkey is enabled, model and tool spans get bounded, redacted
-`openclaw.content.*` attributes for that class only.
+`astroclaw.content.*` attributes for that class only.
 
 ## Sampling and flushing
 
@@ -172,57 +172,57 @@ When any subkey is enabled, model and tool spans get bounded, redacted
 
 ### Model usage
 
-- `openclaw.tokens` (counter, attrs: `openclaw.token`, `openclaw.channel`, `openclaw.provider`, `openclaw.model`, `openclaw.agent`)
-- `openclaw.cost.usd` (counter, attrs: `openclaw.channel`, `openclaw.provider`, `openclaw.model`)
-- `openclaw.run.duration_ms` (histogram, attrs: `openclaw.channel`, `openclaw.provider`, `openclaw.model`)
-- `openclaw.context.tokens` (histogram, attrs: `openclaw.context`, `openclaw.channel`, `openclaw.provider`, `openclaw.model`)
+- `astroclaw.tokens` (counter, attrs: `astroclaw.token`, `astroclaw.channel`, `astroclaw.provider`, `astroclaw.model`, `astroclaw.agent`)
+- `astroclaw.cost.usd` (counter, attrs: `astroclaw.channel`, `astroclaw.provider`, `astroclaw.model`)
+- `astroclaw.run.duration_ms` (histogram, attrs: `astroclaw.channel`, `astroclaw.provider`, `astroclaw.model`)
+- `astroclaw.context.tokens` (histogram, attrs: `astroclaw.context`, `astroclaw.channel`, `astroclaw.provider`, `astroclaw.model`)
 - `gen_ai.client.token.usage` (histogram, GenAI semantic-conventions metric, attrs: `gen_ai.token.type` = `input`/`output`, `gen_ai.provider.name`, `gen_ai.operation.name`, `gen_ai.request.model`)
 - `gen_ai.client.operation.duration` (histogram, seconds, GenAI semantic-conventions metric, attrs: `gen_ai.provider.name`, `gen_ai.operation.name`, `gen_ai.request.model`, optional `error.type`)
-- `openclaw.model_call.duration_ms` (histogram, attrs: `openclaw.provider`, `openclaw.model`, `openclaw.api`, `openclaw.transport`, plus `openclaw.errorCategory` and `openclaw.failureKind` on classified errors)
-- `openclaw.model_call.request_bytes` (histogram, UTF-8 byte size of the final model request payload; no raw payload content)
-- `openclaw.model_call.response_bytes` (histogram, UTF-8 byte size of streamed model response events; no raw response content)
-- `openclaw.model_call.time_to_first_byte_ms` (histogram, elapsed time before the first streamed response event)
+- `astroclaw.model_call.duration_ms` (histogram, attrs: `astroclaw.provider`, `astroclaw.model`, `astroclaw.api`, `astroclaw.transport`, plus `astroclaw.errorCategory` and `astroclaw.failureKind` on classified errors)
+- `astroclaw.model_call.request_bytes` (histogram, UTF-8 byte size of the final model request payload; no raw payload content)
+- `astroclaw.model_call.response_bytes` (histogram, UTF-8 byte size of streamed model response events; no raw response content)
+- `astroclaw.model_call.time_to_first_byte_ms` (histogram, elapsed time before the first streamed response event)
 
 ### Message flow
 
-- `openclaw.webhook.received` (counter, attrs: `openclaw.channel`, `openclaw.webhook`)
-- `openclaw.webhook.error` (counter, attrs: `openclaw.channel`, `openclaw.webhook`)
-- `openclaw.webhook.duration_ms` (histogram, attrs: `openclaw.channel`, `openclaw.webhook`)
-- `openclaw.message.queued` (counter, attrs: `openclaw.channel`, `openclaw.source`)
-- `openclaw.message.processed` (counter, attrs: `openclaw.channel`, `openclaw.outcome`)
-- `openclaw.message.duration_ms` (histogram, attrs: `openclaw.channel`, `openclaw.outcome`)
-- `openclaw.message.delivery.started` (counter, attrs: `openclaw.channel`, `openclaw.delivery.kind`)
-- `openclaw.message.delivery.duration_ms` (histogram, attrs: `openclaw.channel`, `openclaw.delivery.kind`, `openclaw.outcome`, `openclaw.errorCategory`)
+- `astroclaw.webhook.received` (counter, attrs: `astroclaw.channel`, `astroclaw.webhook`)
+- `astroclaw.webhook.error` (counter, attrs: `astroclaw.channel`, `astroclaw.webhook`)
+- `astroclaw.webhook.duration_ms` (histogram, attrs: `astroclaw.channel`, `astroclaw.webhook`)
+- `astroclaw.message.queued` (counter, attrs: `astroclaw.channel`, `astroclaw.source`)
+- `astroclaw.message.processed` (counter, attrs: `astroclaw.channel`, `astroclaw.outcome`)
+- `astroclaw.message.duration_ms` (histogram, attrs: `astroclaw.channel`, `astroclaw.outcome`)
+- `astroclaw.message.delivery.started` (counter, attrs: `astroclaw.channel`, `astroclaw.delivery.kind`)
+- `astroclaw.message.delivery.duration_ms` (histogram, attrs: `astroclaw.channel`, `astroclaw.delivery.kind`, `astroclaw.outcome`, `astroclaw.errorCategory`)
 
 ### Talk
 
-- `openclaw.talk.event` (counter, attrs: `openclaw.talk.event_type`, `openclaw.talk.mode`, `openclaw.talk.transport`, `openclaw.talk.brain`, `openclaw.talk.provider`)
-- `openclaw.talk.event.duration_ms` (histogram, attrs: same as `openclaw.talk.event`; emitted when a Talk event reports duration)
-- `openclaw.talk.audio.bytes` (histogram, attrs: same as `openclaw.talk.event`; emitted for Talk audio frame events that report byte length)
+- `astroclaw.talk.event` (counter, attrs: `astroclaw.talk.event_type`, `astroclaw.talk.mode`, `astroclaw.talk.transport`, `astroclaw.talk.brain`, `astroclaw.talk.provider`)
+- `astroclaw.talk.event.duration_ms` (histogram, attrs: same as `astroclaw.talk.event`; emitted when a Talk event reports duration)
+- `astroclaw.talk.audio.bytes` (histogram, attrs: same as `astroclaw.talk.event`; emitted for Talk audio frame events that report byte length)
 
 ### Queues and sessions
 
-- `openclaw.queue.lane.enqueue` (counter, attrs: `openclaw.lane`)
-- `openclaw.queue.lane.dequeue` (counter, attrs: `openclaw.lane`)
-- `openclaw.queue.depth` (histogram, attrs: `openclaw.lane` or `openclaw.channel=heartbeat`)
-- `openclaw.queue.wait_ms` (histogram, attrs: `openclaw.lane`)
-- `openclaw.session.state` (counter, attrs: `openclaw.state`, `openclaw.reason`)
-- `openclaw.session.stuck` (counter, attrs: `openclaw.state`; emitted only for stale session bookkeeping with no active work)
-- `openclaw.session.stuck_age_ms` (histogram, attrs: `openclaw.state`; emitted only for stale session bookkeeping with no active work)
-- `openclaw.session.recovery.requested` (counter, attrs: `openclaw.state`, `openclaw.action`, `openclaw.active_work_kind`, `openclaw.reason`)
-- `openclaw.session.recovery.completed` (counter, attrs: `openclaw.state`, `openclaw.action`, `openclaw.status`, `openclaw.active_work_kind`, `openclaw.reason`)
-- `openclaw.session.recovery.age_ms` (histogram, attrs: same as the matching recovery counter)
-- `openclaw.run.attempt` (counter, attrs: `openclaw.attempt`)
+- `astroclaw.queue.lane.enqueue` (counter, attrs: `astroclaw.lane`)
+- `astroclaw.queue.lane.dequeue` (counter, attrs: `astroclaw.lane`)
+- `astroclaw.queue.depth` (histogram, attrs: `astroclaw.lane` or `astroclaw.channel=heartbeat`)
+- `astroclaw.queue.wait_ms` (histogram, attrs: `astroclaw.lane`)
+- `astroclaw.session.state` (counter, attrs: `astroclaw.state`, `astroclaw.reason`)
+- `astroclaw.session.stuck` (counter, attrs: `astroclaw.state`; emitted only for stale session bookkeeping with no active work)
+- `astroclaw.session.stuck_age_ms` (histogram, attrs: `astroclaw.state`; emitted only for stale session bookkeeping with no active work)
+- `astroclaw.session.recovery.requested` (counter, attrs: `astroclaw.state`, `astroclaw.action`, `astroclaw.active_work_kind`, `astroclaw.reason`)
+- `astroclaw.session.recovery.completed` (counter, attrs: `astroclaw.state`, `astroclaw.action`, `astroclaw.status`, `astroclaw.active_work_kind`, `astroclaw.reason`)
+- `astroclaw.session.recovery.age_ms` (histogram, attrs: same as the matching recovery counter)
+- `astroclaw.run.attempt` (counter, attrs: `astroclaw.attempt`)
 
 ### Session liveness telemetry
 
 `diagnostics.stuckSessionWarnMs` is the no-progress age threshold for session
 liveness diagnostics. A `processing` session does not age toward this threshold
-while OpenClaw observes reply, tool, status, block, or ACP runtime progress.
+while Astroclaw observes reply, tool, status, block, or ACP runtime progress.
 Typing keepalives are not counted as progress, so a silent model or harness can
 still be detected.
 
-OpenClaw classifies sessions by the work it can still observe:
+Astroclaw classifies sessions by the work it can still observe:
 
 - `session.long_running`: active embedded work, model calls, or tool calls are
   still making progress.
@@ -240,8 +240,8 @@ Recovery emits structured `session.recovery.requested` and
 only after a mutating recovery outcome (`aborted` or `released`) and only if the
 same processing generation is still current.
 
-Only `session.stuck` emits the `openclaw.session.stuck` counter, the
-`openclaw.session.stuck_age_ms` histogram, and the `openclaw.session.stuck`
+Only `session.stuck` emits the `astroclaw.session.stuck` counter, the
+`astroclaw.session.stuck_age_ms` histogram, and the `astroclaw.session.stuck`
 span. Repeated `session.stuck` diagnostics back off while the session remains
 unchanged, so dashboards should alert on sustained increases rather than every
 heartbeat tick. For the config knob and defaults, see
@@ -249,62 +249,62 @@ heartbeat tick. For the config knob and defaults, see
 
 ### Harness lifecycle
 
-- `openclaw.harness.duration_ms` (histogram, attrs: `openclaw.harness.id`, `openclaw.harness.plugin`, `openclaw.outcome`, `openclaw.harness.phase` on errors)
+- `astroclaw.harness.duration_ms` (histogram, attrs: `astroclaw.harness.id`, `astroclaw.harness.plugin`, `astroclaw.outcome`, `astroclaw.harness.phase` on errors)
 
 ### Exec
 
-- `openclaw.exec.duration_ms` (histogram, attrs: `openclaw.exec.target`, `openclaw.exec.mode`, `openclaw.outcome`, `openclaw.failureKind`)
+- `astroclaw.exec.duration_ms` (histogram, attrs: `astroclaw.exec.target`, `astroclaw.exec.mode`, `astroclaw.outcome`, `astroclaw.failureKind`)
 
 ### Diagnostics internals (memory and tool loop)
 
-- `openclaw.memory.heap_used_bytes` (histogram, attrs: `openclaw.memory.kind`)
-- `openclaw.memory.rss_bytes` (histogram)
-- `openclaw.memory.pressure` (counter, attrs: `openclaw.memory.level`)
-- `openclaw.tool.loop.iterations` (counter, attrs: `openclaw.toolName`, `openclaw.outcome`)
-- `openclaw.tool.loop.duration_ms` (histogram, attrs: `openclaw.toolName`, `openclaw.outcome`)
+- `astroclaw.memory.heap_used_bytes` (histogram, attrs: `astroclaw.memory.kind`)
+- `astroclaw.memory.rss_bytes` (histogram)
+- `astroclaw.memory.pressure` (counter, attrs: `astroclaw.memory.level`)
+- `astroclaw.tool.loop.iterations` (counter, attrs: `astroclaw.toolName`, `astroclaw.outcome`)
+- `astroclaw.tool.loop.duration_ms` (histogram, attrs: `astroclaw.toolName`, `astroclaw.outcome`)
 
 ## Exported spans
 
-- `openclaw.model.usage`
-  - `openclaw.channel`, `openclaw.provider`, `openclaw.model`
-  - `openclaw.tokens.*` (input/output/cache_read/cache_write/total)
+- `astroclaw.model.usage`
+  - `astroclaw.channel`, `astroclaw.provider`, `astroclaw.model`
+  - `astroclaw.tokens.*` (input/output/cache_read/cache_write/total)
   - `gen_ai.system` by default, or `gen_ai.provider.name` when the latest GenAI semantic conventions are opted in
   - `gen_ai.request.model`, `gen_ai.operation.name`, `gen_ai.usage.*`
-- `openclaw.run`
-  - `openclaw.outcome`, `openclaw.channel`, `openclaw.provider`, `openclaw.model`, `openclaw.errorCategory`
-- `openclaw.model.call`
+- `astroclaw.run`
+  - `astroclaw.outcome`, `astroclaw.channel`, `astroclaw.provider`, `astroclaw.model`, `astroclaw.errorCategory`
+- `astroclaw.model.call`
   - `gen_ai.system` by default, or `gen_ai.provider.name` when the latest GenAI semantic conventions are opted in
-  - `gen_ai.request.model`, `gen_ai.operation.name`, `openclaw.provider`, `openclaw.model`, `openclaw.api`, `openclaw.transport`
-  - `openclaw.errorCategory` and optional `openclaw.failureKind` on errors
-  - `openclaw.model_call.request_bytes`, `openclaw.model_call.response_bytes`, `openclaw.model_call.time_to_first_byte_ms`
-  - `openclaw.provider.request_id_hash` (bounded SHA-based hash of the upstream provider request id; raw ids are not exported)
-- `openclaw.harness.run`
-  - `openclaw.harness.id`, `openclaw.harness.plugin`, `openclaw.outcome`, `openclaw.provider`, `openclaw.model`, `openclaw.channel`
-  - On completion: `openclaw.harness.result_classification`, `openclaw.harness.yield_detected`, `openclaw.harness.items.started`, `openclaw.harness.items.completed`, `openclaw.harness.items.active`
-  - On error: `openclaw.harness.phase`, `openclaw.errorCategory`, optional `openclaw.harness.cleanup_failed`
-- `openclaw.tool.execution`
-  - `gen_ai.tool.name`, `openclaw.toolName`, `openclaw.errorCategory`, `openclaw.tool.params.*`
-- `openclaw.exec`
-  - `openclaw.exec.target`, `openclaw.exec.mode`, `openclaw.outcome`, `openclaw.failureKind`, `openclaw.exec.command_length`, `openclaw.exec.exit_code`, `openclaw.exec.timed_out`
-- `openclaw.webhook.processed`
-  - `openclaw.channel`, `openclaw.webhook`
-- `openclaw.webhook.error`
-  - `openclaw.channel`, `openclaw.webhook`, `openclaw.error`
-- `openclaw.message.processed`
-  - `openclaw.channel`, `openclaw.outcome`, `openclaw.reason`
-- `openclaw.message.delivery`
-  - `openclaw.channel`, `openclaw.delivery.kind`, `openclaw.outcome`, `openclaw.errorCategory`, `openclaw.delivery.result_count`
-- `openclaw.session.stuck`
-  - `openclaw.state`, `openclaw.ageMs`, `openclaw.queueDepth`
-- `openclaw.context.assembled`
-  - `openclaw.prompt.size`, `openclaw.history.size`, `openclaw.context.tokens`, `openclaw.errorCategory` (no prompt, history, response, or session-key content)
-- `openclaw.tool.loop`
-  - `openclaw.toolName`, `openclaw.outcome`, `openclaw.iterations`, `openclaw.errorCategory` (no loop messages, params, or tool output)
-- `openclaw.memory.pressure`
-  - `openclaw.memory.level`, `openclaw.memory.heap_used_bytes`, `openclaw.memory.rss_bytes`
+  - `gen_ai.request.model`, `gen_ai.operation.name`, `astroclaw.provider`, `astroclaw.model`, `astroclaw.api`, `astroclaw.transport`
+  - `astroclaw.errorCategory` and optional `astroclaw.failureKind` on errors
+  - `astroclaw.model_call.request_bytes`, `astroclaw.model_call.response_bytes`, `astroclaw.model_call.time_to_first_byte_ms`
+  - `astroclaw.provider.request_id_hash` (bounded SHA-based hash of the upstream provider request id; raw ids are not exported)
+- `astroclaw.harness.run`
+  - `astroclaw.harness.id`, `astroclaw.harness.plugin`, `astroclaw.outcome`, `astroclaw.provider`, `astroclaw.model`, `astroclaw.channel`
+  - On completion: `astroclaw.harness.result_classification`, `astroclaw.harness.yield_detected`, `astroclaw.harness.items.started`, `astroclaw.harness.items.completed`, `astroclaw.harness.items.active`
+  - On error: `astroclaw.harness.phase`, `astroclaw.errorCategory`, optional `astroclaw.harness.cleanup_failed`
+- `astroclaw.tool.execution`
+  - `gen_ai.tool.name`, `astroclaw.toolName`, `astroclaw.errorCategory`, `astroclaw.tool.params.*`
+- `astroclaw.exec`
+  - `astroclaw.exec.target`, `astroclaw.exec.mode`, `astroclaw.outcome`, `astroclaw.failureKind`, `astroclaw.exec.command_length`, `astroclaw.exec.exit_code`, `astroclaw.exec.timed_out`
+- `astroclaw.webhook.processed`
+  - `astroclaw.channel`, `astroclaw.webhook`
+- `astroclaw.webhook.error`
+  - `astroclaw.channel`, `astroclaw.webhook`, `astroclaw.error`
+- `astroclaw.message.processed`
+  - `astroclaw.channel`, `astroclaw.outcome`, `astroclaw.reason`
+- `astroclaw.message.delivery`
+  - `astroclaw.channel`, `astroclaw.delivery.kind`, `astroclaw.outcome`, `astroclaw.errorCategory`, `astroclaw.delivery.result_count`
+- `astroclaw.session.stuck`
+  - `astroclaw.state`, `astroclaw.ageMs`, `astroclaw.queueDepth`
+- `astroclaw.context.assembled`
+  - `astroclaw.prompt.size`, `astroclaw.history.size`, `astroclaw.context.tokens`, `astroclaw.errorCategory` (no prompt, history, response, or session-key content)
+- `astroclaw.tool.loop`
+  - `astroclaw.toolName`, `astroclaw.outcome`, `astroclaw.iterations`, `astroclaw.errorCategory` (no loop messages, params, or tool output)
+- `astroclaw.memory.pressure`
+  - `astroclaw.memory.level`, `astroclaw.memory.heap_used_bytes`, `astroclaw.memory.rss_bytes`
 
 When content capture is explicitly enabled, model and tool spans can also
-include bounded, redacted `openclaw.content.*` attributes for the specific
+include bounded, redacted `astroclaw.content.*` attributes for the specific
 content classes you opted into.
 
 ## Diagnostic event catalog
@@ -372,7 +372,7 @@ flags. Flags are case-insensitive and support wildcards (e.g. `telegram.*` or
 Or as a one-off env override:
 
 ```bash
-OPENCLAW_DIAGNOSTICS=telegram.http,telegram.payload openclaw gateway
+ASTROCLAW_DIAGNOSTICS=telegram.http,telegram.payload astroclaw gateway
 ```
 
 Flag output goes to the standard log file (`logging.file`) and is still
@@ -388,7 +388,7 @@ redacted by `logging.redactSensitive`. Full guide:
 ```
 
 You can also leave `diagnostics-otel` out of `plugins.allow`, or run
-`openclaw plugins disable diagnostics-otel`.
+`astroclaw plugins disable diagnostics-otel`.
 
 ## Related
 

@@ -69,7 +69,7 @@ describe("dependency change awareness workflow", () => {
     const step = steps[0];
 
     expect(step.uses).toBe("actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3");
-    expect(step.with?.script).toContain("<!-- openclaw:dependency-change-awareness -->");
+    expect(step.with?.script).toContain("<!-- astroclaw:dependency-change-awareness -->");
     expect(step.with?.script).toContain("const maxListedFiles = 25;");
     expect(step.with?.script).toContain("const sanitizeDisplayValue = (value)");
     expect(step.with?.script).toContain('.replace(/[\\u0000-\\u001f\\u007f]/gu, "?")');
@@ -98,10 +98,10 @@ describe("dependency change awareness workflow", () => {
   it("requires secops review for future workflow or guard changes", () => {
     const codeowners = readFileSync(CODEOWNERS, "utf8");
     expect(codeowners).toContain(
-      "/.github/workflows/dependency-change-awareness.yml @openclaw/openclaw-secops",
+      "/.github/workflows/dependency-change-awareness.yml @astroclaw/astroclaw-secops",
     );
     expect(codeowners).toContain(
-      "/test/scripts/dependency-change-awareness-workflow.test.ts @openclaw/openclaw-secops",
+      "/test/scripts/dependency-change-awareness-workflow.test.ts @astroclaw/astroclaw-secops",
     );
   });
 });

@@ -1,7 +1,7 @@
 import type { proto } from "baileys";
 import { extractMessageContent, getContentType, normalizeMessageContent } from "baileys";
-import { formatLocationText, type NormalizedLocation } from "openclaw/plugin-sdk/channel-inbound";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { formatLocationText, type NormalizedLocation } from "astroclaw/plugin-sdk/channel-inbound";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
 import { resolveComparableIdentity, type WhatsAppReplyContext } from "../identity.js";
 import { jidToE164 } from "../text-runtime.js";
 import { parseVcard } from "../vcard.js";

@@ -1,7 +1,7 @@
-import OpenClawDiscovery
+import AstroclawDiscovery
 import SwiftUI
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite(.serialized)
 @MainActor

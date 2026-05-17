@@ -3,8 +3,8 @@ summary: "Delegate gateway authentication to a trusted reverse proxy (Pomerium, 
 title: "Trusted proxy auth"
 sidebarTitle: "Trusted proxy auth"
 read_when:
-  - Running OpenClaw behind an identity-aware proxy
-  - Setting up Pomerium, Caddy, or nginx with OAuth in front of OpenClaw
+  - Running Astroclaw behind an identity-aware proxy
+  - Setting up Pomerium, Caddy, or nginx with OAuth in front of Astroclaw
   - Fixing WebSocket 1008 unauthorized errors with reverse proxy setups
   - Deciding where to set HSTS and other HTTP hardening headers
 ---
@@ -17,7 +17,7 @@ read_when:
 
 Use `trusted-proxy` auth mode when:
 
-- You run OpenClaw behind an **identity-aware proxy** (Pomerium, Caddy + OAuth, nginx + oauth2-proxy, Traefik + forward auth).
+- You run Astroclaw behind an **identity-aware proxy** (Pomerium, Caddy + OAuth, nginx + oauth2-proxy, Traefik + forward auth).
 - Your proxy handles all authentication and passes user identity via headers.
 - You're in a Kubernetes or container environment where the proxy is the only path to the Gateway.
 - You're hitting WebSocket `1008 unauthorized` errors because browsers can't pass tokens in WS payloads.
@@ -39,10 +39,10 @@ Use `trusted-proxy` auth mode when:
     Proxy adds a header with the authenticated user identity (e.g., `x-forwarded-user: nick@example.com`).
   </Step>
   <Step title="Gateway verifies trusted source">
-    OpenClaw checks that the request came from a **trusted proxy IP** (configured in `gateway.trustedProxies`).
+    Astroclaw checks that the request came from a **trusted proxy IP** (configured in `gateway.trustedProxies`).
   </Step>
   <Step title="Gateway extracts identity">
-    OpenClaw extracts the user identity from the configured header.
+    Astroclaw extracts the user identity from the configured header.
   </Step>
   <Step title="Authorize">
     If everything checks out, the request is authorized.
@@ -96,7 +96,7 @@ Implications:
 - Trusted-proxy auth rejects loopback-source requests (`127.0.0.1`, `::1`, loopback CIDRs) by default.
 - Same-host loopback reverse proxies do **not** satisfy trusted-proxy auth unless you explicitly set `gateway.auth.trustedProxy.allowLoopback = true` and include the loopback address in `gateway.trustedProxies`.
 - `allowLoopback` trusts local processes on the Gateway host to the same degree as the reverse proxy. Enable it only when the Gateway is still firewalled from direct remote access and the local proxy strips or overwrites client-supplied identity headers.
-- Internal Gateway clients that do not travel through the reverse proxy should use `gateway.auth.password` / `OPENCLAW_GATEWAY_PASSWORD`, not trusted-proxy identity headers.
+- Internal Gateway clients that do not travel through the reverse proxy should use `gateway.auth.password` / `ASTROCLAW_GATEWAY_PASSWORD`, not trusted-proxy identity headers.
 - Non-loopback Control UI deployments still need explicit `gateway.controlUi.allowedOrigins`.
 - **Forwarded-header evidence overrides loopback locality for local direct fallback.** If a request arrives on loopback but carries `X-Forwarded-For` / `X-Forwarded-Host` / `X-Forwarded-Proto` headers pointing at a non-local origin, that evidence disqualifies local-direct password fallback and device-identity gating. With `allowLoopback: true`, trusted-proxy auth can still accept the request as a same-host proxy request, while `requiredHeaders` and `allowUsers` continue to apply.
 
@@ -137,7 +137,7 @@ Use one TLS termination point and apply HSTS there.
 
     - Good fit for internet-facing deployments.
     - Keeps certificate + HTTP hardening policy in one place.
-    - OpenClaw can stay on loopback HTTP behind the proxy.
+    - Astroclaw can stay on loopback HTTP behind the proxy.
 
     Example header value:
 
@@ -147,7 +147,7 @@ Use one TLS termination point and apply HSTS there.
 
   </Tab>
   <Tab title="Gateway TLS termination">
-    If OpenClaw itself serves HTTPS directly (no TLS-terminating proxy), set:
+    If Astroclaw itself serves HTTPS directly (no TLS-terminating proxy), set:
 
     ```json5
     {
@@ -201,8 +201,8 @@ Use one TLS termination point and apply HSTS there.
 
     ```yaml
     routes:
-      - from: https://openclaw.example.com
-        to: http://openclaw-gateway:18789
+      - from: https://astroclaw.example.com
+        to: http://astroclaw-gateway:18789
         policy:
           - allow:
               or:
@@ -233,11 +233,11 @@ Use one TLS termination point and apply HSTS there.
     Caddyfile snippet:
 
     ```
-    openclaw.example.com {
+    astroclaw.example.com {
         authenticate with oauth2_provider
         authorize with policy1
 
-        reverse_proxy openclaw:18789 {
+        reverse_proxy astroclaw:18789 {
             header_up X-Forwarded-User {http.auth.user.email}
         }
     }
@@ -269,7 +269,7 @@ Use one TLS termination point and apply HSTS there.
         auth_request /oauth2/auth;
         auth_request_set $user $upstream_http_x_auth_request_email;
 
-        proxy_pass http://openclaw:18789;
+        proxy_pass http://astroclaw:18789;
         proxy_set_header X-Auth-Request-Email $user;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -298,34 +298,34 @@ Use one TLS termination point and apply HSTS there.
 
 ## Mixed token configuration
 
-OpenClaw rejects ambiguous configurations where both a `gateway.auth.token` (or `OPENCLAW_GATEWAY_TOKEN`) and `trusted-proxy` mode are active at the same time. Mixed token configs can cause loopback requests to silently authenticate on the wrong auth path.
+Astroclaw rejects ambiguous configurations where both a `gateway.auth.token` (or `ASTROCLAW_GATEWAY_TOKEN`) and `trusted-proxy` mode are active at the same time. Mixed token configs can cause loopback requests to silently authenticate on the wrong auth path.
 
 If you see a `mixed_trusted_proxy_token` error on startup:
 
 - Remove the shared token when using trusted-proxy mode, or
 - Switch `gateway.auth.mode` to `"token"` if you intend token-based auth.
 
-Loopback trusted-proxy identity headers still fail closed: same-host callers are not silently authenticated as proxy users. Internal OpenClaw callers that bypass the proxy may authenticate with `gateway.auth.password` / `OPENCLAW_GATEWAY_PASSWORD` instead. Token fallback remains intentionally unsupported in trusted-proxy mode.
+Loopback trusted-proxy identity headers still fail closed: same-host callers are not silently authenticated as proxy users. Internal Astroclaw callers that bypass the proxy may authenticate with `gateway.auth.password` / `ASTROCLAW_GATEWAY_PASSWORD` instead. Token fallback remains intentionally unsupported in trusted-proxy mode.
 
 ## Operator scopes header
 
-Trusted-proxy auth is an **identity-bearing** HTTP mode, so callers may optionally declare operator scopes with `x-openclaw-scopes`.
+Trusted-proxy auth is an **identity-bearing** HTTP mode, so callers may optionally declare operator scopes with `x-astroclaw-scopes`.
 
 Examples:
 
-- `x-openclaw-scopes: operator.read`
-- `x-openclaw-scopes: operator.read,operator.write`
-- `x-openclaw-scopes: operator.admin,operator.write`
+- `x-astroclaw-scopes: operator.read`
+- `x-astroclaw-scopes: operator.read,operator.write`
+- `x-astroclaw-scopes: operator.admin,operator.write`
 
 Behavior:
 
-- When the header is present, OpenClaw honors the declared scope set.
+- When the header is present, Astroclaw honors the declared scope set.
 - When the header is present but empty, the request declares **no** operator scopes.
 - When the header is absent, normal identity-bearing HTTP APIs fall back to the standard operator default scope set.
-- Gateway-auth **plugin HTTP routes** are narrower by default: when `x-openclaw-scopes` is absent, their runtime scope falls back to `operator.write`.
+- Gateway-auth **plugin HTTP routes** are narrower by default: when `x-astroclaw-scopes` is absent, their runtime scope falls back to `operator.write`.
 - Browser-origin HTTP requests still have to pass `gateway.controlUi.allowedOrigins` (or deliberate Host-header fallback mode) even after trusted-proxy auth succeeds.
 
-Practical rule: send `x-openclaw-scopes` explicitly when you want a trusted-proxy request to be narrower than the defaults, or when a gateway-auth plugin route needs something stronger than write scope.
+Practical rule: send `x-astroclaw-scopes` explicitly when you want a trusted-proxy request to be narrower than the defaults, or when a gateway-auth plugin route needs something stronger than write scope.
 
 ## Security checklist
 
@@ -343,7 +343,7 @@ Before enabling trusted-proxy auth, verify:
 
 ## Security audit
 
-`openclaw security audit` will flag trusted-proxy auth with a **critical** severity finding. This is intentional — it's a reminder that you're delegating security to your proxy setup.
+`astroclaw security audit` will flag trusted-proxy auth with a **critical** severity finding. This is intentional — it's a reminder that you're delegating security to your proxy setup.
 
 The audit checks for:
 
@@ -366,7 +366,7 @@ The audit checks for:
 
   </Accordion>
   <Accordion title="trusted_proxy_loopback_source">
-    OpenClaw rejected a loopback-source trusted-proxy request.
+    Astroclaw rejected a loopback-source trusted-proxy request.
 
     Check:
 
@@ -429,8 +429,8 @@ If you're moving from token auth to trusted-proxy:
   <Step title="Test the proxy independently">
     Test the proxy setup independently (curl with headers).
   </Step>
-  <Step title="Update OpenClaw config">
-    Update OpenClaw config with trusted-proxy auth.
+  <Step title="Update Astroclaw config">
+    Update Astroclaw config with trusted-proxy auth.
   </Step>
   <Step title="Restart the Gateway">
     Restart the Gateway.
@@ -439,7 +439,7 @@ If you're moving from token auth to trusted-proxy:
     Test WebSocket connections from the Control UI.
   </Step>
   <Step title="Audit">
-    Run `openclaw security audit` and review findings.
+    Run `astroclaw security audit` and review findings.
   </Step>
 </Steps>
 

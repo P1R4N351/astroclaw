@@ -1,9 +1,9 @@
-import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "openclaw/plugin-sdk/approval-handler-adapter-runtime";
-import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract";
-import { registerChannelRuntimeContext } from "openclaw/plugin-sdk/channel-runtime-context";
-import type { NativeCommandSpec } from "openclaw/plugin-sdk/command-auth-native";
-import type { DiscordAccountConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "astroclaw/plugin-sdk/approval-handler-adapter-runtime";
+import type { ChannelRuntimeSurface } from "astroclaw/plugin-sdk/channel-contract";
+import { registerChannelRuntimeContext } from "astroclaw/plugin-sdk/channel-runtime-context";
+import type { NativeCommandSpec } from "astroclaw/plugin-sdk/command-auth-native";
+import type { DiscordAccountConfig, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
 import { isDiscordExecApprovalClientEnabled } from "../exec-approvals.js";
 import {
   type BaseCommand,
@@ -31,7 +31,7 @@ import type { ThreadBindingManager } from "./thread-bindings.types.js";
 type DiscordVoiceManager = import("../voice/manager.js").DiscordVoiceManager;
 
 export function createDiscordProviderInteractionSurface(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   discordConfig: DiscordAccountConfig;
   accountId: string;
   token: string;

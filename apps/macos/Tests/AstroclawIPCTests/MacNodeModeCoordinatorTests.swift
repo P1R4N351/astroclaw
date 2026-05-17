@@ -1,7 +1,7 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct MacNodeModeCoordinatorTests {
     @Test func `remote mode does not advertise browser proxy`() {
@@ -12,10 +12,10 @@ struct MacNodeModeCoordinatorTests {
             connectionMode: .remote)
         let commands = MacNodeModeCoordinator.resolvedCommands(caps: caps)
 
-        #expect(!caps.contains(OpenClawCapability.browser.rawValue))
-        #expect(!commands.contains(OpenClawBrowserCommand.proxy.rawValue))
-        #expect(commands.contains(OpenClawCanvasCommand.present.rawValue))
-        #expect(commands.contains(OpenClawSystemCommand.notify.rawValue))
+        #expect(!caps.contains(AstroclawCapability.browser.rawValue))
+        #expect(!commands.contains(AstroclawBrowserCommand.proxy.rawValue))
+        #expect(commands.contains(AstroclawCanvasCommand.present.rawValue))
+        #expect(commands.contains(AstroclawSystemCommand.notify.rawValue))
     }
 
     @Test func `local mode advertises browser proxy when enabled`() {
@@ -26,8 +26,8 @@ struct MacNodeModeCoordinatorTests {
             connectionMode: .local)
         let commands = MacNodeModeCoordinator.resolvedCommands(caps: caps)
 
-        #expect(caps.contains(OpenClawCapability.browser.rawValue))
-        #expect(commands.contains(OpenClawBrowserCommand.proxy.rawValue))
+        #expect(caps.contains(AstroclawCapability.browser.rawValue))
+        #expect(commands.contains(AstroclawBrowserCommand.proxy.rawValue))
     }
 
     @Test func `tls pin store key uses default wss port`() throws {

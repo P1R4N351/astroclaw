@@ -1,4 +1,4 @@
-import { describeOpenAICodexProviderAuthContract } from "openclaw/plugin-sdk/provider-test-contracts";
+import { describeOpenAICodexProviderAuthContract } from "astroclaw/plugin-sdk/provider-test-contracts";
 import { vi } from "vitest";
 
 const loginOpenAICodexOAuthMock = vi.hoisted(() => vi.fn());

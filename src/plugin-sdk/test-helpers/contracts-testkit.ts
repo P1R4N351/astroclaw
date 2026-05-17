@@ -1,11 +1,11 @@
 import type { PluginRegistryParams } from "../../plugins/registry-types.js";
-import type { OpenClawPluginApi } from "../plugin-entry.js";
+import type { AstroclawPluginApi } from "../plugin-entry.js";
 import {
   createPluginRecord,
   createPluginRegistry,
   registerProviderPlugins as registerProviders,
   requireRegisteredProvider as requireProvider,
-  type OpenClawConfig,
+  type AstroclawConfig,
   type PluginRecord,
   type PluginRuntime,
 } from "../testing.js";
@@ -15,7 +15,7 @@ import { uniqueSortedStrings } from "./string-utils.js";
 export { registerProviders, requireProvider, uniqueSortedStrings };
 
 export function createPluginRegistryFixture(
-  config = {} as OpenClawConfig,
+  config = {} as AstroclawConfig,
   params: { hostServices?: PluginRegistryParams["hostServices"] } = {},
 ) {
   return {
@@ -35,9 +35,9 @@ export function createPluginRegistryFixture(
 
 export function registerTestPlugin(params: {
   registry: ReturnType<typeof createPluginRegistry>;
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   record: PluginRecord;
-  register(api: OpenClawPluginApi): void;
+  register(api: AstroclawPluginApi): void;
 }) {
   params.registry.registry.plugins.push(params.record);
   params.register(
@@ -49,13 +49,13 @@ export function registerTestPlugin(params: {
 
 export function registerVirtualTestPlugin(params: {
   registry: ReturnType<typeof createPluginRegistry>;
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   id: string;
   name: string;
   source?: string;
   kind?: PluginRecord["kind"];
   contracts?: PluginRecord["contracts"];
-  register(this: void, api: OpenClawPluginApi): void;
+  register(this: void, api: AstroclawPluginApi): void;
 }) {
   registerTestPlugin({
     registry: params.registry,

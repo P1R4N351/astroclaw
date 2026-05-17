@@ -1,5 +1,5 @@
 /**
- * `@openclaw/oc-path` — substrate package public surface.
+ * `@astroclaw/oc-path` — substrate package public surface.
  *
  * **Strategic frame**: workspace files are byte-stable and addressable
  * via the `oc://` scheme — the addressing scheme is universal across
@@ -21,11 +21,11 @@
  * the AST carries its `kind` discriminator and the universal verbs
  * dispatch internally.
  *
- * @module @openclaw/oc-path
+ * @module @astroclaw/oc-path
  */
 
 /**
- * SDK version this build of `@openclaw/oc-path` exposes. Bumped on
+ * SDK version this build of `@astroclaw/oc-path` exposes. Bumped on
  * every breaking change to AST shape, OcPath syntax, or universal
  * verbs (`resolveOcPath`, `setOcPath`, `findOcPaths`, `parseXxx`,
  * `emitXxx`). Plugin packs that depend on the substrate declare the

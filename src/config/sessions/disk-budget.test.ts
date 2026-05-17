@@ -34,7 +34,7 @@ function expectBudgetResult(
 
 describe("enforceSessionDiskBudget", () => {
   it("does not treat referenced transcripts with marker-like session IDs as archived artifacts", async () => {
-    await withTempDir({ prefix: "openclaw-disk-budget-" }, async (dir) => {
+    await withTempDir({ prefix: "astroclaw-disk-budget-" }, async (dir) => {
       const storePath = path.join(dir, "sessions.json");
       const sessionId = "keep.deleted.keep";
       const activeKey = "agent:main:main";
@@ -66,7 +66,7 @@ describe("enforceSessionDiskBudget", () => {
   });
 
   it("removes true archived transcript artifacts while preserving referenced primary transcripts", async () => {
-    await withTempDir({ prefix: "openclaw-disk-budget-" }, async (dir) => {
+    await withTempDir({ prefix: "astroclaw-disk-budget-" }, async (dir) => {
       const storePath = path.join(dir, "sessions.json");
       const sessionId = "keep";
       const transcriptPath = path.join(dir, `${sessionId}.jsonl`);
@@ -103,7 +103,7 @@ describe("enforceSessionDiskBudget", () => {
   });
 
   it("preserves runtime-provided session keys when removing entries for disk budget", async () => {
-    await withTempDir({ prefix: "openclaw-disk-budget-" }, async (dir) => {
+    await withTempDir({ prefix: "astroclaw-disk-budget-" }, async (dir) => {
       const storePath = path.join(dir, "sessions.json");
       const childKey = "agent:main:subagent:pending-budget";
       const removableKey = "agent:main:old-removable";
@@ -140,7 +140,7 @@ describe("enforceSessionDiskBudget", () => {
   });
 
   it("removes unreferenced compaction checkpoint artifacts under pressure", async () => {
-    await withTempDir({ prefix: "openclaw-disk-budget-" }, async (dir) => {
+    await withTempDir({ prefix: "astroclaw-disk-budget-" }, async (dir) => {
       const storePath = path.join(dir, "sessions.json");
       const sessionId = "keep";
       const transcriptPath = path.join(dir, `${sessionId}.jsonl`);
@@ -198,7 +198,7 @@ describe("enforceSessionDiskBudget", () => {
   });
 
   it("removes unreferenced trajectory sidecars while preserving referenced ones", async () => {
-    await withTempDir({ prefix: "openclaw-disk-budget-" }, async (dir) => {
+    await withTempDir({ prefix: "astroclaw-disk-budget-" }, async (dir) => {
       const storePath = path.join(dir, "sessions.json");
       const sessionId = "keep";
       const transcriptPath = path.join(dir, `${sessionId}.jsonl`);
@@ -245,7 +245,7 @@ describe("enforceSessionDiskBudget", () => {
   });
 
   it("does not evict protected thread session entries under store pressure", async () => {
-    await withTempDir({ prefix: "openclaw-disk-budget-" }, async (dir) => {
+    await withTempDir({ prefix: "astroclaw-disk-budget-" }, async (dir) => {
       const storePath = path.join(dir, "sessions.json");
       const protectedKey = "agent:main:slack:channel:C123:thread:1710000000.000100";
       const removableKey = "agent:main:subagent:old-worker";

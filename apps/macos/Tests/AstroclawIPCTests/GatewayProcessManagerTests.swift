@@ -1,7 +1,7 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite(.serialized)
 @MainActor
@@ -38,7 +38,7 @@ struct GatewayProcessManagerTests {
 
     @Test func `attaches to existing gateway without spawning launchd`() async throws {
         let port = 19097
-        try await TestIsolation.withEnvValues(["OPENCLAW_GATEWAY_PORT": "\(port)"]) {
+        try await TestIsolation.withEnvValues(["ASTROCLAW_GATEWAY_PORT": "\(port)"]) {
             let healthData = Data(
                 """
                 {
@@ -87,8 +87,8 @@ struct GatewayProcessManagerTests {
                 sessionBox: WebSocketSessionBox(session: session))
             let descriptor = PortGuardian.Descriptor(
                 pid: 4242,
-                command: "openclaw-gateway",
-                executablePath: "/tmp/openclaw-gateway")
+                command: "astroclaw-gateway",
+                executablePath: "/tmp/astroclaw-gateway")
 
             let manager = GatewayProcessManager.shared
             await PortGuardian.shared.setTestingDescriptor(descriptor, forPort: port)
@@ -118,7 +118,7 @@ struct GatewayProcessManagerTests {
                 #expect(details.contains("port \(port)"))
                 #expect(details.contains("Telegram linked"))
                 #expect(details.contains("auth 1m"))
-                #expect(details.contains("pid 4242 openclaw-gateway @ /tmp/openclaw-gateway"))
+                #expect(details.contains("pid 4242 astroclaw-gateway @ /tmp/astroclaw-gateway"))
                 await cleanup()
             } catch {
                 await cleanup()

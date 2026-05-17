@@ -15,7 +15,7 @@ describe("renderQaMarkdownReport", () => {
             {
               name: "records transcript",
               status: "pass",
-              details: "USER Alice: hello\n\nASSISTANT OpenClaw: my precious build",
+              details: "USER Alice: hello\n\nASSISTANT Astroclaw: my precious build",
             },
           ],
         },
@@ -43,7 +43,7 @@ describe("renderQaMarkdownReport", () => {
 \`\`\`text
 USER Alice: hello
 
-ASSISTANT OpenClaw: my precious build
+ASSISTANT Astroclaw: my precious build
 \`\`\`
 
 `);

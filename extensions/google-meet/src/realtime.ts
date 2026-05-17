@@ -1,15 +1,15 @@
 import { spawn } from "node:child_process";
 import type { Writable } from "node:stream";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import type { PluginRuntime, RuntimeLogger } from "openclaw/plugin-sdk/plugin-runtime";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { PluginRuntime, RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";
 import {
   getRealtimeTranscriptionProvider,
   listRealtimeTranscriptionProviders,
   type RealtimeTranscriptionProviderConfig,
   type RealtimeTranscriptionProviderPlugin,
   type RealtimeTranscriptionSession,
-} from "openclaw/plugin-sdk/realtime-transcription";
+} from "astroclaw/plugin-sdk/realtime-transcription";
 import {
   createRealtimeVoiceAgentTalkbackQueue,
   createRealtimeVoiceBridgeSession,
@@ -36,9 +36,9 @@ import {
   type TalkEvent,
   type TalkEventInput,
   type TalkSessionController,
-} from "openclaw/plugin-sdk/realtime-voice";
+} from "astroclaw/plugin-sdk/realtime-voice";
 import {
-  consultOpenClawAgentForGoogleMeet,
+  consultAstroclawAgentForGoogleMeet,
   handleGoogleMeetRealtimeConsultToolCall,
   resolveGoogleMeetRealtimeTools,
 } from "./agent-consult.js";
@@ -265,7 +265,7 @@ function alawByteToLinear(value: number): number {
 
 export function resolveGoogleMeetRealtimeProvider(params: {
   config: GoogleMeetConfig;
-  fullConfig: OpenClawConfig;
+  fullConfig: AstroclawConfig;
   providers?: RealtimeVoiceProviderPlugin[];
 }): ResolvedRealtimeProvider {
   const providerId = params.config.realtime.voiceProvider ?? params.config.realtime.provider;
@@ -281,7 +281,7 @@ export function resolveGoogleMeetRealtimeProvider(params: {
 
 export function resolveGoogleMeetRealtimeTranscriptionProvider(params: {
   config: GoogleMeetConfig;
-  fullConfig: OpenClawConfig;
+  fullConfig: AstroclawConfig;
   providers?: RealtimeTranscriptionProviderPlugin[];
 }): ResolvedRealtimeTranscriptionProvider {
   const providers = params.providers ?? listRealtimeTranscriptionProviders(params.fullConfig);
@@ -315,7 +315,7 @@ export function resolveGoogleMeetRealtimeTranscriptionProvider(params: {
 
 export function buildGoogleMeetSpeakExactUserMessage(text: string): string {
   return [
-    "Speak this exact OpenClaw answer to the meeting, without adding, removing, or rephrasing words.",
+    "Speak this exact Astroclaw answer to the meeting, without adding, removing, or rephrasing words.",
     `Answer: ${JSON.stringify(text)}`,
   ].join("\n");
 }
@@ -450,7 +450,7 @@ export function summarizeGoogleMeetTalkEvents(
 
 export async function startCommandAgentAudioBridge(params: {
   config: GoogleMeetConfig;
-  fullConfig: OpenClawConfig;
+  fullConfig: AstroclawConfig;
   runtime: PluginRuntime;
   meetingSessionId: string;
   requesterSessionKey?: string;
@@ -690,7 +690,7 @@ export async function startCommandAgentAudioBridge(params: {
     responseStyle: "Brief, natural spoken answer for a live meeting.",
     fallbackText: "I hit an error while checking that. Please try again.",
     consult: ({ question, responseStyle }) =>
-      consultOpenClawAgentForGoogleMeet({
+      consultAstroclawAgentForGoogleMeet({
         config: params.config,
         fullConfig: params.fullConfig,
         runtime: params.runtime,
@@ -804,7 +804,7 @@ export async function startCommandAgentAudioBridge(params: {
 
 export async function startCommandRealtimeAudioBridge(params: {
   config: GoogleMeetConfig;
-  fullConfig: OpenClawConfig;
+  fullConfig: AstroclawConfig;
   runtime: PluginRuntime;
   meetingSessionId: string;
   requesterSessionKey?: string;
@@ -1100,7 +1100,7 @@ export async function startCommandRealtimeAudioBridge(params: {
     responseStyle: "Brief, natural spoken answer for a live meeting.",
     fallbackText: "I hit an error while checking that. Please try again.",
     consult: ({ question, responseStyle }) =>
-      consultOpenClawAgentForGoogleMeet({
+      consultAstroclawAgentForGoogleMeet({
         config: params.config,
         fullConfig: params.fullConfig,
         runtime: params.runtime,

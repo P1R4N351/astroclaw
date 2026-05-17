@@ -1,7 +1,7 @@
-import type { ChannelOutboundPayloadHint } from "openclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { DiscordExecApprovalConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-dispatch-runtime";
+import type { ChannelOutboundPayloadHint } from "astroclaw/plugin-sdk/channel-contract";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { DiscordExecApprovalConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
 import { resolveDiscordAccount } from "./accounts.js";
 import {
   getExecApprovalReplyMetadata,
@@ -27,7 +27,7 @@ function normalizeDiscordApproverId(value: string): string | undefined {
   }
 }
 
-function resolveDiscordOwnerApprovers(cfg: OpenClawConfig): string[] {
+function resolveDiscordOwnerApprovers(cfg: AstroclawConfig): string[] {
   const ownerAllowFrom = cfg.commands?.ownerAllowFrom;
   if (!Array.isArray(ownerAllowFrom) || ownerAllowFrom.length === 0) {
     return [];
@@ -39,7 +39,7 @@ function resolveDiscordOwnerApprovers(cfg: OpenClawConfig): string[] {
 }
 
 export function getDiscordExecApprovalApprovers(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   accountId?: string | null;
   configOverride?: DiscordExecApprovalConfig | null;
 }): string[] {
@@ -53,7 +53,7 @@ export function getDiscordExecApprovalApprovers(params: {
 }
 
 export function isDiscordExecApprovalClientEnabled(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   accountId?: string | null;
   configOverride?: DiscordExecApprovalConfig | null;
 }): boolean {
@@ -69,7 +69,7 @@ export function isDiscordExecApprovalClientEnabled(params: {
 }
 
 export function isDiscordExecApprovalApprover(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   accountId?: string | null;
   senderId?: string | null;
   configOverride?: DiscordExecApprovalConfig | null;
@@ -86,7 +86,7 @@ export function isDiscordExecApprovalApprover(params: {
 }
 
 export function shouldSuppressLocalDiscordExecApprovalPrompt(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   accountId?: string | null;
   payload: ReplyPayload;
   hint?: ChannelOutboundPayloadHint;

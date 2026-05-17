@@ -3,7 +3,7 @@ import type { PluginLoadOptions } from "../loader.js";
 
 const loadConfigMock = vi.fn();
 const applyPluginAutoEnableMock = vi.fn();
-const loadOpenClawPluginsMock = vi.fn();
+const loadAstroclawPluginsMock = vi.fn();
 
 let loadPluginMetadataRegistrySnapshot: typeof import("./metadata-registry-loader.js").loadPluginMetadataRegistrySnapshot;
 
@@ -17,7 +17,7 @@ vi.mock("../../config/plugin-auto-enable.js", () => ({
 }));
 
 vi.mock("../loader.js", () => ({
-  loadOpenClawPlugins: (...args: unknown[]) => loadOpenClawPluginsMock(...args),
+  loadAstroclawPlugins: (...args: unknown[]) => loadAstroclawPluginsMock(...args),
 }));
 
 vi.mock("../../agents/agent-scope.js", () => ({
@@ -25,11 +25,11 @@ vi.mock("../../agents/agent-scope.js", () => ({
   resolveDefaultAgentId: () => "default",
 }));
 
-function getOnlyLoadOpenClawPluginsOptions(): PluginLoadOptions {
-  expect(loadOpenClawPluginsMock).toHaveBeenCalledTimes(1);
-  const options = loadOpenClawPluginsMock.mock.calls[0]?.[0];
+function getOnlyLoadAstroclawPluginsOptions(): PluginLoadOptions {
+  expect(loadAstroclawPluginsMock).toHaveBeenCalledTimes(1);
+  const options = loadAstroclawPluginsMock.mock.calls[0]?.[0];
   if (!options || typeof options !== "object") {
-    throw new Error("expected loadOpenClawPlugins to receive plugin load options");
+    throw new Error("expected loadAstroclawPlugins to receive plugin load options");
   }
   return options as PluginLoadOptions;
 }
@@ -42,32 +42,32 @@ describe("loadPluginMetadataRegistrySnapshot", () => {
   beforeEach(() => {
     loadConfigMock.mockReset();
     applyPluginAutoEnableMock.mockReset();
-    loadOpenClawPluginsMock.mockReset();
+    loadAstroclawPluginsMock.mockReset();
     loadConfigMock.mockReturnValue({ plugins: {} });
     applyPluginAutoEnableMock.mockImplementation((params: { config: unknown }) => ({
       config: params.config,
       changes: [],
       autoEnabledReasons: {},
     }));
-    loadOpenClawPluginsMock.mockReturnValue({ plugins: [], diagnostics: [] });
+    loadAstroclawPluginsMock.mockReturnValue({ plugins: [], diagnostics: [] });
   });
 
   it("defaults to a non-activating validate snapshot", () => {
     loadPluginMetadataRegistrySnapshot({
       config: { plugins: {} },
       activationSourceConfig: { plugins: { allow: ["demo"] } },
-      env: { HOME: "/tmp/openclaw-home" } as NodeJS.ProcessEnv,
+      env: { HOME: "/tmp/astroclaw-home" } as NodeJS.ProcessEnv,
       workspaceDir: "/workspace",
       onlyPluginIds: ["demo"],
     });
 
-    const loadOptions = getOnlyLoadOpenClawPluginsOptions();
+    const loadOptions = getOnlyLoadAstroclawPluginsOptions();
     expect(loadOptions).toEqual({
       config: { plugins: {} },
       activationSourceConfig: { plugins: { allow: ["demo"] } },
       autoEnabledReasons: {},
       workspaceDir: "/workspace",
-      env: { HOME: "/tmp/openclaw-home" },
+      env: { HOME: "/tmp/astroclaw-home" },
       logger: loadOptions.logger,
       throwOnLoadError: true,
       cache: false,
@@ -84,7 +84,7 @@ describe("loadPluginMetadataRegistrySnapshot", () => {
       loadModules: false,
     });
 
-    const loadOptions = getOnlyLoadOpenClawPluginsOptions();
+    const loadOptions = getOnlyLoadAstroclawPluginsOptions();
     expect(loadOptions).toEqual({
       config: { plugins: {} },
       activationSourceConfig: { plugins: {} },
@@ -113,7 +113,7 @@ describe("loadPluginMetadataRegistrySnapshot", () => {
       workspaceDir: "/workspace",
     });
 
-    expect(getOnlyLoadOpenClawPluginsOptions()).toEqual({
+    expect(getOnlyLoadAstroclawPluginsOptions()).toEqual({
       config: { plugins: {} },
       activationSourceConfig: { plugins: {} },
       autoEnabledReasons: {},
@@ -156,7 +156,7 @@ describe("loadPluginMetadataRegistrySnapshot", () => {
     });
 
     expect(applyPluginAutoEnableMock).not.toHaveBeenCalled();
-    expect(getOnlyLoadOpenClawPluginsOptions()).toEqual({
+    expect(getOnlyLoadAstroclawPluginsOptions()).toEqual({
       config: { plugins: { allow: ["compat-provider"] } },
       activationSourceConfig: { plugins: { allow: ["raw-plugin"] } },
       autoEnabledReasons: {},
@@ -178,7 +178,7 @@ describe("loadPluginMetadataRegistrySnapshot", () => {
       onlyPluginIds: [],
     });
 
-    const loadOptions = getOnlyLoadOpenClawPluginsOptions();
+    const loadOptions = getOnlyLoadAstroclawPluginsOptions();
     expect(loadOptions).toEqual({
       config: { plugins: {} },
       activationSourceConfig: { plugins: {} },

@@ -1,4 +1,4 @@
-package ai.openclaw.app
+package ai.astroclaw.app
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -28,7 +28,7 @@ class NodeForegroundService : Service() {
   override fun onCreate() {
     super.onCreate()
     ensureChannel()
-    val initial = buildNotification(title = "OpenClaw Node", text = "Starting…")
+    val initial = buildNotification(title = "Astroclaw Node", text = "Starting…")
     startForegroundWithTypes(notification = initial)
 
     val runtime = (application as NodeApp).peekRuntime()
@@ -71,9 +71,9 @@ class NodeForegroundService : Service() {
           voiceCaptureMode = state.mode
           val title =
             when {
-              state.connected && state.mode == VoiceCaptureMode.TalkMode -> "OpenClaw Node · Talk"
-              state.connected -> "OpenClaw Node · Connected"
-              else -> "OpenClaw Node"
+              state.connected && state.mode == VoiceCaptureMode.TalkMode -> "Astroclaw Node · Talk"
+              state.connected -> "Astroclaw Node · Connected"
+              else -> "Astroclaw Node"
             }
           val text =
             (state.server?.let { "${state.status} · $it" } ?: state.status) +
@@ -108,7 +108,7 @@ class NodeForegroundService : Service() {
         startForegroundWithTypes(
           notification =
             buildNotification(
-              title = "OpenClaw Node",
+              title = "Astroclaw Node",
               text = if (voiceCaptureMode == VoiceCaptureMode.TalkMode) "Talk mode active" else "Connected",
             ),
         )
@@ -134,7 +134,7 @@ class NodeForegroundService : Service() {
         "Connection",
         NotificationManager.IMPORTANCE_LOW,
       ).apply {
-        description = "OpenClaw node connection status"
+        description = "Astroclaw node connection status"
         setShowBadge(false)
       }
     mgr.createNotificationChannel(channel)
@@ -192,9 +192,9 @@ class NodeForegroundService : Service() {
     private const val CHANNEL_ID = "connection"
     private const val NOTIFICATION_ID = 1
 
-    private const val ACTION_STOP = "ai.openclaw.app.action.STOP"
-    private const val ACTION_SET_VOICE_CAPTURE_MODE = "ai.openclaw.app.action.SET_VOICE_CAPTURE_MODE"
-    private const val EXTRA_VOICE_CAPTURE_MODE = "ai.openclaw.app.extra.VOICE_CAPTURE_MODE"
+    private const val ACTION_STOP = "ai.astroclaw.app.action.STOP"
+    private const val ACTION_SET_VOICE_CAPTURE_MODE = "ai.astroclaw.app.action.SET_VOICE_CAPTURE_MODE"
+    private const val EXTRA_VOICE_CAPTURE_MODE = "ai.astroclaw.app.extra.VOICE_CAPTURE_MODE"
 
     fun start(context: Context) {
       val intent = Intent(context, NodeForegroundService::class.java)

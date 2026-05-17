@@ -1,19 +1,19 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import type { Command } from "commander";
-import { runCommandWithRuntime, theme } from "openclaw/plugin-sdk/cli-runtime";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { runCommandWithRuntime, theme } from "astroclaw/plugin-sdk/cli-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   callGatewayFromCli,
   resolveNodeFromNodeList,
   type NodeMatchCandidate,
-} from "openclaw/plugin-sdk/gateway-runtime";
-import { defaultRuntime } from "openclaw/plugin-sdk/runtime";
+} from "astroclaw/plugin-sdk/gateway-runtime";
+import { defaultRuntime } from "astroclaw/plugin-sdk/runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { shortenHomePath } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { shortenHomePath } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { buildA2UITextJsonl, validateA2UIJsonl } from "./a2ui-jsonl.js";
 import { canvasSnapshotTempPath, parseCanvasSnapshotPayload } from "./cli-helpers.js";
 
@@ -401,7 +401,7 @@ export function registerNodesCanvasCommands(nodes: Command, deps: CanvasCliDepen
           const { version, messageCount } = validateA2UIJsonl(jsonl);
           if (version === "v0.9") {
             throw new Error(
-              "Detected A2UI v0.9 JSONL (createSurface). OpenClaw currently supports v0.8 only.",
+              "Detected A2UI v0.9 JSONL (createSurface). Astroclaw currently supports v0.8 only.",
             );
           }
           await invokeCanvas(deps, opts, "canvas.a2ui.pushJSONL", { jsonl });

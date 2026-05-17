@@ -10,9 +10,9 @@ import {
   type ChannelSetupDmPolicy,
   type ChannelSetupWizard,
   type DmPolicy,
-  type OpenClawConfig,
+  type AstroclawConfig,
   type SecretInput,
-} from "openclaw/plugin-sdk/setup";
+} from "astroclaw/plugin-sdk/setup";
 import { resolveDefaultFeishuAccountId, resolveFeishuAccount } from "./accounts.js";
 import type { AppRegistrationResult } from "./app-registration.js";
 import type { FeishuConfig, FeishuDomain } from "./types.js";
@@ -34,7 +34,7 @@ function normalizeString(value: unknown): string | undefined {
   return trimmed || undefined;
 }
 
-function isFeishuConfigured(cfg: OpenClawConfig): boolean {
+function isFeishuConfigured(cfg: AstroclawConfig): boolean {
   const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
 
   const isAppIdConfigured = (value: unknown): boolean => {
@@ -88,10 +88,10 @@ function formatFeishuStatusLine(status: "configured-unverified" | "needs-credent
  * - named account → writes to channels.feishu.accounts[accountId]
  */
 function patchFeishuConfig(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   accountId: string,
   patch: Record<string, unknown>,
-): OpenClawConfig {
+): AstroclawConfig {
   const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return patchTopLevelChannelConfigSection({
@@ -120,10 +120,10 @@ function patchFeishuConfig(
 }
 
 async function promptFeishuAllowFrom(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   accountId?: string;
   prompter: Parameters<NonNullable<ChannelSetupDmPolicy["promptAllowFrom"]>>[0]["prompter"];
-}): Promise<OpenClawConfig> {
+}): Promise<AstroclawConfig> {
   const feishuCfg = params.cfg.channels?.feishu as FeishuConfig | undefined;
   const resolvedAccountId = params.accountId ?? resolveDefaultFeishuAccountId(params.cfg);
   const account =
@@ -231,11 +231,11 @@ type FeishuSetupMethod = "manual" | "scan";
 // ---------------------------------------------------------------------------
 
 function applyNewAppSecurityPolicy(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   accountId: string,
   openId: string | undefined,
   groupPolicy: "allowlist" | "open" | "disabled",
-): OpenClawConfig {
+): AstroclawConfig {
   let next = cfg;
 
   if (openId) {
@@ -335,10 +335,10 @@ async function runScanToCreate(
 // ---------------------------------------------------------------------------
 
 async function runNewAppFlow(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   prompter: WizardPrompter;
   options: Parameters<NonNullable<ChannelSetupWizard["finalize"]>>[0]["options"];
-}): Promise<{ cfg: OpenClawConfig }> {
+}): Promise<{ cfg: AstroclawConfig }> {
   const { prompter, options } = params;
   let next = params.cfg;
 
@@ -445,10 +445,10 @@ async function runNewAppFlow(params: {
 // ---------------------------------------------------------------------------
 
 async function runEditFlow(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   prompter: WizardPrompter;
   options: Parameters<NonNullable<ChannelSetupWizard["finalize"]>>[0]["options"];
-}): Promise<{ cfg: OpenClawConfig } | null> {
+}): Promise<{ cfg: AstroclawConfig } | null> {
   const { prompter, options } = params;
   const next = params.cfg;
   const feishuCfg = next.channels?.feishu as FeishuConfig | undefined;
@@ -508,9 +508,9 @@ async function runEditFlow(params: {
 // ---------------------------------------------------------------------------
 
 export async function runFeishuLogin(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   prompter: WizardPrompter;
-}): Promise<OpenClawConfig> {
+}): Promise<AstroclawConfig> {
   const { cfg, prompter } = params;
   const options = {};
   const alreadyConfigured = isFeishuConfigured(cfg);

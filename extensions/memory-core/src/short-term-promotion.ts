@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { MemorySearchResult } from "openclaw/plugin-sdk/memory-core-host-runtime-files";
-import { formatMemoryDreamingDay } from "openclaw/plugin-sdk/memory-core-host-status";
-import { appendMemoryHostEvent } from "openclaw/plugin-sdk/memory-host-events";
-import { privateFileStore } from "openclaw/plugin-sdk/security-runtime";
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { MemorySearchResult } from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
+import { formatMemoryDreamingDay } from "astroclaw/plugin-sdk/memory-core-host-status";
+import { appendMemoryHostEvent } from "astroclaw/plugin-sdk/memory-host-events";
+import { privateFileStore } from "astroclaw/plugin-sdk/security-runtime";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   deriveConceptTags,
   MAX_CONCEPT_TAGS,
@@ -25,7 +25,7 @@ const DEFAULT_RECENCY_HALF_LIFE_DAYS = 14;
 export const DEFAULT_PROMOTION_MIN_SCORE = 0.75;
 export const DEFAULT_PROMOTION_MIN_RECALL_COUNT = 3;
 export const DEFAULT_PROMOTION_MIN_UNIQUE_QUERIES = 2;
-const PROMOTION_MARKER_PREFIX = "openclaw-memory-promotion:";
+const PROMOTION_MARKER_PREFIX = "astroclaw-memory-promotion:";
 const MAX_QUERY_HASHES = 32;
 const MAX_RECALL_DAYS = 16;
 const SHORT_TERM_STORE_RELATIVE_PATH = path.join("memory", ".dreams", "short-term-recall.json");
@@ -303,7 +303,7 @@ function isContaminatedDreamingSnippet(raw: string): boolean {
     return false;
   }
   if (
-    /<!--\s*openclaw-memory-promotion:/i.test(snippet) ||
+    /<!--\s*astroclaw-memory-promotion:/i.test(snippet) ||
     DREAMING_TRANSCRIPT_PROMPT_LINE_RE.test(snippet)
   ) {
     return true;
@@ -1501,8 +1501,8 @@ function relocateCandidateRange(
   };
 }
 
-const DREAMING_FENCE_START_RE = /<!--\s*openclaw:dreaming:[a-z][a-z0-9-]*:start\s*-->/i;
-const DREAMING_FENCE_END_RE = /<!--\s*openclaw:dreaming:[a-z][a-z0-9-]*:end\s*-->/i;
+const DREAMING_FENCE_START_RE = /<!--\s*astroclaw:dreaming:[a-z][a-z0-9-]*:start\s*-->/i;
+const DREAMING_FENCE_END_RE = /<!--\s*astroclaw:dreaming:[a-z][a-z0-9-]*:end\s*-->/i;
 
 function lineRangeOverlapsDreamingFence(
   lines: string[],
@@ -1555,7 +1555,7 @@ async function rehydratePromotionCandidate(
       continue;
     }
     // Managed dreaming blocks in daily memory files are scratchwork, not durable
-    // content. If rehydration lands inside an openclaw:dreaming fence (for example
+    // content. If rehydration lands inside an astroclaw:dreaming fence (for example
     // because file edits shifted lines between ranking and apply), refuse the
     // candidate so dream artifacts cannot be promoted into MEMORY.md.
     if (lineRangeOverlapsDreamingFence(lines, relocated.startLine, relocated.endLine)) {
@@ -1601,7 +1601,7 @@ function withTrailingNewline(content: string): string {
 
 function extractPromotionMarkers(memoryText: string): Set<string> {
   const markers = new Set<string>();
-  const matches = memoryText.matchAll(/<!--\s*openclaw-memory-promotion:([^\n]+?)\s*-->/gi);
+  const matches = memoryText.matchAll(/<!--\s*astroclaw-memory-promotion:([^\n]+?)\s*-->/gi);
   for (const match of matches) {
     const key = match[1]?.trim();
     if (key) {

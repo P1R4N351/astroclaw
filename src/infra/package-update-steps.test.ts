@@ -13,7 +13,7 @@ async function writePackageRoot(packageRoot: string, version: string): Promise<v
   await fs.mkdir(path.join(packageRoot, "dist"), { recursive: true });
   await fs.writeFile(
     path.join(packageRoot, "package.json"),
-    JSON.stringify({ name: "openclaw", version }),
+    JSON.stringify({ name: "astroclaw", version }),
     "utf8",
   );
   await fs.writeFile(path.join(packageRoot, "dist", "index.js"), "export {};\n", "utf8");
@@ -25,7 +25,7 @@ function createNpmTarget(globalRoot: string): ResolvedGlobalInstallTarget {
     manager: "npm",
     command: "npm",
     globalRoot,
-    packageRoot: path.join(globalRoot, "openclaw"),
+    packageRoot: path.join(globalRoot, "astroclaw"),
   };
 }
 
@@ -38,7 +38,7 @@ function createPnpmTarget(globalRoot: string): ResolvedGlobalInstallTarget {
     manager: "pnpm",
     command: "pnpm",
     globalRoot,
-    packageRoot: path.join(globalRoot, "openclaw"),
+    packageRoot: path.join(globalRoot, "astroclaw"),
   };
 }
 
@@ -63,10 +63,10 @@ function createRootRunner(globalRoot: string): CommandRunner {
 
 describe("runGlobalPackageUpdateSteps", () => {
   it("installs npm updates into a clean staged prefix before swapping the global package", async () => {
-    await withTempDir({ prefix: "openclaw-package-update-staged-" }, async (base) => {
+    await withTempDir({ prefix: "astroclaw-package-update-staged-" }, async (base) => {
       const prefix = path.join(base, "prefix");
       const globalRoot = path.join(prefix, "lib", "node_modules");
-      const packageRoot = path.join(globalRoot, "openclaw");
+      const packageRoot = path.join(globalRoot, "astroclaw");
       await writePackageRoot(packageRoot, "1.0.0");
       await fs.mkdir(path.join(packageRoot, "dist", "extensions", "qa-channel"), {
         recursive: true,
@@ -91,13 +91,13 @@ describe("runGlobalPackageUpdateSteps", () => {
           }
           expect(path.dirname(stagePrefix)).toBe(globalRoot);
           await writePackageRoot(
-            path.join(stagePrefix, "lib", "node_modules", "openclaw"),
+            path.join(stagePrefix, "lib", "node_modules", "astroclaw"),
             "2.0.0",
           );
           await fs.mkdir(path.join(stagePrefix, "bin"), { recursive: true });
           await fs.symlink(
-            "../lib/node_modules/openclaw/dist/index.js",
-            path.join(stagePrefix, "bin", "openclaw"),
+            "../lib/node_modules/astroclaw/dist/index.js",
+            path.join(stagePrefix, "bin", "astroclaw"),
           );
           return {
             name,
@@ -111,8 +111,8 @@ describe("runGlobalPackageUpdateSteps", () => {
 
       const result = await runGlobalPackageUpdateSteps({
         installTarget: createNpmTarget(globalRoot),
-        installSpec: "openclaw@2.0.0",
-        packageName: "openclaw",
+        installSpec: "astroclaw@2.0.0",
+        packageName: "astroclaw",
         packageRoot,
         runCommand: createRootRunner(globalRoot),
         runStep,
@@ -132,34 +132,34 @@ describe("runGlobalPackageUpdateSteps", () => {
       await expectPathMissing(
         path.join(packageRoot, "dist", "extensions", "qa-channel", "runtime-api.js"),
       );
-      await expect(fs.readlink(path.join(prefix, "bin", "openclaw"))).resolves.toBe(
-        "../lib/node_modules/openclaw/dist/index.js",
+      await expect(fs.readlink(path.join(prefix, "bin", "astroclaw"))).resolves.toBe(
+        "../lib/node_modules/astroclaw/dist/index.js",
       );
     });
   });
 
   it("accepts v-prefixed exact npm specs when verifying staged installs", async () => {
-    await withTempDir({ prefix: "openclaw-package-update-v-prefix-" }, async (base) => {
+    await withTempDir({ prefix: "astroclaw-package-update-v-prefix-" }, async (base) => {
       const prefix = path.join(base, "prefix");
       const globalRoot = path.join(prefix, "lib", "node_modules");
-      const packageRoot = path.join(globalRoot, "openclaw");
+      const packageRoot = path.join(globalRoot, "astroclaw");
       await writePackageRoot(packageRoot, "1.0.0");
 
       const runStep = vi.fn(async ({ name, argv, cwd }): Promise<PackageUpdateStepResult> => {
         if (name !== "global update") {
           throw new Error(`unexpected step ${name}`);
         }
-        expect(argv).toContain("openclaw@v2.0.0");
+        expect(argv).toContain("astroclaw@v2.0.0");
         const prefixIndex = argv.indexOf("--prefix");
         const stagePrefix = argv[prefixIndex + 1];
         if (!stagePrefix) {
           throw new Error("missing staged prefix");
         }
-        await writePackageRoot(path.join(stagePrefix, "lib", "node_modules", "openclaw"), "2.0.0");
+        await writePackageRoot(path.join(stagePrefix, "lib", "node_modules", "astroclaw"), "2.0.0");
         await fs.mkdir(path.join(stagePrefix, "bin"), { recursive: true });
         await fs.symlink(
-          "../lib/node_modules/openclaw/dist/index.js",
-          path.join(stagePrefix, "bin", "openclaw"),
+          "../lib/node_modules/astroclaw/dist/index.js",
+          path.join(stagePrefix, "bin", "astroclaw"),
         );
         return {
           name,
@@ -172,8 +172,8 @@ describe("runGlobalPackageUpdateSteps", () => {
 
       const result = await runGlobalPackageUpdateSteps({
         installTarget: createNpmTarget(globalRoot),
-        installSpec: "openclaw@v2.0.0",
-        packageName: "openclaw",
+        installSpec: "astroclaw@v2.0.0",
+        packageName: "astroclaw",
         packageRoot,
         runCommand: createRootRunner(globalRoot),
         runStep,
@@ -190,10 +190,10 @@ describe("runGlobalPackageUpdateSteps", () => {
   });
 
   it("swaps staged npm package roots through the copy fallback when rename crosses devices", async () => {
-    await withTempDir({ prefix: "openclaw-package-update-exdev-" }, async (base) => {
+    await withTempDir({ prefix: "astroclaw-package-update-exdev-" }, async (base) => {
       const prefix = path.join(base, "prefix");
       const globalRoot = path.join(prefix, "lib", "node_modules");
-      const packageRoot = path.join(globalRoot, "openclaw");
+      const packageRoot = path.join(globalRoot, "astroclaw");
 
       const realRename = fs.rename.bind(fs);
       let exdevMoves = 0;
@@ -204,8 +204,8 @@ describe("runGlobalPackageUpdateSteps", () => {
           const fromPath = String(from);
           if (
             exdevMoves === 0 &&
-            fromPath.includes(`${path.sep}.openclaw-update-stage-`) &&
-            path.basename(fromPath) === "openclaw" &&
+            fromPath.includes(`${path.sep}.astroclaw-update-stage-`) &&
+            path.basename(fromPath) === "astroclaw" &&
             String(to) === packageRoot
           ) {
             exdevMoves += 1;
@@ -217,8 +217,8 @@ describe("runGlobalPackageUpdateSteps", () => {
       try {
         const result = await runGlobalPackageUpdateSteps({
           installTarget: createNpmTarget(globalRoot),
-          installSpec: "openclaw@2.0.0",
-          packageName: "openclaw",
+          installSpec: "astroclaw@2.0.0",
+          packageName: "astroclaw",
           packageRoot,
           runCommand: createRootRunner(globalRoot),
           runStep: async ({ name, argv, cwd }) => {
@@ -228,7 +228,7 @@ describe("runGlobalPackageUpdateSteps", () => {
               throw new Error("missing staged prefix");
             }
             await writePackageRoot(
-              path.join(stagePrefix, "lib", "node_modules", "openclaw"),
+              path.join(stagePrefix, "lib", "node_modules", "astroclaw"),
               "2.0.0",
             );
             return {
@@ -255,10 +255,10 @@ describe("runGlobalPackageUpdateSteps", () => {
   });
 
   it("stages pnpm-detected updates through npm when the global root has npm prefix layout", async () => {
-    await withTempDir({ prefix: "openclaw-package-update-pnpm-staged-" }, async (base) => {
+    await withTempDir({ prefix: "astroclaw-package-update-pnpm-staged-" }, async (base) => {
       const prefix = path.join(base, "prefix");
       const globalRoot = path.join(prefix, "lib", "node_modules");
-      const packageRoot = path.join(globalRoot, "openclaw");
+      const packageRoot = path.join(globalRoot, "astroclaw");
       const staleChunk = path.join(packageRoot, "dist", "install-C_GuuNz6.js");
       await writePackageRoot(packageRoot, "1.0.0");
       await fs.writeFile(staleChunk, 'import "./install.runtime-Xom5hOHq.js";\n', "utf8");
@@ -271,14 +271,14 @@ describe("runGlobalPackageUpdateSteps", () => {
         expect(argv).toContain("i");
         expect(argv).toContain("-g");
         expect(argv).toContain("--prefix");
-        expect(argv).toContain("openclaw@2.0.0");
+        expect(argv).toContain("astroclaw@2.0.0");
         expect(argv).not.toContain("pnpm");
         const prefixIndex = argv.indexOf("--prefix");
         const stagePrefix = argv[prefixIndex + 1];
         if (!stagePrefix) {
           throw new Error("missing staged prefix");
         }
-        await writePackageRoot(path.join(stagePrefix, "lib", "node_modules", "openclaw"), "2.0.0");
+        await writePackageRoot(path.join(stagePrefix, "lib", "node_modules", "astroclaw"), "2.0.0");
         return {
           name,
           command: argv.join(" "),
@@ -290,8 +290,8 @@ describe("runGlobalPackageUpdateSteps", () => {
 
       const result = await runGlobalPackageUpdateSteps({
         installTarget: createPnpmTarget(globalRoot),
-        installSpec: "openclaw@2.0.0",
-        packageName: "openclaw",
+        installSpec: "astroclaw@2.0.0",
+        packageName: "astroclaw",
         packageRoot,
         runCommand: createRootRunner(globalRoot),
         runStep,
@@ -311,17 +311,17 @@ describe("runGlobalPackageUpdateSteps", () => {
   it("keeps Windows pnpm global roots on the pnpm update path", async () => {
     const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32");
     try {
-      await withTempDir({ prefix: "openclaw-package-update-win32-pnpm-" }, async (base) => {
+      await withTempDir({ prefix: "astroclaw-package-update-win32-pnpm-" }, async (base) => {
         const globalDir = path.join(base, "pnpm", "global");
         const globalRoot = path.join(globalDir, "5", "node_modules");
-        const packageRoot = path.join(globalRoot, "openclaw");
+        const packageRoot = path.join(globalRoot, "astroclaw");
         await writePackageRoot(packageRoot, "1.0.0");
 
         const runStep = vi.fn(async ({ name, argv, cwd }): Promise<PackageUpdateStepResult> => {
           if (name !== "global update") {
             throw new Error(`unexpected step ${name}`);
           }
-          expect(argv).toEqual(["pnpm", "add", "-g", "--global-dir", globalDir, "openclaw@2.0.0"]);
+          expect(argv).toEqual(["pnpm", "add", "-g", "--global-dir", globalDir, "astroclaw@2.0.0"]);
           await writePackageRoot(packageRoot, "2.0.0");
           return {
             name,
@@ -334,8 +334,8 @@ describe("runGlobalPackageUpdateSteps", () => {
 
         const result = await runGlobalPackageUpdateSteps({
           installTarget: createPnpmTarget(globalRoot),
-          installSpec: "openclaw@2.0.0",
-          packageName: "openclaw",
+          installSpec: "astroclaw@2.0.0",
+          packageName: "astroclaw",
           packageRoot,
           runCommand: createRootRunner(globalRoot),
           runStep,
@@ -352,19 +352,19 @@ describe("runGlobalPackageUpdateSteps", () => {
   });
 
   it("keeps a successful staged swap when old package cleanup hits a transient Windows native module error", async () => {
-    await withTempDir({ prefix: "openclaw-package-update-staged-cleanup-" }, async (base) => {
+    await withTempDir({ prefix: "astroclaw-package-update-staged-cleanup-" }, async (base) => {
       const prefix = path.join(base, "prefix");
       const globalRoot = path.join(prefix, "lib", "node_modules");
-      const packageRoot = path.join(globalRoot, "openclaw");
+      const packageRoot = path.join(globalRoot, "astroclaw");
       await writePackageRoot(packageRoot, "1.0.0");
 
       const realRm = fs.rm;
       const rmSpy = vi.spyOn(fs, "rm").mockImplementation(async (target, options) => {
         const targetPath = String(target);
         if (
-          targetPath.includes(`${path.sep}.openclaw-`) &&
-          !targetPath.includes(".openclaw-update-stage-") &&
-          !targetPath.includes(".openclaw-shim-backup-")
+          targetPath.includes(`${path.sep}.astroclaw-`) &&
+          !targetPath.includes(".astroclaw-update-stage-") &&
+          !targetPath.includes(".astroclaw-shim-backup-")
         ) {
           throw Object.assign(new Error("EPERM: operation not permitted, unlink native.node"), {
             code: "EPERM",
@@ -376,8 +376,8 @@ describe("runGlobalPackageUpdateSteps", () => {
       try {
         const result = await runGlobalPackageUpdateSteps({
           installTarget: createNpmTarget(globalRoot),
-          installSpec: "openclaw@2.0.0",
-          packageName: "openclaw",
+          installSpec: "astroclaw@2.0.0",
+          packageName: "astroclaw",
           packageRoot,
           runCommand: createRootRunner(globalRoot),
           runStep: async ({ name, argv, cwd }) => {
@@ -387,7 +387,7 @@ describe("runGlobalPackageUpdateSteps", () => {
               throw new Error("missing staged prefix");
             }
             await writePackageRoot(
-              path.join(stagePrefix, "lib", "node_modules", "openclaw"),
+              path.join(stagePrefix, "lib", "node_modules", "astroclaw"),
               "2.0.0",
             );
             return {
@@ -413,17 +413,17 @@ describe("runGlobalPackageUpdateSteps", () => {
   });
 
   it("does not run post-verify work when staged npm verification fails", async () => {
-    await withTempDir({ prefix: "openclaw-package-update-verify-" }, async (base) => {
+    await withTempDir({ prefix: "astroclaw-package-update-verify-" }, async (base) => {
       const prefix = path.join(base, "prefix");
       const globalRoot = path.join(prefix, "lib", "node_modules");
-      const packageRoot = path.join(globalRoot, "openclaw");
+      const packageRoot = path.join(globalRoot, "astroclaw");
       await writePackageRoot(packageRoot, "1.0.0");
       const postVerifyStep = vi.fn();
 
       const result = await runGlobalPackageUpdateSteps({
         installTarget: createNpmTarget(globalRoot),
-        installSpec: "openclaw@2.0.0",
-        packageName: "openclaw",
+        installSpec: "astroclaw@2.0.0",
+        packageName: "astroclaw",
         packageRoot,
         runCommand: createRootRunner(globalRoot),
         runStep: async ({ name, argv, cwd }) => {
@@ -433,7 +433,7 @@ describe("runGlobalPackageUpdateSteps", () => {
             throw new Error("missing staged prefix");
           }
           await writePackageRoot(
-            path.join(stagePrefix, "lib", "node_modules", "openclaw"),
+            path.join(stagePrefix, "lib", "node_modules", "astroclaw"),
             "1.5.0",
           );
           return {
@@ -468,11 +468,11 @@ describe("runGlobalPackageUpdateSteps", () => {
   it.runIf(process.platform !== "win32")(
     "restores the existing bin shim when staged shim replacement fails",
     async () => {
-      await withTempDir({ prefix: "openclaw-package-update-shim-rollback-" }, async (base) => {
+      await withTempDir({ prefix: "astroclaw-package-update-shim-rollback-" }, async (base) => {
         const prefix = path.join(base, "prefix");
         const globalRoot = path.join(prefix, "lib", "node_modules");
-        const packageRoot = path.join(globalRoot, "openclaw");
-        const targetShim = path.join(prefix, "bin", "openclaw");
+        const packageRoot = path.join(globalRoot, "astroclaw");
+        const targetShim = path.join(prefix, "bin", "astroclaw");
         await writePackageRoot(packageRoot, "1.0.0");
         await fs.mkdir(path.dirname(targetShim), { recursive: true });
         await fs.writeFile(targetShim, "old shim\n", "utf8");
@@ -493,8 +493,8 @@ describe("runGlobalPackageUpdateSteps", () => {
         try {
           result = await runGlobalPackageUpdateSteps({
             installTarget: createNpmTarget(globalRoot),
-            installSpec: "openclaw@2.0.0",
-            packageName: "openclaw",
+            installSpec: "astroclaw@2.0.0",
+            packageName: "astroclaw",
             packageRoot,
             runCommand: createRootRunner(globalRoot),
             runStep: async ({ name, argv, cwd }) => {
@@ -504,10 +504,10 @@ describe("runGlobalPackageUpdateSteps", () => {
                 throw new Error("missing staged prefix");
               }
               await writePackageRoot(
-                path.join(stagePrefix, "lib", "node_modules", "openclaw"),
+                path.join(stagePrefix, "lib", "node_modules", "astroclaw"),
                 "2.0.0",
               );
-              const stagedShim = path.join(stagePrefix, "bin", "openclaw");
+              const stagedShim = path.join(stagePrefix, "bin", "astroclaw");
               stagedShimForFailure = stagedShim;
               await fs.mkdir(path.dirname(stagedShim), { recursive: true });
               await fs.writeFile(stagedShim, "new shim\n", "utf8");
@@ -537,18 +537,18 @@ describe("runGlobalPackageUpdateSteps", () => {
   );
 
   it("cleans the staged npm prefix when the install command throws", async () => {
-    await withTempDir({ prefix: "openclaw-package-update-cleanup-" }, async (base) => {
+    await withTempDir({ prefix: "astroclaw-package-update-cleanup-" }, async (base) => {
       const prefix = path.join(base, "prefix");
       const globalRoot = path.join(prefix, "lib", "node_modules");
-      const packageRoot = path.join(globalRoot, "openclaw");
+      const packageRoot = path.join(globalRoot, "astroclaw");
       await writePackageRoot(packageRoot, "1.0.0");
 
       let stagePrefix: string | undefined;
       await expect(
         runGlobalPackageUpdateSteps({
           installTarget: createNpmTarget(globalRoot),
-          installSpec: "openclaw@2.0.0",
-          packageName: "openclaw",
+          installSpec: "astroclaw@2.0.0",
+          packageName: "astroclaw",
           packageRoot,
           runCommand: createRootRunner(globalRoot),
           runStep: async ({ argv }) => {

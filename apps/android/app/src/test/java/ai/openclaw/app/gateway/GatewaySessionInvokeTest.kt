@@ -1,4 +1,4 @@
-package ai.openclaw.app.gateway
+package ai.astroclaw.app.gateway
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -682,7 +682,7 @@ class GatewaySessionInvokeTest {
           permissions = emptyMap(),
           client =
             GatewayClientInfo(
-              id = "openclaw-android-test",
+              id = "astroclaw-android-test",
               displayName = "Android Test",
               version = "1.0.0-test",
               platform = "android",

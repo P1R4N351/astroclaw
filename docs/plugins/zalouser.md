@@ -1,12 +1,12 @@
 ---
 summary: "Zalo Personal plugin: QR login + messaging via native zca-js (plugin install + channel config + tool)"
 read_when:
-  - You want Zalo Personal (unofficial) support in OpenClaw
+  - You want Zalo Personal (unofficial) support in Astroclaw
   - You are configuring or developing the zalouser plugin
 title: "Zalo personal plugin"
 ---
 
-Zalo Personal support for OpenClaw via a plugin, using native `zca-js` to automate a normal Zalo user account.
+Zalo Personal support for Astroclaw via a plugin, using native `zca-js` to automate a normal Zalo user account.
 
 <Warning>
 Unofficial automation may lead to account suspension or ban. Use at your own risk.
@@ -29,7 +29,7 @@ No external `zca`/`openzca` CLI binary is required.
 ### Option A: install from npm
 
 ```bash
-openclaw plugins install @openclaw/zalouser
+astroclaw plugins install @astroclaw/zalouser
 ```
 
 Use the bare package to follow the current official release tag. Pin an exact
@@ -41,7 +41,7 @@ Restart the Gateway afterwards.
 
 ```bash
 PLUGIN_SRC=./path/to/local/zalouser-plugin
-openclaw plugins install "$PLUGIN_SRC"
+astroclaw plugins install "$PLUGIN_SRC"
 cd "$PLUGIN_SRC" && pnpm install
 ```
 
@@ -65,11 +65,11 @@ Channel config lives under `channels.zalouser` (not `plugins.entries.*`):
 ## CLI
 
 ```bash
-openclaw channels login --channel zalouser
-openclaw channels logout --channel zalouser
-openclaw channels status --probe
-openclaw message send --channel zalouser --target <threadId> --message "Hello from OpenClaw"
-openclaw directory peers list --channel zalouser --query "name"
+astroclaw channels login --channel zalouser
+astroclaw channels logout --channel zalouser
+astroclaw channels status --probe
+astroclaw message send --channel zalouser --target <threadId> --message "Hello from Astroclaw"
+astroclaw directory peers list --channel zalouser --query "name"
 ```
 
 ## Agent tool

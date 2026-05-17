@@ -1,6 +1,6 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.gateway.GatewaySession
 
 class SmsHandler(
   private val sms: SmsManager,

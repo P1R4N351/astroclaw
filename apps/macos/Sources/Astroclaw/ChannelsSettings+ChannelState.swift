@@ -1,4 +1,4 @@
-import OpenClawProtocol
+import AstroclawProtocol
 import SwiftUI
 
 extension ChannelsSettings {

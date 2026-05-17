@@ -21,9 +21,9 @@ describe("runtime context prompt submission", () => {
     const effectivePrompt = [
       "visible ask",
       "",
-      "<<<BEGIN_OPENCLAW_INTERNAL_CONTEXT>>>",
+      "<<<BEGIN_ASTROCLAW_INTERNAL_CONTEXT>>>",
       "secret runtime context",
-      "<<<END_OPENCLAW_INTERNAL_CONTEXT>>>",
+      "<<<END_ASTROCLAW_INTERNAL_CONTEXT>>>",
     ].join("\n");
 
     expect(
@@ -34,7 +34,7 @@ describe("runtime context prompt submission", () => {
     ).toEqual({
       prompt: "visible ask",
       runtimeContext:
-        "<<<BEGIN_OPENCLAW_INTERNAL_CONTEXT>>>\nsecret runtime context\n<<<END_OPENCLAW_INTERNAL_CONTEXT>>>",
+        "<<<BEGIN_ASTROCLAW_INTERNAL_CONTEXT>>>\nsecret runtime context\n<<<END_ASTROCLAW_INTERNAL_CONTEXT>>>",
     });
   });
 
@@ -57,11 +57,11 @@ describe("runtime context prompt submission", () => {
     });
 
     expect(parts).toEqual({
-      prompt: "Continue the OpenClaw runtime event.",
+      prompt: "Continue the Astroclaw runtime event.",
       runtimeContext: "internal event",
       runtimeOnly: true,
       runtimeSystemContext: [
-        "OpenClaw runtime event.",
+        "Astroclaw runtime event.",
         "This context is runtime-generated, not user-authored. Keep internal details private.",
         "",
         "internal event",
@@ -72,12 +72,12 @@ describe("runtime context prompt submission", () => {
   it("submits empty-transcript model prompts when persistence is suppressed separately", () => {
     expect(
       resolveRuntimeContextPromptParts({
-        effectivePrompt: "[OpenClaw room event]",
+        effectivePrompt: "[Astroclaw room event]",
         transcriptPrompt: "",
         emptyTranscriptMode: "model-prompt",
       }),
     ).toEqual({
-      prompt: "[OpenClaw room event]",
+      prompt: "[Astroclaw room event]",
     });
   });
 
@@ -123,15 +123,15 @@ describe("runtime context prompt submission", () => {
 
     expect(sendCustomMessage).toHaveBeenCalledWith(
       {
-        customType: "openclaw.runtime-context",
+        customType: "astroclaw.runtime-context",
         content: "secret runtime context",
         display: false,
-        details: { source: "openclaw-runtime-context" },
+        details: { source: "astroclaw-runtime-context" },
       },
       { deliverAs: "nextTurn" },
     );
     expect(sentMessages[0]?.content).not.toContain(
-      "OpenClaw runtime context for the immediately preceding user message.",
+      "Astroclaw runtime context for the immediately preceding user message.",
     );
     expect(sentMessages[0]?.content).not.toContain("not user-authored");
   });
@@ -140,7 +140,7 @@ describe("runtime context prompt submission", () => {
     const systemContext = buildRuntimeContextSystemContext("secret runtime context");
 
     expect(systemContext).toContain(
-      "OpenClaw runtime context for the immediately preceding user message.",
+      "Astroclaw runtime context for the immediately preceding user message.",
     );
     expect(systemContext).toContain("not user-authored");
     expect(systemContext).toContain("secret runtime context");
@@ -149,7 +149,7 @@ describe("runtime context prompt submission", () => {
   it("labels runtime-only events as system context", async () => {
     const { buildRuntimeEventSystemContext } = await import("./runtime-context-prompt.js");
 
-    expect(buildRuntimeEventSystemContext("internal event")).toContain("OpenClaw runtime event.");
+    expect(buildRuntimeEventSystemContext("internal event")).toContain("Astroclaw runtime event.");
     expect(buildRuntimeEventSystemContext("internal event")).toContain("not user-authored");
   });
 });

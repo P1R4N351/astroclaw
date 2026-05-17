@@ -6,7 +6,7 @@ import {
   callGatewayMock,
   resetSubagentsConfigOverride,
   setSubagentsConfigOverride,
-} from "./openclaw-tools.subagents.test-harness.js";
+} from "./astroclaw-tools.subagents.test-harness.js";
 import { addSubagentRunForTests, resetSubagentRegistryForTests } from "./subagent-registry.js";
 import { createPerSenderSessionConfig } from "./test-helpers/session-config.js";
 import { createSubagentsTool } from "./tools/subagents-tool.js";
@@ -72,7 +72,7 @@ async function expectLeafSubagentControlForbidden(params: {
   expect(callGatewayMock).not.toHaveBeenCalled();
 }
 
-describe("openclaw-tools: subagents scope isolation", () => {
+describe("astroclaw-tools: subagents scope isolation", () => {
   let storePath = "";
 
   beforeEach(() => {
@@ -81,7 +81,7 @@ describe("openclaw-tools: subagents scope isolation", () => {
     callGatewayMock.mockReset();
     storePath = path.join(
       os.tmpdir(),
-      `openclaw-subagents-scope-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
+      `astroclaw-subagents-scope-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
     );
     setSubagentsConfigOverride({
       session: createPerSenderSessionConfig({ store: storePath }),

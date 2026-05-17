@@ -1,6 +1,6 @@
 import "./test-helpers.js";
-import { formatInboundEnvelope } from "openclaw/plugin-sdk/channel-envelope";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatInboundEnvelope } from "astroclaw/plugin-sdk/channel-envelope";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createAcceptedWhatsAppSendResult,
@@ -24,7 +24,7 @@ vi.mock("./auto-reply/monitor/last-route.js", async () => {
   };
 });
 
-function makeCfg(storePath: string): OpenClawConfig {
+function makeCfg(storePath: string): AstroclawConfig {
   return {
     channels: { whatsapp: { allowFrom: ["*"] } },
     session: { store: storePath },
@@ -40,7 +40,7 @@ function makeReplyLogger() {
   } as unknown as Parameters<typeof createWebOnMessageHandler>[0]["replyLogger"];
 }
 
-function createHandlerForTest(opts: { cfg: OpenClawConfig; replyResolver: unknown }) {
+function createHandlerForTest(opts: { cfg: AstroclawConfig; replyResolver: unknown }) {
   const backgroundTasks = new Set<Promise<unknown>>();
   const replyLogger = makeReplyLogger();
   const handler = createWebOnMessageHandler({

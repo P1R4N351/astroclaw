@@ -4,7 +4,7 @@ description: Capture and automate macOS UI with the Peekaboo CLI.
 homepage: https://peekaboo.boo
 metadata:
   {
-    "openclaw":
+    "astroclaw":
       {
         "emoji": "👀",
         "os": ["darwin"],

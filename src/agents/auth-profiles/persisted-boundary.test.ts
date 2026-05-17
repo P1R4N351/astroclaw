@@ -112,7 +112,7 @@ describe("persisted auth profile boundary", () => {
           refresh: "refresh-token",
           expires: "later",
           oauthRef: {
-            source: "openclaw-credentials",
+            source: "astroclaw-credentials",
             provider: "openai-codex",
             id: "not-a-secret-id",
           },

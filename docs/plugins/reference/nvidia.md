@@ -1,5 +1,5 @@
 ---
-summary: "Adds NVIDIA model provider support to OpenClaw."
+summary: "Adds NVIDIA model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the nvidia plugin
 title: "NVIDIA plugin"
@@ -7,12 +7,12 @@ title: "NVIDIA plugin"
 
 # NVIDIA plugin
 
-Adds NVIDIA model provider support to OpenClaw.
+Adds NVIDIA model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/nvidia-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/nvidia-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

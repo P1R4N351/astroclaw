@@ -53,7 +53,7 @@ export type ReplyPayload = {
 export type ReplyPayloadMetadata = {
   assistantMessageIndex?: number;
   /**
-   * Internal OpenClaw notices generated after a runtime/provider failure are
+   * Internal Astroclaw notices generated after a runtime/provider failure are
    * not assistant source replies. Dispatch may deliver them even when normal
    * assistant source replies are message-tool-only; sendPolicy deny still wins.
    */

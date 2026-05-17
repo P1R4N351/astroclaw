@@ -1,7 +1,7 @@
-import { describeOpenClawGenerationToolRegistration } from "./openclaw-tools.generation.test-support.js";
+import { describeAstroclawGenerationToolRegistration } from "./astroclaw-tools.generation.test-support.js";
 
-describeOpenClawGenerationToolRegistration({
-  suiteName: "openclaw tools video generation registration",
+describeAstroclawGenerationToolRegistration({
+  suiteName: "astroclaw tools video generation registration",
   toolName: "video_generate",
   toolLabel: "a video-generation tool",
 });

@@ -1,9 +1,9 @@
 import type {
   ProviderDefaultThinkingPolicyContext,
   ProviderThinkingProfile,
-} from "openclaw/plugin-sdk/core";
-import { buildProviderReplayFamilyHooks } from "openclaw/plugin-sdk/provider-model-shared";
-import { buildProviderToolCompatFamilyHooks } from "openclaw/plugin-sdk/provider-tools";
+} from "astroclaw/plugin-sdk/core";
+import { buildProviderReplayFamilyHooks } from "astroclaw/plugin-sdk/provider-model-shared";
+import { buildProviderToolCompatFamilyHooks } from "astroclaw/plugin-sdk/provider-tools";
 import { createGoogleThinkingStreamWrapper, isGoogleGemini3ProModel } from "./thinking-api.js";
 
 export const GOOGLE_GEMINI_PROVIDER_HOOKS = {

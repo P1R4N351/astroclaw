@@ -1,28 +1,28 @@
-import OpenClawKit
+import AstroclawKit
 import Foundation
 import Testing
 
 @Suite struct CanvasA2UIActionTests {
     @Test func sanitizeTagValueIsStable() {
-        #expect(OpenClawCanvasA2UIAction.sanitizeTagValue("Hello World!") == "Hello_World_")
-        #expect(OpenClawCanvasA2UIAction.sanitizeTagValue("  ") == "-")
-        #expect(OpenClawCanvasA2UIAction.sanitizeTagValue("macOS 26.2") == "macOS_26.2")
+        #expect(AstroclawCanvasA2UIAction.sanitizeTagValue("Hello World!") == "Hello_World_")
+        #expect(AstroclawCanvasA2UIAction.sanitizeTagValue("  ") == "-")
+        #expect(AstroclawCanvasA2UIAction.sanitizeTagValue("macOS 26.2") == "macOS_26.2")
     }
 
     @Test func extractActionNameAcceptsNameOrAction() {
-        #expect(OpenClawCanvasA2UIAction.extractActionName(["name": "Hello"]) == "Hello")
-        #expect(OpenClawCanvasA2UIAction.extractActionName(["action": "Wave"]) == "Wave")
-        #expect(OpenClawCanvasA2UIAction.extractActionName(["name": "  ", "action": "Fallback"]) == "Fallback")
-        #expect(OpenClawCanvasA2UIAction.extractActionName(["action": " "]) == nil)
+        #expect(AstroclawCanvasA2UIAction.extractActionName(["name": "Hello"]) == "Hello")
+        #expect(AstroclawCanvasA2UIAction.extractActionName(["action": "Wave"]) == "Wave")
+        #expect(AstroclawCanvasA2UIAction.extractActionName(["name": "  ", "action": "Fallback"]) == "Fallback")
+        #expect(AstroclawCanvasA2UIAction.extractActionName(["action": " "]) == nil)
     }
 
     @Test func formatAgentMessageIsTokenEfficientAndUnambiguous() {
-        let messageContext = OpenClawCanvasA2UIAction.AgentMessageContext(
+        let messageContext = AstroclawCanvasA2UIAction.AgentMessageContext(
             actionName: "Get Weather",
             session: .init(key: "main", surfaceId: "main"),
             component: .init(id: "btnWeather", host: "Peter’s iPad", instanceId: "ipad16,6"),
             contextJSON: "{\"city\":\"Vienna\"}")
-        let msg = OpenClawCanvasA2UIAction.formatAgentMessage(messageContext)
+        let msg = AstroclawCanvasA2UIAction.formatAgentMessage(messageContext)
 
         #expect(msg.contains("CANVAS_A2UI "))
         #expect(msg.contains("action=Get_Weather"))

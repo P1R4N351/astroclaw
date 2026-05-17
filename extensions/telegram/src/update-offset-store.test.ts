@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withStateDirEnv } from "openclaw/plugin-sdk/test-env";
+import { withStateDirEnv } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import {
   deleteTelegramUpdateOffset,
@@ -10,7 +10,7 @@ import {
 
 describe("deleteTelegramUpdateOffset", () => {
   it("removes the offset file so a new bot starts fresh", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async () => {
+    await withStateDirEnv("astroclaw-tg-offset-", async () => {
       await writeTelegramUpdateOffset({ accountId: "default", updateId: 432_000_000 });
       expect(await readTelegramUpdateOffset({ accountId: "default" })).toBe(432_000_000);
 
@@ -20,14 +20,14 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("keeps a missing offset file absent after delete", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async () => {
+    await withStateDirEnv("astroclaw-tg-offset-", async () => {
       await deleteTelegramUpdateOffset({ accountId: "nonexistent" });
       expect(await readTelegramUpdateOffset({ accountId: "nonexistent" })).toBeNull();
     });
   });
 
   it("only removes the targeted account offset, leaving others intact", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async () => {
+    await withStateDirEnv("astroclaw-tg-offset-", async () => {
       await writeTelegramUpdateOffset({ accountId: "default", updateId: 100 });
       await writeTelegramUpdateOffset({ accountId: "alerts", updateId: 200 });
 
@@ -39,7 +39,7 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("returns null when stored offset was written by a different bot token", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async () => {
+    await withStateDirEnv("astroclaw-tg-offset-", async () => {
       await writeTelegramUpdateOffset({
         accountId: "default",
         updateId: 321,
@@ -62,7 +62,7 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("invokes onRotationDetected when the stored bot id no longer matches", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async () => {
+    await withStateDirEnv("astroclaw-tg-offset-", async () => {
       await writeTelegramUpdateOffset({
         accountId: "default",
         updateId: 1500,
@@ -91,7 +91,7 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("invokes onRotationDetected for legacy offsets without bot identity", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async ({ stateDir }) => {
+    await withStateDirEnv("astroclaw-tg-offset-", async ({ stateDir }) => {
       const legacyPath = path.join(stateDir, "telegram", "update-offset-default.json");
       await fs.mkdir(path.dirname(legacyPath), { recursive: true });
       await fs.writeFile(
@@ -122,7 +122,7 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("detects same-bot token rotation via the persisted fingerprint", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async () => {
+    await withStateDirEnv("astroclaw-tg-offset-", async () => {
       const original = "111111:original-secret";
       const rotated = "111111:rotated-secret";
 
@@ -161,7 +161,7 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("treats v2 bot-id-only offsets as stale when token identity cannot be verified", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async ({ stateDir }) => {
+    await withStateDirEnv("astroclaw-tg-offset-", async ({ stateDir }) => {
       const legacyPath = path.join(stateDir, "telegram", "update-offset-default.json");
       await fs.mkdir(path.dirname(legacyPath), { recursive: true });
       await fs.writeFile(
@@ -192,7 +192,7 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("awaits rotation cleanup before returning", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async () => {
+    await withStateDirEnv("astroclaw-tg-offset-", async () => {
       await writeTelegramUpdateOffset({
         accountId: "default",
         updateId: 42,
@@ -215,7 +215,7 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("treats legacy offset records without bot identity as stale when token is provided", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async ({ stateDir }) => {
+    await withStateDirEnv("astroclaw-tg-offset-", async ({ stateDir }) => {
       const legacyPath = path.join(stateDir, "telegram", "update-offset-default.json");
       await fs.mkdir(path.dirname(legacyPath), { recursive: true });
       await fs.writeFile(
@@ -234,7 +234,7 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("ignores invalid persisted update IDs from disk", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async ({ stateDir }) => {
+    await withStateDirEnv("astroclaw-tg-offset-", async ({ stateDir }) => {
       const offsetPath = path.join(stateDir, "telegram", "update-offset-default.json");
       await fs.mkdir(path.dirname(offsetPath), { recursive: true });
       await fs.writeFile(
@@ -254,7 +254,7 @@ describe("deleteTelegramUpdateOffset", () => {
   });
 
   it("rejects writing invalid update IDs", async () => {
-    await withStateDirEnv("openclaw-tg-offset-", async () => {
+    await withStateDirEnv("astroclaw-tg-offset-", async () => {
       await expect(
         writeTelegramUpdateOffset({ accountId: "default", updateId: -1 as number }),
       ).rejects.toThrow(/non-negative safe integer/i);

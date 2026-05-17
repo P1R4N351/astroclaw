@@ -1,5 +1,5 @@
-import { resolveClaudeThinkingProfile } from "openclaw/plugin-sdk/provider-model-shared";
-import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-types";
+import { resolveClaudeThinkingProfile } from "astroclaw/plugin-sdk/provider-model-shared";
+import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-types";
 import {
   applyAnthropicConfigDefaults,
   normalizeAnthropicProviderConfigForProvider,

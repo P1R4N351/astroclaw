@@ -38,7 +38,7 @@ function packagePluginAliases(packageName) {
 
 async function resolvePluginAliases(pluginDir, packageJson) {
   const aliases = new Set([path.basename(pluginDir), ...packagePluginAliases(packageJson.name)]);
-  const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
+  const manifestPath = path.join(pluginDir, "astroclaw.plugin.json");
   if (await pathExists(manifestPath)) {
     const manifest = await readJsonFile(manifestPath);
     if (typeof manifest.id === "string" && manifest.id) {
@@ -49,7 +49,7 @@ async function resolvePluginAliases(pluginDir, packageJson) {
 }
 
 function resolveAssetCommand(packageJson, phase) {
-  const assetScripts = packageJson.openclaw?.assetScripts;
+  const assetScripts = packageJson.astroclaw?.assetScripts;
   if (!assetScripts || typeof assetScripts !== "object") {
     return null;
   }

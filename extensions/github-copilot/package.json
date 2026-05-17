@@ -1,17 +1,17 @@
 {
-  "name": "@openclaw/github-copilot-provider",
+  "name": "@astroclaw/github-copilot-provider",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw GitHub Copilot provider plugin",
+  "description": "Astroclaw GitHub Copilot provider plugin",
   "type": "module",
   "dependencies": {
     "@clack/prompts": "1.4.0"
   },
   "devDependencies": {
     "@earendil-works/pi-ai": "0.74.0",
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

@@ -56,7 +56,7 @@ function buildScopeSelection(opts: UninstallOptions): {
 async function stopAndUninstallService(runtime: RuntimeEnv): Promise<boolean> {
   if (isNixMode) {
     runtime.error(
-      `Nix mode detected; service uninstall is disabled. Manage the service through your Nix profile instead, then run ${formatCliCommand("openclaw status")} to verify.`,
+      `Nix mode detected; service uninstall is disabled. Manage the service through your Nix profile instead, then run ${formatCliCommand("astroclaw status")} to verify.`,
     );
     return false;
   }
@@ -66,7 +66,7 @@ async function stopAndUninstallService(runtime: RuntimeEnv): Promise<boolean> {
     loaded = await service.isLoaded({ env: process.env });
   } catch (err) {
     runtime.error(
-      `Gateway service check failed: ${formatErrorMessage(err)}. Run ${formatCliCommand("openclaw gateway status --deep")} for service diagnostics.`,
+      `Gateway service check failed: ${formatErrorMessage(err)}. Run ${formatCliCommand("astroclaw gateway status --deep")} for service diagnostics.`,
     );
     return false;
   }
@@ -78,7 +78,7 @@ async function stopAndUninstallService(runtime: RuntimeEnv): Promise<boolean> {
     await service.stop({ env: process.env, stdout: process.stdout });
   } catch (err) {
     runtime.error(
-      `Gateway stop failed: ${formatErrorMessage(err)}. Run ${formatCliCommand("openclaw gateway status --deep")} before retrying uninstall.`,
+      `Gateway stop failed: ${formatErrorMessage(err)}. Run ${formatCliCommand("astroclaw gateway status --deep")} before retrying uninstall.`,
     );
   }
   try {
@@ -86,7 +86,7 @@ async function stopAndUninstallService(runtime: RuntimeEnv): Promise<boolean> {
     return true;
   } catch (err) {
     runtime.error(
-      `Gateway uninstall failed: ${formatErrorMessage(err)}. Run ${formatCliCommand("openclaw gateway status --deep")} for the service state.`,
+      `Gateway uninstall failed: ${formatErrorMessage(err)}. Run ${formatCliCommand("astroclaw gateway status --deep")} for the service state.`,
     );
     return false;
   }
@@ -96,14 +96,14 @@ async function removeMacApp(runtime: RuntimeEnv, dryRun?: boolean) {
   if (process.platform !== "darwin") {
     return;
   }
-  await removePath("/Applications/OpenClaw.app", runtime, {
+  await removePath("/Applications/Astroclaw.app", runtime, {
     dryRun,
-    label: "/Applications/OpenClaw.app",
+    label: "/Applications/Astroclaw.app",
   });
 }
 
 function logBackupRecommendation(runtime: RuntimeEnv) {
-  runtime.log(`Recommended first: ${formatCliCommand("openclaw backup create")}`);
+  runtime.log(`Recommended first: ${formatCliCommand("astroclaw backup create")}`);
 }
 
 export async function uninstallCommand(runtime: RuntimeEnv, opts: UninstallOptions) {
@@ -111,7 +111,7 @@ export async function uninstallCommand(runtime: RuntimeEnv, opts: UninstallOptio
   const interactive = !opts.nonInteractive;
   if (!interactive && !opts.yes) {
     runtime.error(
-      `Non-interactive uninstall requires --yes. Preview first with ${formatCliCommand("openclaw uninstall --dry-run --all")}.`,
+      `Non-interactive uninstall requires --yes. Preview first with ${formatCliCommand("astroclaw uninstall --dry-run --all")}.`,
     );
     runtime.exit(1);
     return;
@@ -133,12 +133,12 @@ export async function uninstallCommand(runtime: RuntimeEnv, opts: UninstallOptio
           label: "Gateway service",
           hint: "launchd / systemd / schtasks",
         },
-        { value: "state", label: "State + config", hint: "~/.openclaw" },
+        { value: "state", label: "State + config", hint: "~/.astroclaw" },
         { value: "workspace", label: "Workspace", hint: "agent files" },
         {
           value: "app",
           label: "macOS app",
-          hint: "/Applications/OpenClaw.app",
+          hint: "/Applications/Astroclaw.app",
         },
       ],
       initialValues: ["service", "state", "workspace"],

@@ -1,6 +1,6 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 
-// Prefer the OpenClawKit wrapper to keep gateway request payloads consistent.
-typealias AnyCodable = OpenClawKit.AnyCodable
-typealias InstanceIdentity = OpenClawKit.InstanceIdentity
+// Prefer the AstroclawKit wrapper to keep gateway request payloads consistent.
+typealias AnyCodable = AstroclawKit.AnyCodable
+typealias InstanceIdentity = AstroclawKit.InstanceIdentity

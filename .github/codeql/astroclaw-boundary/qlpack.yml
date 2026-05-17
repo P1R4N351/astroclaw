@@ -1,4 +1,4 @@
-name: openclaw/codeql-boundary-queries
+name: astroclaw/codeql-boundary-queries
 version: 0.0.0
 library: false
 dependencies:

@@ -7,10 +7,10 @@ let clearSlackAllowFromCacheForTest: typeof import("./auth.js").clearSlackAllowF
 let resolveSlackEffectiveAllowFrom: typeof import("./auth.js").resolveSlackEffectiveAllowFrom;
 let resolveSlackCommandIngress: typeof import("./auth.js").resolveSlackCommandIngress;
 
-vi.mock("openclaw/plugin-sdk/channel-ingress-runtime", async () => {
+vi.mock("astroclaw/plugin-sdk/channel-ingress-runtime", async () => {
   const actual = await vi.importActual<
-    typeof import("openclaw/plugin-sdk/channel-ingress-runtime")
-  >("openclaw/plugin-sdk/channel-ingress-runtime");
+    typeof import("astroclaw/plugin-sdk/channel-ingress-runtime")
+  >("astroclaw/plugin-sdk/channel-ingress-runtime");
   return {
     ...actual,
     readChannelIngressStoreAllowFromForDmPolicy: (...args: unknown[]) =>

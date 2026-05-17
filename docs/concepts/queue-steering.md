@@ -7,7 +7,7 @@ read_when:
 title: "Steering queue"
 ---
 
-When a normal prompt arrives while a session run is already streaming, OpenClaw
+When a normal prompt arrives while a session run is already streaming, Astroclaw
 tries to send that prompt into the active runtime by default when the queue mode
 is `steer`. No config entry and no queue directive are required for that default
 behavior. Pi and the native Codex app-server harness implement the delivery
@@ -28,12 +28,12 @@ This keeps tool results paired with the assistant message that requested them,
 then lets the next model call see the latest user input.
 
 The native Codex app-server harness exposes `turn/steer` instead of Pi's
-internal steering queue. OpenClaw batches queued prompts for the configured
+internal steering queue. Astroclaw batches queued prompts for the configured
 quiet window, then sends a single `turn/steer` request with all collected user
 input in arrival order.
 
 Codex review and manual compaction turns reject same-turn steering. When a
-runtime cannot accept steering in `steer` mode, OpenClaw waits for the active
+runtime cannot accept steering in `steer` mode, Astroclaw waits for the active
 run to finish before starting the prompt.
 
 This page explains queue-mode steering for normal inbound messages when the mode
@@ -57,10 +57,10 @@ If four users send messages while the agent is executing a tool call:
 - With default behavior, the active runtime receives all four messages in
   arrival order before its next model decision. Pi drains them at the next model
   boundary; Codex receives them as one batched `turn/steer`.
-- With `/queue collect`, OpenClaw does not steer. It waits until the active run
+- With `/queue collect`, Astroclaw does not steer. It waits until the active run
   ends, then creates a followup turn with compatible queued messages after the
   debounce window.
-- With `/queue interrupt`, OpenClaw aborts the active run and starts the newest
+- With `/queue interrupt`, Astroclaw aborts the active run and starts the newest
   message instead of steering.
 
 ## Scope

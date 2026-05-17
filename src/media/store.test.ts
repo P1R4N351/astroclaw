@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import JSZip from "jszip";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import sharp from "sharp";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { isPathWithinBase } from "../../test/helpers/paths.js";
@@ -14,7 +14,7 @@ describe("media store", () => {
   let tempHome: TempHomeEnv;
 
   beforeAll(async () => {
-    tempHome = await createTempHomeEnv("openclaw-test-home-");
+    tempHome = await createTempHomeEnv("astroclaw-test-home-");
     home = tempHome.home;
     store = await import("./store.js");
   });
@@ -343,7 +343,7 @@ describe("media store", () => {
         await withTempStore(async (store, home) => {
           const dir = await store.ensureMediaDir();
           expect(isPathWithinBase(home, dir)).toBe(true);
-          expect(path.normalize(dir)).toContain(`${path.sep}.openclaw${path.sep}media`);
+          expect(path.normalize(dir)).toContain(`${path.sep}.astroclaw${path.sep}media`);
           const stat = await fs.stat(dir);
           expect(stat.isDirectory()).toBe(true);
         });
@@ -477,7 +477,7 @@ describe("media store", () => {
             ),
           ).rejects.toThrow("Media exceeds 0MB limit");
 
-          const targetDir = path.join(home, ".openclaw", "media", "oversized-stream");
+          const targetDir = path.join(home, ".astroclaw", "media", "oversized-stream");
           const entries = await fs.readdir(targetDir).catch(() => []);
           expect(entries).toStrictEqual([]);
         });

@@ -15,7 +15,7 @@ import {
 } from "./telegram-ingress-spool.js";
 
 async function withTempSpool<T>(fn: (spoolDir: string) => Promise<T>): Promise<T> {
-  const spoolDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+  const spoolDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
   try {
     return await fn(spoolDir);
   } finally {

@@ -1,4 +1,4 @@
-import { mockPinnedHostnameResolution } from "openclaw/plugin-sdk/test-env";
+import { mockPinnedHostnameResolution } from "astroclaw/plugin-sdk/test-env";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { isValidXaiTtsVoice, XAI_BASE_URL, XAI_TTS_VOICES, xaiTTS } from "./tts.js";
 

@@ -1,5 +1,5 @@
 ---
-summary: "Adds Anthropic Vertex model provider support to OpenClaw."
+summary: "Adds Anthropic Vertex model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the anthropic-vertex plugin
 title: "Anthropic Vertex plugin"
@@ -7,11 +7,11 @@ title: "Anthropic Vertex plugin"
 
 # Anthropic Vertex plugin
 
-Adds Anthropic Vertex model provider support to OpenClaw.
+Adds Anthropic Vertex model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/anthropic-vertex-provider`
+- Package: `@astroclaw/anthropic-vertex-provider`
 - Install route: npm; ClawHub
 
 ## Surface

@@ -26,8 +26,8 @@ import { expandPackageDistImportClosure } from "./lib/package-dist-imports.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PACKAGE_ROOT = join(__dirname, "..");
-const DISABLE_POSTINSTALL_ENV = "OPENCLAW_DISABLE_BUNDLED_PLUGIN_POSTINSTALL";
-const DISABLE_PLUGIN_REGISTRY_MIGRATION_ENV = "OPENCLAW_DISABLE_PLUGIN_REGISTRY_MIGRATION";
+const DISABLE_POSTINSTALL_ENV = "ASTROCLAW_DISABLE_BUNDLED_PLUGIN_POSTINSTALL";
+const DISABLE_PLUGIN_REGISTRY_MIGRATION_ENV = "ASTROCLAW_DISABLE_PLUGIN_REGISTRY_MIGRATION";
 const DIST_INVENTORY_PATH = "dist/postinstall-inventory.json";
 const LEGACY_PLUGIN_RUNTIME_DEPS_DIR = "plugin-runtime-deps";
 const BAILEYS_MEDIA_FILE = join("node_modules", "baileys", "lib", "Utils", "messages-media.js");
@@ -130,14 +130,14 @@ function resolvePostinstallTildePath(input, homeDir) {
   return input;
 }
 
-function resolvePostinstallOpenClawHomeDir(env, getHomedir = homedir) {
+function resolvePostinstallAstroclawHomeDir(env, getHomedir = homedir) {
   const osHome = resolvePostinstallOsHomeDir(env, getHomedir);
-  const override = env?.OPENCLAW_HOME?.trim();
+  const override = env?.ASTROCLAW_HOME?.trim();
   return override ? pathResolve(resolvePostinstallTildePath(override, osHome)) : osHome;
 }
 
-function resolvePostinstallUserPath(input, openClawHome) {
-  return pathResolve(resolvePostinstallTildePath(input, openClawHome));
+function resolvePostinstallUserPath(input, astroClawHome) {
+  return pathResolve(resolvePostinstallTildePath(input, astroClawHome));
 }
 
 function readInstalledDistInventory(params = {}) {
@@ -281,7 +281,7 @@ function pruneEmptyDistDirectories(params = {}) {
 }
 
 function isLegacyInstalledPluginDependencyDirName(name) {
-  return name === "node_modules" || /^\.openclaw-install-stage(?:-[^/]+)?$/iu.test(name);
+  return name === "node_modules" || /^\.astroclaw-install-stage(?:-[^/]+)?$/iu.test(name);
 }
 
 function pruneLegacyInstalledPluginDependencyDirs(params) {
@@ -345,7 +345,7 @@ const pathDelimiter = process.platform === "win32" ? ";" : ":";
 export function collectLegacyPluginRuntimeDepsStateRoots(params = {}) {
   const env = params.env ?? process.env;
   const getHomedir = params.homedir ?? homedir;
-  const openClawHome = resolvePostinstallOpenClawHomeDir(env, getHomedir);
+  const astroClawHome = resolvePostinstallAstroclawHomeDir(env, getHomedir);
   const stateRoots = [];
   const addStateRoot = (root) => {
     if (root) {
@@ -353,19 +353,19 @@ export function collectLegacyPluginRuntimeDepsStateRoots(params = {}) {
     }
   };
 
-  const stateOverride = env?.OPENCLAW_STATE_DIR?.trim();
+  const stateOverride = env?.ASTROCLAW_STATE_DIR?.trim();
   if (stateOverride) {
-    addStateRoot(resolvePostinstallUserPath(stateOverride, openClawHome));
+    addStateRoot(resolvePostinstallUserPath(stateOverride, astroClawHome));
   }
-  const configPath = env?.OPENCLAW_CONFIG_PATH?.trim();
+  const configPath = env?.ASTROCLAW_CONFIG_PATH?.trim();
   if (configPath) {
-    addStateRoot(dirname(resolvePostinstallUserPath(configPath, openClawHome)));
+    addStateRoot(dirname(resolvePostinstallUserPath(configPath, astroClawHome)));
   }
-  addStateRoot(join(openClawHome, ".openclaw"));
-  addStateRoot(join(openClawHome, ".clawdbot"));
+  addStateRoot(join(astroClawHome, ".astroclaw"));
+  addStateRoot(join(astroClawHome, ".clawdbot"));
 
   for (const entry of splitPostinstallPathList(env?.STATE_DIRECTORY)) {
-    addStateRoot(resolvePostinstallUserPath(entry, openClawHome));
+    addStateRoot(resolvePostinstallUserPath(entry, astroClawHome));
   }
 
   return [...new Set(stateRoots.map((root) => pathResolve(root)))].toSorted((left, right) =>
@@ -584,7 +584,7 @@ export function applyBaileysEncryptedStreamFinishHotfix(params = {}) {
     ((unsafeTargetPath) =>
       join(
         dirname(unsafeTargetPath),
-        `.${basename(unsafeTargetPath)}.openclaw-hotfix-${randomUUID()}`,
+        `.${basename(unsafeTargetPath)}.astroclaw-hotfix-${randomUUID()}`,
       ));
   const writeFile =
     params.writeFileSync ?? ((filePath, value) => writeFileSync(filePath, value, "utf8"));
@@ -838,7 +838,7 @@ function isCompileCachePrunePermissionDenied(error) {
   return error?.code === "EACCES" || error?.code === "EPERM";
 }
 
-export function pruneOpenClawCompileCache(params = {}) {
+export function pruneAstroclawCompileCache(params = {}) {
   const env = params.env ?? process.env;
   const pathExists = params.existsSync ?? existsSync;
   const readDir = params.readdirSync ?? readdirSync;
@@ -869,14 +869,14 @@ export function pruneOpenClawCompileCache(params = {}) {
           if (isCompileCachePrunePermissionDenied(error)) {
             continue;
           }
-          log.warn?.(`[postinstall] could not prune OpenClaw compile cache: ${String(error)}`);
+          log.warn?.(`[postinstall] could not prune Astroclaw compile cache: ${String(error)}`);
         }
       }
     } catch (error) {
       if (isCompileCachePrunePermissionDenied(error)) {
         continue;
       }
-      log.warn?.(`[postinstall] could not prune OpenClaw compile cache: ${String(error)}`);
+      log.warn?.(`[postinstall] could not prune Astroclaw compile cache: ${String(error)}`);
     }
   }
 }
@@ -890,7 +890,7 @@ export function runBundledPluginPostinstall(params = {}) {
   if (env?.[DISABLE_POSTINSTALL_ENV]?.trim()) {
     return;
   }
-  pruneOpenClawCompileCache({
+  pruneAstroclawCompileCache({
     env,
     existsSync: pathExists,
     rmSync: params.rmSync,

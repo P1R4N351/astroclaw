@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { tmpdir as getOsTmpDir } from "node:os";
 import path from "node:path";
 
-export const POSIX_OPENCLAW_TMP_DIR = "/tmp/openclaw";
+export const POSIX_ASTROCLAW_TMP_DIR = "/tmp/astroclaw";
 
 type MaybeNodeError = { code?: string };
 
@@ -13,7 +13,7 @@ type SecureDirStat = {
   uid?: number;
 };
 
-export type ResolvePreferredOpenClawTmpDirOptions = {
+export type ResolvePreferredAstroclawTmpDirOptions = {
   accessSync?: (path: string, mode?: number) => void;
   chmodSync?: (path: string, mode: number) => void;
   getuid?: () => number | undefined;
@@ -33,8 +33,8 @@ function isNodeErrorWithCode(err: unknown, code: string): err is MaybeNodeError 
   );
 }
 
-export function resolvePreferredOpenClawTmpDir(
-  options: ResolvePreferredOpenClawTmpDirOptions = {},
+export function resolvePreferredAstroclawTmpDir(
+  options: ResolvePreferredAstroclawTmpDirOptions = {},
 ): string {
   const accessMode = fs.constants.W_OK | fs.constants.X_OK;
   const accessSync = options.accessSync ?? fs.accessSync;
@@ -66,7 +66,7 @@ export function resolvePreferredOpenClawTmpDir(
   };
 
   const fallback = (): string => {
-    const suffix = uid === undefined ? "openclaw" : `openclaw-${uid}`;
+    const suffix = uid === undefined ? "astroclaw" : `astroclaw-${uid}`;
     const joiner = platform === "win32" ? path.win32.join : path.join;
     return joiner(tmpdir(), suffix);
   };
@@ -114,7 +114,7 @@ export function resolvePreferredOpenClawTmpDir(
         }
         throw chmodErr;
       }
-      warn(`[openclaw] tightened permissions on temp dir: ${candidatePath}`);
+      warn(`[astroclaw] tightened permissions on temp dir: ${candidatePath}`);
       return resolveDirState(candidatePath) === "available";
     } catch {
       return false;
@@ -131,16 +131,16 @@ export function resolvePreferredOpenClawTmpDir(
       if (tryRepairWritableBits(fallbackPath)) {
         return fallbackPath;
       }
-      throw new Error(`Unsafe fallback OpenClaw temp dir: ${fallbackPath}`);
+      throw new Error(`Unsafe fallback Astroclaw temp dir: ${fallbackPath}`);
     }
     try {
       mkdirSync(fallbackPath, { recursive: true, mode: 0o700 });
       chmodSync(fallbackPath, 0o700);
     } catch {
-      throw new Error(`Unable to create fallback OpenClaw temp dir: ${fallbackPath}`);
+      throw new Error(`Unable to create fallback Astroclaw temp dir: ${fallbackPath}`);
     }
     if (resolveDirState(fallbackPath) !== "available" && !tryRepairWritableBits(fallbackPath)) {
-      throw new Error(`Unsafe fallback OpenClaw temp dir: ${fallbackPath}`);
+      throw new Error(`Unsafe fallback Astroclaw temp dir: ${fallbackPath}`);
     }
     return fallbackPath;
   };
@@ -149,7 +149,7 @@ export function resolvePreferredOpenClawTmpDir(
     return ensureTrustedFallbackDir();
   }
 
-  const preferredDir = POSIX_OPENCLAW_TMP_DIR;
+  const preferredDir = POSIX_ASTROCLAW_TMP_DIR;
   const preferredState = resolveDirState(preferredDir);
   if (preferredState === "available") {
     return preferredDir;

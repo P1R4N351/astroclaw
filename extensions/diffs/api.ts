@@ -1,10 +1,10 @@
-export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+export type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 export {
   definePluginEntry,
   type AnyAgentTool,
-  type OpenClawPluginApi,
-  type OpenClawPluginConfigSchema,
-  type OpenClawPluginToolContext,
+  type AstroclawPluginApi,
+  type AstroclawPluginConfigSchema,
+  type AstroclawPluginToolContext,
   type PluginLogger,
-} from "openclaw/plugin-sdk/plugin-entry";
-export { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/plugin-entry";
+export { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";

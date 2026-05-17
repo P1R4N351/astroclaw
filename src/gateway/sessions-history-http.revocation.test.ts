@@ -129,7 +129,7 @@ class MockReq extends EventEmitter {
       host: "localhost",
       accept: "text/event-stream",
       authorization: "Bearer token",
-      "x-openclaw-scopes": "operator.read",
+      "x-astroclaw-scopes": "operator.read",
     };
   }
 }

@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { sanitizeTerminalText } from "openclaw/plugin-sdk/test-fixtures";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { sanitizeTerminalText } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { _resetIMessageShortIdState, rememberIMessageReplyCache } from "../monitor-reply-cache.js";
 import {
@@ -14,7 +14,7 @@ import {
 import { createSelfChatCache } from "./self-chat-cache.js";
 
 describe("resolveIMessageInboundDecision echo detection", () => {
-  const cfg = {} as OpenClawConfig;
+  const cfg = {} as AstroclawConfig;
   type InboundDecisionParams = Parameters<typeof resolveIMessageInboundDecision>[0];
 
   function createInboundDecisionParams(
@@ -190,7 +190,7 @@ describe("resolveIMessageInboundDecision echo detection", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const createdAt = "2026-03-02T20:58:10.649Z";
 
     expect(
@@ -543,9 +543,9 @@ describe("resolveIMessageInboundDecision echo detection", () => {
   });
 
   it("uses the production reply-cache lookup for bot-authored reaction targets", async () => {
-    const tempStateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-imsg-reaction-cache-"));
-    const priorStateDir = process.env.OPENCLAW_STATE_DIR;
-    process.env.OPENCLAW_STATE_DIR = tempStateDir;
+    const tempStateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-imsg-reaction-cache-"));
+    const priorStateDir = process.env.ASTROCLAW_STATE_DIR;
+    process.env.ASTROCLAW_STATE_DIR = tempStateDir;
     try {
       _resetIMessageShortIdState();
       rememberIMessageReplyCache({
@@ -587,9 +587,9 @@ describe("resolveIMessageInboundDecision echo detection", () => {
     } finally {
       _resetIMessageShortIdState();
       if (priorStateDir === undefined) {
-        delete process.env.OPENCLAW_STATE_DIR;
+        delete process.env.ASTROCLAW_STATE_DIR;
       } else {
-        process.env.OPENCLAW_STATE_DIR = priorStateDir;
+        process.env.ASTROCLAW_STATE_DIR = priorStateDir;
       }
       fs.rmSync(tempStateDir, { recursive: true, force: true });
     }
@@ -747,7 +747,7 @@ describe("describeIMessageEchoDropLog", () => {
 describe("buildIMessageInboundContext", () => {
   it("keeps numeric row id and provider GUID separately for action tooling", async () => {
     const decision = await resolveIMessageInboundDecision({
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       accountId: "default",
       message: {
         id: 12345,
@@ -777,7 +777,7 @@ describe("buildIMessageInboundContext", () => {
     }
 
     const { ctxPayload } = buildIMessageInboundContext({
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       decision,
       message: {
         id: 12345,
@@ -797,7 +797,7 @@ describe("buildIMessageInboundContext", () => {
 });
 
 describe("resolveIMessageInboundDecision command auth", () => {
-  const cfg = {} as OpenClawConfig;
+  const cfg = {} as AstroclawConfig;
   const resolveDmCommandDecision = (params: {
     messageId: number;
     storeAllowFrom: string[];
@@ -856,15 +856,15 @@ describe("buildIMessageInboundContext MessageSid handling (rowid-leak regression
   let tempStateDir: string;
   let priorStateDir: string | undefined;
   beforeAll(() => {
-    tempStateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-imsg-inbound-"));
-    priorStateDir = process.env.OPENCLAW_STATE_DIR;
-    process.env.OPENCLAW_STATE_DIR = tempStateDir;
+    tempStateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-imsg-inbound-"));
+    priorStateDir = process.env.ASTROCLAW_STATE_DIR;
+    process.env.ASTROCLAW_STATE_DIR = tempStateDir;
   });
   afterAll(() => {
     if (priorStateDir === undefined) {
-      delete process.env.OPENCLAW_STATE_DIR;
+      delete process.env.ASTROCLAW_STATE_DIR;
     } else {
-      process.env.OPENCLAW_STATE_DIR = priorStateDir;
+      process.env.ASTROCLAW_STATE_DIR = priorStateDir;
     }
     fs.rmSync(tempStateDir, { recursive: true, force: true });
   });
@@ -894,7 +894,7 @@ describe("buildIMessageInboundContext MessageSid handling (rowid-leak regression
       commandAuthorized: false,
     };
     return {
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       decision: decision as unknown as Parameters<
         typeof buildIMessageInboundContext
       >[0]["decision"],

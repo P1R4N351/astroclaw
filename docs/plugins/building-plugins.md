@@ -1,21 +1,21 @@
 ---
-summary: "Create your first OpenClaw plugin in minutes"
+summary: "Create your first Astroclaw plugin in minutes"
 title: "Building plugins"
 sidebarTitle: "Getting Started"
 read_when:
-  - You want to create a new OpenClaw plugin
+  - You want to create a new Astroclaw plugin
   - You need a quick-start for plugin development
-  - You are adding a new channel, provider, tool, or other capability to OpenClaw
+  - You are adding a new channel, provider, tool, or other capability to Astroclaw
 ---
 
-Plugins extend OpenClaw with new capabilities: channels, model providers,
+Plugins extend Astroclaw with new capabilities: channels, model providers,
 speech, realtime transcription, realtime voice, media understanding, image
 generation, video generation, web fetch, web search, agent tools, or any
 combination.
 
-You do not need to add your plugin to the OpenClaw repository. Publish to
+You do not need to add your plugin to the Astroclaw repository. Publish to
 [ClawHub](/clawhub) and users install with
-`openclaw plugins install clawhub:<package-name>`. Bare package specs still
+`astroclaw plugins install clawhub:<package-name>`. Bare package specs still
 install from npm during the launch cutover.
 
 ## Prerequisites
@@ -23,20 +23,20 @@ install from npm during the launch cutover.
 - Node >= 22 and a package manager (npm or pnpm)
 - Familiarity with TypeScript (ESM)
 - For in-repo plugins: repository cloned and `pnpm install` done. Source
-  checkout plugin development is pnpm-only because OpenClaw loads bundled
+  checkout plugin development is pnpm-only because Astroclaw loads bundled
   plugins from the `extensions/*` workspace packages.
 
 ## What kind of plugin?
 
 <CardGroup cols={3}>
   <Card title="Channel plugin" icon="messages-square" href="/plugins/sdk-channel-plugins">
-    Connect OpenClaw to a messaging platform (Discord, IRC, etc.)
+    Connect Astroclaw to a messaging platform (Discord, IRC, etc.)
   </Card>
   <Card title="Provider plugin" icon="cpu" href="/plugins/sdk-provider-plugins">
     Add a model provider (LLM, proxy, or custom endpoint)
   </Card>
   <Card title="CLI backend plugin" icon="terminal" href="/plugins/cli-backend-plugins">
-    Map a local AI CLI into OpenClaw's text fallback runner
+    Map a local AI CLI into Astroclaw's text fallback runner
   </Card>
   <Card title="Tool / hook plugin" icon="wrench" href="/plugins/hooks">
     Register agent tools, event hooks, or services - continue below
@@ -45,7 +45,7 @@ install from npm during the launch cutover.
 
 For a channel plugin that isn't guaranteed to be installed when onboarding/setup
 runs, use `createOptionalChannelSetupSurface(...)` from
-`openclaw/plugin-sdk/channel-setup`. It produces a setup adapter + wizard pair
+`astroclaw/plugin-sdk/channel-setup`. It produces a setup adapter + wizard pair
 that advertises the install requirement and fails closed on real config writes
 until the plugin is installed.
 
@@ -59,28 +59,28 @@ and provider plugins have dedicated guides linked above.
     <CodeGroup>
     ```json package.json
     {
-      "name": "@myorg/openclaw-my-plugin",
+      "name": "@myorg/astroclaw-my-plugin",
       "version": "1.0.0",
       "type": "module",
-      "openclaw": {
+      "astroclaw": {
         "extensions": ["./index.ts"],
         "compat": {
           "pluginApi": ">=2026.3.24-beta.2",
           "minGatewayVersion": "2026.3.24-beta.2"
         },
         "build": {
-          "openclawVersion": "2026.3.24-beta.2",
+          "astroclawVersion": "2026.3.24-beta.2",
           "pluginSdkVersion": "2026.3.24-beta.2"
         }
       }
     }
     ```
 
-    ```json openclaw.plugin.json
+    ```json astroclaw.plugin.json
     {
       "id": "my-plugin",
       "name": "My Plugin",
-      "description": "Adds a custom tool to OpenClaw",
+      "description": "Adds a custom tool to Astroclaw",
       "contracts": {
         "tools": ["my_tool"]
       },
@@ -96,7 +96,7 @@ and provider plugins have dedicated guides linked above.
     </CodeGroup>
 
     Every plugin needs a manifest, even with no config. Runtime-registered tools
-    must be listed in `contracts.tools` so OpenClaw can discover the owning
+    must be listed in `contracts.tools` so Astroclaw can discover the owning
     plugin without loading every plugin runtime. Plugins should also declare
     `activation.onStartup` intentionally. This example sets it to `true`. See
     [Manifest](/plugins/manifest) for the full schema. The canonical ClawHub
@@ -108,13 +108,13 @@ and provider plugins have dedicated guides linked above.
 
     ```typescript
     // index.ts
-    import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+    import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
     import { Type } from "@sinclair/typebox";
 
     export default definePluginEntry({
       id: "my-plugin",
       name: "My Plugin",
-      description: "Adds a custom tool to OpenClaw",
+      description: "Adds a custom tool to Astroclaw",
       register(api) {
         api.registerTool({
           name: "my_tool",
@@ -141,10 +141,10 @@ and provider plugins have dedicated guides linked above.
     ```bash
     clawhub package publish your-org/your-plugin --dry-run
     clawhub package publish your-org/your-plugin
-    openclaw plugins install clawhub:@myorg/openclaw-my-plugin
+    astroclaw plugins install clawhub:@myorg/astroclaw-my-plugin
     ```
 
-    Bare package specs like `@myorg/openclaw-my-plugin` install from npm during
+    Bare package specs like `@myorg/astroclaw-my-plugin` install from npm during
     the launch cutover. Use `clawhub:` when you want ClawHub resolution.
 
     **In-repo plugins:** place under the bundled plugin workspace tree - automatically discovered.
@@ -188,7 +188,7 @@ Bundled plugins can use `api.registerAgentToolResultMiddleware(...)` when they
 need async tool-result rewriting before the model sees the output. Declare the
 targeted runtimes in `contracts.agentToolResultMiddleware`, for example
 `["pi", "codex"]`. This is a trusted bundled-plugin seam; external
-plugins should prefer regular OpenClaw plugin hooks unless OpenClaw grows an
+plugins should prefer regular Astroclaw plugin hooks unless Astroclaw grows an
 explicit trust policy for this capability.
 
 If your plugin registers custom gateway RPC methods, keep them on a
@@ -196,7 +196,7 @@ plugin-specific prefix. Core admin namespaces (`config.*`,
 `exec.approvals.*`, `wizard.*`, `update.*`) stay reserved and always resolve to
 `operator.admin`, even if a plugin asks for a narrower scope.
 
-`openclaw/plugin-sdk/gateway-method-runtime` is a reserved control-plane bridge
+`astroclaw/plugin-sdk/gateway-method-runtime` is a reserved control-plane bridge
 for plugin HTTP routes that declare
 `contracts.gatewayMethodDispatch: ["authenticated-request"]`. It is an
 intentional-use guard for reviewed native plugins, not a sandbox boundary.
@@ -213,10 +213,10 @@ Hook guard semantics to keep in mind:
 - `message_received`: prefer the typed `threadId` field when you need inbound thread/topic routing. Keep `metadata` for channel-specific extras.
 - `message_sending`: prefer typed `replyToId` / `threadId` routing fields over channel-specific metadata keys.
 
-The `/approve` command handles both exec and plugin approvals with bounded fallback: when an exec approval id is not found, OpenClaw retries the same id through plugin approvals. Plugin approval forwarding can be configured independently via `approvals.plugin` in config.
+The `/approve` command handles both exec and plugin approvals with bounded fallback: when an exec approval id is not found, Astroclaw retries the same id through plugin approvals. Plugin approval forwarding can be configured independently via `approvals.plugin` in config.
 
 If custom approval plumbing needs to detect that same bounded fallback case,
-prefer `isApprovalNotFoundError` from `openclaw/plugin-sdk/error-runtime`
+prefer `isApprovalNotFoundError` from `astroclaw/plugin-sdk/error-runtime`
 instead of matching approval-expiry strings manually.
 
 See [Plugin hooks](/plugins/hooks) for examples and the hook reference.
@@ -258,7 +258,7 @@ Tool factories receive a runtime-supplied context object. Use
 model for the current turn. The object can include `provider`, `modelId`, and
 `modelRef`. Treat it as informational runtime metadata, not as a security
 boundary against the local operator, installed plugin code, or a modified
-OpenClaw runtime. For sensitive local tools, keep an explicit plugin or operator
+Astroclaw runtime. For sensitive local tools, keep an explicit plugin or operator
 opt-in and fail closed when the active model metadata is missing or unsuitable.
 
 Every tool registered with `api.registerTool(...)` must also be declared in the
@@ -277,12 +277,12 @@ plugin manifest:
 }
 ```
 
-OpenClaw captures and caches the validated descriptor from the registered tool,
+Astroclaw captures and caches the validated descriptor from the registered tool,
 so plugins do not duplicate `description` or schema data in the manifest. The
 manifest contract only declares ownership and discovery; execution still calls
 the live registered tool implementation.
 Set `toolMetadata.<tool>.optional: true` for tools registered with
-`api.registerTool(..., { optional: true })` so OpenClaw can avoid loading that
+`api.registerTool(..., { optional: true })` so Astroclaw can avoid loading that
 plugin runtime until the tool is explicitly allowlisted.
 
 Users enable optional tools in config:
@@ -300,8 +300,8 @@ Users enable optional tools in config:
 
 ## Registering CLI commands
 
-Plugins can add root `openclaw` command groups with `api.registerCli`. Provide
-`descriptors` for every top-level command root so OpenClaw can show and route
+Plugins can add root `astroclaw` command groups with `api.registerCli`. Provide
+`descriptors` for every top-level command root so Astroclaw can show and route
 the command without eagerly loading every plugin runtime.
 
 ```typescript
@@ -335,20 +335,20 @@ register(api) {
 After install, verify the runtime registration and execute the command:
 
 ```bash
-openclaw plugins inspect demo-plugin --runtime --json
-openclaw demo-plugin ping
+astroclaw plugins inspect demo-plugin --runtime --json
+astroclaw demo-plugin ping
 ```
 
 ## Import conventions
 
-Always import from focused `openclaw/plugin-sdk/<subpath>` paths:
+Always import from focused `astroclaw/plugin-sdk/<subpath>` paths:
 
 ```typescript
-import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
-import { createPluginRuntimeStore } from "openclaw/plugin-sdk/runtime-store";
+import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+import { createPluginRuntimeStore } from "astroclaw/plugin-sdk/runtime-store";
 
 // Wrong: monolithic root (deprecated, will be removed)
-import { ... } from "openclaw/plugin-sdk";
+import { ... } from "astroclaw/plugin-sdk";
 ```
 
 For the full subpath reference, see [SDK Overview](/plugins/sdk-overview).
@@ -364,16 +364,16 @@ barrels unless the seam is truly generic. Current bundled examples:
 - OpenRouter: provider builder plus onboarding/config helpers
 
 If a helper is only useful inside one bundled provider package, keep it on that
-package-root seam instead of promoting it into `openclaw/plugin-sdk/*`.
+package-root seam instead of promoting it into `astroclaw/plugin-sdk/*`.
 
-Some generated `openclaw/plugin-sdk/<bundled-id>` helper seams still exist for
+Some generated `astroclaw/plugin-sdk/<bundled-id>` helper seams still exist for
 bundled-plugin maintenance when they have tracked owner usage. Treat those as
 reserved surfaces, not as the default pattern for new third-party plugins.
 
 ## Pre-submission checklist
 
-<Check>**package.json** has correct `openclaw` metadata</Check>
-<Check>**openclaw.plugin.json** manifest is present and valid</Check>
+<Check>**package.json** has correct `astroclaw` metadata</Check>
+<Check>**astroclaw.plugin.json** manifest is present and valid</Check>
 <Check>Entry point uses `defineChannelPluginEntry` or `definePluginEntry`</Check>
 <Check>All imports use focused `plugin-sdk/<subpath>` paths</Check>
 <Check>Internal imports use local modules, not SDK self-imports</Check>
@@ -382,7 +382,7 @@ reserved surfaces, not as the default pattern for new third-party plugins.
 
 ## Beta release testing
 
-1. Watch for GitHub release tags on [openclaw/openclaw](https://github.com/openclaw/openclaw/releases) and subscribe via `Watch` > `Releases`. Beta tags look like `v2026.3.N-beta.1`. You can also turn on notifications for the official OpenClaw X account [@openclaw](https://x.com/openclaw) for release announcements.
+1. Watch for GitHub release tags on [astroclaw/astroclaw](https://github.com/astroclaw/astroclaw/releases) and subscribe via `Watch` > `Releases`. Beta tags look like `v2026.3.N-beta.1`. You can also turn on notifications for the official Astroclaw X account [@astroclaw](https://x.com/astroclaw) for release announcements.
 2. Test your plugin against the beta tag as soon as it appears. The window before stable is typically only a few hours.
 3. Post in your plugin's thread in the `plugin-forum` Discord channel after testing with either `all good` or what broke. If you do not have a thread yet, create one.
 4. If something breaks, open or update an issue titled `Beta blocker: <plugin-name> - <summary>` and apply the `beta-blocker` label. Put the issue link in your thread.

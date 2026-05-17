@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { resolveContextEngineOwnerPluginId } from "../../context-engine/registry.js";
 import type {
   ContextEngine,
@@ -39,7 +39,7 @@ const TURN_MAINTENANCE_LANE_PREFIX = "context-engine-turn-maintenance:";
 const TURN_MAINTENANCE_WAIT_POLL_MS = 100;
 const TURN_MAINTENANCE_LONG_WAIT_MS = 10_000;
 const DEFERRED_TURN_MAINTENANCE_ABORT_STATE_KEY = Symbol.for(
-  "openclaw.contextEngineTurnMaintenanceAbortState",
+  "astroclaw.contextEngineTurnMaintenanceAbortState",
 );
 type DeferredTurnMaintenanceScheduleParams = {
   contextEngine: ContextEngine;
@@ -49,7 +49,7 @@ type DeferredTurnMaintenanceScheduleParams = {
   sessionManager?: Parameters<typeof rewriteTranscriptEntriesInSessionManager>[0]["sessionManager"];
   runtimeContext?: ContextEngineRuntimeContext;
   agentId?: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 };
 
 type DeferredTurnMaintenanceRunState = {
@@ -281,7 +281,7 @@ export function buildContextEngineMaintenanceRuntimeContext(params: {
   agentId?: string;
   allowDeferredCompactionExecution?: boolean;
   deferTranscriptRewriteToSessionLane?: boolean;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   purpose?: string;
   contextEnginePluginId?: string;
 }): ContextEngineRuntimeContext {
@@ -332,7 +332,7 @@ async function executeContextEngineMaintenance(params: {
   runtimeContext?: ContextEngineRuntimeContext;
   agentId?: string;
   executionMode: "foreground" | "background";
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 }): Promise<ContextEngineMaintenanceResult | undefined> {
   if (typeof params.contextEngine.maintain !== "function") {
     return undefined;
@@ -374,7 +374,7 @@ async function runDeferredTurnMaintenanceWorker(params: {
   runtimeContext?: ContextEngineRuntimeContext;
   agentId?: string;
   runId: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 }): Promise<void> {
   let surfacedUserNotice = false;
   let longRunningTimer: ReturnType<typeof setTimeout> | null = null;
@@ -640,7 +640,7 @@ export async function runContextEngineMaintenance(params: {
   agentId?: string;
   executionMode?: "foreground" | "background";
   onDeferredMaintenance?: (promise: Promise<void>) => void;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 }): Promise<ContextEngineMaintenanceResult | undefined> {
   if (typeof params.contextEngine?.maintain !== "function") {
     return undefined;

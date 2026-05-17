@@ -131,7 +131,7 @@ describe("loginOpenAICodexOAuth", () => {
 
     expect(result).toEqual(creds);
     expect(mocks.loginOpenAICodex).toHaveBeenCalledOnce();
-    expectMockFirstArgFields(mocks.loginOpenAICodex, { originator: "openclaw" });
+    expectMockFirstArgFields(mocks.loginOpenAICodex, { originator: "astroclaw" });
     expect(spin.stop).toHaveBeenCalledWith("OpenAI OAuth complete");
     expect(runtime.error).not.toHaveBeenCalled();
   });
@@ -207,7 +207,7 @@ describe("loginOpenAICodexOAuth", () => {
     expect(spin.stop).toHaveBeenCalledWith("OpenAI OAuth failed");
     expectRuntimeErrorContains(runtime, "oauth failed");
     expect(prompter.note).toHaveBeenCalledWith(
-      "Trouble with OAuth? See https://docs.openclaw.ai/start/faq",
+      "Trouble with OAuth? See https://docs.astroclaw.ai/start/faq",
       "OAuth help",
     );
   });
@@ -225,7 +225,7 @@ describe("loginOpenAICodexOAuth", () => {
     expect(message).toContain("A URL will be shown for you to open in your LOCAL browser.");
     expect(message).toContain("Open it, sign in, then paste the redirect URL here.");
     expect(message).toContain(
-      "If this OpenClaw process can receive the browser callback, sign-in may finish automatically before you paste.",
+      "If this Astroclaw process can receive the browser callback, sign-in may finish automatically before you paste.",
     );
     expect(message).not.toContain("After signing in, paste");
   });
@@ -247,7 +247,7 @@ describe("loginOpenAICodexOAuth", () => {
     expect(spin.stop).toHaveBeenCalledWith("OpenAI OAuth failed");
     expectRuntimeErrorContains(runtime, "HTTPS_PROXY");
     expect(prompter.note).toHaveBeenCalledWith(
-      "Trouble with OAuth? See https://docs.openclaw.ai/start/faq",
+      "Trouble with OAuth? See https://docs.astroclaw.ai/start/faq",
       "OAuth help",
     );
   });

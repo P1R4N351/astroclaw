@@ -18,11 +18,11 @@ describe("buildSlackInteractiveBlocks", () => {
     ).toEqual([
       {
         type: "actions",
-        block_id: "openclaw_reply_select_1",
+        block_id: "astroclaw_reply_select_1",
         elements: [
           {
             type: "static_select",
-            action_id: "openclaw:reply_select:1",
+            action_id: "astroclaw:reply_select:1",
             placeholder: {
               type: "plain_text",
               text: "Pick one",
@@ -50,11 +50,11 @@ describe("buildSlackInteractiveBlocks", () => {
       },
       {
         type: "actions",
-        block_id: "openclaw_reply_buttons_1",
+        block_id: "astroclaw_reply_buttons_1",
         elements: [
           {
             type: "button",
-            action_id: "openclaw:reply_button:1:1",
+            action_id: "astroclaw:reply_button:1:1",
             text: {
               type: "plain_text",
               text: "Retry",
@@ -113,9 +113,9 @@ describe("buildSlackInteractiveBlocks", () => {
       }>;
     };
 
-    expect(buttonBlock.elements?.[0]?.action_id).toBe("openclaw:reply_button:1:1");
+    expect(buttonBlock.elements?.[0]?.action_id).toBe("astroclaw:reply_button:1:1");
     expect(buttonBlock.elements?.[0]?.value).toBe("pluginbind:approval-123:o");
-    expect(selectBlock.elements?.[0]?.action_id).toBe("openclaw:reply_select:1");
+    expect(selectBlock.elements?.[0]?.action_id).toBe("astroclaw:reply_select:1");
     expect(selectBlock.elements?.[0]?.options?.[0]?.value).toBe("codex:approve:thread-1");
   });
 
@@ -196,7 +196,7 @@ describe("buildSlackInteractiveBlocks", () => {
     expect(buttonBlock.elements?.[0]?.value).toBe("a".repeat(2000));
     expect(buttonBlock.elements?.[1]).toEqual({
       type: "button",
-      action_id: "openclaw:reply_button:1:3",
+      action_id: "astroclaw:reply_button:1:3",
       text: {
         type: "plain_text",
         text: "Docs",
@@ -271,7 +271,7 @@ describe("buildSlackInteractiveBlocks", () => {
 
     expect(buttonBlock.elements?.[0]).toEqual({
       type: "button",
-      action_id: "openclaw:reply_button:1:1",
+      action_id: "astroclaw:reply_button:1:1",
       text: {
         type: "plain_text",
         text: "Docs",

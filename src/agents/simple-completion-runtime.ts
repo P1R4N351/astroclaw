@@ -5,7 +5,7 @@ import {
   type ThinkingLevel as SimpleCompletionThinkingLevel,
 } from "@earendil-works/pi-ai";
 import type { ThinkLevel } from "../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { prepareProviderRuntimeAuth } from "../plugins/provider-runtime.runtime.js";
 import { resolveAgentDir, resolveAgentEffectiveModelPrimary } from "./agent-scope.js";
@@ -76,7 +76,7 @@ export type PreparedSimpleCompletionModelForAgent =
     };
 
 export function resolveSimpleCompletionSelectionForAgent(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId: string;
   modelRef?: string;
 }): AgentSimpleCompletionSelection | null {
@@ -118,7 +118,7 @@ export function resolveSimpleCompletionSelectionForAgent(params: {
 }
 
 function resolveSimpleCompletionRuntimeProvider(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId: string;
   provider: string;
   modelId: string;
@@ -140,7 +140,7 @@ async function setRuntimeApiKeyForCompletion(params: {
   model: Model<Api>;
   apiKey: string;
   authMode: ResolvedProviderAuth["mode"];
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   workspaceDir?: string;
   profileId?: string;
 }): Promise<CompletionRuntimeCredential> {
@@ -188,7 +188,7 @@ function hasMissingApiKeyAllowance(params: {
 }
 
 export async function prepareSimpleCompletionModel(params: {
-  cfg: OpenClawConfig | undefined;
+  cfg: AstroclawConfig | undefined;
   provider: string;
   modelId: string;
   agentDir?: string;
@@ -274,7 +274,7 @@ export async function prepareSimpleCompletionModel(params: {
 }
 
 export async function prepareSimpleCompletionModelForAgent(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId: string;
   modelRef?: string;
   preferredProfile?: string;
@@ -322,7 +322,7 @@ export async function completeWithPreparedSimpleCompletionModel(params: {
   model: Model<Api>;
   auth: ResolvedProviderAuth;
   context: Parameters<typeof completeSimple>[1];
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   options?: SimpleCompletionModelOptions;
 }) {
   const completionModel = prepareModelForSimpleCompletion({ model: params.model, cfg: params.cfg });

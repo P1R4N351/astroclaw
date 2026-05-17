@@ -1,5 +1,5 @@
 /**
- * Smoke tests for the `openclaw path` CLI handlers.
+ * Smoke tests for the `astroclaw path` CLI handlers.
  *
  * Tests invoke each subcommand handler directly with a capturing
  * `OutputRuntimeEnv` — no commander wiring, no child process spawn.
@@ -49,7 +49,7 @@ function createTestRuntime(): TestRuntime {
 const stdoutText = (rt: TestRuntime): string => rt.stdout.join("\n");
 const stderrText = (rt: TestRuntime): string => rt.stderr.join("\n");
 
-describe("openclaw path CLI", () => {
+describe("astroclaw path CLI", () => {
   let workspaceDir: string;
 
   beforeEach(() => {
@@ -268,7 +268,7 @@ describe("openclaw path CLI", () => {
       // exit code 1, stable code OC_EMIT_SENTINEL, message scrubbed.
       await pathSetCommand(
         "oc://gateway.jsonc/token",
-        "__OPENCLAW_REDACTED__",
+        "__ASTROCLAW_REDACTED__",
         { cwd: workspaceDir, json: true },
         rt,
       );

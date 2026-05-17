@@ -1,8 +1,8 @@
-package ai.openclaw.app.ui
+package ai.astroclaw.app.ui
 
-import ai.openclaw.app.MainViewModel
-import ai.openclaw.app.gateway.GatewayEndpoint
-import ai.openclaw.app.ui.mobileCardSurface
+import ai.astroclaw.app.MainViewModel
+import ai.astroclaw.app.gateway.GatewayEndpoint
+import ai.astroclaw.app.ui.mobileCardSurface
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -332,14 +332,14 @@ fun ConnectTabScreen(viewModel: MainViewModel) {
           Text(statusLabel, style = mobileBody.copy(fontFamily = FontFamily.Monospace), color = mobileText)
           if (pairingRequired) {
             Text(
-              "Approve this phone on the gateway. OpenClaw retries automatically while this screen stays open.",
+              "Approve this phone on the gateway. Astroclaw retries automatically while this screen stays open.",
               style = mobileCallout,
               color = mobileTextSecondary,
             )
-            CommandBlock("openclaw devices list")
-            CommandBlock("openclaw devices approve <requestId>")
+            CommandBlock("astroclaw devices list")
+            CommandBlock("astroclaw devices approve <requestId>")
           }
-          Text("OpenClaw Android ${openClawAndroidVersionLabel()}", style = mobileCaption1, color = mobileTextSecondary)
+          Text("Astroclaw Android ${astroClawAndroidVersionLabel()}", style = mobileCaption1, color = mobileTextSecondary)
           Button(
             onClick = {
               copyGatewayDiagnosticsReport(
@@ -416,8 +416,8 @@ fun ConnectTabScreen(viewModel: MainViewModel) {
           }
 
           Text("Run these on the gateway host:", style = mobileCallout, color = mobileTextSecondary)
-          CommandBlock("openclaw qr --setup-code-only")
-          CommandBlock("openclaw qr --json")
+          CommandBlock("astroclaw qr --setup-code-only")
+          CommandBlock("astroclaw qr --json")
           Text(
             "For Tailscale or public hosts, use wss:// or Tailscale Serve. Private LAN ws:// remains supported.",
             style = mobileCaption1,

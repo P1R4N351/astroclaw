@@ -1,7 +1,7 @@
-import OpenClawKit
+import AstroclawKit
 
-public enum OpenClawChatEventText {
-    public static func assistantText(from event: OpenClawChatEventPayload) -> String? {
+public enum AstroclawChatEventText {
+    public static func assistantText(from event: AstroclawChatEventPayload) -> String? {
         self.assistantText(fromMessage: event.message)
     }
 

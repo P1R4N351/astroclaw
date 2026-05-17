@@ -16,15 +16,15 @@ run_plugins_marketplace_scenario() {
     "Marketplace Direct"
   node scripts/e2e/lib/fixture.mjs marketplace "$marketplace_root"
 
-  node "$OPENCLAW_ENTRY" plugins marketplace list claude-fixtures --json >/tmp/marketplace-list.json
+  node "$ASTROCLAW_ENTRY" plugins marketplace list claude-fixtures --json >/tmp/marketplace-list.json
 
   node scripts/e2e/lib/plugins/assertions.mjs marketplace-list
 
-  run_logged install-marketplace-shortcut node "$OPENCLAW_ENTRY" plugins install marketplace-shortcut@claude-fixtures
-  run_logged install-marketplace-direct node "$OPENCLAW_ENTRY" plugins install marketplace-direct --marketplace claude-fixtures
-  node "$OPENCLAW_ENTRY" plugins list --json >/tmp/plugins-marketplace.json
-  node "$OPENCLAW_ENTRY" plugins inspect marketplace-shortcut --runtime --json >/tmp/plugins-marketplace-shortcut-inspect.json
-  node "$OPENCLAW_ENTRY" plugins inspect marketplace-direct --runtime --json >/tmp/plugins-marketplace-direct-inspect.json
+  run_logged install-marketplace-shortcut node "$ASTROCLAW_ENTRY" plugins install marketplace-shortcut@claude-fixtures
+  run_logged install-marketplace-direct node "$ASTROCLAW_ENTRY" plugins install marketplace-direct --marketplace claude-fixtures
+  node "$ASTROCLAW_ENTRY" plugins list --json >/tmp/plugins-marketplace.json
+  node "$ASTROCLAW_ENTRY" plugins inspect marketplace-shortcut --runtime --json >/tmp/plugins-marketplace-shortcut-inspect.json
+  node "$ASTROCLAW_ENTRY" plugins inspect marketplace-direct --runtime --json >/tmp/plugins-marketplace-direct-inspect.json
 
   node scripts/e2e/lib/plugins/assertions.mjs marketplace-installed
 
@@ -36,10 +36,10 @@ run_plugins_marketplace_scenario() {
     "0.0.2" \
     "demo.marketplace.shortcut.v2" \
     "Marketplace Shortcut"
-  run_logged update-marketplace-shortcut-dry-run node "$OPENCLAW_ENTRY" plugins update marketplace-shortcut --dry-run
-  run_logged update-marketplace-shortcut node "$OPENCLAW_ENTRY" plugins update marketplace-shortcut
-  node "$OPENCLAW_ENTRY" plugins list --json >/tmp/plugins-marketplace-updated.json
-  node "$OPENCLAW_ENTRY" plugins inspect marketplace-shortcut --runtime --json >/tmp/plugins-marketplace-updated-inspect.json
+  run_logged update-marketplace-shortcut-dry-run node "$ASTROCLAW_ENTRY" plugins update marketplace-shortcut --dry-run
+  run_logged update-marketplace-shortcut node "$ASTROCLAW_ENTRY" plugins update marketplace-shortcut
+  node "$ASTROCLAW_ENTRY" plugins list --json >/tmp/plugins-marketplace-updated.json
+  node "$ASTROCLAW_ENTRY" plugins inspect marketplace-shortcut --runtime --json >/tmp/plugins-marketplace-updated-inspect.json
 
   node scripts/e2e/lib/plugins/assertions.mjs marketplace-updated
 }

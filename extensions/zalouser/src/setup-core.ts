@@ -3,7 +3,7 @@ import {
   createPatchedAccountSetupAdapter,
   createSetupTranslator,
   type ChannelSetupWizard,
-} from "openclaw/plugin-sdk/setup-runtime";
+} from "astroclaw/plugin-sdk/setup-runtime";
 
 const t = createSetupTranslator();
 

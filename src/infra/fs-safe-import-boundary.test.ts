@@ -86,7 +86,7 @@ describe("fs-safe import boundary", () => {
     });
   });
 
-  it("keeps direct fs-safe imports behind OpenClaw policy wrappers", () => {
+  it("keeps direct fs-safe imports behind Astroclaw policy wrappers", () => {
     const violations = SCAN_ROOTS.flatMap((root) => listSourceFiles(path.join(REPO_ROOT, root)))
       .map((filePath) => toRepoRelativePath(REPO_ROOT, filePath))
       .filter((filePath) => {
@@ -94,7 +94,7 @@ describe("fs-safe import boundary", () => {
           return false;
         }
         const source = fs.readFileSync(path.join(REPO_ROOT, filePath), "utf8");
-        return source.includes('"@openclaw/fs-safe') || source.includes("'@openclaw/fs-safe");
+        return source.includes('"@astroclaw/fs-safe') || source.includes("'@astroclaw/fs-safe");
       });
 
     expect(violations).toStrictEqual([]);

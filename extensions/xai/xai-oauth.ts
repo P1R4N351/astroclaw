@@ -1,14 +1,14 @@
 import { randomBytes } from "node:crypto";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import type { ProviderAuthContext, ProviderAuthMethod } from "openclaw/plugin-sdk/plugin-entry";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { ProviderAuthContext, ProviderAuthMethod } from "astroclaw/plugin-sdk/plugin-entry";
 import {
   buildOauthProviderAuthResult,
   generateHexPkceVerifierChallenge,
   toFormUrlEncoded,
   type OAuthCredential,
   type ProviderAuthResult,
-} from "openclaw/plugin-sdk/provider-auth";
-import { waitForLocalOAuthCallback } from "openclaw/plugin-sdk/provider-auth-runtime";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { waitForLocalOAuthCallback } from "astroclaw/plugin-sdk/provider-auth-runtime";
 import { applyXaiConfig, XAI_DEFAULT_MODEL_REF } from "./onboard.js";
 
 const PROVIDER_ID = "xai";
@@ -133,7 +133,7 @@ export function buildXaiOAuthAuthorizeUrl(params: {
   url.searchParams.set("code_challenge", params.challenge);
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("plan", "generic");
-  url.searchParams.set("referrer", "openclaw");
+  url.searchParams.set("referrer", "astroclaw");
   return url.toString();
 }
 

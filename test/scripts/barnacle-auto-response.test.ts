@@ -44,8 +44,8 @@ function pr(title: string, body = blankTemplateBody) {
 function realBehaviorProofBody(evidence: string, overrides: Record<string, string> = {}) {
   const fields = {
     behavior: "Gateway status now reports the Discord channel as ready.",
-    environment: "macOS 15.4, Node 24, local OpenClaw gateway, redacted Discord token.",
-    steps: "pnpm openclaw gateway restart and pnpm openclaw gateway status",
+    environment: "macOS 15.4, Node 24, local Astroclaw gateway, redacted Discord token.",
+    steps: "pnpm astroclaw gateway restart and pnpm astroclaw gateway status",
     evidence,
     observedResult: "The gateway stayed connected and Discord reported ready.",
     notTested: "No known gaps.",
@@ -77,8 +77,8 @@ function barnacleContext(
 ) {
   return {
     repo: {
-      owner: "openclaw",
-      repo: "openclaw",
+      owner: "astroclaw",
+      repo: "astroclaw",
     },
     payload: {
       action: options.action ?? "opened",
@@ -106,8 +106,8 @@ function barnacleIssueContext(
 ) {
   return {
     repo: {
-      owner: "openclaw",
-      repo: "openclaw",
+      owner: "astroclaw",
+      repo: "astroclaw",
     },
     payload: {
       action: options.action ?? "opened",
@@ -115,7 +115,7 @@ function barnacleIssueContext(
       sender: options.sender,
       issue: {
         number: 456,
-        title: "OpenClaw issue",
+        title: "Astroclaw issue",
         body: "",
         author_association: "CONTRIBUTOR",
         user: {
@@ -224,8 +224,8 @@ function barnacleGithub(
 
 function expectedIssueUpdate(issue_number: number, state: string) {
   return {
-    owner: "openclaw",
-    repo: "openclaw",
+    owner: "astroclaw",
+    repo: "astroclaw",
     issue_number,
     state,
   };
@@ -233,8 +233,8 @@ function expectedIssueUpdate(issue_number: number, state: string) {
 
 function expectedRemoveLabel(issue_number: number, name: string) {
   return {
-    owner: "openclaw",
-    repo: "openclaw",
+    owner: "astroclaw",
+    repo: "astroclaw",
     issue_number,
     name,
   };
@@ -242,8 +242,8 @@ function expectedRemoveLabel(issue_number: number, name: string) {
 
 function expectedAddLabels(issue_number: number, labels: string[]) {
   return {
-    owner: "openclaw",
-    repo: "openclaw",
+    owner: "astroclaw",
+    repo: "astroclaw",
     issue_number,
     labels,
   };
@@ -391,7 +391,7 @@ describe("barnacle-auto-response", () => {
       pr(
         "Fix duplicate plugin auto-enable entries",
         [
-          "- Problem: openclaw doctor --fix adds duplicate installed plugin entries",
+          "- Problem: astroclaw doctor --fix adds duplicate installed plugin entries",
           "- Why it matters: users get noisy config churn",
           "- What changed: respect manifest-provided channel auto-loads",
           "",
@@ -573,13 +573,13 @@ describe("barnacle-auto-response", () => {
 
   it("does not close automation PRs for the active PR limit", async () => {
     for (const automationPullRequest of [
-      { head: { ref: "clawsweeper/openclaw-openclaw-73880" }, login: "app/openclaw-clawsweeper" },
-      { headRefName: "clawsweeper/openclaw-openclaw-73880", login: "app/openclaw-clawsweeper" },
+      { head: { ref: "clawsweeper/astroclaw-astroclaw-73880" }, login: "app/astroclaw-clawsweeper" },
+      { headRefName: "clawsweeper/astroclaw-astroclaw-73880", login: "app/astroclaw-clawsweeper" },
       {
         head: { ref: "clownfish/ghcrawl-156993-autonomous-smoke" },
-        login: "app/openclaw-clownfish",
+        login: "app/astroclaw-clownfish",
       },
-      { headRefName: "clownfish/ghcrawl-156993-autonomous-smoke", login: "app/openclaw-clownfish" },
+      { headRefName: "clownfish/ghcrawl-156993-autonomous-smoke", login: "app/astroclaw-clownfish" },
     ]) {
       const { calls, github } = barnacleGithub([]);
       const { login, ...pullRequest } = automationPullRequest;
@@ -799,7 +799,7 @@ describe("barnacle-auto-response", () => {
         {
           action: "labeled",
           label: { name: PROOF_SUFFICIENT_LABEL },
-          sender: { login: "openclaw-clawsweeper[bot]", type: "Bot" },
+          sender: { login: "astroclaw-clawsweeper[bot]", type: "Bot" },
         },
       ),
       core: {
@@ -818,7 +818,7 @@ describe("barnacle-auto-response", () => {
       context: barnacleContext({}, [PROOF_SUFFICIENT_LABEL], {
         action: "labeled",
         label: { name: PROOF_SUFFICIENT_LABEL },
-        sender: { login: "openclaw-clawsweeper[bot]", type: "Bot" },
+        sender: { login: "astroclaw-clawsweeper[bot]", type: "Bot" },
       }),
       core: {
         info: () => undefined,
@@ -831,7 +831,7 @@ describe("barnacle-auto-response", () => {
   });
 
   it("actions manually applied candidate labels", async () => {
-    const { calls, github } = barnacleGithub([file("extensions/example/openclaw.plugin.json")]);
+    const { calls, github } = barnacleGithub([file("extensions/example/astroclaw.plugin.json")]);
 
     await runBarnacleAutoResponse({
       github,
@@ -873,14 +873,14 @@ describe("barnacle-auto-response", () => {
   });
 
   it("keeps bot-applied candidate labels passive", async () => {
-    const { calls, github } = barnacleGithub([file("extensions/example/openclaw.plugin.json")]);
+    const { calls, github } = barnacleGithub([file("extensions/example/astroclaw.plugin.json")]);
 
     await runBarnacleAutoResponse({
       github,
       context: barnacleContext({}, [candidateLabels.externalPluginCandidate], {
         action: "labeled",
         label: { name: candidateLabels.externalPluginCandidate },
-        sender: { login: "openclaw-bot[bot]", type: "Bot" },
+        sender: { login: "astroclaw-bot[bot]", type: "Bot" },
       }),
       core: {
         info: () => undefined,

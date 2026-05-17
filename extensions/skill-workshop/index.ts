@@ -1,5 +1,5 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolveLivePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveLivePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
 import { definePluginEntry, resolveDefaultAgentId } from "./api.js";
 import { resolveConfig } from "./src/config.js";
 import { buildWorkshopGuidance } from "./src/prompt.js";
@@ -17,7 +17,7 @@ export default definePluginEntry({
     const resolveCurrentConfig = () => {
       const runtimePluginConfig = resolveLivePluginConfigObject(
         api.runtime.config?.current
-          ? () => api.runtime.config.current() as OpenClawConfig
+          ? () => api.runtime.config.current() as AstroclawConfig
           : undefined,
         "skill-workshop",
         api.pluginConfig as Record<string, unknown>,

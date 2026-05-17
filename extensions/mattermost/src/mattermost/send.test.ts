@@ -1,4 +1,4 @@
-import { expectProvidedCfgSkipsRuntimeLoad } from "openclaw/plugin-sdk/channel-test-helpers";
+import { expectProvidedCfgSkipsRuntimeLoad } from "astroclaw/plugin-sdk/channel-test-helpers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let parseMattermostTarget: typeof import("./send.js").parseMattermostTarget;
@@ -106,7 +106,7 @@ vi.mock("./runtime-api.js", () => ({
   loadOutboundMediaFromUrl: mockState.loadOutboundMediaFromUrl,
 }));
 
-vi.mock("openclaw/plugin-sdk/plugin-config-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", () => ({
   requireRuntimeConfig: (cfg: unknown) => {
     if (cfg) {
       return cfg;
@@ -116,11 +116,11 @@ vi.mock("openclaw/plugin-sdk/plugin-config-runtime", () => ({
   resolveMarkdownTableMode: vi.fn(() => "off"),
 }));
 
-vi.mock("openclaw/plugin-sdk/text-chunking", () => ({
+vi.mock("astroclaw/plugin-sdk/text-chunking", () => ({
   convertMarkdownTables: vi.fn((text: string) => text),
 }));
 
-vi.mock("openclaw/plugin-sdk/string-coerce-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", () => ({
   normalizeLowercaseStringOrEmpty: vi.fn((value: string | null | undefined) => {
     if (typeof value !== "string") {
       return "";

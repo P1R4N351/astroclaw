@@ -1,7 +1,7 @@
 import "@earendil-works/pi-agent-core";
 
 declare module "@earendil-works/pi-agent-core" {
-  // OpenClaw persists compaction markers alongside normal agent history.
+  // Astroclaw persists compaction markers alongside normal agent history.
   interface CustomAgentMessages {
     compactionSummary: {
       role: "compactionSummary";

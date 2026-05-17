@@ -7,7 +7,7 @@ import {
 } from "../config/io.js";
 import { formatConfigIssueLines } from "../config/issue-format.js";
 import type { LegacyConfigIssue } from "../config/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { note } from "../terminal/note.js";
 import { resolveHomeDir } from "../utils.js";
@@ -21,8 +21,8 @@ async function maybeMigrateLegacyConfig(): Promise<string[]> {
     return changes;
   }
 
-  const targetDir = path.join(home, ".openclaw");
-  const targetPath = path.join(targetDir, "openclaw.json");
+  const targetDir = path.join(home, ".astroclaw");
+  const targetPath = path.join(targetDir, "astroclaw.json");
   try {
     await fs.access(targetPath);
     return changes;
@@ -59,7 +59,7 @@ async function maybeMigrateLegacyConfig(): Promise<string[]> {
 
 export type DoctorConfigPreflightResult = {
   snapshot: Awaited<ReturnType<typeof readConfigFileSnapshot>>;
-  baseConfig: OpenClawConfig;
+  baseConfig: AstroclawConfig;
 };
 
 function collectDoctorLegacyIssues(
@@ -86,7 +86,7 @@ function addDoctorLegacyIssues(
 export function shouldSkipPluginValidationForDoctorConfigPreflight(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return isTruthyEnvValue(env.OPENCLAW_UPDATE_IN_PROGRESS);
+  return isTruthyEnvValue(env.ASTROCLAW_UPDATE_IN_PROGRESS);
 }
 
 export async function runDoctorConfigPreflight(
@@ -121,13 +121,13 @@ export async function runDoctorConfigPreflight(
   let snapshot = addDoctorLegacyIssues(await readConfigFileSnapshot(readOptions));
   if (options.repairPrefixedConfig === true && snapshot.exists && !snapshot.valid) {
     if (await recoverConfigFromJsonRootSuffix(snapshot)) {
-      note("Removed non-JSON prefix from openclaw.json; original saved as .clobbered.*.", "Config");
+      note("Removed non-JSON prefix from astroclaw.json; original saved as .clobbered.*.", "Config");
       snapshot = addDoctorLegacyIssues(await readConfigFileSnapshot(readOptions));
     } else if (
       await recoverConfigFromLastKnownGood({ snapshot, reason: "doctor-invalid-config" })
     ) {
       note(
-        "Restored openclaw.json from last-known-good; original saved as .clobbered.*.",
+        "Restored astroclaw.json from last-known-good; original saved as .clobbered.*.",
         "Config",
       );
       snapshot = addDoctorLegacyIssues(await readConfigFileSnapshot(readOptions));

@@ -1,5 +1,5 @@
-import { resolveAwsSdkEnvVarName } from "openclaw/plugin-sdk/provider-auth-runtime";
-import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
+import { resolveAwsSdkEnvVarName } from "astroclaw/plugin-sdk/provider-auth-runtime";
+import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
 
 export function resolveBedrockConfigApiKey(
   env: NodeJS.ProcessEnv = process.env,

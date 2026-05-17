@@ -11,8 +11,8 @@ Adds media understanding provider support. Adds realtime transcription provider 
 
 ## Distribution
 
-- Package: `@openclaw/elevenlabs-speech`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/elevenlabs-speech`
+- Install route: included in Astroclaw
 
 ## Surface
 

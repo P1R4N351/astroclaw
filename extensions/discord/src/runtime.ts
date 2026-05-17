@@ -1,5 +1,5 @@
-import type { PluginRuntime } from "openclaw/plugin-sdk/channel-core";
-import { createPluginRuntimeStore } from "openclaw/plugin-sdk/runtime-store";
+import type { PluginRuntime } from "astroclaw/plugin-sdk/channel-core";
+import { createPluginRuntimeStore } from "astroclaw/plugin-sdk/runtime-store";
 
 type DiscordChannelRuntime = {
   messageActions?: typeof import("./channel-actions.js").discordMessageActions;

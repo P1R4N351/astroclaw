@@ -1,14 +1,14 @@
 {
-  "name": "@openclaw/media-understanding-core",
+  "name": "@astroclaw/media-understanding-core",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw media understanding runtime package",
+  "description": "Astroclaw media understanding runtime package",
   "type": "module",
   "dependencies": {
     "sharp": "0.34.5"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {}
+  "astroclaw": {}
 }

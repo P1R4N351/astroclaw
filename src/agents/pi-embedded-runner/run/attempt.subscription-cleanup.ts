@@ -2,7 +2,7 @@ import type { SubscribeEmbeddedPiSessionParams } from "../../pi-embedded-subscri
 import { log } from "../logger.js";
 
 export const EMBEDDED_ABORT_SETTLE_TIMEOUT_MS =
-  process.env.OPENCLAW_TEST_FAST === "1" ? 250 : 2_000;
+  process.env.ASTROCLAW_TEST_FAST === "1" ? 250 : 2_000;
 
 type IdleAwareAgent = {
   waitForIdle?: (() => Promise<void>) | undefined;

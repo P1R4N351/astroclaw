@@ -44,8 +44,8 @@ describe("applyPluginAutoEnable channels", () => {
       JSON.stringify({
         entries: [
           {
-            name: "@openclaw/env-secondary",
-            openclaw: {
+            name: "@astroclaw/env-secondary",
+            astroclaw: {
               channel: {
                 id: "env-secondary",
                 label: "Env Secondary",
@@ -55,7 +55,7 @@ describe("applyPluginAutoEnable channels", () => {
                 preferOver: ["env-primary"],
               },
               install: {
-                npmSpec: "@openclaw/env-secondary",
+                npmSpec: "@astroclaw/env-secondary",
               },
             },
           },
@@ -85,8 +85,8 @@ describe("applyPluginAutoEnable channels", () => {
       ],
       env: {
         ...makeIsolatedEnv(),
-        OPENCLAW_STATE_DIR: stateDir,
-        OPENCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
+        ASTROCLAW_STATE_DIR: stateDir,
+        ASTROCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
       },
       manifestRegistry: makeRegistry([]),
     });
@@ -104,8 +104,8 @@ describe("applyPluginAutoEnable channels", () => {
       JSON.stringify({
         entries: [
           {
-            name: "@openclaw/env-primary",
-            openclaw: {
+            name: "@astroclaw/env-primary",
+            astroclaw: {
               channel: {
                 id: "env-primary",
                 label: "Env Primary",
@@ -114,13 +114,13 @@ describe("applyPluginAutoEnable channels", () => {
                 blurb: "Env primary entry",
               },
               install: {
-                npmSpec: "@openclaw/env-primary",
+                npmSpec: "@astroclaw/env-primary",
               },
             },
           },
           {
-            name: "@openclaw/env-secondary",
-            openclaw: {
+            name: "@astroclaw/env-secondary",
+            astroclaw: {
               channel: {
                 id: "env-secondary",
                 label: "Env Secondary",
@@ -130,7 +130,7 @@ describe("applyPluginAutoEnable channels", () => {
                 preferOver: ["env-primary"],
               },
               install: {
-                npmSpec: "@openclaw/env-secondary",
+                npmSpec: "@astroclaw/env-secondary",
               },
             },
           },
@@ -156,8 +156,8 @@ describe("applyPluginAutoEnable channels", () => {
         })),
         env: {
           ...makeIsolatedEnv(),
-          OPENCLAW_STATE_DIR: stateDir,
-          OPENCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
+          ASTROCLAW_STATE_DIR: stateDir,
+          ASTROCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
         },
         manifestRegistry: makeRegistry([]),
       });
@@ -217,7 +217,7 @@ describe("applyPluginAutoEnable channels", () => {
             },
           },
           {
-            id: "openclaw-modern-chat",
+            id: "astroclaw-modern-chat",
             channels: ["legacy-bundled-chat"],
             channelConfigs: {
               "legacy-bundled-chat": {
@@ -230,7 +230,7 @@ describe("applyPluginAutoEnable channels", () => {
         ]),
       });
 
-      expect(result.config.plugins?.entries?.["openclaw-modern-chat"]?.enabled).toBe(true);
+      expect(result.config.plugins?.entries?.["astroclaw-modern-chat"]?.enabled).toBe(true);
       expect(result.config.plugins?.entries?.["legacy-bundled-chat"]?.enabled).toBe(false);
       expect(result.changes.join("\n")).toContain("Modern Chat configured, enabled automatically.");
     });
@@ -239,7 +239,7 @@ describe("applyPluginAutoEnable channels", () => {
       const result = applyPluginAutoEnable({
         config: {
           channels: { "legacy-bundled-chat": { token: "legacy" } },
-          plugins: { entries: { "openclaw-modern-chat": { enabled: false } } },
+          plugins: { entries: { "astroclaw-modern-chat": { enabled: false } } },
         },
         env: makeIsolatedEnv(),
         manifestRegistry: makeRegistry([
@@ -255,7 +255,7 @@ describe("applyPluginAutoEnable channels", () => {
             },
           },
           {
-            id: "openclaw-modern-chat",
+            id: "astroclaw-modern-chat",
             channels: ["legacy-bundled-chat"],
             channelConfigs: {
               "legacy-bundled-chat": {
@@ -268,7 +268,7 @@ describe("applyPluginAutoEnable channels", () => {
         ]),
       });
 
-      expect(result.config.plugins?.entries?.["openclaw-modern-chat"]?.enabled).toBe(false);
+      expect(result.config.plugins?.entries?.["astroclaw-modern-chat"]?.enabled).toBe(false);
       expect(result.config.plugins?.entries?.["legacy-bundled-chat"]).toBeUndefined();
       expect(result.config.channels?.["legacy-bundled-chat"]?.enabled).toBe(true);
       expect(result.changes.join("\n")).toContain(
@@ -290,7 +290,7 @@ describe("applyPluginAutoEnable channels", () => {
         manifestRegistry: makeRegistry([
           { id: "qqbot", channels: ["qqbot"] },
           {
-            id: "openclaw-qqbot",
+            id: "astroclaw-qqbot",
             channels: ["qqbot"],
             channelConfigs: {
               qqbot: {
@@ -302,7 +302,7 @@ describe("applyPluginAutoEnable channels", () => {
         ]),
       });
 
-      expect(result.config.plugins?.entries?.["openclaw-qqbot"]?.enabled).toBe(true);
+      expect(result.config.plugins?.entries?.["astroclaw-qqbot"]?.enabled).toBe(true);
       expect(result.config.plugins?.entries?.qqbot?.enabled).toBe(true);
     });
 
@@ -335,15 +335,15 @@ describe("applyPluginAutoEnable channels", () => {
         env: makeIsolatedEnv(),
         manifestRegistry: makeRegistry([
           {
-            id: "wecom-openclaw-plugin",
+            id: "wecom-astroclaw-plugin",
             channels: ["wecom"],
           },
         ]),
       });
 
-      expect(result.config.plugins?.entries?.["wecom-openclaw-plugin"]?.enabled).toBe(true);
+      expect(result.config.plugins?.entries?.["wecom-astroclaw-plugin"]?.enabled).toBe(true);
       expect(result.config.plugins?.entries?.wecom).toBeUndefined();
-      expect(result.config.plugins?.allow).toEqual(["existing-plugin", "wecom-openclaw-plugin"]);
+      expect(result.config.plugins?.allow).toEqual(["existing-plugin", "wecom-astroclaw-plugin"]);
       expect(result.changes.join("\n")).toContain("enabled automatically.");
     });
 

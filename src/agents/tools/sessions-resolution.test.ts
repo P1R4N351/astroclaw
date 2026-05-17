@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 const callGatewayMock = vi.fn();
 vi.mock("../../gateway/call.js", () => ({
   callGateway: (opts: unknown) => callGatewayMock(opts),
@@ -51,7 +51,7 @@ describe("resolveMainSessionAlias", () => {
   it("uses normalized main key and global alias for global scope", () => {
     const cfg = {
       session: { mainKey: " Primary ", scope: "global" },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expect(resolveMainSessionAlias(cfg)).toEqual({
       mainKey: "primary",
@@ -61,7 +61,7 @@ describe("resolveMainSessionAlias", () => {
   });
 
   it("falls back to per-sender defaults", () => {
-    expect(resolveMainSessionAlias({} as OpenClawConfig)).toEqual({
+    expect(resolveMainSessionAlias({} as AstroclawConfig)).toEqual({
       mainKey: "main",
       alias: "main",
       scope: "per-sender",
@@ -72,7 +72,7 @@ describe("resolveMainSessionAlias", () => {
     const cfg = {
       session: { mainKey: "  work ", scope: "per-sender" },
       routing: { sessions: { mainKey: "legacy-main" } },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expect(resolveMainSessionAlias(cfg)).toEqual({
       mainKey: "work",
@@ -124,11 +124,11 @@ describe("session key display/internal mapping", () => {
   it("maps interactive client ids to the requester session", () => {
     expect(
       resolveCurrentSessionClientAlias({
-        key: "openclaw-tui",
+        key: "astroclaw-tui",
         requesterInternalKey: "agent:main:main",
       }),
     ).toBe("agent:main:main");
-    expect(resolveCurrentSessionClientAlias({ key: "openclaw-tui" })).toBeUndefined();
+    expect(resolveCurrentSessionClientAlias({ key: "astroclaw-tui" })).toBeUndefined();
     expect(
       resolveCurrentSessionClientAlias({
         key: "node-host",
@@ -331,7 +331,7 @@ describe("resolveSessionReference", () => {
 
   it("treats the TUI client label as the requester session", async () => {
     const result = await resolveSessionReference({
-      sessionKey: "openclaw-tui",
+      sessionKey: "astroclaw-tui",
       alias: "main",
       mainKey: "main",
       requesterInternalKey: "agent:main:main",

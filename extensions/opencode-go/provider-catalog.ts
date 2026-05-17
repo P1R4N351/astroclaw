@@ -1,6 +1,6 @@
-import type { ModelCatalogEntry } from "openclaw/plugin-sdk/agent-runtime";
-import type { ProviderRuntimeModel } from "openclaw/plugin-sdk/plugin-entry";
-import { normalizeModelCompat } from "openclaw/plugin-sdk/provider-model-shared";
+import type { ModelCatalogEntry } from "astroclaw/plugin-sdk/agent-runtime";
+import type { ProviderRuntimeModel } from "astroclaw/plugin-sdk/plugin-entry";
+import { normalizeModelCompat } from "astroclaw/plugin-sdk/provider-model-shared";
 
 const PROVIDER_ID = "opencode-go";
 

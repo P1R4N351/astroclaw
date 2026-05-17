@@ -202,7 +202,7 @@ describe("buildWorkspaceSkillStatus", () => {
   });
 
   it("classifies a mixed broken skill pack without flattening visibility reasons", () => {
-    const missingBin = "openclaw-test-definitely-missing-skill-bin";
+    const missingBin = "astroclaw-test-definitely-missing-skill-bin";
     const report = buildWorkspaceSkillStatus("/tmp/ws", {
       agentId: "specialist",
       config: {
@@ -240,7 +240,7 @@ describe("buildWorkspaceSkillStatus", () => {
             install: [
               {
                 kind: "node",
-                package: "@openclaw/missing-skill-bin",
+                package: "@astroclaw/missing-skill-bin",
                 bins: [missingBin],
               },
             ],
@@ -248,8 +248,8 @@ describe("buildWorkspaceSkillStatus", () => {
         }),
         createEntry("needs-env", {
           metadata: {
-            primaryEnv: "OPENCLAW_TEST_MISSING_SKILL_KEY",
-            requires: { env: ["OPENCLAW_TEST_MISSING_SKILL_KEY"] },
+            primaryEnv: "ASTROCLAW_TEST_MISSING_SKILL_KEY",
+            requires: { env: ["ASTROCLAW_TEST_MISSING_SKILL_KEY"] },
           },
         }),
         createEntry("prompt-hidden", {
@@ -266,7 +266,7 @@ describe("buildWorkspaceSkillStatus", () => {
         }),
         createEntry("agent-filtered"),
         createEntry("disabled"),
-        createEntry("bundled-blocked", { source: "openclaw-bundled" }),
+        createEntry("bundled-blocked", { source: "astroclaw-bundled" }),
       ],
     });
 
@@ -302,18 +302,18 @@ describe("buildWorkspaceSkillStatus", () => {
       {
         kind: "node",
         id: "node-0",
-        label: "Install @openclaw/missing-skill-bin (pnpm)",
+        label: "Install @astroclaw/missing-skill-bin (pnpm)",
         bins: [missingBin],
       },
     ]);
     const needsEnv = requireSkillStatus(byName, "needs-env");
     expect(needsEnv.eligible).toBe(false);
-    expect(needsEnv.primaryEnv).toBe("OPENCLAW_TEST_MISSING_SKILL_KEY");
+    expect(needsEnv.primaryEnv).toBe("ASTROCLAW_TEST_MISSING_SKILL_KEY");
     expect(needsEnv.missing).toStrictEqual({
       anyBins: [],
       bins: [],
       config: [],
-      env: ["OPENCLAW_TEST_MISSING_SKILL_KEY"],
+      env: ["ASTROCLAW_TEST_MISSING_SKILL_KEY"],
       os: [],
     });
     expectStatusFlags(requireSkillStatus(byName, "prompt-hidden"), {

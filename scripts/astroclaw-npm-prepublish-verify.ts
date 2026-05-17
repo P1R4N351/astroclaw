@@ -11,8 +11,8 @@ import {
   collectInstalledPackageErrors,
   normalizeInstalledBinaryVersion,
   resolveInstalledBinaryPath,
-} from "./openclaw-npm-postpublish-verify.ts";
-import { resolveNpmCommandInvocation } from "./openclaw-npm-release-check.ts";
+} from "./astroclaw-npm-postpublish-verify.ts";
+import { resolveNpmCommandInvocation } from "./astroclaw-npm-release-check.ts";
 
 type InstalledPackageJson = {
   version?: string;
@@ -37,11 +37,11 @@ function main(): void {
   const expectedVersion = process.argv[3]?.trim();
   if (!tarballPath) {
     throw new Error(
-      "Usage: node --import tsx scripts/openclaw-npm-prepublish-verify.ts <tarball.tgz> [expected-version]",
+      "Usage: node --import tsx scripts/astroclaw-npm-prepublish-verify.ts <tarball.tgz> [expected-version]",
     );
   }
 
-  const workingDir = mkdtempSync(join(tmpdir(), "openclaw-prepublish-"));
+  const workingDir = mkdtempSync(join(tmpdir(), "astroclaw-prepublish-"));
   const prefixDir = join(workingDir, "prefix");
   try {
     npmExec(
@@ -57,7 +57,7 @@ function main(): void {
       workingDir,
     );
     const globalRoot = npmExec(["root", "-g", "--prefix", prefixDir], workingDir);
-    const packageRoot = join(globalRoot, "openclaw");
+    const packageRoot = join(globalRoot, "astroclaw");
     const pkg = JSON.parse(
       readFileSync(join(packageRoot, "package.json"), "utf8"),
     ) as InstalledPackageJson;
@@ -79,7 +79,7 @@ function main(): void {
     ).trim();
     if (normalizeInstalledBinaryVersion(installedBinaryVersion) !== resolvedExpectedVersion) {
       errors.push(
-        `installed openclaw binary version mismatch: expected ${resolvedExpectedVersion}, found ${installedBinaryVersion || "<missing>"}.`,
+        `installed astroclaw binary version mismatch: expected ${resolvedExpectedVersion}, found ${installedBinaryVersion || "<missing>"}.`,
       );
     }
     if (errors.length === 0) {
@@ -89,7 +89,7 @@ function main(): void {
       throw new Error(`prepared tarball install failed:\n- ${errors.join("\n- ")}`);
     }
     console.log(
-      `openclaw-npm-prepublish-verify: prepared tarball install OK (${resolvedExpectedVersion}).`,
+      `astroclaw-npm-prepublish-verify: prepared tarball install OK (${resolvedExpectedVersion}).`,
     );
   } finally {
     rmSync(workingDir, { force: true, recursive: true });
@@ -101,7 +101,7 @@ if (entrypoint !== null && import.meta.url === entrypoint) {
   try {
     main();
   } catch (error) {
-    console.error(`openclaw-npm-prepublish-verify: ${formatErrorMessage(error)}`);
+    console.error(`astroclaw-npm-prepublish-verify: ${formatErrorMessage(error)}`);
     process.exitCode = 1;
   }
 }

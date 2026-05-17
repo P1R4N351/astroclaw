@@ -1,4 +1,4 @@
-import type { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
+import type { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { createIMessageRpcClient, IMessageRpcClient } from "./client.js";
 import { monitorIMessageProvider } from "./monitor.js";
@@ -12,7 +12,7 @@ const attachIMessageMonitorAbortHandlerMock = vi.hoisted(() =>
   vi.fn<typeof attachIMessageMonitorAbortHandler>(() => () => {}),
 );
 
-vi.mock("openclaw/plugin-sdk/transport-ready-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/transport-ready-runtime", () => ({
   waitForTransportReady: waitForTransportReadyMock,
 }));
 
@@ -72,7 +72,7 @@ describe("monitorIMessageProvider watch.subscribe startup retry", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("openclaw/plugin-sdk/transport-ready-runtime");
+    vi.doUnmock("astroclaw/plugin-sdk/transport-ready-runtime");
     vi.doUnmock("./client.js");
     vi.doUnmock("./monitor/abort-handler.js");
     vi.resetModules();

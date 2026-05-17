@@ -12,28 +12,28 @@ vi.mock("./schtasks-exec.js", () => ({
   execSchtasks: (...args: unknown[]) => execSchtasksMock(...args),
 }));
 
-// Real content from the openclaw-gateway.service unit file (the canonical gateway unit).
+// Real content from the astroclaw-gateway.service unit file (the canonical gateway unit).
 const GATEWAY_SERVICE_CONTENTS = `\
 [Unit]
-Description=OpenClaw Gateway (v2026.3.8)
+Description=Astroclaw Gateway (v2026.3.8)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/bin/node /home/openclaw/.npm-global/lib/node_modules/openclaw/dist/entry.js gateway --port 18789
+ExecStart=/usr/bin/node /home/astroclaw/.npm-global/lib/node_modules/astroclaw/dist/entry.js gateway --port 18789
 Restart=always
-Environment=OPENCLAW_SERVICE_MARKER=openclaw
-Environment=OPENCLAW_SERVICE_KIND=gateway
-Environment=OPENCLAW_SERVICE_VERSION=2026.3.8
+Environment=ASTROCLAW_SERVICE_MARKER=astroclaw
+Environment=ASTROCLAW_SERVICE_KIND=gateway
+Environment=ASTROCLAW_SERVICE_VERSION=2026.3.8
 
 [Install]
 WantedBy=default.target
 `;
 
-// Real content from the openclaw-test.service unit file (a non-gateway openclaw service).
+// Real content from the astroclaw-test.service unit file (a non-gateway astroclaw service).
 const TEST_SERVICE_CONTENTS = `\
 [Unit]
-Description=OpenClaw test service
+Description=Astroclaw test service
 After=default.target
 
 [Service]
@@ -55,29 +55,29 @@ Environment=HOME=/home/clawdbot
 
 const COMPANION_SERVICE_CONTENTS = `\
 [Unit]
-Description=OpenClaw companion worker
-After=openclaw-gateway.service
-Requires=openclaw-gateway.service
+Description=Astroclaw companion worker
+After=astroclaw-gateway.service
+Requires=astroclaw-gateway.service
 
 [Service]
-ExecStart=/usr/bin/node /opt/openclaw-worker/dist/index.js worker
+ExecStart=/usr/bin/node /opt/astroclaw-worker/dist/index.js worker
 `;
 
-const CUSTOM_OPENCLAW_GATEWAY_CONTENTS = `\
+const CUSTOM_ASTROCLAW_GATEWAY_CONTENTS = `\
 [Unit]
-Description=Custom OpenClaw gateway
+Description=Custom Astroclaw gateway
 
 [Service]
-ExecStart=/usr/bin/node /opt/openclaw/dist/entry.js gateway --port 18888
+ExecStart=/usr/bin/node /opt/astroclaw/dist/entry.js gateway --port 18888
 `;
 
 describe("detectMarkerLineWithGateway", () => {
-  it("returns null for openclaw-test.service (openclaw only in description, no gateway on same line)", () => {
+  it("returns null for astroclaw-test.service (astroclaw only in description, no gateway on same line)", () => {
     expect(detectMarkerLineWithGateway(TEST_SERVICE_CONTENTS)).toBeNull();
   });
 
-  it("returns openclaw for the canonical gateway unit (ExecStart has both openclaw and gateway)", () => {
-    expect(detectMarkerLineWithGateway(GATEWAY_SERVICE_CONTENTS)).toBe("openclaw");
+  it("returns astroclaw for the canonical gateway unit (ExecStart has both astroclaw and gateway)", () => {
+    expect(detectMarkerLineWithGateway(GATEWAY_SERVICE_CONTENTS)).toBe("astroclaw");
   });
 
   it("returns clawdbot for a clawdbot gateway unit", () => {
@@ -85,8 +85,8 @@ describe("detectMarkerLineWithGateway", () => {
   });
 
   it("handles line continuations — marker and gateway split across physical lines", () => {
-    const contents = `[Service]\nExecStart=/usr/bin/node /opt/openclaw/dist/entry.js \\\n  gateway --port 18789\n`;
-    expect(detectMarkerLineWithGateway(contents)).toBe("openclaw");
+    const contents = `[Service]\nExecStart=/usr/bin/node /opt/astroclaw/dist/entry.js \\\n  gateway --port 18789\n`;
+    expect(detectMarkerLineWithGateway(contents)).toBe("astroclaw");
   });
 
   it("ignores dependency-only references to the gateway unit", () => {
@@ -94,7 +94,7 @@ describe("detectMarkerLineWithGateway", () => {
   });
 
   it("ignores non-gateway ExecStart commands that only pass gateway-named options", () => {
-    const contents = `[Service]\nExecStart=/usr/bin/openclaw-helper --gateway-url http://127.0.0.1:18789 sync\n`;
+    const contents = `[Service]\nExecStart=/usr/bin/astroclaw-helper --gateway-url http://127.0.0.1:18789 sync\n`;
     expect(detectMarkerLineWithGateway(contents)).toBeNull();
   });
 });
@@ -105,12 +105,12 @@ describe("findExtraGatewayServices (linux / scanSystemdDir) — real filesystem"
   // Only runs on Linux/macOS where the linux branch of findExtraGatewayServices is active.
   const isLinux = process.platform === "linux";
 
-  it.skipIf(!isLinux)("does not report openclaw-test.service as a gateway service", async () => {
-    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-"));
+  it.skipIf(!isLinux)("does not report astroclaw-test.service as a gateway service", async () => {
+    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-test-"));
     const systemdDir = path.join(tmpHome, ".config", "systemd", "user");
     try {
       await fs.mkdir(systemdDir, { recursive: true });
-      await fs.writeFile(path.join(systemdDir, "openclaw-test.service"), TEST_SERVICE_CONTENTS);
+      await fs.writeFile(path.join(systemdDir, "astroclaw-test.service"), TEST_SERVICE_CONTENTS);
       const result = await findExtraGatewayServices({ HOME: tmpHome });
       expect(result).toStrictEqual([]);
     } finally {
@@ -119,14 +119,14 @@ describe("findExtraGatewayServices (linux / scanSystemdDir) — real filesystem"
   });
 
   it.skipIf(!isLinux)(
-    "does not report the canonical openclaw-gateway.service as an extra service",
+    "does not report the canonical astroclaw-gateway.service as an extra service",
     async () => {
-      const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-"));
+      const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-test-"));
       const systemdDir = path.join(tmpHome, ".config", "systemd", "user");
       try {
         await fs.mkdir(systemdDir, { recursive: true });
         await fs.writeFile(
-          path.join(systemdDir, "openclaw-gateway.service"),
+          path.join(systemdDir, "astroclaw-gateway.service"),
           GATEWAY_SERVICE_CONTENTS,
         );
         const result = await findExtraGatewayServices({ HOME: tmpHome });
@@ -140,7 +140,7 @@ describe("findExtraGatewayServices (linux / scanSystemdDir) — real filesystem"
   it.skipIf(!isLinux)(
     "reports a legacy clawdbot-gateway service as an extra gateway service",
     async () => {
-      const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-"));
+      const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-test-"));
       const systemdDir = path.join(tmpHome, ".config", "systemd", "user");
       const unitPath = path.join(systemdDir, "clawdbot-gateway.service");
       try {
@@ -166,12 +166,12 @@ describe("findExtraGatewayServices (linux / scanSystemdDir) — real filesystem"
   it.skipIf(!isLinux)(
     "does not report companion units that only depend on the gateway",
     async () => {
-      const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-"));
+      const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-test-"));
       const systemdDir = path.join(tmpHome, ".config", "systemd", "user");
       try {
         await fs.mkdir(systemdDir, { recursive: true });
         await fs.writeFile(
-          path.join(systemdDir, "openclaw-companion.service"),
+          path.join(systemdDir, "astroclaw-companion.service"),
           COMPANION_SERVICE_CONTENTS,
         );
         const result = await findExtraGatewayServices({ HOME: tmpHome });
@@ -183,22 +183,22 @@ describe("findExtraGatewayServices (linux / scanSystemdDir) — real filesystem"
   );
 
   it.skipIf(!isLinux)(
-    "reports custom-named gateway units that execute openclaw gateway",
+    "reports custom-named gateway units that execute astroclaw gateway",
     async () => {
-      const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-"));
+      const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-test-"));
       const systemdDir = path.join(tmpHome, ".config", "systemd", "user");
-      const unitPath = path.join(systemdDir, "custom-openclaw.service");
+      const unitPath = path.join(systemdDir, "custom-astroclaw.service");
       try {
         await fs.mkdir(systemdDir, { recursive: true });
-        await fs.writeFile(unitPath, CUSTOM_OPENCLAW_GATEWAY_CONTENTS);
+        await fs.writeFile(unitPath, CUSTOM_ASTROCLAW_GATEWAY_CONTENTS);
         const result = await findExtraGatewayServices({ HOME: tmpHome });
         expect(result).toEqual([
           {
             platform: "linux",
-            label: "custom-openclaw.service",
+            label: "custom-astroclaw.service",
             detail: `unit: ${unitPath}`,
             scope: "user",
-            marker: "openclaw",
+            marker: "astroclaw",
             legacy: false,
           },
         ]);
@@ -227,7 +227,7 @@ describe("findExtraGatewayServices (darwin / scanLaunchdDir) — real filesystem
   });
 
   it("does not report LaunchAgent companions that only mention the gateway label", async () => {
-    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-"));
+    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-test-"));
     const launchdDir = path.join(tmpHome, "Library", "LaunchAgents");
     try {
       await fs.mkdir(launchdDir, { recursive: true });
@@ -236,8 +236,8 @@ describe("findExtraGatewayServices (darwin / scanLaunchdDir) — real filesystem
         `<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
 <key>Label</key><string>com.example.companion</string>
-<key>KeepAlive</key><dict><key>OtherJobEnabled</key><dict><key>ai.openclaw.gateway</key><true/></dict></dict>
-<key>ProgramArguments</key><array><string>/usr/local/bin/openclaw-helper</string><string>sync</string></array>
+<key>KeepAlive</key><dict><key>OtherJobEnabled</key><dict><key>ai.astroclaw.gateway</key><true/></dict></dict>
+<key>ProgramArguments</key><array><string>/usr/local/bin/astroclaw-helper</string><string>sync</string></array>
 </dict></plist>`,
       );
       const result = await findExtraGatewayServices({ HOME: tmpHome });
@@ -248,7 +248,7 @@ describe("findExtraGatewayServices (darwin / scanLaunchdDir) — real filesystem
   });
 
   it("does not report LaunchAgent companions that only pass gateway-named options", async () => {
-    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-"));
+    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-test-"));
     const launchdDir = path.join(tmpHome, "Library", "LaunchAgents");
     try {
       await fs.mkdir(launchdDir, { recursive: true });
@@ -257,7 +257,7 @@ describe("findExtraGatewayServices (darwin / scanLaunchdDir) — real filesystem
         `<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
 <key>Label</key><string>com.example.companion-options</string>
-<key>ProgramArguments</key><array><string>/usr/local/bin/openclaw-helper</string><string>--gateway-url</string><string>http://127.0.0.1:18789</string><string>sync</string></array>
+<key>ProgramArguments</key><array><string>/usr/local/bin/astroclaw-helper</string><string>--gateway-url</string><string>http://127.0.0.1:18789</string><string>sync</string></array>
 </dict></plist>`,
       );
       const result = await findExtraGatewayServices({ HOME: tmpHome });
@@ -268,7 +268,7 @@ describe("findExtraGatewayServices (darwin / scanLaunchdDir) — real filesystem
   });
 
   it("does not report non-gateway LaunchAgents that mention clawdbot in environment values", async () => {
-    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-"));
+    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-test-"));
     const launchdDir = path.join(tmpHome, "Library", "LaunchAgents");
     try {
       await fs.mkdir(launchdDir, { recursive: true });
@@ -288,28 +288,28 @@ describe("findExtraGatewayServices (darwin / scanLaunchdDir) — real filesystem
     }
   });
 
-  it("reports custom LaunchAgents that execute openclaw gateway", async () => {
-    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-"));
+  it("reports custom LaunchAgents that execute astroclaw gateway", async () => {
+    const tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-test-"));
     const launchdDir = path.join(tmpHome, "Library", "LaunchAgents");
-    const plistPath = path.join(launchdDir, "com.example.openclaw-gateway.plist");
+    const plistPath = path.join(launchdDir, "com.example.astroclaw-gateway.plist");
     try {
       await fs.mkdir(launchdDir, { recursive: true });
       await fs.writeFile(
         plistPath,
         `<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
-<key>Label</key><string>com.example.openclaw-gateway</string>
-<key>ProgramArguments</key><array><string>/usr/local/bin/openclaw</string><string>gateway</string><string>--port</string><string>18888</string></array>
+<key>Label</key><string>com.example.astroclaw-gateway</string>
+<key>ProgramArguments</key><array><string>/usr/local/bin/astroclaw</string><string>gateway</string><string>--port</string><string>18888</string></array>
 </dict></plist>`,
       );
       const result = await findExtraGatewayServices({ HOME: tmpHome });
       expect(result).toEqual([
         {
           platform: "darwin",
-          label: "com.example.openclaw-gateway",
+          label: "com.example.astroclaw-gateway",
           detail: `plist: ${plistPath}`,
           scope: "user",
-          marker: "openclaw",
+          marker: "astroclaw",
           legacy: false,
         },
       ]);
@@ -354,12 +354,12 @@ describe("findExtraGatewayServices (win32)", () => {
     expect(result).toStrictEqual([]);
   });
 
-  it("collects only non-openclaw marker tasks from schtasks output", async () => {
+  it("collects only non-astroclaw marker tasks from schtasks output", async () => {
     execSchtasksMock.mockResolvedValueOnce({
       code: 0,
       stdout: [
-        "TaskName: OpenClaw Gateway",
-        "Task To Run: C:\\Program Files\\OpenClaw\\openclaw.exe gateway run",
+        "TaskName: Astroclaw Gateway",
+        "Task To Run: C:\\Program Files\\Astroclaw\\astroclaw.exe gateway run",
         "",
         "TaskName: Clawdbot Legacy",
         "Task To Run: C:\\clawdbot\\clawdbot.exe run",

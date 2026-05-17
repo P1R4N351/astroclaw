@@ -1,5 +1,5 @@
-import { expectExplicitVideoGenerationCapabilities } from "openclaw/plugin-sdk/provider-test-contracts";
-import { installPinnedHostnameTestHooks } from "openclaw/plugin-sdk/test-env";
+import { expectExplicitVideoGenerationCapabilities } from "astroclaw/plugin-sdk/provider-test-contracts";
+import { installPinnedHostnameTestHooks } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   binaryResponse,

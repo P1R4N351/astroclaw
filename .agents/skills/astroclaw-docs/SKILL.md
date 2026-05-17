@@ -1,20 +1,20 @@
 ---
-name: openclaw-docs
-description: Write or review high-quality OpenClaw developer documentation.
+name: astroclaw-docs
+description: Write or review high-quality Astroclaw developer documentation.
 dependencies: []
 ---
 
-# OpenClaw Docs
+# Astroclaw Docs
 
 ## Overview
 
-Use this skill when writing, editing, or reviewing OpenClaw developer documentation for APIs, SDKs, CLI tools, integrations, quickstarts, platform guides, or technical product docs.
+Use this skill when writing, editing, or reviewing Astroclaw developer documentation for APIs, SDKs, CLI tools, integrations, quickstarts, platform guides, or technical product docs.
 
 Write documentation that is concise, helpful, and comprehensive: fast for first success, precise for production, and easy to scan when debugging.
 
 ## Core Model
 
-Use an OpenClaw documentation model, strengthened by Write the Docs principles:
+Use an Astroclaw documentation model, strengthened by Write the Docs principles:
 
 - Lead with what the developer is trying to do.
 - Give one recommended path before alternatives.
@@ -108,8 +108,8 @@ Write in a direct, practical voice:
 - Avoid marketing language, hype, generic benefits, and vague claims.
 - Avoid long conceptual lead-ins before the first actionable step.
 - Do not over-explain common developer concepts unless the product has a nonstandard contract.
-- Define OpenClaw-specific jargon and abbreviations before first use.
-- Use sentence case for headings unless an OpenClaw product name, command, or identifier requires capitalization.
+- Define Astroclaw-specific jargon and abbreviations before first use.
+- Use sentence case for headings unless an Astroclaw product name, command, or identifier requires capitalization.
 - Use descriptive link text that names the destination or action; avoid vague links such as "this page" or "click here".
 - Avoid culturally specific idioms, violent idioms, and jokes that make docs harder to translate or scan.
 - Write accessible prose: do not rely on color, screenshots, or visual position as the only way to understand an instruction.
@@ -172,8 +172,8 @@ Design every page so readers can find it, link to it, and decide quickly whether
 
 - Use goal-oriented titles and headings that match likely search terms.
 - Start each page with a concise answer to "what can I do here?"
-- Include metadata or frontmatter required by the OpenClaw docs index.
-- Add "Read when" hints for docs-list routing when creating or changing OpenClaw docs pages that participate in the docs index.
+- Include metadata or frontmatter required by the Astroclaw docs index.
+- Add "Read when" hints for docs-list routing when creating or changing Astroclaw docs pages that participate in the docs index.
 - Link from likely entry points, not only from nearby internal taxonomy pages.
 - Keep section headings stable enough for links from issues, PRs, support replies, and chat answers.
 - Order tutorials and examples from prerequisites to advanced tasks; order reference pages alphabetically or topically when that helps lookup.

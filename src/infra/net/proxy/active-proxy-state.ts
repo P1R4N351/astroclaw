@@ -24,11 +24,11 @@ function parseActiveManagedProxyLoopbackMode(
 }
 
 function readInheritedActiveManagedProxyLoopbackMode(): ActiveManagedProxyLoopbackMode | undefined {
-  if (process.env["OPENCLAW_PROXY_ACTIVE"] !== "1") {
+  if (process.env["ASTROCLAW_PROXY_ACTIVE"] !== "1") {
     return undefined;
   }
   return (
-    parseActiveManagedProxyLoopbackMode(process.env["OPENCLAW_PROXY_LOOPBACK_MODE"]) ??
+    parseActiveManagedProxyLoopbackMode(process.env["ASTROCLAW_PROXY_LOOPBACK_MODE"]) ??
     "gateway-only"
   );
 }

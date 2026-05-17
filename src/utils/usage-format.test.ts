@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import {
   __resetGatewayModelPricingCacheForTest,
   __setGatewayModelPricingForTest,
@@ -39,16 +39,16 @@ function requireTieredPricing(
 }
 
 describe("usage-format", () => {
-  const originalAgentDir = process.env.OPENCLAW_AGENT_DIR;
-  const originalStateDir = process.env.OPENCLAW_STATE_DIR;
+  const originalAgentDir = process.env.ASTROCLAW_AGENT_DIR;
+  const originalStateDir = process.env.ASTROCLAW_STATE_DIR;
   let agentDir: string;
   let stateDir: string;
 
   beforeEach(async () => {
-    stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-usage-format-"));
+    stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-usage-format-"));
     agentDir = path.join(stateDir, "agents", "main", "agent");
-    process.env.OPENCLAW_STATE_DIR = stateDir;
-    delete process.env.OPENCLAW_AGENT_DIR;
+    process.env.ASTROCLAW_STATE_DIR = stateDir;
+    delete process.env.ASTROCLAW_AGENT_DIR;
     await fs.mkdir(agentDir, { recursive: true });
     __resetUsageFormatCachesForTest();
     __resetGatewayModelPricingCacheForTest();
@@ -56,14 +56,14 @@ describe("usage-format", () => {
 
   afterEach(async () => {
     if (originalAgentDir === undefined) {
-      delete process.env.OPENCLAW_AGENT_DIR;
+      delete process.env.ASTROCLAW_AGENT_DIR;
     } else {
-      process.env.OPENCLAW_AGENT_DIR = originalAgentDir;
+      process.env.ASTROCLAW_AGENT_DIR = originalAgentDir;
     }
     if (originalStateDir === undefined) {
-      delete process.env.OPENCLAW_STATE_DIR;
+      delete process.env.ASTROCLAW_STATE_DIR;
     } else {
-      process.env.OPENCLAW_STATE_DIR = originalStateDir;
+      process.env.ASTROCLAW_STATE_DIR = originalStateDir;
     }
     __resetUsageFormatCachesForTest();
     __resetGatewayModelPricingCacheForTest();
@@ -99,7 +99,7 @@ describe("usage-format", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     const cost = resolveModelCostConfig({
       provider: "test",
@@ -138,7 +138,7 @@ describe("usage-format", () => {
     ).toBeUndefined();
   });
 
-  it("prefers models.json pricing over openclaw config and cached pricing", async () => {
+  it("prefers models.json pricing over astroclaw config and cached pricing", async () => {
     const config = {
       models: {
         providers: {
@@ -152,7 +152,7 @@ describe("usage-format", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     await fs.writeFile(
       path.join(agentDir, "models.json"),
@@ -197,7 +197,7 @@ describe("usage-format", () => {
     });
   });
 
-  it("falls back to openclaw config pricing when models.json is absent", () => {
+  it("falls back to astroclaw config pricing when models.json is absent", () => {
     const config = {
       models: {
         providers: {
@@ -211,7 +211,7 @@ describe("usage-format", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     __setGatewayModelPricingForTest([
       {
@@ -271,7 +271,7 @@ describe("usage-format", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     expect(
       resolveModelCostConfig({

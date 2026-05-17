@@ -11,7 +11,7 @@ Sandbox backend powered by OpenShell with mirrored local workspaces and SSH-base
 
 ## Distribution
 
-- Package: `@openclaw/openshell-sandbox`
+- Package: `@astroclaw/openshell-sandbox`
 - Install route: npm; ClawHub
 
 ## Surface

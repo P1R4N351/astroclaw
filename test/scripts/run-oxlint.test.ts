@@ -31,14 +31,14 @@ describe("run-oxlint", () => {
       "node scripts/prepare-extension-package-boundary-artifacts.mjs",
     );
     expect(shardedLintRunner).toContain("prepare-extension-package-boundary-artifacts.mjs");
-    expect(shardedLintRunner).toContain('OPENCLAW_OXLINT_SKIP_PREPARE: "1"');
+    expect(shardedLintRunner).toContain('ASTROCLAW_OXLINT_SKIP_PREPARE: "1"');
   });
 
   it("holds one parent heavy-check lock for sharded lint runs", () => {
     const shardedLintRunner = readFileSync("scripts/run-oxlint-shards.mjs", "utf8");
-    const skipLockIndex = shardedLintRunner.indexOf('env.OPENCLAW_OXLINT_SKIP_LOCK === "1"');
+    const skipLockIndex = shardedLintRunner.indexOf('env.ASTROCLAW_OXLINT_SKIP_LOCK === "1"');
     const lockIndex = shardedLintRunner.indexOf("acquireLocalHeavyCheckLockSync({");
-    const childSkipIndex = shardedLintRunner.indexOf('OPENCLAW_OXLINT_SKIP_LOCK: "1"');
+    const childSkipIndex = shardedLintRunner.indexOf('ASTROCLAW_OXLINT_SKIP_LOCK: "1"');
 
     expect(shardedLintRunner).toContain("resolveLocalHeavyCheckEnv");
     expect(shardedLintRunner).toContain("shouldAcquireLocalHeavyCheckLockForOxlint");
@@ -51,7 +51,7 @@ describe("run-oxlint", () => {
   it("lets dev update preflight run oxlint shards serially", () => {
     const shardedLintRunner = readFileSync("scripts/run-oxlint-shards.mjs", "utf8");
 
-    expect(shardedLintRunner).toContain("OPENCLAW_OXLINT_SHARDS_SERIAL");
+    expect(shardedLintRunner).toContain("ASTROCLAW_OXLINT_SHARDS_SERIAL");
     expect(shardedLintRunner).toContain("runShardsSerial");
   });
 

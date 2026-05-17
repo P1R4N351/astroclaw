@@ -43,7 +43,7 @@ function mockSnapshot(params?: {
 }) {
   const token = params?.token ?? "abc123";
   mocks.readConfigFileSnapshot.mockResolvedValue({
-    path: "/tmp/openclaw.json",
+    path: "/tmp/astroclaw.json",
     exists: true,
     raw: "{}",
     parsed: {},

@@ -1,6 +1,6 @@
-import OpenClawKit
+import AstroclawKit
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite struct GatewayStatusBuilderTests {
     @Test func pausedProblemKeepsErrorStatus() {

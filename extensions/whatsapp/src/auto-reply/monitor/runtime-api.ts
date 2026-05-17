@@ -1,23 +1,23 @@
-export { resolveIdentityNamePrefix } from "openclaw/plugin-sdk/agent-runtime";
-export { formatInboundEnvelope } from "openclaw/plugin-sdk/channel-envelope";
-export { resolveInboundSessionEnvelopeContext } from "openclaw/plugin-sdk/channel-inbound";
-export { toLocationContext } from "openclaw/plugin-sdk/channel-location";
+export { resolveIdentityNamePrefix } from "astroclaw/plugin-sdk/agent-runtime";
+export { formatInboundEnvelope } from "astroclaw/plugin-sdk/channel-envelope";
+export { resolveInboundSessionEnvelopeContext } from "astroclaw/plugin-sdk/channel-inbound";
+export { toLocationContext } from "astroclaw/plugin-sdk/channel-location";
 export {
   createChannelMessageReplyPipeline,
   resolveChannelMessageSourceReplyDeliveryMode,
-} from "openclaw/plugin-sdk/channel-message";
+} from "astroclaw/plugin-sdk/channel-message";
 export {
   isControlCommandMessage,
   shouldComputeCommandAuthorized,
-} from "openclaw/plugin-sdk/command-detection";
+} from "astroclaw/plugin-sdk/command-detection";
 export { resolveChannelContextVisibilityMode } from "../config.runtime.js";
-export { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
+export { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
 export type LoadConfigFn = typeof import("../config.runtime.js").getRuntimeConfig;
 export {
   buildHistoryContextFromEntries,
   type HistoryEntry,
-} from "openclaw/plugin-sdk/reply-history";
-export { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
+} from "astroclaw/plugin-sdk/reply-history";
+export { resolveSendableOutboundReplyParts } from "astroclaw/plugin-sdk/reply-payload";
 export {
   dispatchReplyWithBufferedBlockDispatcher,
   finalizeInboundContext,
@@ -25,12 +25,12 @@ export {
   resolveTextChunkLimit,
   type getReplyFromConfig,
   type ReplyPayload,
-} from "openclaw/plugin-sdk/reply-runtime";
+} from "astroclaw/plugin-sdk/reply-runtime";
 export {
   resolveInboundLastRouteSessionKey,
   type resolveAgentRoute,
-} from "openclaw/plugin-sdk/routing";
-export { logVerbose, shouldLogVerbose, type getChildLogger } from "openclaw/plugin-sdk/runtime-env";
-export { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
-export { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
+} from "astroclaw/plugin-sdk/routing";
+export { logVerbose, shouldLogVerbose, type getChildLogger } from "astroclaw/plugin-sdk/runtime-env";
+export { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
+export { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
 export { jidToE164, normalizeE164 } from "../../text-runtime.js";

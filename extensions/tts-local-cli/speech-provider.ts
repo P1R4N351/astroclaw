@@ -1,16 +1,16 @@
 import { spawn } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { runFfmpeg } from "openclaw/plugin-sdk/media-runtime";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
-import { writeExternalFileWithinRoot } from "openclaw/plugin-sdk/security-runtime";
+import { runFfmpeg } from "astroclaw/plugin-sdk/media-runtime";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
+import { writeExternalFileWithinRoot } from "astroclaw/plugin-sdk/security-runtime";
 import type {
   SpeechProviderConfig,
   SpeechProviderPlugin,
   SpeechSynthesisRequest,
   SpeechTelephonySynthesisRequest,
-} from "openclaw/plugin-sdk/speech-core";
-import { tempWorkspace, resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/speech-core";
+import { tempWorkspace, resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
 
 const log = createSubsystemLogger("tts-local-cli");
 
@@ -342,8 +342,8 @@ export function buildCliSpeechProvider(): SpeechProviderPlugin {
       log.debug(`synthesize: text=${req.text.slice(0, 50)}...`);
 
       const temp = await tempWorkspace({
-        rootDir: resolvePreferredOpenClawTmpDir(),
-        prefix: "openclaw-cli-tts-",
+        rootDir: resolvePreferredAstroclawTmpDir(),
+        prefix: "astroclaw-cli-tts-",
       });
       const tempDir = temp.dir;
 
@@ -415,8 +415,8 @@ export function buildCliSpeechProvider(): SpeechProviderPlugin {
       log.debug(`synthesizeTelephony: text=${req.text.slice(0, 50)}...`);
 
       const temp = await tempWorkspace({
-        rootDir: resolvePreferredOpenClawTmpDir(),
-        prefix: "openclaw-cli-tts-",
+        rootDir: resolvePreferredAstroclawTmpDir(),
+        prefix: "astroclaw-cli-tts-",
       });
       const tempDir = temp.dir;
 

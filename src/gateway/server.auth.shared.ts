@@ -94,9 +94,9 @@ const originForPort = (port: number) => `http://127.0.0.1:${port}`;
 
 function restoreGatewayToken(prevToken: string | undefined) {
   if (prevToken === undefined) {
-    delete process.env.OPENCLAW_GATEWAY_TOKEN;
+    delete process.env.ASTROCLAW_GATEWAY_TOKEN;
   } else {
-    process.env.OPENCLAW_GATEWAY_TOKEN = prevToken;
+    process.env.ASTROCLAW_GATEWAY_TOKEN = prevToken;
   }
 }
 
@@ -203,9 +203,9 @@ function resolveGatewayTokenOrEnv(): string {
   const token =
     typeof (testState.gatewayAuth as { token?: unknown } | undefined)?.token === "string"
       ? ((testState.gatewayAuth as { token?: string }).token ?? undefined)
-      : process.env.OPENCLAW_GATEWAY_TOKEN;
+      : process.env.ASTROCLAW_GATEWAY_TOKEN;
   if (typeof token !== "string") {
-    throw new Error("expected gateway token in test state or OPENCLAW_GATEWAY_TOKEN");
+    throw new Error("expected gateway token in test state or ASTROCLAW_GATEWAY_TOKEN");
   }
   return token;
 }
@@ -343,7 +343,7 @@ async function startRateLimitedTokenServerWithPairedDeviceToken() {
   const { server, ws, port, prevToken } = await startServerWithClient(undefined, {
     controlUiEnabled: true,
   });
-  const deviceIdentityPath = nextAuthIdentityPath("openclaw-auth-rate-limit");
+  const deviceIdentityPath = nextAuthIdentityPath("astroclaw-auth-rate-limit");
   try {
     const initial = await connectReq(ws, { token: "secret", deviceIdentityPath });
     if (!initial.ok) {
@@ -366,7 +366,7 @@ async function ensurePairedDeviceTokenForCurrentIdentity(ws: WebSocket): Promise
   deviceToken: string;
   deviceIdentityPath: string;
 }> {
-  const deviceIdentityPath = nextAuthIdentityPath("openclaw-auth-device");
+  const deviceIdentityPath = nextAuthIdentityPath("astroclaw-auth-device");
 
   const res = await connectReq(ws, { token: "secret", deviceIdentityPath });
   if (!res.ok) {

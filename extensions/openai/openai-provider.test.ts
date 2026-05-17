@@ -13,9 +13,9 @@ vi.mock("./openai-codex-provider.runtime.js", () => ({
   refreshOpenAICodexToken: mocks.refreshOpenAICodexToken,
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-stream-family", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/provider-stream-family", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/provider-stream-family")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/provider-stream-family")>();
   const wrapStreamFn: NonNullable<typeof actual.OPENAI_RESPONSES_STREAM_HOOKS.wrapStreamFn> = (
     ctx,
   ) => {
@@ -893,10 +893,10 @@ describe("buildOpenAIProvider", () => {
     expect(mocks.openAIResponsesTransportStreamFn).not.toHaveBeenCalled();
     const headers = result.options?.headers as Record<string, unknown> | undefined;
     expectFields(result.options?.headers, {
-      originator: "openclaw",
+      originator: "astroclaw",
     });
     expect(typeof headers?.["User-Agent"]).toBe("string");
-    expect(String(headers?.["User-Agent"]).startsWith("openclaw/")).toBe(true);
+    expect(String(headers?.["User-Agent"]).startsWith("astroclaw/")).toBe(true);
     expect(result.payload.store).toBe(false);
     expect(result.payload.service_tier).toBe("priority");
     expect(result.payload.text).toEqual({ verbosity: "high" });

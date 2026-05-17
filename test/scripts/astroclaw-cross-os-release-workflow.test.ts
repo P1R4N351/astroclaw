@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const WORKFLOW_PATH = ".github/workflows/openclaw-cross-os-release-checks-reusable.yml";
-const WRAPPER_PATH = "scripts/github/run-openclaw-cross-os-release-checks.sh";
-const HARNESS = "bash workflow/scripts/github/run-openclaw-cross-os-release-checks.sh";
+const WORKFLOW_PATH = ".github/workflows/astroclaw-cross-os-release-checks-reusable.yml";
+const WRAPPER_PATH = "scripts/github/run-astroclaw-cross-os-release-checks.sh";
+const HARNESS = "bash workflow/scripts/github/run-astroclaw-cross-os-release-checks.sh";
 
 describe("cross-OS release checks workflow", () => {
   it("runs the TypeScript release harness through the Windows-safe wrapper", () => {

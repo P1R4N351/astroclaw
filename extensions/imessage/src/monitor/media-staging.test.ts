@@ -14,7 +14,7 @@ async function writeTempFile(name: string, contents: Buffer | string): Promise<s
 
 describe("stageIMessageAttachments", () => {
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-imessage-media-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-imessage-media-"));
   });
 
   afterEach(async () => {

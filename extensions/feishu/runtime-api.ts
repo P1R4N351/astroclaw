@@ -11,45 +11,45 @@ export type {
   ChannelOutboundAdapter,
   ChannelPlugin,
   HistoryEntry,
-  OpenClawConfig,
-  OpenClawPluginApi,
+  AstroclawConfig,
+  AstroclawPluginApi,
   OutboundIdentity,
   PluginRuntime,
   ReplyPayload,
-} from "openclaw/plugin-sdk/core";
-export type { OpenClawConfig as ClawdbotConfig } from "openclaw/plugin-sdk/core";
-export type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
-export type { GroupToolPolicyConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/core";
+export type { AstroclawConfig as ClawdbotConfig } from "astroclaw/plugin-sdk/core";
+export type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+export type { GroupToolPolicyConfig } from "astroclaw/plugin-sdk/config-contracts";
 export {
   DEFAULT_ACCOUNT_ID,
   buildChannelConfigSchema,
   createActionGate,
   createDedupeCache,
-} from "openclaw/plugin-sdk/core";
+} from "astroclaw/plugin-sdk/core";
 export {
   PAIRING_APPROVED_MESSAGE,
   buildProbeChannelStatusSummary,
   createDefaultChannelRuntimeState,
-} from "openclaw/plugin-sdk/channel-status";
-export { buildAgentMediaPayload } from "openclaw/plugin-sdk/agent-media-payload";
-export { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
-export { createReplyPrefixContext } from "openclaw/plugin-sdk/channel-message";
+} from "astroclaw/plugin-sdk/channel-status";
+export { buildAgentMediaPayload } from "astroclaw/plugin-sdk/agent-media-payload";
+export { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
+export { createReplyPrefixContext } from "astroclaw/plugin-sdk/channel-message";
 export {
   evaluateSupplementalContextVisibility,
   filterSupplementalContextItems,
   resolveChannelContextVisibilityMode,
-} from "openclaw/plugin-sdk/context-visibility-runtime";
+} from "astroclaw/plugin-sdk/context-visibility-runtime";
 export {
   loadSessionStore,
   resolveSessionStoreEntry,
-} from "openclaw/plugin-sdk/session-store-runtime";
-export { readJsonFileWithFallback } from "openclaw/plugin-sdk/json-store";
-export { createPersistentDedupe } from "openclaw/plugin-sdk/persistent-dedupe";
-export { normalizeAgentId } from "openclaw/plugin-sdk/routing";
-export { chunkTextForOutbound } from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+export { readJsonFileWithFallback } from "astroclaw/plugin-sdk/json-store";
+export { createPersistentDedupe } from "astroclaw/plugin-sdk/persistent-dedupe";
+export { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
+export { chunkTextForOutbound } from "astroclaw/plugin-sdk/text-chunking";
 export {
   isRequestBodyLimitError,
   readRequestBodyWithLimit,
   requestBodyErrorToText,
-} from "openclaw/plugin-sdk/webhook-ingress";
+} from "astroclaw/plugin-sdk/webhook-ingress";
 export { setFeishuRuntime } from "./src/runtime.js";

@@ -8,9 +8,9 @@ import UniformTypeIdentifiers
 #endif
 
 @MainActor
-struct OpenClawChatComposer: View {
-    @Bindable var viewModel: OpenClawChatViewModel
-    let style: OpenClawChatView.Style
+struct AstroclawChatComposer: View {
+    @Bindable var viewModel: AstroclawChatViewModel
+    let style: AstroclawChatView.Style
     let showsSessionSwitcher: Bool
 
     #if !os(macOS)
@@ -58,21 +58,21 @@ struct OpenClawChatComposer: View {
                         topTrailing: 0),
                     style: .continuous)
                 shape
-                    .fill(OpenClawChatTheme.composerBackground)
-                    .overlay(shape.strokeBorder(OpenClawChatTheme.composerBorder, lineWidth: 1))
+                    .fill(AstroclawChatTheme.composerBackground)
+                    .overlay(shape.strokeBorder(AstroclawChatTheme.composerBorder, lineWidth: 1))
                     .shadow(color: .black.opacity(0.12), radius: 12, y: 6)
             } else {
                 let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 shape
-                    .fill(OpenClawChatTheme.composerBackground)
-                    .overlay(shape.strokeBorder(OpenClawChatTheme.composerBorder, lineWidth: 1))
+                    .fill(AstroclawChatTheme.composerBackground)
+                    .overlay(shape.strokeBorder(AstroclawChatTheme.composerBorder, lineWidth: 1))
                     .shadow(color: .black.opacity(0.12), radius: 12, y: 6)
             }
             #else
             let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             shape
-                .fill(OpenClawChatTheme.composerBackground)
-                .overlay(shape.strokeBorder(OpenClawChatTheme.composerBorder, lineWidth: 1))
+                .fill(AstroclawChatTheme.composerBackground)
+                .overlay(shape.strokeBorder(AstroclawChatTheme.composerBorder, lineWidth: 1))
                 .shadow(color: .black.opacity(0.12), radius: 12, y: 6)
             #endif
         }
@@ -110,7 +110,7 @@ struct OpenClawChatComposer: View {
                 get: { self.viewModel.modelSelectionID },
                 set: { next in self.viewModel.selectModel(next) }))
         {
-            Text(self.viewModel.defaultModelLabel).tag(OpenClawChatViewModel.defaultModelSelectionID)
+            Text(self.viewModel.defaultModelLabel).tag(AstroclawChatViewModel.defaultModelSelectionID)
             ForEach(self.viewModel.modelChoices) { model in
                 Text(model.displayLabel).tag(model.selectionID)
             }
@@ -171,11 +171,11 @@ struct OpenClawChatComposer: View {
             HStack(spacing: 6) {
                 ForEach(
                     self.viewModel.attachments,
-                    id: \OpenClawPendingAttachment.id)
-                { (att: OpenClawPendingAttachment) in
+                    id: \AstroclawPendingAttachment.id)
+                { (att: AstroclawPendingAttachment) in
                     HStack(spacing: 6) {
                         if let img = att.preview {
-                            OpenClawPlatformImageFactory.image(img)
+                            AstroclawPlatformImageFactory.image(img)
                                 .resizable()
                                 .scaledToFill()
                                 .frame(width: 22, height: 22)
@@ -209,7 +209,7 @@ struct OpenClawChatComposer: View {
 
             if !self.isComposerCompacted {
                 Rectangle()
-                    .fill(OpenClawChatTheme.divider)
+                    .fill(AstroclawChatTheme.divider)
                     .frame(height: 1)
                     .padding(.horizontal, 2)
             }
@@ -226,10 +226,10 @@ struct OpenClawChatComposer: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(OpenClawChatTheme.composerField)
+                .fill(AstroclawChatTheme.composerField)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(OpenClawChatTheme.composerBorder)))
+                        .strokeBorder(AstroclawChatTheme.composerBorder)))
         .padding(self.editorPadding)
     }
 
@@ -246,7 +246,7 @@ struct OpenClawChatComposer: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(OpenClawChatTheme.subtleCard)
+        .background(AstroclawChatTheme.subtleCard)
         .clipShape(Capsule())
     }
 
@@ -259,7 +259,7 @@ struct OpenClawChatComposer: View {
     private var editorOverlay: some View {
         ZStack(alignment: .topLeading) {
             if self.viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("Message OpenClaw…")
+                Text("Message Astroclaw…")
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 4)

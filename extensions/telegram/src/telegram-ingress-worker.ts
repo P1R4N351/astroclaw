@@ -1,5 +1,5 @@
 import { Worker } from "node:worker_threads";
-import type { TelegramNetworkConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { TelegramNetworkConfig } from "astroclaw/plugin-sdk/config-contracts";
 
 export type TelegramIngressWorkerMessage =
   | {

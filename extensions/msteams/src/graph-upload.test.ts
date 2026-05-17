@@ -1,4 +1,4 @@
-import { withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
+import { withFetchPreconnect } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it, vi } from "vitest";
 import { buildTeamsFileInfoCard } from "./graph-chat.js";
 import { resolveGraphChatId, uploadToOneDrive, uploadToSharePoint } from "./graph-upload.js";
@@ -19,7 +19,7 @@ function expectGraphUploadFetch(fetchFn: ReturnType<typeof vi.fn>, expectedUrl: 
   expect(init?.method).toBe("PUT");
   expect(init?.headers?.Authorization).toBe("Bearer graph-token");
   expect(init?.headers?.["Content-Type"]).toBe("application/octet-stream");
-  expect(init?.headers?.["User-Agent"]).toMatch(/^teams\.ts\[apps\]\/.+ OpenClaw\/.+$/);
+  expect(init?.headers?.["User-Agent"]).toMatch(/^teams\.ts\[apps\]\/.+ Astroclaw\/.+$/);
 }
 
 describe("graph upload helpers", () => {
@@ -48,7 +48,7 @@ describe("graph upload helpers", () => {
 
     expectGraphUploadFetch(
       fetchFn,
-      "https://graph.microsoft.com/v1.0/me/drive/root:/OpenClawShared/a.txt:/content",
+      "https://graph.microsoft.com/v1.0/me/drive/root:/AstroclawShared/a.txt:/content",
     );
     expect(result).toEqual({
       id: "item-1",
@@ -79,7 +79,7 @@ describe("graph upload helpers", () => {
 
     expectGraphUploadFetch(
       fetchFn,
-      "https://graph.microsoft.com/v1.0/sites/site-123/drive/root:/OpenClawShared/b.txt:/content",
+      "https://graph.microsoft.com/v1.0/sites/site-123/drive/root:/AstroclawShared/b.txt:/content",
     );
     expect(result).toEqual({
       id: "item-2",
@@ -145,7 +145,7 @@ describe("resolveGraphChatId", () => {
     expect(fetchFn).toHaveBeenCalledTimes(1);
     const [callUrlRaw, init] = requireFetchCall(fetchFn);
     expect(init?.headers?.Authorization).toBe("Bearer graph-token");
-    expect(init?.headers?.["User-Agent"]).toMatch(/^teams\.ts\[apps\]\/.+ OpenClaw\/.+$/);
+    expect(init?.headers?.["User-Agent"]).toMatch(/^teams\.ts\[apps\]\/.+ Astroclaw\/.+$/);
     const callUrl = new URL(callUrlRaw);
     expect(callUrl.origin).toBe("https://graph.microsoft.com");
     expect(callUrl.pathname).toBe("/v1.0/me/chats");

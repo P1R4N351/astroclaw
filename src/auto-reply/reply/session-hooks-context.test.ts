@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { HookRunner } from "../../plugins/hooks.js";
 import { initSessionState } from "./session.js";
@@ -110,7 +110,7 @@ async function createStoredSession(params: {
   return { storePath, transcriptPath };
 }
 
-type SessionResetConfig = NonNullable<NonNullable<OpenClawConfig["session"]>["reset"]>;
+type SessionResetConfig = NonNullable<NonNullable<AstroclawConfig["session"]>["reset"]>;
 
 async function initStoredSessionState(params: {
   prefix: string;
@@ -126,7 +126,7 @@ async function initStoredSessionState(params: {
       store: storePath,
       ...(params.reset ? { reset: params.reset } : {}),
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 
   await initSessionState({
     ctx: { Body: "hello", SessionKey: params.sessionKey },
@@ -184,9 +184,9 @@ describe("session hook context wiring", () => {
 
   it("passes sessionKey to session_start hook context", async () => {
     const sessionKey = "agent:main:telegram:direct:123";
-    const storePath = await createStorePath("openclaw-session-hook-start");
+    const storePath = await createStorePath("astroclaw-session-hook-start");
     await writeStore(storePath, {});
-    const cfg = { session: { store: storePath } } as OpenClawConfig;
+    const cfg = { session: { store: storePath } } as AstroclawConfig;
 
     await initSessionState({
       ctx: { Body: "hello", SessionKey: sessionKey },
@@ -203,11 +203,11 @@ describe("session hook context wiring", () => {
   it("passes sessionKey to session_end hook context on reset", async () => {
     const sessionKey = "agent:main:telegram:direct:123";
     const { storePath } = await createStoredSession({
-      prefix: "openclaw-session-hook-end",
+      prefix: "astroclaw-session-hook-end",
       sessionKey,
       sessionId: "old-session",
     });
-    const cfg = { session: { store: storePath } } as OpenClawConfig;
+    const cfg = { session: { store: storePath } } as AstroclawConfig;
 
     await initSessionState({
       ctx: { Body: "/new", SessionKey: sessionKey },
@@ -238,12 +238,12 @@ describe("session hook context wiring", () => {
   it("marks explicit /reset rollovers with reason reset", async () => {
     const sessionKey = "agent:main:telegram:direct:456";
     const { storePath } = await createStoredSession({
-      prefix: "openclaw-session-hook-explicit-reset",
+      prefix: "astroclaw-session-hook-explicit-reset",
       sessionKey,
       sessionId: "reset-session",
       text: "reset me",
     });
-    const cfg = { session: { store: storePath } } as OpenClawConfig;
+    const cfg = { session: { store: storePath } } as AstroclawConfig;
 
     await initSessionState({
       ctx: { Body: "/reset", SessionKey: sessionKey },
@@ -258,7 +258,7 @@ describe("session hook context wiring", () => {
   it("maps custom reset trigger aliases to the new-session reason", async () => {
     const sessionKey = "agent:main:telegram:direct:alias";
     const { storePath } = await createStoredSession({
-      prefix: "openclaw-session-hook-reset-alias",
+      prefix: "astroclaw-session-hook-reset-alias",
       sessionKey,
       sessionId: "alias-session",
       text: "alias me",
@@ -268,7 +268,7 @@ describe("session hook context wiring", () => {
         store: storePath,
         resetTriggers: ["/fresh"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await initSessionState({
       ctx: { Body: "/fresh", SessionKey: sessionKey },
@@ -286,7 +286,7 @@ describe("session hook context wiring", () => {
       vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
       const sessionKey = "agent:main:telegram:direct:daily";
       await initStoredSessionState({
-        prefix: "openclaw-session-hook-daily",
+        prefix: "astroclaw-session-hook-daily",
         sessionKey,
         sessionId: "daily-session",
         text: "daily",
@@ -312,7 +312,7 @@ describe("session hook context wiring", () => {
       vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
       const sessionKey = "agent:main:telegram:direct:idle";
       await initStoredSessionState({
-        prefix: "openclaw-session-hook-idle",
+        prefix: "astroclaw-session-hook-idle",
         sessionKey,
         sessionId: "idle-session",
         text: "idle",
@@ -336,7 +336,7 @@ describe("session hook context wiring", () => {
       vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
       const sessionKey = "agent:main:telegram:direct:overlap";
       await initStoredSessionState({
-        prefix: "openclaw-session-hook-overlap",
+        prefix: "astroclaw-session-hook-overlap",
         sessionKey,
         sessionId: "overlap-session",
         text: "overlap",

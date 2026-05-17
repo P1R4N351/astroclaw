@@ -8,36 +8,36 @@ title: "Skills"
 sidebarTitle: "Skills"
 ---
 
-OpenClaw uses **[AgentSkills](https://agentskills.io)-compatible** skill
+Astroclaw uses **[AgentSkills](https://agentskills.io)-compatible** skill
 folders to teach the agent how to use tools. Each skill is a directory
-containing a `SKILL.md` with YAML frontmatter and instructions. OpenClaw
+containing a `SKILL.md` with YAML frontmatter and instructions. Astroclaw
 loads bundled skills plus optional local overrides, and filters them at
 load time based on environment, config, and binary presence.
 
 ## Locations and precedence
 
-OpenClaw loads skills from these sources, **highest precedence first**:
+Astroclaw loads skills from these sources, **highest precedence first**:
 
 | #   | Source                | Path                             |
 | --- | --------------------- | -------------------------------- |
 | 1   | Workspace skills      | `<workspace>/skills`             |
 | 2   | Project agent skills  | `<workspace>/.agents/skills`     |
 | 3   | Personal agent skills | `~/.agents/skills`               |
-| 4   | Managed/local skills  | `~/.openclaw/skills`             |
+| 4   | Managed/local skills  | `~/.astroclaw/skills`             |
 | 5   | Bundled skills        | shipped with the install         |
 | 6   | Extra skill folders   | `skills.load.extraDirs` (config) |
 
 If a skill name conflicts, the highest source wins.
 
-Codex CLI's native `$CODEX_HOME/skills` directory is not one of these OpenClaw
+Codex CLI's native `$CODEX_HOME/skills` directory is not one of these Astroclaw
 skill roots. In Codex harness mode, local app-server launches use isolated
 per-agent Codex homes, so skills in the operator's personal `~/.codex/skills`
 are not loaded implicitly. Codex-native `.agents` discovery uses inherited
-`HOME` separately; OpenClaw's own skill roots above already include
-`~/.agents/skills`. Use `openclaw migrate codex --dry-run` to inventory skills
-from the Codex home, then `openclaw migrate codex` to choose skill directories
+`HOME` separately; Astroclaw's own skill roots above already include
+`~/.agents/skills`. Use `astroclaw migrate codex --dry-run` to inventory skills
+from the Codex home, then `astroclaw migrate codex` to choose skill directories
 with an interactive
-checkbox prompt before copying them into the current OpenClaw agent workspace.
+checkbox prompt before copying them into the current Astroclaw agent workspace.
 For non-interactive runs, repeat `--skill <name>` for the exact skills to copy.
 
 ## Per-agent vs shared skills
@@ -49,7 +49,7 @@ In **multi-agent** setups each agent has its own workspace:
 | Per-agent            | `<workspace>/skills`                        | Only that agent             |
 | Project-agent        | `<workspace>/.agents/skills`                | Only that workspace's agent |
 | Personal-agent       | `~/.agents/skills`                          | All agents on that machine  |
-| Shared managed/local | `~/.openclaw/skills`                        | All agents on that machine  |
+| Shared managed/local | `~/.astroclaw/skills`                        | All agents on that machine  |
 | Shared extra dirs    | `skills.load.extraDirs` (lowest precedence) | All agents on that machine  |
 
 Same name in multiple places → highest source wins. Workspace beats
@@ -92,7 +92,7 @@ allowlists decide which skills an agent can actually use.
 ## Plugins and skills
 
 Plugins can ship their own skills by listing `skills` directories in
-`openclaw.plugin.json` (paths relative to the plugin root). Plugin skills
+`astroclaw.plugin.json` (paths relative to the plugin root). Plugin skills
 load when the plugin is enabled. This is the right place for tool-specific
 operating guides that are too long for the tool description but should be
 available whenever the plugin is installed - for example, the browser
@@ -101,7 +101,7 @@ plugin ships a `browser-automation` skill for multi-step browser control.
 Plugin skill directories are merged into the same low-precedence path as
 `skills.load.extraDirs`, so a same-named bundled, managed, agent, or
 workspace skill overrides them. You can gate them via
-`metadata.openclaw.requires.config` on the plugin's config entry.
+`metadata.astroclaw.requires.config` on the plugin's config entry.
 
 See [Plugins](/tools/plugin) for discovery/config and [Tools](/tools) for
 the tool surface those skills teach.
@@ -125,21 +125,21 @@ its proposals. Full guide: [Skill Workshop plugin](/plugins/skill-workshop).
 
 ## ClawHub (install and sync)
 
-[ClawHub](https://clawhub.ai) is the public skills registry for OpenClaw.
-Use native `openclaw skills` commands for discover/install/update, or the
+[ClawHub](https://clawhub.ai) is the public skills registry for Astroclaw.
+Use native `astroclaw skills` commands for discover/install/update, or the
 separate `clawhub` CLI for publish/sync workflows. Full guide:
 [ClawHub](/clawhub).
 
 | Action                             | Command                                |
 | ---------------------------------- | -------------------------------------- |
-| Install a skill into the workspace | `openclaw skills install <skill-slug>` |
-| Update all installed skills        | `openclaw skills update --all`         |
+| Install a skill into the workspace | `astroclaw skills install <skill-slug>` |
+| Update all installed skills        | `astroclaw skills update --all`         |
 | Sync (scan + publish updates)      | `clawhub sync --all`                   |
 
-Native `openclaw skills install` installs into the active workspace
+Native `astroclaw skills install` installs into the active workspace
 `skills/` directory. The separate `clawhub` CLI also installs into
 `./skills` under your current working directory (or falls back to the
-configured OpenClaw workspace). OpenClaw picks that up as
+configured Astroclaw workspace). Astroclaw picks that up as
 `<workspace>/skills` on the next session.
 Configured skill roots also support one grouping level, such as
 `skills/<group>/<skill>/SKILL.md`, so related third-party skills can be
@@ -150,15 +150,15 @@ archive with `skills.upload.begin`, `skills.upload.chunk`, and
 `skills.upload.commit`, then install the committed upload with
 `skills.install({ source: "upload", uploadId, slug, force?, sha256? })`. This is
 an explicit admin upload path for trusted clients, not the normal
-`openclaw skills install <slug>` or ClawHub install flow. It is off by default
+`astroclaw skills install <slug>` or ClawHub install flow. It is off by default
 and only works when `skills.install.allowUploadedArchives: true` is set in
-`openclaw.json`. Upload mode still installs into the default agent workspace
+`astroclaw.json`. Upload mode still installs into the default agent workspace
 `skills/<slug>` directory; the archive's internal folder name is ignored for the
 final install target.
 
 ClawHub skill pages expose the latest security scan state before install,
 with scanner detail pages for VirusTotal, ClawScan, and static analysis.
-`openclaw skills install <slug>` remains only the install path; publishers
+`astroclaw skills install <slug>` remains only the install path; publishers
 recover false positives through the ClawHub dashboard or
 `clawhub skill rescan <slug>`.
 
@@ -170,7 +170,7 @@ Prefer sandboxed runs for untrusted inputs and risky tools. See
 [Sandboxing](/gateway/sandboxing) for the agent-side controls.
 </Warning>
 
-- Workspace, project-agent, and extra-dir skill discovery only accepts skill roots whose resolved realpath stays inside the configured root unless `skills.load.allowSymlinkTargets` explicitly trusts a target root. Bundled skills always stay contained. Managed `~/.openclaw/skills` and personal `~/.agents/skills` roots may contain symlinked skill folders installed by ClawHub or another local skill manager, but every `SKILL.md` realpath must still stay inside its resolved skill directory.
+- Workspace, project-agent, and extra-dir skill discovery only accepts skill roots whose resolved realpath stays inside the configured root unless `skills.load.allowSymlinkTargets` explicitly trusts a target root. Bundled skills always stay contained. Managed `~/.astroclaw/skills` and personal `~/.agents/skills` roots may contain symlinked skill folders installed by ClawHub or another local skill manager, but every `SKILL.md` realpath must still stay inside its resolved skill directory.
 - Gateway private archive installs are off by default. When explicitly enabled,
   they require a committed zip upload containing `SKILL.md` and reuse the same
   archive extraction, path traversal, symlink, force, and rollback protections as
@@ -178,7 +178,7 @@ Prefer sandboxed runs for untrusted inputs and risky tools. See
   `skills.install.allowUploadedArchives`; normal ClawHub installs do not require
   that setting.
 - Gateway-backed skill dependency installs (`skills.install`, onboarding, and the Skills settings UI) run the built-in dangerous-code scanner before executing installer metadata. `critical` findings block by default unless the caller explicitly sets the dangerous override; suspicious findings still warn only.
-- `openclaw skills install <slug>` is different - it downloads a ClawHub skill folder into the workspace and does not use the installer-metadata path above.
+- `astroclaw skills install <slug>` is different - it downloads a ClawHub skill folder into the workspace and does not use the installer-metadata path above.
 - `skills.entries.*.env` and `skills.entries.*.apiKey` inject secrets into the **host** process for that agent turn (not the sandbox). Keep secrets out of prompts and logs.
 
 For a broader threat model and checklists, see [Security](/gateway/security).
@@ -194,7 +194,7 @@ description: Generate or edit images via a provider-backed image workflow
 ---
 ```
 
-OpenClaw follows the AgentSkills spec for layout/intent. The parser used
+Astroclaw follows the AgentSkills spec for layout/intent. The parser used
 by the embedded agent supports **single-line** frontmatter keys only;
 `metadata` should be a **single-line JSON object**. Use `{baseDir}` in
 instructions to reference the skill folder path.
@@ -202,13 +202,13 @@ instructions to reference the skill folder path.
 ### Optional frontmatter keys
 
 <ParamField path="homepage" type="string">
-  URL surfaced as "Website" in the macOS Skills UI. Also supported via `metadata.openclaw.homepage`.
+  URL surfaced as "Website" in the macOS Skills UI. Also supported via `metadata.astroclaw.homepage`.
 </ParamField>
 <ParamField path="user-invocable" type="boolean" default="true">
   When `true`, the skill is exposed as a user slash command.
 </ParamField>
 <ParamField path="disable-model-invocation" type="boolean" default="false">
-  When `true`, OpenClaw keeps the skill's instructions out of the agent's normal
+  When `true`, Astroclaw keeps the skill's instructions out of the agent's normal
   prompt. The skill is still installed and can still be run explicitly as a
   slash command when `user-invocable` is also `true`.
 </ParamField>
@@ -224,7 +224,7 @@ instructions to reference the skill folder path.
 
 ## Gating (load-time filters)
 
-OpenClaw filters skills at load time using `metadata` (single-line JSON):
+Astroclaw filters skills at load time using `metadata` (single-line JSON):
 
 ```markdown
 ---
@@ -232,7 +232,7 @@ name: image-lab
 description: Generate or edit images via a provider-backed image workflow
 metadata:
   {
-    "openclaw":
+    "astroclaw":
       {
         "requires": { "bins": ["uv"], "env": ["GEMINI_API_KEY"], "config": ["browser.enabled"] },
         "primaryEnv": "GEMINI_API_KEY",
@@ -241,7 +241,7 @@ metadata:
 ---
 ```
 
-Fields under `metadata.openclaw`:
+Fields under `metadata.astroclaw`:
 
 <ParamField path="always" type="boolean">
   When `true`, always include the skill (skip other gates).
@@ -265,7 +265,7 @@ Fields under `metadata.openclaw`:
   Env var must exist or be provided in config.
 </ParamField>
 <ParamField path="requires.config" type="string[]">
-  List of `openclaw.json` paths that must be truthy.
+  List of `astroclaw.json` paths that must be truthy.
 </ParamField>
 <ParamField path="primaryEnv" type="string">
   Env var name associated with `skills.entries.<name>.apiKey`.
@@ -274,14 +274,14 @@ Fields under `metadata.openclaw`:
   Optional installer specs used by the macOS Skills UI (brew/node/go/uv/download).
 </ParamField>
 
-If no `metadata.openclaw` is present, the skill is always eligible (unless
+If no `metadata.astroclaw` is present, the skill is always eligible (unless
 disabled in config or blocked by `skills.allowBundled` for bundled skills).
 
 <Note>
 Legacy `metadata.clawdbot` blocks are still accepted when
-`metadata.openclaw` is absent, so older installed skills keep their
+`metadata.astroclaw` is absent, so older installed skills keep their
 dependency gates and installer hints. New and updated skills should use
-`metadata.openclaw`.
+`metadata.astroclaw`.
 </Note>
 
 ### Sandboxing notes
@@ -298,7 +298,7 @@ name: gemini
 description: Use Gemini CLI for coding assistance and Google search lookups.
 metadata:
   {
-    "openclaw":
+    "astroclaw":
       {
         "emoji": "♊️",
         "requires": { "bins": ["gemini"] },
@@ -320,16 +320,16 @@ metadata:
 <AccordionGroup>
   <Accordion title="Installer selection rules">
     - If multiple installers are listed, the gateway picks a single preferred option (brew when available, otherwise node).
-    - If all installers are `download`, OpenClaw lists each entry so you can see the available artifacts.
+    - If all installers are `download`, Astroclaw lists each entry so you can see the available artifacts.
     - Installer specs can include `os: ["darwin"|"linux"|"win32"]` to filter options by platform.
-    - Node installs honor `skills.install.nodeManager` in `openclaw.json` (default: npm; options: npm/pnpm/yarn/bun). This only affects skill installs; the Gateway runtime should still be Node - Bun is not recommended for WhatsApp/Telegram.
-    - Gateway-backed installer selection is preference-driven: when install specs mix kinds, OpenClaw prefers Homebrew when `skills.install.preferBrew` is enabled and `brew` exists, then `uv`, then the configured node manager, then other fallbacks like `go` or `download`.
-    - If every install spec is `download`, OpenClaw surfaces all download options instead of collapsing to one preferred installer.
+    - Node installs honor `skills.install.nodeManager` in `astroclaw.json` (default: npm; options: npm/pnpm/yarn/bun). This only affects skill installs; the Gateway runtime should still be Node - Bun is not recommended for WhatsApp/Telegram.
+    - Gateway-backed installer selection is preference-driven: when install specs mix kinds, Astroclaw prefers Homebrew when `skills.install.preferBrew` is enabled and `brew` exists, then `uv`, then the configured node manager, then other fallbacks like `go` or `download`.
+    - If every install spec is `download`, Astroclaw surfaces all download options instead of collapsing to one preferred installer.
 
   </Accordion>
   <Accordion title="Per-installer details">
     - **Go installs:** if `go` is missing and `brew` is available, the gateway installs Go via Homebrew first and sets `GOBIN` to Homebrew's `bin` when possible.
-    - **Download installs:** `url` (required), `archive` (`tar.gz` | `tar.bz2` | `zip`), `extract` (default: auto when archive detected), `stripComponents`, `targetDir` (default: `~/.openclaw/tools/<skillKey>`).
+    - **Download installs:** `url` (required), `archive` (`tar.gz` | `tar.bz2` | `zip`), `extract` (default: auto when archive detected), `stripComponents`, `targetDir` (default: `~/.astroclaw/tools/<skillKey>`).
 
   </Accordion>
 </AccordionGroup>
@@ -337,7 +337,7 @@ metadata:
 ## Config overrides
 
 Bundled and managed skills can be toggled and supplied with env values
-under `skills.entries` in `~/.openclaw/openclaw.json`:
+under `skills.entries` in `~/.astroclaw/astroclaw.json`:
 
 ```json5
 {
@@ -369,7 +369,7 @@ under `skills.entries` in `~/.openclaw/openclaw.json`:
   authenticated for its own CLI.
 </ParamField>
 <ParamField path="apiKey" type='string | { source, provider, id }'>
-  Convenience for skills that declare `metadata.openclaw.primaryEnv`. Supports plaintext or SecretRef.
+  Convenience for skills that declare `metadata.astroclaw.primaryEnv`. Supports plaintext or SecretRef.
 </ParamField>
 <ParamField path="env" type="Record<string, string>">
   Injected only if the variable is not already set in the process.
@@ -383,10 +383,10 @@ under `skills.entries` in `~/.openclaw/openclaw.json`:
 
 If the skill name contains hyphens, quote the key (JSON5 allows quoted
 keys). Config keys match the **skill name** by default - if a skill
-defines `metadata.openclaw.skillKey`, use that key under `skills.entries`.
+defines `metadata.astroclaw.skillKey`, use that key under `skills.entries`.
 
 <Note>
-For stock image generation/editing inside OpenClaw, use the core
+For stock image generation/editing inside Astroclaw, use the core
 `image_generate` tool with `agents.defaults.imageGenerationModel` instead
 of a bundled skill. Skill examples here are for custom or third-party
 workflows. For native image analysis use the `image` tool with
@@ -397,7 +397,7 @@ auth/API key too.
 
 ## Environment injection
 
-When an agent run starts, OpenClaw:
+When an agent run starts, Astroclaw:
 
 1. Reads skill metadata.
 2. Applies `skills.entries.<key>.env` and `skills.entries.<key>.apiKey` to `process.env`.
@@ -407,16 +407,16 @@ When an agent run starts, OpenClaw:
 Environment injection is **scoped to the agent run**, not a global shell
 environment.
 
-For the bundled `claude-cli` backend, OpenClaw also materializes the same
+For the bundled `claude-cli` backend, Astroclaw also materializes the same
 eligible snapshot as a temporary Claude Code plugin and passes it with
 `--plugin-dir`. Claude Code can then use its native skill resolver while
-OpenClaw still owns precedence, per-agent allowlists, gating, and
+Astroclaw still owns precedence, per-agent allowlists, gating, and
 `skills.entries.*` env/API key injection. Other CLI backends use the
 prompt catalog only.
 
 ## Snapshots and refresh
 
-OpenClaw snapshots the eligible skills **when a session starts** and
+Astroclaw snapshots the eligible skills **when a session starts** and
 reuses that list for subsequent turns in the same session. Changes to
 skills or config take effect on the next new session.
 
@@ -427,12 +427,12 @@ Skills can refresh mid-session in two cases:
 
 Think of this as a **hot reload**: the refreshed list is picked up on the
 next agent turn. If the effective agent skill allowlist changes for that
-session, OpenClaw refreshes the snapshot so visible skills stay aligned
+session, Astroclaw refreshes the snapshot so visible skills stay aligned
 with the current agent.
 
 ### Skills watcher
 
-By default, OpenClaw watches skill folders and bumps the skills snapshot
+By default, Astroclaw watches skill folders and bumps the skills snapshot
 when `SKILL.md` files change. Configure under `skills.load`:
 
 ```json5
@@ -451,7 +451,7 @@ when `SKILL.md` files change. Configure under `skills.load`:
 Use `allowSymlinkTargets` for intentional workspace, project-agent, or extra-dir
 layouts where a skill root contains a symlink, for example
 `<workspace>/skills/manager -> ~/Projects/manager/skills`. Managed
-`~/.openclaw/skills` and personal `~/.agents/skills` can follow skill-directory
+`~/.astroclaw/skills` and personal `~/.agents/skills` can follow skill-directory
 symlinks from local skill managers by default, but the target list is still
 matched after realpath resolution and should stay narrow when configured.
 
@@ -459,19 +459,19 @@ matched after realpath resolution and should stay narrow when configured.
 
 If the Gateway runs on Linux but a **macOS node** is connected with
 `system.run` allowed (Exec approvals security not set to `deny`),
-OpenClaw can treat macOS-only skills as eligible when the required
+Astroclaw can treat macOS-only skills as eligible when the required
 binaries are present on that node. The agent should execute those skills
 via the `exec` tool with `host=node`.
 
 This relies on the node reporting its command support and on a bin probe
 via `system.which` or `system.run`. Offline nodes do **not** make
 remote-only skills visible. If a connected node stops answering bin
-probes, OpenClaw clears its cached bin matches so agents no longer see
+probes, Astroclaw clears its cached bin matches so agents no longer see
 skills that cannot currently run there.
 
 ## Token impact
 
-When skills are eligible, OpenClaw injects a compact XML list of available
+When skills are eligible, Astroclaw injects a compact XML list of available
 skills into the system prompt (via `formatSkillsForPrompt` in
 `pi-coding-agent`). The cost is deterministic:
 
@@ -491,8 +491,8 @@ skill plus your actual field lengths.
 
 ## Managed skills lifecycle
 
-OpenClaw ships a baseline set of skills as **bundled skills** with the
-install (npm package or OpenClaw.app). `~/.openclaw/skills` exists for
+Astroclaw ships a baseline set of skills as **bundled skills** with the
+install (npm package or Astroclaw.app). `~/.astroclaw/skills` exists for
 local overrides - for example, pinning or patching a skill without
 changing the bundled copy. Workspace skills are user-owned and override
 both on name conflicts.

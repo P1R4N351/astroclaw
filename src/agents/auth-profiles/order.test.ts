@@ -287,7 +287,7 @@ describe("resolveAuthProfileOrder", () => {
           refresh: "",
           expires: Date.now() + 60_000,
           oauthRef: {
-            source: "openclaw-credentials",
+            source: "astroclaw-credentials",
             provider: "openai-codex",
             id: "0123456789abcdef0123456789abcdef",
           },
@@ -446,7 +446,7 @@ describe("resolveAuthProfileOrder", () => {
   });
 
   it("marks profile success with one canonical last-good and usage update", async () => {
-    const agentDir = await mkdtemp(path.join(os.tmpdir(), "openclaw-auth-profile-success-"));
+    const agentDir = await mkdtemp(path.join(os.tmpdir(), "astroclaw-auth-profile-success-"));
     try {
       const store: AuthProfileStore = {
         version: 1,

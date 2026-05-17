@@ -1,24 +1,24 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { OpenClawPluginToolContext } from "openclaw/plugin-sdk/plugin-entry";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-runtime";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { AstroclawPluginToolContext } from "astroclaw/plugin-sdk/plugin-entry";
+import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/plugin-runtime";
 import {
   jsonResult,
   readNumberParam,
   readStringParam,
-} from "openclaw/plugin-sdk/provider-web-search";
+} from "astroclaw/plugin-sdk/provider-web-search";
 import { Type } from "typebox";
 import { runTavilySearch } from "./tavily-client.js";
 import { optionalStringEnum } from "./tavily-tool-schema.js";
 
 type TavilyToolConfigContext = Pick<
-  OpenClawPluginToolContext,
+  AstroclawPluginToolContext,
   "config" | "runtimeConfig" | "getRuntimeConfig"
 >;
 
 function resolveTavilyToolConfig(
-  api: OpenClawPluginApi,
+  api: AstroclawPluginApi,
   ctx?: TavilyToolConfigContext,
-): OpenClawConfig {
+): AstroclawConfig {
   return ctx?.getRuntimeConfig?.() ?? ctx?.runtimeConfig ?? ctx?.config ?? api.config;
 }
 
@@ -60,7 +60,7 @@ const TavilySearchToolSchema = Type.Object(
   { additionalProperties: false },
 );
 
-export function createTavilySearchTool(api: OpenClawPluginApi, ctx?: TavilyToolConfigContext) {
+export function createTavilySearchTool(api: AstroclawPluginApi, ctx?: TavilyToolConfigContext) {
   return {
     name: "tavily_search",
     label: "Tavily Search",

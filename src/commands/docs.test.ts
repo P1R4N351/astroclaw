@@ -63,15 +63,15 @@ describe("docsSearchCommand", () => {
 
     expect(runCommandWithTimeout).toHaveBeenCalledTimes(1);
     const argv = runCommandWithTimeout.mock.calls[0][0] as string[];
-    const toolUrl = argv.find((arg) => arg.includes("docs.openclaw.ai/mcp."));
-    expect(toolUrl).toBe("https://docs.openclaw.ai/mcp.search_open_claw");
-    expect(toolUrl).not.toMatch(/SearchOpenClaw/);
+    const toolUrl = argv.find((arg) => arg.includes("docs.astroclaw.ai/mcp."));
+    expect(toolUrl).toBe("https://docs.astroclaw.ai/mcp.search_open_claw");
+    expect(toolUrl).not.toMatch(/SearchAstroclaw/);
   });
 
   it("fails loudly when mcporter returns a JSON-RPC MCP error on stdout with exit 0", async () => {
     runCommandWithTimeout.mockResolvedValueOnce({
       code: 0,
-      stdout: "MCP error -32602: Tool SearchOpenClaw not found",
+      stdout: "MCP error -32602: Tool SearchAstroclaw not found",
       stderr: "",
     });
     const runtime = makeRuntime();
@@ -86,7 +86,7 @@ describe("docsSearchCommand", () => {
     runCommandWithTimeout.mockResolvedValueOnce({
       code: 0,
       stdout:
-        "Title: Plugin allowlist\nLink: https://docs.openclaw.ai/plugins/allowlist\nContent: How to configure the allowlist.",
+        "Title: Plugin allowlist\nLink: https://docs.astroclaw.ai/plugins/allowlist\nContent: How to configure the allowlist.",
       stderr: "",
     });
     const runtime = makeRuntime();

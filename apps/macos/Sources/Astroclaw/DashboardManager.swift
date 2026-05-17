@@ -1,9 +1,9 @@
 import AppKit
 import Foundation
-import OpenClawKit
+import AstroclawKit
 import OSLog
 
-private let dashboardManagerLogger = Logger(subsystem: "ai.openclaw", category: "DashboardManager")
+private let dashboardManagerLogger = Logger(subsystem: "ai.astroclaw", category: "DashboardManager")
 
 @MainActor
 final class DashboardManager {
@@ -100,7 +100,7 @@ final class DashboardManager {
     }
 
     private func immediateDashboardConfig(mode: AppState.ConnectionMode) -> GatewayConnection.Config? {
-        let root = OpenClawConfigFile.loadDict()
+        let root = AstroclawConfigFile.loadDict()
         if mode == .remote,
            GatewayRemoteConfig.resolveTransport(root: root) == .direct,
            let url = GatewayRemoteConfig.resolveGatewayUrl(root: root)

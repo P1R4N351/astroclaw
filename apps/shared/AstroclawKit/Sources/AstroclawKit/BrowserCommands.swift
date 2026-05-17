@@ -1,5 +1,5 @@
 import Foundation
 
-public enum OpenClawBrowserCommand: String, Codable, Sendable {
+public enum AstroclawBrowserCommand: String, Codable, Sendable {
     case proxy = "browser.proxy"
 }

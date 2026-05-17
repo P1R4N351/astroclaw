@@ -14,7 +14,7 @@ import {
   type AuthProfileCredential,
   type AuthProfileStore,
   type OAuthCredential,
-} from "openclaw/plugin-sdk/agent-runtime";
+} from "astroclaw/plugin-sdk/agent-runtime";
 import type { CodexAppServerClient } from "./client.js";
 import type { CodexAppServerStartOptions } from "./config.js";
 import type {
@@ -220,7 +220,7 @@ export function resolveCodexAppServerEnvApiKeyCacheKey(params: {
     return undefined;
   }
   const hash = createHash("sha256");
-  hash.update("openclaw:codex:app-server-env-api-key:v1");
+  hash.update("astroclaw:codex:app-server-env-api-key:v1");
   hash.update("\0");
   hash.update(apiKey.key);
   hash.update("\0");
@@ -230,7 +230,7 @@ export function resolveCodexAppServerEnvApiKeyCacheKey(params: {
 
 function fingerprintApiKeyAuthProfileCacheKey(apiKey: string): string {
   const hash = createHash("sha256");
-  hash.update("openclaw:codex:app-server-auth-profile-api-key:v1");
+  hash.update("astroclaw:codex:app-server-auth-profile-api-key:v1");
   hash.update("\0");
   hash.update(apiKey);
   return `api_key:sha256:${hash.digest("hex")}`;
@@ -238,7 +238,7 @@ function fingerprintApiKeyAuthProfileCacheKey(apiKey: string): string {
 
 function fingerprintTokenAuthProfileCacheKey(accessToken: string): string {
   const hash = createHash("sha256");
-  hash.update("openclaw:codex:app-server-auth-profile-token:v1");
+  hash.update("astroclaw:codex:app-server-auth-profile-token:v1");
   hash.update("\0");
   hash.update(accessToken);
   return `token:sha256:${hash.digest("hex")}`;

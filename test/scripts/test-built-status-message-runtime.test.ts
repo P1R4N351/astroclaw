@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 function makeDistDir(): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-status-runtime-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-status-runtime-"));
   tempDirs.push(root);
   const distDir = path.join(root, "dist");
   fs.mkdirSync(distDir, { recursive: true });

@@ -3,7 +3,7 @@
  * Prefer provider-setup or plugin-owned setup helpers for new provider code.
  */
 export type {
-  OpenClawPluginApi,
+  AstroclawPluginApi,
   ProviderAuthContext,
   ProviderAuthMethodNonInteractiveContext,
   ProviderAuthResult,

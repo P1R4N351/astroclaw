@@ -40,8 +40,8 @@ vi.mock("../process/supervisor/index.js", () => ({
     }) => {
       const command = input.argv?.at(-1) ?? "";
       const env = input.env ?? {};
-      if (command.includes("OPENCLAW_SHELL")) {
-        input.onStdout?.(env.OPENCLAW_SHELL ?? "");
+      if (command.includes("ASTROCLAW_SHELL")) {
+        input.onStdout?.(env.ASTROCLAW_SHELL ?? "");
       } else if (command.includes("SSLKEYLOGFILE")) {
         input.onStdout?.(env.SSLKEYLOGFILE ?? "");
       } else if (command.includes("$PATH")) {
@@ -169,14 +169,14 @@ describe("exec PATH login shell merge", () => {
     expect(shellPathMock).toHaveBeenCalledTimes(1);
   });
 
-  it("sets OPENCLAW_SHELL for host=gateway commands", async () => {
+  it("sets ASTROCLAW_SHELL for host=gateway commands", async () => {
     if (isWin) {
       return;
     }
 
     const tool = createExecTool({ host: "gateway", security: "full", ask: "off" });
-    const result = await tool.execute("call-openclaw-shell", {
-      command: 'printf "%s" "${OPENCLAW_SHELL:-}"',
+    const result = await tool.execute("call-astroclaw-shell", {
+      command: 'printf "%s" "${ASTROCLAW_SHELL:-}"',
       yieldMs: FOREGROUND_TEST_YIELD_MS,
     });
     const value = normalizeText(result.content.find((c) => c.type === "text")?.text);
@@ -226,7 +226,7 @@ describe("exec PATH login shell merge", () => {
       return;
     }
     process.env.PATH = "/usr/bin";
-    const shellDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-shell-env-"));
+    const shellDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-shell-env-"));
     const unregisteredShellPath = path.join(shellDir, "unregistered-shell");
     fs.writeFileSync(unregisteredShellPath, '#!/bin/sh\nexec /bin/sh "$@"\n', {
       encoding: "utf8",
@@ -292,7 +292,7 @@ describe("exec host env validation", () => {
       return;
     }
     const original = process.env.SSLKEYLOGFILE;
-    process.env.SSLKEYLOGFILE = "/tmp/openclaw-ssl-keys.log";
+    process.env.SSLKEYLOGFILE = "/tmp/astroclaw-ssl-keys.log";
     try {
       const tool = createExecTool({ host: "gateway", security: "full", ask: "off" });
       const result = await tool.execute("call1", {
@@ -300,7 +300,7 @@ describe("exec host env validation", () => {
         yieldMs: FOREGROUND_TEST_YIELD_MS,
       });
       const output = normalizeText(result.content.find((c) => c.type === "text")?.text);
-      expect(output).not.toContain("/tmp/openclaw-ssl-keys.log");
+      expect(output).not.toContain("/tmp/astroclaw-ssl-keys.log");
     } finally {
       if (original === undefined) {
         delete process.env.SSLKEYLOGFILE;
@@ -345,16 +345,16 @@ describe("exec host env validation", () => {
     "env -iS'/approve abc123' deny",
     "command /approve abc123 deny",
     "command -p /approve abc123 deny",
-    "exec -a openclaw /approve abc123 deny",
+    "exec -a astroclaw /approve abc123 deny",
     "sudo /approve abc123 allow-once",
     "sudo -E /approve abc123 allow-once",
     "sudo -EH /approve abc123 allow-once",
     "sudo -k /approve abc123 allow-once",
     "sudo --reset-timestamp /approve abc123 allow-once",
     "sudo --command-timeout=1 /approve abc123 allow-once",
-    "sudo OPENCLAW_APPROVE=1 /approve abc123 allow-once",
+    "sudo ASTROCLAW_APPROVE=1 /approve abc123 allow-once",
     "sudo -uroot bash -lc '/approve abc123 allow-once'",
-    "sudo -u root OPENCLAW_APPROVE=1 bash -lc '/approve abc123 allow-once'",
+    "sudo -u root ASTROCLAW_APPROVE=1 bash -lc '/approve abc123 allow-once'",
     "sudo -EH bash -lc '/approve abc123 allow-once'",
     "doas -uroot bash -lc '/approve abc123 deny'",
     "env env env env env env /approve abc123 allow-once",

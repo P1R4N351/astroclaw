@@ -6,7 +6,7 @@ import { runCommandWithTimeout } from "../process/exec.js";
 import type { NpmSpecResolution } from "./install-source-utils.js";
 import { readJson, readJsonIfExists, writeJson } from "./json-files.js";
 import type { ParsedRegistryNpmSpec } from "./npm-registry-spec.js";
-import { resolveOpenClawPackageRootSync } from "./openclaw-root.js";
+import { resolveAstroclawPackageRootSync } from "./astroclaw-root.js";
 import { createSafeNpmInstallArgs, createSafeNpmInstallEnv } from "./safe-package-install.js";
 
 type ManagedNpmRootManifest = {
@@ -24,7 +24,7 @@ type HostPackageManifest = {
   peerDependencies?: Record<string, string>;
 };
 
-type ManagedNpmRootOpenClawMetadata = {
+type ManagedNpmRootAstroclawMetadata = {
   managedOverrides?: string[];
   managedPeerDependencies?: string[];
   [key: string]: unknown;
@@ -53,7 +53,7 @@ type ManagedNpmRootLogger = {
 
 type ManagedNpmRootRunCommand = typeof runCommandWithTimeout;
 
-type ManagedNpmRootOpenClawHostState = "none" | "managed-active-host" | "linked-active-host";
+type ManagedNpmRootAstroclawHostState = "none" | "managed-active-host" | "linked-active-host";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -89,7 +89,7 @@ function isSafePackageName(name: string): boolean {
 }
 
 function isManagedNpmRootHostPeerPackageName(name: string): boolean {
-  return name === "openclaw";
+  return name === "astroclaw";
 }
 
 function readOverrideRecord(value: unknown): Record<string, unknown> {
@@ -119,12 +119,12 @@ function readManagedPeerDependencyKeys(value: unknown): string[] {
   return value.managedPeerDependencies.filter((key): key is string => typeof key === "string");
 }
 
-function buildManagedOpenClawMetadata(params: {
+function buildManagedAstroclawMetadata(params: {
   current: unknown;
   managedOverrideKeys: string[];
   managedPeerDependencyKeys?: string[];
-}): ManagedNpmRootOpenClawMetadata | undefined {
-  const metadata: ManagedNpmRootOpenClawMetadata = isRecord(params.current)
+}): ManagedNpmRootAstroclawMetadata | undefined {
+  const metadata: ManagedNpmRootAstroclawMetadata = isRecord(params.current)
     ? { ...params.current }
     : {};
   if (params.managedOverrideKeys.length > 0) {
@@ -195,7 +195,7 @@ function filterUnsupportedManagedNpmRootOverrides(value: unknown): Record<string
   return filtered;
 }
 
-export async function readOpenClawManagedNpmRootOverrides(params?: {
+export async function readAstroclawManagedNpmRootOverrides(params?: {
   argv1?: string;
   cwd?: string;
   moduleUrl?: string;
@@ -203,7 +203,7 @@ export async function readOpenClawManagedNpmRootOverrides(params?: {
 }): Promise<Record<string, unknown>> {
   const packageRoot =
     params?.packageRoot ??
-    resolveOpenClawPackageRootSync({
+    resolveAstroclawPackageRootSync({
       argv1: params?.argv1 ?? process.argv[1],
       moduleUrl: params?.moduleUrl ?? import.meta.url,
       cwd: params?.cwd ?? process.cwd(),
@@ -254,12 +254,12 @@ export async function upsertManagedNpmRootDependency(params: {
     : readOverrideRecord(params.managedOverrides);
   const managedOverrideKeys = Object.keys(managedOverrides).toSorted();
   const overrides = readOverrideRecord(manifest.overrides);
-  for (const key of readManagedOverrideKeys(manifest.openclaw)) {
+  for (const key of readManagedOverrideKeys(manifest.astroclaw)) {
     delete overrides[key];
   }
   Object.assign(overrides, managedOverrides);
-  const openclawMetadata = buildManagedOpenClawMetadata({
-    current: manifest.openclaw,
+  const astroclawMetadata = buildManagedAstroclawMetadata({
+    current: manifest.astroclaw,
     managedOverrideKeys,
   });
   const next: ManagedNpmRootManifest = {
@@ -275,10 +275,10 @@ export async function upsertManagedNpmRootDependency(params: {
   } else {
     delete next.overrides;
   }
-  if (openclawMetadata) {
-    next.openclaw = openclawMetadata;
+  if (astroclawMetadata) {
+    next.astroclaw = astroclawMetadata;
   } else {
-    delete next.openclaw;
+    delete next.astroclaw;
   }
   await writeJson(manifestPath, next, { trailingNewline: true });
 }
@@ -467,9 +467,9 @@ function scrubHostPeerFromLockPackage(value: unknown): boolean {
     return false;
   }
   let changed = false;
-  if (isRecord(value.peerDependencies) && "openclaw" in value.peerDependencies) {
+  if (isRecord(value.peerDependencies) && "astroclaw" in value.peerDependencies) {
     const peerDependencies = { ...value.peerDependencies };
-    delete peerDependencies.openclaw;
+    delete peerDependencies.astroclaw;
     if (Object.keys(peerDependencies).length > 0) {
       value.peerDependencies = peerDependencies;
     } else {
@@ -477,9 +477,9 @@ function scrubHostPeerFromLockPackage(value: unknown): boolean {
     }
     changed = true;
   }
-  if (isRecord(value.peerDependenciesMeta) && "openclaw" in value.peerDependenciesMeta) {
+  if (isRecord(value.peerDependenciesMeta) && "astroclaw" in value.peerDependenciesMeta) {
     const peerDependenciesMeta = { ...value.peerDependenciesMeta };
-    delete peerDependenciesMeta.openclaw;
+    delete peerDependenciesMeta.astroclaw;
     if (Object.keys(peerDependenciesMeta).length > 0) {
       value.peerDependenciesMeta = peerDependenciesMeta;
     } else {
@@ -529,7 +529,7 @@ function isHostPeerResolutionFailure(
   result: Awaited<ReturnType<ManagedNpmRootRunCommand>>,
 ): boolean {
   const output = `${result.stdout}\n${result.stderr}`;
-  return /(^|[^@\w.-])openclaw(?=$|[@\s:,"'])/i.test(output);
+  return /(^|[^@\w.-])astroclaw(?=$|[@\s:,"'])/i.test(output);
 }
 
 function createManagedNpmPeerPlanArgs(params?: {
@@ -560,7 +560,7 @@ async function collectNpmResolvedManagedNpmRootPeerDependencyPins(params: {
 }): Promise<Record<string, string>> {
   const manifest = await readManagedNpmRootManifest(path.join(params.npmRoot, "package.json"));
   const dependencies = readDependencyRecord(manifest.dependencies);
-  const previousManagedPeerDependencies = readManagedPeerDependencyKeys(manifest.openclaw);
+  const previousManagedPeerDependencies = readManagedPeerDependencyKeys(manifest.astroclaw);
   const fallbackPeerPins = collectExistingManagedPeerDependencyPins(
     dependencies,
     previousManagedPeerDependencies,
@@ -568,9 +568,9 @@ async function collectNpmResolvedManagedNpmRootPeerDependencyPins(params: {
   for (const packageName of previousManagedPeerDependencies) {
     delete dependencies[packageName];
   }
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-managed-peer-plan-"));
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-managed-peer-plan-"));
   try {
-    delete dependencies.openclaw;
+    delete dependencies.astroclaw;
     await writeJson(
       path.join(tempRoot, "package.json"),
       {
@@ -588,8 +588,8 @@ async function collectNpmResolvedManagedNpmRootPeerDependencyPins(params: {
     await scrubHostPeerFromTempPackageLock(tempLockPath);
     await copyPathIfExists(path.join(params.npmRoot, ".npmrc"), path.join(tempRoot, ".npmrc"));
     await copyPathIfExists(
-      path.join(params.npmRoot, "_openclaw-pack-archives"),
-      path.join(tempRoot, "_openclaw-pack-archives"),
+      path.join(params.npmRoot, "_astroclaw-pack-archives"),
+      path.join(tempRoot, "_astroclaw-pack-archives"),
     );
 
     const command = params.runCommand ?? runCommandWithTimeout;
@@ -638,7 +638,7 @@ export async function readManagedNpmRootPeerDependencySnapshot(params: {
 }): Promise<ManagedNpmRootPeerDependencySnapshot> {
   const manifest = await readManagedNpmRootManifest(path.join(params.npmRoot, "package.json"));
   const dependencies = readDependencyRecord(manifest.dependencies);
-  const managedPeerDependencies = readManagedPeerDependencyKeys(manifest.openclaw).toSorted();
+  const managedPeerDependencies = readManagedPeerDependencyKeys(manifest.astroclaw).toSorted();
   const dependencySnapshot: Record<string, string> = {};
   for (const packageName of managedPeerDependencies) {
     const dependencySpec = dependencies[packageName];
@@ -659,13 +659,13 @@ export async function restoreManagedNpmRootPeerDependencySnapshot(params: {
   const manifestPath = path.join(params.npmRoot, "package.json");
   const manifest = await readManagedNpmRootManifest(manifestPath);
   const dependencies = readDependencyRecord(manifest.dependencies);
-  for (const packageName of readManagedPeerDependencyKeys(manifest.openclaw)) {
+  for (const packageName of readManagedPeerDependencyKeys(manifest.astroclaw)) {
     delete dependencies[packageName];
   }
   Object.assign(dependencies, params.snapshot.dependencies);
-  const managedOverrideKeys = readManagedOverrideKeys(manifest.openclaw).toSorted();
-  const openclawMetadata = buildManagedOpenClawMetadata({
-    current: manifest.openclaw,
+  const managedOverrideKeys = readManagedOverrideKeys(manifest.astroclaw).toSorted();
+  const astroclawMetadata = buildManagedAstroclawMetadata({
+    current: manifest.astroclaw,
     managedOverrideKeys,
     managedPeerDependencyKeys: params.snapshot.managedPeerDependencies.toSorted(),
   });
@@ -674,10 +674,10 @@ export async function restoreManagedNpmRootPeerDependencySnapshot(params: {
     private: true,
     dependencies,
   };
-  if (openclawMetadata) {
-    next.openclaw = openclawMetadata;
+  if (astroclawMetadata) {
+    next.astroclaw = astroclawMetadata;
   } else {
-    delete next.openclaw;
+    delete next.astroclaw;
   }
   await writeJson(manifestPath, next, { trailingNewline: true });
 }
@@ -692,7 +692,7 @@ export async function syncManagedNpmRootPeerDependencies(params: {
   const manifestPath = path.join(params.npmRoot, "package.json");
   const manifest = await readManagedNpmRootManifest(manifestPath);
   const dependencies = readDependencyRecord(manifest.dependencies);
-  const previousManagedPeerDependencies = readManagedPeerDependencyKeys(manifest.openclaw);
+  const previousManagedPeerDependencies = readManagedPeerDependencyKeys(manifest.astroclaw);
   const previousManagedPeerDependencySet = new Set(previousManagedPeerDependencies);
   const peerPins = await collectNpmResolvedManagedNpmRootPeerDependencyPins({
     npmRoot: params.npmRoot,
@@ -714,7 +714,7 @@ export async function syncManagedNpmRootPeerDependencies(params: {
     : readOverrideRecord(params.managedOverrides);
   const managedOverrideKeys = Object.keys(managedOverrides).toSorted();
   const overrides = readOverrideRecord(manifest.overrides);
-  for (const key of readManagedOverrideKeys(manifest.openclaw)) {
+  for (const key of readManagedOverrideKeys(manifest.astroclaw)) {
     delete overrides[key];
   }
   Object.assign(overrides, managedOverrides);
@@ -725,8 +725,8 @@ export async function syncManagedNpmRootPeerDependencies(params: {
         !Object.hasOwn(dependencies, packageName),
     )
     .toSorted();
-  const openclawMetadata = buildManagedOpenClawMetadata({
-    current: manifest.openclaw,
+  const astroclawMetadata = buildManagedAstroclawMetadata({
+    current: manifest.astroclaw,
     managedOverrideKeys,
     managedPeerDependencyKeys,
   });
@@ -740,10 +740,10 @@ export async function syncManagedNpmRootPeerDependencies(params: {
   } else {
     delete next.overrides;
   }
-  if (openclawMetadata) {
-    next.openclaw = openclawMetadata;
+  if (astroclawMetadata) {
+    next.astroclaw = astroclawMetadata;
   } else {
-    delete next.openclaw;
+    delete next.astroclaw;
   }
   const changed = JSON.stringify(next) !== JSON.stringify(manifest);
   if (changed) {
@@ -752,7 +752,7 @@ export async function syncManagedNpmRootPeerDependencies(params: {
   return changed;
 }
 
-export async function repairManagedNpmRootOpenClawPeer(params: {
+export async function repairManagedNpmRootAstroclawPeer(params: {
   npmRoot: string;
   packageRoot?: string | null;
   timeoutMs?: number;
@@ -761,7 +761,7 @@ export async function repairManagedNpmRootOpenClawPeer(params: {
 }): Promise<boolean> {
   await fs.mkdir(params.npmRoot, { recursive: true });
 
-  const activeHostState = await readManagedNpmRootOpenClawHostState({
+  const activeHostState = await readManagedNpmRootAstroclawHostState({
     npmRoot: params.npmRoot,
     packageRoot: params.packageRoot,
   });
@@ -772,16 +772,16 @@ export async function repairManagedNpmRootOpenClawPeer(params: {
   const manifestPath = path.join(params.npmRoot, "package.json");
   const manifest = await readManagedNpmRootManifest(manifestPath);
   const dependencies = readDependencyRecord(manifest.dependencies);
-  const hasManifestDependency = "openclaw" in dependencies;
-  const hasLockDependency = await managedNpmRootLockfileHasOpenClawPeer(params.npmRoot);
-  const hasPackageDir = await pathExists(path.join(params.npmRoot, "node_modules", "openclaw"));
+  const hasManifestDependency = "astroclaw" in dependencies;
+  const hasLockDependency = await managedNpmRootLockfileHasAstroclawPeer(params.npmRoot);
+  const hasPackageDir = await pathExists(path.join(params.npmRoot, "node_modules", "astroclaw"));
   const preserveActiveHostLink = activeHostState === "linked-active-host";
   if (!hasManifestDependency && !hasLockDependency && (!hasPackageDir || preserveActiveHostLink)) {
     return false;
   }
 
   if (preserveActiveHostLink) {
-    await scrubManagedNpmRootOpenClawPeer({
+    await scrubManagedNpmRootAstroclawPeer({
       npmRoot: params.npmRoot,
       preservePackageDir: true,
     });
@@ -798,7 +798,7 @@ export async function repairManagedNpmRootOpenClawPeer(params: {
         "--ignore-scripts",
         "--no-audit",
         "--no-fund",
-        "openclaw",
+        "astroclaw",
       ]
     : [
         "npm",
@@ -821,26 +821,26 @@ export async function repairManagedNpmRootOpenClawPeer(params: {
     });
     if (result.code !== 0) {
       params.logger?.warn?.(
-        `npm ${hasManifestDependency ? "uninstall openclaw" : "prune"} failed while repairing managed npm root; falling back to direct cleanup: ${result.stderr.trim() || result.stdout.trim()}`,
+        `npm ${hasManifestDependency ? "uninstall astroclaw" : "prune"} failed while repairing managed npm root; falling back to direct cleanup: ${result.stderr.trim() || result.stdout.trim()}`,
       );
     }
   } catch (error) {
     params.logger?.warn?.(
-      `npm ${hasManifestDependency ? "uninstall openclaw" : "prune"} failed while repairing managed npm root; falling back to direct cleanup: ${String(error)}`,
+      `npm ${hasManifestDependency ? "uninstall astroclaw" : "prune"} failed while repairing managed npm root; falling back to direct cleanup: ${String(error)}`,
     );
   }
 
-  await scrubManagedNpmRootOpenClawPeer({ npmRoot: params.npmRoot });
+  await scrubManagedNpmRootAstroclawPeer({ npmRoot: params.npmRoot });
   return true;
 }
 
-async function readManagedNpmRootOpenClawHostState(params: {
+async function readManagedNpmRootAstroclawHostState(params: {
   npmRoot: string;
   packageRoot?: string | null;
-}): Promise<ManagedNpmRootOpenClawHostState> {
+}): Promise<ManagedNpmRootAstroclawHostState> {
   const packageRoot =
     params.packageRoot === undefined
-      ? resolveOpenClawPackageRootSync({
+      ? resolveAstroclawPackageRootSync({
           argv1: process.argv[1],
           moduleUrl: import.meta.url,
           cwd: process.cwd(),
@@ -850,11 +850,11 @@ async function readManagedNpmRootOpenClawHostState(params: {
     return "none";
   }
 
-  const managedOpenClawPackageDir = path.join(params.npmRoot, "node_modules", "openclaw");
+  const managedAstroclawPackageDir = path.join(params.npmRoot, "node_modules", "astroclaw");
   const [hostPackageRoot, managedPackageRoot, managedPackageStat] = await Promise.all([
     realpathIfExists(packageRoot),
-    realpathIfExists(managedOpenClawPackageDir),
-    lstatIfExists(managedOpenClawPackageDir),
+    realpathIfExists(managedAstroclawPackageDir),
+    lstatIfExists(managedAstroclawPackageDir),
   ]);
   if (hostPackageRoot === null || hostPackageRoot !== managedPackageRoot) {
     return "none";
@@ -862,7 +862,7 @@ async function readManagedNpmRootOpenClawHostState(params: {
   return managedPackageStat?.isSymbolicLink() ? "linked-active-host" : "managed-active-host";
 }
 
-async function managedNpmRootLockfileHasOpenClawPeer(npmRoot: string): Promise<boolean> {
+async function managedNpmRootLockfileHasAstroclawPeer(npmRoot: string): Promise<boolean> {
   const lockPath = path.join(npmRoot, "package-lock.json");
   try {
     const parsed = JSON.parse(await fs.readFile(lockPath, "utf8")) as ManagedNpmRootLockfile;
@@ -871,15 +871,15 @@ async function managedNpmRootLockfileHasOpenClawPeer(npmRoot: string): Promise<b
       if (
         isRecord(rootPackage) &&
         isRecord(rootPackage.dependencies) &&
-        "openclaw" in rootPackage.dependencies
+        "astroclaw" in rootPackage.dependencies
       ) {
         return true;
       }
-      if ("node_modules/openclaw" in parsed.packages) {
+      if ("node_modules/astroclaw" in parsed.packages) {
         return true;
       }
     }
-    return isRecord(parsed.dependencies) && "openclaw" in parsed.dependencies;
+    return isRecord(parsed.dependencies) && "astroclaw" in parsed.dependencies;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
       return false;
@@ -922,15 +922,15 @@ async function pathExists(filePath: string): Promise<boolean> {
     });
 }
 
-async function scrubManagedNpmRootOpenClawPeer(params: {
+async function scrubManagedNpmRootAstroclawPeer(params: {
   npmRoot: string;
   preservePackageDir?: boolean;
 }): Promise<void> {
   const manifestPath = path.join(params.npmRoot, "package.json");
   const manifest = await readManagedNpmRootManifest(manifestPath);
   const dependencies = readDependencyRecord(manifest.dependencies);
-  if ("openclaw" in dependencies) {
-    const { openclaw: _removed, ...nextDependencies } = dependencies;
+  if ("astroclaw" in dependencies) {
+    const { astroclaw: _removed, ...nextDependencies } = dependencies;
     await fs.writeFile(
       manifestPath,
       `${JSON.stringify({ ...manifest, private: true, dependencies: nextDependencies }, null, 2)}\n`,
@@ -946,20 +946,20 @@ async function scrubManagedNpmRootOpenClawPeer(params: {
       const rootPackage = parsed.packages[""];
       if (isRecord(rootPackage) && isRecord(rootPackage.dependencies)) {
         const dependencies = { ...rootPackage.dependencies };
-        if ("openclaw" in dependencies) {
-          delete dependencies.openclaw;
+        if ("astroclaw" in dependencies) {
+          delete dependencies.astroclaw;
           parsed.packages[""] = { ...rootPackage, dependencies };
           lockChanged = true;
         }
       }
-      if ("node_modules/openclaw" in parsed.packages) {
-        delete parsed.packages["node_modules/openclaw"];
+      if ("node_modules/astroclaw" in parsed.packages) {
+        delete parsed.packages["node_modules/astroclaw"];
         lockChanged = true;
       }
     }
-    if (isRecord(parsed.dependencies) && "openclaw" in parsed.dependencies) {
+    if (isRecord(parsed.dependencies) && "astroclaw" in parsed.dependencies) {
       const dependencies = { ...parsed.dependencies };
-      delete dependencies.openclaw;
+      delete dependencies.astroclaw;
       parsed.dependencies = dependencies;
       lockChanged = true;
     }
@@ -972,13 +972,13 @@ async function scrubManagedNpmRootOpenClawPeer(params: {
     }
   }
 
-  const openclawPackageDir = path.join(params.npmRoot, "node_modules", "openclaw");
-  if (!params.preservePackageDir && (await pathExists(openclawPackageDir))) {
-    await fs.rm(openclawPackageDir, { recursive: true, force: true });
+  const astroclawPackageDir = path.join(params.npmRoot, "node_modules", "astroclaw");
+  if (!params.preservePackageDir && (await pathExists(astroclawPackageDir))) {
+    await fs.rm(astroclawPackageDir, { recursive: true, force: true });
   }
   const binDir = path.join(params.npmRoot, "node_modules", ".bin");
   await Promise.all(
-    ["openclaw", "openclaw.cmd", "openclaw.ps1"].map((binName) =>
+    ["astroclaw", "astroclaw.cmd", "astroclaw.ps1"].map((binName) =>
       fs.rm(path.join(binDir, binName), { force: true }),
     ),
   );

@@ -1,7 +1,7 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.SecurePrefs
-import ai.openclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.SecurePrefs
+import ai.astroclaw.app.gateway.GatewaySession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

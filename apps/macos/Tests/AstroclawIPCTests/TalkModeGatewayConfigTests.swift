@@ -1,6 +1,6 @@
-import OpenClawProtocol
+import AstroclawProtocol
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct TalkModeGatewayConfigTests {
     @Test func `mlx provider does not inherit elevenlabs defaults`() {

@@ -1,4 +1,4 @@
-import { redactSensitiveText } from "openclaw/plugin-sdk/logging-core";
+import { redactSensitiveText } from "astroclaw/plugin-sdk/logging-core";
 
 const NO_ERROR_DETAIL = "no error detail";
 

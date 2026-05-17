@@ -1,7 +1,7 @@
 import {
   resolveChannelPreviewStreamMode,
   type StreamingMode,
-} from "openclaw/plugin-sdk/channel-streaming";
+} from "astroclaw/plugin-sdk/channel-streaming";
 
 type DiscordPreviewStreamMode = StreamingMode;
 

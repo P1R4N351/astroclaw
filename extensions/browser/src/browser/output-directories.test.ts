@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ensureOutputDirectory } from "./output-directories.js";
 
 async function withTempDir<T>(run: (tempDir: string) => Promise<T>): Promise<T> {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-output-dir-test-"));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-output-dir-test-"));
   try {
     return await run(tempDir);
   } finally {

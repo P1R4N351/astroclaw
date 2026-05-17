@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { modelSelectionShouldEnsureCodexPlugin } from "../agents/openai-codex-routing.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { enablePluginInConfig } from "../plugins/enable.js";
 import { loadInstalledPluginIndexInstallRecords } from "../plugins/installed-plugin-index-records.js";
@@ -11,7 +11,7 @@ import type { WizardPrompter } from "../wizard/prompts.js";
 
 export const CODEX_RUNTIME_PLUGIN_ID = "codex";
 const CODEX_RUNTIME_PLUGIN_LABEL = "Codex";
-const CODEX_RUNTIME_PLUGIN_NPM_SPEC = "@openclaw/codex";
+const CODEX_RUNTIME_PLUGIN_NPM_SPEC = "@astroclaw/codex";
 
 function isInstalledRecordPresentOnDisk(
   record: PluginInstallRecord | undefined,
@@ -25,14 +25,14 @@ function isInstalledRecordPresentOnDisk(
 }
 
 export type CodexRuntimePluginInstallResult = {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   required: boolean;
   installed: boolean;
   status?: "installed" | "skipped" | "failed" | "timed_out";
 };
 
 export function selectedModelShouldEnsureCodexRuntimePlugin(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   model?: string;
 }): boolean {
   return modelSelectionShouldEnsureCodexPlugin({
@@ -42,7 +42,7 @@ export function selectedModelShouldEnsureCodexRuntimePlugin(params: {
 }
 
 export async function ensureCodexRuntimePluginForModelSelection(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   model?: string;
   prompter: WizardPrompter;
   runtime: RuntimeEnv;
@@ -104,7 +104,7 @@ export async function ensureCodexRuntimePluginForModelSelection(params: {
 }
 
 export async function repairCodexRuntimePluginInstallForModelSelection(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   model?: string;
   env?: NodeJS.ProcessEnv;
 }): Promise<{ required: boolean; changes: string[]; warnings: string[] }> {

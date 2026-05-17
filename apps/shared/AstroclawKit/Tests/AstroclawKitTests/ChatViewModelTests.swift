@@ -1,7 +1,7 @@
-import OpenClawKit
+import AstroclawKit
 import Foundation
 import Testing
-@testable import OpenClawChatUI
+@testable import AstroclawChatUI
 
 private func chatTextMessage(role: String, text: String, timestamp: Double) -> AnyCodable {
     AnyCodable([
@@ -24,17 +24,17 @@ private func chatErrorMessage(role: String, errorMessage: String, timestamp: Dou
 private func historyPayload(
     sessionKey: String = "main",
     sessionId: String? = "sess-main",
-    messages: [AnyCodable] = []) -> OpenClawChatHistoryPayload
+    messages: [AnyCodable] = []) -> AstroclawChatHistoryPayload
 {
-    OpenClawChatHistoryPayload(
+    AstroclawChatHistoryPayload(
         sessionKey: sessionKey,
         sessionId: sessionId,
         messages: messages,
         thinkingLevel: "off")
 }
 
-private func sessionEntry(key: String, updatedAt: Double) -> OpenClawChatSessionEntry {
-    OpenClawChatSessionEntry(
+private func sessionEntry(key: String, updatedAt: Double) -> AstroclawChatSessionEntry {
+    AstroclawChatSessionEntry(
         key: key,
         kind: nil,
         displayName: nil,
@@ -56,17 +56,17 @@ private func sessionEntry(key: String, updatedAt: Double) -> OpenClawChatSession
         contextTokens: nil)
 }
 
-private func thinkingOption(_ id: String, label: String? = nil) -> OpenClawChatThinkingLevelOption {
-    OpenClawChatThinkingLevelOption(id: id, label: label ?? id)
+private func thinkingOption(_ id: String, label: String? = nil) -> AstroclawChatThinkingLevelOption {
+    AstroclawChatThinkingLevelOption(id: id, label: label ?? id)
 }
 
 private func sessionEntry(
     key: String,
     updatedAt: Double,
     model: String?,
-    modelProvider: String? = nil) -> OpenClawChatSessionEntry
+    modelProvider: String? = nil) -> AstroclawChatSessionEntry
 {
-    OpenClawChatSessionEntry(
+    AstroclawChatSessionEntry(
         key: key,
         kind: nil,
         displayName: nil,
@@ -88,22 +88,22 @@ private func sessionEntry(
         contextTokens: nil)
 }
 
-private func modelChoice(id: String, name: String, provider: String = "anthropic") -> OpenClawChatModelChoice {
-    OpenClawChatModelChoice(modelID: id, name: name, provider: provider, contextWindow: nil)
+private func modelChoice(id: String, name: String, provider: String = "anthropic") -> AstroclawChatModelChoice {
+    AstroclawChatModelChoice(modelID: id, name: name, provider: provider, contextWindow: nil)
 }
 
 private func makeViewModel(
     sessionKey: String = "main",
-    historyResponses: [OpenClawChatHistoryPayload],
-    sessionsResponses: [OpenClawChatSessionsListResponse] = [],
-    modelResponses: [[OpenClawChatModelChoice]] = [],
+    historyResponses: [AstroclawChatHistoryPayload],
+    sessionsResponses: [AstroclawChatSessionsListResponse] = [],
+    modelResponses: [[AstroclawChatModelChoice]] = [],
     resetSessionHook: (@Sendable (String) async throws -> Void)? = nil,
     compactSessionHook: (@Sendable (String) async throws -> Void)? = nil,
     setSessionModelHook: (@Sendable (String?) async throws -> Void)? = nil,
     setSessionThinkingHook: (@Sendable (String) async throws -> Void)? = nil,
     initialThinkingLevel: String? = nil,
     onThinkingLevelChanged: (@MainActor @Sendable (String) -> Void)? = nil) async
-    -> (TestChatTransport, OpenClawChatViewModel)
+    -> (TestChatTransport, AstroclawChatViewModel)
 {
     let transport = TestChatTransport(
         historyResponses: historyResponses,
@@ -114,7 +114,7 @@ private func makeViewModel(
         setSessionModelHook: setSessionModelHook,
         setSessionThinkingHook: setSessionThinkingHook)
     let vm = await MainActor.run {
-        OpenClawChatViewModel(
+        AstroclawChatViewModel(
             sessionKey: sessionKey,
             transport: transport,
             initialThinkingLevel: initialThinkingLevel,
@@ -124,7 +124,7 @@ private func makeViewModel(
 }
 
 private func loadAndWaitBootstrap(
-    vm: OpenClawChatViewModel,
+    vm: AstroclawChatViewModel,
     sessionId: String? = nil) async throws
 {
     await MainActor.run { vm.load() }
@@ -135,7 +135,7 @@ private func loadAndWaitBootstrap(
     }
 }
 
-private func sendUserMessage(_ vm: OpenClawChatViewModel, text: String = "hi") async {
+private func sendUserMessage(_ vm: AstroclawChatViewModel, text: String = "hi") async {
     await MainActor.run {
         vm.input = text
         vm.send()
@@ -145,7 +145,7 @@ private func sendUserMessage(_ vm: OpenClawChatViewModel, text: String = "hi") a
 @discardableResult
 private func sendMessageAndEmitFinal(
     transport: TestChatTransport,
-    vm: OpenClawChatViewModel,
+    vm: AstroclawChatViewModel,
     text: String,
     sessionKey: String = "main") async throws -> String
 {
@@ -155,7 +155,7 @@ private func sendMessageAndEmitFinal(
     let runId = try #require(await transport.lastSentRunId())
     transport.emit(
         .chat(
-            OpenClawChatEventPayload(
+            AstroclawChatEventPayload(
                 runId: runId,
                 sessionKey: sessionKey,
                 state: "final",
@@ -172,7 +172,7 @@ private func emitAssistantText(
 {
     transport.emit(
         .agent(
-            OpenClawAgentEventPayload(
+            AstroclawAgentEventPayload(
                 runId: runId,
                 seq: seq,
                 stream: "assistant",
@@ -187,7 +187,7 @@ private func emitToolStart(
 {
     transport.emit(
         .agent(
-            OpenClawAgentEventPayload(
+            AstroclawAgentEventPayload(
                 runId: runId,
                 seq: seq,
                 stream: "tool",
@@ -207,7 +207,7 @@ private func emitExternalFinal(
 {
     transport.emit(
         .chat(
-            OpenClawChatEventPayload(
+            AstroclawChatEventPayload(
                 runId: runId,
                 sessionKey: sessionKey,
                 state: "final",
@@ -261,23 +261,23 @@ private actor TestChatTransportState {
     var patchedThinkingLevels: [String] = []
 }
 
-private final class TestChatTransport: @unchecked Sendable, OpenClawChatTransport {
+private final class TestChatTransport: @unchecked Sendable, AstroclawChatTransport {
     private let state = TestChatTransportState()
-    private let historyResponses: [OpenClawChatHistoryPayload]
-    private let sessionsResponses: [OpenClawChatSessionsListResponse]
-    private let modelResponses: [[OpenClawChatModelChoice]]
+    private let historyResponses: [AstroclawChatHistoryPayload]
+    private let sessionsResponses: [AstroclawChatSessionsListResponse]
+    private let modelResponses: [[AstroclawChatModelChoice]]
     private let resetSessionHook: (@Sendable (String) async throws -> Void)?
     private let compactSessionHook: (@Sendable (String) async throws -> Void)?
     private let setSessionModelHook: (@Sendable (String?) async throws -> Void)?
     private let setSessionThinkingHook: (@Sendable (String) async throws -> Void)?
 
-    private let stream: AsyncStream<OpenClawChatTransportEvent>
-    private let continuation: AsyncStream<OpenClawChatTransportEvent>.Continuation
+    private let stream: AsyncStream<AstroclawChatTransportEvent>
+    private let continuation: AsyncStream<AstroclawChatTransportEvent>.Continuation
 
     init(
-        historyResponses: [OpenClawChatHistoryPayload],
-        sessionsResponses: [OpenClawChatSessionsListResponse] = [],
-        modelResponses: [[OpenClawChatModelChoice]] = [],
+        historyResponses: [AstroclawChatHistoryPayload],
+        sessionsResponses: [AstroclawChatSessionsListResponse] = [],
+        modelResponses: [[AstroclawChatModelChoice]] = [],
         resetSessionHook: (@Sendable (String) async throws -> Void)? = nil,
         compactSessionHook: (@Sendable (String) async throws -> Void)? = nil,
         setSessionModelHook: (@Sendable (String?) async throws -> Void)? = nil,
@@ -290,26 +290,26 @@ private final class TestChatTransport: @unchecked Sendable, OpenClawChatTranspor
         self.compactSessionHook = compactSessionHook
         self.setSessionModelHook = setSessionModelHook
         self.setSessionThinkingHook = setSessionThinkingHook
-        var cont: AsyncStream<OpenClawChatTransportEvent>.Continuation!
+        var cont: AsyncStream<AstroclawChatTransportEvent>.Continuation!
         self.stream = AsyncStream { c in
             cont = c
         }
         self.continuation = cont
     }
 
-    func events() -> AsyncStream<OpenClawChatTransportEvent> {
+    func events() -> AsyncStream<AstroclawChatTransportEvent> {
         self.stream
     }
 
     func setActiveSessionKey(_: String) async throws {}
 
-    func requestHistory(sessionKey: String) async throws -> OpenClawChatHistoryPayload {
+    func requestHistory(sessionKey: String) async throws -> AstroclawChatHistoryPayload {
         let idx = await self.state.historyCallCount
         await self.state.setHistoryCallCount(idx + 1)
         if idx < self.historyResponses.count {
             return self.historyResponses[idx]
         }
-        return self.historyResponses.last ?? OpenClawChatHistoryPayload(
+        return self.historyResponses.last ?? AstroclawChatHistoryPayload(
             sessionKey: sessionKey,
             sessionId: nil,
             messages: [],
@@ -321,24 +321,24 @@ private final class TestChatTransport: @unchecked Sendable, OpenClawChatTranspor
         message _: String,
         thinking: String,
         idempotencyKey: String,
-        attachments _: [OpenClawChatAttachmentPayload]) async throws -> OpenClawChatSendResponse
+        attachments _: [AstroclawChatAttachmentPayload]) async throws -> AstroclawChatSendResponse
     {
         await self.state.sentRunIdsAppend(idempotencyKey)
         await self.state.sentThinkingLevelsAppend(thinking)
-        return OpenClawChatSendResponse(runId: idempotencyKey, status: "ok")
+        return AstroclawChatSendResponse(runId: idempotencyKey, status: "ok")
     }
 
     func abortRun(sessionKey _: String, runId: String) async throws {
         await self.state.abortedRunIdsAppend(runId)
     }
 
-    func listSessions(limit _: Int?) async throws -> OpenClawChatSessionsListResponse {
+    func listSessions(limit _: Int?) async throws -> AstroclawChatSessionsListResponse {
         let idx = await self.state.sessionsCallCount
         await self.state.setSessionsCallCount(idx + 1)
         if idx < self.sessionsResponses.count {
             return self.sessionsResponses[idx]
         }
-        return self.sessionsResponses.last ?? OpenClawChatSessionsListResponse(
+        return self.sessionsResponses.last ?? AstroclawChatSessionsListResponse(
             ts: nil,
             path: nil,
             count: 0,
@@ -346,7 +346,7 @@ private final class TestChatTransport: @unchecked Sendable, OpenClawChatTranspor
             sessions: [])
     }
 
-    func listModels() async throws -> [OpenClawChatModelChoice] {
+    func listModels() async throws -> [AstroclawChatModelChoice] {
         let idx = await self.state.modelsCallCount
         await self.state.setModelsCallCount(idx + 1)
         if idx < self.modelResponses.count {
@@ -387,7 +387,7 @@ private final class TestChatTransport: @unchecked Sendable, OpenClawChatTranspor
         true
     }
 
-    func emit(_ evt: OpenClawChatTransportEvent) {
+    func emit(_ evt: AstroclawChatTransportEvent) {
         self.continuation.yield(evt)
     }
 
@@ -465,7 +465,7 @@ extension TestChatTransportState {
 
 @Suite struct ChatViewModelTests {
     @Test func displaysErrorMessageFallbackOnlyForAssistantErrorTurns() throws {
-        func decodeMessage(role: String, stopReason: String, contentText: String? = nil) throws -> OpenClawChatMessage {
+        func decodeMessage(role: String, stopReason: String, contentText: String? = nil) throws -> AstroclawChatMessage {
             let contentJSON = contentText.map { #"[{"type":"text","text":"\#($0)"}]"# } ?? "[]"
             let data = """
             {
@@ -476,18 +476,18 @@ extension TestChatTransportState {
               "errorMessage": "stale provider failure"
             }
             """.data(using: .utf8)!
-            return try JSONDecoder().decode(OpenClawChatMessage.self, from: data)
+            return try JSONDecoder().decode(AstroclawChatMessage.self, from: data)
         }
 
         let assistantError = try decodeMessage(role: "assistant", stopReason: "error")
         #expect(assistantError.content.isEmpty)
         #expect(
-            OpenClawChatMessage.errorDisplayText(
+            AstroclawChatMessage.errorDisplayText(
                 role: assistantError.role,
                 stopReason: assistantError.stopReason,
                 errorMessage: assistantError.errorMessage) == "stale provider failure")
         #expect(
-            OpenClawChatMessage.displayText(
+            AstroclawChatMessage.displayText(
                 contentText: "",
                 role: assistantError.role,
                 stopReason: assistantError.stopReason,
@@ -498,7 +498,7 @@ extension TestChatTransportState {
             stopReason: "error",
             contentText: "[assistant turn failed before producing content]")
         #expect(
-            OpenClawChatMessage.displayText(
+            AstroclawChatMessage.displayText(
                 contentText: sentinelAssistant.content.compactMap(\.text).joined(separator: "\n"),
                 role: sentinelAssistant.role,
                 stopReason: sentinelAssistant.stopReason,
@@ -509,7 +509,7 @@ extension TestChatTransportState {
             stopReason: "error",
             contentText: "partial answer")
         #expect(
-            OpenClawChatMessage.displayText(
+            AstroclawChatMessage.displayText(
                 contentText: partialAssistant.content.compactMap(\.text).joined(separator: "\n"),
                 role: partialAssistant.role,
                 stopReason: partialAssistant.stopReason,
@@ -519,7 +519,7 @@ extension TestChatTransportState {
         #expect(stoppedAssistant.errorMessage == "stale provider failure")
         #expect(stoppedAssistant.content.isEmpty)
         #expect(
-            OpenClawChatMessage.errorDisplayText(
+            AstroclawChatMessage.errorDisplayText(
                 role: stoppedAssistant.role,
                 stopReason: stoppedAssistant.stopReason,
                 errorMessage: stoppedAssistant.errorMessage) == nil)
@@ -528,7 +528,7 @@ extension TestChatTransportState {
         #expect(toolUseAssistant.errorMessage == "stale provider failure")
         #expect(toolUseAssistant.content.isEmpty)
         #expect(
-            OpenClawChatMessage.errorDisplayText(
+            AstroclawChatMessage.errorDisplayText(
                 role: toolUseAssistant.role,
                 stopReason: toolUseAssistant.stopReason,
                 errorMessage: toolUseAssistant.errorMessage) == nil)
@@ -564,7 +564,7 @@ extension TestChatTransportState {
         let runId = try #require(await transport.lastSentRunId())
         transport.emit(
             .chat(
-                OpenClawChatEventPayload(
+                AstroclawChatEventPayload(
                     runId: runId,
                     sessionKey: "main",
                     state: "final",
@@ -732,7 +732,7 @@ extension TestChatTransportState {
         let runId = try #require(await transport.lastSentRunId())
         transport.emit(
             .chat(
-                OpenClawChatEventPayload(
+                AstroclawChatEventPayload(
                     runId: runId,
                     sessionKey: "agent:main:main",
                     state: "final",
@@ -765,7 +765,7 @@ extension TestChatTransportState {
         let runId = try #require(await transport.lastSentRunId())
         transport.emit(
             .chat(
-                OpenClawChatEventPayload(
+                AstroclawChatEventPayload(
                     runId: runId,
                     sessionKey: "main",
                     state: "error",
@@ -779,7 +779,7 @@ extension TestChatTransportState {
             await MainActor.run {
                 vm.messages.contains(where: { message in
                     message.role == "assistant" &&
-                        OpenClawChatMessage.displayText(
+                        AstroclawChatMessage.displayText(
                             contentText: message.content.compactMap(\.text).joined(separator: "\n"),
                             role: message.role,
                             stopReason: message.stopReason,
@@ -806,7 +806,7 @@ extension TestChatTransportState {
 
         transport.emit(
             .chat(
-                OpenClawChatEventPayload(
+                AstroclawChatEventPayload(
                     runId: "external-run",
                     sessionKey: "agent:main:main",
                     state: "final",
@@ -827,12 +827,12 @@ extension TestChatTransportState {
 
         transport.emit(
             .sessionMessage(
-                OpenClawSessionMessageEventPayload(
+                AstroclawSessionMessageEventPayload(
                     sessionKey: "agent:main:main",
-                    message: OpenClawChatMessage(
+                    message: AstroclawChatMessage(
                         role: "user",
                         content: [
-                            OpenClawChatMessageContent(
+                            AstroclawChatMessageContent(
                                 type: "text",
                                 text: "spoken transcript",
                                 mimeType: nil,
@@ -861,12 +861,12 @@ extension TestChatTransportState {
 
         transport.emit(
             .sessionMessage(
-                OpenClawSessionMessageEventPayload(
+                AstroclawSessionMessageEventPayload(
                     sessionKey: "other",
-                    message: OpenClawChatMessage(
+                    message: AstroclawChatMessage(
                         role: "user",
                         content: [
-                            OpenClawChatMessageContent(
+                            AstroclawChatMessageContent(
                                 type: "text",
                                 text: "other transcript",
                                 mimeType: nil,
@@ -952,7 +952,7 @@ extension TestChatTransportState {
         let recentOlder = now - (5 * 60 * 60 * 1000)
         let stale = now - (26 * 60 * 60 * 1000)
         let history = historyPayload()
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 4,
@@ -976,7 +976,7 @@ extension TestChatTransportState {
         let now = Date().timeIntervalSince1970 * 1000
         let recent = now - (30 * 60 * 1000)
         let history = historyPayload(sessionKey: "custom", sessionId: "sess-custom")
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 1,
@@ -1001,16 +1001,16 @@ extension TestChatTransportState {
         let recent = now - (30 * 60 * 1000)
         let recentOlder = now - (90 * 60 * 1000)
         let history = historyPayload(sessionKey: "Luke’s MacBook Pro", sessionId: "sess-main")
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 2,
-            defaults: OpenClawChatSessionsDefaults(
+            defaults: AstroclawChatSessionsDefaults(
                 model: nil,
                 contextTokens: nil,
                 mainSessionKey: "Luke’s MacBook Pro"),
             sessions: [
-                OpenClawChatSessionEntry(
+                AstroclawChatSessionEntry(
                     key: "Luke’s MacBook Pro",
                     kind: nil,
                     displayName: "Luke’s MacBook Pro",
@@ -1049,16 +1049,16 @@ extension TestChatTransportState {
         let recent = now - (2 * 60 * 1000)
         let recentOlder = now - (5 * 60 * 1000)
         let history = historyPayload(sessionKey: "agent:main:main", sessionId: "sess-main")
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 2,
-            defaults: OpenClawChatSessionsDefaults(
+            defaults: AstroclawChatSessionsDefaults(
                 model: nil,
                 contextTokens: nil,
                 mainSessionKey: "agent:main:main"),
             sessions: [
-                OpenClawChatSessionEntry(
+                AstroclawChatSessionEntry(
                     key: "agent:main:onboarding",
                     kind: nil,
                     displayName: "Luke’s MacBook Pro",
@@ -1078,7 +1078,7 @@ extension TestChatTransportState {
                     modelProvider: nil,
                     model: nil,
                     contextTokens: nil),
-                OpenClawChatSessionEntry(
+                AstroclawChatSessionEntry(
                     key: "agent:main:main",
                     kind: nil,
                     displayName: "Luke’s MacBook Pro",
@@ -1278,11 +1278,11 @@ extension TestChatTransportState {
     @Test func bootstrapsModelSelectionFromSessionAndDefaults() async throws {
         let now = Date().timeIntervalSince1970 * 1000
         let history = historyPayload()
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 1,
-            defaults: OpenClawChatSessionsDefaults(model: "openai/gpt-4.1-mini", contextTokens: nil),
+            defaults: AstroclawChatSessionsDefaults(model: "openai/gpt-4.1-mini", contextTokens: nil),
             sessions: [
                 sessionEntry(key: "main", updatedAt: now, model: "anthropic/claude-opus-4-6"),
             ])
@@ -1306,11 +1306,11 @@ extension TestChatTransportState {
     @Test func selectingDefaultModelPatchesNilAndUpdatesSelection() async throws {
         let now = Date().timeIntervalSince1970 * 1000
         let history = historyPayload()
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 1,
-            defaults: OpenClawChatSessionsDefaults(model: "openai/gpt-4.1-mini", contextTokens: nil),
+            defaults: AstroclawChatSessionsDefaults(model: "openai/gpt-4.1-mini", contextTokens: nil),
             sessions: [
                 sessionEntry(key: "main", updatedAt: now, model: "anthropic/claude-opus-4-6"),
             ])
@@ -1326,24 +1326,24 @@ extension TestChatTransportState {
 
         try await loadAndWaitBootstrap(vm: vm)
 
-        await MainActor.run { vm.selectModel(OpenClawChatViewModel.defaultModelSelectionID) }
+        await MainActor.run { vm.selectModel(AstroclawChatViewModel.defaultModelSelectionID) }
 
         try await waitUntil("session model patched") {
             let patched = await transport.patchedModels()
             return patched == [nil]
         }
 
-        #expect(await MainActor.run { vm.modelSelectionID } == OpenClawChatViewModel.defaultModelSelectionID)
+        #expect(await MainActor.run { vm.modelSelectionID } == AstroclawChatViewModel.defaultModelSelectionID)
     }
 
     @Test func selectingProviderQualifiedModelDisambiguatesDuplicateModelIDs() async throws {
         let now = Date().timeIntervalSince1970 * 1000
         let history = historyPayload()
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 1,
-            defaults: OpenClawChatSessionsDefaults(model: "openrouter/gpt-4.1-mini", contextTokens: nil),
+            defaults: AstroclawChatSessionsDefaults(model: "openrouter/gpt-4.1-mini", contextTokens: nil),
             sessions: [
                 sessionEntry(key: "main", updatedAt: now, model: "gpt-4.1-mini", modelProvider: "openrouter"),
             ])
@@ -1372,7 +1372,7 @@ extension TestChatTransportState {
     @Test func slashModelIDsStayProviderQualifiedInSelectionAndPatch() async throws {
         let now = Date().timeIntervalSince1970 * 1000
         let history = historyPayload()
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 1,
@@ -1405,7 +1405,7 @@ extension TestChatTransportState {
     @Test func staleModelPatchCompletionsDoNotOverwriteNewerSelection() async throws {
         let now = Date().timeIntervalSince1970 * 1000
         let history = historyPayload()
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 1,
@@ -1448,7 +1448,7 @@ extension TestChatTransportState {
     @Test func sendWaitsForInFlightModelPatchToFinish() async throws {
         let now = Date().timeIntervalSince1970 * 1000
         let history = historyPayload()
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 1,
@@ -1501,7 +1501,7 @@ extension TestChatTransportState {
     @Test func failedLatestModelSelectionDoesNotReplayAfterOlderCompletionFinishes() async throws {
         let now = Date().timeIntervalSince1970 * 1000
         let history = historyPayload()
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 1,
@@ -1551,7 +1551,7 @@ extension TestChatTransportState {
     @Test func failedLatestModelSelectionRestoresEarlierSuccessWithoutReplay() async throws {
         let now = Date().timeIntervalSince1970 * 1000
         let history = historyPayload()
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 1,
@@ -1599,7 +1599,7 @@ extension TestChatTransportState {
 
     @Test func switchingSessionsIgnoresLateModelPatchCompletionFromPreviousSession() async throws {
         let now = Date().timeIntervalSince1970 * 1000
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 2,
@@ -1638,13 +1638,13 @@ extension TestChatTransportState {
             return patched == ["openai/gpt-5.4"]
         }
 
-        #expect(await MainActor.run { vm.modelSelectionID } == OpenClawChatViewModel.defaultModelSelectionID)
+        #expect(await MainActor.run { vm.modelSelectionID } == AstroclawChatViewModel.defaultModelSelectionID)
         #expect(await MainActor.run { vm.sessions.first(where: { $0.key == "other" })?.model } == nil)
     }
 
     @Test func lateModelCompletionDoesNotReplayCurrentSessionSelectionIntoPreviousSession() async throws {
         let now = Date().timeIntervalSince1970 * 1000
-        let initialSessions = OpenClawChatSessionsListResponse(
+        let initialSessions = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 2,
@@ -1653,7 +1653,7 @@ extension TestChatTransportState {
                 sessionEntry(key: "main", updatedAt: now, model: nil),
                 sessionEntry(key: "other", updatedAt: now - 1000, model: nil),
             ])
-        let sessionsAfterOtherSelection = OpenClawChatSessionsListResponse(
+        let sessionsAfterOtherSelection = AstroclawChatSessionsListResponse(
             ts: now,
             path: nil,
             count: 2,
@@ -1715,7 +1715,7 @@ extension TestChatTransportState {
     }
 
     @Test func explicitThinkingLevelWinsOverHistoryAndPersistsChanges() async throws {
-        let history = OpenClawChatHistoryPayload(
+        let history = AstroclawChatHistoryPayload(
             sessionKey: "main",
             sessionId: "sess-main",
             messages: [],
@@ -1744,7 +1744,7 @@ extension TestChatTransportState {
     }
 
     @Test func serverProvidedThinkingLevelsOutsideMenuArePreservedForSend() async throws {
-        let history = OpenClawChatHistoryPayload(
+        let history = AstroclawChatHistoryPayload(
             sessionKey: "main",
             sessionId: "sess-main",
             messages: [],
@@ -1794,7 +1794,7 @@ extension TestChatTransportState {
         """
 
         let decoded = try JSONDecoder().decode(
-            OpenClawChatSessionsListResponse.self,
+            AstroclawChatSessionsListResponse.self,
             from: Data(json.utf8))
 
         #expect(decoded.defaults?.modelProvider == "anthropic")
@@ -1806,16 +1806,16 @@ extension TestChatTransportState {
     }
 
     @Test func sessionThinkingLevelsDrivePickerOptions() async throws {
-        let history = OpenClawChatHistoryPayload(
+        let history = AstroclawChatHistoryPayload(
             sessionKey: "main",
             sessionId: "sess-main",
             messages: [],
             thinkingLevel: "adaptive")
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: 1,
             path: nil,
             count: 1,
-            defaults: OpenClawChatSessionsDefaults(
+            defaults: AstroclawChatSessionsDefaults(
                 modelProvider: "openai-codex",
                 model: "gpt-5.5",
                 contextTokens: nil,
@@ -1828,7 +1828,7 @@ extension TestChatTransportState {
                 thinkingOptions: ["off", "low", "xhigh", "maximum"],
                 thinkingDefault: "xhigh"),
             sessions: [
-                OpenClawChatSessionEntry(
+                AstroclawChatSessionEntry(
                     key: "main",
                     kind: nil,
                     displayName: nil,
@@ -1869,18 +1869,18 @@ extension TestChatTransportState {
     }
 
     @Test func thinkingOptionsFallbackAndCurrentUnsupportedLevelStayVisible() async throws {
-        let history = OpenClawChatHistoryPayload(
+        let history = AstroclawChatHistoryPayload(
             sessionKey: "main",
             sessionId: "sess-main",
             messages: [],
             thinkingLevel: "xhigh")
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: 1,
             path: nil,
             count: 1,
             defaults: nil,
             sessions: [
-                OpenClawChatSessionEntry(
+                AstroclawChatSessionEntry(
                     key: "main",
                     kind: nil,
                     displayName: nil,
@@ -1917,16 +1917,16 @@ extension TestChatTransportState {
     }
 
     @Test func matchingDefaultThinkingLevelsBeatLegacyRowThinkingOptions() async throws {
-        let history = OpenClawChatHistoryPayload(
+        let history = AstroclawChatHistoryPayload(
             sessionKey: "main",
             sessionId: "sess-main",
             messages: [],
             thinkingLevel: "adaptive")
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: 1,
             path: nil,
             count: 1,
-            defaults: OpenClawChatSessionsDefaults(
+            defaults: AstroclawChatSessionsDefaults(
                 modelProvider: "anthropic",
                 model: "claude-opus-4-7",
                 contextTokens: nil,
@@ -1938,7 +1938,7 @@ extension TestChatTransportState {
                 thinkingOptions: ["off", "adaptive", "max"],
                 thinkingDefault: "adaptive"),
             sessions: [
-                OpenClawChatSessionEntry(
+                AstroclawChatSessionEntry(
                     key: "main",
                     kind: nil,
                     displayName: nil,
@@ -1973,16 +1973,16 @@ extension TestChatTransportState {
     }
 
     @Test func defaultThinkingLevelsDoNotLeakToDifferentSessionModel() async throws {
-        let history = OpenClawChatHistoryPayload(
+        let history = AstroclawChatHistoryPayload(
             sessionKey: "main",
             sessionId: "sess-main",
             messages: [],
             thinkingLevel: "max")
-        let sessions = OpenClawChatSessionsListResponse(
+        let sessions = AstroclawChatSessionsListResponse(
             ts: 1,
             path: nil,
             count: 1,
-            defaults: OpenClawChatSessionsDefaults(
+            defaults: AstroclawChatSessionsDefaults(
                 modelProvider: "anthropic",
                 model: "claude-opus-4-7",
                 contextTokens: nil,
@@ -1994,7 +1994,7 @@ extension TestChatTransportState {
                 thinkingOptions: ["off", "adaptive", "max"],
                 thinkingDefault: "adaptive"),
             sessions: [
-                OpenClawChatSessionEntry(
+                AstroclawChatSessionEntry(
                     key: "main",
                     kind: nil,
                     displayName: nil,
@@ -2028,7 +2028,7 @@ extension TestChatTransportState {
     }
 
     @Test func staleThinkingPatchCompletionReappliesLatestSelection() async throws {
-        let history = OpenClawChatHistoryPayload(
+        let history = AstroclawChatHistoryPayload(
             sessionKey: "main",
             sessionId: "sess-main",
             messages: [],
@@ -2071,7 +2071,7 @@ extension TestChatTransportState {
 
         transport.emit(
             .chat(
-                OpenClawChatEventPayload(
+                AstroclawChatEventPayload(
                     runId: "other-run",
                     sessionKey: "main",
                     state: "error",
@@ -2082,7 +2082,7 @@ extension TestChatTransportState {
     }
 
     @Test func stripsInboundMetadataFromHistoryMessages() async throws {
-        let history = OpenClawChatHistoryPayload(
+        let history = AstroclawChatHistoryPayload(
             sessionKey: "main",
             sessionId: "sess-main",
             messages: [
@@ -2091,7 +2091,7 @@ extension TestChatTransportState {
                     "content": [["type": "text", "text": """
 Conversation info (untrusted metadata):
 ```json
-{ \"sender\": \"openclaw-ios\" }
+{ \"sender\": \"astroclaw-ios\" }
 ```
 
 Hello?
@@ -2101,7 +2101,7 @@ Hello?
             ],
             thinkingLevel: "off")
         let transport = TestChatTransport(historyResponses: [history])
-        let vm = await MainActor.run { OpenClawChatViewModel(sessionKey: "main", transport: transport) }
+        let vm = await MainActor.run { AstroclawChatViewModel(sessionKey: "main", transport: transport) }
 
         await MainActor.run { vm.load() }
         try await waitUntil("history loaded") { await MainActor.run { !vm.messages.isEmpty } }
@@ -2132,7 +2132,7 @@ Hello?
 
         transport.emit(
             .chat(
-                OpenClawChatEventPayload(
+                AstroclawChatEventPayload(
                     runId: runId,
                     sessionKey: "main",
                     state: "aborted",

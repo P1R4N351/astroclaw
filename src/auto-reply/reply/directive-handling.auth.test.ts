@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthProfileStore } from "../../agents/auth-profiles.js";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 
 let mockStore: AuthProfileStore;
 let mockOrder: string[];
@@ -9,7 +9,7 @@ const resolveEnvApiKeyMock = vi.hoisted(() =>
     (
       _provider?: string,
       _env?: NodeJS.ProcessEnv,
-      _options?: { config?: OpenClawConfig; workspaceDir?: string },
+      _options?: { config?: AstroclawConfig; workspaceDir?: string },
     ) => null as { apiKey: string; source: string } | null,
   ),
 );
@@ -29,7 +29,7 @@ vi.mock("../../agents/auth-profiles.js", () => ({
     provider,
     profileId,
   }: {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
     provider: string;
     profileId: string;
   }) => {
@@ -66,7 +66,7 @@ vi.mock("../../agents/model-auth.js", () => ({
   resolveEnvApiKey: (
     provider?: string,
     env?: NodeJS.ProcessEnv,
-    options?: { config?: OpenClawConfig; workspaceDir?: string },
+    options?: { config?: AstroclawConfig; workspaceDir?: string },
   ) => resolveEnvApiKeyMock(provider, env, options),
 }));
 
@@ -87,7 +87,7 @@ async function resolveRefOnlyAuthLabel(params: {
 
   return resolveAuthLabel(
     params.provider,
-    {} as OpenClawConfig,
+    {} as AstroclawConfig,
     "/tmp/models.json",
     undefined,
     params.mode,
@@ -166,7 +166,7 @@ describe("resolveAuthLabel ref-aware labels", () => {
             },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       "/tmp/models.json",
       undefined,
       "compact",
@@ -199,7 +199,7 @@ describe("resolveAuthLabel ref-aware labels", () => {
             },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       "/tmp/models.json",
       undefined,
       "verbose",
@@ -210,7 +210,7 @@ describe("resolveAuthLabel ref-aware labels", () => {
   });
 
   it("passes workspace scope to env auth labels", async () => {
-    const cfg = { plugins: { allow: ["workspace-auth-label"] } } as OpenClawConfig;
+    const cfg = { plugins: { allow: ["workspace-auth-label"] } } as AstroclawConfig;
     resolveEnvApiKeyMock.mockReturnValue({
       apiKey: "workspace-local-credentials",
       source: "workspace credentials",

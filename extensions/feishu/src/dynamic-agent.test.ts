@@ -2,13 +2,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig, PluginRuntime } from "../runtime-api.js";
+import type { AstroclawConfig, PluginRuntime } from "../runtime-api.js";
 import { maybeCreateDynamicAgent } from "./dynamic-agent.js";
 
 let tempRoot: string;
 
 beforeEach(async () => {
-  tempRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), "openclaw-feishu-agent-"));
+  tempRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), "astroclaw-feishu-agent-"));
 });
 
 afterEach(async () => {
@@ -57,7 +57,7 @@ describe("maybeCreateDynamicAgent", () => {
         channels: { feishu: { configWrites: false } },
         agents: { list: [] },
         bindings: [],
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       runtime,
       senderOpenId: "ou_sender",
       dynamicCfg,
@@ -85,7 +85,7 @@ describe("maybeCreateDynamicAgent", () => {
       cfg: {
         agents: { list: [] },
         bindings: [],
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       runtime,
       senderOpenId: "ou_sender",
       dynamicCfg: createDynamicConfig(),
@@ -138,7 +138,7 @@ describe("maybeCreateDynamicAgent", () => {
           ],
         },
         bindings: [],
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       runtime,
       senderOpenId: "ou_sender",
       dynamicCfg: {

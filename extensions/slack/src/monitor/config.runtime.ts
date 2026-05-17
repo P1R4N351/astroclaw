@@ -1,14 +1,14 @@
-export { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
-export { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
+export { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+export { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
 export {
   readSessionUpdatedAt,
   resolveSessionKey,
   resolveStorePath,
   updateLastRoute,
-} from "openclaw/plugin-sdk/session-store-runtime";
-export { resolveChannelContextVisibilityMode } from "openclaw/plugin-sdk/context-visibility-runtime";
+} from "astroclaw/plugin-sdk/session-store-runtime";
+export { resolveChannelContextVisibilityMode } from "astroclaw/plugin-sdk/context-visibility-runtime";
 export {
   resolveDefaultGroupPolicy,
   resolveOpenProviderRuntimeGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "openclaw/plugin-sdk/runtime-group-policy";
+} from "astroclaw/plugin-sdk/runtime-group-policy";

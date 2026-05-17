@@ -1,5 +1,5 @@
-import { formatAllowlistMatchMeta } from "openclaw/plugin-sdk/allow-from";
-import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
+import { formatAllowlistMatchMeta } from "astroclaw/plugin-sdk/allow-from";
+import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
 import {
   buildMentionRegexes,
   classifyChannelInboundEvent,
@@ -7,17 +7,17 @@ import {
   resolveInboundMentionDecision,
   resolveUnmentionedGroupInboundPolicy,
   toInboundMediaFacts,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { hasControlCommand } from "openclaw/plugin-sdk/command-detection";
-import { isAbortRequestText } from "openclaw/plugin-sdk/command-primitives-runtime";
-import { shouldHandleTextCommands } from "openclaw/plugin-sdk/command-surface";
-import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
-import { recordDroppedChannelTurnHistory } from "openclaw/plugin-sdk/inbound-reply-dispatch";
-import { logDebug } from "openclaw/plugin-sdk/logging-core";
-import { mimeTypeFromFilePath } from "openclaw/plugin-sdk/media-mime";
-import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
-import { getChildLogger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { hasControlCommand } from "astroclaw/plugin-sdk/command-detection";
+import { isAbortRequestText } from "astroclaw/plugin-sdk/command-primitives-runtime";
+import { shouldHandleTextCommands } from "astroclaw/plugin-sdk/command-surface";
+import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
+import { recordDroppedChannelTurnHistory } from "astroclaw/plugin-sdk/inbound-reply-dispatch";
+import { logDebug } from "astroclaw/plugin-sdk/logging-core";
+import { mimeTypeFromFilePath } from "astroclaw/plugin-sdk/media-mime";
+import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+import { getChildLogger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
 import { resolveDefaultDiscordAccountId } from "../accounts.js";
 import { ChannelType, MessageType, type User } from "../internal/discord.js";
 import {

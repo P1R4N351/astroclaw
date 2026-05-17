@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { withTempHome } from "openclaw/plugin-sdk/test-env";
+import { withTempHome } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { normalizeTestText } from "../../test/helpers/normalize-text.js";
 import { MODEL_CONTEXT_TOKEN_CACHE } from "../agents/context-cache.js";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
 import { createSuccessfulImageMediaDecision } from "./media-understanding.test-fixtures.js";
 import {
@@ -61,7 +61,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "anthropic/pi:opus",
         contextTokens: 32_000,
@@ -87,7 +87,7 @@ describe("buildStatusMessage", () => {
     });
     const normalized = normalizeTestText(text);
 
-    expect(normalized).toContain("OpenClaw");
+    expect(normalized).toContain("Astroclaw");
     expect(normalized).toContain("Model: anthropic/pi:opus");
     expect(normalized).toContain("api-key");
     expect(normalized).toContain("Tokens: 1.2k in / 800 out");
@@ -97,7 +97,7 @@ describe("buildStatusMessage", () => {
     expect(normalized).toContain("Session: agent:main:main");
     expect(normalized).toContain("updated 10m ago");
     expect(normalized).toContain("Execution: direct");
-    expect(normalized).toContain("Runtime: OpenClaw Pi Default");
+    expect(normalized).toContain("Runtime: Astroclaw Pi Default");
     expect(normalized).not.toContain("Runner:");
     expect(normalized).toContain("Think: medium");
     expect(normalized).not.toContain("verbose");
@@ -150,7 +150,7 @@ describe("buildStatusMessage", () => {
               },
             },
           },
-        } as unknown as OpenClawConfig,
+        } as unknown as AstroclawConfig,
         agent: {},
         now: 0,
       });
@@ -175,7 +175,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "claude-cli/opus",
       },
@@ -202,7 +202,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "claude-cli/opus",
       },
@@ -483,7 +483,7 @@ describe("buildStatusMessage", () => {
 
     const normalized = normalizeTestText(text);
     expect(normalized).toContain("Fast");
-    expect(normalized).toContain("Runtime: OpenClaw Pi Default");
+    expect(normalized).toContain("Runtime: Astroclaw Pi Default");
     expect(normalized).not.toContain("· pi");
   });
 
@@ -519,7 +519,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "openai-codex/gpt-5.4",
       },
@@ -557,7 +557,7 @@ describe("buildStatusMessage", () => {
             },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agentId: "main",
       agent: {
         model: "openai-codex/gpt-5.4",
@@ -583,7 +583,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "openai/gpt-4.1",
       },
@@ -623,7 +623,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "minimax-portal/MiniMax-M2.7",
         contextTokens: 1_048_576,
@@ -661,7 +661,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "anthropic/claude-opus-4-6",
       },
@@ -744,7 +744,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "xiaomi/mimo-v2-flash",
       },
@@ -824,7 +824,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "xiaomi/mimo-v2-flash",
       },
@@ -869,7 +869,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "xiaomi/mimo-v2-flash",
       },
@@ -913,7 +913,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "xiaomi/mimo-v2-flash",
         contextTokens: 120_000,
@@ -958,7 +958,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "xiaomi/mimo-v2-flash",
         contextTokens: 128_000,
@@ -1002,7 +1002,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "xiaomi/mimo-v2-flash",
         contextTokens: 1_048_576,
@@ -1043,7 +1043,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "xiaomi/mimo-v2-flash",
         contextTokens: 1_048_576,
@@ -1084,7 +1084,7 @@ describe("buildStatusMessage", () => {
             { id: "discord", sandbox: { mode: "all" } },
           ],
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {},
       sessionKey: "agent:discord:discord:channel:1456350065223270435",
       sessionScope: "per-sender",
@@ -1436,7 +1436,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: { model: "anthropic/claude-opus-4-6" },
       sessionEntry: { sessionId: "c1", updatedAt: 0, inputTokens: 10 },
       sessionKey: "agent:main:main",
@@ -1463,7 +1463,7 @@ describe("buildStatusMessage", () => {
   }) {
     const logPath = path.join(
       params.dir,
-      ".openclaw",
+      ".astroclaw",
       "agents",
       params.agentId,
       "sessions",
@@ -1542,7 +1542,7 @@ describe("buildStatusMessage", () => {
 
         expect(normalizeTestText(text)).toContain("Context: 1.0k/32k");
       },
-      { prefix: "openclaw-status-" },
+      { prefix: "astroclaw-status-" },
     );
   });
 
@@ -1589,7 +1589,7 @@ describe("buildStatusMessage", () => {
         expect(normalized).not.toContain("Context: 3.8m/1.0m");
         expect(normalized).not.toContain("Context: 3.82m/1.0m");
       },
-      { prefix: "openclaw-status-" },
+      { prefix: "astroclaw-status-" },
     );
   });
 
@@ -1610,7 +1610,7 @@ describe("buildStatusMessage", () => {
 
         expect(normalizeTestText(text)).toContain("Context: 1.0k/32k");
       },
-      { prefix: "openclaw-status-" },
+      { prefix: "astroclaw-status-" },
     );
   });
 
@@ -1652,7 +1652,7 @@ describe("buildStatusMessage", () => {
 
         expect(normalizeTestText(text)).toContain("Context: 1.2k/32k");
       },
-      { prefix: "openclaw-status-" },
+      { prefix: "astroclaw-status-" },
     );
   });
 
@@ -1673,7 +1673,7 @@ describe("buildStatusMessage", () => {
 
         expect(normalizeTestText(text)).toContain("Cache: 100% hit · 1.0k cached, 0 new");
       },
-      { prefix: "openclaw-status-" },
+      { prefix: "astroclaw-status-" },
     );
   });
 
@@ -1683,7 +1683,7 @@ describe("buildStatusMessage", () => {
         const sessionId = "sess-cache-delivery-mirror";
         const logPath = path.join(
           dir,
-          ".openclaw",
+          ".astroclaw",
           "agents",
           "main",
           "sessions",
@@ -1713,7 +1713,7 @@ describe("buildStatusMessage", () => {
               type: "message",
               message: {
                 role: "assistant",
-                provider: "openclaw",
+                provider: "astroclaw",
                 model: "delivery-mirror",
                 usage: {
                   input: 0,
@@ -1736,7 +1736,7 @@ describe("buildStatusMessage", () => {
         expect(normalizeTestText(text)).toContain("Cache: 100% hit · 1.0k cached, 0 new");
         expect(normalizeTestText(text)).toContain("Context: 1.0k/32k");
       },
-      { prefix: "openclaw-status-" },
+      { prefix: "astroclaw-status-" },
     );
   });
 
@@ -1772,7 +1772,7 @@ describe("buildStatusMessage", () => {
 
         expect(normalizeTestText(text)).toContain("Cache: 26% hit · 12 cached, 34 new");
       },
-      { prefix: "openclaw-status-" },
+      { prefix: "astroclaw-status-" },
     );
   });
 
@@ -1805,7 +1805,7 @@ describe("buildStatusMessage", () => {
                 },
               },
             },
-          } as unknown as OpenClawConfig,
+          } as unknown as AstroclawConfig,
           agent: {
             model: "openrouter/google/gemini-2.5-pro",
           },
@@ -1825,7 +1825,7 @@ describe("buildStatusMessage", () => {
         expect(normalized).toContain("Context: 1.2k/999k");
         expect(normalized).not.toContain("Context: 1.2k/2.0m");
       },
-      { prefix: "openclaw-status-" },
+      { prefix: "astroclaw-status-" },
     );
   });
 
@@ -1841,7 +1841,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "openrouter/google/gemini-2.5-pro",
       },
@@ -1877,7 +1877,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "xiaomi/mimo-v2-flash",
       },
@@ -1917,7 +1917,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "openai/gpt-4o",
       },
@@ -1980,7 +1980,7 @@ describe("buildStatusMessage", () => {
         expect(normalized).toContain("Context: 1.2k/1.0m");
         expect(normalized).not.toContain("Context: 1.2k/128k");
       },
-      { prefix: "openclaw-status-" },
+      { prefix: "astroclaw-status-" },
     );
   });
 
@@ -2066,7 +2066,7 @@ describe("buildStatusMessage", () => {
             },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       agent: {
         model: "xiaomi/mimo-v2-flash",
       },
@@ -2101,7 +2101,7 @@ describe("buildCommandsMessage", () => {
   it("lists commands with aliases and hints", () => {
     const text = buildCommandsMessage({
       commands: { config: false, debug: false },
-    } as unknown as OpenClawConfig);
+    } as unknown as AstroclawConfig);
     expect(text).toContain("ℹ️ Slash commands");
     expect(text).toContain("Status");
     expect(text).toContain("/commands - List all slash commands.");
@@ -2117,7 +2117,7 @@ describe("buildCommandsMessage", () => {
     const text = buildCommandsMessage(
       {
         commands: { config: false, debug: false },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       [
         {
           name: "demo_skill",
@@ -2134,7 +2134,7 @@ describe("buildHelpMessage", () => {
   it("hides config/debug when disabled", () => {
     const text = buildHelpMessage({
       commands: { config: false, debug: false },
-    } as unknown as OpenClawConfig);
+    } as unknown as AstroclawConfig);
     expect(text).toContain("Skills");
     expect(text).toContain("/skill <name> [input]");
     expect(text).not.toContain("/config");
@@ -2155,7 +2155,7 @@ describe("buildCommandsMessagePaginated", () => {
     const result = buildCommandsMessagePaginated(
       {
         commands: { config: false, debug: false },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       undefined,
       { surface: "telegram", page: 1, forcePaginatedList: true },
     );
@@ -2173,7 +2173,7 @@ describe("buildCommandsMessagePaginated", () => {
     const firstPage = buildCommandsMessagePaginated(
       {
         commands: { config: false, debug: false },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       undefined,
       { surface: "telegram", page: 1, forcePaginatedList: true },
     );
@@ -2181,7 +2181,7 @@ describe("buildCommandsMessagePaginated", () => {
       buildCommandsMessagePaginated(
         {
           commands: { config: false, debug: false },
-        } as unknown as OpenClawConfig,
+        } as unknown as AstroclawConfig,
         undefined,
         { surface: "telegram", page: index + 1, forcePaginatedList: true },
       ),

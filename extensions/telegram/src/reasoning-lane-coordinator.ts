@@ -1,8 +1,8 @@
-import { formatReasoningMessage } from "openclaw/plugin-sdk/agent-runtime";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { findCodeRegions, isInsideCode } from "openclaw/plugin-sdk/text-chunking";
-import { stripReasoningTagsFromText } from "openclaw/plugin-sdk/text-chunking";
+import { formatReasoningMessage } from "astroclaw/plugin-sdk/agent-runtime";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { findCodeRegions, isInsideCode } from "astroclaw/plugin-sdk/text-chunking";
+import { stripReasoningTagsFromText } from "astroclaw/plugin-sdk/text-chunking";
 
 const REASONING_MESSAGE_PREFIX = "Reasoning:\n";
 const REASONING_TAG_PREFIXES = [

@@ -1,13 +1,13 @@
 // Private runtime barrel for the bundled Signal extension.
 // Prefer narrower SDK subpaths plus local extension seams over the legacy signal barrel.
 
-export type { ChannelMessageActionAdapter } from "openclaw/plugin-sdk/channel-contract";
+export type { ChannelMessageActionAdapter } from "astroclaw/plugin-sdk/channel-contract";
 export { buildChannelConfigSchema, SignalConfigSchema } from "../config-api.js";
-export { PAIRING_APPROVED_MESSAGE } from "openclaw/plugin-sdk/channel-status";
-import type { OpenClawConfig as RuntimeOpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-export type { RuntimeOpenClawConfig as OpenClawConfig };
-export type { OpenClawPluginApi, PluginRuntime } from "openclaw/plugin-sdk/core";
-export type { ChannelPlugin } from "openclaw/plugin-sdk/core";
+export { PAIRING_APPROVED_MESSAGE } from "astroclaw/plugin-sdk/channel-status";
+import type { AstroclawConfig as RuntimeAstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+export type { RuntimeAstroclawConfig as AstroclawConfig };
+export type { AstroclawPluginApi, PluginRuntime } from "astroclaw/plugin-sdk/core";
+export type { ChannelPlugin } from "astroclaw/plugin-sdk/core";
 export {
   DEFAULT_ACCOUNT_ID,
   applyAccountNameToChannelSection,
@@ -18,22 +18,22 @@ export {
   migrateBaseNameToDefaultAccount,
   normalizeAccountId,
   setAccountEnabledInConfigSection,
-} from "openclaw/plugin-sdk/core";
-export { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";
-export { formatCliCommand, formatDocsLink } from "openclaw/plugin-sdk/setup-tools";
-export { chunkText } from "openclaw/plugin-sdk/reply-runtime";
-export { detectBinary } from "openclaw/plugin-sdk/setup-tools";
+} from "astroclaw/plugin-sdk/core";
+export { resolveChannelMediaMaxBytes } from "astroclaw/plugin-sdk/media-runtime";
+export { formatCliCommand, formatDocsLink } from "astroclaw/plugin-sdk/setup-tools";
+export { chunkText } from "astroclaw/plugin-sdk/reply-runtime";
+export { detectBinary } from "astroclaw/plugin-sdk/setup-tools";
 export {
   resolveAllowlistProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
-} from "openclaw/plugin-sdk/runtime-group-policy";
+} from "astroclaw/plugin-sdk/runtime-group-policy";
 export {
   buildBaseAccountStatusSnapshot,
   buildBaseChannelStatusSummary,
   collectStatusIssuesFromLastError,
   createDefaultChannelRuntimeState,
-} from "openclaw/plugin-sdk/status-helpers";
-export { normalizeE164 } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/status-helpers";
+export { normalizeE164 } from "astroclaw/plugin-sdk/text-utility-runtime";
 export { looksLikeSignalTargetId, normalizeSignalMessagingTarget } from "./normalize.js";
 export {
   listEnabledSignalAccounts,

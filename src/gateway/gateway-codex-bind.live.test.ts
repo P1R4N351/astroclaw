@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { isLiveTestEnabled } from "../agents/live-test-helpers.js";
 import type { ChannelOutboundContext } from "../channels/plugins/types.public.js";
 import { clearConfigCache, clearRuntimeConfigSnapshot } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { getSessionBindingService } from "../infra/outbound/session-binding-service.js";
 import { resolveBundledPluginWorkspaceSourcePath } from "../plugins/bundled-plugin-metadata.js";
@@ -26,7 +26,7 @@ import { renderCatFacePngBase64 } from "./live-image-probe.js";
 import { startGatewayServer } from "./server.js";
 
 const LIVE = isLiveTestEnabled();
-const CODEX_BIND_LIVE = isTruthyEnvValue(process.env.OPENCLAW_LIVE_CODEX_BIND);
+const CODEX_BIND_LIVE = isTruthyEnvValue(process.env.ASTROCLAW_LIVE_CODEX_BIND);
 const describeLive = LIVE && CODEX_BIND_LIVE ? describe : describe.skip;
 const CODEX_BIND_TIMEOUT_MS = 10 * 60_000;
 const CODEX_BIND_REQUEST_TIMEOUT_MS = 180_000;
@@ -292,10 +292,10 @@ async function writePluginBindingApproval(params: {
   channel: string;
   accountId: string;
 }): Promise<void> {
-  const openclawDir = path.join(params.homeDir, ".openclaw");
-  await fs.mkdir(openclawDir, { recursive: true });
+  const astroclawDir = path.join(params.homeDir, ".astroclaw");
+  await fs.mkdir(astroclawDir, { recursive: true });
   await fs.writeFile(
-    path.join(openclawDir, "plugin-binding-approvals.json"),
+    path.join(astroclawDir, "plugin-binding-approvals.json"),
     `${JSON.stringify(
       {
         version: 1,
@@ -325,7 +325,7 @@ async function writeGatewayConfig(params: {
   workspace: string;
 }): Promise<void> {
   const modelProvider = params.modelProvider?.trim() || "codex";
-  const cfg: OpenClawConfig = {
+  const cfg: AstroclawConfig = {
     gateway: {
       mode: "local",
       port: params.port,
@@ -361,11 +361,11 @@ async function writeGatewayConfig(params: {
 }
 
 function resolveCodexBindModelProvider(): string | undefined {
-  const configured = process.env.OPENCLAW_LIVE_CODEX_BIND_PROVIDER?.trim();
+  const configured = process.env.ASTROCLAW_LIVE_CODEX_BIND_PROVIDER?.trim();
   if (configured) {
     return configured;
   }
-  return process.env.OPENCLAW_LIVE_CODEX_HARNESS_AUTH === "api-key" ? "openai" : undefined;
+  return process.env.ASTROCLAW_LIVE_CODEX_HARNESS_AUTH === "api-key" ? "openai" : undefined;
 }
 
 describeLive("gateway live (native Codex conversation binding)", () => {
@@ -374,20 +374,20 @@ describeLive("gateway live (native Codex conversation binding)", () => {
     async () => {
       const previous = {
         codexHome: process.env.CODEX_HOME,
-        configPath: process.env.OPENCLAW_CONFIG_PATH,
-        gatewayToken: process.env.OPENCLAW_GATEWAY_TOKEN,
+        configPath: process.env.ASTROCLAW_CONFIG_PATH,
+        gatewayToken: process.env.ASTROCLAW_GATEWAY_TOKEN,
         home: process.env.HOME,
-        skipCanvas: process.env.OPENCLAW_SKIP_CANVAS_HOST,
-        skipChannels: process.env.OPENCLAW_SKIP_CHANNELS,
-        skipCron: process.env.OPENCLAW_SKIP_CRON,
-        skipGmail: process.env.OPENCLAW_SKIP_GMAIL_WATCHER,
-        stateDir: process.env.OPENCLAW_STATE_DIR,
+        skipCanvas: process.env.ASTROCLAW_SKIP_CANVAS_HOST,
+        skipChannels: process.env.ASTROCLAW_SKIP_CHANNELS,
+        skipCron: process.env.ASTROCLAW_SKIP_CRON,
+        skipGmail: process.env.ASTROCLAW_SKIP_GMAIL_WATCHER,
+        stateDir: process.env.ASTROCLAW_STATE_DIR,
       };
-      const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-live-codex-bind-"));
+      const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-live-codex-bind-"));
       const tempHome = path.join(tempRoot, "home");
       const stateDir = path.join(tempRoot, "state");
       const workspace = path.join(tempRoot, "workspace");
-      const configPath = path.join(tempRoot, "openclaw.json");
+      const configPath = path.join(tempRoot, "astroclaw.json");
       const token = `test-${randomUUID()}`;
       const port = await getFreeGatewayPort();
       const sessionKey = "main";
@@ -395,7 +395,7 @@ describeLive("gateway live (native Codex conversation binding)", () => {
       const slackUserId = `U${randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`;
       const conversationId = `user:${slackUserId}`;
       const bindModel =
-        process.env.OPENCLAW_LIVE_CODEX_BIND_MODEL?.trim() || DEFAULT_CODEX_BIND_MODEL;
+        process.env.ASTROCLAW_LIVE_CODEX_BIND_MODEL?.trim() || DEFAULT_CODEX_BIND_MODEL;
       const bindProvider = resolveCodexBindModelProvider();
       const outboundReplies: CapturedOutboundReply[] = [];
 
@@ -432,13 +432,13 @@ describeLive("gateway live (native Codex conversation binding)", () => {
         delete process.env.CODEX_HOME;
       }
       process.env.HOME = tempHome;
-      process.env.OPENCLAW_CONFIG_PATH = configPath;
-      process.env.OPENCLAW_GATEWAY_TOKEN = token;
-      process.env.OPENCLAW_SKIP_CANVAS_HOST = "1";
-      process.env.OPENCLAW_SKIP_CHANNELS = "1";
-      process.env.OPENCLAW_SKIP_CRON = "1";
-      process.env.OPENCLAW_SKIP_GMAIL_WATCHER = "1";
-      process.env.OPENCLAW_STATE_DIR = stateDir;
+      process.env.ASTROCLAW_CONFIG_PATH = configPath;
+      process.env.ASTROCLAW_GATEWAY_TOKEN = token;
+      process.env.ASTROCLAW_SKIP_CANVAS_HOST = "1";
+      process.env.ASTROCLAW_SKIP_CHANNELS = "1";
+      process.env.ASTROCLAW_SKIP_CRON = "1";
+      process.env.ASTROCLAW_SKIP_GMAIL_WATCHER = "1";
+      process.env.ASTROCLAW_STATE_DIR = stateDir;
 
       const server = await startGatewayServer(port, {
         bind: "loopback",
@@ -585,14 +585,14 @@ describeLive("gateway live (native Codex conversation binding)", () => {
         await server.close();
         await fs.rm(tempRoot, { recursive: true, force: true });
         restoreEnvVar("CODEX_HOME", previous.codexHome);
-        restoreEnvVar("OPENCLAW_CONFIG_PATH", previous.configPath);
-        restoreEnvVar("OPENCLAW_GATEWAY_TOKEN", previous.gatewayToken);
+        restoreEnvVar("ASTROCLAW_CONFIG_PATH", previous.configPath);
+        restoreEnvVar("ASTROCLAW_GATEWAY_TOKEN", previous.gatewayToken);
         restoreEnvVar("HOME", previous.home);
-        restoreEnvVar("OPENCLAW_SKIP_CANVAS_HOST", previous.skipCanvas);
-        restoreEnvVar("OPENCLAW_SKIP_CHANNELS", previous.skipChannels);
-        restoreEnvVar("OPENCLAW_SKIP_CRON", previous.skipCron);
-        restoreEnvVar("OPENCLAW_SKIP_GMAIL_WATCHER", previous.skipGmail);
-        restoreEnvVar("OPENCLAW_STATE_DIR", previous.stateDir);
+        restoreEnvVar("ASTROCLAW_SKIP_CANVAS_HOST", previous.skipCanvas);
+        restoreEnvVar("ASTROCLAW_SKIP_CHANNELS", previous.skipChannels);
+        restoreEnvVar("ASTROCLAW_SKIP_CRON", previous.skipCron);
+        restoreEnvVar("ASTROCLAW_SKIP_GMAIL_WATCHER", previous.skipGmail);
+        restoreEnvVar("ASTROCLAW_STATE_DIR", previous.stateDir);
       }
     },
     CODEX_BIND_TIMEOUT_MS,

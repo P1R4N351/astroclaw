@@ -113,7 +113,7 @@ describe("evaluateStoredCredentialEligibility", () => {
         refresh: "",
         expires: now + 60_000,
         oauthRef: {
-          source: "openclaw-credentials",
+          source: "astroclaw-credentials",
           provider: "openai-codex",
           id: "0123456789abcdef0123456789abcdef",
         },

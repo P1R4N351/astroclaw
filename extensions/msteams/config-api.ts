@@ -1,4 +1,4 @@
 export {
   buildChannelConfigSchema,
   MSTeamsConfigSchema,
-} from "openclaw/plugin-sdk/bundled-channel-config-schema";
+} from "astroclaw/plugin-sdk/bundled-channel-config-schema";

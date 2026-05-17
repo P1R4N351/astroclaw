@@ -45,7 +45,7 @@ describe("acp prompt cwd prefix", () => {
     sessionStore.createSession({
       sessionId: TEST_SESSION_ID,
       sessionKey: TEST_SESSION_KEY,
-      cwd: options.cwd ?? path.join(os.homedir(), "openclaw-test"),
+      cwd: options.cwd ?? path.join(os.homedir(), "astroclaw-test"),
     });
 
     const requestSpy = createStopAfterSendSpy();
@@ -65,18 +65,18 @@ describe("acp prompt cwd prefix", () => {
 
   async function runPromptWithCwd(cwd: string) {
     const pinnedHome = os.homedir();
-    const previousOpenClawHome = process.env.OPENCLAW_HOME;
+    const previousAstroclawHome = process.env.ASTROCLAW_HOME;
     const previousHome = process.env.HOME;
-    delete process.env.OPENCLAW_HOME;
+    delete process.env.ASTROCLAW_HOME;
     process.env.HOME = pinnedHome;
 
     try {
       return await runPromptAndCaptureRequest({ cwd, prefixCwd: true });
     } finally {
-      if (previousOpenClawHome === undefined) {
-        delete process.env.OPENCLAW_HOME;
+      if (previousAstroclawHome === undefined) {
+        delete process.env.ASTROCLAW_HOME;
       } else {
-        process.env.OPENCLAW_HOME = previousOpenClawHome;
+        process.env.ASTROCLAW_HOME = previousAstroclawHome;
       }
       if (previousHome === undefined) {
         delete process.env.HOME;
@@ -87,16 +87,16 @@ describe("acp prompt cwd prefix", () => {
   }
 
   it("redacts home directory in prompt prefix", async () => {
-    const requestSpy = await runPromptWithCwd(path.join(os.homedir(), "openclaw-test"));
+    const requestSpy = await runPromptWithCwd(path.join(os.homedir(), "astroclaw-test"));
     const payload = chatSendPayload(requestSpy);
     expect(typeof payload.message).toBe("string");
-    expect(payload.message).toMatch(/\[Working directory: ~[\\/]openclaw-test\]/);
+    expect(payload.message).toMatch(/\[Working directory: ~[\\/]astroclaw-test\]/);
   });
 
   it("keeps backslash separators when cwd uses them", async () => {
-    const requestSpy = await runPromptWithCwd(`${os.homedir()}\\openclaw-test`);
+    const requestSpy = await runPromptWithCwd(`${os.homedir()}\\astroclaw-test`);
     const payload = chatSendPayload(requestSpy);
-    expect(payload.message).toContain("[Working directory: ~\\openclaw-test]");
+    expect(payload.message).toContain("[Working directory: ~\\astroclaw-test]");
   });
 
   it("injects system provenance metadata when enabled", async () => {
@@ -106,7 +106,7 @@ describe("acp prompt cwd prefix", () => {
       kind: "external_user",
       originSessionId: TEST_SESSION_ID,
       sourceChannel: "acp",
-      sourceTool: "openclaw_acp",
+      sourceTool: "astroclaw_acp",
     });
     expect(payload.systemProvenanceReceipt).toBeUndefined();
   });
@@ -118,12 +118,12 @@ describe("acp prompt cwd prefix", () => {
       kind: "external_user",
       originSessionId: TEST_SESSION_ID,
       sourceChannel: "acp",
-      sourceTool: "openclaw_acp",
+      sourceTool: "astroclaw_acp",
     });
     expect(typeof payload.systemProvenanceReceipt).toBe("string");
     const receipt = payload.systemProvenanceReceipt as string;
     expect(receipt).toContain("[Source Receipt]");
-    expect(receipt).toContain("bridge=openclaw-acp");
+    expect(receipt).toContain("bridge=astroclaw-acp");
     expect(receipt).toContain(`originSessionId=${TEST_SESSION_ID}`);
     expect(receipt).toContain(`targetSession=${TEST_SESSION_KEY}`);
   });
@@ -142,7 +142,7 @@ describe("acp prompt cwd prefix", () => {
     sessionStore.createSession({
       sessionId: TEST_SESSION_ID,
       sessionKey: TEST_SESSION_KEY,
-      cwd: path.join(os.homedir(), "openclaw-test"),
+      cwd: path.join(os.homedir(), "astroclaw-test"),
     });
     const agent = new AcpGatewayAgent(
       createAcpConnection(),
@@ -160,7 +160,7 @@ describe("acp prompt cwd prefix", () => {
       kind: "external_user",
       originSessionId: TEST_SESSION_ID,
       sourceChannel: "acp",
-      sourceTool: "openclaw_acp",
+      sourceTool: "astroclaw_acp",
     });
     expect(firstPayload.systemProvenanceReceipt).toContain("[Source Receipt]");
 

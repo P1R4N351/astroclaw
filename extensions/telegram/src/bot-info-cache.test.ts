@@ -16,8 +16,8 @@ const tempRoots: string[] = [];
 const botInfo: TelegramBotInfo = {
   id: 123456,
   is_bot: true,
-  first_name: "OpenClaw",
-  username: "openclaw_bot",
+  first_name: "Astroclaw",
+  username: "astroclaw_bot",
   can_join_groups: true,
   can_read_all_group_messages: false,
   can_manage_bots: false,
@@ -29,9 +29,9 @@ const botInfo: TelegramBotInfo = {
 };
 
 async function useTempStateDir(): Promise<NodeJS.ProcessEnv> {
-  const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-tg-bot-info-"));
+  const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-tg-bot-info-"));
   tempRoots.push(stateDir);
-  return { ...process.env, OPENCLAW_STATE_DIR: stateDir };
+  return { ...process.env, ASTROCLAW_STATE_DIR: stateDir };
 }
 
 afterEach(async () => {

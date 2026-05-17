@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import {
   listMediaGenerationProviderModels,
   synthesizeMediaGenerationCatalogEntries,
@@ -21,7 +21,7 @@ type MediaGenerateProvider = {
   defaultModel?: string;
   models?: readonly string[];
   capabilities: unknown;
-  isConfigured?: (ctx: { cfg?: OpenClawConfig; agentDir?: string }) => boolean;
+  isConfigured?: (ctx: { cfg?: AstroclawConfig; agentDir?: string }) => boolean;
 };
 
 type MediaGenerateListProviderDetails<TProvider extends MediaGenerateProvider> = {
@@ -44,7 +44,7 @@ export function createMediaGenerateProviderListActionResult<
   kind: MediaGenerationCatalogKind;
   providers: TProvider[];
   emptyText: string;
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   agentDir?: string;
   authStore?: AuthProfileStore;
   listModes: (provider: TProvider) => string[];

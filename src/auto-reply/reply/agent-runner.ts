@@ -15,7 +15,7 @@ import {
 } from "../../agents/pi-embedded-runner/runs.js";
 import { deriveContextPromptTokens, hasNonzeroUsage, normalizeUsage } from "../../agents/usage.js";
 import { enqueueCommitmentExtraction } from "../../commitments/runtime.js";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 import {
   loadSessionStore,
   resolveSessionPluginStatusLines,
@@ -944,7 +944,7 @@ function buildPendingFinalDeliveryText(payloads: ReplyPayload[]): string {
 }
 
 function enqueueCommitmentExtractionForTurn(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   commandBody: string;
   isHeartbeat: boolean;
   followupRun: FollowupRun;

@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/webhooks",
+  "name": "@astroclaw/webhooks",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw webhook bridge plugin",
+  "description": "Astroclaw webhook bridge plugin",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

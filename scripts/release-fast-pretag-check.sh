@@ -14,4 +14,4 @@ pnpm release:plugins:npm:check -- --selection-mode all-publishable
 pnpm release:plugins:clawhub:check -- --selection-mode all-publishable
 pnpm build
 pnpm ui:build
-pnpm release:openclaw:npm:check
+pnpm release:astroclaw:npm:check

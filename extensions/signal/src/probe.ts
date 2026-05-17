@@ -1,5 +1,5 @@
-import type { BaseProbeResult } from "openclaw/plugin-sdk/channel-contract";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import type { BaseProbeResult } from "astroclaw/plugin-sdk/channel-contract";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import { type SignalApiMode, signalCheck, signalRpcRequest } from "./client-adapter.js";
 
 export type SignalProbe = BaseProbeResult & {

@@ -92,7 +92,7 @@ describe("resolveImplicitProviders startup discovery scope", () => {
 
   it("passes startup provider scopes as plugin owner filters", async () => {
     await resolveImplicitProviders({
-      agentDir: "/tmp/openclaw-agent",
+      agentDir: "/tmp/astroclaw-agent",
       config: {},
       env: {} as NodeJS.ProcessEnv,
       explicitProviders: {},
@@ -120,7 +120,7 @@ describe("resolveImplicitProviders startup discovery scope", () => {
 
   it("can keep startup discovery on provider discovery entries only", async () => {
     await resolveImplicitProviders({
-      agentDir: "/tmp/openclaw-agent",
+      agentDir: "/tmp/astroclaw-agent",
       config: {},
       env: {} as NodeJS.ProcessEnv,
       explicitProviders: {},
@@ -150,7 +150,7 @@ describe("resolveImplicitProviders startup discovery scope", () => {
     });
 
     const providers = await resolveImplicitProviders({
-      agentDir: "/tmp/openclaw-agent",
+      agentDir: "/tmp/astroclaw-agent",
       config: {
         agents: {
           defaults: {
@@ -190,7 +190,7 @@ describe("resolveImplicitProviders startup discovery scope", () => {
     });
 
     const providers = await resolveImplicitProviders({
-      agentDir: "/tmp/openclaw-agent",
+      agentDir: "/tmp/astroclaw-agent",
       config: {
         agents: {
           defaults: {

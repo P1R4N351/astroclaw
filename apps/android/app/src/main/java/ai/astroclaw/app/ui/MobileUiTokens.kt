@@ -1,6 +1,6 @@
-package ai.openclaw.app.ui
+package ai.astroclaw.app.ui
 
-import ai.openclaw.app.R
+import ai.astroclaw.app.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush

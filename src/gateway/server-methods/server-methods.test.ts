@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { emitAgentEvent } from "../../infra/agent-events.js";
 import { formatZonedTimestamp } from "../../infra/format-time/format-datetime.js";
 import {
@@ -281,7 +281,7 @@ describe("augmentChatHistoryWithCanvasBlocks", () => {
       view: {
         backend: "canvas",
         id: "cv_user_text",
-        url: "/__openclaw__/canvas/documents/cv_user_text/index.html",
+        url: "/__astroclaw__/canvas/documents/cv_user_text/index.html",
         title: "User pasted preview",
         preferred_height: 240,
       },
@@ -529,7 +529,7 @@ describe("projectRecentChatDisplayMessages", () => {
           },
         ],
         timestamp: 2,
-        __openclaw: { seq: 2 },
+        __astroclaw: { seq: 2 },
       },
       {
         role: "toolResult",
@@ -544,7 +544,7 @@ describe("projectRecentChatDisplayMessages", () => {
       role: "assistant",
       content: [{ type: "text", text: "I will clean that up now." }],
       timestamp: 2,
-      __openclaw: { seq: 2 },
+      __astroclaw: { seq: 2 },
     });
   });
 
@@ -599,13 +599,13 @@ describe("projectRecentChatDisplayMessages", () => {
     const mediaOnly = {
       role: "user",
       content: "",
-      MediaPath: "/tmp/openclaw/user-upload.png",
+      MediaPath: "/tmp/astroclaw/user-upload.png",
       timestamp: 1,
     };
     const multiMediaOnly = {
       role: "user",
       content: "",
-      MediaPaths: ["/tmp/openclaw/first.png", "/tmp/openclaw/second.jpg"],
+      MediaPaths: ["/tmp/astroclaw/first.png", "/tmp/astroclaw/second.jpg"],
       timestamp: 2,
     };
     const result = projectRecentChatDisplayMessages([
@@ -890,7 +890,7 @@ describe("exec approval handlers", () => {
     });
   }
 
-  function createExecApprovalFixture(opts?: { config?: OpenClawConfig }) {
+  function createExecApprovalFixture(opts?: { config?: AstroclawConfig }) {
     const manager = new ExecApprovalManager();
     const handlers = createExecApprovalHandlers(manager);
     const broadcasts: Array<{ event: string; payload: unknown }> = [];
@@ -2646,16 +2646,16 @@ describe("logs.tail", () => {
   });
 
   it("falls back to latest rolling log file when today is missing", async () => {
-    const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "openclaw-logs-"));
-    const older = path.join(tempDir, "openclaw-2026-01-20.log");
-    const newer = path.join(tempDir, "openclaw-2026-01-21.log");
+    const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "astroclaw-logs-"));
+    const older = path.join(tempDir, "astroclaw-2026-01-20.log");
+    const newer = path.join(tempDir, "astroclaw-2026-01-21.log");
 
     await fsPromises.writeFile(older, '{"msg":"old"}\n');
     await fsPromises.writeFile(newer, '{"msg":"new"}\n');
     await fsPromises.utimes(older, new Date(0), new Date(0));
     await fsPromises.utimes(newer, new Date(), new Date());
 
-    setLoggerOverride({ file: path.join(tempDir, "openclaw-2026-01-22.log") });
+    setLoggerOverride({ file: path.join(tempDir, "astroclaw-2026-01-22.log") });
 
     const respond = vi.fn();
     await logsHandlers["logs.tail"]({
@@ -2678,8 +2678,8 @@ describe("logs.tail", () => {
   });
 
   it("redacts sensitive CLI tokens from returned lines", async () => {
-    const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "openclaw-logs-"));
-    const file = path.join(tempDir, "openclaw-2026-01-22.log");
+    const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "astroclaw-logs-"));
+    const file = path.join(tempDir, "astroclaw-2026-01-22.log");
 
     await fsPromises.writeFile(
       file,

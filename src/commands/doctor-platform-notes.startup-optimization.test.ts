@@ -11,8 +11,8 @@ describe("noteStartupOptimizationHints", () => {
 
     noteStartupOptimizationHints(
       {
-        NODE_COMPILE_CACHE: "/var/tmp/openclaw-compile-cache",
-        OPENCLAW_NO_RESPAWN: "1",
+        NODE_COMPILE_CACHE: "/var/tmp/astroclaw-compile-cache",
+        ASTROCLAW_NO_RESPAWN: "1",
       },
       { platform: "linux", arch: "arm64", totalMemBytes: 4 * 1024 ** 3, noteFn },
     );
@@ -25,7 +25,7 @@ describe("noteStartupOptimizationHints", () => {
 
     noteStartupOptimizationHints(
       {
-        NODE_COMPILE_CACHE: "/tmp/openclaw-compile-cache",
+        NODE_COMPILE_CACHE: "/tmp/astroclaw-compile-cache",
       },
       { platform: "linux", arch: "arm64", totalMemBytes: 4 * 1024 ** 3, noteFn },
     );
@@ -36,11 +36,11 @@ describe("noteStartupOptimizationHints", () => {
     expect(message).toBe(
       [
         "- NODE_COMPILE_CACHE points to /tmp; use /var/tmp so cache survives reboots and warms startup reliably.",
-        "- OPENCLAW_NO_RESPAWN is not set to 1; set it to avoid extra startup overhead from self-respawn.",
+        "- ASTROCLAW_NO_RESPAWN is not set to 1; set it to avoid extra startup overhead from self-respawn.",
         "- Suggested env for low-power hosts:",
-        "  export NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache",
-        "  mkdir -p /var/tmp/openclaw-compile-cache",
-        "  export OPENCLAW_NO_RESPAWN=1",
+        "  export NODE_COMPILE_CACHE=/var/tmp/astroclaw-compile-cache",
+        "  mkdir -p /var/tmp/astroclaw-compile-cache",
+        "  export ASTROCLAW_NO_RESPAWN=1",
       ].join("\n"),
     );
   });
@@ -50,8 +50,8 @@ describe("noteStartupOptimizationHints", () => {
 
     noteStartupOptimizationHints(
       {
-        NODE_COMPILE_CACHE: "/var/tmp/openclaw-compile-cache",
-        OPENCLAW_NO_RESPAWN: "1",
+        NODE_COMPILE_CACHE: "/var/tmp/astroclaw-compile-cache",
+        ASTROCLAW_NO_RESPAWN: "1",
         NODE_DISABLE_COMPILE_CACHE: "1",
       },
       { platform: "linux", arch: "arm64", totalMemBytes: 4 * 1024 ** 3, noteFn },
@@ -63,9 +63,9 @@ describe("noteStartupOptimizationHints", () => {
       [
         "- NODE_DISABLE_COMPILE_CACHE is set; startup compile cache is disabled.",
         "- Suggested env for low-power hosts:",
-        "  export NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache",
-        "  mkdir -p /var/tmp/openclaw-compile-cache",
-        "  export OPENCLAW_NO_RESPAWN=1",
+        "  export NODE_COMPILE_CACHE=/var/tmp/astroclaw-compile-cache",
+        "  mkdir -p /var/tmp/astroclaw-compile-cache",
+        "  export ASTROCLAW_NO_RESPAWN=1",
         "  unset NODE_DISABLE_COMPILE_CACHE",
       ].join("\n"),
     );
@@ -76,7 +76,7 @@ describe("noteStartupOptimizationHints", () => {
 
     noteStartupOptimizationHints(
       {
-        NODE_COMPILE_CACHE: "/tmp/openclaw-compile-cache",
+        NODE_COMPILE_CACHE: "/tmp/astroclaw-compile-cache",
       },
       { platform: "win32", arch: "arm64", totalMemBytes: 4 * 1024 ** 3, noteFn },
     );
@@ -89,7 +89,7 @@ describe("noteStartupOptimizationHints", () => {
 
     noteStartupOptimizationHints(
       {
-        NODE_COMPILE_CACHE: "/tmp/openclaw-compile-cache",
+        NODE_COMPILE_CACHE: "/tmp/astroclaw-compile-cache",
       },
       { platform: "linux", arch: "x64", totalMemBytes: 32 * 1024 ** 3, noteFn },
     );

@@ -189,7 +189,7 @@ describe("normalizePluginsConfig", () => {
   });
 
   it("normalizes unknown plugin ids without consulting discovery", async () => {
-    const discoverPlugins = vi.spyOn(discovery, "discoverOpenClawPlugins");
+    const discoverPlugins = vi.spyOn(discovery, "discoverAstroclawPlugins");
     discoverPlugins.mockClear();
 
     const result = normalizePluginsConfig({
@@ -209,12 +209,12 @@ describe("normalizePluginsConfig", () => {
   });
 
   it("does not consult discovery or manifests for alias lookup", async () => {
-    const discoverPlugins = vi.spyOn(discovery, "discoverOpenClawPlugins").mockReturnValue({
+    const discoverPlugins = vi.spyOn(discovery, "discoverAstroclawPlugins").mockReturnValue({
       candidates: [
         {
           idHint: "anthropic",
-          source: "/tmp/openclaw-bundled-anthropic/index.js",
-          rootDir: "/tmp/openclaw-bundled-anthropic",
+          source: "/tmp/astroclaw-bundled-anthropic/index.js",
+          rootDir: "/tmp/astroclaw-bundled-anthropic",
           origin: "bundled",
           bundledManifest: {
             id: "anthropic",
@@ -224,8 +224,8 @@ describe("normalizePluginsConfig", () => {
         },
         {
           idHint: "external-anthropic",
-          source: "/tmp/openclaw-global-anthropic/index.js",
-          rootDir: "/tmp/openclaw-global-anthropic",
+          source: "/tmp/astroclaw-global-anthropic/index.js",
+          rootDir: "/tmp/astroclaw-global-anthropic",
           origin: "global",
         },
       ],
@@ -233,7 +233,7 @@ describe("normalizePluginsConfig", () => {
     });
     const loadManifest = vi.spyOn(manifest, "loadPluginManifest").mockReturnValue({
       ok: true,
-      manifestPath: "/tmp/openclaw-global-anthropic/openclaw.plugin.json",
+      manifestPath: "/tmp/astroclaw-global-anthropic/astroclaw.plugin.json",
       manifest: {
         id: "external-anthropic",
         configSchema: {},

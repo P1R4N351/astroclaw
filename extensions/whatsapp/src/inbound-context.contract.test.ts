@@ -1,4 +1,4 @@
-import { expectChannelInboundContextContract } from "openclaw/plugin-sdk/channel-contract-testing";
+import { expectChannelInboundContextContract } from "astroclaw/plugin-sdk/channel-contract-testing";
 import { describe, it } from "vitest";
 
 describe("WhatsApp inbound context contract", () => {

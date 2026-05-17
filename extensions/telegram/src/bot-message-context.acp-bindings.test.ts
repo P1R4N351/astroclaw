@@ -159,7 +159,7 @@ describe("buildTelegramMessageContext ACP configured bindings", () => {
       runtime: configuredBindingRuntime,
       sessionRuntime: configuredBindingSessionRuntime,
       message: {
-        chat: { id: -1001234567890, type: "supergroup", title: "OpenClaw", is_forum: true },
+        chat: { id: -1001234567890, type: "supergroup", title: "Astroclaw", is_forum: true },
         message_thread_id: 42,
         text: "hello",
       },
@@ -178,7 +178,7 @@ describe("buildTelegramMessageContext ACP configured bindings", () => {
       runtime: configuredBindingRuntime,
       sessionRuntime: configuredBindingSessionRuntime,
       message: {
-        chat: { id: -1001234567890, type: "supergroup", title: "OpenClaw", is_forum: true },
+        chat: { id: -1001234567890, type: "supergroup", title: "Astroclaw", is_forum: true },
         message_thread_id: 42,
         text: "hello",
       },
@@ -199,7 +199,7 @@ describe("buildTelegramMessageContext ACP configured bindings", () => {
       runtime: configuredBindingRuntime,
       sessionRuntime: configuredBindingSessionRuntime,
       message: {
-        chat: { id: -1001234567890, type: "supergroup", title: "OpenClaw", is_forum: true },
+        chat: { id: -1001234567890, type: "supergroup", title: "Astroclaw", is_forum: true },
         message_thread_id: 42,
         text: "/new",
       },
@@ -229,7 +229,7 @@ describe("buildTelegramMessageContext ACP configured bindings", () => {
       runtime: configuredBindingRuntime,
       sessionRuntime: configuredBindingSessionRuntime,
       message: {
-        chat: { id: -1001234567890, type: "supergroup", title: "OpenClaw", is_forum: true },
+        chat: { id: -1001234567890, type: "supergroup", title: "Astroclaw", is_forum: true },
         message_thread_id: 42,
         text: "hello",
       },

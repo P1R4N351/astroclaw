@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig, RuntimeEnv } from "./runtime-api.js";
+import type { AstroclawConfig, RuntimeEnv } from "./runtime-api.js";
 
 class FakeWebSocket {
   public readonly sent: string[] = [];
@@ -138,7 +138,7 @@ vi.mock("./runtime-api.js", async () => {
   };
 });
 
-function createRuntimeCore(cfg: OpenClawConfig) {
+function createRuntimeCore(cfg: AstroclawConfig) {
   const runPrepared = vi.fn(
     async (turn: {
       storePath: string;
@@ -275,7 +275,7 @@ function createRuntimeCore(cfg: OpenClawConfig) {
         }),
       },
       session: {
-        resolveStorePath: () => "/tmp/openclaw-test-sessions.json",
+        resolveStorePath: () => "/tmp/astroclaw-test-sessions.json",
         recordInboundSession: vi.fn(
           async (_params: {
             createIfMissing?: unknown;
@@ -314,7 +314,7 @@ function createRuntimeCore(cfg: OpenClawConfig) {
   };
 }
 
-const testConfig: OpenClawConfig = {
+const testConfig: AstroclawConfig = {
   channels: {
     mattermost: {
       enabled: true,
@@ -352,7 +352,7 @@ describe("mattermost inbound user posts", () => {
     });
     mockState.fetchMattermostMe.mockResolvedValue({
       id: "bot-user",
-      username: "openclaw",
+      username: "astroclaw",
       update_at: 1,
     });
     mockState.registerMattermostMonitorSlashCommands.mockResolvedValue(undefined);
@@ -426,7 +426,7 @@ describe("mattermost inbound user posts", () => {
     const socket = new FakeWebSocket();
     const abortController = new AbortController();
     mockState.abortController = abortController;
-    const directConfig: OpenClawConfig = {
+    const directConfig: AstroclawConfig = {
       channels: {
         mattermost: {
           enabled: true,
@@ -485,7 +485,7 @@ describe("mattermost inbound user posts", () => {
 
     expect(runtimeCore.channel.session.recordInboundSession).toHaveBeenCalledTimes(1);
     const [recordCall] = runtimeCore.channel.session.recordInboundSession.mock.calls.at(0) ?? [];
-    expect(recordCall?.storePath).toBe("/tmp/openclaw-test-sessions.json");
+    expect(recordCall?.storePath).toBe("/tmp/astroclaw-test-sessions.json");
     expect(recordCall?.sessionKey).toBe("mattermost:default:channel:chan-1");
     const updateLastRoute = recordCall?.updateLastRoute;
     expect(updateLastRoute?.sessionKey).toBe("mattermost:default:channel:chan-1");

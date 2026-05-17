@@ -50,7 +50,7 @@ export type PluginModuleLoaderStatsSnapshot = {
 const DEFAULT_PLUGIN_MODULE_LOADER_CACHE_ENTRIES = 128;
 const MAX_TRACKED_SOURCE_TRANSFORM_TARGETS = 24;
 const PLUGIN_SDK_IMPORT_SPECIFIER_PATTERN =
-  /(?:\bfrom\s*["']|\bimport\s*\(\s*["']|\brequire\s*\(\s*["'])(?:openclaw|@openclaw)\/plugin-sdk(?:\/[^"']*)?["']/u;
+  /(?:\bfrom\s*["']|\bimport\s*\(\s*["']|\brequire\s*\(\s*["'])(?:astroclaw|@astroclaw)\/plugin-sdk(?:\/[^"']*)?["']/u;
 const requireForJiti = createRequire(import.meta.url);
 let createJitiLoaderFactory: PluginModuleLoaderFactory | undefined;
 const pluginModuleLoaderStats = {
@@ -221,10 +221,10 @@ function shouldForceSourceTransformForPluginSdkAlias(params: {
   aliasMap: Record<string, string>;
 }): boolean {
   if (
-    !params.aliasMap["openclaw/plugin-sdk"] &&
-    !params.aliasMap["@openclaw/plugin-sdk"] &&
+    !params.aliasMap["astroclaw/plugin-sdk"] &&
+    !params.aliasMap["@astroclaw/plugin-sdk"] &&
     !Object.keys(params.aliasMap).some(
-      (key) => key.startsWith("openclaw/plugin-sdk/") || key.startsWith("@openclaw/plugin-sdk/"),
+      (key) => key.startsWith("astroclaw/plugin-sdk/") || key.startsWith("@astroclaw/plugin-sdk/"),
     )
   ) {
     return false;

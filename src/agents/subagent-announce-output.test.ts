@@ -70,7 +70,7 @@ describe("readSubagentOutput", () => {
         {
           role: "system",
           content: [{ type: "text", text: "Compaction" }],
-          __openclaw: { kind: "compaction" },
+          __astroclaw: { kind: "compaction" },
         },
         {
           role: "assistant",

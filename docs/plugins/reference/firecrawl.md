@@ -11,8 +11,8 @@ Adds agent-callable tools. Adds web fetch provider support. Adds web search prov
 
 ## Distribution
 
-- Package: `@openclaw/firecrawl-plugin`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/firecrawl-plugin`
+- Install route: included in Astroclaw
 
 ## Surface
 

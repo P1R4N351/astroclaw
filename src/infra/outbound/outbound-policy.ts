@@ -4,7 +4,7 @@ import type {
   ChannelMessageActionName,
   ChannelThreadingToolContext,
 } from "../../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import type { MessageToolsConfig } from "../../config/types.tools.js";
 import type { MessagePresentation } from "../../interactive/payload.js";
 import { normalizeTargetForProvider } from "./target-normalization.js";
@@ -90,7 +90,7 @@ function isCrossContextTarget(params: {
 }
 
 function resolveAgentMessageToolsConfig(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   agentId?: string | null,
 ): MessageToolsConfig | undefined {
   const trimmedAgentId = agentId?.trim();
@@ -138,14 +138,14 @@ function resolveAgentMessageToolsConfig(
 }
 
 export function resolveEffectiveMessageToolsConfig(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string | null;
 }): MessageToolsConfig | undefined {
   return resolveAgentMessageToolsConfig(params.cfg, params.agentId);
 }
 
 export function resolveAllowedMessageActions(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string | null;
 }): string[] | undefined {
   const allow = resolveEffectiveMessageToolsConfig(params)?.actions?.allow;
@@ -157,7 +157,7 @@ export function resolveAllowedMessageActions(params: {
 }
 
 export function enforceMessageActionAllowlist(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string | null;
   action: ChannelMessageActionName;
 }): void {
@@ -173,7 +173,7 @@ export function enforceCrossContextPolicy(params: {
   action: ChannelMessageActionName;
   args: Record<string, unknown>;
   toolContext?: ChannelThreadingToolContext;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string | null;
 }): void {
   const currentTarget = params.toolContext?.currentChannelId?.trim();
@@ -224,7 +224,7 @@ export function enforceCrossContextPolicy(params: {
 }
 
 export async function buildCrossContextDecoration(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   channel: ChannelId;
   target: string;
   toolContext?: ChannelThreadingToolContext;

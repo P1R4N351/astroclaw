@@ -22,7 +22,7 @@ const {
     },
     threadId: "thread-42",
   })),
-  formatDoctorNonInteractiveHintMock: vi.fn(() => "Run: openclaw doctor --non-interactive"),
+  formatDoctorNonInteractiveHintMock: vi.fn(() => "Run: astroclaw doctor --non-interactive"),
   writeRestartSentinelMock: vi.fn(async (_payload: RestartSentinelPayload) => "/tmp/restart"),
   removeRestartSentinelFileMock: vi.fn(async (_path: string | null | undefined) => undefined),
   scheduleGatewaySigusr1RestartMock: vi.fn((_opts?: ScheduleGatewayRestartArgs) => ({
@@ -98,7 +98,7 @@ describe("gateway tool restart continuation", () => {
       threadId: "thread-42",
     });
     formatDoctorNonInteractiveHintMock.mockReset();
-    formatDoctorNonInteractiveHintMock.mockReturnValue("Run: openclaw doctor --non-interactive");
+    formatDoctorNonInteractiveHintMock.mockReturnValue("Run: astroclaw doctor --non-interactive");
     writeRestartSentinelMock.mockReset();
     writeRestartSentinelMock.mockResolvedValue("/tmp/restart");
     removeRestartSentinelFileMock.mockClear();

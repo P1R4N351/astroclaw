@@ -201,7 +201,7 @@ export async function installSkillArchiveFromPath(params: {
 }): Promise<SkillArchiveInstallResult> {
   const result = await withExtractedArchiveRoot({
     archivePath: params.archivePath,
-    tempDirPrefix: "openclaw-skill-archive-",
+    tempDirPrefix: "astroclaw-skill-archive-",
     timeoutMs: params.timeoutMs ?? 120_000,
     logger: params.logger,
     rootMarkers: ["SKILL.md"],

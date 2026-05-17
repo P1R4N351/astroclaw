@@ -84,7 +84,7 @@ describe("canvas CLI", () => {
     if (!writtenFile) {
       throw new Error("Expected canvas snapshot file");
     }
-    expect(writtenFile.filePath).toMatch(/openclaw-canvas-snapshot-.*\.png$/);
+    expect(writtenFile.filePath).toMatch(/astroclaw-canvas-snapshot-.*\.png$/);
     expect(writtenFile.base64).toBe("aGk=");
     expect(runtime.log).toHaveBeenCalledTimes(1);
     const mediaMessage = runtime.log.mock.calls[0]?.[0];

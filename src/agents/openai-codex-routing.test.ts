@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   listOpenAIAuthProfileProvidersForAgentRuntime,
   modelSelectionShouldEnsureCodexPlugin,
@@ -14,7 +14,7 @@ describe("OpenAI Codex routing policy", () => {
     expect(
       modelSelectionShouldEnsureCodexPlugin({
         model: "openai/gpt-5.5",
-        config: {} as OpenClawConfig,
+        config: {} as AstroclawConfig,
       }),
     ).toBe(true);
   });
@@ -29,7 +29,7 @@ describe("OpenAI Codex routing policy", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     expect(openAIProviderUsesCodexRuntimeByDefault({ provider: "openai", config })).toBe(false);
     expect(modelSelectionShouldEnsureCodexPlugin({ model: "openai/gpt-5.5", config })).toBe(false);
@@ -59,7 +59,7 @@ describe("OpenAI Codex routing policy", () => {
           openai: ["openai-codex:work", "openai:backup"],
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     expect(
       listOpenAIAuthProfileProvidersForAgentRuntime({
@@ -91,7 +91,7 @@ describe("OpenAI Codex routing policy", () => {
           openai: ["openai:backup", "openai-codex:work"],
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     expect(
       listOpenAIAuthProfileProvidersForAgentRuntime({
@@ -124,7 +124,7 @@ describe("OpenAI Codex routing policy", () => {
           openai: ["openai-codex:work", "openai:backup"],
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     expect(
       listOpenAIAuthProfileProvidersForAgentRuntime({

@@ -4,31 +4,31 @@ import { formatCliParseErrorOutput } from "./error-output.js";
 describe("formatCliParseErrorOutput", () => {
   it("explains unknown commands with root help and plugin hints", () => {
     const output = formatCliParseErrorOutput("error: unknown command 'wat'\n", {
-      argv: ["node", "openclaw", "wat"],
+      argv: ["node", "astroclaw", "wat"],
     });
 
     expect(output).toBe(
-      'OpenClaw does not know the command "wat".\nTry: openclaw --help\nPlugin command? openclaw plugins list\nDocs: https://docs.openclaw.ai/cli\n',
+      'Astroclaw does not know the command "wat".\nTry: astroclaw --help\nPlugin command? astroclaw plugins list\nDocs: https://docs.astroclaw.ai/cli\n',
     );
   });
 
   it("points unknown options at the active command help", () => {
     const output = formatCliParseErrorOutput("error: unknown option '--wat'\n", {
-      argv: ["node", "openclaw", "channels", "status", "--wat"],
+      argv: ["node", "astroclaw", "channels", "status", "--wat"],
     });
 
     expect(output).toBe(
-      'OpenClaw does not recognize option "--wat".\nTry: openclaw channels status --help\n',
+      'Astroclaw does not recognize option "--wat".\nTry: astroclaw channels status --help\n',
     );
   });
 
   it("points missing required arguments at command help", () => {
     const output = formatCliParseErrorOutput("error: missing required argument 'name'\n", {
-      argv: ["node", "openclaw", "plugins", "install"],
+      argv: ["node", "astroclaw", "plugins", "install"],
     });
 
     expect(output).toBe(
-      'Missing required argument "name".\nTry: openclaw plugins install --help\n',
+      'Missing required argument "name".\nTry: astroclaw plugins install --help\n',
     );
   });
 });

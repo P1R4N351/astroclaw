@@ -157,15 +157,15 @@ vi.mock("ws", () => ({
   },
 }));
 
-vi.mock("openclaw/plugin-sdk/proxy-capture", () => ({
+vi.mock("astroclaw/plugin-sdk/proxy-capture", () => ({
   captureHttpExchange: captureHttpExchangeSpy,
   captureWsEvent: captureWsEventSpy,
   resolveEffectiveDebugProxyUrl: (configuredProxyUrl?: string) =>
-    configuredProxyUrl?.trim() || process.env.OPENCLAW_DEBUG_PROXY_URL,
+    configuredProxyUrl?.trim() || process.env.ASTROCLAW_DEBUG_PROXY_URL,
   resolveDebugProxySettings: resolveDebugProxySettingsMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: vi.fn(async (params: { url: string; init?: RequestInit }) => {
     const source = (await globalFetchMock(params.url, params.init)) as Response;
     const body = await source.text();
@@ -312,8 +312,8 @@ describe("createDiscordGatewayPlugin", () => {
 
   beforeEach(() => {
     vi.unstubAllEnvs();
-    vi.stubEnv("OPENCLAW_DEBUG_PROXY_ENABLED", "");
-    vi.stubEnv("OPENCLAW_DEBUG_PROXY_URL", "");
+    vi.stubEnv("ASTROCLAW_DEBUG_PROXY_ENABLED", "");
+    vi.stubEnv("ASTROCLAW_DEBUG_PROXY_URL", "");
     vi.stubGlobal("fetch", globalFetchMock);
     vi.useRealTimers();
     baseRegisterClientSpy.mockClear();
@@ -627,7 +627,7 @@ describe("createDiscordGatewayPlugin", () => {
 
   it("uses env gateway metadata timeout when config is unset", async () => {
     vi.useFakeTimers();
-    vi.stubEnv("OPENCLAW_DISCORD_GATEWAY_INFO_TIMEOUT_MS", "6000");
+    vi.stubEnv("ASTROCLAW_DISCORD_GATEWAY_INFO_TIMEOUT_MS", "6000");
     const runtime = createRuntime();
     globalFetchMock.mockImplementation(() => new Promise(() => {}));
     const plugin = createDiscordGatewayPlugin({

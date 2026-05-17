@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import http from "node:http";
 
-const port = Number(process.env.MOCK_PORT ?? process.env.OPENCLAW_MOCK_OPENAI_PORT);
-const successMarker = process.env.SUCCESS_MARKER ?? "OPENCLAW_E2E_OK";
+const port = Number(process.env.MOCK_PORT ?? process.env.ASTROCLAW_MOCK_OPENAI_PORT);
+const successMarker = process.env.SUCCESS_MARKER ?? "ASTROCLAW_E2E_OK";
 const requestLog = process.env.MOCK_REQUEST_LOG;
 
 if (!Number.isInteger(port) || port <= 0) {
-  throw new Error("missing valid MOCK_PORT or OPENCLAW_MOCK_OPENAI_PORT");
+  throw new Error("missing valid MOCK_PORT or ASTROCLAW_MOCK_OPENAI_PORT");
 }
 
 function readBody(req) {
@@ -108,14 +108,14 @@ function writeImageGeneration(res) {
         b64_json:
           "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+yf7kAAAAASUVORK5CYII=",
         mime_type: "image/png",
-        revised_prompt: "openclaw mock image",
+        revised_prompt: "astroclaw mock image",
       },
     ],
   });
 }
 
 function resolveResponseText(bodyText) {
-  const matches = Array.from(bodyText.matchAll(/\bOPENCLAW_E2E_OK(?:_\d+)?\b/gu));
+  const matches = Array.from(bodyText.matchAll(/\bASTROCLAW_E2E_OK(?:_\d+)?\b/gu));
   return matches.at(-1)?.[0] ?? successMarker;
 }
 
@@ -128,7 +128,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/v1/models") {
     writeJson(res, 200, {
       object: "list",
-      data: [{ id: "gpt-5.5", object: "model", owned_by: "openclaw-e2e" }],
+      data: [{ id: "gpt-5.5", object: "model", owned_by: "astroclaw-e2e" }],
     });
     return;
   }

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../../config/config.js";
+import type { AstroclawConfig } from "../../../config/config.js";
 import { installGatewayDaemonNonInteractive } from "./daemon-install.js";
 
 const buildGatewayInstallPlan = vi.hoisted(() => vi.fn());
@@ -47,7 +47,7 @@ describe("installGatewayDaemonNonInteractive", () => {
       warnings: [],
     });
     buildGatewayInstallPlan.mockResolvedValue({
-      programArguments: ["openclaw", "gateway", "run"],
+      programArguments: ["astroclaw", "gateway", "run"],
       workingDirectory: "/tmp",
       environment: {},
     });
@@ -64,11 +64,11 @@ describe("installGatewayDaemonNonInteractive", () => {
             token: {
               source: "env",
               provider: "default",
-              id: "OPENCLAW_GATEWAY_TOKEN",
+              id: "ASTROCLAW_GATEWAY_TOKEN",
             },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       opts: { installDaemon: true },
       runtime,
       port: 18789,
@@ -90,7 +90,7 @@ describe("installGatewayDaemonNonInteractive", () => {
     const runtime = { log: vi.fn(), error: vi.fn(), exit: vi.fn() };
 
     await installGatewayDaemonNonInteractive({
-      nextConfig: {} as OpenClawConfig,
+      nextConfig: {} as AstroclawConfig,
       opts: { installDaemon: true },
       runtime,
       port: 18789,
@@ -118,7 +118,7 @@ describe("installGatewayDaemonNonInteractive", () => {
 
     try {
       const result = await installGatewayDaemonNonInteractive({
-        nextConfig: {} as OpenClawConfig,
+        nextConfig: {} as AstroclawConfig,
         opts: { installDaemon: true },
         runtime,
         port: 18789,
@@ -130,7 +130,7 @@ describe("installGatewayDaemonNonInteractive", () => {
       });
       expect(runtime.log.mock.calls).toEqual([
         [
-          "Systemd user services are unavailable; skipping service install. Use a direct shell run (`openclaw gateway run`) or rerun without --install-daemon on this session.",
+          "Systemd user services are unavailable; skipping service install. Use a direct shell run (`astroclaw gateway run`) or rerun without --install-daemon on this session.",
         ],
       ]);
       expect(buildGatewayInstallPlan).not.toHaveBeenCalled();

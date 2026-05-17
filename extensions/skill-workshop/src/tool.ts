@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Type } from "typebox";
-import { jsonResult, type OpenClawPluginApi } from "../api.js";
+import { jsonResult, type AstroclawPluginApi } from "../api.js";
 import type { SkillWorkshopConfig } from "./config.js";
 import { applyProposalToWorkspace, normalizeSkillName, writeSupportFile } from "./skills.js";
 import type { SkillChange, SkillProposal, SkillWorkshopStatus } from "./types.js";
@@ -79,7 +79,7 @@ function buildProposal(params: {
 }
 
 export function createSkillWorkshopTool(params: {
-  api: OpenClawPluginApi;
+  api: AstroclawPluginApi;
   config: SkillWorkshopConfig;
   ctx: { workspaceDir?: string };
 }) {

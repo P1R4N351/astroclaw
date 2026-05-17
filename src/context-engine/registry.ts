@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.js";
+import type { AstroclawConfig } from "../config/types.js";
 import { defaultSlotIdForKey } from "../plugins/slots.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import { sanitizeForLog } from "../terminal/ansi.js";
@@ -10,7 +10,7 @@ import type { ContextEngine } from "./types.js";
  * without fragile workarounds.
  */
 export type ContextEngineFactoryContext = {
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   agentDir?: string;
   workspaceDir?: string;
 };
@@ -33,7 +33,7 @@ type RegisterContextEngineForOwnerOptions = {
   allowSameOwnerRefresh?: boolean;
 };
 
-const LEGACY_SESSION_KEY_COMPAT = Symbol.for("openclaw.contextEngine.sessionKeyCompat");
+const LEGACY_SESSION_KEY_COMPAT = Symbol.for("astroclaw.contextEngine.sessionKeyCompat");
 const RESOLVED_CONTEXT_ENGINE_METADATA = new WeakMap<ContextEngine, { owner: string }>();
 const SESSION_KEY_COMPAT_METHODS = [
   "bootstrap",
@@ -331,7 +331,7 @@ function wrapResolvedContextEngine(
 // Registry (module-level singleton)
 // ---------------------------------------------------------------------------
 
-const CONTEXT_ENGINE_REGISTRY_STATE = Symbol.for("openclaw.contextEngineRegistryState");
+const CONTEXT_ENGINE_REGISTRY_STATE = Symbol.for("astroclaw.contextEngineRegistryState");
 const CORE_CONTEXT_ENGINE_OWNER = "core";
 const PUBLIC_CONTEXT_ENGINE_OWNER = "public-sdk";
 
@@ -525,7 +525,7 @@ export type ResolveContextEngineOptions = {
  * Throws only when the default engine itself cannot be resolved.
  */
 export async function resolveContextEngine(
-  config?: OpenClawConfig,
+  config?: AstroclawConfig,
   options?: ResolveContextEngineOptions,
 ): Promise<ContextEngine> {
   const slotValue = config?.plugins?.slots?.contextEngine;

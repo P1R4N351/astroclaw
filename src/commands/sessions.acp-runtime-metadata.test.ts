@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { resolveModelAgentRuntimeMetadata } from "../agents/agent-runtime-metadata.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 
 /**
- * Catalog #18 — `openclaw sessions --json` reports `agentRuntime.id: "pi"` for
+ * Catalog #18 — `astroclaw sessions --json` reports `agentRuntime.id: "pi"` for
  * ACP sessions because `resolveAgentRuntimeMetadata` only consults agent-config
  * policies (env / agent / defaults / implicit fallback to "pi"). The session
  * key clearly carries the ACP runtime indicator (the `:acp:` segment), but
  * `sessions.ts:294` ignores it and just calls `resolveAgentRuntimeMetadata(cfg, agentId)`.
  *
- * Empirical observation from a deployed openclaw container against a copilot
+ * Empirical observation from a deployed astroclaw container against a copilot
  * agent that has no explicit `agentRuntime.id` policy:
  *
  *   {
@@ -47,7 +47,7 @@ const ACP_SESSION_KEY = "agent:copilot:acp:86b7b5af-3773-4a56-b244-069d6c5d3db9"
 const NON_ACP_SESSION_KEY = "agent:main:main";
 
 /**
- * Build a minimal `OpenClawConfig` that mirrors the deployed scenario:
+ * Build a minimal `AstroclawConfig` that mirrors the deployed scenario:
  * - a copilot agent exists in the agents.list
  * - it has NO explicit `agentRuntime.id` policy
  * - no top-level `agents.defaults.agentRuntime` either
@@ -55,7 +55,7 @@ const NON_ACP_SESSION_KEY = "agent:main:main";
  * Result: `resolveAgentRuntimeMetadata(cfg, "copilot")` falls through to the
  * implicit "pi" branch — which is the bug under test.
  */
-function buildConfigWithoutAgentRuntimePolicy(): OpenClawConfig {
+function buildConfigWithoutAgentRuntimePolicy(): AstroclawConfig {
   return {
     agents: {
       list: [
@@ -70,7 +70,7 @@ function buildConfigWithoutAgentRuntimePolicy(): OpenClawConfig {
       // No `defaults.agentRuntime` either.
       defaults: {},
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 }
 
 /**
@@ -83,7 +83,7 @@ function buildConfigWithoutAgentRuntimePolicy(): OpenClawConfig {
  * (not resolveAgentRuntimeMetadata which is now a stub returning { id: "auto", source: "implicit" }).
  */
 function computeSessionAgentRuntime(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   sessionKey: string;
   fallbackAgentId: string;
   /** Mirrors `entry?.acp != null` passed from loaded session rows. */

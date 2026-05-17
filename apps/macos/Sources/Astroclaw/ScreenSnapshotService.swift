@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-import OpenClawKit
+import AstroclawKit
 @preconcurrency import ScreenCaptureKit
 
 @MainActor
@@ -29,8 +29,8 @@ final class ScreenSnapshotService {
         screenIndex: Int?,
         maxWidth: Int?,
         quality: Double?,
-        format: OpenClawScreenSnapshotFormat?) async throws
-        -> (data: Data, format: OpenClawScreenSnapshotFormat, width: Int, height: Int)
+        format: AstroclawScreenSnapshotFormat?) async throws
+        -> (data: Data, format: AstroclawScreenSnapshotFormat, width: Int, height: Int)
     {
         let format = format ?? .jpeg
         let normalized = Self.normalize(maxWidth: maxWidth, quality: quality, format: format)
@@ -90,7 +90,7 @@ final class ScreenSnapshotService {
     private static func normalize(
         maxWidth: Int?,
         quality: Double?,
-        format: OpenClawScreenSnapshotFormat)
+        format: AstroclawScreenSnapshotFormat)
         -> (maxWidth: Int, quality: Double)
     {
         let resolvedMaxWidth = maxWidth.flatMap { $0 > 0 ? $0 : nil } ?? (format == .png ? 900 : 1600)

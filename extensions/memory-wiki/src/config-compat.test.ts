@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../api.js";
+import type { AstroclawConfig } from "../api.js";
 import {
   legacyConfigRules,
   migrateMemoryWikiLegacyConfig,
@@ -29,7 +29,7 @@ describe("memory-wiki config compatibility", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     const migration = migrateMemoryWikiLegacyConfig(config);
 
@@ -62,7 +62,7 @@ describe("memory-wiki config compatibility", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     const migration = normalizeCompatibilityConfig({ cfg: config });
 

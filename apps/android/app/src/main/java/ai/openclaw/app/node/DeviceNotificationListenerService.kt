@@ -1,9 +1,9 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.NotificationBurstLimiter
-import ai.openclaw.app.SecurePrefs
-import ai.openclaw.app.allowsPackage
-import ai.openclaw.app.isWithinQuietHours
+import ai.astroclaw.app.NotificationBurstLimiter
+import ai.astroclaw.app.SecurePrefs
+import ai.astroclaw.app.allowsPackage
+import ai.astroclaw.app.isWithinQuietHours
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.RemoteInput
@@ -292,7 +292,7 @@ class DeviceNotificationListenerService : NotificationListenerService() {
       nodeEventSink = sink
     }
 
-    private fun recentPackagesPrefs(context: Context) = context.applicationContext.getSharedPreferences("openclaw.secure", Context.MODE_PRIVATE)
+    private fun recentPackagesPrefs(context: Context) = context.applicationContext.getSharedPreferences("astroclaw.secure", Context.MODE_PRIVATE)
 
     private fun migrateLegacyRecentPackagesIfNeeded(context: Context) {
       val prefs = recentPackagesPrefs(context)

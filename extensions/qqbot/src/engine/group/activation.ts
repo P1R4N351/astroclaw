@@ -64,9 +64,9 @@ function resolveSessionStorePath(
   }
 
   const stateDir =
-    process.env.OPENCLAW_STATE_DIR?.trim() ||
+    process.env.ASTROCLAW_STATE_DIR?.trim() ||
     process.env.CLAWDBOT_STATE_DIR?.trim() ||
-    path.join(process.env.HOME || process.env.USERPROFILE || "", ".openclaw");
+    path.join(process.env.HOME || process.env.USERPROFILE || "", ".astroclaw");
   return path.join(stateDir, "agents", resolvedAgentId, "sessions", "sessions.json");
 }
 

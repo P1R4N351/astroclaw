@@ -112,9 +112,9 @@ describe("ensureAuthProfileStore", () => {
     previousPiAgentDir: string | undefined;
   }): void {
     if ("previousStateDir" in params) {
-      restoreEnvValue("OPENCLAW_STATE_DIR", params.previousStateDir);
+      restoreEnvValue("ASTROCLAW_STATE_DIR", params.previousStateDir);
     }
-    restoreEnvValue("OPENCLAW_AGENT_DIR", params.previousAgentDir);
+    restoreEnvValue("ASTROCLAW_AGENT_DIR", params.previousAgentDir);
     restoreEnvValue("PI_CODING_AGENT_DIR", params.previousPiAgentDir);
   }
 
@@ -125,16 +125,16 @@ describe("ensureAuthProfileStore", () => {
     previousAgentDir: string | undefined;
     previousPiAgentDir: string | undefined;
   } {
-    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
-    const previousAgentDir = process.env.OPENCLAW_AGENT_DIR;
+    const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
+    const previousAgentDir = process.env.ASTROCLAW_AGENT_DIR;
     const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
     const mainDir = path.join(root, "agents", "main", "agent");
     const agentDir = path.join(root, "agents", "agent-x", "agent");
     fs.mkdirSync(mainDir, { recursive: true });
     fs.mkdirSync(agentDir, { recursive: true });
 
-    process.env.OPENCLAW_STATE_DIR = root;
-    process.env.OPENCLAW_AGENT_DIR = mainDir;
+    process.env.ASTROCLAW_STATE_DIR = root;
+    process.env.ASTROCLAW_AGENT_DIR = mainDir;
     process.env.PI_CODING_AGENT_DIR = mainDir;
     clearRuntimeAuthProfileStoreSnapshots();
     return { mainDir, agentDir, previousStateDir, previousAgentDir, previousPiAgentDir };
@@ -172,7 +172,7 @@ describe("ensureAuthProfileStore", () => {
   }
 
   it("migrates legacy auth.json and deletes it (PR #368)", () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-auth-profiles-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-auth-profiles-"));
     try {
       const legacyPath = path.join(agentDir, "auth.json");
       fs.writeFileSync(
@@ -213,7 +213,7 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("ignores array-shaped auth profile stores instead of loading numeric profile ids", () => {
-    withTempAgentDir("openclaw-auth-profiles-array-", (agentDir) => {
+    withTempAgentDir("astroclaw-auth-profiles-array-", (agentDir) => {
       writeRawAuthProfileStore(agentDir, {
         version: AUTH_STORE_VERSION,
         profiles: [
@@ -233,7 +233,7 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("ignores top-level array auth stores instead of treating entries as profiles", () => {
-    withTempAgentDir("openclaw-auth-top-array-", (agentDir) => {
+    withTempAgentDir("astroclaw-auth-top-array-", (agentDir) => {
       writeRawAuthProfileStore(agentDir, [
         {
           type: "api_key",
@@ -250,7 +250,7 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("merges main auth profiles into agent store and keeps agent overrides", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-auth-merge-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-auth-merge-"));
     const { mainDir, agentDir, previousStateDir, previousAgentDir, previousPiAgentDir } =
       configureMainAuthTestDirs(root);
     try {
@@ -309,7 +309,7 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("uses the main agent's newer OAuth profile when an agent still has a stale default profile", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-auth-drift-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-auth-drift-"));
     const { mainDir, agentDir, previousStateDir, previousAgentDir, previousPiAgentDir } =
       configureMainAuthTestDirs(root);
     try {
@@ -399,7 +399,7 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("keeps a newer agent replacement credential while repairing stale default references", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-auth-drift-newer-agent-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-auth-drift-newer-agent-"));
     const { mainDir, agentDir, previousStateDir, previousAgentDir, previousPiAgentDir } =
       configureMainAuthTestDirs(root);
     try {
@@ -474,7 +474,7 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("preserves a valid main default OAuth profile while replacing a stale agent override", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-auth-drift-base-default-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-auth-drift-base-default-"));
     const { mainDir, agentDir, previousStateDir, previousAgentDir, previousPiAgentDir } =
       configureMainAuthTestDirs(root);
     try {
@@ -555,7 +555,7 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("keeps a stale default OAuth profile when the main profile belongs to a different identity", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-auth-drift-mismatch-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-auth-drift-mismatch-"));
     const { mainDir, agentDir, previousStateDir, previousAgentDir, previousPiAgentDir } =
       configureMainAuthTestDirs(root);
     try {
@@ -618,7 +618,7 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("rewrites invalidated per-agent Codex order to the main agent's healthy relogin profile", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-auth-codex-relogin-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-auth-codex-relogin-"));
     const { mainDir, agentDir, previousStateDir, previousAgentDir, previousPiAgentDir } =
       configureMainAuthTestDirs(root);
     try {
@@ -751,7 +751,7 @@ describe("ensureAuthProfileStore", () => {
   ] as const)(
     "normalizes auth-profiles credential aliases with canonical-field precedence: $name",
     ({ name, profile, expected }) => {
-      withTempAgentDir("openclaw-auth-alias-", (agentDir) => {
+      withTempAgentDir("astroclaw-auth-alias-", (agentDir) => {
         const storeData = {
           version: AUTH_STORE_VERSION,
           profiles: {
@@ -771,7 +771,7 @@ describe("ensureAuthProfileStore", () => {
   );
 
   it("normalizes mode/apiKey aliases while migrating legacy auth.json", () => {
-    withTempAgentDir("openclaw-auth-legacy-alias-", (agentDir) => {
+    withTempAgentDir("astroclaw-auth-legacy-alias-", (agentDir) => {
       fs.writeFileSync(
         path.join(agentDir, "auth.json"),
         `${JSON.stringify(
@@ -798,7 +798,7 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("does not load legacy flat auth-profiles.json entries at runtime", () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-auth-flat-profiles-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-auth-flat-profiles-"));
     try {
       const authPath = path.join(agentDir, "auth-profiles.json");
       const legacyFlatStore = {
@@ -819,9 +819,9 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("merges legacy oauth.json into auth-profiles.json", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-oauth-migrate-"));
-    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
-    const previousAgentDir = process.env.OPENCLAW_AGENT_DIR;
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-oauth-migrate-"));
+    const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
+    const previousAgentDir = process.env.ASTROCLAW_AGENT_DIR;
     const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
     try {
       const agentDir = path.join(root, "agent");
@@ -845,8 +845,8 @@ describe("ensureAuthProfileStore", () => {
         "utf8",
       );
 
-      process.env.OPENCLAW_STATE_DIR = root;
-      process.env.OPENCLAW_AGENT_DIR = agentDir;
+      process.env.ASTROCLAW_STATE_DIR = root;
+      process.env.ASTROCLAW_AGENT_DIR = agentDir;
       process.env.PI_CODING_AGENT_DIR = agentDir;
       clearRuntimeAuthProfileStoreSnapshots();
 
@@ -869,7 +869,7 @@ describe("ensureAuthProfileStore", () => {
       const oauthRef = persistedProfile?.oauthRef as
         | { source?: string; provider?: string; id?: unknown }
         | undefined;
-      expect(oauthRef?.source).toBe("openclaw-credentials");
+      expect(oauthRef?.source).toBe("astroclaw-credentials");
       expect(oauthRef?.provider).toBe("openai-codex");
       expect(typeof oauthRef?.id).toBe("string");
       expect(persistedProfile).not.toHaveProperty("access");
@@ -879,15 +879,15 @@ describe("ensureAuthProfileStore", () => {
       expect(JSON.stringify(persisted)).not.toContain("refresh-token");
     } finally {
       clearRuntimeAuthProfileStoreSnapshots();
-      restoreEnvValue("OPENCLAW_STATE_DIR", previousStateDir);
+      restoreEnvValue("ASTROCLAW_STATE_DIR", previousStateDir);
       restoreAgentDirEnv({ previousAgentDir, previousPiAgentDir });
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
 
   it("exposes provider-managed runtime auth without persisting copied tokens", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-external-auth-"));
-    const previousAgentDir = process.env.OPENCLAW_AGENT_DIR;
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-external-auth-"));
+    const previousAgentDir = process.env.ASTROCLAW_AGENT_DIR;
     const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
     try {
       const agentDir = path.join(root, "agent");
@@ -907,7 +907,7 @@ describe("ensureAuthProfileStore", () => {
         },
       ]);
 
-      process.env.OPENCLAW_AGENT_DIR = agentDir;
+      process.env.ASTROCLAW_AGENT_DIR = agentDir;
       process.env.PI_CODING_AGENT_DIR = agentDir;
       clearRuntimeAuthProfileStoreSnapshots();
 
@@ -928,10 +928,10 @@ describe("ensureAuthProfileStore", () => {
   });
 
   it("does not write inherited auth stores during secrets runtime reads", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-secrets-runtime-"));
-    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-secrets-runtime-"));
+    const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
     try {
-      const stateDir = path.join(root, ".openclaw");
+      const stateDir = path.join(root, ".astroclaw");
       const mainAgentDir = path.join(stateDir, "agents", "main", "agent");
       const workerAgentDir = path.join(stateDir, "agents", "worker", "agent");
       const workerStorePath = path.join(workerAgentDir, "auth-profiles.json");
@@ -954,7 +954,7 @@ describe("ensureAuthProfileStore", () => {
         )}\n`,
         "utf8",
       );
-      process.env.OPENCLAW_STATE_DIR = stateDir;
+      process.env.ASTROCLAW_STATE_DIR = stateDir;
       clearRuntimeAuthProfileStoreSnapshots();
 
       const store = loadAuthProfileStoreForRuntime(workerAgentDir, { readOnly: true });
@@ -966,16 +966,16 @@ describe("ensureAuthProfileStore", () => {
       expect(fs.existsSync(workerStorePath)).toBe(false);
     } finally {
       clearRuntimeAuthProfileStoreSnapshots();
-      restoreEnvValue("OPENCLAW_STATE_DIR", previousStateDir);
+      restoreEnvValue("ASTROCLAW_STATE_DIR", previousStateDir);
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
 
   it("does not clone inherited auth stores during normal agent reads", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-auth-read-through-"));
-    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-auth-read-through-"));
+    const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
     try {
-      const stateDir = path.join(root, ".openclaw");
+      const stateDir = path.join(root, ".astroclaw");
       const mainAgentDir = path.join(stateDir, "agents", "main", "agent");
       const workerAgentDir = path.join(stateDir, "agents", "worker", "agent");
       const workerStorePath = path.join(workerAgentDir, "auth-profiles.json");
@@ -1000,7 +1000,7 @@ describe("ensureAuthProfileStore", () => {
         )}\n`,
         "utf8",
       );
-      process.env.OPENCLAW_STATE_DIR = stateDir;
+      process.env.ASTROCLAW_STATE_DIR = stateDir;
       clearRuntimeAuthProfileStoreSnapshots();
 
       const store = ensureAuthProfileStore(workerAgentDir);
@@ -1013,7 +1013,7 @@ describe("ensureAuthProfileStore", () => {
       expect(fs.existsSync(workerStorePath)).toBe(false);
     } finally {
       clearRuntimeAuthProfileStoreSnapshots();
-      restoreEnvValue("OPENCLAW_STATE_DIR", previousStateDir);
+      restoreEnvValue("ASTROCLAW_STATE_DIR", previousStateDir);
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
@@ -1021,7 +1021,7 @@ describe("ensureAuthProfileStore", () => {
   it("logs one warning with aggregated reasons for rejected auth-profiles entries", () => {
     const warnSpy = vi.spyOn(log, "warn").mockImplementation(() => undefined);
     try {
-      withTempAgentDir("openclaw-auth-invalid-", (agentDir) => {
+      withTempAgentDir("astroclaw-auth-invalid-", (agentDir) => {
         const invalidStore = {
           version: AUTH_STORE_VERSION,
           profiles: {
@@ -1065,7 +1065,7 @@ describe("ensureAuthProfileStore", () => {
   it.each([
     {
       name: "migrates SecretRef object in `key` to `keyRef` and clears `key`",
-      prefix: "openclaw-nonstr-key-ref-",
+      prefix: "astroclaw-nonstr-key-ref-",
       profileId: "openai:default",
       profile: {
         type: "api_key",
@@ -1084,7 +1084,7 @@ describe("ensureAuthProfileStore", () => {
     },
     {
       name: "deletes non-string non-SecretRef `key` without setting keyRef",
-      prefix: "openclaw-nonstr-key-num-",
+      prefix: "astroclaw-nonstr-key-num-",
       profileId: "openai:default",
       profile: {
         type: "api_key",
@@ -1099,7 +1099,7 @@ describe("ensureAuthProfileStore", () => {
     },
     {
       name: "does not overwrite existing `keyRef` when `key` contains a SecretRef",
-      prefix: "openclaw-nonstr-key-dup-",
+      prefix: "astroclaw-nonstr-key-dup-",
       profileId: "openai:default",
       profile: {
         type: "api_key",
@@ -1119,7 +1119,7 @@ describe("ensureAuthProfileStore", () => {
     },
     {
       name: "overwrites malformed `keyRef` with migrated ref from `key`",
-      prefix: "openclaw-nonstr-key-malformed-ref-",
+      prefix: "astroclaw-nonstr-key-malformed-ref-",
       profileId: "openai:default",
       profile: {
         type: "api_key",
@@ -1139,7 +1139,7 @@ describe("ensureAuthProfileStore", () => {
     },
     {
       name: "preserves valid string `key` values unchanged",
-      prefix: "openclaw-str-key-",
+      prefix: "astroclaw-str-key-",
       profileId: "openai:default",
       profile: {
         type: "api_key",
@@ -1153,7 +1153,7 @@ describe("ensureAuthProfileStore", () => {
     },
     {
       name: "migrates SecretRef object in `token` to `tokenRef` and clears `token`",
-      prefix: "openclaw-nonstr-token-ref-",
+      prefix: "astroclaw-nonstr-token-ref-",
       profileId: "anthropic:default",
       profile: {
         type: "token",
@@ -1172,7 +1172,7 @@ describe("ensureAuthProfileStore", () => {
     },
     {
       name: "deletes non-string non-SecretRef `token` without setting tokenRef",
-      prefix: "openclaw-nonstr-token-num-",
+      prefix: "astroclaw-nonstr-token-num-",
       profileId: "anthropic:default",
       profile: {
         type: "token",
@@ -1187,7 +1187,7 @@ describe("ensureAuthProfileStore", () => {
     },
     {
       name: "preserves valid string `token` values unchanged",
-      prefix: "openclaw-str-token-",
+      prefix: "astroclaw-str-token-",
       profileId: "anthropic:default",
       profile: {
         type: "token",

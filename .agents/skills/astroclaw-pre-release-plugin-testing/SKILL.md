@@ -1,13 +1,13 @@
 ---
-name: openclaw-pre-release-plugin-testing
-description: Plan and run pre-release OpenClaw plugin validation across bundled plugins, package artifacts, lifecycle commands, doctor/fix, config round-trip, gateway startup, SDK compatibility, Docker E2E, Package Acceptance, and Testbox proof.
+name: astroclaw-pre-release-plugin-testing
+description: Plan and run pre-release Astroclaw plugin validation across bundled plugins, package artifacts, lifecycle commands, doctor/fix, config round-trip, gateway startup, SDK compatibility, Docker E2E, Package Acceptance, and Testbox proof.
 ---
 
-# OpenClaw Pre-Release Plugin Testing
+# Astroclaw Pre-Release Plugin Testing
 
 Use this skill when the user asks for plugin release confidence, plugin lifecycle
 sweeps, package-artifact plugin proof, or "what else should we test before
-release?" It complements `openclaw-testing`; use that skill too when choosing
+release?" It complements `astroclaw-testing`; use that skill too when choosing
 the cheapest safe runner or debugging a failing lane.
 
 ## Goal
@@ -25,7 +25,7 @@ Prove the plugin system as a product surface, not just as source tests:
 
 ## First Checks
 
-From the OpenClaw repo root:
+From the Astroclaw repo root:
 
 ```bash
 pnpm docs:list
@@ -35,7 +35,7 @@ pnpm changed:lanes --json
 ```
 
 In Codex worktrees under `.codex/worktrees`, `node_modules` must be a symlink to
-the main OpenClaw checkout. Do not run `pnpm install` there. For broad or
+the main Astroclaw checkout. Do not run `pnpm install` there. For broad or
 package-heavy proof, use Blacksmith Testbox or GitHub Actions.
 
 ## Runner Choice
@@ -58,11 +58,11 @@ warm a fresh box from current `main`, or switch to Package Acceptance.
 Run or verify these before inventing new coverage:
 
 ```bash
-OPENCLAW_TESTBOX=1 pnpm check:changed
+ASTROCLAW_TESTBOX=1 pnpm check:changed
 pnpm run test:extensions:package-boundary:canary
 pnpm run test:extensions:package-boundary:compile
 pnpm test:docker:plugins
-OPENCLAW_PLUGINS_E2E_CLAWHUB=0 pnpm test:docker:plugins
+ASTROCLAW_PLUGINS_E2E_CLAWHUB=0 pnpm test:docker:plugins
 pnpm test:docker:plugin-update
 pnpm test:docker:bundled-channel-deps:fast
 ```
@@ -70,8 +70,8 @@ pnpm test:docker:bundled-channel-deps:fast
 For full bundled install/uninstall proof, shard the packaged sweep:
 
 ```bash
-OPENCLAW_BUNDLED_PLUGIN_SWEEP_TOTAL=8 \
-OPENCLAW_BUNDLED_PLUGIN_SWEEP_INDEX=<0-7> \
+ASTROCLAW_BUNDLED_PLUGIN_SWEEP_TOTAL=8 \
+ASTROCLAW_BUNDLED_PLUGIN_SWEEP_INDEX=<0-7> \
 pnpm test:docker:bundled-plugin-install-uninstall
 ```
 
@@ -103,7 +103,7 @@ Use this when validating a release branch, beta, or candidate package:
 
 ```bash
 gh workflow run package-acceptance.yml \
-  --repo openclaw/openclaw \
+  --repo astroclaw/astroclaw \
   --ref main \
   -f workflow_ref=main \
   -f source=ref \
@@ -113,7 +113,7 @@ gh workflow run package-acceptance.yml \
   -f telegram_mode=mock-openai
 ```
 
-Use `source=npm -f package_spec=openclaw@beta` for published beta proof. Keep
+Use `source=npm -f package_spec=astroclaw@beta` for published beta proof. Keep
 `workflow_ref` as trusted current harness code unless the release process says
 otherwise.
 
@@ -155,7 +155,7 @@ then run doctor again and require idempotence:
 
 ## Gateway Bootstrap Matrix
 
-Start packaged OpenClaw in Docker with clean state:
+Start packaged Astroclaw in Docker with clean state:
 
 - provider plugins enabled, no credentials: ready with warnings, no crash
 - channel plugins configured disabled: no runtime deps staged
@@ -165,8 +165,8 @@ Start packaged OpenClaw in Docker with clean state:
 Assert:
 
 - gateway reaches ready
-- `openclaw status --json` includes plugin diagnostics
-- `openclaw plugins inspect --all --json` is parseable
+- `astroclaw status --json` includes plugin diagnostics
+- `astroclaw plugins inspect --all --json` is parseable
 - package tree is not mutated
 - logs contain no raw tokens
 
@@ -198,7 +198,7 @@ In a package Docker lane, create tiny external plugins and install them from:
 - `file:` npm spec
 
 Cover CJS and ESM shapes, plus at least one plugin importing focused
-`openclaw/plugin-sdk/*` subpaths. Assert `plugins inspect` sees its tool,
+`astroclaw/plugin-sdk/*` subpaths. Assert `plugins inspect` sees its tool,
 gateway method, CLI command, or service.
 
 ## Live-Ish Probe Rules

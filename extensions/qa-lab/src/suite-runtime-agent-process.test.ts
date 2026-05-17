@@ -122,7 +122,7 @@ describe("qa suite runtime agent process helpers", () => {
         repoRoot: "/repo",
         gateway: {
           tempRoot: "/tmp/runtime",
-          runtimeEnv: { PATH: "/usr/bin", OPENCLAW_STATE_DIR: "/tmp/default-state" },
+          runtimeEnv: { PATH: "/usr/bin", ASTROCLAW_STATE_DIR: "/tmp/default-state" },
         },
         primaryModel: "openai/gpt-5.5",
         alternateModel: "openai/gpt-5.5-mini",
@@ -131,8 +131,8 @@ describe("qa suite runtime agent process helpers", () => {
       ["crestodian", "-m", "overview"],
       {
         env: {
-          OPENCLAW_STATE_DIR: "/tmp/isolated-state",
-          OPENCLAW_CONFIG_PATH: "/tmp/isolated-state/openclaw.json",
+          ASTROCLAW_STATE_DIR: "/tmp/isolated-state",
+          ASTROCLAW_CONFIG_PATH: "/tmp/isolated-state/astroclaw.json",
         },
       },
     );
@@ -152,8 +152,8 @@ describe("qa suite runtime agent process helpers", () => {
     ]);
     const spawnEnv = (spawnCall?.[2] as { env?: Record<string, string> } | undefined)?.env;
     expect(spawnEnv?.PATH).toBe("/usr/bin");
-    expect(spawnEnv?.OPENCLAW_STATE_DIR).toBe("/tmp/isolated-state");
-    expect(spawnEnv?.OPENCLAW_CONFIG_PATH).toBe("/tmp/isolated-state/openclaw.json");
+    expect(spawnEnv?.ASTROCLAW_STATE_DIR).toBe("/tmp/isolated-state");
+    expect(spawnEnv?.ASTROCLAW_CONFIG_PATH).toBe("/tmp/isolated-state/astroclaw.json");
   });
 
   it("parses json qa cli output when requested", async () => {
@@ -288,7 +288,7 @@ describe("qa suite runtime agent process helpers", () => {
       name: "Memory Dreaming Promotion",
       payload: {
         kind: "systemEvent",
-        text: "__openclaw_memory_core_short_term_promotion_dream__",
+        text: "__astroclaw_memory_core_short_term_promotion_dream__",
       },
     };
     const current = {
@@ -296,7 +296,7 @@ describe("qa suite runtime agent process helpers", () => {
       name: "Memory Dreaming Promotion",
       payload: {
         kind: "agentTurn",
-        message: "__openclaw_memory_core_short_term_promotion_dream__",
+        message: "__astroclaw_memory_core_short_term_promotion_dream__",
         lightContext: true,
       },
       sessionTarget: "isolated",

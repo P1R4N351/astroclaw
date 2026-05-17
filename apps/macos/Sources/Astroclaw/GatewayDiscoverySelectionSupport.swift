@@ -1,6 +1,6 @@
 import Foundation
-import OpenClawDiscovery
-import OpenClawKit
+import AstroclawDiscovery
+import AstroclawKit
 
 @MainActor
 enum GatewayDiscoverySelectionSupport {
@@ -26,14 +26,14 @@ enum GatewayDiscoverySelectionSupport {
 
         if preferredTransport == .direct {
             if let endpoint = GatewayDiscoveryHelpers.serviceEndpoint(for: gateway) {
-                OpenClawConfigFile.setRemoteGatewayUrl(
+                AstroclawConfigFile.setRemoteGatewayUrl(
                     host: endpoint.host,
                     port: endpoint.port)
             } else {
-                OpenClawConfigFile.clearRemoteGatewayUrl()
+                AstroclawConfigFile.clearRemoteGatewayUrl()
             }
         } else {
-            OpenClawConfigFile.setRemoteGatewayUrlString(state.remoteUrl)
+            AstroclawConfigFile.setRemoteGatewayUrlString(state.remoteUrl)
         }
     }
 

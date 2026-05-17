@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   isPluginRegistryLoadInFlight: vi.fn(() => false),
-  loadOpenClawPlugins: vi.fn(),
+  loadAstroclawPlugins: vi.fn(),
   resolveCompatibleRuntimePluginRegistry: vi.fn(),
   getLoadedRuntimePluginRegistry: vi.fn(),
   resolvePluginRegistryLoadCacheKey: vi.fn((options: unknown) => JSON.stringify(options)),
@@ -24,7 +24,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("./loader.js", () => ({
   isPluginRegistryLoadInFlight: mocks.isPluginRegistryLoadInFlight,
-  loadOpenClawPlugins: mocks.loadOpenClawPlugins,
+  loadAstroclawPlugins: mocks.loadAstroclawPlugins,
   resolveCompatibleRuntimePluginRegistry: mocks.resolveCompatibleRuntimePluginRegistry,
   resolvePluginRegistryLoadCacheKey: mocks.resolvePluginRegistryLoadCacheKey,
   resolveRuntimePluginRegistry: mocks.resolveRuntimePluginRegistry,
@@ -67,7 +67,7 @@ describe("web-provider-runtime-shared", () => {
   beforeEach(() => {
     mocks.isPluginRegistryLoadInFlight.mockReset();
     mocks.isPluginRegistryLoadInFlight.mockReturnValue(false);
-    mocks.loadOpenClawPlugins.mockReset();
+    mocks.loadAstroclawPlugins.mockReset();
     mocks.resolveCompatibleRuntimePluginRegistry.mockReset();
     mocks.getLoadedRuntimePluginRegistry.mockReset();
     mocks.getLoadedRuntimePluginRegistry.mockReturnValue(undefined);
@@ -197,7 +197,7 @@ describe("web-provider-runtime-shared", () => {
       registry: activeRegistry,
       onlyPluginIds: ["brave"],
     });
-    expect(mocks.loadOpenClawPlugins).not.toHaveBeenCalled();
+    expect(mocks.loadAstroclawPlugins).not.toHaveBeenCalled();
   });
 
   it("preserves explicit empty candidate scopes when reusing the active registry", () => {
@@ -225,7 +225,7 @@ describe("web-provider-runtime-shared", () => {
       registry: activeRegistry,
       onlyPluginIds: [],
     });
-    expect(mocks.loadOpenClawPlugins).not.toHaveBeenCalled();
+    expect(mocks.loadAstroclawPlugins).not.toHaveBeenCalled();
   });
 
   it("uses loaded runtime web providers without runtime plugin loads", () => {
@@ -251,7 +251,7 @@ describe("web-provider-runtime-shared", () => {
 
     expect(providers).toEqual(["provider"]);
     expect(mockArg(mocks.getLoadedRuntimePluginRegistry).requiredPluginIds).toEqual(["brave"]);
-    expect(mocks.loadOpenClawPlugins).not.toHaveBeenCalled();
+    expect(mocks.loadAstroclawPlugins).not.toHaveBeenCalled();
   });
 
   it("ignores runtime web provider cache opt-outs after startup loading", () => {
@@ -277,13 +277,13 @@ describe("web-provider-runtime-shared", () => {
     );
 
     expect(mockArg(mocks.getLoadedRuntimePluginRegistry).requiredPluginIds).toEqual(["brave"]);
-    expect(mocks.loadOpenClawPlugins).not.toHaveBeenCalled();
+    expect(mocks.loadAstroclawPlugins).not.toHaveBeenCalled();
   });
 
   it("caches setup web provider plugin loads by default", () => {
     const loadedRegistry = { source: "setup" };
     const mapRegistryProviders = vi.fn(() => ["provider"]);
-    mocks.loadOpenClawPlugins.mockReturnValue(loadedRegistry as never);
+    mocks.loadAstroclawPlugins.mockReturnValue(loadedRegistry as never);
 
     const providers = resolvePluginWebProviders(
       {
@@ -303,8 +303,8 @@ describe("web-provider-runtime-shared", () => {
     );
 
     expect(providers).toEqual(["provider"]);
-    expect(mockArg(mocks.loadOpenClawPlugins).cache).toBe(true);
-    expect(mockArg(mocks.loadOpenClawPlugins).onlyPluginIds).toEqual(["brave"]);
+    expect(mockArg(mocks.loadAstroclawPlugins).cache).toBe(true);
+    expect(mockArg(mocks.loadAstroclawPlugins).onlyPluginIds).toEqual(["brave"]);
   });
 
   it("falls back to a scoped provider load when the active runtime registry has no web providers", () => {
@@ -314,7 +314,7 @@ describe("web-provider-runtime-shared", () => {
       registry === fallbackRegistry ? ["brave"] : [],
     );
     mocks.getLoadedRuntimePluginRegistry.mockReturnValue(activeRegistry as never);
-    mocks.loadOpenClawPlugins.mockReturnValue(fallbackRegistry as never);
+    mocks.loadAstroclawPlugins.mockReturnValue(fallbackRegistry as never);
 
     const result = resolvePluginWebProviders(
       {
@@ -332,7 +332,7 @@ describe("web-provider-runtime-shared", () => {
     );
 
     expect(result).toEqual(["brave"]);
-    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(1);
+    expect(mocks.loadAstroclawPlugins).toHaveBeenCalledTimes(1);
     expect(mapRegistryProviders).toHaveBeenCalledTimes(2);
   });
 
@@ -358,7 +358,7 @@ describe("web-provider-runtime-shared", () => {
     );
 
     expect(result).toStrictEqual([]);
-    expect(mocks.loadOpenClawPlugins).not.toHaveBeenCalled();
+    expect(mocks.loadAstroclawPlugins).not.toHaveBeenCalled();
   });
 
   it("falls back when the direct runtime registry has no web providers", () => {
@@ -375,7 +375,7 @@ describe("web-provider-runtime-shared", () => {
       }
       return undefined;
     });
-    mocks.loadOpenClawPlugins.mockReturnValue(fallbackRegistry as never);
+    mocks.loadAstroclawPlugins.mockReturnValue(fallbackRegistry as never);
 
     const result = resolveRuntimeWebProviders(
       {
@@ -393,7 +393,7 @@ describe("web-provider-runtime-shared", () => {
     );
 
     expect(result).toEqual(["brave"]);
-    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(1);
+    expect(mocks.loadAstroclawPlugins).toHaveBeenCalledTimes(1);
   });
 
   it("does not fall back when direct runtime registry returns empty under an explicit empty scope", () => {
@@ -418,13 +418,13 @@ describe("web-provider-runtime-shared", () => {
     );
 
     expect(result).toStrictEqual([]);
-    expect(mocks.loadOpenClawPlugins).not.toHaveBeenCalled();
+    expect(mocks.loadAstroclawPlugins).not.toHaveBeenCalled();
   });
 
   it("keeps explicit setup web provider cache opt-outs", () => {
     const loadedRegistry = { source: "setup" };
     const mapRegistryProviders = vi.fn(() => ["provider"]);
-    mocks.loadOpenClawPlugins.mockReturnValue(loadedRegistry as never);
+    mocks.loadAstroclawPlugins.mockReturnValue(loadedRegistry as never);
 
     resolvePluginWebProviders(
       {
@@ -444,7 +444,7 @@ describe("web-provider-runtime-shared", () => {
       },
     );
 
-    expect(mockArg(mocks.loadOpenClawPlugins).cache).toBe(false);
-    expect(mockArg(mocks.loadOpenClawPlugins).onlyPluginIds).toEqual(["brave"]);
+    expect(mockArg(mocks.loadAstroclawPlugins).cache).toBe(false);
+    expect(mockArg(mocks.loadAstroclawPlugins).onlyPluginIds).toEqual(["brave"]);
   });
 });

@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerPlatformAdapter, type PlatformAdapter } from "../adapter/index.js";
 import type { InteractionEvent } from "../types.js";
@@ -27,7 +27,7 @@ const account: GatewayAccount = {
 
 const runtime = {} as GatewayPluginRuntime;
 
-function makeRestrictedCfg(approvers: string[]): OpenClawConfig {
+function makeRestrictedCfg(approvers: string[]): AstroclawConfig {
   return {
     channels: {
       qqbot: {
@@ -39,10 +39,10 @@ function makeRestrictedCfg(approvers: string[]): OpenClawConfig {
         },
       },
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 }
 
-function makeUnrestrictedCfg(): OpenClawConfig {
+function makeUnrestrictedCfg(): AstroclawConfig {
   return {
     channels: {
       qqbot: {
@@ -50,7 +50,7 @@ function makeUnrestrictedCfg(): OpenClawConfig {
         clientSecret: "secret",
       },
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 }
 
 function makeApprovalEvent(overrides: Partial<InteractionEvent> = {}): InteractionEvent {

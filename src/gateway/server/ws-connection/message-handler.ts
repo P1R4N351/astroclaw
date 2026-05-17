@@ -158,7 +158,7 @@ function resolveTrustedProxyControlUiScopes(params: {
   requestedScopes: string[];
   upgradeReq: IncomingMessage;
 }): string[] {
-  const rawHeader = firstHeaderValue(params.upgradeReq.headers["x-openclaw-scopes"]);
+  const rawHeader = firstHeaderValue(params.upgradeReq.headers["x-astroclaw-scopes"]);
   if (rawHeader === undefined) {
     return params.requestedScopes;
   }

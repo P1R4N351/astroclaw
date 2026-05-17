@@ -34,13 +34,13 @@ describe("status.gateway-connection", () => {
           message: "ignored",
         },
         bindMode: "loopback",
-        configPath: "/tmp/openclaw.json",
+        configPath: "/tmp/astroclaw.json",
       }),
     ).toBe(
       [
         "Gateway mode: remote",
         "Gateway target: (missing gateway.remote.url)",
-        "Config: /tmp/openclaw.json",
+        "Config: /tmp/astroclaw.json",
         "Bind: loopback",
         "Local fallback (used for probes): ws://127.0.0.1:18789",
         "Fix: set gateway.remote.url, or set gateway.mode=local.",
@@ -63,7 +63,7 @@ describe("status.gateway-connection", () => {
           message: "Gateway mode: local",
         },
         bindMode: "loopback",
-        configPath: "/tmp/openclaw.json",
+        configPath: "/tmp/astroclaw.json",
       }),
     ).toBe("Node-only mode detected");
   });

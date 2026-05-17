@@ -1,2 +1,2 @@
-export { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
-export type { OpenClawPluginApi, PluginRuntime } from "openclaw/plugin-sdk/core";
+export { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+export type { AstroclawPluginApi, PluginRuntime } from "astroclaw/plugin-sdk/core";

@@ -14,7 +14,7 @@ import { resolveProviderCatalogPluginIdsForFilter } from "./models/list.provider
 const tempDirs: string[] = [];
 
 function makeTempDir() {
-  return makeTrackedTempDir("openclaw-command-cold-imports", tempDirs);
+  return makeTrackedTempDir("astroclaw-command-cold-imports", tempDirs);
 }
 
 afterEach(() => {

@@ -11,7 +11,7 @@ import type { AuthProfileCredential, AuthProfileStore } from "../agents/auth-pro
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveStateDir } from "../config/paths.js";
 import type { AuthProfileConfig } from "../config/types.auth.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { loadJsonFile } from "../infra/json-file.js";
 import { note } from "../terminal/note.js";
 import { shortenHomePath } from "../utils.js";
@@ -196,7 +196,7 @@ function listExistingAgentDirsFromState(): string[] {
     });
 }
 
-function listAuthProfileRepairCandidates(cfg: OpenClawConfig): AuthProfileRepairCandidate[] {
+function listAuthProfileRepairCandidates(cfg: AstroclawConfig): AuthProfileRepairCandidate[] {
   const candidates = new Map<string, AuthProfileRepairCandidate>();
   addCandidate(candidates, resolveDefaultAgentDir(cfg));
   for (const agentId of listAgentIds(cfg)) {
@@ -281,7 +281,7 @@ function resolveAwsSdkAuthProfileMarkerStore(
     : null;
 }
 
-function ensureConfigAuthProfiles(config: OpenClawConfig): Record<string, AuthProfileConfig> {
+function ensureConfigAuthProfiles(config: AstroclawConfig): Record<string, AuthProfileConfig> {
   const root = config as Record<string, unknown>;
   const auth = isRecord(root.auth) ? root.auth : {};
   if (root.auth !== auth) {
@@ -303,7 +303,7 @@ function removeAwsSdkProfileMarkers(raw: Record<string, unknown>, profileIds: st
 }
 
 export async function maybeRepairLegacyFlatAuthProfileStores(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   prompter: DoctorPrompter;
   now?: () => number;
 }): Promise<LegacyFlatAuthProfileRepairResult> {
@@ -333,17 +333,17 @@ export async function maybeRepairLegacyFlatAuthProfileStores(params: {
     ),
     ...awsSdkMarkerStores.map(
       (entry) =>
-        `- ${shortenHomePath(entry.authPath)} contains aws-sdk profile markers that belong in openclaw.json auth.profiles.`,
+        `- ${shortenHomePath(entry.authPath)} contains aws-sdk profile markers that belong in astroclaw.json auth.profiles.`,
     ),
   ];
   if (legacyStores.length > 0) {
     noteLines.push(
-      `- The gateway expects the canonical version/profiles store; ${formatCliCommand("openclaw doctor --fix")} rewrites this legacy shape with a backup.`,
+      `- The gateway expects the canonical version/profiles store; ${formatCliCommand("astroclaw doctor --fix")} rewrites this legacy shape with a backup.`,
     );
   }
   if (awsSdkMarkerStores.length > 0) {
     noteLines.push(
-      `- AWS SDK profile markers are routing metadata, not stored credentials; ${formatCliCommand("openclaw doctor --fix")} moves them to config with a backup.`,
+      `- AWS SDK profile markers are routing metadata, not stored credentials; ${formatCliCommand("astroclaw doctor --fix")} moves them to config with a backup.`,
     );
   }
   note(noteLines.join("\n"), "Auth profiles");

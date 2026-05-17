@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-import OpenClawProtocol
+import AstroclawProtocol
 
 struct AnyCodableTests {
     @Test

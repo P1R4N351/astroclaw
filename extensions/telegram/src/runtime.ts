@@ -1,4 +1,4 @@
-import { createPluginRuntimeStore } from "openclaw/plugin-sdk/runtime-store";
+import { createPluginRuntimeStore } from "astroclaw/plugin-sdk/runtime-store";
 import type { TelegramRuntime } from "./runtime.types.js";
 
 const {

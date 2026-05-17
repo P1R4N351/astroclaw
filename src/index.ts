@@ -96,20 +96,20 @@ if (isMain) {
     }
     if (isBenignUncaughtExceptionError(error)) {
       console.warn(
-        "[openclaw] Non-fatal uncaught exception (continuing):",
+        "[astroclaw] Non-fatal uncaught exception (continuing):",
         formatUncaughtError(error),
       );
       return;
     }
     for (const line of formatCliFailureLines({
-      title: "OpenClaw hit an unexpected runtime error.",
+      title: "Astroclaw hit an unexpected runtime error.",
       error,
       argv: process.argv,
     })) {
       console.error(line);
     }
     for (const message of runFatalErrorHooks({ reason: "uncaught_exception", error })) {
-      console.error("[openclaw]", message);
+      console.error("[astroclaw]", message);
     }
     restoreTerminalState("uncaught exception", { resumeStdinIfPaused: false });
     process.exit(1);
@@ -124,7 +124,7 @@ if (isMain) {
       console.error(line);
     }
     for (const message of runFatalErrorHooks({ reason: "legacy_cli_failure", error: err })) {
-      console.error("[openclaw]", message);
+      console.error("[astroclaw]", message);
     }
     restoreTerminalState("legacy cli failure", { resumeStdinIfPaused: false });
     process.exit(1);

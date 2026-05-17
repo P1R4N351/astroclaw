@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   externalCliDiscoveryForProviderAuth,
   ensureAuthProfileStore,
@@ -11,7 +11,7 @@ import { normalizeProviderId } from "./model-selection.js";
 
 export function hasAuthForModelProvider(params: {
   provider: string;
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   workspaceDir?: string;
   agentDir?: string;
   env?: NodeJS.ProcessEnv;
@@ -47,7 +47,7 @@ export function hasAuthForModelProvider(params: {
 }
 
 export function createProviderAuthChecker(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   workspaceDir?: string;
   agentDir?: string;
   env?: NodeJS.ProcessEnv;

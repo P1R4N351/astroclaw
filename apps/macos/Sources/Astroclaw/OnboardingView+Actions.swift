@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
-import OpenClawDiscovery
-import OpenClawIPC
+import AstroclawDiscovery
+import AstroclawIPC
 import SwiftUI
 
 extension OnboardingView {
@@ -34,7 +34,7 @@ extension OnboardingView {
         SettingsTabRouter.request(tab)
         self.openSettings()
         DispatchQueue.main.async {
-            NotificationCenter.default.post(name: .openclawSelectSettingsTab, object: tab)
+            NotificationCenter.default.post(name: .astroclawSelectSettingsTab, object: tab)
         }
     }
 

@@ -20,7 +20,7 @@ final class VoiceSessionCoordinator {
         var voiceWakeTrigger: String?
     }
 
-    private let logger = Logger(subsystem: "ai.openclaw", category: "voicewake.coordinator")
+    private let logger = Logger(subsystem: "ai.astroclaw", category: "voicewake.coordinator")
     private var session: Session?
 
     // MARK: - API

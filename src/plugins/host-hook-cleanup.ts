@@ -3,7 +3,7 @@ import { getRuntimeConfig } from "../config/config.js";
 import { updateSessionStore } from "../config/sessions/store.js";
 import { resolveAllAgentSessionStoreTargetsSync } from "../config/sessions/targets.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 import { withPluginHostCleanupTimeout } from "./host-hook-cleanup-timeout.js";
 import {
@@ -200,7 +200,7 @@ function matchesCleanupSession(
 }
 
 async function clearPluginOwnedSessionStores(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   pluginId?: string;
   sessionKey?: string;
   sessionEntrySlotKeys?: ReadonlySet<string>;
@@ -236,7 +236,7 @@ async function clearPluginOwnedSessionStores(params: {
 }
 
 async function clearPromotedSessionEntrySlotStores(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   pluginId?: string;
   sessionKey?: string;
   sessionEntrySlotKeys: ReadonlySet<string>;
@@ -296,7 +296,7 @@ function collectSessionEntrySlotKeys(
 }
 
 export async function runPluginHostCleanup(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   registry?: PluginRegistry | null;
   pluginId?: string;
   reason: PluginHostCleanupReason;
@@ -500,7 +500,7 @@ function collectRestartPromotedSessionEntrySlotKeys(
 }
 
 export async function cleanupReplacedPluginHostRegistry(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   previousRegistry?: PluginRegistry | null;
   nextRegistry?: PluginRegistry | null;
   shouldCleanup?: () => boolean;

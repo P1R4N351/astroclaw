@@ -2,7 +2,7 @@ import type { Api, Message } from "@earendil-works/pi-ai";
 import { normalizeModelRef } from "../../agents/model-selection.js";
 import type { NormalizedUsage, UsageLike } from "../../agents/usage.js";
 import { normalizeUsage } from "../../agents/usage.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { getChildLogger } from "../../logging.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
 import { normalizeOptionalString } from "../../shared/string-coerce.js";
@@ -33,7 +33,7 @@ export type RuntimeLlmAuthority = {
 };
 
 export type CreateRuntimeLlmOptions = {
-  getConfig?: () => OpenClawConfig | undefined;
+  getConfig?: () => AstroclawConfig | undefined;
   authority?: RuntimeLlmAuthority;
   logger?: RuntimeLogger;
 };
@@ -84,7 +84,7 @@ function resolveTrustedCaller(authority?: RuntimeLlmAuthority): LlmCompleteCalle
   return normalizeCaller(authority?.caller);
 }
 
-function resolveRuntimeConfig(options: CreateRuntimeLlmOptions): OpenClawConfig {
+function resolveRuntimeConfig(options: CreateRuntimeLlmOptions): AstroclawConfig {
   const cfg = options.getConfig?.();
   if (!cfg) {
     throw new Error("Plugin LLM completion requires an injected runtime config scope.");
@@ -94,7 +94,7 @@ function resolveRuntimeConfig(options: CreateRuntimeLlmOptions): OpenClawConfig 
 
 async function resolveAgentId(params: {
   request: LlmCompleteParams;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   authority?: RuntimeLlmAuthority;
   allowAgentIdOverride: boolean;
 }): Promise<string> {
@@ -187,7 +187,7 @@ function readExplicitCostUsd(raw: unknown): number | undefined {
 function buildUsage(params: {
   rawUsage: unknown;
   normalized: NormalizedUsage | undefined;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   provider: string;
   model: string;
 }): LlmCompleteUsage {
@@ -282,7 +282,7 @@ function resolvePluginPolicyId(
 }
 
 function resolvePluginLlmOverridePolicy(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   pluginId: string | undefined,
 ): RuntimeLlmOverridePolicy | undefined {
   if (!pluginId) {

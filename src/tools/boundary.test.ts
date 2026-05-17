@@ -96,7 +96,7 @@ describe("tool system boundary", () => {
     });
   });
 
-  it("keeps production tool modules independent from OpenClaw subsystems", () => {
+  it("keeps production tool modules independent from Astroclaw subsystems", () => {
     const violations = listProductionToolModuleFiles().flatMap((fileName) => {
       const source = readFileSync(new URL(fileName, toolsDir), "utf8");
       return collectStaticModuleReferences(source)

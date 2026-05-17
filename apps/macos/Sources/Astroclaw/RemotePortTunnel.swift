@@ -1,6 +1,6 @@
 import Foundation
 import Network
-import OpenClawKit
+import AstroclawKit
 import OSLog
 #if canImport(Darwin)
 import Darwin
@@ -10,7 +10,7 @@ import Darwin
 ///
 /// Uses `ssh -N -L` to forward the remote gateway ports to localhost.
 final class RemotePortTunnel: @unchecked Sendable {
-    private static let logger = Logger(subsystem: "ai.openclaw", category: "remote.tunnel")
+    private static let logger = Logger(subsystem: "ai.astroclaw", category: "remote.tunnel")
 
     let process: Process
     let localPort: UInt16?
@@ -158,7 +158,7 @@ final class RemotePortTunnel: @unchecked Sendable {
     }
 
     private static func resolveRemotePortOverride(defaultRemotePort: Int, for sshHost: String) -> Int? {
-        let root = OpenClawConfigFile.loadDict()
+        let root = AstroclawConfigFile.loadDict()
         if let port = GatewayRemoteConfig.resolveRemotePort(root: root) {
             return port
         }
@@ -180,8 +180,8 @@ final class RemotePortTunnel: @unchecked Sendable {
         if LoopbackHost.isLoopbackHost(host) {
             return port == defaultRemotePort ? nil : port
         }
-        guard let sshKey = OpenClawConfigFile.canonicalHostForComparison(sshHost),
-              let urlKey = OpenClawConfigFile.canonicalHostForComparison(host)
+        guard let sshKey = AstroclawConfigFile.canonicalHostForComparison(sshHost),
+              let urlKey = AstroclawConfigFile.canonicalHostForComparison(host)
         else {
             return nil
         }
@@ -205,7 +205,7 @@ final class RemotePortTunnel: @unchecked Sendable {
         }
 
         return try await withCheckedThrowingContinuation { cont in
-            let queue = DispatchQueue(label: "ai.openclaw.remote.tunnel.port", qos: .utility)
+            let queue = DispatchQueue(label: "ai.astroclaw.remote.tunnel.port", qos: .utility)
             do {
                 let listener = try NWListener(using: .tcp, on: .any)
                 listener.newConnectionHandler = { connection in connection.cancel() }

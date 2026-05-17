@@ -1,7 +1,7 @@
 import type { Model } from "@earendil-works/pi-ai";
 import { getModel, streamSimple } from "@earendil-works/pi-ai";
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { isLiveTestEnabled } from "./live-test-helpers.js";
 import { isLiveBillingDrift } from "./live-test-provider-drift.js";
 import { applyExtraParamsToAgent } from "./pi-embedded-runner.js";
@@ -18,7 +18,7 @@ describeLive("pi embedded extra params (live)", () => {
   it("applies config max_completion_tokens alias to openai streamFn", async () => {
     const model = getModel("openai", "gpt-5.4") as unknown as Model<"openai-completions">;
 
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           models: {

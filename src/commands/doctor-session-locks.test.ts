@@ -2,9 +2,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  createOpenClawTestState,
-  type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+  createAstroclawTestState,
+  type AstroclawTestState,
+} from "../test-utils/astroclaw-test-state.js";
 
 const note = vi.hoisted(() => vi.fn());
 
@@ -32,13 +32,13 @@ function firstNoteCall(): [string, string] {
 }
 
 describe("noteSessionLockHealth", () => {
-  let state: OpenClawTestState;
+  let state: AstroclawTestState;
 
   beforeEach(async () => {
     note.mockClear();
-    state = await createOpenClawTestState({
+    state = await createAstroclawTestState({
       layout: "state-only",
-      prefix: "openclaw-doctor-locks-",
+      prefix: "astroclaw-doctor-locks-",
     });
   });
 
@@ -59,7 +59,7 @@ describe("noteSessionLockHealth", () => {
     await noteSessionLockHealth({
       shouldRepair: false,
       staleMs: 60_000,
-      readOwnerProcessArgs: () => ["node", "/opt/openclaw/openclaw.mjs", "doctor"],
+      readOwnerProcessArgs: () => ["node", "/opt/astroclaw/astroclaw.mjs", "doctor"],
     });
 
     expect(note).toHaveBeenCalledTimes(1);
@@ -92,7 +92,7 @@ describe("noteSessionLockHealth", () => {
     await noteSessionLockHealth({
       shouldRepair: true,
       staleMs: 30_000,
-      readOwnerProcessArgs: () => ["node", "/opt/openclaw/openclaw.mjs", "doctor"],
+      readOwnerProcessArgs: () => ["node", "/opt/astroclaw/astroclaw.mjs", "doctor"],
     });
 
     expect(note).toHaveBeenCalledTimes(1);
@@ -104,7 +104,7 @@ describe("noteSessionLockHealth", () => {
     await expect(fs.access(freshLock)).resolves.toBeUndefined();
   });
 
-  it("removes fresh live locks when the owner is not an OpenClaw process", async () => {
+  it("removes fresh live locks when the owner is not an Astroclaw process", async () => {
     const sessionsDir = state.sessionsDir();
     await fs.mkdir(sessionsDir, { recursive: true });
 
@@ -123,7 +123,7 @@ describe("noteSessionLockHealth", () => {
 
     expect(note).toHaveBeenCalledTimes(1);
     const [message] = firstNoteCall();
-    expect(message).toContain("stale=yes (non-openclaw-owner)");
+    expect(message).toContain("stale=yes (non-astroclaw-owner)");
     expect(message).toContain("[removed]");
     expect(message).toContain("Removed 1 stale session lock file");
     await expect(fs.access(falseLiveLock)).rejects.toThrow();

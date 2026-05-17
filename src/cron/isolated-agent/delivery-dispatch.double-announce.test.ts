@@ -1068,7 +1068,7 @@ describe("dispatchCronDelivery — double-announce guard", () => {
   });
 
   it("retries transient direct announce failures before succeeding", async () => {
-    vi.stubEnv("OPENCLAW_TEST_FAST", "1");
+    vi.stubEnv("ASTROCLAW_TEST_FAST", "1");
     vi.mocked(deliverOutboundPayloads)
       .mockRejectedValueOnce(new Error("ECONNRESET while sending"))
       .mockResolvedValueOnce([{ ok: true } as never]);
@@ -1160,7 +1160,7 @@ describe("dispatchCronDelivery — double-announce guard", () => {
   });
 
   it("does not retry permanent direct announce failures", async () => {
-    vi.stubEnv("OPENCLAW_TEST_FAST", "1");
+    vi.stubEnv("ASTROCLAW_TEST_FAST", "1");
     vi.mocked(deliverOutboundPayloads).mockRejectedValue(new Error("chat not found"));
 
     const params = makeBaseParams({ synthesizedText: "This should fail once." });
@@ -1253,7 +1253,7 @@ describe("dispatchCronDelivery — double-announce guard", () => {
       .mockRejectedValueOnce(new Error("gateway timeout"))
       .mockResolvedValueOnce([{ ok: true } as never]);
 
-    vi.stubEnv("OPENCLAW_TEST_FAST", "1");
+    vi.stubEnv("ASTROCLAW_TEST_FAST", "1");
     try {
       const params = makeBaseParams({ synthesizedText: "Retry test." });
       const state = await dispatchCronDelivery(params);
@@ -1347,7 +1347,7 @@ describe("dispatchCronDelivery — double-announce guard", () => {
       "sessionKey is required to resolve delivery.channel=last",
     );
     expect(state.result?.error).toContain(
-      "the agent used the message tool, but OpenClaw could not verify",
+      "the agent used the message tool, but Astroclaw could not verify",
     );
   });
 

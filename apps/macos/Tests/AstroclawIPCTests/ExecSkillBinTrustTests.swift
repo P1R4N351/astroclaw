@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct ExecSkillBinTrustTests {
     @Test func `build trust index resolves skill bin paths`() throws {
@@ -53,7 +53,7 @@ struct ExecSkillBinTrustTests {
 
     private static func makeExecutable(named name: String) throws -> (root: URL, path: String) {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("openclaw-skill-bin-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("astroclaw-skill-bin-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         let file = root.appendingPathComponent(name)
         try "#!/bin/sh\nexit 0\n".write(to: file, atomically: true, encoding: .utf8)

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import path from "node:path";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { expandHomePrefix } from "../infra/home-dir.js";
 import { privateFileStore } from "../infra/private-file-store.js";
@@ -340,7 +340,7 @@ async function loadCommitmentStoreWithExpiredMarked(nowMs: number): Promise<Comm
 }
 
 export async function listPendingCommitmentsForScope(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   scope: CommitmentScope;
   nowMs?: number;
   limit?: number;
@@ -363,7 +363,7 @@ export async function listPendingCommitmentsForScope(params: {
 }
 
 export async function upsertInferredCommitments(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   item: CommitmentExtractionItem;
   candidates: Array<{
     candidate: CommitmentCandidate;
@@ -437,7 +437,7 @@ function countSentCommitmentsForSession(params: {
 }
 
 export async function listDueCommitmentsForSession(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   agentId: string;
   sessionKey: string;
   nowMs?: number;
@@ -483,7 +483,7 @@ export async function listDueCommitmentsForSession(params: {
 }
 
 export async function listDueCommitmentSessionKeys(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   agentId: string;
   nowMs?: number;
   limit?: number;
@@ -520,7 +520,7 @@ export async function listDueCommitmentSessionKeys(params: {
 }
 
 export async function markCommitmentsAttempted(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   ids: string[];
   nowMs?: number;
 }): Promise<void> {
@@ -549,7 +549,7 @@ export async function markCommitmentsAttempted(params: {
 }
 
 export async function markCommitmentsStatus(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   ids: string[];
   status: Extract<CommitmentStatus, "sent" | "dismissed" | "expired">;
   nowMs?: number;
@@ -581,7 +581,7 @@ export async function markCommitmentsStatus(params: {
 }
 
 export async function listCommitments(params?: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   status?: CommitmentStatus;
   agentId?: string;
 }): Promise<CommitmentRecord[]> {

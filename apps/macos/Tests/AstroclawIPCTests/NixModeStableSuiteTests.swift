@@ -1,12 +1,12 @@
 import Foundation
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite(.serialized)
 struct NixModeStableSuiteTests {
     @Test func `resolves from stable suite for app bundles`() throws {
         let suite = try #require(UserDefaults(suiteName: launchdLabel))
-        let key = "openclaw.nixMode"
+        let key = "astroclaw.nixMode"
         let prev = suite.object(forKey: key)
         defer {
             if let prev { suite.set(prev, forKey: key) } else { suite.removeObject(forKey: key) }
@@ -27,7 +27,7 @@ struct NixModeStableSuiteTests {
 
     @Test func `ignores stable suite outside app bundles`() throws {
         let suite = try #require(UserDefaults(suiteName: launchdLabel))
-        let key = "openclaw.nixMode"
+        let key = "astroclaw.nixMode"
         let prev = suite.object(forKey: key)
         defer {
             if let prev { suite.set(prev, forKey: key) } else { suite.removeObject(forKey: key) }

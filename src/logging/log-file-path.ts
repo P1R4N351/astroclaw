@@ -1,11 +1,11 @@
 import path from "node:path";
-import type { OpenClawConfig } from "../config/types.js";
+import type { AstroclawConfig } from "../config/types.js";
 import {
-  POSIX_OPENCLAW_TMP_DIR,
-  resolvePreferredOpenClawTmpDir,
-} from "../infra/tmp-openclaw-dir.js";
+  POSIX_ASTROCLAW_TMP_DIR,
+  resolvePreferredAstroclawTmpDir,
+} from "../infra/tmp-astroclaw-dir.js";
 
-const LOG_PREFIX = "openclaw";
+const LOG_PREFIX = "astroclaw";
 const LOG_SUFFIX = ".log";
 
 function canUseNodeFs(): boolean {
@@ -32,10 +32,10 @@ function formatLocalDate(date: Date): string {
 }
 
 function resolveDefaultRollingLogFile(date = new Date()): string {
-  const logDir = canUseNodeFs() ? resolvePreferredOpenClawTmpDir() : POSIX_OPENCLAW_TMP_DIR;
+  const logDir = canUseNodeFs() ? resolvePreferredAstroclawTmpDir() : POSIX_ASTROCLAW_TMP_DIR;
   return path.join(logDir, `${LOG_PREFIX}-${formatLocalDate(date)}${LOG_SUFFIX}`);
 }
 
-export function resolveConfiguredLogFilePath(config?: OpenClawConfig | null): string {
+export function resolveConfiguredLogFilePath(config?: AstroclawConfig | null): string {
   return config?.logging?.file ?? resolveDefaultRollingLogFile();
 }

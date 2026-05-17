@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import type { Readable } from "node:stream";
-import { resamplePcm } from "openclaw/plugin-sdk/realtime-voice";
-import { logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
-import { tempWorkspace, resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resamplePcm } from "astroclaw/plugin-sdk/realtime-voice";
+import { logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { tempWorkspace, resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
 
 const require = createRequire(import.meta.url);
 
@@ -98,7 +98,7 @@ function resolveOpusDecoderFactory(params: {
 }
 
 export function resolveOpusDecoderPreference(
-  value = process.env.OPENCLAW_DISCORD_OPUS_DECODER,
+  value = process.env.ASTROCLAW_DISCORD_OPUS_DECODER,
 ): OpusDecoderPreference {
   const normalized = value?.trim().toLowerCase();
   if (normalized === "native" || normalized === "@discordjs/opus") {
@@ -228,7 +228,7 @@ export async function writeVoiceWavFile(
   pcm: Buffer,
 ): Promise<{ path: string; durationSeconds: number }> {
   const workspace = await tempWorkspace({
-    rootDir: resolvePreferredOpenClawTmpDir(),
+    rootDir: resolvePreferredAstroclawTmpDir(),
     prefix: "discord-voice-",
   });
   const wav = buildWavBuffer(pcm);

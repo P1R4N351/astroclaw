@@ -35,7 +35,7 @@ function expectProfileFields(profile: unknown, expected: Record<string, unknown>
 describe("saveAuthProfileStore", () => {
   it("strips plaintext when keyRef/tokenRef are present", async () => {
     const structuredCloneSpy = vi.spyOn(globalThis, "structuredClone");
-    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-save-"));
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-auth-save-"));
     try {
       const store: AuthProfileStore = {
         version: 1,
@@ -92,7 +92,7 @@ describe("saveAuthProfileStore", () => {
   });
 
   it("refreshes the runtime snapshot when a saved store rotates oauth tokens", async () => {
-    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-save-runtime-"));
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-auth-save-runtime-"));
     try {
       replaceRuntimeAuthProfileStoreSnapshots([
         {
@@ -151,7 +151,7 @@ describe("saveAuthProfileStore", () => {
   });
 
   it("writes runtime scheduling state to auth-state.json only", async () => {
-    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-save-state-"));
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-auth-save-state-"));
     try {
       const store: AuthProfileStore = {
         version: 1,
@@ -208,12 +208,12 @@ describe("saveAuthProfileStore", () => {
   });
 
   it("does not persist unchanged inherited main OAuth when saving secondary local updates", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-save-inherited-"));
-    const stateDir = path.join(root, ".openclaw");
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-auth-save-inherited-"));
+    const stateDir = path.join(root, ".astroclaw");
     const childAgentDir = path.join(stateDir, "agents", "worker", "agent");
     const childAuthPath = resolveAuthStorePath(childAgentDir);
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
-    vi.stubEnv("OPENCLAW_AGENT_DIR", "");
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
+    vi.stubEnv("ASTROCLAW_AGENT_DIR", "");
     try {
       saveAuthProfileStore({
         version: 1,
@@ -278,12 +278,12 @@ describe("saveAuthProfileStore", () => {
   });
 
   it("does not persist stale inherited main OAuth after main refreshes", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-save-stale-inherited-"));
-    const stateDir = path.join(root, ".openclaw");
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-auth-save-stale-inherited-"));
+    const stateDir = path.join(root, ".astroclaw");
     const childAgentDir = path.join(stateDir, "agents", "worker", "agent");
     const childAuthPath = resolveAuthStorePath(childAgentDir);
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
-    vi.stubEnv("OPENCLAW_AGENT_DIR", "");
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
+    vi.stubEnv("ASTROCLAW_AGENT_DIR", "");
     try {
       saveAuthProfileStore({
         version: 1,
@@ -351,12 +351,12 @@ describe("saveAuthProfileStore", () => {
   });
 
   it("preserves inherited main OAuth in active secondary runtime snapshots", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-save-snapshot-"));
-    const stateDir = path.join(root, ".openclaw");
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-auth-save-snapshot-"));
+    const stateDir = path.join(root, ".astroclaw");
     const childAgentDir = path.join(stateDir, "agents", "worker", "agent");
     const childAuthPath = resolveAuthStorePath(childAgentDir);
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
-    vi.stubEnv("OPENCLAW_AGENT_DIR", "");
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
+    vi.stubEnv("ASTROCLAW_AGENT_DIR", "");
     try {
       saveAuthProfileStore({
         version: 1,

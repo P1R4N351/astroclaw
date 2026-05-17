@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
+import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const runMock = vi.hoisted(() => vi.fn());
@@ -23,7 +23,7 @@ vi.mock("./network-errors.js", () => ({
   isRecoverableTelegramNetworkError: isRecoverableTelegramNetworkErrorMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/delivery-queue-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/delivery-queue-runtime", () => ({
   drainPendingDeliveries: drainPendingDeliveriesMock,
 }));
 
@@ -31,7 +31,7 @@ vi.mock("./api-logging.js", () => ({
   withTelegramApiErrorLogging: async ({ fn }: { fn: () => Promise<unknown> }) => await fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   computeBackoff: computeBackoffMock,
   createSubsystemLogger: vi.fn(() => {
     const logger = {
@@ -349,7 +349,7 @@ async function pendingUpdateIds(spoolDir: string, limit: number | "all" = 100): 
 }
 
 async function withTempSpool<T>(fn: (spoolDir: string) => Promise<T>): Promise<T> {
-  const spoolDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+  const spoolDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
   try {
     return await fn(spoolDir);
   } finally {
@@ -524,13 +524,13 @@ describe("TelegramPollingSession", () => {
     await session.runUntilAbort();
 
     // Offset confirmation was removed because it could self-conflict with the runner.
-    // OpenClaw middleware still skips duplicates using the persisted update offset.
+    // Astroclaw middleware still skips duplicates using the persisted update offset.
     expect(bot.api.getUpdates).not.toHaveBeenCalled();
   });
 
   it("initializes the main-thread bot before draining isolated ingress spool", async () => {
     const abort = new AbortController();
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
     const handleUpdate = vi.fn(async () => undefined);
     const init = vi.fn(async () => undefined);
     const bot = {
@@ -858,7 +858,7 @@ describe("TelegramPollingSession", () => {
 
   it("lets isolated ingress drain interleave different Telegram topic lanes", async () => {
     const abort = new AbortController();
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
     const events: string[] = [];
     let releaseTopicTenTurn: (() => void) | undefined;
     const topicTenTurnDone = new Promise<void>((resolve) => {
@@ -959,7 +959,7 @@ describe("TelegramPollingSession", () => {
 
   it("lets isolated ingress drain interleave different Telegram chats", async () => {
     const abort = new AbortController();
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
     const events: string[] = [];
     let releaseFirstChatTurn: (() => void) | undefined;
     const firstChatTurnDone = new Promise<void>((resolve) => {
@@ -1058,7 +1058,7 @@ describe("TelegramPollingSession", () => {
 
   it("lets isolated ingress control updates bypass an active spooled turn", async () => {
     const abort = new AbortController();
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
     const events: string[] = [];
     let releaseRegularTurn: (() => void) | undefined;
     const regularTurnDone = new Promise<void>((resolve) => {
@@ -1175,7 +1175,7 @@ describe("TelegramPollingSession", () => {
 
   it("preserves spool order when a control update is already queued after a regular turn", async () => {
     const abort = new AbortController();
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
     const events: string[] = [];
     let releaseRegularTurn: (() => void) | undefined;
     const regularTurnDone = new Promise<void>((resolve) => {
@@ -1262,7 +1262,7 @@ describe("TelegramPollingSession", () => {
 
   it("waits for active spooled handlers before stopping the bot", async () => {
     const abort = new AbortController();
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
     const events: string[] = [];
     let releaseRegularTurn: (() => void) | undefined;
     const regularTurnDone = new Promise<void>((resolve) => {
@@ -1333,7 +1333,7 @@ describe("TelegramPollingSession", () => {
   it("keeps active spooled lanes blocked across isolated ingress restarts", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const abort = new AbortController();
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
     let releaseRegularTurn: (() => void) | undefined;
     const regularTurnDone = new Promise<void>((resolve) => {
       releaseRegularTurn = resolve;
@@ -1417,7 +1417,7 @@ describe("TelegramPollingSession", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const firstAbort = new AbortController();
     const secondAbort = new AbortController();
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
     let releaseRegularTurn: (() => void) | undefined;
     const regularTurnDone = new Promise<void>((resolve) => {
       releaseRegularTurn = resolve;
@@ -1511,7 +1511,7 @@ describe("TelegramPollingSession", () => {
   it("marks isolated ingress unhealthy when a spooled backlog wedges while polling stays live", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const abort = new AbortController();
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-spool-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-spool-"));
     const log = vi.fn();
     const setStatus = vi.fn();
     let releaseRegularTurn: (() => void) | undefined;
@@ -2266,7 +2266,7 @@ describe("TelegramPollingSession", () => {
 
     await session.runUntilAbort();
 
-    expectLogIncludes(log, "Another OpenClaw gateway, script, or Telegram poller");
+    expectLogIncludes(log, "Another Astroclaw gateway, script, or Telegram poller");
   });
 
   it("logs polling cycle start after a transport rebuild", async () => {

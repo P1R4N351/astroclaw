@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { dispatchGatewayMethod } from "openclaw/plugin-sdk/gateway-method-runtime";
+import { dispatchGatewayMethod } from "astroclaw/plugin-sdk/gateway-method-runtime";
 import { isAdminHttpRpcAllowedMethod, listAdminHttpRpcAllowedMethods } from "./methods.js";
 
 const DEFAULT_RPC_BODY_BYTES = 1024 * 1024;

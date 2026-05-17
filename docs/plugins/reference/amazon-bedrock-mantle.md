@@ -1,5 +1,5 @@
 ---
-summary: "Adds Amazon Bedrock Mantle model provider support to OpenClaw."
+summary: "Adds Amazon Bedrock Mantle model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the amazon-bedrock-mantle plugin
 title: "Amazon Bedrock Mantle plugin"
@@ -7,11 +7,11 @@ title: "Amazon Bedrock Mantle plugin"
 
 # Amazon Bedrock Mantle plugin
 
-Adds Amazon Bedrock Mantle model provider support to OpenClaw.
+Adds Amazon Bedrock Mantle model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/amazon-bedrock-mantle-provider`
+- Package: `@astroclaw/amazon-bedrock-mantle-provider`
 - Install route: npm; ClawHub
 
 ## Surface

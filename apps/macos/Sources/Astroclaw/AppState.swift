@@ -1,14 +1,14 @@
 import AppKit
 import Foundation
 import Observation
-import OpenClawKit
+import AstroclawKit
 import ServiceManagement
 import SwiftUI
 
 @MainActor
 @Observable
 final class AppState {
-    private static let logger = Logger(subsystem: "ai.openclaw", category: "app-state")
+    private static let logger = Logger(subsystem: "ai.astroclaw", category: "app-state")
 
     private let isPreview: Bool
     private var isInitializing = true
@@ -362,7 +362,7 @@ final class AppState {
             UserDefaults.standard.set(IconOverrideSelection.system.rawValue, forKey: iconOverrideKey)
         }
 
-        let configRoot = OpenClawConfigFile.loadDict()
+        let configRoot = AstroclawConfigFile.loadDict()
         let configRemoteUrl = GatewayRemoteConfig.resolveUrlString(root: configRoot)
         let configRemoteToken = GatewayRemoteConfig.resolveTokenValue(root: configRoot)
         let configRemoteTransport = GatewayRemoteConfig.resolveTransport(root: configRoot)
@@ -468,8 +468,8 @@ final class AppState {
         let preservePort: Bool = if LoopbackHost.isLoopbackHost(host) {
             true
         } else if let expectedRemoteHost {
-            OpenClawConfigFile.canonicalHostForComparison(host) ==
-                OpenClawConfigFile.canonicalHostForComparison(expectedRemoteHost)
+            AstroclawConfigFile.canonicalHostForComparison(host) ==
+                AstroclawConfigFile.canonicalHostForComparison(expectedRemoteHost)
         } else {
             false
         }
@@ -554,7 +554,7 @@ final class AppState {
     }
 
     private func startConfigWatcher() {
-        let configUrl = OpenClawConfigFile.url()
+        let configUrl = AstroclawConfigFile.url()
         self.configWatcher = ConfigFileWatcher(url: configUrl) { [weak self] in
             Task { @MainActor in
                 self?.applyConfigFromDisk()
@@ -564,7 +564,7 @@ final class AppState {
     }
 
     private func applyConfigFromDisk() {
-        let root = OpenClawConfigFile.loadDict()
+        let root = AstroclawConfigFile.loadDict()
         self.applyConfigOverrides(root)
     }
 
@@ -703,7 +703,7 @@ final class AppState {
 
         // Keep app-only connection settings local to avoid overwriting remote gateway config.
         let synced = Self.syncedGatewayRoot(
-            currentRoot: OpenClawConfigFile.loadDict(),
+            currentRoot: AstroclawConfigFile.loadDict(),
             draft: .init(
                 connectionMode: self.connectionMode,
                 remoteTransport: self.remoteTransport,
@@ -713,7 +713,7 @@ final class AppState {
                 remoteToken: self.remoteToken,
                 remoteTokenDirty: self.remoteTokenDirty))
         guard synced.changed else { return }
-        guard OpenClawConfigFile.saveDict(synced.root) else {
+        guard AstroclawConfigFile.saveDict(synced.root) else {
             Self.logger.warning("gateway config sync rejected to protect persisted gateway auth/mode")
             return
         }
@@ -862,7 +862,7 @@ extension AppState {
         state.remoteUrl = "wss://gateway.example.ts.net"
         state.remoteToken = "example-token"
         state.remoteIdentity = "~/.ssh/id_ed25519"
-        state.remoteProjectRoot = "~/Projects/openclaw"
+        state.remoteProjectRoot = "~/Projects/astroclaw"
         state.remoteCliPath = ""
         return state
     }

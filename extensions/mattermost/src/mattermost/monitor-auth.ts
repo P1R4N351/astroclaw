@@ -1,15 +1,15 @@
-import { parseAccessGroupAllowFromEntry } from "openclaw/plugin-sdk/access-groups";
+import { parseAccessGroupAllowFromEntry } from "astroclaw/plugin-sdk/access-groups";
 import {
   type ChannelIngressDecision,
   type ChannelIngressEventInput,
   type ChannelIngressIdentifierKind,
   resolveStableChannelMessageIngress,
   type StableChannelIngressIdentityParams,
-} from "openclaw/plugin-sdk/channel-ingress-runtime";
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/channel-ingress-runtime";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import type { ResolvedMattermostAccount } from "./accounts.js";
 import type { MattermostChannel } from "./client.js";
-import type { OpenClawConfig } from "./runtime-api.js";
+import type { AstroclawConfig } from "./runtime-api.js";
 import { isDangerousNameMatchingEnabled, resolveAllowlistMatchSimple } from "./runtime-api.js";
 
 const MATTERMOST_USER_NAME_KIND =
@@ -123,7 +123,7 @@ type MattermostCommandDenyReason = Extract<
 
 export async function resolveMattermostMonitorInboundAccess(params: {
   account: ResolvedMattermostAccount;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   senderId: string;
   senderName: string;
   channelId: string;
@@ -224,7 +224,7 @@ function resolveMattermostCommandDenyReason(params: {
 
 export async function authorizeMattermostCommandInvocation(params: {
   account: ResolvedMattermostAccount;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   senderId: string;
   senderName: string;
   channelId: string;

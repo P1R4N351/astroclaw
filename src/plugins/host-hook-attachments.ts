@@ -3,7 +3,7 @@ import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolvePathFromInput } from "../agents/path-policy.js";
 import { resolveWorkspaceRoot } from "../agents/workspace-dir.js";
 import { extractDeliveryInfo } from "../config/sessions/delivery-info.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { detectMime, FILE_TYPE_SNIFF_MAX_BYTES, normalizeMimeType } from "../media/mime.js";
 import { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
@@ -128,7 +128,7 @@ async function validateAttachmentFiles(
   maxBytes: number,
   options?: {
     forceDocumentMime?: string;
-    config?: OpenClawConfig;
+    config?: AstroclawConfig;
     sessionKey?: string;
   },
 ): Promise<string[] | { error: string }> {
@@ -193,7 +193,7 @@ async function validateAttachmentFiles(
 
 function resolveAttachmentFilePath(params: {
   filePath: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   sessionKey?: string;
 }): string {
   const workspaceDir =
@@ -211,7 +211,7 @@ function normalizeOptionalThreadId(value: unknown): string | number | undefined 
 }
 
 export async function sendPluginSessionAttachment(
-  params: PluginSessionAttachmentParams & { config?: OpenClawConfig; origin?: PluginOrigin },
+  params: PluginSessionAttachmentParams & { config?: AstroclawConfig; origin?: PluginOrigin },
 ): Promise<PluginSessionAttachmentResult> {
   if (params.origin !== "bundled") {
     return { ok: false, error: "session attachments are restricted to bundled plugins" };

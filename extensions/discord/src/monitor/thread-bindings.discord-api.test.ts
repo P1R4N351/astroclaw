@@ -1,5 +1,5 @@
 import { ChannelType } from "discord-api-types/v10";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as discordClientModule from "../client.js";
 import * as discordSendModule from "../send.js";
@@ -39,7 +39,7 @@ beforeAll(async () => {
 
 function resolveTestChannelIdForBinding(
   params: Omit<Parameters<typeof resolveChannelIdForBinding>[0], "cfg"> & {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
   },
 ) {
   return resolveChannelIdForBinding({
@@ -143,7 +143,7 @@ describe("resolveChannelIdForBinding", () => {
   it("forwards cfg when resolving channel id through Discord client", async () => {
     const cfg = {
       channels: { discord: { token: "tok" } },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     restGet.mockResolvedValueOnce({
       id: "thread-1",
       type: ChannelType.PublicThread,
@@ -159,7 +159,7 @@ describe("resolveChannelIdForBinding", () => {
     expect(
       (
         firstMockCall(createDiscordRestClient, "createDiscordRestClient")[0] as
-          | { cfg?: OpenClawConfig }
+          | { cfg?: AstroclawConfig }
           | undefined
       )?.cfg,
     ).toBe(cfg);
@@ -212,7 +212,7 @@ describe("maybeSendBindingMessage", () => {
   it("forwards cfg to webhook send path", async () => {
     const cfg = {
       channels: { discord: { token: "tok" } },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const record = {
       accountId: "default",
       channelId: "parent-1",

@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import type { ContextEngineRuntimeContext } from "../../context-engine/types.js";
 import {
   parseAgentSessionKey,
@@ -12,7 +12,7 @@ import {
 import { resolveDefaultAgentId } from "../agent-scope.js";
 
 export type ResolveContextEngineCapabilitiesParams = {
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   sessionKey?: string;
   agentId?: string;
   contextEnginePluginId?: string;
@@ -20,7 +20,7 @@ export type ResolveContextEngineCapabilitiesParams = {
 };
 
 function resolveBoundAgentId(params: {
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   sessionKey?: string;
   agentId?: string;
 }): string | undefined {

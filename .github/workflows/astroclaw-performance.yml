@@ -1,4 +1,4 @@
-name: OpenClaw Performance
+name: Astroclaw Performance
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       target_ref:
-        description: OpenClaw ref to benchmark; defaults to the workflow ref
+        description: Astroclaw ref to benchmark; defaults to the workflow ref
         required: false
         default: ""
         type: string
@@ -41,7 +41,7 @@ on:
         default: false
         type: boolean
       kova_ref:
-        description: openclaw/Kova Git ref to install
+        description: astroclaw/Kova Git ref to install
         required: false
         default: b63b6f9e20efb23641df00487e982230d81a90ac
         type: string
@@ -56,7 +56,7 @@ concurrency:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   OCM_VERSION: v0.2.15
-  KOVA_REPOSITORY: openclaw/Kova
+  KOVA_REPOSITORY: astroclaw/Kova
   PERFORMANCE_MODEL_ID: gpt-5.4
 
 jobs:
@@ -96,7 +96,7 @@ jobs:
       REPORT_DIR: ${{ github.workspace }}/.artifacts/kova/reports/${{ matrix.lane }}
       BUNDLE_DIR: ${{ github.workspace }}/.artifacts/kova/bundles/${{ matrix.lane }}
       SUMMARY_DIR: ${{ github.workspace }}/.artifacts/kova/summaries
-      SOURCE_PERF_DIR: ${{ github.workspace }}/.artifacts/openclaw-performance/source/${{ matrix.lane }}
+      SOURCE_PERF_DIR: ${{ github.workspace }}/.artifacts/astroclaw-performance/source/${{ matrix.lane }}
       LANE_ID: ${{ matrix.lane }}
       TARGET_REF: ${{ inputs.target_ref || github.ref_name }}
       PROFILE: ${{ inputs.profile || 'diagnostic' }}
@@ -142,7 +142,7 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Checkout OpenClaw
+      - name: Checkout Astroclaw
         if: steps.lane.outputs.run == 'true'
         uses: actions/checkout@v6
         with:
@@ -210,8 +210,8 @@ jobs:
           const path = require("node:path");
           const root = process.env.KOVA_SRC;
           const files = [
-            "support/configure-openclaw-mock-auth.mjs",
-            "support/configure-openclaw-live-auth.mjs",
+            "support/configure-astroclaw-mock-auth.mjs",
+            "support/configure-astroclaw-live-auth.mjs",
             "support/mock-openai-server.mjs",
             "states/mock-openai-provider.json"
           ];
@@ -317,7 +317,7 @@ jobs:
           run_slug="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           report_url=""
           if [[ "${CLAWGRIT_REPORTS_TOKEN_PRESENT:-false}" == "true" ]]; then
-            report_url="https://github.com/openclaw/clawgrit-reports/tree/main/openclaw-performance/${ref_slug}/${run_slug}/${LANE_ID}"
+            report_url="https://github.com/astroclaw/clawgrit-reports/tree/main/astroclaw-performance/${ref_slug}/${run_slug}/${LANE_ID}"
           fi
           summary_path="$SUMMARY_DIR/${LANE_ID}.md"
           summary_args=(node "$PERFORMANCE_HELPER_DIR/scripts/kova-ci-summary.mjs" --report "$report_json" --output "$summary_path" --lane "$LANE_ID")
@@ -348,7 +348,7 @@ jobs:
             exit "$status"
           fi
 
-      - name: Run OpenClaw source performance probes
+      - name: Run Astroclaw source performance probes
         if: ${{ steps.lane.outputs.run == 'true' && matrix.lane == 'mock-provider' }}
         shell: bash
         run: |
@@ -359,9 +359,9 @@ jobs:
           fi
 
           mkdir -p "$SOURCE_PERF_DIR/mock-hello"
-          if ! node -e "const fs=require('node:fs'); const scripts=require('./package.json').scripts||{}; process.exit(scripts['test:gateway:cpu-scenarios'] && scripts.openclaw && fs.existsSync('scripts/bench-cli-startup.ts') ? 0 : 1)"; then
+          if ! node -e "const fs=require('node:fs'); const scripts=require('./package.json').scripts||{}; process.exit(scripts['test:gateway:cpu-scenarios'] && scripts.astroclaw && fs.existsSync('scripts/bench-cli-startup.ts') ? 0 : 1)"; then
             cat > "$SOURCE_PERF_DIR/index.md" <<EOF
-          # OpenClaw Source Performance
+          # Astroclaw Source Performance
 
           Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 
@@ -371,7 +371,7 @@ jobs:
 
           - Tested ref: ${TESTED_REF}
           - Tested SHA: ${TESTED_SHA}
-          - Required scripts: test:gateway:cpu-scenarios, openclaw, scripts/bench-cli-startup.ts
+          - Required scripts: test:gateway:cpu-scenarios, astroclaw, scripts/bench-cli-startup.ts
           EOF
             cat "$SOURCE_PERF_DIR/index.md" >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -393,7 +393,7 @@ jobs:
 
           for run_index in $(seq 1 "$source_runs"); do
             run_dir="$SOURCE_PERF_DIR/mock-hello/run-$(printf '%03d' "$run_index")"
-            pnpm openclaw qa suite \
+            pnpm astroclaw qa suite \
               --provider-mode mock-openai \
               --model "mock-openai/${PERFORMANCE_MODEL_ID}" \
               --concurrency 1 \
@@ -403,8 +403,8 @@ jobs:
 
           gateway_home="$(mktemp -d)"
           gateway_port="$(node -e "const net=require('node:net'); const s=net.createServer(); s.listen(0,'127.0.0.1',()=>{ console.log(s.address().port); s.close(); });")"
-          gateway_state="$gateway_home/.openclaw"
-          gateway_config="$gateway_state/openclaw.json"
+          gateway_state="$gateway_home/.astroclaw"
+          gateway_config="$gateway_state/astroclaw.json"
           gateway_log="$SOURCE_PERF_DIR/cli-gateway.log"
           gateway_pid=""
           mkdir -p "$gateway_state"
@@ -433,7 +433,7 @@ jobs:
             rm -rf "$gateway_home"
           }
           trap cleanup_gateway EXIT
-          OPENCLAW_HOME="$gateway_home" OPENCLAW_STATE_DIR="$gateway_state" OPENCLAW_CONFIG_PATH="$gateway_config" OPENCLAW_GATEWAY_PORT="$gateway_port" OPENCLAW_SKIP_CHANNELS=1 \
+          ASTROCLAW_HOME="$gateway_home" ASTROCLAW_STATE_DIR="$gateway_state" ASTROCLAW_CONFIG_PATH="$gateway_config" ASTROCLAW_GATEWAY_PORT="$gateway_port" ASTROCLAW_SKIP_CHANNELS=1 \
             node dist/entry.js gateway run --bind loopback --port "$gateway_port" --auth none --allow-unconfigured --force \
             >"$gateway_log" 2>&1 &
           gateway_pid="$!"
@@ -450,7 +450,7 @@ jobs:
           done
           curl -fsS "http://127.0.0.1:${gateway_port}/healthz" >/dev/null
 
-          OPENCLAW_HOME="$gateway_home" OPENCLAW_STATE_DIR="$gateway_state" OPENCLAW_CONFIG_PATH="$gateway_config" OPENCLAW_GATEWAY_PORT="$gateway_port" \
+          ASTROCLAW_HOME="$gateway_home" ASTROCLAW_STATE_DIR="$gateway_state" ASTROCLAW_CONFIG_PATH="$gateway_config" ASTROCLAW_GATEWAY_PORT="$gateway_port" \
             node --import tsx scripts/bench-cli-startup.ts \
             --case gatewayHealthJson \
             --case configGetGatewayPort \
@@ -460,7 +460,7 @@ jobs:
           cleanup_gateway
           trap - EXIT
 
-          node "$PERFORMANCE_HELPER_DIR/scripts/openclaw-performance-source-summary.mjs" \
+          node "$PERFORMANCE_HELPER_DIR/scripts/astroclaw-performance-source-summary.mjs" \
             --source-dir "$SOURCE_PERF_DIR" \
             --output "$SOURCE_PERF_DIR/index.md"
 
@@ -470,12 +470,12 @@ jobs:
         if: ${{ always() && steps.lane.outputs.run == 'true' }}
         uses: actions/upload-artifact@v5
         with:
-          name: openclaw-performance-${{ matrix.lane }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: astroclaw-performance-${{ matrix.lane }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .artifacts/kova/reports/${{ matrix.lane }}
             .artifacts/kova/bundles/${{ matrix.lane }}
             .artifacts/kova/summaries/${{ matrix.lane }}.md
-            .artifacts/openclaw-performance/source/${{ matrix.lane }}
+            .artifacts/astroclaw-performance/source/${{ matrix.lane }}
           if-no-files-found: ignore
           retention-days: ${{ matrix.deep_profile == 'true' && 14 || 30 }}
 
@@ -489,7 +489,7 @@ jobs:
           reports_root=".artifacts/clawgrit-reports"
           mkdir -p "$reports_root"
           git -C "$reports_root" init -b main
-          git -C "$reports_root" remote add origin "https://x-access-token:${CLAWGRIT_REPORTS_TOKEN}@github.com/openclaw/clawgrit-reports.git"
+          git -C "$reports_root" remote add origin "https://x-access-token:${CLAWGRIT_REPORTS_TOKEN}@github.com/astroclaw/clawgrit-reports.git"
           if git -C "$reports_root" ls-remote --exit-code --heads origin main >/dev/null 2>&1; then
             git -C "$reports_root" fetch --depth=1 origin main
             git -C "$reports_root" checkout -B main FETCH_HEAD
@@ -505,10 +505,10 @@ jobs:
         run: |
           set -euo pipefail
           reports_root=".artifacts/clawgrit-reports"
-          git -C "$reports_root" remote set-url origin "https://x-access-token:${CLAWGRIT_REPORTS_TOKEN}@github.com/openclaw/clawgrit-reports.git"
+          git -C "$reports_root" remote set-url origin "https://x-access-token:${CLAWGRIT_REPORTS_TOKEN}@github.com/astroclaw/clawgrit-reports.git"
           ref_slug="$(printf '%s' "${TESTED_REF}" | tr -c 'A-Za-z0-9._-' '-')"
           run_slug="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          dest="${reports_root}/openclaw-performance/${ref_slug}/${run_slug}/${LANE_ID}"
+          dest="${reports_root}/astroclaw-performance/${ref_slug}/${run_slug}/${LANE_ID}"
           mkdir -p "$dest"
           cp "${{ steps.kova.outputs.report_json }}" "$dest/report.json"
           if [[ -f "${{ steps.kova.outputs.report_md }}" ]]; then
@@ -531,7 +531,7 @@ jobs:
           EOF
             fi
           fi
-          cat > "${reports_root}/openclaw-performance/${ref_slug}/latest-${LANE_ID}.json" <<EOF
+          cat > "${reports_root}/astroclaw-performance/${ref_slug}/latest-${LANE_ID}.json" <<EOF
           {
             "repository": "${GITHUB_REPOSITORY}",
             "ref": "${TESTED_REF}",
@@ -544,18 +544,18 @@ jobs:
             "run_id": "${GITHUB_RUN_ID}",
             "run_attempt": "${GITHUB_RUN_ATTEMPT}",
             "lane": "${LANE_ID}",
-            "path": "openclaw-performance/${ref_slug}/${run_slug}/${LANE_ID}"
+            "path": "astroclaw-performance/${ref_slug}/${run_slug}/${LANE_ID}"
           }
           EOF
 
-          git -C "$reports_root" config user.name "openclaw-performance[bot]"
-          git -C "$reports_root" config user.email "openclaw-performance[bot]@users.noreply.github.com"
-          git -C "$reports_root" add openclaw-performance
+          git -C "$reports_root" config user.name "astroclaw-performance[bot]"
+          git -C "$reports_root" config user.email "astroclaw-performance[bot]@users.noreply.github.com"
+          git -C "$reports_root" add astroclaw-performance
           if git -C "$reports_root" diff --cached --quiet; then
             echo "No clawgrit report changes to publish."
             exit 0
           fi
-          git -C "$reports_root" commit -m "perf: add OpenClaw ${LANE_ID} report ${TESTED_SHA::12}"
+          git -C "$reports_root" commit -m "perf: add Astroclaw ${LANE_ID} report ${TESTED_SHA::12}"
           for attempt in 1 2 3 4 5; do
             if git -C "$reports_root" push origin HEAD:main; then
               exit 0

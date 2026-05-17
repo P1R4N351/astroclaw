@@ -13,7 +13,7 @@ import {
   resolveMainVersion,
   resolvePublishedVersion,
   runHarness,
-  validateOpenClawPackageSpec,
+  validateAstroclawPackageSpec,
   writeJson,
   parseRttCredentialRole,
   parseRttCredentialSource,
@@ -30,13 +30,13 @@ const DEFAULT_SAMPLE_TIMEOUT_MS = 30_000;
 
 function usage() {
   return [
-    "Usage: pnpm rtt <openclaw@spec> [--package-tgz PATH] [--provider mock-openai|live-frontier] [--credential-source env|convex] [--credential-role maintainer|ci] [--runs N] [--samples N] [--sample-timeout-ms N] [--timeout-ms N] [--harness-root PATH] [--output PATH]",
+    "Usage: pnpm rtt <astroclaw@spec> [--package-tgz PATH] [--provider mock-openai|live-frontier] [--credential-source env|convex] [--credential-role maintainer|ci] [--runs N] [--samples N] [--sample-timeout-ms N] [--timeout-ms N] [--harness-root PATH] [--output PATH]",
     "",
     "Examples:",
-    "  pnpm rtt openclaw@main --package-tgz .artifacts/package/openclaw.tgz",
-    "  pnpm rtt openclaw@beta",
-    "  pnpm rtt openclaw@2026.4.30",
-    "  pnpm rtt openclaw@latest --provider live-frontier",
+    "  pnpm rtt astroclaw@main --package-tgz .artifacts/package/astroclaw.tgz",
+    "  pnpm rtt astroclaw@beta",
+    "  pnpm rtt astroclaw@2026.4.30",
+    "  pnpm rtt astroclaw@latest --provider live-frontier",
   ].join("\n");
 }
 
@@ -148,7 +148,7 @@ function parseArgs(argv: string[]) {
   }
 
   return {
-    spec: validateOpenClawPackageSpec(spec),
+    spec: validateAstroclawPackageSpec(spec),
     options: {
       packageTgz,
       credentialRole,
@@ -239,11 +239,11 @@ async function main() {
   });
   await assertHarnessRoot(options.harnessRoot);
   await assertDockerAvailable();
-  if (spec === "openclaw@main" && !options.packageTgz) {
-    throw new Error("openclaw@main requires --package-tgz.");
+  if (spec === "astroclaw@main" && !options.packageTgz) {
+    throw new Error("astroclaw@main requires --package-tgz.");
   }
   const version =
-    spec === "openclaw@main"
+    spec === "astroclaw@main"
       ? await resolveMainVersion(options.harnessRoot)
       : await resolvePublishedVersion(spec);
   let failed = false;

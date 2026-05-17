@@ -1,12 +1,12 @@
 ---
-summary: "Use Gradium text-to-speech in OpenClaw"
+summary: "Use Gradium text-to-speech in Astroclaw"
 read_when:
   - You want Gradium for text-to-speech
   - You need Gradium API key, voice, or directive token configuration
 title: "Gradium"
 ---
 
-[Gradium](https://gradium.ai) is a bundled text-to-speech provider for OpenClaw. The plugin can render normal audio replies (WAV), voice-note-compatible Opus output, and 8 kHz u-law audio for telephony surfaces.
+[Gradium](https://gradium.ai) is a bundled text-to-speech provider for Astroclaw. The plugin can render normal audio replies (WAV), voice-note-compatible Opus output, and 8 kHz u-law audio for telephony surfaces.
 
 | Property      | Value                                |
 | ------------- | ------------------------------------ |
@@ -17,7 +17,7 @@ title: "Gradium"
 
 ## Setup
 
-Create a Gradium API key, then expose it to OpenClaw with either an env var or the config key.
+Create a Gradium API key, then expose it to Astroclaw with either an env var or the config key.
 
 <Tabs>
   <Tab title="Env var">
@@ -73,7 +73,7 @@ The plugin checks the resolved `apiKey` first and falls back to the `GRADIUM_API
 | `messages.tts.providers.gradium.baseUrl` | string | Override the API origin. Trailing slashes are stripped. Defaults to `https://api.gradium.ai`. |
 | `messages.tts.providers.gradium.voiceId` | string | Default voice id used when no directive override is present.                                  |
 
-The output audio format is selected automatically by the runtime based on the target surface and is not configurable from `openclaw.json`. See [Output](#output) below.
+The output audio format is selected automatically by the runtime based on the target surface and is not configurable from `astroclaw.json`. See [Output](#output) below.
 
 ## Voices
 
@@ -115,7 +115,7 @@ The runtime picks the output format from the target surface. The provider does n
 
 ## Auto-select order
 
-Among configured TTS providers, Gradium's auto-select order is `30`. See [Text-to-Speech](/tools/tts) for how OpenClaw picks the active provider when `messages.tts.provider` is not pinned.
+Among configured TTS providers, Gradium's auto-select order is `30`. See [Text-to-Speech](/tools/tts) for how Astroclaw picks the active provider when `messages.tts.provider` is not pinned.
 
 ## Related
 

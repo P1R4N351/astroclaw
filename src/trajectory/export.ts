@@ -298,7 +298,7 @@ function isRuntimeTrajectoryEvent(value: unknown): value is TrajectoryEvent {
     return false;
   }
   return (
-    value.traceSchema === "openclaw-trajectory" &&
+    value.traceSchema === "astroclaw-trajectory" &&
     value.schemaVersion === 1 &&
     value.source === "runtime" &&
     typeof value.type === "string" &&
@@ -483,7 +483,7 @@ function buildTranscriptEvents(params: {
   for (const entry of params.entries) {
     const push = (type: string, data?: Record<string, unknown>) => {
       events.push({
-        traceSchema: "openclaw-trajectory",
+        traceSchema: "astroclaw-trajectory",
         schemaVersion: 1,
         traceId: params.traceId,
         source: "transcript",
@@ -817,7 +817,7 @@ function buildMetadataCapture(params: {
     };
   })();
   return {
-    traceSchema: "openclaw-trajectory",
+    traceSchema: "astroclaw-trajectory",
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     traceId: params.manifest.traceId,
@@ -848,7 +848,7 @@ function buildArtifactsCapture(params: {
     return undefined;
   }
   return {
-    traceSchema: "openclaw-trajectory",
+    traceSchema: "astroclaw-trajectory",
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     traceId: params.manifest.traceId,
@@ -918,7 +918,7 @@ function buildPromptsCapture(params: {
     return undefined;
   }
   return {
-    traceSchema: "openclaw-trajectory",
+    traceSchema: "astroclaw-trajectory",
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     traceId: params.manifest.traceId,
@@ -942,9 +942,9 @@ export function resolveDefaultTrajectoryExportDir(params: {
   const sessionFileName = safeTrajectorySessionFileName(params.sessionId);
   return path.join(
     params.workspaceDir,
-    ".openclaw",
+    ".astroclaw",
     "trajectory-exports",
-    `openclaw-trajectory-${sessionFileName.slice(0, 8)}-${timestamp}`,
+    `astroclaw-trajectory-${sessionFileName.slice(0, 8)}-${timestamp}`,
   );
 }
 
@@ -1002,7 +1002,7 @@ export async function exportTrajectoryBundle(params: BuildTrajectoryBundleParams
   const rawEvents = sortTrajectoryEvents([...runtimeEvents, ...transcriptEvents]);
   const events = rawEvents.map((event) => redactEventForExport(event, redaction));
   const manifest: TrajectoryBundleManifest = {
-    traceSchema: "openclaw-trajectory",
+    traceSchema: "astroclaw-trajectory",
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     traceId: params.sessionId,

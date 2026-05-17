@@ -13,7 +13,7 @@ import {
 const activePrLimit = 20;
 
 const thirdPartyExtensionMessage =
-  "Please publish this as a third-party plugin on [ClawHub](https://clawhub.ai) instead of adding it to the core repo. Docs: https://docs.openclaw.ai/plugin and https://docs.openclaw.ai/clawhub";
+  "Please publish this as a third-party plugin on [ClawHub](https://clawhub.ai) instead of adding it to the core repo. Docs: https://docs.astroclaw.ai/plugin and https://docs.astroclaw.ai/clawhub";
 
 const rules = [
   {
@@ -26,13 +26,13 @@ const rules = [
     label: "r: support",
     close: true,
     message:
-      "Please use [our support server](https://discord.gg/clawd) and ask in #help or #users-helping-users to resolve this, or follow the stuck FAQ at https://docs.openclaw.ai/help/faq#im-stuck-whats-the-fastest-way-to-get-unstuck.",
+      "Please use [our support server](https://discord.gg/clawd) and ask in #help or #users-helping-users to resolve this, or follow the stuck FAQ at https://docs.astroclaw.ai/help/faq#im-stuck-whats-the-fastest-way-to-get-unstuck.",
   },
   {
     label: "r: false-positive",
     close: true,
     message:
-      "Closing this because it looks like a false positive or reclassification-only report rather than an actionable OpenClaw bug. If this is still a real issue, please open a fresh report with concrete reproduction steps and current-version details.",
+      "Closing this because it looks like a false positive or reclassification-only report rather than an actionable Astroclaw bug. If this is still a real issue, please open a fresh report with concrete reproduction steps and current-version details.",
   },
   {
     label: "r: no-ci-pr",
@@ -65,7 +65,7 @@ const rules = [
     close: true,
     commentTriggers: ["bluebubbles", "blue bubbles"],
     message:
-      "BlueBubbles is deprecated and no longer ships as a bundled OpenClaw channel. Use iMessage via `imsg` instead: https://docs.openclaw.ai/channels/imessage. If this needs to stay BlueBubbles-backed, publish it as a third-party plugin on ClawHub instead of adding it back to core.",
+      "BlueBubbles is deprecated and no longer ships as a bundled Astroclaw channel. Use iMessage via `imsg` instead: https://docs.astroclaw.ai/channels/imessage. If this needs to stay BlueBubbles-backed, publish it as a third-party plugin on ClawHub instead of adding it back to core.",
   },
   {
     label: "r: moltbook",
@@ -74,7 +74,7 @@ const rules = [
     lockReason: "off-topic",
     commentTriggers: ["moltbook"],
     message:
-      "OpenClaw is not affiliated with Moltbook, and issues related to Moltbook should not be submitted here.",
+      "Astroclaw is not affiliated with Moltbook, and issues related to Moltbook should not be submitted here.",
   },
 ];
 
@@ -117,7 +117,7 @@ export const managedLabelSpecs = {
   },
   "r: moltbook": {
     color: "B60205",
-    description: "Auto-close and lock: Moltbook is off-topic for OpenClaw.",
+    description: "Auto-close and lock: Moltbook is off-topic for Astroclaw.",
   },
   "r: spam": {
     color: "B60205",
@@ -252,13 +252,13 @@ const candidateActionRules = [
     label: candidateLabels.needsRealBehaviorProof,
     close: true,
     message:
-      "Closing this PR because it does not include real behavior proof. Please reopen or resubmit with after-fix evidence from a real OpenClaw setup; terminal screenshots, console output, redacted logs, recordings, linked artifacts, and copied live output count. Unit tests, mocks, snapshots, lint, typechecks, and CI are supplemental only.",
+      "Closing this PR because it does not include real behavior proof. Please reopen or resubmit with after-fix evidence from a real Astroclaw setup; terminal screenshots, console output, redacted logs, recordings, linked artifacts, and copied live output count. Unit tests, mocks, snapshots, lint, typechecks, and CI are supplemental only.",
   },
   {
     label: candidateLabels.mockOnlyProof,
     close: true,
     message:
-      "Closing this PR because the proof only shows tests, mocks, snapshots, lint, typechecks, or CI. Please reopen or resubmit with after-fix evidence from a real OpenClaw setup; terminal screenshots, console output, redacted logs, recordings, linked artifacts, and copied live output count.",
+      "Closing this PR because the proof only shows tests, mocks, snapshots, lint, typechecks, or CI. Please reopen or resubmit with after-fix evidence from a real Astroclaw setup; terminal screenshots, console output, redacted logs, recordings, linked artifacts, and copied live output count.",
   },
   {
     label: candidateLabels.dirtyCandidate,
@@ -286,7 +286,7 @@ const candidateActionRules = [
     label: candidateLabels.lowSignalDocs,
     close: true,
     message:
-      "Closing this PR because the docs-only change is too low-signal for the core repo. Please reopen or resubmit with a concrete OpenClaw docs gap and linked context.",
+      "Closing this PR because the docs-only change is too low-signal for the core repo. Please reopen or resubmit with a concrete Astroclaw docs gap and linked context.",
   },
   {
     label: candidateLabels.testOnlyNoBug,
@@ -304,7 +304,7 @@ const candidateActionRules = [
     label: candidateLabels.blankTemplate,
     close: true,
     message:
-      "Closing this PR because the template is mostly blank and does not describe a concrete OpenClaw problem, fix, or test plan. Please reopen or resubmit with the missing context filled in.",
+      "Closing this PR because the template is mostly blank and does not describe a concrete Astroclaw problem, fix, or test plan. Please reopen or resubmit with the missing context filled in.",
   },
 ];
 
@@ -342,7 +342,7 @@ function extractIssueFormValue(body, field) {
 }
 
 function hasLinkedReference(text) {
-  return /(?:#\d+|github\.com\/openclaw\/openclaw\/(?:issues|pull)\/\d+)/i.test(text);
+  return /(?:#\d+|github\.com\/astroclaw\/astroclaw\/(?:issues|pull)\/\d+)/i.test(text);
 }
 
 function hasFilledTemplateLine(body, field) {
@@ -554,7 +554,7 @@ export function classifyPullRequestCandidateLabels(pullRequest, files) {
 
   const addsPluginManifest = files.some(
     (file) =>
-      file.status === "added" && /^extensions\/[^/]+\/openclaw\.plugin\.json$/i.test(file.filename),
+      file.status === "added" && /^extensions\/[^/]+\/astroclaw\.plugin\.json$/i.test(file.filename),
   );
   if (
     !clearDesignContext &&

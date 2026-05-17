@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../plugins/runtime.js";
 import {
@@ -44,7 +44,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("allows declared push-to-talk commands on trusted talk-capable nodes", () => {
-    const cfg = {} as OpenClawConfig;
+    const cfg = {} as AstroclawConfig;
     for (const platform of ["ios", "android", "macos", "other"]) {
       const allowlist = resolveNodeCommandAllowlist(cfg, { platform, caps: ["talk"] });
       expect(allowlist.has("talk.ptt.start")).toBe(true);
@@ -62,7 +62,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("does not allow push-to-talk commands from platform label alone", () => {
-    const cfg = {} as OpenClawConfig;
+    const cfg = {} as AstroclawConfig;
     const allowlist = resolveNodeCommandAllowlist(cfg, {
       platform: "android",
       caps: ["device"],
@@ -73,7 +73,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("allows push-to-talk commands when the node declares talk command support", () => {
-    const cfg = {} as OpenClawConfig;
+    const cfg = {} as AstroclawConfig;
     const allowlist = resolveNodeCommandAllowlist(cfg, {
       platform: "custom",
       commands: ["talk.ptt.start"],
@@ -83,7 +83,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("keeps canvas commands out of core defaults when the canvas plugin is not active", () => {
-    const allowlist = resolveNodeCommandAllowlist({} as OpenClawConfig, {
+    const allowlist = resolveNodeCommandAllowlist({} as AstroclawConfig, {
       platform: "windows",
       deviceFamily: "Windows",
     });
@@ -94,7 +94,7 @@ describe("gateway/node-command-policy", () => {
   it("adds canvas commands from the active canvas plugin node policy", () => {
     installCanvasPluginDefaults();
 
-    const allowlist = resolveNodeCommandAllowlist({} as OpenClawConfig, {
+    const allowlist = resolveNodeCommandAllowlist({} as AstroclawConfig, {
       platform: "windows",
       deviceFamily: "Windows",
     });
@@ -104,7 +104,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("does not grant host command defaults for platform prefix aliases", () => {
-    const cfg = {} as OpenClawConfig;
+    const cfg = {} as AstroclawConfig;
     const cases = [
       { platform: "darwin", deviceFamily: "iPhone" },
       { platform: "darwin", deviceFamily: "Mac" },
@@ -143,7 +143,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("keeps defaults for first-party native platform labels with matching families", () => {
-    const cfg = {} as OpenClawConfig;
+    const cfg = {} as AstroclawConfig;
 
     const iosAllowlist = resolveNodeCommandAllowlist(cfg, {
       platform: "iOS 18.4.0",
@@ -171,7 +171,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("keeps explicitly approved host commands for desktop platforms", () => {
-    const cfg = {} as OpenClawConfig;
+    const cfg = {} as AstroclawConfig;
     const cases = [
       { platform: "macos", deviceFamily: "Mac" },
       { platform: "windows", deviceFamily: "Windows" },
@@ -189,7 +189,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("keeps approved host commands on live desktop node sessions", () => {
-    const allowlist = resolveNodeCommandAllowlist({} as OpenClawConfig, {
+    const allowlist = resolveNodeCommandAllowlist({} as AstroclawConfig, {
       nodeId: "node-1",
       connId: "conn-1",
       platform: "linux",
@@ -202,7 +202,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("does not treat unconnected declared host commands as approved", () => {
-    const allowlist = resolveNodeCommandAllowlist({} as OpenClawConfig, {
+    const allowlist = resolveNodeCommandAllowlist({} as AstroclawConfig, {
       platform: "linux",
       deviceFamily: "Linux",
       commands: ["browser.proxy", "system.run"],
@@ -213,7 +213,7 @@ describe("gateway/node-command-policy", () => {
   });
 
   it("does not grandfather approved non-default commands after config removal", () => {
-    const staleApproval = resolveNodeCommandAllowlist({} as OpenClawConfig, {
+    const staleApproval = resolveNodeCommandAllowlist({} as AstroclawConfig, {
       platform: "macos",
       deviceFamily: "Mac",
       approvedCommands: ["screen.record"],
@@ -227,7 +227,7 @@ describe("gateway/node-command-policy", () => {
             allowCommands: ["screen.record"],
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       {
         platform: "macos",
         deviceFamily: "Mac",

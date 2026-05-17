@@ -35,8 +35,8 @@ describe("config io shell env expected keys", () => {
       "DISCORD_BOT_TOKEN",
       "SLACK_BOT_TOKEN",
       "SLACK_APP_TOKEN",
-      "OPENCLAW_GATEWAY_TOKEN",
-      "OPENCLAW_GATEWAY_PASSWORD",
+      "ASTROCLAW_GATEWAY_TOKEN",
+      "ASTROCLAW_GATEWAY_PASSWORD",
     ]);
   });
 });

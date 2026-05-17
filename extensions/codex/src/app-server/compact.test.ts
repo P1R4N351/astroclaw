@@ -4,7 +4,7 @@ import path from "node:path";
 import {
   embeddedAgentLog,
   type HarnessContextEngine as ContextEngine,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CodexAppServerClientFactory } from "./client-factory.js";
 import type { CodexAppServerClient } from "./client.js";
@@ -71,7 +71,7 @@ function compactDetails(result: CompactResult): Record<string, unknown> {
 
 describe("maybeCompactCodexAppServerSession", () => {
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-compact-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-codex-compact-"));
   });
 
   afterEach(async () => {
@@ -160,7 +160,7 @@ describe("maybeCompactCodexAppServerSession", () => {
     expect(seenAuthProfileId).toBe("openai-codex:work");
   });
 
-  it("warns when stale OpenClaw compaction overrides are ignored", async () => {
+  it("warns when stale Astroclaw compaction overrides are ignored", async () => {
     const warn = vi.spyOn(embeddedAgentLog, "warn").mockImplementation(() => undefined);
     const fake = createFakeCodexClient();
     setCodexAppServerClientFactoryForTest(async () => fake.client);
@@ -192,7 +192,7 @@ describe("maybeCompactCodexAppServerSession", () => {
     await pendingResult;
 
     expect(warn).toHaveBeenCalledWith(
-      "ignoring OpenClaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
+      "ignoring Astroclaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
       {
         sessionId: "session-1",
         sessionKey: "agent:main:session-1",
@@ -237,7 +237,7 @@ describe("maybeCompactCodexAppServerSession", () => {
     await pendingResult;
 
     expect(warn).toHaveBeenCalledWith(
-      "ignoring OpenClaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
+      "ignoring Astroclaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
       {
         sessionId: "session-1",
         sessionKey: "agent:nik:session-1",
@@ -286,7 +286,7 @@ describe("maybeCompactCodexAppServerSession", () => {
     await pendingResult;
 
     expect(warn).toHaveBeenCalledWith(
-      "ignoring OpenClaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
+      "ignoring Astroclaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
       {
         sessionId: "session-1",
         sessionKey: "agent:nik:session-1",
@@ -330,7 +330,7 @@ describe("maybeCompactCodexAppServerSession", () => {
     });
 
     expect(warn).not.toHaveBeenCalledWith(
-      "ignoring OpenClaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
+      "ignoring Astroclaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
       expect.anything(),
     );
     warn.mockRestore();
@@ -377,7 +377,7 @@ describe("maybeCompactCodexAppServerSession", () => {
     });
 
     expect(warn).not.toHaveBeenCalledWith(
-      "ignoring OpenClaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
+      "ignoring Astroclaw compaction overrides for Codex app-server compaction; Codex uses native server-side compaction",
       expect.anything(),
     );
     warn.mockRestore();

@@ -1,6 +1,6 @@
 import { normalizeChatType } from "../../channels/chat-type.js";
 import type { InboundEventKind } from "../../channels/inbound-event/kind.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import type { SessionSendPolicyDecision } from "../../sessions/send-policy.js";
 import {
   isExplicitCommandTurn,
@@ -23,7 +23,7 @@ export function isExplicitSourceReplyCommand(ctx: SourceReplyDeliveryModeContext
 }
 
 export function resolveSourceReplyDeliveryMode(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   ctx: SourceReplyDeliveryModeContext;
   requested?: SourceReplyDeliveryMode;
   strictMessageToolOnly?: boolean;
@@ -73,7 +73,7 @@ export type SourceReplyVisibilityPolicy = {
 };
 
 export function resolveSourceReplyVisibilityPolicy(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   ctx: SourceReplyDeliveryModeContext;
   requested?: SourceReplyDeliveryMode;
   strictMessageToolOnly?: boolean;

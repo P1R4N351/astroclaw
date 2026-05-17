@@ -1,5 +1,5 @@
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite(.serialized) struct VoiceWakeForwarderTests {
     @Test func `prefixed transcript uses machine name`() {

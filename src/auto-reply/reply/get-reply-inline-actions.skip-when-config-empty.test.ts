@@ -8,10 +8,10 @@ import { stripInlineStatus } from "./reply-inline.js";
 import { buildTestCtx } from "./test-ctx.js";
 import type { TypingController } from "./typing.js";
 
-const { buildStatusReplyMock, createOpenClawToolsMock, getChannelPluginMock, handleCommandsMock } =
+const { buildStatusReplyMock, createAstroclawToolsMock, getChannelPluginMock, handleCommandsMock } =
   vi.hoisted(() => ({
     buildStatusReplyMock: vi.fn(),
-    createOpenClawToolsMock: vi.fn(),
+    createAstroclawToolsMock: vi.fn(),
     getChannelPluginMock: vi.fn(),
     handleCommandsMock: vi.fn(),
   }));
@@ -25,8 +25,8 @@ vi.mock("./commands.runtime.js", () => ({
   buildStatusReply: (...args: unknown[]) => buildStatusReplyMock(...args),
 }));
 
-vi.mock("../../agents/openclaw-tools.runtime.js", () => ({
-  createOpenClawTools: (...args: unknown[]) => createOpenClawToolsMock(...args),
+vi.mock("../../agents/astroclaw-tools.runtime.js", () => ({
+  createAstroclawTools: (...args: unknown[]) => createAstroclawToolsMock(...args),
 }));
 
 vi.mock("../../channels/plugins/index.js", () => ({
@@ -171,10 +171,10 @@ describe("handleInlineActions", () => {
     handleCommandsMock.mockReset();
     handleCommandsMock.mockResolvedValue({ shouldContinue: true, reply: undefined });
     getChannelPluginMock.mockReset();
-    createOpenClawToolsMock.mockReset();
+    createAstroclawToolsMock.mockReset();
     buildStatusReplyMock.mockReset();
     buildStatusReplyMock.mockResolvedValue({ text: "status" });
-    createOpenClawToolsMock.mockReturnValue([]);
+    createAstroclawToolsMock.mockReturnValue([]);
     getChannelPluginMock.mockImplementation((channelId?: string) =>
       channelId === "whatsapp"
         ? { commands: { skipWhenConfigEmpty: true } }
@@ -581,7 +581,7 @@ describe("handleInlineActions", () => {
   it("passes requesterAgentIdOverride into inline tool runtimes", async () => {
     const typing = createTypingController();
     const toolExecute = vi.fn(async () => ({ text: "spawned" }));
-    createOpenClawToolsMock.mockReturnValue([
+    createAstroclawToolsMock.mockReturnValue([
       {
         name: "sessions_spawn",
         execute: toolExecute,
@@ -630,7 +630,7 @@ describe("handleInlineActions", () => {
 
     expect(result).toEqual({ kind: "reply", reply: { text: "✅ Done." } });
     expect(
-      mockObjectArg(createOpenClawToolsMock, "createOpenClawTools").requesterAgentIdOverride,
+      mockObjectArg(createAstroclawToolsMock, "createAstroclawTools").requesterAgentIdOverride,
     ).toBe("named-worker");
     expect(toolExecute).toHaveBeenCalledTimes(1);
   });
@@ -638,7 +638,7 @@ describe("handleInlineActions", () => {
   it("passes senderIsOwner into inline tool runtimes before owner-only filtering", async () => {
     const typing = createTypingController();
     const toolExecute = vi.fn(async () => ({ text: "updated" }));
-    createOpenClawToolsMock.mockReturnValue([
+    createAstroclawToolsMock.mockReturnValue([
       {
         name: "message",
         execute: toolExecute,
@@ -685,7 +685,7 @@ describe("handleInlineActions", () => {
     );
 
     expect(result).toEqual({ kind: "reply", reply: { text: "✅ Done." } });
-    expect(mockObjectArg(createOpenClawToolsMock, "createOpenClawTools").senderIsOwner).toBe(true);
+    expect(mockObjectArg(createAstroclawToolsMock, "createAstroclawTools").senderIsOwner).toBe(true);
     const toolCall = mockCallArgs(toolExecute, "toolExecute");
     expect(toolCall?.[0]).toMatch(/^cmd_/);
     expect(toolCall?.[1]).toEqual({
@@ -707,7 +707,7 @@ describe("handleInlineActions", () => {
         reason: "denied by policy",
       },
     }));
-    createOpenClawToolsMock.mockReturnValue([
+    createAstroclawToolsMock.mockReturnValue([
       {
         name: "message",
         execute: toolExecute,
@@ -776,7 +776,7 @@ describe("handleInlineActions", () => {
       kind: "reply",
       reply: { text: "❌ Tool call blocked: denied by policy" },
     });
-    const toolsArgs = mockObjectArg(createOpenClawToolsMock, "createOpenClawTools");
+    const toolsArgs = mockObjectArg(createAstroclawToolsMock, "createAstroclawTools");
     expect(toolsArgs.sessionId).toBe("target-session");
     expect(toolsArgs.currentChannelId).toBe("whatsapp");
     const blockedToolCall = mockCallArgs(toolExecute, "toolExecute");

@@ -1,13 +1,13 @@
 import Foundation
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite(.serialized)
-struct OpenClawConfigFileTests {
+struct AstroclawConfigFileTests {
     private func makeConfigOverridePath() -> String {
         FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-config-\(UUID().uuidString)")
-            .appendingPathComponent("openclaw.json")
+            .appendingPathComponent("astroclaw-config-\(UUID().uuidString)")
+            .appendingPathComponent("astroclaw.json")
             .path
     }
 
@@ -15,8 +15,8 @@ struct OpenClawConfigFileTests {
     func `config path respects env override`() async {
         let override = self.makeConfigOverridePath()
 
-        await TestIsolation.withEnvValues(["OPENCLAW_CONFIG_PATH": override]) {
-            #expect(OpenClawConfigFile.url().path == override)
+        await TestIsolation.withEnvValues(["ASTROCLAW_CONFIG_PATH": override]) {
+            #expect(AstroclawConfigFile.url().path == override)
         }
     }
 
@@ -25,20 +25,20 @@ struct OpenClawConfigFileTests {
     func `remote gateway port parses and matches host`() async {
         let override = self.makeConfigOverridePath()
 
-        await TestIsolation.withEnvValues(["OPENCLAW_CONFIG_PATH": override]) {
-            OpenClawConfigFile.saveDict([
+        await TestIsolation.withEnvValues(["ASTROCLAW_CONFIG_PATH": override]) {
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "remote": [
                         "url": "ws://gateway.ts.net:19999",
                     ],
                 ],
             ])
-            #expect(OpenClawConfigFile.remoteGatewayPort() == 19999)
-            #expect(OpenClawConfigFile.remoteGatewayPort(matchingHost: "gateway.ts.net") == 19999)
-            #expect(OpenClawConfigFile.remoteGatewayPort(matchingHost: "GATEWAY.ts.net.") == 19999)
-            #expect(OpenClawConfigFile.remoteGatewayPort(matchingHost: "gateway") == nil)
-            #expect(OpenClawConfigFile.remoteGatewayPort(matchingHost: "other.ts.net") == nil)
-            #expect(OpenClawConfigFile.remoteGatewayPort(matchingHost: "gateway.attacker.tld") == nil)
+            #expect(AstroclawConfigFile.remoteGatewayPort() == 19999)
+            #expect(AstroclawConfigFile.remoteGatewayPort(matchingHost: "gateway.ts.net") == 19999)
+            #expect(AstroclawConfigFile.remoteGatewayPort(matchingHost: "GATEWAY.ts.net.") == 19999)
+            #expect(AstroclawConfigFile.remoteGatewayPort(matchingHost: "gateway") == nil)
+            #expect(AstroclawConfigFile.remoteGatewayPort(matchingHost: "other.ts.net") == nil)
+            #expect(AstroclawConfigFile.remoteGatewayPort(matchingHost: "gateway.attacker.tld") == nil)
         }
     }
 
@@ -47,16 +47,16 @@ struct OpenClawConfigFileTests {
     func `set remote gateway url string replaces scheme`() async {
         let override = self.makeConfigOverridePath()
 
-        await TestIsolation.withEnvValues(["OPENCLAW_CONFIG_PATH": override]) {
-            OpenClawConfigFile.saveDict([
+        await TestIsolation.withEnvValues(["ASTROCLAW_CONFIG_PATH": override]) {
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "remote": [
                         "url": "wss://old-host:111",
                     ],
                 ],
             ])
-            OpenClawConfigFile.setRemoteGatewayUrlString("ws://127.0.0.1:18789")
-            let root = OpenClawConfigFile.loadDict()
+            AstroclawConfigFile.setRemoteGatewayUrlString("ws://127.0.0.1:18789")
+            let root = AstroclawConfigFile.loadDict()
             let url = ((root["gateway"] as? [String: Any])?["remote"] as? [String: Any])?["url"] as? String
             #expect(url == "ws://127.0.0.1:18789")
         }
@@ -67,16 +67,16 @@ struct OpenClawConfigFileTests {
     func `set remote gateway url preserves scheme`() async {
         let override = self.makeConfigOverridePath()
 
-        await TestIsolation.withEnvValues(["OPENCLAW_CONFIG_PATH": override]) {
-            OpenClawConfigFile.saveDict([
+        await TestIsolation.withEnvValues(["ASTROCLAW_CONFIG_PATH": override]) {
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "remote": [
                         "url": "wss://old-host:111",
                     ],
                 ],
             ])
-            OpenClawConfigFile.setRemoteGatewayUrl(host: "new-host", port: 2222)
-            let root = OpenClawConfigFile.loadDict()
+            AstroclawConfigFile.setRemoteGatewayUrl(host: "new-host", port: 2222)
+            let root = AstroclawConfigFile.loadDict()
             let url = ((root["gateway"] as? [String: Any])?["remote"] as? [String: Any])?["url"] as? String
             #expect(url == "wss://new-host:2222")
         }
@@ -87,8 +87,8 @@ struct OpenClawConfigFileTests {
     func `clear remote gateway url removes only url field`() async {
         let override = self.makeConfigOverridePath()
 
-        await TestIsolation.withEnvValues(["OPENCLAW_CONFIG_PATH": override]) {
-            OpenClawConfigFile.saveDict([
+        await TestIsolation.withEnvValues(["ASTROCLAW_CONFIG_PATH": override]) {
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "remote": [
                         "url": "wss://old-host:111",
@@ -96,8 +96,8 @@ struct OpenClawConfigFileTests {
                     ],
                 ],
             ])
-            OpenClawConfigFile.clearRemoteGatewayUrl()
-            let root = OpenClawConfigFile.loadDict()
+            AstroclawConfigFile.clearRemoteGatewayUrl()
+            let root = AstroclawConfigFile.loadDict()
             let remote = ((root["gateway"] as? [String: Any])?["remote"] as? [String: Any]) ?? [:]
             #expect((remote["url"] as? String) == nil)
             #expect((remote["token"] as? String) == "tok")
@@ -107,15 +107,15 @@ struct OpenClawConfigFileTests {
     @Test
     func `state dir override sets config path`() async {
         let dir = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-state-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("astroclaw-state-\(UUID().uuidString)", isDirectory: true)
             .path
 
         await TestIsolation.withEnvValues([
-            "OPENCLAW_CONFIG_PATH": nil,
-            "OPENCLAW_STATE_DIR": dir,
+            "ASTROCLAW_CONFIG_PATH": nil,
+            "ASTROCLAW_STATE_DIR": dir,
         ]) {
-            #expect(OpenClawConfigFile.stateDirURL().path == dir)
-            #expect(OpenClawConfigFile.url().path == "\(dir)/openclaw.json")
+            #expect(AstroclawConfigFile.stateDirURL().path == dir)
+            #expect(AstroclawConfigFile.url().path == "\(dir)/astroclaw.json")
         }
     }
 
@@ -123,17 +123,17 @@ struct OpenClawConfigFileTests {
     @Test
     func `save dict appends config audit log`() async throws {
         let stateDir = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-state-\(UUID().uuidString)", isDirectory: true)
-        let configPath = stateDir.appendingPathComponent("openclaw.json")
+            .appendingPathComponent("astroclaw-state-\(UUID().uuidString)", isDirectory: true)
+        let configPath = stateDir.appendingPathComponent("astroclaw.json")
         let auditPath = stateDir.appendingPathComponent("logs/config-audit.jsonl")
 
         defer { try? FileManager().removeItem(at: stateDir) }
 
         try await TestIsolation.withEnvValues([
-            "OPENCLAW_STATE_DIR": stateDir.path,
-            "OPENCLAW_CONFIG_PATH": configPath.path,
+            "ASTROCLAW_STATE_DIR": stateDir.path,
+            "ASTROCLAW_CONFIG_PATH": configPath.path,
         ]) {
-            OpenClawConfigFile.saveDict([
+            AstroclawConfigFile.saveDict([
                 "gateway": ["mode": "local"],
             ])
 
@@ -151,7 +151,7 @@ struct OpenClawConfigFileTests {
                 return
             }
             let auditRoot = try JSONSerialization.jsonObject(with: Data(last.utf8)) as? [String: Any]
-            #expect(auditRoot?["source"] as? String == "macos-openclaw-config-file")
+            #expect(auditRoot?["source"] as? String == "macos-astroclaw-config-file")
             #expect(auditRoot?["event"] as? String == "config.write")
             #expect(auditRoot?["result"] as? String == "success")
             #expect(auditRoot?["configPath"] as? String == configPath.path)
@@ -166,16 +166,16 @@ struct OpenClawConfigFileTests {
     @Test
     func `save dict preserves gateway auth unless explicitly allowed`() async throws {
         let stateDir = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-state-\(UUID().uuidString)", isDirectory: true)
-        let configPath = stateDir.appendingPathComponent("openclaw.json")
+            .appendingPathComponent("astroclaw-state-\(UUID().uuidString)", isDirectory: true)
+        let configPath = stateDir.appendingPathComponent("astroclaw.json")
 
         defer { try? FileManager().removeItem(at: stateDir) }
 
         await TestIsolation.withEnvValues([
-            "OPENCLAW_STATE_DIR": stateDir.path,
-            "OPENCLAW_CONFIG_PATH": configPath.path,
+            "ASTROCLAW_STATE_DIR": stateDir.path,
+            "ASTROCLAW_CONFIG_PATH": configPath.path,
         ]) {
-            OpenClawConfigFile.saveDict([
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "mode": "remote",
                     "auth": [
@@ -185,26 +185,26 @@ struct OpenClawConfigFileTests {
                 ],
             ])
 
-            OpenClawConfigFile.saveDict([
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "mode": "local",
                 ],
             ])
 
-            let root = OpenClawConfigFile.loadDict()
+            let root = AstroclawConfigFile.loadDict()
             let gateway = root["gateway"] as? [String: Any]
             let auth = gateway?["auth"] as? [String: Any]
             #expect(gateway?["mode"] as? String == "local")
             #expect(auth?["mode"] as? String == "token")
             #expect(auth?["token"] as? String == "existing-token") // pragma: allowlist secret
 
-            OpenClawConfigFile.saveDict([
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "mode": "local",
                 ],
             ], allowGatewayAuthMutation: true)
 
-            let allowedRoot = OpenClawConfigFile.loadDict()
+            let allowedRoot = AstroclawConfigFile.loadDict()
             let allowedGateway = allowedRoot["gateway"] as? [String: Any]
             #expect(allowedGateway?["mode"] as? String == "local")
             #expect((allowedGateway?["auth"] as? [String: Any]) == nil)
@@ -215,16 +215,16 @@ struct OpenClawConfigFileTests {
     @Test
     func `save dict can merge local fallback writes with fresh config`() async throws {
         let stateDir = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-state-\(UUID().uuidString)", isDirectory: true)
-        let configPath = stateDir.appendingPathComponent("openclaw.json")
+            .appendingPathComponent("astroclaw-state-\(UUID().uuidString)", isDirectory: true)
+        let configPath = stateDir.appendingPathComponent("astroclaw.json")
 
         defer { try? FileManager().removeItem(at: stateDir) }
 
         await TestIsolation.withEnvValues([
-            "OPENCLAW_STATE_DIR": stateDir.path,
-            "OPENCLAW_CONFIG_PATH": configPath.path,
+            "ASTROCLAW_STATE_DIR": stateDir.path,
+            "ASTROCLAW_CONFIG_PATH": configPath.path,
         ]) {
-            OpenClawConfigFile.saveDict([
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "mode": "remote",
                     "auth": [
@@ -243,7 +243,7 @@ struct OpenClawConfigFileTests {
                 ],
             ])
 
-            OpenClawConfigFile.saveDict([
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "mode": "local",
                 ],
@@ -252,7 +252,7 @@ struct OpenClawConfigFileTests {
                 ],
             ], preserveExistingKeys: true)
 
-            let root = OpenClawConfigFile.loadDict()
+            let root = AstroclawConfigFile.loadDict()
             let gateway = root["gateway"] as? [String: Any]
             let auth = gateway?["auth"] as? [String: Any]
             let browser = root["browser"] as? [String: Any]
@@ -270,18 +270,18 @@ struct OpenClawConfigFileTests {
     @Test
     func `load dict audits suspicious out-of-band clobbers`() async throws {
         let stateDir = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-state-\(UUID().uuidString)", isDirectory: true)
-        let configPath = stateDir.appendingPathComponent("openclaw.json")
+            .appendingPathComponent("astroclaw-state-\(UUID().uuidString)", isDirectory: true)
+        let configPath = stateDir.appendingPathComponent("astroclaw.json")
         let auditPath = stateDir.appendingPathComponent("logs/config-audit.jsonl")
 
         defer { try? FileManager().removeItem(at: stateDir) }
 
         try await TestIsolation.withEnvValues([
-            "OPENCLAW_STATE_DIR": stateDir.path,
-            "OPENCLAW_CONFIG_PATH": configPath.path,
+            "ASTROCLAW_STATE_DIR": stateDir.path,
+            "ASTROCLAW_CONFIG_PATH": configPath.path,
         ]) {
-            try OpenClawConfigFile.withTestingFileLock {
-                OpenClawConfigFile.saveDict([
+            try AstroclawConfigFile.withTestingFileLock {
+                AstroclawConfigFile.saveDict([
                     "update": ["channel": "beta"],
                     "browser": ["enabled": true],
                     "gateway": ["mode": "local"],
@@ -292,7 +292,7 @@ struct OpenClawConfigFileTests {
                         ],
                     ],
                 ])
-                _ = OpenClawConfigFile.loadDict()
+                _ = AstroclawConfigFile.loadDict()
 
                 let clobbered = """
                 {
@@ -303,7 +303,7 @@ struct OpenClawConfigFileTests {
                 """
                 try clobbered.write(to: configPath, atomically: true, encoding: .utf8)
 
-                let loaded = OpenClawConfigFile.loadDict()
+                let loaded = AstroclawConfigFile.loadDict()
                 #expect((loaded["gateway"] as? [String: Any]) == nil)
 
                 let rawAudit = try String(contentsOf: auditPath, encoding: .utf8)
@@ -317,7 +317,7 @@ struct OpenClawConfigFileTests {
                     return
                 }
                 let auditRoot = try JSONSerialization.jsonObject(with: Data(observeLine.utf8)) as? [String: Any]
-                #expect(auditRoot?["source"] as? String == "macos-openclaw-config-file")
+                #expect(auditRoot?["source"] as? String == "macos-astroclaw-config-file")
                 #expect(auditRoot?["configPath"] as? String == configPath.path)
                 #expect(auditRoot?["mode"] is NSNumber)
                 #expect(auditRoot?["ino"] as? String != nil)
@@ -341,17 +341,17 @@ struct OpenClawConfigFileTests {
     @Test
     func `save dict records preserved gateway auth in audit`() async throws {
         let stateDir = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-state-\(UUID().uuidString)", isDirectory: true)
-        let configPath = stateDir.appendingPathComponent("openclaw.json")
+            .appendingPathComponent("astroclaw-state-\(UUID().uuidString)", isDirectory: true)
+        let configPath = stateDir.appendingPathComponent("astroclaw.json")
         let auditPath = stateDir.appendingPathComponent("logs/config-audit.jsonl")
 
         defer { try? FileManager().removeItem(at: stateDir) }
 
         try await TestIsolation.withEnvValues([
-            "OPENCLAW_STATE_DIR": stateDir.path,
-            "OPENCLAW_CONFIG_PATH": configPath.path,
+            "ASTROCLAW_STATE_DIR": stateDir.path,
+            "ASTROCLAW_CONFIG_PATH": configPath.path,
         ]) {
-            OpenClawConfigFile.saveDict([
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "mode": "local",
                     "auth": [
@@ -361,7 +361,7 @@ struct OpenClawConfigFileTests {
                 ],
             ])
 
-            let saved = OpenClawConfigFile.saveDict([
+            let saved = AstroclawConfigFile.saveDict([
                 "gateway": [
                     "mode": "local",
                 ],
@@ -394,17 +394,17 @@ struct OpenClawConfigFileTests {
     @Test
     func `save dict rejects gateway mode removal and keeps previous config`() async throws {
         let stateDir = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-state-\(UUID().uuidString)", isDirectory: true)
-        let configPath = stateDir.appendingPathComponent("openclaw.json")
+            .appendingPathComponent("astroclaw-state-\(UUID().uuidString)", isDirectory: true)
+        let configPath = stateDir.appendingPathComponent("astroclaw.json")
         let auditPath = stateDir.appendingPathComponent("logs/config-audit.jsonl")
 
         defer { try? FileManager().removeItem(at: stateDir) }
 
         try await TestIsolation.withEnvValues([
-            "OPENCLAW_STATE_DIR": stateDir.path,
-            "OPENCLAW_CONFIG_PATH": configPath.path,
+            "ASTROCLAW_STATE_DIR": stateDir.path,
+            "ASTROCLAW_CONFIG_PATH": configPath.path,
         ]) {
-            OpenClawConfigFile.saveDict([
+            AstroclawConfigFile.saveDict([
                 "gateway": [
                     "mode": "local",
                     "auth": [
@@ -418,7 +418,7 @@ struct OpenClawConfigFileTests {
             ])
             let before = try String(contentsOf: configPath, encoding: .utf8)
 
-            let saved = OpenClawConfigFile.saveDict([
+            let saved = AstroclawConfigFile.saveDict([
                 "browser": [
                     "enabled": false,
                 ],

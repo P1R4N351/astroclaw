@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/cerebras-provider",
+  "name": "@astroclaw/cerebras-provider",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Cerebras provider plugin",
+  "description": "Astroclaw Cerebras provider plugin",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

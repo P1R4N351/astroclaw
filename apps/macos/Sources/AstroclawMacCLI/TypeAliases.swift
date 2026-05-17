@@ -1,5 +1,5 @@
-import OpenClawKit
-import OpenClawProtocol
+import AstroclawKit
+import AstroclawProtocol
 
-typealias ProtoAnyCodable = OpenClawProtocol.AnyCodable
-typealias KitAnyCodable = OpenClawKit.AnyCodable
+typealias ProtoAnyCodable = AstroclawProtocol.AnyCodable
+typealias KitAnyCodable = AstroclawKit.AnyCodable

@@ -1,4 +1,4 @@
-import { runSetupWizardFinalize } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { runSetupWizardFinalize } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it } from "vitest";
 import { createOptionalChannelSetupSurface } from "./channel-setup.js";
 
@@ -7,7 +7,7 @@ describe("createOptionalChannelSetupSurface", () => {
     const setup = createOptionalChannelSetupSurface({
       channel: "example",
       label: "Example",
-      npmSpec: "@openclaw/example",
+      npmSpec: "@astroclaw/example",
       docsPath: "/channels/example",
     });
 
@@ -19,11 +19,11 @@ describe("createOptionalChannelSetupSurface", () => {
         input: {},
       }),
     ).toBe(
-      "Example setup requires @openclaw/example to be installed. Docs: https://docs.openclaw.ai/channels/example",
+      "Example setup requires @astroclaw/example to be installed. Docs: https://docs.astroclaw.ai/channels/example",
     );
     expect(setup.setupWizard.channel).toBe("example");
     expect(setup.setupWizard.status.unconfiguredHint).toBe(
-      "Example setup requires @openclaw/example to be installed. Docs: https://docs.openclaw.ai/channels/example",
+      "Example setup requires @astroclaw/example to be installed. Docs: https://docs.astroclaw.ai/channels/example",
     );
     await expect(
       runSetupWizardFinalize({
@@ -34,6 +34,6 @@ describe("createOptionalChannelSetupSurface", () => {
           exit: async () => {},
         },
       }),
-    ).rejects.toThrow("@openclaw/example");
+    ).rejects.toThrow("@astroclaw/example");
   });
 });

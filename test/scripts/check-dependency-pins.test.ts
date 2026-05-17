@@ -41,7 +41,7 @@ function writeJson(filePath: string, value: unknown) {
 }
 
 function makeRepo() {
-  const dir = makeTempRepoRoot(tempDirs, "openclaw-dependency-pins-");
+  const dir = makeTempRepoRoot(tempDirs, "astroclaw-dependency-pins-");
   git(dir, ["init", "-q", "--initial-branch=main"]);
   return dir;
 }

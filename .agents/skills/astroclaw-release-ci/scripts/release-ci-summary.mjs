@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import process from "node:process";
 
 const runId = process.argv[2];
-const repo = process.env.OPENCLAW_RELEASE_REPO || "openclaw/openclaw";
+const repo = process.env.ASTROCLAW_RELEASE_REPO || "astroclaw/astroclaw";
 
 if (!runId) {
   console.error("usage: release-ci-summary.mjs <full-release-run-id>");
@@ -63,7 +63,7 @@ const runList = gh([
   "api",
   `repos/${repo}/actions/runs?per_page=100`,
   "--jq",
-  `.workflow_runs[] | select(.created_at >= "${since}") | select(.name=="CI" or .name=="OpenClaw Release Checks" or .name=="Plugin Prerelease" or .name=="NPM Telegram Beta E2E" or .name=="Full Release Validation") | [.id,.name,.status,.conclusion,.head_sha,.html_url] | @tsv`,
+  `.workflow_runs[] | select(.created_at >= "${since}") | select(.name=="CI" or .name=="Astroclaw Release Checks" or .name=="Plugin Prerelease" or .name=="NPM Telegram Beta E2E" or .name=="Full Release Validation") | [.id,.name,.status,.conclusion,.head_sha,.html_url] | @tsv`,
 ]).trim();
 
 if (!runList) {

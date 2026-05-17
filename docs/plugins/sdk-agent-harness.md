@@ -8,7 +8,7 @@ read_when:
   - You need to understand how the Codex plugin relates to model providers
 ---
 
-An **agent harness** is the low level executor for one prepared OpenClaw agent
+An **agent harness** is the low level executor for one prepared Astroclaw agent
 turn. It is not a model provider, not a channel, and not a tool registry.
 For the user-facing mental model, see [Agent runtimes](/concepts/agent-runtimes).
 
@@ -19,13 +19,13 @@ embedded runner.
 ## When to use a harness
 
 Register an agent harness when a model family has its own native session
-runtime and the normal OpenClaw provider transport is the wrong abstraction.
+runtime and the normal Astroclaw provider transport is the wrong abstraction.
 
 Examples:
 
 - a native coding-agent server that owns threads and compaction
 - a local CLI or daemon that must stream native plan/reasoning/tool events
-- a model runtime that needs its own resume id in addition to the OpenClaw
+- a model runtime that needs its own resume id in addition to the Astroclaw
   session transcript
 
 Do **not** register a harness just to add a new LLM API. For normal HTTP or
@@ -33,12 +33,12 @@ WebSocket model APIs, build a [provider plugin](/plugins/sdk-provider-plugins).
 
 ## What core still owns
 
-Before a harness is selected, OpenClaw has already resolved:
+Before a harness is selected, Astroclaw has already resolved:
 
 - provider and model
 - runtime auth state
 - thinking level and context budget
-- the OpenClaw transcript/session file
+- the Astroclaw transcript/session file
 - workspace, sandbox, and tool policy
 - channel reply callbacks and streaming callbacks
 - model fallback and live model switching policy
@@ -46,7 +46,7 @@ Before a harness is selected, OpenClaw has already resolved:
 That split is intentional. A harness runs a prepared attempt; it does not pick
 providers, replace channel delivery, or silently switch models.
 
-The prepared attempt also includes `params.runtimePlan`, an OpenClaw-owned
+The prepared attempt also includes `params.runtimePlan`, an Astroclaw-owned
 policy bundle for runtime decisions that must stay shared across PI and native
 harnesses:
 
@@ -65,11 +65,11 @@ switch providers/models inside a turn.
 
 ## Register a harness
 
-**Import:** `openclaw/plugin-sdk/agent-harness`
+**Import:** `astroclaw/plugin-sdk/agent-harness`
 
 ```typescript
-import type { AgentHarness } from "openclaw/plugin-sdk/agent-harness";
-import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import type { AgentHarness } from "astroclaw/plugin-sdk/agent-harness";
+import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
 
 const myHarness: AgentHarness = {
   id: "my-harness",
@@ -101,24 +101,24 @@ export default definePluginEntry({
 
 ## Selection policy
 
-OpenClaw chooses a harness after provider/model resolution:
+Astroclaw chooses a harness after provider/model resolution:
 
 1. Model-scoped runtime policy wins.
 2. Provider-scoped runtime policy comes next.
 3. `auto` asks registered harnesses if they support the resolved
    provider/model.
-4. If no registered harness matches, OpenClaw uses PI unless PI fallback is
+4. If no registered harness matches, Astroclaw uses PI unless PI fallback is
    disabled.
 
 Plugin harness failures surface as run failures. In `auto` mode, PI fallback is
 only used when no registered plugin harness supports the resolved
-provider/model. Once a plugin harness has claimed a run, OpenClaw does not
+provider/model. Once a plugin harness has claimed a run, Astroclaw does not
 replay that same turn through PI because that can change auth/runtime semantics
 or duplicate side effects.
 
 Whole-session and whole-agent runtime pins are ignored by selection. That
 includes stale session `agentHarnessId` values, `agents.defaults.agentRuntime`,
-`agents.list[].agentRuntime`, and `OPENCLAW_AGENT_RUNTIME`. `/status` shows the
+`agents.list[].agentRuntime`, and `ASTROCLAW_AGENT_RUNTIME`. `/status` shows the
 effective runtime selected from the provider/model route.
 If the selected harness is surprising, enable `agents/harness` debug logging and
 inspect the gateway's structured `agent harness selected` record. It includes
@@ -133,7 +133,7 @@ or operator config, not in the shared runtime selector.
 
 Most harnesses should also register a provider. The provider makes model refs,
 auth status, model metadata, and `/model` selection visible to the rest of
-OpenClaw. The harness then claims that provider in `supports(...)`.
+Astroclaw. The harness then claims that provider in `supports(...)`.
 
 The bundled Codex plugin follows this pattern:
 
@@ -143,7 +143,7 @@ The bundled Codex plugin follows this pattern:
 - harness id: `codex`
 - auth: synthetic provider availability, because the Codex harness owns the
   native Codex login/session
-- app-server request: OpenClaw sends the bare model id to Codex and lets the
+- app-server request: Astroclaw sends the bare model id to Codex and lets the
   harness talk to the native app-server protocol
 
 The Codex plugin is additive. Plain `openai/gpt-*` agent refs on the official
@@ -153,11 +153,11 @@ still select the Codex provider and harness for compatibility.
 For operator setup, model prefix examples, and Codex-only configs, see
 [Codex Harness](/plugins/codex-harness).
 
-OpenClaw requires Codex app-server `0.125.0` or newer. The Codex plugin checks
+Astroclaw requires Codex app-server `0.125.0` or newer. The Codex plugin checks
 the app-server initialize handshake and blocks older or unversioned servers so
-OpenClaw only runs against the protocol surface it has been tested with. The
+Astroclaw only runs against the protocol surface it has been tested with. The
 `0.125.0` floor includes the native MCP hook payload support that landed in
-Codex `0.124.0`, while pinning OpenClaw to the newer tested stable line.
+Codex `0.124.0`, while pinning Astroclaw to the newer tested stable line.
 
 ### Tool-result middleware
 
@@ -177,24 +177,24 @@ Pi tool-result transforms must use runtime-neutral middleware.
 
 Native harnesses that own their own protocol projection can use
 `classifyAgentHarnessTerminalOutcome(...)` from
-`openclaw/plugin-sdk/agent-harness-runtime` when a completed turn produced no
+`astroclaw/plugin-sdk/agent-harness-runtime` when a completed turn produced no
 visible assistant text. The helper returns `empty`, `reasoning-only`, or
-`planning-only` so OpenClaw's fallback policy can decide whether to retry on a
+`planning-only` so Astroclaw's fallback policy can decide whether to retry on a
 different model. It intentionally leaves prompt errors, in-flight turns, and
 intentional silent replies such as `NO_REPLY` unclassified.
 
 ### Native Codex harness mode
 
-The bundled `codex` harness is the native Codex mode for embedded OpenClaw
+The bundled `codex` harness is the native Codex mode for embedded Astroclaw
 agent turns. Enable the bundled `codex` plugin first, and include `codex` in
 `plugins.allow` if your config uses a restrictive allowlist. Native app-server
 configs should use `openai/gpt-*`; OpenAI agent turns select the Codex harness
 by default. Legacy `openai-codex/*` routes should be repaired with
-`openclaw doctor --fix`, and legacy `codex/*` model refs remain compatibility
+`astroclaw doctor --fix`, and legacy `codex/*` model refs remain compatibility
 aliases for the native harness.
 
 When this mode runs, Codex owns the native thread id, resume behavior,
-compaction, and app-server execution. OpenClaw still owns the chat channel,
+compaction, and app-server execution. Astroclaw still owns the chat channel,
 visible transcript mirror, tool policy, approvals, media delivery, and session
 selection. Use provider/model `agentRuntime.id: "codex"` when you need to prove
 that only the Codex app-server path can claim the run. Explicit plugin runtimes
@@ -203,7 +203,7 @@ retried through PI.
 
 ## Runtime strictness
 
-By default, OpenClaw uses `auto` provider/model runtime policy: registered
+By default, Astroclaw uses `auto` provider/model runtime policy: registered
 plugin harnesses can claim a provider/model pair, and PI handles the turn when
 none match. OpenAI agent refs on the official OpenAI provider default to Codex.
 Use an explicit provider/model plugin runtime such as
@@ -298,22 +298,22 @@ image, video, music, TTS, PDF, or other provider-specific model routing.
 ## Native sessions and transcript mirror
 
 A harness may keep a native session id, thread id, or daemon-side resume token.
-Keep that binding explicitly associated with the OpenClaw session, and keep
-mirroring user-visible assistant/tool output into the OpenClaw transcript.
+Keep that binding explicitly associated with the Astroclaw session, and keep
+mirroring user-visible assistant/tool output into the Astroclaw transcript.
 
-The OpenClaw transcript remains the compatibility layer for:
+The Astroclaw transcript remains the compatibility layer for:
 
 - channel-visible session history
 - transcript search and indexing
 - switching back to the built-in PI harness on a later turn
 - generic `/new`, `/reset`, and session deletion behavior
 
-If your harness stores a sidecar binding, implement `reset(...)` so OpenClaw can
-clear it when the owning OpenClaw session is reset.
+If your harness stores a sidecar binding, implement `reset(...)` so Astroclaw can
+clear it when the owning Astroclaw session is reset.
 
 ## Tool and media results
 
-Core constructs the OpenClaw tool list and passes it into the prepared attempt.
+Core constructs the Astroclaw tool list and passes it into the prepared attempt.
 When a harness executes a dynamic tool call, return the tool result back through
 the harness result shape instead of sending channel media yourself.
 

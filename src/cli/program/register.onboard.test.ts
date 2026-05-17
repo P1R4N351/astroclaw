@@ -127,8 +127,8 @@ describe("registerOnboardCommand", () => {
   });
 
   it("forwards --gateway-token-ref-env", async () => {
-    await runCli(["onboard", "--gateway-token-ref-env", "OPENCLAW_GATEWAY_TOKEN"]);
-    expect(setupWizardOptions().gatewayTokenRefEnv).toBe("OPENCLAW_GATEWAY_TOKEN");
+    await runCli(["onboard", "--gateway-token-ref-env", "ASTROCLAW_GATEWAY_TOKEN"]);
+    expect(setupWizardOptions().gatewayTokenRefEnv).toBe("ASTROCLAW_GATEWAY_TOKEN");
   });
 
   it("forwards onboarding migration flags", async () => {

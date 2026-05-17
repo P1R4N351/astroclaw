@@ -11,8 +11,8 @@ Adds memory embedding provider support. Adds agent-callable tools.
 
 ## Distribution
 
-- Package: `@openclaw/memory-core`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/memory-core`
+- Install route: included in Astroclaw
 
 ## Surface
 

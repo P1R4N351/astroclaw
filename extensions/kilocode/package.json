@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/kilocode-provider",
+  "name": "@astroclaw/kilocode-provider",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Kilo Gateway provider plugin",
+  "description": "Astroclaw Kilo Gateway provider plugin",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

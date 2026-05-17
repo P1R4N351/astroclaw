@@ -1,4 +1,4 @@
-package ai.openclaw.app.ui
+package ai.astroclaw.app.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect

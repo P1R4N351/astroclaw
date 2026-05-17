@@ -126,7 +126,7 @@ describe("StepFun provider catalog", () => {
   });
 
   it("falls back to global endpoints for untagged StepFun auth profiles", () => {
-    const agentDir = mkdtempSync(join(tmpdir(), "openclaw-test-"));
+    const agentDir = mkdtempSync(join(tmpdir(), "astroclaw-test-"));
 
     upsertAuthProfile({
       profileId: "stepfun:default",
@@ -196,7 +196,7 @@ describe("StepFun provider catalog", () => {
   });
 
   it("discovers both providers from shared regional auth profiles", () => {
-    const agentDir = mkdtempSync(join(tmpdir(), "openclaw-test-"));
+    const agentDir = mkdtempSync(join(tmpdir(), "astroclaw-test-"));
 
     upsertAuthProfile({
       profileId: "stepfun:cn",

@@ -78,10 +78,10 @@ describe("applyMemoryWikiMutation", () => {
     expect(parsed.frontmatter.confidence).toBe(0.7);
     expect(parsed.frontmatter.status).toBe("active");
     expect(parsed.body).toContain("## Summary");
-    expect(parsed.body).toContain("<!-- openclaw:wiki:generated:start -->");
+    expect(parsed.body).toContain("<!-- astroclaw:wiki:generated:start -->");
     expect(parsed.body).toContain("Alpha summary body.");
     expect(parsed.body).toContain("## Notes");
-    expect(parsed.body).toContain("<!-- openclaw:human:start -->");
+    expect(parsed.body).toContain("<!-- astroclaw:human:start -->");
     await expect(fs.readFile(path.join(rootDir, "index.md"), "utf8")).resolves.toContain(
       "[Alpha Synthesis](syntheses/alpha-synthesis.md)",
     );
@@ -107,9 +107,9 @@ describe("applyMemoryWikiMutation", () => {
         body: `# Alpha
 
 ## Notes
-<!-- openclaw:human:start -->
+<!-- astroclaw:human:start -->
 keep this note
-<!-- openclaw:human:end -->
+<!-- astroclaw:human:end -->
 `,
       }),
       "utf8",
@@ -166,7 +166,7 @@ keep this note
     expect(parsed.frontmatter.status).toBe("review");
     expect(parsed.frontmatter).not.toHaveProperty("confidence");
     expect(parsed.body).toContain("keep this note");
-    expect(parsed.body).toContain("<!-- openclaw:human:start -->");
+    expect(parsed.body).toContain("<!-- astroclaw:human:start -->");
     await expect(
       fs.readFile(path.join(rootDir, "entities", "index.md"), "utf8"),
     ).resolves.toContain("[Alpha](entities/alpha.md)");

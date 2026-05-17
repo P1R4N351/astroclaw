@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 let originalTestFileLog: string | undefined;
-let originalOpenClawLogLevel: string | undefined;
+let originalAstroclawLogLevel: string | undefined;
 let logging: typeof import("../logging.js");
 
 beforeAll(async () => {
@@ -9,24 +9,24 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  originalTestFileLog = process.env.OPENCLAW_TEST_FILE_LOG;
-  originalOpenClawLogLevel = process.env.OPENCLAW_LOG_LEVEL;
-  delete process.env.OPENCLAW_TEST_FILE_LOG;
-  delete process.env.OPENCLAW_LOG_LEVEL;
+  originalTestFileLog = process.env.ASTROCLAW_TEST_FILE_LOG;
+  originalAstroclawLogLevel = process.env.ASTROCLAW_LOG_LEVEL;
+  delete process.env.ASTROCLAW_TEST_FILE_LOG;
+  delete process.env.ASTROCLAW_LOG_LEVEL;
   logging.resetLogger();
   logging.setLoggerOverride(null);
 });
 
 afterEach(() => {
   if (originalTestFileLog === undefined) {
-    delete process.env.OPENCLAW_TEST_FILE_LOG;
+    delete process.env.ASTROCLAW_TEST_FILE_LOG;
   } else {
-    process.env.OPENCLAW_TEST_FILE_LOG = originalTestFileLog;
+    process.env.ASTROCLAW_TEST_FILE_LOG = originalTestFileLog;
   }
-  if (originalOpenClawLogLevel === undefined) {
-    delete process.env.OPENCLAW_LOG_LEVEL;
+  if (originalAstroclawLogLevel === undefined) {
+    delete process.env.ASTROCLAW_LOG_LEVEL;
   } else {
-    process.env.OPENCLAW_LOG_LEVEL = originalOpenClawLogLevel;
+    process.env.ASTROCLAW_LOG_LEVEL = originalAstroclawLogLevel;
   }
   logging.resetLogger();
   logging.setLoggerOverride(null);
@@ -46,22 +46,22 @@ describe("getResolvedLoggerSettings", () => {
   });
 
   it("reads logging config when test file logging is explicitly enabled", () => {
-    process.env.OPENCLAW_TEST_FILE_LOG = "1";
+    process.env.ASTROCLAW_TEST_FILE_LOG = "1";
     logging.setLoggerConfigLoaderForTests(() => ({
       level: "debug",
-      file: "/tmp/openclaw-configured.log",
+      file: "/tmp/astroclaw-configured.log",
       maxFileBytes: 2048,
     }));
 
     const settings = logging.getResolvedLoggerSettings();
 
     expect(settings.level).toBe("debug");
-    expect(settings.file).toBe("/tmp/openclaw-configured.log");
+    expect(settings.file).toBe("/tmp/astroclaw-configured.log");
     expect(settings.maxFileBytes).toBe(2048);
   });
 
   it("uses defaults when no logging config is available", () => {
-    process.env.OPENCLAW_TEST_FILE_LOG = "1";
+    process.env.ASTROCLAW_TEST_FILE_LOG = "1";
     logging.setLoggerConfigLoaderForTests(() => undefined);
 
     const settings = logging.getResolvedLoggerSettings();

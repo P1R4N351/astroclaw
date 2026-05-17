@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import { liveTurnTimeoutMs } from "./suite-runtime-agent-common.js";
 import type {
   QaRawSessionStoreEntry,
@@ -19,7 +19,7 @@ const SESSION_STORE_LOCK_RETRY_DELAYS_MS = [1_000, 3_000, 5_000] as const;
 function isSessionStoreLockTimeout(error: unknown) {
   const text = formatErrorMessage(error);
   return (
-    text.includes("OPENCLAW_SESSION_WRITE_LOCK_TIMEOUT") ||
+    text.includes("ASTROCLAW_SESSION_WRITE_LOCK_TIMEOUT") ||
     text.includes("SessionWriteLockTimeoutError") ||
     text.includes("session file locked")
   );

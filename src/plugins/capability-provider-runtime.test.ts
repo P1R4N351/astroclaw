@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { resolveInstalledPluginIndexPolicyHash } from "./installed-plugin-index-policy.js";
 import { createEmptyPluginRegistry } from "./registry.js";
 
@@ -40,14 +40,14 @@ const mocks = vi.hoisted(() => ({
     plugins: [],
   })),
   withBundledPluginAllowlistCompat: vi.fn(
-    ({ config, pluginIds }: { config?: OpenClawConfig; pluginIds: string[] }) =>
+    ({ config, pluginIds }: { config?: AstroclawConfig; pluginIds: string[] }) =>
       ({
         ...config,
         plugins: {
           ...config?.plugins,
           allow: Array.from(new Set([...(config?.plugins?.allow ?? []), ...pluginIds])),
         },
-      }) as OpenClawConfig,
+      }) as AstroclawConfig,
   ),
   withBundledPluginEnablementCompat: vi.fn(({ config }) => config),
   withBundledPluginVitestCompat: vi.fn(({ config }) => config),
@@ -164,7 +164,7 @@ function requireManifestRegistryLoadParams(index = 0): Record<string, unknown> {
   return call[0];
 }
 
-function expectManifestRegistryLoad(index: number, config: OpenClawConfig | Record<string, never>) {
+function expectManifestRegistryLoad(index: number, config: AstroclawConfig | Record<string, never>) {
   const params = requireManifestRegistryLoadParams(index);
   expect(params.config).toEqual(config);
   expect(params.env).toBe(process.env);
@@ -206,8 +206,8 @@ function collectActiveRegistryLookups() {
 }
 
 function expectBundledCompatLoadPath(params: {
-  cfg: OpenClawConfig;
-  allowlistCompat: OpenClawConfig;
+  cfg: AstroclawConfig;
+  allowlistCompat: AstroclawConfig;
   enablementCompat: {
     plugins: {
       allow?: string[];
@@ -229,12 +229,12 @@ function expectBundledCompatLoadPath(params: {
 }
 
 function createCompatChainConfig() {
-  const cfg = { plugins: { allow: ["custom-plugin"] } } as OpenClawConfig;
+  const cfg = { plugins: { allow: ["custom-plugin"] } } as AstroclawConfig;
   const allowlistCompat = {
     plugins: {
       allow: ["custom-plugin", "openai"],
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
   const enablementCompat = {
     plugins: {
       allow: ["custom-plugin", "openai"],
@@ -277,8 +277,8 @@ function expectCompatChainApplied(params: {
     | "videoGenerationProviders"
     | "musicGenerationProviders";
   contractKey: string;
-  cfg: OpenClawConfig;
-  allowlistCompat: OpenClawConfig;
+  cfg: AstroclawConfig;
+  allowlistCompat: AstroclawConfig;
   enablementCompat: {
     plugins: {
       allow?: string[];
@@ -324,14 +324,14 @@ describe("resolvePluginCapabilityProviders", () => {
     mocks.loadBundledCapabilityRuntimeRegistry.mockImplementation(() => mocks.createMockRegistry());
     mocks.withBundledPluginAllowlistCompat.mockClear();
     mocks.withBundledPluginAllowlistCompat.mockImplementation(
-      ({ config, pluginIds }: { config?: OpenClawConfig; pluginIds: string[] }) =>
+      ({ config, pluginIds }: { config?: AstroclawConfig; pluginIds: string[] }) =>
         ({
           ...config,
           plugins: {
             ...config?.plugins,
             allow: Array.from(new Set([...(config?.plugins?.allow ?? []), ...pluginIds])),
           },
-        }) as OpenClawConfig,
+        }) as AstroclawConfig,
     );
     mocks.withBundledPluginEnablementCompat.mockReset();
     mocks.withBundledPluginEnablementCompat.mockImplementation(({ config }) => config);
@@ -559,7 +559,7 @@ describe("resolvePluginCapabilityProviders", () => {
 
     const providers = resolvePluginCapabilityProviders({
       key: "imageGenerationProviders",
-      cfg: { plugins: { allow: ["fal", "xai"] } } as OpenClawConfig,
+      cfg: { plugins: { allow: ["fal", "xai"] } } as AstroclawConfig,
     });
 
     expectResolvedCapabilityProviderIds(providers, ["xai", "fal"]);
@@ -645,7 +645,7 @@ describe("resolvePluginCapabilityProviders", () => {
             models: [{ provider: "deepgram" }],
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
 
     expectResolvedCapabilityProviderIds(providers, ["deepgram"]);
@@ -713,7 +713,7 @@ describe("resolvePluginCapabilityProviders", () => {
             audio: { enabled: true, models: [{ provider: "deepgram", model: "nova-3" }] },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
 
     expectResolvedCapabilityProviderIds(providers, ["openai", "deepgram"]);
@@ -747,7 +747,7 @@ describe("resolvePluginCapabilityProviders", () => {
       cfg: {
         plugins: { entries: { microsoft: { enabled: true } } },
         messages: { tts: { provider: "edge" } },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
 
     expectResolvedCapabilityProviderIds(providers, ["microsoft"]);
@@ -787,7 +787,7 @@ describe("resolvePluginCapabilityProviders", () => {
 
     const providers = resolvePluginCapabilityProviders({
       key: "speechProviders",
-      cfg: { messages: { tts: { provider: "acme" } } } as OpenClawConfig,
+      cfg: { messages: { tts: { provider: "acme" } } } as AstroclawConfig,
     });
 
     expectResolvedCapabilityProviderIds(providers, ["acme"]);
@@ -857,7 +857,7 @@ describe("resolvePluginCapabilityProviders", () => {
       cfg: {
         plugins: { allow: ["openai", "microsoft"] },
         messages: { tts: { provider: "edge" } },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
 
     expectResolvedCapabilityProviderIds(providers, ["openai", "microsoft"]);
@@ -924,7 +924,7 @@ describe("resolvePluginCapabilityProviders", () => {
       key: "speechProviders",
       cfg: {
         messages: { tts: { provider: "google" } },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
 
     expectResolvedCapabilityProviderIds(providers, ["openai", "google"]);
@@ -1012,7 +1012,7 @@ describe("resolvePluginCapabilityProviders", () => {
       key: "speechProviders",
       cfg: {
         messages: { tts: { provider: "google" } },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
 
     expectResolvedCapabilityProviderIds(providers, ["openai", "google"]);
@@ -1055,7 +1055,7 @@ describe("resolvePluginCapabilityProviders", () => {
     const provider = resolvePluginCapabilityProvider({
       key: "realtimeVoiceProviders",
       providerId: "google",
-      cfg: { plugins: { allow: ["openai", "google"] } } as OpenClawConfig,
+      cfg: { plugins: { allow: ["openai", "google"] } } as AstroclawConfig,
     });
 
     expect(provider?.id).toBe("google");
@@ -1140,7 +1140,7 @@ describe("resolvePluginCapabilityProviders", () => {
       cfg: {
         plugins: { allow: ["openai", "microsoft", "elevenlabs"] },
         messages: { tts: { provider: "edge" } },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
 
     expectResolvedCapabilityProviderIds(providers, ["openai", "microsoft"]);
@@ -1259,7 +1259,7 @@ describe("resolvePluginCapabilityProviders", () => {
 
     const providers = resolvePluginCapabilityProviders({
       key: "mediaUnderstandingProviders",
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
     });
 
     expectNoResolvedCapabilityProviders(providers);
@@ -1273,7 +1273,7 @@ describe("resolvePluginCapabilityProviders", () => {
         allow: ["google"],
         entries: { google: { enabled: true } },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const loaded = createEmptyPluginRegistry();
     loaded.mediaUnderstandingProviders.push({
       pluginId: "google",
@@ -1304,7 +1304,7 @@ describe("resolvePluginCapabilityProviders", () => {
   });
 
   it("loads fallback snapshots without startup dependency repair", () => {
-    const cfg = { plugins: { allow: ["custom-plugin"] } } as OpenClawConfig;
+    const cfg = { plugins: { allow: ["custom-plugin"] } } as AstroclawConfig;
     const enablementCompat = {
       plugins: {
         allow: ["custom-plugin", "openai"],
@@ -1326,7 +1326,7 @@ describe("resolvePluginCapabilityProviders", () => {
   });
 
   it("does not resolve non-speech capability providers when plugins are globally disabled", () => {
-    const cfg = { plugins: { enabled: false, allow: ["custom-plugin"] } } as OpenClawConfig;
+    const cfg = { plugins: { enabled: false, allow: ["custom-plugin"] } } as AstroclawConfig;
     const active = createEmptyPluginRegistry();
     active.mediaUnderstandingProviders.push({
       pluginId: "openai",
@@ -1356,14 +1356,14 @@ describe("resolvePluginCapabilityProviders", () => {
     const cfg = {
       plugins: { enabled: false },
       messages: { tts: { provider: "mistral" } },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const allowlistCompat = {
       ...cfg,
       plugins: {
         enabled: false,
         allow: ["microsoft"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const compatConfig = {
       ...cfg,
       plugins: {
@@ -1371,7 +1371,7 @@ describe("resolvePluginCapabilityProviders", () => {
         allow: ["microsoft"],
         entries: { microsoft: { enabled: true } },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const loaded = createEmptyPluginRegistry();
     loaded.speechProviders.push({
       pluginId: "microsoft",
@@ -1432,7 +1432,7 @@ describe("resolvePluginCapabilityProviders", () => {
   ] as const)("uses an explicit empty plugin scope for %s when no bundled owner exists", (key) => {
     const providers = resolvePluginCapabilityProviders({
       key,
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
     });
 
     expectNoResolvedCapabilityProviders(providers as Array<{ id: string }>);
@@ -1442,7 +1442,7 @@ describe("resolvePluginCapabilityProviders", () => {
   });
 
   it("scopes media capability snapshot loads to manifest-derived bundled owners", () => {
-    const cfg = { plugins: { allow: ["openai", "minimax"] } } as OpenClawConfig;
+    const cfg = { plugins: { allow: ["openai", "minimax"] } } as AstroclawConfig;
     mocks.loadPluginManifestRegistry.mockReturnValue({
       plugins: [
         {
@@ -1479,7 +1479,7 @@ describe("resolvePluginCapabilityProviders", () => {
   });
 
   it("does not unscoped-load media generation capabilities without bundled owners", () => {
-    const cfg = { plugins: { allow: ["openai"] } } as OpenClawConfig;
+    const cfg = { plugins: { allow: ["openai"] } } as AstroclawConfig;
     mocks.loadPluginManifestRegistry.mockReturnValue({
       plugins: [
         {
@@ -1505,12 +1505,12 @@ describe("resolvePluginCapabilityProviders", () => {
   });
 
   it("loads only the bundled owner plugin for a targeted provider lookup", () => {
-    const cfg = { plugins: { allow: ["custom-plugin"] } } as OpenClawConfig;
+    const cfg = { plugins: { allow: ["custom-plugin"] } } as AstroclawConfig;
     const allowlistCompat = {
       plugins: {
         allow: ["custom-plugin", "google"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const enablementCompat = {
       plugins: {
         allow: ["custom-plugin", "google"],
@@ -1567,7 +1567,7 @@ describe("resolvePluginCapabilityProviders", () => {
   });
 
   it("does not load targeted non-speech capability providers when plugins are globally disabled", () => {
-    const cfg = { plugins: { enabled: false, allow: ["custom-plugin"] } } as OpenClawConfig;
+    const cfg = { plugins: { enabled: false, allow: ["custom-plugin"] } } as AstroclawConfig;
     const loaded = createEmptyPluginRegistry();
     loaded.memoryEmbeddingProviders.push({
       pluginId: "google",
@@ -1612,13 +1612,13 @@ describe("resolvePluginCapabilityProviders", () => {
   });
 
   it("loads targeted bundled speech providers through compat when plugins are globally disabled", () => {
-    const cfg = { plugins: { enabled: false, allow: ["custom-plugin"] } } as OpenClawConfig;
+    const cfg = { plugins: { enabled: false, allow: ["custom-plugin"] } } as AstroclawConfig;
     const allowlistCompat = {
       plugins: {
         enabled: false,
         allow: ["custom-plugin", "microsoft"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const enablementCompat = {
       plugins: {
         enabled: true,

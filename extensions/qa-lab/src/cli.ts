@@ -468,8 +468,8 @@ export function registerQaLabCli(program: Command) {
   credentials
     .command("doctor")
     .description("Check Convex credential broker env and admin reachability")
-    .option("--site-url <url>", "Override OPENCLAW_QA_CONVEX_SITE_URL")
-    .option("--endpoint-prefix <path>", "Override OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX")
+    .option("--site-url <url>", "Override ASTROCLAW_QA_CONVEX_SITE_URL")
+    .option("--endpoint-prefix <path>", "Override ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX")
     .option("--actor-id <id>", "Optional admin actor id to include in broker audit events")
     .option("--json", "Emit machine-readable JSON output", false)
     .action(
@@ -490,8 +490,8 @@ export function registerQaLabCli(program: Command) {
     .requiredOption("--payload-file <path>", "JSON object file containing the credential payload")
     .option("--repo-root <path>", "Repository root for resolving relative payload-file paths")
     .option("--note <text>", "Optional note stored with this credential row")
-    .option("--site-url <url>", "Override OPENCLAW_QA_CONVEX_SITE_URL")
-    .option("--endpoint-prefix <path>", "Override OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX")
+    .option("--site-url <url>", "Override ASTROCLAW_QA_CONVEX_SITE_URL")
+    .option("--endpoint-prefix <path>", "Override ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX")
     .option("--actor-id <id>", "Optional admin actor id to include in broker audit events")
     .option("--json", "Emit machine-readable JSON output", false)
     .action(
@@ -513,8 +513,8 @@ export function registerQaLabCli(program: Command) {
     .command("remove")
     .description("Remove one credential from active use by disabling it")
     .requiredOption("--credential-id <id>", "Credential row id from the Convex pool")
-    .option("--site-url <url>", "Override OPENCLAW_QA_CONVEX_SITE_URL")
-    .option("--endpoint-prefix <path>", "Override OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX")
+    .option("--site-url <url>", "Override ASTROCLAW_QA_CONVEX_SITE_URL")
+    .option("--endpoint-prefix <path>", "Override ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX")
     .option("--actor-id <id>", "Optional admin actor id to include in broker audit events")
     .option("--json", "Emit machine-readable JSON output", false)
     .action(
@@ -536,8 +536,8 @@ export function registerQaLabCli(program: Command) {
     .option("--status <status>", 'Filter by row status: "active", "disabled", or "all"', "all")
     .option("--limit <count>", "Max rows to return", (value: string) => Number(value))
     .option("--show-secrets", "Include credential payload JSON in output", false)
-    .option("--site-url <url>", "Override OPENCLAW_QA_CONVEX_SITE_URL")
-    .option("--endpoint-prefix <path>", "Override OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX")
+    .option("--site-url <url>", "Override ASTROCLAW_QA_CONVEX_SITE_URL")
+    .option("--endpoint-prefix <path>", "Override ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX")
     .option("--actor-id <id>", "Optional admin actor id to include in broker audit events")
     .option("--json", "Emit machine-readable JSON output", false)
     .action(
@@ -604,7 +604,7 @@ export function registerQaLabCli(program: Command) {
     .option("--gateway-port <port>", "Gateway host port", (value: string) => Number(value))
     .option("--qa-lab-port <port>", "QA lab host port", (value: string) => Number(value))
     .option("--provider-base-url <url>", "Provider base URL for the QA gateway")
-    .option("--image <name>", "Prebaked image name", "openclaw:qa-local-prebaked")
+    .option("--image <name>", "Prebaked image name", "astroclaw:qa-local-prebaked")
     .option("--use-prebuilt-image", "Use image: instead of build: in docker-compose", false)
     .option(
       "--bind-ui-dist",
@@ -629,7 +629,7 @@ export function registerQaLabCli(program: Command) {
   qa.command("docker-build-image")
     .description("Build the prebaked QA Docker image with qa-channel + qa-lab bundled")
     .option("--repo-root <path>", "Repository root to target when running from a neutral cwd")
-    .option("--image <name>", "Image tag", "openclaw:qa-local-prebaked")
+    .option("--image <name>", "Image tag", "astroclaw:qa-local-prebaked")
     .action(async (opts: { repoRoot?: string; image?: string }) => {
       await runQaDockerBuildImage(opts);
     });
@@ -641,7 +641,7 @@ export function registerQaLabCli(program: Command) {
     .option("--gateway-port <port>", "Gateway host port", (value: string) => Number(value))
     .option("--qa-lab-port <port>", "QA lab host port", (value: string) => Number(value))
     .option("--provider-base-url <url>", "Provider base URL for the QA gateway")
-    .option("--image <name>", "Image tag", "openclaw:qa-local-prebaked")
+    .option("--image <name>", "Image tag", "astroclaw:qa-local-prebaked")
     .option("--use-prebuilt-image", "Use image: instead of build: in docker-compose", false)
     .option(
       "--bind-ui-dist",

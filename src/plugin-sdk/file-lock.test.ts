@@ -15,7 +15,7 @@ describe("acquireFileLock", () => {
 
   beforeEach(async () => {
     resetFileLockStateForTest();
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-file-lock-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-file-lock-"));
   });
 
   afterEach(async () => {

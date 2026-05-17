@@ -1,22 +1,22 @@
 {
-  "name": "@openclaw/migrate-claude",
+  "name": "@astroclaw/migrate-claude",
   "version": "2026.5.17",
   "private": true,
-  "description": "Claude to OpenClaw migration provider",
+  "description": "Claude to Astroclaw migration provider",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*",
-    "openclaw": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*",
+    "astroclaw": "workspace:*"
   },
   "peerDependencies": {
-    "openclaw": ">=2026.5.17"
+    "astroclaw": ">=2026.5.17"
   },
   "peerDependenciesMeta": {
-    "openclaw": {
+    "astroclaw": {
       "optional": true
     }
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

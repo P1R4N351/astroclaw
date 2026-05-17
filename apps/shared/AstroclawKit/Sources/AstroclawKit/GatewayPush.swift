@@ -1,4 +1,4 @@
-import OpenClawProtocol
+import AstroclawProtocol
 
 /// Server-push messages from the gateway websocket.
 ///

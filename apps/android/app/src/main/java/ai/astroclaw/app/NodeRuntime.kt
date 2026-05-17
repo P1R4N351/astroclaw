@@ -1,50 +1,50 @@
-package ai.openclaw.app
+package ai.astroclaw.app
 
-import ai.openclaw.app.chat.ChatController
-import ai.openclaw.app.chat.ChatMessage
-import ai.openclaw.app.chat.ChatPendingToolCall
-import ai.openclaw.app.chat.ChatSessionEntry
-import ai.openclaw.app.chat.OutgoingAttachment
-import ai.openclaw.app.gateway.DeviceAuthStore
-import ai.openclaw.app.gateway.DeviceIdentityStore
-import ai.openclaw.app.gateway.GatewayDiscovery
-import ai.openclaw.app.gateway.GatewayEndpoint
-import ai.openclaw.app.gateway.GatewaySession
-import ai.openclaw.app.gateway.GatewayTlsProbeFailure
-import ai.openclaw.app.gateway.GatewayTlsProbeResult
-import ai.openclaw.app.gateway.probeGatewayTlsFingerprint
-import ai.openclaw.app.node.A2UIHandler
-import ai.openclaw.app.node.CalendarHandler
-import ai.openclaw.app.node.CallLogHandler
-import ai.openclaw.app.node.CameraCaptureManager
-import ai.openclaw.app.node.CameraHandler
-import ai.openclaw.app.node.CanvasController
-import ai.openclaw.app.node.ConnectionManager
-import ai.openclaw.app.node.ContactsHandler
-import ai.openclaw.app.node.DEFAULT_SEAM_COLOR_ARGB
-import ai.openclaw.app.node.DebugHandler
-import ai.openclaw.app.node.DeviceHandler
-import ai.openclaw.app.node.DeviceNotificationListenerService
-import ai.openclaw.app.node.InvokeDispatcher
-import ai.openclaw.app.node.LocationCaptureManager
-import ai.openclaw.app.node.LocationHandler
-import ai.openclaw.app.node.MotionHandler
-import ai.openclaw.app.node.NodePresenceAliveBeacon
-import ai.openclaw.app.node.NotificationsHandler
-import ai.openclaw.app.node.PhotosHandler
-import ai.openclaw.app.node.Quad
-import ai.openclaw.app.node.SmsHandler
-import ai.openclaw.app.node.SmsManager
-import ai.openclaw.app.node.SystemHandler
-import ai.openclaw.app.node.TalkHandler
-import ai.openclaw.app.node.asObjectOrNull
-import ai.openclaw.app.node.asStringOrNull
-import ai.openclaw.app.node.invokeErrorFromThrowable
-import ai.openclaw.app.node.parseHexColorArgb
-import ai.openclaw.app.protocol.OpenClawCanvasA2UIAction
-import ai.openclaw.app.voice.MicCaptureManager
-import ai.openclaw.app.voice.TalkModeManager
-import ai.openclaw.app.voice.VoiceConversationEntry
+import ai.astroclaw.app.chat.ChatController
+import ai.astroclaw.app.chat.ChatMessage
+import ai.astroclaw.app.chat.ChatPendingToolCall
+import ai.astroclaw.app.chat.ChatSessionEntry
+import ai.astroclaw.app.chat.OutgoingAttachment
+import ai.astroclaw.app.gateway.DeviceAuthStore
+import ai.astroclaw.app.gateway.DeviceIdentityStore
+import ai.astroclaw.app.gateway.GatewayDiscovery
+import ai.astroclaw.app.gateway.GatewayEndpoint
+import ai.astroclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.gateway.GatewayTlsProbeFailure
+import ai.astroclaw.app.gateway.GatewayTlsProbeResult
+import ai.astroclaw.app.gateway.probeGatewayTlsFingerprint
+import ai.astroclaw.app.node.A2UIHandler
+import ai.astroclaw.app.node.CalendarHandler
+import ai.astroclaw.app.node.CallLogHandler
+import ai.astroclaw.app.node.CameraCaptureManager
+import ai.astroclaw.app.node.CameraHandler
+import ai.astroclaw.app.node.CanvasController
+import ai.astroclaw.app.node.ConnectionManager
+import ai.astroclaw.app.node.ContactsHandler
+import ai.astroclaw.app.node.DEFAULT_SEAM_COLOR_ARGB
+import ai.astroclaw.app.node.DebugHandler
+import ai.astroclaw.app.node.DeviceHandler
+import ai.astroclaw.app.node.DeviceNotificationListenerService
+import ai.astroclaw.app.node.InvokeDispatcher
+import ai.astroclaw.app.node.LocationCaptureManager
+import ai.astroclaw.app.node.LocationHandler
+import ai.astroclaw.app.node.MotionHandler
+import ai.astroclaw.app.node.NodePresenceAliveBeacon
+import ai.astroclaw.app.node.NotificationsHandler
+import ai.astroclaw.app.node.PhotosHandler
+import ai.astroclaw.app.node.Quad
+import ai.astroclaw.app.node.SmsHandler
+import ai.astroclaw.app.node.SmsManager
+import ai.astroclaw.app.node.SystemHandler
+import ai.astroclaw.app.node.TalkHandler
+import ai.astroclaw.app.node.asObjectOrNull
+import ai.astroclaw.app.node.asStringOrNull
+import ai.astroclaw.app.node.invokeErrorFromThrowable
+import ai.astroclaw.app.node.parseHexColorArgb
+import ai.astroclaw.app.protocol.AstroclawCanvasA2UIAction
+import ai.astroclaw.app.voice.MicCaptureManager
+import ai.astroclaw.app.voice.TalkModeManager
+import ai.astroclaw.app.voice.VoiceConversationEntry
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -600,7 +600,7 @@ class NodeRuntime(
           _canvasRehydratePending.value = false
           _canvasRehydrateErrorText.value = "Failed to request restore. Tap to retry."
         }
-        Log.w("OpenClawCanvas", "canvas rehydrate request failed ($source): transport unavailable")
+        Log.w("AstroclawCanvas", "canvas rehydrate request failed ($source): transport unavailable")
         return@launch
       }
       scope.launch {
@@ -743,7 +743,7 @@ class NodeRuntime(
       return
     }
 
-    val client = connectionManager.buildClientInfo(clientId = "openclaw-android", clientMode = "node")
+    val client = connectionManager.buildClientInfo(clientId = "astroclaw-android", clientMode = "node")
     val payloadJson =
       NodePresenceAliveBeacon.makePayloadJson(
         trigger = trigger,
@@ -765,7 +765,7 @@ class NodeRuntime(
       nodePresenceAliveLastSuccessAtMs = nowMs
     } else {
       Log.d(
-        "OpenClawNode",
+        "AstroclawNode",
         "node.presence.alive not handled: ${NodePresenceAliveBeacon.sanitizeReasonForLog(response?.reason)}",
       )
     }
@@ -1248,7 +1248,7 @@ class NodeRuntime(
             .randomUUID()
             .toString()
         }
-      val name = OpenClawCanvasA2UIAction.extractActionName(userActionObj) ?: return@launch
+      val name = AstroclawCanvasA2UIAction.extractActionName(userActionObj) ?: return@launch
 
       val surfaceId =
         (userActionObj["surfaceId"] as? JsonPrimitive)
@@ -1266,7 +1266,7 @@ class NodeRuntime(
 
       val sessionKey = resolveMainSessionKey()
       val message =
-        OpenClawCanvasA2UIAction.formatAgentMessage(
+        AstroclawCanvasA2UIAction.formatAgentMessage(
           actionName = name,
           sessionKey = sessionKey,
           surfaceId = surfaceId,
@@ -1300,7 +1300,7 @@ class NodeRuntime(
 
       try {
         canvas.eval(
-          OpenClawCanvasA2UIAction.jsDispatchA2UIActionStatus(
+          AstroclawCanvasA2UIAction.jsDispatchA2UIActionStatus(
             actionId = actionId,
             ok = connected && error == null,
             error = error,
@@ -1462,7 +1462,7 @@ class NodeRuntime(
         HomeCanvasPayload(
           gatewayState = "connecting",
           eyebrow = "Reconnecting",
-          title = "OpenClaw is syncing back up",
+          title = "Astroclaw is syncing back up",
           subtitle =
             "The gateway session is coming back online. Agent shortcuts should settle automatically in a moment.",
           gatewayLabel = gatewayLabel,
@@ -1476,7 +1476,7 @@ class NodeRuntime(
       HomeCanvasGatewayState.Error, HomeCanvasGatewayState.Offline ->
         HomeCanvasPayload(
           gatewayState = if (state == HomeCanvasGatewayState.Error) "error" else "offline",
-          eyebrow = "Welcome to OpenClaw",
+          eyebrow = "Welcome to Astroclaw",
           title = "Your phone stays quiet until it is needed",
           subtitle =
             "Pair this device to your gateway to wake it only for real work, keep a live agent overview handy, and avoid battery-draining background loops.",

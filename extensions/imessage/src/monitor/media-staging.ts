@@ -2,9 +2,9 @@ import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import { isInboundPathAllowed } from "openclaw/plugin-sdk/media-runtime";
-import { saveMediaBuffer } from "openclaw/plugin-sdk/media-store";
-import { buildRandomTempFilePath } from "openclaw/plugin-sdk/temp-path";
+import { isInboundPathAllowed } from "astroclaw/plugin-sdk/media-runtime";
+import { saveMediaBuffer } from "astroclaw/plugin-sdk/media-store";
+import { buildRandomTempFilePath } from "astroclaw/plugin-sdk/temp-path";
 import type { IMessageAttachment } from "./types.js";
 
 const execFileAsync = promisify(execFile);
@@ -75,7 +75,7 @@ async function resolveAllowedCanonicalAttachmentPath(params: {
 
 async function convertHeicToJpegWithSips(sourcePath: string, maxBytes: number): Promise<Buffer> {
   const tempPath = buildRandomTempFilePath({
-    prefix: "openclaw-imessage",
+    prefix: "astroclaw-imessage",
     extension: "jpg",
   });
   try {

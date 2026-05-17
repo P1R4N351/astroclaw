@@ -9,7 +9,7 @@ function runInstallCliShell(script: string, env: NodeJS.ProcessEnv = {}) {
     encoding: "utf8",
     env: {
       ...process.env,
-      OPENCLAW_INSTALL_CLI_SH_NO_RUN: "1",
+      ASTROCLAW_INSTALL_CLI_SH_NO_RUN: "1",
       ...env,
     },
   });
@@ -24,20 +24,20 @@ describe("install-cli.sh", () => {
       source "${SCRIPT_PATH}"
       npm_bin() { echo npm; }
       npm() {
-        if [[ "$1" == "view" && "$2" == "openclaw" && "$3" == "dist-tags.beta" ]]; then
+        if [[ "$1" == "view" && "$2" == "astroclaw" && "$3" == "dist-tags.beta" ]]; then
           printf '2026.5.12-beta.3\\n'
           return 0
         fi
         return 1
       }
-      OPENCLAW_VERSION=v2026.5.12-beta.3
-      printf 'tag=%s\\n' "$(resolve_git_openclaw_ref)"
-      OPENCLAW_VERSION=2026.5.12-beta.3
-      printf 'semver=%s\\n' "$(resolve_git_openclaw_ref)"
-      OPENCLAW_VERSION=beta
-      printf 'beta=%s\\n' "$(resolve_git_openclaw_ref)"
-      OPENCLAW_VERSION=main
-      printf 'main=%s\\n' "$(resolve_git_openclaw_ref)"
+      ASTROCLAW_VERSION=v2026.5.12-beta.3
+      printf 'tag=%s\\n' "$(resolve_git_astroclaw_ref)"
+      ASTROCLAW_VERSION=2026.5.12-beta.3
+      printf 'semver=%s\\n' "$(resolve_git_astroclaw_ref)"
+      ASTROCLAW_VERSION=beta
+      printf 'beta=%s\\n' "$(resolve_git_astroclaw_ref)"
+      ASTROCLAW_VERSION=main
+      printf 'main=%s\\n' "$(resolve_git_astroclaw_ref)"
     `);
 
     expect(result.status).toBe(0);

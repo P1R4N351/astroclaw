@@ -55,17 +55,17 @@ export async function ensureConfigReady(params: {
       preflightSnapshot = (await runDoctorConfigPreflight()).snapshot;
     } else {
       const originalStdoutWrite = process.stdout.write.bind(process.stdout);
-      const originalSuppressNotes = process.env.OPENCLAW_SUPPRESS_NOTES;
+      const originalSuppressNotes = process.env.ASTROCLAW_SUPPRESS_NOTES;
       process.stdout.write = (() => true) as unknown as typeof process.stdout.write;
-      process.env.OPENCLAW_SUPPRESS_NOTES = "1";
+      process.env.ASTROCLAW_SUPPRESS_NOTES = "1";
       try {
         preflightSnapshot = (await runDoctorConfigPreflight()).snapshot;
       } finally {
         process.stdout.write = originalStdoutWrite;
         if (originalSuppressNotes === undefined) {
-          delete process.env.OPENCLAW_SUPPRESS_NOTES;
+          delete process.env.ASTROCLAW_SUPPRESS_NOTES;
         } else {
-          process.env.OPENCLAW_SUPPRESS_NOTES = originalSuppressNotes;
+          process.env.ASTROCLAW_SUPPRESS_NOTES = originalSuppressNotes;
         }
       }
     }
@@ -112,7 +112,7 @@ export async function ensureConfigReady(params: {
   const heading = (value: string) => colorize(rich, theme.heading, value);
   const commandText = (value: string) => colorize(rich, theme.command, value);
 
-  params.runtime.error(heading("OpenClaw config is invalid"));
+  params.runtime.error(heading("Astroclaw config is invalid"));
   params.runtime.error(`${muted("File:")} ${muted(shortenHomePath(snapshot.path))}`);
   if (issues.length > 0) {
     params.runtime.error(muted("Problem:"));
@@ -124,10 +124,10 @@ export async function ensureConfigReady(params: {
   }
   params.runtime.error("");
   params.runtime.error(
-    `${muted("Fix:")} ${commandText(formatCliCommand("openclaw doctor --fix"))}`,
+    `${muted("Fix:")} ${commandText(formatCliCommand("astroclaw doctor --fix"))}`,
   );
   params.runtime.error(
-    `${muted("Inspect:")} ${commandText(formatCliCommand("openclaw config validate"))}`,
+    `${muted("Inspect:")} ${commandText(formatCliCommand("astroclaw config validate"))}`,
   );
   params.runtime.error(
     muted("Status, health, logs, and doctor commands still run with invalid config."),

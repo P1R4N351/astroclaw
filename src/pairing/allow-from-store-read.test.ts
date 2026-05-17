@@ -40,7 +40,7 @@ function writeAllowFromFile(params: {
 }
 
 beforeAll(() => {
-  fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-allow-from-read-"));
+  fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-allow-from-read-"));
 });
 
 afterAll(() => {

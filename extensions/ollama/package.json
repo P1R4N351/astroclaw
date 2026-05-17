@@ -1,17 +1,17 @@
 {
-  "name": "@openclaw/ollama-provider",
+  "name": "@astroclaw/ollama-provider",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Ollama provider plugin",
+  "description": "Astroclaw Ollama provider plugin",
   "type": "module",
   "dependencies": {
     "@earendil-works/pi-ai": "0.74.0",
     "typebox": "1.1.38"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

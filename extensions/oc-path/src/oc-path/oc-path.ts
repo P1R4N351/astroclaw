@@ -1,5 +1,5 @@
 /**
- * `oc://` path syntax — universal addressing for the OpenClaw workspace.
+ * `oc://` path syntax — universal addressing for the Astroclaw workspace.
  *
  *     oc://{file}[/{section}[/{item}[/{field}]]][?session={id}]
  *
@@ -7,7 +7,7 @@
  * for canonical paths. Extra query parameters are ignored except for
  * the first non-empty `session=` value.
  *
- * @module @openclaw/oc-path/oc-path
+ * @module @astroclaw/oc-path/oc-path
  */
 
 import { OcEmitSentinelError, REDACTED_SENTINEL } from "./sentinel.js";

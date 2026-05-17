@@ -1,14 +1,14 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.BuildConfig
-import ai.openclaw.app.LocationMode
-import ai.openclaw.app.SecurePrefs
-import ai.openclaw.app.VoiceWakeMode
-import ai.openclaw.app.gateway.GatewayClientInfo
-import ai.openclaw.app.gateway.GatewayConnectOptions
-import ai.openclaw.app.gateway.GatewayEndpoint
-import ai.openclaw.app.gateway.GatewayTlsParams
-import ai.openclaw.app.gateway.isLoopbackGatewayHost
+import ai.astroclaw.app.BuildConfig
+import ai.astroclaw.app.LocationMode
+import ai.astroclaw.app.SecurePrefs
+import ai.astroclaw.app.VoiceWakeMode
+import ai.astroclaw.app.gateway.GatewayClientInfo
+import ai.astroclaw.app.gateway.GatewayConnectOptions
+import ai.astroclaw.app.gateway.GatewayEndpoint
+import ai.astroclaw.app.gateway.GatewayTlsParams
+import ai.astroclaw.app.gateway.isLoopbackGatewayHost
 import android.os.Build
 
 class ConnectionManager(
@@ -128,7 +128,7 @@ class ConnectionManager(
         ?.trim()
         .orEmpty()
     val releaseLabel = if (release.isEmpty()) "unknown" else release
-    return "OpenClawAndroid/$version (Android $releaseLabel; SDK ${Build.VERSION.SDK_INT})"
+    return "AstroclawAndroid/$version (Android $releaseLabel; SDK ${Build.VERSION.SDK_INT})"
   }
 
   fun buildClientInfo(
@@ -153,7 +153,7 @@ class ConnectionManager(
       caps = buildCapabilities(),
       commands = buildInvokeCommands(),
       permissions = emptyMap(),
-      client = buildClientInfo(clientId = "openclaw-android", clientMode = "node"),
+      client = buildClientInfo(clientId = "astroclaw-android", clientMode = "node"),
       userAgent = buildUserAgent(),
     )
 
@@ -164,7 +164,7 @@ class ConnectionManager(
       caps = emptyList(),
       commands = emptyList(),
       permissions = emptyMap(),
-      client = buildClientInfo(clientId = "openclaw-android", clientMode = "ui"),
+      client = buildClientInfo(clientId = "astroclaw-android", clientMode = "ui"),
       userAgent = buildUserAgent(),
     )
 

@@ -24,9 +24,9 @@ function requireGatewayToken(): string {
 }
 
 function statePath(...parts: string[]): string {
-  const stateDir = process.env.OPENCLAW_STATE_DIR;
+  const stateDir = process.env.ASTROCLAW_STATE_DIR;
   if (!stateDir) {
-    throw new Error("expected OPENCLAW_STATE_DIR");
+    throw new Error("expected ASTROCLAW_STATE_DIR");
   }
   return path.join(stateDir, ...parts);
 }

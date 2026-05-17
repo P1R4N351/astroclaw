@@ -68,7 +68,7 @@ export async function createBrowserProfileConfig(params: {
   color?: string;
   parsedCdpUrl?: string;
   userDataDir?: string;
-  driver?: "openclaw" | "existing-session";
+  driver?: "astroclaw" | "existing-session";
 }): Promise<BrowserProfileConfig | undefined> {
   const mutation = await mutateConfigFile<BrowserProfileConfig>({
     afterWrite: { mode: "auto" },

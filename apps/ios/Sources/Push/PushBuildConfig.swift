@@ -26,17 +26,17 @@ struct PushBuildConfig {
     init(bundle: Bundle = .main) {
         self.transport = Self.readEnum(
             bundle: bundle,
-            key: "OpenClawPushTransport",
+            key: "AstroclawPushTransport",
             fallback: .direct)
         self.distribution = Self.readEnum(
             bundle: bundle,
-            key: "OpenClawPushDistribution",
+            key: "AstroclawPushDistribution",
             fallback: .local)
         self.apnsEnvironment = Self.readEnum(
             bundle: bundle,
-            key: "OpenClawPushAPNsEnvironment",
+            key: "AstroclawPushAPNsEnvironment",
             fallback: Self.defaultAPNsEnvironment)
-        self.relayBaseURL = Self.readURL(bundle: bundle, key: "OpenClawPushRelayBaseURL")
+        self.relayBaseURL = Self.readURL(bundle: bundle, key: "AstroclawPushRelayBaseURL")
     }
 
     var usesRelay: Bool {

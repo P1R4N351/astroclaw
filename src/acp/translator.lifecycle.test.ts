@@ -50,7 +50,7 @@ function createListSessionsRequest(params: {
 
 function createResumeSessionRequest(
   sessionId: string,
-  cwd = "/tmp/openclaw",
+  cwd = "/tmp/astroclaw",
 ): ResumeSessionRequest {
   return {
     sessionId,
@@ -318,7 +318,7 @@ describe("acp translator stable lifecycle handlers", () => {
         return createGatewaySessions([
           createSessionRow({
             key: "agent:main:work",
-            cwd: "/tmp/openclaw",
+            cwd: "/tmp/astroclaw",
             title: "Work session",
           }),
         ]);
@@ -353,7 +353,7 @@ describe("acp translator stable lifecycle handlers", () => {
         _meta: {
           sessionKey: "agent:main:work",
           kind: "direct",
-          spawnedWorkspaceDir: "/tmp/openclaw",
+          spawnedWorkspaceDir: "/tmp/astroclaw",
         },
       },
     });
@@ -397,7 +397,7 @@ describe("acp translator stable lifecycle handlers", () => {
     sessionStore.createSession({
       sessionId: "session-1",
       sessionKey: "agent:main:work",
-      cwd: "/tmp/openclaw",
+      cwd: "/tmp/astroclaw",
     });
     const agent = new AcpGatewayAgent(createAcpConnection(), createAcpGateway(request), {
       sessionStore,

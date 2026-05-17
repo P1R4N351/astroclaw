@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createChannelTestPluginBase, createTestRegistry } from "../test-utils/channel-plugins.js";
 import { createExecApprovalForwarder } from "./exec-approval-forwarder.js";
@@ -23,7 +23,7 @@ const PLUGIN_TARGETS_CFG = {
       targets: [{ channel: "slack", to: "U123" }],
     },
   },
-} as OpenClawConfig;
+} as AstroclawConfig;
 
 const PLUGIN_DISABLED_CFG = {
   approvals: {
@@ -31,9 +31,9 @@ const PLUGIN_DISABLED_CFG = {
       enabled: false,
     },
   },
-} as OpenClawConfig;
+} as AstroclawConfig;
 
-function createForwarder(params: { cfg: OpenClawConfig; deliver?: ReturnType<typeof vi.fn> }) {
+function createForwarder(params: { cfg: AstroclawConfig; deliver?: ReturnType<typeof vi.fn> }) {
   const deliver = params.deliver ?? vi.fn().mockResolvedValue([]);
   const forwarder = createExecApprovalForwarder({
     getConfig: () => params.cfg,
@@ -218,7 +218,7 @@ describe("plugin approval forwarding", () => {
           exec: { enabled: true, mode: "targets", targets: [{ channel: "slack", to: "U123" }] },
           plugin: { enabled: false },
         },
-      } as OpenClawConfig;
+      } as AstroclawConfig;
       const { forwarder } = createForwarder({ cfg });
       const result = await forwarder.handlePluginApprovalRequested!(makePluginRequest());
       expect(result).toBe(false);
@@ -234,7 +234,7 @@ describe("plugin approval forwarding", () => {
             targets: [{ channel: "slack", to: "U123" }],
           },
         },
-      } as OpenClawConfig;
+      } as AstroclawConfig;
       const deliver = vi.fn().mockResolvedValue([]);
       const { forwarder } = createForwarder({ cfg, deliver });
       const result = await forwarder.handlePluginApprovalRequested!(makePluginRequest());
@@ -244,7 +244,7 @@ describe("plugin approval forwarding", () => {
     });
 
     it("returns false when no approvals config at all", async () => {
-      const cfg = {} as OpenClawConfig;
+      const cfg = {} as AstroclawConfig;
       const { forwarder } = createForwarder({ cfg });
       const result = await forwarder.handlePluginApprovalRequested!(makePluginRequest());
       expect(result).toBe(false);

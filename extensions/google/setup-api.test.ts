@@ -1,5 +1,5 @@
-import type { CliBackendPlugin } from "openclaw/plugin-sdk/cli-backend";
-import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-model-shared";
+import type { CliBackendPlugin } from "astroclaw/plugin-sdk/cli-backend";
+import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
 import { describe, expect, it } from "vitest";
 import setupEntry from "./setup-api.js";
 

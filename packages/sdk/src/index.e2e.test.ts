@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { WebSocketServer, type RawData, type WebSocket } from "ws";
 import { installGatewayTestHooks, startServer } from "../../../src/gateway/test-helpers.js";
 import { emitAgentEvent, registerAgentRunContext } from "../../../src/infra/agent-events.js";
-import { GatewayClientTransport, OpenClaw } from "./index.js";
+import { GatewayClientTransport, Astroclaw } from "./index.js";
 
 type JsonObject = Record<string, unknown>;
 type FakeGatewayRequest = {
@@ -360,7 +360,7 @@ async function createFakeGateway(port = 0): Promise<FakeGateway> {
   };
 }
 
-describe("OpenClaw SDK websocket e2e", () => {
+describe("Astroclaw SDK websocket e2e", () => {
   afterEach(async () => {
     await Promise.all(
       servers.splice(0).map(
@@ -382,7 +382,7 @@ describe("OpenClaw SDK websocket e2e", () => {
       deviceIdentity: null,
       requestTimeoutMs: 2_000,
     });
-    const oc = new OpenClaw({ transport });
+    const oc = new Astroclaw({ transport });
     try {
       const agent = await oc.agents.get("main");
       const run = await agent.run({
@@ -431,7 +431,7 @@ describe("OpenClaw SDK websocket e2e", () => {
       deviceIdentity: null,
       requestTimeoutMs: 2_000,
     });
-    const oc = new OpenClaw({ transport });
+    const oc = new Astroclaw({ transport });
 
     try {
       const agents = expectJsonObject(await oc.agents.list());
@@ -563,7 +563,7 @@ describe("OpenClaw SDK websocket e2e", () => {
   });
 });
 
-describe("OpenClaw SDK real Gateway e2e", () => {
+describe("Astroclaw SDK real Gateway e2e", () => {
   installGatewayTestHooks({ scope: "test" });
 
   it("streams real Gateway agent events", async () => {
@@ -575,7 +575,7 @@ describe("OpenClaw SDK real Gateway e2e", () => {
       deviceIdentity: null,
       requestTimeoutMs: 2_000,
     });
-    const oc = new OpenClaw({ transport });
+    const oc = new Astroclaw({ transport });
     const runId = "sdk-real-gateway-run";
 
     try {
@@ -635,8 +635,8 @@ describe("OpenClaw SDK real Gateway e2e", () => {
   });
 });
 
-const liveGatewayUrl = process.env.OPENCLAW_SDK_LIVE_GATEWAY_URL;
-const liveGatewayToken = process.env.OPENCLAW_SDK_LIVE_GATEWAY_TOKEN;
+const liveGatewayUrl = process.env.ASTROCLAW_SDK_LIVE_GATEWAY_URL;
+const liveGatewayToken = process.env.ASTROCLAW_SDK_LIVE_GATEWAY_TOKEN;
 const liveGatewayDescribe = liveGatewayUrl && liveGatewayToken ? describe : describe.skip;
 
 function readLiveTextDelta(data: unknown): string {
@@ -659,9 +659,9 @@ function expectArrayProperty(value: unknown, property: string): void {
   expect(Array.isArray(record[property])).toBe(true);
 }
 
-liveGatewayDescribe("OpenClaw SDK live Gateway e2e", () => {
+liveGatewayDescribe("Astroclaw SDK live Gateway e2e", () => {
   it("connects to a configured Gateway, streams a real run, and waits for completion", async () => {
-    const oc = new OpenClaw({
+    const oc = new Astroclaw({
       url: liveGatewayUrl,
       token: liveGatewayToken,
       requestTimeoutMs: 20_000,
@@ -672,9 +672,9 @@ liveGatewayDescribe("OpenClaw SDK live Gateway e2e", () => {
       expectArrayProperty(await oc.agents.list(), "agents");
       expectArrayProperty(await oc.models.status({ probe: false }), "providers");
 
-      const agent = await oc.agents.get(process.env.OPENCLAW_SDK_LIVE_AGENT_ID ?? "main");
+      const agent = await oc.agents.get(process.env.ASTROCLAW_SDK_LIVE_AGENT_ID ?? "main");
       const run = await agent.run({
-        input: "Reply with exactly: OPENCLAW_SDK_LIVE_OK",
+        input: "Reply with exactly: ASTROCLAW_SDK_LIVE_OK",
         sessionKey: `sdk-live-e2e-${Date.now()}`,
         deliver: false,
         timeoutMs: 120_000,
@@ -711,7 +711,7 @@ liveGatewayDescribe("OpenClaw SDK live Gateway e2e", () => {
       expect(result.status).toBe("completed");
       expect(events.terminal).toBe("run.completed");
       expect(events.eventTypes).toContain("run.started");
-      expect(events.text).toContain("OPENCLAW_SDK_LIVE_OK");
+      expect(events.text).toContain("ASTROCLAW_SDK_LIVE_OK");
     } finally {
       await oc.close();
     }

@@ -4,7 +4,7 @@ import {
   fileStoreSync,
   type FileStore,
   type FileStoreSync,
-} from "@openclaw/fs-safe/store";
+} from "@astroclaw/fs-safe/store";
 
 export type PrivateFileStore = FileStore;
 

@@ -1,6 +1,6 @@
 ## astroclaw Vision
 
-astroclaw is openclaw, held to a higher code standard.
+astroclaw is astroclaw, held to a higher code standard.
 
 The goal is a personal AI assistant that is easy to audit, safe to patch against, and simple to extend — without sacrificing any capability of the upstream runtime.
 
@@ -26,11 +26,11 @@ No commit lands on `main` unless it is:
 
 ### Relationship to upstream
 
-Feature development, channel support, and product direction belong to [openclaw/openclaw](https://github.com/openclaw/openclaw). astroclaw tracks upstream and applies the P10 layer. It does not diverge on features.
+Feature development, channel support, and product direction belong to [astroclaw/astroclaw](https://github.com/astroclaw/astroclaw). astroclaw tracks upstream and applies the P10 layer. It does not diverge on features.
 
 ### What we will not change
 
-- Runtime behavior — the product is openclaw, not a fork in the feature sense
-- CLI interface — `openclaw` commands work identically
+- Runtime behavior — the product is astroclaw, not a fork in the feature sense
+- CLI interface — `astroclaw` commands work identically
 - Channel compatibility
 - Plugin API surface

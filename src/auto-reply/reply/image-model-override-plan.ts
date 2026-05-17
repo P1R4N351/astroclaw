@@ -9,7 +9,7 @@ import {
   resolveAgentModelFallbackValues,
   resolveAgentModelPrimaryValue,
 } from "../../config/model-input.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 
 export type ImageModelOverridePlan =
   | {
@@ -35,7 +35,7 @@ type ImageModelCandidate = {
 
 function resolveImageModelCandidate(params: {
   raw: string;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   defaultProvider: string;
 }): ImageModelCandidate | null {
   const trimmed = params.raw.trim();
@@ -68,7 +68,7 @@ function resolveImageModelCandidate(params: {
 }
 
 export async function resolveImageModelOverridePlan(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string;
   defaultProvider: string;
   defaultModel: string;

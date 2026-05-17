@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/deepinfra-provider",
+  "name": "@astroclaw/deepinfra-provider",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw DeepInfra provider plugin",
+  "description": "Astroclaw DeepInfra provider plugin",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

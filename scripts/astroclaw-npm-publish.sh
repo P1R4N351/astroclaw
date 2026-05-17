@@ -6,7 +6,7 @@ mode="${1:-}"
 publish_target="${2:-}"
 
 if [[ "${mode}" != "--publish" ]]; then
-  echo "usage: bash scripts/openclaw-npm-publish.sh --publish [package.tgz]" >&2
+  echo "usage: bash scripts/astroclaw-npm-publish.sh --publish [package.tgz]" >&2
   exit 2
 fi
 
@@ -19,9 +19,9 @@ fi
 
 package_version="$(node -p "require('./package.json').version")"
 mapfile -t publish_plan < <(
-  PACKAGE_VERSION="${package_version}" REQUESTED_PUBLISH_TAG="${OPENCLAW_NPM_PUBLISH_TAG:-}" \
+  PACKAGE_VERSION="${package_version}" REQUESTED_PUBLISH_TAG="${ASTROCLAW_NPM_PUBLISH_TAG:-}" \
     node --import tsx --input-type=module <<'EOF'
-import { resolveNpmPublishPlan } from "./scripts/openclaw-npm-release-check.ts";
+import { resolveNpmPublishPlan } from "./scripts/astroclaw-npm-release-check.ts";
 
 const requestedPublishTag =
   process.env.REQUESTED_PUBLISH_TAG === "latest"

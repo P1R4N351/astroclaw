@@ -15,7 +15,7 @@ import {
 } from "./lib/package-dist-imports.mjs";
 
 function usage() {
-  return "Usage: node scripts/check-openclaw-package-tarball.mjs <openclaw.tgz>";
+  return "Usage: node scripts/check-astroclaw-package-tarball.mjs <astroclaw.tgz>";
 }
 
 function fail(message) {
@@ -28,10 +28,10 @@ if (!tarball || process.argv.length > 3) {
   fail(usage());
 }
 if (!fs.existsSync(tarball)) {
-  fail(`OpenClaw package tarball does not exist: ${tarball}`);
+  fail(`Astroclaw package tarball does not exist: ${tarball}`);
 }
 
-const phaseTimingsEnabled = process.env.OPENCLAW_PACKAGE_TARBALL_CHECK_TIMINGS !== "0";
+const phaseTimingsEnabled = process.env.ASTROCLAW_PACKAGE_TARBALL_CHECK_TIMINGS !== "0";
 function runPhase(label, action) {
   const startedAt = performance.now();
   try {
@@ -39,7 +39,7 @@ function runPhase(label, action) {
   } finally {
     if (phaseTimingsEnabled) {
       const durationMs = Math.round(performance.now() - startedAt);
-      console.error(`check-openclaw-package-tarball: ${label} completed in ${durationMs}ms`);
+      console.error(`check-astroclaw-package-tarball: ${label} completed in ${durationMs}ms`);
     }
   }
 }
@@ -54,7 +54,7 @@ if (list.status !== 0) {
   fail(`tar -tf failed for ${tarball}: ${list.stderr || list.status}`);
 }
 
-const extractDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-package-tarball-"));
+const extractDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-package-tarball-"));
 try {
   const extract = runPhase("tar extract", () =>
     spawnSync("tar", ["-xf", tarball, "-C", extractDir], {
@@ -263,11 +263,11 @@ errors.push(
 
 if (errors.length > 0) {
   fs.rmSync(extractDir, { recursive: true, force: true });
-  fail(`OpenClaw package tarball integrity failed:\n${errors.join("\n")}`);
+  fail(`Astroclaw package tarball integrity failed:\n${errors.join("\n")}`);
 }
 
 for (const warning of warnings) {
-  console.warn(`OpenClaw package tarball integrity warning: ${warning}`);
+  console.warn(`Astroclaw package tarball integrity warning: ${warning}`);
 }
 fs.rmSync(extractDir, { recursive: true, force: true });
-console.log("OpenClaw package tarball integrity passed.");
+console.log("Astroclaw package tarball integrity passed.");

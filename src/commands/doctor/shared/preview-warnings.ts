@@ -6,7 +6,7 @@ import { pickSandboxToolPolicy } from "../../../agents/sandbox-tool-policy.js";
 import { isToolAllowedByPolicies } from "../../../agents/tool-policy-match.js";
 import { mergeAlsoAllowPolicy, resolveToolProfilePolicy } from "../../../agents/tool-policy.js";
 import { resolveAgentModelPrimaryValue } from "../../../config/model-input.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
 import type { AgentToolsConfig, ToolsConfig } from "../../../config/types.tools.js";
 import { collectChannelRouteTargets } from "../../../routing/channel-route-targets.js";
 import { createLazyImportLoader } from "../../../shared/lazy-promise.js";
@@ -26,19 +26,19 @@ function hasRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-function listAgentRecords(cfg: OpenClawConfig): Record<string, unknown>[] {
+function listAgentRecords(cfg: AstroclawConfig): Record<string, unknown>[] {
   return Array.isArray(cfg.agents?.list) ? cfg.agents.list.filter(hasRecord) : [];
 }
 
-function hasChannels(cfg: OpenClawConfig): boolean {
+function hasChannels(cfg: AstroclawConfig): boolean {
   return hasRecord(cfg.channels);
 }
 
-function hasPlugins(cfg: OpenClawConfig): boolean {
+function hasPlugins(cfg: AstroclawConfig): boolean {
   return hasRecord(cfg.plugins);
 }
 
-function hasPluginLoadPaths(cfg: OpenClawConfig): boolean {
+function hasPluginLoadPaths(cfg: AstroclawConfig): boolean {
   const plugins = cfg.plugins;
   if (!hasRecord(plugins)) {
     return false;
@@ -47,7 +47,7 @@ function hasPluginLoadPaths(cfg: OpenClawConfig): boolean {
   return hasRecord(load) && Array.isArray(load.paths) && load.paths.length > 0;
 }
 
-function hasExplicitChannelPluginBlockerConfig(cfg: OpenClawConfig): boolean {
+function hasExplicitChannelPluginBlockerConfig(cfg: AstroclawConfig): boolean {
   if (cfg.plugins?.enabled === false) {
     return true;
   }
@@ -75,7 +75,7 @@ function hasToolsBySenderKey(value: unknown): boolean {
   );
 }
 
-function hasConfiguredSafeBins(cfg: OpenClawConfig): boolean {
+function hasConfiguredSafeBins(cfg: AstroclawConfig): boolean {
   const globalExec = cfg.tools?.exec;
   if (
     hasRecord(globalExec) &&
@@ -143,7 +143,7 @@ function resolveProviderToolPolicy(params: {
 }
 
 function resolveMessageToolAvailability(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string;
   globalTools?: ToolsConfig;
   agentTools?: AgentToolsConfig;
@@ -192,7 +192,7 @@ function resolveMessageToolAvailability(params: {
 const SOURCE_REPLY_RUNTIME_MESSAGE_ALLOW = ["message"];
 
 function resolvePrimaryModelRef(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   agentModel?: NonNullable<ReturnType<typeof resolveAgentConfig>>["model"],
 ): { provider: string; model: string } {
   const raw =
@@ -208,7 +208,7 @@ function resolvePrimaryModelRef(
 }
 
 function resolveSourceReplyMessageToolAvailability(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string;
   globalTools?: ToolsConfig;
   agentTools?: AgentToolsConfig;
@@ -219,7 +219,7 @@ function resolveSourceReplyMessageToolAvailability(params: {
   });
 }
 
-function sourceReplyRuntimeMayAllowMessageTool(cfg: OpenClawConfig): boolean {
+function sourceReplyRuntimeMayAllowMessageTool(cfg: AstroclawConfig): boolean {
   const groupPolicy = resolveGroupVisibleReplyProvenance(cfg);
   if (hasChannels(cfg) && groupPolicy.value === "message_tool") {
     return true;
@@ -231,7 +231,7 @@ function sourceReplyRuntimeMayAllowMessageTool(cfg: OpenClawConfig): boolean {
 }
 
 function collectMessageToolUnavailableTargets(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   options: { sourceReplyRuntimeGrant?: boolean } = {},
 ): string[] {
   const agents = listAgentRecords(cfg);
@@ -260,7 +260,7 @@ function collectMessageToolUnavailableTargets(
   });
 }
 
-function resolveGroupVisibleReplyProvenance(cfg: OpenClawConfig): {
+function resolveGroupVisibleReplyProvenance(cfg: AstroclawConfig): {
   path: "messages.groupChat.visibleReplies" | "messages.visibleReplies";
   provenance: VisibleReplyPolicyProvenance;
   value: "automatic" | "message_tool";
@@ -295,7 +295,7 @@ function formatTargets(targets: string[]): string {
   return `${targets.slice(0, 2).join(", ")}, and ${targets.length - 2} more`;
 }
 
-export function collectVisibleReplyToolPolicyWarnings(cfg: OpenClawConfig): string[] {
+export function collectVisibleReplyToolPolicyWarnings(cfg: AstroclawConfig): string[] {
   const groupPolicy = resolveGroupVisibleReplyProvenance(cfg);
   const warnings: string[] = [];
   if (groupPolicy.value === "message_tool") {
@@ -309,11 +309,11 @@ export function collectVisibleReplyToolPolicyWarnings(cfg: OpenClawConfig): stri
     const targetSummary = formatTargets(targets);
     if (groupPolicy.provenance === "default") {
       warnings.push(
-        `- messages.groupChat.visibleReplies defaults to "message_tool", but the message tool is unavailable for ${targetSummary}; OpenClaw falls back to automatic group/channel replies to avoid silent responses. Enable the message tool or set messages.groupChat.visibleReplies explicitly.`,
+        `- messages.groupChat.visibleReplies defaults to "message_tool", but the message tool is unavailable for ${targetSummary}; Astroclaw falls back to automatic group/channel replies to avoid silent responses. Enable the message tool or set messages.groupChat.visibleReplies explicitly.`,
       );
     } else {
       warnings.push(
-        `- ${groupPolicy.path} is set to "message_tool", but the message tool is unavailable for ${targetSummary}; OpenClaw falls back to automatic visible replies, so normal replies may post to the source chat. Enable the message tool or set ${groupPolicy.path} to "automatic".`,
+        `- ${groupPolicy.path} is set to "message_tool", but the message tool is unavailable for ${targetSummary}; Astroclaw falls back to automatic visible replies, so normal replies may post to the source chat. Enable the message tool or set ${groupPolicy.path} to "automatic".`,
       );
     }
   }
@@ -327,7 +327,7 @@ export function collectVisibleReplyToolPolicyWarnings(cfg: OpenClawConfig): stri
     warnings.push(
       `- messages.visibleReplies is set to "message_tool", but the message tool is unavailable for ${formatTargets(
         targets,
-      )}; OpenClaw falls back to automatic direct-chat replies, so normal replies may post to the source chat. Enable the message tool or set messages.visibleReplies to "automatic".`,
+      )}; Astroclaw falls back to automatic direct-chat replies, so normal replies may post to the source chat. Enable the message tool or set messages.visibleReplies to "automatic".`,
     );
   }
   return warnings;
@@ -343,7 +343,7 @@ function formatChannelList(channels: string[]): string {
     .join(", ")}, and ${channels.length - 2} more`;
 }
 
-export function collectChannelBoundMessageToolPolicyWarnings(cfg: OpenClawConfig): string[] {
+export function collectChannelBoundMessageToolPolicyWarnings(cfg: AstroclawConfig): string[] {
   return collectChannelRouteTargets(cfg).flatMap((target) => {
     const agentTools = resolveAgentConfig(cfg, target.agentId)?.tools;
     const runtimeMayAllowMessage = sourceReplyRuntimeMayAllowMessageTool(cfg);
@@ -372,7 +372,7 @@ export function collectChannelBoundMessageToolPolicyWarnings(cfg: OpenClawConfig
 }
 
 export async function collectDoctorPreviewWarnings(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   doctorFixCommand: string;
   env?: NodeJS.ProcessEnv;
 }): Promise<string[]> {

@@ -6,7 +6,7 @@ import OSLog
 final class TalkSpeechInterruptMonitor: @unchecked Sendable {
     static let shared = TalkSpeechInterruptMonitor()
 
-    private let logger = Logger(subsystem: "ai.openclaw", category: "talk.interrupt")
+    private let logger = Logger(subsystem: "ai.astroclaw", category: "talk.interrupt")
     private var globalMonitor: Any?
     private var localMonitor: Any?
 

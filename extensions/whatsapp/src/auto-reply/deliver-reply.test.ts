@@ -2,9 +2,9 @@ import fsSync from "node:fs";
 import {
   createMessageReceiptFromOutboundResults,
   listMessageReceiptPlatformIds,
-} from "openclaw/plugin-sdk/channel-message";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { sleep } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/channel-message";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { sleep } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { loadWebMedia } from "../media.js";
 import { cacheInboundMessageMeta } from "../quoted-message.js";
@@ -14,9 +14,9 @@ const hoisted = vi.hoisted(() => ({
   runFfmpeg: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/media-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-runtime")>(
-    "openclaw/plugin-sdk/media-runtime",
+vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-runtime")>(
+    "astroclaw/plugin-sdk/media-runtime",
   );
   return {
     ...actual,
@@ -24,9 +24,9 @@ vi.mock("openclaw/plugin-sdk/media-runtime", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
-    "openclaw/plugin-sdk/runtime-env",
+vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
+    "astroclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -35,9 +35,9 @@ vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/text-utility-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/text-utility-runtime")>(
-    "openclaw/plugin-sdk/text-utility-runtime",
+vi.mock("astroclaw/plugin-sdk/text-utility-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/text-utility-runtime")>(
+    "astroclaw/plugin-sdk/text-utility-runtime",
   );
   return {
     ...actual,

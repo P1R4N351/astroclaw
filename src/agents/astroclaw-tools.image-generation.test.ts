@@ -1,7 +1,7 @@
-import { describeOpenClawGenerationToolRegistration } from "./openclaw-tools.generation.test-support.js";
+import { describeAstroclawGenerationToolRegistration } from "./astroclaw-tools.generation.test-support.js";
 
-describeOpenClawGenerationToolRegistration({
-  suiteName: "openclaw tools image generation registration",
+describeAstroclawGenerationToolRegistration({
+  suiteName: "astroclaw tools image generation registration",
   toolName: "image_generate",
   toolLabel: "an image-generation tool",
 });

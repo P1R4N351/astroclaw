@@ -1,5 +1,5 @@
-import type { ProviderThinkingProfile } from "openclaw/plugin-sdk/plugin-entry";
-import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-types";
+import type { ProviderThinkingProfile } from "astroclaw/plugin-sdk/plugin-entry";
+import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-types";
 import { OLLAMA_DEFAULT_BASE_URL } from "./src/defaults.js";
 
 type OllamaProviderConfigDraft = Partial<ModelProviderConfig>;

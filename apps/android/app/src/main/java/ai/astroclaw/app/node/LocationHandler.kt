@@ -1,6 +1,6 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.gateway.GatewaySession
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -94,7 +94,7 @@ class LocationHandler private constructor(
     if (!isForeground()) {
       return GatewaySession.InvokeResult.error(
         code = "LOCATION_BACKGROUND_UNAVAILABLE",
-        message = "LOCATION_BACKGROUND_UNAVAILABLE: location requires OpenClaw to stay open",
+        message = "LOCATION_BACKGROUND_UNAVAILABLE: location requires Astroclaw to stay open",
       )
     }
     if (!dataSource.hasFinePermission(appContext) && !dataSource.hasCoarsePermission(appContext)) {

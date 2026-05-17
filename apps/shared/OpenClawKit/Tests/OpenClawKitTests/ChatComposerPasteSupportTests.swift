@@ -2,7 +2,7 @@
 import AppKit
 import Foundation
 import Testing
-@testable import OpenClawChatUI
+@testable import AstroclawChatUI
 
 @Suite(.serialized)
 @MainActor

@@ -8,7 +8,7 @@ import {
   createReplyOperation,
   replyRunRegistry,
 } from "../auto-reply/reply/reply-run-registry.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { runPreparedCliAgent } from "./cli-runner.js";
 import {
@@ -33,7 +33,7 @@ vi.mock("../tts/tts.js", () => ({
 }));
 
 const mockGetGlobalHookRunner = vi.mocked(getGlobalHookRunner);
-const hookRunnerGlobalStateKey = Symbol.for("openclaw.plugins.hook-runner-global-state");
+const hookRunnerGlobalStateKey = Symbol.for("astroclaw.plugins.hook-runner-global-state");
 
 type HookRunnerGlobalStateForTest = {
   hookRunner: unknown;
@@ -55,8 +55,8 @@ function setHookRunnerForTest(hookRunner: unknown): void {
 }
 
 function createSessionFile(params?: { history?: Array<{ role: "user"; content: string }> }) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-hooks-"));
-  vi.stubEnv("OPENCLAW_STATE_DIR", dir);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-hooks-"));
+  vi.stubEnv("ASTROCLAW_STATE_DIR", dir);
   const sessionFile = path.join(dir, "agents", "main", "sessions", "s1.jsonl");
   const storePath = path.join(path.dirname(sessionFile), "sessions.json");
   fs.mkdirSync(path.dirname(sessionFile), { recursive: true });
@@ -107,7 +107,7 @@ function buildPreparedContext(params?: {
   cliSessionId?: string;
   runId?: string;
   lane?: string;
-  openClawHistoryPrompt?: string;
+  astroClawHistoryPrompt?: string;
 }): PreparedCliRunContext {
   const backend = {
     command: "codex",
@@ -157,8 +157,8 @@ function buildPreparedContext(params?: {
     systemPrompt: "You are a helpful assistant.",
     systemPromptReport: {} as PreparedCliRunContext["systemPromptReport"],
     bootstrapPromptWarningLines: [],
-    ...(params?.openClawHistoryPrompt
-      ? { openClawHistoryPrompt: params.openClawHistoryPrompt }
+    ...(params?.astroClawHistoryPrompt
+      ? { astroClawHistoryPrompt: params.astroClawHistoryPrompt }
       : {}),
     authEpochVersion: 2,
   };
@@ -456,7 +456,7 @@ describe("runCliAgent reliability", () => {
     expect(completion.refusal).toBe(false);
   });
 
-  it("seeds fresh CLI sessions from the OpenClaw transcript", async () => {
+  it("seeds fresh CLI sessions from the Astroclaw transcript", async () => {
     supervisorSpawnMock.mockResolvedValueOnce(
       createManagedRun({
         reason: "exit",
@@ -472,8 +472,8 @@ describe("runCliAgent reliability", () => {
 
     const result = await runPreparedCliAgent(
       buildPreparedContext({
-        openClawHistoryPrompt:
-          "Continue this conversation using the OpenClaw transcript below.\n\nUser: earlier ask\n\nAssistant: earlier answer\n\n<next_user_message>\nhi\n</next_user_message>",
+        astroClawHistoryPrompt:
+          "Continue this conversation using the Astroclaw transcript below.\n\nUser: earlier ask\n\nAssistant: earlier answer\n\n<next_user_message>\nhi\n</next_user_message>",
       }),
     );
 
@@ -498,7 +498,7 @@ describe("runCliAgent reliability", () => {
     const result = await runPreparedCliAgent(
       buildPreparedContext({
         cliSessionId: "cli-session",
-        openClawHistoryPrompt: "User: earlier ask",
+        astroClawHistoryPrompt: "User: earlier ask",
       }),
     );
 
@@ -801,9 +801,9 @@ describe("runCliAgent reliability", () => {
       );
       expect(JSON.stringify(blockedLine)).not.toContain("secret prompt");
       expect(JSON.stringify(blockedLine)).not.toContain("matched secret prompt");
-      expect(blockedLine.message.__openclaw.beforeAgentRunBlocked.blockedBy).toBe("policy-plugin");
-      expect(blockedLine.message.__openclaw.beforeAgentRunBlocked).not.toHaveProperty("reason");
-      expect(Object.hasOwn(blockedLine.message.__openclaw, "beforeAgentRunBlocked")).toBe(true);
+      expect(blockedLine.message.__astroclaw.beforeAgentRunBlocked.blockedBy).toBe("policy-plugin");
+      expect(blockedLine.message.__astroclaw.beforeAgentRunBlocked).not.toHaveProperty("reason");
+      expect(Object.hasOwn(blockedLine.message.__astroclaw, "beforeAgentRunBlocked")).toBe(true);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -929,16 +929,16 @@ describe("runCliAgent reliability", () => {
           sessionKey: "agent:main:main",
           runId: "run-retry-success",
           cliSessionId: "thread-123",
-          openClawHistoryPrompt:
-            "Continue this conversation using the OpenClaw transcript below.\n\nUser: recovered history\n\n<next_user_message>\nhi\n</next_user_message>",
+          astroClawHistoryPrompt:
+            "Continue this conversation using the Astroclaw transcript below.\n\nUser: recovered history\n\n<next_user_message>\nhi\n</next_user_message>",
         }),
         params: {
           ...buildPreparedContext({
             sessionKey: "agent:main:main",
             runId: "run-retry-success",
             cliSessionId: "thread-123",
-            openClawHistoryPrompt:
-              "Continue this conversation using the OpenClaw transcript below.\n\nUser: recovered history\n\n<next_user_message>\nhi\n</next_user_message>",
+            astroClawHistoryPrompt:
+              "Continue this conversation using the Astroclaw transcript below.\n\nUser: recovered history\n\n<next_user_message>\nhi\n</next_user_message>",
           }).params,
           agentId: "main",
           sessionFile,
@@ -1020,7 +1020,7 @@ describe("runCliAgent reliability", () => {
       })}\n`,
       "utf-8",
     );
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       agents: {
         defaults: {
           workspace: dir,
@@ -1057,9 +1057,9 @@ describe("runCliAgent reliability", () => {
       });
 
       expect(context.params.prompt).toBe("hook context\n\ncurrent ask");
-      expect(context.openClawHistoryPrompt).toContain("Compaction summary: compacted earlier ask");
-      expect(context.openClawHistoryPrompt).toContain("hook context");
-      expect(context.openClawHistoryPrompt).toContain("current ask");
+      expect(context.astroClawHistoryPrompt).toContain("Compaction summary: compacted earlier ask");
+      expect(context.astroClawHistoryPrompt).toContain("hook context");
+      expect(context.astroClawHistoryPrompt).toContain("current ask");
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

@@ -1,15 +1,15 @@
 import nodeFs from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveUserPath } from "openclaw/plugin-sdk/agent-harness-runtime";
+import { resolveUserPath } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import type {
   EmbeddedRunAttemptParams,
   EmbeddedRunAttemptResult,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import {
   appendRegularFile,
   resolveRegularFileAppendFlags,
-} from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/security-runtime";
 import { resolveCodexLocalRuntimeAttribution } from "./local-runtime-attribution.js";
 
 type CodexTrajectoryRecorder = {
@@ -121,7 +121,7 @@ function writeTrajectoryPointerBestEffort(params: {
         fd,
         `${JSON.stringify(
           {
-            traceSchema: "openclaw-trajectory-pointer",
+            traceSchema: "astroclaw-trajectory-pointer",
             schemaVersion: 1,
             sessionId: params.sessionId,
             runtimeFile: params.filePath,
@@ -170,7 +170,7 @@ export function createCodexTrajectoryRecorder(
     filePath,
     recordEvent: (type, data) => {
       const event = {
-        traceSchema: "openclaw-trajectory",
+        traceSchema: "astroclaw-trajectory",
         schemaVersion: 1,
         traceId: params.attempt.sessionId,
         source: "runtime",
@@ -245,7 +245,7 @@ export function recordCodexTrajectoryCompletion(
 }
 
 function parseTrajectoryEnabled(env: NodeJS.ProcessEnv): boolean {
-  const value = env.OPENCLAW_TRAJECTORY?.trim().toLowerCase();
+  const value = env.ASTROCLAW_TRAJECTORY?.trim().toLowerCase();
   if (value === "1" || value === "true" || value === "yes" || value === "on") {
     return true;
   }
@@ -260,7 +260,7 @@ function resolveTrajectoryFilePath(params: {
   sessionFile: string;
   sessionId: string;
 }): string {
-  const dirOverride = params.env.OPENCLAW_TRAJECTORY_DIR?.trim();
+  const dirOverride = params.env.ASTROCLAW_TRAJECTORY_DIR?.trim();
   if (dirOverride) {
     return resolveContainedPath(
       resolveUserPath(dirOverride),

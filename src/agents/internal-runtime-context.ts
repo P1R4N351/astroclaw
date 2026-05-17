@@ -1,18 +1,18 @@
-export const INTERNAL_RUNTIME_CONTEXT_BEGIN = "<<<BEGIN_OPENCLAW_INTERNAL_CONTEXT>>>";
-export const INTERNAL_RUNTIME_CONTEXT_END = "<<<END_OPENCLAW_INTERNAL_CONTEXT>>>";
+export const INTERNAL_RUNTIME_CONTEXT_BEGIN = "<<<BEGIN_ASTROCLAW_INTERNAL_CONTEXT>>>";
+export const INTERNAL_RUNTIME_CONTEXT_END = "<<<END_ASTROCLAW_INTERNAL_CONTEXT>>>";
 
-const ESCAPED_INTERNAL_RUNTIME_CONTEXT_BEGIN = "[[OPENCLAW_INTERNAL_CONTEXT_BEGIN]]";
-const ESCAPED_INTERNAL_RUNTIME_CONTEXT_END = "[[OPENCLAW_INTERNAL_CONTEXT_END]]";
+const ESCAPED_INTERNAL_RUNTIME_CONTEXT_BEGIN = "[[ASTROCLAW_INTERNAL_CONTEXT_BEGIN]]";
+const ESCAPED_INTERNAL_RUNTIME_CONTEXT_END = "[[ASTROCLAW_INTERNAL_CONTEXT_END]]";
 
-export const OPENCLAW_RUNTIME_CONTEXT_NOTICE =
+export const ASTROCLAW_RUNTIME_CONTEXT_NOTICE =
   "This context is runtime-generated, not user-authored. Keep internal details private.";
-export const OPENCLAW_NEXT_TURN_RUNTIME_CONTEXT_HEADER =
-  "OpenClaw runtime context for the immediately preceding user message.";
-export const OPENCLAW_RUNTIME_EVENT_HEADER = "OpenClaw runtime event.";
-export const OPENCLAW_RUNTIME_CONTEXT_CUSTOM_TYPE = "openclaw.runtime-context";
+export const ASTROCLAW_NEXT_TURN_RUNTIME_CONTEXT_HEADER =
+  "Astroclaw runtime context for the immediately preceding user message.";
+export const ASTROCLAW_RUNTIME_EVENT_HEADER = "Astroclaw runtime event.";
+export const ASTROCLAW_RUNTIME_CONTEXT_CUSTOM_TYPE = "astroclaw.runtime-context";
 
 const LEGACY_INTERNAL_CONTEXT_HEADER =
-  ["OpenClaw runtime context (internal):", OPENCLAW_RUNTIME_CONTEXT_NOTICE, ""].join("\n") + "\n";
+  ["Astroclaw runtime context (internal):", ASTROCLAW_RUNTIME_CONTEXT_NOTICE, ""].join("\n") + "\n";
 
 const LEGACY_INTERNAL_EVENT_MARKER = "[Internal task completion event]";
 const LEGACY_INTERNAL_EVENT_SEPARATOR = "\n\n---\n\n";
@@ -159,7 +159,7 @@ function stripLegacyInternalRuntimeContext(text: string): string {
 
 function isRuntimeContextPromptHeader(line: string): boolean {
   return (
-    line === OPENCLAW_NEXT_TURN_RUNTIME_CONTEXT_HEADER || line === OPENCLAW_RUNTIME_EVENT_HEADER
+    line === ASTROCLAW_NEXT_TURN_RUNTIME_CONTEXT_HEADER || line === ASTROCLAW_RUNTIME_EVENT_HEADER
   );
 }
 
@@ -173,7 +173,7 @@ function stripRuntimeContextPromptPreface(text: string): string {
     const nextLine = lines[index + 1] ?? "";
     if (
       isRuntimeContextPromptHeader(line.trim()) &&
-      nextLine.trim() === OPENCLAW_RUNTIME_CONTEXT_NOTICE
+      nextLine.trim() === ASTROCLAW_RUNTIME_CONTEXT_NOTICE
     ) {
       changed = true;
       index += 1;
@@ -215,27 +215,27 @@ export function hasInternalRuntimeContext(text: string): boolean {
     findDelimitedTokenIndex(text, INTERNAL_RUNTIME_CONTEXT_BEGIN, 0) !== -1 ||
     text.includes(LEGACY_INTERNAL_CONTEXT_HEADER) ||
     text.includes(
-      `${OPENCLAW_NEXT_TURN_RUNTIME_CONTEXT_HEADER}\n${OPENCLAW_RUNTIME_CONTEXT_NOTICE}`,
+      `${ASTROCLAW_NEXT_TURN_RUNTIME_CONTEXT_HEADER}\n${ASTROCLAW_RUNTIME_CONTEXT_NOTICE}`,
     ) ||
-    text.includes(`${OPENCLAW_RUNTIME_EVENT_HEADER}\n${OPENCLAW_RUNTIME_CONTEXT_NOTICE}`)
+    text.includes(`${ASTROCLAW_RUNTIME_EVENT_HEADER}\n${ASTROCLAW_RUNTIME_CONTEXT_NOTICE}`)
   );
 }
 
-function isOpenClawRuntimeContextCustomMessage(message: unknown): boolean {
+function isAstroclawRuntimeContextCustomMessage(message: unknown): boolean {
   if (!message || typeof message !== "object") {
     return false;
   }
   const candidate = message as { role?: unknown; customType?: unknown };
   return (
-    candidate.role === "custom" && candidate.customType === OPENCLAW_RUNTIME_CONTEXT_CUSTOM_TYPE
+    candidate.role === "custom" && candidate.customType === ASTROCLAW_RUNTIME_CONTEXT_CUSTOM_TYPE
   );
 }
 
 export function stripRuntimeContextCustomMessages<T>(messages: T[]): T[] {
-  if (!messages.some(isOpenClawRuntimeContextCustomMessage)) {
+  if (!messages.some(isAstroclawRuntimeContextCustomMessage)) {
     return messages;
   }
-  return messages.filter((message) => !isOpenClawRuntimeContextCustomMessage(message));
+  return messages.filter((message) => !isAstroclawRuntimeContextCustomMessage(message));
 }
 
 function isUserMessage(message: unknown): boolean {
@@ -246,14 +246,14 @@ function isUserMessage(message: unknown): boolean {
 
 /** Removes stale runtime-context custom messages while preserving current-turn context. */
 export function stripHistoricalRuntimeContextCustomMessages<T>(messages: T[]): T[] {
-  if (!messages.some(isOpenClawRuntimeContextCustomMessage)) {
+  if (!messages.some(isAstroclawRuntimeContextCustomMessage)) {
     return messages;
   }
   const lastUserIndex = messages.findLastIndex(isUserMessage);
   if (lastUserIndex === -1) {
-    return messages.filter((message) => !isOpenClawRuntimeContextCustomMessage(message));
+    return messages.filter((message) => !isAstroclawRuntimeContextCustomMessage(message));
   }
   return messages.filter(
-    (message, index) => !isOpenClawRuntimeContextCustomMessage(message) || index > lastUserIndex,
+    (message, index) => !isAstroclawRuntimeContextCustomMessage(message) || index > lastUserIndex,
   );
 }

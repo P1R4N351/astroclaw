@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { runCommandWithTimeout } from "../process/exec.js";
 import { discoverGatewayBeacons } from "./bonjour-discovery.js";
 
-const WIDE_AREA_DOMAIN = "openclaw.internal.";
+const WIDE_AREA_DOMAIN = "astroclaw.internal.";
 
 type BeaconRecord = {
   domain?: string;
@@ -52,8 +52,8 @@ describe("bonjour-discovery", () => {
         if (domain === "local.") {
           return {
             stdout: [
-              "Add 2 3 local. _openclaw-gw._tcp. Peter\\226\\128\\153s Mac Studio Gateway",
-              "Add 2 3 local. _openclaw-gw._tcp. Laptop Gateway",
+              "Add 2 3 local. _astroclaw-gw._tcp. Peter\\226\\128\\153s Mac Studio Gateway",
+              "Add 2 3 local. _astroclaw-gw._tcp. Laptop Gateway",
               "",
             ].join("\n"),
             stderr: "",
@@ -64,7 +64,7 @@ describe("bonjour-discovery", () => {
         }
         if (domain === WIDE_AREA_DOMAIN) {
           return {
-            stdout: [`Add 2 3 ${WIDE_AREA_DOMAIN} _openclaw-gw._tcp. Tailnet Gateway`, ""].join(
+            stdout: [`Add 2 3 ${WIDE_AREA_DOMAIN} _astroclaw-gw._tcp. Tailnet Gateway`, ""].join(
               "\n",
             ),
             stderr: "",
@@ -99,7 +99,7 @@ describe("bonjour-discovery", () => {
 
         return {
           stdout: [
-            `${instance}._openclaw-gw._tcp. can be reached at ${host}:18789`,
+            `${instance}._astroclaw-gw._tcp. can be reached at ${host}:18789`,
             txtParts.join(" "),
             "",
           ].join("\n"),
@@ -141,7 +141,7 @@ describe("bonjour-discovery", () => {
       const domain = argv[3] ?? "";
       if (argv[0] === "dns-sd" && argv[1] === "-B" && domain === "local.") {
         return {
-          stdout: ["Add 2 3 local. _openclaw-gw._tcp. Studio Gateway", ""].join("\n"),
+          stdout: ["Add 2 3 local. _astroclaw-gw._tcp. Studio Gateway", ""].join("\n"),
           stderr: "",
           code: 0,
           signal: null,
@@ -152,7 +152,7 @@ describe("bonjour-discovery", () => {
       if (argv[0] === "dns-sd" && argv[1] === "-L") {
         return {
           stdout: [
-            "Studio Gateway._openclaw-gw._tcp. can be reached at studio.local:18789",
+            "Studio Gateway._astroclaw-gw._tcp. can be reached at studio.local:18789",
             "txtvers=1 displayName=Peter\\226\\128\\153s\\032Mac\\032Studio lanHost=studio.local gatewayPort=18789 sshPort=22",
             "",
           ].join("\n"),
@@ -190,7 +190,7 @@ describe("bonjour-discovery", () => {
   it("falls back to tailnet DNS probing for wide-area when split DNS is not configured", async () => {
     const calls: Array<{ argv: string[]; timeoutMs: number }> = [];
     const zone = WIDE_AREA_DOMAIN.replace(/\.$/, "");
-    const serviceBase = `_openclaw-gw._tcp.${zone}`;
+    const serviceBase = `_astroclaw-gw._tcp.${zone}`;
     const studioService = `studio-gateway.${serviceBase}`;
 
     const run = vi.fn(async (argv: string[], options: { timeoutMs: number }) => {
@@ -256,7 +256,7 @@ describe("bonjour-discovery", () => {
               `"transport=gateway"`,
               `"sshPort=22"`,
               `"tailnetDns=peters-mac-studio-1.sheep-coho.ts.net"`,
-              `"cliPath=/opt/homebrew/bin/openclaw"`,
+              `"cliPath=/opt/homebrew/bin/astroclaw"`,
               "",
             ].join(" "),
             stderr: "",
@@ -288,7 +288,7 @@ describe("bonjour-discovery", () => {
     expect(beacon.tailnetDns).toBe("peters-mac-studio-1.sheep-coho.ts.net");
     expect(beacon.gatewayPort).toBe(18789);
     expect(beacon.sshPort).toBe(22);
-    expect(beacon.cliPath).toBe("/opt/homebrew/bin/openclaw");
+    expect(beacon.cliPath).toBe("/opt/homebrew/bin/astroclaw");
 
     expect(calls.map((c) => c.argv.slice(0, 2).join(" "))).toContain("tailscale status");
     expect(calls.map((c) => c.argv[0])).toContain("dig");
@@ -310,7 +310,7 @@ describe("bonjour-discovery", () => {
     await discoverGatewayBeacons({
       platform: "darwin",
       timeoutMs: 1,
-      domains: ["local", "openclaw.internal"],
+      domains: ["local", "astroclaw.internal"],
       run: run as unknown as typeof runCommandWithTimeout,
     });
 
@@ -320,7 +320,7 @@ describe("bonjour-discovery", () => {
       (c) => c[3],
     );
     expect(browseDomains).toContain("local.");
-    expect(browseDomains).toContain("openclaw.internal.");
+    expect(browseDomains).toContain("astroclaw.internal.");
 
     calls.length = 0;
     await discoverGatewayBeacons({

@@ -1,14 +1,14 @@
-package ai.openclaw.app
+package ai.astroclaw.app
 
-import ai.openclaw.app.chat.ChatMessage
-import ai.openclaw.app.chat.ChatPendingToolCall
-import ai.openclaw.app.chat.ChatSessionEntry
-import ai.openclaw.app.chat.OutgoingAttachment
-import ai.openclaw.app.gateway.GatewayEndpoint
-import ai.openclaw.app.node.CameraCaptureManager
-import ai.openclaw.app.node.CanvasController
-import ai.openclaw.app.node.SmsManager
-import ai.openclaw.app.voice.VoiceConversationEntry
+import ai.astroclaw.app.chat.ChatMessage
+import ai.astroclaw.app.chat.ChatPendingToolCall
+import ai.astroclaw.app.chat.ChatSessionEntry
+import ai.astroclaw.app.chat.OutgoingAttachment
+import ai.astroclaw.app.gateway.GatewayEndpoint
+import ai.astroclaw.app.node.CameraCaptureManager
+import ai.astroclaw.app.node.CanvasController
+import ai.astroclaw.app.node.SmsManager
+import ai.astroclaw.app.voice.VoiceConversationEntry
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LifecycleOwner

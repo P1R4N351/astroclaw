@@ -2,17 +2,17 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   findUnsupportedSchemaKeywords,
   GEMINI_UNSUPPORTED_SCHEMA_KEYWORDS,
 } from "../plugin-sdk/provider-tools.js";
 import "./test-helpers/fast-bash-tools.js";
 import "./test-helpers/fast-coding-tools.js";
-import "./test-helpers/fast-openclaw-tools.js";
-import * as openClawPluginTools from "./openclaw-plugin-tools.js";
-import { createOpenClawTools } from "./openclaw-tools.js";
-import { createOpenClawCodingTools } from "./pi-tools.js";
+import "./test-helpers/fast-astroclaw-tools.js";
+import * as astroClawPluginTools from "./astroclaw-plugin-tools.js";
+import { createAstroclawTools } from "./astroclaw-tools.js";
+import { createAstroclawCodingTools } from "./pi-tools.js";
 import { createHostSandboxFsBridge } from "./test-helpers/host-sandbox-fs-bridge.js";
 import { expectReadWriteEditTools } from "./test-helpers/pi-tools-fs-helpers.js";
 import { createPiToolsSandboxContext } from "./test-helpers/pi-tools-sandbox-context.js";
@@ -69,7 +69,7 @@ async function writeSessionStore(
 }
 
 function createToolsForStoredSession(storeTemplate: string, sessionKey: string) {
-  return createOpenClawCodingTools({
+  return createAstroclawCodingTools({
     sessionKey,
     config: {
       session: {
@@ -86,7 +86,7 @@ function createToolsForStoredSession(storeTemplate: string, sessionKey: string) 
   });
 }
 
-function expectNoSubagentControlTools(tools: ReturnType<typeof createOpenClawCodingTools>) {
+function expectNoSubagentControlTools(tools: ReturnType<typeof createAstroclawCodingTools>) {
   const names = new Set(tools.map((tool) => tool.name));
   expect(names.has("sessions_spawn")).toBe(false);
   expect(names.has("sessions_list")).toBe(false);
@@ -99,14 +99,14 @@ function applyRuntimeToolsAllow<T extends { name: string }>(tools: T[], toolsAll
   return tools.filter((tool) => allowSet.has(normalizeToolName(tool.name)));
 }
 
-type OpenClawCodingTool = ReturnType<typeof createOpenClawCodingTools>[number];
-type OpenClawToolsOptions = NonNullable<Parameters<typeof createOpenClawTools>[0]>;
+type AstroclawCodingTool = ReturnType<typeof createAstroclawCodingTools>[number];
+type AstroclawToolsOptions = NonNullable<Parameters<typeof createAstroclawTools>[0]>;
 
 function toolNameList(tools: readonly { name: string }[]): string[] {
   return tools.map((tool) => tool.name);
 }
 
-function requireTool(tools: OpenClawCodingTool[], name: string): OpenClawCodingTool {
+function requireTool(tools: AstroclawCodingTool[], name: string): AstroclawCodingTool {
   const tool = tools.find((candidate) => candidate.name === name);
   if (!tool) {
     throw new Error(`expected ${name} tool`);
@@ -114,19 +114,19 @@ function requireTool(tools: OpenClawCodingTool[], name: string): OpenClawCodingT
   return tool;
 }
 
-function requireToolExecute(tool: OpenClawCodingTool): NonNullable<OpenClawCodingTool["execute"]> {
+function requireToolExecute(tool: AstroclawCodingTool): NonNullable<AstroclawCodingTool["execute"]> {
   if (!tool.execute) {
     throw new Error(`expected ${tool.name} tool execute`);
   }
   return tool.execute;
 }
 
-function latestCreateOpenClawToolsOptions(): OpenClawToolsOptions {
-  const calls = vi.mocked(createOpenClawTools).mock.calls;
+function latestCreateAstroclawToolsOptions(): AstroclawToolsOptions {
+  const calls = vi.mocked(createAstroclawTools).mock.calls;
   const lastCall = calls.at(-1);
   const options = lastCall?.[0];
   if (!options) {
-    throw new Error("expected createOpenClawTools call");
+    throw new Error("expected createAstroclawTools call");
   }
   return options;
 }
@@ -143,11 +143,11 @@ function expectListIncludes(
   }
 }
 
-describe("createOpenClawCodingTools", () => {
-  const testConfig: OpenClawConfig = {};
+describe("createAstroclawCodingTools", () => {
+  const testConfig: AstroclawConfig = {};
 
   it("exposes gateway config and restart actions to owner sessions", () => {
-    const tools = createOpenClawCodingTools({ config: testConfig, senderIsOwner: true });
+    const tools = createAstroclawCodingTools({ config: testConfig, senderIsOwner: true });
     const gateway = requireTool(tools, "gateway");
 
     const parameters = gateway.parameters as {
@@ -163,7 +163,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("does not add Tool Search control tools from the shared factory by default", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: {
         tools: {
           toolSearch: true,
@@ -179,7 +179,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("adds PI Tool Search control tools when explicitly requested", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       includeToolSearchControls: true,
       config: {
         tools: {
@@ -196,7 +196,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("keeps PI Tool Search controls available under restrictive tool profiles", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       includeToolSearchControls: true,
       config: {
         tools: {
@@ -215,7 +215,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("keeps PI Tool Search controls available under restrictive tool allowlists", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       includeToolSearchControls: true,
       config: {
         tools: {
@@ -235,7 +235,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("lets explicit deny policies remove PI Tool Search controls", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       includeToolSearchControls: true,
       config: {
         tools: {
@@ -251,18 +251,18 @@ describe("createOpenClawCodingTools", () => {
     expect(names.has("read")).toBe(true);
   });
 
-  it("keeps PI Tool Search controls when core OpenClaw tools are not materialized", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+  it("keeps PI Tool Search controls when core Astroclaw tools are not materialized", () => {
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
 
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       includeCoreTools: false,
       includeToolSearchControls: true,
       toolConstructionPlan: {
         includeBaseCodingTools: false,
         includeShellTools: false,
         includeChannelTools: false,
-        includeOpenClawTools: false,
+        includeAstroclawTools: false,
         includePluginTools: true,
       },
       config: {
@@ -273,7 +273,7 @@ describe("createOpenClawCodingTools", () => {
     });
     const names = new Set(tools.map((tool) => tool.name));
 
-    expect(createOpenClawToolsMock).not.toHaveBeenCalled();
+    expect(createAstroclawToolsMock).not.toHaveBeenCalled();
     expect(names.has("tool_search_code")).toBe(true);
     expect(names.has("tool_search")).toBe(true);
     expect(names.has("tool_describe")).toBe(true);
@@ -283,7 +283,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("exposes only an explicitly authorized owner-only tool to non-owner sessions", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: testConfig,
       senderIsOwner: false,
       ownerOnlyToolAllowlist: ["cron"],
@@ -297,7 +297,7 @@ describe("createOpenClawCodingTools", () => {
 
   it("resolves isolated cron runtime toolsAllow after the cron owner-only grant", () => {
     const withoutGrant = applyRuntimeToolsAllow(
-      createOpenClawCodingTools({
+      createAstroclawCodingTools({
         config: testConfig,
         senderIsOwner: false,
       }),
@@ -314,7 +314,7 @@ describe("createOpenClawCodingTools", () => {
     );
 
     const withGrant = applyRuntimeToolsAllow(
-      createOpenClawCodingTools({
+      createAstroclawCodingTools({
         config: testConfig,
         senderIsOwner: false,
         ownerOnlyToolAllowlist: ["cron"],
@@ -333,50 +333,50 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("uses runtime toolsAllow when materializing plugin tools", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
 
-    createOpenClawCodingTools({
+    createAstroclawCodingTools({
       config: testConfig,
       runtimeToolAllowlist: ["memory_search", "memory_get"],
     });
 
-    expect(createOpenClawToolsMock).toHaveBeenCalledTimes(1);
-    const options = latestCreateOpenClawToolsOptions();
+    expect(createAstroclawToolsMock).toHaveBeenCalledTimes(1);
+    const options = latestCreateAstroclawToolsOptions();
     expectListIncludes(options.pluginToolAllowlist, ["memory_search", "memory_get"]);
   });
 
-  it("passes source reply delivery mode to OpenClaw tool construction", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+  it("passes source reply delivery mode to Astroclaw tool construction", () => {
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
 
-    createOpenClawCodingTools({
+    createAstroclawCodingTools({
       config: testConfig,
       forceMessageTool: true,
       sourceReplyDeliveryMode: "message_tool_only",
     });
 
-    expect(createOpenClawToolsMock).toHaveBeenCalledTimes(1);
-    expect(latestCreateOpenClawToolsOptions().sourceReplyDeliveryMode).toBe("message_tool_only");
+    expect(createAstroclawToolsMock).toHaveBeenCalledTimes(1);
+    expect(latestCreateAstroclawToolsOptions().sourceReplyDeliveryMode).toBe("message_tool_only");
   });
 
   it("skips unrelated tool families when construction is planned from a narrow allowlist", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
 
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: testConfig,
       toolConstructionPlan: {
         includeBaseCodingTools: true,
         includeShellTools: false,
         includeChannelTools: false,
-        includeOpenClawTools: false,
+        includeAstroclawTools: false,
         includePluginTools: false,
       },
     });
     const names = new Set(tools.map((tool) => tool.name));
 
-    expect(createOpenClawToolsMock).not.toHaveBeenCalled();
+    expect(createAstroclawToolsMock).not.toHaveBeenCalled();
     expect(names.has("read")).toBe(true);
     expect(names.has("write")).toBe(true);
     expect(names.has("edit")).toBe(true);
@@ -386,30 +386,30 @@ describe("createOpenClawCodingTools", () => {
     expect(names.has("message")).toBe(false);
   });
 
-  it("passes plugin suppression into OpenClaw tool construction plans", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+  it("passes plugin suppression into Astroclaw tool construction plans", () => {
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
 
-    createOpenClawCodingTools({
+    createAstroclawCodingTools({
       config: testConfig,
       toolConstructionPlan: {
         includeBaseCodingTools: false,
         includeShellTools: false,
         includeChannelTools: false,
-        includeOpenClawTools: true,
+        includeAstroclawTools: true,
         includePluginTools: false,
       },
     });
 
-    expect(createOpenClawToolsMock).toHaveBeenCalledTimes(1);
-    expect(latestCreateOpenClawToolsOptions().disablePluginTools).toBe(true);
+    expect(createAstroclawToolsMock).toHaveBeenCalledTimes(1);
+    expect(latestCreateAstroclawToolsOptions().disablePluginTools).toBe(true);
   });
 
-  it("keeps plugin-only construction off the OpenClaw core factory", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+  it("keeps plugin-only construction off the Astroclaw core factory", () => {
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
 
-    createOpenClawCodingTools({
+    createAstroclawCodingTools({
       config: testConfig,
       includeCoreTools: false,
       runtimeToolAllowlist: ["memory_search"],
@@ -417,23 +417,23 @@ describe("createOpenClawCodingTools", () => {
         includeBaseCodingTools: false,
         includeShellTools: false,
         includeChannelTools: false,
-        includeOpenClawTools: false,
+        includeAstroclawTools: false,
         includePluginTools: true,
       },
     });
 
-    expect(createOpenClawToolsMock).not.toHaveBeenCalled();
+    expect(createAstroclawToolsMock).not.toHaveBeenCalled();
   });
 
   it("forwards active model metadata to plugin-only tool construction", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
     const resolvePluginToolsSpy = vi
-      .spyOn(openClawPluginTools, "resolveOpenClawPluginToolsForOptions")
+      .spyOn(astroClawPluginTools, "resolveAstroclawPluginToolsForOptions")
       .mockReturnValue([]);
 
     try {
-      createOpenClawCodingTools({
+      createAstroclawCodingTools({
         config: testConfig,
         includeCoreTools: false,
         runtimeToolAllowlist: ["memory_search"],
@@ -443,12 +443,12 @@ describe("createOpenClawCodingTools", () => {
           includeBaseCodingTools: false,
           includeShellTools: false,
           includeChannelTools: false,
-          includeOpenClawTools: false,
+          includeAstroclawTools: false,
           includePluginTools: true,
         },
       });
 
-      expect(createOpenClawToolsMock).not.toHaveBeenCalled();
+      expect(createAstroclawToolsMock).not.toHaveBeenCalled();
       expect(resolvePluginToolsSpy).toHaveBeenCalledTimes(1);
       const pluginToolOptions = resolvePluginToolsSpy.mock.calls[0]?.[0].options;
       expect(pluginToolOptions?.modelProvider).toBe("openrouter");
@@ -459,39 +459,39 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("uses tools.alsoAllow for optional plugin discovery without widening to all plugins", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
 
-    createOpenClawCodingTools({
+    createAstroclawCodingTools({
       config: { tools: { alsoAllow: ["lobster"] } },
     });
 
-    expect(createOpenClawToolsMock).toHaveBeenCalledTimes(1);
-    expect(latestCreateOpenClawToolsOptions().pluginToolAllowlist).toStrictEqual([
+    expect(createAstroclawToolsMock).toHaveBeenCalledTimes(1);
+    expect(latestCreateAstroclawToolsOptions().pluginToolAllowlist).toStrictEqual([
       "lobster",
       DEFAULT_PLUGIN_TOOLS_ALLOWLIST_ENTRY,
     ]);
   });
 
-  it("passes explicit denylist entries to OpenClaw tool factory planning", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+  it("passes explicit denylist entries to Astroclaw tool factory planning", () => {
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
 
-    createOpenClawCodingTools({
+    createAstroclawCodingTools({
       config: { tools: { deny: ["pdf"] } },
     });
 
-    expect(createOpenClawToolsMock).toHaveBeenCalledTimes(1);
-    expectListIncludes(latestCreateOpenClawToolsOptions().pluginToolDenylist, ["pdf"]);
+    expect(createAstroclawToolsMock).toHaveBeenCalledTimes(1);
+    expectListIncludes(latestCreateAstroclawToolsOptions().pluginToolDenylist, ["pdf"]);
   });
 
-  it("passes inherited allowlist entries to OpenClaw plugin discovery", async () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+  it("passes inherited allowlist entries to Astroclaw plugin discovery", async () => {
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
     const agentId = `inherited-allow-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const storeTemplate = path.join(
       os.tmpdir(),
-      `openclaw-session-store-${agentId}-{agentId}.json`,
+      `astroclaw-session-store-${agentId}-{agentId}.json`,
     );
     await writeSessionStore(storeTemplate, agentId, {
       [`agent:${agentId}:subagent:limited`]: {
@@ -504,7 +504,7 @@ describe("createOpenClawCodingTools", () => {
       },
     });
 
-    createOpenClawCodingTools({
+    createAstroclawCodingTools({
       sessionKey: `agent:${agentId}:subagent:limited`,
       config: {
         session: {
@@ -513,23 +513,23 @@ describe("createOpenClawCodingTools", () => {
       },
     });
 
-    expect(createOpenClawToolsMock).toHaveBeenCalledTimes(1);
-    expectListIncludes(latestCreateOpenClawToolsOptions().pluginToolAllowlist, [
+    expect(createAstroclawToolsMock).toHaveBeenCalledTimes(1);
+    expectListIncludes(latestCreateAstroclawToolsOptions().pluginToolAllowlist, [
       "custom_plugin_tool",
       "sessions_spawn",
     ]);
   });
 
   it("passes effective allow-list-restricted tool surface to spawned sessions", () => {
-    const createOpenClawToolsMock = vi.mocked(createOpenClawTools);
-    createOpenClawToolsMock.mockClear();
+    const createAstroclawToolsMock = vi.mocked(createAstroclawTools);
+    createAstroclawToolsMock.mockClear();
 
-    createOpenClawCodingTools({
+    createAstroclawCodingTools({
       config: { tools: { allow: ["read", "sessions_spawn"] } },
     });
 
-    expect(createOpenClawToolsMock).toHaveBeenCalledTimes(1);
-    const inheritedAllow = latestCreateOpenClawToolsOptions().inheritedToolAllowlist;
+    expect(createAstroclawToolsMock).toHaveBeenCalledTimes(1);
+    const inheritedAllow = latestCreateAstroclawToolsOptions().inheritedToolAllowlist;
     expectListIncludes(inheritedAllow, ["read", "sessions_spawn"]);
     expect(inheritedAllow?.includes("exec")).toBe(false);
     expect(inheritedAllow?.includes("process")).toBe(false);
@@ -538,7 +538,7 @@ describe("createOpenClawCodingTools", () => {
   it("records core tool-prep stages for hot-path diagnostics", () => {
     const stages: string[] = [];
 
-    createOpenClawCodingTools({
+    createAstroclawCodingTools({
       config: testConfig,
       recordToolPrepStage: (name) => stages.push(name),
       senderIsOwner: true,
@@ -549,8 +549,8 @@ describe("createOpenClawCodingTools", () => {
       "workspace-policy",
       "base-coding-tools",
       "shell-tools",
-      "openclaw-tools:test-helper",
-      "openclaw-tools",
+      "astroclaw-tools:test-helper",
+      "astroclaw-tools",
       "message-provider-policy",
       "model-provider-policy",
       "authorization-policy",
@@ -561,14 +561,14 @@ describe("createOpenClawCodingTools", () => {
     ]);
     expect(stages.indexOf("tool-policy")).toBeLessThan(stages.indexOf("workspace-policy"));
     expect(stages.indexOf("workspace-policy")).toBeLessThan(stages.indexOf("base-coding-tools"));
-    expect(stages.indexOf("openclaw-tools:test-helper")).toBeLessThan(
-      stages.indexOf("openclaw-tools"),
+    expect(stages.indexOf("astroclaw-tools:test-helper")).toBeLessThan(
+      stages.indexOf("astroclaw-tools"),
     );
     expect(stages.indexOf("schema-normalization")).toBeLessThan(stages.indexOf("tool-hooks"));
   });
 
   it("preserves action enums in normalized schemas", () => {
-    const defaultTools = createOpenClawCodingTools({ config: testConfig, senderIsOwner: true });
+    const defaultTools = createAstroclawCodingTools({ config: testConfig, senderIsOwner: true });
     const toolNames = ["canvas", "nodes", "cron", "gateway", "message"];
     const missingNames = toolNames.filter(
       (name) => !defaultTools.some((candidate) => candidate.name === name),
@@ -592,68 +592,68 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("enforces apply_patch availability and canonical names across model/provider constraints", () => {
-    const defaultTools = createOpenClawCodingTools({ config: testConfig, senderIsOwner: true });
+    const defaultTools = createAstroclawCodingTools({ config: testConfig, senderIsOwner: true });
     expect(toolNameList(defaultTools)).toContain("exec");
     expect(toolNameList(defaultTools)).toContain("process");
     expect(toolNameList(defaultTools)).not.toContain("apply_patch");
 
-    const openAiTools = createOpenClawCodingTools({
+    const openAiTools = createAstroclawCodingTools({
       config: testConfig,
       modelProvider: "openai",
       modelId: "gpt-5.4",
     });
     expect(toolNameList(openAiTools)).toContain("apply_patch");
 
-    const codexTools = createOpenClawCodingTools({
+    const codexTools = createAstroclawCodingTools({
       config: testConfig,
       modelProvider: "openai-codex",
       modelId: "gpt-5.4",
     });
     expect(toolNameList(codexTools)).toContain("apply_patch");
 
-    const disabledConfig: OpenClawConfig = {
+    const disabledConfig: AstroclawConfig = {
       tools: {
         exec: {
           applyPatch: { enabled: false },
         },
       },
     };
-    const disabledOpenAiTools = createOpenClawCodingTools({
+    const disabledOpenAiTools = createAstroclawCodingTools({
       config: disabledConfig,
       modelProvider: "openai",
       modelId: "gpt-5.4",
     });
     expect(toolNameList(disabledOpenAiTools)).not.toContain("apply_patch");
 
-    const anthropicTools = createOpenClawCodingTools({
+    const anthropicTools = createAstroclawCodingTools({
       config: disabledConfig,
       modelProvider: "anthropic",
       modelId: "claude-opus-4-6",
     });
     expect(toolNameList(anthropicTools)).not.toContain("apply_patch");
 
-    const allowModelsConfig: OpenClawConfig = {
+    const allowModelsConfig: AstroclawConfig = {
       tools: {
         exec: {
           applyPatch: { allowModels: ["gpt-5.4"] },
         },
       },
     };
-    const allowed = createOpenClawCodingTools({
+    const allowed = createAstroclawCodingTools({
       config: allowModelsConfig,
       modelProvider: "openai",
       modelId: "gpt-5.4",
     });
     expect(toolNameList(allowed)).toContain("apply_patch");
 
-    const denied = createOpenClawCodingTools({
+    const denied = createAstroclawCodingTools({
       config: allowModelsConfig,
       modelProvider: "openai",
       modelId: "gpt-5.4-mini",
     });
     expect(toolNameList(denied)).not.toContain("apply_patch");
 
-    const oauthTools = createOpenClawCodingTools({
+    const oauthTools = createAstroclawCodingTools({
       config: testConfig,
       modelProvider: "anthropic",
       modelAuthMode: "oauth",
@@ -667,7 +667,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("provides top-level object schemas for all tools", () => {
-    const tools = createOpenClawCodingTools({ config: testConfig });
+    const tools = createAstroclawCodingTools({ config: testConfig });
     const offenders = tools
       .map((tool) => {
         const schema =
@@ -686,7 +686,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("does not expose provider-specific message tools", () => {
-    const tools = createOpenClawCodingTools({ messageProvider: "discord" });
+    const tools = createAstroclawCodingTools({ messageProvider: "discord" });
     const names = new Set(tools.map((tool) => tool.name));
     expect(names.has("discord")).toBe(false);
     expect(names.has("slack")).toBe(false);
@@ -695,7 +695,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("filters session tools for sub-agent sessions by default", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       sessionKey: "agent:main:subagent:test",
     });
     const names = new Set(tools.map((tool) => tool.name));
@@ -712,7 +712,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("uses stored spawnDepth to apply leaf tool policy for flat depth-2 session keys", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-depth-policy-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-depth-policy-"));
     try {
       const storeTemplate = path.join(tmpDir, "sessions-{agentId}.json");
       await writeSessionStore(storeTemplate, "main", {
@@ -731,7 +731,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("applies subagent tool policy to ACP children spawned under a subagent envelope", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-acp-subagent-policy-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-acp-subagent-policy-"));
     try {
       const storeTemplate = path.join(tmpDir, "sessions-{agentId}.json");
       await writeSessionStore(storeTemplate, "main", {
@@ -781,7 +781,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("applies leaf tool policy for cross-agent subagent sessions when spawnDepth is missing", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-cross-agent-subagent-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-cross-agent-subagent-"));
     try {
       const storeTemplate = path.join(tmpDir, "sessions-{agentId}.json");
       await writeSessionStore(storeTemplate, "main", {
@@ -807,7 +807,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("supports allow-only sub-agent tool policy", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       sessionKey: "agent:main:subagent:test",
       config: {
         tools: {
@@ -823,7 +823,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("applies tool profiles before allow/deny policies", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: { tools: { profile: "messaging" } },
     });
     const names = new Set(tools.map((tool) => tool.name));
@@ -835,12 +835,12 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("includes browser tool with full profile when browser is configured (#76507)", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: {
         tools: { profile: "full" },
         browser: { enabled: true },
         plugins: { entries: { browser: { enabled: true } } },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       senderIsOwner: true,
     });
     const names = new Set(tools.map((tool) => tool.name));
@@ -852,12 +852,12 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("includes browser tool with full profile for non-owner senders (#76507)", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: {
         tools: { profile: "full" },
         browser: { enabled: true },
         plugins: { entries: { browser: { enabled: true } } },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       senderIsOwner: false,
     });
     const names = new Set(tools.map((tool) => tool.name));
@@ -871,11 +871,11 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("includes browser tool without explicit profile (defaults to no filtering) (#76507)", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: {
         browser: { enabled: true },
         plugins: { entries: { browser: { enabled: true } } },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
     const names = new Set(tools.map((tool) => tool.name));
     // No profile means no profile filtering — all tools pass.
@@ -887,15 +887,15 @@ describe("createOpenClawCodingTools", () => {
       browser: { enabled: true },
       plugins: { entries: { browser: { enabled: true } } },
       tools: { profile: "coding" },
-    } as OpenClawConfig;
-    const codingSubagent = createOpenClawCodingTools({
+    } as AstroclawConfig;
+    const codingSubagent = createAstroclawCodingTools({
       sessionKey: "agent:main:subagent:test",
       config: baseConfig,
     });
     const codingNames = new Set(codingSubagent.map((tool) => tool.name));
     expect(codingNames.has("browser")).toBe(false);
 
-    const subagentAllowOnly = createOpenClawCodingTools({
+    const subagentAllowOnly = createAstroclawCodingTools({
       sessionKey: "agent:main:subagent:test",
       config: {
         ...baseConfig,
@@ -903,27 +903,27 @@ describe("createOpenClawCodingTools", () => {
           profile: "coding",
           subagents: { tools: { allow: ["browser"] } },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
     expect(toolNameList(subagentAllowOnly)).not.toContain("browser");
 
-    const profileStageAlsoAllow = createOpenClawCodingTools({
+    const profileStageAlsoAllow = createAstroclawCodingTools({
       sessionKey: "agent:main:subagent:test",
       config: {
         ...baseConfig,
         tools: { profile: "coding", alsoAllow: ["browser"] },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
     expect(toolNameList(profileStageAlsoAllow)).toContain("browser");
   });
 
   it("can keep message available when a cron route needs it under the coding profile", () => {
-    const codingTools = createOpenClawCodingTools({
+    const codingTools = createAstroclawCodingTools({
       config: { tools: { profile: "coding" } },
     });
     expect(toolNameList(codingTools)).not.toContain("message");
 
-    const cronTools = createOpenClawCodingTools({
+    const cronTools = createAstroclawCodingTools({
       config: { tools: { profile: "coding" } },
       forceMessageTool: true,
     });
@@ -931,7 +931,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("keeps message available for message-tool-only source replies under the coding profile", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: { tools: { profile: "coding" } },
       sourceReplyDeliveryMode: "message_tool_only",
     });
@@ -940,7 +940,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("keeps heartbeat response available for heartbeat runs under the coding profile", () => {
-    const codingTools = createOpenClawCodingTools({
+    const codingTools = createAstroclawCodingTools({
       config: { tools: { profile: "coding" } },
       trigger: "heartbeat",
       enableHeartbeatTool: true,
@@ -951,11 +951,11 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("enables heartbeat response when visible replies are message-tool-only", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: {
         messages: { visibleReplies: "message_tool" },
         tools: { profile: "coding" },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       trigger: "heartbeat",
     });
 
@@ -963,14 +963,14 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("can keep message available when a cron route needs it under a provider coding profile", () => {
-    const providerProfileTools = createOpenClawCodingTools({
+    const providerProfileTools = createAstroclawCodingTools({
       config: { tools: { byProvider: { openai: { profile: "coding" } } } },
       modelProvider: "openai",
       modelId: "gpt-5.4",
     });
     expect(toolNameList(providerProfileTools)).not.toContain("message");
 
-    const cronTools = createOpenClawCodingTools({
+    const cronTools = createAstroclawCodingTools({
       config: { tools: { byProvider: { openai: { profile: "coding" } } } },
       modelProvider: "openai",
       modelId: "gpt-5.4",
@@ -982,14 +982,14 @@ describe("createOpenClawCodingTools", () => {
   it.each(providerAliasCases)(
     "applies canonical tools.byProvider deny policy to core tools for alias %s",
     (alias, canonical) => {
-      const tools = createOpenClawCodingTools({
+      const tools = createAstroclawCodingTools({
         config: {
           tools: {
             byProvider: {
               [canonical]: { deny: ["read"] },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
         modelProvider: alias,
       });
       const names = new Set(tools.map((tool) => tool.name));
@@ -1000,7 +1000,7 @@ describe("createOpenClawCodingTools", () => {
   );
 
   it("expands group shorthands in global tool policy", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: { tools: { allow: ["group:fs"] } },
     });
     const names = new Set(tools.map((tool) => tool.name));
@@ -1012,7 +1012,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("expands group shorthands in global tool deny policy", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       config: { tools: { deny: ["group:fs"] } },
     });
     const names = new Set(tools.map((tool) => tool.name));
@@ -1023,7 +1023,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("lets agent profiles override global profiles", () => {
-    const tools = createOpenClawCodingTools({
+    const tools = createAstroclawCodingTools({
       sessionKey: "agent:work:main",
       config: {
         tools: { profile: "coding" },
@@ -1039,7 +1039,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("removes unsupported JSON Schema keywords for Cloud Code Assist API compatibility", () => {
-    const googleTools = createOpenClawCodingTools({
+    const googleTools = createAstroclawCodingTools({
       modelProvider: "google",
       senderIsOwner: true,
     });
@@ -1054,7 +1054,7 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("applies xai model compat for direct Grok tool cleanup", () => {
-    const xaiTools = createOpenClawCodingTools({
+    const xaiTools = createAstroclawCodingTools({
       modelProvider: "xai",
       modelCompat: {
         toolSchemaProfile: "xai",
@@ -1082,11 +1082,11 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("returns image-aware read metadata for images and text-only blocks for text files", async () => {
-    const defaultTools = createOpenClawCodingTools();
+    const defaultTools = createAstroclawCodingTools();
     const readTool = requireTool(defaultTools, "read");
     const readExecute = requireToolExecute(readTool);
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-read-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-read-"));
     try {
       const imagePath = path.join(tmpDir, "sample.png");
       await fs.writeFile(imagePath, tinyPngBuffer);
@@ -1110,7 +1110,7 @@ describe("createOpenClawCodingTools", () => {
       }
 
       const textPath = path.join(tmpDir, "sample.txt");
-      const contents = "Hello from openclaw read tool.";
+      const contents = "Hello from astroclaw read tool.";
       await fs.writeFile(textPath, contents, "utf8");
 
       const textResult = await readExecute("tool-2", {
@@ -1124,10 +1124,10 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("filters tools by sandbox policy", () => {
-    const sandboxDir = path.join(os.tmpdir(), "openclaw-sandbox");
+    const sandboxDir = path.join(os.tmpdir(), "astroclaw-sandbox");
     const sandbox = createPiToolsSandboxContext({
       workspaceDir: sandboxDir,
-      agentWorkspaceDir: path.join(os.tmpdir(), "openclaw-workspace"),
+      agentWorkspaceDir: path.join(os.tmpdir(), "astroclaw-workspace"),
       workspaceAccess: "none" as const,
       fsBridge: createHostSandboxFsBridge(sandboxDir),
       tools: {
@@ -1135,17 +1135,17 @@ describe("createOpenClawCodingTools", () => {
         deny: ["browser"],
       },
     });
-    const tools = createOpenClawCodingTools({ sandbox });
+    const tools = createAstroclawCodingTools({ sandbox });
     expect(toolNameList(tools)).toContain("exec");
     expect(toolNameList(tools)).not.toContain("read");
     expect(toolNameList(tools)).not.toContain("browser");
   });
 
   it("hard-disables write/edit when sandbox workspaceAccess is ro", () => {
-    const sandboxDir = path.join(os.tmpdir(), "openclaw-sandbox");
+    const sandboxDir = path.join(os.tmpdir(), "astroclaw-sandbox");
     const sandbox = createPiToolsSandboxContext({
       workspaceDir: sandboxDir,
-      agentWorkspaceDir: path.join(os.tmpdir(), "openclaw-workspace"),
+      agentWorkspaceDir: path.join(os.tmpdir(), "astroclaw-workspace"),
       workspaceAccess: "ro" as const,
       fsBridge: createHostSandboxFsBridge(sandboxDir),
       tools: {
@@ -1153,16 +1153,16 @@ describe("createOpenClawCodingTools", () => {
         deny: [],
       },
     });
-    const tools = createOpenClawCodingTools({ sandbox });
+    const tools = createAstroclawCodingTools({ sandbox });
     expect(toolNameList(tools)).toContain("read");
     expect(toolNameList(tools)).not.toContain("write");
     expect(toolNameList(tools)).not.toContain("edit");
   });
 
   it("accepts canonical parameters for read/write/edit", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-canonical-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-canonical-"));
     try {
-      const tools = createOpenClawCodingTools({ workspaceDir: tmpDir });
+      const tools = createAstroclawCodingTools({ workspaceDir: tmpDir });
       const { readTool, writeTool, editTool } = expectReadWriteEditTools(tools);
 
       const filePath = "canonical-test.txt";
@@ -1191,9 +1191,9 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("rejects legacy alias parameters", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-legacy-alias-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-legacy-alias-"));
     try {
-      const tools = createOpenClawCodingTools({ workspaceDir: tmpDir });
+      const tools = createAstroclawCodingTools({ workspaceDir: tmpDir });
       const { readTool, writeTool, editTool } = expectReadWriteEditTools(tools);
 
       await expect(
@@ -1222,9 +1222,9 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("rejects structured content blocks for write", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-structured-write-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-structured-write-"));
     try {
-      const tools = createOpenClawCodingTools({ workspaceDir: tmpDir });
+      const tools = createAstroclawCodingTools({ workspaceDir: tmpDir });
       const writeTool = requireTool(tools, "write");
       const writeExecute = requireToolExecute(writeTool);
 
@@ -1243,12 +1243,12 @@ describe("createOpenClawCodingTools", () => {
   });
 
   it("rejects structured edit payloads", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-structured-edit-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-structured-edit-"));
     try {
       const filePath = path.join(tmpDir, "structured-edit.js");
       await fs.writeFile(filePath, "const value = 'old';\n", "utf8");
 
-      const tools = createOpenClawCodingTools({ workspaceDir: tmpDir });
+      const tools = createAstroclawCodingTools({ workspaceDir: tmpDir });
       const editTool = requireTool(tools, "edit");
       const editExecute = requireToolExecute(editTool);
 

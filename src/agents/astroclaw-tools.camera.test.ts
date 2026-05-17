@@ -247,7 +247,7 @@ describe("nodes camera_snap", () => {
 
     expectNoImages(result);
     expect(result.content ?? []).toStrictEqual([]);
-    expect(expectFirstMediaUrl(result)).toMatch(/openclaw-camera-snap-front-.*\.jpg$/);
+    expect(expectFirstMediaUrl(result)).toMatch(/astroclaw-camera-snap-front-.*\.jpg$/);
   });
 
   it("passes deviceId when provided", async () => {
@@ -412,7 +412,7 @@ describe("nodes photos_latest", () => {
     expect(details[0]?.width).toBe(1);
     expect(details[0]?.height).toBe(1);
     expect(details[0]?.createdAt).toBe("2026-03-04T00:00:00Z");
-    expect(expectFirstMediaUrl(result)).toMatch(/openclaw-camera-snap-.*\.jpg$/);
+    expect(expectFirstMediaUrl(result)).toMatch(/astroclaw-camera-snap-.*\.jpg$/);
   });
 
   it("includes inline image blocks when model has vision", async () => {
@@ -421,7 +421,7 @@ describe("nodes photos_latest", () => {
     const result = await executePhotosLatest({ modelHasVision: true });
 
     expectSingleImage(result, { mimeType: "image/jpeg" });
-    expect(expectFirstMediaUrl(result)).toMatch(/openclaw-camera-snap-.*\.jpg$/);
+    expect(expectFirstMediaUrl(result)).toMatch(/astroclaw-camera-snap-.*\.jpg$/);
   });
 });
 

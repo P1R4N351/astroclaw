@@ -1,4 +1,4 @@
-package ai.openclaw.app
+package ai.astroclaw.app
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

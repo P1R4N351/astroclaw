@@ -1,5 +1,5 @@
 import Testing
-@testable import OpenClawDiscovery
+@testable import AstroclawDiscovery
 
 @MainActor
 struct GatewayDiscoveryModelTests {
@@ -34,7 +34,7 @@ struct GatewayDiscoveryModelTests {
         #expect(GatewayDiscoveryModel.isLocalGateway(
             lanHost: nil,
             tailnetDns: nil,
-            displayName: "Peter's Mac Studio (OpenClaw)",
+            displayName: "Peter's Mac Studio (Astroclaw)",
             serviceName: nil,
             local: local))
     }
@@ -71,13 +71,13 @@ struct GatewayDiscoveryModelTests {
             lanHost: nil,
             tailnetDns: nil,
             displayName: nil,
-            serviceName: "steipetacstudio (OpenClaw)",
+            serviceName: "steipetacstudio (Astroclaw)",
             local: local))
         #expect(GatewayDiscoveryModel.isLocalGateway(
             lanHost: nil,
             tailnetDns: nil,
             displayName: nil,
-            serviceName: "steipete (OpenClaw)",
+            serviceName: "steipete (Astroclaw)",
             local: local))
     }
 
@@ -87,13 +87,13 @@ struct GatewayDiscoveryModelTests {
             "tailnetDns": "  peters-mac-studio-1.ts.net  ",
             "sshPort": " 2222 ",
             "gatewayPort": " 18799 ",
-            "cliPath": " /opt/openclaw ",
+            "cliPath": " /opt/astroclaw ",
         ])
         #expect(parsed.lanHost == "studio.local")
         #expect(parsed.tailnetDns == "peters-mac-studio-1.ts.net")
         #expect(parsed.sshPort == 2222)
         #expect(parsed.gatewayPort == 18799)
-        #expect(parsed.cliPath == "/opt/openclaw")
+        #expect(parsed.cliPath == "/opt/astroclaw")
     }
 
     @Test func `parses gateway TXT defaults`() {
@@ -181,7 +181,7 @@ struct GatewayDiscoveryModelTests {
             sshPort: 22,
             gatewayPort: 443,
             cliPath: nil,
-            stableID: "wide-area|openclaw.internal.|gateway-host",
+            stableID: "wide-area|astroclaw.internal.|gateway-host",
             debugID: "wide-area",
             isLocal: false)
         let serve = GatewayDiscoveryModel.DiscoveredGateway(

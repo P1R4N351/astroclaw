@@ -1,4 +1,4 @@
-name: OpenClaw NPM Release
+name: Astroclaw NPM Release
 
 on:
   workflow_dispatch:
@@ -31,7 +31,7 @@ on:
           - latest
 
 concurrency:
-  group: openclaw-npm-release-${{ github.event_name == 'workflow_dispatch' && format('{0}-{1}', inputs.tag, inputs.npm_dist_tag) || github.ref }}
+  group: astroclaw-npm-release-${{ github.event_name == 'workflow_dispatch' && format('{0}-{1}', inputs.tag, inputs.npm_dist_tag) || github.ref }}
   cancel-in-progress: false
 
 env:
@@ -42,11 +42,11 @@ env:
 jobs:
   # PLEASE DON'T ADD LONG-RUNNING OR FLAKY CHECKS TO THE npm RELEASE PATH.
   # KEEP THIS WORKFLOW SHORT AND DETERMINISTIC OR IT CAN GET STUCK AND JEOPARDIZE THE RELEASE.
-  # RELEASE-TIME LIVE OR END-TO-END VALIDATION BELONGS IN openclaw-release-checks.yml.
+  # RELEASE-TIME LIVE OR END-TO-END VALIDATION BELONGS IN astroclaw-release-checks.yml.
   # SECURITY NOTE: TOKEN-BASED npm dist-tag mutation moved to
-  # openclaw/releases-private/.github/workflows/openclaw-npm-dist-tags.yml
+  # astroclaw/releases-private/.github/workflows/astroclaw-npm-dist-tags.yml
   # so this public workflow can stay focused on OIDC publish only.
-  preflight_openclaw_npm:
+  preflight_astroclaw_npm:
     if: ${{ inputs.preflight_only }}
     runs-on: ubuntu-latest
     permissions:
@@ -102,30 +102,30 @@ jobs:
           set -euo pipefail
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
 
-          if npm view "openclaw@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+          if npm view "astroclaw@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
             if [[ "${PREFLIGHT_ONLY}" == "true" ]]; then
-              echo "openclaw@${PACKAGE_VERSION} is already published on npm; continuing because preflight_only=true."
+              echo "astroclaw@${PACKAGE_VERSION} is already published on npm; continuing because preflight_only=true."
               exit 0
             fi
-            echo "openclaw@${PACKAGE_VERSION} is already published on npm."
+            echo "astroclaw@${PACKAGE_VERSION} is already published on npm."
             exit 1
           fi
 
-          echo "Publishing openclaw@${PACKAGE_VERSION}"
+          echo "Publishing astroclaw@${PACKAGE_VERSION}"
 
       - name: Check
         env:
-          OPENCLAW_LOCAL_CHECK: "0"
+          ASTROCLAW_LOCAL_CHECK: "0"
         run: pnpm check
 
       - name: Check test types
         env:
-          OPENCLAW_LOCAL_CHECK: "0"
+          ASTROCLAW_LOCAL_CHECK: "0"
         run: pnpm check:test-types
 
       - name: Check architecture
         env:
-          OPENCLAW_LOCAL_CHECK: "0"
+          ASTROCLAW_LOCAL_CHECK: "0"
         run: pnpm check:architecture
 
       - name: Build
@@ -137,11 +137,11 @@ jobs:
       - name: Validate release metadata
         if: ${{ inputs.preflight_run_id == '' }}
         env:
-          OPENCLAW_NPM_RELEASE_SKIP_PACK_CHECK: "1"
+          ASTROCLAW_NPM_RELEASE_SKIP_PACK_CHECK: "1"
           RELEASE_REF: ${{ inputs.tag }}
           PREFLIGHT_ONLY: ${{ inputs.preflight_only }}
           WORKFLOW_REF_NAME: ${{ github.ref_name }}
-          OPENCLAW_NPM_PUBLISH_TAG: ${{ inputs.npm_dist_tag }}
+          ASTROCLAW_NPM_PUBLISH_TAG: ${{ inputs.npm_dist_tag }}
         run: |
           set -euo pipefail
           RELEASE_SHA=$(git rev-parse HEAD)
@@ -165,11 +165,11 @@ jobs:
           fi
           RELEASE_MAIN_REF="${RELEASE_BRANCH_REF}"
           export RELEASE_MAIN_REF
-          pnpm release:openclaw:npm:check
+          pnpm release:astroclaw:npm:check
 
       # KEEP THIS LANE LIMITED TO FAST, REPEATABLE RELEASE READINESS CHECKS.
       # IF A CHECK CAN TAKE A LONG TIME, NEEDS LIVE CREDENTIALS, OR IS KNOWN TO BE FLAKY,
-      # IT BELONGS IN openclaw-release-checks.yml INSTEAD OF BLOCKING npm PUBLISH.
+      # IT BELONGS IN astroclaw-release-checks.yml INSTEAD OF BLOCKING npm PUBLISH.
       - name: Verify release contents
         run: pnpm release:check
 
@@ -183,14 +183,14 @@ jobs:
           node scripts/generate-dependency-release-evidence.mjs \
             --release-ref "$RELEASE_REF" \
             --npm-dist-tag "$RELEASE_NPM_DIST_TAG" \
-            --output-dir "$RUNNER_TEMP/openclaw-release-dependency-evidence" \
+            --output-dir "$RUNNER_TEMP/astroclaw-release-dependency-evidence" \
             --github-output "$GITHUB_OUTPUT" \
             --github-step-summary "$GITHUB_STEP_SUMMARY"
 
       - name: Pack prepared npm tarball
         id: packed_tarball
         env:
-          OPENCLAW_PREPACK_PREPARED: "1"
+          ASTROCLAW_PREPACK_PREPARED: "1"
           RELEASE_TAG: ${{ inputs.tag }}
           RELEASE_NPM_DIST_TAG: ${{ inputs.npm_dist_tag }}
           DEPENDENCY_EVIDENCE_DIR: ${{ steps.dependency_evidence.outputs.dir }}
@@ -261,7 +261,7 @@ jobs:
           PACKAGE_VERSION="$(node -p "require('./package.json').version")"
           TARBALL_NAME="$(basename "$PACK_PATH")"
           TARBALL_SHA256="$(sha256sum "$PACK_PATH" | awk '{print $1}')"
-          ARTIFACT_DIR="$RUNNER_TEMP/openclaw-npm-preflight"
+          ARTIFACT_DIR="$RUNNER_TEMP/astroclaw-npm-preflight"
           rm -rf "$ARTIFACT_DIR"
           mkdir -p "$ARTIFACT_DIR"
           cp "$PACK_PATH" "$ARTIFACT_DIR/"
@@ -277,7 +277,7 @@ jobs:
             releaseTag: process.env.RELEASE_TAG,
             releaseSha: process.env.RELEASE_SHA,
             npmDistTag: process.env.RELEASE_NPM_DIST_TAG,
-            packageName: "openclaw",
+            packageName: "astroclaw",
             packageVersion: process.env.PACKAGE_VERSION,
             tarballName: process.env.TARBALL_NAME,
             tarballSha256: process.env.TARBALL_SHA256,
@@ -303,19 +303,19 @@ jobs:
             exit 1
           fi
           PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          node --import tsx scripts/openclaw-npm-prepublish-verify.ts "$TARBALL_PATH" "$PACKAGE_VERSION"
+          node --import tsx scripts/astroclaw-npm-prepublish-verify.ts "$TARBALL_PATH" "$PACKAGE_VERSION"
 
       - name: Upload dependency release evidence
         uses: actions/upload-artifact@v7
         with:
-          name: openclaw-release-dependency-evidence-${{ inputs.tag }}
+          name: astroclaw-release-dependency-evidence-${{ inputs.tag }}
           path: ${{ steps.dependency_evidence.outputs.dir }}
           if-no-files-found: error
 
       - name: Upload prepared npm publish bundle
         uses: actions/upload-artifact@v7
         with:
-          name: openclaw-npm-preflight-${{ inputs.tag }}
+          name: astroclaw-npm-preflight-${{ inputs.tag }}
           path: ${{ steps.packed_tarball.outputs.dir }}
           if-no-files-found: error
 
@@ -350,7 +350,7 @@ jobs:
             exit 1
           fi
 
-  publish_openclaw_npm:
+  publish_astroclaw_npm:
     # KEEP THE REAL RELEASE/PUBLISH PATH ON A GITHUB-HOSTED RUNNER.
     # npm trusted publishing + provenance requires this to stay on ubuntu-latest.
     needs: [validate_publish_request]
@@ -399,12 +399,12 @@ jobs:
           set -euo pipefail
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
 
-          if npm view "openclaw@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
-            echo "openclaw@${PACKAGE_VERSION} is already published on npm."
+          if npm view "astroclaw@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            echo "astroclaw@${PACKAGE_VERSION} is already published on npm."
             exit 1
           fi
 
-          echo "Publishing openclaw@${PACKAGE_VERSION}"
+          echo "Publishing astroclaw@${PACKAGE_VERSION}"
 
       - name: Verify preflight run metadata
         env:
@@ -414,7 +414,7 @@ jobs:
         run: |
           set -euo pipefail
           RUN_JSON="$(gh run view "$PREFLIGHT_RUN_ID" --repo "$GITHUB_REPOSITORY" --json workflowName,headBranch,event,conclusion,url)"
-          printf '%s' "$RUN_JSON" | node -e 'const fs = require("node:fs"); const run = JSON.parse(fs.readFileSync(0, "utf8")); const checks = [["workflowName", "OpenClaw NPM Release"], ["headBranch", process.env.EXPECTED_PREFLIGHT_BRANCH], ["event", "workflow_dispatch"], ["conclusion", "success"]]; for (const [key, expected] of checks) { if (run[key] !== expected) { console.error(`Referenced npm preflight run ${process.env.PREFLIGHT_RUN_ID} must have ${key}=${expected}, got ${run[key] ?? "<missing>"}.`); process.exit(1); } } console.log(`Using npm preflight run ${process.env.PREFLIGHT_RUN_ID}: ${run.url}`);'
+          printf '%s' "$RUN_JSON" | node -e 'const fs = require("node:fs"); const run = JSON.parse(fs.readFileSync(0, "utf8")); const checks = [["workflowName", "Astroclaw NPM Release"], ["headBranch", process.env.EXPECTED_PREFLIGHT_BRANCH], ["event", "workflow_dispatch"], ["conclusion", "success"]]; for (const [key, expected] of checks) { if (run[key] !== expected) { console.error(`Referenced npm preflight run ${process.env.PREFLIGHT_RUN_ID} must have ${key}=${expected}, got ${run[key] ?? "<missing>"}.`); process.exit(1); } } console.log(`Using npm preflight run ${process.env.PREFLIGHT_RUN_ID}: ${run.url}`);'
 
       - name: Verify full release validation run metadata
         env:
@@ -429,7 +429,7 @@ jobs:
       - name: Download prepared npm tarball
         uses: actions/download-artifact@v8
         with:
-          name: openclaw-npm-preflight-${{ inputs.tag }}
+          name: astroclaw-npm-preflight-${{ inputs.tag }}
           path: preflight-tarball
           repository: ${{ github.repository }}
           run-id: ${{ inputs.preflight_run_id }}
@@ -447,7 +447,7 @@ jobs:
       - name: Validate release tag and package metadata
         if: ${{ inputs.preflight_run_id == '' }}
         env:
-          OPENCLAW_NPM_RELEASE_SKIP_PACK_CHECK: "1"
+          ASTROCLAW_NPM_RELEASE_SKIP_PACK_CHECK: "1"
           RELEASE_TAG: ${{ inputs.tag }}
           WORKFLOW_REF_NAME: ${{ github.ref_name }}
         run: |
@@ -458,7 +458,7 @@ jobs:
           # Fetch the workflow branch so merge-base ancestry checks keep working
           # for older tagged commits contained in a release branch.
           git fetch --no-tags origin "+refs/heads/${WORKFLOW_REF_NAME}:refs/remotes/origin/${WORKFLOW_REF_NAME}"
-          pnpm release:openclaw:npm:check
+          pnpm release:astroclaw:npm:check
 
       - name: Verify prepared tarball provenance
         env:
@@ -540,8 +540,8 @@ jobs:
 
       - name: Publish
         env:
-          OPENCLAW_PREPACK_PREPARED: "1"
-          OPENCLAW_NPM_PUBLISH_TAG: ${{ inputs.npm_dist_tag }}
+          ASTROCLAW_PREPACK_PREPARED: "1"
+          ASTROCLAW_NPM_PUBLISH_TAG: ${{ inputs.npm_dist_tag }}
           PUBLISH_TARBALL_PATH: ${{ steps.publish_tarball.outputs.path }}
         run: |
           set -euo pipefail
@@ -549,4 +549,4 @@ jobs:
           if [[ -n "${publish_target}" ]]; then
             publish_target="./${publish_target}"
           fi
-          bash scripts/openclaw-npm-publish.sh --publish "${publish_target}"
+          bash scripts/astroclaw-npm-publish.sh --publish "${publish_target}"

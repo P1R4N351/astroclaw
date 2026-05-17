@@ -89,7 +89,7 @@ describe("deliverReplies identity passthrough", () => {
         elements: [
           {
             type: "button",
-            action_id: "openclaw:reply_button",
+            action_id: "astroclaw:reply_button",
             text: { type: "plain_text", text: "Option A" },
             value: "reply_1_option_a",
           },
@@ -151,7 +151,7 @@ describe("deliverReplies identity passthrough", () => {
     expect(blocks[0]?.type).toBe("section");
     expect(blocks[1]?.type).toBe("actions");
     expect(blocks[1]?.elements).toHaveLength(1);
-    expect(blocks[1]?.elements?.[0]?.action_id).toBe("openclaw:reply_button:1:1");
+    expect(blocks[1]?.elements?.[0]?.action_id).toBe("astroclaw:reply_button:1:1");
     expect(blocks[1]?.elements?.[0]?.style).toBe("primary");
     expect(blocks[1]?.elements?.[0]?.value).toBe("approve");
   });

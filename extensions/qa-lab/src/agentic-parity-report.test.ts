@@ -768,7 +768,7 @@ status=done`,
     const report = renderQaAgenticParityMarkdownReport(comparison);
 
     expect(report).toContain(
-      "# OpenClaw Agentic Parity Report — openai/gpt-5.5 vs anthropic/claude-opus-4-6",
+      "# Astroclaw Agentic Parity Report — openai/gpt-5.5 vs anthropic/claude-opus-4-6",
     );
     expect(report).toContain("| Completion rate | 100.0% | 100.0% |");
     expect(report).toContain("### Approval turn tool followthrough");
@@ -790,7 +790,7 @@ status=done`,
     });
     const report = renderQaAgenticParityMarkdownReport(comparison);
     expect(report).toContain(
-      "# OpenClaw Agentic Parity Report — openai/gpt-5.5-alt vs openai/gpt-5.5",
+      "# Astroclaw Agentic Parity Report — openai/gpt-5.5-alt vs openai/gpt-5.5",
     );
   });
 
@@ -817,7 +817,7 @@ status=done`,
       }),
     );
 
-    expect(report).toContain("# OpenClaw Runtime Parity Report — pi vs codex");
+    expect(report).toContain("# Astroclaw Runtime Parity Report — pi vs codex");
     expect(report).toContain("| Tool-call-shape drift | 1 |");
     expect(report).toContain("### Compaction retry after mutating tool");
     expect(report).toContain("- drift: tool-call-shape");

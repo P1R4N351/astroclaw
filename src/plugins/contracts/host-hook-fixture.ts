@@ -1,6 +1,6 @@
-import type { OpenClawPluginApi } from "../types.js";
+import type { AstroclawPluginApi } from "../types.js";
 
-export function registerHostHookFixture(api: OpenClawPluginApi) {
+export function registerHostHookFixture(api: AstroclawPluginApi) {
   api.session.state.registerSessionExtension({
     namespace: "workflow",
     description: "Generic approval-workflow state projection",
@@ -59,7 +59,7 @@ export function registerHostHookFixture(api: OpenClawPluginApi) {
   }));
 }
 
-export function registerTrustedHostHookFixture(api: OpenClawPluginApi) {
+export function registerTrustedHostHookFixture(api: AstroclawPluginApi) {
   registerHostHookFixture(api);
   api.registerTrustedToolPolicy({
     id: "budget-policy",

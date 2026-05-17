@@ -1,9 +1,9 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { ChannelType } from "../internal/discord.js";
 import type { preflightDiscordMessage } from "./message-handler.preflight.js";
 import { createNoopThreadBindingManager } from "./thread-bindings.js";
 
-export type DiscordConfig = NonNullable<OpenClawConfig["channels"]>["discord"];
+export type DiscordConfig = NonNullable<AstroclawConfig["channels"]>["discord"];
 export type DiscordMessageEvent = import("./listeners.js").DiscordMessageEvent;
 export type DiscordClient = import("../internal/discord.js").Client;
 
@@ -12,7 +12,7 @@ export const DEFAULT_PREFLIGHT_CFG = {
     mainKey: "main",
     scope: "per-sender",
   },
-} as OpenClawConfig;
+} as AstroclawConfig;
 
 export function createGuildTextClient(channelId: string): DiscordClient {
   return {
@@ -84,7 +84,7 @@ export function createDiscordMessage(params: {
 }
 
 export function createDiscordPreflightArgs(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   discordConfig: DiscordConfig;
   data: DiscordMessageEvent;
   client: DiscordClient;
@@ -95,8 +95,8 @@ export function createDiscordPreflightArgs(params: {
     discordConfig: params.discordConfig,
     accountId: "default",
     token: "token",
-    runtime: {} as import("openclaw/plugin-sdk/runtime-env").RuntimeEnv,
-    botUserId: params.botUserId ?? "openclaw-bot",
+    runtime: {} as import("astroclaw/plugin-sdk/runtime-env").RuntimeEnv,
+    botUserId: params.botUserId ?? "astroclaw-bot",
     guildHistories: new Map(),
     historyLimit: 0,
     mediaMaxBytes: 1_000_000,

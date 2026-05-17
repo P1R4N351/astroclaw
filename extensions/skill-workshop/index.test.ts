@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-runtime";
-import type { PluginTrustedToolPolicyRegistration } from "openclaw/plugin-sdk/core";
-import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import type { AnyAgentTool } from "astroclaw/plugin-sdk/agent-runtime";
+import type { PluginTrustedToolPolicyRegistration } from "astroclaw/plugin-sdk/core";
+import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import plugin, {
   applyProposalToWorkspace,
@@ -17,7 +17,7 @@ import type { SkillProposal } from "./src/types.js";
 const tempDirs: string[] = [];
 
 async function makeTempDir(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-skill-workshop-test-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-skill-workshop-test-"));
   tempDirs.push(dir);
   return dir;
 }

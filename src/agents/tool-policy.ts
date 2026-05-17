@@ -89,7 +89,7 @@ export type AllowlistResolution = {
   pluginOnlyAllowlist: boolean;
 };
 
-export const DEFAULT_PLUGIN_TOOLS_ALLOWLIST_ENTRY = "__openclaw_default_plugin_tools__";
+export const DEFAULT_PLUGIN_TOOLS_ALLOWLIST_ENTRY = "__astroclaw_default_plugin_tools__";
 
 export function hasRestrictiveAllowPolicy(policy?: { allow?: string[] }): boolean {
   return (

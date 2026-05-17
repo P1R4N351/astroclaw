@@ -1,12 +1,12 @@
 {
-  "name": "@openclaw/irc",
+  "name": "@astroclaw/irc",
   "version": "2026.5.17",
-  "description": "OpenClaw IRC channel plugin",
+  "description": "Astroclaw IRC channel plugin",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ],

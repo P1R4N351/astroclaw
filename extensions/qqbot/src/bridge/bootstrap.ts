@@ -27,8 +27,8 @@ import {
   hasConfiguredSecretInput,
   normalizeResolvedSecretInputString,
   normalizeSecretInputString,
-} from "openclaw/plugin-sdk/secret-input";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+} from "astroclaw/plugin-sdk/secret-input";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
 import {
   registerPlatformAdapter,
   registerPlatformAdapterFactory,
@@ -52,7 +52,7 @@ function createBuiltinAdapter(): PlatformAdapter {
     },
 
     async downloadFile(url: string, destDir: string, filename?: string): Promise<string> {
-      const { readRemoteMediaBuffer } = await import("openclaw/plugin-sdk/media-runtime");
+      const { readRemoteMediaBuffer } = await import("astroclaw/plugin-sdk/media-runtime");
       const result = await readRemoteMediaBuffer({ url, filePathHint: filename });
       const fs = await import("node:fs");
       const path = await import("node:path");
@@ -65,7 +65,7 @@ function createBuiltinAdapter(): PlatformAdapter {
     },
 
     async fetchMedia(options: FetchMediaOptions): Promise<FetchMediaResult> {
-      const { readRemoteMediaBuffer } = await import("openclaw/plugin-sdk/media-runtime");
+      const { readRemoteMediaBuffer } = await import("astroclaw/plugin-sdk/media-runtime");
       const result = await readRemoteMediaBuffer({
         url: options.url,
         filePathHint: options.filePathHint,
@@ -78,7 +78,7 @@ function createBuiltinAdapter(): PlatformAdapter {
     },
 
     getTempDir(): string {
-      return resolvePreferredOpenClawTmpDir();
+      return resolvePreferredAstroclawTmpDir();
     },
 
     hasConfiguredSecret(value: unknown): boolean {
@@ -95,9 +95,9 @@ function createBuiltinAdapter(): PlatformAdapter {
 
     async resolveApproval(approvalId: string, decision: string): Promise<boolean> {
       try {
-        const { getRuntimeConfig } = await import("openclaw/plugin-sdk/runtime-config-snapshot");
+        const { getRuntimeConfig } = await import("astroclaw/plugin-sdk/runtime-config-snapshot");
         const { resolveApprovalOverGateway } =
-          await import("openclaw/plugin-sdk/approval-gateway-runtime");
+          await import("astroclaw/plugin-sdk/approval-gateway-runtime");
         const cfg = getRuntimeConfig();
         await resolveApprovalOverGateway({
           cfg,

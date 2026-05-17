@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   createBundleMcpToolRuntime,
   materializeBundleMcpToolsForRun,
@@ -9,7 +9,7 @@ import { applyFinalEffectiveToolPolicy } from "./pi-embedded-runner/effective-to
 import { splitSdkTools } from "./pi-embedded-runner/tool-split.js";
 
 // Regression coverage for #76063. The reporter's evidence was a captured
-// outbound provider request body that contained only built-in OpenClaw tools
+// outbound provider request body that contained only built-in Astroclaw tools
 // and no `server__*` MCP tool definitions, even though `cfg.mcp.servers`
 // declared healthy stdio servers. The materialize/policy/split units each
 // have their own focused tests, but ClawSweeper noted that the full request-
@@ -64,7 +64,7 @@ function makeConfiguredRuntime(
 }
 
 async function buildConfiguredMcpToolNamesAtRequestBoundary(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
 }): Promise<string[]> {
   const runtime = await createBundleMcpToolRuntime({
     workspaceDir: "/workspace",

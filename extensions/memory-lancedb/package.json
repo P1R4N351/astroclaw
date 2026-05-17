@@ -1,10 +1,10 @@
 {
-  "name": "@openclaw/memory-lancedb",
+  "name": "@astroclaw/memory-lancedb",
   "version": "2026.5.17",
-  "description": "OpenClaw LanceDB-backed long-term memory plugin with auto-recall/capture",
+  "description": "Astroclaw LanceDB-backed long-term memory plugin with auto-recall/capture",
   "repository": {
     "type": "git",
-    "url": "https://github.com/openclaw/openclaw"
+    "url": "https://github.com/astroclaw/astroclaw"
   },
   "type": "module",
   "dependencies": {
@@ -14,14 +14,14 @@
     "typebox": "1.1.38"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ],
     "install": {
-      "npmSpec": "@openclaw/memory-lancedb",
+      "npmSpec": "@astroclaw/memory-lancedb",
       "defaultChoice": "npm",
       "minHostVersion": ">=2026.4.10"
     },
@@ -29,7 +29,7 @@
       "pluginApi": ">=2026.5.17"
     },
     "build": {
-      "openclawVersion": "2026.5.17"
+      "astroclawVersion": "2026.5.17"
     },
     "release": {
       "publishToClawHub": true,

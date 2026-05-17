@@ -105,7 +105,7 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Codex app-server generated protocol matches OpenClaw bridge assumptions: ${source.codexRepo}`,
+  `Codex app-server generated protocol matches Astroclaw bridge assumptions: ${source.codexRepo}`,
 );
 
 async function compareGeneratedProtocolMirror(sourceJsonRoot: string): Promise<void> {

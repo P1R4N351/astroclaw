@@ -1,4 +1,4 @@
-import { normalizeResolvedSecretInputString } from "openclaw/plugin-sdk/secret-input";
+import { normalizeResolvedSecretInputString } from "astroclaw/plugin-sdk/secret-input";
 
 export function resolveSlackBotToken(
   raw?: unknown,

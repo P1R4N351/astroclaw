@@ -1,13 +1,13 @@
 import CoreGraphics
 import Foundation
 import ImageIO
-import OpenClawKit
+import AstroclawKit
 import UniformTypeIdentifiers
 import XCTest
-@testable import OpenClawChatUI
+@testable import AstroclawChatUI
 
-private struct AttachmentProcessingTransport: OpenClawChatTransport {
-    func requestHistory(sessionKey _: String) async throws -> OpenClawChatHistoryPayload {
+private struct AttachmentProcessingTransport: AstroclawChatTransport {
+    func requestHistory(sessionKey _: String) async throws -> AstroclawChatHistoryPayload {
         throw NSError(domain: "ChatViewModelAttachmentTests", code: 1)
     }
 
@@ -16,7 +16,7 @@ private struct AttachmentProcessingTransport: OpenClawChatTransport {
         message _: String,
         thinking _: String,
         idempotencyKey _: String,
-        attachments _: [OpenClawChatAttachmentPayload]) async throws -> OpenClawChatSendResponse
+        attachments _: [AstroclawChatAttachmentPayload]) async throws -> AstroclawChatSendResponse
     {
         throw NSError(domain: "ChatViewModelAttachmentTests", code: 2)
     }
@@ -25,7 +25,7 @@ private struct AttachmentProcessingTransport: OpenClawChatTransport {
         true
     }
 
-    func events() -> AsyncStream<OpenClawChatTransportEvent> {
+    func events() -> AsyncStream<AstroclawChatTransportEvent> {
         AsyncStream { _ in }
     }
 }
@@ -80,7 +80,7 @@ final class ChatViewModelAttachmentTests: XCTestCase {
     func testImageAttachmentsAreProcessedBeforeStaging() async throws {
         let imageData = try makeChatAttachmentJPEG(width: 3000, height: 4000)
         let viewModel = await MainActor.run {
-            OpenClawChatViewModel(sessionKey: "main", transport: AttachmentProcessingTransport())
+            AstroclawChatViewModel(sessionKey: "main", transport: AttachmentProcessingTransport())
         }
 
         await MainActor.run {

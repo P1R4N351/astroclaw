@@ -1,9 +1,9 @@
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { normalizeTranscriptForMatch } from "openclaw/plugin-sdk/provider-test-contracts";
-import { isLiveTestEnabled } from "openclaw/plugin-sdk/test-env";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { normalizeTranscriptForMatch } from "astroclaw/plugin-sdk/provider-test-contracts";
+import { isLiveTestEnabled } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 import { createGeminiWebSearchProvider } from "./src/gemini-web-search-provider.js";
@@ -61,7 +61,7 @@ describeLive("google plugin live", () => {
     const provider = requireRegisteredProvider(speechProviders, "google");
 
     const audioFile = await provider.synthesize({
-      text: "OpenClaw Google text to speech integration test OK.",
+      text: "Astroclaw Google text to speech integration test OK.",
       cfg: { plugins: { enabled: true } } as never,
       providerConfig: { apiKey: GOOGLE_API_KEY },
       target: "audio-file",
@@ -78,7 +78,7 @@ describeLive("google plugin live", () => {
     const provider = requireRegisteredProvider(speechProviders, "google");
 
     const audioFile = await provider.synthesize({
-      text: "OpenClaw Google voice note integration test OK.",
+      text: "Astroclaw Google voice note integration test OK.",
       cfg: { plugins: { enabled: true } } as never,
       providerConfig: { apiKey: GOOGLE_API_KEY },
       target: "voice-note",
@@ -129,7 +129,7 @@ describeLive("google plugin live", () => {
     let lastError: unknown;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        result = await tool?.execute({ query: "OpenClaw GitHub", count: 1 });
+        result = await tool?.execute({ query: "Astroclaw GitHub", count: 1 });
         lastError = undefined;
         break;
       } catch (error) {
@@ -165,7 +165,7 @@ describeLive("google plugin live", () => {
         searchConfig: { provider: "gemini", cacheTtlMinutes: 0, timeoutSeconds: 90 },
       } as never);
 
-      const result = await tool?.execute({ query: "OpenClaw GitHub", count: 1 });
+      const result = await tool?.execute({ query: "Astroclaw GitHub", count: 1 });
 
       expect(process.env.GEMINI_API_KEY).toBeUndefined();
       expect(process.env.GOOGLE_API_KEY).toBeUndefined();

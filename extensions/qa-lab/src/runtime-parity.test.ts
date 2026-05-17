@@ -271,7 +271,7 @@ describe("runtime parity", () => {
           {
             toolOutput: JSON.stringify({
               status: "ok",
-              text: "QA mission: Understand this OpenClaw repo from source + docs before acting.",
+              text: "QA mission: Understand this Astroclaw repo from source + docs before acting.",
             }),
           },
         ],
@@ -296,7 +296,7 @@ describe("runtime parity", () => {
         argsHash: stableHashForTest({ path: "QA_KICKOFF_TASK.md" }),
         resultHash: stableHashForTest({
           status: "ok",
-          text: "QA mission: Understand this OpenClaw repo from source + docs before acting.",
+          text: "QA mission: Understand this Astroclaw repo from source + docs before acting.",
         }),
       },
     ]);
@@ -485,7 +485,7 @@ describe("runtime parity", () => {
           JSON.stringify({
             message: {
               role: "user",
-              content: "[OpenClaw heartbeat poll]",
+              content: "[Astroclaw heartbeat poll]",
             },
           }),
           JSON.stringify({
@@ -510,7 +510,7 @@ describe("runtime parity", () => {
     });
 
     expect(cell.finalText).toBe("scenario final");
-    expect(cell.transcriptBytes).not.toContain("[OpenClaw heartbeat poll]");
+    expect(cell.transcriptBytes).not.toContain("[Astroclaw heartbeat poll]");
   });
 
   it("ignores heartbeat tool-response transcripts when selecting the scenario reply", async () => {
@@ -532,7 +532,7 @@ describe("runtime parity", () => {
           JSON.stringify({
             message: {
               role: "user",
-              content: "[OpenClaw heartbeat poll]",
+              content: "[Astroclaw heartbeat poll]",
             },
           }),
           JSON.stringify({

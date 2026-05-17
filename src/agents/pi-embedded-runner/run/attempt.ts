@@ -90,7 +90,7 @@ import {
   resolveCodeModeConfig,
 } from "../../code-mode.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../defaults.js";
-import { resolveOpenClawReferencePaths } from "../../docs-path.js";
+import { resolveAstroclawReferencePaths } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
 import { resolveHeartbeatPromptForSystemPrompt } from "../../heartbeat-system-prompt.js";
 import { resolveImageSanitizationLimits } from "../../image-sanitization.js";
@@ -127,7 +127,7 @@ import {
   toClientToolDefinitions,
 } from "../../pi-tool-definition-adapter.js";
 import {
-  createOpenClawCodingTools,
+  createAstroclawCodingTools,
   resolveProcessToolScopeKey,
   resolveToolLoopDetectionConfig,
 } from "../../pi-tools.js";
@@ -1086,7 +1086,7 @@ export async function runEmbeddedAttempt(
     const toolsRaw = !shouldConstructTools
       ? []
       : (() => {
-          const allTools = createOpenClawCodingTools({
+          const allTools = createAstroclawCodingTools({
             agentId: sessionAgentId,
             ...buildEmbeddedAttemptToolRunContext({ ...params, trace: runTrace }),
             exec: {
@@ -1174,7 +1174,7 @@ export async function runEmbeddedAttempt(
               abortSessionForYield?.();
             },
           });
-          corePluginToolStages.mark("attempt:create-openclaw-coding-tools");
+          corePluginToolStages.mark("attempt:create-astroclaw-coding-tools");
           const filteredTools = applyEmbeddedAttemptToolsAllow(allTools, effectiveToolsAllow, {
             toolMeta: (tool) => getPluginToolMeta(tool),
           });
@@ -1609,7 +1609,7 @@ export async function runEmbeddedAttempt(
     // When toolsAllow is set, use minimal prompt and strip skills catalog
     const effectivePromptMode = params.toolsAllow?.length ? ("minimal" as const) : promptMode;
     const effectiveSkillsPrompt = params.toolsAllow?.length ? undefined : skillsPrompt;
-    const openClawReferences = await resolveOpenClawReferencePaths({
+    const astroClawReferences = await resolveAstroclawReferencePaths({
       workspaceDir: effectiveWorkspace,
       argv1: process.argv[1],
       cwd: effectiveWorkspace,
@@ -1671,8 +1671,8 @@ export async function runEmbeddedAttempt(
         reasoningTagHint,
         heartbeatPrompt,
         skillsPrompt: effectiveSkillsPrompt,
-        docsPath: openClawReferences.docsPath ?? undefined,
-        sourcePath: openClawReferences.sourcePath ?? undefined,
+        docsPath: astroClawReferences.docsPath ?? undefined,
+        sourcePath: astroClawReferences.sourcePath ?? undefined,
         workspaceNotes: workspaceNotes?.length ? workspaceNotes : undefined,
         reactionGuidance,
         promptMode: effectivePromptMode,
@@ -1887,9 +1887,9 @@ export async function runEmbeddedAttempt(
         extensionFactories,
       });
       await resourceLoader.reload();
-      // DefaultResourceLoader.reload() rehydrates settings from disk and can drop OpenClaw
+      // DefaultResourceLoader.reload() rehydrates settings from disk and can drop Astroclaw
       // compaction overrides applied in createPreparedEmbeddedPiSettingsManager — same
-      // rehydration also restores Pi's auto-compaction (openclaw#75799), so re-apply
+      // rehydration also restores Pi's auto-compaction (astroclaw#75799), so re-apply
       // both guards.
       applyPiCompactionSettingsFromConfig({
         settingsManager,
@@ -2031,7 +2031,7 @@ export async function runEmbeddedAttempt(
 
       const allCustomTools = [...customTools, ...clientToolDefs];
       // Pi treats `tools` as a name allowlist during session creation. Pass the
-      // exact OpenClaw-managed registrations so custom tools survive startup and
+      // exact Astroclaw-managed registrations so custom tools survive startup and
       // client-provided names do not broaden the prompt/runtime boundary.
       const sessionToolAllowlist = toSessionToolAllowlist(
         collectRegisteredToolNames(allCustomTools),
@@ -2068,7 +2068,7 @@ export async function runEmbeddedAttempt(
         // Raw model probes should measure exactly the requested prompt against
         // the selected provider/model. Reset clears restored transcript state
         // and queues; the empty system override prevents Pi from rebuilding the
-        // normal OpenClaw agent/tool prompt when `session.prompt()` starts.
+        // normal Astroclaw agent/tool prompt when `session.prompt()` starts.
         activeSession.agent.reset();
         applySystemPromptOverrideToSession(activeSession, "");
         systemPromptText = "";
@@ -3363,7 +3363,7 @@ export async function runEmbeddedAttempt(
               content: [{ type: "text" as const, text: block.message }],
               timestamp: nowMs,
               idempotencyKey,
-              __openclaw: {
+              __astroclaw: {
                 beforeAgentRunBlocked: {
                   blockedBy: block.pluginId,
                   blockedAt: nowMs,
@@ -3855,7 +3855,7 @@ export async function runEmbeddedAttempt(
         // Previously this was before the prompt, which caused a custom entry to be
         // inserted between compaction and the next prompt — breaking the
         // prepareCompaction() guard that checks the last entry type, leading to
-        // double-compaction. See: https://github.com/openclaw/openclaw/issues/9282
+        // double-compaction. See: https://github.com/astroclaw/astroclaw/issues/9282
         // Skip when timed out during compaction — session state may be inconsistent.
         // Also skip when compaction ran this attempt — appending a custom entry
         // after compaction would break the guard again. See: #28491
@@ -3942,7 +3942,7 @@ export async function runEmbeddedAttempt(
 
         if (promptError && promptErrorSource === "prompt" && !compactionOccurredThisAttempt) {
           try {
-            sessionManager.appendCustomEntry("openclaw:prompt-error", {
+            sessionManager.appendCustomEntry("astroclaw:prompt-error", {
               timestamp: Date.now(),
               runId: params.runId,
               sessionId: params.sessionId,
@@ -4368,7 +4368,7 @@ export async function runEmbeddedAttempt(
       // *before* tool execution completes in the retried agent loop. Without this wait,
       // flushPendingToolResults() fires while tools are still executing, inserting
       // synthetic "missing tool result" errors and causing silent agent failures.
-      // See: https://github.com/openclaw/openclaw/issues/8643
+      // See: https://github.com/astroclaw/astroclaw/issues/8643
       let cleanupError: unknown;
       try {
         clearToolSearchCatalog({

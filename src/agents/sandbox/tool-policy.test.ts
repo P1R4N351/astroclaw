@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 import { resolveSandboxConfigForAgent } from "./config.js";
 import {
   formatSandboxToolPolicyBlockedMessage,
@@ -9,7 +9,7 @@ import { isToolAllowed, resolveSandboxToolPolicyForAgent } from "./tool-policy.j
 
 describe("sandbox/tool-policy", () => {
   it("merges sandbox alsoAllow into the default sandbox allowlist", () => {
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -39,7 +39,7 @@ describe("sandbox/tool-policy", () => {
   });
 
   it("lets explicit sandbox allow remove entries from the default sandbox denylist", () => {
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -69,7 +69,7 @@ describe("sandbox/tool-policy", () => {
   });
 
   it("preserves allow-all semantics for allow: [] plus alsoAllow", () => {
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -109,7 +109,7 @@ describe("sandbox/tool-policy", () => {
   });
 
   it("keeps canonical sandbox config and runtime status aligned with the effective resolver", () => {
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -153,7 +153,7 @@ describe("sandbox/tool-policy", () => {
   });
 
   it("treats channel direct sessions as sandboxed in non-main mode", () => {
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "non-main", scope: "agent" },
@@ -177,7 +177,7 @@ describe("sandbox/tool-policy", () => {
   });
 
   it("keeps the agent main session sandboxed in all mode", () => {
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -195,7 +195,7 @@ describe("sandbox/tool-policy", () => {
   });
 
   it("keeps explicit sandbox deny precedence over allow and alsoAllow", () => {
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -236,7 +236,7 @@ describe("sandbox/tool-policy", () => {
   });
 
   it("uses the effective sandbox policy when formatting blocked-tool guidance", () => {
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -269,7 +269,7 @@ describe("sandbox/tool-policy", () => {
 
   it("keeps blocked-tool guidance glob-aware and shell-safe", () => {
     const sessionKey = "agent:main:weird session;rm -rf /";
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -295,13 +295,13 @@ describe("sandbox/tool-policy", () => {
     expect(message).not.toContain(`Session: ${sessionKey}`);
     expect(message).toContain("Session: agent:… -rf /");
     expect(message).toContain(
-      "openclaw sandbox explain --session 'agent:main:weird session;rm -rf /'",
+      "astroclaw sandbox explain --session 'agent:main:weird session;rm -rf /'",
     );
   });
 
   it("avoids terminal injection for control-character session keys", () => {
     const sessionKey = "agent:main:abcde\n12345";
-    const cfg: OpenClawConfig = {
+    const cfg: AstroclawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -326,7 +326,7 @@ describe("sandbox/tool-policy", () => {
     expect(sessionLine).toBe("Session: agent:…\\n12345");
     expect(sessionLine).not.toContain(sessionKey);
     expect(sessionLine).toContain("\\n");
-    expect(message).toContain("openclaw sandbox explain --agent main");
+    expect(message).toContain("astroclaw sandbox explain --agent main");
     expect(message).not.toContain("--session");
   });
 });

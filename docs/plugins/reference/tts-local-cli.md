@@ -11,8 +11,8 @@ Adds text-to-speech provider support.
 
 ## Distribution
 
-- Package: `@openclaw/tts-local-cli`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/tts-local-cli`
+- Install route: included in Astroclaw
 
 ## Surface
 

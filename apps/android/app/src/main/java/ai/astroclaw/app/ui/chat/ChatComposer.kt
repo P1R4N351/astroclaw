@@ -1,18 +1,18 @@
-package ai.openclaw.app.ui.chat
+package ai.astroclaw.app.ui.chat
 
-import ai.openclaw.app.ui.mobileAccent
-import ai.openclaw.app.ui.mobileAccentBorderStrong
-import ai.openclaw.app.ui.mobileAccentSoft
-import ai.openclaw.app.ui.mobileBorder
-import ai.openclaw.app.ui.mobileBorderStrong
-import ai.openclaw.app.ui.mobileCallout
-import ai.openclaw.app.ui.mobileCaption1
-import ai.openclaw.app.ui.mobileCardSurface
-import ai.openclaw.app.ui.mobileHeadline
-import ai.openclaw.app.ui.mobileSurface
-import ai.openclaw.app.ui.mobileText
-import ai.openclaw.app.ui.mobileTextSecondary
-import ai.openclaw.app.ui.mobileTextTertiary
+import ai.astroclaw.app.ui.mobileAccent
+import ai.astroclaw.app.ui.mobileAccentBorderStrong
+import ai.astroclaw.app.ui.mobileAccentSoft
+import ai.astroclaw.app.ui.mobileBorder
+import ai.astroclaw.app.ui.mobileBorderStrong
+import ai.astroclaw.app.ui.mobileCallout
+import ai.astroclaw.app.ui.mobileCaption1
+import ai.astroclaw.app.ui.mobileCardSurface
+import ai.astroclaw.app.ui.mobileHeadline
+import ai.astroclaw.app.ui.mobileSurface
+import ai.astroclaw.app.ui.mobileText
+import ai.astroclaw.app.ui.mobileTextSecondary
+import ai.astroclaw.app.ui.mobileTextTertiary
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -143,7 +143,7 @@ fun ChatComposer(
       Text(
         text = "Gateway is offline. Connect first in the Connect tab.",
         style = mobileCallout,
-        color = ai.openclaw.app.ui.mobileWarning,
+        color = ai.astroclaw.app.ui.mobileWarning,
       )
     }
 
@@ -393,7 +393,7 @@ private fun chatTextFieldColors() =
 @Composable
 private fun mobileBodyStyle() =
   MaterialTheme.typography.bodyMedium.copy(
-    fontFamily = ai.openclaw.app.ui.mobileFontFamily,
+    fontFamily = ai.astroclaw.app.ui.mobileFontFamily,
     fontWeight = FontWeight.Medium,
     fontSize = 15.sp,
     lineHeight = 22.sp,

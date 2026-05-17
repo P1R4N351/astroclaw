@@ -8,8 +8,8 @@ import {
   type AuthProfileCredential,
   type AuthProfileFailureReason,
   type AuthProfileStore,
-} from "openclaw/plugin-sdk/agent-runtime";
-import type { PluginCommandContext } from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import type { PluginCommandContext } from "astroclaw/plugin-sdk/plugin-entry";
 import { CODEX_CONTROL_METHODS, type CodexControlMethod } from "./app-server/capabilities.js";
 import { isJsonObject, type JsonObject, type JsonValue } from "./app-server/protocol.js";
 import { rememberCodexRateLimits } from "./app-server/rate-limit-cache.js";

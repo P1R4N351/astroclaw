@@ -37,7 +37,7 @@ export function shouldSkipPluginCommandRegistration(params: {
 }
 
 export function shouldEagerRegisterSubcommands(env: NodeJS.ProcessEnv = process.env): boolean {
-  return isTruthyEnvValue(env.OPENCLAW_DISABLE_LAZY_SUBCOMMANDS);
+  return isTruthyEnvValue(env.ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS);
 }
 
 export function shouldRegisterPrimarySubcommandOnly(

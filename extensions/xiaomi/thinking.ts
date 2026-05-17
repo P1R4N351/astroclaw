@@ -1,4 +1,4 @@
-import type { ProviderThinkingProfile } from "openclaw/plugin-sdk/plugin-entry";
+import type { ProviderThinkingProfile } from "astroclaw/plugin-sdk/plugin-entry";
 
 const MIMO_REASONING_MODEL_IDS = new Set([
   "mimo-v2-pro",

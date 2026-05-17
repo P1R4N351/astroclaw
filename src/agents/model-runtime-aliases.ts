@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { normalizeStaticProviderModelId } from "./model-ref-shared.js";
 import { resolveModelRuntimePolicy } from "./model-runtime-policy.js";
 import { normalizeProviderId } from "./provider-id.js";
@@ -168,7 +168,7 @@ export function areRuntimeModelRefsEquivalent(left: string, right: string): bool
 }
 
 function resolveConfiguredRuntime(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   provider: string;
   agentId?: string;
   modelId?: string;
@@ -183,7 +183,7 @@ function resolveConfiguredRuntime(params: {
 
 export function resolveCliRuntimeExecutionProvider(params: {
   provider: string;
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   agentId?: string;
   modelId?: string;
 }): string | undefined {

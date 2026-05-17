@@ -26,7 +26,7 @@ describe("resetReplyRunSession", () => {
   let rootDir = "";
 
   beforeEach(async () => {
-    rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-reset-run-"));
+    rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-reset-run-"));
     refreshQueuedFollowupSessionMock.mockReset();
     errorMock.mockReset();
     setAgentRunnerSessionResetTestDeps({

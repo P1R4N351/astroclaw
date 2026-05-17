@@ -1,5 +1,5 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import * as agentRuntimeModule from "openclaw/plugin-sdk/simple-completion-runtime";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import * as agentRuntimeModule from "astroclaw/plugin-sdk/simple-completion-runtime";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_DISCORD_TEST_CONFIG } from "../test-support/config.js";
 
@@ -35,7 +35,7 @@ beforeEach(() => {
     selection: {
       provider: "anthropic",
       modelId: "claude-sonnet-4-6",
-      agentDir: "/tmp/openclaw-agent",
+      agentDir: "/tmp/astroclaw-agent",
     },
     model: {
       provider: "anthropic",
@@ -69,7 +69,7 @@ describe("generateThreadTitle", () => {
         provider: "openrouter",
         modelId: "anthropic/claude-sonnet-4-5",
         profileId: "work",
-        agentDir: "/tmp/openclaw-agent",
+        agentDir: "/tmp/astroclaw-agent",
       },
       model: {
         provider: "openrouter",
@@ -87,7 +87,7 @@ describe("generateThreadTitle", () => {
           model: "openrouter/anthropic/claude-sonnet-4-5@work",
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await generateThreadTitle({
       cfg,
@@ -140,7 +140,7 @@ describe("generateThreadTitle", () => {
       selection: {
         provider: "anthropic",
         modelId: "claude-sonnet-4-6",
-        agentDir: "/tmp/openclaw-agent",
+        agentDir: "/tmp/astroclaw-agent",
       },
     } as Awaited<ReturnType<typeof agentRuntimeModule.prepareSimpleCompletionModelForAgent>>);
 

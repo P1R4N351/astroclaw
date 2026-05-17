@@ -124,7 +124,7 @@ final class DashboardWindowController: NSWindowController, WKNavigationDelegate,
             sidebarDragRegion.widthAnchor.constraint(equalToConstant: 176),
             sidebarDragRegion.heightAnchor.constraint(equalToConstant: 46),
         ])
-        window.title = "OpenClaw"
+        window.title = "Astroclaw"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
@@ -143,14 +143,14 @@ final class DashboardWindowController: NSWindowController, WKNavigationDelegate,
 
     private static func installNativeChromeScript(into userContentController: WKUserContentController) {
         let css = """
-        html.openclaw-native-macos {
-          --openclaw-native-titlebar-height: 50px;
+        html.astroclaw-native-macos {
+          --astroclaw-native-titlebar-height: 50px;
         }
         @media (min-width: 700px) {
-          html.openclaw-native-macos .sidebar-shell {
-            padding-top: max(14px, var(--openclaw-native-titlebar-height)) !important;
+          html.astroclaw-native-macos .sidebar-shell {
+            padding-top: max(14px, var(--astroclaw-native-titlebar-height)) !important;
           }
-          html.openclaw-native-macos .sidebar-shell__header {
+          html.astroclaw-native-macos .sidebar-shell__header {
             padding-left: 10px !important;
             padding-right: 8px !important;
           }
@@ -159,11 +159,11 @@ final class DashboardWindowController: NSWindowController, WKNavigationDelegate,
         let script = """
         (() => {
           try {
-            if (document.getElementById("openclaw-native-macos-chrome")) return;
+            if (document.getElementById("astroclaw-native-macos-chrome")) return;
             const style = document.createElement("style");
-            style.id = "openclaw-native-macos-chrome";
+            style.id = "astroclaw-native-macos-chrome";
             style.textContent = \(Self.jsStringLiteral(css));
-            document.documentElement.classList.add("openclaw-native-macos");
+            document.documentElement.classList.add("astroclaw-native-macos");
             document.head.appendChild(style);
           } catch {}
         })();
@@ -197,7 +197,7 @@ final class DashboardWindowController: NSWindowController, WKNavigationDelegate,
             const allowedPath = \(Self.jsStringLiteral(allowedPath));
             if (location.origin !== allowedOrigin) return;
             if (allowedPath !== "/" && !location.pathname.startsWith(allowedPath)) return;
-            Object.defineProperty(window, "__OPENCLAW_NATIVE_CONTROL_AUTH__", {
+            Object.defineProperty(window, "__ASTROCLAW_NATIVE_CONTROL_AUTH__", {
               value: \(json),
               configurable: true,
             });

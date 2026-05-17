@@ -12,7 +12,7 @@ import {
   resolveUsableCustomProviderApiKey,
 } from "../agents/model-auth.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { checkQmdBinaryAvailability } from "../memory-host-sdk/engine-qmd.js";
 import { DEFAULT_LOCAL_MODEL } from "../memory-host-sdk/host/embedding-defaults.js";
@@ -135,7 +135,7 @@ function isKeyOptionalMemoryProvider(providerId: string): boolean {
 }
 
 async function resolveRuntimeMemoryAuditContext(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
 ): Promise<RuntimeMemoryAuditContext | null> {
   const agentId = resolveDefaultAgentId(cfg);
   const result = await getActiveMemorySearchManager({
@@ -170,8 +170,8 @@ function buildMemoryRecallIssueNote(audit: ShortTermAuditSummary): string | null
   const issueLines = audit.issues.map((issue) => `- ${issue.message}`);
   const hasFixableIssue = audit.issues.some((issue) => issue.fixable);
   const guidance = hasFixableIssue
-    ? `Fix: ${formatCliCommand("openclaw doctor --fix")} or ${formatCliCommand("openclaw memory status --fix")}`
-    : `Verify: ${formatCliCommand("openclaw memory status --deep")}`;
+    ? `Fix: ${formatCliCommand("astroclaw doctor --fix")} or ${formatCliCommand("astroclaw memory status --fix")}`
+    : `Verify: ${formatCliCommand("astroclaw memory status --deep")}`;
   return [
     "Memory recall artifacts need attention:",
     ...issueLines,
@@ -191,12 +191,12 @@ function buildDreamingArtifactIssueNote(audit: DreamingArtifactsAuditSummary): s
     ...issueLines,
     `Dream corpus: ${audit.sessionCorpusDir}`,
     hasFixableIssue
-      ? `Fix: ${formatCliCommand("openclaw doctor --fix")} or ${formatCliCommand("openclaw memory status --fix")}`
-      : `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+      ? `Fix: ${formatCliCommand("astroclaw doctor --fix")} or ${formatCliCommand("astroclaw memory status --fix")}`
+      : `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
   ].join("\n");
 }
 
-export async function noteMemoryRecallHealth(cfg: OpenClawConfig): Promise<void> {
+export async function noteMemoryRecallHealth(cfg: AstroclawConfig): Promise<void> {
   try {
     const context = await resolveRuntimeMemoryAuditContext(cfg);
     const workspaceDir = context?.workspaceDir?.trim();
@@ -228,7 +228,7 @@ export async function noteMemoryRecallHealth(cfg: OpenClawConfig): Promise<void>
 }
 
 export async function maybeRepairMemoryRecallHealth(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   prompter: DoctorPrompter;
 }): Promise<void> {
   await maybeRepairWorkspaceMemoryHealth(params);
@@ -264,7 +264,7 @@ export async function maybeRepairMemoryRecallHealth(params: {
               ? `- rewrote recall store${repair.removedInvalidEntries > 0 ? ` (-${repair.removedInvalidEntries} invalid entries)` : ""}`
               : null,
             repair.removedStaleLock ? "- removed stale promotion lock" : null,
-            `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+            `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
           ].filter(Boolean);
           note(lines.join("\n"), "Doctor changes");
         }
@@ -294,7 +294,7 @@ export async function maybeRepairMemoryRecallHealth(params: {
       dreamingRepair.archivedDreamsDiary ? "- archived dream diary" : null,
       dreamingRepair.archiveDir ? `- archive dir: ${dreamingRepair.archiveDir}` : null,
       ...dreamingRepair.warnings.map((warning) => `- warning: ${warning}`),
-      `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+      `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
     ].filter(Boolean);
     note(lines.join("\n"), "Doctor changes");
   } catch (err) {
@@ -305,7 +305,7 @@ export async function maybeRepairMemoryRecallHealth(params: {
   }
 }
 
-function hasActiveAlternateMemoryPluginSlot(cfg: OpenClawConfig): boolean {
+function hasActiveAlternateMemoryPluginSlot(cfg: AstroclawConfig): boolean {
   const plugins = normalizePluginsConfig(cfg.plugins);
   if (!plugins.enabled) {
     return false;
@@ -332,12 +332,12 @@ function hasActiveAlternateMemoryPluginSlot(cfg: OpenClawConfig): boolean {
 
 /**
  * Check whether memory search has a usable embedding provider.
- * Runs as part of `openclaw doctor` — config-only checks where possible;
+ * Runs as part of `astroclaw doctor` — config-only checks where possible;
  * may spawn a short-lived probe process when `memory.backend=qmd` to verify
  * the configured `qmd` binary is available.
  */
 export async function noteMemorySearchHealth(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   opts?: {
     gatewayMemoryProbe?: {
       checked: boolean;
@@ -386,10 +386,10 @@ export async function noteMemorySearchHealth(
           "",
           "Fix (pick one):",
           "- Install the supported QMD package: npm install -g @tobilu/qmd (or bun install -g @tobilu/qmd)",
-          `- Set an explicit binary path: ${formatCliCommand("openclaw config set memory.qmd.command /absolute/path/to/qmd")}`,
-          `- Or switch back to builtin memory: ${formatCliCommand("openclaw config set memory.backend builtin")}`,
+          `- Set an explicit binary path: ${formatCliCommand("astroclaw config set memory.qmd.command /absolute/path/to/qmd")}`,
+          `- Or switch back to builtin memory: ${formatCliCommand("astroclaw config set memory.backend builtin")}`,
           "",
-          `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+          `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
         ]
           .filter(Boolean)
           .join("\n"),
@@ -415,7 +415,7 @@ export async function noteMemorySearchHealth(
               "but the gateway reports local embeddings are not ready.",
               detail ? `Gateway probe: ${detail}` : null,
               "",
-              `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+              `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
             ]
               .filter(Boolean)
               .join("\n"),
@@ -431,10 +431,10 @@ export async function noteMemorySearchHealth(
           "Fix (pick one):",
           `- Install node-llama-cpp and set a local model path in config`,
           suggestedRemoteProvider
-            ? `- Switch to a remote provider: ${formatCliCommand(`openclaw config set agents.defaults.memorySearch.provider ${suggestedRemoteProvider}`)}`
+            ? `- Switch to a remote provider: ${formatCliCommand(`astroclaw config set agents.defaults.memorySearch.provider ${suggestedRemoteProvider}`)}`
             : `- Switch to a remote embedding provider in config`,
           "",
-          `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+          `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
         ].join("\n"),
         "Memory search",
       );
@@ -446,7 +446,7 @@ export async function noteMemorySearchHealth(
       }
       // When the probe was intentionally skipped (skipped: true / checked: false
       // due to probe:false path), we have no embedding status information — do
-      // not warn. A skipped probe means the user ran `openclaw doctor` without
+      // not warn. A skipped probe means the user ran `astroclaw doctor` without
       // --deep; it does not mean embeddings are unavailable.
       // NOTE: a transport timeout also sets checked: false, but skipped stays
       // false/absent — a timeout is a real diagnostic signal and should fall
@@ -461,7 +461,7 @@ export async function noteMemorySearchHealth(
             ? `Memory search provider "${resolved.provider}" is configured, but the gateway reports embeddings are not ready.`
             : `Memory search provider "${resolved.provider}" is configured, but the gateway could not confirm embeddings are ready.`,
           gatewayProbeWarning,
-          `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+          `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
         ]
           .filter(Boolean)
           .join("\n"),
@@ -478,7 +478,7 @@ export async function noteMemorySearchHealth(
         [
           `Memory search provider is set to "${resolved.provider}" but the API key was not found in the CLI environment.`,
           "The running gateway reports memory embeddings are ready for the default agent.",
-          `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+          `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
         ].join("\n"),
         "Memory search",
       );
@@ -494,10 +494,10 @@ export async function noteMemorySearchHealth(
         "",
         "Fix (pick one):",
         `- Set ${envVar} in your environment`,
-        `- Configure credentials: ${formatCliCommand("openclaw configure --section model")}`,
-        `- To disable: ${formatCliCommand("openclaw config set agents.defaults.memorySearch.enabled false")}`,
+        `- Configure credentials: ${formatCliCommand("astroclaw configure --section model")}`,
+        `- To disable: ${formatCliCommand("astroclaw config set agents.defaults.memorySearch.enabled false")}`,
         "",
-        `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+        `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
       ].join("\n"),
       "Memory search",
     );
@@ -522,7 +522,7 @@ export async function noteMemorySearchHealth(
       [
         'Memory search provider is set to "auto" but the API key was not found in the CLI environment.',
         "The running gateway reports memory embeddings are ready for the default agent.",
-        `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+        `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
       ].join("\n"),
       "Memory search",
     );
@@ -538,11 +538,11 @@ export async function noteMemorySearchHealth(
       "",
       "Fix (pick one):",
       `- Set ${formatMemoryProviderEnvVarList(autoSelectProviders)} in your environment`,
-      `- Configure credentials: ${formatCliCommand("openclaw configure --section model")}`,
+      `- Configure credentials: ${formatCliCommand("astroclaw configure --section model")}`,
       `- For local embeddings: configure agents.defaults.memorySearch.provider and local model path`,
-      `- To disable: ${formatCliCommand("openclaw config set agents.defaults.memorySearch.enabled false")}`,
+      `- To disable: ${formatCliCommand("astroclaw config set agents.defaults.memorySearch.enabled false")}`,
       "",
-      `Verify: ${formatCliCommand("openclaw memory status --deep")}`,
+      `Verify: ${formatCliCommand("astroclaw memory status --deep")}`,
     ].join("\n"),
     "Memory search",
   );
@@ -582,7 +582,7 @@ function hasLocalEmbeddings(local: { modelPath?: string }, useDefaultFallback = 
 
 async function hasApiKeyForProvider(
   provider: string,
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   agentDir: string,
 ): Promise<boolean> {
   const metadata = resolveMemoryEmbeddingProviderDoctorMetadata(provider);

@@ -1,6 +1,6 @@
-export { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+export { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
 export type {
-  OpenClawPluginApi,
+  AstroclawPluginApi,
   ProviderAuthContext,
   ProviderAuthResult,
-} from "openclaw/plugin-sdk/core";
+} from "astroclaw/plugin-sdk/core";

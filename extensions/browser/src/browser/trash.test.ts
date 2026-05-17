@@ -3,15 +3,15 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const resolvePreferredOpenClawTmpDirMock = vi.hoisted(() => vi.fn(() => "/tmp/openclaw"));
+const resolvePreferredAstroclawTmpDirMock = vi.hoisted(() => vi.fn(() => "/tmp/astroclaw"));
 const realMkdirSync = fs.mkdirSync.bind(fs);
 const realMkdtempSync = fs.mkdtempSync.bind(fs);
 const realRmSync = fs.rmSync.bind(fs);
 const realWriteFileSync = fs.writeFileSync.bind(fs);
 const realRealpathSyncNative = fs.realpathSync.native.bind(fs.realpathSync);
 
-vi.mock("openclaw/plugin-sdk/temp-path", () => ({
-  resolvePreferredOpenClawTmpDir: resolvePreferredOpenClawTmpDirMock,
+vi.mock("astroclaw/plugin-sdk/temp-path", () => ({
+  resolvePreferredAstroclawTmpDir: resolvePreferredAstroclawTmpDirMock,
 }));
 
 function mockTrashContainer(...suffixes: string[]) {
@@ -32,13 +32,13 @@ describe("browser trash", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    testRoot = realRealpathSyncNative(realMkdtempSync(path.join(os.tmpdir(), "openclaw-browser-")));
+    testRoot = realRealpathSyncNative(realMkdtempSync(path.join(os.tmpdir(), "astroclaw-browser-")));
     homeDir = path.join(testRoot, "home", "test");
     tmpDir = path.join(testRoot, "tmp");
     realMkdirSync(path.join(homeDir, ".Trash"), { recursive: true, mode: 0o700 });
     realMkdirSync(tmpDir, { recursive: true, mode: 0o700 });
-    resolvePreferredOpenClawTmpDirMock.mockReset();
-    resolvePreferredOpenClawTmpDirMock.mockReturnValue(tmpDir);
+    resolvePreferredAstroclawTmpDirMock.mockReset();
+    resolvePreferredAstroclawTmpDirMock.mockReturnValue(tmpDir);
     vi.spyOn(Date, "now").mockReturnValue(123);
     vi.spyOn(os, "homedir").mockReturnValue(homeDir);
     vi.spyOn(os, "tmpdir").mockReturnValue(tmpDir);
@@ -117,7 +117,7 @@ describe("browser trash", () => {
     const { movePathToTrash } = await import("./trash.js");
     const outsideDir = path.join(testRoot, "outside");
     realMkdirSync(outsideDir, { recursive: true });
-    const outsidePath = path.join(outsideDir, "openclaw-demo");
+    const outsidePath = path.join(outsideDir, "astroclaw-demo");
     realWriteFileSync(outsidePath, "outside");
 
     await expect(movePathToTrash(outsidePath)).rejects.toThrow(

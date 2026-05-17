@@ -78,7 +78,7 @@ function createExternalFeishuSchemaRegistry(): PluginManifestRegistry {
     diagnostics: [],
     plugins: [
       createPluginManifestRecord({
-        id: "openclaw-lark",
+        id: "astroclaw-lark",
         origin: "global",
         channels: ["feishu"],
         channelConfigs: {
@@ -130,7 +130,7 @@ function createPluginManifestRecord(
     channels: [],
     cliBackends: [],
     hooks: [],
-    manifestPath: `/tmp/${overrides.id}/openclaw.plugin.json`,
+    manifestPath: `/tmp/${overrides.id}/astroclaw.plugin.json`,
     origin: "bundled",
     providers: [],
     rootDir: `/tmp/${overrides.id}`,
@@ -171,7 +171,7 @@ vi.mock("../channels/plugins/legacy-config.js", () => ({
 }));
 
 vi.mock("./zod-schema.js", () => ({
-  OpenClawSchema: {
+  AstroclawSchema: {
     safeParse: (raw: unknown) => ({ success: true, data: raw }),
   },
 }));
@@ -239,7 +239,7 @@ describe("validateConfigObjectRawWithPlugins channel metadata", () => {
           appId: "app-id",
           appSecret: "secret",
           replyMode: "thread",
-          footer: "OpenClaw",
+          footer: "Astroclaw",
         },
       },
     });

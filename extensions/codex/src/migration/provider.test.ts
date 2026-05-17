@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
+import type { MigrationProviderContext } from "astroclaw/plugin-sdk/plugin-entry";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultCodexAppInventoryCache } from "../app-server/app-inventory-cache.js";
 import { CODEX_PLUGINS_MARKETPLACE_NAME } from "../app-server/config.js";
@@ -25,7 +25,7 @@ const logger = {
 };
 
 async function makeTempRoot(): Promise<string> {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-migrate-codex-"));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-migrate-codex-"));
   tempRoots.add(root);
   return root;
 }
@@ -429,7 +429,7 @@ describe("buildCodexMigrationProvider", () => {
       },
     ]);
     expect(plan.warnings).toEqual([
-      "Codex app-backed plugin migration requires the Codex app-server source account to be logged in with a ChatGPT subscription account. Log in to the Codex app with subscription auth; OpenClaw auth or API-key auth does not satisfy Codex app connector access.",
+      "Codex app-backed plugin migration requires the Codex app-server source account to be logged in with a ChatGPT subscription account. Log in to the Codex app with subscription auth; Astroclaw auth or API-key auth does not satisfy Codex app connector access.",
     ]);
     expect(appServerRequest.mock.calls.filter(([arg]) => arg.method === "app/list")).toHaveLength(
       0,
@@ -974,7 +974,7 @@ describe("buildCodexMigrationProvider", () => {
   });
 
   it("leaves selected Codex plugins as warnings when target curated plugins never load", async () => {
-    vi.stubEnv("OPENCLAW_CODEX_MIGRATION_PLUGIN_LIST_TIMEOUT_MS", "1");
+    vi.stubEnv("ASTROCLAW_CODEX_MIGRATION_PLUGIN_LIST_TIMEOUT_MS", "1");
     const fixture = await createCodexFixture();
     const configState: MigrationProviderContext["config"] = {
       agents: { defaults: { workspace: fixture.workspaceDir } },
@@ -1035,10 +1035,10 @@ describe("buildCodexMigrationProvider", () => {
       reason: "marketplace_missing",
     });
     expect(result.warnings).toContain(
-      "Some Codex plugins could not be migrated. Run `openclaw migrate codex` after onboarding.",
+      "Some Codex plugins could not be migrated. Run `astroclaw migrate codex` after onboarding.",
     );
     expect(result.nextSteps).toContain(
-      "Some Codex plugins could not be migrated. Run `openclaw migrate codex` after onboarding.",
+      "Some Codex plugins could not be migrated. Run `astroclaw migrate codex` after onboarding.",
     );
     expect(configState.plugins?.entries?.codex?.config?.codexPlugins).toBeUndefined();
   });
@@ -1096,10 +1096,10 @@ describe("buildCodexMigrationProvider", () => {
       message: 'Codex plugin "google-calendar" could not be migrated automatically',
     });
     expect(result.warnings).toContain(
-      "Some Codex plugins could not be migrated. Run `openclaw migrate codex` after onboarding.",
+      "Some Codex plugins could not be migrated. Run `astroclaw migrate codex` after onboarding.",
     );
     expect(result.nextSteps).toContain(
-      "Some Codex plugins could not be migrated. Run `openclaw migrate codex` after onboarding.",
+      "Some Codex plugins could not be migrated. Run `astroclaw migrate codex` after onboarding.",
     );
     expect(result.summary.errors).toBe(0);
     expect(configState.plugins?.entries?.codex?.config?.codexPlugins).toBeUndefined();
@@ -1641,7 +1641,7 @@ function createConfigRuntime(
           previousHash: null,
         });
         return {
-          path: "/tmp/openclaw.json",
+          path: "/tmp/astroclaw.json",
           previousHash: null,
           persistedHash: "test-persisted-hash",
           snapshot: {} as never,

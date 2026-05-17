@@ -1,10 +1,10 @@
-import OpenClawKit
+import AstroclawKit
 import Testing
-@testable import OpenClawChatUI
+@testable import AstroclawChatUI
 
 struct ChatEventTextTests {
     @Test func `extracts assistant text from final chat event message`() {
-        let event = OpenClawChatEventPayload(
+        let event = AstroclawChatEventPayload(
             runId: "run-1",
             sessionKey: "main",
             state: "final",
@@ -17,11 +17,11 @@ struct ChatEventTextTests {
             ]),
             errorMessage: nil)
 
-        #expect(OpenClawChatEventText.assistantText(from: event) == "hello\nworld")
+        #expect(AstroclawChatEventText.assistantText(from: event) == "hello\nworld")
     }
 
     @Test func `ignores user messages`() {
-        let event = OpenClawChatEventPayload(
+        let event = AstroclawChatEventPayload(
             runId: "run-1",
             sessionKey: "main",
             state: "delta",
@@ -31,11 +31,11 @@ struct ChatEventTextTests {
             ]),
             errorMessage: nil)
 
-        #expect(OpenClawChatEventText.assistantText(from: event) == nil)
+        #expect(AstroclawChatEventText.assistantText(from: event) == nil)
     }
 
     @Test func `extracts plain string content`() {
-        let event = OpenClawChatEventPayload(
+        let event = AstroclawChatEventPayload(
             runId: "run-1",
             sessionKey: "main",
             state: "final",
@@ -45,6 +45,6 @@ struct ChatEventTextTests {
             ]),
             errorMessage: nil)
 
-        #expect(OpenClawChatEventText.assistantText(from: event) == "plain reply")
+        #expect(AstroclawChatEventText.assistantText(from: event) == "plain reply")
     }
 }

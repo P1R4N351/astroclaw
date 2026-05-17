@@ -520,13 +520,13 @@ describe("applyExtraParamsToAgent", () => {
       undefined,
       "high",
       "cass",
-      "/tmp/openclaw-workspace",
+      "/tmp/astroclaw-workspace",
       model,
-      "/tmp/openclaw-agent",
+      "/tmp/astroclaw-agent",
     );
 
-    expect(capturedContext?.agentDir).toBe("/tmp/openclaw-agent");
-    expect(capturedContext?.workspaceDir).toBe("/tmp/openclaw-workspace");
+    expect(capturedContext?.agentDir).toBe("/tmp/astroclaw-agent");
+    expect(capturedContext?.workspaceDir).toBe("/tmp/astroclaw-workspace");
   });
 
   function runResponsesPayloadMutationCase(params: {

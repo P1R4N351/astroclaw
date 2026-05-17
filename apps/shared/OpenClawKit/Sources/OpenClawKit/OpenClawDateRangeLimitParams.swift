@@ -1,6 +1,6 @@
 import Foundation
 
-public struct OpenClawDateRangeLimitParams: Codable, Sendable, Equatable {
+public struct AstroclawDateRangeLimitParams: Codable, Sendable, Equatable {
     public var startISO: String?
     public var endISO: String?
     public var limit: Int?

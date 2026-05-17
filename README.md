@@ -1,10 +1,10 @@
 # astroclaw
 
-**astroclaw** is a P10-compliant fork of [openclaw](https://github.com/openclaw/openclaw) — a personal AI assistant you run on your own devices.
+**astroclaw** is a P10-compliant fork of [astroclaw](https://github.com/astroclaw/astroclaw) — a personal AI assistant you run on your own devices.
 
 The source is continuously processed against NASA P10 coding standards: simplified control flow, no implicit dynamic dispatch in hot paths, bounded loops, minimal preprocessor complexity. The result is a codebase that is easier to audit, extend, and patch against.
 
-Feature set and runtime behavior are identical to upstream openclaw. The distinction is code quality and auditability, not capability.
+Feature set and runtime behavior are identical to upstream astroclaw. The distinction is code quality and auditability, not capability.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
@@ -26,55 +26,55 @@ Supported channels: WhatsApp · Telegram · Slack · Discord · Signal · iMessa
 Runtime: **Node 24 (recommended) or Node 22.16+**
 
 ```bash
-npm install -g openclaw@latest
+npm install -g astroclaw@latest
 # or
-pnpm add -g openclaw@latest
+pnpm add -g astroclaw@latest
 
-openclaw onboard --install-daemon
+astroclaw onboard --install-daemon
 ```
 
-The npm package name and CLI command remain `openclaw` for runtime compatibility.
+The npm package name and CLI command remain `astroclaw` for runtime compatibility.
 The astroclaw repository is the P10-processed source.
 
 ## Quick start
 
 ```bash
-openclaw gateway --port 18789 --verbose
+astroclaw gateway --port 18789 --verbose
 
 # Send to any paired channel
-openclaw agent --message "What's on my calendar?"
+astroclaw agent --message "What's on my calendar?"
 ```
 
-Full setup walkthrough: [Getting started](https://docs.openclaw.ai/start/getting-started)
+Full setup walkthrough: [Getting started](https://docs.astroclaw.ai/start/getting-started)
 
-Upgrading: [Updating guide](https://docs.openclaw.ai/install/updating) — run `openclaw doctor` after.
+Upgrading: [Updating guide](https://docs.astroclaw.ai/install/updating) — run `astroclaw doctor` after.
 
 ## Security defaults
 
 Default DM policy (`dmPolicy="pairing"`): unknown senders receive a pairing code; no message is processed until approved.
 
-Approve: `openclaw pairing approve <channel> <code>`
+Approve: `astroclaw pairing approve <channel> <code>`
 
-For group/multi-user deployments, set `agents.defaults.sandbox.mode: "non-main"` to run non-primary sessions in sandboxes. Full guide: [Security](https://docs.openclaw.ai/gateway/security) · [Sandboxing](https://docs.openclaw.ai/gateway/sandboxing)
+For group/multi-user deployments, set `agents.defaults.sandbox.mode: "non-main"` to run non-primary sessions in sandboxes. Full guide: [Security](https://docs.astroclaw.ai/gateway/security) · [Sandboxing](https://docs.astroclaw.ai/gateway/sandboxing)
 
 ## Docs
 
-Upstream openclaw docs apply directly — runtime behavior is identical:
+Upstream astroclaw docs apply directly — runtime behavior is identical:
 
 | Topic           | Link                                                                                     |
 | --------------- | ---------------------------------------------------------------------------------------- |
-| Getting started | [docs.openclaw.ai/start/getting-started](https://docs.openclaw.ai/start/getting-started) |
-| Channels        | [docs.openclaw.ai/channels](https://docs.openclaw.ai/channels)                           |
-| Configuration   | [docs.openclaw.ai/gateway/configuration](https://docs.openclaw.ai/gateway/configuration) |
-| Security        | [docs.openclaw.ai/gateway/security](https://docs.openclaw.ai/gateway/security)           |
-| Tools & Skills  | [docs.openclaw.ai/tools](https://docs.openclaw.ai/tools)                                 |
-| Docker          | [docs.openclaw.ai/install/docker](https://docs.openclaw.ai/install/docker)               |
-| Architecture    | [docs.openclaw.ai/concepts/architecture](https://docs.openclaw.ai/concepts/architecture) |
+| Getting started | [docs.astroclaw.ai/start/getting-started](https://docs.astroclaw.ai/start/getting-started) |
+| Channels        | [docs.astroclaw.ai/channels](https://docs.astroclaw.ai/channels)                           |
+| Configuration   | [docs.astroclaw.ai/gateway/configuration](https://docs.astroclaw.ai/gateway/configuration) |
+| Security        | [docs.astroclaw.ai/gateway/security](https://docs.astroclaw.ai/gateway/security)           |
+| Tools & Skills  | [docs.astroclaw.ai/tools](https://docs.astroclaw.ai/tools)                                 |
+| Docker          | [docs.astroclaw.ai/install/docker](https://docs.astroclaw.ai/install/docker)               |
+| Architecture    | [docs.astroclaw.ai/concepts/architecture](https://docs.astroclaw.ai/concepts/architecture) |
 
 ## Derivation
 
 ```
-openclaw/openclaw  ──►  astroclaw  (this repo)
+astroclaw/astroclaw  ──►  astroclaw  (this repo)
 ```
 
 Commits on `main` are blessed from a `p10-pending` staging branch. Each file passes through a NASA P10 compliance scan before promotion. Only scan-green, test-green, human-reviewed commits land on `main` and are published here.
@@ -89,7 +89,7 @@ P10 processing targets:
 
 ## Contributing
 
-Upstream feature contributions belong at [openclaw/openclaw](https://github.com/openclaw/openclaw).
+Upstream feature contributions belong at [astroclaw/astroclaw](https://github.com/astroclaw/astroclaw).
 
 P10 compliance issues, audit findings, or patch-layer work: open an issue here.
 

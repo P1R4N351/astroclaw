@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 import Testing
-@testable import OpenClawKit
+@testable import AstroclawKit
 
 @Suite(.serialized)
 struct DeviceIdentityStoreTests {

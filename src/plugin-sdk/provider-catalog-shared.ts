@@ -8,7 +8,7 @@ import { normalizeConfiguredProviderCatalogModelId } from "../agents/model-ref-s
 import { resolveProviderRequestCapabilities } from "../agents/provider-attribution.js";
 import { findNormalizedProviderKey } from "../agents/provider-id.js";
 import type { ModelDefinitionConfig } from "../config/types.models.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { normalizeModelCatalog } from "../model-catalog/normalize.js";
 import type {
   ModelCatalogCost,
@@ -187,7 +187,7 @@ function normalizeConfiguredCatalogModelInput(
 }
 
 function resolveConfiguredProviderModels(
-  config: OpenClawConfig | undefined,
+  config: AstroclawConfig | undefined,
   providerId: string,
 ): ModelDefinitionConfig[] {
   const providers = config?.models?.providers;
@@ -206,7 +206,7 @@ function resolveConfiguredProviderModels(
 }
 
 export function readConfiguredProviderCatalogEntries(params: {
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   providerId: string;
   publishedProviderId?: string;
 }): ConfiguredProviderCatalogEntry[] {

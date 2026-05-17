@@ -1,6 +1,6 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.PermissionRequester
+import ai.astroclaw.app.PermissionRequester
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager

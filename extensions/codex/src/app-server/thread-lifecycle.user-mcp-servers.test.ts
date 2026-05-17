@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness-runtime";
+import type { EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CodexAppServerRuntimeOptions } from "./config.js";
 import { writeCodexAppServerBinding } from "./session-binding.js";
@@ -90,7 +90,7 @@ describe("startOrResumeThread — user mcp.servers projection (regression: #8081
   let tempDir = "";
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-80814-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-80814-"));
   });
 
   afterEach(async () => {

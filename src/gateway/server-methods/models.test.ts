@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { ErrorCodes } from "../protocol/index.js";
 import { modelsHandlers } from "./models.js";
 
@@ -53,7 +53,7 @@ describe("models.list", () => {
                 },
               },
             };
-            return config as unknown as OpenClawConfig;
+            return config as unknown as AstroclawConfig;
           },
           loadGatewayModelCatalog,
           logGateway: {
@@ -103,7 +103,7 @@ describe("models.list", () => {
         client: null,
         isWebchatConnect: () => false,
         context: {
-          getRuntimeConfig: () => ({}) as OpenClawConfig,
+          getRuntimeConfig: () => ({}) as AstroclawConfig,
           loadGatewayModelCatalog,
           logGateway: {
             debug: vi.fn(),
@@ -151,7 +151,7 @@ describe("models.list", () => {
           vllm: { apiKey: "test-key" },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
 
     const configuredRespond = vi.fn();
     const loadConfiguredCatalog = vi.fn(() => Promise.resolve(catalog));
@@ -228,7 +228,7 @@ describe("models.list", () => {
       client: null,
       isWebchatConnect: () => false,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
         loadGatewayModelCatalog: vi.fn(() => Promise.reject(new Error("catalog failed"))),
         logGateway: {
           debug: vi.fn(),

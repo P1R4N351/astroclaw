@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 
 @MainActor
 final class NodeCapabilityRouter {

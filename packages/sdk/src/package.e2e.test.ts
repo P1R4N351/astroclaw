@@ -62,7 +62,7 @@ function runCommand(
   });
 }
 
-describe("OpenClaw SDK package e2e", () => {
+describe("Astroclaw SDK package e2e", () => {
   afterEach(async () => {
     await Promise.all(
       tempDirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })),
@@ -72,10 +72,10 @@ describe("OpenClaw SDK package e2e", () => {
   it("packs and imports from an external temp consumer", async () => {
     const repoRoot = process.cwd();
     const packageRoot = path.join(repoRoot, "packages", "sdk");
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-sdk-consumer-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-sdk-consumer-"));
     tempDirs.push(tempDir);
 
-    await runCommand("pnpm", ["--filter", "@openclaw/sdk", "build"], {
+    await runCommand("pnpm", ["--filter", "@astroclaw/sdk", "build"], {
       cwd: repoRoot,
       timeoutMs: 180_000,
     });
@@ -96,9 +96,9 @@ describe("OpenClaw SDK package e2e", () => {
     });
 
     const importScript = `
-      import { GatewayClientTransport, OpenClaw, normalizeGatewayEvent } from "@openclaw/sdk";
+      import { GatewayClientTransport, Astroclaw, normalizeGatewayEvent } from "@astroclaw/sdk";
       if (typeof GatewayClientTransport !== "function") throw new Error("missing transport export");
-      if (typeof OpenClaw !== "function") throw new Error("missing client export");
+      if (typeof Astroclaw !== "function") throw new Error("missing client export");
       const event = normalizeGatewayEvent({
         event: "agent",
         payload: { runId: "pack-smoke", stream: "lifecycle", data: { phase: "start" } }

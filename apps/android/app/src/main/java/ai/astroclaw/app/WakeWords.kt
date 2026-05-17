@@ -1,4 +1,4 @@
-package ai.openclaw.app
+package ai.astroclaw.app
 
 object WakeWords {
   const val maxWords: Int = 32

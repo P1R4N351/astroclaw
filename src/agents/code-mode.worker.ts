@@ -108,7 +108,7 @@ const CONTROLLER_SOURCE = String.raw`
 (() => {
   const output = [];
   const pending = new Map();
-  const catalog = Array.isArray(globalThis.__openclawCatalog) ? globalThis.__openclawCatalog : [];
+  const catalog = Array.isArray(globalThis.__astroclawCatalog) ? globalThis.__astroclawCatalog : [];
 
   function safe(value) {
     if (value === undefined) return null;
@@ -132,7 +132,7 @@ const CONTROLLER_SOURCE = String.raw`
   }
 
   function request(method, args) {
-    const id = String(globalThis.__openclawHostRequest(String(method), JSON.stringify(safe(args ?? []))));
+    const id = String(globalThis.__astroclawHostRequest(String(method), JSON.stringify(safe(args ?? []))));
     return new Promise((resolve, reject) => {
       pending.set(id, { resolve, reject });
     });
@@ -188,14 +188,14 @@ const CONTROLLER_SOURCE = String.raw`
     text: { value: (value) => output.push({ type: "text", text: asText(value) }), enumerable: true },
     json: { value: (value) => output.push({ type: "json", value: safe(value) }), enumerable: true },
     yield_control: { value: (reason) => request("yield", [reason]), enumerable: true },
-    __openclawSettleBridge: { value: settle },
-    __openclawTakeOutput: { value: () => output.splice(0) },
+    __astroclawSettleBridge: { value: settle },
+    __astroclawTakeOutput: { value: () => output.splice(0) },
   });
 })();
 `;
 
 function buildUserSource(code: string): string {
-  return `globalThis.__openclawResult = (async () => {\n${code}\n})()`;
+  return `globalThis.__astroclawResult = (async () => {\n${code}\n})()`;
 }
 
 function createHostRequestHandler(params: {
@@ -245,12 +245,12 @@ async function createVm(params: {
   });
   const catalogHandle = vm.hostToHandle(params.catalog);
   try {
-    vm.setProp(vm.global, "__openclawCatalog", catalogHandle);
+    vm.setProp(vm.global, "__astroclawCatalog", catalogHandle);
   } finally {
     catalogHandle.dispose();
   }
   const hostRequest = vm.newFunction(
-    "__openclawHostRequest",
+    "__astroclawHostRequest",
     createHostRequestHandler({
       vm,
       pendingRequests: params.pendingRequests,
@@ -258,11 +258,11 @@ async function createVm(params: {
     }),
   );
   try {
-    vm.setProp(vm.global, "__openclawHostRequest", hostRequest);
+    vm.setProp(vm.global, "__astroclawHostRequest", hostRequest);
   } finally {
     hostRequest.dispose();
   }
-  vm.evalCode(CONTROLLER_SOURCE, "openclaw-code-mode:controller.js").dispose();
+  vm.evalCode(CONTROLLER_SOURCE, "astroclaw-code-mode:controller.js").dispose();
   return { vm, didTimeout: () => timedOut };
 }
 
@@ -284,7 +284,7 @@ async function restoreVm(params: {
     },
   });
   vm.registerHostCallback(
-    "__openclawHostRequest",
+    "__astroclawHostRequest",
     createHostRequestHandler({
       vm,
       pendingRequests: params.pendingRequests,
@@ -295,7 +295,7 @@ async function restoreVm(params: {
 }
 
 function takeOutput(vm: QuickJS): unknown[] {
-  const take = vm.global.getProp("__openclawTakeOutput");
+  const take = vm.global.getProp("__astroclawTakeOutput");
   try {
     const output = vm.callFunction(take, vm.undefined);
     try {
@@ -319,7 +319,7 @@ function drainPendingJobs(vm: QuickJS): void {
 }
 
 function getResultHandle(vm: QuickJS): JSValueHandle {
-  return vm.global.getProp("__openclawResult");
+  return vm.global.getProp("__astroclawResult");
 }
 
 async function readCompletedResult(vm: QuickJS, resultHandle: JSValueHandle): Promise<unknown> {
@@ -369,7 +369,7 @@ async function runExec(input: Extract<CodeModeWorkerInput, { kind: "exec" }>) {
   try {
     vm.evalCode(
       buildUserSource(input.source),
-      "openclaw-code-mode:user.js",
+      "astroclaw-code-mode:user.js",
       EvalFlags.ASYNC,
     ).dispose();
     drainPendingJobs(vm);
@@ -408,7 +408,7 @@ async function runResume(input: Extract<CodeModeWorkerInput, { kind: "resume" }>
     pendingRequests,
   });
   try {
-    const settle = vm.global.getProp("__openclawSettleBridge");
+    const settle = vm.global.getProp("__astroclawSettleBridge");
     try {
       for (const request of input.settledRequests) {
         const id = vm.newString(request.id);

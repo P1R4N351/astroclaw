@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import type { MigrationApplyResult, MigrationPlan } from "../plugins/types.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { makeTempWorkspace } from "../test-helpers/workspace.js";
@@ -10,7 +10,7 @@ import { createThrowingRuntime } from "./onboard-non-interactive.test-helpers.js
 import type { installGatewayDaemonNonInteractive } from "./onboard-non-interactive/local/daemon-install.js";
 
 const ensureWorkspaceAndSessionsMock = vi.fn(async (..._args: unknown[]) => {});
-const testConfigStore = new Map<string, OpenClawConfig>();
+const testConfigStore = new Map<string, AstroclawConfig>();
 type InstallGatewayDaemonResult = Awaited<ReturnType<typeof installGatewayDaemonNonInteractive>>;
 const installGatewayDaemonNonInteractiveMock = vi.hoisted(() =>
   vi.fn(async (): Promise<InstallGatewayDaemonResult> => ({ installed: true })),
@@ -51,19 +51,19 @@ let waitForGatewayReachableMock:
   | undefined;
 
 function resolveTestConfigPath() {
-  const override = process.env.OPENCLAW_CONFIG_PATH?.trim();
+  const override = process.env.ASTROCLAW_CONFIG_PATH?.trim();
   if (override) {
     return override;
   }
-  const stateDir = process.env.OPENCLAW_STATE_DIR?.trim();
+  const stateDir = process.env.ASTROCLAW_STATE_DIR?.trim();
   if (!stateDir) {
-    throw new Error("OPENCLAW_STATE_DIR must be set before config IO in this test");
+    throw new Error("ASTROCLAW_STATE_DIR must be set before config IO in this test");
   }
-  return path.join(stateDir, "openclaw.json");
+  return path.join(stateDir, "astroclaw.json");
 }
 
 // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Test helper lets assertions ascribe stored config shape.
-function readTestConfig<T = OpenClawConfig>(): T {
+function readTestConfig<T = AstroclawConfig>(): T {
   return (testConfigStore.get(resolveTestConfigPath()) ?? {}) as T;
 }
 
@@ -98,10 +98,10 @@ vi.mock("../config/io.js", () => ({
 }));
 
 vi.mock("../config/config.js", () => ({
-  replaceConfigFile: async ({ nextConfig }: { nextConfig: OpenClawConfig }) => {
+  replaceConfigFile: async ({ nextConfig }: { nextConfig: AstroclawConfig }) => {
     testConfigStore.set(resolveTestConfigPath(), nextConfig);
   },
-  resolveGatewayPort: (cfg: OpenClawConfig) => cfg.gateway?.port ?? 18789,
+  resolveGatewayPort: (cfg: AstroclawConfig) => cfg.gateway?.port ?? 18789,
 }));
 
 vi.mock("./onboard-helpers.js", () => {
@@ -113,7 +113,7 @@ vi.mock("./onboard-helpers.js", () => {
     return trimmed === "undefined" || trimmed === "null" ? "" : trimmed;
   };
   return {
-    DEFAULT_WORKSPACE: "/tmp/openclaw-workspace",
+    DEFAULT_WORKSPACE: "/tmp/astroclaw-workspace",
     applyWizardMetadata: (cfg: unknown) => cfg,
     ensureWorkspaceAndSessions: ensureWorkspaceAndSessionsMock,
     normalizeGatewayTokenInput,
@@ -232,7 +232,7 @@ type EnsureWorkspaceOptions = {
 };
 
 type MigrationPlanCall = {
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   includeSecrets?: boolean;
   overwrite?: boolean;
   source?: string;
@@ -249,7 +249,7 @@ type GatewayHealthCall = {
 };
 
 type HealthCommandCall = GatewayHealthCall & {
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 };
 
 async function expectLocalJsonSetupFailure(stateDir: string, runtimeWithCapture: RuntimeEnv) {
@@ -258,7 +258,7 @@ async function expectLocalJsonSetupFailure(stateDir: string, runtimeWithCapture:
       {
         nonInteractive: true,
         mode: "local",
-        workspace: path.join(stateDir, "openclaw"),
+        workspace: path.join(stateDir, "astroclaw"),
         authChoice: "skip",
         skipSkills: true,
         skipHealth: false,
@@ -275,7 +275,7 @@ function createLocalDaemonSetupOptions(stateDir: string) {
   return {
     nonInteractive: true,
     mode: "local" as const,
-    workspace: path.join(stateDir, "openclaw"),
+    workspace: path.join(stateDir, "astroclaw"),
     authChoice: "skip" as const,
     skipSkills: true,
     skipHealth: false,
@@ -323,8 +323,8 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       throw new Error("temp home not initialized");
     }
     const stateDir = await fs.mkdtemp(path.join(tempHome, prefix));
-    process.env.OPENCLAW_STATE_DIR = stateDir;
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    process.env.ASTROCLAW_STATE_DIR = stateDir;
+    delete process.env.ASTROCLAW_CONFIG_PATH;
     return stateDir;
   };
   const withStateDir = async (
@@ -341,25 +341,25 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
   beforeAll(async () => {
     envSnapshot = captureEnv([
       "HOME",
-      "OPENCLAW_STATE_DIR",
-      "OPENCLAW_CONFIG_PATH",
-      "OPENCLAW_SKIP_CHANNELS",
-      "OPENCLAW_SKIP_GMAIL_WATCHER",
-      "OPENCLAW_SKIP_CRON",
-      "OPENCLAW_SKIP_CANVAS_HOST",
-      "OPENCLAW_SKIP_BROWSER_CONTROL_SERVER",
-      "OPENCLAW_GATEWAY_TOKEN",
-      "OPENCLAW_GATEWAY_PASSWORD",
+      "ASTROCLAW_STATE_DIR",
+      "ASTROCLAW_CONFIG_PATH",
+      "ASTROCLAW_SKIP_CHANNELS",
+      "ASTROCLAW_SKIP_GMAIL_WATCHER",
+      "ASTROCLAW_SKIP_CRON",
+      "ASTROCLAW_SKIP_CANVAS_HOST",
+      "ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER",
+      "ASTROCLAW_GATEWAY_TOKEN",
+      "ASTROCLAW_GATEWAY_PASSWORD",
     ]);
-    process.env.OPENCLAW_SKIP_CHANNELS = "1";
-    process.env.OPENCLAW_SKIP_GMAIL_WATCHER = "1";
-    process.env.OPENCLAW_SKIP_CRON = "1";
-    process.env.OPENCLAW_SKIP_CANVAS_HOST = "1";
-    process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
-    delete process.env.OPENCLAW_GATEWAY_TOKEN;
-    delete process.env.OPENCLAW_GATEWAY_PASSWORD;
+    process.env.ASTROCLAW_SKIP_CHANNELS = "1";
+    process.env.ASTROCLAW_SKIP_GMAIL_WATCHER = "1";
+    process.env.ASTROCLAW_SKIP_CRON = "1";
+    process.env.ASTROCLAW_SKIP_CANVAS_HOST = "1";
+    process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
+    delete process.env.ASTROCLAW_GATEWAY_TOKEN;
+    delete process.env.ASTROCLAW_GATEWAY_PASSWORD;
 
-    tempHome = await makeTempWorkspace("openclaw-onboard-");
+    tempHome = await makeTempWorkspace("astroclaw-onboard-");
     process.env.HOME = tempHome;
 
     await loadGatewayOnboardModules();
@@ -389,7 +389,7 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
   it("writes gateway token auth into config", async () => {
     await withStateDir("state-noninteractive-", async (stateDir) => {
       const token = "tok_test_123";
-      const workspace = path.join(stateDir, "openclaw");
+      const workspace = path.join(stateDir, "astroclaw");
 
       await runNonInteractiveSetup(
         {
@@ -424,7 +424,7 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
   it("persists skipBootstrap and skips workspace bootstrap creation", async () => {
     ensureWorkspaceAndSessionsMock.mockClear();
     await withStateDir("state-skip-bootstrap-", async (stateDir) => {
-      const workspace = path.join(stateDir, "openclaw");
+      const workspace = path.join(stateDir, "astroclaw");
 
       await runNonInteractiveSetup(
         {
@@ -459,7 +459,7 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
   it("applies non-interactive migration imports instead of ignoring import flags", async () => {
     await withStateDir("state-noninteractive-import-", async (stateDir) => {
       const source = path.join(stateDir, "hermes-home");
-      const workspace = path.join(stateDir, "openclaw");
+      const workspace = path.join(stateDir, "astroclaw");
       const planned: MigrationPlan = {
         providerId: "hermes",
         source,
@@ -570,7 +570,7 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
           {
             nonInteractive: true,
             mode: "local",
-            workspace: path.join(stateDir, "openclaw"),
+            workspace: path.join(stateDir, "astroclaw"),
             authChoice: "skip",
             skipSkills: true,
             skipHealth: false,
@@ -722,7 +722,7 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       expect(parsed.installDaemon).toBe(true);
       expect(parsed.detail).toContain("1006 abnormal closure");
       expect(parsed.gateway?.wsUrl).toContain("ws://127.0.0.1:");
-      expect(parsed.hints).toContain("Run `openclaw gateway status --deep` for more detail.");
+      expect(parsed.hints).toContain("Run `astroclaw gateway status --deep` for more detail.");
       expect(parsed.diagnostics?.service?.label).toBe("LaunchAgent");
       expect(parsed.diagnostics?.service?.loaded).toBe(true);
       expect(parsed.diagnostics?.service?.runtimeStatus).toBe("running");
@@ -756,7 +756,7 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       expect(parsed.ok).toBe(false);
       expect(parsed.phase).toBe("gateway-health");
       expect(parsed.classification).toBe("service-stopped");
-      expect(parsed.hints).toContain("Fix: run `openclaw gateway restart`.");
+      expect(parsed.hints).toContain("Fix: run `astroclaw gateway restart`.");
     });
   }, 60_000);
 
@@ -766,11 +766,11 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       return;
     }
     await withStateDir("state-lan-", async (stateDir) => {
-      process.env.OPENCLAW_STATE_DIR = stateDir;
-      process.env.OPENCLAW_CONFIG_PATH = path.join(stateDir, "openclaw.json");
+      process.env.ASTROCLAW_STATE_DIR = stateDir;
+      process.env.ASTROCLAW_CONFIG_PATH = path.join(stateDir, "astroclaw.json");
 
       const port = getPseudoPort(40_000);
-      const workspace = path.join(stateDir, "openclaw");
+      const workspace = path.join(stateDir, "astroclaw");
 
       await runNonInteractiveSetup(
         {

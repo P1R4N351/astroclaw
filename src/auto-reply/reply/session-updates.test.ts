@@ -104,7 +104,7 @@ describe("ensureSkillSnapshot", () => {
   });
 
   it("uses config-aware session agent resolution for legacy session keys", async () => {
-    vi.stubEnv("OPENCLAW_TEST_FAST", "0");
+    vi.stubEnv("ASTROCLAW_TEST_FAST", "0");
 
     await ensureSkillSnapshot({
       sessionKey: "main",
@@ -134,7 +134,7 @@ describe("ensureSkillSnapshot", () => {
   });
 
   it("reuses cached resolvedSkills across calls with same workspaceDir/version/filter", async () => {
-    vi.stubEnv("OPENCLAW_TEST_FAST", "0");
+    vi.stubEnv("ASTROCLAW_TEST_FAST", "0");
 
     const sessionStore: Record<string, SessionEntry> = {};
     const sessionKey = "main";
@@ -164,7 +164,7 @@ describe("ensureSkillSnapshot", () => {
   });
 
   it("invalidates cache when skillFilter changes", async () => {
-    vi.stubEnv("OPENCLAW_TEST_FAST", "0");
+    vi.stubEnv("ASTROCLAW_TEST_FAST", "0");
 
     const sessionStore: Record<string, SessionEntry> = {};
     const sessionKey = "main";
@@ -198,7 +198,7 @@ describe("ensureSkillSnapshot", () => {
   });
 
   it("invalidates cache when non-skills config gates change", async () => {
-    vi.stubEnv("OPENCLAW_TEST_FAST", "0");
+    vi.stubEnv("ASTROCLAW_TEST_FAST", "0");
 
     buildWorkspaceSkillSnapshotMock.mockImplementation((_workspaceDir, opts) => {
       const config = (opts as { config?: { channels?: { discord?: { token?: string } } } }).config;
@@ -237,7 +237,7 @@ describe("ensureSkillSnapshot", () => {
   });
 
   it("redacts secret values in the cache key while preserving eligibility presence", async () => {
-    vi.stubEnv("OPENCLAW_TEST_FAST", "0");
+    vi.stubEnv("ASTROCLAW_TEST_FAST", "0");
 
     buildWorkspaceSkillSnapshotMock.mockReturnValue({
       prompt: "",

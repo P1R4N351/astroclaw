@@ -10,7 +10,7 @@ trigger_phrases:
   - pr
   - issue
   - workflow
-metadata: { "openclaw": { "emoji": "🐙", "requires": { "bins": ["gh"] } } }
+metadata: { "astroclaw": { "emoji": "🐙", "requires": { "bins": ["gh"] } } }
 user-invocable: true
 ---
 

@@ -8,7 +8,7 @@ read_when:
   - Debugging provider-specific card/block/component rendering regressions
 ---
 
-Message presentation is OpenClaw's shared contract for rich outbound chat UI.
+Message presentation is Astroclaw's shared contract for rich outbound chat UI.
 It lets agents, CLI commands, approval flows, and plugins describe the message
 intent once, while each channel plugin renders the best native shape it can.
 
@@ -33,7 +33,7 @@ Plugin authors import the public contract from:
 import type {
   MessagePresentation,
   ReplyPayloadDelivery,
-} from "openclaw/plugin-sdk/interactive-runtime";
+} from "astroclaw/plugin-sdk/interactive-runtime";
 ```
 
 Shape:
@@ -165,7 +165,7 @@ Select menu:
 CLI send:
 
 ```bash
-openclaw message send --channel slack \
+astroclaw message send --channel slack \
   --target channel:C123 \
   --message "Deploy approval" \
   --presentation '{"title":"Deploy approval","tone":"warning","blocks":[{"type":"text","text":"Canary is ready."},{"type":"buttons","buttons":[{"label":"Approve","value":"deploy:approve","style":"success"},{"label":"Decline","value":"deploy:decline","style":"danger"}]}]}'
@@ -174,7 +174,7 @@ openclaw message send --channel slack \
 Pinned delivery:
 
 ```bash
-openclaw message send --channel telegram \
+astroclaw message send --channel telegram \
   --target -1001234567890 \
   --message "Topic opened" \
   --pin
@@ -298,7 +298,7 @@ helpers. It supports:
 - URL-only buttons
 - generic delivery metadata through `ReplyPayload.delivery`
 
-Use helpers from `openclaw/plugin-sdk/interactive-runtime` when bridging older
+Use helpers from `astroclaw/plugin-sdk/interactive-runtime` when bridging older
 code:
 
 ```ts
@@ -308,7 +308,7 @@ import {
   presentationToInteractiveControlsReply,
   presentationToInteractiveReply,
   renderMessagePresentationFallbackText,
-} from "openclaw/plugin-sdk/interactive-runtime";
+} from "astroclaw/plugin-sdk/interactive-runtime";
 ```
 
 New code should accept or produce `MessagePresentation` directly.

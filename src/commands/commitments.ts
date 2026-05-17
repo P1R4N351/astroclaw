@@ -124,7 +124,7 @@ export async function commitmentsListCommand(
   }
   if (commitments.length === 0) {
     runtime.log(
-      `No commitments found. Run ${formatCliCommand("openclaw commitments --all")} to include dismissed and expired commitments.`,
+      `No commitments found. Run ${formatCliCommand("astroclaw commitments --all")} to include dismissed and expired commitments.`,
     );
     return;
   }
@@ -140,7 +140,7 @@ export async function commitmentsDismissCommand(
   const ids = opts.ids.map((id) => id.trim()).filter(Boolean);
   if (ids.length === 0) {
     runtime.error(
-      `At least one commitment id is required. Run ${formatCliCommand("openclaw commitments list")} to choose one.`,
+      `At least one commitment id is required. Run ${formatCliCommand("astroclaw commitments list")} to choose one.`,
     );
     runtime.exit(1);
     return;

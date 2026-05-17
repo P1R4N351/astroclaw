@@ -114,7 +114,7 @@ async function yieldTranscriptScan(): Promise<void> {
   await new Promise<void>((resolve) => setImmediate(resolve));
 }
 
-export function attachOpenClawTranscriptMeta(
+export function attachAstroclawTranscriptMeta(
   message: unknown,
   meta: Record<string, unknown>,
 ): unknown {
@@ -123,12 +123,12 @@ export function attachOpenClawTranscriptMeta(
   }
   const record = message as Record<string, unknown>;
   const existing =
-    record.__openclaw && typeof record.__openclaw === "object" && !Array.isArray(record.__openclaw)
-      ? (record.__openclaw as Record<string, unknown>)
+    record.__astroclaw && typeof record.__astroclaw === "object" && !Array.isArray(record.__astroclaw)
+      ? (record.__astroclaw as Record<string, unknown>)
       : {};
   return {
     ...record,
-    __openclaw: {
+    __astroclaw: {
       ...existing,
       ...meta,
     },
@@ -306,7 +306,7 @@ function buildOversizedTranscriptRecord(line: string): TailTranscriptRecord {
     message: {
       role,
       content: [{ type: "text", text: TRANSCRIPT_OVERSIZED_MESSAGE_PLACEHOLDER }],
-      __openclaw: { truncated: true, reason: "oversized" },
+      __astroclaw: { truncated: true, reason: "oversized" },
     },
   };
   return {
@@ -624,7 +624,7 @@ export function readRecentSessionMessagesWithStats(
   const messages = readRecentSessionMessages(sessionId, storePath, sessionFile, opts);
   const firstSeq = Math.max(1, totalMessages - messages.length + 1);
   const messagesWithSeq = messages.map((message, index) =>
-    attachOpenClawTranscriptMeta(message, { seq: firstSeq + index }),
+    attachAstroclawTranscriptMeta(message, { seq: firstSeq + index }),
   );
   return { messages: messagesWithSeq, totalMessages };
 }
@@ -671,7 +671,7 @@ export async function readRecentSessionMessagesWithStatsAsync(
   const messages = await readRecentSessionMessagesAsync(sessionId, storePath, sessionFile, opts);
   const firstSeq = Math.max(1, totalMessages - messages.length + 1);
   const messagesWithSeq = messages.map((message, index) =>
-    attachOpenClawTranscriptMeta(message, { seq: firstSeq + index }),
+    attachAstroclawTranscriptMeta(message, { seq: firstSeq + index }),
   );
   return { messages: messagesWithSeq, totalMessages };
 }
@@ -718,7 +718,7 @@ function parsedSessionEntryToMessage(parsed: unknown, seq: number): unknown {
   }
   const entry = parsed as Record<string, unknown>;
   if (entry.message) {
-    return attachOpenClawTranscriptMeta(entry.message, {
+    return attachAstroclawTranscriptMeta(entry.message, {
       ...(typeof entry.id === "string" ? { id: entry.id } : {}),
       seq,
     });
@@ -733,7 +733,7 @@ function parsedSessionEntryToMessage(parsed: unknown, seq: number): unknown {
       role: "system",
       content: [{ type: "text", text: "Compaction" }],
       timestamp,
-      __openclaw: {
+      __astroclaw: {
         kind: "compaction",
         id: typeof entry.id === "string" ? entry.id : undefined,
         seq,
@@ -1222,7 +1222,7 @@ function extractTranscriptTokenEstimateFromLine(line: string): {
           ? parsed.model.trim()
           : undefined;
     const isDeliveryMirror =
-      role === "assistant" && modelProvider === "openclaw" && model === "delivery-mirror";
+      role === "assistant" && modelProvider === "astroclaw" && model === "delivery-mirror";
     if (isDeliveryMirror) {
       return null;
     }
@@ -1279,7 +1279,7 @@ function extractUsageSnapshotFromTranscriptLine(
         : typeof parsed.model === "string"
           ? parsed.model.trim()
           : undefined;
-    const isDeliveryMirror = modelProvider === "openclaw" && model === "delivery-mirror";
+    const isDeliveryMirror = modelProvider === "astroclaw" && model === "delivery-mirror";
     const hasMeaningfulUsage =
       hasNonzeroUsage(usage) ||
       typeof totalTokens === "number" ||

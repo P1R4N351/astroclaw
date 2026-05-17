@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import {
   legacyConfigRules,
@@ -37,7 +37,7 @@ describe("google-meet config compatibility", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     const migration = migrateGoogleMeetLegacyRealtimeProvider(config);
 
@@ -78,7 +78,7 @@ describe("google-meet config compatibility", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     const migration = normalizeCompatibilityConfig({ cfg: config });
 

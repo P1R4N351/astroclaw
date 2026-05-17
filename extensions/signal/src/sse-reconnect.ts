@@ -5,7 +5,7 @@ import {
   sleepWithAbort,
   type BackoffPolicy,
   type RuntimeEnv,
-} from "openclaw/plugin-sdk/runtime-env";
+} from "astroclaw/plugin-sdk/runtime-env";
 import { type SignalApiMode, type SignalSseEvent, streamSignalEvents } from "./client-adapter.js";
 
 const DEFAULT_RECONNECT_POLICY: BackoffPolicy = {

@@ -9,7 +9,7 @@ const hoisted = await vi.hoisted(async () => {
   return {
     ...createExportCommandSessionMocks(vi),
     exportTrajectoryBundleMock: vi.fn(() => ({
-      outputDir: "/tmp/workspace/.openclaw/trajectory-exports/openclaw-trajectory-session",
+      outputDir: "/tmp/workspace/.astroclaw/trajectory-exports/astroclaw-trajectory-session",
       manifest: {
         eventCount: 7,
         runtimeEventCount: 3,
@@ -20,7 +20,7 @@ const hoisted = await vi.hoisted(async () => {
       supplementalFiles: ["metadata.json", "artifacts.json", "prompts.json"],
     })),
     resolveDefaultTrajectoryExportDirMock: vi.fn(
-      () => "/tmp/workspace/.openclaw/trajectory-exports/openclaw-trajectory-session",
+      () => "/tmp/workspace/.astroclaw/trajectory-exports/astroclaw-trajectory-session",
     ),
     accessMock: vi.fn(
       async (file: fs.PathLike, actualAccess: (path: fs.PathLike) => Promise<void>) => {
@@ -81,7 +81,7 @@ const tempDirs: string[] = [];
 const mockedSessionFile = "/tmp/target-store/session.jsonl";
 
 function makeTempDir(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-export-command-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-export-command-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -145,7 +145,7 @@ function createExecDeps(
           expiresAtMs: Date.now() + 60_000,
           allowedDecisions: ["allow-once", "deny"] as const,
           host: "gateway" as const,
-          command: "openclaw sessions export-trajectory --session-key agent:target:session",
+          command: "astroclaw sessions export-trajectory --session-key agent:target:session",
           cwd: "/tmp",
         },
       };
@@ -245,7 +245,7 @@ describe("buildExportTrajectoryReply", () => {
     expect(exportParams.sessionId).toBe("session-1");
     expect(exportParams.sessionKey).toBe("agent:target:session");
     expect(exportParams.workspaceDir).toBe(params.workspaceDir);
-    expect(String(exportParams.workspaceDir)).toContain("openclaw-export-command-");
+    expect(String(exportParams.workspaceDir)).toContain("astroclaw-export-command-");
   });
 
   it("keeps user-named output paths inside the workspace trajectory export directory", async () => {
@@ -255,7 +255,7 @@ describe("buildExportTrajectoryReply", () => {
     await buildExportTrajectoryReply(params);
 
     expect(exportBundleParams().outputDir).toBe(
-      path.join(params.workspaceDir, ".openclaw", "trajectory-exports", "my-bundle"),
+      path.join(params.workspaceDir, ".astroclaw", "trajectory-exports", "my-bundle"),
     );
   });
 
@@ -308,8 +308,8 @@ describe("buildExportTrajectoryReply", () => {
   it("rejects output paths redirected by a symlinked exports directory", async () => {
     const workspaceDir = makeTempDir();
     const outsideDir = makeTempDir();
-    fs.mkdirSync(path.join(workspaceDir, ".openclaw"), { recursive: true });
-    fs.symlinkSync(outsideDir, path.join(workspaceDir, ".openclaw", "trajectory-exports"));
+    fs.mkdirSync(path.join(workspaceDir, ".astroclaw"), { recursive: true });
+    fs.symlinkSync(outsideDir, path.join(workspaceDir, ".astroclaw", "trajectory-exports"));
     const params = makeParams(workspaceDir);
     params.command.commandBodyNormalized = "/export-trajectory my-bundle";
 
@@ -322,8 +322,8 @@ describe("buildExportTrajectoryReply", () => {
   it("rejects default output paths redirected by a symlinked exports directory", async () => {
     const workspaceDir = makeTempDir();
     const outsideDir = makeTempDir();
-    fs.mkdirSync(path.join(workspaceDir, ".openclaw"), { recursive: true });
-    fs.symlinkSync(outsideDir, path.join(workspaceDir, ".openclaw", "trajectory-exports"));
+    fs.mkdirSync(path.join(workspaceDir, ".astroclaw"), { recursive: true });
+    fs.symlinkSync(outsideDir, path.join(workspaceDir, ".astroclaw", "trajectory-exports"));
 
     const reply = await buildExportTrajectoryReply(makeParams(workspaceDir));
 
@@ -334,7 +334,7 @@ describe("buildExportTrajectoryReply", () => {
   it("rejects symlinked state directories before creating export folders", async () => {
     const workspaceDir = makeTempDir();
     const outsideDir = makeTempDir();
-    fs.symlinkSync(outsideDir, path.join(workspaceDir, ".openclaw"));
+    fs.symlinkSync(outsideDir, path.join(workspaceDir, ".astroclaw"));
     const params = makeParams(workspaceDir);
     params.command.commandBodyNormalized = "/export-trajectory my-bundle";
 
@@ -360,7 +360,7 @@ describe("buildExportTrajectoryCommandReply", () => {
     expect(reply.text).toContain(
       "Trajectory exports can include prompts, model messages, tool schemas",
     );
-    expect(reply.text).toContain("https://docs.openclaw.ai/tools/trajectory");
+    expect(reply.text).toContain("https://docs.astroclaw.ai/tools/trajectory");
     expect(reply.text).toContain("do not use allow-all");
     expect(reply.text).toContain("Allowed decisions: allow-once, deny");
     expect(execCalls).toHaveLength(1);
@@ -380,11 +380,11 @@ describe("buildExportTrajectoryCommandReply", () => {
     expect(command).toContain("--request-json-base64");
     expect(command).toContain("--json");
     expect(command).not.toContain("--session-key");
-    expect(command).not.toContain("openclaw sessions export-trajectory");
+    expect(command).not.toContain("astroclaw sessions export-trajectory");
     const request = readEncodedRequestFromCommand(command);
     expect(request.sessionKey).toBe("agent:target:session");
     expect(request.workspace).toBe(params.workspaceDir);
-    expect(String(request.workspace)).toContain("openclaw-export-command-");
+    expect(String(request.workspace)).toContain("astroclaw-export-command-");
   });
 
   it("uses the originating Telegram route for native trajectory export followups", async () => {
@@ -477,7 +477,7 @@ describe("buildExportTrajectoryCommandReply", () => {
       { channel: "telegram", to: "owner-dm", accountId: "account-1" },
     ]);
     expect(privateReplies[0]?.text).toContain("Trajectory exports can include prompts");
-    expect(privateReplies[0]?.text).toContain("openclaw sessions export-trajectory");
+    expect(privateReplies[0]?.text).toContain("astroclaw sessions export-trajectory");
     expect(privateReplies[0]?.text).toContain("Session: agent:target:session");
     expect(execCalls).toHaveLength(1);
     const execCall = execCallRecord(execCalls);

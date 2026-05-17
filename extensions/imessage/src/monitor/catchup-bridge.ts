@@ -1,4 +1,4 @@
-import { warn } from "openclaw/plugin-sdk/runtime-env";
+import { warn } from "astroclaw/plugin-sdk/runtime-env";
 import type { IMessageRpcClient } from "../client.js";
 import {
   type CatchupDispatchFn,

@@ -1,5 +1,5 @@
 ---
-summary: "Adds Qwen, Qwen Cloud, Model Studio, DashScope model provider support to OpenClaw."
+summary: "Adds Qwen, Qwen Cloud, Model Studio, DashScope model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the qwen plugin
 title: "Qwen plugin"
@@ -7,12 +7,12 @@ title: "Qwen plugin"
 
 # Qwen plugin
 
-Adds Qwen, Qwen Cloud, Model Studio, DashScope model provider support to OpenClaw.
+Adds Qwen, Qwen Cloud, Model Studio, DashScope model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/qwen-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/qwen-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

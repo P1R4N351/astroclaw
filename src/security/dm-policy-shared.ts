@@ -32,7 +32,7 @@ export function resolvePinnedMainDmOwnerFromAllowlist(params: {
   return normalizedOwners.length === 1 ? normalizedOwners[0] : null;
 }
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export function resolveEffectiveAllowFromLists(params: {
   allowFrom?: Array<string | number> | null;
   groupAllowFrom?: Array<string | number> | null;
@@ -72,7 +72,7 @@ const dmGroupAccess = (
   reason: string,
 ): DmGroupAccessResult => ({ decision, reasonCode, reason });
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export function resolveOpenDmAllowlistAccess(params: {
   effectiveAllowFrom: Array<string | number>;
   isSenderAllowed: (allowFrom: string[]) => boolean;
@@ -130,7 +130,7 @@ const GROUP_ACCESS_RESULT: Record<
   ),
 };
 
-/** @deprecated Use `resolveChannelMessageIngress` or `readChannelIngressStoreAllowFromForDmPolicy` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` or `readChannelIngressStoreAllowFromForDmPolicy` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export async function readStoreAllowFromForDmPolicy(params: {
   provider: ChannelId;
   accountId: string;
@@ -141,7 +141,7 @@ export async function readStoreAllowFromForDmPolicy(params: {
   return await readChannelIngressStoreAllowFromForDmPolicy(params);
 }
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export function resolveDmGroupAccessDecision(params: {
   isGroup: boolean;
   dmPolicy?: string | null;
@@ -214,7 +214,7 @@ export function resolveDmGroupAccessDecision(params: {
         );
 }
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export function resolveDmGroupAccessWithLists(params: DmGroupAccessInputParams): {
   decision: DmGroupAccessDecision;
   reasonCode: DmGroupAccessReasonCode;
@@ -244,7 +244,7 @@ export function resolveDmGroupAccessWithLists(params: DmGroupAccessInputParams):
   };
 }
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export function resolveDmGroupAccessWithCommandGate(
   params: DmGroupAccessInputParams & {
     command?: {
@@ -311,7 +311,7 @@ export function resolveDmGroupAccessWithCommandGate(
   };
 }
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export async function resolveDmAllowState(params: {
   provider: ChannelId;
   accountId: string;

@@ -1,12 +1,12 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 import OSLog
 
 @MainActor
 final class MacNodeModeCoordinator {
     static let shared = MacNodeModeCoordinator()
 
-    private let logger = Logger(subsystem: "ai.openclaw", category: "mac-node")
+    private let logger = Logger(subsystem: "ai.astroclaw", category: "mac-node")
     private var task: Task<Void, Never>?
     private let runtime: MacNodeRuntime
     private let session: GatewayNodeSession
@@ -58,7 +58,7 @@ final class MacNodeModeCoordinator {
                 await self.session.disconnect()
                 try? await Task.sleep(nanoseconds: 200_000_000)
             }
-            let browserControlEnabled = OpenClawConfigFile.browserControlEnabled()
+            let browserControlEnabled = AstroclawConfigFile.browserControlEnabled()
             if lastBrowserControlEnabled == nil {
                 lastBrowserControlEnabled = browserControlEnabled
             } else if lastBrowserControlEnabled != browserControlEnabled {
@@ -80,7 +80,7 @@ final class MacNodeModeCoordinator {
                     caps: caps,
                     commands: commands,
                     permissions: permissions,
-                    clientId: "openclaw-macos",
+                    clientId: "astroclaw-macos",
                     clientMode: "node",
                     clientDisplayName: InstanceIdentity.displayName)
                 let sessionBox = self.buildSessionBox(
@@ -114,7 +114,7 @@ final class MacNodeModeCoordinator {
                             return BridgeInvokeResponse(
                                 id: req.id,
                                 ok: false,
-                                error: OpenClawNodeError(code: .unavailable, message: "UNAVAILABLE: node not ready"))
+                                error: AstroclawNodeError(code: .unavailable, message: "UNAVAILABLE: node not ready"))
                         }
                         return await self.runtime.handleInvoke(req)
                     })
@@ -136,18 +136,18 @@ final class MacNodeModeCoordinator {
     nonisolated static func resolvedCaps(
         browserControlEnabled: Bool,
         cameraEnabled: Bool,
-        locationMode: OpenClawLocationMode,
+        locationMode: AstroclawLocationMode,
         connectionMode: AppState.ConnectionMode) -> [String]
     {
-        var caps: [String] = [OpenClawCapability.canvas.rawValue, OpenClawCapability.screen.rawValue]
+        var caps: [String] = [AstroclawCapability.canvas.rawValue, AstroclawCapability.screen.rawValue]
         if browserControlEnabled, connectionMode == .local {
-            caps.append(OpenClawCapability.browser.rawValue)
+            caps.append(AstroclawCapability.browser.rawValue)
         }
         if cameraEnabled {
-            caps.append(OpenClawCapability.camera.rawValue)
+            caps.append(AstroclawCapability.camera.rawValue)
         }
         if locationMode != .off {
-            caps.append(OpenClawCapability.location.rawValue)
+            caps.append(AstroclawCapability.location.rawValue)
         }
         return caps
     }
@@ -155,9 +155,9 @@ final class MacNodeModeCoordinator {
     private func currentCaps() -> [String] {
         let rawLocationMode = UserDefaults.standard.string(forKey: locationModeKey) ?? "off"
         return Self.resolvedCaps(
-            browserControlEnabled: OpenClawConfigFile.browserControlEnabled(),
+            browserControlEnabled: AstroclawConfigFile.browserControlEnabled(),
             cameraEnabled: UserDefaults.standard.object(forKey: cameraEnabledKey) as? Bool ?? false,
-            locationMode: OpenClawLocationMode(rawValue: rawLocationMode) ?? .off,
+            locationMode: AstroclawLocationMode(rawValue: rawLocationMode) ?? .off,
             connectionMode: AppStateStore.shared.connectionMode)
     }
 
@@ -168,34 +168,34 @@ final class MacNodeModeCoordinator {
 
     nonisolated static func resolvedCommands(caps: [String]) -> [String] {
         var commands: [String] = [
-            OpenClawCanvasCommand.present.rawValue,
-            OpenClawCanvasCommand.hide.rawValue,
-            OpenClawCanvasCommand.navigate.rawValue,
-            OpenClawCanvasCommand.evalJS.rawValue,
-            OpenClawCanvasCommand.snapshot.rawValue,
-            OpenClawCanvasA2UICommand.push.rawValue,
-            OpenClawCanvasA2UICommand.pushJSONL.rawValue,
-            OpenClawCanvasA2UICommand.reset.rawValue,
+            AstroclawCanvasCommand.present.rawValue,
+            AstroclawCanvasCommand.hide.rawValue,
+            AstroclawCanvasCommand.navigate.rawValue,
+            AstroclawCanvasCommand.evalJS.rawValue,
+            AstroclawCanvasCommand.snapshot.rawValue,
+            AstroclawCanvasA2UICommand.push.rawValue,
+            AstroclawCanvasA2UICommand.pushJSONL.rawValue,
+            AstroclawCanvasA2UICommand.reset.rawValue,
             MacNodeScreenCommand.snapshot.rawValue,
             MacNodeScreenCommand.record.rawValue,
-            OpenClawSystemCommand.notify.rawValue,
-            OpenClawSystemCommand.which.rawValue,
-            OpenClawSystemCommand.run.rawValue,
-            OpenClawSystemCommand.execApprovalsGet.rawValue,
-            OpenClawSystemCommand.execApprovalsSet.rawValue,
+            AstroclawSystemCommand.notify.rawValue,
+            AstroclawSystemCommand.which.rawValue,
+            AstroclawSystemCommand.run.rawValue,
+            AstroclawSystemCommand.execApprovalsGet.rawValue,
+            AstroclawSystemCommand.execApprovalsSet.rawValue,
         ]
 
         let capsSet = Set(caps)
-        if capsSet.contains(OpenClawCapability.browser.rawValue) {
-            commands.append(OpenClawBrowserCommand.proxy.rawValue)
+        if capsSet.contains(AstroclawCapability.browser.rawValue) {
+            commands.append(AstroclawBrowserCommand.proxy.rawValue)
         }
-        if capsSet.contains(OpenClawCapability.camera.rawValue) {
-            commands.append(OpenClawCameraCommand.list.rawValue)
-            commands.append(OpenClawCameraCommand.snap.rawValue)
-            commands.append(OpenClawCameraCommand.clip.rawValue)
+        if capsSet.contains(AstroclawCapability.camera.rawValue) {
+            commands.append(AstroclawCameraCommand.list.rawValue)
+            commands.append(AstroclawCameraCommand.snap.rawValue)
+            commands.append(AstroclawCameraCommand.clip.rawValue)
         }
-        if capsSet.contains(OpenClawCapability.location.rawValue) {
-            commands.append(OpenClawLocationCommand.get.rawValue)
+        if capsSet.contains(AstroclawCapability.location.rawValue) {
+            commands.append(AstroclawLocationCommand.get.rawValue)
         }
 
         return commands
@@ -271,7 +271,7 @@ final class MacNodeModeCoordinator {
         guard let params = Self.tlsParams(
             for: url,
             connectionMode: connectionMode,
-            root: OpenClawConfigFile.loadDict(),
+            root: AstroclawConfigFile.loadDict(),
             storedFingerprint: stored)
         else { return nil }
         let session = GatewayTLSPinningSession(params: params)

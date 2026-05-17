@@ -1,12 +1,12 @@
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatCliCommand } from "openclaw/plugin-sdk/cli-runtime";
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/routing";
-import { info, success } from "openclaw/plugin-sdk/runtime-env";
-import { getChildLogger } from "openclaw/plugin-sdk/runtime-env";
-import { defaultRuntime, type RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { replaceFileAtomic } from "openclaw/plugin-sdk/security-runtime";
+import { formatCliCommand } from "astroclaw/plugin-sdk/cli-runtime";
+import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/routing";
+import { info, success } from "astroclaw/plugin-sdk/runtime-env";
+import { getChildLogger } from "astroclaw/plugin-sdk/runtime-env";
+import { defaultRuntime, type RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import { replaceFileAtomic } from "astroclaw/plugin-sdk/security-runtime";
 import { resolveOAuthDir } from "./auth-store.runtime.js";
 import { hasWebCredsSync, resolveWebCredsBackupPath, resolveWebCredsPath } from "./creds-files.js";
 import {
@@ -487,7 +487,7 @@ export async function pickWebChannel(
   }
   if (!auth.exists) {
     throw new Error(
-      `No WhatsApp Web session found. Run \`${formatCliCommand("openclaw channels login --channel whatsapp --verbose")}\` to link.`,
+      `No WhatsApp Web session found. Run \`${formatCliCommand("astroclaw channels login --channel whatsapp --verbose")}\` to link.`,
     );
   }
   return choice;

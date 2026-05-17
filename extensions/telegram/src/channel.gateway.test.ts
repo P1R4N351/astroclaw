@@ -4,8 +4,8 @@ import path from "node:path";
 import {
   createPluginRuntimeMock,
   createStartAccountContext,
-} from "openclaw/plugin-sdk/channel-test-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-test-helpers";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readCachedTelegramBotInfo, writeCachedTelegramBotInfo } from "./bot-info-cache.js";
 import type { TelegramBotInfo } from "./bot-info.js";
@@ -28,8 +28,8 @@ const tempRoots: string[] = [];
 const startupBotInfo: TelegramBotInfo = {
   id: 123456,
   is_bot: true,
-  first_name: "OpenClaw",
-  username: "openclaw_bot",
+  first_name: "Astroclaw",
+  username: "astroclaw_bot",
   can_join_groups: true,
   can_read_all_group_messages: false,
   can_manage_bots: false,
@@ -41,9 +41,9 @@ const startupBotInfo: TelegramBotInfo = {
 };
 
 async function useTempStateDir(): Promise<string> {
-  const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-tg-channel-"));
+  const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-tg-channel-"));
   tempRoots.push(stateDir);
-  vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+  vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
   return stateDir;
 }
 
@@ -75,7 +75,7 @@ function createRuntimeEnvMock() {
 function createTelegramConfig(
   accountId = "default",
   telegramOverrides: Record<string, unknown> = {},
-): OpenClawConfig {
+): AstroclawConfig {
   if (accountId === "default") {
     return {
       channels: {
@@ -84,7 +84,7 @@ function createTelegramConfig(
           ...telegramOverrides,
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
   }
 
   return {
@@ -98,7 +98,7 @@ function createTelegramConfig(
         },
       },
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 }
 
 function startTelegramAccount(

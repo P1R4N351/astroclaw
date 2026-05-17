@@ -25,12 +25,12 @@ describe("status daemon summary", () => {
       label: "systemd",
       installed: true,
       loaded: true,
-      managedByOpenClaw: true,
+      managedByAstroclaw: true,
       externallyManaged: false,
       loadedText: "enabled",
       runtime: { status: "running", pid: 1234 },
       layout: {
-        execStart: "/usr/bin/node /opt/openclaw/dist/entry.js gateway",
+        execStart: "/usr/bin/node /opt/astroclaw/dist/entry.js gateway",
         sourceScope: "system",
         entrypointSourceCheckout: false,
       },
@@ -38,7 +38,7 @@ describe("status daemon summary", () => {
 
     const summary = await getDaemonStatusSummary();
     expect(summary.runtimeShort).toBe("running (pid 1234)");
-    expect(summary.layout?.execStart).toBe("/usr/bin/node /opt/openclaw/dist/entry.js gateway");
+    expect(summary.layout?.execStart).toBe("/usr/bin/node /opt/astroclaw/dist/entry.js gateway");
     expect(summary.layout?.sourceScope).toBe("system");
     expect(summary.layout?.entrypointSourceCheckout).toBe(false);
   });

@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/chutes-provider",
+  "name": "@astroclaw/chutes-provider",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Chutes.ai provider plugin",
+  "description": "Astroclaw Chutes.ai provider plugin",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

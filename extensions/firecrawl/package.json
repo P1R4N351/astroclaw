@@ -1,16 +1,16 @@
 {
-  "name": "@openclaw/firecrawl-plugin",
+  "name": "@astroclaw/firecrawl-plugin",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Firecrawl plugin",
+  "description": "Astroclaw Firecrawl plugin",
   "type": "module",
   "dependencies": {
     "typebox": "1.1.38"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

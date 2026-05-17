@@ -3,7 +3,7 @@
  * 凭证暂存与恢复。
  *
  * Solves the "hot-upgrade interrupted, appId/secret vanished from
- * openclaw.json" failure mode.
+ * astroclaw.json" failure mode.
  *
  * Mechanics:
  *   - After each successful gateway start we snapshot the currently
@@ -11,7 +11,7 @@
  *   - During plugin startup, if the live config has an empty appId or
  *     secret, the gateway consults the backup and restores the values
  *     via the config mutation API.
- *   - Backups live under `~/.openclaw/qqbot/data/` so they survive
+ *   - Backups live under `~/.astroclaw/qqbot/data/` so they survive
  *     plugin directory replacement.
  *
  * Safety notes:
@@ -26,8 +26,8 @@
  */
 
 import fs from "node:fs";
-import { loadJsonFile } from "openclaw/plugin-sdk/json-store";
-import { replaceFileAtomicSync } from "openclaw/plugin-sdk/security-runtime";
+import { loadJsonFile } from "astroclaw/plugin-sdk/json-store";
+import { replaceFileAtomicSync } from "astroclaw/plugin-sdk/security-runtime";
 import { getCredentialBackupFile, getLegacyCredentialBackupFile } from "../utils/data-paths.js";
 
 interface CredentialBackup {

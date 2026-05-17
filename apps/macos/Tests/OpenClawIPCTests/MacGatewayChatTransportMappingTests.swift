@@ -1,13 +1,13 @@
-import OpenClawChatUI
-import OpenClawProtocol
+import AstroclawChatUI
+import AstroclawProtocol
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct MacGatewayChatTransportMappingTests {
     @Test func `snapshot maps to health`() {
         let snapshot = Snapshot(
             presence: [],
-            health: OpenClawProtocol.AnyCodable(["ok": OpenClawProtocol.AnyCodable(false)]),
+            health: AstroclawProtocol.AnyCodable(["ok": AstroclawProtocol.AnyCodable(false)]),
             stateversion: StateVersion(presence: 1, health: 1),
             uptimems: 123,
             configpath: nil,
@@ -39,7 +39,7 @@ struct MacGatewayChatTransportMappingTests {
         let frame = EventFrame(
             type: "event",
             event: "health",
-            payload: OpenClawProtocol.AnyCodable(["ok": OpenClawProtocol.AnyCodable(true)]),
+            payload: AstroclawProtocol.AnyCodable(["ok": AstroclawProtocol.AnyCodable(true)]),
             seq: 1,
             stateversion: nil)
 
@@ -62,10 +62,10 @@ struct MacGatewayChatTransportMappingTests {
     }
 
     @Test func `chat event maps to chat`() {
-        let payload = OpenClawProtocol.AnyCodable([
-            "runId": OpenClawProtocol.AnyCodable("run-1"),
-            "sessionKey": OpenClawProtocol.AnyCodable("main"),
-            "state": OpenClawProtocol.AnyCodable("final"),
+        let payload = AstroclawProtocol.AnyCodable([
+            "runId": AstroclawProtocol.AnyCodable("run-1"),
+            "sessionKey": AstroclawProtocol.AnyCodable("main"),
+            "state": AstroclawProtocol.AnyCodable("final"),
         ])
         let frame = EventFrame(type: "event", event: "chat", payload: payload, seq: 1, stateversion: nil)
         let mapped = MacGatewayChatTransport.mapPushToTransportEvent(.event(frame))
@@ -81,19 +81,19 @@ struct MacGatewayChatTransportMappingTests {
     }
 
     @Test func `session message event maps to session message`() {
-        let payload = OpenClawProtocol.AnyCodable([
-            "sessionKey": OpenClawProtocol.AnyCodable("agent:main:main"),
-            "messageId": OpenClawProtocol.AnyCodable("msg-1"),
-            "messageSeq": OpenClawProtocol.AnyCodable(7),
-            "message": OpenClawProtocol.AnyCodable([
-                "role": OpenClawProtocol.AnyCodable("user"),
-                "content": OpenClawProtocol.AnyCodable([
-                    OpenClawProtocol.AnyCodable([
-                        "type": OpenClawProtocol.AnyCodable("text"),
-                        "text": OpenClawProtocol.AnyCodable("spoken transcript"),
+        let payload = AstroclawProtocol.AnyCodable([
+            "sessionKey": AstroclawProtocol.AnyCodable("agent:main:main"),
+            "messageId": AstroclawProtocol.AnyCodable("msg-1"),
+            "messageSeq": AstroclawProtocol.AnyCodable(7),
+            "message": AstroclawProtocol.AnyCodable([
+                "role": AstroclawProtocol.AnyCodable("user"),
+                "content": AstroclawProtocol.AnyCodable([
+                    AstroclawProtocol.AnyCodable([
+                        "type": AstroclawProtocol.AnyCodable("text"),
+                        "text": AstroclawProtocol.AnyCodable("spoken transcript"),
                     ]),
                 ]),
-                "timestamp": OpenClawProtocol.AnyCodable(1234.5),
+                "timestamp": AstroclawProtocol.AnyCodable(1234.5),
             ]),
         ])
         let frame = EventFrame(type: "event", event: "session.message", payload: payload, seq: 1, stateversion: nil)
@@ -115,7 +115,7 @@ struct MacGatewayChatTransportMappingTests {
         let frame = EventFrame(
             type: "event",
             event: "unknown",
-            payload: OpenClawProtocol.AnyCodable(["a": OpenClawProtocol.AnyCodable(1)]),
+            payload: AstroclawProtocol.AnyCodable(["a": AstroclawProtocol.AnyCodable(1)]),
             seq: 1,
             stateversion: nil)
         let mapped = MacGatewayChatTransport.mapPushToTransportEvent(.event(frame))

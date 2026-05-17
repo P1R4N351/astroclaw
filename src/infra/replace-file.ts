@@ -5,7 +5,7 @@ import {
   movePathWithCopyFallback as movePathWithCopyFallbackBase,
   replaceFileAtomic as replaceFileAtomicBase,
   type MovePathWithCopyFallbackOptions as BaseMovePathWithCopyFallbackOptions,
-} from "@openclaw/fs-safe/atomic";
+} from "@astroclaw/fs-safe/atomic";
 
 export {
   replaceDirectoryAtomic,
@@ -16,7 +16,7 @@ export {
   type ReplaceFileAtomicResult,
   type ReplaceFileAtomicSyncFileSystem,
   type ReplaceFileAtomicSyncOptions,
-} from "@openclaw/fs-safe/atomic";
+} from "@astroclaw/fs-safe/atomic";
 
 export const replaceFileAtomic = replaceFileAtomicBase;
 

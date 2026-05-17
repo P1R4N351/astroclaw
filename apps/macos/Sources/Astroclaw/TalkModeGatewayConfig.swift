@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 
 struct TalkModeGatewayConfigState {
     let activeProvider: String

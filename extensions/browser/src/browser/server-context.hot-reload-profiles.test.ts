@@ -7,7 +7,7 @@ type TestProfileConfig = {
   color?: string;
   headless?: boolean;
   executablePath?: string;
-  driver?: "openclaw" | "existing-session";
+  driver?: "astroclaw" | "existing-session";
 };
 type TestConfig = {
   browser: {
@@ -36,7 +36,7 @@ function buildConfig(): TestConfig {
       enabled: true,
       color: "#FF4500",
       headless: true,
-      defaultProfile: "openclaw",
+      defaultProfile: "astroclaw",
       profiles: { ...mockState.cfgProfiles },
     },
   };
@@ -78,13 +78,13 @@ describe("server-context hot-reload profiles", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.cfgProfiles = {
-      openclaw: { cdpPort: 18800, color: "#FF4500" },
+      astroclaw: { cdpPort: 18800, color: "#FF4500" },
     };
     mockState.cachedConfig = null; // Clear simulated cache
   });
 
   it("forProfile hot-reloads newly added profiles from config", () => {
-    // Start with only openclaw profile
+    // Start with only astroclaw profile
     // 1. Prime the cache by calling getRuntimeConfig() first
     const cfg = getRuntimeConfig();
     const resolved = resolveBrowserConfig(cfg.browser, cfg);
@@ -107,7 +107,7 @@ describe("server-context hot-reload profiles", () => {
       }),
     ).toBeNull();
 
-    // 2. Simulate adding a new profile to config (like user editing openclaw.json)
+    // 2. Simulate adding a new profile to config (like user editing astroclaw.json)
     mockState.cfgProfiles.desktop = { cdpUrl: "http://127.0.0.1:9222", color: "#0066CC" };
 
     // 3. Verify without clearConfigCache, getRuntimeConfig() still returns stale cached value
@@ -162,16 +162,16 @@ describe("server-context hot-reload profiles", () => {
       profiles: new Map(),
     };
 
-    mockState.cfgProfiles.openclaw = { cdpPort: 19999, color: "#FF4500" };
+    mockState.cfgProfiles.astroclaw = { cdpPort: 19999, color: "#FF4500" };
     mockState.cachedConfig = null;
 
     const after = resolveBrowserProfileWithHotReload({
       current: state,
       refreshConfigFromDisk: true,
-      name: "openclaw",
+      name: "astroclaw",
     });
     expect(after?.cdpPort).toBe(19999);
-    expect(state.resolved.profiles.openclaw?.cdpPort).toBe(19999);
+    expect(state.resolved.profiles.astroclaw?.cdpPort).toBe(19999);
   });
 
   it("listProfiles refreshes config before enumerating profiles", () => {
@@ -198,9 +198,9 @@ describe("server-context hot-reload profiles", () => {
   it("marks existing runtime state for reconcile when profile invariants change", () => {
     const cfg = getRuntimeConfig();
     const resolved = resolveBrowserConfig(cfg.browser, cfg);
-    const openclawProfile = requireValue(
-      resolveProfile(resolved, "openclaw"),
-      "openclaw profile missing",
+    const astroclawProfile = requireValue(
+      resolveProfile(resolved, "astroclaw"),
+      "astroclaw profile missing",
     );
     const state: BrowserServerState = {
       server: null,
@@ -208,9 +208,9 @@ describe("server-context hot-reload profiles", () => {
       resolved,
       profiles: new Map([
         [
-          "openclaw",
+          "astroclaw",
           {
-            profile: openclawProfile,
+            profile: astroclawProfile,
             running: { pid: 123 } as never,
             lastTargetId: "tab-1",
             reconcile: null,
@@ -219,7 +219,7 @@ describe("server-context hot-reload profiles", () => {
       ]),
     };
 
-    mockState.cfgProfiles.openclaw = { cdpPort: 19999, color: "#FF4500" };
+    mockState.cfgProfiles.astroclaw = { cdpPort: 19999, color: "#FF4500" };
     mockState.cachedConfig = null;
 
     refreshResolvedBrowserConfigFromDisk({
@@ -228,7 +228,7 @@ describe("server-context hot-reload profiles", () => {
       mode: "cached",
     });
 
-    const runtime = requireValue(state.profiles.get("openclaw"), "openclaw runtime missing");
+    const runtime = requireValue(state.profiles.get("astroclaw"), "astroclaw runtime missing");
     expect(runtime.profile.cdpPort).toBe(19999);
     expect(runtime.lastTargetId).toBeNull();
     expect(runtime.reconcile?.reason).toContain("cdpPort");
@@ -237,20 +237,20 @@ describe("server-context hot-reload profiles", () => {
   it("marks local managed runtime state for reconcile when profile headless changes", () => {
     const cfg = getRuntimeConfig();
     const resolved = resolveBrowserConfig(cfg.browser, cfg);
-    const openclawProfile = requireValue(
-      resolveProfile(resolved, "openclaw"),
-      "openclaw profile missing",
+    const astroclawProfile = requireValue(
+      resolveProfile(resolved, "astroclaw"),
+      "astroclaw profile missing",
     );
-    expect(openclawProfile.headless).toBe(true);
+    expect(astroclawProfile.headless).toBe(true);
     const state: BrowserServerState = {
       server: null,
       port: 18791,
       resolved,
       profiles: new Map([
         [
-          "openclaw",
+          "astroclaw",
           {
-            profile: openclawProfile,
+            profile: astroclawProfile,
             running: { pid: 123 } as never,
             lastTargetId: "tab-1",
             reconcile: null,
@@ -259,7 +259,7 @@ describe("server-context hot-reload profiles", () => {
       ]),
     };
 
-    mockState.cfgProfiles.openclaw = {
+    mockState.cfgProfiles.astroclaw = {
       cdpPort: 18800,
       color: "#FF4500",
       headless: false,
@@ -272,14 +272,14 @@ describe("server-context hot-reload profiles", () => {
       mode: "cached",
     });
 
-    const runtime = requireValue(state.profiles.get("openclaw"), "openclaw runtime missing");
+    const runtime = requireValue(state.profiles.get("astroclaw"), "astroclaw runtime missing");
     expect(runtime.profile.headless).toBe(false);
     expect(runtime.lastTargetId).toBeNull();
     expect(runtime.reconcile?.reason).toContain("headless");
   });
 
   it("marks local managed runtime state for reconcile when profile executablePath changes", () => {
-    mockState.cfgProfiles.openclaw = {
+    mockState.cfgProfiles.astroclaw = {
       cdpPort: 18800,
       color: "#FF4500",
       executablePath: "/usr/bin/chrome-old",
@@ -287,20 +287,20 @@ describe("server-context hot-reload profiles", () => {
     mockState.cachedConfig = null;
     const cfg = getRuntimeConfig();
     const resolved = resolveBrowserConfig(cfg.browser, cfg);
-    const openclawProfile = requireValue(
-      resolveProfile(resolved, "openclaw"),
-      "openclaw profile missing",
+    const astroclawProfile = requireValue(
+      resolveProfile(resolved, "astroclaw"),
+      "astroclaw profile missing",
     );
-    expect(openclawProfile.executablePath).toBe("/usr/bin/chrome-old");
+    expect(astroclawProfile.executablePath).toBe("/usr/bin/chrome-old");
     const state: BrowserServerState = {
       server: null,
       port: 18791,
       resolved,
       profiles: new Map([
         [
-          "openclaw",
+          "astroclaw",
           {
-            profile: openclawProfile,
+            profile: astroclawProfile,
             running: { pid: 123 } as never,
             lastTargetId: "tab-1",
             reconcile: null,
@@ -309,7 +309,7 @@ describe("server-context hot-reload profiles", () => {
       ]),
     };
 
-    mockState.cfgProfiles.openclaw = {
+    mockState.cfgProfiles.astroclaw = {
       cdpPort: 18800,
       color: "#FF4500",
       executablePath: "/usr/bin/chrome-new",
@@ -322,7 +322,7 @@ describe("server-context hot-reload profiles", () => {
       mode: "cached",
     });
 
-    const runtime = requireValue(state.profiles.get("openclaw"), "openclaw runtime missing");
+    const runtime = requireValue(state.profiles.get("astroclaw"), "astroclaw runtime missing");
     expect(runtime.profile.executablePath).toBe("/usr/bin/chrome-new");
     expect(runtime.lastTargetId).toBeNull();
     expect(runtime.reconcile?.reason).toContain("executablePath");
@@ -397,7 +397,7 @@ describe("server-context hot-reload profiles", () => {
       resolveProfile(resolved, "remote"),
       "remote profile missing",
     );
-    expect(remoteProfile.driver).toBe("openclaw");
+    expect(remoteProfile.driver).toBe("astroclaw");
     expect(remoteProfile.attachOnly).toBe(false);
     expect(remoteProfile.cdpIsLoopback).toBe(false);
     expect(remoteProfile.headless).toBe(true);
@@ -433,7 +433,7 @@ describe("server-context hot-reload profiles", () => {
     });
 
     const runtime = requireValue(state.profiles.get("remote"), "remote runtime missing");
-    expect(runtime.profile.driver).toBe("openclaw");
+    expect(runtime.profile.driver).toBe("astroclaw");
     expect(runtime.profile.cdpIsLoopback).toBe(false);
     expect(runtime.profile.headless).toBe(false);
     expect(runtime.lastTargetId).toBe("tab-remote-cdp");

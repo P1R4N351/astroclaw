@@ -1,5 +1,5 @@
 import type { AcpTurnAttachment as AgentTurnAttachment } from "../../acp/control-plane/manager.types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { logVerbose } from "../../globals.js";
 import type { MediaAttachment } from "../../media-understanding/types.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
@@ -47,7 +47,7 @@ export function hasPotentialAgentTurnAttachments(ctx: FinalizedMsgContext): bool
 
 export async function resolveAgentTurnAttachments(params: {
   ctx: FinalizedMsgContext;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   runtime?: AgentTurnAttachmentRuntime;
 }): Promise<{
   attachments: AgentTurnAttachment[];
@@ -142,7 +142,7 @@ export async function resolveAgentTurnAttachments(params: {
 
 export async function resolveAgentAttachments(params: {
   ctx: FinalizedMsgContext;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   runtime?: AgentTurnAttachmentRuntime;
 }): Promise<AgentTurnAttachment[]> {
   return (await resolveAgentTurnAttachments(params)).attachments;

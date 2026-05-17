@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { resetConfigRuntimeState, setRuntimeConfigSnapshot } from "../config/config.js";
 import { activateSecretsRuntimeSnapshot, clearSecretsRuntimeSnapshot } from "../secrets/runtime.js";
-import { resolveOpenClawPluginToolsForOptions } from "./openclaw-plugin-tools.js";
+import { resolveAstroclawPluginToolsForOptions } from "./astroclaw-plugin-tools.js";
 
 const hoisted = vi.hoisted(() => ({
   resolvePluginTools: vi.fn(),
@@ -20,7 +20,7 @@ function firstResolvePluginToolsParams(): Record<string, unknown> {
   return call[0] as Record<string, unknown>;
 }
 
-describe("createOpenClawTools browser plugin integration", () => {
+describe("createAstroclawTools browser plugin integration", () => {
   afterEach(() => {
     hoisted.resolvePluginTools.mockReset();
     clearSecretsRuntimeSnapshot();
@@ -48,9 +48,9 @@ describe("createOpenClawTools browser plugin integration", () => {
       plugins: {
         allow: ["browser"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
-    const tools = resolveOpenClawPluginToolsForOptions({
+    const tools = resolveAstroclawPluginToolsForOptions({
       options: { config },
       resolvedConfig: config,
     });
@@ -70,9 +70,9 @@ describe("createOpenClawTools browser plugin integration", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
-    const tools = resolveOpenClawPluginToolsForOptions({
+    const tools = resolveAstroclawPluginToolsForOptions({
       options: { config },
       resolvedConfig: config,
     });
@@ -103,20 +103,20 @@ describe("createOpenClawTools browser plugin integration", () => {
       ];
     });
 
-    const tools = resolveOpenClawPluginToolsForOptions({
+    const tools = resolveAstroclawPluginToolsForOptions({
       options: {
         config: {
           plugins: {
             allow: ["browser"],
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
         fsPolicy: { workspaceOnly: true },
       },
       resolvedConfig: {
         plugins: {
           allow: ["browser"],
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
     });
 
     const browserTool = tools.find((tool) => tool.name === "browser");
@@ -135,9 +135,9 @@ describe("createOpenClawTools browser plugin integration", () => {
       plugins: {
         allow: ["browser"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
-    resolveOpenClawPluginToolsForOptions({
+    resolveAstroclawPluginToolsForOptions({
       options: { config, allowGatewaySubagentBinding: true },
       resolvedConfig: config,
     });
@@ -169,9 +169,9 @@ describe("createOpenClawTools browser plugin integration", () => {
       plugins: {
         allow: ["xai"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
-    resolveOpenClawPluginToolsForOptions({
+    resolveAstroclawPluginToolsForOptions({
       options: {
         config,
         authProfileStore: {
@@ -206,9 +206,9 @@ describe("createOpenClawTools browser plugin integration", () => {
       plugins: {
         allow: ["browser"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
-    resolveOpenClawPluginToolsForOptions({
+    resolveAstroclawPluginToolsForOptions({
       options: {
         config,
         pluginToolAllowlist: ["*"],
@@ -228,12 +228,12 @@ describe("createOpenClawTools browser plugin integration", () => {
       plugins: {
         allow: ["old-plugin"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const staleRuntimeConfig = {
       plugins: {
         allow: ["old-plugin"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const resolvedRunConfig = {
       plugins: {
         allow: ["browser"],
@@ -243,10 +243,10 @@ describe("createOpenClawTools browser plugin integration", () => {
           planTool: true,
         },
       },
-    } as OpenClawConfig;
-    let capturedRuntimeConfig: OpenClawConfig | undefined;
+    } as AstroclawConfig;
+    let capturedRuntimeConfig: AstroclawConfig | undefined;
     hoisted.resolvePluginTools.mockImplementation((params: unknown) => {
-      capturedRuntimeConfig = (params as { context?: { runtimeConfig?: OpenClawConfig } }).context
+      capturedRuntimeConfig = (params as { context?: { runtimeConfig?: AstroclawConfig } }).context
         ?.runtimeConfig;
       return [];
     });
@@ -268,7 +268,7 @@ describe("createOpenClawTools browser plugin integration", () => {
       },
     });
 
-    resolveOpenClawPluginToolsForOptions({
+    resolveAstroclawPluginToolsForOptions({
       options: { config: resolvedRunConfig },
       resolvedConfig: resolvedRunConfig,
     });
@@ -281,7 +281,7 @@ describe("createOpenClawTools browser plugin integration", () => {
       plugins: {
         allow: ["old-plugin"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const explicitConfig = {
       plugins: {
         allow: ["browser"],
@@ -291,15 +291,15 @@ describe("createOpenClawTools browser plugin integration", () => {
           planTool: true,
         },
       },
-    } as OpenClawConfig;
-    let capturedRuntimeConfig: OpenClawConfig | undefined;
-    let getRuntimeConfig: (() => OpenClawConfig | undefined) | undefined;
+    } as AstroclawConfig;
+    let capturedRuntimeConfig: AstroclawConfig | undefined;
+    let getRuntimeConfig: (() => AstroclawConfig | undefined) | undefined;
     hoisted.resolvePluginTools.mockImplementation((params: unknown) => {
       const context = (
         params as {
           context?: {
-            runtimeConfig?: OpenClawConfig;
-            getRuntimeConfig?: () => OpenClawConfig | undefined;
+            runtimeConfig?: AstroclawConfig;
+            getRuntimeConfig?: () => AstroclawConfig | undefined;
           };
         }
       ).context;
@@ -309,7 +309,7 @@ describe("createOpenClawTools browser plugin integration", () => {
     });
     setRuntimeConfigSnapshot(pinnedRuntimeConfig);
 
-    resolveOpenClawPluginToolsForOptions({
+    resolveAstroclawPluginToolsForOptions({
       options: { config: explicitConfig },
       resolvedConfig: explicitConfig,
     });
@@ -323,29 +323,29 @@ describe("createOpenClawTools browser plugin integration", () => {
       plugins: {
         allow: ["memory-core"],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const firstRuntimeConfig = {
       plugins: {
         allow: ["memory-core"],
         entries: { "memory-core": { enabled: true } },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const nextRuntimeConfig = {
       plugins: {
         allow: ["memory-core"],
         entries: { "memory-core": { enabled: false } },
       },
-    } as OpenClawConfig;
-    let getRuntimeConfig: (() => OpenClawConfig | undefined) | undefined;
+    } as AstroclawConfig;
+    let getRuntimeConfig: (() => AstroclawConfig | undefined) | undefined;
     hoisted.resolvePluginTools.mockImplementation((params: unknown) => {
       getRuntimeConfig = (
-        params as { context?: { getRuntimeConfig?: () => OpenClawConfig | undefined } }
+        params as { context?: { getRuntimeConfig?: () => AstroclawConfig | undefined } }
       ).context?.getRuntimeConfig;
       return [];
     });
     setRuntimeConfigSnapshot(firstRuntimeConfig, sourceConfig);
 
-    resolveOpenClawPluginToolsForOptions({
+    resolveAstroclawPluginToolsForOptions({
       options: { config: sourceConfig },
       resolvedConfig: sourceConfig,
     });

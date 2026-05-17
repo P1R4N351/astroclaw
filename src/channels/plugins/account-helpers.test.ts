@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 import { normalizeAccountId } from "../../routing/session-key.js";
 import {
   createAccountListHelpers,
@@ -14,16 +14,16 @@ import {
 const { listConfiguredAccountIds, listAccountIds, resolveDefaultAccountId } =
   createAccountListHelpers("testchannel");
 
-function cfg(accounts?: Record<string, unknown> | null, defaultAccount?: string): OpenClawConfig {
+function cfg(accounts?: Record<string, unknown> | null, defaultAccount?: string): AstroclawConfig {
   if (accounts === null) {
     return {
       channels: {
         testchannel: defaultAccount ? { defaultAccount } : {},
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
   }
   if (accounts === undefined && !defaultAccount) {
-    return {} as unknown as OpenClawConfig;
+    return {} as unknown as AstroclawConfig;
   }
   return {
     channels: {
@@ -32,18 +32,18 @@ function cfg(accounts?: Record<string, unknown> | null, defaultAccount?: string)
         ...(defaultAccount ? { defaultAccount } : {}),
       },
     },
-  } as unknown as OpenClawConfig;
+  } as unknown as AstroclawConfig;
 }
 
 function expectResolvedAccountIdsCase(params: {
-  resolve: (cfg: OpenClawConfig) => string[];
-  input: OpenClawConfig;
+  resolve: (cfg: AstroclawConfig) => string[];
+  input: AstroclawConfig;
   expected: string[];
 }) {
   expect(params.resolve(params.input)).toEqual(params.expected);
 }
 
-function expectResolvedDefaultAccountCase(input: OpenClawConfig, expected: string) {
+function expectResolvedDefaultAccountCase(input: AstroclawConfig, expected: string) {
   expect(resolveDefaultAccountId(input)).toBe(expected);
 }
 
@@ -52,7 +52,7 @@ describe("createAccountListHelpers", () => {
     it.each([
       {
         name: "returns empty for missing config",
-        input: {} as OpenClawConfig,
+        input: {} as AstroclawConfig,
       },
       {
         name: "returns empty when no accounts key",
@@ -102,7 +102,7 @@ describe("createAccountListHelpers", () => {
     it.each([
       {
         name: 'returns ["default"] for empty config',
-        input: {} as OpenClawConfig,
+        input: {} as AstroclawConfig,
         expected: ["default"],
       },
       {
@@ -153,7 +153,7 @@ describe("createAccountListHelpers", () => {
       },
       {
         name: 'returns "default" for empty config',
-        input: {} as OpenClawConfig,
+        input: {} as AstroclawConfig,
         expected: "default",
       },
     ])("$name", ({ input, expected }) => {

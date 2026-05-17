@@ -54,7 +54,7 @@ describe("RealtimeTalkSession consult handoff", () => {
       | undefined;
     expect(toolCall?.[0]).toBe("talk.client.toolCall");
     expect(toolCall?.[1]?.sessionKey).toBe("agent:main:main");
-    expect(toolCall?.[1]?.name).toBe("openclaw_agent_consult");
+    expect(toolCall?.[1]?.name).toBe("astroclaw_agent_consult");
     expect(toolCall?.[1]?.args).toEqual({ question: "Are the basement lights off?" });
     expect(submit).toHaveBeenCalledWith("call-1", { result: "Basement lights are off." });
   });

@@ -273,7 +273,7 @@ struct TailscaleIntegrationSection: View {
             .textFieldStyle(.roundedBorder)
             .frame(maxWidth: 240)
             .onSubmit { Task { await self.applySettings() } }
-        Text("Stored in ~/.openclaw/openclaw.json. Prefer OPENCLAW_GATEWAY_PASSWORD for production.")
+        Text("Stored in ~/.astroclaw/astroclaw.json. Prefer ASTROCLAW_GATEWAY_PASSWORD for production.")
             .font(.caption)
             .foregroundStyle(.secondary)
         Button("Update password") { Task { await self.applySettings() } }
@@ -485,9 +485,9 @@ struct TailscaleIntegrationSection: View {
         }
 
         let statusMessage = if connectionMode == .local, !isPaused {
-            "Saved to ~/.openclaw/openclaw.json. Restarting gateway…"
+            "Saved to ~/.astroclaw/astroclaw.json. Restarting gateway…"
         } else {
-            "Saved to ~/.openclaw/openclaw.json. Restart the gateway to apply."
+            "Saved to ~/.astroclaw/astroclaw.json. Restart the gateway to apply."
         }
         return GatewayTailscaleApplyMessages(
             statusMessage: statusMessage,

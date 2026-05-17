@@ -1,10 +1,10 @@
-package ai.openclaw.app.ui
+package ai.astroclaw.app.ui
 
-import ai.openclaw.app.LocationMode
-import ai.openclaw.app.MainViewModel
-import ai.openclaw.app.SensitiveFeatureConfig
-import ai.openclaw.app.gateway.GatewayEndpoint
-import ai.openclaw.app.node.DeviceNotificationListenerService
+import ai.astroclaw.app.LocationMode
+import ai.astroclaw.app.MainViewModel
+import ai.astroclaw.app.SensitiveFeatureConfig
+import ai.astroclaw.app.gateway.GatewayEndpoint
+import ai.astroclaw.app.node.DeviceNotificationListenerService
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -547,7 +547,7 @@ fun OnboardingFlow(
           verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
           Text(
-            "OpenClaw",
+            "Astroclaw",
             style = onboardingDisplayStyle,
             color = onboardingText,
           )
@@ -1080,11 +1080,11 @@ private fun GatewayStep(
 
   StepShell(title = "Gateway Connection") {
     Text(
-      "Run `openclaw qr` on your gateway host, then scan the code with this device. For Tailscale or public hosts, use wss:// or Tailscale Serve.",
+      "Run `astroclaw qr` on your gateway host, then scan the code with this device. For Tailscale or public hosts, use wss:// or Tailscale Serve.",
       style = onboardingCalloutStyle,
       color = onboardingTextSecondary,
     )
-    CommandBlock("openclaw qr")
+    CommandBlock("astroclaw qr")
     Button(
       onClick = onScanQrClick,
       modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1137,7 +1137,7 @@ private fun GatewayStep(
             onValueChange = onSetupCodeChange,
             placeholder = {
               Text(
-                "Paste code from `openclaw qr --setup-code-only`",
+                "Paste code from `astroclaw qr --setup-code-only`",
                 color = onboardingTextTertiary,
                 style = onboardingBodyStyle,
               )
@@ -1792,7 +1792,7 @@ private fun FinalStep(
           if (showDiagnostics) {
             Text("Error", style = onboardingCaption1Style.copy(fontWeight = FontWeight.Bold), color = onboardingTextSecondary)
             Text(
-              "OpenClaw Android ${openClawAndroidVersionLabel()}",
+              "Astroclaw Android ${astroClawAndroidVersionLabel()}",
               style = onboardingCaption1Style,
               color = onboardingTextSecondary,
             )
@@ -1816,10 +1816,10 @@ private fun FinalStep(
             }
           }
           if (pairingRequired) {
-            CommandBlock("openclaw devices list")
-            CommandBlock("openclaw devices approve <requestId>")
+            CommandBlock("astroclaw devices list")
+            CommandBlock("astroclaw devices approve <requestId>")
             Text(
-              "OpenClaw retries automatically while this screen stays open.",
+              "Astroclaw retries automatically while this screen stays open.",
               style = onboardingCalloutStyle,
               color = onboardingTextSecondary,
             )

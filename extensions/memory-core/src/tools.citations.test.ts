@@ -3,8 +3,8 @@ import path from "node:path";
 import {
   clearMemoryPluginState,
   registerMemoryCorpusSupplement,
-} from "openclaw/plugin-sdk/memory-host-core";
-import { readMemoryHostEvents } from "openclaw/plugin-sdk/memory-host-events";
+} from "astroclaw/plugin-sdk/memory-host-core";
+import { readMemoryHostEvents } from "astroclaw/plugin-sdk/memory-host-events";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getMemorySearchManagerMockCalls,
@@ -18,7 +18,7 @@ import {
 } from "./memory-tool-manager-mock.js";
 import { createMemoryCoreTestHarness } from "./test-helpers.js";
 import {
-  asOpenClawConfig,
+  asAstroclawConfig,
   createAutoCitationsMemorySearchTool,
   createDefaultMemoryToolConfig,
   createMemoryGetToolOrThrow,
@@ -84,7 +84,7 @@ describe("memory search citations", () => {
 
   it("appends source information when citations are enabled", async () => {
     setMemoryBackend("builtin");
-    const cfg = asOpenClawConfig({
+    const cfg = asAstroclawConfig({
       memory: { citations: "on" },
       agents: { list: [{ id: "main", default: true }] },
     });
@@ -98,7 +98,7 @@ describe("memory search citations", () => {
 
   it("leaves snippet untouched when citations are off", async () => {
     setMemoryBackend("builtin");
-    const cfg = asOpenClawConfig({
+    const cfg = asAstroclawConfig({
       memory: { citations: "off" },
       agents: { list: [{ id: "main", default: true }] },
     });
@@ -112,7 +112,7 @@ describe("memory search citations", () => {
 
   it("clamps decorated snippets to qmd injected budget", async () => {
     setMemoryBackend("qmd");
-    const cfg = asOpenClawConfig({
+    const cfg = asAstroclawConfig({
       memory: { citations: "on", backend: "qmd", qmd: { limits: { maxInjectedChars: 20 } } },
       agents: { list: [{ id: "main", default: true }] },
     });

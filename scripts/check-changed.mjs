@@ -28,9 +28,9 @@ export function createChangedCheckChildEnv(baseEnv = process.env) {
   const resolvedBaseEnv = resolveLocalHeavyCheckEnv(baseEnv);
   return {
     ...resolvedBaseEnv,
-    OPENCLAW_OXLINT_SKIP_LOCK: "1",
-    OPENCLAW_TEST_HEAVY_CHECK_LOCK_HELD: "1",
-    OPENCLAW_TSGO_HEAVY_CHECK_LOCK_HELD: "1",
+    ASTROCLAW_OXLINT_SKIP_LOCK: "1",
+    ASTROCLAW_TEST_HEAVY_CHECK_LOCK_HELD: "1",
+    ASTROCLAW_TSGO_HEAVY_CHECK_LOCK_HELD: "1",
   };
 }
 
@@ -42,10 +42,10 @@ function isTruthyEnvFlag(value) {
 }
 
 export function shouldDelegateChangedCheckToCrabbox(argv = [], env = process.env) {
-  if (!isTruthyEnvFlag(env.OPENCLAW_TESTBOX)) {
+  if (!isTruthyEnvFlag(env.ASTROCLAW_TESTBOX)) {
     return false;
   }
-  if (isTruthyEnvFlag(env.OPENCLAW_TESTBOX_REMOTE_RUN)) {
+  if (isTruthyEnvFlag(env.ASTROCLAW_TESTBOX_REMOTE_RUN)) {
     return false;
   }
   if (isTruthyEnvFlag(env.CI) || isTruthyEnvFlag(env.GITHUB_ACTIONS)) {
@@ -64,7 +64,7 @@ export function buildChangedCheckCrabboxArgs(argv = []) {
     "--provider",
     "blacksmith-testbox",
     "--blacksmith-org",
-    "openclaw",
+    "astroclaw",
     "--blacksmith-workflow",
     ".github/workflows/ci-check-testbox.yml",
     "--blacksmith-job",
@@ -79,11 +79,11 @@ export function buildChangedCheckCrabboxArgs(argv = []) {
     "--",
     "CI=1",
     "NODE_OPTIONS=--max-old-space-size=4096",
-    "OPENCLAW_TEST_PROJECTS_PARALLEL=6",
-    "OPENCLAW_VITEST_MAX_WORKERS=1",
-    "OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000",
-    "OPENCLAW_TESTBOX=1",
-    "OPENCLAW_TESTBOX_REMOTE_RUN=1",
+    "ASTROCLAW_TEST_PROJECTS_PARALLEL=6",
+    "ASTROCLAW_VITEST_MAX_WORKERS=1",
+    "ASTROCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000",
+    "ASTROCLAW_TESTBOX=1",
+    "ASTROCLAW_TESTBOX_REMOTE_RUN=1",
     "pnpm",
     "check:changed",
     ...argv,
@@ -92,7 +92,7 @@ export function buildChangedCheckCrabboxArgs(argv = []) {
 
 export async function runChangedCheckViaCrabbox(argv = [], env = process.env) {
   console.error(
-    "[check:changed] OPENCLAW_TESTBOX=1 set; delegating to Blacksmith Testbox via `pnpm crabbox:run`.",
+    "[check:changed] ASTROCLAW_TESTBOX=1 set; delegating to Blacksmith Testbox via `pnpm crabbox:run`.",
   );
   return await runManagedCommand({
     bin: "pnpm",
@@ -217,8 +217,8 @@ export function createChangedCheckPlan(result, options = {}) {
     addCommand("live Docker shell syntax", "bash", ["-n", ...LIVE_DOCKER_AUTH_SHELL_TARGETS]);
     addCommand("live Docker scheduler dry run", "node", ["scripts/test-docker-all.mjs"], {
       ...baseEnv,
-      OPENCLAW_DOCKER_ALL_DRY_RUN: "1",
-      OPENCLAW_DOCKER_ALL_LIVE_MODE: "only",
+      ASTROCLAW_DOCKER_ALL_DRY_RUN: "1",
+      ASTROCLAW_DOCKER_ALL_LIVE_MODE: "only",
     });
   }
 

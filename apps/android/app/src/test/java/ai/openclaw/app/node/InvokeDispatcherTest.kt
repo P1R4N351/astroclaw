@@ -1,13 +1,13 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.gateway.DeviceIdentityStore
-import ai.openclaw.app.gateway.GatewaySession
-import ai.openclaw.app.protocol.OpenClawCallLogCommand
-import ai.openclaw.app.protocol.OpenClawCameraCommand
-import ai.openclaw.app.protocol.OpenClawLocationCommand
-import ai.openclaw.app.protocol.OpenClawMotionCommand
-import ai.openclaw.app.protocol.OpenClawSmsCommand
-import ai.openclaw.app.protocol.OpenClawTalkCommand
+import ai.astroclaw.app.gateway.DeviceIdentityStore
+import ai.astroclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.protocol.AstroclawCallLogCommand
+import ai.astroclaw.app.protocol.AstroclawCameraCommand
+import ai.astroclaw.app.protocol.AstroclawLocationCommand
+import ai.astroclaw.app.protocol.AstroclawMotionCommand
+import ai.astroclaw.app.protocol.AstroclawSmsCommand
+import ai.astroclaw.app.protocol.AstroclawTalkCommand
 import android.content.Context
 import android.content.pm.PackageManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,7 +103,7 @@ class InvokeDispatcherTest {
           readSmsAvailable = false,
           smsFeatureEnabled = true,
           smsTelephonyAvailable = true,
-        ).handleInvoke(OpenClawSmsCommand.Search.rawValue, "not-json")
+        ).handleInvoke(AstroclawSmsCommand.Search.rawValue, "not-json")
 
       assertEquals("SMS_PERMISSION_REQUIRED", result.error?.code)
       assertEquals("grant READ_SMS permission", result.error?.message)
@@ -117,7 +117,7 @@ class InvokeDispatcherTest {
           readSmsAvailable = false,
           smsFeatureEnabled = false,
           smsTelephonyAvailable = true,
-        ).handleInvoke(OpenClawSmsCommand.Search.rawValue, "not-json")
+        ).handleInvoke(AstroclawSmsCommand.Search.rawValue, "not-json")
 
       assertEquals("SMS_UNAVAILABLE", result.error?.code)
       assertEquals("SMS_UNAVAILABLE: SMS not available on this device", result.error?.message)
@@ -131,7 +131,7 @@ class InvokeDispatcherTest {
           sendSmsAvailable = true,
           smsFeatureEnabled = true,
           smsTelephonyAvailable = true,
-        ).handleInvoke(OpenClawSmsCommand.Send.rawValue, """{"to":"+15551234567","message":"hi"}""")
+        ).handleInvoke(AstroclawSmsCommand.Send.rawValue, """{"to":"+15551234567","message":"hi"}""")
 
       assertEquals("SMS_PERMISSION_REQUIRED", result.error?.code)
       assertEquals("grant SMS permission", result.error?.message)
@@ -145,7 +145,7 @@ class InvokeDispatcherTest {
           sendSmsAvailable = false,
           smsFeatureEnabled = true,
           smsTelephonyAvailable = true,
-        ).handleInvoke(OpenClawSmsCommand.Send.rawValue, """{"to":"+15551234567","message":"hi"}""")
+        ).handleInvoke(AstroclawSmsCommand.Send.rawValue, """{"to":"+15551234567","message":"hi"}""")
 
       assertEquals("SMS_UNAVAILABLE", result.error?.code)
       assertEquals("SMS_UNAVAILABLE: SMS not available on this device", result.error?.message)
@@ -154,7 +154,7 @@ class InvokeDispatcherTest {
   @Test
   fun handleInvoke_blocksCameraCommandsWhenCameraDisabled() =
     runTest {
-      val result = newDispatcher(cameraEnabled = false).handleInvoke(OpenClawCameraCommand.List.rawValue, null)
+      val result = newDispatcher(cameraEnabled = false).handleInvoke(AstroclawCameraCommand.List.rawValue, null)
 
       assertEquals("CAMERA_DISABLED", result.error?.code)
       assertEquals("CAMERA_DISABLED: enable Camera in Settings", result.error?.message)
@@ -163,7 +163,7 @@ class InvokeDispatcherTest {
   @Test
   fun handleInvoke_blocksLocationCommandWhenLocationDisabled() =
     runTest {
-      val result = newDispatcher(locationEnabled = false).handleInvoke(OpenClawLocationCommand.Get.rawValue, null)
+      val result = newDispatcher(locationEnabled = false).handleInvoke(AstroclawLocationCommand.Get.rawValue, null)
 
       assertEquals("LOCATION_DISABLED", result.error?.code)
       assertEquals("LOCATION_DISABLED: enable Location in Settings", result.error?.message)
@@ -174,7 +174,7 @@ class InvokeDispatcherTest {
     runTest {
       val result =
         newDispatcher(motionActivityAvailable = false)
-          .handleInvoke(OpenClawMotionCommand.Activity.rawValue, null)
+          .handleInvoke(AstroclawMotionCommand.Activity.rawValue, null)
 
       assertEquals("MOTION_UNAVAILABLE", result.error?.code)
       assertEquals("MOTION_UNAVAILABLE: accelerometer not available", result.error?.message)
@@ -185,7 +185,7 @@ class InvokeDispatcherTest {
     runTest {
       val result =
         newDispatcher(motionPedometerAvailable = false)
-          .handleInvoke(OpenClawMotionCommand.Pedometer.rawValue, null)
+          .handleInvoke(AstroclawMotionCommand.Pedometer.rawValue, null)
 
       assertEquals("PEDOMETER_UNAVAILABLE", result.error?.code)
       assertEquals("PEDOMETER_UNAVAILABLE: step counter not available", result.error?.message)
@@ -195,7 +195,7 @@ class InvokeDispatcherTest {
   fun handleInvoke_blocksCallLogWhenUnavailable() =
     runTest {
       val result =
-        newDispatcher(callLogAvailable = false).handleInvoke(OpenClawCallLogCommand.Search.rawValue, null)
+        newDispatcher(callLogAvailable = false).handleInvoke(AstroclawCallLogCommand.Search.rawValue, null)
 
       assertEquals("CALL_LOG_UNAVAILABLE", result.error?.code)
       assertEquals("CALL_LOG_UNAVAILABLE: call log not available on this build", result.error?.message)
@@ -216,10 +216,10 @@ class InvokeDispatcherTest {
       val talk = InvokeDispatcherFakeTalkHandler()
       val dispatcher = newDispatcher(talkHandler = talk)
 
-      val start = dispatcher.handleInvoke(OpenClawTalkCommand.PttStart.rawValue, null)
-      val stop = dispatcher.handleInvoke(OpenClawTalkCommand.PttStop.rawValue, null)
-      val cancel = dispatcher.handleInvoke(OpenClawTalkCommand.PttCancel.rawValue, null)
-      val once = dispatcher.handleInvoke(OpenClawTalkCommand.PttOnce.rawValue, null)
+      val start = dispatcher.handleInvoke(AstroclawTalkCommand.PttStart.rawValue, null)
+      val stop = dispatcher.handleInvoke(AstroclawTalkCommand.PttStop.rawValue, null)
+      val cancel = dispatcher.handleInvoke(AstroclawTalkCommand.PttCancel.rawValue, null)
+      val once = dispatcher.handleInvoke(AstroclawTalkCommand.PttOnce.rawValue, null)
 
       assertEquals("""{"captureId":"start"}""", start.payloadJson)
       assertEquals("""{"status":"stop"}""", stop.payloadJson)

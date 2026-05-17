@@ -1,5 +1,5 @@
 import { PassThrough } from "node:stream";
-import type { DiscordAccountConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { DiscordAccountConfig, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   buildRealtimeVoiceAgentConsultChatMessage,
   buildRealtimeVoiceAgentConsultPolicyInstructions,
@@ -18,9 +18,9 @@ import {
   type RealtimeVoiceBridgeSession,
   type RealtimeVoiceProviderConfig,
   type RealtimeVoiceToolCallEvent,
-} from "openclaw/plugin-sdk/realtime-voice";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/realtime-voice";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
 import {
   convertDiscordPcm48kStereoToRealtimePcm24kMono,
   convertRealtimePcm24kMonoToDiscordPcm48kStereo,
@@ -232,9 +232,9 @@ export function resolveDiscordRealtimeBargeIn(params: {
 
 export function buildDiscordSpeakExactUserMessage(text: string): string {
   return [
-    "Internal OpenClaw voice playback result.",
-    "Do not call openclaw_agent_consult or any other tool for this message.",
-    "Speak this exact OpenClaw answer to the Discord voice channel, without adding, removing, or rephrasing words.",
+    "Internal Astroclaw voice playback result.",
+    "Do not call astroclaw_agent_consult or any other tool for this message.",
+    "Speak this exact Astroclaw answer to the Discord voice channel, without adding, removing, or rephrasing words.",
     `Answer: ${JSON.stringify(text)}`,
   ].join("\n");
 }
@@ -287,7 +287,7 @@ function collectRealtimeConsultArgStrings(args: unknown): string[] {
 function extractDiscordExactSpeechConsultText(args: unknown): string | undefined {
   const message = collectRealtimeConsultArgStrings(args).join("\n");
   if (
-    !message.includes("Speak this exact OpenClaw answer") &&
+    !message.includes("Speak this exact Astroclaw answer") &&
     !message.includes("Speak the provided exact answer verbatim")
   ) {
     return undefined;
@@ -343,7 +343,7 @@ export class DiscordRealtimeVoiceSession implements VoiceRealtimeSession {
 
   constructor(
     private readonly params: {
-      cfg: OpenClawConfig;
+      cfg: AstroclawConfig;
       discordConfig: DiscordAccountConfig;
       entry: VoiceSessionEntry;
       mode: Exclude<DiscordVoiceMode, "stt-tts">;
@@ -1003,7 +1003,7 @@ export class DiscordRealtimeVoiceSession implements VoiceRealtimeSession {
         context,
         message: [
           question,
-          "Context: The realtime model produced a final user transcript without calling openclaw_agent_consult. OpenClaw is forcing the consult because consultPolicy is always.",
+          "Context: The realtime model produced a final user transcript without calling astroclaw_agent_consult. Astroclaw is forcing the consult because consultPolicy is always.",
         ].join("\n\n"),
       });
       this.setRecentAgentProxyConsultPromise(pending.recent, promise);
@@ -1136,7 +1136,7 @@ export class DiscordRealtimeVoiceSession implements VoiceRealtimeSession {
         callId,
         {
           status: "already_delivered",
-          message: "OpenClaw already delivered this answer to Discord voice.",
+          message: "Astroclaw already delivered this answer to Discord voice.",
         },
         { suppressResponse: true },
       );
@@ -1249,19 +1249,19 @@ function buildDiscordRealtimeInstructions(params: {
   const base =
     params.instructions ??
     [
-      "You are OpenClaw's Discord voice interface.",
+      "You are Astroclaw's Discord voice interface.",
       "Keep spoken replies concise, natural, and suitable for a live Discord voice channel.",
     ].join("\n");
   if (isDiscordAgentProxyVoiceMode(params.mode)) {
     return [
       base,
-      "Mode: OpenClaw agent proxy.",
-      "You are the realtime voice surface for the same OpenClaw agent the user can message directly.",
+      "Mode: Astroclaw agent proxy.",
+      "You are the realtime voice surface for the same Astroclaw agent the user can message directly.",
       "Do not mention a backend, supervisor, helper, or separate system. Present the result as your own work.",
-      "Delegate substantive requests, actions, tool work, current facts, memory, workspace context, and user-specific context with openclaw_agent_consult.",
-      "Do not block, refuse, or downscope at the voice layer. Delegate to OpenClaw and treat its result as authoritative.",
+      "Delegate substantive requests, actions, tool work, current facts, memory, workspace context, and user-specific context with astroclaw_agent_consult.",
+      "Do not block, refuse, or downscope at the voice layer. Delegate to Astroclaw and treat its result as authoritative.",
       "Answer directly only for greetings, acknowledgements, brief latency tests, or filler while waiting.",
-      "When OpenClaw sends an internal exact answer to speak, do not call tools. Say only that answer.",
+      "When Astroclaw sends an internal exact answer to speak, do not call tools. Say only that answer.",
       buildRealtimeVoiceAgentConsultPolicyInstructions({
         toolPolicy: params.toolPolicy,
         consultPolicy: params.consultPolicy,

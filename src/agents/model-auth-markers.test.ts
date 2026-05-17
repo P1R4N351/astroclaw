@@ -2,22 +2,22 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { captureEnv, withEnvAsync } from "../test-utils/env.js";
 
 const PLUGIN_MANIFEST_ENV_KEYS = [
-  "OPENCLAW_BUNDLED_PLUGINS_DIR",
-  "OPENCLAW_DISABLE_BUNDLED_PLUGINS",
-  "OPENCLAW_SKIP_PROVIDERS",
-  "OPENCLAW_SKIP_CHANNELS",
-  "OPENCLAW_SKIP_CRON",
-  "OPENCLAW_TEST_MINIMAL_GATEWAY",
+  "ASTROCLAW_BUNDLED_PLUGINS_DIR",
+  "ASTROCLAW_DISABLE_BUNDLED_PLUGINS",
+  "ASTROCLAW_SKIP_PROVIDERS",
+  "ASTROCLAW_SKIP_CHANNELS",
+  "ASTROCLAW_SKIP_CRON",
+  "ASTROCLAW_TEST_MINIMAL_GATEWAY",
 ] as const;
 
 function cleanPluginManifestEnv(): Record<(typeof PLUGIN_MANIFEST_ENV_KEYS)[number], undefined> {
   return {
-    OPENCLAW_BUNDLED_PLUGINS_DIR: undefined,
-    OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-    OPENCLAW_SKIP_PROVIDERS: undefined,
-    OPENCLAW_SKIP_CHANNELS: undefined,
-    OPENCLAW_SKIP_CRON: undefined,
-    OPENCLAW_TEST_MINIMAL_GATEWAY: undefined,
+    ASTROCLAW_BUNDLED_PLUGINS_DIR: undefined,
+    ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+    ASTROCLAW_SKIP_PROVIDERS: undefined,
+    ASTROCLAW_SKIP_CHANNELS: undefined,
+    ASTROCLAW_SKIP_CRON: undefined,
+    ASTROCLAW_TEST_MINIMAL_GATEWAY: undefined,
   };
 }
 

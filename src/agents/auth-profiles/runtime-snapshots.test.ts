@@ -50,7 +50,7 @@ function expectOpenAICodexSnapshotCredential(
 describe("runtime auth profile snapshots", () => {
   it("isolates set/get/replace snapshot mutations without structuredClone", () => {
     const structuredCloneSpy = vi.spyOn(globalThis, "structuredClone");
-    const agentDir = "/tmp/openclaw-auth-runtime-snapshot-agent";
+    const agentDir = "/tmp/astroclaw-auth-runtime-snapshot-agent";
     try {
       const stored = createStore("access-1");
       setRuntimeAuthProfileStoreSnapshot(stored, agentDir);

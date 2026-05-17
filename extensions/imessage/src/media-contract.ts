@@ -1,11 +1,11 @@
-import { mergeInboundPathRoots } from "openclaw/plugin-sdk/channel-inbound-roots";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { mergeInboundPathRoots } from "astroclaw/plugin-sdk/channel-inbound-roots";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { resolveIMessageAccount } from "./accounts.js";
 
 export const DEFAULT_IMESSAGE_ATTACHMENT_ROOTS = ["/Users/*/Library/Messages/Attachments"] as const;
 
 export function resolveIMessageAttachmentRoots(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   accountId?: string | null;
 }): string[] {
   const account = resolveIMessageAccount(params);
@@ -17,7 +17,7 @@ export function resolveIMessageAttachmentRoots(params: {
 }
 
 export function resolveIMessageRemoteAttachmentRoots(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   accountId?: string | null;
 }): string[] {
   const account = resolveIMessageAccount(params);

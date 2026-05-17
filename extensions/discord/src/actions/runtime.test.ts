@@ -1,5 +1,5 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { DiscordActionConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { DiscordActionConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearPresences, setPresence } from "../monitor/presence-cache.js";
 import { DiscordThreadInitialMessageError } from "../send.js";
@@ -116,7 +116,7 @@ function handleMessagingAction(
   action: string,
   params: Record<string, unknown>,
   isActionEnabled: (key: keyof DiscordActionConfig) => boolean,
-  cfg: OpenClawConfig = DISCORD_TEST_CFG,
+  cfg: AstroclawConfig = DISCORD_TEST_CFG,
   options?: {
     mediaAccess?: {
       localRoots?: readonly string[];
@@ -134,7 +134,7 @@ function handleGuildAction(
   action: string,
   params: Record<string, unknown>,
   isActionEnabled: (key: keyof DiscordActionConfig) => boolean,
-  cfg: OpenClawConfig = DISCORD_TEST_CFG,
+  cfg: AstroclawConfig = DISCORD_TEST_CFG,
   options?: { mediaLocalRoots?: readonly string[] },
 ) {
   return handleDiscordGuildAction(action, params, isActionEnabled, cfg, options);
@@ -144,7 +144,7 @@ function handleModerationAction(
   action: string,
   params: Record<string, unknown>,
   isActionEnabled: (key: keyof DiscordActionConfig, defaultValue?: boolean) => boolean,
-  cfg: OpenClawConfig = DISCORD_TEST_CFG,
+  cfg: AstroclawConfig = DISCORD_TEST_CFG,
 ) {
   return handleDiscordModerationAction(action, params, isActionEnabled, cfg);
 }
@@ -211,7 +211,7 @@ describe("handleDiscordMessagingAction", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await handleMessagingAction(
       "react",
@@ -404,7 +404,7 @@ describe("handleDiscordMessagingAction", () => {
           token: "token",
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     await handleMessagingAction("readMessages", { channelId: "C1" }, enableAllActions, cfg);
     expect(readMessagesDiscord).toHaveBeenCalledWith(
       "C1",
@@ -438,7 +438,7 @@ describe("handleDiscordMessagingAction", () => {
           token: "token",
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     await handleMessagingAction(
       "fetchMessage",
       { guildId: "G1", channelId: "C1", messageId: "M1" },
@@ -872,7 +872,7 @@ describe("handleDiscordGuildAction", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const result = await handleGuildAction(
       "memberInfo",
       {
@@ -1230,7 +1230,7 @@ describe("handleDiscordAction per-account gating", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await handleDiscordAction(
       { action: "timeout", guildId: "G1", userId: "U1", durationMinutes: 5, accountId: "ops" },
@@ -1255,7 +1255,7 @@ describe("handleDiscordAction per-account gating", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await expect(
       handleDiscordAction(
@@ -1276,7 +1276,7 @@ describe("handleDiscordAction per-account gating", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await handleDiscordAction(
       { action: "kick", guildId: "G1", userId: "U1", accountId: "ops" },
@@ -1295,7 +1295,7 @@ describe("handleDiscordAction per-account gating", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await expect(
       handleDiscordAction(
@@ -1318,7 +1318,7 @@ describe("handleDiscordAction per-account gating", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await handleDiscordAction(
       { action: "channelCreate", guildId: "G1", name: "alerts", accountId: "ops" },

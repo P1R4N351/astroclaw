@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import JSON5 from "json5";
 import { describe, expect, it } from "vitest";
-import { OpenClawSchema } from "../config/zod-schema.js";
+import { AstroclawSchema } from "../config/zod-schema.js";
 import { expectNoReaddirSyncDuring } from "../test-utils/fs-scan-assertions.js";
 import { listGitTrackedFiles } from "../test-utils/repo-files.js";
 
@@ -94,7 +94,7 @@ describe("channel docs config examples", () => {
     expect(failures).toStrictEqual([]);
   });
 
-  it("keeps OpenClaw channel config snippets parseable and schema-valid", () => {
+  it("keeps Astroclaw channel config snippets parseable and schema-valid", () => {
     const failures: string[] = [];
     for (const docPath of listChannelDocFiles()) {
       const fileName = path.basename(docPath);
@@ -113,7 +113,7 @@ describe("channel docs config examples", () => {
           failures.push(`${location} JSON5 parse failed: ${String(error)}`);
           continue;
         }
-        const result = OpenClawSchema.safeParse(parsed);
+        const result = AstroclawSchema.safeParse(parsed);
         if (!result.success) {
           const issues = result.error.issues
             .slice(0, 3)

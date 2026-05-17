@@ -422,7 +422,7 @@ export const ar: TranslationMap = {
     skills: "Skills ومفاتيح API.",
     nodes: "الأجهزة المقترنة والأوامر.",
     chat: "دردشة Gateway للتدخلات السريعة.",
-    config: "تعديل openclaw.json.",
+    config: "تعديل astroclaw.json.",
     communications: "القنوات، والرسائل، وإعدادات الصوت.",
     appearance: "السمة، وواجهة المستخدم، وإعدادات معالج الإعداد.",
     automation: "الأوامر، والخطافات، وcron، والمكونات الإضافية.",
@@ -492,7 +492,7 @@ export const ar: TranslationMap = {
       metadataUpgradeTitle: "تغيير بيانات تعريف الجهاز بانتظار الموافقة.",
       metadataUpgradeSummary: "هذا الجهاز مقترن بالفعل، لكن تغيير بيانات التعريف بانتظار الموافقة.",
       mobileHint:
-        "على الهاتف؟ انسخ عنوان URL الكامل (بما في ذلك #token=...) من openclaw dashboard --no-open على سطح المكتب.",
+        "على الهاتف؟ انسخ عنوان URL الكامل (بما في ذلك #token=...) من astroclaw dashboard --no-open على سطح المكتب.",
       docsTitle: "مستندات اقتران الأجهزة (تُفتح في تبويب جديد)",
       docsLink: "المستندات: اقتران الأجهزة",
     },
@@ -530,7 +530,7 @@ export const ar: TranslationMap = {
       modelAuthExpiresIn: "ينتهي {when}",
       modelAuthAttentionExpiredTitle: "انتهت صلاحية مصادقة النموذج",
       modelAuthAttentionExpiringTitle: "ستنتهي صلاحية مصادقة النموذج قريبًا",
-      modelAuthAttentionExpiredDesc: "{providers} — أعد المصادقة باستخدام openclaw models auth",
+      modelAuthAttentionExpiredDesc: "{providers} — أعد المصادقة باستخدام astroclaw models auth",
       modelAuthAttentionExpiringEntry: "{provider} ({when})",
     },
     attention: {
@@ -949,9 +949,9 @@ export const ar: TranslationMap = {
         title: "المصادقة مطلوبة",
         summary:
           "يمكن الوصول إلى Gateway، لكنه يحتاج إلى رمز مميز أو كلمة مرور مطابقة قبل أن يتمكن هذا المتصفح من الاتصال.",
-        stepPaste: "الصق الرمز المميز من openclaw dashboard --no-open أو أدخل كلمة المرور المكونة.",
+        stepPaste: "الصق الرمز المميز من astroclaw dashboard --no-open أو أدخل كلمة المرور المكونة.",
         stepGenerate:
-          "إذا لم يتم تكوين رمز مميز، فشغل openclaw doctor --generate-gateway-token على مضيف Gateway.",
+          "إذا لم يتم تكوين رمز مميز، فشغل astroclaw doctor --generate-gateway-token على مضيف Gateway.",
         stepConnect: "انقر على Connect مرة أخرى بعد تحديث بيانات الاعتماد.",
       },
       authFailed: {
@@ -959,7 +959,7 @@ export const ar: TranslationMap = {
         summary:
           "تم رفض بيانات الاعتماد المقدمة. السبب الأكثر شيوعا هو رمز مميز قديم أو رمز منسوخ من عنوان Gateway آخر.",
         stepDashboard:
-          "شغل openclaw dashboard --no-open وافتح عنوان URL الجديد أو الصق رمزه المميز.",
+          "شغل astroclaw dashboard --no-open وافتح عنوان URL الجديد أو الصق رمزه المميز.",
         stepReplace:
           "استبدل قيم الرمز المميز/كلمة المرور القديمة؛ لا تعد استخدام رمز من عنوان Gateway آخر.",
         stepMode:
@@ -981,8 +981,8 @@ export const ar: TranslationMap = {
         summary: "يحتاج هذا المتصفح إلى موافقة لمرة واحدة من مضيف Gateway قبل استخدام Control UI.",
         upgradeSummary:
           "هذا المتصفح معروف بالفعل، لكن الوصول المطلوب تغير ويحتاج إلى موافقة جديدة.",
-        stepList: "شغل openclaw devices list على مضيف Gateway.",
-        stepApproveId: "وافق على هذا الطلب: openclaw devices approve {requestId}.",
+        stepList: "شغل astroclaw devices list على مضيف Gateway.",
+        stepApproveId: "وافق على هذا الطلب: astroclaw devices approve {requestId}.",
         stepApprove: "وافق على طلب المتصفح/الجهاز المعلق من تلك القائمة.",
         stepReconnect: "أعد الاتصال بعد اكتمال الموافقة.",
       },
@@ -1006,20 +1006,20 @@ export const ar: TranslationMap = {
         title: "عدم تطابق البروتوكول",
         summary: "لا يتفق Control UI المقدم مع Gateway العامل على بروتوكول الاتصال المدعوم.",
         stepDashboard:
-          "أعد فتح لوحة المعلومات المقدمة باستخدام openclaw dashboard حتى يأتي UI وGateway من التثبيت نفسه.",
+          "أعد فتح لوحة المعلومات المقدمة باستخدام astroclaw dashboard حتى يأتي UI وGateway من التثبيت نفسه.",
         stepDevUi:
           "إذا كنت تستخدم pnpm ui:dev، فأعد بناء أو تشغيل واجهة التطوير مقابل checkout الحالي.",
-        stepRestart: "أعد تشغيل Gateway بعد تحديث OpenClaw حتى يقدم البروتوكول الحالي.",
+        stepRestart: "أعد تشغيل Gateway بعد تحديث Astroclaw حتى يقدم البروتوكول الحالي.",
       },
       network: {
         title: "تعذر الاتصال",
         summary:
           "لم يتمكن المتصفح من إكمال اتصال Gateway. تحقق من الهدف والنقل قبل إعادة تجربة بيانات الاعتماد.",
-        stepGateway: "تأكد من أن Gateway يعمل باستخدام openclaw status أو openclaw gateway run.",
+        stepGateway: "تأكد من أن Gateway يعمل باستخدام astroclaw status أو astroclaw gateway run.",
         stepUrl:
           "تحقق من عنوان WebSocket واستخدم wss:// عندما يكون Gateway خلف HTTPS/Tailscale Serve.",
         stepDashboard:
-          "أعد فتح لوحة المعلومات باستخدام openclaw dashboard --no-open لنسخ عنوان URL وتفاصيل المصادقة الحالية.",
+          "أعد فتح لوحة المعلومات باستخدام astroclaw dashboard --no-open لنسخ عنوان URL وتفاصيل المصادقة الحالية.",
       },
     },
   },

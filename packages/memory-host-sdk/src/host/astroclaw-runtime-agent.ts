@@ -13,9 +13,9 @@ export {
   resolveMemorySearchConfig,
   resolveMemorySearchSyncConfig,
   resolveSessionAgentId,
-} from "./openclaw-runtime.js";
+} from "./astroclaw-runtime.js";
 export type {
   AnyAgentTool,
   ResolvedMemorySearchConfig,
   ResolvedMemorySearchSyncConfig,
-} from "./openclaw-runtime.js";
+} from "./astroclaw-runtime.js";

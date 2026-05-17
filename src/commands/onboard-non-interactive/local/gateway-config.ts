@@ -1,6 +1,6 @@
 import { formatCliCommand } from "../../../cli/command-format.js";
 import { formatInvalidPortOption } from "../../../cli/error-format.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
 import { isValidEnvSecretRefId, resolveSecretInputRef } from "../../../config/types.secrets.js";
 import type { RuntimeEnv } from "../../../runtime.js";
 import { resolveDefaultSecretProviderAlias } from "../../../secrets/ref-contract.js";
@@ -9,12 +9,12 @@ import { normalizeGatewayTokenInput, randomToken } from "../../onboard-helpers.j
 import type { OnboardOptions } from "../../onboard-types.js";
 
 export function applyNonInteractiveGatewayConfig(params: {
-  nextConfig: OpenClawConfig;
+  nextConfig: AstroclawConfig;
   opts: OnboardOptions;
   runtime: RuntimeEnv;
   defaultPort: number;
 }): {
-  nextConfig: OpenClawConfig;
+  nextConfig: AstroclawConfig;
   port: number;
   bind: string;
   authMode: string;
@@ -57,7 +57,7 @@ export function applyNonInteractiveGatewayConfig(params: {
 
   let nextConfig = params.nextConfig;
   const explicitGatewayToken = normalizeGatewayTokenInput(opts.gatewayToken);
-  const envGatewayToken = normalizeGatewayTokenInput(process.env.OPENCLAW_GATEWAY_TOKEN);
+  const envGatewayToken = normalizeGatewayTokenInput(process.env.ASTROCLAW_GATEWAY_TOKEN);
   const existingTokenInput = nextConfig.gateway?.auth?.token;
   const existingTokenRef = resolveSecretInputRef({
     value: existingTokenInput,
@@ -65,7 +65,7 @@ export function applyNonInteractiveGatewayConfig(params: {
   }).ref;
   const existingPlaintextToken = normalizeGatewayTokenInput(existingTokenInput);
   // Resolution order on re-onboard: explicit --gateway-token > persisted
-  // plaintext > ambient OPENCLAW_GATEWAY_TOKEN > randomToken(). Ambient env
+  // plaintext > ambient ASTROCLAW_GATEWAY_TOKEN > randomToken(). Ambient env
   // must not rotate a token already written to disk — a stale shell or
   // launchd env var otherwise breaks already-paired clients.
   let gatewayToken = explicitGatewayToken || existingPlaintextToken || envGatewayToken || undefined;
@@ -75,7 +75,7 @@ export function applyNonInteractiveGatewayConfig(params: {
     if (gatewayTokenRefEnv) {
       if (!isValidEnvSecretRefId(gatewayTokenRefEnv)) {
         runtime.error(
-          "Invalid --gateway-token-ref-env. Use an environment variable name like OPENCLAW_GATEWAY_TOKEN.",
+          "Invalid --gateway-token-ref-env. Use an environment variable name like ASTROCLAW_GATEWAY_TOKEN.",
         );
         runtime.exit(1);
         return null;
@@ -90,7 +90,7 @@ export function applyNonInteractiveGatewayConfig(params: {
       const resolvedFromEnv = process.env[gatewayTokenRefEnv]?.trim();
       if (!resolvedFromEnv) {
         runtime.error(
-          `Environment variable "${gatewayTokenRefEnv}" is missing or empty. Export it first, then rerun ${formatCliCommand("openclaw onboard --non-interactive")}.`,
+          `Environment variable "${gatewayTokenRefEnv}" is missing or empty. Export it first, then rerun ${formatCliCommand("astroclaw onboard --non-interactive")}.`,
         );
         runtime.exit(1);
         return null;
@@ -115,7 +115,7 @@ export function applyNonInteractiveGatewayConfig(params: {
       };
     } else if (!explicitGatewayToken && existingTokenRef) {
       // Preserve an already-configured SecretRef on re-onboard. Without this
-      // branch, an ambient OPENCLAW_GATEWAY_TOKEN (or randomToken() fallback)
+      // branch, an ambient ASTROCLAW_GATEWAY_TOKEN (or randomToken() fallback)
       // would silently overwrite {source, provider, id} with a plaintext
       // literal, de-secretref-ing the gateway.
       nextConfig = {

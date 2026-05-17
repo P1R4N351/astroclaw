@@ -3,7 +3,7 @@ import Foundation
 import ImageIO
 import Testing
 import UniformTypeIdentifiers
-@testable import OpenClawKit
+@testable import AstroclawKit
 
 struct ChatImageProcessorTests {
     private func syntheticJPEG(width: Int, height: Int) throws -> Data {

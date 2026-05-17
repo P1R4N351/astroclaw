@@ -170,7 +170,7 @@ function buildFallbackStateMismatchError(details: ConnectPairingRequiredDetails)
       details.requestId
         ? `${FALLBACK_STATE_MISMATCH_MESSAGE} Missing requestId: ${details.requestId}.`
         : FALLBACK_STATE_MISMATCH_MESSAGE,
-      "The running gateway is probably using a different OPENCLAW_PROFILE or OPENCLAW_STATE_DIR than this CLI.",
+      "The running gateway is probably using a different ASTROCLAW_PROFILE or ASTROCLAW_STATE_DIR than this CLI.",
       "Rerun with the same profile/state-dir as the gateway, or pass --token/--password so the CLI can approve through the gateway.",
     ].join("\n"),
   );
@@ -463,7 +463,7 @@ function quoteCliArg(value: string): string {
 }
 
 function buildExplicitApproveCommand(opts: DevicesRpcOpts, requestId: string): string {
-  const args = ["openclaw", "devices", "approve", requestId];
+  const args = ["astroclaw", "devices", "approve", requestId];
   const url = normalizeOptionalString(opts.url);
   if (url) {
     args.push("--url", url);
@@ -501,7 +501,7 @@ function resolveRequiredDeviceRole(
     return { deviceId, role };
   }
   defaultRuntime.error(
-    `--device and --role are required. Run ${formatCliCommand("openclaw devices list")} to choose a paired device.`,
+    `--device and --role are required. Run ${formatCliCommand("astroclaw devices list")} to choose a paired device.`,
   );
   defaultRuntime.exit(1);
   return null;
@@ -601,7 +601,7 @@ export async function runDevicesRemoveCommand(
   const trimmed = deviceId.trim();
   if (!trimmed) {
     defaultRuntime.error(
-      `deviceId is required. Run ${formatCliCommand("openclaw devices list")} to choose a paired device.`,
+      `deviceId is required. Run ${formatCliCommand("astroclaw devices list")} to choose a paired device.`,
     );
     defaultRuntime.exit(1);
     return;
@@ -729,7 +729,7 @@ export async function runDevicesApproveCommand(
         break;
       case "re-approval":
         defaultRuntime.log(
-          "  Note:   Already paired. Approval-bound device details changed, so OpenClaw created a fresh request instead of silently reusing the old approval.",
+          "  Note:   Already paired. Approval-bound device details changed, so Astroclaw created a fresh request instead of silently reusing the old approval.",
         );
         break;
       case "new-pairing":

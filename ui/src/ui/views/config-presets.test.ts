@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OpenClawSchema } from "../../../../src/config/zod-schema.js";
+import { AstroclawSchema } from "../../../../src/config/zod-schema.js";
 import { CONFIG_PRESETS, detectActivePreset } from "./config-presets.ts";
 
 describe("detectActivePreset", () => {
@@ -45,7 +45,7 @@ describe("detectActivePreset", () => {
     ]);
 
     for (const preset of CONFIG_PRESETS) {
-      expect(OpenClawSchema.safeParse(preset.patch).success, preset.id).toBe(true);
+      expect(AstroclawSchema.safeParse(preset.patch).success, preset.id).toBe(true);
     }
   });
 

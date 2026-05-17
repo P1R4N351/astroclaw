@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import type { ReplyDispatcher } from "./reply/reply-dispatcher.js";
 import { buildTestCtx } from "./reply/test-ctx.js";
 
@@ -146,7 +146,7 @@ describe("withReplyDispatcher", () => {
 
     await dispatchInboundMessage({
       ctx: buildTestCtx(),
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       dispatcher,
       replyResolver: async () => ({ text: "ok" }),
     });
@@ -216,7 +216,7 @@ describe("withReplyDispatcher", () => {
 
     await dispatchInboundMessageWithBufferedDispatcher({
       ctx: buildTestCtx(),
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       dispatcherOptions: {
         deliver: async () => undefined,
       },
@@ -245,7 +245,7 @@ describe("withReplyDispatcher", () => {
         To: "whatsapp:+15557654321",
         OriginatingTo: "whatsapp:+15551234567",
       }),
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       dispatcherOptions: {
         deliver: async () => undefined,
       },
@@ -291,7 +291,7 @@ describe("withReplyDispatcher", () => {
 
     const result = await dispatchInboundMessage({
       ctx: buildTestCtx(),
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       dispatcher,
       replyResolver: async () => ({ text: "ok" }),
     });
@@ -320,7 +320,7 @@ describe("withReplyDispatcher", () => {
 
     const result = await dispatchInboundMessage({
       ctx: buildTestCtx(),
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       dispatcher,
       replyResolver: async () => ({ text: "ok" }),
     });
@@ -348,7 +348,7 @@ describe("withReplyDispatcher", () => {
         CommandTargetSessionKey: "agent:test:telegram:direct:8231046597",
         Surface: "telegram",
       }),
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       dispatcherOptions: {
         deliver: async () => undefined,
       },
@@ -377,7 +377,7 @@ describe("withReplyDispatcher", () => {
         ChatType: "dm",
         Surface: "discord",
       }),
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       dispatcherOptions: {
         deliver: async () => undefined,
       },
@@ -407,7 +407,7 @@ describe("withReplyDispatcher", () => {
         ChatType: "group",
         Surface: "telegram",
       }),
-      cfg: {} as OpenClawConfig,
+      cfg: {} as AstroclawConfig,
       dispatcherOptions: {
         deliver: async () => undefined,
       },

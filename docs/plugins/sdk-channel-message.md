@@ -8,7 +8,7 @@ read_when:
 ---
 
 Channel plugins should expose one `message` adapter from
-`openclaw/plugin-sdk/channel-message`. The adapter describes the native message
+`astroclaw/plugin-sdk/channel-message`. The adapter describes the native message
 lifecycle that the platform supports:
 
 ```text
@@ -28,14 +28,14 @@ The `channel-message` subpath is intentionally cheap enough for hot plugin
 bootstrap files such as `channel.ts`: it exposes adapter contracts, capability
 proofs, receipts, and compatibility facades without loading outbound delivery.
 Runtime delivery helpers are available from
-`openclaw/plugin-sdk/channel-message-runtime` for monitor/send code paths that
+`astroclaw/plugin-sdk/channel-message-runtime` for monitor/send code paths that
 are already doing asynchronous message I/O.
 
 New channel and plugin send code should use the message lifecycle helpers from
-`openclaw/plugin-sdk/channel-message-runtime`: `sendDurableMessageBatch`,
+`astroclaw/plugin-sdk/channel-message-runtime`: `sendDurableMessageBatch`,
 `withDurableMessageSendContext`, or `deliverInboundReplyWithMessageSendContext`.
 The older
-`deliverOutboundPayloads(...)` helper in `openclaw/plugin-sdk/outbound-runtime`
+`deliverOutboundPayloads(...)` helper in `astroclaw/plugin-sdk/outbound-runtime`
 is deprecated compatibility/runtime substrate for outbound internals, recovery,
 and legacy adapters. Do not use it for new channel or plugin send paths.
 
@@ -57,7 +57,7 @@ is empty.
 
 Compatibility dispatchers that still need the buffered reply dispatcher should
 build reply-prefix options with `createChannelMessageReplyPipeline(...)` from
-`openclaw/plugin-sdk/channel-message`, then call the runtime's
+`astroclaw/plugin-sdk/channel-message`, then call the runtime's
 `channel.turn.runPrepared(...)`. That keeps session recording and dispatch
 ordering on the shared turn lifecycle without adding another public turn wrapper.
 
@@ -69,7 +69,7 @@ Most new channel plugins can start with a small adapter:
 import {
   defineChannelMessageAdapter,
   createMessageReceiptFromOutboundResults,
-} from "openclaw/plugin-sdk/channel-message";
+} from "astroclaw/plugin-sdk/channel-message";
 
 export const demoMessageAdapter = defineChannelMessageAdapter({
   id: "demo",
@@ -127,7 +127,7 @@ If the channel already has a compatible `outbound` adapter, prefer deriving the
 message adapter instead of duplicating send code:
 
 ```typescript
-import { createChannelMessageAdapterFromOutbound } from "openclaw/plugin-sdk/channel-message";
+import { createChannelMessageAdapterFromOutbound } from "astroclaw/plugin-sdk/channel-message";
 
 const demoMessageAdapter = createChannelMessageAdapterFromOutbound({
   id: "demo",
@@ -230,7 +230,7 @@ When a caller needs durable delivery, derive requirements instead of building
 maps by hand:
 
 ```typescript
-import { deriveDurableFinalDeliveryRequirements } from "openclaw/plugin-sdk/channel-message";
+import { deriveDurableFinalDeliveryRequirements } from "astroclaw/plugin-sdk/channel-message";
 
 const requiredCapabilities = deriveDurableFinalDeliveryRequirements({
   payload,
@@ -384,7 +384,7 @@ import {
   verifyChannelMessageLiveCapabilityAdapterProofs,
   verifyChannelMessageLiveFinalizerProofs,
   verifyChannelMessageReceiveAckPolicyAdapterProofs,
-} from "openclaw/plugin-sdk/channel-message";
+} from "astroclaw/plugin-sdk/channel-message";
 
 it("backs declared message capabilities", async () => {
   await expect(
@@ -424,13 +424,13 @@ new channel code.
 
 | Deprecated API                               | Replacement                                                                                                                |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `openclaw/plugin-sdk/channel-reply-pipeline` | `openclaw/plugin-sdk/channel-message`                                                                                      |
+| `astroclaw/plugin-sdk/channel-reply-pipeline` | `astroclaw/plugin-sdk/channel-message`                                                                                      |
 | `createChannelTurnReplyPipeline(...)`        | `createChannelMessageReplyPipeline(...)` for compatibility dispatchers, or a `message` adapter for new channel code        |
 | `buildChannelMessageReplyDispatchBase(...)`  | `createChannelMessageReplyPipeline(...)` plus `channel.turn.runPrepared(...)`, or a `message` adapter for new channel code |
 | `dispatchChannelMessageReplyWithBase(...)`   | `createChannelMessageReplyPipeline(...)` plus `channel.turn.runPrepared(...)`, or a `message` adapter for new channel code |
 | `recordChannelMessageReplyDispatch(...)`     | `createChannelMessageReplyPipeline(...)` plus `channel.turn.runPrepared(...)`, or a `message` adapter for new channel code |
 | `deliverOutboundPayloads(...)`               | `sendDurableMessageBatch(...)` or `deliverInboundReplyWithMessageSendContext(...)` from `channel-message-runtime`          |
-| `deliverDurableInboundReplyPayload(...)`     | `deliverInboundReplyWithMessageSendContext(...)` from `openclaw/plugin-sdk/channel-message-runtime`                        |
+| `deliverDurableInboundReplyPayload(...)`     | `deliverInboundReplyWithMessageSendContext(...)` from `astroclaw/plugin-sdk/channel-message-runtime`                        |
 | `dispatchInboundReplyWithBase(...)`          | `createChannelMessageReplyPipeline(...)` plus `channel.turn.runPrepared(...)`, or a `message` adapter for new channel code |
 | `recordInboundSessionAndDispatchReply(...)`  | `createChannelMessageReplyPipeline(...)` plus `channel.turn.runPrepared(...)`, or a `message` adapter for new channel code |
 | `resolveChannelSourceReplyDeliveryMode(...)` | `resolveChannelMessageSourceReplyDeliveryMode(...)`                                                                        |

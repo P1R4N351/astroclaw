@@ -42,7 +42,7 @@ function createAuditRecordBase(configPath: string) {
 
 function createRenameAuditRecord(home: string) {
   return finalizeConfigWriteAuditRecord({
-    base: createAuditRecordBase(path.join(home, ".openclaw", "openclaw.json")),
+    base: createAuditRecordBase(path.join(home, ".astroclaw", "astroclaw.json")),
     result: "rename",
     nextMetadata: {
       dev: "12",
@@ -56,7 +56,7 @@ function createRenameAuditRecord(home: string) {
 }
 
 function readAuditLog(home: string): unknown[] {
-  const auditPath = path.join(home, ".openclaw", "logs", "config-audit.jsonl");
+  const auditPath = path.join(home, ".astroclaw", "logs", "config-audit.jsonl");
   return fs
     .readFileSync(auditPath, "utf-8")
     .trim()
@@ -72,7 +72,7 @@ function requireAuditRecord(value: unknown): Record<string, unknown> {
 }
 
 describe("config io audit helpers", () => {
-  const suiteRootTracker = createSuiteTempRootTracker({ prefix: "openclaw-config-audit-" });
+  const suiteRootTracker = createSuiteTempRootTracker({ prefix: "astroclaw-config-audit-" });
 
   beforeAll(async () => {
     await suiteRootTracker.setup();
@@ -88,34 +88,34 @@ describe("config io audit helpers", () => {
       {
         HOME: "undefined",
         USERPROFILE: "null",
-        OPENCLAW_HOME: "undefined",
+        ASTROCLAW_HOME: "undefined",
       } as NodeJS.ProcessEnv,
       () => home,
     );
-    expect(auditPath).toBe(path.join(home, ".openclaw", "logs", "config-audit.jsonl"));
+    expect(auditPath).toBe(path.join(home, ".astroclaw", "logs", "config-audit.jsonl"));
     expect(auditPath.startsWith(path.resolve("undefined"))).toBe(false);
   });
 
   it("formats overwrite warnings with hash transition and backup path", () => {
     expect(
       formatConfigOverwriteLogMessage({
-        configPath: "/tmp/openclaw.json",
+        configPath: "/tmp/astroclaw.json",
         previousHash: "prev-hash",
         nextHash: "next-hash",
         changedPathCount: 3,
       }),
     ).toBe(
-      "Config overwrite: /tmp/openclaw.json (sha256 prev-hash -> next-hash, backup=/tmp/openclaw.json.bak, changedPaths=3)",
+      "Config overwrite: /tmp/astroclaw.json (sha256 prev-hash -> next-hash, backup=/tmp/astroclaw.json.bak, changedPaths=3)",
     );
   });
 
   it("captures watch markers and next stat metadata for successful writes", () => {
     const base = createConfigWriteAuditRecordBase({
-      configPath: "/tmp/openclaw.json",
+      configPath: "/tmp/astroclaw.json",
       env: {
-        OPENCLAW_WATCH_MODE: "1",
-        OPENCLAW_WATCH_SESSION: "watch-session-1",
-        OPENCLAW_WATCH_COMMAND: "gateway --force",
+        ASTROCLAW_WATCH_MODE: "1",
+        ASTROCLAW_WATCH_SESSION: "watch-session-1",
+        ASTROCLAW_WATCH_COMMAND: "gateway --force",
       } as NodeJS.ProcessEnv,
       existsBefore: true,
       previousHash: "prev-hash",
@@ -141,7 +141,7 @@ describe("config io audit helpers", () => {
         pid: 101,
         ppid: 99,
         cwd: "/work",
-        argv: ["node", "openclaw"],
+        argv: ["node", "astroclaw"],
         execArgv: ["--loader"],
       },
     });
@@ -169,7 +169,7 @@ describe("config io audit helpers", () => {
   });
 
   it("drops next-file metadata and preserves error details for failed writes", () => {
-    const base = createAuditRecordBase("/tmp/openclaw.json");
+    const base = createAuditRecordBase("/tmp/astroclaw.json");
     const err = Object.assign(new Error("disk full"), { code: "ENOSPC" });
     const record = finalizeConfigWriteAuditRecord({
       base,
@@ -208,7 +208,7 @@ describe("config io audit helpers", () => {
     const home = await suiteRootTracker.make("append-redacted");
     const record = finalizeConfigWriteAuditRecord({
       base: {
-        ...createAuditRecordBase(path.join(home, ".openclaw", "openclaw.json")),
+        ...createAuditRecordBase(path.join(home, ".astroclaw", "astroclaw.json")),
         suspicious: [
           "provider returned ya29.fake-access-token-with-enough-length",
           "plugin returned AIzaSyD-very-real-looking-google-api-key-123",
@@ -226,7 +226,7 @@ describe("config io audit helpers", () => {
     });
 
     const raw = fs.readFileSync(
-      path.join(home, ".openclaw", "logs", "config-audit.jsonl"),
+      path.join(home, ".astroclaw", "logs", "config-audit.jsonl"),
       "utf-8",
     );
     expect(raw).not.toContain("AIzaSyD-very-real-looking");
@@ -237,7 +237,7 @@ describe("config io audit helpers", () => {
   it("redacts argv values that follow known secret flag names", () => {
     const argv = [
       "node",
-      "openclaw",
+      "astroclaw",
       "gateway",
       "--token",
       "super-secret-gateway-token-12345",
@@ -249,7 +249,7 @@ describe("config io audit helpers", () => {
     const result = redactConfigAuditArgv(argv);
     expect(result).toEqual([
       "node",
-      "openclaw",
+      "astroclaw",
       "gateway",
       "--token",
       "***",
@@ -261,21 +261,21 @@ describe("config io audit helpers", () => {
   });
 
   it("redacts the value half of `--flag=value` for secret flags", () => {
-    const argv = ["openclaw", "--token=ghp_realgithubtoken1234567890ABCD", "--port=8080"];
-    expect(redactConfigAuditArgv(argv)).toEqual(["openclaw", "--token=***", "--port=8080"]);
+    const argv = ["astroclaw", "--token=ghp_realgithubtoken1234567890ABCD", "--port=8080"];
+    expect(redactConfigAuditArgv(argv)).toEqual(["astroclaw", "--token=***", "--port=8080"]);
   });
 
   it("redacts standalone token shapes via the shared logging redaction patterns", () => {
     const argv = [
       "node",
-      "openclaw",
+      "astroclaw",
       "ghp_realgithubtoken1234567890ABCD",
       "AIzaSyD-very-real-looking-google-api-key-123",
       "987654321:AAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     ];
     const result = redactConfigAuditArgv(argv);
     expect(result[0]).toBe("node");
-    expect(result[1]).toBe("openclaw");
+    expect(result[1]).toBe("astroclaw");
     for (const masked of result.slice(2)) {
       expect(masked).not.toContain("ghp_realgithubtoken");
       expect(masked).not.toContain("AIzaSyD-very-real-looking");
@@ -284,14 +284,14 @@ describe("config io audit helpers", () => {
   });
 
   it("leaves non-secret arguments untouched", () => {
-    const argv = ["node", "openclaw", "gateway", "--port", "8080", "--bind", "lan"];
+    const argv = ["node", "astroclaw", "gateway", "--port", "8080", "--bind", "lan"];
     expect(redactConfigAuditArgv(argv)).toEqual(argv);
   });
 
   it("redacts unknown but credential-suffixed flags via the heuristic classifier", () => {
     const argv = [
       "node",
-      "openclaw",
+      "astroclaw",
       "--custom-api-key",
       "real-tenant-key-AB12CD34EF56GH78",
       "--alibaba-model-studio-api-key=plain-value-xyz-12345",
@@ -302,7 +302,7 @@ describe("config io audit helpers", () => {
     const result = redactConfigAuditArgv(argv);
     expect(result).toEqual([
       "node",
-      "openclaw",
+      "astroclaw",
       "--custom-api-key",
       "***",
       "--alibaba-model-studio-api-key=***",
@@ -315,7 +315,7 @@ describe("config io audit helpers", () => {
   it("redacts key-valued secret flags (Nostr --private-key, Matrix --recovery-key)", () => {
     const argv = [
       "node",
-      "openclaw",
+      "astroclaw",
       "channels",
       "add",
       "--channel",
@@ -327,7 +327,7 @@ describe("config io audit helpers", () => {
     const result = redactConfigAuditArgv(argv);
     expect(result).toEqual([
       "node",
-      "openclaw",
+      "astroclaw",
       "channels",
       "add",
       "--channel",
@@ -341,7 +341,7 @@ describe("config io audit helpers", () => {
   it("redacts unknown *-key flags via the heuristic classifier (private/signing/master/etc.)", () => {
     const argv = [
       "node",
-      "openclaw",
+      "astroclaw",
       "--my-plugin-private-key",
       "tenant-private-key-material-zzz",
       "--rotated-signing-key=PEM-LIKE-MATERIAL",
@@ -351,7 +351,7 @@ describe("config io audit helpers", () => {
     const result = redactConfigAuditArgv(argv);
     expect(result).toEqual([
       "node",
-      "openclaw",
+      "astroclaw",
       "--my-plugin-private-key",
       "***",
       "--rotated-signing-key=***",
@@ -361,24 +361,24 @@ describe("config io audit helpers", () => {
   });
 
   it("masks the next arg after a secret flag even when it looks like another option", () => {
-    const argv = ["openclaw", "--token", "--port", "8080"];
-    expect(redactConfigAuditArgv(argv)).toEqual(["openclaw", "--token", "***", "8080"]);
+    const argv = ["astroclaw", "--token", "--port", "8080"];
+    expect(redactConfigAuditArgv(argv)).toEqual(["astroclaw", "--token", "***", "8080"]);
   });
 
   it("redacts dash-leading secret values after bare secret flags", () => {
-    const argv = ["openclaw", "--password", "-secret-value"];
-    expect(redactConfigAuditArgv(argv)).toEqual(["openclaw", "--password", "***"]);
+    const argv = ["astroclaw", "--password", "-secret-value"];
+    expect(redactConfigAuditArgv(argv)).toEqual(["astroclaw", "--password", "***"]);
   });
 
   it("does not mask when a secret flag is the final arg with no value", () => {
-    const argv = ["openclaw", "--token"];
-    expect(redactConfigAuditArgv(argv)).toEqual(["openclaw", "--token"]);
+    const argv = ["astroclaw", "--token"];
+    expect(redactConfigAuditArgv(argv)).toEqual(["astroclaw", "--token"]);
   });
 
   it("caps caller-supplied processInfo argv at 8 entries before redaction", () => {
     const longArgv = [
       "node",
-      "openclaw",
+      "astroclaw",
       "--api-key",
       "secret",
       "--port",
@@ -389,7 +389,7 @@ describe("config io audit helpers", () => {
       "this-must-not-land-in-audit-1234567890",
     ];
     const base = createConfigWriteAuditRecordBase({
-      configPath: "/tmp/openclaw.json",
+      configPath: "/tmp/astroclaw.json",
       env: {} as NodeJS.ProcessEnv,
       existsBefore: true,
       previousHash: "prev",
@@ -426,7 +426,7 @@ describe("config io audit helpers", () => {
 
   it("redacts processInfo.argv when explicitly supplied to createConfigWriteAuditRecordBase", () => {
     const base = createConfigWriteAuditRecordBase({
-      configPath: "/tmp/openclaw.json",
+      configPath: "/tmp/astroclaw.json",
       env: {} as NodeJS.ProcessEnv,
       existsBefore: true,
       previousHash: "prev",
@@ -452,11 +452,11 @@ describe("config io audit helpers", () => {
         pid: 1,
         ppid: 1,
         cwd: "/work",
-        argv: ["node", "openclaw", "--token", "leaked-but-not-anymore-12345"],
+        argv: ["node", "astroclaw", "--token", "leaked-but-not-anymore-12345"],
         execArgv: [],
       },
     });
-    expect(base.argv).toEqual(["node", "openclaw", "--token", "***"]);
+    expect(base.argv).toEqual(["node", "astroclaw", "--token", "***"]);
   });
 
   it("also accepts flattened audit record params from legacy call sites", async () => {
@@ -480,19 +480,19 @@ describe("config io audit helpers", () => {
 
   it("rewrites historical config-audit entries through redactConfigAuditArgv and preserves 0600 mode", async () => {
     const home = await suiteRootTracker.make("scrub-historical");
-    const auditPath = path.join(home, ".openclaw", "logs", "config-audit.jsonl");
+    const auditPath = path.join(home, ".astroclaw", "logs", "config-audit.jsonl");
     fs.mkdirSync(path.dirname(auditPath), { recursive: true, mode: 0o700 });
     const unredactedRecord = {
       ts: "2026-05-02T00:03:48.471Z",
       source: "config-io",
       event: "config.write",
-      configPath: path.join(home, ".openclaw", "openclaw.json"),
+      configPath: path.join(home, ".astroclaw", "astroclaw.json"),
       pid: 1590563,
       ppid: 1590548,
       cwd: home,
       argv: [
         "/usr/bin/node",
-        "/usr/local/bin/openclaw.mjs",
+        "/usr/local/bin/astroclaw.mjs",
         "config",
         "set",
         "channels.slack.botToken",
@@ -506,11 +506,11 @@ describe("config io audit helpers", () => {
       ts: "2026-05-08T12:00:00.000Z",
       source: "config-io",
       event: "config.write",
-      configPath: path.join(home, ".openclaw", "openclaw.json"),
+      configPath: path.join(home, ".astroclaw", "astroclaw.json"),
       pid: 1,
       ppid: 1,
       cwd: home,
-      argv: ["/usr/bin/node", "/usr/local/bin/openclaw.mjs", "config", "set", "ui.theme", "dark"],
+      argv: ["/usr/bin/node", "/usr/local/bin/astroclaw.mjs", "config", "set", "ui.theme", "dark"],
       execArgv: ["--disable-warning=ExperimentalWarning"],
       suspicious: [],
       result: "rename",
@@ -561,18 +561,18 @@ describe("config io audit helpers", () => {
       homedir: () => home,
     });
     expect(result).toEqual({ scanned: 0, rewritten: 0, skipped: 0, aborted: false });
-    const auditPath = path.join(home, ".openclaw", "logs", "config-audit.jsonl");
+    const auditPath = path.join(home, ".astroclaw", "logs", "config-audit.jsonl");
     expect(fs.existsSync(auditPath)).toBe(false);
   });
 
   it("preserves malformed lines verbatim and counts them as skipped", async () => {
     const home = await suiteRootTracker.make("scrub-malformed");
-    const auditPath = path.join(home, ".openclaw", "logs", "config-audit.jsonl");
+    const auditPath = path.join(home, ".astroclaw", "logs", "config-audit.jsonl");
     fs.mkdirSync(path.dirname(auditPath), { recursive: true, mode: 0o700 });
     const malformed = "{this is not valid json";
     const validUnredacted = {
       ts: "2026-05-02T00:03:48.471Z",
-      argv: ["node", "openclaw.mjs", "config", "set", "x", "xoxb-bad-token-1234567890abcdef"],
+      argv: ["node", "astroclaw.mjs", "config", "set", "x", "xoxb-bad-token-1234567890abcdef"],
     };
     fs.writeFileSync(auditPath, `${malformed}\n${JSON.stringify(validUnredacted)}\n`, {
       encoding: "utf-8",
@@ -593,13 +593,13 @@ describe("config io audit helpers", () => {
 
   it("does not write when dryRun is true even if records would change", async () => {
     const home = await suiteRootTracker.make("scrub-dryrun");
-    const auditPath = path.join(home, ".openclaw", "logs", "config-audit.jsonl");
+    const auditPath = path.join(home, ".astroclaw", "logs", "config-audit.jsonl");
     fs.mkdirSync(path.dirname(auditPath), { recursive: true, mode: 0o700 });
     const unredacted = {
       ts: "2026-05-02T00:03:48.471Z",
       argv: [
         "node",
-        "openclaw.mjs",
+        "astroclaw.mjs",
         "config",
         "set",
         "channels.slack.appToken",
@@ -625,13 +625,13 @@ describe("config io audit helpers", () => {
 
   it("aborts without overwriting when the audit log was appended to mid-scrub", async () => {
     const home = await suiteRootTracker.make("scrub-race-abort");
-    const auditPath = path.join(home, ".openclaw", "logs", "config-audit.jsonl");
+    const auditPath = path.join(home, ".astroclaw", "logs", "config-audit.jsonl");
     fs.mkdirSync(path.dirname(auditPath), { recursive: true, mode: 0o700 });
     const unredacted = {
       ts: "2026-05-02T00:03:48.471Z",
       argv: [
         "node",
-        "openclaw.mjs",
+        "astroclaw.mjs",
         "config",
         "set",
         "channels.slack.botToken",
@@ -674,13 +674,13 @@ describe("config io audit helpers", () => {
 
   it("aborts without overwriting when the audit log is appended to after temp write", async () => {
     const home = await suiteRootTracker.make("scrub-race-after-temp-write");
-    const auditPath = path.join(home, ".openclaw", "logs", "config-audit.jsonl");
+    const auditPath = path.join(home, ".astroclaw", "logs", "config-audit.jsonl");
     fs.mkdirSync(path.dirname(auditPath), { recursive: true, mode: 0o700 });
     const unredacted = {
       ts: "2026-05-02T00:03:48.471Z",
       argv: [
         "node",
-        "openclaw.mjs",
+        "astroclaw.mjs",
         "config",
         "set",
         "channels.slack.botToken",
@@ -690,7 +690,7 @@ describe("config io audit helpers", () => {
     };
     const appended = {
       ts: "2026-05-02T00:04:00.000Z",
-      argv: ["node", "openclaw.mjs", "config", "set", "theme", "dark"],
+      argv: ["node", "astroclaw.mjs", "config", "set", "theme", "dark"],
       execArgv: [],
     };
     const original = `${JSON.stringify(unredacted)}\n`;

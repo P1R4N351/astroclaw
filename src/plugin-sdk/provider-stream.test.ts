@@ -275,8 +275,8 @@ describe("buildProviderStreamFamilyHooks", () => {
     expectDefaultThinkingBudget(openAiPayload);
     expect(openAiPayload.service_tier).toBe("flex");
     expect(capturedHeaders).toEqual({
-      "User-Agent": `openclaw/${VERSION}`,
-      originator: "openclaw",
+      "User-Agent": `astroclaw/${VERSION}`,
+      originator: "astroclaw",
       version: VERSION,
     });
 

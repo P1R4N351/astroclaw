@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 
 enum MacNodeScreenCommand: String, Codable {
     case snapshot = "screen.snapshot"
@@ -10,7 +10,7 @@ struct MacNodeScreenSnapshotParams: Codable, Equatable {
     var screenIndex: Int?
     var maxWidth: Int?
     var quality: Double?
-    var format: OpenClawScreenSnapshotFormat?
+    var format: AstroclawScreenSnapshotFormat?
 }
 
 struct MacNodeScreenRecordParams: Codable, Equatable {

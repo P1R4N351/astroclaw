@@ -1,5 +1,5 @@
 ---
-summary: "Run OpenClaw embedded agent turns through the bundled Codex app-server harness"
+summary: "Run Astroclaw embedded agent turns through the bundled Codex app-server harness"
 title: "Codex harness"
 read_when:
   - You want to use the bundled Codex app-server harness
@@ -7,13 +7,13 @@ read_when:
   - You want Codex-only deployments to fail instead of falling back to PI
 ---
 
-The bundled `codex` plugin lets OpenClaw run embedded OpenAI agent turns
+The bundled `codex` plugin lets Astroclaw run embedded OpenAI agent turns
 through Codex app-server instead of the built-in PI harness.
 
 Use the Codex harness when you want Codex to own the low-level agent session:
 native thread resume, native tool continuation, native compaction, and
-app-server execution. OpenClaw still owns chat channels, session files, model
-selection, OpenClaw dynamic tools, approvals, media delivery, and the visible
+app-server execution. Astroclaw still owns chat channels, session files, model
+selection, Astroclaw dynamic tools, approvals, media delivery, and the visible
 transcript mirror.
 
 The normal setup uses canonical OpenAI model refs such as `openai/gpt-5.5`.
@@ -21,8 +21,8 @@ Do not configure `openai-codex/gpt-*` model refs. Put OpenAI agent auth order
 under `auth.order.openai`; older `openai-codex:*` profiles and
 `auth.order.openai-codex` entries remain supported for existing installs.
 
-OpenClaw starts Codex app-server threads with Codex native code mode and
-code-mode-only enabled. That keeps deferred/searchable OpenClaw dynamic tools
+Astroclaw starts Codex app-server threads with Codex native code mode and
+code-mode-only enabled. That keeps deferred/searchable Astroclaw dynamic tools
 inside Codex's own code execution and tool-search surface instead of adding a
 PI-style tool-search wrapper on top of Codex.
 
@@ -33,12 +33,12 @@ Discord, Slack, or another channel remains the communication surface.
 
 ## Requirements
 
-- OpenClaw with the bundled `codex` plugin available.
+- Astroclaw with the bundled `codex` plugin available.
 - If your config uses `plugins.allow`, include `codex`.
 - Codex app-server `0.125.0` or newer. The bundled plugin manages a compatible
   Codex app-server binary by default, so local `codex` commands on `PATH` do not
   affect normal harness startup.
-- Codex auth available through `openclaw models auth login --provider openai-codex`,
+- Codex auth available through `astroclaw models auth login --provider openai-codex`,
   an app-server account in the agent's Codex home, or an explicit Codex API-key
   auth profile.
 
@@ -48,14 +48,14 @@ discovery, and all config fields, see
 
 ## Quickstart
 
-Most users who want Codex in OpenClaw want this path: sign in with a
+Most users who want Codex in Astroclaw want this path: sign in with a
 ChatGPT/Codex subscription, enable the bundled `codex` plugin, and use a
 canonical `openai/gpt-*` model ref.
 
 Sign in with Codex OAuth:
 
 ```bash
-openclaw models auth login --provider openai-codex
+astroclaw models auth login --provider openai-codex
 ```
 
 Enable the bundled `codex` plugin and select an OpenAI agent model:
@@ -99,17 +99,17 @@ turn resolves the harness from current config.
 ## Configuration
 
 The quickstart config is the minimum viable Codex harness config. Set Codex
-harness options in OpenClaw config, and use the CLI only for Codex auth:
+harness options in Astroclaw config, and use the CLI only for Codex auth:
 
 | Need                                   | Set                                                                              | Where                              |
 | -------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------- |
-| Enable the harness                     | `plugins.entries.codex.enabled: true`                                            | OpenClaw config                    |
-| Keep an allowlisted plugin install     | Include `codex` in `plugins.allow`                                               | OpenClaw config                    |
-| Route OpenAI agent turns through Codex | `agents.defaults.model` or `agents.list[].model` as `openai/gpt-*`               | OpenClaw agent config              |
-| Sign in with Codex OAuth               | `openclaw models auth login --provider openai-codex`                             | CLI auth profile                   |
-| Add API-key backup for Codex runs      | `openai:*` API-key profile listed after subscription auth in `auth.order.openai` | CLI auth profile + OpenClaw config |
-| Fail closed when Codex is unavailable  | Provider or model `agentRuntime.id: "codex"`                                     | OpenClaw model/provider config     |
-| Use direct OpenAI API traffic          | Provider or model `agentRuntime.id: "pi"` with normal OpenAI auth                | OpenClaw model/provider config     |
+| Enable the harness                     | `plugins.entries.codex.enabled: true`                                            | Astroclaw config                    |
+| Keep an allowlisted plugin install     | Include `codex` in `plugins.allow`                                               | Astroclaw config                    |
+| Route OpenAI agent turns through Codex | `agents.defaults.model` or `agents.list[].model` as `openai/gpt-*`               | Astroclaw agent config              |
+| Sign in with Codex OAuth               | `astroclaw models auth login --provider openai-codex`                             | CLI auth profile                   |
+| Add API-key backup for Codex runs      | `openai:*` API-key profile listed after subscription auth in `auth.order.openai` | CLI auth profile + Astroclaw config |
+| Fail closed when Codex is unavailable  | Provider or model `agentRuntime.id: "codex"`                                     | Astroclaw model/provider config     |
+| Use direct OpenAI API traffic          | Provider or model `agentRuntime.id: "pi"` with normal OpenAI auth                | Astroclaw model/provider config     |
 | Tune app-server behavior               | `plugins.entries.codex.config.appServer.*`                                       | Codex plugin config                |
 | Enable native Codex plugin apps        | `plugins.entries.codex.config.codexPlugins.*`                                    | Codex plugin config                |
 | Enable Codex Computer Use              | `plugins.entries.codex.config.computerUse.*`                                     | Codex plugin config                |
@@ -121,14 +121,14 @@ do not write new `openai-codex/gpt-*` model refs.
 
 Do not set `compaction.model` or `compaction.provider` on Codex-backed agents
 unless a selected context engine owns compaction. Without an owning context
-engine, Codex compacts through its native app-server thread state, so OpenClaw
-ignores those local summarizer overrides at runtime and `openclaw doctor --fix`
+engine, Codex compacts through its native app-server thread state, so Astroclaw
+ignores those local summarizer overrides at runtime and `astroclaw doctor --fix`
 removes them when the agent uses Codex.
 
 Lossless remains supported as a context engine. Configure it through
 `plugins.slots.contextEngine: "lossless-claw"` and
 `plugins.entries.lossless-claw.config.summaryModel`, not through
-`agents.defaults.compaction.provider`. `openclaw doctor --fix` migrates the old
+`agents.defaults.compaction.provider`. `astroclaw doctor --fix` migrates the old
 `compaction.provider: "lossless-claw"` shape to the Lossless context-engine slot
 when Codex is the active runtime.
 
@@ -184,7 +184,7 @@ the harness and account. If `/status` is surprising, see
 Keep provider refs and runtime policy separate:
 
 - Use `openai/gpt-*` for OpenAI agent turns through Codex.
-- Do not use `openai-codex/gpt-*` in config. Run `openclaw doctor --fix` to
+- Do not use `openai-codex/gpt-*` in config. Run `astroclaw doctor --fix` to
   repair legacy refs and stale session route pins.
 - `agentRuntime.id: "codex"` is optional for normal OpenAI auto mode, but useful
   when a deployment should fail closed if Codex is unavailable.
@@ -210,7 +210,7 @@ Common command routing:
 | ChatGPT/Codex subscription with native Codex runtime | `openai/gpt-*` plus enabled `codex` plugin                       | `/status` shows `Runtime: OpenAI Codex` | Recommended path                   |
 | Fail closed if Codex is unavailable                  | Provider or model `agentRuntime.id: "codex"`                     | Turn fails instead of PI fallback       | Use for Codex-only deployments     |
 | Direct OpenAI API-key traffic through PI             | Provider or model `agentRuntime.id: "pi"` and normal OpenAI auth | `/status` shows PI runtime              | Use only when PI is intentional    |
-| Legacy config                                        | `openai-codex/gpt-*`                                             | `openclaw doctor --fix` rewrites it     | Do not write new config this way   |
+| Legacy config                                        | `openai-codex/gpt-*`                                             | `astroclaw doctor --fix` rewrites it     | Do not write new config this way   |
 | ACP/acpx Codex adapter                               | ACP `sessions_spawn({ runtime: "acp" })`                         | ACP task/session status                 | Separate from native Codex harness |
 
 `agents.defaults.imageModel` follows the same prefix split. Use `openai/gpt-*`
@@ -310,12 +310,12 @@ fail-closed rule:
 }
 ```
 
-With Codex forced, OpenClaw fails early if the Codex plugin is disabled, the
+With Codex forced, Astroclaw fails early if the Codex plugin is disabled, the
 app-server is too old, or the app-server cannot start.
 
 ## App-server policy
 
-By default, the plugin starts OpenClaw's managed Codex binary locally with stdio
+By default, the plugin starts Astroclaw's managed Codex binary locally with stdio
 transport. Set `appServer.command` only when you intentionally want to run a
 different executable. Use WebSocket transport only when an app-server is already
 running elsewhere:
@@ -342,8 +342,8 @@ running elsewhere:
 Local stdio app-server sessions default to the trusted local operator posture:
 `approvalPolicy: "never"`, `approvalsReviewer: "user"`, and
 `sandbox: "danger-full-access"`. If local Codex requirements disallow that
-implicit YOLO posture, OpenClaw selects allowed guardian permissions instead.
-When an OpenClaw sandbox is active for the session, OpenClaw narrows Codex
+implicit YOLO posture, Astroclaw selects allowed guardian permissions instead.
+When an Astroclaw sandbox is active for the session, Astroclaw narrows Codex
 `danger-full-access` to Codex `workspace-write` so native Codex code-mode turns
 stay inside the sandboxed workspace.
 
@@ -378,7 +378,7 @@ timeout behavior, see [Codex harness reference](/plugins/codex-harness-reference
 ## Commands and diagnostics
 
 The bundled plugin registers `/codex` as a slash command on any channel that
-supports OpenClaw text commands.
+supports Astroclaw text commands.
 
 Common forms:
 
@@ -386,7 +386,7 @@ Common forms:
   MCP servers, and skills.
 - `/codex models` lists live Codex app-server models.
 - `/codex threads [filter]` lists recent Codex app-server threads.
-- `/codex resume <thread-id>` attaches the current OpenClaw session to an
+- `/codex resume <thread-id>` attaches the current Astroclaw session to an
   existing Codex thread.
 - `/codex compact` asks Codex app-server to compact the attached thread.
 - `/codex review` starts Codex native review for the attached thread.
@@ -430,7 +430,7 @@ Auth is selected in this order:
    `OPENAI_API_KEY`, when no app-server account is present and OpenAI auth is
    still required.
 
-When OpenClaw sees a ChatGPT subscription-style Codex auth profile, it removes
+When Astroclaw sees a ChatGPT subscription-style Codex auth profile, it removes
 `CODEX_API_KEY` and `OPENAI_API_KEY` from the spawned Codex child process. That
 keeps Gateway-level API keys available for embeddings or direct OpenAI models
 without making native Codex app-server turns bill through the API by accident.
@@ -439,15 +439,15 @@ login instead of inherited child-process env. WebSocket app-server connections
 do not receive Gateway env API-key fallback; use an explicit auth profile or the
 remote app-server's own account.
 
-If a subscription profile hits a Codex usage limit, OpenClaw records the reset
+If a subscription profile hits a Codex usage limit, Astroclaw records the reset
 time when Codex reports one and tries the next ordered auth profile for the same
 Codex run. When the reset time passes, the subscription profile becomes eligible
 again without changing the selected `openai/gpt-*` model or Codex runtime.
 
-For local stdio app-server launches, OpenClaw sets `CODEX_HOME` to a per-agent
+For local stdio app-server launches, Astroclaw sets `CODEX_HOME` to a per-agent
 directory so Codex config, auth/account files, plugin cache/data, and native
 thread state do not read or write the operator's personal `~/.codex` by
-default. OpenClaw preserves the normal process `HOME`; Codex-run subprocesses
+default. Astroclaw preserves the normal process `HOME`; Codex-run subprocesses
 can still find user-home config and tokens, and Codex may discover shared
 `$HOME/.agents/skills` and `$HOME/.agents/plugins/marketplace.json` entries.
 
@@ -472,16 +472,16 @@ If a deployment needs additional environment isolation, add those variables to
 ```
 
 `appServer.clearEnv` only affects the spawned Codex app-server child process.
-OpenClaw removes `CODEX_HOME` and `HOME` from this list during local launch
+Astroclaw removes `CODEX_HOME` and `HOME` from this list during local launch
 normalization: `CODEX_HOME` stays per-agent, and `HOME` stays inherited so
 subprocesses can use normal user-home state.
 
-Codex dynamic tools default to `searchable` loading. OpenClaw does not expose
+Codex dynamic tools default to `searchable` loading. Astroclaw does not expose
 dynamic tools that duplicate Codex-native workspace operations: `read`, `write`,
-`edit`, `apply_patch`, `exec`, `process`, and `update_plan`. Remaining OpenClaw
+`edit`, `apply_patch`, `exec`, `process`, and `update_plan`. Remaining Astroclaw
 integration tools such as messaging, sessions, media, cron, browser, nodes,
 gateway, `heartbeat_respond`, and `web_search` are available through Codex tool
-search under the `openclaw` namespace, keeping the initial model context
+search under the `astroclaw` namespace, keeping the initial model context
 smaller.
 `sessions_yield` and message-tool-only source replies stay direct because those
 are turn-control contracts. Heartbeat collaboration instructions tell Codex to
@@ -496,8 +496,8 @@ Supported top-level Codex plugin fields:
 
 | Field                      | Default        | Meaning                                                                                  |
 | -------------------------- | -------------- | ---------------------------------------------------------------------------------------- |
-| `codexDynamicToolsLoading` | `"searchable"` | Use `"direct"` to put OpenClaw dynamic tools directly in the initial Codex tool context. |
-| `codexDynamicToolsExclude` | `[]`           | Additional OpenClaw dynamic tool names to omit from Codex app-server turns.              |
+| `codexDynamicToolsLoading` | `"searchable"` | Use `"direct"` to put Astroclaw dynamic tools directly in the initial Codex tool context. |
+| `codexDynamicToolsExclude` | `[]`           | Additional Astroclaw dynamic tool names to omit from Codex app-server turns.              |
 | `codexPlugins`             | disabled       | Native Codex plugin/app support for migrated source-installed curated plugins.           |
 
 Supported `appServer` fields:
@@ -510,32 +510,32 @@ Supported `appServer` fields:
 | `url`                         | unset                                                  | WebSocket app-server URL.                                                                                                                                                                                                               |
 | `authToken`                   | unset                                                  | Bearer token for WebSocket transport.                                                                                                                                                                                                   |
 | `headers`                     | `{}`                                                   | Extra WebSocket headers.                                                                                                                                                                                                                |
-| `clearEnv`                    | `[]`                                                   | Extra environment variable names removed from the spawned stdio app-server process after OpenClaw builds its inherited environment. OpenClaw keeps per-agent `CODEX_HOME` and inherited `HOME` for local launches.                      |
+| `clearEnv`                    | `[]`                                                   | Extra environment variable names removed from the spawned stdio app-server process after Astroclaw builds its inherited environment. Astroclaw keeps per-agent `CODEX_HOME` and inherited `HOME` for local launches.                      |
 | `requestTimeoutMs`            | `60000`                                                | Timeout for app-server control-plane calls.                                                                                                                                                                                             |
-| `turnCompletionIdleTimeoutMs` | `60000`                                                | Quiet window after Codex accepts a turn or after a turn-scoped app-server request while OpenClaw waits for `turn/completed`. Raise this for slow post-tool or status-only synthesis phases.                                             |
+| `turnCompletionIdleTimeoutMs` | `60000`                                                | Quiet window after Codex accepts a turn or after a turn-scoped app-server request while Astroclaw waits for `turn/completed`. Raise this for slow post-tool or status-only synthesis phases.                                             |
 | `mode`                        | `"yolo"` unless local Codex requirements disallow YOLO | Preset for YOLO or guardian-reviewed execution. Local stdio requirements that omit `danger-full-access`, `never` approval, or the `user` reviewer make the implicit default guardian.                                                   |
 | `approvalPolicy`              | `"never"` or an allowed guardian approval policy       | Native Codex approval policy sent to thread start/resume/turn. Guardian defaults prefer `"on-request"` when allowed.                                                                                                                    |
-| `sandbox`                     | `"danger-full-access"` or an allowed guardian sandbox  | Native Codex sandbox mode sent to thread start/resume. Guardian defaults prefer `"workspace-write"` when allowed, otherwise `"read-only"`. When an OpenClaw sandbox is active, `danger-full-access` is narrowed to `"workspace-write"`. |
+| `sandbox`                     | `"danger-full-access"` or an allowed guardian sandbox  | Native Codex sandbox mode sent to thread start/resume. Guardian defaults prefer `"workspace-write"` when allowed, otherwise `"read-only"`. When an Astroclaw sandbox is active, `danger-full-access` is narrowed to `"workspace-write"`. |
 | `approvalsReviewer`           | `"user"` or an allowed guardian reviewer               | Use `"auto_review"` to let Codex review native approval prompts when allowed, otherwise `guardian_subagent` or `user`. `guardian_subagent` remains a legacy alias.                                                                      |
 | `serviceTier`                 | unset                                                  | Optional Codex app-server service tier. `"priority"` enables fast-mode routing, `"flex"` requests flex processing, `null` clears the override, and legacy `"fast"` is accepted as `"priority"`.                                         |
 
-OpenClaw-owned dynamic tool calls are bounded independently from
+Astroclaw-owned dynamic tool calls are bounded independently from
 `appServer.requestTimeoutMs`: Codex `item/tool/call` requests use a 30 second
-OpenClaw watchdog by default. A positive per-call `timeoutMs` argument extends
+Astroclaw watchdog by default. A positive per-call `timeoutMs` argument extends
 or shortens that specific tool budget. The `image_generate` tool also uses
 `agents.defaults.imageGenerationModel.timeoutMs` when the tool call does not
 provide its own timeout, and the media-understanding `image` tool uses
 `tools.media.image.timeoutSeconds` or its 60 second media default. Dynamic tool
-budgets are capped at 600000 ms. On timeout, OpenClaw aborts the tool signal
+budgets are capped at 600000 ms. On timeout, Astroclaw aborts the tool signal
 where supported and returns a failed dynamic-tool response to Codex so the turn
 can continue instead of leaving the session in `processing`.
 
-After Codex accepts a turn, and after OpenClaw responds to a turn-scoped
+After Codex accepts a turn, and after Astroclaw responds to a turn-scoped
 app-server request, the harness expects Codex to make current-turn progress and
 eventually finish the native turn with `turn/completed`. If the app-server goes
-quiet for `appServer.turnCompletionIdleTimeoutMs`, OpenClaw best-effort
+quiet for `appServer.turnCompletionIdleTimeoutMs`, Astroclaw best-effort
 interrupts the Codex turn, records a diagnostic timeout, and releases the
-OpenClaw session lane so follow-up chat messages are not queued behind a stale
+Astroclaw session lane so follow-up chat messages are not queued behind a stale
 native turn. Most non-terminal notifications for the same turn disarm that short
 watchdog because Codex has proven the turn is still alive; raw
 `custom_tool_call_output` completions keep the short post-tool watchdog armed
@@ -543,7 +543,7 @@ because they are the turn-scoped tool-result handoff. Global app-server
 notifications, such as rate-limit updates, do not reset turn-idle progress.
 Completed `agentMessage` items and pre-tool raw assistant
 `rawResponseItem/completed` items arm the assistant-output release: if Codex then
-goes quiet without `turn/completed`, OpenClaw best-effort interrupts the native
+goes quiet without `turn/completed`, Astroclaw best-effort interrupts the native
 turn and releases the session lane. Post-tool raw assistant progress keeps
 waiting for `turn/completed` or the terminal watchdog. Timeout diagnostics
 include the last app-server notification method and, for raw assistant response
@@ -551,26 +551,26 @@ items, the item type, role, id, and a bounded assistant text preview.
 
 Environment overrides remain available for local testing:
 
-- `OPENCLAW_CODEX_APP_SERVER_BIN`
-- `OPENCLAW_CODEX_APP_SERVER_ARGS`
-- `OPENCLAW_CODEX_APP_SERVER_MODE=yolo|guardian`
-- `OPENCLAW_CODEX_APP_SERVER_APPROVAL_POLICY`
-- `OPENCLAW_CODEX_APP_SERVER_SANDBOX`
+- `ASTROCLAW_CODEX_APP_SERVER_BIN`
+- `ASTROCLAW_CODEX_APP_SERVER_ARGS`
+- `ASTROCLAW_CODEX_APP_SERVER_MODE=yolo|guardian`
+- `ASTROCLAW_CODEX_APP_SERVER_APPROVAL_POLICY`
+- `ASTROCLAW_CODEX_APP_SERVER_SANDBOX`
 
-`OPENCLAW_CODEX_APP_SERVER_BIN` bypasses the managed binary when
+`ASTROCLAW_CODEX_APP_SERVER_BIN` bypasses the managed binary when
 `appServer.command` is unset.
 
-`OPENCLAW_CODEX_APP_SERVER_GUARDIAN=1` was removed. Use
+`ASTROCLAW_CODEX_APP_SERVER_GUARDIAN=1` was removed. Use
 `plugins.entries.codex.config.appServer.mode: "guardian"` instead, or
-`OPENCLAW_CODEX_APP_SERVER_MODE=guardian` for one-off local testing. Config is
+`ASTROCLAW_CODEX_APP_SERVER_MODE=guardian` for one-off local testing. Config is
 preferred for repeatable deployments because it keeps the plugin behavior in the
 same reviewed file as the rest of the Codex harness setup.
 
 ## Native Codex plugins
 
 Native Codex plugin support uses Codex app-server's own app and plugin
-capabilities in the same Codex thread as the OpenClaw harness turn. OpenClaw
-does not translate Codex plugins into synthetic `codex_plugin_*` OpenClaw
+capabilities in the same Codex thread as the Astroclaw harness turn. Astroclaw
+does not translate Codex plugins into synthetic `codex_plugin_*` Astroclaw
 dynamic tools.
 
 `codexPlugins` affects only sessions that select the native Codex harness. It
@@ -604,7 +604,7 @@ Minimal migrated config:
 }
 ```
 
-Thread app config is computed when OpenClaw establishes a Codex harness session
+Thread app config is computed when Astroclaw establishes a Codex harness session
 or replaces a stale Codex thread binding. It is not recomputed on every turn.
 After changing `codexPlugins`, use `/new`, `/reset`, or restart the gateway so
 future Codex harness sessions start with the updated app set.
@@ -618,7 +618,7 @@ elicitations, and native plugin diagnostics, see
 Computer Use is covered in its own setup guide:
 [Codex Computer Use](/plugins/codex-computer-use).
 
-The short version: OpenClaw does not vendor the desktop-control app or execute
+The short version: Astroclaw does not vendor the desktop-control app or execute
 desktop actions itself. It prepares Codex app-server, verifies that the
 `computer-use` MCP server is available, and then lets Codex own the native MCP
 tool calls during Codex-mode turns.
@@ -627,18 +627,18 @@ tool calls during Codex-mode turns.
 
 The Codex harness changes the low-level embedded agent executor only.
 
-- OpenClaw dynamic tools are supported. Codex asks OpenClaw to execute those
-  tools, so OpenClaw remains in the execution path.
+- Astroclaw dynamic tools are supported. Codex asks Astroclaw to execute those
+  tools, so Astroclaw remains in the execution path.
 - Codex-native shell, patch, MCP, and native app tools are owned by Codex.
-  OpenClaw can observe or block selected native events through the supported
+  Astroclaw can observe or block selected native events through the supported
   relay, but it does not rewrite native tool arguments.
-- Codex owns native compaction unless the active OpenClaw context engine
-  declares `ownsCompaction: true`. OpenClaw keeps a transcript mirror for
+- Codex owns native compaction unless the active Astroclaw context engine
+  declares `ownsCompaction: true`. Astroclaw keeps a transcript mirror for
   channel history, search, `/new`, `/reset`, and future model or harness
   switching.
 - Media generation, media understanding, TTS, approvals, and messaging-tool
-  output continue through the matching OpenClaw provider/model settings.
-- `tool_result_persist` applies to OpenClaw-owned transcript tool results, not
+  output continue through the matching Astroclaw provider/model settings.
+- `tool_result_persist` applies to Astroclaw-owned transcript tool results, not
   Codex-native tool result records.
 
 For hook layers, supported V1 surfaces, native permission handling, queue
@@ -652,19 +652,19 @@ new configs. Select an `openai/gpt-*` model, enable
 `plugins.entries.codex.enabled`, and check whether `plugins.allow` excludes
 `codex`.
 
-**OpenClaw uses PI instead of Codex:** make sure the model ref is
+**Astroclaw uses PI instead of Codex:** make sure the model ref is
 `openai/gpt-*` on the official OpenAI provider and that the Codex plugin is
 installed and enabled. If you need strict proof while testing, set provider or
 model `agentRuntime.id: "codex"`. A forced Codex runtime fails instead of
 falling back to PI.
 
-**Legacy `openai-codex/*` config remains:** run `openclaw doctor --fix`.
+**Legacy `openai-codex/*` config remains:** run `astroclaw doctor --fix`.
 Doctor rewrites legacy model refs to `openai/*`, removes stale session and
 whole-agent runtime pins, and preserves existing auth-profile overrides.
 
 **The app-server is rejected:** use Codex app-server `0.125.0` or newer.
 Same-version prereleases or build-suffixed versions such as
-`0.125.0-alpha.2` or `0.125.0+custom` are rejected because OpenClaw tests the
+`0.125.0-alpha.2` or `0.125.0+custom` are rejected because Astroclaw tests the
 stable `0.125.0` protocol floor.
 
 **`/codex status` cannot connect:** check that the bundled `codex` plugin is

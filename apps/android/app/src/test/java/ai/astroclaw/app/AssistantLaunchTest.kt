@@ -1,4 +1,4 @@
-package ai.openclaw.app
+package ai.astroclaw.app
 
 import android.content.Intent
 import org.junit.Assert.assertEquals
@@ -26,7 +26,7 @@ class AssistantLaunchTest {
   fun parsesAppActionPrompt() {
     val parsed =
       parseAssistantLaunchIntent(
-        Intent(actionAskOpenClaw).putExtra(extraAssistantPrompt, "  summarize my unread texts  "),
+        Intent(actionAskAstroclaw).putExtra(extraAssistantPrompt, "  summarize my unread texts  "),
       )
 
     requireNotNull(parsed)

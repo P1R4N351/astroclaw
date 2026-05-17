@@ -92,7 +92,7 @@ type BaseStreamOptions = {
   sessionId?: string;
   onPayload?: (payload: unknown, model: Model<Api>) => unknown;
   headers?: Record<string, string>;
-  openclawCodeModeToolSurface?: boolean;
+  astroclawCodeModeToolSurface?: boolean;
   responseFormat?: Record<string, unknown>;
 };
 
@@ -990,7 +990,7 @@ function createResponsesFirstEventTimeoutError(model: Model<Api>, timeoutMs: num
   return new Error(
     `Azure OpenAI Responses stream did not deliver a first event within ${timeoutMs}ms after HTTP streaming headers. ` +
       `provider=${model.provider} model=${model.id}. ` +
-      "The provider may be stalled while parsing the tool payload; retry with a smaller tool surface or enable OPENCLAW_DEBUG_MODEL_PAYLOAD=tools to inspect exposed tools.",
+      "The provider may be stalled while parsing the tool payload; retry with a smaller tool surface or enable ASTROCLAW_DEBUG_MODEL_PAYLOAD=tools to inspect exposed tools.",
   );
 }
 
@@ -1445,8 +1445,8 @@ export function createOpenAIResponsesTransportStreamFn(): StreamFn {
           params as Record<string, unknown>,
         ) as typeof params;
         if (
-          (options as { openclawCodeModeToolSurface?: unknown } | undefined)
-            ?.openclawCodeModeToolSurface === true
+          (options as { astroclawCodeModeToolSurface?: unknown } | undefined)
+            ?.astroclawCodeModeToolSurface === true
         ) {
           enforceCodeModeResponsesToolSurface(params);
           assertCodeModeResponsesToolSurface(params);
@@ -1844,8 +1844,8 @@ export function createAzureOpenAIResponsesTransportStreamFn(): StreamFn {
           params as Record<string, unknown>,
         ) as typeof params;
         if (
-          (options as { openclawCodeModeToolSurface?: unknown } | undefined)
-            ?.openclawCodeModeToolSurface === true
+          (options as { astroclawCodeModeToolSurface?: unknown } | undefined)
+            ?.astroclawCodeModeToolSurface === true
         ) {
           enforceCodeModeResponsesToolSurface(params);
           assertCodeModeResponsesToolSurface(params);
@@ -2060,8 +2060,8 @@ export function createOpenAICompletionsTransportStreamFn(): StreamFn {
           params = nextParams as typeof params;
         }
         if (
-          (options as { openclawCodeModeToolSurface?: unknown } | undefined)
-            ?.openclawCodeModeToolSurface === true
+          (options as { astroclawCodeModeToolSurface?: unknown } | undefined)
+            ?.astroclawCodeModeToolSurface === true
         ) {
           enforceCodeModeResponsesToolSurface(params);
           assertCodeModeResponsesToolSurface(params);
@@ -2428,7 +2428,7 @@ function getCompletionsContentDeltas(content: unknown): CompletionsReasoningDelt
   if (!text) {
     return [];
   }
-  // Preserve provider reasoning as OpenClaw thinking blocks so channel/UI
+  // Preserve provider reasoning as Astroclaw thinking blocks so channel/UI
   // surfaces can decide whether to show it instead of leaking it as answer text.
   if (type.includes("thinking") || type.includes("reasoning")) {
     return [{ kind: "thinking", signature: "content", text }];

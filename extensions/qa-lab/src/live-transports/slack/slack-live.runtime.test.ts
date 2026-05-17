@@ -8,10 +8,10 @@ describe("Slack live QA runtime helpers", () => {
   it("resolves env credential payloads", () => {
     expect(
       __testing.resolveSlackQaRuntimeEnv({
-        OPENCLAW_QA_SLACK_CHANNEL_ID: "C123456789",
-        OPENCLAW_QA_SLACK_DRIVER_BOT_TOKEN: "xoxb-driver",
-        OPENCLAW_QA_SLACK_SUT_BOT_TOKEN: "xoxb-sut",
-        OPENCLAW_QA_SLACK_SUT_APP_TOKEN: "xapp-sut",
+        ASTROCLAW_QA_SLACK_CHANNEL_ID: "C123456789",
+        ASTROCLAW_QA_SLACK_DRIVER_BOT_TOKEN: "xoxb-driver",
+        ASTROCLAW_QA_SLACK_SUT_BOT_TOKEN: "xoxb-sut",
+        ASTROCLAW_QA_SLACK_SUT_APP_TOKEN: "xapp-sut",
       }),
     ).toEqual({
       channelId: "C123456789",
@@ -24,12 +24,12 @@ describe("Slack live QA runtime helpers", () => {
   it("rejects malformed Slack channel ids", () => {
     expect(() =>
       __testing.resolveSlackQaRuntimeEnv({
-        OPENCLAW_QA_SLACK_CHANNEL_ID: "qa-channel",
-        OPENCLAW_QA_SLACK_DRIVER_BOT_TOKEN: "xoxb-driver",
-        OPENCLAW_QA_SLACK_SUT_BOT_TOKEN: "xoxb-sut",
-        OPENCLAW_QA_SLACK_SUT_APP_TOKEN: "xapp-sut",
+        ASTROCLAW_QA_SLACK_CHANNEL_ID: "qa-channel",
+        ASTROCLAW_QA_SLACK_DRIVER_BOT_TOKEN: "xoxb-driver",
+        ASTROCLAW_QA_SLACK_SUT_BOT_TOKEN: "xoxb-sut",
+        ASTROCLAW_QA_SLACK_SUT_APP_TOKEN: "xapp-sut",
       }),
-    ).toThrow("OPENCLAW_QA_SLACK channelId must be a Slack id like C123 or U123.");
+    ).toThrow("ASTROCLAW_QA_SLACK channelId must be a Slack id like C123 or U123.");
   });
 
   it("parses Convex credential payloads", () => {
@@ -107,7 +107,7 @@ describe("Slack live QA runtime helpers", () => {
   });
 
   it("writes artifacts when Convex credential acquisition fails", async () => {
-    const outputDir = await fs.mkdtemp(path.join(tmpdir(), "openclaw-slack-qa-"));
+    const outputDir = await fs.mkdtemp(path.join(tmpdir(), "astroclaw-slack-qa-"));
     const result = await runSlackQaLive({
       credentialRole: "ci",
       credentialSource: "convex",
@@ -117,7 +117,7 @@ describe("Slack live QA runtime helpers", () => {
     expect(result.scenarios).toHaveLength(1);
     expect(result.scenarios[0]?.id).toBe("slack-canary");
     expect(result.scenarios[0]?.status).toBe("fail");
-    expect(result.scenarios[0]?.details).toContain("Missing OPENCLAW_QA_CONVEX_SITE_URL");
+    expect(result.scenarios[0]?.details).toContain("Missing ASTROCLAW_QA_CONVEX_SITE_URL");
     await expect(fs.stat(result.reportPath).then((stats) => stats.isFile())).resolves.toBe(true);
     const summary = JSON.parse(await fs.readFile(result.summaryPath, "utf8")) as {
       channelId: string;

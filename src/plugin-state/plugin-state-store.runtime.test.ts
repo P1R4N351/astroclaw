@@ -3,7 +3,7 @@ import { resolveStateDir } from "../config/paths.js";
 import type { PluginRecord } from "../plugins/registry-types.js";
 import { createPluginRegistry } from "../plugins/registry.js";
 import type { PluginRuntime } from "../plugins/runtime/types.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withAstroclawTestState } from "../test-utils/astroclaw-test-state.js";
 import { resetPluginStateStoreForTests } from "./plugin-state-store.js";
 
 function createPluginRecord(id: string, origin: PluginRecord["origin"] = "bundled"): PluginRecord {
@@ -61,7 +61,7 @@ afterEach(() => {
 
 describe("plugin runtime state proxy", () => {
   it("binds openKeyedStore to the bundled plugin id and keeps resolveStateDir", async () => {
-    await withOpenClawTestState({ label: "plugin-state-runtime" }, async (state) => {
+    await withAstroclawTestState({ label: "plugin-state-runtime" }, async (state) => {
       const registry = createTestPluginRegistry();
       const record = createPluginRecord("discord", "bundled");
       registry.registry.plugins.push(record);

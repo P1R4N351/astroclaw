@@ -1,9 +1,9 @@
-package ai.openclaw.app.ui
+package ai.astroclaw.app.ui
 
-import ai.openclaw.app.MainViewModel
-import ai.openclaw.app.VoiceCaptureMode
-import ai.openclaw.app.voice.VoiceConversationEntry
-import ai.openclaw.app.voice.VoiceConversationRole
+import ai.astroclaw.app.MainViewModel
+import ai.astroclaw.app.VoiceCaptureMode
+import ai.astroclaw.app.voice.VoiceConversationEntry
+import ai.astroclaw.app.voice.VoiceConversationRole
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -425,7 +425,7 @@ private fun VoiceTurnBubble(entry: VoiceConversationEntry) {
         verticalArrangement = Arrangement.spacedBy(3.dp),
       ) {
         Text(
-          if (isUser) "You" else "OpenClaw",
+          if (isUser) "You" else "Astroclaw",
           style = mobileCaption2.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp),
           color = if (isUser) mobileAccent else mobileTextSecondary,
         )
@@ -454,7 +454,7 @@ private fun VoiceThinkingBubble() {
         verticalAlignment = Alignment.CenterVertically,
       ) {
         ThinkingDots(color = mobileTextSecondary)
-        Text("OpenClaw is thinking…", style = mobileCallout, color = mobileTextSecondary)
+        Text("Astroclaw is thinking…", style = mobileCallout, color = mobileTextSecondary)
       }
     }
   }

@@ -51,10 +51,10 @@ export type SurfaceConfigEntry = {
   silentReply?: SilentReplyPolicyShape;
 };
 
-export type OpenClawConfig = {
+export type AstroclawConfig = {
   $schema?: string;
   meta?: {
-    /** Last OpenClaw version that wrote this config. */
+    /** Last Astroclaw version that wrote this config. */
     lastTouchedVersion?: string;
     /** ISO timestamp when this config was last written. */
     lastTouchedAt?: string;
@@ -109,7 +109,7 @@ export type OpenClawConfig = {
   };
   browser?: BrowserConfig;
   ui?: {
-    /** Accent color for OpenClaw UI chrome (hex). */
+    /** Accent color for Astroclaw UI chrome (hex). */
     seamColor?: string;
     assistant?: {
       /** Assistant display name for UI surfaces. */
@@ -153,10 +153,10 @@ export type OpenClawConfig = {
   proxy?: ProxyConfig;
 };
 
-declare const openClawConfigStateBrand: unique symbol;
+declare const astroClawConfigStateBrand: unique symbol;
 
-type BrandedConfigState<TState extends string> = OpenClawConfig & {
-  readonly [openClawConfigStateBrand]?: TState;
+type BrandedConfigState<TState extends string> = AstroclawConfig & {
+  readonly [astroClawConfigStateBrand]?: TState;
 };
 
 export type SourceConfig = BrandedConfigState<"source">;

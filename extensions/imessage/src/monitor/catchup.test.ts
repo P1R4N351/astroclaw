@@ -17,16 +17,16 @@ let tempStateDir: string;
 let priorStateDir: string | undefined;
 
 beforeAll(() => {
-  tempStateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-imsg-catchup-"));
-  priorStateDir = process.env.OPENCLAW_STATE_DIR;
-  process.env.OPENCLAW_STATE_DIR = tempStateDir;
+  tempStateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-imsg-catchup-"));
+  priorStateDir = process.env.ASTROCLAW_STATE_DIR;
+  process.env.ASTROCLAW_STATE_DIR = tempStateDir;
 });
 
 afterAll(() => {
   if (priorStateDir === undefined) {
-    delete process.env.OPENCLAW_STATE_DIR;
+    delete process.env.ASTROCLAW_STATE_DIR;
   } else {
-    process.env.OPENCLAW_STATE_DIR = priorStateDir;
+    process.env.ASTROCLAW_STATE_DIR = priorStateDir;
   }
   fs.rmSync(tempStateDir, { recursive: true, force: true });
 });

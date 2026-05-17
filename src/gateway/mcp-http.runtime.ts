@@ -1,6 +1,6 @@
 import { applyOwnerOnlyToolPolicy } from "../agents/tool-policy.js";
 import type { InboundEventKind } from "../channels/inbound-event/kind.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   buildMcpToolSchema,
   type McpLoopbackTool,
@@ -15,7 +15,7 @@ type CachedScopedTools = {
   agentId: string | undefined;
   tools: McpLoopbackTool[];
   toolSchema: McpToolSchemaEntry[];
-  configRef: OpenClawConfig;
+  configRef: AstroclawConfig;
   time: number;
 };
 
@@ -23,7 +23,7 @@ export class McpLoopbackToolCache {
   #entries = new Map<string, CachedScopedTools>();
 
   resolve(params: {
-    cfg: OpenClawConfig;
+    cfg: AstroclawConfig;
     sessionKey: string;
     messageProvider: string | undefined;
     accountId: string | undefined;

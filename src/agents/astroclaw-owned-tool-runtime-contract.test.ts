@@ -1,10 +1,10 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
-  installOpenClawOwnedToolHooks,
-  resetOpenClawOwnedToolHooks,
+  installAstroclawOwnedToolHooks,
+  resetAstroclawOwnedToolHooks,
   textToolResult,
-} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MessagingToolSend } from "./pi-embedded-messaging.types.js";
 import {
@@ -102,15 +102,15 @@ async function waitForAfterToolCall(hooks: {
   return call as [Record<string, unknown>, Record<string, unknown>];
 }
 
-describe("OpenClaw-owned tool runtime contract — Pi adapter", () => {
+describe("Astroclaw-owned tool runtime contract — Pi adapter", () => {
   afterEach(() => {
-    resetOpenClawOwnedToolHooks();
+    resetAstroclawOwnedToolHooks();
   });
 
   it("preserves partially adjusted before_tool_call params through execution and after_tool_call", async () => {
     const adjustedParams = { mode: "safe" };
     const mergedParams = { command: "pwd", mode: "safe" };
-    const hooks = installOpenClawOwnedToolHooks({ adjustedParams });
+    const hooks = installAstroclawOwnedToolHooks({ adjustedParams });
     const execute = vi.fn(async () => textToolResult("done", { ok: true }));
     const tool = wrapToolWithBeforeToolCallHook(createContractTool("exec", execute), {
       agentId: "agent-1",
@@ -171,7 +171,7 @@ describe("OpenClaw-owned tool runtime contract — Pi adapter", () => {
   it("reports Pi dynamic tool execution errors through after_tool_call", async () => {
     const adjustedParams = { timeoutSec: 1 };
     const mergedParams = { command: "false", timeoutSec: 1 };
-    const hooks = installOpenClawOwnedToolHooks({ adjustedParams });
+    const hooks = installAstroclawOwnedToolHooks({ adjustedParams });
     const execute = vi.fn(async () => {
       throw new Error("tool failed");
     });
@@ -230,7 +230,7 @@ describe("OpenClaw-owned tool runtime contract — Pi adapter", () => {
   });
 
   it("commits successful Pi messaging text, media, and target telemetry", async () => {
-    const hooks = installOpenClawOwnedToolHooks();
+    const hooks = installAstroclawOwnedToolHooks();
     const execute = vi.fn(async () => textToolResult("sent"));
     const tool = wrapToolWithBeforeToolCallHook(createContractTool("message", execute), {
       agentId: "agent-1",
@@ -309,7 +309,7 @@ describe("OpenClaw-owned tool runtime contract — Pi adapter", () => {
   });
 
   it("fails closed when before_tool_call blocks a Pi dynamic tool", async () => {
-    const hooks = installOpenClawOwnedToolHooks({ blockReason: "blocked by policy" });
+    const hooks = installAstroclawOwnedToolHooks({ blockReason: "blocked by policy" });
     const execute = vi.fn(async () => textToolResult("should not run"));
     const tool = wrapToolWithBeforeToolCallHook(createContractTool("message", execute), {
       agentId: "agent-1",

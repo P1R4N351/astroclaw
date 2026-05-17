@@ -7,12 +7,12 @@ const ssrfRuntimeMocks = vi.hoisted(() => ({
   fetchWithSsrFGuard: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: ssrfRuntimeMocks.fetchWithSsrFGuard,
 }));
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
   vi.resetModules();
 });
 
@@ -109,7 +109,7 @@ describe("engine/utils/stt", () => {
   });
 
   it("posts audio to OpenAI-compatible transcription endpoint", async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-qqbot-stt-"));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-qqbot-stt-"));
     const audioPath = path.join(tmpDir, "voice.wav");
     fs.writeFileSync(audioPath, Buffer.from([1, 2, 3, 4]));
 

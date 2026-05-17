@@ -71,7 +71,7 @@ function hasConfiguredSecretString(value: unknown): boolean {
 
 function hasConfiguredOAuthRef(value: OAuthCredentialRef | undefined): boolean {
   return (
-    value?.source === "openclaw-credentials" &&
+    value?.source === "astroclaw-credentials" &&
     value.provider === "openai-codex" &&
     typeof value.id === "string" &&
     /^[a-f0-9]{32}$/.test(value.id)

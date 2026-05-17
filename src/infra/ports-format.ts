@@ -6,7 +6,7 @@ export function classifyPortListener(listener: PortListener, port: number): Port
   const raw = normalizeLowercaseStringOrEmpty(
     `${listener.commandLine ?? ""} ${listener.command ?? ""}`,
   );
-  if (raw.includes("openclaw")) {
+  if (raw.includes("astroclaw")) {
     return "gateway";
   }
   if (raw.includes("ssh")) {
@@ -143,7 +143,7 @@ export function buildPortHints(listeners: PortListener[], port: number): string[
   const expectedGatewayListeners = isExpectedGatewayListeners(listeners, port);
   if (kinds.has("gateway") && !expectedGatewayListeners) {
     hints.push(
-      `Gateway already running locally. Stop it (${formatCliCommand("openclaw gateway stop")}) or use a different port.`,
+      `Gateway already running locally. Stop it (${formatCliCommand("astroclaw gateway stop")}) or use a different port.`,
     );
   }
   if (kinds.has("ssh")) {

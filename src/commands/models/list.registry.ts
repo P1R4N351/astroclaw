@@ -6,7 +6,7 @@ import {
   shouldSuppressBuiltInModelFromManifest,
 } from "../../agents/model-suppression.js";
 import { discoverAuthStorage, discoverModels } from "../../agents/pi-model-discovery.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import {
   formatErrorWithStack,
   MODEL_AVAILABILITY_UNAVAILABLE_CODE,
@@ -56,7 +56,7 @@ function validateAvailableModels(availableModels: unknown): Model<Api>[] {
 
 function loadAvailableModels(
   registry: ModelRegistry,
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   opts?: { runtimeSuppression?: boolean },
 ): Model<Api>[] {
   let availableModels: unknown;
@@ -86,7 +86,7 @@ function loadAvailableModels(
 }
 
 export async function loadModelRegistry(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   opts?: {
     providerFilter?: string;
     normalizeModels?: boolean;

@@ -184,7 +184,7 @@ describe("projectContextEngineAssemblyForCodex", () => {
     );
   });
 
-  it("maps OpenClaw compaction reserve config onto Codex projection reserves", () => {
+  it("maps Astroclaw compaction reserve config onto Codex projection reserves", () => {
     expect(
       resolveCodexContextEngineProjectionReserveTokens({
         config: { agents: { defaults: { compaction: { reserveTokens: 12_000 } } } },

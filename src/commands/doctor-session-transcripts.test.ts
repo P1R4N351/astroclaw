@@ -37,7 +37,7 @@ describe("doctor session transcript repair", () => {
 
   beforeEach(async () => {
     note.mockClear();
-    root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-doctor-transcripts-"));
+    root = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-doctor-transcripts-"));
   });
 
   afterEach(async () => {
@@ -70,9 +70,9 @@ describe("doctor session transcript repair", () => {
           content: [
             "visible ask",
             "",
-            "<<<BEGIN_OPENCLAW_INTERNAL_CONTEXT>>>",
+            "<<<BEGIN_ASTROCLAW_INTERNAL_CONTEXT>>>",
             "secret",
-            "<<<END_OPENCLAW_INTERNAL_CONTEXT>>>",
+            "<<<END_ASTROCLAW_INTERNAL_CONTEXT>>>",
           ].join("\n"),
         },
       },
@@ -126,7 +126,7 @@ describe("doctor session transcript repair", () => {
         message: {
           role: "user",
           content:
-            "visible ask\n\n<<<BEGIN_OPENCLAW_INTERNAL_CONTEXT>>>\nsecret\n<<<END_OPENCLAW_INTERNAL_CONTEXT>>>",
+            "visible ask\n\n<<<BEGIN_ASTROCLAW_INTERNAL_CONTEXT>>>\nsecret\n<<<END_ASTROCLAW_INTERNAL_CONTEXT>>>",
         },
       },
       {
@@ -144,7 +144,7 @@ describe("doctor session transcript repair", () => {
     const [message, title] = requireFirstMockCall(note, "doctor note") as [string, string];
     expect(title).toBe("Session transcripts");
     expect(message).toContain("duplicated prompt-rewrite branches");
-    expect(message).toContain('Run "openclaw doctor --fix"');
+    expect(message).toContain('Run "astroclaw doctor --fix"');
     expect(countNonEmptyLines(await fs.readFile(filePath, "utf-8"))).toBe(3);
   });
 

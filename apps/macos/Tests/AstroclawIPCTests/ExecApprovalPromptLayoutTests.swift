@@ -1,6 +1,6 @@
 import AppKit
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite(.serialized)
 @MainActor
@@ -9,7 +9,7 @@ struct ExecApprovalPromptLayoutTests {
         let accessory = ExecApprovalsPromptPresenter.buildAccessoryView(
             ExecApprovalPromptRequest(
                 command: "/bin/sh -lc \"hostname; uptime; echo '---'\"",
-                cwd: "/Users/example/projects/openclaw",
+                cwd: "/Users/example/projects/astroclaw",
                 host: "node",
                 security: "allowlist",
                 ask: "on-miss",

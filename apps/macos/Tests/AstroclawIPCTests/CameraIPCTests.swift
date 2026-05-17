@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawIPC
+import AstroclawIPC
 import Testing
 
 struct CameraIPCTests {

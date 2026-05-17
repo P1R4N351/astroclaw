@@ -1,18 +1,18 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.protocol.OpenClawCalendarCommand
-import ai.openclaw.app.protocol.OpenClawCallLogCommand
-import ai.openclaw.app.protocol.OpenClawCameraCommand
-import ai.openclaw.app.protocol.OpenClawCapability
-import ai.openclaw.app.protocol.OpenClawContactsCommand
-import ai.openclaw.app.protocol.OpenClawDeviceCommand
-import ai.openclaw.app.protocol.OpenClawLocationCommand
-import ai.openclaw.app.protocol.OpenClawMotionCommand
-import ai.openclaw.app.protocol.OpenClawNotificationsCommand
-import ai.openclaw.app.protocol.OpenClawPhotosCommand
-import ai.openclaw.app.protocol.OpenClawSmsCommand
-import ai.openclaw.app.protocol.OpenClawSystemCommand
-import ai.openclaw.app.protocol.OpenClawTalkCommand
+import ai.astroclaw.app.protocol.AstroclawCalendarCommand
+import ai.astroclaw.app.protocol.AstroclawCallLogCommand
+import ai.astroclaw.app.protocol.AstroclawCameraCommand
+import ai.astroclaw.app.protocol.AstroclawCapability
+import ai.astroclaw.app.protocol.AstroclawContactsCommand
+import ai.astroclaw.app.protocol.AstroclawDeviceCommand
+import ai.astroclaw.app.protocol.AstroclawLocationCommand
+import ai.astroclaw.app.protocol.AstroclawMotionCommand
+import ai.astroclaw.app.protocol.AstroclawNotificationsCommand
+import ai.astroclaw.app.protocol.AstroclawPhotosCommand
+import ai.astroclaw.app.protocol.AstroclawSmsCommand
+import ai.astroclaw.app.protocol.AstroclawSystemCommand
+import ai.astroclaw.app.protocol.AstroclawTalkCommand
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -23,57 +23,57 @@ import org.junit.Test
 class InvokeCommandRegistryTest {
   private val coreCapabilities =
     setOf(
-      OpenClawCapability.Canvas.rawValue,
-      OpenClawCapability.Device.rawValue,
-      OpenClawCapability.Notifications.rawValue,
-      OpenClawCapability.System.rawValue,
-      OpenClawCapability.Talk.rawValue,
-      OpenClawCapability.Photos.rawValue,
-      OpenClawCapability.Contacts.rawValue,
-      OpenClawCapability.Calendar.rawValue,
+      AstroclawCapability.Canvas.rawValue,
+      AstroclawCapability.Device.rawValue,
+      AstroclawCapability.Notifications.rawValue,
+      AstroclawCapability.System.rawValue,
+      AstroclawCapability.Talk.rawValue,
+      AstroclawCapability.Photos.rawValue,
+      AstroclawCapability.Contacts.rawValue,
+      AstroclawCapability.Calendar.rawValue,
     )
 
   private val optionalCapabilities =
     setOf(
-      OpenClawCapability.Camera.rawValue,
-      OpenClawCapability.Location.rawValue,
-      OpenClawCapability.Sms.rawValue,
-      OpenClawCapability.CallLog.rawValue,
-      OpenClawCapability.VoiceWake.rawValue,
-      OpenClawCapability.Motion.rawValue,
+      AstroclawCapability.Camera.rawValue,
+      AstroclawCapability.Location.rawValue,
+      AstroclawCapability.Sms.rawValue,
+      AstroclawCapability.CallLog.rawValue,
+      AstroclawCapability.VoiceWake.rawValue,
+      AstroclawCapability.Motion.rawValue,
     )
 
   private val coreCommands =
     setOf(
-      OpenClawDeviceCommand.Status.rawValue,
-      OpenClawDeviceCommand.Info.rawValue,
-      OpenClawDeviceCommand.Permissions.rawValue,
-      OpenClawDeviceCommand.Health.rawValue,
-      OpenClawNotificationsCommand.List.rawValue,
-      OpenClawNotificationsCommand.Actions.rawValue,
-      OpenClawSystemCommand.Notify.rawValue,
-      OpenClawTalkCommand.PttStart.rawValue,
-      OpenClawTalkCommand.PttStop.rawValue,
-      OpenClawTalkCommand.PttCancel.rawValue,
-      OpenClawTalkCommand.PttOnce.rawValue,
-      OpenClawPhotosCommand.Latest.rawValue,
-      OpenClawContactsCommand.Search.rawValue,
-      OpenClawContactsCommand.Add.rawValue,
-      OpenClawCalendarCommand.Events.rawValue,
-      OpenClawCalendarCommand.Add.rawValue,
+      AstroclawDeviceCommand.Status.rawValue,
+      AstroclawDeviceCommand.Info.rawValue,
+      AstroclawDeviceCommand.Permissions.rawValue,
+      AstroclawDeviceCommand.Health.rawValue,
+      AstroclawNotificationsCommand.List.rawValue,
+      AstroclawNotificationsCommand.Actions.rawValue,
+      AstroclawSystemCommand.Notify.rawValue,
+      AstroclawTalkCommand.PttStart.rawValue,
+      AstroclawTalkCommand.PttStop.rawValue,
+      AstroclawTalkCommand.PttCancel.rawValue,
+      AstroclawTalkCommand.PttOnce.rawValue,
+      AstroclawPhotosCommand.Latest.rawValue,
+      AstroclawContactsCommand.Search.rawValue,
+      AstroclawContactsCommand.Add.rawValue,
+      AstroclawCalendarCommand.Events.rawValue,
+      AstroclawCalendarCommand.Add.rawValue,
     )
 
   private val optionalCommands =
     setOf(
-      OpenClawCameraCommand.Snap.rawValue,
-      OpenClawCameraCommand.Clip.rawValue,
-      OpenClawCameraCommand.List.rawValue,
-      OpenClawLocationCommand.Get.rawValue,
-      OpenClawMotionCommand.Activity.rawValue,
-      OpenClawMotionCommand.Pedometer.rawValue,
-      OpenClawSmsCommand.Send.rawValue,
-      OpenClawSmsCommand.Search.rawValue,
-      OpenClawCallLogCommand.Search.rawValue,
+      AstroclawCameraCommand.Snap.rawValue,
+      AstroclawCameraCommand.Clip.rawValue,
+      AstroclawCameraCommand.List.rawValue,
+      AstroclawLocationCommand.Get.rawValue,
+      AstroclawMotionCommand.Activity.rawValue,
+      AstroclawMotionCommand.Pedometer.rawValue,
+      AstroclawSmsCommand.Send.rawValue,
+      AstroclawSmsCommand.Search.rawValue,
+      AstroclawCallLogCommand.Search.rawValue,
     )
 
   private val debugCommands = setOf("debug.logs", "debug.ed25519")
@@ -152,8 +152,8 @@ class InvokeCommandRegistryTest {
         ),
       )
 
-    assertTrue(commands.contains(OpenClawMotionCommand.Activity.rawValue))
-    assertFalse(commands.contains(OpenClawMotionCommand.Pedometer.rawValue))
+    assertTrue(commands.contains(AstroclawMotionCommand.Activity.rawValue))
+    assertFalse(commands.contains(AstroclawMotionCommand.Pedometer.rawValue))
   }
 
   @Test
@@ -171,11 +171,11 @@ class InvokeCommandRegistryTest {
         defaultFlags(smsSearchPossible = true),
       )
 
-    assertTrue(readOnlyCommands.contains(OpenClawSmsCommand.Search.rawValue))
-    assertFalse(readOnlyCommands.contains(OpenClawSmsCommand.Send.rawValue))
-    assertTrue(sendOnlyCommands.contains(OpenClawSmsCommand.Send.rawValue))
-    assertFalse(sendOnlyCommands.contains(OpenClawSmsCommand.Search.rawValue))
-    assertTrue(requestableSearchCommands.contains(OpenClawSmsCommand.Search.rawValue))
+    assertTrue(readOnlyCommands.contains(AstroclawSmsCommand.Search.rawValue))
+    assertFalse(readOnlyCommands.contains(AstroclawSmsCommand.Send.rawValue))
+    assertTrue(sendOnlyCommands.contains(AstroclawSmsCommand.Send.rawValue))
+    assertFalse(sendOnlyCommands.contains(AstroclawSmsCommand.Search.rawValue))
+    assertTrue(requestableSearchCommands.contains(AstroclawSmsCommand.Search.rawValue))
   }
 
   @Test
@@ -193,23 +193,23 @@ class InvokeCommandRegistryTest {
         defaultFlags(smsSearchPossible = true),
       )
 
-    assertTrue(readOnlyCapabilities.contains(OpenClawCapability.Sms.rawValue))
-    assertTrue(sendOnlyCapabilities.contains(OpenClawCapability.Sms.rawValue))
-    assertFalse(requestableSearchCapabilities.contains(OpenClawCapability.Sms.rawValue))
+    assertTrue(readOnlyCapabilities.contains(AstroclawCapability.Sms.rawValue))
+    assertTrue(sendOnlyCapabilities.contains(AstroclawCapability.Sms.rawValue))
+    assertFalse(requestableSearchCapabilities.contains(AstroclawCapability.Sms.rawValue))
   }
 
   @Test
   fun advertisedCommands_excludesCallLogWhenUnavailable() {
     val commands = InvokeCommandRegistry.advertisedCommands(defaultFlags(callLogAvailable = false))
 
-    assertFalse(commands.contains(OpenClawCallLogCommand.Search.rawValue))
+    assertFalse(commands.contains(AstroclawCallLogCommand.Search.rawValue))
   }
 
   @Test
   fun advertisedCapabilities_excludesCallLogWhenUnavailable() {
     val capabilities = InvokeCommandRegistry.advertisedCapabilities(defaultFlags(callLogAvailable = false))
 
-    assertFalse(capabilities.contains(OpenClawCapability.CallLog.rawValue))
+    assertFalse(capabilities.contains(AstroclawCapability.CallLog.rawValue))
   }
 
   @Test
@@ -217,14 +217,14 @@ class InvokeCommandRegistryTest {
     val capabilities = InvokeCommandRegistry.advertisedCapabilities(defaultFlags(voiceWakeEnabled = true))
     val commands = InvokeCommandRegistry.advertisedCommands(defaultFlags(voiceWakeEnabled = true))
 
-    assertTrue(capabilities.contains(OpenClawCapability.VoiceWake.rawValue))
+    assertTrue(capabilities.contains(AstroclawCapability.VoiceWake.rawValue))
     assertFalse(commands.any { it.contains("voice", ignoreCase = true) })
   }
 
   @Test
   fun find_returnsForegroundMetadataForCameraCommands() {
-    val list = InvokeCommandRegistry.find(OpenClawCameraCommand.List.rawValue)
-    val location = InvokeCommandRegistry.find(OpenClawLocationCommand.Get.rawValue)
+    val list = InvokeCommandRegistry.find(AstroclawCameraCommand.List.rawValue)
+    val location = InvokeCommandRegistry.find(AstroclawLocationCommand.Get.rawValue)
 
     assertNotNull(list)
     assertEquals(true, list?.requiresForeground)

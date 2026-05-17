@@ -1,5 +1,5 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   collectPluginConfigContractMatches,
   resolvePluginConfigContractsById,
@@ -7,7 +7,7 @@ import {
 import { isRecord } from "../utils.js";
 import { collectEnabledInsecureOrDangerousFlagsFromContracts } from "./dangerous-config-flags-core.js";
 
-export function collectEnabledInsecureOrDangerousFlags(cfg: OpenClawConfig): string[] {
+export function collectEnabledInsecureOrDangerousFlags(cfg: AstroclawConfig): string[] {
   const pluginEntries = cfg.plugins?.entries;
   if (!isRecord(pluginEntries)) {
     return collectEnabledInsecureOrDangerousFlagsFromContracts(cfg);

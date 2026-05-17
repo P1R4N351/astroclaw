@@ -1,11 +1,11 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { generateConversationLabel } from "openclaw/plugin-sdk/reply-dispatch-runtime";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { generateConversationLabel } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
 export { resolveAutoTopicLabelConfig } from "./auto-topic-label-config.js";
 
 export async function generateTelegramTopicLabel(params: {
   userMessage: string;
   prompt: string;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string;
   agentDir?: string;
 }): Promise<string | null> {

@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => ({
   getGoogleChatAccessToken: vi.fn().mockResolvedValue("token"),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => {
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => {
   return {
     buildHostnameAllowlistPolicyFromSuffixAllowlist:
       mocks.buildHostnameAllowlistPolicyFromSuffixAllowlist,
@@ -80,7 +80,7 @@ const authActual = await vi.importActual<typeof import("./auth.js")>("./auth.js"
 const { __testing: authTesting, getGoogleChatAccessToken, verifyGoogleChatRequest } = authActual;
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
   vi.doUnmock("gaxios");
   vi.doUnmock("google-auth-library");
   vi.doUnmock("./auth.js");

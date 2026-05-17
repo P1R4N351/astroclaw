@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-struct GlowingOpenClawIcon: View {
+struct GlowingAstroclawIcon: View {
     @Environment(\.scenePhase) private var scenePhase
 
     let size: CGFloat

@@ -1,4 +1,4 @@
-package ai.openclaw.app.benchmark
+package ai.astroclaw.app.benchmark
 
 import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.FrameTimingMetric
@@ -18,7 +18,7 @@ class StartupMacrobenchmark {
   @get:Rule
   val benchmarkRule = MacrobenchmarkRule()
 
-  private val packageName = "ai.openclaw.app"
+  private val packageName = "ai.astroclaw.app"
 
   @Test
   fun coldStartup() {

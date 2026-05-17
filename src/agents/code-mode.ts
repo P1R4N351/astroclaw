@@ -5,7 +5,7 @@ import { Worker } from "node:worker_threads";
 import type { AgentToolUpdateCallback } from "@earendil-works/pi-agent-core";
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import type { HookContext } from "./pi-tools.before-tool-call.js";
 import { optionalStringEnum } from "./schema/typebox.js";
 import {
@@ -121,7 +121,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-function readCodeModeRawConfig(config?: OpenClawConfig): Record<string, unknown> {
+function readCodeModeRawConfig(config?: AstroclawConfig): Record<string, unknown> {
   const tools = isRecord(config?.tools) ? config.tools : undefined;
   const codeMode = tools?.codeMode;
   if (codeMode === true) {
@@ -155,7 +155,7 @@ function readLanguages(value: unknown): CodeModeLanguage[] {
   return languages.length > 0 ? [...new Set(languages)] : ["javascript", "typescript"];
 }
 
-export function resolveCodeModeConfig(config?: OpenClawConfig): CodeModeConfig {
+export function resolveCodeModeConfig(config?: AstroclawConfig): CodeModeConfig {
   const raw = readCodeModeRawConfig(config);
   const maxSearchLimit = clampInteger(
     readPositiveInteger(raw.maxSearchLimit, DEFAULT_MAX_SEARCH_LIMIT),
@@ -813,7 +813,7 @@ export function createCodeModeTools(ctx: CodeModeToolContext): AnyAgentTool[] {
     name: CODE_MODE_EXEC_TOOL_NAME,
     label: "exec",
     description:
-      "Run JavaScript or TypeScript in OpenClaw code mode. Use ALL_TOOLS and tools.search/describe/call inside the code to discover and call enabled tools.",
+      "Run JavaScript or TypeScript in Astroclaw code mode. Use ALL_TOOLS and tools.search/describe/call inside the code to discover and call enabled tools.",
     parameters: Type.Object({
       code: Type.String({ description: "JavaScript or TypeScript source to run." }),
       language: optionalStringEnum(["javascript", "typescript"] as const, {
@@ -842,7 +842,7 @@ export function createCodeModeTools(ctx: CodeModeToolContext): AnyAgentTool[] {
   const waitTool = markCodeModeControlTool({
     name: CODE_MODE_WAIT_TOOL_NAME,
     label: "wait",
-    description: "Resume a suspended OpenClaw code mode run returned by exec.",
+    description: "Resume a suspended Astroclaw code mode run returned by exec.",
     parameters: Type.Object({
       runId: Type.String({ description: "Code mode run id returned by exec." }),
     }),
@@ -867,7 +867,7 @@ export function createCodeModeTools(ctx: CodeModeToolContext): AnyAgentTool[] {
 
 export function applyCodeModeCatalog(params: {
   tools: AnyAgentTool[];
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   sessionId?: string;
   sessionKey?: string;
   agentId?: string;
@@ -902,7 +902,7 @@ export function applyCodeModeCatalog(params: {
 
 export function addClientToolsToCodeModeCatalog(params: {
   tools: ToolDefinition[];
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   sessionId?: string;
   sessionKey?: string;
   agentId?: string;

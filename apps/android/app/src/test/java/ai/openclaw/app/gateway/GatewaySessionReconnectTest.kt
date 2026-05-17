@@ -1,4 +1,4 @@
-package ai.openclaw.app.gateway
+package ai.astroclaw.app.gateway
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

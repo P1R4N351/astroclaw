@@ -11,7 +11,7 @@ import { pathExists, withTimeout } from "./fs-safe.js";
 import { JsonFileReadError, readJsonFileStrict } from "./json-files.js";
 
 const tempDirs = createTrackedTempDirs();
-const createTempDir = () => tempDirs.make("openclaw-archive-helper-test-");
+const createTempDir = () => tempDirs.make("astroclaw-archive-helper-test-");
 
 function expectTarPreflightError(
   checker: ReturnType<typeof createTarEntryPreflightChecker>,

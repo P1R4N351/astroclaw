@@ -72,7 +72,7 @@ private struct InlineImageList: View {
     var body: some View {
         ForEach(self.images, id: \.id) { item in
             if let img = item.image {
-                OpenClawPlatformImageFactory.image(img)
+                AstroclawPlatformImageFactory.image(img)
                     .resizable()
                     .scaledToFit()
                     .frame(maxHeight: 260)

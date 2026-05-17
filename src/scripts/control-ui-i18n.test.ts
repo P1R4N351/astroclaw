@@ -54,7 +54,7 @@ describe("control-ui-i18n pi runtime resolution", () => {
   });
 
   it("uses the workspace pi runtime before falling back to npm installation", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "openclaw-control-ui-i18n-"));
+    const root = await mkdtemp(path.join(tmpdir(), "astroclaw-control-ui-i18n-"));
     try {
       const cliPath = path.join(
         root,

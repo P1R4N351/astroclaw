@@ -101,9 +101,9 @@ describe("loadCliSessionHistoryMessages", () => {
   });
 
   it("reads the canonical session transcript instead of an arbitrary external path", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-outside-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-outside-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     createSessionTranscript({
       rootDir: stateDir,
       sessionId: "session-test",
@@ -132,9 +132,9 @@ describe("loadCliSessionHistoryMessages", () => {
   });
 
   it("detects canonical transcripts when callers pass stale external session paths", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-outside-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-outside-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     createSessionTranscript({
       rootDir: stateDir,
       sessionId: "session-test",
@@ -163,8 +163,8 @@ describe("loadCliSessionHistoryMessages", () => {
   });
 
   it("keeps only the newest bounded history window", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const sessionFile = createSessionTranscript({
       rootDir: stateDir,
       sessionId: "session-bounded",
@@ -193,8 +193,8 @@ describe("loadCliSessionHistoryMessages", () => {
   });
 
   it("keeps complete history for context-engine snapshots", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const sessionFile = createSessionTranscript({
       rootDir: stateDir,
       sessionId: "session-context-engine-history",
@@ -223,8 +223,8 @@ describe("loadCliSessionHistoryMessages", () => {
   });
 
   it("uses the latest compaction summary and complete tail for context-engine snapshots", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const sessionFile = createSessionTranscript({
       rootDir: stateDir,
       sessionId: "session-context-engine-compacted",
@@ -302,9 +302,9 @@ describe("loadCliSessionHistoryMessages", () => {
   });
 
   it("rejects symlinked transcripts instead of following them outside the sessions directory", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-outside-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-outside-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const canonicalSessionFile = path.join(
       stateDir,
       "agents",
@@ -337,8 +337,8 @@ describe("loadCliSessionHistoryMessages", () => {
   });
 
   it("drops oversized transcript files instead of loading them into hook payloads", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const sessionFile = path.join(
       stateDir,
       "agents",
@@ -364,9 +364,9 @@ describe("loadCliSessionHistoryMessages", () => {
   });
 
   it("honors custom session store roots when resolving hook history transcripts", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    const customStoreDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-store-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    const customStoreDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-store-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const storePath = path.join(customStoreDir, "sessions.json");
     fs.writeFileSync(storePath, "{}", "utf-8");
     const sessionFile = createSessionTranscript({
@@ -403,8 +403,8 @@ describe("loadCliSessionReseedMessages", () => {
   });
 
   it("does not reseed fresh CLI sessions from raw transcript history before compaction", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const sessionFile = createSessionTranscript({
       rootDir: stateDir,
       sessionId: "session-no-compaction",
@@ -426,8 +426,8 @@ describe("loadCliSessionReseedMessages", () => {
   });
 
   it("reseeds safe invalidated sessions from a bounded raw message tail when explicitly opted in", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const sessionFile = createSessionTranscript({
       rootDir: stateDir,
       sessionId: "session-opt-in-raw-tail",
@@ -461,8 +461,8 @@ describe("loadCliSessionReseedMessages", () => {
   });
 
   it("does not raw-reseed auth-boundary invalidations even when opted in", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const sessionFile = createSessionTranscript({
       rootDir: stateDir,
       sessionId: "session-auth-boundary",
@@ -496,8 +496,8 @@ describe("loadCliSessionReseedMessages", () => {
   });
 
   it("reseeds fresh CLI sessions from the latest compaction summary and post-compaction tail", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-state-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-cli-state-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const sessionFile = createSessionTranscript({
       rootDir: stateDir,
       sessionId: "session-compacted",
@@ -552,7 +552,7 @@ describe("loadCliSessionReseedMessages", () => {
 });
 
 describe("buildCliSessionHistoryPrompt", () => {
-  it("renders OpenClaw transcript history around the next user message", () => {
+  it("renders Astroclaw transcript history around the next user message", () => {
     const prompt = buildCliSessionHistoryPrompt({
       messages: [
         { role: "user", content: "old ask" },
@@ -582,7 +582,7 @@ describe("buildCliSessionHistoryPrompt", () => {
       maxHistoryChars: 20,
     });
 
-    expect(prompt).toContain("[OpenClaw reseed history truncated]");
+    expect(prompt).toContain("[Astroclaw reseed history truncated]");
     expect(prompt).toContain("<next_user_message>\ncurrent ask must survive\n</next_user_message>");
     expect(prompt).not.toContain("x".repeat(80));
   });

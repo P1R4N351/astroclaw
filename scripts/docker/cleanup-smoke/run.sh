@@ -3,42 +3,42 @@ set -euo pipefail
 
 cd /repo
 
-export OPENCLAW_STATE_DIR="/tmp/openclaw-test"
-export OPENCLAW_CONFIG_PATH="${OPENCLAW_STATE_DIR}/openclaw.json"
+export ASTROCLAW_STATE_DIR="/tmp/astroclaw-test"
+export ASTROCLAW_CONFIG_PATH="${ASTROCLAW_STATE_DIR}/astroclaw.json"
 
 echo "==> Build"
-if ! pnpm build >/tmp/openclaw-cleanup-build.log 2>&1; then
-  cat /tmp/openclaw-cleanup-build.log
+if ! pnpm build >/tmp/astroclaw-cleanup-build.log 2>&1; then
+  cat /tmp/astroclaw-cleanup-build.log
   exit 1
 fi
 
 echo "==> Seed state"
-mkdir -p "${OPENCLAW_STATE_DIR}/credentials"
-mkdir -p "${OPENCLAW_STATE_DIR}/agents/main/sessions"
-echo '{}' >"${OPENCLAW_CONFIG_PATH}"
-echo 'creds' >"${OPENCLAW_STATE_DIR}/credentials/marker.txt"
-echo 'session' >"${OPENCLAW_STATE_DIR}/agents/main/sessions/sessions.json"
+mkdir -p "${ASTROCLAW_STATE_DIR}/credentials"
+mkdir -p "${ASTROCLAW_STATE_DIR}/agents/main/sessions"
+echo '{}' >"${ASTROCLAW_CONFIG_PATH}"
+echo 'creds' >"${ASTROCLAW_STATE_DIR}/credentials/marker.txt"
+echo 'session' >"${ASTROCLAW_STATE_DIR}/agents/main/sessions/sessions.json"
 
 echo "==> Reset (config+creds+sessions)"
-if ! pnpm openclaw reset --scope config+creds+sessions --yes --non-interactive >/tmp/openclaw-cleanup-reset.log 2>&1; then
-  cat /tmp/openclaw-cleanup-reset.log
+if ! pnpm astroclaw reset --scope config+creds+sessions --yes --non-interactive >/tmp/astroclaw-cleanup-reset.log 2>&1; then
+  cat /tmp/astroclaw-cleanup-reset.log
   exit 1
 fi
 
-test ! -f "${OPENCLAW_CONFIG_PATH}"
-test ! -d "${OPENCLAW_STATE_DIR}/credentials"
-test ! -d "${OPENCLAW_STATE_DIR}/agents/main/sessions"
+test ! -f "${ASTROCLAW_CONFIG_PATH}"
+test ! -d "${ASTROCLAW_STATE_DIR}/credentials"
+test ! -d "${ASTROCLAW_STATE_DIR}/agents/main/sessions"
 
 echo "==> Recreate minimal config"
-mkdir -p "${OPENCLAW_STATE_DIR}/credentials"
-echo '{}' >"${OPENCLAW_CONFIG_PATH}"
+mkdir -p "${ASTROCLAW_STATE_DIR}/credentials"
+echo '{}' >"${ASTROCLAW_CONFIG_PATH}"
 
 echo "==> Uninstall (state only)"
-if ! pnpm openclaw uninstall --state --yes --non-interactive >/tmp/openclaw-cleanup-uninstall.log 2>&1; then
-  cat /tmp/openclaw-cleanup-uninstall.log
+if ! pnpm astroclaw uninstall --state --yes --non-interactive >/tmp/astroclaw-cleanup-uninstall.log 2>&1; then
+  cat /tmp/astroclaw-cleanup-uninstall.log
   exit 1
 fi
 
-test ! -d "${OPENCLAW_STATE_DIR}"
+test ! -d "${ASTROCLAW_STATE_DIR}"
 
 echo "OK"

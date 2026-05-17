@@ -49,7 +49,7 @@ describe("createMatrixRoomMessageHandler thread root media", () => {
         channel: "matrix",
         matchedBy: "binding.account",
       }),
-      resolveStorePath: () => "/tmp/openclaw-test-session.json",
+      resolveStorePath: () => "/tmp/astroclaw-test-session.json",
       getRoomInfo: async () => ({
         name: "Media Room",
         canonicalAlias: "#media:example.org",

@@ -26,7 +26,7 @@ describe("resolveCliChannelOptions", () => {
 
   afterEach(() => {
     __testing.resetPrecomputedChannelOptionsForTests();
-    delete process.env.OPENCLAW_PLUGIN_CATALOG_PATHS;
+    delete process.env.ASTROCLAW_PLUGIN_CATALOG_PATHS;
   });
 
   it("uses precomputed startup metadata when available", () => {
@@ -49,7 +49,7 @@ describe("resolveCliChannelOptions", () => {
   });
 
   it("ignores external catalog env during CLI bootstrap", () => {
-    process.env.OPENCLAW_PLUGIN_CATALOG_PATHS = "/tmp/plugins-catalog.json";
+    process.env.ASTROCLAW_PLUGIN_CATALOG_PATHS = "/tmp/plugins-catalog.json";
     readFileSyncMock.mockReturnValue(JSON.stringify({ channelOptions: ["cached", "quietchat"] }));
 
     expect(resolveCliChannelOptions()).toEqual(["cached", "quietchat"]);

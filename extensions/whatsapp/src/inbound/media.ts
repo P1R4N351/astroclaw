@@ -1,6 +1,6 @@
 import type { proto, WAMessage } from "baileys";
-import { saveMediaStream, type SavedMedia } from "openclaw/plugin-sdk/media-store";
-import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { saveMediaStream, type SavedMedia } from "astroclaw/plugin-sdk/media-store";
+import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
 import type { createWaSocket } from "../session.js";
 import { extractContextInfo } from "./extract.js";
 import { downloadMediaMessage, normalizeMessageContent } from "./runtime-api.js";

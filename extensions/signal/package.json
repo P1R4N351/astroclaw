@@ -1,16 +1,16 @@
 {
-  "name": "@openclaw/signal",
+  "name": "@astroclaw/signal",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Signal channel plugin",
+  "description": "Astroclaw Signal channel plugin",
   "type": "module",
   "dependencies": {
     "ws": "8.20.1"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ],

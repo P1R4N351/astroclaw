@@ -7,39 +7,39 @@ title: "Onboarding (CLI)"
 sidebarTitle: "Onboarding: CLI"
 ---
 
-CLI onboarding is the **recommended** way to set up OpenClaw on macOS,
+CLI onboarding is the **recommended** way to set up Astroclaw on macOS,
 Linux, or Windows (via WSL2; strongly recommended).
 It configures a local Gateway or a remote Gateway connection, plus channels, skills,
 and workspace defaults in one guided flow.
 
 ```bash
-openclaw onboard
+astroclaw onboard
 ```
 
 ## Locale
 
 The CLI wizard localizes fixed onboarding copy. It resolves locale from
-`OPENCLAW_LOCALE`, then `LC_ALL`, then `LC_MESSAGES`, then `LANG`, and falls
+`ASTROCLAW_LOCALE`, then `LC_ALL`, then `LC_MESSAGES`, then `LANG`, and falls
 back to English. Supported wizard locales are `en`, `zh-CN`, and `zh-TW`.
 
 ```bash
-OPENCLAW_LOCALE=zh-CN openclaw onboard
+ASTROCLAW_LOCALE=zh-CN astroclaw onboard
 ```
 
-Names and stable identifiers stay literal: `OpenClaw`, `Gateway`, `Tailscale`,
+Names and stable identifiers stay literal: `Astroclaw`, `Gateway`, `Tailscale`,
 commands, config keys, URLs, provider IDs, model IDs, and plugin/channel labels
 are not translated.
 
 <Info>
 Fastest first chat: open the Control UI (no channel setup needed). Run
-`openclaw dashboard` and chat in the browser. Docs: [Dashboard](/web/dashboard).
+`astroclaw dashboard` and chat in the browser. Docs: [Dashboard](/web/dashboard).
 </Info>
 
 To reconfigure later:
 
 ```bash
-openclaw configure
-openclaw agents add <name>
+astroclaw configure
+astroclaw agents add <name>
 ```
 
 <Note>
@@ -51,7 +51,7 @@ CLI onboarding includes a web search step where you can pick a provider
 such as Brave, DuckDuckGo, Exa, Firecrawl, Gemini, Grok, Kimi, MiniMax Search,
 Ollama Web Search, Perplexity, SearXNG, or Tavily. Some providers require an
 API key, while others are key-free. You can also configure this later with
-`openclaw configure --section web`. Docs: [Web tools](/tools/web).
+`astroclaw configure --section web`. Docs: [Web tools](/tools/web).
 </Tip>
 
 ## QuickStart vs Advanced
@@ -87,7 +87,7 @@ Onboarding starts with **QuickStart** (defaults) vs **Advanced** (full control).
    In non-interactive `ref` mode, the provider env var must be set; passing inline key flags without that env var fails fast.
    In interactive runs, choosing secret reference mode lets you point at either an environment variable or a configured provider ref (`file` or `exec`), with a fast preflight validation before saving.
    For Anthropic, interactive onboarding/configure offers **Anthropic Claude CLI** as the preferred local path and **Anthropic API key** as the recommended production path. Anthropic setup-token also remains available as a supported token-auth path.
-2. **Workspace** — Location for agent files (default `~/.openclaw/workspace`). Seeds bootstrap files.
+2. **Workspace** — Location for agent files (default `~/.astroclaw/workspace`). Seeds bootstrap files.
 3. **Gateway** — Port, bind address, auth mode, Tailscale exposure.
    In interactive token mode, choose default plaintext token storage or opt into SecretRef.
    Non-interactive token SecretRef path: `--gateway-token-ref-env <ENV_VAR>`.
@@ -102,7 +102,7 @@ Onboarding starts with **QuickStart** (defaults) vs **Advanced** (full control).
 <Note>
 Re-running onboarding does **not** wipe anything unless you explicitly choose **Reset** (or pass `--reset`).
 CLI `--reset` defaults to config, credentials, and sessions; use `--reset-scope full` to include workspace.
-If the config is invalid or contains legacy keys, onboarding asks you to run `openclaw doctor` first.
+If the config is invalid or contains legacy keys, onboarding asks you to run `astroclaw doctor` first.
 </Note>
 
 **Remote mode** only configures the local client to connect to a Gateway elsewhere.
@@ -110,7 +110,7 @@ It does **not** install or change anything on the remote host.
 
 ## Add another agent
 
-Use `openclaw agents add <name>` to create a separate agent with its own workspace,
+Use `astroclaw agents add <name>` to create a separate agent with its own workspace,
 sessions, and auth profiles. Running without `--workspace` launches onboarding.
 
 What it sets:
@@ -121,7 +121,7 @@ What it sets:
 
 Notes:
 
-- Default workspaces follow `~/.openclaw/workspace-<agentId>`.
+- Default workspaces follow `~/.astroclaw/workspace-<agentId>`.
 - Add `bindings` to route inbound messages (onboarding can do this).
 - Non-interactive flags: `--model`, `--agent-dir`, `--bind`, `--non-interactive`.
 
@@ -135,7 +135,7 @@ For the deeper technical reference, including RPC details, see
 
 ## Related docs
 
-- CLI command reference: [`openclaw onboard`](/cli/onboard)
+- CLI command reference: [`astroclaw onboard`](/cli/onboard)
 - Onboarding overview: [Onboarding Overview](/start/onboarding-overview)
 - macOS app onboarding: [Onboarding](/start/onboarding)
 - Agent first-run ritual: [Agent Bootstrapping](/start/bootstrapping)

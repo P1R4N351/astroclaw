@@ -1,4 +1,4 @@
-import { buildCopilotIdeHeaders } from "openclaw/plugin-sdk/provider-auth";
+import { buildCopilotIdeHeaders } from "astroclaw/plugin-sdk/provider-auth";
 import {
   buildUsageHttpErrorSnapshot,
   fetchJson,
@@ -6,7 +6,7 @@ import {
   PROVIDER_LABELS,
   type ProviderUsageSnapshot,
   type UsageWindow,
-} from "openclaw/plugin-sdk/provider-usage";
+} from "astroclaw/plugin-sdk/provider-usage";
 
 type CopilotUsageResponse = {
   quota_snapshots?: {

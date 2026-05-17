@@ -7,7 +7,7 @@ title: "Skills config"
 ---
 
 Most skills loader/install configuration lives under `skills` in
-`~/.openclaw/openclaw.json`. Agent-specific skill visibility lives under
+`~/.astroclaw/astroclaw.json`. Agent-specific skill visibility lives under
 `agents.defaults.skills` and `agents.list[].skills`.
 
 ```json5
@@ -84,7 +84,7 @@ Rules:
 
 ## Fields
 
-- Built-in skill roots always include `~/.openclaw/skills`, `~/.agents/skills`,
+- Built-in skill roots always include `~/.astroclaw/skills`, `~/.agents/skills`,
   `<workspace>/.agents/skills`, and `<workspace>/skills`.
 - `allowBundled`: optional allowlist for **bundled** skills only. When set, only
   bundled skills in the list are eligible (managed, agent, and workspace skills unaffected).
@@ -94,7 +94,7 @@ Rules:
   when the symlink lives outside that target root. Use this for intentional
   sibling-repo layouts such as
   `<workspace>/skills/manager -> ~/Projects/manager/skills`. Managed
-  `~/.openclaw/skills` and personal `~/.agents/skills` roots may follow
+  `~/.astroclaw/skills` and personal `~/.agents/skills` roots may follow
   skill-directory symlinks from local skill managers by default, but every
   `SKILL.md` still has to resolve inside its own skill directory.
 - `load.watch`: watch skill folders and refresh the skills snapshot (default: true).
@@ -103,7 +103,7 @@ Rules:
 - `install.nodeManager`: node installer preference (`npm` | `pnpm` | `yarn` | `bun`, default: npm).
   This only affects **skill installs**; the Gateway runtime should still be Node
   (Bun not recommended for WhatsApp/Telegram).
-  - `openclaw setup --node-manager` is narrower and currently accepts `npm`,
+  - `astroclaw setup --node-manager` is narrower and currently accepts `npm`,
     `pnpm`, or `bun`. Set `skills.install.nodeManager: "yarn"` manually if you
     want Yarn-backed skill installs.
 - `install.allowUploadedArchives`: allow trusted `operator.admin` Gateway
@@ -120,7 +120,7 @@ Rules:
 
 By default, workspace, project-agent, extra-dir, and bundled skill roots are
 containment boundaries. If a skill folder under `<workspace>/skills` is a
-symlink that resolves outside `<workspace>/skills`, OpenClaw skips it and logs
+symlink that resolves outside `<workspace>/skills`, Astroclaw skips it and logs
 `Skipping escaped skill path outside its configured root`.
 
 Keep the symlink layout and allow only the trusted target root:
@@ -140,7 +140,7 @@ With this config, a symlink such as
 `<workspace>/skills/manager -> ~/Projects/manager/skills` is accepted after
 realpath resolution. `extraDirs` also scans the sibling repo directly, while
 `allowSymlinkTargets` preserves the symlinked path for existing workspace-skill
-layouts. Managed `~/.openclaw/skills` and personal `~/.agents/skills`
+layouts. Managed `~/.astroclaw/skills` and personal `~/.agents/skills`
 directories already accept skill-directory symlinks because those roots are
 user-owned local skill-manager surfaces; per-skill `SKILL.md` containment still
 applies. Keep target entries narrow; do not point at broad roots such as `~` or
@@ -156,9 +156,9 @@ Per-skill fields:
 ## Notes
 
 - Keys under `entries` map to the skill name by default. If a skill defines
-  `metadata.openclaw.skillKey`, use that key instead.
+  `metadata.astroclaw.skillKey`, use that key instead.
 - Load precedence is `<workspace>/skills` → `<workspace>/.agents/skills` →
-  `~/.agents/skills` → `~/.openclaw/skills` → bundled skills →
+  `~/.agents/skills` → `~/.astroclaw/skills` → bundled skills →
   `skills.load.extraDirs`.
 - Changes to skills are picked up on the next agent turn when the watcher is enabled.
 

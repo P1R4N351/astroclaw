@@ -22,7 +22,7 @@ function writeModelsJson(agentDir: string, modelId: string): void {
 
 describe("discoverModels", () => {
   it("clears cached find results when the PI registry refreshes", () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-pi-models-"));
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-pi-models-"));
     writeModelsJson(agentDir, "old-model");
     const authStorage = discoverAuthStorage(agentDir, { skipCredentials: true });
     const registry = discoverModels(authStorage, agentDir, { normalizeModels: false });

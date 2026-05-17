@@ -1,10 +1,10 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ConfigFileSnapshot, ModelDefinitionConfig, OpenClawConfig } from "../config/types.js";
+import type { ConfigFileSnapshot, ModelDefinitionConfig, AstroclawConfig } from "../config/types.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import { buildTestConfigSnapshot } from "./test-helpers.config-snapshots.js";
 
 const applyPluginAutoEnable = vi.hoisted(() =>
-  vi.fn((params: { config: OpenClawConfig }) => ({
+  vi.fn((params: { config: AstroclawConfig }) => ({
     config: params.config,
     changes: [] as string[],
     autoEnabledReasons: {} as Record<string, string[]>,
@@ -64,11 +64,11 @@ vi.mock("../config/paths.js", () => ({
   get isNixMode() {
     return configMocks.isNixMode.value;
   },
-  resolveStateDir: vi.fn(() => "/tmp/openclaw-state"),
+  resolveStateDir: vi.fn(() => "/tmp/astroclaw-state"),
 }));
 
 vi.mock("../config/runtime-overrides.js", () => ({
-  applyConfigOverrides: vi.fn((config: OpenClawConfig) => config),
+  applyConfigOverrides: vi.fn((config: AstroclawConfig) => config),
 }));
 
 vi.mock("../config/mutate.js", () => ({
@@ -76,19 +76,19 @@ vi.mock("../config/mutate.js", () => ({
 }));
 
 vi.mock("../config/plugin-auto-enable.js", () => ({
-  applyPluginAutoEnable: (params: { config: OpenClawConfig }) => applyPluginAutoEnable(params),
+  applyPluginAutoEnable: (params: { config: AstroclawConfig }) => applyPluginAutoEnable(params),
 }));
 
 let loadGatewayStartupConfigSnapshot: typeof import("./server-startup-config.js").loadGatewayStartupConfigSnapshot;
 let configIo: typeof import("../config/io.js");
 let configMutate: typeof import("../config/mutate.js");
 
-const configPath = "/tmp/openclaw-startup-recovery.json";
+const configPath = "/tmp/astroclaw-startup-recovery.json";
 const validConfig = {
   gateway: {
     mode: "local",
   },
-} as OpenClawConfig;
+} as AstroclawConfig;
 
 function testModel(id: string, name: string): ModelDefinitionConfig {
   return {
@@ -110,7 +110,7 @@ function testModel(id: string, name: string): ModelDefinitionConfig {
 function buildSnapshot(params: {
   valid: boolean;
   raw: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 }): ConfigFileSnapshot {
   return buildTestConfigSnapshot({
     path: configPath,
@@ -118,7 +118,7 @@ function buildSnapshot(params: {
     raw: params.raw,
     parsed: params.config ?? null,
     valid: params.valid,
-    config: params.config ?? ({} as OpenClawConfig),
+    config: params.config ?? ({} as AstroclawConfig),
     issues: params.valid ? [] : [{ path: "gateway.mode", message: "Expected 'local' or 'remote'" }],
     legacyIssues: [],
   });
@@ -184,7 +184,7 @@ describe("gateway startup config validation", () => {
           browser: { enabled: false },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const runtimeConfig = {
       ...sourceConfig,
       plugins: {
@@ -200,7 +200,7 @@ describe("gateway startup config validation", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const snapshot = {
       ...buildTestConfigSnapshot({
         path: configPath,
@@ -303,13 +303,13 @@ describe("gateway startup config validation", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
     const autoEnabledConfig = {
       ...sourceConfig,
       channels: {
         telegram: { enabled: true },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
     const initialSnapshot = {
       ...buildTestConfigSnapshot({
         path: configPath,
@@ -385,13 +385,13 @@ describe("gateway startup config validation", () => {
         },
       },
       gateway: { mode: "local" },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
     const autoEnabledConfig = {
       ...sourceConfig,
       plugins: {
         allow: ["telegram"],
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
     const snapshot = {
       ...buildTestConfigSnapshot({
         path: configPath,
@@ -453,7 +453,7 @@ describe("gateway startup config validation", () => {
         log: { info: vi.fn(), warn: vi.fn() },
       }),
     ).rejects.toThrow(
-      `Invalid config at ${configPath}.\ngateway.mode: Expected 'local' or 'remote'\nRun "openclaw doctor --fix" to repair, then retry.\nIf startup is still blocked, inspect the adjacent .bak backup before restoring it manually.`,
+      `Invalid config at ${configPath}.\ngateway.mode: Expected 'local' or 'remote'\nRun "astroclaw doctor --fix" to repair, then retry.\nIf startup is still blocked, inspect the adjacent .bak backup before restoring it manually.`,
     );
   });
 
@@ -468,7 +468,7 @@ describe("gateway startup config validation", () => {
         heartbeat: { model: "anthropic/claude-3-5-haiku-20241022", every: "30m" },
       },
       valid: false,
-      config: {} as OpenClawConfig,
+      config: {} as AstroclawConfig,
       issues: [
         {
           path: "heartbeat",
@@ -528,12 +528,12 @@ describe("gateway startup config validation", () => {
             feishu: { enabled: true },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       issues: [
         {
           path: "plugins.entries.feishu",
           message:
-            "plugin feishu: plugin requires OpenClaw >=2026.4.23, but this host is 2026.4.22; skipping load",
+            "plugin feishu: plugin requires Astroclaw >=2026.4.23, but this host is 2026.4.22; skipping load",
         },
       ],
       legacyIssues: [],
@@ -575,7 +575,7 @@ describe("gateway startup config validation", () => {
             feishu: { enabled: true },
           },
         },
-      } as unknown as OpenClawConfig,
+      } as unknown as AstroclawConfig,
       issues: [
         {
           path: "gateway.mode",
@@ -626,7 +626,7 @@ describe("gateway startup config validation", () => {
           },
         },
       },
-    } as unknown as OpenClawConfig;
+    } as unknown as AstroclawConfig;
     const invalidSnapshot = buildTestConfigSnapshot({
       path: configPath,
       exists: true,

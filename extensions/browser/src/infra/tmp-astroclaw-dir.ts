@@ -1,1 +1,1 @@
-export { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+export { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";

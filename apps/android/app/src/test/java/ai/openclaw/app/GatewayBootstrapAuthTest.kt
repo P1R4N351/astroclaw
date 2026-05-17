@@ -1,14 +1,14 @@
-package ai.openclaw.app
+package ai.astroclaw.app
 
-import ai.openclaw.app.gateway.DeviceAuthStore
-import ai.openclaw.app.gateway.DeviceIdentityStore
-import ai.openclaw.app.gateway.GatewayEndpoint
-import ai.openclaw.app.gateway.GatewaySession
-import ai.openclaw.app.gateway.GatewayTlsProbeFailure
-import ai.openclaw.app.gateway.GatewayTlsProbeResult
-import ai.openclaw.app.node.InvokeDispatcher
-import ai.openclaw.app.protocol.OpenClawTalkCommand
-import ai.openclaw.app.voice.TalkModeManager
+import ai.astroclaw.app.gateway.DeviceAuthStore
+import ai.astroclaw.app.gateway.DeviceIdentityStore
+import ai.astroclaw.app.gateway.GatewayEndpoint
+import ai.astroclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.gateway.GatewayTlsProbeFailure
+import ai.astroclaw.app.gateway.GatewayTlsProbeResult
+import ai.astroclaw.app.node.InvokeDispatcher
+import ai.astroclaw.app.protocol.AstroclawTalkCommand
+import ai.astroclaw.app.voice.TalkModeManager
 import android.Manifest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
@@ -113,7 +113,7 @@ class GatewayBootstrapAuthTest {
     val app = RuntimeEnvironment.getApplication()
     val securePrefs =
       app.getSharedPreferences(
-        "openclaw.node.secure.test.${UUID.randomUUID()}",
+        "astroclaw.node.secure.test.${UUID.randomUUID()}",
         android.content.Context.MODE_PRIVATE,
       )
     val prefs = SecurePrefs(app, securePrefsOverride = securePrefs)
@@ -142,7 +142,7 @@ class GatewayBootstrapAuthTest {
       val app = RuntimeEnvironment.getApplication()
       val securePrefs =
         app.getSharedPreferences(
-          "openclaw.node.secure.test.${UUID.randomUUID()}",
+          "astroclaw.node.secure.test.${UUID.randomUUID()}",
           android.content.Context.MODE_PRIVATE,
         )
       val prefs = SecurePrefs(app, securePrefsOverride = securePrefs)
@@ -202,7 +202,7 @@ class GatewayBootstrapAuthTest {
     val app = RuntimeEnvironment.getApplication()
     val securePrefs =
       app.getSharedPreferences(
-        "openclaw.node.secure.test.${UUID.randomUUID()}",
+        "astroclaw.node.secure.test.${UUID.randomUUID()}",
         android.content.Context.MODE_PRIVATE,
       )
     val prefs = SecurePrefs(app, securePrefsOverride = securePrefs)
@@ -232,7 +232,7 @@ class GatewayBootstrapAuthTest {
       val runtime = NodeRuntime(app)
       val dispatcher = readField<InvokeDispatcher>(runtime, "invokeDispatcher")
 
-      val result = dispatcher.handleInvoke(OpenClawTalkCommand.PttStart.rawValue, null)
+      val result = dispatcher.handleInvoke(AstroclawTalkCommand.PttStart.rawValue, null)
 
       assertEquals("UNAVAILABLE", result.error?.code)
       assertEquals(VoiceCaptureMode.Off, runtime.voiceCaptureMode.value)

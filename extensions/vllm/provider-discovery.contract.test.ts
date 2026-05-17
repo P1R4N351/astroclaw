@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { describeVllmProviderDiscoveryContract } from "openclaw/plugin-sdk/provider-test-contracts";
+import { describeVllmProviderDiscoveryContract } from "astroclaw/plugin-sdk/provider-test-contracts";
 
 describeVllmProviderDiscoveryContract({
   load: () => import("./index.js"),

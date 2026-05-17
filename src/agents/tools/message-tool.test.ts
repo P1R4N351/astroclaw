@@ -4,14 +4,14 @@ import type { ChannelMessageCapability } from "../../channels/plugins/message-ca
 import type { ChannelMessageActionName, ChannelPlugin } from "../../channels/plugins/types.js";
 import type { MessageActionRunResult } from "../../infra/outbound/message-action-runner.js";
 type CreateMessageTool = typeof import("./message-tool.js").createMessageTool;
-type CreateOpenClawTools = typeof import("../openclaw-tools.js").createOpenClawTools;
+type CreateAstroclawTools = typeof import("../astroclaw-tools.js").createAstroclawTools;
 type ResetPluginRuntimeStateForTest =
   typeof import("../../plugins/runtime.js").resetPluginRuntimeStateForTest;
 type SetActivePluginRegistry = typeof import("../../plugins/runtime.js").setActivePluginRegistry;
 type CreateTestRegistry = typeof import("../../test-utils/channel-plugins.js").createTestRegistry;
 
 let createMessageTool: CreateMessageTool;
-let createOpenClawTools: CreateOpenClawTools;
+let createAstroclawTools: CreateAstroclawTools;
 let resetPluginRuntimeStateForTest: ResetPluginRuntimeStateForTest;
 let setActivePluginRegistry: SetActivePluginRegistry;
 let createTestRegistry: CreateTestRegistry;
@@ -141,7 +141,7 @@ function latestSecretResolveCall(): {
   };
 }
 
-const openClawToolsFactoryMocks = vi.hoisted(() => {
+const astroClawToolsFactoryMocks = vi.hoisted(() => {
   const tool = (name: string) => ({
     name,
     displaySummary: `${name} test stub`,
@@ -188,16 +188,16 @@ vi.mock("../../channels/plugins/message-tool-api.js", () => ({
 }));
 
 vi.mock("./agents-list-tool.js", () => ({
-  createAgentsListTool: () => openClawToolsFactoryMocks.tool("agents"),
+  createAgentsListTool: () => astroClawToolsFactoryMocks.tool("agents"),
 }));
 vi.mock("./cron-tool.js", () => ({
-  createCronTool: () => openClawToolsFactoryMocks.tool("cron"),
+  createCronTool: () => astroClawToolsFactoryMocks.tool("cron"),
 }));
 vi.mock("./gateway-tool.js", () => ({
-  createGatewayTool: () => openClawToolsFactoryMocks.tool("gateway"),
+  createGatewayTool: () => astroClawToolsFactoryMocks.tool("gateway"),
 }));
 vi.mock("./heartbeat-response-tool.js", () => ({
-  createHeartbeatResponseTool: () => openClawToolsFactoryMocks.tool("heartbeat_response"),
+  createHeartbeatResponseTool: () => astroClawToolsFactoryMocks.tool("heartbeat_response"),
 }));
 vi.mock("./image-generate-tool.js", () => ({
   createImageGenerateTool: () => null,
@@ -214,44 +214,44 @@ vi.mock("./music-generate-tool.js", () => ({
   createMusicGenerateTool: () => null,
 }));
 vi.mock("./nodes-tool.js", () => ({
-  createNodesTool: () => openClawToolsFactoryMocks.tool("nodes"),
+  createNodesTool: () => astroClawToolsFactoryMocks.tool("nodes"),
 }));
 vi.mock("./pdf-tool.js", () => ({
   createPdfTool: () => null,
 }));
 vi.mock("./session-status-tool.js", () => ({
-  createSessionStatusTool: () => openClawToolsFactoryMocks.tool("session_status"),
+  createSessionStatusTool: () => astroClawToolsFactoryMocks.tool("session_status"),
 }));
 vi.mock("./sessions-history-tool.js", () => ({
-  createSessionsHistoryTool: () => openClawToolsFactoryMocks.tool("sessions_history"),
+  createSessionsHistoryTool: () => astroClawToolsFactoryMocks.tool("sessions_history"),
 }));
 vi.mock("./sessions-list-tool.js", () => ({
-  createSessionsListTool: () => openClawToolsFactoryMocks.tool("sessions_list"),
+  createSessionsListTool: () => astroClawToolsFactoryMocks.tool("sessions_list"),
 }));
 vi.mock("./sessions-send-tool.js", () => ({
-  createSessionsSendTool: () => openClawToolsFactoryMocks.tool("sessions_send"),
+  createSessionsSendTool: () => astroClawToolsFactoryMocks.tool("sessions_send"),
 }));
 vi.mock("./sessions-spawn-tool.js", () => ({
-  createSessionsSpawnTool: () => openClawToolsFactoryMocks.tool("sessions_spawn"),
+  createSessionsSpawnTool: () => astroClawToolsFactoryMocks.tool("sessions_spawn"),
 }));
 vi.mock("./sessions-yield-tool.js", () => ({
-  createSessionsYieldTool: () => openClawToolsFactoryMocks.tool("sessions_yield"),
+  createSessionsYieldTool: () => astroClawToolsFactoryMocks.tool("sessions_yield"),
 }));
 vi.mock("./subagents-tool.js", () => ({
-  createSubagentsTool: () => openClawToolsFactoryMocks.tool("subagents"),
+  createSubagentsTool: () => astroClawToolsFactoryMocks.tool("subagents"),
 }));
 vi.mock("./tts-tool.js", () => ({
-  createTtsTool: () => openClawToolsFactoryMocks.tool("tts"),
+  createTtsTool: () => astroClawToolsFactoryMocks.tool("tts"),
 }));
 vi.mock("./update-plan-tool.js", () => ({
-  createUpdatePlanTool: () => openClawToolsFactoryMocks.tool("update_plan"),
+  createUpdatePlanTool: () => astroClawToolsFactoryMocks.tool("update_plan"),
 }));
 vi.mock("./video-generate-tool.js", () => ({
   createVideoGenerateTool: () => null,
 }));
 vi.mock("./web-tools.js", () => ({
-  createWebFetchTool: () => openClawToolsFactoryMocks.tool("web_fetch"),
-  createWebSearchTool: () => openClawToolsFactoryMocks.tool("web_search"),
+  createWebFetchTool: () => astroClawToolsFactoryMocks.tool("web_fetch"),
+  createWebSearchTool: () => astroClawToolsFactoryMocks.tool("web_search"),
 }));
 
 function mockSendResult(overrides: { channel?: string; to?: string } = {}) {
@@ -296,7 +296,7 @@ beforeAll(async () => {
     await import("../../plugins/runtime.js"));
   ({ createTestRegistry } = await import("../../test-utils/channel-plugins.js"));
   ({ createMessageTool } = await import("./message-tool.js"));
-  ({ createOpenClawTools } = await import("../openclaw-tools.js"));
+  ({ createAstroclawTools } = await import("../astroclaw-tools.js"));
 });
 
 beforeEach(() => {
@@ -396,8 +396,8 @@ describe("message tool secret scoping", () => {
     );
   });
 
-  it("forwards source reply delivery mode through createOpenClawTools", () => {
-    const tool = createOpenClawTools({
+  it("forwards source reply delivery mode through createAstroclawTools", () => {
+    const tool = createAstroclawTools({
       config: {} as never,
       sourceReplyDeliveryMode: "message_tool_only",
     }).find((candidate) => candidate.name === "message");
@@ -586,10 +586,10 @@ describe("message tool agent routing", () => {
     expect(call?.toolContext?.replyToMode).toBe("off");
   });
 
-  it("forwards agentThreadId through createOpenClawTools to the message tool", async () => {
+  it("forwards agentThreadId through createAstroclawTools to the message tool", async () => {
     mockSendResult({ channel: "slack", to: "channel:C123" });
 
-    const tool = createOpenClawTools({
+    const tool = createAstroclawTools({
       agentSessionKey: "agent:main:slack:channel:c123:thread:111.222",
       config: {} as never,
       agentChannel: "slack",

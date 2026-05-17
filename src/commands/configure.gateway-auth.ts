@@ -1,7 +1,7 @@
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
 import { resolveDefaultAgentWorkspaceDir } from "../agents/workspace.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { OpenClawConfig, GatewayAuthConfig } from "../config/config.js";
+import type { AstroclawConfig, GatewayAuthConfig } from "../config/config.js";
 import { isSecretRef, type SecretInput } from "../config/types.secrets.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
@@ -41,7 +41,7 @@ function sanitizeTokenValue(value: unknown): string | undefined {
 
 async function resolveProviderChoiceModelPrompt(params: {
   authChoice: string;
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): Promise<ProviderChoiceModelPrompt | undefined> {
@@ -68,7 +68,7 @@ async function resolveProviderChoiceModelPrompt(params: {
   };
 }
 
-function hasConfiguredProviderModels(cfg: OpenClawConfig, provider: string | undefined): boolean {
+function hasConfiguredProviderModels(cfg: AstroclawConfig, provider: string | undefined): boolean {
   if (!provider) {
     return false;
   }
@@ -81,7 +81,7 @@ function hasConfiguredProviderModels(cfg: OpenClawConfig, provider: string | und
   );
 }
 
-function hasStaticManifestCatalogRows(cfg: OpenClawConfig, provider: string | undefined): boolean {
+function hasStaticManifestCatalogRows(cfg: AstroclawConfig, provider: string | undefined): boolean {
   if (!provider) {
     return false;
   }
@@ -93,13 +93,13 @@ function hasStaticManifestCatalogRows(cfg: OpenClawConfig, provider: string | un
   );
 }
 
-function listConfiguredModelProviders(cfg: OpenClawConfig): string[] {
+function listConfiguredModelProviders(cfg: AstroclawConfig): string[] {
   return Object.entries(cfg.models?.providers ?? {})
     .filter(([, provider]) => (provider.models?.length ?? 0) > 0)
     .map(([provider]) => provider);
 }
 
-function resolveSingleConfiguredProvider(cfg: OpenClawConfig): string | undefined {
+function resolveSingleConfiguredProvider(cfg: AstroclawConfig): string | undefined {
   const configuredProviders = listConfiguredModelProviders(cfg);
   return configuredProviders.length === 1 ? configuredProviders[0] : undefined;
 }
@@ -111,8 +111,8 @@ function resolveProviderFromModelRef(model: string | undefined): string | undefi
 }
 
 function resolveConfiguredProviderFromAuthChange(params: {
-  before: OpenClawConfig;
-  after: OpenClawConfig;
+  before: AstroclawConfig;
+  after: AstroclawConfig;
   preferredProvider?: string;
 }): string | undefined {
   if (hasConfiguredProviderModels(params.after, params.preferredProvider)) {
@@ -169,7 +169,7 @@ export function buildGatewayAuthConfig(params: {
   if (params.mode === "trusted-proxy") {
     if (!params.trustedProxy) {
       throw new Error(
-        `trustedProxy config is required when mode is trusted-proxy. Run ${formatCliCommand("openclaw configure --section gateway")} to configure Gateway auth interactively.`,
+        `trustedProxy config is required when mode is trusted-proxy. Run ${formatCliCommand("astroclaw configure --section gateway")} to configure Gateway auth interactively.`,
       );
     }
     return { ...base, mode: "trusted-proxy", trustedProxy: params.trustedProxy };
@@ -178,10 +178,10 @@ export function buildGatewayAuthConfig(params: {
 }
 
 export async function promptAuthConfig(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
-): Promise<OpenClawConfig> {
+): Promise<AstroclawConfig> {
   let next = cfg;
   let authChoice: string = "skip";
   let preferredProvider: string | undefined;

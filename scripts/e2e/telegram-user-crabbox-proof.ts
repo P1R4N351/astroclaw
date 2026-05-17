@@ -133,7 +133,7 @@ const DEFAULT_SKILL_DIR = "~/.codex/skills/custom/telegram-e2e-bot-to-bot";
 const DEFAULT_CONVEX_ENV_FILE = `${DEFAULT_SKILL_DIR}/convex.local.env`;
 const DEFAULT_USER_DRIVER = "scripts/e2e/telegram-user-driver.py";
 const DEFAULT_OUTPUT_ROOT = ".artifacts/qa-e2e/telegram-user-crabbox";
-const REMOTE_ROOT = "/tmp/openclaw-telegram-user-crabbox";
+const REMOTE_ROOT = "/tmp/astroclaw-telegram-user-crabbox";
 const CREDENTIAL_SCRIPT = fileURLToPath(new URL("./telegram-user-credential.ts", import.meta.url));
 const TELEGRAM_PROOF_VIEW = {
   cropWidth: 520,
@@ -146,7 +146,7 @@ const TELEGRAM_PROOF_VIEW = {
 function usageText() {
   return [
     "Usage:",
-    "  node --import tsx scripts/e2e/telegram-user-crabbox-proof.ts [probe] [--text /status] [--expect OpenClaw]",
+    "  node --import tsx scripts/e2e/telegram-user-crabbox-proof.ts [probe] [--text /status] [--expect Astroclaw]",
     "  node --import tsx scripts/e2e/telegram-user-crabbox-proof.ts start [--tdlib-url <url>]",
     "  node --import tsx scripts/e2e/telegram-user-crabbox-proof.ts send --session <session.json> --text <text>",
     "  node --import tsx scripts/e2e/telegram-user-crabbox-proof.ts run --session <session.json> -- <remote command>",
@@ -171,7 +171,7 @@ function usageText() {
     "  --pr <number>                 Pull request number for publish.",
     "  --record-fps <fps>             Desktop recording frames per second. Default: 24.",
     "  --record-seconds <seconds>    Desktop video duration. Default: 35.",
-    "  --repo <owner/name>           GitHub repo for publish. Default: openclaw/openclaw.",
+    "  --repo <owner/name>           GitHub repo for publish. Default: astroclaw/astroclaw.",
     "  --session <path>              Session file from start. Default: <output-dir>/session.json.",
     "  --summary <text>              Artifact publish summary.",
     "  --full-artifacts              Publish all session artifacts. Default publishes only the motion GIF.",
@@ -226,23 +226,23 @@ function parseArgs(argv: string[]): Options {
   const opts: Options = {
     crabboxClass: "standard",
     command,
-    crabboxBin: trimToValue(process.env.OPENCLAW_TELEGRAM_USER_CRABBOX_BIN) ?? "crabbox",
+    crabboxBin: trimToValue(process.env.ASTROCLAW_TELEGRAM_USER_CRABBOX_BIN) ?? "crabbox",
     desktopChatTitle:
-      trimToValue(process.env.OPENCLAW_TELEGRAM_USER_DESKTOP_CHAT_TITLE) ?? "OpenClaw Testing",
+      trimToValue(process.env.ASTROCLAW_TELEGRAM_USER_DESKTOP_CHAT_TITLE) ?? "Astroclaw Testing",
     dryRun: false,
-    expect: ["OpenClaw"],
+    expect: ["Astroclaw"],
     gatewayPort: 19_879,
     idleTimeout: "60m",
     keepBox: false,
-    mockResponseText: "OPENCLAW_E2E_OK",
+    mockResponseText: "ASTROCLAW_E2E_OK",
     mockPort: 19_882,
     outputDir: path.join(DEFAULT_OUTPUT_ROOT, stamp),
     previewCropWidth: TELEGRAM_PROOF_VIEW.cropWidth,
     previewFps: 24,
     previewWidth: 1920,
-    provider: process.env.OPENCLAW_TELEGRAM_USER_CRABBOX_PROVIDER?.trim() || "aws",
+    provider: process.env.ASTROCLAW_TELEGRAM_USER_CRABBOX_PROVIDER?.trim() || "aws",
     publishFullArtifacts: false,
-    publishRepo: "openclaw/openclaw",
+    publishRepo: "astroclaw/astroclaw",
     recordFps: 24,
     recordSeconds: 35,
     remoteCommand: [],
@@ -251,7 +251,7 @@ function parseArgs(argv: string[]): Options {
     timeoutMs: 90_000,
     ttl: "120m",
     userDriverScript:
-      trimToValue(process.env.OPENCLAW_TELEGRAM_USER_DRIVER_SCRIPT) ?? DEFAULT_USER_DRIVER,
+      trimToValue(process.env.ASTROCLAW_TELEGRAM_USER_DRIVER_SCRIPT) ?? DEFAULT_USER_DRIVER,
   };
   const commandSeparator = argv.indexOf("--");
   if (command === "run" && commandSeparator >= 0) {
@@ -376,7 +376,7 @@ function repoRoot() {
     !fs.existsSync(path.join(cwd, "package.json")) ||
     !fs.existsSync(path.join(cwd, "scripts/e2e/mock-openai-server.mjs"))
   ) {
-    throw new Error("Run from the OpenClaw repo root.");
+    throw new Error("Run from the Astroclaw repo root.");
   }
   return cwd;
 }
@@ -426,8 +426,8 @@ function childProcessBaseEnv() {
     "LANG",
     "LC_ALL",
     "NODE_OPTIONS",
-    "OPENCLAW_BUILD_PRIVATE_QA",
-    "OPENCLAW_ENABLE_PRIVATE_QA_CLI",
+    "ASTROCLAW_BUILD_PRIVATE_QA",
+    "ASTROCLAW_ENABLE_PRIVATE_QA_CLI",
     "PATH",
     "PNPM_HOME",
     "SHELL",
@@ -460,9 +460,9 @@ function mockServerEnv(params: { mockPort: number; mockResponseText: string; req
 function gatewayEnv(params: { configPath: string; stateDir: string; sutToken: string }) {
   return {
     ...childProcessBaseEnv(),
-    OPENAI_API_KEY: "sk-openclaw-e2e-mock",
-    OPENCLAW_CONFIG_PATH: params.configPath,
-    OPENCLAW_STATE_DIR: params.stateDir,
+    OPENAI_API_KEY: "sk-astroclaw-e2e-mock",
+    ASTROCLAW_CONFIG_PATH: params.configPath,
+    ASTROCLAW_STATE_DIR: params.stateDir,
     TELEGRAM_BOT_TOKEN: params.sutToken,
   };
 }
@@ -712,12 +712,12 @@ function writeSutConfig(params: {
   outputDir: string;
   testerId: string;
 }) {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-tg-crabbox-sut-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-tg-crabbox-sut-"));
   const stateDir = path.join(tempRoot, "state");
   const workspace = path.join(tempRoot, "workspace");
   fs.mkdirSync(stateDir, { recursive: true });
   fs.mkdirSync(workspace, { recursive: true });
-  const configPath = path.join(tempRoot, "openclaw.json");
+  const configPath = path.join(tempRoot, "astroclaw.json");
   const config = {
     agents: {
       defaults: {
@@ -804,7 +804,7 @@ async function startLocalSut(params: {
   );
   const gateway = spawnLogged(
     "pnpm",
-    ["openclaw", "gateway", "--port", String(params.gatewayPort)],
+    ["astroclaw", "gateway", "--port", String(params.gatewayPort)],
     {
       cwd: params.repoRoot,
       env: gatewayEnv({ ...config, sutToken: params.sutToken }),
@@ -855,7 +855,7 @@ async function startLocalSutDaemon(params: {
 
   const gatewayPid = spawnDaemon({
     command: "pnpm",
-    args: ["openclaw", "gateway", "--port", String(params.gatewayPort)],
+    args: ["astroclaw", "gateway", "--port", String(params.gatewayPort)],
     cwd: params.repoRoot,
     env: gatewayEnv({ ...config, sutToken: params.sutToken }),
     logPath: gatewayLog,
@@ -1090,7 +1090,7 @@ tdlib_url=${tdlibUrl}
 mkdir -p "$root"
 tar -xzf "$root/state.tgz" -C "$root"
 sudo apt-get update -y
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl git cmake g++ make zlib1g-dev libssl-dev python3 ffmpeg scrot xz-utils tar wmctrl xdotool x11-utils libopengl0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxkbcommon-x11-0 >/tmp/openclaw-telegram-apt.log
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl git cmake g++ make zlib1g-dev libssl-dev python3 ffmpeg scrot xz-utils tar wmctrl xdotool x11-utils libopengl0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxkbcommon-x11-0 >/tmp/astroclaw-telegram-apt.log
 if ! command -v python3 >/dev/null 2>&1; then
   echo "python3 is required" >&2
   exit 127
@@ -1493,8 +1493,8 @@ async function startSession(root: string, opts: Options, outputDir: string) {
 
   const convexEnvFile = expandHome(opts.envFile ?? DEFAULT_CONVEX_ENV_FILE);
   const hasConvexEnv =
-    trimToValue(process.env.OPENCLAW_QA_CONVEX_SITE_URL) &&
-    trimToValue(process.env.OPENCLAW_QA_CONVEX_SECRET_CI);
+    trimToValue(process.env.ASTROCLAW_QA_CONVEX_SITE_URL) &&
+    trimToValue(process.env.ASTROCLAW_QA_CONVEX_SECRET_CI);
   if (!hasConvexEnv && !fs.existsSync(convexEnvFile)) {
     throw new Error(`Missing Convex env file: ${opts.envFile ?? DEFAULT_CONVEX_ENV_FILE}`);
   }
@@ -1902,7 +1902,7 @@ async function publishSessionArtifacts(root: string, opts: Options, outputDir: s
           ? "Telegram real-user Crabbox session artifacts"
           : "Telegram real-user Crabbox session motion GIF"),
       "--template",
-      "openclaw",
+      "astroclaw",
       ...(opts.dryRun ? ["--dry-run"] : []),
     ],
     cwd: root,
@@ -1959,7 +1959,7 @@ async function main() {
     return;
   }
 
-  const localRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-telegram-crabbox-"));
+  const localRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-telegram-crabbox-"));
   const summary: JsonObject = {
     artifacts: {},
     crabbox: { provider: opts.provider, target: opts.target },
@@ -1976,8 +1976,8 @@ async function main() {
   try {
     const convexEnvFile = expandHome(opts.envFile ?? DEFAULT_CONVEX_ENV_FILE);
     const hasConvexEnv =
-      trimToValue(process.env.OPENCLAW_QA_CONVEX_SITE_URL) &&
-      trimToValue(process.env.OPENCLAW_QA_CONVEX_SECRET_CI);
+      trimToValue(process.env.ASTROCLAW_QA_CONVEX_SITE_URL) &&
+      trimToValue(process.env.ASTROCLAW_QA_CONVEX_SECRET_CI);
     if (!hasConvexEnv && !fs.existsSync(convexEnvFile)) {
       throw new Error(`Missing Convex env file: ${opts.envFile ?? DEFAULT_CONVEX_ENV_FILE}`);
     }

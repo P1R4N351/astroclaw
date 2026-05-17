@@ -1,5 +1,5 @@
 ---
-summary: "Optional Docker-based setup and onboarding for OpenClaw"
+summary: "Optional Docker-based setup and onboarding for Astroclaw"
 read_when:
   - You want a containerized gateway instead of local installs
   - You are validating the Docker flow
@@ -10,7 +10,7 @@ Docker is **optional**. Use it only if you want a containerized gateway or to va
 
 ## Is Docker right for me?
 
-- **Yes**: you want an isolated, throwaway gateway environment or to run OpenClaw on a host without local installs.
+- **Yes**: you want an isolated, throwaway gateway environment or to run Astroclaw on a host without local installs.
 - **No**: you are running on your own machine and just want the fastest dev loop. Use the normal install flow instead.
 - **Sandboxing note**: the default sandbox backend uses Docker when sandboxing is enabled, but sandboxing is off by default and does **not** require the full gateway to run in Docker. SSH and OpenShell sandbox backends are also available. See [Sandboxing](/gateway/sandboxing).
 
@@ -36,12 +36,12 @@ Docker is **optional**. Use it only if you want a containerized gateway or to va
     This builds the gateway image locally. To use a pre-built image instead:
 
     ```bash
-    export OPENCLAW_IMAGE="ghcr.io/openclaw/openclaw:latest"
+    export ASTROCLAW_IMAGE="ghcr.io/astroclaw/astroclaw:latest"
     ./scripts/docker/setup.sh
     ```
 
     Pre-built images are published at the
-    [GitHub Container Registry](https://github.com/openclaw/openclaw/pkgs/container/openclaw).
+    [GitHub Container Registry](https://github.com/astroclaw/astroclaw/pkgs/container/astroclaw).
     Common tags: `main`, `latest`, `<version>` (e.g. `2026.2.26`).
 
   </Step>
@@ -55,7 +55,7 @@ Docker is **optional**. Use it only if you want a containerized gateway or to va
     - start the gateway via Docker Compose
 
     During setup, pre-start onboarding and config writes run through
-    `openclaw-gateway` directly. `openclaw-cli` is for commands you run after
+    `astroclaw-gateway` directly. `astroclaw-cli` is for commands you run after
     the gateway container already exists.
 
   </Step>
@@ -69,7 +69,7 @@ Docker is **optional**. Use it only if you want a containerized gateway or to va
     Need the URL again?
 
     ```bash
-    docker compose run --rm openclaw-cli dashboard --no-open
+    docker compose run --rm astroclaw-cli dashboard --no-open
     ```
 
   </Step>
@@ -79,13 +79,13 @@ Docker is **optional**. Use it only if you want a containerized gateway or to va
 
     ```bash
     # WhatsApp (QR)
-    docker compose run --rm openclaw-cli channels login
+    docker compose run --rm astroclaw-cli channels login
 
     # Telegram
-    docker compose run --rm openclaw-cli channels add --channel telegram --token "<token>"
+    docker compose run --rm astroclaw-cli channels add --channel telegram --token "<token>"
 
     # Discord
-    docker compose run --rm openclaw-cli channels add --channel discord --token "<token>"
+    docker compose run --rm astroclaw-cli channels add --channel discord --token "<token>"
     ```
 
     Docs: [WhatsApp](/channels/whatsapp), [Telegram](/channels/telegram), [Discord](/channels/discord)
@@ -98,24 +98,24 @@ Docker is **optional**. Use it only if you want a containerized gateway or to va
 If you prefer to run each step yourself instead of using the setup script:
 
 ```bash
-docker build -t openclaw:local -f Dockerfile .
-docker compose run --rm --no-deps --entrypoint node openclaw-gateway \
+docker build -t astroclaw:local -f Dockerfile .
+docker compose run --rm --no-deps --entrypoint node astroclaw-gateway \
   dist/index.js onboard --mode local --no-install-daemon
-docker compose run --rm --no-deps --entrypoint node openclaw-gateway \
+docker compose run --rm --no-deps --entrypoint node astroclaw-gateway \
   dist/index.js config set --batch-json '[{"path":"gateway.mode","value":"local"},{"path":"gateway.bind","value":"lan"},{"path":"gateway.controlUi.allowedOrigins","value":["http://localhost:18789","http://127.0.0.1:18789"]}]'
-docker compose up -d openclaw-gateway
+docker compose up -d astroclaw-gateway
 ```
 
 <Note>
-Run `docker compose` from the repo root. If you enabled `OPENCLAW_EXTRA_MOUNTS`
-or `OPENCLAW_HOME_VOLUME`, the setup script writes `docker-compose.extra.yml`;
+Run `docker compose` from the repo root. If you enabled `ASTROCLAW_EXTRA_MOUNTS`
+or `ASTROCLAW_HOME_VOLUME`, the setup script writes `docker-compose.extra.yml`;
 include it with `-f docker-compose.yml -f docker-compose.extra.yml`.
 </Note>
 
 <Note>
-Because `openclaw-cli` shares `openclaw-gateway`'s network namespace, it is a
-post-start tool. Before `docker compose up -d openclaw-gateway`, run onboarding
-and setup-time config writes through `openclaw-gateway` with
+Because `astroclaw-cli` shares `astroclaw-gateway`'s network namespace, it is a
+post-start tool. Before `docker compose up -d astroclaw-gateway`, run onboarding
+and setup-time config writes through `astroclaw-gateway` with
 `--no-deps --entrypoint node`.
 </Note>
 
@@ -125,26 +125,26 @@ The setup script accepts these optional environment variables:
 
 | Variable                                   | Purpose                                                         |
 | ------------------------------------------ | --------------------------------------------------------------- |
-| `OPENCLAW_IMAGE`                           | Use a remote image instead of building locally                  |
-| `OPENCLAW_DOCKER_APT_PACKAGES`             | Install extra apt packages during build (space-separated)       |
-| `OPENCLAW_EXTENSIONS`                      | Include selected bundled plugin helpers at build time           |
-| `OPENCLAW_EXTRA_MOUNTS`                    | Extra host bind mounts (comma-separated `source:target[:opts]`) |
-| `OPENCLAW_HOME_VOLUME`                     | Persist `/home/node` in a named Docker volume                   |
-| `OPENCLAW_SANDBOX`                         | Opt in to sandbox bootstrap (`1`, `true`, `yes`, `on`)          |
-| `OPENCLAW_SKIP_ONBOARDING`                 | Skip the interactive onboarding step (`1`, `true`, `yes`, `on`) |
-| `OPENCLAW_DOCKER_SOCKET`                   | Override Docker socket path                                     |
-| `OPENCLAW_DISABLE_BONJOUR`                 | Disable Bonjour/mDNS advertising (defaults to `1` for Docker)   |
-| `OPENCLAW_DISABLE_BUNDLED_SOURCE_OVERLAYS` | Disable bundled plugin source bind-mount overlays               |
+| `ASTROCLAW_IMAGE`                           | Use a remote image instead of building locally                  |
+| `ASTROCLAW_DOCKER_APT_PACKAGES`             | Install extra apt packages during build (space-separated)       |
+| `ASTROCLAW_EXTENSIONS`                      | Include selected bundled plugin helpers at build time           |
+| `ASTROCLAW_EXTRA_MOUNTS`                    | Extra host bind mounts (comma-separated `source:target[:opts]`) |
+| `ASTROCLAW_HOME_VOLUME`                     | Persist `/home/node` in a named Docker volume                   |
+| `ASTROCLAW_SANDBOX`                         | Opt in to sandbox bootstrap (`1`, `true`, `yes`, `on`)          |
+| `ASTROCLAW_SKIP_ONBOARDING`                 | Skip the interactive onboarding step (`1`, `true`, `yes`, `on`) |
+| `ASTROCLAW_DOCKER_SOCKET`                   | Override Docker socket path                                     |
+| `ASTROCLAW_DISABLE_BONJOUR`                 | Disable Bonjour/mDNS advertising (defaults to `1` for Docker)   |
+| `ASTROCLAW_DISABLE_BUNDLED_SOURCE_OVERLAYS` | Disable bundled plugin source bind-mount overlays               |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`              | Shared OTLP/HTTP collector endpoint for OpenTelemetry export    |
 | `OTEL_EXPORTER_OTLP_*_ENDPOINT`            | Signal-specific OTLP endpoints for traces, metrics, or logs     |
 | `OTEL_EXPORTER_OTLP_PROTOCOL`              | OTLP protocol override. Only `http/protobuf` is supported today |
 | `OTEL_SERVICE_NAME`                        | Service name used for OpenTelemetry resources                   |
 | `OTEL_SEMCONV_STABILITY_OPT_IN`            | Opt in to latest experimental GenAI semantic attributes         |
-| `OPENCLAW_OTEL_PRELOADED`                  | Skip starting a second OpenTelemetry SDK when one is preloaded  |
+| `ASTROCLAW_OTEL_PRELOADED`                  | Skip starting a second OpenTelemetry SDK when one is preloaded  |
 
 Maintainers can test bundled plugin source against a packaged image by mounting
 one plugin source directory over its packaged source path, for example
-`OPENCLAW_EXTRA_MOUNTS=/path/to/fork/extensions/synology-chat:/app/extensions/synology-chat:ro`.
+`ASTROCLAW_EXTRA_MOUNTS=/path/to/fork/extensions/synology-chat:/app/extensions/synology-chat:ro`.
 That mounted source directory overrides the matching compiled
 `/app/dist/extensions/synology-chat` bundle for the same plugin id.
 
@@ -156,23 +156,23 @@ locally and want the bundled OpenTelemetry exporter available inside the image,
 include its runtime dependencies:
 
 ```bash
-export OPENCLAW_EXTENSIONS="diagnostics-otel"
+export ASTROCLAW_EXTENSIONS="diagnostics-otel"
 export OTEL_EXPORTER_OTLP_ENDPOINT="http://otel-collector:4318"
-export OTEL_SERVICE_NAME="openclaw-gateway"
+export OTEL_SERVICE_NAME="astroclaw-gateway"
 ./scripts/docker/setup.sh
 ```
 
-Install the official `@openclaw/diagnostics-otel` plugin from ClawHub in
+Install the official `@astroclaw/diagnostics-otel` plugin from ClawHub in
 packaged Docker installs before enabling export. Custom source-built images can
 still include the local plugin source with
-`OPENCLAW_EXTENSIONS=diagnostics-otel`. To enable export, allow and enable the
+`ASTROCLAW_EXTENSIONS=diagnostics-otel`. To enable export, allow and enable the
 `diagnostics-otel` plugin in config, then set
 `diagnostics.otel.enabled=true` or use the config example in [OpenTelemetry
 export](/gateway/opentelemetry). Collector auth headers are configured through
 `diagnostics.otel.headers`, not through Docker environment variables.
 
 Prometheus metrics use the already-published Gateway port. Install
-`clawhub:@openclaw/diagnostics-prometheus`, enable the
+`clawhub:@astroclaw/diagnostics-prometheus`, enable the
 `diagnostics-prometheus` plugin, then scrape:
 
 ```text
@@ -199,12 +199,12 @@ orchestration systems can restart or replace it.
 Authenticated deep health snapshot:
 
 ```bash
-docker compose exec openclaw-gateway node dist/index.js health --token "$OPENCLAW_GATEWAY_TOKEN"
+docker compose exec astroclaw-gateway node dist/index.js health --token "$ASTROCLAW_GATEWAY_TOKEN"
 ```
 
 ### LAN vs loopback
 
-`scripts/docker/setup.sh` defaults `OPENCLAW_GATEWAY_BIND=lan` so host access to
+`scripts/docker/setup.sh` defaults `ASTROCLAW_GATEWAY_BIND=lan` so host access to
 `http://127.0.0.1:18789` works with Docker port publishing.
 
 - `lan` (default): host browser and host CLI can reach the published gateway port.
@@ -218,7 +218,7 @@ Use bind mode values in `gateway.bind` (`lan` / `loopback` / `custom` /
 
 ### Host Local Providers
 
-When OpenClaw runs in Docker, `127.0.0.1` inside the container is the container
+When Astroclaw runs in Docker, `127.0.0.1` inside the container is the container
 itself, not your host machine. Use `host.docker.internal` for AI providers that
 run on the host:
 
@@ -247,37 +247,37 @@ mapping yourself, for example
 
 Docker bridge networking usually does not forward Bonjour/mDNS multicast
 (`224.0.0.251:5353`) reliably. The bundled Compose setup therefore defaults
-`OPENCLAW_DISABLE_BONJOUR=1` so the Gateway does not crash-loop or repeatedly
+`ASTROCLAW_DISABLE_BONJOUR=1` so the Gateway does not crash-loop or repeatedly
 restart advertising when the bridge drops multicast traffic.
 
 Use the published Gateway URL, Tailscale, or wide-area DNS-SD for Docker hosts.
-Set `OPENCLAW_DISABLE_BONJOUR=0` only when running with host networking, macvlan,
+Set `ASTROCLAW_DISABLE_BONJOUR=0` only when running with host networking, macvlan,
 or another network where mDNS multicast is known to work.
 
 For gotchas and troubleshooting, see [Bonjour discovery](/gateway/bonjour).
 
 ### Storage and persistence
 
-Docker Compose bind-mounts `OPENCLAW_CONFIG_DIR` to `/home/node/.openclaw`,
-`OPENCLAW_WORKSPACE_DIR` to `/home/node/.openclaw/workspace`, and
-`OPENCLAW_AUTH_PROFILE_SECRET_DIR` to `/home/node/.config/openclaw`, so those
+Docker Compose bind-mounts `ASTROCLAW_CONFIG_DIR` to `/home/node/.astroclaw`,
+`ASTROCLAW_WORKSPACE_DIR` to `/home/node/.astroclaw/workspace`, and
+`ASTROCLAW_AUTH_PROFILE_SECRET_DIR` to `/home/node/.config/astroclaw`, so those
 paths survive container replacement. When any variable is unset, the bundled
 `docker-compose.yml` falls back under `${HOME}`, or `/tmp` when `HOME` itself is
 also missing. That keeps `docker compose up` from emitting an empty-source
 volume spec on bare environments.
 
-That mounted config directory is where OpenClaw keeps:
+That mounted config directory is where Astroclaw keeps:
 
-- `openclaw.json` for behavior config
+- `astroclaw.json` for behavior config
 - `agents/<agentId>/agent/auth-profiles.json` for stored provider OAuth/API-key auth
-- `.env` for env-backed runtime secrets such as `OPENCLAW_GATEWAY_TOKEN`
+- `.env` for env-backed runtime secrets such as `ASTROCLAW_GATEWAY_TOKEN`
 
 The auth-profile secret key directory stores the local encryption key used for
 OAuth-backed auth profile token material. Keep it with your Docker host state,
-but separate from `OPENCLAW_CONFIG_DIR`.
+but separate from `ASTROCLAW_CONFIG_DIR`.
 
 Installed downloadable plugins store their package state under the mounted
-OpenClaw home, so plugin install records and package roots survive container
+Astroclaw home, so plugin install records and package roots survive container
 replacement. Gateway startup does not generate bundled-plugin dependency trees.
 
 For full persistence details on VM deployments, see
@@ -285,14 +285,14 @@ For full persistence details on VM deployments, see
 
 **Disk growth hotspots:** watch `media/`, session JSONL files,
 `cron/runs/*.jsonl`, installed plugin package roots, and rolling file logs
-under `/tmp/openclaw/`.
+under `/tmp/astroclaw/`.
 
 ### Shell helpers (optional)
 
 For easier day-to-day Docker management, install `ClawDock`:
 
 ```bash
-mkdir -p ~/.clawdock && curl -sL https://raw.githubusercontent.com/openclaw/openclaw/main/scripts/clawdock/clawdock-helpers.sh -o ~/.clawdock/clawdock-helpers.sh
+mkdir -p ~/.clawdock && curl -sL https://raw.githubusercontent.com/astroclaw/astroclaw/main/scripts/clawdock/clawdock-helpers.sh -o ~/.clawdock/clawdock-helpers.sh
 echo 'source ~/.clawdock/clawdock-helpers.sh' >> ~/.zshrc && source ~/.zshrc
 ```
 
@@ -305,22 +305,22 @@ See [ClawDock](/install/clawdock) for the full helper guide.
 <AccordionGroup>
   <Accordion title="Enable agent sandbox for Docker gateway">
     ```bash
-    export OPENCLAW_SANDBOX=1
+    export ASTROCLAW_SANDBOX=1
     ./scripts/docker/setup.sh
     ```
 
     Custom socket path (e.g. rootless Docker):
 
     ```bash
-    export OPENCLAW_SANDBOX=1
-    export OPENCLAW_DOCKER_SOCKET=/run/user/1000/docker.sock
+    export ASTROCLAW_SANDBOX=1
+    export ASTROCLAW_DOCKER_SOCKET=/run/user/1000/docker.sock
     ./scripts/docker/setup.sh
     ```
 
     The script mounts `docker.sock` only after sandbox prerequisites pass. If
     sandbox setup cannot complete, the script resets `agents.defaults.sandbox.mode`
     to `off`. Codex code-mode turns are still constrained to Codex
-    `workspace-write` while the OpenClaw sandbox is active; do not mount the
+    `workspace-write` while the Astroclaw sandbox is active; do not mount the
     host Docker socket into agent sandbox containers.
 
   </Accordion>
@@ -329,23 +329,23 @@ See [ClawDock](/install/clawdock) for the full helper guide.
     Disable Compose pseudo-TTY allocation with `-T`:
 
     ```bash
-    docker compose run -T --rm openclaw-cli gateway probe
-    docker compose run -T --rm openclaw-cli devices list --json
+    docker compose run -T --rm astroclaw-cli gateway probe
+    docker compose run -T --rm astroclaw-cli devices list --json
     ```
 
   </Accordion>
 
   <Accordion title="Shared-network security note">
-    `openclaw-cli` uses `network_mode: "service:openclaw-gateway"` so CLI
+    `astroclaw-cli` uses `network_mode: "service:astroclaw-gateway"` so CLI
     commands can reach the gateway over `127.0.0.1`. Treat this as a shared
     trust boundary. The compose config drops `NET_RAW`/`NET_ADMIN` and enables
-    `no-new-privileges` on both `openclaw-gateway` and `openclaw-cli`.
+    `no-new-privileges` on both `astroclaw-gateway` and `astroclaw-cli`.
   </Accordion>
 
-  <Accordion title="Docker Desktop DNS failures in openclaw-cli">
+  <Accordion title="Docker Desktop DNS failures in astroclaw-cli">
     Some Docker Desktop setups fail DNS lookups from the shared-network
-    `openclaw-cli` sidecar after `NET_RAW` is dropped, which shows up as
-    `EAI_AGAIN` during npm-backed commands such as `openclaw plugins install`.
+    `astroclaw-cli` sidecar after `NET_RAW` is dropped, which shows up as
+    `EAI_AGAIN` during npm-backed commands such as `astroclaw plugins install`.
     Keep the default hardened compose file for normal gateway operation. The
     local override below loosens the CLI container's security posture by
     restoring Docker's default capabilities, so use it only for the one-off CLI
@@ -355,14 +355,14 @@ See [ClawDock](/install/clawdock) for the full helper guide.
     ```bash
     printf '%s\n' \
       'services:' \
-      '  openclaw-cli:' \
+      '  astroclaw-cli:' \
       '    cap_drop: !reset []' \
       > docker-compose.cli-no-dropped-caps.local.yml
 
-    docker compose -f docker-compose.yml -f docker-compose.cli-no-dropped-caps.local.yml run --rm openclaw-cli plugins install <package>
+    docker compose -f docker-compose.yml -f docker-compose.cli-no-dropped-caps.local.yml run --rm astroclaw-cli plugins install <package>
     ```
 
-    If you already created a long-running `openclaw-cli` container, recreate it
+    If you already created a long-running `astroclaw-cli` container, recreate it
     with the same override. `docker compose exec` and `docker exec` cannot
     change Linux capabilities on an already-created container.
 
@@ -370,10 +370,10 @@ See [ClawDock](/install/clawdock) for the full helper guide.
 
   <Accordion title="Permissions and EACCES">
     The image runs as `node` (uid 1000). If you see permission errors on
-    `/home/node/.openclaw`, make sure your host bind mounts are owned by uid 1000:
+    `/home/node/.astroclaw`, make sure your host bind mounts are owned by uid 1000:
 
     ```bash
-    sudo chown -R 1000:1000 /path/to/openclaw-config /path/to/openclaw-workspace
+    sudo chown -R 1000:1000 /path/to/astroclaw-config /path/to/astroclaw-workspace
     ```
 
     The same mismatch can show up as a plugin warning such as
@@ -381,8 +381,8 @@ See [ClawDock](/install/clawdock) for the full helper guide.
     followed by `plugin present but blocked`. That means the process uid and the
     mounted plugin directory owner disagree. Prefer running the container as the
     default uid 1000 and fixing the bind mount ownership. Only chown
-    `/path/to/openclaw-config/npm` to `root:root` if you intentionally run
-    OpenClaw as root long term.
+    `/path/to/astroclaw-config/npm` to `root:root` if you intentionally run
+    Astroclaw as root long term.
 
   </Accordion>
 
@@ -414,16 +414,16 @@ See [ClawDock](/install/clawdock) for the full helper guide.
     The default image is security-first and runs as non-root `node`. For a more
     full-featured container:
 
-    1. **Persist `/home/node`**: `export OPENCLAW_HOME_VOLUME="openclaw_home"`
-    2. **Bake system deps**: `export OPENCLAW_DOCKER_APT_PACKAGES="git curl jq"`
-    3. **Bake Playwright Chromium**: `export OPENCLAW_INSTALL_BROWSER=1`
+    1. **Persist `/home/node`**: `export ASTROCLAW_HOME_VOLUME="astroclaw_home"`
+    2. **Bake system deps**: `export ASTROCLAW_DOCKER_APT_PACKAGES="git curl jq"`
+    3. **Bake Playwright Chromium**: `export ASTROCLAW_INSTALL_BROWSER=1`
     4. **Or install Playwright browsers into a persisted volume**:
        ```bash
-       docker compose run --rm openclaw-cli \
+       docker compose run --rm astroclaw-cli \
          node /app/node_modules/playwright-core/cli.js install chromium
        ```
-    5. **Persist browser downloads**: use `OPENCLAW_HOME_VOLUME` or
-       `OPENCLAW_EXTRA_MOUNTS`. OpenClaw auto-detects the Docker image's
+    5. **Persist browser downloads**: use `ASTROCLAW_HOME_VOLUME` or
+       `ASTROCLAW_EXTRA_MOUNTS`. Astroclaw auto-detects the Docker image's
        Playwright-managed Chromium on Linux.
 
   </Accordion>
@@ -496,7 +496,7 @@ For npm installs without a source checkout, see [Sandboxing § Images and setup]
 <AccordionGroup>
   <Accordion title="Image missing or sandbox container not starting">
     Build the sandbox image with
-    [`scripts/sandbox-setup.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/sandbox-setup.sh)
+    [`scripts/sandbox-setup.sh`](https://github.com/astroclaw/astroclaw/blob/main/scripts/sandbox-setup.sh)
     (source checkout) or the inline `docker build` command from [Sandboxing § Images and setup](/gateway/sandboxing#images-and-setup) (npm install),
     or set `agents.defaults.sandbox.docker.image` to your custom image.
     Containers are auto-created per session on demand.
@@ -508,7 +508,7 @@ For npm installs without a source checkout, see [Sandboxing § Images and setup]
   </Accordion>
 
   <Accordion title="Custom tools not found in sandbox">
-    OpenClaw runs commands with `sh -lc` (login shell), which sources
+    Astroclaw runs commands with `sh -lc` (login shell), which sources
     `/etc/profile` and may reset PATH. Set `docker.env.PATH` to prepend your
     custom tool paths, or add a script under `/etc/profile.d/` in your Dockerfile.
   </Accordion>
@@ -521,9 +521,9 @@ For npm installs without a source checkout, see [Sandboxing § Images and setup]
     Fetch a fresh dashboard link and approve the browser device:
 
     ```bash
-    docker compose run --rm openclaw-cli dashboard --no-open
-    docker compose run --rm openclaw-cli devices list
-    docker compose run --rm openclaw-cli devices approve <requestId>
+    docker compose run --rm astroclaw-cli dashboard --no-open
+    docker compose run --rm astroclaw-cli devices list
+    docker compose run --rm astroclaw-cli devices approve <requestId>
     ```
 
     More detail: [Dashboard](/web/dashboard), [Devices](/cli/devices).
@@ -534,8 +534,8 @@ For npm installs without a source checkout, see [Sandboxing § Images and setup]
     Reset gateway mode and bind:
 
     ```bash
-    docker compose run --rm openclaw-cli config set --batch-json '[{"path":"gateway.mode","value":"local"},{"path":"gateway.bind","value":"lan"}]'
-    docker compose run --rm openclaw-cli devices list --url ws://127.0.0.1:18789
+    docker compose run --rm astroclaw-cli config set --batch-json '[{"path":"gateway.mode","value":"local"},{"path":"gateway.bind","value":"lan"}]'
+    docker compose run --rm astroclaw-cli devices list --url ws://127.0.0.1:18789
     ```
 
   </Accordion>
@@ -546,5 +546,5 @@ For npm installs without a source checkout, see [Sandboxing § Images and setup]
 - [Install Overview](/install) — all installation methods
 - [Podman](/install/podman) — Podman alternative to Docker
 - [ClawDock](/install/clawdock) — Docker Compose community setup
-- [Updating](/install/updating) — keeping OpenClaw up to date
+- [Updating](/install/updating) — keeping Astroclaw up to date
 - [Configuration](/gateway/configuration) — gateway configuration after install

@@ -30,7 +30,7 @@ function createRuntime(): RuntimeEnv {
 describe("exportTrajectoryCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.resolveDefaultSessionStorePath.mockReturnValue("/tmp/openclaw/sessions.json");
+    mocks.resolveDefaultSessionStorePath.mockReturnValue("/tmp/astroclaw/sessions.json");
     mocks.loadSessionStore.mockReturnValue({});
   });
 
@@ -40,7 +40,7 @@ describe("exportTrajectoryCommand", () => {
     await exportTrajectoryCommand({}, runtime);
 
     expect(runtime.error).toHaveBeenCalledWith(
-      "--session-key is required. Run openclaw sessions to choose a session.",
+      "--session-key is required. Run astroclaw sessions to choose a session.",
     );
     expect(runtime.exit).toHaveBeenCalledWith(1);
   });
@@ -63,7 +63,7 @@ describe("exportTrajectoryCommand", () => {
     await exportTrajectoryCommand({ sessionKey: "agent:main:telegram:direct:123" }, runtime);
 
     expect(runtime.error).toHaveBeenCalledWith(
-      "Session not found: agent:main:telegram:direct:123. Run openclaw sessions to see available sessions.",
+      "Session not found: agent:main:telegram:direct:123. Run astroclaw sessions to see available sessions.",
     );
     expect(runtime.exit).toHaveBeenCalledWith(1);
   });

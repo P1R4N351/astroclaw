@@ -2,7 +2,7 @@ import {
   createProviderHttpError,
   formatProviderHttpErrorMessage,
   readProviderJsonObjectResponse,
-} from "openclaw/plugin-sdk/provider-http";
+} from "astroclaw/plugin-sdk/provider-http";
 import {
   buildSearchCacheKey,
   buildUnsupportedSearchFilterResponse,
@@ -22,7 +22,7 @@ import {
   withTrustedWebSearchEndpoint,
   wrapWebContent,
   writeCachedSearchPayload,
-} from "openclaw/plugin-sdk/provider-web-search";
+} from "astroclaw/plugin-sdk/provider-web-search";
 import {
   resolveGeminiConfig,
   resolveGeminiBaseUrl,
@@ -113,7 +113,7 @@ function resolveGeminiTimeRangeFilter(
     return {
       error: "invalid_freshness",
       message: "freshness must be day, week, month, year, or the shortcuts pd, pw, pm, py.",
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
 
@@ -124,7 +124,7 @@ function resolveGeminiTimeRangeFilter(
       error: "conflicting_time_filters",
       message:
         "freshness and date_after/date_before cannot be used together. Use either freshness (day/week/month/year) or a date range (date_after/date_before), not both.",
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
 
@@ -305,7 +305,7 @@ export async function executeGeminiSearch(
       error: "missing_gemini_api_key",
       message:
         "web_search (gemini) needs an API key. Set GEMINI_API_KEY in the Gateway environment, configure plugins.entries.google.config.webSearch.apiKey, or reuse models.providers.google.apiKey. If you do not want to configure a search API key, use web_fetch for a specific URL or the browser tool for interactive pages.",
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
 

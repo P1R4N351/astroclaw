@@ -1,12 +1,12 @@
 import AppKit
 import Foundation
-import OpenClawProtocol
+import AstroclawProtocol
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite(.serialized)
 struct LowCoverageHelperTests {
-    private typealias ProtoAnyCodable = OpenClawProtocol.AnyCodable
+    private typealias ProtoAnyCodable = AstroclawProtocol.AnyCodable
 
     @Test func `any codable helper accessors`() throws {
         let payload: [String: ProtoAnyCodable] = [
@@ -171,7 +171,7 @@ struct LowCoverageHelperTests {
 
         #expect(PortGuardian._testIsExpected(
             command: "node",
-            fullCommand: "openclaw-gateway",
+            fullCommand: "astroclaw-gateway",
             port: 18789, mode: .local) == true)
 
         #expect(PortGuardian._testIsExpected(

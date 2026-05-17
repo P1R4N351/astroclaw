@@ -1,8 +1,8 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { openClawRootFs, openClawRootFsSync } from "./openclaw-root.fs.runtime.js";
+import { astroClawRootFs, astroClawRootFsSync } from "./astroclaw-root.fs.runtime.js";
 
-const CORE_PACKAGE_NAMES = new Set(["openclaw"]);
+const CORE_PACKAGE_NAMES = new Set(["astroclaw"]);
 const packageNameCache = new Map<string, string | null>();
 const packageRootCache = new Map<string, string | null>();
 const argv1CandidateCache = new Map<string, string[]>();
@@ -18,7 +18,7 @@ async function readPackageName(dir: string): Promise<string | null> {
     return packageNameCache.get(packageJsonPath) ?? null;
   }
   try {
-    const name = parsePackageName(await openClawRootFs.readFile(packageJsonPath, "utf-8"));
+    const name = parsePackageName(await astroClawRootFs.readFile(packageJsonPath, "utf-8"));
     packageNameCache.set(packageJsonPath, name);
     return name;
   } catch {
@@ -33,7 +33,7 @@ function readPackageNameSync(dir: string): string | null {
     return packageNameCache.get(packageJsonPath) ?? null;
   }
   try {
-    const name = parsePackageName(openClawRootFsSync.readFileSync(packageJsonPath, "utf-8"));
+    const name = parsePackageName(astroClawRootFsSync.readFileSync(packageJsonPath, "utf-8"));
     packageNameCache.set(packageJsonPath, name);
     return name;
   } catch {
@@ -86,7 +86,7 @@ function candidateDirsFromArgv1(argv1: string): string[] {
   // Resolve symlinks for version managers (nvm, fnm, n, Homebrew/Linuxbrew)
   // that create symlinks in bin/ pointing to the real package location.
   try {
-    const resolved = openClawRootFsSync.realpathSync(normalized);
+    const resolved = astroClawRootFsSync.realpathSync(normalized);
     if (resolved !== normalized) {
       candidates.push(path.dirname(resolved));
     }
@@ -106,7 +106,7 @@ function candidateDirsFromArgv1(argv1: string): string[] {
   return [...deduped];
 }
 
-export async function resolveOpenClawPackageRoot(opts: {
+export async function resolveAstroclawPackageRoot(opts: {
   cwd?: string;
   argv1?: string;
   moduleUrl?: string;
@@ -128,7 +128,7 @@ export async function resolveOpenClawPackageRoot(opts: {
   return null;
 }
 
-export function resolveOpenClawPackageRootSync(opts: {
+export function resolveAstroclawPackageRootSync(opts: {
   cwd?: string;
   argv1?: string;
   moduleUrl?: string;
@@ -189,7 +189,7 @@ function createPackageRootCacheKey(candidates: readonly string[]): string {
 }
 
 export const __testing = {
-  clearOpenClawPackageRootCaches(): void {
+  clearAstroclawPackageRootCaches(): void {
     packageNameCache.clear();
     packageRootCache.clear();
     argv1CandidateCache.clear();

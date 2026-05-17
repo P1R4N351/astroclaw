@@ -61,7 +61,7 @@ function readTrajectoryPointerFile(
       return null;
     }
     if (
-      parsed.traceSchema !== "openclaw-trajectory-pointer" ||
+      parsed.traceSchema !== "astroclaw-trajectory-pointer" ||
       parsed.schemaVersion !== 1 ||
       parsed.sessionId !== sessionId ||
       typeof parsed.runtimeFile !== "string" ||
@@ -116,7 +116,7 @@ function runtimeFileStartsWithSessionEvent(filePath: string, sessionId: string):
     const parsed: unknown = JSON.parse(firstLine);
     return (
       isRecord(parsed) &&
-      parsed.traceSchema === "openclaw-trajectory" &&
+      parsed.traceSchema === "astroclaw-trajectory" &&
       parsed.schemaVersion === 1 &&
       parsed.source === "runtime" &&
       parsed.sessionId === sessionId

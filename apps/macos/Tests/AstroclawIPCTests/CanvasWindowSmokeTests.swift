@@ -1,15 +1,15 @@
 import AppKit
 import Foundation
-import OpenClawIPC
+import AstroclawIPC
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite(.serialized)
 @MainActor
 struct CanvasWindowSmokeTests {
     @Test func `panel controller shows and hides`() async throws {
         let root = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-canvas-test-\(UUID().uuidString)")
+            .appendingPathComponent("astroclaw-canvas-test-\(UUID().uuidString)")
         try FileManager().createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager().removeItem(at: root) }
 
@@ -32,7 +32,7 @@ struct CanvasWindowSmokeTests {
 
     @Test func `window controller shows and closes`() throws {
         let root = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-canvas-test-\(UUID().uuidString)")
+            .appendingPathComponent("astroclaw-canvas-test-\(UUID().uuidString)")
         try FileManager().createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager().removeItem(at: root) }
 
@@ -49,7 +49,7 @@ struct CanvasWindowSmokeTests {
 
     @Test func `A2UI auto navigation is idempotent for current host target`() throws {
         let root = FileManager().temporaryDirectory
-            .appendingPathComponent("openclaw-canvas-test-\(UUID().uuidString)")
+            .appendingPathComponent("astroclaw-canvas-test-\(UUID().uuidString)")
         try FileManager().createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager().removeItem(at: root) }
 
@@ -59,9 +59,9 @@ struct CanvasWindowSmokeTests {
             presentation: .window)
         defer { controller.close() }
 
-        let oldTarget = "http://127.0.0.1:18789/__openclaw__/a2ui/?platform=macos"
-        let currentTarget = "http://127.0.0.1:18790/__openclaw__/a2ui/?platform=macos"
-        let userTarget = "https://github.com/openclaw/openclaw"
+        let oldTarget = "http://127.0.0.1:18789/__astroclaw__/a2ui/?platform=macos"
+        let currentTarget = "http://127.0.0.1:18790/__astroclaw__/a2ui/?platform=macos"
+        let userTarget = "https://github.com/astroclaw/astroclaw"
 
         #expect(controller.shouldAutoNavigateToA2UI(lastAutoTarget: nil, candidateTarget: currentTarget) == true)
 

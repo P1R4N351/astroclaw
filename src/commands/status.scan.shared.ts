@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import type { OpenClawConfig } from "../config/types.js";
+import type { AstroclawConfig } from "../config/types.js";
 import { buildGatewayConnectionDetailsWithResolvers } from "../gateway/connection-details.js";
 import { normalizeControlUiBasePath } from "../gateway/control-ui-shared.js";
 import { resolveGatewayProbeTarget } from "../gateway/probe-target.js";
@@ -70,7 +70,7 @@ type StatusMemorySearchManager = {
 };
 
 type StatusMemorySearchManagerResolver = (params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId: string;
   purpose: "status";
 }) => Promise<{
@@ -110,7 +110,7 @@ function shouldTryLocalStatusRpcFallback(params: {
 }
 
 async function applyLocalStatusRpcFallback(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   gatewayMode: "local" | "remote";
   gatewayUrl: string;
   gatewayProbe: GatewayProbeResult | null;
@@ -158,7 +158,7 @@ async function applyLocalStatusRpcFallback(params: {
   };
 }
 
-function hasExplicitMemorySearchConfig(cfg: OpenClawConfig, agentId: string): boolean {
+function hasExplicitMemorySearchConfig(cfg: AstroclawConfig, agentId: string): boolean {
   if (
     cfg.agents?.defaults &&
     Object.prototype.hasOwnProperty.call(cfg.agents.defaults, "memorySearch")
@@ -171,7 +171,7 @@ function hasExplicitMemorySearchConfig(cfg: OpenClawConfig, agentId: string): bo
   );
 }
 
-export function resolveMemoryPluginStatus(cfg: OpenClawConfig): MemoryPluginStatus {
+export function resolveMemoryPluginStatus(cfg: AstroclawConfig): MemoryPluginStatus {
   const pluginsEnabled = cfg.plugins?.enabled !== false;
   if (!pluginsEnabled) {
     return { enabled: false, slot: null, reason: "plugins disabled" };
@@ -184,7 +184,7 @@ export function resolveMemoryPluginStatus(cfg: OpenClawConfig): MemoryPluginStat
 }
 
 export async function resolveGatewayProbeSnapshot(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   opts: {
     timeoutMs?: number;
     all?: boolean;
@@ -283,10 +283,10 @@ export function buildTailscaleHttpsUrl(params: {
 }
 
 export async function resolveSharedMemoryStatusSnapshot(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentStatus: { defaultId?: string | null };
   memoryPlugin: MemoryPluginStatus;
-  resolveMemoryConfig: (cfg: OpenClawConfig, agentId: string) => { store: { path: string } } | null;
+  resolveMemoryConfig: (cfg: AstroclawConfig, agentId: string) => { store: { path: string } } | null;
   getMemorySearchManager: StatusMemorySearchManagerResolver;
   requireDefaultStore?: (agentId: string) => string | null;
 }): Promise<MemoryStatusSnapshot | null> {
@@ -322,7 +322,7 @@ export async function resolveSharedMemoryStatusSnapshot(params: {
 
 async function resolveMemoryManagerStatusSnapshot(
   params: {
-    cfg: OpenClawConfig;
+    cfg: AstroclawConfig;
     getMemorySearchManager: StatusMemorySearchManagerResolver;
   },
   agentId: string,

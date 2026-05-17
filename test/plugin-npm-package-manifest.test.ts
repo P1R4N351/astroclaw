@@ -76,10 +76,10 @@ function writePublishablePluginPackage(repoDir: string): string {
   const packageDir = join(repoDir, "extensions", "diffs");
   mkdirSync(packageDir, { recursive: true });
   writeJsonFile(join(packageDir, "package.json"), {
-    name: "@openclaw/diffs",
+    name: "@astroclaw/diffs",
     version: "2026.5.3",
     type: "module",
-    openclaw: {
+    astroclaw: {
       extensions: ["./index.ts"],
       setupEntry: "./setup-entry.ts",
       compat: {
@@ -90,7 +90,7 @@ function writePublishablePluginPackage(repoDir: string): string {
       },
     },
   });
-  writeJsonFile(join(packageDir, "openclaw.plugin.json"), { id: "diffs" });
+  writeJsonFile(join(packageDir, "astroclaw.plugin.json"), { id: "diffs" });
   writeFileText(join(packageDir, "README.md"), "# Diffs\n");
   writeFileText(join(packageDir, "SKILL.md"), "# Diffs Skill\n");
   writeFileText(join(packageDir, "skills", "diffs", "SKILL.md"), "# Diffs Skill\n");
@@ -99,7 +99,7 @@ function writePublishablePluginPackage(repoDir: string): string {
 
 describe("plugin npm package manifest staging", () => {
   it("overlays generated channel configs while packing and restores source manifest", () => {
-    const repoDir = makeTempRepoRoot(tempDirs, "openclaw-plugin-npm-package-manifest-");
+    const repoDir = makeTempRepoRoot(tempDirs, "astroclaw-plugin-npm-package-manifest-");
     const packageDir = join(repoDir, "extensions", "twitch");
     mkdirSync(packageDir, { recursive: true });
     const sourceManifest = {
@@ -111,7 +111,7 @@ describe("plugin npm package manifest staging", () => {
         properties: {},
       },
     };
-    writeJsonFile(join(packageDir, "openclaw.plugin.json"), sourceManifest);
+    writeJsonFile(join(packageDir, "astroclaw.plugin.json"), sourceManifest);
     writeGeneratedChannelMetadata(repoDir);
 
     const resolved = resolveAugmentedPluginNpmManifest({
@@ -142,18 +142,18 @@ describe("plugin npm package manifest staging", () => {
       },
     });
 
-    const originalText = readFileSync(join(packageDir, "openclaw.plugin.json"), "utf8");
+    const originalText = readFileSync(join(packageDir, "astroclaw.plugin.json"), "utf8");
     withAugmentedPluginNpmManifestForPackage({ repoRoot: repoDir, packageDir }, () => {
       const stagedManifest = JSON.parse(
-        readFileSync(join(packageDir, "openclaw.plugin.json"), "utf8"),
+        readFileSync(join(packageDir, "astroclaw.plugin.json"), "utf8"),
       );
       expect(stagedManifest.channelConfigs.twitch.description).toBe("Twitch chat integration");
     });
-    expect(readFileSync(join(packageDir, "openclaw.plugin.json"), "utf8")).toBe(originalText);
+    expect(readFileSync(join(packageDir, "astroclaw.plugin.json"), "utf8")).toBe(originalText);
   });
 
   it("overlays package-local runtime metadata while packing and restores source package json", () => {
-    const repoDir = makeTempRepoRoot(tempDirs, "openclaw-plugin-npm-package-runtime-");
+    const repoDir = makeTempRepoRoot(tempDirs, "astroclaw-plugin-npm-package-runtime-");
     const packageDir = writePublishablePluginPackage(repoDir);
     writeFileText(join(packageDir, "dist", "index.js"), "export {};\n");
     writeFileText(join(packageDir, "dist", "setup-entry.js"), "export {};\n");
@@ -164,19 +164,19 @@ describe("plugin npm package manifest staging", () => {
     });
     expect(resolved.changed).toBe(true);
     expect(resolved.packageJson).toEqual({
-      name: "@openclaw/diffs",
+      name: "@astroclaw/diffs",
       version: "2026.5.3",
       type: "module",
-      files: ["dist/**", "openclaw.plugin.json", "README.md", "SKILL.md", "skills/**"],
+      files: ["dist/**", "astroclaw.plugin.json", "README.md", "SKILL.md", "skills/**"],
       peerDependencies: {
-        openclaw: ">=2026.4.30",
+        astroclaw: ">=2026.4.30",
       },
       peerDependenciesMeta: {
-        openclaw: {
+        astroclaw: {
           optional: true,
         },
       },
-      openclaw: {
+      astroclaw: {
         extensions: ["./index.ts"],
         setupEntry: "./setup-entry.ts",
         compat: {
@@ -193,19 +193,19 @@ describe("plugin npm package manifest staging", () => {
     const originalText = readFileSync(join(packageDir, "package.json"), "utf8");
     withAugmentedPluginNpmManifestForPackage({ repoRoot: repoDir, packageDir }, () => {
       const stagedPackageJson = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
-      expect(stagedPackageJson.openclaw.extensions).toEqual(["./index.ts"]);
-      expect(stagedPackageJson.openclaw.runtimeExtensions).toEqual(["./dist/index.js"]);
-      expect(stagedPackageJson.openclaw.runtimeSetupEntry).toBe("./dist/setup-entry.js");
+      expect(stagedPackageJson.astroclaw.extensions).toEqual(["./index.ts"]);
+      expect(stagedPackageJson.astroclaw.runtimeExtensions).toEqual(["./dist/index.js"]);
+      expect(stagedPackageJson.astroclaw.runtimeSetupEntry).toBe("./dist/setup-entry.js");
       expect(stagedPackageJson.files).toContain("dist/**");
       expect(stagedPackageJson.files).toContain("skills/**");
-      expect(stagedPackageJson.peerDependencies.openclaw).toBe(">=2026.4.30");
-      expect(stagedPackageJson.peerDependenciesMeta.openclaw.optional).toBe(true);
+      expect(stagedPackageJson.peerDependencies.astroclaw).toBe(">=2026.4.30");
+      expect(stagedPackageJson.peerDependenciesMeta.astroclaw.optional).toBe(true);
     });
     expect(readFileSync(join(packageDir, "package.json"), "utf8")).toBe(originalText);
   });
 
   it("refuses to pack publishable plugins before package-local runtime files exist", () => {
-    const repoDir = makeTempRepoRoot(tempDirs, "openclaw-plugin-npm-package-runtime-missing-");
+    const repoDir = makeTempRepoRoot(tempDirs, "astroclaw-plugin-npm-package-runtime-missing-");
     const packageDir = writePublishablePluginPackage(repoDir);
 
     expect(() =>
@@ -219,16 +219,16 @@ describe("plugin npm package manifest staging", () => {
   });
 
   it("refuses package file rules that omit advertised package-local runtime files", () => {
-    const repoDir = makeTempRepoRoot(tempDirs, "openclaw-plugin-npm-package-runtime-excluded-");
+    const repoDir = makeTempRepoRoot(tempDirs, "astroclaw-plugin-npm-package-runtime-excluded-");
     const packageDir = writePublishablePluginPackage(repoDir);
     writeFileText(join(packageDir, "dist", "index.js"), "export {};\n");
     writeFileText(join(packageDir, "dist", "setup-entry.js"), "export {};\n");
     writeJsonFile(join(packageDir, "package.json"), {
-      name: "@openclaw/diffs",
+      name: "@astroclaw/diffs",
       version: "2026.5.3",
       type: "module",
       files: ["dist/**", "!dist/setup-entry.js"],
-      openclaw: {
+      astroclaw: {
         extensions: ["./index.ts"],
         setupEntry: "./setup-entry.ts",
         compat: {

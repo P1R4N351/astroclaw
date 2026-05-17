@@ -11,8 +11,8 @@ const NIX_STORE_ROOT = "/nix/store";
 // before loading plugin code.
 //
 // Two roots are allowed:
-// - bundled: plugins shipped with OpenClaw itself, not user-installed code.
-// - /nix/store in OPENCLAW_NIX_MODE: immutable Nix package outputs, where
+// - bundled: plugins shipped with Astroclaw itself, not user-installed code.
+// - /nix/store in ASTROCLAW_NIX_MODE: immutable Nix package outputs, where
 //   hardlinked files are normal package-store layout rather than user mutation.
 export function isNixStorePluginRoot(
   rootDir: string,

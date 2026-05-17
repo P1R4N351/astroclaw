@@ -29,7 +29,7 @@ The machine-readable pack metadata lives in
 pack selector, so run the scenarios explicitly:
 
 ```bash
-OPENCLAW_ENABLE_PRIVATE_QA_CLI=1 pnpm openclaw qa suite \
+ASTROCLAW_ENABLE_PRIVATE_QA_CLI=1 pnpm astroclaw qa suite \
   --provider-mode mock-openai \
   --scenario personal-reminder-roundtrip \
   --scenario personal-channel-thread-reply \
@@ -47,7 +47,7 @@ accounts.
 
 The scenarios use only fake users, fake preferences, fake secrets, and the
 temporary QA gateway workspace created by the suite. They must not read or write
-real OpenClaw user memory, sessions, credentials, launch agents, global configs,
+real Astroclaw user memory, sessions, credentials, launch agents, global configs,
 or live gateway state.
 
 Artifacts stay under the existing QA suite artifact directory and should be

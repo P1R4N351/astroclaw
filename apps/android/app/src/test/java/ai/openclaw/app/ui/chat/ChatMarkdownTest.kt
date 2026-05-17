@@ -1,4 +1,4 @@
-package ai.openclaw.app.ui.chat
+package ai.astroclaw.app.ui.chat
 
 import androidx.compose.ui.text.LinkAnnotation
 import org.junit.Assert.assertEquals
@@ -22,14 +22,14 @@ class ChatMarkdownTest {
 
   @Test
   fun markdownLinksUseLabelTextAndDestinationUrl() {
-    val annotated = buildChatInlineMarkdown("Open [docs](https://docs.openclaw.ai/help/testing) now")
+    val annotated = buildChatInlineMarkdown("Open [docs](https://docs.astroclaw.ai/help/testing) now")
 
     assertEquals("Open docs now", annotated.text)
     val links = annotated.getLinkAnnotations(0, annotated.length)
     assertEquals(1, links.size)
     assertEquals(5, links.single().start)
     assertEquals(9, links.single().end)
-    assertEquals("https://docs.openclaw.ai/help/testing", (links.single().item as LinkAnnotation.Url).url)
+    assertEquals("https://docs.astroclaw.ai/help/testing", (links.single().item as LinkAnnotation.Url).url)
   }
 
   @Test

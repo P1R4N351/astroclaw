@@ -1,8 +1,8 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 import os
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct GatewayConnectionTests {
     private func makeConnection(

@@ -16,7 +16,7 @@ import {
   type AcpRuntimeOptions,
   type AcpRuntimeStatus,
 } from "acpx/runtime";
-import { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
+import { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
 import { AcpRuntimeError, type AcpRuntime, type AcpRuntimeErrorCode } from "../runtime-api.js";
 import {
   createAcpxProcessLeaseId,
@@ -26,8 +26,8 @@ import {
   type AcpxProcessLeaseStore,
 } from "./process-lease.js";
 import {
-  cleanupOpenClawOwnedAcpxProcessTree,
-  isOpenClawLeaseAwareAcpxProcessCommand,
+  cleanupAstroclawOwnedAcpxProcessTree,
+  isAstroclawLeaseAwareAcpxProcessCommand,
   type AcpxProcessCleanupDeps,
 } from "./process-reaper.js";
 
@@ -35,13 +35,13 @@ type AcpSessionStore = AcpRuntimeOptions["sessionStore"];
 type AcpSessionRecord = Parameters<AcpSessionStore["save"]>[0];
 type AcpLoadedSessionRecord = Awaited<ReturnType<AcpSessionStore["load"]>>;
 type BaseAcpxRuntimeTestOptions = ConstructorParameters<typeof BaseAcpxRuntime>[1];
-type OpenClawAcpxRuntimeOptions = AcpRuntimeOptions & {
-  openclawWrapperRoot?: string;
-  openclawGatewayInstanceId?: string;
-  openclawProcessLeaseStore?: AcpxProcessLeaseStore;
+type AstroclawAcpxRuntimeOptions = AcpRuntimeOptions & {
+  astroclawWrapperRoot?: string;
+  astroclawGatewayInstanceId?: string;
+  astroclawProcessLeaseStore?: AcpxProcessLeaseStore;
 };
 type AcpxRuntimeTestOptions = Record<string, unknown> & {
-  openclawProcessCleanup?: AcpxProcessCleanupDeps;
+  astroclawProcessCleanup?: AcpxProcessCleanupDeps;
 };
 
 type ResetAwareSessionStore = AcpSessionStore & {
@@ -152,12 +152,12 @@ function readRecordAgentPid(record: unknown): number | undefined {
   return numericPid && Number.isInteger(numericPid) && numericPid > 0 ? numericPid : undefined;
 }
 
-function readOpenClawLeaseIdFromRecord(record: unknown): string | undefined {
+function readAstroclawLeaseIdFromRecord(record: unknown): string | undefined {
   if (typeof record !== "object" || record === null) {
     return undefined;
   }
-  const { openclawLeaseId } = record as { openclawLeaseId?: unknown };
-  return typeof openclawLeaseId === "string" ? openclawLeaseId.trim() || undefined : undefined;
+  const { astroclawLeaseId } = record as { astroclawLeaseId?: unknown };
+  return typeof astroclawLeaseId === "string" ? astroclawLeaseId.trim() || undefined : undefined;
 }
 
 function extractGeneratedWrapperPath(command: string | undefined): string {
@@ -221,8 +221,8 @@ function createResetAwareSessionStore(
       }
       return {
         ...(record as Record<string, unknown>),
-        openclawLeaseId: lease.leaseId,
-        openclawGatewayInstanceId: lease.gatewayInstanceId,
+        astroclawLeaseId: lease.leaseId,
+        astroclawGatewayInstanceId: lease.gatewayInstanceId,
       } as AcpLoadedSessionRecord;
     },
     async save(record: AcpSessionRecord): Promise<void> {
@@ -256,8 +256,8 @@ function createResetAwareSessionStore(
           // ACPX uses agentCommand as reuse identity. Lease metadata belongs to
           // our sidecar record, so keep the persisted command stable.
           agentCommand: stableAgentCommand,
-          openclawLeaseId: launch.leaseId,
-          openclawGatewayInstanceId: launch.gatewayInstanceId,
+          astroclawLeaseId: launch.leaseId,
+          astroclawGatewayInstanceId: launch.gatewayInstanceId,
         } as AcpSessionRecord;
       }
       await baseStore.save(recordToSave);
@@ -274,10 +274,10 @@ function createResetAwareSessionStore(
   };
 }
 
-const OPENCLAW_BRIDGE_EXECUTABLE = "openclaw";
-const OPENCLAW_BRIDGE_SUBCOMMAND = "acp";
+const ASTROCLAW_BRIDGE_EXECUTABLE = "astroclaw";
+const ASTROCLAW_BRIDGE_SUBCOMMAND = "acp";
 const CODEX_ACP_AGENT_ID = "codex";
-const CODEX_ACP_OPENCLAW_PREFIX = "openai-codex/";
+const CODEX_ACP_ASTROCLAW_PREFIX = "openai-codex/";
 const CODEX_ACP_REASONING_EFFORTS = new Set(["low", "medium", "high", "xhigh"]);
 const CODEX_ACP_THINKING_ALIASES = new Map<string, string | undefined>([
   ["off", undefined],
@@ -436,19 +436,19 @@ function isAcpCommand(
   return scriptName === params.executableName || scriptName === `${params.executableName}-wrapper`;
 }
 
-function isOpenClawBridgeCommand(command: string | undefined): boolean {
+function isAstroclawBridgeCommand(command: string | undefined): boolean {
   if (!command) {
     return false;
   }
   const parts = unwrapEnvCommand(splitCommandParts(command.trim()));
-  if (basename(parts[0] ?? "") === OPENCLAW_BRIDGE_EXECUTABLE) {
-    return parts[1] === OPENCLAW_BRIDGE_SUBCOMMAND;
+  if (basename(parts[0] ?? "") === ASTROCLAW_BRIDGE_EXECUTABLE) {
+    return parts[1] === ASTROCLAW_BRIDGE_SUBCOMMAND;
   }
   if (basename(parts[0] ?? "") !== "node") {
     return false;
   }
   const scriptName = basename(parts[1] ?? "");
-  return /^openclaw(?:\.[cm]?js)?$/i.test(scriptName) && parts[2] === OPENCLAW_BRIDGE_SUBCOMMAND;
+  return /^astroclaw(?:\.[cm]?js)?$/i.test(scriptName) && parts[2] === ASTROCLAW_BRIDGE_SUBCOMMAND;
 }
 
 function isCodexAcpCommand(command: string | undefined): boolean {
@@ -476,7 +476,7 @@ function failUnsupportedCodexAcpModel(rawModel: string, detail?: string): never 
 // acpx's `decodeAcpxRuntimeHandleState` only accepts `persistent` and `oneshot`; any other
 // value silently round-trips through the encoded handle as `persistent` and later throws
 // `SessionResumeRequiredError` on agent restart. Fail fast at this boundary instead.
-// See openclaw/openclaw#73071.
+// See astroclaw/astroclaw#73071.
 const SUPPORTED_RUNTIME_SESSION_MODES = new Set(["persistent", "oneshot"] as const);
 const WIRE_TIMEOUT_CONFIG_KEYS = new Set(["timeout", "timeout_seconds"]);
 
@@ -523,8 +523,8 @@ function normalizeCodexAcpModelOverride(
   }
 
   let value = raw;
-  if (value.toLowerCase().startsWith(CODEX_ACP_OPENCLAW_PREFIX)) {
-    value = value.slice(CODEX_ACP_OPENCLAW_PREFIX.length);
+  if (value.toLowerCase().startsWith(CODEX_ACP_ASTROCLAW_PREFIX)) {
+    value = value.slice(CODEX_ACP_ASTROCLAW_PREFIX.length);
   }
   const parts = value.split("/");
   if (parts.length > 2) {
@@ -628,7 +628,7 @@ function resolveAgentCommandForName(params: {
 }
 
 function shouldUseBridgeSafeDelegateForCommand(command: string | undefined): boolean {
-  return isOpenClawBridgeCommand(command);
+  return isAstroclawBridgeCommand(command);
 }
 
 function shouldUseDistinctBridgeDelegate(options: AcpRuntimeOptions): boolean {
@@ -653,12 +653,12 @@ export class AcpxRuntime implements AcpRuntime {
   private readonly launchLeaseScope = new AsyncLocalStorage<AcpxLaunchLeaseContext | undefined>();
   private readonly cwd: string;
 
-  constructor(options: OpenClawAcpxRuntimeOptions, testOptions?: AcpxRuntimeTestOptions) {
-    const { openclawProcessCleanup, ...delegateTestOptions } = testOptions ?? {};
-    this.processCleanupDeps = openclawProcessCleanup;
-    this.wrapperRoot = options.openclawWrapperRoot;
-    this.gatewayInstanceId = options.openclawGatewayInstanceId;
-    this.processLeaseStore = options.openclawProcessLeaseStore;
+  constructor(options: AstroclawAcpxRuntimeOptions, testOptions?: AcpxRuntimeTestOptions) {
+    const { astroclawProcessCleanup, ...delegateTestOptions } = testOptions ?? {};
+    this.processCleanupDeps = astroclawProcessCleanup;
+    this.wrapperRoot = options.astroclawWrapperRoot;
+    this.gatewayInstanceId = options.astroclawGatewayInstanceId;
+    this.processLeaseStore = options.astroclawProcessLeaseStore;
     this.cwd = options.cwd;
     this.sessionStore = createResetAwareSessionStore(options.sessionStore, {
       gatewayInstanceId: this.gatewayInstanceId,
@@ -785,7 +785,7 @@ export class AcpxRuntime implements AcpRuntime {
       !this.wrapperRoot ||
       !this.gatewayInstanceId ||
       !this.processLeaseStore ||
-      !isOpenClawLeaseAwareAcpxProcessCommand({
+      !isAstroclawLeaseAwareAcpxProcessCommand({
         command: params.command,
         wrapperRoot: this.wrapperRoot,
       })
@@ -845,7 +845,7 @@ export class AcpxRuntime implements AcpRuntime {
     );
     return readCodexWrapperStderrTail({
       wrapperRoot: this.wrapperRoot,
-      leaseId: readOpenClawLeaseIdFromRecord(record),
+      leaseId: readAstroclawLeaseIdFromRecord(record),
     });
   }
 
@@ -853,7 +853,7 @@ export class AcpxRuntime implements AcpRuntime {
     handle: AcpRuntimeHandle,
     record: AcpLoadedSessionRecord,
   ): Promise<void> {
-    const leaseId = readOpenClawLeaseIdFromRecord(record);
+    const leaseId = readAstroclawLeaseIdFromRecord(record);
     const rootPid = readAgentPidFromRecord(record);
     const sessionKeys = [handle.sessionKey, readSessionRecordName(record)];
     const openLeases =
@@ -876,7 +876,7 @@ export class AcpxRuntime implements AcpRuntime {
         : undefined);
     if (lease && lease.gatewayInstanceId === this.gatewayInstanceId && lease.rootPid > 0) {
       await this.processLeaseStore?.markState(lease.leaseId, "closing");
-      const result = await cleanupOpenClawOwnedAcpxProcessTree({
+      const result = await cleanupAstroclawOwnedAcpxProcessTree({
         rootPid: lease.rootPid,
         rootCommand: readAgentCommandFromRecord(record),
         expectedLeaseId: lease.leaseId,
@@ -902,7 +902,7 @@ export class AcpxRuntime implements AcpRuntime {
     if (!rootPid || !rootCommand) {
       return;
     }
-    await cleanupOpenClawOwnedAcpxProcessTree({
+    await cleanupAstroclawOwnedAcpxProcessTree({
       rootPid,
       rootCommand,
       wrapperRoot: this.wrapperRoot,

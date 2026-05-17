@@ -94,7 +94,7 @@ describe("printDaemonStatus", () => {
           notLoadedText: "not loaded",
           runtime: { status: "running", pid: 8000 },
         },
-        logFile: "/tmp/openclaw.log",
+        logFile: "/tmp/astroclaw.log",
         gateway: {
           bindMode: "loopback",
           bindHost: "127.0.0.1",
@@ -123,7 +123,7 @@ describe("printDaemonStatus", () => {
     );
 
     expectMockLineContains(runtime.error, "Gateway runtime PID does not own the listening port");
-    expectMockLineContains(runtime.error, formatCliCommand("openclaw gateway restart"));
+    expectMockLineContains(runtime.error, formatCliCommand("astroclaw gateway restart"));
   });
 
   it("prints stale updater launchd job guidance", () => {
@@ -137,7 +137,7 @@ describe("printDaemonStatus", () => {
           runtime: { status: "running", pid: 8000 },
           staleUpdateLaunchdJobs: [
             {
-              label: "ai.openclaw.update.2026.5.12",
+              label: "ai.astroclaw.update.2026.5.12",
               lastExitStatus: 127,
             },
           ],
@@ -154,10 +154,10 @@ describe("printDaemonStatus", () => {
       { json: false },
     );
 
-    expectMockLineContains(runtime.error, "Stale OpenClaw updater launchd job(s) detected.");
-    expectMockLineContains(runtime.error, "ai.openclaw.update.2026.5.12");
+    expectMockLineContains(runtime.error, "Stale Astroclaw updater launchd job(s) detected.");
+    expectMockLineContains(runtime.error, "ai.astroclaw.update.2026.5.12");
     expectMockLineContains(runtime.error, "launchctl remove <label>");
-    expectMockLineContains(runtime.error, formatCliCommand("openclaw gateway restart"));
+    expectMockLineContains(runtime.error, formatCliCommand("astroclaw gateway restart"));
   });
 
   it("prints probe kind and capability separately", () => {
@@ -197,7 +197,7 @@ describe("printDaemonStatus", () => {
       {
         cli: {
           version: "2026.4.23",
-          entrypoint: "/usr/local/bin/openclaw",
+          entrypoint: "/usr/local/bin/astroclaw",
         },
         service: {
           label: "LaunchAgent",
@@ -225,12 +225,12 @@ describe("printDaemonStatus", () => {
       { json: false },
     );
 
-    expectMockLineContains(runtime.log, "CLI version: 2026.4.23 (/usr/local/bin/openclaw)");
+    expectMockLineContains(runtime.log, "CLI version: 2026.4.23 (/usr/local/bin/astroclaw)");
     expectMockLineContains(runtime.log, "Gateway version: 2026.5.6");
-    expectMockLineContains(runtime.error, "this OpenClaw command is version 2026.4.23");
+    expectMockLineContains(runtime.error, "this Astroclaw command is version 2026.4.23");
     expectMockLineContains(
       runtime.error,
-      "if this mismatch is unexpected, update PATH so `openclaw` points to the version you want",
+      "if this mismatch is unexpected, update PATH so `astroclaw` points to the version you want",
     );
   });
 
@@ -277,12 +277,12 @@ describe("printDaemonStatus", () => {
         },
         config: {
           cli: {
-            path: "/tmp/openclaw-cli/openclaw.json",
+            path: "/tmp/astroclaw-cli/astroclaw.json",
             exists: true,
             valid: true,
           },
           daemon: {
-            path: "/tmp/openclaw-daemon/openclaw.json",
+            path: "/tmp/astroclaw-daemon/astroclaw.json",
             exists: true,
             valid: true,
             controlUi: { basePath: "/ui" },
@@ -329,7 +329,7 @@ describe("printDaemonStatus", () => {
         },
         config: {
           cli: {
-            path: "/tmp/openclaw-cli/openclaw.json",
+            path: "/tmp/astroclaw-cli/astroclaw.json",
             exists: true,
             valid: true,
             warnings: [

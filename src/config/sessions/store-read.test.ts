@@ -6,7 +6,7 @@ import { readSessionStoreReadOnly } from "./store-read.js";
 
 describe("readSessionStoreReadOnly", () => {
   it("returns an empty store for malformed or non-object JSON", async () => {
-    await withTempDir({ prefix: "openclaw-session-store-" }, async (dir) => {
+    await withTempDir({ prefix: "astroclaw-session-store-" }, async (dir) => {
       const storePath = path.join(dir, "sessions.json");
 
       await fs.writeFile(storePath, '["not-an-object"]\n', "utf8");
@@ -20,7 +20,7 @@ describe("readSessionStoreReadOnly", () => {
   });
 
   it("filters non-object entries from read-only session store snapshots", async () => {
-    await withTempDir({ prefix: "openclaw-session-store-readonly-" }, async (dir) => {
+    await withTempDir({ prefix: "astroclaw-session-store-readonly-" }, async (dir) => {
       const storePath = path.join(dir, "sessions.json");
 
       await fs.writeFile(
@@ -42,7 +42,7 @@ describe("readSessionStoreReadOnly", () => {
   });
 
   it("filters invalid session ids and drops malformed sessionFile fields", async () => {
-    await withTempDir({ prefix: "openclaw-session-store-readonly-shape-" }, async (dir) => {
+    await withTempDir({ prefix: "astroclaw-session-store-readonly-shape-" }, async (dir) => {
       const storePath = path.join(dir, "sessions.json");
 
       await fs.writeFile(

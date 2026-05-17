@@ -38,9 +38,9 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  console.log(`Usage: node scripts/openclaw-performance-source-summary.mjs --source-dir <dir> [--output <summary.md>]
+  console.log(`Usage: node scripts/astroclaw-performance-source-summary.mjs --source-dir <dir> [--output <summary.md>]
 
-Summarizes OpenClaw-native performance probe artifacts for CI reports.`);
+Summarizes Astroclaw-native performance probe artifacts for CI reports.`);
 }
 
 function readJsonIfExists(filePath) {
@@ -190,7 +190,7 @@ function buildMarkdown(sourceDir) {
   const mockHelloSummaries = loadMockHelloSummaries(sourceDir);
 
   const lines = [
-    "# OpenClaw Source Performance",
+    "# Astroclaw Source Performance",
     "",
     `Generated: ${new Date().toISOString()}`,
     "",

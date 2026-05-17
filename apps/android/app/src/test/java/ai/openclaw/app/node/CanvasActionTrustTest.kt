@@ -1,4 +1,4 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,8 +14,8 @@ class CanvasActionTrustTest {
   fun acceptsTrustedA2uiPageOnAdvertisedCanvasHost() {
     assertTrue(
       CanvasActionTrust.isTrustedCanvasActionUrl(
-        rawUrl = "https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=android",
-        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=android"),
+        rawUrl = "https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=android",
+        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=android"),
       ),
     )
   }
@@ -24,8 +24,8 @@ class CanvasActionTrustTest {
   fun rejectsDifferentOriginEvenIfPathMatches() {
     assertFalse(
       CanvasActionTrust.isTrustedCanvasActionUrl(
-        rawUrl = "https://evil.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=android",
-        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=android"),
+        rawUrl = "https://evil.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=android",
+        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=android"),
       ),
     )
   }
@@ -35,7 +35,7 @@ class CanvasActionTrustTest {
     assertFalse(
       CanvasActionTrust.isTrustedCanvasActionUrl(
         rawUrl = "https://canvas.example.com:9443/untrusted/index.html",
-        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=android"),
+        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=android"),
       ),
     )
   }
@@ -44,8 +44,8 @@ class CanvasActionTrustTest {
   fun acceptsFragmentOnlyDifferenceForTrustedA2uiPage() {
     assertTrue(
       CanvasActionTrust.isTrustedCanvasActionUrl(
-        rawUrl = "https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=android#step2",
-        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=android"),
+        rawUrl = "https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=android#step2",
+        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=android"),
       ),
     )
   }
@@ -54,8 +54,8 @@ class CanvasActionTrustTest {
   fun rejectsQueryMismatchOnTrustedOriginAndPath() {
     assertFalse(
       CanvasActionTrust.isTrustedCanvasActionUrl(
-        rawUrl = "https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=ios",
-        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=android"),
+        rawUrl = "https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=ios",
+        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=android"),
       ),
     )
   }
@@ -64,8 +64,8 @@ class CanvasActionTrustTest {
   fun rejectsDescendantPathUnderTrustedA2uiRoot() {
     assertFalse(
       CanvasActionTrust.isTrustedCanvasActionUrl(
-        rawUrl = "https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/child/index.html?platform=android",
-        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__openclaw__/cap/token/__openclaw__/a2ui/?platform=android"),
+        rawUrl = "https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/child/index.html?platform=android",
+        trustedA2uiUrls = listOf("https://canvas.example.com:9443/__astroclaw__/cap/token/__astroclaw__/a2ui/?platform=android"),
       ),
     )
   }

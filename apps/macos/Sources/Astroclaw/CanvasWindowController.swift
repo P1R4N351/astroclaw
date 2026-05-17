@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
-import OpenClawIPC
-import OpenClawKit
+import AstroclawIPC
+import AstroclawKit
 import WebKit
 
 @MainActor
@@ -64,8 +64,8 @@ final class CanvasWindowController: NSWindowController, WKNavigationDelegate, NS
             const allowedSchemes = \(allowedSchemesJSON);
             const protocol = location.protocol.replace(':', '');
             if (!allowedSchemes.includes(protocol)) return;
-            if (globalThis.__openclawA2UIBridgeInstalled) return;
-            globalThis.__openclawA2UIBridgeInstalled = true;
+            if (globalThis.__astroclawA2UIBridgeInstalled) return;
+            globalThis.__astroclawA2UIBridgeInstalled = true;
 
             const sessionKey = \(Self.jsStringLiteral(injectedSessionKey));
             const machineName = \(Self.jsStringLiteral(InstanceIdentity.displayName));
@@ -91,13 +91,13 @@ final class CanvasWindowController: NSWindowController, WKNavigationDelegate, NS
                   ...(context.length ? { context } : {}),
                 };
 
-                const handler = globalThis.webkit?.messageHandlers?.openclawCanvasA2UIAction;
+                const handler = globalThis.webkit?.messageHandlers?.astroclawCanvasA2UIAction;
 
                 // If the bundled A2UI shell is present, let it forward actions so we keep its richer
                 // context resolution (data model path lookups, surface detection, etc.).
                 const hasBundledA2UIHost =
-                  !!globalThis.openclawA2UI ||
-                  !!document.querySelector('openclaw-a2ui-host');
+                  !!globalThis.astroclawA2UI ||
+                  !!document.querySelector('astroclaw-a2ui-host');
                 if (hasBundledA2UIHost && handler?.postMessage) return;
 
                 // Otherwise, forward directly when possible.
@@ -308,7 +308,7 @@ final class CanvasWindowController: NSWindowController, WKNavigationDelegate, NS
             path = outPath
         } else {
             let ts = Int(Date().timeIntervalSince1970)
-            path = "/tmp/openclaw-canvas-\(CanvasWindowController.sanitizeSessionKey(self.sessionKey))-\(ts).png"
+            path = "/tmp/astroclaw-canvas-\(CanvasWindowController.sanitizeSessionKey(self.sessionKey))-\(ts).png"
         }
 
         try png.write(to: URL(fileURLWithPath: path), options: [.atomic])

@@ -11,8 +11,8 @@ Adds video generation provider support.
 
 ## Distribution
 
-- Package: `@openclaw/runway-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/runway-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

@@ -6,12 +6,12 @@ import {
   type AcpRuntimeCapabilities,
   type AcpRuntimeDoctorReport,
   type AcpRuntimeStatus,
-} from "openclaw/plugin-sdk/acp-runtime-backend";
-import type { OpenClawPluginService, OpenClawPluginServiceContext } from "openclaw/plugin-sdk/core";
+} from "astroclaw/plugin-sdk/acp-runtime-backend";
+import type { AstroclawPluginService, AstroclawPluginServiceContext } from "astroclaw/plugin-sdk/core";
 
 const ACPX_BACKEND_ID = "acpx";
-const ENABLE_STARTUP_PROBE_ENV = "OPENCLAW_ACPX_RUNTIME_STARTUP_PROBE";
-const SKIP_RUNTIME_PROBE_ENV = "OPENCLAW_SKIP_ACPX_RUNTIME_PROBE";
+const ENABLE_STARTUP_PROBE_ENV = "ASTROCLAW_ACPX_RUNTIME_STARTUP_PROBE";
+const SKIP_RUNTIME_PROBE_ENV = "ASTROCLAW_SKIP_ACPX_RUNTIME_PROBE";
 
 type RealAcpxServiceModule = typeof import("./src/service.js");
 type CreateAcpxRuntimeServiceParams = NonNullable<
@@ -25,10 +25,10 @@ type AcpxRuntimeLike = AcpRuntime & {
 };
 
 type DeferredServiceState = {
-  ctx: OpenClawPluginServiceContext | null;
+  ctx: AstroclawPluginServiceContext | null;
   params: CreateAcpxRuntimeServiceParams;
   realRuntime: AcpxRuntimeLike | null;
-  realService: OpenClawPluginService | null;
+  realService: AstroclawPluginService | null;
   startPromise: Promise<AcpxRuntimeLike> | null;
 };
 
@@ -54,7 +54,7 @@ async function startRealService(state: DeferredServiceState): Promise<AcpxRuntim
     const { createAcpxRuntimeService } = await loadServiceModule();
     const service = createAcpxRuntimeService(state.params);
     state.realService = service;
-    await service.start(state.ctx as OpenClawPluginServiceContext);
+    await service.start(state.ctx as AstroclawPluginServiceContext);
     const backend = getAcpRuntimeBackend(ACPX_BACKEND_ID);
     if (!backend?.runtime) {
       throw new Error("ACPX runtime service did not register an ACP backend");
@@ -111,7 +111,7 @@ function createDeferredRuntime(state: DeferredServiceState): AcpxRuntimeLike {
 
 export function createAcpxRuntimeService(
   params: CreateAcpxRuntimeServiceParams = {},
-): OpenClawPluginService {
+): AstroclawPluginService {
   const state: DeferredServiceState = {
     ctx: null,
     params,
@@ -123,8 +123,8 @@ export function createAcpxRuntimeService(
   return {
     id: "acpx-runtime",
     async start(ctx) {
-      if (process.env.OPENCLAW_SKIP_ACPX_RUNTIME === "1") {
-        ctx.logger.info("skipping embedded acpx runtime backend (OPENCLAW_SKIP_ACPX_RUNTIME=1)");
+      if (process.env.ASTROCLAW_SKIP_ACPX_RUNTIME === "1") {
+        ctx.logger.info("skipping embedded acpx runtime backend (ASTROCLAW_SKIP_ACPX_RUNTIME=1)");
         return;
       }
 

@@ -82,7 +82,7 @@ describe("doctor session state provider routes", () => {
         },
       },
       sessionKey: "agent:main:telegram:direct:1",
-      env: { OPENCLAW_AGENT_RUNTIME: "codex-cli" },
+      env: { ASTROCLAW_AGENT_RUNTIME: "codex-cli" },
     });
     expect(route.runtime).toBe("codex");
   });

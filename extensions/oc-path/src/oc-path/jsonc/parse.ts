@@ -17,7 +17,7 @@ export const MAX_PARSE_DEPTH = 256;
  * source level so allocation is bounded by file size, not token count.
  *
  * 16 MiB is well past every workspace-jsonc shape we care about
- * (gateway.jsonc / openclaw.json / .openclaw/* are all <100 KiB in
+ * (gateway.jsonc / astroclaw.json / .astroclaw/* are all <100 KiB in
  * practice; the largest LKG-tracked configs we've seen sit at single-
  * digit MB). Operators with legitimate larger inputs can lift the cap
  * by patching this constant — no SDK affordance because it isn't a

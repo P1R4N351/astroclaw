@@ -1,12 +1,12 @@
-package ai.openclaw.app.ui
+package ai.astroclaw.app.ui
 
-import ai.openclaw.app.BuildConfig
-import ai.openclaw.app.LocationMode
-import ai.openclaw.app.MainViewModel
-import ai.openclaw.app.NotificationPackageFilterMode
-import ai.openclaw.app.SensitiveFeatureConfig
-import ai.openclaw.app.node.DeviceNotificationListenerService
-import ai.openclaw.app.normalizeLocalHourMinute
+import ai.astroclaw.app.BuildConfig
+import ai.astroclaw.app.LocationMode
+import ai.astroclaw.app.MainViewModel
+import ai.astroclaw.app.NotificationPackageFilterMode
+import ai.astroclaw.app.SensitiveFeatureConfig
+import ai.astroclaw.app.node.DeviceNotificationListenerService
+import ai.astroclaw.app.normalizeLocalHourMinute
 import android.Manifest
 import android.app.role.RoleManager
 import android.content.Context
@@ -124,7 +124,7 @@ fun SettingsSheet(viewModel: MainViewModel) {
           }
         NotificationPackageFilterMode.Blocklist ->
           if (notificationForwardingPackages.isEmpty()) {
-            "Selected: none — blocklist mode forwards all apps except OpenClaw."
+            "Selected: none — blocklist mode forwards all apps except Astroclaw."
           } else {
             "Selected: ${notificationForwardingPackages.size} app(s) blocked."
           }
@@ -497,9 +497,9 @@ fun SettingsSheet(viewModel: MainViewModel) {
               supportingContent = {
                 Text(
                   if (assistantRoleHeld) {
-                    "OpenClaw is registered as the device assistant."
+                    "Astroclaw is registered as the device assistant."
                   } else {
-                    "Let Android launch OpenClaw from the assistant gesture. Google Assistant App Actions still work separately."
+                    "Let Android launch Astroclaw from the assistant gesture. Google Assistant App Actions still work separately."
                   },
                   style = mobileCallout,
                 )
@@ -1145,7 +1145,7 @@ fun SettingsSheet(viewModel: MainViewModel) {
             modifier = Modifier.fillMaxWidth(),
             colors = listItemColors,
             headlineContent = { Text("While Using", style = mobileHeadline) },
-            supportingContent = { Text("Only while OpenClaw is open.", style = mobileCallout) },
+            supportingContent = { Text("Only while Astroclaw is open.", style = mobileCallout) },
             trailingContent = {
               RadioButton(
                 selected = locationMode == LocationMode.WhileUsing,

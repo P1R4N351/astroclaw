@@ -249,7 +249,7 @@ export function setupGatewaySessionsTestHarness() {
 
   beforeAll(async () => {
     harness = await startGatewayServerHarness();
-    sharedSessionStoreDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-sessions-"));
+    sharedSessionStoreDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-sessions-"));
   });
 
   afterAll(async () => {

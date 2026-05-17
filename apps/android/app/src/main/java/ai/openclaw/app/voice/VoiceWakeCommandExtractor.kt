@@ -1,4 +1,4 @@
-package ai.openclaw.app.voice
+package ai.astroclaw.app.voice
 
 object VoiceWakeCommandExtractor {
   fun extractCommand(

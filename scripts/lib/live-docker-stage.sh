@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-openclaw_live_stage_source_tree() {
+astroclaw_live_stage_source_tree() {
   local dest_dir="${1:?destination directory required}"
-  local stage_mode="${OPENCLAW_LIVE_DOCKER_SOURCE_STAGE_MODE:-copy}"
+  local stage_mode="${ASTROCLAW_LIVE_DOCKER_SOURCE_STAGE_MODE:-copy}"
 
   if [ "$stage_mode" = "symlink" ]; then
-    echo "OPENCLAW_LIVE_DOCKER_SOURCE_STAGE_MODE=symlink is disabled; using copy staging." >&2
+    echo "ASTROCLAW_LIVE_DOCKER_SOURCE_STAGE_MODE=symlink is disabled; using copy staging." >&2
   fi
 
   set +e
@@ -22,7 +22,7 @@ openclaw_live_stage_source_tree() {
     --exclude=.tmp \
     --exclude=.tmp-precommit-venv \
     --exclude=.worktrees \
-    --exclude=__openclaw_vitest__ \
+    --exclude=__astroclaw_vitest__ \
     --exclude=relay.sock \
     --exclude='*.sock' \
     --exclude='*/*.sock' \
@@ -39,7 +39,7 @@ openclaw_live_stage_source_tree() {
   fi
 }
 
-openclaw_live_link_runtime_tree() {
+astroclaw_live_link_runtime_tree() {
   local dest_dir="${1:?destination directory required}"
 
   if [ ! -e "$dest_dir/node_modules" ]; then
@@ -47,13 +47,13 @@ openclaw_live_link_runtime_tree() {
   fi
   ln -s /app/dist "$dest_dir/dist"
   if [ -d /app/dist-runtime/extensions ]; then
-    export OPENCLAW_BUNDLED_PLUGINS_DIR=/app/dist-runtime/extensions
+    export ASTROCLAW_BUNDLED_PLUGINS_DIR=/app/dist-runtime/extensions
   elif [ -d /app/dist/extensions ]; then
-    export OPENCLAW_BUNDLED_PLUGINS_DIR=/app/dist/extensions
+    export ASTROCLAW_BUNDLED_PLUGINS_DIR=/app/dist/extensions
   fi
 }
 
-openclaw_live_stage_node_modules() {
+astroclaw_live_stage_node_modules() {
   local dest_dir="${1:?destination directory required}"
   local target_dir="$dest_dir/node_modules"
 
@@ -63,9 +63,9 @@ openclaw_live_stage_node_modules() {
   mkdir -p "$target_dir/.vite-temp"
 }
 
-openclaw_live_stage_state_dir() {
+astroclaw_live_stage_state_dir() {
   local dest_dir="${1:?destination directory required}"
-  local source_dir="${HOME}/.openclaw"
+  local source_dir="${HOME}/.astroclaw"
 
   mkdir -p "$dest_dir"
   if [ -d "$source_dir" ]; then
@@ -95,16 +95,16 @@ openclaw_live_stage_state_dir() {
     fi
   fi
 
-  export OPENCLAW_STATE_DIR="$dest_dir"
-  export OPENCLAW_CONFIG_PATH="$dest_dir/openclaw.json"
+  export ASTROCLAW_STATE_DIR="$dest_dir"
+  export ASTROCLAW_CONFIG_PATH="$dest_dir/astroclaw.json"
 }
 
-openclaw_live_prepare_staged_config() {
-  if [ ! -f "${OPENCLAW_CONFIG_PATH:-}" ]; then
+astroclaw_live_prepare_staged_config() {
+  if [ ! -f "${ASTROCLAW_CONFIG_PATH:-}" ]; then
     return 0
   fi
 
-  local scripts_dir="${OPENCLAW_LIVE_DOCKER_SCRIPTS_DIR:-/src/scripts}"
+  local scripts_dir="${ASTROCLAW_LIVE_DOCKER_SCRIPTS_DIR:-/src/scripts}"
   (
     cd /app
     node --import tsx "$scripts_dir/live-docker-normalize-config.ts"

@@ -1,5 +1,5 @@
-export { asNullableRecord as asRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
-export { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+export { asNullableRecord as asRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+export { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 
 export function normalizeTrimmedString(value: unknown): string | undefined {
   if (typeof value !== "string") {

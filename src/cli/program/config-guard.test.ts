@@ -21,7 +21,7 @@ function makeSnapshot() {
     valid: true,
     issues: [],
     legacyIssues: [],
-    path: "/tmp/openclaw.json",
+    path: "/tmp/astroclaw.json",
   };
 }
 
@@ -135,13 +135,13 @@ describe("ensureConfigReady", () => {
     const runtime = await runEnsureConfigReady(["message"]);
 
     expect(plainErrorCalls(runtime)).toEqual([
-      "OpenClaw config is invalid",
-      "File: /tmp/openclaw.json",
+      "Astroclaw config is invalid",
+      "File: /tmp/astroclaw.json",
       "Problem:",
       "  - channels.quietchat: invalid",
       "",
-      `Fix: ${formatCliCommand("openclaw doctor --fix")}`,
-      `Inspect: ${formatCliCommand("openclaw config validate")}`,
+      `Fix: ${formatCliCommand("astroclaw doctor --fix")}`,
+      `Inspect: ${formatCliCommand("astroclaw config validate")}`,
       "Status, health, logs, and doctor commands still run with invalid config.",
     ]);
     expect(runtime.exit).toHaveBeenCalledWith(1);

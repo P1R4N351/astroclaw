@@ -8,7 +8,7 @@ import EventKit
 import Foundation
 import Network
 import Observation
-import OpenClawKit
+import AstroclawKit
 import os
 import Photos
 import ReplayKit
@@ -770,7 +770,7 @@ final class GatewayConnectionController {
         if manualClientId?.isEmpty == false {
             return manualClientId!
         }
-        return "openclaw-ios"
+        return "astroclaw-ios"
     }
 
     private func resolveManualPort(host: String, port: Int, useTLS: Bool) -> Int? {
@@ -800,33 +800,33 @@ final class GatewayConnectionController {
     }
 
     private func currentCaps() -> [String] {
-        var caps = [OpenClawCapability.canvas.rawValue, OpenClawCapability.screen.rawValue]
+        var caps = [AstroclawCapability.canvas.rawValue, AstroclawCapability.screen.rawValue]
 
         // Default-on: if the key doesn't exist yet, treat it as enabled.
         let cameraEnabled =
             UserDefaults.standard.object(forKey: "camera.enabled") == nil
                 ? true
                 : UserDefaults.standard.bool(forKey: "camera.enabled")
-        if cameraEnabled { caps.append(OpenClawCapability.camera.rawValue) }
+        if cameraEnabled { caps.append(AstroclawCapability.camera.rawValue) }
 
         let voiceWakeEnabled = UserDefaults.standard.bool(forKey: VoiceWakePreferences.enabledKey)
-        if voiceWakeEnabled { caps.append(OpenClawCapability.voiceWake.rawValue) }
+        if voiceWakeEnabled { caps.append(AstroclawCapability.voiceWake.rawValue) }
 
         let locationModeRaw = UserDefaults.standard.string(forKey: "location.enabledMode") ?? "off"
-        let locationMode = OpenClawLocationMode(rawValue: locationModeRaw) ?? .off
-        if locationMode != .off { caps.append(OpenClawCapability.location.rawValue) }
+        let locationMode = AstroclawLocationMode(rawValue: locationModeRaw) ?? .off
+        if locationMode != .off { caps.append(AstroclawCapability.location.rawValue) }
 
-        caps.append(OpenClawCapability.device.rawValue)
-        caps.append(OpenClawCapability.talk.rawValue)
+        caps.append(AstroclawCapability.device.rawValue)
+        caps.append(AstroclawCapability.talk.rawValue)
         if WatchMessagingService.isSupportedOnDevice() {
-            caps.append(OpenClawCapability.watch.rawValue)
+            caps.append(AstroclawCapability.watch.rawValue)
         }
-        caps.append(OpenClawCapability.photos.rawValue)
-        caps.append(OpenClawCapability.contacts.rawValue)
-        caps.append(OpenClawCapability.calendar.rawValue)
-        caps.append(OpenClawCapability.reminders.rawValue)
+        caps.append(AstroclawCapability.photos.rawValue)
+        caps.append(AstroclawCapability.contacts.rawValue)
+        caps.append(AstroclawCapability.calendar.rawValue)
+        caps.append(AstroclawCapability.reminders.rawValue)
         if Self.motionAvailable() {
-            caps.append(OpenClawCapability.motion.rawValue)
+            caps.append(AstroclawCapability.motion.rawValue)
         }
 
         return caps
@@ -834,58 +834,58 @@ final class GatewayConnectionController {
 
     private func currentCommands() -> [String] {
         var commands: [String] = [
-            OpenClawCanvasCommand.present.rawValue,
-            OpenClawCanvasCommand.hide.rawValue,
-            OpenClawCanvasCommand.navigate.rawValue,
-            OpenClawCanvasCommand.evalJS.rawValue,
-            OpenClawCanvasCommand.snapshot.rawValue,
-            OpenClawCanvasA2UICommand.push.rawValue,
-            OpenClawCanvasA2UICommand.pushJSONL.rawValue,
-            OpenClawCanvasA2UICommand.reset.rawValue,
-            OpenClawScreenCommand.record.rawValue,
-            OpenClawSystemCommand.notify.rawValue,
-            OpenClawChatCommand.push.rawValue,
-            OpenClawTalkCommand.pttStart.rawValue,
-            OpenClawTalkCommand.pttStop.rawValue,
-            OpenClawTalkCommand.pttCancel.rawValue,
-            OpenClawTalkCommand.pttOnce.rawValue,
+            AstroclawCanvasCommand.present.rawValue,
+            AstroclawCanvasCommand.hide.rawValue,
+            AstroclawCanvasCommand.navigate.rawValue,
+            AstroclawCanvasCommand.evalJS.rawValue,
+            AstroclawCanvasCommand.snapshot.rawValue,
+            AstroclawCanvasA2UICommand.push.rawValue,
+            AstroclawCanvasA2UICommand.pushJSONL.rawValue,
+            AstroclawCanvasA2UICommand.reset.rawValue,
+            AstroclawScreenCommand.record.rawValue,
+            AstroclawSystemCommand.notify.rawValue,
+            AstroclawChatCommand.push.rawValue,
+            AstroclawTalkCommand.pttStart.rawValue,
+            AstroclawTalkCommand.pttStop.rawValue,
+            AstroclawTalkCommand.pttCancel.rawValue,
+            AstroclawTalkCommand.pttOnce.rawValue,
         ]
 
         let caps = Set(self.currentCaps())
-        if caps.contains(OpenClawCapability.camera.rawValue) {
-            commands.append(OpenClawCameraCommand.list.rawValue)
-            commands.append(OpenClawCameraCommand.snap.rawValue)
-            commands.append(OpenClawCameraCommand.clip.rawValue)
+        if caps.contains(AstroclawCapability.camera.rawValue) {
+            commands.append(AstroclawCameraCommand.list.rawValue)
+            commands.append(AstroclawCameraCommand.snap.rawValue)
+            commands.append(AstroclawCameraCommand.clip.rawValue)
         }
-        if caps.contains(OpenClawCapability.location.rawValue) {
-            commands.append(OpenClawLocationCommand.get.rawValue)
+        if caps.contains(AstroclawCapability.location.rawValue) {
+            commands.append(AstroclawLocationCommand.get.rawValue)
         }
-        if caps.contains(OpenClawCapability.device.rawValue) {
-            commands.append(OpenClawDeviceCommand.status.rawValue)
-            commands.append(OpenClawDeviceCommand.info.rawValue)
+        if caps.contains(AstroclawCapability.device.rawValue) {
+            commands.append(AstroclawDeviceCommand.status.rawValue)
+            commands.append(AstroclawDeviceCommand.info.rawValue)
         }
-        if caps.contains(OpenClawCapability.watch.rawValue) {
-            commands.append(OpenClawWatchCommand.status.rawValue)
-            commands.append(OpenClawWatchCommand.notify.rawValue)
+        if caps.contains(AstroclawCapability.watch.rawValue) {
+            commands.append(AstroclawWatchCommand.status.rawValue)
+            commands.append(AstroclawWatchCommand.notify.rawValue)
         }
-        if caps.contains(OpenClawCapability.photos.rawValue) {
-            commands.append(OpenClawPhotosCommand.latest.rawValue)
+        if caps.contains(AstroclawCapability.photos.rawValue) {
+            commands.append(AstroclawPhotosCommand.latest.rawValue)
         }
-        if caps.contains(OpenClawCapability.contacts.rawValue) {
-            commands.append(OpenClawContactsCommand.search.rawValue)
-            commands.append(OpenClawContactsCommand.add.rawValue)
+        if caps.contains(AstroclawCapability.contacts.rawValue) {
+            commands.append(AstroclawContactsCommand.search.rawValue)
+            commands.append(AstroclawContactsCommand.add.rawValue)
         }
-        if caps.contains(OpenClawCapability.calendar.rawValue) {
-            commands.append(OpenClawCalendarCommand.events.rawValue)
-            commands.append(OpenClawCalendarCommand.add.rawValue)
+        if caps.contains(AstroclawCapability.calendar.rawValue) {
+            commands.append(AstroclawCalendarCommand.events.rawValue)
+            commands.append(AstroclawCalendarCommand.add.rawValue)
         }
-        if caps.contains(OpenClawCapability.reminders.rawValue) {
-            commands.append(OpenClawRemindersCommand.list.rawValue)
-            commands.append(OpenClawRemindersCommand.add.rawValue)
+        if caps.contains(AstroclawCapability.reminders.rawValue) {
+            commands.append(AstroclawRemindersCommand.list.rawValue)
+            commands.append(AstroclawRemindersCommand.add.rawValue)
         }
-        if caps.contains(OpenClawCapability.motion.rawValue) {
-            commands.append(OpenClawMotionCommand.activity.rawValue)
-            commands.append(OpenClawMotionCommand.pedometer.rawValue)
+        if caps.contains(AstroclawCapability.motion.rawValue) {
+            commands.append(AstroclawMotionCommand.activity.rawValue)
+            commands.append(AstroclawMotionCommand.pedometer.rawValue)
         }
 
         return commands

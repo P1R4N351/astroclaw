@@ -37,7 +37,7 @@ describe("gateway startup benchmark script", () => {
     );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("OpenClaw Gateway startup benchmark");
+    expect(result.stdout).toContain("Astroclaw Gateway startup benchmark");
     expect(result.stdout).toContain("--case <id>");
     expect(result.stdout).toContain("--cpu-prof-dir <dir>");
     expect(result.stdout).toContain("default (gateway default)");
@@ -134,7 +134,7 @@ describe("gateway startup benchmark script", () => {
   });
 
   it("writes 50-plugin fixtures as a parent load path with explicit startup activation", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-bench-config-test-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-bench-config-test-"));
     try {
       const configPath = __testing.writeConfig(root, {
         config: {},
@@ -151,7 +151,7 @@ describe("gateway startup benchmark script", () => {
       expect(config.plugins?.allow).toEqual(["bench-plugin-01", "bench-plugin-02"]);
       const manifest = JSON.parse(
         fs.readFileSync(
-          path.join(root, "plugins", "bench-plugin-01", "openclaw.plugin.json"),
+          path.join(root, "plugins", "bench-plugin-01", "astroclaw.plugin.json"),
           "utf8",
         ),
       ) as { activation?: { onStartup?: boolean } };
@@ -162,7 +162,7 @@ describe("gateway startup benchmark script", () => {
   });
 
   it("keeps startup-lazy plugin fixtures opted out of startup activation", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-bench-config-test-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-bench-config-test-"));
     try {
       __testing.writeConfig(root, {
         config: {},
@@ -173,7 +173,7 @@ describe("gateway startup benchmark script", () => {
       });
       const manifest = JSON.parse(
         fs.readFileSync(
-          path.join(root, "plugins", "bench-plugin-01", "openclaw.plugin.json"),
+          path.join(root, "plugins", "bench-plugin-01", "astroclaw.plugin.json"),
           "utf8",
         ),
       ) as { activation?: { onStartup?: boolean } };

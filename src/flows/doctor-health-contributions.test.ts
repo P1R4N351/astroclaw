@@ -35,7 +35,7 @@ vi.mock("../version.js", () => ({
 }));
 
 vi.mock("../config/config.js", () => ({
-  CONFIG_PATH: "/tmp/fake-openclaw.json",
+  CONFIG_PATH: "/tmp/fake-astroclaw.json",
   replaceConfigFile: mocks.replaceConfigFile,
   readConfigFileSnapshot: mocks.readConfigFileSnapshot,
 }));
@@ -173,7 +173,7 @@ describe("doctor health contributions", () => {
   it("skips doctor config writes under legacy update parents", () => {
     expect(
       shouldSkipLegacyUpdateDoctorConfigWrite({
-        env: { OPENCLAW_UPDATE_IN_PROGRESS: "1" },
+        env: { ASTROCLAW_UPDATE_IN_PROGRESS: "1" },
       }),
     ).toBe(true);
   });
@@ -190,8 +190,8 @@ describe("doctor health contributions", () => {
     expect(
       shouldSkipLegacyUpdateDoctorConfigWrite({
         env: {
-          OPENCLAW_UPDATE_IN_PROGRESS: "1",
-          OPENCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
+          ASTROCLAW_UPDATE_IN_PROGRESS: "1",
+          ASTROCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
         },
       }),
     ).toBe(false);
@@ -201,7 +201,7 @@ describe("doctor health contributions", () => {
     expect(
       shouldSkipLegacyUpdateDoctorConfigWrite({
         env: {
-          OPENCLAW_UPDATE_IN_PROGRESS: "0",
+          ASTROCLAW_UPDATE_IN_PROGRESS: "0",
         },
       }),
     ).toBe(false);
@@ -225,7 +225,7 @@ describe("doctor health contributions", () => {
           shouldWriteConfig: true,
           skipPluginValidationOnWrite: false,
         },
-        configPath: "/tmp/fake-openclaw.json",
+        configPath: "/tmp/fake-astroclaw.json",
         sourceConfigValid: true,
         prompter: buildDoctorPrompter(true),
         runtime: { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
@@ -238,10 +238,10 @@ describe("doctor health contributions", () => {
       (entry) => entry.id === "doctor:write-config",
     )!;
 
-    it("allows config size drops when OPENCLAW_UPDATE_IN_PROGRESS=1", async () => {
+    it("allows config size drops when ASTROCLAW_UPDATE_IN_PROGRESS=1", async () => {
       const ctx = buildWriteConfigCtx({
-        OPENCLAW_UPDATE_IN_PROGRESS: "1",
-        OPENCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
+        ASTROCLAW_UPDATE_IN_PROGRESS: "1",
+        ASTROCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
       });
       await writeConfigContribution.run(ctx);
       expect(mocks.replaceConfigFile).toHaveBeenCalledWith(
@@ -255,8 +255,8 @@ describe("doctor health contributions", () => {
 
     it("skips plugin schema validation during update doctor writes", async () => {
       const ctx = buildWriteConfigCtx({
-        OPENCLAW_UPDATE_IN_PROGRESS: "1",
-        OPENCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
+        ASTROCLAW_UPDATE_IN_PROGRESS: "1",
+        ASTROCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
       });
       await writeConfigContribution.run(ctx);
       expect(mocks.replaceConfigFile).toHaveBeenCalledWith(
@@ -283,14 +283,14 @@ describe("doctor health contributions", () => {
     it("points update-time config rewrites at the pre-update backup", async () => {
       vi.mocked(fs.existsSync).mockImplementation((value) => String(value).endsWith(".pre-update"));
       const ctx = buildWriteConfigCtx({
-        OPENCLAW_UPDATE_IN_PROGRESS: "1",
-        OPENCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
+        ASTROCLAW_UPDATE_IN_PROGRESS: "1",
+        ASTROCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
       });
 
       await writeConfigContribution.run(ctx);
 
       expect(ctx.runtime.log).toHaveBeenCalledWith(
-        "Update changed config; pre-update backup: /tmp/fake-openclaw.json.pre-update",
+        "Update changed config; pre-update backup: /tmp/fake-astroclaw.json.pre-update",
       );
     });
 
@@ -301,13 +301,13 @@ describe("doctor health contributions", () => {
         cfg: {},
         cfgForPersistence: {},
         configResult: { cfg: {} },
-        configPath: "/tmp/fake-openclaw.json",
+        configPath: "/tmp/fake-astroclaw.json",
         sourceConfigValid: true,
         prompter: buildDoctorPrompter(true),
         runtime: { log: vi.fn(), error: vi.fn(), exit: vi.fn() },
         options: {},
         env: {
-          OPENCLAW_UPDATE_IN_PROGRESS: "1",
+          ASTROCLAW_UPDATE_IN_PROGRESS: "1",
         },
       } as Parameters<(typeof contribution)["run"]>[0]);
 
@@ -323,7 +323,7 @@ describe("doctor health contributions", () => {
         cfg: {},
         cfgForPersistence: {},
         configResult: { cfg: {} },
-        configPath: "/tmp/fake-openclaw.json",
+        configPath: "/tmp/fake-astroclaw.json",
         sourceConfigValid: true,
         prompter: buildDoctorPrompter(true),
         runtime: { log: vi.fn(), error: vi.fn(), exit: vi.fn() },

@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { normalizeOptionalLowercaseString } from "../shared/string-coerce.js";
 import { isRecord } from "../utils.js";
 import { resolveAgentHarnessPolicy } from "./harness/policy.js";
@@ -61,7 +61,7 @@ function parseConfiguredModelRef(
 }
 
 function resolveConfiguredModelHarnessRuntime(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   modelRef: string;
   agentId?: string;
 }): string | undefined {
@@ -79,7 +79,7 @@ function resolveConfiguredModelHarnessRuntime(params: {
   return runtime && runtime !== "auto" && runtime !== "pi" ? runtime : undefined;
 }
 
-function pushConfiguredModelRuntimeIds(config: OpenClawConfig, runtimes: Set<string>): void {
+function pushConfiguredModelRuntimeIds(config: AstroclawConfig, runtimes: Set<string>): void {
   for (const providerConfig of Object.values(config.models?.providers ?? {})) {
     const providerRuntime = normalizeRuntimeId(providerConfig?.agentRuntime?.id);
     if (providerRuntime && providerRuntime !== "auto" && providerRuntime !== "pi") {
@@ -115,7 +115,7 @@ function pushConfiguredModelRuntimeIds(config: OpenClawConfig, runtimes: Set<str
   }
 }
 
-function pushConfiguredAgentModelRuntimeIds(config: OpenClawConfig, runtimes: Set<string>): void {
+function pushConfiguredAgentModelRuntimeIds(config: AstroclawConfig, runtimes: Set<string>): void {
   const pushModelRefs = (modelRefs: string[], agentId?: string) => {
     for (const modelRef of modelRefs) {
       const runtime = resolveConfiguredModelHarnessRuntime({ config, modelRef, agentId });
@@ -152,7 +152,7 @@ function pushConfiguredAgentModelRuntimeIds(config: OpenClawConfig, runtimes: Se
   }
 }
 
-function pushLegacyAgentRuntimeIds(config: OpenClawConfig, runtimes: Set<string>): void {
+function pushLegacyAgentRuntimeIds(config: AstroclawConfig, runtimes: Set<string>): void {
   const pushRuntimeId = (value: unknown) => {
     const runtime = normalizeRuntimeId(value);
     if (runtime && runtime !== "auto" && runtime !== "pi") {
@@ -173,7 +173,7 @@ export type ConfiguredAgentHarnessRuntimeOptions = {
 };
 
 export function collectConfiguredAgentHarnessRuntimes(
-  config: OpenClawConfig,
+  config: AstroclawConfig,
   env: NodeJS.ProcessEnv,
   options: ConfiguredAgentHarnessRuntimeOptions = {},
 ): string[] {
@@ -182,7 +182,7 @@ export function collectConfiguredAgentHarnessRuntimes(
   const includeLegacyAgentRuntimes = options.includeLegacyAgentRuntimes ?? true;
 
   if (includeEnvRuntime) {
-    const envRuntime = normalizeRuntimeId(env.OPENCLAW_AGENT_RUNTIME);
+    const envRuntime = normalizeRuntimeId(env.ASTROCLAW_AGENT_RUNTIME);
     if (envRuntime && envRuntime !== "auto" && envRuntime !== "pi") {
       runtimes.add(envRuntime);
     }

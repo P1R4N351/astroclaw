@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 import { handlePluginsCommand } from "./commands-plugins.js";
 import { buildPluginsCommandParams } from "./commands.test-harness.js";
 
@@ -16,23 +16,23 @@ const refreshPluginRegistryAfterConfigMutationMock = vi.hoisted(() => vi.fn(asyn
 type ConfigSnapshotMock = {
   path?: string;
   hash?: string | null;
-  parsed?: OpenClawConfig | null;
-  sourceConfig?: OpenClawConfig;
-  resolved?: OpenClawConfig;
-  runtimeConfig?: OpenClawConfig;
+  parsed?: AstroclawConfig | null;
+  sourceConfig?: AstroclawConfig;
+  resolved?: AstroclawConfig;
+  runtimeConfig?: AstroclawConfig;
 };
 
 type TransformConfigFileWithRetryMockParams<T = unknown> = {
   afterWrite?: unknown;
   transform: (
-    currentConfig: OpenClawConfig,
+    currentConfig: AstroclawConfig,
     context: { snapshot: ConfigSnapshotMock; previousHash: string | null; attempt: number },
   ) =>
-    | Promise<{ nextConfig: OpenClawConfig; result?: T }>
-    | { nextConfig: OpenClawConfig; result?: T };
+    | Promise<{ nextConfig: AstroclawConfig; result?: T }>
+    | { nextConfig: AstroclawConfig; result?: T };
 };
 
-function configFromSnapshot(snapshot: ConfigSnapshotMock): OpenClawConfig {
+function configFromSnapshot(snapshot: ConfigSnapshotMock): AstroclawConfig {
   return structuredClone(
     snapshot.sourceConfig ?? snapshot.resolved ?? snapshot.runtimeConfig ?? snapshot.parsed ?? {},
   );
@@ -51,7 +51,7 @@ async function transformConfigFileWithRetryMock<T = unknown>(
   const afterWrite = params.afterWrite ?? { mode: "auto" };
   await replaceConfigFileMock({ nextConfig: transformed.nextConfig, afterWrite });
   return {
-    path: snapshot.path ?? "/tmp/openclaw.json",
+    path: snapshot.path ?? "/tmp/astroclaw.json",
     previousHash,
     persistedHash: "persisted-hash",
     snapshot,
@@ -119,7 +119,7 @@ vi.mock("../../plugins/status.js", () => ({
 }));
 
 vi.mock("../../plugins/toggle-config.js", () => ({
-  setPluginEnabledInConfig: vi.fn((config: OpenClawConfig, id: string, enabled: boolean) => ({
+  setPluginEnabledInConfig: vi.fn((config: AstroclawConfig, id: string, enabled: boolean) => ({
     ...config,
     plugins: {
       ...config.plugins,
@@ -139,7 +139,7 @@ vi.mock("../../utils.js", async () => {
   };
 });
 
-function buildCfg(): OpenClawConfig {
+function buildCfg(): AstroclawConfig {
   return {
     plugins: { enabled: true },
     commands: { text: true, plugins: true },
@@ -150,7 +150,7 @@ const WRITE_GATEWAY_SCOPES = ["operator.admin", "operator.write", "operator.pair
 
 function buildPluginsParams(
   commandBodyNormalized: string,
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   options?: { gatewayClientScopes?: string[] },
 ) {
   return buildPluginsCommandParams({
@@ -208,7 +208,7 @@ describe("handlePluginsCommand", () => {
     vi.clearAllMocks();
     readConfigFileSnapshotMock.mockResolvedValue({
       valid: true,
-      path: "/tmp/openclaw.json",
+      path: "/tmp/astroclaw.json",
       sourceConfig: buildCfg(),
       resolved: buildCfg(),
       hash: "config-1",
@@ -225,7 +225,7 @@ describe("handlePluginsCommand", () => {
           id: "superpowers",
           name: "superpowers",
           status: "disabled",
-          format: "openclaw",
+          format: "astroclaw",
           bundleFormat: "claude",
         },
       ],
@@ -237,7 +237,7 @@ describe("handlePluginsCommand", () => {
           id: "superpowers",
           name: "superpowers",
           status: "disabled",
-          format: "openclaw",
+          format: "astroclaw",
           bundleFormat: "claude",
         },
       ],
@@ -324,8 +324,8 @@ describe("handlePluginsCommand", () => {
   });
 
   it("refuses plugin enablement in Nix mode before reading or replacing config", async () => {
-    const previousNixMode = process.env.OPENCLAW_NIX_MODE;
-    process.env.OPENCLAW_NIX_MODE = "1";
+    const previousNixMode = process.env.ASTROCLAW_NIX_MODE;
+    process.env.ASTROCLAW_NIX_MODE = "1";
     try {
       const params = buildPluginsParams("/plugins enable superpowers", buildCfg(), {
         gatewayClientScopes: WRITE_GATEWAY_SCOPES,
@@ -333,16 +333,16 @@ describe("handlePluginsCommand", () => {
       params.command.senderIsOwner = true;
 
       const result = await handlePluginsCommand(params, true);
-      expect(result?.reply?.text).toContain("OPENCLAW_NIX_MODE=1");
-      expect(result?.reply?.text).toContain("nix-openclaw#quick-start");
+      expect(result?.reply?.text).toContain("ASTROCLAW_NIX_MODE=1");
+      expect(result?.reply?.text).toContain("nix-astroclaw#quick-start");
       expect(readConfigFileSnapshotMock).not.toHaveBeenCalled();
       expect(replaceConfigFileMock).not.toHaveBeenCalled();
       expect(refreshPluginRegistryAfterConfigMutationMock).not.toHaveBeenCalled();
     } finally {
       if (previousNixMode === undefined) {
-        delete process.env.OPENCLAW_NIX_MODE;
+        delete process.env.ASTROCLAW_NIX_MODE;
       } else {
-        process.env.OPENCLAW_NIX_MODE = previousNixMode;
+        process.env.ASTROCLAW_NIX_MODE = previousNixMode;
       }
     }
   });
@@ -355,7 +355,7 @@ describe("handlePluginsCommand", () => {
           id: "superpowers",
           name: "Super Powers",
           status: "disabled",
-          format: "openclaw",
+          format: "astroclaw",
           bundleFormat: "claude",
         },
       ],

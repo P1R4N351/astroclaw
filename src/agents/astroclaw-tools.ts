@@ -1,7 +1,7 @@
 import type { SourceReplyDeliveryMode } from "../auto-reply/get-reply-options.types.js";
 import type { InboundEventKind } from "../channels/inbound-event/kind.js";
 import { selectApplicableRuntimeConfig } from "../config/config.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { callGateway } from "../gateway/call.js";
 import { isEmbeddedMode } from "../infra/embedded-mode.js";
 import {
@@ -12,18 +12,18 @@ import { normalizeDeliveryContext } from "../utils/delivery-context.js";
 import type { GatewayMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentWorkspaceDir, resolveSessionAgentIds } from "./agent-scope.js";
 import type { AuthProfileStore } from "./auth-profiles/types.js";
-import { resolveOpenClawPluginToolsForOptions } from "./openclaw-plugin-tools.js";
+import { resolveAstroclawPluginToolsForOptions } from "./astroclaw-plugin-tools.js";
 import {
   isToolExplicitlyAllowedByFactoryPolicy,
   mergeFactoryPolicyList,
   resolveImageToolFactoryAvailable,
   resolveOptionalMediaToolFactoryPlan,
-} from "./openclaw-tools.media-factory-plan.js";
-import { applyNodesToolWorkspaceGuard } from "./openclaw-tools.nodes-workspace-guard.js";
+} from "./astroclaw-tools.media-factory-plan.js";
+import { applyNodesToolWorkspaceGuard } from "./astroclaw-tools.nodes-workspace-guard.js";
 import {
-  collectPresentOpenClawTools,
-  isUpdatePlanToolEnabledForOpenClawTools,
-} from "./openclaw-tools.registration.js";
+  collectPresentAstroclawTools,
+  isUpdatePlanToolEnabledForAstroclawTools,
+} from "./astroclaw-tools.registration.js";
 import {
   type HookContext,
   isToolWrappedWithBeforeToolCallHook,
@@ -58,18 +58,18 @@ import { createVideoGenerateTool } from "./tools/video-generate-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 import { resolveWorkspaceRoot } from "./workspace-dir.js";
 
-type OpenClawToolsDeps = {
+type AstroclawToolsDeps = {
   callGateway: typeof callGateway;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 };
 
-const defaultOpenClawToolsDeps: OpenClawToolsDeps = {
+const defaultAstroclawToolsDeps: AstroclawToolsDeps = {
   callGateway,
 };
 
-let openClawToolsDeps: OpenClawToolsDeps = defaultOpenClawToolsDeps;
+let astroClawToolsDeps: AstroclawToolsDeps = defaultAstroclawToolsDeps;
 
-export function createOpenClawTools(
+export function createAstroclawTools(
   options?: {
     sandboxBrowserBridgeUrl?: string;
     allowHostBrowserControl?: boolean;
@@ -92,7 +92,7 @@ export function createOpenClawTools(
     sandboxFsBridge?: SandboxFsBridge;
     fsPolicy?: ToolFsPolicy;
     sandboxed?: boolean;
-    config?: OpenClawConfig;
+    config?: AstroclawConfig;
     pluginToolAllowlist?: string[];
     pluginToolDenylist?: string[];
     /** Current channel ID for auto-threading. */
@@ -159,7 +159,7 @@ export function createOpenClawTools(
     allowGatewaySubagentBinding?: boolean;
   } & SpawnedToolContext,
 ): AnyAgentTool[] {
-  const resolvedConfig = options?.config ?? openClawToolsDeps.config;
+  const resolvedConfig = options?.config ?? astroClawToolsDeps.config;
   const runtimeSnapshot = getActiveSecretsRuntimeSnapshot();
   const availabilityConfig = selectApplicableRuntimeConfig({
     inputConfig: resolvedConfig,
@@ -181,7 +181,7 @@ export function createOpenClawTools(
   const spawnWorkspaceDir = resolveWorkspaceRoot(
     options?.spawnWorkspaceDir ?? options?.workspaceDir ?? inferredWorkspaceDir,
   );
-  options?.recordToolPrepStage?.("openclaw-tools:session-workspace");
+  options?.recordToolPrepStage?.("astroclaw-tools:session-workspace");
   const deliveryContext = normalizeDeliveryContext({
     channel: options?.agentChannel,
     to: options?.agentTo,
@@ -218,7 +218,7 @@ export function createOpenClawTools(
         deferAutoModelResolution: true,
       })
     : null;
-  options?.recordToolPrepStage?.("openclaw-tools:image-tool");
+  options?.recordToolPrepStage?.("astroclaw-tools:image-tool");
   const imageGenerateTool = optionalMediaTools.imageGenerate
     ? createImageGenerateTool({
         config: options?.config,
@@ -231,7 +231,7 @@ export function createOpenClawTools(
         fsPolicy: options?.fsPolicy,
       })
     : null;
-  options?.recordToolPrepStage?.("openclaw-tools:image-generate-tool");
+  options?.recordToolPrepStage?.("astroclaw-tools:image-generate-tool");
   const videoGenerateTool = optionalMediaTools.videoGenerate
     ? createVideoGenerateTool({
         config: options?.config,
@@ -244,7 +244,7 @@ export function createOpenClawTools(
         fsPolicy: options?.fsPolicy,
       })
     : null;
-  options?.recordToolPrepStage?.("openclaw-tools:video-generate-tool");
+  options?.recordToolPrepStage?.("astroclaw-tools:video-generate-tool");
   const musicGenerateTool = optionalMediaTools.musicGenerate
     ? createMusicGenerateTool({
         config: options?.config,
@@ -257,7 +257,7 @@ export function createOpenClawTools(
         fsPolicy: options?.fsPolicy,
       })
     : null;
-  options?.recordToolPrepStage?.("openclaw-tools:music-generate-tool");
+  options?.recordToolPrepStage?.("astroclaw-tools:music-generate-tool");
   const pdfTool =
     optionalMediaTools.pdf && options?.agentDir?.trim()
       ? createPdfTool({
@@ -270,21 +270,21 @@ export function createOpenClawTools(
           deferAutoModelResolution: true,
         })
       : null;
-  options?.recordToolPrepStage?.("openclaw-tools:pdf-tool");
+  options?.recordToolPrepStage?.("astroclaw-tools:pdf-tool");
   const webSearchTool = createWebSearchTool({
     config: options?.config,
     sandboxed: options?.sandboxed,
     runtimeWebSearch: runtimeWebTools?.search,
     lateBindRuntimeConfig: true,
   });
-  options?.recordToolPrepStage?.("openclaw-tools:web-search-tool");
+  options?.recordToolPrepStage?.("astroclaw-tools:web-search-tool");
   const webFetchTool = createWebFetchTool({
     config: options?.config,
     sandboxed: options?.sandboxed,
     runtimeWebFetch: runtimeWebTools?.fetch,
     lateBindRuntimeConfig: true,
   });
-  options?.recordToolPrepStage?.("openclaw-tools:web-fetch-tool");
+  options?.recordToolPrepStage?.("astroclaw-tools:web-fetch-tool");
   const messageTool = options?.disableMessageTool
     ? null
     : createMessageTool({
@@ -308,7 +308,7 @@ export function createOpenClawTools(
         senderIsOwner: options?.senderIsOwner,
       });
   const heartbeatTool = options?.enableHeartbeatTool ? createHeartbeatResponseTool() : null;
-  options?.recordToolPrepStage?.("openclaw-tools:message-tool");
+  options?.recordToolPrepStage?.("astroclaw-tools:message-tool");
   const nodesToolBase = createNodesTool({
     agentSessionKey: options?.agentSessionKey,
     agentChannel: options?.agentChannel,
@@ -325,19 +325,19 @@ export function createOpenClawTools(
     sandboxRoot: options?.sandboxRoot,
     workspaceDir,
   });
-  options?.recordToolPrepStage?.("openclaw-tools:nodes-tool");
+  options?.recordToolPrepStage?.("astroclaw-tools:nodes-tool");
   const embedded = isEmbeddedMode();
   const includeMessageTool = !embedded || options?.sourceReplyDeliveryMode === "message_tool_only";
   const effectiveCallGateway = embedded
     ? createEmbeddedCallGateway()
-    : openClawToolsDeps.callGateway;
+    : astroClawToolsDeps.callGateway;
   const includeUpdatePlanTool =
     isToolExplicitlyAllowedByFactoryPolicy({
       toolName: "update_plan",
       allowlist: mergeFactoryPolicyList(resolvedConfig?.tools?.allow, options?.pluginToolAllowlist),
       denylist: mergeFactoryPolicyList(resolvedConfig?.tools?.deny, options?.pluginToolDenylist),
     }) ||
-    isUpdatePlanToolEnabledForOpenClawTools({
+    isUpdatePlanToolEnabledForAstroclawTools({
       config: resolvedConfig,
       agentSessionKey: options?.agentSessionKey,
       agentId: options?.requesterAgentIdOverride,
@@ -363,14 +363,14 @@ export function createOpenClawTools(
           }),
         ]),
     ...(messageTool && includeMessageTool ? [messageTool] : []),
-    ...collectPresentOpenClawTools([heartbeatTool]),
+    ...collectPresentAstroclawTools([heartbeatTool]),
     createTtsTool({
       agentChannel: options?.agentChannel,
       config: resolvedConfig,
       agentId: sessionAgentId,
       agentAccountId: options?.agentAccountId,
     }),
-    ...collectPresentOpenClawTools([imageGenerateTool, musicGenerateTool, videoGenerateTool]),
+    ...collectPresentAstroclawTools([imageGenerateTool, musicGenerateTool, videoGenerateTool]),
     ...(embedded
       ? []
       : [
@@ -404,7 +404,7 @@ export function createOpenClawTools(
             agentChannel: options?.agentChannel,
             sandboxed: options?.sandboxed,
             config: resolvedConfig,
-            callGateway: openClawToolsDeps.callGateway,
+            callGateway: astroClawToolsDeps.callGateway,
           }),
           createSessionsSpawnTool({
             agentSessionKey: options?.agentSessionKey,
@@ -439,9 +439,9 @@ export function createOpenClawTools(
       activeModelProvider: options?.modelProvider,
       activeModelId: options?.modelId,
     }),
-    ...collectPresentOpenClawTools([webSearchTool, webFetchTool, imageTool, pdfTool]),
+    ...collectPresentAstroclawTools([webSearchTool, webFetchTool, imageTool, pdfTool]),
   ];
-  options?.recordToolPrepStage?.("openclaw-tools:core-tool-list");
+  options?.recordToolPrepStage?.("astroclaw-tools:core-tool-list");
   let allTools = tools;
   if (!options?.disablePluginTools) {
     const existingToolNames = new Set<string>();
@@ -450,13 +450,13 @@ export function createOpenClawTools(
     }
     allTools = [
       ...tools,
-      ...resolveOpenClawPluginToolsForOptions({
+      ...resolveAstroclawPluginToolsForOptions({
         options,
         resolvedConfig,
         existingToolNames,
       }),
     ];
-    options?.recordToolPrepStage?.("openclaw-tools:plugin-tools");
+    options?.recordToolPrepStage?.("astroclaw-tools:plugin-tools");
   }
 
   if (options?.wrapBeforeToolCallHook === false) {
@@ -475,7 +475,7 @@ export function createOpenClawTools(
     ...defaultHookContext,
     ...options?.beforeToolCallHookContext,
   };
-  options?.recordToolPrepStage?.("openclaw-tools:tool-hooks");
+  options?.recordToolPrepStage?.("astroclaw-tools:tool-hooks");
   return allTools.map((tool) =>
     isToolWrappedWithBeforeToolCallHook(tool)
       ? tool
@@ -485,12 +485,12 @@ export function createOpenClawTools(
 
 export const __testing = {
   resolveOptionalMediaToolFactoryPlan,
-  setDepsForTest(overrides?: Partial<OpenClawToolsDeps>) {
-    openClawToolsDeps = overrides
+  setDepsForTest(overrides?: Partial<AstroclawToolsDeps>) {
+    astroClawToolsDeps = overrides
       ? {
-          ...defaultOpenClawToolsDeps,
+          ...defaultAstroclawToolsDeps,
           ...overrides,
         }
-      : defaultOpenClawToolsDeps;
+      : defaultAstroclawToolsDeps;
   },
 };

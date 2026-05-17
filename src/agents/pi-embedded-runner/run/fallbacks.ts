@@ -1,8 +1,8 @@
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
 import { hasConfiguredModelFallbacks } from "../../agent-scope.js";
 
 export function hasEmbeddedRunConfiguredModelFallbacks(params: {
-  cfg: OpenClawConfig | undefined;
+  cfg: AstroclawConfig | undefined;
   agentId?: string | null;
   sessionKey?: string | null;
   modelFallbacksOverride?: string[];

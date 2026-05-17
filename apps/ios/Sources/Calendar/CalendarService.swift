@@ -1,9 +1,9 @@
 import EventKit
 import Foundation
-import OpenClawKit
+import AstroclawKit
 
 final class CalendarService: CalendarServicing {
-    func events(params: OpenClawCalendarEventsParams) async throws -> OpenClawCalendarEventsPayload {
+    func events(params: AstroclawCalendarEventsParams) async throws -> AstroclawCalendarEventsPayload {
         let status = EKEventStore.authorizationStatus(for: .event)
         let authorized: Bool = if status == .notDetermined || status == .writeOnly {
             await Self.requestFullEventAccess()
@@ -27,7 +27,7 @@ final class CalendarService: CalendarServicing {
 
         let formatter = ISO8601DateFormatter()
         let payload = selected.map { event in
-            OpenClawCalendarEventPayload(
+            AstroclawCalendarEventPayload(
                 identifier: event.eventIdentifier ?? UUID().uuidString,
                 title: event.title ?? "(untitled)",
                 startISO: formatter.string(from: event.startDate),
@@ -37,10 +37,10 @@ final class CalendarService: CalendarServicing {
                 calendarTitle: event.calendar.title)
         }
 
-        return OpenClawCalendarEventsPayload(events: payload)
+        return AstroclawCalendarEventsPayload(events: payload)
     }
 
-    func add(params: OpenClawCalendarAddParams) async throws -> OpenClawCalendarAddPayload {
+    func add(params: AstroclawCalendarAddParams) async throws -> AstroclawCalendarAddPayload {
         let status = EKEventStore.authorizationStatus(for: .event)
         let authorized: Bool = if status == .notDetermined {
             await Self.requestWriteOnlyEventAccess()
@@ -91,7 +91,7 @@ final class CalendarService: CalendarServicing {
 
         try store.save(event, span: .thisEvent)
 
-        let payload = OpenClawCalendarEventPayload(
+        let payload = AstroclawCalendarEventPayload(
             identifier: event.eventIdentifier ?? UUID().uuidString,
             title: event.title ?? title,
             startISO: formatter.string(from: event.startDate),
@@ -100,7 +100,7 @@ final class CalendarService: CalendarServicing {
             location: event.location,
             calendarTitle: event.calendar.title)
 
-        return OpenClawCalendarAddPayload(event: payload)
+        return AstroclawCalendarAddPayload(event: payload)
     }
 
     private static func requestFullEventAccess() async -> Bool {

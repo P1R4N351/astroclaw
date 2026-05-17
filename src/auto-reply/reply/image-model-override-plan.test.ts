@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { resolveImageModelOverridePlan } from "./image-model-override-plan.js";
 
 function buildConfig(params: {
-  imageModel?: NonNullable<NonNullable<OpenClawConfig["agents"]>["defaults"]>["imageModel"];
+  imageModel?: NonNullable<NonNullable<AstroclawConfig["agents"]>["defaults"]>["imageModel"];
   models?: Record<string, object>;
-}): OpenClawConfig {
+}): AstroclawConfig {
   return {
     agents: {
       defaults: {
@@ -13,7 +13,7 @@ function buildConfig(params: {
         ...(params.models ? { models: params.models } : {}),
       },
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 }
 
 describe("resolveImageModelOverridePlan", () => {

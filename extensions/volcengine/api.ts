@@ -1,4 +1,4 @@
-import type { ModelCompatConfig } from "openclaw/plugin-sdk/provider-model-shared";
+import type { ModelCompatConfig } from "astroclaw/plugin-sdk/provider-model-shared";
 
 export const VOLCENGINE_UNSUPPORTED_TOOL_SCHEMA_KEYWORDS = [
   "minLength",

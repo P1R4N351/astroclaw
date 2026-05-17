@@ -110,7 +110,7 @@ steps:
             senderName:
               expr: config.dmUserName
             text:
-              expr: "'@openclaw Personal thread QA marker. Reply exactly `' + config.threadMarker + '` in this thread only.'"
+              expr: "'@astroclaw Personal thread QA marker. Reply exactly `' + config.threadMarker + '` in this thread only.'"
             threadId:
               ref: threadId
             threadTitle:

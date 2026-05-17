@@ -1,4 +1,4 @@
-name: OpenClaw Scheduled Live And E2E Checks
+name: Astroclaw Scheduled Live And E2E Checks
 
 on:
   schedule:
@@ -12,7 +12,7 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: openclaw-scheduled-live-checks-${{ github.ref }}
+  group: astroclaw-scheduled-live-checks-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -25,7 +25,7 @@ jobs:
       contents: read
       packages: write
       pull-requests: read
-    uses: ./.github/workflows/openclaw-live-and-e2e-checks-reusable.yml
+    uses: ./.github/workflows/astroclaw-live-and-e2e-checks-reusable.yml
     with:
       ref: ${{ github.sha }}
       include_repo_e2e: true
@@ -50,11 +50,11 @@ jobs:
       MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
       OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
       OPENCODE_ZEN_API_KEY: ${{ secrets.OPENCODE_ZEN_API_KEY }}
-      OPENCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.OPENCLAW_LIVE_BROWSER_CDP_URL }}
-      OPENCLAW_LIVE_SETUP_TOKEN: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN }}
-      OPENCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_MODEL }}
-      OPENCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_PROFILE }}
-      OPENCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_VALUE }}
+      ASTROCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.ASTROCLAW_LIVE_BROWSER_CDP_URL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_MODEL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_VALUE }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -70,11 +70,11 @@ jobs:
       BYTEPLUS_ACCESS_KEY_ID: ${{ secrets.BYTEPLUS_ACCESS_KEY_ID }}
       BYTEPLUS_SECRET_ACCESS_KEY: ${{ secrets.BYTEPLUS_SECRET_ACCESS_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      OPENCLAW_CODEX_AUTH_JSON: ${{ secrets.OPENCLAW_CODEX_AUTH_JSON }}
-      OPENCLAW_CODEX_CONFIG_TOML: ${{ secrets.OPENCLAW_CODEX_CONFIG_TOML }}
-      OPENCLAW_CLAUDE_JSON: ${{ secrets.OPENCLAW_CLAUDE_JSON }}
-      OPENCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.OPENCLAW_CLAUDE_CREDENTIALS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
-      OPENCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.OPENCLAW_GEMINI_SETTINGS_JSON }}
+      ASTROCLAW_CODEX_AUTH_JSON: ${{ secrets.ASTROCLAW_CODEX_AUTH_JSON }}
+      ASTROCLAW_CODEX_CONFIG_TOML: ${{ secrets.ASTROCLAW_CODEX_CONFIG_TOML }}
+      ASTROCLAW_CLAUDE_JSON: ${{ secrets.ASTROCLAW_CLAUDE_JSON }}
+      ASTROCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_CREDENTIALS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
+      ASTROCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.ASTROCLAW_GEMINI_SETTINGS_JSON }}
       FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}

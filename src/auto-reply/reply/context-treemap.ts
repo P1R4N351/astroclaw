@@ -3,7 +3,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import zlib from "node:zlib";
 import type { SessionSystemPromptReport } from "../../config/sessions/types.js";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
 import { estimateTokensFromChars } from "../../utils/cjk-chars.js";
 
 type Rect = {
@@ -495,8 +495,8 @@ export async function renderContextTreemapPng(params: {
     1,
   );
   const outPath = path.join(
-    resolvePreferredOpenClawTmpDir(),
-    `openclaw-context-map-${crypto.randomUUID()}.png`,
+    resolvePreferredAstroclawTmpDir(),
+    `astroclaw-context-map-${crypto.randomUUID()}.png`,
   );
   await writeFile(outPath, encodePng(canvas.data));
   const caption = [

@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { readJsonFileWithFallback, writeJsonFileAtomically } from "openclaw/plugin-sdk/json-store";
-import { resolveStateDir } from "openclaw/plugin-sdk/state-paths";
+import { readJsonFileWithFallback, writeJsonFileAtomically } from "astroclaw/plugin-sdk/json-store";
+import { resolveStateDir } from "astroclaw/plugin-sdk/state-paths";
 import { normalizeTelegramBotInfo, type TelegramBotInfo } from "./bot-info.js";
 import { fingerprintTelegramBotToken } from "./token-fingerprint.js";
 

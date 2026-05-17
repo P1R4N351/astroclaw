@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/imessage",
+  "name": "@astroclaw/imessage",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw iMessage channel plugin using imsg on a signed-in Mac",
+  "description": "Astroclaw iMessage channel plugin using imsg on a signed-in Mac",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ],
@@ -43,7 +43,7 @@
       "pluginApi": ">=2026.5.17"
     },
     "build": {
-      "openclawVersion": "2026.5.17"
+      "astroclawVersion": "2026.5.17"
     }
   },
   "pluginInspector": {

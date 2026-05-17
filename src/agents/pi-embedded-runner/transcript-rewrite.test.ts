@@ -295,7 +295,7 @@ describe("rewriteTranscriptEntriesInSessionManager", () => {
 
 describe("rewriteTranscriptEntriesInSessionFile", () => {
   it("emits transcript updates when the active branch changes without opening a manager", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-transcript-rewrite-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-transcript-rewrite-"));
     const sessionManager = SessionManager.create(dir, dir);
     const entryIds = appendSessionMessages(sessionManager, [
       asAppendMessage({

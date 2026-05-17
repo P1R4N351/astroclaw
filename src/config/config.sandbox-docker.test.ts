@@ -68,7 +68,7 @@ describe("sandbox docker config", () => {
         defaults: {
           sandbox: {
             docker: {
-              binds: ["D:/data/openclaw/src:/src:ro", "D:\\data\\openclaw\\output:/output:rw"],
+              binds: ["D:/data/astroclaw/src:/src:ro", "D:\\data\\astroclaw\\output:/output:rw"],
             },
           },
         },
@@ -77,8 +77,8 @@ describe("sandbox docker config", () => {
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.config.agents?.defaults?.sandbox?.docker?.binds).toEqual([
-        "D:/data/openclaw/src:/src:ro",
-        "D:\\data\\openclaw\\output:/output:rw",
+        "D:/data/astroclaw/src:/src:ro",
+        "D:\\data\\astroclaw\\output:/output:rw",
       ]);
     }
   });
@@ -333,16 +333,16 @@ describe("sandbox browser binds config", () => {
       globalBrowser: {},
       agentBrowser: {},
     });
-    expect(resolved.network).toBe("openclaw-sandbox-browser");
+    expect(resolved.network).toBe("astroclaw-sandbox-browser");
   });
 
   it("prefers agent browser network over global browser network", () => {
     const resolved = resolveSandboxBrowserConfig({
       scope: "agent",
-      globalBrowser: { network: "openclaw-sandbox-browser-global" },
-      agentBrowser: { network: "openclaw-sandbox-browser-agent" },
+      globalBrowser: { network: "astroclaw-sandbox-browser-global" },
+      agentBrowser: { network: "astroclaw-sandbox-browser-agent" },
     });
-    expect(resolved.network).toBe("openclaw-sandbox-browser-agent");
+    expect(resolved.network).toBe("astroclaw-sandbox-browser-agent");
   });
 
   it("merges cdpSourceRange with agent override", () => {

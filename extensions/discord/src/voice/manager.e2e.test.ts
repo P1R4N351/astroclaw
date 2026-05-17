@@ -166,9 +166,9 @@ vi.mock("./sdk-runtime.js", () => ({
   }),
 }));
 
-vi.mock("openclaw/plugin-sdk/routing", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/routing")>(
-    "openclaw/plugin-sdk/routing",
+vi.mock("astroclaw/plugin-sdk/routing", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/routing")>(
+    "astroclaw/plugin-sdk/routing",
   );
   return {
     ...actual,
@@ -176,9 +176,9 @@ vi.mock("openclaw/plugin-sdk/routing", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/agent-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/agent-runtime")>(
-    "openclaw/plugin-sdk/agent-runtime",
+vi.mock("astroclaw/plugin-sdk/agent-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/agent-runtime")>(
+    "astroclaw/plugin-sdk/agent-runtime",
   );
   return {
     ...actual,
@@ -186,9 +186,9 @@ vi.mock("openclaw/plugin-sdk/agent-runtime", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
-    "openclaw/plugin-sdk/runtime-env",
+vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
+    "astroclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -196,9 +196,9 @@ vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/realtime-voice", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/realtime-voice")>(
-    "openclaw/plugin-sdk/realtime-voice",
+vi.mock("astroclaw/plugin-sdk/realtime-voice", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/realtime-voice")>(
+    "astroclaw/plugin-sdk/realtime-voice",
   );
   return {
     ...actual,
@@ -1106,14 +1106,14 @@ describe("DiscordVoiceManager", () => {
         }
       | undefined;
     expect(bridgeParams?.autoRespondToAudio).toBe(false);
-    expect(bridgeParams?.instructions).toContain("same OpenClaw agent");
-    expect(bridgeParams?.tools?.map((tool) => tool.name)).toContain("openclaw_agent_consult");
+    expect(bridgeParams?.instructions).toContain("same Astroclaw agent");
+    expect(bridgeParams?.tools?.map((tool) => tool.name)).toContain("astroclaw_agent_consult");
 
     bridgeParams?.onToolCall?.(
       {
         itemId: "item-1",
         callId: "call-1",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "what did I ask?" },
       },
       realtimeSessionMock,
@@ -1169,7 +1169,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-exact",
         callId: "call-exact",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: {
           question: "Speak the provided exact answer verbatim to the Discord voice channel.",
           context: 'Provided answer text: "already answered"\\nSpoken style: verbatim only',
@@ -1181,10 +1181,10 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-internal",
         callId: "call-internal",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: {
           question: [
-            "Speak this exact OpenClaw answer to the Discord voice channel, without adding, removing, or rephrasing words.",
+            "Speak this exact Astroclaw answer to the Discord voice channel, without adding, removing, or rephrasing words.",
             'Answer: "direct internal answer"',
           ].join("\n"),
         },
@@ -1678,7 +1678,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-owner",
         callId: "call-owner",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "owner question" },
       },
       realtimeSessionMock,
@@ -1748,7 +1748,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-late",
         callId: "call-late",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "late question" },
       },
       realtimeSessionMock,
@@ -1762,7 +1762,7 @@ describe("DiscordVoiceManager", () => {
       "call-late",
       {
         status: "already_delivered",
-        message: "OpenClaw already delivered this answer to Discord voice.",
+        message: "Astroclaw already delivered this answer to Discord voice.",
       },
       { suppressResponse: true },
     );
@@ -1822,7 +1822,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-late",
         callId: "call-late",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "late question" },
       },
       realtimeSessionMock,
@@ -1833,7 +1833,7 @@ describe("DiscordVoiceManager", () => {
         "call-late",
         {
           status: "already_delivered",
-          message: "OpenClaw already delivered this answer to Discord voice.",
+          message: "Astroclaw already delivered this answer to Discord voice.",
         },
         { suppressResponse: true },
       ),
@@ -1900,7 +1900,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-late",
         callId: "call-late",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "late question" },
       },
       realtimeSessionMock,
@@ -1971,7 +1971,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-old",
         callId: "call-old",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "repeat question" },
       },
       realtimeSessionMock,
@@ -1994,7 +1994,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-new",
         callId: "call-new",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "repeat question" },
       },
       realtimeSessionMock,
@@ -2008,7 +2008,7 @@ describe("DiscordVoiceManager", () => {
       "call-new",
       {
         status: "already_delivered",
-        message: "OpenClaw already delivered this answer to Discord voice.",
+        message: "Astroclaw already delivered this answer to Discord voice.",
       },
       { suppressResponse: true },
     );
@@ -2120,14 +2120,14 @@ describe("DiscordVoiceManager", () => {
       | undefined;
     expect(bridgeParams?.autoRespondToAudio).toBe(true);
     expect(bridgeParams?.interruptResponseOnInputAudio).toBe(false);
-    expect(bridgeParams?.instructions).toContain("Call openclaw_agent_consult");
-    expect(bridgeParams?.tools?.map((tool) => tool.name)).toContain("openclaw_agent_consult");
+    expect(bridgeParams?.instructions).toContain("Call astroclaw_agent_consult");
+    expect(bridgeParams?.tools?.map((tool) => tool.name)).toContain("astroclaw_agent_consult");
 
     bridgeParams?.onToolCall?.(
       {
         itemId: "item-1",
         callId: "call-1",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "check my Discord" },
       },
       realtimeSessionMock,
@@ -2227,7 +2227,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-1",
         callId: "call-1",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "check the maintainer channel context" },
       },
       realtimeSessionMock,
@@ -2295,7 +2295,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-guest",
         callId: "call-guest",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "guest question" },
       },
       realtimeSessionMock,
@@ -2368,7 +2368,7 @@ describe("DiscordVoiceManager", () => {
       {
         itemId: "item-guest",
         callId: "call-guest",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "guest question" },
       },
       realtimeSessionMock,

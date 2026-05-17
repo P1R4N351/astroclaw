@@ -8,7 +8,7 @@ import {
   resolveSessionWriteLockAcquireTimeoutMs,
 } from "../../agents/session-write-lock.js";
 import { redactTranscriptMessage } from "../../agents/transcript-redact.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { redactSecrets } from "../../logging/redact.js";
 
 const TRANSCRIPT_APPEND_SCAN_CHUNK_BYTES = 64 * 1024;
@@ -239,7 +239,7 @@ type AppendSessionTranscriptMessageParams<TMessage = unknown> = {
   sessionId?: string;
   cwd?: string;
   useRawWhenLinear?: boolean;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
 };
 
 function isTranscriptAgentMessage(value: unknown): value is AgentMessage {

@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { resolveCronStorePath, loadCronStore, saveCronStore } from "../cron/store.js";
 import type { CronJob } from "../cron/types.js";
 import {
@@ -138,7 +138,7 @@ function formatProviderCounts(counts: Map<string, number>): string {
 }
 
 function noteCronModelOverrides(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   jobs: Array<Record<string, unknown>>;
   storePath: string;
 }) {
@@ -189,7 +189,7 @@ function noteCronModelOverrides(params: {
     lines.push(`- Examples: ${mismatchExamples.join(", ")}`);
   }
   lines.push(
-    `Review with ${formatCliCommand("openclaw cron list")} and ${formatCliCommand("openclaw cron show <job-id>")}; remove \`payload.model\` from jobs that should inherit the default.`,
+    `Review with ${formatCliCommand("astroclaw cron list")} and ${formatCliCommand("astroclaw cron show <job-id>")}; remove \`payload.model\` from jobs that should inherit the default.`,
   );
 
   note(lines.join("\n"), "Cron");
@@ -312,8 +312,8 @@ export async function noteLegacyWhatsAppCrontabHealthCheck(
   note(
     [
       "Legacy WhatsApp crontab health check detected.",
-      "`~/.openclaw/bin/ensure-whatsapp.sh` is not maintained by current OpenClaw and can misreport `Gateway inactive` from cron when the systemd user bus environment is missing.",
-      `Remove the stale crontab entry with ${formatCliCommand("crontab -e")}; use ${formatCliCommand("openclaw channels status --probe")}, ${formatCliCommand("openclaw doctor")}, and ${formatCliCommand("openclaw gateway status")} for current health checks.`,
+      "`~/.astroclaw/bin/ensure-whatsapp.sh` is not maintained by current Astroclaw and can misreport `Gateway inactive` from cron when the systemd user bus environment is missing.",
+      `Remove the stale crontab entry with ${formatCliCommand("crontab -e")}; use ${formatCliCommand("astroclaw channels status --probe")}, ${formatCliCommand("astroclaw doctor")}, and ${formatCliCommand("astroclaw gateway status")} for current health checks.`,
       `Matched ${pluralize(legacyLines.length, "entry")}.`,
     ].join("\n"),
     "Cron",
@@ -321,7 +321,7 @@ export async function noteLegacyWhatsAppCrontabHealthCheck(
 }
 
 export async function maybeRepairLegacyCronStore(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   options: DoctorOptions;
   prompter: Pick<DoctorPrompter, "confirm">;
 }) {
@@ -356,7 +356,7 @@ export async function maybeRepairLegacyCronStore(params: {
     [
       `Legacy cron job storage detected at ${shortenHomePath(storePath)}.`,
       ...previewLines,
-      `Repair with ${formatCliCommand("openclaw doctor --fix")} to normalize the store before the next scheduler run.`,
+      `Repair with ${formatCliCommand("astroclaw doctor --fix")} to normalize the store before the next scheduler run.`,
     ].join("\n"),
     "Cron",
   );

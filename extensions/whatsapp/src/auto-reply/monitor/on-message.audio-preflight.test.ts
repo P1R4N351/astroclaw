@@ -82,7 +82,7 @@ vi.mock("../../text-runtime.js", () => ({
   normalizeE164: (value: string) => value,
 }));
 
-vi.mock("openclaw/plugin-sdk/routing", () => ({
+vi.mock("astroclaw/plugin-sdk/routing", () => ({
   buildGroupHistoryKey: () => "group-key",
   resolveAgentRoute: () => ({
     agentId: "main",

@@ -1,2 +1,2 @@
-export { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-export { resolveStateDir } from "openclaw/plugin-sdk/state-paths";
+export { definePluginEntry, type AstroclawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+export { resolveStateDir } from "astroclaw/plugin-sdk/state-paths";

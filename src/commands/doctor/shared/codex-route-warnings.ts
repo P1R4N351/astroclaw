@@ -12,7 +12,7 @@ import { loadSessionStore, updateSessionStore } from "../../../config/sessions/s
 import { resolveAllAgentSessionStoreTargetsSync } from "../../../config/sessions/targets.js";
 import type { SessionEntry } from "../../../config/sessions/types.js";
 import type { AgentRuntimePolicyConfig } from "../../../config/types.agents-shared.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
 import { normalizeAgentId } from "../../../routing/session-key.js";
 
 type CodexRouteHit = {
@@ -50,7 +50,7 @@ type SessionRouteRepairResult = {
   sessionKeys: string[];
 };
 type ConfigRouteRepairResult = {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   changes: CodexRouteHit[];
   runtimePinChanges: string[];
   runtimePolicyChanges: string[];
@@ -110,7 +110,7 @@ function resolveRuntime(params: {
   defaultsRuntime?: AgentRuntimePolicyConfig;
 }): string | undefined {
   return (
-    normalizeRuntimeString(params.env?.OPENCLAW_AGENT_RUNTIME) ??
+    normalizeRuntimeString(params.env?.ASTROCLAW_AGENT_RUNTIME) ??
     normalizeRuntimeString(params.agentRuntime?.id) ??
     normalizeRuntimeString(params.defaultsRuntime?.id)
   );
@@ -219,7 +219,7 @@ function concreteRuntimeId(runtime: string | undefined): string | undefined {
 }
 
 function modelRefUsesCodexRuntime(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   modelRef: string | undefined;
   agentId?: string;
 }): boolean {
@@ -239,7 +239,7 @@ function modelRefUsesCodexRuntime(params: {
 }
 
 function resolveRuntimeModelRef(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   modelRef: string;
   agentId?: string;
 }): string {
@@ -283,7 +283,7 @@ function resolveKnownCompatModelAliasRef(modelRef: string): string | undefined {
 }
 
 function resolveConfiguredModelAliasRef(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   modelRef: string;
   agentId?: string;
 }): string | undefined {
@@ -303,7 +303,7 @@ function resolveConfiguredModelAliasRef(params: {
 }
 
 function resolveDefaultProviderForAliasContext(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string;
 }): string {
   const primaryModelRef =
@@ -337,7 +337,7 @@ function resolveDefaultProviderForAliasContext(params: {
 }
 
 function findAgentById(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   agentId: string | undefined,
 ): MutableRecord | undefined {
   if (!agentId) {
@@ -375,7 +375,7 @@ function resolveAliasFromModelsMap(
 }
 
 function resolveConfiguredBareModelRef(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   modelRef: string;
   agentId?: string;
 }): string | undefined {
@@ -437,7 +437,7 @@ function normalizeProviderModelRef(provider: string, modelId: string): string {
   return `${normalizedProvider}/${normalizedModelId}`;
 }
 
-function resolveImplicitDefaultAgentModelRef(cfg: OpenClawConfig): string {
+function resolveImplicitDefaultAgentModelRef(cfg: AstroclawConfig): string {
   const fallbackProvider = resolveConfiguredProviderFallback({
     cfg,
     defaultProvider: DEFAULT_PROVIDER,
@@ -448,7 +448,7 @@ function resolveImplicitDefaultAgentModelRef(cfg: OpenClawConfig): string {
 }
 
 function agentUsesCodexRuntimeForCompaction(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agent: unknown;
   agentId?: string;
   currentRuntime?: string;
@@ -466,7 +466,7 @@ function agentUsesCodexRuntimeForCompaction(params: {
 }
 
 function collectUnsupportedCodexCompactionOverridesForAgent(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agent: unknown;
   path: string;
   agentId?: string;
@@ -512,7 +512,7 @@ function collectUnsupportedCodexCompactionOverridesForAgent(params: {
 }
 
 function collectLegacyLosslessCompactionForAgent(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agent: unknown;
   path: string;
   agentId?: string;
@@ -584,7 +584,7 @@ function dedupeLegacyLosslessCompactionConfigs(
 }
 
 function collectLegacyLosslessCompactionConfigs(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   ignoreLegacyAgentRuntimePins?: boolean;
 }): LegacyLosslessCompactionConfig[] {
@@ -645,7 +645,7 @@ function dedupeUnsupportedCompactionOverrides(
 }
 
 function collectUnsupportedCodexCompactionOverrides(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   ignoreLegacyAgentRuntimePins?: boolean;
 }): UnsupportedCodexCompactionOverride[] {
@@ -692,7 +692,7 @@ function collectUnsupportedCodexCompactionOverrides(params: {
 }
 
 function getSharedDefaultCompactionOverrideConsumers(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   ignoreLegacyAgentRuntimePins?: boolean;
 }): SharedDefaultCompactionOverrideConsumers {
@@ -774,7 +774,7 @@ function getSharedDefaultCompactionOverrideConsumers(params: {
 }
 
 function sharedDefaultLosslessCompactionHasNonCodexConsumer(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   ignoreLegacyAgentRuntimePins?: boolean;
 }): boolean {
@@ -907,7 +907,7 @@ function collectAgentModelRefs(params: {
   }
 }
 
-function collectConfigModelRefs(cfg: OpenClawConfig, env?: NodeJS.ProcessEnv): CodexRouteHit[] {
+function collectConfigModelRefs(cfg: AstroclawConfig, env?: NodeJS.ProcessEnv): CodexRouteHit[] {
   const hits: CodexRouteHit[] = [];
   const defaults = cfg.agents?.defaults;
   const defaultsRuntime = defaults?.agentRuntime;
@@ -992,12 +992,12 @@ function pluginIdListIncludes(value: unknown, pluginId: string): boolean {
   return Array.isArray(value) && value.some((entry) => normalizeString(entry) === pluginId);
 }
 
-function codexPluginAllowlistIsRestrictive(cfg: OpenClawConfig): boolean {
+function codexPluginAllowlistIsRestrictive(cfg: AstroclawConfig): boolean {
   const allow = cfg.plugins?.allow;
   return Array.isArray(allow) && allow.length > 0 && !pluginIdListIncludes(allow, "codex");
 }
 
-function isCodexPluginUnavailableByConfig(cfg: OpenClawConfig): boolean {
+function isCodexPluginUnavailableByConfig(cfg: AstroclawConfig): boolean {
   if (codexPluginIsBlockedOutsideEntry(cfg)) {
     return true;
   }
@@ -1007,7 +1007,7 @@ function isCodexPluginUnavailableByConfig(cfg: OpenClawConfig): boolean {
   return codexPluginAllowlistIsRestrictive(cfg);
 }
 
-function codexPluginIsBlockedOutsideEntry(cfg: OpenClawConfig): boolean {
+function codexPluginIsBlockedOutsideEntry(cfg: AstroclawConfig): boolean {
   if (cfg.plugins?.enabled === false) {
     return true;
   }
@@ -1059,7 +1059,7 @@ function hasAgentPrimaryModelConfig(agent: unknown): boolean {
 }
 
 function collectChannelAgentRuntimeModelRefs(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
 ): Array<{ path: string; modelRef: string }> {
   const refs: Array<{ path: string; modelRef: string }> = [];
   const channelsModelByChannel = asMutableRecord(cfg.channels?.modelByChannel);
@@ -1079,7 +1079,7 @@ function collectChannelAgentRuntimeModelRefs(
   return refs;
 }
 
-function collectDisabledCodexPluginRouteHits(cfg: OpenClawConfig): DisabledCodexPluginRouteHit[] {
+function collectDisabledCodexPluginRouteHits(cfg: AstroclawConfig): DisabledCodexPluginRouteHit[] {
   if (!isCodexPluginUnavailableByConfig(cfg)) {
     return [];
   }
@@ -1179,9 +1179,9 @@ function collectDisabledCodexPluginRouteHits(cfg: OpenClawConfig): DisabledCodex
 }
 
 function enableCodexPluginForRequiredRoutes(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   routeHits: DisabledCodexPluginRouteHit[];
-}): { cfg: OpenClawConfig; changes: string[] } {
+}): { cfg: AstroclawConfig; changes: string[] } {
   if (params.routeHits.length === 0 || codexPluginIsBlockedOutsideEntry(params.cfg)) {
     return { cfg: params.cfg, changes: [] };
   }
@@ -1439,7 +1439,7 @@ function parseModelRef(modelRef: string): { provider: string; modelId: string } 
 }
 
 function resolveCurrentRuntimeIdForCanonicalModel(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   modelRef: string;
   agentId: string;
 }): string {
@@ -1496,7 +1496,7 @@ function setModelRuntimePolicy(params: {
 }
 
 function shieldExplicitListedAgentRefsFromDefaultPolicy(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   modelRef: string;
   changes: string[];
 }): void {
@@ -1525,7 +1525,7 @@ function shieldExplicitListedAgentRefsFromDefaultPolicy(params: {
 }
 
 function rewriteAgentModelRefs(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   hits: CodexRouteHit[];
   agent: MutableRecord | undefined;
   path: string;
@@ -1747,7 +1747,7 @@ function readMutablePath(root: MutableRecord, pathLabel: string): MutableRecord 
 }
 
 function readCompactionOwnerForPath(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   ownerPath: string,
 ): MutableRecord | undefined {
   if (ownerPath === "agents.defaults") {
@@ -1772,7 +1772,7 @@ function readCompactionOwnerForPath(
 }
 
 function removeMigratedLosslessCompactionKey(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   path: string;
   key: CompactionOverrideKey;
   changes: string[];
@@ -1813,7 +1813,7 @@ function legacyLosslessSummaryModels(hits: readonly LegacyLosslessCompactionConf
 }
 
 function preserveMigratedLosslessCodexRuntimePolicy(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   hits: readonly LegacyLosslessCompactionConfig[];
   summaryModel: string | undefined;
   changes: string[];
@@ -1919,7 +1919,7 @@ function ensureLosslessLlmPolicy(params: {
 }
 
 function maybeMigrateLegacyLosslessCompactionConfig(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   ignoreLegacyAgentRuntimePins?: boolean;
 }): string[] {
@@ -2003,7 +2003,7 @@ function maybeMigrateLegacyLosslessCompactionConfig(params: {
 }
 
 function ensureCodexRuntimePolicy(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agent: MutableRecord;
   agentPath: string;
   modelRef: string;
@@ -2041,7 +2041,7 @@ function ensureCodexRuntimePolicy(params: {
 }
 
 function canonicalOpenAIModelUsesCodexRuntime(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   modelRef: string;
   agentId?: string;
 }): boolean {
@@ -2068,7 +2068,7 @@ function canonicalOpenAIModelUsesCodexRuntime(params: {
 }
 
 function rewriteStringModelSlotIfCanonicalCodexRuntime(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string;
   hits: CodexRouteHit[];
   container: MutableRecord | undefined;
@@ -2099,7 +2099,7 @@ function rewriteStringModelSlotIfCanonicalCodexRuntime(params: {
 }
 
 function rewriteModelConfigSlotIfCanonicalCodexRuntime(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId?: string;
   hits: CodexRouteHit[];
   container: MutableRecord | undefined;
@@ -2169,7 +2169,7 @@ function clearLegacyAgentRuntimePolicy(
   }
 }
 
-function clearConfigLegacyAgentRuntimePolicies(cfg: OpenClawConfig): string[] {
+function clearConfigLegacyAgentRuntimePolicies(cfg: AstroclawConfig): string[] {
   const changes: string[] = [];
   clearLegacyAgentRuntimePolicy(asMutableRecord(cfg.agents?.defaults), "agents.defaults", changes);
   const agents = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
@@ -2195,7 +2195,7 @@ function isCompactionOnlyRouteHit(hit: CodexRouteHit): boolean {
 }
 
 function rewriteConfigModelRefsWithCompactionPolicy(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   preserveSharedDefaultCompactionOverrides: SharedDefaultCompactionOverrideConsumers;
   ignoreLegacyAgentRuntimePins?: boolean;
@@ -2349,7 +2349,7 @@ function rewriteConfigModelRefsWithCompactionPolicy(params: {
 }
 
 function configRepairWouldClearLegacyRuntimePins(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
 }): boolean {
   const dryRun = rewriteConfigModelRefsWithCompactionPolicy({
@@ -2362,7 +2362,7 @@ function configRepairWouldClearLegacyRuntimePins(params: {
 }
 
 function rewriteConfigModelRefs(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
 }): ConfigRouteRepairResult {
   const preserveSharedDefaultCompactionOverrides = getSharedDefaultCompactionOverrideConsumers({
@@ -2386,7 +2386,7 @@ function formatUnsupportedCompactionWarning(params: {
   fixHint: string;
 }): string {
   return [
-    "- Codex runtime uses native server-side compaction and ignores OpenClaw compaction summarizer overrides.",
+    "- Codex runtime uses native server-side compaction and ignores Astroclaw compaction summarizer overrides.",
     ...params.hits.map(
       (hit) => `- ${hit.path}: ${hit.value} is ignored while this agent uses Codex runtime.`,
     ),
@@ -2417,7 +2417,7 @@ function formatLegacyLosslessCompactionWarning(params: {
     "- Legacy Lossless compaction config should use the Lossless context-engine slot for Codex.",
     ...configLines,
     params.canAutoFix
-      ? "- Run `openclaw doctor --fix`: it migrates legacy Lossless compaction config to the Lossless context-engine slot."
+      ? "- Run `astroclaw doctor --fix`: it migrates legacy Lossless compaction config to the Lossless context-engine slot."
       : "- Move the Lossless config manually; doctor will not overwrite an existing non-Lossless context-engine slot or collapse conflicting per-agent summary models.",
   ].join("\n");
 }
@@ -2428,7 +2428,7 @@ function formatDisabledCodexPluginWarning(params: {
 }): string {
   const fixHint = params.blockedOutsideEntry
     ? "- Enable plugin loading and remove `codex` from plugins.deny, or set the affected OpenAI models to a PI runtime policy."
-    : "- Run `openclaw doctor --fix`: it enables plugins.entries.codex, or set the affected OpenAI models to a PI runtime policy.";
+    : "- Run `astroclaw doctor --fix`: it enables plugins.entries.codex, or set the affected OpenAI models to a PI runtime policy.";
   return [
     "- Codex runtime is selected, but the Codex plugin is disabled.",
     ...params.hits.map(
@@ -2440,7 +2440,7 @@ function formatDisabledCodexPluginWarning(params: {
 }
 
 export function collectCodexRouteWarnings(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
 }): string[] {
   const hits = collectConfigModelRefs(params.cfg, params.env);
@@ -2480,7 +2480,7 @@ export function collectCodexRouteWarnings(params: {
               hit.runtime ? `; current runtime is "${hit.runtime}"` : ""
             }.`,
         ),
-        "- Run `openclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
+        "- Run `astroclaw doctor --fix`: it rewrites configured model refs and stale sessions to `openai/*`, moves Codex intent to provider/model runtime policy, and clears old whole-agent runtime pins.",
       ].join("\n"),
     );
   }
@@ -2532,7 +2532,7 @@ export function collectCodexRouteWarnings(params: {
       formatUnsupportedCompactionWarning({
         hits: fixableHits,
         fixHint:
-          "- Run `openclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
+          "- Run `astroclaw doctor --fix`: it removes unsupported Codex compaction overrides.",
       }),
     );
   }
@@ -2540,11 +2540,11 @@ export function collectCodexRouteWarnings(params: {
 }
 
 export function maybeRepairCodexRoutes(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   shouldRepair: boolean;
   codexRuntimeReady?: boolean;
-}): { cfg: OpenClawConfig; warnings: string[]; changes: string[] } {
+}): { cfg: AstroclawConfig; warnings: string[]; changes: string[] } {
   const hits = collectConfigModelRefs(params.cfg, params.env);
   const disabledCodexPluginHits = collectDisabledCodexPluginRouteHits(params.cfg);
   const ignoreLegacyAgentRuntimePins = configRepairWouldClearLegacyRuntimePins(params);
@@ -2712,7 +2712,7 @@ function scanCodexSessionStoreRoutes(store: Record<string, SessionEntry>): strin
 }
 
 export async function maybeRepairCodexSessionRoutes(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   shouldRepair: boolean;
   codexRuntimeReady?: boolean;
@@ -2744,7 +2744,7 @@ export async function maybeRepairCodexSessionRoutes(params: {
               [
                 "- Legacy `openai-codex/*` session route state detected.",
                 `- Affected sessions: ${stale.length}.`,
-                "- Run `openclaw doctor --fix` to rewrite stale session model/provider pins across all agent session stores.",
+                "- Run `astroclaw doctor --fix` to rewrite stale session model/provider pins across all agent session stores.",
               ].join("\n"),
             ]
           : [],

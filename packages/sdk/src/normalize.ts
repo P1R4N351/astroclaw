@@ -1,4 +1,4 @@
-import type { GatewayEvent, JsonObject, OpenClawEvent, OpenClawEventType } from "./types.js";
+import type { GatewayEvent, JsonObject, AstroclawEvent, AstroclawEventType } from "./types.js";
 
 function asRecord(value: unknown): JsonObject {
   return typeof value === "object" && value !== null ? (value as JsonObject) : {};
@@ -16,7 +16,7 @@ function readLowerString(value: unknown): string | undefined {
   return readString(value)?.toLowerCase();
 }
 
-function normalizeLifecycleEndEventType(data: JsonObject): OpenClawEventType {
+function normalizeLifecycleEndEventType(data: JsonObject): AstroclawEventType {
   const status = readLowerString(data.status);
   const stopReason = readLowerString(data.stopReason);
   if (
@@ -49,7 +49,7 @@ function normalizeLifecycleEndEventType(data: JsonObject): OpenClawEventType {
   return "run.completed";
 }
 
-function normalizeAgentEventType(payload: JsonObject): OpenClawEventType {
+function normalizeAgentEventType(payload: JsonObject): AstroclawEventType {
   const stream = readString(payload.stream);
   const data = asRecord(payload.data);
   const phase = readString(data.phase);
@@ -101,7 +101,7 @@ function normalizeAgentEventType(payload: JsonObject): OpenClawEventType {
   return "raw";
 }
 
-function normalizeNamedEventType(event: GatewayEvent): OpenClawEventType {
+function normalizeNamedEventType(event: GatewayEvent): AstroclawEventType {
   const payload = asRecord(event.payload);
   switch (event.event) {
     case "agent":
@@ -134,7 +134,7 @@ function normalizeNamedEventType(event: GatewayEvent): OpenClawEventType {
   }
 }
 
-export function normalizeGatewayEvent(event: GatewayEvent): OpenClawEvent {
+export function normalizeGatewayEvent(event: GatewayEvent): AstroclawEvent {
   const payload = asRecord(event.payload);
   const runId = readString(payload.runId);
   const sessionId = readString(payload.sessionId);

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../../channels/plugins/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import {
   createChannelTestPluginBase,
@@ -130,7 +130,7 @@ beforeEach(() => {
 
 function buildParams(
   commandBodyNormalized: string,
-  cfgOverrides: Partial<OpenClawConfig> = {},
+  cfgOverrides: Partial<AstroclawConfig> = {},
 ): HandleCommandsParams {
   return {
     cfg: {
@@ -143,7 +143,7 @@ function buildParams(
         text: true,
       },
       ...cfgOverrides,
-    } as OpenClawConfig,
+    } as AstroclawConfig,
     ctx: {
       Surface: "discord",
     },
@@ -386,7 +386,7 @@ describe("handleModelsCommand", () => {
           model: { primary: "openai/gpt-5.5" },
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     expect(data.runtimeChoicesByProvider?.get("openai")?.[0]).toEqual({
       id: "codex",
@@ -395,8 +395,8 @@ describe("handleModelsCommand", () => {
     });
     expect(data.runtimeChoicesByProvider?.get("openai")?.[1]).toEqual({
       id: "pi",
-      label: "OpenClaw Pi Default",
-      description: "Use the built-in OpenClaw Pi runtime.",
+      label: "Astroclaw Pi Default",
+      description: "Use the built-in Astroclaw Pi runtime.",
     });
   });
 
@@ -415,12 +415,12 @@ describe("handleModelsCommand", () => {
           model: { primary: "openai/gpt-5.5" },
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     expect(data.runtimeChoicesByProvider?.get("openai")?.[0]).toEqual({
       id: "pi",
-      label: "OpenClaw Pi Default",
-      description: "Use the built-in OpenClaw Pi runtime.",
+      label: "Astroclaw Pi Default",
+      description: "Use the built-in Astroclaw Pi runtime.",
     });
   });
 
@@ -443,7 +443,7 @@ describe("handleModelsCommand", () => {
           },
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     expect(data.runtimeChoicesByProvider?.get("openai")?.[0]).toEqual({
       id: "codex",
@@ -452,8 +452,8 @@ describe("handleModelsCommand", () => {
     });
     expect(data.runtimeChoicesByProvider?.get("openai")?.[1]).toEqual({
       id: "pi",
-      label: "OpenClaw Pi Default",
-      description: "Use the built-in OpenClaw Pi runtime.",
+      label: "Astroclaw Pi Default",
+      description: "Use the built-in Astroclaw Pi runtime.",
     });
   });
 
@@ -473,12 +473,12 @@ describe("handleModelsCommand", () => {
           },
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     expect(data.runtimeChoicesByProvider?.get("anthropic")?.[0]).toEqual({
       id: "pi",
-      label: "OpenClaw Pi Default",
-      description: "Use the built-in OpenClaw Pi runtime.",
+      label: "Astroclaw Pi Default",
+      description: "Use the built-in Astroclaw Pi runtime.",
     });
   });
 
@@ -498,7 +498,7 @@ describe("handleModelsCommand", () => {
           },
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     expect(data.runtimeChoicesByProvider?.get("anthropic")?.[0]).toEqual({
       id: "claude-cli",
@@ -507,8 +507,8 @@ describe("handleModelsCommand", () => {
     });
     expect(data.runtimeChoicesByProvider?.get("anthropic")?.[1]).toEqual({
       id: "pi",
-      label: "OpenClaw Pi Default",
-      description: "Use the built-in OpenClaw Pi runtime.",
+      label: "Astroclaw Pi Default",
+      description: "Use the built-in Astroclaw Pi runtime.",
     });
   });
 
@@ -605,7 +605,7 @@ describe("handleModelsCommand", () => {
           },
         },
       },
-    } satisfies Partial<OpenClawConfig>;
+    } satisfies Partial<AstroclawConfig>;
 
     const defaultProviderResult = await handleModelsCommand(
       buildParams("/models openai-codex", cfg),

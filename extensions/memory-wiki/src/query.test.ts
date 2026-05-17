@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../api.js";
+import type { AstroclawConfig } from "../api.js";
 import { compileMemoryWikiVault } from "./compile.js";
 import type { MemoryWikiPluginConfig } from "./config.js";
 import { renderWikiMarkdown } from "./markdown.js";
@@ -24,18 +24,18 @@ const {
   }),
 }));
 
-vi.mock("openclaw/plugin-sdk/memory-host-search", () => ({
+vi.mock("astroclaw/plugin-sdk/memory-host-search", () => ({
   getActiveMemorySearchManager: getActiveMemorySearchManagerMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/memory-host-core", () => ({
+vi.mock("astroclaw/plugin-sdk/memory-host-core", () => ({
   resolveDefaultAgentId: resolveDefaultAgentIdMock,
   resolveSessionAgentId: resolveSessionAgentIdMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/session-transcript-hit", async (importOriginal) => {
+vi.mock("astroclaw/plugin-sdk/session-transcript-hit", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-hit")>();
+    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-hit")>();
   return {
     ...actual,
     loadCombinedSessionStoreForGateway: loadCombinedSessionStoreForGatewayMock,
@@ -98,15 +98,15 @@ async function createQueryVault(options?: {
   });
 }
 
-function createAppConfig(): OpenClawConfig {
+function createAppConfig(): AstroclawConfig {
   return {
     agents: {
       list: [{ id: "main", default: true }],
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 }
 
-function createSessionVisibilityAppConfig(): OpenClawConfig {
+function createSessionVisibilityAppConfig(): AstroclawConfig {
   return {
     agents: {
       defaults: { sandbox: { sessionToolsVisibility: "all" } },
@@ -115,7 +115,7 @@ function createSessionVisibilityAppConfig(): OpenClawConfig {
     tools: {
       sessions: { visibility: "self" },
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 }
 
 function mockSessionTranscriptStore() {
@@ -125,12 +125,12 @@ function mockSessionTranscriptStore() {
       "agent:main:child-session": {
         sessionId: "child-session",
         updatedAt: 1,
-        sessionFile: "/tmp/openclaw/child-session.jsonl",
+        sessionFile: "/tmp/astroclaw/child-session.jsonl",
       },
       "agent:main:sibling-session": {
         sessionId: "sibling-session",
         updatedAt: 2,
-        sessionFile: "/tmp/openclaw/sibling-session.jsonl",
+        sessionFile: "/tmp/astroclaw/sibling-session.jsonl",
       },
     },
   });
@@ -227,10 +227,10 @@ describe("searchMemoryWiki", () => {
           "Alpha body.",
           "",
           "## Related",
-          "<!-- openclaw:wiki:related:start -->",
+          "<!-- astroclaw:wiki:related:start -->",
           "### Related Pages",
           "- [Needle Person](entities/needle-person.md)",
-          "<!-- openclaw:wiki:related:end -->",
+          "<!-- astroclaw:wiki:related:end -->",
           "",
         ].join("\n"),
       }),
@@ -276,7 +276,7 @@ describe("searchMemoryWiki", () => {
           "# Maintainer: Brad Groux",
           "",
           "## Agent Card",
-          "- Maintainer lane: CEO; Microsoft-facing OpenClaw maintainer",
+          "- Maintainer lane: CEO; Microsoft-facing Astroclaw maintainer",
           "",
           "## AI Notes",
           "- Main sample theme is Microsoft ecosystem adoption: Teams, M365, Azure, Foundry, tenants, and pilots.",
@@ -833,7 +833,7 @@ describe("searchMemoryWiki", () => {
         "agent:secondary:visible-session": {
           sessionId: "visible-session",
           updatedAt: 1,
-          sessionFile: "/tmp/openclaw/visible-session.jsonl",
+          sessionFile: "/tmp/astroclaw/visible-session.jsonl",
         },
       },
     });
@@ -896,14 +896,14 @@ describe("searchMemoryWiki", () => {
       agents: {
         list: [{ id: "main", default: true }, { id: "secondary" }],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     loadCombinedSessionStoreForGatewayMock.mockReturnValue({
       storePath: "(test)",
       store: {
         global: {
           sessionId: "visible-session",
           updatedAt: 1,
-          sessionFile: "/tmp/openclaw/visible-session.jsonl",
+          sessionFile: "/tmp/astroclaw/visible-session.jsonl",
         },
       },
     });
@@ -1003,7 +1003,7 @@ describe("searchMemoryWiki", () => {
         "agent:secondary:main": {
           sessionId: "main",
           updatedAt: 1,
-          sessionFile: "/tmp/openclaw/main.jsonl",
+          sessionFile: "/tmp/astroclaw/main.jsonl",
         },
       },
     });
@@ -1053,7 +1053,7 @@ describe("searchMemoryWiki", () => {
         "agent:other:visible-session": {
           sessionId: "visible-session",
           updatedAt: 1,
-          sessionFile: "/tmp/openclaw/visible-session.jsonl",
+          sessionFile: "/tmp/astroclaw/visible-session.jsonl",
         },
       },
     });

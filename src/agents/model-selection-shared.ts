@@ -1,5 +1,5 @@
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { PluginManifestRecord } from "../plugins/manifest-registry.js";
 import {
@@ -77,7 +77,7 @@ function mergeModelCatalogEntries(params: {
 }
 
 export function inferUniqueProviderFromConfiguredModels(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   model: string;
 }): string | undefined {
   const model = params.model.trim();
@@ -175,7 +175,7 @@ export function inferUniqueProviderFromCatalog(params: {
 }
 
 export function resolveBareModelDefaultProvider(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   catalog: readonly ModelCatalogEntry[];
   model: string;
   defaultProvider: string;
@@ -193,7 +193,7 @@ function isConcreteOpenRouterFreeModelRef(ref: ModelRef): boolean {
 
 function resolveConfiguredOpenRouterCompatFreeRef(
   params: {
-    cfg: OpenClawConfig;
+    cfg: AstroclawConfig;
     defaultProvider: string;
     allowManifestNormalization?: boolean;
     allowPluginNormalization?: boolean;
@@ -235,7 +235,7 @@ function resolveConfiguredOpenRouterCompatFreeRef(
 
 export function resolveConfiguredOpenRouterCompatAlias(
   params: {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
     raw: string;
     defaultProvider: string;
     allowManifestNormalization?: boolean;
@@ -264,7 +264,7 @@ export function resolveConfiguredOpenRouterCompatAlias(
 
 function parseModelRefWithCompatAlias(
   params: {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
     raw: string;
     defaultProvider: string;
     allowManifestNormalization?: boolean;
@@ -284,7 +284,7 @@ function parseModelRefWithCompatAlias(
 
 function resolveExactConfiguredProviderRef(
   params: {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
     raw: string;
     allowManifestNormalization?: boolean;
     allowPluginNormalization?: boolean;
@@ -327,7 +327,7 @@ function resolveExactConfiguredProviderRef(
 }
 
 export function resolveAllowlistModelKey(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   raw: string;
   defaultProvider: string;
 }): string | null {
@@ -343,7 +343,7 @@ export function resolveAllowlistModelKey(params: {
 }
 
 export function buildConfiguredAllowlistKeys(params: {
-  cfg: OpenClawConfig | undefined;
+  cfg: AstroclawConfig | undefined;
   defaultProvider: string;
 }): Set<string> | null {
   const visibility = parseConfiguredModelVisibilityEntries({ cfg: params.cfg });
@@ -367,7 +367,7 @@ export function buildConfiguredAllowlistKeys(params: {
 
 export function buildModelAliasIndex(
   params: {
-    cfg: OpenClawConfig;
+    cfg: AstroclawConfig;
     defaultProvider: string;
     allowManifestNormalization?: boolean;
     allowPluginNormalization?: boolean;
@@ -415,7 +415,7 @@ type ModelCatalogMetadata = {
 };
 
 function buildModelCatalogMetadata(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   defaultProvider: string;
 }): ModelCatalogMetadata {
   const configuredByKey = new Map<string, ModelCatalogEntry>();
@@ -501,7 +501,7 @@ function buildSyntheticAllowedCatalogEntry(params: {
 
 export function resolveModelRefFromString(
   params: {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
     raw: string;
     defaultProvider: string;
     aliasIndex?: ModelAliasIndex;
@@ -533,7 +533,7 @@ export function resolveModelRefFromString(
 }
 
 export function resolveConfiguredModelRef(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   defaultProvider: string;
   defaultModel: string;
   allowManifestNormalization?: boolean;
@@ -611,7 +611,7 @@ export function resolveConfiguredModelRef(params: {
 }
 
 export function buildAllowedModelSetWithFallbacks(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   catalog: ModelCatalogEntry[];
   defaultProvider: string;
   defaultModel?: string;
@@ -796,7 +796,7 @@ function getModelRefStatusFromAllowedSet(params: {
 }
 
 export function getModelRefStatusWithFallbackModels(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   catalog: ModelCatalogEntry[];
   ref: ModelRef;
   defaultProvider: string;
@@ -818,7 +818,7 @@ export function getModelRefStatusWithFallbackModels(params: {
 }
 
 export function resolveAllowedModelRefFromAliasIndex(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   raw: string;
   defaultProvider: string;
   aliasIndex: ModelAliasIndex;
@@ -852,7 +852,7 @@ export function resolveAllowedModelRefFromAliasIndex(params: {
   return { ref: resolved.ref, key: status.key };
 }
 
-export function buildConfiguredModelCatalog(params: { cfg: OpenClawConfig }): ModelCatalogEntry[] {
+export function buildConfiguredModelCatalog(params: { cfg: AstroclawConfig }): ModelCatalogEntry[] {
   const providers = params.cfg.models?.providers;
   if (!providers || typeof providers !== "object") {
     return [];
@@ -899,7 +899,7 @@ export function buildConfiguredModelCatalog(params: { cfg: OpenClawConfig }): Mo
 }
 
 export function resolveHooksGmailModel(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   defaultProvider: string;
 }): ModelRef | null {
   const hooksModel = params.cfg.hooks?.gmail?.model;
@@ -937,7 +937,7 @@ export function normalizeModelSelection(value: unknown): string | undefined {
   return undefined;
 }
 
-export function parseConfiguredModelVisibilityEntries(params: { cfg?: OpenClawConfig }): {
+export function parseConfiguredModelVisibilityEntries(params: { cfg?: AstroclawConfig }): {
   exactModelRefs: string[];
   providerWildcards: Set<string>;
   hasEntries: boolean;
@@ -1037,7 +1037,7 @@ function dedupeModelCatalogEntries(entries: readonly ModelCatalogEntry[]): Model
 }
 
 export function createModelVisibilityPolicyWithFallbacks(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   catalog: ModelCatalogEntry[];
   defaultProvider: string;
   defaultModel?: string;

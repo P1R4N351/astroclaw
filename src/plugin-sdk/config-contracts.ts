@@ -32,7 +32,7 @@ export type {
   MSTeamsConfig,
   MSTeamsReplyStyle,
   MSTeamsTeamConfig,
-  OpenClawConfig,
+  AstroclawConfig,
   ReplyToMode,
   ResolvedTtsPersona,
   SignalReactionNotificationMode,

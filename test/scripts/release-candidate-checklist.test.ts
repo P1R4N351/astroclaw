@@ -43,7 +43,7 @@ describe("release candidate checklist", () => {
   it("extracts a workflow run id from gh dispatch output", () => {
     expect(
       parseRunIdFromDispatchOutput(
-        "https://github.com/openclaw/openclaw/actions/runs/25922042055\n",
+        "https://github.com/astroclaw/astroclaw/actions/runs/25922042055\n",
       ),
     ).toBe("25922042055");
   });

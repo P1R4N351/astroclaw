@@ -37,7 +37,7 @@ Do **not** use it when you need local files, your shell, your repo, or paired de
 
 <Steps>
   <Step title="Provide an xAI API key">
-    Run `openclaw onboard --auth-choice xai-api-key` for `code_execution` and
+    Run `astroclaw onboard --auth-choice xai-api-key` for `code_execution` and
     `x_search`, or set `XAI_API_KEY` / configure the key under the xAI plugin
     when you also want Grok web search to use the same credential:
 
@@ -91,7 +91,7 @@ Do **not** use it when you need local files, your shell, your repo, or paired de
 
   <Step title="Restart the Gateway">
     ```bash
-    openclaw gateway restart
+    astroclaw gateway restart
     ```
 
     `code_execution` shows up in the agent's tool list once the xAI plugin re-registers with `enabled: true`.
@@ -108,7 +108,7 @@ Use code_execution to calculate the 7-day moving average for these numbers: ...
 ```
 
 ```text
-Use x_search to find posts mentioning OpenClaw this week, then use code_execution to count them by day.
+Use x_search to find posts mentioning Astroclaw this week, then use code_execution to count them by day.
 ```
 
 ```text
@@ -124,8 +124,8 @@ When the tool runs without auth, it returns a structured `missing_xai_api_key` e
 ```json
 {
   "error": "missing_xai_api_key",
-  "message": "code_execution needs an xAI API key. Run openclaw onboard --auth-choice xai-api-key, set XAI_API_KEY in the Gateway environment, or configure plugins.entries.xai.config.webSearch.apiKey.",
-  "docs": "https://docs.openclaw.ai/tools/code-execution"
+  "message": "code_execution needs an xAI API key. Run astroclaw onboard --auth-choice xai-api-key, set XAI_API_KEY in the Gateway environment, or configure plugins.entries.xai.config.webSearch.apiKey.",
+  "docs": "https://docs.astroclaw.ai/tools/code-execution"
 }
 ```
 

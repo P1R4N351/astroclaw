@@ -157,7 +157,7 @@ function createHost(): TestGatewayHost {
     agentsList: null,
     agentsError: null,
     debugHealth: null,
-    assistantName: "OpenClaw",
+    assistantName: "Astroclaw",
     assistantAvatar: null,
     assistantAgentId: null,
     localMediaPreviewRoots: [],
@@ -887,7 +887,7 @@ describe("connectGateway", () => {
     await Promise.resolve();
 
     expect(host.pendingAbort).toBeNull();
-    expect(warn).toHaveBeenCalledWith("[openclaw] pending abort failed:", error);
+    expect(warn).toHaveBeenCalledWith("[astroclaw] pending abort failed:", error);
     warn.mockRestore();
   });
 
@@ -1335,7 +1335,7 @@ describe("resolveControlUiClientVersion", () => {
       resolveControlUiClientVersion({
         gatewayUrl: "ws://localhost:8787",
         serverVersion: "2026.3.7",
-        pageUrl: "http://localhost:8787/openclaw/",
+        pageUrl: "http://localhost:8787/astroclaw/",
       }),
     ).toBe("2026.3.7");
   });
@@ -1345,7 +1345,7 @@ describe("resolveControlUiClientVersion", () => {
       resolveControlUiClientVersion({
         gatewayUrl: "/ws",
         serverVersion: "2026.3.7",
-        pageUrl: "https://control.example.com/openclaw/",
+        pageUrl: "https://control.example.com/astroclaw/",
       }),
     ).toBe("2026.3.7");
   });
@@ -1355,7 +1355,7 @@ describe("resolveControlUiClientVersion", () => {
       resolveControlUiClientVersion({
         gatewayUrl: "https://control.example.com/ws",
         serverVersion: "2026.3.7",
-        pageUrl: "https://control.example.com/openclaw/",
+        pageUrl: "https://control.example.com/astroclaw/",
       }),
     ).toBe("2026.3.7");
   });
@@ -1392,7 +1392,7 @@ describe("resolveControlUiClientVersion", () => {
       resolveControlUiClientVersion({
         gatewayUrl: "wss://gateway.example.com",
         serverVersion: "2026.3.7",
-        pageUrl: "https://control.example.com/openclaw/",
+        pageUrl: "https://control.example.com/astroclaw/",
       }),
     ).toBeUndefined();
   });

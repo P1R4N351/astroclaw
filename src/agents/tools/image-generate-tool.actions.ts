@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { listRuntimeImageGenerationProviders } from "../../image-generation/runtime.js";
 import type { ImageGenerationProvider } from "../../image-generation/types.js";
 import type { AuthProfileStore } from "../auth-profiles/types.js";
@@ -59,7 +59,7 @@ export function summarizeImageGenerationCapabilities(provider: ImageGenerationPr
 }
 
 export function createImageGenerateListActionResult(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   agentDir?: string;
   authStore?: AuthProfileStore;
 }): ImageGenerateActionResult {

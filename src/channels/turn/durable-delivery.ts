@@ -1,6 +1,6 @@
 import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
 import type { FinalizedMsgContext } from "../../auto-reply/templating.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { normalizeDeliverableOutboundChannel } from "../../infra/outbound/channel-resolution.js";
 import {
   type DeliverOutboundPayloadsParams,
@@ -26,7 +26,7 @@ export type DurableInboundReplyDeliveryOptions = Pick<
 };
 
 export type DurableInboundReplyDeliveryParams = DurableInboundReplyDeliveryOptions & {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   channel: string;
   accountId?: string;
   agentId: string;

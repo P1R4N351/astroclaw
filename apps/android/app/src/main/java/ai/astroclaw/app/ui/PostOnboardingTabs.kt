@@ -1,7 +1,7 @@
-package ai.openclaw.app.ui
+package ai.astroclaw.app.ui
 
-import ai.openclaw.app.HomeDestination
-import ai.openclaw.app.MainViewModel
+import ai.astroclaw.app.HomeDestination
+import ai.astroclaw.app.MainViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -262,7 +262,7 @@ private fun TopStatusBar(
       horizontalArrangement = Arrangement.SpaceBetween,
     ) {
       Text(
-        text = "OpenClaw",
+        text = "Astroclaw",
         style = mobileTitle2,
         color = mobileText,
       )

@@ -1,13 +1,13 @@
 import { intro, note, outro, spinner } from "@clack/prompts";
-import { stylePromptTitle } from "openclaw/plugin-sdk/cli-runtime";
-import { logConfigUpdated, updateConfig } from "openclaw/plugin-sdk/config-mutation";
+import { stylePromptTitle } from "astroclaw/plugin-sdk/cli-runtime";
+import { logConfigUpdated, updateConfig } from "astroclaw/plugin-sdk/config-mutation";
 import {
   applyAuthProfileConfig,
   ensureAuthProfileStore,
   upsertAuthProfileWithLock,
-} from "openclaw/plugin-sdk/provider-auth";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
-import { fetchWithSsrFGuard, type SsrFPolicy } from "openclaw/plugin-sdk/ssrf-runtime";
+} from "astroclaw/plugin-sdk/provider-auth";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+import { fetchWithSsrFGuard, type SsrFPolicy } from "astroclaw/plugin-sdk/ssrf-runtime";
 
 const CLIENT_ID = "Iv1.b507a08c87ecfe98";
 const DEVICE_CODE_URL = "https://github.com/login/device/code";

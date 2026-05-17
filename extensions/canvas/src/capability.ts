@@ -5,7 +5,7 @@ import {
   normalizePluginNodeCapabilityScopedUrl,
   PLUGIN_NODE_CAPABILITY_PATH_PREFIX,
   type NormalizedPluginNodeCapabilityUrl,
-} from "openclaw/plugin-sdk/gateway-runtime";
+} from "astroclaw/plugin-sdk/gateway-runtime";
 
 export const CANVAS_CAPABILITY_PATH_PREFIX = PLUGIN_NODE_CAPABILITY_PATH_PREFIX;
 export const CANVAS_CAPABILITY_TTL_MS = DEFAULT_PLUGIN_NODE_CAPABILITY_TTL_MS;

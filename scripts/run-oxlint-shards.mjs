@@ -19,7 +19,7 @@ const shouldAcquireParentLock =
     env,
   });
 const releaseLock =
-  env.OPENCLAW_OXLINT_SKIP_LOCK === "1"
+  env.ASTROCLAW_OXLINT_SKIP_LOCK === "1"
     ? () => {}
     : shouldAcquireParentLock
       ? acquireLocalHeavyCheckLockSync({
@@ -60,7 +60,7 @@ try {
   if ((prepareResult.status ?? 1) !== 0) {
     process.exitCode = prepareResult.status ?? 1;
   } else {
-    const runSerial = env.OPENCLAW_OXLINT_SHARDS_SERIAL === "1";
+    const runSerial = env.ASTROCLAW_OXLINT_SHARDS_SERIAL === "1";
     const results = runSerial
       ? await runShardsSerial(shards)
       : await Promise.all(shards.map((shard) => runShard(shard)));
@@ -84,8 +84,8 @@ async function runShard(shard) {
     stdio: "inherit",
     env: {
       ...env,
-      OPENCLAW_OXLINT_SKIP_LOCK: "1",
-      OPENCLAW_OXLINT_SKIP_PREPARE: "1",
+      ASTROCLAW_OXLINT_SKIP_LOCK: "1",
+      ASTROCLAW_OXLINT_SKIP_PREPARE: "1",
     },
   });
 

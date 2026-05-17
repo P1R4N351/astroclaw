@@ -4,7 +4,7 @@ import {
   GroupPolicySchema,
   MarkdownConfigSchema,
   requireOpenAllowFrom,
-} from "openclaw/plugin-sdk/channel-config-primitives";
+} from "astroclaw/plugin-sdk/channel-config-primitives";
 import { z } from "zod";
 import { buildSecretInputSchema } from "./secret-input.js";
 

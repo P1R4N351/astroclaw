@@ -1,8 +1,8 @@
 import AppKit
-import OpenClawProtocol
+import AstroclawProtocol
 import SwiftUI
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 @Suite(.serialized)
 @MainActor

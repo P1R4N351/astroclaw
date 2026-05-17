@@ -23,7 +23,7 @@ const configMocks = vi.hoisted(() => ({
 const browserConfigMocks = vi.hoisted(() => ({
   resolveBrowserConfig: vi.fn((browser?: { defaultProfile?: string }) => ({
     enabled: true,
-    defaultProfile: browser?.defaultProfile ?? "openclaw",
+    defaultProfile: browser?.defaultProfile ?? "astroclaw",
   })),
 }));
 
@@ -173,7 +173,7 @@ describe("runBrowserProxyCommand", () => {
     });
     browserConfigMocks.resolveBrowserConfig.mockReset().mockReturnValue({
       enabled: true,
-      defaultProfile: "openclaw",
+      defaultProfile: "astroclaw",
     });
     configMocks.loadConfig.mockReturnValue({
       browser: {},
@@ -181,7 +181,7 @@ describe("runBrowserProxyCommand", () => {
     });
     browserConfigMocks.resolveBrowserConfig.mockReturnValue({
       enabled: true,
-      defaultProfile: "openclaw",
+      defaultProfile: "astroclaw",
     });
     controlServiceMocks.startBrowserControlServiceFromConfig.mockResolvedValue(true);
   });
@@ -207,12 +207,12 @@ describe("runBrowserProxyCommand", () => {
         JSON.stringify({
           method: "GET",
           path: "/snapshot",
-          profile: "openclaw",
+          profile: "astroclaw",
           timeoutMs: 5,
         }),
       ),
     ).rejects.toThrow(
-      /browser proxy timed out for GET \/snapshot after 5ms; ws-backed browser action; profile=openclaw; status\(running=true, cdpHttp=true, cdpReady=false, cdpUrl=http:\/\/127\.0\.0\.1:18792\)/,
+      /browser proxy timed out for GET \/snapshot after 5ms; ws-backed browser action; profile=astroclaw; status\(running=true, cdpHttp=true, cdpReady=false, cdpUrl=http:\/\/127\.0\.0\.1:18792\)/,
     );
     await vi.advanceTimersByTimeAsync(10);
     await result;
@@ -295,7 +295,7 @@ describe("runBrowserProxyCommand", () => {
         JSON.stringify({
           method: "POST",
           path: "/act",
-          profile: "openclaw",
+          profile: "astroclaw",
           timeoutMs: 50,
         }),
       ),
@@ -305,7 +305,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects unauthorized query.profile when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
     });
 
     await expect(
@@ -323,7 +323,7 @@ describe("runBrowserProxyCommand", () => {
 
   it("uses the browser source snapshot for proxy default-profile decisions", async () => {
     configMocks.loadConfig.mockReturnValue({
-      browser: { defaultProfile: "openclaw" },
+      browser: { defaultProfile: "astroclaw" },
       nodeHost: { browserProxy: { enabled: true, allowProfiles: ["work"] } },
     });
     configMocks.sourceConfig = {
@@ -333,7 +333,7 @@ describe("runBrowserProxyCommand", () => {
     browserConfigMocks.resolveBrowserConfig.mockImplementation(
       (browser?: { defaultProfile?: string }) => ({
         enabled: true,
-        defaultProfile: browser?.defaultProfile ?? "openclaw",
+        defaultProfile: browser?.defaultProfile ?? "astroclaw",
       }),
     );
     dispatcherMocks.dispatch.mockResolvedValue({
@@ -356,7 +356,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects unauthorized body.profile when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
     });
 
     await expect(
@@ -375,7 +375,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects persistent profile creation when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
     });
 
     await expect(
@@ -394,7 +394,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects persistent profile deletion when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
     });
 
     await expect(
@@ -412,7 +412,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects persistent profile reset when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
     });
 
     await expect(
@@ -420,7 +420,7 @@ describe("runBrowserProxyCommand", () => {
         JSON.stringify({
           method: "POST",
           path: "/reset-profile",
-          body: { profile: "openclaw", name: "openclaw" },
+          body: { profile: "astroclaw", name: "astroclaw" },
           timeoutMs: 50,
         }),
       ),
@@ -431,7 +431,7 @@ describe("runBrowserProxyCommand", () => {
   it("canonicalizes an allowlisted body profile into the dispatched query", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
     });
     dispatcherMocks.dispatch.mockResolvedValue({
       status: 200,
@@ -442,14 +442,14 @@ describe("runBrowserProxyCommand", () => {
       JSON.stringify({
         method: "POST",
         path: "/stop",
-        body: { profile: "openclaw" },
+        body: { profile: "astroclaw" },
         timeoutMs: 50,
       }),
     );
 
     const request = firstBrowserDispatchRequest();
     expect(request.path).toBe("/stop");
-    expect(request.query).toEqual({ profile: "openclaw" });
+    expect(request.query).toEqual({ profile: "astroclaw" });
   });
 
   it("rejects persistent profile creation when allowProfiles is empty", async () => {

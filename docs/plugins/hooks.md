@@ -7,7 +7,7 @@ read_when:
   - You are deciding between internal hooks and plugin hooks
 ---
 
-Plugin hooks are in-process extension points for OpenClaw plugins. Use them
+Plugin hooks are in-process extension points for Astroclaw plugins. Use them
 when a plugin needs to inspect or change agent runs, tool calls, message flow,
 session lifecycle, subagent routing, installs, or Gateway startup.
 
@@ -20,7 +20,7 @@ operator-installed `HOOK.md` script for command and Gateway events such as
 Register typed plugin hooks with `api.on(...)` from your plugin entry:
 
 ```typescript
-import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
 
 export default definePluginEntry({
   id: "tool-preflight",
@@ -89,7 +89,7 @@ everywhere.
 
 Each hook receives `event.context.pluginConfig`, the resolved config for the
 plugin that registered that handler. Use it for hook decisions that need
-current plugin options; OpenClaw injects it per handler without mutating the
+current plugin options; Astroclaw injects it per handler without mutating the
 shared event object seen by other plugins.
 
 ## Hook catalog
@@ -156,7 +156,7 @@ for an agent turn. It runs before model resolution; `llm_output` only runs after
 a model attempt produces assistant output.
 
 For proof of the effective session model, inspect runtime registrations, then
-use `openclaw sessions` or the Gateway session/status surfaces. When debugging
+use `astroclaw sessions` or the Gateway session/status surfaces. When debugging
 provider payloads, start the Gateway with `--raw-stream` and
 `--raw-stream-path <path>`; those flags write raw model stream events to a jsonl
 file.
@@ -222,7 +222,7 @@ Tool results can include structured `details` for UI rendering, diagnostics,
 media routing, or plugin-owned metadata. Treat `details` as runtime metadata,
 not prompt content:
 
-- OpenClaw strips `toolResult.details` before provider replay and compaction
+- Astroclaw strips `toolResult.details` before provider replay and compaction
   input so metadata does not become model context.
 - Persisted session entries keep only bounded `details`. Oversized details are
   replaced with a compact summary and `persistedDetailsTruncated: true`.
@@ -258,7 +258,7 @@ to stop the run before the model can read the prompt. `reason` is internal;
 `message` is the user-facing replacement. The only supported outcomes are
 `pass` and `block`; unsupported decision shapes fail closed.
 
-When a run is blocked, OpenClaw stores only the replacement text in
+When a run is blocked, Astroclaw stores only the replacement text in
 `message.content` plus non-sensitive block metadata such as the blocking plugin
 id and timestamp. The original user text is not retained in transcript or future
 context. Internal block reasons are treated as sensitive and excluded from
@@ -266,7 +266,7 @@ transcript, history, broadcast, log, and diagnostics payloads. Observability
 should use sanitized fields such as blocker id, outcome, timestamp, or a safe
 category.
 
-`before_agent_start` and `agent_end` include `event.runId` when OpenClaw can
+`before_agent_start` and `agent_end` include `event.runId` when Astroclaw can
 identify the active run. The same value is also available on `ctx.runId`.
 Cron-driven runs also expose `ctx.jobId` (the originating cron job id) so
 plugin hooks can scope metrics, side effects, or state to a specific scheduled
@@ -274,20 +274,20 @@ job.
 
 For channel-originated runs, `ctx.messageProvider` is the provider surface such
 as `discord` or `telegram`, while `ctx.channelId` is the conversation target
-identifier when OpenClaw can derive one from the session key or delivery
+identifier when Astroclaw can derive one from the session key or delivery
 metadata.
 
 `agent_end` is an observation hook and runs fire-and-forget after the turn. The
 hook runner applies a 30 second timeout so a wedged plugin or embedding
 endpoint cannot leave the hook promise pending forever. A timeout is logged and
-OpenClaw continues; it does not cancel plugin-owned network work unless the
+Astroclaw continues; it does not cancel plugin-owned network work unless the
 plugin also uses its own abort signal.
 
 Use `model_call_started` and `model_call_ended` for provider-call telemetry
 that should not receive raw prompts, history, responses, headers, request
 bodies, or provider request IDs. These hooks include stable metadata such as
 `runId`, `callId`, `provider`, `model`, optional `api`/`transport`, terminal
-`durationMs`/`outcome`, and `upstreamRequestIdHash` when OpenClaw can derive a
+`durationMs`/`outcome`, and `upstreamRequestIdHash` when Astroclaw can derive a
 bounded provider request-id hash. When the runtime has resolved context-window
 metadata, the hook event and context also include `contextTokenBudget`, the
 effective token budget after model/config/agent caps, plus
@@ -299,7 +299,7 @@ final assistant answer. It is not the `/stop` cancellation path and does not
 run when the user aborts a turn. Return `{ action: "revise", reason }` to ask
 the harness for one more model pass before finalization, `{ action:
 "finalize", reason? }` to force finalization, or omit a result to continue.
-Codex native `Stop` hooks are relayed into this hook as OpenClaw
+Codex native `Stop` hooks are relayed into this hook as Astroclaw
 `before_agent_finalize` decisions.
 
 When returning `action: "revise"`, plugins can include `retry` metadata to make
@@ -348,7 +348,7 @@ through `pluginExtensions`, letting Control UI and other clients render
 plugin-owned status without learning plugin internals.
 
 Use `api.enqueueNextTurnInjection(...)` when a plugin needs durable context to
-reach the next model turn exactly once. OpenClaw drains queued injections before
+reach the next model turn exactly once. Astroclaw drains queued injections before
 prompt hooks, drops expired injections, and deduplicates by `idempotencyKey`
 per plugin. This is the right seam for approval resumes, policy summaries,
 background monitor deltas, and command continuations that should be visible to
@@ -423,7 +423,7 @@ snapshot (including `state.nextRunAtMs`, `state.lastRunStatus`, and
 of `not-requested` | `delivered` | `not-delivered` | `unknown`. Removed
 events still carry the deleted job snapshot so external schedulers can
 reconcile state. Use `ctx.getCron?.()` and `ctx.config` from the runtime
-context when syncing external wake schedulers, and keep OpenClaw as the
+context when syncing external wake schedulers, and keep Astroclaw as the
 source of truth for due checks and execution.
 
 ## Upcoming deprecations

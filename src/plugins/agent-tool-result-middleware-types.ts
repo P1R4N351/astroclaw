@@ -1,6 +1,6 @@
 import type { AgentToolResult as PiAgentToolResult } from "@earendil-works/pi-agent-core";
 
-export type OpenClawAgentToolResult<TResult = unknown> = PiAgentToolResult<TResult>;
+export type AstroclawAgentToolResult<TResult = unknown> = PiAgentToolResult<TResult>;
 
 export type AgentToolResultMiddlewareRuntime = "pi" | "codex";
 /** @deprecated Use AgentToolResultMiddlewareRuntime. */
@@ -16,7 +16,7 @@ export type AgentToolResultMiddlewareEvent = {
   args: Record<string, unknown>;
   cwd?: string;
   isError?: boolean;
-  result: OpenClawAgentToolResult;
+  result: AstroclawAgentToolResult;
 };
 
 export type AgentToolResultMiddlewareContext = {
@@ -30,7 +30,7 @@ export type AgentToolResultMiddlewareContext = {
 };
 
 export type AgentToolResultMiddlewareResult = {
-  result: OpenClawAgentToolResult;
+  result: AstroclawAgentToolResult;
 };
 
 export type AgentToolResultMiddleware = (

@@ -80,7 +80,7 @@ function verboseMessages(): string[] {
 describe("getReplyFromConfig message hooks", () => {
   beforeEach(async () => {
     await loadGetReplyRuntimeForTest();
-    delete process.env.OPENCLAW_TEST_FAST;
+    delete process.env.ASTROCLAW_TEST_FAST;
     mocks.applyMediaUnderstanding.mockReset();
     mocks.applyLinkUnderstanding.mockReset();
     mocks.createInternalHookEvent.mockReset();
@@ -160,7 +160,7 @@ describe("getReplyFromConfig message hooks", () => {
   });
 
   it("skips message hooks in fast test mode", async () => {
-    process.env.OPENCLAW_TEST_FAST = "1";
+    process.env.ASTROCLAW_TEST_FAST = "1";
 
     await getReplyFromConfig(buildCtx(), undefined, withFastReplyConfig({}));
 
@@ -207,7 +207,7 @@ describe("getReplyFromConfig message hooks", () => {
 
   it("continues dispatching when media understanding fails before reply routing", async () => {
     mocks.applyMediaUnderstanding.mockRejectedValueOnce(
-      new Error("Cannot find module '/tmp/openclaw/dist/media-understanding/apply.runtime-old.js'"),
+      new Error("Cannot find module '/tmp/astroclaw/dist/media-understanding/apply.runtime-old.js'"),
     );
 
     const reply = await getReplyFromConfig(buildCtx(), undefined, withFastReplyConfig({}));
@@ -231,7 +231,7 @@ describe("getReplyFromConfig message hooks", () => {
 
   it("continues dispatching URL messages when link understanding fails before reply routing", async () => {
     mocks.applyLinkUnderstanding.mockRejectedValueOnce(
-      new Error("Cannot find module '/tmp/openclaw/dist/link-understanding/apply.runtime-old.js'"),
+      new Error("Cannot find module '/tmp/astroclaw/dist/link-understanding/apply.runtime-old.js'"),
     );
 
     const reply = await getReplyFromConfig(

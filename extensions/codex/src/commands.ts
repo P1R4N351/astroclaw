@@ -1,8 +1,8 @@
 import type {
-  OpenClawPluginCommandDefinition,
+  AstroclawPluginCommandDefinition,
   PluginCommandContext,
   PluginCommandResult,
-} from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
 import { describeControlFailure } from "./app-server/capabilities.js";
 import { formatCodexDisplayText } from "./command-formatters.js";
 import type { CodexCommandDeps } from "./command-handlers.js";
@@ -21,7 +21,7 @@ type CodexCommandInternalOptions = CodexCommandOptions & {
   loadSubcommandHandler?: () => Promise<CodexSubcommandHandler>;
 };
 
-export function createCodexCommand(options: CodexCommandOptions): OpenClawPluginCommandDefinition {
+export function createCodexCommand(options: CodexCommandOptions): AstroclawPluginCommandDefinition {
   return {
     name: "codex",
     description: "Inspect and control the Codex app-server harness",

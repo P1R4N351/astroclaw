@@ -1,9 +1,9 @@
-import OpenClawProtocol
+import AstroclawProtocol
 import SwiftUI
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
-private typealias SnapshotAnyCodable = OpenClaw.AnyCodable
+private typealias SnapshotAnyCodable = Astroclaw.AnyCodable
 
 private let channelOrder = ["whatsapp", "telegram", "signal", "imessage"]
 private let channelLabels = [
@@ -73,7 +73,7 @@ struct ChannelsSettingsSmokeTests {
                         "ok": true,
                         "status": 200,
                         "elapsedMs": 120,
-                        "bot": ["id": 123, "username": "openclawbot"],
+                        "bot": ["id": 123, "username": "astroclawbot"],
                         "webhook": ["url": "https://example.com/hook", "hasCustomCert": false],
                     ],
                     "lastProbeAt": 1_700_000_050_000,

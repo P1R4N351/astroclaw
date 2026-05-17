@@ -1,36 +1,36 @@
 #!/usr/bin/env bash
 # Shared in-container lifecycle helpers for Docker/Bash E2E lanes.
-openclaw_e2e_eval_test_state_from_b64() { eval "$(printf '%s' "${1:?missing OpenClaw test-state script}" | base64 -d)"; }
-openclaw_e2e_resolve_entrypoint() {
+astroclaw_e2e_eval_test_state_from_b64() { eval "$(printf '%s' "${1:?missing Astroclaw test-state script}" | base64 -d)"; }
+astroclaw_e2e_resolve_entrypoint() {
   local entry
   for entry in dist/index.mjs dist/index.js; do
     [ -f "$entry" ] && { printf '%s\n' "$entry"; return 0; }
   done
-  echo "OpenClaw entrypoint not found under dist/" >&2
+  echo "Astroclaw entrypoint not found under dist/" >&2
   return 1
 }
-openclaw_e2e_package_root() {
+astroclaw_e2e_package_root() {
   local prefix="${1:-}"
   if [ -n "$prefix" ]; then
-    printf '%s/lib/node_modules/openclaw\n' "$prefix"
+    printf '%s/lib/node_modules/astroclaw\n' "$prefix"
     return 0
   fi
-  printf '%s/openclaw\n' "$(npm root -g)"
+  printf '%s/astroclaw\n' "$(npm root -g)"
 }
-openclaw_e2e_package_entrypoint() {
+astroclaw_e2e_package_entrypoint() {
   local root="${1:?missing package root}"
   local entry
   for entry in "$root/dist/index.mjs" "$root/dist/index.js"; do
     [ -f "$entry" ] && { printf '%s\n' "$entry"; return 0; }
   done
-  echo "OpenClaw package entrypoint not found under $root/dist/" >&2
+  echo "Astroclaw package entrypoint not found under $root/dist/" >&2
   return 1
 }
-openclaw_e2e_install_package() {
+astroclaw_e2e_install_package() {
   local log_file="$1"
-  local label="${2:-mounted OpenClaw package}"
+  local label="${2:-mounted Astroclaw package}"
   local prefix="${3:-}"
-  local package_tgz="${OPENCLAW_CURRENT_PACKAGE_TGZ:?missing OPENCLAW_CURRENT_PACKAGE_TGZ}"
+  local package_tgz="${ASTROCLAW_CURRENT_PACKAGE_TGZ:?missing ASTROCLAW_CURRENT_PACKAGE_TGZ}"
   local args=(-g)
   if [ -n "$prefix" ]; then
     args+=("--prefix" "$prefix")
@@ -42,7 +42,7 @@ openclaw_e2e_install_package() {
     exit 1
   fi
 }
-openclaw_e2e_assert_package_extensions() {
+astroclaw_e2e_assert_package_extensions() {
   local root="$1"
   shift
   local extension
@@ -53,45 +53,45 @@ openclaw_e2e_assert_package_extensions() {
     }
   done
 }
-openclaw_e2e_find_dep_package() {
+astroclaw_e2e_find_dep_package() {
   local dep_path="$1"
   shift
   find "$@" -path "*/node_modules/$dep_path/package.json" -print -quit 2>/dev/null || true
 }
-openclaw_e2e_assert_dep_absent() {
+astroclaw_e2e_assert_dep_absent() {
   local dep_path="$1"
   shift
-  if [ -n "$(openclaw_e2e_find_dep_package "$dep_path" "$@")" ]; then
+  if [ -n "$(astroclaw_e2e_find_dep_package "$dep_path" "$@")" ]; then
     echo "$dep_path should not be installed" >&2
     find "$@" -path "*/node_modules/$dep_path/package.json" -print 2>/dev/null >&2 || true
     exit 1
   fi
 }
-openclaw_e2e_assert_dep_present() {
+astroclaw_e2e_assert_dep_present() {
   local dep_path="$1"
   shift
-  if [ -n "$(openclaw_e2e_find_dep_package "$dep_path" "$@")" ]; then
+  if [ -n "$(astroclaw_e2e_find_dep_package "$dep_path" "$@")" ]; then
     return 0
   fi
   echo "$dep_path was not installed on demand" >&2
   find "$@" -maxdepth 6 -type d -name node_modules -print 2>/dev/null >&2 || true
   exit 1
 }
-openclaw_e2e_write_state_env() {
-  local target="${1:-/tmp/openclaw-test-state-env}"
+astroclaw_e2e_write_state_env() {
+  local target="${1:-/tmp/astroclaw-test-state-env}"
   {
     printf 'export HOME=%q\n' "$HOME"
-    printf 'export OPENCLAW_HOME=%q\n' "$OPENCLAW_HOME"
-    printf 'export OPENCLAW_STATE_DIR=%q\n' "$OPENCLAW_STATE_DIR"
-    printf 'export OPENCLAW_CONFIG_PATH=%q\n' "$OPENCLAW_CONFIG_PATH"
-    printf 'export OPENCLAW_AGENT_DIR=%q\n' "${OPENCLAW_AGENT_DIR-}"
+    printf 'export ASTROCLAW_HOME=%q\n' "$ASTROCLAW_HOME"
+    printf 'export ASTROCLAW_STATE_DIR=%q\n' "$ASTROCLAW_STATE_DIR"
+    printf 'export ASTROCLAW_CONFIG_PATH=%q\n' "$ASTROCLAW_CONFIG_PATH"
+    printf 'export ASTROCLAW_AGENT_DIR=%q\n' "${ASTROCLAW_AGENT_DIR-}"
     printf 'export PI_CODING_AGENT_DIR=%q\n' "${PI_CODING_AGENT_DIR-}"
   } >"$target"
 }
-openclaw_e2e_install_trash_shim() {
-  export PATH="/tmp/openclaw-bin:$PATH"
-  mkdir -p /tmp/openclaw-bin
-  cat >/tmp/openclaw-bin/trash <<'TRASH'
+astroclaw_e2e_install_trash_shim() {
+  export PATH="/tmp/astroclaw-bin:$PATH"
+  mkdir -p /tmp/astroclaw-bin
+  cat >/tmp/astroclaw-bin/trash <<'TRASH'
 #!/usr/bin/env bash
 set -euo pipefail
 trash_dir="$HOME/.Trash"
@@ -104,9 +104,9 @@ for target in "$@"; do
   mv "$target" "$dest"
 done
 TRASH
-  chmod +x /tmp/openclaw-bin/trash
+  chmod +x /tmp/astroclaw-bin/trash
 }
-openclaw_e2e_stop_process() {
+astroclaw_e2e_stop_process() {
   local pid="${1:-}" _
   [ -n "$pid" ] || return 0
   kill "$pid" >/dev/null 2>&1 || true
@@ -117,7 +117,7 @@ openclaw_e2e_stop_process() {
   kill -9 "$pid" >/dev/null 2>&1 || true
   wait "$pid" >/dev/null 2>&1 || true
 }
-openclaw_e2e_terminate_gateways() {
+astroclaw_e2e_terminate_gateways() {
   local pid="${1:-}" _
   if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
     kill "$pid" 2>/dev/null || true
@@ -146,8 +146,8 @@ openclaw_e2e_terminate_gateways() {
     wait "$pid" 2>/dev/null || true
   fi
 }
-openclaw_e2e_start_mock_openai() { MOCK_PORT="$1" node scripts/e2e/mock-openai-server.mjs >"$2" 2>&1 & printf '%s\n' "$!"; }
-openclaw_e2e_wait_mock_openai() {
+astroclaw_e2e_start_mock_openai() { MOCK_PORT="$1" node scripts/e2e/mock-openai-server.mjs >"$2" 2>&1 & printf '%s\n' "$!"; }
+astroclaw_e2e_wait_mock_openai() {
   local port="$1" attempts="${2:-80}" _
   local probe="fetch('http://127.0.0.1:' + process.argv[1] + '/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
   for _ in $(seq 1 "$attempts"); do
@@ -156,9 +156,9 @@ openclaw_e2e_wait_mock_openai() {
   done
   node -e "$probe" "$port"
 }
-openclaw_e2e_start_gateway() { node "$1" gateway --port "$2" --bind loopback --allow-unconfigured >"$3" 2>&1 & printf '%s\n' "$!"; }
-openclaw_e2e_exec_gateway() { exec node "$1" gateway --port "$2" --bind "${3:-loopback}" --allow-unconfigured >"$4" 2>&1; }
-openclaw_e2e_wait_gateway_ready() {
+astroclaw_e2e_start_gateway() { node "$1" gateway --port "$2" --bind loopback --allow-unconfigured >"$3" 2>&1 & printf '%s\n' "$!"; }
+astroclaw_e2e_exec_gateway() { exec node "$1" gateway --port "$2" --bind "${3:-loopback}" --allow-unconfigured >"$4" 2>&1; }
+astroclaw_e2e_wait_gateway_ready() {
   local pid="$1" log="$2" attempts="${3:-300}" _
   for _ in $(seq 1 "$attempts"); do
     ! kill -0 "$pid" >/dev/null 2>&1 && {
@@ -174,7 +174,7 @@ openclaw_e2e_wait_gateway_ready() {
   tail -n 120 "$log" 2>/dev/null || true
   return 1
 }
-openclaw_e2e_probe_tcp() {
+astroclaw_e2e_probe_tcp() {
   node --input-type=module -e '
     import net from "node:net";
     const socket = net.createConnection({ host: process.argv[1], port: Number(process.argv[2]) });
@@ -183,23 +183,23 @@ openclaw_e2e_probe_tcp() {
     socket.on("error", () => { clearTimeout(timeout); process.exit(1); });
   ' "$1" "$2" "${3:-400}"
 }
-openclaw_e2e_probe_http_status() {
+astroclaw_e2e_probe_http_status() {
   node -e 'fetch(process.argv[1]).then(r=>process.exit(r.status===Number(process.argv[2])?0:1)).catch(()=>process.exit(1))' "$1" "${2:-200}"
 }
-openclaw_e2e_assert_file() { [ -f "$1" ] || { echo "Missing file: $1"; exit 1; }; }
-openclaw_e2e_assert_dir() { [ -d "$1" ] || { echo "Missing dir: $1"; exit 1; }; }
-openclaw_e2e_assert_log_not_contains() {
+astroclaw_e2e_assert_file() { [ -f "$1" ] || { echo "Missing file: $1"; exit 1; }; }
+astroclaw_e2e_assert_dir() { [ -d "$1" ] || { echo "Missing dir: $1"; exit 1; }; }
+astroclaw_e2e_assert_log_not_contains() {
   ! grep -q "$2" "$1" || { echo "Unexpected log output: $2"; exit 1; }
 }
-openclaw_e2e_run_logged() {
-  local label="$1" log_path="/tmp/openclaw-onboard-${1}.log"
+astroclaw_e2e_run_logged() {
+  local label="$1" log_path="/tmp/astroclaw-onboard-${1}.log"
   shift
   "$@" >"$log_path" 2>&1 || { cat "$log_path"; exit 1; }
 }
-openclaw_e2e_dump_logs() {
+astroclaw_e2e_dump_logs() {
   local path
   for path in "$@"; do
     [ -f "$path" ] || continue
-    echo "--- $path ---"; tail -n "${OPENCLAW_E2E_LOG_TAIL_LINES:-120}" "$path" || true
+    echo "--- $path ---"; tail -n "${ASTROCLAW_E2E_LOG_TAIL_LINES:-120}" "$path" || true
   done
 }

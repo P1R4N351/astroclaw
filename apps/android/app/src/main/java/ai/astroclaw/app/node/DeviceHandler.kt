@@ -1,8 +1,8 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.BuildConfig
-import ai.openclaw.app.SensitiveFeatureConfig
-import ai.openclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.BuildConfig
+import ai.astroclaw.app.SensitiveFeatureConfig
+import ai.astroclaw.app.gateway.GatewaySession
 import android.Manifest
 import android.app.ActivityManager
 import android.content.Context

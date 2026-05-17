@@ -28,7 +28,7 @@ const {
 });
 const forceResetGlobalDispatcherMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@openclaw/proxyline", () => ({
+vi.mock("@astroclaw/proxyline", () => ({
   installGlobalProxy: installGlobalProxyMock,
 }));
 
@@ -84,9 +84,9 @@ describe("startProxy", () => {
     "ALL_PROXY",
     "no_proxy",
     "NO_PROXY",
-    "OPENCLAW_PROXY_ACTIVE",
-    "OPENCLAW_PROXY_LOOPBACK_MODE",
-    "OPENCLAW_PROXY_URL",
+    "ASTROCLAW_PROXY_ACTIVE",
+    "ASTROCLAW_PROXY_LOOPBACK_MODE",
+    "ASTROCLAW_PROXY_URL",
   ];
 
   beforeEach(() => {
@@ -156,8 +156,8 @@ describe("startProxy", () => {
     expect(getActiveManagedProxyUrl()).toBeUndefined();
   });
 
-  it("uses OPENCLAW_PROXY_URL when config proxyUrl is omitted", async () => {
-    process.env["OPENCLAW_PROXY_URL"] = "http://127.0.0.1:3128";
+  it("uses ASTROCLAW_PROXY_URL when config proxyUrl is omitted", async () => {
+    process.env["ASTROCLAW_PROXY_URL"] = "http://127.0.0.1:3128";
 
     const handle = await startProxy({ enabled: true });
 
@@ -165,8 +165,8 @@ describe("startProxy", () => {
     expect(process.env["HTTP_PROXY"]).toBe("http://127.0.0.1:3128");
   });
 
-  it("prefers config proxyUrl over OPENCLAW_PROXY_URL", async () => {
-    process.env["OPENCLAW_PROXY_URL"] = "http://127.0.0.1:3128";
+  it("prefers config proxyUrl over ASTROCLAW_PROXY_URL", async () => {
+    process.env["ASTROCLAW_PROXY_URL"] = "http://127.0.0.1:3128";
 
     const handle = await startProxy({
       enabled: true,
@@ -177,8 +177,8 @@ describe("startProxy", () => {
     expect(process.env["HTTP_PROXY"]).toBe("http://127.0.0.1:3129");
   });
 
-  it("throws for HTTPS proxy URLs from OPENCLAW_PROXY_URL", async () => {
-    process.env["OPENCLAW_PROXY_URL"] = "https://127.0.0.1:3128";
+  it("throws for HTTPS proxy URLs from ASTROCLAW_PROXY_URL", async () => {
+    process.env["ASTROCLAW_PROXY_URL"] = "https://127.0.0.1:3128";
 
     await expect(startProxy({ enabled: true })).rejects.toThrow("http:// forward proxy");
 
@@ -197,8 +197,8 @@ describe("startProxy", () => {
     expect(process.env["https_proxy"]).toBe("http://127.0.0.1:3128");
     expect(process.env["HTTP_PROXY"]).toBe("http://127.0.0.1:3128");
     expect(process.env["HTTPS_PROXY"]).toBe("http://127.0.0.1:3128");
-    expect(process.env["OPENCLAW_PROXY_ACTIVE"]).toBe("1");
-    expect(process.env["OPENCLAW_PROXY_LOOPBACK_MODE"]).toBe("gateway-only");
+    expect(process.env["ASTROCLAW_PROXY_ACTIVE"]).toBe("1");
+    expect(process.env["ASTROCLAW_PROXY_LOOPBACK_MODE"]).toBe("gateway-only");
   });
 
   it("persists loopbackMode in env for forked child CLIs", async () => {
@@ -209,12 +209,12 @@ describe("startProxy", () => {
       loopbackMode: "block",
     });
 
-    expect(process.env["OPENCLAW_PROXY_LOOPBACK_MODE"]).toBe("block");
+    expect(process.env["ASTROCLAW_PROXY_LOOPBACK_MODE"]).toBe("block");
     expect(getActiveManagedProxyLoopbackMode()).toBe("block");
 
     await stopProxy(handle);
-    process.env["OPENCLAW_PROXY_ACTIVE"] = "1";
-    process.env["OPENCLAW_PROXY_LOOPBACK_MODE"] = "proxy";
+    process.env["ASTROCLAW_PROXY_ACTIVE"] = "1";
+    process.env["ASTROCLAW_PROXY_LOOPBACK_MODE"] = "proxy";
 
     expect(getActiveManagedProxyLoopbackMode()).toBe("proxy");
   });
@@ -273,8 +273,8 @@ describe("startProxy", () => {
   });
 
   it("reuses inherited Proxyline routing and replaces it when startProxy takes ownership", async () => {
-    process.env["OPENCLAW_PROXY_ACTIVE"] = "1";
-    process.env["OPENCLAW_PROXY_LOOPBACK_MODE"] = "gateway-only";
+    process.env["ASTROCLAW_PROXY_ACTIVE"] = "1";
+    process.env["ASTROCLAW_PROXY_LOOPBACK_MODE"] = "gateway-only";
     process.env["HTTP_PROXY"] = "http://127.0.0.1:3111";
 
     ensureInheritedManagedProxyRoutingActive();
@@ -310,7 +310,7 @@ describe("startProxy", () => {
 
     expect(proxylineStopMock).toHaveBeenCalledOnce();
     expect(process.env["HTTP_PROXY"]).toBe("http://127.0.0.1:3111");
-    expect(process.env["OPENCLAW_PROXY_ACTIVE"]).toBe("1");
+    expect(process.env["ASTROCLAW_PROXY_ACTIVE"]).toBe("1");
     expect(installGlobalProxyMock).toHaveBeenCalledTimes(3);
     expect(installCalls[2]?.[0]).toEqual(
       expect.objectContaining({
@@ -323,8 +323,8 @@ describe("startProxy", () => {
   });
 
   it("forces root undici onto the inherited managed proxy", () => {
-    process.env["OPENCLAW_PROXY_ACTIVE"] = "1";
-    process.env["OPENCLAW_PROXY_LOOPBACK_MODE"] = "gateway-only";
+    process.env["ASTROCLAW_PROXY_ACTIVE"] = "1";
+    process.env["ASTROCLAW_PROXY_LOOPBACK_MODE"] = "gateway-only";
     process.env["HTTP_PROXY"] = "http://127.0.0.1:3111";
 
     ensureInheritedManagedProxyRoutingActive();
@@ -359,7 +359,7 @@ describe("startProxy", () => {
 
     expect(process.env["HTTP_PROXY"]).toBe("http://previous.example.com:8080");
     expect(process.env["NO_PROXY"]).toBe("corp.example.com");
-    expect(process.env["OPENCLAW_PROXY_ACTIVE"]).toBeUndefined();
+    expect(process.env["ASTROCLAW_PROXY_ACTIVE"]).toBeUndefined();
     expect(proxylineStopMock).toHaveBeenCalledOnce();
     expect(forceResetGlobalDispatcherMock).toHaveBeenCalledTimes(2);
   });
@@ -377,21 +377,21 @@ describe("startProxy", () => {
     expect(installGlobalProxyMock).toHaveBeenCalledOnce();
     expect(forceResetGlobalDispatcherMock).toHaveBeenCalledOnce();
     expect(process.env["HTTP_PROXY"]).toBe("http://127.0.0.1:3128");
-    expect(process.env["OPENCLAW_PROXY_ACTIVE"]).toBe("1");
+    expect(process.env["ASTROCLAW_PROXY_ACTIVE"]).toBe("1");
 
     await stopProxy(secondHandle);
 
     expect(proxylineStopMock).not.toHaveBeenCalled();
     expect(forceResetGlobalDispatcherMock).toHaveBeenCalledOnce();
     expect(process.env["HTTP_PROXY"]).toBe("http://127.0.0.1:3128");
-    expect(process.env["OPENCLAW_PROXY_ACTIVE"]).toBe("1");
+    expect(process.env["ASTROCLAW_PROXY_ACTIVE"]).toBe("1");
 
     await stopProxy(firstHandle);
 
     expect(proxylineStopMock).toHaveBeenCalledOnce();
     expect(forceResetGlobalDispatcherMock).toHaveBeenCalledTimes(2);
     expect(process.env["HTTP_PROXY"]).toBeUndefined();
-    expect(process.env["OPENCLAW_PROXY_ACTIVE"]).toBeUndefined();
+    expect(process.env["ASTROCLAW_PROXY_ACTIVE"]).toBeUndefined();
   });
 
   it("rejects overlapping handles with different managed proxy URLs", async () => {
@@ -408,7 +408,7 @@ describe("startProxy", () => {
     ).rejects.toThrow("cannot activate a managed proxy");
 
     expect(process.env["HTTP_PROXY"]).toBe("http://127.0.0.1:3128");
-    expect(process.env["OPENCLAW_PROXY_ACTIVE"]).toBe("1");
+    expect(process.env["ASTROCLAW_PROXY_ACTIVE"]).toBe("1");
 
     await stopProxy(firstHandle);
   });
@@ -429,7 +429,7 @@ describe("startProxy", () => {
     ).rejects.toThrow("cannot activate a managed proxy with a different proxy.loopbackMode");
 
     expect(process.env["HTTP_PROXY"]).toBe("http://127.0.0.1:3128");
-    expect(process.env["OPENCLAW_PROXY_ACTIVE"]).toBe("1");
+    expect(process.env["ASTROCLAW_PROXY_ACTIVE"]).toBe("1");
 
     await stopProxy(firstHandle);
   });
@@ -447,7 +447,7 @@ describe("startProxy", () => {
     ).rejects.toThrow("failed to activate external proxy routing");
 
     expect(process.env["http_proxy"]).toBeUndefined();
-    expect(process.env["OPENCLAW_PROXY_ACTIVE"]).toBeUndefined();
+    expect(process.env["ASTROCLAW_PROXY_ACTIVE"]).toBeUndefined();
   });
 
   it("registers exact Gateway loopback URLs with Proxyline", async () => {

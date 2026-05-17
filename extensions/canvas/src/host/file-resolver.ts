@@ -1,5 +1,5 @@
 import path from "node:path";
-import { root as fsRoot, FsSafeError } from "openclaw/plugin-sdk/security-runtime";
+import { root as fsRoot, FsSafeError } from "astroclaw/plugin-sdk/security-runtime";
 
 type CanvasOpenResult = Awaited<ReturnType<Awaited<ReturnType<typeof fsRoot>>["open"]>>;
 

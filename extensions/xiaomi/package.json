@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/xiaomi-provider",
+  "name": "@astroclaw/xiaomi-provider",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Xiaomi provider plugin",
+  "description": "Astroclaw Xiaomi provider plugin",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

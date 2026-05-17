@@ -131,7 +131,7 @@ describe("pi tool definition adapter logging", () => {
 
     const result = await def.execute(
       "call-web-search-abort",
-      { query: "OpenClaw" },
+      { query: "Astroclaw" },
       undefined,
       undefined,
       extensionContext,
@@ -173,7 +173,7 @@ describe("pi tool definition adapter logging", () => {
     try {
       await def.execute(
         "call-web-search-agent-abort",
-        { query: "OpenClaw" },
+        { query: "Astroclaw" },
         controller.signal,
         undefined,
         extensionContext,

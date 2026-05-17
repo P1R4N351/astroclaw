@@ -1,4 +1,4 @@
-package ai.openclaw.app.gateway
+package ai.astroclaw.app.gateway
 
 import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
@@ -227,7 +227,7 @@ class GatewaySession(
       )
       true
     } catch (err: Throwable) {
-      Log.w("OpenClawGateway", "node.event failed: ${err::class.java.simpleName}")
+      Log.w("AstroclawGateway", "node.event failed: ${err::class.java.simpleName}")
       false
     }
   }
@@ -249,7 +249,7 @@ class GatewaySession(
           .asStringOrNull()
       normalizeCanvasHostUrl(raw, conn.endpoint, isTlsConnection = conn.tls != null)
     } catch (err: Throwable) {
-      Log.d("OpenClawGateway", "$method failed: ${err.message ?: err::class.java.simpleName}")
+      Log.d("AstroclawGateway", "$method failed: ${err.message ?: err::class.java.simpleName}")
       null
     }
   }
@@ -271,7 +271,7 @@ class GatewaySession(
       val res = conn.request("node.event", params, timeoutMs = timeoutMs)
       return RpcResult(ok = res.ok, payloadJson = res.payloadJson, error = res.error)
     } catch (err: Throwable) {
-      Log.w("OpenClawGateway", "node.event failed: ${err::class.java.simpleName}")
+      Log.w("AstroclawGateway", "node.event failed: ${err::class.java.simpleName}")
       return RpcResult(
         ok = false,
         payloadJson = null,
@@ -337,7 +337,7 @@ class GatewaySession(
     private val connectNonceDeferred = CompletableDeferred<String>()
     private val client: OkHttpClient = buildClient()
     private var socket: WebSocket? = null
-    private val loggerTag = "OpenClawGateway"
+    private val loggerTag = "AstroclawGateway"
 
     val remoteAddress: String = formatGatewayAuthority(endpoint.host, endpoint.port)
 

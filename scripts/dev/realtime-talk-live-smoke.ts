@@ -7,12 +7,12 @@ import { createServer, type ViteDevServer } from "vite";
 import { buildOpenAIRealtimeVoiceProvider } from "../../extensions/openai/realtime-voice-provider.ts";
 
 const OPENAI_REALTIME_MODEL =
-  process.env.OPENCLAW_REALTIME_OPENAI_MODEL?.trim() || "gpt-realtime-2";
-const OPENAI_REALTIME_VOICE = process.env.OPENCLAW_REALTIME_OPENAI_VOICE?.trim() || "alloy";
+  process.env.ASTROCLAW_REALTIME_OPENAI_MODEL?.trim() || "gpt-realtime-2";
+const OPENAI_REALTIME_VOICE = process.env.ASTROCLAW_REALTIME_OPENAI_VOICE?.trim() || "alloy";
 const GOOGLE_REALTIME_MODEL =
-  process.env.OPENCLAW_REALTIME_GOOGLE_MODEL?.trim() ||
+  process.env.ASTROCLAW_REALTIME_GOOGLE_MODEL?.trim() ||
   "gemini-2.5-flash-native-audio-preview-12-2025";
-const GOOGLE_REALTIME_VOICE = process.env.OPENCLAW_REALTIME_GOOGLE_VOICE?.trim() || "Kore";
+const GOOGLE_REALTIME_VOICE = process.env.ASTROCLAW_REALTIME_GOOGLE_VOICE?.trim() || "Kore";
 const GOOGLE_LIVE_WS_URL =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained";
 
@@ -91,7 +91,7 @@ async function smokeOpenAIBackendBridge(apiKey: string): Promise<SmokeResult> {
       model: OPENAI_REALTIME_MODEL,
       voice: OPENAI_REALTIME_VOICE,
     },
-    instructions: "OpenClaw backend realtime live smoke. Do not speak yet.",
+    instructions: "Astroclaw backend realtime live smoke. Do not speak yet.",
     onAudio: () => {},
     onClearAudio: () => {},
     onEvent: (event) => {
@@ -221,7 +221,7 @@ async function createGoogleLiveToken(apiKey: string): Promise<string> {
               prebuiltVoiceConfig: { voiceName: GOOGLE_REALTIME_VOICE },
             },
           },
-          systemInstruction: "OpenClaw browser Talk live smoke.",
+          systemInstruction: "Astroclaw browser Talk live smoke.",
           inputAudioTranscription: {},
           outputAudioTranscription: {},
         },
@@ -332,7 +332,7 @@ async function smokeGoogleLiveBrowserWs(browser: Browser, apiKey: string): Promi
 
 async function smokeGatewayRelayBrowser(browser: Browser): Promise<SmokeResult> {
   let server: ViteDevServer | undefined;
-  const dir = await mkdtemp(path.join(tmpdir(), "openclaw-realtime-talk-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "astroclaw-realtime-talk-"));
   try {
     const repoRoot = process.cwd().replaceAll("\\", "/");
     await writeFile(
@@ -429,7 +429,7 @@ try {
       relaySessionId: "relay-live-smoke",
       type: "toolCall",
       callId: "call-smoke",
-      name: "openclaw_agent_consult",
+      name: "astroclaw_agent_consult",
       args: { question: "confirm relay consult path" },
     },
   });

@@ -1,7 +1,7 @@
 ---
-summary: "Symptom first troubleshooting hub for OpenClaw"
+summary: "Symptom first troubleshooting hub for Astroclaw"
 read_when:
-  - OpenClaw is not working and you need the fastest path to a fix
+  - Astroclaw is not working and you need the fastest path to a fix
   - You want a triage flow before diving into deep runbooks
 title: "General troubleshooting"
 ---
@@ -13,26 +13,26 @@ If you only have 2 minutes, use this page as a triage front door.
 Run this exact ladder in order:
 
 ```bash
-openclaw status
-openclaw status --all
-openclaw gateway probe
-openclaw gateway status
-openclaw doctor
-openclaw channels status --probe
-openclaw logs --follow
+astroclaw status
+astroclaw status --all
+astroclaw gateway probe
+astroclaw gateway status
+astroclaw doctor
+astroclaw channels status --probe
+astroclaw logs --follow
 ```
 
 Good output in one line:
 
-- `openclaw status` → shows configured channels and no obvious auth errors.
-- `openclaw status --all` → full report is present and shareable.
-- `openclaw gateway probe` → expected gateway target is reachable (`Reachable: yes`). `Capability: ...` tells you what auth level the probe could prove, and `Read probe: limited - missing scope: operator.read` is degraded diagnostics, not a connect failure.
-- `openclaw gateway status` → `Runtime: running`, `Connectivity probe: ok`, and a plausible `Capability: ...` line. Use `--require-rpc` if you need read-scope RPC proof too.
-- `openclaw doctor` → no blocking config/service errors.
-- `openclaw channels status --probe` → reachable gateway returns live per-account
+- `astroclaw status` → shows configured channels and no obvious auth errors.
+- `astroclaw status --all` → full report is present and shareable.
+- `astroclaw gateway probe` → expected gateway target is reachable (`Reachable: yes`). `Capability: ...` tells you what auth level the probe could prove, and `Read probe: limited - missing scope: operator.read` is degraded diagnostics, not a connect failure.
+- `astroclaw gateway status` → `Runtime: running`, `Connectivity probe: ok`, and a plausible `Capability: ...` line. Use `--require-rpc` if you need read-scope RPC proof too.
+- `astroclaw doctor` → no blocking config/service errors.
+- `astroclaw channels status --probe` → reachable gateway returns live per-account
   transport state plus probe/audit results such as `works` or `audit ok`; if the
   gateway is unreachable, the command falls back to config-only summaries.
-- `openclaw logs --follow` → steady activity, no repeating fatal errors.
+- `astroclaw logs --follow` → steady activity, no repeating fatal errors.
 
 ## Anthropic long context 429
 
@@ -40,39 +40,39 @@ If you see:
 `HTTP 429: rate_limit_error: Extra usage is required for long context requests`,
 go to [/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context](/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context).
 
-## Local OpenAI-compatible backend works directly but fails in OpenClaw
+## Local OpenAI-compatible backend works directly but fails in Astroclaw
 
 If your local or self-hosted `/v1` backend answers small direct
-`/v1/chat/completions` probes but fails on `openclaw infer model run` or normal
+`/v1/chat/completions` probes but fails on `astroclaw infer model run` or normal
 agent turns:
 
 1. If the error mentions `messages[].content` expecting a string, set
    `models.providers.<provider>.models[].compat.requiresStringContent: true`.
-2. If the backend still fails only on OpenClaw agent turns, set
+2. If the backend still fails only on Astroclaw agent turns, set
    `models.providers.<provider>.models[].compat.supportsTools: false` and retry.
-3. If tiny direct calls still work but larger OpenClaw prompts crash the
+3. If tiny direct calls still work but larger Astroclaw prompts crash the
    backend, treat the remaining issue as an upstream model/server limitation and
    continue in the deep runbook:
    [/gateway/troubleshooting#local-openai-compatible-backend-passes-direct-probes-but-agent-runs-fail](/gateway/troubleshooting#local-openai-compatible-backend-passes-direct-probes-but-agent-runs-fail)
 
-## Plugin install fails with missing openclaw extensions
+## Plugin install fails with missing astroclaw extensions
 
-If install fails with `package.json missing openclaw.extensions`, the plugin package
-is using an old shape that OpenClaw no longer accepts.
+If install fails with `package.json missing astroclaw.extensions`, the plugin package
+is using an old shape that Astroclaw no longer accepts.
 
 Fix in the plugin package:
 
-1. Add `openclaw.extensions` to `package.json`.
+1. Add `astroclaw.extensions` to `package.json`.
 2. Point entries at built runtime files (usually `./dist/index.js`).
-3. Republish the plugin and run `openclaw plugins install <package>` again.
+3. Republish the plugin and run `astroclaw plugins install <package>` again.
 
 Example:
 
 ```json
 {
-  "name": "@openclaw/my-plugin",
+  "name": "@astroclaw/my-plugin",
   "version": "1.2.3",
-  "openclaw": {
+  "astroclaw": {
     "extensions": ["./dist/index.js"]
   }
 }
@@ -82,7 +82,7 @@ Reference: [Plugin architecture](/plugins/architecture)
 
 ## Plugin present but blocked by suspicious ownership
 
-If `openclaw doctor`, setup, or startup warnings show:
+If `astroclaw doctor`, setup, or startup warnings show:
 
 ```text
 blocked plugin candidate: suspicious ownership (... uid=1000, expected uid=0 or root)
@@ -90,23 +90,23 @@ plugin present but blocked
 ```
 
 the plugin files are owned by a different Unix user than the process loading
-them. Do not remove the plugin config. Fix the file ownership or run OpenClaw as
+them. Do not remove the plugin config. Fix the file ownership or run Astroclaw as
 the same user that owns the state directory.
 
 Docker installs normally run as `node` (uid `1000`). For the default Docker
 setup, repair the host bind mounts:
 
 ```bash
-sudo chown -R 1000:1000 /path/to/openclaw-config /path/to/openclaw-workspace
-openclaw doctor --fix
+sudo chown -R 1000:1000 /path/to/astroclaw-config /path/to/astroclaw-workspace
+astroclaw doctor --fix
 ```
 
-If you intentionally run OpenClaw as root, repair the managed plugin root to
+If you intentionally run Astroclaw as root, repair the managed plugin root to
 root ownership instead:
 
 ```bash
-sudo chown -R root:root /path/to/openclaw-config/npm
-openclaw doctor --fix
+sudo chown -R root:root /path/to/astroclaw-config/npm
+astroclaw doctor --fix
 ```
 
 Deeper docs:
@@ -118,7 +118,7 @@ Deeper docs:
 
 ```mermaid
 flowchart TD
-  A[OpenClaw is not working] --> B{What breaks first}
+  A[Astroclaw is not working] --> B{What breaks first}
   B --> C[No replies]
   B --> D[Dashboard or Control UI will not connect]
   B --> E[Gateway will not start or service not running]
@@ -139,11 +139,11 @@ flowchart TD
 <AccordionGroup>
   <Accordion title="No replies">
     ```bash
-    openclaw status
-    openclaw gateway status
-    openclaw channels status --probe
-    openclaw pairing list --channel <channel> [--account <id>]
-    openclaw logs --follow
+    astroclaw status
+    astroclaw gateway status
+    astroclaw channels status --probe
+    astroclaw pairing list --channel <channel> [--account <id>]
+    astroclaw logs --follow
     ```
 
     Good output looks like:
@@ -170,16 +170,16 @@ flowchart TD
 
   <Accordion title="Dashboard or Control UI will not connect">
     ```bash
-    openclaw status
-    openclaw gateway status
-    openclaw logs --follow
-    openclaw doctor
-    openclaw channels status --probe
+    astroclaw status
+    astroclaw gateway status
+    astroclaw logs --follow
+    astroclaw doctor
+    astroclaw channels status --probe
     ```
 
     Good output looks like:
 
-    - `Dashboard: http://...` is shown in `openclaw gateway status`
+    - `Dashboard: http://...` is shown in `astroclaw gateway status`
     - `Connectivity probe: ok`
     - `Capability: read-only`, `write-capable`, or `admin-capable`
     - No auth loop in logs
@@ -212,11 +212,11 @@ flowchart TD
 
   <Accordion title="Gateway will not start or service installed but not running">
     ```bash
-    openclaw status
-    openclaw gateway status
-    openclaw logs --follow
-    openclaw doctor
-    openclaw channels status --probe
+    astroclaw status
+    astroclaw gateway status
+    astroclaw logs --follow
+    astroclaw doctor
+    astroclaw channels status --probe
     ```
 
     Good output looks like:
@@ -242,11 +242,11 @@ flowchart TD
 
   <Accordion title="Channel connects but messages do not flow">
     ```bash
-    openclaw status
-    openclaw gateway status
-    openclaw logs --follow
-    openclaw doctor
-    openclaw channels status --probe
+    astroclaw status
+    astroclaw gateway status
+    astroclaw logs --follow
+    astroclaw doctor
+    astroclaw channels status --probe
     ```
 
     Good output looks like:
@@ -270,12 +270,12 @@ flowchart TD
 
   <Accordion title="Cron or heartbeat did not fire or did not deliver">
     ```bash
-    openclaw status
-    openclaw gateway status
-    openclaw cron status
-    openclaw cron list
-    openclaw cron runs --id <jobId> --limit 20
-    openclaw logs --follow
+    astroclaw status
+    astroclaw gateway status
+    astroclaw cron status
+    astroclaw cron list
+    astroclaw cron runs --id <jobId> --limit 20
+    astroclaw logs --follow
     ```
 
     Good output looks like:
@@ -304,11 +304,11 @@ flowchart TD
 
   <Accordion title="Node is paired but tool fails camera canvas screen exec">
     ```bash
-    openclaw status
-    openclaw gateway status
-    openclaw nodes status
-    openclaw nodes describe --node <idOrNameOrIp>
-    openclaw logs --follow
+    astroclaw status
+    astroclaw gateway status
+    astroclaw nodes status
+    astroclaw nodes describe --node <idOrNameOrIp>
+    astroclaw logs --follow
     ```
 
     Good output looks like:
@@ -334,10 +334,10 @@ flowchart TD
 
   <Accordion title="Exec suddenly asks for approval">
     ```bash
-    openclaw config get tools.exec.host
-    openclaw config get tools.exec.security
-    openclaw config get tools.exec.ask
-    openclaw gateway restart
+    astroclaw config get tools.exec.host
+    astroclaw config get tools.exec.security
+    astroclaw config get tools.exec.ask
+    astroclaw gateway restart
     ```
 
     What changed:
@@ -352,10 +352,10 @@ flowchart TD
     Restore current default no-approval behavior:
 
     ```bash
-    openclaw config set tools.exec.host gateway
-    openclaw config set tools.exec.security full
-    openclaw config set tools.exec.ask off
-    openclaw gateway restart
+    astroclaw config set tools.exec.host gateway
+    astroclaw config set tools.exec.security full
+    astroclaw config set tools.exec.ask off
+    astroclaw gateway restart
     ```
 
     Safer alternatives:
@@ -380,17 +380,17 @@ flowchart TD
 
   <Accordion title="Browser tool fails">
     ```bash
-    openclaw status
-    openclaw gateway status
-    openclaw browser status
-    openclaw logs --follow
-    openclaw doctor
+    astroclaw status
+    astroclaw gateway status
+    astroclaw browser status
+    astroclaw logs --follow
+    astroclaw doctor
     ```
 
     Good output looks like:
 
     - Browser status shows `running: true` and a chosen browser/profile.
-    - `openclaw` starts, or `user` can see local Chrome tabs.
+    - `astroclaw` starts, or `user` can see local Chrome tabs.
 
     Common log signatures:
 
@@ -402,7 +402,7 @@ flowchart TD
     - `No Chrome tabs found for profile="user"` → the Chrome MCP attach profile has no open local Chrome tabs.
     - `Remote CDP for profile "<name>" is not reachable` → the configured remote CDP endpoint is not reachable from this host.
     - `Browser attachOnly is enabled ... not reachable` or `Browser attachOnly is enabled and CDP websocket ... is not reachable` → attach-only profile has no live CDP target.
-    - stale viewport / dark-mode / locale / offline overrides on attach-only or remote CDP profiles → run `openclaw browser stop --browser-profile <name>` to close the active control session and release emulation state without restarting the gateway.
+    - stale viewport / dark-mode / locale / offline overrides on attach-only or remote CDP profiles → run `astroclaw browser stop --browser-profile <name>` to close the active control session and release emulation state without restarting the gateway.
 
     Deep pages:
 

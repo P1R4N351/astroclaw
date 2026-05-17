@@ -19,7 +19,7 @@ import { writeManagedNpmPlugin } from "./test-helpers/managed-npm-plugin.js";
 const tempDirs: string[] = [];
 
 function makeStateDir(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-plugin-index-records-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-plugin-index-records-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -30,7 +30,7 @@ function createPluginCandidate(stateDir: string, pluginId: string): PluginCandid
   const source = path.join(rootDir, "index.ts");
   fs.writeFileSync(source, "export function register() {}\n", "utf8");
   fs.writeFileSync(
-    path.join(rootDir, "openclaw.plugin.json"),
+    path.join(rootDir, "astroclaw.plugin.json"),
     JSON.stringify({
       id: pluginId,
       configSchema: { type: "object" },
@@ -71,8 +71,8 @@ describe("plugin index install records store", () => {
       {
         twitch: {
           source: "npm",
-          spec: "@openclaw/plugin-twitch@1.0.0",
-          installPath: "plugins/npm/@openclaw/plugin-twitch",
+          spec: "@astroclaw/plugin-twitch@1.0.0",
+          installPath: "plugins/npm/@astroclaw/plugin-twitch",
         },
       },
       {
@@ -94,8 +94,8 @@ describe("plugin index install records store", () => {
     expect(persisted.generatedAtMs).toBe(1777118400000);
     expectRecordFields(persisted.installRecords?.twitch, {
       source: "npm",
-      spec: "@openclaw/plugin-twitch@1.0.0",
-      installPath: "plugins/npm/@openclaw/plugin-twitch",
+      spec: "@astroclaw/plugin-twitch@1.0.0",
+      installPath: "plugins/npm/@astroclaw/plugin-twitch",
     });
     expect(persisted.plugins).toHaveLength(1);
     expect(persisted.plugins?.[0]?.pluginId).toBe("twitch");
@@ -103,8 +103,8 @@ describe("plugin index install records store", () => {
     await expect(readPersistedInstalledPluginIndexInstallRecords({ stateDir })).resolves.toEqual({
       twitch: {
         source: "npm",
-        spec: "@openclaw/plugin-twitch@1.0.0",
-        installPath: "plugins/npm/@openclaw/plugin-twitch",
+        spec: "@astroclaw/plugin-twitch@1.0.0",
+        installPath: "plugins/npm/@astroclaw/plugin-twitch",
       },
     });
   });
@@ -201,13 +201,13 @@ describe("plugin index install records store", () => {
     const stateDir = makeStateDir();
     const discordDir = writeManagedNpmPlugin({
       stateDir,
-      packageName: "@openclaw/discord",
+      packageName: "@astroclaw/discord",
       pluginId: "discord",
       version: "2026.5.2",
     });
     const codexDir = writeManagedNpmPlugin({
       stateDir,
-      packageName: "@openclaw/codex",
+      packageName: "@astroclaw/codex",
       pluginId: "codex",
       version: "2026.5.2",
     });
@@ -218,21 +218,21 @@ describe("plugin index install records store", () => {
     const loaded = await loadInstalledPluginIndexInstallRecords({ stateDir });
     expectRecordFields(loaded.codex, {
       source: "npm",
-      spec: "@openclaw/codex@2026.5.2",
+      spec: "@astroclaw/codex@2026.5.2",
       installPath: codexDir,
       version: "2026.5.2",
-      resolvedName: "@openclaw/codex",
+      resolvedName: "@astroclaw/codex",
       resolvedVersion: "2026.5.2",
-      resolvedSpec: "@openclaw/codex@2026.5.2",
+      resolvedSpec: "@astroclaw/codex@2026.5.2",
     });
     expectRecordFields(loaded.discord, {
       source: "npm",
-      spec: "@openclaw/discord@2026.5.2",
+      spec: "@astroclaw/discord@2026.5.2",
       installPath: discordDir,
       version: "2026.5.2",
-      resolvedName: "@openclaw/discord",
+      resolvedName: "@astroclaw/discord",
       resolvedVersion: "2026.5.2",
-      resolvedSpec: "@openclaw/discord@2026.5.2",
+      resolvedSpec: "@astroclaw/discord@2026.5.2",
     });
     const loadedSync = loadInstalledPluginIndexInstallRecordsSync({ stateDir });
     expectRecordFields(loadedSync.codex, { source: "npm", installPath: codexDir });
@@ -243,7 +243,7 @@ describe("plugin index install records store", () => {
     const stateDir = makeStateDir();
     writeManagedNpmPlugin({
       stateDir,
-      packageName: "@openclaw/discord",
+      packageName: "@astroclaw/discord",
       pluginId: "discord",
       version: "2026.5.2",
     });
@@ -252,7 +252,7 @@ describe("plugin index install records store", () => {
       {
         discord: {
           source: "npm",
-          spec: "@openclaw/discord@beta",
+          spec: "@astroclaw/discord@beta",
           installPath: path.join(stateDir, "custom", "discord"),
           integrity: "sha512-persisted",
         },
@@ -263,7 +263,7 @@ describe("plugin index install records store", () => {
     const loaded = await loadInstalledPluginIndexInstallRecords({ stateDir });
     expectRecordFields(loaded.discord, {
       source: "npm",
-      spec: "@openclaw/discord@beta",
+      spec: "@astroclaw/discord@beta",
       installPath: path.join(stateDir, "custom", "discord"),
       integrity: "sha512-persisted",
     });

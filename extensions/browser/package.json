@@ -1,8 +1,8 @@
 {
-  "name": "@openclaw/browser-plugin",
+  "name": "@astroclaw/browser-plugin",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw browser tool plugin",
+  "description": "Astroclaw browser tool plugin",
   "type": "module",
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
@@ -13,10 +13,10 @@
     "ws": "8.20.1"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*",
+    "@astroclaw/plugin-sdk": "workspace:*",
     "undici": "8.3.0"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

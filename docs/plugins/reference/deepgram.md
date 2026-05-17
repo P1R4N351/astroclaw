@@ -11,8 +11,8 @@ Adds media understanding provider support. Adds realtime transcription provider 
 
 ## Distribution
 
-- Package: `@openclaw/deepgram-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/deepgram-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

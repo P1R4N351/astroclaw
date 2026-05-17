@@ -1,4 +1,4 @@
-package ai.openclaw.app.ui
+package ai.astroclaw.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

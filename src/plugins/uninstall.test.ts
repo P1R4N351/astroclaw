@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { toRepoRelativePath } from "../test-utils/repo-files.js";
 import { resolvePluginInstallDir } from "./install.js";
 import {
@@ -24,7 +24,7 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout: runCommandWithTimeoutMock,
 }));
 
-type PluginConfig = NonNullable<OpenClawConfig["plugins"]>;
+type PluginConfig = NonNullable<AstroclawConfig["plugins"]>;
 type PluginInstallRecord = NonNullable<PluginConfig["installs"]>[string];
 
 async function createInstalledNpmPluginFixture(params: {
@@ -34,7 +34,7 @@ async function createInstalledNpmPluginFixture(params: {
   pluginId: string;
   extensionsDir: string;
   pluginDir: string;
-  config: OpenClawConfig;
+  config: AstroclawConfig;
 }> {
   const pluginId = params.pluginId ?? "my-plugin";
   const extensionsDir = path.join(params.baseDir, "extensions");
@@ -151,8 +151,8 @@ function createPluginConfig(params: {
   enabled?: boolean;
   slots?: PluginConfig["slots"];
   loadPaths?: string[];
-  channels?: OpenClawConfig["channels"];
-}): OpenClawConfig {
+  channels?: AstroclawConfig["channels"];
+}): AstroclawConfig {
   const plugins: PluginConfig = {};
   if (params.entries) {
     plugins.entries = params.entries;
@@ -182,14 +182,14 @@ function createPluginConfig(params: {
 }
 
 function expectRemainingChannels(
-  channels: OpenClawConfig["channels"],
+  channels: AstroclawConfig["channels"],
   expected: Record<string, unknown> | undefined,
 ) {
   expect(channels as Record<string, unknown> | undefined).toEqual(expected);
 }
 
 function expectChannelCleanupResult(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   pluginId: string;
   expectedChannels: Record<string, unknown> | undefined;
   expectedChanged: boolean;
@@ -208,14 +208,14 @@ function expectChannelCleanupResult(params: {
   expect(actions.channelConfig).toBe(params.expectedChanged);
 }
 
-function createSinglePluginWithEmptySlotsConfig(): OpenClawConfig {
+function createSinglePluginWithEmptySlotsConfig(): AstroclawConfig {
   return createPluginConfig({
     entries: createSinglePluginEntries(),
     slots: {},
   });
 }
 
-function createSingleNpmInstallConfig(installPath: string): OpenClawConfig {
+function createSingleNpmInstallConfig(installPath: string): AstroclawConfig {
   return createPluginConfig({
     entries: createSinglePluginEntries(),
     installs: {
@@ -371,7 +371,7 @@ describe("removePluginFromConfig", () => {
   it("removes absolute load path for a workspace-relative install source path", async () => {
     const tempRoot = path.join(process.cwd(), ".tmp");
     await fs.mkdir(tempRoot, { recursive: true });
-    const tempDir = await fs.mkdtemp(path.join(tempRoot, "openclaw-uninstall-portable-source-"));
+    const tempDir = await fs.mkdtemp(path.join(tempRoot, "astroclaw-uninstall-portable-source-"));
     try {
       const pluginDir = path.join(tempDir, "plugins", "demo");
       await fs.mkdir(pluginDir, { recursive: true });
@@ -638,7 +638,7 @@ describe("removePluginFromConfig", () => {
           defaults: { groupPolicy: "opt-in" },
           modelByChannel: { timbot: "gpt-3.5" } as Record<string, string>,
           timbot: { sdkAppId: "123" },
-        } as unknown as OpenClawConfig["channels"],
+        } as unknown as AstroclawConfig["channels"],
       }),
       pluginId: "timbot",
       expectedChannels: {
@@ -658,7 +658,7 @@ describe("removePluginFromConfig", () => {
         },
         channels: {
           defaults: { groupPolicy: "opt-in" },
-        } as unknown as OpenClawConfig["channels"],
+        } as unknown as AstroclawConfig["channels"],
       }),
       pluginId: "bad-plugin",
       options: {
@@ -825,11 +825,11 @@ describe("uninstallPlugin", () => {
       config: createPluginConfig({
         installs: {
           "missing-linked-plugin": createPathInstallRecord(
-            "/missing/openclaw/plugin",
-            "/missing/openclaw/plugin",
+            "/missing/astroclaw/plugin",
+            "/missing/astroclaw/plugin",
           ),
         },
-        loadPaths: ["/missing/openclaw/plugin", "/keep/this/plugin"],
+        loadPaths: ["/missing/astroclaw/plugin", "/keep/this/plugin"],
       }),
       expectedActions: {
         entry: false,
@@ -963,7 +963,7 @@ describe("uninstallPlugin", () => {
     const stateDir = path.join(tempDir, "state");
     const extensionsDir = path.join(stateDir, "extensions");
     const npmRoot = path.join(stateDir, "npm");
-    const pluginDir = path.join(npmRoot, "node_modules", "@openclaw", "kitchen-sink");
+    const pluginDir = path.join(npmRoot, "node_modules", "@astroclaw", "kitchen-sink");
     const hoistedDir = path.join(npmRoot, "node_modules", "is-number");
     await fs.mkdir(pluginDir, { recursive: true });
     await fs.mkdir(hoistedDir, { recursive: true });
@@ -973,7 +973,7 @@ describe("uninstallPlugin", () => {
         {
           private: true,
           dependencies: {
-            "@openclaw/kitchen-sink": "1.0.0",
+            "@astroclaw/kitchen-sink": "1.0.0",
             "is-number": "7.0.0",
           },
         },
@@ -986,16 +986,16 @@ describe("uninstallPlugin", () => {
 
     const plan = planPluginUninstall({
       config: createPluginConfig({
-        entries: createSinglePluginEntries("openclaw-kitchen-sink-fixture"),
+        entries: createSinglePluginEntries("astroclaw-kitchen-sink-fixture"),
         installs: {
-          "openclaw-kitchen-sink-fixture": {
+          "astroclaw-kitchen-sink-fixture": {
             source: "npm",
-            spec: "@openclaw/kitchen-sink@1.0.0",
+            spec: "@astroclaw/kitchen-sink@1.0.0",
             installPath: pluginDir,
           },
         },
       }),
-      pluginId: "openclaw-kitchen-sink-fixture",
+      pluginId: "astroclaw-kitchen-sink-fixture",
       deleteFiles: true,
       extensionsDir,
     });
@@ -1009,23 +1009,23 @@ describe("uninstallPlugin", () => {
       cleanup: {
         kind: "npm",
         npmRoot,
-        packageName: "@openclaw/kitchen-sink",
+        packageName: "@astroclaw/kitchen-sink",
       },
     });
 
     const applied = await applyPluginUninstallDirectoryRemoval(plan.directoryRemoval);
 
     expect(applied).toEqual({ directoryRemoved: true, warnings: [] });
-    expectNpmUninstallCommand({ packageName: "@openclaw/kitchen-sink", npmRoot });
+    expectNpmUninstallCommand({ packageName: "@astroclaw/kitchen-sink", npmRoot });
     await expectPathAccessState(pluginDir, "missing");
   });
 
-  it("repairs remaining npm plugin openclaw peer links after npm uninstall prunes them", async () => {
+  it("repairs remaining npm plugin astroclaw peer links after npm uninstall prunes them", async () => {
     const stateDir = path.join(tempDir, "state");
     const npmRoot = path.join(stateDir, "npm");
     const removedPluginDir = path.join(npmRoot, "node_modules", "removed-plugin");
     const peerPluginDir = path.join(npmRoot, "node_modules", "peer-plugin");
-    const peerLink = path.join(peerPluginDir, "node_modules", "openclaw");
+    const peerLink = path.join(peerPluginDir, "node_modules", "astroclaw");
     await fs.mkdir(removedPluginDir, { recursive: true });
     await fs.mkdir(path.dirname(peerLink), { recursive: true });
     await fs.writeFile(
@@ -1049,7 +1049,7 @@ describe("uninstallPlugin", () => {
         {
           name: "peer-plugin",
           version: "1.0.0",
-          peerDependencies: { openclaw: ">=2026.0.0" },
+          peerDependencies: { astroclaw: ">=2026.0.0" },
         },
         null,
         2,
@@ -1059,7 +1059,7 @@ describe("uninstallPlugin", () => {
     runCommandWithTimeoutMock.mockImplementationOnce(async (argv: string[]) => {
       await fs.rm(peerLink, { recursive: true, force: true });
       if (!argv.includes("--legacy-peer-deps")) {
-        await fs.mkdir(path.join(npmRoot, "node_modules", "openclaw"), { recursive: true });
+        await fs.mkdir(path.join(npmRoot, "node_modules", "astroclaw"), { recursive: true });
       }
       return {
         code: 0,
@@ -1082,7 +1082,7 @@ describe("uninstallPlugin", () => {
 
     expect(applied).toEqual({ directoryRemoved: true, warnings: [] });
     await expectPathAccessState(removedPluginDir, "missing");
-    await expectPathAccessState(path.join(npmRoot, "node_modules", "openclaw"), "missing");
+    await expectPathAccessState(path.join(npmRoot, "node_modules", "astroclaw"), "missing");
     await expect(fs.lstat(peerLink).then((stat) => stat.isSymbolicLink())).resolves.toBe(true);
   });
 
@@ -1102,7 +1102,7 @@ describe("uninstallPlugin", () => {
             "removed-plugin": "1.0.0",
             "runtime-peer": "1.0.0",
           },
-          openclaw: {
+          astroclaw: {
             managedPeerDependencies: ["runtime-peer"],
           },
         },
@@ -1195,11 +1195,11 @@ describe("uninstallPlugin", () => {
       await fs.readFile(path.join(npmRoot, "package.json"), "utf8"),
     ) as {
       dependencies?: Record<string, string>;
-      openclaw?: { managedPeerDependencies?: string[] };
+      astroclaw?: { managedPeerDependencies?: string[] };
     };
     expect(rootManifest.dependencies?.["removed-plugin"]).toBeUndefined();
     expect(rootManifest.dependencies?.["runtime-peer"]).toBeUndefined();
-    expect(rootManifest.openclaw?.managedPeerDependencies ?? []).not.toContain("runtime-peer");
+    expect(rootManifest.astroclaw?.managedPeerDependencies ?? []).not.toContain("runtime-peer");
     expect(runCommandWithTimeoutMock).toHaveBeenCalledTimes(3);
   });
 
@@ -1208,7 +1208,7 @@ describe("uninstallPlugin", () => {
     const npmRoot = path.join(stateDir, "npm");
     const pluginDir = path.join(npmRoot, "node_modules", "missing-plugin");
     const peerPluginDir = path.join(npmRoot, "node_modules", "peer-plugin");
-    const peerLink = path.join(peerPluginDir, "node_modules", "openclaw");
+    const peerLink = path.join(peerPluginDir, "node_modules", "astroclaw");
     await fs.mkdir(peerLink, { recursive: true });
     await fs.writeFile(
       path.join(npmRoot, "package.json"),
@@ -1230,7 +1230,7 @@ describe("uninstallPlugin", () => {
         {
           name: "peer-plugin",
           version: "1.0.0",
-          peerDependencies: { openclaw: ">=2026.0.0" },
+          peerDependencies: { astroclaw: ">=2026.0.0" },
         },
         null,
         2,
@@ -1645,7 +1645,7 @@ describe("resolveUninstallDirectoryTarget", () => {
   });
 
   it("returns managed install path for copied path installs", () => {
-    const extensionsDir = path.join(os.tmpdir(), "openclaw-uninstall-safe");
+    const extensionsDir = path.join(os.tmpdir(), "astroclaw-uninstall-safe");
     const installPath = resolvePluginInstallDir("my-plugin", extensionsDir);
 
     expect(
@@ -1663,14 +1663,14 @@ describe("resolveUninstallDirectoryTarget", () => {
   });
 
   it("falls back to default path when configured installPath is untrusted", () => {
-    const extensionsDir = path.join(os.tmpdir(), "openclaw-uninstall-safe");
+    const extensionsDir = path.join(os.tmpdir(), "astroclaw-uninstall-safe");
     const target = resolveUninstallDirectoryTarget({
       pluginId: "my-plugin",
       hasInstall: true,
       installRecord: {
         source: "npm",
         spec: "my-plugin@1.0.0",
-        installPath: "/tmp/not-openclaw-plugin-install/my-plugin",
+        installPath: "/tmp/not-astroclaw-plugin-install/my-plugin",
       },
       extensionsDir,
     });
@@ -1679,7 +1679,7 @@ describe("resolveUninstallDirectoryTarget", () => {
   });
 
   it("uses configured installPath when it stays inside the managed extensions dir", () => {
-    const extensionsDir = path.join(os.tmpdir(), "openclaw-uninstall-safe");
+    const extensionsDir = path.join(os.tmpdir(), "astroclaw-uninstall-safe");
     const installPath = path.join(extensionsDir, "archive-installs", "my-plugin");
 
     expect(
@@ -1697,17 +1697,17 @@ describe("resolveUninstallDirectoryTarget", () => {
   });
 
   it("uses configured installPath when npm installed it under the managed npm root", () => {
-    const stateDir = path.join(os.tmpdir(), "openclaw-uninstall-safe");
+    const stateDir = path.join(os.tmpdir(), "astroclaw-uninstall-safe");
     const extensionsDir = path.join(stateDir, "extensions");
-    const installPath = path.join(stateDir, "npm", "node_modules", "@openclaw", "kitchen-sink");
+    const installPath = path.join(stateDir, "npm", "node_modules", "@astroclaw", "kitchen-sink");
 
     expect(
       resolveUninstallDirectoryTarget({
-        pluginId: "openclaw-kitchen-sink-fixture",
+        pluginId: "astroclaw-kitchen-sink-fixture",
         hasInstall: true,
         installRecord: {
           source: "npm",
-          spec: "@openclaw/kitchen-sink@latest",
+          spec: "@astroclaw/kitchen-sink@latest",
           installPath,
         },
         extensionsDir,
@@ -1716,7 +1716,7 @@ describe("resolveUninstallDirectoryTarget", () => {
   });
 
   it("uses configured installPath when git installed it under the managed git root", () => {
-    const stateDir = path.join(os.tmpdir(), "openclaw-uninstall-safe");
+    const stateDir = path.join(os.tmpdir(), "astroclaw-uninstall-safe");
     const extensionsDir = path.join(stateDir, "extensions");
     const installPath = path.join(stateDir, "git", "git-abc123", "repo");
 
@@ -1731,7 +1731,7 @@ describe("resolveUninstallDirectoryTarget", () => {
   });
 
   it("uses configured installPath when ClawHub installed it under the managed extensions root", () => {
-    const stateDir = path.join(os.tmpdir(), "openclaw-uninstall-safe");
+    const stateDir = path.join(os.tmpdir(), "astroclaw-uninstall-safe");
     const extensionsDir = path.join(stateDir, "extensions");
     const installPath = resolvePluginInstallDir("clawpack-demo", extensionsDir);
 
@@ -1764,7 +1764,7 @@ describe("resolveUninstallDirectoryTarget", () => {
   });
 
   it("does not trust git install paths outside the managed git root", () => {
-    const stateDir = path.join(os.tmpdir(), "openclaw-uninstall-safe");
+    const stateDir = path.join(os.tmpdir(), "astroclaw-uninstall-safe");
     const extensionsDir = path.join(stateDir, "extensions");
 
     expect(
@@ -1781,28 +1781,28 @@ describe("resolveUninstallDirectoryTarget", () => {
   });
 
   it("does not trust npm install paths outside the managed npm root", () => {
-    const stateDir = path.join(os.tmpdir(), "openclaw-uninstall-safe");
+    const stateDir = path.join(os.tmpdir(), "astroclaw-uninstall-safe");
     const extensionsDir = path.join(stateDir, "extensions");
 
     expect(
       resolveUninstallDirectoryTarget({
-        pluginId: "openclaw-kitchen-sink-fixture",
+        pluginId: "astroclaw-kitchen-sink-fixture",
         hasInstall: true,
         installRecord: {
           source: "npm",
-          spec: "@openclaw/kitchen-sink@latest",
-          installPath: path.join(os.tmpdir(), "npm", "node_modules", "@openclaw", "kitchen-sink"),
+          spec: "@astroclaw/kitchen-sink@latest",
+          installPath: path.join(os.tmpdir(), "npm", "node_modules", "@astroclaw", "kitchen-sink"),
         },
         extensionsDir,
       }),
-    ).toBe(resolvePluginInstallDir("openclaw-kitchen-sink-fixture", extensionsDir));
+    ).toBe(resolvePluginInstallDir("astroclaw-kitchen-sink-fixture", extensionsDir));
   });
 
   it("uses configured installPath when it is under the recorded managed extensions root", () => {
-    const currentExtensionsDir = path.join(os.tmpdir(), "openclaw-uninstall-current", "extensions");
+    const currentExtensionsDir = path.join(os.tmpdir(), "astroclaw-uninstall-current", "extensions");
     const recordedExtensionsDir = path.join(
       os.tmpdir(),
-      "openclaw-uninstall-recorded",
+      "astroclaw-uninstall-recorded",
       "extensions",
     );
     const installPath = resolvePluginInstallDir("my-plugin", recordedExtensionsDir);

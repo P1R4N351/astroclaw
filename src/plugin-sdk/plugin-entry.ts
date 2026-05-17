@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { emptyPluginConfigSchema } from "../plugins/config-schema.js";
 import type {
   AnyAgentTool,
@@ -11,22 +11,22 @@ import type {
   MigrationProviderContext,
   MigrationProviderPlugin,
   MigrationSummary,
-  OpenClawPluginApi,
-  OpenClawPluginCommandDefinition,
-  OpenClawPluginConfigSchema,
-  OpenClawPluginDefinition,
-  OpenClawPluginHttpRouteHandler,
-  OpenClawPluginNodeHostCommand,
-  OpenClawPluginNodeInvokePolicy,
-  OpenClawPluginNodeInvokePolicyContext,
-  OpenClawPluginNodeInvokePolicyResult,
-  OpenClawPluginReloadRegistration,
-  OpenClawPluginSecurityAuditCollector,
-  OpenClawPluginSecurityAuditContext,
-  OpenClawPluginService,
-  OpenClawPluginServiceContext,
-  OpenClawPluginToolContext,
-  OpenClawPluginToolFactory,
+  AstroclawPluginApi,
+  AstroclawPluginCommandDefinition,
+  AstroclawPluginConfigSchema,
+  AstroclawPluginDefinition,
+  AstroclawPluginHttpRouteHandler,
+  AstroclawPluginNodeHostCommand,
+  AstroclawPluginNodeInvokePolicy,
+  AstroclawPluginNodeInvokePolicyContext,
+  AstroclawPluginNodeInvokePolicyResult,
+  AstroclawPluginReloadRegistration,
+  AstroclawPluginSecurityAuditCollector,
+  AstroclawPluginSecurityAuditContext,
+  AstroclawPluginService,
+  AstroclawPluginServiceContext,
+  AstroclawPluginToolContext,
+  AstroclawPluginToolFactory,
   PluginLogger,
   ProviderAugmentModelCatalogContext,
   ProviderAuthContext,
@@ -80,8 +80,8 @@ import type {
   ProviderWrapStreamFnContext,
   UnifiedModelCatalogProviderContext,
   UnifiedModelCatalogProviderPlugin,
-  OpenClawGatewayDiscoveryAdvertiseContext,
-  OpenClawGatewayDiscoveryService,
+  AstroclawGatewayDiscoveryAdvertiseContext,
+  AstroclawGatewayDiscoveryService,
   SpeechProviderPlugin,
   PluginCommandContext,
   PluginCommandResult,
@@ -128,16 +128,16 @@ export type {
   MigrationProviderContext,
   MigrationProviderPlugin,
   MigrationSummary,
-  OpenClawPluginApi,
-  OpenClawPluginNodeHostCommand,
-  OpenClawPluginNodeInvokePolicy,
-  OpenClawPluginNodeInvokePolicyContext,
-  OpenClawPluginNodeInvokePolicyResult,
-  OpenClawPluginReloadRegistration,
-  OpenClawPluginSecurityAuditCollector,
-  OpenClawPluginSecurityAuditContext,
-  OpenClawPluginToolContext,
-  OpenClawPluginToolFactory,
+  AstroclawPluginApi,
+  AstroclawPluginNodeHostCommand,
+  AstroclawPluginNodeInvokePolicy,
+  AstroclawPluginNodeInvokePolicyContext,
+  AstroclawPluginNodeInvokePolicyResult,
+  AstroclawPluginReloadRegistration,
+  AstroclawPluginSecurityAuditCollector,
+  AstroclawPluginSecurityAuditContext,
+  AstroclawPluginToolContext,
+  AstroclawPluginToolFactory,
   PluginCommandContext,
   PluginCommandResult,
   PluginAgentEventEmitParams,
@@ -169,8 +169,8 @@ export type {
   PluginSessionExtensionProjection,
   PluginToolMetadataRegistration,
   PluginTrustedToolPolicyRegistration,
-  OpenClawPluginConfigSchema,
-  OpenClawPluginHttpRouteHandler,
+  AstroclawPluginConfigSchema,
+  AstroclawPluginHttpRouteHandler,
   ProviderDiscoveryContext,
   ProviderCatalogContext,
   ProviderCatalogResult,
@@ -219,17 +219,17 @@ export type {
   ProviderWrapStreamFnContext,
   UnifiedModelCatalogProviderContext,
   UnifiedModelCatalogProviderPlugin,
-  OpenClawGatewayDiscoveryAdvertiseContext,
-  OpenClawGatewayDiscoveryService,
-  OpenClawPluginService,
-  OpenClawPluginServiceContext,
+  AstroclawGatewayDiscoveryAdvertiseContext,
+  AstroclawGatewayDiscoveryService,
+  AstroclawPluginService,
+  AstroclawPluginServiceContext,
   ProviderAuthContext,
   ProviderAuthDoctorHintContext,
   ProviderAuthMethodNonInteractiveContext,
   ProviderAuthMethod,
   ProviderAuthResult,
-  OpenClawPluginCommandDefinition,
-  OpenClawPluginDefinition,
+  AstroclawPluginCommandDefinition,
+  AstroclawPluginDefinition,
   PluginLogger,
 };
 export type {
@@ -249,7 +249,7 @@ export type {
   UnifiedModelCatalogKind,
   UnifiedModelCatalogSource,
 } from "../model-catalog/types.js";
-export type { OpenClawConfig };
+export type { AstroclawConfig };
 
 export {
   buildJsonPluginConfigSchema,
@@ -263,27 +263,27 @@ type DefinePluginEntryOptions = {
   name: string;
   description: string;
   /**
-   * @deprecated Declare exclusive plugin kind in `openclaw.plugin.json` via
+   * @deprecated Declare exclusive plugin kind in `astroclaw.plugin.json` via
    * manifest `kind`. Runtime-entry `kind` remains only as a compatibility
    * fallback for older plugins.
    */
-  kind?: OpenClawPluginDefinition["kind"];
-  configSchema?: OpenClawPluginConfigSchema | (() => OpenClawPluginConfigSchema);
-  reload?: OpenClawPluginDefinition["reload"];
-  nodeHostCommands?: OpenClawPluginDefinition["nodeHostCommands"];
-  securityAuditCollectors?: OpenClawPluginDefinition["securityAuditCollectors"];
-  register: (api: OpenClawPluginApi) => void;
+  kind?: AstroclawPluginDefinition["kind"];
+  configSchema?: AstroclawPluginConfigSchema | (() => AstroclawPluginConfigSchema);
+  reload?: AstroclawPluginDefinition["reload"];
+  nodeHostCommands?: AstroclawPluginDefinition["nodeHostCommands"];
+  securityAuditCollectors?: AstroclawPluginDefinition["securityAuditCollectors"];
+  register: (api: AstroclawPluginApi) => void;
 };
 
-/** Normalized object shape that OpenClaw loads from a plugin entry module. */
+/** Normalized object shape that Astroclaw loads from a plugin entry module. */
 type DefinedPluginEntry = {
   id: string;
   name: string;
   description: string;
-  configSchema: OpenClawPluginConfigSchema;
-  register: NonNullable<OpenClawPluginDefinition["register"]>;
+  configSchema: AstroclawPluginConfigSchema;
+  register: NonNullable<AstroclawPluginDefinition["register"]>;
 } & Pick<
-  OpenClawPluginDefinition,
+  AstroclawPluginDefinition,
   "kind" | "reload" | "nodeHostCommands" | "securityAuditCollectors"
 >;
 
@@ -292,7 +292,7 @@ type DefinedPluginEntry = {
  *
  * Use this for provider, tool, command, service, memory, and context-engine
  * plugins. Channel plugins should use `defineChannelPluginEntry(...)` from
- * `openclaw/plugin-sdk/core` so they inherit the channel capability wiring.
+ * `astroclaw/plugin-sdk/core` so they inherit the channel capability wiring.
  */
 export function definePluginEntry({
   id,

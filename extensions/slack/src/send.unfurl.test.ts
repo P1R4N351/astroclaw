@@ -1,5 +1,5 @@
 import type { WebClient } from "@slack/web-api";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { sendMessageSlack } from "./send.js";
 
@@ -19,7 +19,7 @@ function createSlackSendTestClient(): SlackUnfurlTestClient {
   } as unknown as SlackUnfurlTestClient;
 }
 
-function slackConfig(slack: NonNullable<OpenClawConfig["channels"]>["slack"]): OpenClawConfig {
+function slackConfig(slack: NonNullable<AstroclawConfig["channels"]>["slack"]): AstroclawConfig {
   return { channels: { slack } };
 }
 
@@ -158,7 +158,7 @@ describe("sendMessageSlack unfurl controls", () => {
       }),
       client,
       identity: {
-        username: "OpenClaw",
+        username: "Astroclaw",
       },
     });
 

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { setBundledPluginsDirOverrideForTest } from "../plugins/bundled-dir.js";
 import {
   clearCurrentPluginMetadataSnapshot,
@@ -12,17 +12,17 @@ import type { PluginManifestRecord } from "../plugins/manifest-registry.js";
 import type { PluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.types.js";
 import { clearSecretsRuntimeSnapshot } from "../secrets/runtime.js";
 import type { AuthProfileStore } from "./auth-profiles/types.js";
-import { resolveOptionalMediaToolFactoryPlan } from "./openclaw-tools.media-factory-plan.js";
+import { resolveOptionalMediaToolFactoryPlan } from "./astroclaw-tools.media-factory-plan.js";
 import { DEFAULT_PLUGIN_TOOLS_ALLOWLIST_ENTRY } from "./tool-policy.js";
 import * as pdfModelConfigModule from "./tools/pdf-tool.model-config.js";
 
-type CreateOpenClawToolsOptions = Parameters<
-  typeof import("./openclaw-tools.js").createOpenClawTools
+type CreateAstroclawToolsOptions = Parameters<
+  typeof import("./astroclaw-tools.js").createAstroclawTools
 >[0];
 
-async function createOpenClawToolsForTest(options?: CreateOpenClawToolsOptions) {
-  const { createOpenClawTools } = await import("./openclaw-tools.js");
-  return createOpenClawTools(options);
+async function createAstroclawToolsForTest(options?: CreateAstroclawToolsOptions) {
+  const { createAstroclawTools } = await import("./astroclaw-tools.js");
+  return createAstroclawTools(options);
 }
 
 function createAuthStore(providers: string[] = []): AuthProfileStore {
@@ -56,7 +56,7 @@ function createPlugin(params: {
     origin: params.origin ?? "bundled",
     rootDir: `/plugins/${params.id}`,
     source: `/plugins/${params.id}/index.js`,
-    manifestPath: `/plugins/${params.id}/openclaw.plugin.json`,
+    manifestPath: `/plugins/${params.id}/astroclaw.plugin.json`,
     channels: [],
     providers: [],
     cliBackends: [],
@@ -94,7 +94,7 @@ function createInstalledPluginRecord(
   };
 }
 
-function legacyModelProviderConfig(provider: Record<string, unknown>): OpenClawConfig {
+function legacyModelProviderConfig(provider: Record<string, unknown>): AstroclawConfig {
   return {
     models: {
       providers: {
@@ -105,7 +105,7 @@ function legacyModelProviderConfig(provider: Record<string, unknown>): OpenClawC
 }
 
 function installSnapshot(
-  config: OpenClawConfig,
+  config: AstroclawConfig,
   plugins: PluginManifestRecord[],
   enabledPluginIds = plugins
     .filter((plugin) => plugin.origin !== "bundled")
@@ -167,7 +167,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("skips unavailable generation and PDF factories from snapshot and run auth facts", () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, [
       createPlugin({
         id: "image-owner",
@@ -205,7 +205,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("keeps explicit model configs on the factory path", () => {
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       agents: {
         defaults: {
           imageGenerationModel: { primary: "image-owner/model" },
@@ -231,7 +231,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("preserves implicit allow-all from alsoAllow-only policies for built-in media factories", async () => {
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       agents: {
         defaults: {
           imageGenerationModel: { primary: "image-owner/model" },
@@ -258,9 +258,9 @@ describe("optional media tool factory planning", () => {
     });
 
     const toolNames = (
-      await createOpenClawToolsForTest({
+      await createAstroclawToolsForTest({
         config,
-        agentDir: "/tmp/openclaw-agent-main",
+        agentDir: "/tmp/astroclaw-agent-main",
         authProfileStore: createAuthStore(),
         pluginToolAllowlist: allowlistFromAlsoAllowOnlyPolicy,
       })
@@ -272,7 +272,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("keeps denylists authoritative when alsoAllow-only policies preserve factory construction", () => {
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       agents: {
         defaults: {
           imageGenerationModel: { primary: "image-owner/model" },
@@ -300,7 +300,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("skips tools that the resolved allowlist cannot expose", () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, [
       createPlugin({
         id: "image-owner",
@@ -329,7 +329,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("skips tools that the resolved denylist blocks", () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, [
       createPlugin({
         id: "image-owner",
@@ -358,7 +358,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("applies global tool policy before optional media factories run", () => {
-    const config: OpenClawConfig = { tools: { deny: ["pdf"] } };
+    const config: AstroclawConfig = { tools: { deny: ["pdf"] } };
     installSnapshot(config, [
       createPlugin({
         id: "media-owner",
@@ -376,7 +376,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("applies wildcard deny patterns to optional factory planning", () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, [
       createPlugin({
         id: "image-owner",
@@ -415,7 +415,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("keeps auth-backed providers on the factory path", () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, [
       createPlugin({
         id: "image-owner",
@@ -454,7 +454,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("keeps manifest provider auth env aliases on the music factory path", () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, [
       createPlugin({
         id: "minimax",
@@ -476,13 +476,13 @@ describe("optional media tool factory planning", () => {
   });
 
   it("defers PDF model resolution from the tool-prep hot path", async () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, []);
     const resolveSpy = vi.spyOn(pdfModelConfigModule, "resolvePdfModelConfigForTool");
 
-    const tools = await createOpenClawToolsForTest({
+    const tools = await createAstroclawToolsForTest({
       config,
-      agentDir: "/tmp/openclaw-agent-main",
+      agentDir: "/tmp/astroclaw-agent-main",
       authProfileStore: createAuthStore(["anthropic"]),
     });
 
@@ -491,7 +491,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("keeps enabled external manifest capability providers on the factory path", () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, [
       createPlugin({
         id: "external-image",
@@ -538,7 +538,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("keeps manifest-declared image provider auth aliases on the factory path", async () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     const plugins = [
       createPlugin({
         id: "openai",
@@ -573,7 +573,7 @@ describe("optional media tool factory planning", () => {
     installSnapshot(config, plugins, undefined, process.cwd());
     expect(
       (
-        await createOpenClawToolsForTest({
+        await createAstroclawToolsForTest({
           config,
           workspaceDir: process.cwd(),
           authProfileStore: createAuthStore(["openai-codex"]),
@@ -584,7 +584,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("keeps manifest-declared config-only generation providers on the factory path", () => {
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       plugins: {
         entries: {
           comfy: {
@@ -639,7 +639,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("does not expose manifest-backed generation providers when plugins are globally disabled", async () => {
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       plugins: {
         enabled: false,
         entries: {
@@ -697,7 +697,7 @@ describe("optional media tool factory planning", () => {
       pdf: false,
     });
     const toolNames = (
-      await createOpenClawToolsForTest({
+      await createAstroclawToolsForTest({
         config,
         authProfileStore: createAuthStore(),
         pluginToolAllowlist: ["image_generate", "video_generate", "music_generate"],
@@ -711,7 +711,7 @@ describe("optional media tool factory planning", () => {
   it("does not count unresolved SecretRef config signals as configured", async () => {
     vi.stubEnv("COMFY_TEST_API_KEY", "");
     const workspaceDir = process.cwd();
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       plugins: {
         entries: {
           comfy: {
@@ -774,7 +774,7 @@ describe("optional media tool factory planning", () => {
       pdf: false,
     });
     const toolNames = (
-      await createOpenClawToolsForTest({
+      await createAstroclawToolsForTest({
         config,
         workspaceDir,
         authProfileStore: createAuthStore(),
@@ -787,7 +787,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("counts configured non-env SecretRef config signals without resolving secrets", () => {
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       plugins: {
         entries: {
           comfy: {
@@ -804,7 +804,7 @@ describe("optional media tool factory planning", () => {
         providers: {
           vault: {
             source: "file",
-            path: "/tmp/openclaw-secrets.json",
+            path: "/tmp/astroclaw-secrets.json",
             mode: "json",
           },
         },
@@ -851,7 +851,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("does not register the image tool without cheap vision availability evidence", async () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, [
       createPlugin({
         id: "media-owner",
@@ -862,9 +862,9 @@ describe("optional media tool factory planning", () => {
 
     expect(
       (
-        await createOpenClawToolsForTest({
+        await createAstroclawToolsForTest({
           config,
-          agentDir: "/tmp/openclaw-agent",
+          agentDir: "/tmp/astroclaw-agent",
           authProfileStore: createAuthStore(),
           disablePluginTools: true,
         })
@@ -895,7 +895,7 @@ describe("optional media tool factory planning", () => {
             },
           },
         },
-      } satisfies OpenClawConfig,
+      } satisfies AstroclawConfig,
     },
     {
       name: "legacy cloud API key config",
@@ -912,7 +912,7 @@ describe("optional media tool factory planning", () => {
       setBundledPluginsDirOverrideForTest(path.join(process.cwd(), "extensions"));
 
       const toolNames = (
-        await createOpenClawToolsForTest({
+        await createAstroclawToolsForTest({
           config,
           authProfileStore: createAuthStore(),
           pluginToolAllowlist: ["image_generate", "video_generate", "music_generate"],
@@ -926,7 +926,7 @@ describe("optional media tool factory planning", () => {
   );
 
   it("honors manifest-declared image provider auth alias base-url guards", () => {
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       models: {
         providers: {
           openai: {
@@ -966,7 +966,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("ignores external manifest capability providers excluded by plugin policy", () => {
-    const config: OpenClawConfig = {
+    const config: AstroclawConfig = {
       plugins: {
         allow: ["other-plugin"],
       },
@@ -994,7 +994,7 @@ describe("optional media tool factory planning", () => {
   });
 
   it("does not use a generic factory plan when metadata has no availability proof", () => {
-    const config: OpenClawConfig = {};
+    const config: AstroclawConfig = {};
     installSnapshot(config, []);
 
     expect(

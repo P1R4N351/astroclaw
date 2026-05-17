@@ -1,4 +1,4 @@
-import type { ChannelConfigUiHint } from "openclaw/plugin-sdk/channel-core";
+import type { ChannelConfigUiHint } from "astroclaw/plugin-sdk/channel-core";
 
 export const discordChannelConfigUiHints = {
   "": {
@@ -75,7 +75,7 @@ export const discordChannelConfigUiHints = {
   },
   "streaming.progress.labels": {
     label: "Discord Progress Label Pool",
-    help: 'Candidate labels for streaming.progress.label="auto". Leave unset to use OpenClaw built-in progress labels.',
+    help: 'Candidate labels for streaming.progress.label="auto". Leave unset to use Astroclaw built-in progress labels.',
   },
   "streaming.progress.maxLines": {
     label: "Discord Progress Max Lines",
@@ -119,7 +119,7 @@ export const discordChannelConfigUiHints = {
   },
   "eventQueue.listenerTimeout": {
     label: "Discord EventQueue Listener Timeout (ms)",
-    help: "Canonical Discord listener timeout control in ms for gateway normalization/enqueue handlers. Default is 120000 in OpenClaw; set per account via channels.discord.accounts.<id>.eventQueue.listenerTimeout.",
+    help: "Canonical Discord listener timeout control in ms for gateway normalization/enqueue handlers. Default is 120000 in Astroclaw; set per account via channels.discord.accounts.<id>.eventQueue.listenerTimeout.",
   },
   "eventQueue.maxQueueSize": {
     label: "Discord EventQueue Max Queue Size",
@@ -167,15 +167,15 @@ export const discordChannelConfigUiHints = {
   },
   gatewayInfoTimeoutMs: {
     label: "Discord Gateway Metadata Timeout (ms)",
-    help: "Timeout for Discord /gateway/bot metadata lookup before falling back to the default gateway URL. Default is 30000; OPENCLAW_DISCORD_GATEWAY_INFO_TIMEOUT_MS can override when config is unset.",
+    help: "Timeout for Discord /gateway/bot metadata lookup before falling back to the default gateway URL. Default is 30000; ASTROCLAW_DISCORD_GATEWAY_INFO_TIMEOUT_MS can override when config is unset.",
   },
   gatewayReadyTimeoutMs: {
     label: "Discord Gateway READY Timeout (ms)",
-    help: "Startup wait for the Discord gateway READY event before restarting the socket. Default is 15000; OPENCLAW_DISCORD_READY_TIMEOUT_MS can override when config is unset.",
+    help: "Startup wait for the Discord gateway READY event before restarting the socket. Default is 15000; ASTROCLAW_DISCORD_READY_TIMEOUT_MS can override when config is unset.",
   },
   gatewayRuntimeReadyTimeoutMs: {
     label: "Discord Gateway Runtime READY Timeout (ms)",
-    help: "Runtime reconnect wait for the Discord gateway READY event before force-stopping the lifecycle. Default is 30000; OPENCLAW_DISCORD_RUNTIME_READY_TIMEOUT_MS can override when config is unset.",
+    help: "Runtime reconnect wait for the Discord gateway READY event before force-stopping the lifecycle. Default is 30000; ASTROCLAW_DISCORD_RUNTIME_READY_TIMEOUT_MS can override when config is unset.",
   },
   "voice.enabled": {
     label: "Discord Voice Enabled",
@@ -187,11 +187,11 @@ export const discordChannelConfigUiHints = {
   },
   "voice.mode": {
     label: "Discord Voice Mode",
-    help: "Conversation mode: agent-proxy (default) uses realtime voice as the microphone/speaker for the routed OpenClaw agent, stt-tts uses batch speech-to-text plus TTS, and bidi lets the realtime provider converse directly with the OpenClaw consult tool.",
+    help: "Conversation mode: agent-proxy (default) uses realtime voice as the microphone/speaker for the routed Astroclaw agent, stt-tts uses batch speech-to-text plus TTS, and bidi lets the realtime provider converse directly with the Astroclaw consult tool.",
   },
   "voice.agentSession": {
     label: "Discord Voice Agent Session",
-    help: 'Controls which OpenClaw conversation receives voice turns. Leave unset for the voice channel session, or set mode="target" with a Discord target such as channel:123 to make voice an extension of an existing text channel session.',
+    help: 'Controls which Astroclaw conversation receives voice turns. Leave unset for the voice channel session, or set mode="target" with a Discord target such as channel:123 to make voice an extension of an existing text channel session.',
   },
   "voice.agentSession.target": {
     label: "Discord Voice Agent Session Target",
@@ -203,7 +203,7 @@ export const discordChannelConfigUiHints = {
   },
   "voice.realtime.model": {
     label: "Discord Realtime Model",
-    help: "Provider realtime session model, such as gpt-realtime-2. This is separate from voice.model, which remains the OpenClaw agent brain model.",
+    help: "Provider realtime session model, such as gpt-realtime-2. This is separate from voice.model, which remains the Astroclaw agent brain model.",
   },
   "voice.realtime.voice": {
     label: "Discord Realtime Voice",
@@ -211,11 +211,11 @@ export const discordChannelConfigUiHints = {
   },
   "voice.realtime.toolPolicy": {
     label: "Discord Realtime Tool Policy",
-    help: "Tool policy for the OpenClaw agent consult tool in realtime voice modes: safe-read-only, owner, or none. Default is owner for agent-proxy and safe-read-only for bidi.",
+    help: "Tool policy for the Astroclaw agent consult tool in realtime voice modes: safe-read-only, owner, or none. Default is owner for agent-proxy and safe-read-only for bidi.",
   },
   "voice.realtime.consultPolicy": {
     label: "Discord Realtime Consult Policy",
-    help: "Use always to strongly prefer the OpenClaw agent brain for substantive realtime turns. agent-proxy defaults to always.",
+    help: "Use always to strongly prefer the Astroclaw agent brain for substantive realtime turns. agent-proxy defaults to always.",
   },
   "voice.realtime.bargeIn": {
     label: "Discord Realtime Barge-In",
@@ -252,11 +252,11 @@ export const discordChannelConfigUiHints = {
   },
   "voice.reconnectGraceMs": {
     label: "Discord Voice Reconnect Grace (ms)",
-    help: "Grace period for a disconnected Discord voice session to enter Signalling or Connecting before OpenClaw destroys it. Default: 15000.",
+    help: "Grace period for a disconnected Discord voice session to enter Signalling or Connecting before Astroclaw destroys it. Default: 15000.",
   },
   "voice.captureSilenceGraceMs": {
     label: "Discord Voice Capture Silence Grace (ms)",
-    help: "Silence window after Discord reports a speaker ended before OpenClaw finalizes the audio segment for transcription. Default: 2500.",
+    help: "Silence window after Discord reports a speaker ended before Astroclaw finalizes the audio segment for transcription. Default: 2500.",
   },
   "voice.tts": {
     label: "Discord Voice Text-to-Speech",

@@ -145,22 +145,22 @@
     },
     "realtime.toolPolicy": {
       "label": "Realtime Tool Policy",
-      "help": "Controls the shared openclaw_agent_consult tool.",
+      "help": "Controls the shared astroclaw_agent_consult tool.",
       "advanced": true
     },
     "realtime.consultPolicy": {
       "label": "Realtime Consult Policy",
-      "help": "Guides when the realtime voice model should call openclaw_agent_consult.",
+      "help": "Guides when the realtime voice model should call astroclaw_agent_consult.",
       "advanced": true
     },
     "realtime.consultThinkingLevel": {
       "label": "Consult Thinking Level",
-      "help": "Optional override for the regular agent run behind realtime openclaw_agent_consult calls.",
+      "help": "Optional override for the regular agent run behind realtime astroclaw_agent_consult calls.",
       "advanced": true
     },
     "realtime.consultFastMode": {
       "label": "Consult Fast Mode",
-      "help": "Optional fast mode override for the regular agent run behind realtime openclaw_agent_consult calls.",
+      "help": "Optional fast mode override for the regular agent run behind realtime astroclaw_agent_consult calls.",
       "advanced": true
     },
     "realtime.fastContext.enabled": {

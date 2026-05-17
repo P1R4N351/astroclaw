@@ -1,7 +1,7 @@
 import Foundation
 import Testing
-@testable import OpenClawKit
-import OpenClawProtocol
+@testable import AstroclawKit
+import AstroclawProtocol
 
 private extension NSLock {
     func withLock<T>(_ body: () -> T) -> T {
@@ -198,13 +198,13 @@ struct GatewayNodeSessionTests {
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        let previousStateDir = ProcessInfo.processInfo.environment["OPENCLAW_STATE_DIR"]
-        setenv("OPENCLAW_STATE_DIR", tempDir.path, 1)
+        let previousStateDir = ProcessInfo.processInfo.environment["ASTROCLAW_STATE_DIR"]
+        setenv("ASTROCLAW_STATE_DIR", tempDir.path, 1)
         defer {
             if let previousStateDir {
-                setenv("OPENCLAW_STATE_DIR", previousStateDir, 1)
+                setenv("ASTROCLAW_STATE_DIR", previousStateDir, 1)
             } else {
-                unsetenv("OPENCLAW_STATE_DIR")
+                unsetenv("ASTROCLAW_STATE_DIR")
             }
             try? FileManager.default.removeItem(at: tempDir)
         }
@@ -223,7 +223,7 @@ struct GatewayNodeSessionTests {
             caps: [],
             commands: [],
             permissions: [:],
-            clientId: "openclaw-ios-test",
+            clientId: "astroclaw-ios-test",
             clientMode: "ui",
             clientDisplayName: "iOS Test",
             includeDeviceIdentity: true)
@@ -259,7 +259,7 @@ struct GatewayNodeSessionTests {
             caps: [],
             commands: [],
             permissions: [:],
-            clientId: "openclaw-ios-test",
+            clientId: "astroclaw-ios-test",
             clientMode: "ui",
             clientDisplayName: "iOS Test",
             includeDeviceIdentity: false)
@@ -296,7 +296,7 @@ struct GatewayNodeSessionTests {
             caps: [],
             commands: [],
             permissions: [:],
-            clientId: "openclaw-ios-test",
+            clientId: "astroclaw-ios-test",
             clientMode: "node",
             clientDisplayName: "iOS Test",
             includeDeviceIdentity: false)
@@ -338,13 +338,13 @@ struct GatewayNodeSessionTests {
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        let previousStateDir = ProcessInfo.processInfo.environment["OPENCLAW_STATE_DIR"]
-        setenv("OPENCLAW_STATE_DIR", tempDir.path, 1)
+        let previousStateDir = ProcessInfo.processInfo.environment["ASTROCLAW_STATE_DIR"]
+        setenv("ASTROCLAW_STATE_DIR", tempDir.path, 1)
         defer {
             if let previousStateDir {
-                setenv("OPENCLAW_STATE_DIR", previousStateDir, 1)
+                setenv("ASTROCLAW_STATE_DIR", previousStateDir, 1)
             } else {
-                unsetenv("OPENCLAW_STATE_DIR")
+                unsetenv("ASTROCLAW_STATE_DIR")
             }
             try? FileManager.default.removeItem(at: tempDir)
         }
@@ -379,7 +379,7 @@ struct GatewayNodeSessionTests {
             caps: [],
             commands: [],
             permissions: [:],
-            clientId: "openclaw-ios-test",
+            clientId: "astroclaw-ios-test",
             clientMode: "node",
             clientDisplayName: "iOS Test",
             includeDeviceIdentity: true)
@@ -417,13 +417,13 @@ struct GatewayNodeSessionTests {
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        let previousStateDir = ProcessInfo.processInfo.environment["OPENCLAW_STATE_DIR"]
-        setenv("OPENCLAW_STATE_DIR", tempDir.path, 1)
+        let previousStateDir = ProcessInfo.processInfo.environment["ASTROCLAW_STATE_DIR"]
+        setenv("ASTROCLAW_STATE_DIR", tempDir.path, 1)
         defer {
             if let previousStateDir {
-                setenv("OPENCLAW_STATE_DIR", previousStateDir, 1)
+                setenv("ASTROCLAW_STATE_DIR", previousStateDir, 1)
             } else {
-                unsetenv("OPENCLAW_STATE_DIR")
+                unsetenv("ASTROCLAW_STATE_DIR")
             }
             try? FileManager.default.removeItem(at: tempDir)
         }
@@ -448,7 +448,7 @@ struct GatewayNodeSessionTests {
             caps: [],
             commands: [],
             permissions: [:],
-            clientId: "openclaw-ios-test",
+            clientId: "astroclaw-ios-test",
             clientMode: "node",
             clientDisplayName: "iOS Test",
             includeDeviceIdentity: true)
@@ -479,13 +479,13 @@ struct GatewayNodeSessionTests {
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        let previousStateDir = ProcessInfo.processInfo.environment["OPENCLAW_STATE_DIR"]
-        setenv("OPENCLAW_STATE_DIR", tempDir.path, 1)
+        let previousStateDir = ProcessInfo.processInfo.environment["ASTROCLAW_STATE_DIR"]
+        setenv("ASTROCLAW_STATE_DIR", tempDir.path, 1)
         defer {
             if let previousStateDir {
-                setenv("OPENCLAW_STATE_DIR", previousStateDir, 1)
+                setenv("ASTROCLAW_STATE_DIR", previousStateDir, 1)
             } else {
-                unsetenv("OPENCLAW_STATE_DIR")
+                unsetenv("ASTROCLAW_STATE_DIR")
             }
             try? FileManager.default.removeItem(at: tempDir)
         }
@@ -513,7 +513,7 @@ struct GatewayNodeSessionTests {
             caps: [],
             commands: [],
             permissions: [:],
-            clientId: "openclaw-ios-test",
+            clientId: "astroclaw-ios-test",
             clientMode: "node",
             clientDisplayName: "iOS Test",
             includeDeviceIdentity: true)
@@ -540,19 +540,19 @@ struct GatewayNodeSessionTests {
     @Test
     func normalizeCanvasHostUrlPreservesExplicitSecureCanvasPort() {
         let normalized = canonicalizeCanvasHostUrl(
-            raw: "https://canvas.example.com:9443/__openclaw__/cap/token",
+            raw: "https://canvas.example.com:9443/__astroclaw__/cap/token",
             activeURL: URL(string: "wss://gateway.example.com")!)
 
-        #expect(normalized == "https://canvas.example.com:9443/__openclaw__/cap/token")
+        #expect(normalized == "https://canvas.example.com:9443/__astroclaw__/cap/token")
     }
 
     @Test
     func normalizeCanvasHostUrlBackfillsGatewayHostForLoopbackCanvas() {
         let normalized = canonicalizeCanvasHostUrl(
-            raw: "http://127.0.0.1:18789/__openclaw__/cap/token",
+            raw: "http://127.0.0.1:18789/__astroclaw__/cap/token",
             activeURL: URL(string: "wss://gateway.example.com:7443")!)
 
-        #expect(normalized == "https://gateway.example.com:7443/__openclaw__/cap/token")
+        #expect(normalized == "https://gateway.example.com:7443/__astroclaw__/cap/token")
     }
 
     @Test
@@ -615,7 +615,7 @@ struct GatewayNodeSessionTests {
             caps: [],
             commands: [],
             permissions: [:],
-            clientId: "openclaw-ios-test",
+            clientId: "astroclaw-ios-test",
             clientMode: "ui",
             clientDisplayName: "iOS Test",
             includeDeviceIdentity: false)

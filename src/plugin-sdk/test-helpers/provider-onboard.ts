@@ -4,7 +4,7 @@ import {
   resolveAgentModelPrimaryValue,
 } from "../provider-onboard.js";
 import type { ModelApi } from "../provider-onboard.js";
-import type { OpenClawConfig } from "../testing.js";
+import type { AstroclawConfig } from "../testing.js";
 import {
   createConfigWithFallbacks,
   createLegacyProviderConfig,
@@ -12,7 +12,7 @@ import {
 } from "./onboard-config.js";
 
 export function expectProviderOnboardAllowlistAlias(params: {
-  applyProviderConfig: (config: OpenClawConfig) => OpenClawConfig;
+  applyProviderConfig: (config: AstroclawConfig) => AstroclawConfig;
   modelRef: string;
   alias: string;
 }) {
@@ -32,7 +32,7 @@ export function expectProviderOnboardAllowlistAlias(params: {
 }
 
 export function expectProviderOnboardPrimaryAndFallbacks(params: {
-  applyConfig: (config: OpenClawConfig) => OpenClawConfig;
+  applyConfig: (config: AstroclawConfig) => AstroclawConfig;
   modelRef: string;
 }) {
   expectProviderOnboardPrimaryModel(params);
@@ -44,7 +44,7 @@ export function expectProviderOnboardPrimaryAndFallbacks(params: {
 }
 
 export function expectProviderOnboardPrimaryModel(params: {
-  applyConfig: (config: OpenClawConfig) => OpenClawConfig;
+  applyConfig: (config: AstroclawConfig) => AstroclawConfig;
   modelRef: string;
 }) {
   const cfg = params.applyConfig({});
@@ -52,7 +52,7 @@ export function expectProviderOnboardPrimaryModel(params: {
 }
 
 export function expectProviderOnboardPreservesPrimary(params: {
-  applyProviderConfig: (config: OpenClawConfig) => OpenClawConfig;
+  applyProviderConfig: (config: AstroclawConfig) => AstroclawConfig;
   primaryModelRef: string;
 }) {
   const cfg = params.applyProviderConfig({
@@ -62,7 +62,7 @@ export function expectProviderOnboardPreservesPrimary(params: {
 }
 
 export function expectProviderOnboardMergedLegacyConfig(params: {
-  applyProviderConfig: (config: OpenClawConfig) => OpenClawConfig;
+  applyProviderConfig: (config: AstroclawConfig) => AstroclawConfig;
   providerId: string;
   providerApi: ModelApi;
   baseUrl: string;

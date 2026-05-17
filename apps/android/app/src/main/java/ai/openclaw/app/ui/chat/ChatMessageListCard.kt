@@ -1,13 +1,13 @@
-package ai.openclaw.app.ui.chat
+package ai.astroclaw.app.ui.chat
 
-import ai.openclaw.app.chat.ChatMessage
-import ai.openclaw.app.chat.ChatPendingToolCall
-import ai.openclaw.app.ui.mobileBorder
-import ai.openclaw.app.ui.mobileCallout
-import ai.openclaw.app.ui.mobileCardSurface
-import ai.openclaw.app.ui.mobileHeadline
-import ai.openclaw.app.ui.mobileText
-import ai.openclaw.app.ui.mobileTextSecondary
+import ai.astroclaw.app.chat.ChatMessage
+import ai.astroclaw.app.chat.ChatPendingToolCall
+import ai.astroclaw.app.ui.mobileBorder
+import ai.astroclaw.app.ui.mobileCallout
+import ai.astroclaw.app.ui.mobileCardSurface
+import ai.astroclaw.app.ui.mobileHeadline
+import ai.astroclaw.app.ui.mobileText
+import ai.astroclaw.app.ui.mobileTextSecondary
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize

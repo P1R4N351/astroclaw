@@ -1,5 +1,5 @@
 ---
-summary: "Adds the Slack channel surface for sending and receiving OpenClaw messages."
+summary: "Adds the Slack channel surface for sending and receiving Astroclaw messages."
 read_when:
   - You are installing, configuring, or auditing the slack plugin
 title: "Slack plugin"
@@ -7,11 +7,11 @@ title: "Slack plugin"
 
 # Slack plugin
 
-Adds the Slack channel surface for sending and receiving OpenClaw messages.
+Adds the Slack channel surface for sending and receiving Astroclaw messages.
 
 ## Distribution
 
-- Package: `@openclaw/slack`
+- Package: `@astroclaw/slack`
 - Install route: npm; ClawHub
 
 ## Surface

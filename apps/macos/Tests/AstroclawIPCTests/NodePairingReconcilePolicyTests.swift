@@ -1,5 +1,5 @@
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct NodePairingReconcilePolicyTests {
     @Test func `policy polls only when active`() {

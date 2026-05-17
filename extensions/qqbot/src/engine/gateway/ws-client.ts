@@ -1,5 +1,5 @@
 import type { Agent } from "node:http";
-import { resolveAmbientNodeProxyAgent } from "openclaw/plugin-sdk/extension-shared";
+import { resolveAmbientNodeProxyAgent } from "astroclaw/plugin-sdk/extension-shared";
 import WebSocket from "ws";
 
 export interface QQWSClientOptions {

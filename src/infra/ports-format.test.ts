@@ -10,7 +10,7 @@ import {
   isSingleExpectedGatewayListener,
 } from "./ports-format.js";
 
-const gatewayAlreadyRunningHint = `Gateway already running locally. Stop it (${formatCliCommand("openclaw gateway stop")}) or use a different port.`;
+const gatewayAlreadyRunningHint = `Gateway already running locally. Stop it (${formatCliCommand("astroclaw gateway stop")}) or use a different port.`;
 const multipleListenersHint =
   "Multiple listeners detected; ensure only one gateway/tunnel per port unless intentionally running isolated profiles.";
 
@@ -18,7 +18,7 @@ describe("ports-format", () => {
   it.each([
     [{ commandLine: "ssh -N -L 18789:127.0.0.1:18789 user@host" }, "ssh"],
     [{ command: "ssh" }, "ssh"],
-    [{ commandLine: "node /Users/me/Projects/openclaw/dist/entry.js gateway" }, "gateway"],
+    [{ commandLine: "node /Users/me/Projects/astroclaw/dist/entry.js gateway" }, "gateway"],
     [{ commandLine: "python -m http.server 18789" }, "unknown"],
   ] as const)("classifies port listener %j", (listener, expected) => {
     expect(classifyPortListener(listener, 18789)).toBe(expected);
@@ -28,7 +28,7 @@ describe("ports-format", () => {
     expect(
       buildPortHints(
         [
-          { commandLine: "node dist/index.js openclaw gateway" },
+          { commandLine: "node dist/index.js astroclaw gateway" },
           { commandLine: "ssh -N -L 18789:127.0.0.1:18789" },
           { commandLine: "python -m http.server 18789" },
         ],
@@ -45,8 +45,8 @@ describe("ports-format", () => {
 
   it("treats single-process loopback dual-stack gateway listeners as benign", () => {
     const listeners = [
-      { pid: 4242, commandLine: "openclaw-gateway", address: "127.0.0.1:18789" },
-      { pid: 4242, commandLine: "openclaw-gateway", address: "[::1]:18789" },
+      { pid: 4242, commandLine: "astroclaw-gateway", address: "127.0.0.1:18789" },
+      { pid: 4242, commandLine: "astroclaw-gateway", address: "[::1]:18789" },
     ];
     expect(isDualStackLoopbackGatewayListeners(listeners, 18789)).toBe(true);
     expect(isExpectedGatewayListeners(listeners, 18789)).toBe(true);
@@ -61,7 +61,7 @@ describe("ports-format", () => {
     "[::]:18789",
     "*:18789",
   ])("treats a single expected Gateway listener on %s as benign", (address) => {
-    const listeners = [{ pid: 4242, commandLine: "openclaw-gateway", address }];
+    const listeners = [{ pid: 4242, commandLine: "astroclaw-gateway", address }];
 
     expect(isSingleExpectedGatewayListener(listeners, 18789)).toBe(true);
     expect(isExpectedGatewayListeners(listeners, 18789)).toBe(true);
@@ -72,8 +72,8 @@ describe("ports-format", () => {
     expect(
       buildPortHints(
         [
-          { pid: 4242, commandLine: "openclaw-gateway", address: "0.0.0.0:18789" },
-          { pid: 4243, commandLine: "openclaw-gateway", address: "127.0.0.1:18789" },
+          { pid: 4242, commandLine: "astroclaw-gateway", address: "0.0.0.0:18789" },
+          { pid: 4243, commandLine: "astroclaw-gateway", address: "127.0.0.1:18789" },
         ],
         18789,
       ),

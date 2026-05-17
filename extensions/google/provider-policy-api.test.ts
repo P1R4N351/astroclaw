@@ -100,7 +100,7 @@ describe("google provider policy public artifact", () => {
       normalizeConfig({
         provider: "google-gemini-cli",
         providerConfig: {
-          baseUrl: "openclaw://google-gemini-cli",
+          baseUrl: "astroclaw://google-gemini-cli",
           models: [
             {
               id: "google/gemini-3-pro-preview",
@@ -115,7 +115,7 @@ describe("google provider policy public artifact", () => {
         },
       }),
     ).toEqual({
-      baseUrl: "openclaw://google-gemini-cli",
+      baseUrl: "astroclaw://google-gemini-cli",
       models: [
         {
           id: "google/gemini-3.1-pro-preview",

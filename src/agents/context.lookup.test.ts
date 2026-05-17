@@ -13,7 +13,7 @@ const contextTestState = vi.hoisted(() => {
   const state = {
     loadConfigImpl: () => ({}) as unknown,
     discoveredModels: [] as DiscoveredModel[],
-    ensureOpenClawModelsJson: vi.fn(async () => {}),
+    ensureAstroclawModelsJson: vi.fn(async () => {}),
     discoverAuthStorage: vi.fn(() => ({})),
     discoverModels: vi.fn(
       (_authStorage: unknown, _agentDir: string, _options?: { normalizeModels?: boolean }) => ({
@@ -29,7 +29,7 @@ vi.mock("../config/config.js", () => ({
 }));
 
 vi.mock("./models-config.runtime.js", () => ({
-  ensureOpenClawModelsJson: contextTestState.ensureOpenClawModelsJson,
+  ensureAstroclawModelsJson: contextTestState.ensureAstroclawModelsJson,
 }));
 
 vi.mock("./pi-model-discovery-runtime.js", () => ({
@@ -43,8 +43,8 @@ function mockContextDeps(params: {
 }) {
   contextTestState.loadConfigImpl = params.getRuntimeConfig;
   contextTestState.discoveredModels = params.discoveredModels ?? [];
-  contextTestState.ensureOpenClawModelsJson.mockClear();
-  return { ensureOpenClawModelsJson: contextTestState.ensureOpenClawModelsJson };
+  contextTestState.ensureAstroclawModelsJson.mockClear();
+  return { ensureAstroclawModelsJson: contextTestState.ensureAstroclawModelsJson };
 }
 
 function mockContextModuleDeps(loadConfigImpl: () => unknown) {
@@ -111,7 +111,7 @@ describe("lookupContextTokens", () => {
   beforeEach(() => {
     contextTestState.loadConfigImpl = () => ({});
     contextTestState.discoveredModels = [];
-    contextTestState.ensureOpenClawModelsJson.mockClear();
+    contextTestState.ensureAstroclawModelsJson.mockClear();
     contextTestState.discoverAuthStorage.mockClear();
     contextTestState.discoverModels.mockClear();
     contextModule.resetContextWindowCacheForTest();
@@ -201,37 +201,37 @@ describe("lookupContextTokens", () => {
     expect(secondLoadConfigMock).not.toHaveBeenCalled();
   });
 
-  it("only warms eagerly for real openclaw startup commands that need model metadata", async () => {
+  it("only warms eagerly for real astroclaw startup commands that need model metadata", async () => {
     const { shouldEagerWarmContextWindowCache } = await importContextModule();
 
-    expect(shouldEagerWarmContextWindowCache(["node", "openclaw", "chat"])).toBe(true);
-    expect(shouldEagerWarmContextWindowCache(["node", "openclaw", "chat", "--help"])).toBe(false);
+    expect(shouldEagerWarmContextWindowCache(["node", "astroclaw", "chat"])).toBe(true);
+    expect(shouldEagerWarmContextWindowCache(["node", "astroclaw", "chat", "--help"])).toBe(false);
     expect(
-      shouldEagerWarmContextWindowCache(["node", "openclaw", "matrix", "encryption", "help"]),
+      shouldEagerWarmContextWindowCache(["node", "astroclaw", "matrix", "encryption", "help"]),
     ).toBe(false);
-    expect(shouldEagerWarmContextWindowCache(["node", "openclaw", "help", "matrix"])).toBe(false);
+    expect(shouldEagerWarmContextWindowCache(["node", "astroclaw", "help", "matrix"])).toBe(false);
     expect(
-      shouldEagerWarmContextWindowCache(["node", "openclaw", "browser", "status", "--help"]),
+      shouldEagerWarmContextWindowCache(["node", "astroclaw", "browser", "status", "--help"]),
     ).toBe(false);
     expect(
       shouldEagerWarmContextWindowCache([
         "node",
-        "openclaw",
+        "astroclaw",
         "--profile",
         "--",
         "config",
         "validate",
       ]),
     ).toBe(false);
-    expect(shouldEagerWarmContextWindowCache(["node", "openclaw", "logs", "--limit", "5"])).toBe(
+    expect(shouldEagerWarmContextWindowCache(["node", "astroclaw", "logs", "--limit", "5"])).toBe(
       false,
     );
     expect(
-      shouldEagerWarmContextWindowCache(["node", "openclaw", "memory", "search", "--json"]),
+      shouldEagerWarmContextWindowCache(["node", "astroclaw", "memory", "search", "--json"]),
     ).toBe(false);
-    expect(shouldEagerWarmContextWindowCache(["node", "openclaw", "message", "read"])).toBe(false);
-    expect(shouldEagerWarmContextWindowCache(["node", "openclaw", "status", "--json"])).toBe(false);
-    expect(shouldEagerWarmContextWindowCache(["node", "openclaw", "sessions", "--json"])).toBe(
+    expect(shouldEagerWarmContextWindowCache(["node", "astroclaw", "message", "read"])).toBe(false);
+    expect(shouldEagerWarmContextWindowCache(["node", "astroclaw", "status", "--json"])).toBe(false);
+    expect(shouldEagerWarmContextWindowCache(["node", "astroclaw", "sessions", "--json"])).toBe(
       false,
     );
     expect(
@@ -307,7 +307,7 @@ describe("lookupContextTokens", () => {
     expect(discoverCall[0]).toEqual({});
     expect(typeof discoverAgentDir).toBe("string");
     expect(
-      path.normalize(discoverAgentDir).endsWith(path.join(".openclaw", "agents", "main", "agent")),
+      path.normalize(discoverAgentDir).endsWith(path.join(".astroclaw", "agents", "main", "agent")),
     ).toBe(true);
     expect(discoverCall[2]).toEqual({ normalizeModels: false });
     expect(lookupContextTokens("anthropic/claude-opus-4.7-20260219")).toBe(1_048_576);

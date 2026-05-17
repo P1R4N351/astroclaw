@@ -1,9 +1,9 @@
-import type { ChannelBotLoopProtectionConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ChannelBotLoopProtectionConfig } from "astroclaw/plugin-sdk/config-contracts";
 import type {
   ContextVisibilityMode,
   DmPolicy,
   GroupPolicy,
-  OpenClawConfig,
+  AstroclawConfig,
   SecretInput,
 } from "./runtime-api.js";
 
@@ -94,7 +94,7 @@ export type MatrixStreamingMode = "partial" | "quiet" | "progress" | "off";
 export type MatrixStreamingConfig = {
   /** Preview streaming mode for Matrix replies. Default: "off". */
   mode?: MatrixStreamingMode;
-  progress?: import("openclaw/plugin-sdk/channel-streaming").ChannelStreamingProgressConfig;
+  progress?: import("astroclaw/plugin-sdk/channel-streaming").ChannelStreamingProgressConfig;
   preview?: {
     /** Show tool/progress activity in the live draft preview. Default: true. */
     toolProgress?: boolean;
@@ -246,12 +246,12 @@ export type CoreConfig = {
   };
   session?: {
     store?: string;
-    dmScope?: NonNullable<OpenClawConfig["session"]>["dmScope"];
+    dmScope?: NonNullable<AstroclawConfig["session"]>["dmScope"];
   };
   messages?: {
     ackReaction?: string;
     ackReactionScope?: "group-mentions" | "group-all" | "direct" | "all" | "none" | "off";
   };
-  secrets?: OpenClawConfig["secrets"];
+  secrets?: AstroclawConfig["secrets"];
   [key: string]: unknown;
 };

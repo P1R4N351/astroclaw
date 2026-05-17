@@ -32,7 +32,7 @@ import {
   type ConfigWriteAfterWrite,
   type ConfigWriteFollowUp,
 } from "./runtime-snapshot.js";
-import type { ConfigFileSnapshot, OpenClawConfig } from "./types.js";
+import type { ConfigFileSnapshot, AstroclawConfig } from "./types.js";
 import { validateConfigObjectWithPlugins } from "./validation.js";
 
 export type ConfigMutationBase = "runtime" | "source";
@@ -66,7 +66,7 @@ export type ConfigReplaceResult = {
   path: string;
   previousHash: string | null;
   snapshot: ConfigFileSnapshot;
-  nextConfig: OpenClawConfig;
+  nextConfig: AstroclawConfig;
   persistedHash: string | null;
   afterWrite: ConfigWriteAfterWrite;
   followUp: ConfigWriteFollowUp;
@@ -75,7 +75,7 @@ export type ConfigReplaceResult = {
 export type ConfigMutationIO = {
   readConfigFileSnapshotForWrite: typeof readConfigFileSnapshotForWrite;
   writeConfigFile: (
-    cfg: OpenClawConfig,
+    cfg: AstroclawConfig,
     options?: ConfigWriteOptions,
   ) => Promise<ConfigWriteResult | void>;
 };
@@ -87,12 +87,12 @@ export type ConfigMutationContext = {
 };
 
 export type ConfigTransformResult<T> = {
-  nextConfig: OpenClawConfig;
+  nextConfig: AstroclawConfig;
   result?: T;
 };
 
 export type ConfigMutationCommitParams = {
-  nextConfig: OpenClawConfig;
+  nextConfig: AstroclawConfig;
   snapshot: ConfigFileSnapshot;
   baseHash?: string;
   writeOptions?: ConfigWriteOptions;
@@ -101,7 +101,7 @@ export type ConfigMutationCommitParams = {
 };
 
 export type ConfigMutationCommitResult = {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   persistedHash: string | null;
   afterWrite?: ConfigWriteAfterWrite;
 };
@@ -118,7 +118,7 @@ export type TransformConfigFileParams<T> = {
   io?: ConfigMutationIO;
   commit?: ConfigMutationCommit;
   transform: (
-    currentConfig: OpenClawConfig,
+    currentConfig: AstroclawConfig,
     context: ConfigMutationContext,
   ) => Promise<ConfigTransformResult<T>> | ConfigTransformResult<T>;
 };
@@ -253,11 +253,11 @@ async function writeJsonFileAtomic(filePath: string, value: unknown): Promise<vo
 
 async function tryWriteSingleTopLevelIncludeMutation(params: {
   snapshot: ConfigFileSnapshot;
-  nextConfig: OpenClawConfig;
+  nextConfig: AstroclawConfig;
   afterWrite?: ConfigWriteOptions["afterWrite"];
   writeOptions?: ConfigWriteOptions;
   io?: ConfigMutationIO;
-}): Promise<{ persistedHash: string | null; persistedConfig: OpenClawConfig } | null> {
+}): Promise<{ persistedHash: string | null; persistedConfig: AstroclawConfig } | null> {
   const nextConfig = applyUnsetPathsForWrite(
     params.nextConfig,
     resolveManagedUnsetPathsForWrite(params.writeOptions?.unsetPaths),
@@ -348,8 +348,8 @@ async function tryWriteSingleTopLevelIncludeMutation(params: {
 
 function resolveConfigWriteResult(
   result: ConfigWriteResult | void,
-  fallbackConfig: OpenClawConfig,
-): { persistedHash: string | null; persistedConfig: OpenClawConfig } {
+  fallbackConfig: AstroclawConfig,
+): { persistedHash: string | null; persistedConfig: AstroclawConfig } {
   if (result) {
     return {
       persistedHash: result.persistedHash,
@@ -360,7 +360,7 @@ function resolveConfigWriteResult(
 }
 
 export async function replaceConfigFile(params: {
-  nextConfig: OpenClawConfig;
+  nextConfig: AstroclawConfig;
   baseHash?: string;
   snapshot?: ConfigFileSnapshot;
   afterWrite?: ConfigWriteOptions["afterWrite"];
@@ -374,7 +374,7 @@ export async function replaceConfigFile(params: {
 }
 
 async function replaceConfigFileUnlocked(params: {
-  nextConfig: OpenClawConfig;
+  nextConfig: AstroclawConfig;
   baseHash?: string;
   snapshot?: ConfigFileSnapshot;
   afterWrite?: ConfigWriteOptions["afterWrite"];
@@ -523,7 +523,7 @@ export async function mutateConfigFile<T = void>(params: {
   afterWrite?: ConfigWriteOptions["afterWrite"];
   writeOptions?: ConfigWriteOptions;
   io?: ConfigMutationIO;
-  mutate: (draft: OpenClawConfig, context: ConfigMutationContext) => Promise<T | void> | T | void;
+  mutate: (draft: AstroclawConfig, context: ConfigMutationContext) => Promise<T | void> | T | void;
 }): Promise<ConfigMutationResult<T>> {
   return await transformConfigFile<T>({
     base: params.base,
@@ -546,7 +546,7 @@ export async function mutateConfigFileWithRetry<T = void>(params: {
   afterWrite?: ConfigWriteOptions["afterWrite"];
   writeOptions?: ConfigWriteOptions;
   io?: ConfigMutationIO;
-  mutate: (draft: OpenClawConfig, context: ConfigMutationContext) => Promise<T | void> | T | void;
+  mutate: (draft: AstroclawConfig, context: ConfigMutationContext) => Promise<T | void> | T | void;
 }): Promise<ConfigMutationResult<T>> {
   return await transformConfigFileWithRetry<T>({
     base: params.base,

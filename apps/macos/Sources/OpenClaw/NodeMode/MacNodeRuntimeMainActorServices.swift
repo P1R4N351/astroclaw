@@ -1,6 +1,6 @@
 import CoreLocation
 import Foundation
-import OpenClawKit
+import AstroclawKit
 
 @MainActor
 protocol MacNodeRuntimeMainActorServices: Sendable {
@@ -8,8 +8,8 @@ protocol MacNodeRuntimeMainActorServices: Sendable {
         screenIndex: Int?,
         maxWidth: Int?,
         quality: Double?,
-        format: OpenClawScreenSnapshotFormat?) async throws
-        -> (data: Data, format: OpenClawScreenSnapshotFormat, width: Int, height: Int)
+        format: AstroclawScreenSnapshotFormat?) async throws
+        -> (data: Data, format: AstroclawScreenSnapshotFormat, width: Int, height: Int)
 
     func recordScreen(
         screenIndex: Int?,
@@ -21,7 +21,7 @@ protocol MacNodeRuntimeMainActorServices: Sendable {
     func locationAuthorizationStatus() -> CLAuthorizationStatus
     func locationAccuracyAuthorization() -> CLAccuracyAuthorization
     func currentLocation(
-        desiredAccuracy: OpenClawLocationAccuracy,
+        desiredAccuracy: AstroclawLocationAccuracy,
         maxAgeMs: Int?,
         timeoutMs: Int?) async throws -> CLLocation
 }
@@ -36,8 +36,8 @@ final class LiveMacNodeRuntimeMainActorServices: MacNodeRuntimeMainActorServices
         screenIndex: Int?,
         maxWidth: Int?,
         quality: Double?,
-        format: OpenClawScreenSnapshotFormat?) async throws
-        -> (data: Data, format: OpenClawScreenSnapshotFormat, width: Int, height: Int)
+        format: AstroclawScreenSnapshotFormat?) async throws
+        -> (data: Data, format: AstroclawScreenSnapshotFormat, width: Int, height: Int)
     {
         try await self.screenSnapshotter.snapshot(
             screenIndex: screenIndex,
@@ -70,7 +70,7 @@ final class LiveMacNodeRuntimeMainActorServices: MacNodeRuntimeMainActorServices
     }
 
     func currentLocation(
-        desiredAccuracy: OpenClawLocationAccuracy,
+        desiredAccuracy: AstroclawLocationAccuracy,
         maxAgeMs: Int?,
         timeoutMs: Int?) async throws -> CLLocation
     {

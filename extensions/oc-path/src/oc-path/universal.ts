@@ -12,7 +12,7 @@
  *   oc://FILE/section/+0           → indexed insertion
  *   oc://FILE/+                    → file-root insertion
  *
- * @module @openclaw/oc-path/universal
+ * @module @astroclaw/oc-path/universal
  */
 
 import { isMap, isSeq } from "yaml";

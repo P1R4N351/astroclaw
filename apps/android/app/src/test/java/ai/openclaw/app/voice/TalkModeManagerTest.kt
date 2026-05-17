@@ -1,9 +1,9 @@
-package ai.openclaw.app.voice
+package ai.astroclaw.app.voice
 
-import ai.openclaw.app.gateway.DeviceAuthEntry
-import ai.openclaw.app.gateway.DeviceAuthTokenStore
-import ai.openclaw.app.gateway.DeviceIdentityStore
-import ai.openclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.gateway.DeviceAuthEntry
+import ai.astroclaw.app.gateway.DeviceAuthTokenStore
+import ai.astroclaw.app.gateway.DeviceIdentityStore
+import ai.astroclaw.app.gateway.GatewaySession
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
 
 const REQUIRED_MATRIX_PACKAGES = [
   "matrix-js-sdk",
@@ -44,7 +44,7 @@ export function isMatrixSdkAvailable(): boolean {
 function buildMatrixDepsMissingMessage(missing: string[]): string {
   return [
     `Matrix plugin dependencies are missing: ${missing.join(", ")}.`,
-    "Repair this plugin with `openclaw plugins update matrix` or run `openclaw doctor --fix`.",
+    "Repair this plugin with `astroclaw plugins update matrix` or run `astroclaw doctor --fix`.",
   ].join(" ");
 }
 

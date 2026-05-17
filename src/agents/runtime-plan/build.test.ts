@@ -1,4 +1,4 @@
-import { createParameterFreeTool } from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+import { createParameterFreeTool } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resetConfigRuntimeState, setRuntimeConfigSnapshot } from "../../config/config.js";
 import {
@@ -98,7 +98,7 @@ describe("AgentRuntimePlan", () => {
       modelId: "gpt-5.4",
       modelApi: "openai-responses",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       model: gpt54Model,
     });
 
@@ -122,7 +122,7 @@ describe("AgentRuntimePlan", () => {
       authProfileProvider: "openai-codex",
       sessionAuthProfileId: "openai-codex:work",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       model: {
         ...gpt54Model,
         baseUrl: "https://api.openai.com/v1",
@@ -179,13 +179,13 @@ describe("AgentRuntimePlan", () => {
     expect(plan.observability.harnessId).toBe("codex");
   });
 
-  it("keeps OpenClaw-owned tool-schema normalization reachable from the plan", () => {
+  it("keeps Astroclaw-owned tool-schema normalization reachable from the plan", () => {
     const plan = buildAgentRuntimePlan({
       provider: "openai",
       modelId: "gpt-5.4",
       modelApi: "openai-responses",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       model: {
         ...gpt54Model,
         baseUrl: "https://api.openai.com/v1",
@@ -210,7 +210,7 @@ describe("AgentRuntimePlan", () => {
       authProfileMode: "api_key",
       sessionAuthProfileId: "openai:work",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
     });
 
     expect(plan.auth.providerForAuth).toBe("openai");
@@ -231,7 +231,7 @@ describe("AgentRuntimePlan", () => {
       sessionAuthProfileId: "openai-codex:work",
       sessionAuthProfileCandidateIds: ["openai-codex:work", "openai:backup"],
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
     });
 
     expect(plan.auth.forwardedAuthProfileId).toBe("openai-codex:work");
@@ -252,7 +252,7 @@ describe("AgentRuntimePlan", () => {
       authProfileMode: "oauth",
       sessionAuthProfileId: "openai:work",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
     });
 
     expect(plan.auth.forwardedAuthProfileId).toBeUndefined();
@@ -268,7 +268,7 @@ describe("AgentRuntimePlan", () => {
       authProfileProvider: "openai-codex",
       sessionAuthProfileId: "openai-codex:work",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
     });
 
     expect(plan.auth.providerForAuth).toBe("openai");
@@ -293,7 +293,7 @@ describe("AgentRuntimePlan", () => {
       provider: "openai",
       modelId: "gpt-5.4",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       providerRuntimeHandle,
     });
 
@@ -330,7 +330,7 @@ describe("AgentRuntimePlan", () => {
     };
     const resolvedHandle: ProviderRuntimePluginHandle = {
       ...suppliedHandle,
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       env: process.env,
       plugin: {} as never,
     };
@@ -341,7 +341,7 @@ describe("AgentRuntimePlan", () => {
       provider: "openai",
       modelId: "gpt-5.4",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       providerRuntimeHandle: suppliedHandle,
     });
 
@@ -356,7 +356,7 @@ describe("AgentRuntimePlan", () => {
     expect(resolveProviderRuntimePluginHandleMock).toHaveBeenCalledWith({
       provider: "openai",
       config: suppliedHandle.config,
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       env: process.env,
       applyAutoEnable: undefined,
       bundledProviderAllowlistCompat: undefined,
@@ -379,7 +379,7 @@ describe("AgentRuntimePlan", () => {
     };
     const resolvedHandle: ProviderRuntimePluginHandle = {
       provider: "openai",
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       env: process.env,
       plugin: {} as never,
     };
@@ -390,7 +390,7 @@ describe("AgentRuntimePlan", () => {
       provider: "openai",
       modelId: "gpt-5.4",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       providerRuntimeHandle: suppliedHandle,
     });
 
@@ -403,7 +403,7 @@ describe("AgentRuntimePlan", () => {
     expect(resolveProviderRuntimePluginHandleMock).toHaveBeenCalledWith({
       provider: "openai",
       config: {},
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       env: process.env,
       applyAutoEnable: undefined,
       bundledProviderAllowlistCompat: undefined,
@@ -425,7 +425,7 @@ describe("AgentRuntimePlan", () => {
       provider: "openai",
       modelId: "gpt-5.4",
       config: runtimeConfig,
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
     });
 
     expect(manifestMocks.loadManifestMetadataSnapshot).not.toHaveBeenCalled();
@@ -434,7 +434,7 @@ describe("AgentRuntimePlan", () => {
 
     expect(manifestMocks.loadManifestMetadataSnapshot).toHaveBeenCalledWith({
       config: sourceConfig,
-      workspaceDir: "/tmp/openclaw-runtime-plan",
+      workspaceDir: "/tmp/astroclaw-runtime-plan",
       env: process.env,
     });
   });

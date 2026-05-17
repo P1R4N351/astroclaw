@@ -3,7 +3,7 @@ import { Type } from "typebox";
 import { isRequesterParentOfBackgroundAcpSession } from "../../acp/session-interaction-mode.js";
 import { parseSessionThreadInfoFast } from "../../config/sessions/thread-info.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { callGateway } from "../../gateway/call.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import {
@@ -56,7 +56,7 @@ type GatewayCaller = typeof callGateway;
 const SESSIONS_SEND_REPLY_HISTORY_LIMIT = 50;
 
 function resolveConfiguredAgentMainSessionKey(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId: string;
   mainKey: string;
 }): string | undefined {
@@ -72,7 +72,7 @@ function resolveConfiguredAgentMainSessionKey(params: {
 }
 
 function isConfiguredAgentMainSessionKey(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   sessionKey: string;
   mainKey: string;
 }): boolean {
@@ -88,7 +88,7 @@ function isConfiguredAgentMainSessionKey(params: {
 }
 
 async function ensureConfiguredAgentMainSession(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   callGateway: GatewayCaller;
   sessionKey: string;
   mainKey: string;
@@ -185,7 +185,7 @@ export function createSessionsSendTool(opts?: {
   agentSessionKey?: string;
   agentChannel?: GatewayMessageChannel;
   sandboxed?: boolean;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   callGateway?: GatewayCaller;
 }): AnyAgentTool {
   return {

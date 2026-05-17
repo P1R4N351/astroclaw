@@ -1,17 +1,17 @@
 // Copy to LocalSigning.xcconfig for personal local signing overrides.
 // This file is only an example and should stay committed.
 
-OPENCLAW_CODE_SIGN_STYLE = Automatic
-OPENCLAW_DEVELOPMENT_TEAM = YOUR_TEAM_ID
+ASTROCLAW_CODE_SIGN_STYLE = Automatic
+ASTROCLAW_DEVELOPMENT_TEAM = YOUR_TEAM_ID
 
-OPENCLAW_APP_BUNDLE_ID = ai.openclaw.client
-OPENCLAW_SHARE_BUNDLE_ID = ai.openclaw.client.share
-OPENCLAW_ACTIVITY_WIDGET_BUNDLE_ID = ai.openclaw.client.activitywidget
-OPENCLAW_WATCH_APP_BUNDLE_ID = ai.openclaw.client.watchkitapp
-OPENCLAW_WATCH_EXTENSION_BUNDLE_ID = ai.openclaw.client.watchkitapp.extension
+ASTROCLAW_APP_BUNDLE_ID = ai.astroclaw.client
+ASTROCLAW_SHARE_BUNDLE_ID = ai.astroclaw.client.share
+ASTROCLAW_ACTIVITY_WIDGET_BUNDLE_ID = ai.astroclaw.client.activitywidget
+ASTROCLAW_WATCH_APP_BUNDLE_ID = ai.astroclaw.client.watchkitapp
+ASTROCLAW_WATCH_EXTENSION_BUNDLE_ID = ai.astroclaw.client.watchkitapp.extension
 
 // Leave empty with automatic signing.
-OPENCLAW_APP_PROFILE =
-OPENCLAW_SHARE_PROFILE =
-OPENCLAW_WATCH_APP_PROFILE =
-OPENCLAW_WATCH_EXTENSION_PROFILE =
+ASTROCLAW_APP_PROFILE =
+ASTROCLAW_SHARE_PROFILE =
+ASTROCLAW_WATCH_APP_PROFILE =
+ASTROCLAW_WATCH_EXTENSION_PROFILE =

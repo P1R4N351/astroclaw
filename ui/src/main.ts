@@ -7,13 +7,13 @@ type ViteImportMeta = ImportMeta & {
   };
 };
 
-declare const __OPENCLAW_CONTROL_UI_BUILD_ID__: string | undefined;
+declare const __ASTROCLAW_CONTROL_UI_BUILD_ID__: string | undefined;
 
 const isProd = (import.meta as ViteImportMeta).env?.PROD === true;
 
 if (isProd && "serviceWorker" in navigator) {
   const swUrl = new URL("./sw.js", window.location.href);
-  swUrl.searchParams.set("v", __OPENCLAW_CONTROL_UI_BUILD_ID__ || "dev");
+  swUrl.searchParams.set("v", __ASTROCLAW_CONTROL_UI_BUILD_ID__ || "dev");
   void navigator.serviceWorker.register(swUrl, { updateViaCache: "none" });
 } else if (!isProd && "serviceWorker" in navigator) {
   // Unregister any leftover dev SW to avoid stale cache issues.

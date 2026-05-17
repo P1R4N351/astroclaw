@@ -1,5 +1,5 @@
 import { VERSION } from "../version.js";
-import type { OpenClawConfig } from "./types.openclaw.js";
+import type { AstroclawConfig } from "./types.astroclaw.js";
 
 export const AUTO_MANAGED_CONFIG_META_FIELDS = {
   lastTouchedVersion: "lastTouchedVersion",
@@ -12,9 +12,9 @@ export const AUTO_MANAGED_CONFIG_META_PATHS = [
 ] as const;
 
 export function stampConfigWriteMetadata(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   now: string = new Date().toISOString(),
-): OpenClawConfig {
+): AstroclawConfig {
   return {
     ...cfg,
     meta: {

@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const DEFAULT_REPO = "openclaw/openclaw";
+const DEFAULT_REPO = "astroclaw/astroclaw";
 const DEFAULT_PROVIDER = "openai";
 const DEFAULT_MODE = "both";
 const DEFAULT_RELEASE_PROFILE = "beta";
@@ -16,14 +16,14 @@ function usage() {
 
 Dispatches or consumes release validation runs, validates the prepared npm tarball,
 builds plugin publish plans, writes a green evidence bundle, then prints the exact
-OpenClaw Release Publish command.
+Astroclaw Release Publish command.
 
 Options:
   --tag <tag>                         Release tag to validate.
   --workflow-ref <ref>                Workflow branch/ref. Default: current branch.
   --repo <owner/repo>                 GitHub repo. Default: ${DEFAULT_REPO}
   --full-release-run <id>             Reuse successful Full Release Validation run.
-  --npm-preflight-run <id>            Reuse successful OpenClaw NPM Release preflight run.
+  --npm-preflight-run <id>            Reuse successful Astroclaw NPM Release preflight run.
   --skip-dispatch                     Require both run ids; do not dispatch workflows.
   --skip-parallels                   Do not run local Parallels fresh/update beta smoke.
   --provider <provider>               Full validation provider. Default: ${DEFAULT_PROVIDER}
@@ -348,7 +348,7 @@ export function buildPublishCommand(options) {
     ["full_release_validation_run_id", options.fullReleaseRunId],
     ["npm_dist_tag", options.npmDistTag],
     ["plugin_publish_scope", options.pluginPublishScope],
-    ["publish_openclaw_npm", "true"],
+    ["publish_astroclaw_npm", "true"],
     ["release_profile", options.releaseProfile],
     ["wait_for_clawhub", "false"],
   ];
@@ -359,7 +359,7 @@ export function buildPublishCommand(options) {
     "gh",
     "workflow",
     "run",
-    "openclaw-release-publish.yml",
+    "astroclaw-release-publish.yml",
     "--repo",
     options.repo,
     "--ref",
@@ -453,7 +453,7 @@ async function main() {
   }
 
   if (!options.npmPreflightRunId && !options.skipDispatch) {
-    const workflowFile = "openclaw-npm-release.yml";
+    const workflowFile = "astroclaw-npm-release.yml";
     const before = beforeRunIds(options.repo, workflowFile);
     const dispatchedRunId = dispatchWorkflow(options.repo, workflowFile, options.workflowRef, {
       tag: options.tag,
@@ -462,7 +462,7 @@ async function main() {
     });
     options.npmPreflightRunId =
       dispatchedRunId ||
-      (await findNewRunId(options.repo, workflowFile, "OpenClaw NPM Release", before));
+      (await findNewRunId(options.repo, workflowFile, "Astroclaw NPM Release", before));
   }
 
   const fullRun = await waitForSuccessfulRun(options.repo, options.fullReleaseRunId, {
@@ -470,7 +470,7 @@ async function main() {
     workflowRef: options.workflowRef,
   });
   const npmRun = await waitForSuccessfulRun(options.repo, options.npmPreflightRunId, {
-    workflowName: "OpenClaw NPM Release",
+    workflowName: "Astroclaw NPM Release",
     workflowRef: options.workflowRef,
   });
   if (fullRun.headSha !== targetSha || npmRun.headSha !== targetSha) {
@@ -484,7 +484,7 @@ async function main() {
   downloadArtifact(
     options.repo,
     options.npmPreflightRunId,
-    `openclaw-npm-preflight-${options.tag}`,
+    `astroclaw-npm-preflight-${options.tag}`,
     npmDir,
   );
   downloadArtifact(

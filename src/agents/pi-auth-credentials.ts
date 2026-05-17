@@ -18,7 +18,7 @@ export type ResolvePiCredentialMapOptions = {
   includeSecretRefPlaceholders?: boolean;
 };
 
-const PI_SECRET_REF_CONFIGURED_MARKER = "openclaw-secret-ref-configured";
+const PI_SECRET_REF_CONFIGURED_MARKER = "astroclaw-secret-ref-configured";
 
 function hasConfiguredSecretRef(value: unknown): boolean {
   return coerceSecretRef(value) !== null;

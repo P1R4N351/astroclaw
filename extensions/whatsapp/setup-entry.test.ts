@@ -28,8 +28,8 @@ describe("whatsapp setup entry", () => {
       detectLegacyStateMigrations({
         cfg: {},
         env: {},
-        oauthDir: "/tmp/openclaw-whatsapp-empty",
-        stateDir: "/tmp/openclaw-state",
+        oauthDir: "/tmp/astroclaw-whatsapp-empty",
+        stateDir: "/tmp/astroclaw-state",
       }),
     ).toStrictEqual([]);
     const legacySessionSurface = setupEntry.loadLegacySessionSurface?.();

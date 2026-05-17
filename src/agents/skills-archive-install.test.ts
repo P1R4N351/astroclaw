@@ -49,7 +49,7 @@ async function expectFlatRootMarkerRejected(params: {
 
   const result = await withExtractedArchiveRoot({
     archivePath,
-    tempDirPrefix: "openclaw-skill-clawhub-test-",
+    tempDirPrefix: "astroclaw-skill-clawhub-test-",
     timeoutMs: 120_000,
     rootMarkers: ["SKILL.md"],
     onExtracted: async () => ({ ok: true as const }),
@@ -73,7 +73,7 @@ describe("skill archive install", () => {
   it.each(["skill.md", "skills.md", "SKILL.MD"])(
     "installs a single-root ClawHub archive with legacy marker %s",
     async (marker) => {
-      const root = await tempDirs.make("openclaw-skill-archive-install-");
+      const root = await tempDirs.make("astroclaw-skill-archive-install-");
       const archivePath = path.join(root, "legacy.zip");
       const workspaceDir = path.join(root, "workspace");
       await writeZipArchive({
@@ -85,7 +85,7 @@ describe("skill archive install", () => {
 
       const result = await withExtractedArchiveRoot({
         archivePath,
-        tempDirPrefix: "openclaw-skill-clawhub-test-",
+        tempDirPrefix: "astroclaw-skill-clawhub-test-",
         timeoutMs: 120_000,
         rootMarkers: CLAWHUB_SKILL_ARCHIVE_ROOT_MARKERS,
         onExtracted: async (extractedRoot) =>
@@ -110,12 +110,12 @@ describe("skill archive install", () => {
   );
 
   it("keeps flat-root non-SKILL.md legacy markers rejected by strict packed-root resolution", async () => {
-    const root = await tempDirs.make("openclaw-skill-archive-install-");
+    const root = await tempDirs.make("astroclaw-skill-archive-install-");
     await expectFlatRootMarkerRejected({ marker: "skills.md", root });
   });
 
   it("keeps flat-root lowercase skill.md rejected by strict packed-root resolution on case-sensitive filesystems", async () => {
-    const root = await tempDirs.make("openclaw-skill-archive-install-");
+    const root = await tempDirs.make("astroclaw-skill-archive-install-");
     const caseSensitive = await isCaseSensitiveFileSystem(root);
     if (!caseSensitive) {
       expect(caseSensitive).toBe(false);

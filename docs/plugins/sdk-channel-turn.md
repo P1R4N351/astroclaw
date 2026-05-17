@@ -13,7 +13,7 @@ The channel turn kernel is the shared inbound state machine that turns a normali
 Use this when your plugin is on the inbound message hot path. For non-message events (slash commands, modals, button interactions, lifecycle events, reactions, voice state), keep them plugin-local. The kernel only owns events that may become an agent text turn.
 
 <Info>
-  The kernel is reached through the injected plugin runtime as `runtime.channel.turn.*`. The plugin runtime type is exported from `openclaw/plugin-sdk/core`, so third-party native plugins can use these entry points the same way bundled channel plugins do.
+  The kernel is reached through the injected plugin runtime as `runtime.channel.turn.*`. The plugin runtime type is exported from `astroclaw/plugin-sdk/core`, so third-party native plugins can use these entry points the same way bundled channel plugins do.
 </Info>
 
 ## Why a shared kernel
@@ -315,7 +315,7 @@ Supplemental context covers quote, forwarded, and thread-bootstrap context. The 
 
 Media is fact-shaped. Platform download, auth, SSRF policy, CDN rules, and decryption stay channel-local. The kernel maps facts into `MediaPath`, `MediaUrl`, `MediaType`, `MediaPaths`, `MediaUrls`, `MediaTypes`, and `MediaTranscribedIndexes`.
 
-Use `toInboundMediaFacts(...)` from `openclaw/plugin-sdk/channel-inbound` when
+Use `toInboundMediaFacts(...)` from `astroclaw/plugin-sdk/channel-inbound` when
 your channel has a resolved media list and only needs to attach generic facts:
 
 ```typescript
@@ -568,7 +568,7 @@ If two channels start needing the same helper for one of these, extract a shared
 
 ## Stability
 
-`runtime.channel.turn.*` is part of the public plugin runtime surface. The fact types (`SenderFacts`, `ConversationFacts`, `RouteFacts`, `ReplyPlanFacts`, `AccessFacts`, `MessageFacts`, `SupplementalContextFacts`, `InboundMediaFacts`) and admission shapes (`ChannelTurnAdmission`, `ChannelEventClass`) are reachable through `PluginRuntime` from `openclaw/plugin-sdk/core`.
+`runtime.channel.turn.*` is part of the public plugin runtime surface. The fact types (`SenderFacts`, `ConversationFacts`, `RouteFacts`, `ReplyPlanFacts`, `AccessFacts`, `MessageFacts`, `SupplementalContextFacts`, `InboundMediaFacts`) and admission shapes (`ChannelTurnAdmission`, `ChannelEventClass`) are reachable through `PluginRuntime` from `astroclaw/plugin-sdk/core`.
 
 Backward compatibility rules apply: new fact fields are additive, admission kinds are not renamed, and the entry point names stay stable. New channel needs that require a non-additive change must go through the plugin SDK migration process.
 

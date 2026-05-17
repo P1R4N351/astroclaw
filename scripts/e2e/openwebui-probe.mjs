@@ -9,7 +9,7 @@ const modelAttempts = Number.parseInt(process.env.OPENWEBUI_MODEL_ATTEMPTS ?? "7
 const modelRetryMs = Number.parseInt(process.env.OPENWEBUI_MODEL_RETRY_MS ?? "5000", 10);
 const fetchTimeoutMs = Number.parseInt(process.env.OPENWEBUI_FETCH_TIMEOUT_MS ?? "720000", 10);
 const smokeMode =
-  process.env.OPENWEBUI_SMOKE_MODE ?? process.env.OPENCLAW_OPENWEBUI_SMOKE_MODE ?? "chat";
+  process.env.OPENWEBUI_SMOKE_MODE ?? process.env.ASTROCLAW_OPENWEBUI_SMOKE_MODE ?? "chat";
 
 setGlobalDispatcher(new Agent({ bodyTimeout: fetchTimeoutMs, headersTimeout: fetchTimeoutMs }));
 
@@ -95,11 +95,11 @@ for (let attempt = 1; attempt <= modelAttempts; attempt += 1) {
     const modelsJson = await modelsRes.json();
     modelIds = extractModelIds(modelsJson);
     targetModel =
-      modelIds.find((id) => id === "openclaw/default") ?? modelIds.find((id) => id === "openclaw");
+      modelIds.find((id) => id === "astroclaw/default") ?? modelIds.find((id) => id === "astroclaw");
     if (targetModel) {
       break;
     }
-    lastModelsError = `missing openclaw model: ${JSON.stringify(modelIds)}`;
+    lastModelsError = `missing astroclaw model: ${JSON.stringify(modelIds)}`;
   } else if (modelsRes) {
     lastModelsError = `HTTP ${modelsRes.status} ${await modelsRes.text()}`;
   }
@@ -107,7 +107,7 @@ for (let attempt = 1; attempt <= modelAttempts; attempt += 1) {
 }
 if (!targetModel) {
   throw new Error(
-    `openclaw model missing from Open WebUI model list after retry: ${JSON.stringify(modelIds)} (${lastModelsError})`,
+    `astroclaw model missing from Open WebUI model list after retry: ${JSON.stringify(modelIds)} (${lastModelsError})`,
   );
 }
 if (smokeMode === "models") {

@@ -62,7 +62,7 @@ export function evaluateSubagentRecoveryGate(
       allowed: false,
       reason:
         `subagent orphan recovery blocked after ${previousAttempts} rapid accepted resume attempts; ` +
-        `run "openclaw tasks maintenance --apply" or "openclaw doctor --fix" to reconcile it`,
+        `run "astroclaw tasks maintenance --apply" or "astroclaw doctor --fix" to reconcile it`,
       shouldMarkWedged: true,
     };
   }

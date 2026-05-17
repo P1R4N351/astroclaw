@@ -1,25 +1,25 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { setEmbeddedMode } from "../infra/embedded-mode.js";
-import { createOpenClawTools } from "./openclaw-tools.js";
-import { isUpdatePlanToolEnabledForOpenClawTools } from "./openclaw-tools.registration.js";
+import { createAstroclawTools } from "./astroclaw-tools.js";
+import { isUpdatePlanToolEnabledForAstroclawTools } from "./astroclaw-tools.registration.js";
 import { isToolWrappedWithBeforeToolCallHook } from "./pi-tools.before-tool-call.js";
 import { createUpdatePlanTool } from "./tools/update-plan-tool.js";
 
-type UpdatePlanGatingParams = Parameters<typeof isUpdatePlanToolEnabledForOpenClawTools>[0];
+type UpdatePlanGatingParams = Parameters<typeof isUpdatePlanToolEnabledForAstroclawTools>[0];
 
 function expectUpdatePlanEnabled(params: UpdatePlanGatingParams, expected: boolean): void {
-  expect(isUpdatePlanToolEnabledForOpenClawTools(params)).toBe(expected);
+  expect(isUpdatePlanToolEnabledForAstroclawTools(params)).toBe(expected);
 }
 
-function toolNames(tools: ReturnType<typeof createOpenClawTools>): string[] {
+function toolNames(tools: ReturnType<typeof createAstroclawTools>): string[] {
   return tools.map((tool) => tool.name);
 }
 
 function expectToolNamed(
-  tools: ReturnType<typeof createOpenClawTools>,
+  tools: ReturnType<typeof createAstroclawTools>,
   name: string,
-): ReturnType<typeof createOpenClawTools>[number] {
+): ReturnType<typeof createAstroclawTools>[number] {
   const tool = tools.find((candidate) => candidate.name === name);
   if (!tool) {
     throw new Error(`Expected tool ${name} to be registered`);
@@ -28,7 +28,7 @@ function expectToolNamed(
 }
 
 function openAiGpt5Params(
-  config: OpenClawConfig,
+  config: AstroclawConfig,
   overrides: Partial<UpdatePlanGatingParams> = {},
 ): UpdatePlanGatingParams {
   const params: UpdatePlanGatingParams = {
@@ -44,24 +44,24 @@ function openAiGpt5Params(
   return params;
 }
 
-describe("openclaw-tools update_plan gating", () => {
+describe("astroclaw-tools update_plan gating", () => {
   afterEach(() => {
     setEmbeddedMode(false);
   });
 
   it("keeps update_plan disabled by default", () => {
-    expectUpdatePlanEnabled({ config: {} as OpenClawConfig }, false);
+    expectUpdatePlanEnabled({ config: {} as AstroclawConfig }, false);
   });
 
   it("does not expose update_plan from default tool construction", () => {
-    const defaultTools = createOpenClawTools({
-      config: {} as OpenClawConfig,
+    const defaultTools = createAstroclawTools({
+      config: {} as AstroclawConfig,
       disablePluginTools: true,
       modelProvider: "anthropic",
       modelId: "claude-sonnet-4-6",
     });
-    const emptyAllowlistTools = createOpenClawTools({
-      config: {} as OpenClawConfig,
+    const emptyAllowlistTools = createAstroclawTools({
+      config: {} as AstroclawConfig,
       disablePluginTools: true,
       pluginToolAllowlist: [],
       modelProvider: "anthropic",
@@ -73,12 +73,12 @@ describe("openclaw-tools update_plan gating", () => {
   });
 
   it("wraps constructed tools with before-tool-call hooks by default", () => {
-    const tools = createOpenClawTools({
-      config: {} as OpenClawConfig,
+    const tools = createAstroclawTools({
+      config: {} as AstroclawConfig,
       disablePluginTools: true,
     });
-    const unwrappedTools = createOpenClawTools({
-      config: {} as OpenClawConfig,
+    const unwrappedTools = createAstroclawTools({
+      config: {} as AstroclawConfig,
       disablePluginTools: true,
       wrapBeforeToolCallHook: false,
     });
@@ -91,8 +91,8 @@ describe("openclaw-tools update_plan gating", () => {
 
   it("keeps message tool in embedded message-tool-only completions", () => {
     setEmbeddedMode(true);
-    const tools = createOpenClawTools({
-      config: {} as OpenClawConfig,
+    const tools = createAstroclawTools({
+      config: {} as AstroclawConfig,
       disablePluginTools: true,
       sourceReplyDeliveryMode: "message_tool_only",
     });
@@ -107,15 +107,15 @@ describe("openclaw-tools update_plan gating", () => {
           planTool: true,
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectUpdatePlanEnabled({ config }, true);
     expect(createUpdatePlanTool().displaySummary).toBe("Track a short structured work plan.");
   });
 
   it("registers update_plan when the runtime allowlist explicitly requests it", () => {
-    const tools = createOpenClawTools({
-      config: {} as OpenClawConfig,
+    const tools = createAstroclawTools({
+      config: {} as AstroclawConfig,
       disablePluginTools: true,
       pluginToolAllowlist: ["update_plan"],
       modelProvider: "anthropic",
@@ -126,8 +126,8 @@ describe("openclaw-tools update_plan gating", () => {
   });
 
   it("registers update_plan when a config allowlist group includes it", () => {
-    const tools = createOpenClawTools({
-      config: { tools: { allow: ["group:agents"] } } as OpenClawConfig,
+    const tools = createAstroclawTools({
+      config: { tools: { allow: ["group:agents"] } } as AstroclawConfig,
       disablePluginTools: true,
       modelProvider: "anthropic",
       modelId: "claude-sonnet-4-6",
@@ -137,8 +137,8 @@ describe("openclaw-tools update_plan gating", () => {
   });
 
   it("registers update_plan when a runtime allowlist group includes it", () => {
-    const tools = createOpenClawTools({
-      config: {} as OpenClawConfig,
+    const tools = createAstroclawTools({
+      config: {} as AstroclawConfig,
       disablePluginTools: true,
       pluginToolAllowlist: ["group:agents"],
       modelProvider: "anthropic",
@@ -149,8 +149,8 @@ describe("openclaw-tools update_plan gating", () => {
   });
 
   it("respects deny policy while constructing update_plan for grouped allowlists", () => {
-    const tools = createOpenClawTools({
-      config: {} as OpenClawConfig,
+    const tools = createAstroclawTools({
+      config: {} as AstroclawConfig,
       disablePluginTools: true,
       pluginToolAllowlist: ["group:agents"],
       pluginToolDenylist: ["update_plan"],
@@ -171,7 +171,7 @@ describe("openclaw-tools update_plan gating", () => {
       agents: {
         list: [{ id: "main" }],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectUpdatePlanEnabled(openAiGpt5Params(cfg), true);
     expectUpdatePlanEnabled(openAiGpt5Params(cfg, { modelProvider: "openai-codex" }), true);
@@ -189,7 +189,7 @@ describe("openclaw-tools update_plan gating", () => {
         },
         list: [{ id: "main" }],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectUpdatePlanEnabled(openAiGpt5Params(cfg), false);
   });
@@ -199,7 +199,7 @@ describe("openclaw-tools update_plan gating", () => {
       agents: {
         list: [{ id: "main" }],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectUpdatePlanEnabled(
       openAiGpt5Params(cfg, { modelProvider: "anthropic", modelId: "claude-sonnet-4-6" }),
@@ -218,7 +218,7 @@ describe("openclaw-tools update_plan gating", () => {
         },
         list: [{ id: "main" }],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectUpdatePlanEnabled(openAiGpt5Params(cfg), true);
   });
@@ -233,7 +233,7 @@ describe("openclaw-tools update_plan gating", () => {
         },
         list: [{ id: "main" }],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectUpdatePlanEnabled(
       openAiGpt5Params(cfg, { modelProvider: "anthropic", modelId: "claude-sonnet-4-6" }),
@@ -257,7 +257,7 @@ describe("openclaw-tools update_plan gating", () => {
         },
         list: [{ id: "main" }],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectUpdatePlanEnabled(openAiGpt5Params(cfg), false);
   });
@@ -280,7 +280,7 @@ describe("openclaw-tools update_plan gating", () => {
           },
         ],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectUpdatePlanEnabled(openAiGpt5Params(cfg, { agentId: "research" }), true);
   });
@@ -305,7 +305,7 @@ describe("openclaw-tools update_plan gating", () => {
           },
         ],
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     expectUpdatePlanEnabled(openAiGpt5Params(cfg, { agentId: "main" }), false);
     expectUpdatePlanEnabled(openAiGpt5Params(cfg, { agentId: "research" }), true);

@@ -37,7 +37,7 @@ function createAttemptParams(workspaceDir: string) {
 
 describe("runEmbeddedAttempt memory flush tool forwarding", () => {
   it("forwards memory trigger metadata into tool creation so append-only guards activate", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-attempt-memory-flush-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-attempt-memory-flush-"));
 
     try {
       const context = buildEmbeddedAttemptToolRunContext(createAttemptParams(workspaceDir));
@@ -58,7 +58,7 @@ describe("runEmbeddedAttempt memory flush tool forwarding", () => {
   });
 
   it("activates the memory flush append-only write wrapper", async () => {
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-attempt-memory-flush-"));
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-attempt-memory-flush-"));
     const memoryFile = path.join(workspaceDir, MEMORY_RELATIVE_PATH);
 
     try {

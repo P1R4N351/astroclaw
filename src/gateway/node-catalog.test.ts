@@ -33,7 +33,7 @@ describe("gateway/node-catalog", () => {
           deviceId: "current-mac",
           publicKey: "current-public-key",
           displayName: "Peter's Mac Studio",
-          clientId: "openclaw-macos",
+          clientId: "astroclaw-macos",
           role: "node",
           roles: ["node"],
           tokens: {
@@ -63,7 +63,7 @@ describe("gateway/node-catalog", () => {
           deviceId: "mac-1",
           publicKey: "public-key",
           displayName: "Mac",
-          clientId: "openclaw-macos",
+          clientId: "astroclaw-macos",
           clientMode: "node",
           role: "node",
           roles: ["node"],
@@ -101,7 +101,7 @@ describe("gateway/node-catalog", () => {
           nodeId: "mac-1",
           connId: "conn-1",
           client: {} as never,
-          clientId: "openclaw-macos",
+          clientId: "astroclaw-macos",
           clientMode: "node",
           displayName: "Mac",
           platform: "macos",
@@ -124,7 +124,7 @@ describe("gateway/node-catalog", () => {
     const node = getKnownNode(catalog, "mac-1");
     expect(node?.nodeId).toBe("mac-1");
     expect(node?.displayName).toBe("Mac");
-    expect(node?.clientId).toBe("openclaw-macos");
+    expect(node?.clientId).toBe("astroclaw-macos");
     expect(node?.clientMode).toBe("node");
     expect(node?.remoteIp).toBe("100.0.0.11");
     expect(node?.caps).toEqual(["camera", "screen"]);
@@ -145,7 +145,7 @@ describe("gateway/node-catalog", () => {
           deviceId: "mac-1",
           publicKey: "public-key",
           displayName: "Mac",
-          clientId: "openclaw-macos",
+          clientId: "astroclaw-macos",
           clientMode: "node",
           role: "node",
           roles: ["node"],

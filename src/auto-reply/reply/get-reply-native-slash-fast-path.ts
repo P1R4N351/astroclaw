@@ -3,7 +3,7 @@ import {
   resolveThinkingDefaultWithRuntimeCatalog,
   type ModelAliasIndex,
 } from "../../agents/model-selection.js";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
 import { normalizeOptionalString } from "../../shared/string-coerce.js";
 import { isNativeCommandTurn, resolveCommandTurnContext } from "../command-turn-context.js";
@@ -19,7 +19,7 @@ import { handleInlineActions } from "./get-reply-inline-actions.js";
 import { stripStructuralPrefixes } from "./mentions.js";
 import type { createTypingController } from "./typing.js";
 
-type AgentDefaults = NonNullable<NonNullable<OpenClawConfig["agents"]>["defaults"]> | undefined;
+type AgentDefaults = NonNullable<NonNullable<AstroclawConfig["agents"]>["defaults"]> | undefined;
 
 const commandsRuntimeLoader = createLazyImportLoader(() => import("./commands.runtime.js"));
 const statusCommandRuntimeLoader = createLazyImportLoader(() => import("./commands-status.js"));
@@ -49,7 +49,7 @@ function shouldRunNativeSlashCommandFastPath(ctx: MsgContext): boolean {
 }
 
 async function resolveNativeSlashDefaultThinkingLevel(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   provider: string;
   model: string;
 }): Promise<ThinkLevel> {
@@ -63,7 +63,7 @@ async function resolveNativeSlashDefaultThinkingLevel(params: {
 
 export async function maybeResolveNativeSlashCommandFastReply(params: {
   ctx: MsgContext;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentId: string;
   agentDir: string;
   agentCfg: AgentDefaults;

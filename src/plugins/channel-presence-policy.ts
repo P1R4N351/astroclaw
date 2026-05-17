@@ -5,7 +5,7 @@ import {
   listPotentialConfiguredChannelPresenceSignals,
   type ChannelPresenceSignalSource,
 } from "../channels/config-presence.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { isSafeChannelEnvVarTriggerName } from "../secrets/channel-env-var-names.js";
 import { normalizeOptionalLowercaseString } from "../shared/string-coerce.js";
 import { resolveManifestActivationPluginIds } from "./activation-planner.js";
@@ -75,7 +75,7 @@ function hasNonEmptyEnvValue(env: NodeJS.ProcessEnv, key: string): boolean {
 }
 
 export function hasExplicitChannelConfig(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   channelId: string;
 }): boolean {
   const channels = params.config.channels;
@@ -93,7 +93,7 @@ export function hasExplicitChannelConfig(params: {
   return enabled === true || hasMeaningfulChannelConfig(entry);
 }
 
-export function listExplicitConfiguredChannelIdsForConfig(config: OpenClawConfig): string[] {
+export function listExplicitConfiguredChannelIdsForConfig(config: AstroclawConfig): string[] {
   const channels = config.channels;
   if (!channels || typeof channels !== "object" || Array.isArray(channels)) {
     return [];
@@ -120,8 +120,8 @@ function recordDeclaresChannel(record: PluginManifestRecord, channelId: string):
 
 function listManifestEnvConfiguredChannelSignals(params: {
   records: readonly PluginManifestRecord[];
-  activationSourceConfig?: OpenClawConfig;
-  config: OpenClawConfig;
+  activationSourceConfig?: AstroclawConfig;
+  config: AstroclawConfig;
   env: NodeJS.ProcessEnv;
 }): Array<{ channelId: string; source: "manifest-env" }> {
   const signals: Array<{ channelId: string; source: "manifest-env" }> = [];
@@ -183,7 +183,7 @@ function resolveBasePolicyBlockedReason(params: {
 function isChannelPluginEligibleForScopedOwnership(params: {
   plugin: PluginManifestRecord;
   normalizedConfig: ReturnType<typeof normalizePluginsConfig>;
-  rootConfig: OpenClawConfig;
+  rootConfig: AstroclawConfig;
   channelId?: string;
 }): boolean {
   const allowRestrictiveAllowlistBypass =
@@ -222,7 +222,7 @@ function evaluateEffectiveChannelPlugin(params: {
   plugin: PluginManifestRecord;
   channelId: string;
   normalizedConfig: ReturnType<typeof normalizePluginsConfig>;
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   activationSource: ReturnType<typeof createPluginActivationSource>;
 }): { effective: boolean; pluginId: string; blockedReason?: ConfiguredChannelBlockedReason } {
   const explicitBundledChannelConfig =
@@ -311,7 +311,7 @@ function addPolicySignal(
 }
 
 function loadInstalledChannelManifestRecords(params: {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
 }): readonly PluginManifestRecord[] {
@@ -324,8 +324,8 @@ function loadInstalledChannelManifestRecords(params: {
 }
 
 export function resolveConfiguredChannelPresencePolicy(params: {
-  config: OpenClawConfig;
-  activationSourceConfig?: OpenClawConfig;
+  config: AstroclawConfig;
+  activationSourceConfig?: AstroclawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   includePersistedAuthState?: boolean;
@@ -425,8 +425,8 @@ export function hasConfiguredChannelsForReadOnlyScope(
 }
 
 export function listConfiguredAnnounceChannelIdsForConfig(params: {
-  config: OpenClawConfig;
-  activationSourceConfig?: OpenClawConfig;
+  config: AstroclawConfig;
+  activationSourceConfig?: AstroclawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): string[] {
@@ -444,8 +444,8 @@ export function listConfiguredAnnounceChannelIdsForConfig(params: {
 }
 
 function resolveScopedChannelOwnerPluginIds(params: {
-  config: OpenClawConfig;
-  activationSourceConfig?: OpenClawConfig;
+  config: AstroclawConfig;
+  activationSourceConfig?: AstroclawConfig;
   channelIds: readonly string[];
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
@@ -499,8 +499,8 @@ function resolveScopedChannelOwnerPluginIds(params: {
 }
 
 export function resolveDiscoverableScopedChannelPluginIds(params: {
-  config: OpenClawConfig;
-  activationSourceConfig?: OpenClawConfig;
+  config: AstroclawConfig;
+  activationSourceConfig?: AstroclawConfig;
   channelIds: readonly string[];
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
@@ -510,8 +510,8 @@ export function resolveDiscoverableScopedChannelPluginIds(params: {
 }
 
 export function resolveConfiguredChannelPluginIds(params: {
-  config: OpenClawConfig;
-  activationSourceConfig?: OpenClawConfig;
+  config: AstroclawConfig;
+  activationSourceConfig?: AstroclawConfig;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
 }): string[] {

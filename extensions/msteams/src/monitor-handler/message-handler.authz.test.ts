@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig, PluginRuntime } from "../../runtime-api.js";
+import type { AstroclawConfig, PluginRuntime } from "../../runtime-api.js";
 import type { GraphThreadMessage } from "../graph-thread.js";
 import { _resetThreadParentContextCachesForTest } from "../thread-parent-context.js";
 import "./message-handler-mock-support.test-support.js";
@@ -81,7 +81,7 @@ vi.mock("../graph-thread.js", () => {
 
 describe("msteams monitor handler authz", () => {
   function createDeps(
-    cfg: OpenClawConfig,
+    cfg: AstroclawConfig,
     options: {
       hasControlCommand?: PluginRuntime["channel"]["text"]["hasControlCommand"];
     } = {},
@@ -140,7 +140,7 @@ describe("msteams monitor handler authz", () => {
   function createThreadAllowlistConfig(params: {
     groupAllowFrom: string[];
     dangerouslyAllowNameMatching?: boolean;
-  }): OpenClawConfig {
+  }): AstroclawConfig {
     return {
       channels: {
         msteams: {
@@ -158,7 +158,7 @@ describe("msteams monitor handler authz", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
   }
 
   function createMessageActivity(params: {
@@ -315,7 +315,7 @@ describe("msteams monitor handler authz", () => {
           groupAllowFrom: [],
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     const handler = createMSTeamsMessageHandler(deps);
     await handler(createAttackerGroupActivity({ text: "" }));
@@ -341,7 +341,7 @@ describe("msteams monitor handler authz", () => {
           },
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     const handler = createMSTeamsMessageHandler(deps);
     await handler(
@@ -364,7 +364,7 @@ describe("msteams monitor handler authz", () => {
           allowFrom: [],
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     const handler = createMSTeamsMessageHandler(deps);
     await handler({
@@ -451,7 +451,7 @@ describe("msteams monitor handler authz", () => {
           groupAllowFrom: ["sender-aad"],
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     const handler = createMSTeamsMessageHandler(deps);
     await handler({
@@ -506,7 +506,7 @@ describe("msteams monitor handler authz", () => {
           groupAllowFrom: ["sender-aad"],
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     const handler = createMSTeamsMessageHandler(deps);
     await handler({
@@ -551,7 +551,7 @@ describe("msteams monitor handler authz", () => {
           allowFrom: ["trusted-aad"],
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     const handler = createMSTeamsMessageHandler(deps);
     await handler(createAttackerPersonalActivity("msg-drop-dm"));
@@ -572,7 +572,7 @@ describe("msteams monitor handler authz", () => {
           groupAllowFrom: [],
         },
       },
-    } as OpenClawConfig);
+    } as AstroclawConfig);
 
     const handler = createMSTeamsMessageHandler(deps);
     await handler(createAttackerGroupActivity());
@@ -594,7 +594,7 @@ describe("msteams monitor handler authz", () => {
             requireMention: false,
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       { hasControlCommand },
     );
 
@@ -624,7 +624,7 @@ describe("msteams monitor handler authz", () => {
             requireMention: false,
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       { hasControlCommand },
     );
 

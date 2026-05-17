@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import type { AnyAgentTool, OpenClawConfig } from "../api.js";
+import type { AnyAgentTool, AstroclawConfig } from "../api.js";
 import { applyMemoryWikiMutation, normalizeMemoryWikiMutationInput } from "./apply.js";
 import {
   WIKI_SEARCH_BACKENDS,
@@ -81,7 +81,7 @@ const WikiApplySchema = Type.Object(
 
 async function syncImportedSourcesIfNeeded(
   config: ResolvedMemoryWikiConfig,
-  appConfig?: OpenClawConfig,
+  appConfig?: AstroclawConfig,
 ) {
   await syncMemoryWikiImportedSources({ config, appConfig });
 }
@@ -94,7 +94,7 @@ type WikiToolMemoryContext = {
 
 export function createWikiStatusTool(
   config: ResolvedMemoryWikiConfig,
-  appConfig?: OpenClawConfig,
+  appConfig?: AstroclawConfig,
 ): AnyAgentTool {
   return {
     name: "wiki_status",
@@ -117,7 +117,7 @@ export function createWikiStatusTool(
 
 export function createWikiSearchTool(
   config: ResolvedMemoryWikiConfig,
-  appConfig?: OpenClawConfig,
+  appConfig?: AstroclawConfig,
   memoryContext: WikiToolMemoryContext = {},
 ): AnyAgentTool {
   return {
@@ -166,7 +166,7 @@ export function createWikiSearchTool(
 
 export function createWikiLintTool(
   config: ResolvedMemoryWikiConfig,
-  appConfig?: OpenClawConfig,
+  appConfig?: AstroclawConfig,
 ): AnyAgentTool {
   return {
     name: "wiki_lint",
@@ -202,7 +202,7 @@ export function createWikiLintTool(
 
 export function createWikiApplyTool(
   config: ResolvedMemoryWikiConfig,
-  appConfig?: OpenClawConfig,
+  appConfig?: AstroclawConfig,
 ): AnyAgentTool {
   return {
     name: "wiki_apply",
@@ -234,7 +234,7 @@ export function createWikiApplyTool(
 
 export function createWikiGetTool(
   config: ResolvedMemoryWikiConfig,
-  appConfig?: OpenClawConfig,
+  appConfig?: AstroclawConfig,
   memoryContext: WikiToolMemoryContext = {},
 ): AnyAgentTool {
   return {

@@ -1,6 +1,6 @@
 import Foundation
-import OpenClawIPC
-import OpenClawKit
+import AstroclawIPC
+import AstroclawKit
 
 enum RemoteGatewayAuthIssue: Equatable {
     case tokenRequired
@@ -62,22 +62,22 @@ enum RemoteGatewayAuthIssue: Equatable {
         switch self {
         case .tokenRequired:
             "Paste the token configured on the gateway host. "
-                + "On the gateway host, run `openclaw config get gateway.auth.token`. "
-                + "If the gateway uses an environment variable instead, use `OPENCLAW_GATEWAY_TOKEN`."
+                + "On the gateway host, run `astroclaw config get gateway.auth.token`. "
+                + "If the gateway uses an environment variable instead, use `ASTROCLAW_GATEWAY_TOKEN`."
         case .tokenMismatch:
-            "Check `gateway.auth.token` or `OPENCLAW_GATEWAY_TOKEN` on the gateway host and try again."
+            "Check `gateway.auth.token` or `ASTROCLAW_GATEWAY_TOKEN` on the gateway host and try again."
         case .gatewayTokenNotConfigured:
             "This gateway is set to token auth, but no `gateway.auth.token` is configured on the gateway host. "
                 + "If the gateway uses an environment variable instead, "
-                + "set `OPENCLAW_GATEWAY_TOKEN` before starting the gateway."
+                + "set `ASTROCLAW_GATEWAY_TOKEN` before starting the gateway."
         case .setupCodeExpired:
-            "Scan or paste a fresh setup code from an already-paired OpenClaw client, then try again."
+            "Scan or paste a fresh setup code from an already-paired Astroclaw client, then try again."
         case .passwordRequired:
             "This onboarding flow does not support password auth yet. "
                 + "Reconfigure the gateway to use token auth, then retry."
         case .pairingRequired:
-            "Approve this device from an already-paired OpenClaw client. "
-                + "In your OpenClaw chat, run `/pair approve`, then click **Check connection** again."
+            "Approve this device from an already-paired Astroclaw client. "
+                + "In your Astroclaw chat, run `/pair approve`, then click **Check connection** again."
         }
     }
 
@@ -85,12 +85,12 @@ enum RemoteGatewayAuthIssue: Equatable {
         switch self {
         case .tokenRequired, .gatewayTokenNotConfigured:
             "No token yet? Generate one on the gateway host with "
-                + "`openclaw doctor --generate-gateway-token`, then set it as `gateway.auth.token`."
+                + "`astroclaw doctor --generate-gateway-token`, then set it as `gateway.auth.token`."
         case .setupCodeExpired:
             nil
         case .pairingRequired:
-            "If you do not have another paired OpenClaw client yet, "
-                + "approve the pending request on the gateway host with `openclaw devices approve`."
+            "If you do not have another paired Astroclaw client yet, "
+                + "approve the pending request on the gateway host with `astroclaw devices approve`."
         case .tokenMismatch, .passwordRequired:
             nil
         }
@@ -101,7 +101,7 @@ enum RemoteGatewayAuthIssue: Equatable {
         case .tokenRequired:
             "This gateway requires an auth token from the gateway host."
         case .tokenMismatch:
-            "Gateway token mismatch. Check gateway.auth.token or OPENCLAW_GATEWAY_TOKEN on the gateway host."
+            "Gateway token mismatch. Check gateway.auth.token or ASTROCLAW_GATEWAY_TOKEN on the gateway host."
         case .gatewayTokenNotConfigured:
             "This gateway has token auth enabled, but no gateway.auth.token is configured on the host."
         case .setupCodeExpired:
@@ -109,7 +109,7 @@ enum RemoteGatewayAuthIssue: Equatable {
         case .passwordRequired:
             "This gateway uses password auth. Remote onboarding on macOS cannot collect gateway passwords yet."
         case .pairingRequired:
-            "Pairing required. In an already-paired OpenClaw client, "
+            "Pairing required. In an already-paired Astroclaw client, "
                 + "run /pair approve, then check the connection again."
         }
     }

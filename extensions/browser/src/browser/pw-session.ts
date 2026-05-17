@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import type {
   Browser,
   BrowserContext,
@@ -860,7 +860,7 @@ export function isPolicyDenyNavigationError(err: unknown): boolean {
 }
 
 // Mark a page (and its CDP target id when resolvable) as blocked so subsequent
-// OpenClaw operations short-circuit instead of re-running the SSRF check on a
+// Astroclaw operations short-circuit instead of re-running the SSRF check on a
 // page we have already proven is non-compliant. This is a pure bookkeeping
 // step; it does NOT close the tab. Read-only paths can call this safely on a
 // user-owned tab without losing the user's content.
@@ -878,7 +878,7 @@ async function quarantineBlockedTarget(opts: {
   }
 }
 
-// Quarantine and close a tab that OpenClaw itself navigated to a blocked URL.
+// Quarantine and close a tab that Astroclaw itself navigated to a blocked URL.
 // Only callers that own the navigation lifecycle (gotoPageWithNavigationGuard
 // and the navigate-style entry points that wrap it) may invoke this — closing
 // a tab is a destructive action that must not happen on user-owned tabs from
@@ -1363,7 +1363,7 @@ export async function createPageViaPlaywright(
         throw err;
       }
     }
-    // OpenClaw owns this newly-created tab: if the post-navigation safety
+    // Astroclaw owns this newly-created tab: if the post-navigation safety
     // check trips, close the tab we just spawned.
     try {
       await assertPageNavigationCompletedSafely({

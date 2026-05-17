@@ -49,7 +49,7 @@ describe("deriveToolParams", () => {
     const patch = ["*** Begin Patch", "*** Add File: @src/../new.ts", "+x", "*** End Patch"].join(
       "\n",
     );
-    const cwd = path.join("/tmp", "openclaw-derived");
+    const cwd = path.join("/tmp", "astroclaw-derived");
     expect(deriveToolParams("apply_patch", { input: patch }, { cwd })).toEqual({
       derivedPaths: [path.join(cwd, "new.ts")],
     });

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct HealthStoreStateTests {
     @Test @MainActor func `linked channel probe failure degrades state`() {

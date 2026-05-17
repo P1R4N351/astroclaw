@@ -8,8 +8,8 @@ import {
 import { cleanupTrackedTempDirs, makeTrackedTempDir } from "./test-helpers/fs-fixtures.js";
 
 const tempDirs: string[] = [];
-const originalBundledDir = process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
-const originalDisableBundledPlugins = process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+const originalBundledDir = process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
+const originalDisableBundledPlugins = process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
 const originalVitest = process.env.VITEST;
 const originalArgv1 = process.argv[1];
 const originalExecArgv = [...process.execArgv];
@@ -18,7 +18,7 @@ function makeRepoRoot(prefix: string): string {
   return makeTrackedTempDir(prefix, tempDirs);
 }
 
-function createOpenClawRoot(params: {
+function createAstroclawRoot(params: {
   prefix: string;
   hasExtensions?: boolean;
   hasSrc?: boolean;
@@ -52,7 +52,7 @@ function createOpenClawRoot(params: {
   }
   fs.writeFileSync(
     path.join(repoRoot, "package.json"),
-    `${JSON.stringify({ name: "openclaw" }, null, 2)}\n`,
+    `${JSON.stringify({ name: "astroclaw" }, null, 2)}\n`,
     "utf8",
   );
   return repoRoot;
@@ -63,11 +63,11 @@ function seedBundledPluginTree(rootDir: string, relativeDir: string, pluginId = 
   fs.mkdirSync(pluginDir, { recursive: true });
   fs.writeFileSync(
     path.join(pluginDir, "package.json"),
-    `${JSON.stringify({ name: `@openclaw/${pluginId}` }, null, 2)}\n`,
+    `${JSON.stringify({ name: `@astroclaw/${pluginId}` }, null, 2)}\n`,
     "utf8",
   );
   fs.writeFileSync(
-    path.join(pluginDir, "openclaw.plugin.json"),
+    path.join(pluginDir, "astroclaw.plugin.json"),
     `${JSON.stringify({ id: pluginId }, null, 2)}\n`,
     "utf8",
   );
@@ -92,14 +92,14 @@ function expectResolvedBundledDir(params: {
     process.env.VITEST = params.vitest;
   }
   if (params.bundledDirOverride === undefined) {
-    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+    delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
   } else {
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = params.bundledDirOverride;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = params.bundledDirOverride;
   }
   if (params.disableBundledPlugins === undefined) {
-    delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+    delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
   } else {
-    process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS = params.disableBundledPlugins;
+    process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS = params.disableBundledPlugins;
   }
 
   expect(fs.realpathSync(resolveBundledPluginsDir() ?? "")).toBe(
@@ -119,7 +119,7 @@ function expectResolvedBundledDirFromRoot(params: {
   expectResolvedBundledDir({
     cwd: params.cwd ?? params.repoRoot,
     expectedDir: path.join(params.repoRoot, params.expectedRelativeDir),
-    argv1: params.argv1 ?? path.join(params.repoRoot, "openclaw.mjs"),
+    argv1: params.argv1 ?? path.join(params.repoRoot, "astroclaw.mjs"),
     ...(params.bundledDirOverride ? { bundledDirOverride: params.bundledDirOverride } : {}),
     ...(params.vitest !== undefined ? { vitest: params.vitest } : {}),
     ...(params.execArgv ? { execArgv: params.execArgv } : {}),
@@ -162,14 +162,14 @@ function requireBundledDir(value: string | null | undefined): string {
 afterEach(() => {
   vi.restoreAllMocks();
   if (originalBundledDir === undefined) {
-    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+    delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
   } else {
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = originalBundledDir;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = originalBundledDir;
   }
   if (originalDisableBundledPlugins === undefined) {
-    delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+    delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
   } else {
-    process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS = originalDisableBundledPlugins;
+    process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS = originalDisableBundledPlugins;
   }
   if (originalVitest === undefined) {
     delete process.env.VITEST;
@@ -187,7 +187,7 @@ describe("resolveBundledPluginsDir", () => {
     [
       "prefers the runtime bundled plugin tree from the package root",
       {
-        prefix: "openclaw-bundled-dir-runtime-",
+        prefix: "astroclaw-bundled-dir-runtime-",
         hasDistRuntimeExtensions: true,
         hasDistExtensions: true,
       },
@@ -198,7 +198,7 @@ describe("resolveBundledPluginsDir", () => {
     [
       "falls back to built dist/extensions in installed package roots",
       {
-        prefix: "openclaw-bundled-dir-dist-",
+        prefix: "astroclaw-bundled-dir-dist-",
         hasDistExtensions: true,
       },
       {
@@ -208,7 +208,7 @@ describe("resolveBundledPluginsDir", () => {
     [
       "prefers built dist/extensions in a pnpm git checkout outside vitest",
       {
-        prefix: "openclaw-bundled-dir-git-built-",
+        prefix: "astroclaw-bundled-dir-git-built-",
         hasExtensions: true,
         hasSrc: true,
         hasDistRuntimeExtensions: true,
@@ -223,7 +223,7 @@ describe("resolveBundledPluginsDir", () => {
     [
       "does not prefer source extensions from VITEST alone",
       {
-        prefix: "openclaw-bundled-dir-vitest-",
+        prefix: "astroclaw-bundled-dir-vitest-",
         hasExtensions: true,
         hasDistRuntimeExtensions: true,
         hasDistExtensions: true,
@@ -236,7 +236,7 @@ describe("resolveBundledPluginsDir", () => {
     [
       "prefers built dist/extensions during tsx-driven pnpm source execution",
       {
-        prefix: "openclaw-bundled-dir-tsx-built-",
+        prefix: "astroclaw-bundled-dir-tsx-built-",
         hasExtensions: true,
         hasSrc: true,
         hasDistRuntimeExtensions: true,
@@ -252,7 +252,7 @@ describe("resolveBundledPluginsDir", () => {
     [
       "uses source extensions in a pnpm git checkout when built trees are missing",
       {
-        prefix: "openclaw-bundled-dir-git-",
+        prefix: "astroclaw-bundled-dir-git-",
         hasExtensions: true,
         hasSrc: true,
         hasGitCheckout: true,
@@ -263,7 +263,7 @@ describe("resolveBundledPluginsDir", () => {
       },
     ],
   ] as const)("%s", (_name, layout, expectation) => {
-    const repoRoot = createOpenClawRoot(layout);
+    const repoRoot = createAstroclawRoot(layout);
     if (expectation.expectedRelativeDir === path.join("dist-runtime", "extensions")) {
       seedBundledPluginTree(repoRoot, path.join("dist", "extensions"));
       seedBundledPluginTree(repoRoot, path.join("dist-runtime", "extensions"));
@@ -281,8 +281,8 @@ describe("resolveBundledPluginsDir", () => {
   });
 
   it("falls back to source extensions when dist trees exist but do not contain real plugin manifests", () => {
-    const repoRoot = createOpenClawRoot({
-      prefix: "openclaw-bundled-dir-incomplete-built-",
+    const repoRoot = createAstroclawRoot({
+      prefix: "astroclaw-bundled-dir-incomplete-built-",
       hasExtensions: true,
       hasSrc: true,
       hasDistRuntimeExtensions: true,
@@ -303,8 +303,8 @@ describe("resolveBundledPluginsDir", () => {
   });
 
   it("keeps built bundled plugins for git-looking trees without pnpm workspace metadata", () => {
-    const repoRoot = createOpenClawRoot({
-      prefix: "openclaw-bundled-dir-git-no-pnpm-",
+    const repoRoot = createAstroclawRoot({
+      prefix: "astroclaw-bundled-dir-git-no-pnpm-",
       hasExtensions: true,
       hasSrc: true,
       hasDistRuntimeExtensions: true,
@@ -322,8 +322,8 @@ describe("resolveBundledPluginsDir", () => {
   });
 
   it("reports missing pnpm workspace deps for source checkouts", () => {
-    const repoRoot = createOpenClawRoot({
-      prefix: "openclaw-bundled-dir-source-deps-",
+    const repoRoot = createAstroclawRoot({
+      prefix: "astroclaw-bundled-dir-source-deps-",
       hasExtensions: true,
       hasSrc: true,
       hasGitCheckout: true,
@@ -331,33 +331,33 @@ describe("resolveBundledPluginsDir", () => {
     });
     seedBundledPluginTree(repoRoot, "extensions", "twitch");
     vi.spyOn(process, "cwd").mockReturnValue(repoRoot);
-    process.argv[1] = path.join(repoRoot, "openclaw.mjs");
+    process.argv[1] = path.join(repoRoot, "astroclaw.mjs");
 
     expect(resolveSourceCheckoutDependencyDiagnostic()).toEqual({
       source: repoRoot,
       message:
-        "OpenClaw source checkout detected without pnpm workspace dependencies; run `pnpm install` from the repo root so bundled plugins can load package-local dependencies.",
+        "Astroclaw source checkout detected without pnpm workspace dependencies; run `pnpm install` from the repo root so bundled plugins can load package-local dependencies.",
     });
 
-    process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS = "1";
+    process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS = "1";
     expect(resolveSourceCheckoutDependencyDiagnostic()).toBeNull();
 
-    delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+    delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
     fs.mkdirSync(path.join(repoRoot, "node_modules", ".pnpm"), { recursive: true });
     expect(resolveSourceCheckoutDependencyDiagnostic()).toBeNull();
   });
 
   it("returns a stable empty bundled plugin directory when bundled plugins are disabled", () => {
-    const repoRoot = createOpenClawRoot({
-      prefix: "openclaw-bundled-dir-disabled-",
+    const repoRoot = createAstroclawRoot({
+      prefix: "astroclaw-bundled-dir-disabled-",
       hasExtensions: true,
       hasSrc: true,
       hasGitCheckout: true,
     });
     vi.spyOn(process, "cwd").mockReturnValue(repoRoot);
     process.argv[1] = "/usr/bin/env";
-    process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS = "1";
-    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+    process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS = "1";
+    delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
 
     const bundledDir = requireBundledDir(resolveBundledPluginsDir());
 
@@ -365,37 +365,37 @@ describe("resolveBundledPluginsDir", () => {
     expect(fs.readdirSync(bundledDir)).toStrictEqual([]);
   });
 
-  it("separates tilde override cache entries by OPENCLAW_HOME", () => {
-    const homeA = makeRepoRoot("openclaw-bundled-dir-home-a-");
-    const homeB = makeRepoRoot("openclaw-bundled-dir-home-b-");
+  it("separates tilde override cache entries by ASTROCLAW_HOME", () => {
+    const homeA = makeRepoRoot("astroclaw-bundled-dir-home-a-");
+    const homeB = makeRepoRoot("astroclaw-bundled-dir-home-b-");
     seedBundledPluginTree(homeA, "bundled", "memory-core");
     seedBundledPluginTree(homeB, "bundled", "discord");
     const envBase = {
-      OPENCLAW_BUNDLED_PLUGINS_DIR: "~/bundled",
-      OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1",
+      ASTROCLAW_BUNDLED_PLUGINS_DIR: "~/bundled",
+      ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1",
       VITEST: "true",
     } satisfies NodeJS.ProcessEnv;
 
-    const bundledA = resolveBundledPluginsDir({ ...envBase, OPENCLAW_HOME: homeA });
-    const bundledB = resolveBundledPluginsDir({ ...envBase, OPENCLAW_HOME: homeB });
+    const bundledA = resolveBundledPluginsDir({ ...envBase, ASTROCLAW_HOME: homeA });
+    const bundledB = resolveBundledPluginsDir({ ...envBase, ASTROCLAW_HOME: homeB });
 
     expect(fs.realpathSync(bundledA ?? "")).toBe(fs.realpathSync(path.join(homeA, "bundled")));
     expect(fs.realpathSync(bundledB ?? "")).toBe(fs.realpathSync(path.join(homeB, "bundled")));
   });
 
   it("ignores an existing override under an argv1-derived fake package root", () => {
-    const installedRoot = createOpenClawRoot({
-      prefix: "openclaw-bundled-dir-argv-override-reject-",
+    const installedRoot = createAstroclawRoot({
+      prefix: "astroclaw-bundled-dir-argv-override-reject-",
       hasDistExtensions: true,
     });
     seedBundledPluginTree(installedRoot, path.join("dist", "extensions"));
 
     vi.spyOn(process, "cwd").mockReturnValue(installedRoot);
-    process.argv[1] = path.join(installedRoot, "openclaw.mjs");
+    process.argv[1] = path.join(installedRoot, "astroclaw.mjs");
     process.execArgv.length = 0;
     delete process.env.VITEST;
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = path.join(installedRoot, "dist", "extensions");
-    delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = path.join(installedRoot, "dist", "extensions");
+    delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
 
     const bundledDir = requireBundledDir(resolveBundledPluginsDir());
 
@@ -405,16 +405,16 @@ describe("resolveBundledPluginsDir", () => {
   });
 
   it("does not let VITEST relax existing override trust checks", () => {
-    const overrideRoot = makeRepoRoot("openclaw-bundled-dir-vitest-override-reject-");
+    const overrideRoot = makeRepoRoot("astroclaw-bundled-dir-vitest-override-reject-");
     seedBundledPluginTree(overrideRoot, "extensions", "memory-core");
 
     vi.spyOn(process, "cwd").mockReturnValue(overrideRoot);
     process.argv[1] = "/usr/bin/env";
     process.execArgv.length = 0;
     process.env.VITEST = "true";
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = path.join(overrideRoot, "extensions");
-    delete process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
-    delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = path.join(overrideRoot, "extensions");
+    delete process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
+    delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
 
     const bundledDir = requireBundledDir(resolveBundledPluginsDir());
 
@@ -424,8 +424,8 @@ describe("resolveBundledPluginsDir", () => {
   });
 
   it("does not let VITEST add cwd to bundled plugin resolution candidates", () => {
-    const cwdRepoRoot = createOpenClawRoot({
-      prefix: "openclaw-bundled-dir-vitest-cwd-",
+    const cwdRepoRoot = createAstroclawRoot({
+      prefix: "astroclaw-bundled-dir-vitest-cwd-",
       hasExtensions: true,
       hasSrc: true,
       hasGitCheckout: true,
@@ -436,8 +436,8 @@ describe("resolveBundledPluginsDir", () => {
     process.argv[1] = "/usr/bin/env";
     process.execArgv.length = 0;
     process.env.VITEST = "true";
-    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
-    delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+    delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
+    delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
 
     const bundledDir = requireBundledDir(resolveBundledPluginsDir());
 
@@ -447,16 +447,16 @@ describe("resolveBundledPluginsDir", () => {
   });
 
   it("falls back from a missing override instead of returning an untrusted future path", () => {
-    vi.spyOn(process, "cwd").mockReturnValue(makeRepoRoot("openclaw-bundled-dir-missing-cwd-"));
+    vi.spyOn(process, "cwd").mockReturnValue(makeRepoRoot("astroclaw-bundled-dir-missing-cwd-"));
     process.argv[1] = "/usr/bin/env";
     process.execArgv.length = 0;
     delete process.env.VITEST;
     const missingOverride = path.join(
-      makeRepoRoot("openclaw-bundled-dir-missing-override-"),
+      makeRepoRoot("astroclaw-bundled-dir-missing-override-"),
       "extensions",
     );
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = missingOverride;
-    delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = missingOverride;
+    delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
 
     const bundledDir = requireBundledDir(resolveBundledPluginsDir());
 
@@ -464,20 +464,20 @@ describe("resolveBundledPluginsDir", () => {
   });
 
   it("falls back to argv root when an existing rejected override is unrelated", () => {
-    const installedRoot = createOpenClawRoot({
-      prefix: "openclaw-bundled-dir-rejected-override-argv-",
+    const installedRoot = createAstroclawRoot({
+      prefix: "astroclaw-bundled-dir-rejected-override-argv-",
       hasDistExtensions: true,
     });
     seedBundledPluginTree(installedRoot, path.join("dist", "extensions"));
-    const overrideRoot = makeRepoRoot("openclaw-bundled-dir-rejected-override-");
+    const overrideRoot = makeRepoRoot("astroclaw-bundled-dir-rejected-override-");
     seedBundledPluginTree(overrideRoot, "extensions", "memory-core");
 
-    vi.spyOn(process, "cwd").mockReturnValue(makeRepoRoot("openclaw-bundled-dir-rejected-cwd-"));
-    process.argv[1] = path.join(installedRoot, "openclaw.mjs");
+    vi.spyOn(process, "cwd").mockReturnValue(makeRepoRoot("astroclaw-bundled-dir-rejected-cwd-"));
+    process.argv[1] = path.join(installedRoot, "astroclaw.mjs");
     process.execArgv.length = 0;
     delete process.env.VITEST;
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = path.join(overrideRoot, "extensions");
-    delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = path.join(overrideRoot, "extensions");
+    delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
 
     const bundledDir = resolveBundledPluginsDir();
 
@@ -487,8 +487,8 @@ describe("resolveBundledPluginsDir", () => {
   });
 
   it("does not resolve bundled plugins from cwd when argv1 is not a package root", () => {
-    const cwdRepoRoot = createOpenClawRoot({
-      prefix: "openclaw-bundled-dir-untrusted-cwd-",
+    const cwdRepoRoot = createAstroclawRoot({
+      prefix: "astroclaw-bundled-dir-untrusted-cwd-",
       hasExtensions: true,
       hasSrc: true,
       hasGitCheckout: true,
@@ -503,8 +503,8 @@ describe("resolveBundledPluginsDir", () => {
     process.argv[1] = "/usr/bin/env";
     process.execArgv.length = 0;
     delete process.env.VITEST;
-    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
-    delete process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS;
+    delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
+    delete process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS;
 
     const bundledDir = requireBundledDir(resolveBundledPluginsDir());
 
@@ -517,13 +517,13 @@ describe("resolveBundledPluginsDir", () => {
     {
       name: "prefers the running CLI package root over an unrelated cwd checkout",
       createScenario: () => {
-        const installedRoot = createOpenClawRoot({
-          prefix: "openclaw-bundled-dir-installed-",
+        const installedRoot = createAstroclawRoot({
+          prefix: "astroclaw-bundled-dir-installed-",
           hasDistExtensions: true,
         });
         seedBundledPluginTree(installedRoot, path.join("dist", "extensions"));
-        const cwdRepoRoot = createOpenClawRoot({
-          prefix: "openclaw-bundled-dir-cwd-",
+        const cwdRepoRoot = createAstroclawRoot({
+          prefix: "astroclaw-bundled-dir-cwd-",
           hasExtensions: true,
           hasSrc: true,
           hasGitCheckout: true,
@@ -531,21 +531,21 @@ describe("resolveBundledPluginsDir", () => {
         return {
           installedRoot,
           cwd: cwdRepoRoot,
-          argv1: path.join(installedRoot, "openclaw.mjs"),
+          argv1: path.join(installedRoot, "astroclaw.mjs"),
         };
       },
     },
     {
       name: "falls back to the running installed package when the override path is stale",
       createScenario: () => {
-        const installedRoot = createOpenClawRoot({
-          prefix: "openclaw-bundled-dir-override-",
+        const installedRoot = createAstroclawRoot({
+          prefix: "astroclaw-bundled-dir-override-",
           hasDistExtensions: true,
         });
         seedBundledPluginTree(installedRoot, path.join("dist", "extensions"));
         return {
           installedRoot,
-          argv1: path.join(installedRoot, "openclaw.mjs"),
+          argv1: path.join(installedRoot, "astroclaw.mjs"),
           bundledDirOverride: path.join(installedRoot, "missing-extensions"),
         };
       },

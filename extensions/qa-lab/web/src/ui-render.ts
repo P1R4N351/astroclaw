@@ -759,14 +759,14 @@ function renderCaptureStartupStatusRow(status: CaptureStartupProbeStatus | null)
 
 function renderCaptureStartupInstructions(status: CaptureStartupStatus | null): string {
   const proxyStart = "pnpm proxy:start --port 7799";
-  const gatewayStart = `OPENCLAW_DEBUG_PROXY_ENABLED=1 \\
-OPENCLAW_DEBUG_PROXY_REQUIRE=1 \\
-OPENCLAW_DEBUG_PROXY_URL=http://127.0.0.1:7799 \\
-pnpm openclaw gateway --port 18789 --bind loopback`;
+  const gatewayStart = `ASTROCLAW_DEBUG_PROXY_ENABLED=1 \\
+ASTROCLAW_DEBUG_PROXY_REQUIRE=1 \\
+ASTROCLAW_DEBUG_PROXY_URL=http://127.0.0.1:7799 \\
+pnpm astroclaw gateway --port 18789 --bind loopback`;
   const qaStart = "pnpm qa:lab:ui --port 43124 --control-ui-url http://127.0.0.1:18789/";
   const caInstall = "pnpm proxy:install-ca";
   const caTrust =
-    "sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain /Users/thoffman/.openclaw/debug-proxy/certs/root-ca.pem";
+    "sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain /Users/thoffman/.astroclaw/debug-proxy/certs/root-ca.pem";
   return `<div class="capture-startup-state">
     <div class="capture-startup-title">Proxy capture is not running yet.</div>
     <div class="text-dimmed text-sm capture-startup-copy">

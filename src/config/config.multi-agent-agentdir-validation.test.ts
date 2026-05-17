@@ -7,7 +7,7 @@ import { validateConfigObject } from "./validation.js";
 
 describe("multi-agent agentDir validation", () => {
   it("rejects shared agents.list agentDir", () => {
-    const shared = path.join(tmpdir(), "openclaw-shared-agentdir");
+    const shared = path.join(tmpdir(), "astroclaw-shared-agentdir");
     const res = validateConfigObject({
       agents: {
         list: [
@@ -39,8 +39,8 @@ If you want to share credentials, copy auth-profiles.json instead of sharing the
       {
         agents: {
           list: [
-            { id: "a", agentDir: "~/.openclaw/agents/shared/agent" },
-            { id: "b", agentDir: "~/.openclaw/agents/shared/agent" },
+            { id: "a", agentDir: "~/.astroclaw/agents/shared/agent" },
+            { id: "b", agentDir: "~/.astroclaw/agents/shared/agent" },
           ],
         },
         bindings: [{ agentId: "a", match: { channel: "forum" } }],

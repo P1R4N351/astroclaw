@@ -47,17 +47,17 @@ const coreTools = [
   stubTool("pdf"),
 ];
 
-const createOpenClawToolsMock = vi.fn(
+const createAstroclawToolsMock = vi.fn(
   (options?: { enableHeartbeatTool?: boolean; recordToolPrepStage?: (name: string) => void }) => {
-    options?.recordToolPrepStage?.("openclaw-tools:test-helper");
+    options?.recordToolPrepStage?.("astroclaw-tools:test-helper");
     return coreTools
       .filter((tool) => tool.name !== "heartbeat_respond" || options?.enableHeartbeatTool === true)
       .map((tool) => Object.assign({}, tool));
   },
 );
 
-vi.mock("../openclaw-tools.js", () => ({
-  createOpenClawTools: createOpenClawToolsMock,
+vi.mock("../astroclaw-tools.js", () => ({
+  createAstroclawTools: createAstroclawToolsMock,
   __testing: {
     setDepsForTest: () => {},
   },

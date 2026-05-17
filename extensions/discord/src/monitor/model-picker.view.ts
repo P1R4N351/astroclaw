@@ -3,8 +3,8 @@ import { ButtonStyle } from "discord-api-types/v10";
 import type {
   ModelsProviderData,
   ModelsRuntimeChoice,
-} from "openclaw/plugin-sdk/models-provider-runtime";
-import { normalizeProviderId } from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/models-provider-runtime";
+import { normalizeProviderId } from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   Button,
   Container,
@@ -180,8 +180,8 @@ function getRuntimeChoices(params: {
   return [
     {
       id: "pi",
-      label: "OpenClaw Pi Default",
-      description: "Use the built-in OpenClaw Pi runtime.",
+      label: "Astroclaw Pi Default",
+      description: "Use the built-in Astroclaw Pi runtime.",
     },
   ];
 }

@@ -40,7 +40,7 @@ async function main() {
   assert.equal(zeroPhases.length, 0);
   console.log("getRecentDiagnosticPhases(0).length =", zeroPhases.length);
 
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-proof-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-proof-"));
   const sessionFile = path.join(root, "s.jsonl");
   fs.writeFileSync(
     sessionFile,

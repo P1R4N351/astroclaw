@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
-import { __testing, createOpenClawTools } from "./openclaw-tools.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import { __testing, createAstroclawTools } from "./astroclaw-tools.js";
 import type { AnyAgentTool } from "./tools/common.js";
 
 const mocks = vi.hoisted(() => {
@@ -19,18 +19,18 @@ const mocks = vi.hoisted(() => {
     createCronToolOptions: vi.fn(),
     textToSpeech: vi.fn(async () => ({
       success: true,
-      audioPath: "/tmp/openclaw/tts-config-test.opus",
+      audioPath: "/tmp/astroclaw/tts-config-test.opus",
       provider: "microsoft",
       voiceCompatible: true,
     })),
   };
 });
 
-vi.mock("./openclaw-plugin-tools.js", () => ({
-  resolveOpenClawPluginToolsForOptions: () => [],
+vi.mock("./astroclaw-plugin-tools.js", () => ({
+  resolveAstroclawPluginToolsForOptions: () => [],
 }));
 
-vi.mock("./openclaw-tools.nodes-workspace-guard.js", () => ({
+vi.mock("./astroclaw-tools.nodes-workspace-guard.js", () => ({
   applyNodesToolWorkspaceGuard: (tool: AnyAgentTool) => tool,
 }));
 
@@ -123,7 +123,7 @@ function getTextToSpeechParams() {
   return calls[0]?.[0] as
     | {
         text?: string;
-        cfg?: OpenClawConfig;
+        cfg?: AstroclawConfig;
         agentId?: string;
         channel?: string;
         accountId?: string;
@@ -131,7 +131,7 @@ function getTextToSpeechParams() {
     | undefined;
 }
 
-describe("createOpenClawTools TTS config wiring", () => {
+describe("createAstroclawTools TTS config wiring", () => {
   beforeEach(() => {
     mocks.createCronToolOptions.mockClear();
     mocks.textToSpeech.mockClear();
@@ -150,12 +150,12 @@ describe("createOpenClawTools TTS config wiring", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     __testing.setDepsForTest({ config: injectedConfig });
 
     try {
-      const tool = createOpenClawTools({
+      const tool = createAstroclawTools({
         disableMessageTool: true,
         disablePluginTools: true,
       }).find((candidate) => candidate.name === "tts");
@@ -178,7 +178,7 @@ describe("createOpenClawTools TTS config wiring", () => {
     __testing.setDepsForTest({ config: {} });
 
     try {
-      const tool = createOpenClawTools({
+      const tool = createAstroclawTools({
         disableMessageTool: true,
         disablePluginTools: true,
       }).find((candidate) => candidate.name === "tts");
@@ -199,12 +199,12 @@ describe("createOpenClawTools TTS config wiring", () => {
       agents: {
         list: [{ id: "reader" }, { id: "main" }],
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     __testing.setDepsForTest({ config: injectedConfig });
 
     try {
-      const tool = createOpenClawTools({
+      const tool = createAstroclawTools({
         agentSessionKey: "agent:reader:telegram:chat:123",
         disableMessageTool: true,
         disablePluginTools: true,
@@ -237,12 +237,12 @@ describe("createOpenClawTools TTS config wiring", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     __testing.setDepsForTest({ config: injectedConfig });
 
     try {
-      const tool = createOpenClawTools({
+      const tool = createAstroclawTools({
         agentChannel: "feishu",
         agentAccountId: "feishu-main",
         disableMessageTool: true,
@@ -266,13 +266,13 @@ describe("createOpenClawTools TTS config wiring", () => {
   });
 });
 
-describe("createOpenClawTools cron context wiring", () => {
+describe("createAstroclawTools cron context wiring", () => {
   beforeEach(() => {
     mocks.createCronToolOptions.mockClear();
   });
 
   it("passes preserved channel delivery context into the cron tool", async () => {
-    createOpenClawTools({
+    createAstroclawTools({
       agentSessionKey: "agent:main:matrix:channel:!abcdef1234567890:example.org",
       agentChannel: "matrix",
       agentAccountId: "bot-a",
@@ -296,7 +296,7 @@ describe("createOpenClawTools cron context wiring", () => {
   });
 
   it("uses agent route context when auto-threading context is unavailable", async () => {
-    createOpenClawTools({
+    createAstroclawTools({
       agentSessionKey: "agent:main:matrix:channel:!abcdef1234567890:example.org",
       agentChannel: "matrix",
       agentAccountId: "bot-a",
@@ -318,7 +318,7 @@ describe("createOpenClawTools cron context wiring", () => {
   });
 
   it("passes self-remove scope into the cron tool", async () => {
-    createOpenClawTools({
+    createAstroclawTools({
       agentSessionKey: "agent:main:cron:job-current",
       cronSelfRemoveOnlyJobId: "job-current",
       disableMessageTool: true,

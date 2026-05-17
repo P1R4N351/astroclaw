@@ -1,6 +1,6 @@
 import Foundation
 
-public struct OpenClawChatThinkingLevelOption: Codable, Identifiable, Sendable, Hashable {
+public struct AstroclawChatThinkingLevelOption: Codable, Identifiable, Sendable, Hashable {
     public let id: String
     public let label: String
 
@@ -10,7 +10,7 @@ public struct OpenClawChatThinkingLevelOption: Codable, Identifiable, Sendable, 
     }
 }
 
-public struct OpenClawChatModelChoice: Identifiable, Codable, Sendable, Hashable {
+public struct AstroclawChatModelChoice: Identifiable, Codable, Sendable, Hashable {
     public var id: String {
         self.selectionID
     }
@@ -43,11 +43,11 @@ public struct OpenClawChatModelChoice: Identifiable, Codable, Sendable, Hashable
     }
 }
 
-public struct OpenClawChatSessionsDefaults: Codable, Sendable {
+public struct AstroclawChatSessionsDefaults: Codable, Sendable {
     public let modelProvider: String?
     public let model: String?
     public let contextTokens: Int?
-    public let thinkingLevels: [OpenClawChatThinkingLevelOption]?
+    public let thinkingLevels: [AstroclawChatThinkingLevelOption]?
     public let thinkingOptions: [String]?
     public let thinkingDefault: String?
     public let mainSessionKey: String?
@@ -56,7 +56,7 @@ public struct OpenClawChatSessionsDefaults: Codable, Sendable {
         modelProvider: String? = nil,
         model: String?,
         contextTokens: Int?,
-        thinkingLevels: [OpenClawChatThinkingLevelOption]? = nil,
+        thinkingLevels: [AstroclawChatThinkingLevelOption]? = nil,
         thinkingOptions: [String]? = nil,
         thinkingDefault: String? = nil,
         mainSessionKey: String? = nil)
@@ -71,7 +71,7 @@ public struct OpenClawChatSessionsDefaults: Codable, Sendable {
     }
 }
 
-public struct OpenClawChatSessionEntry: Codable, Identifiable, Sendable, Hashable {
+public struct AstroclawChatSessionEntry: Codable, Identifiable, Sendable, Hashable {
     public var id: String {
         self.key
     }
@@ -98,7 +98,7 @@ public struct OpenClawChatSessionEntry: Codable, Identifiable, Sendable, Hashabl
     public let modelProvider: String?
     public let model: String?
     public let contextTokens: Int?
-    public let thinkingLevels: [OpenClawChatThinkingLevelOption]?
+    public let thinkingLevels: [AstroclawChatThinkingLevelOption]?
     public let thinkingOptions: [String]?
     public let thinkingDefault: String?
 
@@ -122,7 +122,7 @@ public struct OpenClawChatSessionEntry: Codable, Identifiable, Sendable, Hashabl
         modelProvider: String?,
         model: String?,
         contextTokens: Int?,
-        thinkingLevels: [OpenClawChatThinkingLevelOption]? = nil,
+        thinkingLevels: [AstroclawChatThinkingLevelOption]? = nil,
         thinkingOptions: [String]? = nil,
         thinkingDefault: String? = nil)
     {
@@ -151,19 +151,19 @@ public struct OpenClawChatSessionEntry: Codable, Identifiable, Sendable, Hashabl
     }
 }
 
-public struct OpenClawChatSessionsListResponse: Codable, Sendable {
+public struct AstroclawChatSessionsListResponse: Codable, Sendable {
     public let ts: Double?
     public let path: String?
     public let count: Int?
-    public let defaults: OpenClawChatSessionsDefaults?
-    public let sessions: [OpenClawChatSessionEntry]
+    public let defaults: AstroclawChatSessionsDefaults?
+    public let sessions: [AstroclawChatSessionEntry]
 
     public init(
         ts: Double?,
         path: String?,
         count: Int?,
-        defaults: OpenClawChatSessionsDefaults?,
-        sessions: [OpenClawChatSessionEntry])
+        defaults: AstroclawChatSessionsDefaults?,
+        sessions: [AstroclawChatSessionEntry])
     {
         self.ts = ts
         self.path = path

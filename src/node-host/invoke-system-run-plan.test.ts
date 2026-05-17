@@ -112,7 +112,7 @@ let sharedFixtureId = 0;
 const sharedRuntimeBins = new Set<string>();
 
 beforeAll(() => {
-  sharedFixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-run-plan-fixtures-"));
+  sharedFixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-run-plan-fixtures-"));
   sharedRuntimeBinDir = path.join(sharedFixtureRoot, "bin");
   fs.mkdirSync(sharedRuntimeBinDir, { recursive: true });
 });
@@ -288,31 +288,31 @@ const unsafeRuntimeInvocationCases: UnsafeRuntimeInvocationCase[] = [
   {
     name: "rejects bun package script names that do not bind a concrete file",
     binName: "bun",
-    tmpPrefix: "openclaw-bun-package-script-",
+    tmpPrefix: "astroclaw-bun-package-script-",
     command: ["bun", "run", "dev"],
   },
   {
     name: "rejects deno eval invocations that do not bind a concrete file",
     binName: "deno",
-    tmpPrefix: "openclaw-deno-eval-",
+    tmpPrefix: "astroclaw-deno-eval-",
     command: ["deno", "eval", "console.log('SAFE')"],
   },
   {
     name: "rejects tsx eval invocations that do not bind a concrete file",
     binName: "tsx",
-    tmpPrefix: "openclaw-tsx-eval-",
+    tmpPrefix: "astroclaw-tsx-eval-",
     command: ["tsx", "--eval", "console.log('SAFE')"],
   },
   {
     name: "rejects busybox applets that cannot be safely bound",
     binName: "busybox",
-    tmpPrefix: "openclaw-busybox-awk-",
+    tmpPrefix: "astroclaw-busybox-awk-",
     command: ["busybox", "awk", 'BEGIN{system("id")}'],
   },
   {
     name: "rejects busybox applets even when cwd contains a file named after the applet",
     binName: "busybox",
-    tmpPrefix: "openclaw-busybox-awk-file-bait-",
+    tmpPrefix: "astroclaw-busybox-awk-file-bait-",
     command: ["busybox", "awk", 'BEGIN{system("id")}'],
     setup: (tmp) => {
       fs.writeFileSync(path.join(tmp, "awk"), "bait\n");
@@ -321,13 +321,13 @@ const unsafeRuntimeInvocationCases: UnsafeRuntimeInvocationCase[] = [
   {
     name: "rejects toybox applets that cannot be safely bound",
     binName: "toybox",
-    tmpPrefix: "openclaw-toybox-awk-",
+    tmpPrefix: "astroclaw-toybox-awk-",
     command: ["toybox", "awk", 'BEGIN{system("id")}'],
   },
   {
     name: "rejects node inline import operands that cannot be bound to one stable file",
     binName: "node",
-    tmpPrefix: "openclaw-node-import-inline-",
+    tmpPrefix: "astroclaw-node-import-inline-",
     command: ["node", "--import=./preload.mjs", "./main.mjs"],
     setup: (tmp) => {
       fs.writeFileSync(path.join(tmp, "main.mjs"), 'console.log("SAFE")\n');
@@ -337,7 +337,7 @@ const unsafeRuntimeInvocationCases: UnsafeRuntimeInvocationCase[] = [
   {
     name: "rejects ruby require preloads that approval cannot bind completely",
     binName: "ruby",
-    tmpPrefix: "openclaw-ruby-require-",
+    tmpPrefix: "astroclaw-ruby-require-",
     command: ["ruby", "-r", "attacker", "./safe.rb"],
     setup: (tmp) => {
       fs.writeFileSync(path.join(tmp, "safe.rb"), 'puts "SAFE"\n');
@@ -346,7 +346,7 @@ const unsafeRuntimeInvocationCases: UnsafeRuntimeInvocationCase[] = [
   {
     name: "rejects perl module preloads that approval cannot bind completely",
     binName: "perl",
-    tmpPrefix: "openclaw-perl-module-preload-",
+    tmpPrefix: "astroclaw-perl-module-preload-",
     command: ["perl", "-MPreload", "./safe.pl"],
     setup: (tmp) => {
       fs.writeFileSync(path.join(tmp, "safe.pl"), 'print "SAFE\\n";\n');
@@ -355,7 +355,7 @@ const unsafeRuntimeInvocationCases: UnsafeRuntimeInvocationCase[] = [
   {
     name: "rejects perl load-path flags that can redirect module resolution after approval",
     binName: "perl",
-    tmpPrefix: "openclaw-perl-load-path-",
+    tmpPrefix: "astroclaw-perl-load-path-",
     command: ["perl", "-Ilib", "./safe.pl"],
     setup: (tmp) => {
       fs.writeFileSync(path.join(tmp, "safe.pl"), 'print "SAFE\\n";\n');
@@ -364,7 +364,7 @@ const unsafeRuntimeInvocationCases: UnsafeRuntimeInvocationCase[] = [
   {
     name: "rejects shell payloads that hide mutable interpreter scripts",
     binName: "node",
-    tmpPrefix: "openclaw-inline-shell-node-",
+    tmpPrefix: "astroclaw-inline-shell-node-",
     command: ["sh", "-lc", "node ./run.js"],
     setup: (tmp) => {
       fs.writeFileSync(path.join(tmp, "run.js"), 'console.log("SAFE")\n');
@@ -373,7 +373,7 @@ const unsafeRuntimeInvocationCases: UnsafeRuntimeInvocationCase[] = [
   {
     name: "rejects pnpm dlx invocations with unrecognized flags that cannot be safely bound",
     binName: "pnpm",
-    tmpPrefix: "openclaw-pnpm-dlx-unknown-flag-",
+    tmpPrefix: "astroclaw-pnpm-dlx-unknown-flag-",
     command: ["pnpm", "dlx", "--future-flag", "tsx", "./run.ts"],
     setup: (tmp) => {
       fs.writeFileSync(path.join(tmp, "run.ts"), 'console.log("SAFE")\n');
@@ -382,7 +382,7 @@ const unsafeRuntimeInvocationCases: UnsafeRuntimeInvocationCase[] = [
   {
     name: "rejects pnpm dlx invocations with unrecognized global flags that take a value before dlx",
     binName: "pnpm",
-    tmpPrefix: "openclaw-pnpm-dlx-unknown-prefix-value-",
+    tmpPrefix: "astroclaw-pnpm-dlx-unknown-prefix-value-",
     command: ["pnpm", "--future-flag", "value", "dlx", "tsx", "./run.ts"],
     setup: (tmp) => {
       fs.writeFileSync(path.join(tmp, "run.ts"), 'console.log("SAFE")\n');
@@ -449,7 +449,7 @@ describe("hardenApprovedExecutionPaths", () => {
   it.runIf(process.platform !== "win32")("handles approval hardening cases", () => {
     for (const testCase of cases) {
       runNamedCase(testCase.name, () => {
-        const tmp = createFixtureDir("openclaw-approval-hardening-");
+        const tmp = createFixtureDir("astroclaw-approval-hardening-");
         const oldPath = process.env.PATH;
         let pathToken: PathTokenSetup | null = null;
         if (testCase.withPathToken) {
@@ -627,7 +627,7 @@ describe("hardenApprovedExecutionPaths", () => {
   ];
 
   it("captures mutable runtime operands in approval plans", () => {
-    const tmp = createFixtureDir("openclaw-approval-script-plan-");
+    const tmp = createFixtureDir("astroclaw-approval-script-plan-");
     withFakeRuntimeBins({
       binNames: uniqueRuntimeBinNames(mutableOperandCases),
       run: () => {
@@ -654,7 +654,7 @@ describe("hardenApprovedExecutionPaths", () => {
   it("captures mutable shell script operands in approval plans", () => {
     withScriptOperandPlanFixture(
       {
-        tmpPrefix: "openclaw-approval-script-plan-",
+        tmpPrefix: "astroclaw-approval-script-plan-",
       },
       (fixture, tmp) => {
         expectMutableFileOperandApprovalPlan(fixture, tmp);
@@ -687,7 +687,7 @@ describe("hardenApprovedExecutionPaths", () => {
     if (process.platform === "win32") {
       return;
     }
-    const tmp = createFixtureDir("openclaw-shell-relative-binary-binding-");
+    const tmp = createFixtureDir("astroclaw-shell-relative-binary-binding-");
     const binaryPath = resolveNativeBinaryFixturePath();
     const relativeBinaryPath = path.join(tmp, "tool");
     fs.copyFileSync(binaryPath, relativeBinaryPath);
@@ -704,7 +704,7 @@ describe("hardenApprovedExecutionPaths", () => {
     if (process.platform === "win32") {
       return;
     }
-    const tmp = createFixtureDir("openclaw-shell-absolute-binary-binding-");
+    const tmp = createFixtureDir("astroclaw-shell-absolute-binary-binding-");
     const binaryPath = resolveNativeBinaryFixturePath();
     const copiedBinaryPath = path.join(tmp, "tool");
     fs.copyFileSync(binaryPath, copiedBinaryPath);
@@ -721,7 +721,7 @@ describe("hardenApprovedExecutionPaths", () => {
     if (process.platform === "win32") {
       return;
     }
-    const tmp = createFixtureDir("openclaw-shell-owned-readonly-binding-");
+    const tmp = createFixtureDir("astroclaw-shell-owned-readonly-binding-");
     const binaryPath = path.join(tmp, "tool");
     try {
       fs.copyFileSync(resolveNativeBinaryFixturePath(), binaryPath);
@@ -742,7 +742,7 @@ describe("hardenApprovedExecutionPaths", () => {
     if (process.platform === "win32") {
       return;
     }
-    const tmp = createFixtureDir("openclaw-shell-symlink-binary-binding-");
+    const tmp = createFixtureDir("astroclaw-shell-symlink-binary-binding-");
     const stableDir = path.join(tmp, "stable");
     const mutableDir = path.join(tmp, "mutable");
     try {
@@ -769,22 +769,22 @@ describe("hardenApprovedExecutionPaths", () => {
   it("keeps fail-closed behavior for mutable or ambiguous shell payload files", () => {
     for (const testCase of [
       {
-        tmpPrefix: "openclaw-shell-script-binding-",
+        tmpPrefix: "astroclaw-shell-script-binding-",
         fileName: "run.sh",
         body: "#!/bin/sh\necho SAFE\n",
       },
       {
-        tmpPrefix: "openclaw-shell-empty-binding-",
+        tmpPrefix: "astroclaw-shell-empty-binding-",
         fileName: "empty",
         body: "",
       },
       {
-        tmpPrefix: "openclaw-shell-mz-text-binding-",
+        tmpPrefix: "astroclaw-shell-mz-text-binding-",
         fileName: "mz-script",
         body: "MZ not really a PE file\n",
       },
       {
-        tmpPrefix: "openclaw-shell-nul-header-binding-",
+        tmpPrefix: "astroclaw-shell-nul-header-binding-",
         fileName: "nul-script",
         body: "SAFE\u0000maybe-binary\n",
       },
@@ -797,7 +797,7 @@ describe("hardenApprovedExecutionPaths", () => {
     if (process.platform === "win32") {
       return;
     }
-    const tmp = createFixtureDir("openclaw-shell-race-binding-");
+    const tmp = createFixtureDir("astroclaw-shell-race-binding-");
     const scriptPath = path.join(tmp, "run.sh");
     fs.writeFileSync(scriptPath, "#!/bin/sh\necho SAFE\n");
     fs.chmodSync(scriptPath, 0o755);
@@ -846,7 +846,7 @@ describe("hardenApprovedExecutionPaths", () => {
       run: () => {
         withScriptOperandPlanFixture(
           {
-            tmpPrefix: "openclaw-pnpm-dlx-approval-",
+            tmpPrefix: "astroclaw-pnpm-dlx-approval-",
             fixture: {
               name: "pnpm dlx rewritten script",
               argv: ["pnpm", "dlx", "tsx", "./run.ts"],
@@ -886,7 +886,7 @@ describe("hardenApprovedExecutionPaths", () => {
     withFakeRuntimeBins({
       binNames: ["pnpm", "tsx"],
       run: () => {
-        const tmp = createFixtureDir("openclaw-pnpm-dlx-shell-mode-");
+        const tmp = createFixtureDir("astroclaw-pnpm-dlx-shell-mode-");
         fs.writeFileSync(path.join(tmp, "run.ts"), 'console.log("SAFE");\n');
         expect(
           resolveMutableFileOperandSnapshotSync({
@@ -905,19 +905,19 @@ describe("hardenApprovedExecutionPaths", () => {
       run: () => {
         const cases = [
           {
-            prefix: "openclaw-pnpm-dlx-package-bin-",
+            prefix: "astroclaw-pnpm-dlx-package-bin-",
             command: ["pnpm", "dlx", "cowsay", "hello"],
           },
           {
-            prefix: "openclaw-pnpm-dlx-package-runtime-token-",
+            prefix: "astroclaw-pnpm-dlx-package-runtime-token-",
             command: ["pnpm", "dlx", "cowsay", "node"],
           },
           {
-            prefix: "openclaw-pnpm-dlx-package-runtime-token-multi-",
+            prefix: "astroclaw-pnpm-dlx-package-runtime-token-multi-",
             command: ["pnpm", "dlx", "cowsay", "node", "hello"],
           },
           {
-            prefix: "openclaw-pnpm-dlx-package-file-",
+            prefix: "astroclaw-pnpm-dlx-package-file-",
             command: ["pnpm", "dlx", "eslint", "src/index.ts"],
             setup: (tmp: string) => {
               fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
@@ -925,7 +925,7 @@ describe("hardenApprovedExecutionPaths", () => {
             },
           },
           {
-            prefix: "openclaw-pnpm-dlx-package-data-tail-",
+            prefix: "astroclaw-pnpm-dlx-package-data-tail-",
             command: ["pnpm", "dlx", "cowsay", "tsx", "./run.ts"],
             setup: (tmp: string) => {
               fs.writeFileSync(path.join(tmp, "run.ts"), 'console.log("SAFE");\n');
@@ -947,7 +947,7 @@ describe("hardenApprovedExecutionPaths", () => {
       run: () => {
         withScriptOperandPlanFixture(
           {
-            tmpPrefix: "openclaw-pnpm-dlx-double-dash-",
+            tmpPrefix: "astroclaw-pnpm-dlx-double-dash-",
             fixture: {
               name: "pnpm dlx double dash",
               argv: ["pnpm", "dlx", "--", "tsx", "./run.ts"],
@@ -1012,7 +1012,7 @@ describe("hardenApprovedExecutionPaths", () => {
 
     for (const testCase of cases) {
       runNamedCase(testCase.name, () => {
-        const tmp = createFixtureDir("openclaw-shell-option-value-");
+        const tmp = createFixtureDir("astroclaw-shell-option-value-");
         const scriptPath = path.join(tmp, "run.sh");
         fs.writeFileSync(scriptPath, "#!/bin/sh\necho SAFE\n");
         fs.writeFileSync(path.join(tmp, testCase.decoyName), "decoy\n");
@@ -1058,7 +1058,7 @@ describe("hardenApprovedExecutionPaths", () => {
 
     for (const testCase of cases) {
       runNamedCase(testCase.name, () => {
-        const tmp = createFixtureDir("openclaw-fish-plus-script-");
+        const tmp = createFixtureDir("astroclaw-fish-plus-script-");
         const scriptPath = path.join(tmp, "+setup.fish");
         fs.writeFileSync(scriptPath, "echo SAFE\n");
         const snapshot = resolveMutableFileOperandSnapshotSync({

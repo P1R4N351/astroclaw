@@ -447,7 +447,7 @@ describe("validateTalkClientToolCallParams", () => {
         sessionKey: "agent:main:main",
         relaySessionId: "relay-1",
         callId: "call-1",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "what now" },
       }),
     ).toBe(true);

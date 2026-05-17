@@ -120,7 +120,7 @@ function makeRuntime(params: {
         resolveEnvelopeFormatOptions: vi.fn(() => ({})),
       },
       session: {
-        resolveStorePath: vi.fn(() => "/tmp/openclaw/qqbot-sessions.json"),
+        resolveStorePath: vi.fn(() => "/tmp/astroclaw/qqbot-sessions.json"),
         recordInboundSession: vi.fn(async () => undefined),
       },
       turn: {
@@ -154,7 +154,7 @@ function makeRuntime(params: {
     tts: {
       textToSpeech: vi.fn(async () => ({
         success: true,
-        audioPath: "/tmp/openclaw-qqbot/tts.wav",
+        audioPath: "/tmp/astroclaw-qqbot/tts.wav",
         provider: "test-tts",
         outputFormat: "wav",
       })),
@@ -201,7 +201,7 @@ describe("dispatchOutbound", () => {
       channel: "qqbot",
       accountId: "qq-main",
     });
-    expect(audioFileToSilkBase64Mock).toHaveBeenCalledWith("/tmp/openclaw-qqbot/tts.wav");
+    expect(audioFileToSilkBase64Mock).toHaveBeenCalledWith("/tmp/astroclaw-qqbot/tts.wav");
     const sentMedia = sendMediaMock.mock.calls.at(0)?.[0] as
       | { kind?: string; source?: unknown; msgId?: string; ttsText?: string }
       | undefined;

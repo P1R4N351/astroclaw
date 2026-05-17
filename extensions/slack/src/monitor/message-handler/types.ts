@@ -1,7 +1,7 @@
 import type { MessageMetadata } from "@slack/types";
-import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
-import type { FinalizedMsgContext } from "openclaw/plugin-sdk/reply-runtime";
-import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+import type { FinalizedMsgContext } from "astroclaw/plugin-sdk/reply-runtime";
+import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import type { SlackMessageEvent } from "../../types.js";
 import type { SlackChannelConfigResolved } from "../channel-config.js";

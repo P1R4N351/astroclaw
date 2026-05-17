@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawProtocol
+import AstroclawProtocol
 
 enum ConfigStore {
     struct Overrides {
@@ -45,7 +45,7 @@ enum ConfigStore {
         if let gateway = await self.loadFromGateway() {
             return gateway
         }
-        return OpenClawConfigFile.loadDict()
+        return AstroclawConfigFile.loadDict()
     }
 
     @MainActor
@@ -71,7 +71,7 @@ enum ConfigStore {
                         self.lastHash = nil
                         throw error
                     }
-                    guard OpenClawConfigFile.saveDict(
+                    guard AstroclawConfigFile.saveDict(
                         root,
                         preserveExistingKeys: true,
                         allowGatewayAuthMutation: allowGatewayAuthMutation)

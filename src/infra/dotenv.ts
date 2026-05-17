@@ -38,46 +38,46 @@ const BLOCKED_WORKSPACE_DOTENV_KEYS = new Set([
   "NPM_EXECPATH",
   "OPENAI_API_KEY",
   "OPENAI_API_KEYS",
-  "OPENCLAW_AGENT_DIR",
-  "OPENCLAW_ALLOW_PLUGIN_INSTALL_OVERRIDES",
-  "OPENCLAW_ALLOW_INSECURE_PRIVATE_WS",
-  "OPENCLAW_ALLOW_PROJECT_LOCAL_BIN",
-  "OPENCLAW_BROWSER_EXECUTABLE_PATH",
-  "OPENCLAW_BROWSER_CONTROL_MODULE",
-  "OPENCLAW_BUNDLED_HOOKS_DIR",
-  "OPENCLAW_BUNDLED_PLUGINS_DIR",
-  "OPENCLAW_BUNDLED_SKILLS_DIR",
-  "OPENCLAW_CACHE_TRACE",
-  "OPENCLAW_CACHE_TRACE_FILE",
-  "OPENCLAW_CACHE_TRACE_MESSAGES",
-  "OPENCLAW_CACHE_TRACE_PROMPT",
-  "OPENCLAW_CACHE_TRACE_SYSTEM",
-  "OPENCLAW_CONFIG_PATH",
-  "OPENCLAW_GATEWAY_PASSWORD",
-  "OPENCLAW_GATEWAY_PORT",
-  "OPENCLAW_GATEWAY_SECRET",
-  "OPENCLAW_GATEWAY_TOKEN",
-  "OPENCLAW_GATEWAY_URL",
-  "OPENCLAW_HOME",
-  "OPENCLAW_LIVE_ANTHROPIC_KEY",
-  "OPENCLAW_LIVE_ANTHROPIC_KEYS",
-  "OPENCLAW_LIVE_GEMINI_KEY",
-  "OPENCLAW_LIVE_OPENAI_KEY",
-  "OPENCLAW_MPM_CATALOG_PATHS",
-  "OPENCLAW_NODE_EXEC_FALLBACK",
-  "OPENCLAW_NODE_EXEC_HOST",
-  "OPENCLAW_OAUTH_DIR",
-  "OPENCLAW_PINNED_PYTHON",
-  "OPENCLAW_PINNED_WRITE_PYTHON",
-  "OPENCLAW_PLUGIN_INSTALL_OVERRIDES",
-  "OPENCLAW_PLUGIN_CATALOG_PATHS",
-  "OPENCLAW_PROFILE",
-  "OPENCLAW_RAW_STREAM",
-  "OPENCLAW_RAW_STREAM_PATH",
-  "OPENCLAW_SHOW_SECRETS",
-  "OPENCLAW_SKIP_BROWSER_CONTROL_SERVER",
-  "OPENCLAW_STATE_DIR",
-  "OPENCLAW_TEST_TAILSCALE_BINARY",
+  "ASTROCLAW_AGENT_DIR",
+  "ASTROCLAW_ALLOW_PLUGIN_INSTALL_OVERRIDES",
+  "ASTROCLAW_ALLOW_INSECURE_PRIVATE_WS",
+  "ASTROCLAW_ALLOW_PROJECT_LOCAL_BIN",
+  "ASTROCLAW_BROWSER_EXECUTABLE_PATH",
+  "ASTROCLAW_BROWSER_CONTROL_MODULE",
+  "ASTROCLAW_BUNDLED_HOOKS_DIR",
+  "ASTROCLAW_BUNDLED_PLUGINS_DIR",
+  "ASTROCLAW_BUNDLED_SKILLS_DIR",
+  "ASTROCLAW_CACHE_TRACE",
+  "ASTROCLAW_CACHE_TRACE_FILE",
+  "ASTROCLAW_CACHE_TRACE_MESSAGES",
+  "ASTROCLAW_CACHE_TRACE_PROMPT",
+  "ASTROCLAW_CACHE_TRACE_SYSTEM",
+  "ASTROCLAW_CONFIG_PATH",
+  "ASTROCLAW_GATEWAY_PASSWORD",
+  "ASTROCLAW_GATEWAY_PORT",
+  "ASTROCLAW_GATEWAY_SECRET",
+  "ASTROCLAW_GATEWAY_TOKEN",
+  "ASTROCLAW_GATEWAY_URL",
+  "ASTROCLAW_HOME",
+  "ASTROCLAW_LIVE_ANTHROPIC_KEY",
+  "ASTROCLAW_LIVE_ANTHROPIC_KEYS",
+  "ASTROCLAW_LIVE_GEMINI_KEY",
+  "ASTROCLAW_LIVE_OPENAI_KEY",
+  "ASTROCLAW_MPM_CATALOG_PATHS",
+  "ASTROCLAW_NODE_EXEC_FALLBACK",
+  "ASTROCLAW_NODE_EXEC_HOST",
+  "ASTROCLAW_OAUTH_DIR",
+  "ASTROCLAW_PINNED_PYTHON",
+  "ASTROCLAW_PINNED_WRITE_PYTHON",
+  "ASTROCLAW_PLUGIN_INSTALL_OVERRIDES",
+  "ASTROCLAW_PLUGIN_CATALOG_PATHS",
+  "ASTROCLAW_PROFILE",
+  "ASTROCLAW_RAW_STREAM",
+  "ASTROCLAW_RAW_STREAM_PATH",
+  "ASTROCLAW_SHOW_SECRETS",
+  "ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER",
+  "ASTROCLAW_STATE_DIR",
+  "ASTROCLAW_TEST_TAILSCALE_BINARY",
   "PI_CODING_AGENT_DIR",
   "PATH",
   "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH",
@@ -98,13 +98,13 @@ const BLOCKED_WORKSPACE_DOTENV_PREFIXES = [
   "ANTHROPIC_API_KEY_",
   "CLAWHUB_",
   "OPENAI_API_KEY_",
-  // Workspace .env is untrusted; reserve the full OpenClaw runtime namespace
-  // for shell/global config so new OPENCLAW_* controls are fail-closed by default.
-  "OPENCLAW_",
-  "OPENCLAW_CLAWHUB_",
-  "OPENCLAW_DISABLE_",
-  "OPENCLAW_SKIP_",
-  "OPENCLAW_UPDATE_",
+  // Workspace .env is untrusted; reserve the full Astroclaw runtime namespace
+  // for shell/global config so new ASTROCLAW_* controls are fail-closed by default.
+  "ASTROCLAW_",
+  "ASTROCLAW_CLAWHUB_",
+  "ASTROCLAW_DISABLE_",
+  "ASTROCLAW_SKIP_",
+  "ASTROCLAW_UPDATE_",
 ];
 
 function shouldBlockWorkspaceRuntimeDotEnvKey(key: string): boolean {
@@ -112,7 +112,7 @@ function shouldBlockWorkspaceRuntimeDotEnvKey(key: string): boolean {
 }
 
 function shouldBlockRuntimeDotEnvKey(key: string): boolean {
-  // The global ~/.openclaw/.env (or OPENCLAW_STATE_DIR/.env) is a trusted
+  // The global ~/.astroclaw/.env (or ASTROCLAW_STATE_DIR/.env) is a trusted
   // operator-controlled runtime surface. Workspace .env is untrusted and gets
   // the strict blocklist, but the trusted global fallback is allowed to set
   // runtime vars like proxy/base-url/auth values.
@@ -247,11 +247,11 @@ export function loadGlobalRuntimeDotEnvFiles(opts?: { quiet?: boolean; stateEnvP
   const stateEnvPath = opts?.stateEnvPath ?? path.join(resolveConfigDir(process.env), ".env");
   const defaultStateEnvPath = path.join(
     resolveRequiredHomeDir(process.env, os.homedir),
-    ".openclaw",
+    ".astroclaw",
     ".env",
   );
   const hasExplicitNonDefaultStateDir =
-    process.env.OPENCLAW_STATE_DIR?.trim() !== undefined &&
+    process.env.ASTROCLAW_STATE_DIR?.trim() !== undefined &&
     path.resolve(stateEnvPath) !== path.resolve(defaultStateEnvPath);
   const parsedFiles = [
     readDotEnvFile({
@@ -266,7 +266,7 @@ export function loadGlobalRuntimeDotEnvFiles(opts?: { quiet?: boolean; stateEnvP
         filePath: path.join(
           resolveRequiredHomeDir(process.env, os.homedir),
           ".config",
-          "openclaw",
+          "astroclaw",
           "gateway.env",
         ),
         shouldBlockKey: shouldBlockRuntimeDotEnvKey,
@@ -283,7 +283,7 @@ export function loadDotEnv(opts?: { quiet?: boolean }) {
   const cwdEnvPath = path.join(process.cwd(), ".env");
   loadWorkspaceDotEnvFile(cwdEnvPath, { quiet });
 
-  // Then load global fallback: ~/.openclaw/.env (or OPENCLAW_STATE_DIR/.env),
+  // Then load global fallback: ~/.astroclaw/.env (or ASTROCLAW_STATE_DIR/.env),
   // without overriding any env vars already present.
   loadGlobalRuntimeDotEnvFiles({ quiet });
 }

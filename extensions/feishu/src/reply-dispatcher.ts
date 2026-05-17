@@ -1,16 +1,16 @@
-import { formatReasoningMessage } from "openclaw/plugin-sdk/agent-runtime";
-import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
-import { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-message";
+import { formatReasoningMessage } from "astroclaw/plugin-sdk/agent-runtime";
+import { logTypingFailure } from "astroclaw/plugin-sdk/channel-feedback";
+import { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-message";
 import {
   formatChannelProgressDraftLineForEntry,
   isChannelProgressDraftWorkToolName,
-} from "openclaw/plugin-sdk/channel-streaming";
+} from "astroclaw/plugin-sdk/channel-streaming";
 import {
   resolveSendableOutboundReplyParts,
   resolveTextChunksWithFallback,
   sendMediaWithLeadingCaption,
-} from "openclaw/plugin-sdk/reply-payload";
-import { stripReasoningTagsFromText } from "openclaw/plugin-sdk/text-chunking";
+} from "astroclaw/plugin-sdk/reply-payload";
+import { stripReasoningTagsFromText } from "astroclaw/plugin-sdk/text-chunking";
 import { resolveFeishuRuntimeAccount } from "./accounts.js";
 import { createFeishuClient } from "./client.js";
 import { sendMediaFeishu, shouldSuppressFeishuTextForVoiceMedia } from "./media.js";

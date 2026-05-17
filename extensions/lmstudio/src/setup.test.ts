@@ -1,13 +1,13 @@
-import { CUSTOM_LOCAL_AUTH_MARKER } from "openclaw/plugin-sdk/provider-auth";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-auth";
-import type { ModelDefinitionConfig } from "openclaw/plugin-sdk/provider-model-shared";
-import { resolveAgentModelPrimaryValue } from "openclaw/plugin-sdk/provider-onboard";
+import { CUSTOM_LOCAL_AUTH_MARKER } from "astroclaw/plugin-sdk/provider-auth";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/provider-auth";
+import type { ModelDefinitionConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+import { resolveAgentModelPrimaryValue } from "astroclaw/plugin-sdk/provider-onboard";
 import {
   SELF_HOSTED_DEFAULT_CONTEXT_WINDOW,
   type ProviderAuthMethodNonInteractiveContext,
   type ProviderCatalogContext,
-} from "openclaw/plugin-sdk/provider-setup";
-import type { WizardPrompter } from "openclaw/plugin-sdk/setup";
+} from "astroclaw/plugin-sdk/provider-setup";
+import type { WizardPrompter } from "astroclaw/plugin-sdk/setup";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   LMSTUDIO_DEFAULT_API_KEY_ENV_VAR,
@@ -30,8 +30,8 @@ vi.mock("./models.fetch.js", () => ({
   ensureLmstudioModelLoaded: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/provider-auth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/provider-auth")>();
+vi.mock("astroclaw/plugin-sdk/provider-auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/provider-auth")>();
   return {
     ...actual,
     removeProviderAuthProfilesWithLock: (...args: unknown[]) =>
@@ -39,8 +39,8 @@ vi.mock("openclaw/plugin-sdk/provider-auth", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/provider-setup", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/provider-setup")>();
+vi.mock("astroclaw/plugin-sdk/provider-setup", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/provider-setup")>();
   return {
     ...actual,
     configureOpenAICompatibleSelfHostedProviderNonInteractive: (...args: unknown[]) =>
@@ -50,8 +50,8 @@ vi.mock("openclaw/plugin-sdk/provider-setup", async (importOriginal) => {
 
 afterAll(() => {
   vi.doUnmock("./models.fetch.js");
-  vi.doUnmock("openclaw/plugin-sdk/provider-auth");
-  vi.doUnmock("openclaw/plugin-sdk/provider-setup");
+  vi.doUnmock("astroclaw/plugin-sdk/provider-auth");
+  vi.doUnmock("astroclaw/plugin-sdk/provider-setup");
   vi.resetModules();
 });
 
@@ -67,7 +67,7 @@ function createModel(id: string, name = id): ModelDefinitionConfig {
   };
 }
 
-function buildConfig(): OpenClawConfig {
+function buildConfig(): AstroclawConfig {
   return {
     models: {
       providers: {
@@ -83,13 +83,13 @@ function buildConfig(): OpenClawConfig {
 }
 
 function buildDiscoveryContext(params?: {
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   apiKey?: string;
   discoveryApiKey?: string;
   env?: NodeJS.ProcessEnv;
 }): ProviderCatalogContext {
   return {
-    config: params?.config ?? ({} as OpenClawConfig),
+    config: params?.config ?? ({} as AstroclawConfig),
     env: params?.env ?? {},
     resolveProviderApiKey: () => ({
       apiKey: params?.apiKey,
@@ -105,7 +105,7 @@ function buildDiscoveryContext(params?: {
 }
 
 function buildNonInteractiveContext(params?: {
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   customBaseUrl?: string;
   customApiKey?: string;
   lmstudioApiKey?: string;
@@ -361,7 +361,7 @@ describe("lmstudio setup", () => {
             },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       customBaseUrl: "http://localhost:1234/api/v1/",
       customModelId: "qwen3-8b-instruct",
     });
@@ -476,7 +476,7 @@ describe("lmstudio setup", () => {
             },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       customBaseUrl: "http://localhost:1234/api/v1/",
       customApiKey: "",
       customModelId: "qwen3-8b-instruct",
@@ -547,7 +547,7 @@ describe("lmstudio setup", () => {
             },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       customBaseUrl: "http://localhost:1234/api/v1/",
       customApiKey: "",
       customModelId: "qwen3-8b-instruct",
@@ -607,7 +607,7 @@ describe("lmstudio setup", () => {
             },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       customBaseUrl: "http://localhost:1234/api/v1/",
       customApiKey: "",
       customModelId: "qwen3-8b-instruct",
@@ -681,7 +681,7 @@ describe("lmstudio setup", () => {
             },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       customBaseUrl: "http://localhost:1234/api/v1/",
       customModelId: "qwen3-8b-instruct",
       lmstudioApiKey: "fresh-cli-key",
@@ -827,7 +827,7 @@ describe("lmstudio setup", () => {
   });
 
   it("interactive Docker setup defaults to the host LM Studio endpoint", async () => {
-    vi.stubEnv("OPENCLAW_DOCKER_SETUP", "1");
+    vi.stubEnv("ASTROCLAW_DOCKER_SETUP", "1");
     const { prompter, text } = createQueuedWizardPrompterHarness([
       "http://host.docker.internal:1234",
       "",
@@ -877,7 +877,7 @@ describe("lmstudio setup", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const { prompter } = createQueuedWizardPrompterHarness([
       "http://localhost:1234/api/v1/",
       "",
@@ -960,7 +960,7 @@ describe("lmstudio setup", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const promptText = vi
       .fn()
       .mockResolvedValueOnce("http://localhost:1234/api/v1/")
@@ -999,7 +999,7 @@ describe("lmstudio setup", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const promptText = vi
       .fn()
       .mockResolvedValueOnce("http://localhost:1234/api/v1/")
@@ -1044,7 +1044,7 @@ describe("lmstudio setup", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const promptText = vi
       .fn()
       .mockResolvedValueOnce("http://localhost:1234/api/v1/")
@@ -1163,7 +1163,7 @@ describe("lmstudio setup", () => {
                 },
               },
             },
-          } as OpenClawConfig,
+          } as AstroclawConfig,
         }),
       );
 
@@ -1208,7 +1208,7 @@ describe("lmstudio setup", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
         env: {
           LMSTUDIO_DISCOVERY_TOKEN: "secretref-lmstudio-key",
           LMSTUDIO_PROXY_TOKEN: "proxy-token-from-env",
@@ -1247,7 +1247,7 @@ describe("lmstudio setup", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
         env: {},
       }),
     );
@@ -1274,7 +1274,7 @@ describe("lmstudio setup", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
         env: {},
       }),
     );
@@ -1301,7 +1301,7 @@ describe("lmstudio setup", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
       }),
     );
 
@@ -1332,7 +1332,7 @@ describe("lmstudio setup", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
       }),
     );
 
@@ -1366,7 +1366,7 @@ describe("lmstudio setup", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
       }),
     );
 
@@ -1393,7 +1393,7 @@ describe("lmstudio setup", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
       }),
     );
 
@@ -1426,7 +1426,7 @@ describe("lmstudio setup", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
       }),
     );
 
@@ -1474,7 +1474,7 @@ describe("lmstudio setup", () => {
             },
           },
         },
-      } as OpenClawConfig,
+      } as AstroclawConfig,
       customBaseUrl: "http://localhost:1234/api/v1/",
       customModelId: "qwen3-8b-instruct",
     });

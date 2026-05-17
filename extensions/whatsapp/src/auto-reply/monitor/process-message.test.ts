@@ -51,7 +51,7 @@ vi.mock("./inbound-dispatch.js", async (importOriginal) => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/plugin-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/plugin-runtime", () => ({
   getGlobalHookRunner: () => ({
     hasHooks: (hookName: string) => hookName === "message_received",
     runMessageReceived: runMessageReceivedMock,
@@ -145,7 +145,7 @@ vi.mock("./runtime-api.js", async (importOriginal) => {
   };
 });
 
-import { clearInternalHooks, registerInternalHook } from "openclaw/plugin-sdk/hook-runtime";
+import { clearInternalHooks, registerInternalHook } from "astroclaw/plugin-sdk/hook-runtime";
 import { processMessage } from "./process-message.js";
 
 // ---------------------------------------------------------------------------

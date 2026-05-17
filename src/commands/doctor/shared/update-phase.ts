@@ -1,7 +1,7 @@
 import { isTruthyEnvValue } from "../../../infra/env.js";
 
-export const UPDATE_IN_PROGRESS_ENV = "OPENCLAW_UPDATE_IN_PROGRESS";
-export const UPDATE_POST_CORE_CONVERGENCE_ENV = "OPENCLAW_UPDATE_POST_CORE_CONVERGENCE";
+export const UPDATE_IN_PROGRESS_ENV = "ASTROCLAW_UPDATE_IN_PROGRESS";
+export const UPDATE_POST_CORE_CONVERGENCE_ENV = "ASTROCLAW_UPDATE_POST_CORE_CONVERGENCE";
 
 /**
  * True iff the caller is the doctor pass that runs WHILE the core package
@@ -17,7 +17,7 @@ export const UPDATE_POST_CORE_CONVERGENCE_ENV = "OPENCLAW_UPDATE_POST_CORE_CONVE
  *
  * NOTE: only consumers that route through this helper observe the
  * "post-core wins" semantics. Files that still read
- * `OPENCLAW_UPDATE_IN_PROGRESS` directly (`commands/doctor-update.ts`,
+ * `ASTROCLAW_UPDATE_IN_PROGRESS` directly (`commands/doctor-update.ts`,
  * `commands/doctor-repair-mode.ts`, `commands/doctor.e2e-harness.ts`,
  * `flows/doctor-health-contributions.ts`) treat both flags as
  * "update-in-progress". This is intentional: those paths are control-flow

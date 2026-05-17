@@ -1,11 +1,11 @@
 ---
 name: crabbox
-description: Use the Crabbox wrapper for OpenClaw remote validation across Linux, macOS, Windows, and WSL2, including delegated Blacksmith Testbox proof. Report the actual provider and id.
+description: Use the Crabbox wrapper for Astroclaw remote validation across Linux, macOS, Windows, and WSL2, including delegated Blacksmith Testbox proof. Report the actual provider and id.
 ---
 
 # Crabbox
 
-Use the Crabbox wrapper when OpenClaw needs remote Linux proof for broad tests,
+Use the Crabbox wrapper when Astroclaw needs remote Linux proof for broad tests,
 CI-parity checks, secrets, hosted services, Docker/E2E/package lanes, warmed
 reusable boxes, sync timing, logs/results, cache inspection, or lease cleanup.
 
@@ -16,7 +16,7 @@ Crabbox is the transport/orchestration surface. The actual backend can be:
 - Blacksmith Testbox through Crabbox: delegated provider,
   `provider=blacksmith-testbox`, ids like `tbx_...`, `syncDelegated=true`
 
-For OpenClaw maintainer broad `pnpm` gates, Blacksmith Testbox through the
+For Astroclaw maintainer broad `pnpm` gates, Blacksmith Testbox through the
 Crabbox wrapper is acceptable and often preferred when the standing Testbox
 rules apply. Do not describe those runs as "AWS Crabbox"; report them as
 Testbox-through-Crabbox with the `tbx_...` id and Actions run.
@@ -24,7 +24,7 @@ Testbox-through-Crabbox with the `tbx_...` id and Actions run.
 Use the repo `.crabbox.yaml` brokered AWS path when the task specifically needs
 direct AWS Crabbox behavior, persistent direct-provider leases, `--fresh-pr`,
 `--full-resync`, environment forwarding, capture/download support, or provider
-comparison. Use `--provider blacksmith-testbox` when the task needs OpenClaw
+comparison. Use `--provider blacksmith-testbox` when the task needs Astroclaw
 maintainer Testbox proof, prepared CI environment, broad/heavy pnpm gates, or
 the user asks for Testbox/Blacksmith.
 
@@ -41,11 +41,11 @@ pnpm crabbox:run -- --help | sed -n '1,120p'
 ../crabbox/bin/crabbox webvnc --help
 ```
 
-- OpenClaw scripts prefer `../crabbox/bin/crabbox` when present. The user PATH
+- Astroclaw scripts prefer `../crabbox/bin/crabbox` when present. The user PATH
   shim can be stale.
 - Check `.crabbox.yaml` for direct-provider defaults. Omitting `--provider`
   means brokered AWS today.
-- For broad OpenClaw maintainer `pnpm` gates, prefer the repo wrapper with
+- For broad Astroclaw maintainer `pnpm` gates, prefer the repo wrapper with
   `--provider blacksmith-testbox` or the repo Testbox helpers when the standing
   Testbox policy applies.
 - Always report the actual provider and id. `cbx_...` means AWS Crabbox;
@@ -64,17 +64,17 @@ pnpm crabbox:run -- --help | sed -n '1,120p'
   a fake key.
 - Prefer local targeted tests for tight edit loops. Broad gates belong remote.
 - Do not treat inherited shell env as operator intent. In particular,
-  `OPENCLAW_LOCAL_CHECK_MODE=throttled` from the local shell is not permission
+  `ASTROCLAW_LOCAL_CHECK_MODE=throttled` from the local shell is not permission
   to move broad `pnpm check:changed`, `pnpm test:changed`, full `pnpm test`, or
   lint/typecheck fan-out onto the laptop.
-- Only use `OPENCLAW_LOCAL_CHECK_MODE=throttled|full` when the user explicitly
+- Only use `ASTROCLAW_LOCAL_CHECK_MODE=throttled|full` when the user explicitly
   asks for local proof in the current task. If Testbox is queued or capacity is
   constrained, report the blocker and keep only targeted local edit-loop checks
   running.
 
 ## macOS And Windows Targets
 
-Use these only when the task needs an existing non-Linux host. OpenClaw broad
+Use these only when the task needs an existing non-Linux host. Astroclaw broad
 Linux validation uses the repo Crabbox config unless a provider is explicitly
 requested.
 
@@ -90,7 +90,7 @@ crabbox admin hosts allocate --provider aws --target macos --region eu-west-1 --
 CRABBOX_MACOS_TYPES=all scripts/macos-host-region-preflight.sh
 ```
 
-Do not silently substitute AWS macOS for normal OpenClaw Linux proof. Report
+Do not silently substitute AWS macOS for normal Astroclaw Linux proof. Report
 paid-host blockers as quota, IAM, coordinator deployment, or host availability
 instead of falling back to local macOS.
 
@@ -126,7 +126,7 @@ pnpm crabbox:run -- \
   --ttl 240m \
   --timing-json \
   --shell -- \
-  "env CI=1 NODE_OPTIONS=--max-old-space-size=4096 OPENCLAW_TEST_PROJECTS_PARALLEL=6 OPENCLAW_VITEST_MAX_WORKERS=1 OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test:changed"
+  "env CI=1 NODE_OPTIONS=--max-old-space-size=4096 ASTROCLAW_TEST_PROJECTS_PARALLEL=6 ASTROCLAW_VITEST_MAX_WORKERS=1 ASTROCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test:changed"
 ```
 
 Full suite:
@@ -137,7 +137,7 @@ pnpm crabbox:run -- \
   --ttl 240m \
   --timing-json \
   --shell -- \
-  "env CI=1 NODE_OPTIONS=--max-old-space-size=4096 OPENCLAW_TEST_PROJECTS_PARALLEL=6 OPENCLAW_VITEST_MAX_WORKERS=1 OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test"
+  "env CI=1 NODE_OPTIONS=--max-old-space-size=4096 ASTROCLAW_TEST_PROJECTS_PARALLEL=6 ASTROCLAW_VITEST_MAX_WORKERS=1 ASTROCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test"
 ```
 
 Focused rerun:
@@ -148,7 +148,7 @@ pnpm crabbox:run -- \
   --ttl 240m \
   --timing-json \
   --shell -- \
-  "env CI=1 NODE_OPTIONS=--max-old-space-size=4096 OPENCLAW_VITEST_MAX_WORKERS=1 OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test <path-or-filter>"
+  "env CI=1 NODE_OPTIONS=--max-old-space-size=4096 ASTROCLAW_VITEST_MAX_WORKERS=1 ASTROCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test <path-or-filter>"
 ```
 
 Read the JSON summary. Useful fields:
@@ -169,13 +169,13 @@ cleanup when a run fails, is interrupted, or the command output is unclear:
 
 ## Blacksmith Testbox Through Crabbox
 
-Use this for OpenClaw maintainer broad/heavy `pnpm` gates when the prepared CI
+Use this for Astroclaw maintainer broad/heavy `pnpm` gates when the prepared CI
 environment is the right proof surface:
 
 ```sh
 node scripts/crabbox-wrapper.mjs run \
   --provider blacksmith-testbox \
-  --blacksmith-org openclaw \
+  --blacksmith-org astroclaw \
   --blacksmith-workflow .github/workflows/ci-check-testbox.yml \
   --blacksmith-job check \
   --blacksmith-ref main \
@@ -183,7 +183,7 @@ node scripts/crabbox-wrapper.mjs run \
   --ttl 240m \
   --timing-json \
   -- \
-  CI=1 NODE_OPTIONS=--max-old-space-size=4096 OPENCLAW_TEST_PROJECTS_PARALLEL=6 OPENCLAW_VITEST_MAX_WORKERS=1 OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 OPENCLAW_TESTBOX=1 OPENCLAW_TESTBOX_REMOTE_RUN=1 pnpm check:changed
+  CI=1 NODE_OPTIONS=--max-old-space-size=4096 ASTROCLAW_TEST_PROJECTS_PARALLEL=6 ASTROCLAW_VITEST_MAX_WORKERS=1 ASTROCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 ASTROCLAW_TESTBOX=1 ASTROCLAW_TESTBOX_REMOTE_RUN=1 pnpm check:changed
 ```
 
 Read the JSON summary and the Testbox line. Useful fields:
@@ -331,7 +331,7 @@ Keep it efficient:
   remote workdir or sync fingerprint appears stale.
 - Use one-shot Crabbox for a single proof; use a reusable Testbox only when
   several commands must share built images, installed packages, or live state.
-- Prefer `OPENCLAW_CURRENT_PACKAGE_TGZ` with Docker/package lanes when testing a
+- Prefer `ASTROCLAW_CURRENT_PACKAGE_TGZ` with Docker/package lanes when testing a
   candidate tarball; prefer the repo's package helper instead of direct source
   execution when the bug might be packaging/install related.
 - Keep secrets redacted. It is fine to report key presence, source, and length;
@@ -373,18 +373,18 @@ Interactive CLI/onboarding:
   searchable selects. Raw `send-keys -l openai` may not trigger filtering in a
   tmux pane; inspect option order locally or on-box and send exact Down/Enter
   sequences.
-- Isolate mutable state with `OPENCLAW_STATE_DIR=$(mktemp -d)`. Plugin npm
+- Isolate mutable state with `ASTROCLAW_STATE_DIR=$(mktemp -d)`. Plugin npm
   installs live under that state dir (`npm/node_modules/...`), not under
-  `OPENCLAW_CONFIG_DIR`. Verify downloads by checking the state dir, package
+  `ASTROCLAW_CONFIG_DIR`. Verify downloads by checking the state dir, package
   lock, and installed package metadata.
 - To test automatic setup installs against local package artifacts, use
-  `OPENCLAW_ALLOW_PLUGIN_INSTALL_OVERRIDES=1` plus
-  `OPENCLAW_PLUGIN_INSTALL_OVERRIDES='{"plugin-id":"npm-pack:/tmp/plugin.tgz"}'`.
-  Pack with `npm pack`, set an isolated `OPENCLAW_STATE_DIR`, and verify the
+  `ASTROCLAW_ALLOW_PLUGIN_INSTALL_OVERRIDES=1` plus
+  `ASTROCLAW_PLUGIN_INSTALL_OVERRIDES='{"plugin-id":"npm-pack:/tmp/plugin.tgz"}'`.
+  Pack with `npm pack`, set an isolated `ASTROCLAW_STATE_DIR`, and verify the
   package under `npm/node_modules`. Overrides are test-only and must not be
   treated as official/trusted-source installs.
 - For OpenAI/Codex onboarding proof, the useful markers are the UI line
-  `Installed Codex plugin`, `npm/node_modules/@openclaw/codex`, and the
+  `Installed Codex plugin`, `npm/node_modules/@astroclaw/codex`, and the
   package-lock entry showing the bundled `@openai/codex` dependency. A dummy
   OpenAI-shaped key can prove only UI/install behavior; it is not live auth.
 
@@ -491,7 +491,7 @@ Common Crabbox-only failures:
 - Provider missing or old CLI: use `../crabbox/bin/crabbox` from the sibling
   repo, or update/install Crabbox before retrying.
 - Bad local config: inspect `.crabbox.yaml`, `crabbox config show`, and
-  `crabbox whoami`; normal OpenClaw proof should use brokered AWS without
+  `crabbox whoami`; normal Astroclaw proof should use brokered AWS without
   asking for cloud keys.
 - Slug/claim confusion: use the raw `cbx_...` / `tbx_...` id, or run one-shot
   without `--id`.
@@ -513,20 +513,20 @@ If brokered AWS cannot dispatch, sync, attach, or stop, retry once with
 
 ```sh
 pnpm crabbox:run -- --debug --timing-json -- \
-  CI=1 NODE_OPTIONS=--max-old-space-size=4096 OPENCLAW_TEST_PROJECTS_PARALLEL=6 OPENCLAW_VITEST_MAX_WORKERS=1 OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test:changed
+  CI=1 NODE_OPTIONS=--max-old-space-size=4096 ASTROCLAW_TEST_PROJECTS_PARALLEL=6 ASTROCLAW_VITEST_MAX_WORKERS=1 ASTROCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test:changed
 ```
 
 Full suite:
 
 ```sh
 pnpm crabbox:run -- --debug --timing-json -- \
-  CI=1 NODE_OPTIONS=--max-old-space-size=4096 OPENCLAW_TEST_PROJECTS_PARALLEL=6 OPENCLAW_VITEST_MAX_WORKERS=1 OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test
+  CI=1 NODE_OPTIONS=--max-old-space-size=4096 ASTROCLAW_TEST_PROJECTS_PARALLEL=6 ASTROCLAW_VITEST_MAX_WORKERS=1 ASTROCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test
 ```
 
 Auth fallback, only when `blacksmith` says auth is missing:
 
 ```sh
-blacksmith auth login --non-interactive --organization openclaw
+blacksmith auth login --non-interactive --organization astroclaw
 ```
 
 Raw Blacksmith footguns:
@@ -547,7 +547,7 @@ delegated-provider outage.
 
 Crabbox Blacksmith backend delegates setup to:
 
-- org: `openclaw`
+- org: `astroclaw`
 - workflow: `.github/workflows/ci-check-testbox.yml`
 - job: `check`
 - ref: `main` unless testing a branch/tag intentionally
@@ -560,7 +560,7 @@ Minimal Blacksmith-backed Crabbox run, from repo root:
 
 ```sh
 pnpm crabbox:run -- --provider blacksmith-testbox --timing-json -- \
-  CI=1 NODE_OPTIONS=--max-old-space-size=4096 OPENCLAW_TEST_PROJECTS_PARALLEL=6 OPENCLAW_VITEST_MAX_WORKERS=1 pnpm test:changed
+  CI=1 NODE_OPTIONS=--max-old-space-size=4096 ASTROCLAW_TEST_PROJECTS_PARALLEL=6 ASTROCLAW_VITEST_MAX_WORKERS=1 pnpm test:changed
 ```
 
 Use direct Blacksmith only when Crabbox is the broken layer and you are
@@ -574,27 +574,27 @@ Important Blacksmith footguns:
 - If auth is missing and browser auth is acceptable:
 
 ```sh
-blacksmith auth login --non-interactive --organization openclaw
+blacksmith auth login --non-interactive --organization astroclaw
 ```
 
 ## Brokered AWS
 
-Use AWS for normal OpenClaw remote proof. The repo `.crabbox.yaml` already
+Use AWS for normal Astroclaw remote proof. The repo `.crabbox.yaml` already
 selects brokered AWS, so omit `--provider` unless you are testing a different
 provider deliberately.
 
 ```sh
 pnpm crabbox:warmup -- --class beast --market on-demand --idle-timeout 90m
 pnpm crabbox:hydrate -- --id <cbx_id-or-slug>
-pnpm crabbox:run -- --id <cbx_id-or-slug> --timing-json --shell -- "env NODE_OPTIONS=--max-old-space-size=4096 OPENCLAW_TEST_PROJECTS_PARALLEL=6 OPENCLAW_VITEST_MAX_WORKERS=1 OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test:changed"
+pnpm crabbox:run -- --id <cbx_id-or-slug> --timing-json --shell -- "env NODE_OPTIONS=--max-old-space-size=4096 ASTROCLAW_TEST_PROJECTS_PARALLEL=6 ASTROCLAW_VITEST_MAX_WORKERS=1 ASTROCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS=900000 pnpm test:changed"
 pnpm crabbox:stop -- <cbx_id-or-slug>
 ```
 
 Install/auth for owned Crabbox if needed:
 
 ```sh
-brew install openclaw/tap/crabbox
-crabbox login --url https://crabbox.openclaw.ai --provider aws
+brew install astroclaw/tap/crabbox
+crabbox login --url https://crabbox.astroclaw.ai --provider aws
 ```
 
 New users should self-resolve broker auth before anyone asks for AWS keys:
@@ -605,15 +605,15 @@ crabbox doctor
 crabbox whoami
 ```
 
-- If broker auth is missing, run `crabbox login --url https://crabbox.openclaw.ai --provider aws`.
+- If broker auth is missing, run `crabbox login --url https://crabbox.astroclaw.ai --provider aws`.
 - If the CLI asks for `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, or AWS
-  profile setup during normal OpenClaw validation, assume the agent selected
+  profile setup during normal Astroclaw validation, assume the agent selected
   the wrong path. Use brokered `crabbox login` or an existing brokered lease
   before asking the user for cloud credentials.
 - Ask for AWS keys only for explicit direct-provider/account administration,
-  not for normal brokered OpenClaw proof.
+  not for normal brokered Astroclaw proof.
 - Trusted automation may still use
-  `printf '%s' "$CRABBOX_COORDINATOR_TOKEN" | crabbox login --url https://crabbox.openclaw.ai --provider aws --token-stdin`.
+  `printf '%s' "$CRABBOX_COORDINATOR_TOKEN" | crabbox login --url https://crabbox.astroclaw.ai --provider aws --token-stdin`.
 
 macOS config lives at:
 
@@ -622,7 +622,7 @@ macOS config lives at:
 ```
 
 It should include `broker.url`, `broker.token`, and usually `provider: aws`
-for OpenClaw lanes. Let that config drive normal validation.
+for Astroclaw lanes. Let that config drive normal validation.
 
 ### Interactive Desktop / WebVNC
 
@@ -675,6 +675,6 @@ Use `--market spot|on-demand` only on AWS warmup/one-shot runs.
 
 ## Boundary
 
-Do not add OpenClaw-specific setup to Crabbox itself. Put repo setup in the
+Do not add Astroclaw-specific setup to Crabbox itself. Put repo setup in the
 hydration workflow and keep Crabbox generic around lease, sync, command
 execution, logs/results, timing, and cleanup.

@@ -1,16 +1,16 @@
 {
-  "name": "@openclaw/tavily-plugin",
+  "name": "@astroclaw/tavily-plugin",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Tavily plugin",
+  "description": "Astroclaw Tavily plugin",
   "type": "module",
   "dependencies": {
     "typebox": "1.1.38"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

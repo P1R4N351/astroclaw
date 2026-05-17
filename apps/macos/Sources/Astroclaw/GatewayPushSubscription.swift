@@ -1,4 +1,4 @@
-import OpenClawKit
+import AstroclawKit
 
 enum GatewayPushSubscription {
     @MainActor

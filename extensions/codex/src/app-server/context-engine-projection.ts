@@ -1,5 +1,5 @@
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-harness-runtime";
-import { redactSensitiveFieldValue, redactToolPayloadText } from "openclaw/plugin-sdk/logging-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { redactSensitiveFieldValue, redactToolPayloadText } from "astroclaw/plugin-sdk/logging-core";
 
 type CodexContextProjection = {
   developerInstructionAddition?: string;
@@ -8,7 +8,7 @@ type CodexContextProjection = {
   prePromptMessageCount: number;
 };
 
-const CONTEXT_HEADER = "OpenClaw assembled context for this turn:";
+const CONTEXT_HEADER = "Astroclaw assembled context for this turn:";
 const CONTEXT_OPEN = "<conversation_context>";
 const CONTEXT_CLOSE = "</conversation_context>";
 const REQUEST_HEADER = "Current user request:";
@@ -24,7 +24,7 @@ const MIN_PROMPT_BUDGET_RATIO = 0.5;
 const MIN_PROMPT_BUDGET_TOKENS = 8_000;
 
 /**
- * Project assembled OpenClaw context-engine messages into Codex prompt inputs.
+ * Project assembled Astroclaw context-engine messages into Codex prompt inputs.
  */
 export function projectContextEngineAssemblyForCodex(params: {
   assembledMessages: AgentMessage[];

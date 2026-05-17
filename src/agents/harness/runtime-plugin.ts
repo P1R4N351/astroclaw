@@ -1,11 +1,11 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { withActivatedPluginIds } from "../../plugins/activation-context.js";
 import { resolveAgentHarnessPolicy } from "./policy.js";
 
 export async function ensureSelectedAgentHarnessPlugin(params: {
   provider: string;
   modelId: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   agentId?: string;
   sessionKey?: string;
   agentHarnessRuntimeOverride?: string;

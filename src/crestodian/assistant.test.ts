@@ -13,7 +13,7 @@ import type { CrestodianOverview } from "./overview.js";
 function overview(overrides: Partial<CrestodianOverview["tools"]> = {}): CrestodianOverview {
   return {
     config: {
-      path: "/tmp/openclaw.json",
+      path: "/tmp/astroclaw.json",
       exists: false,
       valid: false,
       issues: [],
@@ -33,8 +33,8 @@ function overview(overrides: Partial<CrestodianOverview["tools"]> = {}): Crestod
       reachable: false,
     },
     references: {
-      docsUrl: "https://docs.openclaw.ai",
-      sourceUrl: "https://github.com/openclaw/openclaw",
+      docsUrl: "https://docs.astroclaw.ai",
+      sourceUrl: "https://github.com/astroclaw/astroclaw",
     },
   };
 }
@@ -80,7 +80,7 @@ describe("Crestodian assistant", () => {
           apiKeys: { openai: true, anthropic: false },
         }),
         config: {
-          path: "/tmp/openclaw.json",
+          path: "/tmp/astroclaw.json",
           exists: true,
           valid: true,
           issues: [],
@@ -98,10 +98,10 @@ describe("Crestodian assistant", () => {
         defaultAgentId: "main",
         defaultModel: "openai/gpt-5.5",
         references: {
-          docsPath: "/tmp/openclaw/docs",
-          docsUrl: "https://docs.openclaw.ai",
-          sourcePath: "/tmp/openclaw",
-          sourceUrl: "https://github.com/openclaw/openclaw",
+          docsPath: "/tmp/astroclaw/docs",
+          docsUrl: "https://docs.astroclaw.ai",
+          sourcePath: "/tmp/astroclaw",
+          sourceUrl: "https://github.com/astroclaw/astroclaw",
         },
       },
     });
@@ -110,8 +110,8 @@ describe("Crestodian assistant", () => {
     expect(prompt).toContain("Default model: openai/gpt-5.5");
     expect(prompt).toContain("id=main, name=Main, workspace=/tmp/main");
     expect(prompt).toContain("OpenAI API key: found");
-    expect(prompt).toContain("OpenClaw docs: /tmp/openclaw/docs");
-    expect(prompt).toContain("OpenClaw source: /tmp/openclaw");
+    expect(prompt).toContain("Astroclaw docs: /tmp/astroclaw/docs");
+    expect(prompt).toContain("Astroclaw source: /tmp/astroclaw");
   });
 
   it("uses Claude CLI first for configless planning", async () => {

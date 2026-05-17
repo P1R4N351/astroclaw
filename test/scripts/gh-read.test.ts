@@ -8,16 +8,16 @@ import {
 
 describe("gh-read helpers", () => {
   it("finds repo from gh args", () => {
-    expect(parseRepoArg(["pr", "view", "42", "-R", "openclaw/openclaw"])).toBe("openclaw/openclaw");
-    expect(parseRepoArg(["run", "list", "--repo=openclaw/docs"])).toBe("openclaw/docs");
+    expect(parseRepoArg(["pr", "view", "42", "-R", "astroclaw/astroclaw"])).toBe("astroclaw/astroclaw");
+    expect(parseRepoArg(["run", "list", "--repo=astroclaw/docs"])).toBe("astroclaw/docs");
     expect(parseRepoArg(["pr", "view", "42"])).toBeNull();
   });
 
   it("normalizes repo strings from common git formats", () => {
-    expect(normalizeRepo("openclaw/openclaw")).toBe("openclaw/openclaw");
-    expect(normalizeRepo("github.com/openclaw/openclaw")).toBe("openclaw/openclaw");
-    expect(normalizeRepo("https://github.com/openclaw/openclaw.git")).toBe("openclaw/openclaw");
-    expect(normalizeRepo("git@github.com:openclaw/openclaw.git")).toBe("openclaw/openclaw");
+    expect(normalizeRepo("astroclaw/astroclaw")).toBe("astroclaw/astroclaw");
+    expect(normalizeRepo("github.com/astroclaw/astroclaw")).toBe("astroclaw/astroclaw");
+    expect(normalizeRepo("https://github.com/astroclaw/astroclaw.git")).toBe("astroclaw/astroclaw");
+    expect(normalizeRepo("git@github.com:astroclaw/astroclaw.git")).toBe("astroclaw/astroclaw");
     expect(normalizeRepo("invalid")).toBeNull();
   });
 

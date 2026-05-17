@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { CommandLane } from "../process/lanes.js";
 
 const sessionStoreMocks = vi.hoisted(() => ({
@@ -19,11 +19,11 @@ vi.mock("../process/command-queue.js", () => commandQueueMocks);
 vi.mock("./command/session.js", () => ({
   resolveStoredSessionKeyForSessionId: () => ({
     sessionKey: "session-key",
-    storePath: "/tmp/openclaw-session-suspension-test/sessions.json",
+    storePath: "/tmp/astroclaw-session-suspension-test/sessions.json",
   }),
 }));
 
-async function suspendMainLane(ttlMs: number, cfg: OpenClawConfig) {
+async function suspendMainLane(ttlMs: number, cfg: AstroclawConfig) {
   const { suspendSession } = await import("./session-suspension.js");
   await suspendSession({
     cfg,
@@ -49,7 +49,7 @@ describe("session suspension", () => {
     vi.useFakeTimers();
     const cfg = {
       agents: { defaults: { maxConcurrent: 4 } },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await suspendMainLane(100, cfg);
 

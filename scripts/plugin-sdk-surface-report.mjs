@@ -21,16 +21,16 @@ const deprecatedBarrelEntrypointSet = new Set(deprecatedBarrelPluginSdkEntrypoin
 const forbiddenPublicSubpaths = new Set(["test-utils"]);
 
 const budgets = {
-  publicEntrypoints: Number(process.env.OPENCLAW_PLUGIN_SDK_MAX_PUBLIC_ENTRYPOINTS ?? 303),
-  publicExports: Number(process.env.OPENCLAW_PLUGIN_SDK_MAX_PUBLIC_EXPORTS ?? 8449),
+  publicEntrypoints: Number(process.env.ASTROCLAW_PLUGIN_SDK_MAX_PUBLIC_ENTRYPOINTS ?? 303),
+  publicExports: Number(process.env.ASTROCLAW_PLUGIN_SDK_MAX_PUBLIC_EXPORTS ?? 8449),
   publicFunctionExports: Number(
-    process.env.OPENCLAW_PLUGIN_SDK_MAX_PUBLIC_FUNCTION_EXPORTS ?? 4656,
+    process.env.ASTROCLAW_PLUGIN_SDK_MAX_PUBLIC_FUNCTION_EXPORTS ?? 4656,
   ),
   publicDeprecatedExports: Number(
-    process.env.OPENCLAW_PLUGIN_SDK_MAX_PUBLIC_DEPRECATED_EXPORTS ?? 2800,
+    process.env.ASTROCLAW_PLUGIN_SDK_MAX_PUBLIC_DEPRECATED_EXPORTS ?? 2800,
   ),
   publicWildcardReexports: Number(
-    process.env.OPENCLAW_PLUGIN_SDK_MAX_PUBLIC_WILDCARD_REEXPORTS ?? 207,
+    process.env.ASTROCLAW_PLUGIN_SDK_MAX_PUBLIC_WILDCARD_REEXPORTS ?? 207,
   ),
 };
 

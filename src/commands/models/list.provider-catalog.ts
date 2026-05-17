@@ -6,7 +6,7 @@ import {
 } from "../../agents/models-config.providers.secrets.js";
 import { normalizeProviderId } from "../../agents/provider-id.js";
 import type { ModelProviderConfig } from "../../config/types.models.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import {
@@ -47,7 +47,7 @@ function collectMatchingContributionOwners(
   index: PluginRegistrySnapshot,
   contribution: "providers" | "cliBackends",
   providerFilter: string,
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   options: { includeDisabled?: boolean } = {},
 ): string[] {
   if (contribution === "providers") {
@@ -72,7 +72,7 @@ function collectMatchingContributionOwners(
 }
 
 function resolveInstalledIndexPluginIdsForProviderFilter(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   providerFilter: string;
 }): string[] | undefined {
@@ -103,7 +103,7 @@ function resolveInstalledIndexPluginIdsForProviderFilter(params: {
 }
 
 export async function resolveProviderCatalogPluginIdsForFilter(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   providerFilter: string;
 }): Promise<string[] | undefined> {
@@ -137,7 +137,7 @@ export async function resolveProviderCatalogPluginIdsForFilter(params: {
 }
 
 export async function hasProviderStaticCatalogForFilter(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   env?: NodeJS.ProcessEnv;
   providerFilter: string;
 }): Promise<boolean> {
@@ -200,7 +200,7 @@ function modelFromProviderCatalog(params: {
 }
 
 export async function loadProviderCatalogModelsForList(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   agentDir: string;
   env?: NodeJS.ProcessEnv;
   providerFilter?: string;

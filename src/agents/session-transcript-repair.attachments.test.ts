@@ -28,7 +28,7 @@ function mkSessionsSpawnToolCall(content: string): AgentMessage {
 }
 
 describe("sanitizeToolCallInputs redacts sessions_spawn attachments", () => {
-  it("replaces attachments[].content with __OPENCLAW_REDACTED__", () => {
+  it("replaces attachments[].content with __ASTROCLAW_REDACTED__", () => {
     const secret = "SUPER_SECRET_SHOULD_NOT_PERSIST"; // pragma: allowlist secret
     const input = [mkSessionsSpawnToolCall(secret)];
     const out = sanitizeToolCallInputs(input);
@@ -46,7 +46,7 @@ describe("sanitizeToolCallInputs redacts sessions_spawn attachments", () => {
                 {
                   name: "README.md",
                   encoding: "utf8",
-                  content: "__OPENCLAW_REDACTED__",
+                  content: "__ASTROCLAW_REDACTED__",
                 },
               ],
             },
@@ -91,7 +91,7 @@ describe("sanitizeToolCallInputs redacts sessions_spawn attachments", () => {
               attachments: [
                 {
                   name: "x.txt",
-                  content: "__OPENCLAW_REDACTED__",
+                  content: "__ASTROCLAW_REDACTED__",
                 },
               ],
             },
@@ -142,7 +142,7 @@ describe("sanitizeToolCallInputs redacts sessions_spawn attachments", () => {
       name: "payload.json",
       mimeType: "application/json",
       encoding: "utf8",
-      content: "__OPENCLAW_REDACTED__",
+      content: "__ASTROCLAW_REDACTED__",
     });
     expect(JSON.stringify(out)).not.toContain(secret);
   });
@@ -189,8 +189,8 @@ describe("sanitizeToolCallInputs redacts sessions_spawn attachments", () => {
             name: "sessions_spawn",
             arguments: {
               task: "do thing",
-              resumeSessionId: "__OPENCLAW_REDACTED__",
-              streamTo: "__OPENCLAW_REDACTED__",
+              resumeSessionId: "__ASTROCLAW_REDACTED__",
+              streamTo: "__ASTROCLAW_REDACTED__",
             },
           },
           {
@@ -199,8 +199,8 @@ describe("sanitizeToolCallInputs redacts sessions_spawn attachments", () => {
             name: "sessions_spawn",
             input: {
               task: "do other thing",
-              resumeSessionId: "__OPENCLAW_REDACTED__",
-              streamTo: "__OPENCLAW_REDACTED__",
+              resumeSessionId: "__ASTROCLAW_REDACTED__",
+              streamTo: "__ASTROCLAW_REDACTED__",
             },
           },
         ],
@@ -241,8 +241,8 @@ describe("sanitizeToolCallInputs redacts sessions_spawn attachments", () => {
             name: "sessions_spawn",
             input: {
               task: "do nested thing",
-              resumeSessionId: "__OPENCLAW_REDACTED__",
-              streamTo: "__OPENCLAW_REDACTED__",
+              resumeSessionId: "__ASTROCLAW_REDACTED__",
+              streamTo: "__ASTROCLAW_REDACTED__",
             },
           },
         ],

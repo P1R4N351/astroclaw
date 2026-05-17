@@ -284,7 +284,7 @@ describe("devices cli approve", () => {
     expect(logOutput).toContain("Device Nine");
     expect(logOutput).toContain("Approved: roles: operator; scopes: operator.read");
     expect(logOutput).toContain("Requested scopes exceed the current approval");
-    expect(readRuntimeErrorOutput()).toContain("openclaw devices approve req-abc");
+    expect(readRuntimeErrorOutput()).toContain("astroclaw devices approve req-abc");
     expect(runtime.exit).toHaveBeenCalledWith(1);
     expect(hasGatewayMethod("device.pair.approve")).toBe(false);
   });
@@ -347,7 +347,7 @@ describe("devices cli approve", () => {
 
     expectGatewayCall(0, { method: "device.pair.list" });
     expect(hasGatewayMethod("device.pair.approve")).toBe(false);
-    expect(readRuntimeErrorOutput()).toContain(`openclaw devices approve ${expectedRequestId}`);
+    expect(readRuntimeErrorOutput()).toContain(`astroclaw devices approve ${expectedRequestId}`);
   });
 
   it("falls back to device id when selected pending display name is blank", async () => {
@@ -366,7 +366,7 @@ describe("devices cli approve", () => {
 
     const logOutput = runtime.log.mock.calls.map((c) => readRuntimeCallText(c)).join("\n");
     expect(logOutput).toContain("device-9");
-    expect(readRuntimeErrorOutput()).toContain("openclaw devices approve req-blank");
+    expect(readRuntimeErrorOutput()).toContain("astroclaw devices approve req-blank");
     expect(hasGatewayMethod("device.pair.approve")).toBe(false);
   });
 
@@ -378,7 +378,7 @@ describe("devices cli approve", () => {
     await runDevicesApprove([
       "--latest",
       "--url",
-      "ws://gateway.example:18789/openclaw?cluster=qa lab",
+      "ws://gateway.example:18789/astroclaw?cluster=qa lab",
       "--timeout",
       "3000",
       "--token",
@@ -387,7 +387,7 @@ describe("devices cli approve", () => {
 
     const errorOutput = runtime.error.mock.calls.map((c) => readRuntimeCallText(c)).join("\n");
     expect(errorOutput).toContain(
-      "openclaw devices approve req-url --url 'ws://gateway.example:18789/openclaw?cluster=qa lab' --timeout 3000",
+      "astroclaw devices approve req-url --url 'ws://gateway.example:18789/astroclaw?cluster=qa lab' --timeout 3000",
     );
     expect(errorOutput).toContain("Reuse the same --token option when rerunning.");
     expect(errorOutput).not.toContain("secret-token");
@@ -411,7 +411,7 @@ describe("devices cli approve", () => {
         requested: { roles: [], scopes: [] },
         approved: null,
       },
-      approveCommand: "openclaw devices approve req-json --url ws://gateway.example:18789 --json",
+      approveCommand: "astroclaw devices approve req-json --url ws://gateway.example:18789 --json",
       requiresAuthFlags: {
         token: false,
         password: false,
@@ -522,7 +522,7 @@ describe("devices cli tokens", () => {
 
     expect(callGateway).not.toHaveBeenCalled();
     expect(runtime.error).toHaveBeenCalledWith(
-      "--device and --role are required. Run openclaw devices list to choose a paired device.",
+      "--device and --role are required. Run astroclaw devices list to choose a paired device.",
     );
     expect(runtime.exit).toHaveBeenCalledWith(1);
   });
@@ -582,7 +582,7 @@ describe("devices cli local fallback", () => {
     summarizeDeviceTokens.mockReturnValue(undefined);
 
     await expect(runDevicesCommand(["list"])).rejects.toThrow(
-      "different OPENCLAW_PROFILE or OPENCLAW_STATE_DIR",
+      "different ASTROCLAW_PROFILE or ASTROCLAW_STATE_DIR",
     );
     expect(readRuntimeOutput()).not.toContain(fallbackNotice);
   });

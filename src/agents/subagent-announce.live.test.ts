@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { clearRuntimeConfigSnapshot, type OpenClawConfig } from "../config/config.js";
+import { clearRuntimeConfigSnapshot, type AstroclawConfig } from "../config/config.js";
 import { callGateway as realCallGateway } from "../gateway/call.js";
 import { GatewayClient } from "../gateway/client.js";
 import { dispatchGatewayMethodInProcess as realDispatchGatewayMethodInProcess } from "../gateway/server-plugins.js";
@@ -11,16 +11,16 @@ import { extractPayloadText } from "../gateway/test-helpers.agent-results.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { clearCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
 import {
-  createOpenClawTestState,
-  type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+  createAstroclawTestState,
+  type AstroclawTestState,
+} from "../test-utils/astroclaw-test-state.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { isLiveTestEnabled } from "./live-test-helpers.js";
 import { __testing as subagentAnnounceDeliveryTesting } from "./subagent-announce-delivery.js";
 import { __testing as subagentAnnounceTesting } from "./subagent-announce.js";
 import { listSubagentRunsForRequester } from "./subagent-registry.js";
 
-const LIVE = isLiveTestEnabled() && isTruthyEnvValue(process.env.OPENCLAW_LIVE_SUBAGENT_E2E);
+const LIVE = isLiveTestEnabled() && isTruthyEnvValue(process.env.ASTROCLAW_LIVE_SUBAGENT_E2E);
 const describeLive = LIVE ? describe : describe.skip;
 
 type AgentPayload = {
@@ -44,10 +44,10 @@ type LiveSubagentModelConfig = {
   provider: "openai" | "google";
   requiredEnv: "OPENAI_API_KEY" | "GEMINI_API_KEY" | "GOOGLE_API_KEY";
 };
-type LiveSubagentModelProviders = NonNullable<NonNullable<OpenClawConfig["models"]>["providers"]>;
+type LiveSubagentModelProviders = NonNullable<NonNullable<AstroclawConfig["models"]>["providers"]>;
 
 function resolveLiveSubagentModelConfig(): LiveSubagentModelConfig {
-  const modelKey = process.env.OPENCLAW_LIVE_SUBAGENT_E2E_MODEL?.trim() || "openai/gpt-5.5";
+  const modelKey = process.env.ASTROCLAW_LIVE_SUBAGENT_E2E_MODEL?.trim() || "openai/gpt-5.5";
   if (modelKey.startsWith("google/")) {
     return {
       modelKey,
@@ -68,7 +68,7 @@ function liveSubagentConfig(
   port: number,
   token: string,
   options?: { toolAllow?: string[] },
-): OpenClawConfig {
+): AstroclawConfig {
   const providerConfig = resolveLiveSubagentModelConfig();
   const modelId = modelKey.replace(/^(openai|google)\//u, "");
   const providers: LiveSubagentModelProviders = {};
@@ -191,7 +191,7 @@ function createGatewayClient(params: {
 }
 
 describeLive("subagent announce live", () => {
-  let state: OpenClawTestState | undefined;
+  let state: AstroclawTestState | undefined;
   let server: GatewayServer | undefined;
   let client: GatewayClient | undefined;
 
@@ -266,21 +266,21 @@ describeLive("subagent announce live", () => {
         }),
       });
 
-      state = await createOpenClawTestState({
+      state = await createAstroclawTestState({
         label: "subagent-announce-live",
         layout: "split",
         env: {
-          OPENCLAW_SKIP_CHANNELS: "1",
-          OPENCLAW_SKIP_CRON: "1",
-          OPENCLAW_SKIP_BROWSER_CONTROL_SERVER: "1",
-          OPENCLAW_SKIP_CANVAS_HOST: "1",
-          OPENCLAW_TEST_MINIMAL_GATEWAY: "1",
-          OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-          OPENCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY: "1",
-          OPENCLAW_BUNDLED_PLUGINS_DIR: path.resolve("extensions"),
-          OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1",
-          OPENCLAW_PLUGIN_CATALOG_PATHS: undefined,
-          OPENCLAW_PLUGINS_PATHS: undefined,
+          ASTROCLAW_SKIP_CHANNELS: "1",
+          ASTROCLAW_SKIP_CRON: "1",
+          ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER: "1",
+          ASTROCLAW_SKIP_CANVAS_HOST: "1",
+          ASTROCLAW_TEST_MINIMAL_GATEWAY: "1",
+          ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+          ASTROCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY: "1",
+          ASTROCLAW_BUNDLED_PLUGINS_DIR: path.resolve("extensions"),
+          ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1",
+          ASTROCLAW_PLUGIN_CATALOG_PATHS: undefined,
+          ASTROCLAW_PLUGINS_PATHS: undefined,
         },
       });
       await state.writeConfig(liveSubagentConfig(modelKey, state.workspaceDir, port, token));
@@ -303,7 +303,7 @@ describeLive("subagent announce live", () => {
           deliver: false,
           timeout: 180,
           message: [
-            "Run this exact OpenClaw subagent steering scenario. Use tool calls, not prose.",
+            "Run this exact Astroclaw subagent steering scenario. Use tool calls, not prose.",
             `Use nonce ${nonce}.`,
             `Step 1: call sessions_spawn with exactly this JSON input: ${JSON.stringify({
               task: childTask,
@@ -378,7 +378,7 @@ describeLive("subagent announce live", () => {
       const modelConfig = resolveLiveSubagentModelConfig();
       if (!modelConfig.modelKey.startsWith("google/")) {
         console.warn(
-          "[subagent-stress] skip: set OPENCLAW_LIVE_SUBAGENT_E2E_MODEL=google/gemini-3.1-pro-preview",
+          "[subagent-stress] skip: set ASTROCLAW_LIVE_SUBAGENT_E2E_MODEL=google/gemini-3.1-pro-preview",
         );
         return;
       }
@@ -391,34 +391,34 @@ describeLive("subagent announce live", () => {
       const childTokens = [1, 2, 3].map((index) => `GEMINI_STRESS_${nonce}_${index}`);
       const parentToken = `GEMINI_STRESS_PARENT_${nonce}`;
 
-      state = await createOpenClawTestState({
+      state = await createAstroclawTestState({
         label: "subagent-gemini-stress-live",
         layout: "split",
         env: {
-          OPENCLAW_SKIP_CHANNELS: "1",
-          OPENCLAW_SKIP_CRON: "1",
-          OPENCLAW_SKIP_BROWSER_CONTROL_SERVER: "1",
-          OPENCLAW_SKIP_CANVAS_HOST: "1",
-          OPENCLAW_TEST_MINIMAL_GATEWAY: "1",
-          OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-          OPENCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY: "1",
-          OPENCLAW_BUNDLED_PLUGINS_DIR: path.resolve("extensions"),
-          OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1",
-          OPENCLAW_PLUGIN_CATALOG_PATHS: undefined,
-          OPENCLAW_PLUGINS_PATHS: undefined,
-          OPENCLAW_DEBUG_MODEL_TRANSPORT: "1",
-          OPENCLAW_DEBUG_MODEL_PAYLOAD: "tools",
-          OPENCLAW_DEBUG_SSE: "events",
+          ASTROCLAW_SKIP_CHANNELS: "1",
+          ASTROCLAW_SKIP_CRON: "1",
+          ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER: "1",
+          ASTROCLAW_SKIP_CANVAS_HOST: "1",
+          ASTROCLAW_TEST_MINIMAL_GATEWAY: "1",
+          ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+          ASTROCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY: "1",
+          ASTROCLAW_BUNDLED_PLUGINS_DIR: path.resolve("extensions"),
+          ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1",
+          ASTROCLAW_PLUGIN_CATALOG_PATHS: undefined,
+          ASTROCLAW_PLUGINS_PATHS: undefined,
+          ASTROCLAW_DEBUG_MODEL_TRANSPORT: "1",
+          ASTROCLAW_DEBUG_MODEL_PAYLOAD: "tools",
+          ASTROCLAW_DEBUG_SSE: "events",
         },
       });
       await fs.writeFile(
         path.join(state.workspaceDir, "package.json"),
-        `${JSON.stringify({ name: "openclaw-gemini-stress-live", private: true }, null, 2)}\n`,
+        `${JSON.stringify({ name: "astroclaw-gemini-stress-live", private: true }, null, 2)}\n`,
         "utf8",
       );
       await fs.writeFile(
         path.join(state.workspaceDir, "AGENTS.md"),
-        "OpenClaw live stress test workspace. Keep responses concise.\n",
+        "Astroclaw live stress test workspace. Keep responses concise.\n",
         "utf8",
       );
       await state.writeConfig(
@@ -453,7 +453,7 @@ describeLive("subagent announce live", () => {
           deliver: false,
           timeout: 420,
           message: [
-            "Run this exact OpenClaw Gemini subagent stress scenario. Use tool calls, not prose.",
+            "Run this exact Astroclaw Gemini subagent stress scenario. Use tool calls, not prose.",
             `Use nonce ${nonce}.`,
             "Spawn all three children before waiting for any child result.",
             ...childTokens.map((childToken, index) => {
@@ -464,7 +464,7 @@ describeLive("subagent announce live", () => {
                     `You are stress child ${childNumber}.`,
                     "Use available tools for a tiny multi-tool check.",
                     "First read package.json if the read tool is available.",
-                    "Then run a tiny shell command if the bash tool is available: printf openclaw.",
+                    "Then run a tiny shell command if the bash tool is available: printf astroclaw.",
                     "If web_search or memory_search is available, use at most one small query.",
                     `After the tool work, reply exactly ${childToken}.`,
                   ].join(" "),

@@ -1,7 +1,7 @@
 import Foundation
 import Observation
-import OpenClawKit
-import OpenClawProtocol
+import AstroclawKit
+import AstroclawProtocol
 import SwiftUI
 
 struct ControlHeartbeatEvent: Codable {
@@ -23,7 +23,7 @@ struct ControlAgentEvent: Codable, Identifiable {
     let seq: Int
     let stream: String
     let ts: Double
-    let data: [String: OpenClawProtocol.AnyCodable]
+    let data: [String: AstroclawProtocol.AnyCodable]
     let summary: String?
 }
 
@@ -79,7 +79,7 @@ final class ControlChannel {
     private(set) var lastPingMs: Double?
     private(set) var authSourceLabel: String?
 
-    private let logger = Logger(subsystem: "ai.openclaw", category: "control")
+    private let logger = Logger(subsystem: "ai.astroclaw", category: "control")
 
     private var eventTask: Task<Void, Never>?
     private var recoveryTask: Task<Void, Never>?
@@ -166,8 +166,8 @@ final class ControlChannel {
         timeoutMs: Double? = nil) async throws -> Data
     {
         do {
-            let rawParams = params?.reduce(into: [String: OpenClawKit.AnyCodable]()) {
-                $0[$1.key] = OpenClawKit.AnyCodable($1.value.base)
+            let rawParams = params?.reduce(into: [String: AstroclawKit.AnyCodable]()) {
+                $0[$1.key] = AstroclawKit.AnyCodable($1.value.base)
             }
             let data = try await GatewayConnection.shared.request(
                 method: method,
@@ -242,8 +242,8 @@ final class ControlChannel {
             case .notConnectedToInternet:
                 if Self.isLikelyLocalNetworkPermissionBlock() {
                     return """
-                    macOS is blocking OpenClaw Local Network access.
-                    Allow OpenClaw in System Settings → Privacy & Security → Local Network, then relaunch the app.
+                    macOS is blocking Astroclaw Local Network access.
+                    Allow Astroclaw in System Settings → Privacy & Security → Local Network, then relaunch the app.
                     """
                 }
                 return "No network connectivity; cannot reach gateway."
@@ -264,7 +264,7 @@ final class ControlChannel {
     }
 
     private static func isLikelyLocalNetworkPermissionBlock() -> Bool {
-        let root = OpenClawConfigFile.loadDict()
+        let root = AstroclawConfigFile.loadDict()
         guard ConnectionModeResolver.resolve(root: root).mode == .remote,
               GatewayRemoteConfig.resolveTransport(root: root) == .direct,
               let url = GatewayRemoteConfig.resolveGatewayUrl(root: root),
@@ -420,20 +420,20 @@ final class ControlChannel {
     }
 
     private static func bridgeToProtocolArgs(
-        _ value: OpenClawProtocol.AnyCodable?) -> [String: OpenClawProtocol.AnyCodable]?
+        _ value: AstroclawProtocol.AnyCodable?) -> [String: AstroclawProtocol.AnyCodable]?
     {
         guard let value else { return nil }
-        if let dict = value.value as? [String: OpenClawProtocol.AnyCodable] {
+        if let dict = value.value as? [String: AstroclawProtocol.AnyCodable] {
             return dict
         }
-        if let dict = value.value as? [String: OpenClawKit.AnyCodable],
+        if let dict = value.value as? [String: AstroclawKit.AnyCodable],
            let data = try? JSONEncoder().encode(dict),
-           let decoded = try? JSONDecoder().decode([String: OpenClawProtocol.AnyCodable].self, from: data)
+           let decoded = try? JSONDecoder().decode([String: AstroclawProtocol.AnyCodable].self, from: data)
         {
             return decoded
         }
         if let data = try? JSONEncoder().encode(value),
-           let decoded = try? JSONDecoder().decode([String: OpenClawProtocol.AnyCodable].self, from: data)
+           let decoded = try? JSONDecoder().decode([String: AstroclawProtocol.AnyCodable].self, from: data)
         {
             return decoded
         }
@@ -442,6 +442,6 @@ final class ControlChannel {
 }
 
 extension Notification.Name {
-    static let controlHeartbeat = Notification.Name("openclaw.control.heartbeat")
-    static let controlAgentEvent = Notification.Name("openclaw.control.agent")
+    static let controlHeartbeat = Notification.Name("astroclaw.control.heartbeat")
+    static let controlAgentEvent = Notification.Name("astroclaw.control.agent")
 }

@@ -16,11 +16,11 @@ import {
   withTrustedWebSearchEndpoint,
   wrapWebContent,
   writeCachedSearchPayload,
-} from "openclaw/plugin-sdk/provider-web-search";
+} from "astroclaw/plugin-sdk/provider-web-search";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 
 const EXA_SEARCH_ENDPOINT = "https://api.exa.ai/search";
 const EXA_SEARCH_TYPES = ["auto", "neural", "fast", "deep", "deep-reasoning", "instant"] as const;
@@ -100,7 +100,7 @@ function invalidBaseUrlPayload(value: string) {
   return {
     error: "invalid_base_url",
     message: `plugins.entries.exa.config.webSearch.baseUrl must be a valid http(s) URL. Got: ${value}`,
-    docs: "https://docs.openclaw.ai/tools/exa-search",
+    docs: "https://docs.astroclaw.ai/tools/exa-search",
   };
 }
 
@@ -160,7 +160,7 @@ function invalidContentsPayload(message: string) {
   return {
     error: "invalid_contents",
     message,
-    docs: "https://docs.openclaw.ai/tools/web",
+    docs: "https://docs.astroclaw.ai/tools/web",
   };
 }
 
@@ -398,7 +398,7 @@ async function runExaSearch(params: {
           Accept: "application/json",
           "Content-Type": "application/json",
           "x-api-key": params.apiKey,
-          "x-exa-integration": "openclaw",
+          "x-exa-integration": "astroclaw",
         },
         body: JSON.stringify(body),
       },
@@ -418,7 +418,7 @@ function missingExaKeyPayload() {
     error: "missing_exa_api_key",
     message:
       "web_search (exa) needs an Exa API key. Set EXA_API_KEY in the Gateway environment, or configure tools.web.search.exa.apiKey.",
-    docs: "https://docs.openclaw.ai/tools/web",
+    docs: "https://docs.astroclaw.ai/tools/web",
   };
 }
 
@@ -481,7 +481,7 @@ export async function executeExaWebSearchProviderTool(
     return {
       error: "invalid_freshness",
       message: 'freshness must be one of "day", "week", "month", or "year".',
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
 
@@ -492,7 +492,7 @@ export async function executeExaWebSearchProviderTool(
       error: "conflicting_time_filters",
       message:
         "freshness cannot be combined with date_after or date_before. Use one time-filter mode.",
-      docs: "https://docs.openclaw.ai/tools/web",
+      docs: "https://docs.astroclaw.ai/tools/web",
     };
   }
   const parsedDateRange = parseIsoDateRange({

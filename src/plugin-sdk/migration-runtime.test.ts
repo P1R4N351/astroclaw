@@ -36,7 +36,7 @@ describe("withCachedMigrationConfigRuntime", () => {
         });
         runtimeConfig = structuredClone(draft);
         return {
-          path: "/tmp/openclaw.json",
+          path: "/tmp/astroclaw.json",
           previousHash: null,
           persistedHash: "test-persisted-hash",
           snapshot: {} as never,
@@ -51,7 +51,7 @@ describe("withCachedMigrationConfigRuntime", () => {
       async (params: ReplaceConfigFileParams): Promise<ReplaceConfigFileResult> => {
         runtimeConfig = structuredClone(params.nextConfig);
         return {
-          path: "/tmp/openclaw.json",
+          path: "/tmp/astroclaw.json",
           previousHash: null,
           persistedHash: "test-persisted-hash",
           snapshot: {} as never,
@@ -104,7 +104,7 @@ describe("copyMigrationFileItem", () => {
 
   it("uses unique backup paths for same-basename targets in the same millisecond", async () => {
     vi.spyOn(Date, "now").mockReturnValue(123);
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-migration-runtime-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-migration-runtime-"));
     const reportDir = path.join(root, "report");
     const sourceOne = path.join(root, "source-one", "AGENTS.md");
     const sourceTwo = path.join(root, "source-two", "AGENTS.md");
@@ -156,7 +156,7 @@ describe("copyMigrationFileItem", () => {
 
 describe("writeMigrationReport", () => {
   it("redacts nested secret-looking config values in JSON reports", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-migration-report-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-migration-report-"));
     const reportDir = path.join(root, "report");
 
     await writeMigrationReport({

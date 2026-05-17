@@ -109,7 +109,7 @@ export async function runPluginPayloadSmokeCheck(params: {
         detail: `Plugin extension entry validation failed: ${
           extensionResolution.status === "invalid"
             ? extensionResolution.error
-            : "package.json openclaw.extensions is empty"
+            : "package.json astroclaw.extensions is empty"
         }`,
       });
     } else if (extensionResolution.status === "ok") {

@@ -67,9 +67,9 @@ const prepareDeps = {
   getActiveMcpLoopbackRuntime,
   ensureMcpLoopbackServer,
   createMcpLoopbackServerConfig,
-  resolveOpenClawReferencePaths: async (
-    params: Parameters<typeof import("../docs-path.js").resolveOpenClawReferencePaths>[0],
-  ) => (await import("../docs-path.js")).resolveOpenClawReferencePaths(params),
+  resolveAstroclawReferencePaths: async (
+    params: Parameters<typeof import("../docs-path.js").resolveAstroclawReferencePaths>[0],
+  ) => (await import("../docs-path.js")).resolveAstroclawReferencePaths(params),
   // Surfaced as a dep so tests can stub the on-disk Claude CLI transcript probe
   // without touching ~/.claude/projects.
   claudeCliSessionTranscriptHasContent,
@@ -221,15 +221,15 @@ export async function prepareCliRunContext(
       : undefined,
     env: mcpLoopbackRuntime
       ? {
-          OPENCLAW_MCP_TOKEN:
+          ASTROCLAW_MCP_TOKEN:
             params.senderIsOwner === true
               ? mcpLoopbackRuntime.ownerToken
               : mcpLoopbackRuntime.nonOwnerToken,
-          OPENCLAW_MCP_AGENT_ID: sessionAgentId ?? "",
-          OPENCLAW_MCP_ACCOUNT_ID: params.agentAccountId ?? "",
-          OPENCLAW_MCP_SESSION_KEY: params.sessionKey ?? "",
-          OPENCLAW_MCP_MESSAGE_CHANNEL: params.messageChannel ?? params.messageProvider ?? "",
-          OPENCLAW_MCP_INBOUND_EVENT_KIND: params.currentInboundEventKind ?? "",
+          ASTROCLAW_MCP_AGENT_ID: sessionAgentId ?? "",
+          ASTROCLAW_MCP_ACCOUNT_ID: params.agentAccountId ?? "",
+          ASTROCLAW_MCP_SESSION_KEY: params.sessionKey ?? "",
+          ASTROCLAW_MCP_MESSAGE_CHANNEL: params.messageChannel ?? params.messageProvider ?? "",
+          ASTROCLAW_MCP_INBOUND_EVENT_KIND: params.currentInboundEventKind ?? "",
         }
       : undefined,
     warn: (message) => cliBackendLog.warn(message),
@@ -317,23 +317,23 @@ export async function prepareCliRunContext(
       `cli session reset: provider=${params.provider} reason=${reusableCliSession.invalidatedReason}`,
     );
   }
-  let openClawHistoryMessages: unknown[] | undefined;
-  const loadOpenClawHistoryMessages = async () => {
-    openClawHistoryMessages ??= await loadCliSessionHistoryMessages({
+  let astroClawHistoryMessages: unknown[] | undefined;
+  const loadAstroclawHistoryMessages = async () => {
+    astroClawHistoryMessages ??= await loadCliSessionHistoryMessages({
       sessionId: params.sessionId,
       sessionFile: params.sessionFile,
       sessionKey: params.sessionKey,
       agentId: params.agentId,
       config: params.config,
     });
-    return openClawHistoryMessages;
+    return astroClawHistoryMessages;
   };
   const heartbeatPrompt = resolveHeartbeatPromptForSystemPrompt({
     config: params.config,
     agentId: sessionAgentId,
     defaultAgentId,
   });
-  const openClawReferences = await prepareDeps.resolveOpenClawReferencePaths({
+  const astroClawReferences = await prepareDeps.resolveAstroclawReferencePaths({
     workspaceDir,
     argv1: process.argv[1],
     cwd: process.cwd(),
@@ -359,8 +359,8 @@ export async function prepareCliRunContext(
       silentReplyPromptMode: params.silentReplyPromptMode,
       ownerNumbers: params.ownerNumbers,
       heartbeatPrompt,
-      docsPath: openClawReferences.docsPath ?? undefined,
-      sourcePath: openClawReferences.sourcePath ?? undefined,
+      docsPath: astroClawReferences.docsPath ?? undefined,
+      sourcePath: astroClawReferences.sourcePath ?? undefined,
       skillsPrompt,
       tools: [],
       contextFiles,
@@ -384,7 +384,7 @@ export async function prepareCliRunContext(
     const hookResult = await resolvePromptBuildHookResult({
       config: params.config ?? getRuntimeConfig(),
       prompt: params.prompt,
-      messages: await loadOpenClawHistoryMessages(),
+      messages: await loadAstroclawHistoryMessages(),
       hookCtx: {
         runId: params.runId,
         agentId: sessionAgentId,
@@ -431,9 +431,9 @@ export async function prepareCliRunContext(
   const rawTranscriptReseedReason = reusableCliSession.sessionId
     ? "session-expired"
     : reusableCliSession.invalidatedReason;
-  const shouldPrepareOpenClawHistoryPrompt =
+  const shouldPrepareAstroclawHistoryPrompt =
     !reusableCliSession.sessionId || allowRawTranscriptReseed;
-  const openClawHistoryPrompt = shouldPrepareOpenClawHistoryPrompt
+  const astroClawHistoryPrompt = shouldPrepareAstroclawHistoryPrompt
     ? buildCliSessionHistoryPrompt({
         messages: await loadCliSessionReseedMessages({
           sessionId: params.sessionId,
@@ -525,7 +525,7 @@ export async function prepareCliRunContext(
       systemPrompt,
       systemPromptReport,
       bootstrapPromptWarningLines: bootstrapPromptWarning.lines,
-      ...(openClawHistoryPrompt ? { openClawHistoryPrompt } : {}),
+      ...(astroClawHistoryPrompt ? { astroClawHistoryPrompt } : {}),
       heartbeatPrompt,
       authEpoch,
       authEpochVersion: CLI_AUTH_EPOCH_VERSION,

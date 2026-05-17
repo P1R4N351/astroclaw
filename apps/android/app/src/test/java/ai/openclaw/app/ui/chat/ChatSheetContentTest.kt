@@ -1,4 +1,4 @@
-package ai.openclaw.app.ui.chat
+package ai.astroclaw.app.ui.chat
 
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

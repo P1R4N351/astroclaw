@@ -1,5 +1,5 @@
 import { resolveThinkingDefaultForModel } from "../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
@@ -12,7 +12,7 @@ import { buildConfiguredModelCatalog } from "./model-selection-shared.js";
 type ThinkLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive" | "max";
 
 export function resolveThinkingDefault(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   provider: string;
   model: string;
   catalog?: ModelCatalogEntry[];
@@ -81,7 +81,7 @@ export function resolveThinkingDefault(params: {
 }
 
 export async function resolveThinkingDefaultWithRuntimeCatalog(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   provider: string;
   model: string;
   loadModelCatalog: () => Promise<ModelCatalogEntry[]>;

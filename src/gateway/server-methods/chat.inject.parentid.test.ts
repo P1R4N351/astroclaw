@@ -19,7 +19,7 @@ function readTranscriptLines(transcriptPath: string): string[] {
 describe("gateway chat.inject transcript writes", () => {
   it("appends a Pi session entry that includes parentId", async () => {
     const { dir, transcriptPath } = createTranscriptFixtureSync({
-      prefix: "openclaw-chat-inject-",
+      prefix: "astroclaw-chat-inject-",
       sessionId: "sess-1",
     });
 
@@ -53,7 +53,7 @@ describe("gateway chat.inject transcript writes", () => {
 
   it("uses raw append for oversized append-only transcripts", async () => {
     const { dir, transcriptPath } = createTranscriptFixtureSync({
-      prefix: "openclaw-chat-inject-large-",
+      prefix: "astroclaw-chat-inject-large-",
       sessionId: "sess-1",
     });
 
@@ -97,7 +97,7 @@ describe("gateway chat.inject transcript writes", () => {
 
   it("emits and returns the redacted injected assistant message", async () => {
     const { dir, transcriptPath } = createTranscriptFixtureSync({
-      prefix: "openclaw-chat-inject-redact-",
+      prefix: "astroclaw-chat-inject-redact-",
       sessionId: "sess-redact",
     });
     const fakeApiKey = "sk-proj-FAKEKEYFORTESTINGONLY1234567890";

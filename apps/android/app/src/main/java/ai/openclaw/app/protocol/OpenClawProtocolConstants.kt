@@ -1,6 +1,6 @@
-package ai.openclaw.app.protocol
+package ai.astroclaw.app.protocol
 
-enum class OpenClawCapability(
+enum class AstroclawCapability(
   val rawValue: String,
 ) {
   Canvas("canvas"),
@@ -19,7 +19,7 @@ enum class OpenClawCapability(
   CallLog("callLog"),
 }
 
-enum class OpenClawCanvasCommand(
+enum class AstroclawCanvasCommand(
   val rawValue: String,
 ) {
   Present("canvas.present"),
@@ -34,7 +34,7 @@ enum class OpenClawCanvasCommand(
   }
 }
 
-enum class OpenClawCanvasA2UICommand(
+enum class AstroclawCanvasA2UICommand(
   val rawValue: String,
 ) {
   Push("canvas.a2ui.push"),
@@ -47,7 +47,7 @@ enum class OpenClawCanvasA2UICommand(
   }
 }
 
-enum class OpenClawCameraCommand(
+enum class AstroclawCameraCommand(
   val rawValue: String,
 ) {
   List("camera.list"),
@@ -60,7 +60,7 @@ enum class OpenClawCameraCommand(
   }
 }
 
-enum class OpenClawSmsCommand(
+enum class AstroclawSmsCommand(
   val rawValue: String,
 ) {
   Send("sms.send"),
@@ -72,7 +72,7 @@ enum class OpenClawSmsCommand(
   }
 }
 
-enum class OpenClawTalkCommand(
+enum class AstroclawTalkCommand(
   val rawValue: String,
 ) {
   PttStart("talk.ptt.start"),
@@ -86,7 +86,7 @@ enum class OpenClawTalkCommand(
   }
 }
 
-enum class OpenClawLocationCommand(
+enum class AstroclawLocationCommand(
   val rawValue: String,
 ) {
   Get("location.get"),
@@ -97,7 +97,7 @@ enum class OpenClawLocationCommand(
   }
 }
 
-enum class OpenClawDeviceCommand(
+enum class AstroclawDeviceCommand(
   val rawValue: String,
 ) {
   Status("device.status"),
@@ -111,7 +111,7 @@ enum class OpenClawDeviceCommand(
   }
 }
 
-enum class OpenClawNotificationsCommand(
+enum class AstroclawNotificationsCommand(
   val rawValue: String,
 ) {
   List("notifications.list"),
@@ -123,7 +123,7 @@ enum class OpenClawNotificationsCommand(
   }
 }
 
-enum class OpenClawSystemCommand(
+enum class AstroclawSystemCommand(
   val rawValue: String,
 ) {
   Notify("system.notify"),
@@ -134,7 +134,7 @@ enum class OpenClawSystemCommand(
   }
 }
 
-enum class OpenClawPhotosCommand(
+enum class AstroclawPhotosCommand(
   val rawValue: String,
 ) {
   Latest("photos.latest"),
@@ -145,7 +145,7 @@ enum class OpenClawPhotosCommand(
   }
 }
 
-enum class OpenClawContactsCommand(
+enum class AstroclawContactsCommand(
   val rawValue: String,
 ) {
   Search("contacts.search"),
@@ -157,7 +157,7 @@ enum class OpenClawContactsCommand(
   }
 }
 
-enum class OpenClawCalendarCommand(
+enum class AstroclawCalendarCommand(
   val rawValue: String,
 ) {
   Events("calendar.events"),
@@ -169,7 +169,7 @@ enum class OpenClawCalendarCommand(
   }
 }
 
-enum class OpenClawMotionCommand(
+enum class AstroclawMotionCommand(
   val rawValue: String,
 ) {
   Activity("motion.activity"),
@@ -181,7 +181,7 @@ enum class OpenClawMotionCommand(
   }
 }
 
-enum class OpenClawCallLogCommand(
+enum class AstroclawCallLogCommand(
   val rawValue: String,
 ) {
   Search("callLog.search"),

@@ -1,5 +1,5 @@
 ---
-summary: "Adds Cerebras model provider support to OpenClaw."
+summary: "Adds Cerebras model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the cerebras plugin
 title: "Cerebras plugin"
@@ -7,12 +7,12 @@ title: "Cerebras plugin"
 
 # Cerebras plugin
 
-Adds Cerebras model provider support to OpenClaw.
+Adds Cerebras model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/cerebras-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/cerebras-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

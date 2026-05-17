@@ -1,8 +1,8 @@
 import AVFoundation
 import Foundation
-import OpenClawChatUI
-import OpenClawKit
-import OpenClawProtocol
+import AstroclawChatUI
+import AstroclawKit
+import AstroclawProtocol
 import OSLog
 import Speech
 
@@ -16,8 +16,8 @@ actor TalkModeRuntime {
         case systemVoiceOnly
     }
 
-    private let logger = Logger(subsystem: "ai.openclaw", category: "talk.runtime")
-    private let ttsLogger = Logger(subsystem: "ai.openclaw", category: "talk.tts")
+    private let logger = Logger(subsystem: "ai.astroclaw", category: "talk.runtime")
+    private let ttsLogger = Logger(subsystem: "ai.astroclaw", category: "talk.tts")
     private static let defaultModelIdFallback = "eleven_v3"
     private static let defaultTalkProvider = "elevenlabs"
     private static let mlxTalkProvider = "mlx"
@@ -462,7 +462,7 @@ actor TalkModeRuntime {
                     guard evt.event == "chat", let payload = evt.payload else { continue }
                     guard let chatEvent = try? GatewayPayloadDecoding.decode(
                         payload,
-                        as: OpenClawChatEventPayload.self)
+                        as: AstroclawChatEventPayload.self)
                     else {
                         continue
                     }
@@ -472,7 +472,7 @@ actor TalkModeRuntime {
                     {
                         continue
                     }
-                    if let text = OpenClawChatEventText.assistantText(from: chatEvent) {
+                    if let text = AstroclawChatEventText.assistantText(from: chatEvent) {
                         latestText = text
                     }
                     switch chatEvent.state {
@@ -526,9 +526,9 @@ actor TalkModeRuntime {
         do {
             let history = try await GatewayConnection.shared.chatHistory(sessionKey: sessionKey)
             let messages = history.messages ?? []
-            let decoded: [OpenClawChatMessage] = messages.compactMap { item in
+            let decoded: [AstroclawChatMessage] = messages.compactMap { item in
                 guard let data = try? JSONEncoder().encode(item) else { return nil }
-                return try? JSONDecoder().decode(OpenClawChatMessage.self, from: data)
+                return try? JSONDecoder().decode(AstroclawChatMessage.self, from: data)
             }
             let assistant = decoded.last { message in
                 guard message.role == "assistant" else { return false }

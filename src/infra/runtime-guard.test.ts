@@ -89,11 +89,11 @@ describe("runtime-guard", () => {
     expect(runtime.error).toHaveBeenCalledOnce();
     expect(runtime.error).toHaveBeenCalledWith(
       [
-        "openclaw requires Node >=22.16.0.",
+        "astroclaw requires Node >=22.16.0.",
         "Detected: node 20.0.0 (exec: /usr/bin/node).",
         "PATH searched: /usr/bin",
         "Install Node: https://nodejs.org/en/download",
-        "Upgrade Node and re-run openclaw.",
+        "Upgrade Node and re-run astroclaw.",
       ].join("\n"),
     );
     expect(runtime.exit).toHaveBeenCalledWith(1);
@@ -134,11 +134,11 @@ describe("runtime-guard", () => {
     expect(runtime.error).toHaveBeenCalledOnce();
     expect(runtime.error).toHaveBeenCalledWith(
       [
-        "openclaw requires Node >=22.16.0.",
+        "astroclaw requires Node >=22.16.0.",
         "Detected: unknown runtime (exec: unknown).",
         "PATH searched: (not set)",
         "Install Node: https://nodejs.org/en/download",
-        "Upgrade Node and re-run openclaw.",
+        "Upgrade Node and re-run astroclaw.",
       ].join("\n"),
     );
     expect(runtime.exit).toHaveBeenCalledWith(1);

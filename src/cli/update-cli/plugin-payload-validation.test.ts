@@ -7,7 +7,7 @@ import { runPluginPayloadSmokeCheck } from "./plugin-payload-validation.js";
 describe("runPluginPayloadSmokeCheck", () => {
   let tmpRoot: string;
   beforeEach(async () => {
-    tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-payload-smoke-"));
+    tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-payload-smoke-"));
   });
   afterEach(async () => {
     await fs.rm(tmpRoot, { recursive: true, force: true });
@@ -32,7 +32,7 @@ describe("runPluginPayloadSmokeCheck", () => {
     const dir = path.join(tmpRoot, "discord");
     await writePackage(
       dir,
-      { name: "@openclaw/discord", main: "dist/index.js" },
+      { name: "@astroclaw/discord", main: "dist/index.js" },
       "module.exports = {};",
     );
     const result = await runPluginPayloadSmokeCheck({
@@ -78,7 +78,7 @@ describe("runPluginPayloadSmokeCheck", () => {
 
   it("reports a failure when the main entry file is missing on disk", async () => {
     const dir = path.join(tmpRoot, "brave");
-    await writePackage(dir, { name: "@openclaw/brave", main: "dist/index.js" });
+    await writePackage(dir, { name: "@astroclaw/brave", main: "dist/index.js" });
     const result = await runPluginPayloadSmokeCheck({
       records: { brave: { source: "npm", installPath: dir } },
       env: {},
@@ -93,9 +93,9 @@ describe("runPluginPayloadSmokeCheck", () => {
     ]);
   });
 
-  it("accepts a manifest with no main field (OpenClaw plugins commonly use `exports` or `openclaw.extensions`)", async () => {
+  it("accepts a manifest with no main field (Astroclaw plugins commonly use `exports` or `astroclaw.extensions`)", async () => {
     const dir = path.join(tmpRoot, "matrix");
-    await writePackage(dir, { name: "@openclaw/plugin-matrix" });
+    await writePackage(dir, { name: "@astroclaw/plugin-matrix" });
     const result = await runPluginPayloadSmokeCheck({
       records: { matrix: { source: "npm", installPath: dir } },
       env: {},
@@ -106,7 +106,7 @@ describe("runPluginPayloadSmokeCheck", () => {
   it("accepts a manifest that declares only `exports` and no `main`", async () => {
     const dir = path.join(tmpRoot, "qa");
     await writePackage(dir, {
-      name: "@openclaw/qa-channel",
+      name: "@astroclaw/qa-channel",
       exports: { ".": "./index.js", "./api.js": "./api.js" },
     });
     const result = await runPluginPayloadSmokeCheck({
@@ -116,11 +116,11 @@ describe("runPluginPayloadSmokeCheck", () => {
     expect(result.failures).toEqual([]);
   });
 
-  it("accepts a manifest that declares an existing `openclaw.extensions` entry and no `main`", async () => {
+  it("accepts a manifest that declares an existing `astroclaw.extensions` entry and no `main`", async () => {
     const dir = path.join(tmpRoot, "brave");
     await writePackage(dir, {
-      name: "@openclaw/brave-plugin",
-      openclaw: { extensions: ["./index.js"] },
+      name: "@astroclaw/brave-plugin",
+      astroclaw: { extensions: ["./index.js"] },
     });
     await fs.writeFile(path.join(dir, "index.js"), "export default {};\n", "utf8");
     const result = await runPluginPayloadSmokeCheck({
@@ -130,11 +130,11 @@ describe("runPluginPayloadSmokeCheck", () => {
     expect(result.failures).toEqual([]);
   });
 
-  it("reports a failure when `openclaw.extensions` contains invalid entries", async () => {
+  it("reports a failure when `astroclaw.extensions` contains invalid entries", async () => {
     const dir = path.join(tmpRoot, "brave");
     await writePackage(dir, {
-      name: "@openclaw/brave-plugin",
-      openclaw: { extensions: ["./index.js", " "] },
+      name: "@astroclaw/brave-plugin",
+      astroclaw: { extensions: ["./index.js", " "] },
     });
     await fs.writeFile(path.join(dir, "index.js"), "export default {};\n", "utf8");
     const result = await runPluginPayloadSmokeCheck({
@@ -147,7 +147,7 @@ describe("runPluginPayloadSmokeCheck", () => {
         installPath: dir,
         reason: "missing-extension-entry",
         detail:
-          "Plugin extension entry validation failed: package.json openclaw.extensions[1] must be a non-empty string",
+          "Plugin extension entry validation failed: package.json astroclaw.extensions[1] must be a non-empty string",
       },
     ]);
   });
@@ -155,8 +155,8 @@ describe("runPluginPayloadSmokeCheck", () => {
   it("accepts a packaged TypeScript extension entry when compiled runtime output exists", async () => {
     const dir = path.join(tmpRoot, "codex");
     await writePackage(dir, {
-      name: "@openclaw/codex",
-      openclaw: { extensions: ["./index.ts"] },
+      name: "@astroclaw/codex",
+      astroclaw: { extensions: ["./index.ts"] },
     });
     await fs.mkdir(path.join(dir, "dist"), { recursive: true });
     await fs.writeFile(path.join(dir, "dist", "index.js"), "export default {};\n", "utf8");
@@ -167,11 +167,11 @@ describe("runPluginPayloadSmokeCheck", () => {
     expect(result.failures).toEqual([]);
   });
 
-  it("reports a failure when an `openclaw.extensions` entry file is missing", async () => {
+  it("reports a failure when an `astroclaw.extensions` entry file is missing", async () => {
     const dir = path.join(tmpRoot, "brave");
     await writePackage(dir, {
-      name: "@openclaw/brave-plugin",
-      openclaw: { extensions: ["./dist/index.js"] },
+      name: "@astroclaw/brave-plugin",
+      astroclaw: { extensions: ["./dist/index.js"] },
     });
     const result = await runPluginPayloadSmokeCheck({
       records: { brave: { source: "npm", installPath: dir } },

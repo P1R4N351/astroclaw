@@ -25,7 +25,7 @@ describe("qa docker harness", () => {
       qaLabPort: 43124,
       gatewayToken: "qa-token",
       providerBaseUrl: "http://host.docker.internal:45123/v1",
-      repoRoot: "/repo/openclaw",
+      repoRoot: "/repo/astroclaw",
       usePrebuiltImage: true,
       bindUiDist: true,
     });
@@ -34,7 +34,7 @@ describe("qa docker harness", () => {
       path.join(outputDir, ".env.example"),
       path.join(outputDir, "README.md"),
       path.join(outputDir, "docker-compose.qa.yml"),
-      path.join(outputDir, "state", "openclaw.json"),
+      path.join(outputDir, "state", "astroclaw.json"),
       path.join(outputDir, "state", "seed-workspace", "QA_KICKOFF_TASK.md"),
       path.join(outputDir, "state", "seed-workspace", "QA_SCENARIO_PLAN.md"),
       path.join(outputDir, "state", "seed-workspace", "QA_SCENARIOS.md"),
@@ -44,43 +44,43 @@ describe("qa docker harness", () => {
     }
 
     const compose = await readFile(path.join(outputDir, "docker-compose.qa.yml"), "utf8");
-    expect(compose).toContain("image: openclaw:qa-local-prebaked");
+    expect(compose).toContain("image: astroclaw:qa-local-prebaked");
     expect(compose).toContain("qa-mock-openai:");
     expect(compose).toContain("18889:18789");
     expect(compose).toContain('      - "43124:43123"');
-    expect(compose).toContain(":/opt/openclaw-qa-lab-ui:ro");
+    expect(compose).toContain(":/opt/astroclaw-qa-lab-ui:ro");
     expect(compose).toContain("      - sh");
     expect(compose).toContain("      - -lc");
     expect(compose).toContain(
       '        - fetch("http://127.0.0.1:18789/healthz").then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))',
     );
     expect(compose).toContain("      - --control-ui-proxy-target");
-    expect(compose).toContain('      - "http://openclaw-qa-gateway:18789/"');
+    expect(compose).toContain('      - "http://astroclaw-qa-gateway:18789/"');
     expect(compose).toContain("      - --send-kickoff-on-start");
     expect(compose).toContain("      - --ui-dist-dir");
-    expect(compose).toContain('      - "/opt/openclaw-qa-lab-ui"');
-    expect(compose).toContain(":/opt/openclaw-repo:ro");
-    expect(compose).toContain("./state:/opt/openclaw-scaffold:ro");
+    expect(compose).toContain('      - "/opt/astroclaw-qa-lab-ui"');
+    expect(compose).toContain(":/opt/astroclaw-repo:ro");
+    expect(compose).toContain("./state:/opt/astroclaw-scaffold:ro");
     expect(compose).toContain(
-      "cp -R /opt/openclaw-scaffold/seed-workspace/. /tmp/openclaw/workspace/",
+      "cp -R /opt/astroclaw-scaffold/seed-workspace/. /tmp/astroclaw/workspace/",
     );
-    expect(compose).toContain("OPENCLAW_CONFIG_PATH: /tmp/openclaw/openclaw.json");
-    expect(compose).toContain("OPENCLAW_STATE_DIR: /tmp/openclaw/state");
-    expect(compose).toContain('OPENCLAW_NO_RESPAWN: "1"');
+    expect(compose).toContain("ASTROCLAW_CONFIG_PATH: /tmp/astroclaw/astroclaw.json");
+    expect(compose).toContain("ASTROCLAW_STATE_DIR: /tmp/astroclaw/state");
+    expect(compose).toContain('ASTROCLAW_NO_RESPAWN: "1"');
 
     const envExample = await readFile(path.join(outputDir, ".env.example"), "utf8");
-    expect(envExample).toContain("OPENCLAW_GATEWAY_TOKEN=qa-token");
+    expect(envExample).toContain("ASTROCLAW_GATEWAY_TOKEN=qa-token");
     expect(envExample).toContain("QA_BUS_BASE_URL=http://qa-lab:43123");
     expect(envExample).toContain("QA_PROVIDER_BASE_URL=http://host.docker.internal:45123/v1");
     expect(envExample).toContain("QA_LAB_URL=http://127.0.0.1:43124");
 
-    const config = await readFile(path.join(outputDir, "state", "openclaw.json"), "utf8");
+    const config = await readFile(path.join(outputDir, "state", "astroclaw.json"), "utf8");
     expect(config).toContain('"allowInsecureAuth": true');
     expect(config).toContain('"pluginToolsMcpBridge": true');
-    expect(config).toContain('"openClawToolsMcpBridge": true');
+    expect(config).toContain('"astroClawToolsMcpBridge": true');
     expect(config).toContain("/app/dist/control-ui");
     expect(config).toContain("C-3PO QA");
-    expect(config).toContain('"/tmp/openclaw/workspace"');
+    expect(config).toContain('"/tmp/astroclaw/workspace"');
 
     const kickoff = await readFile(
       path.join(outputDir, "state", "seed-workspace", "QA_KICKOFF_TASK.md"),
@@ -104,8 +104,8 @@ describe("qa docker harness", () => {
     const calls: string[] = [];
     const result = await buildQaDockerHarnessImage(
       {
-        repoRoot: "/repo/openclaw",
-        imageName: "openclaw:qa-local-prebaked",
+        repoRoot: "/repo/astroclaw",
+        imageName: "astroclaw:qa-local-prebaked",
       },
       {
         async runCommand(command, args, cwd) {
@@ -115,9 +115,9 @@ describe("qa docker harness", () => {
       },
     );
 
-    expect(result.imageName).toBe("openclaw:qa-local-prebaked");
+    expect(result.imageName).toBe("astroclaw:qa-local-prebaked");
     expect(calls).toEqual([
-      "docker build -t openclaw:qa-local-prebaked --build-arg OPENCLAW_EXTENSIONS=qa-channel qa-lab -f Dockerfile . @/repo/openclaw",
+      "docker build -t astroclaw:qa-local-prebaked --build-arg ASTROCLAW_EXTENSIONS=qa-channel qa-lab -f Dockerfile . @/repo/astroclaw",
     ]);
   });
 });

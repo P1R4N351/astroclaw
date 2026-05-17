@@ -1,14 +1,14 @@
 import AppKit
 import Foundation
-import OpenClawChatUI
-import OpenClawKit
-import OpenClawProtocol
+import AstroclawChatUI
+import AstroclawKit
+import AstroclawProtocol
 import OSLog
 import QuartzCore
 import SwiftUI
 
-private let webChatSwiftLogger = Logger(subsystem: "ai.openclaw", category: "WebChatSwiftUI")
-private let webChatThinkingLevelDefaultsKey = "openclaw.webchat.thinkingLevel"
+private let webChatSwiftLogger = Logger(subsystem: "ai.astroclaw", category: "WebChatSwiftUI")
+private let webChatThinkingLevelDefaultsKey = "astroclaw.webchat.thinkingLevel"
 
 private enum WebChatSwiftUILayout {
     static let windowSize = NSSize(width: 500, height: 840)
@@ -17,12 +17,12 @@ private enum WebChatSwiftUILayout {
     static let anchorPadding: CGFloat = 8
 }
 
-struct MacGatewayChatTransport: OpenClawChatTransport {
-    func requestHistory(sessionKey: String) async throws -> OpenClawChatHistoryPayload {
+struct MacGatewayChatTransport: AstroclawChatTransport {
+    func requestHistory(sessionKey: String) async throws -> AstroclawChatHistoryPayload {
         try await GatewayConnection.shared.chatHistory(sessionKey: sessionKey)
     }
 
-    func listModels() async throws -> [OpenClawChatModelChoice] {
+    func listModels() async throws -> [AstroclawChatModelChoice] {
         do {
             let data = try await GatewayConnection.shared.request(
                 method: "models.list",
@@ -47,7 +47,7 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
             timeoutMs: 10000)
     }
 
-    func listSessions(limit: Int?) async throws -> OpenClawChatSessionsListResponse {
+    func listSessions(limit: Int?) async throws -> AstroclawChatSessionsListResponse {
         var params: [String: AnyCodable] = [
             "includeGlobal": AnyCodable(true),
             "includeUnknown": AnyCodable(false),
@@ -59,10 +59,10 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
             method: "sessions.list",
             params: params,
             timeoutMs: 15000)
-        let decoded = try JSONDecoder().decode(OpenClawChatSessionsListResponse.self, from: data)
+        let decoded = try JSONDecoder().decode(AstroclawChatSessionsListResponse.self, from: data)
         let mainSessionKey = await GatewayConnection.shared.cachedMainSessionKey()
         let defaults = decoded.defaults.map {
-            OpenClawChatSessionsDefaults(
+            AstroclawChatSessionsDefaults(
                 modelProvider: $0.modelProvider,
                 model: $0.model,
                 contextTokens: $0.contextTokens,
@@ -70,11 +70,11 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
                 thinkingOptions: $0.thinkingOptions,
                 thinkingDefault: $0.thinkingDefault,
                 mainSessionKey: mainSessionKey)
-        } ?? OpenClawChatSessionsDefaults(
+        } ?? AstroclawChatSessionsDefaults(
             model: nil,
             contextTokens: nil,
             mainSessionKey: mainSessionKey)
-        return OpenClawChatSessionsListResponse(
+        return AstroclawChatSessionsListResponse(
             ts: decoded.ts,
             path: decoded.path,
             count: decoded.count,
@@ -109,7 +109,7 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
         message: String,
         thinking: String,
         idempotencyKey: String,
-        attachments: [OpenClawChatAttachmentPayload]) async throws -> OpenClawChatSendResponse
+        attachments: [AstroclawChatAttachmentPayload]) async throws -> AstroclawChatSendResponse
     {
         try await GatewayConnection.shared.chatSend(
             sessionKey: sessionKey,
@@ -147,7 +147,7 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
             timeoutMs: 10000)
     }
 
-    func events() -> AsyncStream<OpenClawChatTransportEvent> {
+    func events() -> AsyncStream<AstroclawChatTransportEvent> {
         AsyncStream { continuation in
             let task = Task {
                 do {
@@ -171,11 +171,11 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
         }
     }
 
-    static func mapPushToTransportEvent(_ push: GatewayPush) -> OpenClawChatTransportEvent? {
+    static func mapPushToTransportEvent(_ push: GatewayPush) -> AstroclawChatTransportEvent? {
         switch push {
         case let .snapshot(hello):
             let ok = (try? JSONDecoder().decode(
-                OpenClawGatewayHealthOK.self,
+                AstroclawGatewayHealthOK.self,
                 from: JSONEncoder().encode(hello.snapshot.health)))?.ok ?? true
             return .health(ok: ok)
 
@@ -184,7 +184,7 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
             case "health":
                 guard let payload = evt.payload else { return nil }
                 let ok = (try? JSONDecoder().decode(
-                    OpenClawGatewayHealthOK.self,
+                    AstroclawGatewayHealthOK.self,
                     from: JSONEncoder().encode(payload)))?.ok ?? true
                 return .health(ok: ok)
             case "tick":
@@ -192,7 +192,7 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
             case "chat":
                 guard let payload = evt.payload else { return nil }
                 guard let chat = try? JSONDecoder().decode(
-                    OpenClawChatEventPayload.self,
+                    AstroclawChatEventPayload.self,
                     from: JSONEncoder().encode(payload))
                 else {
                     return nil
@@ -201,7 +201,7 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
             case "session.message":
                 guard let payload = evt.payload else { return nil }
                 guard let message = try? JSONDecoder().decode(
-                    OpenClawSessionMessageEventPayload.self,
+                    AstroclawSessionMessageEventPayload.self,
                     from: JSONEncoder().encode(payload))
                 else {
                     return nil
@@ -210,7 +210,7 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
             case "agent":
                 guard let payload = evt.payload else { return nil }
                 guard let agent = try? JSONDecoder().decode(
-                    OpenClawAgentEventPayload.self,
+                    AstroclawAgentEventPayload.self,
                     from: JSONEncoder().encode(payload))
                 else {
                     return nil
@@ -225,8 +225,8 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
         }
     }
 
-    private static func mapModelChoice(_ model: OpenClawProtocol.ModelChoice) -> OpenClawChatModelChoice {
-        OpenClawChatModelChoice(
+    private static func mapModelChoice(_ model: AstroclawProtocol.ModelChoice) -> AstroclawChatModelChoice {
+        AstroclawChatModelChoice(
             modelID: model.id,
             name: model.name,
             provider: model.provider,
@@ -240,7 +240,7 @@ struct MacGatewayChatTransport: OpenClawChatTransport {
 final class WebChatSwiftUIWindowController {
     private let presentation: WebChatPresentation
     private let sessionKey: String
-    private let hosting: NSHostingController<OpenClawChatView>
+    private let hosting: NSHostingController<AstroclawChatView>
     private let contentController: NSViewController
     private var window: NSWindow?
     private var dismissMonitor: Any?
@@ -251,10 +251,10 @@ final class WebChatSwiftUIWindowController {
         self.init(sessionKey: sessionKey, presentation: presentation, transport: MacGatewayChatTransport())
     }
 
-    init(sessionKey: String, presentation: WebChatPresentation, transport: any OpenClawChatTransport) {
+    init(sessionKey: String, presentation: WebChatPresentation, transport: any AstroclawChatTransport) {
         self.sessionKey = sessionKey
         self.presentation = presentation
-        let vm = OpenClawChatViewModel(
+        let vm = AstroclawChatViewModel(
             sessionKey: sessionKey,
             transport: transport,
             initialThinkingLevel: Self.persistedThinkingLevel(),
@@ -262,7 +262,7 @@ final class WebChatSwiftUIWindowController {
                 UserDefaults.standard.set(level, forKey: webChatThinkingLevelDefaultsKey)
             })
         let accent = Self.color(fromHex: AppStateStore.shared.seamColorHex)
-        self.hosting = NSHostingController(rootView: OpenClawChatView(
+        self.hosting = NSHostingController(rootView: AstroclawChatView(
             viewModel: vm,
             showsSessionSwitcher: true,
             userAccent: accent))
@@ -380,7 +380,7 @@ final class WebChatSwiftUIWindowController {
                 styleMask: [.titled, .closable, .resizable, .miniaturizable],
                 backing: .buffered,
                 defer: false)
-            window.title = "OpenClaw Chat"
+            window.title = "Astroclaw Chat"
             window.contentViewController = contentViewController
             window.isReleasedWhenClosed = false
             window.titleVisibility = .visible
@@ -423,7 +423,7 @@ final class WebChatSwiftUIWindowController {
 
     private static func makeContentController(
         for presentation: WebChatPresentation,
-        hosting: NSHostingController<OpenClawChatView>) -> NSViewController
+        hosting: NSHostingController<AstroclawChatView>) -> NSViewController
     {
         let controller = NSViewController()
         let effectView = NSVisualEffectView()

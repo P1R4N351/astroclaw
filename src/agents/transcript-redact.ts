@@ -1,5 +1,5 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { readLoggingConfig } from "../logging/config.js";
 import {
   getDefaultRedactPatterns,
@@ -11,7 +11,7 @@ function resolveTranscriptRedactPatterns(patterns?: string[]) {
   return patterns && patterns.length > 0 ? [...patterns, ...getDefaultRedactPatterns()] : undefined;
 }
 
-function redactTranscriptOptions(cfg?: OpenClawConfig) {
+function redactTranscriptOptions(cfg?: AstroclawConfig) {
   const configuredLogging = readLoggingConfig();
   const mode = cfg?.logging?.redactSensitive ?? configuredLogging?.redactSensitive;
   const patterns = resolveTranscriptRedactPatterns(
@@ -26,7 +26,7 @@ function redactTranscriptOptions(cfg?: OpenClawConfig) {
   };
 }
 
-function redactTranscriptText(value: string, cfg?: OpenClawConfig): string {
+function redactTranscriptText(value: string, cfg?: AstroclawConfig): string {
   if (cfg?.logging?.redactSensitive === "off") {
     return value;
   }
@@ -36,7 +36,7 @@ function redactTranscriptText(value: string, cfg?: OpenClawConfig): string {
 function redactTranscriptStructuredFieldValue(
   key: string,
   value: string,
-  cfg?: OpenClawConfig,
+  cfg?: AstroclawConfig,
 ): string {
   if (cfg?.logging?.redactSensitive === "off") {
     return value;
@@ -51,7 +51,7 @@ function isPlainTranscriptObject(value: object): value is Record<string, unknown
 
 function redactTranscriptStructuredValue(
   value: unknown,
-  cfg?: OpenClawConfig,
+  cfg?: AstroclawConfig,
   fieldKey?: string,
   seen: WeakSet<object> = new WeakSet<object>(),
 ): unknown {
@@ -100,7 +100,7 @@ function redactTranscriptStructuredValue(
   return next ?? value;
 }
 
-export function redactTranscriptMessage(message: AgentMessage, cfg?: OpenClawConfig): AgentMessage {
+export function redactTranscriptMessage(message: AgentMessage, cfg?: AstroclawConfig): AgentMessage {
   if (cfg?.logging?.redactSensitive === "off") {
     return message;
   }

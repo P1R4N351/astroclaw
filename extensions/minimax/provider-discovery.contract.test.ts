@@ -1,3 +1,3 @@
-import { describeMinimaxProviderDiscoveryContract } from "openclaw/plugin-sdk/provider-test-contracts";
+import { describeMinimaxProviderDiscoveryContract } from "astroclaw/plugin-sdk/provider-test-contracts";
 
 describeMinimaxProviderDiscoveryContract(() => import("./index.js"));

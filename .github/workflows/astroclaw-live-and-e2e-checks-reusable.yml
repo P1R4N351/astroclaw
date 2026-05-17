@@ -1,4 +1,4 @@
-name: OpenClaw Live And E2E Checks (Reusable)
+name: Astroclaw Live And E2E Checks (Reusable)
 
 on:
   workflow_dispatch:
@@ -34,9 +34,9 @@ on:
         default: 1
         type: number
       published_upgrade_survivor_baseline:
-        description: Published OpenClaw package baseline for the published-upgrade-survivor/update-migration Docker lanes
+        description: Published Astroclaw package baseline for the published-upgrade-survivor/update-migration Docker lanes
         required: false
-        default: openclaw@latest
+        default: astroclaw@latest
         type: string
       published_upgrade_survivor_baselines:
         description: Optional exact baseline list for published-upgrade-survivor/update-migration lane expansion
@@ -49,7 +49,7 @@ on:
         default: ""
         type: string
       package_artifact_name:
-        description: Existing workflow artifact containing openclaw-current.tgz; blank packs the selected ref
+        description: Existing workflow artifact containing astroclaw-current.tgz; blank packs the selected ref
         required: false
         default: ""
         type: string
@@ -129,9 +129,9 @@ on:
         default: 1
         type: number
       published_upgrade_survivor_baseline:
-        description: Published OpenClaw package baseline for the published-upgrade-survivor/update-restart-auth/update-migration Docker lanes
+        description: Published Astroclaw package baseline for the published-upgrade-survivor/update-restart-auth/update-migration Docker lanes
         required: false
-        default: openclaw@latest
+        default: astroclaw@latest
         type: string
       published_upgrade_survivor_baselines:
         description: Optional exact baseline list for published-upgrade-survivor/update-migration lane expansion
@@ -144,7 +144,7 @@ on:
         default: ""
         type: string
       package_artifact_name:
-        description: Existing workflow artifact containing openclaw-current.tgz; blank packs the selected ref
+        description: Existing workflow artifact containing astroclaw-current.tgz; blank packs the selected ref
         required: false
         default: ""
         type: string
@@ -223,15 +223,15 @@ on:
         required: false
       OPENCODE_ZEN_API_KEY:
         required: false
-      OPENCLAW_LIVE_BROWSER_CDP_URL:
+      ASTROCLAW_LIVE_BROWSER_CDP_URL:
         required: false
-      OPENCLAW_LIVE_SETUP_TOKEN:
+      ASTROCLAW_LIVE_SETUP_TOKEN:
         required: false
-      OPENCLAW_LIVE_SETUP_TOKEN_MODEL:
+      ASTROCLAW_LIVE_SETUP_TOKEN_MODEL:
         required: false
-      OPENCLAW_LIVE_SETUP_TOKEN_PROFILE:
+      ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE:
         required: false
-      OPENCLAW_LIVE_SETUP_TOKEN_VALUE:
+      ASTROCLAW_LIVE_SETUP_TOKEN_VALUE:
         required: false
       GEMINI_API_KEY:
         required: false
@@ -263,19 +263,19 @@ on:
         required: false
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
-      OPENCLAW_CODEX_AUTH_JSON:
+      ASTROCLAW_CODEX_AUTH_JSON:
         required: false
-      OPENCLAW_CODEX_CONFIG_TOML:
+      ASTROCLAW_CODEX_CONFIG_TOML:
         required: false
-      OPENCLAW_CLAUDE_JSON:
+      ASTROCLAW_CLAUDE_JSON:
         required: false
-      OPENCLAW_CLAUDE_CREDENTIALS_JSON:
+      ASTROCLAW_CLAUDE_CREDENTIALS_JSON:
         required: false
-      OPENCLAW_CLAUDE_SETTINGS_JSON:
+      ASTROCLAW_CLAUDE_SETTINGS_JSON:
         required: false
-      OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON:
+      ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON:
         required: false
-      OPENCLAW_GEMINI_SETTINGS_JSON:
+      ASTROCLAW_GEMINI_SETTINGS_JSON:
         required: false
       FIREWORKS_API_KEY:
         required: false
@@ -332,7 +332,7 @@ jobs:
 
           if [[ -z "$trusted_reason" ]]; then
             echo "Ref '${INPUT_REF}' resolved to $selected_sha, which is not trusted for secret-bearing live/E2E checks." >&2
-            echo "Allowed refs must be reachable from an OpenClaw branch or release tag." >&2
+            echo "Allowed refs must be reachable from an Astroclaw branch or release tag." >&2
             exit 1
           fi
 
@@ -460,8 +460,8 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      OPENCLAW_LIVE_CACHE_TEST: "1"
-      OPENCLAW_LIVE_TEST: "1"
+      ASTROCLAW_LIVE_CACHE_TEST: "1"
+      ASTROCLAW_LIVE_TEST: "1"
     steps:
       - name: Checkout selected ref
         uses: actions/checkout@v6
@@ -508,7 +508,7 @@ jobs:
     runs-on: ${{ github.event_name == 'workflow_call' && 'ubuntu-24.04' || 'blacksmith-8vcpu-ubuntu-2404' }}
     timeout-minutes: ${{ inputs.release_test_profile == 'full' && 90 || 60 }}
     env:
-      OPENCLAW_VITEST_MAX_WORKERS: "2"
+      ASTROCLAW_VITEST_MAX_WORKERS: "2"
     steps:
       - name: Checkout selected ref
         uses: actions/checkout@v6
@@ -548,8 +548,8 @@ jobs:
             requires_live_suites: false
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENCLAW_E2E_WORKERS: "1"
-      OPENCLAW_VITEST_MAX_WORKERS: "1"
+      ASTROCLAW_E2E_WORKERS: "1"
+      ASTROCLAW_VITEST_MAX_WORKERS: "1"
     steps:
       - name: Checkout selected ref
         uses: actions/checkout@v6
@@ -688,11 +688,11 @@ jobs:
       MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
       OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
       OPENCODE_ZEN_API_KEY: ${{ secrets.OPENCODE_ZEN_API_KEY }}
-      OPENCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.OPENCLAW_LIVE_BROWSER_CDP_URL }}
-      OPENCLAW_LIVE_SETUP_TOKEN: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN }}
-      OPENCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_MODEL }}
-      OPENCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_PROFILE }}
-      OPENCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_VALUE }}
+      ASTROCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.ASTROCLAW_LIVE_BROWSER_CDP_URL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_MODEL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_VALUE }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -708,26 +708,26 @@ jobs:
       BYTEPLUS_ACCESS_KEY_ID: ${{ secrets.BYTEPLUS_ACCESS_KEY_ID }}
       BYTEPLUS_SECRET_ACCESS_KEY: ${{ secrets.BYTEPLUS_SECRET_ACCESS_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      OPENCLAW_CODEX_AUTH_JSON: ${{ secrets.OPENCLAW_CODEX_AUTH_JSON }}
-      OPENCLAW_CODEX_CONFIG_TOML: ${{ secrets.OPENCLAW_CODEX_CONFIG_TOML }}
-      OPENCLAW_CLAUDE_JSON: ${{ secrets.OPENCLAW_CLAUDE_JSON }}
-      OPENCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.OPENCLAW_CLAUDE_CREDENTIALS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
-      OPENCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.OPENCLAW_GEMINI_SETTINGS_JSON }}
+      ASTROCLAW_CODEX_AUTH_JSON: ${{ secrets.ASTROCLAW_CODEX_AUTH_JSON }}
+      ASTROCLAW_CODEX_CONFIG_TOML: ${{ secrets.ASTROCLAW_CODEX_CONFIG_TOML }}
+      ASTROCLAW_CLAUDE_JSON: ${{ secrets.ASTROCLAW_CLAUDE_JSON }}
+      ASTROCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_CREDENTIALS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
+      ASTROCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.ASTROCLAW_GEMINI_SETTINGS_JSON }}
       FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
-      OPENCLAW_DOCKER_E2E_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.image }}
-      OPENCLAW_DOCKER_E2E_BARE_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.bare_image }}
-      OPENCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.functional_image }}
-      OPENCLAW_DOCKER_E2E_PACKAGE_ARTIFACT_NAME: ${{ inputs.package_artifact_name || 'docker-e2e-package' }}
-      OPENCLAW_DOCKER_E2E_REPO_ROOT: ${{ github.workspace }}
-      OPENCLAW_DOCKER_E2E_SELECTED_SHA: ${{ needs.validate_selected_ref.outputs.selected_sha }}
-      OPENCLAW_DOCKER_ALL_RELEASE_PROFILE: ${{ inputs.release_test_profile }}
-      OPENCLAW_CURRENT_PACKAGE_TGZ: .artifacts/docker-e2e-package/openclaw-current.tgz
-      OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPEC: ${{ inputs.published_upgrade_survivor_baseline }}
-      OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS: ${{ inputs.published_upgrade_survivor_baselines }}
-      OPENCLAW_UPGRADE_SURVIVOR_SCENARIOS: ${{ inputs.published_upgrade_survivor_scenarios }}
-      OPENCLAW_SKIP_DOCKER_BUILD: "1"
+      ASTROCLAW_DOCKER_E2E_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.image }}
+      ASTROCLAW_DOCKER_E2E_BARE_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.bare_image }}
+      ASTROCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.functional_image }}
+      ASTROCLAW_DOCKER_E2E_PACKAGE_ARTIFACT_NAME: ${{ inputs.package_artifact_name || 'docker-e2e-package' }}
+      ASTROCLAW_DOCKER_E2E_REPO_ROOT: ${{ github.workspace }}
+      ASTROCLAW_DOCKER_E2E_SELECTED_SHA: ${{ needs.validate_selected_ref.outputs.selected_sha }}
+      ASTROCLAW_DOCKER_ALL_RELEASE_PROFILE: ${{ inputs.release_test_profile }}
+      ASTROCLAW_CURRENT_PACKAGE_TGZ: .artifacts/docker-e2e-package/astroclaw-current.tgz
+      ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPEC: ${{ inputs.published_upgrade_survivor_baseline }}
+      ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS: ${{ inputs.published_upgrade_survivor_baselines }}
+      ASTROCLAW_UPGRADE_SURVIVOR_SCENARIOS: ${{ inputs.published_upgrade_survivor_scenarios }}
+      ASTROCLAW_SKIP_DOCKER_BUILD: "1"
       INCLUDE_OPENWEBUI: ${{ inputs.include_openwebui }}
       DOCKER_E2E_CHUNK: ${{ matrix.chunk_id }}
     steps:
@@ -782,17 +782,17 @@ jobs:
           fi
 
           mkdir -p .artifacts/docker-tests
-          export OPENCLAW_DOCKER_ALL_PROFILE=release-path
-          export OPENCLAW_DOCKER_ALL_CHUNK="$CHUNK"
-          export OPENCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="$INCLUDE_OPENWEBUI"
-          export OPENCLAW_DOCKER_ALL_RELEASE_PROFILE="$RELEASE_TEST_PROFILE"
+          export ASTROCLAW_DOCKER_ALL_PROFILE=release-path
+          export ASTROCLAW_DOCKER_ALL_CHUNK="$CHUNK"
+          export ASTROCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="$INCLUDE_OPENWEBUI"
+          export ASTROCLAW_DOCKER_ALL_RELEASE_PROFILE="$RELEASE_TEST_PROFILE"
 
           plan_path=".artifacts/docker-tests/release-${CHUNK}-plan.json"
           node .release-harness/scripts/test-docker-all.mjs --plan-json > "$plan_path"
           node .release-harness/scripts/docker-e2e.mjs github-outputs "$plan_path" >> "$GITHUB_OUTPUT"
           echo "plan_json=$plan_path" >> "$GITHUB_OUTPUT"
 
-      - name: Download OpenClaw Docker E2E package
+      - name: Download Astroclaw Docker E2E package
         if: contains(matrix.profiles, inputs.release_test_profile) && steps.plan.outputs.needs_package == '1'
         uses: actions/download-artifact@v8
         with:
@@ -804,14 +804,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash .release-harness/scripts/ci-docker-pull-retry.sh "${OPENCLAW_DOCKER_E2E_BARE_IMAGE}"
+          bash .release-harness/scripts/ci-docker-pull-retry.sh "${ASTROCLAW_DOCKER_E2E_BARE_IMAGE}"
 
       - name: Pull shared functional Docker E2E image
         if: contains(matrix.profiles, inputs.release_test_profile) && steps.plan.outputs.needs_functional_image == '1'
         shell: bash
         run: |
           set -euo pipefail
-          bash .release-harness/scripts/ci-docker-pull-retry.sh "${OPENCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE}"
+          bash .release-harness/scripts/ci-docker-pull-retry.sh "${ASTROCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE}"
 
       - name: Validate Docker E2E credentials
         if: contains(matrix.profiles, inputs.release_test_profile)
@@ -837,18 +837,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export OPENCLAW_DOCKER_ALL_PROFILE=release-path
-          export OPENCLAW_DOCKER_ALL_CHUNK="${DOCKER_E2E_CHUNK}"
-          export OPENCLAW_DOCKER_ALL_RELEASE_PROFILE="${OPENCLAW_DOCKER_ALL_RELEASE_PROFILE}"
-          export OPENCLAW_DOCKER_ALL_BUILD=0
-          export OPENCLAW_DOCKER_ALL_PREFLIGHT=0
-          export OPENCLAW_DOCKER_ALL_FAIL_FAST=0
-          export OPENCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="${INCLUDE_OPENWEBUI}"
-          export OPENCLAW_DOCKER_ALL_LOG_DIR=".artifacts/docker-tests/release-${DOCKER_E2E_CHUNK}"
-          export OPENCLAW_DOCKER_ALL_TIMINGS_FILE=".artifacts/docker-tests/release-${DOCKER_E2E_CHUNK}-timings.json"
-          export OPENCLAW_DOCKER_ALL_PNPM_COMMAND="$(command -v pnpm)"
+          export ASTROCLAW_DOCKER_ALL_PROFILE=release-path
+          export ASTROCLAW_DOCKER_ALL_CHUNK="${DOCKER_E2E_CHUNK}"
+          export ASTROCLAW_DOCKER_ALL_RELEASE_PROFILE="${ASTROCLAW_DOCKER_ALL_RELEASE_PROFILE}"
+          export ASTROCLAW_DOCKER_ALL_BUILD=0
+          export ASTROCLAW_DOCKER_ALL_PREFLIGHT=0
+          export ASTROCLAW_DOCKER_ALL_FAIL_FAST=0
+          export ASTROCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="${INCLUDE_OPENWEBUI}"
+          export ASTROCLAW_DOCKER_ALL_LOG_DIR=".artifacts/docker-tests/release-${DOCKER_E2E_CHUNK}"
+          export ASTROCLAW_DOCKER_ALL_TIMINGS_FILE=".artifacts/docker-tests/release-${DOCKER_E2E_CHUNK}-timings.json"
+          export ASTROCLAW_DOCKER_ALL_PNPM_COMMAND="$(command -v pnpm)"
           if [[ "${{ steps.plan.outputs.needs_live_image }}" == "1" ]]; then
-            OPENCLAW_DOCKER_BUILD_ON_MISSING=1 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" bash .release-harness/scripts/test-live-build-docker.sh
+            ASTROCLAW_DOCKER_BUILD_ON_MISSING=1 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" bash .release-harness/scripts/test-live-build-docker.sh
           fi
 
           node .release-harness/scripts/test-docker-all.mjs
@@ -893,7 +893,7 @@ jobs:
         env:
           LANES: ${{ inputs.docker_lanes }}
           GROUP_SIZE: ${{ inputs.targeted_docker_lane_group_size }}
-          OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS: ${{ inputs.published_upgrade_survivor_baselines }}
+          ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS: ${{ inputs.published_upgrade_survivor_baselines }}
         run: |
           set -euo pipefail
           groups_json="$(node scripts/plan-targeted-docker-lane-groups.mjs)"
@@ -927,11 +927,11 @@ jobs:
       MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
       OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
       OPENCODE_ZEN_API_KEY: ${{ secrets.OPENCODE_ZEN_API_KEY }}
-      OPENCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.OPENCLAW_LIVE_BROWSER_CDP_URL }}
-      OPENCLAW_LIVE_SETUP_TOKEN: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN }}
-      OPENCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_MODEL }}
-      OPENCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_PROFILE }}
-      OPENCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_VALUE }}
+      ASTROCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.ASTROCLAW_LIVE_BROWSER_CDP_URL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_MODEL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_VALUE }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -947,25 +947,25 @@ jobs:
       BYTEPLUS_ACCESS_KEY_ID: ${{ secrets.BYTEPLUS_ACCESS_KEY_ID }}
       BYTEPLUS_SECRET_ACCESS_KEY: ${{ secrets.BYTEPLUS_SECRET_ACCESS_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      OPENCLAW_CODEX_AUTH_JSON: ${{ secrets.OPENCLAW_CODEX_AUTH_JSON }}
-      OPENCLAW_CODEX_CONFIG_TOML: ${{ secrets.OPENCLAW_CODEX_CONFIG_TOML }}
-      OPENCLAW_CLAUDE_JSON: ${{ secrets.OPENCLAW_CLAUDE_JSON }}
-      OPENCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.OPENCLAW_CLAUDE_CREDENTIALS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
-      OPENCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.OPENCLAW_GEMINI_SETTINGS_JSON }}
+      ASTROCLAW_CODEX_AUTH_JSON: ${{ secrets.ASTROCLAW_CODEX_AUTH_JSON }}
+      ASTROCLAW_CODEX_CONFIG_TOML: ${{ secrets.ASTROCLAW_CODEX_CONFIG_TOML }}
+      ASTROCLAW_CLAUDE_JSON: ${{ secrets.ASTROCLAW_CLAUDE_JSON }}
+      ASTROCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_CREDENTIALS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
+      ASTROCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.ASTROCLAW_GEMINI_SETTINGS_JSON }}
       FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
-      OPENCLAW_DOCKER_E2E_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.image }}
-      OPENCLAW_DOCKER_E2E_BARE_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.bare_image }}
-      OPENCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.functional_image }}
-      OPENCLAW_DOCKER_E2E_PACKAGE_ARTIFACT_NAME: ${{ inputs.package_artifact_name || 'docker-e2e-package' }}
-      OPENCLAW_DOCKER_E2E_REPO_ROOT: ${{ github.workspace }}
-      OPENCLAW_DOCKER_E2E_SELECTED_SHA: ${{ needs.validate_selected_ref.outputs.selected_sha }}
-      OPENCLAW_CURRENT_PACKAGE_TGZ: .artifacts/docker-e2e-package/openclaw-current.tgz
-      OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPEC: ${{ inputs.published_upgrade_survivor_baseline }}
-      OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS: ${{ matrix.group.published_upgrade_survivor_baselines || inputs.published_upgrade_survivor_baselines }}
-      OPENCLAW_UPGRADE_SURVIVOR_SCENARIOS: ${{ inputs.published_upgrade_survivor_scenarios }}
-      OPENCLAW_SKIP_DOCKER_BUILD: "1"
+      ASTROCLAW_DOCKER_E2E_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.image }}
+      ASTROCLAW_DOCKER_E2E_BARE_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.bare_image }}
+      ASTROCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.functional_image }}
+      ASTROCLAW_DOCKER_E2E_PACKAGE_ARTIFACT_NAME: ${{ inputs.package_artifact_name || 'docker-e2e-package' }}
+      ASTROCLAW_DOCKER_E2E_REPO_ROOT: ${{ github.workspace }}
+      ASTROCLAW_DOCKER_E2E_SELECTED_SHA: ${{ needs.validate_selected_ref.outputs.selected_sha }}
+      ASTROCLAW_CURRENT_PACKAGE_TGZ: .artifacts/docker-e2e-package/astroclaw-current.tgz
+      ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPEC: ${{ inputs.published_upgrade_survivor_baseline }}
+      ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS: ${{ matrix.group.published_upgrade_survivor_baselines || inputs.published_upgrade_survivor_baselines }}
+      ASTROCLAW_UPGRADE_SURVIVOR_SCENARIOS: ${{ inputs.published_upgrade_survivor_scenarios }}
+      ASTROCLAW_SKIP_DOCKER_BUILD: "1"
       INCLUDE_OPENWEBUI: ${{ inputs.include_openwebui }}
       DOCKER_E2E_LANES: ${{ matrix.group.docker_lanes }}
     steps:
@@ -1015,10 +1015,10 @@ jobs:
           fi
 
           mkdir -p .artifacts/docker-tests
-          export OPENCLAW_DOCKER_ALL_LANES="$LANES"
-          export OPENCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="$INCLUDE_OPENWEBUI"
+          export ASTROCLAW_DOCKER_ALL_LANES="$LANES"
+          export ASTROCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="$INCLUDE_OPENWEBUI"
           if [[ "$INCLUDE_RELEASE_PATH_SUITES" == "true" ]]; then
-            export OPENCLAW_DOCKER_ALL_PROFILE=release-path
+            export ASTROCLAW_DOCKER_ALL_PROFILE=release-path
           fi
 
           plan_path=".artifacts/docker-tests/targeted-plan.json"
@@ -1028,7 +1028,7 @@ jobs:
           echo "artifact_suffix=${suffix:-targeted}" >> "$GITHUB_OUTPUT"
           echo "plan_json=$plan_path" >> "$GITHUB_OUTPUT"
 
-      - name: Download OpenClaw Docker E2E package
+      - name: Download Astroclaw Docker E2E package
         if: steps.plan.outputs.needs_package == '1'
         uses: actions/download-artifact@v8
         with:
@@ -1040,14 +1040,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash .release-harness/scripts/ci-docker-pull-retry.sh "${OPENCLAW_DOCKER_E2E_BARE_IMAGE}"
+          bash .release-harness/scripts/ci-docker-pull-retry.sh "${ASTROCLAW_DOCKER_E2E_BARE_IMAGE}"
 
       - name: Pull shared functional Docker E2E image
         if: steps.plan.outputs.needs_functional_image == '1'
         shell: bash
         run: |
           set -euo pipefail
-          bash .release-harness/scripts/ci-docker-pull-retry.sh "${OPENCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE}"
+          bash .release-harness/scripts/ci-docker-pull-retry.sh "${ASTROCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE}"
 
       - name: Validate Docker E2E credentials
         shell: bash
@@ -1071,20 +1071,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export OPENCLAW_DOCKER_ALL_LANES="${DOCKER_E2E_LANES}"
-          export OPENCLAW_DOCKER_ALL_PREFLIGHT=0
-          export OPENCLAW_DOCKER_ALL_FAIL_FAST=0
-          export OPENCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="${INCLUDE_OPENWEBUI}"
+          export ASTROCLAW_DOCKER_ALL_LANES="${DOCKER_E2E_LANES}"
+          export ASTROCLAW_DOCKER_ALL_PREFLIGHT=0
+          export ASTROCLAW_DOCKER_ALL_FAIL_FAST=0
+          export ASTROCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="${INCLUDE_OPENWEBUI}"
           if [[ "${{ inputs.include_release_path_suites }}" == "true" ]]; then
-            export OPENCLAW_DOCKER_ALL_PROFILE=release-path
+            export ASTROCLAW_DOCKER_ALL_PROFILE=release-path
           fi
-          export OPENCLAW_DOCKER_ALL_LOG_DIR=".artifacts/docker-tests/targeted-${{ steps.plan.outputs.artifact_suffix }}"
-          export OPENCLAW_DOCKER_ALL_TIMINGS_FILE=".artifacts/docker-tests/targeted-${{ steps.plan.outputs.artifact_suffix }}-timings.json"
-          export OPENCLAW_DOCKER_ALL_PNPM_COMMAND="$(command -v pnpm)"
+          export ASTROCLAW_DOCKER_ALL_LOG_DIR=".artifacts/docker-tests/targeted-${{ steps.plan.outputs.artifact_suffix }}"
+          export ASTROCLAW_DOCKER_ALL_TIMINGS_FILE=".artifacts/docker-tests/targeted-${{ steps.plan.outputs.artifact_suffix }}-timings.json"
+          export ASTROCLAW_DOCKER_ALL_PNPM_COMMAND="$(command -v pnpm)"
           if [[ "${{ steps.plan.outputs.needs_live_image }}" == "1" ]]; then
-            OPENCLAW_DOCKER_BUILD_ON_MISSING=1 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" bash .release-harness/scripts/test-live-build-docker.sh
+            ASTROCLAW_DOCKER_BUILD_ON_MISSING=1 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" bash .release-harness/scripts/test-live-build-docker.sh
           fi
-          export OPENCLAW_DOCKER_ALL_BUILD=0
+          export ASTROCLAW_DOCKER_ALL_BUILD=0
 
           node .release-harness/scripts/test-docker-all.mjs
 
@@ -1117,13 +1117,13 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
-      OPENCLAW_DOCKER_E2E_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.image }}
-      OPENCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.functional_image }}
-      OPENCLAW_DOCKER_E2E_PACKAGE_ARTIFACT_NAME: ${{ inputs.package_artifact_name || 'docker-e2e-package' }}
-      OPENCLAW_DOCKER_E2E_REPO_ROOT: ${{ github.workspace }}
-      OPENCLAW_DOCKER_E2E_SELECTED_SHA: ${{ needs.validate_selected_ref.outputs.selected_sha }}
-      OPENCLAW_CURRENT_PACKAGE_TGZ: .artifacts/docker-e2e-package/openclaw-current.tgz
-      OPENCLAW_SKIP_DOCKER_BUILD: "1"
+      ASTROCLAW_DOCKER_E2E_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.image }}
+      ASTROCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE: ${{ needs.prepare_docker_e2e_image.outputs.functional_image }}
+      ASTROCLAW_DOCKER_E2E_PACKAGE_ARTIFACT_NAME: ${{ inputs.package_artifact_name || 'docker-e2e-package' }}
+      ASTROCLAW_DOCKER_E2E_REPO_ROOT: ${{ github.workspace }}
+      ASTROCLAW_DOCKER_E2E_SELECTED_SHA: ${{ needs.validate_selected_ref.outputs.selected_sha }}
+      ASTROCLAW_CURRENT_PACKAGE_TGZ: .artifacts/docker-e2e-package/astroclaw-current.tgz
+      ASTROCLAW_SKIP_DOCKER_BUILD: "1"
     steps:
       - name: Checkout selected ref
         uses: actions/checkout@v6
@@ -1167,16 +1167,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .artifacts/docker-tests
-          export OPENCLAW_DOCKER_ALL_PROFILE=release-path
-          export OPENCLAW_DOCKER_ALL_CHUNK=openwebui
-          export OPENCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI=true
+          export ASTROCLAW_DOCKER_ALL_PROFILE=release-path
+          export ASTROCLAW_DOCKER_ALL_CHUNK=openwebui
+          export ASTROCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI=true
 
           plan_path=".artifacts/docker-tests/release-openwebui-plan.json"
           node .release-harness/scripts/test-docker-all.mjs --plan-json > "$plan_path"
           node .release-harness/scripts/docker-e2e.mjs github-outputs "$plan_path" >> "$GITHUB_OUTPUT"
           echo "plan_json=$plan_path" >> "$GITHUB_OUTPUT"
 
-      - name: Download OpenClaw Docker E2E package
+      - name: Download Astroclaw Docker E2E package
         if: steps.plan.outputs.needs_package == '1'
         uses: actions/download-artifact@v8
         with:
@@ -1188,30 +1188,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash .release-harness/scripts/ci-docker-pull-retry.sh "${OPENCLAW_DOCKER_E2E_BARE_IMAGE}"
+          bash .release-harness/scripts/ci-docker-pull-retry.sh "${ASTROCLAW_DOCKER_E2E_BARE_IMAGE}"
 
       - name: Pull shared functional Docker E2E image
         if: steps.plan.outputs.needs_functional_image == '1'
         shell: bash
         run: |
           set -euo pipefail
-          bash .release-harness/scripts/ci-docker-pull-retry.sh "${OPENCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE}"
+          bash .release-harness/scripts/ci-docker-pull-retry.sh "${ASTROCLAW_DOCKER_E2E_FUNCTIONAL_IMAGE}"
 
       - name: Run Open WebUI Docker E2E chunk
         shell: bash
         run: |
           set -euo pipefail
-          export OPENCLAW_DOCKER_ALL_PROFILE=release-path
-          export OPENCLAW_DOCKER_ALL_CHUNK=openwebui
-          export OPENCLAW_DOCKER_ALL_BUILD=0
-          export OPENCLAW_DOCKER_ALL_PREFLIGHT=0
-          export OPENCLAW_DOCKER_ALL_FAIL_FAST=0
-          export OPENCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI=1
-          export OPENCLAW_DOCKER_ALL_LOG_DIR=".artifacts/docker-tests/release-openwebui"
-          export OPENCLAW_DOCKER_ALL_TIMINGS_FILE=".artifacts/docker-tests/release-openwebui-timings.json"
-          export OPENCLAW_DOCKER_ALL_PNPM_COMMAND="$(command -v pnpm)"
+          export ASTROCLAW_DOCKER_ALL_PROFILE=release-path
+          export ASTROCLAW_DOCKER_ALL_CHUNK=openwebui
+          export ASTROCLAW_DOCKER_ALL_BUILD=0
+          export ASTROCLAW_DOCKER_ALL_PREFLIGHT=0
+          export ASTROCLAW_DOCKER_ALL_FAIL_FAST=0
+          export ASTROCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI=1
+          export ASTROCLAW_DOCKER_ALL_LOG_DIR=".artifacts/docker-tests/release-openwebui"
+          export ASTROCLAW_DOCKER_ALL_TIMINGS_FILE=".artifacts/docker-tests/release-openwebui-timings.json"
+          export ASTROCLAW_DOCKER_ALL_PNPM_COMMAND="$(command -v pnpm)"
           if [[ "${{ steps.plan.outputs.needs_live_image }}" == "1" ]]; then
-            OPENCLAW_DOCKER_BUILD_ON_MISSING=1 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" bash .release-harness/scripts/test-live-build-docker.sh
+            ASTROCLAW_DOCKER_BUILD_ON_MISSING=1 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" bash .release-harness/scripts/test-live-build-docker.sh
           fi
 
           node .release-harness/scripts/test-docker-all.mjs
@@ -1257,7 +1257,7 @@ jobs:
     env:
       DOCKER_BUILD_SUMMARY: "false"
       DOCKER_BUILD_RECORD_UPLOAD: "false"
-      OPENCLAW_DOCKER_E2E_REPO_ROOT: ${{ github.workspace }}
+      ASTROCLAW_DOCKER_E2E_REPO_ROOT: ${{ github.workspace }}
     steps:
       - name: Checkout selected ref
         uses: actions/checkout@v6
@@ -1280,23 +1280,23 @@ jobs:
           INCLUDE_RELEASE_PATH_SUITES: ${{ inputs.include_release_path_suites }}
           INCLUDE_OPENWEBUI: ${{ inputs.include_openwebui }}
           RELEASE_TEST_PROFILE: ${{ inputs.release_test_profile }}
-          OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPEC: ${{ inputs.published_upgrade_survivor_baseline }}
-          OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS: ${{ inputs.published_upgrade_survivor_baselines }}
-          OPENCLAW_UPGRADE_SURVIVOR_SCENARIOS: ${{ inputs.published_upgrade_survivor_scenarios }}
+          ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPEC: ${{ inputs.published_upgrade_survivor_baseline }}
+          ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS: ${{ inputs.published_upgrade_survivor_baselines }}
+          ASTROCLAW_UPGRADE_SURVIVOR_SCENARIOS: ${{ inputs.published_upgrade_survivor_scenarios }}
         run: |
           set -euo pipefail
           mkdir -p .artifacts/docker-tests
 
           if [[ "$INCLUDE_RELEASE_PATH_SUITES" == "true" ]]; then
-            export OPENCLAW_DOCKER_ALL_PROFILE=release-path
-            export OPENCLAW_DOCKER_ALL_PLAN_RELEASE_ALL=1
+            export ASTROCLAW_DOCKER_ALL_PROFILE=release-path
+            export ASTROCLAW_DOCKER_ALL_PLAN_RELEASE_ALL=1
           elif [[ -n "$LANES" ]]; then
-            export OPENCLAW_DOCKER_ALL_LANES="$LANES"
+            export ASTROCLAW_DOCKER_ALL_LANES="$LANES"
           elif [[ "$INCLUDE_OPENWEBUI" == "true" ]]; then
-            export OPENCLAW_DOCKER_ALL_LANES=openwebui
+            export ASTROCLAW_DOCKER_ALL_LANES=openwebui
           fi
-          export OPENCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="$INCLUDE_OPENWEBUI"
-          export OPENCLAW_DOCKER_ALL_RELEASE_PROFILE="$RELEASE_TEST_PROFILE"
+          export ASTROCLAW_DOCKER_ALL_INCLUDE_OPENWEBUI="$INCLUDE_OPENWEBUI"
+          export ASTROCLAW_DOCKER_ALL_RELEASE_PROFILE="$RELEASE_TEST_PROFILE"
 
           plan_path=".artifacts/docker-tests/plan.json"
           node .release-harness/scripts/test-docker-all.mjs --plan-json > "$plan_path"
@@ -1311,14 +1311,14 @@ jobs:
           pnpm-version: ${{ env.PNPM_VERSION }}
           install-bun: "true"
 
-      - name: Download current-run OpenClaw Docker E2E package
+      - name: Download current-run Astroclaw Docker E2E package
         if: steps.plan.outputs.needs_package == '1' && inputs.package_artifact_name != '' && inputs.package_artifact_run_id == ''
         uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.package_artifact_name }}
           path: .artifacts/docker-e2e-package
 
-      - name: Download previous-run OpenClaw Docker E2E package
+      - name: Download previous-run Astroclaw Docker E2E package
         if: steps.plan.outputs.needs_package == '1' && inputs.package_artifact_run_id != ''
         uses: actions/download-artifact@v8
         with:
@@ -1327,24 +1327,24 @@ jobs:
           run-id: ${{ inputs.package_artifact_run_id }}
           github-token: ${{ github.token }}
 
-      - name: Pack OpenClaw package for Docker E2E
+      - name: Pack Astroclaw package for Docker E2E
         if: steps.plan.outputs.needs_package == '1' && inputs.package_artifact_name == '' && inputs.package_artifact_run_id == ''
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .artifacts/docker-e2e-package
-          node scripts/package-openclaw-for-docker.mjs \
+          node scripts/package-astroclaw-for-docker.mjs \
             --output-dir .artifacts/docker-e2e-package \
-            --output-name openclaw-current.tgz
+            --output-name astroclaw-current.tgz
 
-      - name: Validate OpenClaw Docker E2E package
+      - name: Validate Astroclaw Docker E2E package
         id: package
         if: steps.plan.outputs.needs_package == '1'
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .artifacts/docker-e2e-package
-          target=".artifacts/docker-e2e-package/openclaw-current.tgz"
+          target=".artifacts/docker-e2e-package/astroclaw-current.tgz"
           if [[ ! -f "$target" ]]; then
             mapfile -t tgzs < <(find .artifacts/docker-e2e-package -type f -name '*.tgz' | sort)
             if [[ "${#tgzs[@]}" -ne 1 ]]; then
@@ -1356,7 +1356,7 @@ jobs:
           fi
           echo "Validating Docker E2E package tarball: $target"
           started_at="$(date +%s)"
-          timeout --foreground 5m node scripts/check-openclaw-package-tarball.mjs "$target"
+          timeout --foreground 5m node scripts/check-astroclaw-package-tarball.mjs "$target"
           finished_at="$(date +%s)"
           echo "Docker E2E package tarball validation finished in $((finished_at - started_at))s."
           digest="$(sha256sum "$target" | awk '{print $1}')"
@@ -1368,12 +1368,12 @@ jobs:
             echo "Docker E2E package SHA-256: \`$digest\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload OpenClaw Docker E2E package
+      - name: Upload Astroclaw Docker E2E package
         if: steps.plan.outputs.needs_package == '1' && (inputs.package_artifact_name == '' || inputs.package_artifact_run_id != '')
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.package_artifact_name || 'docker-e2e-package' }}
-          path: .artifacts/docker-e2e-package/openclaw-current.tgz
+          path: .artifacts/docker-e2e-package/astroclaw-current.tgz
           if-no-files-found: error
 
       - name: Resolve shared Docker E2E image tags
@@ -1473,7 +1473,7 @@ jobs:
           file: ./scripts/e2e/Dockerfile
           target: functional
           build-contexts: |
-            openclaw_package=.artifacts/docker-e2e-package
+            astroclaw_package=.artifacts/docker-e2e-package
           platforms: linux/amd64
           tags: ${{ steps.image.outputs.functional_image }}
           sbom: true
@@ -1545,7 +1545,7 @@ jobs:
           file: ./Dockerfile
           target: build
           build-args: |
-            OPENCLAW_EXTENSIONS=matrix
+            ASTROCLAW_EXTENSIONS=matrix
           platforms: linux/amd64
           tags: ${{ steps.image.outputs.live_image }}
           sbom: true
@@ -1615,20 +1615,20 @@ jobs:
       ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
       Z_AI_API_KEY: ${{ secrets.Z_AI_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      OPENCLAW_CODEX_AUTH_JSON: ${{ secrets.OPENCLAW_CODEX_AUTH_JSON }}
-      OPENCLAW_CODEX_CONFIG_TOML: ${{ secrets.OPENCLAW_CODEX_CONFIG_TOML }}
-      OPENCLAW_CLAUDE_JSON: ${{ secrets.OPENCLAW_CLAUDE_JSON }}
-      OPENCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.OPENCLAW_CLAUDE_CREDENTIALS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
-      OPENCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.OPENCLAW_GEMINI_SETTINGS_JSON }}
+      ASTROCLAW_CODEX_AUTH_JSON: ${{ secrets.ASTROCLAW_CODEX_AUTH_JSON }}
+      ASTROCLAW_CODEX_CONFIG_TOML: ${{ secrets.ASTROCLAW_CODEX_CONFIG_TOML }}
+      ASTROCLAW_CLAUDE_JSON: ${{ secrets.ASTROCLAW_CLAUDE_JSON }}
+      ASTROCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_CREDENTIALS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
+      ASTROCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.ASTROCLAW_GEMINI_SETTINGS_JSON }}
       FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
-      OPENCLAW_LIVE_PROVIDERS: ${{ matrix.providers }}
-      OPENCLAW_LIVE_IMAGE: ${{ needs.prepare_live_test_image.outputs.live_image }}
-      OPENCLAW_LIVE_MAX_MODELS: "6"
-      OPENCLAW_LIVE_MODEL_TIMEOUT_MS: "45000"
-      OPENCLAW_SKIP_DOCKER_BUILD: "1"
-      OPENCLAW_VITEST_MAX_WORKERS: "2"
+      ASTROCLAW_LIVE_PROVIDERS: ${{ matrix.providers }}
+      ASTROCLAW_LIVE_IMAGE: ${{ needs.prepare_live_test_image.outputs.live_image }}
+      ASTROCLAW_LIVE_MAX_MODELS: "6"
+      ASTROCLAW_LIVE_MODEL_TIMEOUT_MS: "45000"
+      ASTROCLAW_SKIP_DOCKER_BUILD: "1"
+      ASTROCLAW_VITEST_MAX_WORKERS: "2"
     steps:
       - name: Checkout selected ref
         if: contains(matrix.profiles, inputs.release_test_profile)
@@ -1702,7 +1702,7 @@ jobs:
 
       - name: Run Docker live model sweep
         if: contains(matrix.profiles, inputs.release_test_profile)
-        run: OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 35m bash .release-harness/scripts/test-live-models-docker.sh
+        run: ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 35m bash .release-harness/scripts/test-live-models-docker.sh
 
   validate_live_models_docker_targeted:
     name: Docker live models (selected providers)
@@ -1736,20 +1736,20 @@ jobs:
       ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
       Z_AI_API_KEY: ${{ secrets.Z_AI_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      OPENCLAW_CODEX_AUTH_JSON: ${{ secrets.OPENCLAW_CODEX_AUTH_JSON }}
-      OPENCLAW_CODEX_CONFIG_TOML: ${{ secrets.OPENCLAW_CODEX_CONFIG_TOML }}
-      OPENCLAW_CLAUDE_JSON: ${{ secrets.OPENCLAW_CLAUDE_JSON }}
-      OPENCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.OPENCLAW_CLAUDE_CREDENTIALS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
-      OPENCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.OPENCLAW_GEMINI_SETTINGS_JSON }}
+      ASTROCLAW_CODEX_AUTH_JSON: ${{ secrets.ASTROCLAW_CODEX_AUTH_JSON }}
+      ASTROCLAW_CODEX_CONFIG_TOML: ${{ secrets.ASTROCLAW_CODEX_CONFIG_TOML }}
+      ASTROCLAW_CLAUDE_JSON: ${{ secrets.ASTROCLAW_CLAUDE_JSON }}
+      ASTROCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_CREDENTIALS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
+      ASTROCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.ASTROCLAW_GEMINI_SETTINGS_JSON }}
       FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
       REQUESTED_LIVE_MODEL_PROVIDERS: ${{ inputs.live_model_providers }}
-      OPENCLAW_LIVE_IMAGE: ${{ needs.prepare_live_test_image.outputs.live_image }}
-      OPENCLAW_LIVE_MAX_MODELS: "6"
-      OPENCLAW_LIVE_MODEL_TIMEOUT_MS: "45000"
-      OPENCLAW_SKIP_DOCKER_BUILD: "1"
-      OPENCLAW_VITEST_MAX_WORKERS: "2"
+      ASTROCLAW_LIVE_IMAGE: ${{ needs.prepare_live_test_image.outputs.live_image }}
+      ASTROCLAW_LIVE_MAX_MODELS: "6"
+      ASTROCLAW_LIVE_MODEL_TIMEOUT_MS: "45000"
+      ASTROCLAW_SKIP_DOCKER_BUILD: "1"
+      ASTROCLAW_VITEST_MAX_WORKERS: "2"
     steps:
       - name: Checkout selected ref
         uses: actions/checkout@v6
@@ -1825,7 +1825,7 @@ jobs:
           fi
 
           providers_csv="$(IFS=,; echo "${selected[*]}")"
-          echo "OPENCLAW_LIVE_PROVIDERS=$providers_csv" >> "$GITHUB_ENV"
+          echo "ASTROCLAW_LIVE_PROVIDERS=$providers_csv" >> "$GITHUB_ENV"
           {
             echo "Live model providers: \`$providers_csv\`"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -1858,7 +1858,7 @@ jobs:
             exit 1
           }
 
-          IFS=',' read -r -a providers <<<"${OPENCLAW_LIVE_PROVIDERS}"
+          IFS=',' read -r -a providers <<<"${ASTROCLAW_LIVE_PROVIDERS}"
           for provider in "${providers[@]}"; do
             case "$provider" in
               anthropic) require_any Anthropic ANTHROPIC_API_KEY ANTHROPIC_API_KEY_OLD ANTHROPIC_API_TOKEN ;;
@@ -1878,7 +1878,7 @@ jobs:
           done
 
       - name: Run Docker live model sweep
-        run: OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 35m bash .release-harness/scripts/test-live-models-docker.sh
+        run: ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 35m bash .release-harness/scripts/test-live-models-docker.sh
 
   validate_live_provider_suites:
     needs: validate_selected_ref
@@ -1904,14 +1904,14 @@ jobs:
           - suite_id: native-live-src-gateway-profiles-anthropic-smoke
             suite_group: native-live-src-gateway-profiles-anthropic
             label: Native live gateway profiles Anthropic smoke
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=anthropic OPENCLAW_LIVE_GATEWAY_SMOKE=1 OPENCLAW_LIVE_GATEWAY_MAX_MODELS=1 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=anthropic ASTROCLAW_LIVE_GATEWAY_SMOKE=1 ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=1 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 45
             profile_env_only: false
             profiles: stable
           - suite_id: native-live-src-gateway-profiles-anthropic-opus
             suite_group: native-live-src-gateway-profiles-anthropic
             label: Native live gateway profiles Anthropic Opus
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=anthropic OPENCLAW_LIVE_GATEWAY_MODELS=anthropic/claude-opus-4-7,anthropic/claude-opus-4-6 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=anthropic ASTROCLAW_LIVE_GATEWAY_MODELS=anthropic/claude-opus-4-7,anthropic/claude-opus-4-6 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -1919,39 +1919,39 @@ jobs:
           - suite_id: native-live-src-gateway-profiles-anthropic-sonnet-haiku
             suite_group: native-live-src-gateway-profiles-anthropic
             label: Native live gateway profiles Anthropic Sonnet/Haiku
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=anthropic OPENCLAW_LIVE_GATEWAY_MODELS=anthropic/claude-sonnet-4-6,anthropic/claude-haiku-4-5 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=anthropic ASTROCLAW_LIVE_GATEWAY_MODELS=anthropic/claude-sonnet-4-6,anthropic/claude-haiku-4-5 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
             profiles: full
           - suite_id: native-live-src-gateway-profiles-google
             label: Native live gateway profiles Google
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=google OPENCLAW_LIVE_GATEWAY_MODELS=google/gemini-3.1-pro-preview,google/gemini-3-flash-preview node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=google ASTROCLAW_LIVE_GATEWAY_MODELS=google/gemini-3.1-pro-preview,google/gemini-3-flash-preview node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 60
             profile_env_only: false
             profiles: stable full
           - suite_id: native-live-src-gateway-profiles-minimax
             label: Native live gateway profiles MiniMax
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=minimax,minimax-portal OPENCLAW_LIVE_GATEWAY_MAX_MODELS=2 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=minimax,minimax-portal ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=2 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 60
             profile_env_only: false
             profiles: stable full
           - suite_id: native-live-src-gateway-profiles-openai
             label: Native live gateway profiles OpenAI
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=openai OPENCLAW_LIVE_GATEWAY_MODELS=openai/gpt-5.5 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=openai ASTROCLAW_LIVE_GATEWAY_MODELS=openai/gpt-5.5 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 60
             profile_env_only: false
             profiles: beta minimum stable full
           - suite_id: native-live-src-gateway-profiles-fireworks
             label: Native live gateway profiles Fireworks
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=fireworks node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=fireworks node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
             profiles: full
           - suite_id: native-live-src-gateway-profiles-deepseek
             label: Native live gateway profiles DeepSeek
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=deepseek node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=deepseek node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -1959,7 +1959,7 @@ jobs:
           - suite_id: native-live-src-gateway-profiles-opencode-go-deepseek-glm
             suite_group: native-live-src-gateway-profiles-opencode-go
             label: Native live gateway profiles OpenCode Go DeepSeek/GLM
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go OPENCLAW_LIVE_GATEWAY_MODELS=opencode-go/deepseek-v4-flash,opencode-go/deepseek-v4-pro,opencode-go/glm-5,opencode-go/glm-5.1 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go ASTROCLAW_LIVE_GATEWAY_MODELS=opencode-go/deepseek-v4-flash,opencode-go/deepseek-v4-pro,opencode-go/glm-5,opencode-go/glm-5.1 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -1967,7 +1967,7 @@ jobs:
           - suite_id: native-live-src-gateway-profiles-opencode-go-kimi
             suite_group: native-live-src-gateway-profiles-opencode-go
             label: Native live gateway profiles OpenCode Go Kimi
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go OPENCLAW_LIVE_GATEWAY_MODELS=opencode-go/kimi-k2.5,opencode-go/kimi-k2.6 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go ASTROCLAW_LIVE_GATEWAY_MODELS=opencode-go/kimi-k2.5,opencode-go/kimi-k2.6 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -1975,7 +1975,7 @@ jobs:
           - suite_id: native-live-src-gateway-profiles-opencode-go-mimo
             suite_group: native-live-src-gateway-profiles-opencode-go
             label: Native live gateway profiles OpenCode Go MiMo
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go OPENCLAW_LIVE_GATEWAY_MODELS=opencode-go/mimo-v2-omni,opencode-go/mimo-v2-pro,opencode-go/mimo-v2.5,opencode-go/mimo-v2.5-pro node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go ASTROCLAW_LIVE_GATEWAY_MODELS=opencode-go/mimo-v2-omni,opencode-go/mimo-v2-pro,opencode-go/mimo-v2.5,opencode-go/mimo-v2.5-pro node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -1983,34 +1983,34 @@ jobs:
           - suite_id: native-live-src-gateway-profiles-opencode-go-minimax-qwen
             suite_group: native-live-src-gateway-profiles-opencode-go
             label: Native live gateway profiles OpenCode Go MiniMax/Qwen
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go OPENCLAW_LIVE_GATEWAY_MODELS=opencode-go/minimax-m2.5,opencode-go/minimax-m2.7,opencode-go/qwen3.5-plus,opencode-go/qwen3.6-plus node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go ASTROCLAW_LIVE_GATEWAY_MODELS=opencode-go/minimax-m2.5,opencode-go/minimax-m2.7,opencode-go/qwen3.5-plus,opencode-go/qwen3.6-plus node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
             profiles: full
           - suite_id: native-live-src-gateway-profiles-opencode-go-smoke
             label: Native live gateway profiles OpenCode Go smoke
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go OPENCLAW_LIVE_GATEWAY_SMOKE=1 OPENCLAW_LIVE_GATEWAY_MAX_MODELS=1 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go ASTROCLAW_LIVE_GATEWAY_SMOKE=1 ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=1 node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 45
             profile_env_only: false
             profiles: stable
           - suite_id: native-live-src-gateway-profiles-openrouter
             label: Native live gateway profiles OpenRouter
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=openrouter node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=openrouter node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
             profiles: full
           - suite_id: native-live-src-gateway-profiles-xai
             label: Native live gateway profiles xAI
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=xai node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=xai node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
             profiles: full
           - suite_id: native-live-src-gateway-profiles-zai
             label: Native live gateway profiles Z.ai
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=zai node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=zai node .release-harness/scripts/test-live-shard.mjs native-live-src-gateway-profiles
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -2023,7 +2023,7 @@ jobs:
             profiles: stable full
           - suite_id: native-live-src-infra
             label: Native live infra
-            command: OPENCLAW_LIVE_APNS_REACHABILITY=1 node .release-harness/scripts/test-live-shard.mjs native-live-src-infra
+            command: ASTROCLAW_LIVE_APNS_REACHABILITY=1 node .release-harness/scripts/test-live-shard.mjs native-live-src-infra
             timeout_minutes: 45
             profile_env_only: false
             profiles: stable full
@@ -2085,11 +2085,11 @@ jobs:
       MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
       OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
       OPENCODE_ZEN_API_KEY: ${{ secrets.OPENCODE_ZEN_API_KEY }}
-      OPENCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.OPENCLAW_LIVE_BROWSER_CDP_URL }}
-      OPENCLAW_LIVE_SETUP_TOKEN: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN }}
-      OPENCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_MODEL }}
-      OPENCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_PROFILE }}
-      OPENCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_VALUE }}
+      ASTROCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.ASTROCLAW_LIVE_BROWSER_CDP_URL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_MODEL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_VALUE }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -2105,17 +2105,17 @@ jobs:
       BYTEPLUS_ACCESS_KEY_ID: ${{ secrets.BYTEPLUS_ACCESS_KEY_ID }}
       BYTEPLUS_SECRET_ACCESS_KEY: ${{ secrets.BYTEPLUS_SECRET_ACCESS_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      OPENCLAW_CODEX_AUTH_JSON: ${{ secrets.OPENCLAW_CODEX_AUTH_JSON }}
-      OPENCLAW_CODEX_CONFIG_TOML: ${{ secrets.OPENCLAW_CODEX_CONFIG_TOML }}
-      OPENCLAW_CLAUDE_JSON: ${{ secrets.OPENCLAW_CLAUDE_JSON }}
-      OPENCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.OPENCLAW_CLAUDE_CREDENTIALS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
-      OPENCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.OPENCLAW_GEMINI_SETTINGS_JSON }}
+      ASTROCLAW_CODEX_AUTH_JSON: ${{ secrets.ASTROCLAW_CODEX_AUTH_JSON }}
+      ASTROCLAW_CODEX_CONFIG_TOML: ${{ secrets.ASTROCLAW_CODEX_CONFIG_TOML }}
+      ASTROCLAW_CLAUDE_JSON: ${{ secrets.ASTROCLAW_CLAUDE_JSON }}
+      ASTROCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_CREDENTIALS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
+      ASTROCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.ASTROCLAW_GEMINI_SETTINGS_JSON }}
       FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
-      OPENCLAW_LIVE_VIDEO_GENERATION_SKIP_PROVIDERS: ""
-      OPENCLAW_LIVE_VYDRA_VIDEO: "1"
-      OPENCLAW_VITEST_MAX_WORKERS: "2"
+      ASTROCLAW_LIVE_VIDEO_GENERATION_SKIP_PROVIDERS: ""
+      ASTROCLAW_LIVE_VYDRA_VIDEO: "1"
+      ASTROCLAW_VITEST_MAX_WORKERS: "2"
     steps:
       - name: Checkout selected ref
         if: contains(matrix.profiles, inputs.release_test_profile) && (inputs.live_suite_filter == '' || inputs.live_suite_filter == matrix.suite_id || (inputs.live_suite_filter == 'native-live-src-gateway-profiles-anthropic' && startsWith(matrix.suite_id, 'native-live-src-gateway-profiles-anthropic-')) || (inputs.live_suite_filter == 'native-live-src-gateway-profiles-opencode-go' && startsWith(matrix.suite_id, 'native-live-src-gateway-profiles-opencode-go-')))
@@ -2150,33 +2150,33 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ matrix.profile_env_only }}" == "true" ]]; then
-            echo "OPENCLAW_DOCKER_PROFILE_ENV_ONLY=1" >> "$GITHUB_ENV"
+            echo "ASTROCLAW_DOCKER_PROFILE_ENV_ONLY=1" >> "$GITHUB_ENV"
           fi
           case "${{ matrix.suite_id }}" in
             live-cli-backend-docker)
-              echo "OPENCLAW_LIVE_CLI_BACKEND_MODEL=claude-cli/claude-sonnet-4-6" >> "$GITHUB_ENV"
-              echo "OPENCLAW_LIVE_CLI_BACKEND_AUTH=api-key" >> "$GITHUB_ENV"
-              echo "OPENCLAW_LIVE_CLI_BACKEND_DEBUG=1" >> "$GITHUB_ENV"
-              echo "OPENCLAW_CLI_BACKEND_LOG_OUTPUT=1" >> "$GITHUB_ENV"
-              echo "OPENCLAW_TEST_CONSOLE=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CLI_BACKEND_MODEL=claude-cli/claude-sonnet-4-6" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CLI_BACKEND_AUTH=api-key" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CLI_BACKEND_DEBUG=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_CLI_BACKEND_LOG_OUTPUT=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_TEST_CONSOLE=1" >> "$GITHUB_ENV"
               ;;
             live-codex-harness-docker)
               # Keep CI on the API-key path for now. The staged Codex auth secret
               # is currently stale, but the wrapper still supports codex-auth for
               # local maintainer reruns without changing Peter's flow.
-              echo "OPENCLAW_LIVE_CODEX_HARNESS_AUTH=api-key" >> "$GITHUB_ENV"
-              echo "OPENCLAW_LIVE_CODEX_HARNESS_DEBUG=1" >> "$GITHUB_ENV"
-              echo "OPENCLAW_CLI_BACKEND_LOG_OUTPUT=1" >> "$GITHUB_ENV"
-              echo "OPENCLAW_TEST_CONSOLE=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CODEX_HARNESS_AUTH=api-key" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CODEX_HARNESS_DEBUG=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_CLI_BACKEND_LOG_OUTPUT=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_TEST_CONSOLE=1" >> "$GITHUB_ENV"
               ;;
             live-acp-bind-docker)
               if [[ -n "${GEMINI_API_KEY:-}" || -n "${GOOGLE_API_KEY:-}" ]]; then
-                echo "OPENCLAW_LIVE_ACP_BIND_AGENTS=claude,codex,gemini" >> "$GITHUB_ENV"
+                echo "ASTROCLAW_LIVE_ACP_BIND_AGENTS=claude,codex,gemini" >> "$GITHUB_ENV"
               else
                 # The hydrated Gemini settings file only selects Gemini CLI auth
                 # mode. CI still needs a usable Gemini or Google API key before
                 # ACP bind can initialize a Gemini session.
-                echo "OPENCLAW_LIVE_ACP_BIND_AGENTS=claude,codex" >> "$GITHUB_ENV"
+                echo "ASTROCLAW_LIVE_ACP_BIND_AGENTS=claude,codex" >> "$GITHUB_ENV"
               fi
               ;;
           esac
@@ -2184,8 +2184,8 @@ jobs:
       - name: Run ${{ matrix.label }}
         if: contains(matrix.profiles, inputs.release_test_profile) && (inputs.live_suite_filter == '' || inputs.live_suite_filter == matrix.suite_id || (inputs.live_suite_filter == 'native-live-src-gateway-profiles-anthropic' && startsWith(matrix.suite_id, 'native-live-src-gateway-profiles-anthropic-')) || (inputs.live_suite_filter == 'native-live-src-gateway-profiles-opencode-go' && startsWith(matrix.suite_id, 'native-live-src-gateway-profiles-opencode-go-')))
         env:
-          OPENCLAW_LIVE_COMMAND: ${{ matrix.command }}
-          OPENCLAW_LIVE_SUITE_ADVISORY: ${{ matrix.advisory }}
+          ASTROCLAW_LIVE_COMMAND: ${{ matrix.command }}
+          ASTROCLAW_LIVE_SUITE_ADVISORY: ${{ matrix.advisory }}
         run: |
           set +e
           bash .release-harness/scripts/ci-live-command-retry.sh
@@ -2194,7 +2194,7 @@ jobs:
           if [[ "$status" -eq 0 ]]; then
             exit 0
           fi
-          if [[ "${OPENCLAW_LIVE_SUITE_ADVISORY:-}" == "true" ]]; then
+          if [[ "${ASTROCLAW_LIVE_SUITE_ADVISORY:-}" == "true" ]]; then
             echo "::warning::Advisory live suite failed with exit code ${status}: ${{ matrix.suite_id }}"
             exit 0
           fi
@@ -2212,32 +2212,32 @@ jobs:
         include:
           - suite_id: live-gateway-docker
             label: Docker live gateway OpenAI
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=openai OPENCLAW_LIVE_GATEWAY_MAX_MODELS=2 OPENCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 OPENCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=openai ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=2 ASTROCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 ASTROCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
             timeout_minutes: 30
             profile_env_only: false
             profiles: beta minimum stable full
           - suite_id: live-gateway-anthropic-docker
             label: Docker live gateway Anthropic
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=anthropic OPENCLAW_LIVE_GATEWAY_MAX_MODELS=2 OPENCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 OPENCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=anthropic ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=2 ASTROCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 ASTROCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
             timeout_minutes: 30
             profile_env_only: false
             profiles: stable full
           - suite_id: live-gateway-google-docker
             label: Docker live gateway Google
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=google OPENCLAW_LIVE_GATEWAY_MODELS=google/gemini-3.1-pro-preview,google/gemini-3-flash-preview OPENCLAW_LIVE_GATEWAY_MAX_MODELS=2 OPENCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 OPENCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=google ASTROCLAW_LIVE_GATEWAY_MODELS=google/gemini-3.1-pro-preview,google/gemini-3-flash-preview ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=2 ASTROCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 ASTROCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
             timeout_minutes: 30
             profile_env_only: false
             profiles: stable full
           - suite_id: live-gateway-minimax-docker
             label: Docker live gateway MiniMax
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=minimax,minimax-portal OPENCLAW_LIVE_GATEWAY_MAX_MODELS=1 OPENCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 OPENCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=minimax,minimax-portal ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=1 ASTROCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 ASTROCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
             timeout_minutes: 30
             profile_env_only: false
             profiles: stable full
           - suite_id: live-gateway-advisory-docker-deepseek-fireworks
             suite_group: live-gateway-advisory-docker
             label: Docker live gateway advisory DeepSeek/Fireworks
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=deepseek,fireworks OPENCLAW_LIVE_GATEWAY_MAX_MODELS=2 OPENCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 OPENCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=deepseek,fireworks ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=2 ASTROCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 ASTROCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -2245,7 +2245,7 @@ jobs:
           - suite_id: live-gateway-advisory-docker-opencode-openrouter
             suite_group: live-gateway-advisory-docker
             label: Docker live gateway advisory OpenCode/OpenRouter
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go,openrouter OPENCLAW_LIVE_GATEWAY_MAX_MODELS=2 OPENCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 OPENCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=opencode-go,openrouter ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=2 ASTROCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 ASTROCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -2253,32 +2253,32 @@ jobs:
           - suite_id: live-gateway-advisory-docker-xai-zai
             suite_group: live-gateway-advisory-docker
             label: Docker live gateway advisory xAI/Z.ai
-            command: OPENCLAW_LIVE_GATEWAY_PROVIDERS=xai,zai OPENCLAW_LIVE_GATEWAY_MAX_MODELS=2 OPENCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 OPENCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
+            command: ASTROCLAW_LIVE_GATEWAY_PROVIDERS=xai,zai ASTROCLAW_LIVE_GATEWAY_MAX_MODELS=2 ASTROCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=30000 ASTROCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=60000 ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 25m bash .release-harness/scripts/test-live-gateway-models-docker.sh
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
             profiles: full
           - suite_id: live-cli-backend-docker
             label: Docker live CLI backend
-            command: OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 45m bash .release-harness/scripts/test-live-cli-backend-docker.sh
+            command: ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 45m bash .release-harness/scripts/test-live-cli-backend-docker.sh
             timeout_minutes: 50
             profile_env_only: false
             profiles: stable full
           - suite_id: live-acp-bind-docker
             label: Docker live ACP bind
-            command: OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 45m bash .release-harness/scripts/test-live-acp-bind-docker.sh
+            command: ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 45m bash .release-harness/scripts/test-live-acp-bind-docker.sh
             timeout_minutes: 50
             profile_env_only: false
             profiles: stable full
           - suite_id: live-codex-harness-docker
             label: Docker live Codex harness
-            command: OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 35m bash .release-harness/scripts/test-live-codex-harness-docker.sh
+            command: ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 35m bash .release-harness/scripts/test-live-codex-harness-docker.sh
             timeout_minutes: 40
             profile_env_only: false
             profiles: stable full
           - suite_id: live-subagent-announce-docker
             label: Docker live subagent announce
-            command: OPENCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 20m bash .release-harness/scripts/test-live-subagent-announce-docker.sh
+            command: ASTROCLAW_LIVE_DOCKER_REPO_ROOT="$GITHUB_WORKSPACE" timeout --foreground --kill-after=30s 20m bash .release-harness/scripts/test-live-subagent-announce-docker.sh
             timeout_minutes: 25
             profile_env_only: false
             profiles: stable full
@@ -2300,11 +2300,11 @@ jobs:
       MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
       OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
       OPENCODE_ZEN_API_KEY: ${{ secrets.OPENCODE_ZEN_API_KEY }}
-      OPENCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.OPENCLAW_LIVE_BROWSER_CDP_URL }}
-      OPENCLAW_LIVE_SETUP_TOKEN: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN }}
-      OPENCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_MODEL }}
-      OPENCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_PROFILE }}
-      OPENCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_VALUE }}
+      ASTROCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.ASTROCLAW_LIVE_BROWSER_CDP_URL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_MODEL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_VALUE }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -2320,19 +2320,19 @@ jobs:
       BYTEPLUS_ACCESS_KEY_ID: ${{ secrets.BYTEPLUS_ACCESS_KEY_ID }}
       BYTEPLUS_SECRET_ACCESS_KEY: ${{ secrets.BYTEPLUS_SECRET_ACCESS_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      OPENCLAW_CODEX_AUTH_JSON: ${{ secrets.OPENCLAW_CODEX_AUTH_JSON }}
-      OPENCLAW_CODEX_CONFIG_TOML: ${{ secrets.OPENCLAW_CODEX_CONFIG_TOML }}
-      OPENCLAW_CLAUDE_JSON: ${{ secrets.OPENCLAW_CLAUDE_JSON }}
-      OPENCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.OPENCLAW_CLAUDE_CREDENTIALS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
-      OPENCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.OPENCLAW_GEMINI_SETTINGS_JSON }}
+      ASTROCLAW_CODEX_AUTH_JSON: ${{ secrets.ASTROCLAW_CODEX_AUTH_JSON }}
+      ASTROCLAW_CODEX_CONFIG_TOML: ${{ secrets.ASTROCLAW_CODEX_CONFIG_TOML }}
+      ASTROCLAW_CLAUDE_JSON: ${{ secrets.ASTROCLAW_CLAUDE_JSON }}
+      ASTROCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_CREDENTIALS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
+      ASTROCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.ASTROCLAW_GEMINI_SETTINGS_JSON }}
       FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
-      OPENCLAW_LIVE_IMAGE: ${{ needs.prepare_live_test_image.outputs.live_image }}
-      OPENCLAW_SKIP_DOCKER_BUILD: "1"
-      OPENCLAW_LIVE_VIDEO_GENERATION_SKIP_PROVIDERS: ""
-      OPENCLAW_LIVE_VYDRA_VIDEO: "1"
-      OPENCLAW_VITEST_MAX_WORKERS: "2"
+      ASTROCLAW_LIVE_IMAGE: ${{ needs.prepare_live_test_image.outputs.live_image }}
+      ASTROCLAW_SKIP_DOCKER_BUILD: "1"
+      ASTROCLAW_LIVE_VIDEO_GENERATION_SKIP_PROVIDERS: ""
+      ASTROCLAW_LIVE_VYDRA_VIDEO: "1"
+      ASTROCLAW_VITEST_MAX_WORKERS: "2"
     steps:
       - name: Checkout selected ref
         if: contains(matrix.profiles, inputs.release_test_profile) && (inputs.live_suite_filter == '' || inputs.live_suite_filter == matrix.suite_id || (inputs.live_suite_filter == 'live-gateway-advisory-docker' && startsWith(matrix.suite_id, 'live-gateway-advisory-docker-')))
@@ -2375,27 +2375,27 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ matrix.profile_env_only }}" == "true" ]]; then
-            echo "OPENCLAW_DOCKER_PROFILE_ENV_ONLY=1" >> "$GITHUB_ENV"
+            echo "ASTROCLAW_DOCKER_PROFILE_ENV_ONLY=1" >> "$GITHUB_ENV"
           fi
           case "${{ matrix.suite_id }}" in
             live-cli-backend-docker)
-              echo "OPENCLAW_LIVE_CLI_BACKEND_MODEL=claude-cli/claude-sonnet-4-6" >> "$GITHUB_ENV"
-              echo "OPENCLAW_LIVE_CLI_BACKEND_AUTH=api-key" >> "$GITHUB_ENV"
-              echo "OPENCLAW_LIVE_CLI_BACKEND_DEBUG=1" >> "$GITHUB_ENV"
-              echo "OPENCLAW_CLI_BACKEND_LOG_OUTPUT=1" >> "$GITHUB_ENV"
-              echo "OPENCLAW_TEST_CONSOLE=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CLI_BACKEND_MODEL=claude-cli/claude-sonnet-4-6" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CLI_BACKEND_AUTH=api-key" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CLI_BACKEND_DEBUG=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_CLI_BACKEND_LOG_OUTPUT=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_TEST_CONSOLE=1" >> "$GITHUB_ENV"
               ;;
             live-codex-harness-docker)
-              echo "OPENCLAW_LIVE_CODEX_HARNESS_AUTH=api-key" >> "$GITHUB_ENV"
-              echo "OPENCLAW_LIVE_CODEX_HARNESS_DEBUG=1" >> "$GITHUB_ENV"
-              echo "OPENCLAW_CLI_BACKEND_LOG_OUTPUT=1" >> "$GITHUB_ENV"
-              echo "OPENCLAW_TEST_CONSOLE=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CODEX_HARNESS_AUTH=api-key" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_LIVE_CODEX_HARNESS_DEBUG=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_CLI_BACKEND_LOG_OUTPUT=1" >> "$GITHUB_ENV"
+              echo "ASTROCLAW_TEST_CONSOLE=1" >> "$GITHUB_ENV"
               ;;
             live-acp-bind-docker)
               if [[ -n "${GEMINI_API_KEY:-}" || -n "${GOOGLE_API_KEY:-}" ]]; then
-                echo "OPENCLAW_LIVE_ACP_BIND_AGENTS=claude,codex,gemini" >> "$GITHUB_ENV"
+                echo "ASTROCLAW_LIVE_ACP_BIND_AGENTS=claude,codex,gemini" >> "$GITHUB_ENV"
               else
-                echo "OPENCLAW_LIVE_ACP_BIND_AGENTS=claude,codex" >> "$GITHUB_ENV"
+                echo "ASTROCLAW_LIVE_ACP_BIND_AGENTS=claude,codex" >> "$GITHUB_ENV"
               fi
               ;;
           esac
@@ -2403,8 +2403,8 @@ jobs:
       - name: Run ${{ matrix.label }}
         if: contains(matrix.profiles, inputs.release_test_profile) && (inputs.live_suite_filter == '' || inputs.live_suite_filter == matrix.suite_id || (inputs.live_suite_filter == 'live-gateway-advisory-docker' && startsWith(matrix.suite_id, 'live-gateway-advisory-docker-')))
         env:
-          OPENCLAW_LIVE_COMMAND: ${{ matrix.command }}
-          OPENCLAW_LIVE_SUITE_ADVISORY: ${{ matrix.advisory }}
+          ASTROCLAW_LIVE_COMMAND: ${{ matrix.command }}
+          ASTROCLAW_LIVE_SUITE_ADVISORY: ${{ matrix.advisory }}
         run: |
           set +e
           bash .release-harness/scripts/ci-live-command-retry.sh
@@ -2413,7 +2413,7 @@ jobs:
           if [[ "$status" -eq 0 ]]; then
             exit 0
           fi
-          if [[ "${OPENCLAW_LIVE_SUITE_ADVISORY:-}" == "true" ]]; then
+          if [[ "${ASTROCLAW_LIVE_SUITE_ADVISORY:-}" == "true" ]]; then
             echo "::warning::Advisory live suite failed with exit code ${status}: ${{ matrix.suite_id }}"
             exit 0
           fi
@@ -2425,7 +2425,7 @@ jobs:
     if: inputs.include_live_suites && !inputs.live_models_only && (inputs.live_suite_filter == '' || startsWith(inputs.live_suite_filter, 'native-live-extensions-media') || inputs.live_suite_filter == 'native-live-extensions-a-k')
     runs-on: ${{ github.event_name == 'workflow_call' && 'ubuntu-24.04' || 'blacksmith-8vcpu-ubuntu-2404' }}
     container:
-      image: ghcr.io/openclaw/openclaw-live-media-runner:ubuntu-24.04
+      image: ghcr.io/astroclaw/astroclaw-live-media-runner:ubuntu-24.04
       credentials:
         username: ${{ github.actor }}
         password: ${{ github.token }}
@@ -2450,14 +2450,14 @@ jobs:
             profiles: full
           - suite_id: native-live-extensions-media-music-google
             label: Native live media music Google
-            command: OPENCLAW_LIVE_MUSIC_GENERATION_PROVIDERS=google node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-music-google
+            command: ASTROCLAW_LIVE_MUSIC_GENERATION_PROVIDERS=google node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-music-google
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
             profiles: full
           - suite_id: native-live-extensions-media-music-minimax
             label: Native live media music MiniMax
-            command: OPENCLAW_LIVE_MUSIC_GENERATION_PROVIDERS=minimax node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-music-minimax
+            command: ASTROCLAW_LIVE_MUSIC_GENERATION_PROVIDERS=minimax node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-music-minimax
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -2465,7 +2465,7 @@ jobs:
           - suite_id: native-live-extensions-media-video-a
             suite_group: native-live-extensions-media-video
             label: Native live media video plugins A
-            command: OPENCLAW_LIVE_VIDEO_GENERATION_PROVIDERS=alibaba,byteplus,deepinfra,fal node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-video
+            command: ASTROCLAW_LIVE_VIDEO_GENERATION_PROVIDERS=alibaba,byteplus,deepinfra,fal node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-video
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -2473,7 +2473,7 @@ jobs:
           - suite_id: native-live-extensions-media-video-b
             suite_group: native-live-extensions-media-video
             label: Native live media video plugins B
-            command: OPENCLAW_LIVE_VIDEO_GENERATION_PROVIDERS=google,minimax node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-video
+            command: ASTROCLAW_LIVE_VIDEO_GENERATION_PROVIDERS=google,minimax node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-video
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -2481,7 +2481,7 @@ jobs:
           - suite_id: native-live-extensions-media-video-c
             suite_group: native-live-extensions-media-video
             label: Native live media video plugins C
-            command: OPENCLAW_LIVE_VIDEO_GENERATION_PROVIDERS=openai,openrouter,xai node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-video
+            command: ASTROCLAW_LIVE_VIDEO_GENERATION_PROVIDERS=openai,openrouter,xai node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-video
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -2489,7 +2489,7 @@ jobs:
           - suite_id: native-live-extensions-media-video-d
             suite_group: native-live-extensions-media-video
             label: Native live media video plugins D
-            command: OPENCLAW_LIVE_VIDEO_GENERATION_PROVIDERS=qwen,runway,together,vydra node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-video
+            command: ASTROCLAW_LIVE_VIDEO_GENERATION_PROVIDERS=qwen,runway,together,vydra node .release-harness/scripts/test-live-shard.mjs native-live-extensions-media-video
             timeout_minutes: 30
             profile_env_only: false
             advisory: true
@@ -2512,11 +2512,11 @@ jobs:
       MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
       OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
       OPENCODE_ZEN_API_KEY: ${{ secrets.OPENCODE_ZEN_API_KEY }}
-      OPENCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.OPENCLAW_LIVE_BROWSER_CDP_URL }}
-      OPENCLAW_LIVE_SETUP_TOKEN: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN }}
-      OPENCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_MODEL }}
-      OPENCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_PROFILE }}
-      OPENCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.OPENCLAW_LIVE_SETUP_TOKEN_VALUE }}
+      ASTROCLAW_LIVE_BROWSER_CDP_URL: ${{ secrets.ASTROCLAW_LIVE_BROWSER_CDP_URL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_MODEL: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_MODEL }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_PROFILE }}
+      ASTROCLAW_LIVE_SETUP_TOKEN_VALUE: ${{ secrets.ASTROCLAW_LIVE_SETUP_TOKEN_VALUE }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -2532,17 +2532,17 @@ jobs:
       BYTEPLUS_ACCESS_KEY_ID: ${{ secrets.BYTEPLUS_ACCESS_KEY_ID }}
       BYTEPLUS_SECRET_ACCESS_KEY: ${{ secrets.BYTEPLUS_SECRET_ACCESS_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      OPENCLAW_CODEX_AUTH_JSON: ${{ secrets.OPENCLAW_CODEX_AUTH_JSON }}
-      OPENCLAW_CODEX_CONFIG_TOML: ${{ secrets.OPENCLAW_CODEX_CONFIG_TOML }}
-      OPENCLAW_CLAUDE_JSON: ${{ secrets.OPENCLAW_CLAUDE_JSON }}
-      OPENCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.OPENCLAW_CLAUDE_CREDENTIALS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_JSON }}
-      OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.OPENCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
-      OPENCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.OPENCLAW_GEMINI_SETTINGS_JSON }}
+      ASTROCLAW_CODEX_AUTH_JSON: ${{ secrets.ASTROCLAW_CODEX_AUTH_JSON }}
+      ASTROCLAW_CODEX_CONFIG_TOML: ${{ secrets.ASTROCLAW_CODEX_CONFIG_TOML }}
+      ASTROCLAW_CLAUDE_JSON: ${{ secrets.ASTROCLAW_CLAUDE_JSON }}
+      ASTROCLAW_CLAUDE_CREDENTIALS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_CREDENTIALS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_JSON }}
+      ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON: ${{ secrets.ASTROCLAW_CLAUDE_SETTINGS_LOCAL_JSON }}
+      ASTROCLAW_GEMINI_SETTINGS_JSON: ${{ secrets.ASTROCLAW_GEMINI_SETTINGS_JSON }}
       FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
-      OPENCLAW_LIVE_VIDEO_GENERATION_SKIP_PROVIDERS: ""
-      OPENCLAW_LIVE_VYDRA_VIDEO: "1"
-      OPENCLAW_VITEST_MAX_WORKERS: "2"
+      ASTROCLAW_LIVE_VIDEO_GENERATION_SKIP_PROVIDERS: ""
+      ASTROCLAW_LIVE_VYDRA_VIDEO: "1"
+      ASTROCLAW_VITEST_MAX_WORKERS: "2"
     steps:
       - name: Checkout selected ref
         if: contains(matrix.profiles, inputs.release_test_profile) && (inputs.live_suite_filter == '' || inputs.live_suite_filter == matrix.suite_id || (inputs.live_suite_filter == 'native-live-extensions-media-video' && startsWith(matrix.suite_id, 'native-live-extensions-media-video-')))
@@ -2585,13 +2585,13 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ matrix.profile_env_only }}" == "true" ]]; then
-            echo "OPENCLAW_DOCKER_PROFILE_ENV_ONLY=1" >> "$GITHUB_ENV"
+            echo "ASTROCLAW_DOCKER_PROFILE_ENV_ONLY=1" >> "$GITHUB_ENV"
           fi
 
       - name: Run ${{ matrix.label }}
         if: contains(matrix.profiles, inputs.release_test_profile) && (inputs.live_suite_filter == '' || inputs.live_suite_filter == matrix.suite_id || (inputs.live_suite_filter == 'native-live-extensions-media-video' && startsWith(matrix.suite_id, 'native-live-extensions-media-video-')))
         env:
-          OPENCLAW_LIVE_SUITE_ADVISORY: ${{ matrix.advisory }}
+          ASTROCLAW_LIVE_SUITE_ADVISORY: ${{ matrix.advisory }}
         run: |
           set +e
           ${{ matrix.command }}
@@ -2600,7 +2600,7 @@ jobs:
           if [[ "$status" -eq 0 ]]; then
             exit 0
           fi
-          if [[ "${OPENCLAW_LIVE_SUITE_ADVISORY:-}" == "true" ]]; then
+          if [[ "${ASTROCLAW_LIVE_SUITE_ADVISORY:-}" == "true" ]]; then
             echo "::warning::Advisory live suite failed with exit code ${status}: ${{ matrix.suite_id }}"
             exit 0
           fi

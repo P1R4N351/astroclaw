@@ -48,7 +48,7 @@ function forceNodeRuntimeVersionsForTest(): () => void {
 }
 
 function makeTempDir(): string {
-  return makeTrackedTempDir("openclaw-setup-registry", tempDirs);
+  return makeTrackedTempDir("astroclaw-setup-registry", tempDirs);
 }
 
 function writeSetupApiStub(pluginRoot: string): void {

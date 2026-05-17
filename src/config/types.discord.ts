@@ -153,20 +153,20 @@ export type DiscordVoiceRealtimeConfig = {
   instructions?: string;
   /** Tool policy for bidi realtime consult calls. */
   toolPolicy?: DiscordVoiceRealtimeToolPolicy;
-  /** Whether bidi should force the OpenClaw agent brain for every substantive turn. */
+  /** Whether bidi should force the Astroclaw agent brain for every substantive turn. */
   consultPolicy?: DiscordVoiceRealtimeConsultPolicy;
   /** Allow Discord speaker-start events to interrupt active realtime playback. */
   bargeIn?: boolean;
   /** Minimum assistant playback duration before a barge-in truncates audio. Default: 250ms; set 0 for immediate interruption. */
   minBargeInAudioEndMs?: number;
-  /** Debounce window before buffered transcripts are sent to the OpenClaw agent. */
+  /** Debounce window before buffered transcripts are sent to the Astroclaw agent. */
   debounceMs?: number;
   /** Provider-specific realtime voice config keyed by provider id. */
   providers?: Record<string, Record<string, unknown> | undefined>;
 };
 
 export type DiscordVoiceAgentSessionConfig = {
-  /** Which OpenClaw conversation should receive voice turns. Default: "voice". */
+  /** Which Astroclaw conversation should receive voice turns. Default: "voice". */
   mode?: "voice" | "target";
   /** Discord target used when mode is "target", for example "channel:123". */
   target?: string;
@@ -177,7 +177,7 @@ export type DiscordVoiceConfig = {
   enabled?: boolean;
   /** Voice conversation mode. Default: agent-proxy. */
   mode?: DiscordVoiceMode;
-  /** Route voice turns through an existing OpenClaw Discord conversation. */
+  /** Route voice turns through an existing Astroclaw Discord conversation. */
   agentSession?: DiscordVoiceAgentSessionConfig;
   /** Optional LLM model override for Discord voice channel responses. */
   model?: string;

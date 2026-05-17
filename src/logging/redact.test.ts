@@ -12,22 +12,22 @@ import {
 } from "./redact.js";
 
 const defaults = getDefaultRedactPatterns();
-const originalConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+const originalConfigPath = process.env.ASTROCLAW_CONFIG_PATH;
 let tempDirs: string[] = [];
 
 function writeConfig(source: string): void {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-redact-config-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-redact-config-"));
   tempDirs.push(dir);
-  const configPath = path.join(dir, "openclaw.json");
+  const configPath = path.join(dir, "astroclaw.json");
   fs.writeFileSync(configPath, source);
-  process.env.OPENCLAW_CONFIG_PATH = configPath;
+  process.env.ASTROCLAW_CONFIG_PATH = configPath;
 }
 
 afterEach(() => {
   if (originalConfigPath === undefined) {
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    delete process.env.ASTROCLAW_CONFIG_PATH;
   } else {
-    process.env.OPENCLAW_CONFIG_PATH = originalConfigPath;
+    process.env.ASTROCLAW_CONFIG_PATH = originalConfigPath;
   }
   for (const dir of tempDirs) {
     fs.rmSync(dir, { force: true, recursive: true });
@@ -220,11 +220,11 @@ describe("redactSensitiveText", () => {
   });
 
   it("masks named Gateway security headers", () => {
-    const openClawToken = "supersecretgatewaytoken1234567890";
+    const astroClawToken = "supersecretgatewaytoken1234567890";
     const pomeriumJwt = "eyJheaderabcd.eyJpayloadabcd.signatureabcd123456";
     const apiKey = "shortsecret";
     const input = [
-      `X-OpenClaw-Token: ${openClawToken}`,
+      `X-Astroclaw-Token: ${astroClawToken}`,
       `x-pomerium-jwt-assertion: ${pomeriumJwt}`,
       `X-Api-Key=${apiKey}`,
     ].join("\n");
@@ -233,10 +233,10 @@ describe("redactSensitiveText", () => {
       patterns: defaults,
     });
 
-    expect(output).toContain("X-OpenClaw-Token: supers…7890");
+    expect(output).toContain("X-Astroclaw-Token: supers…7890");
     expect(output).toContain("x-pomerium-jwt-assertion: eyJhea…3456");
     expect(output).toContain("X-Api-Key=***");
-    expect(output).not.toContain(openClawToken);
+    expect(output).not.toContain(astroClawToken);
     expect(output).not.toContain(pomeriumJwt);
     expect(output).not.toContain(apiKey);
   });

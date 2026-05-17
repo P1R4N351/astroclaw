@@ -1,4 +1,4 @@
-import type { OpenClawPluginApi } from "./types.js";
+import type { AstroclawPluginApi } from "./types.js";
 
 type FunctionPropertyNames<T> = Extract<
   {
@@ -7,7 +7,7 @@ type FunctionPropertyNames<T> = Extract<
   string
 >;
 
-export type PluginApiMethodName = FunctionPropertyNames<OpenClawPluginApi>;
+export type PluginApiMethodName = FunctionPropertyNames<AstroclawPluginApi>;
 
 export type PluginApiLifecyclePolicy = {
   phase: "registration" | "runtime";

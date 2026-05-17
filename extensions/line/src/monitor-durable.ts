@@ -1,5 +1,5 @@
-import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
-import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import { resolveSendableOutboundReplyParts } from "astroclaw/plugin-sdk/reply-payload";
+import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
 import type { LineChannelData } from "./types.js";
 
 export type LineDurableReplyOptions = {

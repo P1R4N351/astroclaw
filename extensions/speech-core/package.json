@@ -1,10 +1,10 @@
 {
-  "name": "@openclaw/speech-core",
+  "name": "@astroclaw/speech-core",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw speech runtime package",
+  "description": "Astroclaw speech runtime package",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   }
 }

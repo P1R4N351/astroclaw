@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
-import manifest from "./openclaw.plugin.json" with { type: "json" };
+import manifest from "./astroclaw.plugin.json" with { type: "json" };
 
 describe("admin-http-rpc plugin entry", () => {
   it("stays startup-off until the plugin entry is explicitly enabled", () => {

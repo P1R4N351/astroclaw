@@ -1,6 +1,6 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.PermissionRequester
+import ai.astroclaw.app.PermissionRequester
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -235,7 +235,7 @@ class CameraCaptureManager(
       android.util.Log.w("CameraCaptureManager", "clip: warming up camera 1.5s...")
       kotlinx.coroutines.delay(1_500)
 
-      val file = File.createTempFile("openclaw-clip-", ".mp4", context.cacheDir)
+      val file = File.createTempFile("astroclaw-clip-", ".mp4", context.cacheDir)
       val outputOptions = FileOutputOptions.Builder(file).build()
 
       val finalized = kotlinx.coroutines.CompletableDeferred<VideoRecordEvent.Finalize>()
@@ -425,7 +425,7 @@ private suspend fun ImageCapture.takeJpegWithExif(
   tempDir: File,
 ): Pair<ByteArray, Int> =
   suspendCancellableCoroutine { cont ->
-    val file = File.createTempFile("openclaw-snap-", ".jpg", tempDir)
+    val file = File.createTempFile("astroclaw-snap-", ".jpg", tempDir)
     val options = ImageCapture.OutputFileOptions.Builder(file).build()
     takePicture(
       options,

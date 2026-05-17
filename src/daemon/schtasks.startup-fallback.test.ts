@@ -79,7 +79,7 @@ function resolveStartupEntryPath(env: Record<string, string>) {
     "Start Menu",
     "Programs",
     "Startup",
-    "OpenClaw Gateway.cmd",
+    "Astroclaw Gateway.cmd",
   );
 }
 
@@ -104,7 +104,7 @@ function expectStartupFallbackSpawn() {
   expect(args).toContain("--port");
   expect(args).toContain("18789");
   expect(options.detached).toBe(true);
-  expect((options.env as Record<string, string> | undefined)?.OPENCLAW_GATEWAY_PORT).toBe("18789");
+  expect((options.env as Record<string, string> | undefined)?.ASTROCLAW_GATEWAY_PORT).toBe("18789");
   expect(options.stdio).toBe("ignore");
   expect(options.windowsHide).toBe(true);
 }
@@ -132,7 +132,7 @@ function installGatewayScheduledTask(env: Record<string, string>, stdout = new P
     env,
     stdout,
     programArguments: ["node", "gateway.js", "--port", "18789"],
-    environment: { OPENCLAW_GATEWAY_PORT: "18789" },
+    environment: { ASTROCLAW_GATEWAY_PORT: "18789" },
   });
 }
 
@@ -189,7 +189,7 @@ afterEach(() => {
 
 describe("Windows startup fallback", () => {
   it("falls back to a Startup-folder launcher when schtasks create is denied", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       addStartupFallbackMissingResponses([
         { code: 5, stdout: "", stderr: "ERROR: Access is denied." },
       ]);
@@ -214,7 +214,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("falls back to a Startup-folder launcher when schtasks create returns Spanish access denied", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       addStartupFallbackMissingResponses([
         { code: 1, stdout: "", stderr: "Error: Acceso denegado." },
       ]);
@@ -227,7 +227,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("falls back to a Startup-folder launcher when schtasks create hangs", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       addStartupFallbackMissingResponses([
         { code: 124, stdout: "", stderr: "schtasks timed out after 15000ms" },
       ]);
@@ -240,7 +240,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("falls back to a Startup-folder launcher when schtasks availability is slow", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       schtasksResponses.push(
         { code: 124, stdout: "", stderr: "schtasks produced no output for 30000ms" },
         { code: 124, stdout: "", stderr: "schtasks produced no output for 30000ms" },
@@ -255,7 +255,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("launches through the Startup-style launcher when schtasks /Run is accepted but never starts the task", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       fastForwardTaskStartWait();
       addAcceptedRunNeverStartsResponses();
 
@@ -266,7 +266,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("does not relaunch the task script when schtasks shows startup progress after /Run", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       addStartupFallbackMissingResponses([
         { code: 0, stdout: "", stderr: "" },
         { code: 0, stdout: "", stderr: "" },
@@ -291,7 +291,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("does not relaunch the task script when the scheduled task process is already starting", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       vi.spyOn(process, "platform", "get").mockReturnValue("win32");
       const taskScriptPath = resolveTaskScriptPath(env);
       fastForwardTaskStartWait();
@@ -335,7 +335,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("reports a fallback-launched gateway as running even when schtasks still says not-yet-run", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       await writeGatewayScript(env);
       findVerifiedGatewayListenerPidsOnPortSync.mockReturnValue([4242]);
       schtasksResponses.push(
@@ -352,7 +352,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("does not trust an unverified busy port when schtasks still says not-yet-run", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       await writeGatewayScript(env);
       inspectPortUsage.mockResolvedValue({
         port: 18789,
@@ -373,7 +373,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("treats an installed Startup-folder launcher as loaded", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       addStartupFallbackMissingResponses();
       await writeStartupFallbackEntry(env);
 
@@ -382,7 +382,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("reports runtime from the gateway listener when using the Startup fallback", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       addStartupFallbackMissingResponses();
       await writeStartupFallbackEntry(env);
       inspectPortUsage.mockResolvedValue({
@@ -399,7 +399,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("restarts the Startup fallback by killing the current pid and relaunching the entry", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       addStartupFallbackMissingResponses([
         { code: 0, stdout: "", stderr: "" },
         { code: 1, stdout: "", stderr: "not found" },
@@ -423,7 +423,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("relaunches the task script when restart sees a scheduled-task run no-op", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       await writeGatewayScript(env);
       sleepMock.mockImplementationOnce(async () => {
         timeState.now += 15_000;
@@ -454,7 +454,7 @@ describe("Windows startup fallback", () => {
   });
 
   it("kills the Startup fallback runtime even when the CLI env omits the gateway port", async () => {
-    await withWindowsEnv("openclaw-win-startup-", async ({ env }) => {
+    await withWindowsEnv("astroclaw-win-startup-", async ({ env }) => {
       schtasksResponses.push({ code: 0, stdout: "", stderr: "" });
       await writeGatewayScript(env);
       await writeStartupFallbackEntry(env);
@@ -480,7 +480,7 @@ describe("Windows startup fallback", () => {
 
       const stdout = new PassThrough();
       const envWithoutPort = { ...env };
-      delete envWithoutPort.OPENCLAW_GATEWAY_PORT;
+      delete envWithoutPort.ASTROCLAW_GATEWAY_PORT;
       await stopScheduledTask({ env: envWithoutPort, stdout });
 
       expectGatewayTermination(5151);

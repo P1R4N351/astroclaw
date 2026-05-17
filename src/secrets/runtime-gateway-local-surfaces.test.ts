@@ -17,7 +17,7 @@ async function expectInactiveGatewayPassword(config: unknown): Promise<void> {
   const snapshot = await prepareSecretsRuntimeSnapshot({
     config: asConfig(config),
     env: {},
-    agentDirs: ["/tmp/openclaw-agent-main"],
+    agentDirs: ["/tmp/astroclaw-agent-main"],
     loadAuthStore: () => ({ version: 1, profiles: {} }),
   });
 
@@ -35,7 +35,7 @@ async function expectActiveGatewayPassword(config: unknown): Promise<void> {
     env: {
       GATEWAY_PASSWORD_REF: "resolved-gateway-password",
     },
-    agentDirs: ["/tmp/openclaw-agent-main"],
+    agentDirs: ["/tmp/astroclaw-agent-main"],
     loadAuthStore: () => ({ version: 1, profiles: {} }),
   });
 
@@ -62,7 +62,7 @@ describe("secrets runtime gateway local surfaces", () => {
         },
       }),
       env: {},
-      agentDirs: ["/tmp/openclaw-agent-main"],
+      agentDirs: ["/tmp/astroclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
@@ -91,7 +91,7 @@ describe("secrets runtime gateway local surfaces", () => {
       env: {
         GATEWAY_PASSWORD_REF: "resolved-gateway-password",
       },
-      agentDirs: ["/tmp/openclaw-agent-main"],
+      agentDirs: ["/tmp/astroclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
@@ -112,7 +112,7 @@ describe("secrets runtime gateway local surfaces", () => {
       env: {
         GATEWAY_TOKEN_REF: "resolved-gateway-token",
       },
-      agentDirs: ["/tmp/openclaw-agent-main"],
+      agentDirs: ["/tmp/astroclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
@@ -131,7 +131,7 @@ describe("secrets runtime gateway local surfaces", () => {
         },
       }),
       env: {},
-      agentDirs: ["/tmp/openclaw-agent-main"],
+      agentDirs: ["/tmp/astroclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
@@ -155,7 +155,7 @@ describe("secrets runtime gateway local surfaces", () => {
           },
         }),
         env: {},
-        agentDirs: ["/tmp/openclaw-agent-main"],
+        agentDirs: ["/tmp/astroclaw-agent-main"],
         loadAuthStore: () => ({ version: 1, profiles: {} }),
       }),
     ).rejects.toThrow(/MISSING_GATEWAY_TOKEN_REF/);
@@ -209,7 +209,7 @@ describe("secrets runtime gateway local surfaces", () => {
           },
         }),
         env: {},
-        agentDirs: ["/tmp/openclaw-agent-main"],
+        agentDirs: ["/tmp/astroclaw-agent-main"],
         loadAuthStore: () => ({ version: 1, profiles: {} }),
       });
 
@@ -241,7 +241,7 @@ describe("secrets runtime gateway local surfaces", () => {
       env: {
         REMOTE_GATEWAY_TOKEN_REF: "resolved-remote-gateway-token",
       },
-      agentDirs: ["/tmp/openclaw-agent-main"],
+      agentDirs: ["/tmp/astroclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
@@ -263,7 +263,7 @@ describe("secrets runtime gateway local surfaces", () => {
       env: {
         REMOTE_GATEWAY_PASSWORD_REF: "resolved-remote-gateway-password",
       },
-      agentDirs: ["/tmp/openclaw-agent-main"],
+      agentDirs: ["/tmp/astroclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
@@ -290,7 +290,7 @@ describe("secrets runtime gateway local surfaces", () => {
         REMOTE_GATEWAY_TOKEN: "tailscale-remote-token",
         REMOTE_GATEWAY_PASSWORD: "tailscale-remote-password",
       },
-      agentDirs: ["/tmp/openclaw-agent-main"],
+      agentDirs: ["/tmp/astroclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 

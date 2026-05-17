@@ -64,7 +64,7 @@ describe("live-agent-probes", () => {
         attempt: 1,
         exactReply: spec.name,
       }),
-    ).toContain("previous OpenClaw cron MCP tool call was cancelled");
+    ).toContain("previous Astroclaw cron MCP tool call was cancelled");
     const args = JSON.parse(spec.argsJson) as {
       job?: { sessionTarget?: string; agentId?: string; sessionKey?: string };
     };

@@ -1,12 +1,12 @@
 import AppKit
 import Observation
-import OpenClawChatUI
-import OpenClawDiscovery
-import OpenClawIPC
+import AstroclawChatUI
+import AstroclawDiscovery
+import AstroclawIPC
 import SwiftUI
 
 enum UIStrings {
-    static let welcomeTitle = "Welcome to OpenClaw"
+    static let welcomeTitle = "Welcome to Astroclaw"
 }
 
 enum RemoteOnboardingProbeState: Equatable {
@@ -87,7 +87,7 @@ struct OnboardingView: View {
     @State var remoteAuthIssue: RemoteGatewayAuthIssue?
     @State var suppressRemoteProbeReset = false
     @State var gatewayDiscovery: GatewayDiscoveryModel
-    @State var onboardingChatModel: OpenClawChatViewModel
+    @State var onboardingChatModel: AstroclawChatViewModel
     @State var onboardingSkillsModel = SkillsSettingsModel()
     @State var onboardingWizard = OnboardingWizardModel()
     @State var didLoadOnboardingSkills = false
@@ -155,7 +155,7 @@ struct OnboardingView: View {
 
     var devLinkCommand: String {
         let version = GatewayEnvironment.expectedGatewayVersionString() ?? "latest"
-        return "npm install -g openclaw@\(version)"
+        return "npm install -g astroclaw@\(version)"
     }
 
     struct LocalGatewayProbe: Equatable {
@@ -176,7 +176,7 @@ struct OnboardingView: View {
         self.permissionMonitor = permissionMonitor
         self._gatewayDiscovery = State(initialValue: discoveryModel)
         self._onboardingChatModel = State(
-            initialValue: OpenClawChatViewModel(
+            initialValue: AstroclawChatViewModel(
                 sessionKey: "onboarding",
                 transport: MacGatewayChatTransport()))
     }

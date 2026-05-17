@@ -225,7 +225,7 @@ async function main() {
   if (!options.skipQa) {
     steps.push(
       runStep("qa suite", pnpmCommand(), [
-        "openclaw",
+        "astroclaw",
         "qa",
         "suite",
         "--provider-mode",

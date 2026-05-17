@@ -39,10 +39,10 @@ vi.mock("../../plugins/official-external-plugin-repair-hints.js", () => ({
           pluginId: channelId,
           channelId,
           label: channelId === "whatsapp" ? "WhatsApp" : "Feishu",
-          installSpec: `@openclaw/${channelId}`,
-          installCommand: `openclaw plugins install @openclaw/${channelId}`,
-          doctorFixCommand: "openclaw doctor --fix",
-          repairHint: `Install the official external plugin with: openclaw plugins install @openclaw/${channelId}, or run: openclaw doctor --fix.`,
+          installSpec: `@astroclaw/${channelId}`,
+          installCommand: `astroclaw plugins install @astroclaw/${channelId}`,
+          doctorFixCommand: "astroclaw doctor --fix",
+          repairHint: `Install the official external plugin with: astroclaw plugins install @astroclaw/${channelId}, or run: astroclaw doctor --fix.`,
         }
       : null,
 }));
@@ -267,12 +267,12 @@ describe("resolveMessageChannelSelection", () => {
         channel: "feishu",
       },
       expectedMessage:
-        "Channel is unavailable: feishu. Install the official external plugin with: openclaw plugins install @openclaw/feishu, or run: openclaw doctor --fix.",
+        "Channel is unavailable: feishu. Install the official external plugin with: astroclaw plugins install @astroclaw/feishu, or run: astroclaw doctor --fix.",
     },
     {
       params: { cfg: {} as never },
       expectedMessage:
-        "Channel is required (no configured channels detected). Run openclaw channels add to configure one",
+        "Channel is required (no configured channels detected). Run astroclaw channels add to configure one",
     },
     {
       setup: () => {
@@ -281,7 +281,7 @@ describe("resolveMessageChannelSelection", () => {
       },
       params: { cfg: { channels: { whatsapp: { enabled: true } } } as never },
       expectedMessage:
-        "Channel is required (no available channels detected). Configured official external channel WhatsApp is missing its plugin. Install the official external plugin with: openclaw plugins install @openclaw/whatsapp, or run: openclaw doctor --fix.",
+        "Channel is required (no available channels detected). Configured official external channel WhatsApp is missing its plugin. Install the official external plugin with: astroclaw plugins install @astroclaw/whatsapp, or run: astroclaw doctor --fix.",
     },
     {
       setup: () => {
@@ -294,7 +294,7 @@ describe("resolveMessageChannelSelection", () => {
       },
       params: { cfg: { channels: { whatsapp: { enabled: true } } } as never },
       expectedMessage:
-        "Channel is required (no configured channels detected). Run openclaw channels add to configure one",
+        "Channel is required (no configured channels detected). Run astroclaw channels add to configure one",
     },
     {
       setup: () => {

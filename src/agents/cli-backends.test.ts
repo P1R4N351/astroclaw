@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import type { CliBackendConfig } from "../config/types.js";
 import type {
   CliBackendAuthEpochMode,
@@ -101,7 +101,7 @@ function requireCliBackendConfig(...args: Parameters<typeof resolveCliBackendCon
   return resolved;
 }
 
-function createClaudeCliOverrideConfig(config: CliBackendConfig): OpenClawConfig {
+function createClaudeCliOverrideConfig(config: CliBackendConfig): AstroclawConfig {
   return {
     agents: {
       defaults: {
@@ -110,7 +110,7 @@ function createClaudeCliOverrideConfig(config: CliBackendConfig): OpenClawConfig
         },
       },
     },
-  } satisfies OpenClawConfig;
+  } satisfies AstroclawConfig;
 }
 
 const NORMALIZED_CLAUDE_FALLBACK_ARGS = [
@@ -239,7 +239,7 @@ beforeEach(() => {
           "--setting-sources",
           "user",
           "--allowedTools",
-          "mcp__openclaw__*",
+          "mcp__astroclaw__*",
         ],
         resumeArgs: [
           "stream-json",
@@ -248,7 +248,7 @@ beforeEach(() => {
           "--setting-sources",
           "user",
           "--allowedTools",
-          "mcp__openclaw__*",
+          "mcp__astroclaw__*",
           "--resume",
           "{sessionId}",
         ],
@@ -428,7 +428,7 @@ describe("resolveCliBackendConfig reliability merge", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("codex-cli", cfg);
 
@@ -471,7 +471,7 @@ describe("resolveCliBackendConfig reliability merge", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("test-cli", cfg);
 
@@ -515,7 +515,7 @@ describe("resolveCliBackendLiveTest", () => {
 });
 
 describe("resolveCliBackendConfig claude-cli defaults", () => {
-  it("derives bypassPermissions from OpenClaw's default YOLO exec policy", () => {
+  it("derives bypassPermissions from Astroclaw's default YOLO exec policy", () => {
     const resolved = requireCliBackendConfig("claude-cli");
 
     expect(resolved?.bundleMcp).toBe(true);
@@ -527,7 +527,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
     expect(resolved?.config.args).toContain("--setting-sources");
     expect(resolved?.config.args).toContain("user");
     expect(resolved?.config.args).toContain("--allowedTools");
-    expect(resolved?.config.args).toContain("mcp__openclaw__*");
+    expect(resolved?.config.args).toContain("mcp__astroclaw__*");
     expect(resolved?.config.args).toContain("--permission-mode");
     expect(resolved?.config.args).toContain("bypassPermissions");
     expect(resolved?.config.args).not.toContain("--dangerously-skip-permissions");
@@ -540,13 +540,13 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
     expect(resolved?.config.resumeArgs).toContain("--setting-sources");
     expect(resolved?.config.resumeArgs).toContain("user");
     expect(resolved?.config.resumeArgs).toContain("--allowedTools");
-    expect(resolved?.config.resumeArgs).toContain("mcp__openclaw__*");
+    expect(resolved?.config.resumeArgs).toContain("mcp__astroclaw__*");
     expect(resolved?.config.resumeArgs).toContain("--permission-mode");
     expect(resolved?.config.resumeArgs).toContain("bypassPermissions");
     expect(resolved?.config.resumeArgs).not.toContain("--dangerously-skip-permissions");
   });
 
-  it("keeps Claude permission mode unset when OpenClaw exec policy is not YOLO", () => {
+  it("keeps Claude permission mode unset when Astroclaw exec policy is not YOLO", () => {
     const resolved = requireCliBackendConfig("claude-cli", {
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
     });
@@ -572,7 +572,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         ],
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const reviewer = resolveCliBackendConfig("claude-cli", cfg, { agentId: "reviewer" });
     const builder = resolveCliBackendConfig("claude-cli", cfg, { agentId: "builder" });
@@ -632,7 +632,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -679,7 +679,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
         },
       },
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -708,7 +708,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -752,7 +752,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -780,7 +780,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
         resumeArgs: ["-p", "--setting-sources", "--resume", "{sessionId}"],
       }),
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -796,7 +796,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
         resumeArgs: ["-p", "--permission-mode=--resume", "--resume", "{sessionId}"],
       }),
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -825,7 +825,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
         },
       },
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -853,7 +853,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -887,7 +887,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -1016,7 +1016,7 @@ describe("resolveCliBackendConfig alias precedence", () => {
           },
         },
       },
-    } satisfies OpenClawConfig;
+    } satisfies AstroclawConfig;
 
     const resolved = requireCliBackendConfig("kimi", cfg);
 

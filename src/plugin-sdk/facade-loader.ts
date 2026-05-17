@@ -19,7 +19,7 @@ const moduleLoaders: PluginModuleLoaderCache = new Map();
 const loadedFacadeModules = new Map<string, unknown>();
 const loadedFacadePluginIds = new Set<string>();
 let facadeLoaderSourceTransformFactory: PluginModuleLoaderFactory | undefined;
-let cachedOpenClawPackageRoot: string | undefined;
+let cachedAstroclawPackageRoot: string | undefined;
 
 function getSourceTransformFactory() {
   if (facadeLoaderSourceTransformFactory) {
@@ -30,16 +30,16 @@ function getSourceTransformFactory() {
   return facadeLoaderSourceTransformFactory;
 }
 
-function getOpenClawPackageRoot() {
-  if (cachedOpenClawPackageRoot) {
-    return cachedOpenClawPackageRoot;
+function getAstroclawPackageRoot() {
+  if (cachedAstroclawPackageRoot) {
+    return cachedAstroclawPackageRoot;
   }
-  cachedOpenClawPackageRoot =
+  cachedAstroclawPackageRoot =
     resolveLoaderPackageRoot({
       modulePath: fileURLToPath(import.meta.url),
       moduleUrl: import.meta.url,
     }) ?? fileURLToPath(new URL("../..", import.meta.url));
-  return cachedOpenClawPackageRoot;
+  return cachedAstroclawPackageRoot;
 }
 
 function resolveFacadeModuleLocation(params: {
@@ -51,7 +51,7 @@ function resolveFacadeModuleLocation(params: {
   return resolveBundledFacadeModuleLocation({
     ...params,
     currentModulePath: CURRENT_MODULE_PATH,
-    packageRoot: getOpenClawPackageRoot(),
+    packageRoot: getAstroclawPackageRoot(),
     bundledPluginsDir,
   });
 }
@@ -149,8 +149,8 @@ export function loadFacadeModuleAtLocationSync<T extends object>(params: {
     absolutePath: location.modulePath,
     rootPath: location.boundaryRoot,
     boundaryLabel:
-      location.boundaryRoot === getOpenClawPackageRoot()
-        ? "OpenClaw package root"
+      location.boundaryRoot === getAstroclawPackageRoot()
+        ? "Astroclaw package root"
         : (() => {
             const bundledDir = resolveBundledPluginsDir();
             return bundledDir && path.resolve(location.boundaryRoot) === path.resolve(bundledDir)
@@ -228,8 +228,8 @@ export async function loadBundledPluginPublicSurfaceModule<T extends object>(par
     absolutePath: preparedLocation.modulePath,
     rootPath: preparedLocation.boundaryRoot,
     boundaryLabel:
-      preparedLocation.boundaryRoot === getOpenClawPackageRoot()
-        ? "OpenClaw package root"
+      preparedLocation.boundaryRoot === getAstroclawPackageRoot()
+        ? "Astroclaw package root"
         : "plugin root",
     rejectHardlinks: false,
   });
@@ -266,7 +266,7 @@ export function resetFacadeLoaderStateForTest(): void {
   loadedFacadePluginIds.clear();
   moduleLoaders.clear();
   facadeLoaderSourceTransformFactory = undefined;
-  cachedOpenClawPackageRoot = undefined;
+  cachedAstroclawPackageRoot = undefined;
 }
 
 export function setFacadeLoaderSourceTransformFactoryForTest(

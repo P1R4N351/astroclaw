@@ -1,17 +1,17 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.LocationMode
-import ai.openclaw.app.SecurePrefs
-import ai.openclaw.app.VoiceWakeMode
-import ai.openclaw.app.gateway.GatewayEndpoint
-import ai.openclaw.app.gateway.isLoopbackGatewayHost
-import ai.openclaw.app.gateway.isPrivateLanGatewayHost
-import ai.openclaw.app.protocol.OpenClawCallLogCommand
-import ai.openclaw.app.protocol.OpenClawCameraCommand
-import ai.openclaw.app.protocol.OpenClawCapability
-import ai.openclaw.app.protocol.OpenClawLocationCommand
-import ai.openclaw.app.protocol.OpenClawMotionCommand
-import ai.openclaw.app.protocol.OpenClawSmsCommand
+import ai.astroclaw.app.LocationMode
+import ai.astroclaw.app.SecurePrefs
+import ai.astroclaw.app.VoiceWakeMode
+import ai.astroclaw.app.gateway.GatewayEndpoint
+import ai.astroclaw.app.gateway.isLoopbackGatewayHost
+import ai.astroclaw.app.gateway.isPrivateLanGatewayHost
+import ai.astroclaw.app.protocol.AstroclawCallLogCommand
+import ai.astroclaw.app.protocol.AstroclawCameraCommand
+import ai.astroclaw.app.protocol.AstroclawCapability
+import ai.astroclaw.app.protocol.AstroclawLocationCommand
+import ai.astroclaw.app.protocol.AstroclawMotionCommand
+import ai.astroclaw.app.protocol.AstroclawSmsCommand
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -27,7 +27,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_prefersStoredPinOverAdvertisedFingerprint() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "10.0.0.2",
         port = 18789,
@@ -50,7 +50,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_doesNotTrustAdvertisedFingerprintWhenNoStoredPin() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "10.0.0.2",
         port = 18789,
@@ -127,7 +127,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryTailnetWithoutHintsStillRequiresTls() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "100.64.0.9",
         port = 18789,
@@ -151,7 +151,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryPrivateLanWithoutHintsStillRequiresTls() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "192.168.1.20",
         port = 18789,
@@ -175,7 +175,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryLoopbackWithoutHintsCanStayCleartext() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "127.0.0.1",
         port = 18789,
@@ -197,7 +197,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryLocalhostWithoutHintsCanStayCleartext() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "localhost",
         port = 18789,
@@ -219,7 +219,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryAndroidEmulatorWithoutHintsCanStayCleartext() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "10.0.2.2",
         port = 18789,
@@ -255,7 +255,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryIpv6LoopbackWithoutHintsCanStayCleartext() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "::1",
         port = 18789,
@@ -277,7 +277,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryMappedIpv4LoopbackWithoutHintsCanStayCleartext() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "::ffff:127.0.0.1",
         port = 18789,
@@ -299,7 +299,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryNonLoopbackIpv6WithoutHintsRequiresTls() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "2001:db8::1",
         port = 18789,
@@ -323,7 +323,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryUnspecifiedIpv4WithoutHintsRequiresTls() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "0.0.0.0",
         port = 18789,
@@ -347,7 +347,7 @@ class ConnectionManagerTest {
   fun resolveTlsParamsForEndpoint_discoveryUnspecifiedIpv6WithoutHintsRequiresTls() {
     val endpoint =
       GatewayEndpoint(
-        stableId = "_openclaw-gw._tcp.|local.|Test",
+        stableId = "_astroclaw-gw._tcp.|local.|Test",
         name = "Test",
         host = "::",
         port = 18789,
@@ -376,9 +376,9 @@ class ConnectionManagerTest {
         smsSearchPossible = true,
       ).buildNodeConnectOptions()
 
-    assertTrue(options.commands.contains(OpenClawSmsCommand.Search.rawValue))
-    assertFalse(options.commands.contains(OpenClawSmsCommand.Send.rawValue))
-    assertFalse(options.caps.contains(OpenClawCapability.Sms.rawValue))
+    assertTrue(options.commands.contains(AstroclawSmsCommand.Search.rawValue))
+    assertFalse(options.commands.contains(AstroclawSmsCommand.Send.rawValue))
+    assertFalse(options.caps.contains(AstroclawCapability.Sms.rawValue))
   }
 
   @Test
@@ -390,9 +390,9 @@ class ConnectionManagerTest {
         smsSearchPossible = false,
       ).buildNodeConnectOptions()
 
-    assertFalse(options.commands.contains(OpenClawSmsCommand.Search.rawValue))
-    assertFalse(options.commands.contains(OpenClawSmsCommand.Send.rawValue))
-    assertFalse(options.caps.contains(OpenClawCapability.Sms.rawValue))
+    assertFalse(options.commands.contains(AstroclawSmsCommand.Search.rawValue))
+    assertFalse(options.commands.contains(AstroclawSmsCommand.Send.rawValue))
+    assertFalse(options.caps.contains(AstroclawCapability.Sms.rawValue))
   }
 
   @Test
@@ -404,8 +404,8 @@ class ConnectionManagerTest {
         smsSearchPossible = true,
       ).buildNodeConnectOptions()
 
-    assertTrue(options.commands.contains(OpenClawSmsCommand.Search.rawValue))
-    assertTrue(options.caps.contains(OpenClawCapability.Sms.rawValue))
+    assertTrue(options.commands.contains(AstroclawSmsCommand.Search.rawValue))
+    assertTrue(options.caps.contains(AstroclawCapability.Sms.rawValue))
   }
 
   @Test
@@ -417,9 +417,9 @@ class ConnectionManagerTest {
         smsSearchPossible = false,
       ).buildNodeConnectOptions()
 
-    assertTrue(options.commands.contains(OpenClawSmsCommand.Send.rawValue))
-    assertFalse(options.commands.contains(OpenClawSmsCommand.Search.rawValue))
-    assertTrue(options.caps.contains(OpenClawCapability.Sms.rawValue))
+    assertTrue(options.commands.contains(AstroclawSmsCommand.Send.rawValue))
+    assertFalse(options.commands.contains(AstroclawSmsCommand.Search.rawValue))
+    assertTrue(options.caps.contains(AstroclawCapability.Sms.rawValue))
   }
 
   @Test
@@ -434,15 +434,15 @@ class ConnectionManagerTest {
         hasRecordAudioPermission = true,
       ).buildNodeConnectOptions()
 
-    assertTrue(options.commands.contains(OpenClawCameraCommand.List.rawValue))
-    assertTrue(options.commands.contains(OpenClawLocationCommand.Get.rawValue))
-    assertTrue(options.commands.contains(OpenClawMotionCommand.Activity.rawValue))
-    assertTrue(options.commands.contains(OpenClawCallLogCommand.Search.rawValue))
-    assertTrue(options.caps.contains(OpenClawCapability.Camera.rawValue))
-    assertTrue(options.caps.contains(OpenClawCapability.Location.rawValue))
-    assertTrue(options.caps.contains(OpenClawCapability.Motion.rawValue))
-    assertTrue(options.caps.contains(OpenClawCapability.CallLog.rawValue))
-    assertTrue(options.caps.contains(OpenClawCapability.VoiceWake.rawValue))
+    assertTrue(options.commands.contains(AstroclawCameraCommand.List.rawValue))
+    assertTrue(options.commands.contains(AstroclawLocationCommand.Get.rawValue))
+    assertTrue(options.commands.contains(AstroclawMotionCommand.Activity.rawValue))
+    assertTrue(options.commands.contains(AstroclawCallLogCommand.Search.rawValue))
+    assertTrue(options.caps.contains(AstroclawCapability.Camera.rawValue))
+    assertTrue(options.caps.contains(AstroclawCapability.Location.rawValue))
+    assertTrue(options.caps.contains(AstroclawCapability.Motion.rawValue))
+    assertTrue(options.caps.contains(AstroclawCapability.CallLog.rawValue))
+    assertTrue(options.caps.contains(AstroclawCapability.VoiceWake.rawValue))
   }
 
   @Test
@@ -453,7 +453,7 @@ class ConnectionManagerTest {
         hasRecordAudioPermission = false,
       ).buildNodeConnectOptions()
 
-    assertFalse(options.caps.contains(OpenClawCapability.VoiceWake.rawValue))
+    assertFalse(options.caps.contains(AstroclawCapability.VoiceWake.rawValue))
   }
 
   @Test
@@ -465,14 +465,14 @@ class ConnectionManagerTest {
         callLogAvailable = false,
       ).buildNodeConnectOptions()
 
-    assertFalse(options.commands.contains(OpenClawCameraCommand.List.rawValue))
-    assertFalse(options.commands.contains(OpenClawCameraCommand.Snap.rawValue))
-    assertFalse(options.commands.contains(OpenClawCameraCommand.Clip.rawValue))
-    assertFalse(options.commands.contains(OpenClawLocationCommand.Get.rawValue))
-    assertFalse(options.commands.contains(OpenClawCallLogCommand.Search.rawValue))
-    assertFalse(options.caps.contains(OpenClawCapability.Camera.rawValue))
-    assertFalse(options.caps.contains(OpenClawCapability.Location.rawValue))
-    assertFalse(options.caps.contains(OpenClawCapability.CallLog.rawValue))
+    assertFalse(options.commands.contains(AstroclawCameraCommand.List.rawValue))
+    assertFalse(options.commands.contains(AstroclawCameraCommand.Snap.rawValue))
+    assertFalse(options.commands.contains(AstroclawCameraCommand.Clip.rawValue))
+    assertFalse(options.commands.contains(AstroclawLocationCommand.Get.rawValue))
+    assertFalse(options.commands.contains(AstroclawCallLogCommand.Search.rawValue))
+    assertFalse(options.caps.contains(AstroclawCapability.Camera.rawValue))
+    assertFalse(options.caps.contains(AstroclawCapability.Location.rawValue))
+    assertFalse(options.caps.contains(AstroclawCapability.CallLog.rawValue))
   }
 
   @Test
@@ -483,9 +483,9 @@ class ConnectionManagerTest {
         motionPedometerAvailable = true,
       ).buildNodeConnectOptions()
 
-    assertFalse(options.commands.contains(OpenClawMotionCommand.Activity.rawValue))
-    assertTrue(options.commands.contains(OpenClawMotionCommand.Pedometer.rawValue))
-    assertTrue(options.caps.contains(OpenClawCapability.Motion.rawValue))
+    assertFalse(options.commands.contains(AstroclawMotionCommand.Activity.rawValue))
+    assertTrue(options.commands.contains(AstroclawMotionCommand.Pedometer.rawValue))
+    assertTrue(options.caps.contains(AstroclawCapability.Motion.rawValue))
   }
 
   @Test
@@ -496,9 +496,9 @@ class ConnectionManagerTest {
         motionPedometerAvailable = false,
       ).buildNodeConnectOptions()
 
-    assertFalse(options.commands.contains(OpenClawMotionCommand.Activity.rawValue))
-    assertFalse(options.commands.contains(OpenClawMotionCommand.Pedometer.rawValue))
-    assertFalse(options.caps.contains(OpenClawCapability.Motion.rawValue))
+    assertFalse(options.commands.contains(AstroclawMotionCommand.Activity.rawValue))
+    assertFalse(options.commands.contains(AstroclawMotionCommand.Pedometer.rawValue))
+    assertFalse(options.caps.contains(AstroclawCapability.Motion.rawValue))
   }
 
   private fun newManager(

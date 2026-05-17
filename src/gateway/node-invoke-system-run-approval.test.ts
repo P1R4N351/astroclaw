@@ -501,7 +501,7 @@ describe("sanitizeSystemRunParamsForForwarding", () => {
     const record = makeRecord("echo SAFE", ["echo", "SAFE"]);
     record.requestedByConnId = "control-ui-conn";
     record.requestedByDeviceId = null;
-    record.requestedByClientId = "openclaw-control-ui";
+    record.requestedByClientId = "astroclaw-control-ui";
     record.requestedByDeviceTokenAuth = false;
 
     const result = sanitizeSystemRunParamsForForwarding({
@@ -525,7 +525,7 @@ describe("sanitizeSystemRunParamsForForwarding", () => {
     const record = makeRecord("echo SAFE", ["echo", "SAFE"]);
     record.requestedByConnId = "control-ui-conn";
     record.requestedByDeviceId = null;
-    record.requestedByClientId = "openclaw-control-ui";
+    record.requestedByClientId = "astroclaw-control-ui";
     record.requestedByDeviceTokenAuth = false;
 
     const result = sanitizeSystemRunParamsForForwarding({
@@ -555,7 +555,7 @@ describe("sanitizeSystemRunParamsForForwarding", () => {
     const record = makeRecord("echo SAFE", ["echo", "SAFE"]);
     record.requestedByConnId = "control-ui-conn";
     record.requestedByDeviceId = null;
-    record.requestedByClientId = "openclaw-control-ui";
+    record.requestedByClientId = "astroclaw-control-ui";
     record.requestedByDeviceTokenAuth = false;
 
     const result = sanitizeSystemRunParamsForForwarding({
@@ -571,7 +571,7 @@ describe("sanitizeSystemRunParamsForForwarding", () => {
         connId: "other-control-ui-conn",
         connect: {
           scopes: ["operator.write", "operator.approvals"],
-          client: { id: "openclaw-control-ui", mode: "ui" },
+          client: { id: "astroclaw-control-ui", mode: "ui" },
           device: null,
         },
       },
@@ -865,7 +865,7 @@ describe("sanitizeSystemRunParamsForForwarding", () => {
     const record = makeRecord("echo SAFE", ["echo", "SAFE"]);
     record.requestedByConnId = "control-ui-conn";
     record.requestedByDeviceId = null;
-    record.requestedByClientId = "openclaw-control-ui";
+    record.requestedByClientId = "astroclaw-control-ui";
     record.requestedByDeviceTokenAuth = true;
 
     const result = sanitizeSystemRunParamsForForwarding({

@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/admin-http-rpc",
+  "name": "@astroclaw/admin-http-rpc",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw admin HTTP RPC endpoint",
+  "description": "Astroclaw admin HTTP RPC endpoint",
   "type": "module",
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

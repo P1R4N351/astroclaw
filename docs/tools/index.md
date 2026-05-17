@@ -1,8 +1,8 @@
 ---
 doc-schema-version: 1
-summary: "OpenClaw tools, skills, and plugins overview: what agents can call and how to extend them"
+summary: "Astroclaw tools, skills, and plugins overview: what agents can call and how to extend them"
 read_when:
-  - You want to understand what tools OpenClaw provides
+  - You want to understand what tools Astroclaw provides
   - You are deciding between built-in tools, skills, and plugins
   - You need the right docs entry point for tool policy, automation, or agent coordination
 title: "Overview"
@@ -52,14 +52,14 @@ only when the agent should see fewer tools or needs explicit host access.
     skill when the agent already has the tools it needs, but needs a repeatable
     workflow, review rubric, command sequence, or operating constraint.
 
-    Skills can live in a workspace, shared skill directory, managed OpenClaw
+    Skills can live in a workspace, shared skill directory, managed Astroclaw
     skill root, or plugin package.
 
     [Skills](/tools/skills) | [Creating skills](/tools/creating-skills) | [Skills config](/tools/skills-config)
 
   </Step>
 
-  <Step title="Use a plugin when OpenClaw needs a new capability">
+  <Step title="Use a plugin when Astroclaw needs a new capability">
     A plugin can add tools, skills, channels, model providers, speech, realtime
     voice, media generation, web search, web fetch, hooks, and other runtime
     capabilities. Use a plugin when the capability has code, credentials,
@@ -136,7 +136,7 @@ restrictions, sandbox rules, owner-only gating, or plugin availability.
 
 ## Extend capabilities
 
-Choose the extension path by the job you need OpenClaw to do:
+Choose the extension path by the job you need Astroclaw to do:
 
 - Install or manage an existing plugin with [Plugins](/tools/plugin).
 - Build a new integration, provider, channel, tool, or hook with

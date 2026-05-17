@@ -1,5 +1,5 @@
-import { buildChannelConfigSchema } from "openclaw/plugin-sdk/channel-config-schema";
-import { buildSecretInputSchema } from "openclaw/plugin-sdk/secret-input";
+import { buildChannelConfigSchema } from "astroclaw/plugin-sdk/channel-config-schema";
+import { buildSecretInputSchema } from "astroclaw/plugin-sdk/secret-input";
 import { z } from "zod";
 
 const ClickClackAccountConfigSchema = z

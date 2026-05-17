@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import plugin, { __testing } from "./index.js";
 
@@ -36,9 +36,9 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
-    "openclaw/plugin-sdk/session-store-runtime",
+vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
+    "astroclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -105,7 +105,7 @@ describe("active-memory plugin", () => {
       agent: {
         runEmbeddedPiAgent,
         session: {
-          resolveStorePath: vi.fn(() => "/tmp/openclaw-session-store.json"),
+          resolveStorePath: vi.fn(() => "/tmp/astroclaw-session-store.json"),
           loadSessionStore: vi.fn(() => hoisted.sessionStore),
           saveSessionStore: vi.fn(async () => {}),
         },
@@ -266,7 +266,7 @@ describe("active-memory plugin", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     runEmbeddedPiAgent.mockReset();
-    stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-active-memory-test-"));
+    stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-active-memory-test-"));
     configFile = {
       plugins: {
         entries: {
@@ -313,7 +313,7 @@ describe("active-memory plugin", () => {
     });
     __testing.resetActiveRecallCacheForTests();
     __testing.setTimeoutPartialDataGraceMsForTests(5);
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
   });
 
   afterEach(async () => {
@@ -339,7 +339,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       timeoutMs: 90_000,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     expect(hookOptions.before_prompt_build?.timeoutMs).toBe(90_000);
   });
@@ -350,7 +350,7 @@ describe("active-memory plugin", () => {
       timeoutMs: 90_000,
       setupGraceTimeoutMs: 30_000,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     expect(hookOptions.before_prompt_build?.timeoutMs).toBe(120_000);
   });
@@ -452,7 +452,7 @@ describe("active-memory plugin", () => {
       agents: ["sandbox"],
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const statusResult = await registeredCommands["active-memory"].handler({
       channel: "webchat",
@@ -856,7 +856,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       allowedChatTypes: ["direct", "group"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "what wings should we order?", messages: [] },
@@ -881,7 +881,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       allowedChatTypes: ["direct", "group"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "what wings should we order?", messages: [] },
@@ -931,7 +931,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       allowedChatTypes: ["direct"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "what did we decide?", messages: [] },
@@ -957,7 +957,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       allowedChatTypes: ["explicit"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "what should i work on next?", messages: [] },
@@ -979,7 +979,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       allowedChatTypes: ["explicit"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "what should i work on next?", messages: [] },
@@ -1002,7 +1002,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["direct", "group"],
       allowedChatIds: ["oc_allowed_group"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1025,7 +1025,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["direct", "group"],
       allowedChatIds: ["oc_allowed_group", "OC_OTHER"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1051,7 +1051,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["group"],
       allowedChatIds: ["OC_MIXED_Case"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1074,7 +1074,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["direct", "group"],
       deniedChatIds: ["oc_blocked_group"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1097,7 +1097,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["direct"],
       allowedChatIds: ["oc_some_group"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     // The default main session key (agent:main:main) exposes no chat id; the
     // allowlist must not accidentally match it.
@@ -1126,7 +1126,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["direct", "group"],
       allowedChatIds: ["oc_allowed_group"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1153,7 +1153,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["direct", "group"],
       allowedChatIds: ["oc_allowed_group", "ou_allowed_direct_user"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1177,7 +1177,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["direct"],
       allowedChatIds: ["ou_per_peer_user"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1202,7 +1202,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["direct"],
       allowedChatIds: ["ou_per_account_user"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1229,7 +1229,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["group"],
       allowedChatIds: ["oc_threaded_group"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1254,7 +1254,7 @@ describe("active-memory plugin", () => {
       allowedChatTypes: ["direct"],
       deniedChatIds: ["ou_threaded_blocked_user"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "hi", messages: [] },
@@ -1325,7 +1325,7 @@ describe("active-memory plugin", () => {
         searchMode: "inherit",
       },
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -1414,7 +1414,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       toolsAllow: [" lcm_grep ", "lcm_describe", "", "lcm_expand_query", "lcm_grep"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -1520,7 +1520,7 @@ describe("active-memory plugin", () => {
         "lcm_describe",
       ],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -1545,7 +1545,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       toolsAllow: ["*", "group:plugins", "read", "exec", "message", "web_search"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -1595,7 +1595,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       queryMode: "message",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -1623,7 +1623,7 @@ describe("active-memory plugin", () => {
       queryMode: "message",
       promptStyle: "preference-only",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -1666,7 +1666,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       thinking: "medium",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -1690,7 +1690,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       promptAppend: "Prefer stable long-term preferences over one-off events.",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -1719,7 +1719,7 @@ describe("active-memory plugin", () => {
       promptOverride: "Custom memory prompt. Return NONE or one user fact.",
       promptAppend: "Extra custom instruction.",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -1790,7 +1790,7 @@ describe("active-memory plugin", () => {
     api.pluginConfig = {
       agents: ["main"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       { prompt: "what wings should i order? temp transcript", messages: [] },
@@ -1837,7 +1837,7 @@ describe("active-memory plugin", () => {
     api.pluginConfig = {
       agents: ["main"],
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       { prompt: "what wings should i order? bare model default", messages: [] },
@@ -1859,7 +1859,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       modelFallbackPolicy: "resolved-only",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "what wings should i order? no fallback", messages: [] },
@@ -1882,7 +1882,7 @@ describe("active-memory plugin", () => {
       modelFallback: "google/gemini-3-flash",
       modelFallbackPolicy: "default-remote",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       { prompt: "what wings should i order? custom fallback", messages: [] },
@@ -1921,7 +1921,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       modelFallbackPolicy: "default-remote",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     const result = await hooks.before_prompt_build(
       { prompt: "what wings should i order? built-in fallback", messages: [] },
@@ -2166,7 +2166,7 @@ describe("active-memory plugin", () => {
       toolsAllow: ["lcm_grep", "lcm_describe", "lcm_expand_query"],
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:missing-custom-memory-tools";
     hoisted.sessionStore[sessionKey] = {
       sessionId: "s-missing-custom-memory-tools",
@@ -2283,7 +2283,7 @@ describe("active-memory plugin", () => {
       persistTranscripts: true,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:timeout-partial";
     hoisted.sessionStore[sessionKey] = {
       sessionId: "s-timeout-partial",
@@ -2343,7 +2343,7 @@ describe("active-memory plugin", () => {
       maxSummaryChars: 80,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:timeout-partial-temp-transcript";
     hoisted.sessionStore[sessionKey] = {
       sessionId: "s-timeout-partial-temp-transcript",
@@ -2389,7 +2389,7 @@ describe("active-memory plugin", () => {
       persistTranscripts: true,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:timeout-empty-transcript";
     hoisted.sessionStore[sessionKey] = {
       sessionId: "s-timeout-empty-transcript",
@@ -2423,7 +2423,7 @@ describe("active-memory plugin", () => {
       persistTranscripts: true,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:timeout-missing-transcript";
     hoisted.sessionStore[sessionKey] = {
       sessionId: "s-timeout-missing-transcript",
@@ -2453,7 +2453,7 @@ describe("active-memory plugin", () => {
       timeoutMs: 1,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:timeout-boilerplate-transcript";
     hoisted.sessionStore[sessionKey] = {
       sessionId: "s-timeout-boilerplate-transcript",
@@ -2500,7 +2500,7 @@ describe("active-memory plugin", () => {
       persistTranscripts: true,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:abort-timeout-partial";
     hoisted.sessionStore[sessionKey] = {
       sessionId: "s-abort-timeout-partial",
@@ -2545,7 +2545,7 @@ describe("active-memory plugin", () => {
       persistTranscripts: true,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:generic-error-partial-ignored";
     hoisted.sessionStore[sessionKey] = {
       sessionId: "s-generic-error-partial-ignored",
@@ -2707,7 +2707,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     runEmbeddedPiAgent.mockResolvedValue({
       payloads: [{ text: "NONE" }],
     });
@@ -2767,7 +2767,7 @@ describe("active-memory plugin", () => {
       timeoutMs: 1,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     let lastAbortSignal: AbortSignal | undefined;
     runEmbeddedPiAgent.mockImplementation(async (params: { abortSignal?: AbortSignal }) => {
       lastAbortSignal = params.abortSignal;
@@ -2816,7 +2816,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       { prompt: "what wings should i order? session id cache", messages: [] },
@@ -2853,7 +2853,7 @@ describe("active-memory plugin", () => {
       timeoutMs: CONFIGURED_TIMEOUT_MS,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     runEmbeddedPiAgent.mockImplementationOnce(async (params: { timeoutMs?: number }) => {
       await new Promise((resolve) => setTimeout(resolve, (params.timeoutMs ?? 0) + 25));
       return {
@@ -2896,7 +2896,7 @@ describe("active-memory plugin", () => {
       setupGraceTimeoutMs: SETUP_GRACE_TIMEOUT_MS,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     runEmbeddedPiAgent.mockImplementationOnce(async () => {
       await new Promise((resolve) => setTimeout(resolve, CONFIGURED_TIMEOUT_MS + 30));
       return { payloads: [{ text: "remember the ramen place" }] };
@@ -2930,7 +2930,7 @@ describe("active-memory plugin", () => {
       timeoutMs: CONFIGURED_TIMEOUT_MS,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     // Simulate a subagent that never cooperatively checks the abort signal.
     runEmbeddedPiAgent.mockImplementationOnce(() => new Promise<never>(() => {}));
 
@@ -2965,7 +2965,7 @@ describe("active-memory plugin", () => {
       timeoutMs: CONFIGURED_TIMEOUT_MS,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:terminal-zero-hit";
     hoisted.sessionStore[sessionKey] = { sessionId: "s-terminal-zero-hit", updatedAt: 0 };
     runEmbeddedPiAgent.mockImplementationOnce(
@@ -3008,7 +3008,7 @@ describe("active-memory plugin", () => {
       timeoutMs: 500,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:terminal-zero-hit-with-results";
     hoisted.sessionStore[sessionKey] = {
       sessionId: "s-terminal-zero-hit-with-results",
@@ -3052,7 +3052,7 @@ describe("active-memory plugin", () => {
       timeoutMs: CONFIGURED_TIMEOUT_MS,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const sessionKey = "agent:main:terminal-unavailable";
     hoisted.sessionStore[sessionKey] = { sessionId: "s-terminal-unavailable", updatedAt: 0 };
     runEmbeddedPiAgent.mockImplementationOnce(
@@ -3102,7 +3102,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       timeoutMs: 500,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     runEmbeddedPiAgent.mockImplementationOnce(async (params: { sessionFile: string }) => {
       await writeTranscriptJsonl(params.sessionFile, [
         {
@@ -3154,7 +3154,7 @@ describe("active-memory plugin", () => {
       timeoutMs: 90_000,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       { prompt: "what wings should i order? high timeout", messages: [] },
@@ -3176,7 +3176,7 @@ describe("active-memory plugin", () => {
       timeoutMs: 200_000,
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       { prompt: "what wings should i order? capped timeout", messages: [] },
@@ -3197,7 +3197,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       { prompt: "what wings should i order? log sanitization", messages: [] },
@@ -3231,7 +3231,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const hugeSession = `agent:main:${"x".repeat(500)}`;
 
     await hooks.before_prompt_build(
@@ -3485,7 +3485,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       queryMode: "message",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -3514,7 +3514,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       queryMode: "recent",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -3557,7 +3557,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       queryMode: "full",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -3588,7 +3588,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       queryMode: "recent",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -3642,7 +3642,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       queryMode: "recent",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -3684,7 +3684,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       queryMode: "recent",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -3717,7 +3717,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       queryMode: "recent",
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       {
@@ -3776,7 +3776,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       maxSummaryChars: 40,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     runEmbeddedPiAgent.mockResolvedValueOnce({
       payloads: [
         {
@@ -3807,7 +3807,7 @@ describe("active-memory plugin", () => {
       agents: ["main"],
       maxSummaryChars: 90,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     await hooks.before_prompt_build(
       { prompt: "what wings should i order? prompt-count-check", messages: [] },
@@ -3840,7 +3840,7 @@ describe("active-memory plugin", () => {
 
     expect(mkdtempSpy).toHaveBeenCalled();
     const sessionFile = lastEmbeddedSessionFile();
-    expect(sessionFile).toMatch(/openclaw-active-memory-.*\/session\.jsonl$/);
+    expect(sessionFile).toMatch(/astroclaw-active-memory-.*\/session\.jsonl$/);
     expect(rmSpy).toHaveBeenCalledWith(path.dirname(sessionFile), {
       recursive: true,
       force: true,
@@ -3854,7 +3854,7 @@ describe("active-memory plugin", () => {
       transcriptDir: "active-memory-subagents",
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const mkdirSpy = vi.spyOn(fs, "mkdir").mockResolvedValue(undefined);
     const mkdtempSpy = vi.spyOn(fs, "mkdtemp");
     const rmSpy = vi.spyOn(fs, "rm").mockResolvedValue(undefined);
@@ -3897,7 +3897,7 @@ describe("active-memory plugin", () => {
       transcriptDir: "C:/temp/escape",
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const mkdirSpy = vi.spyOn(fs, "mkdir").mockResolvedValue(undefined);
 
     await hooks.before_prompt_build(
@@ -3934,7 +3934,7 @@ describe("active-memory plugin", () => {
       transcriptDir: "active-memory-subagents",
       logging: true,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     const mkdirSpy = vi.spyOn(fs, "mkdir").mockResolvedValue(undefined);
 
     await hooks.before_prompt_build(
@@ -4044,7 +4044,7 @@ describe("active-memory plugin", () => {
       circuitBreakerMaxTimeouts: 2,
       circuitBreakerCooldownMs: 60_000,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
     runEmbeddedPiAgent.mockImplementation(
       async (params: { abortSignal?: AbortSignal }) => await waitForAbort(params.abortSignal),
     );
@@ -4100,7 +4100,7 @@ describe("active-memory plugin", () => {
       circuitBreakerMaxTimeouts: 1,
       circuitBreakerCooldownMs: 60_000,
     };
-    plugin.register(api as unknown as OpenClawPluginApi);
+    plugin.register(api as unknown as AstroclawPluginApi);
 
     // First call: timeout (trips the breaker with max=1).
     runEmbeddedPiAgent.mockImplementationOnce(

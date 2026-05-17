@@ -1,14 +1,14 @@
 import {
   type JsonSchemaObject,
   validateJsonSchemaValue,
-} from "openclaw/plugin-sdk/json-schema-runtime";
+} from "astroclaw/plugin-sdk/json-schema-runtime";
 import {
   type ImagesDescriptionRequest,
   type ImagesDescriptionResult,
   type MediaUnderstandingProvider,
   type StructuredExtractionRequest,
   type StructuredExtractionResult,
-} from "openclaw/plugin-sdk/media-understanding";
+} from "astroclaw/plugin-sdk/media-understanding";
 import { CODEX_PROVIDER_ID, FALLBACK_CODEX_MODELS } from "./provider-catalog.js";
 import { type CodexAppServerClientFactory } from "./src/app-server/client-factory.js";
 import type { CodexAppServerClient } from "./src/app-server/client.js";
@@ -94,7 +94,7 @@ async function describeCodexImages(
     options,
     taskLabel: "image understanding",
     developerInstructions:
-      "You are OpenClaw's bounded image-understanding worker. Describe only the provided image content. Do not call tools, edit files, or ask follow-up questions.",
+      "You are Astroclaw's bounded image-understanding worker. Describe only the provided image content. Do not call tools, edit files, or ask follow-up questions.",
     input: [
       { type: "text", text: buildCodexImagePrompt(req), text_elements: [] },
       ...req.images.map((image) => ({
@@ -156,7 +156,7 @@ async function runBoundedCodexVisionTurn(params: BoundedCodexVisionTurnParams): 
           cwd: params.agentDir || process.cwd(),
           approvalPolicy: "on-request",
           sandbox: "read-only",
-          serviceName: "OpenClaw",
+          serviceName: "Astroclaw",
           developerInstructions: params.developerInstructions,
           dynamicTools: [],
           experimentalRawEvents: true,
@@ -228,7 +228,7 @@ async function extractCodexStructured(
     options,
     taskLabel: "structured extraction",
     developerInstructions:
-      "You are OpenClaw's bounded structured-extraction worker. Return only the requested extraction. Do not call tools, edit files, ask follow-up questions, or include secrets.",
+      "You are Astroclaw's bounded structured-extraction worker. Return only the requested extraction. Do not call tools, edit files, ask follow-up questions, or include secrets.",
     input: buildCodexStructuredInput(req),
     requiredModalities: requiredStructuredModalities(),
   });
@@ -242,7 +242,7 @@ function denyCodexImageApprovalRequest(request: { method: string }): JsonValue |
   ) {
     return {
       decision: "decline",
-      reason: "OpenClaw Codex image understanding does not grant tool or file approvals.",
+      reason: "Astroclaw Codex image understanding does not grant tool or file approvals.",
     };
   }
   if (request.method === "item/permissions/requestApproval") {
@@ -251,7 +251,7 @@ function denyCodexImageApprovalRequest(request: { method: string }): JsonValue |
   if (request.method.includes("requestApproval")) {
     return {
       decision: "decline",
-      reason: "OpenClaw Codex image understanding does not grant native approvals.",
+      reason: "Astroclaw Codex image understanding does not grant native approvals.",
     };
   }
   if (request.method === "mcpServer/elicitation/request") {

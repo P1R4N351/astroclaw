@@ -3,7 +3,7 @@ import {
   formatApprovalDisplayPath,
   type EmbeddedRunAttemptParams,
   runBeforeToolCallHook,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { formatCodexDisplayText } from "../command-formatters.js";
 import {
   approvalRequestExplicitlyUnavailable,
@@ -70,7 +70,7 @@ export async function handleCodexAppServerApprovalRequest(params: {
   });
 
   try {
-    const policyOutcome = await runOpenClawToolPolicyForApprovalRequest({
+    const policyOutcome = await runAstroclawToolPolicyForApprovalRequest({
       method: params.method,
       requestParams,
       paramsForRun: params.paramsForRun,
@@ -290,14 +290,14 @@ function buildApprovalContext(params: {
 
 type ApprovalContext = ReturnType<typeof buildApprovalContext>;
 
-async function runOpenClawToolPolicyForApprovalRequest(params: {
+async function runAstroclawToolPolicyForApprovalRequest(params: {
   method: string;
   requestParams: JsonObject | undefined;
   paramsForRun: EmbeddedRunAttemptParams;
   context: ApprovalContext;
   signal?: AbortSignal;
 }): Promise<{ blocked: true; reason: string } | undefined> {
-  const policyRequest = buildOpenClawToolPolicyRequest(params.method, params.requestParams);
+  const policyRequest = buildAstroclawToolPolicyRequest(params.method, params.requestParams);
   if (!policyRequest) {
     return undefined;
   }
@@ -327,13 +327,13 @@ async function runOpenClawToolPolicyForApprovalRequest(params: {
     return {
       blocked: true,
       reason:
-        "OpenClaw tool policy rewrote Codex app-server approval params; refusing original request.",
+        "Astroclaw tool policy rewrote Codex app-server approval params; refusing original request.",
     };
   }
   return undefined;
 }
 
-function buildOpenClawToolPolicyRequest(
+function buildAstroclawToolPolicyRequest(
   method: string,
   requestParams: JsonObject | undefined,
 ): { toolName: string; params: JsonObject } | undefined {
@@ -448,7 +448,7 @@ function requestedPermissions(requestParams: JsonObject | undefined): JsonObject
 function unsupportedApprovalResponse(): JsonValue {
   return {
     decision: "decline",
-    reason: "OpenClaw codex app-server bridge does not grant native approvals yet.",
+    reason: "Astroclaw codex app-server bridge does not grant native approvals yet.",
   };
 }
 

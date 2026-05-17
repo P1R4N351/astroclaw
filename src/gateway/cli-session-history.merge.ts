@@ -62,10 +62,10 @@ function resolveImportedExternalId(message: unknown): string | undefined {
     return undefined;
   }
   const meta =
-    "__openclaw" in message &&
-    (message as { __openclaw?: unknown }).__openclaw &&
-    typeof (message as { __openclaw?: unknown }).__openclaw === "object"
-      ? ((message as { __openclaw?: Record<string, unknown> }).__openclaw ?? {})
+    "__astroclaw" in message &&
+    (message as { __astroclaw?: unknown }).__astroclaw &&
+    typeof (message as { __astroclaw?: unknown }).__astroclaw === "object"
+      ? ((message as { __astroclaw?: Record<string, unknown> }).__astroclaw ?? {})
       : undefined;
   return normalizeOptionalString(meta?.externalId);
 }

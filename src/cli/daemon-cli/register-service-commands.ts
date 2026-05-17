@@ -128,7 +128,7 @@ export function addGatewayServiceCommands(parent: Command, opts?: { statusDescri
     .command("restart")
     .description("Restart the Gateway service (launchd/systemd/schtasks)")
     .option("--force", "Restart immediately without waiting for active gateway work", false)
-    .option("--safe", "Request an OpenClaw-aware restart after active work drains", false)
+    .option("--safe", "Request an Astroclaw-aware restart after active work drains", false)
     .option("--skip-deferral", "Bypass the safe-restart deferral gate; requires --safe", false)
     .option(
       "--wait <duration>",

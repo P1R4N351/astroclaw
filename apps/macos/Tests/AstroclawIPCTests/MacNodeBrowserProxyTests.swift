@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct MacNodeBrowserProxyTests {
     @Test func `request uses browser control endpoint and wraps result`() async throws {
@@ -104,7 +104,7 @@ struct MacNodeBrowserProxyTests {
             #expect(message.contains("UNAVAILABLE: macOS app node could not reach the local browser control service"))
             #expect(message.contains("http://127.0.0.1:18791"))
             #expect(message.contains("browser control is owned by the CLI node-host"))
-            #expect(message.contains("openclaw node start"))
+            #expect(message.contains("astroclaw node start"))
         }
     }
 }

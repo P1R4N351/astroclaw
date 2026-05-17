@@ -4,7 +4,7 @@ import {
   __testing,
   clearPluginLoaderCache,
   clearPluginRegistryLoadCache,
-  loadOpenClawPlugins,
+  loadAstroclawPlugins,
   resolveRuntimePluginRegistry,
 } from "./loader.js";
 import { resetPluginLoaderTestStateForTest } from "./loader.test-fixtures.js";
@@ -581,10 +581,10 @@ describe("resolveRuntimePluginRegistry", () => {
         },
         workspaceDir: "/tmp/workspace-a",
       };
-      const fullRegistry = loadOpenClawPlugins(loadOptions);
+      const fullRegistry = loadAstroclawPlugins(loadOptions);
 
-      loadOpenClawPlugins({ ...loadOptions, onlyPluginIds: ["alpha"] });
-      loadOpenClawPlugins({ ...loadOptions, onlyPluginIds: ["bravo"] });
+      loadAstroclawPlugins({ ...loadOptions, onlyPluginIds: ["alpha"] });
+      loadAstroclawPlugins({ ...loadOptions, onlyPluginIds: ["bravo"] });
 
       expect(resolveRuntimePluginRegistry(loadOptions)).toBe(fullRegistry);
     } finally {
@@ -644,7 +644,7 @@ describe("clearPluginLoaderCache", () => {
   });
 });
 
-describe("loadOpenClawPlugins active runtime clearing", () => {
+describe("loadAstroclawPlugins active runtime clearing", () => {
   it("clears plugin-owned global providers before activating a new registry", () => {
     registerCompactionProvider({
       id: "stale-compaction",
@@ -656,7 +656,7 @@ describe("loadOpenClawPlugins active runtime clearing", () => {
       create: async () => ({ provider: null }),
     });
 
-    loadOpenClawPlugins({ onlyPluginIds: [] });
+    loadAstroclawPlugins({ onlyPluginIds: [] });
 
     expect(getCompactionProvider("stale-compaction")).toBeUndefined();
     expect(getMemoryEmbeddingProvider("stale-memory")).toBeUndefined();
@@ -688,10 +688,10 @@ describe("clearPluginRegistryLoadCache", () => {
       },
       workspaceDir: "/tmp/workspace-a",
     };
-    const registry = loadOpenClawPlugins(loadOptions);
+    const registry = loadAstroclawPlugins(loadOptions);
 
     clearPluginRegistryLoadCache();
 
-    expect(loadOpenClawPlugins(loadOptions)).not.toBe(registry);
+    expect(loadAstroclawPlugins(loadOptions)).not.toBe(registry);
   });
 });

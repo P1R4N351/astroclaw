@@ -35,7 +35,7 @@ const hoisted = vi.hoisted(() => {
   }));
   const resolveAgentModelPrimaryValue = vi.fn(() => "");
   const normalizeProviderId = vi.fn((provider: string) => provider.toLowerCase());
-  const resolveDefaultAgentDir = vi.fn(() => "/tmp/openclaw-state/agents/default/agent");
+  const resolveDefaultAgentDir = vi.fn(() => "/tmp/astroclaw-state/agents/default/agent");
   const isCliProvider = vi.fn(() => false);
   const resolveConfiguredModelRef = vi.fn(() => ({
     provider: "openai",
@@ -49,7 +49,7 @@ const hoisted = vi.hoisted(() => {
     inCatalog: true,
   }));
   const resolveEmbeddedAgentRuntime = vi.fn(() => "pi");
-  const ensureOpenClawModelsJson = vi.fn(async () => {});
+  const ensureAstroclawModelsJson = vi.fn(async () => {});
   return {
     startPluginServices,
     startGmailWatcherWithLogs,
@@ -78,7 +78,7 @@ const hoisted = vi.hoisted(() => {
     loadModelCatalog,
     getModelRefStatus,
     resolveEmbeddedAgentRuntime,
-    ensureOpenClawModelsJson,
+    ensureAstroclawModelsJson,
   };
 });
 
@@ -98,10 +98,10 @@ vi.mock("../config/paths.js", async () => {
   const actual = await vi.importActual<typeof import("../config/paths.js")>("../config/paths.js");
   return {
     ...actual,
-    STATE_DIR: "/tmp/openclaw-state",
-    resolveConfigPath: vi.fn(() => "/tmp/openclaw-state/openclaw.json"),
+    STATE_DIR: "/tmp/astroclaw-state",
+    resolveConfigPath: vi.fn(() => "/tmp/astroclaw-state/astroclaw.json"),
     resolveGatewayPort: vi.fn(() => 18789),
-    resolveStateDir: vi.fn(() => "/tmp/openclaw-state"),
+    resolveStateDir: vi.fn(() => "/tmp/astroclaw-state"),
   };
 });
 
@@ -166,7 +166,7 @@ vi.mock("../agents/provider-id.js", () => ({
 
 vi.mock("../agents/agent-scope.js", () => ({
   resolveDefaultAgentDir: hoisted.resolveDefaultAgentDir,
-  resolveAgentWorkspaceDir: vi.fn(() => "/tmp/openclaw-workspace"),
+  resolveAgentWorkspaceDir: vi.fn(() => "/tmp/astroclaw-workspace"),
   resolveDefaultAgentId: vi.fn(() => "default"),
 }));
 
@@ -191,7 +191,7 @@ vi.mock("../agents/pi-embedded-runner/runtime.js", () => ({
 }));
 
 vi.mock("../agents/models-config.js", () => ({
-  ensureOpenClawModelsJson: hoisted.ensureOpenClawModelsJson,
+  ensureAstroclawModelsJson: hoisted.ensureAstroclawModelsJson,
 }));
 
 vi.mock("./server-tailscale.js", () => ({
@@ -225,9 +225,9 @@ function firstEnsureModelsJsonCall(): [
     providerDiscoveryProviderIds?: string[];
   },
 ] {
-  const call = hoisted.ensureOpenClawModelsJson.mock.calls[0];
+  const call = hoisted.ensureAstroclawModelsJson.mock.calls[0];
   if (!call || call.length < 3) {
-    throw new Error("expected ensureOpenClawModelsJson call");
+    throw new Error("expected ensureAstroclawModelsJson call");
   }
   return call as unknown as [
     unknown,
@@ -283,8 +283,8 @@ function firstGatewayStartCall(
 
 describe("startGatewayPostAttachRuntime", () => {
   beforeEach(() => {
-    vi.stubEnv("OPENCLAW_SKIP_CHANNELS", "0");
-    vi.stubEnv("OPENCLAW_SKIP_PROVIDERS", "0");
+    vi.stubEnv("ASTROCLAW_SKIP_CHANNELS", "0");
+    vi.stubEnv("ASTROCLAW_SKIP_PROVIDERS", "0");
     hoisted.startPluginServices.mockClear();
     hoisted.startGmailWatcherWithLogs.mockClear();
     hoisted.loadInternalHooks.mockClear();
@@ -322,8 +322,8 @@ describe("startGatewayPostAttachRuntime", () => {
     });
     hoisted.resolveEmbeddedAgentRuntime.mockReset();
     hoisted.resolveEmbeddedAgentRuntime.mockReturnValue("pi");
-    hoisted.ensureOpenClawModelsJson.mockReset();
-    hoisted.ensureOpenClawModelsJson.mockResolvedValue(undefined);
+    hoisted.ensureAstroclawModelsJson.mockReset();
+    hoisted.ensureAstroclawModelsJson.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -384,8 +384,8 @@ describe("startGatewayPostAttachRuntime", () => {
   });
 
   it("skips heavy restart sentinel refresh when no sentinel file exists", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-no-sentinel-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-no-sentinel-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
 
     const result = await __testing.refreshLatestUpdateRestartSentinelIfPresent();
 
@@ -395,9 +395,9 @@ describe("startGatewayPostAttachRuntime", () => {
   });
 
   it("refreshes the restart sentinel when the sentinel file exists", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-sentinel-"));
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-sentinel-"));
     fs.writeFileSync(path.join(stateDir, "restart-sentinel.json"), "{}\n");
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const sentinel = { kind: "update", status: "ok", ts: 1 } as const;
     hoisted.refreshLatestUpdateRestartSentinel.mockResolvedValue(sentinel);
 
@@ -409,28 +409,28 @@ describe("startGatewayPostAttachRuntime", () => {
   });
 
   it("expands tilde-based restart sentinel state paths", async () => {
-    const osHome = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-home-"));
+    const osHome = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-home-"));
     try {
-      const openclawHome = path.join(osHome, "openclaw-home");
-      const stateDirFromHome = path.join(openclawHome, ".openclaw");
+      const astroclawHome = path.join(osHome, "astroclaw-home");
+      const stateDirFromHome = path.join(astroclawHome, ".astroclaw");
       fs.mkdirSync(stateDirFromHome, { recursive: true });
       fs.writeFileSync(path.join(stateDirFromHome, "restart-sentinel.json"), "{}\n");
 
       expect(
         await __testing.hasRestartSentinelFileFast({
           HOME: osHome,
-          OPENCLAW_HOME: "~/openclaw-home",
+          ASTROCLAW_HOME: "~/astroclaw-home",
         } as NodeJS.ProcessEnv),
       ).toBe(true);
 
-      const backslashStateDir = path.resolve(`${osHome}\\openclaw-state`);
+      const backslashStateDir = path.resolve(`${osHome}\\astroclaw-state`);
       fs.mkdirSync(backslashStateDir, { recursive: true });
       fs.writeFileSync(path.join(backslashStateDir, "restart-sentinel.json"), "{}\n");
 
       expect(
         await __testing.hasRestartSentinelFileFast({
           HOME: osHome,
-          OPENCLAW_STATE_DIR: "~\\openclaw-state",
+          ASTROCLAW_STATE_DIR: "~\\astroclaw-state",
         } as NodeJS.ProcessEnv),
       ).toBe(true);
     } finally {
@@ -439,7 +439,7 @@ describe("startGatewayPostAttachRuntime", () => {
   });
 
   it("avoids sync filesystem probes while checking restart sentinel presence", async () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-async-sentinel-"));
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-async-sentinel-"));
     try {
       fs.writeFileSync(path.join(stateDir, "restart-sentinel.json"), "{}\n");
       const actualExistsSync = fs.existsSync;
@@ -452,7 +452,7 @@ describe("startGatewayPostAttachRuntime", () => {
       try {
         await expect(
           __testing.hasRestartSentinelFileFast({
-            OPENCLAW_STATE_DIR: stateDir,
+            ASTROCLAW_STATE_DIR: stateDir,
           } as NodeJS.ProcessEnv),
         ).resolves.toBe(true);
         expect(
@@ -628,7 +628,7 @@ describe("startGatewayPostAttachRuntime", () => {
           memory: { backend: "qmd", qmd: { update: { startup: "idle", startupDelayMs: 25 } } },
         } as never,
         pluginRegistry: createPostAttachParams().pluginRegistry,
-        defaultWorkspaceDir: "/tmp/openclaw-workspace",
+        defaultWorkspaceDir: "/tmp/astroclaw-workspace",
         deps: {} as never,
         startChannels: vi.fn(async () => {}),
         log: { warn: vi.fn() },
@@ -726,27 +726,27 @@ describe("startGatewayPostAttachRuntime", () => {
       },
     } as never;
     hoisted.resolveAgentModelPrimaryValue.mockReturnValue("openai/gpt-5.4");
-    hoisted.resolveDefaultAgentDir.mockReturnValue("/tmp/openclaw-state/agents/ops/agent");
+    hoisted.resolveDefaultAgentDir.mockReturnValue("/tmp/astroclaw-state/agents/ops/agent");
 
     await __testing.prewarmConfiguredPrimaryModel({
       cfg,
-      workspaceDir: "/tmp/openclaw-workspace",
+      workspaceDir: "/tmp/astroclaw-workspace",
       log: { warn: vi.fn() },
     });
 
     expect(hoisted.resolveDefaultAgentDir).toHaveBeenCalledWith(cfg);
-    expect(hoisted.ensureOpenClawModelsJson).toHaveBeenCalledTimes(1);
+    expect(hoisted.ensureAstroclawModelsJson).toHaveBeenCalledTimes(1);
     const ensureCall = firstEnsureModelsJsonCall();
     expect(ensureCall[0]).toBe(cfg);
-    expect(ensureCall[1]).toBe("/tmp/openclaw-state/agents/ops/agent");
+    expect(ensureCall[1]).toBe("/tmp/astroclaw-state/agents/ops/agent");
     const options = ensureCall[2];
-    expect(options?.workspaceDir).toBe("/tmp/openclaw-workspace");
+    expect(options?.workspaceDir).toBe("/tmp/astroclaw-workspace");
     expect(options?.providerDiscoveryProviderIds).toEqual(["openai"]);
   });
 
   it("starts channels without waiting for primary model prewarm completion", async () => {
     await withEnvAsync(
-      { OPENCLAW_SKIP_CHANNELS: undefined, OPENCLAW_SKIP_PROVIDERS: undefined },
+      { ASTROCLAW_SKIP_CHANNELS: undefined, ASTROCLAW_SKIP_PROVIDERS: undefined },
       async () => {
         let resolvePrewarm: (() => void) | undefined;
         const prewarmPrimaryModel = vi.fn(
@@ -763,7 +763,7 @@ describe("startGatewayPostAttachRuntime", () => {
             agents: { defaults: { model: "openai/gpt-5.4" } },
           } as never,
           pluginRegistry: createPostAttachParams().pluginRegistry,
-          defaultWorkspaceDir: "/tmp/openclaw-workspace",
+          defaultWorkspaceDir: "/tmp/astroclaw-workspace",
           deps: {} as never,
           startChannels,
           prewarmPrimaryModel: prewarmPrimaryModel as never,
@@ -783,7 +783,7 @@ describe("startGatewayPostAttachRuntime", () => {
           () => {
             expect(prewarmPrimaryModel).toHaveBeenCalledTimes(1);
             expect(firstPrewarmCall(prewarmPrimaryModel)[0].workspaceDir).toBe(
-              "/tmp/openclaw-workspace",
+              "/tmp/astroclaw-workspace",
             );
             expect(startChannels).toHaveBeenCalledTimes(1);
           },
@@ -805,12 +805,12 @@ describe("startGatewayPostAttachRuntime", () => {
     const logChannels = { info: vi.fn(), error: vi.fn() };
 
     await withEnvAsync(
-      { OPENCLAW_SKIP_CHANNELS: "1", OPENCLAW_SKIP_PROVIDERS: undefined },
+      { ASTROCLAW_SKIP_CHANNELS: "1", ASTROCLAW_SKIP_PROVIDERS: undefined },
       async () => {
         await startGatewaySidecars({
           cfg: { hooks: { internal: { enabled: false } } } as never,
           pluginRegistry: createPostAttachParams().pluginRegistry,
-          defaultWorkspaceDir: "/tmp/openclaw-workspace",
+          defaultWorkspaceDir: "/tmp/astroclaw-workspace",
           deps: {} as never,
           startChannels: vi.fn(async () => {}),
           log: { warn: vi.fn() },
@@ -828,7 +828,7 @@ describe("startGatewayPostAttachRuntime", () => {
     expect(trace.measures).toContain("sidecars.channels");
     expect(trace.measures).toContain("sidecars.channel-skip");
     expect(logChannels.info).toHaveBeenCalledWith(
-      "skipping channel start (OPENCLAW_SKIP_CHANNELS=1 or OPENCLAW_SKIP_PROVIDERS=1)",
+      "skipping channel start (ASTROCLAW_SKIP_CHANNELS=1 or ASTROCLAW_SKIP_PROVIDERS=1)",
     );
   });
 
@@ -892,7 +892,7 @@ describe("startGatewayPostAttachRuntime", () => {
         hooks: { enabled: true, internal: { enabled: false }, gmail: { account: "me" } },
       } as never,
       pluginRegistry: createPostAttachParams().pluginRegistry,
-      defaultWorkspaceDir: "/tmp/openclaw-workspace",
+      defaultWorkspaceDir: "/tmp/astroclaw-workspace",
       deps: {} as never,
       startChannels: vi.fn(async () => {}),
       log,
@@ -935,7 +935,7 @@ describe("startGatewayPostAttachRuntime", () => {
         hooks: { enabled: true, internal: { enabled: false }, gmail: { account: "me" } },
       } as never,
       pluginRegistry: createPostAttachParams().pluginRegistry,
-      defaultWorkspaceDir: "/tmp/openclaw-workspace",
+      defaultWorkspaceDir: "/tmp/astroclaw-workspace",
       deps: {} as never,
       startChannels: vi.fn(async () => {}),
       log,
@@ -964,7 +964,7 @@ describe("startGatewayPostAttachRuntime", () => {
         hooks: { enabled: true, internal: { enabled: false }, gmail: { account: "me" } },
       } as never,
       pluginRegistry: createPostAttachParams().pluginRegistry,
-      defaultWorkspaceDir: "/tmp/openclaw-workspace",
+      defaultWorkspaceDir: "/tmp/astroclaw-workspace",
       deps: {} as never,
       startChannels: vi.fn(async () => {}),
       log: { warn: vi.fn() },
@@ -1006,7 +1006,7 @@ describe("startGatewayPostAttachRuntime", () => {
           hooks: { enabled: true, internal: { enabled: false }, gmail: { account: "me" } },
         } as never,
         pluginRegistry: createPostAttachParams().pluginRegistry,
-        defaultWorkspaceDir: "/tmp/openclaw-workspace",
+        defaultWorkspaceDir: "/tmp/astroclaw-workspace",
         deps: {} as never,
         startChannels: vi.fn(async () => {}),
         log: { warn: vi.fn() },
@@ -1081,7 +1081,7 @@ describe("startGatewayPostAttachRuntime", () => {
         hooks: { internal: { enabled: false }, gmail: { model: "openai/gpt-5.4" } },
       } as never,
       pluginRegistry: createPostAttachParams().pluginRegistry,
-      defaultWorkspaceDir: "/tmp/openclaw-workspace",
+      defaultWorkspaceDir: "/tmp/astroclaw-workspace",
       deps: {} as never,
       startChannels: vi.fn(async () => {}),
       log: { warn: vi.fn() },
@@ -1159,7 +1159,7 @@ describe("startGatewayPostAttachRuntime", () => {
       await startGatewaySidecars({
         cfg,
         pluginRegistry: createPostAttachParams().pluginRegistry,
-        defaultWorkspaceDir: "/tmp/openclaw-workspace",
+        defaultWorkspaceDir: "/tmp/astroclaw-workspace",
         deps,
         startChannels: vi.fn(async () => {}),
         log: { warn: vi.fn() },
@@ -1186,7 +1186,7 @@ describe("startGatewayPostAttachRuntime", () => {
         {
           cfg,
           deps,
-          workspaceDir: "/tmp/openclaw-workspace",
+          workspaceDir: "/tmp/astroclaw-workspace",
         },
       );
       expect(hoisted.triggerInternalHook).toHaveBeenCalledWith(hoisted.startupHookEvent);
@@ -1210,7 +1210,7 @@ describe("startGatewayPostAttachRuntime", () => {
         acp: { enabled: true, backend: "acpx" },
       } as never,
       pluginRegistry: createPostAttachParams().pluginRegistry,
-      defaultWorkspaceDir: "/tmp/openclaw-workspace",
+      defaultWorkspaceDir: "/tmp/astroclaw-workspace",
       deps: {} as never,
       startChannels: vi.fn(async () => {}),
       log: { warn: vi.fn() },
@@ -1282,7 +1282,7 @@ describe("startGatewayPostAttachRuntime", () => {
     expect(event).toEqual({ port: 18789 });
     expect(ctx.port).toBe(18789);
     expect(ctx.config).toBe(params.gatewayPluginConfigAtStart);
-    expect(ctx.workspaceDir).toBe("/tmp/openclaw-workspace");
+    expect(ctx.workspaceDir).toBe("/tmp/astroclaw-workspace");
     const getCron = ctx.getCron;
     if (!getCron) {
       throw new Error("gateway_start context did not expose getCron");
@@ -1395,7 +1395,7 @@ function createPostAttachParams(overrides: Partial<PostAttachParams> = {}): Post
       ],
       typedHooks: [],
     } as never,
-    defaultWorkspaceDir: "/tmp/openclaw-workspace",
+    defaultWorkspaceDir: "/tmp/astroclaw-workspace",
     deps: {} as never,
     startChannels: vi.fn(async () => {}),
     logHooks: {

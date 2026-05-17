@@ -68,9 +68,9 @@ if (options.field) {
 if (options.format === "shell") {
   process.stdout.write(
     [
-      `OPENCLAW_IOS_VERSION=${version.canonicalVersion}`,
-      `OPENCLAW_MARKETING_VERSION=${version.marketingVersion}`,
-      `OPENCLAW_BUILD_VERSION=${version.buildVersion}`,
+      `ASTROCLAW_IOS_VERSION=${version.canonicalVersion}`,
+      `ASTROCLAW_MARKETING_VERSION=${version.marketingVersion}`,
+      `ASTROCLAW_BUILD_VERSION=${version.buildVersion}`,
     ].join("\n") + "\n",
   );
 } else {

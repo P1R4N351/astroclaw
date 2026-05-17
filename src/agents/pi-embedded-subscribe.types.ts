@@ -2,7 +2,7 @@ import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { PartialReplyPayload } from "../auto-reply/get-reply-options.types.js";
 import type { ReplyPayload } from "../auto-reply/reply-payload.js";
 import type { ReasoningLevel, ThinkLevel, VerboseLevel } from "../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import type { HookRunner } from "../plugins/hooks.js";
 import type { AgentInternalEvent } from "./internal-events.js";
 import type { BlockReplyPayload } from "./pi-embedded-payloads.js";
@@ -56,14 +56,14 @@ export type SubscribeEmbeddedPiSessionParams = {
   onBeforeLifecycleTerminal?: () => void | Promise<void>;
   enforceFinalTag?: boolean;
   silentExpected?: boolean;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   sessionKey?: string;
   /** Ephemeral session UUID — regenerated on /new and /reset. */
   sessionId?: string;
   /** Agent identity for hook context — resolved from session config in attempt.ts. */
   agentId?: string;
   /**
-   * Exact raw names of non-plugin OpenClaw tools registered for this run.
+   * Exact raw names of non-plugin Astroclaw tools registered for this run.
    * When provided, MEDIA: passthrough requires an exact match instead of only
    * a normalized-name collision with a trusted built-in.
    */

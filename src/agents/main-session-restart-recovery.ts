@@ -15,7 +15,7 @@ import {
   resolveSessionTranscriptPathInDir,
   updateSessionStore,
 } from "../config/sessions.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { callGateway } from "../gateway/call.js";
 import { readSessionMessagesAsync } from "../gateway/session-utils.fs.js";
 import { resolveGatewaySessionStoreTarget } from "../gateway/session-utils.js";
@@ -89,8 +89,8 @@ function resolveEntryTranscriptLockPaths(params: {
 }
 
 export async function markRestartAbortedMainSessions(params: {
-  cfg?: OpenClawConfig;
-  additionalCfgs?: Iterable<OpenClawConfig | undefined>;
+  cfg?: AstroclawConfig;
+  additionalCfgs?: Iterable<AstroclawConfig | undefined>;
   stateDir?: string;
   sessionKeys?: Iterable<string>;
   sessionIds?: Iterable<string>;
@@ -108,10 +108,10 @@ export async function markRestartAbortedMainSessions(params: {
   const env =
     params.stateDir === undefined
       ? process.env
-      : { ...process.env, OPENCLAW_STATE_DIR: params.stateDir };
+      : { ...process.env, ASTROCLAW_STATE_DIR: params.stateDir };
   const stateDir = resolveStateDir(env);
   const configs = [params.cfg, ...(params.additionalCfgs ?? [])].filter(
-    (cfg): cfg is OpenClawConfig => Boolean(cfg),
+    (cfg): cfg is AstroclawConfig => Boolean(cfg),
   );
   for (const cfg of configs) {
     try {
@@ -232,7 +232,7 @@ function resolveMainSessionResumeBlockReason(messages: unknown[]): string | null
 function buildResumeMessage(pendingFinalDeliveryText?: string | null): string {
   const base =
     "[System] Your previous turn was interrupted by a gateway restart while " +
-    "OpenClaw was waiting on tool/model work. Continue from the existing " +
+    "Astroclaw was waiting on tool/model work. Continue from the existing " +
     "transcript and finish the interrupted response.";
   const sanitizedPendingText =
     typeof pendingFinalDeliveryText === "string"
@@ -458,7 +458,7 @@ async function recoverStore(params: {
 }
 
 async function resolveRestartRecoveryStorePaths(params: {
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   stateDir?: string;
 }): Promise<string[]> {
   const storePaths = new Set<string>();
@@ -467,7 +467,7 @@ async function resolveRestartRecoveryStorePaths(params: {
     storePaths.add(path.join(sessionsDir, "sessions.json"));
   }
   if (params.cfg) {
-    const env = { ...process.env, OPENCLAW_STATE_DIR: stateDir };
+    const env = { ...process.env, ASTROCLAW_STATE_DIR: stateDir };
     for (const target of resolveAllAgentSessionStoreTargetsSync(params.cfg, { env })) {
       storePaths.add(path.resolve(target.storePath));
     }
@@ -477,7 +477,7 @@ async function resolveRestartRecoveryStorePaths(params: {
 
 export async function recoverRestartAbortedMainSessions(
   params: {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
     stateDir?: string;
     resumedSessionKeys?: Set<string>;
   } = {},
@@ -505,7 +505,7 @@ export async function recoverRestartAbortedMainSessions(
 
 export function scheduleRestartAbortedMainSessionRecovery(
   params: {
-    cfg?: OpenClawConfig;
+    cfg?: AstroclawConfig;
     delayMs?: number;
     maxRetries?: number;
     stateDir?: string;

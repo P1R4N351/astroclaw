@@ -1,7 +1,7 @@
 import {
   ToolPolicySchema,
   buildChannelConfigSchema,
-} from "openclaw/plugin-sdk/channel-config-schema";
+} from "astroclaw/plugin-sdk/channel-config-schema";
 import { z } from "zod";
 
 const QaChannelActionConfigSchema = z

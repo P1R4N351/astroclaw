@@ -1,4 +1,4 @@
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
 
 export function hasModelSwitchContinuityEvidence(text: string) {
   const lower = normalizeLowercaseStringOrEmpty(text);

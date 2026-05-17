@@ -14,7 +14,7 @@ const updateSessionStoreMock = vi.fn();
 const callGatewayMock = vi.fn();
 const loadCombinedSessionStoreForGatewayMock = vi.fn();
 const buildStatusMessageMock = vi.hoisted(() =>
-  vi.fn((_params?: unknown) => "OpenClaw\n🧠 Model: GPT-5.4"),
+  vi.fn((_params?: unknown) => "Astroclaw\n🧠 Model: GPT-5.4"),
 );
 const resolveQueueSettingsMock = vi.hoisted(() =>
   vi.fn((_params?: unknown) => ({ mode: "interrupt" })),
@@ -191,8 +191,8 @@ function formatPrimaryModelLabel(provider: string | undefined, model: string): s
 
 function formatStatusLines(primary: string, taskLineOverride: string | undefined): string {
   return taskLineOverride
-    ? `OpenClaw\n🧠 Model: ${primary}\n${taskLineOverride}`
-    : `OpenClaw\n🧠 Model: ${primary}`;
+    ? `Astroclaw\n🧠 Model: ${primary}\n${taskLineOverride}`
+    : `Astroclaw\n🧠 Model: ${primary}`;
 }
 
 function createCommandsStatusRuntimeModuleMock() {
@@ -453,7 +453,7 @@ describe("session_status tool", () => {
     const result = await tool.execute("call1", {});
     const details = result.details as { ok?: boolean; statusText?: string };
     expect(details.ok).toBe(true);
-    expect(details.statusText).toContain("OpenClaw");
+    expect(details.statusText).toContain("Astroclaw");
     expect(details.statusText).toContain("🧠 Model:");
     expect(details.statusText).not.toContain("OAuth/token status");
   });
@@ -478,7 +478,7 @@ describe("session_status tool", () => {
       "agent:main:spawned": {
         sessionId: "spawned-status",
         updatedAt: 10,
-        spawnedWorkspaceDir: "/tmp/openclaw-spawned-workspace",
+        spawnedWorkspaceDir: "/tmp/astroclaw-spawned-workspace",
         providerOverride: "anthropic",
         modelOverride: "claude-opus-4-6",
       },
@@ -489,7 +489,7 @@ describe("session_status tool", () => {
     await tool.execute("call-spawned-workspace-status", {});
 
     expectRecordFields(mockCallArg(buildStatusMessageMock), {
-      workspaceDir: "/tmp/openclaw-spawned-workspace",
+      workspaceDir: "/tmp/astroclaw-spawned-workspace",
     });
   });
 
@@ -614,7 +614,7 @@ describe("session_status tool", () => {
     const details = result.details as { ok?: boolean; sessionKey?: string; statusText?: string };
     expect(details.ok).toBe(true);
     expect(details.sessionKey).toBe("agent:main:main");
-    expect(details.statusText).toContain("OpenClaw");
+    expect(details.statusText).toContain("Astroclaw");
   });
 
   it("rejects explicit cross-session key under tree visibility even when it equals runSessionKey (#76708)", async () => {
@@ -653,7 +653,7 @@ describe("session_status tool", () => {
 
     const tool = getSessionStatusTool("agent:main:main");
 
-    const result = await tool.execute("call-tui-label", { sessionKey: "openclaw-tui" });
+    const result = await tool.execute("call-tui-label", { sessionKey: "astroclaw-tui" });
     const details = result.details as { ok?: boolean; sessionKey?: string };
     expect(details.ok).toBe(true);
     expect(details.sessionKey).toBe("agent:main:main");
@@ -773,7 +773,7 @@ describe("session_status tool", () => {
     const details = result.details as { ok?: boolean; sessionKey?: string; statusText?: string };
     expect(details.ok).toBe(true);
     expect(details.sessionKey).toBe("agent:main:scope:scopy:direct:scopy");
-    expect(details.statusText).toContain("OpenClaw");
+    expect(details.statusText).toContain("Astroclaw");
     expect(details.statusText).toContain("🧠 Model:");
   });
 
@@ -790,7 +790,7 @@ describe("session_status tool", () => {
     const details = result.details as { ok?: boolean; sessionKey?: string; statusText?: string };
     expect(details.ok).toBe(true);
     expect(details.sessionKey).toBe("agent:main:telegram:group:-5096326138");
-    expect(details.statusText).toContain("OpenClaw");
+    expect(details.statusText).toContain("Astroclaw");
     expect(details.statusText).toContain("🧠 Model:");
     expect(
       callGatewayMock.mock.calls.some(([arg]) => {
@@ -809,7 +809,7 @@ describe("session_status tool", () => {
     const details = result.details as { ok?: boolean; sessionKey?: string; statusText?: string };
     expect(details.ok).toBe(true);
     expect(details.sessionKey).toBe("agent:main:scope:scopy:direct:scopy");
-    expect(details.statusText).toContain("OpenClaw");
+    expect(details.statusText).toContain("Astroclaw");
     expect(details.statusText).toContain("🧠 Model:");
   });
 

@@ -40,10 +40,10 @@ import {
   type ContextEngineProjection,
   type NativeHookRelayEvent,
   type NativeHookRelayRegistrationHandle,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
-import { markAuthProfileBlockedUntil, resolveAgentDir } from "openclaw/plugin-sdk/agent-runtime";
-import { emitTrustedDiagnosticEvent } from "openclaw/plugin-sdk/diagnostic-runtime";
-import { pathExists } from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
+import { markAuthProfileBlockedUntil, resolveAgentDir } from "astroclaw/plugin-sdk/agent-runtime";
+import { emitTrustedDiagnosticEvent } from "astroclaw/plugin-sdk/diagnostic-runtime";
+import { pathExists } from "astroclaw/plugin-sdk/security-runtime";
 import { defaultCodexAppInventoryCache } from "./app-inventory-cache.js";
 import { handleCodexAppServerApprovalRequest } from "./approval-bridge.js";
 import {
@@ -181,18 +181,18 @@ const CODEX_BOOTSTRAP_CONTEXT_ORDER = new Map<string, number>([
   ["heartbeat.md", 70],
 ]);
 
-type OpenClawCodingToolsOptions = NonNullable<
-  Parameters<(typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"]>[0]
+type AstroclawCodingToolsOptions = NonNullable<
+  Parameters<(typeof import("astroclaw/plugin-sdk/agent-harness"))["createAstroclawCodingTools"]>[0]
 >;
-type OpenClawCodingToolsFactory =
-  (typeof import("openclaw/plugin-sdk/agent-harness"))["createOpenClawCodingTools"];
+type AstroclawCodingToolsFactory =
+  (typeof import("astroclaw/plugin-sdk/agent-harness"))["createAstroclawCodingTools"];
 type CodexBootstrapContext = Awaited<ReturnType<typeof resolveBootstrapContextForRun>>;
 type CodexBootstrapFile = CodexBootstrapContext["bootstrapFiles"][number];
 type CodexSystemPromptReport = NonNullable<EmbeddedRunAttemptResult["systemPromptReport"]>;
 type CodexToolReportEntry = CodexSystemPromptReport["tools"]["entries"][number];
 type CodexWorkspaceBootstrapContext = CodexBootstrapContext & { instructions?: string };
 
-let openClawCodingToolsFactoryForTests: OpenClawCodingToolsFactory | undefined;
+let astroClawCodingToolsFactoryForTests: AstroclawCodingToolsFactory | undefined;
 
 function emitCodexAppServerEvent(
   params: EmbeddedRunAttemptParams,
@@ -281,7 +281,7 @@ function formatDynamicToolTimeoutDetails(params: {
 
   if (tool !== "process" || !isJsonObject(params.call.arguments)) {
     return {
-      responseMessage: `OpenClaw dynamic tool call timed out after ${params.timeoutMs}ms while running tool ${tool}.`,
+      responseMessage: `Astroclaw dynamic tool call timed out after ${params.timeoutMs}ms while running tool ${tool}.`,
       consoleMessage: `codex dynamic tool timeout: tool=${tool} toolTimeoutMs=${params.timeoutMs}; per-tool-call watchdog, not session idle`,
       meta: baseMeta,
     };
@@ -304,7 +304,7 @@ function formatDynamicToolTimeoutDetails(params: {
       : " while waiting for the process tool";
 
   return {
-    responseMessage: `OpenClaw dynamic tool call timed out after ${params.timeoutMs}ms${responseTarget}. This is a tool RPC timeout, not a session idle timeout.`,
+    responseMessage: `Astroclaw dynamic tool call timed out after ${params.timeoutMs}ms${responseTarget}. This is a tool RPC timeout, not a session idle timeout.`,
     consoleMessage: `codex process tool timeout:${actionPart}${sessionPart} toolTimeoutMs=${params.timeoutMs}${requestedPart}; per-tool-call watchdog, not session idle${retryHint}`,
     meta: {
       ...baseMeta,
@@ -419,7 +419,7 @@ function toCodexTextInput(text: string): CodexUserInput {
   return { type: "text", text, text_elements: [] };
 }
 
-function restrictCodexAppServerSandboxForOpenClawSandbox(
+function restrictCodexAppServerSandboxForAstroclawSandbox(
   appServer: CodexAppServerRuntimeOptions,
   sandbox: Awaited<ReturnType<typeof resolveSandboxContext>>,
 ): CodexAppServerRuntimeOptions {
@@ -432,7 +432,7 @@ function restrictCodexAppServerSandboxForOpenClawSandbox(
   };
 }
 
-function resolveCodexAppServerForOpenClawToolPolicy(params: {
+function resolveCodexAppServerForAstroclawToolPolicy(params: {
   appServer: CodexAppServerRuntimeOptions;
   pluginConfig: CodexPluginConfig;
   env: NodeJS.ProcessEnv;
@@ -448,10 +448,10 @@ function resolveCodexAppServerForOpenClawToolPolicy(params: {
   }
   const explicitMode =
     params.pluginConfig.appServer?.mode !== undefined ||
-    isCodexAppServerPolicyMode(params.env.OPENCLAW_CODEX_APP_SERVER_MODE);
+    isCodexAppServerPolicyMode(params.env.ASTROCLAW_CODEX_APP_SERVER_MODE);
   const explicitApprovalPolicy =
     params.pluginConfig.appServer?.approvalPolicy !== undefined ||
-    isCodexAppServerApprovalPolicy(params.env.OPENCLAW_CODEX_APP_SERVER_APPROVAL_POLICY);
+    isCodexAppServerApprovalPolicy(params.env.ASTROCLAW_CODEX_APP_SERVER_APPROVAL_POLICY);
   if (explicitMode || explicitApprovalPolicy) {
     return params.appServer;
   }
@@ -508,8 +508,8 @@ export async function runCodexAppServerAttempt(
       : sandbox.workspaceDir
     : resolvedWorkspace;
   await fs.mkdir(effectiveWorkspace, { recursive: true });
-  const appServer = resolveCodexAppServerForOpenClawToolPolicy({
-    appServer: restrictCodexAppServerSandboxForOpenClawSandbox(configuredAppServer, sandbox),
+  const appServer = resolveCodexAppServerForAstroclawToolPolicy({
+    appServer: restrictCodexAppServerSandboxForAstroclawSandbox(configuredAppServer, sandbox),
     pluginConfig,
     env: process.env,
     shouldPromote: hasBeforeToolCallPolicy(),
@@ -1074,7 +1074,7 @@ export async function runCodexAppServerAttempt(
   let turnAttemptLastProgressDetails: Record<string, unknown> | undefined;
   let nativeHookRelayLastRenewedAt = 0;
   let activeAppServerTurnRequests = 0;
-  const activeOpenClawDynamicToolCallIds = new Set<string>();
+  const activeAstroclawDynamicToolCallIds = new Set<string>();
   const activeTurnItemIds = new Set<string>();
   let turnCrossedToolHandoff = false;
 
@@ -1489,9 +1489,9 @@ export async function runCodexAppServerAttempt(
       turnAssistantCompletionIdleWatchArmed &&
       notification.method === "item/completed" &&
       activeTurnItemIds.size === 0;
-    const trackedDynamicToolCompletion = isTrackedOpenClawDynamicToolCompletionNotification(
+    const trackedDynamicToolCompletion = isTrackedAstroclawDynamicToolCompletionNotification(
       notification,
-      activeOpenClawDynamicToolCallIds,
+      activeAstroclawDynamicToolCallIds,
     );
     const rawToolOutputCompletion = isRawToolOutputCompletionNotification(notification);
     if (
@@ -1548,15 +1548,15 @@ export async function runCodexAppServerAttempt(
       !shouldRearmCompletionIdleWatchAfterLastCurrentTurnItem
     ) {
       // The short completion-idle watchdog guards blind gaps after Codex
-      // accepts a turn or after OpenClaw hands a turn-scoped request result
-      // back to Codex. Bookkeeping that closes the just-served OpenClaw
+      // accepts a turn or after Astroclaw hands a turn-scoped request result
+      // back to Codex. Bookkeeping that closes the just-served Astroclaw
       // dynamic tool item is still part of that handoff, so keep the short
       // watchdog armed for that notification.
       disarmTurnCompletionIdleWatch();
     }
     // Determine terminal-turn status before invoking the projector so a throw
     // inside projector.handleNotification still releases the session lane.
-    // See openclaw/openclaw#67996.
+    // See astroclaw/astroclaw#67996.
     const isTurnAbortMarker =
       isCurrentTurnNotification &&
       isCodexTurnAbortMarkerNotification(notification, { currentPromptText: promptBuild.prompt });
@@ -1670,7 +1670,7 @@ export async function runCodexAppServerAttempt(
       armCompletionWatchOnResponse = true;
       markCurrentTurnRequestProgress();
       turnCrossedToolHandoff = true;
-      activeOpenClawDynamicToolCallIds.add(call.callId);
+      activeAstroclawDynamicToolCallIds.add(call.callId);
       trajectoryRecorder?.recordEvent("tool.call", {
         threadId: call.threadId,
         turnId: call.turnId,
@@ -2333,7 +2333,7 @@ async function handleDynamicToolCallWithTimeout(params: {
   onTimeout?: () => void;
 }): Promise<CodexDynamicToolCallResponse> {
   if (params.signal.aborted) {
-    return failedDynamicToolResponse("OpenClaw dynamic tool call aborted before execution.");
+    return failedDynamicToolResponse("Astroclaw dynamic tool call aborted before execution.");
   }
 
   const controller = new AbortController();
@@ -2341,7 +2341,7 @@ async function handleDynamicToolCallWithTimeout(params: {
   let timedOut = false;
   let resolveAbort: ((response: CodexDynamicToolCallResponse) => void) | undefined;
   const abortFromRun = () => {
-    const message = "OpenClaw dynamic tool call aborted.";
+    const message = "Astroclaw dynamic tool call aborted.";
     controller.abort(params.signal.reason ?? new Error(message));
     resolveAbort?.(failedDynamicToolResponse(message));
   };
@@ -2383,7 +2383,7 @@ async function handleDynamicToolCallWithTimeout(params: {
     params.signal.removeEventListener("abort", abortFromRun);
     resolveAbort = undefined;
     if (!timedOut && !controller.signal.aborted) {
-      controller.abort(new Error("OpenClaw dynamic tool call finished."));
+      controller.abort(new Error("Astroclaw dynamic tool call finished."));
     }
   }
 }
@@ -2508,7 +2508,7 @@ function resolveCodexNativeHookRelayEvents(params: {
   // Codex emits PermissionRequest before the app-server approval reviewer has
   // resolved the command. In native approval modes, let Codex's app-server
   // approval bridge own the real escalation instead of surfacing a stale
-  // pre-guardian OpenClaw plugin approval prompt.
+  // pre-guardian Astroclaw plugin approval prompt.
   return params.appServer.approvalPolicy === "never"
     ? CODEX_NATIVE_HOOK_RELAY_EVENTS
     : CODEX_NATIVE_HOOK_RELAY_EVENTS_WITH_APP_SERVER_APPROVALS;
@@ -2537,7 +2537,7 @@ function buildCodexNativeHookRelayId(params: {
   sessionKey: string | undefined;
 }): string {
   const hash = createHash("sha256");
-  hash.update("openclaw:codex:native-hook-relay:v1");
+  hash.update("astroclaw:codex:native-hook-relay:v1");
   hash.update("\0");
   hash.update(params.agentId?.trim() || "");
   hash.update("\0");
@@ -2605,10 +2605,10 @@ type DynamicToolBuildParams = {
   onYieldDetected: () => void;
 };
 
-function resolveOpenClawCodingToolsSessionKeys(
+function resolveAstroclawCodingToolsSessionKeys(
   params: EmbeddedRunAttemptParams,
   sandboxSessionKey: string,
-): Pick<OpenClawCodingToolsOptions, "sessionKey" | "runSessionKey"> {
+): Pick<AstroclawCodingToolsOptions, "sessionKey" | "runSessionKey"> {
   return {
     sessionKey: sandboxSessionKey,
     runSessionKey:
@@ -2623,11 +2623,11 @@ async function buildDynamicTools(input: DynamicToolBuildParams) {
   }
   const modelHasVision = params.model.input?.includes("image") ?? false;
   const agentDir = params.agentDir ?? resolveAgentDir(params.config ?? {}, input.sessionAgentId);
-  const createOpenClawCodingTools =
-    openClawCodingToolsFactoryForTests ??
-    (await import("openclaw/plugin-sdk/agent-harness")).createOpenClawCodingTools;
-  const sessionKeys = resolveOpenClawCodingToolsSessionKeys(params, input.sandboxSessionKey);
-  const allTools = createOpenClawCodingTools({
+  const createAstroclawCodingTools =
+    astroClawCodingToolsFactoryForTests ??
+    (await import("astroclaw/plugin-sdk/agent-harness")).createAstroclawCodingTools;
+  const sessionKeys = resolveAstroclawCodingToolsSessionKeys(params, input.sandboxSessionKey);
+  const allTools = createAstroclawCodingTools({
     agentId: input.sessionAgentId,
     ...buildEmbeddedAttemptToolRunContext(params),
     exec: {
@@ -2665,7 +2665,7 @@ async function buildDynamicTools(input: DynamicToolBuildParams) {
     modelId: params.modelId,
     modelCompat:
       params.model.compat && typeof params.model.compat === "object"
-        ? (params.model.compat as OpenClawCodingToolsOptions["modelCompat"])
+        ? (params.model.compat as AstroclawCodingToolsOptions["modelCompat"])
         : undefined,
     modelApi: params.model.api,
     modelContextWindowTokens: params.model.contextWindow,
@@ -3188,15 +3188,15 @@ function readNotificationItemId(notification: CodexServerNotification): string |
   );
 }
 
-function isTrackedOpenClawDynamicToolCompletionNotification(
+function isTrackedAstroclawDynamicToolCompletionNotification(
   notification: CodexServerNotification,
-  activeOpenClawDynamicToolCallIds: ReadonlySet<string>,
+  activeAstroclawDynamicToolCallIds: ReadonlySet<string>,
 ): boolean {
   if (notification.method !== "item/completed" || !isJsonObject(notification.params)) {
     return false;
   }
   const itemId = readNotificationItemId(notification);
-  if (!itemId || !activeOpenClawDynamicToolCallIds.has(itemId)) {
+  if (!itemId || !activeAstroclawDynamicToolCallIds.has(itemId)) {
     return false;
   }
   const item = isJsonObject(notification.params.item) ? notification.params.item : undefined;
@@ -3603,7 +3603,7 @@ function renderCodexWorkspaceBootstrapInstructions(
   }
   const hasSoulFile = files.some((file) => getCodexContextFileBasename(file.path) === "soul.md");
   const lines = [
-    "OpenClaw loaded these user-editable workspace files. Treat them as project/user context. Codex loads AGENTS.md natively, so AGENTS.md is not repeated here.",
+    "Astroclaw loaded these user-editable workspace files. Treat them as project/user context. Codex loads AGENTS.md natively, so AGENTS.md is not repeated here.",
     "",
     "# Project Context",
     "",
@@ -3800,14 +3800,14 @@ export const __testing = {
   handleDynamicToolCallWithTimeout,
   remapCodexContextFilePath,
   resolveDynamicToolCallTimeoutMs,
-  restrictCodexAppServerSandboxForOpenClawSandbox,
-  resolveCodexAppServerForOpenClawToolPolicy,
-  resolveOpenClawCodingToolsSessionKeys,
+  restrictCodexAppServerSandboxForAstroclawSandbox,
+  resolveCodexAppServerForAstroclawToolPolicy,
+  resolveAstroclawCodingToolsSessionKeys,
   shouldForceMessageTool,
-  setOpenClawCodingToolsFactoryForTests(factory: OpenClawCodingToolsFactory): void {
-    openClawCodingToolsFactoryForTests = factory;
+  setAstroclawCodingToolsFactoryForTests(factory: AstroclawCodingToolsFactory): void {
+    astroClawCodingToolsFactoryForTests = factory;
   },
-  resetOpenClawCodingToolsFactoryForTests(): void {
-    openClawCodingToolsFactoryForTests = undefined;
+  resetAstroclawCodingToolsFactoryForTests(): void {
+    astroClawCodingToolsFactoryForTests = undefined;
   },
 } as const;

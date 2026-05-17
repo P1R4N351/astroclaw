@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { FixedWindowRateLimiter } from "openclaw/plugin-sdk/webhook-ingress";
+import type { FixedWindowRateLimiter } from "astroclaw/plugin-sdk/webhook-ingress";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { WebhookTarget } from "./monitor-types.js";
 import type { GoogleChatEvent } from "./types.js";
@@ -9,11 +9,11 @@ const resolveWebhookTargetWithAuthOrReject = vi.hoisted(() => vi.fn());
 const withResolvedWebhookRequestPipeline = vi.hoisted(() => vi.fn());
 const verifyGoogleChatRequest = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/webhook-request-guards", () => ({
+vi.mock("astroclaw/plugin-sdk/webhook-request-guards", () => ({
   readJsonWebhookBodyOrReject,
 }));
 
-vi.mock("openclaw/plugin-sdk/webhook-targets", () => ({
+vi.mock("astroclaw/plugin-sdk/webhook-targets", () => ({
   resolveWebhookTargetWithAuthOrReject,
   withResolvedWebhookRequestPipeline,
 }));
@@ -117,8 +117,8 @@ describe("googlechat monitor webhook", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("openclaw/plugin-sdk/webhook-request-guards");
-    vi.doUnmock("openclaw/plugin-sdk/webhook-targets");
+    vi.doUnmock("astroclaw/plugin-sdk/webhook-request-guards");
+    vi.doUnmock("astroclaw/plugin-sdk/webhook-targets");
     vi.doUnmock("./auth.js");
     vi.resetModules();
   });

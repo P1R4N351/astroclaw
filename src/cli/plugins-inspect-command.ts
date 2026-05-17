@@ -256,7 +256,7 @@ export async function runPluginsInspectCommand(
   });
   if (!inspect) {
     defaultRuntime.error(
-      formatMissingPluginMessage({ id, listCommand: "openclaw plugins list --json" }),
+      formatMissingPluginMessage({ id, listCommand: "astroclaw plugins list --json" }),
     );
     return defaultRuntime.exit(1);
   }
@@ -286,7 +286,7 @@ export async function runPluginsInspectCommand(
   if (inspect.plugin.failedAt) {
     lines.push(`${theme.muted("Failed at:")} ${inspect.plugin.failedAt.toISOString()}`);
   }
-  lines.push(`${theme.muted("Format:")} ${inspect.plugin.format ?? "openclaw"}`);
+  lines.push(`${theme.muted("Format:")} ${inspect.plugin.format ?? "astroclaw"}`);
   if (inspect.plugin.bundleFormat) {
     lines.push(`${theme.muted("Bundle format:")} ${inspect.plugin.bundleFormat}`);
   }

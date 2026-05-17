@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createPluginRuntimeMock } from "openclaw/plugin-sdk/channel-test-helpers";
+import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
 import { expect, vi, type Mock } from "vitest";
 import type { ClawdbotConfig, PluginRuntime, RuntimeEnv } from "../../runtime-api.js";
 import { setFeishuRuntime } from "../runtime.js";
@@ -44,15 +44,15 @@ type FeishuLifecycleReplyDispatcher = {
 };
 
 export function setFeishuLifecycleStateDir(prefix: string) {
-  process.env.OPENCLAW_STATE_DIR = `/tmp/${prefix}-${randomUUID()}`;
+  process.env.ASTROCLAW_STATE_DIR = `/tmp/${prefix}-${randomUUID()}`;
 }
 
 export function restoreFeishuLifecycleStateDir(originalStateDir: string | undefined) {
   if (originalStateDir === undefined) {
-    delete process.env.OPENCLAW_STATE_DIR;
+    delete process.env.ASTROCLAW_STATE_DIR;
     return;
   }
-  process.env.OPENCLAW_STATE_DIR = originalStateDir;
+  process.env.ASTROCLAW_STATE_DIR = originalStateDir;
 }
 
 const FEISHU_PREFETCHED_BOT_OPEN_ID_SOURCE = {

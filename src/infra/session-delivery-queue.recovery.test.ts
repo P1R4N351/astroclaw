@@ -11,7 +11,7 @@ import {
 
 describe("session-delivery queue recovery", () => {
   it("replays and acks pending entries on recovery", async () => {
-    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
       await enqueueSessionDelivery(
         {
           kind: "systemEvent",
@@ -39,7 +39,7 @@ describe("session-delivery queue recovery", () => {
   });
 
   it("keeps failed entries queued with retry metadata for later recovery", async () => {
-    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
       await enqueueSessionDelivery(
         {
           kind: "agentTurn",
@@ -70,7 +70,7 @@ describe("session-delivery queue recovery", () => {
   });
 
   it("uses the entry retry budget when draining entries", async () => {
-    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
       const id = await enqueueSessionDelivery(
         {
           kind: "agentTurn",
@@ -111,7 +111,7 @@ describe("session-delivery queue recovery", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-23T00:00:00.000Z"));
 
-    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
       await enqueueSessionDelivery(
         {
           kind: "systemEvent",
@@ -161,7 +161,7 @@ describe("session-delivery queue recovery", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-23T00:00:00.000Z"));
 
-    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
       const id = await enqueueSessionDelivery(
         {
           kind: "systemEvent",

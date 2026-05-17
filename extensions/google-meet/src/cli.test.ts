@@ -22,8 +22,8 @@ const fetchGuardMocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>();
+vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>();
   return {
     ...actual,
     fetchWithSsrFGuard: fetchGuardMocks.fetchWithSsrFGuard,
@@ -240,7 +240,7 @@ describe("google-meet CLI", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
+    vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
     vi.resetModules();
   });
 
@@ -502,7 +502,7 @@ describe("google-meet CLI", () => {
 
   it("prints markdown artifact and attendance output", async () => {
     stubMeetArtifactsApi();
-    const tempDir = mkdtempSync(path.join(tmpdir(), "openclaw-google-meet-artifacts-"));
+    const tempDir = mkdtempSync(path.join(tmpdir(), "astroclaw-google-meet-artifacts-"));
     const outputPath = path.join(tempDir, "artifacts.md");
     const artifactsStdout = captureStdout();
 
@@ -592,7 +592,7 @@ describe("google-meet CLI", () => {
   it("writes an export bundle", async () => {
     stubMeetArtifactsApi();
     const stdout = captureStdout();
-    const tempDir = mkdtempSync(path.join(tmpdir(), "openclaw-google-meet-export-"));
+    const tempDir = mkdtempSync(path.join(tmpdir(), "astroclaw-google-meet-export-"));
 
     try {
       await setupCli({}).parseAsync(
@@ -658,7 +658,7 @@ describe("google-meet CLI", () => {
   it("includes artifact warnings in export summaries and manifests", async () => {
     stubMeetArtifactsApi({ failSmartNoteDocumentBody: true });
     const stdout = captureStdout();
-    const tempDir = mkdtempSync(path.join(tmpdir(), "openclaw-google-meet-export-warning-"));
+    const tempDir = mkdtempSync(path.join(tmpdir(), "astroclaw-google-meet-export-warning-"));
 
     try {
       await setupCli({}).parseAsync(
@@ -957,7 +957,7 @@ describe("google-meet CLI", () => {
   it("prints a dry-run export manifest without writing files", async () => {
     stubMeetArtifactsApi();
     const stdout = captureStdout();
-    const parentDir = mkdtempSync(path.join(tmpdir(), "openclaw-google-meet-export-dry-run-"));
+    const parentDir = mkdtempSync(path.join(tmpdir(), "astroclaw-google-meet-export-dry-run-"));
     const outputDir = path.join(parentDir, "bundle");
 
     try {
@@ -1035,7 +1035,7 @@ describe("google-meet CLI", () => {
                   transcriptLines: 2,
                   lastCaptionAt: "2026-04-25T00:00:03.000Z",
                   lastCaptionSpeaker: "Alice",
-                  lastCaptionText: "Can everyone hear OpenClaw?",
+                  lastCaptionText: "Can everyone hear Astroclaw?",
                   providerConnected: true,
                   realtimeReady: true,
                   audioInputActive: true,
@@ -1055,7 +1055,7 @@ describe("google-meet CLI", () => {
       expect(stdout.output()).toContain("provider connected: yes");
       expect(stdout.output()).toContain("captioning: yes");
       expect(stdout.output()).toContain("transcript lines: 2");
-      expect(stdout.output()).toContain("last caption text: Alice: Can everyone hear OpenClaw?");
+      expect(stdout.output()).toContain("last caption text: Alice: Can everyone hear Astroclaw?");
       expect(stdout.output()).toContain("audio input active: yes");
       expect(stdout.output()).toContain("audio output active: no");
     } finally {
@@ -1217,10 +1217,10 @@ describe("google-meet CLI", () => {
               inCall: false,
               manualActionRequired: true,
               manualActionReason: "meet-admission-required",
-              manualActionMessage: "Admit the OpenClaw browser participant in Google Meet.",
+              manualActionMessage: "Admit the Astroclaw browser participant in Google Meet.",
               browserUrl: "https://meet.google.com/abc-defg-hij",
             },
-            message: "Admit the OpenClaw browser participant in Google Meet.",
+            message: "Admit the Astroclaw browser participant in Google Meet.",
           }),
         },
       }).parseAsync(["googlemeet", "recover-tab"], { from: "user" });

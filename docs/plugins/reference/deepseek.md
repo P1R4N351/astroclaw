@@ -1,5 +1,5 @@
 ---
-summary: "Adds DeepSeek model provider support to OpenClaw."
+summary: "Adds DeepSeek model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the deepseek plugin
 title: "DeepSeek plugin"
@@ -7,12 +7,12 @@ title: "DeepSeek plugin"
 
 # DeepSeek plugin
 
-Adds DeepSeek model provider support to OpenClaw.
+Adds DeepSeek model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/deepseek-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/deepseek-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

@@ -1,4 +1,4 @@
-import { isProxylineDispatcher } from "@openclaw/proxyline/dispatcher-brand";
+import { isProxylineDispatcher } from "@astroclaw/proxyline/dispatcher-brand";
 import { hasEnvHttpProxyAgentConfigured, resolveEnvHttpProxyAgentOptions } from "./proxy-env.js";
 import {
   createUndiciAutoSelectFamilyConnectOptions,

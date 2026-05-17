@@ -1,6 +1,6 @@
-package ai.openclaw.app.voice
+package ai.astroclaw.app.voice
 
-import ai.openclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.gateway.GatewaySession
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

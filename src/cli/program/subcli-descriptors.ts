@@ -8,7 +8,7 @@ const subCliCommandCatalog = defineCommandDescriptorCatalog([
   { name: "acp", description: "Run and manage ACP-backed coding agents", hasSubcommands: true },
   {
     name: "gateway",
-    description: "Run, inspect, and query the OpenClaw Gateway",
+    description: "Run, inspect, and query the Astroclaw Gateway",
     hasSubcommands: true,
   },
   {
@@ -97,7 +97,7 @@ const subCliCommandCatalog = defineCommandDescriptorCatalog([
   },
   {
     name: "docs",
-    description: "Search the live OpenClaw docs",
+    description: "Search the live Astroclaw docs",
     hasSubcommands: false,
   },
   {
@@ -107,7 +107,7 @@ const subCliCommandCatalog = defineCommandDescriptorCatalog([
   },
   {
     name: "proxy",
-    description: "Run the OpenClaw debug proxy and inspect captured traffic",
+    description: "Run the Astroclaw debug proxy and inspect captured traffic",
     hasSubcommands: true,
   },
   {
@@ -169,7 +169,7 @@ const subCliCommandCatalog = defineCommandDescriptorCatalog([
   },
   {
     name: "update",
-    description: "Update OpenClaw and inspect update channel status",
+    description: "Update Astroclaw and inspect update channel status",
     hasSubcommands: true,
   },
   {

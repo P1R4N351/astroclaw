@@ -6,11 +6,11 @@ title: "Groups"
 sidebarTitle: "Groups"
 ---
 
-OpenClaw treats group chats consistently across surfaces: Discord, iMessage, Matrix, Microsoft Teams, Signal, Slack, Telegram, WhatsApp, Zalo.
+Astroclaw treats group chats consistently across surfaces: Discord, iMessage, Matrix, Microsoft Teams, Signal, Slack, Telegram, WhatsApp, Zalo.
 
 ## Beginner intro (2 minutes)
 
-OpenClaw "lives" on your own messaging accounts. There is no separate WhatsApp bot user. If **you** are in a group, OpenClaw can see that group and respond there.
+Astroclaw "lives" on your own messaging accounts. There is no separate WhatsApp bot user. If **you** are in a group, Astroclaw can see that group and respond there.
 
 Default behavior:
 
@@ -18,7 +18,7 @@ Default behavior:
 - Replies require a mention unless you explicitly disable mention gating.
 - Visible replies in groups/channels use the `message` tool by default.
 
-Translation: allowlisted senders can trigger OpenClaw by mentioning it.
+Translation: allowlisted senders can trigger Astroclaw by mentioning it.
 
 <Note>
 **TL;DR**
@@ -41,9 +41,9 @@ always-on group chatter -> user request, or room event when configured
 
 ## Visible replies
 
-For group/channel rooms, OpenClaw defaults to `messages.groupChat.visibleReplies: "message_tool"`.
-`openclaw doctor --fix` writes this default into configured-channel configs that omit it.
-That means the agent still processes the turn and can update memory/session state, and it should speak visibly with `message(action=send)` when it has a room reply. If the model misses that tool and returns substantive final text, OpenClaw keeps that final text private instead of posting it to the room.
+For group/channel rooms, Astroclaw defaults to `messages.groupChat.visibleReplies: "message_tool"`.
+`astroclaw doctor --fix` writes this default into configured-channel configs that omit it.
+That means the agent still processes the turn and can update memory/session state, and it should speak visibly with `message(action=send)` when it has a room reply. If the model misses that tool and returns substantive final text, Astroclaw keeps that final text private instead of posting it to the room.
 
 This default depends on a model/runtime that reliably calls tools. If logs show
 assistant text but `didSendViaMessagingTool: false`, the model answered
@@ -54,9 +54,9 @@ tool-call-reliable model for group/channel sessions, or set
 `messages.groupChat.visibleReplies: "automatic"` when you want all visible group
 replies to use the legacy final-reply path.
 
-If the message tool is unavailable under the active tool policy, OpenClaw falls
+If the message tool is unavailable under the active tool policy, Astroclaw falls
 back to automatic visible replies instead of silently suppressing the response.
-`openclaw doctor` warns about this mismatch.
+`astroclaw doctor` warns about this mismatch.
 
 For direct chats and any other source event, use `messages.visibleReplies: "message_tool"` to apply the same tool-only visible-reply behavior globally. Harnesses can also choose this as their unset default; the Codex harness does this for Codex-mode direct chats. `messages.groupChat.visibleReplies` remains the more specific override for group/channel rooms.
 
@@ -112,7 +112,7 @@ Two different controls are involved in group safety:
 - **Trigger authorization**: who can trigger the agent (`groupPolicy`, `groups`, `groupAllowFrom`, channel-specific allowlists).
 - **Context visibility**: what supplemental context is injected into the model (reply text, quotes, thread history, forwarded metadata).
 
-By default, OpenClaw prioritizes normal chat behavior and keeps context mostly as received. This means allowlists primarily decide who can trigger actions, not a universal redaction boundary for every quoted or historical snippet.
+By default, Astroclaw prioritizes normal chat behavior and keeps context mostly as received. This means allowlists primarily decide who can trigger actions, not a universal redaction boundary for every quoted or historical snippet.
 
 <AccordionGroup>
   <Accordion title="Current behavior is channel-specific">
@@ -349,7 +349,7 @@ Replying to a bot message counts as an implicit mention when the channel support
       {
         id: "main",
         groupChat: {
-          mentionPatterns: ["@openclaw", "openclaw", "\\+15555550123"],
+          mentionPatterns: ["@astroclaw", "astroclaw", "\\+15555550123"],
           historyLimit: 50,
         },
       },
@@ -380,7 +380,7 @@ Replying to a bot message counts as an implicit mention when the channel support
 Some channel configs support restricting which tools are available **inside a specific group/room/channel**.
 
 - `tools`: allow/deny tools for the whole group.
-- `toolsBySender`: per-sender overrides within the group. Use explicit key prefixes: `channel:<channelId>:<senderId>`, `id:<senderId>`, `e164:<phone>`, `username:<handle>`, `name:<displayName>`, and `"*"` wildcard. Channel ids use canonical OpenClaw channel ids; aliases such as `teams` normalize to `msteams`. Legacy unprefixed keys are still accepted and matched as `id:` only.
+- `toolsBySender`: per-sender overrides within the group. Use explicit key prefixes: `channel:<channelId>:<senderId>`, `id:<senderId>`, `e164:<phone>`, `username:<handle>`, `name:<displayName>`, and `"*"` wildcard. Channel ids use canonical Astroclaw channel ids; aliases such as `teams` normalize to `msteams`. Legacy unprefixed keys are still accepted and matched as `id:` only.
 
 Resolution order (most specific wins):
 

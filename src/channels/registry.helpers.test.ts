@@ -63,20 +63,20 @@ describe("channel registry helpers", () => {
     const line = formatChannelSelectionLine(telegram, formatTestLink);
     expect(line).not.toContain("Docs:");
     expect(line).toContain("/channels/telegram");
-    expect(line).toContain("https://openclaw.ai");
+    expect(line).toContain("https://astroclaw.ai");
   });
 
   it("prefers the pinned channel registry when resolving registered plugin channels", () => {
-    const startupRegistry = createRegistryWithRegisteredChannel("openclaw-weixin", ["weixin"]);
+    const startupRegistry = createRegistryWithRegisteredChannel("astroclaw-weixin", ["weixin"]);
     setActivePluginRegistry(startupRegistry);
     pinActivePluginChannelRegistry(startupRegistry);
 
     const replacementRegistry = createRegistryWithRegisteredChannel("qqbot", ["qq"]);
     setActivePluginRegistry(replacementRegistry);
 
-    expect(listRegisteredChannelPluginIds()).toEqual(["openclaw-weixin"]);
-    expect(normalizeAnyChannelId("weixin")).toBe("openclaw-weixin");
-    expect(getRegisteredChannelPluginMeta("OPENCLAW-WEIXIN")?.aliases).toEqual(["weixin"]);
+    expect(listRegisteredChannelPluginIds()).toEqual(["astroclaw-weixin"]);
+    expect(normalizeAnyChannelId("weixin")).toBe("astroclaw-weixin");
+    expect(getRegisteredChannelPluginMeta("ASTROCLAW-WEIXIN")?.aliases).toEqual(["weixin"]);
   });
 
   it("falls back to the active registry when the pinned channel registry has no channels", () => {

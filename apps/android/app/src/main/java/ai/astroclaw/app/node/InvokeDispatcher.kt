@@ -1,19 +1,19 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.gateway.GatewaySession
-import ai.openclaw.app.protocol.OpenClawCalendarCommand
-import ai.openclaw.app.protocol.OpenClawCallLogCommand
-import ai.openclaw.app.protocol.OpenClawCameraCommand
-import ai.openclaw.app.protocol.OpenClawCanvasA2UICommand
-import ai.openclaw.app.protocol.OpenClawCanvasCommand
-import ai.openclaw.app.protocol.OpenClawContactsCommand
-import ai.openclaw.app.protocol.OpenClawDeviceCommand
-import ai.openclaw.app.protocol.OpenClawLocationCommand
-import ai.openclaw.app.protocol.OpenClawMotionCommand
-import ai.openclaw.app.protocol.OpenClawNotificationsCommand
-import ai.openclaw.app.protocol.OpenClawSmsCommand
-import ai.openclaw.app.protocol.OpenClawSystemCommand
-import ai.openclaw.app.protocol.OpenClawTalkCommand
+import ai.astroclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.protocol.AstroclawCalendarCommand
+import ai.astroclaw.app.protocol.AstroclawCallLogCommand
+import ai.astroclaw.app.protocol.AstroclawCameraCommand
+import ai.astroclaw.app.protocol.AstroclawCanvasA2UICommand
+import ai.astroclaw.app.protocol.AstroclawCanvasCommand
+import ai.astroclaw.app.protocol.AstroclawContactsCommand
+import ai.astroclaw.app.protocol.AstroclawDeviceCommand
+import ai.astroclaw.app.protocol.AstroclawLocationCommand
+import ai.astroclaw.app.protocol.AstroclawMotionCommand
+import ai.astroclaw.app.protocol.AstroclawNotificationsCommand
+import ai.astroclaw.app.protocol.AstroclawSmsCommand
+import ai.astroclaw.app.protocol.AstroclawSystemCommand
+import ai.astroclaw.app.protocol.AstroclawTalkCommand
 
 internal enum class SmsSearchAvailabilityReason {
   Available,
@@ -104,18 +104,18 @@ class InvokeDispatcher(
 
     return when (command) {
       // Canvas commands
-      OpenClawCanvasCommand.Present.rawValue -> {
+      AstroclawCanvasCommand.Present.rawValue -> {
         val url = CanvasController.parseNavigateUrl(paramsJson)
         canvas.navigate(url)
         GatewaySession.InvokeResult.ok(null)
       }
-      OpenClawCanvasCommand.Hide.rawValue -> GatewaySession.InvokeResult.ok(null)
-      OpenClawCanvasCommand.Navigate.rawValue -> {
+      AstroclawCanvasCommand.Hide.rawValue -> GatewaySession.InvokeResult.ok(null)
+      AstroclawCanvasCommand.Navigate.rawValue -> {
         val url = CanvasController.parseNavigateUrl(paramsJson)
         canvas.navigate(url)
         GatewaySession.InvokeResult.ok(null)
       }
-      OpenClawCanvasCommand.Eval.rawValue -> {
+      AstroclawCanvasCommand.Eval.rawValue -> {
         val js =
           CanvasController.parseEvalJs(paramsJson)
             ?: return GatewaySession.InvokeResult.error(
@@ -127,7 +127,7 @@ class InvokeDispatcher(
           GatewaySession.InvokeResult.ok("""{"result":${result.toJsonString()}}""")
         }
       }
-      OpenClawCanvasCommand.Snapshot.rawValue -> {
+      AstroclawCanvasCommand.Snapshot.rawValue -> {
         val snapshotParams = CanvasController.parseSnapshotParams(paramsJson)
         withCanvasAvailable {
           val base64 =
@@ -141,7 +141,7 @@ class InvokeDispatcher(
       }
 
       // A2UI commands
-      OpenClawCanvasA2UICommand.Reset.rawValue ->
+      AstroclawCanvasA2UICommand.Reset.rawValue ->
         withReadyA2ui {
           withCanvasAvailable {
             val res = canvas.eval(A2UIHandler.a2uiResetJS)
@@ -149,7 +149,7 @@ class InvokeDispatcher(
             GatewaySession.InvokeResult.ok(res)
           }
         }
-      OpenClawCanvasA2UICommand.Push.rawValue, OpenClawCanvasA2UICommand.PushJSONL.rawValue -> {
+      AstroclawCanvasA2UICommand.Push.rawValue, AstroclawCanvasA2UICommand.PushJSONL.rawValue -> {
         val messages =
           try {
             a2uiHandler.decodeA2uiMessages(command, paramsJson)
@@ -170,56 +170,56 @@ class InvokeDispatcher(
       }
 
       // Camera commands
-      OpenClawCameraCommand.List.rawValue -> cameraHandler.handleList(paramsJson)
-      OpenClawCameraCommand.Snap.rawValue -> cameraHandler.handleSnap(paramsJson)
-      OpenClawCameraCommand.Clip.rawValue -> cameraHandler.handleClip(paramsJson)
+      AstroclawCameraCommand.List.rawValue -> cameraHandler.handleList(paramsJson)
+      AstroclawCameraCommand.Snap.rawValue -> cameraHandler.handleSnap(paramsJson)
+      AstroclawCameraCommand.Clip.rawValue -> cameraHandler.handleClip(paramsJson)
 
       // Location command
-      OpenClawLocationCommand.Get.rawValue -> locationHandler.handleLocationGet(paramsJson)
+      AstroclawLocationCommand.Get.rawValue -> locationHandler.handleLocationGet(paramsJson)
 
       // Device commands
-      OpenClawDeviceCommand.Status.rawValue -> deviceHandler.handleDeviceStatus(paramsJson)
-      OpenClawDeviceCommand.Info.rawValue -> deviceHandler.handleDeviceInfo(paramsJson)
-      OpenClawDeviceCommand.Permissions.rawValue -> deviceHandler.handleDevicePermissions(paramsJson)
-      OpenClawDeviceCommand.Health.rawValue -> deviceHandler.handleDeviceHealth(paramsJson)
+      AstroclawDeviceCommand.Status.rawValue -> deviceHandler.handleDeviceStatus(paramsJson)
+      AstroclawDeviceCommand.Info.rawValue -> deviceHandler.handleDeviceInfo(paramsJson)
+      AstroclawDeviceCommand.Permissions.rawValue -> deviceHandler.handleDevicePermissions(paramsJson)
+      AstroclawDeviceCommand.Health.rawValue -> deviceHandler.handleDeviceHealth(paramsJson)
 
       // Notifications command
-      OpenClawNotificationsCommand.List.rawValue -> notificationsHandler.handleNotificationsList(paramsJson)
-      OpenClawNotificationsCommand.Actions.rawValue -> notificationsHandler.handleNotificationsActions(paramsJson)
+      AstroclawNotificationsCommand.List.rawValue -> notificationsHandler.handleNotificationsList(paramsJson)
+      AstroclawNotificationsCommand.Actions.rawValue -> notificationsHandler.handleNotificationsActions(paramsJson)
 
       // System command
-      OpenClawSystemCommand.Notify.rawValue -> systemHandler.handleSystemNotify(paramsJson)
+      AstroclawSystemCommand.Notify.rawValue -> systemHandler.handleSystemNotify(paramsJson)
 
       // Talk commands
-      OpenClawTalkCommand.PttStart.rawValue -> talkHandler.handlePttStart(paramsJson)
-      OpenClawTalkCommand.PttStop.rawValue -> talkHandler.handlePttStop(paramsJson)
-      OpenClawTalkCommand.PttCancel.rawValue -> talkHandler.handlePttCancel(paramsJson)
-      OpenClawTalkCommand.PttOnce.rawValue -> talkHandler.handlePttOnce(paramsJson)
+      AstroclawTalkCommand.PttStart.rawValue -> talkHandler.handlePttStart(paramsJson)
+      AstroclawTalkCommand.PttStop.rawValue -> talkHandler.handlePttStop(paramsJson)
+      AstroclawTalkCommand.PttCancel.rawValue -> talkHandler.handlePttCancel(paramsJson)
+      AstroclawTalkCommand.PttOnce.rawValue -> talkHandler.handlePttOnce(paramsJson)
 
       // Photos command
-      ai.openclaw.app.protocol.OpenClawPhotosCommand.Latest.rawValue ->
+      ai.astroclaw.app.protocol.AstroclawPhotosCommand.Latest.rawValue ->
         photosHandler.handlePhotosLatest(
           paramsJson,
         )
 
       // Contacts command
-      OpenClawContactsCommand.Search.rawValue -> contactsHandler.handleContactsSearch(paramsJson)
-      OpenClawContactsCommand.Add.rawValue -> contactsHandler.handleContactsAdd(paramsJson)
+      AstroclawContactsCommand.Search.rawValue -> contactsHandler.handleContactsSearch(paramsJson)
+      AstroclawContactsCommand.Add.rawValue -> contactsHandler.handleContactsAdd(paramsJson)
 
       // Calendar command
-      OpenClawCalendarCommand.Events.rawValue -> calendarHandler.handleCalendarEvents(paramsJson)
-      OpenClawCalendarCommand.Add.rawValue -> calendarHandler.handleCalendarAdd(paramsJson)
+      AstroclawCalendarCommand.Events.rawValue -> calendarHandler.handleCalendarEvents(paramsJson)
+      AstroclawCalendarCommand.Add.rawValue -> calendarHandler.handleCalendarAdd(paramsJson)
 
       // Motion command
-      OpenClawMotionCommand.Activity.rawValue -> motionHandler.handleMotionActivity(paramsJson)
-      OpenClawMotionCommand.Pedometer.rawValue -> motionHandler.handleMotionPedometer(paramsJson)
+      AstroclawMotionCommand.Activity.rawValue -> motionHandler.handleMotionActivity(paramsJson)
+      AstroclawMotionCommand.Pedometer.rawValue -> motionHandler.handleMotionPedometer(paramsJson)
 
       // SMS command
-      OpenClawSmsCommand.Send.rawValue -> smsHandler.handleSmsSend(paramsJson)
-      OpenClawSmsCommand.Search.rawValue -> smsHandler.handleSmsSearch(paramsJson)
+      AstroclawSmsCommand.Send.rawValue -> smsHandler.handleSmsSend(paramsJson)
+      AstroclawSmsCommand.Search.rawValue -> smsHandler.handleSmsSearch(paramsJson)
 
       // CallLog command
-      OpenClawCallLogCommand.Search.rawValue -> callLogHandler.handleCallLogSearch(paramsJson)
+      AstroclawCallLogCommand.Search.rawValue -> callLogHandler.handleCallLogSearch(paramsJson)
 
       // Debug commands
       "debug.ed25519" -> debugHandler.handleEd25519()

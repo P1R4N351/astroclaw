@@ -2,7 +2,7 @@
 
 import { html, nothing, render } from "lit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type OpenClawModalDialog } from "./modal-dialog.ts";
+import { type AstroclawModalDialog } from "./modal-dialog.ts";
 import "./modal-dialog.ts";
 
 let container: HTMLDivElement;
@@ -45,7 +45,7 @@ function restoreDescriptor(name: "showModal" | "close", descriptor?: PropertyDes
 async function renderModal() {
   render(
     html`
-      <openclaw-modal-dialog
+      <astroclaw-modal-dialog
         label="Confirm action"
         description="Review the operation before continuing."
       >
@@ -55,14 +55,14 @@ async function renderModal() {
           <button id="first-action">First</button>
           <button id="last-action">Last</button>
         </section>
-      </openclaw-modal-dialog>
+      </astroclaw-modal-dialog>
     `,
     container,
   );
-  const modal = container.querySelector<OpenClawModalDialog>("openclaw-modal-dialog");
+  const modal = container.querySelector<AstroclawModalDialog>("astroclaw-modal-dialog");
   expect(modal).toBeInstanceOf(HTMLElement);
   if (!modal) {
-    throw new Error("Expected openclaw-modal-dialog");
+    throw new Error("Expected astroclaw-modal-dialog");
   }
   await modal.updateComplete;
   await nextFrame();
@@ -74,7 +74,7 @@ async function renderModal() {
   return { modal, dialog };
 }
 
-function expectShadowElement(modal: OpenClawModalDialog, id: string): HTMLElement {
+function expectShadowElement(modal: AstroclawModalDialog, id: string): HTMLElement {
   const element = modal.shadowRoot?.getElementById(id);
   if (!(element instanceof HTMLElement)) {
     throw new Error(`Expected shadow element #${id}`);
@@ -82,7 +82,7 @@ function expectShadowElement(modal: OpenClawModalDialog, id: string): HTMLElemen
   return element;
 }
 
-describe("openclaw-modal-dialog", () => {
+describe("astroclaw-modal-dialog", () => {
   beforeEach(() => {
     installDialogPolyfill();
     container = document.createElement("div");
@@ -105,14 +105,14 @@ describe("openclaw-modal-dialog", () => {
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     const labelId = dialog.getAttribute("aria-labelledby");
     const descriptionId = dialog.getAttribute("aria-describedby");
-    expect(labelId).toBe("openclaw-modal-dialog-label");
-    expect(descriptionId).toBe("openclaw-modal-dialog-description");
+    expect(labelId).toBe("astroclaw-modal-dialog-label");
+    expect(descriptionId).toBe("astroclaw-modal-dialog-description");
     expect(dialog.getRootNode()).toBe(modal.shadowRoot);
     expect(dialog.ownerDocument.querySelector(`#${labelId}`)).toBeNull();
-    expect(expectShadowElement(modal, "openclaw-modal-dialog-label").textContent).toBe(
+    expect(expectShadowElement(modal, "astroclaw-modal-dialog-label").textContent).toBe(
       "Confirm action",
     );
-    expect(expectShadowElement(modal, "openclaw-modal-dialog-description").textContent).toBe(
+    expect(expectShadowElement(modal, "astroclaw-modal-dialog-description").textContent).toBe(
       "Review the operation before continuing.",
     );
   });

@@ -1,4 +1,4 @@
-import { pluginRegistrationContractCases } from "openclaw/plugin-sdk/plugin-test-contracts";
-import { describePluginRegistrationContract } from "openclaw/plugin-sdk/plugin-test-contracts";
+import { pluginRegistrationContractCases } from "astroclaw/plugin-sdk/plugin-test-contracts";
+import { describePluginRegistrationContract } from "astroclaw/plugin-sdk/plugin-test-contracts";
 
 describePluginRegistrationContract(pluginRegistrationContractCases.fal);

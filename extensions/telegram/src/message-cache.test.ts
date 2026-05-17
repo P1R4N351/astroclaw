@@ -33,7 +33,7 @@ function persistedCacheEntry(messageId: number, text: string): PersistedCacheEnt
 
 describe("telegram message cache", () => {
   it("hydrates reply chains from persisted cached messages", async () => {
-    const storePath = `/tmp/openclaw-telegram-message-cache-${process.pid}-${Date.now()}.json`;
+    const storePath = `/tmp/astroclaw-telegram-message-cache-${process.pid}-${Date.now()}.json`;
     const persistedPath = resolveTelegramMessageCachePath(storePath);
     await rm(persistedPath, { force: true });
     try {
@@ -143,7 +143,7 @@ describe("telegram message cache", () => {
   });
 
   it("shares one persisted bucket across live cache instances", async () => {
-    const storePath = `/tmp/openclaw-telegram-message-cache-shared-${process.pid}-${Date.now()}.json`;
+    const storePath = `/tmp/astroclaw-telegram-message-cache-shared-${process.pid}-${Date.now()}.json`;
     const persistedPath = resolveTelegramMessageCachePath(storePath);
     await rm(persistedPath, { force: true });
     try {
@@ -206,7 +206,7 @@ describe("telegram message cache", () => {
   });
 
   it("appends cached records between compactions and reloads the bounded cache window", async () => {
-    const storePath = `/tmp/openclaw-telegram-message-cache-append-${process.pid}-${Date.now()}.json`;
+    const storePath = `/tmp/astroclaw-telegram-message-cache-append-${process.pid}-${Date.now()}.json`;
     const persistedPath = resolveTelegramMessageCachePath(storePath);
     await rm(persistedPath, { force: true });
     try {
@@ -240,7 +240,7 @@ describe("telegram message cache", () => {
   });
 
   it("keeps the persisted log bounded by compacting cached records", async () => {
-    const storePath = `/tmp/openclaw-telegram-message-cache-compact-${process.pid}-${Date.now()}.json`;
+    const storePath = `/tmp/astroclaw-telegram-message-cache-compact-${process.pid}-${Date.now()}.json`;
     const persistedPath = resolveTelegramMessageCachePath(storePath);
     await rm(persistedPath, { force: true });
     try {
@@ -275,7 +275,7 @@ describe("telegram message cache", () => {
   });
 
   it("loads mixed legacy array caches and rewrites them as line-delimited entries", async () => {
-    const storePath = `/tmp/openclaw-telegram-message-cache-legacy-${process.pid}-${Date.now()}.json`;
+    const storePath = `/tmp/astroclaw-telegram-message-cache-legacy-${process.pid}-${Date.now()}.json`;
     const persistedPath = resolveTelegramMessageCachePath(storePath);
     await rm(persistedPath, { force: true });
     try {
@@ -487,7 +487,7 @@ describe("telegram message cache", () => {
     const beforeSession = Date.parse("2026-05-10T12:40:00.000Z");
     const sessionStartedAt = Date.parse("2026-05-10T17:30:43.980Z");
     const afterSession = Date.parse("2026-05-11T23:36:00.000Z");
-    const staleInstruction = "okay so we just flip in openclaw? if yes do it up";
+    const staleInstruction = "okay so we just flip in astroclaw? if yes do it up";
     const record = (params: {
       id: number;
       text: string;
@@ -574,7 +574,7 @@ describe("telegram message cache", () => {
     const beforeSession = Date.parse("2026-05-10T12:40:00.000Z");
     const sessionStartedAt = Date.parse("2026-05-10T17:30:43.127Z");
     const afterSession = Date.parse("2026-05-11T23:36:00.000Z");
-    const staleInstruction = "okay so we just flip in openclaw? if yes do it up";
+    const staleInstruction = "okay so we just flip in astroclaw? if yes do it up";
     const record = (params: {
       id: number;
       text: string;

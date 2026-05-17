@@ -5,7 +5,7 @@ import OSLog
 actor RemoteTunnelManager {
     static let shared = RemoteTunnelManager()
 
-    private let logger = Logger(subsystem: "ai.openclaw", category: "remote-tunnel")
+    private let logger = Logger(subsystem: "ai.astroclaw", category: "remote-tunnel")
     private var controlTunnel: RemotePortTunnel?
     private var createInFlight: (token: UUID, task: Task<RemotePortTunnel, Error>)?
     private var restartInFlight = false

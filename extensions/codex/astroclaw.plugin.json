@@ -194,12 +194,12 @@
   "uiHints": {
     "codexDynamicToolsLoading": {
       "label": "Dynamic Tools Loading",
-      "help": "Use searchable to defer OpenClaw dynamic tools behind Codex tool search, or direct to expose them in the initial context.",
+      "help": "Use searchable to defer Astroclaw dynamic tools behind Codex tool search, or direct to expose them in the initial context.",
       "advanced": true
     },
     "codexDynamicToolsExclude": {
       "label": "Dynamic Tool Excludes",
-      "help": "Additional OpenClaw dynamic tool names to omit from Codex app-server turns.",
+      "help": "Additional Astroclaw dynamic tool names to omit from Codex app-server turns.",
       "advanced": true
     },
     "discovery": {
@@ -208,7 +208,7 @@
     },
     "discovery.enabled": {
       "label": "Enable Discovery",
-      "help": "When false, OpenClaw keeps the Codex harness available but uses the bundled fallback model list."
+      "help": "When false, Astroclaw keeps the Codex harness available but uses the bundled fallback model list."
     },
     "discovery.timeoutMs": {
       "label": "Discovery Timeout",
@@ -297,7 +297,7 @@
     },
     "appServer.command": {
       "label": "Command",
-      "help": "Executable used for stdio transport. Leave unset to use OpenClaw's managed Codex binary.",
+      "help": "Executable used for stdio transport. Leave unset to use Astroclaw's managed Codex binary.",
       "advanced": true
     },
     "appServer.args": {
@@ -333,7 +333,7 @@
     },
     "appServer.turnCompletionIdleTimeoutMs": {
       "label": "Turn Completion Idle Timeout",
-      "help": "Maximum quiet time after Codex accepts a turn or after a turn-scoped app-server request before OpenClaw interrupts the turn while waiting for turn/completed.",
+      "help": "Maximum quiet time after Codex accepts a turn or after a turn-scoped app-server request before Astroclaw interrupts the turn while waiting for turn/completed.",
       "advanced": true
     },
     "appServer.approvalPolicy": {

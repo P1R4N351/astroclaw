@@ -1,6 +1,6 @@
-package ai.openclaw.app.gateway
+package ai.astroclaw.app.gateway
 
-import ai.openclaw.app.SecurePrefs
+import ai.astroclaw.app.SecurePrefs
 import android.content.Context
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -20,7 +20,7 @@ class DeviceAuthStoreTest {
     val app = RuntimeEnvironment.getApplication()
     val securePrefs =
       app.getSharedPreferences(
-        "openclaw.node.secure.test.${UUID.randomUUID()}",
+        "astroclaw.node.secure.test.${UUID.randomUUID()}",
         Context.MODE_PRIVATE,
       )
     val prefs = SecurePrefs(app, securePrefsOverride = securePrefs)
@@ -46,7 +46,7 @@ class DeviceAuthStoreTest {
     val app = RuntimeEnvironment.getApplication()
     val securePrefs =
       app.getSharedPreferences(
-        "openclaw.node.secure.test.${UUID.randomUUID()}",
+        "astroclaw.node.secure.test.${UUID.randomUUID()}",
         Context.MODE_PRIVATE,
       )
     val prefs = SecurePrefs(app, securePrefsOverride = securePrefs)

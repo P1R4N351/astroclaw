@@ -10,14 +10,14 @@ import { getDebugProxyCaptureStore } from "./store.sqlite.js";
 
 const TRUTHY_ENV = new Set(["1", "true", "yes", "on"]);
 const DEBUG_PROXY_DIRECT_CONNECT_OVERRIDE =
-  "OPENCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY";
+  "ASTROCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY";
 
 function isTruthyEnvValue(value: string | undefined): boolean {
   return TRUTHY_ENV.has((value ?? "").trim().toLowerCase());
 }
 
 function isManagedProxyActive(env: NodeJS.ProcessEnv = process.env): boolean {
-  return isTruthyEnvValue(env["OPENCLAW_PROXY_ACTIVE"]);
+  return isTruthyEnvValue(env["ASTROCLAW_PROXY_ACTIVE"]);
 }
 
 function allowsDirectConnectWithManagedProxy(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -106,7 +106,7 @@ export async function startDebugProxyServer(params: {
       store.recordEvent({
         sessionId: params.settings.sessionId,
         ts: Date.now(),
-        sourceScope: "openclaw",
+        sourceScope: "astroclaw",
         sourceProcess: params.settings.sourceProcess,
         protocol: "http",
         direction: "local",
@@ -133,7 +133,7 @@ export async function startDebugProxyServer(params: {
       store.recordEvent({
         sessionId: params.settings.sessionId,
         ts: Date.now(),
-        sourceScope: "openclaw",
+        sourceScope: "astroclaw",
         sourceProcess: params.settings.sourceProcess,
         protocol: target.protocol === "https:" ? "https" : "http",
         direction: "local",
@@ -157,7 +157,7 @@ export async function startDebugProxyServer(params: {
     store.recordEvent({
       sessionId: params.settings.sessionId,
       ts: Date.now(),
-      sourceScope: "openclaw",
+      sourceScope: "astroclaw",
       sourceProcess: params.settings.sourceProcess,
       protocol: target.protocol === "https:" ? "https" : "http",
       direction: "outbound",
@@ -187,7 +187,7 @@ export async function startDebugProxyServer(params: {
           store.recordEvent({
             sessionId: params.settings.sessionId,
             ts: Date.now(),
-            sourceScope: "openclaw",
+            sourceScope: "astroclaw",
             sourceProcess: params.settings.sourceProcess,
             protocol: target.protocol === "https:" ? "https" : "http",
             direction: "inbound",
@@ -209,7 +209,7 @@ export async function startDebugProxyServer(params: {
       store.recordEvent({
         sessionId: params.settings.sessionId,
         ts: Date.now(),
-        sourceScope: "openclaw",
+        sourceScope: "astroclaw",
         sourceProcess: params.settings.sourceProcess,
         protocol: target.protocol === "https:" ? "https" : "http",
         direction: "local",
@@ -241,7 +241,7 @@ export async function startDebugProxyServer(params: {
       store.recordEvent({
         sessionId: params.settings.sessionId,
         ts: Date.now(),
-        sourceScope: "openclaw",
+        sourceScope: "astroclaw",
         sourceProcess: params.settings.sourceProcess,
         protocol: "connect",
         direction: "local",
@@ -257,7 +257,7 @@ export async function startDebugProxyServer(params: {
     store.recordEvent({
       sessionId: params.settings.sessionId,
       ts: Date.now(),
-      sourceScope: "openclaw",
+      sourceScope: "astroclaw",
       sourceProcess: params.settings.sourceProcess,
       protocol: "connect",
       direction: "local",
@@ -274,7 +274,7 @@ export async function startDebugProxyServer(params: {
       store.recordEvent({
         sessionId: params.settings.sessionId,
         ts: Date.now(),
-        sourceScope: "openclaw",
+        sourceScope: "astroclaw",
         sourceProcess: params.settings.sourceProcess,
         protocol: "connect",
         direction: "local",
@@ -302,7 +302,7 @@ export async function startDebugProxyServer(params: {
       store.recordEvent({
         sessionId: params.settings.sessionId,
         ts: Date.now(),
-        sourceScope: "openclaw",
+        sourceScope: "astroclaw",
         sourceProcess: params.settings.sourceProcess,
         protocol: "connect",
         direction: "local",

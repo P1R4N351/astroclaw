@@ -1,11 +1,11 @@
 import Foundation
 
-public enum OpenClawWatchCommand: String, Codable, Sendable {
+public enum AstroclawWatchCommand: String, Codable, Sendable {
     case status = "watch.status"
     case notify = "watch.notify"
 }
 
-public enum OpenClawWatchPayloadType: String, Codable, Sendable, Equatable {
+public enum AstroclawWatchPayloadType: String, Codable, Sendable, Equatable {
     case notify = "watch.notify"
     case reply = "watch.reply"
     case execApprovalPrompt = "watch.execApproval.prompt"
@@ -16,18 +16,18 @@ public enum OpenClawWatchPayloadType: String, Codable, Sendable, Equatable {
     case execApprovalSnapshotRequest = "watch.execApproval.snapshotRequest"
 }
 
-public enum OpenClawWatchRisk: String, Codable, Sendable, Equatable {
+public enum AstroclawWatchRisk: String, Codable, Sendable, Equatable {
     case low
     case medium
     case high
 }
 
-public enum OpenClawWatchExecApprovalDecision: String, Codable, Sendable, Equatable {
+public enum AstroclawWatchExecApprovalDecision: String, Codable, Sendable, Equatable {
     case allowOnce = "allow-once"
     case deny
 }
 
-public enum OpenClawWatchExecApprovalCloseReason: String, Codable, Sendable, Equatable {
+public enum AstroclawWatchExecApprovalCloseReason: String, Codable, Sendable, Equatable {
     case expired
     case notFound = "not-found"
     case unavailable
@@ -35,7 +35,7 @@ public enum OpenClawWatchExecApprovalCloseReason: String, Codable, Sendable, Equ
     case resolved
 }
 
-public struct OpenClawWatchAction: Codable, Sendable, Equatable {
+public struct AstroclawWatchAction: Codable, Sendable, Equatable {
     public var id: String
     public var label: String
     public var style: String?
@@ -47,7 +47,7 @@ public struct OpenClawWatchAction: Codable, Sendable, Equatable {
     }
 }
 
-public struct OpenClawWatchExecApprovalItem: Codable, Sendable, Equatable, Identifiable {
+public struct AstroclawWatchExecApprovalItem: Codable, Sendable, Equatable, Identifiable {
     public var id: String
     public var commandText: String
     public var commandPreview: String?
@@ -55,8 +55,8 @@ public struct OpenClawWatchExecApprovalItem: Codable, Sendable, Equatable, Ident
     public var nodeId: String?
     public var agentId: String?
     public var expiresAtMs: Int?
-    public var allowedDecisions: [OpenClawWatchExecApprovalDecision]
-    public var risk: OpenClawWatchRisk?
+    public var allowedDecisions: [AstroclawWatchExecApprovalDecision]
+    public var risk: AstroclawWatchRisk?
 
     public init(
         id: String,
@@ -66,8 +66,8 @@ public struct OpenClawWatchExecApprovalItem: Codable, Sendable, Equatable, Ident
         nodeId: String? = nil,
         agentId: String? = nil,
         expiresAtMs: Int? = nil,
-        allowedDecisions: [OpenClawWatchExecApprovalDecision] = [],
-        risk: OpenClawWatchRisk? = nil)
+        allowedDecisions: [AstroclawWatchExecApprovalDecision] = [],
+        risk: AstroclawWatchRisk? = nil)
     {
         self.id = id
         self.commandText = commandText
@@ -81,15 +81,15 @@ public struct OpenClawWatchExecApprovalItem: Codable, Sendable, Equatable, Ident
     }
 }
 
-public struct OpenClawWatchExecApprovalPromptMessage: Codable, Sendable, Equatable {
-    public var type: OpenClawWatchPayloadType
-    public var approval: OpenClawWatchExecApprovalItem
+public struct AstroclawWatchExecApprovalPromptMessage: Codable, Sendable, Equatable {
+    public var type: AstroclawWatchPayloadType
+    public var approval: AstroclawWatchExecApprovalItem
     public var sentAtMs: Int?
     public var deliveryId: String?
     public var resetResolvingState: Bool?
 
     public init(
-        approval: OpenClawWatchExecApprovalItem,
+        approval: AstroclawWatchExecApprovalItem,
         sentAtMs: Int? = nil,
         deliveryId: String? = nil,
         resetResolvingState: Bool? = nil)
@@ -102,16 +102,16 @@ public struct OpenClawWatchExecApprovalPromptMessage: Codable, Sendable, Equatab
     }
 }
 
-public struct OpenClawWatchExecApprovalResolveMessage: Codable, Sendable, Equatable {
-    public var type: OpenClawWatchPayloadType
+public struct AstroclawWatchExecApprovalResolveMessage: Codable, Sendable, Equatable {
+    public var type: AstroclawWatchPayloadType
     public var approvalId: String
-    public var decision: OpenClawWatchExecApprovalDecision
+    public var decision: AstroclawWatchExecApprovalDecision
     public var replyId: String
     public var sentAtMs: Int?
 
     public init(
         approvalId: String,
-        decision: OpenClawWatchExecApprovalDecision,
+        decision: AstroclawWatchExecApprovalDecision,
         replyId: String,
         sentAtMs: Int? = nil)
     {
@@ -123,16 +123,16 @@ public struct OpenClawWatchExecApprovalResolveMessage: Codable, Sendable, Equata
     }
 }
 
-public struct OpenClawWatchExecApprovalResolvedMessage: Codable, Sendable, Equatable {
-    public var type: OpenClawWatchPayloadType
+public struct AstroclawWatchExecApprovalResolvedMessage: Codable, Sendable, Equatable {
+    public var type: AstroclawWatchPayloadType
     public var approvalId: String
-    public var decision: OpenClawWatchExecApprovalDecision?
+    public var decision: AstroclawWatchExecApprovalDecision?
     public var resolvedAtMs: Int?
     public var source: String?
 
     public init(
         approvalId: String,
-        decision: OpenClawWatchExecApprovalDecision? = nil,
+        decision: AstroclawWatchExecApprovalDecision? = nil,
         resolvedAtMs: Int? = nil,
         source: String? = nil)
     {
@@ -144,15 +144,15 @@ public struct OpenClawWatchExecApprovalResolvedMessage: Codable, Sendable, Equat
     }
 }
 
-public struct OpenClawWatchExecApprovalExpiredMessage: Codable, Sendable, Equatable {
-    public var type: OpenClawWatchPayloadType
+public struct AstroclawWatchExecApprovalExpiredMessage: Codable, Sendable, Equatable {
+    public var type: AstroclawWatchPayloadType
     public var approvalId: String
-    public var reason: OpenClawWatchExecApprovalCloseReason
+    public var reason: AstroclawWatchExecApprovalCloseReason
     public var expiredAtMs: Int?
 
     public init(
         approvalId: String,
-        reason: OpenClawWatchExecApprovalCloseReason,
+        reason: AstroclawWatchExecApprovalCloseReason,
         expiredAtMs: Int? = nil)
     {
         self.type = .execApprovalExpired
@@ -162,14 +162,14 @@ public struct OpenClawWatchExecApprovalExpiredMessage: Codable, Sendable, Equata
     }
 }
 
-public struct OpenClawWatchExecApprovalSnapshotMessage: Codable, Sendable, Equatable {
-    public var type: OpenClawWatchPayloadType
-    public var approvals: [OpenClawWatchExecApprovalItem]
+public struct AstroclawWatchExecApprovalSnapshotMessage: Codable, Sendable, Equatable {
+    public var type: AstroclawWatchPayloadType
+    public var approvals: [AstroclawWatchExecApprovalItem]
     public var sentAtMs: Int?
     public var snapshotId: String?
 
     public init(
-        approvals: [OpenClawWatchExecApprovalItem],
+        approvals: [AstroclawWatchExecApprovalItem],
         sentAtMs: Int? = nil,
         snapshotId: String? = nil)
     {
@@ -180,8 +180,8 @@ public struct OpenClawWatchExecApprovalSnapshotMessage: Codable, Sendable, Equat
     }
 }
 
-public struct OpenClawWatchExecApprovalSnapshotRequestMessage: Codable, Sendable, Equatable {
-    public var type: OpenClawWatchPayloadType
+public struct AstroclawWatchExecApprovalSnapshotRequestMessage: Codable, Sendable, Equatable {
+    public var type: AstroclawWatchPayloadType
     public var requestId: String
     public var sentAtMs: Int?
 
@@ -192,7 +192,7 @@ public struct OpenClawWatchExecApprovalSnapshotRequestMessage: Codable, Sendable
     }
 }
 
-public struct OpenClawWatchStatusPayload: Codable, Sendable, Equatable {
+public struct AstroclawWatchStatusPayload: Codable, Sendable, Equatable {
     public var supported: Bool
     public var paired: Bool
     public var appInstalled: Bool
@@ -214,29 +214,29 @@ public struct OpenClawWatchStatusPayload: Codable, Sendable, Equatable {
     }
 }
 
-public struct OpenClawWatchNotifyParams: Codable, Sendable, Equatable {
+public struct AstroclawWatchNotifyParams: Codable, Sendable, Equatable {
     public var title: String
     public var body: String
-    public var priority: OpenClawNotificationPriority?
+    public var priority: AstroclawNotificationPriority?
     public var promptId: String?
     public var sessionKey: String?
     public var kind: String?
     public var details: String?
     public var expiresAtMs: Int?
-    public var risk: OpenClawWatchRisk?
-    public var actions: [OpenClawWatchAction]?
+    public var risk: AstroclawWatchRisk?
+    public var actions: [AstroclawWatchAction]?
 
     public init(
         title: String,
         body: String,
-        priority: OpenClawNotificationPriority? = nil,
+        priority: AstroclawNotificationPriority? = nil,
         promptId: String? = nil,
         sessionKey: String? = nil,
         kind: String? = nil,
         details: String? = nil,
         expiresAtMs: Int? = nil,
-        risk: OpenClawWatchRisk? = nil,
-        actions: [OpenClawWatchAction]? = nil)
+        risk: AstroclawWatchRisk? = nil,
+        actions: [AstroclawWatchAction]? = nil)
     {
         self.title = title
         self.body = body
@@ -251,7 +251,7 @@ public struct OpenClawWatchNotifyParams: Codable, Sendable, Equatable {
     }
 }
 
-public struct OpenClawWatchNotifyPayload: Codable, Sendable, Equatable {
+public struct AstroclawWatchNotifyPayload: Codable, Sendable, Equatable {
     public var deliveredImmediately: Bool
     public var queuedForDelivery: Bool
     public var transport: String

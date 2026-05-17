@@ -1,5 +1,5 @@
 import Testing
-@testable import OpenClaw
+@testable import Astroclaw
 
 struct CameraCaptureServiceTests {
     @Test func `normalize snap defaults`() {

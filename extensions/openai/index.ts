@@ -1,6 +1,6 @@
-import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
-import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
-import { buildProviderToolCompatFamilyHooks } from "openclaw/plugin-sdk/provider-tools";
+import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
+import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+import { buildProviderToolCompatFamilyHooks } from "astroclaw/plugin-sdk/provider-tools";
 import { buildOpenAIImageGenerationProvider } from "./image-generation-provider.js";
 import {
   openaiCodexMediaUnderstandingProvider,

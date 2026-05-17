@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import type { Request, Response } from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig, RuntimeEnv } from "../runtime-api.js";
+import type { AstroclawConfig, RuntimeEnv } from "../runtime-api.js";
 import type { MSTeamsConversationStore } from "./conversation-store.js";
 import type { MSTeamsActivityHandler, MSTeamsMessageHandlerDeps } from "./monitor-handler.js";
 import type { MSTeamsPollStore } from "./polls.js";
@@ -188,7 +188,7 @@ vi.mock("./runtime.js", () => ({
 
 import { monitorMSTeamsProvider } from "./monitor.js";
 
-function createConfig(port: number): OpenClawConfig {
+function createConfig(port: number): AstroclawConfig {
   return {
     channels: {
       msteams: {
@@ -202,12 +202,12 @@ function createConfig(port: number): OpenClawConfig {
         },
       },
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 }
 
 function updateMSTeamsConfig(
-  cfg: OpenClawConfig,
-  patch: NonNullable<NonNullable<OpenClawConfig["channels"]>["msteams"]>,
+  cfg: AstroclawConfig,
+  patch: NonNullable<NonNullable<AstroclawConfig["channels"]>["msteams"]>,
 ): void {
   const msteams = cfg.channels?.msteams;
   if (!cfg.channels || !msteams) {
@@ -247,8 +247,8 @@ function readMockCallArg(mock: ReturnType<typeof vi.fn>, callIndex: number, argI
   return call[argIndex];
 }
 
-function requireRegisteredMSTeamsConfig(): OpenClawConfig {
-  const registered = readMockCallArg(registerMSTeamsHandlers, 0, 1) as { cfg?: OpenClawConfig };
+function requireRegisteredMSTeamsConfig(): AstroclawConfig {
+  const registered = readMockCallArg(registerMSTeamsHandlers, 0, 1) as { cfg?: AstroclawConfig };
   if (!registered?.cfg) {
     throw new Error("expected registered MSTeams handler config");
   }

@@ -19,7 +19,7 @@ import {
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import {
   forgetActiveSessionForShutdown,
   noteActiveSessionForShutdown,
@@ -99,9 +99,9 @@ function redactConfigForSkillSnapshotCache(value: unknown, stack = new WeakSet<o
   }
 }
 
-// Skill frontmatter `requires.config` reads the full OpenClaw config, so cache
+// Skill frontmatter `requires.config` reads the full Astroclaw config, so cache
 // reuse must follow the same boundary without putting raw secrets in Map keys.
-function fingerprintSkillSnapshotConfig(config: OpenClawConfig): string {
+function fingerprintSkillSnapshotConfig(config: AstroclawConfig): string {
   return crypto
     .createHash("sha256")
     .update(stableStringify(redactConfigForSkillSnapshotCache(config)))
@@ -146,7 +146,7 @@ async function persistSessionEntryUpdate(params: {
 }
 
 function emitCompactionSessionLifecycleHooks(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   sessionKey: string;
   storePath?: string;
   previousEntry: SessionEntry;
@@ -218,7 +218,7 @@ export async function ensureSkillSnapshot(params: {
   sessionId?: string;
   isFirstTurnInSession: boolean;
   workspaceDir: string;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   /** If provided, only load skills with these names (for per-channel skill filtering) */
   skillFilter?: string[];
 }): Promise<{
@@ -226,7 +226,7 @@ export async function ensureSkillSnapshot(params: {
   skillsSnapshot?: SessionEntry["skillsSnapshot"];
   systemSent: boolean;
 }> {
-  if (process.env.OPENCLAW_TEST_FAST === "1") {
+  if (process.env.ASTROCLAW_TEST_FAST === "1") {
     // In fast unit-test runs we skip filesystem scanning, watchers, and session-store writes.
     // Dedicated skills tests cover snapshot generation behavior.
     return {
@@ -352,7 +352,7 @@ export async function incrementCompactionCount(params: {
   sessionStore?: Record<string, SessionEntry>;
   sessionKey?: string;
   storePath?: string;
-  cfg?: OpenClawConfig;
+  cfg?: AstroclawConfig;
   now?: number;
   amount?: number;
   /** Token count after compaction - if provided, updates session token counts */

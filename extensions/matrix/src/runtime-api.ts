@@ -2,7 +2,7 @@ export {
   DEFAULT_ACCOUNT_ID,
   normalizeAccountId,
   normalizeOptionalAccountId,
-} from "openclaw/plugin-sdk/account-id";
+} from "astroclaw/plugin-sdk/account-id";
 export {
   createActionGate,
   jsonResult,
@@ -11,9 +11,9 @@ export {
   readStringArrayParam,
   readStringParam,
   ToolAuthorizationError,
-} from "openclaw/plugin-sdk/channel-actions";
-export { buildChannelConfigSchema } from "openclaw/plugin-sdk/channel-config-primitives";
-export type { ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+} from "astroclaw/plugin-sdk/channel-actions";
+export { buildChannelConfigSchema } from "astroclaw/plugin-sdk/channel-config-primitives";
+export type { ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
 export type {
   BaseProbeResult,
   ChannelDirectoryEntry,
@@ -26,30 +26,30 @@ export type {
   ChannelResolveKind,
   ChannelResolveResult,
   ChannelToolSend,
-} from "openclaw/plugin-sdk/channel-contract";
+} from "astroclaw/plugin-sdk/channel-contract";
 export {
   formatLocationText,
   toLocationContext,
   type NormalizedLocation,
-} from "openclaw/plugin-sdk/channel-location";
-export { logInboundDrop, logTypingFailure } from "openclaw/plugin-sdk/channel-logging";
-export { resolveAckReaction } from "openclaw/plugin-sdk/channel-feedback";
-export type { ChannelSetupInput } from "openclaw/plugin-sdk/setup";
+} from "astroclaw/plugin-sdk/channel-location";
+export { logInboundDrop, logTypingFailure } from "astroclaw/plugin-sdk/channel-logging";
+export { resolveAckReaction } from "astroclaw/plugin-sdk/channel-feedback";
+export type { ChannelSetupInput } from "astroclaw/plugin-sdk/setup";
 export type {
-  OpenClawConfig,
+  AstroclawConfig,
   ContextVisibilityMode,
   DmPolicy,
   GroupPolicy,
-} from "openclaw/plugin-sdk/config-contracts";
-export type { GroupToolPolicyConfig } from "openclaw/plugin-sdk/config-contracts";
-export type { WizardPrompter } from "openclaw/plugin-sdk/setup";
-export type { SecretInput } from "openclaw/plugin-sdk/secret-input";
+} from "astroclaw/plugin-sdk/config-contracts";
+export type { GroupToolPolicyConfig } from "astroclaw/plugin-sdk/config-contracts";
+export type { WizardPrompter } from "astroclaw/plugin-sdk/setup";
+export type { SecretInput } from "astroclaw/plugin-sdk/secret-input";
 export {
   GROUP_POLICY_BLOCKED_LABEL,
   resolveAllowlistProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "openclaw/plugin-sdk/runtime-group-policy";
+} from "astroclaw/plugin-sdk/runtime-group-policy";
 export {
   addWildcardAllowFrom,
   formatDocsLink,
@@ -59,8 +59,8 @@ export {
   promptAccountId,
   promptChannelAccessConfig,
   splitSetupEntries,
-} from "openclaw/plugin-sdk/setup";
-export type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
+} from "astroclaw/plugin-sdk/setup";
+export type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
 export {
   assertHttpUrlTargetsPrivateNetwork,
   closeDispatcher,
@@ -71,36 +71,36 @@ export {
   ssrfPolicyFromAllowPrivateNetwork,
   type LookupFn,
   type SsrFPolicy,
-} from "openclaw/plugin-sdk/ssrf-runtime";
-export { dispatchReplyFromConfigWithSettledDispatcher } from "openclaw/plugin-sdk/inbound-reply-dispatch";
+} from "astroclaw/plugin-sdk/ssrf-runtime";
+export { dispatchReplyFromConfigWithSettledDispatcher } from "astroclaw/plugin-sdk/inbound-reply-dispatch";
 export {
   ensureConfiguredAcpBindingReady,
   resolveConfiguredAcpBindingRecord,
-} from "openclaw/plugin-sdk/acp-binding-runtime";
+} from "astroclaw/plugin-sdk/acp-binding-runtime";
 export {
   buildProbeChannelStatusSummary,
   collectStatusIssuesFromLastError,
   PAIRING_APPROVED_MESSAGE,
-} from "openclaw/plugin-sdk/channel-status";
+} from "astroclaw/plugin-sdk/channel-status";
 export {
   getSessionBindingService,
   resolveThreadBindingIdleTimeoutMsForChannel,
   resolveThreadBindingMaxAgeMsForChannel,
-} from "openclaw/plugin-sdk/conversation-runtime";
-export { resolveOutboundSendDep } from "openclaw/plugin-sdk/outbound-send-deps";
-export { resolveAgentIdFromSessionKey } from "openclaw/plugin-sdk/routing";
-export { chunkTextForOutbound } from "openclaw/plugin-sdk/text-chunking";
-export { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-message";
-export { loadOutboundMediaFromUrl } from "openclaw/plugin-sdk/outbound-media";
-export { normalizePollInput, type PollInput } from "openclaw/plugin-sdk/poll-runtime";
-export { writeJsonFileAtomically } from "openclaw/plugin-sdk/json-store";
+} from "astroclaw/plugin-sdk/conversation-runtime";
+export { resolveOutboundSendDep } from "astroclaw/plugin-sdk/outbound-send-deps";
+export { resolveAgentIdFromSessionKey } from "astroclaw/plugin-sdk/routing";
+export { chunkTextForOutbound } from "astroclaw/plugin-sdk/text-chunking";
+export { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-message";
+export { loadOutboundMediaFromUrl } from "astroclaw/plugin-sdk/outbound-media";
+export { normalizePollInput, type PollInput } from "astroclaw/plugin-sdk/poll-runtime";
+export { writeJsonFileAtomically } from "astroclaw/plugin-sdk/json-store";
 export {
   buildChannelKeyCandidates,
   resolveChannelEntryMatch,
-} from "openclaw/plugin-sdk/channel-targets";
+} from "astroclaw/plugin-sdk/channel-targets";
 export { buildTimeoutAbortSignal } from "./matrix/sdk/timeout-abort-signal.js";
-export { formatZonedTimestamp } from "openclaw/plugin-sdk/time-runtime";
-export type { PluginRuntime, RuntimeLogger } from "openclaw/plugin-sdk/plugin-runtime";
-export type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+export { formatZonedTimestamp } from "astroclaw/plugin-sdk/time-runtime";
+export type { PluginRuntime, RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";
+export type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
 // resolveMatrixAccountStringValues already comes from the Matrix API barrel.
 // Re-exporting auth-precedence here makes TS source loaders define the export twice.

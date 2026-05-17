@@ -4,7 +4,7 @@
  * @kind problem
  * @problem.severity error
  * @precision high
- * @id js/openclaw/raw-socket-callsite-classification
+ * @id js/astroclaw/raw-socket-callsite-classification
  * @tags maintainability
  *       security
  *       external/cwe/cwe-441

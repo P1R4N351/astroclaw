@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 #if canImport(Darwin)
 import Darwin
 #endif

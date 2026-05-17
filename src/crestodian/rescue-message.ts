@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { CommandContext } from "../auto-reply/reply/commands-types.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { tryReadJson, writeJson } from "../infra/json-files.js";
 import type { RuntimeEnv } from "../runtime.js";
 import {
@@ -25,7 +25,7 @@ type RescuePendingOperation = {
 };
 
 export type CrestodianRescueMessageInput = {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   command: CommandContext;
   commandBody: string;
   agentId?: string;
@@ -125,13 +125,13 @@ function formatUnsupportedRemoteOperation(operation: CrestodianOperation): strin
   if (operation.kind === "open-tui") {
     return [
       "Crestodian rescue cannot open the local TUI from a message channel.",
-      "Use local `openclaw` for agent handoff, or ask for status, doctor, config, gateway, agents, or models.",
+      "Use local `astroclaw` for agent handoff, or ask for status, doctor, config, gateway, agents, or models.",
     ].join(" ");
   }
   if (operation.kind === "plugin-install") {
     return [
       "Crestodian rescue cannot install plugins from a message channel by default because plugin install downloads executable code.",
-      "Use local `openclaw crestodian` or `openclaw plugins install` instead.",
+      "Use local `astroclaw crestodian` or `astroclaw plugins install` instead.",
     ].join(" ");
   }
   return null;

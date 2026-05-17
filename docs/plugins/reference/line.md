@@ -1,5 +1,5 @@
 ---
-summary: "Adds the LINE channel surface for sending and receiving OpenClaw messages."
+summary: "Adds the LINE channel surface for sending and receiving Astroclaw messages."
 read_when:
   - You are installing, configuring, or auditing the line plugin
 title: "LINE plugin"
@@ -7,11 +7,11 @@ title: "LINE plugin"
 
 # LINE plugin
 
-Adds the LINE channel surface for sending and receiving OpenClaw messages.
+Adds the LINE channel surface for sending and receiving Astroclaw messages.
 
 ## Distribution
 
-- Package: `@openclaw/line`
+- Package: `@astroclaw/line`
 - Install route: npm; ClawHub
 
 ## Surface

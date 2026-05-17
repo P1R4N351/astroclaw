@@ -15,4 +15,4 @@ export {
   resolveSessionTranscriptsDirForAgent,
   stripInboundMetadata,
   stripInternalRuntimeContext,
-} from "./openclaw-runtime.js";
+} from "./astroclaw-runtime.js";

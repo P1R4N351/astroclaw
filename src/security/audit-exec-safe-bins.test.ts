@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { AstroclawConfig } from "../config/config.js";
 import { collectExecRuntimeFindings } from "./audit.js";
 
 function hasFinding(
@@ -45,7 +45,7 @@ describe("security audit exec safe-bin findings", () => {
             },
           ],
         },
-      } satisfies OpenClawConfig,
+      } satisfies AstroclawConfig,
       expected: true,
     },
     {
@@ -78,7 +78,7 @@ describe("security audit exec safe-bin findings", () => {
             },
           ],
         },
-      } satisfies OpenClawConfig,
+      } satisfies AstroclawConfig,
       expected: false,
     },
   ])(
@@ -99,7 +99,7 @@ describe("security audit exec safe-bin findings", () => {
             safeBins: ["jq"],
           },
         },
-      } satisfies OpenClawConfig,
+      } satisfies AstroclawConfig,
       expected: true,
     },
     {
@@ -110,7 +110,7 @@ describe("security audit exec safe-bin findings", () => {
             safeBins: ["cut"],
           },
         },
-      } satisfies OpenClawConfig,
+      } satisfies AstroclawConfig,
       expected: false,
     },
   ])(
@@ -126,7 +126,7 @@ describe("security audit exec safe-bin findings", () => {
     const riskyGlobalTrustedDirs =
       process.platform === "win32"
         ? [String.raw`C:\Users\ci-user\bin`, String.raw`C:\Users\ci-user\.local\bin`]
-        : ["/usr/local/bin", "/tmp/openclaw-safe-bins"];
+        : ["/usr/local/bin", "/tmp/astroclaw-safe-bins"];
     const findings = collectExecRuntimeFindings({
       tools: {
         exec: {
@@ -145,7 +145,7 @@ describe("security audit exec safe-bin findings", () => {
           },
         ],
       },
-    } satisfies OpenClawConfig);
+    } satisfies AstroclawConfig);
 
     const riskyFinding = requireFinding("tools.exec.safe_bin_trusted_dirs_risky", findings);
     expect(riskyFinding.severity).toBe("warn");
@@ -164,7 +164,7 @@ describe("security audit exec safe-bin findings", () => {
               safeBinTrustedDirs: ["/usr/libexec"],
             },
           },
-        } satisfies OpenClawConfig),
+        } satisfies AstroclawConfig),
       ),
     ).toBe(false);
   });

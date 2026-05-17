@@ -1,7 +1,7 @@
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
 import { sanitizeForLog } from "../../terminal/ansi.js";
 import {
-  maybeRepairManagedNpmOpenClawPeerLinks,
+  maybeRepairManagedNpmAstroclawPeerLinks,
   maybeRepairStaleManagedNpmBundledPlugins,
 } from "../doctor-plugin-registry.js";
 import { maybeRepairGroupAllowFromFallback } from "./shared/allowfrom-fallback-migration.js";
@@ -73,7 +73,7 @@ export async function runDoctorRepairSequence(params: {
     env,
     prompter: { shouldRepair: true },
   });
-  await maybeRepairManagedNpmOpenClawPeerLinks({
+  await maybeRepairManagedNpmAstroclawPeerLinks({
     config: state.candidate,
     env,
     prompter: { shouldRepair: true },

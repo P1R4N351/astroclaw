@@ -1,4 +1,4 @@
-package ai.openclaw.app.ui.chat
+package ai.astroclaw.app.ui.chat
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect

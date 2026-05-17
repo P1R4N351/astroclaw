@@ -83,19 +83,19 @@ describe("iMessage sent-message echo cache", () => {
   });
 
   it("matches persisted echoes written by another process", () => {
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-imsg-echo-"));
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-imsg-echo-"));
     tempDirs.push(stateDir);
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
     const cache = createSentMessageCache();
 
     rememberPersistedIMessageEcho({
       scope: "acct:imessage:+1555",
-      text: "OpenClaw imsg live test",
+      text: "Astroclaw imsg live test",
       messageId: "guid-1",
     });
 
-    expect(cache.has("acct:imessage:+1555", { text: "OpenClaw imsg live test" })).toBe(true);
-    expect(cache.has("acct:imessage:+1666", { text: "OpenClaw imsg live test" })).toBe(false);
+    expect(cache.has("acct:imessage:+1555", { text: "Astroclaw imsg live test" })).toBe(true);
+    expect(cache.has("acct:imessage:+1666", { text: "Astroclaw imsg live test" })).toBe(false);
     expect(cache.has("acct:imessage:+1555", { messageId: "guid-1" })).toBe(true);
   });
 
@@ -105,9 +105,9 @@ describe("iMessage sent-message echo cache", () => {
     // enumerate active conversations or inject lines so a future inbound dedupe
     // call wrongly suppresses a legitimate inbound. Owner-only mode is the
     // mitigation.
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-imsg-echo-perm-"));
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-imsg-echo-perm-"));
     tempDirs.push(stateDir);
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
 
     rememberPersistedIMessageEcho({
       scope: "acct:imessage:+1555",
@@ -132,9 +132,9 @@ describe("iMessage sent-message echo cache", () => {
     // rows around them — and the agent's replies to itself land back in the
     // inbound pipeline as if they were external sends. Regression guard for
     // the echo-cache retention extension that ships with #78649.
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-imsg-echo-ttl-"));
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-imsg-echo-ttl-"));
     tempDirs.push(stateDir);
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-08T12:00:00Z"));
@@ -157,9 +157,9 @@ describe("iMessage sent-message echo cache", () => {
   it("clamps pre-existing sent-echoes.jsonl from older 0644/0755 to 0600/0700", () => {
     // Older gateway versions wrote with default modes. After upgrade, the next
     // remember must clamp the existing file/dir back to owner-only.
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-imsg-echo-clamp-"));
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-imsg-echo-clamp-"));
     tempDirs.push(stateDir);
-    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
 
     const imsgDir = path.join(stateDir, "imessage");
     fs.mkdirSync(imsgDir, { recursive: true, mode: 0o755 });

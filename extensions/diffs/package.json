@@ -1,10 +1,10 @@
 {
-  "name": "@openclaw/diffs",
+  "name": "@astroclaw/diffs",
   "version": "2026.5.17",
-  "description": "OpenClaw diff viewer plugin",
+  "description": "Astroclaw diff viewer plugin",
   "repository": {
     "type": "git",
-    "url": "https://github.com/openclaw/openclaw"
+    "url": "https://github.com/astroclaw/astroclaw"
   },
   "type": "module",
   "scripts": {
@@ -18,14 +18,14 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ],
     "install": {
-      "npmSpec": "@openclaw/diffs",
+      "npmSpec": "@astroclaw/diffs",
       "localPath": "extensions/diffs",
       "defaultChoice": "npm",
       "minHostVersion": ">=2026.4.30"
@@ -34,7 +34,7 @@
       "pluginApi": ">=2026.5.17"
     },
     "build": {
-      "openclawVersion": "2026.5.17",
+      "astroclawVersion": "2026.5.17",
       "staticAssets": [
         {
           "source": "./assets/viewer-runtime.js",

@@ -181,7 +181,7 @@ vi.mock("../plugins/manifest-registry.js", () => {
           hooks: [],
           rootDir: "/tmp/plugins/brave",
           source: "test",
-          manifestPath: "/tmp/plugins/brave/openclaw.plugin.json",
+          manifestPath: "/tmp/plugins/brave/astroclaw.plugin.json",
           schemaCacheKey: "test:brave",
           configSchema: buildSchema(),
         },
@@ -200,7 +200,7 @@ vi.mock("../plugins/manifest-registry.js", () => {
             hooks: [],
             rootDir: `/tmp/plugins/${provider.pluginId}`,
             source: "test",
-            manifestPath: `/tmp/plugins/${provider.pluginId}/openclaw.plugin.json`,
+            manifestPath: `/tmp/plugins/${provider.pluginId}/astroclaw.plugin.json`,
             schemaCacheKey: `test:${provider.pluginId}`,
             configSchema: buildSchema(),
           })),
@@ -217,7 +217,7 @@ vi.mock("../plugins/manifest-registry.js", () => {
           hooks: [],
           rootDir: "/tmp/plugins/acme-search",
           source: "test",
-          manifestPath: "/tmp/plugins/acme-search/openclaw.plugin.json",
+          manifestPath: "/tmp/plugins/acme-search/astroclaw.plugin.json",
           schemaCacheKey: "test:acme-search",
           configSchema: buildSchema(),
         },
@@ -476,7 +476,7 @@ describe("web search provider config", () => {
     }
     const issue = findValidationMessage(res.issues, "tools.web.search.provider");
     expect(issue.message).toBe(
-      'web_search provider is not available: brave (install or enable plugin "brave", then run openclaw doctor --fix)',
+      'web_search provider is not available: brave (install or enable plugin "brave", then run astroclaw doctor --fix)',
     );
     expectAllowedValuesInclude(issue, ["brave"]);
   });

@@ -1,5 +1,5 @@
 ---
-summary: "Adds OpenAI, OpenAI Codex model provider support to OpenClaw."
+summary: "Adds OpenAI, OpenAI Codex model provider support to Astroclaw."
 read_when:
   - You are installing, configuring, or auditing the openai plugin
 title: "OpenAI plugin"
@@ -7,12 +7,12 @@ title: "OpenAI plugin"
 
 # OpenAI plugin
 
-Adds OpenAI, OpenAI Codex model provider support to OpenClaw.
+Adds OpenAI, OpenAI Codex model provider support to Astroclaw.
 
 ## Distribution
 
-- Package: `@openclaw/openai-provider`
-- Install route: included in OpenClaw
+- Package: `@astroclaw/openai-provider`
+- Install route: included in Astroclaw
 
 ## Surface
 

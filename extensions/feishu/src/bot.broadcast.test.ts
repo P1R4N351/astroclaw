@@ -1,4 +1,4 @@
-import type { EnvelopeFormatOptions } from "openclaw/plugin-sdk/channel-inbound";
+import type { EnvelopeFormatOptions } from "astroclaw/plugin-sdk/channel-inbound";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig, PluginRuntime } from "../runtime-api.js";
 import type { FeishuMessageEvent } from "./bot.js";

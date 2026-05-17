@@ -1,9 +1,9 @@
 import CryptoKit
 import Foundation
-import OpenClawProtocol
+import AstroclawProtocol
 
-enum OpenClawConfigFile {
-    private static let logger = Logger(subsystem: "ai.openclaw", category: "config")
+enum AstroclawConfigFile {
+    private static let logger = Logger(subsystem: "ai.astroclaw", category: "config")
     private static let configAuditFileName = "config-audit.jsonl"
     private static let configHealthFileName = "config-health.json"
     private static let fileLock = NSRecursiveLock()
@@ -21,15 +21,15 @@ enum OpenClawConfigFile {
     #endif
 
     static func url() -> URL {
-        OpenClawPaths.configURL
+        AstroclawPaths.configURL
     }
 
     static func stateDirURL() -> URL {
-        OpenClawPaths.stateDirURL
+        AstroclawPaths.stateDirURL
     }
 
     static func defaultWorkspaceURL() -> URL {
-        OpenClawPaths.workspaceURL
+        AstroclawPaths.workspaceURL
     }
 
     static func loadDict() -> [String: Any] {
@@ -746,7 +746,7 @@ enum OpenClawConfigFile {
     private static func appendConfigWriteAudit(_ fields: [String: Any]) {
         var record: [String: Any] = [
             "ts": ISO8601DateFormatter().string(from: Date()),
-            "source": "macos-openclaw-config-file",
+            "source": "macos-astroclaw-config-file",
             "event": "config.write",
             "pid": ProcessInfo.processInfo.processIdentifier,
             "argv": Array(ProcessInfo.processInfo.arguments.prefix(8)),
@@ -782,7 +782,7 @@ enum OpenClawConfigFile {
     private static func appendConfigObserveAudit(_ fields: [String: Any]) {
         var record: [String: Any] = [
             "ts": ISO8601DateFormatter().string(from: Date()),
-            "source": "macos-openclaw-config-file",
+            "source": "macos-astroclaw-config-file",
             "event": "config.observe",
             "pid": ProcessInfo.processInfo.processIdentifier,
             "argv": Array(ProcessInfo.processInfo.arguments.prefix(8)),

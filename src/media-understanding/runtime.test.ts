@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import type { OpenClawConfig } from "../config/types.js";
+import type { AstroclawConfig } from "../config/types.js";
 import type { MediaAttachment, MediaUnderstandingOutput } from "../media-understanding/types.js";
 import {
   describeImageFile,
@@ -89,7 +89,7 @@ describe("media-understanding runtime", () => {
               },
             },
           },
-        } as OpenClawConfig,
+        } as AstroclawConfig,
         agentDir: "/tmp/agent",
       }),
     ).resolves.toEqual({
@@ -123,7 +123,7 @@ describe("media-understanding runtime", () => {
         capability: "audio",
         filePath: "/tmp/sample.ogg",
         mime: "audio/ogg",
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         agentDir: "/tmp/agent",
       }),
     ).resolves.toEqual({
@@ -156,7 +156,7 @@ describe("media-understanding runtime", () => {
       describeImageFile({
         filePath: "/tmp/sample.jpg",
         mime: "image/jpeg",
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         agentDir: "/tmp/agent",
       }),
     ).resolves.toEqual({
@@ -196,7 +196,7 @@ describe("media-understanding runtime", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     await describeImageFile({
       filePath: "/tmp/sample.jpg",
@@ -250,7 +250,7 @@ describe("media-understanding runtime", () => {
         provider: "zai",
         model: "glm-4.6v",
         prompt: "Describe it",
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         agentDir: "/tmp/agent",
       }),
     ).resolves.toEqual({ text: "generic image ok", model: "vision" });
@@ -286,7 +286,7 @@ describe("media-understanding runtime", () => {
         provider: "gemini",
         model: "vision-v1",
         prompt: "Describe the sample.",
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         agentDir: "/tmp/agent",
       }),
     ).resolves.toEqual({
@@ -348,7 +348,7 @@ describe("media-understanding runtime", () => {
         preferredProfile: "preferred-work",
         authStore,
         timeoutMs: 45_000,
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         agentDir: "/tmp/agent",
       }),
     ).resolves.toEqual({
@@ -405,7 +405,7 @@ describe("media-understanding runtime", () => {
         instructions: "Return JSON.",
         provider: "vision-plugin",
         model: "vision-json",
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
       }),
     ).rejects.toThrow("Structured extraction requires at least one image input.");
 
@@ -431,7 +431,7 @@ describe("media-understanding runtime", () => {
         instructions: "Return JSON.",
         provider: "vision-plugin",
         model: "vision-json",
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
       }),
     ).rejects.toThrow("Provider does not support structured extraction: vision-plugin");
   });
@@ -467,7 +467,7 @@ describe("media-understanding runtime", () => {
         capability: "audio",
         filePath: "/tmp/sample.ogg",
         mime: "audio/ogg",
-        cfg: {} as OpenClawConfig,
+        cfg: {} as AstroclawConfig,
         agentDir: "/tmp/agent",
       }),
     ).rejects.toThrow("Audio transcription response missing text");

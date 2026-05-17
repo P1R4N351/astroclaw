@@ -1,14 +1,14 @@
 ---
-summary: "How to route OpenClaw runtime HTTP and WebSocket traffic through an operator-managed filtering proxy"
+summary: "How to route Astroclaw runtime HTTP and WebSocket traffic through an operator-managed filtering proxy"
 title: "Network proxy"
 read_when:
   - You want defense-in-depth against SSRF and DNS rebinding attacks
-  - Configuring an external forward proxy for OpenClaw runtime traffic
+  - Configuring an external forward proxy for Astroclaw runtime traffic
 ---
 
-OpenClaw can route runtime HTTP and WebSocket traffic through an operator-managed forward proxy. This is optional defense in depth for deployments that want central egress control, stronger SSRF protection, and better network auditability.
+Astroclaw can route runtime HTTP and WebSocket traffic through an operator-managed forward proxy. This is optional defense in depth for deployments that want central egress control, stronger SSRF protection, and better network auditability.
 
-OpenClaw does not ship, download, start, configure, or certify a proxy. You run the proxy technology that fits your environment, and OpenClaw routes normal process-local HTTP and WebSocket clients through it.
+Astroclaw does not ship, download, start, configure, or certify a proxy. You run the proxy technology that fits your environment, and Astroclaw routes normal process-local HTTP and WebSocket clients through it.
 
 ## Why use a proxy
 
@@ -19,38 +19,38 @@ A proxy gives operators one network control point for outbound HTTP and WebSocke
 - DNS rebinding defense: reduce the gap between an application-level DNS check and the actual outbound connection.
 - Broader JavaScript coverage: route ordinary `fetch`, `node:http`, `node:https`, WebSocket, axios, got, node-fetch, and similar clients through the same path.
 - Auditability: log allowed and denied destinations at the egress boundary.
-- Operational control: enforce destination rules, network segmentation, rate limits, or outbound allowlists without rebuilding OpenClaw.
+- Operational control: enforce destination rules, network segmentation, rate limits, or outbound allowlists without rebuilding Astroclaw.
 
-Proxy routing is a process-level guardrail for normal HTTP and WebSocket egress. It gives operators a fail-closed path for routing supported JavaScript HTTP clients through their own filtering proxy, but it is not an OS-level network sandbox and does not make OpenClaw certify the proxy's destination policy.
+Proxy routing is a process-level guardrail for normal HTTP and WebSocket egress. It gives operators a fail-closed path for routing supported JavaScript HTTP clients through their own filtering proxy, but it is not an OS-level network sandbox and does not make Astroclaw certify the proxy's destination policy.
 
-## How OpenClaw routes traffic
+## How Astroclaw routes traffic
 
-When `proxy.enabled=true` and a proxy URL is configured, protected runtime processes such as `openclaw gateway run`, `openclaw node run`, and `openclaw agent --local` route normal HTTP and WebSocket egress through the configured proxy:
+When `proxy.enabled=true` and a proxy URL is configured, protected runtime processes such as `astroclaw gateway run`, `astroclaw node run`, and `astroclaw agent --local` route normal HTTP and WebSocket egress through the configured proxy:
 
 ```text
-OpenClaw process
+Astroclaw process
   fetch                  -> operator-managed filtering proxy -> public internet
   node:http and https    -> operator-managed filtering proxy -> public internet
   WebSocket clients      -> operator-managed filtering proxy -> public internet
 ```
 
-The public contract is the routing behavior, not the internal Node hooks used to implement it. OpenClaw Gateway control-plane WebSocket clients use a narrow direct path for local loopback Gateway RPC traffic when the Gateway URL uses `localhost` or a literal loopback IP such as `127.0.0.1` or `[::1]`. That control-plane path must be able to reach loopback Gateways even when the operator proxy blocks loopback destinations. Normal runtime HTTP and WebSocket requests still use the configured proxy.
+The public contract is the routing behavior, not the internal Node hooks used to implement it. Astroclaw Gateway control-plane WebSocket clients use a narrow direct path for local loopback Gateway RPC traffic when the Gateway URL uses `localhost` or a literal loopback IP such as `127.0.0.1` or `[::1]`. That control-plane path must be able to reach loopback Gateways even when the operator proxy blocks loopback destinations. Normal runtime HTTP and WebSocket requests still use the configured proxy.
 
-Internally, OpenClaw installs Proxyline as the process-level routing runtime for this feature. Proxyline covers `fetch`, undici-backed clients, Node core `node:http` / `node:https` callers, common WebSocket clients, and helper-created CONNECT tunnels. Managed proxy mode replaces caller-provided Node HTTP agents so explicit agents do not accidentally bypass the operator proxy.
+Internally, Astroclaw installs Proxyline as the process-level routing runtime for this feature. Proxyline covers `fetch`, undici-backed clients, Node core `node:http` / `node:https` callers, common WebSocket clients, and helper-created CONNECT tunnels. Managed proxy mode replaces caller-provided Node HTTP agents so explicit agents do not accidentally bypass the operator proxy.
 
-Some plugins own custom transports that need explicit proxy wiring even when process-level routing exists. For example, Telegram's Bot API transport uses its own HTTP/1 undici dispatcher and therefore honors process proxy env plus the managed `OPENCLAW_PROXY_URL` fallback in that owner-specific transport path.
+Some plugins own custom transports that need explicit proxy wiring even when process-level routing exists. For example, Telegram's Bot API transport uses its own HTTP/1 undici dispatcher and therefore honors process proxy env plus the managed `ASTROCLAW_PROXY_URL` fallback in that owner-specific transport path.
 
-The proxy URL itself must use `http://`. HTTPS destinations are still supported through the proxy with HTTP `CONNECT`; this only means OpenClaw expects a plain HTTP forward-proxy listener such as `http://127.0.0.1:3128`.
+The proxy URL itself must use `http://`. HTTPS destinations are still supported through the proxy with HTTP `CONNECT`; this only means Astroclaw expects a plain HTTP forward-proxy listener such as `http://127.0.0.1:3128`.
 
-While the proxy is active, OpenClaw clears `no_proxy` and `NO_PROXY`. Those bypass lists are destination-based, so leaving `localhost` or `127.0.0.1` there would let high-risk SSRF targets skip the filtering proxy.
+While the proxy is active, Astroclaw clears `no_proxy` and `NO_PROXY`. Those bypass lists are destination-based, so leaving `localhost` or `127.0.0.1` there would let high-risk SSRF targets skip the filtering proxy.
 
-On shutdown, OpenClaw restores the previous proxy environment and resets cached process routing state.
+On shutdown, Astroclaw restores the previous proxy environment and resets cached process routing state.
 
 ## Related proxy terms
 
-- `proxy.enabled` / `proxy.proxyUrl`: outbound forward-proxy routing for OpenClaw runtime egress. This page documents that feature.
+- `proxy.enabled` / `proxy.proxyUrl`: outbound forward-proxy routing for Astroclaw runtime egress. This page documents that feature.
 - `gateway.auth.mode: "trusted-proxy"`: inbound identity-aware reverse-proxy authentication for Gateway access. See [Trusted proxy auth](/gateway/trusted-proxy-auth).
-- `openclaw proxy`: local debug proxy and capture inspector for development and support. See [openclaw proxy](/cli/proxy).
+- `astroclaw proxy`: local debug proxy and capture inspector for development and support. See [astroclaw proxy](/cli/proxy).
 - `tools.web.fetch.useTrustedEnvProxy`: opt-in for `web_fetch` to let an operator-controlled HTTP(S) env proxy resolve DNS while keeping default strict DNS pinning and hostname policy. See [Web fetch](/tools/web-fetch#trusted-env-proxy).
 - Channel or provider-specific proxy settings: owner-specific overrides for a particular transport. Prefer the managed network proxy when the goal is central egress control across the runtime.
 
@@ -65,10 +65,10 @@ proxy:
 You can also provide the URL through the environment, while keeping `proxy.enabled=true` in config:
 
 ```bash
-OPENCLAW_PROXY_URL=http://127.0.0.1:3128 openclaw gateway run
+ASTROCLAW_PROXY_URL=http://127.0.0.1:3128 astroclaw gateway run
 ```
 
-`proxy.proxyUrl` takes precedence over `OPENCLAW_PROXY_URL`.
+`proxy.proxyUrl` takes precedence over `ASTROCLAW_PROXY_URL`.
 
 ### Gateway Loopback Mode
 
@@ -81,33 +81,33 @@ proxy:
   loopbackMode: gateway-only # gateway-only, proxy, or block
 ```
 
-- `gateway-only` (default): OpenClaw registers the Gateway loopback authority in Proxyline's managed bypass policy so local Gateway WebSocket traffic can connect directly. Custom loopback Gateway ports work because the active Gateway URL's host and port are registered.
-- `proxy`: OpenClaw does not register a Gateway loopback bypass, so local Gateway traffic is sent through the managed proxy. If the proxy is remote, it must provide special routing for the OpenClaw host's loopback service, such as mapping it to a proxy-reachable hostname, IP, or tunnel. Standard remote proxies resolve `127.0.0.1` and `localhost` from the proxy host, not from the OpenClaw host.
-- `block`: OpenClaw denies loopback Gateway control-plane connections before opening a socket.
+- `gateway-only` (default): Astroclaw registers the Gateway loopback authority in Proxyline's managed bypass policy so local Gateway WebSocket traffic can connect directly. Custom loopback Gateway ports work because the active Gateway URL's host and port are registered.
+- `proxy`: Astroclaw does not register a Gateway loopback bypass, so local Gateway traffic is sent through the managed proxy. If the proxy is remote, it must provide special routing for the Astroclaw host's loopback service, such as mapping it to a proxy-reachable hostname, IP, or tunnel. Standard remote proxies resolve `127.0.0.1` and `localhost` from the proxy host, not from the Astroclaw host.
+- `block`: Astroclaw denies loopback Gateway control-plane connections before opening a socket.
 
 If `enabled=true` but no valid proxy URL is configured, protected commands fail startup instead of falling back to direct network access.
 
-For managed gateway services started with `openclaw gateway start`, prefer storing the URL in config:
+For managed gateway services started with `astroclaw gateway start`, prefer storing the URL in config:
 
 ```bash
-openclaw config set proxy.enabled true
-openclaw config set proxy.proxyUrl http://127.0.0.1:3128
-openclaw gateway install --force
-openclaw gateway start
+astroclaw config set proxy.enabled true
+astroclaw config set proxy.proxyUrl http://127.0.0.1:3128
+astroclaw gateway install --force
+astroclaw gateway start
 ```
 
-The environment fallback is best for foreground runs. If you use it with an installed service, put `OPENCLAW_PROXY_URL` in the service durable environment, such as `$OPENCLAW_STATE_DIR/.env` or `~/.openclaw/.env`, then reinstall the service so launchd, systemd, or Scheduled Tasks starts the gateway with that value.
+The environment fallback is best for foreground runs. If you use it with an installed service, put `ASTROCLAW_PROXY_URL` in the service durable environment, such as `$ASTROCLAW_STATE_DIR/.env` or `~/.astroclaw/.env`, then reinstall the service so launchd, systemd, or Scheduled Tasks starts the gateway with that value.
 
-For `openclaw --container ...` commands, OpenClaw forwards `OPENCLAW_PROXY_URL` into the container-targeted child CLI when it is set. The URL must be reachable from inside the container; `127.0.0.1` refers to the container itself, not the host. OpenClaw rejects loopback proxy URLs for container-targeted commands unless you explicitly override that safety check.
+For `astroclaw --container ...` commands, Astroclaw forwards `ASTROCLAW_PROXY_URL` into the container-targeted child CLI when it is set. The URL must be reachable from inside the container; `127.0.0.1` refers to the container itself, not the host. Astroclaw rejects loopback proxy URLs for container-targeted commands unless you explicitly override that safety check.
 
 ## Proxy Requirements
 
-The proxy policy is the security boundary. OpenClaw cannot verify that the proxy blocks the right targets.
+The proxy policy is the security boundary. Astroclaw cannot verify that the proxy blocks the right targets.
 
 Configure the proxy to:
 
 - Bind only to loopback or a private trusted interface.
-- Restrict access so only the OpenClaw process, host, container, or service account can use it.
+- Restrict access so only the Astroclaw process, host, container, or service account can use it.
 - Resolve destinations itself and block destination IPs after DNS resolution.
 - Apply policy at connect time for both plain HTTP requests and HTTPS `CONNECT` tunnels.
 - Reject destination-based bypasses for loopback, private, link-local, metadata, multicast, reserved, or documentation ranges.
@@ -119,7 +119,7 @@ Configure the proxy to:
 
 Use this denylist as the starting point for any forward proxy, firewall, or egress policy.
 
-OpenClaw application-level classifier logic lives in `src/infra/net/ssrf.ts` and `src/shared/net/ip.ts`. The relevant parity hooks are `BLOCKED_HOSTNAMES`, `BLOCKED_IPV4_SPECIAL_USE_RANGES`, `BLOCKED_IPV6_SPECIAL_USE_RANGES`, `RFC2544_BENCHMARK_PREFIX`, and the embedded IPv4 sentinel handling for NAT64, 6to4, Teredo, ISATAP, and IPv4-mapped forms. Those files are useful references when maintaining an external proxy policy, but OpenClaw does not automatically export or enforce those rules in your proxy.
+Astroclaw application-level classifier logic lives in `src/infra/net/ssrf.ts` and `src/shared/net/ip.ts`. The relevant parity hooks are `BLOCKED_HOSTNAMES`, `BLOCKED_IPV4_SPECIAL_USE_RANGES`, `BLOCKED_IPV6_SPECIAL_USE_RANGES`, `RFC2544_BENCHMARK_PREFIX`, and the embedded IPv4 sentinel handling for NAT64, 6to4, Teredo, ISATAP, and IPv4-mapped forms. Those files are useful references when maintaining an external proxy policy, but Astroclaw does not automatically export or enforce those rules in your proxy.
 
 | Range or host                                                                        | Why to block                                         |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------- |
@@ -144,13 +144,13 @@ If your cloud provider or network platform documents additional metadata hosts o
 
 ## Validation
 
-Validate the proxy from the same host, container, or service account that runs OpenClaw:
+Validate the proxy from the same host, container, or service account that runs Astroclaw:
 
 ```bash
-openclaw proxy validate --proxy-url http://127.0.0.1:3128
+astroclaw proxy validate --proxy-url http://127.0.0.1:3128
 ```
 
-By default, when no custom destinations are provided, the command checks that `https://example.com/` succeeds and starts a temporary loopback canary that the proxy must not reach. The default denied check passes when the proxy returns a non-2xx denial response or blocks the canary with a transport failure; it fails if a successful response reaches the canary. If no proxy is enabled and configured, validation reports a config problem; use `--proxy-url` for a one-off preflight before changing config. Use `--allowed-url` and `--denied-url` to test deployment-specific expectations. Add `--apns-reachable` to also verify direct APNs HTTP/2 delivery can open a CONNECT tunnel through the proxy and receive a sandbox APNs response; the probe uses an intentionally invalid provider token, so `403 InvalidProviderToken` is expected and counts as reachable. Custom denied destinations are fail-closed: any HTTP response means the destination was reachable through the proxy, and any transport error is reported as inconclusive because OpenClaw cannot prove the proxy blocked a reachable origin. On validation failure, the command exits with code 1.
+By default, when no custom destinations are provided, the command checks that `https://example.com/` succeeds and starts a temporary loopback canary that the proxy must not reach. The default denied check passes when the proxy returns a non-2xx denial response or blocks the canary with a transport failure; it fails if a successful response reaches the canary. If no proxy is enabled and configured, validation reports a config problem; use `--proxy-url` for a one-off preflight before changing config. Use `--allowed-url` and `--denied-url` to test deployment-specific expectations. Add `--apns-reachable` to also verify direct APNs HTTP/2 delivery can open a CONNECT tunnel through the proxy and receive a sandbox APNs response; the probe uses an intentionally invalid provider token, so `403 InvalidProviderToken` is expected and counts as reachable. Custom denied destinations are fail-closed: any HTTP response means the destination was reachable through the proxy, and any transport error is reported as inconclusive because Astroclaw cannot prove the proxy blocked a reachable origin. On validation failure, the command exits with code 1.
 
 Use `--json` for automation. The JSON output contains the overall result, the effective proxy config source, any config errors, and each destination check. Proxy URL credentials are redacted in text and JSON output:
 
@@ -188,14 +188,14 @@ curl -x http://127.0.0.1:3128 http://127.0.0.1/
 curl -x http://127.0.0.1:3128 http://169.254.169.254/
 ```
 
-The public request should succeed. The loopback and metadata requests should be blocked by the proxy. For `openclaw proxy validate`, the built-in loopback canary can distinguish a proxy denial from a reachable origin. Custom `--denied-url` checks do not have that canary, so treat both HTTP responses and ambiguous transport failures as validation failures unless your proxy exposes a deployment-specific denial signal you can verify separately.
+The public request should succeed. The loopback and metadata requests should be blocked by the proxy. For `astroclaw proxy validate`, the built-in loopback canary can distinguish a proxy denial from a reachable origin. Custom `--denied-url` checks do not have that canary, so treat both HTTP responses and ambiguous transport failures as validation failures unless your proxy exposes a deployment-specific denial signal you can verify separately.
 
-Then enable OpenClaw proxy routing:
+Then enable Astroclaw proxy routing:
 
 ```bash
-openclaw config set proxy.enabled true
-openclaw config set proxy.proxyUrl http://127.0.0.1:3128
-openclaw gateway run
+astroclaw config set proxy.enabled true
+astroclaw config set proxy.proxyUrl http://127.0.0.1:3128
+astroclaw gateway run
 ```
 
 or set:
@@ -209,13 +209,13 @@ proxy:
 ## Limits
 
 - The proxy improves coverage for process-local JavaScript HTTP and WebSocket clients, but it is not an OS-level network sandbox.
-- Gateway loopback control-plane traffic defaults to direct local bypass through `proxy.loopbackMode: "gateway-only"`. OpenClaw implements that bypass by registering the active Gateway loopback authority in Proxyline's managed bypass policy. Operators can set `proxy.loopbackMode: "proxy"` to send Gateway loopback traffic through the managed proxy, or `proxy.loopbackMode: "block"` to deny loopback Gateway connections. See [Gateway Loopback Mode](#gateway-loopback-mode) for the remote-proxy caveat.
-- Raw `net`, `tls`, and `http2` sockets, native addons, and non-OpenClaw child processes may bypass Node-level proxy routing unless they inherit and respect proxy environment variables. Forked OpenClaw child CLIs inherit the managed proxy URL and `proxy.loopbackMode` state.
+- Gateway loopback control-plane traffic defaults to direct local bypass through `proxy.loopbackMode: "gateway-only"`. Astroclaw implements that bypass by registering the active Gateway loopback authority in Proxyline's managed bypass policy. Operators can set `proxy.loopbackMode: "proxy"` to send Gateway loopback traffic through the managed proxy, or `proxy.loopbackMode: "block"` to deny loopback Gateway connections. See [Gateway Loopback Mode](#gateway-loopback-mode) for the remote-proxy caveat.
+- Raw `net`, `tls`, and `http2` sockets, native addons, and non-Astroclaw child processes may bypass Node-level proxy routing unless they inherit and respect proxy environment variables. Forked Astroclaw child CLIs inherit the managed proxy URL and `proxy.loopbackMode` state.
 - IRC is a raw TCP/TLS channel outside operator-managed forward proxy routing. In deployments that require all egress through that forward proxy, set `channels.irc.enabled=false` unless direct IRC egress is explicitly approved.
 - The local debug proxy is diagnostic tooling and its direct upstream forwarding for proxy requests and CONNECT tunnels is disabled by default while managed proxy mode is active; enable direct forwarding only for approved local diagnostics.
-- User local WebUIs and local model servers should be allowlisted in the operator proxy policy when needed; OpenClaw does not expose a general local-network bypass for them.
+- User local WebUIs and local model servers should be allowlisted in the operator proxy policy when needed; Astroclaw does not expose a general local-network bypass for them.
 - Gateway control-plane proxy bypass is intentionally limited to `localhost` and literal loopback IP URLs. Use `ws://127.0.0.1:18789`, `ws://[::1]:18789`, or `ws://localhost:18789` for local direct Gateway control-plane connections; other hostnames route like ordinary hostname-based traffic.
-- OpenClaw does not inspect, test, or certify your proxy policy.
+- Astroclaw does not inspect, test, or certify your proxy policy.
 - Treat proxy policy changes as security-sensitive operational changes.
 
 | Surface                                                      | Managed proxy status                                                                               |

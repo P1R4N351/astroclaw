@@ -1,6 +1,6 @@
 import AVFoundation
 import Foundation
-import OpenClawKit
+import AstroclawKit
 import OSLog
 @preconcurrency import ScreenCaptureKit
 
@@ -26,7 +26,7 @@ final class ScreenRecordService {
         }
     }
 
-    private let logger = Logger(subsystem: "ai.openclaw", category: "screenRecord")
+    private let logger = Logger(subsystem: "ai.astroclaw", category: "screenRecord")
 
     func record(
         screenIndex: Int?,
@@ -44,7 +44,7 @@ final class ScreenRecordService {
                 return URL(fileURLWithPath: outPath)
             }
             return FileManager().temporaryDirectory
-                .appendingPathComponent("openclaw-screen-record-\(UUID().uuidString).mp4")
+                .appendingPathComponent("astroclaw-screen-record-\(UUID().uuidString).mp4")
         }()
         try? FileManager().removeItem(at: outURL)
 
@@ -100,7 +100,7 @@ final class ScreenRecordService {
 }
 
 private final class StreamRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
-    let queue = DispatchQueue(label: "ai.openclaw.screenRecord.writer")
+    let queue = DispatchQueue(label: "ai.astroclaw.screenRecord.writer")
 
     private let logger: Logger
     private let writer: AVAssetWriter

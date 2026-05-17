@@ -1,6 +1,6 @@
-package ai.openclaw.app.node
+package ai.astroclaw.app.node
 
-import ai.openclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.gateway.GatewaySession
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -15,7 +15,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
-private const val NOTIFICATION_CHANNEL_BASE_ID = "openclaw.system.notify"
+private const val NOTIFICATION_CHANNEL_BASE_ID = "astroclaw.system.notify"
 
 internal data class SystemNotifyRequest(
   val title: String,
@@ -71,9 +71,9 @@ private class AndroidSystemNotificationPoster(
     val normalizedPriority = priority.orEmpty().trim().lowercase()
     val (suffix, importance, name) =
       when (normalizedPriority) {
-        "passive" -> Triple("passive", NotificationManager.IMPORTANCE_LOW, "OpenClaw Passive")
-        "timesensitive" -> Triple("timesensitive", NotificationManager.IMPORTANCE_HIGH, "OpenClaw Time Sensitive")
-        else -> Triple("active", NotificationManager.IMPORTANCE_DEFAULT, "OpenClaw Active")
+        "passive" -> Triple("passive", NotificationManager.IMPORTANCE_LOW, "Astroclaw Passive")
+        "timesensitive" -> Triple("timesensitive", NotificationManager.IMPORTANCE_HIGH, "Astroclaw Time Sensitive")
+        else -> Triple("active", NotificationManager.IMPORTANCE_DEFAULT, "Astroclaw Active")
       }
     val channelId = "$NOTIFICATION_CHANNEL_BASE_ID.$suffix"
     val manager = appContext.getSystemService(NotificationManager::class.java)

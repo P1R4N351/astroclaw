@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { normalizeOptionalLowercaseString } from "../shared/string-coerce.js";
 import { resolveManifestActivationPluginIds } from "./activation-planner.js";
 import {
@@ -17,7 +17,7 @@ import { hasManifestToolAvailability } from "./manifest-tool-availability.js";
 
 export function resolveManifestCommandAliasOwner(params: {
   command: string | undefined;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   registry?: PluginManifestCommandAliasRegistry;
@@ -37,7 +37,7 @@ export function resolveManifestCommandAliasOwner(params: {
 
 export function resolveManifestCliCommandSurfaceOwner(params: {
   command: string | undefined;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   registry?: PluginManifestCommandAliasRegistry;
@@ -84,7 +84,7 @@ export function resolveManifestCliCommandSurfaceOwner(params: {
  */
 export function resolveManifestToolOwner(params: {
   toolName: string | undefined;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   registry?: PluginManifestCommandAliasRegistry;

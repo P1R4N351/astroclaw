@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 import Testing
 
 private func setupCode(from payload: String) -> String {
@@ -12,25 +12,25 @@ private func setupCode(from payload: String) -> String {
 
 @Suite struct DeepLinksSecurityTests {
     @Test func dashboardDeepLinkParses() {
-        let url = URL(string: "openclaw://dashboard")!
+        let url = URL(string: "astroclaw://dashboard")!
         #expect(DeepLinkParser.parse(url) == .dashboard)
     }
 
     @Test func gatewayDeepLinkRejectsInsecureNonLoopbackWs() {
         let url = URL(
-            string: "openclaw://gateway?host=attacker.example&port=18789&tls=0&token=abc")!
+            string: "astroclaw://gateway?host=attacker.example&port=18789&tls=0&token=abc")!
         #expect(DeepLinkParser.parse(url) == nil)
     }
 
     @Test func gatewayDeepLinkRejectsInsecurePrefixBypassHost() {
         let url = URL(
-            string: "openclaw://gateway?host=127.attacker.example&port=18789&tls=0&token=abc")!
+            string: "astroclaw://gateway?host=127.attacker.example&port=18789&tls=0&token=abc")!
         #expect(DeepLinkParser.parse(url) == nil)
     }
 
     @Test func gatewayDeepLinkAllowsLoopbackWs() {
         let url = URL(
-            string: "openclaw://gateway?host=127.0.0.1&port=18789&tls=0&token=abc")!
+            string: "astroclaw://gateway?host=127.0.0.1&port=18789&tls=0&token=abc")!
         #expect(
             DeepLinkParser.parse(url) == .gateway(
                 .init(
@@ -77,10 +77,10 @@ private func setupCode(from payload: String) -> String {
     }
 
     @Test func setupCodeAllowsMDNSWs() {
-        let payload = #"{"url":"ws://openclaw.local:18789","bootstrapToken":"tok"}"#
+        let payload = #"{"url":"ws://astroclaw.local:18789","bootstrapToken":"tok"}"#
         #expect(
             GatewayConnectDeepLink.fromSetupCode(setupCode(from: payload)) == .init(
-                host: "openclaw.local",
+                host: "astroclaw.local",
                 port: 18789,
                 tls: false,
                 bootstrapToken: "tok",
@@ -128,10 +128,10 @@ private func setupCode(from payload: String) -> String {
     }
 
     @Test func setupCodeAllowsPrivateLanHostPayload() {
-        let payload = #"{"host":"openclaw.local","port":18789,"tls":false,"bootstrapToken":"tok"}"#
+        let payload = #"{"host":"astroclaw.local","port":18789,"tls":false,"bootstrapToken":"tok"}"#
         #expect(
             GatewayConnectDeepLink.fromSetupCode(setupCode(from: payload)) == .init(
-                host: "openclaw.local",
+                host: "astroclaw.local",
                 port: 18789,
                 tls: false,
                 bootstrapToken: "tok",

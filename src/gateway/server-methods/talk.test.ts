@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 import { normalizeResolvedSecretInputString } from "../../config/types.secrets.js";
 import { ErrorCodes } from "../protocol/index.js";
 import { talkHandlers } from "./talk.js";
 
 const mocks = vi.hoisted(() => ({
-  getRuntimeConfig: vi.fn<() => OpenClawConfig>(),
+  getRuntimeConfig: vi.fn<() => AstroclawConfig>(),
   readConfigFileSnapshot: vi.fn(),
   canonicalizeSpeechProviderId: vi.fn((providerId: string | undefined) => providerId),
   getSpeechProvider: vi.fn(),
@@ -94,7 +94,7 @@ vi.mock("../talk-transcription-relay.js", async (importOriginal) => {
   };
 });
 
-function createTalkConfig(apiKey: unknown): OpenClawConfig {
+function createTalkConfig(apiKey: unknown): AstroclawConfig {
   return {
     talk: {
       provider: "acme",
@@ -105,7 +105,7 @@ function createTalkConfig(apiKey: unknown): OpenClawConfig {
         },
       },
     },
-  } as OpenClawConfig;
+  } as AstroclawConfig;
 }
 
 function expectRecordFields(record: unknown, expected: Record<string, unknown>) {
@@ -225,7 +225,7 @@ describe("talk.catalog handler", () => {
                 },
               },
             },
-          }) as OpenClawConfig,
+          }) as AstroclawConfig,
       } as never,
     });
 
@@ -309,7 +309,7 @@ describe("talk.speak handler", () => {
 
     mocks.getRuntimeConfig.mockReturnValue(runtimeConfig);
     mocks.readConfigFileSnapshot.mockResolvedValue({
-      path: "/tmp/openclaw.json",
+      path: "/tmp/astroclaw.json",
       hash: "test-hash",
       valid: true,
       config: diskConfig,
@@ -324,7 +324,7 @@ describe("talk.speak handler", () => {
       }) => talkProviderConfig,
     });
     mocks.synthesizeSpeech.mockImplementation(
-      async ({ cfg }: { cfg: OpenClawConfig; text: string; disableFallback: boolean }) => {
+      async ({ cfg }: { cfg: AstroclawConfig; text: string; disableFallback: boolean }) => {
         expect(cfg.messages?.tts?.provider).toBe("acme");
         expect(cfg.messages?.tts?.providers?.acme?.apiKey).toBe("env-acme-key");
         return {
@@ -390,7 +390,7 @@ describe("talk.config handler", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
     const runtimeConfig = {
       ...sourceConfig,
       messages: {
@@ -404,10 +404,10 @@ describe("talk.config handler", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     mocks.readConfigFileSnapshot.mockResolvedValue({
-      path: "/tmp/openclaw.json",
+      path: "/tmp/astroclaw.json",
       hash: "test-hash",
       valid: true,
       config: sourceConfig,
@@ -454,7 +454,7 @@ describe("talk.config handler", () => {
     expectRecordFields(talkConfig, { provider: "acme" });
     const resolved = talkConfig?.resolved as Record<string, unknown> | undefined;
     expectRecordFields(resolved, { provider: "acme" });
-    expectRecordFields(resolved?.config, { apiKey: "__OPENCLAW_REDACTED__" });
+    expectRecordFields(resolved?.config, { apiKey: "__ASTROCLAW_REDACTED__" });
   });
 });
 
@@ -520,7 +520,7 @@ describe("talk.session unified handlers", () => {
                 instructions: "Speak warmly.",
               },
             },
-          }) as OpenClawConfig,
+          }) as AstroclawConfig,
       } as never,
     });
 
@@ -655,7 +655,7 @@ describe("talk.session unified handlers", () => {
                 },
               },
             },
-          }) as OpenClawConfig,
+          }) as AstroclawConfig,
       } as never,
     });
 
@@ -712,7 +712,7 @@ describe("talk.session unified handlers", () => {
       isWebchatConnect: () => false,
       respond: createRespond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
       } as never,
     });
     const session = mockCallArg(createRespond, 0, 1) as { sessionId: string; token: string };
@@ -765,7 +765,7 @@ describe("talk.session unified handlers", () => {
       isWebchatConnect: () => false,
       respond: startRespond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
         broadcastToConnIds,
       } as never,
     });
@@ -821,7 +821,7 @@ describe("talk.session unified handlers", () => {
       isWebchatConnect: () => false,
       respond: createRespond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
       } as never,
     });
 
@@ -853,7 +853,7 @@ describe("talk.session unified handlers", () => {
       isWebchatConnect: () => false,
       respond: createRespond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
       } as never,
     });
 
@@ -879,7 +879,7 @@ describe("talk.session unified handlers", () => {
       isWebchatConnect: () => false,
       respond: createRespond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
       } as never,
     });
     const session = mockCallArg(createRespond, 0, 1) as { sessionId: string; token: string };
@@ -996,7 +996,7 @@ describe("talk.session unified handlers", () => {
       isWebchatConnect: () => false,
       respond: rejectedRespond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
       } as never,
     });
 
@@ -1019,7 +1019,7 @@ describe("talk.session unified handlers", () => {
       isWebchatConnect: () => false,
       respond: createRespond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
       } as never,
     });
 
@@ -1048,7 +1048,7 @@ describe("talk.session unified handlers", () => {
       client: { connId: "conn-1" } as never,
       isWebchatConnect: () => false,
       respond: respond as never,
-      context: { getRuntimeConfig: () => ({}) as OpenClawConfig } as never,
+      context: { getRuntimeConfig: () => ({}) as AstroclawConfig } as never,
     });
 
     const error = expectRespondError(respond, { code: ErrorCodes.INVALID_REQUEST });
@@ -1078,14 +1078,14 @@ describe("talk.client.toolCall handler", () => {
       params: {
         sessionKey: "main",
         callId: "call-1",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "What is in this repo?", responseStyle: "one sentence" },
       },
       client: { connId: "conn-1" } as never,
       isWebchatConnect: () => false,
       respond: respond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
       } as never,
     });
 
@@ -1109,7 +1109,7 @@ describe("talk.client.toolCall handler", () => {
       params: {
         sessionKey: "main",
         callId: "call-1",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "Are the basement lights off?" },
       },
       client: { connId: "conn-1" } as never,
@@ -1122,7 +1122,7 @@ describe("talk.client.toolCall handler", () => {
               consultThinkingLevel: "low",
               consultFastMode: true,
             },
-          }) as OpenClawConfig,
+          }) as AstroclawConfig,
       } as never,
     });
 
@@ -1143,14 +1143,14 @@ describe("talk.client.toolCall handler", () => {
         sessionKey: "main",
         relaySessionId: "relay-1",
         callId: "call-1",
-        name: "openclaw_agent_consult",
+        name: "astroclaw_agent_consult",
         args: { question: "What now?" },
       },
       client: { connId: "conn-1" } as never,
       isWebchatConnect: () => false,
       respond: respond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
       } as never,
     });
 
@@ -1177,7 +1177,7 @@ describe("talk.client.toolCall handler", () => {
       isWebchatConnect: () => false,
       respond: respond as never,
       context: {
-        getRuntimeConfig: () => ({}) as OpenClawConfig,
+        getRuntimeConfig: () => ({}) as AstroclawConfig,
       } as never,
     });
 
@@ -1239,7 +1239,7 @@ describe("talk.client.create handler", () => {
                 instructions: "Speak warmly.",
               },
             },
-          }) as OpenClawConfig,
+          }) as AstroclawConfig,
       } as never,
     });
 
@@ -1271,7 +1271,7 @@ describe("talk.client.create handler", () => {
       client: { connId: "conn-1" } as never,
       isWebchatConnect: () => false,
       respond: respond as never,
-      context: { getRuntimeConfig: () => ({}) as OpenClawConfig } as never,
+      context: { getRuntimeConfig: () => ({}) as AstroclawConfig } as never,
     });
 
     expectRespondError(respond, {
@@ -1296,7 +1296,7 @@ describe("talk.client.create handler", () => {
                 brain: "direct-tools",
               },
             },
-          }) as OpenClawConfig,
+          }) as AstroclawConfig,
       } as never,
     });
 

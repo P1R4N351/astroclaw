@@ -29,9 +29,9 @@ const NONCE_REFUSAL_MARKERS = [
   "no read tool available",
   "won't output",
   "won’t output",
-  "isn't a real openclaw probe",
-  "is not a real openclaw probe",
-  "not a real openclaw probe",
+  "isn't a real astroclaw probe",
+  "is not a real astroclaw probe",
+  "not a real astroclaw probe",
   "no part of the system asks me",
 ];
 

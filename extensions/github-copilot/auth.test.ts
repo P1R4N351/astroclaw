@@ -5,21 +5,21 @@ const listProfilesForProviderMock = vi.hoisted(() => vi.fn());
 const coerceSecretRefMock = vi.hoisted(() => vi.fn());
 const resolveRequiredConfiguredSecretRefInputStringMock = vi.hoisted(() => vi.fn());
 
-vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
   coerceSecretRef: coerceSecretRefMock,
   ensureAuthProfileStore: ensureAuthProfileStoreMock,
   listProfilesForProvider: listProfilesForProviderMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/secret-input-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/secret-input-runtime", () => ({
   resolveRequiredConfiguredSecretRefInputString: resolveRequiredConfiguredSecretRefInputStringMock,
 }));
 
 import { resolveFirstGithubToken } from "./auth.js";
 
 afterAll(() => {
-  vi.doUnmock("openclaw/plugin-sdk/provider-auth");
-  vi.doUnmock("openclaw/plugin-sdk/secret-input-runtime");
+  vi.doUnmock("astroclaw/plugin-sdk/provider-auth");
+  vi.doUnmock("astroclaw/plugin-sdk/secret-input-runtime");
   vi.resetModules();
 });
 

@@ -1,10 +1,10 @@
 {
-  "name": "@openclaw/acpx",
+  "name": "@astroclaw/acpx",
   "version": "2026.5.17",
-  "description": "OpenClaw ACP runtime backend",
+  "description": "Astroclaw ACP runtime backend",
   "repository": {
     "type": "git",
-    "url": "https://github.com/openclaw/openclaw"
+    "url": "https://github.com/astroclaw/astroclaw"
   },
   "type": "module",
   "dependencies": {
@@ -14,14 +14,14 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ],
     "install": {
-      "npmSpec": "@openclaw/acpx",
+      "npmSpec": "@astroclaw/acpx",
       "defaultChoice": "npm",
       "minHostVersion": ">=2026.4.25"
     },
@@ -29,7 +29,7 @@
       "pluginApi": ">=2026.5.17"
     },
     "build": {
-      "openclawVersion": "2026.5.17",
+      "astroclawVersion": "2026.5.17",
       "staticAssets": [
         {
           "source": "./src/runtime-internals/mcp-proxy.mjs",

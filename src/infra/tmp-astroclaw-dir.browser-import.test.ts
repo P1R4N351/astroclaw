@@ -3,9 +3,9 @@ import crypto from "node:crypto";
 import { build, type Plugin } from "esbuild";
 import { describe, expect, it } from "vitest";
 
-describe("tmp-openclaw-dir browser-safe import", () => {
+describe("tmp-astroclaw-dir browser-safe import", () => {
   it("loads when a browser fs shim omits constants", async () => {
-    const resultKey = `__openclawTmpDirBrowserImport_${crypto.randomUUID().replaceAll("-", "_")}`;
+    const resultKey = `__astroclawTmpDirBrowserImport_${crypto.randomUUID().replaceAll("-", "_")}`;
     const nodeShimPlugin: Plugin = {
       name: "node-browser-shims",
       setup(pluginBuild) {
@@ -35,15 +35,15 @@ describe("tmp-openclaw-dir browser-safe import", () => {
       plugins: [nodeShimPlugin],
       stdin: {
         contents: `
-          import { POSIX_OPENCLAW_TMP_DIR, resolvePreferredOpenClawTmpDir } from "./src/infra/tmp-openclaw-dir.ts";
+          import { POSIX_ASTROCLAW_TMP_DIR, resolvePreferredAstroclawTmpDir } from "./src/infra/tmp-astroclaw-dir.ts";
           globalThis.${resultKey} = {
-            posixTmpDir: POSIX_OPENCLAW_TMP_DIR,
-            resolverType: typeof resolvePreferredOpenClawTmpDir,
+            posixTmpDir: POSIX_ASTROCLAW_TMP_DIR,
+            resolverType: typeof resolvePreferredAstroclawTmpDir,
           };
         `,
         loader: "ts",
         resolveDir: process.cwd(),
-        sourcefile: "tmp-openclaw-dir-browser-entry.ts",
+        sourcefile: "tmp-astroclaw-dir-browser-entry.ts",
       },
       write: false,
     });
@@ -55,7 +55,7 @@ describe("tmp-openclaw-dir browser-safe import", () => {
 
     try {
       expect((globalThis as Record<string, unknown>)[resultKey]).toEqual({
-        posixTmpDir: "/tmp/openclaw",
+        posixTmpDir: "/tmp/astroclaw",
         resolverType: "function",
       });
     } finally {

@@ -7,8 +7,8 @@ import {
   parseArgs,
   readArtifactPackageCandidateMetadata,
   readPackageBuildSourceSha,
-  validateOpenClawPackageSpec,
-} from "../../scripts/resolve-openclaw-package-candidate.mjs";
+  validateAstroclawPackageSpec,
+} from "../../scripts/resolve-astroclaw-package-candidate.mjs";
 
 const tempDirs: string[] = [];
 
@@ -16,34 +16,34 @@ afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
-describe("resolve-openclaw-package-candidate", () => {
-  it("accepts only OpenClaw release package specs for npm candidates", () => {
+describe("resolve-astroclaw-package-candidate", () => {
+  it("accepts only Astroclaw release package specs for npm candidates", () => {
     for (const spec of [
-      "openclaw@beta",
-      "openclaw@alpha",
-      "openclaw@latest",
-      "openclaw@2026.4.27",
-      "openclaw@2026.4.27-1",
-      "openclaw@2026.4.27-beta.2",
-      "openclaw@2026.4.27-alpha.2",
+      "astroclaw@beta",
+      "astroclaw@alpha",
+      "astroclaw@latest",
+      "astroclaw@2026.4.27",
+      "astroclaw@2026.4.27-1",
+      "astroclaw@2026.4.27-beta.2",
+      "astroclaw@2026.4.27-alpha.2",
     ]) {
-      expect(validateOpenClawPackageSpec(spec), spec).toBeUndefined();
+      expect(validateAstroclawPackageSpec(spec), spec).toBeUndefined();
     }
 
-    expect(() => validateOpenClawPackageSpec("@evil/openclaw@1.0.0")).toThrow(
-      "package_spec must be openclaw@alpha",
+    expect(() => validateAstroclawPackageSpec("@evil/astroclaw@1.0.0")).toThrow(
+      "package_spec must be astroclaw@alpha",
     );
-    expect(() => validateOpenClawPackageSpec("openclaw@canary")).toThrow(
-      "package_spec must be openclaw@alpha",
+    expect(() => validateAstroclawPackageSpec("astroclaw@canary")).toThrow(
+      "package_spec must be astroclaw@alpha",
     );
-    expect(() => validateOpenClawPackageSpec("openclaw@2026.04.27")).toThrow(
-      "package_spec must be openclaw@alpha",
+    expect(() => validateAstroclawPackageSpec("astroclaw@2026.04.27")).toThrow(
+      "package_spec must be astroclaw@alpha",
     );
-    expect(() => validateOpenClawPackageSpec("openclaw@npm:other-package")).toThrow(
-      "package_spec must be openclaw@alpha",
+    expect(() => validateAstroclawPackageSpec("astroclaw@npm:other-package")).toThrow(
+      "package_spec must be astroclaw@alpha",
     );
-    expect(() => validateOpenClawPackageSpec("openclaw@file:../other-package.tgz")).toThrow(
-      "package_spec must be openclaw@alpha",
+    expect(() => validateAstroclawPackageSpec("astroclaw@file:../other-package.tgz")).toThrow(
+      "package_spec must be astroclaw@alpha",
     );
   });
 
@@ -55,7 +55,7 @@ describe("resolve-openclaw-package-candidate", () => {
         "--package-ref",
         "release/2026.4.27",
         "--package-spec",
-        "openclaw@beta",
+        "astroclaw@beta",
         "--package-url",
         "",
         "--package-sha256",
@@ -70,17 +70,17 @@ describe("resolve-openclaw-package-candidate", () => {
       githubOutput: "",
       metadata: "",
       outputDir: ".artifacts/docker-e2e-package",
-      outputName: "openclaw-current.tgz",
+      outputName: "astroclaw-current.tgz",
       packageSha256: "",
       packageRef: "release/2026.4.27",
-      packageSpec: "openclaw@beta",
+      packageSpec: "astroclaw@beta",
       packageUrl: "",
       source: "npm",
     });
   });
 
   it("reads package source metadata from package artifacts", async () => {
-    const dir = await mkdtemp(path.join(tmpdir(), "openclaw-package-candidate-"));
+    const dir = await mkdtemp(path.join(tmpdir(), "astroclaw-package-candidate-"));
     tempDirs.push(dir);
     await writeFile(
       path.join(dir, "package-candidate.json"),
@@ -105,16 +105,16 @@ describe("resolve-openclaw-package-candidate", () => {
   });
 
   it("reads the source SHA from packed npm build metadata", async () => {
-    const dir = await mkdtemp(path.join(tmpdir(), "openclaw-package-build-info-"));
+    const dir = await mkdtemp(path.join(tmpdir(), "astroclaw-package-build-info-"));
     tempDirs.push(dir);
     const root = path.join(dir, "package");
     await mkdir(path.join(root, "dist"), { recursive: true });
-    await writeFile(path.join(root, "package.json"), JSON.stringify({ name: "openclaw" }));
+    await writeFile(path.join(root, "package.json"), JSON.stringify({ name: "astroclaw" }));
     await writeFile(
       path.join(root, "dist", "build-info.json"),
       JSON.stringify({ commit: "66CE632B9B7C5C7FDD3E66C739687D51638AD6E2" }),
     );
-    const tarball = path.join(dir, "openclaw.tgz");
+    const tarball = path.join(dir, "astroclaw.tgz");
     await new Promise<void>((resolve, reject) => {
       execFile("tar", ["-czf", tarball, "-C", dir, "package"], (error) => {
         if (error) {

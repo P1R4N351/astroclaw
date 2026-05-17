@@ -72,7 +72,7 @@ export const EXPECTED_CODEX_MODELS_COMMAND_TEXT = [
   "Active model: `codex/",
   "Current active model is `openai/",
   "Current active model is `codex/",
-  "Current OpenClaw session status reports the active model as:",
+  "Current Astroclaw session status reports the active model as:",
 ] as const;
 
 export const EXPECTED_CODEX_STATUS_COMMAND_TEXT = [
@@ -81,13 +81,13 @@ export const EXPECTED_CODEX_STATUS_COMMAND_TEXT = [
   "Model: codex/",
   "Session: `agent:dev:live-codex-harness`",
   "Session: agent:dev:live-codex-harness",
-  "OpenClaw `",
-  "OpenClaw status:",
+  "Astroclaw `",
+  "Astroclaw status:",
   "Status: running on",
   "model `codex/",
   "session `agent:dev:live-codex-harness`",
   "Model/status card shown above",
-  "OpenClaw status shown above.",
+  "Astroclaw status shown above.",
   "Status shown above.",
   "No active task is running.",
   "No active work is running.",
@@ -98,10 +98,10 @@ export const EXPECTED_CODEX_STATUS_COMMAND_TEXT = [
 
 export function isExpectedCodexStatusCommandText(text: string): boolean {
   const normalized = text.toLowerCase();
-  const mentionsOpenClawStatus =
-    normalized.includes("openclaw is running on") ||
-    /openclaw\s+\S+\s+is running on/u.test(normalized) ||
-    normalized.includes("openclaw status:") ||
+  const mentionsAstroclawStatus =
+    normalized.includes("astroclaw is running on") ||
+    /astroclaw\s+\S+\s+is running on/u.test(normalized) ||
+    normalized.includes("astroclaw status:") ||
     normalized.includes("status: running on") ||
     normalized.includes("session status: running on");
   const mentionsHarnessSession =
@@ -152,7 +152,7 @@ export function isExpectedCodexStatusCommandText(text: string): boolean {
     isIdleReadyStatus ||
     isReadyStatus ||
     isOnlineIdleStatus ||
-    (mentionsOpenClawStatus && mentionsHarnessSession && mentionsModel)
+    (mentionsAstroclawStatus && mentionsHarnessSession && mentionsModel)
   );
 }
 
@@ -202,7 +202,7 @@ export function isExpectedCodexModelsCommandText(text: string): boolean {
   const mentionsSessionModel =
     normalized.includes("current session is using") ||
     normalized.includes("current session model") ||
-    normalized.includes("current session model from openclaw status") ||
+    normalized.includes("current session model from astroclaw status") ||
     normalized.includes("visible session model") ||
     normalized.includes("the current session is using");
   const mentionsConfigSummary =
@@ -211,7 +211,7 @@ export function isExpectedCodexModelsCommandText(text: string): boolean {
     normalized.includes("registered models") ||
     normalized.includes("only listed model") ||
     normalized.includes("single codex model") ||
-    normalized.includes("live openclaw config shows") ||
+    normalized.includes("live astroclaw config shows") ||
     normalized.includes("current gateway config");
   const isSessionConfigFallback =
     (text.includes("`openai/") || text.includes("`codex/")) &&

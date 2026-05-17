@@ -1,4 +1,4 @@
-import { createMockIncomingRequest } from "openclaw/plugin-sdk/test-env";
+import { createMockIncomingRequest } from "astroclaw/plugin-sdk/test-env";
 import { describe, expect, it, vi } from "vitest";
 import {
   NextcloudTalkRetryableWebhookError,

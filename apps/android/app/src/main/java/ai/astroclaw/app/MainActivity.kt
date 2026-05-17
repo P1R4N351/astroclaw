@@ -1,7 +1,7 @@
-package ai.openclaw.app
+package ai.astroclaw.app
 
-import ai.openclaw.app.ui.OpenClawTheme
-import ai.openclaw.app.ui.RootScreen
+import ai.astroclaw.app.ui.AstroclawTheme
+import ai.astroclaw.app.ui.RootScreen
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
     }
 
     setContent {
-      OpenClawTheme {
+      AstroclawTheme {
         Surface(modifier = Modifier) {
           RootScreen(viewModel = viewModel)
         }

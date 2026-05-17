@@ -1,5 +1,5 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   defaultQaModelForMode,
   normalizeQaProviderMode,
@@ -54,7 +54,7 @@ export function buildQaGatewayConfig(params: {
   liveProviderConfigs?: Record<string, ModelProviderConfig>;
   fastMode?: boolean;
   thinkingDefault?: QaThinkingLevel;
-}): OpenClawConfig {
+}): AstroclawConfig {
   const providerBaseUrl = params.providerBaseUrl ?? "http://127.0.0.1:44080/v1";
   const providerMode = normalizeQaProviderMode(params.providerMode ?? DEFAULT_QA_PROVIDER_MODE);
   const provider = getQaProvider(providerMode);
@@ -134,7 +134,7 @@ export function buildQaGatewayConfig(params: {
           enabled: true,
           config: {
             pluginToolsMcpBridge: true,
-            openClawToolsMcpBridge: true,
+            astroClawToolsMcpBridge: true,
           },
         },
         "memory-core": {
@@ -251,5 +251,5 @@ export function buildQaGatewayConfig(params: {
     },
     ...(params.transportConfig?.channels ? { channels: params.transportConfig.channels } : {}),
     ...(params.transportConfig?.messages ? { messages: params.transportConfig.messages } : {}),
-  } satisfies OpenClawConfig;
+  } satisfies AstroclawConfig;
 }

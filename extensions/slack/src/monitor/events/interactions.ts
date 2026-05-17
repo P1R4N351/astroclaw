@@ -193,7 +193,7 @@ export function registerSlackInteractionEvents(params: {
   }
   const modalMatcher = /.*/;
 
-  // Handle OpenClaw-routed modals; metadata/auth checks below drop unrelated payloads.
+  // Handle Astroclaw-routed modals; metadata/auth checks below drop unrelated payloads.
   registerModalLifecycleHandler({
     register: (matcher, handler) => ctx.app.view(matcher, handler),
     matcher: modalMatcher,

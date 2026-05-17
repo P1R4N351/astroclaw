@@ -131,7 +131,7 @@ export function renderExecApprovalPrompt(state: AppViewState) {
     }
   };
   return html`
-    <openclaw-modal-dialog label=${title} description=${remaining} @modal-cancel=${handleCancel}>
+    <astroclaw-modal-dialog label=${title} description=${remaining} @modal-cancel=${handleCancel}>
       <div class="exec-approval-card">
         <div class="exec-approval-header">
           <div>
@@ -172,6 +172,6 @@ export function renderExecApprovalPrompt(state: AppViewState) {
           </button>
         </div>
       </div>
-    </openclaw-modal-dialog>
+    </astroclaw-modal-dialog>
   `;
 }

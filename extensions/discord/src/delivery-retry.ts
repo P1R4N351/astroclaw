@@ -1,9 +1,9 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   resolveRetryConfig,
   retryAsync,
   type RetryConfig,
-} from "openclaw/plugin-sdk/retry-runtime";
+} from "astroclaw/plugin-sdk/retry-runtime";
 import { resolveDiscordAccount } from "./accounts.js";
 import { DiscordError } from "./internal/discord.js";
 
@@ -42,7 +42,7 @@ function getDiscordDeliveryRetryAfterMs(err: unknown): number | undefined {
 }
 
 export async function withDiscordDeliveryRetry<T>(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   accountId?: string | null;
   fn: () => Promise<T>;
 }): Promise<T> {

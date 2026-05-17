@@ -6,7 +6,7 @@ import type { InboundEventKind } from "../../channels/inbound-event/kind.js";
 import type { CliSessionBinding } from "../../config/sessions.js";
 import type { SessionSystemPromptReport } from "../../config/sessions/types.js";
 import type { CliBackendConfig } from "../../config/types.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import type { ContextEngine } from "../../context-engine/types.js";
 import type { PromptImageOrderEntry } from "../../media/prompt-image-order.js";
 import type { InputProvenance } from "../../sessions/input-provenance.js";
@@ -27,7 +27,7 @@ export type RunCliAgentParams = {
   trigger?: EmbeddedRunTrigger;
   sessionFile: string;
   workspaceDir: string;
-  config?: OpenClawConfig;
+  config?: AstroclawConfig;
   prompt: string;
   transcriptPrompt?: string;
   currentInboundEventKind?: InboundEventKind;
@@ -116,7 +116,7 @@ export type PreparedCliRunContext = {
   preparedBackend: CliPreparedBackend;
   reusableCliSession: CliReusableSession;
   hadSessionFile: boolean;
-  contextEngineConfig: OpenClawConfig;
+  contextEngineConfig: AstroclawConfig;
   contextEngine?: ContextEngine;
   contextEngineTurnPrompt?: string;
   contextEngineDeferredTurnMaintenance?: Promise<void>;
@@ -126,7 +126,7 @@ export type PreparedCliRunContext = {
   systemPrompt: string;
   systemPromptReport: SessionSystemPromptReport;
   bootstrapPromptWarningLines: string[];
-  openClawHistoryPrompt?: string;
+  astroClawHistoryPrompt?: string;
   heartbeatPrompt?: string;
   authEpoch?: string;
   authEpochVersion: number;

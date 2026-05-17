@@ -5,7 +5,7 @@ import type { SkillSnapshot } from "../../../agents/skills.js";
 import type { SilentReplyPromptMode } from "../../../agents/system-prompt.types.js";
 import type { InboundEventKind } from "../../../channels/inbound-event/kind.js";
 import type { SessionEntry } from "../../../config/sessions.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
 import type { PromptImageOrderEntry } from "../../../media/prompt-image-order.js";
 import type { InputProvenance } from "../../../sessions/input-provenance.js";
 import type {
@@ -82,7 +82,7 @@ export type FollowupRun = {
     traceAuthorized?: boolean;
     sessionFile: string;
     workspaceDir: string;
-    config: OpenClawConfig;
+    config: AstroclawConfig;
     skillsSnapshot?: SkillSnapshot;
     provider: string;
     model: string;
@@ -147,7 +147,7 @@ export function completeFollowupRunLifecycle(run: Pick<FollowupRun, "queuedLifec
 }
 
 export type ResolveQueueSettingsParams = {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   channel?: string;
   sessionEntry?: SessionEntry;
   inlineMode?: QueueMode;

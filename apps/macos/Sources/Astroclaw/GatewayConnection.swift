@@ -1,10 +1,10 @@
 import Foundation
-import OpenClawChatUI
-import OpenClawKit
-import OpenClawProtocol
+import AstroclawChatUI
+import AstroclawKit
+import AstroclawProtocol
 import OSLog
 
-private let gatewayConnectionLogger = Logger(subsystem: "ai.openclaw", category: "gateway.connection")
+private let gatewayConnectionLogger = Logger(subsystem: "ai.astroclaw", category: "gateway.connection")
 
 enum GatewayAgentChannel: String, Codable, CaseIterable {
     case last
@@ -339,7 +339,7 @@ actor GatewayConnection {
         return nil
     }
 
-    private func sessionDefaultString(_ defaults: [String: OpenClawProtocol.AnyCodable]?, key: String) -> String {
+    private func sessionDefaultString(_ defaults: [String: AstroclawProtocol.AnyCodable]?, key: String) -> String {
         let raw = defaults?[key]?.value as? String
         return (raw ?? "").trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
@@ -574,7 +574,7 @@ extension GatewayConnection {
 
     func healthOK(timeoutMs: Int = 8000) async throws -> Bool {
         let data = try await self.requestRaw(method: .health, timeoutMs: Double(timeoutMs))
-        return (try? self.decoder.decode(OpenClawGatewayHealthOK.self, from: data))?.ok ?? true
+        return (try? self.decoder.decode(AstroclawGatewayHealthOK.self, from: data))?.ok ?? true
     }
 
     // MARK: - Skills
@@ -623,13 +623,13 @@ extension GatewayConnection {
         keys: [String],
         limit: Int? = nil,
         maxChars: Int? = nil,
-        timeoutMs: Int? = nil) async throws -> OpenClawSessionsPreviewPayload
+        timeoutMs: Int? = nil) async throws -> AstroclawSessionsPreviewPayload
     {
         let resolvedKeys = keys
             .map { self.canonicalizeSessionKey($0) }
             .filter { !$0.isEmpty }
         if resolvedKeys.isEmpty {
-            return OpenClawSessionsPreviewPayload(ts: 0, previews: [])
+            return AstroclawSessionsPreviewPayload(ts: 0, previews: [])
         }
         var params: [String: AnyCodable] = ["keys": AnyCodable(resolvedKeys)]
         if let limit { params["limit"] = AnyCodable(limit) }
@@ -647,7 +647,7 @@ extension GatewayConnection {
         sessionKey: String,
         limit: Int? = nil,
         maxChars: Int? = nil,
-        timeoutMs: Int? = nil) async throws -> OpenClawChatHistoryPayload
+        timeoutMs: Int? = nil) async throws -> AstroclawChatHistoryPayload
     {
         let resolvedKey = self.canonicalizeSessionKey(sessionKey)
         var params: [String: AnyCodable] = ["sessionKey": AnyCodable(resolvedKey)]
@@ -665,8 +665,8 @@ extension GatewayConnection {
         message: String,
         thinking: String,
         idempotencyKey: String,
-        attachments: [OpenClawChatAttachmentPayload],
-        timeoutMs: Int = 30000) async throws -> OpenClawChatSendResponse
+        attachments: [AstroclawChatAttachmentPayload],
+        timeoutMs: Int = 30000) async throws -> AstroclawChatSendResponse
     {
         let resolvedKey = self.canonicalizeSessionKey(sessionKey)
         var params: [String: AnyCodable] = [

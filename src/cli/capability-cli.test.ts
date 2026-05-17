@@ -575,7 +575,7 @@ describe("capability cli", () => {
   });
 
   it("passes image files to local model probes", async () => {
-    const tempInput = path.join(os.tmpdir(), `openclaw-model-run-image-${Date.now()}.png`);
+    const tempInput = path.join(os.tmpdir(), `astroclaw-model-run-image-${Date.now()}.png`);
     await fs.writeFile(tempInput, Buffer.from(PNG_1X1_BASE64, "base64"));
 
     await runRegisteredCli({
@@ -641,7 +641,7 @@ describe("capability cli", () => {
 
     const call = firstCompletionCall();
     expect(call?.context?.systemPrompt).toBe(
-      "You are a personal assistant running inside OpenClaw.",
+      "You are a personal assistant running inside Astroclaw.",
     );
     expect(call?.context?.messages?.[0]?.role).toBe("user");
     expect(call?.context?.messages?.[0]?.content).toBe("hello");
@@ -657,7 +657,7 @@ describe("capability cli", () => {
   });
 
   it("passes image files to gateway model probes as attachments", async () => {
-    const tempInput = path.join(os.tmpdir(), `openclaw-model-run-gateway-image-${Date.now()}.png`);
+    const tempInput = path.join(os.tmpdir(), `astroclaw-model-run-gateway-image-${Date.now()}.png`);
     await fs.writeFile(tempInput, Buffer.from(PNG_1X1_BASE64, "base64"));
 
     await runRegisteredCli({
@@ -691,7 +691,7 @@ describe("capability cli", () => {
   });
 
   it("normalizes HEIC files to JPEG before local model probes", async () => {
-    const tempInput = path.join(os.tmpdir(), `openclaw-model-run-image-${Date.now()}.heic`);
+    const tempInput = path.join(os.tmpdir(), `astroclaw-model-run-image-${Date.now()}.heic`);
     await fs.writeFile(tempInput, Buffer.from("heic-like"));
 
     await runRegisteredCli({
@@ -726,7 +726,7 @@ describe("capability cli", () => {
   });
 
   it("rejects non-image files for model probes", async () => {
-    const tempInput = path.join(os.tmpdir(), `openclaw-model-run-audio-${Date.now()}.mp3`);
+    const tempInput = path.join(os.tmpdir(), `astroclaw-model-run-audio-${Date.now()}.mp3`);
     await fs.writeFile(tempInput, Buffer.from("not really audio"));
 
     await expect(
@@ -1205,7 +1205,7 @@ describe("capability cli", () => {
       ],
     });
 
-    const tempOutput = path.join(os.tmpdir(), `openclaw-image-mismatch-${Date.now()}.png`);
+    const tempOutput = path.join(os.tmpdir(), `astroclaw-image-mismatch-${Date.now()}.png`);
     await fs.rm(tempOutput, { force: true });
     await fs.rm(tempOutput.replace(/\.png$/, ".jpg"), { force: true });
 
@@ -1314,7 +1314,7 @@ describe("capability cli", () => {
         },
       ],
     });
-    const inputPath = path.join(os.tmpdir(), `openclaw-image-edit-${Date.now()}.png`);
+    const inputPath = path.join(os.tmpdir(), `astroclaw-image-edit-${Date.now()}.png`);
     await fs.writeFile(inputPath, Buffer.from("png-input"));
 
     await runRegisteredCli({
@@ -1429,8 +1429,8 @@ describe("capability cli", () => {
       ],
     });
 
-    const tempInput = path.join(os.tmpdir(), `openclaw-image-edit-input-${Date.now()}.png`);
-    const tempOutput = path.join(os.tmpdir(), `openclaw-image-edit-output-${Date.now()}.png`);
+    const tempInput = path.join(os.tmpdir(), `astroclaw-image-edit-input-${Date.now()}.png`);
+    const tempOutput = path.join(os.tmpdir(), `astroclaw-image-edit-output-${Date.now()}.png`);
     await fs.writeFile(tempInput, Buffer.from(pngBase64, "base64"));
     await fs.rm(tempOutput, { force: true });
 
@@ -1515,7 +1515,7 @@ describe("capability cli", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-video-generate-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-video-generate-"));
     const outputBase = path.join(tempDir, "result");
 
     await runRegisteredCli({

@@ -1,10 +1,10 @@
 import type { StreamFn } from "@earendil-works/pi-agent-core";
-import type { ProviderWrapStreamFnContext } from "openclaw/plugin-sdk/plugin-entry";
-import { normalizeProviderId } from "openclaw/plugin-sdk/provider-model-shared";
+import type { ProviderWrapStreamFnContext } from "astroclaw/plugin-sdk/plugin-entry";
+import { normalizeProviderId } from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   createPayloadPatchStreamWrapper,
   isOpenAICompatibleThinkingEnabled,
-} from "openclaw/plugin-sdk/provider-stream-shared";
+} from "astroclaw/plugin-sdk/provider-stream-shared";
 
 type VllmThinkingLevel = ProviderWrapStreamFnContext["thinkingLevel"];
 type VllmQwenThinkingFormat = "chat-template" | "top-level";

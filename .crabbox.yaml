@@ -1,4 +1,4 @@
-profile: openclaw-check
+profile: astroclaw-check
 provider: aws
 class: standard
 capacity:
@@ -18,7 +18,7 @@ actions:
   ref: main
   runnerLabels:
     - crabbox
-    - openclaw
+    - astroclaw
   runnerVersion: latest
   ephemeral: true
 aws:
@@ -40,7 +40,7 @@ env:
   allow:
     - CI
     - NODE_OPTIONS
-    - OPENCLAW_*
+    - ASTROCLAW_*
 ssh:
   user: crabbox
   port: "2222"

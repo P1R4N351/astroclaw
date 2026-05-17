@@ -1,5 +1,5 @@
 import Testing
-@testable import OpenClawKit
+@testable import AstroclawKit
 
 struct GatewayTLSPinningTests {
     @Test func `first use pinning requires system trust`() {

@@ -1,5 +1,5 @@
 import Foundation
-import OpenClawKit
+import AstroclawKit
 
 struct WideAreaGatewayBeacon: Equatable {
     var instanceName: String
@@ -56,7 +56,7 @@ enum WideAreaGatewayDiscovery {
             let ptr = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             if ptr.isEmpty { continue }
             let ptrName = ptr.hasSuffix(".") ? String(ptr.dropLast()) : ptr
-            let suffix = "._openclaw-gw._tcp.\(domainTrimmed)"
+            let suffix = "._astroclaw-gw._tcp.\(domainTrimmed)"
             let rawInstanceName = ptrName.hasSuffix(suffix)
                 ? String(ptrName.dropLast(suffix.count))
                 : ptrName
@@ -143,9 +143,9 @@ enum WideAreaGatewayDiscovery {
         dig: @escaping @Sendable (_ args: [String], _ timeout: TimeInterval) -> String?)
         -> (domainTrimmed: String, ptrLines: [Substring])?
     {
-        guard let domain = OpenClawBonjour.wideAreaGatewayServiceDomain else { return nil }
+        guard let domain = AstroclawBonjour.wideAreaGatewayServiceDomain else { return nil }
         let domainTrimmed = domain.trimmingCharacters(in: CharacterSet(charactersIn: "."))
-        let probeName = "_openclaw-gw._tcp.\(domainTrimmed)"
+        let probeName = "_astroclaw-gw._tcp.\(domainTrimmed)"
         let budget = max(0, remaining())
         if budget <= 0 { return nil }
 

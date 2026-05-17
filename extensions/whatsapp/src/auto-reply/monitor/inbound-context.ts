@@ -1,7 +1,7 @@
 import {
   evaluateSupplementalContextVisibility,
   filterSupplementalContextItems,
-} from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/security-runtime";
 import {
   getComparableIdentityValues,
   getReplyContext,

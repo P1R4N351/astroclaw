@@ -5,7 +5,7 @@ export {
   normalizeModelCatalogProviderId,
 } from "./refs.js";
 export { normalizeModelCatalog, normalizeModelCatalogRows } from "./normalize.js";
-export { loadOpenClawProviderIndex } from "./provider-index/index.js";
+export { loadAstroclawProviderIndex } from "./provider-index/index.js";
 export {
   planManifestModelCatalogRows,
   planManifestModelCatalogSuppressions,
@@ -29,4 +29,4 @@ export type {
   UnifiedModelCatalogKind,
   UnifiedModelCatalogSource,
 } from "./types.js";
-export type { OpenClawProviderIndexProvider } from "./provider-index/index.js";
+export type { AstroclawProviderIndexProvider } from "./provider-index/index.js";

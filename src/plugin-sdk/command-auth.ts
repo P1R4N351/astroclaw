@@ -10,7 +10,7 @@ import {
   buildHelpMessage as buildHelpMessageCompat,
 } from "../auto-reply/command-status-builders.js";
 import type { ChannelId } from "../channels/plugins/types.public.js";
-import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import {
   expandAllowFromWithAccessGroups,
   type AccessGroupMembershipResolver,
@@ -109,9 +109,9 @@ export type { ModelsProviderData } from "../auto-reply/reply/commands-models.js"
 export { resolveStoredModelOverride } from "../auto-reply/reply/stored-model-override.js";
 export type { StoredModelOverride } from "../auto-reply/reply/stored-model-override.js";
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export type ResolveSenderCommandAuthorizationParams = {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   rawBody: string;
   isGroup: boolean;
   dmPolicy: string;
@@ -123,7 +123,7 @@ export type ResolveSenderCommandAuthorizationParams = {
   accountId?: string;
   resolveAccessGroupMembership?: AccessGroupMembershipResolver;
   readAllowFromStore: () => Promise<string[]>;
-  shouldComputeCommandAuthorized: (rawBody: string, cfg: OpenClawConfig) => boolean;
+  shouldComputeCommandAuthorized: (rawBody: string, cfg: AstroclawConfig) => boolean;
   /** @deprecated Command authorization is resolved by channel ingress. Kept for runtime injection compatibility. */
   resolveCommandAuthorizedFromAuthorizers?: (params: {
     useAccessGroups: boolean;
@@ -131,16 +131,16 @@ export type ResolveSenderCommandAuthorizationParams = {
   }) => boolean;
 };
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export type CommandAuthorizationRuntime = {
-  shouldComputeCommandAuthorized: (rawBody: string, cfg: OpenClawConfig) => boolean;
+  shouldComputeCommandAuthorized: (rawBody: string, cfg: AstroclawConfig) => boolean;
   resolveCommandAuthorizedFromAuthorizers: (params: {
     useAccessGroups: boolean;
     authorizers: Array<{ configured: boolean; allowed: boolean }>;
   }) => boolean;
 };
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export type ResolveSenderCommandAuthorizationWithRuntimeParams = Omit<
   ResolveSenderCommandAuthorizationParams,
   "shouldComputeCommandAuthorized" | "resolveCommandAuthorizedFromAuthorizers"
@@ -148,7 +148,7 @@ export type ResolveSenderCommandAuthorizationWithRuntimeParams = Omit<
   runtime: CommandAuthorizationRuntime;
 };
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export function resolveDirectDmAuthorizationOutcome(params: {
   isGroup: boolean;
   dmPolicy: string;
@@ -166,7 +166,7 @@ export function resolveDirectDmAuthorizationOutcome(params: {
   return "allowed";
 }
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export async function resolveSenderCommandAuthorizationWithRuntime(
   params: ResolveSenderCommandAuthorizationWithRuntimeParams,
 ): ReturnType<typeof resolveSenderCommandAuthorization> {
@@ -177,7 +177,7 @@ export async function resolveSenderCommandAuthorizationWithRuntime(
   });
 }
 
-/** @deprecated Use `resolveChannelMessageIngress` from `openclaw/plugin-sdk/channel-ingress-runtime`. */
+/** @deprecated Use `resolveChannelMessageIngress` from `astroclaw/plugin-sdk/channel-ingress-runtime`. */
 export async function resolveSenderCommandAuthorization(
   params: ResolveSenderCommandAuthorizationParams,
 ): Promise<{
@@ -267,21 +267,21 @@ export async function resolveSenderCommandAuthorization(
   };
 }
 
-/** @deprecated Use `openclaw/plugin-sdk/command-status` instead. */
+/** @deprecated Use `astroclaw/plugin-sdk/command-status` instead. */
 export function buildCommandsMessage(
   ...args: Parameters<typeof buildCommandsMessageCompat>
 ): ReturnType<typeof buildCommandsMessageCompat> {
   return buildCommandsMessageCompat(...args);
 }
 
-/** @deprecated Use `openclaw/plugin-sdk/command-status` instead. */
+/** @deprecated Use `astroclaw/plugin-sdk/command-status` instead. */
 export function buildCommandsMessagePaginated(
   ...args: Parameters<typeof buildCommandsMessagePaginatedCompat>
 ): ReturnType<typeof buildCommandsMessagePaginatedCompat> {
   return buildCommandsMessagePaginatedCompat(...args);
 }
 
-/** @deprecated Use `openclaw/plugin-sdk/command-status` instead. */
+/** @deprecated Use `astroclaw/plugin-sdk/command-status` instead. */
 export function buildHelpMessage(
   ...args: Parameters<typeof buildHelpMessageCompat>
 ): ReturnType<typeof buildHelpMessageCompat> {

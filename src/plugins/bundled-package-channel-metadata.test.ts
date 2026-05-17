@@ -12,19 +12,19 @@ import { resolveBundledPluginsDir } from "./bundled-dir.js";
 import { findBundledPackageChannelMetadata } from "./bundled-package-channel-metadata.js";
 
 const tempDirs: string[] = [];
-const originalBundledPluginsDir = process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
-const originalTrustBundledPluginsDir = process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
+const originalBundledPluginsDir = process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
+const originalTrustBundledPluginsDir = process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
 
 afterEach(() => {
   if (originalBundledPluginsDir === undefined) {
-    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+    delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
   } else {
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = originalBundledPluginsDir;
+    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = originalBundledPluginsDir;
   }
   if (originalTrustBundledPluginsDir === undefined) {
-    delete process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
+    delete process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
   } else {
-    process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = originalTrustBundledPluginsDir;
+    process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = originalTrustBundledPluginsDir;
   }
   cleanupTempDirs(tempDirs);
   vi.restoreAllMocks();
@@ -32,8 +32,8 @@ afterEach(() => {
 });
 
 function useBundledPluginsDir(extensionsRoot: string): void {
-  process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = extensionsRoot;
-  process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = "1";
+  process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = extensionsRoot;
+  process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = "1";
   vi.mocked(resolveBundledPluginsDir).mockReturnValue(extensionsRoot);
 }
 
@@ -42,8 +42,8 @@ describe("bundled package channel metadata", () => {
     const root = makeTempRepoRoot(tempDirs, "bpcm-");
     const extensionsRoot = path.join(root, "dist", "extensions");
     writeJsonFile(path.join(extensionsRoot, "matrix", "package.json"), {
-      name: "@openclaw/matrix",
-      openclaw: {
+      name: "@astroclaw/matrix",
+      astroclaw: {
         channel: {
           id: "matrix",
           label: "Matrix",
@@ -57,7 +57,7 @@ describe("bundled package channel metadata", () => {
         },
       },
     });
-    writeJsonFile(path.join(extensionsRoot, "matrix", "openclaw.plugin.json"), {
+    writeJsonFile(path.join(extensionsRoot, "matrix", "astroclaw.plugin.json"), {
       id: "matrix",
       configSchema: { type: "object" },
       channels: ["matrix"],
@@ -86,15 +86,15 @@ describe("bundled package channel metadata", () => {
     useBundledPluginsDir(extensionsRoot);
 
     writeJsonFile(packagePath, {
-      name: "@openclaw/matrix",
-      openclaw: {
+      name: "@astroclaw/matrix",
+      astroclaw: {
         channel: {
           id: "matrix",
           label: "Before",
         },
       },
     });
-    writeJsonFile(path.join(extensionsRoot, "matrix", "openclaw.plugin.json"), {
+    writeJsonFile(path.join(extensionsRoot, "matrix", "astroclaw.plugin.json"), {
       id: "matrix",
       configSchema: { type: "object" },
       channels: ["matrix"],
@@ -107,8 +107,8 @@ describe("bundled package channel metadata", () => {
     expect(findBundledPackageChannelMetadata("matrix")?.label).toBe("Before");
 
     writeJsonFile(packagePath, {
-      name: "@openclaw/matrix",
-      openclaw: {
+      name: "@astroclaw/matrix",
+      astroclaw: {
         channel: {
           id: "matrix",
           label: "After",

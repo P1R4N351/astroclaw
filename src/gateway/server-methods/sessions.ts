@@ -27,7 +27,7 @@ import {
   updateSessionStore,
 } from "../../config/sessions.js";
 import { resolveAgentMainSessionKey } from "../../config/sessions/main-session.js";
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import {
   createInternalHookEvent,
   hasInternalHookListeners,
@@ -127,7 +127,7 @@ import type {
 import { assertValidParams } from "./validation.js";
 
 function filterSessionStoreToConfiguredAgents(
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
   store: Record<string, SessionEntry>,
 ): Record<string, SessionEntry> {
   const configuredAgentIds = new Set(listAgentIds(cfg).map((agentId) => normalizeAgentId(agentId)));
@@ -226,7 +226,7 @@ function rejectPluginRuntimeDeleteMismatch(params: {
   return true;
 }
 
-function resolveGatewaySessionTargetFromKey(key: string, cfg: OpenClawConfig) {
+function resolveGatewaySessionTargetFromKey(key: string, cfg: AstroclawConfig) {
   const target = resolveGatewaySessionStoreTarget({ cfg, key });
   return { cfg, target, storePath: target.storePath };
 }
@@ -423,7 +423,7 @@ function cloneCheckpointSessionEntry(params: {
   };
 }
 
-function isAgentMainSessionKey(cfg: OpenClawConfig, sessionKey: string): boolean {
+function isAgentMainSessionKey(cfg: AstroclawConfig, sessionKey: string): boolean {
   const parsed = parseAgentSessionKey(sessionKey);
   if (!parsed) {
     return false;
@@ -565,7 +565,7 @@ function resolveAbortSessionKey(params: {
 
 function resolveSessionKeyAgentId(
   sessionKey: string | undefined,
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
 ): string | undefined {
   const key = normalizeOptionalString(sessionKey);
   if (!key) {
@@ -581,7 +581,7 @@ function resolveSessionKeyAgentId(
 function sessionKeyBelongsToAgent(
   sessionKey: string | undefined,
   agentId: string,
-  cfg: OpenClawConfig,
+  cfg: AstroclawConfig,
 ): boolean {
   const key = normalizeOptionalString(sessionKey);
   if (cfg.session?.scope === "global" && key?.toLowerCase() === "global") {
@@ -592,7 +592,7 @@ function sessionKeyBelongsToAgent(
 }
 
 function resolveScopedAbortKey(params: {
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   key: string | undefined;
   agentId: string | undefined;
 }): string | undefined {

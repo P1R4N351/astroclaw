@@ -54,8 +54,8 @@ describe("runIMessageCatchup", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-imsg-catchup-bridge-"));
-    vi.stubEnv("OPENCLAW_STATE_DIR", tempDir);
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-imsg-catchup-bridge-"));
+    vi.stubEnv("ASTROCLAW_STATE_DIR", tempDir);
   });
 
   afterEach(() => {

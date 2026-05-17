@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-tsx_version="${OPENCLAW_RELEASE_TSX_VERSION:-${TSX_VERSION:-4.21.0}}"
-script_path="${OPENCLAW_RELEASE_CHECKS_SCRIPT:-workflow/scripts/openclaw-cross-os-release-checks.ts}"
+tsx_version="${ASTROCLAW_RELEASE_TSX_VERSION:-${TSX_VERSION:-4.21.0}}"
+script_path="${ASTROCLAW_RELEASE_CHECKS_SCRIPT:-workflow/scripts/astroclaw-cross-os-release-checks.ts}"
 
 if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
   if command -v cygpath >/dev/null 2>&1; then
@@ -34,12 +34,12 @@ if command -v cygpath >/dev/null 2>&1; then
   fi
 fi
 
-temp_root="${OPENCLAW_RELEASE_TSX_TOOL_ROOT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}}"
+temp_root="${ASTROCLAW_RELEASE_TSX_TOOL_ROOT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}}"
 if command -v cygpath >/dev/null 2>&1; then
   temp_root="$(cygpath -u "${temp_root}")"
 fi
 
-tool_dir="${OPENCLAW_RELEASE_TSX_TOOL_DIR:-${temp_root}/openclaw-release-tsx-${tsx_version}}"
+tool_dir="${ASTROCLAW_RELEASE_TSX_TOOL_DIR:-${temp_root}/astroclaw-release-tsx-${tsx_version}}"
 loader_path="${tool_dir}/node_modules/tsx/dist/loader.mjs"
 npm_tool_dir="${tool_dir}"
 npm_cli_arg="${npm_cli_js}"

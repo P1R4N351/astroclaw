@@ -1,5 +1,5 @@
-import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
-import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
+import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
+import { logTypingFailure } from "astroclaw/plugin-sdk/channel-feedback";
 import {
   buildMentionRegexes,
   createChannelInboundDebouncer,
@@ -9,35 +9,35 @@ import {
   resolveInboundMentionDecision,
   resolveEnvelopeFormatOptions,
   shouldDebounceTextInbound,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";
-import { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-message";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { logInboundDrop } from "astroclaw/plugin-sdk/channel-inbound";
+import { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-message";
 import {
   resolveChannelGroupPolicy,
   resolveChannelGroupRequireMention,
-} from "openclaw/plugin-sdk/channel-policy";
-import { hasControlCommand } from "openclaw/plugin-sdk/command-auth-native";
-import { recordInboundSession } from "openclaw/plugin-sdk/conversation-runtime";
+} from "astroclaw/plugin-sdk/channel-policy";
+import { hasControlCommand } from "astroclaw/plugin-sdk/command-auth-native";
+import { recordInboundSession } from "astroclaw/plugin-sdk/conversation-runtime";
 import {
   createInternalHookEvent,
   fireAndForgetHook,
   toInternalMessageReceivedContext,
   triggerInternalHook,
-} from "openclaw/plugin-sdk/hook-runtime";
-import { runInboundReplyTurn } from "openclaw/plugin-sdk/inbound-reply-dispatch";
-import { kindFromMime } from "openclaw/plugin-sdk/media-runtime";
-import { createChannelHistoryWindow } from "openclaw/plugin-sdk/reply-history";
-import { dispatchInboundMessage } from "openclaw/plugin-sdk/reply-runtime";
-import { finalizeInboundContext } from "openclaw/plugin-sdk/reply-runtime";
-import { createReplyDispatcherWithTyping } from "openclaw/plugin-sdk/reply-runtime";
-import { settleReplyDispatcher } from "openclaw/plugin-sdk/reply-runtime";
-import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
-import { danger, logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
-import { readSessionUpdatedAt, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
-import { normalizeE164 } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/hook-runtime";
+import { runInboundReplyTurn } from "astroclaw/plugin-sdk/inbound-reply-dispatch";
+import { kindFromMime } from "astroclaw/plugin-sdk/media-runtime";
+import { createChannelHistoryWindow } from "astroclaw/plugin-sdk/reply-history";
+import { dispatchInboundMessage } from "astroclaw/plugin-sdk/reply-runtime";
+import { finalizeInboundContext } from "astroclaw/plugin-sdk/reply-runtime";
+import { createReplyDispatcherWithTyping } from "astroclaw/plugin-sdk/reply-runtime";
+import { settleReplyDispatcher } from "astroclaw/plugin-sdk/reply-runtime";
+import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
+import { danger, logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
+import { readSessionUpdatedAt, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
+import { normalizeE164 } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   formatSignalPairingIdLine,
   formatSignalSenderDisplay,

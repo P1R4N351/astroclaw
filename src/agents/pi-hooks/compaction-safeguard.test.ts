@@ -5,7 +5,7 @@ import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { AstroclawConfig } from "../../config/config.js";
 import {
   clearCompactionProviders,
   registerCompactionProvider,
@@ -628,7 +628,7 @@ describe("compaction-safeguard runtime registry", () => {
           },
         },
       },
-    } as OpenClawConfig;
+    } as AstroclawConfig;
 
     buildEmbeddedExtensionFactories({
       cfg,
@@ -1522,7 +1522,7 @@ describe("compaction-safeguard recent-turn preservation", () => {
           { role: "user", content: "older context", timestamp: 1 },
           {
             role: "custom",
-            customType: "openclaw.runtime-context",
+            customType: "astroclaw.runtime-context",
             content: "secret runtime context",
             display: false,
             timestamp: 1.5,
@@ -1928,7 +1928,7 @@ describe("compaction-safeguard recent-turn preservation", () => {
       identifierInstructions: "Preserve ticket IDs exactly.",
     });
     const providerMessages = providerInput.messages ?? [];
-    expect(JSON.stringify(providerMessages)).not.toContain("openclaw.runtime-context");
+    expect(JSON.stringify(providerMessages)).not.toContain("astroclaw.runtime-context");
     expect(JSON.stringify(providerMessages)).not.toContain("secret runtime context");
     expect(compaction.summary).toContain("provider summary body");
     expect(compaction.summary).toContain("**Turn Context (split turn):**");
@@ -2364,7 +2364,7 @@ describe("compaction-safeguard double-compaction guard", () => {
 async function expectWorkspaceSummaryEmptyForAgentsAlias(
   createAlias: (outsidePath: string, agentsPath: string) => void,
 ) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-compaction-summary-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-compaction-summary-"));
   const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(root);
   try {
     const outside = path.join(root, "outside-secret.txt");

@@ -1,5 +1,5 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 
 type MutableRecord = Record<string, unknown>;
 
@@ -14,8 +14,8 @@ function mergeHostConfig(params: {
   return Object.assign({}, params.legacyHost, params.existingHost);
 }
 
-export function migrateLegacyCanvasHostConfig(config: OpenClawConfig): {
-  config: OpenClawConfig;
+export function migrateLegacyCanvasHostConfig(config: AstroclawConfig): {
+  config: AstroclawConfig;
   changes: string[];
 } | null {
   const legacyHost = readRecord((config as { canvasHost?: unknown }).canvasHost);
@@ -41,7 +41,7 @@ export function migrateLegacyCanvasHostConfig(config: OpenClawConfig): {
   };
   plugins.entries = entries;
 
-  const next = { ...config, plugins } as OpenClawConfig & { canvasHost?: unknown };
+  const next = { ...config, plugins } as AstroclawConfig & { canvasHost?: unknown };
   delete next.canvasHost;
 
   return {

@@ -1,17 +1,17 @@
 {
-  "name": "@openclaw/google-plugin",
+  "name": "@astroclaw/google-plugin",
   "version": "2026.5.17",
   "private": true,
-  "description": "OpenClaw Google plugin",
+  "description": "Astroclaw Google plugin",
   "type": "module",
   "dependencies": {
     "@earendil-works/pi-ai": "0.74.0",
     "@google/genai": "2.2.0"
   },
   "devDependencies": {
-    "@openclaw/plugin-sdk": "workspace:*"
+    "@astroclaw/plugin-sdk": "workspace:*"
   },
-  "openclaw": {
+  "astroclaw": {
     "extensions": [
       "./index.ts"
     ]

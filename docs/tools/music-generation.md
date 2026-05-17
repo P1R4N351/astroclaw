@@ -12,11 +12,11 @@ The `music_generate` tool lets the agent create music or audio through the
 shared music-generation capability with configured providers — Google,
 MiniMax, and workflow-configured ComfyUI today.
 
-For session-backed agent runs, OpenClaw starts music generation as a
+For session-backed agent runs, Astroclaw starts music generation as a
 background task, tracks it in the task ledger, then wakes the agent again
 when the track is ready so the agent can tell the user and attach the
 finished audio. Generated-media completions are delivered by the agent through
-the message tool; OpenClaw does not auto-post the file as a fallback if the
+the message tool; Astroclaw does not auto-post the file as a fallback if the
 completion agent writes only a private final reply. The completion wake
 explicitly warns the agent that normal final replies are private for this
 route.
@@ -163,16 +163,16 @@ Direct generation example:
 <ParamField path="filename" type="string">Output filename hint.</ParamField>
 
 <Note>
-Not all providers support all parameters. OpenClaw still validates hard
+Not all providers support all parameters. Astroclaw still validates hard
 limits such as input counts before submission. When a provider supports
-duration but uses a shorter maximum than the requested value, OpenClaw
+duration but uses a shorter maximum than the requested value, Astroclaw
 clamps to the closest supported duration. Truly unsupported optional hints
 are ignored with a warning when the selected provider or model cannot honor
 them. Tool results report applied settings; `details.normalization`
 captures any requested-to-applied mapping.
 </Note>
 
-Provider request timeouts are operator configuration only. OpenClaw uses
+Provider request timeouts are operator configuration only. Astroclaw uses
 `agents.defaults.musicGenerationModel.timeoutMs` when configured, raises values
 below 120000ms to 120000ms, and otherwise defaults provider requests to
 300000ms.
@@ -187,9 +187,9 @@ Session-backed music generation runs as a background task:
 - **Duplicate prevention:** while a task is `queued` or `running`, later
   `music_generate` calls in the same session return task status instead of
   starting another generation. Use `action: "status"` to check explicitly.
-- **Status lookup:** `openclaw tasks list` or `openclaw tasks show <taskId>`
+- **Status lookup:** `astroclaw tasks list` or `astroclaw tasks show <taskId>`
   inspects queued, running, and terminal status.
-- **Completion wake:** OpenClaw injects an internal completion event back
+- **Completion wake:** Astroclaw injects an internal completion event back
   into the same session so the model can write the user-facing follow-up
   itself.
 - **Prompt hint:** later user/manual turns in the same session get a small
@@ -210,9 +210,9 @@ Session-backed music generation runs as a background task:
 Check status from the CLI:
 
 ```bash
-openclaw tasks list
-openclaw tasks show <taskId>
-openclaw tasks cancel <taskId>
+astroclaw tasks list
+astroclaw tasks show <taskId>
+astroclaw tasks cancel <taskId>
 ```
 
 ## Configuration
@@ -234,7 +234,7 @@ openclaw tasks cancel <taskId>
 
 ### Provider selection order
 
-OpenClaw tries providers in this order:
+Astroclaw tries providers in this order:
 
 1. `model` parameter from the tool call (if the agent specifies one).
 2. `musicGenerationModel.primary` from config.
@@ -317,7 +317,7 @@ deterministically.
 Opt-in live coverage for the shared bundled providers:
 
 ```bash
-OPENCLAW_LIVE_TEST=1 pnpm test:live -- extensions/music-generation-providers.live.test.ts
+ASTROCLAW_LIVE_TEST=1 pnpm test:live -- extensions/music-generation-providers.live.test.ts
 ```
 
 Repo wrapper:
@@ -337,7 +337,7 @@ the provider enables edit mode. Coverage today:
 Opt-in live coverage for the bundled ComfyUI music path:
 
 ```bash
-OPENCLAW_LIVE_TEST=1 COMFY_LIVE_TEST=1 pnpm test:live -- extensions/comfy/comfy.live.test.ts
+ASTROCLAW_LIVE_TEST=1 COMFY_LIVE_TEST=1 pnpm test:live -- extensions/comfy/comfy.live.test.ts
 ```
 
 The Comfy live file also covers comfy image and video workflows when those

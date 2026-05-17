@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 // Capture every call to postTrustedWebToolsJson so we can assert on extraHeaders.
 const postTrustedWebToolsJson = vi.fn();
 
-vi.mock("openclaw/plugin-sdk/provider-web-search", () => ({
+vi.mock("astroclaw/plugin-sdk/provider-web-search", () => ({
   DEFAULT_CACHE_TTL_MINUTES: 5,
   normalizeCacheKey: (k: string) => k,
   postTrustedWebToolsJson,
@@ -12,7 +12,7 @@ vi.mock("openclaw/plugin-sdk/provider-web-search", () => ({
   writeCache: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/security-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/security-runtime", () => ({
   wrapExternalContent: (v: string) => v,
   wrapWebContent: (v: string) => v,
 }));
@@ -41,12 +41,12 @@ describe("tavily client X-Client-Source header", () => {
     );
   });
 
-  it("runTavilySearch sends X-Client-Source: openclaw", async () => {
+  it("runTavilySearch sends X-Client-Source: astroclaw", async () => {
     await runTavilySearch({ query: "test query" });
 
     expect(postTrustedWebToolsJson).toHaveBeenCalledOnce();
     const params = postTrustedWebToolsJson.mock.calls[0]?.[0];
-    expect(params.extraHeaders).toEqual({ "X-Client-Source": "openclaw" });
+    expect(params.extraHeaders).toEqual({ "X-Client-Source": "astroclaw" });
   });
 
   it("runTavilySearch reports malformed JSON with a stable provider error", async () => {
@@ -60,12 +60,12 @@ describe("tavily client X-Client-Source header", () => {
     );
   });
 
-  it("runTavilyExtract sends X-Client-Source: openclaw", async () => {
+  it("runTavilyExtract sends X-Client-Source: astroclaw", async () => {
     await runTavilyExtract({ urls: ["https://example.com"] });
 
     expect(postTrustedWebToolsJson).toHaveBeenCalledOnce();
     const params = postTrustedWebToolsJson.mock.calls[0]?.[0];
-    expect(params.extraHeaders).toEqual({ "X-Client-Source": "openclaw" });
+    expect(params.extraHeaders).toEqual({ "X-Client-Source": "astroclaw" });
   });
 
   it("runTavilyExtract reports malformed JSON with a stable provider error", async () => {

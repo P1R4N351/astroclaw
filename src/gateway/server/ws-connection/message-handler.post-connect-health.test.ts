@@ -179,7 +179,7 @@ describe("attachGatewayWsMessageHandler post-connect health refresh", () => {
           minProtocol: PROTOCOL_VERSION,
           maxProtocol: PROTOCOL_VERSION,
           client: {
-            id: "openclaw-control-ui",
+            id: "astroclaw-control-ui",
             version: "dev",
             platform: "test",
             mode: "ui",

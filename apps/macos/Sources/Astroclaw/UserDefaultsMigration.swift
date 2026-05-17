@@ -1,7 +1,7 @@
 import Foundation
 
-private let legacyDefaultsPrefix = "openclaw."
-private let defaultsPrefix = "openclaw."
+private let legacyDefaultsPrefix = "astroclaw."
+private let defaultsPrefix = "astroclaw."
 
 func migrateLegacyDefaults() {
     let defaults = UserDefaults.standard

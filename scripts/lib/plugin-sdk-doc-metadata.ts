@@ -115,5 +115,5 @@ export const pluginSdkDocMetadata = {
 export type PluginSdkDocEntrypoint = keyof typeof pluginSdkDocMetadata;
 
 export function resolvePluginSdkDocImportSpecifier(entrypoint: PluginSdkDocEntrypoint): string {
-  return entrypoint === "index" ? "openclaw/plugin-sdk" : `openclaw/plugin-sdk/${entrypoint}`;
+  return entrypoint === "index" ? "astroclaw/plugin-sdk" : `astroclaw/plugin-sdk/${entrypoint}`;
 }

@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { readJsonFileWithFallback } from "openclaw/plugin-sdk/json-store";
-import { resolveStateDir } from "openclaw/plugin-sdk/state-paths";
+import { readJsonFileWithFallback } from "astroclaw/plugin-sdk/json-store";
+import { resolveStateDir } from "astroclaw/plugin-sdk/state-paths";
 
 const SPOOL_VERSION = 1;
 export const TELEGRAM_SPOOLED_UPDATE_PROCESSING_STALE_MS = 6 * 60 * 60 * 1000;

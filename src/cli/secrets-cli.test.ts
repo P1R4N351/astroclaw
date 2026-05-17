@@ -80,13 +80,13 @@ function createConfigureInteractiveResult(options?: {
       version: 1,
       protocolVersion: 1,
       generatedAt: "2026-02-26T00:00:00.000Z",
-      generatedBy: "openclaw secrets configure",
+      generatedBy: "astroclaw secrets configure",
       targets: options?.targets ?? [],
     },
     preflight: {
       mode: "dry-run" as const,
       changed: options?.changed ?? false,
-      changedFiles: options?.changed ? ["/tmp/openclaw.json"] : [],
+      changedFiles: options?.changed ? ["/tmp/astroclaw.json"] : [],
       checks: {
         resolvability: true,
         resolvabilityComplete: options?.resolvabilityComplete ?? true,
@@ -107,7 +107,7 @@ function createSecretsApplyResult(options?: {
   return {
     mode: options?.mode ?? "dry-run",
     changed: options?.changed ?? false,
-    changedFiles: options?.changed ? ["/tmp/openclaw.json"] : [],
+    changedFiles: options?.changed ? ["/tmp/astroclaw.json"] : [],
     checks: {
       resolvability: true,
       resolvabilityComplete: options?.resolvabilityComplete ?? true,
@@ -149,7 +149,7 @@ function expectObjectFields(value: unknown, expected: Record<string, unknown>): 
 async function withPlanFile(run: (planPath: string) => Promise<void>) {
   const planPath = path.join(
     os.tmpdir(),
-    `openclaw-secrets-cli-test-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
+    `astroclaw-secrets-cli-test-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
   );
   await fs.writeFile(planPath, `${JSON.stringify(createManualSecretsPlan())}\n`, "utf8");
   try {
@@ -206,7 +206,7 @@ describe("secrets CLI", () => {
   it("explains Gateway reload failures without duplicate doctor noise", async () => {
     callGatewayFromCli.mockRejectedValue(
       new Error(
-        "gateway closed (1006 abnormal closure). Gateway target: ws://127.0.0.1:18789 Source: local loopback Config: /tmp/openclaw.json Bind: loopback Possible causes: - Gateway not yet ready. Run `openclaw doctor` for diagnostics.",
+        "gateway closed (1006 abnormal closure). Gateway target: ws://127.0.0.1:18789 Source: local loopback Config: /tmp/astroclaw.json Bind: loopback Possible causes: - Gateway not yet ready. Run `astroclaw doctor` for diagnostics.",
       ),
     );
 
@@ -217,7 +217,7 @@ describe("secrets CLI", () => {
     expect(runtimeErrors.at(-1)).toContain(
       "Could not reload secrets because the Gateway did not respond: gateway closed (1006 abnormal closure).",
     );
-    expect(runtimeErrors.at(-1)).toContain("openclaw gateway status --deep");
+    expect(runtimeErrors.at(-1)).toContain("astroclaw gateway status --deep");
     expect(runtimeErrors.at(-1)).not.toContain("Gateway target:");
     expect(runtimeErrors.at(-1)).not.toContain("diagnostics..");
   });

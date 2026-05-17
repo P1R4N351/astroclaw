@@ -41,7 +41,7 @@ import {
 import {
   collectInstalledPackageErrors,
   normalizeInstalledBinaryVersion,
-} from "./openclaw-npm-postpublish-verify.ts";
+} from "./astroclaw-npm-postpublish-verify.ts";
 import { listStaticExtensionAssetOutputs } from "./runtime-postbuild.mjs";
 import { sparkleBuildFloorsFromShortVersion, type SparkleBuildFloors } from "./sparkle-build.ts";
 import { buildCmdExeCommandLine } from "./windows-cmd-helpers.mjs";
@@ -82,7 +82,7 @@ const requiredPathGroups = [
 const forbiddenPrefixes = [
   ...LOCAL_BUILD_METADATA_DIST_PATHS,
   "dist-runtime/",
-  "dist/OpenClaw.app/",
+  "dist/Astroclaw.app/",
   "dist/extensions/qa-channel/",
   "dist/extensions/qa-lab/",
   "dist/plugin-sdk/extensions/qa-channel/",
@@ -116,12 +116,12 @@ const laneFloorAdoptionDateKey = 20260227;
 const SAFE_UNIX_SMOKE_PATH = "/usr/bin:/bin";
 export const MAX_CRITICAL_PLUGIN_SDK_ENTRYPOINT_BYTES = 2 * 1024 * 1024;
 export const CRITICAL_PLUGIN_SDK_SIZE_CHECK_SPECIFIERS = [
-  "openclaw/plugin-sdk/agent-runtime-test-contracts",
-  "openclaw/plugin-sdk/plugin-test-contracts",
-  "openclaw/plugin-sdk/provider-test-contracts",
+  "astroclaw/plugin-sdk/agent-runtime-test-contracts",
+  "astroclaw/plugin-sdk/plugin-test-contracts",
+  "astroclaw/plugin-sdk/provider-test-contracts",
 ] as const;
 export const CRITICAL_PLUGIN_SDK_IMPORT_SMOKE_SPECIFIERS = [
-  "openclaw/plugin-sdk/plugin-test-contracts",
+  "astroclaw/plugin-sdk/plugin-test-contracts",
 ] as const;
 export const PACKED_CLI_SMOKE_COMMANDS = [
   ["--help"],
@@ -253,8 +253,8 @@ function resolveGlobalRoot(prefixDir: string, cwd: string): string {
 
 function resolveInstalledBinaryPath(prefixDir: string): string {
   return process.platform === "win32"
-    ? join(prefixDir, "openclaw.cmd")
-    : join(prefixDir, "bin", "openclaw");
+    ? join(prefixDir, "astroclaw.cmd")
+    : join(prefixDir, "bin", "astroclaw");
 }
 
 export function createPackedBundledPluginPostinstallEnv(
@@ -262,7 +262,7 @@ export function createPackedBundledPluginPostinstallEnv(
 ): NodeJS.ProcessEnv {
   return {
     ...env,
-    OPENCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
+    ASTROCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
   };
 }
 
@@ -305,10 +305,10 @@ export function createPackedCliSmokeEnv(
     AWS_EC2_METADATA_DISABLED: "true",
     AWS_SHARED_CREDENTIALS_FILE: homeDir ? join(homeDir, ".aws", "credentials") : undefined,
     AWS_CONFIG_FILE: homeDir ? join(homeDir, ".aws", "config") : undefined,
-    OPENCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
-    OPENCLAW_NO_ONBOARD: "1",
-    OPENCLAW_SERVICE_REPAIR_POLICY: "external",
-    OPENCLAW_SUPPRESS_NOTES: "1",
+    ASTROCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
+    ASTROCLAW_NO_ONBOARD: "1",
+    ASTROCLAW_SERVICE_REPAIR_POLICY: "external",
+    ASTROCLAW_SUPPRESS_NOTES: "1",
     ...overrides,
   };
 }
@@ -320,8 +320,8 @@ export function createPackedCompletionSmokeEnv(
   return {
     ...env,
     ...overrides,
-    OPENCLAW_SUPPRESS_NOTES: "1",
-    OPENCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
+    ASTROCLAW_SUPPRESS_NOTES: "1",
+    ASTROCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
     [COMPLETION_SKIP_PLUGIN_COMMANDS_ENV]: "1",
   };
 }
@@ -352,7 +352,7 @@ export function collectPackedInstalledPackageVerificationErrors(params: {
     normalizeInstalledBinaryVersion(params.installedBinaryVersion) !== params.expectedVersion
   ) {
     errors.push(
-      `installed openclaw binary version mismatch: expected ${params.expectedVersion}, found ${params.installedBinaryVersion || "<missing>"}.`,
+      `installed astroclaw binary version mismatch: expected ${params.expectedVersion}, found ${params.installedBinaryVersion || "<missing>"}.`,
     );
   }
   return errors;
@@ -387,8 +387,8 @@ function verifyPackedInstalledPackage(params: {
 }
 
 export function writePackedBundledPluginActivationConfig(homeDir: string): void {
-  const configPath = join(homeDir, ".openclaw", "openclaw.json");
-  mkdirSync(join(homeDir, ".openclaw"), { recursive: true });
+  const configPath = join(homeDir, ".astroclaw", "astroclaw.json");
+  mkdirSync(join(homeDir, ".astroclaw"), { recursive: true });
   writeFileSync(
     configPath,
     `${JSON.stringify(
@@ -406,7 +406,7 @@ export function writePackedBundledPluginActivationConfig(homeDir: string): void 
         models: {
           providers: {
             openai: {
-              apiKey: "sk-openclaw-release-check",
+              apiKey: "sk-astroclaw-release-check",
               baseUrl: "https://api.openai.com/v1",
               models: [],
             },
@@ -433,20 +433,20 @@ function runPackedBundledPluginActivationSmoke(packageRoot: string, tmpRoot: str
   mkdirSync(homeDir, { recursive: true });
   const env = createPackedCliSmokeEnv(process.env, {
     HOME: homeDir,
-    OPENAI_API_KEY: "sk-openclaw-release-check",
+    OPENAI_API_KEY: "sk-astroclaw-release-check",
   });
 
   writePackedBundledPluginActivationConfig(homeDir);
   execFileSync(
     process.execPath,
-    [join(packageRoot, "openclaw.mjs"), ...PACKED_BUNDLED_RUNTIME_DEPS_REPAIR_ARGS],
+    [join(packageRoot, "astroclaw.mjs"), ...PACKED_BUNDLED_RUNTIME_DEPS_REPAIR_ARGS],
     {
       cwd: packageRoot,
       stdio: "inherit",
       env,
     },
   );
-  execFileSync(process.execPath, [join(packageRoot, "openclaw.mjs"), "plugins", "doctor"], {
+  execFileSync(process.execPath, [join(packageRoot, "astroclaw.mjs"), "plugins", "doctor"], {
     cwd: packageRoot,
     stdio: "inherit",
     env,
@@ -487,8 +487,8 @@ function runPackedCliSmoke(params: {
   const binaryPath = resolveInstalledBinaryPath(params.prefixDir);
   const env = createPackedCliSmokeEnv(process.env, {
     HOME: params.homeDir,
-    OPENCLAW_STATE_DIR: params.stateDir,
-    OPENAI_API_KEY: "sk-openclaw-release-check",
+    ASTROCLAW_STATE_DIR: params.stateDir,
+    OPENAI_API_KEY: "sk-astroclaw-release-check",
   });
   const windowsRoot = env.SystemRoot ?? env.WINDIR ?? "C:\\Windows";
   const trustedCmdPath = join(windowsRoot, "System32", "cmd.exe");
@@ -518,7 +518,7 @@ function runPackedCliSmoke(params: {
 }
 
 function runPackedBundledChannelEntrySmoke(): void {
-  const tmpRoot = mkdtempSync(join(tmpdir(), "openclaw-release-pack-smoke-"));
+  const tmpRoot = mkdtempSync(join(tmpdir(), "astroclaw-release-pack-smoke-"));
   try {
     const expectedVersion = (
       JSON.parse(readFileSync(resolve("package.json"), "utf8")) as {
@@ -536,7 +536,7 @@ function runPackedBundledChannelEntrySmoke(): void {
     const prefixDir = join(tmpRoot, "prefix");
     installPackedTarball(prefixDir, tarballPath, tmpRoot);
 
-    const packageRoot = join(resolveGlobalRoot(prefixDir, tmpRoot), "openclaw");
+    const packageRoot = join(resolveGlobalRoot(prefixDir, tmpRoot), "astroclaw");
     verifyPackedInstalledPackage({
       expectedVersion,
       packageRoot,
@@ -566,20 +566,20 @@ function runPackedBundledChannelEntrySmoke(): void {
         stdio: "inherit",
         env: {
           ...process.env,
-          OPENCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
+          ASTROCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
         },
       },
     );
 
     execFileSync(
       process.execPath,
-      [join(packageRoot, "openclaw.mjs"), ...PACKED_COMPLETION_SMOKE_ARGS],
+      [join(packageRoot, "astroclaw.mjs"), ...PACKED_COMPLETION_SMOKE_ARGS],
       {
         cwd: packageRoot,
         stdio: "inherit",
         env: createPackedCompletionSmokeEnv(process.env, {
           HOME: homeDir,
-          OPENCLAW_STATE_DIR: stateDir,
+          ASTROCLAW_STATE_DIR: stateDir,
         }),
       },
     );
@@ -636,8 +636,8 @@ export function collectForbiddenPackPaths(paths: Iterable<string>): string[] {
       (path) =>
         isLegacyPluginDependencyInstallStagePath(path) ||
         forbiddenPrefixes.some((prefix) => path.startsWith(prefix)) ||
-        /(^|\/)\.openclaw-runtime-deps-[^/]+(\/|$)/u.test(path) ||
-        path.endsWith("/.openclaw-runtime-deps-stamp.json") ||
+        /(^|\/)\.astroclaw-runtime-deps-[^/]+(\/|$)/u.test(path) ||
+        path.endsWith("/.astroclaw-runtime-deps-stamp.json") ||
         path.includes("node_modules/"),
     )
     .toSorted((left, right) => left.localeCompare(right));
@@ -746,7 +746,7 @@ function checkAppcastSparkleVersions() {
   }
 }
 
-// Critical functions that channel extension plugins import from openclaw/plugin-sdk.
+// Critical functions that channel extension plugins import from astroclaw/plugin-sdk.
 // If any are missing from the compiled output, plugins crash at runtime (#27569).
 const requiredPluginSdkExports = [
   "isDangerousNameMatchingEnabled",
@@ -827,7 +827,7 @@ async function checkPluginSdkExports() {
 export function collectCriticalPluginSdkEntrypointSizeErrors(rootDir = process.cwd()): string[] {
   const errors: string[] = [];
   for (const specifier of CRITICAL_PLUGIN_SDK_SIZE_CHECK_SPECIFIERS) {
-    const subpath = specifier.slice("openclaw/plugin-sdk/".length);
+    const subpath = specifier.slice("astroclaw/plugin-sdk/".length);
     const relativePath = `dist/plugin-sdk/${subpath}.js`;
     const filePath = resolve(rootDir, relativePath);
     if (!existsSync(filePath)) {

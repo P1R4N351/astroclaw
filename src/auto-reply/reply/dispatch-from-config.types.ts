@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import type { GetReplyOptions, SourceReplyDeliveryMode } from "../get-reply-options.types.js";
 import type { FinalizedMsgContext } from "../templating.js";
 import type { FormatAbortReplyText, TryFastAbortFromMessage } from "./abort.runtime-types.js";
@@ -15,14 +15,14 @@ export type DispatchFromConfigResult = {
 
 export type DispatchFromConfigParams = {
   ctx: FinalizedMsgContext;
-  cfg: OpenClawConfig;
+  cfg: AstroclawConfig;
   dispatcher: ReplyDispatcher;
   replyOptions?: Omit<GetReplyOptions, "onBlockReply">;
   replyResolver?: GetReplyFromConfig;
   fastAbortResolver?: TryFastAbortFromMessage;
   formatAbortReplyTextResolver?: FormatAbortReplyText;
   /** Optional patch applied to the already loaded config before reply resolution. */
-  configOverride?: OpenClawConfig;
+  configOverride?: AstroclawConfig;
 };
 
 export type DispatchReplyFromConfig = (

@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import type { SecretRef } from "../../config/types.secrets.js";
 
 export type OAuthProvider = string;
@@ -17,7 +17,7 @@ export type OAuthCredentials = {
 };
 
 export type OAuthCredentialRef = {
-  source: "openclaw-credentials";
+  source: "astroclaw-credentials";
   provider: "openai-codex";
   id: string;
 };
@@ -38,7 +38,7 @@ export type ApiKeyCredential = {
 export type TokenCredential = {
   /**
    * Static bearer-style token (often OAuth access token / PAT).
-   * Not refreshable by OpenClaw (unlike `type: "oauth"`).
+   * Not refreshable by Astroclaw (unlike `type: "oauth"`).
    */
   type: "token";
   provider: string;
@@ -127,7 +127,7 @@ export type AuthProfileStateStore = {
 export type AuthProfileStore = AuthProfileSecretsStore & AuthProfileState;
 
 export type AuthProfileIdRepairResult = {
-  config: OpenClawConfig;
+  config: AstroclawConfig;
   changes: string[];
   migrated: boolean;
   fromProfileId?: string;
