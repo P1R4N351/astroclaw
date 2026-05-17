@@ -29,9 +29,9 @@ import type { IdentityConfig } from "../../config/types.base.js";
 import type { AstroclawConfig } from "../../config/types.astroclaw.js";
 import { root, FsSafeError, type ReadResult } from "../../infra/fs-safe.js";
 import { movePathToTrash } from "../../plugin-sdk/browser-maintenance.js";
-import { notifyProliferationWorkspaceWrite } from "../proliferation-bootstrap.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../../routing/session-key.js";
 import { resolveUserPath } from "../../utils.js";
+import { notifyProliferationWorkspaceWrite } from "../proliferation-bootstrap.js";
 import {
   ErrorCodes,
   errorShape,
@@ -351,6 +351,8 @@ async function writeWorkspaceFileOrRespond(params: {
   workspaceDir: string;
   name: string;
   content: string;
+  /** Optional agent scope, threaded through to the proliferation replicator. */
+  agentId?: string;
 }): Promise<boolean> {
   await fs.mkdir(params.workspaceDir, { recursive: true });
   try {
@@ -363,6 +365,12 @@ async function writeWorkspaceFileOrRespond(params: {
     }
     throw err;
   }
+  notifyProliferationWorkspaceWrite({
+    workspaceDir: params.workspaceDir,
+    path: params.name,
+    body: params.content,
+    agentId: params.agentId,
+  });
   return true;
 }
 
@@ -554,6 +562,7 @@ export const agentsHandlers: GatewayRequestHandlers = {
           workspaceDir,
           name: DEFAULT_IDENTITY_FILENAME,
           content: identityContent,
+          agentId,
         }))
       ) {
         return;
@@ -657,6 +666,7 @@ export const agentsHandlers: GatewayRequestHandlers = {
           workspaceDir: identityWorkspaceDir,
           name: DEFAULT_IDENTITY_FILENAME,
           content: identityContent,
+          agentId,
         }))
       ) {
         return;
