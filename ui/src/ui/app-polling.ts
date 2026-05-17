@@ -19,7 +19,9 @@ export function startNodesPolling(host: PollingHost) {
     return;
   }
   host.nodesPollInterval = window.setInterval(() => {
-    if (host.tab !== "nodes") {
+    // astroclaw/0020: also poll while on the Siblings tab — paired nodes
+    // surface inside the Siblings panel now.
+    if (host.tab !== "nodes" && host.tab !== "siblings") {
       return;
     }
     void loadNodes(host as unknown as NodesState, { quiet: true });

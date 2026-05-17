@@ -1773,6 +1773,11 @@ export function renderApp(state: AppViewState) {
                   | Parameters<typeof m.renderSiblings>[0]["proliferation"]
                   | undefined,
                 onRefresh: () => loadHealthState(state),
+                // astroclaw/0020: surface paired nodes inside the Siblings panel
+                // so the merged mesh + nodes view lives on one page.
+                pairedNodes: state.nodes,
+                pairedNodesLoading: state.nodesLoading,
+                onPairedNodesRefresh: () => loadNodes(state),
               }),
             )
           : nothing}

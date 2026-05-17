@@ -8,7 +8,11 @@ export const TAB_GROUPS = [
     label: "control",
     tabs: ["overview", "channels", "instances", "siblings", "sessions", "usage", "cron"],
   },
-  { label: "agent", tabs: ["agents", "skills", "nodes", "dreams"] },
+  // astroclaw/0020: Nodes merged into the Siblings page (CONTROL group).
+  // The /nodes route + Tab type stay defined so deep links keep working
+  // and the stripped Nodes page still renders if someone navigates to
+  // it directly, but it's gone from the sidebar.
+  { label: "agent", tabs: ["agents", "skills", "dreams"] },
   {
     label: "settings",
     tabs: [

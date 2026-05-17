@@ -56,6 +56,16 @@ export type SiblingsProps = {
   error?: string | null;
   proliferation?: ProliferationHealth | null;
   onRefresh: () => void;
+  /**
+   * astroclaw/0020: paired astroclaw nodes (was the canonical content of
+   * the dedicated Nodes page). When provided, renders below the mesh
+   * grid as a "Paired nodes" card. Optional so callers that only
+   * have proliferation data (e.g. healthz-only deployments) still
+   * compile.
+   */
+  pairedNodes?: Array<Record<string, unknown>>;
+  pairedNodesLoading?: boolean;
+  onPairedNodesRefresh?: () => void;
 };
 
 export function renderSiblings(props: SiblingsProps): TemplateResult {
@@ -131,7 +141,89 @@ export function renderSiblings(props: SiblingsProps): TemplateResult {
           snapshotBodiesPushed: p.session_snapshot_body_cid_populated,
         })}
       </div>
+      ${renderPairedNodes(
+        props.pairedNodes,
+        Boolean(props.pairedNodesLoading),
+        props.onPairedNodesRefresh,
+      )}
     </section>
+  `;
+}
+
+/**
+ * astroclaw/0020: paired astroclaw nodes card. Lives inside the Siblings
+ * panel below the mesh grid so the operator sees mesh siblings and
+ * paired peers on the same page.
+ */
+function renderPairedNodes(
+  nodes: Array<Record<string, unknown>> | undefined,
+  loading: boolean,
+  onRefresh: (() => void) | undefined,
+): TemplateResult {
+  if (!nodes) {
+    return html``;
+  }
+  return html`
+    <div class="card" style="padding: 12px; margin-top: 16px;">
+      <div class="row" style="justify-content: space-between; align-items: flex-start;">
+        <div>
+          <div class="card-title" style="font-size: 0.9em;">Paired nodes (${nodes.length})</div>
+          <div class="card-sub">astroclaw peer nodes paired with this gateway.</div>
+        </div>
+        ${onRefresh
+          ? html`
+              <button class="btn btn--sm" ?disabled=${loading} @click=${onRefresh}>
+                ${loading ? t("common.loading") : t("common.refresh")}
+              </button>
+            `
+          : nothing}
+      </div>
+      ${nodes.length === 0
+        ? html`<div class="muted" style="margin-top: 8px;">No paired nodes.</div>`
+        : html`
+            <ul style="margin: 8px 0 0 0; padding-left: 0; list-style: none;">
+              ${nodes.map((n) => renderPairedNodeRow(n))}
+            </ul>
+          `}
+    </div>
+  `;
+}
+
+function renderPairedNodeRow(node: Record<string, unknown>): TemplateResult {
+  const connected = Boolean(node.connected);
+  const paired = Boolean(node.paired);
+  const title =
+    (typeof node.displayName === "string" && node.displayName.trim()) ||
+    (typeof node.nodeId === "string" ? node.nodeId : "unknown");
+  const detailParts = [
+    typeof node.nodeId === "string" ? node.nodeId : "",
+    typeof node.remoteIp === "string" ? node.remoteIp : "",
+    typeof node.version === "string" ? node.version : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return html`
+    <li style="padding: 6px 0; border-bottom: 1px solid var(--surface-2, #f4f4f5);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div><strong>${title}</strong></div>
+          ${detailParts
+            ? html`<div class="muted" style="font-size: 0.85em;">${detailParts}</div>`
+            : nothing}
+        </div>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
+          <span class="badge" style="font-size: 0.7em;">${paired ? "paired" : "unpaired"}</span>
+          <span
+            class="badge"
+            style="font-size: 0.7em; background: ${connected
+              ? "#86efac"
+              : "#fde68a"}; color: #052e16;"
+          >
+            ${connected ? "connected" : "offline"}
+          </span>
+        </div>
+      </div>
+    </li>
   `;
 }
 

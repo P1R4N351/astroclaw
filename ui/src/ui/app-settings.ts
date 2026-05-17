@@ -432,6 +432,13 @@ export async function refreshActiveTab(host: SettingsHost) {
         await loadNodes(app);
         await Promise.allSettled([loadDevices(app), loadConfig(app), loadExecApprovals(app)]);
         break;
+      case "siblings":
+        // astroclaw/0020: merged page surfaces paired nodes inside the
+        // Siblings panel, so load both data sources when the tab opens.
+        // healthState is already kicked off by app-gateway on connect;
+        // loadNodes covers the paired-nodes card.
+        await loadNodes(app);
+        break;
       case "dreams":
         await loadConfig(app);
         await Promise.all([
@@ -648,7 +655,9 @@ function applyTabSelection(
   (next === "logs" ? startLogsPolling : stopLogsPolling)(
     host as unknown as Parameters<typeof startLogsPolling>[0],
   );
-  (next === "nodes" ? startNodesPolling : stopNodesPolling)(
+  // astroclaw/0020: poll nodes when on Siblings too — the merged page renders
+  // paired nodes alongside mesh peers.
+  (next === "nodes" || next === "siblings" ? startNodesPolling : stopNodesPolling)(
     host as unknown as Parameters<typeof startNodesPolling>[0],
   );
   (next === "debug" ? startDebugPolling : stopDebugPolling)(

@@ -14,15 +14,21 @@ export type { NodesProps } from "./nodes.types.ts";
 import type { NodesProps } from "./nodes.types.ts";
 
 export function renderNodes(props: NodesProps) {
-  const bindingState = resolveBindingsState(props);
-  const approvalsState = resolveExecApprovalsState(props);
+  // astroclaw/0020: stripped-down nodes view — the binding/exec-approvals/devices
+  // surfaces moved to dedicated pages and the canonical peer list lives on
+  // the Siblings tab now. This page is kept as a fallback for direct
+  // /nodes navigation and renders just the paired-nodes list.
   return html`
-    ${renderExecApprovals(approvalsState)} ${renderBindings(bindingState)} ${renderDevices(props)}
     <section class="card">
       <div class="row" style="justify-content: space-between;">
         <div>
           <div class="card-title">Nodes</div>
-          <div class="card-sub">Paired devices and live links.</div>
+          <div class="card-sub">
+            Paired devices and live links.
+            <span class="muted">
+              · See the <a href="/siblings">Siblings</a> page for the merged mesh + nodes view.
+            </span>
+          </div>
         </div>
         <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
           ${props.loading ? t("common.loading") : t("common.refresh")}
@@ -36,6 +42,9 @@ export function renderNodes(props: NodesProps) {
     </section>
   `;
 }
+
+/** Public export: lets the Siblings page render the same compact node row. */
+export const renderPairedNode = renderNode;
 
 function renderDevices(props: NodesProps) {
   const list = props.devicesList ?? { pending: [], paired: [] };
