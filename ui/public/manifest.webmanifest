@@ -1,7 +1,7 @@
 {
   "name": "Astroclaw Control",
   "short_name": "Astroclaw",
-  "description": "Multi-channel AI gateway control panel",
+  "description": "Multi-channel AI gateway control panel — astroclaw mesh edition",
   "start_url": "./",
   "display": "standalone",
   "theme_color": "#0a0a0a",

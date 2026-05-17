@@ -74,6 +74,9 @@ importers:
       '@homebridge/ciao':
         specifier: 1.3.8
         version: 1.3.8
+      '@astroclaw/runtime':
+        specifier: file:/Users/dev/astroclaw/sidecar
+        version: file:../astroclaw/sidecar
       '@lydell/node-pty':
         specifier: 1.2.0-beta.12
         version: 1.2.0-beta.12
@@ -2879,6 +2882,41 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
+
+  '@astroclaw/channel@file:../astroclaw/sidecar/packages/channel':
+    resolution: {directory: ../astroclaw/sidecar/packages/channel, type: directory}
+
+  '@astroclaw/heartbeat@file:../astroclaw/sidecar/packages/heartbeat':
+    resolution: {directory: ../astroclaw/sidecar/packages/heartbeat, type: directory}
+
+  '@astroclaw/lease@file:../astroclaw/sidecar/packages/lease':
+    resolution: {directory: ../astroclaw/sidecar/packages/lease, type: directory}
+
+  '@astroclaw/mesh@file:../astroclaw/sidecar/packages/mesh':
+    resolution: {directory: ../astroclaw/sidecar/packages/mesh, type: directory}
+
+  '@astroclaw/provider@file:../astroclaw/sidecar/packages/provider':
+    resolution: {directory: ../astroclaw/sidecar/packages/provider, type: directory}
+
+  '@astroclaw/runtime@file:../astroclaw/sidecar':
+    resolution: {directory: ../astroclaw/sidecar, type: directory}
+    peerDependencies:
+      pg: ^8.11.0
+    peerDependenciesMeta:
+      pg:
+        optional: true
+
+  '@astroclaw/session@file:../astroclaw/sidecar/packages/session':
+    resolution: {directory: ../astroclaw/sidecar/packages/session, type: directory}
+
+  '@astroclaw/skill@file:../astroclaw/sidecar/packages/skill':
+    resolution: {directory: ../astroclaw/sidecar/packages/skill, type: directory}
+
+  '@astroclaw/state@file:../astroclaw/sidecar/packages/state':
+    resolution: {directory: ../astroclaw/sidecar/packages/state, type: directory}
+
+  '@astroclaw/types@file:../astroclaw/sidecar/packages/types':
+    resolution: {directory: ../astroclaw/sidecar/packages/types, type: directory}
 
   '@lancedb/lancedb-darwin-arm64@0.27.2':
     resolution: {integrity: sha512-+XM68V/Rou8kKWDnUeKvg9ChKS0zGeQC2sKAop+06Ty4LwIjEGkeYBYrK0vMhZkBN5EFaOjTOp8E8hGQxdFwXA==}
@@ -9357,6 +9395,65 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
+
+  '@astroclaw/channel@file:../astroclaw/sidecar/packages/channel':
+    dependencies:
+      '@astroclaw/lease': file:../astroclaw/sidecar/packages/lease
+      '@astroclaw/session': file:../astroclaw/sidecar/packages/session
+      '@astroclaw/state': file:../astroclaw/sidecar/packages/state
+      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
+
+  '@astroclaw/heartbeat@file:../astroclaw/sidecar/packages/heartbeat':
+    dependencies:
+      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
+      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
+
+  '@astroclaw/lease@file:../astroclaw/sidecar/packages/lease':
+    dependencies:
+      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
+      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
+
+  '@astroclaw/mesh@file:../astroclaw/sidecar/packages/mesh':
+    dependencies:
+      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
+
+  '@astroclaw/provider@file:../astroclaw/sidecar/packages/provider':
+    dependencies:
+      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
+      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
+
+  '@astroclaw/runtime@file:../astroclaw/sidecar':
+    dependencies:
+      '@astroclaw/channel': file:../astroclaw/sidecar/packages/channel
+      '@astroclaw/heartbeat': file:../astroclaw/sidecar/packages/heartbeat
+      '@astroclaw/lease': file:../astroclaw/sidecar/packages/lease
+      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
+      '@astroclaw/provider': file:../astroclaw/sidecar/packages/provider
+      '@astroclaw/session': file:../astroclaw/sidecar/packages/session
+      '@astroclaw/skill': file:../astroclaw/sidecar/packages/skill
+      '@astroclaw/state': file:../astroclaw/sidecar/packages/state
+      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
+
+  '@astroclaw/session@file:../astroclaw/sidecar/packages/session':
+    dependencies:
+      '@astroclaw/lease': file:../astroclaw/sidecar/packages/lease
+      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
+      '@astroclaw/state': file:../astroclaw/sidecar/packages/state
+      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
+
+  '@astroclaw/skill@file:../astroclaw/sidecar/packages/skill':
+    dependencies:
+      '@astroclaw/lease': file:../astroclaw/sidecar/packages/lease
+      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
+      '@astroclaw/session': file:../astroclaw/sidecar/packages/session
+      '@astroclaw/state': file:../astroclaw/sidecar/packages/state
+      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
+
+  '@astroclaw/state@file:../astroclaw/sidecar/packages/state':
+    dependencies:
+      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
+
+  '@astroclaw/types@file:../astroclaw/sidecar/packages/types': {}
 
   '@lancedb/lancedb-darwin-arm64@0.27.2':
     optional: true

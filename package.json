@@ -1762,6 +1762,7 @@
     "@grammyjs/runner": "2.0.3",
     "@grammyjs/transformer-throttler": "1.2.1",
     "@homebridge/ciao": "1.3.8",
+    "@astroclaw/runtime": "file:/Users/dev/astroclaw/sidecar",
     "@lydell/node-pty": "1.2.0-beta.12",
     "@modelcontextprotocol/sdk": "1.29.0",
     "@mozilla/readability": "0.6.0",
