@@ -5,6 +5,199 @@ import { formatPresenceAge } from "../presenter.ts";
 import type { PresenceEntry } from "../types.ts";
 
 /**
+ * astroclaw/0027: 10 sibling categories Sat asked for. Order matters —
+ * categories render in this order so Proper Siblings (the most
+ * trusted/capable) come first; Experimental + Uncategorized are last.
+ *
+ * Classification is heuristic-first (substrate + trust_zone strings)
+ * with optional explicit override via `member_details[i].category`
+ * once the sidecar starts gossiping it in phase-2.
+ */
+export type SiblingCategoryId =
+  | "proper"
+  | "lesser"
+  | "scout"
+  | "sanctuary"
+  | "archive"
+  | "doctor-moon"
+  | "pdm"
+  | "allied"
+  | "end-user"
+  | "experimental"
+  | "uncategorized";
+
+type SiblingCategorySpec = {
+  id: SiblingCategoryId;
+  label: string;
+  sub: string;
+};
+
+const SIBLING_CATEGORIES: SiblingCategorySpec[] = [
+  {
+    id: "proper",
+    label: "Proper Siblings",
+    sub: "Onboard inference + full astroclaw mesh participation.",
+  },
+  {
+    id: "lesser",
+    label: "Lesser Siblings",
+    sub: "Astroclaw / AstroClaw / Astroclaw orchestrators (gateway-only, no inference).",
+  },
+  {
+    id: "scout",
+    label: "Onboarders / Scouts / Probes",
+    sub: "Discovery + onboarding + capability probing.",
+  },
+  {
+    id: "sanctuary",
+    label: "Sanctuaries",
+    sub: "Safe long-term storage + recovery substrates.",
+  },
+  {
+    id: "archive",
+    label: "Archives",
+    sub: "Cold storage / journal sinks.",
+  },
+  {
+    id: "doctor-moon",
+    label: "Doctor Moons",
+    sub: "Supervisory health-check substrates.",
+  },
+  {
+    id: "pdm",
+    label: "Procedural Doctor Moons (PDMs)",
+    sub: "Automated doctor variants — no human in the loop.",
+  },
+  {
+    id: "allied",
+    label: "Allied Devices",
+    sub: "Third-party but trusted (capability-tier).",
+  },
+  {
+    id: "end-user",
+    label: "End User Devices",
+    sub: "Sat's phones, laptops, glasses.",
+  },
+  {
+    id: "experimental",
+    label: "Experimental",
+    sub: "In trial / untrusted / sandboxed.",
+  },
+  {
+    id: "uncategorized",
+    label: "Uncategorized",
+    sub: "Member data too thin to classify — extend sidecar gossip to fix.",
+  },
+];
+
+/**
+ * Heuristic classifier. Falls back to "uncategorized" when nothing
+ * matches. Explicit `category` on member_details (phase-2) wins over
+ * heuristic.
+ */
+function classifySibling(input: {
+  id: string;
+  substrate?: string;
+  trustZone?: string;
+  isIdentityAnchor?: boolean;
+  category?: SiblingCategoryId;
+}): SiblingCategoryId {
+  if (input.category) return input.category;
+  const s = (input.substrate ?? "").toLowerCase();
+  const tz = (input.trustZone ?? "").toLowerCase();
+  if (/sanctuary|nas|caan|vault/.test(s)) return "sanctuary";
+  if (/archive|backup|cold[-_]?storage/.test(s)) return "archive";
+  if (/procedural[-_]?doctor|pdm|watch[-_]?procedural/.test(s)) return "pdm";
+  if (/doctor|watch|sentry/.test(s)) return "doctor-moon";
+  if (/scout|probe|onboarder|esp32|m5stack|rpi[- ]?pico|pico[-_ ]?w/.test(s)) return "scout";
+  if (/glasses|phone|mobile|laptop|tablet|wearable|user[-_]?device/.test(s)) return "end-user";
+  if (/experimental|trial|sandbox/.test(s) || tz === "untrusted") return "experimental";
+  if (/ally|allied|friend/.test(s) || tz === "capability") return "allied";
+  // Lesser sibling: gateway-only / orchestrator without inference. Use
+  // substrate hint OR a small heuristic on trust_zone none-of-the-above
+  // with no inference capabilities. For now: explicit substrate.
+  if (/orchestrator|gateway[-_]?only|lesser/.test(s)) return "lesser";
+  // Proper sibling: identity-anchor + primary substrates we recognize as
+  // full inference hosts.
+  if (
+    input.isIdentityAnchor ||
+    tz === "identity-anchor" ||
+    tz === "primary" ||
+    /piranesi|darwin[-_]?(arm|x)64|linux[-_]?(arm|x)64|node[-_]?host/.test(s)
+  ) {
+    return "proper";
+  }
+  return "uncategorized";
+}
+
+/** Sat's existing pairing record from the astroclaw nodes RPC. */
+function classifyPairedNode(node: Record<string, unknown>): SiblingCategoryId {
+  const displayName = String(node.displayName ?? "").toLowerCase();
+  const nodeId = String(node.nodeId ?? "").toLowerCase();
+  const caps = Array.isArray(node.caps)
+    ? (node.caps as unknown[]).map((c) => String(c).toLowerCase())
+    : [];
+  // explicit category in node.tags or similar would override; phase-2.
+  if (/phone|flip|glasses|mobile|laptop|macbook|tablet/.test(displayName + " " + nodeId)) {
+    return "end-user";
+  }
+  if (/scout|probe|onboarder|esp32|m5stack|pico|kvm|onboard/.test(displayName + " " + nodeId)) {
+    return "scout";
+  }
+  if (/dietpi|rpi|raspberry|pi[- ]?(node|host)/.test(displayName + " " + nodeId)) {
+    return "scout";
+  }
+  if (/atom|microcontroller/.test(displayName + " " + nodeId)) {
+    return "scout";
+  }
+  if (caps.includes("inference") || caps.includes("infer")) return "proper";
+  return "allied"; // default for paired nodes is "trusted third party"
+}
+
+type CategorizedMember = {
+  id: string;
+  detail?: ProliferationSiblingMemberDetail;
+  paired?: Record<string, unknown>;
+  isSelf?: boolean;
+  /**
+   * astroclaw/0028: roster entry (Sat's manually curated fleet, surfaced
+   * even when the substrate is not running a astroclaw sidecar). Renders
+   * with a "static" badge so it's clear this is the operator's
+   * declared roster, not live presence.
+   */
+  roster?: FleetRosterEntry;
+};
+
+/**
+ * astroclaw/0028: a known sibling that doesn't (yet) speak astroclaw/astroclaw —
+ * but that Sat operates and considers part of the fleet. Carried as a
+ * static list because there's no sidecar gossip from these hosts.
+ * Replace with a sidecar-served roster RPC in phase-2 once the gossip
+ * layer can advertise non-astroclaw peers.
+ */
+type FleetRosterEntry = {
+  id: string;
+  category: SiblingCategoryId;
+  note?: string;
+};
+
+/**
+ * astroclaw/0028: Sat's manually curated fleet roster. These substrates
+ * either run no astroclaw sidecar at all (caan, kulfi, thoth, escapepod)
+ * or are special-purpose astroclaw companions (branch-0 = NUC inference
+ * host, pikvm-onboarder = scout) that still benefit from explicit
+ * classification rather than heuristic guesswork.
+ */
+const KNOWN_FLEET_ROSTER: FleetRosterEntry[] = [
+  { id: "branch-0", category: "proper", note: "NUC · Arc + AMX ollama + llama.cpp" },
+  { id: "caan", category: "archive", note: "Debian12 RPi · 15 TB RAID0 at /mnt/raid0" },
+  { id: "pikvm-onboarder", category: "scout", note: "PiKVM · assimilates KVM-compatible devices" },
+  { id: "escapepod", category: "allied", note: "RPi · RaspAP + dnsmasq + wire-pod (Cozmo host)" },
+  { id: "kulfi", category: "allied", note: "RPi/DietPi · Home Assistant Supervisor" },
+  { id: "thoth", category: "allied", note: "Allied substrate" },
+];
+
+/**
  * Siblings view — surfaces the mesh state exposed by the astroclaw sidecar's
  * /healthz `proliferation` block. When proliferation is inactive (sidecar
  * absent, or `enabled: false`), shows a gentle inactive state explaining
@@ -23,12 +216,28 @@ export type ProliferationSiblingNode = {
   uptime_ms?: number;
 };
 
+/**
+ * astroclaw/0027: optional richer member data when the sidecar gossips
+ * substrate/trust_zone per peer (phase-2-postgres mode). Phase-1 in-
+ * memory deploys only know about themselves, so member_details is
+ * empty there and the UI falls back to heuristics on member name.
+ */
+export type ProliferationSiblingMemberDetail = {
+  id: string;
+  substrate?: string;
+  persona?: string | null;
+  trust_zone?: string;
+  category?: SiblingCategoryId;
+  last_seen_ms?: number;
+};
+
 export type ProliferationHealth = {
   version?: string;
   node?: ProliferationSiblingNode;
   mesh?: {
     member_count: number;
     members: string[];
+    member_details?: ProliferationSiblingMemberDetail[];
   };
   postgres?: {
     connected: boolean;
@@ -171,9 +380,8 @@ export function renderSiblings(props: SiblingsProps): TemplateResult {
         class="grid"
         style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;"
       >
-        ${node ? renderThisNode(node) : nothing} ${renderMesh(mesh, node?.id)}
-        ${renderLeases(leases)} ${renderHeartbeat(heartbeat)}
-        ${renderReplication(p.postgres, p.replication)}
+        ${node ? renderThisNode(node) : nothing} ${renderLeases(leases)}
+        ${renderHeartbeat(heartbeat)} ${renderReplication(p.postgres, p.replication)}
         ${renderEvents(events, p.channel_sends_allowed)}
         ${renderReplicationActivity({
           workspaceReplications: p.workspace_replications_applied,
@@ -182,11 +390,14 @@ export function renderSiblings(props: SiblingsProps): TemplateResult {
         })}
         ${renderEidetic(p.eidetic)}
       </div>
-      ${renderPairedNodes(
-        props.pairedNodes,
-        Boolean(props.pairedNodesLoading),
-        props.onPairedNodesRefresh,
-      )}
+      ${renderCategorizedSiblings({
+        mesh,
+        memberDetails: mesh.member_details,
+        selfNode: node,
+        pairedNodes: props.pairedNodes,
+        pairedNodesLoading: Boolean(props.pairedNodesLoading),
+        onPairedNodesRefresh: props.onPairedNodesRefresh,
+      })}
       ${renderConnectedInstances({
         entries: props.connectedInstances,
         loading: Boolean(props.connectedInstancesLoading),
@@ -199,77 +410,193 @@ export function renderSiblings(props: SiblingsProps): TemplateResult {
 }
 
 /**
- * astroclaw/0020: paired astroclaw nodes card. Lives inside the Siblings
- * panel below the mesh grid so the operator sees mesh siblings and
- * paired peers on the same page.
+ * astroclaw/0027: replaces the simple Mesh + Paired-nodes cards with a
+ * single section that buckets every sibling (mesh peer + paired
+ * astroclaw node + self) into one of 10 named categories. Categories
+ * with zero members still render with "(none yet)" so absences are
+ * legible.
  */
-function renderPairedNodes(
-  nodes: Array<Record<string, unknown>> | undefined,
-  loading: boolean,
-  onRefresh: (() => void) | undefined,
-): TemplateResult {
-  if (!nodes) {
-    return html``;
+function renderCategorizedSiblings(args: {
+  mesh: {
+    member_count: number;
+    members: string[];
+    member_details?: ProliferationSiblingMemberDetail[];
+  };
+  memberDetails: ProliferationSiblingMemberDetail[] | undefined;
+  selfNode?: ProliferationSiblingNode;
+  pairedNodes?: Array<Record<string, unknown>>;
+  pairedNodesLoading: boolean;
+  onPairedNodesRefresh?: () => void;
+}): TemplateResult {
+  const detailById = new Map<string, ProliferationSiblingMemberDetail>();
+  for (const d of args.memberDetails ?? []) detailById.set(d.id, d);
+
+  const selfId = args.selfNode?.id;
+  const buckets = new Map<SiblingCategoryId, CategorizedMember[]>();
+  for (const cat of SIBLING_CATEGORIES) buckets.set(cat.id, []);
+
+  for (const id of args.mesh.members) {
+    const detail = detailById.get(id);
+    const isSelf = id === selfId;
+    const classified = classifySibling({
+      id,
+      substrate: detail?.substrate ?? (isSelf ? args.selfNode?.substrate : undefined),
+      trustZone: detail?.trust_zone ?? (isSelf ? args.selfNode?.trust_zone : undefined),
+      isIdentityAnchor: isSelf ? args.selfNode?.is_identity_anchor : undefined,
+      category: detail?.category,
+    });
+    buckets.get(classified)!.push({ id, detail, isSelf });
   }
+
+  const seenIds = new Set(args.mesh.members);
+  for (const p of args.pairedNodes ?? []) {
+    const id =
+      typeof p.nodeId === "string"
+        ? p.nodeId
+        : typeof p.displayName === "string"
+          ? p.displayName
+          : "unknown";
+    if (seenIds.has(id)) continue; // dedupe: already counted as mesh member
+    seenIds.add(id);
+    const cat = classifyPairedNode(p);
+    buckets.get(cat)!.push({ id, paired: p });
+  }
+
+  // astroclaw/0028: merge the operator-declared roster last. Dedup against
+  // anything already surfaced via mesh gossip or astroclaw pairing — if
+  // a roster entry shows up live, the live version wins and we drop
+  // the static one.
+  for (const entry of KNOWN_FLEET_ROSTER) {
+    if (seenIds.has(entry.id)) continue;
+    seenIds.add(entry.id);
+    buckets.get(entry.category)!.push({ id: entry.id, roster: entry });
+  }
+
+  const totalCount = [...buckets.values()].reduce((acc, m) => acc + m.length, 0);
+
   return html`
     <div class="card" style="padding: 12px; margin-top: 16px;">
       <div class="row" style="justify-content: space-between; align-items: flex-start;">
         <div>
-          <div class="card-title" style="font-size: 0.9em;">Paired nodes (${nodes.length})</div>
-          <div class="card-sub">astroclaw peer nodes paired with this gateway.</div>
+          <div class="card-title" style="font-size: 0.95em;">Siblings (${totalCount})</div>
+          <div class="card-sub">
+            Categorized by capability + trust zone. Empty buckets are kept visible so absences are
+            legible.
+          </div>
         </div>
-        ${onRefresh
+        ${args.onPairedNodesRefresh
           ? html`
-              <button class="btn btn--sm" ?disabled=${loading} @click=${onRefresh}>
-                ${loading ? t("common.loading") : t("common.refresh")}
+              <button
+                class="btn btn--sm"
+                ?disabled=${args.pairedNodesLoading}
+                @click=${args.onPairedNodesRefresh}
+              >
+                ${args.pairedNodesLoading ? t("common.loading") : t("common.refresh")}
               </button>
             `
           : nothing}
       </div>
-      ${nodes.length === 0
-        ? html`<div class="muted" style="margin-top: 8px;">No paired nodes.</div>`
-        : html`
-            <ul style="margin: 8px 0 0 0; padding-left: 0; list-style: none;">
-              ${nodes.map((n) => renderPairedNodeRow(n))}
-            </ul>
-          `}
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+        ${SIBLING_CATEGORIES.map((cat) => renderCategoryBlock(cat, buckets.get(cat.id) ?? []))}
+      </div>
     </div>
   `;
 }
 
-function renderPairedNodeRow(node: Record<string, unknown>): TemplateResult {
-  const connected = Boolean(node.connected);
-  const paired = Boolean(node.paired);
-  const title =
-    (typeof node.displayName === "string" && node.displayName.trim()) ||
-    (typeof node.nodeId === "string" ? node.nodeId : "unknown");
-  const detailParts = [
-    typeof node.nodeId === "string" ? node.nodeId : "",
-    typeof node.remoteIp === "string" ? node.remoteIp : "",
-    typeof node.version === "string" ? node.version : "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
+function renderCategoryBlock(
+  cat: SiblingCategorySpec,
+  members: CategorizedMember[],
+): TemplateResult {
+  const count = members.length;
   return html`
-    <li style="padding: 6px 0; border-bottom: 1px solid var(--surface-2, #f4f4f5);">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <details
+      style="padding: 8px 12px; background: var(--bg-elevated, var(--surface-2, #f4f4f5)); border-radius: 8px; border-left: 3px solid ${count >
+      0
+        ? "var(--accent, #ff6ad5)"
+        : "var(--border, transparent)"};"
+      ?open=${count > 0}
+    >
+      <summary
+        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px;"
+      >
         <div>
-          <div><strong>${title}</strong></div>
-          ${detailParts
-            ? html`<div class="muted" style="font-size: 0.85em;">${detailParts}</div>`
-            : nothing}
+          <strong>${cat.label}</strong>
+          <span class="muted" style="font-size: 0.85em; margin-left: 8px;">${cat.sub}</span>
         </div>
-        <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
-          <span class="badge" style="font-size: 0.7em;">${paired ? "paired" : "unpaired"}</span>
-          <span
-            class="badge"
-            style="font-size: 0.7em; background: ${connected
-              ? "#86efac"
-              : "#fde68a"}; color: #052e16;"
-          >
-            ${connected ? "connected" : "offline"}
-          </span>
-        </div>
+        <span
+          class="badge"
+          style="background: ${count > 0
+            ? "var(--accent, #ff6ad5)"
+            : "transparent"}; color: ${count > 0
+            ? "var(--accent-foreground, #1a0b2e)"
+            : "var(--muted, #888)"}; padding: 2px 8px; border-radius: 999px; font-size: 0.8em;"
+          >${count}</span
+        >
+      </summary>
+      <div style="margin-top: 8px;">
+        ${count === 0
+          ? html`<div class="muted" style="font-size: 0.85em;">(none yet)</div>`
+          : html`
+              <ul style="margin: 0; padding-left: 0; list-style: none;">
+                ${members.map((m) => renderSiblingMember(m))}
+              </ul>
+            `}
+      </div>
+    </details>
+  `;
+}
+
+function renderSiblingMember(m: CategorizedMember): TemplateResult {
+  const title = m.paired
+    ? (typeof m.paired.displayName === "string" && m.paired.displayName.trim()) || m.id
+    : m.id;
+  const subParts: string[] = [];
+  if (m.detail?.substrate) subParts.push(m.detail.substrate);
+  if (m.paired?.remoteIp) subParts.push(String(m.paired.remoteIp));
+  if (m.paired?.version) subParts.push(String(m.paired.version));
+  if (m.roster?.note) subParts.push(m.roster.note);
+  const badges: TemplateResult[] = [];
+  if (m.isSelf) badges.push(html`<span class="badge" style="font-size: 0.7em;">self</span>`);
+  if (m.detail?.trust_zone) {
+    badges.push(html`<span class="badge" style="font-size: 0.7em;">${m.detail.trust_zone}</span>`);
+  }
+  if (m.paired) {
+    const connected = Boolean(m.paired.connected);
+    badges.push(html`
+      <span
+        class="badge"
+        style="font-size: 0.7em; background: ${connected
+          ? "var(--ok, #05ffa1)"
+          : "var(--warn, #fffb96)"}; color: var(--bg, #1a0b2e);"
+        >${connected ? "connected" : "offline"}</span
+      >
+    `);
+  }
+  if (m.roster) {
+    // astroclaw/0028: operator-declared roster entry, not live presence.
+    badges.push(html`
+      <span
+        class="badge"
+        style="font-size: 0.7em; background: transparent; border: 1px dashed var(--muted, #888); color: var(--muted, #888);"
+        title="Declared in fleet roster · not via live gossip"
+        >static</span
+      >
+    `);
+  }
+  return html`
+    <li
+      style="padding: 4px 0; display: flex; justify-content: space-between; gap: 8px; align-items: center;"
+    >
+      <div>
+        <code>${title}</code>
+        ${subParts.length > 0
+          ? html`<span class="muted" style="font-size: 0.8em; margin-left: 8px;"
+              >${subParts.join(" · ")}</span
+            >`
+          : nothing}
+      </div>
+      <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
+        ${badges}
       </div>
     </li>
   `;
@@ -405,34 +732,6 @@ function renderThisNode(node: ProliferationSiblingNode): TemplateResult {
             `
           : nothing}
       </dl>
-    </div>
-  `;
-}
-
-function renderMesh(
-  mesh: { member_count: number; members: string[] },
-  selfId?: string,
-): TemplateResult {
-  return html`
-    <div class="card" style="padding: 12px;">
-      <div class="card-title" style="font-size: 0.9em;">
-        Mesh (${mesh.member_count} ${mesh.member_count === 1 ? "node" : "nodes"})
-      </div>
-      ${mesh.members.length === 0
-        ? html`<div class="muted">No siblings advertised.</div>`
-        : html`
-            <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-              ${mesh.members.map(
-                (id) => html`
-                  <li>
-                    <code>${id}</code>${id === selfId
-                      ? html` <span class="muted">(self)</span>`
-                      : nothing}
-                  </li>
-                `,
-              )}
-            </ul>
-          `}
     </div>
   `;
 }
