@@ -36,9 +36,14 @@
 }
 
 .login-gate__logo {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 12px;
+  /* astroclaw vine art has fine detail that turned to mud at 48px on the
+     login screen — bump to 96px and add a soft pink glow to anchor it
+     against the deep-purple bg. */
+  width: 96px;
+  height: 96px;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 12px var(--accent-glow));
 }
 
 .login-gate__title {

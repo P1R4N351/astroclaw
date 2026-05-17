@@ -1,80 +1,87 @@
 :root {
-  /* Background - Deep, rich dark with layered depth */
-  --bg: #0e1015;
-  --bg-accent: #13151b;
-  --bg-elevated: #191c24;
-  --bg-hover: #1f2330;
-  --bg-muted: #1f2330;
+  /* astroclaw vapourwave palette (2026-05-17): deep purple + hot pink +
+     vapor cyan. Hot pink is the primary accent (astroclaw vine + flower);
+     cyan handles secondary highlights + semantic-ok. The default `claw`
+     theme is now this palette; the legacy red palette lives on under
+     [data-theme-mode="light"] for the light pair, and operators can
+     still flip to `knot` / `dash` via the Appearance picker. */
 
-  /* Card / Surface - Clear hierarchy between levels */
-  --card: #161920;
-  --card-foreground: #f0f0f2;
-  --card-highlight: rgba(255, 255, 255, 0.04);
-  --popover: #191c24;
-  --popover-foreground: #f0f0f2;
+  /* Background — deep purple/black, layered upward toward elevated cards */
+  --bg: #1a0b2e;
+  --bg-accent: #211432;
+  --bg-elevated: #2a1644;
+  --bg-hover: #341a52;
+  --bg-muted: #2a1644;
+
+  /* Card / Surface */
+  --card: #2a1644;
+  --card-foreground: #f3e7ff;
+  --card-highlight: rgba(255, 106, 213, 0.06);
+  --popover: #2a1644;
+  --popover-foreground: #f3e7ff;
 
   /* Panel */
-  --panel: #0e1015;
-  --panel-strong: #191c24;
-  --panel-hover: #1f2330;
-  --chrome: rgba(14, 16, 21, 0.96);
-  --chrome-strong: rgba(14, 16, 21, 0.98);
+  --panel: #1a0b2e;
+  --panel-strong: #2a1644;
+  --panel-hover: #341a52;
+  --chrome: rgba(26, 11, 46, 0.96);
+  --chrome-strong: rgba(26, 11, 46, 0.98);
 
-  /* Text - Clean contrast */
-  --text: #d4d4d8;
-  --text-strong: #f4f4f5;
-  --chat-text: #d4d4d8;
-  --muted: #838387;
-  --muted-strong: #75757d;
-  --muted-foreground: #838387;
+  /* Text — lavender-cream on purple */
+  --text: #e0c7ff;
+  --text-strong: #f3e7ff;
+  --chat-text: #e0c7ff;
+  --muted: #a48dbf;
+  --muted-strong: #8e7ba8;
+  --muted-foreground: #a48dbf;
 
-  /* Border - Whisper-thin, barely there */
-  --border: #1e2028;
-  --border-strong: #2e3040;
-  --border-hover: #3e4050;
-  --input: #1e2028;
-  --ring: #ff5c5c;
+  /* Border */
+  --border: #3a2152;
+  --border-strong: #5c3a82;
+  --border-hover: #7050a3;
+  --input: #3a2152;
+  --ring: #ff6ad5;
 
-  /* Accent - Punchy signature red */
-  --accent: #ff5c5c;
-  --accent-hover: #ff7070;
-  --accent-muted: #ff5c5c;
-  --accent-subtle: rgba(255, 92, 92, 0.1);
-  --accent-foreground: #fafafa;
-  --accent-glow: rgba(255, 92, 92, 0.2);
-  --selection-bg: #005fcc;
-  --selection-fg: #ffffff;
-  --primary: #ff5c5c;
-  --primary-foreground: #ffffff;
+  /* Accent — hot pink (vapourwave primary) */
+  --accent: #ff6ad5;
+  --accent-hover: #ff85e0;
+  --accent-muted: #ff6ad5;
+  --accent-subtle: rgba(255, 106, 213, 0.1);
+  --accent-foreground: #1a0b2e;
+  --accent-glow: rgba(255, 106, 213, 0.3);
+  --selection-bg: #ff6ad5;
+  --selection-fg: #1a0b2e;
+  --primary: #ff6ad5;
+  --primary-foreground: #1a0b2e;
 
-  /* Secondary */
-  --secondary: #161920;
-  --secondary-foreground: #f0f0f2;
-  --accent-2: #14b8a6;
-  --accent-2-muted: rgba(20, 184, 166, 0.7);
-  --accent-2-subtle: rgba(20, 184, 166, 0.1);
+  /* Secondary + vapor cyan accent-2 */
+  --secondary: #2a1644;
+  --secondary-foreground: #f3e7ff;
+  --accent-2: #01cdfe;
+  --accent-2-muted: rgba(1, 205, 254, 0.7);
+  --accent-2-subtle: rgba(1, 205, 254, 0.1);
 
-  /* Semantic */
-  --ok: #22c55e;
-  --ok-muted: rgba(34, 197, 94, 0.75);
-  --ok-subtle: rgba(34, 197, 94, 0.08);
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --warn: #f59e0b;
-  --warn-muted: rgba(245, 158, 11, 0.75);
-  --warn-subtle: rgba(245, 158, 11, 0.08);
-  --danger: #ef4444;
-  --danger-muted: rgba(239, 68, 68, 0.75);
-  --danger-subtle: rgba(239, 68, 68, 0.08);
-  --info: #3b82f6;
+  /* Semantic — kept readable; ok+info lean vapor cyan, warn lavender-yellow */
+  --ok: #05ffa1;
+  --ok-muted: rgba(5, 255, 161, 0.75);
+  --ok-subtle: rgba(5, 255, 161, 0.08);
+  --destructive: #ff5c8a;
+  --destructive-foreground: #1a0b2e;
+  --warn: #fffb96;
+  --warn-muted: rgba(255, 251, 150, 0.75);
+  --warn-subtle: rgba(255, 251, 150, 0.08);
+  --danger: #ff5c8a;
+  --danger-muted: rgba(255, 92, 138, 0.75);
+  --danger-subtle: rgba(255, 92, 138, 0.08);
+  --info: #01cdfe;
 
-  /* Focus */
-  --focus: rgba(255, 92, 92, 0.2);
+  /* Focus — pink halo on dark purple */
+  --focus: rgba(255, 106, 213, 0.25);
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 3px color-mix(in srgb, var(--ring) 80%, transparent);
   --focus-glow: 0 0 0 2px var(--bg), 0 0 0 3px var(--ring), 0 0 16px var(--accent-glow);
 
   /* Grid */
-  --grid-line: rgba(255, 255, 255, 0.03);
+  --grid-line: rgba(255, 106, 213, 0.06);
 
   /* Theme transition */
   --theme-switch-x: 50%;
