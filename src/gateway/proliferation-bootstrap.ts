@@ -1,5 +1,10 @@
 import type { AstroclawConfig } from "../config/config.js";
 import {
+  clearProliferationCommands,
+  registerProliferationCommand,
+  unregisterProliferationCommand,
+} from "../cli/program/proliferation-commands.js";
+import {
   createProliferationEvents,
   type ProliferationEventMap,
   type ProliferationEvents,
@@ -35,6 +40,22 @@ export type WorkspaceReplicator = (msg: {
   body: Uint8Array | string;
   agentId?: string;
 }) => Promise<void> | void;
+
+/**
+ * Subcommand bridge. The astroclaw sidecar calls
+ * `adapter.subcommands.register(...)` once during init to expose
+ * `astroclaw prolif <name>` subcommands (e.g. `mesh ls`). The bridge
+ * proxies through to the registry in `cli/program/proliferation-commands.ts`
+ * that `registerProliferationCli()` reads from.
+ */
+export type SubcommandRegistryBridge = {
+  register: (entry: {
+    name: string;
+    description: string;
+    handler: (argv: string[]) => Promise<number> | number;
+  }) => void;
+  unregister?: (name: string) => void;
+};
 
 type AstroclawRuntimeModule = {
   init: (args: { astroclaw: unknown; config: unknown }) => Promise<AstroclawSidecarHandle>;
@@ -236,6 +257,7 @@ export async function tryStartProliferation(params: {
     currentWorkspaceReplicator = null;
     consecutiveChannelGateFailures = 0;
     consecutiveWorkspaceReplicateFailures = 0;
+    clearProliferationCommands();
   }
   if (currentEvents) {
     currentEvents.removeAllListeners();
@@ -267,6 +289,14 @@ export async function tryStartProliferation(params: {
         currentWorkspaceReplicator = replicator;
         consecutiveWorkspaceReplicateFailures = 0;
       },
+      subcommands: {
+        register: (entry: Parameters<SubcommandRegistryBridge["register"]>[0]) => {
+          registerProliferationCommand(entry);
+        },
+        unregister: (name: string) => {
+          unregisterProliferationCommand(name);
+        },
+      } satisfies SubcommandRegistryBridge,
     };
     const sidecarHandle = await astroclawModule.init({ astroclaw: adapter, config: cfg });
     currentSidecar = sidecarHandle;
@@ -284,6 +314,7 @@ export async function tryStartProliferation(params: {
           currentLog = null;
           consecutiveChannelGateFailures = 0;
           consecutiveWorkspaceReplicateFailures = 0;
+          clearProliferationCommands();
           events.removeAllListeners();
         }
       },
