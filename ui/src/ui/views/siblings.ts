@@ -711,9 +711,9 @@ function renderConnectedInstanceRow(entry: PresenceEntry, masked: boolean): Temp
 }
 
 function renderThisNode(node: ProliferationSiblingNode): TemplateResult {
-  return html`
-    <div class="card" style="padding: 12px;">
-      <div class="card-title" style="font-size: 0.9em;">This node</div>
+  return subcard(
+    "This node",
+    html`
       <dl style="margin: 8px 0;">
         <dt style="opacity: 0.7; font-size: 0.85em;">ID</dt>
         <dd style="margin: 0 0 6px 0;"><code>${node.id}</code></dd>
@@ -731,41 +731,34 @@ function renderThisNode(node: ProliferationSiblingNode): TemplateResult {
             `
           : nothing}
       </dl>
-    </div>
-  `;
+    `,
+  );
 }
 
 function renderLeases(leases: string[]): TemplateResult {
-  return html`
-    <div class="card" style="padding: 12px;">
-      <div class="card-title" style="font-size: 0.9em;">Leases held (${leases.length})</div>
-      ${leases.length === 0
-        ? html`<div class="muted">None.</div>`
-        : html`
-            <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-              ${leases.map((key) => html`<li><code>${key}</code></li>`)}
-            </ul>
-          `}
-    </div>
-  `;
+  return subcard(
+    `Leases held (${leases.length})`,
+    leases.length === 0
+      ? html`<div class="muted">None.</div>`
+      : html`
+          <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+            ${leases.map((key) => html`<li><code>${key}</code></li>`)}
+          </ul>
+        `,
+  );
 }
 
 function renderHeartbeat(
   heartbeat: { last_tick_at_ms: number; tick_seq: number; gap_ms: number } | undefined,
 ): TemplateResult {
   if (!heartbeat) {
-    return html`
-      <div class="card" style="padding: 12px;">
-        <div class="card-title" style="font-size: 0.9em;">Heartbeat</div>
-        <div class="muted">No heartbeat reported.</div>
-      </div>
-    `;
+    return subcard("Heartbeat", html`<div class="muted">No heartbeat reported.</div>`);
   }
   const gapColor =
     heartbeat.gap_ms > 5000 ? "#dc2626" : heartbeat.gap_ms > 2000 ? "#f59e0b" : "#10b981";
-  return html`
-    <div class="card" style="padding: 12px;">
-      <div class="card-title" style="font-size: 0.9em;">Heartbeat</div>
+  return subcard(
+    "Heartbeat",
+    html`
       <dl style="margin: 8px 0;">
         <dt style="opacity: 0.7; font-size: 0.85em;">Last tick</dt>
         <dd style="margin: 0 0 6px 0;">
@@ -775,8 +768,8 @@ function renderHeartbeat(
         <dt style="opacity: 0.7; font-size: 0.85em;">Tick seq</dt>
         <dd style="margin: 0;"><code>${heartbeat.tick_seq}</code></dd>
       </dl>
-    </div>
-  `;
+    `,
+  );
 }
 
 /**
@@ -797,17 +790,18 @@ function renderInfrastructure(
   replication: { peers: number; lag_ms: number } | undefined,
   eidetic: NonNullable<ProliferationHealth["eidetic"]> | undefined,
 ): TemplateResult {
-  return html`
-    <div class="card" style="padding: 12px; grid-column: span 2;">
-      <div class="card-title" style="font-size: 0.9em;">Infrastructure</div>
+  return subcard(
+    "Infrastructure",
+    html`
       <div
         style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 24px; margin-top: 8px;"
       >
         ${renderInfraPostgres(postgres)} ${renderInfraReplication(replication)}
         ${renderInfraEidetic(eidetic)}
       </div>
-    </div>
-  `;
+    `,
+    { span2: true },
+  );
 }
 
 function renderInfraPostgres(
@@ -947,33 +941,32 @@ function renderEvents(
   channelSendsAllowed: number | undefined,
 ): TemplateResult {
   const entries = Object.entries(events).filter(([, count]) => count > 0);
-  return html`
-    <div class="card" style="padding: 12px; grid-column: span 2;">
-      <div class="card-title" style="font-size: 0.9em;">Observed activity</div>
-      ${entries.length === 0 && channelSendsAllowed === undefined
-        ? html`<div class="muted">No events recorded yet.</div>`
-        : html`
-            <table style="width: 100%; margin-top: 8px; border-collapse: collapse;">
-              ${entries.map(
-                ([name, count]) => html`
+  return subcard(
+    "Observed activity",
+    entries.length === 0 && channelSendsAllowed === undefined
+      ? html`<div class="muted">No events recorded yet.</div>`
+      : html`
+          <table style="width: 100%; margin-top: 8px; border-collapse: collapse;">
+            ${entries.map(
+              ([name, count]) => html`
+                <tr>
+                  <td style="padding: 4px 0; opacity: 0.7;"><code>${name}</code></td>
+                  <td style="padding: 4px 0; text-align: right;">${count}</td>
+                </tr>
+              `,
+            )}
+            ${typeof channelSendsAllowed === "number"
+              ? html`
                   <tr>
-                    <td style="padding: 4px 0; opacity: 0.7;"><code>${name}</code></td>
-                    <td style="padding: 4px 0; text-align: right;">${count}</td>
+                    <td style="padding: 4px 0; opacity: 0.7;">channel sends allowed</td>
+                    <td style="padding: 4px 0; text-align: right;">${channelSendsAllowed}</td>
                   </tr>
-                `,
-              )}
-              ${typeof channelSendsAllowed === "number"
-                ? html`
-                    <tr>
-                      <td style="padding: 4px 0; opacity: 0.7;">channel sends allowed</td>
-                      <td style="padding: 4px 0; text-align: right;">${channelSendsAllowed}</td>
-                    </tr>
-                  `
-                : nothing}
-            </table>
-          `}
-    </div>
-  `;
+                `
+              : nothing}
+          </table>
+        `,
+    { span2: true },
+  );
 }
 
 function renderReplicationActivity(args: {
@@ -994,9 +987,9 @@ function renderReplicationActivity(args: {
   if (rows.length === 0) {
     return html``;
   }
-  return html`
-    <div class="card" style="padding: 12px; grid-column: span 2;">
-      <div class="card-title" style="font-size: 0.9em;">Replication activity (phase-3)</div>
+  return subcard(
+    "Replication activity (phase-3)",
+    html`
       <table style="width: 100%; margin-top: 8px; border-collapse: collapse;">
         ${rows.map(
           ([name, count]) => html`
@@ -1007,6 +1000,27 @@ function renderReplicationActivity(args: {
           `,
         )}
       </table>
+    `,
+    { span2: true },
+  );
+}
+
+/**
+ * astroclaw/0034: dedup the inline card boilerplate that grew across 0008,
+ * 0015, 0026, 0029. `renderCategorizedSiblings` keeps its own inline
+ * card because it carries a flex header (subtitle + refresh button)
+ * the helper doesn't cover.
+ */
+function subcard(
+  title: string | TemplateResult,
+  body: TemplateResult,
+  opts: { span2?: boolean } = {},
+): TemplateResult {
+  const cardStyle = opts.span2 ? "padding: 12px; grid-column: span 2;" : "padding: 12px;";
+  return html`
+    <div class="card" style="${cardStyle}">
+      <div class="card-title" style="font-size: 0.9em;">${title}</div>
+      ${body}
     </div>
   `;
 }
