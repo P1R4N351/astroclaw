@@ -30,6 +30,7 @@ import {
   normalizePluginNodeCapabilityScopedUrl,
   type PluginNodeCapabilitySurface,
 } from "./plugin-node-capability.js";
+import { getProliferationHealth } from "./proliferation-bootstrap.js";
 import type { HooksRequestHandler } from "./server/hooks-request-handler.js";
 import {
   isProtectedPluginRoutePathFromContext,
@@ -312,7 +313,10 @@ async function handleGatewayProbeRequest(
     }
   } else {
     statusCode = 200;
-    body = JSON.stringify({ ok: true, status });
+    const proliferation = getProliferationHealth();
+    body = JSON.stringify(
+      proliferation ? { ok: true, status, proliferation } : { ok: true, status },
+    );
   }
   res.statusCode = statusCode;
   res.end(method === "HEAD" ? undefined : body);
