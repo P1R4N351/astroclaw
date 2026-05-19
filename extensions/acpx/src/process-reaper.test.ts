@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { ASTROCLAW_ACPX_LEASE_ID_ARG, ASTROCLAW_GATEWAY_INSTANCE_ID_ARG } from "./process-lease.js";
@@ -21,17 +22,28 @@ const LOCAL_NODE_MODULES_CODEX_COMMAND = `node ${path.resolve(
 const LOCAL_NODE_MODULES_CODEX_PLATFORM_COMMAND = path.resolve(
   "node_modules/@zed-industries/codex-acp-linux-x64/bin/codex-acp",
 );
+const MAX_PROCESS_INFOS = 32;
+const MAX_KILL_RECORDS = 64;
+const PS_UNAVAILABLE_ERROR = new Error("ps unavailable");
+
+type KillRecord = Readonly<{ pid: number; signal: NodeJS.Signals }>;
 
 function cleanupDeps(processes: AcpxProcessInfo[]) {
-  const killed: Array<{ pid: number; signal: NodeJS.Signals }> = [];
+  assert.ok(Array.isArray(processes));
+  assert.ok(processes.length <= MAX_PROCESS_INFOS);
+  const killed: KillRecord[] = [];
   return {
     killed,
     deps: {
-      listProcesses: vi.fn(async () => processes),
-      killProcess: vi.fn((pid: number, signal: NodeJS.Signals) => {
-        killed.push({ pid, signal });
+      listProcesses: vi.fn(async (): Promise<AcpxProcessInfo[]> => processes),
+      killProcess: vi.fn((pid: number, signal: NodeJS.Signals): void => {
+        assert.ok(Number.isSafeInteger(pid));
+        assert.ok(signal.length > 0);
+        const killCount = killed.push({ pid, signal });
+        assert.equal(killCount, killed.length);
+        assert.ok(killCount <= MAX_KILL_RECORDS);
       }),
-      sleep: vi.fn(async () => {}),
+      sleep: vi.fn(async (): Promise<void> => undefined),
     },
   };
 }
@@ -41,15 +53,25 @@ function collectMatching<T, U>(
   predicate: (item: T) => boolean,
   map: (item: T) => U,
 ): U[] {
+  assert.ok(items.length <= MAX_KILL_RECORDS);
+  assert.equal(typeof predicate, "function");
+  assert.equal(typeof map, "function");
   const matches: U[] = [];
-  for (const item of items) {
+  for (let index = 0; index < MAX_KILL_RECORDS; index += 1) {
+    if (index >= items.length) {
+      break;
+    }
+    const item = items[index];
     if (predicate(item)) {
-      matches.push(map(item));
+      const matchCount = matches.push(map(item));
+      assert.equal(matchCount, matches.length);
+      assert.ok(matchCount <= MAX_KILL_RECORDS);
     }
   }
   return matches;
 }
 
+// P10-RELAX(rule 3): Vitest fixtures and expectation arrays are allocated inside cases to preserve test isolation.
 describe("process reaper", () => {
   it("recognizes generated Codex and Claude wrappers only under the configured root", () => {
     expect(
@@ -193,13 +215,17 @@ describe("process reaper", () => {
       rootCommand: CODEX_WRAPPER_COMMAND,
       wrapperRoot: WRAPPER_ROOT,
       deps: {
-        listProcesses: vi.fn(async () => {
-          throw new Error("ps unavailable");
+        listProcesses: vi.fn(async (): Promise<AcpxProcessInfo[]> => {
+          throw PS_UNAVAILABLE_ERROR;
         }),
-        killProcess: vi.fn((pid, signal) => {
-          killed.push({ pid, signal });
+        killProcess: vi.fn((pid: number, signal: NodeJS.Signals): void => {
+          assert.ok(Number.isSafeInteger(pid));
+          assert.ok(signal.length > 0);
+          const killCount = killed.push({ pid, signal });
+          assert.equal(killCount, killed.length);
+          assert.ok(killCount <= MAX_KILL_RECORDS);
         }),
-        sleep: vi.fn(async () => {}),
+        sleep: vi.fn(async (): Promise<void> => undefined),
       },
     });
 
@@ -320,10 +346,10 @@ describe("process reaper", () => {
     const result = await reapStaleAstroclawOwnedAcpxOrphans({
       wrapperRoot: WRAPPER_ROOT,
       deps: {
-        listProcesses: vi.fn(async () => {
-          throw new Error("ps unavailable");
+        listProcesses: vi.fn(async (): Promise<AcpxProcessInfo[]> => {
+          throw PS_UNAVAILABLE_ERROR;
         }),
-        sleep: vi.fn(async () => {}),
+        sleep: vi.fn(async (): Promise<void> => undefined),
       },
     });
 
