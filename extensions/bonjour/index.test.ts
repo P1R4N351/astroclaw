@@ -1,5 +1,9 @@
+import assert from "node:assert/strict";
 import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
 import { afterAll, describe, expect, it, vi } from "vitest";
+
+type TestApi = ReturnType<typeof createTestPluginApi>;
+type DiscoveryService = Parameters<TestApi["registerGatewayDiscoveryService"]>[0];
 
 const mocks = vi.hoisted(() => ({
   advertiserModuleLoaded: vi.fn(),
@@ -26,6 +30,19 @@ vi.mock("astroclaw/plugin-sdk/runtime", () => {
 
 const { default: bonjourPlugin } = await import("./index.js");
 
+function requireDiscoveryService(service: DiscoveryService | undefined): DiscoveryService {
+  expect(service).toBeDefined();
+  assert.notEqual(service, undefined, "expected bonjour plugin to register a discovery service");
+  expect(service.id).toBe("bonjour");
+  assert.equal(service.id, "bonjour", "expected bonjour discovery service id");
+  return service;
+}
+
+function expectRuntimeNotLoaded(): void {
+  expect(mocks.advertiserModuleLoaded).not.toHaveBeenCalled();
+  expect(mocks.runtimeModuleLoaded).not.toHaveBeenCalled();
+}
+
 afterAll(() => {
   vi.doUnmock("./src/advertiser.js");
   vi.doUnmock("astroclaw/plugin-sdk/runtime");
@@ -34,9 +51,7 @@ afterAll(() => {
 
 describe("bonjour plugin entry", () => {
   it("lazy-loads advertiser runtime when gateway discovery advertises", async () => {
-    let discoveryService:
-      | Parameters<ReturnType<typeof createTestPluginApi>["registerGatewayDiscoveryService"]>[0]
-      | undefined;
+    let discoveryService: DiscoveryService | undefined;
     const logger = {
       info: vi.fn(),
       warn: vi.fn(),
@@ -50,24 +65,18 @@ describe("bonjour plugin entry", () => {
       },
     });
 
-    expect(mocks.advertiserModuleLoaded).not.toHaveBeenCalled();
-    expect(mocks.runtimeModuleLoaded).not.toHaveBeenCalled();
+    expectRuntimeNotLoaded();
 
     bonjourPlugin.register(api);
 
-    expect(discoveryService?.id).toBe("bonjour");
-    expect(mocks.advertiserModuleLoaded).not.toHaveBeenCalled();
-    expect(mocks.runtimeModuleLoaded).not.toHaveBeenCalled();
-
-    if (!discoveryService) {
-      throw new Error("expected bonjour plugin to register a discovery service");
-    }
+    const registeredDiscoveryService = requireDiscoveryService(discoveryService);
+    expectRuntimeNotLoaded();
 
     const stop = vi.fn();
     mocks.startGatewayBonjourAdvertiser.mockResolvedValueOnce({ stop });
 
     await expect(
-      discoveryService.advertise({
+      registeredDiscoveryService.advertise({
         machineDisplayName: "Dev Box",
         gatewayPort: 3210,
         gatewayTlsEnabled: true,
