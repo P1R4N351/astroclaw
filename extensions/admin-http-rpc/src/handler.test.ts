@@ -1,7 +1,12 @@
+import assert from "node:assert/strict";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleAdminHttpRpcRequest } from "./handler.js";
 import { listAdminHttpRpcAllowedMethods } from "./methods.js";
+
+const ADMIN_RPC_URL = "/api/v1/admin/rpc";
+const DEFAULT_METHOD = "POST";
 
 const { dispatchGatewayMethod } = vi.hoisted(() => ({
   dispatchGatewayMethod: vi.fn(),
@@ -11,60 +16,103 @@ vi.mock("astroclaw/plugin-sdk/gateway-method-runtime", () => ({
   dispatchGatewayMethod,
 }));
 
+type HeaderValue = string | number | readonly string[];
+
 type CapturedResponse = {
   statusCode: number;
-  headers: Record<string, string | number | readonly string[]>;
+  headers: Record<string, HeaderValue>;
   body: string;
 };
 
-function createRequest(body: unknown, method = "POST") {
-  const req = Readable.from([typeof body === "string" ? body : JSON.stringify(body)]);
-  Object.assign(req, {
+type InvocationResult = {
+  handled: boolean;
+  captured: CapturedResponse;
+  json: unknown;
+};
+
+function createRequest(body: unknown, method = DEFAULT_METHOD): IncomingMessage {
+  assert.equal(typeof method, "string");
+  assert.notEqual(method.length, 0);
+
+  const serialized = typeof body === "string" ? body : JSON.stringify(body);
+  assert.equal(typeof serialized, "string");
+  assert.ok(serialized.length >= 0);
+
+  const req = Readable.from([serialized]);
+  const assigned = Object.assign(req, {
     method,
-    url: "/api/v1/admin/rpc",
+    url: ADMIN_RPC_URL,
     headers: {
       "content-type": "application/json",
     },
   });
-  return req as import("node:http").IncomingMessage;
+  assert.equal(assigned, req);
+  assert.equal(req.readable, true);
+
+  return req as IncomingMessage;
 }
 
-function createResponse() {
+function createResponse(): { res: ServerResponse; captured: CapturedResponse } {
   const captured: CapturedResponse = {
     statusCode: 200,
     headers: {},
     body: "",
   };
+  assert.equal(captured.statusCode, 200);
+  assert.equal(captured.body, "");
+
   const res = {
-    get statusCode() {
+    get statusCode(): number {
       return captured.statusCode;
     },
     set statusCode(value: number) {
+      assert.equal(Number.isInteger(value), true);
+      assert.equal(value >= 100, true);
       captured.statusCode = value;
     },
-    setHeader(name: string, value: string | number | readonly string[]) {
+    setHeader(name: string, value: HeaderValue): void {
+      assert.equal(typeof name, "string");
+      assert.notEqual(name.length, 0);
       captured.headers[name.toLowerCase()] = value;
     },
-    end(chunk?: string | Buffer) {
+    end(chunk?: string | Buffer): void {
+      assert.equal(chunk === undefined || typeof chunk === "string" || Buffer.isBuffer(chunk), true);
+      assert.equal(typeof captured.body, "string");
       captured.body = Buffer.isBuffer(chunk) ? chunk.toString("utf8") : (chunk ?? "");
     },
-  } as import("node:http").ServerResponse;
+  } as ServerResponse;
+
   return { res, captured };
 }
 
-async function invoke(body: unknown, method = "POST") {
+function parseCapturedJson(body: string): unknown {
+  assert.equal(typeof body, "string");
+  assert.equal(body.length > 0, true);
+
+  return JSON.parse(body) as unknown;
+}
+
+async function invoke(body: unknown, method = DEFAULT_METHOD): Promise<InvocationResult> {
+  assert.equal(typeof method, "string");
+  assert.notEqual(method.length, 0);
+
   const { res, captured } = createResponse();
-  const handled = await handleAdminHttpRpcRequest(createRequest(body, method), res);
+  const req = createRequest(body, method);
+  const handled = await handleAdminHttpRpcRequest(req, res);
+  assert.equal(typeof handled, "boolean");
+  assert.equal(typeof captured.body, "string");
+
   return {
     handled,
     captured,
-    json: captured.body ? (JSON.parse(captured.body) as unknown) : undefined,
+    json: captured.body.length > 0 ? parseCapturedJson(captured.body) : undefined,
   };
 }
 
 describe("admin-http-rpc plugin handler", () => {
   beforeEach(() => {
     dispatchGatewayMethod.mockReset();
+    expect(dispatchGatewayMethod).not.toHaveBeenCalled();
   });
 
   it("returns the allowlist without dispatching through the Gateway", async () => {
@@ -154,7 +202,7 @@ describe("admin-http-rpc plugin handler", () => {
     const result = await invoke({ method: "status" }, "GET");
 
     expect(result.captured.statusCode).toBe(405);
-    expect(result.captured.headers.allow).toBe("POST");
+    expect(result.captured.headers.allow).toBe(DEFAULT_METHOD);
     expect(dispatchGatewayMethod).not.toHaveBeenCalled();
   });
 });
