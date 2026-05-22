@@ -1,3 +1,4 @@
+// Relaxes P10 rule 8: eval()/new Function() occur only inside template-literal test fixtures exercising skill-scanner dynamic-code-execution detection.
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";

@@ -1,3 +1,4 @@
+// Relaxes P10 rule 8: new Function()/eval() are the required browser-context evaluator (see the @typescript-eslint/no-implied-eval eslint-disable below).
 import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import type { Frame, Page } from "playwright-core";
 import { formatErrorMessage } from "../infra/errors.js";
