@@ -20,7 +20,7 @@ Skills own workflows; root owns hard policy and routing.
 ## Map
 
 - Core TS: `src/`, `ui/`, `packages/`; plugins: `extensions/`; SDK: `src/plugin-sdk/*`; channels: `src/channels/*`; loader: `src/plugins/*`; protocol: `src/gateway/protocol/*`; docs/apps: `docs/`, `apps/`.
-- Installers: sibling `../astroclaw.ai`.
+- Installers: sibling `../openclaw.ai` (upstream installer source).
 - Scoped guides: `extensions/`, `src/{plugin-sdk,channels,plugins,gateway,gateway/protocol,agents}/`, `test/helpers*/`, `docs/`, `ui/`, `scripts/`.
 
 ## Architecture
@@ -129,7 +129,7 @@ Skills own workflows; root owns hard policy and routing.
 
 - Use `$astroclaw-docs` for docs writing/review. Docs change with behavior/API.
 - Codex harness upgrade (`extensions/codex/package.json` `@openai/codex`): refresh `docs/plugins/codex-harness.md` model snapshot from the new harness `model/list`.
-- Docs final answers: include relevant full `https://docs.astroclaw.ai/...` URL(s). If issue/PR work too, GitHub URL last.
+- Docs final answers: include relevant full `https://docs.openclaw.ai/...` URL(s) (astroclaw inherits upstream docs). If issue/PR work too, GitHub URL last.
 - Changelog entries: active version `### Changes`/`### Fixes`; single-line bullets only.
 - Contributor PR authors should not edit `CHANGELOG.md`; maintainer/AI adds entries during landing/merge.
 - Contributor-facing changelog entries thank credited human `@author`. Never thank bots, `@astroclaw`, `@clawsweeper`, or `@steipete`; if unknown, omit thanks.
