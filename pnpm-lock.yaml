@@ -74,9 +74,6 @@ importers:
       '@homebridge/ciao':
         specifier: 1.3.8
         version: 1.3.8
-      '@astroclaw/runtime':
-        specifier: file:/Users/dev/astroclaw/sidecar
-        version: file:../astroclaw/sidecar
       '@lydell/node-pty':
         specifier: 1.2.0-beta.12
         version: 1.2.0-beta.12
@@ -230,13 +227,13 @@ importers:
         version: 7.0.0-dev.20260514.1
       '@vitest/coverage-v8':
         specifier: 4.1.6
-        version: 4.1.6(@vitest/browser@4.1.6)(vitest@4.1.6)
+        version: 4.1.6(vitest@4.1.6)
       jscpd:
         specifier: 4.2.0
         version: 4.2.0
       jsdom:
         specifier: 29.1.1
-        version: 29.1.1(@noble/hashes@2.0.1)
+        version: 29.1.1
       lit:
         specifier: 3.3.3
         version: 3.3.3
@@ -263,7 +260,7 @@ importers:
         version: 0.3.0
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@opentelemetry/api@1.9.1)(@types/node@25.8.0)(@vitest/browser-playwright@4.1.6)(@vitest/coverage-v8@4.1.6)(jsdom@29.1.1(@noble/hashes@2.0.1))(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@25.8.0)(@vitest/coverage-v8@4.1.6)(jsdom@29.1.1)(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0))
     optionalDependencies:
       sqlite-vec:
         specifier: 0.1.9
@@ -2882,41 +2879,6 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
-
-  '@astroclaw/channel@file:../astroclaw/sidecar/packages/channel':
-    resolution: {directory: ../astroclaw/sidecar/packages/channel, type: directory}
-
-  '@astroclaw/heartbeat@file:../astroclaw/sidecar/packages/heartbeat':
-    resolution: {directory: ../astroclaw/sidecar/packages/heartbeat, type: directory}
-
-  '@astroclaw/lease@file:../astroclaw/sidecar/packages/lease':
-    resolution: {directory: ../astroclaw/sidecar/packages/lease, type: directory}
-
-  '@astroclaw/mesh@file:../astroclaw/sidecar/packages/mesh':
-    resolution: {directory: ../astroclaw/sidecar/packages/mesh, type: directory}
-
-  '@astroclaw/provider@file:../astroclaw/sidecar/packages/provider':
-    resolution: {directory: ../astroclaw/sidecar/packages/provider, type: directory}
-
-  '@astroclaw/runtime@file:../astroclaw/sidecar':
-    resolution: {directory: ../astroclaw/sidecar, type: directory}
-    peerDependencies:
-      pg: ^8.11.0
-    peerDependenciesMeta:
-      pg:
-        optional: true
-
-  '@astroclaw/session@file:../astroclaw/sidecar/packages/session':
-    resolution: {directory: ../astroclaw/sidecar/packages/session, type: directory}
-
-  '@astroclaw/skill@file:../astroclaw/sidecar/packages/skill':
-    resolution: {directory: ../astroclaw/sidecar/packages/skill, type: directory}
-
-  '@astroclaw/state@file:../astroclaw/sidecar/packages/state':
-    resolution: {directory: ../astroclaw/sidecar/packages/state, type: directory}
-
-  '@astroclaw/types@file:../astroclaw/sidecar/packages/types':
-    resolution: {directory: ../astroclaw/sidecar/packages/types, type: directory}
 
   '@lancedb/lancedb-darwin-arm64@0.27.2':
     resolution: {integrity: sha512-+XM68V/Rou8kKWDnUeKvg9ChKS0zGeQC2sKAop+06Ty4LwIjEGkeYBYrK0vMhZkBN5EFaOjTOp8E8hGQxdFwXA==}
@@ -8668,7 +8630,7 @@ snapshots:
 
   '@copilotkit/aimock@1.24.1(vitest@4.1.6)':
     optionalDependencies:
-      vitest: 4.1.6(@opentelemetry/api@1.9.1)(@types/node@25.8.0)(@vitest/browser-playwright@4.1.6)(@vitest/coverage-v8@4.1.6)(jsdom@29.1.1(@noble/hashes@2.0.1))(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0))
+      vitest: 4.1.6(@types/node@25.8.0)(@vitest/coverage-v8@4.1.6)(jsdom@29.1.1)(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0))
 
   '@create-markdown/preview@2.0.3(shiki@3.23.0)':
     optionalDependencies:
@@ -8939,6 +8901,8 @@ snapshots:
     optional: true
 
   '@eshaz/web-worker@1.2.2': {}
+
+  '@exodus/bytes@1.15.0': {}
 
   '@exodus/bytes@1.15.0(@noble/hashes@2.0.1)':
     optionalDependencies:
@@ -9395,65 +9359,6 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
-
-  '@astroclaw/channel@file:../astroclaw/sidecar/packages/channel':
-    dependencies:
-      '@astroclaw/lease': file:../astroclaw/sidecar/packages/lease
-      '@astroclaw/session': file:../astroclaw/sidecar/packages/session
-      '@astroclaw/state': file:../astroclaw/sidecar/packages/state
-      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
-
-  '@astroclaw/heartbeat@file:../astroclaw/sidecar/packages/heartbeat':
-    dependencies:
-      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
-      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
-
-  '@astroclaw/lease@file:../astroclaw/sidecar/packages/lease':
-    dependencies:
-      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
-      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
-
-  '@astroclaw/mesh@file:../astroclaw/sidecar/packages/mesh':
-    dependencies:
-      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
-
-  '@astroclaw/provider@file:../astroclaw/sidecar/packages/provider':
-    dependencies:
-      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
-      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
-
-  '@astroclaw/runtime@file:../astroclaw/sidecar':
-    dependencies:
-      '@astroclaw/channel': file:../astroclaw/sidecar/packages/channel
-      '@astroclaw/heartbeat': file:../astroclaw/sidecar/packages/heartbeat
-      '@astroclaw/lease': file:../astroclaw/sidecar/packages/lease
-      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
-      '@astroclaw/provider': file:../astroclaw/sidecar/packages/provider
-      '@astroclaw/session': file:../astroclaw/sidecar/packages/session
-      '@astroclaw/skill': file:../astroclaw/sidecar/packages/skill
-      '@astroclaw/state': file:../astroclaw/sidecar/packages/state
-      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
-
-  '@astroclaw/session@file:../astroclaw/sidecar/packages/session':
-    dependencies:
-      '@astroclaw/lease': file:../astroclaw/sidecar/packages/lease
-      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
-      '@astroclaw/state': file:../astroclaw/sidecar/packages/state
-      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
-
-  '@astroclaw/skill@file:../astroclaw/sidecar/packages/skill':
-    dependencies:
-      '@astroclaw/lease': file:../astroclaw/sidecar/packages/lease
-      '@astroclaw/mesh': file:../astroclaw/sidecar/packages/mesh
-      '@astroclaw/session': file:../astroclaw/sidecar/packages/session
-      '@astroclaw/state': file:../astroclaw/sidecar/packages/state
-      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
-
-  '@astroclaw/state@file:../astroclaw/sidecar/packages/state':
-    dependencies:
-      '@astroclaw/types': file:../astroclaw/sidecar/packages/types
-
-  '@astroclaw/types@file:../astroclaw/sidecar/packages/types': {}
 
   '@lancedb/lancedb-darwin-arm64@0.27.2':
     optional: true
@@ -11030,6 +10935,21 @@ snapshots:
       vitest: 4.1.6(@opentelemetry/api@1.9.1)(@types/node@25.8.0)(@vitest/browser-playwright@4.1.6)(@vitest/coverage-v8@4.1.6)(jsdom@29.1.1(@noble/hashes@2.0.1))(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0))
     optionalDependencies:
       '@vitest/browser': 4.1.6(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0))(vitest@4.1.6)
+    optional: true
+
+  '@vitest/coverage-v8@4.1.6(vitest@4.1.6)':
+    dependencies:
+      '@bcoe/v8-coverage': 1.0.2
+      '@vitest/utils': 4.1.6
+      ast-v8-to-istanbul: 1.0.0
+      istanbul-lib-coverage: 3.2.2
+      istanbul-lib-report: 3.0.1
+      istanbul-reports: 3.2.0
+      magicast: 0.5.3
+      obug: 2.1.1
+      std-env: 4.1.0
+      tinyrainbow: 3.1.0
+      vitest: 4.1.6(@types/node@25.8.0)(@vitest/coverage-v8@4.1.6)(jsdom@29.1.1)(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0))
 
   '@vitest/expect@4.1.6':
     dependencies:
@@ -11588,6 +11508,13 @@ snapshots:
   data-uri-to-buffer@4.0.1: {}
 
   data-uri-to-buffer@6.0.2: {}
+
+  data-urls@7.0.0:
+    dependencies:
+      whatwg-mimetype: 5.0.0
+      whatwg-url: 16.0.1
+    transitivePeerDependencies:
+      - '@noble/hashes'
 
   data-urls@7.0.0(@noble/hashes@2.0.1):
     dependencies:
@@ -12254,6 +12181,12 @@ snapshots:
     dependencies:
       lru-cache: 11.3.6
 
+  html-encoding-sniffer@6.0.0:
+    dependencies:
+      '@exodus/bytes': 1.15.0
+    transitivePeerDependencies:
+      - '@noble/hashes'
+
   html-encoding-sniffer@6.0.0(@noble/hashes@2.0.1):
     dependencies:
       '@exodus/bytes': 1.15.0(@noble/hashes@2.0.1)
@@ -12491,6 +12424,32 @@ snapshots:
       commander: 5.1.0
       fs-extra: 11.3.5
       jscpd-sarif-reporter: 4.2.0
+
+  jsdom@29.1.1:
+    dependencies:
+      '@asamuzakjp/css-color': 5.1.11
+      '@asamuzakjp/dom-selector': 7.1.1
+      '@bramus/specificity': 2.4.2
+      '@csstools/css-syntax-patches-for-csstree': 1.1.4(css-tree@3.2.1)
+      '@exodus/bytes': 1.15.0
+      css-tree: 3.2.1
+      data-urls: 7.0.0
+      decimal.js: 10.6.0
+      html-encoding-sniffer: 6.0.0
+      is-potential-custom-element-name: 1.0.1
+      lru-cache: 11.3.6
+      parse5: 8.0.1
+      saxes: 6.0.0
+      symbol-tree: 3.2.4
+      tough-cookie: 4.1.3
+      undici: 7.25.0
+      w3c-xmlserializer: 5.0.0
+      webidl-conversions: 8.0.1
+      whatwg-mimetype: 5.0.0
+      whatwg-url: 16.0.1
+      xml-name-validator: 5.0.0
+    transitivePeerDependencies:
+      - '@noble/hashes'
 
   jsdom@29.1.1(@noble/hashes@2.0.1):
     dependencies:
@@ -14526,6 +14485,35 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
+  vitest@4.1.6(@types/node@25.8.0)(@vitest/coverage-v8@4.1.6)(jsdom@29.1.1)(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0)):
+    dependencies:
+      '@vitest/expect': 4.1.6
+      '@vitest/mocker': 4.1.6(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0))
+      '@vitest/pretty-format': 4.1.6
+      '@vitest/runner': 4.1.6
+      '@vitest/snapshot': 4.1.6
+      '@vitest/spy': 4.1.6
+      '@vitest/utils': 4.1.6
+      es-module-lexer: 2.1.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.1
+      pathe: 2.0.3
+      picomatch: 4.0.4
+      std-env: 4.1.0
+      tinybench: 2.9.0
+      tinyexec: 1.1.2
+      tinyglobby: 0.2.16
+      tinyrainbow: 3.1.0
+      vite: 8.0.13(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.0)(yaml@2.9.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 25.8.0
+      '@vitest/coverage-v8': 4.1.6(vitest@4.1.6)
+      jsdom: 29.1.1
+    transitivePeerDependencies:
+      - msw
+
   void-elements@3.1.0: {}
 
   w3c-xmlserializer@5.0.0:
@@ -14553,6 +14541,14 @@ snapshots:
   whatsapp-rust-bridge@0.5.4: {}
 
   whatwg-mimetype@5.0.0: {}
+
+  whatwg-url@16.0.1:
+    dependencies:
+      '@exodus/bytes': 1.15.0
+      tr46: 6.0.0
+      webidl-conversions: 8.0.1
+    transitivePeerDependencies:
+      - '@noble/hashes'
 
   whatwg-url@16.0.1(@noble/hashes@2.0.1):
     dependencies:
