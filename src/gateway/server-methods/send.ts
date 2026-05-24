@@ -28,7 +28,6 @@ import {
   readStringValue,
 } from "../../shared/string-coerce.js";
 import { ADMIN_SCOPE } from "../method-scopes.js";
-import { checkBeforeChannelSend } from "../proliferation-bootstrap.js";
 import {
   ErrorCodes,
   errorShape,
@@ -569,15 +568,6 @@ export const sendHandlers: GatewayRequestHandlers = {
           sessionKey: outboundSessionKey,
           conversationType: outboundRoute?.chatType,
         });
-        const proliferationDecision = await checkBeforeChannelSend({
-          channelId: String(outboundChannel),
-          accountId: accountId ?? undefined,
-        });
-        if (proliferationDecision !== "allow") {
-          throw new Error(
-            `channel send gated by proliferation sidecar: ${proliferationDecision}`,
-          );
-        }
         const send = await sendDurableMessageBatch({
           cfg,
           channel: outboundChannel,

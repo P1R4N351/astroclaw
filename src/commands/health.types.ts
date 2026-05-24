@@ -38,18 +38,6 @@ export type PluginHealthSummary = {
 export type ModelPricingHealthSummary =
   import("../gateway/model-pricing-cache-state.js").GatewayModelPricingHealth;
 
-/**
- * Astroclaw proliferation health contribution merged into the response when the
- * sidecar is active (see src/gateway/proliferation-bootstrap.ts:
- * getProliferationHealth). Optional; absent when the sidecar is not loaded
- * or proliferation is disabled in config.
- *
- * The shape is sidecar-defined and intentionally loose at the astroclaw
- * boundary — astroclaw evolves its own field set across phases without needing
- * an astroclaw-side schema change. UI consumers narrow as needed.
- */
-export type ProliferationHealthContribution = Record<string, unknown>;
-
 export type HealthSummary = {
   ok: true;
   ts: number;
@@ -57,7 +45,6 @@ export type HealthSummary = {
   eventLoop?: import("../gateway/server/event-loop-health.js").GatewayEventLoopHealth;
   plugins?: PluginHealthSummary;
   modelPricing?: ModelPricingHealthSummary;
-  proliferation?: ProliferationHealthContribution;
   channels: Record<string, ChannelHealthSummary>;
   channelOrder: string[];
   channelLabels: Record<string, string>;

@@ -17,7 +17,6 @@ import { isCompactionCheckpointTranscriptFileName } from "../config/sessions/art
 import { streamSessionTranscriptLines } from "../config/sessions/transcript-stream.js";
 import type { AstroclawConfig } from "../config/types.astroclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { emitProliferationEvent } from "./proliferation-bootstrap.js";
 import { resolveGatewaySessionStoreTarget } from "./session-utils.js";
 
 const log = createSubsystemLogger("gateway/session-compaction-checkpoints");
@@ -407,9 +406,6 @@ export async function persistSessionCompactionCheckpoint(params: {
   postEntryId?: string;
   createdAt?: number;
 }): Promise<SessionCompactionCheckpoint | null> {
-  emitProliferationEvent("before-session-checkpoint", {
-    sessionId: params.sessionId,
-  });
   const target = resolveGatewaySessionStoreTarget({
     cfg: params.cfg,
     key: params.sessionKey,
@@ -473,11 +469,6 @@ export async function persistSessionCompactionCheckpoint(params: {
     removed: trimmedCheckpoints?.removed ?? [],
     retained: trimmedCheckpoints?.kept,
     currentSnapshotFile: params.snapshot.sessionFile,
-  });
-  emitProliferationEvent("after-session-checkpoint", {
-    sessionId: params.sessionId,
-    cid: checkpoint.checkpointId,
-    snapshotFile: params.snapshot.sessionFile,
   });
   return checkpoint;
 }

@@ -25,13 +25,12 @@ import {
   purgeAgentSessionStoreEntries,
   resolveSessionTranscriptsDirForAgent,
 } from "../../config/sessions.js";
-import type { IdentityConfig } from "../../config/types.base.js";
 import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { IdentityConfig } from "../../config/types.base.js";
 import { root, FsSafeError, type ReadResult } from "../../infra/fs-safe.js";
 import { movePathToTrash } from "../../plugin-sdk/browser-maintenance.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../../routing/session-key.js";
 import { resolveUserPath } from "../../utils.js";
-import { notifyProliferationWorkspaceWrite } from "../proliferation-bootstrap.js";
 import {
   ErrorCodes,
   errorShape,
@@ -351,7 +350,7 @@ async function writeWorkspaceFileOrRespond(params: {
   workspaceDir: string;
   name: string;
   content: string;
-  /** Optional agent scope, threaded through to the proliferation replicator. */
+  /** Optional agent scope, threaded through to the replication notifier (if any). */
   agentId?: string;
 }): Promise<boolean> {
   await fs.mkdir(params.workspaceDir, { recursive: true });
@@ -365,12 +364,6 @@ async function writeWorkspaceFileOrRespond(params: {
     }
     throw err;
   }
-  notifyProliferationWorkspaceWrite({
-    workspaceDir: params.workspaceDir,
-    path: params.name,
-    body: params.content,
-    agentId: params.agentId,
-  });
   return true;
 }
 
@@ -856,11 +849,6 @@ export const agentsHandlers: GatewayRequestHandlers = {
       respondWorkspaceFileUnsafe(respond, name);
       return;
     }
-    // Fire-and-forget replication notification for the astroclaw sidecar. No-op
-    // when the sidecar is inactive. The local write above is canonical;
-    // replication failures are surfaced via the sidecar's logger and never
-    // block the gateway response.
-    notifyProliferationWorkspaceWrite({ workspaceDir, path: name, body: content, agentId });
     const meta = await statWorkspaceFileSafely(workspaceRoot, workspaceDir, name);
     respond(
       true,

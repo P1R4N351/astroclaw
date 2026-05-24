@@ -2,7 +2,6 @@ import type { ChannelAccountSnapshot } from "../../channels/plugins/types.public
 import type { ChannelHealthSummary, HealthSummary } from "../../commands/health.types.js";
 import { getStatusSummary } from "../../commands/status.js";
 import { getGatewayModelPricingHealth } from "../model-pricing-cache-state.js";
-import { getProliferationHealth } from "../proliferation-bootstrap.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
 import type { ChannelRuntimeSnapshot } from "../server-channel-runtime.types.js";
 import { HEALTH_REFRESH_INTERVAL_MS } from "../server-constants.js";
@@ -88,23 +87,13 @@ function mergeCachedHealthRuntimeState(params: {
   cached: HealthSummary;
   eventLoop?: HealthSummary["eventLoop"];
 }): HealthSummary {
-  const proliferation = getProliferationHealth();
   return {
     ...params.cached,
     ...(params.eventLoop ? { eventLoop: params.eventLoop } : {}),
-    ...(proliferation ? { proliferation } : {}),
     modelPricing: getGatewayModelPricingHealth({
       enabled: params.cached.modelPricing?.state !== "disabled",
     }),
   };
-}
-
-function mergeFreshHealthRuntimeState(snap: HealthSummary): HealthSummary {
-  const proliferation = getProliferationHealth();
-  if (!proliferation) {
-    return snap;
-  }
-  return { ...snap, proliferation };
 }
 
 export const healthHandlers: GatewayRequestHandlers = {
@@ -148,7 +137,7 @@ export const healthHandlers: GatewayRequestHandlers = {
     }
     try {
       const snap = await refreshHealthSnapshot({ probe: wantsProbe, includeSensitive });
-      respond(true, mergeFreshHealthRuntimeState(snap), undefined);
+      respond(true, snap, undefined);
     } catch (err) {
       respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
     }

@@ -21,7 +21,6 @@ import {
   SecretsConfigSchema,
 } from "./zod-schema.core.js";
 import { HookMappingSchema, HooksGmailSchema, InternalHooksSchema } from "./zod-schema.hooks.js";
-import { ProliferationConfigSchema } from "./zod-schema.proliferation.js";
 import { ProxyConfigSchema } from "./zod-schema.proxy.js";
 import { sensitive } from "./zod-schema.sensitive.js";
 import {
@@ -567,7 +566,11 @@ export const AstroclawSchema = z
                 mcpCommand: z.string().optional(),
                 mcpArgs: z.array(z.string()).optional(),
                 driver: z
-                  .union([z.literal("astroclaw"), z.literal("clawd"), z.literal("existing-session")])
+                  .union([
+                    z.literal("astroclaw"),
+                    z.literal("clawd"),
+                    z.literal("existing-session"),
+                  ])
                   .optional(),
                 headless: z.boolean().optional(),
                 executablePath: z.string().optional(),
@@ -1186,7 +1189,6 @@ export const AstroclawSchema = z
       )
       .optional(),
     proxy: ProxyConfigSchema,
-    proliferation: ProliferationConfigSchema,
   })
   .strict()
   .superRefine((cfg, ctx) => {
