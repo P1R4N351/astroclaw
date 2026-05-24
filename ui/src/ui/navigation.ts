@@ -6,11 +6,8 @@ export const TAB_GROUPS = [
   { label: "chat", tabs: ["chat"] },
   {
     label: "control",
-    tabs: ["overview", "channels", "siblings", "sessions", "cron"],
+    tabs: ["overview", "channels", "sessions", "cron"],
   },
-  // astroclaw/0020: Nodes → Siblings. 0027: Instances → Siblings. 0032: /usage dropped.
-  // /nodes, /instances, /usage routes + Tab types stay defined so deep
-  // links keep working and the stripped pages still render if navigated directly.
   { label: "agent", tabs: ["agents", "skills", "dreams"] },
   {
     label: "settings",
@@ -32,7 +29,6 @@ export type Tab =
   | "overview"
   | "channels"
   | "instances"
-  | "siblings"
   | "sessions"
   | "usage"
   | "cron"
@@ -54,7 +50,6 @@ const TAB_PATHS: Record<Tab, string> = {
   overview: "/overview",
   channels: "/channels",
   instances: "/instances",
-  siblings: "/siblings",
   sessions: "/sessions",
   usage: "/usage",
   cron: "/cron",
@@ -172,8 +167,6 @@ export function iconForTab(tab: Tab): IconName {
       return "link";
     case "instances":
       return "radio";
-    case "siblings":
-      return "leaf";
     case "sessions":
       return "fileText";
     case "usage":

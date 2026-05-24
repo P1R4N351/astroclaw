@@ -9,12 +9,7 @@ export function renderNodes(props: NodesProps) {
       <div class="row" style="justify-content: space-between;">
         <div>
           <div class="card-title">Nodes</div>
-          <div class="card-sub">
-            Paired devices and live links.
-            <span class="muted">
-              · See the <a href="/siblings">Siblings</a> page for the merged mesh + nodes view.
-            </span>
-          </div>
+          <div class="card-sub">Paired devices and live links.</div>
         </div>
         <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
           ${props.loading ? t("common.loading") : t("common.refresh")}
@@ -29,7 +24,6 @@ export function renderNodes(props: NodesProps) {
   `;
 }
 
-/** Public export: lets the Siblings page render the same compact node row. */
 export const renderPairedNode = renderNode;
 
 function renderNode(node: Record<string, unknown>) {

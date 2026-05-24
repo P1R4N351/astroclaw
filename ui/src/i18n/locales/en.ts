@@ -394,7 +394,6 @@ export const en: TranslationMap = {
     overview: "Overview",
     channels: "Channels",
     instances: "Instances",
-    siblings: "Siblings",
     sessions: "Sessions",
     usage: "Usage",
     cron: "Cron Jobs",
@@ -416,7 +415,6 @@ export const en: TranslationMap = {
     overview: "Status, entry points, health.",
     channels: "Channels and settings.",
     instances: "Connected clients and nodes.",
-    siblings: "Mesh peers, leases, replication.",
     sessions: "Active sessions and defaults.",
     usage: "API usage and costs.",
     cron: "Wakeups and recurring runs.",
@@ -1023,7 +1021,8 @@ export const en: TranslationMap = {
         title: "Could not connect",
         summary:
           "The browser could not complete the Gateway connection. Check the target and transport before retrying credentials.",
-        stepGateway: "Confirm the Gateway is running with astroclaw status or astroclaw gateway run.",
+        stepGateway:
+          "Confirm the Gateway is running with astroclaw status or astroclaw gateway run.",
         stepUrl:
           "Check the WebSocket URL and use wss:// when the Gateway is behind HTTPS/Tailscale Serve.",
         stepDashboard:

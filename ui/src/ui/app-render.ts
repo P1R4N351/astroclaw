@@ -93,7 +93,6 @@ import {
   resolveConfiguredDreaming,
   updateDreamingEnabled,
 } from "./controllers/dreaming.ts";
-import { loadHealthState } from "./controllers/health.ts";
 import { loadLogs } from "./controllers/logs.ts";
 import { loadNodes } from "./controllers/nodes.ts";
 import { loadPresence } from "./controllers/presence.ts";
@@ -177,7 +176,6 @@ const lazyInstances = createLazyView(() => import("./views/instances.ts"), notif
 const lazyLogs = createLazyView(() => import("./views/logs.ts"), notifyLazyViewChanged);
 const lazyNodes = createLazyView(() => import("./views/nodes.ts"), notifyLazyViewChanged);
 const lazySessions = createLazyView(() => import("./views/sessions.ts"), notifyLazyViewChanged);
-const lazySiblings = createLazyView(() => import("./views/siblings.ts"), notifyLazyViewChanged);
 const lazySkills = createLazyView(() => import("./views/skills.ts"), notifyLazyViewChanged);
 
 function formatDreamNextCycle(nextRunAtMs: number | undefined): string | null {
@@ -1748,31 +1746,6 @@ export function renderApp(state: AppViewState) {
                 lastError: state.presenceError,
                 statusMessage: state.presenceStatus,
                 onRefresh: () => loadPresence(state),
-              }),
-            )
-          : nothing}
-        ${state.tab === "siblings"
-          ? renderLazyView(lazySiblings, (m) =>
-              m.renderSiblings({
-                loading: state.healthLoading,
-                error: state.healthError,
-                proliferation: (state.healthResult as { proliferation?: unknown } | undefined)
-                  ?.proliferation as
-                  | Parameters<typeof m.renderSiblings>[0]["proliferation"]
-                  | undefined,
-                onRefresh: () => loadHealthState(state),
-                // astroclaw/0020: surface paired nodes inside the Siblings panel
-                // so the merged mesh + nodes view lives on one page.
-                pairedNodes: state.nodes,
-                pairedNodesLoading: state.nodesLoading,
-                onPairedNodesRefresh: () => loadNodes(state),
-                // astroclaw/0027: surface connected instances (presence) inside
-                // the Siblings panel too — same merged-view rationale.
-                connectedInstances: state.presenceEntries,
-                connectedInstancesLoading: state.presenceLoading,
-                connectedInstancesError: state.presenceError,
-                connectedInstancesStatus: state.presenceStatus,
-                onConnectedInstancesRefresh: () => loadPresence(state),
               }),
             )
           : nothing}
