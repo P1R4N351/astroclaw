@@ -161,6 +161,37 @@ const GATEWAY_PROBE_STATUS_BY_PATH = new Map<string, "live" | "ready">([
   ["/ready", "ready"],
   ["/readyz", "ready"],
 ]);
+
+// Short-TTL in-process cache for live-probe responses. Refreshed at most
+// once per PIRANESI_HEALTHZ_CACHE_MS (default 1500, clamped 0-10000) so
+// docker healthchecks + watchdog probes don't add event-loop pressure
+// when the gateway is busy. Only the "live" path is cached; "ready"
+// always runs the readiness check fresh. Migrated to source from
+// patch-healthz-cache.js 2026-05-25 per Piranesi-Main DECIDE: A.
+// Background: under heartbeat backlog (35+ stuck task runs after a
+// restart), even the cheap live path blocked past watchdog probe
+// timeout, causing STRIKE → docker restart → same backlog (B68).
+const LIVE_PROBE_CACHE_DEFAULT_MS = 1500;
+const LIVE_PROBE_CACHE_MAX_MS = 10000;
+let liveProbeCache: { at: number; body: string } | null = null;
+
+function resolveLiveProbeCacheTtlMs(): number {
+  const raw = Number(process.env.PIRANESI_HEALTHZ_CACHE_MS || "");
+  if (!Number.isFinite(raw)) {
+    return LIVE_PROBE_CACHE_DEFAULT_MS;
+  }
+  return Math.max(0, Math.min(LIVE_PROBE_CACHE_MAX_MS, Math.floor(raw)));
+}
+
+function getCachedLiveProbeBody(now: number): string {
+  const ttl = resolveLiveProbeCacheTtlMs();
+  if (liveProbeCache && now - liveProbeCache.at <= ttl) {
+    return liveProbeCache.body;
+  }
+  const body = JSON.stringify({ ok: true, status: "live", cached: true, ts: now });
+  liveProbeCache = { at: now, body };
+  return body;
+}
 const pluginGatewayAuthBypassPathsCache = new WeakMap<
   AstroclawConfig,
   Promise<ReadonlySet<string>>
@@ -313,7 +344,7 @@ async function handleGatewayProbeRequest(
     }
   } else {
     statusCode = 200;
-    body = JSON.stringify({ ok: true, status });
+    body = getCachedLiveProbeBody(Date.now());
   }
   res.statusCode = statusCode;
   res.end(method === "HEAD" ? undefined : body);
