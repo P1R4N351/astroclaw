@@ -1727,7 +1727,19 @@ export async function runHeartbeatOnce(opts: {
       ...(usesHeartbeatResponseTool
         ? { sourceReplyDeliveryMode: "message_tool_only" as const }
         : {}),
-      ...(hasDueCommitments ? { disableTools: true, skillFilter: [] } : {}),
+      // D1 2026-05-03: when lightContext=true (heartbeat already gated to
+      // HEARTBEAT.md bootstrap-files only), ALSO propagate disableTools +
+      // empty skillFilter so the gateway doesn't bundle ~25-50k tokens of
+      // tool/skill definitions into the system prompt. Without this, the
+      // tools layer forces small-context models (e.g. granite-8b 16k) to
+      // truncate, slow-roll, and time out. Trade-off: lightContext
+      // heartbeats lose tool access — their prompts already specify text-
+      // only "log heartbeat OK and return" behavior. Heartbeats that
+      // genuinely need tools should set lightContext=false explicitly.
+      // Migrated from patch-lightcontext-disables-tools.js 2026-05-25.
+      ...(hasDueCommitments || heartbeat?.lightContext === true
+        ? { disableTools: true, skillFilter: [] }
+        : {}),
       // Heartbeat timeout is a per-run override so user turns keep the global default.
       timeoutOverrideSeconds,
       bootstrapContextMode,
