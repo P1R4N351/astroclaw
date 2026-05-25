@@ -26,6 +26,7 @@ import {
 import type { ControlUiRootState } from "./control-ui.js";
 import type { AuthorizedGatewayHttpRequest } from "./http-auth-utils.js";
 import { sendGatewayAuthFailure, sendJson, setDefaultSecurityHeaders } from "./http-common.js";
+import { handleMcpFederationRequest, MCP_FEDERATION_PATH_ROUTE } from "./mcp-federation-http.js";
 import { resolveRequestClientIp } from "./net.js";
 import {
   normalizePluginNodeCapabilityScopedUrl,
@@ -801,6 +802,19 @@ export function createGatewayHttpServer(opts: {
           rateLimiter,
         }),
       );
+
+      // POST /mcp — sibling-to-sibling MCP federation endpoint. See
+      // gateway/mcp-federation-http.ts for full security boundary +
+      // request lifecycle. Authenticated via PIRANESI_MCP_FEDERATION_TOKEN
+      // env var (off-by-default; returns 503 when unset). Migrated to
+      // source from patch-mcp-federation.js 2026-05-25.
+      requestStages.push({
+        name: "mcp-federation",
+        run: () => {
+          if (scopedRequestPath !== MCP_FEDERATION_PATH_ROUTE) return false;
+          return handleMcpFederationRequest(req, res);
+        },
+      });
 
       // GET /internal/queue-depth — lane queue depth telemetry endpoint.
       // Auth: shared-secret PIRANESI_INTERNAL_TOKEN via x-internal-token
