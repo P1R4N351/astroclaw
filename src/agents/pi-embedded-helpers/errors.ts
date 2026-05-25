@@ -796,6 +796,31 @@ function classifyFailoverClassificationFromMessage(
   raw: string,
   provider?: string,
 ): FailoverClassification | null {
+  // Anthropic Max-tier "out of extra usage" graceful reclassification
+  // (Layer B of out-of-credit cascade-grace fix, 2026-05-24). Anthropic
+  // returns two structurally different exhaustion errors:
+  //   1. OAuth/Claude-Max ("out of extra usage", "claude.ai/settings/usage"):
+  //      rolling 5h/7d window, resets on its own — same shape as rate-limit.
+  //   2. API-key ("credit balance too low"): hard 402, resets only on top-up.
+  // The downstream classifier matches both via the billing pattern, routing
+  // both through the 5h/24h disabled-billing lane. This early-return picks
+  // off the Max-tier case and routes it through the stepped cooldown lane
+  // (30s/60s/5min) where it belongs. True API-key 402s fall through to the
+  // billing classifier so Layer A (anthropic billing-backoff cap 0.25h)
+  // still applies. Migrated from patch-anthropic-billing-grace.js 2026-05-25.
+  if (raw && typeof provider === "string") {
+    const lowerProvider = provider.toLowerCase();
+    const lowerRaw = raw.toLowerCase();
+    const isAnthropic = lowerProvider.includes("anthropic");
+    const isMaxUsage = /out of extra usage|claude\.ai\/settings\/usage/i.test(raw);
+    const isHardBilling =
+      /credit balance|insufficient credits?|payment required|insufficient.{0,20}balance/i.test(
+        lowerRaw,
+      );
+    if (isAnthropic && isMaxUsage && !isHardBilling) {
+      return toReasonClassification("rate_limit");
+    }
+  }
   if (isImageDimensionErrorMessage(raw)) {
     return null;
   }
