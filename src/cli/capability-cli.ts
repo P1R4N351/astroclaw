@@ -812,6 +812,17 @@ async function runModelRun(params: {
       promptMode: "none",
       cleanupBundleMcpOnRunEnd: true,
       idempotencyKey: randomIdempotencyKey(),
+      // Isolate `astroclaw infer model run --gateway` calls from the agent's
+      // main persistent session. Without sessionKey, gateway resolveSession()
+      // falls back to agent:<id>:main (the live conversation), causing
+      // session bleed where model #2 sees model #1's prompt+response as
+      // history (apparent dups, "you sent the same prompt twice" refusals,
+      // and bench/test prompts polluting Sat's main chat). Each call now
+      // gets a fresh isolated session keyed by a random idempotency token.
+      // Matches the cron-cli pattern (agentTurn payloads default to
+      // sessionTarget:"isolated"). Previously enforced via the runtime
+      // patch-infer-session-isolation.js — migrated to source 2026-05-25.
+      sessionKey: `agent:${agentId}:infer:${randomIdempotencyKey()}`,
     },
     expectFinal: true,
     timeoutMs: 120_000,
