@@ -379,7 +379,9 @@ export function renderLoginGate(state: AppViewState) {
             <li>
               ${t("overview.connection.step1")}${renderConnectCommand("astroclaw gateway run")}
             </li>
-            <li>${t("overview.connection.step2")} ${renderConnectCommand("astroclaw dashboard")}</li>
+            <li>
+              ${t("overview.connection.step2")} ${renderConnectCommand("astroclaw dashboard")}
+            </li>
             <li>${t("overview.connection.step3")}</li>
           </ol>
           <div class="login-gate__docs">

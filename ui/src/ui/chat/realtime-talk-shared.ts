@@ -242,7 +242,9 @@ function waitForChatResult(params: {
         resolve(extractTextFromMessage(payload.message) || "Astroclaw finished with no text.");
       } else if (payload.state === "aborted") {
         cleanup();
-        reject(new DOMException(payload.errorMessage ?? "Astroclaw tool call aborted", "AbortError"));
+        reject(
+          new DOMException(payload.errorMessage ?? "Astroclaw tool call aborted", "AbortError"),
+        );
       } else if (payload.state === "error") {
         cleanup();
         reject(new Error(payload.errorMessage ?? "Astroclaw tool call failed"));

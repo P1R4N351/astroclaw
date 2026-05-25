@@ -106,11 +106,6 @@ const coreCliCommandCatalog = defineCommandDescriptorCatalog([
     description: "Inspect durable background tasks and flows",
     hasSubcommands: true,
   },
-  {
-    name: "prolif",
-    description: "Astroclaw proliferation sidecar commands (mesh, lease, state)",
-    hasSubcommands: true,
-  },
 ] as const satisfies ReadonlyArray<CoreCliCommandDescriptor>);
 
 export const CORE_CLI_COMMAND_DESCRIPTORS = coreCliCommandCatalog.descriptors;

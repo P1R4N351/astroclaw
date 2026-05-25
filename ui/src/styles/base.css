@@ -1,8 +1,8 @@
 :root {
-  /* astroclaw vapourwave palette (2026-05-17): deep purple + hot pink +
-     vapor cyan. Hot pink is the primary accent (astroclaw vine + flower);
-     cyan handles secondary highlights + semantic-ok. The default `claw`
-     theme is now this palette; the legacy red palette lives on under
+  /* vapourwave palette (2026-05-17): deep purple + hot pink +
+     vapor cyan. Hot pink is the primary accent; cyan handles secondary
+     highlights + semantic-ok. The default `claw` theme is now this
+     palette; the legacy red palette lives on under
      [data-theme-mode="light"] for the light pair, and operators can
      still flip to `knot` / `dash` via the Appearance picker. */
 

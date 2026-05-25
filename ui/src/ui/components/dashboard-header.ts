@@ -11,7 +11,7 @@ export class DashboardHeader extends LitElement {
   @property() basePath = "";
   @property() agentLabel = "";
 
-  private get astroclawIconSrc(): string {
+  private get brandIconSrc(): string {
     const base = this.basePath.trim().replace(/\/$/, "");
     return base ? `${base}/favicon.svg` : "favicon.svg";
   }
@@ -47,7 +47,7 @@ export class DashboardHeader extends LitElement {
             style="display:inline-flex;align-items:center;gap:6px;"
           >
             <img
-              src=${this.astroclawIconSrc}
+              src=${this.brandIconSrc}
               alt=""
               aria-hidden="true"
               width="20"

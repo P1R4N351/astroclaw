@@ -104,7 +104,7 @@ function renderUsageEmptyState(onRefresh: () => void) {
   `;
 }
 
-// astroclaw/0020: stripped-down renderUsage. The full filter chips,
+// stripped-down renderUsage. The full filter chips,
 // mosaic, time-series detail, per-session log viewer, and CSV export
 // surfaces were replaced with a minimal totals + top-sessions layout
 // per Sat's "strip down usage page" directive. The helper functions
