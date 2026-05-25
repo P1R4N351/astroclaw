@@ -2198,11 +2198,27 @@ export function startHeartbeatRunner(opts: {
       if (!intervalMs) {
         continue;
       }
-      const phaseMs = resolveHeartbeatPhaseMs({
+      const basePhaseMs = resolveHeartbeatPhaseMs({
         schedulerSeed: state.schedulerSeed,
         agentId: agent.agentId,
         intervalMs,
       });
+      // B70-sibling: random first-fire jitter on top of the deterministic
+      // per-agent SHA256 phase. Bounded to half the interval to avoid
+      // crossing the next slot, and ignored if jitterSeconds is missing,
+      // zero, or non-finite. Migrated to source from patch-heartbeat-jitter.js
+      // 2026-05-25.
+      const phaseMs = (() => {
+        const jitterSec = Number(agent.heartbeat?.jitterSeconds) || 0;
+        if (jitterSec <= 0 || !Number.isFinite(jitterSec)) {
+          return basePhaseMs;
+        }
+        const jitterRangeMs = Math.min(Math.floor(intervalMs / 2), Math.floor(jitterSec) * 1000);
+        if (jitterRangeMs <= 0) {
+          return basePhaseMs;
+        }
+        return (basePhaseMs + Math.floor(Math.random() * jitterRangeMs)) % intervalMs;
+      })();
       intervals.push(intervalMs);
       const prevState = prevAgents.get(agent.agentId);
       const activeHoursSchedule = resolveActiveHoursSchedule(cfg, agent.heartbeat);

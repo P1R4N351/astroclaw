@@ -40,6 +40,14 @@ export const AgentRunRetriesConfigSchema = z
 export const HeartbeatSchema = z
   .object({
     every: z.string().optional(),
+    // Random first-fire offset (0..N seconds) added on top of the
+    // deterministic per-agent SHA256 phase. Reduces thundering-herd risk
+    // when multiple agents at the same cadence land within a few seconds.
+    // 0 = no jitter (default). Migrated to source from
+    // patch-heartbeat-jitter.js + patch-heartbeat-jitter-zod.js 2026-05-25
+    // per Piranesi-Main DECIDE: A. Background: B70-sibling thundering-herd
+    // consult 2026-04-30.
+    jitterSeconds: z.number().int().nonnegative().max(86400).optional(),
     activeHours: z
       .object({
         start: z.string().optional(),

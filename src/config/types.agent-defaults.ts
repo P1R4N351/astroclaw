@@ -371,6 +371,13 @@ export type AgentDefaultsConfig = {
   heartbeat?: {
     /** Heartbeat interval (duration string, default unit: minutes; default: 30m). */
     every?: string;
+    /**
+     * Random first-fire offset (0..N seconds) added on top of the
+     * deterministic per-agent SHA256 phase. Reduces thundering-herd risk
+     * when multiple agents at the same cadence land within a few seconds.
+     * 0 = no jitter (default). Bounded to half the interval at runtime.
+     */
+    jitterSeconds?: number;
     /** Optional active-hours window (local time); heartbeats run only inside this window. */
     activeHours?: {
       /** Start time (24h, HH:MM). Inclusive. */
