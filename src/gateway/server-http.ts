@@ -14,6 +14,7 @@ import {
   createDiagnosticTraceContext,
   runWithDiagnosticTraceContext,
 } from "../infra/diagnostic-trace-context.js";
+import { getTotalQueueSize } from "../process/command-queue.js";
 import { resolveAssistantIdentity } from "./assistant-identity.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import {
@@ -24,7 +25,7 @@ import {
 } from "./auth.js";
 import type { ControlUiRootState } from "./control-ui.js";
 import type { AuthorizedGatewayHttpRequest } from "./http-auth-utils.js";
-import { sendGatewayAuthFailure, setDefaultSecurityHeaders } from "./http-common.js";
+import { sendGatewayAuthFailure, sendJson, setDefaultSecurityHeaders } from "./http-common.js";
 import { resolveRequestClientIp } from "./net.js";
 import {
   normalizePluginNodeCapabilityScopedUrl,
@@ -730,6 +731,40 @@ export function createGatewayHttpServer(opts: {
           rateLimiter,
         }),
       );
+
+      // GET /internal/queue-depth — lane queue depth telemetry endpoint.
+      // Auth: shared-secret PIRANESI_INTERNAL_TOKEN via x-internal-token
+      // header (separate from gateway operator auth). Off when env var
+      // unset → 503. Migrated to source from patch-queue-depth.js
+      // (2026-05-25) per Piranesi-Main DECIDE: A. Originally added per
+      // SP-3 of the design-skills initiative: piranesi-ui telemetry
+      // pane consumes lane queue depth as a live hero metric.
+      requestStages.push({
+        name: "queue-depth",
+        run: () => {
+          if (scopedRequestPath !== "/internal/queue-depth") return false;
+          if (req.method !== "GET" && req.method !== "HEAD") {
+            res.statusCode = 405;
+            res.setHeader("Allow", "GET, HEAD");
+            res.end("Method Not Allowed");
+            return true;
+          }
+          const serverToken = process.env.PIRANESI_INTERNAL_TOKEN;
+          if (!serverToken) {
+            res.statusCode = 503;
+            res.end("queue-depth not configured");
+            return true;
+          }
+          const clientToken = req.headers["x-internal-token"];
+          if (clientToken !== serverToken) {
+            res.statusCode = 401;
+            res.end("Unauthorized");
+            return true;
+          }
+          sendJson(res, 200, { ok: true, queueDepth: getTotalQueueSize() });
+          return true;
+        },
+      });
 
       if (isManagedOutgoingImagePath(scopedRequestPath)) {
         requestStages.push({
