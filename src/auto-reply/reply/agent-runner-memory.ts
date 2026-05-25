@@ -951,6 +951,12 @@ export async function runMemoryFlushIfNeeded(params: {
       sessionId: activeSessionEntry?.sessionId ?? params.followupRun.run.sessionId,
       lane: CommandLane.Main,
       run: async (provider, model, runOptions) => {
+        // B69 per-attempt isolation: each memory-flush candidate gets a
+        // standalone 35s window with NO parent-abort propagation. See
+        // agent-runner-execution.ts:1690 area for the rationale. Migrated
+        // from patch-abort-isolation.js + v2 2026-05-25.
+        const perAttemptController = new AbortController();
+        setTimeout(() => perAttemptController.abort(), 35000).unref?.();
         const { embeddedContext, senderContext, runBaseParams } = buildEmbeddedRunExecutionParams({
           run: params.followupRun.run,
           sessionCtx: params.sessionCtx,
@@ -975,7 +981,7 @@ export async function runMemoryFlushIfNeeded(params: {
           bootstrapPromptWarningSignaturesSeen,
           bootstrapPromptWarningSignature:
             bootstrapPromptWarningSignaturesSeen[bootstrapPromptWarningSignaturesSeen.length - 1],
-          abortSignal: params.replyOperation.abortSignal,
+          abortSignal: perAttemptController.signal,
           replyOperation: params.replyOperation,
           onAgentEvent: (evt) => {
             if (evt.stream === "compaction") {

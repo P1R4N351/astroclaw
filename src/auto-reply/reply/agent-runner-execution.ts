@@ -1688,6 +1688,15 @@ export async function runAgentTurnWithFallback(params: {
           return classification;
         },
         run: async (provider, model, runOptions) => {
+          // Per-attempt AbortController for B69 isolation: each candidate
+          // gets a standalone 35s window with NO parent-abort propagation.
+          // When one provider times out, the others get a real chance to
+          // run. The outer operation stops new candidates by exiting the
+          // fallback loop, not by aborting in-flight ones. Migrated to
+          // source from patch-abort-isolation.js + patch-abort-isolation-v2.js
+          // 2026-05-25 per Piranesi-Main DECIDE: A.
+          const perAttemptController = new AbortController();
+          setTimeout(() => perAttemptController.abort(), 35000).unref?.();
           const candidateRun = resolveRunForFallbackCandidate(provider, model);
           const activeProbe = effectiveRun.autoFallbackPrimaryProbe;
           if (activeProbe && provider === activeProbe.provider && model === activeProbe.model) {
@@ -1853,7 +1862,7 @@ export async function runAgentTurnWithFallback(params: {
                   agentAccountId: params.followupRun.run.agentAccountId,
                   senderIsOwner: params.followupRun.run.senderIsOwner,
                   disableTools: params.opts?.disableTools,
-                  abortSignal: params.replyOperation?.abortSignal ?? params.opts?.abortSignal,
+                  abortSignal: perAttemptController.signal,
                   replyOperation: params.replyOperation,
                 });
                 const result: EmbeddedAgentRunResult =
@@ -2040,7 +2049,7 @@ export async function runAgentTurnWithFallback(params: {
                 bootstrapContextRunKind: params.opts?.isHeartbeat ? "heartbeat" : "default",
                 images: params.opts?.images,
                 imageOrder: params.opts?.imageOrder,
-                abortSignal: params.replyOperation?.abortSignal ?? params.opts?.abortSignal,
+                abortSignal: perAttemptController.signal,
                 replyOperation: params.replyOperation,
                 blockReplyBreak: params.resolvedBlockStreamingBreak,
                 blockReplyChunking: params.blockReplyChunking,
