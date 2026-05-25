@@ -607,6 +607,45 @@ export function createGatewayHttpServer(opts: {
       const resolvedAuth = getResolvedAuth();
       const requestStages: GatewayHttpRequestStage[] = [
         {
+          // Startup-grace: during the first PIRANESI_STARTUP_GRACE_S seconds
+          // after process boot (default 60), intercept /v1/* requests with a
+          // procedural SSE response instead of letting them hit the model
+          // routing layer while providers are still connecting. Without this,
+          // /v1/chat/completions calls during boot return empty responses
+          // (F-EMPTY-FIRST) — clients see a "model said nothing" failure when
+          // the gateway is actually still warming up. Migrated to source from
+          // patch-startup-grace-procedural.js 2026-05-25.
+          name: "startup-grace",
+          run: () => {
+            const graceSecondsRaw = Number(process.env.PIRANESI_STARTUP_GRACE_S || "60");
+            const graceSeconds = Number.isFinite(graceSecondsRaw) ? graceSecondsRaw : 60;
+            if (process.uptime() >= graceSeconds) return false;
+            if (!scopedRequestPath.startsWith("/v1")) return false;
+            const graceBody = JSON.stringify({
+              id: "startup-grace",
+              object: "chat.completion.chunk",
+              model: "procedural-fallback-v1",
+              choices: [
+                {
+                  index: 0,
+                  delta: {
+                    role: "assistant",
+                    content:
+                      "[STARTUP-GRACE v1.0] Gateway is warming up — models loading. Retry in a moment.",
+                  },
+                  finish_reason: "stop",
+                },
+              ],
+            });
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "text/event-stream");
+            res.setHeader("X-Consult-Procedural", "startup-grace");
+            res.setHeader("Cache-Control", "no-store");
+            res.end(`data: ${graceBody}\n\ndata: [DONE]\n\n`);
+            return true;
+          },
+        },
+        {
           name: "gateway-probes",
           run: () =>
             handleGatewayProbeRequest(
