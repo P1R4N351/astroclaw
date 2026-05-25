@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join as pathJoin } from "node:path";
 import {
   buildMessagingTarget,
   parseMentionPrefixOrAtUserTarget,
@@ -13,6 +16,66 @@ export type DiscordTarget = MessagingTarget;
 
 export type DiscordTargetParseOptions = MessagingTargetParseOptions;
 
+// Notify-alias resolution (B63): @Sat / sat / etc. → canonical discord
+// recipient via /home/<user>/.astroclaw/workspace/memory/notify-aliases.json.
+// Cached for 5 minutes; falls through silently on any read/parse error so
+// the existing parser handles non-alias inputs identically to upstream.
+// Migrated to source from patch-discord-alias-resolve.js 2026-05-25 per
+// Piranesi-Main DECIDE: A.
+type NotifyAliasEntry = { discord?: string; alias_of?: string };
+type NotifyAliasMap = Record<string, NotifyAliasEntry | string | undefined>;
+const NOTIFY_ALIAS_CACHE_MS = 5 * 60 * 1000;
+const NOTIFY_ALIAS_MAX_HOPS = 3;
+let notifyAliasCache: { at: number; aliases: NotifyAliasMap } | null = null;
+
+function loadNotifyAliasesUncached(): NotifyAliasMap {
+  const candidatePaths = [
+    pathJoin(homedir(), ".astroclaw", "workspace", "memory", "notify-aliases.json"),
+    pathJoin(homedir(), ".openclaw", "workspace", "memory", "notify-aliases.json"),
+  ];
+  for (const path of candidatePaths) {
+    try {
+      const raw = readFileSync(path, "utf8");
+      const parsed = JSON.parse(raw) as { aliases?: NotifyAliasMap };
+      return parsed?.aliases ?? {};
+    } catch {
+      // try next candidate
+    }
+  }
+  return {};
+}
+
+function getNotifyAliases(): NotifyAliasMap {
+  const now = Date.now();
+  if (notifyAliasCache && now - notifyAliasCache.at <= NOTIFY_ALIAS_CACHE_MS) {
+    return notifyAliasCache.aliases;
+  }
+  const aliases = loadNotifyAliasesUncached();
+  notifyAliasCache = { at: now, aliases };
+  return aliases;
+}
+
+function resolveDiscordViaAlias(rawInput: string): string | undefined {
+  const aliases = getNotifyAliases();
+  let key = rawInput.toLowerCase();
+  if (key.startsWith("@")) {
+    key = key.slice(1);
+  }
+  for (let hop = 0; hop < NOTIFY_ALIAS_MAX_HOPS; hop += 1) {
+    const entry = aliases[key];
+    if (!entry) return undefined;
+    if (typeof entry === "object" && typeof entry.alias_of === "string") {
+      key = entry.alias_of.toLowerCase();
+      continue;
+    }
+    if (typeof entry === "object" && typeof entry.discord === "string") {
+      return entry.discord;
+    }
+    return undefined;
+  }
+  return undefined;
+}
+
 export function parseDiscordTarget(
   raw: string,
   options: DiscordTargetParseOptions = {},
@@ -20,6 +83,16 @@ export function parseDiscordTarget(
   const trimmed = raw.trim();
   if (!trimmed) {
     return undefined;
+  }
+  // B63: alias resolution before any further parsing. Defensive — silent
+  // fall-through on any error so existing parser handles non-alias inputs.
+  try {
+    const aliasResolved = resolveDiscordViaAlias(trimmed);
+    if (aliasResolved !== undefined && aliasResolved !== trimmed) {
+      return parseDiscordTarget(aliasResolved, options);
+    }
+  } catch {
+    // fall through
   }
   const providerPrefixedTarget = parseDiscordProviderPrefixedTarget(trimmed);
   if (providerPrefixedTarget) {
