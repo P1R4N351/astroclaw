@@ -267,6 +267,10 @@ import {
 import { splitSdkTools } from "../tool-split.js";
 import { mapThinkingLevel } from "../utils.js";
 import { flushPendingToolResultsAfterIdle } from "../wait-for-idle-before-flush.js";
+import {
+  abortWithStreamingGrace,
+  DEFAULT_STREAMING_ABORT_GRACE_MS,
+} from "./abort-with-streaming-grace.js";
 import { abortable as abortableWithSignal } from "./abortable.js";
 import { createEmbeddedAgentSessionWithResourceLoader } from "./attempt-session.js";
 import {
@@ -2973,6 +2977,14 @@ export async function runEmbeddedAttempt(
       const isProbeSession = params.sessionId?.startsWith("probe-") ?? false;
       const compactionTimeoutMs = resolveCompactionTimeoutMs(params.config);
       let abortTimer: NodeJS.Timeout | undefined;
+      // Streaming-aware abort handle.  When the per-attempt watchdog
+      // fires mid-stream, abortWithStreamingGrace defers the abort by
+      // a small grace window so a completing SSE response doesn't get
+      // torn down (see [project-gateway-lane-race-2026-05-25] memo).
+      // Cleared in the cleanup `finally` so a successful response that
+      // arrived during the grace doesn't carry a pending abort past
+      // run completion.
+      let streamingGraceHandle: { cancel: () => void } | undefined;
       let compactionGraceUsed = false;
       const scheduleAbortTimer = (delayMs: number, reason: "initial" | "compaction-grace") => {
         abortTimer = setTimeout(
@@ -3010,7 +3022,23 @@ export async function runEmbeddedAttempt(
             ) {
               timedOutDuringCompaction = true;
             }
-            abortRun(true);
+            // Streaming-aware abort: if the upstream is still
+            // delivering SSE bytes when the watchdog fires, give the
+            // stream a small grace window to drain before tearing
+            // down.  Resolves the lane-timeout race documented in
+            // `project_gateway_lane_race_2026_05_25.md` — the
+            // simultaneous surface_error vs candidate_succeeded
+            // emission ~15ms apart, where the upstream had actually
+            // returned a complete completion but the abort tore the
+            // stream down mid-flush.
+            streamingGraceHandle = abortWithStreamingGrace({
+              isStreaming: () => activeSession.isStreaming,
+              abortRun: () => abortRun(true),
+              graceMs: DEFAULT_STREAMING_ABORT_GRACE_MS,
+              warn: isProbeSession
+                ? undefined
+                : (msg) => log.warn(`${msg}: runId=${params.runId} sessionId=${params.sessionId}`),
+            });
             if (!abortWarnTimer) {
               abortWarnTimer = setTimeout(() => {
                 if (!activeSession.isStreaming) {
@@ -4089,6 +4117,10 @@ export async function runEmbeddedAttempt(
         if (abortWarnTimer) {
           clearTimeout(abortWarnTimer);
         }
+        // Cancel any pending streaming-grace abort so a completed
+        // success path doesn't trigger a late `abortRun(true)` after
+        // the run has already returned its result.
+        streamingGraceHandle?.cancel();
         if (!isProbeSession && (aborted || timedOut) && !timedOutDuringCompaction) {
           log.debug(
             `run cleanup: runId=${params.runId} sessionId=${params.sessionId} aborted=${aborted} timedOut=${timedOut}`,
