@@ -5,7 +5,7 @@
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
   <a href="https://github.com/openclaw/openclaw"><img src="https://img.shields.io/badge/upstream-openclaw-orange?style=for-the-badge" alt="Upstream"></a>
-  <a href="#derivation"><img src="https://img.shields.io/badge/processing-NASA_P10-green?style=for-the-badge" alt="P10 Processing"></a>
+  <a href="#derivation"><img src="https://img.shields.io/badge/NASA_P10-compliant-green?style=for-the-badge" alt="P10 compliant"></a>
   <a href="#install"><img src="https://img.shields.io/badge/node-22.16%2B-brightgreen?style=for-the-badge" alt="Node 22.16+"></a>
 </p>
 
