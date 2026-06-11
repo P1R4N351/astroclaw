@@ -1,18 +1,25 @@
+/**
+ * Agent identity and message-prefix resolution.
+ * Applies account, channel, global, and per-agent precedence for reactions,
+ * prefixes, and human-delay settings.
+ */
 import type { HumanDelayConfig, IdentityConfig } from "../config/types.base.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveAgentConfig } from "./agent-scope.js";
 
 const DEFAULT_ACK_REACTION = "👀";
 
+/** Resolve the configured identity block for one agent. */
 export function resolveAgentIdentity(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string,
 ): IdentityConfig | undefined {
   return resolveAgentConfig(cfg, agentId)?.identity;
 }
 
+/** Resolve the acknowledgement reaction using account, channel, global, then identity fallback. */
 export function resolveAckReaction(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string,
   opts?: { channel?: string; accountId?: string },
 ): string {
@@ -46,8 +53,9 @@ export function resolveAckReaction(
   return emoji || DEFAULT_ACK_REACTION;
 }
 
+/** Build the automatic `[name]` prefix for an agent identity. */
 export function resolveIdentityNamePrefix(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string,
 ): string | undefined {
   const name = resolveAgentIdentity(cfg, agentId)?.name?.trim();
@@ -57,8 +65,9 @@ export function resolveIdentityNamePrefix(
   return `[${name}]`;
 }
 
+/** Resolve the outbound message prefix, preserving explicit empty prefixes. */
 export function resolveMessagePrefix(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string,
   opts?: { configured?: string; hasAllowFrom?: boolean; fallback?: string },
 ): string {
@@ -72,12 +81,12 @@ export function resolveMessagePrefix(
     return "";
   }
 
-  return resolveIdentityNamePrefix(cfg, agentId) ?? opts?.fallback ?? "[astroclaw]";
+  return resolveIdentityNamePrefix(cfg, agentId) ?? opts?.fallback ?? "[openclaw]";
 }
 
 /** Helper to extract a channel config value by dynamic key. */
 function getChannelConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   channel: string,
 ): Record<string, unknown> | undefined {
   const channels = cfg.channels as Record<string, unknown> | undefined;
@@ -87,8 +96,9 @@ function getChannelConfig(
     : undefined;
 }
 
+/** Resolve the optional response prefix, expanding `auto` to the identity name prefix. */
 export function resolveResponsePrefix(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string,
   opts?: { channel?: string; accountId?: string },
 ): string | undefined {
@@ -128,8 +138,9 @@ export function resolveResponsePrefix(
   return undefined;
 }
 
+/** Resolve message and response prefix values together for channel delivery. */
 export function resolveEffectiveMessagesConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string,
   opts?: {
     hasAllowFrom?: boolean;
@@ -150,8 +161,9 @@ export function resolveEffectiveMessagesConfig(
   };
 }
 
+/** Resolve per-agent human-delay settings over global agent defaults. */
 export function resolveHumanDelayConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string,
 ): HumanDelayConfig | undefined {
   const defaults = cfg.agents?.defaults?.humanDelay;
