@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Runtime bridge for web content extractors supplied by plugins.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveEnabledBundledManifestContractPlugins } from "./bundled-manifest-contract-plugins.js";
 import { loadBundledWebContentExtractorEntriesFromDir } from "./web-content-extractor-public-artifacts.js";
 import type { PluginWebContentExtractorEntry } from "./web-content-extractor-types.js";
@@ -16,7 +17,7 @@ function compareExtractors(
 }
 
 export function resolvePluginWebContentExtractors(params?: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   onlyPluginIds?: readonly string[];
@@ -29,7 +30,6 @@ export function resolvePluginWebContentExtractors(params?: {
     onlyPluginIds: params?.onlyPluginIds,
     contract: "webContentExtractors",
     compatMode: {
-      allowlist: true,
       enablement: "always",
       vitest: true,
     },
