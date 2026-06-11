@@ -1,16 +1,21 @@
+/**
+ * Optional JSONL diagnostics for agent cache/session/prompt tracing.
+ */
 import crypto from "node:crypto";
 import path from "node:path";
-import type { AgentMessage, StreamFn } from "@earendil-works/pi-agent-core";
 import { resolveStateDir } from "../config/paths.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveUserPath } from "../utils.js";
 import { parseBooleanValue } from "../utils/boolean.js";
 import { safeJsonStringify } from "../utils/safe-json.js";
 import { sanitizeDiagnosticPayload } from "./payload-redaction.js";
 import { getQueuedFileWriter, type QueuedFileWriter } from "./queued-file-writer.js";
+import type { AgentMessage, StreamFn } from "./runtime/index.js";
 import { stableStringify } from "./stable-stringify.js";
 import { buildAgentTraceBase } from "./trace-base.js";
 
+// Payloads are redacted before JSONL output while stable digests preserve
+// correlation across prompt/session/cache stages.
 type CacheTraceStage =
   | "cache:result"
   | "cache:state"
@@ -56,7 +61,7 @@ type CacheTrace = {
 };
 
 type CacheTraceInit = {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   runId?: string;
   sessionId?: string;
@@ -83,17 +88,17 @@ const writers = new Map<string, CacheTraceWriter>();
 function resolveCacheTraceConfig(params: CacheTraceInit): CacheTraceConfig {
   const env = params.env ?? process.env;
   const config = params.cfg?.diagnostics?.cacheTrace;
-  const envEnabled = parseBooleanValue(env.ASTROCLAW_CACHE_TRACE);
+  const envEnabled = parseBooleanValue(env.OPENCLAW_CACHE_TRACE);
   const enabled = envEnabled ?? config?.enabled ?? false;
-  const fileOverride = config?.filePath?.trim() || env.ASTROCLAW_CACHE_TRACE_FILE?.trim();
+  const fileOverride = config?.filePath?.trim() || env.OPENCLAW_CACHE_TRACE_FILE?.trim();
   const filePath = fileOverride
     ? resolveUserPath(fileOverride)
     : path.join(resolveStateDir(env), "logs", "cache-trace.jsonl");
 
   const includeMessages =
-    parseBooleanValue(env.ASTROCLAW_CACHE_TRACE_MESSAGES) ?? config?.includeMessages;
-  const includePrompt = parseBooleanValue(env.ASTROCLAW_CACHE_TRACE_PROMPT) ?? config?.includePrompt;
-  const includeSystem = parseBooleanValue(env.ASTROCLAW_CACHE_TRACE_SYSTEM) ?? config?.includeSystem;
+    parseBooleanValue(env.OPENCLAW_CACHE_TRACE_MESSAGES) ?? config?.includeMessages;
+  const includePrompt = parseBooleanValue(env.OPENCLAW_CACHE_TRACE_PROMPT) ?? config?.includePrompt;
+  const includeSystem = parseBooleanValue(env.OPENCLAW_CACHE_TRACE_SYSTEM) ?? config?.includeSystem;
 
   return {
     enabled,
@@ -119,6 +124,8 @@ function summarizeMessages(messages: AgentMessage[]): {
   messageFingerprints: string[];
   messagesDigest: string;
 } {
+  // Hash each message and then the ordered fingerprint list so traces can detect
+  // prompt drift without writing full messages when disabled.
   const messageFingerprints = messages.map((msg) => digest(msg));
   return {
     messageCount: messages.length,
@@ -128,6 +135,7 @@ function summarizeMessages(messages: AgentMessage[]): {
   };
 }
 
+/** Create a cache trace recorder when diagnostics config/env enables it. */
 export function createCacheTrace(params: CacheTraceInit): CacheTrace | null {
   const cfg = resolveCacheTraceConfig(params);
   if (!cfg.enabled) {
@@ -169,6 +177,8 @@ export function createCacheTrace(params: CacheTraceInit): CacheTrace | null {
       event.messageFingerprints = summary.messageFingerprints;
       event.messagesDigest = summary.messagesDigest;
       if (cfg.includeMessages) {
+        // Full messages are optional; summaries/digests are always recorded when
+        // message payloads are supplied.
         event.messages = sanitizeDiagnosticPayload(messages) as AgentMessage[];
       }
     }
