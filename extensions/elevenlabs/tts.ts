@@ -1,18 +1,19 @@
+// Elevenlabs plugin module implements tts behavior.
 import {
   assertOkOrThrowProviderError,
   assertProviderBinaryResponseContent,
   readProviderBinaryResponse,
-} from "astroclaw/plugin-sdk/provider-http";
+} from "openclaw/plugin-sdk/provider-http";
 import {
   normalizeApplyTextNormalization,
   normalizeLanguageCode,
   normalizeSeed,
   requireInRange,
-} from "astroclaw/plugin-sdk/speech";
+} from "openclaw/plugin-sdk/speech";
 import {
   fetchWithSsrFGuard,
   ssrfPolicyFromHttpBaseUrlAllowedHostname,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import { isValidElevenLabsVoiceId, normalizeElevenLabsBaseUrl } from "./shared.js";
 
 function assertElevenLabsVoiceSettings(settings: {
@@ -34,6 +35,17 @@ function resolveElevenLabsAcceptHeader(outputFormat: string): string | undefined
     return "audio/mpeg";
   }
   return undefined;
+}
+
+function normalizeElevenLabsLatencyTier(latencyTier: number | undefined): number | undefined {
+  if (latencyTier === undefined || !Number.isFinite(latencyTier)) {
+    return undefined;
+  }
+  if (!Number.isSafeInteger(latencyTier)) {
+    throw new Error("latencyTier must be an integer");
+  }
+  requireInRange(latencyTier, 0, 4, "latencyTier");
+  return latencyTier;
 }
 
 type ElevenLabsTtsRequestParams = {
@@ -83,13 +95,7 @@ function prepareElevenLabsTtsRequest(params: ElevenLabsTtsRequestParams & { stre
   const normalizedNormalization = normalizeApplyTextNormalization(applyTextNormalization);
   const normalizedSeed = normalizeSeed(seed);
   const normalizedBaseUrl = normalizeElevenLabsBaseUrl(baseUrl);
-  const normalizedLatencyTier =
-    typeof latencyTier === "number" && Number.isFinite(latencyTier)
-      ? Math.trunc(latencyTier)
-      : undefined;
-  if (normalizedLatencyTier !== undefined) {
-    requireInRange(normalizedLatencyTier, 0, 4, "latencyTier");
-  }
+  const normalizedLatencyTier = normalizeElevenLabsLatencyTier(latencyTier);
   const url = new URL(
     `${normalizedBaseUrl}/v1/text-to-speech/${voiceId}${params.stream ? "/stream" : ""}`,
   );
