@@ -1,16 +1,16 @@
+// Openai plugin module implements transport policy behavior.
 import type {
   ProviderResolveTransportTurnStateContext,
   ProviderResolveWebSocketSessionPolicyContext,
   ProviderTransportTurnState,
   ProviderWebSocketSessionPolicy,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { normalizeProviderId } from "astroclaw/plugin-sdk/provider-model-shared";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { normalizeProviderId } from "openclaw/plugin-sdk/provider-model-shared";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { isOpenAIApiBaseUrl, isOpenAICodexBaseUrl } from "./base-url.js";
 
 const DEFAULT_OPENAI_WS_DEGRADE_COOLDOWN_MS = 60_000;
 const AZURE_PROVIDER_IDS = new Set(["azure-openai", "azure-openai-responses"]);
-const OPENAI_CODEX_PROVIDER_ID = "openai-codex";
 
 function isAzureOpenAIBaseUrl(baseUrl?: string): boolean {
   const trimmed = baseUrl?.trim();
@@ -35,13 +35,10 @@ function usesKnownNativeOpenAIRoute(provider: string, baseUrl?: string): boolean
     return false;
   }
   if (normalizedProvider === "openai") {
-    return !baseUrl || isOpenAIApiBaseUrl(baseUrl);
+    return !baseUrl || isOpenAIApiBaseUrl(baseUrl) || isOpenAICodexBaseUrl(baseUrl);
   }
   if (AZURE_PROVIDER_IDS.has(normalizedProvider)) {
     return !baseUrl || isAzureOpenAIBaseUrl(baseUrl);
-  }
-  if (normalizedProvider === OPENAI_CODEX_PROVIDER_ID) {
-    return !baseUrl || isOpenAIApiBaseUrl(baseUrl) || isOpenAICodexBaseUrl(baseUrl);
   }
   return false;
 }
@@ -60,7 +57,7 @@ function resolveSessionHeaders(params: {
   }
   return {
     "x-client-request-id": sessionId,
-    "x-astroclaw-session-id": sessionId,
+    "x-openclaw-session-id": sessionId,
   };
 }
 
@@ -82,14 +79,14 @@ export function resolveOpenAITransportTurnState(
   return {
     headers: {
       ...sessionHeaders,
-      "x-astroclaw-turn-id": turnId,
-      "x-astroclaw-turn-attempt": attempt,
+      "x-openclaw-turn-id": turnId,
+      "x-openclaw-turn-attempt": attempt,
     },
     metadata: {
-      astroclaw_session_id: sessionHeaders["x-astroclaw-session-id"] ?? "",
-      astroclaw_turn_id: turnId,
-      astroclaw_turn_attempt: attempt,
-      astroclaw_transport: ctx.transport,
+      openclaw_session_id: sessionHeaders["x-openclaw-session-id"] ?? "",
+      openclaw_turn_id: turnId,
+      openclaw_turn_attempt: attempt,
+      openclaw_transport: ctx.transport,
     },
   };
 }
