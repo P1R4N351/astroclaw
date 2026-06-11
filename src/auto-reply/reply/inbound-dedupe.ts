@@ -1,12 +1,13 @@
+// Tracks inbound message ids to avoid duplicate reply runs.
+import {
+  normalizeOptionalLowercaseString,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
 import { logVerbose, shouldLogVerbose } from "../../globals.js";
 import { resolveGlobalDedupeCache, type DedupeCache } from "../../infra/dedupe.js";
 import { channelRouteDedupeKey } from "../../plugin-sdk/channel-route.js";
 import { parseAgentSessionKey } from "../../sessions/session-key-utils.js";
 import { resolveGlobalSingleton } from "../../shared/global-singleton.js";
-import {
-  normalizeOptionalLowercaseString,
-  normalizeOptionalString,
-} from "../../shared/string-coerce.js";
 import { resolveCommandTurnTargetSessionKey } from "../command-turn-context.js";
 import type { MsgContext } from "../templating.js";
 
@@ -17,8 +18,8 @@ const DEFAULT_INBOUND_DEDUPE_MAX = 5000;
  * Keep inbound dedupe shared across bundled chunks so the same provider
  * message cannot bypass dedupe by entering through a different chunk copy.
  */
-const INBOUND_DEDUPE_CACHE_KEY = Symbol.for("astroclaw.inboundDedupeCache");
-const INBOUND_DEDUPE_INFLIGHT_KEY = Symbol.for("astroclaw.inboundDedupeInflight");
+const INBOUND_DEDUPE_CACHE_KEY = Symbol.for("openclaw.inboundDedupeCache");
+const INBOUND_DEDUPE_INFLIGHT_KEY = Symbol.for("openclaw.inboundDedupeInflight");
 
 const inboundDedupeCache: DedupeCache = resolveGlobalDedupeCache(INBOUND_DEDUPE_CACHE_KEY, {
   ttlMs: DEFAULT_INBOUND_DEDUPE_TTL_MS,
