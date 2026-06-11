@@ -1,4 +1,7 @@
-import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
+// Doctor warnings for configured channels blocked by disabled channel plugins.
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { sanitizeForLog } from "../../../../packages/terminal-core/src/ansi.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import {
   listExplicitConfiguredChannelIdsForConfig,
   resolveConfiguredChannelPresencePolicy,
@@ -8,16 +11,17 @@ import {
   resolveEffectivePluginActivationState,
 } from "../../../plugins/config-state.js";
 import { loadPluginManifestRegistryForPluginRegistry } from "../../../plugins/plugin-registry.js";
-import { normalizeOptionalLowercaseString } from "../../../shared/string-coerce.js";
-import { sanitizeForLog } from "../../../terminal/ansi.js";
 
 export type ChannelPluginBlockerHit = {
+  /** Normalized configured channel id whose backing plugin is unavailable. */
   channelId: string;
+  /** Plugin id that would provide the configured channel. */
   pluginId: string;
+  /** Effective activation reason preventing the plugin from loading. */
   reason: "disabled in config" | "plugins disabled";
 };
 
-function hasExplicitChannelPluginBlockerConfig(cfg: AstroclawConfig): boolean {
+function hasExplicitChannelPluginBlockerConfig(cfg: OpenClawConfig): boolean {
   if (cfg.plugins?.enabled === false) {
     return true;
   }
@@ -36,8 +40,9 @@ function hasExplicitChannelPluginBlockerConfig(cfg: AstroclawConfig): boolean {
   });
 }
 
+/** Find configured channel ids whose backing plugins are explicitly disabled. */
 export function scanConfiguredChannelPluginBlockers(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv = process.env,
 ): ChannelPluginBlockerHit[] {
   if (!hasExplicitChannelPluginBlockerConfig(cfg)) {
@@ -123,6 +128,7 @@ function formatReason(hit: ChannelPluginBlockerHit): string {
   return `plugin "${sanitizeForLog(hit.pluginId)}" is not loadable (${sanitizeForLog(hit.reason)}).`;
 }
 
+/** Format doctor warnings for configured channels blocked by plugin activation state. */
 export function collectConfiguredChannelPluginBlockerWarnings(
   hits: ChannelPluginBlockerHit[],
 ): string[] {
@@ -132,6 +138,7 @@ export function collectConfiguredChannelPluginBlockerWarnings(
   );
 }
 
+/** Return true when a setup warning targets a channel already explained by plugin blockers. */
 export function isWarningBlockedByChannelPlugin(
   warning: string,
   hits: ChannelPluginBlockerHit[],
