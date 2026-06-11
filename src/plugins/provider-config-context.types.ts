@@ -1,5 +1,6 @@
+// Defines provider config context types for plugin-owned providers.
 import type { ModelProviderConfig } from "../config/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 /**
  * Provider-owned config normalization for `models.providers.<id>` entries.
@@ -31,6 +32,6 @@ export type ProviderResolveConfigApiKeyContext = {
  */
 export type ProviderApplyConfigDefaultsContext = {
   provider: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 };
