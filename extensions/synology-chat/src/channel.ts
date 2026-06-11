@@ -1,31 +1,34 @@
 /**
- * Synology Chat Channel Plugin for Astroclaw.
+ * Synology Chat Channel Plugin for OpenClaw.
  *
  * Implements the ChannelPlugin interface following the LINE pattern.
  */
 
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/account-resolution";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/account-resolution";
 import {
   createHybridChannelConfigAdapter,
   createScopedDmSecurityResolver,
-} from "astroclaw/plugin-sdk/channel-config-helpers";
-import { createChatChannelPlugin, type ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-import { waitUntilAbort } from "astroclaw/plugin-sdk/channel-lifecycle";
+} from "openclaw/plugin-sdk/channel-config-helpers";
+import { createChatChannelPlugin, type ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+import { waitUntilAbort } from "openclaw/plugin-sdk/channel-outbound";
 import {
   createMessageReceiptFromOutboundResults,
   defineChannelMessageAdapter,
   type MessageReceipt,
   type MessageReceiptPartKind,
-} from "astroclaw/plugin-sdk/channel-message";
+} from "openclaw/plugin-sdk/channel-outbound";
 import {
   composeWarningCollectors,
   createConditionalWarningCollector,
   projectAccountConfigWarningCollector,
   projectAccountWarningCollector,
-} from "astroclaw/plugin-sdk/channel-policy";
-import { createEmptyChannelDirectoryAdapter } from "astroclaw/plugin-sdk/directory-runtime";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-policy";
+import { createEmptyChannelDirectoryAdapter } from "openclaw/plugin-sdk/directory-runtime";
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeStringEntriesLower,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { listAccountIds, resolveAccount } from "./accounts.js";
 import { synologyChatApprovalAuth } from "./approval-auth.js";
 import { sendMessage, sendFileUrl } from "./client.js";
@@ -47,12 +50,12 @@ const resolveSynologyChatDmPolicy = createScopedDmSecurityResolver<ResolvedSynol
   resolveAllowFrom: (account) => account.allowedUserIds,
   policyPathSuffix: "dmPolicy",
   defaultPolicy: "allowlist",
-  approveHint: "astroclaw pairing approve synology-chat <code>",
+  approveHint: "openclaw pairing approve synology-chat <code>",
   normalizeEntry: (raw) => normalizeLowercaseStringOrEmpty(raw),
 });
 
 type SynologyChannelGatewayContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   abortSignal: AbortSignal;
   log?: {
@@ -62,7 +65,7 @@ type SynologyChannelGatewayContext = {
   };
 };
 type SynologyChannelOutboundContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   to: string;
   text?: string;
   mediaUrl?: string;
@@ -71,7 +74,7 @@ type SynologyChannelOutboundContext = {
 type SynologyChannelSendTextContext = SynologyChannelOutboundContext & { text: string };
 type SynologyChannelSendMediaContext = SynologyChannelOutboundContext & { mediaUrl: string };
 type SynologySecurityWarningContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   account: ResolvedSynologyChatAccount;
 };
 
@@ -94,8 +97,7 @@ const synologyChatConfigAdapter = createHybridChannelConfigAdapter<ResolvedSynol
     "allowInsecureSsl",
   ],
   resolveAllowFrom: (account) => account.allowedUserIds,
-  formatAllowFrom: (allowFrom) =>
-    allowFrom.map((entry) => normalizeLowercaseStringOrEmpty(String(entry))).filter(Boolean),
+  formatAllowFrom: (allowFrom) => normalizeStringEntriesLower(allowFrom),
 });
 
 const collectSynologyChatSecurityWarnings =
@@ -144,16 +146,16 @@ type SynologyChatPlugin = Omit<
   pairing: {
     idLabel: string;
     normalizeAllowEntry?: (entry: string) => string;
-    notifyApproval: (params: { cfg: AstroclawConfig; id: string }) => Promise<void>;
+    notifyApproval: (params: { cfg: OpenClawConfig; id: string }) => Promise<void>;
   };
   security: {
-    resolveDmPolicy: (params: { cfg: AstroclawConfig; account: ResolvedSynologyChatAccount }) => {
+    resolveDmPolicy: (params: { cfg: OpenClawConfig; account: ResolvedSynologyChatAccount }) => {
       policy: string | null | undefined;
       allowFrom?: Array<string | number>;
       normalizeEntry?: (raw: string) => string;
     } | null;
     collectWarnings: (params: {
-      cfg: AstroclawConfig;
+      cfg: OpenClawConfig;
       account: ResolvedSynologyChatAccount;
     }) => string[];
   };
@@ -188,7 +190,7 @@ type SynologyChatPlugin = Omit<
 
 const collectSynologyChatRoutingWarnings = projectAccountConfigWarningCollector<
   ResolvedSynologyChatAccount,
-  AstroclawConfig,
+  OpenClawConfig,
   SynologySecurityWarningContext
 >(
   (cfg) => cfg,
@@ -196,7 +198,7 @@ const collectSynologyChatRoutingWarnings = projectAccountConfigWarningCollector<
 );
 
 function resolveOutboundAccount(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string | null,
 ): ResolvedSynologyChatAccount {
   return resolveAccount(cfg ?? {}, accountId);
@@ -290,7 +292,7 @@ export function createSynologyChatPlugin(): SynologyChatPlugin {
         selectionLabel: "Synology Chat (Webhook)",
         detailLabel: "Synology Chat (Webhook)",
         docsPath: "/channels/synology-chat",
-        blurb: "Connect your Synology NAS Chat to Astroclaw",
+        blurb: "Connect your Synology NAS Chat to OpenClaw",
         order: 90,
       },
       capabilities: {
@@ -393,7 +395,7 @@ export function createSynologyChatPlugin(): SynologyChatPlugin {
     pairing: {
       text: {
         idLabel: "synologyChatUserId",
-        message: "Astroclaw: your access has been approved.",
+        message: "OpenClaw: your access has been approved.",
         normalizeAllowEntry: (entry: string) => normalizeLowercaseStringOrEmpty(entry),
         notify: async ({ cfg, id, message }) => {
           const account = resolveAccount(cfg);
