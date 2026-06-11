@@ -1,13 +1,15 @@
+// Qqbot plugin module implements sdk adapter behavior.
+import { parseAccessGroupAllowFromEntry } from "openclaw/plugin-sdk/access-groups";
 import {
   createChannelIngressResolver,
   defineStableChannelIngressIdentity,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import { resolveInboundMentionDecision } from "astroclaw/plugin-sdk/channel-mention-gating";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
+import { resolveInboundMentionDecision } from "openclaw/plugin-sdk/channel-mention-gating";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   createChannelHistoryWindow,
   type HistoryEntry as SdkHistoryEntry,
-} from "astroclaw/plugin-sdk/reply-history";
+} from "openclaw/plugin-sdk/reply-history";
 import { resolveQQBotEffectivePolicies } from "../engine/access/resolve-policy.js";
 import { normalizeQQBotAllowFrom, normalizeQQBotSenderId } from "../engine/access/sender-match.js";
 import type { HistoryPort, HistoryEntryLike } from "../engine/adapter/history.port.js";
@@ -89,7 +91,7 @@ export function createSdkAccessAdapter(): AccessPort {
         channelId: "qqbot",
         accountId: input.accountId,
         identity: qqbotIngressIdentity,
-        cfg: input.cfg as AstroclawConfig,
+        cfg: input.cfg as OpenClawConfig,
       }).message({
         subject: { stableId: input.senderId },
         conversation: {
@@ -133,7 +135,7 @@ async function resolveQQBotSlashCommandAuthorized(params: {
     (params.isGroup && params.groupAllowFrom && params.groupAllowFrom.length > 0
       ? params.groupAllowFrom
       : params.allowFrom);
-  const explicitAllowFrom = normalizeQQBotAllowFrom(rawAllowFrom).filter((entry) => entry !== "*");
+  const explicitAllowFrom = normalizeQQBotCommandAllowFrom(rawAllowFrom);
   if (explicitAllowFrom.length === 0) {
     return false;
   }
@@ -141,7 +143,7 @@ async function resolveQQBotSlashCommandAuthorized(params: {
     channelId: "qqbot",
     accountId: params.accountId,
     identity: qqbotIngressIdentity,
-    cfg: params.cfg as AstroclawConfig,
+    cfg: params.cfg as OpenClawConfig,
   }).message({
     subject: { stableId: params.senderId },
     conversation: {
@@ -161,4 +163,25 @@ async function resolveQQBotSlashCommandAuthorized(params: {
     },
   });
   return resolved.commandAccess.authorized;
+}
+
+function normalizeQQBotCommandAllowFrom(
+  rawAllowFrom: Array<string | number> | null | undefined,
+): string[] {
+  const entries: string[] = [];
+  for (const rawEntry of rawAllowFrom ?? []) {
+    const entry = String(rawEntry).trim();
+    if (!entry) {
+      continue;
+    }
+    if (parseAccessGroupAllowFromEntry(entry)) {
+      entries.push(entry);
+      continue;
+    }
+    const normalized = normalizeQQBotSenderId(entry);
+    if (normalized && normalized !== "*") {
+      entries.push(normalized);
+    }
+  }
+  return entries;
 }
