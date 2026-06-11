@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../runtime-api.js";
+// Msteams plugin module implements graph group management behavior.
+import type { OpenClawConfig } from "../runtime-api.js";
 import { resolveConversationPath, resolveGraphConversationId } from "./graph-messages.js";
 import {
   deleteGraphRequest,
@@ -14,7 +15,7 @@ import {
 // ---------------------------------------------------------------------------
 
 type AddParticipantMSTeamsParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   to: string;
   userId: string;
   role?: string;
@@ -67,7 +68,7 @@ export async function addParticipantMSTeams(
 // ---------------------------------------------------------------------------
 
 type RemoveParticipantMSTeamsParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   to: string;
   userId: string;
 };
@@ -137,7 +138,7 @@ export async function removeParticipantMSTeams(
 // ---------------------------------------------------------------------------
 
 type RenameGroupMSTeamsParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   to: string;
   name: string;
 };
