@@ -1,5 +1,6 @@
+/** Registry state for plugin memory runtimes, prompt supplements, and flush planning. */
 import type { MemoryCitationsMode } from "../config/types.memory.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { MemorySearchManager } from "../memory-host-sdk/host/types.js";
 
 export type MemoryPromptSectionBuilder = (params: {
@@ -75,7 +76,7 @@ export type MemoryFlushPlan = {
 };
 
 export type MemoryFlushPlanResolver = (params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   nowMs?: number;
 }) => MemoryFlushPlan | null;
 
@@ -96,7 +97,7 @@ export type MemoryRuntimeBackendConfig =
 
 export type MemoryPluginRuntime = {
   getMemorySearchManager(params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     agentId: string;
     purpose?: "default" | "status" | "cli";
   }): Promise<{
@@ -104,9 +105,10 @@ export type MemoryPluginRuntime = {
     error?: string;
   }>;
   resolveMemoryBackendConfig(params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     agentId: string;
   }): MemoryRuntimeBackendConfig;
+  closeMemorySearchManager?(params: { cfg: OpenClawConfig; agentId: string }): Promise<void>;
   closeAllMemorySearchManagers?(): Promise<void>;
 };
 
@@ -122,7 +124,7 @@ export type MemoryPluginPublicArtifact = {
 };
 
 export type MemoryPluginPublicArtifactsProvider = {
-  listArtifacts(params: { cfg: AstroclawConfig }): Promise<MemoryPluginPublicArtifact[]>;
+  listArtifacts(params: { cfg: OpenClawConfig }): Promise<MemoryPluginPublicArtifact[]>;
 };
 
 export type MemoryPluginCapability = {
@@ -165,7 +167,21 @@ export function registerMemoryCapability(
   pluginId: string,
   capability: MemoryPluginCapability,
 ): void {
-  memoryPluginState.capability = { pluginId, capability: { ...capability } };
+  const existingCapability = memoryPluginState.capability?.capability;
+  // A selected memory plugin can add bridge artifacts while memory-core owns sidecar runtime hooks.
+  const shouldPreserveExisting =
+    existingCapability &&
+    Boolean(capability.publicArtifacts) &&
+    !capability.promptBuilder &&
+    !capability.flushPlanResolver &&
+    !capability.runtime;
+  memoryPluginState.capability = {
+    pluginId,
+    capability: {
+      ...(shouldPreserveExisting ? existingCapability : {}),
+      ...capability,
+    },
+  };
 }
 
 function patchMemoryCapability(pluginId: string, patch: MemoryPluginCapability): void {
@@ -254,7 +270,7 @@ export function registerMemoryFlushPlanResolverForPlugin(
 }
 
 export function resolveMemoryFlushPlan(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   nowMs?: number;
 }): MemoryFlushPlan | null {
   return memoryPluginState.capability?.capability.flushPlanResolver?.(params) ?? null;
@@ -294,7 +310,7 @@ function cloneMemoryPublicArtifact(
 }
 
 export async function listActiveMemoryPublicArtifacts(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }): Promise<MemoryPluginPublicArtifact[]> {
   const artifacts =
     (await memoryPluginState.capability?.capability.publicArtifacts?.listArtifacts(params)) ?? [];
@@ -340,4 +356,4 @@ export function clearMemoryPluginState(): void {
   memoryPluginState.promptSupplements = [];
 }
 
-export const _resetMemoryPluginState = clearMemoryPluginState;
+export const resetMemoryPluginState = clearMemoryPluginState;
