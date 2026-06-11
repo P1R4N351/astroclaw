@@ -1,11 +1,14 @@
+/**
+ * Browser-local SDK security bridge plus directory creation helper.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
   findExistingAncestor,
   pathScope as sdkPathScope,
-} from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/security-runtime";
 
-export { createSubsystemLogger } from "astroclaw/plugin-sdk/logging-core";
+export { createSubsystemLogger } from "openclaw/plugin-sdk/logging-core";
 export {
   ensurePortAvailable,
   extractErrorCode,
@@ -32,9 +35,10 @@ export {
   writeExternalFileWithinRoot,
   writeViaSiblingTempPath,
   wrapExternalContent,
-} from "astroclaw/plugin-sdk/security-runtime";
-export type { LookupFn, SsrFPolicy } from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/security-runtime";
+export type { LookupFn, SsrFPolicy } from "openclaw/plugin-sdk/security-runtime";
 
+/** Ensures an absolute directory exists without escaping its nearest existing ancestor. */
 export async function ensureAbsoluteDirectory(
   dirPath: string,
   options?: { scopeLabel?: string; mode?: number },
