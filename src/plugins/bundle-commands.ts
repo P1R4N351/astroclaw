@@ -1,13 +1,14 @@
+// Bundles plugin command metadata for package output.
 import fs from "node:fs";
 import path from "node:path";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
-import { readRootJsonObjectSync } from "../infra/json-files.js";
-import { parseFrontmatterBlock } from "../markdown/frontmatter.js";
-import { isPathInsideWithRealpath } from "../security/scan-paths.js";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import { parseFrontmatterBlock } from "../../packages/markdown-core/src/frontmatter.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { readRootJsonObjectSync } from "../infra/json-files.js";
+import { isPathInsideWithRealpath } from "../security/scan-paths.js";
 import {
   CLAUDE_BUNDLE_MANIFEST_RELATIVE_PATH,
   mergeBundlePathLists,
@@ -158,7 +159,7 @@ function loadBundleCommandsFromRoot(params: {
 
 export function loadEnabledClaudeBundleCommands(params: {
   workspaceDir: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
 }): ClaudeBundleCommandSpec[] {
   if (!hasExplicitPluginConfig(params.cfg?.plugins)) {
     return [];
