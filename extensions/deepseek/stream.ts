@@ -1,5 +1,6 @@
-import type { ProviderWrapStreamFnContext } from "astroclaw/plugin-sdk/plugin-entry";
-import { createDeepSeekV4OpenAICompatibleThinkingWrapper } from "astroclaw/plugin-sdk/provider-stream-shared";
+// Deepseek plugin module implements stream behavior.
+import type { ProviderWrapStreamFnContext } from "openclaw/plugin-sdk/plugin-entry";
+import { createDeepSeekV4OpenAICompatibleThinkingWrapper } from "openclaw/plugin-sdk/provider-stream-shared";
 import { isDeepSeekV4ModelRef } from "./models.js";
 
 export function createDeepSeekV4ThinkingWrapper(
