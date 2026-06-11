@@ -1,11 +1,12 @@
+// Discord plugin module implements native command model picker apply behavior.
 import { randomUUID } from "node:crypto";
-import type { ChatCommandDefinition, CommandArgs } from "astroclaw/plugin-sdk/command-auth-native";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { applyModelOverrideToSessionEntry } from "astroclaw/plugin-sdk/model-session-runtime";
-import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { resolveStorePath, updateSessionStore } from "astroclaw/plugin-sdk/session-store-runtime";
-import { withTimeout } from "astroclaw/plugin-sdk/text-utility-runtime";
+import type { ChatCommandDefinition, CommandArgs } from "openclaw/plugin-sdk/command-auth-native";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { applyModelOverrideToSessionEntry } from "openclaw/plugin-sdk/model-session-runtime";
+import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { resolveStorePath, updateSessionStore } from "openclaw/plugin-sdk/session-store-runtime";
+import { withTimeout } from "openclaw/plugin-sdk/text-utility-runtime";
 import type { ButtonInteraction, StringSelectMenuInteraction } from "../internal/discord.js";
 import {
   recordDiscordModelPickerRecentModel,
@@ -14,7 +15,7 @@ import {
 import type { DispatchDiscordCommandInteraction } from "./native-command-dispatch.js";
 import type { ThreadBindingManager } from "./thread-bindings.js";
 
-type DiscordConfig = NonNullable<AstroclawConfig["channels"]>["discord"];
+type DiscordConfig = NonNullable<OpenClawConfig["channels"]>["discord"];
 
 type DiscordModelPickerSelectionCommand = {
   prompt: string;
@@ -30,7 +31,7 @@ type DiscordModelPickerApplyResult =
   | { status: "failed"; noticeMessage: string };
 
 async function persistDiscordModelPickerOverride(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   route: ResolvedAgentRoute;
   provider: string;
   model: string;
@@ -77,7 +78,7 @@ export async function applyDiscordModelPickerSelection(params: {
   interaction: ButtonInteraction | StringSelectMenuInteraction;
   selectionCommand: DiscordModelPickerSelectionCommand;
   dispatchCommandInteraction: DispatchDiscordCommandInteraction;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   discordConfig: DiscordConfig;
   accountId: string;
   sessionPrefix: string;
@@ -119,7 +120,9 @@ export async function applyDiscordModelPickerSelection(params: {
 
     const fallbackRoute = dispatchResult.effectiveRoute ?? params.route;
     if (params.settleMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, params.settleMs));
+      await new Promise((resolve) => {
+        setTimeout(resolve, params.settleMs);
+      });
     }
 
     let effectiveModelRef = params.resolveCurrentModel(fallbackRoute);
@@ -135,7 +138,9 @@ export async function applyDiscordModelPickerSelection(params: {
           params.selectedModel === params.defaultModel,
         runtime: params.selectedRuntime,
       });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100);
+      });
       effectiveModelRef = params.resolveCurrentModel(fallbackRoute);
       persisted = effectiveModelRef === params.resolvedModelRef;
     }
@@ -155,7 +160,9 @@ export async function applyDiscordModelPickerSelection(params: {
             params.selectedModel === params.defaultModel,
           runtime: params.selectedRuntime,
         });
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => {
+          setTimeout(resolve, 100);
+        });
         effectiveModelRef = params.resolveCurrentModel(fallbackRoute);
         persisted = effectiveModelRef === params.resolvedModelRef;
         if (!persisted) {
