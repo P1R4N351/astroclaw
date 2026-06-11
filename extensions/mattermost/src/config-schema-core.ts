@@ -1,10 +1,11 @@
+// Mattermost helper module supports config schema core behavior.
 import {
   BlockStreamingCoalesceSchema,
   DmPolicySchema,
   GroupPolicySchema,
   MarkdownConfigSchema,
   requireOpenAllowFrom,
-} from "astroclaw/plugin-sdk/channel-config-primitives";
+} from "openclaw/plugin-sdk/channel-config-primitives";
 import { z } from "zod";
 import { buildSecretInputSchema } from "./secret-input.js";
 
@@ -84,6 +85,7 @@ const MattermostStreamingProgressSchema = z
     label: z.union([z.string(), z.literal(false)]).optional(),
     labels: z.array(z.string()).optional(),
     maxLines: z.number().int().positive().optional(),
+    maxLineChars: z.number().int().positive().optional(),
     toolProgress: z.boolean().optional(),
   })
   .strict();
