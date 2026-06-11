@@ -1,5 +1,6 @@
+// Discord plugin module implements runtime.messaging behavior.
 import { readDiscordComponentSpec } from "../components.js";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 import { sendDiscordComponentMessage } from "../send.components.js";
 import {
   createThreadDiscord,
@@ -7,6 +8,7 @@ import {
   editMessageDiscord,
   editChannelDiscord,
   fetchChannelInfoDiscord,
+  fetchGuildInfoDiscord,
   fetchChannelPermissionsDiscord,
   fetchMessageDiscord,
   fetchReactionsDiscord,
@@ -33,6 +35,7 @@ export const discordMessagingActionRuntime = {
   editChannelDiscord,
   editMessageDiscord,
   fetchChannelInfoDiscord,
+  fetchGuildInfoDiscord,
   fetchChannelPermissionsDiscord,
   fetchMessageDiscord,
   fetchReactionsDiscord,
@@ -57,7 +60,7 @@ export const discordMessagingActionRuntime = {
 
 async function resolveDiscordReactionTargetChannelId(params: {
   target: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string;
 }): Promise<string> {
   try {
