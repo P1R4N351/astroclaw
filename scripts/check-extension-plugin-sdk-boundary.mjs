@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+// Inventories extension imports to enforce plugin SDK boundary rules.
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -137,7 +138,7 @@ function classifyReason(mode, kind, resolvedPath, specifier) {
         : "imports";
   if (mode === "relative-outside-package") {
     if (resolvedPath?.startsWith("src/plugin-sdk/")) {
-      return `${verb} plugin-sdk via relative path; use astroclaw/plugin-sdk/<subpath>`;
+      return `${verb} plugin-sdk via relative path; use openclaw/plugin-sdk/<subpath>`;
     }
     if (resolvedPath?.startsWith("src/")) {
       return `${verb} core src path via relative path outside the extension package`;
@@ -225,6 +226,9 @@ function collectEntriesByModeFromModuleReferences(filePath, references) {
   return entriesByMode;
 }
 
+/**
+ * Collects the current extension plugin SDK boundary inventory.
+ */
 export async function collectExtensionPluginSdkBoundaryInventory(mode) {
   if (!MODES.has(mode)) {
     throw new Error(`Unknown mode: ${mode}`);
@@ -253,6 +257,9 @@ export async function collectExtensionPluginSdkBoundaryInventory(mode) {
   return inventoryByMode[mode];
 }
 
+/**
+ * Reads the checked-in expected boundary inventory.
+ */
 export async function readExpectedInventory(mode) {
   try {
     return JSON.parse(await fs.readFile(baselinePathByMode[mode], "utf8"));
@@ -270,6 +277,9 @@ export async function readExpectedInventory(mode) {
   }
 }
 
+/**
+ * Diffs expected and actual boundary inventory entries.
+ */
 export function diffInventory(expected, actual) {
   return diffInventoryEntries(expected, actual, compareEntries);
 }
@@ -294,6 +304,9 @@ function formatInventoryHuman(mode, inventory) {
   return lines.join("\n");
 }
 
+/**
+ * Runs the boundary inventory check with CLI-style inputs and outputs.
+ */
 export async function runExtensionPluginSdkBoundaryCheck(argv, io) {
   const args = argv ?? process.argv.slice(2);
   const streams = io ?? { stdout: process.stdout, stderr: process.stderr };
@@ -343,6 +356,9 @@ export async function runExtensionPluginSdkBoundaryCheck(argv, io) {
   return 1;
 }
 
+/**
+ * Entrypoint wrapper for the extension plugin SDK boundary check.
+ */
 export async function main(argv, io) {
   const exitCode = await runExtensionPluginSdkBoundaryCheck(argv, io);
   if (!io) {
