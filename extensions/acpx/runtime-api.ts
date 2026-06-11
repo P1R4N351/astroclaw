@@ -1,11 +1,15 @@
-export type { AcpRuntimeErrorCode } from "astroclaw/plugin-sdk/acp-runtime-backend";
+/**
+ * Public runtime API barrel for ACPX. Core and plugin consumers import these
+ * SDK-facing ACP runtime contracts instead of reaching into ACPX internals.
+ */
+export type { AcpRuntimeErrorCode } from "openclaw/plugin-sdk/acp-runtime-backend";
 export {
   AcpRuntimeError,
   getAcpRuntimeBackend,
   tryDispatchAcpReplyHook,
   registerAcpRuntimeBackend,
   unregisterAcpRuntimeBackend,
-} from "astroclaw/plugin-sdk/acp-runtime-backend";
+} from "openclaw/plugin-sdk/acp-runtime-backend";
 export type {
   AcpRuntime,
   AcpRuntimeCapabilities,
@@ -14,33 +18,36 @@ export type {
   AcpRuntimeEvent,
   AcpRuntimeHandle,
   AcpRuntimeStatus,
+  AcpRuntimeTurn,
   AcpRuntimeTurnAttachment,
   AcpRuntimeTurnInput,
+  AcpRuntimeTurnResult,
+  AcpRuntimeTurnResultError,
   AcpSessionUpdateTag,
-} from "astroclaw/plugin-sdk/acp-runtime-backend";
+} from "openclaw/plugin-sdk/acp-runtime-backend";
 export type {
-  AstroclawPluginApi,
-  AstroclawPluginConfigSchema,
-  AstroclawPluginService,
-  AstroclawPluginServiceContext,
+  OpenClawPluginApi,
+  OpenClawPluginConfigSchema,
+  OpenClawPluginService,
+  OpenClawPluginServiceContext,
   PluginLogger,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 export type {
   PluginHookReplyDispatchContext,
   PluginHookReplyDispatchEvent,
   PluginHookReplyDispatchResult,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 export type {
   WindowsSpawnProgram,
   WindowsSpawnProgramCandidate,
   WindowsSpawnResolution,
-} from "astroclaw/plugin-sdk/windows-spawn";
+} from "openclaw/plugin-sdk/windows-spawn";
 export {
   applyWindowsSpawnProgramPolicy,
   materializeWindowsSpawnProgram,
   resolveWindowsSpawnProgramCandidate,
-} from "astroclaw/plugin-sdk/windows-spawn";
+} from "openclaw/plugin-sdk/windows-spawn";
 export {
   listKnownProviderAuthEnvVarNames,
   omitEnvKeysCaseInsensitive,
-} from "astroclaw/plugin-sdk/provider-env-vars";
+} from "openclaw/plugin-sdk/provider-env-vars";
