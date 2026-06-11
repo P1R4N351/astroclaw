@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { SessionBindingRecord } from "astroclaw/plugin-sdk/conversation-runtime";
+// Discord plugin module implements route resolution behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { SessionBindingRecord } from "openclaw/plugin-sdk/conversation-runtime";
 import {
   deriveLastRoutePolicy,
   isAcpSessionKey,
@@ -8,8 +9,8 @@ import {
   resolveAgentRoute,
   type ResolvedAgentRoute,
   type RoutePeer,
-} from "astroclaw/plugin-sdk/routing";
-import { resolveAgentIdFromSessionKey } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/routing";
+import { resolveAgentIdFromSessionKey } from "openclaw/plugin-sdk/routing";
 
 export function buildDiscordRoutePeer(params: {
   isDirectMessage: boolean;
@@ -26,7 +27,7 @@ export function buildDiscordRoutePeer(params: {
 }
 
 export function resolveDiscordConversationRoute(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   guildId?: string | null;
   memberRoleIds?: string[];
@@ -47,7 +48,7 @@ export function resolveDiscordConversationRoute(params: {
 }
 
 export function resolveDiscordBoundConversationRoute(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   guildId?: string | null;
   memberRoleIds?: string[];
