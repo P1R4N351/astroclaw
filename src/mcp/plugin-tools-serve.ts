@@ -1,5 +1,5 @@
 /**
- * Standalone MCP server that exposes Astroclaw plugin-registered tools
+ * Standalone MCP server that exposes OpenClaw plugin-registered tools
  * (e.g. memory-lancedb's memory_recall, memory_store, memory_forget)
  * so ACP sessions running Claude Code can use them.
  *
@@ -17,13 +17,13 @@ import {
 } from "../agents/tool-policy.js";
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import { getRuntimeConfig } from "../config/config.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { routeLogsToStderr } from "../logging/console.js";
 import { ensureStandalonePluginToolRegistryLoaded, resolvePluginTools } from "../plugins/tools.js";
 import { connectToolsMcpServerToStdio, createToolsMcpServer } from "./tools-stdio-server.js";
 
-function resolvePluginToolPolicy(config: AstroclawConfig): {
+function resolvePluginToolPolicy(config: OpenClawConfig): {
   toolAllowlist?: string[];
   toolDenylist?: string[];
 } {
@@ -40,7 +40,7 @@ function resolvePluginToolPolicy(config: AstroclawConfig): {
   };
 }
 
-function resolveTools(config: AstroclawConfig): AnyAgentTool[] {
+function resolveTools(config: OpenClawConfig): AnyAgentTool[] {
   const pluginToolPolicy = resolvePluginToolPolicy(config);
   ensureStandalonePluginToolRegistryLoaded({
     context: { config },
@@ -55,13 +55,13 @@ function resolveTools(config: AstroclawConfig): AnyAgentTool[] {
 
 export function createPluginToolsMcpServer(
   params: {
-    config?: AstroclawConfig;
+    config?: OpenClawConfig;
     tools?: AnyAgentTool[];
   } = {},
 ): Server {
   const cfg = params.config ?? getRuntimeConfig();
   const tools = params.tools ?? resolveTools(cfg);
-  return createToolsMcpServer({ name: "astroclaw-plugin-tools", tools });
+  return createToolsMcpServer({ name: "openclaw-plugin-tools", tools });
 }
 
 export async function servePluginToolsMcp(): Promise<void> {
@@ -80,7 +80,7 @@ export async function servePluginToolsMcp(): Promise<void> {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  servePluginToolsMcp().catch((err) => {
+  servePluginToolsMcp().catch((err: unknown) => {
     process.stderr.write(`plugin-tools-serve: ${formatErrorMessage(err)}\n`);
     process.exit(1);
   });
