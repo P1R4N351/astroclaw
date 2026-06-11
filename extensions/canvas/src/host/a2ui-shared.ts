@@ -1,24 +1,32 @@
-import { lowercasePreservingWhitespace } from "astroclaw/plugin-sdk/string-coerce-runtime";
+/**
+ * Shared A2UI/Canvas host paths and live-reload injection helpers.
+ */
+import { lowercasePreservingWhitespace } from "openclaw/plugin-sdk/string-coerce-runtime";
 
-export const A2UI_PATH = "/__astroclaw__/a2ui";
+/** Hosted path prefix for bundled A2UI assets. */
+export const A2UI_PATH = "/__openclaw__/a2ui";
 
-export const CANVAS_HOST_PATH = "/__astroclaw__/canvas";
+/** Hosted path prefix for Canvas document/static assets. */
+export const CANVAS_HOST_PATH = "/__openclaw__/canvas";
 
-export const CANVAS_WS_PATH = "/__astroclaw__/ws";
+/** Hosted WebSocket path for Canvas live reload. */
+export const CANVAS_WS_PATH = "/__openclaw__/ws";
 
+/** Returns whether a URL path targets the hosted A2UI asset surface. */
 export function isA2uiPath(pathname: string): boolean {
   return pathname === A2UI_PATH || pathname.startsWith(`${A2UI_PATH}/`);
 }
 
+/** Injects Canvas bridge helpers and live-reload WebSocket code into HTML. */
 export function injectCanvasLiveReload(html: string): string {
   const snippet = `
 <script>
 (() => {
   // Cross-platform action bridge helper.
   // Works on:
-  // - iOS: window.webkit.messageHandlers.astroclawCanvasA2UIAction.postMessage(...)
-  // - Android: window.astroclawCanvasA2UIAction.postMessage(...)
-  const handlerNames = ["astroclawCanvasA2UIAction"];
+  // - iOS: window.webkit.messageHandlers.openclawCanvasA2UIAction.postMessage(...)
+  // - Android: window.openclawCanvasA2UIAction.postMessage(...)
+  const handlerNames = ["openclawCanvasA2UIAction"];
   function postToNode(payload) {
     try {
       const raw = typeof payload === "string" ? payload : JSON.stringify(payload);
@@ -45,11 +53,11 @@ export function injectCanvasLiveReload(html: string): string {
     const action = { ...userAction, id };
     return postToNode({ userAction: action });
   }
-  globalThis.Astroclaw = globalThis.Astroclaw ?? {};
-  globalThis.Astroclaw.postMessage = postToNode;
-  globalThis.Astroclaw.sendUserAction = sendUserAction;
-  globalThis.astroclawPostMessage = postToNode;
-  globalThis.astroclawSendUserAction = sendUserAction;
+  globalThis.OpenClaw = globalThis.OpenClaw ?? {};
+  globalThis.OpenClaw.postMessage = postToNode;
+  globalThis.OpenClaw.sendUserAction = sendUserAction;
+  globalThis.openclawPostMessage = postToNode;
+  globalThis.openclawSendUserAction = sendUserAction;
 
   try {
     const cap = new URLSearchParams(location.search).get("oc_cap");
