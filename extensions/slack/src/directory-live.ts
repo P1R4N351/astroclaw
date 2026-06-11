@@ -1,12 +1,13 @@
+// Slack plugin module implements directory live behavior.
 import type {
   ChannelDirectoryEntry,
   DirectoryConfigParams,
-} from "astroclaw/plugin-sdk/directory-runtime";
+} from "openclaw/plugin-sdk/directory-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
   normalizeOptionalLowercaseString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveSlackAccount } from "./accounts.js";
 import { createSlackWebClient } from "./client.js";
 
