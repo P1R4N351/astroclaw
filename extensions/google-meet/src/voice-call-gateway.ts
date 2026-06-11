@@ -1,10 +1,11 @@
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+// Google Meet plugin module implements voice call gateway behavior.
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   GatewayClient,
   startGatewayClientWhenEventLoopReady,
-} from "astroclaw/plugin-sdk/gateway-runtime";
-import type { RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";
-import { sleep } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/gateway-runtime";
+import type { RuntimeLogger } from "openclaw/plugin-sdk/plugin-runtime";
+import { sleep } from "openclaw/plugin-sdk/runtime-env";
 import type { GoogleMeetConfig } from "./config.js";
 
 type VoiceCallGatewayClient = InstanceType<typeof GatewayClient>;
@@ -68,7 +69,7 @@ async function createConnectedGatewayClient(
           reject(new Error("gateway event loop readiness timeout"));
         }
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         clearTimeout(timer);
         reject(err instanceof Error ? err : new Error(String(err)));
       });
