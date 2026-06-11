@@ -1,11 +1,12 @@
+// Slack plugin module implements streaming compat behavior.
 import {
   getChannelStreamingConfigObject,
   resolveChannelStreamingNativeTransport,
-} from "astroclaw/plugin-sdk/channel-streaming";
+} from "openclaw/plugin-sdk/channel-outbound";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export type StreamingMode = "off" | "partial" | "block" | "progress";
 export type SlackLegacyDraftStreamMode = "replace" | "status_final" | "append";
