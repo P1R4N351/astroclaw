@@ -1,9 +1,10 @@
+// Native delivery contract for approval prompts and responses.
 import type {
   ChannelApprovalNativeAdapter,
   ChannelApprovalNativeSurface,
   ChannelApprovalNativeTarget,
 } from "../channels/plugins/approval-native.types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { buildChannelApprovalNativeTargetKey } from "./approval-native-target-key.js";
 import type { ChannelApprovalKind } from "./approval-types.js";
 import type { ExecApprovalRequest } from "./exec-approvals.js";
@@ -11,12 +12,14 @@ import type { PluginApprovalRequest } from "./plugin-approvals.js";
 
 type ApprovalRequest = ExecApprovalRequest | PluginApprovalRequest;
 
+/** One native approval delivery target selected by the channel adapter plan. */
 export type ChannelApprovalNativePlannedTarget = {
   surface: ChannelApprovalNativeSurface;
   target: ChannelApprovalNativeTarget;
   reason: "preferred" | "fallback";
 };
 
+/** Complete native approval routing plan, including optional origin-chat notice state. */
 export type ChannelApprovalNativeDeliveryPlan = {
   targets: ChannelApprovalNativePlannedTarget[];
   originTarget: ChannelApprovalNativeTarget | null;
@@ -34,13 +37,15 @@ function dedupeTargets(
       continue;
     }
     seen.add(key);
+    // Keep the first surface/reason so origin-preferred plans stay stable when DM targets overlap.
     deduped.push(target);
   }
   return deduped;
 }
 
+/** Resolves the origin and approver-DM targets a channel should use for native approvals. */
 export async function resolveChannelNativeApprovalDeliveryPlan(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   approvalKind: ChannelApprovalKind;
   request: ApprovalRequest;
