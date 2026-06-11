@@ -1,10 +1,11 @@
+// Resolves git commit metadata for build/runtime diagnostics.
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
 import { resolveGitHeadPath } from "./git-root.js";
-import { resolveAstroclawPackageRootSync } from "./astroclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "./openclaw-root.js";
 
 const formatCommit = (value?: string | null) => {
   if (!value) {
@@ -230,7 +231,7 @@ export const resolveCommitHash = (
   if (cachedGitCommitBySearchDir.has(searchDir)) {
     return cachedGitCommitBySearchDir.get(searchDir) ?? null;
   }
-  const packageRoot = resolveAstroclawPackageRootSync({
+  const packageRoot = resolveOpenClawPackageRootSync({
     cwd: options.cwd,
     moduleUrl: options.moduleUrl,
   });
@@ -257,6 +258,7 @@ export const resolveCommitHash = (
   }
 };
 
-export const __testing = {
+export const testing = {
   clearCachedGitCommits,
 };
+export { testing as __testing };
