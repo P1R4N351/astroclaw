@@ -1,4 +1,9 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Google Meet helper module supports config compat behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import {
+  asNullableRecord as asRecord,
+  normalizeOptionalLowercaseString as normalizeProviderId,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 
 type LegacyConfigRule = {
   path: Array<string | number>;
@@ -6,18 +11,8 @@ type LegacyConfigRule = {
   match: (value: unknown) => boolean;
 };
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function normalizeProviderId(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim().toLowerCase() : undefined;
-}
-
 function hasOwn(record: Record<string, unknown>, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(record, key);
+  return Object.hasOwn(record, key);
 }
 
 function hasLegacyGoogleRealtimeProvider(value: unknown): boolean {
@@ -32,13 +27,13 @@ export const legacyConfigRules: LegacyConfigRule[] = [
   {
     path: ["plugins", "entries", "google-meet", "config", "realtime"],
     message:
-      'plugins.entries.google-meet.config.realtime.provider="google" is legacy for Gemini Live bidi mode; use realtime.voiceProvider="google" and realtime.transcriptionProvider="openai". Run "astroclaw doctor --fix".',
+      'plugins.entries.google-meet.config.realtime.provider="google" is legacy for Gemini Live bidi mode; use realtime.voiceProvider="google" and realtime.transcriptionProvider="openai". Run "openclaw doctor --fix".',
     match: hasLegacyGoogleRealtimeProvider,
   },
 ];
 
-export function migrateGoogleMeetLegacyRealtimeProvider(config: AstroclawConfig): {
-  config: AstroclawConfig;
+export function migrateGoogleMeetLegacyRealtimeProvider(config: OpenClawConfig): {
+  config: OpenClawConfig;
   changes: string[];
 } | null {
   const rawEntry = asRecord(config.plugins?.entries?.["google-meet"]);
@@ -76,8 +71,8 @@ export function migrateGoogleMeetLegacyRealtimeProvider(config: AstroclawConfig)
   };
 }
 
-export function normalizeCompatibilityConfig({ cfg }: { cfg: AstroclawConfig }): {
-  config: AstroclawConfig;
+export function normalizeCompatibilityConfig({ cfg }: { cfg: OpenClawConfig }): {
+  config: OpenClawConfig;
   changes: string[];
 } {
   return migrateGoogleMeetLegacyRealtimeProvider(cfg) ?? { config: cfg, changes: [] };
