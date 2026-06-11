@@ -1,5 +1,9 @@
-import { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-message";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+/**
+ * Converts authorized ClickClack messages into OpenClaw agent/model replies and
+ * routes resulting outbound text back to ClickClack.
+ */
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveClickClackInboundAccess, type ClickClackInboundAccess } from "./access.js";
 import { sendClickClackText } from "./outbound.js";
 import { getClickClackRuntime } from "./runtime.js";
 import { buildClickClackTarget } from "./target.js";
@@ -8,7 +12,7 @@ import type { ClickClackMessage, CoreConfig, ResolvedClickClackAccount } from ".
 const CHANNEL_ID = "clickclack" as const;
 
 function resolveAccountAgentRoute(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   account: ResolvedClickClackAccount;
   target: string;
   isDirect: boolean;
@@ -44,7 +48,7 @@ function resolveAccountAgentRoute(params: {
 
 async function dispatchModelReply(params: {
   account: ResolvedClickClackAccount;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   message: ClickClackMessage;
   route: { agentId: string };
   target: string;
@@ -77,13 +81,28 @@ async function dispatchModelReply(params: {
   });
 }
 
+/**
+ * Dispatches one already-fetched ClickClack message through the configured
+ * reply mode for its account.
+ */
 export async function handleClickClackInbound(params: {
   account: ResolvedClickClackAccount;
   config: CoreConfig;
   message: ClickClackMessage;
+  access?: ClickClackInboundAccess;
 }) {
   const runtime = getClickClackRuntime();
   const message = params.message;
+  const access =
+    params.access ??
+    (await resolveClickClackInboundAccess({
+      account: params.account,
+      config: params.config,
+      message,
+    }));
+  if (!access.shouldDispatch) {
+    return;
+  }
   const isDirect = Boolean(message.direct_conversation_id);
   const target = buildClickClackTarget(
     isDirect
@@ -91,7 +110,7 @@ export async function handleClickClackInbound(params: {
       : { chatType: "group", kind: "channel", id: message.channel_id ?? "" },
   );
   const route = resolveAccountAgentRoute({
-    cfg: params.config as AstroclawConfig,
+    cfg: params.config as OpenClawConfig,
     account: params.account,
     target,
     isDirect,
@@ -99,7 +118,7 @@ export async function handleClickClackInbound(params: {
   if (params.account.replyMode === "model") {
     await dispatchModelReply({
       account: params.account,
-      cfg: params.config as AstroclawConfig,
+      cfg: params.config as OpenClawConfig,
       message,
       route,
       target,
@@ -113,12 +132,14 @@ export async function handleClickClackInbound(params: {
     }),
     sessionKey: route.sessionKey,
   });
+  // Preserve both normalized channel fields and ClickClack-native ids so reply
+  // routing, session recovery, and command authorization see the same message.
   const body = runtime.channel.reply.formatAgentEnvelope({
     channel: "ClickClack",
     from: senderName,
     timestamp: new Date(message.created_at),
     previousTimestamp,
-    envelope: runtime.channel.reply.resolveEnvelopeFormatOptions(params.config as AstroclawConfig),
+    envelope: runtime.channel.reply.resolveEnvelopeFormatOptions(params.config as OpenClawConfig),
     body: message.body,
   });
   const storePath = runtime.channel.session.resolveStorePath(params.config.session?.store, {
@@ -150,52 +171,45 @@ export async function handleClickClackInbound(params: {
     Timestamp: message.created_at,
     OriginatingChannel: CHANNEL_ID,
     OriginatingTo: target,
-    CommandAuthorized: true,
+    CommandAuthorized: access.commandAuthorized,
   });
-  const { onModelSelected, ...replyPipeline } = createChannelMessageReplyPipeline({
-    cfg: params.config as AstroclawConfig,
+  await runtime.channel.inbound.dispatchReply({
+    cfg: params.config as OpenClawConfig,
+    channel: CHANNEL_ID,
+    accountId: params.account.accountId,
     agentId: route.agentId,
-    channel: CHANNEL_ID,
-    accountId: params.account.accountId,
-  });
-  await runtime.channel.turn.runPrepared({
-    channel: CHANNEL_ID,
-    accountId: params.account.accountId,
     routeSessionKey: route.sessionKey,
     storePath,
     ctxPayload,
     recordInboundSession: runtime.channel.session.recordInboundSession,
-    runDispatch: async () =>
-      await runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher({
-        ctx: ctxPayload,
-        cfg: params.config as AstroclawConfig,
-        dispatcherOptions: {
-          ...replyPipeline,
-          deliver: async (payload) => {
-            const text =
-              payload && typeof payload === "object" && "text" in payload
-                ? ((payload as { text?: string }).text ?? "")
-                : "";
-            if (!text.trim()) {
-              return;
-            }
-            await sendClickClackText({
-              cfg: params.config,
-              accountId: params.account.accountId,
-              to: target,
-              text,
-              threadId: message.parent_message_id ? message.thread_root_id : undefined,
-              replyToId: message.id,
-            });
-          },
-          onError: (error) => {
-            throw error instanceof Error
-              ? error
-              : new Error(`clickclack dispatch failed: ${String(error)}`);
-          },
-        },
-        replyOptions: { onModelSelected },
-      }),
+    dispatchReplyWithBufferedBlockDispatcher:
+      runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher,
+    toolsAllow: params.account.toolsAllow,
+    delivery: {
+      deliver: async (payload) => {
+        const text =
+          payload && typeof payload === "object" && "text" in payload
+            ? ((payload as { text?: string }).text ?? "")
+            : "";
+        if (!text.trim()) {
+          return;
+        }
+        await sendClickClackText({
+          cfg: params.config,
+          accountId: params.account.accountId,
+          to: target,
+          text,
+          threadId: message.parent_message_id ? message.thread_root_id : undefined,
+          replyToId: message.id,
+        });
+      },
+      onError: (error) => {
+        throw error instanceof Error
+          ? error
+          : new Error(`clickclack dispatch failed: ${String(error)}`);
+      },
+    },
+    replyPipeline: {},
     record: {
       onRecordError: (error) => {
         throw error instanceof Error
