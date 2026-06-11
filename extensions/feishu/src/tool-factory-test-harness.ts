@@ -1,4 +1,5 @@
-import type { AstroclawPluginApi } from "../runtime-api.js";
+// Feishu plugin module implements tool factory test harness behavior.
+import type { OpenClawPluginApi } from "../runtime-api.js";
 
 type ToolContextLike = {
   agentAccountId?: string;
@@ -6,6 +7,7 @@ type ToolContextLike = {
 
 export type ToolLike = {
   name: string;
+  parameters?: unknown;
   execute: (
     toolCallId: string,
     params: unknown,
@@ -33,14 +35,15 @@ function asToolLike(tool: unknown, fallbackName?: string): ToolLike {
   }
   return {
     name,
+    parameters: candidate.parameters,
     execute: (toolCallId, params) => execute(toolCallId, params),
   };
 }
 
-export function createToolFactoryHarness(cfg: AstroclawPluginApi["config"]) {
+export function createToolFactoryHarness(cfg: OpenClawPluginApi["config"]) {
   const registered: RegisteredTool[] = [];
 
-  const api: Pick<AstroclawPluginApi, "config" | "logger" | "registerTool"> = {
+  const api: Pick<OpenClawPluginApi, "config" | "logger" | "registerTool"> = {
     config: cfg,
     logger: {
       info: () => {},
@@ -73,7 +76,8 @@ export function createToolFactoryHarness(cfg: AstroclawPluginApi["config"]) {
   };
 
   return {
-    api: api as AstroclawPluginApi,
+    api: api as OpenClawPluginApi,
     resolveTool,
+    registered,
   };
 }
