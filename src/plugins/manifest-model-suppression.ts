@@ -1,17 +1,18 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Resolves model suppression metadata declared by plugin manifests.
+import { buildModelCatalogMergeKey } from "@openclaw/model-catalog-core/model-catalog-refs";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
-  buildModelCatalogMergeKey,
   planManifestModelCatalogSuppressions,
   type ManifestModelCatalogSuppressionEntry,
 } from "../model-catalog/index.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 import {
   isManifestPluginAvailableForControlPlane,
   loadManifestMetadataSnapshot,
 } from "./manifest-contract-eligibility.js";
 
 function listManifestModelCatalogSuppressions(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
 }): readonly ManifestModelCatalogSuppressionEntry[] {
@@ -61,7 +62,7 @@ function normalizeSuppressionHost(host: string): string {
 
 function resolveConfiguredProviderValue(params: {
   provider: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
 }): { api?: string; baseUrl?: string } | undefined {
   const providers = params.config?.models?.providers;
   if (!providers) {
@@ -83,7 +84,7 @@ function manifestSuppressionMatchesConditions(params: {
   suppression: ManifestModelCatalogSuppressionEntry;
   provider: string;
   baseUrl?: string | null;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
 }): boolean {
   const when = params.suppression.when;
   if (!when) {
@@ -93,9 +94,12 @@ function manifestSuppressionMatchesConditions(params: {
     provider: params.provider,
     config: params.config,
   });
-  if (when.providerConfigApiIn?.length && configuredProvider?.api) {
+  if (when.providerConfigApiIn?.length) {
     const allowedApis = new Set(when.providerConfigApiIn.map(normalizeLowercaseStringOrEmpty));
-    if (!allowedApis.has(configuredProvider.api)) {
+    const effectiveApi = configuredProvider
+      ? normalizeLowercaseStringOrEmpty(configuredProvider.api)
+      : params.provider;
+    if (!effectiveApi || !allowedApis.has(effectiveApi)) {
       return false;
     }
   }
@@ -113,7 +117,7 @@ function manifestSuppressionMatchesConditions(params: {
 }
 
 export function buildManifestBuiltInModelSuppressionResolver(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }) {
@@ -170,7 +174,7 @@ export function buildManifestBuiltInModelSuppressionResolver(params: {
 export function resolveManifestBuiltInModelSuppression(params: {
   provider?: string | null;
   id?: string | null;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   baseUrl?: string | null;
