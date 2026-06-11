@@ -1,24 +1,26 @@
+// Gateway tool invocation engine.
+// Shared implementation behind HTTP and RPC tool invocation adapters.
+import {
+  normalizeOptionalLowercaseString,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
+import { runBeforeToolCallHook } from "../agents/agent-tools.before-tool-call.js";
+import { resolveToolLoopDetectionConfig } from "../agents/agent-tools.js";
 import { getChannelAgentToolMeta } from "../agents/channel-tools.js";
-import { runBeforeToolCallHook } from "../agents/pi-tools.before-tool-call.js";
-import { resolveToolLoopDetectionConfig } from "../agents/pi-tools.js";
 import { isKnownCoreToolId } from "../agents/tool-catalog.js";
-import { applyOwnerOnlyToolPolicy } from "../agents/tool-policy.js";
 import { ToolInputError, type AnyAgentTool } from "../agents/tools/common.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { logWarn } from "../logger.js";
 import { isTestDefaultMemorySlotDisabled } from "../plugins/config-state.js";
 import { defaultSlotIdForKey } from "../plugins/slots.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
-import {
-  normalizeOptionalLowercaseString,
-  normalizeOptionalString,
-} from "../shared/string-coerce.js";
 import { canonicalizeSessionKeyForAgent } from "./session-store-key.js";
 import { resolveGatewayScopedTools } from "./tool-resolution.js";
 
 const MEMORY_TOOL_NAMES = new Set(["memory_search", "memory_get"]);
 
+/** Protocol input shape accepted by gateway tool invocation surfaces. */
 export type ToolsInvokeInput = {
   tool?: unknown;
   name?: unknown;
@@ -51,7 +53,7 @@ type ToolsInvokeOutcome =
       };
     };
 
-function resolveSessionKey(params: { cfg: AstroclawConfig; input: ToolsInvokeInput }): string {
+function resolveSessionKey(params: { cfg: OpenClawConfig; input: ToolsInvokeInput }): string {
   const rawSessionKey = normalizeOptionalString(params.input.sessionKey);
   if (rawSessionKey && rawSessionKey !== "main") {
     return rawSessionKey;
@@ -63,7 +65,7 @@ function resolveSessionKey(params: { cfg: AstroclawConfig; input: ToolsInvokeInp
   return resolveMainSessionKey(params.cfg);
 }
 
-function resolveMemoryToolDisableReasons(cfg: AstroclawConfig): string[] {
+function resolveMemoryToolDisableReasons(cfg: OpenClawConfig): string[] {
   if (!process.env.VITEST) {
     return [];
   }
@@ -144,14 +146,15 @@ function resolveToolSource(tool: AnyAgentTool): "core" | "plugin" | "channel" {
   return "core";
 }
 
+/** Resolves, authorizes, and invokes one gateway-visible core/plugin/channel tool. */
 export async function invokeGatewayTool(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   input: ToolsInvokeInput;
-  senderIsOwner: boolean;
   messageChannel?: string;
   accountId?: string;
   agentTo?: string;
   agentThreadId?: string;
+  senderIsOwner?: boolean;
   toolCallIdPrefix: string;
   approvalMode?: "request" | "report";
 }): Promise<ToolsInvokeOutcome> {
@@ -201,11 +204,11 @@ export async function invokeGatewayTool(params: {
       accountId: params.accountId,
       agentTo: params.agentTo,
       agentThreadId: params.agentThreadId,
+      senderIsOwner: params.senderIsOwner,
       allowGatewaySubagentBinding: true,
       allowMediaInvokeCommands: true,
       surface: "http",
       disablePluginTools,
-      senderIsOwner: params.senderIsOwner,
       gatewayRequestedTools,
     });
 
@@ -225,9 +228,7 @@ export async function invokeGatewayTool(params: {
       },
     };
   }
-  const tool = applyOwnerOnlyToolPolicy(tools, params.senderIsOwner).find(
-    (candidate) => candidate.name === toolName,
-  );
+  const tool = tools.find((candidate) => candidate.name === toolName);
   if (!tool) {
     return {
       ok: false,
