@@ -1,11 +1,14 @@
+/**
+ * Locates local OpenClaw docs/source roots for references shown to agents.
+ */
 import fs from "node:fs";
 import path from "node:path";
-import { resolveAstroclawPackageRoot } from "../infra/astroclaw-root.js";
+import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
 
-export const ASTROCLAW_DOCS_URL = "https://docs.astroclaw.ai";
-export const ASTROCLAW_SOURCE_URL = "https://github.com/astroclaw/astroclaw";
+export const OPENCLAW_DOCS_URL = "https://docs.openclaw.ai";
+export const OPENCLAW_SOURCE_URL = "https://github.com/openclaw/openclaw";
 
-type ResolveAstroclawReferencePathParams = {
+type ResolveOpenClawReferencePathParams = {
   workspaceDir?: string;
   argv1?: string;
   cwd?: string;
@@ -20,7 +23,8 @@ function isGitCheckout(rootDir: string): boolean {
   return fs.existsSync(path.join(rootDir, ".git"));
 }
 
-export async function resolveAstroclawDocsPath(params: {
+/** Resolve a usable local docs directory, preferring the active workspace. */
+export async function resolveOpenClawDocsPath(params: {
   workspaceDir?: string;
   argv1?: string;
   cwd?: string;
@@ -34,7 +38,7 @@ export async function resolveAstroclawDocsPath(params: {
     }
   }
 
-  const packageRoot = await resolveAstroclawPackageRoot({
+  const packageRoot = await resolveOpenClawPackageRoot({
     cwd: params.cwd,
     argv1: params.argv1,
     moduleUrl: params.moduleUrl,
@@ -47,10 +51,11 @@ export async function resolveAstroclawDocsPath(params: {
   return isUsableDocsDir(packageDocs) ? packageDocs : null;
 }
 
-export async function resolveAstroclawSourcePath(
-  params: ResolveAstroclawReferencePathParams,
+/** Resolve the package root only when it is a Git checkout. */
+export async function resolveOpenClawSourcePath(
+  params: ResolveOpenClawReferencePathParams,
 ): Promise<string | null> {
-  const packageRoot = await resolveAstroclawPackageRoot({
+  const packageRoot = await resolveOpenClawPackageRoot({
     cwd: params.cwd,
     argv1: params.argv1,
     moduleUrl: params.moduleUrl,
@@ -61,15 +66,16 @@ export async function resolveAstroclawSourcePath(
   return packageRoot;
 }
 
-export async function resolveAstroclawReferencePaths(
-  params: ResolveAstroclawReferencePathParams,
+/** Resolve docs and source roots concurrently for prompt/reference injection. */
+export async function resolveOpenClawReferencePaths(
+  params: ResolveOpenClawReferencePathParams,
 ): Promise<{
   docsPath: string | null;
   sourcePath: string | null;
 }> {
   const [docsPath, sourcePath] = await Promise.all([
-    resolveAstroclawDocsPath(params),
-    resolveAstroclawSourcePath(params),
+    resolveOpenClawDocsPath(params),
+    resolveOpenClawSourcePath(params),
   ]);
   return { docsPath, sourcePath };
 }
