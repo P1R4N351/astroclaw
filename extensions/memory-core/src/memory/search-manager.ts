@@ -1,14 +1,18 @@
+// Memory Core plugin module implements search manager behavior.
 import fs from "node:fs/promises";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   createSubsystemLogger,
   resolveAgentContextLimits,
   resolveAgentWorkspaceDir,
   resolveGlobalSingleton,
   resolveMemorySearchSyncConfig,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { checkQmdBinaryAvailability } from "astroclaw/plugin-sdk/memory-core-host-engine-qmd";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import {
+  checkQmdBinaryAvailability,
+  resolveQmdBinaryUnavailableReason,
+} from "openclaw/plugin-sdk/memory-core-host-engine-qmd";
 import {
   resolveMemoryBackendConfig,
   type MemoryEmbeddingProbeResult,
@@ -17,10 +21,10 @@ import {
   type MemorySource,
   type MemorySyncProgressUpdate,
   type ResolvedQmdConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
-import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
+import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
 
-const MEMORY_SEARCH_MANAGER_CACHE_KEY = Symbol.for("astroclaw.memorySearchManagerCache");
+const MEMORY_SEARCH_MANAGER_CACHE_KEY = Symbol.for("openclaw.memorySearchManagerCache");
 type Maybe<T> = T | null;
 type QmdManagerRuntimeConfig = {
   workspaceDir: string;
@@ -146,7 +150,7 @@ function clearQmdManagerOpenFailure(scopeKey: string, identityKey: string): void
 }
 
 export async function getMemorySearchManager(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   purpose?: MemorySearchManagerPurpose;
 }): Promise<MemorySearchManagerResult> {
@@ -182,13 +186,15 @@ export async function getMemorySearchManager(params: {
         cwd: workspaceDir,
       });
       if (!qmdBinary.available) {
-        const message = qmdBinary.error ?? "unknown error";
-        log.warn(
-          `qmd binary unavailable (${qmdResolved.command}); falling back to builtin: ${message}`,
-        );
+        const message = qmdBinary.error;
+        const failurePrefix =
+          resolveQmdBinaryUnavailableReason(qmdBinary) === "workspace-cwd"
+            ? `qmd workspace unavailable (${workspaceDir})`
+            : `qmd binary unavailable (${qmdResolved.command})`;
+        log.warn(`${failurePrefix}; falling back to builtin: ${message}`);
         return {
           manager: null,
-          failureReason: `qmd binary unavailable (${qmdResolved.command}): ${message}`,
+          failureReason: `${failurePrefix}: ${message}`,
         };
       }
       try {
@@ -219,7 +225,6 @@ export async function getMemorySearchManager(params: {
       if (!primary) {
         return { entry: null, failureReason };
       }
-      let cacheEntry!: CachedQmdManagerEntry;
       const wrapper = new FallbackMemoryManager(
         {
           primary,
@@ -235,7 +240,7 @@ export async function getMemorySearchManager(params: {
           }
         },
       );
-      cacheEntry = {
+      const cacheEntry: CachedQmdManagerEntry = {
         identityKey: expectedIdentityKey,
         manager: wrapper,
       };
@@ -289,7 +294,7 @@ export async function getMemorySearchManager(params: {
         }
         QMD_MANAGER_CACHE.set(scopeKey, created.entry);
         if (cached) {
-          await closeQmdManagerForReplacement(cached.manager).catch((err) => {
+          await closeQmdManagerForReplacement(cached.manager).catch((err: unknown) => {
             log.warn(`failed to retire replaced qmd memory manager: ${formatErrorMessage(err)}`);
           });
         }
@@ -310,7 +315,7 @@ export async function getMemorySearchManager(params: {
 }
 
 async function getBuiltinMemorySearchManager(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   purpose?: MemorySearchManagerPurpose;
 }): Promise<MemorySearchManagerResult> {
@@ -397,6 +402,32 @@ export async function closeAllMemorySearchManagers(): Promise<void> {
   if (managerRuntimePromise !== null) {
     const { closeAllMemoryIndexManagers } = await loadManagerRuntime();
     await closeAllMemoryIndexManagers();
+  }
+}
+
+export async function closeMemorySearchManager(params: {
+  cfg: OpenClawConfig;
+  agentId: string;
+}): Promise<void> {
+  const normalizedAgentId = normalizeAgentId(params.agentId);
+  const scopeKey = buildQmdManagerScopeKey(normalizedAgentId);
+  const pending = PENDING_QMD_MANAGER_CREATES.get(scopeKey);
+  if (pending) {
+    await Promise.allSettled([pending.promise]);
+  }
+  const cached = QMD_MANAGER_CACHE.get(scopeKey);
+  if (cached) {
+    QMD_MANAGER_CACHE.delete(scopeKey);
+    QMD_MANAGER_OPEN_FAILURES.delete(scopeKey);
+    try {
+      await cached.manager.close?.();
+    } catch (err) {
+      log.warn(`failed to close qmd memory manager for agent ${normalizedAgentId}: ${String(err)}`);
+    }
+  }
+  if (managerRuntimePromise !== null) {
+    const { closeMemoryIndexManagersForAgent } = await loadManagerRuntime();
+    await closeMemoryIndexManagersForAgent({ cfg: params.cfg, agentId: normalizedAgentId });
   }
 }
 
@@ -619,7 +650,7 @@ function buildQmdManagerIdentityKey(
 }
 
 function resolveQmdManagerRuntimeConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string,
 ): QmdManagerRuntimeConfig {
   return {
