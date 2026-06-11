@@ -1,10 +1,11 @@
-import { REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES } from "astroclaw/plugin-sdk/realtime-voice";
+// Voice Call helper module supports config behavior.
+import { REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES } from "openclaw/plugin-sdk/realtime-voice";
 import {
   buildSecretInputSchema,
   hasConfiguredSecretInput,
   normalizeResolvedSecretInputString,
   type SecretInput,
-} from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/secret-input";
 import { z } from "zod";
 import { TtsConfigSchema } from "../api.js";
 import { deepMergeDefined } from "./deep-merge.js";
@@ -267,8 +268,6 @@ const VoiceCallRealtimeAgentContextConfigSchema = z
     maxChars: z.number().int().positive().default(6000),
     /** Include configured agent identity fields. */
     includeIdentity: z.boolean().default(true),
-    /** Include agents.defaults/list systemPromptOverride when configured. */
-    includeSystemPrompt: z.boolean().default(true),
     /** Include selected workspace files such as SOUL.md and IDENTITY.md. */
     includeWorkspaceFiles: z.boolean().default(true),
     /** Workspace-relative files to include, bounded by maxChars. */
@@ -279,7 +278,6 @@ const VoiceCallRealtimeAgentContextConfigSchema = z
     enabled: false,
     maxChars: 6000,
     includeIdentity: true,
-    includeSystemPrompt: true,
     includeWorkspaceFiles: true,
     files: ["SOUL.md", "IDENTITY.md", "USER.md"],
   });
@@ -315,9 +313,9 @@ const VoiceCallRealtimeConfigSchema = z
     streamPath: z.string().min(1).optional(),
     /** System instructions passed to the realtime provider. */
     instructions: z.string().default(DEFAULT_VOICE_CALL_REALTIME_INSTRUCTIONS),
-    /** Tool policy for the shared Astroclaw agent consult tool. */
+    /** Tool policy for the shared OpenClaw agent consult tool. */
     toolPolicy: VoiceCallRealtimeToolPolicySchema.default("safe-read-only"),
-    /** Guidance for when the realtime model should call the Astroclaw agent consult tool. */
+    /** Guidance for when the realtime model should call the OpenClaw agent consult tool. */
     consultPolicy: VoiceCallRealtimeConsultPolicySchema.default("auto"),
     /** Optional thinking level override for the regular agent behind realtime consults. */
     consultThinkingLevel: VoiceCallRealtimeConsultThinkingLevelSchema.optional(),
@@ -350,7 +348,6 @@ const VoiceCallRealtimeConfigSchema = z
       enabled: false,
       maxChars: 6000,
       includeIdentity: true,
-      includeSystemPrompt: true,
       includeWorkspaceFiles: true,
       files: ["SOUL.md", "IDENTITY.md", "USER.md"],
     },
@@ -577,7 +574,7 @@ export function resolveVoiceCallNumberRouteKey(
   if (!routes) {
     return undefined;
   }
-  if (phone && Object.prototype.hasOwnProperty.call(routes, phone)) {
+  if (phone && Object.hasOwn(routes, phone)) {
     return phone;
   }
 
