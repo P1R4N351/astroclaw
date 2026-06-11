@@ -1,8 +1,19 @@
-# astroclaw
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.svg">
+    <img src="docs/brand/logo.svg" alt="" width="170">
+  </picture>
+</p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/wordmark-dark.svg">
+    <img src="docs/brand/wordmark.svg" alt="astroclaw" width="440">
+  </picture>
+</p>
 
 > A NASA Power of Ten compliant fork of [openclaw](https://github.com/openclaw/openclaw) — a personal AI assistant you run on your own devices.
 
-<p>
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
   <a href="https://github.com/openclaw/openclaw"><img src="https://img.shields.io/badge/upstream-openclaw-orange?style=for-the-badge" alt="Upstream"></a>
   <a href="#derivation"><img src="https://img.shields.io/badge/NASA_P10-compliant-green?style=for-the-badge" alt="P10 compliant"></a>
