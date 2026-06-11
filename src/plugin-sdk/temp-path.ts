@@ -1,7 +1,10 @@
+/**
+ * Public SDK subpath for temporary file and workspace helpers.
+ */
 export {
   buildRandomTempFilePath,
   createTempDownloadTarget,
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   sanitizeTempFileName,
   withTempDownloadPath,
 } from "../infra/temp-download.js";
