@@ -1,5 +1,6 @@
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
-import type { DmPolicy } from "astroclaw/plugin-sdk/config-contracts";
+// Matrix setup module handles plugin onboarding behavior.
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
+import type { DmPolicy } from "openclaw/plugin-sdk/config-contracts";
 import {
   type ChannelSetupDmPolicy,
   type ChannelSetupWizardAdapter,
@@ -10,13 +11,13 @@ import {
   promptAccountId,
   promptChannelAccessConfig,
   splitSetupEntries,
-} from "astroclaw/plugin-sdk/setup";
-import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-policy";
+} from "openclaw/plugin-sdk/setup";
+import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-policy";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { requiresExplicitMatrixDefaultAccount } from "./account-selection.js";
 import {
   listMatrixAccountIds,
@@ -241,7 +242,7 @@ async function configureMatrixInviteAutoJoin(params: {
   await params.prompter.note(
     [
       "WARNING: Matrix invite auto-join defaults to off.",
-      "Astroclaw agents will not join invited rooms or fresh DM-style invites unless you set autoJoin.",
+      "OpenClaw agents will not join invited rooms or fresh DM-style invites unless you set autoJoin.",
       'Choose "allowlist" to restrict joins or "always" to join every invite.',
     ].join("\n"),
     "Matrix invite auto-join",
@@ -632,7 +633,7 @@ async function runMatrixConfigure(params: {
     normalizeStringifiedOptionalString(
       await params.prompter.text({
         message: "Matrix device name (optional)",
-        initialValue: existing.deviceName ?? "Astroclaw Gateway",
+        initialValue: existing.deviceName ?? "OpenClaw Gateway",
       }),
     ) ?? "";
 
@@ -769,6 +770,7 @@ export const matrixOnboardingAdapter: ChannelSetupWizardAdapter = {
   }),
 };
 
-export const __testing = {
+export const testing = {
   promptMatrixAllowFrom,
 };
+export { testing as __testing };
