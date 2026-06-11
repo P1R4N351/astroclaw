@@ -1,7 +1,8 @@
+// Migrate Hermes plugin module implements skills behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createMigrationItem, MIGRATION_REASON_TARGET_EXISTS } from "astroclaw/plugin-sdk/migration";
-import type { MigrationItem } from "astroclaw/plugin-sdk/plugin-entry";
+import { createMigrationItem, MIGRATION_REASON_TARGET_EXISTS } from "openclaw/plugin-sdk/migration";
+import type { MigrationItem } from "openclaw/plugin-sdk/plugin-entry";
 import { exists, sanitizeName } from "./helpers.js";
 import type { HermesSource } from "./source.js";
 import type { PlannedTargets } from "./targets.js";
