@@ -1,35 +1,37 @@
-import { parseFrontmatterBlock } from "../markdown/frontmatter.js";
+// Hook frontmatter helpers parse metadata blocks from hook files.
+import { readStringValue } from "@openclaw/normalization-core/string-coerce";
+import { parseFrontmatterBlock } from "../../packages/markdown-core/src/frontmatter.js";
 import {
-  applyAstroclawManifestInstallCommonFields,
+  applyOpenClawManifestInstallCommonFields,
   getFrontmatterString,
   normalizeStringList,
-  parseAstroclawManifestInstallBase,
+  parseOpenClawManifestInstallBase,
   parseFrontmatterBool,
-  resolveAstroclawManifestBlock,
-  resolveAstroclawManifestInstall,
-  resolveAstroclawManifestOs,
-  resolveAstroclawManifestRequires,
+  resolveOpenClawManifestBlock,
+  resolveOpenClawManifestInstall,
+  resolveOpenClawManifestOs,
+  resolveOpenClawManifestRequires,
 } from "../shared/frontmatter.js";
-import { readStringValue } from "../shared/string-coerce.js";
 import type {
-  AstroclawHookMetadata,
+  OpenClawHookMetadata,
   HookEntry,
   HookInstallSpec,
   HookInvocationPolicy,
   ParsedHookFrontmatter,
 } from "./types.js";
 
+/** Parse HOOK.md frontmatter into the generic hook frontmatter record. */
 export function parseFrontmatter(content: string): ParsedHookFrontmatter {
   return parseFrontmatterBlock(content);
 }
 
 function parseInstallSpec(input: unknown): HookInstallSpec | undefined {
-  const parsed = parseAstroclawManifestInstallBase(input, ["bundled", "npm", "git"]);
+  const parsed = parseOpenClawManifestInstallBase(input, ["bundled", "npm", "git"]);
   if (!parsed) {
     return undefined;
   }
   const { raw } = parsed;
-  const spec = applyAstroclawManifestInstallCommonFields<HookInstallSpec>(
+  const spec = applyOpenClawManifestInstallCommonFields<HookInstallSpec>(
     {
       kind: parsed.kind as HookInstallSpec["kind"],
     },
@@ -45,16 +47,17 @@ function parseInstallSpec(input: unknown): HookInstallSpec | undefined {
   return spec;
 }
 
-export function resolveAstroclawMetadata(
+/** Resolve OpenClaw hook metadata from the manifest block in HOOK.md frontmatter. */
+export function resolveOpenClawMetadata(
   frontmatter: ParsedHookFrontmatter,
-): AstroclawHookMetadata | undefined {
-  const metadataObj = resolveAstroclawManifestBlock({ frontmatter });
+): OpenClawHookMetadata | undefined {
+  const metadataObj = resolveOpenClawManifestBlock({ frontmatter });
   if (!metadataObj) {
     return undefined;
   }
-  const requires = resolveAstroclawManifestRequires(metadataObj);
-  const install = resolveAstroclawManifestInstall(metadataObj, parseInstallSpec);
-  const osRaw = resolveAstroclawManifestOs(metadataObj);
+  const requires = resolveOpenClawManifestRequires(metadataObj);
+  const install = resolveOpenClawManifestInstall(metadataObj, parseInstallSpec);
+  const osRaw = resolveOpenClawManifestOs(metadataObj);
   const eventsRaw = normalizeStringList(metadataObj.events);
   return {
     always: typeof metadataObj.always === "boolean" ? metadataObj.always : undefined,
@@ -64,11 +67,12 @@ export function resolveAstroclawMetadata(
     export: readStringValue(metadataObj.export),
     os: osRaw.length > 0 ? osRaw : undefined,
     events: eventsRaw.length > 0 ? eventsRaw : [],
-    requires: requires,
+    requires,
     install: install.length > 0 ? install : undefined,
   };
 }
 
+/** Resolve invocation policy from top-level hook frontmatter flags. */
 export function resolveHookInvocationPolicy(
   frontmatter: ParsedHookFrontmatter,
 ): HookInvocationPolicy {
@@ -77,6 +81,7 @@ export function resolveHookInvocationPolicy(
   };
 }
 
+/** Resolve the config key for a hook, honoring metadata hookKey overrides. */
 export function resolveHookKey(hookName: string, entry?: HookEntry): string {
   return entry?.metadata?.hookKey ?? hookName;
 }
