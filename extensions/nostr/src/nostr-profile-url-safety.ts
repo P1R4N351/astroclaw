@@ -1,4 +1,5 @@
-import { isBlockedHostnameOrIp } from "astroclaw/plugin-sdk/ssrf-runtime";
+// Nostr plugin module implements nostr profile url safety behavior.
+import { isBlockedHostnameOrIp } from "openclaw/plugin-sdk/ssrf-runtime";
 
 export function validateUrlSafety(urlStr: string): { ok: true } | { ok: false; error: string } {
   try {
