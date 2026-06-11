@@ -1,9 +1,10 @@
-import type { ChannelGroupContext } from "astroclaw/plugin-sdk/channel-contract";
+// Telegram plugin module implements group policy behavior.
+import type { ChannelGroupContext } from "openclaw/plugin-sdk/channel-contract";
 import {
   resolveChannelGroupRequireMention,
   resolveChannelGroupToolsPolicy,
   type GroupToolPolicyConfig,
-} from "astroclaw/plugin-sdk/channel-policy";
+} from "openclaw/plugin-sdk/channel-policy";
 
 function parseTelegramGroupId(value?: string | null) {
   const raw = value?.trim() ?? "";
@@ -40,9 +41,14 @@ function resolveTelegramRequireMention(params: {
     cfg.channels?.telegram?.groups;
   const groupConfig = scopedGroups?.[chatId];
   const groupDefault = scopedGroups?.["*"];
-  const topicConfig = topicId && groupConfig?.topics ? groupConfig.topics[topicId] : undefined;
+  const topicConfig =
+    topicId && groupConfig?.topics
+      ? { ...groupConfig.topics["*"], ...groupConfig.topics[topicId] }
+      : undefined;
   const defaultTopicConfig =
-    topicId && groupDefault?.topics ? groupDefault.topics[topicId] : undefined;
+    topicId && groupDefault?.topics
+      ? { ...groupDefault.topics["*"], ...groupDefault.topics[topicId] }
+      : undefined;
   if (typeof topicConfig?.requireMention === "boolean") {
     return topicConfig.requireMention;
   }
