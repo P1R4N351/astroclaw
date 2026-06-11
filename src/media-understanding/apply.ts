@@ -1,7 +1,13 @@
+// Applies media-understanding outputs to inbound message context, including
+// attachment normalization, provider execution, file text extraction, and echoing.
 import path from "node:path";
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
 import { finalizeInboundContext } from "../auto-reply/reply/inbound-context.js";
 import type { MsgContext } from "../auto-reply/templating.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { renderFileContextBlock } from "../media/file-context.js";
 import {
@@ -10,10 +16,6 @@ import {
   resolveInputFileLimits,
 } from "../media/input-files.js";
 import { wrapExternalContent } from "../security/external-content.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalString,
-} from "../shared/string-coerce.js";
 import type { ActiveMediaModel } from "./active-model.types.js";
 import { resolveAttachmentKind } from "./attachments.js";
 import { runWithConcurrency } from "./concurrency.js";
@@ -97,7 +99,7 @@ export function sanitizeMimeType(value?: string): string | undefined {
   return match?.[1]?.toLowerCase();
 }
 
-function resolveFileLimits(cfg: AstroclawConfig) {
+function resolveFileLimits(cfg: OpenClawConfig) {
   const files = cfg.gateway?.http?.endpoints?.responses?.files;
   const allowedMimesConfigured = Boolean(files?.allowedMimes?.length);
   return {
@@ -126,6 +128,8 @@ function wrapUntrustedAttachmentContent(content: string): string {
 }
 
 function resolveUtf16Charset(buffer?: Buffer): "utf-16le" | "utf-16be" | undefined {
+  // Some chat attachments arrive as UTF-16 without a reliable MIME charset; the
+  // BOM and zero-byte distribution are enough to select a safe decoder.
   if (!buffer || buffer.length < 2) {
     return undefined;
   }
@@ -339,7 +343,7 @@ function buildSyntheticSkippedAudioOutputs(
         kind: "audio.transcription" as const,
         attachmentIndex: attachment.attachmentIndex,
         text: EMPTY_VOICE_NOTE_PLACEHOLDER,
-        provider: "astroclaw",
+        provider: "openclaw",
         model: "synthetic-empty-audio",
       },
     ];
@@ -385,7 +389,7 @@ function isBinaryMediaMime(mime?: string): boolean {
 async function extractFileBlocks(params: {
   attachments: ReturnType<typeof normalizeMediaAttachments>;
   cache: ReturnType<typeof createMediaAttachmentCache>;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   limits: ReturnType<typeof resolveFileLimits>;
   skipAttachmentIndexes?: Set<number>;
 }): Promise<string[]> {
@@ -521,12 +525,15 @@ async function extractFileBlocks(params: {
 
 export async function applyMediaUnderstanding(params: {
   ctx: MsgContext;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
+  agentId?: string;
   agentDir?: string;
+  workspaceDir?: string;
   providers?: Record<string, MediaUnderstandingProvider>;
   activeModel?: ActiveMediaModel;
 }): Promise<ApplyMediaUnderstandingResult> {
   const { ctx, cfg } = params;
+  const mediaWorkspaceDir = ctx.MediaWorkspaceDir ?? params.workspaceDir;
   const commandCandidates = [ctx.CommandBody, ctx.RawBody, ctx.Body];
   const originalUserText =
     commandCandidates
@@ -536,9 +543,13 @@ export async function applyMediaUnderstanding(params: {
   const attachments = normalizeMediaAttachments(ctx);
   const providerRegistry = buildProviderRegistry(params.providers, cfg);
   const cache = createMediaAttachmentCache(attachments, {
-    localPathRoots: resolveMediaAttachmentLocalRoots({ cfg, ctx }),
+    localPathRoots: resolveMediaAttachmentLocalRoots({
+      cfg,
+      ctx,
+      workspaceDir: params.workspaceDir,
+    }),
     ssrfPolicy: cfg.tools?.web?.fetch?.ssrfPolicy,
-    workspaceDir: ctx.MediaWorkspaceDir,
+    workspaceDir: mediaWorkspaceDir,
   });
 
   try {
@@ -550,7 +561,9 @@ export async function applyMediaUnderstanding(params: {
         ctx,
         attachments: cache,
         media: attachments,
+        agentId: params.agentId,
         agentDir: params.agentDir,
+        workspaceDir: params.workspaceDir,
         providerRegistry,
         config,
         activeModel: params.activeModel,
