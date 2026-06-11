@@ -1,11 +1,12 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Whatsapp plugin module implements message line behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 
 export {
   formatInboundEnvelope,
   type EnvelopeFormatOptions,
-} from "astroclaw/plugin-sdk/channel-envelope";
+} from "openclaw/plugin-sdk/channel-inbound";
 
-type WhatsAppMessagePrefixConfig = AstroclawConfig;
+type WhatsAppMessagePrefixConfig = OpenClawConfig;
 
 function normalizeAgentId(agentId: string): string {
   return agentId.trim().toLowerCase() || "main";
@@ -34,5 +35,5 @@ export function resolveMessagePrefix(
   if (opts?.hasAllowFrom === true) {
     return "";
   }
-  return resolveIdentityNamePrefix(cfg, agentId) ?? opts?.fallback ?? "[astroclaw]";
+  return resolveIdentityNamePrefix(cfg, agentId) ?? opts?.fallback ?? "[openclaw]";
 }
