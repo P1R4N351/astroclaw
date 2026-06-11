@@ -1,9 +1,10 @@
-import { formatAllowFromLowercase } from "astroclaw/plugin-sdk/allow-from";
+// Slack plugin module implements channel.setup behavior.
+import { formatAllowFromLowercase } from "openclaw/plugin-sdk/allow-from";
 import {
   adaptScopedAccountAccessor,
   createScopedChannelConfigAdapter,
-} from "astroclaw/plugin-sdk/channel-config-helpers";
-import { type ResolvedSlackAccount } from "./accounts.js";
+} from "openclaw/plugin-sdk/channel-config-helpers";
+import type { ResolvedSlackAccount } from "./accounts.js";
 import {
   listSlackAccountIds,
   resolveSlackConfigAccessorAccount,
@@ -11,7 +12,7 @@ import {
   resolveSlackAccount,
   type SlackConfigAccessorAccount,
 } from "./accounts.js";
-import { type ChannelPlugin } from "./channel-api.js";
+import type { ChannelPlugin } from "./channel-api.js";
 import { SlackChannelConfigSchema } from "./config-schema.js";
 import { slackSetupAdapter, createSlackSetupWizardProxy } from "./setup-core.js";
 import {
