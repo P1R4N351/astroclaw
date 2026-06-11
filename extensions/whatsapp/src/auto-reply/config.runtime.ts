@@ -1,3 +1,4 @@
+// Whatsapp helper module supports config behavior.
 export {
   evaluateSessionFreshness,
   loadSessionStore,
@@ -8,9 +9,9 @@ export {
   resolveThreadFlag,
   resolveChannelResetConfig,
   updateLastRoute,
-} from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/session-store-runtime";
 export {
   getRuntimeConfig,
   getRuntimeConfigSourceSnapshot,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
-export { resolveChannelContextVisibilityMode } from "astroclaw/plugin-sdk/context-visibility-runtime";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
+export { resolveChannelContextVisibilityMode } from "openclaw/plugin-sdk/context-visibility-runtime";
