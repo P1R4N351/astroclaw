@@ -1,7 +1,8 @@
+// Fireworks setup module handles plugin onboarding behavior.
 import {
   createDefaultModelsPresetAppliers,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildFireworksCatalogModels,
   buildFireworksProvider,
@@ -12,7 +13,7 @@ export const FIREWORKS_DEFAULT_MODEL_REF = `fireworks/${FIREWORKS_DEFAULT_MODEL_
 
 const fireworksPresetAppliers = createDefaultModelsPresetAppliers({
   primaryModelRef: FIREWORKS_DEFAULT_MODEL_REF,
-  resolveParams: (_cfg: AstroclawConfig) => {
+  resolveParams: (_cfg: OpenClawConfig) => {
     const defaultProvider = buildFireworksProvider();
     return {
       providerId: "fireworks",
@@ -25,6 +26,6 @@ const fireworksPresetAppliers = createDefaultModelsPresetAppliers({
   },
 });
 
-export function applyFireworksConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyFireworksConfig(cfg: OpenClawConfig): OpenClawConfig {
   return fireworksPresetAppliers.applyConfig(cfg);
 }
