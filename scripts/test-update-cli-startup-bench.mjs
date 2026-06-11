@@ -1,3 +1,4 @@
+// Refreshes the checked-in CLI startup benchmark fixture.
 import { spawnSync } from "node:child_process";
 import { parseFlagArgs, stringFlag, intFlag } from "./lib/arg-utils.mjs";
 
@@ -12,7 +13,7 @@ if (process.argv.slice(2).includes("--help")) {
       "",
       "Options:",
       "  --out <path>          Output path (default: test/fixtures/cli-startup-bench.json)",
-      "  --entry <path>        CLI entry to benchmark (default: astroclaw.mjs)",
+      "  --entry <path>        CLI entry to benchmark (default: openclaw.mjs)",
       "  --preset <name>       startup | real | all (default: all)",
       "  --runs <n>            Measured runs per case (default: 5)",
       "  --warmup <n>          Warmup runs per case (default: 1)",
@@ -30,7 +31,7 @@ const opts = parseFlagArgs(
   process.argv.slice(2),
   {
     out: CLI_STARTUP_BENCH_FIXTURE_PATH,
-    entry: "astroclaw.mjs",
+    entry: "openclaw.mjs",
     preset: "all",
     runs: 5,
     warmup: 1,
@@ -64,7 +65,7 @@ const args = [
   opts.out,
 ];
 
-const run = spawnSync("node", args, {
+const run = spawnSync(process.execPath, args, {
   cwd: process.cwd(),
   stdio: "inherit",
   env: process.env,
