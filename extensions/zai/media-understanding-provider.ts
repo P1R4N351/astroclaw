@@ -1,8 +1,9 @@
+// Zai provider module implements model/runtime integration.
 import {
   describeImageWithModel,
   describeImagesWithModel,
   type MediaUnderstandingProvider,
-} from "astroclaw/plugin-sdk/media-understanding";
+} from "openclaw/plugin-sdk/media-understanding";
 
 export const zaiMediaUnderstandingProvider: MediaUnderstandingProvider = {
   id: "zai",
