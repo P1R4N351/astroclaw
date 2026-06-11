@@ -1,10 +1,11 @@
+// Memory Core plugin module implements rem harness behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   resolveMemoryDeepDreamingConfig,
   resolveMemoryRemDreamingConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-status";
+} from "openclaw/plugin-sdk/memory-core-host-status";
 import {
   filterRecallEntriesWithinLookback,
   previewRemDreaming,
@@ -12,6 +13,7 @@ import {
 } from "./dreaming-phases.js";
 import { previewGroundedRemMarkdown, type GroundedRemPreviewResult } from "./rem-evidence.js";
 import {
+  filterLiveShortTermRecallEntries,
   rankShortTermPromotionCandidates,
   readShortTermRecallEntries,
   type PromotionCandidate,
@@ -24,7 +26,7 @@ type MemoryRemHarnessDeepConfig = ReturnType<typeof resolveMemoryDeepDreamingCon
 
 export type PreviewRemHarnessOptions = {
   workspaceDir: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   pluginConfig?: Record<string, unknown>;
   grounded?: boolean;
   groundedInputPaths?: string[];
@@ -82,7 +84,7 @@ function createSkippedRemPreview(): RemDreamingPreview {
 
 async function listWorkspaceDailyFiles(workspaceDir: string, limit?: number): Promise<string[]> {
   const memoryDir = path.join(workspaceDir, "memory");
-  let entries: string[] = [];
+  let entries: string[];
   try {
     const dirEntries = await fs.readdir(memoryDir, { withFileTypes: true });
     entries = dirEntries
@@ -130,10 +132,13 @@ export async function previewRemHarness(
     workspaceDir: params.workspaceDir,
     nowMs,
   });
-  const recallEntries = filterRecallEntriesWithinLookback({
-    entries: allRecallEntries,
-    nowMs,
-    lookbackDays: remConfig.lookbackDays,
+  const recallEntries = await filterLiveShortTermRecallEntries({
+    workspaceDir: params.workspaceDir,
+    entries: filterRecallEntriesWithinLookback({
+      entries: allRecallEntries,
+      nowMs,
+      lookbackDays: remConfig.lookbackDays,
+    }),
   });
   const remPreviewLimit = resolveRemPreviewLimit(remConfig.limit, params.remPreviewLimit);
   const remSkipped = remConfig.limit <= 0 || remPreviewLimit <= 0;
