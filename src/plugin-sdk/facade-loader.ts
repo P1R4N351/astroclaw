@@ -1,5 +1,5 @@
+// Facade loader helpers resolve plugin public API modules from source, dist, or installed roots.
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { openRootFileSync } from "../infra/boundary-file-read.js";
@@ -14,32 +14,22 @@ import { resolveBundledFacadeModuleLocation } from "./facade-resolution-shared.j
 
 const CURRENT_MODULE_PATH = fileURLToPath(import.meta.url);
 
-const nodeRequire = createRequire(import.meta.url);
 const moduleLoaders: PluginModuleLoaderCache = new Map();
 const loadedFacadeModules = new Map<string, unknown>();
 const loadedFacadePluginIds = new Set<string>();
 let facadeLoaderSourceTransformFactory: PluginModuleLoaderFactory | undefined;
-let cachedAstroclawPackageRoot: string | undefined;
+let cachedOpenClawPackageRoot: string | undefined;
 
-function getSourceTransformFactory() {
-  if (facadeLoaderSourceTransformFactory) {
-    return facadeLoaderSourceTransformFactory;
+function getOpenClawPackageRoot() {
+  if (cachedOpenClawPackageRoot) {
+    return cachedOpenClawPackageRoot;
   }
-  const { createJiti } = nodeRequire("jiti") as typeof import("jiti");
-  facadeLoaderSourceTransformFactory = createJiti;
-  return facadeLoaderSourceTransformFactory;
-}
-
-function getAstroclawPackageRoot() {
-  if (cachedAstroclawPackageRoot) {
-    return cachedAstroclawPackageRoot;
-  }
-  cachedAstroclawPackageRoot =
+  cachedOpenClawPackageRoot =
     resolveLoaderPackageRoot({
       modulePath: fileURLToPath(import.meta.url),
       moduleUrl: import.meta.url,
     }) ?? fileURLToPath(new URL("../..", import.meta.url));
-  return cachedAstroclawPackageRoot;
+  return cachedOpenClawPackageRoot;
 }
 
 function resolveFacadeModuleLocation(params: {
@@ -51,7 +41,7 @@ function resolveFacadeModuleLocation(params: {
   return resolveBundledFacadeModuleLocation({
     ...params,
     currentModulePath: CURRENT_MODULE_PATH,
-    packageRoot: getAstroclawPackageRoot(),
+    packageRoot: getOpenClawPackageRoot(),
     bundledPluginsDir,
   });
 }
@@ -63,7 +53,9 @@ function getModuleLoader(modulePath: string) {
     importerUrl: import.meta.url,
     preferBuiltDist: true,
     loaderFilename: import.meta.url,
-    createLoader: getSourceTransformFactory(),
+    ...(facadeLoaderSourceTransformFactory
+      ? { createLoader: facadeLoaderSourceTransformFactory }
+      : {}),
   });
 }
 
@@ -121,19 +113,23 @@ function createLazyFacadeProxyValue<T extends object>(params: {
   }) as T;
 }
 
+/** Create an object proxy that loads the underlying facade only on first property access. */
 export function createLazyFacadeObjectValue<T extends object>(load: () => T): T {
   return createLazyFacadeProxyValue({ load, target: {} });
 }
 
+/** Create an array proxy that loads the underlying facade only on first array access. */
 export function createLazyFacadeArrayValue<T extends readonly unknown[]>(load: () => T): T {
   return createLazyFacadeProxyValue({ load, target: [] });
 }
 
+/** Resolved public-surface module path plus the filesystem root it must stay within. */
 export type FacadeModuleLocation = {
   modulePath: string;
   boundaryRoot: string;
 };
 
+/** Load and cache a facade module after verifying it is inside its declared boundary root. */
 export function loadFacadeModuleAtLocationSync<T extends object>(params: {
   location: FacadeModuleLocation;
   trackedPluginId: string | (() => string);
@@ -149,8 +145,8 @@ export function loadFacadeModuleAtLocationSync<T extends object>(params: {
     absolutePath: location.modulePath,
     rootPath: location.boundaryRoot,
     boundaryLabel:
-      location.boundaryRoot === getAstroclawPackageRoot()
-        ? "Astroclaw package root"
+      location.boundaryRoot === getOpenClawPackageRoot()
+        ? "OpenClaw package root"
         : (() => {
             const bundledDir = resolveBundledPluginsDir();
             return bundledDir && path.resolve(location.boundaryRoot) === path.resolve(bundledDir)
@@ -188,6 +184,7 @@ export function loadFacadeModuleAtLocationSync<T extends object>(params: {
   return sentinel;
 }
 
+/** Resolve and synchronously load a bundled plugin public surface by plugin dir and artifact name. */
 // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Dynamic facade loaders use caller-supplied module surface types.
 export function loadBundledPluginPublicSurfaceModuleSync<T extends object>(params: {
   dirName: string;
@@ -207,6 +204,7 @@ export function loadBundledPluginPublicSurfaceModuleSync<T extends object>(param
   });
 }
 
+/** Resolve and asynchronously import a bundled plugin public surface with sync-loader fallback. */
 export async function loadBundledPluginPublicSurfaceModule<T extends object>(params: {
   dirName: string;
   artifactBasename: string;
@@ -228,8 +226,8 @@ export async function loadBundledPluginPublicSurfaceModule<T extends object>(par
     absolutePath: preparedLocation.modulePath,
     rootPath: preparedLocation.boundaryRoot,
     boundaryLabel:
-      preparedLocation.boundaryRoot === getAstroclawPackageRoot()
-        ? "Astroclaw package root"
+      preparedLocation.boundaryRoot === getOpenClawPackageRoot()
+        ? "OpenClaw package root"
         : "plugin root",
     rejectHardlinks: false,
   });
@@ -257,18 +255,21 @@ export async function loadBundledPluginPublicSurfaceModule<T extends object>(par
   }
 }
 
+/** List plugin ids whose public facades have been loaded in this process. */
 export function listImportedBundledPluginFacadeIds(): string[] {
   return [...loadedFacadePluginIds].toSorted((left, right) => left.localeCompare(right));
 }
 
+/** Reset facade module caches and test loader overrides. */
 export function resetFacadeLoaderStateForTest(): void {
   loadedFacadeModules.clear();
   loadedFacadePluginIds.clear();
   moduleLoaders.clear();
   facadeLoaderSourceTransformFactory = undefined;
-  cachedAstroclawPackageRoot = undefined;
+  cachedOpenClawPackageRoot = undefined;
 }
 
+/** Override source transform loader creation for facade-loader tests. */
 export function setFacadeLoaderSourceTransformFactoryForTest(
   factory: PluginModuleLoaderFactory | undefined,
 ): void {
