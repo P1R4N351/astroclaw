@@ -1,3 +1,4 @@
+/** Shared Windows schtasks fixtures and temp-env helpers for daemon tests. */
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -13,6 +14,7 @@ export const schtasksCalls: string[][] = [];
 export const inspectPortUsage: MockFn<(port: number) => Promise<PortUsage>> = vi.fn();
 export const killProcessTree: MockFn<typeof killProcessTreeImpl> = vi.fn();
 
+/** Runs a test with Windows-like daemon environment paths and cleans the temp dir. */
 export async function withWindowsEnv(
   prefix: string,
   run: (params: { tmpDir: string; env: Record<string, string> }) => Promise<void>,
@@ -21,8 +23,8 @@ export async function withWindowsEnv(
   const env = {
     USERPROFILE: tmpDir,
     APPDATA: path.join(tmpDir, "AppData", "Roaming"),
-    ASTROCLAW_PROFILE: "default",
-    ASTROCLAW_GATEWAY_PORT: "18789",
+    OPENCLAW_PROFILE: "default",
+    OPENCLAW_GATEWAY_PORT: "18789",
   };
   try {
     await run({ tmpDir, env });
@@ -40,7 +42,7 @@ export function resetSchtasksBaseMocks() {
 
 export async function writeGatewayScript(
   env: Record<string, string>,
-  port = Number(env.ASTROCLAW_GATEWAY_PORT || "18789"),
+  port = Number(env.OPENCLAW_GATEWAY_PORT || "18789"),
 ) {
   const scriptPath = resolveTaskScriptPath(env);
   await fs.mkdir(path.dirname(scriptPath), { recursive: true });
@@ -48,8 +50,8 @@ export async function writeGatewayScript(
     scriptPath,
     [
       "@echo off",
-      `set "ASTROCLAW_GATEWAY_PORT=${port}"`,
-      `"C:\\Program Files\\nodejs\\node.exe" "C:\\Users\\steipete\\AppData\\Roaming\\npm\\node_modules\\astroclaw\\dist\\index.js" gateway --port ${port}`,
+      `set "OPENCLAW_GATEWAY_PORT=${port}"`,
+      `"C:\\Program Files\\nodejs\\node.exe" "C:\\Users\\steipete\\AppData\\Roaming\\npm\\node_modules\\openclaw\\dist\\index.js" gateway --port ${port}`,
       "",
     ].join("\r\n"),
     "utf8",
