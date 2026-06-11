@@ -1,10 +1,11 @@
+// Migrate Claude plugin module implements targets behavior.
 import path from "node:path";
 import {
   resolveAgentConfig,
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import type { MigrationProviderContext } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/agent-runtime";
+import type { MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
 import { resolveHomePath } from "./helpers.js";
 
 export type PlannedTargets = {
