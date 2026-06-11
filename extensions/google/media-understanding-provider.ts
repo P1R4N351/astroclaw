@@ -1,3 +1,4 @@
+// Google provider module implements model/runtime integration.
 import {
   describeImageWithModel,
   describeImagesWithModel,
@@ -6,12 +7,12 @@ import {
   type MediaUnderstandingProvider,
   type VideoDescriptionRequest,
   type VideoDescriptionResult,
-} from "astroclaw/plugin-sdk/media-understanding";
+} from "openclaw/plugin-sdk/media-understanding";
 import {
   assertOkOrThrowProviderError,
   postJsonRequest,
   type ProviderRequestTransportOverrides,
-} from "astroclaw/plugin-sdk/provider-http";
+} from "openclaw/plugin-sdk/provider-http";
 import {
   DEFAULT_GOOGLE_API_BASE_URL,
   normalizeGoogleModelId,
