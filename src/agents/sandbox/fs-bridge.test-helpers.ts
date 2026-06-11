@@ -1,3 +1,5 @@
+// Shared fs bridge test helpers install Docker/path-safety mocks and provide
+// seeded sandbox fixtures for boundary and shell tests.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -77,6 +79,8 @@ const DOCKER_SCRIPT_INDEX = 5;
 const DOCKER_FIRST_SCRIPT_ARG_INDEX = 7;
 
 export function getDockerScript(args: string[]): string {
+  // docker exec argv positions are stable in fs bridge tests; helpers keep
+  // script assertions readable across many call sites.
   return args[DOCKER_SCRIPT_INDEX] ?? "";
 }
 
@@ -113,12 +117,12 @@ export function dockerExecResult(stdout: string) {
 export function createSandbox(overrides?: Partial<SandboxContext>): SandboxContext {
   return createSandboxTestContext({
     overrides: {
-      containerName: "astroclaw-sbx-test",
+      containerName: "openclaw-sbx-test",
       ...overrides,
     },
     dockerOverrides: {
-      image: "astroclaw-sandbox:bookworm-slim",
-      containerPrefix: "astroclaw-sbx-",
+      image: "openclaw-sandbox:bookworm-slim",
+      containerPrefix: "openclaw-sbx-",
     },
   });
 }
@@ -172,14 +176,14 @@ function installDockerReadMock(params?: { canonicalPath?: string }) {
     if (script.includes('readlink -f -- "$cursor"')) {
       return dockerExecResult(`${canonicalPath ?? getDockerArg(args, 1)}\n`);
     }
-    if (script.includes('stat -c "%F|%s|%Y"')) {
+    if (script.includes('stat -c "%F|%s|%y"')) {
       return dockerExecResult("regular file|1|2");
     }
     if (script.includes('cat -- "$1"')) {
       return dockerExecResult("content");
     }
     if (script.includes("mktemp")) {
-      return dockerExecResult("/workspace/.astroclaw-write-b.txt.ABC123\n");
+      return dockerExecResult("/workspace/.openclaw-write-b.txt.ABC123\n");
     }
     return dockerExecResult("");
   });
@@ -198,7 +202,7 @@ export async function createHostEscapeFixture(stateDir: string) {
 export async function expectMkdirpAllowsExistingDirectory(params?: {
   forceBoundaryIoFallback?: boolean;
 }) {
-  await withTempDir("astroclaw-fs-bridge-mkdirp-", async (stateDir) => {
+  await withTempDir("openclaw-fs-bridge-mkdirp-", async (stateDir) => {
     const workspaceDir = path.join(stateDir, "workspace");
     const nestedDir = path.join(workspaceDir, "memory", "kemik");
     await fs.mkdir(nestedDir, { recursive: true });
