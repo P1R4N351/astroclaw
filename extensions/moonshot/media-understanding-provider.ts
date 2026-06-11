@@ -1,3 +1,4 @@
+// Moonshot provider module implements model/runtime integration.
 import {
   buildOpenAiCompatibleVideoRequestBody,
   coerceOpenAiCompatibleVideoText,
@@ -8,12 +9,12 @@ import {
   type OpenAiCompatibleVideoPayload,
   type VideoDescriptionRequest,
   type VideoDescriptionResult,
-} from "astroclaw/plugin-sdk/media-understanding";
+} from "openclaw/plugin-sdk/media-understanding";
 import {
   assertOkOrThrowHttpError,
   postJsonRequest,
   resolveProviderHttpRequestConfig,
-} from "astroclaw/plugin-sdk/provider-http";
+} from "openclaw/plugin-sdk/provider-http";
 import { MOONSHOT_DEFAULT_MODEL_ID } from "./provider-catalog.js";
 
 const DEFAULT_MOONSHOT_VIDEO_BASE_URL = "https://api.moonshot.ai/v1";
