@@ -1,3 +1,6 @@
+// Reads service manager state for status reports.
+// Converts gateway/node launchd/systemd state into a compact summary shape.
+
 import {
   summarizeGatewayServiceLayout,
   type GatewayServiceLayoutSummary,
@@ -9,13 +12,14 @@ export type ServiceStatusSummary = {
   label: string;
   installed: boolean | null;
   loaded: boolean;
-  managedByAstroclaw: boolean;
+  managedByOpenClaw: boolean;
   externallyManaged: boolean;
   loadedText: string;
   runtime: GatewayServiceRuntime | undefined;
   layout?: GatewayServiceLayoutSummary;
 };
 
+/** Reads a daemon service summary, falling back to unknown when service inspection fails. */
 export async function readServiceStatusSummary(
   service: GatewayService,
   fallbackLabel: string,
@@ -23,9 +27,10 @@ export async function readServiceStatusSummary(
   try {
     const state = await readGatewayServiceState(service, { env: process.env });
     const layout = await summarizeGatewayServiceLayout(state.command);
-    const managedByAstroclaw = state.installed;
-    const externallyManaged = !managedByAstroclaw && state.running;
-    const installed = managedByAstroclaw || externallyManaged;
+    const managedByOpenClaw = state.installed;
+    // A running unmanaged process still counts as installed for status display.
+    const externallyManaged = !managedByOpenClaw && state.running;
+    const installed = managedByOpenClaw || externallyManaged;
     const loadedText = externallyManaged
       ? "running (externally managed)"
       : state.loaded
@@ -35,18 +40,19 @@ export async function readServiceStatusSummary(
       label: service.label,
       installed,
       loaded: state.loaded,
-      managedByAstroclaw,
+      managedByOpenClaw,
       externallyManaged,
       loadedText,
       runtime: state.runtime,
       ...(layout ? { layout } : {}),
     };
   } catch {
+    // Status output should survive service-manager errors and show an unknown row.
     return {
       label: fallbackLabel,
       installed: null,
       loaded: false,
-      managedByAstroclaw: false,
+      managedByOpenClaw: false,
       externallyManaged: false,
       loadedText: "unknown",
       runtime: undefined,
