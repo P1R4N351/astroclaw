@@ -1,7 +1,8 @@
+// Kimi Coding provider module implements model/runtime integration.
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-shared";
 
 const KIMI_BASE_URL = "https://api.kimi.com/coding/";
 const KIMI_CODING_USER_AGENT = "claude-code/0.1.0";
