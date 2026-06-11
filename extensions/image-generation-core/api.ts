@@ -1,4 +1,5 @@
-export type { AuthProfileStore } from "astroclaw/plugin-sdk/image-generation-core";
+// Image Generation Core API module exposes the plugin public contract.
+export type { AuthProfileStore } from "openclaw/plugin-sdk/image-generation-core";
 export {
   buildNoCapabilityModelConfiguredMessage,
   createSubsystemLogger,
@@ -15,7 +16,7 @@ export {
   resolveApiKeyForProvider,
   resolveCapabilityModelCandidates,
   throwCapabilityGenerationFailure,
-} from "astroclaw/plugin-sdk/image-generation-core";
+} from "openclaw/plugin-sdk/image-generation-core";
 export type {
   FallbackAttempt,
   GeneratedImageAsset,
@@ -26,5 +27,5 @@ export type {
   ImageGenerationResolution,
   ImageGenerationResult,
   ImageGenerationSourceImage,
-  AstroclawConfig,
-} from "astroclaw/plugin-sdk/image-generation-core";
+  OpenClawConfig,
+} from "openclaw/plugin-sdk/image-generation-core";
