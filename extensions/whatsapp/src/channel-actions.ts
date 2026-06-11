@@ -1,13 +1,14 @@
+// Whatsapp plugin module implements channel actions behavior.
 import {
   listWhatsAppAccountIds,
   resolveWhatsAppAccount,
   createActionGate,
   type ChannelMessageActionName,
-  type AstroclawConfig,
+  type OpenClawConfig,
   resolveWhatsAppReactionLevel,
 } from "./channel-actions.runtime.js";
 
-function areWhatsAppAgentReactionsEnabled(params: { cfg: AstroclawConfig; accountId?: string }) {
+function areWhatsAppAgentReactionsEnabled(params: { cfg: OpenClawConfig; accountId?: string }) {
   if (!params.cfg.channels?.whatsapp) {
     return false;
   }
@@ -21,7 +22,7 @@ function areWhatsAppAgentReactionsEnabled(params: { cfg: AstroclawConfig; accoun
   }).agentReactionsEnabled;
 }
 
-function hasAnyWhatsAppAccountWithAgentReactionsEnabled(cfg: AstroclawConfig) {
+function hasAnyWhatsAppAccountWithAgentReactionsEnabled(cfg: OpenClawConfig) {
   if (!cfg.channels?.whatsapp) {
     return false;
   }
@@ -38,7 +39,7 @@ function hasAnyWhatsAppAccountWithAgentReactionsEnabled(cfg: AstroclawConfig) {
 }
 
 export function resolveWhatsAppAgentReactionGuidance(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string;
 }) {
   if (!params.cfg.channels?.whatsapp) {
@@ -59,7 +60,7 @@ export function resolveWhatsAppAgentReactionGuidance(params: {
 }
 
 export function describeWhatsAppMessageActions(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): { actions: ChannelMessageActionName[] } | null {
   if (!params.cfg.channels?.whatsapp) {
@@ -80,5 +81,6 @@ export function describeWhatsAppMessageActions(params: {
   if (gate("polls")) {
     actions.add("poll");
   }
+  actions.add("upload-file");
   return { actions: Array.from(actions) };
 }
