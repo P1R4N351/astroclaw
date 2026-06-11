@@ -1,16 +1,18 @@
+// Doctor repair for dmPolicy allowlists whose sender entries only exist in pairing stores.
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeUniqueStringEntries } from "@openclaw/normalization-core/string-normalization";
 import { normalizeChatChannelId } from "../../../channels/ids.js";
 import { setCanonicalDmAllowFrom } from "../../../channels/plugins/dm-access.js";
-import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { readChannelAllowFromStore } from "../../../pairing/pairing-store.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../../routing/session-key.js";
-import { normalizeOptionalLowercaseString } from "../../../shared/string-coerce.js";
-import { normalizeStringEntries } from "../../../shared/string-normalization.js";
 import { resolveAllowFromMode, type AllowFromMode } from "./allow-from-mode.js";
 import { hasAllowFromEntries } from "./allowlist.js";
 import { asObjectRecord } from "./object.js";
 
-export async function maybeRepairAllowlistPolicyAllowFrom(cfg: AstroclawConfig): Promise<{
-  config: AstroclawConfig;
+/** Restore missing allowFrom entries for allowlist DM policies from persisted pairing stores. */
+export async function maybeRepairAllowlistPolicyAllowFrom(cfg: OpenClawConfig): Promise<{
+  config: OpenClawConfig;
   changes: string[];
 }> {
   const channels = cfg.channels;
@@ -74,7 +76,7 @@ export async function maybeRepairAllowlistPolicyAllowFrom(cfg: AstroclawConfig):
       process.env,
       normalizedAccountId,
     ).catch(() => []);
-    const recovered = Array.from(new Set(normalizeStringEntries(fromStore)));
+    const recovered = normalizeUniqueStringEntries(fromStore);
     if (recovered.length === 0) {
       return;
     }
