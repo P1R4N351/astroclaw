@@ -1,3 +1,5 @@
+// Exa provider module implements model/runtime integration.
+import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
 import {
   buildSearchCacheKey,
   DEFAULT_SEARCH_COUNT,
@@ -5,7 +7,7 @@ import {
   parseIsoDateRange,
   readCachedSearchPayload,
   readConfiguredSecretString,
-  readNumberParam,
+  readPositiveIntegerParam,
   readProviderEnvValue,
   readStringParam,
   resolveProviderWebSearchPluginConfig,
@@ -16,11 +18,11 @@ import {
   withTrustedWebSearchEndpoint,
   wrapWebContent,
   writeCachedSearchPayload,
-} from "astroclaw/plugin-sdk/provider-web-search";
+} from "openclaw/plugin-sdk/provider-web-search";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 
 const EXA_SEARCH_ENDPOINT = "https://api.exa.ai/search";
 const EXA_SEARCH_TYPES = ["auto", "neural", "fast", "deep", "deep-reasoning", "instant"] as const;
@@ -100,7 +102,7 @@ function invalidBaseUrlPayload(value: string) {
   return {
     error: "invalid_base_url",
     message: `plugins.entries.exa.config.webSearch.baseUrl must be a valid http(s) URL. Got: ${value}`,
-    docs: "https://docs.astroclaw.ai/tools/exa-search",
+    docs: "https://docs.openclaw.ai/tools/exa-search",
   };
 }
 
@@ -160,7 +162,7 @@ function invalidContentsPayload(message: string) {
   return {
     error: "invalid_contents",
     message,
-    docs: "https://docs.astroclaw.ai/tools/web",
+    docs: "https://docs.openclaw.ai/tools/web",
   };
 }
 
@@ -171,11 +173,11 @@ function isErrorPayload(value: unknown): value is { error: string; message: stri
 }
 
 function resolveExaSearchCount(value: unknown, fallback: number): number {
-  const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(parsed)) {
+  const parsed = parseStrictPositiveInteger(value);
+  if (parsed === undefined) {
     return fallback;
   }
-  return Math.max(1, Math.min(EXA_MAX_SEARCH_COUNT, Math.floor(parsed)));
+  return Math.min(EXA_MAX_SEARCH_COUNT, parsed);
 }
 
 function parseExaContents(
@@ -398,7 +400,7 @@ async function runExaSearch(params: {
           Accept: "application/json",
           "Content-Type": "application/json",
           "x-api-key": params.apiKey,
-          "x-exa-integration": "astroclaw",
+          "x-exa-integration": "openclaw",
         },
         body: JSON.stringify(body),
       },
@@ -418,7 +420,7 @@ function missingExaKeyPayload() {
     error: "missing_exa_api_key",
     message:
       "web_search (exa) needs an Exa API key. Set EXA_API_KEY in the Gateway environment, or configure tools.web.search.exa.apiKey.",
-    docs: "https://docs.astroclaw.ai/tools/web",
+    docs: "https://docs.openclaw.ai/tools/web",
   };
 }
 
@@ -474,14 +476,19 @@ export async function executeExaWebSearchProviderTool(
     ? (rawType as ExaSearchType)
     : "auto";
   const count =
-    readNumberParam(params, "count", { integer: true }) ?? searchConfig?.maxResults ?? undefined;
+    readPositiveIntegerParam(params, "count", {
+      max: EXA_MAX_SEARCH_COUNT,
+      message: `count must be an integer from 1 to ${EXA_MAX_SEARCH_COUNT}.`,
+    }) ??
+    searchConfig?.maxResults ??
+    undefined;
   const rawFreshness = readStringParam(params, "freshness");
   const freshness = normalizeExaFreshness(rawFreshness);
   if (rawFreshness && !freshness) {
     return {
       error: "invalid_freshness",
       message: 'freshness must be one of "day", "week", "month", or "year".',
-      docs: "https://docs.astroclaw.ai/tools/web",
+      docs: "https://docs.openclaw.ai/tools/web",
     };
   }
 
@@ -492,7 +499,7 @@ export async function executeExaWebSearchProviderTool(
       error: "conflicting_time_filters",
       message:
         "freshness cannot be combined with date_after or date_before. Use one time-filter mode.",
-      docs: "https://docs.astroclaw.ai/tools/web",
+      docs: "https://docs.openclaw.ai/tools/web",
     };
   }
   const parsedDateRange = parseIsoDateRange({
@@ -589,7 +596,7 @@ export async function executeExaWebSearchProviderTool(
   return payload;
 }
 
-export const __testing = {
+export const testing = {
   normalizeExaResults,
   normalizeExaFreshness,
   parseExaContents,
@@ -602,3 +609,4 @@ export const __testing = {
   resolveFreshnessStartDate,
   readExaSearchResults,
 } as const;
+export { testing as __testing };
