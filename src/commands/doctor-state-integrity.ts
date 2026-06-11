@@ -1,6 +1,11 @@
+/** Doctor checks and repairs for state dir durability, sessions, transcripts, and credentials. */
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { asNullableObjectRecord } from "@openclaw/normalization-core/record-coerce";
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { note } from "../../packages/terminal-core/src/note.js";
 import { listAgentEntries, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import {
   clearWedgedSubagentRecoveryAbort,
@@ -22,16 +27,13 @@ import {
 } from "../config/sessions/paths.js";
 import { loadSessionStore } from "../config/sessions/store-load.js";
 import { updateSessionStore } from "../config/sessions/store.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveRequiredHomeDir } from "../infra/home-dir.js";
 import { resolveMemoryBackendConfig } from "../memory-host-sdk/engine-storage.js";
-import { resolveAstroclawAgentDir } from "../plugin-sdk/agent-dir-compat.js";
+import { resolveOpenClawAgentDir } from "../plugin-sdk/agent-dir-compat.js";
 import { listConfiguredChannelIdsForReadOnlyScope } from "../plugins/channel-plugin-ids.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { parseAgentSessionKey } from "../sessions/session-key-utils.js";
-import { asNullableObjectRecord } from "../shared/record-coerce.js";
-import { normalizeOptionalLowercaseString } from "../shared/string-coerce.js";
-import { note } from "../terminal/note.js";
 import { shortenHomePath } from "../utils.js";
 import { repairHeartbeatPoisonedMainSession } from "./doctor-heartbeat-main-session-repair.js";
 import { describeHeartbeatSessionTargetIssues } from "./doctor-heartbeat-session-target.js";
@@ -126,7 +128,7 @@ function formatOrphanAgentDirPreview(entries: OrphanAgentDir[], limit = 3): stri
   return labels.join(", ");
 }
 
-function listOrphanAgentDirs(cfg: AstroclawConfig, stateDir: string): OrphanAgentDir[] {
+function listOrphanAgentDirs(cfg: OpenClawConfig, stateDir: string): OrphanAgentDir[] {
   const configuredIds = new Set<string>();
   configuredIds.add(normalizeAgentId(resolveDefaultAgentId(cfg)));
   for (const entry of listAgentEntries(cfg)) {
@@ -134,7 +136,7 @@ function listOrphanAgentDirs(cfg: AstroclawConfig, stateDir: string): OrphanAgen
   }
 
   const agentsRoot = path.join(stateDir, "agents");
-  const liveCompatibilityAgentDir = resolveAstroclawAgentDir();
+  const liveCompatibilityAgentDir = resolveOpenClawAgentDir();
   try {
     const entries = fs.readdirSync(agentsRoot, { withFileTypes: true });
     return entries
@@ -217,8 +219,8 @@ function countJsonlLines(filePath: string): number {
       return 0;
     }
     let count = 0;
-    for (let i = 0; i < raw.length; i += 1) {
-      if (raw[i] === "\n") {
+    for (const char of raw) {
+      if (char === "\n") {
         count += 1;
       }
     }
@@ -237,7 +239,7 @@ function findOtherStateDirs(stateDir: string): string[] {
     process.platform === "darwin" ? ["/Users"] : process.platform === "linux" ? ["/home"] : [];
   const found: string[] = [];
   for (const root of roots) {
-    let entries: fs.Dirent[] = [];
+    let entries: fs.Dirent[];
     try {
       entries = fs.readdirSync(root, { withFileTypes: true });
     } catch {
@@ -250,7 +252,7 @@ function findOtherStateDirs(stateDir: string): string[] {
       if (entry.name.startsWith(".")) {
         continue;
       }
-      const candidates = [".astroclaw"].map((dir) => path.resolve(root, entry.name, dir));
+      const candidates = [".openclaw"].map((dir) => path.resolve(root, entry.name, dir));
       for (const candidate of candidates) {
         if (candidate === resolvedState) {
           continue;
@@ -417,6 +419,7 @@ function tryReadLinuxMountInfo(): string | null {
   }
 }
 
+/** Detects Linux state directories mounted from SD/eMMC-style block devices. */
 export function detectLinuxSdBackedStateDir(
   stateDir: string,
   deps?: {
@@ -469,6 +472,7 @@ export function detectLinuxSdBackedStateDir(
   };
 }
 
+/** Formats the warning for state stored on SD/eMMC media. */
 export function formatLinuxSdBackedStateDirWarning(
   displayStateDir: string,
   linuxSdBackedStateDir: LinuxSdBackedStateDir,
@@ -483,10 +487,11 @@ export function formatLinuxSdBackedStateDirWarning(
   return [
     `- State directory appears to be on SD/eMMC storage (${displayStateDir}; device ${safeSource}, fs ${safeFsType}, mount ${safeMountPoint}).`,
     "- SD/eMMC media can be slower for random I/O and wear faster under session/log churn.",
-    "- For better startup and state durability, prefer SSD/NVMe (or USB SSD on Raspberry Pi) for ASTROCLAW_STATE_DIR.",
+    "- For better startup and state durability, prefer SSD/NVMe (or USB SSD on Raspberry Pi) for OPENCLAW_STATE_DIR.",
   ].join("\n");
 }
 
+/** Detects macOS state directories under iCloud Drive or CloudStorage providers. */
 export function detectMacCloudSyncedStateDir(
   stateDir: string,
   deps?: {
@@ -504,7 +509,7 @@ export function detectMacCloudSyncedStateDir(
   }
 
   // Cloud-sync roots should always be anchored to the OS account home on macOS.
-  // ASTROCLAW_HOME can relocate app data defaults, but iCloud/CloudStorage remain under the OS home.
+  // OPENCLAW_HOME can relocate app data defaults, but iCloud/CloudStorage remain under the OS home.
   const homedir = deps?.homedir ?? os.homedir();
   const roots = [
     {
@@ -569,8 +574,8 @@ function isSlashRoutingSessionKey(sessionKey: string): boolean {
   return /^[^:]+:slash:[^:]+(?:$|:)/.test(scoped);
 }
 
-function shouldRequireOAuthDir(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): boolean {
-  if (env.ASTROCLAW_OAUTH_DIR?.trim()) {
+function shouldRequireOAuthDir(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): boolean {
+  if (env.OPENCLAW_OAUTH_DIR?.trim()) {
     return true;
   }
   const channels = asNullableObjectRecord(cfg.channels);
@@ -605,13 +610,14 @@ function shouldRequireOAuthDir(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): bo
   return false;
 }
 
-function shouldSuppressOrphanTranscriptWarning(cfg: AstroclawConfig, agentId: string): boolean {
+function shouldSuppressOrphanTranscriptWarning(cfg: OpenClawConfig, agentId: string): boolean {
   const backendConfig = resolveMemoryBackendConfig({ cfg, agentId });
   return backendConfig?.backend === "qmd" && backendConfig.qmd?.sessions.enabled === true;
 }
 
+/** Emits state integrity warnings and applies selected runtime repairs. */
 export async function noteStateIntegrity(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   prompter: DoctorPrompterLike,
   configPath?: string,
 ) {
@@ -621,7 +627,7 @@ export async function noteStateIntegrity(
   const env = process.env;
   const homedir = () => resolveRequiredHomeDir(env, os.homedir);
   const stateDir = resolveStateDir(env, homedir);
-  const defaultStateDir = path.join(homedir(), ".astroclaw");
+  const defaultStateDir = path.join(homedir(), ".openclaw");
   const oauthDir = resolveOAuthDir(env, stateDir);
   const agentId = resolveDefaultAgentId(cfg);
   const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId, env, homedir);
@@ -643,8 +649,8 @@ export async function noteStateIntegrity(
       [
         `- State directory is under macOS cloud-synced storage (${displayStateDir}; ${cloudSyncedStateDir.storage}).`,
         "- This can cause slow I/O and sync/lock races for sessions and credentials.",
-        "- Prefer a local non-synced state dir (for example: ~/.astroclaw).",
-        `  Set locally: ASTROCLAW_STATE_DIR=~/.astroclaw ${formatCliCommand("astroclaw doctor")}`,
+        "- Prefer a local non-synced state dir (for example: ~/.openclaw).",
+        `  Set locally: OPENCLAW_STATE_DIR=~/.openclaw ${formatCliCommand("openclaw doctor")}`,
       ].join("\n"),
     );
   }
@@ -852,7 +858,10 @@ export async function noteStateIntegrity(
     );
   }
 
-  const store = loadSessionStore(storePath);
+  // Read-only diagnostic load: skip the cache and the defensive return clone so a
+  // very large monolithic sessions.json is materialized once, not several times.
+  // Re-cloning a multi-hundred-MB store here is what made `doctor` OOM (#56827).
+  const store = loadSessionStore(storePath, { skipCache: true, clone: false });
   const sessionPathOpts = resolveSessionFilePathOptions({ agentId, storePath });
   const entries = Object.entries(store).filter(([, entry]) => entry && typeof entry === "object");
   if (entries.length > 0) {
@@ -877,9 +886,9 @@ export async function noteStateIntegrity(
       warnings.push(
         [
           `- ${missing.length}/${recentTranscriptCandidates.length} recent sessions are missing transcripts.`,
-          `  Verify sessions in store: ${formatCliCommand(`astroclaw sessions --store "${absoluteStorePath}"`)}`,
-          `  Preview cleanup impact: ${formatCliCommand(`astroclaw sessions cleanup --store "${absoluteStorePath}" --dry-run`)}`,
-          `  Prune missing entries: ${formatCliCommand(`astroclaw sessions cleanup --store "${absoluteStorePath}" --enforce --fix-missing`)}`,
+          `  Verify sessions in store: ${formatCliCommand(`openclaw sessions --store "${absoluteStorePath}"`)}`,
+          `  Preview cleanup impact: ${formatCliCommand(`openclaw sessions cleanup --store "${absoluteStorePath}" --dry-run`)}`,
+          `  Prune missing entries: ${formatCliCommand(`openclaw sessions cleanup --store "${absoluteStorePath}" --enforce --fix-missing`)}`,
         ].join("\n"),
       );
     }
@@ -892,12 +901,12 @@ export async function noteStateIntegrity(
       warnings.push(
         [
           `- Found ${wedgedCount} with automatic restart recovery tombstoned.`,
-          "  Astroclaw will not auto-resume these child sessions on restart; reconcile their task records instead.",
+          "  OpenClaw will not auto-resume these child sessions on restart; reconcile their task records instead.",
           `  Examples: ${wedgedSubagentSessions
             .slice(0, 3)
             .map(([key]) => key)
             .join(", ")}`,
-          `  Fix: ${formatCliCommand("astroclaw tasks maintenance --apply")}`,
+          `  Fix: ${formatCliCommand("openclaw tasks maintenance --apply")}`,
         ].join("\n"),
       );
       const repairWedged = await prompter.confirmRuntimeRepair({
@@ -926,12 +935,12 @@ export async function noteStateIntegrity(
         }
       }
 
-      const wedgedReasons = wedgedSubagentSessions
-        .map(([, entry]) => formatSubagentRecoveryWedgedReason(entry))
-        .filter((reason, index, all) => all.indexOf(reason) === index)
-        .slice(0, 2);
-      if (wedgedReasons.length > 0) {
-        warnings.push(wedgedReasons.map((reason) => `  Reason: ${reason}`).join("\n"));
+      const wedgedReasons = wedgedSubagentSessions.map(([, entry]) =>
+        formatSubagentRecoveryWedgedReason(entry),
+      );
+      const visibleWedgedReasons = uniqueStrings(wedgedReasons).slice(0, 2);
+      if (visibleWedgedReasons.length > 0) {
+        warnings.push(visibleWedgedReasons.map((reason) => `  Reason: ${reason}`).join("\n"));
       }
     }
 
@@ -1053,20 +1062,26 @@ export async function noteStateIntegrity(
   }
 }
 
-export function noteWorkspaceBackupTip(workspaceDir: string) {
+/** Returns the workspace git-backup tip when the workspace exists but is not a git repo. */
+export function collectWorkspaceBackupTip(workspaceDir: string): string | null {
   if (!existsDir(workspaceDir)) {
-    return;
+    return null;
   }
   const gitMarker = path.join(workspaceDir, ".git");
   if (fs.existsSync(gitMarker)) {
-    return;
+    return null;
   }
-  note(
-    [
-      "- Tip: back up the workspace in a private git repo (GitHub or GitLab).",
-      "- Keep ~/.astroclaw out of git; it contains credentials and session history.",
-      "- Details: /concepts/agent-workspace#git-backup-recommended",
-    ].join("\n"),
-    "Workspace",
-  );
+  return [
+    "- Tip: back up the workspace in a private git repo (GitHub or GitLab).",
+    "- Keep ~/.openclaw out of git; it contains credentials and session history.",
+    "- Details: /concepts/agent-workspace#git-backup-recommended",
+  ].join("\n");
+}
+
+/** Emits the workspace backup tip when applicable. */
+export function noteWorkspaceBackupTip(workspaceDir: string) {
+  const tip = collectWorkspaceBackupTip(workspaceDir);
+  if (tip) {
+    note(tip, "Workspace");
+  }
 }
