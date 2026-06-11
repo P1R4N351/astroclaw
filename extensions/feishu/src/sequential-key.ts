@@ -1,7 +1,8 @@
+// Feishu plugin module implements sequential key behavior.
 import {
   isAbortRequestText,
   isBtwRequestText,
-} from "astroclaw/plugin-sdk/command-primitives-runtime";
+} from "openclaw/plugin-sdk/command-primitives-runtime";
 import { parseFeishuMessageEvent, type FeishuMessageEvent } from "./bot.js";
 
 export function getFeishuSequentialKey(params: {
