@@ -1,15 +1,17 @@
-import { createAccountListHelpers } from "astroclaw/plugin-sdk/account-helpers";
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
-import { resolveMergedAccountConfig } from "astroclaw/plugin-sdk/account-resolution";
+// Irc plugin module implements accounts behavior.
+import { createAccountListHelpers } from "openclaw/plugin-sdk/account-helpers";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
+import { resolveMergedAccountConfig } from "openclaw/plugin-sdk/account-resolution";
 import {
   parseOptionalDelimitedEntries,
   tryReadSecretFileSync,
-} from "astroclaw/plugin-sdk/channel-core";
-import { normalizeResolvedSecretInputString } from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/channel-core";
+import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
+import { normalizeResolvedSecretInputString } from "openclaw/plugin-sdk/secret-input";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { CoreConfig, IrcAccountConfig, IrcNickServConfig } from "./types.js";
 
 const TRUTHY_ENV = new Set(["true", "1", "yes", "on"]);
@@ -41,15 +43,22 @@ function parseIntEnv(value?: string): number | undefined {
   if (!value?.trim()) {
     return undefined;
   }
-  const parsed = Number.parseInt(value.trim(), 10);
-  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 65535) {
+  const parsed = parseStrictPositiveInteger(value);
+  if (parsed === undefined || parsed > 65535) {
     return undefined;
   }
   return parsed;
 }
 
 const { listAccountIds: listIrcAccountIds, resolveDefaultAccountId: resolveDefaultIrcAccountId } =
-  createAccountListHelpers("irc", { normalizeAccountId });
+  createAccountListHelpers("irc", {
+    normalizeAccountId,
+    hasImplicitDefaultAccount: (cfg) =>
+      Boolean(
+        (cfg.channels?.irc?.host?.trim() || process.env.IRC_HOST?.trim()) &&
+        (cfg.channels?.irc?.nick?.trim() || process.env.IRC_NICK?.trim()),
+      ),
+  });
 export { listIrcAccountIds, resolveDefaultIrcAccountId };
 
 function mergeIrcAccountConfig(cfg: CoreConfig, accountId: string): IrcAccountConfig {
@@ -164,12 +173,12 @@ export function resolveIrcAccount(params: {
       merged.username?.trim() ||
       (accountId === DEFAULT_ACCOUNT_ID ? process.env.IRC_USERNAME?.trim() : "") ||
       nick ||
-      "astroclaw"
+      "openclaw"
     ).trim();
     const realname = (
       merged.realname?.trim() ||
       (accountId === DEFAULT_ACCOUNT_ID ? process.env.IRC_REALNAME?.trim() : "") ||
-      "Astroclaw"
+      "OpenClaw"
     ).trim();
 
     const passwordResolution = resolvePassword(accountId, merged);
