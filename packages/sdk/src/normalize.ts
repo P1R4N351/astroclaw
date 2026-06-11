@@ -1,5 +1,7 @@
-import type { GatewayEvent, JsonObject, AstroclawEvent, AstroclawEventType } from "./types.js";
+// OpenClaw SDK helper module supports normalize behavior.
+import type { GatewayEvent, JsonObject, OpenClawEvent, OpenClawEventType } from "./types.js";
 
+// Normalize raw Gateway events into stable SDK event types and common metadata.
 function asRecord(value: unknown): JsonObject {
   return typeof value === "object" && value !== null ? (value as JsonObject) : {};
 }
@@ -16,9 +18,24 @@ function readLowerString(value: unknown): string | undefined {
   return readString(value)?.toLowerCase();
 }
 
-function normalizeLifecycleEndEventType(data: JsonObject): AstroclawEventType {
+function hasHardTimeoutMetadata(data: JsonObject, statusAlreadyTimeoutAttributed = false): boolean {
+  const timeoutPhase = readLowerString(data.timeoutPhase);
+  return (
+    (statusAlreadyTimeoutAttributed && data.providerStarted === true) ||
+    timeoutPhase === "preflight" ||
+    timeoutPhase === "provider" ||
+    timeoutPhase === "post_turn"
+  );
+}
+
+function normalizeLifecycleEndEventType(data: JsonObject): OpenClawEventType {
   const status = readLowerString(data.status);
   const stopReason = readLowerString(data.stopReason);
+  const statusAlreadyTimeoutAttributed =
+    status === "timeout" || status === "timed_out" || data.aborted === true;
+  if (hasHardTimeoutMetadata(data, statusAlreadyTimeoutAttributed)) {
+    return "run.timed_out";
+  }
   if (
     status === "aborted" ||
     status === "cancelled" ||
@@ -49,7 +66,7 @@ function normalizeLifecycleEndEventType(data: JsonObject): AstroclawEventType {
   return "run.completed";
 }
 
-function normalizeAgentEventType(payload: JsonObject): AstroclawEventType {
+function normalizeAgentEventType(payload: JsonObject): OpenClawEventType {
   const stream = readString(payload.stream);
   const data = asRecord(payload.data);
   const phase = readString(data.phase);
@@ -71,6 +88,9 @@ function normalizeAgentEventType(payload: JsonObject): AstroclawEventType {
       return normalizeLifecycleEndEventType(data);
     }
     if (phase === "error") {
+      if (hasHardTimeoutMetadata(data, false)) {
+        return "run.timed_out";
+      }
       return "run.failed";
     }
   }
@@ -101,7 +121,7 @@ function normalizeAgentEventType(payload: JsonObject): AstroclawEventType {
   return "raw";
 }
 
-function normalizeNamedEventType(event: GatewayEvent): AstroclawEventType {
+function normalizeNamedEventType(event: GatewayEvent): OpenClawEventType {
   const payload = asRecord(event.payload);
   switch (event.event) {
     case "agent":
@@ -134,7 +154,8 @@ function normalizeNamedEventType(event: GatewayEvent): AstroclawEventType {
   }
 }
 
-export function normalizeGatewayEvent(event: GatewayEvent): AstroclawEvent {
+/** Normalize a raw Gateway event into the public SDK event shape. */
+export function normalizeGatewayEvent(event: GatewayEvent): OpenClawEvent {
   const payload = asRecord(event.payload);
   const runId = readString(payload.runId);
   const sessionId = readString(payload.sessionId);
