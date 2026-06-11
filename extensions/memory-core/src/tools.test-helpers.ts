@@ -1,17 +1,18 @@
+// Memory Core helper module supports tools helpers behavior.
 import { expect } from "vitest";
-import type { AstroclawConfig } from "../api.js";
+import type { OpenClawConfig } from "../api.js";
 import { createMemoryGetTool, createMemorySearchTool } from "./tools.js";
 
-export function asAstroclawConfig(config: Partial<AstroclawConfig>): AstroclawConfig {
+export function asOpenClawConfig(config: Partial<OpenClawConfig>): OpenClawConfig {
   return config;
 }
 
-export function createDefaultMemoryToolConfig(): AstroclawConfig {
-  return asAstroclawConfig({ agents: { list: [{ id: "main", default: true }] } });
+export function createDefaultMemoryToolConfig(): OpenClawConfig {
+  return asOpenClawConfig({ agents: { list: [{ id: "main", default: true }] } });
 }
 
 export function createMemorySearchToolOrThrow(params?: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentId?: string;
   agentSessionKey?: string;
 }) {
@@ -27,7 +28,7 @@ export function createMemorySearchToolOrThrow(params?: {
 }
 
 export function createMemoryGetToolOrThrow(
-  config: AstroclawConfig = createDefaultMemoryToolConfig(),
+  config: OpenClawConfig = createDefaultMemoryToolConfig(),
 ) {
   const tool = createMemoryGetTool({ config });
   if (!tool) {
@@ -38,7 +39,7 @@ export function createMemoryGetToolOrThrow(
 
 export function createAutoCitationsMemorySearchTool(agentSessionKey: string) {
   return createMemorySearchToolOrThrow({
-    config: asAstroclawConfig({
+    config: asOpenClawConfig({
       memory: { citations: "auto" },
       agents: { list: [{ id: "main", default: true }] },
     }),
