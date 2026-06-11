@@ -1,9 +1,10 @@
+// Gateway install auth policy used by service/install flows.
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import { collectDurableServiceEnvVars } from "../config/state-dir-dotenv.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { hasConfiguredSecretInput } from "../config/types.secrets.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
 
-type GatewayInstallAuthMode = NonNullable<NonNullable<AstroclawConfig["gateway"]>["auth"]>["mode"];
+type GatewayInstallAuthMode = NonNullable<NonNullable<OpenClawConfig["gateway"]>["auth"]>["mode"];
 
 function hasExplicitGatewayInstallAuthMode(
   mode: GatewayInstallAuthMode | undefined,
@@ -17,23 +18,24 @@ function hasExplicitGatewayInstallAuthMode(
   return undefined;
 }
 
-function hasConfiguredGatewayPasswordForInstall(cfg: AstroclawConfig): boolean {
+function hasConfiguredGatewayPasswordForInstall(cfg: OpenClawConfig): boolean {
   return hasConfiguredSecretInput(cfg.gateway?.auth?.password, cfg.secrets?.defaults);
 }
 
 function hasDurableGatewayPasswordEnvForInstall(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv,
 ): boolean {
   const durableServiceEnv = collectDurableServiceEnvVars({ env, config: cfg });
   return Boolean(
-    normalizeOptionalString(durableServiceEnv.ASTROCLAW_GATEWAY_PASSWORD) ||
+    normalizeOptionalString(durableServiceEnv.OPENCLAW_GATEWAY_PASSWORD) ||
     normalizeOptionalString(durableServiceEnv.CLAWDBOT_GATEWAY_PASSWORD),
   );
 }
 
+/** Decide whether install should require token auth when no durable password source exists. */
 export function shouldRequireGatewayTokenForInstall(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv,
 ): boolean {
   const explicitModeDecision = hasExplicitGatewayInstallAuthMode(cfg.gateway?.auth?.mode);
