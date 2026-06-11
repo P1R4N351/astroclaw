@@ -1,6 +1,7 @@
-import type { ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
-import type { ReplyThreadingPolicy } from "astroclaw/plugin-sdk/reply-reference";
-import { resolveBatchedReplyThreadingPolicy } from "astroclaw/plugin-sdk/reply-reference";
+// Discord plugin module implements message handler.batch gate behavior.
+import type { ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+import type { ReplyThreadingPolicy } from "openclaw/plugin-sdk/reply-reference";
+import { resolveBatchedReplyThreadingPolicy } from "openclaw/plugin-sdk/reply-reference";
 
 type ReplyThreadingContext = {
   ReplyThreading?: ReplyThreadingPolicy;
