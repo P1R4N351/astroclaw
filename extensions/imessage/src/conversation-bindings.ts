@@ -1,10 +1,11 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Imessage plugin module implements conversation bindings behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   createAccountScopedConversationBindingManager,
   resetAccountScopedConversationBindingsForTests,
   type AccountScopedConversationBindingManager,
   type BindingTargetKind,
-} from "astroclaw/plugin-sdk/thread-bindings-runtime";
+} from "openclaw/plugin-sdk/thread-bindings-runtime";
 
 type IMessageBindingTargetKind = "subagent" | "acp";
 
@@ -12,7 +13,7 @@ type IMessageConversationBindingManager =
   AccountScopedConversationBindingManager<IMessageBindingTargetKind>;
 
 const IMESSAGE_CONVERSATION_BINDINGS_STATE_KEY = Symbol.for(
-  "astroclaw.imessageConversationBindingsState",
+  "openclaw.imessageConversationBindingsState",
 );
 
 function toSessionBindingTargetKind(raw: IMessageBindingTargetKind): BindingTargetKind {
@@ -25,7 +26,7 @@ function toIMessageTargetKind(raw: BindingTargetKind): IMessageBindingTargetKind
 
 export function createIMessageConversationBindingManager(params: {
   accountId?: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }): IMessageConversationBindingManager {
   return createAccountScopedConversationBindingManager({
     channel: "imessage",
@@ -37,7 +38,7 @@ export function createIMessageConversationBindingManager(params: {
   });
 }
 
-export const __testing = {
+export const testing = {
   resetIMessageConversationBindingsForTests() {
     resetAccountScopedConversationBindingsForTests({
       stateKey: IMESSAGE_CONVERSATION_BINDINGS_STATE_KEY,
