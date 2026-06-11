@@ -1,4 +1,5 @@
-import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+// Web Readability plugin entrypoint registers its OpenClaw integration.
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 export default definePluginEntry({
   id: "web-readability",
