@@ -1,4 +1,7 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Normalized full status scan result shape.
+// Builders flatten the gateway snapshot so downstream text/JSON code reads one stable object.
+
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { collectChannelStatusIssues as collectChannelStatusIssuesFn } from "../infra/channels-status-issues.js";
 import { resolveOsSummary } from "../infra/os-summary.js";
 import type { UpdateCheckResult } from "../infra/update-check.js";
@@ -14,8 +17,8 @@ import type {
 import type { getStatusSummary as getStatusSummaryFn } from "./status.summary.js";
 
 export type StatusScanResult = {
-  cfg: AstroclawConfig;
-  sourceConfig: AstroclawConfig;
+  cfg: OpenClawConfig;
+  sourceConfig: OpenClawConfig;
   secretDiagnostics: string[];
   osSummary: ReturnType<typeof resolveOsSummary>;
   tailscaleMode: string;
@@ -42,9 +45,10 @@ export type StatusScanResult = {
   pluginCompatibility: PluginCompatibilityNotice[];
 };
 
+/** Flattens overview, gateway, channel, summary, memory, and compatibility inputs into a scan result. */
 export function buildStatusScanResult(params: {
-  cfg: AstroclawConfig;
-  sourceConfig: AstroclawConfig;
+  cfg: OpenClawConfig;
+  sourceConfig: OpenClawConfig;
   secretDiagnostics: string[];
   osSummary: ReturnType<typeof resolveOsSummary>;
   tailscaleMode: string;
