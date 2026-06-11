@@ -1,8 +1,13 @@
+// Maintains plugin setup entries discovered from manifests and light exports.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { normalizeProviderId } from "../agents/provider-id.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import {
+  normalizeStringEntries,
+  normalizeUniqueStringEntries,
+} from "@openclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { buildPluginApi } from "./api-builder.js";
 import { collectPluginConfigContractMatches } from "./config-contracts.js";
 import type { PluginManifestRecord, PluginManifestRegistry } from "./manifest-registry.js";
@@ -17,7 +22,7 @@ import type { PluginRuntime } from "./runtime/types.js";
 import { listSetupCliBackendIds, listSetupProviderIds } from "./setup-descriptors.js";
 import type {
   CliBackendPlugin,
-  AstroclawPluginModule,
+  OpenClawPluginModule,
   PluginConfigMigration,
   PluginLogger,
   PluginSetupAutoEnableProbe,
@@ -153,19 +158,16 @@ function resolveSetupApiPath(
   return null;
 }
 
-function collectConfiguredPluginEntryIds(config: AstroclawConfig): string[] {
+function collectConfiguredPluginEntryIds(config: OpenClawConfig): string[] {
   const entries = config.plugins?.entries;
   if (!entries || typeof entries !== "object") {
     return [];
   }
-  return Object.keys(entries)
-    .map((pluginId) => pluginId.trim())
-    .filter(Boolean)
-    .toSorted();
+  return normalizeStringEntries(Object.keys(entries)).toSorted();
 }
 
 function resolveRelevantSetupMigrationPluginIds(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): string[] {
@@ -195,7 +197,7 @@ function resolveRelevantSetupMigrationPluginIds(params: {
   return [...ids].toSorted();
 }
 
-function resolveRegister(mod: AstroclawPluginModule): {
+function resolveRegister(mod: OpenClawPluginModule): {
   definition?: { id?: string };
   register?: (api: ReturnType<typeof buildPluginApi>) => void | Promise<void>;
 } {
@@ -211,8 +213,46 @@ function resolveRegister(mod: AstroclawPluginModule): {
   return {};
 }
 
+function rewriteBundledSetupSourceToBuiltArtifact(
+  source: string,
+  record: PluginManifestRecord,
+): string {
+  if (record.origin !== "bundled") {
+    return source;
+  }
+  const rootDir = path.resolve(record.rootDir);
+  const sourcePath = path.resolve(source);
+  const extensionsDir = path.dirname(rootDir);
+  if (path.basename(extensionsDir) !== "extensions") {
+    return source;
+  }
+  const packageRoot = path.dirname(extensionsDir);
+  if (path.basename(packageRoot) === "dist" || path.basename(packageRoot) === "dist-runtime") {
+    return source;
+  }
+  const relativeSource = path.relative(rootDir, sourcePath);
+  if (relativeSource === "" || relativeSource.startsWith("..") || path.isAbsolute(relativeSource)) {
+    return source;
+  }
+  const artifactRelativePath = relativeSource.replace(/\.[^.]+$/u, ".js");
+  for (const artifactRootName of ["dist-runtime", "dist"] as const) {
+    const candidate = path.join(
+      packageRoot,
+      artifactRootName,
+      "extensions",
+      path.basename(rootDir),
+      artifactRelativePath,
+    );
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return source;
+}
+
 function resolveLoadableSetupRuntimeSource(record: PluginManifestRecord): string | null {
-  return record.setupSource ?? resolveSetupApiPath(record.rootDir);
+  const source = record.setupSource ?? resolveSetupApiPath(record.rootDir);
+  return source ? rewriteBundledSetupSourceToBuiltArtifact(source, record) : null;
 }
 
 function resolveDeclaredSetupRuntimeSource(record: PluginManifestRecord): string | null {
@@ -236,14 +276,14 @@ function resolveSetupRegistration(record: PluginManifestRecord): {
     return null;
   }
 
-  let mod: AstroclawPluginModule;
+  let mod: OpenClawPluginModule;
   try {
-    mod = getModuleLoader(setupSource)(setupSource) as AstroclawPluginModule;
+    mod = getModuleLoader(setupSource)(setupSource) as OpenClawPluginModule;
   } catch {
     return null;
   }
 
-  const resolved = resolveRegister((mod as { default?: AstroclawPluginModule }).default ?? mod);
+  const resolved = resolveRegister((mod as { default?: OpenClawPluginModule }).default ?? mod);
   if (!resolved.register) {
     return null;
   }
@@ -269,7 +309,7 @@ function buildSetupPluginApi(params: {
     source: params.setupSource,
     rootDir: params.record.rootDir,
     registrationMode: "setup-only",
-    config: {} as AstroclawConfig,
+    config: {} as OpenClawConfig,
     runtime: EMPTY_RUNTIME,
     logger: NOOP_LOGGER,
     resolvePath: (input) => input,
@@ -297,7 +337,7 @@ function matchesProvider(provider: ProviderPlugin, providerId: string): boolean 
 }
 
 function loadSetupManifestRegistry(params?: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   pluginIds?: readonly string[];
@@ -351,7 +391,7 @@ function pushDescriptorRuntimeDisabledDiagnostic(params: {
     pluginId: params.record.id,
     code: "setup-descriptor-runtime-disabled",
     message:
-      "setup.requiresRuntime is false, so Astroclaw ignored the plugin setup runtime entry. Remove setup-api/astroclaw.setupEntry or set requiresRuntime true if setup lookup still needs plugin code.",
+      "setup.requiresRuntime is false, so OpenClaw ignored the plugin setup runtime entry. Remove setup-api/openclaw.setupEntry or set requiresRuntime true if setup lookup still needs plugin code.",
   });
 }
 
@@ -413,7 +453,7 @@ function pushSetupDescriptorDriftDiagnostics(params: {
 }
 
 export function resolvePluginSetupRegistry(params?: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   pluginIds?: readonly string[];
@@ -421,7 +461,7 @@ export function resolvePluginSetupRegistry(params?: {
 }): PluginSetupRegistry {
   const env = params?.env ?? process.env;
   const scopedPluginIds = params?.pluginIds
-    ? new Set(params.pluginIds.map((pluginId) => pluginId.trim()).filter(Boolean))
+    ? new Set(normalizeUniqueStringEntries(params.pluginIds))
     : null;
   if (scopedPluginIds && scopedPluginIds.size === 0) {
     const empty = {
@@ -541,7 +581,7 @@ export function resolvePluginSetupRegistry(params?: {
 
 export function resolvePluginSetupProvider(params: {
   provider: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   pluginIds?: readonly string[];
@@ -604,7 +644,7 @@ export function resolvePluginSetupProvider(params: {
 
 export function resolvePluginSetupCliBackend(params: {
   backend: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): SetupCliBackendEntry | undefined {
@@ -670,11 +710,11 @@ export function resolvePluginSetupCliBackend(params: {
 }
 
 export function runPluginSetupConfigMigrations(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   changes: string[];
 } {
   let next = params.config;
@@ -702,7 +742,7 @@ export function runPluginSetupConfigMigrations(params: {
 }
 
 export function resolvePluginSetupAutoEnableReasons(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   pluginIds?: readonly string[];
