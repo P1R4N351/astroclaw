@@ -1,3 +1,5 @@
+// Core SDK contracts expose stable identifiers, manifests, and shared plugin metadata types.
+import { normalizeLowercaseStringOrEmpty } from "../../packages/normalization-core/src/string-coerce.js";
 import type { ResolvedConfiguredAcpBinding } from "../acp/persistent-bindings.types.js";
 import { buildChatChannelMetaById } from "../channels/chat-meta-shared.js";
 import type { ChatChannelId } from "../channels/ids.js";
@@ -22,30 +24,32 @@ import type {
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { ChannelMeta } from "../channels/plugins/types.public.js";
 import type { ReplyToMode } from "../config/types.base.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { buildOutboundBaseSessionKey } from "../infra/outbound/base-session-key.js";
 import type { OutboundDeliveryResult } from "../infra/outbound/deliver.js";
 import { normalizeOutboundThreadId } from "../infra/outbound/thread-id.js";
 import { resolveBundledPluginsDir } from "../plugins/bundled-dir.js";
 import type { PluginRuntime } from "../plugins/runtime/types.js";
-import type { AstroclawPluginApi } from "../plugins/types.js";
+import type { OpenClawPluginApi } from "../plugins/types.js";
 import { resolveThreadSessionKeys } from "../routing/session-key.js";
-import { parseThreadSessionSuffix } from "../sessions/session-key-utils.js";
 import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalLowercaseString,
-} from "../shared/string-coerce.js";
+  normalizeSessionKeyPreservingOpaquePeerIds,
+  parseThreadSessionSuffix,
+} from "../sessions/session-key-utils.js";
 
 export type {
+  AgentPromptGuidance,
+  AgentPromptGuidanceEntry,
+  AgentPromptSurfaceKind,
   AgentHarness,
   AnyAgentTool,
   MediaUnderstandingProviderPlugin,
-  AstroclawPluginApi,
-  AstroclawPluginCommandDefinition,
-  AstroclawPluginConfigSchema,
-  AstroclawPluginDefinition,
-  AstroclawPluginService,
-  AstroclawPluginServiceContext,
+  OpenClawPluginApi,
+  OpenClawPluginCommandDefinition,
+  OpenClawPluginConfigSchema,
+  OpenClawPluginDefinition,
+  OpenClawPluginService,
+  OpenClawPluginServiceContext,
   PluginCommandContext,
   PluginCommandResult,
   PluginAgentEventEmitParams,
@@ -111,6 +115,7 @@ export type {
   ProviderResolveTransportTurnStateContext,
   ProviderResolveWebSocketSessionPolicyContext,
   ProviderResolvedUsageAuth,
+  ProviderUsageAuthToken,
   RealtimeTranscriptionProviderPlugin,
   ProviderSanitizeReplayHistoryContext,
   ProviderTransportTurnState,
@@ -129,12 +134,12 @@ export type {
   UnifiedModelCatalogEntry,
   UnifiedModelCatalogKind,
   UnifiedModelCatalogSource,
-} from "../model-catalog/types.js";
+} from "@openclaw/model-catalog-core/model-catalog-types";
 export type { ProviderRuntimeModel } from "../plugins/provider-runtime-model.types.js";
 export type {
-  AstroclawPluginActiveModelContext,
-  AstroclawPluginToolContext,
-  AstroclawPluginToolFactory,
+  OpenClawPluginActiveModelContext,
+  OpenClawPluginToolContext,
+  OpenClawPluginToolFactory,
 } from "../plugins/types.js";
 export type {
   MemoryPluginCapability,
@@ -142,11 +147,15 @@ export type {
   MemoryPluginPublicArtifactsProvider,
 } from "../plugins/memory-state.js";
 export type {
+  PluginHookReplyPayloadSendingContext,
+  PluginHookReplyPayloadSendingEvent,
+  PluginHookReplyPayloadSendingResult,
+  PluginHookReplyPayload,
   PluginHookReplyDispatchContext,
   PluginHookReplyDispatchEvent,
   PluginHookReplyDispatchResult,
 } from "../plugins/types.js";
-export type { AstroclawConfig } from "../config/config.js";
+export type { OpenClawConfig } from "../config/config.js";
 export type { OutboundIdentity } from "../infra/outbound/identity.js";
 export type { HistoryEntry } from "../auto-reply/reply/history.types.js";
 export type { ReplyPayload } from "./reply-payload.js";
@@ -250,7 +259,10 @@ export { resolveGatewayBindUrl } from "../shared/gateway-bind-url.js";
 export type { GatewayBindUrlResult } from "../shared/gateway-bind-url.js";
 export { resolveGatewayPort } from "../config/paths.js";
 export { createSubsystemLogger } from "../logging/subsystem.js";
-export { normalizeAtHashSlug, normalizeHyphenSlug } from "../shared/string-normalization.js";
+export {
+  normalizeAtHashSlug,
+  normalizeHyphenSlug,
+} from "../../packages/normalization-core/src/string-normalization.js";
 export { createActionGate } from "../agents/tools/common.js";
 export {
   jsonResult,
@@ -264,8 +276,9 @@ export { isTrustedProxyAddress, resolveClientIp } from "../gateway/net.js";
 export { formatZonedTimestamp } from "../infra/format-time/format-datetime.js";
 export { resolveConfiguredAcpBindingRecord } from "../acp/persistent-bindings.resolve.js";
 
+/** Ensure a configured ACP binding has live runtime state before channel delivery uses it. */
 export async function ensureConfiguredAcpBindingReady(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   configuredBinding: ResolvedConfiguredAcpBinding | null;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const runtime = await import("../acp/persistent-bindings.lifecycle.js");
@@ -284,6 +297,7 @@ export {
 } from "../routing/resolve-route.js";
 export { resolveThreadSessionKeys } from "../routing/session-key.js";
 
+/** Params passed to a channel adapter when resolving outbound session routing. */
 export type ChannelOutboundSessionRouteParams = Parameters<
   NonNullable<ChannelMessagingAdapter["resolveOutboundSessionRoute"]>
 >[0];
@@ -306,6 +320,7 @@ function resolveSdkChatChannelMeta(id: string) {
   return cachedSdkChatChannelMeta.metaById[id];
 }
 
+/** Resolve bundled chat channel metadata while respecting the active bundled-plugin directory. */
 export function getChatChannelMeta(id: ChatChannelId): ChannelMeta {
   return resolveSdkChatChannelMeta(id);
 }
@@ -332,7 +347,7 @@ export function stripTargetKindPrefix(raw: string): string {
  * message adapters.
  */
 export function buildChannelOutboundSessionRoute(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   channel: string;
   accountId?: string | null;
@@ -360,17 +375,20 @@ export function buildChannelOutboundSessionRoute(params: {
   };
 }
 
+/** Candidate source used when choosing a thread id for outbound session routing. */
 export type ThreadAwareOutboundSessionRouteThreadSource =
   | "replyToId"
   | "threadId"
   | "currentSession";
 
+/** Recovery context passed before reusing the current session thread id. */
 export type ThreadAwareOutboundSessionRouteRecoveryContext = {
   route: ChannelOutboundSessionRoute;
   currentBaseSessionKey: string;
   currentThreadId: string;
 };
 
+/** Recover the current thread id when the current session belongs to the same base route. */
 export function recoverCurrentThreadSessionId(params: {
   route: ChannelOutboundSessionRoute;
   currentSessionKey?: string | null;
@@ -381,8 +399,8 @@ export function recoverCurrentThreadSessionId(params: {
     return undefined;
   }
   if (
-    normalizeOptionalLowercaseString(current.baseSessionKey) !==
-    normalizeOptionalLowercaseString(params.route.baseSessionKey)
+    normalizeSessionKeyPreservingOpaquePeerIds(current.baseSessionKey) !==
+    normalizeSessionKeyPreservingOpaquePeerIds(params.route.baseSessionKey)
   ) {
     return undefined;
   }
@@ -397,6 +415,7 @@ export function recoverCurrentThreadSessionId(params: {
   return current.threadId;
 }
 
+/** Add thread-aware session keys and route thread ids to an outbound channel route. */
 export function buildThreadAwareOutboundSessionRoute(params: {
   route: ChannelOutboundSessionRoute;
   replyToId?: string | number | null;
@@ -463,8 +482,8 @@ type DefineChannelPluginEntryOptions<TPlugin = ChannelPlugin> = {
   plugin: TPlugin;
   configSchema?: ChannelEntryConfigSchema<TPlugin> | (() => ChannelEntryConfigSchema<TPlugin>);
   setRuntime?: (runtime: PluginRuntime) => void;
-  registerCliMetadata?: (api: AstroclawPluginApi) => void;
-  registerFull?: (api: AstroclawPluginApi) => void;
+  registerCliMetadata?: (api: OpenClawPluginApi) => void;
+  registerFull?: (api: OpenClawPluginApi) => void;
 };
 
 type DefinedChannelPluginEntry<TPlugin> = {
@@ -472,7 +491,7 @@ type DefinedChannelPluginEntry<TPlugin> = {
   name: string;
   description: string;
   configSchema: ChannelEntryConfigSchema<TPlugin>;
-  register: (api: AstroclawPluginApi) => void;
+  register: (api: OpenClawPluginApi) => void;
   channelPlugin: TPlugin;
   setChannelRuntime?: (runtime: PluginRuntime) => void;
 };
@@ -545,7 +564,7 @@ export function defineChannelPluginEntry<TPlugin>({
     name,
     description,
     configSchema: resolvedConfigSchema,
-    register(api: AstroclawPluginApi) {
+    register(api: OpenClawPluginApi) {
       if (api.registrationMode === "cli-metadata") {
         registerCliMetadata?.(api);
         return;
@@ -630,7 +649,7 @@ type ChatChannelThreadingReplyModeOptions<TResolvedAccount> =
   | { topLevelReplyToMode: string }
   | {
       scopedAccountReplyToMode: {
-        resolveAccount: (cfg: AstroclawConfig, accountId?: string | null) => TResolvedAccount;
+        resolveAccount: (cfg: OpenClawConfig, accountId?: string | null) => TResolvedAccount;
         resolveReplyToMode: (
           account: TResolvedAccount,
           chatType?: string | null,
@@ -778,8 +797,10 @@ function resolveChatChannelOutbound(
   };
 }
 
-// Shared higher-level builder for chat-style channels that mostly compose
-// scoped DM security, text pairing, reply threading, and attached send results.
+/**
+ * Build a chat-style channel plugin by composing common security, pairing,
+ * threading, and outbound adapters around a channel-specific base.
+ */
 export function createChatChannelPlugin<
   TResolvedAccount extends { accountId?: string | null },
   Probe = unknown,
@@ -806,7 +827,7 @@ export function createChatChannelPlugin<
   } as ChannelPlugin<TResolvedAccount, Probe, Audit>;
 }
 
-// Shared base object for channel plugins that only need to override a few optional surfaces.
+/** Create the shared base object for channel plugins that override only selected surfaces. */
 export function createChannelPluginBase<TResolvedAccount>(
   params: CreateChannelPluginBaseOptions<TResolvedAccount>,
 ): CreatedChannelPluginBase<TResolvedAccount> {
@@ -815,6 +836,7 @@ export function createChannelPluginBase<TResolvedAccount>(
     meta: {
       ...resolveSdkChatChannelMeta(params.id),
       ...params.meta,
+      id: params.id,
     },
     ...(params.setupWizard ? { setupWizard: params.setupWizard } : {}),
     ...(params.capabilities ? { capabilities: params.capabilities } : {}),
