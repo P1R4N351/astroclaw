@@ -1,3 +1,6 @@
+/**
+ * Public SDK foundation surface for memory host engine config, paths, and shared helpers.
+ */
 export * from "../../packages/memory-host-sdk/src/engine-foundation.js";
 export {
   resolveAgentContextLimits,
@@ -14,7 +17,7 @@ export {
 } from "../agents/memory-search.js";
 export { parseDurationMs } from "../cli/parse-duration.js";
 export { loadConfig } from "../config/config.js";
-export type { AstroclawConfig } from "../config/config.js";
+export type { OpenClawConfig } from "../config/config.js";
 export { resolveStateDir } from "../config/paths.js";
 export { resolveSessionTranscriptsDirForAgent } from "../config/sessions/paths.js";
 export {
@@ -34,7 +37,7 @@ export type {
 export type { MemorySearchConfig } from "../config/types.tools.js";
 export { root } from "../infra/fs-safe.js";
 export { createSubsystemLogger } from "../logging/subsystem.js";
-export { detectMime } from "../media/mime.js";
+export { detectMime } from "@openclaw/media-core/mime";
 export { onSessionTranscriptUpdate } from "../sessions/transcript-events.js";
 export { resolveGlobalSingleton } from "../shared/global-singleton.js";
 export { runTasksWithConcurrency } from "../utils/run-with-concurrency.js";
