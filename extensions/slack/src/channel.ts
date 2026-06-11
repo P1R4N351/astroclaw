@@ -1,34 +1,35 @@
+// Slack plugin module implements channel behavior.
 import {
   buildLegacyDmAccountAllowlistAdapter,
   createAccountScopedAllowlistNameResolver,
   createFlatAllowlistOverrideResolver,
-} from "astroclaw/plugin-sdk/allowlist-config-edit";
-import { adaptScopedAccountAccessor } from "astroclaw/plugin-sdk/channel-config-helpers";
+} from "openclaw/plugin-sdk/allowlist-config-edit";
+import { adaptScopedAccountAccessor } from "openclaw/plugin-sdk/channel-config-helpers";
 import {
   buildThreadAwareOutboundSessionRoute,
   createChatChannelPlugin,
-} from "astroclaw/plugin-sdk/channel-core";
-import { createChannelMessageAdapterFromOutbound } from "astroclaw/plugin-sdk/channel-message";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
+} from "openclaw/plugin-sdk/channel-core";
+import { createChannelMessageAdapterFromOutbound } from "openclaw/plugin-sdk/channel-outbound";
+import { resolveOutboundSendDep } from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
 import {
   createAttachedChannelResultAdapter,
   type ChannelOutboundAdapter,
-} from "astroclaw/plugin-sdk/channel-send-result";
+} from "openclaw/plugin-sdk/channel-send-result";
 import {
   createChannelDirectoryAdapter,
   createRuntimeDirectoryLiveAdapter,
-} from "astroclaw/plugin-sdk/directory-runtime";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { resolveOutboundSendDep } from "astroclaw/plugin-sdk/outbound-send-deps";
-import { buildOutboundBaseSessionKey, type RoutePeer } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/directory-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { buildOutboundBaseSessionKey, type RoutePeer } from "openclaw/plugin-sdk/routing";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   resolveDefaultSlackAccountId,
   resolveSlackAccount,
@@ -48,7 +49,7 @@ import {
   projectCredentialSnapshotFields,
   resolveConfiguredFromRequiredCredentialStatuses,
   type ChannelPlugin,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "./channel-api.js";
 import { resolveSlackChannelType, resolveSlackConversationInfo } from "./channel-type.js";
 import { shouldSuppressLocalSlackExecApprovalPrompt } from "./exec-approvals.js";
@@ -77,7 +78,7 @@ import { buildSlackThreadingToolContext } from "./threading-tool-context.js";
 // module id and typed by a hand-written structural alias so TypeScript does
 // not have to crawl the SDK module's type graph just to type the loader.
 //
-// `astroclaw/plugin-sdk/channel-policy` is intentionally NOT lazy here —
+// `openclaw/plugin-sdk/channel-policy` is intentionally NOT lazy here —
 // `./group-policy.js` already imports it eagerly, so deferring it from
 // `channel.ts` would not change the load graph.
 
@@ -122,8 +123,8 @@ type TargetResolverRuntimeSurface = {
   >;
 };
 
-const EXTENSION_SHARED_MODULE_ID = "astroclaw/plugin-sdk/extension-shared";
-const TARGET_RESOLVER_RUNTIME_MODULE_ID = "astroclaw/plugin-sdk/target-resolver-runtime";
+const EXTENSION_SHARED_MODULE_ID = "openclaw/plugin-sdk/extension-shared";
+const TARGET_RESOLVER_RUNTIME_MODULE_ID = "openclaw/plugin-sdk/target-resolver-runtime";
 
 const loadExtensionSharedSdk = createLazyRuntimeModule(
   () => import(EXTENSION_SHARED_MODULE_ID) as Promise<ExtensionSharedSurface>,
@@ -232,7 +233,7 @@ async function resolveSlackSendContext(params: {
   return { send, threadTsValue, tokenOverride };
 }
 
-function parseSlackExplicitTarget(raw: string) {
+function resolveSlackRouteTarget(raw: string) {
   const target = parseSlackTarget(raw, { defaultKind: "channel" });
   if (!target) {
     return null;
@@ -284,7 +285,7 @@ function matchSlackAcpConversation(params: {
 }
 
 function buildSlackBaseSessionKey(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   accountId?: string | null;
   peer: RoutePeer;
@@ -293,7 +294,7 @@ function buildSlackBaseSessionKey(params: {
 }
 
 function shouldRecoverSlackThreadFromCurrentSession(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   peerKind: RoutePeer["kind"];
 }): boolean {
   // Shared DM sessions (dmScope="main") do not encode the DM peer in the base key,
@@ -305,7 +306,7 @@ function shouldRecoverSlackThreadFromCurrentSession(params: {
 }
 
 async function resolveSlackOutboundSessionRoute(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   accountId?: string | null;
   target: string;
@@ -584,8 +585,7 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount, SlackProbe> = crea
           : { to: normalizeSlackMessagingTarget(`channel:${child}`) };
       },
       resolveSessionTarget: ({ id }) => normalizeSlackMessagingTarget(`channel:${id}`),
-      parseExplicitTarget: ({ raw }) => parseSlackExplicitTarget(raw),
-      inferTargetChatType: ({ to }) => parseSlackExplicitTarget(to)?.chatType,
+      inferTargetChatType: ({ to }) => resolveSlackRouteTarget(to)?.chatType,
       resolveOutboundSessionRoute: async (params) => await resolveSlackOutboundSessionRoute(params),
       transformReplyPayload: ({ payload, cfg, accountId }) =>
         isSlackInteractiveRepliesEnabled({ cfg, accountId })
@@ -604,7 +604,7 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount, SlackProbe> = crea
         looksLikeId: looksLikeSlackTargetId,
         hint: "<channelId|user:ID|channel:ID>",
         resolveTarget: async ({ input }) => {
-          const parsed = parseSlackExplicitTarget(input);
+          const parsed = resolveSlackRouteTarget(input);
           if (!parsed) {
             return null;
           }
@@ -649,10 +649,10 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount, SlackProbe> = crea
               normalizeOptionalString(account.botToken),
             inputs,
             missingTokenNote: "missing Slack token",
-            resolveWithToken: async ({ token, inputs }) =>
+            resolveWithToken: async ({ token, inputs: inputsValue }) =>
               (await loadSlackResolveChannelsModule()).resolveSlackChannelAllowlist({
                 token,
-                entries: inputs,
+                entries: inputsValue,
               }),
             mapResolved: (entry) =>
               toResolvedTarget(entry, entry.archived ? "archived" : undefined),
@@ -664,10 +664,10 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount, SlackProbe> = crea
             normalizeOptionalString(account.botToken),
           inputs,
           missingTokenNote: "missing Slack token",
-          resolveWithToken: async ({ token, inputs }) =>
+          resolveWithToken: async ({ token, inputs: inputsLocal }) =>
             (await loadSlackResolveUsersModule()).resolveSlackUserAllowlist({
               token,
-              entries: inputs,
+              entries: inputsLocal,
             }),
           mapResolved: (entry) => toResolvedTarget(entry, entry.note),
         });
@@ -677,7 +677,7 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount, SlackProbe> = crea
       invoke: async (action, cfg, toolContext) =>
         await (
           await resolveSlackHandleAction()
-        )(action, cfg as AstroclawConfig, toolContext as SlackActionContext | undefined),
+        )(action, cfg as OpenClawConfig, toolContext as SlackActionContext | undefined),
     }),
     message: slackMessageAdapter,
     status: createComputedAccountStatusAdapter<ResolvedSlackAccount, SlackProbe>({
