@@ -1,3 +1,4 @@
+// Microsoft provider module implements model/runtime integration.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
@@ -5,23 +6,23 @@ import {
   TRUSTED_CLIENT_TOKEN,
   generateSecMsGecToken,
 } from "node-edge-tts/dist/drm.js";
-import { isVoiceCompatibleAudio } from "astroclaw/plugin-sdk/media-runtime";
-import { assertOkOrThrowProviderError } from "astroclaw/plugin-sdk/provider-http";
+import { isVoiceCompatibleAudio } from "openclaw/plugin-sdk/media-runtime";
+import { assertOkOrThrowProviderError } from "openclaw/plugin-sdk/provider-http";
 import {
   captureHttpExchange,
   isDebugProxyGlobalFetchPatchInstalled,
-} from "astroclaw/plugin-sdk/proxy-capture";
+} from "openclaw/plugin-sdk/proxy-capture";
 import type {
   SpeechProviderConfig,
   SpeechProviderPlugin,
   SpeechVoiceOption,
-} from "astroclaw/plugin-sdk/speech";
-import { asBoolean, asFiniteNumber, asObject, trimToUndefined } from "astroclaw/plugin-sdk/speech";
+} from "openclaw/plugin-sdk/speech";
+import { asBoolean, asFiniteNumber, asObject, trimToUndefined } from "openclaw/plugin-sdk/speech";
 import {
   fetchWithSsrFGuard,
   ssrfPolicyFromHttpBaseUrlAllowedHostname,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
-import { tempWorkspace, resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/ssrf-runtime";
+import { tempWorkspace, resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { edgeTTS, inferEdgeExtension } from "./tts.js";
 
 const DEFAULT_EDGE_VOICE = "en-US-MichelleNeural";
@@ -237,7 +238,7 @@ export function buildMicrosoftSpeechProvider(): SpeechProviderPlugin {
     synthesize: async (req) => {
       const config = readMicrosoftProviderConfig(req.providerConfig);
       const temp = await tempWorkspace({
-        rootDir: resolvePreferredAstroclawTmpDir(),
+        rootDir: resolvePreferredOpenClawTmpDir(),
         prefix: "tts-microsoft-",
       });
       const tempDir = temp.dir;
