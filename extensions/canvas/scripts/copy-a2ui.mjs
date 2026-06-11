@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+/**
+ * Copies bundled Canvas A2UI assets into the dist host asset directory.
+ */
 
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -8,15 +11,16 @@ const pluginDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const rootDir = path.resolve(pluginDir, "../..");
 
 function getA2uiPaths(env = process.env) {
-  const srcDir = env.ASTROCLAW_A2UI_SRC_DIR ?? path.join(pluginDir, "src", "host", "a2ui");
-  const outDir = env.ASTROCLAW_A2UI_OUT_DIR ?? path.join(rootDir, "dist", "canvas-host", "a2ui");
+  const srcDir = env.OPENCLAW_A2UI_SRC_DIR ?? path.join(pluginDir, "src", "host", "a2ui");
+  const outDir = env.OPENCLAW_A2UI_OUT_DIR ?? path.join(rootDir, "dist", "canvas-host", "a2ui");
   return { srcDir, outDir };
 }
 
 function shouldSkipMissingA2uiAssets(env = process.env) {
-  return env.ASTROCLAW_A2UI_SKIP_MISSING === "1" || Boolean(env.ASTROCLAW_SPARSE_PROFILE);
+  return env.OPENCLAW_A2UI_SKIP_MISSING === "1" || Boolean(env.OPENCLAW_SPARSE_PROFILE);
 }
 
+/** Copies A2UI assets, optionally tolerating missing bundles in sparse builds. */
 export async function copyA2uiAssets({ srcDir, outDir }) {
   const skipMissing = shouldSkipMissingA2uiAssets(process.env);
   try {
@@ -26,7 +30,7 @@ export async function copyA2uiAssets({ srcDir, outDir }) {
     const message = 'Missing A2UI bundle assets. Run "pnpm canvas:a2ui:bundle" and retry.';
     if (skipMissing) {
       console.warn(
-        `${message} Skipping copy because ASTROCLAW_A2UI_SKIP_MISSING=1 or ASTROCLAW_SPARSE_PROFILE is set.`,
+        `${message} Skipping copy because OPENCLAW_A2UI_SKIP_MISSING=1 or OPENCLAW_SPARSE_PROFILE is set.`,
       );
       return;
     }
@@ -42,8 +46,10 @@ async function main() {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  main().catch((err) => {
-    console.error(String(err));
-    process.exit(1);
-  });
+  main().catch(
+    /** @param {unknown} err */ (err) => {
+      console.error(String(err));
+      process.exit(1);
+    },
+  );
 }
