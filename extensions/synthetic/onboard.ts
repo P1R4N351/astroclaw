@@ -1,7 +1,8 @@
+// Synthetic setup module handles plugin onboarding behavior.
 import {
   createModelCatalogPresetAppliers,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildSyntheticModelDefinition,
   SYNTHETIC_BASE_URL,
@@ -13,7 +14,7 @@ export { SYNTHETIC_DEFAULT_MODEL_REF };
 
 const syntheticPresetAppliers = createModelCatalogPresetAppliers({
   primaryModelRef: SYNTHETIC_DEFAULT_MODEL_REF,
-  resolveParams: (_cfg: AstroclawConfig) => ({
+  resolveParams: (_cfg: OpenClawConfig) => ({
     providerId: "synthetic",
     api: "anthropic-messages",
     baseUrl: SYNTHETIC_BASE_URL,
@@ -22,10 +23,10 @@ const syntheticPresetAppliers = createModelCatalogPresetAppliers({
   }),
 });
 
-export function applySyntheticProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applySyntheticProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   return syntheticPresetAppliers.applyProviderConfig(cfg);
 }
 
-export function applySyntheticConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applySyntheticConfig(cfg: OpenClawConfig): OpenClawConfig {
   return syntheticPresetAppliers.applyConfig(cfg);
 }
