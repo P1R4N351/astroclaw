@@ -1,8 +1,9 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/provider-onboard";
+// Fal setup module handles plugin onboarding behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-onboard";
 
 export const FAL_DEFAULT_IMAGE_MODEL_REF = "fal/fal-ai/flux/dev";
 
-export function applyFalConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyFalConfig(cfg: OpenClawConfig): OpenClawConfig {
   if (cfg.agents?.defaults?.imageGenerationModel) {
     return cfg;
   }
