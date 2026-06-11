@@ -1,7 +1,8 @@
+// Qa Channel helper module supports config schema behavior.
 import {
   ToolPolicySchema,
   buildChannelConfigSchema,
-} from "astroclaw/plugin-sdk/channel-config-schema";
+} from "openclaw/plugin-sdk/channel-config-schema";
 import { z } from "zod";
 
 const QaChannelActionConfigSchema = z
