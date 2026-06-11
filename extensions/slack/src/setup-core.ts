@@ -1,4 +1,5 @@
-import { hasConfiguredSecretInput } from "astroclaw/plugin-sdk/secret-input";
+// Slack plugin module implements setup core behavior.
+import { hasConfiguredSecretInput } from "openclaw/plugin-sdk/secret-input";
 import {
   createAccountScopedAllowFromSection,
   createAccountScopedGroupAccessSection,
@@ -14,13 +15,14 @@ import {
   type ChannelSetupAdapter,
   type ChannelSetupDmPolicy,
   type ChannelSetupWizard,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/setup-runtime";
-import { formatDocsLink } from "astroclaw/plugin-sdk/setup-tools";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/setup-runtime";
+import { formatDocsLink } from "openclaw/plugin-sdk/setup-tools";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+  uniqueStrings,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { inspectSlackAccount } from "./account-inspect.js";
 import { resolveSlackAccount } from "./accounts.js";
 import {
@@ -33,7 +35,7 @@ import {
 
 const t = createSetupTranslator();
 
-function enableSlackAccount(cfg: AstroclawConfig, accountId: string): AstroclawConfig {
+function enableSlackAccount(cfg: OpenClawConfig, accountId: string): OpenClawConfig {
   return patchChannelConfigForAccount({
     cfg,
     channel,
@@ -42,7 +44,7 @@ function enableSlackAccount(cfg: AstroclawConfig, accountId: string): AstroclawC
   });
 }
 
-function hasSlackInteractiveRepliesConfig(cfg: AstroclawConfig, accountId: string): boolean {
+function hasSlackInteractiveRepliesConfig(cfg: OpenClawConfig, accountId: string): boolean {
   const capabilities = resolveSlackAccount({ cfg, accountId }).config.capabilities;
   if (Array.isArray(capabilities)) {
     return capabilities.some(
@@ -56,14 +58,14 @@ function hasSlackInteractiveRepliesConfig(cfg: AstroclawConfig, accountId: strin
 }
 
 function setSlackInteractiveReplies(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   interactiveReplies: boolean,
-): AstroclawConfig {
+): OpenClawConfig {
   const capabilities = resolveSlackAccount({ cfg, accountId }).config.capabilities;
   const nextCapabilities = Array.isArray(capabilities)
     ? interactiveReplies
-      ? [...new Set([...capabilities, "interactiveReplies"])]
+      ? uniqueStrings([...capabilities, "interactiveReplies"])
       : capabilities.filter(
           (entry) => normalizeLowercaseStringOrEmpty(entry) !== "interactivereplies",
         )
@@ -99,7 +101,7 @@ function createSlackTokenCredential(params: {
     keepPrompt: params.keepPrompt,
     inputPrompt: params.inputPrompt,
     allowEnv: ({ accountId }: { accountId: string }) => accountId === DEFAULT_ACCOUNT_ID,
-    inspect: ({ cfg, accountId }: { cfg: AstroclawConfig; accountId: string }) => {
+    inspect: ({ cfg, accountId }: { cfg: OpenClawConfig; accountId: string }) => {
       const resolved = resolveSlackAccount({ cfg, accountId });
       const configuredValue =
         params.inputKey === "botToken" ? resolved.config.botToken : resolved.config.appToken;
@@ -114,14 +116,14 @@ function createSlackTokenCredential(params: {
             : undefined,
       };
     },
-    applyUseEnv: ({ cfg, accountId }: { cfg: AstroclawConfig; accountId: string }) =>
+    applyUseEnv: ({ cfg, accountId }: { cfg: OpenClawConfig; accountId: string }) =>
       enableSlackAccount(cfg, accountId),
     applySet: ({
       cfg,
       accountId,
       value,
     }: {
-      cfg: AstroclawConfig;
+      cfg: OpenClawConfig;
       accountId: string;
       value: unknown;
     }) =>
@@ -250,13 +252,13 @@ export function createSlackSetupWizardBase(handlers: {
       channel,
       label: t("wizard.slack.channelsLabel"),
       placeholder: "#general, #private, C123",
-      currentPolicy: ({ cfg, accountId }: { cfg: AstroclawConfig; accountId: string }) =>
+      currentPolicy: ({ cfg, accountId }: { cfg: OpenClawConfig; accountId: string }) =>
         resolveSlackAccount({ cfg, accountId }).config.groupPolicy ?? "allowlist",
-      currentEntries: ({ cfg, accountId }: { cfg: AstroclawConfig; accountId: string }) =>
+      currentEntries: ({ cfg, accountId }: { cfg: OpenClawConfig; accountId: string }) =>
         Object.entries(resolveSlackAccount({ cfg, accountId }).config.channels ?? {})
           .filter(([, value]) => value?.enabled !== false)
           .map(([key]) => key),
-      updatePrompt: ({ cfg, accountId }: { cfg: AstroclawConfig; accountId: string }) =>
+      updatePrompt: ({ cfg, accountId }: { cfg: OpenClawConfig; accountId: string }) =>
         Boolean(resolveSlackAccount({ cfg, accountId }).config.channels),
       resolveAllowlist: handlers.resolveGroupAllowlist,
       fallbackResolved: (entries) => entries,
@@ -265,7 +267,7 @@ export function createSlackSetupWizardBase(handlers: {
         accountId,
         resolved,
       }: {
-        cfg: AstroclawConfig;
+        cfg: OpenClawConfig;
         accountId: string;
         resolved: unknown;
       }) => setSlackChannelAllowlist(cfg, accountId, resolved as string[]),
@@ -287,7 +289,7 @@ export function createSlackSetupWizardBase(handlers: {
         cfg: setSlackInteractiveReplies(cfg, accountId, enableInteractiveReplies),
       };
     },
-    disable: (cfg: AstroclawConfig) => setSetupChannelEnabled(cfg, channel, false),
+    disable: (cfg: OpenClawConfig) => setSetupChannelEnabled(cfg, channel, false),
   } satisfies ChannelSetupWizard;
 }
 export function createSlackSetupWizardProxy(
