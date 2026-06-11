@@ -1,9 +1,11 @@
+/** Summarizes installed service command paths and OpenClaw package layout. */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathExists } from "../infra/fs-safe.js";
 import { readPackageName, readPackageVersion } from "../infra/package-json.js";
 import type { GatewayServiceCommandConfig } from "./service-types.js";
 
+/** Summary of the installed gateway service command and package layout. */
 export type GatewayServiceLayoutSummary = {
   execStart: string;
   sourcePath?: string;
@@ -78,13 +80,15 @@ async function isSourceCheckoutRoot(candidate: string): Promise<boolean> {
   );
 }
 
-async function resolveAstroclawPackageRoot(entrypoint: string): Promise<string | undefined> {
+async function resolveOpenClawPackageRoot(entrypoint: string): Promise<string | undefined> {
   let current = path.dirname(path.resolve(entrypoint));
+  // Installed dist entrypoints can sit several levels below package root in
+  // pnpm layouts; bound the walk to avoid scanning arbitrary filesystem depth.
   for (let depth = 0; depth < 8; depth += 1) {
     const packageJson = path.join(current, "package.json");
     if (await pathExists(packageJson)) {
       const name = await readPackageName(current);
-      if (name === "astroclaw") {
+      if (name === "openclaw") {
         return current;
       }
     }
@@ -109,7 +113,7 @@ export async function summarizeGatewayServiceLayout(
     tryRealpath(sourcePath),
     tryRealpath(entrypoint),
   ]);
-  const packageRoot = entrypointReal ? await resolveAstroclawPackageRoot(entrypointReal) : undefined;
+  const packageRoot = entrypointReal ? await resolveOpenClawPackageRoot(entrypointReal) : undefined;
   const packageRootReal = await tryRealpath(packageRoot);
   const packageVersion = packageRoot
     ? ((await readPackageVersion(packageRoot)) ?? undefined)
