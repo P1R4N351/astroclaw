@@ -1,10 +1,12 @@
+// Shared PDF tool test helpers provide isolated agent dirs and scrub provider
+// auth variables for deterministic model-resolution tests.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { vi } from "vitest";
 
 export async function withTempPdfAgentDir<T>(run: (agentDir: string) => Promise<T>): Promise<T> {
-  const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-pdf-"));
+  const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-pdf-"));
   try {
     return await run(agentDir);
   } finally {
