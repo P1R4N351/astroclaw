@@ -1,3 +1,4 @@
+// Voice Call plugin module implements telnyx behavior.
 import crypto from "node:crypto";
 import type { TelnyxConfig } from "../config.js";
 import type {
@@ -295,7 +296,7 @@ export class TelnyxProvider implements VoiceCallProvider {
 
   async answerCall(input: AnswerCallInput): Promise<void> {
     const body: Record<string, unknown> = {
-      command_id: `astroclaw-answer-${input.callId}`,
+      command_id: `openclaw-answer-${input.callId}`,
       ...(input.streamUrl
         ? buildTelnyxStreamingFields(input.streamUrl, input.streamAuthToken)
         : {}),
