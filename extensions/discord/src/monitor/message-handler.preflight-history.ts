@@ -1,4 +1,5 @@
-import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+// Discord plugin module implements message handler.preflight history behavior.
+import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
 import { resolveTimestampMs } from "./format.js";
 import type { DiscordMessagePreflightContext } from "./message-handler.preflight.types.js";
 import { resolveDiscordMessageText } from "./message-utils.js";
