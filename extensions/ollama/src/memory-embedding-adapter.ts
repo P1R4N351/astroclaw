@@ -1,4 +1,5 @@
-import type { MemoryEmbeddingProviderAdapter } from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+// Ollama plugin module implements memory embedding adapter behavior.
+import type { MemoryEmbeddingProviderAdapter } from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   DEFAULT_OLLAMA_EMBEDDING_MODEL,
   createOllamaEmbeddingProvider,
