@@ -1,9 +1,10 @@
+// Qa Matrix plugin module implements scenario runtime e2ee behavior.
 import { randomUUID } from "node:crypto";
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { MatrixVerificationSummary } from "@astroclaw/matrix/test-api.js";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import type { MatrixVerificationSummary } from "@openclaw/matrix/test-api.js";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { createMatrixQaClient } from "../../substrate/client.js";
 import {
   createMatrixQaE2eeScenarioClient,
@@ -31,8 +32,8 @@ import {
 import {
   formatMatrixQaCliCommand,
   redactMatrixQaCliOutput,
-  runMatrixQaAstroclawCli,
-  startMatrixQaAstroclawCli,
+  runMatrixQaOpenClawCli,
+  startMatrixQaOpenClawCli,
   type MatrixQaCliSession,
   type MatrixQaCliRunResult,
 } from "./scenario-runtime-cli.js";
@@ -74,6 +75,10 @@ type MatrixQaCliVerificationStatus = {
   };
   backupVersion?: string | null;
   crossSigningVerified?: boolean;
+  encryptionEnabled?: boolean;
+  pendingVerifications?: number;
+  recoveryKeyStored?: boolean;
+  serverDeviceKnown?: boolean;
   verified?: boolean;
   signedByOwner?: boolean;
   deviceId?: string | null;
@@ -134,7 +139,7 @@ function requireMatrixQaCliRuntimeEnv(context: MatrixQaScenarioContext) {
 }
 
 function requireMatrixQaGatewayConfigPath(context: MatrixQaScenarioContext) {
-  const configPath = requireMatrixQaCliRuntimeEnv(context).ASTROCLAW_CONFIG_PATH?.trim();
+  const configPath = requireMatrixQaCliRuntimeEnv(context).OPENCLAW_CONFIG_PATH?.trim();
   if (!configPath) {
     throw new Error("Matrix CLI QA scenarios require the gateway config path");
   }
@@ -558,7 +563,7 @@ async function createMatrixQaCliSelfVerificationRuntime(params: {
 }) {
   const outputDir = requireMatrixQaE2eeOutputDir(params.context);
   const rootDir = await mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-matrix-cli-qa-"),
+    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-matrix-cli-qa-"),
   );
   const artifactDir = path.join(
     outputDir,
@@ -616,19 +621,19 @@ async function createMatrixQaCliSelfVerificationRuntime(params: {
     ...requireMatrixQaCliRuntimeEnv(params.context),
     FORCE_COLOR: "0",
     NO_COLOR: "1",
-    ASTROCLAW_CONFIG_PATH: configPath,
-    ASTROCLAW_DISABLE_AUTO_UPDATE: "1",
-    ASTROCLAW_STATE_DIR: stateDir,
+    OPENCLAW_CONFIG_PATH: configPath,
+    OPENCLAW_DISABLE_AUTO_UPDATE: "1",
+    OPENCLAW_STATE_DIR: stateDir,
   };
   const run = async (args: string[], timeoutMs = params.context.timeoutMs, stdin?: string) =>
-    await runMatrixQaAstroclawCli({
+    await runMatrixQaOpenClawCli({
       args,
       env,
       stdin,
       timeoutMs,
     });
   const start = (args: string[], timeoutMs = params.context.timeoutMs) =>
-    startMatrixQaAstroclawCli({
+    startMatrixQaOpenClawCli({
       args,
       env,
       timeoutMs,
@@ -652,7 +657,7 @@ async function createMatrixQaCliE2eeSetupRuntime(params: {
 }) {
   const outputDir = requireMatrixQaE2eeOutputDir(params.context);
   const rootDir = await mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-matrix-e2ee-setup-qa-"),
+    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-matrix-e2ee-setup-qa-"),
   );
   const artifactDir = path.join(
     outputDir,
@@ -679,18 +684,18 @@ async function createMatrixQaCliE2eeSetupRuntime(params: {
     ...requireMatrixQaCliRuntimeEnv(params.context),
     FORCE_COLOR: "0",
     NO_COLOR: "1",
-    ASTROCLAW_CONFIG_PATH: configPath,
-    ASTROCLAW_DISABLE_AUTO_UPDATE: "1",
-    ASTROCLAW_STATE_DIR: stateDir,
+    OPENCLAW_CONFIG_PATH: configPath,
+    OPENCLAW_DISABLE_AUTO_UPDATE: "1",
+    OPENCLAW_STATE_DIR: stateDir,
   };
   const run = async (args: string[], timeoutMs = params.context.timeoutMs) =>
-    await runMatrixQaAstroclawCli({
+    await runMatrixQaOpenClawCli({
       args,
       env,
       timeoutMs,
     });
   const start = (args: string[], timeoutMs = params.context.timeoutMs) =>
-    startMatrixQaAstroclawCli({
+    startMatrixQaOpenClawCli({
       args,
       env,
       timeoutMs,
@@ -724,10 +729,10 @@ async function createMatrixQaCliGatewayRuntime(params: {
     ...requireMatrixQaCliRuntimeEnv(params.context),
     FORCE_COLOR: "0",
     NO_COLOR: "1",
-    ASTROCLAW_DISABLE_AUTO_UPDATE: "1",
+    OPENCLAW_DISABLE_AUTO_UPDATE: "1",
   };
   const run = async (args: string[], timeoutMs = params.context.timeoutMs) =>
-    await runMatrixQaAstroclawCli({
+    await runMatrixQaOpenClawCli({
       args,
       env,
       timeoutMs,
@@ -1188,7 +1193,7 @@ async function withMatrixQaIsolatedE2eeDriverRoom<T>(
   const originalGroupPolicy = accountConfig.groupPolicy;
   const driverAccount = await registerMatrixQaE2eeScenarioAccount({
     context,
-    deviceName: "Astroclaw Matrix QA Isolated E2EE Driver",
+    deviceName: "OpenClaw Matrix QA Isolated E2EE Driver",
     localpartPrefix: "qa-e2ee-driver",
     scenarioId,
   });
@@ -1235,7 +1240,7 @@ async function withMatrixQaIsolatedE2eeDriverRoom<T>(
     );
   };
 
-  let patchedGateway = false;
+  let patchedGateway;
   let client: MatrixQaE2eeScenarioClient | undefined;
   try {
     await applyPatch({
@@ -1586,7 +1591,7 @@ export async function runMatrixQaE2eeRecoveryKeyLifecycleScenario(
         baseUrl: context.baseUrl,
       });
       const recoveryDevice = await loginClient.loginWithPassword({
-        deviceName: "Astroclaw Matrix QA Recovery Restore Device",
+        deviceName: "OpenClaw Matrix QA Recovery Restore Device",
         password: driverPassword,
         userId: context.driverUserId,
       });
@@ -1710,7 +1715,7 @@ export async function runMatrixQaE2eeRecoveryOwnerVerificationRequiredScenario(
         baseUrl: context.baseUrl,
       });
       const recoveryDevice = await loginClient.loginWithPassword({
-        deviceName: "Astroclaw Matrix QA Owner Verification Required Device",
+        deviceName: "OpenClaw Matrix QA Owner Verification Required Device",
         password: driverPassword,
         userId: context.driverUserId,
       });
@@ -1781,6 +1786,39 @@ function assertMatrixQaCliE2eeStatus(
       }, backupUsable=${isMatrixQaCliBackupUsable(status.backup, opts) ? "yes" : "no"}${
         status.backup?.keyLoadError ? `, backupError=${status.backup.keyLoadError}` : ""
       }`,
+    );
+  }
+}
+
+function assertMatrixQaCliAccountAddBootstrapStatus(params: {
+  expectedBackupVersion?: string | null;
+  expectedUserId: string;
+  status: MatrixQaCliVerificationStatus;
+}) {
+  const { expectedBackupVersion, expectedUserId, status } = params;
+  if (status.encryptionEnabled !== true || status.recoveryKeyStored !== true) {
+    throw new Error(
+      "Matrix CLI account add --enable-e2ee degraded status did not keep encryption and recovery key state",
+    );
+  }
+  if (status.userId !== expectedUserId) {
+    throw new Error(
+      `Matrix CLI account add --enable-e2ee status user mismatch: expected ${expectedUserId}, got ${status.userId ?? "<none>"}`,
+    );
+  }
+  if (!status.deviceId || status.serverDeviceKnown !== true) {
+    throw new Error(
+      "Matrix CLI account add --enable-e2ee degraded status did not resolve the current server-known device",
+    );
+  }
+  if (expectedBackupVersion && status.backupVersion !== expectedBackupVersion) {
+    throw new Error(
+      `Matrix CLI account add --enable-e2ee backup version mismatch: expected ${expectedBackupVersion}, got ${status.backupVersion ?? "<none>"}`,
+    );
+  }
+  if (status.backup?.keyLoadError) {
+    throw new Error(
+      `Matrix CLI account add --enable-e2ee degraded status reported backup key error: ${status.backup.keyLoadError}`,
     );
   }
 }
@@ -1877,7 +1915,7 @@ export async function runMatrixQaE2eeCliAccountAddEnableE2eeScenario(
   const accountId = "cli-add-e2ee";
   const account = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Account Add Owner",
+    deviceName: "OpenClaw Matrix QA CLI Account Add Owner",
     scenarioId: "matrix-e2ee-cli-account-add-enable-e2ee",
   });
   const cli = await createMatrixQaCliE2eeSetupRuntime({
@@ -1900,7 +1938,7 @@ export async function runMatrixQaE2eeCliAccountAddEnableE2eeScenario(
       "--password",
       account.password,
       "--device-name",
-      "Astroclaw Matrix QA CLI Account Add E2EE",
+      "OpenClaw Matrix QA CLI Account Add E2EE",
       "--allow-private-network",
       "--enable-e2ee",
       "--json",
@@ -1931,6 +1969,7 @@ export async function runMatrixQaE2eeCliAccountAddEnableE2eeScenario(
       "status",
       "--account",
       accountId,
+      "--allow-degraded-local-state",
       "--json",
     ]);
     const statusArtifacts = await writeMatrixQaCliOutputArtifacts({
@@ -1939,7 +1978,11 @@ export async function runMatrixQaE2eeCliAccountAddEnableE2eeScenario(
       rootDir: cli.rootDir,
     });
     const status = parseMatrixQaCliJson(statusResult) as MatrixQaCliVerificationStatus;
-    assertMatrixQaCliE2eeStatus("Matrix CLI account add --enable-e2ee", status);
+    assertMatrixQaCliAccountAddBootstrapStatus({
+      expectedBackupVersion: added.verificationBootstrap.backupVersion,
+      expectedUserId: account.userId,
+      status,
+    });
     const cliDeviceId = status.deviceId ?? null;
 
     return {
@@ -1952,7 +1995,7 @@ export async function runMatrixQaE2eeCliAccountAddEnableE2eeScenario(
         verificationBootstrapSuccess: added.verificationBootstrap.success,
       },
       details: [
-        "Matrix CLI account add --enable-e2ee created an encrypted, verified account",
+        "Matrix CLI account add --enable-e2ee created an encrypted account and bootstrapped recovery state",
         `account add stdout: ${addArtifacts.stdoutPath}`,
         `account add stderr: ${addArtifacts.stderrPath}`,
         `verify status stdout: ${statusArtifacts.stdoutPath}`,
@@ -1973,14 +2016,14 @@ export async function runMatrixQaE2eeCliEncryptionSetupScenario(
   const accountId = "cli-encryption-setup";
   const account = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Encryption Setup Owner",
+    deviceName: "OpenClaw Matrix QA CLI Encryption Setup Owner",
     scenarioId: "matrix-e2ee-cli-encryption-setup",
   });
   const loginClient = createMatrixQaClient({
     baseUrl: context.baseUrl,
   });
   const cliDevice = await loginClient.loginWithPassword({
-    deviceName: "Astroclaw Matrix QA CLI Encryption Setup Device",
+    deviceName: "OpenClaw Matrix QA CLI Encryption Setup Device",
     password: account.password,
     userId: account.userId,
   });
@@ -2075,14 +2118,14 @@ export async function runMatrixQaE2eeCliEncryptionSetupIdempotentScenario(
   const accountId = "cli-encryption-idempotent";
   const account = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Encryption Idempotent Owner",
+    deviceName: "OpenClaw Matrix QA CLI Encryption Idempotent Owner",
     scenarioId: "matrix-e2ee-cli-encryption-setup-idempotent",
   });
   const loginClient = createMatrixQaClient({
     baseUrl: context.baseUrl,
   });
   const cliDevice = await loginClient.loginWithPassword({
-    deviceName: "Astroclaw Matrix QA CLI Encryption Idempotent Device",
+    deviceName: "OpenClaw Matrix QA CLI Encryption Idempotent Device",
     password: account.password,
     userId: account.userId,
   });
@@ -2176,14 +2219,14 @@ export async function runMatrixQaE2eeCliEncryptionSetupBootstrapFailureScenario(
   const accountId = "cli-encryption-failure";
   const account = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Encryption Failure Owner",
+    deviceName: "OpenClaw Matrix QA CLI Encryption Failure Owner",
     scenarioId: "matrix-e2ee-cli-encryption-setup-bootstrap-failure",
   });
   const loginClient = createMatrixQaClient({
     baseUrl: context.baseUrl,
   });
   const cliDevice = await loginClient.loginWithPassword({
-    deviceName: "Astroclaw Matrix QA CLI Encryption Failure Device",
+    deviceName: "OpenClaw Matrix QA CLI Encryption Failure Device",
     password: account.password,
     userId: account.userId,
   });
@@ -2264,7 +2307,7 @@ export async function runMatrixQaE2eeCliRecoveryKeySetupScenario(
   const accountId = "cli-recovery-key-setup";
   const account = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Recovery Key Owner",
+    deviceName: "OpenClaw Matrix QA CLI Recovery Key Owner",
     scenarioId: "matrix-e2ee-cli-recovery-key-setup",
   });
   const owner = await createMatrixQaE2eeCliOwnerClient({
@@ -2285,7 +2328,7 @@ export async function runMatrixQaE2eeCliRecoveryKeySetupScenario(
     throw new Error("Matrix E2EE CLI recovery-key setup did not expose a recovery key");
   }
   const cliDevice = await loginClient.loginWithPassword({
-    deviceName: "Astroclaw Matrix QA CLI Recovery Key Setup Device",
+    deviceName: "OpenClaw Matrix QA CLI Recovery Key Setup Device",
     password: account.password,
     userId: account.userId,
   });
@@ -2382,7 +2425,7 @@ export async function runMatrixQaE2eeCliRecoveryKeyInvalidScenario(
   const invalidRecoveryKey = "not-a-valid-matrix-recovery-key";
   const account = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Invalid Recovery Key Owner",
+    deviceName: "OpenClaw Matrix QA CLI Invalid Recovery Key Owner",
     scenarioId: "matrix-e2ee-cli-recovery-key-invalid",
   });
   const owner = await createMatrixQaE2eeCliOwnerClient({
@@ -2402,7 +2445,7 @@ export async function runMatrixQaE2eeCliRecoveryKeyInvalidScenario(
     baseUrl: context.baseUrl,
   });
   const cliDevice = await loginClient.loginWithPassword({
-    deviceName: "Astroclaw Matrix QA CLI Invalid Recovery Key Device",
+    deviceName: "OpenClaw Matrix QA CLI Invalid Recovery Key Device",
     password: account.password,
     userId: account.userId,
   });
@@ -2496,14 +2539,14 @@ export async function runMatrixQaE2eeCliEncryptionSetupMultiAccountScenario(
   const decoyAccountId = "cli-multi-decoy";
   const account = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Multi Account Owner",
+    deviceName: "OpenClaw Matrix QA CLI Multi Account Owner",
     scenarioId: "matrix-e2ee-cli-encryption-setup-multi-account",
   });
   const loginClient = createMatrixQaClient({
     baseUrl: context.baseUrl,
   });
   const cliDevice = await loginClient.loginWithPassword({
-    deviceName: "Astroclaw Matrix QA CLI Multi Account Target Device",
+    deviceName: "OpenClaw Matrix QA CLI Multi Account Target Device",
     password: account.password,
     userId: account.userId,
   });
@@ -2633,12 +2676,12 @@ export async function runMatrixQaE2eeCliSetupThenGatewayReplyScenario(
   const roomKey = buildMatrixQaE2eeScenarioRoomKey(scenarioId);
   const account = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Setup Gateway",
+    deviceName: "OpenClaw Matrix QA CLI Setup Gateway",
     scenarioId,
   });
   const driverAccount = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Setup Driver",
+    deviceName: "OpenClaw Matrix QA CLI Setup Driver",
     scenarioId,
   });
   const driverApi = createMatrixQaClient({
@@ -2840,7 +2883,7 @@ export async function runMatrixQaE2eeCliSelfVerificationScenario(
   const accountId = "cli";
   const account = await registerMatrixQaCliE2eeAccount({
     context,
-    deviceName: "Astroclaw Matrix QA CLI Self Verification Owner",
+    deviceName: "OpenClaw Matrix QA CLI Self Verification Owner",
     scenarioId: "matrix-e2ee-cli-self-verification",
   });
   const owner = await createMatrixQaE2eeCliOwnerClient({
@@ -2861,7 +2904,7 @@ export async function runMatrixQaE2eeCliSelfVerificationScenario(
       baseUrl: context.baseUrl,
     });
     const cliDevice = await loginClient.loginWithPassword({
-      deviceName: "Astroclaw Matrix QA CLI Self Verification Device",
+      deviceName: "OpenClaw Matrix QA CLI Self Verification Device",
       password: account.password,
       userId: account.userId,
     });
@@ -2952,7 +2995,7 @@ export async function runMatrixQaE2eeCliSelfVerificationScenario(
         );
         const cliSas = parseMatrixQaCliSasText(
           sasOutput.text,
-          "interactive astroclaw matrix verify self",
+          "interactive openclaw matrix verify self",
         );
         const ownerSas = await waitForMatrixQaVerificationSummary({
           client: owner,
@@ -3048,7 +3091,7 @@ export async function runMatrixQaE2eeCliSelfVerificationScenario(
             secondaryDeviceId: cliDevice.deviceId,
           },
           details: [
-            "Matrix CLI self-verification established full Matrix identity trust through interactive astroclaw matrix verify self",
+            "Matrix CLI self-verification established full Matrix identity trust through interactive openclaw matrix verify self",
             "cli secret config cleaned after run: yes",
             `cli backup restore stdout: ${restoreArtifacts.stdoutPath}`,
             `cli backup restore stderr: ${restoreArtifacts.stderrPath}`,
@@ -3278,7 +3321,7 @@ export async function runMatrixQaE2eeStaleDeviceHygieneScenario(
         baseUrl: context.baseUrl,
       });
       const secondary = await loginClient.loginWithPassword({
-        deviceName: "Astroclaw Matrix QA Stale Device",
+        deviceName: "OpenClaw Matrix QA Stale Device",
         password: driverPassword,
         userId: context.driverUserId,
       });
@@ -3517,7 +3560,7 @@ export async function runMatrixQaE2eeArtifactRedactionScenario(
         },
         details: [
           "decrypted E2EE payload reached in-memory assertions only",
-          "observed-event artifacts redact body/formatted_body unless ASTROCLAW_QA_MATRIX_CAPTURE_CONTENT=1",
+          "observed-event artifacts redact body/formatted_body unless OPENCLAW_QA_MATRIX_CAPTURE_CONTENT=1",
           `encrypted room id: ${result.roomId}`,
           `isolated driver user: ${driverUserId}`,
           ...buildMatrixReplyDetails("E2EE reply", result.reply),
