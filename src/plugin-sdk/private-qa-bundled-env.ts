@@ -1,14 +1,18 @@
+/**
+ * Runtime helper for private QA CLI source-checkout bundled plugin resolution.
+ */
 import fs from "node:fs";
 import path from "node:path";
-import { resolveAstroclawPackageRootSync } from "../infra/astroclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
 
+/** Returns an env override that points bundled plugin loading at source extensions. */
 export function resolvePrivateQaBundledPluginsEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv | undefined {
-  if (env.ASTROCLAW_ENABLE_PRIVATE_QA_CLI !== "1") {
+  if (env.OPENCLAW_ENABLE_PRIVATE_QA_CLI !== "1") {
     return undefined;
   }
-  const packageRoot = resolveAstroclawPackageRootSync({
+  const packageRoot = resolveOpenClawPackageRootSync({
     argv1: process.argv[1],
     cwd: process.cwd(),
     moduleUrl: import.meta.url,
@@ -26,6 +30,6 @@ export function resolvePrivateQaBundledPluginsEnv(
   }
   return {
     ...env,
-    ASTROCLAW_BUNDLED_PLUGINS_DIR: sourceExtensionsDir,
+    OPENCLAW_BUNDLED_PLUGINS_DIR: sourceExtensionsDir,
   };
 }
