@@ -1,5 +1,7 @@
+// Slack plugin module implements reply behavior.
 export {
   createReplyDispatcherWithTyping,
+  dispatchReplyWithBufferedBlockDispatcher,
   dispatchInboundMessage,
   settleReplyDispatcher,
-} from "astroclaw/plugin-sdk/reply-runtime";
+} from "openclaw/plugin-sdk/reply-runtime";
