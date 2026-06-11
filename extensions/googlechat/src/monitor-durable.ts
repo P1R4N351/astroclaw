@@ -1,4 +1,5 @@
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+// Googlechat plugin module implements monitor durable behavior.
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 
 export type GoogleChatDurableReplyOptions = {
   to: string;
