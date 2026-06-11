@@ -1,3 +1,4 @@
+// Qqbot plugin module implements register streaming behavior.
 import type { ApproveRuntimeGetter } from "../../adapter/commands.port.js";
 import type { SlashCommandRegistry } from "../slash-commands.js";
 import {
@@ -82,10 +83,10 @@ export function registerStreamingCommands(registry: SlashCommandRegistry): void 
           ``,
           `\`\`\`shell`,
           `# 1. 开启流式消息`,
-          `astroclaw config set channels.qqbot.streaming true`,
+          `openclaw config set channels.qqbot.streaming true`,
           ``,
           `# 2. 重启网关使配置生效`,
-          `astroclaw gateway restart`,
+          `openclaw gateway restart`,
           `\`\`\``,
         ].join("\n");
       }
