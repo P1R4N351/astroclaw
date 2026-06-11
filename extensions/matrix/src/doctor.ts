@@ -1,10 +1,11 @@
-import { type ChannelDoctorAdapter } from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Matrix plugin module implements doctor behavior.
+import type { ChannelDoctorAdapter } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   detectPluginInstallPathIssue,
   formatPluginInstallPathIssue,
   removePluginFromConfig,
-} from "astroclaw/plugin-sdk/runtime-doctor";
+} from "openclaw/plugin-sdk/runtime-doctor";
 import {
   legacyConfigRules as MATRIX_LEGACY_CONFIG_RULES,
   normalizeCompatibilityConfig as normalizeMatrixCompatibilityConfig,
@@ -19,12 +20,12 @@ import {
 } from "./matrix-migration.runtime.js";
 import { isRecord } from "./record-shared.js";
 
-function hasConfiguredMatrixChannel(cfg: AstroclawConfig): boolean {
+function hasConfiguredMatrixChannel(cfg: OpenClawConfig): boolean {
   const channels = cfg.channels as Record<string, unknown> | undefined;
   return isRecord(channels?.matrix);
 }
 
-function hasConfiguredMatrixPluginSurface(cfg: AstroclawConfig): boolean {
+function hasConfiguredMatrixPluginSurface(cfg: OpenClawConfig): boolean {
   return Boolean(
     cfg.plugins?.installs?.matrix ||
     cfg.plugins?.entries?.matrix ||
@@ -39,7 +40,7 @@ function hasConfiguredMatrixEnv(env: NodeJS.ProcessEnv): boolean {
   );
 }
 
-function configMayNeedMatrixDoctorSequence(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): boolean {
+function configMayNeedMatrixDoctorSequence(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): boolean {
   return (
     hasConfiguredMatrixChannel(cfg) ||
     hasConfiguredMatrixPluginSurface(cfg) ||
@@ -55,7 +56,7 @@ export function formatMatrixLegacyStatePreview(
     `- Legacy sync store: ${detection.legacyStoragePath} -> ${detection.targetStoragePath}`,
     `- Legacy crypto store: ${detection.legacyCryptoPath} -> ${detection.targetCryptoPath}`,
     ...(detection.selectionNote ? [`- ${detection.selectionNote}`] : []),
-    '- Run "astroclaw doctor --fix" to migrate this Matrix state now.',
+    '- Run "openclaw doctor --fix" to migrate this Matrix state now.',
   ].join("\n");
 }
 
@@ -71,16 +72,16 @@ export function formatMatrixLegacyCryptoPreview(
       [
         `- Matrix encrypted-state migration is pending for account "${plan.accountId}".`,
         `- Legacy crypto store: ${plan.legacyCryptoPath}`,
-        `- New recovery key file: ${plan.recoveryKeyPath}`,
-        `- Migration state file: ${plan.statePath}`,
-        '- Run "astroclaw doctor --fix" to extract any saved backup key now. Backed-up room keys will restore automatically on next gateway start.',
+        `- Recovery key state: Matrix SQLite state (imports ${plan.recoveryKeyPath} if present)`,
+        `- Migration state: Matrix SQLite state (imports ${plan.statePath} if present)`,
+        '- Run "openclaw doctor --fix" to extract any saved backup key now. Backed-up room keys will restore automatically on next gateway start.',
       ].join("\n"),
     );
   }
   return notes;
 }
 
-export async function collectMatrixInstallPathWarnings(cfg: AstroclawConfig): Promise<string[]> {
+export async function collectMatrixInstallPathWarnings(cfg: OpenClawConfig): Promise<string[]> {
   const issue = await detectPluginInstallPathIssue({
     pluginId: "matrix",
     install: cfg.plugins?.installs?.matrix,
@@ -91,11 +92,11 @@ export async function collectMatrixInstallPathWarnings(cfg: AstroclawConfig): Pr
   return formatPluginInstallPathIssue({
     issue,
     pluginLabel: "Matrix",
-    defaultInstallCommand: "astroclaw plugins install @astroclaw/matrix",
+    defaultInstallCommand: "openclaw plugins install @openclaw/matrix",
   }).map((entry) => `- ${entry}`);
 }
 
-export async function cleanStaleMatrixPluginConfig(cfg: AstroclawConfig) {
+export async function cleanStaleMatrixPluginConfig(cfg: OpenClawConfig) {
   const issue = await detectPluginInstallPathIssue({
     pluginId: "matrix",
     install: cfg.plugins?.installs?.matrix,
@@ -129,7 +130,7 @@ export async function cleanStaleMatrixPluginConfig(cfg: AstroclawConfig) {
 }
 
 export async function applyMatrixDoctorRepair(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 }): Promise<{ changes: string[]; warnings: string[] }> {
   const changes: string[] = [];
@@ -155,7 +156,7 @@ export async function applyMatrixDoctorRepair(params: {
         `- Failed creating a Matrix migration snapshot before repair: ${String(error)}`,
       );
       warnings.push(
-        '- Skipping Matrix migration changes for now. Resolve the snapshot failure, then rerun "astroclaw doctor --fix".',
+        '- Skipping Matrix migration changes for now. Resolve the snapshot failure, then rerun "openclaw doctor --fix".',
       );
     }
   } else if (migrationStatus.pending) {
@@ -205,7 +206,7 @@ export async function applyMatrixDoctorRepair(params: {
 }
 
 export async function runMatrixDoctorSequence(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   shouldRepair: boolean;
 }): Promise<{ changeNotes: string[]; warningNotes: string[] }> {
