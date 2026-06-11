@@ -1,13 +1,22 @@
+// Llm Task plugin module implements llm task tool behavior.
 import path from "node:path";
-import { buildModelAliasIndex, resolveModelRefFromString } from "astroclaw/plugin-sdk/agent-runtime";
+import { buildModelAliasIndex, resolveModelRefFromString } from "openclaw/plugin-sdk/agent-runtime";
+import {
+  optionalFiniteNumberSchema,
+  optionalPositiveIntegerSchema,
+} from "openclaw/plugin-sdk/channel-actions";
 import {
   type JsonSchemaObject,
   validateJsonSchemaValue,
-} from "astroclaw/plugin-sdk/json-schema-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/json-schema-runtime";
+import { readFiniteNumberParam, readPositiveIntegerParam } from "openclaw/plugin-sdk/param-readers";
+import {
+  asPositiveSafeInteger,
+  normalizeOptionalString,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { Type } from "typebox";
-import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "../api.js";
-import type { AstroclawPluginApi } from "../api.js";
+import { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "../api.js";
+import type { OpenClawPluginApi } from "../api.js";
 
 function stripCodeFences(s: string): string {
   const trimmed = s.trim();
@@ -45,7 +54,7 @@ function stripDuplicateProviderPrefix(provider: string | undefined, model: strin
 }
 
 function resolveLlmTaskModelRef(params: {
-  api: AstroclawPluginApi;
+  api: OpenClawPluginApi;
   provider?: string;
   rawModel?: string;
 }): { provider?: string; model?: string } {
@@ -104,7 +113,32 @@ type LlmTaskParams = {
   timeoutMs?: unknown;
 };
 
-type ThinkingPolicy = ReturnType<AstroclawPluginApi["runtime"]["agent"]["resolveThinkingPolicy"]>;
+type ThinkingPolicy = ReturnType<OpenClawPluginApi["runtime"]["agent"]["resolveThinkingPolicy"]>;
+
+export const llmTaskToolDefinition = {
+  name: "llm-task",
+  label: "LLM Task",
+  description:
+    "Run a generic JSON-only LLM task and return schema-validated JSON. Designed for orchestration from Lobster workflows via openclaw.invoke.",
+  parameters: Type.Object({
+    prompt: Type.String({ description: "Task instruction for the LLM." }),
+    input: Type.Optional(Type.Unknown({ description: "Optional input payload for the task." })),
+    schema: Type.Optional(
+      Type.Unknown({ description: "Optional JSON Schema to validate the returned JSON." }),
+    ),
+    provider: Type.Optional(
+      Type.String({ description: "Provider override (e.g. openai, anthropic)." }),
+    ),
+    model: Type.Optional(Type.String({ description: "Model id override." })),
+    thinking: Type.Optional(Type.String({ description: "Thinking level override." })),
+    authProfileId: Type.Optional(Type.String({ description: "Auth profile override." })),
+    temperature: optionalFiniteNumberSchema({ description: "Best-effort temperature override." }),
+    maxTokens: optionalPositiveIntegerSchema({
+      description: "Best-effort maxTokens override.",
+    }),
+    timeoutMs: optionalPositiveIntegerSchema({ description: "Timeout for the LLM run." }),
+  }),
+};
 
 function formatThinkingPolicy(policy: ThinkingPolicy): string {
   return policy.levels.map((level) => level.label).join(", ");
@@ -112,33 +146,14 @@ function formatThinkingPolicy(policy: ThinkingPolicy): string {
 
 function supportsThinkingPolicyLevel(
   policy: ThinkingPolicy,
-  level: ReturnType<AstroclawPluginApi["runtime"]["agent"]["normalizeThinkingLevel"]>,
+  level: ReturnType<OpenClawPluginApi["runtime"]["agent"]["normalizeThinkingLevel"]>,
 ): boolean {
-  return !!level && policy.levels.some((entry) => entry.id === level);
+  return Boolean(level) && policy.levels.some((entry) => entry.id === level);
 }
 
-export function createLlmTaskTool(api: AstroclawPluginApi) {
+export function createLlmTaskTool(api: OpenClawPluginApi) {
   return {
-    name: "llm-task",
-    label: "LLM Task",
-    description:
-      "Run a generic JSON-only LLM task and return schema-validated JSON. Designed for orchestration from Lobster workflows via astroclaw.invoke.",
-    parameters: Type.Object({
-      prompt: Type.String({ description: "Task instruction for the LLM." }),
-      input: Type.Optional(Type.Unknown({ description: "Optional input payload for the task." })),
-      schema: Type.Optional(
-        Type.Unknown({ description: "Optional JSON Schema to validate the returned JSON." }),
-      ),
-      provider: Type.Optional(
-        Type.String({ description: "Provider override (e.g. openai-codex, anthropic)." }),
-      ),
-      model: Type.Optional(Type.String({ description: "Model id override." })),
-      thinking: Type.Optional(Type.String({ description: "Thinking level override." })),
-      authProfileId: Type.Optional(Type.String({ description: "Auth profile override." })),
-      temperature: Type.Optional(Type.Number({ description: "Best-effort temperature override." })),
-      maxTokens: Type.Optional(Type.Number({ description: "Best-effort maxTokens override." })),
-      timeoutMs: Type.Optional(Type.Number({ description: "Timeout for the LLM run." })),
-    }),
+    ...llmTaskToolDefinition,
 
     async execute(_id: string, params: LlmTaskParams) {
       const prompt = typeof params.prompt === "string" ? params.prompt : "";
@@ -197,7 +212,7 @@ export function createLlmTaskTool(api: AstroclawPluginApi) {
 
       const thinkingRaw =
         typeof params.thinking === "string" && params.thinking.trim() ? params.thinking : undefined;
-      let thinkLevel: ReturnType<AstroclawPluginApi["runtime"]["agent"]["normalizeThinkingLevel"]> =
+      let thinkLevel: ReturnType<OpenClawPluginApi["runtime"]["agent"]["normalizeThinkingLevel"]> =
         undefined;
       if (thinkingRaw) {
         const thinkingPolicy = api.runtime.agent.resolveThinkingPolicy({ provider, model });
@@ -216,22 +231,15 @@ export function createLlmTaskTool(api: AstroclawPluginApi) {
       }
 
       const timeoutMs =
-        (typeof params.timeoutMs === "number" && params.timeoutMs > 0
-          ? params.timeoutMs
-          : undefined) ||
-        (typeof pluginCfg.timeoutMs === "number" && pluginCfg.timeoutMs > 0
-          ? pluginCfg.timeoutMs
-          : undefined) ||
+        readPositiveIntegerParam(params as Record<string, unknown>, "timeoutMs") ??
+        asPositiveSafeInteger(pluginCfg.timeoutMs) ??
         30_000;
 
       const streamParams = {
-        temperature: typeof params.temperature === "number" ? params.temperature : undefined,
+        temperature: readFiniteNumberParam(params as Record<string, unknown>, "temperature"),
         maxTokens:
-          typeof params.maxTokens === "number"
-            ? params.maxTokens
-            : typeof pluginCfg.maxTokens === "number"
-              ? pluginCfg.maxTokens
-              : undefined,
+          readPositiveIntegerParam(params as Record<string, unknown>, "maxTokens") ??
+          asPositiveSafeInteger(pluginCfg.maxTokens),
       };
 
       const input = params.input;
@@ -253,12 +261,12 @@ export function createLlmTaskTool(api: AstroclawPluginApi) {
       const fullPrompt = `${system}\n\nTASK:\n${prompt}\n\nINPUT_JSON:\n${inputJson}\n`;
 
       return await withTempWorkspace(
-        { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "astroclaw-llm-task-" },
+        { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "openclaw-llm-task-" },
         async ({ dir: tmpDir }) => {
           const sessionId = `llm-task-${Date.now()}`;
           const sessionFile = path.join(tmpDir, "session.json");
 
-          const result = await api.runtime.agent.runEmbeddedPiAgent({
+          const result = await api.runtime.agent.runEmbeddedAgent({
             sessionId,
             sessionFile,
             workspaceDir: api.config?.agents?.defaults?.workspace ?? process.cwd(),
