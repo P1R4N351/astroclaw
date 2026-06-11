@@ -1,17 +1,18 @@
-import { resolveDefaultModelForAgent } from "astroclaw/plugin-sdk/agent-runtime";
+// Discord plugin module implements native command model picker ui behavior.
+import { resolveDefaultModelForAgent } from "openclaw/plugin-sdk/agent-runtime";
 import {
   resolveStoredModelOverride,
   serializeCommandArgs,
   type ChatCommandDefinition,
   type CommandArgs,
-} from "astroclaw/plugin-sdk/command-auth-native";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { loadSessionStore, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/command-auth-native";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import { loadSessionStore, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   Container,
   TextDisplay,
@@ -25,8 +26,10 @@ import {
   type DiscordModelPickerPreferenceScope,
 } from "./model-picker-preferences.js";
 import {
+  findProviderBucketLocation,
   loadDiscordModelPickerData,
   renderDiscordModelPickerModelsView,
+  resolveDiscordModelPickerPageForModel,
   toDiscordModelPickerMessagePayload,
   type DiscordModelPickerCommandContext,
 } from "./model-picker.js";
@@ -125,7 +128,7 @@ async function resolveDiscordModelPickerRouteState(params: {
     | ButtonInteraction
     | StringSelectMenuInteraction
     | AutocompleteInteraction;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   threadBindings: ThreadBindingManager;
   enforceConfiguredBindingReadiness?: boolean;
@@ -166,7 +169,7 @@ export async function resolveDiscordModelPickerRoute(params: {
     | ButtonInteraction
     | StringSelectMenuInteraction
     | AutocompleteInteraction;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   threadBindings: ThreadBindingManager;
 }) {
@@ -176,7 +179,7 @@ export async function resolveDiscordModelPickerRoute(params: {
 
 export async function resolveDiscordNativeChoiceContext(params: {
   interaction: DiscordNativeChoiceInteraction;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   threadBindings: ThreadBindingManager;
 }): Promise<{ provider?: string; model?: string } | null> {
@@ -223,7 +226,7 @@ export async function resolveDiscordNativeChoiceContext(params: {
 }
 
 export function resolveDiscordModelPickerCurrentModel(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   route: ResolvedAgentRoute;
   data: Awaited<ReturnType<typeof loadDiscordModelPickerData>>;
 }): string {
@@ -257,7 +260,7 @@ export function resolveDiscordModelPickerCurrentModel(params: {
 }
 
 export function resolveDiscordModelPickerCurrentRuntime(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   route: ResolvedAgentRoute;
 }): string {
   try {
@@ -278,7 +281,7 @@ export function resolveDiscordModelPickerCurrentRuntime(params: {
 
 export async function replyWithDiscordModelPickerProviders(params: {
   interaction: CommandInteraction | ButtonInteraction | StringSelectMenuInteraction;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   command: DiscordModelPickerCommandContext;
   userId: string;
   accountId: string;
@@ -311,19 +314,32 @@ export async function replyWithDiscordModelPickerProviders(params: {
     allowedModelRefs: buildDiscordModelPickerAllowedModelRefs(data),
     limit: 5,
   });
-  const currentProvider = splitDiscordModelRef(currentModel ?? "")?.provider;
+  const parsedCurrentRef = splitDiscordModelRef(currentModel ?? "");
   const initialProvider =
-    currentProvider && data.byProvider.has(currentProvider)
-      ? currentProvider
+    parsedCurrentRef && data.byProvider.has(parsedCurrentRef.provider)
+      ? parsedCurrentRef.provider
       : (data.providers[0] ?? data.resolvedDefault.provider);
+  const initialResolved =
+    parsedCurrentRef && parsedCurrentRef.provider === initialProvider
+      ? resolveDiscordModelPickerPageForModel({
+          data,
+          provider: initialProvider,
+          model: parsedCurrentRef.model,
+        })
+      : { page: 1 };
+  const initialPage = initialResolved.page;
+  const initialModelBucket = initialResolved.bucket;
+  const initialProviderLocation = findProviderBucketLocation(data, initialProvider);
 
   const rendered = renderDiscordModelPickerModelsView({
     command: params.command,
     userId: params.userId,
     data,
     provider: initialProvider,
-    page: 1,
-    providerPage: 1,
+    page: initialPage,
+    providerPage: initialProviderLocation?.page ?? 1,
+    providerBucket: initialProviderLocation?.bucket,
+    modelBucket: initialModelBucket,
     currentModel,
     currentRuntime,
     quickModels,
