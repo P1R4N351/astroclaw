@@ -1,3 +1,9 @@
+/**
+ * Exec tool display summaries.
+ *
+ * Turns common shell commands into short redacted labels for tool timelines and transcripts.
+ */
+import { redactToolPayloadText } from "../logging/redact.js";
 import {
   binaryName,
   firstPositional,
@@ -268,9 +274,9 @@ function summarizeKnownExec(words: string[]): string {
     return `run ${bin} ${script}`;
   }
 
-  if (bin === "astroclaw") {
+  if (bin === "openclaw") {
     const sub = firstPositional(words, 1);
-    return sub ? `run astroclaw ${sub}` : "run astroclaw";
+    return sub ? `run openclaw ${sub}` : "run openclaw";
   }
 
   const arg = firstPositional(words, 1);
@@ -315,10 +321,10 @@ function classifyWorkspacePath(
     if (!segment) {
       continue;
     }
-    if (segment === ".astroclaw" && segments[index + 1] === "workspace") {
+    if (segment === ".openclaw" && segments[index + 1] === "workspace") {
       return "agent";
     }
-    if (segment === ".astroclaw" && segments[index + 1] === "sandboxes") {
+    if (segment === ".openclaw" && segments[index + 1] === "sandboxes") {
       return "sandbox";
     }
     if (/[-_]workspace$/i.test(segment) && segment.toLowerCase() !== "workspace") {
@@ -400,7 +406,7 @@ const KNOWN_SUMMARY_PREFIXES = [
   "run build",
   "start app",
   "run lint",
-  "run astroclaw",
+  "run openclaw",
   "run node script",
   "run node ",
   "run python",
@@ -426,14 +432,17 @@ function isGenericSummary(summary: string): boolean {
 }
 
 function compactRawCommand(raw: string, maxLength = 120): string {
-  const oneLine = raw
-    .replace(/\s*\n\s*/g, " ")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  const oneLine = redactToolPayloadText(
+    raw
+      .replace(/\s*\n\s*/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim(),
+  );
   if (oneLine.length <= maxLength) {
     return oneLine;
   }
-  return `${oneLine.slice(0, Math.max(0, maxLength - 1))}…`;
+  const half = Math.floor((maxLength - 1) / 2);
+  return `${oneLine.slice(0, half)}…${oneLine.slice(-(maxLength - 1 - half))}`;
 }
 
 export type ToolDetailMode = "explain" | "raw";
@@ -452,6 +461,11 @@ export function resolveExecDetail(
     return undefined;
   }
 
+  const nodeName =
+    record.host === "node" && typeof record.node === "string" && record.node.trim()
+      ? record.node.trim()
+      : undefined;
+
   const unwrapped = unwrapShellWrapper(raw);
   const result = summarizeExecCommand(unwrapped) ?? summarizeExecCommand(raw);
   const summary = result?.text || "run command";
@@ -466,8 +480,11 @@ export function resolveExecDetail(
 
   const compact = compactRawCommand(unwrapped);
   const cwdSuffix = cwd ? formatCwdSuffix(cwd) : undefined;
+  const nodeFragment = nodeName ? ` · node: ${nodeName}` : "";
+
   if (result?.allGeneric !== false && isGenericSummary(summary)) {
-    return cwdSuffix ? `${compact} ${cwdSuffix}` : compact;
+    const base = cwdSuffix ? `${compact} ${cwdSuffix}` : compact;
+    return `${base}${nodeFragment}`;
   }
 
   const displaySummary = cwdSuffix ? `${summary} ${cwdSuffix}` : summary;
@@ -477,8 +494,8 @@ export function resolveExecDetail(
     compact !== displaySummary &&
     compact !== summary
   ) {
-    return `${displaySummary} · \`${compact}\``;
+    return `${displaySummary}${nodeFragment} · \`${compact}\``;
   }
 
-  return displaySummary;
+  return `${displaySummary}${nodeFragment}`;
 }
