@@ -1,3 +1,4 @@
+/** Shared registration types that make up the in-memory plugin registry. */
 import type { AgentHarness } from "../agents/harness/types.js";
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { GatewayMethodDescriptor } from "../gateway/methods/descriptor.js";
@@ -11,6 +12,7 @@ import type {
 import type { CodexAppServerExtensionFactory } from "./codex-app-server-extension-types.js";
 import type { PluginCompatCode } from "./compat/registry.js";
 import type { PluginActivationSource } from "./config-state.js";
+import type { EmbeddingProviderAdapter } from "./embedding-providers.js";
 import type {
   PluginAgentEventSubscriptionRegistration,
   PluginControlUiDescriptor,
@@ -36,22 +38,23 @@ import type {
   CliBackendPlugin,
   ImageGenerationProviderPlugin,
   MediaUnderstandingProviderPlugin,
+  TranscriptSourceProvider,
   MusicGenerationProviderPlugin,
-  AstroclawPluginChannelRegistration,
-  AstroclawPluginCliCommandDescriptor,
-  AstroclawPluginCliRegistrar,
-  AstroclawPluginCommandDefinition,
-  AstroclawPluginGatewayRuntimeScopeSurface,
-  AstroclawGatewayDiscoveryService,
-  AstroclawPluginHttpRouteAuth,
-  AstroclawPluginHttpRouteHandler,
-  AstroclawPluginHttpRouteUpgradeHandler,
-  AstroclawPluginHttpRouteMatch,
-  AstroclawPluginHostedMediaResolver,
-  AstroclawPluginReloadRegistration,
-  AstroclawPluginSecurityAuditCollector,
-  AstroclawPluginService,
-  AstroclawPluginToolFactory,
+  OpenClawPluginChannelRegistration,
+  OpenClawPluginCliCommandDescriptor,
+  OpenClawPluginCliRegistrar,
+  OpenClawPluginCommandDefinition,
+  OpenClawPluginGatewayRuntimeScopeSurface,
+  OpenClawGatewayDiscoveryService,
+  OpenClawPluginHttpRouteAuth,
+  OpenClawPluginHttpRouteHandler,
+  OpenClawPluginHttpRouteUpgradeHandler,
+  OpenClawPluginHttpRouteMatch,
+  OpenClawPluginHostedMediaResolver,
+  OpenClawPluginReloadRegistration,
+  OpenClawPluginSecurityAuditCollector,
+  OpenClawPluginService,
+  OpenClawPluginToolFactory,
   PluginConversationBindingResolvedEvent,
   PluginHookRegistration as TypedPluginHookRegistration,
   PluginLogger,
@@ -68,10 +71,11 @@ import type {
   UnifiedModelCatalogProviderPlugin,
 } from "./types.js";
 
+/** Agent tool factory registered by one plugin runtime. */
 export type PluginToolRegistration = {
   pluginId: string;
   pluginName?: string;
-  factory: AstroclawPluginToolFactory;
+  factory: OpenClawPluginToolFactory;
   names: string[];
   declaredNames?: string[];
   optional: boolean;
@@ -82,22 +86,23 @@ export type PluginToolRegistration = {
 export type PluginCliRegistration = {
   pluginId: string;
   pluginName?: string;
-  register: AstroclawPluginCliRegistrar;
+  register: OpenClawPluginCliRegistrar;
   parentPath: string[];
   commands: string[];
-  descriptors: AstroclawPluginCliCommandDescriptor[];
+  descriptors: OpenClawPluginCliCommandDescriptor[];
   source: string;
   rootDir?: string;
 };
 
+/** Gateway HTTP route registered by a plugin runtime. */
 export type PluginHttpRouteRegistration = {
   pluginId?: string;
   path: string;
-  handler: AstroclawPluginHttpRouteHandler;
-  handleUpgrade?: AstroclawPluginHttpRouteUpgradeHandler;
-  auth: AstroclawPluginHttpRouteAuth;
-  match: AstroclawPluginHttpRouteMatch;
-  gatewayRuntimeScopeSurface?: AstroclawPluginGatewayRuntimeScopeSurface;
+  handler: OpenClawPluginHttpRouteHandler;
+  handleUpgrade?: OpenClawPluginHttpRouteUpgradeHandler;
+  auth: OpenClawPluginHttpRouteAuth;
+  match: OpenClawPluginHttpRouteMatch;
+  gatewayRuntimeScopeSurface?: OpenClawPluginGatewayRuntimeScopeSurface;
   gatewayMethodDispatchAllowed?: boolean;
   nodeCapability?: {
     surface: string;
@@ -109,7 +114,7 @@ export type PluginHttpRouteRegistration = {
 export type PluginHostedMediaResolverRegistration = {
   pluginId: string;
   pluginName?: string;
-  resolver: AstroclawPluginHostedMediaResolver;
+  resolver: OpenClawPluginHostedMediaResolver;
   source: string;
   rootDir?: string;
 };
@@ -173,12 +178,16 @@ type PluginOwnedProviderRegistration<T extends { id: string }> = {
 
 export type PluginSpeechProviderRegistration =
   PluginOwnedProviderRegistration<SpeechProviderPlugin>;
+export type PluginEmbeddingProviderRegistration =
+  PluginOwnedProviderRegistration<EmbeddingProviderAdapter>;
 export type PluginRealtimeTranscriptionProviderRegistration =
   PluginOwnedProviderRegistration<RealtimeTranscriptionProviderPlugin>;
 export type PluginRealtimeVoiceProviderRegistration =
   PluginOwnedProviderRegistration<RealtimeVoiceProviderPlugin>;
 export type PluginMediaUnderstandingProviderRegistration =
   PluginOwnedProviderRegistration<MediaUnderstandingProviderPlugin>;
+export type PluginTranscriptsSourceProviderRegistration =
+  PluginOwnedProviderRegistration<TranscriptSourceProvider>;
 export type PluginImageGenerationProviderRegistration =
   PluginOwnedProviderRegistration<ImageGenerationProviderPlugin>;
 export type PluginVideoGenerationProviderRegistration =
@@ -229,7 +238,7 @@ export type PluginHookRegistration = {
 export type PluginServiceRegistration = {
   pluginId: string;
   pluginName?: string;
-  service: AstroclawPluginService;
+  service: OpenClawPluginService;
   source: string;
   origin: PluginOrigin;
   trustedOfficialInstall?: boolean;
@@ -239,7 +248,7 @@ export type PluginServiceRegistration = {
 export type PluginGatewayDiscoveryServiceRegistration = {
   pluginId: string;
   pluginName?: string;
-  service: AstroclawGatewayDiscoveryService;
+  service: OpenClawGatewayDiscoveryService;
   source: string;
   rootDir?: string;
 };
@@ -247,7 +256,7 @@ export type PluginGatewayDiscoveryServiceRegistration = {
 export type PluginReloadRegistration = {
   pluginId: string;
   pluginName?: string;
-  registration: AstroclawPluginReloadRegistration;
+  registration: OpenClawPluginReloadRegistration;
   source: string;
   rootDir?: string;
 };
@@ -255,7 +264,7 @@ export type PluginReloadRegistration = {
 export type PluginNodeHostCommandRegistration = {
   pluginId: string;
   pluginName?: string;
-  command: import("./types.js").AstroclawPluginNodeHostCommand;
+  command: import("./types.js").OpenClawPluginNodeHostCommand;
   source: string;
   rootDir?: string;
 };
@@ -263,7 +272,7 @@ export type PluginNodeHostCommandRegistration = {
 export type PluginNodeInvokePolicyRegistration = {
   pluginId: string;
   pluginName?: string;
-  policy: import("./types.js").AstroclawPluginNodeInvokePolicy;
+  policy: import("./types.js").OpenClawPluginNodeInvokePolicy;
   pluginConfig?: Record<string, unknown>;
   source: string;
   rootDir?: string;
@@ -272,7 +281,7 @@ export type PluginNodeInvokePolicyRegistration = {
 export type PluginSecurityAuditCollectorRegistration = {
   pluginId: string;
   pluginName?: string;
-  collector: AstroclawPluginSecurityAuditCollector;
+  collector: OpenClawPluginSecurityAuditCollector;
   source: string;
   rootDir?: string;
 };
@@ -280,7 +289,7 @@ export type PluginSecurityAuditCollectorRegistration = {
 export type PluginCommandRegistration = {
   pluginId: string;
   pluginName?: string;
-  command: AstroclawPluginCommandDefinition;
+  command: OpenClawPluginCommandDefinition;
   source: string;
   rootDir?: string;
 };
@@ -297,6 +306,7 @@ export type PluginTrustedToolPolicyRegistryRegistration = {
   pluginId: string;
   pluginName?: string;
   policy: PluginTrustedToolPolicyRegistration;
+  origin?: PluginRecord["origin"];
   source: string;
   rootDir?: string;
 };
@@ -391,10 +401,12 @@ export type PluginRecord = {
   cliBackendIds: string[];
   providerIds: string[];
   syntheticAuthRefs?: string[];
+  embeddingProviderIds: string[];
   speechProviderIds: string[];
   realtimeTranscriptionProviderIds: string[];
   realtimeVoiceProviderIds: string[];
   mediaUnderstandingProviderIds: string[];
+  transcriptSourceProviderIds: string[];
   imageGenerationProviderIds: string[];
   videoGenerationProviderIds: string[];
   musicGenerationProviderIds: string[];
@@ -429,10 +441,12 @@ export type PluginRegistry = {
   modelCatalogProviders: PluginModelCatalogProviderRegistration[];
   cliBackends?: PluginCliBackendRegistration[];
   textTransforms: PluginTextTransformsRegistration[];
+  embeddingProviders: PluginEmbeddingProviderRegistration[];
   speechProviders: PluginSpeechProviderRegistration[];
   realtimeTranscriptionProviders: PluginRealtimeTranscriptionProviderRegistration[];
   realtimeVoiceProviders: PluginRealtimeVoiceProviderRegistration[];
   mediaUnderstandingProviders: PluginMediaUnderstandingProviderRegistration[];
+  transcriptSourceProviders: PluginTranscriptsSourceProviderRegistration[];
   imageGenerationProviders: PluginImageGenerationProviderRegistration[];
   videoGenerationProviders: PluginVideoGenerationProviderRegistration[];
   musicGenerationProviders: PluginMusicGenerationProviderRegistration[];
@@ -481,11 +495,11 @@ export type PluginRegistryParams = {
 };
 
 export type PluginRegistrationMode = import("./types.js").PluginRegistrationMode;
-export type AstroclawPluginNodeHostCommand = import("./types.js").AstroclawPluginNodeHostCommand;
-export type AstroclawPluginToolContext = import("./types.js").AstroclawPluginToolContext;
-export type AstroclawPluginHttpRouteParams = import("./types.js").AstroclawPluginHttpRouteParams;
-export type AstroclawPluginHookOptions = import("./types.js").AstroclawPluginHookOptions;
+export type OpenClawPluginNodeHostCommand = import("./types.js").OpenClawPluginNodeHostCommand;
+export type OpenClawPluginToolContext = import("./types.js").OpenClawPluginToolContext;
+export type OpenClawPluginHttpRouteParams = import("./types.js").OpenClawPluginHttpRouteParams;
+export type OpenClawPluginHookOptions = import("./types.js").OpenClawPluginHookOptions;
 export type PluginHookHandlerMap = import("./types.js").PluginHookHandlerMap;
-export type AstroclawPluginApi = import("./types.js").AstroclawPluginApi;
+export type OpenClawPluginApi = import("./types.js").OpenClawPluginApi;
 export type TypedPluginHook = TypedPluginHookRegistration;
-export type AstroclawPluginChannelReg = AstroclawPluginChannelRegistration;
+export type OpenClawPluginChannelReg = OpenClawPluginChannelRegistration;
