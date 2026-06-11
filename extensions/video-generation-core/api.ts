@@ -1,4 +1,5 @@
-export type { AuthProfileStore } from "astroclaw/plugin-sdk/video-generation-core";
+// Video Generation Core API module exposes the plugin public contract.
+export type { AuthProfileStore } from "openclaw/plugin-sdk/video-generation-core";
 export {
   buildNoCapabilityModelConfiguredMessage,
   createSubsystemLogger,
@@ -12,11 +13,11 @@ export {
   resolveAgentModelPrimaryValue,
   resolveCapabilityModelCandidates,
   throwCapabilityGenerationFailure,
-} from "astroclaw/plugin-sdk/video-generation-core";
+} from "openclaw/plugin-sdk/video-generation-core";
 export type {
   FallbackAttempt,
   GeneratedVideoAsset,
-  AstroclawConfig,
+  OpenClawConfig,
   VideoGenerationIgnoredOverride,
   VideoGenerationMode,
   VideoGenerationModeCapabilities,
@@ -29,4 +30,4 @@ export type {
   VideoGenerationResult,
   VideoGenerationSourceAsset,
   VideoGenerationTransformCapabilities,
-} from "astroclaw/plugin-sdk/video-generation-core";
+} from "openclaw/plugin-sdk/video-generation-core";
