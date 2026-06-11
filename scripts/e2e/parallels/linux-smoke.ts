@@ -1,33 +1,34 @@
 #!/usr/bin/env -S pnpm tsx
-import { mkdir, readFile, rm } from "node:fs/promises";
+// Linux Smoke script supports OpenClaw repository automation.
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { posixAgentWorkspaceScript } from "./agent-workspace.ts";
 import {
   die,
   ensureValue,
+  currentRunningSnapshotInfo,
   makeTempDir,
-  packageBuildCommitFromTgz,
-  packageVersionFromTgz,
-  packAstroclaw,
   parseBoolEnv,
   parseMode,
   parseProvider,
+  readPositiveIntEnv,
   modelProviderConfigBatchJson,
+  posixProviderOnlyPluginIsolationScript,
   repoRoot,
   resolveParallelsModelTimeoutSeconds,
-  resolveHostIp,
-  resolveHostPort,
   resolveLatestVersion,
   resolveProviderAuth,
   resolveSnapshot,
   run,
   say,
+  shouldSkipSnapshotRestore,
   shellQuote,
-  startHostServer,
+  validateSnapshotRestoreMode,
   warn,
+  withProgressOnStderr,
   writeJson,
   writeSummaryMarkdown,
-  type HostServer,
   type Mode,
   type PackageArtifact,
   type Provider,
@@ -35,20 +36,30 @@ import {
   type SnapshotInfo,
 } from "./common.ts";
 import { LinuxGuest } from "./guest-transports.ts";
-import { runSmokeLane, type SmokeLane, type SmokeLaneStatus } from "./lane-runner.ts";
 import { resolveUbuntuVmName, waitForVmStatus } from "./parallels-vm.ts";
 import { PhaseRunner } from "./phase-runner.ts";
+import {
+  buildCommonSmokeSummary,
+  expectedPackageBuildCommit,
+  expectedPackageTargetVersion,
+  extractLastOpenClawVersion,
+  packAndServeSmokeArtifact,
+  printSmokeTargetSummary,
+  SmokeRunController,
+  type SmokeHostOptions,
+  type SmokeRunOptions,
+} from "./smoke-common.ts";
 
 // Older published baselines predate this warning, but still need update coverage.
 const BAD_PLUGIN_DIAGNOSTIC_MIN_VERSION = "2026.5.7";
 
-function parseAstroclawPackageVersion(value: string): string | null {
+function parseOpenClawPackageVersion(value: string): string | null {
   return value.match(/\b(\d{4}\.\d{1,2}\.\d{1,2}(?:-[A-Za-z0-9.]+)?)\b/u)?.[1] ?? null;
 }
 
-function compareAstroclawPackageVersions(left: string, right: string): number {
+function compareOpenClawPackageVersions(left: string, right: string): number {
   const parse = (value: string): [number, number, number] => {
-    const match = parseAstroclawPackageVersion(value)?.match(/^(\d{4})\.(\d+)\.(\d+)/u);
+    const match = parseOpenClawPackageVersion(value)?.match(/^(\d{4})\.(\d+)\.(\d+)/u);
     if (!match) {
       return [0, 0, 0];
     }
@@ -65,23 +76,13 @@ function compareAstroclawPackageVersions(left: string, right: string): number {
   return 0;
 }
 
-interface LinuxOptions {
+interface LinuxOptions extends SmokeHostOptions, SmokeRunOptions {
   vmName: string;
   vmNameExplicit: boolean;
-  snapshotHint: string;
-  mode: Mode;
-  provider: Provider;
   apiKeyEnv?: string;
   modelId?: string;
   installUrl: string;
-  hostPort: number;
-  hostPortExplicit: boolean;
-  hostIp?: string;
   latestVersion?: string;
-  installVersion?: string;
-  targetPackageSpec?: string;
-  keepServer: boolean;
-  json: boolean;
 }
 
 interface LinuxSummary {
@@ -116,7 +117,7 @@ const defaultOptions = (): LinuxOptions => ({
   hostIp: undefined,
   hostPort: 18427,
   hostPortExplicit: false,
-  installUrl: "https://astroclaw.ai/install.sh",
+  installUrl: "https://openclaw.ai/install.sh",
   installVersion: "",
   json: false,
   keepServer: false,
@@ -126,7 +127,7 @@ const defaultOptions = (): LinuxOptions => ({
   provider: "openai",
   snapshotHint: "fresh",
   targetPackageSpec: "",
-  vmName: "Ubuntu 24.04.3 ARM64",
+  vmName: "Ubuntu 26.04",
   vmNameExplicit: false,
 });
 
@@ -134,7 +135,7 @@ function usage(): string {
   return `Usage: bash scripts/e2e/parallels-linux-smoke.sh [options]
 
 Options:
-  --vm <name>                Parallels VM name. Default: "Ubuntu 24.04.3 ARM64"
+  --vm <name>                Parallels VM name. Default: "Ubuntu 26.04"
                              Falls back to the closest Ubuntu VM when omitted and unavailable.
   --snapshot-hint <name>     Snapshot name substring/fuzzy match. Default: "fresh"
   --mode <fresh|upgrade|both>
@@ -143,7 +144,7 @@ Options:
   --model <provider/model>    Override the model used for the agent-turn smoke.
   --api-key-env <var>        Host env var name for provider API key.
   --openai-api-key-env <var> Alias for --api-key-env (backward compatible)
-  --install-url <url>        Installer URL for latest release. Default: https://astroclaw.ai/install.sh
+  --install-url <url>        Installer URL for latest release. Default: https://openclaw.ai/install.sh
   --host-port <port>         Host HTTP port for current-main tgz. Default: 18427
   --host-ip <ip>             Override Parallels host IP.
   --latest-version <ver>     Override npm latest version lookup.
@@ -156,62 +157,63 @@ Options:
 `;
 }
 
-function parseArgs(argv: string[]): LinuxOptions {
+export function parseArgs(argv: string[]): LinuxOptions {
+  const args = stripLeadingPackageManagerSeparator(argv);
   const options = defaultOptions();
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
+  parseArgv: for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     switch (arg) {
       case "--":
-        break;
+        break parseArgv;
       case "--vm":
-        options.vmName = ensureValue(argv, i, arg);
+        options.vmName = ensureValue(args, i, arg);
         options.vmNameExplicit = true;
         i++;
         break;
       case "--snapshot-hint":
-        options.snapshotHint = ensureValue(argv, i, arg);
+        options.snapshotHint = ensureValue(args, i, arg);
         i++;
         break;
       case "--mode":
-        options.mode = parseMode(ensureValue(argv, i, arg));
+        options.mode = parseMode(ensureValue(args, i, arg));
         i++;
         break;
       case "--provider":
-        options.provider = parseProvider(ensureValue(argv, i, arg));
+        options.provider = parseProvider(ensureValue(args, i, arg));
         i++;
         break;
       case "--model":
-        options.modelId = ensureValue(argv, i, arg);
+        options.modelId = ensureValue(args, i, arg);
         i++;
         break;
       case "--api-key-env":
       case "--openai-api-key-env":
-        options.apiKeyEnv = ensureValue(argv, i, arg);
+        options.apiKeyEnv = ensureValue(args, i, arg);
         i++;
         break;
       case "--install-url":
-        options.installUrl = ensureValue(argv, i, arg);
+        options.installUrl = ensureValue(args, i, arg);
         i++;
         break;
       case "--host-port":
-        options.hostPort = Number(ensureValue(argv, i, arg));
+        options.hostPort = Number(ensureValue(args, i, arg));
         options.hostPortExplicit = true;
         i++;
         break;
       case "--host-ip":
-        options.hostIp = ensureValue(argv, i, arg);
+        options.hostIp = ensureValue(args, i, arg);
         i++;
         break;
       case "--latest-version":
-        options.latestVersion = ensureValue(argv, i, arg);
+        options.latestVersion = ensureValue(args, i, arg);
         i++;
         break;
       case "--install-version":
-        options.installVersion = ensureValue(argv, i, arg);
+        options.installVersion = ensureValue(args, i, arg);
         i++;
         break;
       case "--target-package-spec":
-        options.targetPackageSpec = ensureValue(argv, i, arg);
+        options.targetPackageSpec = ensureValue(args, i, arg);
         i++;
         break;
       case "--keep-server":
@@ -231,21 +233,24 @@ function parseArgs(argv: string[]): LinuxOptions {
   return options;
 }
 
-class LinuxSmoke {
+function stripLeadingPackageManagerSeparator(argv: string[]): string[] {
+  return argv[0] === "--" ? argv.slice(1) : argv;
+}
+
+class LinuxSmoke extends SmokeRunController<LinuxOptions> {
   private auth: ProviderAuth;
-  private disableBonjour = parseBoolEnv(process.env.ASTROCLAW_PARALLELS_LINUX_DISABLE_BONJOUR);
-  private hostIp = "";
-  private hostPort = 0;
-  private server: HostServer | null = null;
-  private runDir = "";
-  private tgzDir = "";
+  private disableBonjour = parseBoolEnv(process.env.OPENCLAW_PARALLELS_LINUX_DISABLE_BONJOUR);
+  private agentTimeoutSeconds = readPositiveIntEnv(
+    "OPENCLAW_PARALLELS_LINUX_AGENT_TIMEOUT_S",
+    1500,
+  );
   private artifact: PackageArtifact | null = null;
   private latestVersion = "";
   private snapshot!: SnapshotInfo;
   private phases!: PhaseRunner;
   private guest!: LinuxGuest;
 
-  private status = {
+  protected status = {
     daemon: "systemd-user-unavailable",
     freshAgent: "skip",
     freshGateway: "skip",
@@ -258,7 +263,8 @@ class LinuxSmoke {
     upgradeVersion: "skip",
   };
 
-  constructor(private options: LinuxOptions) {
+  constructor(options: LinuxOptions) {
+    super(options);
     this.auth = resolveProviderAuth({
       apiKeyEnv: options.apiKeyEnv,
       modelId: options.modelId,
@@ -267,80 +273,35 @@ class LinuxSmoke {
   }
 
   async run(): Promise<void> {
-    this.runDir = await makeTempDir("astroclaw-parallels-linux.");
+    this.runDir = await makeTempDir("openclaw-parallels-linux.");
     this.phases = new PhaseRunner(this.runDir);
-    this.tgzDir = await makeTempDir("astroclaw-parallels-linux-tgz.");
+    this.tgzDir = await makeTempDir("openclaw-parallels-linux-tgz.");
     try {
       this.options.vmName = this.resolveVmName();
-      this.snapshot = resolveSnapshot(this.options.vmName, this.options.snapshotHint);
+      validateSnapshotRestoreMode(this.options.mode, "Linux smoke");
+      this.snapshot = shouldSkipSnapshotRestore()
+        ? currentRunningSnapshotInfo(this.options.vmName)
+        : resolveSnapshot(this.options.vmName, this.options.snapshotHint);
       this.guest = new LinuxGuest(this.options.vmName, this.phases);
       this.latestVersion = resolveLatestVersion(this.options.latestVersion);
-      this.hostIp = resolveHostIp(this.options.hostIp);
-      this.hostPort = await resolveHostPort(
-        this.options.hostPort,
-        this.options.hostPortExplicit,
+      await this.prepareHost(
         defaultOptions().hostPort,
+        this.latestVersion,
+        this.snapshot,
+        this.options.vmName,
       );
 
-      say(`VM: ${this.options.vmName}`);
-      say(`Snapshot hint: ${this.options.snapshotHint}`);
-      say(`Resolved snapshot: ${this.snapshot.name} [${this.snapshot.state}]`);
-      say(`Latest npm version: ${this.latestVersion}`);
-      say(
-        `Current head: ${run("git", ["rev-parse", "--short", "HEAD"], { quiet: true }).stdout.trim()}`,
+      [this.artifact, this.server, this.hostPort] = await packAndServeSmokeArtifact(
+        this.tgzDir,
+        this.options.targetPackageSpec,
+        this.hostIp,
+        this.hostPort,
+        this.artifactLabel(),
       );
-      say(`Run logs: ${this.runDir}`);
 
-      this.artifact = await packAstroclaw({
-        destination: this.tgzDir,
-        packageSpec: this.options.targetPackageSpec,
-        requireControlUi: false,
-      });
-      this.server = await startHostServer({
-        artifactPath: this.artifact.path,
-        dir: this.tgzDir,
-        hostIp: this.hostIp,
-        label: this.artifactLabel(),
-        port: this.hostPort,
-      });
-      this.hostPort = this.server.port;
-
-      if (this.options.mode === "fresh" || this.options.mode === "both") {
-        await this.runLane("fresh", async () => this.runFreshLane());
-      }
-      if (this.options.mode === "upgrade" || this.options.mode === "both") {
-        await this.runLane("upgrade", async () => this.runUpgradeLane());
-      }
-
-      const summaryPath = await this.writeSummary();
-      if (this.options.json) {
-        process.stdout.write(await readFile(summaryPath, "utf8"));
-      } else {
-        this.printSummary(summaryPath);
-      }
-
-      if (this.status.freshMain === "fail" || this.status.upgrade === "fail") {
-        process.exitCode = 1;
-      }
+      await this.runLanesAndFinish();
     } finally {
-      if (!this.options.keepServer) {
-        await this.server?.stop().catch(() => undefined);
-      }
-      if (!this.options.keepServer) {
-        await rm(this.tgzDir, { force: true, recursive: true }).catch(() => undefined);
-      }
-    }
-  }
-
-  private async runLane(name: "fresh" | "upgrade", fn: () => Promise<void>): Promise<void> {
-    await runSmokeLane(name, fn, (lane, status) => this.setLaneStatus(lane, status));
-  }
-
-  private setLaneStatus(name: SmokeLane, status: SmokeLaneStatus): void {
-    if (name === "fresh") {
-      this.status.freshMain = status;
-    } else {
-      this.status.upgrade = status;
+      await this.cleanupArtifacts();
     }
   }
 
@@ -352,13 +313,13 @@ class LinuxSmoke {
     return resolveUbuntuVmName(this.options.vmName, this.options.vmNameExplicit);
   }
 
-  private async runFreshLane(): Promise<void> {
+  protected async runFreshLane(): Promise<void> {
     await this.phase("fresh.restore-snapshot", 180, () => this.restoreSnapshot());
     await this.phase("fresh.bootstrap-guest", 600, () => this.bootstrapGuest());
     await this.phase("fresh.preflight", 90, () => this.logGuestPreflight());
     await this.phase("fresh.install-latest-bootstrap", 420, () => this.installLatestRelease());
     await this.phase("fresh.install-main", 420, () =>
-      this.installMainTgz("astroclaw-main-fresh.tgz"),
+      this.installMainTgz("openclaw-main-fresh.tgz"),
     );
     this.status.freshVersion = await this.extractLastVersion("fresh.install-main");
     await this.phase("fresh.verify-main-version", 90, () => this.verifyTargetVersion());
@@ -372,15 +333,13 @@ class LinuxSmoke {
     );
     await this.phase("fresh.gateway-status", 240, () => this.verifyGatewayStatus());
     this.status.freshGateway = "pass";
-    await this.phase(
-      "fresh.first-local-agent-turn",
-      Number(process.env.ASTROCLAW_PARALLELS_LINUX_AGENT_TIMEOUT_S || 1500),
-      () => this.verifyLocalTurn(),
+    await this.phase("fresh.first-local-agent-turn", this.agentTimeoutSeconds, () =>
+      this.verifyLocalTurn(),
     );
     this.status.freshAgent = "pass";
   }
 
-  private async runUpgradeLane(): Promise<void> {
+  protected async runUpgradeLane(): Promise<void> {
     await this.phase("upgrade.restore-snapshot", 180, () => this.restoreSnapshot());
     await this.phase("upgrade.bootstrap-guest", 600, () => this.bootstrapGuest());
     await this.phase("upgrade.preflight", 90, () => this.logGuestPreflight());
@@ -390,7 +349,7 @@ class LinuxSmoke {
       this.verifyVersionContains(this.latestVersion),
     );
     await this.phase("upgrade.install-main", 420, () =>
-      this.installMainTgz("astroclaw-main-upgrade.tgz"),
+      this.installMainTgz("openclaw-main-upgrade.tgz"),
     );
     this.status.upgradeVersion = await this.extractLastVersion("upgrade.install-main");
     await this.phase("upgrade.verify-main-version", 90, () => this.verifyTargetVersion());
@@ -404,25 +363,17 @@ class LinuxSmoke {
     );
     await this.phase("upgrade.gateway-status", 240, () => this.verifyGatewayStatus());
     this.status.upgradeGateway = "pass";
-    await this.phase(
-      "upgrade.first-local-agent-turn",
-      Number(process.env.ASTROCLAW_PARALLELS_LINUX_AGENT_TIMEOUT_S || 1500),
-      () => this.verifyLocalTurn(),
+    await this.phase("upgrade.first-local-agent-turn", this.agentTimeoutSeconds, () =>
+      this.verifyLocalTurn(),
     );
     this.status.upgradeAgent = "pass";
   }
 
-  private async phase(
-    name: string,
-    timeoutSeconds: number,
-    fn: () => Promise<void> | void,
-  ): Promise<void> {
+  private phase = async (name: string, timeoutSeconds: number, fn: () => Promise<void> | void) =>
     await this.phases.phase(name, timeoutSeconds, fn);
-  }
 
-  private remainingPhaseTimeoutMs(): number | undefined {
-    return this.phases.remainingTimeoutMs();
-  }
+  private remainingPhaseTimeoutMs = (fallbackMs?: number): number | undefined =>
+    this.phases.remainingTimeoutMs(fallbackMs);
 
   private logGuestPreflight(): void {
     this.guestBash(String.raw`set -euo pipefail
@@ -433,13 +384,12 @@ printf 'preflight.umask=%s\n' "$(umask)"
 printf 'preflight.npmRoot=%s\n' "$(npm root -g 2>/dev/null || true)"`);
   }
 
-  private log(text: string): void {
-    this.phases.append(text);
-  }
+  private log = (text: string): void => this.phases.append(text);
 
-  private guestExec(args: string[], options: { check?: boolean; timeoutMs?: number } = {}): string {
-    return this.guest.exec(args, options);
-  }
+  private guestExec = (
+    args: string[],
+    options: { check?: boolean; timeoutMs?: number } = {},
+  ): string => this.guest.exec(args, options);
 
   private guestBash(script: string): string {
     return this.guest.bash(script);
@@ -463,14 +413,25 @@ printf 'preflight.npmRoot=%s\n' "$(npm root -g 2>/dev/null || true)"`);
   }
 
   private restoreSnapshot(): void {
+    if (shouldSkipSnapshotRestore()) {
+      say(`Skip snapshot restore; using current running VM ${this.options.vmName}`);
+      this.waitForGuestReady();
+      return;
+    }
     say(`Restore snapshot ${this.options.snapshotHint} (${this.snapshot.id})`);
     run("prlctl", ["snapshot-switch", this.options.vmName, "--id", this.snapshot.id], {
       quiet: true,
+      timeoutMs: this.remainingPhaseTimeoutMs(),
     });
     if (this.snapshot.state === "poweroff") {
-      waitForVmStatus(this.options.vmName, "stopped", 180);
+      waitForVmStatus(this.options.vmName, "stopped", 180, {
+        probeTimeoutMs: () => this.remainingPhaseTimeoutMs(30_000),
+      });
       say(`Start restored poweroff snapshot ${this.snapshot.name}`);
-      run("prlctl", ["start", this.options.vmName], { quiet: true });
+      run("prlctl", ["start", this.options.vmName], {
+        quiet: true,
+        timeoutMs: this.remainingPhaseTimeoutMs(120_000),
+      });
     }
     this.waitForGuestReady();
   }
@@ -501,13 +462,13 @@ printf 'preflight.npmRoot=%s\n' "$(npm root -g 2>/dev/null || true)"`);
   }
 
   private installLatestRelease(): void {
-    this.guestExec(["curl", "-fsSL", this.options.installUrl, "-o", "/tmp/astroclaw-install.sh"]);
+    this.guestExec(["curl", "-fsSL", this.options.installUrl, "-o", "/tmp/openclaw-install.sh"]);
     if (this.options.installVersion) {
       this.guestExec([
         "/usr/bin/env",
-        "ASTROCLAW_NO_ONBOARD=1",
+        "OPENCLAW_NO_ONBOARD=1",
         "bash",
-        "/tmp/astroclaw-install.sh",
+        "/tmp/openclaw-install.sh",
         "--version",
         this.options.installVersion,
         "--no-onboard",
@@ -515,13 +476,13 @@ printf 'preflight.npmRoot=%s\n' "$(npm root -g 2>/dev/null || true)"`);
     } else {
       this.guestExec([
         "/usr/bin/env",
-        "ASTROCLAW_NO_ONBOARD=1",
+        "OPENCLAW_NO_ONBOARD=1",
         "bash",
-        "/tmp/astroclaw-install.sh",
+        "/tmp/openclaw-install.sh",
         "--no-onboard",
       ]);
     }
-    this.guestExec(["astroclaw", "--version"]);
+    this.guestExec(["openclaw", "--version"]);
   }
 
   private installMainTgz(tempName: string): void {
@@ -531,7 +492,7 @@ printf 'preflight.npmRoot=%s\n' "$(npm root -g 2>/dev/null || true)"`);
     const tgzUrl = this.server.urlFor(this.artifact.path);
     this.guestExec(["curl", "-fsSL", tgzUrl, "-o", `/tmp/${tempName}`]);
     this.guestExec(["npm", "install", "-g", `/tmp/${tempName}`, "--no-fund", "--no-audit"]);
-    this.guestExec(["astroclaw", "--version"]);
+    this.guestExec(["openclaw", "--version"]);
   }
 
   private async verifyTargetVersion(): Promise<void> {
@@ -539,18 +500,14 @@ printf 'preflight.npmRoot=%s\n' "$(npm root -g 2>/dev/null || true)"`);
       die("package artifact missing");
     }
     if (this.options.targetPackageSpec) {
-      const version = this.artifact.version || (await packageVersionFromTgz(this.artifact.path));
-      this.verifyVersionContains(version);
+      this.verifyVersionContains(await expectedPackageTargetVersion(this.artifact));
       return;
     }
-    const commit =
-      this.artifact.buildCommitShort ||
-      (await packageBuildCommitFromTgz(this.artifact.path)).slice(0, 7);
-    this.verifyVersionContains(commit);
+    this.verifyVersionContains(await expectedPackageBuildCommit(this.artifact));
   }
 
   private verifyVersionContains(needle: string): void {
-    const version = this.guestExec(["astroclaw", "--version"]);
+    const version = this.guestExec(["openclaw", "--version"]);
     if (!version.includes(needle)) {
       throw new Error(`version mismatch: expected substring ${needle}`);
     }
@@ -560,7 +517,7 @@ printf 'preflight.npmRoot=%s\n' "$(npm root -g 2>/dev/null || true)"`);
     this.guestExec([
       "/usr/bin/env",
       `${this.auth.apiKeyEnv}=${this.auth.apiKeyValue}`,
-      "astroclaw",
+      "openclaw",
       "onboard",
       "--non-interactive",
       "--mode",
@@ -582,12 +539,12 @@ printf 'preflight.npmRoot=%s\n' "$(npm root -g 2>/dev/null || true)"`);
 
   private injectBadPluginFixture(): void {
     this.guestBash(String.raw`set -euo pipefail
-plugin_dir=/root/.astroclaw/test-bad-plugin
+plugin_dir=/root/.openclaw/test-bad-plugin
 mkdir -p "$plugin_dir"
 cat >"$plugin_dir/package.json" <<'JSON'
-{"name":"@astroclaw/test-bad-plugin","version":"1.0.0","astroclaw":{"extensions":["./index.cjs"],"setupEntry":"./setup-entry.cjs"}}
+{"name":"@openclaw/test-bad-plugin","version":"1.0.0","openclaw":{"extensions":["./index.cjs"],"setupEntry":"./setup-entry.cjs"}}
 JSON
-cat >"$plugin_dir/astroclaw.plugin.json" <<'JSON'
+cat >"$plugin_dir/openclaw.plugin.json" <<'JSON'
 {"id":"test-bad-plugin","configSchema":{"type":"object","additionalProperties":false,"properties":{}},"channels":["test-bad-plugin"]}
 JSON
 cat >"$plugin_dir/index.cjs" <<'JS'
@@ -604,12 +561,12 @@ JS
 python3 - <<'PY'
 import json
 from pathlib import Path
-config_path = Path("/root/.astroclaw/astroclaw.json")
+config_path = Path("/root/.openclaw/openclaw.json")
 config = json.loads(config_path.read_text()) if config_path.exists() else {}
 plugins = config.setdefault("plugins", {})
 load = plugins.setdefault("load", {})
 paths = load.setdefault("paths", [])
-plugin_dir = "/root/.astroclaw/test-bad-plugin"
+plugin_dir = "/root/.openclaw/test-bad-plugin"
 if plugin_dir not in paths:
     paths.append(plugin_dir)
 allow = plugins.get("allow")
@@ -627,11 +584,11 @@ PY`);
   }
 
   private shouldExpectBadPluginDiagnostic(lane: "fresh" | "upgrade"): boolean {
-    const version = parseAstroclawPackageVersion(this.versionForLane(lane));
+    const version = parseOpenClawPackageVersion(this.versionForLane(lane));
     if (!version) {
       return true;
     }
-    return compareAstroclawPackageVersions(version, BAD_PLUGIN_DIAGNOSTIC_MIN_VERSION) >= 0;
+    return compareOpenClawPackageVersions(version, BAD_PLUGIN_DIAGNOSTIC_MIN_VERSION) >= 0;
   }
 
   private maybeInjectBadPluginFixture(lane: "fresh" | "upgrade"): void {
@@ -645,15 +602,15 @@ PY`);
   }
 
   private startGatewayBackground(): void {
-    const bonjourEnv = this.disableBonjour ? " ASTROCLAW_DISABLE_BONJOUR=1" : "";
+    const bonjourEnv = this.disableBonjour ? " OPENCLAW_DISABLE_BONJOUR=1" : "";
     this.guestBash(
-      String.raw`pkill -f "astroclaw gateway run" >/dev/null 2>&1 || true
-rm -f /tmp/astroclaw-parallels-linux-gateway.log
+      String.raw`pkill -f "openclaw gateway run" >/dev/null 2>&1 || true
+rm -f /tmp/openclaw-parallels-linux-gateway.log
 setsid sh -lc ` +
         shellQuote(
-          `exec env ASTROCLAW_HOME=/root ASTROCLAW_STATE_DIR=/root/.astroclaw ASTROCLAW_CONFIG_PATH=/root/.astroclaw/astroclaw.json ASTROCLAW_ALLOW_ROOT=1${bonjourEnv} ${this.auth.apiKeyEnv}=${shellQuote(
+          `exec env OPENCLAW_HOME=/root OPENCLAW_STATE_DIR=/root/.openclaw OPENCLAW_CONFIG_PATH=/root/.openclaw/openclaw.json OPENCLAW_ALLOW_ROOT=1${bonjourEnv} ${this.auth.apiKeyEnv}=${shellQuote(
             this.auth.apiKeyValue,
-          )} astroclaw gateway run --bind loopback --port 18789 --force >/tmp/astroclaw-parallels-linux-gateway.log 2>&1`,
+          )} openclaw gateway run --bind loopback --port 18789 --force >/tmp/openclaw-parallels-linux-gateway.log 2>&1`,
         ) +
         String.raw` >/dev/null 2>&1 < /dev/null &`,
     );
@@ -668,13 +625,13 @@ setsid sh -lc ` +
   }
 
   private showGatewayStatusCompat(check = true): boolean {
-    const help = this.guestExec(["astroclaw", "gateway", "status", "--help"], { check: false });
+    const help = this.guestExec(["openclaw", "gateway", "status", "--help"], { check: false });
     const args = help.includes("--require-rpc")
-      ? ["astroclaw", "gateway", "status", "--deep", "--require-rpc"]
-      : ["astroclaw", "gateway", "status", "--deep"];
+      ? ["openclaw", "gateway", "status", "--deep", "--require-rpc"]
+      : ["openclaw", "gateway", "status", "--deep"];
     const result = run(
       "prlctl",
-      ["exec", this.options.vmName, "/usr/bin/env", "HOME=/root", "ASTROCLAW_ALLOW_ROOT=1", ...args],
+      ["exec", this.options.vmName, "/usr/bin/env", "HOME=/root", "OPENCLAW_ALLOW_ROOT=1", ...args],
       {
         check: false,
         quiet: true,
@@ -698,8 +655,8 @@ setsid sh -lc ` +
           this.options.vmName,
           "/usr/bin/env",
           "HOME=/root",
-          "ASTROCLAW_ALLOW_ROOT=1",
-          "astroclaw",
+          "OPENCLAW_ALLOW_ROOT=1",
+          "openclaw",
           "gateway",
           "status",
           "--deep",
@@ -743,53 +700,63 @@ setsid sh -lc ` +
 python3 - <<'PY'
 import json
 from pathlib import Path
-config_path = Path("/root/.astroclaw/astroclaw.json")
+config_path = Path("/root/.openclaw/openclaw.json")
 config = json.loads(config_path.read_text()) if config_path.exists() else {}
 plugins = config.setdefault("plugins", {})
 load = plugins.setdefault("load", {})
 paths = load.get("paths")
 if isinstance(paths, list):
-    load["paths"] = [path for path in paths if path != "/root/.astroclaw/test-bad-plugin"]
+    load["paths"] = [path for path in paths if path != "/root/.openclaw/test-bad-plugin"]
 allow = plugins.get("allow")
 if isinstance(allow, list):
     plugins["allow"] = [plugin_id for plugin_id in allow if plugin_id != "test-bad-plugin"]
 config_path.write_text(json.dumps(config, indent=2) + "\n")
 PY
-rm -rf /root/.astroclaw/test-bad-plugin`);
+rm -rf /root/.openclaw/test-bad-plugin`);
+  }
+
+  private restrictAgentTurnPlugins(): void {
+    this.guestBash(
+      posixProviderOnlyPluginIsolationScript({
+        fallbackPluginId: this.options.provider,
+        modelId: this.auth.modelId,
+      }),
+    );
   }
 
   private verifyLocalTurn(): void {
-    this.guestExec(["astroclaw", "models", "set", this.auth.modelId]);
+    this.guestExec(["openclaw", "models", "set", this.auth.modelId]);
     const modelProviderConfigBatch = modelProviderConfigBatchJson(this.auth.modelId, "linux");
     if (modelProviderConfigBatch) {
       this.guestBash(`provider_config_batch="$(mktemp)"
 cat >"$provider_config_batch" <<'JSON'
 ${modelProviderConfigBatch}
 JSON
-astroclaw config set --batch-file "$provider_config_batch" --strict-json
+openclaw config set --batch-file "$provider_config_batch" --strict-json
 rm -f "$provider_config_batch"`);
     }
     this.guestExec([
-      "astroclaw",
+      "openclaw",
       "config",
       "set",
       "agents.defaults.skipBootstrap",
       "true",
       "--strict-json",
     ]);
-    this.guestExec(["astroclaw", "config", "set", "tools.profile", "minimal"]);
+    this.guestExec(["openclaw", "config", "set", "tools.profile", "minimal"]);
+    this.restrictAgentTurnPlugins();
     this.prepareAgentWorkspace();
     this.guestBash(
       `agent_ok=false
 for attempt in 1 2; do
   session_id="parallels-linux-smoke"
   if [ "$attempt" -gt 1 ]; then session_id="parallels-linux-smoke-retry-$attempt"; fi
-  rm -f "$HOME/.astroclaw/agents/main/sessions/$session_id.jsonl"
+  rm -f "$HOME/.openclaw/agents/main/sessions/$session_id.jsonl"
   output_file="$(mktemp)"
   set +e
-  /usr/bin/env ASTROCLAW_ALLOW_ROOT=1 ${shellQuote(`${this.auth.apiKeyEnv}=${this.auth.apiKeyValue}`)} astroclaw agent --local --agent main --session-id "$session_id" --message ${shellQuote(
+  /usr/bin/env OPENCLAW_ALLOW_ROOT=1 ${shellQuote(`${this.auth.apiKeyEnv}=${this.auth.apiKeyValue}`)} openclaw agent --local --agent main --session-id "$session_id" --message ${shellQuote(
     "Reply with exact ASCII text OK only.",
-  )} --thinking minimal --timeout ${resolveParallelsModelTimeoutSeconds("linux")} --json >"$output_file" 2>&1
+  )} --thinking off --timeout ${resolveParallelsModelTimeoutSeconds("linux")} --json >"$output_file" 2>&1
   rc=$?
   set -e
   cat "$output_file"
@@ -809,7 +776,7 @@ for attempt in 1 2; do
   fi
 done
 if [ "$agent_ok" != true ]; then
-  echo "astroclaw agent finished without OK response" >&2
+  echo "openclaw agent finished without OK response" >&2
   exit 1
 fi`,
     );
@@ -820,39 +787,26 @@ fi`,
   }
 
   private async extractLastVersion(phaseId: string): Promise<string> {
-    const text = await readFile(path.join(this.runDir, `${phaseId}.log`), "utf8").catch(() => "");
-    return [...text.matchAll(/Astroclaw [^\r\n]+ \([0-9a-f]{7,}\)/g)].at(-1)?.[0] ?? "";
+    return await extractLastOpenClawVersion(
+      this.runDir,
+      phaseId,
+      /(OpenClaw [^\r\n]+ \([0-9a-f]{7,}\))/g,
+    );
   }
 
-  private async writeSummary(): Promise<string> {
+  protected async writeSummary(): Promise<string> {
     const summaryPath = path.join(this.runDir, "summary.json");
     const summary: LinuxSummary = {
-      currentHead:
-        this.artifact?.buildCommitShort ||
-        run("git", ["rev-parse", "--short", "HEAD"], { quiet: true }).stdout.trim(),
       daemon: this.status.daemon,
-      freshMain: {
-        agent: this.status.freshAgent,
-        gateway: this.status.freshGateway,
-        status: this.status.freshMain,
-        version: this.status.freshVersion,
-      },
-      installVersion: this.options.installVersion || "",
-      latestVersion: this.latestVersion,
-      mode: this.options.mode,
-      provider: this.options.provider,
-      runDir: this.runDir,
-      snapshotHint: this.options.snapshotHint,
-      snapshotId: this.snapshot.id,
-      targetPackageSpec: this.options.targetPackageSpec || "",
-      upgrade: {
-        agent: this.status.upgradeAgent,
-        gateway: this.status.upgradeGateway,
-        latestVersionInstalled: this.status.latestInstalledVersion,
-        mainVersion: this.status.upgradeVersion,
-        status: this.status.upgrade,
-      },
-      vm: this.options.vmName,
+      ...buildCommonSmokeSummary({
+        artifact: this.artifact,
+        latestVersion: this.latestVersion,
+        options: this.options,
+        runDir: this.runDir,
+        snapshot: this.snapshot,
+        status: this.status,
+        vmName: this.options.vmName,
+      }),
     };
     await writeJson(summaryPath, summary);
     await writeSummaryMarkdown({
@@ -871,14 +825,9 @@ fi`,
     return summaryPath;
   }
 
-  private printSummary(summaryPath: string): void {
+  protected printSummary(summaryPath: string): void {
     process.stdout.write("\nSummary:\n");
-    if (this.options.targetPackageSpec) {
-      process.stdout.write(`  target-package: ${this.options.targetPackageSpec}\n`);
-    }
-    if (this.options.installVersion) {
-      process.stdout.write(`  baseline-install-version: ${this.options.installVersion}\n`);
-    }
+    printSmokeTargetSummary(this.options);
     process.stdout.write(`  daemon: ${this.status.daemon}\n`);
     process.stdout.write(`  fresh-main: ${this.status.freshMain} (${this.status.freshVersion})\n`);
     process.stdout.write(
@@ -889,6 +838,9 @@ fi`,
   }
 }
 
-const options = parseArgs(process.argv.slice(2));
-await mkdir(repoRoot, { recursive: true });
-await new LinuxSmoke(options).run();
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  const options = parseArgs(process.argv.slice(2));
+  await mkdir(repoRoot, { recursive: true });
+  const runSmoke = () => new LinuxSmoke(options).run();
+  await (options.json ? withProgressOnStderr(runSmoke) : runSmoke());
+}
