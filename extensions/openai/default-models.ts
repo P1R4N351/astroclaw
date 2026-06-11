@@ -1,8 +1,9 @@
-import { ensureModelAllowlistEntry } from "astroclaw/plugin-sdk/provider-onboard";
+// Openai plugin module implements default models behavior.
+import { ensureModelAllowlistEntry } from "openclaw/plugin-sdk/provider-onboard";
 import {
   applyAgentDefaultModelPrimary,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 
 export const OPENAI_DEFAULT_MODEL = "openai/gpt-5.5";
 export const OPENAI_CODEX_DEFAULT_MODEL = OPENAI_DEFAULT_MODEL;
@@ -12,7 +13,7 @@ export const OPENAI_DEFAULT_TTS_VOICE = "alloy";
 export const OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
 export const OPENAI_DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small";
 
-export function applyOpenAIProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyOpenAIProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   const next = ensureModelAllowlistEntry({
     cfg,
     modelRef: OPENAI_DEFAULT_MODEL,
@@ -35,6 +36,6 @@ export function applyOpenAIProviderConfig(cfg: AstroclawConfig): AstroclawConfig
   };
 }
 
-export function applyOpenAIConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyOpenAIConfig(cfg: OpenClawConfig): OpenClawConfig {
   return applyAgentDefaultModelPrimary(applyOpenAIProviderConfig(cfg), OPENAI_DEFAULT_MODEL);
 }
