@@ -1,10 +1,12 @@
+// Runs commitment extraction, scheduling, and follow-up lifecycle work.
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { resolveExpiresAtMsFromDurationMs } from "@openclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
 import { resolveCommitmentTimezone, resolveCommitmentsConfig } from "./config.js";
 import {
   buildCommitmentExtractionPrompt,
@@ -18,12 +20,14 @@ import type {
   CommitmentScope,
 } from "./types.js";
 
+// Background runtime for extracting inferred follow-up commitments from
+// completed turns. It batches hidden extraction requests and persists results.
 type TimerHandle = ReturnType<typeof setTimeout>;
 type ModelRef = { provider: string; model: string };
-type EmbeddedPiPayloadResult = { payloads?: Array<{ text?: string }> };
+type EmbeddedAgentPayloadResult = { payloads?: Array<{ text?: string }> };
 
 type CommitmentExtractionEnqueueInput = CommitmentScope & {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   nowMs?: number;
   userText: string;
   assistantText?: string;
@@ -33,10 +37,10 @@ type CommitmentExtractionEnqueueInput = CommitmentScope & {
 
 type CommitmentExtractionRuntime = {
   extractBatch?: (params: {
-    cfg?: AstroclawConfig;
+    cfg?: OpenClawConfig;
     items: CommitmentExtractionItem[];
   }) => Promise<CommitmentExtractionBatchResult>;
-  resolveDefaultModel?: (params: { cfg: AstroclawConfig; agentId?: string }) => ModelRef;
+  resolveDefaultModel?: (params: { cfg: OpenClawConfig; agentId?: string }) => ModelRef;
   setTimer?: (callback: () => void, delayMs: number) => TimerHandle;
   clearTimer?: (timer: TimerHandle) => void;
   forceInTests?: boolean;
@@ -46,7 +50,7 @@ const log = createSubsystemLogger("commitments");
 const TERMINAL_EXTRACTION_FAILURE_COOLDOWN_MS = 15 * 60_000;
 
 let runtime: CommitmentExtractionRuntime = {};
-let queue: Array<Omit<CommitmentExtractionItem, "existingPending"> & { cfg?: AstroclawConfig }> = [];
+let queue: Array<Omit<CommitmentExtractionItem, "existingPending"> & { cfg?: OpenClawConfig }> = [];
 let timer: TimerHandle | null = null;
 let draining = false;
 let queueOverflowWarned = false;
@@ -73,10 +77,12 @@ function clearTimer(handle: TimerHandle): void {
   (runtime.clearTimer ?? clearTimeout)(handle);
 }
 
+/** Installs runtime hooks for extraction tests or alternate batch extraction. */
 export function configureCommitmentExtractionRuntime(next: CommitmentExtractionRuntime): void {
   runtime = next;
 }
 
+/** Clears queued work, timers, and injected hooks for isolated tests. */
 export function resetCommitmentExtractionRuntimeForTests(): void {
   if (timer) {
     clearTimer(timer);
@@ -98,6 +104,7 @@ function isUsefulText(value: string | undefined): boolean {
   return Boolean(value?.trim());
 }
 
+/** Enqueues one completed turn for delayed commitment extraction. */
 export function enqueueCommitmentExtraction(input: CommitmentExtractionEnqueueInput): boolean {
   const resolved = resolveCommitmentsConfig(input.cfg);
   const nowMs = input.nowMs ?? Date.now();
@@ -146,7 +153,7 @@ export function enqueueCommitmentExtraction(input: CommitmentExtractionEnqueueIn
   if (!timer) {
     timer = setTimer(() => {
       timer = null;
-      void drainCommitmentExtractionQueue().catch((err) => {
+      void drainCommitmentExtractionQueue().catch((err: unknown) => {
         log.warn("commitment extraction failed", { error: String(err) });
       });
     }, resolved.extraction.debounceMs);
@@ -168,11 +175,22 @@ function isTerminalExtractionError(error: unknown): boolean {
   );
 }
 
-function openTerminalFailureCooldown(agentId: string, error: unknown): void {
-  terminalFailureCooldownUntilByAgent.set(
-    agentId,
-    Date.now() + TERMINAL_EXTRACTION_FAILURE_COOLDOWN_MS,
-  );
+function openTerminalFailureCooldown(
+  agentId: string,
+  error: unknown,
+  nowMs: number,
+  fallbackNowMs: number,
+): void {
+  const cooldownUntil =
+    resolveExpiresAtMsFromDurationMs(TERMINAL_EXTRACTION_FAILURE_COOLDOWN_MS, { nowMs }) ??
+    resolveExpiresAtMsFromDurationMs(TERMINAL_EXTRACTION_FAILURE_COOLDOWN_MS, {
+      nowMs: fallbackNowMs,
+    });
+  if (cooldownUntil !== undefined) {
+    terminalFailureCooldownUntilByAgent.set(agentId, cooldownUntil);
+  }
+  // Terminal auth/model failures will keep failing for queued turns from the
+  // same agent. Drop them and cool down to avoid noisy background retries.
   queue = queue.filter((item) => item.agentId !== agentId);
   log.warn("commitment extraction disabled temporarily after terminal model/auth failure", {
     agentId,
@@ -191,7 +209,7 @@ function resolveExtractionSessionFile(agentId: string, runId: string): string {
   );
 }
 
-function joinPayloadText(result: EmbeddedPiPayloadResult): string {
+function joinPayloadText(result: EmbeddedAgentPayloadResult): string {
   return (
     result.payloads
       ?.map((payload) => payload.text)
@@ -202,7 +220,7 @@ function joinPayloadText(result: EmbeddedPiPayloadResult): string {
 }
 
 async function resolveDefaultModel(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId?: string;
 }): Promise<ModelRef> {
   if (runtime.resolveDefaultModel) {
@@ -213,7 +231,7 @@ async function resolveDefaultModel(params: {
 }
 
 async function defaultExtractBatch(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   items: CommitmentExtractionItem[];
 }): Promise<CommitmentExtractionBatchResult> {
   const cfg = params.cfg ?? {};
@@ -224,8 +242,8 @@ async function defaultExtractBatch(params: {
   const resolved = resolveCommitmentsConfig(cfg);
   const runId = `commitments-${randomUUID()}`;
   const modelRef = await resolveDefaultModel({ cfg, agentId: first.agentId });
-  const { runEmbeddedPiAgent } = await import("../agents/pi-embedded.js");
-  const result = await runEmbeddedPiAgent({
+  const { runEmbeddedAgent } = await import("../agents/embedded-agent.js");
+  const result = await runEmbeddedAgent({
     sessionId: runId,
     sessionKey: `agent:${first.agentId}:commitments:${runId}`,
     agentId: first.agentId,
@@ -251,7 +269,7 @@ async function defaultExtractBatch(params: {
 }
 
 async function hydrateBatch(
-  batch: Array<Omit<CommitmentExtractionItem, "existingPending"> & { cfg?: AstroclawConfig }>,
+  batch: Array<Omit<CommitmentExtractionItem, "existingPending"> & { cfg?: OpenClawConfig }>,
 ): Promise<CommitmentExtractionItem[]> {
   return Promise.all(
     batch.map(async (item) =>
@@ -263,6 +281,7 @@ async function hydrateBatch(
   );
 }
 
+/** Drains queued extraction work in batches and returns processed item count. */
 export async function drainCommitmentExtractionQueue(): Promise<number> {
   if (draining) {
     return 0;
@@ -281,7 +300,12 @@ export async function drainCommitmentExtractionQueue(): Promise<number> {
         result = await extractor({ cfg: firstCfg, items });
       } catch (error) {
         if (isTerminalExtractionError(error)) {
-          openTerminalFailureCooldown(items[0]?.agentId ?? "", error);
+          openTerminalFailureCooldown(
+            items[0]?.agentId ?? "",
+            error,
+            Date.now(),
+            items[0]?.nowMs ?? Date.now(),
+          );
         }
         throw error;
       }
