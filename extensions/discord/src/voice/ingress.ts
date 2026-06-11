@@ -1,7 +1,9 @@
-import { agentCommandFromIngress } from "astroclaw/plugin-sdk/agent-runtime";
-import type { DiscordAccountConfig, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createSubsystemLogger, type RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Discord plugin module implements ingress behavior.
+import { agentCommandFromIngress } from "openclaw/plugin-sdk/agent-runtime";
+import type { DiscordAccountConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveRealtimeBootstrapContextInstructions } from "openclaw/plugin-sdk/realtime-bootstrap-context";
+import { createSubsystemLogger, type RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { formatMention } from "../mentions.js";
 import { normalizeDiscordSlug } from "../monitor/allow-list.js";
 import { buildDiscordGroupSystemPrompt } from "../monitor/inbound-context.js";
@@ -63,7 +65,7 @@ function summarizeAgentTurnPayloads(payloads: readonly unknown[]): string {
 export async function resolveDiscordVoiceIngressContext(params: {
   entry: VoiceSessionEntry;
   userId: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   discordConfig: DiscordAccountConfig;
   ownerAllowFrom?: string[];
   fetchGuildName: (guildId: string) => Promise<string | undefined>;
@@ -106,7 +108,7 @@ export async function runDiscordVoiceAgentTurn(params: {
   entry: VoiceSessionEntry;
   userId: string;
   message: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   discordConfig: DiscordAccountConfig;
   runtime: RuntimeEnv;
   context?: DiscordVoiceIngressContext;
@@ -138,7 +140,6 @@ export async function runDiscordVoiceAgentTurn(params: {
       messageChannel: "discord",
       messageProvider: DISCORD_VOICE_MESSAGE_PROVIDER,
       extraSystemPrompt: context.extraSystemPrompt,
-      senderIsOwner: context.senderIsOwner,
       allowModelOverride: Boolean(voiceModel),
       model: voiceModel,
       toolsAllow: params.toolsAllow,
@@ -161,4 +162,30 @@ export async function runDiscordVoiceAgentTurn(params: {
     context,
     text,
   };
+}
+
+export async function resolveDiscordVoiceRealtimeBootstrapContext(params: {
+  entry: VoiceSessionEntry;
+  cfg: OpenClawConfig;
+  discordConfig: DiscordAccountConfig;
+}): Promise<string | undefined> {
+  const realtimeConfig = params.discordConfig.voice?.realtime;
+  const files = realtimeConfig?.bootstrapContextFiles;
+  if (files?.length === 0) {
+    return undefined;
+  }
+  try {
+    return await resolveRealtimeBootstrapContextInstructions({
+      config: params.cfg,
+      agentId: params.entry.route.agentId,
+      sessionKey: params.entry.route.sessionKey,
+      files,
+      warn: (message) => logger.warn(`discord voice: realtime bootstrap context: ${message}`),
+    });
+  } catch (error) {
+    logger.warn(
+      `discord voice: realtime bootstrap context unavailable: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return undefined;
+  }
 }
