@@ -1,15 +1,16 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Github Copilot plugin module implements auth behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   coerceSecretRef,
   ensureAuthProfileStore,
   listProfilesForProvider,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { resolveRequiredConfiguredSecretRefInputString } from "astroclaw/plugin-sdk/secret-input-runtime";
+} from "openclaw/plugin-sdk/provider-auth";
+import { resolveRequiredConfiguredSecretRefInputString } from "openclaw/plugin-sdk/secret-input-runtime";
 import { PROVIDER_ID } from "./models.js";
 
 export async function resolveFirstGithubToken(params: {
   agentDir?: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 }): Promise<{
   githubToken: string;
