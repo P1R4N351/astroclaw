@@ -1,4 +1,6 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Active session shutdown tracker.
+// Remembers sessions needing `session_end` hooks during gateway shutdown/restart.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 // Module-level tracker of sessions that have received `session_start` but not
 // yet a paired `session_end`. The close handler drains this set on gateway
@@ -14,7 +16,7 @@ import type { AstroclawConfig } from "../config/types.astroclaw.js";
 // runs. That is what keeps the shutdown finalizer from double-firing.
 
 export type ActiveSessionForShutdown = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey: string;
   sessionId: string;
   storePath: string;
@@ -39,6 +41,8 @@ export function forgetActiveSessionForShutdown(sessionId: string | undefined): v
 }
 
 export function listActiveSessionsForShutdown(): ActiveSessionForShutdown[] {
+  // Return a snapshot, not the backing map, so shutdown drains can iterate while
+  // lifecycle hooks concurrently forget finalized sessions.
   return Array.from(trackedSessions.values());
 }
 
