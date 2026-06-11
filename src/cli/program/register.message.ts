@@ -1,6 +1,7 @@
+// Message command registration: core send/read/manage actions plus channel-specific admin helpers.
 import type { Command } from "commander";
-import { formatDocsLink } from "../../terminal/links.js";
-import { theme } from "../../terminal/theme.js";
+import { formatDocsLink } from "../../../packages/terminal-core/src/links.js";
+import { theme } from "../../../packages/terminal-core/src/theme.js";
 import { formatHelpExamples } from "../help-format.js";
 import type { ProgramContext } from "./context.js";
 import { createMessageCliHelpers } from "./message/helpers.js";
@@ -21,6 +22,7 @@ import { registerMessageReadEditDeleteCommands } from "./message/register.read-e
 import { registerMessageSendCommand } from "./message/register.send.js";
 import { registerMessageThreadCommands } from "./message/register.thread.js";
 
+/** Register the `message` command group with shared channel option helpers. */
 export function registerMessageCommands(program: Command, ctx: ProgramContext) {
   const message = program
     .command("message")
@@ -31,22 +33,22 @@ export function registerMessageCommands(program: Command, ctx: ProgramContext) {
         `
 ${theme.heading("Examples:")}
 ${formatHelpExamples([
-  ['astroclaw message send --target +15555550123 --message "Hi"', "Send a text message."],
+  ['openclaw message send --target +15555550123 --message "Hi"', "Send a text message."],
   [
-    'astroclaw message send --target +15555550123 --message "Hi" --media photo.jpg',
+    'openclaw message send --target +15555550123 --message "Hi" --media photo.jpg',
     "Send a message with media.",
   ],
   [
-    'astroclaw message poll --channel discord --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi',
+    'openclaw message poll --channel discord --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi',
     "Create a Discord poll.",
   ],
   [
-    'astroclaw message react --channel discord --target 123 --message-id 456 --emoji "✅"',
+    'openclaw message react --channel discord --target 123 --message-id 456 --emoji "✅"',
     "React to a message.",
   ],
 ])}
 
-${theme.muted("Docs:")} ${formatDocsLink("/cli/message", "docs.astroclaw.ai/cli/message")}`,
+${theme.muted("Docs:")} ${formatDocsLink("/cli/message", "docs.openclaw.ai/cli/message")}`,
     )
     .action(() => {
       message.help({ error: true });
