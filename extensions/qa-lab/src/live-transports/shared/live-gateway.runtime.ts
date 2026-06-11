@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Qa Lab plugin module implements live gateway behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   startQaGatewayChild,
   type QaCliBackendAuthMode,
@@ -7,7 +8,7 @@ import {
 import type { QaProviderMode } from "../../model-selection.js";
 import { startQaProviderServer } from "../../providers/server-runtime.js";
 import type { QaThinkingLevel } from "../../qa-gateway-config.js";
-import { appendLiveLaneIssue } from "./live-lane-helpers.js";
+import { appendQaLiveLaneIssue as appendLiveLaneIssue } from "./live-artifacts.js";
 
 async function stopQaLiveLaneResources(
   resources: {
@@ -35,14 +36,14 @@ async function stopQaLiveLaneResources(
 }
 
 function omitMemoryCoreEntry<T extends Record<string, unknown> | undefined>(entries: T): T {
-  if (!entries || !Object.prototype.hasOwnProperty.call(entries, "memory-core")) {
+  if (!entries || !Object.hasOwn(entries, "memory-core")) {
     return entries;
   }
   const { "memory-core": _memoryCore, ...rest } = entries;
   return rest as T;
 }
 
-function prepareLiveTransportGatewayConfig(cfg: AstroclawConfig): AstroclawConfig {
+function prepareLiveTransportGatewayConfig(cfg: OpenClawConfig): OpenClawConfig {
   const defaults = cfg.agents?.defaults ?? {};
   return {
     ...cfg,
@@ -87,7 +88,7 @@ export async function startQaLiveLaneGateway(params: {
     requiredPluginIds: readonly string[];
     createGatewayConfig: (params: {
       baseUrl: string;
-    }) => Pick<AstroclawConfig, "channels" | "messages">;
+    }) => Pick<OpenClawConfig, "channels" | "messages">;
   };
   transportBaseUrl: string;
   controlUiAllowedOrigins?: string[];
@@ -98,7 +99,7 @@ export async function startQaLiveLaneGateway(params: {
   thinkingDefault?: QaThinkingLevel;
   claudeCliAuthMode?: QaCliBackendAuthMode;
   controlUiEnabled?: boolean;
-  mutateConfig?: (cfg: AstroclawConfig) => AstroclawConfig;
+  mutateConfig?: (cfg: OpenClawConfig) => OpenClawConfig;
 }) {
   const mock = await startQaProviderServer(params.providerMode);
   try {
