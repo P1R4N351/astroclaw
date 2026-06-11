@@ -1,14 +1,15 @@
+// Litellm setup module handles plugin onboarding behavior.
 import {
   createDefaultModelPresetAppliers,
   type ModelDefinitionConfig,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 
 export const LITELLM_BASE_URL = "http://localhost:4000";
 export const LITELLM_DEFAULT_MODEL_ID = "claude-opus-4-6";
 export const LITELLM_DEFAULT_MODEL_REF = `litellm/${LITELLM_DEFAULT_MODEL_ID}`;
-const LITELLM_DEFAULT_CONTEXT_WINDOW = 128_000;
-const LITELLM_DEFAULT_MAX_TOKENS = 8_192;
+const LITELLM_DEFAULT_CONTEXT_WINDOW = 1_000_000;
+const LITELLM_DEFAULT_MAX_TOKENS = 128_000;
 const LITELLM_DEFAULT_COST = {
   input: 0,
   output: 0,
@@ -30,7 +31,7 @@ export function buildLitellmModelDefinition(): ModelDefinitionConfig {
 
 const litellmPresetAppliers = createDefaultModelPresetAppliers({
   primaryModelRef: LITELLM_DEFAULT_MODEL_REF,
-  resolveParams: (cfg: AstroclawConfig) => {
+  resolveParams: (cfg: OpenClawConfig) => {
     const existingProvider = cfg.models?.providers?.litellm as { baseUrl?: unknown } | undefined;
     const resolvedBaseUrl =
       typeof existingProvider?.baseUrl === "string" ? existingProvider.baseUrl.trim() : "";
@@ -46,10 +47,10 @@ const litellmPresetAppliers = createDefaultModelPresetAppliers({
   },
 });
 
-export function applyLitellmProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyLitellmProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   return litellmPresetAppliers.applyProviderConfig(cfg);
 }
 
-export function applyLitellmConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyLitellmConfig(cfg: OpenClawConfig): OpenClawConfig {
   return litellmPresetAppliers.applyConfig(cfg);
 }
