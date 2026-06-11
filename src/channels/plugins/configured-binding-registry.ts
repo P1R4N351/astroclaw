@@ -1,4 +1,9 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+/**
+ * Configured binding registry.
+ *
+ * Primes, counts, and resolves compiled binding records from config and conversation facts.
+ */
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { ConversationRef } from "../../infra/outbound/session-binding-service.js";
 import type {
   ConfiguredBindingRecordResolution,
@@ -17,7 +22,7 @@ import {
 import { resolveConfiguredBindingRecordBySessionKeyFromRegistry } from "./configured-binding-session-lookup.js";
 
 function resolveMaterializedConfiguredBinding(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   conversation: ConversationRef;
 }) {
   const conversation = toConfiguredBindingConversationRef(params.conversation);
@@ -35,6 +40,8 @@ function resolveMaterializedConfiguredBinding(params: {
   if (!resolved) {
     return null;
   }
+  // Matching returns provider-specific target facts; materialization turns them into the
+  // persisted session binding record and stateful target descriptor used at runtime.
   return {
     conversation,
     resolved,
@@ -46,15 +53,21 @@ function resolveMaterializedConfiguredBinding(params: {
   };
 }
 
-export function primeConfiguredBindingRegistry(params: { cfg: AstroclawConfig }): {
+/**
+ * Warms and counts the compiled configured binding registry for a config snapshot.
+ */
+export function primeConfiguredBindingRegistry(params: { cfg: OpenClawConfig }): {
   bindingCount: number;
   channelCount: number;
 } {
   return countCompiledBindingRegistry(primeCompiledBindingRegistry(params.cfg));
 }
 
+/**
+ * Resolves a configured binding record from explicit channel/account/conversation ids.
+ */
 export function resolveConfiguredBindingRecord(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: string;
   accountId: string;
   conversationId: string;
@@ -75,8 +88,11 @@ export function resolveConfiguredBindingRecord(params: {
   });
 }
 
+/**
+ * Resolves a configured binding record from a normalized conversation reference.
+ */
 export function resolveConfiguredBindingRecordForConversation(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   conversation: ConversationRef;
 }): ConfiguredBindingRecordResolution | null {
   const resolved = resolveMaterializedConfiguredBinding(params);
@@ -86,8 +102,11 @@ export function resolveConfiguredBindingRecordForConversation(params: {
   return resolved.materializedTarget;
 }
 
+/**
+ * Resolves the full configured binding match, including compiled rule and match diagnostics.
+ */
 export function resolveConfiguredBinding(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   conversation: ConversationRef;
 }): ConfiguredBindingResolution | null {
   const resolved = resolveMaterializedConfiguredBinding(params);
@@ -102,8 +121,11 @@ export function resolveConfiguredBinding(params: {
   };
 }
 
+/**
+ * Resolves a configured binding record by the stateful target session key.
+ */
 export function resolveConfiguredBindingRecordBySessionKey(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey: string;
 }): ConfiguredBindingRecordResolution | null {
   return resolveConfiguredBindingRecordBySessionKeyFromRegistry({
