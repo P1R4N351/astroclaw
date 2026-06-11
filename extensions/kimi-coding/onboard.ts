@@ -1,7 +1,8 @@
+// Kimi Coding setup module handles plugin onboarding behavior.
 import {
   createDefaultModelPresetAppliers,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildKimiCodingProvider,
   KIMI_CODING_BASE_URL,
@@ -17,7 +18,7 @@ function resolveKimiCodingDefaultModel() {
 
 const kimiCodingPresetAppliers = createDefaultModelPresetAppliers({
   primaryModelRef: KIMI_MODEL_REF,
-  resolveParams: (_cfg: AstroclawConfig) => {
+  resolveParams: (_cfg: OpenClawConfig) => {
     const defaultModel = resolveKimiCodingDefaultModel();
     if (!defaultModel) {
       return null;
@@ -33,10 +34,10 @@ const kimiCodingPresetAppliers = createDefaultModelPresetAppliers({
   },
 });
 
-export function applyKimiCodeProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyKimiCodeProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   return kimiCodingPresetAppliers.applyProviderConfig(cfg);
 }
 
-export function applyKimiCodeConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyKimiCodeConfig(cfg: OpenClawConfig): OpenClawConfig {
   return kimiCodingPresetAppliers.applyConfig(cfg);
 }
