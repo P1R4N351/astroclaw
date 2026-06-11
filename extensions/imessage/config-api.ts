@@ -1,4 +1,5 @@
+// Imessage API module exposes the plugin public contract.
 export {
   buildChannelConfigSchema,
   IMessageConfigSchema,
-} from "astroclaw/plugin-sdk/bundled-channel-config-schema";
+} from "openclaw/plugin-sdk/bundled-channel-config-schema";
