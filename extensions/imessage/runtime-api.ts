@@ -1,23 +1,24 @@
-import type { AstroclawConfig as RuntimeApiAstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Imessage API module exposes the plugin public contract.
+import type { OpenClawConfig as RuntimeApiOpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 
 export {
   DEFAULT_ACCOUNT_ID,
   getChatChannelMeta,
   type ChannelPlugin,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 export { buildChannelConfigSchema, IMessageConfigSchema } from "./config-api.js";
-export { PAIRING_APPROVED_MESSAGE } from "astroclaw/plugin-sdk/channel-status";
+export { PAIRING_APPROVED_MESSAGE } from "openclaw/plugin-sdk/channel-status";
 export {
   buildComputedAccountStatusSnapshot,
   collectStatusIssuesFromLastError,
-} from "astroclaw/plugin-sdk/status-helpers";
-export { formatTrimmedAllowFromEntries } from "astroclaw/plugin-sdk/channel-config-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
+export { formatTrimmedAllowFromEntries } from "openclaw/plugin-sdk/channel-config-helpers";
 export {
   resolveIMessageConfigAllowFrom,
   resolveIMessageConfigDefaultTo,
 } from "./src/config-accessors.js";
 export { looksLikeIMessageTargetId, normalizeIMessageMessagingTarget } from "./src/normalize.js";
-export { resolveChannelMediaMaxBytes } from "astroclaw/plugin-sdk/media-runtime";
+export { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";
 export {
   resolveIMessageGroupRequireMention,
   resolveIMessageGroupToolPolicy,
@@ -32,6 +33,6 @@ export { imessageMessageActions } from "./src/actions.js";
 export { setIMessageRuntime } from "./src/runtime.js";
 export { chunkTextForOutbound } from "./src/channel-api.js";
 export type IMessageAccountConfig = Omit<
-  NonNullable<NonNullable<RuntimeApiAstroclawConfig["channels"]>["imessage"]>,
+  NonNullable<NonNullable<RuntimeApiOpenClawConfig["channels"]>["imessage"]>,
   "accounts" | "defaultAccount"
 >;
