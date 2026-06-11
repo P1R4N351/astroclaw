@@ -1,8 +1,9 @@
+/** Ensures configured channel-to-ACP bindings have live sessions and matching runtime options. */
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
 import type { SessionAcpMeta } from "../config/sessions/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { logVerbose } from "../globals.js";
 import { formatErrorMessage } from "../infra/errors.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 import { getAcpSessionManager } from "./control-plane/manager.js";
 import { resolveConfiguredAcpBindingSpecBySessionKey } from "./persistent-bindings.resolve.js";
 import {
@@ -13,8 +14,9 @@ import {
 } from "./persistent-bindings.types.js";
 import { readAcpSessionEntry } from "./runtime/session-meta.js";
 
+// Binding lifecycle keeps configured channel conversations attached to matching ACP sessions.
 function sessionMatchesConfiguredBinding(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   spec: ConfiguredAcpBindingSpec;
   meta: SessionAcpMeta;
 }): boolean {
@@ -53,8 +55,9 @@ function sessionMatchesConfiguredBinding(params: {
   return true;
 }
 
+/** Creates or replaces the ACP session required by one configured binding. */
 export async function ensureConfiguredAcpBindingSession(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   spec: ConfiguredAcpBindingSpec;
 }): Promise<{ ok: true; sessionKey: string } | { ok: false; sessionKey: string; error: string }> {
   const sessionKey = buildConfiguredAcpSessionKey(params.spec);
@@ -115,8 +118,9 @@ export async function ensureConfiguredAcpBindingSession(params: {
   }
 }
 
+/** Resolves a configured binding for a conversation and ensures its ACP session exists. */
 export async function ensureConfiguredAcpBindingReady(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   configuredBinding: ResolvedConfiguredAcpBinding | null;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!params.configuredBinding) {
@@ -135,8 +139,9 @@ export async function ensureConfiguredAcpBindingReady(params: {
   };
 }
 
+/** Resets a configured ACP binding session without changing the bound conversation key. */
 export async function resetAcpSessionInPlace(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey: string;
   reason: "new" | "reset";
   clearMeta?: boolean;
