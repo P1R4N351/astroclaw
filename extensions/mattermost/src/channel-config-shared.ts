@@ -1,10 +1,11 @@
-import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
-import { formatNormalizedAllowFromEntries } from "astroclaw/plugin-sdk/allow-from";
+// Mattermost helper module supports channel config shared behavior.
+import { describeAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
+import { formatNormalizedAllowFromEntries } from "openclaw/plugin-sdk/allow-from";
 import {
   adaptScopedAccountAccessor,
   createScopedChannelConfigAdapter,
-} from "astroclaw/plugin-sdk/channel-config-helpers";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-config-helpers";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveMattermostGatewayAuthBypassPaths } from "./gateway-auth-bypass.js";
 import {
   listMattermostAccountIds,
