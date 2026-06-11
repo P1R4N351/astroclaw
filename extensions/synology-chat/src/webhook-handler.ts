@@ -5,14 +5,14 @@
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import * as querystring from "node:querystring";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   beginWebhookRequestPipelineOrReject,
   createWebhookInFlightLimiter,
   isRequestBodyLimitError,
   readRequestBodyWithLimit,
   requestBodyErrorToText,
-} from "astroclaw/plugin-sdk/webhook-ingress";
+} from "openclaw/plugin-sdk/webhook-ingress";
 import * as synologyClient from "./client.js";
 import {
   validateToken,
@@ -244,7 +244,7 @@ function extractTokenFromHeaders(req: IncomingMessage): string | undefined {
   const explicit =
     headerValue(req.headers["x-synology-token"]) ??
     headerValue(req.headers["x-webhook-token"]) ??
-    headerValue(req.headers["x-astroclaw-token"]);
+    headerValue(req.headers["x-openclaw-token"]);
   if (explicit) {
     return explicit;
   }
@@ -276,7 +276,7 @@ function extractTokenFromHeaders(req: IncomingMessage): string | undefined {
 function parsePayload(req: IncomingMessage, body: string): SynologyWebhookPayload | null {
   const contentType = normalizeLowercaseStringOrEmpty(req.headers["content-type"]);
 
-  let bodyFields: Record<string, unknown> = {};
+  let bodyFields: Record<string, unknown>;
   if (contentType.includes("application/json")) {
     bodyFields = parseJsonBody(body);
   } else if (contentType.includes("application/x-www-form-urlencoded")) {
@@ -390,7 +390,7 @@ async function parseWebhookPayloadRequest(params: {
     return { ok: false };
   }
 
-  let payload: SynologyWebhookPayload | null = null;
+  let payload: SynologyWebhookPayload | null;
   try {
     payload = parsePayload(params.req, bodyResult.body);
   } catch (err) {
@@ -564,9 +564,9 @@ async function processAuthorizedSynologyWebhook(params: {
       commandAuthorized: params.message.commandAuthorized,
       chatUserId: deliveryUserId,
     });
-    const timeoutPromise = new Promise<null>((_, reject) =>
-      setTimeout(() => reject(new Error("Agent response timeout (120s)")), 120_000),
-    );
+    const timeoutPromise = new Promise<null>((_, reject) => {
+      setTimeout(() => reject(new Error("Agent response timeout (120s)")), 120_000);
+    });
     const reply = await Promise.race([deliverPromise, timeoutPromise]);
     if (!reply) {
       return;
