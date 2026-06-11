@@ -1,19 +1,20 @@
-import { transcodeAudioBufferToOpus } from "astroclaw/plugin-sdk/media-runtime";
+// Google provider module implements model/runtime integration.
+import { transcodeAudioBufferToOpus } from "openclaw/plugin-sdk/media-runtime";
 import {
   assertOkOrThrowProviderError,
   postJsonRequest,
   sanitizeConfiguredModelProviderRequest,
-} from "astroclaw/plugin-sdk/provider-http";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/provider-onboard";
-import { normalizeResolvedSecretInputString } from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/provider-http";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-onboard";
+import { normalizeResolvedSecretInputString } from "openclaw/plugin-sdk/secret-input";
 import type {
   SpeechDirectiveTokenParseContext,
   SpeechProviderConfig,
   SpeechProviderOverrides,
   SpeechProviderPlugin,
-} from "astroclaw/plugin-sdk/speech-core";
-import { asObject, trimToUndefined } from "astroclaw/plugin-sdk/speech-core";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/speech-core";
+import { asObject, trimToUndefined } from "openclaw/plugin-sdk/speech-core";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveGoogleGenerativeAiHttpRequestConfig } from "./api.js";
 
 const DEFAULT_GOOGLE_TTS_MODEL = "gemini-3.1-flash-tts-preview";
@@ -159,7 +160,7 @@ function resolveGoogleTtsEnvApiKey(): string | undefined {
   );
 }
 
-function resolveGoogleTtsModelProviderApiKey(cfg?: AstroclawConfig): string | undefined {
+function resolveGoogleTtsModelProviderApiKey(cfg?: OpenClawConfig): string | undefined {
   return normalizeResolvedSecretInputString({
     value: cfg?.models?.providers?.google?.apiKey,
     path: "models.providers.google.apiKey",
@@ -167,7 +168,7 @@ function resolveGoogleTtsModelProviderApiKey(cfg?: AstroclawConfig): string | un
 }
 
 function resolveGoogleTtsApiKey(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   providerConfig: SpeechProviderConfig;
 }): string | undefined {
   return (
@@ -178,7 +179,7 @@ function resolveGoogleTtsApiKey(params: {
 }
 
 function resolveGoogleTtsBaseUrl(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   providerConfig: GoogleTtsProviderConfig;
 }): string | undefined {
   return (
@@ -328,7 +329,7 @@ function normalizePromptList(values: readonly string[] | undefined): string[] {
     .filter((value): value is string => Boolean(value));
 }
 
-function isAstroclawGoogleAudioProfilePrompt(text: string): boolean {
+function isOpenClawGoogleAudioProfilePrompt(text: string): boolean {
   return (
     text.includes("# AUDIO PROFILE:") &&
     text.includes("### TRANSCRIPT") &&
@@ -541,6 +542,7 @@ export function buildGoogleSpeechProvider(): SpeechProviderPlugin {
     id: "google",
     label: "Google",
     autoSelectOrder: 50,
+    defaultModel: DEFAULT_GOOGLE_TTS_MODEL,
     models: GOOGLE_TTS_MODELS,
     voices: GOOGLE_TTS_VOICES,
     resolveConfig: ({ rawConfig }) => normalizeGoogleTtsProviderConfig(rawConfig),
@@ -584,7 +586,7 @@ export function buildGoogleSpeechProvider(): SpeechProviderPlugin {
       const shouldWrap =
         config.promptTemplate === GOOGLE_AUDIO_PROFILE_PROMPT_TEMPLATE ||
         Boolean(config.personaPrompt);
-      if (!shouldWrap || isAstroclawGoogleAudioProfilePrompt(ctx.text)) {
+      if (!shouldWrap || isOpenClawGoogleAudioProfilePrompt(ctx.text)) {
         return undefined;
       }
       return {
@@ -670,7 +672,7 @@ export function buildGoogleSpeechProvider(): SpeechProviderPlugin {
   };
 }
 
-export const __testing = {
+export const testing = {
   DEFAULT_GOOGLE_TTS_MODEL,
   DEFAULT_GOOGLE_TTS_VOICE,
   GOOGLE_AUDIO_PROFILE_PROMPT_TEMPLATE,
@@ -680,3 +682,4 @@ export const __testing = {
   renderGoogleAudioProfilePrompt,
   wrapPcm16MonoToWav,
 };
+export { testing as __testing };
