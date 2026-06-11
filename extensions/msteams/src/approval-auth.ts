@@ -1,9 +1,10 @@
+// Msteams plugin module implements approval auth behavior.
 import {
   createResolvedApproverActionAuthAdapter,
   resolveApprovalApprovers,
-} from "astroclaw/plugin-sdk/approval-auth-runtime";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import type { AstroclawConfig } from "../runtime-api.js";
+} from "openclaw/plugin-sdk/approval-auth-runtime";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { OpenClawConfig } from "../runtime-api.js";
 import { normalizeMSTeamsMessagingTarget } from "./resolve-allowlist.js";
 
 const MSTEAMS_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -20,7 +21,7 @@ function normalizeMSTeamsApproverId(value: string | number): string | undefined 
   return MSTEAMS_ID_RE.test(id) ? id : undefined;
 }
 
-function resolveMSTeamsChannelConfig(cfg: AstroclawConfig) {
+function resolveMSTeamsChannelConfig(cfg: OpenClawConfig) {
   return cfg.channels?.msteams;
 }
 
