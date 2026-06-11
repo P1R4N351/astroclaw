@@ -1,15 +1,16 @@
+// Openai provider module implements model/runtime integration.
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import {
   expectAugmentedCodexCatalog,
   expectedOpenaiPluginCodexCatalogEntriesWithGpt55,
   expectCodexMissingAuthHint,
   importProviderRuntimeCatalogModule,
   loadBundledPluginPublicSurface,
-} from "astroclaw/plugin-sdk/provider-test-contracts";
-import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-test-contracts";
+} from "openclaw/plugin-sdk/provider-test-contracts";
+import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-test-contracts";
 import { beforeEach, describe, it, vi } from "vitest";
 
 const PROVIDER_CATALOG_CONTRACT_TIMEOUT_MS = 300_000;
@@ -26,10 +27,10 @@ const resolveCatalogHookProviderPluginIdsMock = vi.hoisted(() =>
   vi.fn<ResolveCatalogHookProviderPluginIds>((_) => [] as string[]),
 );
 
-vi.mock("astroclaw/plugin-sdk/provider-catalog-runtime", async () => {
+vi.mock("openclaw/plugin-sdk/provider-catalog-runtime", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/provider-catalog-runtime")
-  >("astroclaw/plugin-sdk/provider-catalog-runtime");
+    typeof import("openclaw/plugin-sdk/provider-catalog-runtime")
+  >("openclaw/plugin-sdk/provider-catalog-runtime");
   const resolveCatalogHookProviders = (params: unknown) =>
     resolvePluginProvidersMock({
       onlyPluginIds: resolveCatalogHookProviderPluginIdsMock(params),
@@ -103,7 +104,6 @@ export function describeOpenAIProviderCatalogContract() {
           switch (params.provider) {
             case "azure-openai-responses":
             case "openai":
-            case "openai-codex":
               return ["openai"];
             default:
               return undefined;
@@ -118,7 +118,7 @@ export function describeOpenAIProviderCatalogContract() {
         const { openaiProvider } = await contractDepsPromise;
         expectCodexMissingAuthHint(
           (params) => openaiProvider.buildMissingAuthMessage?.(params.context) ?? undefined,
-          "openai/gpt-*",
+          "openai/gpt-5.5",
         );
       });
 
