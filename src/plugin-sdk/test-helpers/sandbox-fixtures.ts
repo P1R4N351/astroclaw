@@ -1,3 +1,6 @@
+/**
+ * Shared sandbox backend fixtures for plugin SDK tests.
+ */
 import type {
   SandboxBrowserConfig,
   SandboxPruneConfig,
@@ -9,8 +12,8 @@ export function createSandboxBrowserConfig(
 ): SandboxBrowserConfig {
   return {
     enabled: false,
-    image: "astroclaw-browser",
-    containerPrefix: "astroclaw-browser-",
+    image: "openclaw-browser",
+    containerPrefix: "openclaw-browser-",
     network: "bridge",
     cdpPort: 9222,
     vncPort: 5900,
