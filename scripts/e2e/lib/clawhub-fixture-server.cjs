@@ -1,3 +1,4 @@
+// CommonJS fixture server for ClawHub package/install E2E scenarios.
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -10,8 +11,8 @@ const portFile = process.argv[3];
 const requireFromApp = createRequire(path.join(process.cwd(), "package.json"));
 const JSZip = requireFromApp("jszip");
 const tar = requireFromApp("tar");
-const packageName = "@astroclaw/kitchen-sink";
-const pluginId = "astroclaw-kitchen-sink-fixture";
+const packageName = "@openclaw/kitchen-sink";
+const pluginId = "openclaw-kitchen-sink-fixture";
 
 const buildArtifactSummary = ({
   clawpackSha256,
@@ -46,7 +47,7 @@ const buildClawPackSummary = ({
 });
 
 async function buildNpmPackArtifact(fixture) {
-  const packRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), "astroclaw-clawhub-fixture-"));
+  const packRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), "openclaw-clawhub-fixture-"));
   try {
     const packageDir = path.join(packRoot, "package");
     await fs.promises.mkdir(packageDir, { recursive: true });
@@ -56,7 +57,7 @@ async function buildNpmPackArtifact(fixture) {
     );
     await fs.promises.writeFile(path.join(packageDir, "index.js"), fixture.indexJs);
     await fs.promises.writeFile(
-      path.join(packageDir, "astroclaw.plugin.json"),
+      path.join(packageDir, "openclaw.plugin.json"),
       `${JSON.stringify(fixture.manifest, null, 2)}\n`,
     );
     const npmTarballName = `${packageName.replace(/^@/, "").replace("/", "-")}-${fixture.version}.tgz`;
@@ -96,17 +97,17 @@ const profiles = {
         "is-number": "7.0.0",
       },
       peerDependencies: {
-        astroclaw: ">=2026.4.11",
+        openclaw: ">=2026.4.11",
       },
       peerDependenciesMeta: {
-        astroclaw: {
+        openclaw: {
           optional: true,
         },
       },
-      astroclaw: { extensions: ["./index.js"] },
+      openclaw: { extensions: ["./index.js"] },
     },
     indexJs: `import isNumber from "is-number";
-import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 const dependencyUrl = import.meta.resolve("is-number");
 const expectedDependencyBaseUrl = new URL("./node_modules/is-number/", import.meta.url).href;
@@ -116,7 +117,7 @@ if (!dependencyUrl.startsWith(expectedDependencyBaseUrl)) {
 
 export default definePluginEntry({
   id: "${pluginId}",
-  name: "Astroclaw Kitchen Sink",
+  name: "OpenClaw Kitchen Sink",
   register(api) {
     if (!isNumber(42)) {
       throw new Error("kitchen-sink dependency sentinel did not load");
@@ -127,6 +128,28 @@ export default definePluginEntry({
       docsPath: "/providers/kitchen-sink",
       auth: [],
     });
+    api.registerContextEngine("${pluginId}", () => ({
+      info: {
+        id: "${pluginId}",
+        name: "Kitchen Sink Context Engine",
+      },
+      async ingest() {
+        return { ingested: false };
+      },
+      async assemble(params) {
+        return {
+          messages: params.messages,
+          estimatedTokens: 0,
+        };
+      },
+      async compact() {
+        return {
+          ok: true,
+          compacted: false,
+          reason: "kitchen-sink fixture does not compact",
+        };
+      },
+    }));
     api.registerChannel({
       plugin: {
         id: "kitchen-sink-channel",
@@ -150,7 +173,8 @@ export default definePluginEntry({
 `,
     manifest: {
       id: pluginId,
-      name: "Astroclaw Kitchen Sink",
+      name: "OpenClaw Kitchen Sink",
+      kind: "context-engine",
       channels: ["kitchen-sink-channel"],
       channelConfigs: {
         "kitchen-sink-channel": {
@@ -191,13 +215,13 @@ export default definePluginEntry({
       const packageDetail = {
         package: {
           name: packageName,
-          displayName: "Astroclaw Kitchen Sink",
+          displayName: "OpenClaw Kitchen Sink",
           family: "code-plugin",
           runtimeId: pluginId,
           channel: "official",
           isOfficial: true,
           summary: "Kitchen sink plugin fixture for prerelease CI.",
-          ownerHandle: "astroclaw",
+          ownerHandle: "openclaw",
           createdAt: 0,
           updatedAt: 0,
           latestVersion: this.version,
@@ -217,7 +241,7 @@ export default definePluginEntry({
           },
           verification: {
             tier: "source-linked",
-            sourceRepo: "https://github.com/astroclaw/kitchen-sink",
+            sourceRepo: "https://github.com/openclaw/kitchen-sink",
             hasProvenance: false,
             scanStatus: "passed",
           },
@@ -230,7 +254,7 @@ export default definePluginEntry({
         versionDetail: {
           package: {
             name: packageName,
-            displayName: "Astroclaw Kitchen Sink",
+            displayName: "OpenClaw Kitchen Sink",
             family: "code-plugin",
           },
           version: {
@@ -259,18 +283,18 @@ export default definePluginEntry({
         "is-number": "7.0.0",
       },
       peerDependencies: {
-        astroclaw: ">=2026.4.11",
+        openclaw: ">=2026.4.11",
       },
       peerDependenciesMeta: {
-        astroclaw: {
+        openclaw: {
           optional: true,
         },
       },
-      astroclaw: { extensions: ["./index.js"] },
+      openclaw: { extensions: ["./index.js"] },
     },
     indexJs: `module.exports = {
   id: "${pluginId}",
-  name: "Astroclaw Kitchen Sink",
+  name: "OpenClaw Kitchen Sink",
   description: "Docker E2E kitchen-sink plugin fixture",
   register(api) {
     api.on("before_agent_start", async (event, context) => ({
@@ -306,7 +330,7 @@ export default definePluginEntry({
         packageDetail: {
           package: {
             name: packageName,
-            displayName: "Astroclaw Kitchen Sink",
+            displayName: "OpenClaw Kitchen Sink",
             family: "code-plugin",
             channel: "official",
             isOfficial: true,
@@ -348,7 +372,7 @@ async function main() {
   });
   zip.file("package/index.js", fixture.indexJs, { date: new Date(0) });
   const manifestJson = `${JSON.stringify(fixture.manifest, null, 2)}\n`;
-  zip.file("package/astroclaw.plugin.json", manifestJson, { date: new Date(0) });
+  zip.file("package/openclaw.plugin.json", manifestJson, { date: new Date(0) });
 
   const archive = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
   const sha256hash = crypto.createHash("sha256").update(archive).digest("hex");
@@ -365,7 +389,7 @@ async function main() {
   const artifactResolverDetail = {
     package: versionDetail.package ?? {
       name: packageName,
-      displayName: packageDetail.package?.displayName ?? "Astroclaw Kitchen Sink",
+      displayName: packageDetail.package?.displayName ?? "OpenClaw Kitchen Sink",
       family: packageDetail.package?.family ?? "code-plugin",
     },
     version: versionDetail.version,
@@ -444,7 +468,9 @@ async function main() {
   });
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+main().catch(
+  /** @param {unknown} error */ (error) => {
+    console.error(error);
+    process.exit(1);
+  },
+);
