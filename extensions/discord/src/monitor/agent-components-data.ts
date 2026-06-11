@@ -1,4 +1,5 @@
-import { logError } from "astroclaw/plugin-sdk/logging-core";
+// Discord plugin module implements agent components data behavior.
+import { logError } from "openclaw/plugin-sdk/logging-core";
 import {
   parseDiscordComponentCustomId,
   parseDiscordModalCustomId,
