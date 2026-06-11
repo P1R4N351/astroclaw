@@ -1,4 +1,5 @@
-import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
+// Msteams plugin module implements thread session behavior.
+import { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
 
 // Strip any trailing `:thread:<id>` segments from a session key. Thread ids are
 // timestamps/uuids and never contain `:`, so the segment boundary is unambiguous;
