@@ -1,12 +1,14 @@
+// Telegram plugin module implements bot message dispatch behavior.
 export {
   loadSessionStore,
   readLatestAssistantTextFromSessionTranscript,
   resolveAndPersistSessionFile,
   resolveSessionStoreEntry,
-} from "astroclaw/plugin-sdk/session-store-runtime";
-export { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
-export { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
-export { resolveChunkMode } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
+  updateSessionStoreEntry,
+} from "openclaw/plugin-sdk/session-store-runtime";
+export { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
+export { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
+export { resolveChunkMode } from "openclaw/plugin-sdk/reply-dispatch-runtime";
 export {
   generateTelegramTopicLabel as generateTopicLabel,
   resolveAutoTopicLabelConfig,
