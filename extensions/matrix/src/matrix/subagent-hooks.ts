@@ -1,15 +1,16 @@
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
+// Matrix plugin module implements subagent hooks behavior.
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
 import {
   getSessionBindingService,
   type SessionBindingRecord,
-} from "astroclaw/plugin-sdk/conversation-binding-runtime";
+} from "openclaw/plugin-sdk/conversation-binding-runtime";
 import {
   formatThreadBindingDisabledError,
   formatThreadBindingSpawnDisabledError,
   resolveThreadBindingSpawnPolicy,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/core";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveMatrixTargetIdentity } from "./target-ids.js";
 import {
   getMatrixThreadBindingManager,
@@ -103,7 +104,7 @@ function resolveMatrixBindingDeliveryOrigin(
 }
 
 export async function handleMatrixSubagentSpawning(
-  api: AstroclawPluginApi,
+  api: OpenClawPluginApi,
   event: MatrixSubagentSpawningEvent,
 ): Promise<SpawningResult | undefined> {
   if (!event.threadRequested) {
