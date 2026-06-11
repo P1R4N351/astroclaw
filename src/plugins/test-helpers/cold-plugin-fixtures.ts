@@ -1,6 +1,7 @@
+// Cold plugin fixture helpers create plugin packages for cold import and loader tests.
 import fs from "node:fs";
 import path from "node:path";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 
 type ColdPluginFixture = {
   authChoiceId: string;
@@ -36,10 +37,10 @@ export function createColdPluginFixture(options: ColdPluginFixtureOptions): Cold
     path.join(options.rootDir, "package.json"),
     JSON.stringify(
       {
-        name: options.packageName ?? "@example/astroclaw-cold-control-plane",
+        name: options.packageName ?? "@example/openclaw-cold-control-plane",
         version: options.packageVersion ?? "1.0.0",
         ...options.packageJson,
-        astroclaw: { extensions: ["./index.cjs"] },
+        openclaw: { extensions: ["./index.cjs"] },
       },
       null,
       2,
@@ -47,7 +48,7 @@ export function createColdPluginFixture(options: ColdPluginFixtureOptions): Cold
     "utf8",
   );
   fs.writeFileSync(
-    path.join(options.rootDir, "astroclaw.plugin.json"),
+    path.join(options.rootDir, "openclaw.plugin.json"),
     JSON.stringify(
       {
         id: pluginId,
@@ -97,7 +98,7 @@ export function createColdPluginFixture(options: ColdPluginFixtureOptions): Cold
   };
 }
 
-export function createColdPluginConfig(pluginDir: string, pluginId: string): AstroclawConfig {
+export function createColdPluginConfig(pluginDir: string, pluginId: string): OpenClawConfig {
   return {
     plugins: {
       load: { paths: [pluginDir] },
@@ -114,11 +115,11 @@ export function createColdPluginHermeticEnv(
 ): NodeJS.ProcessEnv {
   return {
     ...process.env,
-    ASTROCLAW_HOME: path.join(homeDir, "home"),
-    ASTROCLAW_BUNDLED_PLUGINS_DIR: options.bundledPluginsDir,
-    ASTROCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY:
+    OPENCLAW_HOME: path.join(homeDir, "home"),
+    OPENCLAW_BUNDLED_PLUGINS_DIR: options.bundledPluginsDir,
+    OPENCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY:
       options.disablePersistedRegistry === false ? undefined : "1",
-    ASTROCLAW_VERSION: "2026.4.25",
+    OPENCLAW_VERSION: "2026.4.25",
     VITEST: "true",
   };
 }
