@@ -1,8 +1,9 @@
-import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
+// Telegram plugin module implements polling status behavior.
+import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
 import {
   createConnectedChannelStatusPatch,
   createTransportActivityStatusPatch,
-} from "astroclaw/plugin-sdk/gateway-runtime";
+} from "openclaw/plugin-sdk/gateway-runtime";
 
 type TelegramPollingStatusSink = (patch: Omit<ChannelAccountSnapshot, "accountId">) => void;
 
