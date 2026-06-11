@@ -1,12 +1,13 @@
+// Nextcloud Talk plugin module implements inbound behavior.
 import {
   channelIngressRoutes,
   resolveStableChannelMessageIngress,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import { resolveInboundRouteEnvelopeBuilderWithRuntime } from "astroclaw/plugin-sdk/inbound-envelope";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
+import { resolveInboundRouteEnvelopeBuilderWithRuntime } from "openclaw/plugin-sdk/inbound-envelope";
 import {
   normalizeOptionalString,
   normalizeStringEntries,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   GROUP_POLICY_BLOCKED_LABEL,
   resolveAllowlistProviderRuntimeGroupPolicy,
@@ -16,7 +17,7 @@ import {
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
   type GroupPolicy,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type OutboundReplyPayload,
   type RuntimeEnv,
 } from "../runtime-api.js";
@@ -150,10 +151,10 @@ export async function handleNextcloudTalkInbound(params: {
   });
   const roomConfig = roomMatch.roomConfig;
   const allowTextCommands = core.channel.commands.shouldHandleTextCommands({
-    cfg: config as AstroclawConfig,
+    cfg: config as OpenClawConfig,
     surface: CHANNEL_ID,
   });
-  const hasControlCommand = core.channel.text.hasControlCommand(rawBody, config as AstroclawConfig);
+  const hasControlCommand = core.channel.text.hasControlCommand(rawBody, config as OpenClawConfig);
   const shouldRequireMention = isGroup
     ? resolveNextcloudTalkRequireMention({
         roomConfig,
@@ -166,7 +167,7 @@ export async function handleNextcloudTalkInbound(params: {
         ((config.channels as Record<string, unknown> | undefined)?.[CHANNEL_ID] ?? undefined) !==
         undefined,
       groupPolicy: account.config.groupPolicy,
-      defaultGroupPolicy: resolveDefaultGroupPolicy(config as AstroclawConfig),
+      defaultGroupPolicy: resolveDefaultGroupPolicy(config as OpenClawConfig),
     });
   const allowFrom = normalizeStringEntries(account.config.allowFrom);
   const outerGroupAllowFrom = account.config.groupAllowFrom?.length
@@ -183,7 +184,7 @@ export async function handleNextcloudTalkInbound(params: {
         sensitivity: "pii",
         entryIdPrefix: "nextcloud-talk-entry",
       },
-      cfg: config as AstroclawConfig,
+      cfg: config as OpenClawConfig,
       readStoreAllowFrom: async () =>
         await pairing.readStoreForDmPolicy(CHANNEL_ID, account.accountId),
       subject: { stableId: senderId },
@@ -230,7 +231,7 @@ export async function handleNextcloudTalkInbound(params: {
     providerKey: "nextcloud-talk",
     accountId: account.accountId,
     blockedLabel: GROUP_POLICY_BLOCKED_LABEL.room,
-    log: (message) => runtime.log?.(message),
+    log: (messageValue) => runtime.log?.(messageValue),
   });
   const commandAuthorized = access.commandAccess.authorized;
   const accessReason =
@@ -255,33 +256,31 @@ export async function handleNextcloudTalkInbound(params: {
       runtime.log?.(`nextcloud-talk: drop group sender ${senderId} (reason=${accessReason})`);
       return;
     }
-  } else {
-    if (access.senderAccess.decision !== "allow") {
-      if (access.senderAccess.decision === "pairing") {
-        await pairing.issueChallenge({
-          senderId,
-          senderIdLine: `Your Nextcloud user id: ${senderId}`,
-          meta: { name: senderName || undefined },
-          sendPairingReply: async (text) => {
-            await sendMessageNextcloudTalk(roomToken, text, {
-              cfg: config,
-              accountId: account.accountId,
-            });
-            statusSink?.({ lastOutboundAt: Date.now() });
-          },
-          onReplyError: (err) => {
-            runtime.error?.(`nextcloud-talk: pairing reply failed for ${senderId}: ${String(err)}`);
-          },
-        });
-      }
-      runtime.log?.(`nextcloud-talk: drop DM sender ${senderId} (reason=${accessReason})`);
-      return;
+  } else if (access.senderAccess.decision !== "allow") {
+    if (access.senderAccess.decision === "pairing") {
+      await pairing.issueChallenge({
+        senderId,
+        senderIdLine: `Your Nextcloud user id: ${senderId}`,
+        meta: { name: senderName || undefined },
+        sendPairingReply: async (text) => {
+          await sendMessageNextcloudTalk(roomToken, text, {
+            cfg: config,
+            accountId: account.accountId,
+          });
+          statusSink?.({ lastOutboundAt: Date.now() });
+        },
+        onReplyError: (err) => {
+          runtime.error?.(`nextcloud-talk: pairing reply failed for ${senderId}: ${String(err)}`);
+        },
+      });
     }
+    runtime.log?.(`nextcloud-talk: drop DM sender ${senderId} (reason=${accessReason})`);
+    return;
   }
 
   if (access.commandAccess.shouldBlockControlCommand) {
     logInboundDrop({
-      log: (message) => runtime.log?.(message),
+      log: (messageLocal) => runtime.log?.(messageLocal),
       channel: CHANNEL_ID,
       reason: "control command (unauthorized)",
       target: senderId,
@@ -289,7 +288,7 @@ export async function handleNextcloudTalkInbound(params: {
     return;
   }
 
-  const mentionRegexes = core.channel.mentions.buildMentionRegexes(config as AstroclawConfig);
+  const mentionRegexes = core.channel.mentions.buildMentionRegexes(config as OpenClawConfig);
   const wasMentioned = mentionRegexes.length
     ? core.channel.mentions.matchesMentionPatterns(rawBody, mentionRegexes)
     : false;
@@ -302,7 +301,7 @@ export async function handleNextcloudTalkInbound(params: {
     return;
   }
   const { route, buildEnvelope } = resolveInboundRouteEnvelopeBuilderWithRuntime({
-    cfg: config as AstroclawConfig,
+    cfg: config as OpenClawConfig,
     channel: CHANNEL_ID,
     accountId: account.accountId,
     peer: {
@@ -350,8 +349,8 @@ export async function handleNextcloudTalkInbound(params: {
     CommandAuthorized: commandAuthorized,
   });
 
-  await core.channel.turn.runAssembled({
-    cfg: config as AstroclawConfig,
+  await core.channel.inbound.dispatchReply({
+    cfg: config as OpenClawConfig,
     channel: CHANNEL_ID,
     accountId: account.accountId,
     agentId: route.agentId,
