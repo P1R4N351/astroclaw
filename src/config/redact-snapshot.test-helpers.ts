@@ -1,8 +1,10 @@
+// Provides assertions for redacted snapshot tests.
 import { expect } from "vitest";
 import { restoreRedactedValues as restoreRedactedValues_orig } from "./redact-snapshot.js";
 import type { ConfigUiHints } from "./schema.js";
-import type { ConfigFileSnapshot } from "./types.astroclaw.js";
+import type { ConfigFileSnapshot } from "./types.openclaw.js";
 
+/** Complete snapshot shape used by redaction tests. */
 export type TestSnapshot<TConfig extends Record<string, unknown>> = ConfigFileSnapshot & {
   parsed: TConfig;
   sourceConfig: TConfig;
@@ -16,7 +18,7 @@ export function makeSnapshot<TConfig extends Record<string, unknown>>(
   raw?: string,
 ): TestSnapshot<TConfig> {
   return {
-    path: "/home/user/.astroclaw/config.json5",
+    path: "/home/user/.openclaw/config.json5",
     exists: true,
     raw: raw ?? JSON.stringify(config),
     parsed: config,
