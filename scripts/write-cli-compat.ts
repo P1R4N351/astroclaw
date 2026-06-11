@@ -1,3 +1,4 @@
+// Write Cli Compat script supports OpenClaw repository automation.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,12 +49,16 @@ const findRunnerCandidates = () =>
 // Retry briefly to avoid flaky builds.
 let candidates = findCandidates();
 for (let i = 0; i < 10 && candidates.length === 0; i++) {
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 50);
+  });
   candidates = findCandidates();
 }
 let runnerCandidates = findRunnerCandidates();
 for (let i = 0; i < 10 && runnerCandidates.length === 0; i++) {
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 50);
+  });
   runnerCandidates = findRunnerCandidates();
 }
 
@@ -162,7 +167,7 @@ if (resolved?.accessors) {
 }
 
 const missingExportError = (name: string) =>
-  `Legacy daemon CLI export "${name}" is unavailable in this build. Please upgrade Astroclaw.`;
+  `Legacy daemon CLI export "${name}" is unavailable in this build. Please upgrade OpenClaw.`;
 const buildExportLine = (name: (typeof LEGACY_DAEMON_CLI_EXPORTS)[number]) => {
   const accessor = accessors[name];
   if (accessor) {
