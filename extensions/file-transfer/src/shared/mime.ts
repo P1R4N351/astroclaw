@@ -1,4 +1,5 @@
-import { mimeTypeFromFilePath } from "astroclaw/plugin-sdk/media-mime";
+// File Transfer plugin module implements mime behavior.
+import { mimeTypeFromFilePath } from "openclaw/plugin-sdk/media-mime";
 
 // MIME types we treat as inline-displayable images for vision-capable models.
 // Note: heic/heif are detectable but not all providers can render them, so we
