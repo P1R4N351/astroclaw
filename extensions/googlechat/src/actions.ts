@@ -1,17 +1,18 @@
+// Googlechat plugin module implements actions behavior.
 import {
   createActionGate,
   jsonResult,
-  readNumberParam,
+  readPositiveIntegerParam,
   readReactionParams,
   readStringParam,
-} from "astroclaw/plugin-sdk/channel-actions";
+} from "openclaw/plugin-sdk/channel-actions";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionName,
-} from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { loadOutboundMediaFromUrl } from "astroclaw/plugin-sdk/outbound-media";
-import { extractToolSend } from "astroclaw/plugin-sdk/tool-send";
+} from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { loadOutboundMediaFromUrl } from "openclaw/plugin-sdk/outbound-media";
+import { extractToolSend } from "openclaw/plugin-sdk/tool-send";
 import { listEnabledGoogleChatAccounts, resolveGoogleChatAccount } from "./accounts.js";
 import {
   createGoogleChatReaction,
@@ -25,7 +26,7 @@ import { resolveGoogleChatOutboundSpace } from "./targets.js";
 
 const providerId = "googlechat";
 
-function listEnabledAccounts(cfg: AstroclawConfig) {
+function listEnabledAccounts(cfg: OpenClawConfig) {
   return listEnabledGoogleChatAccounts(cfg).filter(
     (account) => account.enabled && account.credentialSource !== "none",
   );
@@ -101,7 +102,7 @@ export const googlechatMessageActions: ChannelMessageActionAdapter = {
     mediaReadFile,
   }) => {
     const account = resolveGoogleChatAccount({
-      cfg: cfg,
+      cfg,
       accountId,
     });
     if (account.credentialSource === "none") {
@@ -213,7 +214,7 @@ export const googlechatMessageActions: ChannelMessageActionAdapter = {
 
     if (action === "reactions") {
       const messageName = readStringParam(params, "messageId", { required: true });
-      const limit = readNumberParam(params, "limit", { integer: true });
+      const limit = readPositiveIntegerParam(params, "limit");
       const reactions = await listGoogleChatReactions({
         account,
         messageName,
