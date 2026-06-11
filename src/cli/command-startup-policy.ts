@@ -1,3 +1,4 @@
+// Startup policy helpers for config guards, plugin loading, banners, and CLI path checks.
 import { isTruthyEnvValue } from "../infra/env.js";
 import type { CliCommandPluginLoadPolicy } from "./command-catalog.js";
 import { resolveCliCommandPathPolicy } from "./command-path-policy.js";
@@ -36,6 +37,7 @@ function shouldLoadPlugins(params: {
   jsonOutputMode: boolean;
   loadPlugins: CliCommandPluginLoadPolicy;
 }): boolean {
+  // Some commands need plugin text/help in human output but not in JSON mode.
   const loadPlugins = params.loadPlugins;
   if (typeof loadPlugins === "function") {
     return loadPlugins({
@@ -52,7 +54,7 @@ export function shouldHideCliBannerForCommandPath(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
   return (
-    isTruthyEnvValue(env.ASTROCLAW_HIDE_BANNER) ||
+    isTruthyEnvValue(env.OPENCLAW_HIDE_BANNER) ||
     resolveCliCommandPathPolicy(commandPath).hideBanner
   );
 }
@@ -73,7 +75,7 @@ export function resolveCliStartupPolicy(params: {
   const env = params.env ?? process.env;
   return {
     suppressDoctorStdout,
-    hideBanner: isTruthyEnvValue(env.ASTROCLAW_HIDE_BANNER) || commandPolicy.hideBanner,
+    hideBanner: isTruthyEnvValue(env.OPENCLAW_HIDE_BANNER) || commandPolicy.hideBanner,
     skipConfigGuard: params.routeMode
       ? commandPolicy.routeConfigGuard === "always" ||
         (commandPolicy.routeConfigGuard === "when-suppressed" && suppressDoctorStdout)
