@@ -1,4 +1,5 @@
-import { getRuntimeConfig, type AstroclawConfig } from "../config/config.js";
+// Loads provider usage snapshots from built-in and plugin providers.
+import { getRuntimeConfig, type OpenClawConfig } from "../config/config.js";
 import { resolveProviderUsageSnapshotWithPlugin } from "../plugins/provider-runtime.js";
 import { resolveFetch } from "./fetch.js";
 import { type ProviderAuth, resolveProviderAuths } from "./provider-usage.auth.js";
@@ -15,6 +16,7 @@ import type {
   UsageSummary,
 } from "./provider-usage.types.js";
 
+// Built-in fallback intentionally reports unsupported until a plugin supplies usage behavior.
 async function fetchProviderUsageSnapshotFallback(params: {
   auth: ProviderAuth;
   timeoutMs: number;
@@ -37,7 +39,7 @@ type UsageSummaryOptions = {
   auth?: ProviderAuth[];
   agentDir?: string;
   workspaceDir?: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   fetch?: typeof fetch;
   skipPluginAuthWithoutCredentialSource?: boolean;
@@ -45,7 +47,7 @@ type UsageSummaryOptions = {
 
 async function fetchProviderUsageSnapshot(params: {
   auth: ProviderAuth;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   agentDir?: string;
   workspaceDir?: string;
@@ -53,7 +55,7 @@ async function fetchProviderUsageSnapshot(params: {
   fetchFn: typeof fetch;
 }): Promise<ProviderUsageSnapshot> {
   const pluginSnapshot = await resolveProviderUsageSnapshotWithPlugin({
-    provider: params.auth.provider,
+    provider: params.auth.hookProvider ?? params.auth.provider,
     config: params.config,
     workspaceDir: params.workspaceDir,
     env: params.env,
@@ -65,6 +67,7 @@ async function fetchProviderUsageSnapshot(params: {
       provider: params.auth.provider,
       token: params.auth.token,
       accountId: params.auth.accountId,
+      authProfileId: params.auth.authProfileId,
       timeoutMs: params.timeoutMs,
       fetchFn: params.fetchFn,
     },
@@ -79,6 +82,7 @@ async function fetchProviderUsageSnapshot(params: {
   });
 }
 
+/** Loads usage snapshots from configured provider auth and plugin-backed usage hooks. */
 export async function loadProviderUsageSummary(
   opts: UsageSummaryOptions = {},
 ): Promise<UsageSummary> {
@@ -136,6 +140,9 @@ export async function loadProviderUsageSummary(
   const snapshots = await Promise.all(tasks);
   const providers = snapshots.filter((entry) => {
     if (entry.windows.length > 0) {
+      return true;
+    }
+    if (entry.summary?.trim()) {
       return true;
     }
     if (!entry.error) {
