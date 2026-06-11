@@ -1,9 +1,10 @@
+// Matrix plugin module implements allowlist behavior.
 import {
   resolveAllowlistMatchByCandidates,
   type AllowlistMatch,
-} from "astroclaw/plugin-sdk/allow-from";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { normalizeStringEntries } from "astroclaw/plugin-sdk/string-normalization-runtime";
+} from "openclaw/plugin-sdk/allow-from";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-normalization-runtime";
 
 function normalizeAllowList(list?: Array<string | number>) {
   return normalizeStringEntries(list);
