@@ -1,9 +1,11 @@
-import type { SkillCommandSpec } from "../agents/skills/types.js";
+/** Command-list assembly and config filtering for chat command registries. */
 import { isCommandFlagEnabled } from "../config/commands.flags.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import type { SkillCommandSpec } from "../skills/types.js";
 import { getChatCommands } from "./commands-registry.data.js";
 import type { ChatCommandDefinition } from "./commands-registry.types.js";
 
+/** Builds dynamic command definitions exported by installed skills. */
 function buildSkillCommandDefinitions(skillCommands?: SkillCommandSpec[]): ChatCommandDefinition[] {
   if (!skillCommands || skillCommands.length === 0) {
     return [];
@@ -26,6 +28,7 @@ function buildSkillCommandDefinitions(skillCommands?: SkillCommandSpec[]): ChatC
   });
 }
 
+/** Lists built-in commands plus optional skill-provided commands. */
 export function listChatCommands(params?: {
   skillCommands?: SkillCommandSpec[];
 }): ChatCommandDefinition[] {
@@ -36,7 +39,8 @@ export function listChatCommands(params?: {
   return [...commands, ...buildSkillCommandDefinitions(params.skillCommands)];
 }
 
-export function isCommandEnabled(cfg: AstroclawConfig, commandKey: string): boolean {
+/** Applies config feature flags to command keys that can be operator-disabled. */
+export function isCommandEnabled(cfg: OpenClawConfig, commandKey: string): boolean {
   if (commandKey === "config") {
     return isCommandFlagEnabled(cfg, "config");
   }
@@ -55,8 +59,9 @@ export function isCommandEnabled(cfg: AstroclawConfig, commandKey: string): bool
   return true;
 }
 
+/** Lists commands visible for a specific config, preserving dynamic skill commands. */
 export function listChatCommandsForConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   params?: { skillCommands?: SkillCommandSpec[] },
 ): ChatCommandDefinition[] {
   const base = getChatCommands().filter((command) => isCommandEnabled(cfg, command.key));
