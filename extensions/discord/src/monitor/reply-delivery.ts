@@ -1,21 +1,22 @@
-import { resolveAgentAvatar } from "astroclaw/plugin-sdk/agent-runtime";
-import { sendDurableMessageBatch } from "astroclaw/plugin-sdk/channel-message";
-import type {
-  MarkdownTableMode,
-  AstroclawConfig,
-  ReplyToMode,
-} from "astroclaw/plugin-sdk/config-contracts";
-import type { OutboundMediaAccess } from "astroclaw/plugin-sdk/media-runtime";
+// Discord plugin module implements reply delivery behavior.
+import { resolveAgentAvatar } from "openclaw/plugin-sdk/agent-runtime";
 import {
   buildOutboundSessionContext,
+  sendDurableMessageBatch,
   type OutboundDeliveryFormattingOptions,
   type OutboundIdentity,
   type OutboundSendDeps,
-} from "astroclaw/plugin-sdk/outbound-runtime";
-import type { ChunkMode } from "astroclaw/plugin-sdk/reply-chunking";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type {
+  MarkdownTableMode,
+  OpenClawConfig,
+  ReplyToMode,
+} from "openclaw/plugin-sdk/config-contracts";
+import type { OutboundMediaAccess } from "openclaw/plugin-sdk/media-runtime";
+import type { ChunkMode } from "openclaw/plugin-sdk/reply-chunking";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-dispatch-runtime";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { RequestClient } from "../internal/discord.js";
 import { sendMessageDiscord, sendVoiceMessageDiscord } from "../send.js";
 import { sanitizeDiscordFrontChannelReplyPayloads } from "./reply-safety.js";
@@ -62,7 +63,7 @@ function resolveBoundThreadBinding(params: {
 }
 
 function resolveBindingIdentity(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   binding: DiscordThreadBindingLookupRecord | undefined,
 ): OutboundIdentity | undefined {
   if (!binding) {
@@ -84,7 +85,7 @@ function resolveBindingIdentity(
 }
 
 function createDiscordDeliveryDeps(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   token: string;
   rest?: RequestClient;
 }): OutboundSendDeps {
@@ -121,7 +122,7 @@ type DiscordDeliveryOptions = {
 };
 
 function resolveDiscordDeliveryOptions(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   target: string;
   sessionKey?: string;
   threadBindings?: DiscordThreadBindingLookup;
@@ -156,7 +157,7 @@ function resolveDiscordDeliveryOptions(params: {
 }
 
 export async function deliverDiscordReply(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   replies: ReplyPayload[];
   target: string;
   token: string;
@@ -172,11 +173,12 @@ export async function deliverDiscordReply(params: {
   sessionKey?: string;
   threadBindings?: DiscordThreadBindingLookup;
   mediaLocalRoots?: readonly string[];
+  kind: "tool" | "block" | "final";
 }) {
   void params.runtime;
 
   const delivery = resolveDiscordDeliveryOptions(params);
-  const payloads = sanitizeDiscordFrontChannelReplyPayloads(params.replies);
+  const payloads = sanitizeDiscordFrontChannelReplyPayloads(params.replies, { kind: params.kind });
   if (payloads.length === 0) {
     return;
   }
