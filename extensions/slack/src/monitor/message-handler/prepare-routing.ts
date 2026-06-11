@@ -1,12 +1,13 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Slack plugin module implements prepare routing behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   resolveConfiguredBindingRoute,
   resolveRuntimeConversationBindingRoute,
   type ConfiguredBindingRouteResult,
   type RuntimeConversationBindingRouteResult,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
 import { resolveSlackReplyToMode } from "../../account-reply-mode.js";
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import { parseSlackTarget, type SlackTargetKind } from "../../targets.js";
@@ -14,7 +15,7 @@ import { resolveSlackThreadContext } from "../../threading.js";
 import type { SlackMessageEvent } from "../../types.js";
 
 export type SlackRoutingContextDeps = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   teamId: string;
   threadInheritParent: boolean;
   threadHistoryScope: "thread" | "channel";
@@ -36,12 +37,12 @@ type SlackRoutingContext = {
   historyKey: string;
 };
 
-type SlackRouteBinding = NonNullable<AstroclawConfig["bindings"]>[number];
+type SlackRouteBinding = NonNullable<OpenClawConfig["bindings"]>[number];
 type SlackRouteBindingPeer = NonNullable<SlackRouteBinding["match"]["peer"]>;
 
 const slackRouteBindingConfigCache = new WeakMap<
-  AstroclawConfig,
-  { bindingsRef: AstroclawConfig["bindings"]; normalizedCfg: AstroclawConfig }
+  OpenClawConfig,
+  { bindingsRef: OpenClawConfig["bindings"]; normalizedCfg: OpenClawConfig }
 >();
 
 function slackTargetDefaultKindForPeer(kind: SlackRouteBindingPeer["kind"]): SlackTargetKind {
@@ -79,7 +80,7 @@ function normalizeSlackRouteBindingPeer(peer: SlackRouteBindingPeer): SlackRoute
   return { ...peer, id: target.id };
 }
 
-function normalizeSlackRouteBindingConfig(cfg: AstroclawConfig): AstroclawConfig {
+function normalizeSlackRouteBindingConfig(cfg: OpenClawConfig): OpenClawConfig {
   const bindings = cfg.bindings;
   const cached = slackRouteBindingConfigCache.get(cfg);
   if (cached && cached.bindingsRef === bindings) {
@@ -113,7 +114,7 @@ function normalizeSlackRouteBindingConfig(cfg: AstroclawConfig): AstroclawConfig
   });
 
   const normalizedCfg = changed
-    ? ({ ...cfg, bindings: normalizedBindings } as AstroclawConfig)
+    ? ({ ...cfg, bindings: normalizedBindings } as OpenClawConfig)
     : cfg;
   slackRouteBindingConfigCache.set(cfg, { bindingsRef: bindings, normalizedCfg });
   return normalizedCfg;
@@ -179,7 +180,7 @@ export function resolveSlackRoutingContext(params: {
 
   const chatType = isDirectMessage ? "direct" : isGroupDm ? "group" : "channel";
   const replyToMode = resolveSlackReplyToMode(account, chatType);
-  const threadContext = resolveSlackThreadContext({ message, replyToMode });
+  const threadContext = resolveSlackThreadContext({ message, replyToMode, isDirectMessage });
   const threadTs = threadContext.incomingThreadTs;
   const isThreadReply = threadContext.isThreadReply;
   // Keep true thread replies thread-scoped, while top-level DMs keep their
@@ -291,3 +292,8 @@ export function resolveSlackRoutingContext(params: {
     historyKey,
   };
 }
+
+export const testing = {
+  normalizeSlackRouteBindingConfig,
+};
+export { testing as __testing };
