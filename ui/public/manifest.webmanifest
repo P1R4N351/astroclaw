@@ -4,8 +4,8 @@
   "description": "Multi-channel AI gateway control panel",
   "start_url": "./",
   "display": "standalone",
-  "theme_color": "#0a0a0a",
-  "background_color": "#0a0a0a",
+  "theme_color": "#011B56",
+  "background_color": "#020E2F",
   "icons": [
     {
       "src": "./favicon.svg",

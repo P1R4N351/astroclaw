@@ -38,7 +38,9 @@ export function renderChatAvatar(
       : normalized === "assistant"
         ? html`
             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-              <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16l-6.4 5.2L8 14 2 9.2h7.6z" />
+              <path
+                d="M12 2 Q12.74 8.26 14.47 9.53 Q15.74 11.26 22 12 Q15.74 12.74 14.47 14.47 Q12.74 15.74 12 22 Q11.26 15.74 9.53 14.47 Q8.26 12.74 2 12 Q8.26 11.26 9.53 9.53 Q11.26 8.26 12 2 Z"
+              />
             </svg>
           `
         : normalized === "tool"

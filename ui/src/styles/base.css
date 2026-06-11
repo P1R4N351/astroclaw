@@ -1,87 +1,87 @@
 :root {
-  /* vapourwave palette (2026-05-17): deep purple + hot pink +
-     vapor cyan. Hot pink is the primary accent; cyan handles secondary
-     highlights + semantic-ok. The default `claw` theme is now this
-     palette; the legacy red palette lives on under
-     [data-theme-mode="light"] for the light pair, and operators can
-     still flip to `knot` / `dash` via the Appearance picker. */
+  /* AstroClaw palette (2026-06-10): deep space navy + signal cyan,
+     drawn from the brand mark (navy #011B56 orbital claw, cyan #00B7F1
+     star). Cyan is the primary accent; starlight ice carries text. The
+     default `claw` theme is this palette; the light pair lives under
+     [data-theme-mode="light"], and operators can still flip to `knot` /
+     `dash` via the Appearance picker. */
 
-  /* Background — deep purple/black, layered upward toward elevated cards */
-  --bg: #1a0b2e;
-  --bg-accent: #211432;
-  --bg-elevated: #2a1644;
-  --bg-hover: #341a52;
-  --bg-muted: #2a1644;
+  /* Background - deep space navy, layered upward toward elevated cards */
+  --bg: #020e2f;
+  --bg-accent: #041537;
+  --bg-elevated: #0a2147;
+  --bg-hover: #0e2a57;
+  --bg-muted: #0a2147;
 
   /* Card / Surface */
-  --card: #2a1644;
-  --card-foreground: #f3e7ff;
-  --card-highlight: rgba(255, 106, 213, 0.06);
-  --popover: #2a1644;
-  --popover-foreground: #f3e7ff;
+  --card: #0a2147;
+  --card-foreground: #eaf2ff;
+  --card-highlight: rgba(0, 183, 241, 0.06);
+  --popover: #0a2147;
+  --popover-foreground: #eaf2ff;
 
   /* Panel */
-  --panel: #1a0b2e;
-  --panel-strong: #2a1644;
-  --panel-hover: #341a52;
-  --chrome: rgba(26, 11, 46, 0.96);
-  --chrome-strong: rgba(26, 11, 46, 0.98);
+  --panel: #020e2f;
+  --panel-strong: #0a2147;
+  --panel-hover: #0e2a57;
+  --chrome: rgba(2, 14, 47, 0.96);
+  --chrome-strong: rgba(2, 14, 47, 0.98);
 
-  /* Text — lavender-cream on purple */
-  --text: #e0c7ff;
-  --text-strong: #f3e7ff;
-  --chat-text: #e0c7ff;
-  --muted: #a48dbf;
-  --muted-strong: #8e7ba8;
-  --muted-foreground: #a48dbf;
+  /* Text - starlight ice on navy */
+  --text: #c9dbfa;
+  --text-strong: #eef5ff;
+  --chat-text: #c9dbfa;
+  --muted: #8ca3ce;
+  --muted-strong: #7289b4;
+  --muted-foreground: #8ca3ce;
 
   /* Border */
-  --border: #3a2152;
-  --border-strong: #5c3a82;
-  --border-hover: #7050a3;
-  --input: #3a2152;
-  --ring: #ff6ad5;
+  --border: #11305f;
+  --border-strong: #1c4585;
+  --border-hover: #2a5cad;
+  --input: #11305f;
+  --ring: #00b7f1;
 
-  /* Accent — hot pink (vapourwave primary) */
-  --accent: #ff6ad5;
-  --accent-hover: #ff85e0;
-  --accent-muted: #ff6ad5;
-  --accent-subtle: rgba(255, 106, 213, 0.1);
-  --accent-foreground: #1a0b2e;
-  --accent-glow: rgba(255, 106, 213, 0.3);
-  --selection-bg: #ff6ad5;
-  --selection-fg: #1a0b2e;
-  --primary: #ff6ad5;
-  --primary-foreground: #1a0b2e;
+  /* Accent - signal cyan (AstroClaw primary) */
+  --accent: #00b7f1;
+  --accent-hover: #2fc8ff;
+  --accent-muted: #00b7f1;
+  --accent-subtle: rgba(0, 183, 241, 0.1);
+  --accent-foreground: #020e2f;
+  --accent-glow: rgba(0, 183, 241, 0.3);
+  --selection-bg: #00b7f1;
+  --selection-fg: #020e2f;
+  --primary: #00b7f1;
+  --primary-foreground: #020e2f;
 
-  /* Secondary + vapor cyan accent-2 */
-  --secondary: #2a1644;
-  --secondary-foreground: #f3e7ff;
-  --accent-2: #01cdfe;
-  --accent-2-muted: rgba(1, 205, 254, 0.7);
-  --accent-2-subtle: rgba(1, 205, 254, 0.1);
+  /* Secondary + starlight accent-2 */
+  --secondary: #0a2147;
+  --secondary-foreground: #eaf2ff;
+  --accent-2: #e8ecf7;
+  --accent-2-muted: rgba(232, 236, 247, 0.7);
+  --accent-2-subtle: rgba(232, 236, 247, 0.1);
 
-  /* Semantic — kept readable; ok+info lean vapor cyan, warn lavender-yellow */
-  --ok: #05ffa1;
-  --ok-muted: rgba(5, 255, 161, 0.75);
-  --ok-subtle: rgba(5, 255, 161, 0.08);
-  --destructive: #ff5c8a;
-  --destructive-foreground: #1a0b2e;
-  --warn: #fffb96;
-  --warn-muted: rgba(255, 251, 150, 0.75);
-  --warn-subtle: rgba(255, 251, 150, 0.08);
-  --danger: #ff5c8a;
-  --danger-muted: rgba(255, 92, 138, 0.75);
-  --danger-subtle: rgba(255, 92, 138, 0.08);
-  --info: #01cdfe;
+  /* Semantic - kept readable on deep navy */
+  --ok: #2fe6a7;
+  --ok-muted: rgba(47, 230, 167, 0.75);
+  --ok-subtle: rgba(47, 230, 167, 0.08);
+  --destructive: #ff5d7a;
+  --destructive-foreground: #020e2f;
+  --warn: #ffd166;
+  --warn-muted: rgba(255, 209, 102, 0.75);
+  --warn-subtle: rgba(255, 209, 102, 0.08);
+  --danger: #ff5d7a;
+  --danger-muted: rgba(255, 93, 122, 0.75);
+  --danger-subtle: rgba(255, 93, 122, 0.08);
+  --info: #00b7f1;
 
-  /* Focus — pink halo on dark purple */
-  --focus: rgba(255, 106, 213, 0.25);
+  /* Focus - cyan halo on deep navy */
+  --focus: rgba(0, 183, 241, 0.25);
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 3px color-mix(in srgb, var(--ring) 80%, transparent);
   --focus-glow: 0 0 0 2px var(--bg), 0 0 0 3px var(--ring), 0 0 16px var(--accent-glow);
 
   /* Grid */
-  --grid-line: rgba(255, 106, 213, 0.06);
+  --grid-line: rgba(0, 183, 241, 0.06);
 
   /* Theme transition */
   --theme-switch-x: 50%;
@@ -132,51 +132,52 @@
 
 /* Light theme tokens apply to every light-mode family. */
 :root[data-theme-mode="light"] {
-  --bg: #f8f9fa;
-  --bg-accent: #f1f3f5;
+  --bg: #f7fafd;
+  --bg-accent: #eef4fb;
   --bg-elevated: #ffffff;
-  --bg-hover: #eceef0;
-  --bg-muted: #eceef0;
-  --bg-content: #f1f3f5;
+  --bg-hover: #e7eef8;
+  --bg-muted: #e7eef8;
+  --bg-content: #eef4fb;
 
   --card: #ffffff;
-  --card-foreground: #1a1a1e;
-  --card-highlight: rgba(0, 0, 0, 0.02);
+  --card-foreground: #0a1c4e;
+  --card-highlight: rgba(1, 27, 86, 0.02);
   --popover: #ffffff;
-  --popover-foreground: #1a1a1e;
+  --popover-foreground: #0a1c4e;
 
-  --panel: #f8f9fa;
-  --panel-strong: #f1f3f5;
-  --panel-hover: #e6e8eb;
-  --chrome: rgba(248, 249, 250, 0.96);
-  --chrome-strong: rgba(248, 249, 250, 0.98);
+  --panel: #f7fafd;
+  --panel-strong: #eef4fb;
+  --panel-hover: #e2eaf6;
+  --chrome: rgba(247, 250, 253, 0.96);
+  --chrome-strong: rgba(247, 250, 253, 0.98);
 
-  --text: #3c3c43;
-  --text-strong: #1a1a1e;
-  --chat-text: #3c3c43;
-  --muted: #6e6e73;
-  --muted-strong: #545458;
-  --muted-foreground: #6e6e73;
+  --text: #2a3a66;
+  --text-strong: #011b56;
+  --chat-text: #2a3a66;
+  --muted: #5e6f96;
+  --muted-strong: #47587f;
+  --muted-foreground: #5e6f96;
 
-  --border: #e5e5ea;
-  --border-strong: #d1d1d6;
-  --border-hover: #aeaeb2;
-  --input: #e5e5ea;
+  --border: #dde6f2;
+  --border-strong: #c3d2e8;
+  --border-hover: #9fb6da;
+  --input: #dde6f2;
+  --ring: #0089c4;
 
-  --accent: #dc2626;
-  --accent-hover: #ef4444;
-  --accent-muted: #dc2626;
-  --accent-subtle: rgba(220, 38, 38, 0.08);
+  --accent: #0089c4;
+  --accent-hover: #00a3e0;
+  --accent-muted: #0089c4;
+  --accent-subtle: rgba(0, 137, 196, 0.08);
   --accent-foreground: #ffffff;
-  --accent-glow: rgba(220, 38, 38, 0.1);
-  --primary: #dc2626;
+  --accent-glow: rgba(0, 137, 196, 0.12);
+  --primary: #0089c4;
   --primary-foreground: #ffffff;
 
-  --secondary: #f1f3f5;
-  --secondary-foreground: #3c3c43;
-  --accent-2: #0d9488;
-  --accent-2-muted: rgba(13, 148, 136, 0.75);
-  --accent-2-subtle: rgba(13, 148, 136, 0.08);
+  --secondary: #eef4fb;
+  --secondary-foreground: #2a3a66;
+  --accent-2: #011b56;
+  --accent-2-muted: rgba(1, 27, 86, 0.75);
+  --accent-2-subtle: rgba(1, 27, 86, 0.06);
 
   --ok: #15803d;
   --ok-muted: rgba(21, 128, 61, 0.75);
@@ -189,13 +190,13 @@
   --danger: #dc2626;
   --danger-muted: rgba(220, 38, 38, 0.75);
   --danger-subtle: rgba(220, 38, 38, 0.08);
-  --info: #2563eb;
+  --info: #0089c4;
 
-  --focus: rgba(220, 38, 38, 0.15);
+  --focus: rgba(0, 137, 196, 0.18);
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 3px color-mix(in srgb, var(--ring) 70%, transparent);
   --focus-glow: 0 0 0 2px var(--bg), 0 0 0 3px var(--ring), 0 0 12px var(--accent-glow);
 
-  --grid-line: rgba(0, 0, 0, 0.04);
+  --grid-line: rgba(1, 27, 86, 0.05);
 
   /* Light shadows - Subtle, clean */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
