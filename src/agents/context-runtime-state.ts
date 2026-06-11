@@ -1,22 +1,30 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Process-global context-window runtime state.
+ * Keeps model-config loads, backoff counters, and token cache reset behavior
+ * shared across module reloads and runtime seams.
+ */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createLazyImportLoader, type LazyPromiseLoader } from "../shared/lazy-promise.js";
 import { MODEL_CONTEXT_TOKEN_CACHE } from "./context-cache.js";
 
-const CONTEXT_WINDOW_RUNTIME_STATE_KEY = Symbol.for("astroclaw.contextWindowRuntimeState");
+const CONTEXT_WINDOW_RUNTIME_STATE_KEY = Symbol.for("openclaw.contextWindowRuntimeState");
 
 type ContextWindowRuntimeState = {
   loadPromise: Promise<void> | null;
-  configuredConfig: AstroclawConfig | undefined;
+  configuredConfig: OpenClawConfig | undefined;
   configLoadFailures: number;
   nextConfigLoadAttemptAtMs: number;
   modelsConfigRuntimeLoader: LazyPromiseLoader<typeof import("./models-config.runtime.js")>;
 };
 
+/** Shared mutable state for context-window resolution and model config loading. */
 export const CONTEXT_WINDOW_RUNTIME_STATE = (() => {
   const globalState = globalThis as typeof globalThis & {
     [CONTEXT_WINDOW_RUNTIME_STATE_KEY]?: ContextWindowRuntimeState;
   };
   if (!globalState[CONTEXT_WINDOW_RUNTIME_STATE_KEY]) {
+    // The loader is lifecycle-owned here; callers reuse the same pending load
+    // promise and backoff counters instead of racing config discovery.
     globalState[CONTEXT_WINDOW_RUNTIME_STATE_KEY] = {
       loadPromise: null,
       configuredConfig: undefined,
@@ -28,6 +36,7 @@ export const CONTEXT_WINDOW_RUNTIME_STATE = (() => {
   return globalState[CONTEXT_WINDOW_RUNTIME_STATE_KEY];
 })();
 
+/** Reset context-window runtime state and token cache for isolated tests. */
 export function resetContextWindowCacheForTest(): void {
   CONTEXT_WINDOW_RUNTIME_STATE.loadPromise = null;
   CONTEXT_WINDOW_RUNTIME_STATE.configuredConfig = undefined;
