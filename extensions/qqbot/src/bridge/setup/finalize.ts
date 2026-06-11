@@ -1,28 +1,29 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { ChannelSetupWizard } from "astroclaw/plugin-sdk/setup";
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/setup";
-import { formatDocsLink } from "astroclaw/plugin-sdk/setup-tools";
+// Qqbot plugin module implements finalize behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ChannelSetupWizard } from "openclaw/plugin-sdk/setup";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/setup";
+import { formatDocsLink } from "openclaw/plugin-sdk/setup-tools";
 import { applyQQBotAccountConfig, resolveQQBotAccount } from "../config.js";
 
 type SetupPrompter = Parameters<NonNullable<ChannelSetupWizard["finalize"]>>[0]["prompter"];
 type SetupRuntime = Parameters<NonNullable<ChannelSetupWizard["finalize"]>>[0]["runtime"];
 
-function isQQBotAccountConfigured(cfg: AstroclawConfig, accountId: string): boolean {
+function isQQBotAccountConfigured(cfg: OpenClawConfig, accountId: string): boolean {
   const account = resolveQQBotAccount(cfg, accountId, { allowUnresolvedSecretRef: true });
   return Boolean(account.appId && account.clientSecret);
 }
 
 async function linkViaQrCode(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   prompter: SetupPrompter;
   runtime: SetupRuntime;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   try {
     const { qrConnect } = await import("@tencent-connect/qqbot-connector");
 
     const accounts: { appId: string; appSecret: string }[] = await qrConnect({
-      source: "astroclaw",
+      source: "openclaw",
     });
 
     if (accounts.length === 0) {
@@ -65,10 +66,10 @@ async function linkViaQrCode(params: {
 }
 
 async function linkViaManualInput(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   prompter: SetupPrompter;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const appId = await params.prompter.text({
     message: "请输入 QQ Bot AppID",
     validate: (value: string) => (value.trim() ? undefined : "AppID 不能为空"),
@@ -89,12 +90,12 @@ async function linkViaManualInput(params: {
 }
 
 export async function finalizeQQBotSetup(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   forceAllowFrom: boolean;
   prompter: SetupPrompter;
   runtime: SetupRuntime;
-}): Promise<{ cfg: AstroclawConfig }> {
+}): Promise<{ cfg: OpenClawConfig }> {
   const accountId = params.accountId.trim() || DEFAULT_ACCOUNT_ID;
   let next = params.cfg;
 
@@ -135,7 +136,7 @@ export async function finalizeQQBotSetup(params: {
     });
   } else if (!configured) {
     await params.prompter.note(
-      ["您可以稍后运行以下命令重新选择 QQ Bot 进行配置：", "  astroclaw channels add"].join("\n"),
+      ["您可以稍后运行以下命令重新选择 QQ Bot 进行配置：", "  openclaw channels add"].join("\n"),
       "QQ Bot",
     );
   }
