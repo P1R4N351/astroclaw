@@ -1,4 +1,5 @@
-import { createLegacyPrivateNetworkDoctorContract } from "astroclaw/plugin-sdk/ssrf-runtime";
+// Nextcloud Talk plugin module implements doctor contract behavior.
+import { createLegacyPrivateNetworkDoctorContract } from "openclaw/plugin-sdk/ssrf-runtime";
 
 const contract = createLegacyPrivateNetworkDoctorContract({
   channelKey: "nextcloud-talk",
