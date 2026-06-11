@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Msteams plugin module implements setup core behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   createStandardChannelSetupStatus,
   DEFAULT_ACCOUNT_ID,
@@ -6,8 +7,8 @@ import {
   type ChannelSetupAdapter,
   type ChannelSetupWizard,
   type WizardPrompter,
-} from "astroclaw/plugin-sdk/setup";
-import { formatDocsLink } from "astroclaw/plugin-sdk/setup-tools";
+} from "openclaw/plugin-sdk/setup";
+import { formatDocsLink } from "openclaw/plugin-sdk/setup-tools";
 import { normalizeSecretInputString } from "./secret-input.js";
 import { hasConfiguredMSTeamsCredentials, resolveMSTeamsCredentials } from "./token.js";
 
@@ -105,7 +106,7 @@ export function createMSTeamsSetupWizardBase(): Pick<
         normalizeSecretInputString(process.env.MSTEAMS_TENANT_ID),
       );
 
-      let next: AstroclawConfig = cfg;
+      let next: OpenClawConfig = cfg;
       let appId: string | null = null;
       let appPassword: string | null = null;
       let tenantId: string | null = null;
