@@ -1,7 +1,8 @@
+// Mistral provider module implements model/runtime integration.
 import {
   transcribeOpenAiCompatibleAudio,
   type MediaUnderstandingProvider,
-} from "astroclaw/plugin-sdk/media-understanding";
+} from "openclaw/plugin-sdk/media-understanding";
 
 const DEFAULT_MISTRAL_AUDIO_BASE_URL = "https://api.mistral.ai/v1";
 const DEFAULT_MISTRAL_AUDIO_MODEL = "voxtral-mini-latest";
