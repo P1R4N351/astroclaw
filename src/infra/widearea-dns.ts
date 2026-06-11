@@ -1,15 +1,35 @@
+// Stores and validates wide-area DNS discovery settings.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
 import { CONFIG_DIR, ensureDir } from "../utils.js";
+
+const DNS_LABEL_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
+const MAX_DNS_NAME_LENGTH = 253;
+const INVALID_DOMAIN_ERROR = "wide-area discovery domain must be a valid DNS name";
+
+function normalizedDomainLabels(raw: string): string[] {
+  const trimmed = raw.trim();
+  const withoutTrailingDot = trimmed.endsWith(".") ? trimmed.slice(0, -1) : trimmed;
+  if (!withoutTrailingDot || withoutTrailingDot.length > MAX_DNS_NAME_LENGTH) {
+    throw new Error(INVALID_DOMAIN_ERROR);
+  }
+
+  const labels = withoutTrailingDot.split(".");
+  if (labels.some((label) => !DNS_LABEL_RE.test(label))) {
+    throw new Error(INVALID_DOMAIN_ERROR);
+  }
+  return labels;
+}
 
 export function normalizeWideAreaDomain(raw?: string | null): string | null {
   const trimmed = raw?.trim();
   if (!trimmed) {
     return null;
   }
-  return trimmed.endsWith(".") ? trimmed : `${trimmed}.`;
+  const labels = normalizedDomainLabels(trimmed);
+  return `${labels.join(".")}.`;
 }
 
 export function resolveWideAreaDiscoveryDomain(params?: {
@@ -17,16 +37,30 @@ export function resolveWideAreaDiscoveryDomain(params?: {
   configDomain?: string | null;
 }): string | null {
   const env = params?.env ?? process.env;
-  const candidate = params?.configDomain ?? env.ASTROCLAW_WIDE_AREA_DOMAIN ?? null;
-  return normalizeWideAreaDomain(candidate);
+  const candidate = params?.configDomain ?? env.OPENCLAW_WIDE_AREA_DOMAIN ?? null;
+  try {
+    return normalizeWideAreaDomain(candidate);
+  } catch {
+    return null;
+  }
 }
 
 function zoneFilenameForDomain(domain: string): string {
-  return `${domain.replace(/\.$/, "")}.db`;
+  return `${normalizedDomainLabels(domain).join(".")}.db`;
+}
+
+function assertZonePathUnderDnsDir(zonePath: string, dnsDir: string): void {
+  const relativePath = path.relative(dnsDir, zonePath);
+  if (relativePath === "" || relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    throw new Error("wide-area discovery zone path must stay under DNS config directory");
+  }
 }
 
 export function getWideAreaZonePath(domain: string): string {
-  return path.join(CONFIG_DIR, "dns", zoneFilenameForDomain(domain));
+  const dnsDir = path.resolve(CONFIG_DIR, "dns");
+  const zonePath = path.resolve(dnsDir, zoneFilenameForDomain(domain));
+  assertZonePathUnderDnsDir(zonePath, dnsDir);
+  return zonePath;
 }
 
 function dnsLabel(raw: string, fallback: string): string {
@@ -73,7 +107,7 @@ function extractSerial(zoneText: string): number | null {
 }
 
 function extractContentHash(zoneText: string): string | null {
-  const match = zoneText.match(/^\s*;\s*astroclaw-content-hash:\s*(\S+)\s*$/m);
+  const match = zoneText.match(/^\s*;\s*openclaw-content-hash:\s*(\S+)\s*$/m);
   return match?.[1] ?? null;
 }
 
@@ -95,6 +129,7 @@ export type WideAreaGatewayZoneOpts = {
   tailnetIPv6?: string;
   gatewayTlsEnabled?: boolean;
   gatewayTlsFingerprintSha256?: string;
+  gatewayDirectReachable?: boolean;
   instanceLabel?: string;
   hostLabel?: string;
   tailnetDns?: string;
@@ -103,9 +138,9 @@ export type WideAreaGatewayZoneOpts = {
 };
 
 function renderZone(opts: WideAreaGatewayZoneOpts & { serial: number }): string {
-  const hostname = os.hostname().split(".")[0] ?? "astroclaw";
-  const hostLabel = dnsLabel(opts.hostLabel ?? hostname, "astroclaw");
-  const instanceLabel = dnsLabel(opts.instanceLabel ?? `${hostname}-gateway`, "astroclaw-gw");
+  const hostname = os.hostname().split(".")[0] ?? "openclaw";
+  const hostLabel = dnsLabel(opts.hostLabel ?? hostname, "openclaw");
+  const instanceLabel = dnsLabel(opts.instanceLabel ?? `${hostname}-gateway`, "openclaw-gw");
   const domain = normalizeWideAreaDomain(opts.domain) ?? "local.";
 
   const txt = [
@@ -119,6 +154,9 @@ function renderZone(opts: WideAreaGatewayZoneOpts & { serial: number }): string 
     if (opts.gatewayTlsFingerprintSha256) {
       txt.push(`gatewayTlsSha256=${opts.gatewayTlsFingerprintSha256}`);
     }
+  }
+  if (opts.gatewayDirectReachable) {
+    txt.push(`gatewayDirectReachable=1`);
   }
   if (opts.tailnetDns?.trim()) {
     txt.push(`tailnetDns=${opts.tailnetDns.trim()}`);
@@ -143,9 +181,9 @@ function renderZone(opts: WideAreaGatewayZoneOpts & { serial: number }): string 
     records.push(`${hostLabel} IN AAAA ${opts.tailnetIPv6}`);
   }
 
-  records.push(`_astroclaw-gw._tcp IN PTR ${instanceLabel}._astroclaw-gw._tcp`);
-  records.push(`${instanceLabel}._astroclaw-gw._tcp IN SRV 0 0 ${opts.gatewayPort} ${hostLabel}`);
-  records.push(`${instanceLabel}._astroclaw-gw._tcp IN TXT ${txt.map(txtQuote).join(" ")}`);
+  records.push(`_openclaw-gw._tcp IN PTR ${instanceLabel}._openclaw-gw._tcp`);
+  records.push(`${instanceLabel}._openclaw-gw._tcp IN SRV 0 0 ${opts.gatewayPort} ${hostLabel}`);
+  records.push(`${instanceLabel}._openclaw-gw._tcp IN TXT ${txt.map(txtQuote).join(" ")}`);
 
   const contentBody = `${records.join("\n")}\n`;
   const hashBody = `${records
@@ -155,7 +193,7 @@ function renderZone(opts: WideAreaGatewayZoneOpts & { serial: number }): string 
     .join("\n")}\n`;
   const contentHash = computeContentHash(hashBody);
 
-  return `; astroclaw-content-hash: ${contentHash}\n${contentBody}`;
+  return `; openclaw-content-hash: ${contentHash}\n${contentBody}`;
 }
 
 export function renderWideAreaGatewayZoneText(
@@ -171,6 +209,7 @@ export async function writeWideAreaGatewayZone(
   if (!domain) {
     throw new Error("wide-area discovery domain is required");
   }
+  const normalizedOpts = { ...opts, domain };
   const zonePath = getWideAreaZonePath(domain);
   await ensureDir(path.dirname(zonePath));
 
@@ -182,7 +221,7 @@ export async function writeWideAreaGatewayZone(
     }
   })();
 
-  const nextNoSerial = renderWideAreaGatewayZoneText({ ...opts, serial: 0 });
+  const nextNoSerial = renderWideAreaGatewayZoneText({ ...normalizedOpts, serial: 0 });
   const nextHash = extractContentHash(nextNoSerial);
   const existingHash = existing ? extractContentHash(existing) : null;
 
@@ -192,7 +231,7 @@ export async function writeWideAreaGatewayZone(
 
   const existingSerial = existing ? extractSerial(existing) : null;
   const serial = nextSerial(existingSerial, new Date());
-  const next = renderWideAreaGatewayZoneText({ ...opts, serial });
+  const next = renderWideAreaGatewayZoneText({ ...normalizedOpts, serial });
   fs.writeFileSync(zonePath, next, "utf-8");
   return { zonePath, changed: true };
 }
