@@ -1,4 +1,5 @@
-import type { ChannelConfigUiHint } from "astroclaw/plugin-sdk/channel-core";
+// Slack helper module supports config ui hints behavior.
+import type { ChannelConfigUiHint } from "openclaw/plugin-sdk/channel-core";
 
 export const slackChannelConfigUiHints = {
   "": {
@@ -16,6 +17,22 @@ export const slackChannelConfigUiHints = {
   configWrites: {
     label: "Slack Config Writes",
     help: "Allow Slack to write config in response to channel events/commands (default: true).",
+  },
+  mentionPatterns: {
+    label: "Slack Mention Pattern Policy",
+    help: "Scopes configured groupChat mentionPatterns to selected Slack channel IDs. Native Slack @mentions still trigger even when regex patterns are denied.",
+  },
+  "mentionPatterns.mode": {
+    label: "Slack Mention Pattern Mode",
+    help: '"allow" enables configured regex mention patterns unless denyIn matches; "deny" disables them unless allowIn matches.',
+  },
+  "mentionPatterns.allowIn": {
+    label: "Slack Mention Pattern Allowlist",
+    help: "Slack channel IDs where configured regex mention patterns are enabled when mode is deny.",
+  },
+  "mentionPatterns.denyIn": {
+    label: "Slack Mention Pattern Denylist",
+    help: "Slack channel IDs where configured regex mention patterns are disabled. Native @mentions still trigger.",
   },
   "commands.native": {
     label: "Slack Native Commands",
@@ -55,7 +72,7 @@ export const slackChannelConfigUiHints = {
   },
   "socketMode.clientPingTimeout": {
     label: "Slack Socket Mode Pong Timeout",
-    help: "Milliseconds the Slack SDK waits for a pong after its client ping before treating the websocket as stale (Astroclaw default: 15000). Increase on hosts with event-loop starvation or slow network scheduling.",
+    help: "Milliseconds the Slack SDK waits for a pong after its client ping before treating the websocket as stale (OpenClaw default: 15000). Increase on hosts with event-loop starvation or slow network scheduling.",
   },
   "socketMode.serverPingTimeout": {
     label: "Slack Socket Mode Server Ping Timeout",
@@ -87,7 +104,7 @@ export const slackChannelConfigUiHints = {
   },
   execApprovals: {
     label: "Slack Exec Approvals",
-    help: "Slack-native exec approval routing and approver authorization. When unset, Astroclaw auto-enables DM-first native approvals if approvers can be resolved for this workspace account.",
+    help: "Slack-native exec approval routing and approver authorization. When unset, OpenClaw auto-enables DM-first native approvals if approvers can be resolved for this workspace account.",
   },
   "execApprovals.enabled": {
     label: "Slack Exec Approvals Enabled",
@@ -95,7 +112,7 @@ export const slackChannelConfigUiHints = {
   },
   "execApprovals.approvers": {
     label: "Slack Exec Approval Approvers",
-    help: "Slack user IDs allowed to approve exec requests for this workspace account. Use Slack user IDs or user targets such as `U123`, `user:U123`, or `<@U123>`. If you leave this unset, Astroclaw falls back to commands.ownerAllowFrom when possible.",
+    help: "Slack user IDs allowed to approve exec requests for this workspace account. Use Slack user IDs or user targets such as `U123`, `user:U123`, or `<@U123>`. If you leave this unset, OpenClaw falls back to commands.ownerAllowFrom when possible.",
   },
   "execApprovals.agentFilter": {
     label: "Slack Exec Approval Agent Filter",
@@ -147,15 +164,23 @@ export const slackChannelConfigUiHints = {
   },
   "streaming.progress.labels": {
     label: "Slack Progress Label Pool",
-    help: 'Candidate labels for streaming.progress.label="auto". Leave unset to use Astroclaw built-in progress labels.',
+    help: 'Candidate labels for streaming.progress.label="auto". Leave unset to use OpenClaw built-in progress labels.',
   },
   "streaming.progress.maxLines": {
     label: "Slack Progress Max Lines",
     help: "Maximum number of compact progress lines to keep below the draft label (default: 8).",
   },
+  "streaming.progress.maxLineChars": {
+    label: "Slack Progress Max Line Chars",
+    help: "Maximum characters per compact progress line before truncation (default: 120). Prose cuts at word boundaries; commands and paths keep useful suffixes.",
+  },
   "streaming.progress.render": {
     label: "Slack Progress Renderer",
     help: 'Progress draft renderer: "text" uses one portable text body; "rich" renders structured Slack Block Kit fields with the same text fallback.',
+  },
+  "streaming.progress.nativeTaskCards": {
+    label: "Slack Native Progress Task Cards",
+    help: 'Opt in to Slack native task-card progress updates when channels.slack.streaming.mode="progress" and streaming.nativeTransport is enabled. Default: false.',
   },
   "streaming.progress.toolProgress": {
     label: "Slack Progress Tool Lines",
