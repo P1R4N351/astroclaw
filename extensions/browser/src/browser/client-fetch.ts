@@ -1,6 +1,14 @@
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+/**
+ * Browser control client transport.
+ *
+ * Sends requests to either an absolute HTTP browser-control URL or the local
+ * in-process dispatcher, adding loopback auth and operator-facing diagnostics.
+ */
+import { parseBrowserHttpUrl } from "openclaw/plugin-sdk/browser-config";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { formatCliCommand } from "../cli/command-format.js";
 import { getRuntimeConfig } from "../config/config.js";
 import { isLoopbackHost } from "../gateway/net.js";
@@ -42,7 +50,7 @@ function withLoopbackBrowserAuthImpl(
   deps: LoopbackBrowserAuthDeps,
 ): RequestInit & { timeoutMs?: number } {
   const headers = new Headers(init?.headers ?? {});
-  if (headers.has("authorization") || headers.has("x-astroclaw-password")) {
+  if (headers.has("authorization") || headers.has("x-openclaw-password")) {
     return { ...init, headers };
   }
   if (!isLoopbackHttpUrl(url)) {
@@ -57,7 +65,7 @@ function withLoopbackBrowserAuthImpl(
       return { ...init, headers };
     }
     if (auth.password) {
-      headers.set("x-astroclaw-password", auth.password);
+      headers.set("x-openclaw-password", auth.password);
       return { ...init, headers };
     }
   } catch {
@@ -67,18 +75,12 @@ function withLoopbackBrowserAuthImpl(
   // Sandbox bridge servers can run with per-process ephemeral auth on dynamic ports.
   // Fall back to the in-memory registry if config auth is not available.
   try {
-    const parsed = new URL(url);
-    const port =
-      parsed.port && Number.parseInt(parsed.port, 10) > 0
-        ? Number.parseInt(parsed.port, 10)
-        : parsed.protocol === "https:"
-          ? 443
-          : 80;
+    const { port } = parseBrowserHttpUrl(url, "browser control URL");
     const bridgeAuth = deps.getBridgeAuthForPort(port);
     if (bridgeAuth?.token) {
       headers.set("Authorization", `Bearer ${bridgeAuth.token}`);
     } else if (bridgeAuth?.password) {
-      headers.set("x-astroclaw-password", bridgeAuth.password);
+      headers.set("x-openclaw-password", bridgeAuth.password);
     }
   } catch {
     // ignore
@@ -121,7 +123,7 @@ function resolveDispatcherBrowserControlOwnership(url: string): BrowserControlOw
     if (!profile) {
       return "unknown";
     }
-    return profile.driver === "astroclaw" && profile.cdpIsLoopback && !profile.attachOnly
+    return profile.driver === "openclaw" && profile.cdpIsLoopback && !profile.attachOnly
       ? "local-managed"
       : "external-browser";
   } catch {
@@ -135,13 +137,13 @@ function resolveBrowserFetchOperatorHint(
 ): string {
   if (opts?.ownership === "external-browser") {
     return (
-      "The browser profile is external to Astroclaw; make sure its browser/CDP endpoint " +
-      "is running and reachable. Restarting the Astroclaw gateway will not launch it."
+      "The browser profile is external to OpenClaw; make sure its browser/CDP endpoint " +
+      "is running and reachable. Restarting the OpenClaw gateway will not launch it."
     );
   }
   const isLocal = !isAbsoluteHttp(url);
   return isLocal
-    ? `Restart the Astroclaw gateway (Astroclaw.app menubar, or \`${formatCliCommand("astroclaw gateway")}\`).`
+    ? `Restart the OpenClaw gateway (OpenClaw.app menubar, or \`${formatCliCommand("openclaw gateway")}\`).`
     : "If this is a sandboxed session, ensure the sandbox browser is running.";
 }
 
@@ -161,6 +163,10 @@ function appendBrowserToolModelHint(message: string): string {
 }
 
 type BrowserFetchFailureKind = "timeout" | "aborted" | "persistent";
+
+function resolveBrowserFetchTimeoutMs(timeoutMs: number | undefined): number {
+  return resolveTimerTimeoutMs(timeoutMs, 5000);
+}
 
 function classifyBrowserFetchFailure(err: unknown): BrowserFetchFailureKind {
   const msg = normalizeErrorMessage(err);
@@ -206,7 +212,7 @@ function enhanceBrowserFetchError(url: string, err: unknown, timeoutMs: number):
   const kind = classifyBrowserFetchFailure(err);
   if (kind === "timeout") {
     return new Error(
-      `Can't reach the Astroclaw browser control service (timed out after ${timeoutMs}ms). ${operatorHint}`,
+      `Can't reach the OpenClaw browser control service (timed out after ${timeoutMs}ms). ${operatorHint}`,
       err instanceof Error ? { cause: err } : undefined,
     );
   }
@@ -218,7 +224,7 @@ function enhanceBrowserFetchError(url: string, err: unknown, timeoutMs: number):
   }
   return new Error(
     appendBrowserToolModelHint(
-      `Can't reach the Astroclaw browser control service. ${operatorHint} (${msg})`,
+      `Can't reach the OpenClaw browser control service. ${operatorHint} (${msg})`,
     ),
     err instanceof Error ? { cause: err } : undefined,
   );
@@ -228,7 +234,7 @@ async function fetchHttpJson<T>(
   url: string,
   init: RequestInit & { timeoutMs?: number },
 ): Promise<T> {
-  const timeoutMs = init.timeoutMs ?? 5000;
+  const timeoutMs = resolveBrowserFetchTimeoutMs(init.timeoutMs);
   const ctrl = new AbortController();
   const upstreamSignal = init.signal;
   let upstreamAbortListener: (() => void) | undefined;
@@ -274,11 +280,12 @@ async function fetchHttpJson<T>(
   }
 }
 
+/** Fetch JSON from browser control over HTTP or local dispatcher transport. */
 export async function fetchBrowserJson<T>(
   url: string,
   init?: RequestInit & { timeoutMs?: number },
 ): Promise<T> {
-  const timeoutMs = init?.timeoutMs ?? 5000;
+  const timeoutMs = resolveBrowserFetchTimeoutMs(init?.timeoutMs);
   let isDispatcherPath = false;
   try {
     if (isAbsoluteHttp(url)) {
@@ -315,9 +322,17 @@ export async function fetchBrowserJson<T>(
 
     let abortListener: (() => void) | undefined;
     const abortPromise: Promise<never> = abortCtrl.signal.aborted
-      ? Promise.reject(abortCtrl.signal.reason ?? new Error("aborted"))
+      ? Promise.reject(
+          toLintErrorObject(abortCtrl.signal.reason ?? new Error("aborted"), "Non-Error rejection"),
+        )
       : new Promise((_, reject) => {
-          abortListener = () => reject(abortCtrl.signal.reason ?? new Error("aborted"));
+          abortListener = () =>
+            reject(
+              toLintErrorObject(
+                abortCtrl.signal.reason ?? new Error("aborted"),
+                "Non-Error rejection",
+              ),
+            );
           abortCtrl.signal.addEventListener("abort", abortListener, { once: true });
         });
 
@@ -378,6 +393,22 @@ export async function fetchBrowserJson<T>(
   }
 }
 
-export const __test = {
+/** Focused test hooks for browser client transport internals. */
+export const testApi = {
   withLoopbackBrowserAuth: withLoopbackBrowserAuthImpl,
 };
+export { testApi as __test };
+
+function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
+  if (value instanceof Error) {
+    return value;
+  }
+  if (typeof value === "string") {
+    return new Error(value);
+  }
+  const error = new Error(fallbackMessage, { cause: value });
+  if ((typeof value === "object" && value !== null) || typeof value === "function") {
+    Object.assign(error, value);
+  }
+  return error;
+}
