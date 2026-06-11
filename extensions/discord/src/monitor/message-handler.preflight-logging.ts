@@ -1,5 +1,6 @@
-import { logDebug } from "astroclaw/plugin-sdk/logging-core";
-import { logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Discord plugin module implements message handler.preflight logging behavior.
+import { logDebug } from "openclaw/plugin-sdk/logging-core";
+import { logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
 import type { DiscordChannelConfigResolved } from "./allow-list.js";
 
 export function logDiscordPreflightChannelConfig(params: {
