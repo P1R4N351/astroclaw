@@ -1,9 +1,10 @@
+// Normalizes config version metadata and compatibility comparisons.
 import {
   comparePrereleaseIdentifiers,
   normalizeLegacyDotBetaVersion,
 } from "../infra/semver-compare.js";
 
-type AstroclawVersion = {
+type OpenClawVersion = {
   major: number;
   minor: number;
   patch: number;
@@ -13,7 +14,8 @@ type AstroclawVersion = {
 
 const VERSION_RE = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 
-export function parseAstroclawVersion(raw: string | null | undefined): AstroclawVersion | null {
+/** Parses stable, prerelease, and legacy dot-beta OpenClaw versions. */
+export function parseOpenClawVersion(raw: string | null | undefined): OpenClawVersion | null {
   if (!raw) {
     return null;
   }
@@ -33,20 +35,20 @@ export function parseAstroclawVersion(raw: string | null | undefined): Astroclaw
   };
 }
 
-export function normalizeAstroclawVersionBase(raw: string | null | undefined): string | null {
-  const parsed = parseAstroclawVersion(raw);
+export function normalizeOpenClawVersionBase(raw: string | null | undefined): string | null {
+  const parsed = parseOpenClawVersion(raw);
   if (!parsed) {
     return null;
   }
   return `${parsed.major}.${parsed.minor}.${parsed.patch}`;
 }
 
-export function isSameAstroclawStableFamily(
+export function isSameOpenClawStableFamily(
   a: string | null | undefined,
   b: string | null | undefined,
 ): boolean {
-  const parsedA = parseAstroclawVersion(a);
-  const parsedB = parseAstroclawVersion(b);
+  const parsedA = parseOpenClawVersion(a);
+  const parsedB = parseOpenClawVersion(b);
   if (!parsedA || !parsedB) {
     return false;
   }
@@ -60,12 +62,12 @@ export function isSameAstroclawStableFamily(
   );
 }
 
-export function compareAstroclawVersions(
+export function compareOpenClawVersions(
   a: string | null | undefined,
   b: string | null | undefined,
 ): number | null {
-  const parsedA = parseAstroclawVersion(a);
-  const parsedB = parseAstroclawVersion(b);
+  const parsedA = parseOpenClawVersion(a);
+  const parsedB = parseOpenClawVersion(b);
   if (!parsedA || !parsedB) {
     return null;
   }
@@ -104,8 +106,8 @@ export function shouldWarnOnTouchedVersion(
   current: string | null | undefined,
   touched: string | null | undefined,
 ): boolean {
-  const parsedCurrent = parseAstroclawVersion(current);
-  const parsedTouched = parseAstroclawVersion(touched);
+  const parsedCurrent = parseOpenClawVersion(current);
+  const parsedTouched = parseOpenClawVersion(touched);
   if (
     parsedCurrent &&
     parsedTouched &&
@@ -117,14 +119,14 @@ export function shouldWarnOnTouchedVersion(
       return false;
     }
   }
-  if (isSameAstroclawStableFamily(current, touched)) {
+  if (isSameOpenClawStableFamily(current, touched)) {
     return false;
   }
-  const cmp = compareAstroclawVersions(current, touched);
+  const cmp = compareOpenClawVersions(current, touched);
   return cmp !== null && cmp < 0;
 }
 
-function releaseRank(version: AstroclawVersion): number {
+function releaseRank(version: OpenClawVersion): number {
   if (version.prerelease?.length) {
     return 0;
   }
