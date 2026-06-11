@@ -1,3 +1,4 @@
+// Relaunches the gateway through the managed Windows scheduled task.
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -8,7 +9,7 @@ import { renderCmdRestartLogSetup } from "../daemon/restart-logs.js";
 import { resolveTaskScriptPath } from "../daemon/schtasks.js";
 import { formatErrorMessage } from "./errors.js";
 import type { RestartAttempt } from "./restart.types.js";
-import { resolvePreferredAstroclawTmpDir } from "./tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
 
 const TASK_RESTART_RETRY_LIMIT = 12;
 const TASK_RESTART_RETRY_DELAY_SEC = 1;
@@ -18,11 +19,11 @@ function quotePowerShellSingleQuotedLiteral(value: string): string {
 }
 
 function resolveWindowsTaskName(env: NodeJS.ProcessEnv): string {
-  const override = env.ASTROCLAW_WINDOWS_TASK_NAME?.trim();
+  const override = env.OPENCLAW_WINDOWS_TASK_NAME?.trim();
   if (override) {
     return override;
   }
-  return resolveGatewayWindowsTaskName(env.ASTROCLAW_PROFILE);
+  return resolveGatewayWindowsTaskName(env.OPENCLAW_PROFILE);
 }
 
 function buildScheduledTaskRestartScript(params: {
@@ -41,7 +42,7 @@ function buildScheduledTaskRestartScript(params: {
     "@echo off",
     "setlocal",
     ...setupLines,
-    `>> ${quotedLogPath} 2>&1 echo [%DATE% %TIME%] astroclaw restart attempt source=windows-task-handoff target=${quotedTaskName}`,
+    `>> ${quotedLogPath} 2>&1 echo [%DATE% %TIME%] openclaw restart attempt source=windows-task-handoff target=${quotedTaskName}`,
     `schtasks /Query /TN ${quotedTaskName} >> ${quotedLogPath} 2>&1`,
     "if errorlevel 1 goto fallback",
     "set /a attempts=0",
@@ -56,7 +57,7 @@ function buildScheduledTaskRestartScript(params: {
     `if %attempts% GEQ ${TASK_RESTART_RETRY_LIMIT} goto fallback`,
     "goto retry",
     ":fallback",
-    `>> ${quotedLogPath} 2>&1 echo [%DATE% %TIME%] astroclaw restart fallback source=windows-task-handoff`,
+    `>> ${quotedLogPath} 2>&1 echo [%DATE% %TIME%] openclaw restart fallback source=windows-task-handoff`,
   ];
   if (taskScriptPath) {
     const quotedScript = quoteCmdScriptArg(taskScriptPath);
@@ -64,7 +65,7 @@ function buildScheduledTaskRestartScript(params: {
   }
   lines.push(
     ":cleanup",
-    `>> ${quotedLogPath} 2>&1 echo [%DATE% %TIME%] astroclaw restart finished source=windows-task-handoff`,
+    `>> ${quotedLogPath} 2>&1 echo [%DATE% %TIME%] openclaw restart finished source=windows-task-handoff`,
     'del "%~f0" >nul 2>&1',
   );
   return lines.join("\r\n");
@@ -74,8 +75,8 @@ export function relaunchGatewayScheduledTask(env: NodeJS.ProcessEnv = process.en
   const taskName = resolveWindowsTaskName(env);
   const taskScriptPath = resolveTaskScriptPath(env);
   const scriptPath = path.join(
-    resolvePreferredAstroclawTmpDir(),
-    `astroclaw-schtasks-restart-${randomUUID()}.cmd`,
+    resolvePreferredOpenClawTmpDir(),
+    `openclaw-schtasks-restart-${randomUUID()}.cmd`,
   );
   const quotedScriptPath = quoteCmdScriptArg(scriptPath);
   const restartLog = renderCmdRestartLogSetup({ ...process.env, ...env });
