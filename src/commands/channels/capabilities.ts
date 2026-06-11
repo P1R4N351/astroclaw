@@ -1,3 +1,9 @@
+// Implements `openclaw channels capabilities` account capability/probe reporting.
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
+import { theme } from "../../../packages/terminal-core/src/theme.js";
 import { resolveChannelDefaultAccountId } from "../../channels/plugins/helpers.js";
 import {
   createMessageActionDiscoveryContext,
@@ -12,21 +18,17 @@ import type {
 } from "../../channels/plugins/types.public.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import { formatUnknownChannelMessage } from "../../cli/error-format.js";
+import { parseTimeoutMsWithFallback } from "../../cli/parse-timeout.js";
 import { commitConfigWithPendingPluginInstalls } from "../../cli/plugins-install-record-commit.js";
 import { refreshPluginRegistryAfterConfigMutation } from "../../cli/plugins-registry-refresh.js";
 import {
   readConfigFileSnapshot,
   replaceConfigFile,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "../../config/config.js";
 import { danger } from "../../globals.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { defaultRuntime, type RuntimeEnv, writeRuntimeJson } from "../../runtime.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalString,
-} from "../../shared/string-coerce.js";
-import { theme } from "../../terminal/theme.js";
 import { resolveInstallableChannelPlugin } from "../channel-setup/channel-plugin-resolution.js";
 import { formatChannelAccountLabel, requireValidConfig } from "./shared.js";
 
@@ -50,14 +52,6 @@ type ChannelCapabilitiesReport = {
   probe?: unknown;
   diagnostics?: ChannelCapabilitiesDiagnostics;
 };
-
-function normalizeTimeout(raw: unknown, fallback = 10_000) {
-  const value = typeof raw === "string" ? Number(raw) : Number(raw);
-  if (!Number.isFinite(value) || value <= 0) {
-    return fallback;
-  }
-  return value;
-}
 
 function formatSupport(capabilities?: ChannelCapabilities) {
   if (!capabilities) {
@@ -137,7 +131,7 @@ function renderDisplayLine(line: ChannelCapabilitiesDisplayLine) {
 
 async function resolveChannelReports(params: {
   plugin: ChannelPlugin;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   timeoutMs: number;
   accountOverride?: string;
   target?: string;
@@ -216,6 +210,7 @@ async function resolveChannelReports(params: {
   return reports;
 }
 
+/** Print or serialize configured channel capabilities, actions, and optional health probe details. */
 export async function channelsCapabilitiesCommand(
   opts: ChannelsCapabilitiesOptions,
   runtime: RuntimeEnv = defaultRuntime,
@@ -226,14 +221,14 @@ export async function channelsCapabilitiesCommand(
     return;
   }
   let cfg = loadedCfg;
-  const timeoutMs = normalizeTimeout(opts.timeout, 10_000);
+  const timeoutMs = parseTimeoutMsWithFallback(opts.timeout, 10_000);
   const rawChannel = normalizeLowercaseStringOrEmpty(opts.channel);
   const rawTarget = normalizeOptionalString(opts.target) ?? "";
 
   if (opts.account && (!rawChannel || rawChannel === "all")) {
     runtime.error(
       danger(
-        `--account requires a specific --channel. Run ${formatCliCommand("astroclaw channels list")} to choose one.`,
+        `--account requires a specific --channel. Run ${formatCliCommand("openclaw channels list")} to choose one.`,
       ),
     );
     runtime.exit(1);
@@ -242,7 +237,7 @@ export async function channelsCapabilitiesCommand(
   if (rawTarget && (!rawChannel || rawChannel === "all")) {
     runtime.error(
       danger(
-        `--target requires a specific --channel. Run ${formatCliCommand("astroclaw channels list")} to choose one.`,
+        `--target requires a specific --channel. Run ${formatCliCommand("openclaw channels list")} to choose one.`,
       ),
     );
     runtime.exit(1);
@@ -297,6 +292,20 @@ export async function channelsCapabilitiesCommand(
         })();
 
   if (!selected || selected.length === 0) {
+    if (!rawChannel || rawChannel === "all") {
+      if (opts.json) {
+        writeRuntimeJson(runtime, { channels: [] });
+        return;
+      }
+      runtime.log(
+        theme.muted(
+          `No configured channel capabilities found. Run ${formatCliCommand(
+            "openclaw channels list --all",
+          )} to see available channels.`,
+        ),
+      );
+      return;
+    }
     runtime.error(danger(formatUnknownChannelMessage({ channel: rawChannel })));
     runtime.exit(1);
     return;
