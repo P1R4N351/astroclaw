@@ -1,4 +1,5 @@
 #!/usr/bin/env -S node --import tsx
+// Rtt script supports OpenClaw repository automation.
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
@@ -13,7 +14,7 @@ import {
   resolveMainVersion,
   resolvePublishedVersion,
   runHarness,
-  validateAstroclawPackageSpec,
+  validateOpenClawPackageSpec,
   writeJson,
   parseRttCredentialRole,
   parseRttCredentialSource,
@@ -30,13 +31,13 @@ const DEFAULT_SAMPLE_TIMEOUT_MS = 30_000;
 
 function usage() {
   return [
-    "Usage: pnpm rtt <astroclaw@spec> [--package-tgz PATH] [--provider mock-openai|live-frontier] [--credential-source env|convex] [--credential-role maintainer|ci] [--runs N] [--samples N] [--sample-timeout-ms N] [--timeout-ms N] [--harness-root PATH] [--output PATH]",
+    "Usage: pnpm rtt <openclaw@spec> [--package-tgz PATH] [--provider mock-openai|live-frontier] [--credential-source env|convex] [--credential-role maintainer|ci] [--runs N] [--samples N] [--sample-timeout-ms N] [--timeout-ms N] [--harness-root PATH] [--output PATH]",
     "",
     "Examples:",
-    "  pnpm rtt astroclaw@main --package-tgz .artifacts/package/astroclaw.tgz",
-    "  pnpm rtt astroclaw@beta",
-    "  pnpm rtt astroclaw@2026.4.30",
-    "  pnpm rtt astroclaw@latest --provider live-frontier",
+    "  pnpm rtt openclaw@main --package-tgz .artifacts/package/openclaw.tgz",
+    "  pnpm rtt openclaw@beta",
+    "  pnpm rtt openclaw@2026.4.30",
+    "  pnpm rtt openclaw@latest --provider live-frontier",
   ].join("\n");
 }
 
@@ -63,6 +64,14 @@ function resolveHome(input: string) {
     return path.join(process.env.HOME ?? "~", input.slice(2));
   }
   return input;
+}
+
+function readRequiredPathArg(argv: string[], index: number, flag: string) {
+  const value = argv[index + 1] ?? "";
+  if (!value.trim() || value.startsWith("--")) {
+    throw new Error(`${flag} requires a path.`);
+  }
+  return value;
 }
 
 function parseArgs(argv: string[]) {
@@ -97,10 +106,8 @@ function parseArgs(argv: string[]) {
       continue;
     }
     if (arg === "--package-tgz") {
-      const value = argv[++index] ?? "";
-      if (!value.trim()) {
-        throw new Error("--package-tgz requires a path.");
-      }
+      const value = readRequiredPathArg(argv, index, "--package-tgz");
+      index += 1;
       packageTgz = path.resolve(resolveHome(value));
       continue;
     }
@@ -117,10 +124,8 @@ function parseArgs(argv: string[]) {
       continue;
     }
     if (arg === "--harness-root") {
-      harnessRoot = argv[++index] ?? "";
-      if (!harnessRoot.trim()) {
-        throw new Error("--harness-root requires a path.");
-      }
+      harnessRoot = readRequiredPathArg(argv, index, "--harness-root");
+      index += 1;
       continue;
     }
     if (arg === "--timeout-ms") {
@@ -128,10 +133,8 @@ function parseArgs(argv: string[]) {
       continue;
     }
     if (arg === "--output") {
-      output = argv[++index] ?? "";
-      if (!output.trim()) {
-        throw new Error("--output requires a path.");
-      }
+      output = readRequiredPathArg(argv, index, "--output");
+      index += 1;
       continue;
     }
     if (arg.startsWith("--")) {
@@ -148,7 +151,7 @@ function parseArgs(argv: string[]) {
   }
 
   return {
-    spec: validateAstroclawPackageSpec(spec),
+    spec: validateOpenClawPackageSpec(spec),
     options: {
       packageTgz,
       credentialRole,
@@ -239,11 +242,11 @@ async function main() {
   });
   await assertHarnessRoot(options.harnessRoot);
   await assertDockerAvailable();
-  if (spec === "astroclaw@main" && !options.packageTgz) {
-    throw new Error("astroclaw@main requires --package-tgz.");
+  if (spec === "openclaw@main" && !options.packageTgz) {
+    throw new Error("openclaw@main requires --package-tgz.");
   }
   const version =
-    spec === "astroclaw@main"
+    spec === "openclaw@main"
       ? await resolveMainVersion(options.harnessRoot)
       : await resolvePublishedVersion(spec);
   let failed = false;
@@ -257,16 +260,17 @@ async function main() {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
+  main().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`[rtt] ${message}\n`);
     process.exitCode = 1;
   });
 }
 
-export const __testing = {
+export const testing = {
   parseArgs,
   parseProviderMode,
   parsePositiveInt,
   resolveHome,
 };
+export { testing as __testing };
