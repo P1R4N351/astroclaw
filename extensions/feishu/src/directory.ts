@@ -1,4 +1,5 @@
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Feishu plugin module implements directory behavior.
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { ClawdbotConfig } from "../runtime-api.js";
 import { resolveFeishuAccount } from "./accounts.js";
 import { createFeishuClient } from "./client.js";
