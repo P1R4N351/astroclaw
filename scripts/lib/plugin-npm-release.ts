@@ -1,11 +1,12 @@
+// Plugin Npm Release script supports OpenClaw repository automation.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { normalizeOptionalString } from "../../packages/normalization-core/src/string-coerce.js";
 import { validateExternalCodePluginPackageJson } from "../../packages/plugin-package-contract/src/index.ts";
-import { normalizeOptionalString } from "../../src/shared/string-coerce.ts";
-import { parseReleaseVersion } from "../astroclaw-npm-release-check.ts";
-import { resolveNpmPublishPlan } from "./npm-publish-plan.mjs";
+import { parseReleaseVersion } from "../openclaw-npm-release-check.ts";
+import { collectReleaseVersionFloorErrors, resolveNpmPublishPlan } from "./npm-publish-plan.mjs";
 
 export type PluginPackageJson = {
   name?: string;
@@ -17,7 +18,7 @@ export type PluginPackageJson = {
         type?: string;
         url?: string;
       };
-  astroclaw?: {
+  openclaw?: {
     extensions?: string[];
     install?: {
       defaultChoice?: string;
@@ -29,7 +30,7 @@ export type PluginPackageJson = {
       minGatewayVersion?: string;
     };
     build?: {
-      astroclawVersion?: string;
+      openclawVersion?: string;
       pluginSdkVersion?: string;
     };
     release?: {
@@ -81,13 +82,10 @@ export type PublishablePluginPackageCandidate<
   packageJson: TPackageJson;
 };
 
-export const ASTROCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/astroclaw/astroclaw";
+export const OPENCLAW_PLUGIN_NPM_REPOSITORY_URL = "https://github.com/openclaw/openclaw";
 
-// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Release helper preserves caller-specific package.json shape.
-function readPluginPackageJson<TPackageJson extends PluginPackageJson = PluginPackageJson>(
-  path: string,
-): TPackageJson {
-  return JSON.parse(readFileSync(path, "utf8")) as TPackageJson;
+function readPluginPackageJson(path: string): unknown {
+  return JSON.parse(readFileSync(path, "utf8"));
 }
 
 export function collectExtensionPackageJsonCandidates<
@@ -107,7 +105,7 @@ export function collectExtensionPackageJsonCandidates<
       candidates.push({
         extensionId: dir.name,
         packageDir,
-        packageJson: readPluginPackageJson<TPackageJson>(packageJsonPath),
+        packageJson: readPluginPackageJson(packageJsonPath) as TPackageJson,
       });
     } catch {
       continue;
@@ -126,7 +124,7 @@ export function resolvePublishablePluginVersion(params: {
   const parsedVersion = parseReleaseVersion(version);
   if (parsedVersion === null) {
     params.validationErrors.push(
-      `${params.extensionId}: package.json version must match YYYY.M.D, YYYY.M.D-N, YYYY.M.D-alpha.N, or YYYY.M.D-beta.N; found "${version}".`,
+      `${params.extensionId}: package.json version must match YYYY.M.PATCH, YYYY.M.PATCH-N, YYYY.M.PATCH-alpha.N, or YYYY.M.PATCH-beta.N; found "${version}".`,
     );
     return null;
   }
@@ -229,41 +227,41 @@ export function collectPublishablePluginPackageErrors(
   const errors: string[] = [];
   const packageName = packageJson.name?.trim() ?? "";
   const packageVersion = packageJson.version?.trim() ?? "";
-  const installNpmSpec = normalizeOptionalString(packageJson.astroclaw?.install?.npmSpec);
+  const installNpmSpec = normalizeOptionalString(packageJson.openclaw?.install?.npmSpec);
   const repositoryUrl =
     typeof packageJson.repository === "string"
       ? packageJson.repository.trim()
       : (packageJson.repository?.url?.trim() ?? "");
-  const extensions = packageJson.astroclaw?.extensions ?? [];
+  const extensions = packageJson.openclaw?.extensions ?? [];
 
-  if (!packageName.startsWith("@astroclaw/")) {
+  if (!packageName.startsWith("@openclaw/")) {
     errors.push(
-      `package name must start with "@astroclaw/"; found "${packageName || "<missing>"}".`,
+      `package name must start with "@openclaw/"; found "${packageName || "<missing>"}".`,
     );
   }
   if (packageJson.private === true) {
     errors.push("package.json private must not be true.");
   }
-  if (repositoryUrl !== ASTROCLAW_PLUGIN_NPM_REPOSITORY_URL) {
+  if (repositoryUrl !== OPENCLAW_PLUGIN_NPM_REPOSITORY_URL) {
     errors.push(
-      `package.json repository.url must be "${ASTROCLAW_PLUGIN_NPM_REPOSITORY_URL}" so npm provenance can validate GitHub trusted publishing; found "${repositoryUrl || "<missing>"}".`,
+      `package.json repository.url must be "${OPENCLAW_PLUGIN_NPM_REPOSITORY_URL}" so npm provenance can validate GitHub trusted publishing; found "${repositoryUrl || "<missing>"}".`,
     );
   }
   if (!packageVersion) {
     errors.push("package.json version must be non-empty.");
   } else if (parseReleaseVersion(packageVersion) === null) {
     errors.push(
-      `package.json version must match YYYY.M.D, YYYY.M.D-N, YYYY.M.D-alpha.N, or YYYY.M.D-beta.N; found "${packageVersion}".`,
+      `package.json version must match YYYY.M.PATCH, YYYY.M.PATCH-N, YYYY.M.PATCH-alpha.N, or YYYY.M.PATCH-beta.N; found "${packageVersion}".`,
     );
   }
   if (!Array.isArray(extensions) || extensions.length === 0) {
-    errors.push("astroclaw.extensions must contain at least one entry.");
+    errors.push("openclaw.extensions must contain at least one entry.");
   }
   if (extensions.some((entry) => typeof entry !== "string" || !entry.trim())) {
-    errors.push("astroclaw.extensions must contain only non-empty strings.");
+    errors.push("openclaw.extensions must contain only non-empty strings.");
   }
   if (!installNpmSpec) {
-    errors.push("astroclaw.install.npmSpec must be a non-empty string for publishable plugins.");
+    errors.push("openclaw.install.npmSpec must be a non-empty string for publishable plugins.");
   }
   errors.push(
     ...validateExternalCodePluginPackageJson(packageJson).issues.map((issue) => issue.message),
@@ -297,7 +295,7 @@ export function collectPublishablePluginPackages(
     if (hasSelectedPackageNames && !selectedPackageNames.has(packageName)) {
       continue;
     }
-    if (packageJson.astroclaw?.release?.publishToNpm !== true) {
+    if (packageJson.openclaw?.release?.publishToNpm !== true) {
       continue;
     }
 
@@ -324,7 +322,7 @@ export function collectPublishablePluginPackages(
       version,
       channel: parsedVersion.channel,
       publishTag: resolveNpmPublishPlan(version).publishTag,
-      installNpmSpec: normalizeOptionalString(packageJson.astroclaw?.install?.npmSpec),
+      installNpmSpec: normalizeOptionalString(packageJson.openclaw?.install?.npmSpec),
     });
   }
 
@@ -467,8 +465,33 @@ export function resolveChangedPublishablePluginPackages(params: {
   return params.plugins.filter((plugin) => changed.has(plugin.extensionId));
 }
 
+export function collectPluginReleaseVersionFloorErrors(
+  plugins: readonly Pick<PublishablePluginPackage, "packageName" | "version">[],
+): string[] {
+  return plugins.flatMap((plugin) =>
+    collectReleaseVersionFloorErrors(plugin.version).map(
+      (error) => `${plugin.packageName}@${plugin.version}: ${error}`,
+    ),
+  );
+}
+
+export function assertPluginReleaseVersionFloors(
+  plugins: readonly Pick<PublishablePluginPackage, "packageName" | "version">[],
+  label: string,
+): void {
+  const errors = collectPluginReleaseVersionFloorErrors(plugins);
+  if (errors.length === 0) {
+    return;
+  }
+  throw new Error(
+    `${label} rejected plugin versions below the release floor:\n${errors
+      .map((error) => `- ${error}`)
+      .join("\n")}`,
+  );
+}
+
 function isPluginVersionPublished(packageName: string, version: string): boolean {
-  const tempDir = mkdtempSync(join(tmpdir(), "astroclaw-plugin-npm-view-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "openclaw-plugin-npm-view-"));
   const userconfigPath = join(tempDir, "npmrc");
   writeFileSync(userconfigPath, "");
 
@@ -522,6 +545,12 @@ export function collectPluginReleasePlan(params?: {
               changedExtensionIds,
             })
           : allPublishable;
+
+  const explicitPublishSelection =
+    params?.selectionMode !== undefined || (params?.selection?.length ?? 0) > 0;
+  if (explicitPublishSelection) {
+    assertPluginReleaseVersionFloors(selectedPublishable, "Plugin NPM release plan");
+  }
 
   const all = selectedPublishable.map((plugin) =>
     Object.assign({}, plugin, {
