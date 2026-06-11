@@ -1,3 +1,4 @@
+// Shared gateway CLI helpers for supervised-service stop guidance.
 import {
   resolveGatewayLaunchAgentLabel,
   resolveGatewaySystemdServiceName,
@@ -8,31 +9,32 @@ import { defaultRuntime } from "../../runtime.js";
 import { formatCliCommand } from "../command-format.js";
 
 function renderGatewayServiceStopHints(env: NodeJS.ProcessEnv = process.env): string[] {
-  const profile = env.ASTROCLAW_PROFILE;
+  const profile = env.OPENCLAW_PROFILE;
   switch (process.platform) {
     case "darwin":
       return [
-        `Tip: ${formatCliCommand("astroclaw gateway stop")}`,
+        `Tip: ${formatCliCommand("openclaw gateway stop")}`,
         `Or: launchctl bootout gui/$UID/${resolveGatewayLaunchAgentLabel(profile)}`,
       ];
     case "linux":
       return [
-        `Tip: ${formatCliCommand("astroclaw gateway stop")}`,
+        `Tip: ${formatCliCommand("openclaw gateway stop")}`,
         `Or: systemctl --user stop ${resolveGatewaySystemdServiceName(profile)}.service`,
       ];
     case "win32":
       return [
-        `Tip: ${formatCliCommand("astroclaw gateway stop")}`,
+        `Tip: ${formatCliCommand("openclaw gateway stop")}`,
         `Or: schtasks /End /TN "${resolveGatewayWindowsTaskName(profile)}"`,
       ];
     default:
-      return [`Tip: ${formatCliCommand("astroclaw gateway stop")}`];
+      return [`Tip: ${formatCliCommand("openclaw gateway stop")}`];
   }
 }
 
 export async function maybeExplainGatewayServiceStop() {
+  // Direct `gateway run` should not race a managed service on the same port.
   const service = resolveGatewayService();
-  let loaded: boolean | null = null;
+  let loaded: boolean | null;
   try {
     loaded = await service.isLoaded({ env: process.env });
   } catch {
