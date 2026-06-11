@@ -1,5 +1,6 @@
+// Creates channel-native approval runtimes and delivery flows.
 import type { ChannelApprovalNativeAdapter } from "../channels/plugins/approval-native.types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   resolveChannelNativeApprovalDeliveryPlan,
   type ChannelApprovalNativePlannedTarget,
@@ -34,12 +35,13 @@ type ChannelNativeApprovalPlanDeliveryResult<TPendingEntry> = {
   deliveredTargets: ChannelApprovalNativePlannedTarget[];
 };
 
+/** Delivers an approval request to the adapter-planned native targets and returns pending entries. */
 export async function deliverApprovalRequestViaChannelNativePlan<
   TPreparedTarget,
   TPendingEntry,
   TRequest extends ApprovalRequest = ApprovalRequest,
 >(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   approvalKind: ChannelApprovalKind;
   request: TRequest;
@@ -93,6 +95,7 @@ export async function deliverApprovalRequestViaChannelNativePlan<
       if (!preparedTarget) {
         continue;
       }
+      // Dedupe after preparation because different surfaces can converge on the same message target.
       if (deliveredKeys.has(preparedTarget.dedupeKey)) {
         params.onDuplicateSkipped?.({
           plannedTarget,
@@ -170,6 +173,7 @@ type ChannelNativeApprovalRuntimeAdapter<
     onStopped?: () => Promise<void> | void;
   };
 
+/** Creates the shared gateway approval runtime backed by channel-native delivery hooks. */
 export function createChannelNativeApprovalRuntime<
   TPendingEntry,
   TPreparedTarget,
@@ -266,49 +270,49 @@ export function createChannelNativeApprovalRuntime<
           approvalKind,
           request,
           adapter: adapter.nativeAdapter,
-          prepareTarget: async ({ plannedTarget, request }) =>
+          prepareTarget: async ({ plannedTarget, request: requestCandidate }) =>
             await adapter.prepareTarget({
               plannedTarget,
-              request,
+              request: requestCandidate,
               approvalKind,
               pendingContent,
             }),
-          deliverTarget: async ({ plannedTarget, preparedTarget, request }) =>
+          deliverTarget: async ({ plannedTarget, preparedTarget, request: requestEntry }) =>
             await adapter.deliverTarget({
               plannedTarget,
               preparedTarget,
-              request,
+              request: requestEntry,
               approvalKind,
               pendingContent,
             }),
           onDeliveryError: adapter.onDeliveryError
-            ? ({ error, plannedTarget, request }) => {
+            ? ({ error, plannedTarget, request: requestResult }) => {
                 adapter.onDeliveryError?.({
                   error,
                   plannedTarget,
-                  request,
+                  request: requestResult,
                   approvalKind,
                   pendingContent,
                 });
               }
             : undefined,
           onDuplicateSkipped: adapter.onDuplicateSkipped
-            ? ({ plannedTarget, preparedTarget, request }) => {
+            ? ({ plannedTarget, preparedTarget, request: requestValue }) => {
                 adapter.onDuplicateSkipped?.({
                   plannedTarget,
                   preparedTarget,
-                  request,
+                  request: requestValue,
                   approvalKind,
                   pendingContent,
                 });
               }
             : undefined,
           onDelivered: adapter.onDelivered
-            ? ({ plannedTarget, preparedTarget, request, entry }) => {
+            ? ({ plannedTarget, preparedTarget, request: requestLocal, entry }) => {
                 adapter.onDelivered?.({
                   plannedTarget,
                   preparedTarget,
-                  request,
+                  request: requestLocal,
                   approvalKind,
                   pendingContent,
                   entry,
