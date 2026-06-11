@@ -1,13 +1,14 @@
+// Slack plugin module implements approval auth behavior.
 import {
   createResolvedApproverActionAuthAdapter,
   resolveApprovalApprovers,
-} from "astroclaw/plugin-sdk/approval-auth-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/approval-auth-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { resolveSlackAccount, resolveSlackAccountAllowFrom } from "./accounts.js";
 import { normalizeSlackApproverId } from "./exec-approvals.js";
 
-function getSlackApprovalApprovers(params: {
-  cfg: AstroclawConfig;
+export function getSlackApprovalApprovers(params: {
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): string[] {
   const account = resolveSlackAccount(params).config;
@@ -20,7 +21,7 @@ function getSlackApprovalApprovers(params: {
 }
 
 export function isSlackApprovalAuthorizedSender(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   senderId?: string | null;
 }): boolean {
@@ -28,7 +29,11 @@ export function isSlackApprovalAuthorizedSender(params: {
   if (!senderId) {
     return false;
   }
-  return getSlackApprovalApprovers(params).includes(senderId);
+  const approvers = getSlackApprovalApprovers(params);
+  if (approvers.length > 0) {
+    return approvers.includes(senderId);
+  }
+  return (resolveSlackAccountAllowFrom(params) ?? []).some((entry) => entry.trim() === "*");
 }
 
 export const slackApprovalAuth = createResolvedApproverActionAuthAdapter({
