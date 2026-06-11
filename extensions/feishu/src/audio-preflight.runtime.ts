@@ -1,6 +1,7 @@
-import { transcribeFirstAudio as transcribeFirstAudioImpl } from "astroclaw/plugin-sdk/media-runtime";
+// Feishu plugin module implements audio preflight behavior.
+import { transcribeFirstAudio as transcribeFirstAudioImpl } from "openclaw/plugin-sdk/media-runtime";
 
-type TranscribeFirstAudio = typeof import("astroclaw/plugin-sdk/media-runtime").transcribeFirstAudio;
+type TranscribeFirstAudio = typeof import("openclaw/plugin-sdk/media-runtime").transcribeFirstAudio;
 
 export async function transcribeFirstAudio(
   ...args: Parameters<TranscribeFirstAudio>
