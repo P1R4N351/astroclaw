@@ -1,20 +1,24 @@
+// Memory Wiki plugin module implements query behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { MemorySearchResult } from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
-import { resolveDefaultAgentId, resolveSessionAgentId } from "astroclaw/plugin-sdk/memory-host-core";
-import { getActiveMemorySearchManager } from "astroclaw/plugin-sdk/memory-host-search";
+import type { MemorySearchResult } from "openclaw/plugin-sdk/memory-core-host-runtime-files";
+import { resolveDefaultAgentId, resolveSessionAgentId } from "openclaw/plugin-sdk/memory-host-core";
+import { getActiveMemorySearchManager } from "openclaw/plugin-sdk/memory-host-search";
 import {
   extractTranscriptIdentityFromSessionsMemoryHit,
   loadCombinedSessionStoreForGateway,
   resolveTranscriptStemToSessionKeys,
-} from "astroclaw/plugin-sdk/session-transcript-hit";
+} from "openclaw/plugin-sdk/session-transcript-hit";
 import {
   createAgentToAgentPolicy,
   createSessionVisibilityGuard,
   resolveEffectiveSessionToolsVisibility,
-} from "astroclaw/plugin-sdk/session-visibility";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import type { AstroclawConfig } from "../api.js";
+} from "openclaw/plugin-sdk/session-visibility";
+import {
+  normalizeLowercaseStringOrEmpty,
+  uniqueStrings,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { OpenClawConfig } from "../api.js";
 import { assessClaimFreshness, isClaimContestedStatus } from "./claim-health.js";
 import type { ResolvedMemoryWikiConfig, WikiSearchBackend, WikiSearchCorpus } from "./config.js";
 import {
@@ -27,10 +31,10 @@ import {
 import { initializeMemoryWikiVault } from "./vault.js";
 
 const QUERY_DIRS = ["entities", "concepts", "sources", "syntheses", "reports"] as const;
-const AGENT_DIGEST_PATH = ".astroclaw-wiki/cache/agent-digest.json";
-const CLAIMS_DIGEST_PATH = ".astroclaw-wiki/cache/claims.jsonl";
+const AGENT_DIGEST_PATH = ".openclaw-wiki/cache/agent-digest.json";
+const CLAIMS_DIGEST_PATH = ".openclaw-wiki/cache/claims.jsonl";
 const RELATED_BLOCK_PATTERN =
-  /<!-- astroclaw:wiki:related:start -->[\s\S]*?<!-- astroclaw:wiki:related:end -->/g;
+  /<!-- openclaw:wiki:related:start -->[\s\S]*?<!-- openclaw:wiki:related:end -->/g;
 const MARKDOWN_FRONTMATTER_PATTERN = /^\s*---\r?\n[\s\S]*?\r?\n---\r?\n?/;
 const ROUTE_QUESTION_STOP_WORDS = new Set([
   "a",
@@ -81,6 +85,12 @@ const ROUTE_QUESTION_STOP_WORDS = new Set([
   "with",
   "would",
 ]);
+
+function normalizePositiveInteger(value: number | undefined, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(1, Math.floor(value))
+    : fallback;
+}
 
 export const WIKI_SEARCH_MODES = [
   "auto",
@@ -959,7 +969,7 @@ function normalizeLookupKey(value: string): string {
 function buildLookupCandidates(lookup: string): string[] {
   const normalized = normalizeLookupKey(lookup);
   const withExtension = normalized.endsWith(".md") ? normalized : `${normalized}.md`;
-  return [...new Set([normalized, withExtension])];
+  return uniqueStrings([normalized, withExtension]);
 }
 
 function shouldEnforceSessionVisibility(params: {
@@ -984,7 +994,7 @@ function shouldUseSharedMemory(config: ResolvedMemoryWikiConfig): boolean {
 
 function assertSessionVisibilityAppConfig(params: {
   config: ResolvedMemoryWikiConfig;
-  appConfig?: AstroclawConfig;
+  appConfig?: OpenClawConfig;
   agentId?: string;
   agentSessionKey?: string;
   sandboxed?: boolean;
@@ -1019,13 +1029,13 @@ function shouldSearchWiki(config: ResolvedMemoryWikiConfig): boolean {
 
 function shouldSearchSharedMemory(
   config: ResolvedMemoryWikiConfig,
-  appConfig?: AstroclawConfig,
+  appConfig?: OpenClawConfig,
 ): boolean {
   return shouldUseSharedMemory(config) && appConfig !== undefined;
 }
 
 function resolveActiveMemoryAgentId(params: {
-  appConfig?: AstroclawConfig;
+  appConfig?: OpenClawConfig;
   agentId?: string;
   agentSessionKey?: string;
 }): string | null {
@@ -1045,7 +1055,7 @@ function resolveActiveMemoryAgentId(params: {
 }
 
 async function resolveActiveMemoryManager(params: {
-  appConfig?: AstroclawConfig;
+  appConfig?: OpenClawConfig;
   agentId?: string;
   agentSessionKey?: string;
 }) {
@@ -1165,8 +1175,8 @@ function buildClaimResultMetadata(claim: WikiClaim | undefined): Partial<WikiSea
     ...(claim.id ? { matchedClaimId: claim.id } : {}),
     ...(claim.status ? { matchedClaimStatus: claim.status } : {}),
     ...(typeof claim.confidence === "number" ? { matchedClaimConfidence: claim.confidence } : {}),
-    evidenceKinds: [...new Set(claim.evidence.flatMap((evidence) => evidence.kind ?? []))],
-    evidenceSourceIds: [...new Set(claim.evidence.flatMap((evidence) => evidence.sourceId ?? []))],
+    evidenceKinds: uniqueStrings(claim.evidence.flatMap((evidence) => evidence.kind ?? [])),
+    evidenceSourceIds: uniqueStrings(claim.evidence.flatMap((evidence) => evidence.sourceId ?? [])),
   };
 }
 
@@ -1210,7 +1220,7 @@ function toMemoryWikiSearchResult(
 }
 
 async function filterMemoryWikiSearchHitsBySessionVisibility(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string | undefined;
   requesterSessionKey: string | undefined;
   sandboxed: boolean;
@@ -1235,7 +1245,7 @@ async function filterMemoryWikiSearchHitsBySessionVisibility(params: {
 type SessionMemoryPathVisibilityChecker = (relPath: string) => boolean;
 
 function filterSessionKeysByScopedAgent(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   keys: string[];
   scopedAgentId: string | undefined;
 }): string[] {
@@ -1256,7 +1266,7 @@ function filterSessionKeysByScopedAgent(params: {
 }
 
 async function createSessionMemoryPathVisibilityChecker(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string | undefined;
   requesterSessionKey: string | undefined;
   sandboxed: boolean;
@@ -1291,6 +1301,7 @@ async function createSessionMemoryPathVisibilityChecker(params: {
     if (!identity) {
       return false;
     }
+    const isQmdSessionPath = relPath.replace(/\\/g, "/").startsWith("qmd/");
     const normalizedScopedAgentId = normalizeLowercaseStringOrEmpty(scopedAgentId);
     const normalizedOwnerAgentId = normalizeLowercaseStringOrEmpty(identity.ownerAgentId);
     if (
@@ -1302,18 +1313,32 @@ async function createSessionMemoryPathVisibilityChecker(params: {
     }
     const archivedOwnerMatchesScope = Boolean(
       identity.archived &&
-      identity.ownerAgentId &&
-      (!normalizedScopedAgentId || normalizedOwnerAgentId === normalizedScopedAgentId),
+      ((identity.ownerAgentId &&
+        (!normalizedScopedAgentId || normalizedOwnerAgentId === normalizedScopedAgentId)) ||
+        (isQmdSessionPath && scopedAgentId)),
     );
-    const archivedOwnerAgentId = archivedOwnerMatchesScope ? identity.ownerAgentId : undefined;
+    const archivedOwnerAgentId = archivedOwnerMatchesScope
+      ? (identity.ownerAgentId ?? scopedAgentId)
+      : undefined;
+    const liveKeys = identity.liveStem
+      ? resolveTranscriptStemToSessionKeys({
+          store: combinedSessionStore,
+          stem: identity.liveStem,
+          allowQmdSlugFallback: false,
+        })
+      : [];
     const keys = filterSessionKeysByScopedAgent({
       cfg: params.cfg,
       scopedAgentId,
-      keys: resolveTranscriptStemToSessionKeys({
-        store: combinedSessionStore,
-        stem: identity.stem,
-        ...(archivedOwnerAgentId ? { archivedOwnerAgentId } : {}),
-      }),
+      keys:
+        liveKeys.length > 0
+          ? liveKeys
+          : resolveTranscriptStemToSessionKeys({
+              store: combinedSessionStore,
+              stem: identity.stem,
+              allowQmdSlugFallback: isQmdSessionPath && !identity.archived,
+              ...(archivedOwnerAgentId ? { archivedOwnerAgentId } : {}),
+            }),
     });
     if (!guard) {
       return Boolean(scopedAgentId && keys.length > 0);
@@ -1429,7 +1454,7 @@ export function resolveQueryableWikiPageByLookup(
 
 export async function searchMemoryWiki(params: {
   config: ResolvedMemoryWikiConfig;
-  appConfig?: AstroclawConfig;
+  appConfig?: OpenClawConfig;
   agentId?: string;
   agentSessionKey?: string;
   sandboxed?: boolean;
@@ -1449,7 +1474,7 @@ export async function searchMemoryWiki(params: {
     operation: "wiki_search",
   });
   await initializeMemoryWikiVault(effectiveConfig);
-  const maxResults = Math.max(1, params.maxResults ?? 10);
+  const maxResults = normalizePositiveInteger(params.maxResults, 10);
   const mode = params.mode ?? "auto";
 
   const wikiResults = shouldSearchWiki(effectiveConfig)
@@ -1496,7 +1521,7 @@ export async function searchMemoryWiki(params: {
 
 export async function getMemoryWikiPage(params: {
   config: ResolvedMemoryWikiConfig;
-  appConfig?: AstroclawConfig;
+  appConfig?: OpenClawConfig;
   agentId?: string;
   agentSessionKey?: string;
   sandboxed?: boolean;
@@ -1516,8 +1541,8 @@ export async function getMemoryWikiPage(params: {
     operation: "wiki_get",
   });
   await initializeMemoryWikiVault(effectiveConfig);
-  const fromLine = Math.max(1, params.fromLine ?? 1);
-  const lineCount = Math.max(1, params.lineCount ?? 200);
+  const fromLine = normalizePositiveInteger(params.fromLine, 1);
+  const lineCount = normalizePositiveInteger(params.lineCount, 200);
 
   if (shouldSearchWiki(effectiveConfig)) {
     const digest = await readQueryDigestBundle(effectiveConfig.vault.path);
