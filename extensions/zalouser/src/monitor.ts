@@ -1,35 +1,36 @@
-import { mergeAllowlist, summarizeMapping } from "astroclaw/plugin-sdk/allow-from";
+// Zalouser plugin module implements monitor behavior.
+import { mergeAllowlist, summarizeMapping } from "openclaw/plugin-sdk/allow-from";
 import {
   implicitMentionKindWhen,
   resolveInboundMentionDecision,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import { resolveStableChannelMessageIngress } from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
-import type { MarkdownTableMode, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { KeyedAsyncQueue } from "astroclaw/plugin-sdk/core";
-import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
-import { createDeferred } from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/channel-inbound";
+import { resolveStableChannelMessageIngress } from "openclaw/plugin-sdk/channel-ingress-runtime";
+import { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
+import type { MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { KeyedAsyncQueue } from "openclaw/plugin-sdk/core";
+import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
+import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
 import {
   DEFAULT_GROUP_HISTORY_LIMIT,
   type HistoryEntry,
   createChannelHistoryWindow,
-} from "astroclaw/plugin-sdk/reply-history";
+} from "openclaw/plugin-sdk/reply-history";
 import {
   deliverTextOrMediaReply,
   resolveSendableOutboundReplyParts,
   type OutboundReplyPayload,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
 import {
   resolveDefaultGroupPolicy,
   resolveOpenProviderRuntimeGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "astroclaw/plugin-sdk/runtime-group-policy";
+} from "openclaw/plugin-sdk/runtime-group-policy";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeStringEntries,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   buildZalouserGroupCandidates,
   findZalouserGroupEntry,
@@ -53,7 +54,7 @@ import {
 
 export type ZalouserMonitorOptions = {
   account: ResolvedZalouserAccount;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   runtime: RuntimeEnv;
   abortSignal: AbortSignal;
   statusSink?: (patch: { lastInboundAt?: number; lastOutboundAt?: number }) => void;
@@ -132,7 +133,7 @@ function resolveInboundQueueKey(message: ZaloInboundMessage): string {
   return `direct:${senderId || threadId}`;
 }
 
-function resolveZalouserDmSessionScope(config: AstroclawConfig) {
+function resolveZalouserDmSessionScope(config: OpenClawConfig) {
   const configured = config.session?.dmScope;
   return configured === "main" || !configured ? "per-channel-peer" : configured;
 }
@@ -173,7 +174,7 @@ function senderScopedZalouserGroupPolicy(params: {
 
 function resolveZalouserInboundSessionKey(params: {
   core: ZalouserCoreRuntime;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   route: { agentId: string; accountId: string; sessionKey: string };
   storePath: string;
   isGroup: boolean;
@@ -265,7 +266,7 @@ async function sendZalouserDeliveryAcks(params: {
 async function processMessage(
   message: ZaloInboundMessage,
   account: ResolvedZalouserAccount,
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   core: ZalouserCoreRuntime,
   runtime: RuntimeEnv,
   historyState: ZalouserGroupHistoryState,
@@ -294,7 +295,7 @@ async function processMessage(
   const configuredGroupName = message.groupName?.trim() || "";
   const groupContext =
     isGroup && !configuredGroupName
-      ? await resolveZaloGroupContext(account.profile, chatId).catch((err) => {
+      ? await resolveZaloGroupContext(account.profile, chatId).catch((err: unknown) => {
           logVerbose(
             core,
             runtime,
@@ -621,7 +622,7 @@ async function processMessage(
     cliMsgId: message.cliMsgId,
   });
 
-  const ctxPayload = core.channel.turn.buildContext({
+  const ctxPayload = core.channel.inbound.buildContext({
     channel: "zalouser",
     accountId: route.accountId,
     messageId: messageSid,
@@ -636,10 +637,6 @@ async function processMessage(
       kind: isGroup ? "group" : "direct",
       id: chatId,
       label: fromLabel,
-      routePeer: {
-        kind: isGroup ? "group" : "direct",
-        id: chatId,
-      },
     },
     route: {
       agentId: route.agentId,
@@ -657,7 +654,6 @@ async function processMessage(
       rawBody,
       commandBody,
       inboundHistory,
-      envelopeFrom: fromLabel,
     },
     extra: {
       BodyForCommands: commandBody,
@@ -666,6 +662,9 @@ async function processMessage(
       GroupMembers: isGroup ? groupMembers : undefined,
       WasMentioned: isGroup ? mentionDecision.effectiveWasMentioned : undefined,
       CommandAuthorized: commandAuthorized,
+      ReplyToId: message.quotedGlobalMsgId || undefined,
+      ReplyToBody: message.quotedBody || undefined,
+      ReplyToIsQuote: message.quotedGlobalMsgId ? true : undefined,
     },
   });
 
@@ -686,7 +685,7 @@ async function processMessage(
     },
   };
 
-  await core.channel.turn.runAssembled({
+  await core.channel.inbound.dispatchReply({
     channel: "zalouser",
     accountId: account.accountId,
     cfg: config,
@@ -761,7 +760,7 @@ async function deliverZalouserReply(params: {
   isGroup: boolean;
   runtime: RuntimeEnv;
   core: ZalouserCoreRuntime;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   accountId?: string;
   tableMode?: MarkdownTableMode;
 }): Promise<{ visibleReplySent: boolean }> {
@@ -818,7 +817,8 @@ async function deliverZalouserReply(params: {
 export async function monitorZalouserProvider(
   options: ZalouserMonitorOptions,
 ): Promise<ZalouserMonitorResult> {
-  let { account, config } = options;
+  const { config } = options;
+  let { account } = options;
   const { abortSignal, statusSink, runtime } = options;
 
   const core = getZalouserRuntime();
@@ -987,7 +987,7 @@ export async function monitorZalouserProvider(
               statusSink,
             );
           })
-          .catch((err) => {
+          .catch((err: unknown) => {
             runtime.error(`[${account.accountId}] Failed to process message: ${String(err)}`);
           });
       },
@@ -1023,11 +1023,11 @@ export async function monitorZalouserProvider(
   return { stop };
 }
 
-export const __testing = {
+export const testing = {
   processMessage: async (params: {
     message: ZaloInboundMessage;
     account: ResolvedZalouserAccount;
-    config: AstroclawConfig;
+    config: OpenClawConfig;
     runtime: RuntimeEnv;
     historyState?: {
       historyLimit?: number;
@@ -1054,3 +1054,4 @@ export const __testing = {
     );
   },
 };
+export { testing as __testing };
