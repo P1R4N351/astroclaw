@@ -1,13 +1,15 @@
+// Line plugin entrypoint registers its OpenClaw integration.
 import {
   defineBundledChannelEntry,
-  type AstroclawPluginApi,
-} from "astroclaw/plugin-sdk/channel-entry-contract";
+  type OpenClawPluginCommandDefinition,
+  type OpenClawPluginApi,
+} from "openclaw/plugin-sdk/channel-entry-contract";
 
-type RegisteredLineCardCommand = Parameters<AstroclawPluginApi["registerCommand"]>[0];
+type RegisteredLineCardCommand = OpenClawPluginCommandDefinition;
 
 let lineCardCommandPromise: Promise<RegisteredLineCardCommand> | null = null;
 
-async function loadLineCardCommand(api: AstroclawPluginApi): Promise<RegisteredLineCardCommand> {
+async function loadLineCardCommand(api: OpenClawPluginApi): Promise<RegisteredLineCardCommand> {
   lineCardCommandPromise ??= (async () => {
     let registered: RegisteredLineCardCommand | null = null;
     const { registerLineCardCommand } = await import("./src/card-command.js");
