@@ -1,3 +1,4 @@
+// Nextcloud Talk plugin module implements secret contract behavior.
 import {
   collectConditionalChannelFieldAssignments,
   getChannelSurface,
@@ -5,14 +6,14 @@ import {
   type ChannelAccountEntry,
   type ResolverContext,
   type SecretDefaults,
-} from "astroclaw/plugin-sdk/channel-secret-basic-runtime";
+} from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 
-export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
+export const secretTargetRegistryEntries: import("openclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
   [
     {
       id: "channels.nextcloud-talk.accounts.*.apiPassword",
       targetType: "channels.nextcloud-talk.accounts.*.apiPassword",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.nextcloud-talk.accounts.*.apiPassword",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -23,7 +24,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.nextcloud-talk.accounts.*.botSecret",
       targetType: "channels.nextcloud-talk.accounts.*.botSecret",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.nextcloud-talk.accounts.*.botSecret",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -34,7 +35,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.nextcloud-talk.apiPassword",
       targetType: "channels.nextcloud-talk.apiPassword",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.nextcloud-talk.apiPassword",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -45,7 +46,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.nextcloud-talk.botSecret",
       targetType: "channels.nextcloud-talk.botSecret",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.nextcloud-talk.botSecret",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
