@@ -1,3 +1,4 @@
+// Migrate Claude helper module supports config behavior.
 import {
   applyMigrationConfigPatchItem,
   applyMigrationManualItem,
@@ -5,8 +6,8 @@ import {
   createMigrationManualItem,
   hasMigrationConfigPatchConflict,
   MIGRATION_REASON_TARGET_EXISTS,
-} from "astroclaw/plugin-sdk/migration";
-import type { MigrationItem, MigrationProviderContext } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/migration";
+import type { MigrationItem, MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
 import { childRecord, isRecord, readJsonObject, sanitizeName } from "./helpers.js";
 import type { ClaudeSource } from "./source.js";
 
@@ -151,7 +152,7 @@ export async function buildConfigItems(params: {
           id: `manual:hooks:${sanitizeName(settingsPath)}`,
           source: settingsPath,
           message: "Claude hooks were found but are not enabled automatically.",
-          recommendation: "Review hook commands before recreating equivalent Astroclaw automation.",
+          recommendation: "Review hook commands before recreating equivalent OpenClaw automation.",
         }),
       );
     }
@@ -173,7 +174,7 @@ export async function buildConfigItems(params: {
           source: settingsPath,
           message: "Claude environment defaults were found but are not copied automatically.",
           recommendation:
-            "Move non-secret values manually and store credentials through Astroclaw credential flows.",
+            "Move non-secret values manually and store credentials through OpenClaw credential flows.",
         }),
       );
     }
