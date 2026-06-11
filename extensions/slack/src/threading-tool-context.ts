@@ -1,14 +1,15 @@
+// Slack plugin module implements threading tool context behavior.
 import type {
   ChannelThreadingContext,
   ChannelThreadingToolContext,
-} from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveSlackAccount, resolveSlackReplyToMode } from "./accounts.js";
 import { normalizeSlackThreadTsCandidate } from "./thread-ts.js";
 
 export function buildSlackThreadingToolContext(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   context: ChannelThreadingContext;
   hasRepliedRef?: { value: boolean };
@@ -39,5 +40,6 @@ export function buildSlackThreadingToolContext(params: {
     currentThreadTs,
     replyToMode: effectiveReplyToMode,
     hasRepliedRef: params.hasRepliedRef,
+    sameChannelThreadRequired: hasExplicitThreadTarget,
   };
 }
