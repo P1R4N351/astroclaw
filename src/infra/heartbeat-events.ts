@@ -1,3 +1,4 @@
+// Stores and broadcasts heartbeat status events for UI surfaces.
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import { notifyListeners, registerListener } from "../shared/listeners.js";
 
@@ -42,7 +43,7 @@ type HeartbeatEventState = {
   listeners: Set<(evt: HeartbeatEventPayload) => void>;
 };
 
-const HEARTBEAT_EVENT_STATE_KEY = Symbol.for("astroclaw.heartbeatEvents.state");
+const HEARTBEAT_EVENT_STATE_KEY = Symbol.for("openclaw.heartbeatEvents.state");
 
 const state = resolveGlobalSingleton<HeartbeatEventState>(HEARTBEAT_EVENT_STATE_KEY, () => ({
   lastHeartbeat: null,
