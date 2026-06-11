@@ -1,15 +1,16 @@
+// Telegram plugin module implements exec approval forwarding behavior.
 import {
   buildExecApprovalPendingReplyPayload,
   resolveExecApprovalRequestAllowedDecisions,
   resolveExecApprovalCommandDisplay,
-} from "astroclaw/plugin-sdk/approval-reply-runtime";
-import type { ExecApprovalRequest } from "astroclaw/plugin-sdk/approval-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { normalizeMessageChannel } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/approval-reply-runtime";
+import type { ExecApprovalRequest } from "openclaw/plugin-sdk/approval-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeMessageChannel } from "openclaw/plugin-sdk/routing";
 import { isTelegramExecApprovalClientEnabled } from "./exec-approvals.js";
 
 export function shouldSuppressTelegramExecApprovalForwardingFallback(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   target: { channel: string; accountId?: string | null };
   request: ExecApprovalRequest;
 }): boolean {
