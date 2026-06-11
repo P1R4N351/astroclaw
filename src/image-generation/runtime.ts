@@ -1,13 +1,15 @@
+/** Runtime entrypoint for image generation with provider fallback and override normalization. */
 import { describeFailoverError, isFailoverError } from "../agents/failover-error.js";
 import type { FallbackAttempt } from "../agents/model-fallback.types.js";
 import { resolveAgentModelTimeoutMsValue } from "../config/model-input.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   buildMediaGenerationNormalizationMetadata,
   buildNoCapabilityModelConfiguredMessage,
   resolveCapabilityModelCandidates,
+  resolveMediaProviderRequestTimeoutMs,
   throwCapabilityGenerationFailure,
 } from "../media-generation/runtime-shared.js";
 import { getProviderEnvVars } from "../secrets/provider-env-vars.js";
@@ -19,6 +21,9 @@ import type { ImageGenerationResult } from "./types.js";
 
 const log = createSubsystemLogger("image-generation");
 
+// Runtime dependency seam for tests and plugin-host callers. Production uses
+// the plugin registry and provider-env helpers by default.
+/** Dependency seam used by image-generation runtime tests and plugin host callers. */
 export type ImageGenerationRuntimeDeps = {
   getProvider?: typeof getImageGenerationProvider;
   listProviders?: typeof listImageGenerationProviders;
@@ -29,7 +34,7 @@ export type ImageGenerationRuntimeDeps = {
 export type { GenerateImageParams, GenerateImageRuntimeResult } from "./runtime-types.js";
 
 function buildNoImageGenerationModelConfiguredMessage(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   deps: ImageGenerationRuntimeDeps,
 ): string {
   const listProviders = deps.listProviders ?? listImageGenerationProviders;
@@ -41,8 +46,9 @@ function buildNoImageGenerationModelConfiguredMessage(
   });
 }
 
+/** Lists image-generation providers visible for the current config. */
 export function listRuntimeImageGenerationProviders(
-  params?: { config?: AstroclawConfig },
+  params?: { config?: OpenClawConfig },
   deps: ImageGenerationRuntimeDeps = {},
 ) {
   return (deps.listProviders ?? listImageGenerationProviders)(params?.config);
@@ -55,7 +61,7 @@ export async function generateImage(
   const getProvider = deps.getProvider ?? getImageGenerationProvider;
   const listProviders = deps.listProviders ?? listImageGenerationProviders;
   const logger = deps.log ?? log;
-  const timeoutMs =
+  const requestedTimeoutMs =
     params.timeoutMs ??
     resolveAgentModelTimeoutMsValue(params.cfg.agents?.defaults?.imageGenerationModel);
   const candidates = resolveCapabilityModelCandidates({
@@ -74,6 +80,8 @@ export async function generateImage(
   const attempts: FallbackAttempt[] = [];
   let lastError: unknown;
 
+  // Try configured/fallback models in order and return the first provider that
+  // yields at least one image; failed attempts are preserved for diagnostics.
   for (const candidate of candidates) {
     const provider = getProvider(candidate.provider, params.cfg);
     if (!provider) {
@@ -91,8 +99,13 @@ export async function generateImage(
     }
 
     try {
+      const timeoutMs = resolveMediaProviderRequestTimeoutMs({
+        timeoutMs: requestedTimeoutMs,
+        providerDefaultTimeoutMs: provider.defaultTimeoutMs,
+      });
       const sanitized = resolveImageGenerationOverrides({
         provider,
+        model: candidate.model,
         size: params.size,
         aspectRatio: params.aspectRatio,
         resolution: params.resolution,
@@ -101,6 +114,8 @@ export async function generateImage(
         background: params.background,
         inputImages: params.inputImages,
       });
+      // Providers receive only supported overrides. Ignored/normalized values
+      // are returned to callers so user-facing replies can explain adjustments.
       const result: ImageGenerationResult = await provider.generateImage({
         provider: candidate.provider,
         model: candidate.model,
