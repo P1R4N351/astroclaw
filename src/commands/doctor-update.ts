@@ -1,13 +1,20 @@
+/** Optional pre-doctor update prompt for source checkouts and package installs. */
+import fs from "node:fs/promises";
+import path from "node:path";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { note } from "../../packages/terminal-core/src/note.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { runGatewayUpdate } from "../infra/update-runner.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
-import { note } from "../terminal/note.js";
 import type { DoctorOptions } from "./doctor-prompter.js";
 
-async function detectAstroclawGitCheckout(root: string): Promise<"git" | "not-git" | "unknown"> {
+async function resolveComparablePath(target: string): Promise<string> {
+  return await fs.realpath(target).catch(() => path.resolve(target));
+}
+
+async function detectOpenClawGitCheckout(root: string): Promise<"git" | "not-git" | "unknown"> {
   const res = await runCommandWithTimeout(["git", "-C", root, "rev-parse", "--show-toplevel"], {
     timeoutMs: 5000,
   }).catch(() => null);
@@ -22,9 +29,13 @@ async function detectAstroclawGitCheckout(root: string): Promise<"git" | "not-gi
     }
     return "unknown";
   }
-  return res.stdout.trim() === root ? "git" : "not-git";
+  const gitRoot = res.stdout.trim();
+  return (await resolveComparablePath(gitRoot)) === (await resolveComparablePath(root))
+    ? "git"
+    : "not-git";
 }
 
+/** Offers to update OpenClaw before doctor when running interactively from an updatable install. */
 export async function maybeOfferUpdateBeforeDoctor(params: {
   runtime: RuntimeEnv;
   options: DoctorOptions;
@@ -32,7 +43,7 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
   confirm: (p: { message: string; initialValue: boolean }) => Promise<boolean>;
   outro: (message: string) => void;
 }) {
-  const updateInProgress = isTruthyEnvValue(process.env.ASTROCLAW_UPDATE_IN_PROGRESS);
+  const updateInProgress = isTruthyEnvValue(process.env.OPENCLAW_UPDATE_IN_PROGRESS);
   const canOfferUpdate =
     !updateInProgress &&
     params.options.nonInteractive !== true &&
@@ -43,10 +54,10 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
     return { updated: false };
   }
 
-  const git = await detectAstroclawGitCheckout(params.root);
+  const git = await detectOpenClawGitCheckout(params.root);
   if (git === "git") {
     const shouldUpdate = await params.confirm({
-      message: "Update Astroclaw from git before running doctor?",
+      message: "Update OpenClaw from git before running doctor?",
       initialValue: true,
     });
     if (!shouldUpdate) {
@@ -79,7 +90,7 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
     note(
       [
         "This install is not a git checkout.",
-        `Run \`${formatCliCommand("astroclaw update")}\` to update via your package manager (npm/pnpm), then rerun doctor.`,
+        `Run \`${formatCliCommand("openclaw update")}\` to update via your package manager (npm/pnpm), then rerun doctor.`,
       ].join("\n"),
       "Update",
     );
