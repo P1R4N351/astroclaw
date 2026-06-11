@@ -1,4 +1,5 @@
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Slack plugin module implements stream mode behavior.
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   mapStreamingModeToSlackLegacyDraftStreamMode,
   resolveSlackNativeStreaming,
