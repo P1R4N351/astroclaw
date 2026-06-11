@@ -1,6 +1,9 @@
+/**
+ * Assertions for unified model catalog provider contract tests.
+ */
 import { expect } from "vitest";
 import type {
-  AstroclawPluginApi,
+  OpenClawPluginApi,
   UnifiedModelCatalogEntry,
   UnifiedModelCatalogKind,
   UnifiedModelCatalogProviderPlugin,
@@ -8,9 +11,10 @@ import type {
 import { createCapturedPluginRegistration } from "../plugin-test-runtime.js";
 
 type RegistrablePlugin = {
-  register(api: AstroclawPluginApi): void;
+  register(api: OpenClawPluginApi): void;
 };
 
+/** Verifies catalog rows are normalized and owned by the expected provider/kind. */
 export function expectUnifiedModelCatalogEntries(
   rows: readonly UnifiedModelCatalogEntry[] | null | undefined,
   params: {
@@ -32,6 +36,7 @@ export function expectUnifiedModelCatalogEntries(
   }
 }
 
+/** Registers a plugin and returns the matching unified model catalog provider. */
 export function expectUnifiedModelCatalogProviderRegistration(params: {
   plugin: RegistrablePlugin;
   pluginId?: string;
