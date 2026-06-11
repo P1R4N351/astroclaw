@@ -1,3 +1,10 @@
+// Normalizes provider auth choice metadata from plugin setup surfaces.
+import { isRecord as isPlainRecord } from "@openclaw/normalization-core/record-coerce";
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalLowercaseString,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
 import { normalizeConfiguredProviderCatalogModelId } from "../agents/model-ref-shared.js";
 import { normalizeProviderId } from "../agents/model-selection.js";
 import {
@@ -7,12 +14,7 @@ import {
 import { normalizeProviderConfigForConfigDefaults } from "../config/provider-policy.js";
 import type { AgentModelConfig } from "../config/types.agents-shared.js";
 import type { ModelProviderConfig } from "../config/types.models.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalLowercaseString,
-  normalizeOptionalString,
-} from "../shared/string-coerce.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { ProviderAuthMethod, ProviderPlugin } from "./types.js";
 
 export function resolveProviderMatch(
@@ -48,10 +50,6 @@ export function pickAuthMethod(
     provider.auth.find((method) => normalizeLowercaseStringOrEmpty(method.label) === normalized) ??
     null
   );
-}
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 // Guard config patches against prototype-pollution payloads if a patch ever
@@ -94,6 +92,22 @@ function mergeConfigPatch<T>(base: T, patch: unknown): T {
     }
   }
   return next as T;
+}
+
+function deleteUndefinedPatchLeaves<T>(target: T, patch: unknown): T {
+  if (!isPlainRecord(target) || !isPlainRecord(patch)) {
+    return target;
+  }
+
+  const targetRecord = target as Record<string, unknown>;
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) {
+      delete targetRecord[key];
+      continue;
+    }
+    deleteUndefinedPatchLeaves(targetRecord[key], value);
+  }
+  return target;
 }
 
 function normalizeAgentModelConfigForWrite(value: unknown): unknown {
@@ -153,7 +167,7 @@ function normalizeProviderCatalogModelIdsForWrite(
   return mutated ? { ...providerConfig, models: nextModels } : providerConfig;
 }
 
-function normalizeModelProviderConfigsForWrite(cfg: AstroclawConfig): AstroclawConfig {
+function normalizeModelProviderConfigsForWrite(cfg: OpenClawConfig): OpenClawConfig {
   const providers = cfg.models?.providers;
   if (!providers) {
     return cfg;
@@ -201,14 +215,14 @@ function normalizeAgentListForWrite(value: unknown): unknown {
     }
 
     let nextAgent = agent;
-    if (Object.prototype.hasOwnProperty.call(agent, "model")) {
+    if (Object.hasOwn(agent, "model")) {
       const normalizedModel = normalizeAgentModelConfigForWrite(agent.model);
       if (normalizedModel !== agent.model) {
         nextAgent = { ...nextAgent, model: normalizedModel };
         mutated = true;
       }
     }
-    if (Object.prototype.hasOwnProperty.call(agent, "models")) {
+    if (Object.hasOwn(agent, "models")) {
       const normalizedModels = normalizeAgentModelMapForWrite(agent.models);
       if (normalizedModels !== agent.models) {
         nextAgent = { ...nextAgent, models: normalizedModels };
@@ -221,7 +235,7 @@ function normalizeAgentListForWrite(value: unknown): unknown {
   return mutated ? next : value;
 }
 
-function normalizeConfigModelRefsForWrite(cfg: AstroclawConfig): AstroclawConfig {
+function normalizeConfigModelRefsForWrite(cfg: OpenClawConfig): OpenClawConfig {
   const providerNormalized = normalizeModelProviderConfigsForWrite(cfg);
   const defaults = providerNormalized.agents?.defaults;
   const agentsList = providerNormalized.agents?.list;
@@ -257,11 +271,13 @@ function normalizeConfigModelRefsForWrite(cfg: AstroclawConfig): AstroclawConfig
 }
 
 export function applyProviderAuthConfigPatch(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   patch: unknown,
   options?: { replaceDefaultModels?: boolean },
-): AstroclawConfig {
-  const merged = normalizeConfigModelRefsForWrite(mergeConfigPatch(cfg, patch));
+): OpenClawConfig {
+  const merged = normalizeConfigModelRefsForWrite(
+    deleteUndefinedPatchLeaves(mergeConfigPatch(cfg, patch), patch),
+  );
   if (!options?.replaceDefaultModels || !isPlainRecord(patch)) {
     return merged;
   }
@@ -280,7 +296,7 @@ export function applyProviderAuthConfigPatch(
         ...merged.agents?.defaults,
         // Opt-in replacement for migrations that rename/remove model keys.
         models: sanitizeConfigPatchValue(patchModels) as NonNullable<
-          NonNullable<AstroclawConfig["agents"]>["defaults"]
+          NonNullable<OpenClawConfig["agents"]>["defaults"]
         >["models"],
       },
     },
@@ -292,10 +308,10 @@ export function applyProviderAuthConfigPatch(
  * `--set-default`, so `applyConfig` patches cannot replace the primary without an explicit opt-in.
  */
 export function restorePriorAgentsDefaultsModelUnlessOptIn(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   priorAgentsDefaultsModel?: AgentModelConfig;
   setDefault?: boolean;
-}): AstroclawConfig {
+}): OpenClawConfig {
   if (params.setDefault || params.priorAgentsDefaultsModel === undefined) {
     return params.cfg;
   }
@@ -312,10 +328,10 @@ export function restorePriorAgentsDefaultsModelUnlessOptIn(params: {
 }
 
 export function applyDefaultModel(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   model: string,
   opts?: { preserveExistingPrimary?: boolean },
-): AstroclawConfig {
+): OpenClawConfig {
   const normalizedModel = normalizeAgentModelRefForConfig(model);
   const models = {
     ...normalizeAgentModelMapForConfig(cfg.agents?.defaults?.models ?? {}),
