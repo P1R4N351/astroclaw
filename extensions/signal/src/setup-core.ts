@@ -1,3 +1,4 @@
+// Signal plugin module implements setup core behavior.
 import {
   createCliPathTextInput,
   createDelegatedSetupWizardProxy,
@@ -14,16 +15,16 @@ import {
   type ChannelSetupAdapter,
   type ChannelSetupWizard,
   type ChannelSetupWizardTextInput,
-  type AstroclawConfig,
+  type OpenClawConfig,
   createSetupTranslator,
   type WizardPrompter,
-} from "astroclaw/plugin-sdk/setup-runtime";
-import { formatCliCommand, formatDocsLink } from "astroclaw/plugin-sdk/setup-tools";
+} from "openclaw/plugin-sdk/setup-runtime";
+import { formatCliCommand, formatDocsLink } from "openclaw/plugin-sdk/setup-tools";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { normalizeE164 } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeE164 } from "openclaw/plugin-sdk/text-utility-runtime";
 import { resolveDefaultSignalAccountId, resolveSignalAccount } from "./accounts.js";
 
 const t = createSetupTranslator();
@@ -92,10 +93,10 @@ function buildSignalSetupPatch(input: {
 }
 
 async function promptSignalAllowFrom(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
   accountId?: string;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   return promptParsedAllowFromForAccount({
     cfg: params.cfg,
     accountId: params.accountId,
@@ -130,7 +131,7 @@ export const signalDmPolicy = {
   channel,
   policyKey: "channels.signal.dmPolicy",
   allowFromKey: "channels.signal.allowFrom",
-  resolveConfigKeys: (cfg: AstroclawConfig, accountId?: string) =>
+  resolveConfigKeys: (cfg: OpenClawConfig, accountId?: string) =>
     (accountId ?? resolveDefaultSignalAccountId(cfg)) !== DEFAULT_ACCOUNT_ID
       ? {
           policyKey: `channels.signal.accounts.${accountId ?? resolveDefaultSignalAccountId(cfg)}.dmPolicy`,
@@ -140,11 +141,11 @@ export const signalDmPolicy = {
           policyKey: "channels.signal.dmPolicy",
           allowFromKey: "channels.signal.allowFrom",
         },
-  getCurrent: (cfg: AstroclawConfig, accountId?: string) =>
+  getCurrent: (cfg: OpenClawConfig, accountId?: string) =>
     resolveSignalAccount({ cfg, accountId: accountId ?? resolveDefaultSignalAccountId(cfg) }).config
       .dmPolicy ?? "pairing",
   setPolicy: (
-    cfg: AstroclawConfig,
+    cfg: OpenClawConfig,
     policy: "pairing" | "allowlist" | "open" | "disabled",
     accountId?: string,
   ) =>
@@ -170,7 +171,7 @@ export const signalDmPolicy = {
 };
 
 function resolveSignalCliPath(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   credentialValues: Record<string, unknown>;
 }) {
@@ -216,7 +217,7 @@ export const signalCompletionNote = {
   lines: [
     t("wizard.signal.nextLinkDevice"),
     t("wizard.signal.nextScanQr"),
-    `Then run: ${formatCliCommand("astroclaw gateway call channels.status --params '{\"probe\":true}'")}`,
+    `Then run: ${formatCliCommand("openclaw gateway call channels.status --params '{\"probe\":true}'")}`,
     `Docs: ${formatDocsLink("/signal", "signal")}`,
   ],
 };
@@ -265,6 +266,6 @@ export function createSignalSetupWizardProxy(loadWizard: () => Promise<ChannelSe
     ],
     completionNote: signalCompletionNote,
     dmPolicy: signalDmPolicy,
-    disable: (cfg: AstroclawConfig) => setSetupChannelEnabled(cfg, channel, false),
+    disable: (cfg: OpenClawConfig) => setSetupChannelEnabled(cfg, channel, false),
   });
 }
