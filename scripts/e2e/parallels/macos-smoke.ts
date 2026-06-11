@@ -1,17 +1,24 @@
 #!/usr/bin/env -S pnpm tsx
+// Macos Smoke script supports OpenClaw repository automation.
 import { readFile, rm } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { posixAgentWorkspaceScript } from "./agent-workspace.ts";
 import {
   die,
   ensureValue,
+  currentRunningSnapshotInfo,
+  extractLastOpenClawVersionFromLog,
   makeTempDir,
   packageBuildCommitFromTgz,
   packageVersionFromTgz,
-  packAstroclaw,
+  packOpenClaw,
   parseMode,
   parseProvider,
   modelProviderConfigBatchJson,
+  posixProviderOnlyPluginIsolationScript,
+  parsePositiveInt,
+  readPositiveIntEnv,
   resolveParallelsModelTimeoutSeconds,
   resolveHostIp,
   resolveHostPort,
@@ -20,9 +27,12 @@ import {
   resolveSnapshot,
   run,
   say,
+  shouldSkipSnapshotRestore,
   shellQuote,
+  validateSnapshotRestoreMode,
   startHostServer,
   warn,
+  withProgressOnStderr,
   writeJson,
   writeSummaryMarkdown,
   type HostServer,
@@ -93,11 +103,12 @@ interface MacosSummary {
 }
 
 const guestPath =
-  "/opt/homebrew/bin:/opt/homebrew/opt/node/bin:/opt/homebrew/sbin:/usr/bin:/bin:/usr/sbin:/sbin";
-const guestAstroclaw = "/opt/homebrew/bin/astroclaw";
-const guestAstroclawEntry = "/opt/homebrew/lib/node_modules/astroclaw/astroclaw.mjs";
-const guestNode = "/opt/homebrew/bin/node";
-const guestNpm = "/opt/homebrew/bin/npm";
+  "/opt/homebrew/bin:/opt/homebrew/opt/node/bin:/usr/local/bin:/usr/local/sbin:/opt/homebrew/sbin:/usr/bin:/bin:/usr/sbin:/sbin";
+const guestOpenClaw = "openclaw";
+const guestOpenClawEntry = '"$(npm root -g)/openclaw/openclaw.mjs"';
+const guestOpenClawEntryRunner = `node ${guestOpenClawEntry}`;
+const guestNode = "node";
+const guestNpm = "npm";
 
 const defaultOptions = (): MacosOptions => ({
   discordChannelId: undefined,
@@ -106,7 +117,7 @@ const defaultOptions = (): MacosOptions => ({
   hostIp: undefined,
   hostPort: 18425,
   hostPortExplicit: false,
-  installUrl: "https://astroclaw.ai/install.sh",
+  installUrl: "https://openclaw.ai/install.sh",
   installVersion: "",
   json: false,
   keepServer: false,
@@ -115,7 +126,7 @@ const defaultOptions = (): MacosOptions => ({
   modelId: undefined,
   provider: "openai",
   skipLatestRefCheck: false,
-  snapshotHint: "macOS 26.3.1 latest",
+  snapshotHint: "macOS 26.5 latest",
   targetPackageSpec: "",
   vmName: "macOS Tahoe",
 });
@@ -126,13 +137,13 @@ function usage(): string {
 Options:
   --vm <name>                Parallels VM name. Default: "macOS Tahoe"
   --snapshot-hint <name>     Snapshot name substring/fuzzy match.
-                             Default: "macOS 26.3.1 latest"
+                             Default: "macOS 26.5 latest"
   --mode <fresh|upgrade|both>
   --provider <openai|anthropic|minimax>
   --model <provider/model>    Override the model used for the agent-turn smoke.
   --api-key-env <var>        Host env var name for provider API key.
   --openai-api-key-env <var> Alias for --api-key-env (backward compatible)
-  --install-url <url>        Installer URL for latest release. Default: https://astroclaw.ai/install.sh
+  --install-url <url>        Installer URL for latest release. Default: https://openclaw.ai/install.sh
   --host-port <port>         Host HTTP port for current-main tgz. Default: 18425
   --host-ip <ip>             Override Parallels host IP.
   --latest-version <ver>     Override npm latest version lookup.
@@ -149,61 +160,62 @@ Options:
 `;
 }
 
-function parseArgs(argv: string[]): MacosOptions {
+export function parseArgs(argv: string[]): MacosOptions {
+  const args = stripLeadingPackageManagerSeparator(argv);
   const options = defaultOptions();
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
+  parseArgv: for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     switch (arg) {
       case "--":
-        break;
+        break parseArgv;
       case "--vm":
-        options.vmName = ensureValue(argv, i, arg);
+        options.vmName = ensureValue(args, i, arg);
         i++;
         break;
       case "--snapshot-hint":
-        options.snapshotHint = ensureValue(argv, i, arg);
+        options.snapshotHint = ensureValue(args, i, arg);
         i++;
         break;
       case "--mode":
-        options.mode = parseMode(ensureValue(argv, i, arg));
+        options.mode = parseMode(ensureValue(args, i, arg));
         i++;
         break;
       case "--provider":
-        options.provider = parseProvider(ensureValue(argv, i, arg));
+        options.provider = parseProvider(ensureValue(args, i, arg));
         i++;
         break;
       case "--model":
-        options.modelId = ensureValue(argv, i, arg);
+        options.modelId = ensureValue(args, i, arg);
         i++;
         break;
       case "--api-key-env":
       case "--openai-api-key-env":
-        options.apiKeyEnv = ensureValue(argv, i, arg);
+        options.apiKeyEnv = ensureValue(args, i, arg);
         i++;
         break;
       case "--install-url":
-        options.installUrl = ensureValue(argv, i, arg);
+        options.installUrl = ensureValue(args, i, arg);
         i++;
         break;
       case "--host-port":
-        options.hostPort = Number(ensureValue(argv, i, arg));
+        options.hostPort = parsePositiveInt(ensureValue(args, i, arg), arg);
         options.hostPortExplicit = true;
         i++;
         break;
       case "--host-ip":
-        options.hostIp = ensureValue(argv, i, arg);
+        options.hostIp = ensureValue(args, i, arg);
         i++;
         break;
       case "--latest-version":
-        options.latestVersion = ensureValue(argv, i, arg);
+        options.latestVersion = ensureValue(args, i, arg);
         i++;
         break;
       case "--install-version":
-        options.installVersion = ensureValue(argv, i, arg);
+        options.installVersion = ensureValue(args, i, arg);
         i++;
         break;
       case "--target-package-spec":
-        options.targetPackageSpec = ensureValue(argv, i, arg);
+        options.targetPackageSpec = ensureValue(args, i, arg);
         i++;
         break;
       case "--skip-latest-ref-check":
@@ -213,15 +225,15 @@ function parseArgs(argv: string[]): MacosOptions {
         options.keepServer = true;
         break;
       case "--discord-token-env":
-        options.discordTokenEnv = ensureValue(argv, i, arg);
+        options.discordTokenEnv = ensureValue(args, i, arg);
         i++;
         break;
       case "--discord-guild-id":
-        options.discordGuildId = ensureValue(argv, i, arg);
+        options.discordGuildId = ensureValue(args, i, arg);
         i++;
         break;
       case "--discord-channel-id":
-        options.discordChannelId = ensureValue(argv, i, arg);
+        options.discordChannelId = ensureValue(args, i, arg);
         i++;
         break;
       case "--json":
@@ -238,7 +250,12 @@ function parseArgs(argv: string[]): MacosOptions {
   return options;
 }
 
+function stripLeadingPackageManagerSeparator(argv: string[]): string[] {
+  return argv[0] === "--" ? argv.slice(1) : argv;
+}
+
 class MacosSmoke {
+  private agentTimeoutSeconds: number;
   private auth: ProviderAuth;
   private discordToken = "";
   private hostIp = "";
@@ -256,6 +273,8 @@ class MacosSmoke {
   private discord: MacosDiscordSmoke | null = null;
   private guestUser = "";
   private guestTransport: "current-user" | "sudo" = "current-user";
+  private modelTimeoutSeconds: number;
+  private updateDevTimeoutSeconds: number;
 
   private status = {
     freshAgent: "skip",
@@ -280,11 +299,17 @@ class MacosSmoke {
       modelId: options.modelId,
       provider: options.provider,
     });
+    this.agentTimeoutSeconds = readPositiveIntEnv("OPENCLAW_PARALLELS_MACOS_AGENT_TIMEOUT_S", 2700);
+    this.modelTimeoutSeconds = resolveParallelsModelTimeoutSeconds("macos");
+    this.updateDevTimeoutSeconds = readPositiveIntEnv(
+      "OPENCLAW_PARALLELS_MACOS_UPDATE_DEV_TIMEOUT_S",
+      1800,
+    );
     this.validateDiscord();
   }
 
   async run(): Promise<void> {
-    this.runDir = await makeTempDir("astroclaw-parallels-macos.");
+    this.runDir = await makeTempDir("openclaw-parallels-macos.");
     this.phases = new PhaseRunner(this.runDir);
     this.guest = new MacosGuest(
       {
@@ -297,9 +322,12 @@ class MacosSmoke {
       this.phases,
     );
     this.discord = this.createDiscordSmoke();
-    this.tgzDir = await makeTempDir("astroclaw-parallels-macos-tgz.");
+    this.tgzDir = await makeTempDir("openclaw-parallels-macos-tgz.");
     try {
-      this.snapshot = resolveSnapshot(this.options.vmName, this.options.snapshotHint);
+      validateSnapshotRestoreMode(this.options.mode, "macOS smoke");
+      this.snapshot = shouldSkipSnapshotRestore()
+        ? currentRunningSnapshotInfo(this.options.vmName)
+        : resolveSnapshot(this.options.vmName, this.options.snapshotHint);
       this.latestVersion = resolveLatestVersion(this.options.latestVersion);
       this.installVersion = this.options.installVersion || this.latestVersion;
       this.hostIp = resolveHostIp(this.options.hostIp);
@@ -322,7 +350,7 @@ class MacosSmoke {
       say(`Run logs: ${this.runDir}`);
 
       if (await this.needsHostTgz()) {
-        this.artifact = await packAstroclaw({
+        this.artifact = await packOpenClaw({
           destination: this.tgzDir,
           packageSpec: this.options.targetPackageSpec,
           requireControlUi: true,
@@ -420,8 +448,8 @@ class MacosSmoke {
       },
       guest: this.guest,
       guestNode,
-      guestAstroclaw,
-      guestAstroclawEntry,
+      guestOpenClaw,
+      guestOpenClawEntry,
       runDir: this.runDir,
       vmName: this.options.vmName,
     });
@@ -462,7 +490,7 @@ class MacosSmoke {
     await this.phase("fresh.restore-snapshot", 780, () => this.restoreSnapshot());
     await this.phase("fresh.reset-state", 180, () => this.resetState());
     await this.phase("fresh.install-main", this.targetInstallsDirectly() ? 420 : 420, () =>
-      this.installMain("astroclaw-main-fresh.tgz"),
+      this.installMain("openclaw-main-fresh.tgz"),
     );
     this.status.freshVersion = await this.extractLastVersion("fresh.install-main");
     await this.phase("fresh.verify-main-version", 60, () => this.verifyTargetVersion());
@@ -473,15 +501,12 @@ class MacosSmoke {
     this.status.freshGateway = "pass";
     await this.phase("fresh.dashboard-load", 180, () => this.verifyDashboardLoad());
     this.status.freshDashboard = "pass";
-    await this.phase(
-      "fresh.first-agent-turn",
-      Number(process.env.ASTROCLAW_PARALLELS_MACOS_AGENT_TIMEOUT_S || 2700),
-      () => this.verifyTurn(),
-    );
+    await this.phase("fresh.first-agent-turn", this.agentTimeoutSeconds, () => this.verifyTurn());
     this.status.freshAgent = "pass";
     if (this.discordEnabled()) {
       this.status.freshDiscord = "fail";
       await this.phase("fresh.discord-config", 600, () => this.configureDiscord());
+      await this.phase("fresh.discord-gateway-ready", 180, () => this.ensureDiscordGatewayReady());
       await this.phase("fresh.discord-roundtrip", 180, () => this.runDiscordRoundtrip("fresh"));
       this.status.freshDiscord = "pass";
     }
@@ -508,7 +533,7 @@ class MacosSmoke {
     }
     if (this.options.targetPackageSpec) {
       await this.phase("upgrade.install-main", this.targetInstallsDirectly() ? 420 : 420, () =>
-        this.installMain("astroclaw-main-upgrade.tgz"),
+        this.installMain("openclaw-main-upgrade.tgz"),
       );
       this.status.upgradeVersion = await this.extractLastVersion("upgrade.install-main");
       await this.phase("upgrade.verify-main-version", 60, () => this.verifyTargetVersion());
@@ -516,10 +541,8 @@ class MacosSmoke {
         this.verifyBundlePermissions(),
       );
     } else {
-      await this.phase(
-        "upgrade.update-dev",
-        Number(process.env.ASTROCLAW_PARALLELS_MACOS_UPDATE_DEV_TIMEOUT_S || 1800),
-        () => this.runDevChannelUpdate(),
+      await this.phase("upgrade.update-dev", this.updateDevTimeoutSeconds, () =>
+        this.runDevChannelUpdate(),
       );
       this.status.upgradeVersion = await this.extractLastVersion("upgrade.update-dev");
       await this.phase("upgrade.verify-dev-channel", 60, () => this.verifyDevChannelUpdate());
@@ -530,15 +553,14 @@ class MacosSmoke {
     this.status.upgradeGateway = "pass";
     await this.phase("upgrade.dashboard-load", 180, () => this.verifyDashboardLoad());
     this.status.upgradeDashboard = "pass";
-    await this.phase(
-      "upgrade.first-agent-turn",
-      Number(process.env.ASTROCLAW_PARALLELS_MACOS_AGENT_TIMEOUT_S || 2700),
-      () => this.verifyTurn(),
-    );
+    await this.phase("upgrade.first-agent-turn", this.agentTimeoutSeconds, () => this.verifyTurn());
     this.status.upgradeAgent = "pass";
     if (this.discordEnabled()) {
       this.status.upgradeDiscord = "fail";
       await this.phase("upgrade.discord-config", 600, () => this.configureDiscord());
+      await this.phase("upgrade.discord-gateway-ready", 180, () =>
+        this.ensureDiscordGatewayReady(),
+      );
       await this.phase("upgrade.discord-roundtrip", 180, () => this.runDiscordRoundtrip("upgrade"));
       this.status.upgradeDiscord = "pass";
     }
@@ -552,8 +574,8 @@ class MacosSmoke {
     await this.phases.phase(name, timeoutSeconds, fn);
   }
 
-  private remainingPhaseTimeoutMs(): number | undefined {
-    return this.phases.remainingTimeoutMs();
+  private remainingPhaseTimeoutMs(fallbackMs?: number): number | undefined {
+    return this.phases.remainingTimeoutMs(fallbackMs);
   }
 
   private async phaseReturns(
@@ -573,6 +595,19 @@ class MacosSmoke {
     options: { check?: boolean; env?: Record<string, string> } = {},
   ): string {
     return this.guest.exec(args, options);
+  }
+
+  private guestOpenClawEntryExec(
+    args: string[],
+    options: { check?: boolean; env?: Record<string, string> } = {},
+  ): string {
+    const argv = args.map((arg) => shellQuote(arg)).join(" ");
+    return this.guestSh(
+      `set -e
+entry="$(npm root -g)/openclaw/openclaw.mjs"
+exec node "$entry" ${argv}`,
+      options.env,
+    );
   }
 
   private guestSh(script: string, env: Record<string, string> = {}): string {
@@ -627,6 +662,7 @@ class MacosSmoke {
       run("prlctl", ["exec", this.options.vmName, "/usr/bin/stat", "-f", "%Su", "/dev/console"], {
         check: false,
         quiet: true,
+        timeoutMs: this.remainingPhaseTimeoutMs(30_000),
       })
         .stdout.trim()
         .replaceAll("\r", "")
@@ -645,6 +681,7 @@ class MacosSmoke {
       {
         check: false,
         quiet: true,
+        timeoutMs: this.remainingPhaseTimeoutMs(30_000),
       },
     ).stdout.replaceAll("\r", "");
     for (const line of users.split("\n")) {
@@ -674,20 +711,25 @@ class MacosSmoke {
         `/Users/${user}`,
         "NFSHomeDirectory",
       ],
-      { check: false, quiet: true },
+      { check: false, quiet: true, timeoutMs: this.remainingPhaseTimeoutMs(30_000) },
     ).stdout.replaceAll("\r", "");
     const match = /^NFSHomeDirectory:\s+(.+)$/m.exec(output);
     return match?.[1]?.trim() || `/Users/${user}`;
   }
 
   private restoreSnapshot(): void {
+    if (shouldSkipSnapshotRestore()) {
+      say(`Skip snapshot restore; using current running VM ${this.options.vmName}`);
+      this.waitForCurrentUser();
+      return;
+    }
     say(`Restore snapshot ${this.options.snapshotHint} (${this.snapshot.id})`);
     let restored = false;
     for (let attempt = 1; attempt <= 2; attempt++) {
       const result = run(
         "prlctl",
         ["snapshot-switch", this.options.vmName, "--id", this.snapshot.id, "--skip-resume"],
-        { check: false, quiet: true, timeoutMs: 360_000 },
+        { check: false, quiet: true, timeoutMs: this.remainingPhaseTimeoutMs(360_000) },
       );
       this.log(result.stdout);
       this.log(result.stderr);
@@ -699,10 +741,17 @@ class MacosSmoke {
       const status = run("prlctl", ["status", this.options.vmName], {
         check: false,
         quiet: true,
+        timeoutMs: this.remainingPhaseTimeoutMs(60_000),
       }).stdout;
       if (status.includes(" running") || status.includes(" suspended")) {
-        run("prlctl", ["stop", this.options.vmName, "--kill"], { check: false, quiet: true });
-        waitForVmStatus(this.options.vmName, "stopped", 360);
+        run("prlctl", ["stop", this.options.vmName, "--kill"], {
+          check: false,
+          quiet: true,
+          timeoutMs: this.remainingPhaseTimeoutMs(120_000),
+        });
+        waitForVmStatus(this.options.vmName, "stopped", 360, {
+          probeTimeoutMs: () => this.remainingPhaseTimeoutMs(30_000),
+        });
       }
       run("sleep", ["3"], { quiet: true });
     }
@@ -712,39 +761,47 @@ class MacosSmoke {
     const status = run("prlctl", ["status", this.options.vmName], {
       check: false,
       quiet: true,
-      timeoutMs: 60_000,
+      timeoutMs: this.remainingPhaseTimeoutMs(60_000),
     }).stdout;
     if (this.snapshot.state === "poweroff" || status.includes(" stopped")) {
-      waitForVmStatus(this.options.vmName, "stopped", 360);
+      waitForVmStatus(this.options.vmName, "stopped", 360, {
+        probeTimeoutMs: () => this.remainingPhaseTimeoutMs(30_000),
+      });
       say(`Start restored poweroff snapshot ${this.snapshot.name}`);
-      run("prlctl", ["start", this.options.vmName], { quiet: true });
+      run("prlctl", ["start", this.options.vmName], {
+        quiet: true,
+        timeoutMs: this.remainingPhaseTimeoutMs(120_000),
+      });
     } else if (status.includes(" suspended")) {
       say(`Resume restored snapshot ${this.snapshot.name}`);
-      run("prlctl", ["start", this.options.vmName], { quiet: true });
+      run("prlctl", ["start", this.options.vmName], {
+        quiet: true,
+        timeoutMs: this.remainingPhaseTimeoutMs(120_000),
+      });
     }
     this.waitForCurrentUser();
   }
 
   private resetState(): void {
-    this.guestSh(String.raw`/usr/bin/pkill -f 'astroclaw.*gateway run' >/dev/null 2>&1 || true
-/usr/bin/pkill -f 'astroclaw-gateway' >/dev/null 2>&1 || true
-/usr/bin/pkill -f 'astroclaw.mjs gateway' >/dev/null 2>&1 || true
+    this.guestSh(String.raw`/usr/bin/pkill -f 'openclaw.*gateway run' >/dev/null 2>&1 || true
+/usr/bin/pkill -f 'openclaw-gateway' >/dev/null 2>&1 || true
+/usr/bin/pkill -f 'openclaw.mjs gateway' >/dev/null 2>&1 || true
 printf 'preflight.user=%s\n' "$(whoami)"
 printf 'preflight.home=%s\n' "$HOME"
 printf 'preflight.path=%s\n' "$PATH"
 printf 'preflight.umask=%s\n' "$(umask)"
 printf 'preflight.npmRoot=%s\n' "$(${guestNpm} root -g 2>/dev/null || true)"
-${guestNpm} uninstall -g astroclaw >/dev/null 2>&1 || true
-rm -rf "$HOME/.astroclaw"
-rm -f /tmp/astroclaw-parallels-macos-gateway.log`);
+${guestNpm} uninstall -g openclaw >/dev/null 2>&1 || true
+rm -rf "$HOME/.openclaw"
+rm -f /tmp/openclaw-parallels-macos-gateway.log`);
   }
 
   private installLatestRelease(): void {
     this.guestSh(
-      `export ASTROCLAW_NO_ONBOARD=1
-curl -fsSL ${shellQuote(this.options.installUrl)} -o /tmp/astroclaw-install.sh
-bash /tmp/astroclaw-install.sh --version ${shellQuote(this.installVersion)}
-${guestAstroclaw} --version`,
+      `export OPENCLAW_NO_ONBOARD=1
+curl -fsSL ${shellQuote(this.options.installUrl)} -o /tmp/openclaw-install.sh
+bash /tmp/openclaw-install.sh --version ${shellQuote(this.installVersion)}
+${guestOpenClaw} --version`,
     );
   }
 
@@ -753,7 +810,7 @@ ${guestAstroclaw} --version`,
       this
         .guestSh(`printf 'install-source: registry-spec %s\\n' ${shellQuote(this.options.targetPackageSpec || "")}
 ${guestNpm} install -g ${shellQuote(this.options.targetPackageSpec || "")}
-${guestAstroclaw} --version`);
+${guestOpenClaw} --version`);
       return;
     }
     if (!this.artifact || !this.server) {
@@ -763,7 +820,7 @@ ${guestAstroclaw} --version`);
     this.guestSh(`printf 'install-source: host-tgz %s\\n' ${shellQuote(tgzUrl)}
 curl -fsSL ${shellQuote(tgzUrl)} -o /tmp/${tempName}
 ${guestNpm} install -g /tmp/${tempName}
-${guestAstroclaw} --version`);
+${guestOpenClaw} --version`);
   }
 
   private async verifyTargetVersion(): Promise<void> {
@@ -781,7 +838,7 @@ ${guestAstroclaw} --version`);
   }
 
   private verifyVersionContains(needle: string): void {
-    const version = this.guestExec([guestAstroclaw, "--version"]);
+    const version = this.guestExec([guestOpenClaw, "--version"]);
     if (!version.includes(needle)) {
       throw new Error(`version mismatch: expected substring ${needle}`);
     }
@@ -789,7 +846,7 @@ ${guestAstroclaw} --version`);
 
   private verifyBundlePermissions(): void {
     this.guestSh(String.raw`set -eu
-root=$(/opt/homebrew/bin/npm root -g)
+root=$(npm root -g)
 check_path() {
   path="$1"
   [ -e "$path" ] || return 0
@@ -800,12 +857,12 @@ check_path() {
     exit 1
   fi
 }
-check_path "$root/astroclaw"
-check_path "$root/astroclaw/extensions"
-if [ -d "$root/astroclaw/extensions" ]; then
+check_path "$root/openclaw"
+check_path "$root/openclaw/extensions"
+if [ -d "$root/openclaw/extensions" ]; then
   while IFS= read -r -d '' extension_dir; do
     check_path "$extension_dir"
-  done < <(/usr/bin/find "$root/astroclaw/extensions" -mindepth 1 -maxdepth 1 -type d -print0)
+  done < <(/usr/bin/find "$root/openclaw/extensions" -mindepth 1 -maxdepth 1 -type d -print0)
 fi`);
   }
 
@@ -814,7 +871,7 @@ fi`);
     this.guestExec([
       "/usr/bin/env",
       `${this.auth.apiKeyEnv}=${this.auth.apiKeyValue}`,
-      guestAstroclaw,
+      guestOpenClaw,
       "onboard",
       "--non-interactive",
       "--mode",
@@ -841,7 +898,7 @@ fi`);
 
   private ensureGuestPnpm(): void {
     this.guestSh(String.raw`set -eu
-bootstrap_root=/tmp/astroclaw-smoke-pnpm-bootstrap
+bootstrap_root=/tmp/openclaw-smoke-pnpm-bootstrap
 bootstrap_bin="$bootstrap_root/node_modules/.bin"
 if [ -x "$bootstrap_bin/pnpm" ]; then
   echo "bootstrap-pnpm: reuse"
@@ -851,7 +908,7 @@ fi
 echo "bootstrap-pnpm: install"
 rm -rf "$bootstrap_root"
 mkdir -p "$bootstrap_root"
-/opt/homebrew/bin/node /opt/homebrew/bin/npm install --prefix "$bootstrap_root" --no-save pnpm@11
+npm install --prefix "$bootstrap_root" --no-save pnpm@11
 "$bootstrap_bin/pnpm" --version`);
   }
 
@@ -860,24 +917,24 @@ mkdir -p "$bootstrap_root"
     const home = this.guestHome();
     this.guestSh(
       `set -eu
-rm -rf ${shellQuote(`${home}/astroclaw`)}
-export PATH=${shellQuote(`/tmp/astroclaw-smoke-pnpm-bootstrap/node_modules/.bin:${guestPath}`)}
+rm -rf ${shellQuote(`${home}/openclaw`)}
+export PATH=${shellQuote(`/tmp/openclaw-smoke-pnpm-bootstrap/node_modules/.bin:${guestPath}`)}
 ${guestNode} - <<'JS'
 const fs = require("node:fs");
 const path = require("node:path");
-const configPath = path.join(process.env.HOME || ${JSON.stringify(home)}, ".astroclaw", "astroclaw.json");
+const configPath = path.join(process.env.HOME || ${JSON.stringify(home)}, ".openclaw", "openclaw.json");
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 config.update = { ...(config.update || {}), channel: "dev" };
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\\n");
 JS
-/usr/bin/env NODE_OPTIONS=--max-old-space-size=8192 ASTROCLAW_ALLOW_OLDER_BINARY_DESTRUCTIVE_ACTIONS=1 ASTROCLAW_DISABLE_BUNDLED_PLUGINS=1 ${guestNode} ${guestAstroclawEntry} update --channel dev --yes --json
-${guestNode} ${guestAstroclawEntry} --version
-${guestNode} ${guestAstroclawEntry} update status --json`,
+/usr/bin/env NODE_OPTIONS=--max-old-space-size=8192 OPENCLAW_ALLOW_OLDER_BINARY_DESTRUCTIVE_ACTIONS=1 OPENCLAW_DISABLE_BUNDLED_PLUGINS=1 ${guestOpenClawEntryRunner} update --channel dev --yes --json
+${guestOpenClawEntryRunner} --version
+${guestOpenClawEntryRunner} update status --json`,
     );
   }
 
   private verifyDevChannelUpdate(): void {
-    const status = this.guestExec([guestNode, guestAstroclawEntry, "update", "status", "--json"]);
+    const status = this.guestOpenClawEntryExec(["update", "status", "--json"]);
     for (const needle of ['"installKind": "git"', '"value": "dev"', '"branch": "main"']) {
       if (!status.includes(needle)) {
         throw new Error(`dev update status missing ${needle}`);
@@ -893,21 +950,21 @@ ${guestNode} ${guestAstroclawEntry} update status --json`,
     this.guestSh(
       `set -euo pipefail
 trap '' HUP
-/usr/bin/pkill -f 'astroclaw.*gateway run' >/dev/null 2>&1 || true
-/usr/bin/pkill -f 'astroclaw-gateway' >/dev/null 2>&1 || true
-/usr/bin/pkill -f 'astroclaw.mjs gateway' >/dev/null 2>&1 || true
+/usr/bin/pkill -f 'openclaw.*gateway run' >/dev/null 2>&1 || true
+/usr/bin/pkill -f 'openclaw-gateway' >/dev/null 2>&1 || true
+/usr/bin/pkill -f 'openclaw.mjs gateway' >/dev/null 2>&1 || true
 /usr/bin/env HOME=${shellQuote(home)} USER=${shellQuote(this.guestUser)} LOGNAME=${shellQuote(this.guestUser)} PATH=${shellQuote(guestPath)} ${shellQuote(
         `${this.auth.apiKeyEnv}=${this.auth.apiKeyValue}`,
-      )} ASTROCLAW_HOME=${shellQuote(home)} ASTROCLAW_STATE_DIR=${shellQuote(`${home}/.astroclaw`)} ASTROCLAW_CONFIG_PATH=${shellQuote(
-        `${home}/.astroclaw/astroclaw.json`,
-      )} ${guestNode} ${guestAstroclawEntry} gateway run --bind loopback --port 18789 --force </dev/null >/tmp/astroclaw-parallels-macos-gateway.log 2>&1 &
+      )} OPENCLAW_HOME=${shellQuote(home)} OPENCLAW_STATE_DIR=${shellQuote(`${home}/.openclaw`)} OPENCLAW_CONFIG_PATH=${shellQuote(
+        `${home}/.openclaw/openclaw.json`,
+      )} ${guestOpenClawEntryRunner} gateway run --bind loopback --port 18789 --force </dev/null >/tmp/openclaw-parallels-macos-gateway.log 2>&1 &
 sleep 1`,
     );
   }
 
   private verifyGateway(): void {
     for (let attempt = 1; attempt <= 8; attempt++) {
-      const result = this.guestAstroclaw(
+      const result = this.guestOpenClaw(
         ["gateway", "status", "--deep", "--require-rpc", "--timeout", "15000"],
         false,
       );
@@ -923,16 +980,16 @@ sleep 1`,
   }
 
   private showGatewayStatusCompat(): void {
-    const help = this.guestExec([guestAstroclaw, "gateway", "status", "--help"], { check: false });
+    const help = this.guestExec([guestOpenClaw, "gateway", "status", "--help"], { check: false });
     const args = help.includes("--require-rpc")
       ? ["gateway", "status", "--deep", "--require-rpc"]
       : ["gateway", "status", "--deep"];
-    if (!this.guestAstroclaw(args, false)) {
+    if (!this.guestOpenClaw(args, false)) {
       throw new Error("gateway status failed");
     }
   }
 
-  private guestAstroclaw(args: string[], check: boolean): boolean {
+  private guestOpenClaw(args: string[], check: boolean): boolean {
     const result = run(
       "prlctl",
       [
@@ -949,7 +1006,7 @@ sleep 1`,
               `PATH=${guestPath}`,
             ]
           : ["--current-user", "/usr/bin/env", `PATH=${guestPath}`]),
-        guestAstroclaw,
+        guestOpenClaw,
         ...args,
       ],
       { check: false, quiet: true, timeoutMs: this.remainingPhaseTimeoutMs() },
@@ -957,7 +1014,7 @@ sleep 1`,
     this.log(result.stdout);
     this.log(result.stderr);
     if (check && result.status !== 0) {
-      throw new Error(`astroclaw ${args.join(" ")} failed`);
+      throw new Error(`openclaw ${args.join(" ")} failed`);
     }
     return result.status === 0;
   }
@@ -966,10 +1023,32 @@ sleep 1`,
     this.guestSh(String.raw`set -eu
 deadline=$((SECONDS + 120))
 while [ $SECONDS -lt $deadline ]; do
-  if curl -fsSL --connect-timeout 2 --max-time 5 http://127.0.0.1:18789/ >/tmp/astroclaw-dashboard-smoke.html 2>/dev/null; then
-    grep -F '<title>Astroclaw Control</title>' /tmp/astroclaw-dashboard-smoke.html >/dev/null &&
-      grep -F '<astroclaw-app></astroclaw-app>' /tmp/astroclaw-dashboard-smoke.html >/dev/null &&
-      exit 0
+  if curl -fsSL --connect-timeout 2 --max-time 5 http://127.0.0.1:18789/ >/tmp/openclaw-dashboard-smoke.html 2>/dev/null; then
+    if grep -F '<title>OpenClaw Control</title>' /tmp/openclaw-dashboard-smoke.html >/dev/null &&
+      grep -F '<openclaw-app></openclaw-app>' /tmp/openclaw-dashboard-smoke.html >/dev/null; then
+      asset_paths="$(
+        sed -nE 's/.*<(script|link)[^>]*(src|href)=["'"'"']([^"'"'"']+)["'"'"'].*/\3/p' /tmp/openclaw-dashboard-smoke.html |
+          grep -E '(^|/)assets/' |
+          grep -Ev '^(https?:)?//' |
+          sort -u
+      )"
+      if [ -n "$asset_paths" ]; then
+        assets_ok=1
+        while IFS= read -r asset_path; do
+          [ -n "$asset_path" ] || continue
+          case "$asset_path" in
+            http://127.0.0.1:18789/*) asset_url="$asset_path" ;;
+            /*) asset_url="http://127.0.0.1:18789$asset_path" ;;
+            *) asset_url="http://127.0.0.1:18789/$asset_path" ;;
+          esac
+          curl -fsSL --connect-timeout 2 --max-time 5 "$asset_url" >/dev/null 2>/dev/null ||
+            assets_ok=0
+        done <<EOF
+$asset_paths
+EOF
+        [ "$assets_ok" -eq 1 ] && exit 0
+      fi
+    fi
   fi
   sleep 1
 done
@@ -977,41 +1056,53 @@ echo "dashboard HTML did not become ready" >&2
 exit 1`);
   }
 
+  private restrictAgentTurnPlugins(): void {
+    this.guestSh(
+      posixProviderOnlyPluginIsolationScript({
+        fallbackPluginId: this.options.provider,
+        homeFallback: this.guestHome(),
+        modelId: this.auth.modelId,
+        nodeCommand: guestNode,
+      }),
+    );
+  }
+
   private verifyTurn(): void {
-    this.guestExec([guestNode, guestAstroclawEntry, "models", "set", this.auth.modelId]);
-    const modelProviderConfigBatch = modelProviderConfigBatchJson(this.auth.modelId, "macos");
+    this.guestOpenClawEntryExec(["models", "set", this.auth.modelId]);
+    const modelProviderConfigBatch = modelProviderConfigBatchJson(
+      this.auth.modelId,
+      "macos",
+      this.modelTimeoutSeconds,
+    );
     if (modelProviderConfigBatch) {
       this.guestSh(`provider_config_batch="$(mktemp)"
 cat >"$provider_config_batch" <<'JSON'
 ${modelProviderConfigBatch}
 JSON
-${shellQuote(guestNode)} ${shellQuote(
-        guestAstroclawEntry,
-      )} config set --batch-file "$provider_config_batch" --strict-json
+${guestOpenClawEntryRunner} config set --batch-file "$provider_config_batch" --strict-json
 rm -f "$provider_config_batch"`);
     }
-    this.guestExec([
-      guestNode,
-      guestAstroclawEntry,
+    this.guestOpenClawEntryExec([
       "config",
       "set",
       "agents.defaults.skipBootstrap",
       "true",
       "--strict-json",
     ]);
-    this.guestExec([guestNode, guestAstroclawEntry, "config", "set", "tools.profile", "minimal"]);
+    this.guestOpenClawEntryExec(["config", "set", "tools.profile", "minimal"]);
+    this.restrictAgentTurnPlugins();
     this.guestSh(
       `${posixAgentWorkspaceScript("Parallels macOS smoke test assistant.")}
 agent_ok=false
 for attempt in 1 2; do
   session_id="parallels-macos-smoke"
   if [ "$attempt" -gt 1 ]; then session_id="parallels-macos-smoke-retry-$attempt"; fi
-  rm -f "$HOME/.astroclaw/agents/main/sessions/$session_id.jsonl"
+  rm -f "$HOME/.openclaw/agents/main/sessions/$session_id.jsonl"
   output_file="$(mktemp)"
   set +e
-  /usr/bin/env ${shellQuote(`${this.auth.apiKeyEnv}=${this.auth.apiKeyValue}`)} ${guestNode} ${guestAstroclawEntry} agent --local --agent main --session-id "$session_id" --message ${shellQuote(
+  /usr/bin/env ${shellQuote(`${this.auth.apiKeyEnv}=${this.auth.apiKeyValue}`)} ${guestOpenClawEntryRunner} agent --local --agent main --session-id "$session_id" --message ${shellQuote(
     "Reply with exact ASCII text OK only.",
-  )} --thinking minimal --timeout ${resolveParallelsModelTimeoutSeconds("macos")} --json >"$output_file" 2>&1
+  )} --thinking off --timeout ${this.modelTimeoutSeconds} --json >"$output_file" 2>&1
   rc=$?
   set -e
   cat "$output_file"
@@ -1031,7 +1122,7 @@ for attempt in 1 2; do
   fi
 done
 if [ "$agent_ok" != true ]; then
-  echo "astroclaw agent finished without OK response" >&2
+  echo "openclaw agent finished without OK response" >&2
   exit 1
 fi`,
     );
@@ -1039,6 +1130,15 @@ fi`,
 
   private configureDiscord(): void {
     this.discord?.configure();
+  }
+
+  private ensureDiscordGatewayReady(): void {
+    this.startManualGatewayIfNeeded();
+    this.verifyGateway();
+    const status = this.guestOpenClawEntryExec(["channels", "status", "--probe", "--json"]);
+    if (!status.includes('"discord"')) {
+      throw new Error("Discord channel unavailable after gateway restart");
+    }
   }
 
   private async runDiscordRoundtrip(phase: "fresh" | "upgrade"): Promise<void> {
@@ -1066,9 +1166,7 @@ fi`,
   }
 
   private async extractLastVersion(phaseName: string): Promise<string> {
-    const log = await readFile(path.join(this.runDir, `${phaseName}.log`), "utf8").catch(() => "");
-    const matches = [...log.matchAll(/Astroclaw\s+([0-9][^\s]*)/gi)];
-    return matches.at(-1)?.[1] ?? "";
+    return await extractLastOpenClawVersionFromLog(path.join(this.runDir, `${phaseName}.log`));
   }
 
   private upgradeSummaryLabel(): string {
@@ -1148,6 +1246,11 @@ fi`,
   }
 }
 
-await new MacosSmoke(parseArgs(process.argv.slice(2))).run().catch((error: unknown) => {
-  die(error instanceof Error ? error.message : String(error));
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  const options = parseArgs(process.argv.slice(2));
+  const runSmoke = () => new MacosSmoke(options).run();
+  const runPromise = options.json ? withProgressOnStderr(runSmoke) : runSmoke();
+  await runPromise.catch((error: unknown) => {
+    die(error instanceof Error ? error.message : String(error));
+  });
+}
