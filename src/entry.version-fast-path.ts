@@ -1,3 +1,4 @@
+// Handles fast version output before the full CLI graph loads.
 import { isRootVersionInvocation } from "./cli/argv.js";
 import { resolveCliContainerTarget } from "./cli/container-target.js";
 
@@ -27,7 +28,7 @@ export function tryHandleRootVersionFastPath(
     deps.onError ??
     ((error: unknown) => {
       console.error(
-        "[astroclaw] Failed to resolve version:",
+        "[openclaw] Failed to resolve version:",
         error instanceof Error ? (error.stack ?? error.message) : error,
       );
       process.exitCode = 1;
@@ -45,7 +46,7 @@ export function tryHandleRootVersionFastPath(
   resolveVersion()
     .then(({ VERSION, resolveCommitHash }) => {
       const commit = resolveCommitHash({ moduleUrl: deps.moduleUrl ?? import.meta.url });
-      output(commit ? `Astroclaw ${VERSION} (${commit})` : `Astroclaw ${VERSION}`);
+      output(commit ? `OpenClaw ${VERSION} (${commit})` : `OpenClaw ${VERSION}`);
       exit(0);
     })
     .catch(onError);
