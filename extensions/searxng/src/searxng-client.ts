@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Searxng plugin module implements searxng client behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   DEFAULT_CACHE_TTL_MINUTES,
   DEFAULT_SEARCH_COUNT,
@@ -13,14 +14,14 @@ import {
   withTrustedWebSearchEndpoint,
   wrapWebContent,
   writeCache,
-} from "astroclaw/plugin-sdk/provider-web-search";
+} from "openclaw/plugin-sdk/provider-web-search";
 import {
   assertHttpUrlTargetsPrivateNetwork,
   isBlockedHostnameOrIp,
   isPrivateIpAddress,
   resolvePinnedHostnameWithPolicy,
   type LookupFn,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   resolveSearxngBaseUrl,
   resolveSearxngCategories,
@@ -229,7 +230,7 @@ async function fetchSearxngResults(params: {
 }
 
 export async function runSearxngSearch(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   query: string;
   count?: number;
   categories?: string;
@@ -313,7 +314,7 @@ export async function runSearxngSearch(params: {
   return payload;
 }
 
-export const __testing = {
+export const testing = {
   buildSearxngSearchUrl,
   normalizeSearxngResult,
   parseSearxngResponseText,
@@ -321,3 +322,4 @@ export const __testing = {
   validateSearxngBaseUrl,
   SEARXNG_SEARCH_CACHE,
 };
+export { testing as __testing };
