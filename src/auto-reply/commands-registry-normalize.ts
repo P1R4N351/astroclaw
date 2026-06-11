@@ -1,9 +1,10 @@
-import type { AstroclawConfig } from "../config/types.js";
+/** Normalizes slash-command text aliases and builds command detection caches. */
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.js";
 import { escapeRegExp } from "../utils.js";
 import { getChatCommands } from "./commands-registry.data.js";
 import type {
@@ -49,6 +50,7 @@ function getTextAliasMap(): Map<string, TextAliasSpec> {
   return map;
 }
 
+/** Normalizes command text to canonical aliases, removing bot mentions when appropriate. */
 export function normalizeCommandBody(raw: string, options?: CommandNormalizeOptions): string {
   const trimmed = raw.trim();
   if (!trimmed.startsWith("/")) {
@@ -58,6 +60,7 @@ export function normalizeCommandBody(raw: string, options?: CommandNormalizeOpti
   const newline = trimmed.indexOf("\n");
   const singleLine = newline === -1 ? trimmed : trimmed.slice(0, newline).trim();
 
+  // `/cmd: value` is accepted as `/cmd value` because some channels insert colon syntax.
   const colonMatch = singleLine.match(/^\/([^\s:]+)\s*:(.*)$/);
   const normalized = colonMatch
     ? (() => {
@@ -100,7 +103,8 @@ export function normalizeCommandBody(raw: string, options?: CommandNormalizeOpti
   return normalizedRest ? `${tokenSpec.canonical} ${normalizedRest}` : tokenSpec.canonical;
 }
 
-export function getCommandDetection(_cfg?: AstroclawConfig): CommandDetection {
+/** Returns cached exact and regex detectors for the current command registry instance. */
+export function getCommandDetection(_cfg?: OpenClawConfig): CommandDetection {
   const commands = getChatCommands();
   if (cachedDetection && cachedDetectionCommands === commands) {
     return cachedDetection;
@@ -133,7 +137,8 @@ export function getCommandDetection(_cfg?: AstroclawConfig): CommandDetection {
   return cachedDetection;
 }
 
-export function maybeResolveTextAlias(raw: string, cfg?: AstroclawConfig) {
+/** Resolves a raw text command to the matching normalized alias when known. */
+export function maybeResolveTextAlias(raw: string, cfg?: OpenClawConfig) {
   const trimmed = normalizeCommandBody(raw).trim();
   if (!trimmed.startsWith("/")) {
     return null;
@@ -154,9 +159,10 @@ export function maybeResolveTextAlias(raw: string, cfg?: AstroclawConfig) {
   return getTextAliasMap().has(tokenKey) ? tokenKey : null;
 }
 
+/** Resolves a raw text command into its command definition and raw argument tail. */
 export function resolveTextCommand(
   raw: string,
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
 ): {
   command: ChatCommandDefinition;
   args?: string;
