@@ -1,5 +1,6 @@
+// Feishu plugin module implements lifecycle test support behavior.
 import { randomUUID } from "node:crypto";
-import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
+import { createPluginRuntimeMock } from "openclaw/plugin-sdk/channel-test-helpers";
 import { expect, vi, type Mock } from "vitest";
 import type { ClawdbotConfig, PluginRuntime, RuntimeEnv } from "../../runtime-api.js";
 import { setFeishuRuntime } from "../runtime.js";
@@ -37,22 +38,24 @@ type FeishuLifecycleReplyDispatcher = {
     sendFinalReply: AsyncUnknownMock;
     waitForIdle: AsyncUnknownMock;
     getQueuedCounts: UnknownMock;
+    getFailedCounts: UnknownMock;
     markComplete: UnknownMock;
   };
   replyOptions: Record<string, never>;
   markDispatchIdle: UnknownMock;
+  ensureNoVisibleReplyFallback: AsyncUnknownMock;
 };
 
 export function setFeishuLifecycleStateDir(prefix: string) {
-  process.env.ASTROCLAW_STATE_DIR = `/tmp/${prefix}-${randomUUID()}`;
+  process.env.OPENCLAW_STATE_DIR = `/tmp/${prefix}-${randomUUID()}`;
 }
 
 export function restoreFeishuLifecycleStateDir(originalStateDir: string | undefined) {
   if (originalStateDir === undefined) {
-    delete process.env.ASTROCLAW_STATE_DIR;
+    delete process.env.OPENCLAW_STATE_DIR;
     return;
   }
-  process.env.ASTROCLAW_STATE_DIR = originalStateDir;
+  process.env.OPENCLAW_STATE_DIR = originalStateDir;
 }
 
 const FEISHU_PREFETCHED_BOT_OPEN_ID_SOURCE = {
@@ -69,10 +72,12 @@ export function createFeishuLifecycleReplyDispatcher(): FeishuLifecycleReplyDisp
       sendFinalReply: vi.fn(async () => true),
       waitForIdle: vi.fn(async () => {}),
       getQueuedCounts: vi.fn(() => ({ tool: 0, block: 0, final: 0 })),
+      getFailedCounts: vi.fn(() => ({ tool: 0, block: 0, final: 0 })),
       markComplete: vi.fn(),
     },
     replyOptions: {},
     markDispatchIdle: vi.fn(),
+    ensureNoVisibleReplyFallback: vi.fn(async () => false),
   };
 }
 
@@ -88,6 +93,7 @@ function createImmediateInboundDebounce() {
         }
       },
       flushKey: async () => {},
+      cancelKey: () => false,
     }),
   };
 }
