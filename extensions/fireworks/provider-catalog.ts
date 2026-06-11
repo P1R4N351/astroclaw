@@ -1,9 +1,10 @@
-import { buildManifestModelProviderConfig } from "astroclaw/plugin-sdk/provider-catalog-shared";
+// Fireworks provider module implements model/runtime integration.
+import { buildManifestModelProviderConfig } from "openclaw/plugin-sdk/provider-catalog-shared";
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "astroclaw/plugin-sdk/provider-model-shared";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
+} from "openclaw/plugin-sdk/provider-model-shared";
+import manifest from "./openclaw.plugin.json" with { type: "json" };
 
 const FIREWORKS_MANIFEST_PROVIDER = buildManifestModelProviderConfig({
   providerId: "fireworks",
