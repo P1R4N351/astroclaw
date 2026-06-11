@@ -1,3 +1,6 @@
+/**
+ * Test SDK subpath for provider auth, catalog, discovery, runtime, and media contracts.
+ */
 export {
   describeGithubCopilotProviderAuthContract,
   describeOpenAICodexProviderAuthContract,
@@ -73,9 +76,9 @@ export {
 export { expectPassthroughReplayPolicy } from "./test-helpers/provider-replay-policy.js";
 export { createCapturedThinkingConfigStream } from "./test-helpers/stream-hooks.js";
 export {
-  expectAstroclawLiveTranscriptMarker,
+  expectOpenClawLiveTranscriptMarker,
   normalizeTranscriptForMatch,
-  ASTROCLAW_LIVE_TRANSCRIPT_MARKER_RE,
+  OPENCLAW_LIVE_TRANSCRIPT_MARKER_RE,
   runRealtimeSttLiveTest,
   streamAudioForLiveTest,
   synthesizeElevenLabsLiveSpeech,
