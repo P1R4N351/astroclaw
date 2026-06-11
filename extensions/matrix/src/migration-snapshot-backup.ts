@@ -1,10 +1,11 @@
+// Matrix plugin module implements migration snapshot backup behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { writeJsonFileAtomically } from "astroclaw/plugin-sdk/json-store";
-import { resolveRequiredHomeDir, resolveStateDir } from "astroclaw/plugin-sdk/state-paths";
+import { writeJsonFileAtomically } from "openclaw/plugin-sdk/json-store";
+import { resolveRequiredHomeDir, resolveStateDir } from "openclaw/plugin-sdk/state-paths";
 
-const MATRIX_MIGRATION_SNAPSHOT_DIRNAME = "astroclaw-migrations";
+const MATRIX_MIGRATION_SNAPSHOT_DIRNAME = "openclaw-migrations";
 
 type MatrixMigrationSnapshotMarker = {
   version: 1;
@@ -66,12 +67,12 @@ export async function maybeCreateMatrixMigrationSnapshot(params: {
   trigger: string;
   env?: NodeJS.ProcessEnv;
   outputDir?: string;
-  createBackupArchive?: typeof import("astroclaw/plugin-sdk/runtime").createBackupArchive;
+  createBackupArchive?: typeof import("openclaw/plugin-sdk/runtime").createBackupArchive;
   log?: { info?: (message: string) => void; warn?: (message: string) => void };
 }): Promise<MatrixMigrationSnapshotResult> {
   const env = params.env ?? process.env;
   const createBackupArchive =
-    params.createBackupArchive ?? (await import("astroclaw/plugin-sdk/runtime")).createBackupArchive;
+    params.createBackupArchive ?? (await import("openclaw/plugin-sdk/runtime")).createBackupArchive;
   const markerPath = resolveMatrixMigrationSnapshotMarkerPath(env);
   const existingMarker = loadSnapshotMarker(markerPath);
   if (existingMarker?.archivePath && fs.existsSync(existingMarker.archivePath)) {
