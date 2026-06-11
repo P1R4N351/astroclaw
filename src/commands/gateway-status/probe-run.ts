@@ -1,11 +1,15 @@
-import type { AstroclawConfig } from "../../config/types.js";
+/** Runs gateway discovery, optional SSH tunneling, and per-target probes. */
+import {
+  normalizeOptionalString,
+  readStringValue,
+} from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../../config/types.js";
 import { probeGateway } from "../../gateway/probe.js";
 import {
   discoverGatewayBeacons,
   type GatewayBonjourBeacon,
 } from "../../infra/bonjour-discovery.js";
 import { formatErrorMessage } from "../../infra/errors.js";
-import { normalizeOptionalString, readStringValue } from "../../shared/string-coerce.js";
 import { pickAutoSshTargetFromDiscovery } from "./discovery.js";
 import {
   extractConfigSummary,
@@ -16,6 +20,7 @@ import {
   type GatewayStatusTarget,
 } from "./helpers.js";
 
+/** Single gateway status target plus probe details and derived display metadata. */
 export type GatewayStatusProbedTarget = {
   target: GatewayStatusTarget;
   probe: Awaited<ReturnType<typeof probeGateway>>;
@@ -24,8 +29,9 @@ export type GatewayStatusProbedTarget = {
   authDiagnostics: string[];
 };
 
+/** Probes configured, explicit, and optionally SSH-discovered gateway targets. */
 export async function runGatewayStatusProbePass(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   opts: {
     token?: string;
     password?: string;
@@ -90,6 +96,8 @@ export async function runGatewayStatusProbePass(params: {
     });
   }
 
+  // Prefer the concurrently-started tunnel, but allow auto-discovered SSH
+  // targets to start after Bonjour finishes.
   const tunnel =
     tunnelFirst ||
     (sshTarget && !sshTunnelStarted && !sshTunnelError ? await tryStartTunnel() : null);
@@ -156,7 +164,7 @@ export async function runGatewayStatusProbePass(params: {
       try {
         await tunnel.stop();
       } catch {
-        // best-effort
+        // Status output must not fail just because tunnel cleanup races process exit.
       }
     }
   }
