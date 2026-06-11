@@ -1,11 +1,13 @@
+// Emits session lifecycle hooks for channel plugins and agent runtimes.
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type {
   PluginHookSessionEndEvent,
   PluginHookSessionEndReason,
   PluginHookSessionStartEvent,
 } from "../../plugins/hook-types.js";
 
+/** Session identity attached to plugin session hook payloads. */
 export type SessionHookContext = {
   sessionId: string;
   sessionKey: string;
@@ -15,7 +17,7 @@ export type SessionHookContext = {
 function buildSessionHookContext(params: {
   sessionId: string;
   sessionKey: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }): SessionHookContext {
   return {
     sessionId: params.sessionId,
@@ -24,10 +26,11 @@ function buildSessionHookContext(params: {
   };
 }
 
+/** Builds the payload for plugin session-start hooks. */
 export function buildSessionStartHookPayload(params: {
   sessionId: string;
   sessionKey: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   resumedFrom?: string;
 }): {
   event: PluginHookSessionStartEvent;
@@ -47,10 +50,11 @@ export function buildSessionStartHookPayload(params: {
   };
 }
 
+/** Builds the payload for plugin session-end hooks. */
 export function buildSessionEndHookPayload(params: {
   sessionId: string;
   sessionKey: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   messageCount?: number;
   durationMs?: number;
   reason?: PluginHookSessionEndReason;
