@@ -1,7 +1,8 @@
+// Minimax API module exposes the plugin public contract.
 import {
   createWebSearchProviderContractFields,
   type WebSearchProviderPlugin,
-} from "astroclaw/plugin-sdk/provider-web-search-config-contract";
+} from "openclaw/plugin-sdk/provider-web-search-config-contract";
 
 const MINIMAX_TOKEN_PLAN_ENV_VARS = [
   "MINIMAX_CODE_PLAN_KEY",
@@ -22,7 +23,7 @@ export function createMiniMaxWebSearchProvider(): WebSearchProviderPlugin {
     envVars: [...MINIMAX_WEB_SEARCH_ENV_VARS],
     placeholder: "sk-cp-...",
     signupUrl: "https://platform.minimax.io/user-center/basic-information/interface-key",
-    docsUrl: "https://docs.astroclaw.ai/tools/minimax-search",
+    docsUrl: "https://docs.openclaw.ai/tools/minimax-search",
     autoDetectOrder: 15,
     credentialPath,
     ...createWebSearchProviderContractFields({
