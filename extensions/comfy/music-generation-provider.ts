@@ -1,8 +1,9 @@
+// Comfy provider module implements model/runtime integration.
 import type {
   GeneratedMusicAsset,
   MusicGenerationProvider,
   MusicGenerationSourceImage,
-} from "astroclaw/plugin-sdk/music-generation";
+} from "openclaw/plugin-sdk/music-generation";
 import {
   DEFAULT_COMFY_MODEL,
   isComfyCapabilityConfigured,
