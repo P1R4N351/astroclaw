@@ -1,5 +1,6 @@
-import type { PluginRuntime } from "astroclaw/plugin-sdk/core";
-import { createPluginRuntimeStore } from "astroclaw/plugin-sdk/runtime-store";
+// Nostr plugin module implements runtime behavior.
+import type { PluginRuntime } from "openclaw/plugin-sdk/core";
+import { createPluginRuntimeStore } from "openclaw/plugin-sdk/runtime-store";
 
 const { setRuntime: setNostrRuntime, getRuntime: getNostrRuntime } =
   createPluginRuntimeStore<PluginRuntime>({
