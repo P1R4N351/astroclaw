@@ -1,4 +1,5 @@
-import type { MediaUnderstandingProvider } from "astroclaw/plugin-sdk/media-understanding";
+// Deepgram provider module implements model/runtime integration.
+import type { MediaUnderstandingProvider } from "openclaw/plugin-sdk/media-understanding";
 import { transcribeDeepgramAudio } from "./audio.js";
 
 export const deepgramMediaUnderstandingProvider: MediaUnderstandingProvider = {
