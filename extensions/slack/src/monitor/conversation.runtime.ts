@@ -1,3 +1,4 @@
+// Slack plugin module implements conversation behavior.
 export {
   buildPluginBindingResolvedText,
   parsePluginBindingApprovalCustomId,
@@ -5,4 +6,4 @@ export {
   resolveConversationLabel,
   resolvePluginConversationBindingApproval,
   upsertChannelPairingRequest,
-} from "astroclaw/plugin-sdk/conversation-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
