@@ -1,10 +1,10 @@
 // Manual facade. Keep loader boundary explicit.
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import type { SecurityAuditFinding } from "../security/audit.types.js";
 import { loadBundledPluginPublicSurfaceModuleSync } from "./facade-loader.js";
 
 type SecuritySurface = {
-  collectFeishuSecurityAuditFindings: (params: { cfg: AstroclawConfig }) => SecurityAuditFinding[];
+  collectFeishuSecurityAuditFindings: (params: { cfg: OpenClawConfig }) => SecurityAuditFinding[];
 };
 
 function loadSecuritySurface(): SecuritySurface {
@@ -14,6 +14,7 @@ function loadSecuritySurface(): SecuritySurface {
   });
 }
 
+/** Collect Feishu plugin security findings through the lazy bundled-plugin facade. */
 export const collectFeishuSecurityAuditFindings: SecuritySurface["collectFeishuSecurityAuditFindings"] =
   ((...args) =>
     loadSecuritySurface().collectFeishuSecurityAuditFindings(
