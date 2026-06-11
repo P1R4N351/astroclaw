@@ -1,12 +1,13 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { findCatalogTemplate } from "astroclaw/plugin-sdk/provider-catalog-shared";
+// Openai plugin module implements shared behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { findCatalogTemplate } from "openclaw/plugin-sdk/provider-catalog-shared";
 import {
   cloneFirstTemplateModel,
   matchesExactOrPrefix,
   type ProviderPlugin,
-} from "astroclaw/plugin-sdk/provider-model-shared";
-import { OPENAI_RESPONSES_STREAM_HOOKS } from "astroclaw/plugin-sdk/provider-stream-family";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-model-shared";
+import { OPENAI_RESPONSES_STREAM_HOOKS } from "openclaw/plugin-sdk/provider-stream-family";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { createOpenAINativeWebSearchWrapper } from "./native-web-search.js";
 import { buildOpenAIReplayPolicy } from "./replay-policy.js";
 import {
@@ -38,7 +39,7 @@ export function toOpenAIDataUrl(buffer: Buffer, mimeType: string): string {
   return `data:${mimeType};base64,${buffer.toString("base64")}`;
 }
 
-export function resolveConfiguredOpenAIBaseUrl(cfg: AstroclawConfig | undefined): string {
+export function resolveConfiguredOpenAIBaseUrl(cfg: OpenClawConfig | undefined): string {
   return normalizeOptionalString(cfg?.models?.providers?.openai?.baseUrl) ?? OPENAI_API_BASE_URL;
 }
 
@@ -87,6 +88,8 @@ const wrapOpenAIResponsesProviderStreamFn: NonNullable<
 > = (ctx) =>
   createOpenAINativeWebSearchWrapper(wrapOpenAIResponsesStreamFn?.(ctx) ?? ctx.streamFn, {
     config: ctx.config,
+    agentId: ctx.agentId,
+    nativeWebSearchAllowedByToolPolicy: ctx.nativeWebSearchAllowedByToolPolicy,
   });
 
 export function buildOpenAIResponsesProviderHooks(options?: {
