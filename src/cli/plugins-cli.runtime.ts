@@ -1,14 +1,20 @@
+// Runtime implementations for `openclaw plugins` subcommands. Heavy plugin modules stay
+// lazy-loaded so the base CLI can start without activating the plugin registry.
+import { formatDocsLink } from "../../packages/terminal-core/src/links.js";
+import { theme } from "../../packages/terminal-core/src/theme.js";
+import {
+  collectConfiguredRuntimePluginIds,
+  resolveConfiguredRuntimePluginInstallCandidate,
+} from "../commands/doctor/shared/configured-runtime-plugin-installs.js";
 import {
   assertConfigWriteAllowedInCurrentMode,
   getRuntimeConfig,
   readConfigFileSnapshot,
   replaceConfigFile,
 } from "../config/config.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { tracePluginLifecyclePhaseAsync } from "../plugins/plugin-lifecycle-trace.js";
 import { defaultRuntime } from "../runtime.js";
-import { formatDocsLink } from "../terminal/links.js";
-import { theme } from "../terminal/theme.js";
 import { shortenHomeInString } from "../utils.js";
 import { formatMissingPluginMessage } from "./error-format.js";
 import type { PluginMarketplaceListOptions, PluginRegistryOptions } from "./plugins-cli.js";
@@ -20,6 +26,18 @@ type PluginInstallActionOptions = {
   pin?: boolean;
   marketplace?: string;
 };
+
+function createModuleLoader<T>(load: () => Promise<T>): () => Promise<T> {
+  let promise: Promise<T> | undefined;
+  return () => (promise ??= load());
+}
+
+const loadPluginsConfigState = createModuleLoader(() => import("../plugins/config-state.js"));
+const loadPluginsStatus = createModuleLoader(() => import("../plugins/status.js"));
+const loadPluginsCommandHelpers = createModuleLoader(() => import("./plugins-command-helpers.js"));
+const loadPluginsRegistryRefresh = createModuleLoader(
+  () => import("./plugins-registry-refresh.js"),
+);
 
 function countEnabledPlugins(plugins: readonly { enabled: boolean }[]): number {
   return plugins.filter((plugin) => plugin.enabled).length;
@@ -67,27 +85,120 @@ function isErroredConfigSelectedShadowDiagnostic(params: {
   );
 }
 
-export async function runPluginsEnableCommand(id: string): Promise<void> {
+function formatConfiguredRuntimePluginInstallSpec(params: {
+  clawhubSpec?: string;
+  defaultChoice?: string;
+  npmSpec?: string;
+  pluginId: string;
+}): string {
+  const clawhubSpec = params.clawhubSpec?.trim();
+  const npmSpec = params.npmSpec?.trim();
+  if (clawhubSpec && params.defaultChoice !== "npm") {
+    return clawhubSpec;
+  }
+  return npmSpec ?? clawhubSpec ?? params.pluginId;
+}
+
+function pluginIdListIncludes(list: readonly string[] | undefined, pluginId: string): boolean {
+  return Array.isArray(list) && list.some((entry) => entry.trim() === pluginId);
+}
+
+function formatBlockedRuntimePluginGuidance(params: {
+  cfg: OpenClawConfig;
+  pluginId: string;
+}): string | undefined {
+  const pluginId = params.pluginId;
+  const alternative =
+    pluginId === "acpx"
+      ? "disable ACP/acpx in acp config"
+      : 'change the runtime policy to "openclaw"';
+  if (params.cfg.plugins?.enabled === false) {
+    return `Enable plugin loading and the "${pluginId}" plugin, or ${alternative}.`;
+  }
+  if (pluginIdListIncludes(params.cfg.plugins?.deny, pluginId)) {
+    return `Remove "${pluginId}" from plugins.deny and enable the "${pluginId}" plugin, or ${alternative}.`;
+  }
+  if (params.cfg.plugins?.entries?.[pluginId]?.enabled === false) {
+    return `Set plugins.entries.${pluginId}.enabled=true or remove that disabled entry, or ${alternative}.`;
+  }
+  return undefined;
+}
+
+function formatDisabledRuntimePluginGuidance(params: {
+  cfg: OpenClawConfig;
+  pluginId: string;
+}): string {
+  const allow = params.cfg.plugins?.allow;
+  const alternative =
+    params.pluginId === "acpx"
+      ? "disable ACP/acpx in acp config"
+      : 'change the runtime policy to "openclaw"';
+  if (Array.isArray(allow) && allow.length > 0 && !allow.includes(params.pluginId)) {
+    return `Add "${params.pluginId}" to plugins.allow and enable the plugin, or ${alternative}.`;
+  }
+  return `Enable the "${params.pluginId}" plugin, or ${alternative}.`;
+}
+
+function collectConfiguredRuntimePluginWarnings(params: {
+  cfg: OpenClawConfig;
+  env: NodeJS.ProcessEnv;
+  plugins: readonly { enabled?: boolean; id: string; status?: string }[];
+}): string[] {
+  const enabledPluginIds = new Set(
+    params.plugins
+      .filter((plugin) => plugin.enabled !== false && plugin.status !== "disabled")
+      .map((plugin) => plugin.id),
+  );
+  return collectConfiguredRuntimePluginIds(params.cfg, {
+    includeImplicitRuntimePreferences: false,
+  }).flatMap((runtimeId) => {
+    const candidate = resolveConfiguredRuntimePluginInstallCandidate(runtimeId);
+    if (!candidate || enabledPluginIds.has(runtimeId)) {
+      return [];
+    }
+    const disabledPluginRecord = params.plugins.find((plugin) => plugin.id === runtimeId);
+    const blockedGuidance = formatBlockedRuntimePluginGuidance({
+      cfg: params.cfg,
+      pluginId: runtimeId,
+    });
+    if (blockedGuidance) {
+      return [
+        `- Configured runtime "${runtimeId}" requires the ${candidate.label} plugin, but "${runtimeId}" is blocked by plugin configuration. ${blockedGuidance}`,
+      ];
+    }
+    if (disabledPluginRecord) {
+      return [
+        `- Configured runtime "${runtimeId}" requires the ${candidate.label} plugin, but "${runtimeId}" is disabled. ${formatDisabledRuntimePluginGuidance({ cfg: params.cfg, pluginId: runtimeId })}`,
+      ];
+    }
+    const installSpec = formatConfiguredRuntimePluginInstallSpec(candidate);
+    return [
+      `- Configured runtime "${runtimeId}" requires the ${candidate.label} plugin, but no enabled "${runtimeId}" plugin was found. Run "openclaw doctor --fix" to install ${installSpec}, or install it manually with "openclaw plugins install ${installSpec}".`,
+    ];
+  });
+}
+
+/** Enable a plugin in config and refresh the registry snapshot for the changed policy. */
+export async function runPluginsEnableCommand(idInput: string): Promise<void> {
+  let id = idInput;
   assertConfigWriteAllowedInCurrentMode();
 
-  const { enablePluginInConfig } = await import("../plugins/enable.js");
-  const { normalizePluginId } = await import("../plugins/config-state.js");
-  const { buildPluginRegistrySnapshotReport } = await import("../plugins/status.js");
-  const { applySlotSelectionForPlugin, logSlotWarnings } =
-    await import("./plugins-command-helpers.js");
-  const { refreshPluginRegistryAfterConfigMutation } =
-    await import("./plugins-registry-refresh.js");
+  const { enableExplicitlySelectedPluginInConfig } = await import("../plugins/enable.js");
+  const { normalizePluginId } = await loadPluginsConfigState();
+  const { buildPluginRegistrySnapshotReport } = await loadPluginsStatus();
+  const { applySlotSelectionForPlugin, logSlotWarnings } = await loadPluginsCommandHelpers();
+  const { refreshPluginRegistryAfterConfigMutation } = await loadPluginsRegistryRefresh();
   const snapshot = await readConfigFileSnapshot();
-  const cfg = (snapshot.sourceConfig ?? snapshot.config) as AstroclawConfig;
+  const cfg = (snapshot.sourceConfig ?? snapshot.config) as OpenClawConfig;
   const report = buildPluginRegistrySnapshotReport({ config: cfg });
   id = normalizePluginId(id);
   if (!report.plugins.some((plugin) => matchesPluginId(plugin, id))) {
     return reportMissingPlugin(id);
   }
-  const enableResult = enablePluginInConfig(cfg, id, {
+  const enableResult = enableExplicitlySelectedPluginInConfig(cfg, id, {
     updateChannelConfig: false,
   });
-  let next: AstroclawConfig = enableResult.config;
+  let next: OpenClawConfig = enableResult.config;
   const slotResult = applySlotSelectionForPlugin(next, id);
   next = slotResult.config;
   await replaceConfigFile({
@@ -97,6 +208,7 @@ export async function runPluginsEnableCommand(id: string): Promise<void> {
   await refreshPluginRegistryAfterConfigMutation({
     config: next,
     reason: "policy-changed",
+    invalidateRuntimeCache: false,
     policyPluginIds: [enableResult.pluginId],
     logger: {
       warn: (message) => defaultRuntime.log(theme.warn(message)),
@@ -112,16 +224,17 @@ export async function runPluginsEnableCommand(id: string): Promise<void> {
   );
 }
 
-export async function runPluginsDisableCommand(id: string): Promise<void> {
+/** Disable a plugin in config and refresh the registry snapshot for the changed policy. */
+export async function runPluginsDisableCommand(idInput: string): Promise<void> {
+  let id = idInput;
   assertConfigWriteAllowedInCurrentMode();
 
-  const { normalizePluginId } = await import("../plugins/config-state.js");
-  const { buildPluginRegistrySnapshotReport } = await import("../plugins/status.js");
+  const { normalizePluginId } = await loadPluginsConfigState();
+  const { buildPluginRegistrySnapshotReport } = await loadPluginsStatus();
   const { setPluginEnabledInConfig } = await import("./plugins-config.js");
-  const { refreshPluginRegistryAfterConfigMutation } =
-    await import("./plugins-registry-refresh.js");
+  const { refreshPluginRegistryAfterConfigMutation } = await loadPluginsRegistryRefresh();
   const snapshot = await readConfigFileSnapshot();
-  const cfg = (snapshot.sourceConfig ?? snapshot.config) as AstroclawConfig;
+  const cfg = (snapshot.sourceConfig ?? snapshot.config) as OpenClawConfig;
   const report = buildPluginRegistrySnapshotReport({ config: cfg });
   id = normalizePluginId(id);
   if (!report.plugins.some((plugin) => matchesPluginId(plugin, id))) {
@@ -137,6 +250,7 @@ export async function runPluginsDisableCommand(id: string): Promise<void> {
   await refreshPluginRegistryAfterConfigMutation({
     config: next,
     reason: "policy-changed",
+    invalidateRuntimeCache: false,
     policyPluginIds: [id],
     logger: {
       warn: (message) => defaultRuntime.log(theme.warn(message)),
@@ -153,12 +267,13 @@ export async function runPluginsInstallAction(
     "install command",
     async () => {
       const { runPluginInstallCommand } = await import("./plugins-install-command.js");
-      await runPluginInstallCommand({ raw, opts });
+      await runPluginInstallCommand({ raw, opts, invalidateRuntimeCache: false });
     },
     { command: "install" },
   );
 }
 
+/** Inspect or refresh the persisted plugin registry index. */
 export async function runPluginsRegistryCommand(opts: PluginRegistryOptions): Promise<void> {
   const { inspectPluginRegistry, refreshPluginRegistry } =
     await import("../plugins/plugin-registry.js");
@@ -206,17 +321,18 @@ export async function runPluginsRegistryCommand(opts: PluginRegistryOptions): Pr
   ];
   if (inspection.refreshReasons.length > 0) {
     lines.push(`${theme.muted("Refresh reasons:")} ${inspection.refreshReasons.join(", ")}`);
-    lines.push(`${theme.muted("Repair:")} ${theme.command("astroclaw plugins registry --refresh")}`);
+    lines.push(`${theme.muted("Repair:")} ${theme.command("openclaw plugins registry --refresh")}`);
   }
   defaultRuntime.log(lines.join("\n"));
 }
 
+/** Print plugin install-tree, compatibility, and plugin-owned config diagnostics. */
 export async function runPluginsDoctorCommand(): Promise<void> {
   const {
     buildPluginCompatibilityNotices,
     buildPluginDiagnosticsReport,
     formatPluginCompatibilityNotice,
-  } = await import("../plugins/status.js");
+  } = await loadPluginsStatus();
   const {
     collectStalePluginConfigWarnings,
     isStalePluginAutoRepairBlocked,
@@ -225,7 +341,7 @@ export async function runPluginsDoctorCommand(): Promise<void> {
   const cfg = getRuntimeConfig();
   const configSnapshot = await readConfigFileSnapshot().catch(() => null);
   const sourceCfg = (configSnapshot?.sourceConfig ?? configSnapshot?.config ?? cfg) as
-    | AstroclawConfig
+    | OpenClawConfig
     | undefined;
   const report = buildPluginDiagnosticsReport({ config: cfg, effectiveOnly: true });
   const errors = report.plugins.filter((p) => p.status === "error");
@@ -237,13 +353,19 @@ export async function runPluginsDoctorCommand(): Promise<void> {
   const stalePluginConfigHits = scanStalePluginConfig(sourceCfg ?? cfg, process.env);
   const stalePluginConfigWarnings = collectStalePluginConfigWarnings({
     hits: stalePluginConfigHits,
-    doctorFixCommand: "astroclaw doctor --fix",
+    doctorFixCommand: "openclaw doctor --fix",
     autoRepairBlocked: isStalePluginAutoRepairBlocked(sourceCfg ?? cfg, process.env),
+  });
+  const configuredRuntimePluginWarnings = collectConfiguredRuntimePluginWarnings({
+    cfg: sourceCfg ?? cfg,
+    env: process.env,
+    plugins: report.plugins,
   });
   const hasInstallTreeIssues =
     errors.length > 0 || diags.length > 0 || shadowed.length > 0 || compatibility.length > 0;
+  const pluginConfigWarnings = [...stalePluginConfigWarnings, ...configuredRuntimePluginWarnings];
 
-  if (!hasInstallTreeIssues && stalePluginConfigWarnings.length === 0) {
+  if (!hasInstallTreeIssues && pluginConfigWarnings.length === 0) {
     defaultRuntime.log("No plugin issues detected.");
     return;
   }
@@ -285,10 +407,10 @@ export async function runPluginsDoctorCommand(): Promise<void> {
         lines.push(`  shadowed: ${shortenHomeInString(diag.source)}`);
       }
       lines.push("  repair:");
-      lines.push("    astroclaw plugins inspect " + (diag.pluginId ?? "<plugin-id>"));
+      lines.push("    openclaw plugins inspect " + (diag.pluginId ?? "<plugin-id>"));
       lines.push("    edit or remove the config-selected plugin source");
-      lines.push("    astroclaw plugins registry --refresh");
-      lines.push("    astroclaw gateway restart --force");
+      lines.push("    openclaw plugins registry --refresh");
+      lines.push("    openclaw gateway restart --force");
     }
   }
   if (compatibility.length > 0) {
@@ -301,31 +423,32 @@ export async function runPluginsDoctorCommand(): Promise<void> {
       lines.push(`- ${formatPluginCompatibilityNotice(notice)} [${marker}]`);
     }
   }
-  if (stalePluginConfigWarnings.length > 0) {
+  if (pluginConfigWarnings.length > 0) {
     if (lines.length > 0) {
       lines.push("");
     }
     lines.push(theme.warn("Plugin configuration:"));
-    lines.push(...stalePluginConfigWarnings);
+    lines.push(...pluginConfigWarnings);
   }
-  if (!hasInstallTreeIssues && stalePluginConfigWarnings.length > 0) {
+  if (!hasInstallTreeIssues && pluginConfigWarnings.length > 0) {
     if (lines.length > 0) {
       lines.push("");
     }
     lines.push("No plugin install-tree issues detected; configuration warnings remain.");
   }
-  const docs = formatDocsLink("/plugin", "docs.astroclaw.ai/plugin");
+  const docs = formatDocsLink("/plugin", "docs.openclaw.ai/plugin");
   lines.push("");
   lines.push(`${theme.muted("Docs:")} ${docs}`);
   defaultRuntime.log(lines.join("\n"));
 }
 
+/** List plugins from a configured marketplace manifest. */
 export async function runPluginMarketplaceListCommand(
   source: string,
   opts: PluginMarketplaceListOptions,
 ): Promise<void> {
   const { listMarketplacePlugins } = await import("../plugins/marketplace.js");
-  const { createPluginInstallLogger } = await import("./plugins-command-helpers.js");
+  const { createPluginInstallLogger } = await loadPluginsCommandHelpers();
   const result = await listMarketplacePlugins({
     marketplace: source,
     logger: createPluginInstallLogger(),
