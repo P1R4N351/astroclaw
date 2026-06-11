@@ -1,4 +1,7 @@
-import type { AstroclawConfig } from "../config/types.js";
+// Normalized status overview surface shared by text and JSON status outputs.
+// It collects gateway/update/service fields into one shape before row or payload builders run.
+
+import type { OpenClawConfig } from "../config/types.js";
 import type { UpdateCheckResult } from "../infra/update-check.js";
 import {
   buildGatewayStatusJsonPayload,
@@ -38,7 +41,7 @@ type StatusGatewaySelf =
 type StatusServiceSummary = {
   label: string;
   installed: boolean | null;
-  managedByAstroclaw?: boolean;
+  managedByOpenClaw?: boolean;
   loadedText: string;
   runtimeShort?: string | null;
   runtime?: {
@@ -48,7 +51,7 @@ type StatusServiceSummary = {
 };
 
 export type StatusOverviewSurface = {
-  cfg: Pick<AstroclawConfig, "update" | "gateway">;
+  cfg: Pick<OpenClawConfig, "update" | "gateway">;
   update: UpdateCheckResult;
   tailscaleMode: string;
   tailscaleDns?: string | null;
@@ -66,6 +69,7 @@ export type StatusOverviewSurface = {
   nodeOnlyGateway?: NodeOnlyGatewayInfo | null;
 };
 
+/** Converts the full status scan result into the shared overview surface. */
 export function buildStatusOverviewSurfaceFromScan(params: {
   scan: Pick<
     StatusScanResult,
@@ -107,6 +111,7 @@ export function buildStatusOverviewSurfaceFromScan(params: {
   };
 }
 
+/** Converts the lighter status-all overview scan into the shared overview surface. */
 export function buildStatusOverviewSurfaceFromOverview(params: {
   overview: Pick<
     StatusScanOverviewResult,
@@ -136,6 +141,7 @@ export function buildStatusOverviewSurfaceFromOverview(params: {
   };
 }
 
+/** Builds overview rows from an already-normalized surface. */
 export function buildStatusOverviewRowsFromSurface(params: {
   surface: StatusOverviewSurface;
   prefixRows?: StatusOverviewRow[];
@@ -189,6 +195,7 @@ export function buildStatusOverviewRowsFromSurface(params: {
   });
 }
 
+/** Builds the gateway JSON payload from the gateway portion of an overview surface. */
 export function buildStatusGatewayJsonPayloadFromSurface(params: {
   surface: Pick<
     StatusOverviewSurface,
