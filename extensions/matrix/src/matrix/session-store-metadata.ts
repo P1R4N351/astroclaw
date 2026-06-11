@@ -1,4 +1,5 @@
-import { normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
+// Matrix plugin module implements session store metadata behavior.
+import { normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 import { resolveMatrixDirectUserId, resolveMatrixTargetIdentity } from "./target-ids.js";
 
 function trimMaybeString(value: unknown): string | undefined {
