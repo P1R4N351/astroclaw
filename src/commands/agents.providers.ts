@@ -1,3 +1,4 @@
+// Provider/account summary helpers for `openclaw agents list`.
 import { isChannelVisibleInConfiguredLists } from "../channels/plugins/exposure.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import { normalizeChannelId } from "../channels/plugins/index.js";
@@ -5,7 +6,7 @@ import { listReadOnlyChannelPluginsForConfig } from "../channels/plugins/read-on
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { ChannelId } from "../channels/plugins/types.public.js";
 import type { AgentBinding } from "../config/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
 
 type ProviderAccountStatus = {
@@ -29,8 +30,9 @@ function providerAccountKey(provider: ChannelId, accountId?: string) {
   return `${provider}:${accountId ?? DEFAULT_ACCOUNT_ID}`;
 }
 
+/** Build stable provider labels/default accounts without resolving live account state. */
 export function buildProviderSummaryMetadataIndex(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): Map<ChannelId, ProviderSummaryMetadata> {
   return new Map(
     listReadOnlyChannelPluginsForConfig(cfg, {
@@ -81,7 +83,7 @@ function formatProviderState(entry: ProviderAccountStatus): string {
 
 async function resolveReadOnlyAccount(params: {
   plugin: ChannelPlugin;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
 }): Promise<unknown> {
   if (params.plugin.config.inspectAccount) {
@@ -90,8 +92,9 @@ async function resolveReadOnlyAccount(params: {
   return params.plugin.config.resolveAccount(params.cfg, params.accountId);
 }
 
+/** Inspect configured provider accounts and classify their display state. */
 export async function buildProviderStatusIndex(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): Promise<Map<string, ProviderAccountStatus>> {
   const map = new Map<string, ProviderAccountStatus>();
 
@@ -169,7 +172,7 @@ function resolveDefaultAccountId(
 
 function shouldShowProviderEntry(params: {
   entry: ProviderAccountStatus;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   metadataByProvider: ReadonlyMap<ChannelId, ProviderSummaryMetadata>;
 }): boolean {
   const visibleInConfiguredLists =
@@ -192,8 +195,9 @@ function formatProviderEntry(entry: ProviderAccountStatus): string {
   return `${label}: ${formatProviderState(entry)}`;
 }
 
+/** Render the provider/account routes implied by an agent's route bindings. */
 export function summarizeBindings(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   bindings: AgentBinding[],
   metadataByProvider = buildProviderSummaryMetadataIndex(cfg),
 ): string[] {
@@ -221,9 +225,10 @@ export function summarizeBindings(
   return [...seen.values()];
 }
 
+/** Render provider status lines relevant to a specific agent summary. */
 export function listProvidersForAgent(params: {
   summaryIsDefault: boolean;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   bindings: AgentBinding[];
   providerStatus: Map<string, ProviderAccountStatus>;
   providerMetadata?: ReadonlyMap<ChannelId, ProviderSummaryMetadata>;
