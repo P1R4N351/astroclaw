@@ -1,7 +1,8 @@
+// Feishu plugin module implements directory.static behavior.
 import {
   listDirectoryGroupEntriesFromMapKeysAndAllowFrom,
   listDirectoryUserEntriesFromAllowFromAndMapKeys,
-} from "astroclaw/plugin-sdk/directory-runtime";
+} from "openclaw/plugin-sdk/directory-runtime";
 import type { ClawdbotConfig } from "../runtime-api.js";
 import { resolveFeishuAccount } from "./accounts.js";
 import { normalizeFeishuTarget } from "./targets.js";
