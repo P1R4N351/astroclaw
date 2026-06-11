@@ -1,51 +1,33 @@
-import { describe, expect, it, vi } from "vitest";
+// Slack tests cover monitor.thread resolution plugin behavior.
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SlackMessageEvent } from "../types.js";
 import { createSlackThreadTsResolver } from "./thread-resolution.js";
 
-type ResolverOptions = Parameters<typeof createSlackThreadTsResolver>[0];
-type ResolverClient = ResolverOptions["client"];
-type HistoryMock = ReturnType<typeof vi.fn>;
-
-function createResolver(
-  historyMock: HistoryMock,
-): ReturnType<typeof createSlackThreadTsResolver> {
-  expect(historyMock).toBeDefined();
-  expect(typeof historyMock).toBe("function");
-
-  const client = { conversations: { history: historyMock } } as ResolverClient;
-  const resolver = createSlackThreadTsResolver({
-    client,
-    cacheTtlMs: 60_000,
-    maxSize: 5,
+describe("createSlackThreadTsResolver", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
-  expect(resolver).toBeDefined();
-  expect(typeof resolver.resolve).toBe("function");
-  return resolver;
-}
+  function makeThreadReplyMessage(ts: string): SlackMessageEvent {
+    return {
+      channel: "C1",
+      parent_user_id: "U2",
+      ts,
+    } as SlackMessageEvent;
+  }
 
-function createReplyMessage(): SlackMessageEvent {
-  const message = {
-    channel: "C1",
-    parent_user_id: "U2",
-    ts: "1",
-  } as SlackMessageEvent;
-
-  expect(message.channel).toBe("C1");
-  expect(message.ts).toBe("1");
-  return message;
-}
-
-describe("createSlackThreadTsResolver", () => {
   it("caches resolved thread_ts lookups", async () => {
     const historyMock = vi.fn().mockResolvedValue({
       messages: [{ ts: "1", thread_ts: "9" }],
     });
-    const resolver = createResolver(historyMock);
-    const message = createReplyMessage();
+    const resolver = createSlackThreadTsResolver({
+      client: { conversations: { history: historyMock } } as any,
+      cacheTtlMs: 60_000,
+      maxSize: 5,
+    });
 
-    expect(message.parent_user_id).toBe("U2");
-    expect(historyMock).not.toHaveBeenCalled();
+    const message = makeThreadReplyMessage("1");
 
     const first = await resolver.resolve({ message, source: "message" });
     const second = await resolver.resolve({ message, source: "message" });
@@ -59,17 +41,110 @@ describe("createSlackThreadTsResolver", () => {
     const historyMock = vi.fn().mockResolvedValue({
       messages: [{ ts: "1" }],
     });
-    const resolver = createResolver(historyMock);
-    const message = createReplyMessage();
+    const resolver = createSlackThreadTsResolver({
+      client: { conversations: { history: historyMock } } as any,
+      cacheTtlMs: 60_000,
+      maxSize: 5,
+    });
 
-    expect(message.parent_user_id).toBe("U2");
-    expect(historyMock).not.toHaveBeenCalled();
+    const message = makeThreadReplyMessage("1");
 
     const first = await resolver.resolve({ message, source: "message" });
     const second = await resolver.resolve({ message, source: "message" });
 
-    expect(first._ambiguousThreadReply).toBe(true);
-    expect(second._ambiguousThreadReply).toBe(true);
+    expect(first["_ambiguousThreadReply"]).toBe(true);
+    expect(second["_ambiguousThreadReply"]).toBe(true);
     expect(historyMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the default ttl when cacheTtlMs is non-finite", async () => {
+    vi.useFakeTimers();
+    const historyMock = vi.fn().mockResolvedValue({
+      messages: [{ ts: "1", thread_ts: "9" }],
+    });
+    const resolver = createSlackThreadTsResolver({
+      client: { conversations: { history: historyMock } } as never,
+      cacheTtlMs: Number.NaN,
+      maxSize: 5,
+    });
+    const message = makeThreadReplyMessage("1");
+
+    await resolver.resolve({ message, source: "message" });
+    vi.advanceTimersByTime(60_001);
+    await resolver.resolve({ message, source: "message" });
+
+    expect(historyMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops cached thread_ts lookups when the current clock is not a valid date timestamp", async () => {
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    const historyMock = vi.fn().mockResolvedValue({
+      messages: [{ ts: "1", thread_ts: "9" }],
+    });
+    const resolver = createSlackThreadTsResolver({
+      client: { conversations: { history: historyMock } } as never,
+      cacheTtlMs: 60_000,
+      maxSize: 5,
+    });
+    const message = makeThreadReplyMessage("1");
+
+    await resolver.resolve({ message, source: "message" });
+    nowSpy.mockReturnValue(Number.NaN);
+    await resolver.resolve({ message, source: "message" });
+
+    expect(historyMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not cache thread_ts lookups when the expiry timestamp would exceed the valid date range", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(8_640_000_000_000_000);
+    const historyMock = vi.fn().mockResolvedValue({
+      messages: [{ ts: "1", thread_ts: "9" }],
+    });
+    const resolver = createSlackThreadTsResolver({
+      client: { conversations: { history: historyMock } } as never,
+      cacheTtlMs: 60_000,
+      maxSize: 5,
+    });
+    const message = makeThreadReplyMessage("1");
+
+    await resolver.resolve({ message, source: "message" });
+    await resolver.resolve({ message, source: "message" });
+
+    expect(historyMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves cacheTtlMs zero as a non-expiring cache entry", async () => {
+    const historyMock = vi.fn().mockResolvedValue({
+      messages: [{ ts: "1", thread_ts: "9" }],
+    });
+    const resolver = createSlackThreadTsResolver({
+      client: { conversations: { history: historyMock } } as never,
+      cacheTtlMs: 0,
+      maxSize: 5,
+    });
+    const message = makeThreadReplyMessage("1");
+
+    await resolver.resolve({ message, source: "message" });
+    await resolver.resolve({ message, source: "message" });
+
+    expect(historyMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the default max size when maxSize is non-finite", async () => {
+    const historyMock = vi.fn(async ({ latest }: { latest: string }) => ({
+      messages: [{ ts: latest, thread_ts: `thread-${latest}` }],
+    }));
+    const resolver = createSlackThreadTsResolver({
+      client: { conversations: { history: historyMock } } as never,
+      cacheTtlMs: 60_000,
+      maxSize: Number.NaN,
+    });
+
+    for (let i = 0; i <= 500; i++) {
+      await resolver.resolve({ message: makeThreadReplyMessage(String(i)), source: "message" });
+    }
+    await resolver.resolve({ message: makeThreadReplyMessage("0"), source: "message" });
+
+    expect(historyMock).toHaveBeenCalledTimes(502);
   });
 });
