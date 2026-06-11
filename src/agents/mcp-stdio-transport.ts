@@ -1,3 +1,6 @@
+/**
+ * OpenClaw stdio transport wrapper for MCP server subprocesses.
+ */
 import { spawn, type ChildProcess } from "node:child_process";
 import process from "node:process";
 import { PassThrough } from "node:stream";
@@ -5,10 +8,10 @@ import { getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js
 import { ReadBuffer, serializeMessage } from "@modelcontextprotocol/sdk/shared/stdio.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
-import { killProcessTree } from "../process/kill-tree.js";
+import { killProcessTree, signalProcessTree } from "../process/kill-tree.js";
 import { prepareOomScoreAdjustedSpawn } from "../process/linux-oom-score.js";
 
-export type AstroclawStdioServerParameters = {
+export type OpenClawStdioServerParameters = {
   command: string;
   args?: string[];
   env?: Record<string, string>;
@@ -17,6 +20,7 @@ export type AstroclawStdioServerParameters = {
 };
 
 const CLOSE_TIMEOUT_MS = 2000;
+const SIGKILL_REAP_TIMEOUT_MS = 500;
 
 function delay(ms: number) {
   return new Promise<void>((resolve) => {
@@ -24,7 +28,7 @@ function delay(ms: number) {
   });
 }
 
-export class AstroclawStdioClientTransport implements Transport {
+export class OpenClawStdioClientTransport implements Transport {
   onclose?: () => void;
   onerror?: (error: Error) => void;
   onmessage?: (message: JSONRPCMessage) => void;
@@ -33,7 +37,7 @@ export class AstroclawStdioClientTransport implements Transport {
   private readonly stderrStream: PassThrough | null = null;
   private process?: ChildProcess;
 
-  constructor(private readonly serverParams: AstroclawStdioServerParameters) {
+  constructor(private readonly serverParams: OpenClawStdioServerParameters) {
     if (serverParams.stderr === "pipe" || serverParams.stderr === "overlapped") {
       this.stderrStream = new PassThrough();
     }
@@ -42,7 +46,7 @@ export class AstroclawStdioClientTransport implements Transport {
   async start(): Promise<void> {
     if (this.process) {
       throw new Error(
-        "AstroclawStdioClientTransport already started; Client.connect() starts transports automatically.",
+        "OpenClawStdioClientTransport already started; Client.connect() starts transports automatically.",
       );
     }
 
@@ -125,6 +129,11 @@ export class AstroclawStdioClientTransport implements Transport {
       if (processToClose.exitCode === null && processToClose.pid) {
         killProcessTree(processToClose.pid);
         await Promise.race([closePromise, delay(CLOSE_TIMEOUT_MS)]);
+        if (processToClose.exitCode === null && processToClose.pid) {
+          // SIGKILL synchronously: killProcessTree's setTimeout is .unref()'d and races shutdown (#86412).
+          signalProcessTree(processToClose.pid, "SIGKILL");
+          await Promise.race([closePromise, delay(SIGKILL_REAP_TIMEOUT_MS)]);
+        }
       }
     }
     this.readBuffer.clear();
