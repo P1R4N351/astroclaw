@@ -1,12 +1,13 @@
-import { resolveApprovalOverGateway } from "astroclaw/plugin-sdk/approval-gateway-runtime";
-import type { ExecApprovalReplyDecision } from "astroclaw/plugin-sdk/approval-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { isApprovalNotFoundError } from "astroclaw/plugin-sdk/error-runtime";
+// Matrix plugin module implements exec approval resolver behavior.
+import { resolveApprovalOverGateway } from "openclaw/plugin-sdk/approval-gateway-runtime";
+import type { ExecApprovalReplyDecision } from "openclaw/plugin-sdk/approval-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { isApprovalNotFoundError } from "openclaw/plugin-sdk/error-runtime";
 
 export { isApprovalNotFoundError };
 
 export async function resolveMatrixApproval(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   approvalId: string;
   decision: ExecApprovalReplyDecision;
   senderId?: string | null;
