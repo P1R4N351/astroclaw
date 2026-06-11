@@ -1,3 +1,4 @@
+// Whatsapp plugin module implements monitor inbox.captures media path image messages support behavior.
 import "./monitor-inbox.test-harness.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -7,13 +8,15 @@ import {
   getSock,
   installWebMonitorInboxUnitTestHooks,
   mockLoadConfig,
+  settleInboundWork,
+  waitForMessageCalls,
 } from "./monitor-inbox.test-harness.js";
 let monitorWebInbox: typeof import("./inbound.js").monitorWebInbox;
 const inboundLoggerInfoMock = vi.hoisted(() => vi.fn());
 
-vi.mock("astroclaw/plugin-sdk/logging-core", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/logging-core")>(
-    "astroclaw/plugin-sdk/logging-core",
+vi.mock("openclaw/plugin-sdk/logging-core", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/logging-core")>(
+    "openclaw/plugin-sdk/logging-core",
   );
   return {
     ...actual,
@@ -49,7 +52,8 @@ describe("web monitor inbox", () => {
     const listener = await openMonitor(onMessage);
     const sock = getSock();
     sock.ev.emit("messages.upsert", upsert);
-    await new Promise((resolve) => setTimeout(resolve, 25));
+    await waitForMessageCalls(onMessage, 1);
+    await settleInboundWork();
     return { onMessage, listener, sock };
   }
 
@@ -143,7 +147,7 @@ describe("web monitor inbox", () => {
     expect(sock.end).toHaveBeenCalledTimes(1);
     const closeError = sock.end.mock.calls[0]?.[0];
     expect(closeError).toBeInstanceOf(Error);
-    expect(closeError?.message).toBe("Astroclaw WhatsApp listener close");
+    expect(closeError?.message).toBe("OpenClaw WhatsApp listener close");
     expect(sock.ws.close).not.toHaveBeenCalled();
   });
 
