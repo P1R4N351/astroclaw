@@ -1,11 +1,12 @@
+// Zalo plugin module implements status issues behavior.
 import type {
   ChannelAccountSnapshot,
   ChannelStatusIssue,
-} from "astroclaw/plugin-sdk/channel-contract";
+} from "openclaw/plugin-sdk/channel-contract";
 import {
   coerceStatusIssueAccountId,
   readStatusIssueFields,
-} from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/extension-shared";
 
 const ZALO_STATUS_FIELDS = ["accountId", "enabled", "configured", "dmPolicy"] as const;
 
