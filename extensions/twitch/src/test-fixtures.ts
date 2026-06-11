@@ -1,5 +1,6 @@
+// Twitch plugin module implements test fixtures behavior.
 import { afterEach, beforeEach, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 
 export const BASE_TWITCH_TEST_ACCOUNT = {
   username: "testbot",
@@ -7,7 +8,7 @@ export const BASE_TWITCH_TEST_ACCOUNT = {
   channel: "#testchannel",
 };
 
-export function makeTwitchTestConfig(account: Record<string, unknown>): AstroclawConfig {
+export function makeTwitchTestConfig(account: Record<string, unknown>): OpenClawConfig {
   return {
     channels: {
       twitch: {
@@ -16,7 +17,7 @@ export function makeTwitchTestConfig(account: Record<string, unknown>): Astrocla
         },
       },
     },
-  } as unknown as AstroclawConfig;
+  } as unknown as OpenClawConfig;
 }
 
 export function installTwitchTestHooks() {
