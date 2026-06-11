@@ -1,8 +1,11 @@
+// Reads local agent/session state for status output.
+// This never contacts the gateway; it inspects configured agents and their read-only session stores.
+
 import path from "node:path";
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { readSessionStoreReadOnly } from "../config/sessions/store-read.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { listGatewayAgentsBasic } from "../gateway/agent-list.js";
 import { pathExists } from "../infra/fs-safe.js";
 
@@ -24,8 +27,9 @@ type AgentLocalStatusesResult = {
   bootstrapPendingCount: number;
 };
 
+/** Returns per-agent local workspace, bootstrap, session count, and last activity status. */
 export async function getAgentLocalStatuses(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): Promise<AgentLocalStatusesResult> {
   const agentList = listGatewayAgentsBasic(cfg);
   const now = Date.now();
@@ -37,6 +41,7 @@ export async function getAgentLocalStatuses(
       try {
         return resolveAgentWorkspaceDir(cfg, agentId);
       } catch {
+        // A malformed workspace setting should not prevent status from showing other agents.
         return null;
       }
     })();
@@ -47,6 +52,7 @@ export async function getAgentLocalStatuses(
     const sessionsPath = resolveStorePath(cfg.session?.store, { agentId });
     const store = readSessionStoreReadOnly(sessionsPath);
     const sessions = Object.entries(store)
+      // Global/unknown buckets are aggregate compatibility entries, not agent activity.
       .filter(([key]) => key !== "global" && key !== "unknown")
       .map(([, entry]) => entry);
     const sessionsCount = sessions.length;
