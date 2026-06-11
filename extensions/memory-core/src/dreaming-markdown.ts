@@ -1,15 +1,18 @@
+// Memory Core plugin module implements dreaming markdown behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
   formatMemoryDreamingDay,
   type MemoryDreamingPhaseName,
   type MemoryDreamingStorageConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-status";
-import { appendMemoryHostEvent } from "astroclaw/plugin-sdk/memory-host-events";
+} from "openclaw/plugin-sdk/memory-core-host-status";
+import { appendMemoryHostEvent } from "openclaw/plugin-sdk/memory-host-events";
 import {
   replaceManagedMarkdownBlock,
   withTrailingNewline,
-} from "astroclaw/plugin-sdk/memory-host-markdown";
+} from "openclaw/plugin-sdk/memory-host-markdown";
+import { updateDeepDreamsFile } from "./dreaming-dreams-file.js";
+import { resolveMemoryCoreNowMs, resolveMemoryCoreTimestamp } from "./time.js";
 
 const DAILY_PHASE_HEADINGS: Record<Exclude<MemoryDreamingPhaseName, "deep">, string> = {
   light: "## Light Sleep",
@@ -27,8 +30,8 @@ function resolvePhaseMarkers(phase: Exclude<MemoryDreamingPhaseName, "deep">): {
 } {
   const label = DAILY_PHASE_LABELS[phase];
   return {
-    start: `<!-- astroclaw:dreaming:${label}:start -->`,
-    end: `<!-- astroclaw:dreaming:${label}:end -->`,
+    start: `<!-- openclaw:dreaming:${label}:start -->`,
+    end: `<!-- openclaw:dreaming:${label}:end -->`,
   };
 }
 
@@ -63,7 +66,7 @@ export async function writeDailyDreamingPhaseBlock(params: {
   timezone?: string;
   storage: MemoryDreamingStorageConfig;
 }): Promise<{ inlinePath?: string; reportPath?: string }> {
-  const nowMs = Number.isFinite(params.nowMs) ? (params.nowMs as number) : Date.now();
+  const nowMs = resolveMemoryCoreNowMs(params.nowMs);
   const body = params.bodyLines.length > 0 ? params.bodyLines.join("\n") : "- No notable updates.";
   let inlinePath: string | undefined;
   let reportPath: string | undefined;
@@ -107,7 +110,7 @@ export async function writeDailyDreamingPhaseBlock(params: {
 
   await appendMemoryHostEvent(params.workspaceDir, {
     type: "memory.dream.completed",
-    timestamp: new Date(nowMs).toISOString(),
+    timestamp: resolveMemoryCoreTimestamp(nowMs),
     phase: params.phase,
     ...(inlinePath ? { inlinePath } : {}),
     ...(reportPath ? { reportPath } : {}),
@@ -128,19 +131,24 @@ export async function writeDeepDreamingReport(params: {
   timezone?: string;
   storage: MemoryDreamingStorageConfig;
 }): Promise<string | undefined> {
-  if (!shouldWriteSeparate(params.storage)) {
-    return undefined;
-  }
-  const nowMs = Number.isFinite(params.nowMs) ? (params.nowMs as number) : Date.now();
-  const reportPath = resolveSeparateReportPath(params.workspaceDir, "deep", nowMs, params.timezone);
-  await fs.mkdir(path.dirname(reportPath), { recursive: true });
+  const nowMs = resolveMemoryCoreNowMs(params.nowMs);
   const body = params.bodyLines.length > 0 ? params.bodyLines.join("\n") : "- No durable changes.";
-  await fs.writeFile(reportPath, `# Deep Sleep\n\n${body}\n`, "utf-8");
+  const inlinePath = await updateDeepDreamsFile({
+    workspaceDir: params.workspaceDir,
+    bodyLines: params.bodyLines,
+  });
+  let reportPath: string | undefined;
+  if (shouldWriteSeparate(params.storage)) {
+    reportPath = resolveSeparateReportPath(params.workspaceDir, "deep", nowMs, params.timezone);
+    await fs.mkdir(path.dirname(reportPath), { recursive: true });
+    await fs.writeFile(reportPath, `# Deep Sleep\n\n${body}\n`, "utf-8");
+  }
   await appendMemoryHostEvent(params.workspaceDir, {
     type: "memory.dream.completed",
-    timestamp: new Date(nowMs).toISOString(),
+    timestamp: resolveMemoryCoreTimestamp(nowMs),
     phase: "deep",
-    reportPath,
+    inlinePath,
+    ...(reportPath ? { reportPath } : {}),
     lineCount: params.bodyLines.length,
     storageMode: params.storage.mode,
   });
