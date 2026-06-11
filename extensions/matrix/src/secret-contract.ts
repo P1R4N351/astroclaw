@@ -1,4 +1,5 @@
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
+// Matrix plugin module implements secret contract behavior.
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 import {
   collectSecretInputAssignment,
   getChannelSurface,
@@ -7,15 +8,15 @@ import {
   normalizeSecretStringValue,
   type ResolverContext,
   type SecretDefaults,
-} from "astroclaw/plugin-sdk/channel-secret-basic-runtime";
+} from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 import { getMatrixScopedEnvVarNames } from "./env-vars.js";
 
-export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
+export const secretTargetRegistryEntries: import("openclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
   [
     {
       id: "channels.matrix.accounts.*.accessToken",
       targetType: "channels.matrix.accounts.*.accessToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.matrix.accounts.*.accessToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -26,7 +27,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.matrix.accounts.*.password",
       targetType: "channels.matrix.accounts.*.password",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.matrix.accounts.*.password",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -37,7 +38,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.matrix.accessToken",
       targetType: "channels.matrix.accessToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.matrix.accessToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -48,7 +49,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.matrix.password",
       targetType: "channels.matrix.password",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.matrix.password",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
