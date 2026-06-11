@@ -1,3 +1,4 @@
+// Builds package-local runtime dist files for publishable bundled plugins.
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -6,6 +7,10 @@ import {
   collectPluginSourceEntries,
   collectTopLevelPublicSurfaceEntries,
 } from "./bundled-plugin-build-entries.mjs";
+import {
+  listMissingPackageStaticAssetSources,
+  runPackageAssetBuild,
+} from "./plugin-npm-runtime-assets.mjs";
 import { copyStaticExtensionAssetsForPackage } from "./static-extension-assets.mjs";
 
 const env = {
@@ -16,8 +21,9 @@ function readJsonFile(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
+/** Return whether a plugin package is marked for npm publishing. */
 export function isPublishablePluginPackage(packageJson) {
-  return packageJson.astroclaw?.release?.publishToNpm === true;
+  return packageJson.openclaw?.release?.publishToNpm === true;
 }
 
 function normalizePackageEntry(value) {
@@ -61,7 +67,7 @@ function getRecord(value) {
 function createNeverBundleDependencyMatcher(packageJson) {
   const externalDependencies = collectExternalDependencyNames(packageJson);
   return (id) => {
-    if (id === "astroclaw" || id.startsWith("astroclaw/")) {
+    if (id === "openclaw" || id.startsWith("openclaw/")) {
       return true;
     }
     for (const dependency of externalDependencies) {
@@ -87,6 +93,7 @@ function packageRelativePathExists(packageDir, relativePath) {
   return fs.existsSync(path.join(packageDir, relativePath));
 }
 
+/** List extension package dirs whose package metadata enables npm publishing. */
 export function listPublishablePluginPackageDirs(params = {}) {
   const repoRoot = path.resolve(params.repoRoot ?? ".");
   const extensionsRoot = path.join(repoRoot, "extensions");
@@ -103,12 +110,14 @@ export function listPublishablePluginPackageDirs(params = {}) {
     .toSorted((left, right) => left.localeCompare(right));
 }
 
+/** List package-local runtime output files expected from a runtime build plan. */
 export function listPluginNpmRuntimeBuildOutputs(plan) {
   return Object.keys(plan.entry)
     .map((entryKey) => `./dist/${entryKey}.js`)
     .toSorted((left, right) => left.localeCompare(right));
 }
 
+/** Resolve package `files` entries needed for runtime build outputs and plugin metadata. */
 export function resolvePluginNpmRuntimePackageFiles(plan) {
   const merged = new Set(
     Array.isArray(plan.packageJson.files)
@@ -116,8 +125,11 @@ export function resolvePluginNpmRuntimePackageFiles(plan) {
       : [],
   );
   merged.add("dist/**");
-  if (packageRelativePathExists(plan.packageDir, "astroclaw.plugin.json")) {
-    merged.add("astroclaw.plugin.json");
+  if (packageRelativePathExists(plan.packageDir, "openclaw.plugin.json")) {
+    merged.add("openclaw.plugin.json");
+  }
+  if (packageRelativePathExists(plan.packageDir, "npm-shrinkwrap.json")) {
+    merged.add("npm-shrinkwrap.json");
   }
   if (packageRelativePathExists(plan.packageDir, "README.md")) {
     merged.add("README.md");
@@ -131,7 +143,7 @@ export function resolvePluginNpmRuntimePackageFiles(plan) {
   return [...merged];
 }
 
-function normalizeAstroclawPeerRange(value) {
+function normalizeOpenClawPeerRange(value) {
   const normalized = normalizePackageEntry(value);
   if (!normalized) {
     return "";
@@ -141,41 +153,43 @@ function normalizeAstroclawPeerRange(value) {
     : `>=${normalized}`;
 }
 
-function resolveAstroclawPeerRange(packageJson, rootPackageJson) {
+function resolveOpenClawPeerRange(packageJson, rootPackageJson) {
   return (
-    normalizeAstroclawPeerRange(packageJson.astroclaw?.compat?.pluginApi) ||
-    normalizeAstroclawPeerRange(packageJson.peerDependencies?.astroclaw) ||
-    normalizeAstroclawPeerRange(packageJson.astroclaw?.build?.astroclawVersion) ||
-    normalizeAstroclawPeerRange(rootPackageJson?.version) ||
-    normalizeAstroclawPeerRange(packageJson.version)
+    normalizeOpenClawPeerRange(packageJson.openclaw?.compat?.pluginApi) ||
+    normalizeOpenClawPeerRange(packageJson.peerDependencies?.openclaw) ||
+    normalizeOpenClawPeerRange(packageJson.openclaw?.build?.openclawVersion) ||
+    normalizeOpenClawPeerRange(rootPackageJson?.version) ||
+    normalizeOpenClawPeerRange(packageJson.version)
   );
 }
 
+/** Resolve package peer dependency metadata for the OpenClaw plugin API. */
 export function resolvePluginNpmRuntimePackagePeerMetadata(plan) {
-  const astroclawPeerRange = resolveAstroclawPeerRange(plan.packageJson, plan.rootPackageJson);
-  if (!astroclawPeerRange) {
+  const openclawPeerRange = resolveOpenClawPeerRange(plan.packageJson, plan.rootPackageJson);
+  if (!openclawPeerRange) {
     throw new Error(
-      `cannot infer astroclaw peerDependency range for ${plan.pluginDir}; set astroclaw.compat.pluginApi or package version`,
+      `cannot infer openclaw peerDependency range for ${plan.pluginDir}; set openclaw.compat.pluginApi or package version`,
     );
   }
   const existingPeerDependencies = getStringRecord(plan.packageJson.peerDependencies);
   const existingPeerDependenciesMeta = getRecord(plan.packageJson.peerDependenciesMeta);
-  const existingAstroclawMeta = getRecord(existingPeerDependenciesMeta.astroclaw);
+  const existingOpenClawMeta = getRecord(existingPeerDependenciesMeta.openclaw);
   return {
     peerDependencies: {
       ...existingPeerDependencies,
-      astroclaw: astroclawPeerRange,
+      openclaw: openclawPeerRange,
     },
     peerDependenciesMeta: {
       ...existingPeerDependenciesMeta,
-      astroclaw: {
-        ...existingAstroclawMeta,
+      openclaw: {
+        ...existingOpenClawMeta,
         optional: true,
       },
     },
   };
 }
 
+/** Resolve the package-local runtime build plan for one publishable plugin package. */
 export function resolvePluginNpmRuntimeBuildPlan(params) {
   const repoRoot = path.resolve(params.repoRoot ?? ".");
   const packageDir = resolvePackageDir(repoRoot, params.packageDir);
@@ -221,15 +235,15 @@ export function resolvePluginNpmRuntimeBuildPlan(params) {
     sourceEntries,
     entry,
     outDir: path.join(packageDir, "dist"),
-    runtimeExtensions: (Array.isArray(packageJson.astroclaw?.extensions)
-      ? packageJson.astroclaw.extensions
+    runtimeExtensions: (Array.isArray(packageJson.openclaw?.extensions)
+      ? packageJson.openclaw.extensions
       : []
     )
       .map(normalizePackageEntry)
       .filter(Boolean)
       .map(toPackageRuntimeEntry),
-    runtimeSetupEntry: normalizePackageEntry(packageJson.astroclaw?.setupEntry)
-      ? toPackageRuntimeEntry(packageJson.astroclaw.setupEntry)
+    runtimeSetupEntry: normalizePackageEntry(packageJson.openclaw?.setupEntry)
+      ? toPackageRuntimeEntry(packageJson.openclaw.setupEntry)
       : undefined,
   };
   return {
@@ -240,6 +254,7 @@ export function resolvePluginNpmRuntimeBuildPlan(params) {
   };
 }
 
+/** Build package-local runtime files and static assets for one plugin package. */
 export async function buildPluginNpmRuntime(params) {
   const plan = resolvePluginNpmRuntimeBuildPlan(params);
   if (!plan) {
@@ -261,21 +276,34 @@ export async function buildPluginNpmRuntime(params) {
     outDir: plan.outDir,
     platform: "node",
   });
+  const assetBuildCommand = runPackageAssetBuild(plan);
+  const missingStaticAssets = listMissingPackageStaticAssetSources(plan);
+  if (missingStaticAssets.length > 0) {
+    throw new Error(
+      `${plan.pluginDir} missing static asset source(s): ${missingStaticAssets.join(", ")}`,
+    );
+  }
   const copiedStaticAssets = copyStaticExtensionAssetsForPackage({
     rootDir: plan.repoRoot,
     pluginDir: plan.pluginDir,
   });
   return {
     ...plan,
+    assetBuildCommand,
     copiedStaticAssets,
   };
 }
 
-function parseArgs(argv) {
+function readPackageDirArg(argv) {
   const packageDir = argv[0];
-  if (!packageDir) {
+  if (!packageDir || packageDir.startsWith("--")) {
     throw new Error("usage: node scripts/lib/plugin-npm-runtime-build.mjs <package-dir>");
   }
+  return packageDir;
+}
+
+export function parseArgs(argv) {
+  const packageDir = readPackageDirArg(argv);
   return { packageDir };
 }
 
