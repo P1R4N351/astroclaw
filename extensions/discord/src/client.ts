@@ -1,9 +1,10 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import type { RetryConfig, RetryRunner } from "astroclaw/plugin-sdk/retry-runtime";
-import { normalizeAccountId } from "astroclaw/plugin-sdk/routing";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Discord plugin module implements client behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import type { RetryConfig, RetryRunner } from "openclaw/plugin-sdk/retry-runtime";
+import { normalizeAccountId } from "openclaw/plugin-sdk/routing";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   mergeDiscordAccountConfig,
   resolveDiscordAccount,
@@ -17,7 +18,7 @@ import type { DiscordRuntimeAccountContext } from "./send.types.js";
 import { normalizeDiscordToken } from "./token.js";
 
 export type DiscordClientOpts = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   token?: string;
   accountId?: string;
   rest?: RequestClient;
@@ -26,7 +27,7 @@ export type DiscordClientOpts = {
 };
 
 export function createDiscordRuntimeAccountContext(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
 }): DiscordRuntimeAccountContext {
   return {
@@ -73,7 +74,7 @@ function resolveToken(params: {
 function resolveRest(
   token: string,
   account: ResolvedDiscordAccount,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   rest?: RequestClient,
   proxyFetch?: typeof fetch,
 ) {
@@ -88,7 +89,7 @@ function resolveRest(
 }
 
 function resolveAccountWithoutToken(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string;
 }): ResolvedDiscordAccount {
   const accountId = normalizeAccountId(params.accountId);
