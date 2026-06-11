@@ -1,3 +1,4 @@
+// Memory Core plugin module implements cli.host behavior.
 export {
   colorize,
   defaultRuntime,
@@ -11,16 +12,16 @@ export {
   withManager,
   withProgress,
   withProgressTotals,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-cli";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-cli";
 export {
   getRuntimeConfig,
   resolveDefaultAgentId,
   resolveSessionTranscriptsDirForAgent,
   resolveStateDir,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/memory-core-host-runtime-core";
 export {
   listMemoryFiles,
   normalizeExtraMemoryPaths,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-files";
 export { getMemorySearchManager } from "./memory/index.js";
