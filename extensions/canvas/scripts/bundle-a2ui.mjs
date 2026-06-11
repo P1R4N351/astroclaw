@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+/**
+ * Bundles the Canvas A2UI web app and writes a hash for tracked inputs.
+ */
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -42,10 +45,12 @@ function normalizePath(filePath) {
   return filePath.split(path.sep).join("/");
 }
 
+/** Returns whether a path should participate in the A2UI bundle input hash. */
 export function isBundleHashInputPath(filePath, repoRoot = rootDir) {
   return Boolean(filePath && repoRoot);
 }
 
+/** Returns local Rolldown CLI candidates for the current install layout. */
 export function getLocalRolldownCliCandidates(repoRoot = rootDir) {
   return [
     path.join(repoRoot, "node_modules", "rolldown", "bin", "cli.mjs"),
@@ -63,6 +68,7 @@ export function getLocalRolldownCliCandidates(repoRoot = rootDir) {
   ];
 }
 
+/** Returns repository paths that define the A2UI bundle hash inputs. */
 export function getBundleHashRepoInputPaths(repoRoot = rootDir) {
   return [
     path.join(repoRoot, "package.json"),
@@ -71,10 +77,12 @@ export function getBundleHashRepoInputPaths(repoRoot = rootDir) {
   ];
 }
 
+/** Returns A2UI bundle hash input paths. */
 export function getBundleHashInputPaths(repoRoot = rootDir) {
   return getBundleHashRepoInputPaths(repoRoot);
 }
 
+/** Compares paths after normalizing separators to POSIX slashes. */
 export function compareNormalizedPaths(left, right) {
   const normalizedLeft = normalizePath(left);
   const normalizedRight = normalizePath(right);
@@ -181,9 +189,9 @@ async function main() {
       console.log("A2UI package missing; keeping prebuilt bundle.");
       return;
     }
-    if (process.env.ASTROCLAW_SPARSE_PROFILE || process.env.ASTROCLAW_A2UI_SKIP_MISSING === "1") {
+    if (process.env.OPENCLAW_SPARSE_PROFILE || process.env.OPENCLAW_A2UI_SKIP_MISSING === "1") {
       console.error(
-        "A2UI package missing; skipping bundle because ASTROCLAW_A2UI_SKIP_MISSING=1 or ASTROCLAW_SPARSE_PROFILE is set.",
+        "A2UI package missing; skipping bundle because OPENCLAW_A2UI_SKIP_MISSING=1 or OPENCLAW_SPARSE_PROFILE is set.",
       );
       return;
     }
@@ -222,7 +230,9 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  await main().catch((error) => {
-    fail(error instanceof Error ? error.message : String(error));
-  });
+  await main().catch(
+    /** @param {unknown} error */ (error) => {
+      fail(error instanceof Error ? error.message : String(error));
+    },
+  );
 }
