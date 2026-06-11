@@ -1,13 +1,14 @@
-export type { AstroclawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
-export type { ChannelMessageActionAdapter } from "astroclaw/plugin-sdk/channel-contract";
+// Telegram API module exposes the plugin public contract.
+export type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+export type { ChannelMessageActionAdapter } from "openclaw/plugin-sdk/channel-contract";
 export type { TelegramApiOverride } from "./src/send.js";
 export type {
-  AstroclawPluginService,
-  AstroclawPluginServiceContext,
+  OpenClawPluginService,
+  OpenClawPluginServiceContext,
   PluginLogger,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import type { AstroclawConfig as RuntimeAstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-export type { PluginRuntime } from "astroclaw/plugin-sdk/runtime-store";
+} from "openclaw/plugin-sdk/plugin-entry";
+import type { OpenClawConfig as RuntimeOpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+export type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";
 export type {
   AcpRuntime,
   AcpRuntimeCapabilities,
@@ -19,23 +20,23 @@ export type {
   AcpRuntimeTurnInput,
   AcpRuntimeErrorCode,
   AcpSessionUpdateTag,
-} from "astroclaw/plugin-sdk/acp-runtime";
-export { AcpRuntimeError } from "astroclaw/plugin-sdk/acp-runtime";
+} from "openclaw/plugin-sdk/acp-runtime";
+export { AcpRuntimeError } from "openclaw/plugin-sdk/acp-runtime";
 
 export {
   emptyPluginConfigSchema,
   formatPairingApproveHint,
   getChatChannelMeta,
-} from "astroclaw/plugin-sdk/channel-plugin-common";
-export { clearAccountEntryFields } from "astroclaw/plugin-sdk/channel-core";
+} from "openclaw/plugin-sdk/channel-plugin-common";
+export { clearAccountEntryFields } from "openclaw/plugin-sdk/channel-core";
 export { buildChannelConfigSchema, TelegramConfigSchema } from "./config-api.js";
-export { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
+export { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 export {
   PAIRING_APPROVED_MESSAGE,
   buildTokenChannelStatusSummary,
   projectCredentialSnapshotFields,
   resolveConfiguredFromCredentialStatuses,
-} from "astroclaw/plugin-sdk/channel-status";
+} from "openclaw/plugin-sdk/channel-status";
 export {
   jsonResult,
   readNumberParam,
@@ -44,7 +45,7 @@ export {
   readStringOrNumberParam,
   readStringParam,
   resolvePollMaxSelections,
-} from "astroclaw/plugin-sdk/channel-actions";
+} from "openclaw/plugin-sdk/channel-actions";
 export type { TelegramProbe } from "./src/probe.js";
 export { auditTelegramGroupMembership, collectTelegramUnmentionedGroupIds } from "./src/audit.js";
 export { resolveTelegramRuntimeGroupPolicy } from "./src/group-access.js";
@@ -85,10 +86,10 @@ export {
 } from "./src/thread-bindings.js";
 export { resolveTelegramToken } from "./src/token.js";
 export { setTelegramRuntime } from "./src/runtime.js";
-export type { ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-export type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+export type { ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 export type TelegramAccountConfig = NonNullable<
-  NonNullable<RuntimeAstroclawConfig["channels"]>["telegram"]
+  NonNullable<RuntimeOpenClawConfig["channels"]>["telegram"]
 >;
 export type TelegramActionConfig = NonNullable<TelegramAccountConfig["actions"]>;
 export type TelegramNetworkConfig = NonNullable<TelegramAccountConfig["network"]>;
