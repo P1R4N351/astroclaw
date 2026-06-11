@@ -1,6 +1,7 @@
+// Agent binding test support centralizes mocked channel plugin registries and lazy imports.
 import type { Mock } from "vitest";
 import { vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";
 import { createTestRuntime } from "./test-runtime-config-helpers.js";
 
@@ -13,10 +14,10 @@ export const writeConfigFileMock: Mock<(...args: unknown[]) => Promise<unknown>>
   .fn()
   .mockResolvedValue(undefined);
 const replaceConfigFileMock: Mock<(...args: unknown[]) => Promise<unknown>> = vi.fn(
-  async (params: { nextConfig: AstroclawConfig }): Promise<ReplaceConfigFileResult> => {
+  async (params: { nextConfig: OpenClawConfig }): Promise<ReplaceConfigFileResult> => {
     await writeConfigFileMock(params.nextConfig);
     return {
-      path: "/tmp/astroclaw.json",
+      path: "/tmp/openclaw.json",
       previousHash: null,
       snapshot: {} as never,
       nextConfig: params.nextConfig,
@@ -37,7 +38,7 @@ vi.mock("./agents.command-shared.js", () => ({
   createQuietRuntime: <T>(runtime: T) => runtime,
   requireValidConfig: async () => {
     const snapshot = (await readConfigFileSnapshotMock()) as
-      | { config?: AstroclawConfig; sourceConfig?: AstroclawConfig }
+      | { config?: OpenClawConfig; sourceConfig?: OpenClawConfig }
       | undefined;
     return snapshot?.sourceConfig ?? snapshot?.config ?? null;
   },
