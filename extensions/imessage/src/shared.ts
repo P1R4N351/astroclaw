@@ -1,11 +1,12 @@
-import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
+// Imessage plugin module implements shared behavior.
+import { describeAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
 import {
   adaptScopedAccountAccessor,
   createScopedChannelConfigAdapter,
   formatTrimmedAllowFromEntries,
-} from "astroclaw/plugin-sdk/channel-config-helpers";
-import { createRestrictSendersChannelSecurity } from "astroclaw/plugin-sdk/channel-policy";
-import { createChannelPluginBase } from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/channel-config-helpers";
+import { createRestrictSendersChannelSecurity } from "openclaw/plugin-sdk/channel-policy";
+import { createChannelPluginBase } from "openclaw/plugin-sdk/core";
 import {
   listIMessageAccountIds,
   resolveDefaultIMessageAccountId,
@@ -82,6 +83,13 @@ export function createIMessagePluginBase(params: {
     capabilities: {
       chatTypes: ["direct", "group"],
       media: true,
+      tts: {
+        voice: {
+          synthesisTarget: "audio-file",
+          audioFileFormats: ["mp3", "caf", "audio/mpeg", "audio/x-caf"],
+          preferAudioFileFormat: "caf",
+        },
+      },
       reactions: true,
       edit: true,
       unsend: true,
@@ -106,10 +114,13 @@ export function createIMessagePluginBase(params: {
   return {
     ...base,
     messaging: {
-      resolveInboundAttachmentRoots: (params) =>
-        resolveIMessageAttachmentRoots({ accountId: params.accountId, cfg: params.cfg }),
-      resolveRemoteInboundAttachmentRoots: (params) =>
-        resolveIMessageRemoteAttachmentRoots({ accountId: params.accountId, cfg: params.cfg }),
+      resolveInboundAttachmentRoots: (paramsValue) =>
+        resolveIMessageAttachmentRoots({ accountId: paramsValue.accountId, cfg: paramsValue.cfg }),
+      resolveRemoteInboundAttachmentRoots: (paramsLocal) =>
+        resolveIMessageRemoteAttachmentRoots({
+          accountId: paramsLocal.accountId,
+          cfg: paramsLocal.cfg,
+        }),
     },
   } as Pick<
     ChannelPlugin<ResolvedIMessageAccount>,
