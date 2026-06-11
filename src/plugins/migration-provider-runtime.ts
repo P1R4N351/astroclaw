@@ -1,7 +1,7 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Runtime bridge for plugin-provided migration hooks.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { getLoadedRuntimePluginRegistry } from "./active-runtime-registry.js";
 import {
-  withBundledPluginAllowlistCompat,
   withBundledPluginEnablementCompat,
   withBundledPluginVitestCompat,
 } from "./bundled-compat.js";
@@ -17,15 +17,11 @@ function findMigrationProviderById(
 }
 
 function resolveMigrationProviderConfig(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   bundledCompatPluginIds: readonly string[];
-}): AstroclawConfig | undefined {
-  const allowlistCompat = withBundledPluginAllowlistCompat({
-    config: params.cfg,
-    pluginIds: [...params.bundledCompatPluginIds],
-  });
+}): OpenClawConfig | undefined {
   const enablementCompat = withBundledPluginEnablementCompat({
-    config: allowlistCompat,
+    config: params.cfg,
     pluginIds: [...params.bundledCompatPluginIds],
   });
   return withBundledPluginVitestCompat({
@@ -56,7 +52,7 @@ function mergeMigrationProviders(
 
 export function ensureStandaloneMigrationProviderRegistryLoaded(
   params: {
-    cfg?: AstroclawConfig;
+    cfg?: OpenClawConfig;
   } = {},
 ): void {
   const resolution = resolveManifestContractRuntimePluginResolution({
@@ -83,7 +79,7 @@ export function ensureStandaloneMigrationProviderRegistryLoaded(
 
 export function resolvePluginMigrationProvider(params: {
   providerId: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
 }): MigrationProviderPlugin | undefined {
   const activeRegistry = getLoadedRuntimePluginRegistry();
   const activeProvider = findMigrationProviderById(
@@ -111,7 +107,7 @@ export function resolvePluginMigrationProvider(params: {
 
 export function resolvePluginMigrationProviders(
   params: {
-    cfg?: AstroclawConfig;
+    cfg?: OpenClawConfig;
   } = {},
 ): MigrationProviderPlugin[] {
   const activeRegistry = getLoadedRuntimePluginRegistry();
