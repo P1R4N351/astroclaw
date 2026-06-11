@@ -1,3 +1,4 @@
+// Gateway service command registration shared by `gateway` and legacy `daemon` CLIs.
 import type { Command } from "commander";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
 import { inheritOptionFromParent } from "../command-options.js";
@@ -53,6 +54,7 @@ function resolveRestartOptions(cmdOpts: DaemonLifecycleOptions, command?: Comman
   };
 }
 
+/** Attach Gateway service status/install/lifecycle subcommands to a parent command. */
 export function addGatewayServiceCommands(parent: Command, opts?: { statusDescription?: string }) {
   parent
     .command("status")
@@ -128,7 +130,7 @@ export function addGatewayServiceCommands(parent: Command, opts?: { statusDescri
     .command("restart")
     .description("Restart the Gateway service (launchd/systemd/schtasks)")
     .option("--force", "Restart immediately without waiting for active gateway work", false)
-    .option("--safe", "Request an Astroclaw-aware restart after active work drains", false)
+    .option("--safe", "Request an OpenClaw-aware restart after active work drains", false)
     .option("--skip-deferral", "Bypass the safe-restart deferral gate; requires --safe", false)
     .option(
       "--wait <duration>",
