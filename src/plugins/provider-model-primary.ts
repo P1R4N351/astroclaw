@@ -1,9 +1,10 @@
+// Resolves primary model metadata for plugin-owned providers.
 import {
   normalizeAgentModelMapForConfig,
   normalizeAgentModelRefForConfig,
 } from "../config/model-input.js";
 import type { AgentModelListConfig } from "../config/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 function resolvePrimaryModel(model?: AgentModelListConfig | string): string | undefined {
   if (typeof model === "string") {
@@ -15,11 +16,12 @@ function resolvePrimaryModel(model?: AgentModelListConfig | string): string | un
   return undefined;
 }
 
+/** Applies an agent default primary model and reports whether config changed. */
 export function applyAgentDefaultPrimaryModel(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   model: string;
   legacyModels?: Set<string>;
-}): { next: AstroclawConfig; changed: boolean } {
+}): { next: OpenClawConfig; changed: boolean } {
   const model = normalizeAgentModelRefForConfig(params.model);
   const current = resolvePrimaryModel(params.cfg.agents?.defaults?.model)?.trim();
   const normalizedCurrent = current && params.legacyModels?.has(current) ? model : current;
@@ -49,7 +51,8 @@ export function applyAgentDefaultPrimaryModel(params: {
   };
 }
 
-export function applyPrimaryModel(cfg: AstroclawConfig, model: string): AstroclawConfig {
+/** Applies a primary model to agent defaults while preserving model fallback metadata. */
+export function applyPrimaryModel(cfg: OpenClawConfig, model: string): OpenClawConfig {
   const normalizedModel = normalizeAgentModelRefForConfig(model);
   const defaults = cfg.agents?.defaults;
   const existingModel = defaults?.model;
