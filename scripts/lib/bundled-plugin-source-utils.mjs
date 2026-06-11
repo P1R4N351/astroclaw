@@ -1,7 +1,9 @@
+// Discovers bundled plugin source directories and reads optional metadata files.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+/** Read a UTF-8 file when it exists, returning null on missing/unreadable paths. */
 export function readIfExists(filePath) {
   try {
     return fs.readFileSync(filePath, "utf8");
@@ -16,7 +18,7 @@ function collectTrackedBundledPluginSourceCandidates(repoRoot) {
     [
       "ls-files",
       "--",
-      ":(glob)extensions/*/astroclaw.plugin.json",
+      ":(glob)extensions/*/openclaw.plugin.json",
       ":(glob)extensions/*/package.json",
     ],
     {
@@ -32,7 +34,7 @@ function collectTrackedBundledPluginSourceCandidates(repoRoot) {
   const candidatesByDir = new Map();
   for (const rawLine of result.stdout.split("\n")) {
     const line = rawLine.trim().replaceAll("\\", "/");
-    const match = /^extensions\/([^/]+)\/(astroclaw\.plugin\.json|package\.json)$/u.exec(line);
+    const match = /^extensions\/([^/]+)\/(openclaw\.plugin\.json|package\.json)$/u.exec(line);
     if (!match?.[1] || !match[2]) {
       continue;
     }
@@ -42,7 +44,7 @@ function collectTrackedBundledPluginSourceCandidates(repoRoot) {
       packageJsonPath: null,
       pluginDir: path.join(repoRoot, "extensions", match[1]),
     };
-    if (match[2] === "astroclaw.plugin.json") {
+    if (match[2] === "openclaw.plugin.json") {
       current.manifestPath = path.join(repoRoot, line);
     } else {
       current.packageJsonPath = path.join(repoRoot, line);
@@ -66,7 +68,7 @@ function collectBundledPluginSourceCandidatesFromDirectory(repoRoot) {
     .filter((dirent) => dirent.isDirectory())
     .map((dirent) => {
       const pluginDir = path.join(extensionsRoot, dirent.name);
-      const manifestPath = path.join(pluginDir, "astroclaw.plugin.json");
+      const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
       const packageJsonPath = path.join(pluginDir, "package.json");
       return {
         dirName: dirent.name,
@@ -78,6 +80,7 @@ function collectBundledPluginSourceCandidatesFromDirectory(repoRoot) {
     .toSorted((left, right) => left.dirName.localeCompare(right.dirName));
 }
 
+/** Collect bundled plugin manifests and package metadata from git or the extensions directory. */
 export function collectBundledPluginSources(params = {}) {
   const repoRoot = path.resolve(params.repoRoot ?? process.cwd());
   const requirePackageJson = params.requirePackageJson === true;
