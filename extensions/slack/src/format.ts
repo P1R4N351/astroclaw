@@ -1,10 +1,11 @@
-import type { MarkdownTableMode } from "astroclaw/plugin-sdk/config-contracts";
+// Slack helper module supports format behavior.
+import type { MarkdownTableMode } from "openclaw/plugin-sdk/config-contracts";
 import {
   markdownToIR,
   type MarkdownLinkSpan,
   renderMarkdownIRChunksWithinLimit,
-} from "astroclaw/plugin-sdk/text-chunking";
-import { renderMarkdownWithMarkers } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/text-chunking";
+import { renderMarkdownWithMarkers } from "openclaw/plugin-sdk/text-chunking";
 
 // Escape special characters for Slack mrkdwn format.
 // Preserve Slack's angle-bracket tokens so mentions and links stay intact.
