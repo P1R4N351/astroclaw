@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../config/types.js";
+/** Applies mutually exclusive plugin slot selection for memory and context-engine plugins. */
+import type { OpenClawConfig } from "../config/types.js";
 import type { PluginSlotsConfig } from "../config/types.plugins.js";
 import type { PluginKind } from "./plugin-kind.types.js";
 
@@ -52,18 +53,20 @@ export function slotKeysForPluginKind(kind?: PluginKind | PluginKind[]): PluginS
     .filter((k): k is PluginSlotKey => k != null);
 }
 
+/** Returns the implicit plugin id that owns a slot before config overrides it. */
 export function defaultSlotIdForKey(slotKey: PluginSlotKey): string {
   return DEFAULT_SLOT_BY_KEY[slotKey];
 }
 
 export type SlotSelectionResult = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   warnings: string[];
   changed: boolean;
 };
 
+/** Updates config so the selected plugin owns all slots implied by its kind. */
 export function applyExclusiveSlotSelection(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   selectedId: string;
   selectedKind?: PluginKind | PluginKind[];
   registry?: { plugins: SlotPluginRecord[] };
