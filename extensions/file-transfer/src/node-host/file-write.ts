@@ -1,3 +1,4 @@
+// File Transfer plugin module implements file write behavior.
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -6,7 +7,7 @@ import {
   FsSafeError,
   resolveAbsolutePathForWrite,
   root,
-} from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/security-runtime";
 
 const MAX_CONTENT_BYTES = 16 * 1024 * 1024; // 16 MB
 
