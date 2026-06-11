@@ -1,14 +1,15 @@
+// Whatsapp plugin module implements accounts behavior.
 import fs from "node:fs";
 import path from "node:path";
 import {
   DEFAULT_ACCOUNT_ID,
   normalizeAccountId,
   resolveUserPath,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/account-core";
-import type { DmPolicy, GroupPolicy, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveOAuthDir } from "astroclaw/plugin-sdk/state-paths";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/account-core";
+import type { DmPolicy, GroupPolicy, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+import { resolveOAuthDir } from "openclaw/plugin-sdk/state-paths";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveMergedWhatsAppAccountConfig } from "./account-config.js";
 import {
   listConfiguredAccountIds,
@@ -16,7 +17,7 @@ import {
   resolveDefaultWhatsAppAccountId,
 } from "./account-ids.js";
 import type { WhatsAppAccountConfig } from "./account-types.js";
-import { hasWebCredsSync } from "./creds-files.js";
+import { hasWebCredsRegularFileSync, hasWebCredsSync } from "./creds-files.js";
 
 export { listWhatsAppAccountIds, resolveDefaultWhatsAppAccountId } from "./account-ids.js";
 
@@ -33,6 +34,7 @@ export type ResolvedWhatsAppAccount = {
   allowFrom?: string[];
   groupAllowFrom?: string[];
   groupPolicy?: GroupPolicy;
+  mentionPatterns?: WhatsAppAccountConfig["mentionPatterns"];
   dmPolicy?: DmPolicy;
   historyLimit?: number;
   textChunkLimit?: number;
@@ -49,7 +51,7 @@ export type ResolvedWhatsAppAccount = {
 
 export const DEFAULT_WHATSAPP_MEDIA_MAX_MB = 50;
 
-export function listWhatsAppAuthDirs(cfg: AstroclawConfig): string[] {
+export function listWhatsAppAuthDirs(cfg: OpenClawConfig): string[] {
   const oauthDir = resolveOAuthDir();
   const whatsappDir = path.join(oauthDir, "whatsapp");
   const authDirs = new Set<string>([oauthDir, path.join(whatsappDir, DEFAULT_ACCOUNT_ID)]);
@@ -74,7 +76,7 @@ export function listWhatsAppAuthDirs(cfg: AstroclawConfig): string[] {
   return Array.from(authDirs);
 }
 
-export function hasAnyWhatsAppAuth(cfg: AstroclawConfig): boolean {
+export function hasAnyWhatsAppAuth(cfg: OpenClawConfig): boolean {
   return listWhatsAppAuthDirs(cfg).some((authDir) => hasWebCredsSync(authDir));
 }
 
@@ -88,14 +90,10 @@ function resolveLegacyAuthDir(): string {
 }
 
 function legacyAuthExists(authDir: string): boolean {
-  try {
-    return fs.existsSync(path.join(authDir, "creds.json"));
-  } catch {
-    return false;
-  }
+  return hasWebCredsRegularFileSync(authDir);
 }
 
-export function resolveWhatsAppAuthDir(params: { cfg: AstroclawConfig; accountId: string }): {
+export function resolveWhatsAppAuthDir(params: { cfg: OpenClawConfig; accountId: string }): {
   authDir: string;
   isLegacy: boolean;
 } {
@@ -118,7 +116,7 @@ export function resolveWhatsAppAuthDir(params: { cfg: AstroclawConfig; accountId
 }
 
 export function resolveWhatsAppAccount(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): ResolvedWhatsAppAccount {
   const merged = resolveMergedWhatsAppAccountConfig({
@@ -145,6 +143,7 @@ export function resolveWhatsAppAccount(params: {
     allowFrom: merged.allowFrom,
     groupAllowFrom: merged.groupAllowFrom,
     groupPolicy: merged.groupPolicy,
+    mentionPatterns: merged.mentionPatterns,
     historyLimit: merged.historyLimit,
     textChunkLimit: merged.textChunkLimit,
     chunkMode: merged.chunkMode,
@@ -166,10 +165,10 @@ export function resolveWhatsAppMediaMaxBytes(
     typeof account.mediaMaxMb === "number" && account.mediaMaxMb > 0
       ? account.mediaMaxMb
       : DEFAULT_WHATSAPP_MEDIA_MAX_MB;
-  return mediaMaxMb * 1024 * 1024;
+  return Math.floor(mediaMaxMb * 1024 * 1024);
 }
 
-export function listEnabledWhatsAppAccounts(cfg: AstroclawConfig): ResolvedWhatsAppAccount[] {
+export function listEnabledWhatsAppAccounts(cfg: OpenClawConfig): ResolvedWhatsAppAccount[] {
   return listWhatsAppAccountIds(cfg)
     .map((accountId) => resolveWhatsAppAccount({ cfg, accountId }))
     .filter((account) => account.enabled);
