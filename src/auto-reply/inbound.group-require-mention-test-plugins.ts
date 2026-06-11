@@ -1,9 +1,10 @@
-import type { AstroclawConfig } from "../config/config.js";
+/** Test-only channel plugins that emulate per-group requireMention resolution. */
+import type { OpenClawConfig } from "../config/config.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createChannelTestPluginBase, createTestRegistry } from "../test-utils/channel-plugins.js";
 
 type TestChannelGroupContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   groupId?: string | null;
   groupChannel?: string | null;
   groupSpace?: string | null;
@@ -84,6 +85,7 @@ function resolveSlackRequireMentionForTest(params: TestChannelGroupContext): boo
   return true;
 }
 
+/** Installs channel fixtures used by group mention-routing tests. */
 export function installGroupRequireMentionTestPlugins() {
   setActivePluginRegistry(
     createTestRegistry([
