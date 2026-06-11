@@ -1,11 +1,16 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+/**
+ * Late-bound runtime context for web fetch/search tools.
+ *
+ * Resolves active secrets/runtime provider metadata for long-lived tool instances.
+ */
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveManifestContractOwnerPluginId } from "../../plugins/plugin-registry.js";
+import { getActiveSecretsRuntimeConfigSnapshot } from "../../secrets/runtime-state.js";
 import { getActiveRuntimeWebToolsMetadata } from "../../secrets/runtime-web-tools-state.js";
 import type {
   RuntimeWebFetchMetadata,
   RuntimeWebSearchMetadata,
 } from "../../secrets/runtime-web-tools.types.js";
-import { getActiveSecretsRuntimeSnapshot } from "../../secrets/runtime.js";
 
 type WebProviderKind = "fetch" | "search";
 
@@ -14,13 +19,13 @@ type WebProviderRuntimeMetadata = RuntimeWebFetchMetadata | RuntimeWebSearchMeta
 type WebProviderContract = "webFetchProviders" | "webSearchProviders";
 
 type ResolvedWebToolRuntimeContext<TMetadata extends WebProviderRuntimeMetadata> = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   preferRuntimeProviders: boolean;
   runtimeMetadata?: TMetadata;
 };
 
 function resolveConfiguredWebProviderId(
-  config: AstroclawConfig | undefined,
+  config: OpenClawConfig | undefined,
   kind: WebProviderKind,
 ): string {
   const provider = config?.tools?.web?.[kind]?.provider;
@@ -36,13 +41,14 @@ function resolveWebProviderContract(kind: WebProviderKind): WebProviderContract 
 }
 
 function shouldPreferRuntimeProviders(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   kind: WebProviderKind;
   providerSelectionId: string;
 }): boolean {
   if (!params.providerSelectionId) {
     return true;
   }
+  // Built-in providers are handled by core; plugin-owned selections should route through plugins.
   return !resolveManifestContractOwnerPluginId({
     contract: resolveWebProviderContract(params.kind),
     value: params.providerSelectionId,
@@ -52,19 +58,20 @@ function shouldPreferRuntimeProviders(params: {
 }
 
 function resolveWebToolRuntimeContext<TMetadata extends WebProviderRuntimeMetadata>(params: {
-  capturedConfig?: AstroclawConfig;
+  capturedConfig?: OpenClawConfig;
   capturedRuntimeMetadata?: TMetadata;
   kind: WebProviderKind;
   lateBindRuntimeConfig?: boolean;
 }): ResolvedWebToolRuntimeContext<TMetadata> {
   const activeWebTools =
     params.lateBindRuntimeConfig === true ? getActiveRuntimeWebToolsMetadata() : null;
+  // Late-bound metadata wins over constructor-captured metadata for long-lived tool instances.
   const runtimeMetadata = (activeWebTools?.[params.kind] ?? params.capturedRuntimeMetadata) as
     | TMetadata
     | undefined;
   const config =
     params.lateBindRuntimeConfig === true
-      ? (getActiveSecretsRuntimeSnapshot()?.config ?? params.capturedConfig)
+      ? (getActiveSecretsRuntimeConfigSnapshot()?.config ?? params.capturedConfig)
       : params.capturedConfig;
   const providerSelectionId =
     resolveRuntimeWebProviderId(runtimeMetadata) ||
@@ -80,8 +87,9 @@ function resolveWebToolRuntimeContext<TMetadata extends WebProviderRuntimeMetada
   };
 }
 
+/** Resolves runtime provider context for the web_search tool. */
 export function resolveWebSearchToolRuntimeContext(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   lateBindRuntimeConfig?: boolean;
   runtimeWebSearch?: RuntimeWebSearchMetadata;
 }): ResolvedWebToolRuntimeContext<RuntimeWebSearchMetadata> & {
@@ -101,8 +109,9 @@ export function resolveWebSearchToolRuntimeContext(params: {
   };
 }
 
+/** Resolves runtime provider context for the web_fetch tool. */
 export function resolveWebFetchToolRuntimeContext(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   lateBindRuntimeConfig?: boolean;
   runtimeWebFetch?: RuntimeWebFetchMetadata;
 }): ResolvedWebToolRuntimeContext<RuntimeWebFetchMetadata> & {
