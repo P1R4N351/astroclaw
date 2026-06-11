@@ -1,6 +1,15 @@
+/**
+ * Browser CLI management commands for lifecycle, profiles, tabs, and doctor
+ * checks.
+ */
 import type { Command } from "commander";
 import { runCommandWithRuntime } from "../core-api.js";
-import { callBrowserRequest, type BrowserParentOpts } from "./browser-cli-shared.js";
+import {
+  BROWSER_TAB_REFERENCE_HELP,
+  callBrowserRequest,
+  parseBrowserPositiveIntegerValue,
+  type BrowserParentOpts,
+} from "./browser-cli-shared.js";
 import {
   danger,
   defaultRuntime,
@@ -100,7 +109,7 @@ async function runBrowserToggle(
   if (printJsonResult(parent, status)) {
     return;
   }
-  const name = status.profile ?? "astroclaw";
+  const name = status.profile ?? "openclaw";
   const headlessLabel = params.path === "/start" && status.headless ? " (headless)" : "";
   defaultRuntime.log(info(`🦞 browser [${name}] running: ${status.running}${headlessLabel}`));
 }
@@ -110,6 +119,10 @@ function runBrowserCommand(action: () => Promise<void>) {
     defaultRuntime.error(danger(String(err)));
     defaultRuntime.exit(1);
   });
+}
+
+function parseTabIndex(value: string): number {
+  return parseBrowserPositiveIntegerValue(value) ?? Number.NaN;
 }
 
 function logBrowserTabs(tabs: BrowserTab[], json?: boolean) {
@@ -124,8 +137,12 @@ function logBrowserTabs(tabs: BrowserTab[], json?: boolean) {
   defaultRuntime.log(
     tabs
       .map((t, i) => {
-        const alias = [t.tabId, t.label ? `label:${t.label}` : undefined].filter(Boolean).join(" ");
-        return `${i + 1}. ${t.title || "(untitled)"}${alias ? ` [${alias}]` : ""}\n   ${t.url}\n   id: ${t.targetId}`;
+        const labelHandle = t.label ? `label:${t.label}` : undefined;
+        const suggested = t.suggestedTargetId ? `use: ${t.suggestedTargetId}` : undefined;
+        const handles = [suggested, t.tabId ? `tab: ${t.tabId}` : undefined, labelHandle]
+          .filter(Boolean)
+          .join(" ");
+        return `${i + 1}. ${t.title || "(untitled)"}${handles ? ` [${handles}]` : ""}\n   ${t.url}\n   id: ${t.targetId}`;
       })
       .join("\n"),
   );
@@ -137,7 +154,7 @@ function formatDoctorLine(check: BrowserDoctorCheck): string {
 
 async function runBrowserDoctor(parent: BrowserParentOpts, profile?: string, deep?: boolean) {
   const checks: BrowserDoctorCheck[] = [];
-  let status: BrowserStatus | null = null;
+  let status: BrowserStatus | null;
 
   try {
     status = await fetchBrowserStatus(parent, profile);
@@ -163,14 +180,14 @@ async function runBrowserDoctor(parent: BrowserParentOpts, profile?: string, dee
   checks.push({
     name: "profile",
     ok: true,
-    detail: `${status.profile ?? "astroclaw"} (${usesChromeMcpTransport(status) ? "chrome-mcp" : (status.transport ?? "cdp")})`,
+    detail: `${status.profile ?? "openclaw"} (${usesChromeMcpTransport(status) ? "chrome-mcp" : (status.transport ?? "cdp")})`,
   });
   checks.push({
     name: "browser",
     ok: status.running,
     detail: status.running
       ? `running${status.cdpReady === false ? ", CDP not ready" : ""}`
-      : "not running; run `astroclaw browser start`",
+      : "not running; run `openclaw browser start`",
   });
 
   try {
@@ -207,7 +224,7 @@ async function runBrowserDoctor(parent: BrowserParentOpts, profile?: string, dee
       checks.push({
         name: "tabs",
         ok: true,
-        detail: `${tabs.length} visible${tabs.length > 0 && tabs[0]?.suggestedTargetId ? `, use target ${tabs[0].suggestedTargetId}` : ""}`,
+        detail: `${tabs.length} visible${tabs.length > 0 && tabs[0]?.suggestedTargetId ? `, use tab reference ${tabs[0].suggestedTargetId}` : ""}`,
       });
     } catch (err) {
       checks.push({
@@ -259,31 +276,35 @@ async function runBrowserDoctor(parent: BrowserParentOpts, profile?: string, dee
 
 function usesChromeMcpTransport(params: {
   transport?: BrowserTransport;
-  driver?: "astroclaw" | "existing-session";
+  driver?: "openclaw" | "existing-session";
 }): boolean {
   return params.transport === "chrome-mcp" || params.driver === "existing-session";
 }
 
 function formatBrowserConnectionSummary(params: {
   transport?: BrowserTransport;
-  driver?: "astroclaw" | "existing-session";
+  driver?: "openclaw" | "existing-session";
   isRemote?: boolean;
   cdpPort?: number | null;
   cdpUrl?: string | null;
   userDataDir?: string | null;
 }): string {
   if (usesChromeMcpTransport(params)) {
+    if (params.cdpUrl) {
+      return `transport: chrome-mcp, cdpUrl: ${redactCdpUrl(params.cdpUrl)}`;
+    }
     const userDataDir = params.userDataDir ? shortenHomePath(params.userDataDir) : null;
     return userDataDir
       ? `transport: chrome-mcp, userDataDir: ${userDataDir}`
       : "transport: chrome-mcp";
   }
   if (params.isRemote) {
-    return `cdpUrl: ${params.cdpUrl ?? "(unset)"}`;
+    return `cdpUrl: ${params.cdpUrl ? redactCdpUrl(params.cdpUrl) : "(unset)"}`;
   }
   return `port: ${params.cdpPort ?? "(unset)"}`;
 }
 
+/** Registers Browser lifecycle, profile, tab, and doctor commands. */
 export function registerBrowserManageCommands(
   browser: Command,
   parentOpts: (cmd: Command) => BrowserParentOpts,
@@ -302,7 +323,7 @@ export function registerBrowserManageCommands(
         const detectedDisplay = detectedPath ? shortenHomePath(detectedPath) : "auto";
         defaultRuntime.log(
           [
-            `profile: ${status.profile ?? "astroclaw"}`,
+            `profile: ${status.profile ?? "openclaw"}`,
             `enabled: ${status.enabled}`,
             `running: ${status.running}`,
             `transport: ${
@@ -313,9 +334,11 @@ export function registerBrowserManageCommands(
                   `cdpPort: ${status.cdpPort ?? "(unset)"}`,
                   `cdpUrl: ${redactCdpUrl(status.cdpUrl ?? `http://127.0.0.1:${status.cdpPort}`)}`,
                 ]
-              : status.userDataDir
-                ? [`userDataDir: ${shortenHomePath(status.userDataDir)}`]
-                : []),
+              : status.cdpUrl
+                ? [`cdpUrl: ${redactCdpUrl(status.cdpUrl)}`]
+                : status.userDataDir
+                  ? [`userDataDir: ${shortenHomePath(status.userDataDir)}`]
+                  : []),
             `browser: ${status.chosenBrowser ?? "unknown"}`,
             `detectedBrowser: ${status.detectedBrowser ?? "unknown"}`,
             `detectedPath: ${detectedDisplay}`,
@@ -472,7 +495,7 @@ export function registerBrowserManageCommands(
   tab
     .command("label")
     .description("Assign a friendly label to a tab")
-    .argument("<targetId>", "Target id, tab id, label, or unique target id prefix")
+    .argument("<targetId>", BROWSER_TAB_REFERENCE_HELP)
     .argument("<label>", "Friendly label")
     .action(async (targetId: string, label: string, _opts, cmd) => {
       const parent = parentOpts(cmd);
@@ -482,49 +505,50 @@ export function registerBrowserManageCommands(
         if (printJsonResult(parent, result)) {
           return;
         }
-        const tab = (result as { tab?: BrowserTab }).tab;
-        defaultRuntime.log(`labeled tab ${tab?.tabId ?? targetId} as ${tab?.label ?? label}`);
+        const tabValue = (result as { tab?: BrowserTab }).tab;
+        defaultRuntime.log(
+          `labeled tab ${tabValue?.tabId ?? targetId} as ${tabValue?.label ?? label}`,
+        );
       });
     });
 
   tab
     .command("select")
     .description("Focus tab by index (1-based)")
-    .argument("<index>", "Tab index (1-based)", (v: string) => Number(v))
+    .argument("<index>", "Tab index (1-based)", parseTabIndex)
     .action(async (index: number, _opts, cmd) => {
       const parent = parentOpts(cmd);
       const profile = parent?.browserProfile;
-      if (!Number.isFinite(index) || index < 1) {
-        defaultRuntime.error(danger("index must be a positive number"));
+      if (!Number.isSafeInteger(index) || index < 1) {
+        defaultRuntime.error(danger("index must be a positive integer"));
         defaultRuntime.exit(1);
         return;
       }
       await runBrowserCommand(async () => {
         const result = await callTabAction(parent, profile, {
           action: "select",
-          index: Math.floor(index) - 1,
+          index: index - 1,
         });
         if (printJsonResult(parent, result)) {
           return;
         }
-        defaultRuntime.log(`selected tab ${Math.floor(index)}`);
+        defaultRuntime.log(`selected tab ${index}`);
       });
     });
 
   tab
     .command("close")
     .description("Close tab by index (1-based); default: first tab")
-    .argument("[index]", "Tab index (1-based)", (v: string) => Number(v))
+    .argument("[index]", "Tab index (1-based)", parseTabIndex)
     .action(async (index: number | undefined, _opts, cmd) => {
       const parent = parentOpts(cmd);
       const profile = parent?.browserProfile;
-      const idx =
-        typeof index === "number" && Number.isFinite(index) ? Math.floor(index) - 1 : undefined;
-      if (typeof idx === "number" && idx < 0) {
-        defaultRuntime.error(danger("index must be >= 1"));
+      if (typeof index === "number" && (!Number.isSafeInteger(index) || index < 1)) {
+        defaultRuntime.error(danger("index must be a positive integer"));
         defaultRuntime.exit(1);
         return;
       }
+      const idx = typeof index === "number" ? index - 1 : undefined;
       await runBrowserCommand(async () => {
         const result = await callTabAction(parent, profile, { action: "close", index: idx });
         if (printJsonResult(parent, result)) {
@@ -543,7 +567,7 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const profile = parent?.browserProfile;
       await runBrowserCommand(async () => {
-        const tab = await callBrowserRequest<BrowserTab>(
+        const tabLocal = await callBrowserRequest<BrowserTab>(
           parent,
           {
             method: "POST",
@@ -553,19 +577,19 @@ export function registerBrowserManageCommands(
           },
           { timeoutMs: BROWSER_MANAGE_REQUEST_TIMEOUT_MS },
         );
-        if (printJsonResult(parent, tab)) {
+        if (printJsonResult(parent, tabLocal)) {
           return;
         }
         defaultRuntime.log(
-          `opened: ${tab.url}\n${tab.tabId ? `tab: ${tab.tabId}\n` : ""}${tab.label ? `label: ${tab.label}\n` : ""}id: ${tab.targetId}`,
+          `opened: ${tabLocal.url}\n${tabLocal.tabId ? `tab: ${tabLocal.tabId}\n` : ""}${tabLocal.label ? `label: ${tabLocal.label}\n` : ""}id: ${tabLocal.targetId}`,
         );
       });
     });
 
   browser
     .command("focus")
-    .description("Focus a tab by target id, tab id, label, or unique target id prefix")
-    .argument("<targetId>", "Target id, tab id, label, or unique target id prefix")
+    .description("Focus a tab by tab reference")
+    .argument("<targetId>", BROWSER_TAB_REFERENCE_HELP)
     .action(async (targetId: string, _opts, cmd) => {
       const parent = parentOpts(cmd);
       const profile = parent?.browserProfile;
@@ -589,8 +613,8 @@ export function registerBrowserManageCommands(
 
   browser
     .command("close")
-    .description("Close a tab (target id optional)")
-    .argument("[targetId]", "Target id, tab id, label, or unique target id prefix (optional)")
+    .description("Close a tab (tab reference optional)")
+    .argument("[targetId]", `${BROWSER_TAB_REFERENCE_HELP} (optional)`)
     .action(async (targetId: string | undefined, _opts, cmd) => {
       const parent = parentOpts(cmd);
       const profile = parent?.browserProfile;
@@ -655,7 +679,7 @@ export function registerBrowserManageCommands(
               const def = p.isDefault ? " [default]" : "";
               const loc = formatBrowserConnectionSummary(p);
               const remote = p.isRemote ? " [remote]" : "";
-              const driver = p.driver !== "astroclaw" ? ` [${p.driver}]` : "";
+              const driver = p.driver !== "openclaw" ? ` [${p.driver}]` : "";
               return `${p.name}: ${status}${tabs}${def}${remote}${driver}\n  ${loc}, color: ${p.color}`;
             })
             .join("\n"),
@@ -668,9 +692,9 @@ export function registerBrowserManageCommands(
     .description("Create a new browser profile")
     .requiredOption("--name <name>", "Profile name (lowercase, numbers, hyphens)")
     .option("--color <hex>", "Profile color (hex format, e.g. #0066CC)")
-    .option("--cdp-url <url>", "CDP URL for remote Chrome (http/https)")
+    .option("--cdp-url <url>", "DevTools endpoint URL (http/https/ws/wss)")
     .option("--user-data-dir <path>", "User data dir for existing-session Chromium attach")
-    .option("--driver <driver>", "Profile driver (astroclaw|existing-session). Default: astroclaw")
+    .option("--driver <driver>", "Profile driver (openclaw|existing-session). Default: openclaw")
     .action(
       async (
         opts: {
