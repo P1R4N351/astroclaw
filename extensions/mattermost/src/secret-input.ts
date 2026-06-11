@@ -1,7 +1,8 @@
-export type { SecretInput } from "astroclaw/plugin-sdk/secret-input";
+// Mattermost plugin module implements secret input behavior.
+export type { SecretInput } from "openclaw/plugin-sdk/secret-input";
 export {
   buildSecretInputSchema,
   hasConfiguredSecretInput,
   normalizeResolvedSecretInputString,
   normalizeSecretInputString,
-} from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/secret-input";
