@@ -1,7 +1,8 @@
-export { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-export { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
-export type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-export type { PollInput, MediaKind } from "astroclaw/plugin-sdk/media-runtime";
+// Telegram plugin module implements send behavior.
+export { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+export { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
+export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+export type { PollInput, MediaKind } from "openclaw/plugin-sdk/media-runtime";
 export {
   buildOutboundMediaLoadOptions,
   getImageMetadata,
@@ -9,5 +10,5 @@ export {
   kindFromMime,
   normalizePollInput,
   probeVideoDimensions,
-} from "astroclaw/plugin-sdk/media-runtime";
-export { loadWebMedia } from "astroclaw/plugin-sdk/web-media";
+} from "openclaw/plugin-sdk/media-runtime";
+export { loadWebMedia } from "openclaw/plugin-sdk/web-media";
