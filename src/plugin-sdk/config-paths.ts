@@ -1,8 +1,9 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Config path helpers resolve plugin-visible state and config file locations from OpenClaw config.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 /** Resolve the config path prefix for a channel account, falling back to the root channel section. */
 export function resolveChannelAccountConfigBasePath(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channelKey: string;
   accountId: string;
 }): string {
