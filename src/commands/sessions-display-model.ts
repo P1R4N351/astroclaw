@@ -1,10 +1,16 @@
+/**
+ * Model display resolution for session listings.
+ *
+ * Session rows may carry persisted model/provider overrides or CLI-runtime
+ * model strings; this module normalizes them into display-ready model refs.
+ */
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import {
   inferUniqueProviderFromConfiguredModels,
   isCliProvider,
 } from "../agents/model-selection.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 type SessionDisplayModelRow = {
   key: string;
@@ -36,7 +42,7 @@ function parseModelRef(raw: string, defaultProvider: string): SessionDisplayMode
 }
 
 function resolveAgentPrimaryModel(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string | undefined,
 ): string | undefined {
   if (!agentId) {
@@ -57,6 +63,8 @@ function normalizeStoredOverrideModel(params: {
   }
 
   const providerPrefix = `${providerOverride.toLowerCase()}/`;
+  // Older stores sometimes persisted both providerOverride and a
+  // provider/model modelOverride; trim the duplicate provider for display.
   return {
     providerOverride,
     modelOverride: modelOverride.toLowerCase().startsWith(providerPrefix)
@@ -65,7 +73,7 @@ function normalizeStoredOverrideModel(params: {
   };
 }
 
-function resolveDefaultModelRef(cfg: AstroclawConfig, agentId?: string): SessionDisplayModelRef {
+function resolveDefaultModelRef(cfg: OpenClawConfig, agentId?: string): SessionDisplayModelRef {
   const primary =
     resolveAgentPrimaryModel(cfg, agentId) ??
     resolveAgentModelPrimaryValue(cfg.agents?.defaults?.model) ??
@@ -73,8 +81,9 @@ function resolveDefaultModelRef(cfg: AstroclawConfig, agentId?: string): Session
   return parseModelRef(primary, DEFAULT_PROVIDER);
 }
 
+/** Resolves default display values for a session table scoped to an agent. */
 export function resolveSessionDisplayDefaults(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId?: string,
 ): SessionDisplayDefaults {
   return {
@@ -83,7 +92,7 @@ export function resolveSessionDisplayDefaults(
 }
 
 function normalizeCliRuntimeDisplayRef(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   ref: SessionDisplayModelRef,
   defaultRef: SessionDisplayModelRef,
 ): SessionDisplayModelRef {
@@ -91,6 +100,8 @@ function normalizeCliRuntimeDisplayRef(
     return ref;
   }
   if (ref.model.includes("/")) {
+    // CLI runtimes can store the real provider/model inside the model field;
+    // prefer that embedded provider when it is not another CLI runtime alias.
     const parsed = parseModelRef(ref.model, defaultRef.provider);
     if (!isCliProvider(parsed.provider, cfg)) {
       return parsed;
@@ -103,6 +114,8 @@ function normalizeCliRuntimeDisplayRef(
   if (inferredProvider && !isCliProvider(inferredProvider, cfg)) {
     return { provider: inferredProvider, model: ref.model };
   }
+  // If the CLI runtime model cannot be mapped to a concrete provider, fall
+  // back to the configured default provider so rows stay comparable.
   const parsed = parseModelRef(ref.model, defaultRef.provider);
   if (!isCliProvider(parsed.provider, cfg)) {
     return parsed;
@@ -113,15 +126,17 @@ function normalizeCliRuntimeDisplayRef(
   };
 }
 
+/** Resolves only the model id to show for a session row. */
 export function resolveSessionDisplayModel(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   row: SessionDisplayModelRow,
 ): string {
   return resolveSessionDisplayModelRef(cfg, row).model;
 }
 
+/** Resolves provider/model display metadata for a session row. */
 export function resolveSessionDisplayModelRef(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   row: SessionDisplayModelRow,
 ): SessionDisplayModelRef {
   const agentId = row.key.startsWith("agent:") ? row.key.split(":")[1] : undefined;
