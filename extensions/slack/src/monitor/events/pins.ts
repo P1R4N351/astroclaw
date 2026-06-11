@@ -1,7 +1,8 @@
+// Slack plugin module implements pins behavior.
 import type { SlackEventMiddlewareArgs } from "@slack/bolt";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { danger } from "astroclaw/plugin-sdk/runtime-env";
-import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { danger } from "openclaw/plugin-sdk/runtime-env";
+import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
 import type { SlackMonitorContext } from "../context.js";
 import type { SlackPinEvent } from "../types.js";
 import { authorizeAndResolveSlackSystemEventContext } from "./system-event-context.js";
