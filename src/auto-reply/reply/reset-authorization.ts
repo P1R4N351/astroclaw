@@ -1,11 +1,12 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+// Resolves whether a sender may reset or restart a reply session.
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
 import type { MsgContext } from "../templating.js";
 
 export function isResetAuthorizedForContext(params: {
   ctx: MsgContext;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   commandAuthorized: boolean;
 }): boolean {
   const auth = resolveCommandAuthorization(params);
