@@ -1,10 +1,13 @@
+/**
+ * Prepares bundled MCP configuration for CLI runner backends.
+ */
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { applyMergePatch } from "../../config/merge-patch.js";
 import type { CliBackendConfig } from "../../config/types.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { tryReadJson } from "../../infra/json-files.js";
 import { extractMcpServerMap, type BundleMcpConfig } from "../../plugins/bundle-mcp.js";
 import type { CliBundleMcpMode } from "../../plugins/types.js";
@@ -44,26 +47,28 @@ function sortJsonValue(value: unknown): unknown {
   );
 }
 
-function normalizeAstroclawLoopbackUrl(value: string): string {
+function normalizeOpenClawLoopbackUrl(value: string): string {
   const match =
     /^(http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])):\d+(\/mcp)$/.exec(value.trim()) ?? undefined;
   if (!match) {
     return value;
   }
-  return `${match[1]}:<astroclaw-loopback>${match[2]}`;
+  return `${match[1]}:<openclaw-loopback>${match[2]}`;
 }
 
 function canonicalizeBundleMcpConfigForResume(config: BundleMcpConfig): BundleMcpConfig {
+  // The OpenClaw loopback MCP port changes across runs. Replace it before
+  // hashing so resume compatibility tracks config shape, not ephemeral ports.
   const canonicalServers = Object.fromEntries(
     Object.entries(config.mcpServers).map(([name, server]) => {
-      if (name !== "astroclaw" || typeof server.url !== "string") {
+      if (name !== "openclaw" || typeof server.url !== "string") {
         return [name, sortJsonValue(server)];
       }
       return [
         name,
         sortJsonValue({
           ...server,
-          url: normalizeAstroclawLoopbackUrl(server.url),
+          url: normalizeOpenClawLoopbackUrl(server.url),
         }),
       ];
     }),
@@ -115,7 +120,7 @@ async function prepareModeSpecificBundleMcpConfig(params: {
     };
   }
 
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-cli-mcp-"));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-cli-mcp-"));
   const mcpConfigPath = path.join(tempDir, "mcp.json");
   await fs.writeFile(mcpConfigPath, serializedConfig, "utf-8");
   return {
@@ -131,17 +136,19 @@ async function prepareModeSpecificBundleMcpConfig(params: {
     mcpResumeHash,
     env: params.env,
     cleanup: async () => {
+      // Claude config files are generated per run and should not survive cleanup.
       await fs.rm(tempDir, { recursive: true, force: true });
     },
   };
 }
 
+/** Prepare backend args/env/cleanup for bundle MCP injection into a CLI run. */
 export async function prepareCliBundleMcpConfig(params: {
   enabled: boolean;
   mode?: CliBundleMcpMode;
   backend: CliBackendConfig;
   workspaceDir: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   additionalConfig?: BundleMcpConfig;
   env?: Record<string, string>;
   warn?: (message: string) => void;
@@ -159,6 +166,8 @@ export async function prepareCliBundleMcpConfig(params: {
   let mergedConfig: BundleMcpConfig = { mcpServers: {} };
 
   if (existingMcpConfigPath) {
+    // Merge any user-provided Claude MCP config first so bundle/plugin config can
+    // override intentionally managed server entries.
     const resolvedExistingPath = path.isAbsolute(existingMcpConfigPath)
       ? existingMcpConfigPath
       : path.resolve(params.workspaceDir, existingMcpConfigPath);
