@@ -1,13 +1,18 @@
+/**
+ * Channel plugin helper utilities.
+ *
+ * Resolves default accounts, pairing hints, delimited entries, and DM security policy views.
+ */
+import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
 import { formatCliCommand } from "../../cli/command-format.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
 import type { ChannelSecurityDmPolicy } from "./types.core.js";
 import type { ChannelPlugin } from "./types.plugin.js";
 
-// Channel docking helper: use this when selecting the default account for a plugin.
 export function resolveChannelDefaultAccountId<ResolvedAccount>(params: {
   plugin: ChannelPlugin<ResolvedAccount>;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountIds?: string[];
 }): string {
   const accountIds = params.accountIds ?? params.plugin.config.listAccountIds(params.cfg);
@@ -15,8 +20,8 @@ export function resolveChannelDefaultAccountId<ResolvedAccount>(params: {
 }
 
 export function formatPairingApproveHint(channelId: string): string {
-  const listCmd = formatCliCommand(`astroclaw pairing list ${channelId}`);
-  const approveCmd = formatCliCommand(`astroclaw pairing approve ${channelId} <code>`);
+  const listCmd = formatCliCommand(`openclaw pairing list ${channelId}`);
+  const approveCmd = formatCliCommand(`openclaw pairing approve ${channelId} <code>`);
   return `Approve via: ${listCmd} / ${approveCmd}`;
 }
 
@@ -24,15 +29,12 @@ export function parseOptionalDelimitedEntries(value?: string): string[] | undefi
   if (!value?.trim()) {
     return undefined;
   }
-  const parsed = value
-    .split(/[\n,;]+/g)
-    .map((entry) => entry.trim())
-    .filter(Boolean);
+  const parsed = normalizeStringEntries(value.split(/[\n,;]+/g));
   return parsed.length > 0 ? parsed : undefined;
 }
 
 export function buildAccountScopedDmSecurityPolicy(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channelKey: string;
   accountId?: string | null;
   fallbackAccountId?: string | null;
