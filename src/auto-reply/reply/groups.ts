@@ -1,12 +1,13 @@
-import { resolveChannelGroupRequireMention } from "../../config/group-policy.js";
-import type { GroupKeyResolution, SessionEntry } from "../../config/sessions.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
-import { createLazyImportLoader } from "../../shared/lazy-promise.js";
-import type { SilentReplyPolicy } from "../../shared/silent-reply-policy.js";
+/** Group/direct chat prompt context, activation, and silent-reply helpers. */
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "../../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import { resolveChannelGroupRequireMention } from "../../config/group-policy.js";
+import type { GroupKeyResolution, SessionEntry } from "../../config/sessions.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { createLazyImportLoader } from "../../shared/lazy-promise.js";
+import type { SilentReplyPolicy } from "../../shared/silent-reply-policy.js";
 import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import type { SourceReplyDeliveryMode } from "../get-reply-options.types.js";
 import { normalizeGroupActivation } from "../group-activation.js";
@@ -62,7 +63,7 @@ function normalizeDiscordSlug(value?: string | null) {
 }
 
 function resolveDiscordGuilds(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string | null,
 ): Record<string, DiscordGroupConfig> | undefined {
   const discord = cfg.channels?.discord as DiscordConfigWithGuilds | undefined;
@@ -119,7 +120,7 @@ function resolveDiscordChannelEntry(
 }
 
 function resolveDiscordRequireMentionFallback(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: string;
   groupId?: string | null;
   groupChannel?: string | null;
@@ -143,8 +144,9 @@ function resolveDiscordRequireMentionFallback(params: {
   return undefined;
 }
 
+/** Resolves whether a group/channel turn requires an explicit mention. */
 export async function resolveGroupRequireMention(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   ctx: TemplateContext;
   groupResolution?: GroupKeyResolution;
 }): Promise<boolean> {
@@ -195,6 +197,7 @@ export async function resolveGroupRequireMention(params: {
   });
 }
 
+/** Converts requireMention into the default prompt activation label. */
 export function defaultGroupActivation(requireMention: boolean): "always" | "mention" {
   return !requireMention ? "always" : "mention";
 }
@@ -218,6 +221,7 @@ function resolveProviderLabel(rawProvider: string | undefined): string {
   return `${providerKey.at(0)?.toUpperCase() ?? ""}${providerKey.slice(1)}`;
 }
 
+/** Builds system prompt context for group/channel conversations. */
 export function buildGroupChatContext(params: {
   sessionCtx: TemplateContext;
   sourceReplyDeliveryMode?: SourceReplyDeliveryMode;
@@ -260,7 +264,7 @@ export function buildGroupChatContext(params: {
   }
   if (canUseSilentReply) {
     lines.push(
-      `If no response is needed, reply with exactly "${params.silentToken}" (and nothing else) so Astroclaw stays silent.`,
+      `If no response is needed, reply with exactly "${params.silentToken}" (and nothing else) so OpenClaw stays silent.`,
     );
     lines.push("Be extremely selective: reply only when directly addressed or clearly helpful.");
     lines.push(
@@ -276,6 +280,7 @@ export function buildGroupChatContext(params: {
   return lines.join(" ");
 }
 
+/** Builds system prompt context for direct conversations. */
 export function buildDirectChatContext(params: {
   sessionCtx: TemplateContext;
   sourceReplyDeliveryMode?: SourceReplyDeliveryMode;
@@ -297,6 +302,7 @@ export function buildDirectChatContext(params: {
   return lines.join(" ");
 }
 
+/** Resolves silent-reply behavior text for group prompt instructions. */
 export function resolveGroupSilentReplyBehavior(params: {
   sessionEntry?: SessionEntry;
   defaultActivation: "always" | "mention";
@@ -316,8 +322,9 @@ export function resolveGroupSilentReplyBehavior(params: {
   };
 }
 
+/** Builds the channel-specific group intro injected into the system prompt. */
 export function buildGroupIntro(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionCtx: TemplateContext;
   sessionEntry?: SessionEntry;
   defaultActivation: "always" | "mention";
