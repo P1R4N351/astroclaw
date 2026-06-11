@@ -1,4 +1,5 @@
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+// Google Meet plugin module implements drive behavior.
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 import { googleApiError } from "./google-api-errors.js";
 
 const GOOGLE_DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
