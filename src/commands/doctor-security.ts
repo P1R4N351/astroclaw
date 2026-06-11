@@ -1,21 +1,31 @@
+/** Security warnings for gateway exposure, exec policy drift, channel DMs, and plaintext secrets. */
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { note } from "../../packages/terminal-core/src/note.js";
 import { resolveDmAllowAuditState } from "../channels/message-access/dm-allow-state.js";
 import { listReadOnlyChannelPluginsForConfig } from "../channels/plugins/read-only.js";
 import type { ChannelId } from "../channels/plugins/types.public.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { AstroclawConfig, GatewayBindMode } from "../config/config.js";
+import type { OpenClawConfig, GatewayBindMode } from "../config/config.js";
 import type { AgentConfig } from "../config/types.agents.js";
-import { hasConfiguredSecretInput } from "../config/types.secrets.js";
+import { hasConfiguredSecretInput, resolveSecretInputRef } from "../config/types.secrets.js";
 import { resolveGatewayAuthTokenSourceConflict } from "../gateway/auth-token-source-conflict.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
 import { isLoopbackHost, resolveGatewayBindHost } from "../gateway/net.js";
 import { resolveExecPolicyScopeSnapshot } from "../infra/exec-approvals-effective.js";
-import { loadExecApprovals, type ExecAsk, type ExecSecurity } from "../infra/exec-approvals.js";
+import {
+  loadExecApprovals,
+  resolveExecApprovalsDisplayPath,
+  type ExecAsk,
+  type ExecMode,
+  type ExecSecurity,
+} from "../infra/exec-approvals.js";
+import { isLikelySensitiveModelProviderHeaderName } from "../secrets/model-provider-header-policy.js";
+import { hasConfiguredPlaintextSecretValue } from "../secrets/secret-value.js";
+import { discoverConfigSecretTargets } from "../secrets/target-registry.js";
 import { collectExecFilesystemPolicyDriftHits } from "../security/exec-filesystem-policy.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
-import { note } from "../terminal/note.js";
 import { resolveDefaultChannelAccountContext } from "./channel-account-context.js";
 
-function collectImplicitHeartbeatDirectPolicyWarnings(cfg: AstroclawConfig): string[] {
+function collectImplicitHeartbeatDirectPolicyWarnings(cfg: OpenClawConfig): string[] {
   const warnings: string[] = [];
 
   const maybeWarn = (params: {
@@ -78,23 +88,25 @@ function execAskRank(value: ExecAsk): number {
   throw new Error("Unsupported exec ask value");
 }
 
-function collectExecPolicyConflictWarnings(cfg: AstroclawConfig): string[] {
+function collectExecPolicyConflictWarnings(cfg: OpenClawConfig): string[] {
   const warnings: string[] = [];
   const approvals = loadExecApprovals();
-  const defaultRequestedSecuritySource = "Astroclaw default (full)";
-  const defaultRequestedAskSource = "Astroclaw default (off)";
+  const defaultRequestedSecuritySource = "OpenClaw default (full)";
+  const defaultRequestedAskSource = "OpenClaw default (off)";
 
   const maybeWarn = (params: {
     scopeLabel: string;
-    scopeExecConfig: { security?: ExecSecurity; ask?: ExecAsk } | undefined;
-    globalExecConfig?: { security?: ExecSecurity; ask?: ExecAsk } | undefined;
+    scopeExecConfig: { mode?: ExecMode; security?: ExecSecurity; ask?: ExecAsk } | undefined;
+    globalExecConfig?: { mode?: ExecMode; security?: ExecSecurity; ask?: ExecAsk } | undefined;
     agentId?: string;
   }) => {
     const scopeExecConfig = params.scopeExecConfig;
     const globalExecConfig = params.globalExecConfig;
     if (
+      !scopeExecConfig?.mode &&
       !scopeExecConfig?.security &&
       !scopeExecConfig?.ask &&
+      !globalExecConfig?.mode &&
       !globalExecConfig?.security &&
       !globalExecConfig?.ask
     ) {
@@ -140,7 +152,7 @@ function collectExecPolicyConflictWarnings(cfg: AstroclawConfig): string[] {
         `  Host: ${hostParts.join(", ")}`,
         `  Effective host exec stays security="${snapshot.security.effective}" ask="${snapshot.ask.effective}" because the stricter side wins.`,
         "  Headless runs like isolated cron cannot answer approval prompts; align both files or enable Web UI, terminal UI, or chat exec approvals.",
-        `  Inspect with: ${formatCliCommand("astroclaw approvals get --gateway")}`,
+        `  Inspect with: ${formatCliCommand("openclaw approvals get --gateway")}`,
       ].join("\n"),
     );
   };
@@ -163,12 +175,12 @@ function collectExecPolicyConflictWarnings(cfg: AstroclawConfig): string[] {
   return warnings;
 }
 
-function collectDurableExecApprovalWarnings(cfg: AstroclawConfig): string[] {
+function collectDurableExecApprovalWarnings(cfg: OpenClawConfig): string[] {
   void cfg;
   return [];
 }
 
-function collectExecFilesystemPolicyWarnings(cfg: AstroclawConfig): string[] {
+function collectExecFilesystemPolicyWarnings(cfg: OpenClawConfig): string[] {
   return collectExecFilesystemPolicyDriftHits(cfg).map((hit) =>
     [
       `- ${hit.scopeLabel}: filesystem write tools are disabled, but exec is still available.`,
@@ -180,29 +192,73 @@ function collectExecFilesystemPolicyWarnings(cfg: AstroclawConfig): string[] {
   );
 }
 
-export async function noteSecurityWarnings(cfg: AstroclawConfig) {
+function collectPlaintextConfigSecretWarnings(cfg: OpenClawConfig): string[] {
+  const plaintextPaths: string[] = [];
+  const defaults = cfg.secrets?.defaults;
+
+  for (const target of discoverConfigSecretTargets(cfg)) {
+    if (!target.entry.includeInAudit) {
+      continue;
+    }
+    if (
+      target.entry.id === "models.providers.*.headers.*" &&
+      !isLikelySensitiveModelProviderHeaderName(target.pathSegments.at(-1) ?? "")
+    ) {
+      continue;
+    }
+    const { ref } = resolveSecretInputRef({
+      value: target.value,
+      refValue: target.refValue,
+      defaults,
+    });
+    if (ref) {
+      continue;
+    }
+    if (!hasConfiguredPlaintextSecretValue(target.value, target.entry.expectedResolvedValue)) {
+      continue;
+    }
+    plaintextPaths.push(target.path);
+  }
+
+  if (plaintextPaths.length === 0) {
+    return [];
+  }
+
+  const samplePaths = plaintextPaths.slice(0, 5);
+  const extraCount = plaintextPaths.length - samplePaths.length;
+  const pathLine =
+    extraCount > 0 ? `${samplePaths.join(", ")} (+${extraCount} more)` : samplePaths.join(", ");
+
+  return [
+    "- WARNING: openclaw.json contains plaintext secret-bearing config fields.",
+    `  Paths: ${pathLine}`,
+    "  Agents or workspace tools that can read config files may see these API keys/tokens.",
+    `  Migrate them to SecretRefs with ${formatCliCommand("openclaw secrets configure")} or ${formatCliCommand("openclaw secrets apply")}, then verify with ${formatCliCommand("openclaw secrets audit --check")}.`,
+  ];
+}
+
+/** Collects doctor security warnings without emitting terminal notes. */
+export async function collectSecurityWarnings(
+  cfg: OpenClawConfig,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<string[]> {
   const warnings: string[] = [];
-  const auditHint = `- Run: ${formatCliCommand("astroclaw security audit --deep")}`;
 
   if (cfg.approvals?.exec?.enabled === false) {
     warnings.push(
       "- Note: approvals.exec.enabled=false disables approval forwarding only.",
-      "  Host exec gating still comes from ~/.astroclaw/exec-approvals.json.",
-      `  Check local policy with: ${formatCliCommand("astroclaw approvals get --gateway")}`,
+      `  Host exec gating still comes from ${resolveExecApprovalsDisplayPath()}.`,
+      `  Check local policy with: ${formatCliCommand("openclaw approvals get --gateway")}`,
     );
   }
 
   warnings.push(...collectImplicitHeartbeatDirectPolicyWarnings(cfg));
   warnings.push(...collectExecPolicyConflictWarnings(cfg));
   warnings.push(...collectExecFilesystemPolicyWarnings(cfg));
+  warnings.push(...collectPlaintextConfigSecretWarnings(cfg));
   warnings.push(...collectDurableExecApprovalWarnings(cfg));
 
-  // ===========================================
-  // GATEWAY NETWORK EXPOSURE CHECK
-  // ===========================================
-  // Check for dangerous gateway binding configurations
-  // that expose the gateway to network without proper auth
-
+  // Network exposure needs auth proof before doctor can treat non-loopback bind as intentional.
   const tailscaleMode = cfg.gateway?.tailscale?.mode ?? "off";
   const gatewayBind = (cfg.gateway?.bind ?? "loopback") as string;
   const customBindHost = cfg.gateway?.customBindHost?.trim();
@@ -217,7 +273,7 @@ export async function noteSecurityWarnings(cfg: AstroclawConfig) {
 
   const resolvedAuth = resolveGatewayAuth({
     authConfig: cfg.gateway?.auth,
-    env: process.env,
+    env,
     tailscaleMode,
   });
   const authToken = normalizeOptionalString(resolvedAuth.token) ?? "";
@@ -235,7 +291,7 @@ export async function noteSecurityWarnings(cfg: AstroclawConfig) {
   const saferRemoteAccessLines = [
     "  Safer remote access: keep bind loopback and use Tailscale Serve/Funnel or an SSH tunnel.",
     "  Example tunnel: ssh -N -L 18789:127.0.0.1:18789 user@gateway-host",
-    "  Docs: https://docs.astroclaw.ai/gateway/remote",
+    "  Docs: https://docs.openclaw.ai/gateway/remote",
   ];
 
   if (isExposed) {
@@ -243,19 +299,19 @@ export async function noteSecurityWarnings(cfg: AstroclawConfig) {
       const authFixLines =
         resolvedAuth.mode === "password"
           ? [
-              `  Fix: ${formatCliCommand("astroclaw configure")} to set a password`,
-              `  Or switch to token: ${formatCliCommand("astroclaw config set gateway.auth.mode token")}`,
+              `  Fix: ${formatCliCommand("openclaw configure")} to set a password`,
+              `  Or switch to token: ${formatCliCommand("openclaw config set gateway.auth.mode token")}`,
             ]
           : [
-              `  Fix: ${formatCliCommand("astroclaw doctor --fix")} to generate a token`,
+              `  Fix: ${formatCliCommand("openclaw doctor --fix")} to generate a token`,
               `  Or set token directly: ${formatCliCommand(
-                "astroclaw config set gateway.auth.mode token",
+                "openclaw config set gateway.auth.mode token",
               )}`,
             ];
       warnings.push(
         `- CRITICAL: Gateway bound to ${bindDescriptor} without authentication.`,
         `  Anyone on your network (or internet if port-forwarded) can fully control your agent.`,
-        `  Fix: ${formatCliCommand("astroclaw config set gateway.bind loopback")}`,
+        `  Fix: ${formatCliCommand("openclaw config set gateway.bind loopback")}`,
         ...saferRemoteAccessLines,
         ...authFixLines,
       );
@@ -269,7 +325,7 @@ export async function noteSecurityWarnings(cfg: AstroclawConfig) {
     }
   }
 
-  const tokenConflict = resolveGatewayAuthTokenSourceConflict({ cfg, env: process.env });
+  const tokenConflict = resolveGatewayAuthTokenSourceConflict({ cfg, env });
   if (tokenConflict) {
     warnings.push(...tokenConflict.warningLines);
   }
@@ -321,7 +377,7 @@ export async function noteSecurityWarnings(cfg: AstroclawConfig) {
     if (dmScope === "main" && isMultiUserDm) {
       warnings.push(
         `- ${params.label} DMs: multiple senders share the main session; run: ` +
-          formatCliCommand('astroclaw config set session.dmScope "per-channel-peer"') +
+          formatCliCommand('openclaw config set session.dmScope "per-channel-peer"') +
           ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.',
       );
     }
@@ -377,6 +433,13 @@ export async function noteSecurityWarnings(cfg: AstroclawConfig) {
       }
     }
   }
+  return warnings;
+}
+
+/** Emits security warnings plus the deep audit follow-up command. */
+export async function noteSecurityWarnings(cfg: OpenClawConfig) {
+  const warnings = await collectSecurityWarnings(cfg);
+  const auditHint = `- Run: ${formatCliCommand("openclaw security audit --deep")}`;
 
   const lines = warnings.length > 0 ? warnings : ["- No channel security warnings detected."];
   lines.push(auditHint);
