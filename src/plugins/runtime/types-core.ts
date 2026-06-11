@@ -1,3 +1,4 @@
+// Core runtime types define system, config, and task helper contracts for plugins.
 import type { HeartbeatRunResult } from "../../infra/heartbeat-wake.js";
 import type { LogLevel } from "../../logging/levels.js";
 import type { MediaUnderstandingRuntime } from "../../media-understanding/runtime-types.js";
@@ -39,7 +40,7 @@ type RuntimeConfigAfterWrite = import("../../config/config.js").ConfigWriteAfter
 type RuntimeConfigReplaceResult = import("../../config/mutate.js").ConfigReplaceResult;
 type RuntimeConfigMutationBase = import("../../config/mutate.js").ConfigMutationBase;
 type RuntimeConfigMutationContext = {
-  snapshot: import("../../config/types.astroclaw.js").ConfigFileSnapshot;
+  snapshot: import("../../config/types.openclaw.js").ConfigFileSnapshot;
   previousHash: string | null;
 };
 type RuntimeMutateConfigFileParams<T = void> = {
@@ -48,12 +49,12 @@ type RuntimeMutateConfigFileParams<T = void> = {
   afterWrite: RuntimeConfigAfterWrite;
   writeOptions?: RuntimeWriteConfigOptions;
   mutate: (
-    draft: import("../../config/types.astroclaw.js").AstroclawConfig,
+    draft: import("../../config/types.openclaw.js").OpenClawConfig,
     context: RuntimeConfigMutationContext,
   ) => Promise<T | void> | T | void;
 };
 type RuntimeReplaceConfigFileParams = {
-  nextConfig: import("../../config/types.astroclaw.js").AstroclawConfig;
+  nextConfig: import("../../config/types.openclaw.js").OpenClawConfig;
   baseHash?: string;
   afterWrite: RuntimeConfigAfterWrite;
   writeOptions?: RuntimeWriteConfigOptions;
@@ -135,16 +136,16 @@ export type LlmCompleteResult = {
   };
 };
 
-type RuntimeRunEmbeddedPiAgent = (
-  params: import("../../agents/pi-embedded-runner/run/params.js").RunEmbeddedPiAgentParams,
-) => Promise<import("../../agents/pi-embedded-runner/types.js").EmbeddedPiRunResult>;
+type RuntimeRunEmbeddedAgent = (
+  params: import("../../agents/embedded-agent-runner/run/params.js").RunEmbeddedAgentParams,
+) => Promise<import("../../agents/embedded-agent-runner/types.js").EmbeddedAgentRunResult>;
 
 /** Core runtime helpers exposed to trusted native plugins. */
 export type PluginRuntimeCore = {
   version: string;
   config: {
     /** Current process runtime config snapshot. Prefer config passed into the active call path. */
-    current: () => DeepReadonly<import("../../config/types.astroclaw.js").AstroclawConfig>;
+    current: () => DeepReadonly<import("../../config/types.openclaw.js").OpenClawConfig>;
     /**
      * Persist a focused config mutation. Callers must choose the post-write
      * behavior explicitly so the gateway can hot-reload, restart, or defer.
@@ -165,7 +166,7 @@ export type PluginRuntimeCore = {
      * plugins and repo code are blocked from using this by the
      * deprecated-internal-config-api architecture guard.
      */
-    loadConfig: () => import("../../config/types.astroclaw.js").AstroclawConfig;
+    loadConfig: () => import("../../config/types.openclaw.js").OpenClawConfig;
     /**
      * @deprecated Use mutateConfigFile() or replaceConfigFile() with an
      * explicit afterWrite intent so restart behavior stays under host control.
@@ -173,7 +174,7 @@ export type PluginRuntimeCore = {
      * deprecated-internal-config-api architecture guard.
      */
     writeConfigFile: (
-      cfg: import("../../config/types.astroclaw.js").AstroclawConfig,
+      cfg: import("../../config/types.openclaw.js").OpenClawConfig,
       options?: RuntimeWriteConfigOptions & { afterWrite?: RuntimeConfigAfterWrite },
     ) => Promise<void>;
   };
@@ -186,7 +187,7 @@ export type PluginRuntimeCore = {
     resolveAgentWorkspaceDir: typeof import("../../agents/agent-scope.js").resolveAgentWorkspaceDir;
     resolveAgentIdentity: typeof import("../../agents/identity.js").resolveAgentIdentity;
     resolveThinkingDefault: (params: {
-      cfg: import("../../config/types.astroclaw.js").AstroclawConfig;
+      cfg: import("../../config/types.openclaw.js").OpenClawConfig;
       provider: string;
       model: string;
       catalog?: import("../../agents/model-catalog.types.js").ModelCatalogEntry[];
@@ -197,12 +198,22 @@ export type PluginRuntimeCore = {
     resolveThinkingPolicy: (
       params: PluginRuntimeThinkingPolicyRequest,
     ) => PluginRuntimeThinkingPolicy;
-    runEmbeddedAgent: RuntimeRunEmbeddedPiAgent;
-    runEmbeddedPiAgent: RuntimeRunEmbeddedPiAgent;
+    runEmbeddedAgent: RuntimeRunEmbeddedAgent;
+    /** @deprecated Use runEmbeddedAgent. */
+    runEmbeddedPiAgent: RuntimeRunEmbeddedAgent;
     resolveAgentTimeoutMs: typeof import("../../agents/timeout.js").resolveAgentTimeoutMs;
     ensureAgentWorkspace: typeof import("../../agents/workspace.js").ensureAgentWorkspace;
     session: {
       resolveStorePath: typeof import("../../config/sessions/paths.js").resolveStorePath;
+      getSessionEntry: typeof import("../../config/sessions/store.js").getSessionEntry;
+      listSessionEntries: typeof import("../../config/sessions/store.js").listSessionEntries;
+      patchSessionEntry: typeof import("../../config/sessions/store.js").patchSessionEntry;
+      upsertSessionEntry: typeof import("../../config/sessions/store.js").upsertSessionEntry;
+      /**
+       * @deprecated Use getSessionEntry/listSessionEntries for reads and
+       * patchSessionEntry/upsertSessionEntry for writes. This keeps the legacy
+       * mutable whole-store compatibility shape.
+       */
       loadSessionStore: typeof import("../../config/sessions/store-load.js").loadSessionStore;
       saveSessionStore: import("../../config/sessions/runtime-types.js").SaveSessionStore;
       updateSessionStore: typeof import("../../config/sessions/store.js").updateSessionStore;
@@ -230,11 +241,11 @@ export type PluginRuntimeCore = {
   };
   media: {
     loadWebMedia: typeof import("../../media/web-media.js").loadWebMedia;
-    detectMime: typeof import("../../media/mime.js").detectMime;
-    mediaKindFromMime: typeof import("../../media/constants.js").mediaKindFromMime;
+    detectMime: typeof import("@openclaw/media-core/mime").detectMime;
+    mediaKindFromMime: typeof import("@openclaw/media-core/constants").mediaKindFromMime;
     isVoiceCompatibleAudio: typeof import("../../media/audio.js").isVoiceCompatibleAudio;
-    getImageMetadata: typeof import("../../media/image-ops.js").getImageMetadata;
-    resizeToJpeg: typeof import("../../media/image-ops.js").resizeToJpeg;
+    getImageMetadata: typeof import("../../media/media-services.js").getImageMetadata;
+    resizeToJpeg: typeof import("../../media/media-services.js").resizeToJpeg;
   };
   tts: {
     textToSpeech: TextToSpeech;
@@ -301,6 +312,19 @@ export type PluginRuntimeCore = {
     openKeyedStore: <T>(
       options: import("../../plugin-state/plugin-state-store.types.js").OpenKeyedStoreOptions,
     ) => import("../../plugin-state/plugin-state-store.types.js").PluginStateKeyedStore<T>;
+    openSyncKeyedStore: <T>(
+      options: import("../../plugin-state/plugin-state-store.types.js").OpenKeyedStoreOptions,
+    ) => import("../../plugin-state/plugin-state-store.types.js").PluginStateSyncKeyedStore<T>;
+    openChannelIngressQueue: <TPayload, TMetadata = unknown, TCompletedMetadata = unknown>(
+      options?: Omit<
+        import("../../channels/message/ingress-queue.js").CreateChannelIngressQueueOptions,
+        "channelId"
+      >,
+    ) => import("../../channels/message/ingress-queue.js").ChannelIngressQueue<
+      TPayload,
+      TMetadata,
+      TCompletedMetadata
+    >;
   };
   tasks: {
     runs: PluginRuntimeTaskRuns;
@@ -317,20 +341,20 @@ export type PluginRuntimeCore = {
   modelAuth: {
     /** Resolve auth for a model. Only provider/model, optional cfg, and workspaceDir are used. */
     getApiKeyForModel: (params: {
-      model: import("@earendil-works/pi-ai").Model<import("@earendil-works/pi-ai").Api>;
-      cfg?: import("../../config/types.astroclaw.js").AstroclawConfig;
+      model: import("openclaw/plugin-sdk/llm").Model<import("openclaw/plugin-sdk/llm").Api>;
+      cfg?: import("../../config/types.openclaw.js").OpenClawConfig;
       workspaceDir?: string;
     }) => Promise<import("../../agents/model-auth-runtime-shared.js").ResolvedProviderAuth>;
     /** Resolve request-ready auth for a model, including provider runtime exchanges. */
     getRuntimeAuthForModel: (params: {
-      model: import("@earendil-works/pi-ai").Model<import("@earendil-works/pi-ai").Api>;
-      cfg?: import("../../config/types.astroclaw.js").AstroclawConfig;
+      model: import("openclaw/plugin-sdk/llm").Model<import("openclaw/plugin-sdk/llm").Api>;
+      cfg?: import("../../config/types.openclaw.js").OpenClawConfig;
       workspaceDir?: string;
     }) => Promise<import("./model-auth-types.js").ResolvedProviderRuntimeAuth>;
     /** Resolve auth for a provider by name. Only provider, optional cfg, and workspaceDir are used. */
     resolveApiKeyForProvider: (params: {
       provider: string;
-      cfg?: import("../../config/types.astroclaw.js").AstroclawConfig;
+      cfg?: import("../../config/types.openclaw.js").OpenClawConfig;
       workspaceDir?: string;
     }) => Promise<import("../../agents/model-auth-runtime-shared.js").ResolvedProviderAuth>;
   };
