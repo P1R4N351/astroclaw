@@ -1,4 +1,5 @@
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Matrix API module exposes the plugin public contract.
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveMatrixTargetIdentity } from "./matrix/target-ids.js";
 
 export const defaultTopLevelPlacement = "child" as const;
