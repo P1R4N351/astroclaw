@@ -1,12 +1,14 @@
+// Provides fixtures for plugin auto-enable config tests.
 import path from "node:path";
 import { clearCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
-import { type PluginManifestRegistry } from "../plugins/manifest-registry.js";
-import { type PluginOrigin } from "../plugins/plugin-origin.types.js";
+import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
+import type { PluginOrigin } from "../plugins/plugin-origin.types.js";
 import { clearPluginSetupRegistryCache } from "../plugins/setup-registry.js";
 import { cleanupTrackedTempDirs, makeTrackedTempDir } from "../plugins/test-helpers/fs-fixtures.js";
 
 const tempDirs: string[] = [];
 
+/** Clears auto-enable plugin caches and temp dirs between tests. */
 export function resetPluginAutoEnableTestState(): void {
   clearCurrentPluginMetadataSnapshot();
   clearPluginSetupRegistryCache();
@@ -14,15 +16,15 @@ export function resetPluginAutoEnableTestState(): void {
 }
 
 export function makeTempDir(): string {
-  return makeTrackedTempDir("astroclaw-plugin-auto-enable", tempDirs);
+  return makeTrackedTempDir("openclaw-plugin-auto-enable", tempDirs);
 }
 
 export function makeIsolatedEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   const rootDir = makeTempDir();
   return {
-    ASTROCLAW_STATE_DIR: path.join(rootDir, "state"),
-    ASTROCLAW_BUNDLED_PLUGINS_DIR: path.join(process.cwd(), "extensions"),
-    ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1",
+    OPENCLAW_STATE_DIR: path.join(rootDir, "state"),
+    OPENCLAW_BUNDLED_PLUGINS_DIR: path.join(process.cwd(), "extensions"),
+    OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1",
     VITEST: "true",
     ...overrides,
   };
@@ -63,7 +65,7 @@ export function makeRegistry(
       origin: plugin.origin ?? "config",
       rootDir: `/fake/${plugin.id}`,
       source: `/fake/${plugin.id}/index.js`,
-      manifestPath: `/fake/${plugin.id}/astroclaw.plugin.json`,
+      manifestPath: `/fake/${plugin.id}/openclaw.plugin.json`,
     })),
     diagnostics: [],
   };
