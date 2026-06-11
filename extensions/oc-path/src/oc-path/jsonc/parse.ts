@@ -1,9 +1,5 @@
-import {
-  ParseErrorCode,
-  type ParseError,
-  parseTree,
-  printParseErrorCode,
-} from "jsonc-parser/lib/esm/main.js";
+// OC Path module implements parse behavior.
+import { type ParseError, parseTree, printParseErrorCode } from "jsonc-parser/lib/esm/main.js";
 import type { Diagnostic } from "../ast.js";
 import type { JsoncAst, JsoncEntry, JsoncValue } from "./ast.js";
 
@@ -17,13 +13,15 @@ export const MAX_PARSE_DEPTH = 256;
  * source level so allocation is bounded by file size, not token count.
  *
  * 16 MiB is well past every workspace-jsonc shape we care about
- * (gateway.jsonc / astroclaw.json / .astroclaw/* are all <100 KiB in
+ * (gateway.jsonc / openclaw.json / .openclaw/* are all <100 KiB in
  * practice; the largest LKG-tracked configs we've seen sit at single-
  * digit MB). Operators with legitimate larger inputs can lift the cap
  * by patching this constant — no SDK affordance because it isn't a
  * supported configuration.
  */
 export const MAX_JSONC_INPUT_BYTES = 16 * 1024 * 1024;
+const JSONC_PARSE_INVALID_SYMBOL = 1;
+const JSONC_PARSE_END_OF_FILE_EXPECTED = 9;
 
 export interface JsoncParseResult {
   readonly ast: JsoncAst;
@@ -104,9 +102,10 @@ function toDiagnostic(
   tree: JsoncParserNode | undefined,
 ): Diagnostic {
   const treeEnd = tree ? tree.offset + tree.length : 0;
+  const errorCode: number = error.error;
   const isTrailingInput =
-    error.error === ParseErrorCode.EndOfFileExpected ||
-    (tree !== undefined && error.error === ParseErrorCode.InvalidSymbol && error.offset >= treeEnd);
+    errorCode === JSONC_PARSE_END_OF_FILE_EXPECTED ||
+    (tree !== undefined && errorCode === JSONC_PARSE_INVALID_SYMBOL && error.offset >= treeEnd);
   return {
     line: lineMap.lineForOffset(error.offset),
     message: printParseErrorCode(error.error),
