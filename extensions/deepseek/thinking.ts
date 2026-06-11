@@ -1,4 +1,5 @@
-import type { ProviderThinkingProfile } from "astroclaw/plugin-sdk/plugin-entry";
+// Deepseek plugin module implements thinking behavior.
+import type { ProviderThinkingProfile } from "openclaw/plugin-sdk/plugin-entry";
 import { isDeepSeekV4ModelId } from "./models.js";
 
 const V4_THINKING_LEVEL_IDS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
