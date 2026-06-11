@@ -10,7 +10,8 @@ import {
   defineChannelMessageAdapter,
   type ChannelMessageSendResult,
   type MessageReceiptPartKind,
-} from "astroclaw/plugin-sdk/channel-message";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveTwitchAccountContext } from "./config.js";
 import { sendMessageTwitchInternal } from "./send.js";
 import type {
@@ -56,9 +57,7 @@ export const twitchOutbound: ChannelOutboundAdapter = {
    */
   resolveTarget: ({ to, allowFrom, mode }) => {
     const trimmed = to?.trim() ?? "";
-    const allowListRaw = (allowFrom ?? [])
-      .map((entry: unknown) => String(entry).trim())
-      .filter(Boolean);
+    const allowListRaw = normalizeStringEntries(allowFrom ?? []);
     const hasWildcard = allowListRaw.includes("*");
     const allowList = allowListRaw
       .filter((entry: string) => entry !== "*")
@@ -113,7 +112,7 @@ export const twitchOutbound: ChannelOutboundAdapter = {
    *
    * @example
    * const result = await twitchOutbound.sendText({
-   *   cfg: astroclawConfig,
+   *   cfg: openclawConfig,
    *   to: "#mychannel",
    *   text: "Hello Twitch!",
    *   accountId: "default",
@@ -173,7 +172,7 @@ export const twitchOutbound: ChannelOutboundAdapter = {
    *
    * @example
    * const result = await twitchOutbound.sendMedia({
-   *   cfg: astroclawConfig,
+   *   cfg: openclawConfig,
    *   to: "#mychannel",
    *   text: "Check this out!",
    *   mediaUrl: "https://example.com/image.png",
