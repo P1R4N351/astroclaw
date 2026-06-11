@@ -1,4 +1,5 @@
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
+// Discord plugin module implements send.reactions behavior.
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
 import {
   createOwnMessageReaction,
   deleteOwnMessageReaction,
