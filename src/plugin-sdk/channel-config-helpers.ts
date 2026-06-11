@@ -1,3 +1,6 @@
+// Channel config helpers normalize account and channel config values for plugin setup.
+import { normalizeOptionalLowercaseString } from "../../packages/normalization-core/src/string-coerce.js";
+import { normalizeStringEntries } from "../../packages/normalization-core/src/string-normalization.js";
 import {
   deleteAccountFromConfigSection as deleteAccountFromConfigSectionInSection,
   setAccountEnabledInConfigSection as setAccountEnabledInConfigSectionInSection,
@@ -13,10 +16,8 @@ import {
 } from "../channels/plugins/config-write-policy-shared.js";
 import { buildAccountScopedDmSecurityPolicy } from "../channels/plugins/helpers.js";
 import type { ChannelConfigAdapter } from "../channels/plugins/types.adapters.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
-import { normalizeOptionalLowercaseString } from "../shared/string-coerce.js";
-import { normalizeStringEntries } from "../shared/string-normalization.js";
 
 export {
   ensureOpenDmPolicyAllowFromWildcard,
@@ -34,8 +35,11 @@ export {
 
 const INTERNAL_MESSAGE_CHANNEL = "webchat";
 
+/** Origin scope used when authorizing channel config writes. */
 export type ConfigWriteScope = ConfigWriteScopeLike;
+/** Target account/channel for a config write authorization check. */
 export type ConfigWriteTarget = ConfigWriteTargetLike;
+/** Decision returned by channel config write policy helpers. */
 export type ConfigWriteAuthorizationResult = ConfigWriteAuthorizationResultLike;
 
 type ChannelCrudConfigAdapter<ResolvedAccount> = Pick<
@@ -61,16 +65,18 @@ type ChannelConfigAdapterWithAccessors<ResolvedAccount> = Pick<
   | "resolveDefaultTo"
 >;
 
+/** Returns whether config writes are enabled for a channel/account target. */
 export function resolveChannelConfigWrites(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channelId?: string | null;
   accountId?: string | null;
 }): boolean {
   return resolveChannelConfigWritesShared(params);
 }
 
+/** Authorizes a channel config mutation against origin and target policy. */
 export function authorizeConfigWrite(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   origin?: ConfigWriteScope;
   target?: ConfigWriteTarget;
   allowBypass?: boolean;
@@ -78,6 +84,7 @@ export function authorizeConfigWrite(params: {
   return authorizeConfigWriteShared(params);
 }
 
+/** Returns true when trusted internal message scopes can bypass config write policy. */
 export function canBypassConfigWritePolicy(params: {
   channel?: string | null;
   gatewayClientScopes?: string[] | null;
@@ -89,6 +96,7 @@ export function canBypassConfigWritePolicy(params: {
   });
 }
 
+/** Formats the denial message shown when config write authorization fails. */
 export function formatConfigWriteDeniedMessage(params: {
   result: Exclude<ConfigWriteAuthorizationResult, { allowed: true }>;
   fallbackChannelId?: string | null;
@@ -96,7 +104,7 @@ export function formatConfigWriteDeniedMessage(params: {
   return formatConfigWriteDeniedMessageShared(params);
 }
 
-type ChannelConfigAccessorParams<Config extends AstroclawConfig = AstroclawConfig> = {
+type ChannelConfigAccessorParams<Config extends OpenClawConfig = OpenClawConfig> = {
   cfg: Config;
   accountId?: string | null;
 };
@@ -104,7 +112,7 @@ type ChannelConfigAccessorParams<Config extends AstroclawConfig = AstroclawConfi
 type MultiAccountChannelConfigAdapterParams<
   ResolvedAccount,
   AccessorAccount = ResolvedAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 > = {
   sectionKey: string;
   listAccountIds: (cfg: Config) => string[];
@@ -120,7 +128,7 @@ type MultiAccountChannelConfigAdapterParams<
 
 type NamedAccountChannelConfigBaseParams<
   ResolvedAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 > = {
   sectionKey: string;
   listAccountIds: (cfg: Config) => string[];
@@ -154,7 +162,7 @@ export function resolveOptionalConfigString(
 }
 
 /** Adapt `{ cfg, accountId }` accessors to callback sites that pass positional args. */
-export function adaptScopedAccountAccessor<Result, Config extends AstroclawConfig = AstroclawConfig>(
+export function adaptScopedAccountAccessor<Result, Config extends OpenClawConfig = OpenClawConfig>(
   accessor: (params: { cfg: Config; accountId?: string | null }) => Result,
 ): (cfg: Config, accountId?: string | null) => Result {
   return (cfg, accountId) => accessor({ cfg, accountId });
@@ -164,18 +172,22 @@ export function adaptScopedAccountAccessor<Result, Config extends AstroclawConfi
 export function createScopedAccountConfigAccessors<
   ResolvedAccount,
   // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Config preserves caller-specific config subtype for account resolvers.
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(params: {
+  /** Resolves the account used by read-only config accessors from `{ cfg, accountId }`. */
   resolveAccount: (params: { cfg: Config; accountId?: string | null }) => ResolvedAccount;
+  /** Reads raw allowlist entries from the resolved account. */
   resolveAllowFrom: (account: ResolvedAccount) => Array<string | number> | null | undefined;
+  /** Formats allowlist entries for display or config inspection. */
   formatAllowFrom: (allowFrom: Array<string | number>) => string[];
+  /** Optional default destination selector; omitted when the channel has no default target. */
   resolveDefaultTo?: (account: ResolvedAccount) => string | number | null | undefined;
 }): Pick<
   ChannelConfigAdapter<ResolvedAccount>,
   "resolveAllowFrom" | "formatAllowFrom" | "resolveDefaultTo"
 > {
   const base = {
-    resolveAllowFrom({ cfg, accountId }: { cfg: AstroclawConfig; accountId?: string | null }) {
+    resolveAllowFrom({ cfg, accountId }: { cfg: OpenClawConfig; accountId?: string | null }) {
       return mapAllowFromEntries(
         params.resolveAllowFrom(params.resolveAccount({ cfg: cfg as Config, accountId })),
       );
@@ -201,18 +213,18 @@ export function createScopedAccountConfigAccessors<
 
 function createNamedAccountConfigBase<
   ResolvedAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(params: {
   listAccountIds: (cfg: Config) => string[];
   resolveAccount: (cfg: Config, accountId?: string | null) => ResolvedAccount;
   inspectAccount?: (cfg: Config, accountId?: string | null) => unknown;
   defaultAccountId: (cfg: Config) => string;
   setAccountEnabled: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     enabled: boolean;
-  }) => AstroclawConfig;
-  deleteAccount: (params: { cfg: AstroclawConfig; accountId: string }) => AstroclawConfig;
+  }) => OpenClawConfig;
+  deleteAccount: (params: { cfg: OpenClawConfig; accountId: string }) => OpenClawConfig;
 }): ChannelCrudConfigAdapter<ResolvedAccount> {
   return {
     listAccountIds(cfg) {
@@ -245,20 +257,22 @@ function createNamedAccountConfigBase<
 
 function resolveAccessorAccountWithFallback<
   AccessorAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(
   resolveAccessorAccount:
     | ((params: ChannelConfigAccessorParams<Config>) => AccessorAccount)
     | undefined,
   fallbackResolveAccessorAccount: (params: ChannelConfigAccessorParams<Config>) => AccessorAccount,
 ): (params: ChannelConfigAccessorParams<Config>) => AccessorAccount {
+  // Read-only accessors can use a lighter account projection than runtime setup;
+  // fall back to the runtime resolver only when the channel has no projection hook.
   return resolveAccessorAccount ?? fallbackResolveAccessorAccount;
 }
 
 function createChannelConfigAdapterWithAccessors<
   ResolvedAccount,
   AccessorAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(params: {
   base: ChannelCrudConfigAdapter<ResolvedAccount>;
   resolveAccessorAccount?: (params: ChannelConfigAccessorParams<Config>) => AccessorAccount;
@@ -284,7 +298,7 @@ function createChannelConfigAdapterWithAccessors<
 function createChannelConfigAdapterFromBase<
   ResolvedAccount,
   AccessorAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(params: {
   base: ChannelCrudConfigAdapter<ResolvedAccount>;
   resolveAccessorAccount?: (params: ChannelConfigAccessorParams<Config>) => AccessorAccount;
@@ -306,7 +320,7 @@ function createChannelConfigAdapterFromBase<
 /** Build the common CRUD/config helpers for channels that store multiple named accounts. */
 export function createScopedChannelConfigBase<
   ResolvedAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(
   params: NamedAccountChannelConfigBaseParams<ResolvedAccount, Config> & {
     allowTopLevel?: boolean;
@@ -341,7 +355,7 @@ export function createScopedChannelConfigBase<
 export function createScopedChannelConfigAdapter<
   ResolvedAccount,
   AccessorAccount = ResolvedAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(
   params: MultiAccountChannelConfigAdapterParams<ResolvedAccount, AccessorAccount, Config> & {
     allowTopLevel?: boolean;
@@ -367,7 +381,7 @@ export function createScopedChannelConfigAdapter<
   });
 }
 
-function setTopLevelChannelEnabledInConfigSection<Config extends AstroclawConfig>(params: {
+function setTopLevelChannelEnabledInConfigSection<Config extends OpenClawConfig>(params: {
   cfg: Config;
   sectionKey: string;
   enabled: boolean;
@@ -385,7 +399,7 @@ function setTopLevelChannelEnabledInConfigSection<Config extends AstroclawConfig
   } as Config;
 }
 
-function removeTopLevelChannelConfigSection<Config extends AstroclawConfig>(params: {
+function removeTopLevelChannelConfigSection<Config extends OpenClawConfig>(params: {
   cfg: Config;
   sectionKey: string;
 }): Config {
@@ -400,7 +414,7 @@ function removeTopLevelChannelConfigSection<Config extends AstroclawConfig>(para
   return nextCfg;
 }
 
-function clearTopLevelChannelConfigFields<Config extends AstroclawConfig>(params: {
+function clearTopLevelChannelConfigFields<Config extends OpenClawConfig>(params: {
   cfg: Config;
   sectionKey: string;
   clearBaseFields: string[];
@@ -425,7 +439,7 @@ function clearTopLevelChannelConfigFields<Config extends AstroclawConfig>(params
 /** Build CRUD/config helpers for top-level single-account channels. */
 export function createTopLevelChannelConfigBase<
   ResolvedAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(params: {
   sectionKey: string;
   resolveAccount: (cfg: Config) => ResolvedAccount;
@@ -482,7 +496,7 @@ export function createTopLevelChannelConfigBase<
 export function createTopLevelChannelConfigAdapter<
   ResolvedAccount,
   AccessorAccount = ResolvedAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(params: {
   sectionKey: string;
   resolveAccount: (cfg: Config) => ResolvedAccount;
@@ -519,7 +533,7 @@ export function createTopLevelChannelConfigAdapter<
 /** Build CRUD/config helpers for channels where the default account lives at channel root and named accounts live under `accounts`. */
 export function createHybridChannelConfigBase<
   ResolvedAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(
   params: NamedAccountChannelConfigBaseParams<ResolvedAccount, Config> & {
     preserveSectionOnDefaultDelete?: boolean;
@@ -548,6 +562,8 @@ export function createHybridChannelConfigBase<
     deleteAccount({ cfg, accountId }) {
       if (normalizeAccountId(accountId) === DEFAULT_ACCOUNT_ID) {
         if (params.preserveSectionOnDefaultDelete) {
+          // Some hybrid channels keep non-account config at the root, so deleting
+          // default account credentials must clear only account-owned fields.
           return clearTopLevelChannelConfigFields({
             cfg,
             sectionKey: params.sectionKey,
@@ -575,7 +591,7 @@ export function createHybridChannelConfigBase<
 export function createHybridChannelConfigAdapter<
   ResolvedAccount,
   AccessorAccount = ResolvedAccount,
-  Config extends AstroclawConfig = AstroclawConfig,
+  Config extends OpenClawConfig = OpenClawConfig,
 >(
   params: MultiAccountChannelConfigAdapterParams<ResolvedAccount, AccessorAccount, Config> & {
     preserveSectionOnDefaultDelete?: boolean;
@@ -609,7 +625,7 @@ export function createScopedDmSecurityResolver<
   resolvePolicy: (account: ResolvedAccount) => string | null | undefined;
   resolveAllowFrom: (account: ResolvedAccount) => Array<string | number> | null | undefined;
   resolveAccess?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
     account: ResolvedAccount;
   }) => {
@@ -630,7 +646,7 @@ export function createScopedDmSecurityResolver<
     accountId,
     account,
   }: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
     account: ResolvedAccount;
   }) => {
