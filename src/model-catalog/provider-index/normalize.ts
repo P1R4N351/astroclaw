@@ -1,28 +1,32 @@
+// Provider-index normalization validates generated discovery metadata and rejects unsafe provider entries.
+import { normalizeModelCatalog } from "@openclaw/model-catalog-core/model-catalog-normalize";
+import { normalizeModelCatalogProviderId } from "@openclaw/model-catalog-core/model-catalog-refs";
+import type { ModelCatalogProvider } from "@openclaw/model-catalog-core/model-catalog-types";
+import { asFiniteNumber } from "../../../packages/normalization-core/src/number-coercion.js";
+import { normalizeOptionalString } from "../../../packages/normalization-core/src/string-coerce.js";
+import { normalizeUniqueTrimmedStringList } from "../../../packages/normalization-core/src/string-normalization.js";
 import { parseClawHubPluginSpec } from "../../infra/clawhub-spec.js";
 import { parseRegistryNpmSpec } from "../../infra/npm-registry-spec.js";
 import { isBlockedObjectKey } from "../../infra/prototype-keys.js";
-import { normalizeOptionalString } from "../../shared/string-coerce.js";
-import { normalizeTrimmedStringList } from "../../shared/string-normalization.js";
 import { isRecord } from "../../utils.js";
-import { normalizeModelCatalog } from "../normalize.js";
-import { normalizeModelCatalogProviderId } from "../refs.js";
-import type { ModelCatalogProvider } from "../types.js";
 import type {
-  AstroclawProviderIndex,
-  AstroclawProviderIndexPluginInstall,
-  AstroclawProviderIndexPlugin,
-  AstroclawProviderIndexProviderAuthChoice,
-  AstroclawProviderIndexProvider,
+  OpenClawProviderIndex,
+  OpenClawProviderIndexPluginInstall,
+  OpenClawProviderIndexPlugin,
+  OpenClawProviderIndexProviderAuthChoice,
+  OpenClawProviderIndexProvider,
 } from "./types.js";
 
-const ASTROCLAW_PROVIDER_INDEX_VERSION = 1;
+// Provider-index normalization accepts generated discovery metadata from the
+// bundled index and rejects malformed or prototype-polluting entries.
+const OPENCLAW_PROVIDER_INDEX_VERSION = 1;
 
 function normalizeSafeKey(value: unknown): string {
   const key = normalizeOptionalString(value) ?? "";
   return key && !isBlockedObjectKey(key) ? key : "";
 }
 
-function normalizeInstall(value: unknown): AstroclawProviderIndexPluginInstall | undefined {
+function normalizeInstall(value: unknown): OpenClawProviderIndexPluginInstall | undefined {
   if (!isRecord(value)) {
     return undefined;
   }
@@ -30,6 +34,7 @@ function normalizeInstall(value: unknown): AstroclawProviderIndexPluginInstall |
   const parsedClawHub = clawhubSpec ? parseClawHubPluginSpec(clawhubSpec) : null;
   const npmSpec = normalizeOptionalString(value.npmSpec);
   const parsedNpm = npmSpec ? parseRegistryNpmSpec(npmSpec) : null;
+  // Install metadata is useful only when at least one install spec parses.
   if (!parsedClawHub && !parsedNpm) {
     return undefined;
   }
@@ -50,7 +55,7 @@ function normalizeInstall(value: unknown): AstroclawProviderIndexPluginInstall |
   };
 }
 
-function normalizePlugin(value: unknown): AstroclawProviderIndexPlugin | undefined {
+function normalizePlugin(value: unknown): OpenClawProviderIndexPlugin | undefined {
   if (!isRecord(value)) {
     return undefined;
   }
@@ -70,13 +75,15 @@ function normalizePlugin(value: unknown): AstroclawProviderIndexPlugin | undefin
 }
 
 function normalizeCategories(value: unknown): readonly string[] {
-  return [...new Set(normalizeTrimmedStringList(value))];
+  return normalizeUniqueTrimmedStringList(value);
 }
 
 function normalizePreviewCatalog(params: {
   providerId: string;
   value: unknown;
 }): ModelCatalogProvider | undefined {
+  // Reuse catalog-core normalization so preview models obey the same model
+  // schema as installed plugin manifests.
   const catalog = normalizeModelCatalog(
     { providers: { [params.providerId]: params.value } },
     { ownedProviders: new Set([params.providerId]) },
@@ -93,29 +100,25 @@ function normalizePreviewCatalog(params: {
 
 function normalizeOnboardingScopes(
   value: unknown,
-): AstroclawProviderIndexProviderAuthChoice["onboardingScopes"] | undefined {
-  const scopes = normalizeTrimmedStringList(value).filter(
-    (scope): scope is "text-inference" | "image-generation" =>
-      scope === "text-inference" || scope === "image-generation",
+): OpenClawProviderIndexProviderAuthChoice["onboardingScopes"] | undefined {
+  const scopes = normalizeUniqueTrimmedStringList(value).filter(
+    (scope): scope is "text-inference" | "image-generation" | "music-generation" =>
+      scope === "text-inference" || scope === "image-generation" || scope === "music-generation",
   );
-  return scopes.length > 0 ? [...new Set(scopes)] : undefined;
+  return scopes.length > 0 ? scopes : undefined;
 }
 
 function normalizeAssistantVisibility(
   value: unknown,
-): AstroclawProviderIndexProviderAuthChoice["assistantVisibility"] | undefined {
+): OpenClawProviderIndexProviderAuthChoice["assistantVisibility"] | undefined {
   return value === "visible" || value === "manual-only" ? value : undefined;
-}
-
-function normalizeFiniteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function normalizeAuthChoice(params: {
   providerId: string;
   providerName: string;
   value: unknown;
-}): AstroclawProviderIndexProviderAuthChoice | undefined {
+}): OpenClawProviderIndexProviderAuthChoice | undefined {
   if (!isRecord(params.value)) {
     return undefined;
   }
@@ -133,7 +136,7 @@ function normalizeAuthChoice(params: {
   const cliFlag = normalizeOptionalString(params.value.cliFlag);
   const cliOption = normalizeOptionalString(params.value.cliOption);
   const cliDescription = normalizeOptionalString(params.value.cliDescription);
-  const assistantPriority = normalizeFiniteNumber(params.value.assistantPriority);
+  const assistantPriority = asFiniteNumber(params.value.assistantPriority);
   const assistantVisibility = normalizeAssistantVisibility(params.value.assistantVisibility);
   const onboardingScopes = normalizeOnboardingScopes(params.value.onboardingScopes);
   return {
@@ -158,20 +161,20 @@ function normalizeAuthChoices(params: {
   providerId: string;
   providerName: string;
   value: unknown;
-}): readonly AstroclawProviderIndexProviderAuthChoice[] | undefined {
+}): readonly OpenClawProviderIndexProviderAuthChoice[] | undefined {
   if (!Array.isArray(params.value)) {
     return undefined;
   }
   const choices = params.value
     .map((value) => normalizeAuthChoice({ ...params, value }))
-    .filter((choice): choice is AstroclawProviderIndexProviderAuthChoice => Boolean(choice));
+    .filter((choice): choice is OpenClawProviderIndexProviderAuthChoice => Boolean(choice));
   return choices.length > 0 ? choices : undefined;
 }
 
 function normalizeProvider(
   rawProviderId: string,
   value: unknown,
-): AstroclawProviderIndexProvider | undefined {
+): OpenClawProviderIndexProvider | undefined {
   if (!isRecord(value)) {
     return undefined;
   }
@@ -210,16 +213,18 @@ function normalizeProvider(
   };
 }
 
-export function normalizeAstroclawProviderIndex(value: unknown): AstroclawProviderIndex | undefined {
-  if (!isRecord(value) || value.version !== ASTROCLAW_PROVIDER_INDEX_VERSION) {
+export function normalizeOpenClawProviderIndex(value: unknown): OpenClawProviderIndex | undefined {
+  if (!isRecord(value) || value.version !== OPENCLAW_PROVIDER_INDEX_VERSION) {
     return undefined;
   }
   if (!isRecord(value.providers)) {
     return undefined;
   }
-  const providers: Record<string, AstroclawProviderIndexProvider> = {};
+  const providers: Record<string, OpenClawProviderIndexProvider> = {};
   for (const [rawProviderId, rawProvider] of Object.entries(value.providers)) {
     const providerId = normalizeModelCatalogProviderId(rawProviderId);
+    // Provider ids become object keys, so blocked keys are dropped before
+    // writing into the normalized provider map.
     if (!providerId || isBlockedObjectKey(providerId)) {
       continue;
     }
@@ -229,7 +234,7 @@ export function normalizeAstroclawProviderIndex(value: unknown): AstroclawProvid
     }
   }
   return {
-    version: ASTROCLAW_PROVIDER_INDEX_VERSION,
+    version: OPENCLAW_PROVIDER_INDEX_VERSION,
     providers: Object.fromEntries(
       Object.entries(providers).toSorted(([left], [right]) => left.localeCompare(right)),
     ),
