@@ -1,3 +1,4 @@
+// Slack plugin module implements interactions behavior.
 import { truncateSlackText } from "../../truncate.js";
 import type { SlackMonitorContext } from "../context.js";
 import { registerSlackBlockActionHandler, summarizeAction } from "./interactions.block-actions.js";
@@ -193,7 +194,7 @@ export function registerSlackInteractionEvents(params: {
   }
   const modalMatcher = /.*/;
 
-  // Handle Astroclaw-routed modals; metadata/auth checks below drop unrelated payloads.
+  // Handle OpenClaw-routed modals; metadata/auth checks below drop unrelated payloads.
   registerModalLifecycleHandler({
     register: (matcher, handler) => ctx.app.view(matcher, handler),
     matcher: modalMatcher,
