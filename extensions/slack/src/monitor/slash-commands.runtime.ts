@@ -1,20 +1,21 @@
+// Slack plugin module implements slash commands behavior.
 import {
   buildCommandTextFromArgs as buildCommandTextFromArgsImpl,
   findCommandByNativeName as findCommandByNativeNameImpl,
   listNativeCommandSpecsForConfig as listNativeCommandSpecsForConfigImpl,
   parseCommandArgs as parseCommandArgsImpl,
   resolveCommandArgMenu as resolveCommandArgMenuImpl,
-} from "astroclaw/plugin-sdk/command-auth-native";
+} from "openclaw/plugin-sdk/command-auth-native";
 
 type BuildCommandTextFromArgs =
-  typeof import("astroclaw/plugin-sdk/command-auth-native").buildCommandTextFromArgs;
+  typeof import("openclaw/plugin-sdk/command-auth-native").buildCommandTextFromArgs;
 type FindCommandByNativeName =
-  typeof import("astroclaw/plugin-sdk/command-auth-native").findCommandByNativeName;
+  typeof import("openclaw/plugin-sdk/command-auth-native").findCommandByNativeName;
 type ListNativeCommandSpecsForConfig =
-  typeof import("astroclaw/plugin-sdk/command-auth-native").listNativeCommandSpecsForConfig;
-type ParseCommandArgs = typeof import("astroclaw/plugin-sdk/command-auth-native").parseCommandArgs;
+  typeof import("openclaw/plugin-sdk/command-auth-native").listNativeCommandSpecsForConfig;
+type ParseCommandArgs = typeof import("openclaw/plugin-sdk/command-auth-native").parseCommandArgs;
 type ResolveCommandArgMenu =
-  typeof import("astroclaw/plugin-sdk/command-auth-native").resolveCommandArgMenu;
+  typeof import("openclaw/plugin-sdk/command-auth-native").resolveCommandArgMenu;
 
 export function buildCommandTextFromArgs(
   ...args: Parameters<BuildCommandTextFromArgs>
