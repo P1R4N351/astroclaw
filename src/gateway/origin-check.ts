@@ -1,9 +1,10 @@
+// Browser Origin validator for gateway HTTP and websocket requests.
 import net from "node:net";
-import { isPrivateOrLoopbackIpAddress } from "../shared/net/ip.js";
+import { isPrivateOrLoopbackIpAddress } from "@openclaw/net-policy/ip";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
 import { isLoopbackHost, normalizeHostHeader, resolveHostName } from "./net.js";
 
 type OriginCheckResult =
@@ -32,6 +33,7 @@ function parseOrigin(
   }
 }
 
+/** Validate a browser Origin against explicit allowlist, same-host, and local dev rules. */
 export function checkBrowserOrigin(params: {
   requestHost?: string;
   origin?: string;
@@ -61,7 +63,11 @@ export function checkBrowserOrigin(params: {
   ) {
     return { ok: true, matchedBy: "host-header-fallback" };
   }
-  if (requestHost && parsedOrigin.host === requestHost && isTrustedSameOriginHost(requestHost)) {
+  if (
+    requestHost &&
+    parsedOrigin.host === requestHost &&
+    isTrustedSameOriginHost(requestHost, params.isLocalClient)
+  ) {
     return { ok: true, matchedBy: "private-same-origin" };
   }
 
@@ -73,13 +79,13 @@ export function checkBrowserOrigin(params: {
   return { ok: false, reason: "origin not allowed" };
 }
 
-function isTrustedSameOriginHost(hostHeader: string): boolean {
+function isTrustedSameOriginHost(hostHeader: string, isLocalClient?: boolean): boolean {
   const hostname = resolveHostName(hostHeader);
   if (!hostname) {
     return false;
   }
   if (isLoopbackHost(hostname)) {
-    return true;
+    return isLocalClient !== false;
   }
   if (net.isIP(hostname) !== 0) {
     return isPrivateOrLoopbackIpAddress(hostname);
