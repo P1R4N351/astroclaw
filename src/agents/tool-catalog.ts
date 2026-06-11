@@ -1,3 +1,8 @@
+/**
+ * Core tool catalog and profile defaults.
+ * Drives built-in profile allowlists, group expansion, and UI section metadata
+ * for OpenClaw-owned tools.
+ */
 import {
   CRON_TOOL_DISPLAY_SUMMARY,
   EXEC_TOOL_DISPLAY_SUMMARY,
@@ -10,8 +15,10 @@ import {
   UPDATE_PLAN_TOOL_DISPLAY_SUMMARY,
 } from "./tool-description-presets.js";
 
+/** Built-in tool profile ids exposed in config and UI. */
 export type ToolProfileId = "minimal" | "coding" | "messaging" | "full";
 
+/** Allow/deny policy generated from a built-in tool profile. */
 type ToolProfilePolicy = {
   allow?: string[];
   deny?: string[];
@@ -33,7 +40,7 @@ type CoreToolDefinition = {
   description: string;
   sectionId: string;
   profiles: ToolProfileId[];
-  includeInAstroclawGroup?: boolean;
+  includeInOpenClawGroup?: boolean;
 };
 
 const CORE_TOOL_SECTION_ORDER: Array<{ id: string; label: string }> = [
@@ -99,7 +106,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Run sandboxed remote analysis",
     sectionId: "runtime",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "web_search",
@@ -107,7 +114,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Search the web",
     sectionId: "web",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "web_fetch",
@@ -115,7 +122,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Fetch web content",
     sectionId: "web",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "x_search",
@@ -123,7 +130,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Search X posts",
     sectionId: "web",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "memory_search",
@@ -131,7 +138,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Semantic search",
     sectionId: "memory",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "memory_get",
@@ -139,7 +146,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Read memory files",
     sectionId: "memory",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "sessions_list",
@@ -147,7 +154,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: SESSIONS_LIST_TOOL_DISPLAY_SUMMARY,
     sectionId: "sessions",
     profiles: ["coding", "messaging"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "sessions_history",
@@ -155,7 +162,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: SESSIONS_HISTORY_TOOL_DISPLAY_SUMMARY,
     sectionId: "sessions",
     profiles: ["coding", "messaging"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "sessions_send",
@@ -163,7 +170,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: SESSIONS_SEND_TOOL_DISPLAY_SUMMARY,
     sectionId: "sessions",
     profiles: ["coding", "messaging"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "sessions_spawn",
@@ -171,7 +178,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: SESSIONS_SPAWN_TOOL_DISPLAY_SUMMARY,
     sectionId: "sessions",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "sessions_yield",
@@ -179,7 +186,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "End turn to receive sub-agent results",
     sectionId: "sessions",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "subagents",
@@ -187,7 +194,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Manage sub-agents",
     sectionId: "sessions",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "session_status",
@@ -195,7 +202,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: SESSION_STATUS_TOOL_DISPLAY_SUMMARY,
     sectionId: "sessions",
     profiles: ["minimal", "coding", "messaging"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "browser",
@@ -203,7 +210,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Control web browser",
     sectionId: "ui",
     profiles: [],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "canvas",
@@ -218,7 +225,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Send messages",
     sectionId: "messaging",
     profiles: ["messaging"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "heartbeat_respond",
@@ -226,7 +233,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Record heartbeat outcomes",
     sectionId: "automation",
     profiles: [],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "cron",
@@ -234,7 +241,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: CRON_TOOL_DISPLAY_SUMMARY,
     sectionId: "automation",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "gateway",
@@ -242,7 +249,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Gateway control",
     sectionId: "automation",
     profiles: [],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "nodes",
@@ -250,7 +257,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Nodes + devices",
     sectionId: "nodes",
     profiles: [],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "agents_list",
@@ -258,7 +265,31 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "List agents",
     sectionId: "agents",
     profiles: [],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
+  },
+  {
+    id: "get_goal",
+    label: "get_goal",
+    description: "Get current thread goal",
+    sectionId: "agents",
+    profiles: ["coding"],
+    includeInOpenClawGroup: true,
+  },
+  {
+    id: "create_goal",
+    label: "create_goal",
+    description: "Create a thread goal",
+    sectionId: "agents",
+    profiles: ["coding"],
+    includeInOpenClawGroup: true,
+  },
+  {
+    id: "update_goal",
+    label: "update_goal",
+    description: "Complete or block a thread goal",
+    sectionId: "agents",
+    profiles: ["coding"],
+    includeInOpenClawGroup: true,
   },
   {
     id: "update_plan",
@@ -266,7 +297,16 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: UPDATE_PLAN_TOOL_DISPLAY_SUMMARY,
     sectionId: "agents",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
+  },
+  {
+    id: "skill_workshop",
+    label: "skill_workshop",
+    description:
+      "Create, update, revise, list, inspect, apply, reject, or quarantine Skill Workshop proposals",
+    sectionId: "agents",
+    profiles: ["coding"],
+    includeInOpenClawGroup: true,
   },
   {
     id: "image",
@@ -274,7 +314,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Image understanding",
     sectionId: "media",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "image_generate",
@@ -282,7 +322,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Image generation",
     sectionId: "media",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "music_generate",
@@ -290,7 +330,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Music generation",
     sectionId: "media",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "video_generate",
@@ -298,7 +338,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Video generation",
     sectionId: "media",
     profiles: ["coding"],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
   {
     id: "tts",
@@ -306,7 +346,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     description: "Text-to-speech conversion",
     sectionId: "media",
     profiles: [],
-    includeInAstroclawGroup: true,
+    includeInOpenClawGroup: true,
   },
 ];
 
@@ -343,17 +383,19 @@ function buildCoreToolGroupMap() {
     list.push(tool.id);
     sectionToolMap.set(groupId, list);
   }
-  const astroclawTools = CORE_TOOL_DEFINITIONS.filter((tool) => tool.includeInAstroclawGroup).map(
+  const openclawTools = CORE_TOOL_DEFINITIONS.filter((tool) => tool.includeInOpenClawGroup).map(
     (tool) => tool.id,
   );
   return {
-    "group:astroclaw": astroclawTools,
+    "group:openclaw": openclawTools,
     ...Object.fromEntries(sectionToolMap.entries()),
   };
 }
 
+/** Built-in core tool groups keyed by group id. */
 export const CORE_TOOL_GROUPS = buildCoreToolGroupMap();
 
+/** Profile options shown in model/tool configuration UIs. */
 export const PROFILE_OPTIONS = [
   { id: "minimal", label: "Minimal" },
   { id: "coding", label: "Coding" },
@@ -361,6 +403,7 @@ export const PROFILE_OPTIONS = [
   { id: "full", label: "Full" },
 ] as const;
 
+/** Resolves the allow/deny policy for a built-in tool profile. */
 export function resolveCoreToolProfilePolicy(profile?: string): ToolProfilePolicy | undefined {
   if (!profile) {
     return undefined;
@@ -378,6 +421,7 @@ export function resolveCoreToolProfilePolicy(profile?: string): ToolProfilePolic
   };
 }
 
+/** Lists core tools grouped into UI sections. */
 export function listCoreToolSections(): CoreToolSection[] {
   return CORE_TOOL_SECTION_ORDER.map((section) => ({
     id: section.id,
@@ -390,6 +434,7 @@ export function listCoreToolSections(): CoreToolSection[] {
   })).filter((section) => section.tools.length > 0);
 }
 
+/** Lists built-in profile ids that include a core tool. */
 export function resolveCoreToolProfiles(toolId: string): ToolProfileId[] {
   const tool = CORE_TOOL_BY_ID.get(toolId);
   if (!tool) {
@@ -398,6 +443,7 @@ export function resolveCoreToolProfiles(toolId: string): ToolProfileId[] {
   return [...tool.profiles];
 }
 
+/** Returns true when a tool id is a known core tool. */
 export function isKnownCoreToolId(toolId: string): boolean {
   return CORE_TOOL_BY_ID.has(toolId);
 }
