@@ -1,12 +1,13 @@
-import type { ChannelId } from "../channels/plugins/channel-id.types.js";
-import { resolveAccountEntry } from "../routing/account-lookup.js";
-import { normalizeAccountId } from "../routing/session-key.js";
+// Normalizes group-policy config for channel and runtime decisions.
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import type { ChannelId } from "../channels/plugins/channel-id.types.js";
+import { resolveAccountEntry } from "../routing/account-lookup.js";
+import { normalizeAccountId } from "../routing/session-key.js";
 import { normalizeMessageChannel } from "../utils/message-channel-core.js";
-import type { AstroclawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 import {
   parseToolsBySenderTypedKey,
   type GroupToolPolicyBySenderConfig,
@@ -144,7 +145,7 @@ function warnLegacyToolsBySenderKey(rawKey: string) {
     `toolsBySender key "${trimmed}" is deprecated. Use explicit prefixes (channel:, id:, e164:, username:, name:). Legacy unprefixed keys are matched as id only.`,
     {
       type: "DeprecationWarning",
-      code: "ASTROCLAW_TOOLS_BY_SENDER_UNTYPED_KEY",
+      code: "OPENCLAW_TOOLS_BY_SENDER_UNTYPED_KEY",
     },
   );
 }
@@ -325,7 +326,7 @@ export function resolveToolsBySender(
 }
 
 function resolveChannelGroups(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   channel: GroupPolicyChannel,
   accountId?: string | null,
 ): ChannelGroups | undefined {
@@ -361,7 +362,7 @@ function resolveChannelGroups(
 type ChannelGroupPolicyMode = "open" | "allowlist" | "disabled";
 
 function resolveChannelGroupPolicyMode(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   channel: GroupPolicyChannel,
   accountId?: string | null,
 ): ChannelGroupPolicyMode | undefined {
@@ -383,7 +384,7 @@ function resolveChannelGroupPolicyMode(
 }
 
 export function resolveChannelGroupPolicy(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: GroupPolicyChannel;
   groupId?: string | null;
   accountId?: string | null;
@@ -419,7 +420,7 @@ export function resolveChannelGroupPolicy(params: {
 }
 
 export function resolveChannelGroupRequireMention(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: GroupPolicyChannel;
   groupId?: string | null;
   accountId?: string | null;
@@ -454,7 +455,7 @@ export function resolveChannelGroupRequireMention(params: {
 
 export function resolveChannelGroupToolsPolicy(
   params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     channel: GroupPolicyChannel;
     groupId?: string | null;
     groupIdCandidates?: Array<string | null | undefined>;
