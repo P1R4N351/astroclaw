@@ -1,7 +1,8 @@
+// Matrix plugin module implements url validation behavior.
 import {
   assertHttpUrlTargetsPrivateNetwork,
   type LookupFn,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import { isPrivateOrLoopbackHost } from "./private-network-host.js";
 
 const MATRIX_HTTP_HOMESERVER_ERROR =
