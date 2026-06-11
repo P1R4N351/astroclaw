@@ -1,3 +1,6 @@
+/**
+ * Provider catalog contract assertions and expected Codex catalog fixtures.
+ */
 export {
   expectAugmentedCodexCatalog,
   expectedAugmentedOpenaiCodexCatalogEntriesWithGpt55,
@@ -11,13 +14,13 @@ export {
 } from "./public-surface-loader.js";
 
 type ProviderRuntimeCatalogModule = Pick<
-  typeof import("astroclaw/plugin-sdk/provider-catalog-runtime"),
+  typeof import("openclaw/plugin-sdk/provider-catalog-runtime"),
   "augmentModelCatalogWithProviderPlugins"
 >;
 
 export async function importProviderRuntimeCatalogModule(): Promise<ProviderRuntimeCatalogModule> {
   const { augmentModelCatalogWithProviderPlugins } =
-    await import("astroclaw/plugin-sdk/provider-catalog-runtime");
+    await import("openclaw/plugin-sdk/provider-catalog-runtime");
   return {
     augmentModelCatalogWithProviderPlugins,
   };
