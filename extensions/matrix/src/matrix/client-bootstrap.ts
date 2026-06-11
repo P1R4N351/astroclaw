@@ -1,4 +1,5 @@
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
+// Matrix plugin module implements client bootstrap behavior.
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
 import type { CoreConfig } from "../types.js";
 import { getActiveMatrixClient } from "./active-client.js";
 import { isBunRuntime } from "./client/runtime.js";
