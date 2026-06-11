@@ -1,4 +1,6 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Resolves manifest contracts into runtime-facing plugin capabilities.
+import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   hasManifestContractValue,
   listAvailableManifestContractPlugins,
@@ -16,7 +18,7 @@ const DEMAND_ONLY_CONTRACT_LOOKUP_OPTIONS = {
 } as const;
 
 export function resolveManifestContractRuntimePluginResolution(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   contract: PluginManifestContractListKey;
   value?: string;
 }): ManifestContractRuntimePluginResolution {
@@ -42,9 +44,7 @@ export function resolveManifestContractRuntimePluginResolution(params: {
     config: params.cfg,
   }).map((plugin) => plugin.id);
   return {
-    pluginIds: [...new Set(pluginIds)].toSorted((left, right) => left.localeCompare(right)),
-    bundledCompatPluginIds: [...new Set(bundledCompatPluginIds)].toSorted((left, right) =>
-      left.localeCompare(right),
-    ),
+    pluginIds: sortUniqueStrings(pluginIds),
+    bundledCompatPluginIds: sortUniqueStrings(bundledCompatPluginIds),
   };
 }
