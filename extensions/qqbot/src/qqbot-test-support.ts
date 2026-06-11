@@ -1,6 +1,7 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Qqbot plugin module implements qqbot test support behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 
-export function makeQqbotSecretRefConfig(): AstroclawConfig {
+export function makeQqbotSecretRefConfig(): OpenClawConfig {
   return {
     channels: {
       qqbot: {
@@ -12,10 +13,10 @@ export function makeQqbotSecretRefConfig(): AstroclawConfig {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
-export function makeQqbotDefaultAccountConfig(): AstroclawConfig {
+export function makeQqbotDefaultAccountConfig(): OpenClawConfig {
   return {
     channels: {
       qqbot: {
@@ -25,5 +26,5 @@ export function makeQqbotDefaultAccountConfig(): AstroclawConfig {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
