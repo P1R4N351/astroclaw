@@ -1,10 +1,11 @@
+// Moonshot provider module implements model/runtime integration.
 import {
   buildManifestModelProviderConfig,
   applyProviderNativeStreamingUsageCompat,
   supportsNativeStreamingUsageCompat,
-} from "astroclaw/plugin-sdk/provider-catalog-shared";
-import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
+} from "openclaw/plugin-sdk/provider-catalog-shared";
+import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
+import manifest from "./openclaw.plugin.json" with { type: "json" };
 
 export const MOONSHOT_BASE_URL = "https://api.moonshot.ai/v1";
 export const MOONSHOT_CN_BASE_URL = "https://api.moonshot.cn/v1";
