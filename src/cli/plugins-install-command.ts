@@ -1,7 +1,11 @@
+// Plugin install command implementation for bundled, npm, path, git, ClawHub, and hook packs.
 import fs from "node:fs";
+import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { theme } from "../../packages/terminal-core/src/theme.js";
 import { collectChannelDoctorStaleConfigMutations } from "../commands/doctor/shared/channel-doctor.js";
 import { assertConfigWriteAllowedInCurrentMode, readConfigFileSnapshot } from "../config/config.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { installHooksFromNpmSpec, installHooksFromPath } from "../hooks/install.js";
 import { resolveArchiveKind } from "../infra/archive.js";
 import { parseClawHubPluginSpec } from "../infra/clawhub.js";
@@ -31,7 +35,6 @@ import {
 import { tracePluginLifecyclePhaseAsync } from "../plugins/plugin-lifecycle-trace.js";
 import { validateJsonSchemaValue } from "../plugins/schema-validator.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
-import { theme } from "../terminal/theme.js";
 import { shortenHomePath } from "../utils.js";
 import { formatCliCommand } from "./command-format.js";
 import { looksLikeLocalInstallSpec } from "./install-spec.js";
@@ -63,9 +66,14 @@ function resolveInstallMode(force?: boolean): "install" | "update" {
 
 function resolveInstallSafetyOverrides(overrides: InstallSafetyOverrides): InstallSafetyOverrides {
   return {
+    config: overrides.config,
     dangerouslyForceUnsafeInstall: overrides.dangerouslyForceUnsafeInstall,
+    trustedSourceLinkedOfficialInstall: overrides.trustedSourceLinkedOfficialInstall,
   };
 }
+
+const DEPRECATED_DANGEROUS_FORCE_UNSAFE_INSTALL_WARNING =
+  "--dangerously-force-unsafe-install is deprecated and no longer affects plugin installs because built-in install-time dangerous-code scanning has been removed. Configure security.installPolicy for operator-owned install decisions.";
 
 function findTrustedCatalogPackageInstall(packageName: string):
   | {
@@ -91,10 +99,6 @@ function findTrustedCatalogPackageInstall(packageName: string):
     ...(install?.npmSpec ? { npmSpec: install.npmSpec } : {}),
     ...(install?.expectedIntegrity ? { expectedIntegrity: install.expectedIntegrity } : {}),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function isEmptyRecord(value: Record<string, unknown>): boolean {
@@ -127,9 +131,9 @@ function hasValidBundledPluginConfig(params: {
 }
 
 function prepareConfigForDisabledBundledInstall(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   pluginId: string,
-): AstroclawConfig {
+): OpenClawConfig {
   const entries = config.plugins?.entries ?? {};
   const { [pluginId]: _removedEntry, ...nextEntries } = entries;
   return {
@@ -146,8 +150,10 @@ async function installBundledPluginSource(params: {
   rawSpec: string;
   bundledSource: BundledPluginSource;
   warning: string;
+  invalidateRuntimeCache?: boolean;
   runtime?: RuntimeEnv;
 }) {
+  // Bundled plugins with required config are recorded but not enabled until config validates.
   const existingEntry = params.snapshot.config.plugins?.entries?.[params.bundledSource.pluginId];
   const shouldEnable = hasValidBundledPluginConfig({
     bundledSource: params.bundledSource,
@@ -158,7 +164,7 @@ async function installBundledPluginSource(params: {
     : prepareConfigForDisabledBundledInstall(params.snapshot.config, params.bundledSource.pluginId);
   const configWarning = shouldEnable
     ? ""
-    : `Installed bundled plugin "${params.bundledSource.pluginId}" without enabling it because it requires configuration first. Configure it, then run \`astroclaw plugins enable ${params.bundledSource.pluginId}\`.`;
+    : `Installed bundled plugin "${params.bundledSource.pluginId}" without enabling it because it requires configuration first. Configure it, then run \`openclaw plugins enable ${params.bundledSource.pluginId}\`.`;
   await persistPluginInstall({
     snapshot: {
       config: configBase,
@@ -172,6 +178,7 @@ async function installBundledPluginSource(params: {
       installPath: params.bundledSource.localPath,
     },
     enable: shouldEnable,
+    invalidateRuntimeCache: params.invalidateRuntimeCache,
     warningMessage: [params.warning, configWarning].filter(Boolean).join("\n"),
     runtime: params.runtime,
   });
@@ -204,7 +211,7 @@ async function tryInstallHookPackFromLocalPath(params: {
     }
 
     const existing = params.snapshot.config.hooks?.internal?.load?.extraDirs ?? [];
-    const merged = Array.from(new Set([...existing, params.resolvedPath]));
+    const merged = uniqueStrings([...existing, params.resolvedPath]);
     await persistHookPackInstall({
       snapshot: {
         config: {
@@ -311,6 +318,7 @@ async function tryInstallPluginOrHookPackFromNpmSpec(params: {
   expectedPluginId?: string;
   expectedIntegrity?: string;
   trustedSourceLinkedOfficialInstall?: boolean;
+  invalidateRuntimeCache?: boolean;
   runtime?: RuntimeEnv;
 }): Promise<{ ok: true } | { ok: false }> {
   const result = await installPluginFromNpmSpec({
@@ -326,7 +334,7 @@ async function tryInstallPluginOrHookPackFromNpmSpec(params: {
     logger: createPluginInstallLogger(params.runtime),
   });
   if (!result.ok) {
-    if (isTerminalPluginInstallSecurityFailure(result.code)) {
+    if (isTerminalPluginInstallFailure(result.code)) {
       (params.runtime ?? defaultRuntime).error(result.error);
       return { ok: false };
     }
@@ -342,6 +350,7 @@ async function tryInstallPluginOrHookPackFromNpmSpec(params: {
           rawSpec: params.spec,
           bundledSource: bundledFallbackPlan.bundledSource,
           warning: bundledFallbackPlan.warning,
+          invalidateRuntimeCache: params.invalidateRuntimeCache,
           runtime: params.runtime,
         });
         return { ok: true };
@@ -377,6 +386,7 @@ async function tryInstallPluginOrHookPackFromNpmSpec(params: {
     snapshot: params.snapshot,
     pluginId: result.pluginId,
     install: installRecord,
+    invalidateRuntimeCache: params.invalidateRuntimeCache,
     runtime: params.runtime,
   });
   return { ok: true };
@@ -388,6 +398,7 @@ async function tryInstallPluginFromNpmPackArchive(params: {
   archivePath: string;
   safetyOverrides: InstallSafetyOverrides;
   extensionsDir: string;
+  invalidateRuntimeCache?: boolean;
   runtime?: RuntimeEnv;
 }): Promise<{ ok: true } | { ok: false }> {
   const result = await installPluginFromNpmPackArchive({
@@ -425,6 +436,7 @@ async function tryInstallPluginFromNpmPackArchive(params: {
       ...(result.npmResolution?.shasum ? { npmShasum: result.npmResolution.shasum } : {}),
       ...(result.npmTarballName ? { npmTarballName: result.npmTarballName } : {}),
     },
+    invalidateRuntimeCache: params.invalidateRuntimeCache,
     runtime: params.runtime,
   });
   return { ok: true };
@@ -436,6 +448,7 @@ async function tryInstallPluginFromGitSpec(params: {
   spec: string;
   safetyOverrides: InstallSafetyOverrides;
   extensionsDir: string;
+  invalidateRuntimeCache?: boolean;
   runtime?: RuntimeEnv;
 }): Promise<{ ok: true } | { ok: false }> {
   const result = await installPluginFromGitSpec({
@@ -463,15 +476,17 @@ async function tryInstallPluginFromGitSpec(params: {
       gitRef: result.git.ref,
       gitCommit: result.git.commit,
     },
+    invalidateRuntimeCache: params.invalidateRuntimeCache,
     runtime: params.runtime,
   });
   return { ok: true };
 }
 
-function isTerminalPluginInstallSecurityFailure(code?: string): boolean {
+function isTerminalPluginInstallFailure(code?: string): boolean {
   return (
     code === PLUGIN_INSTALL_ERROR_CODE.SECURITY_SCAN_BLOCKED ||
-    code === PLUGIN_INSTALL_ERROR_CODE.SECURITY_SCAN_FAILED
+    code === PLUGIN_INSTALL_ERROR_CODE.SECURITY_SCAN_FAILED ||
+    code === PLUGIN_INSTALL_ERROR_CODE.UNSUPPORTED_PLAIN_FILE_PLUGIN
   );
 }
 
@@ -513,13 +528,13 @@ async function loadConfigFromSnapshotForInstall(
 ): Promise<ConfigSnapshotForInstallPersist> {
   if (resolvePluginInstallInvalidConfigPolicy(request) !== "allow-plugin-recovery") {
     throw buildInvalidPluginInstallConfigError(
-      "Config invalid; run `astroclaw doctor --fix` before installing plugins.",
+      "Config invalid; run `openclaw doctor --fix` before installing plugins.",
     );
   }
   const parsed = (snapshot.parsed ?? {}) as Record<string, unknown>;
   if (!snapshot.exists || Object.keys(parsed).length === 0) {
     throw buildInvalidPluginInstallConfigError(
-      "Config file could not be parsed; run `astroclaw doctor` to repair it.",
+      "Config file could not be parsed; run `openclaw doctor` to repair it.",
     );
   }
   if (
@@ -529,7 +544,7 @@ async function loadConfigFromSnapshotForInstall(
   ) {
     const pluginLabel = request.bundledPluginId ?? "the requested plugin";
     throw buildInvalidPluginInstallConfigError(
-      `Config invalid outside the plugin recovery path for ${pluginLabel}; run \`astroclaw doctor --fix\` before reinstalling it.`,
+      `Config invalid outside the plugin recovery path for ${pluginLabel}; run \`openclaw doctor --fix\` before reinstalling it.`,
     );
   }
   let nextConfig = snapshot.config;
@@ -569,11 +584,13 @@ export async function runPluginInstallCommand(params: {
     pin?: boolean;
     marketplace?: string;
   };
+  invalidateRuntimeCache?: boolean;
   runtime?: RuntimeEnv;
 }) {
   assertConfigWriteAllowedInCurrentMode();
 
   const runtime = params.runtime ?? defaultRuntime;
+  const invalidateRuntimeCache = params.invalidateRuntimeCache ?? true;
   const shorthand = !params.opts.marketplace
     ? await tracePluginLifecyclePhaseAsync(
         "marketplace shortcut resolution",
@@ -592,16 +609,19 @@ export async function runPluginInstallCommand(params: {
     marketplace:
       params.opts.marketplace ?? (shorthand?.ok ? shorthand.marketplaceSource : undefined),
   };
+  if (opts.dangerouslyForceUnsafeInstall) {
+    runtime.log(theme.warn(DEPRECATED_DANGEROUS_FORCE_UNSAFE_INSTALL_WARNING));
+  }
   if (opts.marketplace) {
     if (opts.link) {
       runtime.error(
-        `--link is not supported with --marketplace. Remove --link, or install a local path with ${formatCliCommand("astroclaw plugins install --link <path>")}.`,
+        `--link is not supported with --marketplace. Remove --link, or install a local path with ${formatCliCommand("openclaw plugins install --link <path>")}.`,
       );
       return runtime.exit(1);
     }
     if (opts.pin) {
       runtime.error(
-        `--pin is not supported with --marketplace. Use ${formatCliCommand("astroclaw plugins install <plugin> --marketplace <name>")} without --pin.`,
+        `--pin is not supported with --marketplace. Use ${formatCliCommand("openclaw plugins install <plugin> --marketplace <name>")} without --pin.`,
       );
       return runtime.exit(1);
     }
@@ -610,25 +630,25 @@ export async function runPluginInstallCommand(params: {
   const gitSpec = parseGitPluginSpec(raw);
   if (gitPrefix && !gitSpec) {
     runtime.error(
-      `Unsupported git plugin spec: ${raw}. Use ${formatCliCommand("astroclaw plugins install git:<repo>@<ref>")}.`,
+      `Unsupported git plugin spec: ${raw}. Use ${formatCliCommand("openclaw plugins install git:<repo>@<ref>")}.`,
     );
     return runtime.exit(1);
   }
   if (gitSpec && opts.link) {
     runtime.error(
-      `--link is not supported with git: installs. Use ${formatCliCommand("astroclaw plugins install git:<repo>@<ref>")} for Git installs or ${formatCliCommand("astroclaw plugins install --link <path>")} for local paths.`,
+      `--link is not supported with git: installs. Use ${formatCliCommand("openclaw plugins install git:<repo>@<ref>")} for Git installs or ${formatCliCommand("openclaw plugins install --link <path>")} for local paths.`,
     );
     return runtime.exit(1);
   }
   if (gitSpec && opts.pin) {
     runtime.error(
-      `--pin is not supported with git: installs. Pin the ref in the spec instead, for example ${formatCliCommand("astroclaw plugins install git:<repo>@<ref>")}.`,
+      `--pin is not supported with git: installs. Pin the ref in the spec instead, for example ${formatCliCommand("openclaw plugins install git:<repo>@<ref>")}.`,
     );
     return runtime.exit(1);
   }
   if (opts.link && opts.force) {
     runtime.error(
-      `--force is not supported with --link. Linked plugins point at the source path directly; remove --force and re-run ${formatCliCommand("astroclaw plugins install --link <path>")}.`,
+      `--force is not supported with --link. Linked plugins point at the source path directly; remove --force and re-run ${formatCliCommand("openclaw plugins install --link <path>")}.`,
     );
     return runtime.exit(1);
   }
@@ -650,7 +670,7 @@ export async function runPluginInstallCommand(params: {
   }
   const cfg = snapshot.config;
   const installMode = resolveInstallMode(opts.force);
-  const safetyOverrides = resolveInstallSafetyOverrides(opts);
+  const safetyOverrides = resolveInstallSafetyOverrides({ ...opts, config: cfg });
   const extensionsDir = resolveDefaultPluginExtensionsDir();
 
   if (opts.marketplace) {
@@ -678,6 +698,7 @@ export async function runPluginInstallCommand(params: {
         marketplaceSource: result.marketplaceSource,
         marketplacePlugin: result.marketplacePlugin,
       },
+      invalidateRuntimeCache,
       runtime,
     });
     return;
@@ -687,17 +708,18 @@ export async function runPluginInstallCommand(params: {
   if (fs.existsSync(resolved)) {
     if (opts.link) {
       const existing = cfg.plugins?.load?.paths ?? [];
-      const merged = Array.from(new Set([...existing, resolved]));
+      const merged = uniqueStrings([...existing, resolved]);
       const probe = await installPluginFromPath({
         ...safetyOverrides,
         mode: installMode,
         path: resolved,
         dryRun: true,
+        allowSourceTypeScriptEntries: true,
         extensionsDir,
         logger: createPluginInstallLogger(runtime),
       });
       if (!probe.ok) {
-        if (isTerminalPluginInstallSecurityFailure(probe.code)) {
+        if (isTerminalPluginInstallFailure(probe.code)) {
           runtime.error(probe.error);
           return runtime.exit(1);
         }
@@ -737,6 +759,7 @@ export async function runPluginInstallCommand(params: {
           installPath: resolved,
           version: probe.version,
         },
+        invalidateRuntimeCache,
         successMessage: `Linked plugin path: ${shortenHomePath(resolved)}`,
         runtime,
       });
@@ -751,7 +774,7 @@ export async function runPluginInstallCommand(params: {
       logger: createPluginInstallLogger(runtime),
     });
     if (!result.ok) {
-      if (isTerminalPluginInstallSecurityFailure(result.code)) {
+      if (isTerminalPluginInstallFailure(result.code)) {
         runtime.error(result.error);
         return runtime.exit(1);
       }
@@ -779,6 +802,7 @@ export async function runPluginInstallCommand(params: {
         installPath: result.targetDir,
         version: result.version,
       },
+      invalidateRuntimeCache,
       runtime,
     });
     return;
@@ -786,7 +810,7 @@ export async function runPluginInstallCommand(params: {
 
   if (opts.link) {
     runtime.error(
-      `--link requires a local path. Run ${formatCliCommand("astroclaw plugins install --link <path>")}.`,
+      `--link requires a local path. Run ${formatCliCommand("openclaw plugins install --link <path>")}.`,
     );
     return runtime.exit(1);
   }
@@ -795,7 +819,7 @@ export async function runPluginInstallCommand(params: {
   if (npmPrefixSpec !== null) {
     if (!npmPrefixSpec) {
       runtime.error(
-        `Unsupported npm plugin spec: missing package. Use ${formatCliCommand("astroclaw plugins install npm:<package>")}.`,
+        `Unsupported npm plugin spec: missing package. Use ${formatCliCommand("openclaw plugins install npm:<package>")}.`,
       );
       return runtime.exit(1);
     }
@@ -811,6 +835,7 @@ export async function runPluginInstallCommand(params: {
       safetyOverrides,
       allowBundledFallback: false,
       extensionsDir,
+      invalidateRuntimeCache,
       ...(officialNpmTrust
         ? {
             expectedPluginId: officialNpmTrust.pluginId,
@@ -832,7 +857,7 @@ export async function runPluginInstallCommand(params: {
   if (npmPackPath !== null) {
     if (!npmPackPath) {
       runtime.error(
-        `Unsupported npm-pack plugin spec: missing archive path. Use ${formatCliCommand("astroclaw plugins install npm-pack:<path-to.tgz>")}.`,
+        `Unsupported npm-pack plugin spec: missing archive path. Use ${formatCliCommand("openclaw plugins install npm-pack:<path-to.tgz>")}.`,
       );
       return runtime.exit(1);
     }
@@ -842,6 +867,7 @@ export async function runPluginInstallCommand(params: {
       archivePath: npmPackPath,
       safetyOverrides,
       extensionsDir,
+      invalidateRuntimeCache,
       runtime,
     });
     if (!npmPackResult.ok) {
@@ -857,6 +883,7 @@ export async function runPluginInstallCommand(params: {
       spec: raw,
       safetyOverrides,
       extensionsDir,
+      invalidateRuntimeCache,
       runtime,
     });
     if (!gitResult.ok) {
@@ -878,7 +905,7 @@ export async function runPluginInstallCommand(params: {
     ])
   ) {
     runtime.error(
-      `Plugin path not found: ${resolved}. Check the path, or install from npm with ${formatCliCommand("astroclaw plugins install npm:<package>")}.`,
+      `Plugin path not found: ${resolved}. Check the path, or install from npm with ${formatCliCommand("openclaw plugins install npm:<package>")}.`,
     );
     return runtime.exit(1);
   }
@@ -896,6 +923,7 @@ export async function runPluginInstallCommand(params: {
           rawSpec: raw,
           bundledSource: bundledPreNpmPlan.bundledSource,
           warning: bundledPreNpmPlan.warning,
+          invalidateRuntimeCache,
           runtime,
         }),
       {
@@ -935,6 +963,7 @@ export async function runPluginInstallCommand(params: {
       expectedPluginId: officialExternalPlan.pluginId,
       expectedIntegrity: officialExternalPlan.expectedIntegrity,
       trustedSourceLinkedOfficialInstall: true,
+      invalidateRuntimeCache,
       runtime,
     });
     if (!npmResult.ok) {
@@ -965,6 +994,7 @@ export async function runPluginInstallCommand(params: {
         spec: raw,
         installPath: result.targetDir,
       },
+      invalidateRuntimeCache,
       runtime,
     });
     return;
@@ -982,6 +1012,7 @@ export async function runPluginInstallCommand(params: {
     safetyOverrides,
     allowBundledFallback: true,
     extensionsDir,
+    invalidateRuntimeCache,
     ...(officialNpmTrust
       ? {
           expectedPluginId: officialNpmTrust.pluginId,
