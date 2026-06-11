@@ -1,4 +1,9 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Shared auth profile ordering fixtures.
+ * Keeps provider/profile config fixtures aligned across ordering regression
+ * tests without coupling them to production store loading.
+ */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { AuthProfileStore } from "./auth-profiles.js";
 
 export const ANTHROPIC_STORE: AuthProfileStore = {
@@ -17,7 +22,7 @@ export const ANTHROPIC_STORE: AuthProfileStore = {
   },
 };
 
-export const ANTHROPIC_CFG: AstroclawConfig = {
+export const ANTHROPIC_CFG: OpenClawConfig = {
   auth: {
     profiles: {
       "anthropic:default": { provider: "anthropic", mode: "api_key" },
