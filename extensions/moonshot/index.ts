@@ -1,6 +1,7 @@
-import { defineSingleProviderPluginEntry } from "astroclaw/plugin-sdk/provider-entry";
-import { buildProviderReplayFamilyHooks } from "astroclaw/plugin-sdk/provider-model-shared";
-import { MOONSHOT_THINKING_STREAM_HOOKS } from "astroclaw/plugin-sdk/provider-stream-family";
+// Moonshot plugin entrypoint registers its OpenClaw integration.
+import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
+import { buildProviderReplayFamilyHooks } from "openclaw/plugin-sdk/provider-model-shared";
+import { MOONSHOT_THINKING_STREAM_HOOKS } from "openclaw/plugin-sdk/provider-stream-family";
 import { applyMoonshotNativeStreamingUsageCompat } from "./api.js";
 import { moonshotMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import {
@@ -20,6 +21,7 @@ export default defineSingleProviderPluginEntry({
   provider: {
     label: "Moonshot",
     docsPath: "/providers/moonshot",
+    aliases: ["moonshotai", "moonshot-ai"],
     auth: [
       {
         methodId: "api-key",
@@ -59,7 +61,7 @@ export default defineSingleProviderPluginEntry({
       applyMoonshotNativeStreamingUsageCompat(providerConfig),
     // Kimi K2+ returns native tool_call IDs shaped like `functions.<name>:<index>`.
     // Sanitizing them to alphanumeric-only breaks Kimi's serving-layer matching in
-    // multi-turn replay. See astroclaw/astroclaw#62319.
+    // multi-turn replay. See openclaw/openclaw#62319.
     ...buildProviderReplayFamilyHooks({
       family: "openai-compatible",
       sanitizeToolCallIds: false,
