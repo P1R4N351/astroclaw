@@ -1,3 +1,4 @@
+// Feishu plugin module implements lifecycle support behavior.
 import { vi, type Mock } from "vitest";
 
 type BoundConversation = {
@@ -19,11 +20,13 @@ type DispatchReplyContext = Record<string, unknown> & {
 };
 type DispatchReplyDispatcher = {
   sendFinalReply: (payload: { text: string }) => unknown;
+  getFailedCounts?: UnknownMock;
 };
 type FeishuReplyDispatcherMockValue = {
   dispatcher: DispatchReplyDispatcher;
   replyOptions: Record<string, never>;
   markDispatchIdle: () => unknown;
+  ensureNoVisibleReplyFallback?: AsyncUnknownMock;
 };
 type CreateFeishuReplyDispatcherMock = Mock<(params?: unknown) => FeishuReplyDispatcherMockValue>;
 type DispatchReplyFromConfigMock = Mock<
@@ -124,10 +127,10 @@ const {
 
 vi.mock("./client.js", () => {
   return {
-    FEISHU_HTTP_TIMEOUT_ENV_VAR: "ASTROCLAW_FEISHU_HTTP_TIMEOUT_MS",
+    FEISHU_HTTP_TIMEOUT_ENV_VAR: "OPENCLAW_FEISHU_HTTP_TIMEOUT_MS",
     FEISHU_HTTP_TIMEOUT_MAX_MS: 300_000,
     FEISHU_HTTP_TIMEOUT_MS: 30_000,
-    FEISHU_USER_AGENT: "astroclaw-feishu-test",
+    FEISHU_USER_AGENT: "openclaw-feishu-test",
     clearClientCache: vi.fn(),
     createFeishuClient: vi.fn(() => {
       throw new Error("unexpected Feishu client call in lifecycle test");
@@ -138,7 +141,7 @@ vi.mock("./client.js", () => {
     })),
     createEventDispatcher: createEventDispatcherMock,
     getFeishuClient: vi.fn(() => null),
-    getFeishuUserAgent: vi.fn(() => "astroclaw-feishu-test"),
+    getFeishuUserAgent: vi.fn(() => "openclaw-feishu-test"),
     pluginVersion: "test",
     setFeishuClientRuntimeForTest: vi.fn(),
   };
@@ -164,9 +167,9 @@ vi.mock("./send.js", () => ({
   sendMessageFeishu: sendMessageFeishuMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-runtime")>(
-    "astroclaw/plugin-sdk/conversation-runtime",
+vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/conversation-runtime")>(
+    "openclaw/plugin-sdk/conversation-runtime",
   );
   return {
     ...actual,
