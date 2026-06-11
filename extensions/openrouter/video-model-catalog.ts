@@ -1,19 +1,23 @@
-import {
-  type UnifiedModelCatalogEntry,
-  type UnifiedModelCatalogProviderContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { getCachedLiveCatalogValue } from "astroclaw/plugin-sdk/provider-catalog-shared";
+// Openrouter plugin module implements video model catalog behavior.
+import type {
+  UnifiedModelCatalogEntry,
+  UnifiedModelCatalogProviderContext,
+} from "openclaw/plugin-sdk/plugin-entry";
+import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
+import { getCachedLiveCatalogValue } from "openclaw/plugin-sdk/provider-catalog-shared";
 import {
   assertOkOrThrowHttpError,
   resolveProviderHttpRequestConfig,
-} from "astroclaw/plugin-sdk/provider-http";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-http";
+import {
+  normalizeOptionalString,
+  normalizeTrimmedStringList,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import type {
   VideoGenerationModelCapabilitiesContext,
   VideoGenerationProviderCapabilities,
   VideoGenerationResolution,
-} from "astroclaw/plugin-sdk/video-generation";
+} from "openclaw/plugin-sdk/video-generation";
 import { OPENROUTER_BASE_URL } from "./provider-catalog.js";
 import { fetchOpenRouterVideoGet, type OpenRouterVideoDispatcherPolicy } from "./video-http.js";
 
@@ -49,11 +53,7 @@ export type OpenRouterVideoModelCatalogCapabilities = VideoGenerationProviderCap
 };
 
 function normalizeStringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value
-        .map((entry) => normalizeOptionalString(entry))
-        .filter((entry): entry is string => Boolean(entry))
-    : [];
+  return normalizeTrimmedStringList(value);
 }
 
 function normalizeNumberArray(value: unknown): number[] {
@@ -92,6 +92,38 @@ function normalizeStringRecord(value: unknown): Record<string, string> | undefin
   return Object.keys(record).length > 0 ? record : undefined;
 }
 
+function buildOpenRouterVideoModeCapabilities(params: {
+  durations: number[];
+  aspectRatios: string[];
+  resolutions: VideoGenerationResolution[];
+  sizes: string[];
+  supportsAudio?: boolean;
+}): NonNullable<VideoGenerationProviderCapabilities["generate"]> {
+  return {
+    maxVideos: 1,
+    ...(params.durations.length > 0 ? { supportedDurationSeconds: params.durations } : {}),
+    ...(params.aspectRatios.length > 0
+      ? {
+          supportsAspectRatio: true,
+          aspectRatios: params.aspectRatios,
+        }
+      : {}),
+    ...(params.resolutions.length > 0
+      ? {
+          supportsResolution: true,
+          resolutions: params.resolutions,
+        }
+      : {}),
+    ...(params.sizes.length > 0
+      ? {
+          supportsSize: true,
+          sizes: params.sizes,
+        }
+      : {}),
+    ...(params.supportsAudio === undefined ? {} : { supportsAudio: params.supportsAudio }),
+  };
+}
+
 function buildOpenRouterVideoModelCapabilities(
   model: OpenRouterVideoModel,
 ): OpenRouterVideoModelCatalogCapabilities {
@@ -101,60 +133,25 @@ function buildOpenRouterVideoModelCapabilities(
   const resolutions = normalizeResolutionArray(model.supported_resolutions);
   const sizes = normalizeStringArray(model.supported_sizes);
   const allowedPassthroughParameters = normalizeStringArray(model.allowed_passthrough_parameters);
-  const audioSupport =
-    typeof model.generate_audio === "boolean" ? { supportsAudio: model.generate_audio } : {};
+  const supportsAudio =
+    typeof model.generate_audio === "boolean" ? model.generate_audio : undefined;
+  const modeCapabilities = buildOpenRouterVideoModeCapabilities({
+    durations,
+    aspectRatios,
+    resolutions,
+    sizes,
+    supportsAudio,
+  });
   const base: VideoGenerationProviderCapabilities = {
     providerOptions: {
       callback_url: "string",
       seed: "number",
     },
-    generate: {
-      maxVideos: 1,
-      ...(durations.length > 0 ? { supportedDurationSeconds: durations } : {}),
-      ...(aspectRatios.length > 0
-        ? {
-            supportsAspectRatio: true,
-            aspectRatios,
-          }
-        : {}),
-      ...(resolutions.length > 0
-        ? {
-            supportsResolution: true,
-            resolutions,
-          }
-        : {}),
-      ...(sizes.length > 0
-        ? {
-            supportsSize: true,
-            sizes,
-          }
-        : {}),
-      ...audioSupport,
-    },
+    generate: modeCapabilities,
     imageToVideo: {
       enabled: frameImages.length > 0,
-      maxVideos: 1,
+      ...modeCapabilities,
       ...(frameImages.length > 0 ? { maxInputImages: frameImages.length } : {}),
-      ...(durations.length > 0 ? { supportedDurationSeconds: durations } : {}),
-      ...(aspectRatios.length > 0
-        ? {
-            supportsAspectRatio: true,
-            aspectRatios,
-          }
-        : {}),
-      ...(resolutions.length > 0
-        ? {
-            supportsResolution: true,
-            resolutions,
-          }
-        : {}),
-      ...(sizes.length > 0
-        ? {
-            supportsSize: true,
-            sizes,
-          }
-        : {}),
-      ...audioSupport,
     },
     videoToVideo: {
       enabled: false,
@@ -223,8 +220,8 @@ async function fetchOpenRouterVideoModels(params: {
     load: async () => {
       const headers = new Headers({
         Authorization: `Bearer ${params.apiKey}`,
-        "HTTP-Referer": "https://astroclaw.ai",
-        "X-OpenRouter-Title": "Astroclaw",
+        "HTTP-Referer": "https://openclaw.ai",
+        "X-OpenRouter-Title": "OpenClaw",
       });
       const { response, release } = await fetchOpenRouterVideoGet({
         url: "videos/models",
