@@ -1,6 +1,10 @@
+/**
+ * Canvas A2UI browser bootstrap that installs theme overrides and native bridge
+ * helpers.
+ */
 import { v0_8 } from "@a2ui/lit";
 import { ContextProvider } from "@lit/context";
-import { themeContext } from "@astroclaw/a2ui-theme-context";
+import { themeContext } from "@openclaw/a2ui-theme-context";
 import { html, css, LitElement, unsafeCSS } from "lit";
 import "@a2ui/lit/ui";
 import { repeat } from "lit/directives/repeat.js";
@@ -108,7 +112,7 @@ const postNativeMessage = (handler, payload) => {
   Reflect.apply(handler.postMessage, handler, [payload]);
 };
 
-const astroclawTheme = {
+const openclawTheme = {
   components: {
     AudioPlayer: emptyClasses(),
     Button: emptyClasses(),
@@ -222,7 +226,7 @@ const astroclawTheme = {
   },
 };
 
-class AstroclawA2UIHost extends LitElement {
+class OpenClawA2UIHost extends LitElement {
   static properties = {
     surfaces: { state: true },
     pendingAction: { state: true },
@@ -232,7 +236,7 @@ class AstroclawA2UIHost extends LitElement {
   #processor = v0_8.Data.createSignalA2uiMessageProcessor();
   themeProvider = new ContextProvider(this, {
     context: themeContext,
-    initialValue: astroclawTheme,
+    initialValue: openclawTheme,
   });
 
   surfaces = [];
@@ -246,8 +250,8 @@ class AstroclawA2UIHost extends LitElement {
       height: 100%;
       position: relative;
       box-sizing: border-box;
-      padding: var(--astroclaw-a2ui-inset-top, 0px) var(--astroclaw-a2ui-inset-right, 0px)
-        var(--astroclaw-a2ui-inset-bottom, 0px) var(--astroclaw-a2ui-inset-left, 0px);
+      padding: var(--openclaw-a2ui-inset-top, 0px) var(--openclaw-a2ui-inset-right, 0px)
+        var(--openclaw-a2ui-inset-bottom, 0px) var(--openclaw-a2ui-inset-left, 0px);
     }
 
     #surfaces {
@@ -256,14 +260,14 @@ class AstroclawA2UIHost extends LitElement {
       gap: 12px;
       height: 100%;
       overflow: auto;
-      padding-bottom: var(--astroclaw-a2ui-scroll-pad-bottom, 0px);
+      padding-bottom: var(--openclaw-a2ui-scroll-pad-bottom, 0px);
     }
 
     .status {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      top: var(--astroclaw-a2ui-status-top, 12px);
+      top: var(--openclaw-a2ui-status-top, 12px);
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -289,7 +293,7 @@ class AstroclawA2UIHost extends LitElement {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      bottom: var(--astroclaw-a2ui-toast-bottom, 12px);
+      bottom: var(--openclaw-a2ui-toast-bottom, 12px);
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -320,7 +324,7 @@ class AstroclawA2UIHost extends LitElement {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      top: var(--astroclaw-a2ui-empty-top, var(--astroclaw-a2ui-status-top, 12px));
+      top: var(--openclaw-a2ui-empty-top, var(--openclaw-a2ui-status-top, 12px));
       text-align: center;
       opacity: 0.8;
       padding: 10px 12px;
@@ -358,10 +362,10 @@ class AstroclawA2UIHost extends LitElement {
       reset: () => this.reset(),
       getSurfaces: () => Array.from(this.#processor.getSurfaces().keys()),
     };
-    globalThis.astroclawA2UI = api;
+    globalThis.openclawA2UI = api;
     this.addEventListener("a2uiaction", (evt) => this.#handleA2UIAction(evt));
     this.#statusListener = (evt) => this.#handleActionStatus(evt);
-    for (const eventName of ["astroclaw:a2ui-action-status"]) {
+    for (const eventName of ["openclaw:a2ui-action-status"]) {
       globalThis.addEventListener(eventName, this.#statusListener);
     }
     this.#syncSurfaces();
@@ -370,7 +374,7 @@ class AstroclawA2UIHost extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     if (this.#statusListener) {
-      for (const eventName of ["astroclaw:a2ui-action-status"]) {
+      for (const eventName of ["openclaw:a2ui-action-status"]) {
         globalThis.removeEventListener(eventName, this.#statusListener);
       }
       this.#statusListener = null;
@@ -457,15 +461,15 @@ class AstroclawA2UIHost extends LitElement {
         context[key] = resolved;
         continue;
       }
-      if (Object.prototype.hasOwnProperty.call(value, "literalString")) {
+      if (Object.hasOwn(value, "literalString")) {
         context[key] = value.literalString ?? "";
         continue;
       }
-      if (Object.prototype.hasOwnProperty.call(value, "literalNumber")) {
+      if (Object.hasOwn(value, "literalNumber")) {
         context[key] = value.literalNumber ?? 0;
         continue;
       }
-      if (Object.prototype.hasOwnProperty.call(value, "literalBoolean")) {
+      if (Object.hasOwn(value, "literalBoolean")) {
         context[key] = value.literalBoolean ?? false;
         continue;
       }
@@ -484,15 +488,15 @@ class AstroclawA2UIHost extends LitElement {
       ...(Object.keys(context).length ? { context } : {}),
     };
 
-    globalThis.__astroclawLastA2UIAction = userAction;
+    globalThis["__openclawLastA2UIAction"] = userAction;
 
     const handler =
-      globalThis.webkit?.messageHandlers?.astroclawCanvasA2UIAction ??
-      globalThis.astroclawCanvasA2UIAction;
+      globalThis.webkit?.messageHandlers?.openclawCanvasA2UIAction ??
+      globalThis.openclawCanvasA2UIAction;
     if (handler?.postMessage) {
       try {
         // WebKit message handlers support structured objects; Android's JS interface expects strings.
-        if (handler === globalThis.astroclawCanvasA2UIAction) {
+        if (handler === globalThis.openclawCanvasA2UIAction) {
           postNativeMessage(handler, JSON.stringify({ userAction }));
         } else {
           postNativeMessage(handler, { userAction });
@@ -587,6 +591,6 @@ class AstroclawA2UIHost extends LitElement {
   }
 }
 
-if (!customElements.get("astroclaw-a2ui-host")) {
-  customElements.define("astroclaw-a2ui-host", AstroclawA2UIHost);
+if (!customElements.get("openclaw-a2ui-host")) {
+  customElements.define("openclaw-a2ui-host", OpenClawA2UIHost);
 }
