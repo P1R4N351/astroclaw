@@ -1,3 +1,4 @@
+// Telegram plugin module implements secret contract behavior.
 import {
   collectConditionalChannelFieldAssignments,
   getChannelSurface,
@@ -5,22 +6,15 @@ import {
   hasOwnProperty,
   type ResolverContext,
   type SecretDefaults,
-} from "astroclaw/plugin-sdk/channel-secret-basic-runtime";
+} from "openclaw/plugin-sdk/channel-secret-basic-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 
-function normalizeOptionalString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
+export const secretTargetRegistryEntries: import("openclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
   [
     {
       id: "channels.telegram.accounts.*.botToken",
       targetType: "channels.telegram.accounts.*.botToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.telegram.accounts.*.botToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -31,7 +25,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.telegram.accounts.*.webhookSecret",
       targetType: "channels.telegram.accounts.*.webhookSecret",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.telegram.accounts.*.webhookSecret",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -42,7 +36,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.telegram.botToken",
       targetType: "channels.telegram.botToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.telegram.botToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -53,7 +47,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.telegram.webhookSecret",
       targetType: "channels.telegram.webhookSecret",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.telegram.webhookSecret",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
