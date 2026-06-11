@@ -1,7 +1,8 @@
-import { createAccountListHelpers } from "astroclaw/plugin-sdk/account-helpers";
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
-import { resolveMergedAccountConfig } from "astroclaw/plugin-sdk/account-resolution-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Qa Channel plugin module implements accounts behavior.
+import { createAccountListHelpers } from "openclaw/plugin-sdk/account-helpers";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
+import { resolveMergedAccountConfig } from "openclaw/plugin-sdk/account-resolution-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { CoreConfig, QaChannelAccountConfig, ResolvedQaChannelAccount } from "./types.js";
 
 const DEFAULT_POLL_TIMEOUT_MS = 1_000;
@@ -9,7 +10,12 @@ const DEFAULT_POLL_TIMEOUT_MS = 1_000;
 const {
   listAccountIds: listQaChannelAccountIds,
   resolveDefaultAccountId: resolveDefaultQaChannelAccountId,
-} = createAccountListHelpers("qa-channel", { normalizeAccountId });
+} = createAccountListHelpers("qa-channel", {
+  normalizeAccountId,
+  implicitDefaultAccount: {
+    channelKeys: ["baseUrl"],
+  },
+});
 
 export { listQaChannelAccountIds, resolveDefaultQaChannelAccountId };
 
@@ -32,8 +38,8 @@ export function resolveQaChannelAccount(params: {
   const baseEnabled = params.cfg.channels?.["qa-channel"]?.enabled !== false;
   const enabled = baseEnabled && merged.enabled !== false;
   const baseUrl = merged.baseUrl?.trim() ?? "";
-  const botUserId = merged.botUserId?.trim() || "astroclaw";
-  const botDisplayName = merged.botDisplayName?.trim() || "Astroclaw QA";
+  const botUserId = merged.botUserId?.trim() || "openclaw";
+  const botDisplayName = merged.botDisplayName?.trim() || "OpenClaw QA";
   return {
     accountId,
     enabled,
