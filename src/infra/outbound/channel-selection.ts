@@ -1,6 +1,8 @@
+// Channel selection chooses a deliverable message channel from explicit input,
+// tool context fallback, or configured plugin accounts.
 import { listChannelPlugins } from "../../channels/plugins/index.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   type OfficialExternalPluginRepairHint,
   resolveMissingOfficialExternalChannelPluginRepairHint,
@@ -15,7 +17,9 @@ import {
 import { formatErrorMessage } from "../errors.js";
 import { resolveOutboundChannelPlugin } from "./channel-resolution.js";
 
+/** Deliverable message channel id that can be selected for message actions. */
 export type MessageChannelId = DeliverableMessageChannel;
+/** Source that explains how message channel selection chose its result. */
 export type MessageChannelSelectionSource =
   | "explicit"
   | "tool-context-fallback"
@@ -42,22 +46,33 @@ function resolveKnownChannel(value?: string | null): MessageChannelId | undefine
 }
 
 function resolveAvailableKnownChannel(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   value?: string | null;
 }): MessageChannelId | undefined {
   const normalized = resolveKnownChannel(params.value);
   if (!normalized) {
     return undefined;
   }
+  // Pass `allowBootstrap: true` so the in-agent message tool path can resolve
+  // outbound channels in processes where external channel adapters have not
+  // been eagerly loaded (e.g. `openclaw agent --local`). Already-loaded and
+  // bundled plugins still resolve through side-effect-free fast paths first.
+  // Without the bootstrap fallback, official external channels can surface as
+  // the recurring "Channel is unavailable" error on `--local`-routed
+  // dispatches that the CLI send-path could deliver to.
+  // Adjacent to #77254 (cron-announce / final-reply paths); this closes the
+  // remaining in-agent caller in the same family.
   return resolveOutboundChannelPlugin({
     channel: normalized,
     cfg: params.cfg,
+    allowBootstrap: true,
   })
     ? normalized
     : undefined;
 }
 
-function isConfiguredChannel(cfg: AstroclawConfig, channelId: string): boolean {
+/** Checks whether a channel has a non-disabled config entry. */
+export function isConfiguredChannel(cfg: OpenClawConfig, channelId: string): boolean {
   const channels = cfg.channels;
   if (!channels || typeof channels !== "object" || Array.isArray(channels)) {
     return false;
@@ -70,7 +85,7 @@ function isConfiguredChannel(cfg: AstroclawConfig, channelId: string): boolean {
 }
 
 function listConfiguredOfficialExternalRepairHints(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): OfficialExternalPluginRepairHint[] {
   const channels = cfg.channels;
   if (!channels || typeof channels !== "object" || Array.isArray(channels)) {
@@ -99,14 +114,14 @@ function formatMissingOfficialExternalChannelsMessage(
   }
   const labels = hints.map((hint) => hint.label).join(", ");
   const installCommands = hints.map((hint) => hint.installCommand).join("; ");
-  return `Configured official external channels ${labels} are missing their plugins. Run: astroclaw doctor --fix, or install individually: ${installCommands}.`;
+  return `Configured official external channels ${labels} are missing their plugins. Run: openclaw doctor --fix, or install individually: ${installCommands}.`;
 }
 
 function formatNoConfiguredChannelsMessage(): string {
   return [
     "Channel is required (no configured channels detected).",
-    "Run astroclaw channels add to configure one, or pass --channel <channel> after enabling a channel.",
-    "Use astroclaw channels list --all to see available channel ids.",
+    "Run openclaw channels add to configure one, or pass --channel <channel> after enabling a channel.",
+    "Use openclaw channels list --all to see available channel ids.",
   ].join(" ");
 }
 
@@ -144,7 +159,7 @@ function logChannelSelectionError(params: {
   );
 }
 
-async function isPluginConfigured(plugin: ChannelPlugin, cfg: AstroclawConfig): Promise<boolean> {
+async function isPluginConfigured(plugin: ChannelPlugin, cfg: OpenClawConfig): Promise<boolean> {
   const accountIds = plugin.config.listAccountIds(cfg);
   if (accountIds.length === 0) {
     return false;
@@ -172,7 +187,7 @@ async function isPluginConfigured(plugin: ChannelPlugin, cfg: AstroclawConfig): 
     if (!plugin.config.isConfigured) {
       return true;
     }
-    let configured = false;
+    let configured;
     try {
       configured = await plugin.config.isConfigured(account, cfg);
     } catch (error) {
@@ -192,8 +207,9 @@ async function isPluginConfigured(plugin: ChannelPlugin, cfg: AstroclawConfig): 
   return false;
 }
 
+/** Lists deliverable channels with at least one enabled, configured account. */
 export async function listConfiguredMessageChannels(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): Promise<MessageChannelId[]> {
   const channels: MessageChannelId[] = [];
   for (const plugin of listChannelPlugins()) {
@@ -207,8 +223,9 @@ export async function listConfiguredMessageChannels(
   return channels;
 }
 
+/** Resolves the message action channel from explicit input, context fallback, or config. */
 export async function resolveMessageChannelSelection(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel?: string | null;
   fallbackChannel?: string | null;
 }): Promise<{
@@ -283,8 +300,9 @@ export async function resolveMessageChannelSelection(params: {
   throw new Error(formatMultipleConfiguredChannelsMessage(configured));
 }
 
-export const __testing = {
+export const testing = {
   resetLoggedChannelSelectionErrors() {
     loggedChannelSelectionErrors.clear();
   },
 };
+export { testing as __testing };
