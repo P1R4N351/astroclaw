@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Applies GHSA patch payloads to advisory branches.
 import { execFileSync, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -14,7 +15,7 @@ function usage() {
       "    --description-file <path>",
       "    --vulnerable-version-range <range>",
       "    --patched-versions <range-or-null>",
-      "    [--package astroclaw] [--ecosystem npm] [--cvss <vector>]",
+      "    [--package openclaw] [--ecosystem npm] [--cvss <vector>]",
     ].join("\n"),
   );
 }
@@ -92,7 +93,7 @@ const current = JSON.parse(runGh(["api", "-H", "X-GitHub-Api-Version: 2022-11-28
 const restoredCvss = args.cvss || current?.cvss?.vector_string || null;
 
 const ecosystem = args.ecosystem || "npm";
-const packageName = args.package || "astroclaw";
+const packageName = args.package || "openclaw";
 const vulnerableRange = args["vulnerable-version-range"];
 const patchedVersionsRaw = args["patched-versions"];
 
