@@ -1,3 +1,4 @@
+// Resolves npm commands from the active Node toolchain, especially on Windows.
 import fs from "node:fs";
 import path from "node:path";
 import { buildCmdExeCommandLine, resolvePathEnvKey } from "./windows-cmd-helpers.mjs";
@@ -41,6 +42,9 @@ function resolveToolchainNpmRunner(params) {
   return null;
 }
 
+/**
+ * Resolves a toolchain-local npm invocation for the current platform.
+ */
 export function resolveNpmRunner(params = {}) {
   const execPath = params.execPath ?? process.execPath;
   const npmArgs = params.npmArgs ?? [];
@@ -71,7 +75,7 @@ export function resolveNpmRunner(params = {}) {
     throw new Error(
       `failed to resolve a toolchain-local npm next to ${execPath}. ` +
         `Checked: ${expectedPaths.join(", ")}. ` +
-        "Astroclaw refuses to shell out to bare npm on Windows; install a Node.js toolchain that bundles npm or run with a matching Node installation.",
+        "OpenClaw refuses to shell out to bare npm on Windows; install a Node.js toolchain that bundles npm or run with a matching Node installation.",
     );
   }
   const pathKey = resolvePathEnvKey(env);
