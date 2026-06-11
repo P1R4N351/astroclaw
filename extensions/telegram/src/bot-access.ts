@@ -1,15 +1,16 @@
+// Telegram plugin module implements bot access behavior.
 import {
   firstDefined,
   isSenderIdAllowed,
   mergeDmAllowFromSources,
-} from "astroclaw/plugin-sdk/allow-from";
+} from "openclaw/plugin-sdk/allow-from";
 import type {
   DmPolicy,
   TelegramDirectConfig,
   TelegramGroupConfig,
-} from "astroclaw/plugin-sdk/config-contracts";
-import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/config-contracts";
+import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalString, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export type NormalizedAllowFrom = {
   entries: string[];
@@ -52,7 +53,7 @@ export const normalizeAllowFrom = (list?: Array<string | number>): NormalizedAll
     .map((value) => value.replace(/^(telegram|tg):/i, ""));
   const invalidEntries = normalized.filter((value) => !/^\d+$/.test(value));
   if (invalidEntries.length > 0) {
-    warnInvalidAllowFromEntries([...new Set(invalidEntries)]);
+    warnInvalidAllowFromEntries(uniqueStrings(invalidEntries));
   }
   const ids = normalized.filter((value) => /^\d+$/.test(value));
   return {
