@@ -1,4 +1,9 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Agent run workspace resolver.
+ *
+ * Selects per-run workspace directories and redacts run identifiers for logs/prompts.
+ */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { logWarn } from "../logger.js";
 import { redactIdentifier } from "../logging/redact-identifier.js";
 import {
@@ -25,7 +30,7 @@ type ResolveRunWorkspaceResult = {
 function resolveRunAgentId(params: {
   sessionKey?: string;
   agentId?: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
 }): {
   agentId: string;
   agentIdSource: AgentIdSource;
@@ -67,15 +72,17 @@ function resolveRunAgentId(params: {
   };
 }
 
+/** Redacts a run/session identifier for logs and prompts. */
 export function redactRunIdentifier(value: string | undefined): string {
   return redactIdentifier(value, { len: 12 });
 }
 
+/** Resolves the workspace directory used for an agent run. */
 export function resolveRunWorkspaceDir(params: {
   workspaceDir: unknown;
   sessionKey?: string;
   agentId?: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
 }): ResolveRunWorkspaceResult {
   const env = params.env ?? process.env;
