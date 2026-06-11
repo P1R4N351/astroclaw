@@ -1,12 +1,13 @@
-import { describeWebhookAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
-import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-import { createLoggedPairingApprovalNotifier } from "astroclaw/plugin-sdk/channel-pairing";
-import { createAllowlistProviderRouteAllowlistWarningCollector } from "astroclaw/plugin-sdk/channel-policy";
+// Nextcloud Talk plugin module implements channel behavior.
+import { describeWebhookAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
+import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+import { createLoggedPairingApprovalNotifier } from "openclaw/plugin-sdk/channel-pairing";
+import { createAllowlistProviderRouteAllowlistWarningCollector } from "openclaw/plugin-sdk/channel-policy";
 import {
   buildWebhookChannelStatusSummary,
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import { resolveNextcloudTalkAccount, type ResolvedNextcloudTalkAccount } from "./accounts.js";
 import { nextcloudTalkApprovalAuth } from "./approval-auth.js";
 import { probeNextcloudTalkBotResponseFeature } from "./bot-preflight.js";
@@ -19,6 +20,7 @@ import {
 import { NextcloudTalkConfigSchema } from "./config-schema.js";
 import { nextcloudTalkDoctor } from "./doctor.js";
 import { nextcloudTalkGatewayAdapter } from "./gateway.js";
+import { nextcloudTalkMessageActions } from "./message-actions.js";
 import { nextcloudTalkMessageAdapter } from "./message-adapter.js";
 import {
   looksLikeNextcloudTalkTargetId,
@@ -178,6 +180,7 @@ export const nextcloudTalkPlugin: ChannelPlugin<ResolvedNextcloudTalkAccount> =
       }),
       gateway: nextcloudTalkGatewayAdapter,
       message: nextcloudTalkMessageAdapter,
+      actions: nextcloudTalkMessageActions,
     },
     pairing: {
       text: {
