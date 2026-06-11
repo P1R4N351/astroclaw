@@ -1,12 +1,18 @@
-import { getProviderEnvVars } from "../secrets/provider-env-vars.js";
+/**
+ * Live-test provider API-key discovery.
+ * Reads provider-specific and manifest-declared env names without logging or
+ * exposing secret values, with explicit single-key pins for flaky live lanes.
+ */
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { getProviderEnvVars } from "../secrets/provider-env-vars.js";
 import { normalizeProviderId } from "./model-selection.js";
 
 const KEY_SPLIT_RE = /[\s,;]+/g;
-const GOOGLE_LIVE_SINGLE_KEY = "ASTROCLAW_LIVE_GEMINI_KEY";
+const GOOGLE_LIVE_SINGLE_KEY = "OPENCLAW_LIVE_GEMINI_KEY";
 
 const PROVIDER_PREFIX_OVERRIDES: Record<string, string> = {
   google: "GEMINI",
@@ -28,8 +34,8 @@ type CollectProviderApiKeysOptions = {
 
 const PROVIDER_API_KEY_CONFIG: Record<string, Omit<ProviderApiKeyConfig, "fallbackVars">> = {
   anthropic: {
-    liveSingle: "ASTROCLAW_LIVE_ANTHROPIC_KEY",
-    listVar: "ASTROCLAW_LIVE_ANTHROPIC_KEYS",
+    liveSingle: "OPENCLAW_LIVE_ANTHROPIC_KEY",
+    listVar: "OPENCLAW_LIVE_ANTHROPIC_KEYS",
     primaryVar: "ANTHROPIC_API_KEY",
     prefixedVar: "ANTHROPIC_API_KEY_",
   },
@@ -46,7 +52,7 @@ const PROVIDER_API_KEY_CONFIG: Record<string, Omit<ProviderApiKeyConfig, "fallba
     prefixedVar: "GEMINI_API_KEY_",
   },
   openai: {
-    liveSingle: "ASTROCLAW_LIVE_OPENAI_KEY",
+    liveSingle: "OPENCLAW_LIVE_OPENAI_KEY",
     listVar: "OPENAI_API_KEYS",
     primaryVar: "OPENAI_API_KEY",
     prefixedVar: "OPENAI_API_KEY_",
@@ -57,10 +63,7 @@ function parseKeyList(raw?: string | null): string[] {
   if (!raw) {
     return [];
   }
-  return raw
-    .split(KEY_SPLIT_RE)
-    .map((value) => value.trim())
-    .filter(Boolean);
+  return normalizeStringEntries(raw.split(KEY_SPLIT_RE));
 }
 
 function collectEnvPrefixedKeys(prefix: string, env: NodeJS.ProcessEnv): string[] {
@@ -83,7 +86,7 @@ function resolveProviderApiKeyConfig(provider: string): ProviderApiKeyConfig {
   const custom = PROVIDER_API_KEY_CONFIG[normalized];
   const base = PROVIDER_PREFIX_OVERRIDES[normalized] ?? normalized.toUpperCase().replace(/-/g, "_");
 
-  const liveSingle = custom?.liveSingle ?? `ASTROCLAW_LIVE_${base}_KEY`;
+  const liveSingle = custom?.liveSingle ?? `OPENCLAW_LIVE_${base}_KEY`;
   const listVar = custom?.listVar ?? `${base}_API_KEYS`;
   const primaryVar = custom?.primaryVar ?? `${base}_API_KEY`;
   const prefixedVar = custom?.prefixedVar ?? `${base}_API_KEY_`;
@@ -107,6 +110,7 @@ function resolveProviderApiKeyConfig(provider: string): ProviderApiKeyConfig {
   };
 }
 
+/** Collect configured API keys for live provider tests without exposing values. */
 export function collectProviderApiKeys(
   provider: string,
   options: CollectProviderApiKeysOptions = {},
@@ -119,6 +123,7 @@ export function collectProviderApiKeys(
     ? normalizeOptionalString(env[config.liveSingle])
     : undefined;
   if (forcedSingle) {
+    // OPENCLAW_LIVE_*_KEY pins a single key so retries do not rotate fixtures.
     return [forcedSingle];
   }
 
@@ -163,14 +168,17 @@ export function collectProviderApiKeys(
   return Array.from(seen);
 }
 
+/** Collect Anthropic API keys for live cache/model tests. */
 export function collectAnthropicApiKeys(): string[] {
   return collectProviderApiKeys("anthropic");
 }
 
+/** Collect Gemini API keys for live cache/model tests. */
 export function collectGeminiApiKeys(): string[] {
   return collectProviderApiKeys("google");
 }
 
+/** Return whether a provider error message indicates API-key rate limiting. */
 export function isApiKeyRateLimitError(message: string): boolean {
   const lower = normalizeLowercaseStringOrEmpty(message);
   if (lower.includes("rate_limit")) {
@@ -194,10 +202,12 @@ export function isApiKeyRateLimitError(message: string): boolean {
   return false;
 }
 
+/** Return whether an Anthropic error message indicates rate limiting. */
 export function isAnthropicRateLimitError(message: string): boolean {
   return isApiKeyRateLimitError(message);
 }
 
+/** Return whether an Anthropic error message indicates billing exhaustion. */
 export function isAnthropicBillingError(message: string): boolean {
   const lower = normalizeLowercaseStringOrEmpty(message);
   if (lower.includes("credit balance")) {
