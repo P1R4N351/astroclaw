@@ -1,26 +1,31 @@
+/**
+ * Test factories for Browser profile/runtime state and launched Chrome mocks.
+ */
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import type { RunningChrome } from "./chrome.js";
 import type { ResolvedBrowserProfile } from "./config.js";
 import type { BrowserServerState } from "./server-context.js";
 
+/** Creates a resolved Browser profile for unit tests. */
 export function makeBrowserProfile(
   overrides: Partial<ResolvedBrowserProfile> = {},
 ): ResolvedBrowserProfile {
   return {
-    name: "astroclaw",
+    name: "openclaw",
     cdpUrl: "http://127.0.0.1:18800",
     cdpHost: "127.0.0.1",
     cdpIsLoopback: true,
     cdpPort: 18800,
     color: "#FF4500",
-    driver: "astroclaw",
+    driver: "openclaw",
     headless: false,
     attachOnly: false,
     ...overrides,
   };
 }
 
+/** Creates Browser server state around a test profile. */
 export function makeBrowserServerState(params?: {
   profile?: ResolvedBrowserProfile;
   resolvedOverrides?: Partial<BrowserServerState["resolved"]>;
@@ -69,15 +74,16 @@ export function makeBrowserServerState(params?: {
   };
 }
 
+/** Mocks a launched OpenClaw Chrome process with the supplied pid. */
 export function mockLaunchedChrome(
-  launchAstroclawChrome: { mockResolvedValue: (value: RunningChrome) => unknown },
+  launchOpenClawChrome: { mockResolvedValue: (value: RunningChrome) => unknown },
   pid: number,
 ) {
   const proc = new EventEmitter() as unknown as ChildProcessWithoutNullStreams;
-  launchAstroclawChrome.mockResolvedValue({
+  launchOpenClawChrome.mockResolvedValue({
     pid,
     exe: { kind: "chromium", path: "/usr/bin/chromium" },
-    userDataDir: "/tmp/astroclaw-test",
+    userDataDir: "/tmp/openclaw-test",
     cdpPort: 18800,
     startedAt: Date.now(),
     proc,
