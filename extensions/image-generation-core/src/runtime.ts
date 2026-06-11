@@ -1,6 +1,7 @@
+// Image Generation Core plugin module implements runtime behavior.
 export {
   generateImage,
   listRuntimeImageGenerationProviders,
   type GenerateImageParams,
   type GenerateImageRuntimeResult,
-} from "astroclaw/plugin-sdk/image-generation-runtime";
+} from "openclaw/plugin-sdk/image-generation-runtime";
