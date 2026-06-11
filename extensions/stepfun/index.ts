@@ -1,10 +1,11 @@
+// Stepfun plugin entrypoint registers its OpenClaw integration.
 import {
   definePluginEntry,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type ProviderCatalogContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-auth-api-key";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-auth-api-key";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   applyStepFunPlanConfig,
   applyStepFunPlanConfigCn,
@@ -131,7 +132,7 @@ function createStepFunApiKeyMethod(params: {
   choiceId: string;
   choiceLabel: string;
   choiceHint: string;
-  applyConfig: (cfg: AstroclawConfig) => AstroclawConfig;
+  applyConfig: (cfg: OpenClawConfig) => OpenClawConfig;
 }) {
   return createProviderApiKeyAuthMethod({
     providerId: params.providerId,
