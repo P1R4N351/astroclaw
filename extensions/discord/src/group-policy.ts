@@ -1,11 +1,12 @@
-import type { ChannelGroupContext } from "astroclaw/plugin-sdk/channel-contract";
+// Discord plugin module implements group policy behavior.
+import type { ChannelGroupContext } from "openclaw/plugin-sdk/channel-contract";
 import {
   resolveToolsBySender,
   type GroupToolPolicyBySenderConfig,
   type GroupToolPolicyConfig,
-} from "astroclaw/plugin-sdk/channel-policy";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { normalizeAtHashSlug } from "astroclaw/plugin-sdk/string-normalization-runtime";
+} from "openclaw/plugin-sdk/channel-policy";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeAtHashSlug } from "openclaw/plugin-sdk/string-normalization-runtime";
 import type { DiscordConfig } from "./runtime-api.js";
 
 function normalizeDiscordSlug(value?: string | null) {
