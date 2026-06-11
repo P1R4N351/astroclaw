@@ -1,7 +1,8 @@
+// Test fixture helpers for constructing ACP runtime session metadata.
 import type { SessionAcpMeta } from "../../../config/sessions/types.js";
-import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 
-export function createAcpTestConfig(overrides?: Partial<AstroclawConfig>): AstroclawConfig {
+export function createAcpTestConfig(overrides?: Partial<OpenClawConfig>): OpenClawConfig {
   return {
     acp: {
       enabled: true,
@@ -11,7 +12,7 @@ export function createAcpTestConfig(overrides?: Partial<AstroclawConfig>): Astro
       },
     },
     ...overrides,
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 export function createAcpSessionMeta(overrides?: Partial<SessionAcpMeta>): SessionAcpMeta {
