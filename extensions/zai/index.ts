@@ -1,3 +1,7 @@
+// Zai plugin entrypoint registers its OpenClaw integration.
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   definePluginEntry,
   type ProviderAuthContext,
@@ -6,7 +10,7 @@ import {
   type ProviderResolveDynamicModelContext,
   type ProviderRuntimeModel,
   type ProviderWrapStreamFnContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import {
   applyAuthProfileConfig,
   buildApiKeyCredential,
@@ -16,18 +20,18 @@ import {
   type SecretInput,
   upsertAuthProfileWithLock,
   validateApiKeyInput,
-} from "astroclaw/plugin-sdk/provider-auth-api-key";
+} from "openclaw/plugin-sdk/provider-auth-api-key";
 import {
   buildProviderReplayFamilyHooks,
   normalizeModelCompat,
-} from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-shared";
 import {
   createPayloadPatchStreamWrapper,
   createToolStreamWrapper,
   defaultToolStreamExtraParams,
-} from "astroclaw/plugin-sdk/provider-stream-shared";
-import { fetchZaiUsage, resolveLegacyPiAgentAccessToken } from "astroclaw/plugin-sdk/provider-usage";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-stream-shared";
+import { fetchZaiUsage } from "openclaw/plugin-sdk/provider-usage";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { detectZaiEndpoint, type ZaiEndpointId } from "./detect.js";
 import { zaiMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import { buildZaiModelDefinition } from "./model-definitions.js";
@@ -37,6 +41,34 @@ const PROVIDER_ID = "zai";
 const GLM5_TEMPLATE_MODEL_ID = "glm-4.7";
 const PROFILE_ID = "zai:default";
 type UpsertAuthProfileParams = Parameters<typeof upsertAuthProfileWithLock>[0];
+
+function resolveDeprecatedPiAgentAuthPath(env: NodeJS.ProcessEnv): string {
+  const home = env.HOME?.trim() || env.USERPROFILE?.trim() || os.homedir();
+  return path.join(home, ".pi", "agent", "auth.json");
+}
+
+function resolveDeprecatedPiAgentAccessToken(
+  env: NodeJS.ProcessEnv,
+  providerIds: readonly string[],
+): string | undefined {
+  try {
+    const authPath = resolveDeprecatedPiAgentAuthPath(env);
+    if (!fs.existsSync(authPath)) {
+      return undefined;
+    }
+    const parsed = JSON.parse(fs.readFileSync(authPath, "utf-8")) as Record<
+      string,
+      { access?: unknown }
+    >;
+    for (const providerId of providerIds) {
+      const token = parsed[providerId]?.access;
+      if (typeof token === "string" && token.trim()) {
+        return token;
+      }
+    }
+  } catch {}
+  return undefined;
+}
 
 async function upsertAuthProfileWithLockOrThrow(params: UpsertAuthProfileParams): Promise<void> {
   const updated = await upsertAuthProfileWithLock(params);
@@ -359,7 +391,7 @@ export default definePluginEntry({
         if (apiKey) {
           return { token: apiKey };
         }
-        const legacyToken = resolveLegacyPiAgentAccessToken(ctx.env, ["z-ai", "zai"]);
+        const legacyToken = resolveDeprecatedPiAgentAccessToken(ctx.env, ["z-ai", PROVIDER_ID]);
         return legacyToken ? { token: legacyToken } : null;
       },
       fetchUsageSnapshot: async (ctx) => await fetchZaiUsage(ctx.token, ctx.timeoutMs, ctx.fetchFn),
