@@ -1,11 +1,12 @@
-import type { MarkdownTableMode } from "astroclaw/plugin-sdk/config-contracts";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Signal helper module supports format behavior.
+import type { MarkdownTableMode } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   markdownToIR,
   type MarkdownIR,
   type MarkdownStyle,
   renderMarkdownIRChunksWithinLimit,
-} from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/text-chunking";
 
 type SignalTextStyle = "BOLD" | "ITALIC" | "STRIKETHROUGH" | "MONOSPACE" | "SPOILER";
 
