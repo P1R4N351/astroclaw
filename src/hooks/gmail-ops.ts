@@ -1,20 +1,17 @@
+// Gmail hook ops helpers run Gmail setup and watcher support commands.
 import { spawn } from "node:child_process";
-import path from "node:path";
 import { formatCliCommand } from "../cli/command-format.js";
 import {
   getRuntimeConfig,
-  type AstroclawConfig,
+  type OpenClawConfig,
   CONFIG_PATH,
   readConfigFileSnapshot,
   replaceConfigFile,
   resolveGatewayPort,
   validateConfigObjectWithPlugins,
 } from "../config/config.js";
-import { resolveExecutable } from "../infra/executable-path.js";
-import { getWindowsInstallRoots } from "../infra/windows-install-roots.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { defaultRuntime } from "../runtime.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 import { displayPath } from "../utils.js";
 import {
   ensureDependency,
@@ -46,6 +43,8 @@ import {
   normalizeHooksPath,
   normalizeServePath,
   parseTopicPath,
+  resolveGogExecutable,
+  resolveGogServeInvocation,
   resolveGmailHookRuntimeConfig,
 } from "./gmail.js";
 
@@ -79,38 +78,6 @@ export type GmailRunOptions = GmailCommonOptions & {
 };
 
 const DEFAULT_GMAIL_TOPIC_IAM_MEMBER = "serviceAccount:gmail-api-push@system.gserviceaccount.com";
-let gogBin: string | undefined;
-const WINDOWS_UNSAFE_CMD_CHARS_RE = /[&|<>^%\r\n]/;
-
-function escapeForCmdExe(arg: string): string {
-  if (WINDOWS_UNSAFE_CMD_CHARS_RE.test(arg)) {
-    throw new Error(`Unsafe Windows cmd.exe argument detected: ${JSON.stringify(arg)}`);
-  }
-  if (!arg.includes(" ") && !arg.includes('"')) {
-    return arg;
-  }
-  return `"${arg.replace(/"/g, '""')}"`;
-}
-
-function resolveGogServeInvocation(args: string[]): {
-  args: string[];
-  command: string;
-  windowsHide?: true;
-  windowsVerbatimArguments?: true;
-} {
-  const command = (gogBin ??= resolveExecutable("gog"));
-  const ext = normalizeLowercaseStringOrEmpty(path.extname(command));
-  if (process.platform !== "win32" || (ext !== ".cmd" && ext !== ".bat")) {
-    return { command, args, windowsHide: process.platform === "win32" ? true : undefined };
-  }
-  const cmdExe = path.win32.join(getWindowsInstallRoots().systemRoot, "System32", "cmd.exe");
-  return {
-    command: cmdExe,
-    args: ["/d", "/s", "/c", [command, ...args].map(escapeForCmdExe).join(" ")],
-    windowsHide: true,
-    windowsVerbatimArguments: true,
-  };
-}
 
 export async function runGmailSetup(opts: GmailSetupOptions) {
   await ensureDependency("gcloud", ["--cask", "gcloud-cli"]);
@@ -234,7 +201,7 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
     true,
   );
 
-  const nextConfig: AstroclawConfig = {
+  const nextConfig: OpenClawConfig = {
     ...baseConfig,
     hooks: {
       ...baseConfig.hooks,
@@ -305,7 +272,7 @@ export async function runGmailSetup(opts: GmailSetupOptions) {
   defaultRuntime.log(`- push endpoint: ${pushEndpoint}`);
   defaultRuntime.log(`- hook url: ${hookUrl}`);
   defaultRuntime.log(`- config: ${displayPath(CONFIG_PATH)}`);
-  defaultRuntime.log(`Next: ${formatCliCommand("astroclaw webhooks gmail run")}`);
+  defaultRuntime.log(`Next: ${formatCliCommand("openclaw webhooks gmail run")}`);
 }
 
 export async function runGmailService(opts: GmailRunOptions) {
@@ -406,7 +373,7 @@ async function startGmailWatch(
   cfg: Pick<GmailHookRuntimeConfig, "account" | "label" | "topic">,
   fatal = false,
 ) {
-  const args = [(gogBin ??= resolveExecutable("gog")), ...buildGogWatchStartArgs(cfg)];
+  const args = [resolveGogExecutable(), ...buildGogWatchStartArgs(cfg)];
   const result = await runCommandWithTimeout(args, { timeoutMs: 120_000 });
   if (result.code !== 0) {
     const message = result.stderr || result.stdout || "gog watch start failed";
