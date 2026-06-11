@@ -1,3 +1,4 @@
+// Memory Core plugin module implements manager db behavior.
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import {
@@ -5,7 +6,7 @@ import {
   configureMemorySqliteWalMaintenance,
   ensureDir,
   requireNodeSqlite,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
 
 export function openMemoryDatabaseAtPath(dbPath: string, allowExtension: boolean): DatabaseSync {
   const dir = path.dirname(dbPath);
