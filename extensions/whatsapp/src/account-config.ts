@@ -1,18 +1,19 @@
+// Whatsapp helper module supports account config behavior.
 import {
   DEFAULT_ACCOUNT_ID,
   mergeAccountConfig,
   resolveAccountEntry,
   resolveMergedAccountConfig,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/account-core";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/account-core";
 import {
   resolveChannelStreamingBlockEnabled,
   resolveChannelStreamingChunkMode,
-} from "astroclaw/plugin-sdk/channel-streaming";
+} from "openclaw/plugin-sdk/channel-outbound";
 import type { WhatsAppAccountConfig } from "./account-types.js";
 
 function resolveWhatsAppDefaultAccountSharedConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): Partial<WhatsAppAccountConfig> | undefined {
   const defaultAccount = resolveAccountEntry(cfg.channels?.whatsapp?.accounts, DEFAULT_ACCOUNT_ID);
   if (!defaultAccount) {
@@ -28,19 +29,19 @@ function resolveWhatsAppDefaultAccountSharedConfig(
   return sharedDefaults;
 }
 
-function _resolveWhatsAppAccountConfig(
-  cfg: AstroclawConfig,
+function resolveWhatsAppAccountConfigForTest(
+  cfg: OpenClawConfig,
   accountId: string,
 ): WhatsAppAccountConfig | undefined {
   return resolveAccountEntry(cfg.channels?.whatsapp?.accounts, accountId);
 }
 
 function resolveMergedNamedWhatsAppAccountConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
 }): WhatsAppAccountConfig {
   const rootCfg = params.cfg.channels?.whatsapp;
-  const accountConfig = _resolveWhatsAppAccountConfig(params.cfg, params.accountId);
+  const accountConfig = resolveWhatsAppAccountConfigForTest(params.cfg, params.accountId);
   return {
     ...mergeAccountConfig<WhatsAppAccountConfig>({
       channelConfig: rootCfg as WhatsAppAccountConfig | undefined,
@@ -53,7 +54,7 @@ function resolveMergedNamedWhatsAppAccountConfig(params: {
 }
 
 export function resolveMergedWhatsAppAccountConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): WhatsAppAccountConfig & { accountId: string } {
   const rootCfg = params.cfg.channels?.whatsapp;
