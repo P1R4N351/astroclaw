@@ -1,11 +1,12 @@
-import type { AstroclawConfig, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveChannelModelOverride } from "astroclaw/plugin-sdk/model-session-runtime";
-import { buildAgentSessionKey } from "astroclaw/plugin-sdk/routing";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Discord plugin module implements threading.auto thread behavior.
+import type { OpenClawConfig, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+import { resolveChannelModelOverride } from "openclaw/plugin-sdk/model-session-runtime";
+import { buildAgentSessionKey } from "openclaw/plugin-sdk/routing";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import {
   normalizeOptionalString,
   normalizeOptionalStringifiedId,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   ChannelType,
   createThread,
@@ -78,7 +79,7 @@ export async function resolveDiscordAutoThreadReplyPlan(
     replyToMode: ReplyToMode;
     agentId: string;
     channel: string;
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     threadParentInheritanceEnabled?: boolean;
   },
 ): Promise<DiscordAutoThreadReplyPlan> {
@@ -219,7 +220,7 @@ export async function maybeCreateDiscordAutoThread(
 }
 
 function resolveDiscordThreadTitleModelRef(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel?: string;
   agentId: string;
   threadId: string;
@@ -258,7 +259,7 @@ async function maybeRenameDiscordAutoThread(params: {
   modelRef?: string;
   channelName?: string;
   channelDescription?: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
 }): Promise<void> {
   try {
