@@ -1,6 +1,7 @@
-import { createScopedDmSecurityResolver } from "astroclaw/plugin-sdk/channel-config-helpers";
-import { createOpenProviderConfiguredRouteWarningCollector } from "astroclaw/plugin-sdk/channel-policy";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+// Slack plugin module implements security behavior.
+import { createScopedDmSecurityResolver } from "openclaw/plugin-sdk/channel-config-helpers";
+import { createOpenProviderConfiguredRouteWarningCollector } from "openclaw/plugin-sdk/channel-policy";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 import {
   resolveSlackAccountAllowFrom,
   resolveSlackAccountDmPolicy,
