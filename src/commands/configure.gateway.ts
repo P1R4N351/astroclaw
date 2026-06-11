@@ -1,6 +1,15 @@
+// Configure wizard Gateway port, bind, auth, and Tailscale prompts.
+import { validateIPv4AddressInput } from "@openclaw/net-policy/ipv4";
+import {
+  normalizeOptionalString,
+  readStringValue,
+} from "@openclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import { note } from "../../packages/terminal-core/src/note.js";
 import { formatPortRangeHint } from "../cli/error-format.js";
+import { parsePort } from "../cli/shared/parse-port.js";
 import { resolveGatewayPort } from "../config/config.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isValidEnvSecretRefId, type SecretInput } from "../config/types.secrets.js";
 import {
   maybeAddTailnetOriginToControlUiAllowedOrigins,
@@ -11,10 +20,6 @@ import {
 import { findTailscaleBinary } from "../infra/tailscale.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { resolveDefaultSecretProviderAlias } from "../secrets/ref-contract.js";
-import { validateIPv4AddressInput } from "../shared/net/ipv4.js";
-import { normalizeOptionalString, readStringValue } from "../shared/string-coerce.js";
-import { normalizeStringEntries } from "../shared/string-normalization.js";
-import { note } from "../terminal/note.js";
 import { buildGatewayAuthConfig } from "./configure.gateway-auth.js";
 import { confirm, select, text } from "./configure.shared.js";
 import {
@@ -28,18 +33,18 @@ type GatewayAuthChoice = "token" | "password" | "trusted-proxy";
 type GatewayTokenInputMode = "plaintext" | "ref";
 
 function validateGatewayPortInput(value: unknown): string | undefined {
-  const port = Number(typeof value === "string" ? value.trim() : value);
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+  if (parsePort(value) === null) {
     return formatPortRangeHint();
   }
   return undefined;
 }
 
+/** Prompt for local Gateway network/auth settings and return config plus call token. */
 export async function promptGatewayConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   runtime: RuntimeEnv,
 ): Promise<{
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   port: number;
   token?: string;
 }> {
@@ -51,7 +56,7 @@ export async function promptGatewayConfig(
     }),
     runtime,
   );
-  const port = Number.parseInt(portRaw, 10);
+  const port = parsePort(portRaw) ?? resolveGatewayPort(cfg);
 
   let bind = guardCancel(
     await select({
@@ -201,12 +206,12 @@ export async function promptGatewayConfig(
       const envVar = guardCancel(
         await text({
           message: "Gateway token env var",
-          initialValue: "ASTROCLAW_GATEWAY_TOKEN",
-          placeholder: "ASTROCLAW_GATEWAY_TOKEN",
+          initialValue: "OPENCLAW_GATEWAY_TOKEN",
+          placeholder: "OPENCLAW_GATEWAY_TOKEN",
           validate: (value) => {
             const candidate = normalizeOptionalString(value) ?? "";
             if (!isValidEnvSecretRefId(candidate)) {
-              return "Use an env var name like ASTROCLAW_GATEWAY_TOKEN.";
+              return "Use an env var name like OPENCLAW_GATEWAY_TOKEN.";
             }
             const resolved = process.env[candidate]?.trim();
             if (!resolved) {
@@ -225,7 +230,7 @@ export async function promptGatewayConfig(
         }),
         id: envVarName,
       };
-      note(`Validated ${envVarName}. Astroclaw will store a token SecretRef.`, "Gateway token");
+      note(`Validated ${envVarName}. OpenClaw will store a token SecretRef.`, "Gateway token");
     } else {
       const tokenInput = guardCancel(
         await text({
@@ -253,12 +258,12 @@ export async function promptGatewayConfig(
   if (authMode === "trusted-proxy") {
     note(
       [
-        "Trusted proxy mode: Astroclaw trusts user identity from a reverse proxy.",
+        "Trusted proxy mode: OpenClaw trusts user identity from a reverse proxy.",
         "The proxy must authenticate users and pass identity via headers.",
         "Only requests from specified proxy IPs will be trusted.",
         "",
         "Common use cases: Pomerium, Caddy + OAuth, Traefik + forward auth",
-        "Docs: https://docs.astroclaw.ai/gateway/trusted-proxy-auth",
+        "Docs: https://docs.openclaw.ai/gateway/trusted-proxy-auth",
       ].join("\n"),
       "Trusted Proxy Auth",
     );
