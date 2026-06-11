@@ -1,10 +1,11 @@
+// Discord plugin module implements setup surface behavior.
 import {
   createSetupTranslator,
   type ChannelSetupWizard,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type WizardPrompter,
-} from "astroclaw/plugin-sdk/setup-runtime";
-import { formatDocsLink } from "astroclaw/plugin-sdk/setup-tools";
+} from "openclaw/plugin-sdk/setup-runtime";
+import { formatDocsLink } from "openclaw/plugin-sdk/setup-tools";
 import { resolveDiscordAccountAllowFrom } from "./accounts.js";
 import { resolveDiscordChannelAllowlist } from "./resolve-channels.js";
 import { resolveDiscordUserAllowlist } from "./resolve-users.js";
@@ -47,10 +48,10 @@ async function resolveDiscordAllowFromEntries(params: { token?: string; entries:
 }
 
 async function promptDiscordAllowFrom(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
   accountId?: string;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   return await promptLegacyChannelAllowFromForAccount({
     cfg: params.cfg,
     channel,
@@ -91,7 +92,7 @@ async function promptDiscordAllowFrom(params: {
 }
 
 async function resolveDiscordGroupAllowlist(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   credentialValues: { token?: string };
   entries: string[];
