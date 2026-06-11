@@ -1,3 +1,4 @@
+// Builds a prerelease live-ish probe matrix from available credential env vars.
 const LIVEISH_INPUTS = Object.freeze([
   {
     probe: "provider-openai",
@@ -17,19 +18,19 @@ const LIVEISH_INPUTS = Object.freeze([
   },
   {
     probe: "channel-telegram",
-    env: ["TELEGRAM_BOT_TOKEN", "ASTROCLAW_TELEGRAM_BOT_TOKEN"],
+    env: ["TELEGRAM_BOT_TOKEN", "OPENCLAW_TELEGRAM_BOT_TOKEN"],
   },
   {
     probe: "channel-discord",
-    env: ["DISCORD_TOKEN", "ASTROCLAW_DISCORD_TOKEN"],
+    env: ["DISCORD_TOKEN", "OPENCLAW_DISCORD_TOKEN"],
   },
   {
     probe: "channel-slack",
-    env: ["SLACK_BOT_TOKEN", "ASTROCLAW_SLACK_BOT_TOKEN"],
+    env: ["SLACK_BOT_TOKEN", "OPENCLAW_SLACK_BOT_TOKEN"],
   },
   {
     probe: "channel-whatsapp",
-    env: ["WHATSAPP_ACCESS_TOKEN", "ASTROCLAW_WHATSAPP_ACCESS_TOKEN"],
+    env: ["WHATSAPP_ACCESS_TOKEN", "OPENCLAW_WHATSAPP_ACCESS_TOKEN"],
   },
 ]);
 
