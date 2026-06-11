@@ -1,3 +1,6 @@
+/**
+ * Runtime SDK subpath for config snapshot and config cache access.
+ */
 export {
   clearRuntimeConfigSnapshot,
   getRuntimeConfigSnapshot,
@@ -9,4 +12,4 @@ export {
   getRuntimeConfig,
   getRuntimeConfigSourceSnapshot,
 } from "../config/io.js";
-export type { AstroclawConfig } from "../config/types.js";
+export type { OpenClawConfig } from "../config/types.js";
