@@ -1,3 +1,4 @@
+// Scope script supports OpenClaw repository automation.
 import fs from "node:fs";
 import path from "node:path";
 import { BUNDLED_PLUGIN_PATH_PREFIX } from "../bundled-plugin-paths.mjs";
@@ -125,9 +126,9 @@ export function createPluginSdkScope(_repoRoot: string): TopologyScope {
     entrypoint,
     sourcePath: `src/plugin-sdk/${entrypoint}.ts`,
     importSpecifier:
-      entrypoint === "index" ? "astroclaw/plugin-sdk" : `astroclaw/plugin-sdk/${entrypoint}`,
+      entrypoint === "index" ? "openclaw/plugin-sdk" : `openclaw/plugin-sdk/${entrypoint}`,
   }));
-  return buildScopeFromEntrypoints("plugin-sdk", "Astroclaw plugin-sdk public surface", entrypoints);
+  return buildScopeFromEntrypoints("plugin-sdk", "OpenClaw plugin-sdk public surface", entrypoints);
 }
 
 export function createFilesystemPublicSurfaceScope(
