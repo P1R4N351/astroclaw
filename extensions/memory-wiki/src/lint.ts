@@ -1,9 +1,10 @@
+// Memory Wiki plugin module implements lint behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
   replaceManagedMarkdownBlock,
   withTrailingNewline,
-} from "astroclaw/plugin-sdk/memory-host-markdown";
+} from "openclaw/plugin-sdk/memory-host-markdown";
 import {
   assessPageFreshness,
   buildClaimContradictionClusters,
@@ -341,8 +342,8 @@ async function writeLintReport(rootDir: string, issues: MemoryWikiLintIssue[]): 
   const updated = replaceManagedMarkdownBlock({
     original,
     heading: "## Generated",
-    startMarker: "<!-- astroclaw:wiki:lint:start -->",
-    endMarker: "<!-- astroclaw:wiki:lint:end -->",
+    startMarker: "<!-- openclaw:wiki:lint:start -->",
+    endMarker: "<!-- openclaw:wiki:lint:end -->",
     body: buildLintReportBody(issues),
   });
   await fs.writeFile(reportPath, withTrailingNewline(updated), "utf8");
