@@ -1,9 +1,10 @@
+// Telegram helper module supports account config behavior.
 import {
   normalizeAccountId,
-  resolveAccountEntry,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/account-core";
-import type { TelegramAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
+  resolveNormalizedAccountEntry,
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/account-core";
+import type { TelegramAccountConfig } from "openclaw/plugin-sdk/config-contracts";
 
 function normalizeAllowFromEntry(value: string | number): string {
   return String(value).trim();
@@ -45,15 +46,19 @@ function resolveMergedAllowFrom(params: {
 }
 
 export function resolveTelegramAccountConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
 ): TelegramAccountConfig | undefined {
   const normalized = normalizeAccountId(accountId);
-  return resolveAccountEntry(cfg.channels?.telegram?.accounts, normalized);
+  return resolveNormalizedAccountEntry(
+    cfg.channels?.telegram?.accounts,
+    normalized,
+    normalizeAccountId,
+  );
 }
 
 export function mergeTelegramAccountConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
 ): TelegramAccountConfig {
   const {
