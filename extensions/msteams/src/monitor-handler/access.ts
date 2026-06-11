@@ -1,15 +1,16 @@
+// Msteams plugin module implements access behavior.
 import {
   channelIngressRoutes,
   resolveStableChannelMessageIngress,
   type StableChannelIngressIdentityParams,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   DEFAULT_ACCOUNT_ID,
   createChannelPairingController,
   isDangerousNameMatchingEnabled,
   resolveDefaultGroupPolicy,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "../../runtime-api.js";
 import { normalizeMSTeamsConversationId } from "../inbound.js";
 import { resolveMSTeamsRouteConfig } from "../policy.js";
@@ -39,7 +40,7 @@ function normalizeIngressValue(value?: string | null): string | null {
 }
 
 export async function resolveMSTeamsSenderAccess(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   activity: MSTeamsTurnContext["activity"];
   hasControlCommand?: boolean;
 }) {
