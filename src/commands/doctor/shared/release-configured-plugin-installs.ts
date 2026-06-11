@@ -1,18 +1,20 @@
+// Release-era repair for configs that imply official plugin installs before install records existed.
+import { collectConfiguredModelRefs } from "@openclaw/model-catalog-core/configured-model-refs";
+import { normalizeNullableString as normalizeId } from "@openclaw/normalization-core/string-coerce";
 import { collectConfiguredAgentHarnessRuntimes } from "../../../agents/harness-runtimes.js";
 import { listPotentialConfiguredChannelPresenceSignals } from "../../../channels/config-presence.js";
 import { normalizeChatChannelId } from "../../../channels/registry.js";
 import { isChannelConfigured } from "../../../config/channel-configured.js";
-import { collectConfiguredModelRefs } from "../../../config/model-refs.js";
 import { detectPluginAutoEnableCandidates } from "../../../config/plugin-auto-enable.js";
-import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
-import { compareAstroclawVersions } from "../../../config/version.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import { compareOpenClawVersions } from "../../../config/version.js";
 import { getOfficialExternalPluginCatalogEntry } from "../../../plugins/official-external-plugin-catalog.js";
 import { resolveProviderInstallCatalogEntries } from "../../../plugins/provider-install-catalog.js";
 import { resolveWebSearchInstallCatalogEntry } from "../../../plugins/web-search-install-catalog.js";
 import { VERSION } from "../../../version.js";
 import { repairMissingPluginInstallsForIds } from "./missing-configured-plugin-install.js";
 import { asObjectRecord } from "./object.js";
-import { isUpdatePackageSwapInProgress } from "./update-phase.js";
+import { shouldDeferConfiguredPluginInstallRepair } from "./update-phase.js";
 
 export const CONFIGURED_PLUGIN_INSTALL_RELEASE_VERSION = "2026.5.2-beta.1";
 
@@ -26,20 +28,16 @@ type ReleaseConfiguredPluginIds = {
   channelIds: string[];
 };
 
-function normalizeId(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function isPluginsGloballyDisabled(cfg: AstroclawConfig): boolean {
+function isPluginsGloballyDisabled(cfg: OpenClawConfig): boolean {
   return cfg.plugins?.enabled === false;
 }
 
-function isDenied(cfg: AstroclawConfig, pluginId: string): boolean {
+function isDenied(cfg: OpenClawConfig, pluginId: string): boolean {
   const deny = cfg.plugins?.deny;
   return Array.isArray(deny) && deny.includes(pluginId);
 }
 
-function collectBlockedPluginIds(cfg: AstroclawConfig): string[] {
+function collectBlockedPluginIds(cfg: OpenClawConfig): string[] {
   const ids = new Set<string>();
   const deny = cfg.plugins?.deny;
   if (Array.isArray(deny)) {
@@ -59,17 +57,17 @@ function collectBlockedPluginIds(cfg: AstroclawConfig): string[] {
   return [...ids].toSorted((left, right) => left.localeCompare(right));
 }
 
-function isPluginEntryDisabled(cfg: AstroclawConfig, pluginId: string): boolean {
+function isPluginEntryDisabled(cfg: OpenClawConfig, pluginId: string): boolean {
   return cfg.plugins?.entries?.[pluginId]?.enabled === false;
 }
 
-function isChannelDisabled(cfg: AstroclawConfig, channelId: string): boolean {
+function isChannelDisabled(cfg: OpenClawConfig, channelId: string): boolean {
   const channels = asObjectRecord(cfg.channels);
   const entry = asObjectRecord(channels?.[channelId]);
   return entry?.enabled === false;
 }
 
-function isDisabled(cfg: AstroclawConfig, pluginId: string): boolean {
+function isDisabled(cfg: OpenClawConfig, pluginId: string): boolean {
   if (isPluginEntryDisabled(cfg, pluginId)) {
     return true;
   }
@@ -92,7 +90,7 @@ function hasMaterialPluginEntry(entry: unknown): boolean {
   );
 }
 
-function collectMaterialPluginEntryIds(cfg: AstroclawConfig): string[] {
+function collectMaterialPluginEntryIds(cfg: OpenClawConfig): string[] {
   const entries = asObjectRecord(cfg.plugins?.entries);
   if (!entries) {
     return [];
@@ -103,14 +101,17 @@ function collectMaterialPluginEntryIds(cfg: AstroclawConfig): string[] {
     .filter((pluginId) => pluginId);
 }
 
-function collectSlotPluginIds(cfg: AstroclawConfig): string[] {
+function collectSlotPluginIds(cfg: OpenClawConfig): string[] {
   const slots = asObjectRecord(cfg.plugins?.slots);
   return ["memory", "contextEngine"]
     .map((key) => normalizeId(slots?.[key]))
-    .filter((pluginId): pluginId is string => !!pluginId && pluginId.toLowerCase() !== "none");
+    .filter(
+      (pluginId): pluginId is string =>
+        typeof pluginId === "string" && pluginId.toLowerCase() !== "none",
+    );
 }
 
-function collectConfiguredChannelIds(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): string[] {
+function collectConfiguredChannelIds(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): string[] {
   const ids = new Set<string>();
   const channels = asObjectRecord(cfg.channels);
   if (channels) {
@@ -138,7 +139,7 @@ function collectConfiguredChannelIds(cfg: AstroclawConfig, env: NodeJS.ProcessEn
   return [...ids].toSorted((left, right) => left.localeCompare(right));
 }
 
-function collectConfiguredProviderIds(cfg: AstroclawConfig): Set<string> {
+function collectConfiguredProviderIds(cfg: OpenClawConfig): Set<string> {
   const ids = new Set<string>();
   const add = (value: unknown) => {
     const id = normalizeId(value);
@@ -152,6 +153,19 @@ function collectConfiguredProviderIds(cfg: AstroclawConfig): Set<string> {
   for (const providerId of Object.keys(asObjectRecord(cfg.models?.providers) ?? {})) {
     add(providerId);
   }
+  const modelByChannel = asObjectRecord(cfg.channels?.modelByChannel);
+  for (const [providerId, channelMap] of Object.entries(modelByChannel ?? {})) {
+    add(providerId);
+    for (const modelRef of Object.values(asObjectRecord(channelMap) ?? {})) {
+      if (typeof modelRef !== "string") {
+        continue;
+      }
+      const slash = modelRef.indexOf("/");
+      if (slash > 0) {
+        add(modelRef.slice(0, slash));
+      }
+    }
+  }
   for (const { value } of collectConfiguredModelRefs(cfg, {
     includeChannelModelOverrides: false,
   })) {
@@ -163,7 +177,7 @@ function collectConfiguredProviderIds(cfg: AstroclawConfig): Set<string> {
   return ids;
 }
 
-function collectProviderPluginIds(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): string[] {
+function collectProviderPluginIds(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): string[] {
   const configuredProviders = collectConfiguredProviderIds(cfg);
   if (configuredProviders.size === 0) {
     return [];
@@ -182,16 +196,16 @@ function collectProviderPluginIds(cfg: AstroclawConfig, env: NodeJS.ProcessEnv):
 }
 
 function collectAgentHarnessRuntimePluginIds(
-  cfg: AstroclawConfig,
-  env: NodeJS.ProcessEnv,
+  cfg: OpenClawConfig,
+  _env: NodeJS.ProcessEnv,
 ): string[] {
-  return collectConfiguredAgentHarnessRuntimes(cfg, env)
+  return collectConfiguredAgentHarnessRuntimes(cfg)
     .map((runtime) => AGENT_HARNESS_RUNTIME_PLUGIN_IDS[runtime])
     .filter((pluginId): pluginId is string => Boolean(pluginId))
     .toSorted((left, right) => left.localeCompare(right));
 }
 
-function collectWebSearchPluginIds(cfg: AstroclawConfig): string[] {
+function collectWebSearchPluginIds(cfg: OpenClawConfig): string[] {
   const providerId = cfg.tools?.web?.search?.provider;
   if (typeof providerId !== "string") {
     return [];
@@ -200,7 +214,7 @@ function collectWebSearchPluginIds(cfg: AstroclawConfig): string[] {
   return entry?.pluginId ? [entry.pluginId] : [];
 }
 
-function collectAcpRuntimePluginIds(cfg: AstroclawConfig): string[] {
+function collectAcpRuntimePluginIds(cfg: OpenClawConfig): string[] {
   const acp = asObjectRecord(cfg.acp);
   if (!acp) {
     return [];
@@ -214,7 +228,7 @@ function collectAcpRuntimePluginIds(cfg: AstroclawConfig): string[] {
   return ["acpx"];
 }
 
-function collectAllowOnlyOfficialPluginIds(cfg: AstroclawConfig): string[] {
+function collectAllowOnlyOfficialPluginIds(cfg: OpenClawConfig): string[] {
   const allow = cfg.plugins?.allow;
   if (!Array.isArray(allow) || allow.length === 0) {
     return [];
@@ -235,7 +249,7 @@ function collectAllowOnlyOfficialPluginIds(cfg: AstroclawConfig): string[] {
   return ids;
 }
 
-function addEligiblePluginId(cfg: AstroclawConfig, pluginIds: Set<string>, pluginId: string): void {
+function addEligiblePluginId(cfg: OpenClawConfig, pluginIds: Set<string>, pluginId: string): void {
   const normalized = pluginId.trim();
   if (!normalized || isDenied(cfg, normalized) || isDisabled(cfg, normalized)) {
     return;
@@ -243,25 +257,27 @@ function addEligiblePluginId(cfg: AstroclawConfig, pluginIds: Set<string>, plugi
   pluginIds.add(normalized);
 }
 
+/** Return true when this config has not yet crossed the configured-plugin install release gate. */
 export function shouldRunConfiguredPluginInstallReleaseStep(params: {
   currentVersion?: string | null;
   touchedVersion?: string | null;
   releaseVersion?: string;
 }): boolean {
   const releaseVersion = params.releaseVersion ?? CONFIGURED_PLUGIN_INSTALL_RELEASE_VERSION;
-  const currentComparedToRelease = compareAstroclawVersions(
+  const currentComparedToRelease = compareOpenClawVersions(
     params.currentVersion ?? VERSION,
     releaseVersion,
   );
   if (currentComparedToRelease === null || currentComparedToRelease < 0) {
     return false;
   }
-  const touchedComparedToRelease = compareAstroclawVersions(params.touchedVersion, releaseVersion);
+  const touchedComparedToRelease = compareOpenClawVersions(params.touchedVersion, releaseVersion);
   return touchedComparedToRelease === null || touchedComparedToRelease < 0;
 }
 
+/** Collect plugin/channel ids implied by config for the release install backfill step. */
 export function collectReleaseConfiguredPluginIds(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
 }): ReleaseConfiguredPluginIds {
   const env = params.env ?? process.env;
@@ -314,8 +330,9 @@ export function collectReleaseConfiguredPluginIds(params: {
   };
 }
 
+/** Run the configured-plugin install release backfill when the config still needs it. */
 export async function maybeRunConfiguredPluginInstallReleaseStep(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   touchedVersion?: string | null;
   currentVersion?: string | null;
@@ -326,7 +343,7 @@ export async function maybeRunConfiguredPluginInstallReleaseStep(params: {
   touchedConfig: boolean;
 }> {
   const env = params.env ?? process.env;
-  const updateInProgress = isUpdatePackageSwapInProgress(env);
+  const updateInProgress = shouldDeferConfiguredPluginInstallRepair(env);
   const configured = collectReleaseConfiguredPluginIds({ cfg: params.cfg, env });
   const shouldRunReleaseStep = shouldRunConfiguredPluginInstallReleaseStep({
     currentVersion: params.currentVersion,
