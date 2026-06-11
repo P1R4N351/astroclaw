@@ -1,4 +1,6 @@
+// Implements plugin command listing, install, and configuration helpers.
 import fs from "node:fs";
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
 import { buildNpmInstallRecordFields } from "../../cli/npm-resolution.js";
 import { resolveOfficialExternalNpmPackageTrust } from "../../cli/plugin-install-plan.js";
 import {
@@ -10,7 +12,7 @@ import type { ConfigSnapshotForInstallPersist } from "../../cli/plugins-install-
 import { refreshPluginRegistryAfterConfigMutation } from "../../cli/plugins-registry-refresh.js";
 import { readConfigFileSnapshot } from "../../config/config.js";
 import { assertConfigWriteAllowedInCurrentMode } from "../../config/nix-mode-write-guard.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
 import { resolveArchiveKind } from "../../infra/archive.js";
 import { parseClawHubPluginSpec } from "../../infra/clawhub.js";
@@ -33,11 +35,8 @@ import {
   formatPluginCompatibilityNotice,
   type PluginStatusReport,
 } from "../../plugins/status.js";
-import { normalizeOptionalLowercaseString } from "../../shared/string-coerce.js";
 import { resolveUserPath } from "../../utils.js";
-import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import {
-  rejectNonOwnerCommand,
   rejectUnauthorizedCommand,
   requireCommandFlagEnabled,
   requireGatewayClientScope,
@@ -52,7 +51,7 @@ function renderJsonBlock(label: string, value: unknown): string {
 
 function buildPluginInspectJson(params: {
   id: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   installRecords: Record<string, PluginInstallRecord>;
   report: PluginStatusReport;
 }): {
@@ -84,7 +83,7 @@ function buildPluginInspectJson(params: {
 }
 
 function buildAllPluginInspectJson(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   installRecords: Record<string, PluginInstallRecord>;
   report: PluginStatusReport;
 }): Array<{
@@ -127,8 +126,8 @@ function formatPluginsList(report: PluginStatusReport): string {
     `🔌 Plugins (${loaded}/${report.plugins.length} loaded)`,
     ...report.plugins.map((plugin) => {
       const format = plugin.bundleFormat
-        ? `${plugin.format ?? "astroclaw"}/${plugin.bundleFormat}`
-        : (plugin.format ?? "astroclaw");
+        ? `${plugin.format ?? "openclaw"}/${plugin.bundleFormat}`
+        : (plugin.format ?? "openclaw");
       return `- ${formatPluginLabel(plugin)} [${plugin.status}] ${format}`;
     }),
   ];
@@ -341,7 +340,7 @@ async function loadPluginCommandState(
   | {
       ok: true;
       path: string;
-      config: AstroclawConfig;
+      config: OpenClawConfig;
       report: PluginStatusReport;
     }
   | { ok: false; path: string; error: string }
@@ -399,13 +398,6 @@ export const handlePluginsCommand: CommandHandler = async (params, allowTextComm
   const unauthorized = rejectUnauthorizedCommand(params, "/plugins");
   if (unauthorized) {
     return unauthorized;
-  }
-  const allowInternalReadOnly =
-    (pluginsCommand.action === "list" || pluginsCommand.action === "inspect") &&
-    isInternalMessageChannel(params.command.channel);
-  const nonOwner = allowInternalReadOnly ? null : rejectNonOwnerCommand(params, "/plugins");
-  if (nonOwner) {
-    return nonOwner;
   }
   const disabled = requireCommandFlagEnabled(params.cfg, {
     label: "/plugins",
@@ -531,7 +523,7 @@ export const handlePluginsCommand: CommandHandler = async (params, allowTextComm
     };
   }
 
-  let committedConfig: AstroclawConfig;
+  let committedConfig: OpenClawConfig;
   try {
     committedConfig = await setPluginEnabledFromCommand({
       pluginId: plugin.id,
