@@ -1,9 +1,10 @@
+// Standalone runtime registry loader builds plugin runtime registries outside gateway startup.
 import {
   type ActiveRuntimePluginRegistrySurface,
   getLoadedRuntimePluginRegistry,
 } from "../active-runtime-registry.js";
 import {
-  loadAstroclawPlugins,
+  loadOpenClawPlugins,
   resolvePluginRegistryLoadCacheKey,
   type PluginLoadOptions,
 } from "../loader.js";
@@ -73,7 +74,7 @@ export function ensureStandaloneRuntimePluginRegistryLoaded(params: {
   const effectiveLoadOptions = params.forceLoad
     ? { ...params.loadOptions, cache: false }
     : params.loadOptions;
-  const registry = loadAstroclawPlugins(effectiveLoadOptions);
+  const registry = loadOpenClawPlugins(effectiveLoadOptions);
   if (params.loadOptions.activate !== false) {
     switch (surface) {
       case "active":
