@@ -1,3 +1,4 @@
+// Legacy session runtime config migrations for retired maintenance/fork sizing keys.
 import {
   defineLegacyConfigMigration,
   getRecord,
@@ -7,28 +8,29 @@ import {
 
 function hasLegacyRotateBytes(value: unknown): boolean {
   const maintenance = getRecord(value);
-  return Boolean(maintenance && Object.prototype.hasOwnProperty.call(maintenance, "rotateBytes"));
+  return Boolean(maintenance && Object.hasOwn(maintenance, "rotateBytes"));
 }
 
 function hasLegacyParentForkMaxTokens(value: unknown): boolean {
   const session = getRecord(value);
-  return Boolean(session && Object.prototype.hasOwnProperty.call(session, "parentForkMaxTokens"));
+  return Boolean(session && Object.hasOwn(session, "parentForkMaxTokens"));
 }
 
 const LEGACY_SESSION_MAINTENANCE_ROTATE_BYTES_RULE: LegacyConfigRule = {
   path: ["session", "maintenance"],
   message:
-    'session.maintenance.rotateBytes is deprecated and ignored; run "astroclaw doctor --fix" to remove it.',
+    'session.maintenance.rotateBytes is deprecated and ignored; run "openclaw doctor --fix" to remove it.',
   match: hasLegacyRotateBytes,
 };
 
 const LEGACY_SESSION_PARENT_FORK_MAX_TOKENS_RULE: LegacyConfigRule = {
   path: ["session"],
   message:
-    'session.parentForkMaxTokens was removed; parent fork sizing is automatic. Run "astroclaw doctor --fix" to remove it.',
+    'session.parentForkMaxTokens was removed; parent fork sizing is automatic. Run "openclaw doctor --fix" to remove it.',
   match: hasLegacyParentForkMaxTokens,
 };
 
+/** Legacy config migration specs for session runtime config compatibility. */
 export const LEGACY_CONFIG_MIGRATIONS_RUNTIME_SESSION: LegacyConfigMigrationSpec[] = [
   defineLegacyConfigMigration({
     id: "session.maintenance.rotateBytes",
@@ -36,7 +38,7 @@ export const LEGACY_CONFIG_MIGRATIONS_RUNTIME_SESSION: LegacyConfigMigrationSpec
     legacyRules: [LEGACY_SESSION_MAINTENANCE_ROTATE_BYTES_RULE],
     apply: (raw, changes) => {
       const maintenance = getRecord(getRecord(raw.session)?.maintenance);
-      if (!maintenance || !Object.prototype.hasOwnProperty.call(maintenance, "rotateBytes")) {
+      if (!maintenance || !Object.hasOwn(maintenance, "rotateBytes")) {
         return;
       }
       delete maintenance.rotateBytes;
@@ -49,7 +51,7 @@ export const LEGACY_CONFIG_MIGRATIONS_RUNTIME_SESSION: LegacyConfigMigrationSpec
     legacyRules: [LEGACY_SESSION_PARENT_FORK_MAX_TOKENS_RULE],
     apply: (raw, changes) => {
       const session = getRecord(raw.session);
-      if (!session || !Object.prototype.hasOwnProperty.call(session, "parentForkMaxTokens")) {
+      if (!session || !Object.hasOwn(session, "parentForkMaxTokens")) {
         return;
       }
       delete session.parentForkMaxTokens;
