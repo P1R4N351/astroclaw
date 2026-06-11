@@ -1,3 +1,4 @@
+// Legacy web-search config migration from tools.web.search to plugin-owned config.
 import {
   defineLegacyConfigMigration,
   type LegacyConfigMigrationSpec,
@@ -12,7 +13,7 @@ const LEGACY_WEB_SEARCH_RULES: LegacyConfigRule[] = [
   {
     path: ["tools", "web", "search"],
     message:
-      'tools.web.search provider-owned config moved to plugins.entries.<plugin>.config.webSearch. Run "astroclaw doctor --fix".',
+      'tools.web.search provider-owned config moved to plugins.entries.<plugin>.config.webSearch. Run "openclaw doctor --fix".',
     match: (_value, root) => listLegacyWebSearchConfigPaths(root).length > 0,
     requireSourceLiteral: true,
   },
@@ -28,6 +29,7 @@ function replaceRootRecord(
   Object.assign(target, replacement);
 }
 
+/** Legacy config migration specs for web-search provider config. */
 export const LEGACY_CONFIG_MIGRATIONS_WEB_SEARCH: LegacyConfigMigrationSpec[] = [
   defineLegacyConfigMigration({
     id: "tools.web.search-provider-config->plugins.entries",
