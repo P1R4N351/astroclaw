@@ -1,15 +1,19 @@
+// Verifies installed packages can bootstrap the default OpenClaw workspace files.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
+/**
+ * Template pack files that must be present in installed packages.
+ */
 export const WORKSPACE_TEMPLATE_PACK_PATHS = [
   "docs/reference/templates/AGENTS.md",
   "docs/reference/templates/SOUL.md",
   "docs/reference/templates/TOOLS.md",
   "docs/reference/templates/IDENTITY.md",
   "docs/reference/templates/USER.md",
-  "docs/reference/templates/HEARTBEAT.md",
+  "src/agents/templates/HEARTBEAT.md",
   "docs/reference/templates/BOOTSTRAP.md",
 ];
 
@@ -26,6 +30,9 @@ const REQUIRED_BOOTSTRAP_WORKSPACE_FILES = [
 const WORKSPACE_BOOTSTRAP_SMOKE_TIMEOUT_MS = 15_000;
 const SAFE_UNIX_SMOKE_PATH = "/usr/bin:/bin";
 
+/**
+ * Creates a minimal isolated environment for workspace bootstrap smoke runs.
+ */
 export function createWorkspaceBootstrapSmokeEnv(env, homeDir, overrides = {}) {
   const allowlistedEnvEntries = [
     "TMPDIR",
@@ -53,11 +60,11 @@ export function createWorkspaceBootstrapSmokeEnv(env, homeDir, overrides = {}) {
     PATH: safePath,
     HOME: homeDir,
     USERPROFILE: homeDir,
-    ASTROCLAW_HOME: homeDir,
-    ASTROCLAW_NO_ONBOARD: "1",
-    ASTROCLAW_SUPPRESS_NOTES: "1",
-    ASTROCLAW_DISABLE_BUNDLED_PLUGINS: "1",
-    ASTROCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
+    OPENCLAW_HOME: homeDir,
+    OPENCLAW_NO_ONBOARD: "1",
+    OPENCLAW_SUPPRESS_NOTES: "1",
+    OPENCLAW_DISABLE_BUNDLED_PLUGINS: "1",
+    OPENCLAW_DISABLE_BUNDLED_ENTRY_SOURCE_FALLBACK: "1",
     AWS_EC2_METADATA_DISABLED: "true",
     AWS_SHARED_CREDENTIALS_FILE: join(homeDir, ".aws", "credentials"),
     AWS_CONFIG_FILE: join(homeDir, ".aws", "config"),
@@ -90,8 +97,11 @@ function describeExecFailure(error) {
   return [error.message, stdout, stderr].filter(Boolean).join(" | ");
 }
 
+/**
+ * Runs the installed CLI workspace bootstrap smoke and validates created files.
+ */
 export function runInstalledWorkspaceBootstrapSmoke(params) {
-  const tempRoot = mkdtempSync(join(tmpdir(), "astroclaw-workspace-bootstrap-smoke-"));
+  const tempRoot = mkdtempSync(join(tmpdir(), "openclaw-workspace-bootstrap-smoke-"));
   const homeDir = join(tempRoot, "home");
   const cwd = join(tempRoot, "cwd");
   mkdirSync(homeDir, { recursive: true });
@@ -103,7 +113,7 @@ export function runInstalledWorkspaceBootstrapSmoke(params) {
       execFileSync(
         process.execPath,
         [
-          join(params.packageRoot, "astroclaw.mjs"),
+          join(params.packageRoot, "openclaw.mjs"),
           "agent",
           "--message",
           "workspace bootstrap smoke",
@@ -133,7 +143,7 @@ export function runInstalledWorkspaceBootstrapSmoke(params) {
       );
     }
 
-    const workspaceDir = join(homeDir, ".astroclaw", "workspace");
+    const workspaceDir = join(homeDir, ".openclaw", "workspace");
     const missingFiles = collectMissingBootstrapWorkspaceFiles(workspaceDir);
     if (missingFiles.length > 0) {
       const outputDetails = combinedOutput.length > 0 ? `\nCommand output:\n${combinedOutput}` : "";
