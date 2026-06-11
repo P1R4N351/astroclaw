@@ -1,8 +1,9 @@
+// Gateway binding helpers expose plugin runtime bindings through gateway-safe singletons.
 import { resolveGlobalSingleton } from "../../shared/global-singleton.js";
 import type { PluginRuntime } from "./types.js";
 
 const GATEWAY_SUBAGENT_SYMBOL: unique symbol = Symbol.for(
-  "astroclaw.plugin.gatewaySubagentRuntime",
+  "openclaw.plugin.gatewaySubagentRuntime",
 ) as unknown as typeof GATEWAY_SUBAGENT_SYMBOL;
 
 type GatewaySubagentState = {
