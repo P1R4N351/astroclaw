@@ -1,16 +1,6 @@
-import {
-  defineBundledChannelEntry,
-  loadBundledEntryExportSync,
-} from "astroclaw/plugin-sdk/channel-entry-contract";
-import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/channel-entry-contract";
-
-function registerSlackPluginHttpRoutes(api: AstroclawPluginApi): void {
-  const register = loadBundledEntryExportSync<(api: AstroclawPluginApi) => void>(import.meta.url, {
-    specifier: "./http-routes-api.js",
-    exportName: "registerSlackPluginHttpRoutes",
-  });
-  register(api);
-}
+// Slack plugin entrypoint registers its OpenClaw integration.
+import { defineBundledChannelEntry } from "openclaw/plugin-sdk/channel-entry-contract";
+import { registerSlackPluginHttpRoutes } from "./http-routes-api.js";
 
 export default defineBundledChannelEntry({
   id: "slack",
