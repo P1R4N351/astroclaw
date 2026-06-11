@@ -1,6 +1,7 @@
-export { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "./src/runtime-api.js";
+// Llm Task API module exposes the plugin public contract.
+export { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "./src/runtime-api.js";
 export {
   definePluginEntry,
   type AnyAgentTool,
-  type AstroclawPluginApi,
-} from "astroclaw/plugin-sdk/plugin-entry";
+  type OpenClawPluginApi,
+} from "openclaw/plugin-sdk/plugin-entry";
