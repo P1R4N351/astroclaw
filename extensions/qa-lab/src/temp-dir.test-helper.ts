@@ -1,19 +1,20 @@
+// Qa Lab plugin module implements temp dir helper behavior.
 import {
   tempWorkspace,
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   type TempWorkspace,
-} from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/temp-path";
 
 export function createTempDirHarness() {
   const tempDirs: TempWorkspace[] = [];
 
   return {
-    async cleanup() {
+    cleanup: async () => {
       await Promise.all(tempDirs.splice(0).map((dir) => dir.cleanup()));
     },
-    async makeTempDir(prefix: string) {
+    makeTempDir: async (prefix: string) => {
       const dir = await tempWorkspace({
-        rootDir: resolvePreferredAstroclawTmpDir(),
+        rootDir: resolvePreferredOpenClawTmpDir(),
         prefix,
       });
       tempDirs.push(dir);
