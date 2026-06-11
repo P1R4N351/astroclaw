@@ -1,4 +1,5 @@
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Msteams plugin module implements graph chat behavior.
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { DriveItemProperties } from "./graph-upload.js";
 
 export function buildTeamsFileInfoCard(file: DriveItemProperties): {
