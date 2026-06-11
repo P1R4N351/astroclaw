@@ -1,5 +1,6 @@
-import { countOutboundMedia } from "astroclaw/plugin-sdk/reply-payload";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+// Mattermost plugin module implements no visible reply diagnostic behavior.
+import { countOutboundMedia } from "openclaw/plugin-sdk/reply-payload";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import type { MattermostReplyDeliveryOutcome } from "./reply-delivery.js";
 
 export type MattermostNoVisibleReplyViolation = {
