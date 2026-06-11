@@ -1,3 +1,4 @@
+// Legacy message queue config migrations for retired steering modes.
 import {
   defineLegacyConfigMigration,
   getRecord,
@@ -38,17 +39,18 @@ const QUEUE_MODE_RULES: LegacyConfigRule[] = [
   {
     path: ["messages", "queue", "mode"],
     message:
-      'messages.queue.mode uses a retired queue mode; use steer, followup, collect, or interrupt. Run "astroclaw doctor --fix".',
+      'messages.queue.mode uses a retired queue mode; use steer, followup, collect, or interrupt. Run "openclaw doctor --fix".',
     match: isRetiredQueueMode,
   },
   {
     path: ["messages", "queue", "byChannel"],
     message:
-      'messages.queue.byChannel contains a retired queue mode; use steer, followup, collect, or interrupt. Run "astroclaw doctor --fix".',
+      'messages.queue.byChannel contains a retired queue mode; use steer, followup, collect, or interrupt. Run "openclaw doctor --fix".',
     match: hasRetiredQueueModeByChannel,
   },
 ];
 
+/** Legacy config migration specs for message queue mode compatibility. */
 export const LEGACY_CONFIG_MIGRATIONS_QUEUE: LegacyConfigMigrationSpec[] = [
   defineLegacyConfigMigration({
     id: "messages.queue.retired-steering-modes",
