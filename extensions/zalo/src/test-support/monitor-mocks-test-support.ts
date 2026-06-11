@@ -1,11 +1,12 @@
-import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
+// Zalo plugin module implements monitor mocks test support behavior.
+import { createPluginRuntimeMock } from "openclaw/plugin-sdk/channel-test-helpers";
 import {
   createEmptyPluginRegistry,
   createRuntimeEnv,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import { vi, type Mock } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 import type { ResolvedZaloAccount } from "../types.js";
 
 type MonitorModule = typeof import("../monitor.js");
@@ -110,7 +111,7 @@ export async function resetLifecycleTestState() {
   vi.clearAllMocks();
   (await importCachedWebhookModule()).clearZaloWebhookSecurityStateForTest();
   for (const module of loadedMonitorModules) {
-    module.__testing.clearHostedMediaRouteRefsForTest();
+    module.testing.clearHostedMediaRouteRefsForTest();
   }
   setActivePluginRegistry(createEmptyPluginRegistry());
 }
@@ -148,7 +149,7 @@ export async function loadCachedLifecycleMonitorModule(cacheKey: string): Promis
 
 export async function startWebhookLifecycleMonitor(params: {
   account: ResolvedZaloAccount;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   token?: string;
   webhookUrl?: string;
   webhookSecret?: string;
