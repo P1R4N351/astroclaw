@@ -1,5 +1,6 @@
-import type { AcpSessionUpdateTag } from "../../acp/runtime/types.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+/** ACP streaming and projection settings derived from config. */
+import type { AcpSessionUpdateTag } from "@openclaw/acp-core/runtime/types";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { clampPositiveInteger, resolveEffectiveBlockStreamingConfig } from "./block-streaming.js";
 
 const DEFAULT_ACP_STREAM_COALESCE_IDLE_MS = 350;
@@ -24,9 +25,11 @@ const ACP_TAG_VISIBILITY_DEFAULTS: Record<AcpSessionUpdateTag, boolean> = {
   agent_thought_chunk: false,
 };
 
+/** ACP delivery strategy for projected assistant output. */
 export type AcpDeliveryMode = "live" | "final_only";
 export type AcpHiddenBoundarySeparator = "none" | "space" | "newline" | "paragraph";
 
+/** Normalized ACP projection settings consumed by stream projectors. */
 export type AcpProjectionSettings = {
   deliveryMode: AcpDeliveryMode;
   hiddenBoundarySeparator: AcpHiddenBoundarySeparator;
@@ -57,7 +60,7 @@ function resolveAcpHiddenBoundarySeparator(
   return fallback;
 }
 
-function resolveAcpStreamCoalesceIdleMs(cfg: AstroclawConfig): number {
+function resolveAcpStreamCoalesceIdleMs(cfg: OpenClawConfig): number {
   return clampPositiveInteger(
     cfg.acp?.stream?.coalesceIdleMs,
     DEFAULT_ACP_STREAM_COALESCE_IDLE_MS,
@@ -68,14 +71,15 @@ function resolveAcpStreamCoalesceIdleMs(cfg: AstroclawConfig): number {
   );
 }
 
-function resolveAcpStreamMaxChunkChars(cfg: AstroclawConfig): number {
+function resolveAcpStreamMaxChunkChars(cfg: OpenClawConfig): number {
   return clampPositiveInteger(cfg.acp?.stream?.maxChunkChars, DEFAULT_ACP_STREAM_MAX_CHUNK_CHARS, {
     min: 50,
     max: 4_000,
   });
 }
 
-export function resolveAcpProjectionSettings(cfg: AstroclawConfig): AcpProjectionSettings {
+/** Resolves ACP projection settings with bounded defaults. */
+export function resolveAcpProjectionSettings(cfg: OpenClawConfig): AcpProjectionSettings {
   const stream = cfg.acp?.stream;
   const deliveryMode = resolveAcpDeliveryMode(stream?.deliveryMode);
   const hiddenBoundaryFallback: AcpHiddenBoundarySeparator =
@@ -105,8 +109,9 @@ export function resolveAcpProjectionSettings(cfg: AstroclawConfig): AcpProjectio
   };
 }
 
+/** Resolves ACP streaming chunk/coalescing settings. */
 export function resolveAcpStreamingConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   provider?: string;
   accountId?: string;
   deliveryMode?: AcpDeliveryMode;
@@ -139,19 +144,16 @@ export function resolveAcpStreamingConfig(params: {
   return resolved;
 }
 
-export function isAcpTagVisible(
-  settings: AcpProjectionSettings,
-  tag: AcpSessionUpdateTag | undefined,
-): boolean {
+export function isAcpTagVisible(settings: AcpProjectionSettings, tag: string | undefined): boolean {
   if (!tag) {
     return true;
   }
-  const override = settings.tagVisibility[tag];
+  const override = settings.tagVisibility[tag as AcpSessionUpdateTag];
   if (typeof override === "boolean") {
     return override;
   }
-  if (Object.prototype.hasOwnProperty.call(ACP_TAG_VISIBILITY_DEFAULTS, tag)) {
-    return ACP_TAG_VISIBILITY_DEFAULTS[tag];
+  if (Object.hasOwn(ACP_TAG_VISIBILITY_DEFAULTS, tag)) {
+    return ACP_TAG_VISIBILITY_DEFAULTS[tag as AcpSessionUpdateTag];
   }
   return true;
 }
