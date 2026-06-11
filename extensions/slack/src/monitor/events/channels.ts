@@ -1,10 +1,11 @@
+// Slack plugin module implements channels behavior.
 import type { SlackEventMiddlewareArgs } from "@slack/bolt";
-import { resolveChannelConfigWrites } from "astroclaw/plugin-sdk/channel-config-writes";
-import { mutateConfigFile } from "astroclaw/plugin-sdk/config-mutation";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { danger, warn } from "astroclaw/plugin-sdk/runtime-env";
-import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
+import { resolveChannelConfigWrites } from "openclaw/plugin-sdk/channel-config-writes";
+import { mutateConfigFile } from "openclaw/plugin-sdk/config-mutation";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { danger, warn } from "openclaw/plugin-sdk/runtime-env";
+import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
 import { migrateSlackChannelConfig } from "../../channel-migration.js";
 import { resolveSlackChannelLabel } from "../channel-config.js";
 import type { SlackMonitorContext } from "../context.js";
@@ -20,15 +21,15 @@ export function registerSlackChannelEvents(params: {
 }) {
   const { ctx, trackEvent } = params;
 
-  const enqueueChannelSystemEvent = (params: {
+  const enqueueChannelSystemEvent = (paramsLocal: {
     kind: "created" | "renamed";
     channelId: string | undefined;
     channelName: string | undefined;
   }) => {
     if (
       !ctx.isChannelAllowed({
-        channelId: params.channelId,
-        channelName: params.channelName,
+        channelId: paramsLocal.channelId,
+        channelName: paramsLocal.channelName,
         channelType: "channel",
       })
     ) {
@@ -36,18 +37,16 @@ export function registerSlackChannelEvents(params: {
     }
 
     const label = resolveSlackChannelLabel({
-      channelId: params.channelId,
-      channelName: params.channelName,
+      channelId: paramsLocal.channelId,
+      channelName: paramsLocal.channelName,
     });
     const sessionKey = ctx.resolveSlackSystemEventSessionKey({
-      channelId: params.channelId,
+      channelId: paramsLocal.channelId,
       channelType: "channel",
     });
-    enqueueSystemEvent(`Slack channel ${params.kind}: ${label}.`, {
+    enqueueSystemEvent(`Slack channel ${paramsLocal.kind}: ${label}.`, {
       sessionKey,
-      contextKey: `slack:channel:${params.kind}:${params.channelId ?? params.channelName ?? "unknown"}`,
-      forceSenderIsOwnerFalse: true,
-      trusted: false,
+      contextKey: `slack:channel:${paramsLocal.kind}:${paramsLocal.channelId ?? paramsLocal.channelName ?? "unknown"}`,
     });
   };
 
