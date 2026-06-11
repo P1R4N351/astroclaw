@@ -1,7 +1,8 @@
+// Diffs plugin module implements pierre themes behavior.
 import { createRequire } from "node:module";
 import type { ThemeRegistrationResolved } from "@pierre/diffs";
 import { RegisteredCustomThemes, ResolvedThemes, ResolvingThemes } from "@pierre/diffs";
-import { readJsonFileWithFallback } from "astroclaw/plugin-sdk/json-store";
+import { readJsonFileWithFallback } from "openclaw/plugin-sdk/json-store";
 
 type PierreThemeName = "pierre-dark" | "pierre-light";
 const themeRequire = createRequire(import.meta.url);
