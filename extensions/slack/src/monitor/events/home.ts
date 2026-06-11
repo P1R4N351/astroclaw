@@ -1,27 +1,28 @@
+// Slack plugin module implements home behavior.
 import type { SlackEventMiddlewareArgs } from "@slack/bolt";
 import type { HomeView } from "@slack/types";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { danger } from "astroclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { danger } from "openclaw/plugin-sdk/runtime-env";
 import type { SlackMonitorContext } from "../context.js";
 import type { SlackAppHomeOpenedEvent } from "../types.js";
 
 export function buildSlackHomeView(): HomeView {
   return {
     type: "home",
-    callback_id: "astroclaw:home",
+    callback_id: "openclaw:home",
     blocks: [
       {
         type: "header",
         text: {
           type: "plain_text",
-          text: "Astroclaw",
+          text: "OpenClaw",
         },
       },
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "Send a DM, mention Astroclaw in a channel, or use `/astroclaw` to start a session.",
+          text: "Send a DM, mention OpenClaw in a channel, or use `/openclaw` to start a session.",
         },
       },
       {
