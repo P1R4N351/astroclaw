@@ -1,3 +1,8 @@
+/**
+ * Low-level Docker command helpers for sandbox runtimes.
+ *
+ * Wraps Docker spawn, environment sanitization, container inspection, creation, and exec behavior.
+ */
 import { spawn } from "node:child_process";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import {
@@ -166,7 +171,7 @@ export function execDockerRaw(
 }
 
 import { formatCliCommand } from "../../cli/command-format.js";
-import { markAstroclawExecEnv } from "../../infra/astroclaw-exec-env.js";
+import { markOpenClawExecEnv } from "../../infra/openclaw-exec-env.js";
 import { defaultRuntime } from "../../runtime.js";
 import {
   computeSandboxConfigHash,
@@ -177,7 +182,14 @@ import { readRegistryEntry, updateRegistry } from "./registry.js";
 import { resolveSandboxAgentId, resolveSandboxScopeKey, slugifySessionKey } from "./shared.js";
 import type { SandboxConfig, SandboxDockerConfig, SandboxWorkspaceAccess } from "./types.js";
 import { validateSandboxSecurity } from "./validate-sandbox-security.js";
-import { appendWorkspaceMountArgs, SANDBOX_MOUNT_FORMAT_VERSION } from "./workspace-mounts.js";
+import {
+  appendReadOnlyWorkspaceSkillMountArgs,
+  appendWorkspaceMountArgs,
+  formatReadOnlyWorkspaceSkillMountHashState,
+  resolveReadOnlyWorkspaceSkillMounts,
+  SANDBOX_MOUNT_FORMAT_VERSION,
+  type ReadOnlyWorkspaceSkillMount,
+} from "./workspace-mounts.js";
 
 const log = createSubsystemLogger("docker");
 
@@ -349,7 +361,7 @@ export async function ensureDockerImage(image: string) {
   }
   if (image === DEFAULT_SANDBOX_IMAGE) {
     throw new Error(
-      `Sandbox image not found: ${image}. Build it with scripts/sandbox-setup.sh before enabling Docker sandboxing. The default image includes python3 for sandbox write/edit helpers; Astroclaw will not substitute plain debian:bookworm-slim.`,
+      `Sandbox image not found: ${image}. Build it with scripts/sandbox-setup.sh before enabling Docker sandboxing. The default image includes python3 for sandbox write/edit helpers; OpenClaw will not substitute plain debian:bookworm-slim.`,
     );
   }
   throw new Error(`Sandbox image not found: ${image}. Build or pull it first.`);
@@ -376,6 +388,10 @@ function normalizeDockerLimit(value?: string | number) {
   return trimmed ? trimmed : undefined;
 }
 
+function normalizeFiniteDockerNumber(value: unknown, min: number): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(min, value) : undefined;
+}
+
 function formatUlimitValue(
   name: string,
   value: string | number | { soft?: number; hard?: number },
@@ -383,12 +399,16 @@ function formatUlimitValue(
   if (!name.trim()) {
     return null;
   }
-  if (typeof value === "number" || typeof value === "string") {
-    const raw = String(value).trim();
+  if (typeof value === "number") {
+    const normalized = normalizeFiniteDockerNumber(value, 0);
+    return normalized === undefined ? null : `${name}=${normalized}`;
+  }
+  if (typeof value === "string") {
+    const raw = value.trim();
     return raw ? `${name}=${raw}` : null;
   }
-  const soft = typeof value.soft === "number" ? Math.max(0, value.soft) : undefined;
-  const hard = typeof value.hard === "number" ? Math.max(0, value.hard) : undefined;
+  const soft = normalizeFiniteDockerNumber(value.soft, 0);
+  const hard = normalizeFiniteDockerNumber(value.hard, 0);
   if (soft === undefined && hard === undefined) {
     return null;
   }
@@ -437,12 +457,12 @@ export function buildSandboxCreateArgs(params: {
 
   const createdAtMs = params.createdAtMs ?? Date.now();
   const args = ["create", "--name", params.name];
-  args.push("--label", "astroclaw.sandbox=1");
-  args.push("--label", `astroclaw.sessionKey=${params.scopeKey}`);
-  args.push("--label", `astroclaw.createdAtMs=${createdAtMs}`);
-  args.push("--label", `astroclaw.mountFormatVersion=${SANDBOX_MOUNT_FORMAT_VERSION}`);
+  args.push("--label", "openclaw.sandbox=1");
+  args.push("--label", `openclaw.sessionKey=${params.scopeKey}`);
+  args.push("--label", `openclaw.createdAtMs=${createdAtMs}`);
+  args.push("--label", `openclaw.mountFormatVersion=${SANDBOX_MOUNT_FORMAT_VERSION}`);
   if (params.configHash) {
-    args.push("--label", `astroclaw.configHash=${params.configHash}`);
+    args.push("--label", `openclaw.configHash=${params.configHash}`);
   }
   for (const [key, value] of Object.entries(params.labels ?? {})) {
     if (key && value) {
@@ -472,7 +492,7 @@ export function buildSandboxCreateArgs(params: {
       `Suspicious configured sandbox environment variables: ${envSanitization.warnings.join(", ")}`,
     );
   }
-  for (const [key, value] of Object.entries(markAstroclawExecEnv(envSanitization.allowed))) {
+  for (const [key, value] of Object.entries(markOpenClawExecEnv(envSanitization.allowed))) {
     args.push("--env", `${key}=${value}`);
   }
   for (const cap of params.cfg.capDrop) {
@@ -495,8 +515,9 @@ export function buildSandboxCreateArgs(params: {
       args.push("--add-host", entry);
     }
   }
-  if (typeof params.cfg.pidsLimit === "number" && params.cfg.pidsLimit > 0) {
-    args.push("--pids-limit", String(params.cfg.pidsLimit));
+  const pidsLimit = normalizeFiniteDockerNumber(params.cfg.pidsLimit, 0);
+  if (pidsLimit !== undefined && pidsLimit > 0) {
+    args.push("--pids-limit", String(pidsLimit));
   }
   const memory = normalizeDockerLimit(params.cfg.memory);
   if (memory) {
@@ -506,8 +527,9 @@ export function buildSandboxCreateArgs(params: {
   if (memorySwap) {
     args.push("--memory-swap", memorySwap);
   }
-  if (typeof params.cfg.cpus === "number" && params.cfg.cpus > 0) {
-    args.push("--cpus", String(params.cfg.cpus));
+  const cpus = normalizeFiniteDockerNumber(params.cfg.cpus, 0);
+  if (cpus !== undefined && cpus > 0) {
+    args.push("--cpus", String(cpus));
   }
   const gpus = params.cfg.gpus?.trim();
   if (gpus) {
@@ -542,8 +564,10 @@ async function createSandboxContainer(params: {
   workspaceDir: string;
   workspaceAccess: SandboxWorkspaceAccess;
   agentWorkspaceDir: string;
+  skillsWorkspaceDir?: string;
   scopeKey: string;
   configHash?: string;
+  readOnlyWorkspaceSkillMounts: readonly ReadOnlyWorkspaceSkillMount[];
 }) {
   const { name, cfg, workspaceDir, scopeKey } = params;
   await ensureDockerImage(cfg.image);
@@ -561,10 +585,17 @@ async function createSandboxContainer(params: {
     args,
     workspaceDir,
     agentWorkspaceDir: params.agentWorkspaceDir,
+    skillsWorkspaceDir: params.skillsWorkspaceDir,
     workdir: cfg.workdir,
     workspaceAccess: params.workspaceAccess,
+    readOnlyWorkspaceSkillMounts: params.readOnlyWorkspaceSkillMounts,
+    includeReadOnlyWorkspaceSkillMounts: false,
   });
   appendCustomBinds(args, cfg);
+  appendReadOnlyWorkspaceSkillMountArgs({
+    args,
+    readOnlyWorkspaceSkillMounts: params.readOnlyWorkspaceSkillMounts,
+  });
   args.push(cfg.image, "sleep", "infinity");
 
   await execDocker(args);
@@ -576,30 +607,38 @@ async function createSandboxContainer(params: {
 }
 
 async function readContainerConfigHash(containerName: string): Promise<string | null> {
-  return await readDockerContainerLabel(containerName, "astroclaw.configHash");
+  return await readDockerContainerLabel(containerName, "openclaw.configHash");
 }
 
 function formatSandboxRecreateHint(params: { scope: SandboxConfig["scope"]; sessionKey: string }) {
   if (params.scope === "session") {
-    return formatCliCommand(`astroclaw sandbox recreate --session ${params.sessionKey}`);
+    return formatCliCommand(`openclaw sandbox recreate --session ${params.sessionKey}`);
   }
   if (params.scope === "agent") {
     const agentId = resolveSandboxAgentId(params.sessionKey) ?? "main";
-    return formatCliCommand(`astroclaw sandbox recreate --agent ${agentId}`);
+    return formatCliCommand(`openclaw sandbox recreate --agent ${agentId}`);
   }
-  return formatCliCommand("astroclaw sandbox recreate --all");
+  return formatCliCommand("openclaw sandbox recreate --all");
 }
 
 export async function ensureSandboxContainer(params: {
   sessionKey: string;
   workspaceDir: string;
   agentWorkspaceDir: string;
+  skillsWorkspaceDir?: string;
   cfg: SandboxConfig;
 }) {
   const scopeKey = resolveSandboxScopeKey(params.cfg.scope, params.sessionKey);
   const slug = params.cfg.scope === "shared" ? "shared" : slugifySessionKey(scopeKey);
   const name = `${params.cfg.docker.containerPrefix}${slug}`;
   const containerName = name.slice(0, 63);
+  const readOnlyWorkspaceSkillMounts = resolveReadOnlyWorkspaceSkillMounts({
+    workspaceDir: params.workspaceDir,
+    agentWorkspaceDir: params.agentWorkspaceDir,
+    skillsWorkspaceDir: params.skillsWorkspaceDir,
+    workdir: params.cfg.docker.workdir,
+    workspaceAccess: params.cfg.workspaceAccess,
+  });
   const expectedHash = computeSandboxConfigHash({
     docker: params.cfg.docker,
     dockerEnvPolicyEpoch: resolveDockerEnvPolicyEpoch(params.cfg.docker.env),
@@ -607,6 +646,9 @@ export async function ensureSandboxContainer(params: {
     workspaceDir: params.workspaceDir,
     agentWorkspaceDir: params.agentWorkspaceDir,
     mountFormatVersion: SANDBOX_MOUNT_FORMAT_VERSION,
+    readOnlyWorkspaceSkillMounts: formatReadOnlyWorkspaceSkillMountHashState(
+      readOnlyWorkspaceSkillMounts,
+    ),
   });
   const now = Date.now();
   const state = await dockerContainerState(containerName);
@@ -651,8 +693,10 @@ export async function ensureSandboxContainer(params: {
       workspaceDir: params.workspaceDir,
       workspaceAccess: params.cfg.workspaceAccess,
       agentWorkspaceDir: params.agentWorkspaceDir,
+      skillsWorkspaceDir: params.skillsWorkspaceDir,
       scopeKey,
       configHash: expectedHash,
+      readOnlyWorkspaceSkillMounts,
     });
   } else if (!running) {
     await execDocker(["start", containerName]);
