@@ -1,26 +1,35 @@
 #!/usr/bin/env node
+// Boots the OpenClaw CLI entry point under Node.
+// CLI process entrypoint for OpenClaw command execution.
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { isRootHelpInvocation } from "./cli/argv.js";
+import { getCommandPathWithRootOptions, hasFlag, isRootHelpInvocation } from "./cli/argv.js";
 import { parseCliContainerArgs, resolveCliContainerTarget } from "./cli/container-target.js";
 import { applyCliProfileEnv, parseCliProfileArgs } from "./cli/profile.js";
+import type { RootHelpRenderOptions } from "./cli/program/root-help.js";
 import { normalizeWindowsArgv } from "./cli/windows-argv.js";
 import {
-  enableAstroclawCompileCache,
+  enableOpenClawCompileCache,
   resolveEntryInstallRoot,
-  respawnWithoutAstroclawCompileCacheIfNeeded,
+  respawnWithoutOpenClawCompileCacheIfNeeded,
 } from "./entry.compile-cache.js";
 import { buildCliRespawnPlan, runCliRespawnPlan } from "./entry.respawn.js";
 import { tryHandleRootVersionFastPath } from "./entry.version-fast-path.js";
 import { isTruthyEnvValue, normalizeEnv } from "./infra/env.js";
 import { isMainModule } from "./infra/is-main.js";
-import { ensureAstroclawExecMarkerOnProcess } from "./infra/astroclaw-exec-env.js";
+import { ensureOpenClawExecMarkerOnProcess } from "./infra/openclaw-exec-env.js";
 import { installProcessWarningFilter } from "./infra/warning-filter.js";
 
 const ENTRY_WRAPPER_PAIRS = [
-  { wrapperBasename: "astroclaw.mjs", entryBasename: "entry.js" },
-  { wrapperBasename: "astroclaw.js", entryBasename: "entry.js" },
+  { wrapperBasename: "openclaw.mjs", entryBasename: "entry.js" },
+  { wrapperBasename: "openclaw.js", entryBasename: "entry.js" },
 ] as const;
+
+type PrecomputedCommandHelpName = "browser" | "secrets" | "nodes";
+type OutputPrecomputedHelpText = () => boolean;
+
+const loadRootHelpLiveConfigModule = async () => await import("./cli/root-help-live-config.js");
+const loadRootHelpMetadataModule = async () => await import("./cli/root-help-metadata.js");
 
 function shouldForceReadOnlyAuthStore(argv: string[]): boolean {
   const tokens = argv.slice(2).filter((token) => token.length > 0 && !token.startsWith("-"));
@@ -34,7 +43,7 @@ function shouldForceReadOnlyAuthStore(argv: string[]): boolean {
 
 function createGatewayEntryStartupTrace(argv: string[]) {
   const enabled =
-    isTruthyEnvValue(process.env.ASTROCLAW_GATEWAY_STARTUP_TRACE) &&
+    isTruthyEnvValue(process.env.OPENCLAW_GATEWAY_STARTUP_TRACE) &&
     argv.slice(2).includes("gateway");
   const started = performance.now();
   let last = started;
@@ -82,23 +91,23 @@ if (
 } else {
   const entryFile = fileURLToPath(import.meta.url);
   const installRoot = resolveEntryInstallRoot(entryFile);
-  const waitingForCompileCacheRespawn = respawnWithoutAstroclawCompileCacheIfNeeded({
+  const waitingForCompileCacheRespawn = respawnWithoutOpenClawCompileCacheIfNeeded({
     currentFile: entryFile,
     installRoot,
   });
   if (!waitingForCompileCacheRespawn) {
-    process.title = "astroclaw";
-    ensureAstroclawExecMarkerOnProcess();
+    process.title = "openclaw";
+    ensureOpenClawExecMarkerOnProcess();
     installProcessWarningFilter();
     normalizeEnv();
 
-    enableAstroclawCompileCache({
+    enableOpenClawCompileCache({
       installRoot,
     });
     gatewayEntryStartupTrace.mark("bootstrap");
 
     if (shouldForceReadOnlyAuthStore(process.argv)) {
-      process.env.ASTROCLAW_AUTH_STORE_READONLY = "1";
+      process.env.OPENCLAW_AUTH_STORE_READONLY = "1";
     }
 
     if (process.argv.includes("--no-color")) {
@@ -122,20 +131,20 @@ if (
     if (!ensureCliRespawnReady()) {
       const parsedContainer = parseCliContainerArgs(process.argv);
       if (!parsedContainer.ok) {
-        console.error(`[astroclaw] ${parsedContainer.error}`);
+        console.error(`[openclaw] ${parsedContainer.error}`);
         process.exit(2);
       }
 
       const parsed = parseCliProfileArgs(parsedContainer.argv);
       if (!parsed.ok) {
         // Keep it simple; Commander will handle rich help/errors after we strip flags.
-        console.error(`[astroclaw] ${parsed.error}`);
+        console.error(`[openclaw] ${parsed.error}`);
         process.exit(2);
       }
 
       const containerTargetName = resolveCliContainerTarget(process.argv);
       if (containerTargetName && parsed.profile) {
-        console.error("[astroclaw] --container cannot be combined with --profile/--dev");
+        console.error("[openclaw] --container cannot be combined with --profile/--dev");
         process.exit(2);
       }
 
@@ -157,7 +166,10 @@ export async function tryHandleRootHelpFastPath(
   argv: string[],
   deps: {
     outputPrecomputedRootHelpText?: () => boolean;
-    outputRootHelp?: () => void | Promise<void>;
+    outputRootHelp?: (options?: RootHelpRenderOptions) => void | Promise<void>;
+    loadRootHelpRenderOptionsForConfigSensitivePlugins?: (
+      env?: NodeJS.ProcessEnv,
+    ) => Promise<RootHelpRenderOptions | null>;
     onError?: (error: unknown) => void;
     env?: NodeJS.ProcessEnv;
   } = {},
@@ -172,23 +184,27 @@ export async function tryHandleRootHelpFastPath(
     deps.onError ??
     ((error: unknown) => {
       console.error(
-        "[astroclaw] Failed to display help:",
+        "[openclaw] Failed to display help:",
         error instanceof Error ? (error.stack ?? error.message) : error,
       );
       process.exitCode = 1;
     });
   try {
-    if (deps.outputRootHelp) {
-      await deps.outputRootHelp();
-      return true;
+    const loadRootHelpRenderOptionsForConfigSensitivePlugins =
+      deps.loadRootHelpRenderOptionsForConfigSensitivePlugins ??
+      (await loadRootHelpLiveConfigModule()).loadRootHelpRenderOptionsForConfigSensitivePlugins;
+    const liveRootHelpOptions = await loadRootHelpRenderOptionsForConfigSensitivePlugins(deps.env);
+    if (!liveRootHelpOptions) {
+      const outputPrecomputedRootHelpText =
+        deps.outputPrecomputedRootHelpText ??
+        (await loadRootHelpMetadataModule()).outputPrecomputedRootHelpText;
+      if (outputPrecomputedRootHelpText()) {
+        return true;
+      }
     }
-    const outputPrecomputedRootHelpText =
-      deps.outputPrecomputedRootHelpText ??
-      (await import("./cli/root-help-metadata.js")).outputPrecomputedRootHelpText;
-    if (!outputPrecomputedRootHelpText()) {
-      const { outputRootHelp } = await import("./cli/program/root-help.js");
-      await outputRootHelp();
-    }
+    const outputRootHelp =
+      deps.outputRootHelp ?? (await import("./cli/program/root-help.js")).outputRootHelp;
+    await outputRootHelp(liveRootHelpOptions ?? undefined);
     return true;
   } catch (error) {
     handleError(error);
@@ -196,8 +212,81 @@ export async function tryHandleRootHelpFastPath(
   }
 }
 
+function resolvePrecomputedCommandHelpName(argv: string[]): PrecomputedCommandHelpName | null {
+  if (!hasFlag(argv, "--help") && !hasFlag(argv, "-h")) {
+    return null;
+  }
+  const commandPath = getCommandPathWithRootOptions(argv, 2);
+  if (commandPath.length !== 1) {
+    return null;
+  }
+  const [commandName] = commandPath;
+  if (commandName === "browser" || commandName === "secrets" || commandName === "nodes") {
+    return commandName;
+  }
+  return null;
+}
+
+export async function tryHandlePrecomputedCommandHelpFastPath(
+  argv: string[],
+  deps: {
+    outputPrecomputedBrowserHelpText?: OutputPrecomputedHelpText;
+    outputPrecomputedSecretsHelpText?: OutputPrecomputedHelpText;
+    outputPrecomputedNodesHelpText?: OutputPrecomputedHelpText;
+    loadRootHelpRenderOptionsForConfigSensitivePlugins?: (
+      env?: NodeJS.ProcessEnv,
+    ) => Promise<RootHelpRenderOptions | null>;
+    env?: NodeJS.ProcessEnv;
+  } = {},
+): Promise<boolean> {
+  const env = deps.env ?? process.env;
+  if (env.OPENCLAW_DISABLE_CLI_STARTUP_HELP_FAST_PATH === "1") {
+    return false;
+  }
+  if (resolveCliContainerTarget(argv, env)) {
+    return false;
+  }
+  const commandName = resolvePrecomputedCommandHelpName(argv);
+  if (!commandName) {
+    return false;
+  }
+
+  try {
+    if (commandName === "nodes") {
+      const loadRootHelpRenderOptionsForConfigSensitivePlugins =
+        deps.loadRootHelpRenderOptionsForConfigSensitivePlugins ??
+        (await loadRootHelpLiveConfigModule()).loadRootHelpRenderOptionsForConfigSensitivePlugins;
+      const liveRootHelpOptions = await loadRootHelpRenderOptionsForConfigSensitivePlugins(env);
+      if (liveRootHelpOptions) {
+        return false;
+      }
+    }
+    if (commandName === "browser") {
+      const outputPrecomputedBrowserHelpText =
+        deps.outputPrecomputedBrowserHelpText ??
+        (await loadRootHelpMetadataModule()).outputPrecomputedBrowserHelpText;
+      return outputPrecomputedBrowserHelpText();
+    }
+    if (commandName === "secrets") {
+      const outputPrecomputedSecretsHelpText =
+        deps.outputPrecomputedSecretsHelpText ??
+        (await loadRootHelpMetadataModule()).outputPrecomputedSecretsHelpText;
+      return outputPrecomputedSecretsHelpText();
+    }
+    const outputPrecomputedNodesHelpText =
+      deps.outputPrecomputedNodesHelpText ??
+      (await loadRootHelpMetadataModule()).outputPrecomputedNodesHelpText;
+    return outputPrecomputedNodesHelpText();
+  } catch {
+    return false;
+  }
+}
+
 async function runMainOrRootHelp(argv: string[]): Promise<void> {
   if (await tryHandleRootHelpFastPath(argv)) {
+    return;
+  }
+  if (await tryHandlePrecomputedCommandHelpFastPath(argv)) {
     return;
   }
   try {
