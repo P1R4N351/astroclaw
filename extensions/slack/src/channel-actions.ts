@@ -1,5 +1,6 @@
-import type { AgentToolResult } from "@earendil-works/pi-agent-core";
-import type { ChannelMessageActionAdapter } from "astroclaw/plugin-sdk/channel-contract";
+// Slack plugin module implements channel actions behavior.
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
+import type { ChannelMessageActionAdapter } from "openclaw/plugin-sdk/channel-contract";
 import type { SlackActionContext } from "./action-runtime.js";
 import { handleSlackMessageAction } from "./message-action-dispatch.js";
 import { extractSlackToolSend } from "./message-actions.js";
