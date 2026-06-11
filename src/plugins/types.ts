@@ -1,8 +1,10 @@
+// Defines the public plugin API and runtime extension contracts.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Duplex } from "node:stream";
-import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { StreamFn } from "@earendil-works/pi-agent-core";
-import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
+import type {
+  UnifiedModelCatalogEntry,
+  UnifiedModelCatalogKind,
+} from "@openclaw/model-catalog-core/model-catalog-types";
 import type { Command } from "commander";
 import type {
   ApiKeyCredential,
@@ -10,9 +12,11 @@ import type {
   OAuthCredential,
   AuthProfileStore,
 } from "../agents/auth-profiles/types.js";
+import type { FailoverReason } from "../agents/embedded-agent-helpers/types.js";
 import type { AgentHarness } from "../agents/harness/types.js";
 import type { ModelCatalogEntry } from "../agents/model-catalog.types.js";
-import type { FailoverReason } from "../agents/pi-embedded-helpers/types.js";
+import type { AgentMessage } from "../agents/runtime/index.js";
+import type { StreamFn } from "../agents/runtime/index.js";
 import type { ProviderSystemPromptContribution } from "../agents/system-prompt-contribution.js";
 import type { PromptMode } from "../agents/system-prompt.types.js";
 import type { AnyAgentTool } from "../agents/tools/common.js";
@@ -21,20 +25,20 @@ import type { ThinkLevel } from "../auto-reply/thinking.shared.js";
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { ChannelId } from "../channels/plugins/types.public.js";
 import type { ModelProviderConfig } from "../config/types.js";
-import type { ModelCompatConfig } from "../config/types.models.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { OperatorScope } from "../gateway/operator-scopes.js";
 import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
 import type { InternalHookHandler } from "../hooks/internal-hook-types.js";
 import type { ImageGenerationProvider } from "../image-generation/types.js";
 import type {
+  DiagnosticEventPrivateData,
   DiagnosticEventInput,
   DiagnosticEventMetadata,
   DiagnosticEventPayload,
 } from "../infra/diagnostic-events.js";
 import type { ProviderUsageSnapshot } from "../infra/provider-usage.types.js";
+import type { ModelRegistry } from "../llm/model-registry.js";
 import type { MediaUnderstandingProvider } from "../media-understanding/types.js";
-import type { UnifiedModelCatalogEntry, UnifiedModelCatalogKind } from "../model-catalog/types.js";
 import type { MusicGenerationProvider } from "../music-generation/types.js";
 import type {
   RealtimeTranscriptionProviderConfig,
@@ -58,6 +62,7 @@ import type {
   RealtimeVoiceProviderId,
   RealtimeVoiceProviderResolveConfigContext,
 } from "../talk/provider-types.js";
+import type { TranscriptSourceProvider as TranscriptsSourceProviderCapability } from "../transcripts/provider-types.js";
 import type {
   SpeechDirectiveTokenParseContext,
   SpeechDirectiveTokenParseResult,
@@ -141,9 +146,9 @@ import type {
 } from "./provider-thinking.types.js";
 import type { PluginRuntime } from "./runtime/types.js";
 import type {
-  AstroclawPluginHookOptions,
-  AstroclawPluginToolFactory,
-  AstroclawPluginToolOptions,
+  OpenClawPluginHookOptions,
+  OpenClawPluginToolFactory,
+  OpenClawPluginToolOptions,
 } from "./tool-types.js";
 import type { WebFetchProviderPlugin, WebSearchProviderPlugin } from "./web-provider-types.js";
 
@@ -159,11 +164,11 @@ export type {
   PluginFormat,
 } from "./manifest-types.js";
 export type {
-  AstroclawPluginActiveModelContext,
-  AstroclawPluginHookOptions,
-  AstroclawPluginToolContext,
-  AstroclawPluginToolFactory,
-  AstroclawPluginToolOptions,
+  OpenClawPluginActiveModelContext,
+  OpenClawPluginHookOptions,
+  OpenClawPluginToolContext,
+  OpenClawPluginToolFactory,
+  OpenClawPluginToolOptions,
 } from "./tool-types.js";
 export type { AnyAgentTool } from "../agents/tools/common.js";
 export type { AgentHarness } from "../agents/harness/types.js";
@@ -175,7 +180,7 @@ export type {
   AgentToolResultMiddlewareOptions,
   AgentToolResultMiddlewareResult,
   AgentToolResultMiddlewareRuntime,
-  AstroclawAgentToolResult,
+  OpenClawAgentToolResult,
 } from "./agent-tool-result-middleware-types.js";
 export type {
   PluginConversationBinding,
@@ -286,7 +291,7 @@ export type PluginConfigValidation =
  * function, or both. `uiHints` and `jsonSchema` are optional extras for docs,
  * forms, and config UIs.
  */
-export type AstroclawPluginConfigSchema = {
+export type OpenClawPluginConfigSchema = {
   safeParse?: (value: unknown) => {
     success: boolean;
     data?: unknown;
@@ -312,7 +317,7 @@ export type ProviderAuthResult = {
    * `models.providers.<id>` entries, default aliases, or agent model helpers.
    * The caller still persists auth-profile bindings separately.
    */
-  configPatch?: Partial<AstroclawConfig>;
+  configPatch?: Partial<OpenClawConfig>;
   defaultModel?: string;
   notes?: string[];
   /**
@@ -325,7 +330,7 @@ export type ProviderAuthResult = {
 
 /** Interactive auth context passed to provider login/setup methods. */
 export type ProviderAuthContext = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   agentDir?: string;
   workspaceDir?: string;
@@ -389,8 +394,8 @@ export type ProviderNonInteractiveApiKeyCredentialParams = {
 
 export type ProviderAuthMethodNonInteractiveContext = {
   authChoice: string;
-  config: AstroclawConfig;
-  baseConfig: AstroclawConfig;
+  config: OpenClawConfig;
+  baseConfig: OpenClawConfig;
   opts: ProviderAuthOptionBag;
   runtime: RuntimeEnv;
   agentDir?: string;
@@ -412,20 +417,20 @@ export type ProviderAuthMethod = {
    * Optional wizard/onboarding metadata for this specific auth method.
    *
    * Use this when one provider exposes multiple setup entries (for example API
-   * key + OAuth, or region-specific login flows). Astroclaw uses this to expose
+   * key + OAuth, or region-specific login flows). OpenClaw uses this to expose
    * method-specific auth choices while keeping the provider id stable.
    */
   wizard?: ProviderPluginWizardSetup;
   run: (ctx: ProviderAuthContext) => Promise<ProviderAuthResult>;
   runNonInteractive?: (
     ctx: ProviderAuthMethodNonInteractiveContext,
-  ) => Promise<AstroclawConfig | null>;
+  ) => Promise<OpenClawConfig | null>;
 };
 
 export type ProviderCatalogOrder = "simple" | "profile" | "paired" | "late";
 
 export type ProviderCatalogContext = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
@@ -486,6 +491,7 @@ export type UnifiedModelCatalogProviderPlugin = {
 export type ProviderRuntimeProviderConfig = {
   baseUrl?: string;
   api?: ModelProviderConfig["api"];
+  auth?: ModelProviderConfig["auth"];
   models?: ModelProviderConfig["models"];
   headers?: unknown;
 };
@@ -499,13 +505,15 @@ export type ProviderRuntimeProviderConfig = {
  * belong in `prepareDynamicModel`.
  */
 export type ProviderResolveDynamicModelContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   provider: string;
   modelId: string;
   modelRegistry: ModelRegistry;
   providerConfig?: ProviderRuntimeProviderConfig;
+  authProfileId?: string;
+  authProfileMode?: AuthProfileCredential["type"] | "aws-sdk";
 };
 
 /**
@@ -518,7 +526,7 @@ export type ProviderResolveDynamicModelContext = {
 export type ProviderPrepareDynamicModelContext = ProviderResolveDynamicModelContext;
 
 export type ProviderPreferRuntimeResolvedModelContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   provider: string;
@@ -528,12 +536,12 @@ export type ProviderPreferRuntimeResolvedModelContext = {
 /**
  * Last-chance rewrite hook for provider-owned transport normalization.
  *
- * Runs after Astroclaw resolves an explicit/discovered/dynamic model and before
+ * Runs after OpenClaw resolves an explicit/discovered/dynamic model and before
  * the embedded runner uses it. Typical uses: swap API ids, fix base URLs, or
  * patch provider-specific compat bits.
  */
 export type ProviderNormalizeResolvedModelContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   provider: string;
@@ -566,9 +574,10 @@ export type {
  * plugin-owned transport family.
  */
 export type ProviderNormalizeTransportContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   provider: string;
+  modelId?: string;
   api?: string | null;
   baseUrl?: string;
 };
@@ -580,7 +589,7 @@ export type ProviderNormalizeTransportContext = {
  * for the request.
  */
 export type ProviderPrepareRuntimeAuthContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
@@ -614,7 +623,7 @@ export type ProviderPreparedRuntimeAuth = {
  * snapshots often need a different credential source than live inference
  * requests, and they run outside the embedded runner.
  *
- * The helper methods cover the common Astroclaw auth resolution paths:
+ * The helper methods cover the common OpenClaw auth resolution paths:
  *
  * - `resolveApiKeyFromConfigAndStore`: env/config/plain token/api_key profiles
  * - `resolveOAuthToken`: oauth/token profiles resolved through the auth store,
@@ -624,7 +633,7 @@ export type ProviderPreparedRuntimeAuth = {
  * token blob, read a legacy credential file, or pick between aliases).
  */
 export type ProviderResolveUsageAuthContext = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
@@ -633,19 +642,24 @@ export type ProviderResolveUsageAuthContext = {
     providerIds?: string[];
     envDirect?: Array<string | undefined>;
   }) => string | undefined;
-  resolveOAuthToken: (params?: { provider?: string }) => Promise<ProviderResolvedUsageAuth | null>;
+  resolveOAuthToken: (params?: { provider?: string }) => Promise<ProviderUsageAuthToken | null>;
 };
+
+export type ProviderUsageAuthToken = { token: string; accountId?: string };
 
 /**
  * Result of `resolveUsageAuth`.
  *
- * `token` is the credential used for provider usage/billing endpoints.
- * `accountId` is optional provider-specific metadata used by some usage APIs.
+ * Two shapes are supported:
+ * - `{ token: string; accountId?: string }` — use this token for provider usage endpoints.
+ * - `{ handled: true }` — this provider handled the request but has no usable
+ *   usage token; core must skip further fallback (generic API-key/OAuth fallback
+ *   must not run).
+ *
+ * Returning `null` or `undefined` means "not handled by this provider"; core
+ * proceeds to generic fallback resolution.
  */
-export type ProviderResolvedUsageAuth = {
-  token: string;
-  accountId?: string;
-};
+export type ProviderResolvedUsageAuth = ProviderUsageAuthToken | { handled: true };
 
 /**
  * Usage/quota snapshot input for providers that own their usage endpoint
@@ -656,13 +670,14 @@ export type ProviderResolvedUsageAuth = {
  * owns the provider-specific HTTP request + response normalization.
  */
 export type ProviderFetchUsageSnapshotContext = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
   provider: string;
   token: string;
   accountId?: string;
+  authProfileId?: string;
   timeoutMs: number;
   fetchFn: typeof fetch;
 };
@@ -670,30 +685,33 @@ export type ProviderFetchUsageSnapshotContext = {
 /**
  * Provider-owned auth-doctor hint input.
  *
- * Called when OAuth refresh fails and Astroclaw wants a provider-specific repair
+ * Called when OAuth refresh fails and OpenClaw wants a provider-specific repair
  * hint to append to the generic re-auth message. Use this for legacy profile-id
  * migrations or other provider-owned auth-store cleanup guidance.
  */
 export type ProviderAuthDoctorHintContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   store: AuthProfileStore;
   provider: string;
   profileId?: string;
 };
 
 /**
- * Provider-owned extra-param normalization before Astroclaw builds its generic
+ * Provider-owned extra-param normalization before OpenClaw builds its generic
  * stream option wrapper.
  *
  * Use this to set provider defaults or rewrite provider-specific config keys
  * into the merged `extraParams` object. Return the full next extraParams object.
  */
 export type ProviderPrepareExtraParamsContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
+  agentId?: string;
+  nativeWebSearchAllowedByToolPolicy?: boolean;
   provider: string;
   modelId: string;
+  model?: ProviderRuntimeModel;
   extraParams?: Record<string, unknown>;
   thinkingLevel?: ThinkLevel;
 };
@@ -716,7 +734,7 @@ export type ProviderResolvePromptOverlayContext = ProviderSystemPromptContributi
 };
 
 export type ProviderFollowupFallbackRouteContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   provider: string;
@@ -734,7 +752,7 @@ export type ProviderFollowupFallbackRouteResult = {
 };
 
 export type ProviderResolveAuthProfileIdContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   provider: string;
@@ -755,7 +773,7 @@ export type ProviderReasoningOutputMode = "native" | "tagged";
  * @deprecated Legacy static provider capability bag.
  *
  * Core replay/runtime ownership now lives on explicit provider hooks such as
- * `buildReplayPolicy`, `normalizeToolSchemas`, and `wrapStreamFn`. Astroclaw no
+ * `buildReplayPolicy`, `normalizeToolSchemas`, and `wrapStreamFn`. OpenClaw no
  * longer reads this bag at runtime, but the field remains typed so existing
  * third-party plugins do not fail to compile immediately.
  */
@@ -794,7 +812,7 @@ export type ProviderReplayPolicy = {
  * behavior and should stay with the provider plugin instead of core tables.
  */
 export type ProviderReplayPolicyContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
@@ -866,12 +884,12 @@ export type ProviderReasoningOutputModeContext = ProviderReplayPolicyContext;
 /**
  * Provider-owned transport creation.
  *
- * Use this when the provider needs to replace pi-ai's default transport with a
+ * Use this when the provider needs to replace shared model runtime's default transport with a
  * custom StreamFn (for example a native API transport that cannot be expressed
  * as a wrapper around `streamSimple`).
  */
 export type ProviderCreateStreamFnContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   provider: string;
@@ -880,11 +898,11 @@ export type ProviderCreateStreamFnContext = {
 };
 
 /**
- * Provider-owned stream wrapper hook after Astroclaw applies its generic
+ * Provider-owned stream wrapper hook after OpenClaw applies its generic
  * transport-independent wrappers.
  *
  * Use this for provider-specific payload/header/model mutations that still run
- * through the normal `pi-ai` stream path.
+ * through the normal `shared model runtime` stream path.
  */
 export type ProviderWrapStreamFnContext = ProviderPrepareExtraParamsContext & {
   model?: ProviderRuntimeModel;
@@ -952,6 +970,9 @@ export type ProviderFailoverErrorContext = {
   provider?: string;
   modelId?: string;
   errorMessage: string;
+  status?: number;
+  code?: string;
+  errorType?: string;
 };
 
 /**
@@ -964,9 +985,9 @@ export type PluginEmbeddingProvider = {
   id: string;
   model: string;
   maxInputTokens?: number;
-  embedQuery: (text: string) => Promise<number[]>;
-  embedBatch: (texts: string[]) => Promise<number[][]>;
-  embedBatchInputs?: (inputs: unknown[]) => Promise<number[][]>;
+  embedQuery: (text: string, options?: { signal?: AbortSignal }) => Promise<number[]>;
+  embedBatch: (texts: string[], options?: { signal?: AbortSignal }) => Promise<number[][]>;
+  embedBatchInputs?: (inputs: unknown[], options?: { signal?: AbortSignal }) => Promise<number[][]>;
   client?: unknown;
 };
 
@@ -977,7 +998,7 @@ export type PluginEmbeddingProvider = {
  * plugin instead of the core memory switchboard.
  */
 export type ProviderCreateEmbeddingProviderContext = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   provider: string;
@@ -998,7 +1019,7 @@ export type ProviderCreateEmbeddingProviderContext = {
 /**
  * Provider-owned prompt-cache eligibility.
  *
- * Return `true` or `false` to override Astroclaw's built-in provider cache TTL
+ * Return `true` or `false` to override OpenClaw's built-in provider cache TTL
  * detection for this provider. Return `undefined` to fall back to core rules.
  */
 export type ProviderCacheTtlEligibilityContext = {
@@ -1010,12 +1031,12 @@ export type ProviderCacheTtlEligibilityContext = {
 /**
  * Provider-owned missing-auth message override.
  *
- * Runs only after Astroclaw exhausts normal env/profile/config auth resolution
+ * Runs only after OpenClaw exhausts normal env/profile/config auth resolution
  * for the requested provider. Return a custom message to replace the generic
  * "No API key found" error.
  */
 export type ProviderBuildMissingAuthMessageContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
@@ -1027,11 +1048,11 @@ export type ProviderBuildMissingAuthMessageContext = {
  * Provider-owned unknown-model hint override.
  *
  * Runs after catalog/runtime lookup misses for the requested provider. Return a
- * hint suffix that Astroclaw should append to the generic `Unknown model`
+ * hint suffix that OpenClaw should append to the generic `Unknown model`
  * error.
  */
 export type ProviderBuildUnknownModelHintContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
@@ -1047,7 +1068,7 @@ export type ProviderBuildUnknownModelHintContext = {
  * hooks are no longer called by model resolution.
  */
 export type ProviderBuiltInModelSuppressionContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
@@ -1081,16 +1102,17 @@ export type ProviderModernModelPolicyContext = {
 /**
  * Final catalog augmentation hook.
  *
- * Runs after Astroclaw loads the discovered model catalog and merges configured
+ * Runs after OpenClaw loads the discovered model catalog and merges configured
  * opt-in providers. Use this for forward-compat rows or vendor-owned synthetic
  * entries that should appear in `models list` and model pickers even when the
  * upstream registry has not caught up yet.
  */
 export type ProviderAugmentModelCatalogContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
+  resolveProviderApiKey?: ProviderCatalogContext["resolveProviderApiKey"];
   entries: ModelCatalogEntry[];
 };
 
@@ -1129,7 +1151,7 @@ export type ProviderPluginWizardSetup = {
    * Interactive onboarding surfaces where this auth choice should appear.
    * Defaults to `["text-inference"]` when omitted.
    */
-  onboardingScopes?: Array<"text-inference" | "image-generation">;
+  onboardingScopes?: Array<"text-inference" | "image-generation" | "music-generation">;
   /**
    * Optional model-allowlist prompt policy applied after this auth choice is
    * selected in configure/onboarding flows.
@@ -1173,7 +1195,7 @@ export type ProviderOAuthProfileIdRepair = {
   /**
    * Legacy OAuth profile id to migrate away from.
    *
-   * When omitted, Astroclaw falls back to `<provider>:default`.
+   * When omitted, OpenClaw falls back to `<provider>:default`.
    */
   legacyProfileId?: string;
   /**
@@ -1185,7 +1207,7 @@ export type ProviderOAuthProfileIdRepair = {
 };
 
 export type ProviderModelSelectedContext = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   model: string;
   prompter: WizardPrompter;
   agentDir?: string;
@@ -1193,14 +1215,14 @@ export type ProviderModelSelectedContext = {
 };
 
 export type ProviderDeferSyntheticProfileAuthContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   provider: string;
   providerConfig?: ModelProviderConfig;
   resolvedApiKey?: string;
 };
 
 export type ProviderSystemPromptContributionContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   workspaceDir?: string;
   provider: string;
@@ -1299,7 +1321,7 @@ export type ProviderPlugin = {
   /**
    * Optional async prefetch for dynamic model resolution.
    *
-   * Astroclaw calls this only from async model resolution paths. After it
+   * OpenClaw calls this only from async model resolution paths. After it
    * completes, `resolveDynamicModel` is called again.
    */
   prepareDynamicModel?: (ctx: ProviderPrepareDynamicModelContext) => Promise<void>;
@@ -1319,17 +1341,6 @@ export type ProviderPlugin = {
   normalizeResolvedModel?: (
     ctx: ProviderNormalizeResolvedModelContext,
   ) => ProviderRuntimeModel | null | undefined;
-  /**
-   * Provider-owned compat contribution for resolved models outside direct
-   * provider ownership.
-   *
-   * Use this when a plugin can recognize its vendor's models behind another
-   * OpenAI-compatible transport (for example OpenRouter or a custom base URL)
-   * and needs to contribute compat flags without taking over the provider.
-   */
-  contributeResolvedModelCompat?: (
-    ctx: ProviderNormalizeResolvedModelContext,
-  ) => Partial<ModelCompatConfig> | null | undefined;
   /**
    * Provider-owned model-id normalization.
    *
@@ -1387,7 +1398,7 @@ export type ProviderPlugin = {
   /**
    * Provider-owned replay-history sanitization.
    *
-   * Runs after Astroclaw performs generic transcript cleanup. Use this for
+   * Runs after OpenClaw performs generic transcript cleanup. Use this for
    * provider-specific replay rewrites that should stay with the provider
    * plugin rather than in shared core compaction helpers.
    */
@@ -1407,7 +1418,7 @@ export type ProviderPlugin = {
   /**
    * Provider-owned tool-schema normalization.
    *
-   * Use this for transport-family schema cleanup before Astroclaw registers
+   * Use this for transport-family schema cleanup before OpenClaw registers
    * tools with the embedded runner.
    */
   normalizeToolSchemas?: (
@@ -1459,7 +1470,7 @@ export type ProviderPlugin = {
    */
   createStreamFn?: (ctx: ProviderCreateStreamFnContext) => StreamFn | null | undefined;
   /**
-   * Provider-owned stream wrapper applied after generic Astroclaw wrappers.
+   * Provider-owned stream wrapper applied after generic OpenClaw wrappers.
    *
    * Typical uses: provider attribution headers, request-body rewrites, or
    * provider-specific compat payload patches that do not justify a separate
@@ -1502,7 +1513,7 @@ export type ProviderPlugin = {
   /**
    * Runtime auth exchange hook.
    *
-   * Called after Astroclaw resolves the raw configured credential but before the
+   * Called after OpenClaw resolves the raw configured credential but before the
    * runner stores it in runtime auth storage. This lets plugins exchange a
    * source credential (for example a GitHub token) into a short-lived runtime
    * token plus optional base URL override.
@@ -1560,7 +1571,7 @@ export type ProviderPlugin = {
    * Provider-owned missing-auth message override.
    *
    * Return a custom message when the provider wants a more specific recovery
-   * hint than Astroclaw's generic auth-store guidance.
+   * hint than OpenClaw's generic auth-store guidance.
    */
   buildMissingAuthMessage?: (
     ctx: ProviderBuildMissingAuthMessageContext,
@@ -1569,7 +1580,7 @@ export type ProviderPlugin = {
    * Provider-owned unknown-model hint override.
    *
    * Return a suffix when the provider wants a more specific recovery hint than
-   * Astroclaw's generic `Unknown model` error after catalog/runtime lookup
+   * OpenClaw's generic `Unknown model` error after catalog/runtime lookup
    * fails.
    */
   buildUnknownModelHint?: (ctx: ProviderBuildUnknownModelHintContext) => string | null | undefined;
@@ -1577,7 +1588,7 @@ export type ProviderPlugin = {
    * Provider-owned built-in model suppression.
    *
    * Return `{ suppress: true }` to hide a stale upstream row. Include
-   * `errorMessage` when Astroclaw should surface a provider-specific hint for
+   * `errorMessage` when OpenClaw should surface a provider-specific hint for
    * direct model resolution failures.
    *
    * @deprecated Use manifest `modelCatalog.suppressions`. Runtime suppression
@@ -1594,7 +1605,7 @@ export type ProviderPlugin = {
    * compatibility during the migration window.
    *
    * Return extra rows to append to the final catalog after discovery/config
-   * merging. Astroclaw deduplicates by `provider/id`, so plugins only need to
+   * merging. OpenClaw deduplicates by `provider/id`, so plugins only need to
    * describe the desired supplemental rows.
    */
   augmentModelCatalog?: (
@@ -1626,7 +1637,7 @@ export type ProviderPlugin = {
    * Provider-owned thinking level profile.
    *
    * Prefer this over the individual thinking capability hooks when a provider
-   * or model exposes a custom set of thinking levels. Astroclaw stores the
+   * or model exposes a custom set of thinking levels. OpenClaw stores the
    * canonical `id`, shows `label` when provided, and downgrades stale stored
    * values by profile rank.
    */
@@ -1648,7 +1659,7 @@ export type ProviderPlugin = {
    * Provider-owned system-prompt contribution.
    *
    * Use this when a provider/model family needs cache-aware prompt tuning
-   * without replacing the full Astroclaw-owned system prompt.
+   * without replacing the full OpenClaw-owned system prompt.
    */
   resolveSystemPromptContribution?: (
     ctx: ProviderSystemPromptContributionContext,
@@ -1656,7 +1667,7 @@ export type ProviderPlugin = {
   /**
    * Provider-owned GPT/model prompt overlay seam.
    *
-   * Runs after Astroclaw's built-in overlay is resolved and before the
+   * Runs after OpenClaw's built-in overlay is resolved and before the
    * provider's regular system-prompt contribution is merged.
    */
   resolvePromptOverlay?: (
@@ -1665,7 +1676,7 @@ export type ProviderPlugin = {
   /**
    * Provider-owned fallback route override for model/profile failure handling.
    *
-   * Return undefined/null to keep Astroclaw's default fallback policy.
+   * Return undefined/null to keep OpenClaw's default fallback policy.
    */
   followupFallbackRoute?: (
     ctx: ProviderFollowupFallbackRouteContext,
@@ -1681,7 +1692,7 @@ export type ProviderPlugin = {
    * Provider-owned final system-prompt transform.
    *
    * Use this sparingly when a provider transport needs small compatibility
-   * rewrites after Astroclaw has assembled the complete prompt. Return
+   * rewrites after OpenClaw has assembled the complete prompt. Return
    * `undefined`/`null` to leave the prompt unchanged.
    */
   transformSystemPrompt?: (ctx: ProviderTransformSystemPromptContext) => string | null | undefined;
@@ -1689,7 +1700,7 @@ export type ProviderPlugin = {
    * Provider-owned bidirectional text replacements.
    *
    * `input` applies to system prompts and text message content before transport.
-   * `output` applies to assistant text deltas/final text before Astroclaw handles
+   * `output` applies to assistant text deltas/final text before OpenClaw handles
    * its own control markers or channel delivery.
    */
   textTransforms?: PluginTextTransforms;
@@ -1701,7 +1712,7 @@ export type ProviderPlugin = {
    */
   applyConfigDefaults?: (
     ctx: ProviderApplyConfigDefaultsContext,
-  ) => AstroclawConfig | null | undefined;
+  ) => OpenClawConfig | null | undefined;
   /**
    * Provider-owned "modern model" matcher used by live profile/smoke filters.
    *
@@ -1713,14 +1724,14 @@ export type ProviderPlugin = {
   /**
    * Provider-owned auth-profile API-key formatter.
    *
-   * Astroclaw uses this when a stored auth profile is already valid and needs to
+   * OpenClaw uses this when a stored auth profile is already valid and needs to
    * be converted into the runtime `apiKey` string expected by the provider. Use
    * this for providers whose auth profile stores extra metadata alongside the
    * bearer token (for example Gemini CLI's `{ token, projectId }` payload).
    */
   formatApiKey?: (cred: AuthProfileCredential) => string;
   /**
-   * Legacy auth-profile ids that should be retired by `astroclaw doctor`.
+   * Legacy auth-profile ids that should be retired by `openclaw doctor`.
    *
    * Use this when a provider plugin replaces an older core-managed profile id
    * and wants cleanup/migration messaging to live with the provider instead of
@@ -1728,7 +1739,7 @@ export type ProviderPlugin = {
    */
   deprecatedProfileIds?: string[];
   /**
-   * Legacy OAuth profile-id migrations that `astroclaw doctor` should offer.
+   * Legacy OAuth profile-id migrations that `openclaw doctor` should offer.
    *
    * Use this when a provider moved from a legacy default OAuth profile id to a
    * newer identity-based id and wants doctor to own the config rewrite without
@@ -1738,7 +1749,7 @@ export type ProviderPlugin = {
   /**
    * Provider-owned OAuth refresh.
    *
-   * Astroclaw calls this before falling back to the shared `pi-ai` OAuth
+   * OpenClaw calls this before falling back to the shared `shared model runtime` OAuth
    * refreshers. Use it when the provider has a custom refresh endpoint, or when
    * the provider needs custom refresh-failure behavior that should stay out of
    * core auth-profile code.
@@ -1749,7 +1760,7 @@ export type ProviderPlugin = {
    *
    * Return a multiline repair hint when OAuth refresh fails and the provider
    * wants to steer users toward a specific auth-profile migration or recovery
-   * path. Return nothing to keep Astroclaw's generic error text.
+   * path. Return nothing to keep OpenClaw's generic error text.
    */
   buildAuthDoctorHint?: (
     ctx: ProviderAuthDoctorHintContext,
@@ -1801,8 +1812,8 @@ export type ProviderPlugin = {
     | undefined;
   /**
    * @deprecated Declare `contracts.externalAuthProviders` in the plugin manifest
-   * and implement `resolveExternalAuthProfiles` instead. This compatibility hook
-   * is loaded through a slower fallback path and will be removed in a future release.
+   * and implement `resolveExternalAuthProfiles` instead. Kept at the public
+   * plugin boundary until the SDK removal window closes.
    */
   resolveExternalOAuthProfiles?: (
     ctx: ProviderResolveExternalOAuthProfilesContext,
@@ -1816,7 +1827,7 @@ export type ProviderPlugin = {
    *
    * Return true when a stored profile API key is only a provider-owned
    * synthetic placeholder and should yield to env/config-backed auth before
-   * Astroclaw falls back to that stored profile.
+   * OpenClaw falls back to that stored profile.
    */
   shouldDeferSyntheticProfileAuth?: (
     ctx: ProviderDeferSyntheticProfileAuthContext,
@@ -1830,6 +1841,9 @@ export type SpeechProviderPlugin = {
   label: string;
   aliases?: string[];
   autoSelectOrder?: number;
+  /** Default provider operation timeout in milliseconds when caller/config omit timeoutMs. */
+  defaultTimeoutMs?: number;
+  defaultModel?: string;
   models?: readonly string[];
   voices?: readonly string[];
   resolveConfig?: (ctx: SpeechProviderResolveConfigContext) => SpeechProviderConfig;
@@ -1863,6 +1877,7 @@ export type RealtimeTranscriptionProviderPlugin = {
   label: string;
   aliases?: string[];
   defaultModel?: string;
+  models?: readonly string[];
   autoSelectOrder?: number;
   resolveConfig?: (
     ctx: RealtimeTranscriptionProviderResolveConfigContext,
@@ -1875,12 +1890,20 @@ export type PluginRealtimeTranscriptionProviderEntry = RealtimeTranscriptionProv
   pluginId: string;
 };
 
+/** Transcript source capability registered by a channel or meeting plugin. */
+export type TranscriptSourceProvider = TranscriptsSourceProviderCapability;
+
+export type PluginTranscriptsSourceProviderEntry = TranscriptSourceProvider & {
+  pluginId: string;
+};
+
 /** Realtime voice capability registered by a plugin. */
 export type RealtimeVoiceProviderPlugin = {
   id: RealtimeVoiceProviderId;
   label: string;
   aliases?: string[];
   defaultModel?: string;
+  models?: readonly string[];
   autoSelectOrder?: number;
   capabilities?: RealtimeVoiceProviderCapabilities;
   resolveConfig?: (ctx: RealtimeVoiceProviderResolveConfigContext) => RealtimeVoiceProviderConfig;
@@ -1900,7 +1923,7 @@ export type ImageGenerationProviderPlugin = ImageGenerationProvider;
 export type VideoGenerationProviderPlugin = VideoGenerationProvider;
 export type MusicGenerationProviderPlugin = MusicGenerationProvider;
 
-export type AstroclawPluginGatewayMethod = {
+export type OpenClawPluginGatewayMethod = {
   method: string;
   handler: GatewayRequestHandler;
 };
@@ -1912,9 +1935,9 @@ export type AstroclawPluginGatewayMethod = {
 export type PluginCommandDiagnosticsSession = {
   /** Stable host session key when available. */
   sessionKey?: string;
-  /** Ephemeral Astroclaw session id when available. */
+  /** Ephemeral OpenClaw session id when available. */
   sessionId?: string;
-  /** Transcript file for this Astroclaw session when available. */
+  /** Transcript file for this OpenClaw session when available. */
   sessionFile?: string;
   /** Embedded agent harness selected for this session. */
   agentHarnessId?: string;
@@ -1950,14 +1973,14 @@ export type PluginCommandContext = {
   sessionKey?: string;
   /** Ephemeral host session id for the active conversation when available. */
   sessionId?: string;
-  /** Transcript file for the active Astroclaw session when available. */
+  /** Transcript file for the active OpenClaw session when available. */
   sessionFile?: string;
   /** Raw command arguments after the command name */
   args?: string;
   /** The full normalized command body */
   commandBody: string;
-  /** Current Astroclaw configuration */
-  config: AstroclawConfig;
+  /** Current OpenClaw configuration */
+  config: OpenClawConfig;
   /** Raw "From" value (channel-scoped id) */
   from?: string;
   /** Raw "To" value (channel-scoped id) */
@@ -1970,6 +1993,10 @@ export type PluginCommandContext = {
   threadParentId?: string;
   /** Sensitive diagnostics-only session inventory for owner-gated commands. */
   diagnosticsSessions?: PluginCommandDiagnosticsSession[];
+  /** Host-bound runtime capabilities scoped to this command invocation. */
+  runtimeContext?: {
+    llm?: import("./runtime/types-core.js").PluginRuntimeCore["llm"];
+  };
   /** Internal diagnostics-only marker that exec approval already authorized upload. */
   diagnosticsUploadApproved?: boolean;
   /** Internal diagnostics-only marker to preview upload effects without exposing ids. */
@@ -1998,7 +2025,26 @@ export type PluginCommandHandler = (
 /**
  * Definition for a plugin-registered command.
  */
-export type AstroclawPluginCommandDefinition = {
+export const AGENT_PROMPT_SURFACE_KINDS = [
+  "openclaw_main",
+  /** @deprecated Use openclaw_main. */
+  "pi_main",
+  "codex_app_server",
+  "cli_backend",
+  "acp_backend",
+  "subagent",
+] as const;
+
+export type AgentPromptSurfaceKind = (typeof AGENT_PROMPT_SURFACE_KINDS)[number];
+
+export type AgentPromptGuidanceEntry = {
+  text: string;
+  surfaces?: readonly AgentPromptSurfaceKind[];
+};
+
+export type AgentPromptGuidance = string | AgentPromptGuidanceEntry;
+
+export type OpenClawPluginCommandDefinition = {
   /** Command name without leading slash (e.g., "tts") */
   name: string;
   /**
@@ -2025,13 +2071,15 @@ export type AstroclawPluginCommandDefinition = {
    */
   channels?: readonly string[];
   /** Optional system-prompt guidance for agents when this command is registered. */
-  agentPromptGuidance?: readonly string[];
+  agentPromptGuidance?: readonly AgentPromptGuidance[];
   /** Whether this command accepts arguments */
   acceptsArgs?: boolean;
   /** Whether only authorized senders can use this command (default: true) */
   requireAuth?: boolean;
   /** Operator scopes required by gateway clients; command owners may satisfy this on chat surfaces. */
   requiredScopes?: OperatorScope[];
+  /** Whether a trusted bundled handler needs owner status for subcommand-level authorization. */
+  exposeSenderIsOwner?: boolean;
   /**
    * Allows a bundled plugin to claim a command name that is otherwise reserved
    * by core. External plugins cannot use this field.
@@ -2057,28 +2105,28 @@ export type PluginInteractiveRegistration<
 
 export type PluginInteractiveHandlerRegistration = PluginInteractiveRegistration;
 
-export type AstroclawPluginHttpRouteAuth = "gateway" | "plugin";
-export type AstroclawPluginHttpRouteMatch = "exact" | "prefix";
-export type AstroclawPluginGatewayRuntimeScopeSurface = "write-default" | "trusted-operator";
+export type OpenClawPluginHttpRouteAuth = "gateway" | "plugin";
+export type OpenClawPluginHttpRouteMatch = "exact" | "prefix";
+export type OpenClawPluginGatewayRuntimeScopeSurface = "write-default" | "trusted-operator";
 
-export type AstroclawPluginHttpRouteHandler = (
+export type OpenClawPluginHttpRouteHandler = (
   req: IncomingMessage,
   res: ServerResponse,
 ) => Promise<boolean | void> | boolean | void;
 
-export type AstroclawPluginHttpRouteUpgradeHandler = (
+export type OpenClawPluginHttpRouteUpgradeHandler = (
   req: IncomingMessage,
   socket: Duplex,
   head: Buffer,
 ) => Promise<boolean | void> | boolean | void;
 
-export type AstroclawPluginHttpRouteParams = {
+export type OpenClawPluginHttpRouteParams = {
   path: string;
-  handler: AstroclawPluginHttpRouteHandler;
-  handleUpgrade?: AstroclawPluginHttpRouteUpgradeHandler;
-  auth: AstroclawPluginHttpRouteAuth;
-  match?: AstroclawPluginHttpRouteMatch;
-  gatewayRuntimeScopeSurface?: AstroclawPluginGatewayRuntimeScopeSurface;
+  handler: OpenClawPluginHttpRouteHandler;
+  handleUpgrade?: OpenClawPluginHttpRouteUpgradeHandler;
+  auth: OpenClawPluginHttpRouteAuth;
+  match?: OpenClawPluginHttpRouteMatch;
+  gatewayRuntimeScopeSurface?: OpenClawPluginGatewayRuntimeScopeSurface;
   nodeCapability?: {
     surface: string;
     ttlMs?: number;
@@ -2086,66 +2134,66 @@ export type AstroclawPluginHttpRouteParams = {
   replaceExisting?: boolean;
 };
 
-export type AstroclawPluginHostedMediaResolver = (
+export type OpenClawPluginHostedMediaResolver = (
   mediaUrl: string,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
-export type AstroclawPluginCliContext = {
+export type OpenClawPluginCliContext = {
   /**
    * Command object where this plugin should register its commands.
    *
-   * For root CLI registrations this is the root `astroclaw` program. For nested
+   * For root CLI registrations this is the root `openclaw` program. For nested
    * registrations it is the resolved parent command from `parentPath`.
    */
   program: Command;
   parentPath: readonly string[];
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   workspaceDir?: string;
   logger: PluginLogger;
 };
 
-export type AstroclawPluginCliRegistrar = (ctx: AstroclawPluginCliContext) => void | Promise<void>;
+export type OpenClawPluginCliRegistrar = (ctx: OpenClawPluginCliContext) => void | Promise<void>;
 
 /**
  * Top-level CLI metadata for plugin-owned commands.
  *
  * Descriptors are the parse-time contract for lazy plugin CLI registration.
- * If you want Astroclaw to keep a plugin command lazy-loaded while still
+ * If you want OpenClaw to keep a plugin command lazy-loaded while still
  * advertising it at the root CLI level, provide descriptors that cover every
  * top-level command root registered by that plugin CLI surface.
  */
-export type AstroclawPluginCliCommandDescriptor = {
+export type OpenClawPluginCliCommandDescriptor = {
   name: string;
   description: string;
   hasSubcommands: boolean;
 };
 
-export type AstroclawPluginNodeCliFeatureOptions = {
-  /** Explicit node feature command names owned under `astroclaw nodes`. */
+export type OpenClawPluginNodeCliFeatureOptions = {
+  /** Explicit node feature command names owned under `openclaw nodes`. */
   commands?: string[];
   /**
    * Parse-time command descriptors for lazy node feature CLI registration.
    *
-   * Descriptors are registered under `astroclaw nodes`, so a descriptor named
-   * `"camera"` exposes `astroclaw nodes camera`.
+   * Descriptors are registered under `openclaw nodes`, so a descriptor named
+   * `"camera"` exposes `openclaw nodes camera`.
    */
-  descriptors?: AstroclawPluginCliCommandDescriptor[];
+  descriptors?: OpenClawPluginCliCommandDescriptor[];
 };
 
-export type AstroclawPluginReloadRegistration = {
+export type OpenClawPluginReloadRegistration = {
   restartPrefixes?: string[];
   hotPrefixes?: string[];
   noopPrefixes?: string[];
 };
 
-export type AstroclawPluginNodeHostCommand = {
+export type OpenClawPluginNodeHostCommand = {
   command: string;
   cap?: string;
   dangerous?: boolean;
   handle: (paramsJSON?: string | null) => Promise<string>;
 };
 
-export type AstroclawPluginNodeInvokeTransportResult =
+export type OpenClawPluginNodeInvokeTransportResult =
   | {
       ok: true;
       payload?: unknown;
@@ -2158,9 +2206,9 @@ export type AstroclawPluginNodeInvokeTransportResult =
       details?: Record<string, unknown>;
     };
 
-export type AstroclawPluginNodeInvokeApprovalDecision = "allow-once" | "allow-always" | "deny";
+export type OpenClawPluginNodeInvokeApprovalDecision = "allow-once" | "allow-always" | "deny";
 
-export type AstroclawPluginNodeInvokePolicyApprovalRuntime = {
+export type OpenClawPluginNodeInvokePolicyApprovalRuntime = {
   request: (input: {
     title: string;
     description: string;
@@ -2172,17 +2220,17 @@ export type AstroclawPluginNodeInvokePolicyApprovalRuntime = {
     timeoutMs?: number;
   }) => Promise<{
     id?: string;
-    decision?: AstroclawPluginNodeInvokeApprovalDecision | null;
+    decision?: OpenClawPluginNodeInvokeApprovalDecision | null;
   }>;
 };
 
-export type AstroclawPluginNodeInvokePolicyContext = {
+export type OpenClawPluginNodeInvokePolicyContext = {
   nodeId: string;
   command: string;
   params: unknown;
   timeoutMs?: number;
   idempotencyKey?: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   pluginConfig?: Record<string, unknown>;
   node?: {
     nodeId: string;
@@ -2195,15 +2243,15 @@ export type AstroclawPluginNodeInvokePolicyContext = {
     connId?: string;
     scopes?: string[];
   } | null;
-  approvals?: AstroclawPluginNodeInvokePolicyApprovalRuntime;
+  approvals?: OpenClawPluginNodeInvokePolicyApprovalRuntime;
   invokeNode: (input?: {
     params?: unknown;
     timeoutMs?: number;
     idempotencyKey?: string;
-  }) => Promise<AstroclawPluginNodeInvokeTransportResult>;
+  }) => Promise<OpenClawPluginNodeInvokeTransportResult>;
 };
 
-export type AstroclawPluginNodeInvokePolicyResult =
+export type OpenClawPluginNodeInvokePolicyResult =
   | {
       ok: true;
       payload?: unknown;
@@ -2217,7 +2265,7 @@ export type AstroclawPluginNodeInvokePolicyResult =
       unavailable?: boolean;
     };
 
-export type AstroclawPluginNodeInvokePolicy = {
+export type OpenClawPluginNodeInvokePolicy = {
   commands: string[];
   /**
    * Platforms where these node-handled commands should be allowlisted by default.
@@ -2235,27 +2283,28 @@ export type AstroclawPluginNodeInvokePolicy = {
    */
   foregroundRestrictedOnIos?: boolean;
   handle: (
-    ctx: AstroclawPluginNodeInvokePolicyContext,
-  ) => Promise<AstroclawPluginNodeInvokePolicyResult> | AstroclawPluginNodeInvokePolicyResult;
+    ctx: OpenClawPluginNodeInvokePolicyContext,
+  ) => Promise<OpenClawPluginNodeInvokePolicyResult> | OpenClawPluginNodeInvokePolicyResult;
 };
 
-export type AstroclawPluginSecurityAuditContext = {
-  config: AstroclawConfig;
-  sourceConfig: AstroclawConfig;
+export type OpenClawPluginSecurityAuditContext = {
+  config: OpenClawConfig;
+  sourceConfig: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   stateDir: string;
   configPath: string;
 };
 
-export type AstroclawPluginSecurityAuditCollector = (
-  ctx: AstroclawPluginSecurityAuditContext,
+export type OpenClawPluginSecurityAuditCollector = (
+  ctx: OpenClawPluginSecurityAuditContext,
 ) => SecurityAuditFinding[] | Promise<SecurityAuditFinding[]>;
 
-export type AstroclawGatewayDiscoveryAdvertiseContext = {
+export type OpenClawGatewayDiscoveryAdvertiseContext = {
   machineDisplayName: string;
   gatewayPort: number;
   gatewayTlsEnabled: boolean;
   gatewayTlsFingerprintSha256?: string;
+  gatewayDirectReachable: boolean;
   canvasPort?: number;
   tailnetDns?: string;
   sshPort?: number;
@@ -2263,60 +2312,68 @@ export type AstroclawGatewayDiscoveryAdvertiseContext = {
   minimal: boolean;
 };
 
-export type AstroclawGatewayDiscoveryService = {
+export type OpenClawGatewayDiscoveryService = {
   id: string;
   advertise: (
-    ctx: AstroclawGatewayDiscoveryAdvertiseContext,
+    ctx: OpenClawGatewayDiscoveryAdvertiseContext,
   ) => void | Promise<void | { stop?: () => void | Promise<void> }>;
 };
 
 /** Context passed to long-lived plugin services. */
-export type AstroclawPluginServiceContext = {
-  config: AstroclawConfig;
+export type OpenClawPluginServiceContext = {
+  config: OpenClawConfig;
   workspaceDir?: string;
   stateDir: string;
   logger: PluginLogger;
+  startupTrace?: {
+    detail?: (name: string, metrics: ReadonlyArray<readonly [string, number | string]>) => void;
+    measure: <T>(name: string, run: () => T | Promise<T>) => Promise<T>;
+  };
   internalDiagnostics?: {
-    emit: (event: DiagnosticEventInput) => void;
+    emit: (event: DiagnosticEventInput, privateData?: DiagnosticEventPrivateData) => void;
     onEvent: (
-      listener: (event: DiagnosticEventPayload, metadata: DiagnosticEventMetadata) => void,
+      listener: (
+        event: DiagnosticEventPayload,
+        metadata: DiagnosticEventMetadata,
+        privateData: DiagnosticEventPrivateData,
+      ) => void,
     ) => () => void;
   };
 };
 
 /** Background service registered by a plugin during `register(api)`. */
-export type AstroclawPluginService = {
+export type OpenClawPluginService = {
   id: string;
-  start: (ctx: AstroclawPluginServiceContext) => void | Promise<void>;
-  stop?: (ctx: AstroclawPluginServiceContext) => void | Promise<void>;
+  start: (ctx: OpenClawPluginServiceContext) => void | Promise<void>;
+  stop?: (ctx: OpenClawPluginServiceContext) => void | Promise<void>;
 };
 
-export type AstroclawPluginChannelRegistration = {
+export type OpenClawPluginChannelRegistration = {
   plugin: ChannelPlugin;
 };
 
 /** Module-level plugin definition loaded from a native plugin entry file. */
-export type AstroclawPluginDefinition = {
+export type OpenClawPluginDefinition = {
   id?: string;
   name?: string;
   description?: string;
   version?: string;
   /**
-   * @deprecated Declare exclusive plugin kind in `astroclaw.plugin.json` via
+   * @deprecated Declare exclusive plugin kind in `openclaw.plugin.json` via
    * manifest `kind`. Runtime-exported `kind` is kept as a compatibility
    * fallback for older plugins and may require loading plugin runtime on
    * metadata-only command paths.
    */
   kind?: PluginKind | PluginKind[];
-  configSchema?: AstroclawPluginConfigSchema;
-  reload?: AstroclawPluginReloadRegistration;
-  nodeHostCommands?: AstroclawPluginNodeHostCommand[];
-  securityAuditCollectors?: AstroclawPluginSecurityAuditCollector[];
-  register?: (api: AstroclawPluginApi) => void;
-  activate?: (api: AstroclawPluginApi) => void;
+  configSchema?: OpenClawPluginConfigSchema;
+  reload?: OpenClawPluginReloadRegistration;
+  nodeHostCommands?: OpenClawPluginNodeHostCommand[];
+  securityAuditCollectors?: OpenClawPluginSecurityAuditCollector[];
+  register?: (api: OpenClawPluginApi) => void;
+  activate?: (api: OpenClawPluginApi) => void;
 };
 
-export type AstroclawPluginModule = AstroclawPluginDefinition | ((api: AstroclawPluginApi) => void);
+export type OpenClawPluginModule = OpenClawPluginDefinition | ((api: OpenClawPluginApi) => void);
 
 /**
  * Public label exposed to plugin `register(api)` calls.
@@ -2340,9 +2397,9 @@ export type PluginRegistrationMode =
   | "setup-runtime"
   | "cli-metadata";
 
-export type PluginConfigMigration = (config: AstroclawConfig) =>
+export type PluginConfigMigration = (config: OpenClawConfig) =>
   | {
-      config: AstroclawConfig;
+      config: OpenClawConfig;
       changes: string[];
     }
   | null
@@ -2356,6 +2413,7 @@ export type MigrationItemStatus =
   | "conflict"
   | "error";
 export type MigrationItemKind =
+  | "auth"
   | "config"
   | "secret"
   | "memory"
@@ -2427,7 +2485,7 @@ export type MigrationProviderPreparation = {
 };
 
 export type MigrationProviderContext = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   runtime?: PluginRuntime;
   logger: PluginLogger;
   stateDir: string;
@@ -2440,7 +2498,7 @@ export type MigrationProviderContext = {
   signal?: AbortSignal;
 };
 
-/** Migration source implemented by a plugin and orchestrated by `astroclaw migrate`. */
+/** Migration source implemented by a plugin and orchestrated by `openclaw migrate`. */
 export type MigrationProviderPlugin = {
   id: string;
   label: string;
@@ -2457,7 +2515,7 @@ export type MigrationProviderPlugin = {
 };
 
 export type PluginSetupAutoEnableContext = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 };
 
@@ -2465,12 +2523,12 @@ export type PluginSetupAutoEnableProbe = (
   ctx: PluginSetupAutoEnableContext,
 ) => string | string[] | null | undefined;
 
-export type AstroclawPluginSessionStateApi = {
+export type OpenClawPluginSessionStateApi = {
   /** Register plugin-owned session state projected into Gateway session rows. */
   registerSessionExtension: (extension: PluginSessionExtensionRegistration) => void;
 };
 
-export type AstroclawPluginSessionWorkflowApi = {
+export type OpenClawPluginSessionWorkflowApi = {
   /** Queue one plugin-owned context injection for the next agent turn in a session. */
   enqueueNextTurnInjection: (
     injection: PluginNextTurnInjection,
@@ -2500,31 +2558,31 @@ export type AstroclawPluginSessionWorkflowApi = {
   ) => Promise<PluginSessionTurnUnscheduleByTagResult>;
 };
 
-export type AstroclawPluginSessionControlsApi = {
+export type OpenClawPluginSessionControlsApi = {
   /** Register a typed session action that clients can dispatch through the Gateway. */
   registerSessionAction: (action: PluginSessionActionRegistration) => void;
   /** Register a generic Control UI contribution descriptor. */
   registerControlUiDescriptor: (descriptor: PluginControlUiDescriptor) => void;
 };
 
-export type AstroclawPluginSessionApi = {
-  state: AstroclawPluginSessionStateApi;
-  workflow: AstroclawPluginSessionWorkflowApi;
-  controls: AstroclawPluginSessionControlsApi;
+export type OpenClawPluginSessionApi = {
+  state: OpenClawPluginSessionStateApi;
+  workflow: OpenClawPluginSessionWorkflowApi;
+  controls: OpenClawPluginSessionControlsApi;
 };
 
-export type AstroclawPluginAgentEventsApi = {
+export type OpenClawPluginAgentEventsApi = {
   /** Subscribe to sanitized agent events through the host-owned plugin lifecycle. */
   registerAgentEventSubscription: (subscription: PluginAgentEventSubscriptionRegistration) => void;
   /** Emit a host-routed, plugin-attributed event for workflow/UI subscribers. */
   emitAgentEvent: (params: PluginAgentEventEmitParams) => PluginAgentEventEmitResult;
 };
 
-export type AstroclawPluginAgentApi = {
-  events: AstroclawPluginAgentEventsApi;
+export type OpenClawPluginAgentApi = {
+  events: OpenClawPluginAgentEventsApi;
 };
 
-export type AstroclawPluginRunContextApi = {
+export type OpenClawPluginRunContextApi = {
   /** Store namespaced, JSON-compatible data for the active run. Cleared on run end/error. */
   setRunContext: (patch: PluginRunContextPatch) => boolean;
   /** Read namespaced plugin data for a run. */
@@ -2533,13 +2591,13 @@ export type AstroclawPluginRunContextApi = {
   clearRunContext: (params: { runId: string; namespace?: string }) => void;
 };
 
-export type AstroclawPluginLifecycleApi = {
+export type OpenClawPluginLifecycleApi = {
   /** Register cleanup hooks for plugin-owned host state and background work. */
   registerRuntimeLifecycle: (lifecycle: PluginRuntimeLifecycleRegistration) => void;
 };
 
 /** Main registration API injected into native plugin entry files. */
-export type AstroclawPluginApi = {
+export type OpenClawPluginApi = {
   id: string;
   name: string;
   version?: string;
@@ -2547,7 +2605,7 @@ export type AstroclawPluginApi = {
   source: string;
   rootDir?: string;
   registrationMode: PluginRegistrationMode;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   pluginConfig?: Record<string, unknown>;
   /**
    * In-process runtime helpers for trusted native plugins.
@@ -2561,27 +2619,27 @@ export type AstroclawPluginApi = {
    * Grouped facade over the existing flat session-related plugin API.
    * Flat methods remain supported for compatibility.
    */
-  session: AstroclawPluginSessionApi;
+  session: OpenClawPluginSessionApi;
   /** Grouped facade for agent-event workflow seams. */
-  agent: AstroclawPluginAgentApi;
+  agent: OpenClawPluginAgentApi;
   /** Grouped facade for run-scoped plugin scratch state. */
-  runContext: AstroclawPluginRunContextApi;
+  runContext: OpenClawPluginRunContextApi;
   /** Grouped facade for plugin-owned lifecycle cleanup hooks. */
-  lifecycle: AstroclawPluginLifecycleApi;
+  lifecycle: OpenClawPluginLifecycleApi;
   registerTool: (
-    tool: AnyAgentTool | AstroclawPluginToolFactory,
-    opts?: AstroclawPluginToolOptions,
+    tool: AnyAgentTool | OpenClawPluginToolFactory,
+    opts?: OpenClawPluginToolOptions,
   ) => void;
   registerHook: (
     events: string | string[],
     handler: InternalHookHandler,
-    opts?: AstroclawPluginHookOptions,
+    opts?: OpenClawPluginHookOptions,
   ) => void;
-  registerHttpRoute: (params: AstroclawPluginHttpRouteParams) => void;
+  registerHttpRoute: (params: OpenClawPluginHttpRouteParams) => void;
   /** Register a plugin-owned resolver for browser-style hosted media URLs. */
-  registerHostedMediaResolver: (resolver: AstroclawPluginHostedMediaResolver) => void;
+  registerHostedMediaResolver: (resolver: OpenClawPluginHostedMediaResolver) => void;
   /** Register a native messaging channel plugin (channel capability). */
-  registerChannel: (registration: AstroclawPluginChannelRegistration | ChannelPlugin) => void;
+  registerChannel: (registration: OpenClawPluginChannelRegistration | ChannelPlugin) => void;
   /**
    * Register a gateway RPC method for this plugin.
    *
@@ -2595,7 +2653,7 @@ export type AstroclawPluginApi = {
     opts?: { scope?: OperatorScope },
   ) => void;
   registerCli: (
-    registrar: AstroclawPluginCliRegistrar,
+    registrar: OpenClawPluginCliRegistrar,
     opts?: {
       /** Parent command path for nested command groups, for example `["nodes"]`. */
       parentPath?: string[];
@@ -2604,37 +2662,37 @@ export type AstroclawPluginApi = {
       /**
        * Parse-time command descriptors for lazy CLI registration.
        *
-       * When descriptors cover every command exposed at `parentPath`, Astroclaw
+       * When descriptors cover every command exposed at `parentPath`, OpenClaw
        * can keep the plugin registrar lazy. Command-only registrations stay on
        * the eager compatibility path.
        */
-      descriptors?: AstroclawPluginCliCommandDescriptor[];
+      descriptors?: OpenClawPluginCliCommandDescriptor[];
     },
   ) => void;
   /**
-   * Register a plugin-owned node feature command group under `astroclaw nodes`.
+   * Register a plugin-owned node feature command group under `openclaw nodes`.
    *
    * This is equivalent to `registerCli(registrar, { parentPath: ["nodes"], ... })`
    * and is intended for paired-node capabilities such as camera, screen, or Canvas.
    */
   registerNodeCliFeature: (
-    registrar: AstroclawPluginCliRegistrar,
-    opts?: AstroclawPluginNodeCliFeatureOptions,
+    registrar: OpenClawPluginCliRegistrar,
+    opts?: OpenClawPluginNodeCliFeatureOptions,
   ) => void;
-  registerReload: (registration: AstroclawPluginReloadRegistration) => void;
-  registerNodeHostCommand: (command: AstroclawPluginNodeHostCommand) => void;
-  registerNodeInvokePolicy: (policy: AstroclawPluginNodeInvokePolicy) => void;
-  registerSecurityAuditCollector: (collector: AstroclawPluginSecurityAuditCollector) => void;
-  registerService: (service: AstroclawPluginService) => void;
+  registerReload: (registration: OpenClawPluginReloadRegistration) => void;
+  registerNodeHostCommand: (command: OpenClawPluginNodeHostCommand) => void;
+  registerNodeInvokePolicy: (policy: OpenClawPluginNodeInvokePolicy) => void;
+  registerSecurityAuditCollector: (collector: OpenClawPluginSecurityAuditCollector) => void;
+  registerService: (service: OpenClawPluginService) => void;
   /** Register a local gateway discovery advertiser such as mDNS/Bonjour. */
-  registerGatewayDiscoveryService: (service: AstroclawGatewayDiscoveryService) => void;
+  registerGatewayDiscoveryService: (service: OpenClawGatewayDiscoveryService) => void;
   /** Register a text-only CLI backend used by the local CLI runner. */
   registerCliBackend: (backend: CliBackendPlugin) => void;
   /** Register plugin-owned prompt/message compatibility text transforms. */
   registerTextTransforms: (transforms: PluginTextTransformRegistration) => void;
   /** Register a lightweight config migration that can run before plugin runtime loads. */
   registerConfigMigration: (migrate: PluginConfigMigration) => void;
-  /** Register an importer for `astroclaw migrate` (migration capability). */
+  /** Register an importer for `openclaw migrate` (migration capability). */
   registerMigrationProvider: (provider: MigrationProviderPlugin) => void;
   /** Register a lightweight config probe that can auto-enable this plugin generically. */
   registerAutoEnableProbe: (probe: PluginSetupAutoEnableProbe) => void;
@@ -2642,6 +2700,10 @@ export type AstroclawPluginApi = {
   registerProvider: (provider: ProviderPlugin) => void;
   /** Register provider-owned model catalog rows for text and media generation. */
   registerModelCatalogProvider: (provider: UnifiedModelCatalogProviderPlugin) => void;
+  /** Register a general embedding provider (embedding capability). */
+  registerEmbeddingProvider: (
+    adapter: import("./embedding-providers.js").EmbeddingProviderAdapter,
+  ) => void;
   /** Register a speech synthesis provider (speech capability). */
   registerSpeechProvider: (provider: SpeechProviderPlugin) => void;
   /** Register a realtime transcription provider (streaming STT capability). */
@@ -2650,6 +2712,8 @@ export type AstroclawPluginApi = {
   registerRealtimeVoiceProvider: (provider: RealtimeVoiceProviderPlugin) => void;
   /** Register a media understanding provider (media understanding capability). */
   registerMediaUnderstandingProvider: (provider: MediaUnderstandingProviderPlugin) => void;
+  /** Register a transcripts source provider (live or imported meeting transcript capability). */
+  registerTranscriptSourceProvider: (provider: TranscriptSourceProvider) => void;
   /** Register an image generation provider (image generation capability). */
   registerImageGenerationProvider: (provider: ImageGenerationProviderPlugin) => void;
   /** Register a video generation provider (video generation capability). */
@@ -2669,7 +2733,7 @@ export type AstroclawPluginApi = {
    * Plugin commands are processed before built-in commands and before agent invocation.
    * Use this for simple state-toggling or status commands that don't need AI reasoning.
    */
-  registerCommand: (command: AstroclawPluginCommandDefinition) => void;
+  registerCommand: (command: OpenClawPluginCommandDefinition) => void;
   /** Register a context engine implementation (exclusive slot - only one active at a time). */
   registerContextEngine: (
     id: string,
@@ -2708,8 +2772,8 @@ export type AstroclawPluginApi = {
     injection: PluginNextTurnInjection,
   ) => Promise<PluginNextTurnInjectionEnqueueResult>;
   /**
-   * Register a trusted pre-tool policy. Only bundled plugins may use this
-   * before-tool-call policy tier.
+   * Register a trusted pre-tool policy. Installed plugins must declare the
+   * policy id in `contracts.trustedToolPolicies`.
    */
   registerTrustedToolPolicy: (policy: PluginTrustedToolPolicyRegistration) => void;
   /**
@@ -2833,7 +2897,12 @@ export type AstroclawPluginApi = {
    * @deprecated Use registerMemoryCapability({ runtime }) instead.
    */
   registerMemoryRuntime: (runtime: import("./memory-state.js").MemoryPluginRuntime) => void;
-  /** Register a memory embedding provider adapter. Multiple adapters may coexist. */
+  /**
+   * Register a memory embedding provider adapter. Multiple adapters may coexist.
+   * @deprecated New embedding providers should use `registerEmbeddingProvider`
+   * and `contracts.embeddingProviders`. This memory-specific seam is retained
+   * while existing memory providers migrate.
+   */
   registerMemoryEmbeddingProvider: (
     adapter: import("./memory-embedding-providers.js").MemoryEmbeddingProviderAdapter,
   ) => void;
