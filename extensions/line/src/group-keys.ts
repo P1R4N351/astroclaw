@@ -1,6 +1,7 @@
-import { normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/account-resolution";
-import { resolveAccountEntry } from "astroclaw/plugin-sdk/account-resolution";
+// Line plugin module implements group keys behavior.
+import { normalizeAccountId } from "openclaw/plugin-sdk/account-id";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/account-resolution";
+import { resolveAccountEntry } from "openclaw/plugin-sdk/account-resolution";
 import type { LineConfig, LineGroupConfig } from "./types.js";
 
 export function resolveLineGroupLookupIds(groupId?: string | null): string[] {
@@ -38,7 +39,7 @@ export function resolveLineGroupConfigEntry<T>(
 }
 
 export function resolveLineGroupsConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string | null,
 ): Record<string, LineGroupConfig | undefined> | undefined {
   const lineConfig = cfg.channels?.line as LineConfig | undefined;
@@ -51,7 +52,7 @@ export function resolveLineGroupsConfig(
 }
 
 export function resolveExactLineGroupConfigKey(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   groupId?: string | null;
 }): string | undefined {
