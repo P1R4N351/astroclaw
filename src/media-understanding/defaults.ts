@@ -1,8 +1,14 @@
+// Media-understanding default model/provider selection from config, manifest
+// metadata, and capability declarations.
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
 import { resolveRuntimeConfigCacheKey } from "../config/runtime-snapshot.js";
-import type { AstroclawConfig } from "../config/types.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { buildMediaUnderstandingManifestMetadataRegistry } from "./manifest-metadata.js";
-import { normalizeMediaProviderId } from "./provider-registry.js";
+import {
+  normalizeMediaExecutionProviderId,
+  normalizeMediaProviderId,
+} from "./provider-registry.js";
 import { providerSupportsCapability } from "./provider-supports.js";
 import type { MediaUnderstandingCapability, MediaUnderstandingProvider } from "./types.js";
 export {
@@ -25,6 +31,8 @@ function cacheConfigRegistry(
   key: string,
   registry: Map<string, MediaUnderstandingProvider>,
 ): Map<string, MediaUnderstandingProvider> {
+  // Config snapshots are process-stable enough for bounded reuse; cap entries so
+  // tests and multi-workspace runs cannot grow this cache without limit.
   if (
     !configRegistryCache.has(key) &&
     configRegistryCache.size >= MAX_CONFIG_REGISTRY_CACHE_ENTRIES
@@ -38,7 +46,7 @@ function cacheConfigRegistry(
   return registry;
 }
 
-function resolveDefaultRegistry(cfg?: AstroclawConfig, workspaceDir?: string) {
+function resolveDefaultRegistry(cfg?: OpenClawConfig, workspaceDir?: string) {
   if (!cfg) {
     defaultRegistryCache ??= buildMediaUnderstandingManifestMetadataRegistry();
     return defaultRegistryCache;
@@ -62,14 +70,14 @@ function providerHasDeclaredCapability(
 }
 
 function resolveConfiguredImageProviderModel(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   providerId: string;
 }): string | undefined {
+  const normalizedProviderId = normalizeMediaProviderId(params.providerId);
   const providers = params.cfg?.models?.providers;
   if (!providers || typeof providers !== "object") {
     return undefined;
   }
-  const normalizedProviderId = normalizeMediaProviderId(params.providerId);
   for (const [providerKey, providerCfg] of Object.entries(providers)) {
     if (normalizeMediaProviderId(providerKey) !== normalizedProviderId) {
       continue;
@@ -86,14 +94,14 @@ function resolveConfiguredImageProviderModel(params: {
   return undefined;
 }
 
-function resolveConfiguredImageProviderIds(cfg?: AstroclawConfig): string[] {
+function resolveConfiguredImageProviderIds(cfg?: OpenClawConfig): string[] {
   const providers = cfg?.models?.providers;
   if (!providers || typeof providers !== "object") {
     return [];
   }
   const configured: string[] = [];
   for (const [providerKey, providerCfg] of Object.entries(providers)) {
-    const normalizedProviderId = normalizeMediaProviderId(providerKey);
+    const normalizedProviderId = normalizeMediaExecutionProviderId(providerKey);
     if (!normalizedProviderId || configured.includes(normalizedProviderId)) {
       continue;
     }
@@ -108,14 +116,40 @@ function resolveConfiguredImageProviderIds(cfg?: AstroclawConfig): string[] {
   return configured;
 }
 
+function isExecutionAliasProvider(providerId: string): boolean {
+  return normalizeMediaProviderId(providerId) !== providerId;
+}
+
+function insertConfiguredImageProviders(params: {
+  prioritized: string[];
+  configured: string[];
+}): string[] {
+  const merged = [...params.prioritized];
+  for (const providerId of params.configured.filter(isExecutionAliasProvider)) {
+    const canonicalProviderId = normalizeMediaProviderId(providerId);
+    const canonicalIndex = merged.indexOf(canonicalProviderId);
+    if (canonicalIndex >= 0) {
+      merged.splice(canonicalIndex, 0, providerId);
+    } else {
+      merged.unshift(providerId);
+    }
+  }
+  for (const providerId of params.configured.filter((id) => !isExecutionAliasProvider(id))) {
+    merged.push(providerId);
+  }
+  return uniqueStrings(merged);
+}
+
+/** Resolves the default provider model for a media capability from config or manifest metadata. */
 export function resolveDefaultMediaModel(params: {
   providerId: string;
   capability: MediaUnderstandingCapability;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   workspaceDir?: string;
   providerRegistry?: Map<string, MediaUnderstandingProvider>;
+  includeConfiguredImageModels?: boolean;
 }): string | undefined {
-  if (!params.providerRegistry) {
+  if (!params.providerRegistry && params.includeConfiguredImageModels !== false) {
     const configuredImageModel =
       params.capability === "image"
         ? resolveConfiguredImageProviderModel({
@@ -130,12 +164,19 @@ export function resolveDefaultMediaModel(params: {
   const registry =
     params.providerRegistry ?? resolveDefaultRegistry(params.cfg, params.workspaceDir);
   const provider = registry.get(normalizeMediaProviderId(params.providerId));
-  return normalizeOptionalString(provider?.defaultModels?.[params.capability]);
+  const manifestDefaultModel = normalizeOptionalString(
+    provider?.defaultModels?.[params.capability],
+  );
+  if (manifestDefaultModel) {
+    return manifestDefaultModel;
+  }
+  return undefined;
 }
 
+/** Resolves auto-discovery provider order for a media capability using manifest priorities. */
 export function resolveAutoMediaKeyProviders(params: {
   capability: MediaUnderstandingCapability;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   workspaceDir?: string;
   providerRegistry?: Map<string, MediaUnderstandingProvider>;
 }): string[] {
@@ -165,12 +206,16 @@ export function resolveAutoMediaKeyProviders(params: {
   if (params.providerRegistry || params.capability !== "image") {
     return prioritized;
   }
-  return [...new Set([...prioritized, ...resolveConfiguredImageProviderIds(params.cfg)])];
+  return insertConfiguredImageProviders({
+    prioritized,
+    configured: resolveConfiguredImageProviderIds(params.cfg),
+  });
 }
 
+/** Returns whether provider metadata declares native PDF document input support. */
 export function providerSupportsNativePdfDocument(params: {
   providerId: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   workspaceDir?: string;
   providerRegistry?: Map<string, MediaUnderstandingProvider>;
 }): boolean {
@@ -178,4 +223,23 @@ export function providerSupportsNativePdfDocument(params: {
     params.providerRegistry ?? resolveDefaultRegistry(params.cfg, params.workspaceDir);
   const provider = registry.get(normalizeMediaProviderId(params.providerId));
   return provider?.nativeDocumentInputs?.includes("pdf") ?? false;
+}
+
+/** Resolves provider-specific document model hints, preserving explicit unsupported markers. */
+export function resolveDocumentMediaModel(params: {
+  providerId: string;
+  document: "pdf";
+  mode: "textExtraction" | "image";
+  cfg?: OpenClawConfig;
+  workspaceDir?: string;
+  providerRegistry?: Map<string, MediaUnderstandingProvider>;
+}): string | false | undefined {
+  const registry =
+    params.providerRegistry ?? resolveDefaultRegistry(params.cfg, params.workspaceDir);
+  const provider = registry.get(normalizeMediaProviderId(params.providerId));
+  const value = provider?.documentModels?.[params.document]?.[params.mode];
+  if (value === false) {
+    return false;
+  }
+  return normalizeOptionalString(value);
 }
