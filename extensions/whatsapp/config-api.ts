@@ -1,4 +1,5 @@
+// Whatsapp API module exposes the plugin public contract.
 export {
   buildChannelConfigSchema,
   WhatsAppConfigSchema,
-} from "astroclaw/plugin-sdk/bundled-channel-config-schema";
+} from "openclaw/plugin-sdk/bundled-channel-config-schema";
