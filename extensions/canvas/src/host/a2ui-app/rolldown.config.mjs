@@ -1,3 +1,6 @@
+/**
+ * Rolldown config for bundling the Canvas A2UI app into a single browser asset.
+ */
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -44,7 +47,7 @@ export default {
     alias: {
       "@a2ui/lit": a2uiLitIndex,
       "@a2ui/lit/ui": a2uiLitUi,
-      "@astroclaw/a2ui-theme-context": a2uiThemeContext,
+      "@openclaw/a2ui-theme-context": a2uiThemeContext,
       "@lit/context": resolveUiDependency("@lit/context"),
       "@lit/context/": resolveUiDependency("@lit/context/"),
       "@lit-labs/signals": resolveUiDependency("@lit-labs/signals"),
