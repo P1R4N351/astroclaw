@@ -1,4 +1,5 @@
-import { resolveSendableOutboundReplyParts } from "astroclaw/plugin-sdk/reply-payload";
+// Feishu plugin module implements comment dispatcher behavior.
+import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
 import { resolveFeishuRuntimeAccount } from "./accounts.js";
 import { createFeishuClient } from "./client.js";
 import {
