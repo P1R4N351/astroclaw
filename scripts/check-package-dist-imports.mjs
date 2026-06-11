@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Checks built package dist files for imports outside package boundaries.
 import fs from "node:fs";
 import path from "node:path";
 import { collectPackageDistImportErrors } from "./lib/package-dist-imports.mjs";
@@ -49,7 +50,7 @@ const errors = collectPackageDistImportErrors({
 });
 
 if (errors.length > 0) {
-  fail(`Astroclaw package dist import closure failed:\n${errors.join("\n")}`);
+  fail(`OpenClaw package dist import closure failed:\n${errors.join("\n")}`);
 }
 
-console.log("Astroclaw package dist import closure passed.");
+console.log("OpenClaw package dist import closure passed.");
