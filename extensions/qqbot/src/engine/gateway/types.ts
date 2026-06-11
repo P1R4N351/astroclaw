@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/core";
+// Qqbot type declarations define plugin contracts.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
 import type { EngineLogger } from "../types.js";
 export type { EngineLogger };
 
@@ -39,7 +40,7 @@ export interface GatewayPluginRuntime {
       resolveStorePath: (store: unknown, params: { agentId: string }) => string;
       recordInboundSession: (params: unknown) => Promise<unknown>;
     };
-    turn: {
+    inbound: {
       run: (params: unknown) => Promise<unknown>;
     };
     text: {
@@ -211,7 +212,7 @@ interface GatewayGroupOptions {
 export interface CoreGatewayContext {
   account: GatewayAccount;
   abortSignal: AbortSignal;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   onReady?: (data: unknown) => void;
   /**
    * Invoked when a RESUMED event is received after reconnect.
