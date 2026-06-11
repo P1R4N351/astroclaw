@@ -1,8 +1,10 @@
+// Defines markdown table config types used by rendering surfaces.
 import type { MarkdownTableMode } from "./types.base.js";
-import type { AstroclawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
+/** Parameters for resolving markdown table rendering per config and channel. */
 export type ResolveMarkdownTableModeParams = {
-  cfg?: Partial<AstroclawConfig>;
+  cfg?: Partial<OpenClawConfig>;
   channel?: string | null;
   accountId?: string | null;
 };
