@@ -1,8 +1,9 @@
+// Matrix plugin module implements thread bindings shared behavior.
 import type {
   BindingTargetKind,
   SessionBindingRecord,
-} from "astroclaw/plugin-sdk/thread-bindings-session-runtime";
-import { resolveThreadBindingLifecycle } from "astroclaw/plugin-sdk/thread-bindings-session-runtime";
+} from "openclaw/plugin-sdk/thread-bindings-session-runtime";
+import { resolveThreadBindingLifecycle } from "openclaw/plugin-sdk/thread-bindings-session-runtime";
 
 type MatrixThreadBindingTargetKind = "subagent" | "acp";
 
@@ -45,7 +46,7 @@ export type MatrixThreadBindingManager = {
 };
 
 type MatrixThreadBindingManagerCacheEntry = {
-  filePath: string;
+  storageKey: string;
   manager: MatrixThreadBindingManager;
 };
 
