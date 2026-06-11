@@ -1,4 +1,5 @@
-import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+// Qa Lab type declarations define plugin contracts.
+import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
 import type { QaThinkingLevel } from "../../qa-thinking.js";
 
 export type QaProviderMode = "mock-openai" | "aimock" | "live-frontier";
