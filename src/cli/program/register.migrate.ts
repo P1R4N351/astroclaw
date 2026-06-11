@@ -1,4 +1,6 @@
+// Migration command registration: list, plan, and apply migration providers.
 import type { Command } from "commander";
+import { theme } from "../../../packages/terminal-core/src/theme.js";
 import {
   migrateApplyCommand,
   migrateDefaultCommand,
@@ -6,7 +8,6 @@ import {
   migratePlanCommand,
 } from "../../commands/migrate.js";
 import { defaultRuntime } from "../../runtime.js";
-import { theme } from "../../terminal/theme.js";
 import { runCommandWithRuntime } from "../cli-utils.js";
 import { formatHelpExamples } from "../help-format.js";
 
@@ -70,7 +71,8 @@ function addMigrationOptions(command: Command): Command {
       addMigrationSkillOption(
         command
           .option("--from <path>", "Source directory to migrate from")
-          .option("--include-secrets", "Import supported credentials and secrets", false)
+          .option("--include-secrets", "Import supported credentials and secrets")
+          .option("--no-auth-credentials", "Skip auth credential migration")
           .option(
             "--overwrite",
             "Overwrite conflicting target files after item-level backups",
@@ -86,6 +88,7 @@ function readVerifyPluginApps(value: unknown): boolean {
   return value === true;
 }
 
+/** Register migration commands and shared provider/item selection flags. */
 export function registerMigrateCommand(program: Command) {
   const migrate = addVerifyPluginAppsOption(
     program
@@ -93,7 +96,8 @@ export function registerMigrateCommand(program: Command) {
       .description("Import state from another agent system")
       .argument("[provider]", "Migration provider id, for example hermes")
       .option("--from <path>", "Source directory to migrate from")
-      .option("--include-secrets", "Import supported credentials and secrets", false)
+      .option("--include-secrets", "Import supported credentials and secrets")
+      .option("--no-auth-credentials", "Skip auth credential migration")
       .option("--overwrite", "Overwrite conflicting target files after item-level backups", false)
       .option("--dry-run", "Preview only; do not apply changes", false)
       .option("--yes", "Apply without prompting after preview", false)
@@ -108,7 +112,7 @@ export function registerMigrateCommand(program: Command) {
         collectMigrationPlugin,
       )
       .option("--backup-output <path>", "Pre-migration backup archive path or directory")
-      .option("--no-backup", "Skip the pre-migration Astroclaw backup")
+      .option("--no-backup", "Skip the pre-migration OpenClaw backup")
       .option("--force", "Allow dangerous options such as --no-backup", false)
       .option("--json", "Output JSON", false),
   )
@@ -116,16 +120,16 @@ export function registerMigrateCommand(program: Command) {
       "after",
       () =>
         `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["astroclaw migrate list", "Show available migration providers."],
-          ["astroclaw migrate hermes", "Preview Hermes migration, then prompt before applying."],
-          ["astroclaw migrate hermes --dry-run", "Preview Hermes migration only."],
+          ["openclaw migrate list", "Show available migration providers."],
+          ["openclaw migrate hermes", "Preview Hermes migration, then prompt before applying."],
+          ["openclaw migrate hermes --dry-run", "Preview Hermes migration only."],
           [
-            "astroclaw migrate apply hermes --yes",
+            "openclaw migrate apply hermes --yes",
             "Apply Hermes migration non-interactively after writing a verified backup.",
           ],
           [
-            "astroclaw migrate apply hermes --include-secrets --yes",
-            "Include supported credentials in the migration.",
+            "openclaw migrate hermes --no-auth-credentials",
+            "Preview and apply Hermes migration while skipping auth credential import.",
           ],
         ])}`,
     )
@@ -134,7 +138,8 @@ export function registerMigrateCommand(program: Command) {
         await migrateDefaultCommand(defaultRuntime, {
           provider: provider as string | undefined,
           source: opts.from as string | undefined,
-          includeSecrets: Boolean(opts.includeSecrets),
+          includeSecrets: opts.includeSecrets === true ? true : undefined,
+          authCredentials: opts.authCredentials as boolean | undefined,
           overwrite: Boolean(opts.overwrite),
           skills: readMigrationSkills(opts.skill),
           plugins: readMigrationPlugins(opts.plugin),
@@ -162,13 +167,14 @@ export function registerMigrateCommand(program: Command) {
   addMigrationOptions(
     migrate
       .command("plan <provider>")
-      .description("Preview a migration without changing Astroclaw state"),
+      .description("Preview a migration without changing OpenClaw state"),
   ).action(async (provider, opts) => {
     await runCommandWithRuntime(defaultRuntime, async () => {
       await migratePlanCommand(defaultRuntime, {
         provider: provider as string,
         source: opts.from as string | undefined,
-        includeSecrets: Boolean(opts.includeSecrets),
+        includeSecrets: opts.includeSecrets === true ? true : undefined,
+        authCredentials: opts.authCredentials as boolean | undefined,
         overwrite: Boolean(opts.overwrite),
         skills: readMigrationSkills(opts.skill),
         plugins: readMigrationPlugins(opts.plugin),
@@ -183,14 +189,15 @@ export function registerMigrateCommand(program: Command) {
   )
     .option("--yes", "Apply without prompting", false)
     .option("--backup-output <path>", "Pre-migration backup archive path or directory")
-    .option("--no-backup", "Skip the pre-migration Astroclaw backup")
+    .option("--no-backup", "Skip the pre-migration OpenClaw backup")
     .option("--force", "Allow dangerous options such as --no-backup", false)
     .action(async (provider, opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
         await migrateApplyCommand(defaultRuntime, {
           provider: provider as string,
           source: opts.from as string | undefined,
-          includeSecrets: Boolean(opts.includeSecrets),
+          includeSecrets: opts.includeSecrets === true ? true : undefined,
+          authCredentials: opts.authCredentials as boolean | undefined,
           overwrite: Boolean(opts.overwrite),
           skills: readMigrationSkills(opts.skill),
           plugins: readMigrationPlugins(opts.plugin),
