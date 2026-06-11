@@ -1,11 +1,12 @@
-import { splitTrailingAuthProfile } from "../agents/model-ref-profile.js";
-import { collectConfiguredModelRefs } from "../config/model-refs.js";
-import type { AuthProfileConfig } from "../config/types.auth.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/** Protects active auth profile metadata while doctor repairs broader config state. */
+import { collectConfiguredModelRefs } from "@openclaw/model-catalog-core/configured-model-refs";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import { splitTrailingAuthProfile } from "../agents/model-ref-profile.js";
+import type { AuthProfileConfig } from "../config/types.auth.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isRecord } from "../utils.js";
 
 const AUTH_PROFILE_MODES = new Set<AuthProfileConfig["mode"]>([
@@ -16,7 +17,7 @@ const AUTH_PROFILE_MODES = new Set<AuthProfileConfig["mode"]>([
 ]);
 
 export type AuthProfileConfigProtectionResult = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   repairs: string[];
   warnings: string[];
 };
@@ -52,7 +53,7 @@ function extractProviderFromProfileId(profileId: string): string | null {
   return normalizeProviderId(profileId.slice(0, colon)) || null;
 }
 
-function collectActiveAuthHints(config: AstroclawConfig): {
+function collectActiveAuthHints(config: OpenClawConfig): {
   activeProviders: Set<string>;
   explicitProfileIds: Set<string>;
   explicitProfileProviders: Map<string, Set<string>>;
@@ -76,9 +77,9 @@ function collectActiveAuthHints(config: AstroclawConfig): {
     if (profile) {
       explicitProfileIds.add(profile);
       if (provider) {
-        const providers = explicitProfileProviders.get(profile) ?? new Set<string>();
-        providers.add(provider);
-        explicitProfileProviders.set(profile, providers);
+        const providersLocal = explicitProfileProviders.get(profile) ?? new Set<string>();
+        providersLocal.add(provider);
+        explicitProfileProviders.set(profile, providersLocal);
       }
     }
     if (provider) {
@@ -141,7 +142,7 @@ function buildProfileMetadata(params: {
   return repaired;
 }
 
-function ensureAuthProfiles(config: AstroclawConfig): Record<string, AuthProfileConfig> {
+function ensureAuthProfiles(config: OpenClawConfig): Record<string, AuthProfileConfig> {
   const root = config as Record<string, unknown>;
   const auth: Record<string, unknown> = isRecord(root.auth) ? root.auth : {};
   if (root.auth !== auth) {
@@ -153,9 +154,15 @@ function ensureAuthProfiles(config: AstroclawConfig): Record<string, AuthProfile
   return auth.profiles as Record<string, AuthProfileConfig>;
 }
 
+/**
+ * Restores valid metadata for auth profiles still referenced by active model config.
+ *
+ * Doctor can rebuild or prune auth config; this guard keeps active profiles usable when their
+ * provider/mode metadata can be inferred from the before/after config or profile id.
+ */
 export function protectActiveAuthProfileConfig(params: {
-  before: AstroclawConfig;
-  after: AstroclawConfig;
+  before: OpenClawConfig;
+  after: OpenClawConfig;
 }): AuthProfileConfigProtectionResult {
   const { activeProviders, explicitProfileIds, explicitProfileProviders } = collectActiveAuthHints(
     params.before,
@@ -183,7 +190,7 @@ export function protectActiveAuthProfileConfig(params: {
       normalizeProviderId(afterProfileRecord?.provider) ||
       normalizeProviderId(beforeProfileRecord?.provider) ||
       extractProviderFromProfileId(profileId);
-    const protectsActiveProvider = !!provider && activeProviders.has(provider);
+    const protectsActiveProvider = provider !== null && activeProviders.has(provider);
     const protectsExplicitProfile = explicitProfileIds.has(profileId);
     if (!protectsActiveProvider && !protectsExplicitProfile) {
       continue;
