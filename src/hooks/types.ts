@@ -1,3 +1,4 @@
+// Hook public types describe install specs and runtime hook metadata.
 export type HookInstallSpec = {
   id?: string;
   kind: "bundled" | "npm" | "git";
@@ -7,7 +8,7 @@ export type HookInstallSpec = {
   bins?: string[];
 };
 
-export type AstroclawHookMetadata = {
+export type OpenClawHookMetadata = {
   always?: boolean;
   hookKey?: string;
   emoji?: string;
@@ -35,7 +36,7 @@ export type ParsedHookFrontmatter = Record<string, string>;
 export type Hook = {
   name: string;
   description: string;
-  source: "astroclaw-bundled" | "astroclaw-managed" | "astroclaw-workspace" | "astroclaw-plugin";
+  source: "openclaw-bundled" | "openclaw-managed" | "openclaw-workspace" | "openclaw-plugin";
   pluginId?: string;
   filePath: string; // Path to HOOK.md
   baseDir: string; // Directory containing hook
@@ -47,7 +48,7 @@ export type HookSource = Hook["source"];
 export type HookEntry = {
   hook: Hook;
   frontmatter: ParsedHookFrontmatter;
-  metadata?: AstroclawHookMetadata;
+  metadata?: OpenClawHookMetadata;
   invocation?: HookInvocationPolicy;
 };
 
