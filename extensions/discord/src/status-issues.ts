@@ -1,13 +1,14 @@
+// Discord plugin module implements status issues behavior.
 import type {
   ChannelAccountSnapshot,
   ChannelStatusIssue,
-} from "astroclaw/plugin-sdk/channel-contract";
+} from "openclaw/plugin-sdk/channel-contract";
 import {
   appendMatchMetadata,
   asString,
   isRecord,
   resolveEnabledConfiguredAccountId,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 
 type DiscordIntentSummary = {
   messageContent?: "enabled" | "limited" | "disabled";
