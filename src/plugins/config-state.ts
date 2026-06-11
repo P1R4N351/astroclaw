@@ -1,8 +1,9 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/** Normalizes plugin config and resolves effective enablement, slots, and activation sources. */
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   createEffectiveEnableStateResolver,
   createPluginEnableStateResolver,
@@ -28,13 +29,12 @@ export type PluginActivationState = PluginActivationStateLike;
 
 export type PluginActivationConfigSource = {
   plugins: NormalizedPluginsConfig;
-  rootConfig?: AstroclawConfig;
-} & PluginActivationConfigSourceLike<AstroclawConfig>;
+  rootConfig?: OpenClawConfig;
+} & PluginActivationConfigSourceLike<OpenClawConfig>;
 
 export type NormalizedPluginsConfig = SharedNormalizedPluginsConfig;
 
 const BUILT_IN_PLUGIN_ALIAS_FALLBACKS: ReadonlyArray<readonly [alias: string, pluginId: string]> = [
-  ["openai-codex", "openai"],
   ["google-gemini-cli", "google"],
   ["minimax-portal", "minimax"],
   ["minimax-portal-auth", "minimax"],
@@ -74,18 +74,19 @@ function createScopedPluginIdNormalizer(): NormalizePluginId {
     });
 }
 
+/** Normalizes user/config plugin ids into the canonical lowercase key form. */
 export function normalizePluginId(id: string): string {
   return normalizePluginIdWithLookup(id, getBundledPluginAliasLookup);
 }
 
 export const normalizePluginsConfig = (
-  config?: AstroclawConfig["plugins"],
+  config?: OpenClawConfig["plugins"],
 ): NormalizedPluginsConfig => {
   return normalizePluginsConfigWithResolver(config, createScopedPluginIdNormalizer());
 };
 
 export function createPluginActivationSource(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   plugins?: NormalizedPluginsConfig;
 }): PluginActivationConfigSource {
   return {
@@ -94,22 +95,19 @@ export function createPluginActivationSource(params: {
   };
 }
 
-const hasExplicitMemorySlot = (plugins?: AstroclawConfig["plugins"]) =>
-  Boolean(plugins?.slots && Object.prototype.hasOwnProperty.call(plugins.slots, "memory"));
+const hasExplicitMemorySlot = (plugins?: OpenClawConfig["plugins"]) =>
+  Boolean(plugins?.slots && Object.hasOwn(plugins.slots, "memory"));
 
-const hasExplicitMemoryEntry = (plugins?: AstroclawConfig["plugins"]) =>
-  Boolean(
-    plugins?.entries &&
-    Object.prototype.hasOwnProperty.call(plugins.entries, defaultSlotIdForKey("memory")),
-  );
+const hasExplicitMemoryEntry = (plugins?: OpenClawConfig["plugins"]) =>
+  Boolean(plugins?.entries && Object.hasOwn(plugins.entries, defaultSlotIdForKey("memory")));
 
-export const hasExplicitPluginConfig = (plugins?: AstroclawConfig["plugins"]) =>
+export const hasExplicitPluginConfig = (plugins?: OpenClawConfig["plugins"]) =>
   hasExplicitPluginConfigShared(plugins);
 
 export function applyTestPluginDefaults(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv = process.env,
-): AstroclawConfig {
+): OpenClawConfig {
   if (!env.VITEST) {
     return cfg;
   }
@@ -145,7 +143,7 @@ export function applyTestPluginDefaults(
 }
 
 export function isTestDefaultMemorySlotDisabled(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
   if (!env.VITEST) {
@@ -162,7 +160,7 @@ export function resolvePluginActivationState(params: {
   id: string;
   origin: PluginOrigin;
   config: NormalizedPluginsConfig;
-  rootConfig?: AstroclawConfig;
+  rootConfig?: OpenClawConfig;
   enabledByDefault?: boolean;
   activationSource?: PluginActivationConfigSource;
   autoEnabledReason?: string;
@@ -193,7 +191,7 @@ type EffectiveActivationParams = {
   id: string;
   origin: PluginOrigin;
   config: NormalizedPluginsConfig;
-  rootConfig?: AstroclawConfig;
+  rootConfig?: OpenClawConfig;
   enabledByDefault?: boolean;
   activationSource?: PluginActivationConfigSource;
 };
