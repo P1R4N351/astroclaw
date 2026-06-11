@@ -1,9 +1,11 @@
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/routing";
+// Irc plugin module implements setup surface behavior.
+import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/routing";
 import type {
   ChannelSetupDmPolicy,
   ChannelSetupWizard,
   WizardPrompter,
-} from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
 import {
   createAllowFromSection,
   createPromptParsedAllowFromForAccount,
@@ -11,11 +13,13 @@ import {
   createStandardChannelSetupStatus,
   formatDocsLink,
   setSetupChannelEnabled,
-} from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
 import {
   normalizeOptionalString,
+  normalizeStringEntries,
   normalizeStringifiedOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+  uniqueStrings,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveDefaultIrcAccountId, resolveIrcAccount } from "./accounts.js";
 import {
   isChannelTarget,
@@ -40,10 +44,7 @@ const USE_ENV_FLAG = "__ircUseEnv";
 const TLS_FLAG = "__ircTls";
 
 function parseListInput(raw: string): string[] {
-  return raw
-    .split(/[\n,;]+/g)
-    .map((entry) => entry.trim())
-    .filter(Boolean);
+  return normalizeStringEntries(raw.split(/[\n,;]+/g));
 }
 
 function normalizeGroupEntry(raw: string): string | null {
@@ -74,10 +75,9 @@ const promptIrcAllowFrom = createPromptParsedAllowFromForAccount<CoreConfig>({
   message: t("wizard.irc.allowFromPrompt"),
   placeholder: "alice, bob!ident@example.org",
   parseEntries: (raw) => ({
-    entries: parseListInput(raw)
-      .map((entry) => normalizeIrcAllowEntry(entry))
-      .map((entry) => entry.trim())
-      .filter(Boolean),
+    entries: normalizeStringEntries(
+      parseListInput(raw).map((entry) => normalizeIrcAllowEntry(entry)),
+    ),
   }),
   getExistingAllowFrom: ({ cfg }) => cfg.channels?.irc?.allowFrom ?? [],
   applyAllowFrom: ({ cfg, allowFrom }) => setIrcAllowFrom(cfg, allowFrom),
@@ -273,8 +273,9 @@ export const ircSetupWizard: ChannelSetupWizard = {
         return String(defaultPort);
       },
       validate: ({ value }) => {
-        const parsed = Number.parseInt(normalizeStringifiedOptionalString(value) ?? "", 10);
-        return Number.isFinite(parsed) && parsed >= 1 && parsed <= 65535
+        const raw = normalizeStringifiedOptionalString(value) ?? "";
+        const parsed = parseStrictPositiveInteger(raw);
+        return parsed !== undefined && parsed <= 65535
           ? undefined
           : "Use a port between 1 and 65535";
       },
@@ -308,7 +309,7 @@ export const ircSetupWizard: ChannelSetupWizard = {
       initialValue: ({ cfg, accountId, credentialValues }) =>
         resolveIrcAccount({ cfg: cfg as CoreConfig, accountId }).config.username ||
         credentialValues.token ||
-        "astroclaw",
+        "openclaw",
       validate: ({ value }) => (normalizeStringifiedOptionalString(value) ? undefined : "Required"),
       normalizeValue: ({ value }) => normalizeStringifiedOptionalString(value) ?? "",
       applySet: async ({ cfg, accountId, value }) =>
@@ -324,7 +325,7 @@ export const ircSetupWizard: ChannelSetupWizard = {
         resolveIrcAccount({ cfg: cfg as CoreConfig, accountId }).config.realname || undefined,
       shouldPrompt: ({ credentialValues }) => credentialValues[USE_ENV_FLAG] !== "1",
       initialValue: ({ cfg, accountId }) =>
-        resolveIrcAccount({ cfg: cfg as CoreConfig, accountId }).config.realname || "Astroclaw",
+        resolveIrcAccount({ cfg: cfg as CoreConfig, accountId }).config.realname || "OpenClaw",
       validate: ({ value }) => (normalizeStringifiedOptionalString(value) ? undefined : "Required"),
       normalizeValue: ({ value }) => normalizeStringifiedOptionalString(value) ?? "",
       applySet: async ({ cfg, accountId, value }) =>
@@ -336,7 +337,7 @@ export const ircSetupWizard: ChannelSetupWizard = {
     {
       inputKey: "groupChannels",
       message: t("wizard.irc.autoJoinPrompt"),
-      placeholder: "#astroclaw, #ops",
+      placeholder: "#openclaw, #ops",
       required: false,
       applyEmptyValue: true,
       currentValue: ({ cfg, accountId }) =>
@@ -362,7 +363,7 @@ export const ircSetupWizard: ChannelSetupWizard = {
   ],
   groupAccess: {
     label: "IRC channels",
-    placeholder: "#astroclaw, #ops, *",
+    placeholder: "#openclaw, #ops, *",
     currentPolicy: ({ cfg, accountId }) =>
       resolveIrcAccount({ cfg: cfg as CoreConfig, accountId }).config.groupPolicy ?? "allowlist",
     currentEntries: ({ cfg, accountId }) =>
@@ -372,7 +373,11 @@ export const ircSetupWizard: ChannelSetupWizard = {
     setPolicy: ({ cfg, accountId, policy }) =>
       setIrcGroupAccess(cfg as CoreConfig, accountId, policy, [], normalizeGroupEntry),
     resolveAllowlist: async ({ entries }) =>
-      [...new Set(entries.map((entry) => normalizeGroupEntry(entry)).filter(Boolean))] as string[],
+      uniqueStrings(
+        entries
+          .map((entry) => normalizeGroupEntry(entry))
+          .filter((entry): entry is string => Boolean(entry)),
+      ),
     applyAllowlist: ({ cfg, accountId, resolved }) =>
       setIrcGroupAccess(
         cfg as CoreConfig,
