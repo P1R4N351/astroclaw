@@ -1,10 +1,11 @@
+// Telegram plugin module implements sendchataction 401 backoff behavior.
 import type { Bot } from "grammy";
 import {
   computeBackoff,
   sleepWithAbort,
   type BackoffPolicy,
-} from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/runtime-env";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export type TelegramSendChatActionLogger = (message: string) => void;
 
@@ -138,7 +139,7 @@ export function createTelegramSendChatActionHandler({
           logger(
             `CRITICAL: sendChatAction suspended after ${consecutive401Failures} consecutive 401 errors. ` +
               `Bot token is likely invalid. Telegram may DELETE the bot if requests continue. ` +
-              `Replace the token and restart: astroclaw channels restart telegram`,
+              `Replace the token and restart: openclaw channels restart telegram`,
           );
         } else {
           logger(
