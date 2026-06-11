@@ -1,10 +1,11 @@
-import { generateHexPkceVerifierChallenge } from "astroclaw/plugin-sdk/provider-auth";
+// Msteams plugin module implements oauth.flow behavior.
+import { generateHexPkceVerifierChallenge } from "openclaw/plugin-sdk/provider-auth";
 import {
   generateOAuthState,
   parseOAuthCallbackInput,
   waitForLocalOAuthCallback,
-} from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { isWSL2Sync } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/provider-auth-runtime";
+import { isWSL2Sync } from "openclaw/plugin-sdk/runtime-env";
 import {
   MSTEAMS_DEFAULT_DELEGATED_SCOPES,
   MSTEAMS_OAUTH_CALLBACK_PATH,
