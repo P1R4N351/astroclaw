@@ -1,7 +1,8 @@
+// Slack plugin module implements actions behavior.
 import type { Block, KnownBlock, WebClient } from "@slack/web-api";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { z } from "zod";
 import { resolveSlackAccount } from "./accounts.js";
 import { validateSlackBlocksArray } from "./blocks-input.js";
@@ -13,7 +14,7 @@ import { sendMessageSlack } from "./send.js";
 import { resolveSlackBotToken } from "./token.js";
 
 export type SlackActionClientOpts = {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   accountId?: string;
   token?: string;
   client?: WebClient;
@@ -44,7 +45,7 @@ export type SlackPin = {
   file?: { id?: string; name?: string };
 };
 
-function resolveToken(explicit?: string, accountId?: string, cfg?: AstroclawConfig): string {
+function resolveToken(explicit?: string, accountId?: string, cfg?: OpenClawConfig): string {
   if (explicit?.trim()) {
     const token = resolveSlackBotToken(explicit);
     if (token) {
@@ -235,7 +236,7 @@ export async function sendSlackMessage(
   to: string,
   content: string,
   opts: Omit<SlackActionClientOpts, "cfg"> & {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     mediaUrl?: string;
     mediaAccess?: {
       localRoots?: readonly string[];
