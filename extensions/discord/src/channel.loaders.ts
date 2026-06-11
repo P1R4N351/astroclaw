@@ -1,4 +1,5 @@
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+// Discord plugin module implements channel.loaders behavior.
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 
 let discordProviderRuntimePromise:
   | Promise<typeof import("./monitor/provider.runtime.js")>
