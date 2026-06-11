@@ -1,4 +1,5 @@
-import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/channel-entry-contract";
+// Discord API module exposes the plugin public contract.
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/channel-entry-contract";
 
 type DiscordSubagentHooksModule = typeof import("./src/subagent-hooks.js");
 
@@ -11,11 +12,7 @@ function loadDiscordSubagentHooksModule() {
 
 // Subagent hooks live behind a dedicated barrel so the bundled entry can
 // register one stable hook wiring path while keeping the handler module lazy.
-export function registerDiscordSubagentHooks(api: AstroclawPluginApi): void {
-  api.on("subagent_spawning", async (event) => {
-    const { handleDiscordSubagentSpawning } = await loadDiscordSubagentHooksModule();
-    return await handleDiscordSubagentSpawning(api, event);
-  });
+export function registerDiscordSubagentHooks(api: OpenClawPluginApi): void {
   api.on("subagent_ended", async (event) => {
     const { handleDiscordSubagentEnded } = await loadDiscordSubagentHooksModule();
     handleDiscordSubagentEnded(event);
