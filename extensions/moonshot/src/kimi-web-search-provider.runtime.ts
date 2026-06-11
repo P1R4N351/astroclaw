@@ -1,16 +1,18 @@
+// Moonshot provider module implements model/runtime integration.
 import {
   createProviderHttpError,
   readProviderJsonObjectResponse,
-} from "astroclaw/plugin-sdk/provider-http";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/provider-onboard";
+} from "openclaw/plugin-sdk/provider-http";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildSearchCacheKey,
   buildUnsupportedSearchFilterResponse,
   DEFAULT_SEARCH_COUNT,
+  MAX_SEARCH_COUNT,
   mergeScopedSearchConfig,
   readCachedSearchPayload,
   readConfiguredSecretString,
-  readNumberParam,
+  readPositiveIntegerParam,
   readProviderEnvValue,
   readStringParam,
   resolveProviderWebSearchPluginConfig,
@@ -23,8 +25,12 @@ import {
   withTrustedWebSearchEndpoint,
   wrapWebContent,
   writeCachedSearchPayload,
-} from "astroclaw/plugin-sdk/provider-web-search";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-web-search";
+import {
+  isRecord,
+  normalizeOptionalString,
+  uniqueStrings,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   isNativeMoonshotBaseUrl,
   MOONSHOT_BASE_URL,
@@ -84,10 +90,6 @@ type KimiSearchResult = {
   grounded: boolean;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function throwMalformedKimiResponse(): never {
   throw new Error("Kimi API error: malformed JSON response");
 }
@@ -113,13 +115,13 @@ function trimTrailingSlashes(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-function resolveKimiBaseUrl(kimi?: KimiConfig, astroClawConfig?: AstroclawConfig): string {
+function resolveKimiBaseUrl(kimi?: KimiConfig, openClawConfig?: OpenClawConfig): string {
   const explicitBaseUrl = normalizeOptionalString(kimi?.baseUrl) ?? "";
   if (explicitBaseUrl) {
     return trimTrailingSlashes(explicitBaseUrl) || DEFAULT_KIMI_BASE_URL;
   }
 
-  const moonshotBaseUrl = astroClawConfig?.models?.providers?.moonshot?.baseUrl;
+  const moonshotBaseUrl = openClawConfig?.models?.providers?.moonshot?.baseUrl;
   if (typeof moonshotBaseUrl === "string") {
     const normalizedMoonshotBaseUrl = trimTrailingSlashes(moonshotBaseUrl.trim());
     if (normalizedMoonshotBaseUrl && isNativeMoonshotBaseUrl(normalizedMoonshotBaseUrl)) {
@@ -186,7 +188,7 @@ function extractKimiCitations(data: KimiSearchResponse): string[] {
     }
   }
 
-  return [...new Set(citations)];
+  return uniqueStrings(citations);
 }
 
 function hasKimiSearchResults(data: KimiSearchResponse): boolean {
@@ -340,7 +342,7 @@ async function runKimiSearch(params: {
 }
 
 export async function executeKimiWebSearchProviderTool(
-  ctx: { config?: AstroclawConfig; searchConfig?: SearchConfigRecord },
+  ctx: { config?: OpenClawConfig; searchConfig?: SearchConfigRecord },
   args: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   const searchConfig = mergeScopedSearchConfig(
@@ -360,13 +362,18 @@ export async function executeKimiWebSearchProviderTool(
       error: "missing_kimi_api_key",
       message:
         "web_search (kimi) needs a Moonshot API key. Set KIMI_API_KEY or MOONSHOT_API_KEY in the Gateway environment, or configure tools.web.search.kimi.apiKey. If you do not want to configure a search API key, use web_fetch for a specific URL or the browser tool for interactive pages.",
-      docs: "https://docs.astroclaw.ai/tools/web",
+      docs: "https://docs.openclaw.ai/tools/web",
     };
   }
 
   const query = readStringParam(args, "query", { required: true });
   const count =
-    readNumberParam(args, "count", { integer: true }) ?? searchConfig?.maxResults ?? undefined;
+    readPositiveIntegerParam(args, "count", {
+      max: MAX_SEARCH_COUNT,
+      message: `count must be an integer from 1 to ${MAX_SEARCH_COUNT}.`,
+    }) ??
+    searchConfig?.maxResults ??
+    undefined;
   const model = resolveKimiModel(kimiConfig);
   const baseUrl = resolveKimiBaseUrl(kimiConfig, ctx.config);
   const cacheKey = buildSearchCacheKey([
@@ -397,7 +404,7 @@ export async function executeKimiWebSearchProviderTool(
       query,
       provider: "kimi",
       model,
-      docs: "https://docs.astroclaw.ai/tools/kimi-search",
+      docs: "https://docs.openclaw.ai/tools/kimi-search",
       tookMs: Date.now() - start,
     };
   }
@@ -502,7 +509,7 @@ export async function runKimiSearchProviderSetup(
   return next;
 }
 
-export const __testing = {
+export const testing = {
   resolveKimiApiKey,
   resolveKimiModel,
   resolveKimiBaseUrl,
@@ -510,3 +517,4 @@ export const __testing = {
   hasKimiSearchResults,
   extractKimiToolResultContent,
 } as const;
+export { testing as __testing };
