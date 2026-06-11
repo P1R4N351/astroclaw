@@ -1,4 +1,5 @@
-import type { FileLockOptions } from "astroclaw/plugin-sdk/file-lock";
+// Matrix plugin module implements idb persistence lock behavior.
+import type { FileLockOptions } from "openclaw/plugin-sdk/file-lock";
 
 export const MATRIX_IDB_PERSIST_INTERVAL_MS = 60_000;
 
