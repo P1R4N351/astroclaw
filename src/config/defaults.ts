@@ -1,12 +1,18 @@
+// Provides canonical default config values and model/provider defaults.
+import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import {
+  collectManifestModelIdNormalizationPolicies,
+  normalizeConfiguredProviderCatalogModelId,
+} from "@openclaw/model-catalog-core/provider-model-id-normalization";
+import { isRecord } from "@openclaw/normalization-core/record-coerce";
 import { DEFAULT_CONTEXT_TOKENS } from "../agents/defaults.js";
-import { normalizeConfiguredProviderCatalogModelId } from "../agents/model-ref-shared.js";
-import { normalizeProviderId } from "../agents/provider-id.js";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import {
   DEFAULT_AGENT_MAX_CONCURRENT,
   DEFAULT_SUBAGENT_ARCHIVE_AFTER_MINUTES,
   DEFAULT_SUBAGENT_MAX_CONCURRENT,
 } from "./agent-limits.js";
+import { DEFAULT_CRON_MAX_CONCURRENT_RUNS } from "./cron-limits.js";
 import { normalizeAgentModelMapForConfig, normalizeAgentModelRefForConfig } from "./model-input.js";
 import {
   applyProviderConfigDefaultsForConfig,
@@ -14,18 +20,19 @@ import {
 } from "./provider-policy.js";
 import { normalizeTalkConfig } from "./talk.js";
 import type { ModelDefinitionConfig } from "./types.models.js";
-import type { AstroclawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 type WarnState = { warned: boolean };
 type ProviderPolicyDefaultsOptions = {
   manifestRegistry?: Pick<PluginManifestRegistry, "plugins">;
+  loadManifestRegistry?: () => Pick<PluginManifestRegistry, "plugins"> | undefined;
 };
 
-let defaultWarnState: WarnState = { warned: false };
+const defaultWarnState: WarnState = { warned: false };
 
 const DEFAULT_MODEL_ALIASES: Readonly<Record<string, string>> = {
-  // Anthropic (pi-ai catalog uses "latest" ids without date suffix)
-  opus: "anthropic/claude-opus-4-7",
+  // Anthropic (shared model runtime catalog uses "latest" ids without date suffix)
+  opus: "anthropic/claude-opus-4-8",
   sonnet: "anthropic/claude-sonnet-4-6",
 
   // OpenAI
@@ -33,10 +40,10 @@ const DEFAULT_MODEL_ALIASES: Readonly<Record<string, string>> = {
   "gpt-mini": "openai/gpt-5.4-mini",
   "gpt-nano": "openai/gpt-5.4-nano",
 
-  // Google Gemini (3.x are preview ids in the catalog)
+  // Google Gemini (3.x — flash-lite is GA; pro and flash are still preview)
   gemini: "google/gemini-3.1-pro-preview",
   "gemini-flash": "google/gemini-3-flash-preview",
-  "gemini-flash-lite": "google/gemini-3.1-flash-lite-preview",
+  "gemini-flash-lite": "google/gemini-3.1-flash-lite",
 };
 
 const DEFAULT_MODEL_COST: ModelDefinitionConfig["cost"] = {
@@ -58,10 +65,6 @@ const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {
 
 type ModelDefinitionLike = Partial<ModelDefinitionConfig> &
   Pick<ModelDefinitionConfig, "id" | "name">;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
 
 function isPositiveNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
@@ -103,7 +106,7 @@ type SessionDefaultsOptions = {
   warnState?: WarnState;
 };
 
-export function applyMessageDefaults(cfg: AstroclawConfig): AstroclawConfig {
+export function applyMessageDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const messages = cfg.messages;
   const hasAckScope = messages?.ackReactionScope !== undefined;
   if (hasAckScope) {
@@ -119,9 +122,9 @@ export function applyMessageDefaults(cfg: AstroclawConfig): AstroclawConfig {
 }
 
 export function applySessionDefaults(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options: SessionDefaultsOptions = {},
-): AstroclawConfig {
+): OpenClawConfig {
   const session = cfg.session;
   if (!session || session.mainKey === undefined) {
     return cfg;
@@ -131,7 +134,7 @@ export function applySessionDefaults(
   const warn = options.warn ?? console.warn;
   const warnState = options.warnState ?? defaultWarnState;
 
-  const next: AstroclawConfig = {
+  const next: OpenClawConfig = {
     ...cfg,
     session: { ...session, mainKey: "main" },
   };
@@ -144,19 +147,23 @@ export function applySessionDefaults(
   return next;
 }
 
-export function applyTalkConfigNormalization(config: AstroclawConfig): AstroclawConfig {
+export function applyTalkConfigNormalization(config: OpenClawConfig): OpenClawConfig {
   return normalizeTalkConfig(config);
 }
 
 export function applyModelDefaults(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options: ProviderPolicyDefaultsOptions = {},
-): AstroclawConfig {
+): OpenClawConfig {
   let mutated = false;
   let nextCfg = cfg;
 
   const providerConfig = nextCfg.models?.providers;
   if (providerConfig) {
+    const manifestRegistry = options.manifestRegistry ?? options.loadManifestRegistry?.();
+    const modelIdNormalizationPolicies = manifestRegistry
+      ? collectManifestModelIdNormalizationPolicies(manifestRegistry.plugins)
+      : undefined;
     const nextProviders = { ...providerConfig };
     for (const [providerId, provider] of Object.entries(providerConfig)) {
       const normalizedProvider = normalizeProviderConfigForConfigDefaults({
@@ -173,7 +180,7 @@ export function applyModelDefaults(
         continue;
       }
       const providerApi = normalizedProvider.api;
-      let nextProvider = normalizedProvider;
+      const nextProvider = normalizedProvider;
       if (nextProvider !== provider) {
         mutated = true;
       }
@@ -181,7 +188,11 @@ export function applyModelDefaults(
       const nextModels = models.map((model) => {
         const raw = model as ModelDefinitionLike;
         let modelMutated = false;
-        const id = normalizeConfiguredProviderCatalogModelId(providerId, raw.id);
+        const id = normalizeConfiguredProviderCatalogModelId(
+          providerId,
+          raw.id,
+          modelIdNormalizationPolicies,
+        );
         if (id !== raw.id) {
           modelMutated = true;
         }
@@ -275,7 +286,7 @@ export function applyModelDefaults(
         return agent;
       }
       let nextAgent = agent;
-      if (Object.prototype.hasOwnProperty.call(agent, "model")) {
+      if (Object.hasOwn(agent, "model")) {
         const normalizedModel = normalizeAgentModelConfigForDefaults(agent.model);
         if (normalizedModel !== agent.model) {
           nextAgent = { ...nextAgent, model: normalizedModel as typeof agent.model };
@@ -390,7 +401,7 @@ function normalizeAgentModelConfigForDefaults(value: unknown): unknown {
   return mutated ? next : value;
 }
 
-export function applyAgentDefaults(cfg: AstroclawConfig): AstroclawConfig {
+export function applyAgentDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const agents = cfg.agents;
   const defaults = agents?.defaults;
   const hasMax =
@@ -438,7 +449,21 @@ export function applyAgentDefaults(cfg: AstroclawConfig): AstroclawConfig {
   };
 }
 
-export function applyLoggingDefaults(cfg: AstroclawConfig): AstroclawConfig {
+export function applyCronDefaults(cfg: OpenClawConfig): OpenClawConfig {
+  const raw = cfg.cron?.maxConcurrentRuns;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return cfg;
+  }
+  return {
+    ...cfg,
+    cron: {
+      ...cfg.cron,
+      maxConcurrentRuns: DEFAULT_CRON_MAX_CONCURRENT_RUNS,
+    },
+  };
+}
+
+export function applyLoggingDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const logging = cfg.logging;
   if (!logging) {
     return cfg;
@@ -455,7 +480,7 @@ export function applyLoggingDefaults(cfg: AstroclawConfig): AstroclawConfig {
   };
 }
 
-function hasAnthropicDefaultSignal(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): boolean {
+function hasAnthropicDefaultSignal(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): boolean {
   if (env.ANTHROPIC_API_KEY?.trim() || env.ANTHROPIC_OAUTH_TOKEN?.trim()) {
     return true;
   }
@@ -482,9 +507,9 @@ function hasAnthropicDefaultSignal(cfg: AstroclawConfig, env: NodeJS.ProcessEnv)
 }
 
 export function applyContextPruningDefaults(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options: ProviderPolicyDefaultsOptions = {},
-): AstroclawConfig {
+): OpenClawConfig {
   if (!cfg.agents?.defaults) {
     return cfg;
   }
@@ -501,7 +526,7 @@ export function applyContextPruningDefaults(
   );
 }
 
-export function applyCompactionDefaults(cfg: AstroclawConfig): AstroclawConfig {
+export function applyCompactionDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const defaults = cfg.agents?.defaults;
   if (!defaults) {
     return cfg;
