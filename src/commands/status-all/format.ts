@@ -1,5 +1,9 @@
+// Shared formatting helpers for status overview, gateway summaries, and JSON payloads.
+// These functions keep text and JSON status surfaces aligned without pulling in command orchestration.
+
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import { resolveGatewayPort } from "../../config/config.js";
-import type { AstroclawConfig } from "../../config/types.js";
+import type { OpenClawConfig } from "../../config/types.js";
 import { resolveControlUiLinks } from "../../gateway/control-ui-links.js";
 import { formatDurationPrecise } from "../../infra/format-time/format-duration.ts";
 import {
@@ -7,7 +11,6 @@ import {
   resolveUpdateChannelDisplay,
 } from "../../infra/update-channels.js";
 import { formatGitInstallLabel, type UpdateCheckResult } from "../../infra/update-check.js";
-import { normalizeOptionalString } from "../../shared/string-coerce.js";
 import { VERSION } from "../../version.js";
 import { formatUpdateOneLiner, resolveUpdateAvailability } from "../status.update.js";
 
@@ -48,7 +51,7 @@ type StatusGatewaySelf =
 type StatusManagedService = {
   label: string;
   installed: boolean | null;
-  managedByAstroclaw?: boolean;
+  managedByOpenClaw?: boolean;
   loadedText: string;
   runtimeShort?: string | null;
   runtime?: {
@@ -57,6 +60,7 @@ type StatusManagedService = {
   } | null;
 };
 
+/** Resolves the display update channel from config, install kind, and git metadata. */
 export function resolveStatusUpdateChannelInfo(params: {
   updateConfigChannel?: string | null;
   update: {
@@ -76,6 +80,7 @@ export function resolveStatusUpdateChannelInfo(params: {
   });
 }
 
+/** Builds the update row fields reused by the overview table and status-all report. */
 export function buildStatusUpdateSurface(params: {
   updateConfigChannel?: string | null;
   update: StatusUpdateLike;
@@ -93,11 +98,13 @@ export function buildStatusUpdateSurface(params: {
   };
 }
 
+/** Formats missing dashboard URLs as disabled instead of leaking empty/null into status rows. */
 export function formatStatusDashboardValue(value: string | null | undefined): string {
   const trimmed = normalizeOptionalString(value);
   return trimmed && trimmed.length > 0 ? trimmed : "disabled";
 }
 
+/** Formats Tailscale exposure in a compact, warning-aware status row value. */
 export function formatStatusTailscaleValue(params: {
   tailscaleMode: string;
   dnsName?: string | null;
@@ -112,6 +119,7 @@ export function formatStatusTailscaleValue(params: {
   const decorateOff = params.decorateOff ?? ((value: string) => value);
   const decorateWarn = params.decorateWarn ?? ((value: string) => value);
   if (params.tailscaleMode === "off") {
+    // Off mode can still show daemon/DNS context when the caller wants diagnostic detail.
     const suffix = [
       params.includeBackendStateWhenOff && params.backendState
         ? `daemon ${params.backendState}`
@@ -139,10 +147,11 @@ export function formatStatusTailscaleValue(params: {
   return decorateWarn(parts.join(" · "));
 }
 
+/** Formats launchd/systemd service state into one row-friendly string. */
 export function formatStatusServiceValue(params: {
   label: string;
   installed: boolean;
-  managedByAstroclaw?: boolean;
+  managedByOpenClaw?: boolean;
   loadedText: string;
   runtimeShort?: string | null;
   runtimeStatus?: string | null;
@@ -151,7 +160,7 @@ export function formatStatusServiceValue(params: {
   if (!params.installed) {
     return `${params.label} not installed`;
   }
-  const installedPrefix = params.managedByAstroclaw ? "installed · " : "";
+  const installedPrefix = params.managedByOpenClaw ? "installed · " : "";
   const runtimeSuffix = params.runtimeShort
     ? ` · ${params.runtimeShort}`
     : [
@@ -161,8 +170,9 @@ export function formatStatusServiceValue(params: {
   return `${params.label} ${installedPrefix}${params.loadedText}${runtimeSuffix}`;
 }
 
+/** Returns the dashboard URL when the Control UI is enabled for the current gateway binding. */
 export function resolveStatusDashboardUrl(params: {
-  cfg: Pick<AstroclawConfig, "gateway">;
+  cfg: Pick<OpenClawConfig, "gateway">;
 }): string | null {
   if (!(params.cfg.gateway?.controlUi?.enabled ?? true)) {
     return null;
@@ -176,6 +186,7 @@ export function resolveStatusDashboardUrl(params: {
   }).httpUrl;
 }
 
+/** Builds the ordered overview rows shared by status command variants. */
 export function buildStatusOverviewRows(params: {
   prefixRows?: StatusOverviewRow[];
   dashboardValue: string;
@@ -224,8 +235,9 @@ export function buildStatusOverviewRows(params: {
   return rows;
 }
 
+/** Builds overview rows directly from raw scan/update/gateway inputs. */
 export function buildStatusOverviewSurfaceRows(params: {
-  cfg: Pick<AstroclawConfig, "update" | "gateway">;
+  cfg: Pick<OpenClawConfig, "update" | "gateway">;
   update: StatusUpdateLike;
   tailscaleMode: string;
   tailscaleDns?: string | null;
@@ -310,6 +322,7 @@ export function buildStatusOverviewSurfaceRows(params: {
   });
 }
 
+/** Returns which gateway auth material was actually used for the probe. */
 export function formatGatewayAuthUsed(
   auth: {
     token?: string;
@@ -330,6 +343,7 @@ export function formatGatewayAuthUsed(
   return "none";
 }
 
+/** Formats gateway self metadata returned by the health endpoint. */
 export function formatGatewaySelfSummary(gatewaySelf: StatusGatewaySelf): string | null {
   return gatewaySelf?.host || gatewaySelf?.ip || gatewaySelf?.version || gatewaySelf?.platform
     ? [
@@ -343,6 +357,7 @@ export function formatGatewaySelfSummary(gatewaySelf: StatusGatewaySelf): string
     : null;
 }
 
+/** Builds gateway target, reachability, auth, and mode strings for text status output. */
 export function buildGatewayStatusSummaryParts(params: {
   gatewayMode: "local" | "remote";
   remoteUrlMissing: boolean;
@@ -383,8 +398,9 @@ export function buildGatewayStatusSummaryParts(params: {
   };
 }
 
+/** Builds gateway/dashboard/service values for overview rows. */
 export function buildStatusGatewaySurfaceValues(params: {
-  cfg: Pick<AstroclawConfig, "gateway">;
+  cfg: Pick<OpenClawConfig, "gateway">;
   gatewayMode: "local" | "remote";
   remoteUrlMissing: boolean;
   gatewayConnection: StatusGatewayConnection;
@@ -434,7 +450,7 @@ export function buildStatusGatewaySurfaceValues(params: {
     gatewayServiceValue: formatStatusServiceValue({
       label: params.gatewayService.label,
       installed: params.gatewayService.installed !== false,
-      managedByAstroclaw: params.gatewayService.managedByAstroclaw,
+      managedByOpenClaw: params.gatewayService.managedByOpenClaw,
       loadedText: params.gatewayService.loadedText,
       runtimeShort: params.gatewayService.runtimeShort,
       runtimeStatus: params.gatewayService.runtime?.status,
@@ -443,7 +459,7 @@ export function buildStatusGatewaySurfaceValues(params: {
     nodeServiceValue: formatStatusServiceValue({
       label: params.nodeService.label,
       installed: params.nodeService.installed !== false,
-      managedByAstroclaw: params.nodeService.managedByAstroclaw,
+      managedByOpenClaw: params.nodeService.managedByOpenClaw,
       loadedText: params.nodeService.loadedText,
       runtimeShort: params.nodeService.runtimeShort,
       runtimeStatus: params.nodeService.runtime?.status,
@@ -452,6 +468,7 @@ export function buildStatusGatewaySurfaceValues(params: {
   };
 }
 
+/** Builds the stable gateway object used by `openclaw status --json`. */
 export function buildGatewayStatusJsonPayload(params: {
   gatewayMode: "local" | "remote";
   gatewayConnection: {
@@ -493,12 +510,14 @@ export function buildGatewayStatusJsonPayload(params: {
     typeof params.gatewayProbe.health === "object" &&
     "modelPricing" in params.gatewayProbe.health
       ? {
+          // Preserve model pricing when the gateway already returned it; do not synthesize pricing locally.
           modelPricing: (params.gatewayProbe.health as { modelPricing?: unknown }).modelPricing,
         }
       : {}),
   };
 }
 
+/** Redacts common credential shapes before text is printed in status diagnostics. */
 export function redactSecrets(text: string): string {
   if (!text) {
     return text;
