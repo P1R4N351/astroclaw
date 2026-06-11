@@ -1,15 +1,16 @@
+// Line plugin module implements webhook node behavior.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { webhook } from "@line/bot-sdk";
 import {
   createMessageReceiveContext,
   type MessageReceiveContext,
-} from "astroclaw/plugin-sdk/channel-message";
-import { danger, logVerbose, type RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { danger, logVerbose, type RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   isRequestBodyLimitError,
   readRequestBodyWithLimit,
   requestBodyErrorToText,
-} from "astroclaw/plugin-sdk/webhook-request-guards";
+} from "openclaw/plugin-sdk/webhook-request-guards";
 import { parseLineWebhookBody, validateLineSignature } from "./webhook-utils.js";
 
 const LINE_WEBHOOK_MAX_BODY_BYTES = 1024 * 1024;
@@ -128,7 +129,7 @@ export function createLineNodeWebhookHandler(params: {
         logVerbose(`line: received ${body.events.length} webhook events`);
         void Promise.resolve()
           .then(() => params.bot.handleWebhook(body))
-          .catch((err) => logLineWebhookDispatchError(params.runtime, err));
+          .catch((err: unknown) => logLineWebhookDispatchError(params.runtime, err));
       }
     } catch (err) {
       await receiveContext?.nack(err);
