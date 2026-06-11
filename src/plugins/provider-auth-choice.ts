@@ -1,3 +1,5 @@
+// Formats provider authentication choices exposed by plugin setup flows.
+import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import {
   resolveDefaultAgentId,
   resolveAgentDir,
@@ -7,9 +9,8 @@ import { upsertAuthProfileWithLock } from "../agents/auth-profiles.js";
 import { formatLiteralProviderPrefixedModelRef } from "../agents/model-ref-shared.js";
 import { resolveDefaultAgentWorkspaceDir } from "../agents/workspace.js";
 import { normalizeAgentModelRefForConfig } from "../config/model-input.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { sanitizeTerminalText } from "../terminal/safe-text.js";
 import { t } from "../wizard/i18n/index.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { enablePluginInConfig } from "./enable.js";
@@ -33,7 +34,7 @@ type UpsertAuthProfileParams = Parameters<typeof upsertAuthProfileWithLock>[0];
 
 export type ApplyProviderAuthChoiceParams = {
   authChoice: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   prompter: WizardPrompter;
   runtime: RuntimeEnv;
@@ -45,7 +46,7 @@ export type ApplyProviderAuthChoiceParams = {
 };
 
 export type ApplyProviderAuthChoiceResult = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   agentModelOverride?: string;
   retrySelection?: boolean;
 };
@@ -66,9 +67,9 @@ function formatModelRefForDisplay(modelRef: string, provider: ProviderPlugin): s
 }
 
 function restoreConfiguredPrimaryModel(
-  nextConfig: AstroclawConfig,
-  originalConfig: AstroclawConfig,
-): AstroclawConfig {
+  nextConfig: OpenClawConfig,
+  originalConfig: OpenClawConfig,
+): OpenClawConfig {
   const originalModel = originalConfig.agents?.defaults?.model;
   const nextAgents = nextConfig.agents;
   const nextDefaults = nextAgents?.defaults;
@@ -97,7 +98,7 @@ function restoreConfiguredPrimaryModel(
   };
 }
 
-function resolveConfiguredDefaultModelPrimary(cfg: AstroclawConfig): string | undefined {
+function resolveConfiguredDefaultModelPrimary(cfg: OpenClawConfig): string | undefined {
   const model = cfg.agents?.defaults?.model;
   if (typeof model === "string") {
     return model;
@@ -138,16 +139,16 @@ async function noteDefaultModelResult(params: {
 }
 
 async function applyDefaultModelFromAuthChoice(params: {
-  config: AstroclawConfig;
-  configBeforeProviderAuth?: AstroclawConfig;
+  config: OpenClawConfig;
+  configBeforeProviderAuth?: OpenClawConfig;
   selectedModel: string;
   selectedModelDisplay?: string;
   preserveExistingDefaultModel: boolean | undefined;
   prompter: WizardPrompter;
   runtime: RuntimeEnv;
   workspaceDir?: string;
-  runSelectedModelHook: (config: AstroclawConfig) => Promise<void>;
-}): Promise<AstroclawConfig> {
+  runSelectedModelHook: (config: OpenClawConfig) => Promise<void>;
+}): Promise<OpenClawConfig> {
   const defaultModelBaseConfig = params.configBeforeProviderAuth ?? params.config;
   const previousPrimary = resolveConfiguredDefaultModelPrimary(defaultModelBaseConfig);
   const preservesDifferentPrimary =
@@ -189,6 +190,16 @@ async function applyDefaultModelFromAuthChoice(params: {
       });
       nextConfig = migrationResult.config;
     }
+    const { ensureCopilotRuntimePluginForModelSelection } =
+      await import("../commands/copilot-runtime-plugin-install.js");
+    const copilotInstall = await ensureCopilotRuntimePluginForModelSelection({
+      cfg: nextConfig,
+      model: params.selectedModel,
+      prompter: params.prompter,
+      runtime: params.runtime,
+      ...(params.workspaceDir !== undefined ? { workspaceDir: params.workspaceDir } : {}),
+    });
+    nextConfig = copilotInstall.cfg;
   }
   await noteDefaultModelResult({
     previousPrimary,
@@ -215,7 +226,7 @@ async function loadPluginProviderRuntime() {
 
 function resolveManifestAuthChoiceScope(params: {
   authChoice: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   workspaceDir: string;
   env?: NodeJS.ProcessEnv;
 }): ProviderAuthChoiceMetadata | undefined {
@@ -231,7 +242,7 @@ function withProviderPluginId(provider: ProviderPlugin, pluginId: string): Provi
   return provider.pluginId === pluginId ? provider : { ...provider, pluginId };
 }
 
-export const __testing = {
+export const testing = {
   resetDepsForTest(): void {
     providerAuthChoiceDeps = defaultProviderAuthChoiceDeps;
   },
@@ -244,7 +255,7 @@ export const __testing = {
 } as const;
 
 export async function runProviderPluginAuthMethod(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   runtime: RuntimeEnv;
   prompter: WizardPrompter;
@@ -256,7 +267,7 @@ export async function runProviderPluginAuthMethod(params: {
   secretInputMode?: ProviderAuthOptionBag["secretInputMode"];
   allowSecretRefPrompt?: boolean;
   opts?: Partial<ProviderAuthOptionBag>;
-}): Promise<{ config: AstroclawConfig; defaultModel?: string }> {
+}): Promise<{ config: OpenClawConfig; defaultModel?: string }> {
   const agentId = params.agentId ?? resolveDefaultAgentId(params.config);
   const agentDir = params.agentDir ?? resolveAgentDir(params.config, agentId);
   const workspaceDir =
@@ -368,7 +379,7 @@ export async function applyAuthChoiceLoadedPluginProvider(
     enabledConfig = enableResult.config;
   }
 
-  const resolveScopedRuntimeProviders = (config: AstroclawConfig): ProviderPlugin[] =>
+  const resolveScopedRuntimeProviders = (config: OpenClawConfig): ProviderPlugin[] =>
     resolvePluginProviders({
       config,
       workspaceDir,
@@ -377,7 +388,6 @@ export async function applyAuthChoiceLoadedPluginProvider(
       ...(manifestAuthChoice
         ? {
             onlyPluginIds: [manifestAuthChoice.pluginId],
-            providerRefs: [manifestAuthChoice.providerId],
           }
         : {}),
     });
@@ -522,7 +532,7 @@ export async function applyAuthChoicePluginProvider(
   const provider = resolveProviderMatch(providers, options.providerId);
   if (!provider) {
     await params.prompter.note(
-      `${options.label} auth plugin is not available. Install or enable the plugin, then rerun onboarding. If this started after an update, run "astroclaw doctor --fix" first.`,
+      `${options.label} auth plugin is not available. Install or enable the plugin, then rerun onboarding. If this started after an update, run "openclaw doctor --fix" first.`,
       options.label,
     );
     return { config: nextConfig };
@@ -599,3 +609,4 @@ async function upsertAuthProfileWithLockOrThrow(params: UpsertAuthProfileParams)
     );
   }
 }
+export { testing as __testing };
