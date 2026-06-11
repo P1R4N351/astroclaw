@@ -1,4 +1,5 @@
-import { createWebSearchProviderContractFields } from "astroclaw/plugin-sdk/provider-web-search-contract";
+// Duckduckgo provider module implements model/runtime integration.
+import { createWebSearchProviderContractFields } from "openclaw/plugin-sdk/provider-web-search-contract";
 
 const DUCKDUCKGO_ONBOARDING_SCOPES: Array<"text-inference"> = ["text-inference"];
 
@@ -12,7 +13,7 @@ export function createDuckDuckGoWebSearchProviderBase() {
     envVars: [],
     placeholder: "(no key needed)",
     signupUrl: "https://duckduckgo.com/",
-    docsUrl: "https://docs.astroclaw.ai/tools/web",
+    docsUrl: "https://docs.openclaw.ai/tools/web",
     autoDetectOrder: 100,
     credentialPath: "",
     ...createWebSearchProviderContractFields({
