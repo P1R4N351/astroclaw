@@ -1,15 +1,18 @@
+/**
+ * Browser test-support re-exports from shared plugin-sdk test fixtures.
+ */
 export {
   createCliRuntimeCapture,
   expectGeneratedTokenPersistedToGatewayAuth,
   type CliMockOutputRuntime,
   type CliRuntimeCapture,
-} from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/test-fixtures";
 export {
   createTempHomeEnv,
   withEnv,
   withEnvAsync,
   withFetchPreconnect,
   isLiveTestEnabled,
-} from "astroclaw/plugin-sdk/test-env";
-export type { FetchMock, TempHomeEnv } from "astroclaw/plugin-sdk/test-env";
-export type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/test-env";
+export type { FetchMock, TempHomeEnv } from "openclaw/plugin-sdk/test-env";
+export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
