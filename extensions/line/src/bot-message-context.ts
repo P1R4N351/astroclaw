@@ -1,23 +1,24 @@
+// Line plugin module implements bot message context behavior.
 import type { webhook } from "@line/bot-sdk";
-import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
+import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
 import {
   formatInboundEnvelope,
   formatLocationText,
   resolveInboundSessionEnvelopeContext,
   toLocationContext,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-inbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   ensureConfiguredBindingRouteReady,
   resolvePinnedMainDmOwnerFromAllowlist,
   resolveConfiguredBindingRoute,
   resolveRuntimeConversationBindingRoute,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { finalizeInboundContext } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
-import { createChannelHistoryWindow, type HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { finalizeInboundContext } from "openclaw/plugin-sdk/reply-dispatch-runtime";
+import { createChannelHistoryWindow, type HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import { resolveAgentRoute, resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
+import { logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { normalizeAllowFrom } from "./bot-access.js";
 import { resolveLineGroupConfigEntry } from "./group-keys.js";
 import type { ResolvedLineAccount } from "./types.js";
@@ -35,7 +36,7 @@ interface MediaRef {
 interface BuildLineMessageContextParams {
   event: MessageEvent;
   allMedia: MediaRef[];
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   account: ResolvedLineAccount;
   commandAuthorized: boolean;
   groupHistories?: Map<string, HistoryEntry[]>;
@@ -86,7 +87,7 @@ function buildPeerId(source: EventSource): string {
 
 async function resolveLineInboundRoute(params: {
   source: EventSource;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   account: ResolvedLineAccount;
 }): Promise<{
   userId?: string;
@@ -275,7 +276,7 @@ function resolveLineAddresses(params: {
 }
 
 async function finalizeLineInboundContext(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   account: ResolvedLineAccount;
   event: MessageEvent | PostbackEvent;
   route: LineRouteInfo;
@@ -377,6 +378,10 @@ async function finalizeLineInboundContext(params: {
         normalizeEntry: (entry) => normalizeAllowFrom([entry]).entries[0],
       })
     : null;
+  const inboundLastRouteSessionKey = resolveInboundLastRouteSessionKey({
+    route: params.route,
+    sessionKey: params.route.sessionKey,
+  });
   if (shouldLogVerbose()) {
     const preview = body.slice(0, 200).replace(/\n/g, "\\n");
     const mediaInfo =
@@ -397,12 +402,14 @@ async function finalizeLineInboundContext(params: {
       record: {
         updateLastRoute: !params.source.isGroup
           ? {
-              sessionKey: params.route.mainSessionKey,
+              sessionKey: inboundLastRouteSessionKey,
               channel: "line",
               to: params.source.userId ?? params.source.peerId,
               accountId: params.route.accountId,
               mainDmOwnerPin:
-                pinnedMainDmOwner && params.source.userId
+                inboundLastRouteSessionKey === params.route.mainSessionKey &&
+                pinnedMainDmOwner &&
+                params.source.userId
                   ? {
                       ownerRecipient: pinnedMainDmOwner,
                       senderRecipient: params.source.userId,
@@ -515,7 +522,7 @@ export async function buildLineMessageContext(params: BuildLineMessageContextPar
 
 export async function buildLinePostbackContext(params: {
   event: PostbackEvent;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   account: ResolvedLineAccount;
   commandAuthorized: boolean;
 }) {
