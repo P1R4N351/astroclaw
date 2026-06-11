@@ -1,3 +1,4 @@
+// Googlechat plugin module implements setup surface behavior.
 import {
   addWildcardAllowFrom,
   applySetupAccountConfigPatch,
@@ -11,11 +12,11 @@ import {
   createSetupTranslator,
   type ChannelSetupDmPolicy,
   type ChannelSetupWizard,
-} from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
 import {
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveDefaultGoogleChatAccountId, resolveGoogleChatAccount } from "./accounts.js";
 
 const t = createSetupTranslator();
