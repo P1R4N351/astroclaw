@@ -1,3 +1,4 @@
+// Feishu plugin module implements setup surface behavior.
 import {
   DEFAULT_ACCOUNT_ID,
   formatDocsLink,
@@ -10,9 +11,10 @@ import {
   type ChannelSetupDmPolicy,
   type ChannelSetupWizard,
   type DmPolicy,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type SecretInput,
-} from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
+import { normalizeOptionalString as normalizeString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveDefaultFeishuAccountId, resolveFeishuAccount } from "./accounts.js";
 import type { AppRegistrationResult } from "./app-registration.js";
 import type { FeishuConfig, FeishuDomain } from "./types.js";
@@ -21,20 +23,13 @@ const t = createSetupTranslator();
 
 const channel = "feishu" as const;
 const SCAN_TO_CREATE_TP = "ob_cli_app";
+const FEISHU_SETUP_FLOW_KEY = "_flow";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function normalizeString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed || undefined;
-}
-
-function isFeishuConfigured(cfg: AstroclawConfig): boolean {
+function isFeishuConfigured(cfg: OpenClawConfig): boolean {
   const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
 
   const isAppIdConfigured = (value: unknown): boolean => {
@@ -61,8 +56,8 @@ function isFeishuConfigured(cfg: AstroclawConfig): boolean {
     if (!account || typeof account !== "object") {
       return false;
     }
-    const hasOwnAppId = Object.prototype.hasOwnProperty.call(account, "appId");
-    const hasOwnAppSecret = Object.prototype.hasOwnProperty.call(account, "appSecret");
+    const hasOwnAppId = Object.hasOwn(account, "appId");
+    const hasOwnAppSecret = Object.hasOwn(account, "appSecret");
     const accountAppIdConfigured = hasOwnAppId
       ? isAppIdConfigured((account as Record<string, unknown>).appId)
       : isAppIdConfigured(feishuCfg?.appId);
@@ -88,10 +83,10 @@ function formatFeishuStatusLine(status: "configured-unverified" | "needs-credent
  * - named account → writes to channels.feishu.accounts[accountId]
  */
 function patchFeishuConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   patch: Record<string, unknown>,
-): AstroclawConfig {
+): OpenClawConfig {
   const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return patchTopLevelChannelConfigSection({
@@ -120,10 +115,10 @@ function patchFeishuConfig(
 }
 
 async function promptFeishuAllowFrom(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string;
   prompter: Parameters<NonNullable<ChannelSetupDmPolicy["promptAllowFrom"]>>[0]["prompter"];
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const feishuCfg = params.cfg.channels?.feishu as FeishuConfig | undefined;
   const resolvedAccountId = params.accountId ?? resolveDefaultFeishuAccountId(params.cfg);
   const account =
@@ -231,11 +226,11 @@ type FeishuSetupMethod = "manual" | "scan";
 // ---------------------------------------------------------------------------
 
 function applyNewAppSecurityPolicy(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   openId: string | undefined,
   groupPolicy: "allowlist" | "open" | "disabled",
-): AstroclawConfig {
+): OpenClawConfig {
   let next = cfg;
 
   if (openId) {
@@ -256,6 +251,13 @@ function applyNewAppSecurityPolicy(
 // ---------------------------------------------------------------------------
 // Scan-to-create flow
 // ---------------------------------------------------------------------------
+
+let appRegistrationModulePromise: Promise<typeof import("./app-registration.js")> | null = null;
+
+const loadAppRegistrationModule = async () => {
+  appRegistrationModulePromise ??= import("./app-registration.js");
+  return await appRegistrationModulePromise;
+};
 
 async function promptFeishuDomain(params: {
   prompter: WizardPrompter;
@@ -287,7 +289,7 @@ async function runScanToCreate(
   domain: FeishuDomain,
 ): Promise<AppRegistrationResult | null> {
   const { beginAppRegistration, initAppRegistration, pollAppRegistration, printQrCode } =
-    await import("./app-registration.js");
+    await loadAppRegistrationModule();
   try {
     await initAppRegistration(domain);
   } catch {
@@ -335,10 +337,10 @@ async function runScanToCreate(
 // ---------------------------------------------------------------------------
 
 async function runNewAppFlow(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
   options: Parameters<NonNullable<ChannelSetupWizard["finalize"]>>[0]["options"];
-}): Promise<{ cfg: AstroclawConfig }> {
+}): Promise<{ cfg: OpenClawConfig }> {
   const { prompter, options } = params;
   let next = params.cfg;
 
@@ -346,7 +348,7 @@ async function runNewAppFlow(params: {
   const targetAccountId = resolveDefaultFeishuAccountId(next);
 
   // ----- QR scan flow -----
-  let appId: string | null = null;
+  let appId: string | null;
   let appSecret: SecretInput | null = null;
   let appSecretProbeValue: string | null = null;
   let scanDomain: FeishuDomain | undefined;
@@ -365,7 +367,6 @@ async function runNewAppFlow(params: {
   if (scanResult) {
     appId = scanResult.appId;
     appSecret = scanResult.appSecret;
-    appSecretProbeValue = scanResult.appSecret;
     scanDomain = scanResult.domain;
     scanOpenId = scanResult.openId;
   } else {
@@ -398,7 +399,7 @@ async function runNewAppFlow(params: {
 
     // Fetch openId via API for manual flow.
     if (appId && appSecretProbeValue) {
-      const { getAppOwnerOpenId } = await import("./app-registration.js");
+      const { getAppOwnerOpenId } = await loadAppRegistrationModule();
       scanOpenId = await getAppOwnerOpenId({
         appId,
         appSecret: appSecretProbeValue,
@@ -420,7 +421,9 @@ async function runNewAppFlow(params: {
 
   // ----- Apply credentials & security policy -----
   const configProgress = prompter.progress(t("wizard.feishu.configuring"));
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 50);
+  });
 
   if (appId && appSecret) {
     next = patchFeishuConfig(next, targetAccountId, {
@@ -445,10 +448,10 @@ async function runNewAppFlow(params: {
 // ---------------------------------------------------------------------------
 
 async function runEditFlow(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
   options: Parameters<NonNullable<ChannelSetupWizard["finalize"]>>[0]["options"];
-}): Promise<{ cfg: AstroclawConfig } | null> {
+}): Promise<{ cfg: OpenClawConfig } | null> {
   const { prompter, options } = params;
   const next = params.cfg;
   const feishuCfg = next.channels?.feishu as FeishuConfig | undefined;
@@ -508,9 +511,9 @@ async function runEditFlow(params: {
 // ---------------------------------------------------------------------------
 
 export async function runFeishuLogin(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const { cfg, prompter } = params;
   const options = {};
   const alreadyConfigured = isFeishuConfigured(cfg);
@@ -579,12 +582,12 @@ export const feishuSetupWizard: ChannelSetupWizard = {
 
     if (alreadyConfigured) {
       return {
-        credentialValues: { ...credentialValues, _flow: "edit" },
+        credentialValues: { ...credentialValues, [FEISHU_SETUP_FLOW_KEY]: "edit" },
       };
     }
 
     return {
-      credentialValues: { ...credentialValues, _flow: "new" },
+      credentialValues: { ...credentialValues, [FEISHU_SETUP_FLOW_KEY]: "new" },
     };
   },
 
@@ -594,7 +597,7 @@ export const feishuSetupWizard: ChannelSetupWizard = {
   // finalize: run the appropriate flow
   // -------------------------------------------------------------------------
   finalize: async ({ cfg, prompter, options, credentialValues }) => {
-    const flow = credentialValues._flow ?? "new";
+    const flow = credentialValues[FEISHU_SETUP_FLOW_KEY] ?? "new";
 
     if (flow === "edit") {
       const result = await runEditFlow({ cfg, prompter, options });
