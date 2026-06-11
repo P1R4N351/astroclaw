@@ -1,7 +1,8 @@
-export { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+// Phone Control API module exposes the plugin public contract.
+export { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 export type {
-  AstroclawPluginApi,
-  AstroclawPluginCommandDefinition,
+  OpenClawPluginApi,
+  OpenClawPluginCommandDefinition,
   PluginCommandContext,
-  AstroclawPluginService,
-} from "astroclaw/plugin-sdk/plugin-entry";
+  OpenClawPluginService,
+} from "openclaw/plugin-sdk/plugin-entry";
