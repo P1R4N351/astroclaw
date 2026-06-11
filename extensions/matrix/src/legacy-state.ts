@@ -1,8 +1,9 @@
+// Matrix plugin module implements legacy state behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveStateDir } from "astroclaw/plugin-sdk/state-paths";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveStateDir } from "openclaw/plugin-sdk/state-paths";
 import { resolveLegacyMatrixFlatStoreTarget } from "./migration-config.js";
 import { resolveMatrixLegacyFlatStoragePaths } from "./storage-paths.js";
 
@@ -32,7 +33,7 @@ function resolveLegacyMatrixPaths(env: NodeJS.ProcessEnv): {
 }
 
 function resolveMatrixMigrationPlan(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 }): MatrixLegacyStatePlan | { warning: string } | null {
   const legacy = resolveLegacyMatrixPaths(params.env);
@@ -62,7 +63,7 @@ function resolveMatrixMigrationPlan(params: {
 }
 
 export function detectLegacyMatrixState(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
 }): MatrixLegacyStatePlan | { warning: string } | null {
   return resolveMatrixMigrationPlan({
@@ -101,7 +102,7 @@ function moveLegacyPath(params: {
 }
 
 export async function autoMigrateLegacyMatrixState(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   log?: { info?: (message: string) => void; warn?: (message: string) => void };
 }): Promise<MatrixLegacyStateMigrationResult> {
