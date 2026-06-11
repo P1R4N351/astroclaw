@@ -1,4 +1,5 @@
-import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+// Diagnostics Prometheus plugin entrypoint registers its OpenClaw integration.
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { createDiagnosticsPrometheusExporter } from "./src/service.js";
 
 const exporter = createDiagnosticsPrometheusExporter();
@@ -6,7 +7,7 @@ const exporter = createDiagnosticsPrometheusExporter();
 export default definePluginEntry({
   id: "diagnostics-prometheus",
   name: "Diagnostics Prometheus",
-  description: "Expose Astroclaw diagnostics metrics in Prometheus text format",
+  description: "Expose OpenClaw diagnostics metrics in Prometheus text format",
   register(api) {
     api.registerService(exporter.service);
     api.registerHttpRoute({
