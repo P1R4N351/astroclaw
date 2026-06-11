@@ -1,5 +1,6 @@
-import { stripInlineDirectiveTagsForDisplay } from "astroclaw/plugin-sdk/text-chunking";
-import { escapeRegExp } from "astroclaw/plugin-sdk/text-utility-runtime";
+// Discord plugin module implements sanitize behavior.
+import { stripInlineDirectiveTagsForDisplay } from "openclaw/plugin-sdk/text-chunking";
+import { escapeRegExp } from "openclaw/plugin-sdk/text-utility-runtime";
 
 const SPEECH_EMOJI_RE =
   /(?:\p{Extended_Pictographic}(?:\uFE0F|\u200D|\p{Extended_Pictographic}|\p{Emoji_Modifier})*)+/gu;
