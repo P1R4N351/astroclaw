@@ -1,27 +1,29 @@
+// Qa Lab plugin module implements env behavior.
 import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { QaProviderMode } from "./index.js";
 import { getQaProvider } from "./index.js";
 
 const QA_LIVE_ENV_ALIASES = Object.freeze([
   {
-    liveVar: "ASTROCLAW_LIVE_OPENAI_KEY",
+    liveVar: "OPENCLAW_LIVE_OPENAI_KEY",
     providerVar: "OPENAI_API_KEY",
   },
   {
-    liveVar: "ASTROCLAW_LIVE_ANTHROPIC_KEY",
+    liveVar: "OPENCLAW_LIVE_ANTHROPIC_KEY",
     providerVar: "ANTHROPIC_API_KEY",
   },
   {
-    liveVar: "ASTROCLAW_LIVE_GEMINI_KEY",
+    liveVar: "OPENCLAW_LIVE_GEMINI_KEY",
     providerVar: "GEMINI_API_KEY",
   },
 ]);
 
-export const QA_LIVE_PROVIDER_CONFIG_PATH_ENV = "ASTROCLAW_QA_LIVE_PROVIDER_CONFIG_PATH";
-const QA_LIVE_CLI_BACKEND_PRESERVE_ENV = "ASTROCLAW_LIVE_CLI_BACKEND_PRESERVE_ENV";
-const QA_LIVE_CLI_BACKEND_AUTH_MODE_ENV = "ASTROCLAW_LIVE_CLI_BACKEND_AUTH_MODE";
+export const QA_LIVE_PROVIDER_CONFIG_PATH_ENV = "OPENCLAW_QA_LIVE_PROVIDER_CONFIG_PATH";
+const QA_LIVE_CLI_BACKEND_PRESERVE_ENV = "OPENCLAW_LIVE_CLI_BACKEND_PRESERVE_ENV";
+const QA_LIVE_CLI_BACKEND_AUTH_MODE_ENV = "OPENCLAW_LIVE_CLI_BACKEND_AUTH_MODE";
 export type QaCliBackendAuthMode = "auto" | "api-key" | "subscription";
 
 export const QA_PROVIDER_SECRET_ENV_VARS = Object.freeze([
@@ -32,19 +34,23 @@ export const QA_PROVIDER_SECRET_ENV_VARS = Object.freeze([
   "AWS_SECRET_ACCESS_KEY",
   "AWS_SESSION_TOKEN",
   "ANTHROPIC_API_KEYS",
+  "CODEX_API_KEY",
   "GEMINI_API_KEY",
   "GEMINI_API_KEYS",
   "GOOGLE_API_KEY",
   "MISTRAL_API_KEY",
   "OPENAI_API_KEY",
   "OPENAI_API_KEYS",
-  "ASTROCLAW_LIVE_ANTHROPIC_KEY",
-  "ASTROCLAW_LIVE_ANTHROPIC_KEYS",
-  "ASTROCLAW_LIVE_GEMINI_KEY",
-  "ASTROCLAW_LIVE_OPENAI_KEY",
-  "ASTROCLAW_QA_CONVEX_SECRET_CI",
-  "ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER",
+  "OPENCLAW_LIVE_ANTHROPIC_KEY",
+  "OPENCLAW_LIVE_ANTHROPIC_KEYS",
+  "OPENCLAW_LIVE_GEMINI_KEY",
+  "OPENCLAW_LIVE_OPENAI_KEY",
+  "OPENCLAW_QA_CONVEX_SECRET_CI",
+  "OPENCLAW_QA_CONVEX_SECRET_MAINTAINER",
   "VOYAGE_API_KEY",
+]);
+export const QA_PROVIDER_SECRET_ENV_KEY_PATTERNS = Object.freeze([
+  /^OPENCLAW_LIVE_[A-Z0-9_]+_KEYS?$/u,
 ]);
 
 const QA_MOCK_BLOCKED_ENV_VARS = Object.freeze([
@@ -56,6 +62,7 @@ const QA_MOCK_BLOCKED_ENV_VARS = Object.freeze([
 
 const QA_MOCK_BLOCKED_ENV_KEY_PATTERNS = Object.freeze([
   /^DISCORD_/i,
+  ...QA_PROVIDER_SECRET_ENV_KEY_PATTERNS,
   /^TELEGRAM_/i,
   /^SLACK_/i,
   /^MATRIX_/i,
@@ -73,13 +80,14 @@ const QA_LIVE_ALLOWED_ENV_VARS = Object.freeze([
   "AWS_REGION",
   "OPENAI_BASE_URL",
   QA_LIVE_PROVIDER_CONFIG_PATH_ENV,
-  "ASTROCLAW_CONFIG_PATH",
+  "OPENCLAW_CONFIG_PATH",
 ]);
 
 const QA_LIVE_ALLOWED_ENV_PATTERNS = Object.freeze([
   /^[A-Z0-9_]+_API_KEYS$/u,
   /^[A-Z0-9_]+_API_KEY_[0-9]+$/u,
-  /^ASTROCLAW_LIVE_[A-Z0-9_]+_KEYS$/u,
+  /^OPENCLAW_LIVE_[A-Z0-9_]+_KEY$/u,
+  /^OPENCLAW_LIVE_[A-Z0-9_]+_KEYS$/u,
 ]);
 
 function resolveUserPath(value: string, env: NodeJS.ProcessEnv = process.env) {
@@ -118,7 +126,7 @@ function parsePreservedCliEnv(baseEnv: NodeJS.ProcessEnv) {
 }
 
 function renderPreservedCliEnv(values: string[]) {
-  return JSON.stringify([...new Set(values)]);
+  return JSON.stringify(uniqueStrings(values));
 }
 
 export function normalizeQaProviderModeEnv(env: NodeJS.ProcessEnv, providerMode?: QaProviderMode) {
@@ -151,11 +159,11 @@ export function resolveQaLiveCliAuthEnv(
 ) {
   const authMode = opts?.claudeCliAuthMode ?? "auto";
   const hasAnthropicKey = Boolean(
-    baseEnv.ANTHROPIC_API_KEY?.trim() || baseEnv.ASTROCLAW_LIVE_ANTHROPIC_KEY?.trim(),
+    baseEnv.ANTHROPIC_API_KEY?.trim() || baseEnv.OPENCLAW_LIVE_ANTHROPIC_KEY?.trim(),
   );
   if (opts?.forwardHostHomeForClaudeCli && authMode === "api-key" && !hasAnthropicKey) {
     throw new Error(
-      "Claude CLI API-key QA mode requires ANTHROPIC_API_KEY or ASTROCLAW_LIVE_ANTHROPIC_KEY",
+      "Claude CLI API-key QA mode requires ANTHROPIC_API_KEY or OPENCLAW_LIVE_ANTHROPIC_KEY",
     );
   }
   const preserveEnvValues = (() => {
@@ -198,10 +206,10 @@ export function resolveQaLiveCliAuthEnv(
 
 export function resolveQaLiveProviderConfigPath(env: NodeJS.ProcessEnv = process.env) {
   const explicit =
-    env[QA_LIVE_PROVIDER_CONFIG_PATH_ENV]?.trim() || env.ASTROCLAW_CONFIG_PATH?.trim();
+    env[QA_LIVE_PROVIDER_CONFIG_PATH_ENV]?.trim() || env.OPENCLAW_CONFIG_PATH?.trim();
   return explicit
     ? { path: resolveUserPath(explicit, env), explicit: true }
-    : { path: path.join(os.homedir(), ".astroclaw", "astroclaw.json"), explicit: false };
+    : { path: path.join(os.homedir(), ".openclaw", "openclaw.json"), explicit: false };
 }
 
 export function resolveQaForwardedLiveEnv(baseEnv: NodeJS.ProcessEnv = process.env) {
