@@ -1,10 +1,13 @@
+// Loads shell-derived environment variables for provider and command runtimes.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { resolveTimerTimeoutMs } from "@openclaw/normalization-core/number-coercion";
 import { isTruthyEnvValue } from "./env.js";
 import { formatErrorMessage } from "./errors.js";
 import { sanitizeHostExecEnv } from "./host-env-security.js";
+import { parseStrictNonNegativeInteger } from "./parse-finite-number.js";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BUFFER_BYTES = 2 * 1024 * 1024;
@@ -36,10 +39,7 @@ function resolveShellExecEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
 }
 
 function resolveTimeoutMs(timeoutMs: number | undefined): number {
-  if (typeof timeoutMs !== "number" || !Number.isFinite(timeoutMs)) {
-    return DEFAULT_TIMEOUT_MS;
-  }
-  return Math.max(0, timeoutMs);
+  return resolveTimerTimeoutMs(timeoutMs, DEFAULT_TIMEOUT_MS, 0);
 }
 
 function readEtcShells(): Set<string> | null {
@@ -153,7 +153,7 @@ function createLoginShellEnvCacheKey(params: {
       ) {
         return true;
       }
-      return key.startsWith("XDG_") || key.startsWith("ASTROCLAW_");
+      return key.startsWith("XDG_") || key.startsWith("OPENCLAW_");
     })
     .toSorted(([left], [right]) => left.localeCompare(right));
   return JSON.stringify([
@@ -172,7 +172,13 @@ function probeLoginShellEnv(params: {
   env: NodeJS.ProcessEnv;
   timeoutMs?: number;
   exec?: typeof execFileSync;
+  platform?: NodeJS.Platform;
 }): LoginShellEnvProbeResult {
+  const platform = params.platform ?? process.platform;
+  if (platform === "win32") {
+    return { ok: true, shellEnv: new Map() };
+  }
+
   const exec = params.exec ?? execFileSync;
   const timeoutMs = resolveTimeoutMs(params.timeoutMs);
   const shell = resolveShell(params.env);
@@ -212,10 +218,11 @@ type ShellEnvFallbackOptions = {
   logger?: Pick<typeof console, "warn">;
   timeoutMs?: number;
   exec?: typeof execFileSync;
+  platform?: NodeJS.Platform;
 };
 
 function hasExplicitEnvBinding(env: NodeJS.ProcessEnv, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(env, key);
+  return Object.hasOwn(env, key);
 }
 
 export function loadShellEnvFallback(opts: ShellEnvFallbackOptions): ShellEnvFallbackResult {
@@ -238,9 +245,10 @@ export function loadShellEnvFallback(opts: ShellEnvFallbackOptions): ShellEnvFal
     env: opts.env,
     timeoutMs: opts.timeoutMs,
     exec: opts.exec,
+    platform: opts.platform,
   });
   if (!probe.ok) {
-    logger.warn(`[astroclaw] shell env fallback failed: ${probe.error}`);
+    logger.warn(`[openclaw] shell env fallback failed: ${probe.error}`);
     lastAppliedKeys = [];
     return { ok: false, error: probe.error, applied: [] };
   }
@@ -260,23 +268,23 @@ export function loadShellEnvFallback(opts: ShellEnvFallbackOptions): ShellEnvFal
 }
 
 export function shouldEnableShellEnvFallback(env: NodeJS.ProcessEnv): boolean {
-  return isTruthyEnvValue(env.ASTROCLAW_LOAD_SHELL_ENV);
+  return isTruthyEnvValue(env.OPENCLAW_LOAD_SHELL_ENV);
 }
 
 export function shouldDeferShellEnvFallback(env: NodeJS.ProcessEnv): boolean {
-  return isTruthyEnvValue(env.ASTROCLAW_DEFER_SHELL_ENV_FALLBACK);
+  return isTruthyEnvValue(env.OPENCLAW_DEFER_SHELL_ENV_FALLBACK);
 }
 
 export function resolveShellEnvFallbackTimeoutMs(env: NodeJS.ProcessEnv): number {
-  const raw = env.ASTROCLAW_SHELL_ENV_TIMEOUT_MS?.trim();
+  const raw = env.OPENCLAW_SHELL_ENV_TIMEOUT_MS?.trim();
   if (!raw) {
     return DEFAULT_TIMEOUT_MS;
   }
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed)) {
+  const parsed = parseStrictNonNegativeInteger(raw);
+  if (parsed === undefined) {
     return DEFAULT_TIMEOUT_MS;
   }
-  return Math.max(0, parsed);
+  return resolveTimeoutMs(parsed);
 }
 
 export function getShellPathFromLoginShell(opts: {
@@ -298,6 +306,7 @@ export function getShellPathFromLoginShell(opts: {
     env: opts.env,
     timeoutMs: opts.timeoutMs,
     exec: opts.exec,
+    platform,
   });
   if (!probe.ok) {
     cachedShellPath = null;
