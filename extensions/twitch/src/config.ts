@@ -1,9 +1,10 @@
+// Twitch helper module supports config behavior.
 import {
   listCombinedAccountIds,
   normalizeAccountId,
   resolveNormalizedAccountEntry,
-} from "astroclaw/plugin-sdk/account-resolution";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/account-resolution";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { resolveTwitchToken, type TwitchTokenResolution } from "./token.js";
 import type { TwitchAccountConfig } from "./types.js";
 import { isAccountConfigured } from "./utils/twitch.js";
@@ -39,7 +40,7 @@ export function getAccountConfig(
     return null;
   }
 
-  const cfg = coreConfig as AstroclawConfig;
+  const cfg = coreConfig as OpenClawConfig;
   const normalizedAccountId = normalizeAccountId(accountId);
   const twitch = cfg.channels?.twitch;
   // Access accounts via unknown to handle union type (single-account vs multi-account)
@@ -109,7 +110,7 @@ export function getAccountConfig(
  *
  * Includes both explicit accounts and implicit "default" from base-level config
  */
-export function listAccountIds(cfg: AstroclawConfig): string[] {
+export function listAccountIds(cfg: OpenClawConfig): string[] {
   const twitch = cfg.channels?.twitch;
   // Access accounts via unknown to handle union type (single-account vs multi-account)
   const twitchRaw = twitch as Record<string, unknown> | undefined;
@@ -130,7 +131,7 @@ export function listAccountIds(cfg: AstroclawConfig): string[] {
   });
 }
 
-export function resolveDefaultTwitchAccountId(cfg: AstroclawConfig): string {
+export function resolveDefaultTwitchAccountId(cfg: OpenClawConfig): string {
   const preferredRaw =
     typeof cfg.channels?.twitch?.defaultAccount === "string"
       ? cfg.channels.twitch.defaultAccount.trim()
@@ -147,7 +148,7 @@ export function resolveDefaultTwitchAccountId(cfg: AstroclawConfig): string {
 }
 
 export function resolveTwitchAccountContext(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string | null,
 ): ResolvedTwitchAccountContext {
   const resolvedAccountId = accountId?.trim()
@@ -165,7 +166,7 @@ export function resolveTwitchAccountContext(
 }
 
 export function resolveTwitchSnapshotAccountId(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   account: TwitchAccountConfig,
 ): string {
   const twitch = (cfg as Record<string, unknown>).channels as Record<string, unknown> | undefined;
