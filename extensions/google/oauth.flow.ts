@@ -1,10 +1,11 @@
-import { generateHexPkceVerifierChallenge } from "astroclaw/plugin-sdk/provider-auth";
+// Google plugin module implements oauth.flow behavior.
+import { generateHexPkceVerifierChallenge } from "openclaw/plugin-sdk/provider-auth";
 import {
   generateOAuthState,
   parseOAuthCallbackInput,
   waitForLocalOAuthCallback,
-} from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { isWSL2Sync } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/provider-auth-runtime";
+import { isWSL2Sync } from "openclaw/plugin-sdk/runtime-env";
 import { resolveOAuthClientConfig } from "./oauth.credentials.js";
 import { AUTH_URL, REDIRECT_URI, SCOPES } from "./oauth.shared.js";
 
