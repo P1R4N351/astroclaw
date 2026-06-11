@@ -1,9 +1,10 @@
+// Google Meet plugin module implements runtime behavior.
 import { randomUUID } from "node:crypto";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import type { PluginRuntime, RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";
-import { sleep } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import type { PluginRuntime, RuntimeLogger } from "openclaw/plugin-sdk/plugin-runtime";
+import { sleep } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalString, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type {
   GoogleMeetConfig,
   GoogleMeetMode,
@@ -165,7 +166,7 @@ function evaluateSpeechReadiness(session: GoogleMeetSession): {
       reason: health.manualActionReason ?? "browser-unverified",
       message:
         health.manualActionMessage ??
-        "Resolve the Google Meet browser prompt before asking Astroclaw to speak.",
+        "Resolve the Google Meet browser prompt before asking OpenClaw to speak.",
     };
   }
   if (health?.inCall === true) {
@@ -173,7 +174,7 @@ function evaluateSpeechReadiness(session: GoogleMeetSession): {
       return {
         ready: false,
         reason: "meet-microphone-muted",
-        message: "Turn on the Astroclaw Google Meet microphone before asking Astroclaw to speak.",
+        message: "Turn on the OpenClaw Google Meet microphone before asking OpenClaw to speak.",
       };
     }
     if (session.chrome.audioBridge) {
@@ -207,7 +208,7 @@ function collectChromeAudioCommands(config: GoogleMeetConfig): string[] {
         config.chrome.audioOutputCommand?.[0],
         config.chrome.bargeInInputCommand?.[0],
       ];
-  return [...new Set(commands.filter((value): value is string => Boolean(value?.trim())))];
+  return uniqueStrings(commands.filter((value): value is string => Boolean(value?.trim())));
 }
 
 async function commandExists(runtime: PluginRuntime, command: string): Promise<boolean> {
@@ -227,7 +228,7 @@ export class GoogleMeetRuntime {
   constructor(
     private readonly params: {
       config: GoogleMeetConfig;
-      fullConfig: AstroclawConfig;
+      fullConfig: OpenClawConfig;
       runtime: PluginRuntime;
       logger: RuntimeLogger;
     },
