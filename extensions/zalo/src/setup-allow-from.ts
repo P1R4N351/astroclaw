@@ -1,3 +1,4 @@
+// Zalo plugin module implements setup allow from behavior.
 import {
   DEFAULT_ACCOUNT_ID,
   createSetupTranslator,
@@ -5,8 +6,8 @@ import {
   mergeAllowFromEntries,
   type ChannelSetupDmPolicy,
   type ChannelSetupWizard,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/setup";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/setup";
 import { resolveDefaultZaloAccountId, resolveZaloAccount } from "./accounts.js";
 
 const t = createSetupTranslator();
@@ -31,10 +32,10 @@ export async function noteZaloTokenHelp(
 }
 
 export async function promptZaloAllowFrom(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: Parameters<NonNullable<ChannelSetupDmPolicy["promptAllowFrom"]>>[0]["prompter"];
   accountId?: string;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const { cfg, prompter } = params;
   const accountId = params.accountId ?? resolveDefaultZaloAccountId(cfg);
   const resolved = resolveZaloAccount({ cfg, accountId });
@@ -69,7 +70,7 @@ export async function promptZaloAllowFrom(params: {
           allowFrom: unique,
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
   const currentAccount = cfg.channels?.zalo?.accounts?.[accountId] as
@@ -93,5 +94,5 @@ export async function promptZaloAllowFrom(params: {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
