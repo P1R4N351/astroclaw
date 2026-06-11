@@ -1,7 +1,9 @@
+/** Shared test fixtures for reply queue and typing-controller tests. */
 import { vi } from "vitest";
 import type { FollowupRun } from "./queue.js";
 import type { TypingController } from "./typing.js";
 
+/** Creates a typed mock typing controller with optional method overrides. */
 export function createMockTypingController(
   overrides: Partial<TypingController> = {},
 ): TypingController {
@@ -18,10 +20,11 @@ export function createMockTypingController(
   };
 }
 
+/** Creates a minimal queued follow-up run fixture. */
 export function createMockFollowupRun(
   overrides: Partial<Omit<FollowupRun, "run">> & { run?: Partial<FollowupRun["run"]> } = {},
 ): FollowupRun {
-  const skipProviderRuntimeHints = process.env.ASTROCLAW_TEST_FAST === "1";
+  const skipProviderRuntimeHints = process.env.OPENCLAW_TEST_FAST === "1";
   const base: FollowupRun = {
     prompt: "hello",
     summaryLine: "hello",
