@@ -1,11 +1,12 @@
-import { resolveHumanDelayConfig } from "astroclaw/plugin-sdk/agent-runtime";
-import { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-message";
-import { resolveChannelStreamingBlockEnabled } from "astroclaw/plugin-sdk/channel-streaming";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
-import { resolveChunkMode, resolveTextChunkLimit } from "astroclaw/plugin-sdk/reply-chunking";
-import type { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Discord plugin module implements native command agent reply behavior.
+import { resolveHumanDelayConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-outbound";
+import { resolveChannelStreamingBlockEnabled } from "openclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
+import { resolveChunkMode, resolveTextChunkLimit } from "openclaw/plugin-sdk/reply-chunking";
+import type { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { resolveDiscordMaxLinesPerMessage } from "../accounts.js";
 import type {
   ButtonInteraction,
@@ -29,7 +30,7 @@ type NativeCommandEffectiveRoute = {
 };
 
 export async function dispatchDiscordNativeAgentReply(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   discordConfig: DiscordConfig;
   accountId: string;
   interaction: CommandInteraction | ButtonInteraction | StringSelectMenuInteraction;
