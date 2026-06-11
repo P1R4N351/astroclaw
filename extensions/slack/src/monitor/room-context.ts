@@ -1,5 +1,6 @@
-import { buildUntrustedChannelMetadata } from "astroclaw/plugin-sdk/security-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Slack plugin module implements room context behavior.
+import { buildUntrustedChannelMetadata } from "openclaw/plugin-sdk/security-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export function resolveSlackRoomContextHints(params: {
   isRoomish: boolean;
