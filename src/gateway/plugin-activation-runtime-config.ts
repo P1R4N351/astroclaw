@@ -1,14 +1,19 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Plugin/channel activation config merge helpers.
+// Carries activation enablement into runtime config without copying stale state.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isRecord } from "../utils.js";
 
+// Activation config carries only operator-controlled enable/allow surfaces into
+// runtime config. Other runtime fields stay canonical to avoid stale activation
+// state overriding live config reloads.
 function hasOwnValue(record: Record<string, unknown>, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(record, key);
+  return Object.hasOwn(record, key);
 }
 
 function mergeChannelActivationSections(params: {
-  runtimeConfig: AstroclawConfig;
-  activationConfig: AstroclawConfig;
-}): AstroclawConfig {
+  runtimeConfig: OpenClawConfig;
+  activationConfig: OpenClawConfig;
+}): OpenClawConfig {
   const activationChannels = params.activationConfig.channels;
   if (!isRecord(activationChannels)) {
     return params.runtimeConfig;
@@ -37,14 +42,14 @@ function mergeChannelActivationSections(params: {
   }
   return {
     ...params.runtimeConfig,
-    channels: nextChannels as AstroclawConfig["channels"],
+    channels: nextChannels as OpenClawConfig["channels"],
   };
 }
 
 function mergePluginActivationSections(params: {
-  runtimeConfig: AstroclawConfig;
-  activationConfig: AstroclawConfig;
-}): AstroclawConfig {
+  runtimeConfig: OpenClawConfig;
+  activationConfig: OpenClawConfig;
+}): OpenClawConfig {
   const activationPlugins = params.activationConfig.plugins;
   if (!isRecord(activationPlugins)) {
     return params.runtimeConfig;
@@ -90,14 +95,15 @@ function mergePluginActivationSections(params: {
   }
   return {
     ...params.runtimeConfig,
-    plugins: nextPlugins as AstroclawConfig["plugins"],
+    plugins: nextPlugins as OpenClawConfig["plugins"],
   };
 }
 
+/** Merges plugin/channel activation enablement into the runtime config shape. */
 export function mergeActivationSectionsIntoRuntimeConfig(params: {
-  runtimeConfig: AstroclawConfig;
-  activationConfig: AstroclawConfig;
-}): AstroclawConfig {
+  runtimeConfig: OpenClawConfig;
+  activationConfig: OpenClawConfig;
+}): OpenClawConfig {
   return mergePluginActivationSections({
     ...params,
     runtimeConfig: mergeChannelActivationSections(params),
