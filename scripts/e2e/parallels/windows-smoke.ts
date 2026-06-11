@@ -1,29 +1,28 @@
 #!/usr/bin/env -S pnpm tsx
-import { readFile, rm } from "node:fs/promises";
+// Windows Smoke script supports OpenClaw repository automation.
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { windowsAgentWorkspaceScript } from "./agent-workspace.ts";
 import {
   die,
   ensureValue,
+  currentRunningSnapshotInfo,
   makeTempDir,
-  packageBuildCommitFromTgz,
-  packageVersionFromTgz,
-  packAstroclaw,
   parseMode,
   parseProvider,
-  resolveHostIp,
-  resolveHostPort,
+  readPositiveIntEnv,
   resolveLatestVersion,
   resolveParallelsModelTimeoutSeconds,
   resolveWindowsProviderAuth,
   resolveSnapshot,
   run,
   say,
-  startHostServer,
+  shouldSkipSnapshotRestore,
+  validateSnapshotRestoreMode,
   warn,
+  withProgressOnStderr,
   writeSummaryMarkdown,
   writeJson,
-  type HostServer,
   type Mode,
   type PackageArtifact,
   type Provider,
@@ -31,35 +30,37 @@ import {
   type SnapshotInfo,
 } from "./common.ts";
 import { runWindowsBackgroundPowerShell, WindowsGuest } from "./guest-transports.ts";
-import { runSmokeLane, type SmokeLane, type SmokeLaneStatus } from "./lane-runner.ts";
+import { startHostServer } from "./host-server.ts";
 import { waitForVmStatus } from "./parallels-vm.ts";
 import { PhaseRunner } from "./phase-runner.ts";
+import { windowsProviderOnlyPluginIsolationScript } from "./plugin-isolation.ts";
 import {
   psSingleQuote,
   windowsAgentTurnConfigPatchScript,
-  windowsAstroclawResolver,
+  windowsOpenClawResolver,
   windowsScopedEnvFunction,
 } from "./powershell.ts";
+import {
+  buildCommonSmokeSummary,
+  expectedPackageBuildCommit,
+  expectedPackageTargetVersion,
+  extractLastOpenClawVersion,
+  packAndServeSmokeArtifact,
+  printSmokeTargetSummary,
+  SmokeRunController,
+  type SmokeHostOptions,
+  type SmokeRunOptions,
+} from "./smoke-common.ts";
 import { ensureGuestGit, prepareMinGitZip } from "./windows-git.ts";
 
-interface WindowsOptions {
+interface WindowsOptions extends SmokeHostOptions, SmokeRunOptions {
   vmName: string;
-  snapshotHint: string;
-  mode: Mode;
-  provider: Provider;
   apiKeyEnv?: string;
   modelId?: string;
   installUrl: string;
-  hostPort: number;
-  hostPortExplicit: boolean;
-  hostIp?: string;
   latestVersion?: string;
-  installVersion?: string;
-  targetPackageSpec?: string;
   upgradeFromPackedMain: boolean;
   skipLatestRefCheck: boolean;
-  keepServer: boolean;
-  json: boolean;
 }
 
 interface WindowsSummary {
@@ -93,7 +94,7 @@ const defaultOptions = (): WindowsOptions => ({
   hostIp: undefined,
   hostPort: 18426,
   hostPortExplicit: false,
-  installUrl: "https://astroclaw.ai/install.ps1",
+  installUrl: "https://openclaw.ai/install.ps1",
   installVersion: "",
   json: false,
   keepServer: false,
@@ -102,13 +103,13 @@ const defaultOptions = (): WindowsOptions => ({
   modelId: undefined,
   provider: "openai",
   skipLatestRefCheck: false,
-  snapshotHint: "pre-astroclaw-native-e2e-2026-03-12",
+  snapshotHint: "pre-openclaw-native-e2e-2026-03-12",
   targetPackageSpec: "",
   upgradeFromPackedMain: false,
   vmName: "Windows 11",
 });
 
-const windowsPortableGitPathScript = `$portableGit = Join-Path (Join-Path (Join-Path $env:LOCALAPPDATA 'Astroclaw\\deps') 'portable-git') ''
+const windowsPortableGitPathScript = `$portableGit = Join-Path (Join-Path (Join-Path $env:LOCALAPPDATA 'OpenClaw\\deps') 'portable-git') ''
 $env:PATH = "$portableGit\\cmd;$portableGit\\mingw64\\bin;$portableGit\\usr\\bin;$env:PATH"
 where.exe git.exe`;
 
@@ -118,20 +119,20 @@ function usage(): string {
 Options:
   --vm <name>                Parallels VM name. Default: "Windows 11"
   --snapshot-hint <name>     Snapshot name substring/fuzzy match.
-                             Default: "pre-astroclaw-native-e2e-2026-03-12"
+                             Default: "pre-openclaw-native-e2e-2026-03-12"
   --mode <fresh|upgrade|both>
   --provider <openai|anthropic|minimax>
   --model <provider/model>    Override the model used for the agent-turn smoke.
   --api-key-env <var>        Host env var name for provider API key.
   --openai-api-key-env <var> Alias for --api-key-env (backward compatible)
-  --install-url <url>        Installer URL for latest release. Default: https://astroclaw.ai/install.ps1
+  --install-url <url>        Installer URL for latest release. Default: https://openclaw.ai/install.ps1
   --host-port <port>         Host HTTP port for current-main tgz. Default: 18426
   --host-ip <ip>             Override Parallels host IP.
   --latest-version <ver>     Override npm latest version lookup.
   --install-version <ver>    Pin site-installer version/dist-tag for the baseline lane.
   --upgrade-from-packed-main
                              Upgrade lane: install packed current-main npm tgz as baseline,
-                             then run astroclaw update --channel dev.
+                             then run openclaw update --channel dev.
   --target-package-spec <npm-spec>
                              Install this npm package tarball instead of packing current main.
   --skip-latest-ref-check    Skip latest-release ref-mode precheck.
@@ -141,103 +142,115 @@ Options:
 `;
 }
 
-function parseArgs(argv: string[]): WindowsOptions {
+export function parseArgs(argv: string[]): WindowsOptions {
+  const args = stripLeadingPackageManagerSeparator(argv);
   const options = defaultOptions();
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    switch (arg) {
-      case "--":
-        break;
-      case "--vm":
-        options.vmName = ensureValue(argv, i, arg);
-        i++;
-        break;
-      case "--snapshot-hint":
-        options.snapshotHint = ensureValue(argv, i, arg);
-        i++;
-        break;
-      case "--mode":
-        options.mode = parseMode(ensureValue(argv, i, arg));
-        i++;
-        break;
-      case "--provider":
-        options.provider = parseProvider(ensureValue(argv, i, arg));
-        i++;
-        break;
-      case "--model":
-        options.modelId = ensureValue(argv, i, arg);
-        i++;
-        break;
-      case "--api-key-env":
-      case "--openai-api-key-env":
-        options.apiKeyEnv = ensureValue(argv, i, arg);
-        i++;
-        break;
-      case "--install-url":
-        options.installUrl = ensureValue(argv, i, arg);
-        i++;
-        break;
-      case "--host-port":
-        options.hostPort = Number(ensureValue(argv, i, arg));
-        options.hostPortExplicit = true;
-        i++;
-        break;
-      case "--host-ip":
-        options.hostIp = ensureValue(argv, i, arg);
-        i++;
-        break;
-      case "--latest-version":
-        options.latestVersion = ensureValue(argv, i, arg);
-        i++;
-        break;
-      case "--install-version":
-        options.installVersion = ensureValue(argv, i, arg);
-        i++;
-        break;
-      case "--upgrade-from-packed-main":
-        options.upgradeFromPackedMain = true;
-        break;
-      case "--target-package-spec":
-        options.targetPackageSpec = ensureValue(argv, i, arg);
-        i++;
-        break;
-      case "--skip-latest-ref-check":
-        options.skipLatestRefCheck = true;
-        break;
-      case "--keep-server":
-        options.keepServer = true;
-        break;
-      case "--json":
-        options.json = true;
-        break;
-      case "-h":
-      case "--help":
-        process.stdout.write(usage());
-        process.exit(0);
-      default:
-        die(`unknown arg: ${arg}`);
+  const valueHandlers: Record<string, (value: string) => void> = {
+    "--api-key-env": (value) => {
+      options.apiKeyEnv = value;
+    },
+    "--host-ip": (value) => {
+      options.hostIp = value;
+    },
+    "--host-port": (value) => {
+      options.hostPort = Number(value);
+      options.hostPortExplicit = true;
+    },
+    "--install-url": (value) => {
+      options.installUrl = value;
+    },
+    "--install-version": (value) => {
+      options.installVersion = value;
+    },
+    "--latest-version": (value) => {
+      options.latestVersion = value;
+    },
+    "--model": (value) => {
+      options.modelId = value;
+    },
+    "--openai-api-key-env": (value) => {
+      options.apiKeyEnv = value;
+    },
+    "--provider": (value) => {
+      options.provider = parseProvider(value);
+    },
+    "--snapshot-hint": (value) => {
+      options.snapshotHint = value;
+    },
+    "--target-package-spec": (value) => {
+      options.targetPackageSpec = value;
+    },
+    "--vm": (value) => {
+      options.vmName = value;
+    },
+    "--mode": (value) => {
+      options.mode = parseMode(value);
+    },
+  };
+  const flagHandlers: Record<string, () => void> = {
+    "--json": () => {
+      options.json = true;
+    },
+    "--keep-server": () => {
+      options.keepServer = true;
+    },
+    "--skip-latest-ref-check": () => {
+      options.skipLatestRefCheck = true;
+    },
+    "--upgrade-from-packed-main": () => {
+      options.upgradeFromPackedMain = true;
+    },
+  };
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--") {
+      break;
     }
+    const valueHandler = valueHandlers[arg];
+    if (valueHandler) {
+      valueHandler(ensureValue(args, i, arg));
+      i++;
+      continue;
+    }
+    const flagHandler = flagHandlers[arg];
+    if (flagHandler) {
+      flagHandler();
+      continue;
+    }
+    if (arg === "-h" || arg === "--help") {
+      process.stdout.write(usage());
+      process.exit(0);
+    }
+    die(`unknown arg: ${arg}`);
   }
   return options;
 }
 
-class WindowsSmoke {
+function stripLeadingPackageManagerSeparator(argv: string[]): string[] {
+  return argv[0] === "--" ? argv.slice(1) : argv;
+}
+
+class WindowsSmoke extends SmokeRunController<WindowsOptions> {
   private auth: ProviderAuth;
-  private hostIp = "";
-  private hostPort = 0;
-  private runDir = "";
-  private tgzDir = "";
-  private server: HostServer | null = null;
+  private agentTimeoutSeconds = readPositiveIntEnv(
+    "OPENCLAW_PARALLELS_WINDOWS_AGENT_TIMEOUT_S",
+    2700,
+  );
+  private updateTimeoutSeconds = readPositiveIntEnv(
+    "OPENCLAW_PARALLELS_WINDOWS_UPDATE_TIMEOUT_S",
+    1200,
+  );
+  private gatewayRecoveryAfterMs =
+    readPositiveIntEnv("OPENCLAW_PARALLELS_WINDOWS_GATEWAY_RECOVERY_AFTER_S", 180) * 1000;
   private artifact: PackageArtifact | null = null;
   private minGitZipPath = "";
   private latestVersion = "";
   private installVersion = "";
-  private targetExpectVersion = "";
   private snapshot!: SnapshotInfo;
   private phases!: PhaseRunner;
   private guest!: WindowsGuest;
 
-  private status = {
+  protected status = {
     freshAgent: "skip",
     freshGateway: "skip",
     freshMain: "skip",
@@ -250,7 +263,8 @@ class WindowsSmoke {
     upgradeVersion: "skip",
   };
 
-  constructor(private options: WindowsOptions) {
+  constructor(options: WindowsOptions) {
+    super(options);
     this.auth = resolveWindowsProviderAuth({
       apiKeyEnv: options.apiKeyEnv,
       modelId: options.modelId,
@@ -259,49 +273,33 @@ class WindowsSmoke {
   }
 
   async run(): Promise<void> {
-    this.runDir = await makeTempDir("astroclaw-parallels-windows.");
+    this.runDir = await makeTempDir("openclaw-parallels-windows.");
     this.phases = new PhaseRunner(this.runDir);
     this.guest = new WindowsGuest(this.options.vmName, this.phases);
-    this.tgzDir = await makeTempDir("astroclaw-parallels-windows-tgz.");
+    this.tgzDir = await makeTempDir("openclaw-parallels-windows-tgz.");
     try {
-      this.snapshot = resolveSnapshot(this.options.vmName, this.options.snapshotHint);
+      validateSnapshotRestoreMode(this.options.mode, "Windows smoke");
+      this.snapshot = shouldSkipSnapshotRestore()
+        ? currentRunningSnapshotInfo(this.options.vmName)
+        : resolveSnapshot(this.options.vmName, this.options.snapshotHint);
       this.latestVersion = resolveLatestVersion(this.options.latestVersion);
       this.installVersion = this.options.installVersion || this.latestVersion;
-      this.hostIp = resolveHostIp(this.options.hostIp);
-      this.hostPort = await resolveHostPort(
-        this.options.hostPort,
-        this.options.hostPortExplicit,
+      await this.prepareHost(
         defaultOptions().hostPort,
+        this.latestVersion,
+        this.snapshot,
+        this.options.vmName,
       );
-
-      say(`VM: ${this.options.vmName}`);
-      say(`Snapshot hint: ${this.options.snapshotHint}`);
-      say(`Resolved snapshot: ${this.snapshot.name} [${this.snapshot.state}]`);
-      say(`Latest npm version: ${this.latestVersion}`);
-      say(
-        `Current head: ${run("git", ["rev-parse", "--short", "HEAD"], { quiet: true }).stdout.trim()}`,
-      );
-      say(`Run logs: ${this.runDir}`);
 
       this.minGitZipPath = await prepareMinGitZip(this.tgzDir);
       if (this.needsHostTgz()) {
-        this.artifact = await packAstroclaw({
-          destination: this.tgzDir,
-          packageSpec: this.options.targetPackageSpec,
-          requireControlUi: false,
-        });
-        if (this.options.targetPackageSpec) {
-          this.targetExpectVersion =
-            this.artifact.version || (await packageVersionFromTgz(this.artifact.path));
-        }
-        this.server = await startHostServer({
-          artifactPath: this.artifact.path,
-          dir: this.tgzDir,
-          hostIp: this.hostIp,
-          label: this.artifactLabel(),
-          port: this.hostPort,
-        });
-        this.hostPort = this.server.port;
+        [this.artifact, this.server, this.hostPort] = await packAndServeSmokeArtifact(
+          this.tgzDir,
+          this.options.targetPackageSpec,
+          this.hostIp,
+          this.hostPort,
+          this.artifactLabel(),
+        );
       }
       if (!this.server) {
         this.server = await startHostServer({
@@ -314,27 +312,9 @@ class WindowsSmoke {
         this.hostPort = this.server.port;
       }
 
-      if (this.options.mode === "fresh" || this.options.mode === "both") {
-        await this.runLane("fresh", async () => this.runFreshLane());
-      }
-      if (this.options.mode === "upgrade" || this.options.mode === "both") {
-        await this.runLane("upgrade", async () => this.runUpgradeLane());
-      }
-
-      const summaryPath = await this.writeSummary();
-      if (this.options.json) {
-        process.stdout.write(await readFile(summaryPath, "utf8"));
-      } else {
-        this.printSummary(summaryPath);
-      }
-      if (this.status.freshMain === "fail" || this.status.upgrade === "fail") {
-        process.exitCode = 1;
-      }
+      await this.runLanesAndFinish();
     } finally {
-      if (!this.options.keepServer) {
-        await this.server?.stop().catch(() => undefined);
-        await rm(this.tgzDir, { force: true, recursive: true }).catch(() => undefined);
-      }
+      await this.cleanupArtifacts();
     }
   }
 
@@ -371,41 +351,25 @@ class WindowsSmoke {
     return this.options.upgradeFromPackedMain ? "packed-main->dev" : "latest->dev";
   }
 
-  private async runLane(name: "fresh" | "upgrade", fn: () => Promise<void>): Promise<void> {
-    await runSmokeLane(name, fn, (lane, status) => this.setLaneStatus(lane, status));
-  }
-
-  private setLaneStatus(name: SmokeLane, status: SmokeLaneStatus): void {
-    if (name === "fresh") {
-      this.status.freshMain = status;
-    } else {
-      this.status.upgrade = status;
-    }
-  }
-
-  private async runFreshLane(): Promise<void> {
+  protected async runFreshLane(): Promise<void> {
     await this.phase("fresh.restore-snapshot", 240, () => this.restoreSnapshot());
     await this.phase("fresh.wait-for-user", 240, () => this.waitForGuestReady());
     await this.phase("fresh.ensure-git", 1200, () =>
       ensureGuestGit({ guest: this.guest, minGitZipPath: this.minGitZipPath, server: this.server }),
     );
     await this.phase("fresh.preflight", 120, () => this.logGuestPreflight(true));
-    await this.phase("fresh.install-main", 420, () => this.installMain("astroclaw-main-fresh.tgz"));
+    await this.phase("fresh.install-main", 420, () => this.installMain("openclaw-main-fresh.tgz"));
     this.status.freshVersion = await this.extractLastVersion("fresh.install-main");
     await this.phase("fresh.verify-main-version", 120, () => this.verifyTargetVersion());
     await this.phase("fresh.onboard-ref", 720, () => this.runRefOnboard());
     await this.phase("fresh.gateway-restart", 420, () => this.gatewayAction("restart"));
     await this.phase("fresh.gateway-status", 420, () => this.verifyGatewayReachable());
     this.status.freshGateway = "pass";
-    await this.phase(
-      "fresh.first-agent-turn",
-      Number(process.env.ASTROCLAW_PARALLELS_WINDOWS_AGENT_TIMEOUT_S || 2700),
-      () => this.verifyTurn(),
-    );
+    await this.phase("fresh.first-agent-turn", this.agentTimeoutSeconds, () => this.verifyTurn());
     this.status.freshAgent = "pass";
   }
 
-  private async runUpgradeLane(): Promise<void> {
+  protected async runUpgradeLane(): Promise<void> {
     await this.phase("upgrade.restore-snapshot", 240, () => this.restoreSnapshot());
     await this.phase("upgrade.wait-for-user", 240, () => this.waitForGuestReady());
     await this.phase("upgrade.ensure-git", 1200, () =>
@@ -414,7 +378,7 @@ class WindowsSmoke {
     await this.phase("upgrade.preflight", 120, () => this.logGuestPreflight(false));
     if (this.options.targetPackageSpec || this.options.upgradeFromPackedMain) {
       await this.phase("upgrade.install-baseline-package", 420, () =>
-        this.installMain("astroclaw-main-upgrade.tgz"),
+        this.installMain("openclaw-main-upgrade.tgz"),
       );
       this.status.latestInstalledVersion = await this.extractLastVersion(
         "upgrade.install-baseline-package",
@@ -443,10 +407,8 @@ class WindowsSmoke {
       this.status.upgradePrecheck = "latest-ref-fail";
     }
     await this.phase("upgrade.gateway-stop-before-update", 420, () => this.gatewayAction("stop"));
-    await this.phase(
-      "upgrade.update-dev",
-      Number(process.env.ASTROCLAW_PARALLELS_WINDOWS_UPDATE_TIMEOUT_S || 1200),
-      () => this.runDevChannelUpdate(),
+    await this.phase("upgrade.update-dev", this.updateTimeoutSeconds, () =>
+      this.runDevChannelUpdate(),
     );
     this.status.upgradeVersion = await this.extractLastVersion("upgrade.update-dev");
     await this.phase("upgrade.verify-dev-channel", 120, () => this.verifyDevChannelUpdate());
@@ -455,50 +417,41 @@ class WindowsSmoke {
     await this.phase("upgrade.gateway-restart", 420, () => this.gatewayAction("restart"));
     await this.phase("upgrade.gateway-status", 420, () => this.verifyGatewayReachable());
     this.status.upgradeGateway = "pass";
-    await this.phase(
-      "upgrade.first-agent-turn",
-      Number(process.env.ASTROCLAW_PARALLELS_WINDOWS_AGENT_TIMEOUT_S || 2700),
-      () => this.verifyTurn(),
-    );
+    await this.phase("upgrade.first-agent-turn", this.agentTimeoutSeconds, () => this.verifyTurn());
     this.status.upgradeAgent = "pass";
   }
 
-  private async phase(
-    name: string,
-    timeoutSeconds: number,
-    fn: () => Promise<void> | void,
-  ): Promise<void> {
+  private phase = async (name: string, timeoutSeconds: number, fn: () => Promise<void> | void) =>
     await this.phases.phase(name, timeoutSeconds, fn);
-  }
 
-  private remainingPhaseTimeoutMs(fallbackMs?: number): number | undefined {
-    return this.phases.remainingTimeoutMs(fallbackMs);
-  }
+  private remainingPhaseTimeoutMs = (fallbackMs?: number): number | undefined =>
+    this.phases.remainingTimeoutMs(fallbackMs);
 
-  private async phaseReturns(
+  private phaseReturns = async (
     name: string,
     timeoutSeconds: number,
     fn: () => Promise<void> | void,
-  ): Promise<boolean> {
-    return await this.phases.phaseReturns(name, timeoutSeconds, fn);
-  }
+  ): Promise<boolean> => await this.phases.phaseReturns(name, timeoutSeconds, fn);
 
-  private log(text: string): void {
-    this.phases.append(text);
-  }
+  private log = (text: string): void => this.phases.append(text);
 
-  private guestExec(args: string[], options: { check?: boolean; timeoutMs?: number } = {}): string {
-    return this.guest.exec(args, options);
-  }
+  private guestExec = (
+    args: string[],
+    options: { check?: boolean; timeoutMs?: number } = {},
+  ): string => this.guest.exec(args, options);
 
   private guestPowerShell(
     script: string,
     options: { check?: boolean; timeoutMs?: number } = {},
   ): string {
-    return this.guest.powershell(`${windowsAstroclawResolver}\n${script}`, options);
+    return this.guest.powershell(`${windowsOpenClawResolver}\n${script}`, options);
   }
 
   private restoreSnapshot(): void {
+    if (shouldSkipSnapshotRestore()) {
+      say(`Skip snapshot restore; using current running VM ${this.options.vmName}`);
+      return;
+    }
     this.waitForVmNotRestoring(240);
     say(`Restore snapshot ${this.options.snapshotHint} (${this.snapshot.id})`);
     let restored = false;
@@ -509,6 +462,7 @@ class WindowsSmoke {
         {
           check: false,
           quiet: true,
+          timeoutMs: this.remainingPhaseTimeoutMs(),
         },
       );
       this.log(result.stdout);
@@ -529,9 +483,14 @@ class WindowsSmoke {
     }
     this.waitForVmNotRestoring(240);
     if (this.snapshot.state === "poweroff") {
-      waitForVmStatus(this.options.vmName, "stopped", 240);
+      waitForVmStatus(this.options.vmName, "stopped", 240, {
+        probeTimeoutMs: () => this.remainingPhaseTimeoutMs(30_000),
+      });
       say(`Start restored poweroff snapshot ${this.snapshot.name}`);
-      run("prlctl", ["start", this.options.vmName], { quiet: true });
+      run("prlctl", ["start", this.options.vmName], {
+        quiet: true,
+        timeoutMs: this.remainingPhaseTimeoutMs(120_000),
+      });
     }
   }
 
@@ -541,6 +500,7 @@ class WindowsSmoke {
       const status = run("prlctl", ["status", this.options.vmName], {
         check: false,
         quiet: true,
+        timeoutMs: this.remainingPhaseTimeoutMs(30_000),
       }).stdout;
       if (!status.includes(" restoring")) {
         return;
@@ -570,9 +530,9 @@ class WindowsSmoke {
     throw new Error("Windows guest did not become ready");
   }
 
-  private logGuestPreflight(cleanAstroclaw: boolean): void {
-    const cleanScript = cleanAstroclaw
-      ? "npm.cmd uninstall -g astroclaw --no-fund --no-audit --loglevel=error 2>$null; $global:LASTEXITCODE = 0"
+  private logGuestPreflight(cleanOpenClaw: boolean): void {
+    const cleanScript = cleanOpenClaw
+      ? "npm.cmd uninstall -g openclaw --no-fund --no-audit --loglevel=error 2>$null; $global:LASTEXITCODE = 0"
       : "";
     this.guestPowerShell(
       `$ErrorActionPreference = 'Continue'
@@ -592,8 +552,8 @@ ${cleanScript}`,
 $script = Invoke-RestMethod -Uri ${psSingleQuote(this.options.installUrl)}
 & ([scriptblock]::Create($script))${versionArg} -NoOnboard
 if ($LASTEXITCODE -ne 0) { throw "installer failed with exit code $LASTEXITCODE" }
-Invoke-Astroclaw --version
-if ($LASTEXITCODE -ne 0) { throw "astroclaw --version failed with exit code $LASTEXITCODE" }`,
+Invoke-OpenClaw --version
+if ($LASTEXITCODE -ne 0) { throw "openclaw --version failed with exit code $LASTEXITCODE" }`,
       { timeoutMs: 420_000 },
     );
   }
@@ -609,28 +569,28 @@ $tgz = Join-Path $env:TEMP ${psSingleQuote(tempName)}
 curl.exe -fsSL ${psSingleQuote(tgzUrl)} -o $tgz
 npm.cmd install -g $tgz --no-fund --no-audit --loglevel=error
 if ($LASTEXITCODE -ne 0) { throw "npm install failed with exit code $LASTEXITCODE" }
-Invoke-Astroclaw --version
-if ($LASTEXITCODE -ne 0) { throw "astroclaw --version failed with exit code $LASTEXITCODE" }`,
+Invoke-OpenClaw --version
+if ($LASTEXITCODE -ne 0) { throw "openclaw --version failed with exit code $LASTEXITCODE" }`,
       { timeoutMs: 420_000 },
     );
   }
 
   private async verifyTargetVersion(): Promise<void> {
     if (this.options.targetPackageSpec) {
-      this.verifyVersionContains(this.targetExpectVersion);
+      if (!this.artifact) {
+        die("package artifact missing");
+      }
+      this.verifyVersionContains(await expectedPackageTargetVersion(this.artifact));
       return;
     }
     if (!this.artifact) {
       die("package artifact missing");
     }
-    const commit =
-      this.artifact.buildCommitShort ||
-      (await packageBuildCommitFromTgz(this.artifact.path)).slice(0, 7);
-    this.verifyVersionContains(commit);
+    this.verifyVersionContains(await expectedPackageBuildCommit(this.artifact));
   }
 
   private verifyVersionContains(needle: string): void {
-    const version = this.guestPowerShell("Invoke-Astroclaw --version");
+    const version = this.guestPowerShell("Invoke-OpenClaw --version");
     if (!version.includes(needle)) {
       throw new Error(`version mismatch: expected substring ${needle}`);
     }
@@ -647,10 +607,18 @@ if ($LASTEXITCODE -ne 0) { throw "astroclaw --version failed with exit code $LAS
       `$ErrorActionPreference = 'Continue'
 $PSNativeCommandUseErrorActionPreference = $false
 Set-Item -Path ('Env:' + ${psSingleQuote(this.auth.apiKeyEnv)}) -Value ${psSingleQuote(this.auth.apiKeyValue)}
-Invoke-Astroclaw onboard --non-interactive --mode local --auth-choice ${psSingleQuote(this.auth.authChoice)} --secret-input-mode ref --gateway-port 18789 --gateway-bind loopback --install-daemon --skip-skills --skip-health --accept-risk --json
-if ($LASTEXITCODE -ne 0) { throw "astroclaw onboard failed with exit code $LASTEXITCODE" }`,
+Invoke-OpenClaw onboard --non-interactive --mode local --auth-choice ${psSingleQuote(this.auth.authChoice)} --secret-input-mode ref --gateway-port 18789 --gateway-bind loopback --install-daemon --skip-skills --skip-health --accept-risk --json
+if ($LASTEXITCODE -ne 0) { throw "openclaw onboard failed with exit code $LASTEXITCODE" }
+${this.windowsPluginIsolationScript()}`,
       720_000,
     );
+  }
+
+  private windowsPluginIsolationScript(): string {
+    return windowsProviderOnlyPluginIsolationScript({
+      fallbackPluginId: this.options.provider,
+      modelId: this.auth.modelId,
+    });
   }
 
   private async guestPowerShellBackground(
@@ -664,7 +632,7 @@ if ($LASTEXITCODE -ne 0) { throw "astroclaw onboard failed with exit code $LASTE
       beforeLaunchAttempt: () => this.waitForGuestReady(120),
       label,
       onLaunchRetry: warn,
-      script: `${windowsAstroclawResolver}\n${script}`,
+      script: `${windowsOpenClawResolver}\n${script}`,
       timeoutMs,
       vmName: this.options.vmName,
     });
@@ -674,7 +642,7 @@ if ($LASTEXITCODE -ne 0) { throw "astroclaw onboard failed with exit code $LASTE
     this.guestPowerShell(
       `$ErrorActionPreference = 'Stop'
 ${windowsPortableGitPathScript}
-$configPath = Join-Path $env:USERPROFILE '.astroclaw\\astroclaw.json'
+$configPath = Join-Path $env:USERPROFILE '.openclaw\\openclaw.json'
 $config = Get-Content $configPath -Raw | ConvertFrom-Json
 if ($null -eq $config.update) {
   $config | Add-Member -MemberType NoteProperty -Name update -Value ([pscustomobject]@{})
@@ -682,22 +650,22 @@ if ($null -eq $config.update) {
 $config.update | Add-Member -Force -MemberType NoteProperty -Name channel -Value 'dev'
 $config | ConvertTo-Json -Depth 100 | Set-Content -Path $configPath -Encoding utf8
 ${windowsScopedEnvFunction}
-$script:AstroclawUpdateExit = 0
-Invoke-WithScopedEnv @{ ASTROCLAW_ALLOW_OLDER_BINARY_DESTRUCTIVE_ACTIONS = '1'; ASTROCLAW_DISABLE_BUNDLED_PLUGINS = '1' } {
-  Invoke-Astroclaw update --channel dev --yes --json
-  $script:AstroclawUpdateExit = $LASTEXITCODE
+$script:OpenClawUpdateExit = 0
+Invoke-WithScopedEnv @{ OPENCLAW_ALLOW_OLDER_BINARY_DESTRUCTIVE_ACTIONS = '1'; OPENCLAW_DISABLE_BUNDLED_PLUGINS = '1' } {
+  Invoke-OpenClaw update --channel dev --yes --json
+  $script:OpenClawUpdateExit = $LASTEXITCODE
 }
-if ($script:AstroclawUpdateExit -ne 0) { throw "astroclaw update failed with exit code $script:AstroclawUpdateExit" }
-Invoke-Astroclaw --version
-Invoke-Astroclaw update status --json`,
-      { timeoutMs: Number(process.env.ASTROCLAW_PARALLELS_WINDOWS_UPDATE_TIMEOUT_S || 1200) * 1000 },
+if ($script:OpenClawUpdateExit -ne 0) { throw "openclaw update failed with exit code $script:OpenClawUpdateExit" }
+Invoke-OpenClaw --version
+Invoke-OpenClaw update status --json`,
+      { timeoutMs: this.updateTimeoutSeconds * 1000 },
     );
   }
 
   private verifyDevChannelUpdate(): void {
     const status = this.guestPowerShell(
       `${windowsPortableGitPathScript}
-Invoke-Astroclaw update status --json`,
+Invoke-OpenClaw update status --json`,
     );
     for (const needle of ['"installKind": "git"', '"value": "dev"', '"branch": "main"']) {
       if (!status.includes(needle)) {
@@ -711,7 +679,7 @@ Invoke-Astroclaw update status --json`,
       `gateway-${action}`,
       `$ErrorActionPreference = 'Continue'
 $PSNativeCommandUseErrorActionPreference = $false
-Invoke-Astroclaw gateway ${action}
+Invoke-OpenClaw gateway ${action}
 if ($LASTEXITCODE -ne 0) { throw "gateway ${action} failed with exit code $LASTEXITCODE" }`,
       420_000,
     );
@@ -721,22 +689,20 @@ if ($LASTEXITCODE -ne 0) { throw "gateway ${action} failed with exit code $LASTE
     const deadline = Date.now() + 420_000;
     let attempt = 1;
     let recoveryTried = false;
-    const recoveryAfter =
-      Number(process.env.ASTROCLAW_PARALLELS_WINDOWS_GATEWAY_RECOVERY_AFTER_S || 180) * 1000;
     const start = Date.now();
     while (Date.now() < deadline) {
       const probe = this.guestPowerShell(
-        "Invoke-Astroclaw gateway probe --url ws://127.0.0.1:18789 --timeout 30000 --json",
+        "Invoke-OpenClaw gateway probe --url ws://127.0.0.1:18789 --timeout 30000 --json",
         { check: false, timeoutMs: 60_000 },
       );
       if (/"ok"\s*:\s*true/.test(probe)) {
         return;
       }
-      if (!recoveryTried && Date.now() - start >= recoveryAfter) {
+      if (!recoveryTried && Date.now() - start >= this.gatewayRecoveryAfterMs) {
         warn(
           `gateway-reachable recovery: gateway start after ${Math.floor((Date.now() - start) / 1000)}s`,
         );
-        this.guestPowerShell("Invoke-Astroclaw gateway start", {
+        this.guestPowerShell("Invoke-OpenClaw gateway start", {
           check: false,
           timeoutMs: 120_000,
         });
@@ -750,11 +716,11 @@ if ($LASTEXITCODE -ne 0) { throw "gateway ${action} failed with exit code $LASTE
   }
 
   private showGatewayStatusCompat(): void {
-    const help = this.guestPowerShell("Invoke-Astroclaw gateway status --help", {
+    const help = this.guestPowerShell("Invoke-OpenClaw gateway status --help", {
       check: false,
     });
     const suffix = help.includes("--require-rpc") ? "--deep --require-rpc" : "--deep";
-    this.guestPowerShell(`Invoke-Astroclaw gateway status ${suffix}`);
+    this.guestPowerShell(`Invoke-OpenClaw gateway status ${suffix}`);
   }
 
   private verifyTurn(): Promise<void> {
@@ -769,7 +735,7 @@ Set-Item -Path ('Env:' + ${psSingleQuote(this.auth.apiKeyEnv)}) -Value ${psSingl
 $agentOk = $false
 for ($attempt = 1; $attempt -le 2; $attempt++) {
   $sessionId = if ($attempt -eq 1) { 'parallels-windows-smoke' } else { "parallels-windows-smoke-retry-$attempt" }
-  $sessionsDir = Join-Path $env:USERPROFILE '.astroclaw\\agents\\main\\sessions'
+  $sessionsDir = Join-Path $env:USERPROFILE '.openclaw\\agents\\main\\sessions'
   $sessionPath = Join-Path $sessionsDir "$sessionId.jsonl"
   Remove-Item $sessionPath -Force -ErrorAction SilentlyContinue
   $args = @(
@@ -782,12 +748,12 @@ for ($attempt = 1; $attempt -le 2; $attempt++) {
     '--message',
     'Reply with exact ASCII text OK only.',
     '--thinking',
-    'minimal',
+    'off',
     '--timeout',
     '${resolveParallelsModelTimeoutSeconds("windows")}',
     '--json'
   )
-  $output = Invoke-Astroclaw @args 2>&1
+  $output = Invoke-OpenClaw @args 2>&1
   $agentExitCode = $LASTEXITCODE
   if ($null -ne $output) { $output | ForEach-Object { $_ } }
   if ($agentExitCode -eq 0 -and ($output | Out-String) -match '"finalAssistant(Raw|Visible)Text":\\s*"OK"') {
@@ -803,45 +769,31 @@ for ($attempt = 1; $attempt -le 2; $attempt++) {
     throw "agent failed with exit code $agentExitCode"
   }
 }
-if (-not $agentOk) { throw 'astroclaw agent finished without OK response' }`,
-      Number(process.env.ASTROCLAW_PARALLELS_WINDOWS_AGENT_TIMEOUT_S || 2700) * 1000,
+if (-not $agentOk) { throw 'openclaw agent finished without OK response' }`,
+      this.agentTimeoutSeconds * 1000,
     );
   }
 
   private async extractLastVersion(phaseName: string): Promise<string> {
-    const log = await readFile(path.join(this.runDir, `${phaseName}.log`), "utf8").catch(() => "");
-    const matches = [...log.matchAll(/Astroclaw\s+([0-9][^\s]*)/gi)];
-    return matches.at(-1)?.[1] ?? "";
+    return await extractLastOpenClawVersion(this.runDir, phaseName, /OpenClaw\s+([0-9][^\s]*)/gi);
   }
 
-  private async writeSummary(): Promise<string> {
-    const summary: WindowsSummary = {
-      currentHead:
-        this.artifact?.buildCommitShort ||
-        run("git", ["rev-parse", "--short", "HEAD"], { quiet: true }).stdout.trim(),
-      freshMain: {
-        agent: this.status.freshAgent,
-        gateway: this.status.freshGateway,
-        status: this.status.freshMain,
-        version: this.status.freshVersion,
-      },
-      installVersion: this.options.installVersion || "",
+  protected async writeSummary(): Promise<string> {
+    const common = buildCommonSmokeSummary({
+      artifact: this.artifact,
       latestVersion: this.latestVersion,
-      mode: this.options.mode,
-      provider: this.options.provider,
+      options: this.options,
       runDir: this.runDir,
-      snapshotHint: this.options.snapshotHint,
-      snapshotId: this.snapshot.id,
-      targetPackageSpec: this.options.targetPackageSpec || "",
+      snapshot: this.snapshot,
+      status: this.status,
+      vmName: this.options.vmName,
+    });
+    const summary: WindowsSummary = {
+      ...common,
       upgrade: {
-        agent: this.status.upgradeAgent,
-        gateway: this.status.upgradeGateway,
-        latestVersionInstalled: this.status.latestInstalledVersion,
-        mainVersion: this.status.upgradeVersion,
+        ...common.upgrade,
         precheck: this.status.upgradePrecheck,
-        status: this.status.upgrade,
       },
-      vm: this.options.vmName,
     };
     const summaryPath = path.join(this.runDir, "summary.json");
     await writeJson(summaryPath, summary);
@@ -859,11 +811,9 @@ if (-not $agentOk) { throw 'astroclaw agent finished without OK response' }`,
     return summaryPath;
   }
 
-  private printSummary(summaryPath: string): void {
+  protected printSummary(summaryPath: string): void {
     process.stdout.write("\nSummary:\n");
-    if (this.options.targetPackageSpec) {
-      process.stdout.write(`  target-package: ${this.options.targetPackageSpec}\n`);
-    }
+    printSmokeTargetSummary({ ...this.options, includeInstallVersion: false });
     if (this.options.upgradeFromPackedMain) {
       process.stdout.write("  upgrade-from-packed-main: yes\n");
     }
@@ -882,6 +832,11 @@ if (-not $agentOk) { throw 'astroclaw agent finished without OK response' }`,
   }
 }
 
-await new WindowsSmoke(parseArgs(process.argv.slice(2))).run().catch((error: unknown) => {
-  die(error instanceof Error ? error.message : String(error));
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  const options = parseArgs(process.argv.slice(2));
+  const runSmoke = () => new WindowsSmoke(options).run();
+  const runPromise = options.json ? withProgressOnStderr(runSmoke) : runSmoke();
+  await runPromise.catch((error: unknown) => {
+    die(error instanceof Error ? error.message : String(error));
+  });
+}
