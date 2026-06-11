@@ -1,13 +1,19 @@
+/**
+ * OpenClaw-managed Chrome profile decoration.
+ *
+ * Applies a stable profile name, color, download directory, and clean-exit
+ * markers to the managed Chrome profile's Local State and Preferences files.
+ */
 import fs from "node:fs";
 import path from "node:path";
-import { loadJsonFile, saveJsonFile } from "astroclaw/plugin-sdk/json-store";
+import { loadJsonFile, saveJsonFile } from "openclaw/plugin-sdk/json-store";
 import {
-  DEFAULT_ASTROCLAW_BROWSER_COLOR,
-  DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME,
+  DEFAULT_OPENCLAW_BROWSER_COLOR,
+  DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME,
 } from "./constants.js";
 
 function decoratedMarkerPath(userDataDir: string) {
-  return path.join(userDataDir, ".astroclaw-profile-decorated");
+  return path.join(userDataDir, ".openclaw-profile-decorated");
 }
 
 function safeReadJson(filePath: string): Record<string, unknown> | null {
@@ -54,6 +60,7 @@ function parseHexRgbToSignedArgbInt(hex: string): number | null {
   return argbUnsigned > 0x7fffffff ? argbUnsigned - 0x1_0000_0000 : argbUnsigned;
 }
 
+/** Return true when a managed Chrome profile already has desired decoration. */
 export function isProfileDecorated(
   userDataDir: string,
   desiredName: string,
@@ -105,12 +112,12 @@ export function isProfileDecorated(
  * Best-effort profile decoration (name + lobster-orange). Chrome preference keys
  * vary by version; we keep this conservative and idempotent.
  */
-export function decorateAstroclawProfile(
+export function decorateOpenClawProfile(
   userDataDir: string,
   opts?: { name?: string; color?: string; downloadDir?: string },
 ) {
-  const desiredName = opts?.name ?? DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME;
-  const desiredColor = (opts?.color ?? DEFAULT_ASTROCLAW_BROWSER_COLOR).toUpperCase();
+  const desiredName = opts?.name ?? DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME;
+  const desiredColor = (opts?.color ?? DEFAULT_OPENCLAW_BROWSER_COLOR).toUpperCase();
   const desiredColorInt = parseHexRgbToSignedArgbInt(desiredColor);
 
   const localStatePath = path.join(userDataDir, "Local State");
@@ -174,6 +181,7 @@ export function decorateAstroclawProfile(
   }
 }
 
+/** Mark the managed Chrome profile as cleanly exited. */
 export function ensureProfileCleanExit(userDataDir: string) {
   const preferencesPath = path.join(userDataDir, "Default", "Preferences");
   const prefs = safeReadJson(preferencesPath) ?? {};
