@@ -1,3 +1,9 @@
+/**
+ * Public browser runtime barrel.
+ *
+ * Exposes the browser control server, client helpers, config resolution, and
+ * route/runtime primitives used by the plugin entrypoints and local CLI.
+ */
 export { startBrowserBridgeServer, stopBrowserBridgeServer } from "./browser/bridge-server.js";
 export type { BrowserBridge } from "./browser/bridge-server.js";
 export {
@@ -44,8 +50,8 @@ export { resolveBrowserConfig, resolveProfile } from "./browser/config.js";
 export {
   DEFAULT_AI_SNAPSHOT_MAX_CHARS,
   DEFAULT_BROWSER_EVALUATE_ENABLED,
-  DEFAULT_ASTROCLAW_BROWSER_COLOR,
-  DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME,
+  DEFAULT_OPENCLAW_BROWSER_COLOR,
+  DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME,
 } from "./browser/constants.js";
 export {
   parseBrowserMajorVersion,
@@ -53,7 +59,11 @@ export {
   resolveGoogleChromeExecutableForPlatform,
 } from "./browser/chrome.executables.js";
 export { redactCdpUrl } from "./browser/cdp.helpers.js";
-export { DEFAULT_UPLOAD_DIR, resolveExistingPathsWithinRoot } from "./browser/paths.js";
+export {
+  DEFAULT_UPLOAD_DIR,
+  resolveExistingPathsWithinRoot,
+  resolveExistingUploadPaths,
+} from "./browser/paths.js";
 export { getBrowserProfileCapabilities } from "./browser/profile-capabilities.js";
 export { applyBrowserProxyPaths, persistBrowserProxyFiles } from "./browser/proxy-files.js";
 export {
