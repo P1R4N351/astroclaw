@@ -1,5 +1,6 @@
-import type { OutputRuntimeEnv } from "astroclaw/plugin-sdk/runtime";
-import type { ChannelSetupWizardAdapter } from "astroclaw/plugin-sdk/setup";
+// Matrix setup module handles plugin onboarding behavior.
+import type { OutputRuntimeEnv } from "openclaw/plugin-sdk/runtime";
+import type { ChannelSetupWizardAdapter } from "openclaw/plugin-sdk/setup";
 import { afterEach, vi } from "vitest";
 import type { RuntimeEnv, WizardPrompter } from "../runtime-api.js";
 import type { CoreConfig } from "./types.js";
@@ -273,7 +274,7 @@ export function createMatrixUpdateKeepCredentialsPrompter(params?: {
     },
     text: {
       "Matrix homeserver URL": params?.homeserver ?? "https://matrix.example.org",
-      "Matrix device name (optional)": params?.deviceName ?? "Astroclaw Gateway",
+      "Matrix device name (optional)": params?.deviceName ?? "OpenClaw Gateway",
     },
     confirm: {
       "Matrix credentials already configured. Keep them?": true,
