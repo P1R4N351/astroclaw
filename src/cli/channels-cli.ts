@@ -1,9 +1,10 @@
+// Commander registration for channel discovery, setup, status, auth, and diagnostics commands.
 import type { Command } from "commander";
+import { formatDocsLink } from "../../packages/terminal-core/src/links.js";
+import { theme } from "../../packages/terminal-core/src/theme.js";
 import { danger } from "../globals.js";
 import { defaultRuntime } from "../runtime.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";
-import { formatDocsLink } from "../terminal/links.js";
-import { theme } from "../terminal/theme.js";
 import { resolveCliArgvInvocation } from "./argv-invocation.js";
 import { runChannelLogin, runChannelLogout } from "./channel-auth.js";
 import { formatCliChannelOptions } from "./channel-options.js";
@@ -54,6 +55,7 @@ function shouldRegisterChannelSetupOptions(
   argv: string[] = process.argv,
   options: RegisterChannelsCliOptions = {},
 ): boolean {
+  // Channel-specific setup flags are expensive to load and only needed on `channels add`.
   if (options.includeSetupOptions) {
     return true;
   }
@@ -100,18 +102,18 @@ export async function registerChannelsCli(
       "after",
       () =>
         `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["astroclaw channels list", "List configured channels."],
-          ["astroclaw channels list --all", "Show configured, bundled, and installable channels."],
-          ["astroclaw channels add", "Open guided channel setup."],
-          ["astroclaw channels status --probe", "Run channel status checks and probes."],
+          ["openclaw channels list", "List configured channels."],
+          ["openclaw channels list --all", "Show configured, bundled, and installable channels."],
+          ["openclaw channels add", "Open guided channel setup."],
+          ["openclaw channels status --probe", "Run channel status checks and probes."],
           [
-            "astroclaw channels add --channel telegram --token <token>",
+            "openclaw channels add --channel telegram --token <token>",
             "Add or update a channel account non-interactively.",
           ],
-          ["astroclaw channels login --channel whatsapp", "Link a WhatsApp Web account."],
+          ["openclaw channels login --channel whatsapp", "Link a WhatsApp Web account."],
         ])}\n\n${theme.muted("Docs:")} ${formatDocsLink(
           "/cli/channels",
-          "docs.astroclaw.ai/cli/channels",
+          "docs.openclaw.ai/cli/channels",
         )}\n`,
     );
 
@@ -200,12 +202,12 @@ export async function registerChannelsCli(
       "after",
       () =>
         `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["astroclaw channels add", "Open guided setup for available chat channels."],
+          ["openclaw channels add", "Open guided setup for available chat channels."],
           [
-            "astroclaw channels add --channel telegram --token <token>",
+            "openclaw channels add --channel telegram --token <token>",
             "Add or update Telegram non-interactively.",
           ],
-          ["astroclaw channels list --all", "Find channel ids before using --channel."],
+          ["openclaw channels list --all", "Find channel ids before using --channel."],
         ])}\n`,
     )
     .option("--channel <name>", `Channel (${channelNames})`)
