@@ -1,12 +1,19 @@
+// Google Meet helper module supports config behavior.
+import {
+  addTimerTimeoutGraceMs,
+  resolvePositiveTimerTimeoutMs,
+} from "openclaw/plugin-sdk/number-runtime";
 import {
   REALTIME_VOICE_AGENT_CONSULT_TOOL_NAME,
   resolveRealtimeVoiceAgentConsultToolPolicy,
   type RealtimeVoiceAgentConsultToolPolicy,
-} from "astroclaw/plugin-sdk/realtime-voice";
+} from "openclaw/plugin-sdk/realtime-voice";
 import {
+  asRecord,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+  normalizeOptionalTrimmedStringList,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export type GoogleMeetTransport = "chrome" | "chrome-node" | "twilio";
 export type GoogleMeetMode = "agent" | "bidi" | "transcribe";
@@ -89,9 +96,18 @@ export type GoogleMeetConfig = {
   };
 };
 
+export function resolveGoogleMeetGatewayOperationTimeoutMs(config: GoogleMeetConfig): number {
+  return Math.max(
+    60_000,
+    addTimerTimeoutGraceMs(config.chrome.joinTimeoutMs, 30_000) ?? 1,
+    addTimerTimeoutGraceMs(config.voiceCall.requestTimeoutMs, 10_000) ?? 1,
+  );
+}
+
 const SOX_DEFAULT_BUFFER_BYTES = 8192;
 const SOX_MIN_BUFFER_BYTES = 17;
 export const DEFAULT_GOOGLE_MEET_AUDIO_BUFFER_BYTES = SOX_DEFAULT_BUFFER_BYTES / 2;
+const PLAIN_DECIMAL_NUMBER_RE = /^\d+(?:\.\d+)?$/;
 
 function withSoxBuffer(command: readonly string[], bufferBytes: number): string[] {
   return [command[0] ?? "sox", "-q", "--buffer", String(bufferBytes), ...command.slice(2)];
@@ -184,7 +200,7 @@ const DEFAULT_GOOGLE_MEET_BARGE_IN_RMS_THRESHOLD = 650;
 const DEFAULT_GOOGLE_MEET_BARGE_IN_PEAK_THRESHOLD = 2500;
 const DEFAULT_GOOGLE_MEET_BARGE_IN_COOLDOWN_MS = 900;
 
-const DEFAULT_GOOGLE_MEET_REALTIME_INSTRUCTIONS = `You are joining a private Google Meet as an Astroclaw voice transport. Keep spoken replies brief and natural. In agent mode, wait for Astroclaw consult results and speak them exactly. In bidi mode, answer directly and call ${REALTIME_VOICE_AGENT_CONSULT_TOOL_NAME} for deeper reasoning, current information, or tools.`;
+const DEFAULT_GOOGLE_MEET_REALTIME_INSTRUCTIONS = `You are joining a private Google Meet as an OpenClaw voice transport. Keep spoken replies brief and natural. In agent mode, wait for OpenClaw consult results and speak them exactly. In bidi mode, answer directly and call ${REALTIME_VOICE_AGENT_CONSULT_TOOL_NAME} for deeper reasoning, current information, or tools.`;
 const DEFAULT_GOOGLE_MEET_REALTIME_INTRO_MESSAGE = "Say exactly: I'm here and listening.";
 
 const DEFAULT_GOOGLE_MEET_CONFIG: GoogleMeetConfig = {
@@ -200,7 +216,7 @@ const DEFAULT_GOOGLE_MEET_CONFIG: GoogleMeetConfig = {
     audioFormat: DEFAULT_GOOGLE_MEET_CHROME_AUDIO_FORMAT,
     audioBufferBytes: DEFAULT_GOOGLE_MEET_AUDIO_BUFFER_BYTES,
     launch: true,
-    guestName: "Astroclaw Agent",
+    guestName: "OpenClaw Agent",
     reuseExistingTab: true,
     autoJoin: true,
     joinTimeoutMs: 30_000,
@@ -234,37 +250,31 @@ const DEFAULT_GOOGLE_MEET_CONFIG: GoogleMeetConfig = {
   },
 };
 
-const GOOGLE_MEET_CLIENT_ID_KEYS = ["ASTROCLAW_GOOGLE_MEET_CLIENT_ID", "GOOGLE_MEET_CLIENT_ID"];
+const GOOGLE_MEET_CLIENT_ID_KEYS = ["OPENCLAW_GOOGLE_MEET_CLIENT_ID", "GOOGLE_MEET_CLIENT_ID"];
 const GOOGLE_MEET_CLIENT_SECRET_KEYS = [
-  "ASTROCLAW_GOOGLE_MEET_CLIENT_SECRET",
+  "OPENCLAW_GOOGLE_MEET_CLIENT_SECRET",
   "GOOGLE_MEET_CLIENT_SECRET",
 ] as const;
 const GOOGLE_MEET_REFRESH_TOKEN_KEYS = [
-  "ASTROCLAW_GOOGLE_MEET_REFRESH_TOKEN",
+  "OPENCLAW_GOOGLE_MEET_REFRESH_TOKEN",
   "GOOGLE_MEET_REFRESH_TOKEN",
 ] as const;
 const GOOGLE_MEET_ACCESS_TOKEN_KEYS = [
-  "ASTROCLAW_GOOGLE_MEET_ACCESS_TOKEN",
+  "OPENCLAW_GOOGLE_MEET_ACCESS_TOKEN",
   "GOOGLE_MEET_ACCESS_TOKEN",
 ] as const;
 const GOOGLE_MEET_ACCESS_TOKEN_EXPIRES_AT_KEYS = [
-  "ASTROCLAW_GOOGLE_MEET_ACCESS_TOKEN_EXPIRES_AT",
+  "OPENCLAW_GOOGLE_MEET_ACCESS_TOKEN_EXPIRES_AT",
   "GOOGLE_MEET_ACCESS_TOKEN_EXPIRES_AT",
 ] as const;
 const GOOGLE_MEET_DEFAULT_MEETING_KEYS = [
-  "ASTROCLAW_GOOGLE_MEET_DEFAULT_MEETING",
+  "OPENCLAW_GOOGLE_MEET_DEFAULT_MEETING",
   "GOOGLE_MEET_DEFAULT_MEETING",
 ] as const;
 const GOOGLE_MEET_PREVIEW_ACK_KEYS = [
-  "ASTROCLAW_GOOGLE_MEET_PREVIEW_ACK",
+  "OPENCLAW_GOOGLE_MEET_PREVIEW_ACK",
   "GOOGLE_MEET_PREVIEW_ACK",
 ] as const;
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function resolveBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === "boolean" ? value : fallback;
@@ -274,12 +284,17 @@ function resolveNumber(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
+function resolveTimerConfigMs(value: unknown, fallback: number): number {
+  return resolvePositiveTimerTimeoutMs(resolveNumber(value, fallback), fallback);
+}
+
 function resolveOptionalNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
   if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
+    const trimmed = value.trim();
+    const parsed = PLAIN_DECIMAL_NUMBER_RE.test(trimmed) ? Number(trimmed) : Number.NaN;
     return Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
@@ -318,13 +333,7 @@ function readEnvNumber(env: NodeJS.ProcessEnv, keys: readonly string[]): number 
 }
 
 function resolveStringArray(value: unknown): string[] | undefined {
-  if (!Array.isArray(value)) {
-    return undefined;
-  }
-  const normalized = value
-    .map((entry) => normalizeOptionalString(entry))
-    .filter((entry): entry is string => Boolean(entry));
-  return normalized.length > 0 ? normalized : undefined;
+  return normalizeOptionalTrimmedStringList(value);
 }
 
 function resolveProvidersConfig(value: unknown): Record<string, Record<string, unknown>> {
@@ -480,11 +489,11 @@ export function resolveGoogleMeetConfigWithEnv(
         DEFAULT_GOOGLE_MEET_CONFIG.chrome.reuseExistingTab,
       ),
       autoJoin: resolveBoolean(chrome.autoJoin, DEFAULT_GOOGLE_MEET_CONFIG.chrome.autoJoin),
-      joinTimeoutMs: resolveNumber(
+      joinTimeoutMs: resolveTimerConfigMs(
         chrome.joinTimeoutMs,
         DEFAULT_GOOGLE_MEET_CONFIG.chrome.joinTimeoutMs,
       ),
-      waitForInCallMs: resolveNumber(
+      waitForInCallMs: resolveTimerConfigMs(
         chrome.waitForInCallMs,
         DEFAULT_GOOGLE_MEET_CONFIG.chrome.waitForInCallMs,
       ),
@@ -501,7 +510,7 @@ export function resolveGoogleMeetConfigWithEnv(
         chrome.bargeInPeakThreshold,
         DEFAULT_GOOGLE_MEET_CONFIG.chrome.bargeInPeakThreshold,
       ),
-      bargeInCooldownMs: resolveNumber(
+      bargeInCooldownMs: resolveTimerConfigMs(
         chrome.bargeInCooldownMs,
         DEFAULT_GOOGLE_MEET_CONFIG.chrome.bargeInCooldownMs,
       ),
@@ -520,15 +529,15 @@ export function resolveGoogleMeetConfigWithEnv(
       enabled: resolveBoolean(voiceCall.enabled, DEFAULT_GOOGLE_MEET_CONFIG.voiceCall.enabled),
       gatewayUrl: normalizeOptionalString(voiceCall.gatewayUrl),
       token: normalizeOptionalString(voiceCall.token),
-      requestTimeoutMs: resolveNumber(
+      requestTimeoutMs: resolveTimerConfigMs(
         voiceCall.requestTimeoutMs,
         DEFAULT_GOOGLE_MEET_CONFIG.voiceCall.requestTimeoutMs,
       ),
-      dtmfDelayMs: resolveNumber(
+      dtmfDelayMs: resolveTimerConfigMs(
         voiceCall.dtmfDelayMs,
         DEFAULT_GOOGLE_MEET_CONFIG.voiceCall.dtmfDelayMs,
       ),
-      postDtmfSpeechDelayMs: resolveNumber(
+      postDtmfSpeechDelayMs: resolveTimerConfigMs(
         voiceCall.postDtmfSpeechDelayMs,
         DEFAULT_GOOGLE_MEET_CONFIG.voiceCall.postDtmfSpeechDelayMs,
       ),
