@@ -1,6 +1,7 @@
-import type { AgentToolResult } from "@earendil-works/pi-agent-core";
+// Discord plugin module implements runtime behavior.
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
 import { createDiscordActionGate } from "../accounts.js";
-import { readStringParam, type AstroclawConfig } from "../runtime-api.js";
+import { readStringParam, type OpenClawConfig } from "../runtime-api.js";
 import { handleDiscordGuildAction } from "./runtime.guild.js";
 import { handleDiscordMessagingAction } from "./runtime.messaging.js";
 import { handleDiscordModerationAction } from "./runtime.moderation.js";
@@ -56,7 +57,7 @@ const presenceActions = new Set(["setPresence"]);
 
 export async function handleDiscordAction(
   params: Record<string, unknown>,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options?: {
     mediaAccess?: {
       localRoots?: readonly string[];
