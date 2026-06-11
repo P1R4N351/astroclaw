@@ -1,10 +1,11 @@
-import { ToolAuthorizationError } from "astroclaw/plugin-sdk/channel-actions";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Whatsapp plugin module implements action runtime target auth behavior.
+import { ToolAuthorizationError } from "openclaw/plugin-sdk/channel-actions";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { resolveWhatsAppAccount } from "./accounts.js";
 import { resolveWhatsAppOutboundTarget } from "./resolve-outbound-target.js";
 
 export function resolveAuthorizedWhatsAppOutboundTarget(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   chatJid: string;
   accountId?: string;
   actionLabel: string;
