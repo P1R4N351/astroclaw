@@ -1,18 +1,22 @@
-import { isProviderApiKeyConfigured } from "astroclaw/plugin-sdk/provider-auth";
-import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { resolveProviderHttpRequestConfig } from "astroclaw/plugin-sdk/provider-http";
+/**
+ * Alibaba Model Studio video provider adapter. It resolves DashScope auth and
+ * HTTP policy before delegating task polling to the shared video helper.
+ */
+import { isProviderApiKeyConfigured } from "openclaw/plugin-sdk/provider-auth";
+import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
+import { resolveProviderHttpRequestConfig } from "openclaw/plugin-sdk/provider-http";
 import {
   DASHSCOPE_WAN_VIDEO_CAPABILITIES,
   DASHSCOPE_WAN_VIDEO_MODELS,
   DEFAULT_DASHSCOPE_WAN_VIDEO_MODEL,
   DEFAULT_VIDEO_GENERATION_TIMEOUT_MS,
   runDashscopeVideoGenerationTask,
-} from "astroclaw/plugin-sdk/video-generation";
+} from "openclaw/plugin-sdk/video-generation";
 import type {
   VideoGenerationProvider,
   VideoGenerationRequest,
   VideoGenerationResult,
-} from "astroclaw/plugin-sdk/video-generation";
+} from "openclaw/plugin-sdk/video-generation";
 
 const DEFAULT_ALIBABA_VIDEO_BASE_URL = "https://dashscope-intl.aliyuncs.com";
 const DEFAULT_ALIBABA_VIDEO_MODEL = DEFAULT_DASHSCOPE_WAN_VIDEO_MODEL;
@@ -25,6 +29,7 @@ function resolveDashscopeAigcApiBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/u, "");
 }
 
+/** Build the Alibaba/DashScope video generation provider descriptor. */
 export function buildAlibabaVideoGenerationProvider(): VideoGenerationProvider {
   return {
     id: "alibaba",
