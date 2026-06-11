@@ -1,12 +1,15 @@
-import { normalizeResolvedSecretInputString } from "astroclaw/plugin-sdk/secret-input";
+// Gradium provider module implements model/runtime integration.
+import { normalizeResolvedSecretInputString } from "openclaw/plugin-sdk/secret-input";
 import type {
   SpeechDirectiveTokenParseContext,
   SpeechProviderConfig,
   SpeechProviderPlugin,
-} from "astroclaw/plugin-sdk/speech";
-import { asObject, trimToUndefined } from "astroclaw/plugin-sdk/speech";
+} from "openclaw/plugin-sdk/speech";
+import { asObject, trimToUndefined } from "openclaw/plugin-sdk/speech";
 import { DEFAULT_GRADIUM_VOICE_ID, GRADIUM_VOICES, normalizeGradiumBaseUrl } from "./shared.js";
 import { gradiumTTS } from "./tts.js";
+
+const DEFAULT_GENERATED_AUDIO_MAX_BYTES = 16 * 1024 * 1024;
 
 type GradiumProviderConfig = {
   apiKey?: string;
@@ -34,6 +37,16 @@ function readGradiumProviderConfig(config: SpeechProviderConfig): GradiumProvide
     baseUrl: normalizeGradiumBaseUrl(trimToUndefined(config.baseUrl) ?? defaults.baseUrl),
     voiceId: trimToUndefined(config.voiceId) ?? defaults.voiceId,
   };
+}
+
+function resolveGeneratedAudioMaxBytes(req: {
+  cfg: { agents?: { defaults?: { mediaMaxMb?: number } } };
+}): number {
+  const configured = req.cfg.agents?.defaults?.mediaMaxMb;
+  if (typeof configured === "number" && Number.isFinite(configured) && configured > 0) {
+    return Math.floor(configured * 1024 * 1024);
+  }
+  return DEFAULT_GENERATED_AUDIO_MAX_BYTES;
 }
 
 function parseDirectiveToken(ctx: SpeechDirectiveTokenParseContext): {
@@ -86,6 +99,7 @@ export function buildGradiumSpeechProvider(): SpeechProviderPlugin {
         voiceId: trimToUndefined(overrides.voiceId) ?? config.voiceId,
         outputFormat,
         timeoutMs: req.timeoutMs,
+        maxBytes: resolveGeneratedAudioMaxBytes(req),
       });
       return {
         audioBuffer,
@@ -110,6 +124,7 @@ export function buildGradiumSpeechProvider(): SpeechProviderPlugin {
         voiceId: trimToUndefined(overrides.voiceId) ?? config.voiceId,
         outputFormat,
         timeoutMs: req.timeoutMs,
+        maxBytes: resolveGeneratedAudioMaxBytes(req),
       });
       return { audioBuffer, outputFormat, sampleRate };
     },
