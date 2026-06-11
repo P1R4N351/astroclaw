@@ -1,15 +1,16 @@
+// Telegram plugin module implements bot message context.session recreate support behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
 import {
   clearSessionStoreCacheForTest,
   loadSessionStore,
   updateSessionStore,
-} from "astroclaw/plugin-sdk/session-store-runtime";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/session-store-runtime";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { buildTelegramMessageContextForTest } from "./bot-message-context.test-harness.js";
 
@@ -20,7 +21,7 @@ function createSuiteTempRootTracker(params: { prefix: string }) {
   const children: string[] = [];
   return {
     async setup() {
-      root = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), params.prefix));
+      root = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), params.prefix));
     },
     async make(name: string) {
       if (!root) {
@@ -45,7 +46,7 @@ function createSuiteTempRootTracker(params: { prefix: string }) {
 
 describe("Telegram direct session recreation after delete", () => {
   const suiteRootTracker = createSuiteTempRootTracker({
-    prefix: "astroclaw-telegram-context-recreate-",
+    prefix: "openclaw-telegram-context-recreate-",
   });
 
   beforeAll(async () => {
@@ -68,7 +69,7 @@ describe("Telegram direct session recreation after delete", () => {
       agents: {
         defaults: {
           model: "openai/gpt-5.4",
-          workspace: "/tmp/astroclaw",
+          workspace: "/tmp/openclaw",
         },
       },
       channels: { telegram: {} },
