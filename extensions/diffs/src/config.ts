@@ -1,7 +1,8 @@
-import { mapPluginConfigIssues } from "astroclaw/plugin-sdk/extension-shared";
-import { buildPluginConfigSchema } from "astroclaw/plugin-sdk/plugin-entry";
+// Diffs helper module supports config behavior.
+import { mapPluginConfigIssues } from "openclaw/plugin-sdk/extension-shared";
+import { buildPluginConfigSchema } from "openclaw/plugin-sdk/plugin-entry";
 import { z } from "zod";
-import type { AstroclawPluginConfigSchema } from "../api.js";
+import type { OpenClawPluginConfigSchema } from "../api.js";
 import {
   DIFF_IMAGE_QUALITY_PRESETS,
   DIFF_INDICATORS,
@@ -209,7 +210,7 @@ const diffsPluginConfigSchemaBase = buildPluginConfigSchema(DiffsPluginJsonSchem
   },
 });
 
-export const diffsPluginConfigSchema: AstroclawPluginConfigSchema = {
+export const diffsPluginConfigSchema: OpenClawPluginConfigSchema = {
   ...diffsPluginConfigSchemaBase,
   jsonSchema: {
     ...diffsPluginConfigSchemaBase.jsonSchema,
@@ -276,8 +277,8 @@ export function resolveDiffsPluginDefaults(config: unknown): DiffToolDefaults {
 
   return {
     fontFamily: normalizeFontFamily(defaults.fontFamily),
-    fontSize: normalizeFontSize(defaults.fontSize),
-    lineSpacing: normalizeLineSpacing(defaults.lineSpacing),
+    fontSize: normalizeDiffFontSize(defaults.fontSize),
+    lineSpacing: normalizeDiffLineSpacing(defaults.lineSpacing),
     layout: normalizeLayout(defaults.layout),
     showLineNumbers: defaults.showLineNumbers !== false,
     diffIndicators: normalizeDiffIndicators(defaults.diffIndicators),
@@ -327,7 +328,7 @@ function normalizeFontFamily(fontFamily?: string): string {
   return normalized || DEFAULT_DIFFS_TOOL_DEFAULTS.fontFamily;
 }
 
-function normalizeFontSize(fontSize?: number): number {
+export function normalizeDiffFontSize(fontSize?: number): number {
   if (fontSize === undefined || !Number.isFinite(fontSize)) {
     return DEFAULT_DIFFS_TOOL_DEFAULTS.fontSize;
   }
@@ -335,7 +336,7 @@ function normalizeFontSize(fontSize?: number): number {
   return Math.min(Math.max(rounded, 10), 24);
 }
 
-function normalizeLineSpacing(lineSpacing?: number): number {
+export function normalizeDiffLineSpacing(lineSpacing?: number): number {
   if (lineSpacing === undefined || !Number.isFinite(lineSpacing)) {
     return DEFAULT_DIFFS_TOOL_DEFAULTS.lineSpacing;
   }
