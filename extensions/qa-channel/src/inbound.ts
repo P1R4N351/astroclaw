@@ -1,11 +1,16 @@
-import { resolveStableChannelMessageIngress } from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveInboundRouteEnvelopeBuilderWithRuntime } from "astroclaw/plugin-sdk/inbound-envelope";
+// Qa Channel plugin module implements inbound behavior.
+import { resolveStableChannelMessageIngress } from "openclaw/plugin-sdk/channel-ingress-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveInboundRouteEnvelopeBuilderWithRuntime } from "openclaw/plugin-sdk/inbound-envelope";
 import {
   buildAgentMediaPayload,
   saveMediaBuffer,
   saveMediaSource,
-} from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/media-runtime";
+import {
+  sanitizeQaBusToolCallArguments,
+  type QaBusToolCall,
+} from "openclaw/plugin-sdk/qa-channel-protocol";
 import { buildQaTarget, sendQaBusMessage, type QaBusMessage } from "./bus-client.js";
 import { getQaChannelRuntime } from "./runtime.js";
 import type { CoreConfig, ResolvedQaChannelAccount } from "./types.js";
@@ -99,8 +104,9 @@ export async function handleQaInbound(params: {
     conversationId: inbound.conversation.id,
     threadId: inbound.threadId,
   });
+  const toolCalls: QaBusToolCall[] = [];
   const { route, buildEnvelope } = resolveInboundRouteEnvelopeBuilderWithRuntime({
-    cfg: params.config as AstroclawConfig,
+    cfg: params.config as OpenClawConfig,
     channel: params.channelId,
     accountId: params.account.accountId,
     peer: {
@@ -120,7 +126,7 @@ export async function handleQaInbound(params: {
     ? runtime.channel.mentions.matchesMentionPatterns(
         inbound.text,
         runtime.channel.mentions.buildMentionRegexes(
-          params.config as AstroclawConfig,
+          params.config as OpenClawConfig,
           route.agentId,
         ),
       )
@@ -212,8 +218,8 @@ export async function handleQaInbound(params: {
     ...mediaPayload,
   });
 
-  await runtime.channel.turn.runAssembled({
-    cfg: params.config as AstroclawConfig,
+  await runtime.channel.inbound.dispatchReply({
+    cfg: params.config as OpenClawConfig,
     channel: params.channelId,
     accountId: params.account.accountId,
     agentId: route.agentId,
@@ -241,12 +247,29 @@ export async function handleQaInbound(params: {
           senderName: params.account.botDisplayName,
           threadId: inbound.threadId,
           replyToId: inbound.id,
+          toolCalls,
         });
       },
       onError: (error) => {
         throw error instanceof Error
           ? error
           : new Error(`qa-channel dispatch failed: ${String(error)}`);
+      },
+    },
+    replyOptions: {
+      onToolStart: (payload) => {
+        if (payload.phase && payload.phase !== "start") {
+          return;
+        }
+        const name = payload.name?.trim();
+        if (!name) {
+          return;
+        }
+        const args = sanitizeQaBusToolCallArguments(payload.args);
+        toolCalls.push({
+          name,
+          ...(args && Object.keys(args).length > 0 ? { arguments: args } : {}),
+        });
       },
     },
     replyPipeline: {},
