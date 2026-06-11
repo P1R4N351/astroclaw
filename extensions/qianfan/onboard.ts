@@ -1,8 +1,9 @@
+// Qianfan setup module handles plugin onboarding behavior.
 import {
   createDefaultModelsPresetAppliers,
   type ModelApi,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildQianfanProvider,
   QIANFAN_BASE_URL,
@@ -11,7 +12,7 @@ import {
 
 export const QIANFAN_DEFAULT_MODEL_REF = `qianfan/${QIANFAN_DEFAULT_MODEL_ID}`;
 
-function resolveQianfanPreset(cfg: AstroclawConfig): {
+function resolveQianfanPreset(cfg: OpenClawConfig): {
   api: ModelApi;
   baseUrl: string;
   defaultModels: NonNullable<ReturnType<typeof buildQianfanProvider>["models"]>;
@@ -39,7 +40,7 @@ function resolveQianfanPreset(cfg: AstroclawConfig): {
 
 const qianfanPresetAppliers = createDefaultModelsPresetAppliers({
   primaryModelRef: QIANFAN_DEFAULT_MODEL_REF,
-  resolveParams: (cfg: AstroclawConfig) => {
+  resolveParams: (cfg: OpenClawConfig) => {
     const preset = resolveQianfanPreset(cfg);
     return {
       providerId: "qianfan",
@@ -52,10 +53,10 @@ const qianfanPresetAppliers = createDefaultModelsPresetAppliers({
   },
 });
 
-export function applyQianfanProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyQianfanProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   return qianfanPresetAppliers.applyProviderConfig(cfg);
 }
 
-export function applyQianfanConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyQianfanConfig(cfg: OpenClawConfig): OpenClawConfig {
   return qianfanPresetAppliers.applyConfig(cfg);
 }
