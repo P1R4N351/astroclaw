@@ -1,3 +1,4 @@
+// Runtime helpers for model CLI commands and shared agent option handling.
 import type { Command } from "commander";
 import { defaultRuntime } from "../runtime.js";
 import { resolveOptionFromCommand, runCommandWithRuntime } from "./cli-utils.js";
@@ -23,11 +24,12 @@ export function rejectAgentScopedModelWrite(
   command: Command,
   commandName: "set" | "set-image",
 ): void {
+  // Write commands update global defaults; accepting --agent here would imply per-agent mutation.
   const agent = resolveOptionFromCommand<string>(command, "agent");
   if (!agent) {
     return;
   }
   throw new Error(
-    `astroclaw models ${commandName} does not support --agent; it only updates global model defaults. Remove --agent, or run ${formatCliCommand("astroclaw agents list")} and set the per-agent model in agent config.`,
+    `openclaw models ${commandName} does not support --agent; it only updates global model defaults. Remove --agent, or run ${formatCliCommand("openclaw agents list")} and set the per-agent model in agent config.`,
   );
 }
