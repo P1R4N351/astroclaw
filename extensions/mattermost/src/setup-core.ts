@@ -1,12 +1,13 @@
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
-import type { ChannelSetupAdapter } from "astroclaw/plugin-sdk/channel-setup";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Mattermost plugin module implements setup core behavior.
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
+import type { ChannelSetupAdapter } from "openclaw/plugin-sdk/channel-setup";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   applyAccountNameToChannelSection,
   applySetupAccountConfigPatch,
   migrateBaseNameToDefaultAccount,
-} from "astroclaw/plugin-sdk/setup";
-import { createSetupInputPresenceValidator } from "astroclaw/plugin-sdk/setup-runtime";
+} from "openclaw/plugin-sdk/setup";
+import { createSetupInputPresenceValidator } from "openclaw/plugin-sdk/setup-runtime";
 import {
   resolveMattermostAccount,
   type ResolvedMattermostAccount,
@@ -22,7 +23,7 @@ export function isMattermostConfigured(account: ResolvedMattermostAccount): bool
   return tokenConfigured && Boolean(account.baseUrl);
 }
 
-export function resolveMattermostAccountWithSecrets(cfg: AstroclawConfig, accountId: string) {
+export function resolveMattermostAccountWithSecrets(cfg: OpenClawConfig, accountId: string) {
   return resolveMattermostAccount({
     cfg,
     accountId,
@@ -31,11 +32,11 @@ export function resolveMattermostAccountWithSecrets(cfg: AstroclawConfig, accoun
 }
 
 export function applyMattermostSetupConfigPatch(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   name?: string;
   patch: Record<string, unknown>;
-}): AstroclawConfig {
+}): OpenClawConfig {
   const namedConfig = applyAccountNameToChannelSection({
     cfg: params.cfg,
     channelKey: channel,
