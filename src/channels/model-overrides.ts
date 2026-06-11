@@ -1,12 +1,17 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Channel-scoped model override resolver.
+ *
+ * Matches conversation ids, parent sessions, and wildcard config entries to model overrides.
+ */
+import {
+  normalizeOptionalLowercaseString,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   parseRawSessionConversationRef,
   parseThreadSessionSuffix,
 } from "../sessions/session-key-utils.js";
-import {
-  normalizeOptionalLowercaseString,
-  normalizeOptionalString,
-} from "../shared/string-coerce.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import {
   buildChannelKeyCandidates,
@@ -21,6 +26,7 @@ import {
   resolveSessionConversationRef,
 } from "./plugins/session-conversation.js";
 
+/** Resolved model override for a channel conversation plus the config key that matched. */
 export type ChannelModelOverride = {
   channel: string;
   model: string;
@@ -31,7 +37,7 @@ export type ChannelModelOverride = {
 type ChannelModelByChannelConfig = Record<string, Record<string, string>>;
 
 type ChannelModelOverrideParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel?: string | null;
   groupId?: string | null;
   groupChatType?: string | null;
@@ -75,6 +81,7 @@ function buildChannelCandidates(
       parentConversationId: rawParentConversation?.rawId,
     }) ?? [];
   const sessionConversation = resolveSessionConversationRef(params.parentSessionKey, {
+    // Bundled parsing is only a fallback when the loaded plugin did not provide candidates.
     bundledFallback: parentOverrideFallbacks.length === 0,
   });
   const groupConversationKind =
@@ -154,6 +161,7 @@ function resolveDirectChannelModelMatch(params: {
   return { model, matchKey: match.matchKey, matchSource: match.matchSource };
 }
 
+/** Resolves a channel-scoped model override from direct, parent, and wildcard config entries. */
 export function resolveChannelModelOverride(
   params: ChannelModelOverrideParams,
 ): ChannelModelOverride | null {
@@ -188,6 +196,16 @@ export function resolveChannelModelOverride(
 
   const { keys, parentKeys } = buildChannelCandidates(params);
   if (keys.length === 0 && parentKeys.length === 0) {
+    const wildcardModel = normalizeOptionalString(providerEntries["*"]);
+    if (wildcardModel) {
+      return {
+        channel:
+          normalizeMessageChannel(channel) ?? normalizeOptionalLowercaseString(channel) ?? "",
+        model: wildcardModel,
+        matchKey: "*",
+        matchSource: "wildcard",
+      };
+    }
     return null;
   }
   const match = resolveChannelEntryMatchWithFallback({
