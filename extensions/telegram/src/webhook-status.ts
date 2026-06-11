@@ -1,5 +1,6 @@
-import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
-import { createConnectedChannelStatusPatch } from "astroclaw/plugin-sdk/gateway-runtime";
+// Telegram plugin module implements webhook status behavior.
+import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
+import { createConnectedChannelStatusPatch } from "openclaw/plugin-sdk/gateway-runtime";
 
 type TelegramWebhookStatusSink = (patch: Omit<ChannelAccountSnapshot, "accountId">) => void;
 
