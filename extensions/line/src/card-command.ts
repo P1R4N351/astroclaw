@@ -1,6 +1,7 @@
-import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/core";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Line plugin module implements card command behavior.
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   createActionCard,
   createImageCard,
@@ -123,11 +124,12 @@ function parseReceiptItems(itemsStr: string): Array<{ name: string; value: strin
  * Parse quoted arguments from command string
  * Supports: /card type "arg1" "arg2" "arg3" --flag value
  */
-function parseCardArgs(argsStr: string): {
+function parseCardArgs(argsStrInput: string): {
   type: string;
   args: string[];
   flags: Record<string, string>;
 } {
+  let argsStr = argsStrInput;
   const result: { type: string; args: string[]; flags: Record<string, string> } = {
     type: "",
     args: [],
@@ -157,7 +159,7 @@ function parseCardArgs(argsStr: string): {
   return result;
 }
 
-export function registerLineCardCommand(api: AstroclawPluginApi): void {
+export function registerLineCardCommand(api: OpenClawPluginApi): void {
   api.registerCommand({
     name: "card",
     description: "Send a rich card message (LINE).",
