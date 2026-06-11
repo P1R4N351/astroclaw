@@ -1,3 +1,4 @@
+// Discord helper module supports setup runtime helpers behavior.
 export {
   createAccountScopedAllowFromSection,
   createAccountScopedGroupAccessSection,
@@ -7,4 +8,4 @@ export {
   promptLegacyChannelAllowFromForAccount,
   resolveEntriesWithOptionalToken,
   setSetupChannelEnabled,
-} from "astroclaw/plugin-sdk/setup-runtime";
+} from "openclaw/plugin-sdk/setup-runtime";
