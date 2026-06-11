@@ -1,6 +1,12 @@
+/**
+ * Subagent spawn-depth lookup helpers.
+ *
+ * Reads persisted session store state to recover spawn depth and parent lineage across restarts.
+ */
 import fs from "node:fs";
 import { resolveStorePath } from "../config/sessions/paths.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { parseStrictNonNegativeInteger } from "../infra/parse-finite-number.js";
 import { getSubagentDepth, parseAgentSessionKey } from "../sessions/session-key-utils.js";
 import { parseJsonWithJson5Fallback } from "../utils/parse-json-compat.js";
 import { resolveDefaultAgentId } from "./agent-scope.js";
@@ -17,12 +23,7 @@ function normalizeSpawnDepth(value: unknown): number | undefined {
     return Number.isInteger(value) && value >= 0 ? value : undefined;
   }
   if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return undefined;
-    }
-    const numeric = Number(trimmed);
-    return Number.isInteger(numeric) && numeric >= 0 ? numeric : undefined;
+    return parseStrictNonNegativeInteger(value);
   }
   return undefined;
 }
@@ -40,7 +41,7 @@ function readSessionStore(storePath: string): Record<string, SessionDepthEntry> 
   return {};
 }
 
-function buildKeyCandidates(rawKey: string, cfg?: AstroclawConfig): string[] {
+function buildKeyCandidates(rawKey: string, cfg?: OpenClawConfig): string[] {
   if (!cfg) {
     return [rawKey];
   }
@@ -74,7 +75,7 @@ function findEntryBySessionId(
 
 function resolveEntryForSessionKey(params: {
   sessionKey: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   store?: Record<string, SessionDepthEntry>;
   cache: Map<string, Record<string, SessionDepthEntry>>;
 }): SessionDepthEntry | undefined {
@@ -117,7 +118,7 @@ function resolveEntryForSessionKey(params: {
 export function getSubagentDepthFromSessionStore(
   sessionKey: string | undefined | null,
   opts?: {
-    cfg?: AstroclawConfig;
+    cfg?: OpenClawConfig;
     store?: Record<string, SessionDepthEntry>;
   },
 ): number {
