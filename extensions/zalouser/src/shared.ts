@@ -1,8 +1,9 @@
-import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
+// Zalouser plugin module implements shared behavior.
+import { describeAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
 import {
   adaptScopedAccountAccessor,
   createScopedChannelConfigAdapter,
-} from "astroclaw/plugin-sdk/channel-config-helpers";
+} from "openclaw/plugin-sdk/channel-config-helpers";
 import {
   listZalouserAccountIds,
   resolveDefaultZalouserAccountId,
