@@ -1,16 +1,17 @@
+// Mattermost plugin module implements send behavior.
 import {
   createMessageReceiptFromOutboundResults,
   type MessageReceipt,
   type MessageReceiptPartKind,
-} from "astroclaw/plugin-sdk/channel-message";
-import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { convertMarkdownTables } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { convertMarkdownTables } from "openclaw/plugin-sdk/text-chunking";
 import { getMattermostRuntime } from "../runtime.js";
 import { resolveMattermostAccount } from "./accounts.js";
 import {
@@ -32,17 +33,20 @@ import {
   setInteractionSecret,
   type MattermostInteractiveButtonInput,
 } from "./interactions.js";
-import { loadOutboundMediaFromUrl, type AstroclawConfig } from "./runtime-api.js";
+import { loadOutboundMediaFromUrl, type OpenClawConfig } from "./runtime-api.js";
 import { isMattermostId, resolveMattermostOpaqueTarget } from "./target-resolution.js";
 
 export type MattermostSendOpts = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   botToken?: string;
   baseUrl?: string;
   accountId?: string;
   mediaUrl?: string;
   mediaLocalRoots?: readonly string[];
   mediaReadFile?: (filePath: string) => Promise<Buffer>;
+  workspaceDir?: string;
+  /** Fail the send if media cannot be loaded/uploaded instead of posting text-only. */
+  requireMediaUpload?: boolean;
   replyToId?: string;
   props?: Record<string, unknown>;
   buttons?: Array<unknown>;
@@ -345,7 +349,7 @@ async function resolveTargetChannelId(params: ResolveTargetChannelIdParams): Pro
 }
 
 type MattermostSendContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   token: string;
   baseUrl: string;
@@ -469,6 +473,7 @@ export async function sendMessageMattermost(
       const media = await loadOutboundMediaFromUrl(mediaUrl, {
         mediaLocalRoots: opts.mediaLocalRoots,
         mediaReadFile: opts.mediaReadFile,
+        workspaceDir: opts.workspaceDir,
       });
       const fileInfo = await uploadMattermostFile(client, {
         channelId,
@@ -479,6 +484,11 @@ export async function sendMessageMattermost(
       fileIds = [fileInfo.id];
     } catch (err) {
       uploadError = err instanceof Error ? err : new Error(String(err));
+      if (opts.requireMediaUpload) {
+        throw new Error(`Mattermost media upload failed: ${uploadError.message}`, {
+          cause: err,
+        });
+      }
       if (core.logging.shouldLogVerbose()) {
         logger.debug?.(
           `mattermost send: media upload failed, falling back to URL text: ${String(err)}`,
@@ -499,7 +509,9 @@ export async function sendMessageMattermost(
 
   if (!message && (!fileIds || fileIds.length === 0)) {
     if (uploadError) {
-      throw new Error(`Mattermost media upload failed: ${uploadError.message}`);
+      throw new Error(`Mattermost media upload failed: ${uploadError.message}`, {
+        cause: uploadError,
+      });
     }
     throw new Error("Mattermost message is empty");
   }
