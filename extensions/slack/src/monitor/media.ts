@@ -1,12 +1,13 @@
+// Slack plugin module implements media behavior.
 import fs from "node:fs/promises";
 import type { WebClient as SlackWebClient } from "@slack/web-api";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { normalizeHostname } from "astroclaw/plugin-sdk/host-runtime";
-import { resolveRequestUrl } from "astroclaw/plugin-sdk/request-url";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { normalizeHostname } from "openclaw/plugin-sdk/host-runtime";
+import { resolveRequestUrl } from "openclaw/plugin-sdk/request-url";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { formatSlackFileReference } from "../file-reference.js";
 import type { SlackAttachment, SlackFile } from "../types.js";
 export { MAX_SLACK_MEDIA_FILES, type SlackMediaResult } from "./media-types.js";
@@ -81,7 +82,7 @@ function isMockedFetch(fetchImpl: typeof fetch | undefined): boolean {
     mock?: unknown;
     _isMockFunction?: unknown;
   };
-  return candidate.mock !== undefined || candidate._isMockFunction === true;
+  return candidate.mock !== undefined || candidate["_isMockFunction"] === true;
 }
 
 function createSlackMediaFetch(): FetchLike {
@@ -209,7 +210,7 @@ async function saveSlackMedia(params: {
           },
         }
       : {}),
-  }).catch((error) => {
+  }).catch((error: unknown) => {
     if (timedOut) {
       return new Promise<never>(() => {});
     }
