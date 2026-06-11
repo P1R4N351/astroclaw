@@ -1,6 +1,7 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { isLoopbackHost } from "astroclaw/plugin-sdk/gateway-runtime";
+// Voice Call plugin module implements runtime behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { isLoopbackHost } from "openclaw/plugin-sdk/gateway-runtime";
 import {
   consultRealtimeVoiceAgent,
   REALTIME_VOICE_AGENT_CONSULT_TOOL_NAME,
@@ -8,7 +9,7 @@ import {
   resolveRealtimeVoiceAgentConsultToolsAllow,
   type RealtimeVoiceAgentConsultTranscriptEntry,
   type ResolvedRealtimeVoiceProvider,
-} from "astroclaw/plugin-sdk/realtime-voice";
+} from "openclaw/plugin-sdk/realtime-voice";
 import type { VoiceCallConfig } from "./config.js";
 import {
   resolveVoiceCallEffectiveConfig,
@@ -24,6 +25,7 @@ import type { TwilioProvider } from "./providers/twilio.js";
 import { buildRealtimeVoiceInstructions } from "./realtime-agent-context.js";
 import { resolveRealtimeFastContextConsult } from "./realtime-fast-context.js";
 import { resolveVoiceResponseModel } from "./response-model.js";
+import { setVoiceCallStateRuntime, type VoiceCallStateRuntime } from "./runtime-state.js";
 import type { TelephonyTtsRuntime } from "./telephony-tts.js";
 import { createTelephonyTtsProvider } from "./telephony-tts.js";
 import { startTunnel, type TunnelResult } from "./tunnel.js";
@@ -62,7 +64,7 @@ type RealtimeVoiceRuntimeModule = typeof import("./realtime-voice.runtime.js");
 type RealtimeHandlerModule = typeof import("./webhook/realtime-handler.js");
 
 const REALTIME_VOICE_CONSULT_SYSTEM_PROMPT = [
-  "You are the configured Astroclaw agent receiving delegated requests from a live phone voice bridge.",
+  "You are the configured OpenClaw agent receiving delegated requests from a live phone voice bridge.",
   "Act on behalf of the caller using the normal available tools when the caller asks you to do work.",
   "Prioritize completing the user's request and returning a fast, speakable result over exhaustive investigation.",
   "For tool-backed status checks, prefer one or two bounded read-only queries before answering.",
@@ -250,7 +252,7 @@ async function resolveProvider(config: VoiceCallConfig): Promise<VoiceCallProvid
 
 async function resolveRealtimeProvider(params: {
   config: VoiceCallConfig;
-  fullConfig: AstroclawConfig;
+  fullConfig: OpenClawConfig;
 }): Promise<ResolvedRealtimeProvider> {
   const { resolveConfiguredRealtimeVoiceProvider } = await loadRealtimeVoiceRuntime();
   return resolveConfiguredRealtimeVoiceProvider({
@@ -263,12 +265,21 @@ async function resolveRealtimeProvider(params: {
 export async function createVoiceCallRuntime(params: {
   config: VoiceCallConfig;
   coreConfig: CoreConfig;
-  fullConfig?: AstroclawConfig;
+  fullConfig?: OpenClawConfig;
   agentRuntime: CoreAgentDeps;
+  stateRuntime?: VoiceCallStateRuntime["state"];
   ttsRuntime?: TelephonyTtsRuntime;
   logger?: Logger;
 }): Promise<VoiceCallRuntime> {
-  const { config: rawConfig, coreConfig, fullConfig, agentRuntime, ttsRuntime, logger } = params;
+  const {
+    config: rawConfig,
+    coreConfig,
+    fullConfig,
+    agentRuntime,
+    stateRuntime,
+    ttsRuntime,
+    logger,
+  } = params;
   const log = logger ?? {
     info: console.log,
     warn: console.warn,
@@ -277,7 +288,7 @@ export async function createVoiceCallRuntime(params: {
   };
 
   const config = resolveVoiceCallConfig(rawConfig);
-  const cfg = fullConfig ?? (coreConfig as AstroclawConfig);
+  const cfg = fullConfig ?? (coreConfig as OpenClawConfig);
 
   if (!config.enabled) {
     throw new Error("Voice call disabled. Enable the plugin entry in config.");
@@ -295,6 +306,9 @@ export async function createVoiceCallRuntime(params: {
   }
 
   const provider = await resolveProvider(config);
+  if (stateRuntime) {
+    setVoiceCallStateRuntime({ state: stateRuntime });
+  }
   const manager = new CallManager(config);
   const realtimeProvider = config.realtime.enabled
     ? await resolveRealtimeProvider({
@@ -307,7 +321,7 @@ export async function createVoiceCallRuntime(params: {
     manager,
     provider,
     coreConfig,
-    fullConfig ?? (coreConfig as AstroclawConfig),
+    fullConfig ?? (coreConfig as OpenClawConfig),
     agentRuntime,
     log,
   );
