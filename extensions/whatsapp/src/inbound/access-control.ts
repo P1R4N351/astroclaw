@@ -1,8 +1,9 @@
-import { createChannelPairingChallengeIssuer } from "astroclaw/plugin-sdk/channel-pairing";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { upsertChannelPairingRequest } from "astroclaw/plugin-sdk/conversation-runtime";
-import { defaultRuntime } from "astroclaw/plugin-sdk/runtime-env";
-import { warnMissingProviderGroupPolicyFallbackOnce } from "astroclaw/plugin-sdk/runtime-group-policy";
+// Whatsapp plugin module implements access control behavior.
+import { createChannelPairingChallengeIssuer } from "openclaw/plugin-sdk/channel-pairing";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { upsertChannelPairingRequest } from "openclaw/plugin-sdk/conversation-runtime";
+import { defaultRuntime } from "openclaw/plugin-sdk/runtime-env";
+import { warnMissingProviderGroupPolicyFallbackOnce } from "openclaw/plugin-sdk/runtime-group-policy";
 import { resolveWhatsAppInboundPolicy, resolveWhatsAppIngressAccess } from "../inbound-policy.js";
 
 export type InboundAccessControlResult = {
@@ -22,7 +23,7 @@ function logWhatsAppVerbose(enabled: boolean | undefined, message: string) {
 }
 
 export async function checkInboundAccessControl(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   from: string;
   selfE164: string | null;
@@ -181,6 +182,7 @@ export async function checkInboundAccessControl(params: {
   };
 }
 
-export const __testing = {
+export const testing = {
   resolveWhatsAppInboundPolicy,
 };
+export { testing as __testing };
