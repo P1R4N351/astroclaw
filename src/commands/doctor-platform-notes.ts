@@ -1,14 +1,16 @@
+/** Platform-specific doctor notes for macOS gateway launchd state and startup tuning. */
 import { execFile } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { note } from "../../packages/terminal-core/src/note.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { hasConfiguredSecretInput } from "../config/types.secrets.js";
-import { findStaleAstroclawUpdateLaunchdJobs } from "../daemon/launchd.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
-import { note } from "../terminal/note.js";
+import { findStaleOpenClawUpdateLaunchdJobs } from "../daemon/launchd.js";
+import { resolveGatewayService, type GatewayService } from "../daemon/service.js";
 import { shortenHomePath } from "../utils.js";
 
 const execFileAsync = promisify(execFile);
@@ -17,42 +19,59 @@ function resolveHomeDir(): string {
   return process.env.HOME ?? os.homedir();
 }
 
-export async function noteMacLaunchAgentOverrides() {
-  if (process.platform !== "darwin") {
-    return;
+/** Returns the macOS marker warning when LaunchAgent writes are locally disabled. */
+export function collectMacLaunchAgentOverrideWarning(deps?: {
+  platform?: NodeJS.Platform;
+  homeDir?: string;
+  exists?: (candidate: string) => boolean;
+}): string | null {
+  if ((deps?.platform ?? process.platform) !== "darwin") {
+    return null;
   }
-  const home = resolveHomeDir();
-  const markerCandidates = [path.join(home, ".astroclaw", "disable-launchagent")];
-  const markerPath = markerCandidates.find((candidate) => fs.existsSync(candidate));
+  const home = deps?.homeDir ?? resolveHomeDir();
+  const markerCandidates = [path.join(home, ".openclaw", "disable-launchagent")];
+  const exists = deps?.exists ?? fs.existsSync;
+  const markerPath = markerCandidates.find((candidate) => exists(candidate));
   if (!markerPath) {
-    return;
+    return null;
   }
 
   const displayMarkerPath = shortenHomePath(markerPath);
-  const lines = [
+  return [
     `- LaunchAgent writes are disabled via ${displayMarkerPath}.`,
     "- To restore default behavior:",
     `  rm ${displayMarkerPath}`,
-  ].filter((line): line is string => Boolean(line));
-  note(lines.join("\n"), "Gateway (macOS)");
+  ].join("\n");
 }
 
-export async function noteMacStaleAstroclawUpdateLaunchdJobs(deps?: {
+/** Emits the macOS LaunchAgent override warning when present. */
+export async function noteMacLaunchAgentOverrides() {
+  const warning = collectMacLaunchAgentOverrideWarning();
+  if (warning) {
+    note(warning, "Gateway (macOS)");
+  }
+}
+
+/** Returns a warning for stale OpenClaw updater launchd jobs left after interrupted updates. */
+export async function collectMacStaleOpenClawUpdateLaunchdJobsWarning(deps?: {
   platform?: NodeJS.Platform;
-  findJobs?: typeof findStaleAstroclawUpdateLaunchdJobs;
-  noteFn?: typeof note;
-}) {
+  findJobs?: typeof findStaleOpenClawUpdateLaunchdJobs;
+  env?: NodeJS.ProcessEnv;
+}): Promise<string | null> {
   const platform = deps?.platform ?? process.platform;
   if (platform !== "darwin") {
-    return;
+    return null;
   }
-  const jobs = await (deps?.findJobs ?? findStaleAstroclawUpdateLaunchdJobs)().catch(() => []);
+  const scanEnv = deps?.env ?? process.env;
+  const jobs = await (deps?.findJobs ?? findStaleOpenClawUpdateLaunchdJobs)(scanEnv).catch(
+    () => [],
+  );
   if (jobs.length === 0) {
-    return;
+    return null;
   }
 
-  const lines = [
-    "- Stale Astroclaw updater launchd job(s) detected.",
+  return [
+    "- Stale OpenClaw updater launchd job(s) detected.",
     ...jobs.map((job) => {
       const exitStatus =
         job.lastExitStatus !== undefined ? `, last exit ${job.lastExitStatus}` : "";
@@ -61,9 +80,29 @@ export async function noteMacStaleAstroclawUpdateLaunchdJobs(deps?: {
     }),
     "- Fix after confirming no update is running:",
     "  launchctl remove <label>",
-    `  ${formatCliCommand("astroclaw gateway restart")}`,
-  ];
-  (deps?.noteFn ?? note)(lines.join("\n"), "Gateway (macOS)");
+    `  ${formatCliCommand("openclaw gateway restart")}`,
+  ].join("\n");
+}
+
+/** Emits stale updater launchd job notes using the gateway service environment when available. */
+export async function noteMacStaleOpenClawUpdateLaunchdJobs(deps?: {
+  platform?: NodeJS.Platform;
+  findJobs?: typeof findStaleOpenClawUpdateLaunchdJobs;
+  env?: NodeJS.ProcessEnv;
+  service?: Pick<GatewayService, "readCommand">;
+  noteFn?: typeof note;
+}) {
+  const platform = deps?.platform ?? process.platform;
+  const serviceEnv =
+    platform === "darwin" ? await resolveGatewayServiceEnvForPlatformNotes(deps) : deps?.env;
+  const warning = await collectMacStaleOpenClawUpdateLaunchdJobsWarning({
+    env: serviceEnv,
+    findJobs: deps?.findJobs,
+    platform,
+  });
+  if (warning) {
+    (deps?.noteFn ?? note)(warning, "Gateway (macOS)");
+  }
 }
 
 async function launchctlGetenv(name: string): Promise<string | undefined> {
@@ -76,7 +115,7 @@ async function launchctlGetenv(name: string): Promise<string | undefined> {
   }
 }
 
-function hasConfigGatewayCreds(cfg: AstroclawConfig): boolean {
+function hasConfigGatewayCreds(cfg: OpenClawConfig): boolean {
   const localPassword = cfg.gateway?.auth?.password;
   const remoteToken = cfg.gateway?.remote?.token;
   const remotePassword = cfg.gateway?.remote?.password;
@@ -88,28 +127,28 @@ function hasConfigGatewayCreds(cfg: AstroclawConfig): boolean {
   );
 }
 
-export async function noteMacLaunchctlGatewayEnvOverrides(
-  cfg: AstroclawConfig,
+/** Returns a warning for host-wide launchctl gateway auth env overrides. */
+export async function collectMacLaunchctlGatewayEnvOverrideWarning(
+  cfg: OpenClawConfig,
   deps?: {
     platform?: NodeJS.Platform;
     getenv?: (name: string) => Promise<string | undefined>;
-    noteFn?: typeof note;
   },
-) {
+): Promise<string | null> {
   const platform = deps?.platform ?? process.platform;
   if (platform !== "darwin") {
-    return;
+    return null;
   }
   if (!hasConfigGatewayCreds(cfg)) {
-    return;
+    return null;
   }
 
   const getenv = deps?.getenv ?? launchctlGetenv;
   const tokenEntries = [
-    ["ASTROCLAW_GATEWAY_TOKEN", await getenv("ASTROCLAW_GATEWAY_TOKEN")],
+    ["OPENCLAW_GATEWAY_TOKEN", await getenv("OPENCLAW_GATEWAY_TOKEN")],
   ] as const;
   const passwordEntries = [
-    ["ASTROCLAW_GATEWAY_PASSWORD", await getenv("ASTROCLAW_GATEWAY_PASSWORD")],
+    ["OPENCLAW_GATEWAY_PASSWORD", await getenv("OPENCLAW_GATEWAY_PASSWORD")],
   ] as const;
   const tokenEntry = tokenEntries.find(([, value]) => normalizeOptionalString(value));
   const passwordEntry = passwordEntries.find(([, value]) => normalizeOptionalString(value));
@@ -118,24 +157,87 @@ export async function noteMacLaunchctlGatewayEnvOverrides(
   const envTokenKey = tokenEntry?.[0];
   const envPasswordKey = passwordEntry?.[0];
   if (!envToken && !envPassword) {
-    return;
+    return null;
   }
 
-  const lines = [
+  return [
     "- Host-wide launchctl gateway auth overrides detected.",
     "- Current managed Gateway installs do not need these values unless config intentionally references the env var.",
     envToken && envTokenKey
       ? `- \`${envTokenKey}\` is set; it can make local clients use a different token than gateway.auth.token.`
       : undefined,
     envPassword
-      ? `- \`${envPasswordKey ?? "ASTROCLAW_GATEWAY_PASSWORD"}\` is set; it can make local clients use a different password than gateway.auth.password.`
+      ? `- \`${envPasswordKey ?? "OPENCLAW_GATEWAY_PASSWORD"}\` is set; it can make local clients use a different password than gateway.auth.password.`
       : undefined,
     "- Clear overrides and restart the app/gateway:",
     envTokenKey ? `  launchctl unsetenv ${envTokenKey}` : undefined,
     envPasswordKey ? `  launchctl unsetenv ${envPasswordKey}` : undefined,
-  ].filter((line): line is string => Boolean(line));
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+}
 
-  (deps?.noteFn ?? note)(lines.join("\n"), "Gateway (macOS)");
+/** Emits macOS launchctl gateway auth override warnings. */
+export async function noteMacLaunchctlGatewayEnvOverrides(
+  cfg: OpenClawConfig,
+  deps?: {
+    platform?: NodeJS.Platform;
+    getenv?: (name: string) => Promise<string | undefined>;
+    noteFn?: typeof note;
+  },
+) {
+  const warning = await collectMacLaunchctlGatewayEnvOverrideWarning(cfg, deps);
+  if (warning) {
+    (deps?.noteFn ?? note)(warning, "Gateway (macOS)");
+  }
+}
+
+async function resolveGatewayServiceEnvForPlatformNotes(deps?: {
+  env?: NodeJS.ProcessEnv;
+  service?: Pick<GatewayService, "readCommand">;
+}): Promise<NodeJS.ProcessEnv> {
+  const baseEnv = deps?.env ?? process.env;
+  const service = deps?.service ?? resolveGatewayService();
+  const command = await service.readCommand(baseEnv).catch(() => null);
+  return command?.environment
+    ? ({
+        ...baseEnv,
+        ...command.environment,
+      } satisfies NodeJS.ProcessEnv)
+    : baseEnv;
+}
+
+/** Collects all macOS gateway platform warnings without emitting notes. */
+export async function collectMacGatewayPlatformWarnings(
+  cfg: OpenClawConfig,
+  deps?: {
+    platform?: NodeJS.Platform;
+    env?: NodeJS.ProcessEnv;
+    service?: Pick<GatewayService, "readCommand">;
+    findJobs?: typeof findStaleOpenClawUpdateLaunchdJobs;
+  },
+): Promise<readonly string[]> {
+  const platform = deps?.platform ?? process.platform;
+  const warnings: string[] = [];
+  const launchAgentWarning = collectMacLaunchAgentOverrideWarning({ platform });
+  if (launchAgentWarning) {
+    warnings.push(launchAgentWarning);
+  }
+  const serviceEnv =
+    platform === "darwin" ? await resolveGatewayServiceEnvForPlatformNotes(deps) : deps?.env;
+  const staleUpdateWarning = await collectMacStaleOpenClawUpdateLaunchdJobsWarning({
+    env: serviceEnv,
+    findJobs: deps?.findJobs,
+    platform,
+  });
+  if (staleUpdateWarning) {
+    warnings.push(staleUpdateWarning);
+  }
+  const launchctlWarning = await collectMacLaunchctlGatewayEnvOverrideWarning(cfg, { platform });
+  if (launchctlWarning) {
+    warnings.push(launchctlWarning);
+  }
+  return warnings;
 }
 
 function isTruthyEnvValue(value: string | undefined): boolean {
@@ -152,6 +254,7 @@ function isTmpCompileCachePath(cachePath: string): boolean {
   );
 }
 
+/** Emits startup tuning hints for low-power Linux hosts when env settings are suboptimal. */
 export function noteStartupOptimizationHints(
   env: NodeJS.ProcessEnv = process.env,
   deps?: {
@@ -178,12 +281,12 @@ export function noteStartupOptimizationHints(
   const noteFn = deps?.noteFn ?? note;
   const compileCache = normalizeOptionalString(env.NODE_COMPILE_CACHE) ?? "";
   const disableCompileCache = normalizeOptionalString(env.NODE_DISABLE_COMPILE_CACHE) ?? "";
-  const noRespawn = normalizeOptionalString(env.ASTROCLAW_NO_RESPAWN) ?? "";
+  const noRespawn = normalizeOptionalString(env.OPENCLAW_NO_RESPAWN) ?? "";
   const lines: string[] = [];
 
   if (!compileCache) {
     lines.push(
-      "- NODE_COMPILE_CACHE is not set; repeated CLI runs can be slower on small hosts (Pi/VM).",
+      "- NODE_COMPILE_CACHE is not set; repeated CLI runs can be slower on small hosts (Raspberry Pi/VM).",
     );
   } else if (isTmpCompileCachePath(compileCache)) {
     lines.push(
@@ -197,7 +300,7 @@ export function noteStartupOptimizationHints(
 
   if (noRespawn !== "1") {
     lines.push(
-      "- ASTROCLAW_NO_RESPAWN is not set to 1; set it to avoid extra startup overhead from self-respawn.",
+      "- OPENCLAW_NO_RESPAWN is not set to 1; set it when you want routine gateway restarts to stay in-process instead of handing off to a managed supervisor.",
     );
   }
 
@@ -207,9 +310,9 @@ export function noteStartupOptimizationHints(
 
   const suggestions = [
     "- Suggested env for low-power hosts:",
-    "  export NODE_COMPILE_CACHE=/var/tmp/astroclaw-compile-cache",
-    "  mkdir -p /var/tmp/astroclaw-compile-cache",
-    "  export ASTROCLAW_NO_RESPAWN=1",
+    "  export NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache",
+    "  mkdir -p /var/tmp/openclaw-compile-cache",
+    "  export OPENCLAW_NO_RESPAWN=1",
     isTruthyEnvValue(disableCompileCache) ? "  unset NODE_DISABLE_COMPILE_CACHE" : undefined,
   ].filter((line): line is string => Boolean(line));
 
