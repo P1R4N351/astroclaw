@@ -1,14 +1,15 @@
-import { createScopedDmSecurityResolver } from "astroclaw/plugin-sdk/channel-config-helpers";
-import { defineChannelMessageAdapter } from "astroclaw/plugin-sdk/channel-message";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
+// Zalouser plugin module implements channel.adapters behavior.
+import { createScopedDmSecurityResolver } from "openclaw/plugin-sdk/channel-config-helpers";
+import { defineChannelMessageAdapter } from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
 import {
   createEmptyChannelResult,
   createRawChannelSendResultAdapter,
-} from "astroclaw/plugin-sdk/channel-send-result";
-import { createStaticReplyToModeResolver } from "astroclaw/plugin-sdk/conversation-runtime";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-send-result";
+import { createStaticReplyToModeResolver } from "openclaw/plugin-sdk/conversation-runtime";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   checkZcaAuthenticated,
   listZalouserAccountIds,
@@ -20,7 +21,7 @@ import type {
   ChannelGroupContext,
   ChannelMessageActionAdapter,
   GroupToolPolicyConfig,
-  AstroclawConfig,
+  OpenClawConfig,
 } from "./channel-api.js";
 import {
   DEFAULT_ACCOUNT_ID,
@@ -48,7 +49,7 @@ type ZalouserSendTextContext = {
   to: string;
   text: string;
   accountId?: string | null;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 };
 
 type ZalouserSendMediaContext = ZalouserSendTextContext & {
@@ -65,11 +66,11 @@ export function resolveZalouserQrProfile(accountId?: string | null): string {
   return normalized;
 }
 
-function resolveZalouserOutboundChunkMode(cfg: AstroclawConfig, accountId?: string) {
+function resolveZalouserOutboundChunkMode(cfg: OpenClawConfig, accountId?: string) {
   return getZalouserRuntime().channel.text.resolveChunkMode(cfg, "zalouser", accountId);
 }
 
-function resolveZalouserOutboundTextChunkLimit(cfg: AstroclawConfig, accountId?: string) {
+function resolveZalouserOutboundTextChunkLimit(cfg: OpenClawConfig, accountId?: string) {
   return getZalouserRuntime().channel.text.resolveTextChunkLimit(cfg, "zalouser", accountId, {
     fallbackLimit: ZALOUSER_TEXT_CHUNK_LIMIT,
   });
@@ -108,7 +109,7 @@ function resolveZalouserRequireMention(params: ChannelGroupContext): boolean {
 
 async function sendZalouserTextFromContext({ to, text, accountId, cfg }: ZalouserSendTextContext) {
   const { sendMessageZalouser } = await loadZalouserChannelRuntime();
-  const account = resolveZalouserAccountSync({ cfg: cfg, accountId });
+  const account = resolveZalouserAccountSync({ cfg, accountId });
   const target = parseZalouserOutboundTarget(to);
   return await sendMessageZalouser(target.threadId, text, {
     profile: account.profile,
@@ -129,7 +130,7 @@ async function sendZalouserMediaFromContext({
   mediaReadFile,
 }: ZalouserSendMediaContext) {
   const { sendMessageZalouser } = await loadZalouserChannelRuntime();
-  const account = resolveZalouserAccountSync({ cfg: cfg, accountId });
+  const account = resolveZalouserAccountSync({ cfg, accountId });
   const target = parseZalouserOutboundTarget(to);
   return await sendMessageZalouser(target.threadId, text, {
     profile: account.profile,
@@ -259,7 +260,7 @@ export const zalouserResolverAdapter = {
     kind,
     runtime,
   }: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
     inputs: string[];
     kind: "user" | "group";
@@ -279,7 +280,7 @@ export const zalouserResolverAdapter = {
       try {
         const runtimeModule = await loadZalouserChannelRuntime();
         const account = resolveZalouserAccountSync({
-          cfg: cfg,
+          cfg,
           accountId: accountId ?? resolveDefaultZalouserAccountId(cfg),
         });
         if (kind === "user") {
@@ -323,13 +324,13 @@ export const zalouserAuthAdapter = {
     accountId,
     runtime,
   }: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
     runtime: RuntimeEnv;
   }) => {
     const { startZaloQrLogin, waitForZaloQrLogin } = await loadZalouserChannelRuntime();
     const account = resolveZalouserAccountSync({
-      cfg: cfg,
+      cfg,
       accountId: accountId ?? resolveDefaultZalouserAccountId(cfg),
     });
 
@@ -379,9 +380,9 @@ export const zalouserPairingTextAdapter = {
   idLabel: "zalouserUserId",
   message: "Your pairing request has been approved.",
   normalizeAllowEntry: createPairingPrefixStripper(/^(zalouser|zlu):/i),
-  notify: async ({ cfg, id, message }: { cfg: AstroclawConfig; id: string; message: string }) => {
+  notify: async ({ cfg, id, message }: { cfg: OpenClawConfig; id: string; message: string }) => {
     const { sendMessageZalouser } = await loadZalouserChannelRuntime();
-    const account = resolveZalouserAccountSync({ cfg: cfg });
+    const account = resolveZalouserAccountSync({ cfg });
     const authenticated = await checkZcaAuthenticated(account.profile);
     if (!authenticated) {
       throw new Error("Zalouser not authenticated");
