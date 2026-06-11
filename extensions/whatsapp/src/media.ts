@@ -1,3 +1,4 @@
+// Whatsapp plugin module implements media behavior.
 export {
   getDefaultLocalRoots,
   LocalMediaAccessError,
@@ -6,5 +7,5 @@ export {
   optimizeImageToJpeg,
   optimizeImageToPng,
   type WebMediaResult,
-} from "astroclaw/plugin-sdk/web-media";
-export type { LocalMediaAccessErrorCode } from "astroclaw/plugin-sdk/web-media";
+} from "openclaw/plugin-sdk/web-media";
+export type { LocalMediaAccessErrorCode } from "openclaw/plugin-sdk/web-media";
