@@ -1,3 +1,4 @@
+// Google plugin module implements thinking behavior.
 export {
   createGoogleThinkingPayloadWrapper,
   createGoogleThinkingStreamWrapper,
@@ -11,4 +12,4 @@ export {
   stripInvalidGoogleThinkingBudget,
   type GoogleThinkingInputLevel,
   type GoogleThinkingLevel,
-} from "astroclaw/plugin-sdk/provider-stream-shared";
+} from "openclaw/plugin-sdk/provider-stream-shared";
