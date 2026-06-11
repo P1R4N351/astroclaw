@@ -1,15 +1,17 @@
+// Telegram plugin module implements bot native commands behavior.
 export {
   ensureConfiguredBindingRouteReady,
   recordInboundSessionMetaSafe,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-export { getAgentScopedMediaLocalRoots } from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+export { getAgentScopedMediaLocalRoots } from "openclaw/plugin-sdk/media-runtime";
 export {
   executePluginCommand,
   getPluginCommandSpecs,
   matchPluginCommand,
-} from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/plugin-runtime";
 export {
   finalizeInboundContext,
   resolveChunkMode,
-} from "astroclaw/plugin-sdk/reply-dispatch-runtime";
-export { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/reply-dispatch-runtime";
+export { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
+export { getSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
