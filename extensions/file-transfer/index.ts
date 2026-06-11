@@ -1,8 +1,9 @@
+// File Transfer plugin entrypoint registers its OpenClaw integration.
 import {
   definePluginEntry,
   type AnyAgentTool,
-  type AstroclawPluginNodeHostCommand,
-} from "astroclaw/plugin-sdk/plugin-entry";
+  type OpenClawPluginNodeHostCommand,
+} from "openclaw/plugin-sdk/plugin-entry";
 import { createLazyFileTransferNodeInvokePolicy } from "./src/shared/lazy-node-invoke-policy.js";
 import {
   DIR_FETCH_TOOL_DESCRIPTOR,
@@ -38,7 +39,7 @@ function createLazyTool(
   };
 }
 
-const fileTransferNodeHostCommands: AstroclawPluginNodeHostCommand[] = [
+const fileTransferNodeHostCommands: OpenClawPluginNodeHostCommand[] = [
   {
     command: "file.fetch",
     cap: "file",
