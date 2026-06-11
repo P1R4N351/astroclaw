@@ -1,39 +1,44 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { SignalReactionNotificationMode } from "astroclaw/plugin-sdk/config-contracts";
+// Signal plugin module implements monitor behavior.
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "openclaw/plugin-sdk/approval-handler-adapter-runtime";
+import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract";
+import { registerChannelRuntimeContext } from "openclaw/plugin-sdk/channel-runtime-context";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { SignalReactionNotificationMode } from "openclaw/plugin-sdk/config-contracts";
 import {
   detectMime,
   estimateBase64DecodedBytes,
   saveMediaBuffer,
-} from "astroclaw/plugin-sdk/media-runtime";
-import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+} from "openclaw/plugin-sdk/media-runtime";
+import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "openclaw/plugin-sdk/reply-history";
 import {
   deliverTextOrMediaReply,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import {
   chunkTextWithMode,
   resolveChunkMode,
   resolveTextChunkLimit,
-} from "astroclaw/plugin-sdk/reply-runtime";
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+} from "openclaw/plugin-sdk/reply-runtime";
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import {
   createNonExitingRuntime,
   type BackoffPolicy,
   type RuntimeEnv,
-} from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/runtime-env";
 import {
   resolveAllowlistProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "astroclaw/plugin-sdk/runtime-group-policy";
+} from "openclaw/plugin-sdk/runtime-group-policy";
 import {
   normalizeOptionalString,
   normalizeStringEntries,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { normalizeE164 } from "astroclaw/plugin-sdk/text-utility-runtime";
-import { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeE164 } from "openclaw/plugin-sdk/text-utility-runtime";
+import { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
 import { resolveSignalAccount } from "./accounts.js";
+import { isSignalNativeApprovalHandlerConfigured } from "./approval-native.js";
 import { signalRpcRequest, signalCheck } from "./client-adapter.js";
 import { formatSignalDaemonExit, spawnSignalDaemon, type SignalDaemonHandle } from "./daemon.js";
 import { isSignalSenderAllowed, type resolveSignalSender } from "./identity.js";
@@ -51,11 +56,13 @@ export type MonitorSignalOpts = {
   abortSignal?: AbortSignal;
   account?: string;
   accountId?: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   baseUrl?: string;
+  channelRuntime?: ChannelRuntimeSurface;
   autoStart?: boolean;
   startupTimeoutMs?: number;
   cliPath?: string;
+  configPath?: string;
   httpHost?: string;
   httpPort?: number;
   receiveMode?: "on-start" | "manual";
@@ -79,13 +86,13 @@ function createSignalMonitorTaskRunner(runtime: RuntimeEnv) {
     runEventTask(task: () => Promise<void>): void {
       const trackedTask = Promise.resolve()
         .then(task)
-        .catch((err) => runtime.error?.(`event handler failed: ${String(err)}`))
+        .catch((err: unknown) => runtime.error?.(`event handler failed: ${String(err)}`))
         .finally(() => inFlight.delete(trackedTask));
       inFlight.add(trackedTask);
     },
     async waitForIdle(): Promise<void> {
       while (inFlight.size > 0) {
-        await Promise.allSettled(Array.from(inFlight));
+        await Promise.allSettled(inFlight);
       }
     },
   };
@@ -348,7 +355,7 @@ async function fetchAttachment(params: {
 }
 
 async function deliverReplies(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   replies: ReplyPayload[];
   target: string;
   baseUrl: string;
@@ -460,10 +467,14 @@ export async function monitorSignalProvider(opts: MonitorSignalOpts = {}): Promi
 
   if (autoStart) {
     const cliPath = opts.cliPath ?? accountInfo.config.cliPath ?? "signal-cli";
+    const configPath =
+      normalizeOptionalString(opts.configPath) ??
+      normalizeOptionalString(accountInfo.config.configPath);
     const httpHost = opts.httpHost ?? accountInfo.config.httpHost ?? "127.0.0.1";
     const httpPort = opts.httpPort ?? accountInfo.config.httpPort ?? 8080;
     daemonHandle = spawnSignalDaemon({
       cliPath,
+      ...(configPath ? { configPath } : {}),
       account,
       httpHost,
       httpPort,
@@ -497,6 +508,25 @@ export async function monitorSignalProvider(opts: MonitorSignalOpts = {}): Promi
         throw daemonExitError;
       }
     }
+
+    registerChannelRuntimeContext({
+      channelRuntime: opts.channelRuntime,
+      channelId: "signal",
+      accountId: accountInfo.accountId,
+      capability: CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY,
+      context: isSignalNativeApprovalHandlerConfigured({
+        cfg,
+        accountId: accountInfo.accountId,
+      })
+        ? {
+            accountId: accountInfo.accountId,
+            baseUrl,
+            account,
+            accountUuid: accountInfo.config.accountUuid,
+          }
+        : null,
+      abortSignal: opts.abortSignal,
+    });
 
     const handleEvent = createSignalEventHandler({
       runtime,
