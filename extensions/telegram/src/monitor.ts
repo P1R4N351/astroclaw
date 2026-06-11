@@ -1,16 +1,17 @@
+// Telegram plugin module implements monitor behavior.
 import type { RunOptions } from "@grammyjs/runner";
-import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "astroclaw/plugin-sdk/approval-handler-adapter-runtime";
-import { registerChannelRuntimeContext } from "astroclaw/plugin-sdk/channel-runtime-context";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveAgentMaxConcurrent } from "astroclaw/plugin-sdk/model-session-runtime";
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import { CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY } from "openclaw/plugin-sdk/approval-handler-adapter-runtime";
+import { registerChannelRuntimeContext } from "openclaw/plugin-sdk/channel-runtime-context";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveAgentMaxConcurrent } from "openclaw/plugin-sdk/model-session-runtime";
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import {
   registerUncaughtExceptionHandler,
   registerUnhandledRejectionHandler,
   waitForAbortSignal,
-} from "astroclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
 import { resolveTelegramAccount } from "./accounts.js";
 import { resolveTelegramAllowedUpdates } from "./allowed-updates.js";
 import { isTelegramExecApprovalHandlerConfigured } from "./exec-approvals.js";
@@ -29,7 +30,7 @@ import type {
 
 export type { MonitorTelegramOpts } from "./monitor.types.js";
 
-export function createTelegramRunnerOptions(cfg: AstroclawConfig): RunOptions<unknown> {
+export function createTelegramRunnerOptions(cfg: OpenClawConfig): RunOptions<unknown> {
   return {
     sink: {
       concurrency: resolveAgentMaxConcurrent(cfg),
@@ -108,7 +109,15 @@ async function loadTelegramMonitorWebhookRuntime() {
 }
 
 export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
-  const log = opts.runtime?.error ?? console.error;
+  const logInfo = (line: string) => (opts.runtime?.log ?? console.log)(line);
+  const logError = (line: string) => (opts.runtime?.error ?? console.error)(line);
+  const log = (line: string) => {
+    if (line.includes("[telegram][diag]")) {
+      logInfo(line);
+      return;
+    }
+    logError(line);
+  };
   let pollingSession: TelegramPollingSessionInstance | undefined;
 
   const handlePollingNetworkFailure = (err: unknown, label: string) => {
@@ -231,7 +240,7 @@ export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
           try {
             await deleteTelegramUpdateOffset({ accountId: account.accountId });
           } catch (err) {
-            (opts.runtime?.error ?? console.error)(
+            logError(
               `telegram: failed to delete stale update offset after rotation: ${String(err)}`,
             );
           }
@@ -261,9 +270,7 @@ export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
             botToken: token,
           });
         } catch (err) {
-          (opts.runtime?.error ?? console.error)(
-            `telegram: failed to persist update offset: ${String(err)}`,
-          );
+          logError(`telegram: failed to persist update offset: ${String(err)}`);
         }
       };
 
