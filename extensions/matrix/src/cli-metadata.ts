@@ -1,6 +1,7 @@
-import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/channel-plugin-common";
+// Matrix plugin module implements cli metadata behavior.
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/channel-plugin-common";
 
-export function registerMatrixCliMetadata(api: AstroclawPluginApi) {
+export function registerMatrixCliMetadata(api: OpenClawPluginApi) {
   api.registerCli(
     async ({ program }) => {
       const { registerMatrixCli } = await import("./cli.js");
