@@ -1,9 +1,10 @@
+// Migrate Hermes plugin module implements model behavior.
 import {
   resolveAgentEffectiveModelPrimary,
   resolveDefaultAgentId,
   setAgentEffectiveModelPrimary,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import type { MigrationItem, MigrationProviderContext } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/agent-runtime";
+import type { MigrationItem, MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
 import { readString } from "./helpers.js";
 import {
   HERMES_REASON_ALREADY_CONFIGURED,
