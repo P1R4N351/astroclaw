@@ -1,3 +1,8 @@
+/**
+ * Pinned Python mutation helper for sandbox filesystem writes.
+ *
+ * Performs symlink-resistant create/replace/delete operations inside a previously validated sandbox boundary.
+ */
 import { PATH_ALIAS_POLICIES } from "../../infra/path-alias-guards.js";
 import type {
   PathSafetyCheck,
@@ -68,7 +73,7 @@ export const SANDBOX_PINNED_MUTATION_PYTHON = [
   "        raise",
   "",
   "def create_temp_file(parent_fd, basename):",
-  "    prefix = '.astroclaw-write-' + basename + '.'",
+  "    prefix = '.openclaw-write-' + basename + '.'",
   "    for _ in range(128):",
   "        candidate = prefix + secrets.token_hex(6)",
   "        try:",
@@ -79,7 +84,7 @@ export const SANDBOX_PINNED_MUTATION_PYTHON = [
   "    raise RuntimeError('failed to allocate sandbox temp file')",
   "",
   "def create_temp_dir(parent_fd, basename, mode):",
-  "    prefix = '.astroclaw-move-' + basename + '.'",
+  "    prefix = '.openclaw-move-' + basename + '.'",
   "    for _ in range(128):",
   "        candidate = prefix + secrets.token_hex(6)",
   "        try:",
