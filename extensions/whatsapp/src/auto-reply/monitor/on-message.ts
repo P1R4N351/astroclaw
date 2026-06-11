@@ -1,10 +1,11 @@
-import type { AckReactionHandle } from "astroclaw/plugin-sdk/channel-feedback";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { getReplyFromConfig } from "astroclaw/plugin-sdk/reply-runtime";
-import type { MsgContext } from "astroclaw/plugin-sdk/reply-runtime";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { buildGroupHistoryKey } from "astroclaw/plugin-sdk/routing";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Whatsapp plugin module implements on message behavior.
+import type { AckReactionHandle } from "openclaw/plugin-sdk/channel-feedback";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { getReplyFromConfig } from "openclaw/plugin-sdk/reply-runtime";
+import type { MsgContext } from "openclaw/plugin-sdk/reply-runtime";
+import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import { buildGroupHistoryKey } from "openclaw/plugin-sdk/routing";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { resolveWhatsAppAccount } from "../../accounts.js";
 import { resolveWhatsAppGroupSessionRoute } from "../../group-session-key.js";
 import { getPrimaryIdentityId, getSenderIdentity } from "../../identity.js";
@@ -26,8 +27,8 @@ import {
 } from "./status-reaction.js";
 
 export function createWebOnMessageHandler(params: {
-  cfg: AstroclawConfig;
-  loadConfig?: () => AstroclawConfig;
+  cfg: OpenClawConfig;
+  loadConfig?: () => OpenClawConfig;
   verbose: boolean;
   connectionId: string;
   maxMediaBytes: number;
@@ -37,12 +38,12 @@ export function createWebOnMessageHandler(params: {
   echoTracker: EchoTracker;
   backgroundTasks: Set<Promise<unknown>>;
   replyResolver: typeof getReplyFromConfig;
-  replyLogger: ReturnType<(typeof import("astroclaw/plugin-sdk/runtime-env"))["getChildLogger"]>;
+  replyLogger: ReturnType<(typeof import("openclaw/plugin-sdk/runtime-env"))["getChildLogger"]>;
   baseMentionConfig: MentionConfig;
   account: { authDir?: string; accountId?: string; selfChatMode?: boolean };
 }) {
   const processForRoute = async (
-    cfg: AstroclawConfig,
+    cfg: OpenClawConfig,
     msg: WebInboundMsg,
     route: ReturnType<typeof resolveAgentRoute>,
     groupHistoryKey: string,
@@ -250,6 +251,7 @@ export function createWebOnMessageHandler(params: {
         agentId: route.agentId,
         sessionKey: route.sessionKey,
         baseMentionConfig,
+        providerMentionPatterns: account.mentionPatterns,
         authDir: account.authDir,
         selfChatMode: account.selfChatMode,
         groupHistories: params.groupHistories,
@@ -275,6 +277,7 @@ export function createWebOnMessageHandler(params: {
           agentId: route.agentId,
           sessionKey: route.sessionKey,
           baseMentionConfig,
+          providerMentionPatterns: account.mentionPatterns,
           authDir: account.authDir,
           selfChatMode: account.selfChatMode,
           groupHistories: params.groupHistories,
@@ -287,14 +290,12 @@ export function createWebOnMessageHandler(params: {
       if (!gating.shouldProcess) {
         return;
       }
-    } else {
+    } else if (!msg.sender?.e164 && !msg.senderE164 && peerId && peerId.startsWith("+")) {
       // Ensure `peerId` for DMs is stable and stored as E.164 when possible.
-      if (!msg.sender?.e164 && !msg.senderE164 && peerId && peerId.startsWith("+")) {
-        const normalized = normalizeE164(peerId);
-        if (normalized) {
-          msg.sender = { ...msg.sender, e164: normalized };
-          msg.senderE164 = normalized;
-        }
+      const normalized = normalizeE164(peerId);
+      if (normalized) {
+        msg.sender = { ...msg.sender, e164: normalized };
+        msg.senderE164 = normalized;
       }
     }
 
