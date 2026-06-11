@@ -1,3 +1,6 @@
+// Formats update-restart sentinel state for status reports.
+// The sentinel is written by update flows; status only turns it into operator-facing hints.
+
 import type { RestartSentinelPayload } from "../infra/restart-sentinel.js";
 import {
   CONTROL_PLANE_UPDATE_HANDOFF_STARTED_REASON,
@@ -16,6 +19,7 @@ function readAfterVersion(payload: RestartSentinelPayload): string | null {
   return typeof version === "string" && version.trim().length > 0 ? version : null;
 }
 
+/** Returns the one-line update restart status value, or null when no update sentinel applies. */
 export function formatUpdateRestartStatusValue(
   payload: RestartSentinelPayload | null | undefined,
   opts: {
@@ -41,16 +45,18 @@ export function formatUpdateRestartStatusValue(
 
   if (payload.status === "error") {
     return warn(
-      `failed · ${reason ?? "restart failed"} · run astroclaw gateway status --deep${age}`,
+      `failed · ${reason ?? "restart failed"} · run openclaw gateway status --deep${age}`,
     );
   }
 
   if (payload.status === "skipped") {
     if (reason === CONTROL_PLANE_UPDATE_HANDOFF_STARTED_REASON) {
-      return warn(`handoff running · gateway restart pending · run astroclaw update status${age}`);
+      // Handoff already started in the control plane; gateway restart should not be duplicated.
+      return warn(`handoff running · gateway restart pending · run openclaw update status${age}`);
     }
     if (reason === CONTROL_PLANE_UPDATE_RESTART_HEALTH_PENDING_REASON) {
-      return warn(`restart pending health verification · run astroclaw gateway status --deep${age}`);
+      // Restart completed enough to defer, but health proof still needs a deep gateway check.
+      return warn(`restart pending health verification · run openclaw gateway status --deep${age}`);
     }
     return muted(`skipped · ${reason ?? "restart skipped"}${age}`);
   }
@@ -59,6 +65,7 @@ export function formatUpdateRestartStatusValue(
   return ok(`verified${version ? ` · gateway ${version}` : ""}${age}`);
 }
 
+/** Returns follow-up action lines for update restart failures or pending handoffs. */
 export function formatUpdateRestartActionLines(
   payload: RestartSentinelPayload | null | undefined,
 ): string[] {
@@ -67,8 +74,8 @@ export function formatUpdateRestartActionLines(
   }
   if (payload.status === "error") {
     return [
-      "Update restart failed; run astroclaw gateway status --deep.",
-      "If the service is down, run astroclaw gateway restart or astroclaw gateway install --force.",
+      "Update restart failed; run openclaw gateway status --deep.",
+      "If the service is down, run openclaw gateway restart or openclaw gateway install --force.",
     ];
   }
   const reason = readReason(payload);
@@ -78,8 +85,8 @@ export function formatUpdateRestartActionLines(
       reason === CONTROL_PLANE_UPDATE_RESTART_HEALTH_PENDING_REASON)
   ) {
     return [
-      "Update restart is still pending; run astroclaw update status --json for handoff state.",
-      "If it stays pending, run astroclaw gateway status --deep.",
+      "Update restart is still pending; run openclaw update status --json for handoff state.",
+      "If it stays pending, run openclaw gateway status --deep.",
     ];
   }
   return [];
