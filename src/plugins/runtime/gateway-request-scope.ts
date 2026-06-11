@@ -1,3 +1,4 @@
+// Gateway request scope tracks request-local plugin runtime context across async work.
 import { AsyncLocalStorage } from "node:async_hooks";
 import type {
   GatewayRequestContext,
@@ -20,7 +21,7 @@ export type PluginRuntimePluginScope = {
 };
 
 const PLUGIN_RUNTIME_GATEWAY_REQUEST_SCOPE_KEY: unique symbol = Symbol.for(
-  "astroclaw.pluginRuntimeGatewayRequestScope",
+  "openclaw.pluginRuntimeGatewayRequestScope",
 );
 
 const pluginRuntimeGatewayRequestScope = resolveGlobalSingleton<
