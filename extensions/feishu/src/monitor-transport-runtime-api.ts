@@ -1,10 +1,11 @@
+// Feishu API module exposes the plugin public contract.
 export type { RuntimeEnv } from "../runtime-api.js";
-export { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
+export { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
 export {
   applyBasicWebhookRequestGuards,
   resolveRequestClientIp,
-} from "astroclaw/plugin-sdk/webhook-ingress";
+} from "openclaw/plugin-sdk/webhook-ingress";
 export {
   installRequestBodyLimitGuard,
   readWebhookBodyOrReject,
-} from "astroclaw/plugin-sdk/webhook-request-guards";
+} from "openclaw/plugin-sdk/webhook-request-guards";
