@@ -1,5 +1,6 @@
+// Device Pair plugin module implements qr image behavior.
 export {
   renderQrPngBase64,
   renderQrPngDataUrl,
   writeQrPngTempFile,
-} from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/media-runtime";
