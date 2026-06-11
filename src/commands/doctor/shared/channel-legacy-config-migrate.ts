@@ -1,6 +1,7 @@
+// Legacy config migration bridge for channel doctor compatibility contracts.
 import { getBootstrapChannelPlugin } from "../../../channels/plugins/bootstrap-registry.js";
 import { loadBundledChannelDoctorContractApi } from "../../../channels/plugins/doctor-contract-api.js";
-import type { AstroclawConfig } from "../../../config/types.js";
+import type { OpenClawConfig } from "../../../config/types.js";
 import {
   applyPluginDoctorCompatibilityMigrations,
   collectRelevantDoctorPluginIds,
@@ -8,12 +9,12 @@ import {
 import { isRecord } from "./legacy-config-record-shared.js";
 
 type ChannelDoctorCompatibilityMutation = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   changes: string[];
 };
 
 type ChannelDoctorCompatibilityNormalizer = (params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }) => ChannelDoctorCompatibilityMutation;
 
 function collectRelevantDoctorChannelIds(raw: unknown): string[] {
@@ -52,11 +53,12 @@ function collectPluginDoctorCompatibilityIds(params: {
   ].toSorted();
 }
 
+/** Apply bundled and plugin channel compatibility migrations to a legacy config object. */
 export function applyChannelDoctorCompatibilityMigrations(cfg: Record<string, unknown>): {
   next: Record<string, unknown>;
   changes: string[];
 } {
-  let nextCfg = cfg as AstroclawConfig;
+  let nextCfg = cfg as OpenClawConfig;
   const changes: string[] = [];
   const unresolvedChannelIds: string[] = [];
 
@@ -77,7 +79,7 @@ export function applyChannelDoctorCompatibilityMigrations(cfg: Record<string, un
   const pluginIds = collectPluginDoctorCompatibilityIds({ raw: cfg, unresolvedChannelIds });
   if (pluginIds.length > 0) {
     const compat = applyPluginDoctorCompatibilityMigrations(nextCfg, {
-      config: cfg as AstroclawConfig,
+      config: cfg as OpenClawConfig,
       pluginIds,
     });
     nextCfg = compat.config;
@@ -85,7 +87,7 @@ export function applyChannelDoctorCompatibilityMigrations(cfg: Record<string, un
   }
 
   return {
-    next: nextCfg as AstroclawConfig & Record<string, unknown>,
+    next: nextCfg as OpenClawConfig & Record<string, unknown>,
     changes,
   };
 }
