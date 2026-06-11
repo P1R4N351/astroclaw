@@ -1,10 +1,11 @@
+// Test Support helper module supports debug proxy env test helpers behavior.
 import { afterEach, vi } from "vitest";
 
 const DEBUG_PROXY_ENV_KEYS = [
-  "ASTROCLAW_DEBUG_PROXY_ENABLED",
-  "ASTROCLAW_DEBUG_PROXY_DB_PATH",
-  "ASTROCLAW_DEBUG_PROXY_BLOB_DIR",
-  "ASTROCLAW_DEBUG_PROXY_SESSION_ID",
+  "OPENCLAW_DEBUG_PROXY_ENABLED",
+  "OPENCLAW_DEBUG_PROXY_DB_PATH",
+  "OPENCLAW_DEBUG_PROXY_BLOB_DIR",
+  "OPENCLAW_DEBUG_PROXY_SESSION_ID",
 ] as const;
 
 type DebugProxyEnvKey = (typeof DEBUG_PROXY_ENV_KEYS)[number];
