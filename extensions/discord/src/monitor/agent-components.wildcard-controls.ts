@@ -1,3 +1,4 @@
+// Discord plugin module implements agent components.wildcard controls behavior.
 import { ButtonStyle, ComponentType } from "discord-api-types/v10";
 import { parseDiscordComponentCustomIdForInteraction } from "../component-custom-id.js";
 import {
@@ -40,31 +41,31 @@ type SelectControlSpec = {
 const SELECT_CONTROLS = {
   string: {
     type: ComponentType.StringSelect,
-    customId: "__astroclaw_discord_component_string_select_wildcard__",
+    customId: "__openclaw_discord_component_string_select_wildcard__",
     componentLabel: "select menu",
     label: "discord component select",
   },
   user: {
     type: ComponentType.UserSelect,
-    customId: "__astroclaw_discord_component_user_select_wildcard__",
+    customId: "__openclaw_discord_component_user_select_wildcard__",
     componentLabel: "user select",
     label: "discord component user select",
   },
   role: {
     type: ComponentType.RoleSelect,
-    customId: "__astroclaw_discord_component_role_select_wildcard__",
+    customId: "__openclaw_discord_component_role_select_wildcard__",
     componentLabel: "role select",
     label: "discord component role select",
   },
   mentionable: {
     type: ComponentType.MentionableSelect,
-    customId: "__astroclaw_discord_component_mentionable_select_wildcard__",
+    customId: "__openclaw_discord_component_mentionable_select_wildcard__",
     componentLabel: "mentionable select",
     label: "discord component mentionable select",
   },
   channel: {
     type: ComponentType.ChannelSelect,
-    customId: "__astroclaw_discord_component_channel_select_wildcard__",
+    customId: "__openclaw_discord_component_channel_select_wildcard__",
     componentLabel: "channel select",
     label: "discord component channel select",
   },
@@ -108,7 +109,7 @@ class DiscordComponentSelectControl extends BaseMessageInteractiveComponent {
 
 class DiscordComponentButton extends Button {
   override label = "component";
-  override customId = "__astroclaw_discord_component_button_wildcard__";
+  override customId = "__openclaw_discord_component_button_wildcard__";
   override style = ButtonStyle.Primary;
   override customIdParser = parseDiscordComponentCustomIdForInteraction;
 
