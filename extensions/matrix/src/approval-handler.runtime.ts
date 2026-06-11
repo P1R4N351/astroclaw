@@ -1,25 +1,27 @@
+// Matrix plugin module implements approval handler behavior.
 import { setTimeout as sleep } from "node:timers/promises";
 import type {
   ChannelApprovalCapabilityHandlerContext,
   PendingApprovalView,
   ResolvedApprovalView,
-} from "astroclaw/plugin-sdk/approval-handler-runtime";
-import { createChannelApprovalNativeRuntimeAdapter } from "astroclaw/plugin-sdk/approval-handler-runtime";
-import { buildChannelApprovalNativeTargetKey } from "astroclaw/plugin-sdk/approval-native-runtime";
+} from "openclaw/plugin-sdk/approval-handler-runtime";
+import { createChannelApprovalNativeRuntimeAdapter } from "openclaw/plugin-sdk/approval-handler-runtime";
+import { buildChannelApprovalNativeTargetKey } from "openclaw/plugin-sdk/approval-native-runtime";
 import {
   buildExecApprovalPendingReplyPayload,
   buildPluginApprovalPendingReplyPayload,
   type ExecApprovalReplyDecision,
-} from "astroclaw/plugin-sdk/approval-reply-runtime";
-import { buildPluginApprovalResolvedReplyPayload } from "astroclaw/plugin-sdk/approval-runtime";
+} from "openclaw/plugin-sdk/approval-reply-runtime";
+import { buildPluginApprovalResolvedReplyPayload } from "openclaw/plugin-sdk/approval-runtime";
 import type {
   ExecApprovalRequest,
   PluginApprovalRequest,
-} from "astroclaw/plugin-sdk/approval-runtime";
+} from "openclaw/plugin-sdk/approval-runtime";
 import {
   listMessageReceiptPlatformIds,
   resolveMessageReceiptPrimaryId,
-} from "astroclaw/plugin-sdk/channel-message";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { normalizeUniqueStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   buildMatrixApprovalReactionHint,
   listMatrixApprovalReactionBindings,
@@ -42,8 +44,8 @@ import {
 import { resolveMatrixTargetIdentity } from "./matrix/target-ids.js";
 import type { CoreConfig } from "./types.js";
 
-// Astroclaw Matrix custom event content for capable clients; body and reactions remain fallback.
-const MATRIX_APPROVAL_METADATA_KEY = "com.astroclaw.approval" as const;
+// OpenClaw Matrix custom event content for capable clients; body and reactions remain fallback.
+const MATRIX_APPROVAL_METADATA_KEY = "com.openclaw.approval" as const;
 
 type PendingMessage = {
   roomId: string;
@@ -155,9 +157,7 @@ function resolveHandlerContext(params: ChannelApprovalCapabilityHandlerContext):
 }
 
 function normalizePendingMessageIds(entry: PendingMessage): string[] {
-  return Array.from(
-    new Set(entry.platformMessageIds.map((messageId) => messageId.trim()).filter(Boolean)),
-  );
+  return normalizeUniqueStringEntries(entry.platformMessageIds);
 }
 
 function normalizeReactionTargetRef(params: ReactionTargetRef): ReactionTargetRef | null {
