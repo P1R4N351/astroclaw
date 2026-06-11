@@ -1,8 +1,9 @@
+// Line helper module supports config schema behavior.
 import {
   buildChannelConfigSchema,
   requireOpenAllowFrom,
-} from "astroclaw/plugin-sdk/channel-config-schema";
-import { requireChannelOpenAllowFrom } from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/channel-config-schema";
+import { requireChannelOpenAllowFrom } from "openclaw/plugin-sdk/extension-shared";
 import { z } from "zod";
 
 const DmPolicySchema = z.enum(["open", "allowlist", "pairing", "disabled"]);
