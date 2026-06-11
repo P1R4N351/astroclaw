@@ -1,5 +1,8 @@
+// Update status helpers for `openclaw status`.
+// Wraps registry/git update checks and formats compact update rows/hints.
+
 import { formatCliCommand } from "../cli/command-format.js";
-import { resolveAstroclawPackageRoot } from "../infra/astroclaw-root.js";
+import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
 import { normalizeUpdateChannel, resolveRegistryUpdateChannel } from "../infra/update-channels.js";
 import {
   checkUpdateStatus,
@@ -8,6 +11,7 @@ import {
 } from "../infra/update-check.js";
 import { VERSION } from "../version.js";
 
+/** Runs the update check using the configured update channel and current install root. */
 export async function getUpdateCheckResult(params: {
   timeoutMs: number;
   fetchGit: boolean;
@@ -15,7 +19,7 @@ export async function getUpdateCheckResult(params: {
   updateConfigChannel?: string | null;
 }): Promise<UpdateCheckResult> {
   const configChannel = normalizeUpdateChannel(params.updateConfigChannel);
-  const root = await resolveAstroclawPackageRoot({
+  const root = await resolveOpenClawPackageRoot({
     moduleUrl: import.meta.url,
     argv1: process.argv[1],
     cwd: process.cwd(),
@@ -40,6 +44,7 @@ export type UpdateAvailability = {
   gitBehind: number | null;
 };
 
+/** Determines whether git and/or registry data indicate an available update. */
 export function resolveUpdateAvailability(update: UpdateCheckResult): UpdateAvailability {
   const latestVersion = update.registry?.latestVersion ?? null;
   const registryCmp = latestVersion ? compareSemverStrings(VERSION, latestVersion) : null;
@@ -59,6 +64,7 @@ export function resolveUpdateAvailability(update: UpdateCheckResult): UpdateAvai
   };
 }
 
+/** Formats the actionable update hint shown in status footers. */
 export function formatUpdateAvailableHint(update: UpdateCheckResult): string | null {
   const availability = resolveUpdateAvailability(update);
   if (!availability.available) {
@@ -73,9 +79,10 @@ export function formatUpdateAvailableHint(update: UpdateCheckResult): string | n
     details.push(`npm ${availability.latestVersion}`);
   }
   const suffix = details.length > 0 ? ` (${details.join(" · ")})` : "";
-  return `Update available${suffix}. Run: ${formatCliCommand("astroclaw update")}`;
+  return `Update available${suffix}. Run: ${formatCliCommand("openclaw update")}`;
 }
 
+/** Formats a compact one-line update summary for overview rows. */
 export function formatUpdateOneLiner(update: UpdateCheckResult): string {
   const parts: string[] = [];
 
@@ -90,6 +97,7 @@ export function formatUpdateOneLiner(update: UpdateCheckResult): string {
         if (update.installKind !== "git") {
           parts.push("up to date");
         }
+        // Git installs still show registry latest, but git ahead/behind remains the primary state.
         parts.push(`${registryLabel} ${update.registry.latestVersion}`);
       } else if (cmp != null && cmp < 0) {
         parts.push(
