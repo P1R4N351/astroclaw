@@ -1,8 +1,12 @@
+/**
+ * Registers the `/codex` plugin command and lazy-loads the app-server command
+ * handler implementation.
+ */
 import type {
-  AstroclawPluginCommandDefinition,
+  OpenClawPluginCommandDefinition,
   PluginCommandContext,
   PluginCommandResult,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import { describeControlFailure } from "./app-server/capabilities.js";
 import { formatCodexDisplayText } from "./command-formatters.js";
 import type { CodexCommandDeps } from "./command-handlers.js";
@@ -21,14 +25,21 @@ type CodexCommandInternalOptions = CodexCommandOptions & {
   loadSubcommandHandler?: () => Promise<CodexSubcommandHandler>;
 };
 
-export function createCodexCommand(options: CodexCommandOptions): AstroclawPluginCommandDefinition {
+/** Creates the reserved `/codex` command definition exposed by the plugin. */
+export function createCodexCommand(options: CodexCommandOptions): OpenClawPluginCommandDefinition {
   return {
     name: "codex",
     description: "Inspect and control the Codex app-server harness",
     ownership: "reserved",
     agentPromptGuidance: [
-      "Native Codex app-server plugin is available (`/codex ...`). For Codex bind/control/thread/resume/steer/stop requests, prefer `/codex bind`, `/codex threads`, `/codex resume`, `/codex steer`, and `/codex stop` over ACP.",
-      "Use ACP for Codex only when the user explicitly asks for ACP/acpx or wants to test the ACP path.",
+      {
+        text: "Native Codex app-server plugin is available (`/codex ...`). For Codex bind/control/thread/resume/steer/stop requests, prefer `/codex bind`, `/codex threads`, `/codex resume`, `/codex steer`, and `/codex stop` over ACP. When OpenClaw sandboxing is active, native Codex execution modes are unavailable; use normal Codex harness turns.",
+        surfaces: ["openclaw_main"],
+      },
+      {
+        text: "Use ACP for Codex only when the user explicitly asks for ACP/acpx or wants to test the ACP path.",
+        surfaces: ["openclaw_main"],
+      },
     ],
     acceptsArgs: true,
     requireAuth: true,
@@ -36,6 +47,7 @@ export function createCodexCommand(options: CodexCommandOptions): AstroclawPlugi
   };
 }
 
+/** Dispatches a `/codex` command to the subcommand handler and formats failures for chat. */
 export async function handleCodexCommand(
   ctx: PluginCommandContext,
   options: CodexCommandInternalOptions = {},
