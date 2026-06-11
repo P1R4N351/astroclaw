@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Creates the debug proxy CA and, on macOS, trusts it in the system keychain.
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 import { resolveSystemBin } from "../src/infra/resolve-system-bin.js";
@@ -46,10 +47,12 @@ async function installCa() {
   if (result.status !== 0) {
     throw new Error(`security add-trusted-cert failed with exit code ${result.status ?? 1}`);
   }
-  process.stdout.write("Trusted the Astroclaw debug proxy CA in System.keychain.\n");
+  process.stdout.write("Trusted the OpenClaw debug proxy CA in System.keychain.\n");
 }
 
-void installCa().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+void installCa().catch(
+  /** @param {unknown} error */ (error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  },
+);
