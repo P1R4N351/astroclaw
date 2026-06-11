@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Matrix plugin module implements migration snapshot behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { detectLegacyMatrixCrypto } from "./legacy-crypto.js";
 import { detectLegacyMatrixState } from "./legacy-state.js";
 import {
@@ -15,7 +16,7 @@ export type MatrixMigrationStatus = {
 };
 
 export function resolveMatrixMigrationStatus(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
 }): MatrixMigrationStatus {
   const env = params.env ?? process.env;
@@ -33,14 +34,14 @@ export function resolveMatrixMigrationStatus(params: {
 }
 
 export function hasPendingMatrixMigration(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
 }): boolean {
   return resolveMatrixMigrationStatus(params).pending;
 }
 
 export function hasActionableMatrixMigration(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
 }): boolean {
   return resolveMatrixMigrationStatus(params).actionable;
