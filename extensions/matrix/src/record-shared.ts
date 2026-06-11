@@ -1,3 +1,4 @@
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Matrix plugin module implements record shared behavior.
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export { isRecord };
