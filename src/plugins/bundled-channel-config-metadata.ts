@@ -1,3 +1,4 @@
+/** Loads bundled channel config schema metadata from source or public surface modules. */
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -12,7 +13,7 @@ import {
 } from "./bundled-plugin-scan.js";
 import type { PluginConfigUiHint } from "./manifest-types.js";
 import type {
-  AstroclawPackageManifest,
+  OpenClawPackageManifest,
   PluginManifest,
   PluginManifestChannelConfig,
 } from "./manifest.js";
@@ -63,7 +64,7 @@ function isJsonSchemaConfigSurface(value: unknown): value is JsonSchemaObject {
     Array.isArray(candidate.oneOf) ||
     Array.isArray(candidate.allOf) ||
     Array.isArray(candidate.enum) ||
-    Object.prototype.hasOwnProperty.call(candidate, "const")
+    Object.hasOwn(candidate, "const")
   );
 }
 
@@ -136,9 +137,9 @@ function loadChannelConfigSurfaceModuleSync(modulePath: string): ChannelConfigSu
 }
 
 function resolvePackageChannelMeta(
-  packageManifest: AstroclawPackageManifest | undefined,
+  packageManifest: OpenClawPackageManifest | undefined,
   channelId: string,
-): AstroclawPackageManifest["channel"] | undefined {
+): OpenClawPackageManifest["channel"] | undefined {
   const channelMeta = packageManifest?.channel;
   return channelMeta?.id?.trim() === channelId ? channelMeta : undefined;
 }
@@ -146,7 +147,7 @@ function resolvePackageChannelMeta(
 export function collectBundledChannelConfigs(params: {
   pluginDir: string;
   manifest: PluginManifest;
-  packageManifest?: AstroclawPackageManifest;
+  packageManifest?: OpenClawPackageManifest;
 }): Record<string, PluginManifestChannelConfig> | undefined {
   const channelIds = normalizeBundledPluginStringList(params.manifest.channels);
   const existingChannelConfigs: Record<string, PluginManifestChannelConfig> =
