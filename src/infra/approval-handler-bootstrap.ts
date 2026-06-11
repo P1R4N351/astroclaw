@@ -1,7 +1,8 @@
+// Bootstraps approval handlers from channel plugin capabilities.
 import { resolveChannelApprovalCapability } from "../channels/plugins/approvals.js";
 import type { ChannelRuntimeSurface } from "../channels/plugins/channel-runtime-surface.types.js";
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY,
@@ -39,9 +40,10 @@ function formatRetryableApprovalBootstrapStartError(error: unknown): string {
   return message;
 }
 
+/** Starts the native approval handler for a channel runtime context and returns its cleanup hook. */
 export async function startChannelApprovalHandlerBootstrap(params: {
   plugin: Pick<ChannelPlugin, "id" | "meta" | "approvalCapability">;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   channelRuntime?: ChannelRuntimeSurface;
   logger?: ReturnType<typeof createSubsystemLogger>;
@@ -98,6 +100,7 @@ export async function startChannelApprovalHandlerBootstrap(params: {
       return;
     }
     if (generation !== activeGeneration) {
+      // Runtime contexts can unregister while the handler factory awaits; stop stale handlers.
       await handler.stop().catch(() => {});
       return;
     }
@@ -114,7 +117,7 @@ export async function startChannelApprovalHandlerBootstrap(params: {
   };
 
   const spawn = (label: string, promise: Promise<void>) => {
-    void promise.catch((error) => {
+    void promise.catch((error: unknown) => {
       logger.error(`${label}: ${String(error)}`);
     });
   };
