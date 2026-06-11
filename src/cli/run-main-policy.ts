@@ -1,4 +1,10 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Main CLI startup policy helpers for fast paths, proxy startup, aliases, and missing commands.
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalLowercaseString,
+} from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { consumeRootOptionToken } from "../infra/cli-root-options.js";
 import {
   resolveManifestCommandAliasOwnerInRegistry,
   resolveManifestToolOwnerInRegistry,
@@ -6,11 +12,8 @@ import {
   type PluginManifestCommandAliasRegistry,
   type PluginManifestToolOwnerRecord,
 } from "../plugins/manifest-command-aliases.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalLowercaseString,
-} from "../shared/string-coerce.js";
 import { resolveCliArgvInvocation } from "./argv-invocation.js";
+import { hasFlag } from "./argv.js";
 import {
   resolveCliCommandPathPolicy,
   resolveCliNetworkProxyPolicy,
@@ -20,10 +23,56 @@ import { getCoreCliParentDefaultHelpCommands } from "./program/core-command-desc
 import { getSubCliParentDefaultHelpCommands } from "./program/subcli-descriptors.js";
 
 const ROOT_HELP_ALIASES = new Set(["tools"]);
+const SETUP_ONBOARD_CONFIGURE_HELP_COMMANDS = new Set(["setup", "onboard", "configure"]);
+const PRECOMPUTED_SUBCOMMAND_HELP_COMMANDS = new Set(["doctor", "gateway", "models", "plugins"]);
+const HELP_FLAGS = new Set(["-h", "--help"]);
+const VERSION_FLAGS = new Set(["-V", "--version"]);
 const BARE_PARENT_DEFAULT_HELP_COMMANDS = new Set([
   ...getCoreCliParentDefaultHelpCommands(),
   ...getSubCliParentDefaultHelpCommands(),
 ]);
+
+function hasHelpFlag(argv: string[]): boolean {
+  return hasFlag(argv, "-h") || hasFlag(argv, "--help");
+}
+
+function resolveStrictPrecomputedSubcommandHelpCommand(argv: string[]): string | null {
+  const args = argv.slice(2);
+  let commandName: string | null = null;
+  let sawHelp = false;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (!arg || arg === "--") {
+      return null;
+    }
+    if (VERSION_FLAGS.has(arg)) {
+      return null;
+    }
+    if (!commandName) {
+      const consumed = consumeRootOptionToken(args, index);
+      if (consumed > 0) {
+        index += consumed - 1;
+        continue;
+      }
+      if (arg.startsWith("-")) {
+        return null;
+      }
+      if (!PRECOMPUTED_SUBCOMMAND_HELP_COMMANDS.has(arg)) {
+        return null;
+      }
+      commandName = arg;
+      continue;
+    }
+    if (HELP_FLAGS.has(arg)) {
+      sawHelp = true;
+      continue;
+    }
+    return null;
+  }
+
+  return commandName && sawHelp ? commandName : null;
+}
 
 function isBareParentDefaultHelpArgv(argv: string[]): boolean {
   const invocation = resolveCliArgvInvocation(argv);
@@ -34,6 +83,7 @@ function isBareParentDefaultHelpArgv(argv: string[]): boolean {
 }
 
 export function rewriteUpdateFlagArgv(argv: string[]): string[] {
+  // Preserve the old root --update spelling by rewriting before Commander registration.
   const index = argv.indexOf("--update");
   if (index === -1) {
     return argv;
@@ -62,7 +112,7 @@ export function shouldUseRootHelpFastPath(
 ): boolean {
   const invocation = resolveCliArgvInvocation(argv);
   return (
-    env.ASTROCLAW_DISABLE_CLI_STARTUP_HELP_FAST_PATH !== "1" &&
+    env.OPENCLAW_DISABLE_CLI_STARTUP_HELP_FAST_PATH !== "1" &&
     (invocation.isRootHelpInvocation ||
       (invocation.commandPath.length === 1 &&
         ROOT_HELP_ALIASES.has(invocation.commandPath[0] ?? "") &&
@@ -77,15 +127,70 @@ export function shouldUseBrowserHelpFastPath(
   argv: string[],
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  if (env.ASTROCLAW_DISABLE_CLI_STARTUP_HELP_FAST_PATH === "1") {
+  if (env.OPENCLAW_DISABLE_CLI_STARTUP_HELP_FAST_PATH === "1") {
     return false;
   }
   const invocation = resolveCliArgvInvocation(argv);
   return (
     invocation.commandPath.length === 1 &&
     invocation.commandPath[0] === "browser" &&
+    hasHelpFlag(argv)
+  );
+}
+
+export function shouldUseSecretsHelpFastPath(
+  argv: string[],
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (env.OPENCLAW_DISABLE_CLI_STARTUP_HELP_FAST_PATH === "1") {
+    return false;
+  }
+  const invocation = resolveCliArgvInvocation(argv);
+  return (
+    invocation.commandPath.length === 1 &&
+    invocation.commandPath[0] === "secrets" &&
+    hasHelpFlag(argv)
+  );
+}
+
+export function shouldUseNodesHelpFastPath(
+  argv: string[],
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (env.OPENCLAW_DISABLE_CLI_STARTUP_HELP_FAST_PATH === "1") {
+    return false;
+  }
+  const invocation = resolveCliArgvInvocation(argv);
+  return (
+    invocation.commandPath.length === 1 &&
+    invocation.commandPath[0] === "nodes" &&
+    hasHelpFlag(argv)
+  );
+}
+
+export function shouldUseSetupOnboardConfigureHelpFastPath(
+  argv: string[],
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (env.OPENCLAW_DISABLE_CLI_STARTUP_HELP_FAST_PATH === "1") {
+    return false;
+  }
+  const invocation = resolveCliArgvInvocation(argv);
+  return (
+    invocation.commandPath.length === 1 &&
+    SETUP_ONBOARD_CONFIGURE_HELP_COMMANDS.has(invocation.commandPath[0] ?? "") &&
     invocation.hasHelpOrVersion
   );
+}
+
+export function resolvePrecomputedSubcommandHelpFastPath(
+  argv: string[],
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  if (env.OPENCLAW_DISABLE_CLI_STARTUP_HELP_FAST_PATH === "1") {
+    return null;
+  }
+  return resolveStrictPrecomputedSubcommandHelpCommand(argv);
 }
 
 export function shouldStartCrestodianForBareRoot(argv: string[]): boolean {
@@ -117,22 +222,22 @@ export function shouldStartProxyForCli(argv: string[]): boolean {
 
 export function resolveMissingPluginCommandMessage(
   pluginId: string,
-  config?: AstroclawConfig,
+  config?: OpenClawConfig,
   options?: {
     registry?: PluginManifestCommandAliasRegistry;
     resolveCommandAliasOwner?: (params: {
       command: string | undefined;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
       registry?: PluginManifestCommandAliasRegistry;
     }) => PluginManifestCommandAliasRecord | undefined;
     resolveToolOwner?: (params: {
       toolName: string | undefined;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
       registry?: PluginManifestCommandAliasRegistry;
     }) => PluginManifestToolOwnerRecord | undefined;
     resolveCliCommandSurfaceOwner?: (params: {
       command: string | undefined;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
       registry?: PluginManifestCommandAliasRegistry;
     }) => string | undefined;
   },
@@ -163,7 +268,7 @@ export function resolveMissingPluginCommandMessage(
     if (allow.length > 0 && !allow.includes(parentPluginId)) {
       if (parentPluginId === normalizedPluginId) {
         return (
-          `The \`astroclaw ${normalizedPluginId}\` command is unavailable because ` +
+          `The \`openclaw ${normalizedPluginId}\` command is unavailable because ` +
           `\`plugins.allow\` excludes "${normalizedPluginId}". Add "${normalizedPluginId}" to ` +
           `\`plugins.allow\` if you want that bundled plugin CLI surface.`
         );
@@ -176,7 +281,7 @@ export function resolveMissingPluginCommandMessage(
     }
     if (config?.plugins?.entries?.[parentPluginId]?.enabled === false) {
       return (
-        `The \`astroclaw ${normalizedPluginId}\` command is unavailable because ` +
+        `The \`openclaw ${normalizedPluginId}\` command is unavailable because ` +
         `\`plugins.entries.${parentPluginId}.enabled=false\`. Re-enable that entry if you want ` +
         "the bundled plugin command surface."
       );
@@ -187,14 +292,14 @@ export function resolveMissingPluginCommandMessage(
       config?.plugins?.entries?.[parentPluginId]?.enabled !== true
     ) {
       return (
-        `The \`astroclaw ${normalizedPluginId}\` command is provided by the ` +
+        `The \`openclaw ${normalizedPluginId}\` command is provided by the ` +
         `"${parentPluginId}" plugin, but that bundled plugin is disabled by default. Run ` +
-        `\`astroclaw plugins enable ${parentPluginId}\` to enable that CLI surface.`
+        `\`openclaw plugins enable ${parentPluginId}\` to enable that CLI surface.`
       );
     }
     if (commandAlias.kind === "runtime-slash") {
       const cliHint = commandAlias.cliCommand
-        ? `Use \`astroclaw ${commandAlias.cliCommand}\` for related CLI operations, or `
+        ? `Use \`openclaw ${commandAlias.cliCommand}\` for related CLI operations, or `
         : "Use ";
       return (
         `"${normalizedPluginId}" is a runtime slash command (/${normalizedPluginId}), not a CLI command. ` +
@@ -238,13 +343,13 @@ export function resolveMissingPluginCommandMessage(
         return (
           `"${normalizedPluginId}" may be provided by the "${toolOwner.pluginId}" plugin ` +
           `as an agent tool, not a CLI subcommand. ` +
-          "Run `astroclaw --help` to see available CLI subcommands."
+          "Run `openclaw --help` to see available CLI subcommands."
         );
       }
       return (
         `"${normalizedPluginId}" is an agent tool available from the "${toolOwner.pluginId}" plugin, ` +
         `not a CLI subcommand. Use it from an agent turn (model tool-use), not the CLI. ` +
-        "Run `astroclaw --help` to see available CLI subcommands."
+        "Run `openclaw --help` to see available CLI subcommands."
       );
     }
   }
@@ -281,14 +386,14 @@ export function resolveMissingPluginCommandMessage(
       );
     }
     return (
-      `The \`astroclaw ${normalizedPluginId}\` command is unavailable because ` +
+      `The \`openclaw ${normalizedPluginId}\` command is unavailable because ` +
       `\`plugins.allow\` excludes "${normalizedPluginId}". Add "${normalizedPluginId}" to ` +
       `\`plugins.allow\` if you want that bundled plugin CLI surface.`
     );
   }
   if (config?.plugins?.entries?.[normalizedPluginId]?.enabled === false) {
     return (
-      `The \`astroclaw ${normalizedPluginId}\` command is unavailable because ` +
+      `The \`openclaw ${normalizedPluginId}\` command is unavailable because ` +
       `\`plugins.entries.${normalizedPluginId}.enabled=false\`. Re-enable that entry if you want ` +
       "the bundled plugin CLI surface."
     );
