@@ -1,4 +1,5 @@
-import { normalizeOptionalAccountId } from "astroclaw/plugin-sdk/account-id";
+// Matrix plugin module implements encryption guidance behavior.
+import { normalizeOptionalAccountId } from "openclaw/plugin-sdk/account-id";
 import { resolveMatrixDefaultOrOnlyAccountId } from "../account-selection.js";
 import type { CoreConfig } from "../types.js";
 import { resolveMatrixConfigFieldPath } from "./config-paths.js";
