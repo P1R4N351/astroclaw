@@ -1,14 +1,18 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
-import { normalizeOptionalString } from "../../shared/string-coerce.js";
+/**
+ * Channel status snapshot builders.
+ *
+ * Combines plugin status hooks, account inspection, and safe account field projection.
+ */
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { inspectChannelAccount } from "../account-inspection.js";
 import { projectSafeChannelAccountSnapshotFields } from "../account-snapshot-fields.js";
 import type { ChannelPlugin } from "./types.plugin.js";
 import type { ChannelAccountSnapshot } from "./types.public.js";
 
-// Channel docking: status snapshots flow through plugin.status hooks here.
 export async function buildChannelAccountSnapshotFromAccount<ResolvedAccount>(params: {
   plugin: ChannelPlugin<ResolvedAccount>;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   account: ResolvedAccount;
   runtime?: ChannelAccountSnapshot;
@@ -58,7 +62,7 @@ export async function buildChannelAccountSnapshotFromAccount<ResolvedAccount>(pa
 
 export async function buildReadOnlySourceChannelAccountSnapshot<ResolvedAccount>(params: {
   plugin: ChannelPlugin<ResolvedAccount>;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   runtime?: ChannelAccountSnapshot;
   probe?: unknown;
@@ -76,7 +80,7 @@ export async function buildReadOnlySourceChannelAccountSnapshot<ResolvedAccount>
 
 export async function buildChannelAccountSnapshot<ResolvedAccount>(params: {
   plugin: ChannelPlugin<ResolvedAccount>;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   runtime?: ChannelAccountSnapshot;
   probe?: unknown;
