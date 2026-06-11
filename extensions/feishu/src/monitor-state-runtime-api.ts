@@ -1,7 +1,8 @@
-export type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+// Feishu API module exposes the plugin public contract.
+export type { RuntimeEnv } from "../runtime-api.js";
 export {
   createFixedWindowRateLimiter,
   createWebhookAnomalyTracker,
   WEBHOOK_ANOMALY_COUNTER_DEFAULTS,
   WEBHOOK_RATE_LIMIT_DEFAULTS,
-} from "astroclaw/plugin-sdk/webhook-ingress";
+} from "openclaw/plugin-sdk/webhook-ingress";
