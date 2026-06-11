@@ -18,33 +18,45 @@ function splitCsv(value: string | undefined) {
 }
 
 function resolveCredentialSource(env: NodeJS.ProcessEnv) {
-  return env.ASTROCLAW_NPM_TELEGRAM_CREDENTIAL_SOURCE ?? env.ASTROCLAW_QA_CREDENTIAL_SOURCE;
+  return env.OPENCLAW_NPM_TELEGRAM_CREDENTIAL_SOURCE ?? env.OPENCLAW_QA_CREDENTIAL_SOURCE;
 }
 
 function resolveCredentialRole(env: NodeJS.ProcessEnv) {
-  return env.ASTROCLAW_NPM_TELEGRAM_CREDENTIAL_ROLE ?? env.ASTROCLAW_QA_CREDENTIAL_ROLE;
+  return env.OPENCLAW_NPM_TELEGRAM_CREDENTIAL_ROLE ?? env.OPENCLAW_QA_CREDENTIAL_ROLE;
 }
 
-async function resolveTrustedAstroclawCommand(rawCommand: string) {
+async function shouldFailPackageTelegramRun(
+  result: { summaryPath: string },
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  if (parseBoolean(env.OPENCLAW_NPM_TELEGRAM_ALLOW_FAILURES)) {
+    return false;
+  }
+  const { readQaSuiteFailedScenarioCountFromFile } =
+    await import("../../extensions/qa-lab/src/suite-summary.ts");
+  return (await readQaSuiteFailedScenarioCountFromFile(result.summaryPath)) > 0;
+}
+
+async function resolveTrustedOpenClawCommand(rawCommand: string) {
   if (!path.isAbsolute(rawCommand)) {
-    throw new Error("ASTROCLAW_NPM_TELEGRAM_SUT_COMMAND must be an absolute path.");
+    throw new Error("OPENCLAW_NPM_TELEGRAM_SUT_COMMAND must be an absolute path.");
   }
   const commandName = path.basename(rawCommand);
-  if (commandName !== "astroclaw" && commandName !== "astroclaw.cmd") {
+  if (commandName !== "openclaw" && commandName !== "openclaw.cmd") {
     throw new Error(
-      `ASTROCLAW_NPM_TELEGRAM_SUT_COMMAND must point to astroclaw; got: ${commandName}`,
+      `OPENCLAW_NPM_TELEGRAM_SUT_COMMAND must point to openclaw; got: ${commandName}`,
     );
   }
   const npmPrefix = process.env.NPM_CONFIG_PREFIX?.trim();
   if (!npmPrefix) {
-    throw new Error("Missing NPM_CONFIG_PREFIX for installed astroclaw command validation.");
+    throw new Error("Missing NPM_CONFIG_PREFIX for installed openclaw command validation.");
   }
   const [realCommand, realPrefix] = await Promise.all([
     fs.realpath(rawCommand),
     fs.realpath(npmPrefix),
   ]);
   if (realCommand !== realPrefix && !realCommand.startsWith(`${realPrefix}${path.sep}`)) {
-    throw new Error("ASTROCLAW_NPM_TELEGRAM_SUT_COMMAND must resolve inside NPM_CONFIG_PREFIX.");
+    throw new Error("OPENCLAW_NPM_TELEGRAM_SUT_COMMAND must resolve inside NPM_CONFIG_PREFIX.");
   }
   return rawCommand;
 }
@@ -52,27 +64,27 @@ async function resolveTrustedAstroclawCommand(rawCommand: string) {
 async function main() {
   const { runTelegramQaLive } =
     await import("../../extensions/qa-lab/src/live-transports/telegram/telegram-live.runtime.ts");
-  const rawSutAstroclawCommand = process.env.ASTROCLAW_NPM_TELEGRAM_SUT_COMMAND?.trim();
-  if (!rawSutAstroclawCommand) {
-    throw new Error("Missing ASTROCLAW_NPM_TELEGRAM_SUT_COMMAND.");
+  const rawSutOpenClawCommand = process.env.OPENCLAW_NPM_TELEGRAM_SUT_COMMAND?.trim();
+  if (!rawSutOpenClawCommand) {
+    throw new Error("Missing OPENCLAW_NPM_TELEGRAM_SUT_COMMAND.");
   }
-  const sutAstroclawCommand = await resolveTrustedAstroclawCommand(rawSutAstroclawCommand);
+  const sutOpenClawCommand = await resolveTrustedOpenClawCommand(rawSutOpenClawCommand);
 
-  const repoRoot = path.resolve(process.env.ASTROCLAW_NPM_TELEGRAM_REPO_ROOT ?? process.cwd());
+  const repoRoot = path.resolve(process.env.OPENCLAW_NPM_TELEGRAM_REPO_ROOT ?? process.cwd());
   const outputDir =
-    process.env.ASTROCLAW_NPM_TELEGRAM_OUTPUT_DIR?.trim() ||
+    process.env.OPENCLAW_NPM_TELEGRAM_OUTPUT_DIR?.trim() ||
     path.join(repoRoot, ".artifacts", "qa-e2e", `npm-telegram-live-${Date.now().toString(36)}`);
   const result = await runTelegramQaLive({
     repoRoot,
     outputDir,
-    sutAstroclawCommand,
+    sutOpenClawCommand,
     preflightInstalledOnboarding: true,
-    providerMode: process.env.ASTROCLAW_NPM_TELEGRAM_PROVIDER_MODE,
-    primaryModel: process.env.ASTROCLAW_NPM_TELEGRAM_MODEL,
-    alternateModel: process.env.ASTROCLAW_NPM_TELEGRAM_ALT_MODEL,
-    fastMode: parseBoolean(process.env.ASTROCLAW_NPM_TELEGRAM_FAST),
-    scenarioIds: splitCsv(process.env.ASTROCLAW_NPM_TELEGRAM_SCENARIOS),
-    sutAccountId: process.env.ASTROCLAW_NPM_TELEGRAM_SUT_ACCOUNT,
+    providerMode: process.env.OPENCLAW_NPM_TELEGRAM_PROVIDER_MODE,
+    primaryModel: process.env.OPENCLAW_NPM_TELEGRAM_MODEL,
+    alternateModel: process.env.OPENCLAW_NPM_TELEGRAM_ALT_MODEL,
+    fastMode: parseBoolean(process.env.OPENCLAW_NPM_TELEGRAM_FAST),
+    scenarioIds: splitCsv(process.env.OPENCLAW_NPM_TELEGRAM_SCENARIOS),
+    sutAccountId: process.env.OPENCLAW_NPM_TELEGRAM_SUT_ACCOUNT,
     credentialSource: resolveCredentialSource(process.env),
     credentialRole: resolveCredentialRole(process.env),
   });
@@ -80,10 +92,7 @@ async function main() {
   process.stdout.write(`Package Telegram QA report: ${result.reportPath}\n`);
   process.stdout.write(`Package Telegram QA summary: ${result.summaryPath}\n`);
   process.stdout.write(`Package Telegram QA observed messages: ${result.observedMessagesPath}\n`);
-  if (
-    !parseBoolean(process.env.ASTROCLAW_NPM_TELEGRAM_ALLOW_FAILURES) &&
-    result.scenarios.some((scenario) => scenario.status === "fail")
-  ) {
+  if (await shouldFailPackageTelegramRun(result)) {
     process.exitCode = 1;
   }
 }
@@ -98,7 +107,7 @@ async function formatRunnerErrorMessage(error: unknown) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch(async (error) => {
+  main().catch(async (error: unknown) => {
     process.stderr.write(
       `package telegram live e2e failed: ${await formatRunnerErrorMessage(error)}\n`,
     );
@@ -106,7 +115,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   });
 }
 
-export const __testing = {
+export const testing = {
   resolveCredentialRole,
   resolveCredentialSource,
+  shouldFailPackageTelegramRun,
 };
+export { testing as __testing };
