@@ -1,3 +1,4 @@
+// Channel contract suites provide reusable expectations for channel plugin test coverage.
 import { expect, it } from "vitest";
 import type {
   ChannelAccountSnapshot,
@@ -9,7 +10,7 @@ import type {
   ChannelMessageCapability,
   ChannelPlugin,
 } from "../../channels/plugins/types.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 
 function sortStrings(values: readonly string[]) {
   return [...values].toSorted((left, right) => left.localeCompare(right));
@@ -17,7 +18,7 @@ function sortStrings(values: readonly string[]) {
 
 function resolveContractMessageDiscovery(params: {
   plugin: Pick<ChannelPlugin, "actions">;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }) {
   const actions = params.plugin.actions;
   if (!actions) {
@@ -61,7 +62,7 @@ export function expectChannelPluginContract(
 
 type ChannelActionsContractCase = {
   name: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   expectedActions: readonly ChannelMessageActionName[];
   expectedCapabilities?: readonly ChannelMessageCapability[];
   beforeTest?: () => void;
@@ -112,14 +113,14 @@ export function installChannelActionsContractSuite(params: {
 
 type ChannelSetupContractCase<ResolvedAccount> = {
   name: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string;
   input: ChannelSetupInput;
   expectedAccountId?: string;
   expectedValidation?: string | null;
   beforeTest?: () => void;
-  assertPatchedConfig?: (cfg: AstroclawConfig) => void;
-  assertResolvedAccount?: (account: ResolvedAccount, cfg: AstroclawConfig) => void;
+  assertPatchedConfig?: (cfg: OpenClawConfig) => void;
+  assertResolvedAccount?: (account: ResolvedAccount, cfg: OpenClawConfig) => void;
 };
 
 export function installChannelSetupContractSuite<ResolvedAccount>(params: {
@@ -170,7 +171,7 @@ export function installChannelSetupContractSuite<ResolvedAccount>(params: {
 
 type ChannelStatusContractCase<Probe> = {
   name: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string;
   runtime?: ChannelAccountSnapshot;
   probe?: Probe;
