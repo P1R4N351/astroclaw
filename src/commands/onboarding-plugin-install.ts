@@ -1,18 +1,29 @@
+/**
+ * Onboarding plugin installation flow.
+ *
+ * It selects local, ClawHub, npm, or override install sources; records durable
+ * install metadata; and enables plugins requested by setup workflows.
+ */
 import fs from "node:fs";
 import path from "node:path";
+import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import { resolveBundledInstallPlanForCatalogEntry } from "../cli/plugin-install-plan.js";
 import { assertConfigWriteAllowedInCurrentMode } from "../config/nix-mode-write-guard.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { parseClawHubPluginSpec } from "../infra/clawhub-spec.js";
-import { parseRegistryNpmSpec } from "../infra/npm-registry-spec.js";
+import { isOpenClawOrgNpmSpec, parseRegistryNpmSpec } from "../infra/npm-registry-spec.js";
 import { normalizeUpdateChannel, resolveRegistryUpdateChannel } from "../infra/update-channels.js";
 import {
   findBundledPluginSourceInMap,
   resolveBundledPluginSources,
 } from "../plugins/bundled-sources.js";
+import { CLAWHUB_INSTALL_ERROR_CODE } from "../plugins/clawhub-error-codes.js";
 import { buildClawHubPluginInstallRecordFields } from "../plugins/clawhub-install-records.js";
-import { CLAWHUB_INSTALL_ERROR_CODE } from "../plugins/clawhub.js";
-import { enablePluginInConfig, type PluginEnableResult } from "../plugins/enable.js";
+import {
+  enableExplicitlySelectedPluginInConfig,
+  type PluginEnableResult,
+} from "../plugins/enable.js";
 import {
   resolveClawHubInstallSpecsForUpdateChannel,
   resolveNpmInstallSpecsForUpdateChannel,
@@ -29,10 +40,13 @@ import {
   installPluginFromNpmPackArchive,
   type InstallPluginResult,
 } from "../plugins/install.js";
-import { buildNpmResolutionInstallFields, recordPluginInstall } from "../plugins/installs.js";
+import {
+  buildNpmResolutionInstallFields,
+  recordPluginInstall,
+  resolveNpmInstallRecordSpec,
+} from "../plugins/installs.js";
 import type { PluginPackageInstall } from "../plugins/manifest.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { sanitizeTerminalText } from "../terminal/safe-text.js";
 import { withTimeout } from "../utils/with-timeout.js";
 import { VERSION } from "../version.js";
 import { t } from "../wizard/i18n/index.js";
@@ -45,6 +59,7 @@ type InstallPluginFromClawHubResult = Awaited<
 const ONBOARDING_PLUGIN_INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
 const ONBOARDING_PLUGIN_INSTALL_WATCHDOG_TIMEOUT_MS = ONBOARDING_PLUGIN_INSTALL_TIMEOUT_MS + 5_000;
 
+/** Catalog entry used by onboarding to offer or require a plugin install. */
 export type OnboardingPluginInstallEntry = {
   pluginId: string;
   label: string;
@@ -53,19 +68,31 @@ export type OnboardingPluginInstallEntry = {
   preferRemoteInstall?: boolean;
 };
 
+/** Outcome status for a single onboarding plugin install attempt. */
 export type OnboardingPluginInstallStatus = "installed" | "skipped" | "failed" | "timed_out";
 
+/** Config and status returned after attempting an onboarding plugin install. */
 export type OnboardingPluginInstallResult = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   installed: boolean;
   pluginId: string;
   status: OnboardingPluginInstallStatus;
 };
 
-function shouldFallbackClawHubToNpm(result: { ok: false; code?: string }): boolean {
+function shouldFallbackClawHubToNpm(params: {
+  result: { ok: false; code?: string };
+  npmSpec?: string;
+}): boolean {
+  if (!isOpenClawOrgNpmSpec(params.npmSpec)) {
+    return false;
+  }
+  // Only official OpenClaw npm packages are safe fallback targets for ClawHub
+  // availability failures; arbitrary npm fallbacks would change trust source.
   return (
-    result.code === CLAWHUB_INSTALL_ERROR_CODE.PACKAGE_NOT_FOUND ||
-    result.code === CLAWHUB_INSTALL_ERROR_CODE.VERSION_NOT_FOUND
+    params.result.code === CLAWHUB_INSTALL_ERROR_CODE.PACKAGE_NOT_FOUND ||
+    params.result.code === CLAWHUB_INSTALL_ERROR_CODE.VERSION_NOT_FOUND ||
+    params.result.code === CLAWHUB_INSTALL_ERROR_CODE.ARTIFACT_DOWNLOAD_UNAVAILABLE ||
+    params.result.code === CLAWHUB_INSTALL_ERROR_CODE.ARTIFACT_UNAVAILABLE
   );
 }
 
@@ -135,9 +162,9 @@ function hasGitWorkspace(workspaceDir?: string): boolean {
   return roots.some((root) => hasTrustedGitWorkspace(root));
 }
 
-function addPluginLoadPath(cfg: AstroclawConfig, pluginPath: string): AstroclawConfig {
+function addPluginLoadPath(cfg: OpenClawConfig, pluginPath: string): OpenClawConfig {
   const existing = cfg.plugins?.load?.paths ?? [];
-  const merged = Array.from(new Set([...existing, pluginPath]));
+  const merged = uniqueStrings([...existing, pluginPath]);
   return {
     ...cfg,
     plugins: {
@@ -182,12 +209,12 @@ function formatPortableLocalPath(localPath: string, workspaceDir?: string): stri
 }
 
 async function recordLocalPluginInstall(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   entry: OnboardingPluginInstallEntry;
   localPath: string;
   npmSpec?: string | null;
   workspaceDir?: string;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const sourcePath = formatPortableLocalPath(params.localPath, params.workspaceDir);
   const install = {
     pluginId: params.entry.pluginId,
@@ -225,6 +252,8 @@ function resolveLocalPath(params: {
   for (const candidate of candidates) {
     try {
       const resolved = fs.realpathSync(candidate);
+      // Local plugin paths must stay inside the current repo/workspace roots so
+      // catalog metadata cannot point setup at arbitrary filesystem locations.
       if (
         !bases.some((base) => {
           const realBase = resolveRealDirectory(base);
@@ -292,7 +321,7 @@ function resolveClawHubSpecForOnboarding(install: PluginPackageInstall): string 
 }
 
 function resolveInstallDefaultChoice(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   entry: OnboardingPluginInstallEntry;
   localPath?: string | null;
   bundledLocalPath?: string | null;
@@ -321,6 +350,8 @@ function resolveInstallDefaultChoice(params: {
     return "local";
   }
   const updateChannel = cfg.update?.channel;
+  // Dev builds prefer checked-out local plugins; stable/beta prefer published
+  // artifacts so installed records match the user's release channel.
   if (updateChannel === "dev") {
     return "local";
   }
@@ -398,6 +429,8 @@ async function promptInstallChoice(params: {
       realSources.push("local");
     }
     if (realSources.length === 1) {
+      // Callers that already selected a plugin/channel can skip an extra prompt
+      // when there is only one viable source.
       return realSources[0];
     }
   }
@@ -482,13 +515,13 @@ function isTimeoutError(error: unknown): boolean {
 }
 
 async function applyPluginEnablement(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   pluginId: string;
   label: string;
   prompter: WizardPrompter;
   runtime: RuntimeEnv;
 }): Promise<PluginEnableResult> {
-  const enableResult = enablePluginInConfig(params.cfg, params.pluginId);
+  const enableResult = enableExplicitlySelectedPluginInConfig(params.cfg, params.pluginId);
   if (enableResult.enabled) {
     return enableResult;
   }
@@ -762,7 +795,7 @@ async function installPluginFromNpmPackArchiveWithProgress(params: {
 }
 
 async function installPluginFromOverride(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   entry: OnboardingPluginInstallEntry;
   override: PluginInstallOverride;
   prompter: WizardPrompter;
@@ -772,6 +805,8 @@ async function installPluginFromOverride(params: {
   runtime.log?.(
     `Using plugin install override for ${sanitizeTerminalText(entry.pluginId)} from ${PLUGIN_INSTALL_OVERRIDES_ENV} (${ALLOW_PLUGIN_INSTALL_OVERRIDES_ENV}=1).`,
   );
+  // Overrides are explicit operator/developer input and intentionally bypass
+  // catalog trust defaults while still recording the resulting install source.
   const installOutcome =
     params.override.kind === "npm"
       ? await installPluginFromNpmSpecWithProgress({
@@ -952,8 +987,9 @@ async function installPluginFromClawHubSpecWithProgress(params: {
   }
 }
 
+/** Ensures an onboarding plugin is installed, enabled, and recorded in config. */
 export async function ensureOnboardingPluginInstalled(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   entry: OnboardingPluginInstallEntry;
   prompter: WizardPrompter;
   runtime: RuntimeEnv;
@@ -965,6 +1001,8 @@ export async function ensureOnboardingPluginInstalled(params: {
   let next = params.cfg;
   const installOverride = resolvePluginInstallOverride({ pluginId: entry.pluginId });
   if (installOverride) {
+    // Any install override mutates config/install records, so guard it with the
+    // same write-mode check as normal installs.
     assertConfigWriteAllowedInCurrentMode();
     return await installPluginFromOverride({
       cfg: next,
@@ -1040,6 +1078,8 @@ export async function ensureOnboardingPluginInstalled(params: {
   assertConfigWriteAllowedInCurrentMode();
 
   if (choice === "local" && localPath) {
+    // Bundled plugin sources are already part of the host checkout; enabling is
+    // enough and no install record/load path should be added for that case.
     const enableResult = await applyPluginEnablement({
       cfg: next,
       pluginId: entry.pluginId,
@@ -1141,7 +1181,7 @@ export async function ensureOnboardingPluginInstalled(params: {
       t("wizard.plugins.installTitle"),
     );
 
-    if (!npmInstallSpec || !shouldFallbackClawHubToNpm(result)) {
+    if (!npmInstallSpec || !shouldFallbackClawHubToNpm({ result, npmSpec: npmInstallSpec })) {
       runtime.error?.(`Plugin install failed: ${sanitizeTerminalText(result.error)}`);
       return {
         cfg: next,
@@ -1151,6 +1191,8 @@ export async function ensureOnboardingPluginInstalled(params: {
       };
     }
 
+    // ClawHub package/version misses for official packages can recover through
+    // npm, but keep the operator in control before changing install source.
     shouldTryNpm = await prompter.confirm({
       message: t("wizard.plugins.useNpmPackageInstead", {
         spec: sanitizeTerminalText(npmInstallSpec),
@@ -1231,7 +1273,11 @@ export async function ensureOnboardingPluginInstalled(params: {
     const install = {
       pluginId: result.pluginId,
       source: "npm",
-      spec: npmSpecs?.recordSpec ?? npmInstallSpec,
+      spec: resolveNpmInstallRecordSpec({
+        requestedSpec: npmSpecs?.recordSpec ?? npmInstallSpec,
+        resolution: result.npmResolution,
+        pinResolvedRegistrySpec: entry.trustedSourceLinkedOfficialInstall === true,
+      }),
       installPath: result.targetDir,
       version: result.version,
       ...buildNpmResolutionInstallFields(result.npmResolution),
@@ -1257,6 +1303,8 @@ export async function ensureOnboardingPluginInstalled(params: {
   );
 
   if (localPath) {
+    // If npm fails and a trusted local checkout exists, offer it as a recovery
+    // path instead of leaving setup stuck on the remote artifact.
     const fallback = await prompter.confirm({
       message: t("wizard.plugins.useLocalPluginPathInstead", {
         path: sanitizeTerminalText(localPath),
