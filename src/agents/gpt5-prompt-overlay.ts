@@ -1,5 +1,10 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
-import { normalizeOptionalLowercaseString } from "../shared/string-coerce.js";
+/**
+ * Deprecated GPT-5 prompt overlay helpers.
+ * Kept for OpenAI/Codex provider-owned compatibility while prompt behavior
+ * moves toward provider plugin ownership.
+ */
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { ProviderSystemPromptContribution } from "./system-prompt-contribution.js";
 
 const GPT5_MODEL_ID_PATTERN = /(?:^|[/:])gpt-5(?:[.-]|$)/i;
@@ -7,9 +12,9 @@ const OPENAI_FAMILY_GPT5_PROMPT_OVERLAY_PROVIDERS = new Set([
   "codex",
   "codex-cli",
   "openai",
+  "openai",
   "azure-openai",
   "azure-openai-responses",
-  "openai-codex",
 ]);
 
 /** @deprecated OpenAI/Codex provider-owned prompt overlay helper; do not use from third-party plugins. */
@@ -97,7 +102,7 @@ export function normalizeGpt5PromptOverlayMode(value: unknown): Gpt5PromptOverla
 
 /** @deprecated OpenAI/Codex provider-owned prompt overlay helper; do not use from third-party plugins. */
 export function resolveGpt5PromptOverlayMode(
-  config?: AstroclawConfig,
+  config?: OpenClawConfig,
   legacyPluginConfig?: Record<string, unknown>,
   params?: { providerId?: string },
 ): Gpt5PromptOverlayMode {
@@ -122,7 +127,7 @@ export function isGpt5ModelId(modelId?: string): boolean {
 
 /** @deprecated OpenAI/Codex provider-owned prompt overlay helper; do not use from third-party plugins. */
 export function resolveGpt5SystemPromptContribution(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   providerId?: string;
   modelId?: string;
   legacyPluginConfig?: Record<string, unknown>;
@@ -149,7 +154,7 @@ export function resolveGpt5SystemPromptContribution(params: {
 
 /** @deprecated OpenAI/Codex provider-owned prompt overlay helper; do not use from third-party plugins. */
 export function renderGpt5PromptOverlay(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   providerId?: string;
   modelId?: string;
   legacyPluginConfig?: Record<string, unknown>;
