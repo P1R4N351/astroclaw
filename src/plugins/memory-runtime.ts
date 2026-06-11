@@ -1,12 +1,14 @@
+// Runtime bridge for plugin-owned memory hooks and state.
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveUserPath } from "../utils.js";
 import { getLoadedRuntimePluginRegistry } from "./active-runtime-registry.js";
 import { normalizePluginsConfig } from "./config-state.js";
 import { getMemoryRuntime } from "./memory-state.js";
 import { ensureStandaloneRuntimePluginRegistryLoaded } from "./runtime/standalone-runtime-registry-loader.js";
 
-function resolveMemoryRuntimePluginIds(config: AstroclawConfig): string[] {
+/** Resolves the configured memory slot to the single runtime plugin that may load memory. */
+function resolveMemoryRuntimePluginIds(config: OpenClawConfig): string[] {
   const plugins = normalizePluginsConfig(config.plugins);
   const memorySlot = plugins.slots.memory;
   if (!plugins.enabled || typeof memorySlot !== "string" || memorySlot.trim().length === 0) {
@@ -19,7 +21,7 @@ function resolveMemoryRuntimePluginIds(config: AstroclawConfig): string[] {
   return [pluginId];
 }
 
-function resolveMemoryRuntimeWorkspaceDir(cfg: AstroclawConfig): string | undefined {
+function resolveMemoryRuntimeWorkspaceDir(cfg: OpenClawConfig): string | undefined {
   const agentId = resolveDefaultAgentId(cfg);
   const dir = resolveAgentWorkspaceDir(cfg, agentId);
   if (typeof dir !== "string" || !dir.trim()) {
@@ -28,7 +30,7 @@ function resolveMemoryRuntimeWorkspaceDir(cfg: AstroclawConfig): string | undefi
   return resolveUserPath(dir);
 }
 
-function ensureMemoryRuntime(cfg?: AstroclawConfig) {
+function ensureMemoryRuntime(cfg?: OpenClawConfig) {
   const current = getMemoryRuntime();
   if (current || !cfg) {
     return current;
@@ -53,8 +55,9 @@ function ensureMemoryRuntime(cfg?: AstroclawConfig) {
   return getMemoryRuntime();
 }
 
+/** Returns the active plugin-backed memory search manager for an agent. */
 export async function getActiveMemorySearchManager(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   purpose?: "default" | "status" | "cli";
 }) {
@@ -65,12 +68,23 @@ export async function getActiveMemorySearchManager(params: {
   return await runtime.getMemorySearchManager(params);
 }
 
-export function resolveActiveMemoryBackendConfig(params: { cfg: AstroclawConfig; agentId: string }) {
+/** Resolves current memory backend config without constructing a manager. */
+export function resolveActiveMemoryBackendConfig(params: { cfg: OpenClawConfig; agentId: string }) {
   return ensureMemoryRuntime(params.cfg)?.resolveMemoryBackendConfig(params) ?? null;
 }
 
-export async function closeActiveMemorySearchManagers(cfg?: AstroclawConfig): Promise<void> {
+/** Closes all active plugin-backed memory search managers. */
+export async function closeActiveMemorySearchManagers(cfg?: OpenClawConfig): Promise<void> {
   void cfg;
   const runtime = getMemoryRuntime();
   await runtime?.closeAllMemorySearchManagers?.();
+}
+
+/** Closes the plugin-backed memory search manager for one agent. */
+export async function closeActiveMemorySearchManager(params: {
+  cfg: OpenClawConfig;
+  agentId: string;
+}): Promise<void> {
+  const runtime = getMemoryRuntime();
+  await runtime?.closeMemorySearchManager?.(params);
 }
