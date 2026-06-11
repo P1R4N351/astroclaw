@@ -1,8 +1,9 @@
+// Tlon helper module supports utils behavior.
 import {
   resolveStableChannelMessageIngress,
   type StableChannelIngressIdentityParams,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import { formatErrorMessage as sharedFormatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
+import { formatErrorMessage as sharedFormatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import { normalizeShip } from "../targets.js";
 
 export interface ParsedCite {
