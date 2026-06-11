@@ -1,3 +1,4 @@
+// Legacy MCP runtime config migrations for CLI-native transport aliases.
 import {
   defineLegacyConfigMigration,
   type LegacyConfigMigrationSpec,
@@ -5,23 +6,24 @@ import {
 } from "../../../config/legacy.shared.js";
 import {
   isKnownCliMcpTypeAlias,
-  resolveAstroclawMcpTransportAlias,
+  resolveOpenClawMcpTransportAlias,
 } from "../../../config/mcp-config-normalize.js";
 import { isRecord } from "./legacy-config-record-shared.js";
 
 const MCP_SERVER_TYPE_RULE: LegacyConfigRule = {
   path: ["mcp", "servers"],
   message:
-    'mcp.servers entries use Astroclaw transport names; CLI-native type aliases are legacy here. Run "astroclaw doctor --fix".',
+    'mcp.servers entries use OpenClaw transport names; CLI-native type aliases are legacy here. Run "openclaw doctor --fix".',
   match: (value) =>
     isRecord(value) &&
     Object.values(value).some((server) => isRecord(server) && isKnownCliMcpTypeAlias(server.type)),
 };
 
+/** Legacy config migration specs for MCP server config compatibility. */
 export const LEGACY_CONFIG_MIGRATIONS_RUNTIME_MCP: LegacyConfigMigrationSpec[] = [
   defineLegacyConfigMigration({
     id: "mcp.servers.type->transport",
-    describe: "Move CLI-native MCP server type aliases to Astroclaw transport",
+    describe: "Move CLI-native MCP server type aliases to OpenClaw transport",
     legacyRules: [MCP_SERVER_TYPE_RULE],
     apply: (raw, changes) => {
       const mcp = isRecord(raw.mcp) ? raw.mcp : undefined;
@@ -35,7 +37,7 @@ export const LEGACY_CONFIG_MIGRATIONS_RUNTIME_MCP: LegacyConfigMigrationSpec[] =
           continue;
         }
         const rawType = typeof rawServer.type === "string" ? rawServer.type : "";
-        const alias = resolveAstroclawMcpTransportAlias(rawServer.type);
+        const alias = resolveOpenClawMcpTransportAlias(rawServer.type);
         if (typeof rawServer.transport !== "string" && alias) {
           rawServer.transport = alias;
           changes.push(`Moved mcp.servers.${serverName}.type "${rawType}" → transport "${alias}".`);
