@@ -1,11 +1,12 @@
+// Google provider module implements model/runtime integration.
 import type {
-  AstroclawPluginApi,
+  OpenClawPluginApi,
   ProviderAuthContext,
   ProviderFetchUsageSnapshotContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { buildOauthProviderAuthResult } from "astroclaw/plugin-sdk/provider-auth-result";
-import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
-import { fetchGeminiUsage } from "astroclaw/plugin-sdk/provider-usage";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { buildOauthProviderAuthResult } from "openclaw/plugin-sdk/provider-auth-result";
+import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-model-shared";
+import { fetchGeminiUsage } from "openclaw/plugin-sdk/provider-usage";
 import { formatGoogleOauthApiKey, parseGoogleUsageToken } from "./oauth-token-shared.js";
 import { GOOGLE_GEMINI_PROVIDER_HOOKS } from "./provider-hooks.js";
 import { isModernGoogleModel, resolveGoogleGeminiForwardCompatModel } from "./provider-models.js";
@@ -14,11 +15,18 @@ const PROVIDER_ID = "google-gemini-cli";
 const PROVIDER_LABEL = "Gemini CLI OAuth";
 const DEFAULT_MODEL = "google/gemini-3.1-pro-preview";
 const ENV_VARS = [
-  "ASTROCLAW_GEMINI_OAUTH_CLIENT_ID",
-  "ASTROCLAW_GEMINI_OAUTH_CLIENT_SECRET",
+  "OPENCLAW_GEMINI_OAUTH_CLIENT_ID",
+  "OPENCLAW_GEMINI_OAUTH_CLIENT_SECRET",
   "GEMINI_CLI_OAUTH_CLIENT_ID",
   "GEMINI_CLI_OAUTH_CLIENT_SECRET",
 ] as const;
+
+let oauthRuntimeModulePromise: Promise<typeof import("./oauth.runtime.js")> | null = null;
+
+const loadOauthRuntimeModule = async () => {
+  oauthRuntimeModulePromise ??= import("./oauth.runtime.js");
+  return await oauthRuntimeModulePromise;
+};
 
 async function fetchGeminiCliUsage(ctx: ProviderFetchUsageSnapshotContext) {
   return await fetchGeminiUsage(ctx.token, ctx.timeoutMs, ctx.fetchFn, PROVIDER_ID);
@@ -58,7 +66,7 @@ export function buildGoogleGeminiCliProvider(): ProviderPlugin {
 
           const spin = ctx.prompter.progress("Starting Gemini CLI OAuth…");
           try {
-            const { loginGeminiCliOAuth } = await import("./oauth.runtime.js");
+            const { loginGeminiCliOAuth } = await loadOauthRuntimeModule();
             const result = await loginGeminiCliOAuth({
               isRemote: ctx.isRemote,
               openUrl: ctx.openUrl,
@@ -79,9 +87,8 @@ export function buildGoogleGeminiCliProvider(): ProviderPlugin {
               configPatch: {
                 agents: {
                   defaults: {
-                    agentRuntime: { id: PROVIDER_ID },
                     models: {
-                      [DEFAULT_MODEL]: {},
+                      [DEFAULT_MODEL]: { agentRuntime: { id: PROVIDER_ID } },
                     },
                   },
                 },
@@ -123,7 +130,7 @@ export function buildGoogleGeminiCliProvider(): ProviderPlugin {
     isModernModelRef: ({ modelId }) => isModernGoogleModel(modelId),
     formatApiKey: (cred) => formatGoogleOauthApiKey(cred),
     refreshOAuth: async (cred) => {
-      const { refreshGeminiCliOAuthToken } = await import("./oauth.runtime.js");
+      const { refreshGeminiCliOAuthToken } = await loadOauthRuntimeModule();
       return await refreshGeminiCliOAuthToken(cred);
     },
     resolveUsageAuth: async (ctx) => {
@@ -140,6 +147,6 @@ export function buildGoogleGeminiCliProvider(): ProviderPlugin {
   };
 }
 
-export function registerGoogleGeminiCliProvider(api: AstroclawPluginApi) {
+export function registerGoogleGeminiCliProvider(api: OpenClawPluginApi) {
   api.registerProvider(buildGoogleGeminiCliProvider());
 }
