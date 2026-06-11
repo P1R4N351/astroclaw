@@ -1,3 +1,6 @@
+/**
+ * Public SDK subpath for sandbox backends, SSH execution, and temp workspace helpers.
+ */
 export type {
   CreateSandboxBackendParams,
   RemoteShellSandboxHandle,
@@ -13,18 +16,20 @@ export type {
   SandboxBackendManager,
   SandboxBackendRegistration,
   SandboxBackendRuntimeInfo,
+  SandboxBackendWorkdirResolver,
   SandboxContext,
   SandboxResolvedPath,
   SandboxSshConfig,
   SshSandboxSession,
   SshSandboxSettings,
 } from "../agents/sandbox.js";
-export type { AstroclawConfig } from "../config/config.js";
+export type { OpenClawConfig } from "../config/config.js";
 
 export {
   buildExecRemoteCommand,
   buildRemoteCommand,
   buildSshSandboxArgv,
+  buildValidatedExecRemoteCommand,
   createRemoteShellSandboxFsBridge,
   createWritableRenameTargetResolver,
   createSshSandboxSessionFromConfigText,
@@ -32,8 +37,11 @@ export {
   disposeSshSandboxSession,
   getSandboxBackendFactory,
   getSandboxBackendManager,
+  getSandboxBackendWorkdirResolver,
+  isToolAllowed,
   registerSandboxBackend,
   requireSandboxBackendFactory,
+  resolveSandboxRuntimeStatus,
   resolveWritableRenameTargets,
   resolveWritableRenameTargetsForBridge,
   runSshSandboxCommand,
@@ -47,7 +55,7 @@ export {
   type PluginCommandRunOptions,
   type PluginCommandRunResult,
 } from "./run-command.js";
-export { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+export { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 export {
   tempWorkspace,
   tempWorkspaceSync,
