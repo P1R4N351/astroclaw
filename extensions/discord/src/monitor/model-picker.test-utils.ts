@@ -1,4 +1,5 @@
-import type { ModelsProviderData } from "astroclaw/plugin-sdk/models-provider-runtime";
+// Discord helper module supports model picker utils behavior.
+import type { ModelsProviderData } from "openclaw/plugin-sdk/models-provider-runtime";
 
 export function createModelsProviderData(
   entries: Record<string, string[]>,
