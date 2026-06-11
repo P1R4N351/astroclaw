@@ -1,8 +1,11 @@
+/**
+ * Chutes onboarding config helpers for OAuth and API-key setup.
+ */
 import {
   applyAgentDefaultModelPrimary,
   applyProviderConfigWithModelCatalogPreset,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   CHUTES_BASE_URL,
   CHUTES_DEFAULT_MODEL_REF,
@@ -16,7 +19,7 @@ export { CHUTES_DEFAULT_MODEL_REF };
  * Apply Chutes provider configuration without changing the default model.
  * Registers all catalog models and sets provider aliases (chutes-fast, etc.).
  */
-export function applyChutesProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyChutesProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   return applyProviderConfigWithModelCatalogPreset(cfg, {
     providerId: "chutes",
     api: "openai-completions",
@@ -37,7 +40,7 @@ export function applyChutesProviderConfig(cfg: AstroclawConfig): AstroclawConfig
 /**
  * Apply Chutes provider configuration AND set Chutes as the default model.
  */
-export function applyChutesConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyChutesConfig(cfg: OpenClawConfig): OpenClawConfig {
   const next = applyChutesProviderConfig(cfg);
   return {
     ...next,
@@ -58,6 +61,7 @@ export function applyChutesConfig(cfg: AstroclawConfig): AstroclawConfig {
   };
 }
 
-export function applyChutesApiKeyConfig(cfg: AstroclawConfig): AstroclawConfig {
+/** Applies Chutes provider config and sets the default model for API-key auth. */
+export function applyChutesApiKeyConfig(cfg: OpenClawConfig): OpenClawConfig {
   return applyAgentDefaultModelPrimary(applyChutesProviderConfig(cfg), CHUTES_DEFAULT_MODEL_REF);
 }
