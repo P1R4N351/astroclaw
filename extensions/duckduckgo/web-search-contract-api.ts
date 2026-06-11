@@ -1,4 +1,5 @@
-import type { WebSearchProviderPlugin } from "astroclaw/plugin-sdk/provider-web-search-contract";
+// Duckduckgo API module exposes the plugin public contract.
+import type { WebSearchProviderPlugin } from "openclaw/plugin-sdk/provider-web-search-contract";
 import { createDuckDuckGoWebSearchProviderBase } from "./src/ddg-search-provider.shared.js";
 
 export function createDuckDuckGoWebSearchProvider(): WebSearchProviderPlugin {
