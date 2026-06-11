@@ -1,10 +1,11 @@
+// Signal plugin module implements accounts behavior.
 import {
   createAccountListHelpers,
   normalizeAccountId,
   resolveMergedAccountConfig,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/account-resolution";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/account-resolution";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { SignalAccountConfig } from "./account-types.js";
 
 export type ResolvedSignalAccount = {
@@ -16,11 +17,15 @@ export type ResolvedSignalAccount = {
   config: SignalAccountConfig;
 };
 
-const { listAccountIds, resolveDefaultAccountId } = createAccountListHelpers("signal");
+const { listAccountIds, resolveDefaultAccountId } = createAccountListHelpers("signal", {
+  implicitDefaultAccount: {
+    channelKeys: ["account"],
+  },
+});
 export const listSignalAccountIds = listAccountIds;
 export const resolveDefaultSignalAccountId = resolveDefaultAccountId;
 
-function mergeSignalAccountConfig(cfg: AstroclawConfig, accountId: string): SignalAccountConfig {
+function mergeSignalAccountConfig(cfg: OpenClawConfig, accountId: string): SignalAccountConfig {
   return resolveMergedAccountConfig<SignalAccountConfig>({
     channelConfig: cfg.channels?.signal as SignalAccountConfig | undefined,
     accounts: cfg.channels?.signal?.accounts as
@@ -31,7 +36,7 @@ function mergeSignalAccountConfig(cfg: AstroclawConfig, accountId: string): Sign
 }
 
 export function resolveSignalAccount(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): ResolvedSignalAccount {
   const accountId = normalizeAccountId(
@@ -46,6 +51,7 @@ export function resolveSignalAccount(params: {
   const baseUrl = normalizeOptionalString(merged.httpUrl) ?? `http://${host}:${port}`;
   const configured = Boolean(
     normalizeOptionalString(merged.account) ||
+    normalizeOptionalString(merged.configPath) ||
     normalizeOptionalString(merged.httpUrl) ||
     normalizeOptionalString(merged.cliPath) ||
     normalizeOptionalString(merged.httpHost) ||
@@ -62,7 +68,7 @@ export function resolveSignalAccount(params: {
   };
 }
 
-export function listEnabledSignalAccounts(cfg: AstroclawConfig): ResolvedSignalAccount[] {
+export function listEnabledSignalAccounts(cfg: OpenClawConfig): ResolvedSignalAccount[] {
   return listSignalAccountIds(cfg)
     .map((accountId) => resolveSignalAccount({ cfg, accountId }))
     .filter((account) => account.enabled);
