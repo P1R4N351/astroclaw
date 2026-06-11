@@ -1,4 +1,5 @@
-import { getSessionBindingService } from "astroclaw/plugin-sdk/session-binding-runtime";
+// Matrix plugin module implements reaction events behavior.
+import { getSessionBindingService } from "openclaw/plugin-sdk/session-binding-runtime";
 import {
   resolveMatrixApprovalReactionTargetWithPersistence,
   unregisterMatrixApprovalReactionTarget,
@@ -136,12 +137,14 @@ export async function handleInboundMatrixReaction(params: {
     return;
   }
 
-  const targetEvent = await params.client.getEvent(params.roomId, reaction.eventId).catch((err) => {
-    params.logVerboseMessage(
-      `matrix: failed resolving reaction target room=${params.roomId} id=${reaction.eventId}: ${String(err)}`,
-    );
-    return null;
-  });
+  const targetEvent = await params.client
+    .getEvent(params.roomId, reaction.eventId)
+    .catch((err: unknown) => {
+      params.logVerboseMessage(
+        `matrix: failed resolving reaction target room=${params.roomId} id=${reaction.eventId}: ${String(err)}`,
+      );
+      return null;
+    });
   const targetSender =
     targetEvent && typeof targetEvent.sender === "string" ? targetEvent.sender.trim() : "";
   if (!targetSender) {
