@@ -1,20 +1,22 @@
+// Discord plugin module implements send.shared behavior.
 import { PollLayoutType } from "discord-api-types/payloads/v10";
 import type { RESTAPIPoll } from "discord-api-types/rest/v10";
 import type { APIChannel } from "discord-api-types/v10";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { buildOutboundMediaLoadOptions } from "astroclaw/plugin-sdk/media-runtime";
-import { extensionForMime } from "astroclaw/plugin-sdk/media-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { buildOutboundMediaLoadOptions } from "openclaw/plugin-sdk/media-runtime";
+import { extensionForMime } from "openclaw/plugin-sdk/media-runtime";
 import {
   normalizePollDurationHours,
   normalizePollInput,
   type OutboundMediaAccess,
   type PollInput,
-} from "astroclaw/plugin-sdk/media-runtime";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import type { ChunkMode } from "astroclaw/plugin-sdk/reply-chunking";
-import { resolveTextChunksWithFallback } from "astroclaw/plugin-sdk/reply-payload";
-import type { RetryRunner } from "astroclaw/plugin-sdk/retry-runtime";
-import { loadWebMedia } from "astroclaw/plugin-sdk/web-media";
+} from "openclaw/plugin-sdk/media-runtime";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import type { ChunkMode } from "openclaw/plugin-sdk/reply-chunking";
+import { resolveTextChunksWithFallback } from "openclaw/plugin-sdk/reply-payload";
+import type { RetryRunner } from "openclaw/plugin-sdk/retry-runtime";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { loadWebMedia } from "openclaw/plugin-sdk/web-media";
 import { chunkDiscordTextWithMode } from "./chunk.js";
 import { createDiscordClient, resolveDiscordRest, type DiscordClientOpts } from "./client.js";
 import {
@@ -80,7 +82,7 @@ function normalizeReactionEmoji(raw: string) {
 }
 
 function normalizeStickerIds(raw: string[]) {
-  const ids = raw.map((entry) => entry.trim()).filter(Boolean);
+  const ids = normalizeStringEntries(raw);
   if (ids.length === 0) {
     throw new Error("At least one sticker id is required");
   }
@@ -157,7 +159,7 @@ async function buildDiscordSendError(
   err: unknown,
   ctx: {
     channelId: string;
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     rest: RequestClient;
     token: string;
     hasMedia: boolean;
@@ -246,7 +248,7 @@ async function resolveChannelId(
 
 async function resolveDiscordTargetChannelId(
   raw: string,
-  opts: DiscordClientOpts & { cfg: AstroclawConfig },
+  opts: DiscordClientOpts & { cfg: OpenClawConfig },
 ): Promise<{ channelId: string; dm?: boolean }> {
   const cfg = requireRuntimeConfig(opts.cfg, "Discord target channel resolution");
   const recipient = await parseAndResolveRecipient(raw, cfg, opts.accountId, {
