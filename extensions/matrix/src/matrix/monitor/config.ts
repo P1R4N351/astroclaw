@@ -1,4 +1,5 @@
-import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
+// Matrix helper module supports config behavior.
+import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
 import { resolveMatrixTargets } from "../../resolve-targets.js";
 import type { CoreConfig, MatrixRoomConfig } from "../../types.js";
 import { resolveMatrixAccountConfig } from "../account-config.js";
