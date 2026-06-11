@@ -1,3 +1,4 @@
+// Defines sandbox execution configuration types.
 import type { SecretInput } from "./types.secrets.js";
 
 export type SandboxDockerSettings = {
@@ -67,7 +68,7 @@ export type SandboxBrowserSettings = {
   enabled?: boolean;
   image?: string;
   containerPrefix?: string;
-  /** Docker network for sandbox browser containers (default: astroclaw-sandbox-browser). */
+  /** Docker network for sandbox browser containers (default: openclaw-sandbox-browser). */
   network?: string;
   cdpPort?: number;
   /** Optional CIDR allowlist for CDP ingress at the container edge (for example: 172.21.0.1/32). */
