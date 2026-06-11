@@ -1,8 +1,10 @@
+/** Doctor checks and repairs for workspace memory files and legacy workspace hints. */
 import fs from "node:fs";
 import path from "node:path";
+import { note } from "../../packages/terminal-core/src/note.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { DEFAULT_AGENTS_FILENAME } from "../agents/workspace.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {
   CANONICAL_ROOT_MEMORY_FILENAME,
@@ -11,7 +13,6 @@ import {
   resolveLegacyRootMemoryPath,
   resolveRootMemoryRepairDir,
 } from "../memory/root-memory-files.js";
-import { note } from "../terminal/note.js";
 import { shortenHomePath } from "../utils.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
 
@@ -20,10 +21,11 @@ export const MEMORY_SYSTEM_PROMPT = [
   "Paste this into your agent:",
   "",
   "Install the memory system by applying:",
-  "https://github.com/astroclaw/astroclaw/commit/9ffea23f31ca1df5183b25668f8f814bee0fb34e",
-  "https://github.com/astroclaw/astroclaw/commit/7d1fee70e76f2f634f1b41fca927ee663914183a",
+  "https://github.com/openclaw/openclaw/commit/9ffea23f31ca1df5183b25668f8f814bee0fb34e",
+  "https://github.com/openclaw/openclaw/commit/7d1fee70e76f2f634f1b41fca927ee663914183a",
 ].join("\n");
 
+/** Returns true when the workspace appears to lack canonical memory guidance. */
 export async function shouldSuggestMemorySystem(workspaceDir: string): Promise<boolean> {
   const entries = await listWorkspaceEntries(workspaceDir);
   if (entries.has(CANONICAL_ROOT_MEMORY_FILENAME)) {
@@ -55,6 +57,7 @@ export type LegacyWorkspaceDetection = {
   legacyDirs: string[];
 };
 
+/** Detects legacy workspace directories related to the active workspace. */
 export function detectLegacyWorkspaceDirs(params: {
   workspaceDir: string;
 }): LegacyWorkspaceDetection {
@@ -63,6 +66,7 @@ export function detectLegacyWorkspaceDirs(params: {
   return { activeWorkspace, legacyDirs };
 }
 
+/** Formats a warning for legacy workspace directories found near the active workspace. */
 export function formatLegacyWorkspaceWarning(detection: LegacyWorkspaceDetection): string {
   return [
     "Extra workspace directories detected (may contain old agent files):",
@@ -113,6 +117,7 @@ async function listWorkspaceEntries(workspaceDir: string): Promise<Set<string>> 
   }
 }
 
+/** Detects canonical and legacy root memory files in a workspace. */
 export async function detectRootMemoryFiles(
   workspaceDir: string,
 ): Promise<RootMemoryFilesDetection> {
@@ -143,15 +148,16 @@ function formatBytes(bytes?: number): string {
   return typeof bytes === "number" ? `${bytes} bytes` : "size unknown";
 }
 
+/** Formats the warning for split canonical/legacy root memory files. */
 export function formatRootMemoryFilesWarning(detection: RootMemoryFilesDetection): string | null {
   if (detection.canonicalExists && detection.legacyExists) {
     return [
       "Split root durable memory files detected:",
       `- canonical: ${shortenHomePath(detection.canonicalPath)} (${formatBytes(detection.canonicalBytes)})`,
       `- legacy: ${shortenHomePath(detection.legacyPath)} (${formatBytes(detection.legacyBytes)})`,
-      `Astroclaw uses ${CANONICAL_ROOT_MEMORY_FILENAME} as the canonical durable memory file.`,
+      `OpenClaw uses ${CANONICAL_ROOT_MEMORY_FILENAME} as the canonical durable memory file.`,
       `Dreaming writes durable promotions to ${CANONICAL_ROOT_MEMORY_FILENAME}, so older facts in ${LEGACY_ROOT_MEMORY_FILENAME} can be shadowed.`,
-      `Run "astroclaw doctor --fix" to merge the legacy file into ${CANONICAL_ROOT_MEMORY_FILENAME} with a backup.`,
+      `Run "openclaw doctor --fix" to merge the legacy file into ${CANONICAL_ROOT_MEMORY_FILENAME} with a backup.`,
     ].join("\n");
   }
   return null;
@@ -199,7 +205,7 @@ function buildMergedLegacyRootMemorySection(params: {
     "",
     `## Imported From Legacy Root ${LEGACY_ROOT_MEMORY_FILENAME}`,
     "",
-    `<!-- astroclaw-root-memory-merge source=${LEGACY_ROOT_MEMORY_FILENAME} archived=${params.archivedLegacyPath} -->`,
+    `<!-- openclaw-root-memory-merge source=${LEGACY_ROOT_MEMORY_FILENAME} archived=${params.archivedLegacyPath} -->`,
     `This content came from legacy root \`${LEGACY_ROOT_MEMORY_FILENAME}\`, which was shadowed by \`${CANONICAL_ROOT_MEMORY_FILENAME}\`.`,
     "",
     params.legacyText.trim(),
@@ -207,6 +213,7 @@ function buildMergedLegacyRootMemorySection(params: {
   ].join("\n");
 }
 
+/** Archives and merges a legacy root memory file into canonical memory. */
 export async function migrateLegacyRootMemoryFile(
   workspaceDir: string,
 ): Promise<RootMemoryMigrationResult> {
@@ -246,7 +253,8 @@ export async function migrateLegacyRootMemoryFile(
   };
 }
 
-export async function noteWorkspaceMemoryHealth(cfg: AstroclawConfig): Promise<void> {
+/** Emits workspace root-memory health warnings. */
+export async function noteWorkspaceMemoryHealth(cfg: OpenClawConfig): Promise<void> {
   try {
     const agentId = resolveDefaultAgentId(cfg);
     const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
@@ -261,8 +269,9 @@ export async function noteWorkspaceMemoryHealth(cfg: AstroclawConfig): Promise<v
   }
 }
 
+/** Prompts to merge legacy root memory into canonical memory when both files exist. */
 export async function maybeRepairWorkspaceMemoryHealth(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: DoctorPrompter;
 }): Promise<void> {
   try {
