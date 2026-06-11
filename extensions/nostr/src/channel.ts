@@ -1,15 +1,17 @@
-import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
+// Nostr plugin module implements channel behavior.
+import { describeAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
 import {
   createScopedDmSecurityResolver,
   createTopLevelChannelConfigAdapter,
-} from "astroclaw/plugin-sdk/channel-config-helpers";
-import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-import { createChannelMessageAdapterFromOutbound } from "astroclaw/plugin-sdk/channel-message";
+} from "openclaw/plugin-sdk/channel-config-helpers";
+import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+import { createChannelMessageAdapterFromOutbound } from "openclaw/plugin-sdk/channel-outbound";
 import {
   buildPassiveChannelStatusSummary,
   buildTrafficStatusSummary,
-} from "astroclaw/plugin-sdk/extension-shared";
-import { createComputedAccountStatusAdapter } from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/extension-shared";
+import { createComputedAccountStatusAdapter } from "openclaw/plugin-sdk/status-helpers";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   buildChannelConfigSchema,
   collectStatusIssuesFromLastError,
@@ -70,9 +72,7 @@ const nostrConfigAdapter = createTopLevelChannelConfigAdapter<ResolvedNostrAccou
   ],
   resolveAllowFrom: (account) => account.config.allowFrom,
   formatAllowFrom: (allowFrom) =>
-    allowFrom
-      .map((entry) => String(entry).trim())
-      .filter(Boolean)
+    normalizeStringEntries(allowFrom)
       .map((entry) => {
         if (entry === "*") {
           return "*";
