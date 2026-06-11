@@ -1,11 +1,16 @@
+// Shared auth suite helpers provide WebSocket clients, signed device payloads,
+// pairing utilities, and gateway harness setup for auth-mode tests.
 import os from "node:os";
 import path from "node:path";
 import { expect } from "vitest";
 import { WebSocket } from "ws";
+import {
+  MIN_PROBE_PROTOCOL_VERSION,
+  PROTOCOL_VERSION,
+} from "../../packages/gateway-protocol/src/index.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { buildDeviceAuthPayload } from "./device-auth.js";
-import { MIN_PROBE_PROTOCOL_VERSION, PROTOCOL_VERSION } from "./protocol/index.js";
 import {
   createGatewaySuiteHarness,
   connectReq,
@@ -55,7 +60,9 @@ async function waitForWsClose(ws: WebSocket, timeoutMs: number): Promise<boolean
 const openWs = async (port: number, headers?: Record<string, string>) => {
   const ws = new WebSocket(`ws://127.0.0.1:${port}`, headers ? { headers } : undefined);
   trackConnectChallengeNonce(ws);
-  await new Promise<void>((resolve) => ws.once("open", resolve));
+  await new Promise<void>((resolve) => {
+    ws.once("open", resolve);
+  });
   return ws;
 };
 
@@ -86,7 +93,9 @@ const openTailscaleWs = async (port: number, headers?: Record<string, string>) =
     },
   });
   trackConnectChallengeNonce(ws);
-  await new Promise<void>((resolve) => ws.once("open", resolve));
+  await new Promise<void>((resolve) => {
+    ws.once("open", resolve);
+  });
   return ws;
 };
 
@@ -94,9 +103,9 @@ const originForPort = (port: number) => `http://127.0.0.1:${port}`;
 
 function restoreGatewayToken(prevToken: string | undefined) {
   if (prevToken === undefined) {
-    delete process.env.ASTROCLAW_GATEWAY_TOKEN;
+    delete process.env.OPENCLAW_GATEWAY_TOKEN;
   } else {
-    process.env.ASTROCLAW_GATEWAY_TOKEN = prevToken;
+    process.env.OPENCLAW_GATEWAY_TOKEN = prevToken;
   }
 }
 
@@ -203,9 +212,9 @@ function resolveGatewayTokenOrEnv(): string {
   const token =
     typeof (testState.gatewayAuth as { token?: unknown } | undefined)?.token === "string"
       ? ((testState.gatewayAuth as { token?: string }).token ?? undefined)
-      : process.env.ASTROCLAW_GATEWAY_TOKEN;
+      : process.env.OPENCLAW_GATEWAY_TOKEN;
   if (typeof token !== "string") {
-    throw new Error("expected gateway token in test state or ASTROCLAW_GATEWAY_TOKEN");
+    throw new Error("expected gateway token in test state or OPENCLAW_GATEWAY_TOKEN");
   }
   return token;
 }
@@ -343,7 +352,7 @@ async function startRateLimitedTokenServerWithPairedDeviceToken() {
   const { server, ws, port, prevToken } = await startServerWithClient(undefined, {
     controlUiEnabled: true,
   });
-  const deviceIdentityPath = nextAuthIdentityPath("astroclaw-auth-rate-limit");
+  const deviceIdentityPath = nextAuthIdentityPath("openclaw-auth-rate-limit");
   try {
     const initial = await connectReq(ws, { token: "secret", deviceIdentityPath });
     if (!initial.ok) {
@@ -366,7 +375,7 @@ async function ensurePairedDeviceTokenForCurrentIdentity(ws: WebSocket): Promise
   deviceToken: string;
   deviceIdentityPath: string;
 }> {
-  const deviceIdentityPath = nextAuthIdentityPath("astroclaw-auth-device");
+  const deviceIdentityPath = nextAuthIdentityPath("openclaw-auth-device");
 
   const res = await connectReq(ws, { token: "secret", deviceIdentityPath });
   if (!res.ok) {
@@ -420,7 +429,7 @@ export {
   withRuntimeVersionEnv,
   writeTrustedProxyControlUiConfig,
 };
-export { ConnectErrorDetailCodes } from "./protocol/connect-error-details.js";
+export { ConnectErrorDetailCodes } from "../../packages/gateway-protocol/src/connect-error-details.js";
 export { getPreauthHandshakeTimeoutMsFromEnv } from "./handshake-timeouts.js";
-export { PROTOCOL_VERSION } from "./protocol/index.js";
+export { PROTOCOL_VERSION } from "../../packages/gateway-protocol/src/index.js";
 export { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
