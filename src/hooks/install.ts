@@ -1,8 +1,10 @@
+// Hook install service installs hook packages from archives and local sources.
 import fs from "node:fs/promises";
 import path from "node:path";
+import { normalizeTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
 import { MANIFEST_KEY } from "../compat/legacy-names.js";
 import { resolveSafeInstallDir, unscopedPackageName } from "../infra/install-safe-path.js";
-import { type NpmIntegrityDrift, type NpmSpecResolution } from "../infra/install-source-utils.js";
+import type { NpmIntegrityDrift, NpmSpecResolution } from "../infra/install-source-utils.js";
 import type { InstallSafetyOverrides } from "../plugins/install-security-scan.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 import { parseFrontmatter } from "./frontmatter.js";
@@ -14,6 +16,7 @@ async function loadHookInstallRuntime() {
   return hookInstallRuntimePromise;
 }
 
+/** Logger contract used by hook install and update operations. */
 export type HookInstallLogger = {
   info?: (message: string) => void;
   warn?: (message: string) => void;
@@ -37,6 +40,7 @@ export type InstallHooksResult =
     }
   | { ok: false; error: string };
 
+/** Integrity drift payload surfaced when npm metadata no longer matches an install record. */
 export type HookNpmIntegrityDriftParams = {
   spec: string;
   expectedIntegrity: string;
@@ -84,6 +88,7 @@ function validateHookId(hookId: string): string | null {
   return null;
 }
 
+/** Resolve the canonical local install directory for one hook pack id. */
 export function resolveHookInstallDir(hookId: string, hooksDir?: string): string {
   const hooksBase = hooksDir ? resolveUserPath(hooksDir) : path.join(CONFIG_DIR, "hooks");
   const hookIdError = validateHookId(hookId);
@@ -101,14 +106,14 @@ export function resolveHookInstallDir(hookId: string, hooksDir?: string): string
   return targetDirResult.path;
 }
 
-async function ensureAstroclawHooks(manifest: HookPackageManifest) {
+async function ensureOpenClawHooks(manifest: HookPackageManifest) {
   const hooks = manifest[MANIFEST_KEY]?.hooks;
   if (!Array.isArray(hooks)) {
-    throw new Error("package.json missing astroclaw.hooks");
+    throw new Error("package.json missing openclaw.hooks");
   }
-  const list = hooks.map((e) => (typeof e === "string" ? e.trim() : "")).filter(Boolean);
+  const list = normalizeTrimmedStringList(hooks);
   if (list.length === 0) {
-    throw new Error("package.json astroclaw.hooks is empty");
+    throw new Error("package.json openclaw.hooks is empty");
   }
   return list;
 }
@@ -156,6 +161,8 @@ async function installFromResolvedHookDir(
 ): Promise<InstallHooksResult> {
   const runtime = await loadHookInstallRuntime();
   const manifestPath = path.join(resolvedDir, "package.json");
+  // A directory with package.json is a hook pack. A bare hook directory must
+  // contain HOOK.md plus a handler file and installs as a single hook.
   if (await runtime.fileExists(manifestPath)) {
     return await installHookPackageFromDir({
       packageDir: resolvedDir,
@@ -228,7 +235,7 @@ async function installHookPackageFromDir(
 
   let hookEntries: string[];
   try {
-    hookEntries = await ensureAstroclawHooks(manifest);
+    hookEntries = await ensureOpenClawHooks(manifest);
   } catch (err) {
     return { ok: false, error: String(err) };
   }
@@ -260,10 +267,12 @@ async function installHookPackageFromDir(
   const resolvedHooks = [] as string[];
   for (const entry of hookEntries) {
     const hookDir = path.resolve(params.packageDir, entry);
+    // Validate both lexical containment and realpath containment so archive
+    // symlinks cannot make package hook entries escape after extraction.
     if (!runtime.isPathInside(params.packageDir, hookDir)) {
       return {
         ok: false,
-        error: `astroclaw.hooks entry escapes package directory: ${entry}`,
+        error: `openclaw.hooks entry escapes package directory: ${entry}`,
       };
     }
     await validateHookDir(hookDir);
@@ -274,7 +283,7 @@ async function installHookPackageFromDir(
     ) {
       return {
         ok: false,
-        error: `astroclaw.hooks entry resolves outside package directory: ${entry}`,
+        error: `openclaw.hooks entry resolves outside package directory: ${entry}`,
       };
     }
     const hookName = await resolveHookNameFromDir(hookDir);
@@ -371,6 +380,7 @@ async function installHookFromDir(params: {
   return { ok: true, hookPackId: hookName, hooks: [hookName], targetDir };
 }
 
+/** Install hooks from an archive after extracting and validating the archive root. */
 export async function installHooksFromArchive(
   params: HookArchiveInstallParams,
 ): Promise<InstallHooksResult> {
@@ -385,7 +395,7 @@ export async function installHooksFromArchive(
 
   return await runtime.withExtractedArchiveRoot({
     archivePath,
-    tempDirPrefix: "astroclaw-hook-",
+    tempDirPrefix: "openclaw-hook-",
     timeoutMs,
     logger,
     onExtracted: async (rootDir) =>
@@ -403,6 +413,7 @@ export async function installHooksFromArchive(
   });
 }
 
+/** Download, verify, and install an npm hook pack tarball. */
 export async function installHooksFromNpmSpec(params: {
   spec: string;
   dangerouslyForceUnsafeInstall?: boolean;
@@ -425,7 +436,7 @@ export async function installHooksFromNpmSpec(params: {
 
   logger.info?.(`Downloading ${spec.trim()}…`);
   return await runtime.installFromValidatedNpmSpecArchive({
-    tempDirPrefix: "astroclaw-hook-pack-",
+    tempDirPrefix: "openclaw-hook-pack-",
     spec,
     timeoutMs,
     expectedIntegrity: params.expectedIntegrity,
@@ -445,6 +456,7 @@ export async function installHooksFromNpmSpec(params: {
   });
 }
 
+/** Install a hook pack or single hook from a local directory/archive path. */
 export async function installHooksFromPath(
   params: HookPathInstallParams,
 ): Promise<InstallHooksResult> {
