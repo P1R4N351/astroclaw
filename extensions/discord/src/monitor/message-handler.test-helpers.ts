@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Discord helper module supports message handler helpers behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { vi } from "vitest";
 import type { createDiscordMessageHandler } from "./message-handler.js";
 import { createNoopThreadBindingManager } from "./thread-bindings.js";
@@ -10,7 +11,7 @@ export function createDiscordHandlerParams(overrides?: {
   setStatus?: (patch: Record<string, unknown>) => void;
   abortSignal?: AbortSignal;
 }): Parameters<typeof createDiscordMessageHandler>[0] {
-  const cfg: AstroclawConfig = {
+  const cfg: OpenClawConfig = {
     channels: {
       discord: {
         enabled: true,
@@ -71,5 +72,11 @@ export function createDiscordPreflightContext(channelId = "ch-1") {
     },
     baseSessionKey: `agent:main:discord:channel:${channelId}`,
     messageChannelId: channelId,
+    messageText: "hello",
+    isDirectMessage: true,
+    isGroupDm: false,
+    isGuildMessage: false,
+    inboundEventKind: "message",
+    effectiveWasMentioned: false,
   };
 }
