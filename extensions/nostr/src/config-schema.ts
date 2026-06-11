@@ -1,9 +1,10 @@
+// Nostr helper module supports config schema behavior.
 import {
   AllowFromListSchema,
   DmPolicySchema,
   MarkdownConfigSchema,
-} from "astroclaw/plugin-sdk/channel-config-primitives";
-import { buildSecretInputSchema } from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/channel-config-primitives";
+import { buildSecretInputSchema } from "openclaw/plugin-sdk/secret-input";
 import { z } from "zod";
 
 /**
