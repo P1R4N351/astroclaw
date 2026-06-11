@@ -1,24 +1,25 @@
+// Check No Monolithic Plugin Sdk Entry Imports script supports OpenClaw repository automation.
 import fs from "node:fs";
 import path from "node:path";
-import { discoverAstroclawPlugins } from "../src/plugins/discovery.js";
+import { discoverOpenClawPlugins } from "../src/plugins/discovery.js";
 import { collectFilesSync, isCodeFile, relativeToCwd } from "./check-file-utils.js";
 
 // Match exact monolithic-root specifier in any code path:
 // imports/exports, require/dynamic import, and test mocks (vi.mock/jest.mock).
-const ROOT_IMPORT_PATTERN = /["']astroclaw\/plugin-sdk["']/;
-const LEGACY_COMPAT_IMPORT_PATTERN = /["']astroclaw\/plugin-sdk\/compat["']/;
+const ROOT_IMPORT_PATTERN = /["']openclaw\/plugin-sdk["']/;
+const LEGACY_COMPAT_IMPORT_PATTERN = /["']openclaw\/plugin-sdk\/compat["']/;
 const LEGACY_BROAD_SUBPATH_PATTERNS = [
   {
-    pattern: /["']astroclaw\/plugin-sdk\/channel-runtime["']/,
-    label: "astroclaw/plugin-sdk/channel-runtime",
+    pattern: /["']openclaw\/plugin-sdk\/channel-runtime["']/,
+    label: "openclaw/plugin-sdk/channel-runtime",
   },
   {
-    pattern: /["']astroclaw\/plugin-sdk\/config-runtime["']/,
-    label: "astroclaw/plugin-sdk/config-runtime",
+    pattern: /["']openclaw\/plugin-sdk\/config-runtime["']/,
+    label: "openclaw/plugin-sdk/config-runtime",
   },
   {
-    pattern: /["']astroclaw\/plugin-sdk\/infra-runtime["']/,
-    label: "astroclaw/plugin-sdk/infra-runtime",
+    pattern: /["']openclaw\/plugin-sdk\/infra-runtime["']/,
+    label: "openclaw/plugin-sdk/infra-runtime",
   },
 ] as const;
 
@@ -53,7 +54,7 @@ function collectSharedExtensionSourceFiles(): string[] {
 
 function collectBundledExtensionSourceFiles(): string[] {
   const extensionsDir = path.join(process.cwd(), "extensions");
-  let entries: fs.Dirent[] = [];
+  let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(extensionsDir, { withFileTypes: true });
   } catch {
@@ -73,7 +74,7 @@ function collectBundledExtensionSourceFiles(): string[] {
 }
 
 function main() {
-  const discovery = discoverAstroclawPlugins({});
+  const discovery = discoverOpenClawPlugins({});
   const bundledCandidates = discovery.candidates.filter((c) => c.origin === "bundled");
   const filesToCheck = new Set<string>();
   for (const candidate of bundledCandidates) {
@@ -93,7 +94,7 @@ function main() {
   const legacyCompatOffenders: string[] = [];
   const legacyBroadSubpathOffenders = new Map<string, string[]>();
   for (const entryFile of filesToCheck) {
-    let content = "";
+    let content;
     try {
       content = fs.readFileSync(entryFile, "utf8");
     } catch {
@@ -117,14 +118,14 @@ function main() {
     legacyBroadSubpathOffenders.size > 0
   ) {
     if (monolithicOffenders.length > 0) {
-      console.error("Bundled plugin source files must not import monolithic astroclaw/plugin-sdk.");
+      console.error("Bundled plugin source files must not import monolithic openclaw/plugin-sdk.");
       for (const file of monolithicOffenders.toSorted()) {
         console.error(`- ${relativeToCwd(file)}`);
       }
     }
     if (legacyCompatOffenders.length > 0) {
       console.error(
-        "Bundled plugin source files must not import legacy astroclaw/plugin-sdk/compat.",
+        "Bundled plugin source files must not import legacy openclaw/plugin-sdk/compat.",
       );
       for (const file of legacyCompatOffenders.toSorted()) {
         console.error(`- ${relativeToCwd(file)}`);
@@ -146,7 +147,7 @@ function main() {
       legacyBroadSubpathOffenders.size > 0
     ) {
       console.error(
-        "Use focused astroclaw/plugin-sdk/<domain> subpaths for bundled plugins; root, compat, and broad runtime barrels are legacy surfaces only.",
+        "Use focused openclaw/plugin-sdk/<domain> subpaths for bundled plugins; root, compat, and broad runtime barrels are legacy surfaces only.",
       );
     }
     process.exit(1);
