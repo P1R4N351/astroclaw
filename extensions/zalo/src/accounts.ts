@@ -1,20 +1,26 @@
+// Zalo plugin module implements accounts behavior.
 import {
   createAccountListHelpers,
   resolveMergedAccountConfig,
-} from "astroclaw/plugin-sdk/account-helpers";
-import { normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/account-helpers";
+import { normalizeAccountId } from "openclaw/plugin-sdk/account-id";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveZaloToken } from "./token.js";
 import type { ResolvedZaloAccount, ZaloAccountConfig, ZaloConfig } from "./types.js";
 
 export type { ResolvedZaloAccount };
 
 const { listAccountIds: listZaloAccountIds, resolveDefaultAccountId: resolveDefaultZaloAccountId } =
-  createAccountListHelpers("zalo");
+  createAccountListHelpers("zalo", {
+    implicitDefaultAccount: {
+      channelKeys: ["botToken", "tokenFile"],
+      envVars: ["ZALO_BOT_TOKEN"],
+    },
+  });
 export { listZaloAccountIds, resolveDefaultZaloAccountId };
 
-function mergeZaloAccountConfig(cfg: AstroclawConfig, accountId: string): ZaloAccountConfig {
+function mergeZaloAccountConfig(cfg: OpenClawConfig, accountId: string): ZaloAccountConfig {
   return resolveMergedAccountConfig<ZaloAccountConfig>({
     channelConfig: cfg.channels?.zalo as ZaloAccountConfig | undefined,
     accounts: (cfg.channels?.zalo as ZaloConfig | undefined)?.accounts as
@@ -26,7 +32,7 @@ function mergeZaloAccountConfig(cfg: AstroclawConfig, accountId: string): ZaloAc
 }
 
 export function resolveZaloAccount(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   allowUnresolvedSecretRef?: boolean;
 }): ResolvedZaloAccount {
@@ -53,7 +59,7 @@ export function resolveZaloAccount(params: {
   };
 }
 
-export function listEnabledZaloAccounts(cfg: AstroclawConfig): ResolvedZaloAccount[] {
+export function listEnabledZaloAccounts(cfg: OpenClawConfig): ResolvedZaloAccount[] {
   return listZaloAccountIds(cfg)
     .map((accountId) => resolveZaloAccount({ cfg, accountId }))
     .filter((account) => account.enabled);
