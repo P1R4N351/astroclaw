@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Evaluates plugin config policy without activating plugin runtime code.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   resolveMemorySlotDecisionShared,
   resolvePluginActivationDecisionShared,
@@ -23,7 +24,7 @@ export type PluginActivationState = PluginActivationStateLike;
 export type NormalizedPluginsConfig = SharedNormalizedPluginsConfig;
 
 export function normalizePluginsConfigWithResolver(
-  config?: AstroclawConfig["plugins"],
+  config?: OpenClawConfig["plugins"],
   normalizePluginId: NormalizePluginId = identityNormalizePluginId,
 ): NormalizedPluginsConfig {
   return normalizePluginsConfigWithResolverShared(config, normalizePluginId);
@@ -33,10 +34,10 @@ export function resolvePluginActivationState(params: {
   id: string;
   origin: PluginOrigin;
   config: NormalizedPluginsConfig;
-  rootConfig?: AstroclawConfig;
+  rootConfig?: OpenClawConfig;
   enabledByDefault?: boolean;
   sourceConfig?: NormalizedPluginsConfig;
-  sourceRootConfig?: AstroclawConfig;
+  sourceRootConfig?: OpenClawConfig;
   autoEnabledReason?: string;
 }): PluginActivationState {
   return toPluginActivationState(
@@ -58,10 +59,10 @@ type PolicyEffectiveActivationParams = {
   id: string;
   origin: PluginOrigin;
   config: NormalizedPluginsConfig;
-  rootConfig?: AstroclawConfig;
+  rootConfig?: OpenClawConfig;
   enabledByDefault?: boolean;
   sourceConfig?: NormalizedPluginsConfig;
-  sourceRootConfig?: AstroclawConfig;
+  sourceRootConfig?: OpenClawConfig;
   autoEnabledReason?: string;
 };
 
