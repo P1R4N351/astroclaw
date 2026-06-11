@@ -1,7 +1,8 @@
+// JSON-mode metadata for Commander commands; distinguishes JSON output from parse-only flags.
 import type { Command } from "commander";
 import { hasFlag } from "../argv.js";
 
-const jsonModeSymbol = Symbol("astroclaw.cli.jsonMode");
+const jsonModeSymbol = Symbol("openclaw.cli.jsonMode");
 
 type JsonMode = "output" | "parse-only";
 type JsonModeCommand = Command & {
@@ -38,6 +39,7 @@ function commandSelectedJsonFlag(command: Command, argv: string[]): boolean {
   return hasFlag(argv, "--json");
 }
 
+/** Mark a command as having a special JSON mode beyond ordinary JSON output. */
 export function setCommandJsonMode(command: Command, mode: JsonMode): Command {
   (command as JsonModeCommand)[jsonModeSymbol] = mode;
   return command;
@@ -50,6 +52,7 @@ function getCommandJsonMode(command: Command, argv: string[] = process.argv): Js
   return getDeclaredCommandJsonMode(command);
 }
 
+/** Return true only when `--json` selects machine-readable command output. */
 export function isCommandJsonOutputMode(command: Command, argv: string[] = process.argv): boolean {
   return getCommandJsonMode(command, argv) === "output";
 }
