@@ -1,4 +1,7 @@
-import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+/**
+ * Chutes provider builders for static and dynamically discovered catalogs.
+ */
+import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
 import {
   CHUTES_BASE_URL,
   CHUTES_MODEL_CATALOG,
@@ -6,6 +9,7 @@ import {
   discoverChutesModels,
 } from "./models.js";
 
+/** Builds the static Chutes provider catalog from bundled model metadata. */
 export function buildStaticChutesProvider(): ModelProviderConfig {
   return {
     baseUrl: CHUTES_BASE_URL,
