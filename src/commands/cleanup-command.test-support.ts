@@ -1,3 +1,4 @@
+// Cleanup command test support provides non-exiting runtimes and log captures for cleanup suites.
 import { vi } from "vitest";
 import { createNonExitingRuntime, type RuntimeEnv } from "../runtime.js";
 import type { MockFn } from "../test-utils/vitest-mock-fn.js";
@@ -5,8 +6,9 @@ import type { MockFn } from "../test-utils/vitest-mock-fn.js";
 const resolveCleanupPlanFromDisk = vi.fn();
 const removePath = vi.fn();
 const listAgentSessionDirs = vi.fn();
-const removeStateAndLinkedPaths = vi.fn();
+export const removeStateAndLinkedPaths = vi.fn();
 const removeWorkspaceDirs = vi.fn();
+export const removeWorkspaceAttestationPaths = vi.fn();
 
 vi.mock("../config/config.js", () => ({
   isNixMode: false,
@@ -20,6 +22,7 @@ vi.mock("./cleanup-utils.js", () => ({
   removePath,
   listAgentSessionDirs,
   removeStateAndLinkedPaths,
+  removeWorkspaceAttestationPaths,
   removeWorkspaceDirs,
 }));
 
@@ -30,17 +33,18 @@ export function createCleanupCommandRuntime() {
 export function resetCleanupCommandMocks() {
   vi.clearAllMocks();
   resolveCleanupPlanFromDisk.mockReturnValue({
-    stateDir: "/tmp/.astroclaw",
-    configPath: "/tmp/.astroclaw/astroclaw.json",
-    oauthDir: "/tmp/.astroclaw/credentials",
+    stateDir: "/tmp/.openclaw",
+    configPath: "/tmp/.openclaw/openclaw.json",
+    oauthDir: "/tmp/.openclaw/credentials",
     configInsideState: true,
     oauthInsideState: true,
-    workspaceDirs: ["/tmp/.astroclaw/workspace"],
+    workspaceDirs: ["/tmp/.openclaw/workspace"],
   });
   removePath.mockResolvedValue({ ok: true });
-  listAgentSessionDirs.mockResolvedValue(["/tmp/.astroclaw/agents/main/sessions"]);
+  listAgentSessionDirs.mockResolvedValue(["/tmp/.openclaw/agents/main/sessions"]);
   removeStateAndLinkedPaths.mockResolvedValue(undefined);
   removeWorkspaceDirs.mockResolvedValue(undefined);
+  removeWorkspaceAttestationPaths.mockResolvedValue(undefined);
 }
 
 export function silenceCleanupCommandRuntime(runtime: RuntimeEnv) {
