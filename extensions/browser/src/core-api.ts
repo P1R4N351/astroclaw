@@ -1,3 +1,7 @@
+/**
+ * Browser plugin internal barrel that gathers runtime, SDK, CLI, and gateway
+ * APIs for modules that need a stable local import surface.
+ */
 export {
   DEFAULT_AI_SNAPSHOT_MAX_CHARS,
   DEFAULT_UPLOAD_DIR,
@@ -42,6 +46,7 @@ export {
   resolveBrowserConfig,
   resolveBrowserControlAuth,
   resolveExistingPathsWithinRoot,
+  resolveExistingUploadPaths,
   resolveProfile,
   resolveRequestedBrowserProfile,
   startBrowserControlServiceFromConfig,
@@ -106,10 +111,10 @@ export {
 } from "./sdk-node-runtime.js";
 export { createSubsystemLogger, wrapExternalContent } from "./sdk-security-runtime.js";
 export type { AnyAgentTool, NodeListNode } from "./sdk-setup-tools.js";
-export type { AstroclawConfig } from "./sdk-config.js";
+export type { OpenClawConfig } from "./sdk-config.js";
 export type {
   GatewayRequestHandlers,
   GatewayRpcOpts,
   NodeSession,
-  AstroclawPluginService,
+  OpenClawPluginService,
 } from "./sdk-node-runtime.js";
