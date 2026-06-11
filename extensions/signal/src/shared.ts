@@ -1,13 +1,14 @@
-import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
+// Signal plugin module implements shared behavior.
+import { describeAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
 import {
   adaptScopedAccountAccessor,
   createScopedChannelConfigAdapter,
-} from "astroclaw/plugin-sdk/channel-config-helpers";
-import { createRestrictSendersChannelSecurity } from "astroclaw/plugin-sdk/channel-policy";
-import { createChannelPluginBase, getChatChannelMeta } from "astroclaw/plugin-sdk/core";
-import type { ChannelPlugin } from "astroclaw/plugin-sdk/core";
-import { normalizeStringifiedOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { normalizeE164 } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/channel-config-helpers";
+import { createRestrictSendersChannelSecurity } from "openclaw/plugin-sdk/channel-policy";
+import { createChannelPluginBase, getChatChannelMeta } from "openclaw/plugin-sdk/core";
+import type { ChannelPlugin } from "openclaw/plugin-sdk/core";
+import { normalizeStringifiedEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeE164 } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
   listSignalAccountIds,
   resolveDefaultSignalAccountId,
@@ -32,12 +33,10 @@ export const signalConfigAdapter = createScopedChannelConfigAdapter<ResolvedSign
   listAccountIds: (cfg) => listSignalAccountIds(cfg),
   resolveAccount: adaptScopedAccountAccessor((params) => resolveSignalAccount(params)),
   defaultAccountId: (cfg) => resolveDefaultSignalAccountId(cfg),
-  clearBaseFields: ["account", "httpUrl", "httpHost", "httpPort", "cliPath", "name"],
+  clearBaseFields: ["account", "configPath", "httpUrl", "httpHost", "httpPort", "cliPath", "name"],
   resolveAllowFrom: (account: ResolvedSignalAccount) => account.config.allowFrom,
   formatAllowFrom: (allowFrom) =>
-    allowFrom
-      .map((entry) => normalizeStringifiedOptionalString(entry))
-      .filter((entry): entry is string => Boolean(entry))
+    normalizeStringifiedEntries(allowFrom)
       .map((entry) => (entry === "*" ? "*" : normalizeE164(entry.replace(/^signal:/i, ""))))
       .filter(Boolean),
   resolveDefaultTo: (account: ResolvedSignalAccount) => account.config.defaultTo,
