@@ -1,3 +1,5 @@
+// Gateway HTTP server routes control UI, OpenAI-compatible APIs, plugin HTTP
+// surfaces, hooks, readiness, auth, and WebSocket upgrades.
 import {
   createServer as createHttpServer,
   type Server as HttpServer,
@@ -9,12 +11,11 @@ import type { TlsOptions } from "node:tls";
 import type { WebSocketServer } from "ws";
 import { resolveBundledChannelGatewayAuthBypassPaths } from "../channels/plugins/gateway-auth-bypass.js";
 import { getRuntimeConfig } from "../config/io.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   createDiagnosticTraceContext,
   runWithDiagnosticTraceContext,
 } from "../infra/diagnostic-trace-context.js";
-import { getTotalQueueSize } from "../process/command-queue.js";
 import { resolveAssistantIdentity } from "./assistant-identity.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import {
@@ -25,8 +26,7 @@ import {
 } from "./auth.js";
 import type { ControlUiRootState } from "./control-ui.js";
 import type { AuthorizedGatewayHttpRequest } from "./http-auth-utils.js";
-import { sendGatewayAuthFailure, sendJson, setDefaultSecurityHeaders } from "./http-common.js";
-import { handleMcpFederationRequest, MCP_FEDERATION_PATH_ROUTE } from "./mcp-federation-http.js";
+import { sendGatewayAuthFailure, setDefaultSecurityHeaders } from "./http-common.js";
 import { resolveRequestClientIp } from "./net.js";
 import {
   normalizePluginNodeCapabilityScopedUrl,
@@ -162,44 +162,13 @@ const GATEWAY_PROBE_STATUS_BY_PATH = new Map<string, "live" | "ready">([
   ["/ready", "ready"],
   ["/readyz", "ready"],
 ]);
-
-// Short-TTL in-process cache for live-probe responses. Refreshed at most
-// once per PIRANESI_HEALTHZ_CACHE_MS (default 1500, clamped 0-10000) so
-// docker healthchecks + watchdog probes don't add event-loop pressure
-// when the gateway is busy. Only the "live" path is cached; "ready"
-// always runs the readiness check fresh. Migrated to source from
-// patch-healthz-cache.js 2026-05-25 per Piranesi-Main DECIDE: A.
-// Background: under heartbeat backlog (35+ stuck task runs after a
-// restart), even the cheap live path blocked past watchdog probe
-// timeout, causing STRIKE → docker restart → same backlog (B68).
-const LIVE_PROBE_CACHE_DEFAULT_MS = 1500;
-const LIVE_PROBE_CACHE_MAX_MS = 10000;
-let liveProbeCache: { at: number; body: string } | null = null;
-
-function resolveLiveProbeCacheTtlMs(): number {
-  const raw = Number(process.env.PIRANESI_HEALTHZ_CACHE_MS || "");
-  if (!Number.isFinite(raw)) {
-    return LIVE_PROBE_CACHE_DEFAULT_MS;
-  }
-  return Math.max(0, Math.min(LIVE_PROBE_CACHE_MAX_MS, Math.floor(raw)));
-}
-
-function getCachedLiveProbeBody(now: number): string {
-  const ttl = resolveLiveProbeCacheTtlMs();
-  if (liveProbeCache && now - liveProbeCache.at <= ttl) {
-    return liveProbeCache.body;
-  }
-  const body = JSON.stringify({ ok: true, status: "live", cached: true, ts: now });
-  liveProbeCache = { at: now, body };
-  return body;
-}
 const pluginGatewayAuthBypassPathsCache = new WeakMap<
-  AstroclawConfig,
+  OpenClawConfig,
   Promise<ReadonlySet<string>>
 >();
 
 async function resolvePluginGatewayAuthBypassPaths(
-  configSnapshot: AstroclawConfig,
+  configSnapshot: OpenClawConfig,
 ): Promise<Set<string>> {
   const paths = new Set<string>();
   const configuredChannels = configSnapshot.channels;
@@ -218,13 +187,13 @@ async function resolvePluginGatewayAuthBypassPaths(
 }
 
 function getCachedPluginGatewayAuthBypassPaths(
-  configSnapshot: AstroclawConfig,
+  configSnapshot: OpenClawConfig,
 ): Promise<ReadonlySet<string>> {
   const cached = pluginGatewayAuthBypassPathsCache.get(configSnapshot);
   if (cached) {
     return cached;
   }
-  const resolved = resolvePluginGatewayAuthBypassPaths(configSnapshot).catch((error) => {
+  const resolved = resolvePluginGatewayAuthBypassPaths(configSnapshot).catch((error: unknown) => {
     pluginGatewayAuthBypassPathsCache.delete(configSnapshot);
     throw error;
   });
@@ -278,6 +247,8 @@ async function canRevealReadinessDetails(params: {
   trustedProxies: string[];
   allowRealIpFallback: boolean;
 }): Promise<boolean> {
+  // Readiness details expose subsystem names; show them only to local direct callers or
+  // requests that prove gateway auth, while unauthenticated remote probes get a boolean.
   if (isLocalDirectRequest(params.req, params.trustedProxies, params.allowRealIpFallback)) {
     return true;
   }
@@ -298,6 +269,7 @@ async function canRevealReadinessDetails(params: {
   return authResult.ok;
 }
 
+/** Handles live/ready probe endpoints before normal gateway routing. */
 async function handleGatewayProbeRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -345,7 +317,7 @@ async function handleGatewayProbeRequest(
     }
   } else {
     statusCode = 200;
-    body = getCachedLiveProbeBody(Date.now());
+    body = JSON.stringify({ ok: true, status });
   }
   res.statusCode = statusCode;
   res.end(method === "HEAD" ? undefined : body);
@@ -446,6 +418,8 @@ function buildPluginRequestStages(params: {
   let pluginGatewayAuthSatisfied = false;
   let pluginGatewayRequestAuth: AuthorizedGatewayHttpRequest | undefined;
   let pluginRequestOperatorScopes: string[] | undefined;
+  // Plugin auth and plugin dispatch are separate stages so route handlers receive the
+  // gateway-auth context while plugin failures can still fall through to core/Control UI routes.
   return [
     {
       name: "plugin-auth",
@@ -462,6 +436,8 @@ function buildPluginRequestStages(params: {
         if ((await params.getGatewayAuthBypassPaths()).has(params.requestPath)) {
           return false;
         }
+        // Bypass paths are limited to bundled channel callbacks; all other protected plugin
+        // routes must produce an AuthorizedGatewayHttpRequest before runtime scopes are derived.
         const { authorizeGatewayHttpRequestOrReply } = await getHttpAuthUtilsModule();
         const requestAuth = await authorizeGatewayHttpRequestOrReply({
           req: params.req,
@@ -503,6 +479,7 @@ function buildPluginRequestStages(params: {
   ];
 }
 
+/** Creates the gateway HTTP/HTTPS server and ordered request-stage router. */
 export function createGatewayHttpServer(opts: {
   clients: Set<GatewayWsClient>;
   controlUiEnabled: boolean;
@@ -523,7 +500,7 @@ export function createGatewayHttpServer(opts: {
   /** Optional rate limiter for auth brute-force protection. */
   rateLimiter?: AuthRateLimiter;
   getReadiness?: ReadinessChecker;
-  getRuntimeConfig?: () => AstroclawConfig;
+  getRuntimeConfig?: () => OpenClawConfig;
   tlsOptions?: TlsOptions;
 }): HttpServer {
   const {
@@ -599,53 +576,16 @@ export function createGatewayHttpServer(opts: {
         return;
       }
       if (scopedNodeCapability.rewrittenUrl) {
+        // Scoped capability URLs are normalized before auth/routing so built-in handlers,
+        // plugin route matching, and audit context all see the same canonical path.
         req.url = scopedNodeCapability.rewrittenUrl;
       }
       const scopedRequestPath = scopedNodeCapability.pathname;
       const pluginPathContext = handlePluginRequest
         ? resolvePluginRoutePathContext(scopedRequestPath)
         : null;
-      const resolvedAuth = getResolvedAuth();
+      const resolvedAuthValue = getResolvedAuth();
       const requestStages: GatewayHttpRequestStage[] = [
-        {
-          // Startup-grace: during the first PIRANESI_STARTUP_GRACE_S seconds
-          // after process boot (default 60), intercept /v1/* requests with a
-          // procedural SSE response instead of letting them hit the model
-          // routing layer while providers are still connecting. Without this,
-          // /v1/chat/completions calls during boot return empty responses
-          // (F-EMPTY-FIRST) — clients see a "model said nothing" failure when
-          // the gateway is actually still warming up. Migrated to source from
-          // patch-startup-grace-procedural.js 2026-05-25.
-          name: "startup-grace",
-          run: () => {
-            const graceSecondsRaw = Number(process.env.PIRANESI_STARTUP_GRACE_S || "60");
-            const graceSeconds = Number.isFinite(graceSecondsRaw) ? graceSecondsRaw : 60;
-            if (process.uptime() >= graceSeconds) return false;
-            if (!scopedRequestPath.startsWith("/v1")) return false;
-            const graceBody = JSON.stringify({
-              id: "startup-grace",
-              object: "chat.completion.chunk",
-              model: "procedural-fallback-v1",
-              choices: [
-                {
-                  index: 0,
-                  delta: {
-                    role: "assistant",
-                    content:
-                      "[STARTUP-GRACE v1.0] Gateway is warming up — models loading. Retry in a moment.",
-                  },
-                  finish_reason: "stop",
-                },
-              ],
-            });
-            res.statusCode = 200;
-            res.setHeader("Content-Type", "text/event-stream");
-            res.setHeader("X-Consult-Procedural", "startup-grace");
-            res.setHeader("Cache-Control", "no-store");
-            res.end(`data: ${graceBody}\n\ndata: [DONE]\n\n`);
-            return true;
-          },
-        },
         {
           name: "gateway-probes",
           run: () =>
@@ -653,7 +593,7 @@ export function createGatewayHttpServer(opts: {
               req,
               res,
               scopedRequestPath,
-              resolvedAuth,
+              resolvedAuthValue,
               trustedProxies,
               allowRealIpFallback,
               getReadiness,
@@ -669,7 +609,7 @@ export function createGatewayHttpServer(opts: {
           name: "models",
           run: async () =>
             (await getModelsHttpModule()).handleOpenAiModelsHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               trustedProxies,
               allowRealIpFallback,
               rateLimiter,
@@ -681,7 +621,7 @@ export function createGatewayHttpServer(opts: {
           name: "embeddings",
           run: async () =>
             (await getEmbeddingsHttpModule()).handleOpenAiEmbeddingsHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               trustedProxies,
               allowRealIpFallback,
               rateLimiter,
@@ -693,7 +633,7 @@ export function createGatewayHttpServer(opts: {
           name: "tools-invoke",
           run: async () =>
             (await getToolsInvokeHttpModule()).handleToolsInvokeHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               trustedProxies,
               allowRealIpFallback,
               rateLimiter,
@@ -705,7 +645,7 @@ export function createGatewayHttpServer(opts: {
           name: "sessions-kill",
           run: async () =>
             (await getSessionKillHttpModule()).handleSessionKillHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               trustedProxies,
               allowRealIpFallback,
               rateLimiter,
@@ -717,7 +657,7 @@ export function createGatewayHttpServer(opts: {
           name: "sessions-history",
           run: async () =>
             (await getSessionHistoryHttpModule()).handleSessionHistoryHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               getResolvedAuth,
               trustedProxies,
               allowRealIpFallback,
@@ -730,7 +670,7 @@ export function createGatewayHttpServer(opts: {
           name: "openresponses",
           run: async () =>
             (await getOpenResponsesHttpModule()).handleOpenResponsesHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               config: openResponsesConfig,
               trustedProxies,
               allowRealIpFallback,
@@ -743,7 +683,7 @@ export function createGatewayHttpServer(opts: {
           name: "openai",
           run: async () =>
             (await getOpenAiHttpModule()).handleOpenAiHttpRequest(req, res, {
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               config: openAiChatCompletionsConfig,
               trustedProxies,
               allowRealIpFallback,
@@ -767,7 +707,7 @@ export function createGatewayHttpServer(opts: {
               await getPluginNodeCapabilityAuthModule();
             const ok = await authorizePluginNodeCapabilityRequest({
               req,
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               trustedProxies,
               allowRealIpFallback,
               clients,
@@ -796,59 +736,12 @@ export function createGatewayHttpServer(opts: {
           pluginPathContext,
           handlePluginRequest,
           shouldEnforcePluginGatewayAuth,
-          resolvedAuth,
+          resolvedAuth: resolvedAuthValue,
           trustedProxies,
           allowRealIpFallback,
           rateLimiter,
         }),
       );
-
-      // POST /mcp — sibling-to-sibling MCP federation endpoint. See
-      // gateway/mcp-federation-http.ts for full security boundary +
-      // request lifecycle. Authenticated via PIRANESI_MCP_FEDERATION_TOKEN
-      // env var (off-by-default; returns 503 when unset). Migrated to
-      // source from patch-mcp-federation.js 2026-05-25.
-      requestStages.push({
-        name: "mcp-federation",
-        run: () => {
-          if (scopedRequestPath !== MCP_FEDERATION_PATH_ROUTE) return false;
-          return handleMcpFederationRequest(req, res);
-        },
-      });
-
-      // GET /internal/queue-depth — lane queue depth telemetry endpoint.
-      // Auth: shared-secret PIRANESI_INTERNAL_TOKEN via x-internal-token
-      // header (separate from gateway operator auth). Off when env var
-      // unset → 503. Migrated to source from patch-queue-depth.js
-      // (2026-05-25) per Piranesi-Main DECIDE: A. Originally added per
-      // SP-3 of the design-skills initiative: piranesi-ui telemetry
-      // pane consumes lane queue depth as a live hero metric.
-      requestStages.push({
-        name: "queue-depth",
-        run: () => {
-          if (scopedRequestPath !== "/internal/queue-depth") return false;
-          if (req.method !== "GET" && req.method !== "HEAD") {
-            res.statusCode = 405;
-            res.setHeader("Allow", "GET, HEAD");
-            res.end("Method Not Allowed");
-            return true;
-          }
-          const serverToken = process.env.PIRANESI_INTERNAL_TOKEN;
-          if (!serverToken) {
-            res.statusCode = 503;
-            res.end("queue-depth not configured");
-            return true;
-          }
-          const clientToken = req.headers["x-internal-token"];
-          if (clientToken !== serverToken) {
-            res.statusCode = 401;
-            res.end("Unauthorized");
-            return true;
-          }
-          sendJson(res, 200, { ok: true, queueDepth: getTotalQueueSize() });
-          return true;
-        },
-      });
 
       if (isManagedOutgoingImagePath(scopedRequestPath)) {
         requestStages.push({
@@ -858,7 +751,7 @@ export function createGatewayHttpServer(opts: {
               req,
               res,
               {
-                auth: resolvedAuth,
+                auth: resolvedAuthValue,
                 trustedProxies,
                 allowRealIpFallback,
                 rateLimiter,
@@ -875,7 +768,7 @@ export function createGatewayHttpServer(opts: {
               basePath: controlUiBasePath,
               config: configSnapshot,
               agentId: resolveAssistantIdentity({ cfg: configSnapshot }).agentId,
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               trustedProxies,
               allowRealIpFallback,
               rateLimiter,
@@ -888,7 +781,7 @@ export function createGatewayHttpServer(opts: {
             const { resolveAgentAvatar } = await getIdentityAvatarModule();
             return handleControlUiAvatarRequest(req, res, {
               basePath: controlUiBasePath,
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               trustedProxies,
               allowRealIpFallback,
               rateLimiter,
@@ -905,7 +798,7 @@ export function createGatewayHttpServer(opts: {
               config: configSnapshot,
               agentId: resolveAssistantIdentity({ cfg: configSnapshot }).agentId,
               root: controlUiRoot,
-              auth: resolvedAuth,
+              auth: resolvedAuthValue,
               trustedProxies,
               allowRealIpFallback,
               rateLimiter,
@@ -931,6 +824,7 @@ export function createGatewayHttpServer(opts: {
   return httpServer;
 }
 
+/** Attaches WebSocket and plugin-upgrade routing to an already-created HTTP server. */
 export function attachGatewayUpgradeHandler(opts: {
   httpServer: HttpServer;
   wss: WebSocketServer;
@@ -973,15 +867,17 @@ export function attachGatewayUpgradeHandler(opts: {
       if (scopedNodeCapability.rewrittenUrl) {
         req.url = scopedNodeCapability.rewrittenUrl;
       }
-      const resolvedAuth = getResolvedAuth();
+      const resolvedAuthLocal = getResolvedAuth();
       const requestPath = scopedNodeCapability.pathname;
       const pathContext = resolvePluginRoutePathContext(requestPath);
       const nodeCapability = resolvePluginNodeCapabilityRoute?.(pathContext);
       if (nodeCapability) {
+        // Node-capability WebSocket upgrades authenticate before plugin upgrade dispatch so
+        // plugin handlers never receive unauthorized scoped capability sockets.
         const { authorizePluginNodeCapabilityRequest } = await getPluginNodeCapabilityAuthModule();
         const ok = await authorizePluginNodeCapabilityRequest({
           req,
-          auth: resolvedAuth,
+          auth: resolvedAuthLocal,
           trustedProxies,
           allowRealIpFallback,
           clients,
@@ -1010,7 +906,7 @@ export function attachGatewayUpgradeHandler(opts: {
           const { checkGatewayHttpRequestAuth } = await getHttpAuthUtilsModule();
           const authCheck = await checkGatewayHttpRequestAuth({
             req,
-            auth: resolvedAuth,
+            auth: resolvedAuthLocal,
             trustedProxies,
             allowRealIpFallback,
             rateLimiter,
@@ -1052,6 +948,8 @@ export function attachGatewayUpgradeHandler(opts: {
         return;
       }
       let budgetTransferred = false;
+      // The socket owns the preauth budget until the WebSocket connection handler claims it;
+      // close/error paths release here to avoid leaking unauthenticated connection slots.
       const releaseUpgradeBudget = () => {
         if (budgetTransferred) {
           return;
@@ -1064,17 +962,17 @@ export function attachGatewayUpgradeHandler(opts: {
         wss.handleUpgrade(req, socket, head, (ws) => {
           (
             ws as unknown as import("ws").WebSocket & {
-              __astroclawPreauthBudgetClaimed?: boolean;
-              __astroclawPreauthBudgetKey?: string;
+              __openclawPreauthBudgetClaimed?: boolean;
+              __openclawPreauthBudgetKey?: string;
             }
-          ).__astroclawPreauthBudgetKey = preauthBudgetKey;
+          )["__openclawPreauthBudgetKey"] = preauthBudgetKey;
           wss.emit("connection", ws, req);
           const budgetClaimed = Boolean(
             (
               ws as unknown as import("ws").WebSocket & {
-                __astroclawPreauthBudgetClaimed?: boolean;
+                __openclawPreauthBudgetClaimed?: boolean;
               }
-            ).__astroclawPreauthBudgetClaimed,
+            )["__openclawPreauthBudgetClaimed"],
           );
           if (budgetClaimed) {
             budgetTransferred = true;
@@ -1086,7 +984,7 @@ export function attachGatewayUpgradeHandler(opts: {
         releaseUpgradeBudget();
         throw new Error("gateway websocket upgrade failed");
       }
-    }).catch((err) => {
+    }).catch((err: unknown) => {
       const remoteAddress = (socket as { remoteAddress?: string }).remoteAddress ?? "unknown";
       const errorMessage = err instanceof Error ? err.message : String(err);
       log?.warn(`ws upgrade error from ${remoteAddress}: ${errorMessage}`);
