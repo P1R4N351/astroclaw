@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../runtime-api.js";
+// Msteams plugin module implements graph members behavior.
+import type { OpenClawConfig } from "../runtime-api.js";
 import { fetchGraphJson, resolveGraphToken } from "./graph.js";
 
 type GraphUserProfile = {
@@ -11,7 +12,7 @@ type GraphUserProfile = {
 };
 
 type GetMemberInfoMSTeamsParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   userId: string;
 };
 
