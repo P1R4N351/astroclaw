@@ -1,3 +1,4 @@
+// Audits config paths and values for diagnostics and safety checks.
 import path from "node:path";
 import { redactSecrets, redactToolPayloadText } from "../logging/redact.js";
 import { resolveStateDir } from "./paths.js";
@@ -86,8 +87,7 @@ function parseFlagName(arg: string): string | null {
 export function redactConfigAuditArgv(argv: readonly string[]): string[] {
   const result: string[] = [];
   let redactNext = false;
-  for (let i = 0; i < argv.length; i++) {
-    const current = argv[i];
+  for (const current of argv) {
     if (typeof current !== "string") {
       result.push(current);
       redactNext = false;
@@ -348,9 +348,9 @@ export function createConfigWriteAuditRecordBase(params: {
     cwd: processSnapshot.cwd,
     argv: processSnapshot.argv,
     execArgv: processSnapshot.execArgv,
-    watchMode: params.env.ASTROCLAW_WATCH_MODE === "1",
-    watchSession: normalizeAuditLabel(params.env.ASTROCLAW_WATCH_SESSION),
-    watchCommand: normalizeAuditLabel(params.env.ASTROCLAW_WATCH_COMMAND),
+    watchMode: params.env.OPENCLAW_WATCH_MODE === "1",
+    watchSession: normalizeAuditLabel(params.env.OPENCLAW_WATCH_SESSION),
+    watchCommand: normalizeAuditLabel(params.env.OPENCLAW_WATCH_COMMAND),
     existsBefore: params.existsBefore,
     previousHash: params.previousHash,
     nextHash: params.nextHash,
@@ -443,7 +443,7 @@ export type ConfigAuditScrubResult = {
   rewritten: number;
   skipped: number;
   // True when the scrub detected concurrent appends mid-rewrite and refused
-  // to swap the file. Caller should re-run `astroclaw doctor --fix` once the
+  // to swap the file. Caller should re-run `openclaw doctor --fix` once the
   // gateway is idle. No on-disk content was modified on abort.
   aborted: boolean;
 };
