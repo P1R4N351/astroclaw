@@ -1,5 +1,6 @@
-import { readProviderJsonObjectResponse } from "astroclaw/plugin-sdk/provider-http";
-import { postTrustedWebToolsJson, wrapWebContent } from "astroclaw/plugin-sdk/provider-web-search";
+// Xai plugin module implements x search shared behavior.
+import { readProviderJsonObjectResponse } from "openclaw/plugin-sdk/provider-http";
+import { postTrustedWebToolsJson, wrapWebContent } from "openclaw/plugin-sdk/provider-web-search";
 import {
   buildXaiResponsesToolBody,
   requireXaiResponseTextCitationsAndInline,
@@ -10,7 +11,7 @@ import {
   resolveNormalizedXaiToolModel,
   resolvePositiveIntegerToolConfig,
 } from "./tool-config-shared.js";
-import { type XaiWebSearchResponse } from "./web-search-shared.js";
+import type { XaiWebSearchResponse } from "./web-search-shared.js";
 
 export const XAI_DEFAULT_X_SEARCH_MODEL = "grok-4-1-fast-non-reasoning";
 
