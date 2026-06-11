@@ -1,3 +1,4 @@
+// Signal API module exposes the plugin public contract.
 export {
   applyAccountNameToChannelSection,
   buildBaseAccountStatusSnapshot,
@@ -25,8 +26,8 @@ export {
   normalizeAccountId,
   normalizeE164,
   normalizeSignalMessagingTarget,
-  type AstroclawConfig,
-  type AstroclawPluginApi,
+  type OpenClawConfig,
+  type OpenClawPluginApi,
   PAIRING_APPROVED_MESSAGE,
   type PluginRuntime,
   probeSignal,
