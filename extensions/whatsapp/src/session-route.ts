@@ -1,7 +1,8 @@
+// Whatsapp plugin module implements session route behavior.
 import {
   buildChannelOutboundSessionRoute,
   type ChannelOutboundSessionRouteParams,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 import {
   isWhatsAppGroupJid,
   isWhatsAppNewsletterJid,
