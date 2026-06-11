@@ -1,5 +1,9 @@
+// Search setup flow configures web search providers and defaults.
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { resolveDefaultAgentDir } from "../agents/agent-scope-config.js";
+import { hasAuthProfileForProvider } from "../agents/tools/model-config.helpers.js";
 import type { SecretInputMode } from "../commands/onboard-types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   DEFAULT_SECRET_PROVIDER_ALIAS,
   type SecretInput,
@@ -17,16 +21,16 @@ import {
 import { resolvePluginWebSearchProviders } from "../plugins/web-search-providers.runtime.js";
 import { sortWebSearchProviders } from "../plugins/web-search-providers.shared.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
+import { resolveWebSearchProviderId } from "../web-search/runtime.js";
 import { t } from "../wizard/i18n/index.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { FlowContribution, FlowOption } from "./types.js";
 import { sortFlowContributionsByLabel } from "./types.js";
 
 export type SearchProvider = NonNullable<
-  NonNullable<NonNullable<NonNullable<AstroclawConfig["tools"]>["web"]>["search"]>["provider"]
+  NonNullable<NonNullable<NonNullable<OpenClawConfig["tools"]>["web"]>["search"]>["provider"]
 >;
-type SearchConfig = NonNullable<NonNullable<NonNullable<AstroclawConfig["tools"]>["web"]>["search"]>;
+type SearchConfig = NonNullable<NonNullable<NonNullable<OpenClawConfig["tools"]>["web"]>["search"]>;
 type MutableSearchConfig = SearchConfig & Record<string, unknown>;
 
 type SearchProviderSetupOption = FlowOption & {
@@ -42,7 +46,7 @@ type SearchProviderSetupContribution = FlowContribution & {
 };
 
 const SEARCH_INSTALL_CATALOG_ENTRY = Symbol("search-install-catalog-entry");
-const WEB_SEARCH_DOCS_URL = "https://docs.astroclaw.ai/tools/web";
+const WEB_SEARCH_DOCS_URL = "https://docs.openclaw.ai/tools/web";
 
 type SearchProviderEntryWithInstall = PluginWebSearchProviderEntry & {
   [SEARCH_INSTALL_CATALOG_ENTRY]?: WebSearchInstallCatalogEntry;
@@ -58,7 +62,7 @@ function resolveSearchProviderCredentialLabel(
 }
 
 export function listSearchProviderOptions(
-  config?: AstroclawConfig,
+  config?: OpenClawConfig,
 ): readonly PluginWebSearchProviderEntry[] {
   return resolveSearchProviderOptions(config);
 }
@@ -70,7 +74,7 @@ function showsSearchProviderInSetup(
 }
 
 export function resolveSearchProviderOptions(
-  config?: AstroclawConfig,
+  config?: OpenClawConfig,
 ): readonly PluginWebSearchProviderEntry[] {
   return resolveSearchProviderSetupContributions(config).map(
     (contribution) => contribution.provider,
@@ -97,7 +101,7 @@ function buildSearchProviderSetupContribution(params: {
 }
 
 function resolveSearchProviderSetupContributions(
-  config?: AstroclawConfig,
+  config?: OpenClawConfig,
 ): SearchProviderSetupContribution[] {
   const runtimeProviders = sortWebSearchProviders(
     resolvePluginWebSearchProviders({
@@ -138,7 +142,7 @@ function resolveSearchProviderSetupContributions(
 }
 
 function resolveSearchProviderEntry(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   provider: SearchProvider,
 ): PluginWebSearchProviderEntry | undefined {
   return resolveSearchProviderOptions(config).find((entry) => entry.id === provider);
@@ -154,33 +158,49 @@ function providerNeedsCredential(
   return entry.requiresCredential !== false;
 }
 
+function formatAuthProviderLabel(providerId: string): string {
+  return providerId === "xai" ? "xAI" : providerId;
+}
+
 function providerIsReady(
-  config: AstroclawConfig,
-  entry: Pick<PluginWebSearchProviderEntry, "id" | "envVars" | "requiresCredential">,
+  config: OpenClawConfig,
+  entry: Pick<
+    PluginWebSearchProviderEntry,
+    "id" | "authProviderId" | "envVars" | "requiresCredential"
+  >,
 ): boolean {
   if (!providerNeedsCredential(entry)) {
+    return true;
+  }
+  if (
+    entry.authProviderId &&
+    hasAuthProfileForProvider({
+      provider: entry.authProviderId,
+      agentDir: resolveDefaultAgentDir(config),
+    })
+  ) {
     return true;
   }
   return hasExistingKey(config, entry.id) || hasKeyInEnv(entry);
 }
 
-function rawKeyValue(config: AstroclawConfig, provider: SearchProvider): unknown {
+function rawKeyValue(config: OpenClawConfig, provider: SearchProvider): unknown {
   const entry = resolveSearchProviderEntry(config, provider);
   return entry?.getConfiguredCredentialValue?.(config);
 }
 
 export function resolveExistingKey(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   provider: SearchProvider,
 ): string | undefined {
   return normalizeSecretInputString(rawKeyValue(config, provider));
 }
 
-export function hasExistingKey(config: AstroclawConfig, provider: SearchProvider): boolean {
+export function hasExistingKey(config: OpenClawConfig, provider: SearchProvider): boolean {
   return hasConfiguredSecretInput(rawKeyValue(config, provider));
 }
 
-function buildSearchEnvRef(config: AstroclawConfig, provider: SearchProvider): SecretRef {
+function buildSearchEnvRef(config: OpenClawConfig, provider: SearchProvider): SecretRef {
   const entry =
     resolveSearchProviderEntry(config, provider) ??
     listSearchProviderOptions(config).find((candidate) => candidate.id === provider) ??
@@ -197,7 +217,7 @@ function buildSearchEnvRef(config: AstroclawConfig, provider: SearchProvider): S
 }
 
 function resolveSearchSecretInput(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   provider: SearchProvider,
   key: string,
   secretInputMode?: SecretInputMode,
@@ -210,10 +230,10 @@ function resolveSearchSecretInput(
 }
 
 export function applySearchKey(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   provider: SearchProvider,
   key: SecretInput,
-): AstroclawConfig {
+): OpenClawConfig {
   const providerEntry = resolveSearchProviderEntry(config, provider);
   if (!providerEntry) {
     return config;
@@ -222,7 +242,7 @@ export function applySearchKey(
   if (!providerEntry.setConfiguredCredentialValue) {
     providerEntry.setCredentialValue(search, key);
   }
-  const nextBase: AstroclawConfig = {
+  const nextBase: OpenClawConfig = {
     ...config,
     tools: {
       ...config.tools,
@@ -235,9 +255,9 @@ export function applySearchKey(
 }
 
 function applySearchProviderSelectionConfig(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   providerEntry: Pick<PluginWebSearchProviderEntry, "pluginId" | "applySelectionConfig">,
-): AstroclawConfig {
+): OpenClawConfig {
   if (providerEntry.applySelectionConfig) {
     return providerEntry.applySelectionConfig(config);
   }
@@ -248,9 +268,9 @@ function applySearchProviderSelectionConfig(
 }
 
 export function applySearchProviderSelection(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   provider: SearchProvider,
-): AstroclawConfig {
+): OpenClawConfig {
   const providerEntry = resolveSearchProviderEntry(config, provider);
   if (!providerEntry) {
     return config;
@@ -260,7 +280,7 @@ export function applySearchProviderSelection(
     provider,
     enabled: true,
   };
-  const nextBase: AstroclawConfig = {
+  const nextBase: OpenClawConfig = {
     ...config,
     tools: {
       ...config.tools,
@@ -273,12 +293,12 @@ export function applySearchProviderSelection(
   return applySearchProviderSelectionConfig(nextBase, providerEntry);
 }
 
-function preserveDisabledState(original: AstroclawConfig, result: AstroclawConfig): AstroclawConfig {
+function preserveDisabledState(original: OpenClawConfig, result: OpenClawConfig): OpenClawConfig {
   if (original.tools?.web?.search?.enabled !== false) {
     return result;
   }
 
-  const next: AstroclawConfig = {
+  const next: OpenClawConfig = {
     ...result,
     tools: {
       ...result.tools,
@@ -327,7 +347,7 @@ function preserveDisabledState(original: AstroclawConfig, result: AstroclawConfi
 
   return {
     ...next,
-    plugins: nextPlugins as AstroclawConfig["plugins"],
+    plugins: nextPlugins as OpenClawConfig["plugins"],
   };
 }
 
@@ -337,13 +357,13 @@ export type SetupSearchOptions = {
 };
 
 async function finalizeSearchProviderSetup(params: {
-  originalConfig: AstroclawConfig;
-  nextConfig: AstroclawConfig;
+  originalConfig: OpenClawConfig;
+  nextConfig: OpenClawConfig;
   entry: SearchProviderEntryWithInstall;
   runtime: RuntimeEnv;
   prompter: WizardPrompter;
   opts?: SetupSearchOptions;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   let next = params.nextConfig;
   const installEntry = params.entry[SEARCH_INSTALL_CATALOG_ENTRY];
   if (installEntry && next.tools?.web?.search?.enabled !== false) {
@@ -383,11 +403,11 @@ async function finalizeSearchProviderSetup(params: {
 }
 
 export async function runSearchSetupFlow(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
   opts?: SetupSearchOptions,
-): Promise<AstroclawConfig> {
+): Promise<OpenClawConfig> {
   const providerOptions = resolveSearchProviderOptions(config);
   if (providerOptions.length === 0) {
     await prompter.note(
@@ -412,6 +432,42 @@ export async function runSearchSetupFlow(
 
   const existingProvider = config.tools?.web?.search?.provider;
 
+  const defaultProvider: SearchProvider = (() => {
+    if (existingProvider && providerOptions.some((entry) => entry.id === existingProvider)) {
+      return existingProvider;
+    }
+    // Mirror the runtime auto-detect selection (honors autoDetectOrder and
+    // configured credentials, incl. keyless defaults) so accepting the setup
+    // default writes the same provider the gateway would pick — e.g. Parallel
+    // Search (Free), not whichever ready provider happens to sort first
+    // alphabetically. Resolve over the providers actually shown in setup
+    // (`providerOptions`) so the default can't pick an option that isn't listed
+    // or force-load runtime code for an install-catalog-only provider.
+    // Clear any existing provider id before auto-detecting: the valid-existing
+    // case already returned above, so a leftover value here is stale/invalid/
+    // disabled and would otherwise make the resolver short-circuit to
+    // providers[0] (e.g. Brave) instead of the keyless default. Keep the rest of
+    // the search config so configured credentials are still detected.
+    const searchForAutoDetect = {
+      ...config.tools?.web?.search,
+      provider: undefined,
+    } as Parameters<typeof resolveWebSearchProviderId>[0]["search"];
+    const autoDetectedId = resolveWebSearchProviderId({
+      config,
+      search: searchForAutoDetect,
+      providers: [...providerOptions],
+    });
+    const autoDetected = providerOptions.find((entry) => entry.id === autoDetectedId);
+    if (autoDetected) {
+      return autoDetected.id;
+    }
+    const detected = providerOptions.find((entry) => providerIsReady(config, entry));
+    if (detected) {
+      return detected.id;
+    }
+    return providerOptions[0].id;
+  })();
+
   const options = providerOptions.map((entry) => {
     const hint =
       entry.requiresCredential === false
@@ -421,17 +477,6 @@ export async function runSearchSetupFlow(
           : entry.hint;
     return { value: entry.id, label: entry.label, hint };
   });
-
-  const defaultProvider: SearchProvider = (() => {
-    if (existingProvider && providerOptions.some((entry) => entry.id === existingProvider)) {
-      return existingProvider;
-    }
-    const detected = providerOptions.find((entry) => providerIsReady(config, entry));
-    if (detected) {
-      return detected.id;
-    }
-    return providerOptions[0].id;
-  })();
 
   const choice = await prompter.select({
     message: t("wizard.search.providerPrompt"),
@@ -460,9 +505,22 @@ export async function runSearchSetupFlow(
   const existingKey = resolveExistingKey(config, choice);
   const keyConfigured = hasExistingKey(config, choice);
   const envAvailable = hasKeyInEnv(entry);
+  const agentDir = resolveDefaultAgentDir(config);
+  const authProviderId = entry.authProviderId;
+  const providerAuthProfileAvailable = authProviderId
+    ? hasAuthProfileForProvider({ provider: authProviderId, agentDir })
+    : false;
+  const oauthAuthProfileAvailable =
+    authProviderId && providerAuthProfileAvailable
+      ? hasAuthProfileForProvider({
+          provider: authProviderId,
+          agentDir,
+          type: "oauth",
+        })
+      : false;
   const needsCredential = providerNeedsCredential(entry);
 
-  if (opts?.quickstartDefaults && (keyConfigured || envAvailable)) {
+  if (opts?.quickstartDefaults && (providerAuthProfileAvailable || keyConfigured || envAvailable)) {
     const result = existingKey
       ? applySearchKey(config, choice, existingKey)
       : applySearchProviderSelection(config, choice);
@@ -480,8 +538,8 @@ export async function runSearchSetupFlow(
     await prompter.note(
       [
         `${entry.label} works without an API key.`,
-        "Astroclaw will enable the plugin and use it as your web_search provider.",
-        `Docs: ${entry.docsUrl ?? "https://docs.astroclaw.ai/tools/web"}`,
+        "OpenClaw will enable the plugin and use it as your web_search provider.",
+        `Docs: ${entry.docsUrl ?? "https://docs.openclaw.ai/tools/web"}`,
       ].join("\n"),
       "Web search",
     );
@@ -499,6 +557,46 @@ export async function runSearchSetupFlow(
     await prompter.note(entry.credentialNote, entry.label);
   }
 
+  if (oauthAuthProfileAvailable && authProviderId) {
+    const authProviderLabel = formatAuthProviderLabel(authProviderId);
+    await prompter.note(
+      [
+        `${entry.label} can use your existing ${authProviderLabel} OAuth sign-in for web_search.`,
+        "No separate API key is required; API-key auth remains available as a fallback.",
+        `Docs: ${entry.docsUrl ?? WEB_SEARCH_DOCS_URL}`,
+      ].join("\n"),
+      "Web search",
+    );
+    return await finalizeSearchProviderSetup({
+      originalConfig: config,
+      nextConfig: applySearchProviderSelection(config, choice),
+      entry,
+      runtime,
+      prompter,
+      opts,
+    });
+  }
+
+  if (providerAuthProfileAvailable && authProviderId) {
+    const authProviderLabel = formatAuthProviderLabel(authProviderId);
+    await prompter.note(
+      [
+        `${entry.label} can use your existing ${authProviderLabel} auth profile for web_search.`,
+        "No separate web-search key is required; API-key auth remains available as a fallback.",
+        `Docs: ${entry.docsUrl ?? WEB_SEARCH_DOCS_URL}`,
+      ].join("\n"),
+      "Web search",
+    );
+    return await finalizeSearchProviderSetup({
+      originalConfig: config,
+      nextConfig: applySearchProviderSelection(config, choice),
+      entry,
+      runtime,
+      prompter,
+      opts,
+    });
+  }
+
   const useSecretRefMode = opts?.secretInputMode === "ref"; // pragma: allowlist secret
   if (useSecretRefMode) {
     if (keyConfigured) {
@@ -514,10 +612,10 @@ export async function runSearchSetupFlow(
     const ref = buildSearchEnvRef(config, choice);
     await prompter.note(
       [
-        "Secret references enabled — Astroclaw will store a reference instead of the API key.",
+        "Secret references enabled — OpenClaw will store a reference instead of the API key.",
         `Env var: ${ref.id}${envAvailable ? " (detected)" : ""}.`,
         ...(envAvailable ? [] : [`Set ${ref.id} in the Gateway environment.`]),
-        "Docs: https://docs.astroclaw.ai/tools/web",
+        "Docs: https://docs.openclaw.ai/tools/web",
       ].join("\n"),
       "Web search",
     );
@@ -580,7 +678,7 @@ export async function runSearchSetupFlow(
     [
       `No ${credentialLabel} stored — web_search won't work until a key is available.`,
       `Get your key at: ${entry.signupUrl}`,
-      "Docs: https://docs.astroclaw.ai/tools/web",
+      "Docs: https://docs.openclaw.ai/tools/web",
     ].join("\n"),
     "Web search",
   );
