@@ -1,8 +1,14 @@
+/**
+ * ACPX process ownership checks and cleanup. The reaper only terminates
+ * OpenClaw-owned wrapper trees after validating paths, packages, and lease ids.
+ */
 import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { promisify } from "node:util";
-import { ASTROCLAW_ACPX_LEASE_ID_ARG, ASTROCLAW_GATEWAY_INSTANCE_ID_ARG } from "./process-lease.js";
+import { splitCommandParts } from "./command-line.js";
+import { resolveAcpxPluginRoot } from "./config.js";
+import { OPENCLAW_ACPX_LEASE_ID_ARG, OPENCLAW_GATEWAY_INSTANCE_ID_ARG } from "./process-lease.js";
 
 const execFileAsync = promisify(execFile);
 const requireFromHere = createRequire(import.meta.url);
@@ -10,7 +16,7 @@ const GENERATED_WRAPPER_BASENAMES = new Set([
   "codex-acp-wrapper.mjs",
   "claude-agent-acp-wrapper.mjs",
 ]);
-const ASTROCLAW_PLUGIN_DEPS_MARKER = "/plugin-runtime-deps/";
+const OPENCLAW_PLUGIN_DEPS_MARKER = "/plugin-runtime-deps/";
 const OWNED_ACP_PACKAGE_NAMES = [
   "@zed-industries/codex-acp",
   "@zed-industries/codex-acp-darwin-arm64",
@@ -23,29 +29,32 @@ const OWNED_ACP_PACKAGE_NAMES = [
   "acpx",
 ];
 const ACP_PACKAGE_MARKERS = [
-  "/@zed-industries/codex-acp/",
-  "/@agentclientprotocol/claude-agent-acp/",
+  ...OWNED_ACP_PACKAGE_NAMES.map((packageName) => `/node_modules/${packageName}/`),
   "/acpx/dist/",
 ];
 
+/** Minimal process-table row used by ACPX cleanup. */
 export type AcpxProcessInfo = {
   pid: number;
   ppid: number;
   command: string;
 };
 
+/** Injectable process-listing and termination hooks for tests. */
 export type AcpxProcessCleanupDeps = {
   listProcesses?: () => Promise<AcpxProcessInfo[]>;
   killProcess?: (pid: number, signal: NodeJS.Signals) => void;
   sleep?: (ms: number) => Promise<void>;
 };
 
+/** Result from cleaning up a single ACPX process tree. */
 export type AcpxProcessCleanupResult = {
   inspectedPids: number[];
   terminatedPids: number[];
-  skippedReason?: "missing-root" | "not-astroclaw-owned" | "unverified-root";
+  skippedReason?: "missing-root" | "not-openclaw-owned" | "unverified-root";
 };
 
+/** Result from startup orphan reaping. */
 export type AcpxStartupReapResult = {
   inspectedPids: number[];
   terminatedPids: number[];
@@ -64,8 +73,29 @@ function resolvePackageRoot(packageName: string): string | undefined {
   }
 }
 
-const OWNED_ACP_PACKAGE_ROOTS = OWNED_ACP_PACKAGE_NAMES.map(resolvePackageRoot).filter(
-  (root): root is string => Boolean(root),
+function resolveOpenClawInstallRoot(pluginRoot: string): string {
+  if (
+    path.basename(pluginRoot) === "acpx" &&
+    path.basename(path.dirname(pluginRoot)) === "extensions"
+  ) {
+    const parent = path.dirname(path.dirname(pluginRoot));
+    return path.basename(parent) === "dist" ? path.dirname(parent) : parent;
+  }
+  return path.resolve(pluginRoot, "..");
+}
+
+function resolveOwnedAcpPackageRootCandidates(packageName: string): string[] {
+  const pluginRoot = resolveAcpxPluginRoot(import.meta.url);
+  const openClawRoot = resolveOpenClawInstallRoot(pluginRoot);
+  return [
+    resolvePackageRoot(packageName),
+    path.join(pluginRoot, "node_modules", packageName),
+    path.join(openClawRoot, "node_modules", packageName),
+  ].flatMap((root) => (root ? [normalizePathLike(root)] : []));
+}
+
+const OWNED_ACP_PACKAGE_ROOTS = Array.from(
+  new Set(OWNED_ACP_PACKAGE_NAMES.flatMap(resolveOwnedAcpPackageRootCandidates)),
 );
 
 function commandBelongsToResolvedAcpPackage(command: string): boolean {
@@ -87,7 +117,8 @@ function commandWrapperBelongsToRoot(command: string, wrapperRoot: string | unde
   );
 }
 
-export function isAstroclawLeaseAwareAcpxProcessCommand(params: {
+/** Check whether a command references an OpenClaw-generated ACPX wrapper path. */
+export function isOpenClawLeaseAwareAcpxProcessCommand(params: {
   command: string | undefined;
   wrapperRoot?: string;
 }): boolean {
@@ -107,53 +138,6 @@ function commandsReferToSameRootCommand(liveCommand: string, storedCommand: stri
     return true;
   }
   return normalizePathLike(liveCommand).trim() === normalizePathLike(storedCommand).trim();
-}
-
-function splitCommandParts(value: string): string[] {
-  const parts: string[] = [];
-  let current = "";
-  let quote: "'" | '"' | null = null;
-  let escaping = false;
-
-  for (const ch of value) {
-    if (escaping) {
-      current += ch;
-      escaping = false;
-      continue;
-    }
-    if (ch === "\\" && quote !== "'") {
-      escaping = true;
-      continue;
-    }
-    if (quote) {
-      if (ch === quote) {
-        quote = null;
-      } else {
-        current += ch;
-      }
-      continue;
-    }
-    if (ch === "'" || ch === '"') {
-      quote = ch;
-      continue;
-    }
-    if (/\s/.test(ch)) {
-      if (current) {
-        parts.push(current);
-        current = "";
-      }
-      continue;
-    }
-    current += ch;
-  }
-
-  if (escaping) {
-    current += "\\";
-  }
-  if (current) {
-    parts.push(current);
-  }
-  return parts;
 }
 
 function commandOptionEquals(
@@ -178,12 +162,13 @@ function liveCommandMatchesLeaseIdentity(params: {
   }
   const parts = splitCommandParts(params.command ?? "");
   return (
-    commandOptionEquals(parts, ASTROCLAW_ACPX_LEASE_ID_ARG, params.expectedLeaseId) &&
-    commandOptionEquals(parts, ASTROCLAW_GATEWAY_INSTANCE_ID_ARG, params.expectedGatewayInstanceId)
+    commandOptionEquals(parts, OPENCLAW_ACPX_LEASE_ID_ARG, params.expectedLeaseId) &&
+    commandOptionEquals(parts, OPENCLAW_GATEWAY_INSTANCE_ID_ARG, params.expectedGatewayInstanceId)
   );
 }
 
-export function isAstroclawOwnedAcpxProcessCommand(params: {
+/** Check whether a command is owned by OpenClaw ACPX runtime packages or wrappers. */
+export function isOpenClawOwnedAcpxProcessCommand(params: {
   command: string | undefined;
   wrapperRoot?: string;
 }): boolean {
@@ -193,7 +178,7 @@ export function isAstroclawOwnedAcpxProcessCommand(params: {
   }
   const normalized = normalizePathLike(command);
   if (
-    isAstroclawLeaseAwareAcpxProcessCommand({
+    isOpenClawLeaseAwareAcpxProcessCommand({
       command: normalized,
       wrapperRoot: params.wrapperRoot,
     })
@@ -203,7 +188,7 @@ export function isAstroclawOwnedAcpxProcessCommand(params: {
   if (commandBelongsToResolvedAcpPackage(normalized)) {
     return true;
   }
-  if (!normalized.includes(ASTROCLAW_PLUGIN_DEPS_MARKER)) {
+  if (!normalized.includes(OPENCLAW_PLUGIN_DEPS_MARKER)) {
     return false;
   }
   return ACP_PACKAGE_MARKERS.some((marker) => normalized.includes(marker));
@@ -225,6 +210,7 @@ function parseProcessList(stdout: string): AcpxProcessInfo[] {
   return processes;
 }
 
+/** List host processes in the compact shape needed by ACPX cleanup. */
 export async function listPlatformProcesses(): Promise<AcpxProcessInfo[]> {
   if (process.platform === "win32") {
     return [];
@@ -287,7 +273,12 @@ async function terminatePids(
   deps: AcpxProcessCleanupDeps | undefined,
 ): Promise<number[]> {
   const killProcess = deps?.killProcess ?? ((pid, signal) => process.kill(pid, signal));
-  const sleep = deps?.sleep ?? ((ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const sleep =
+    deps?.sleep ??
+    ((ms) =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, ms);
+      }));
   const terminated: number[] = [];
 
   for (const pid of pids) {
@@ -314,7 +305,8 @@ async function terminatePids(
   return terminated;
 }
 
-export async function cleanupAstroclawOwnedAcpxProcessTree(params: {
+/** Terminate one validated OpenClaw-owned ACPX wrapper process tree. */
+export async function cleanupOpenClawOwnedAcpxProcessTree(params: {
   rootPid?: number;
   rootCommand?: string;
   expectedLeaseId?: string;
@@ -327,7 +319,7 @@ export async function cleanupAstroclawOwnedAcpxProcessTree(params: {
     return { inspectedPids: [], terminatedPids: [], skippedReason: "missing-root" };
   }
 
-  let processes: AcpxProcessInfo[] = [];
+  let processes: AcpxProcessInfo[];
   try {
     processes = await (params.deps?.listProcesses ?? listPlatformProcesses)();
   } catch {
@@ -336,7 +328,7 @@ export async function cleanupAstroclawOwnedAcpxProcessTree(params: {
 
   const listedTree = collectProcessTree(processes, rootPid);
   // Session-store PIDs are stale data. If the live process table cannot prove
-  // that this PID still belongs to an Astroclaw-owned wrapper, fail closed to
+  // that this PID still belongs to an OpenClaw-owned wrapper, fail closed to
   // avoid killing an unrelated process after PID reuse.
   if (listedTree.length === 0) {
     return { inspectedPids: [], terminatedPids: [], skippedReason: "unverified-root" };
@@ -352,7 +344,7 @@ export async function cleanupAstroclawOwnedAcpxProcessTree(params: {
     return {
       inspectedPids: listedTree.map((processInfo) => processInfo.pid),
       terminatedPids: [],
-      skippedReason: "not-astroclaw-owned",
+      skippedReason: "not-openclaw-owned",
     };
   }
   if (
@@ -362,11 +354,11 @@ export async function cleanupAstroclawOwnedAcpxProcessTree(params: {
     return {
       inspectedPids: listedTree.map((processInfo) => processInfo.pid),
       terminatedPids: [],
-      skippedReason: "not-astroclaw-owned",
+      skippedReason: "not-openclaw-owned",
     };
   }
   if (
-    !isAstroclawOwnedAcpxProcessCommand({
+    !isOpenClawOwnedAcpxProcessCommand({
       command: rootCommand,
       wrapperRoot: params.wrapperRoot,
     })
@@ -374,7 +366,7 @@ export async function cleanupAstroclawOwnedAcpxProcessTree(params: {
     return {
       inspectedPids: listedTree.map((processInfo) => processInfo.pid),
       terminatedPids: [],
-      skippedReason: "not-astroclaw-owned",
+      skippedReason: "not-openclaw-owned",
     };
   }
   if (
@@ -387,7 +379,7 @@ export async function cleanupAstroclawOwnedAcpxProcessTree(params: {
     return {
       inspectedPids: listedTree.map((processInfo) => processInfo.pid),
       terminatedPids: [],
-      skippedReason: "not-astroclaw-owned",
+      skippedReason: "not-openclaw-owned",
     };
   }
 
@@ -398,7 +390,8 @@ export async function cleanupAstroclawOwnedAcpxProcessTree(params: {
   };
 }
 
-export async function reapStaleAstroclawOwnedAcpxOrphans(params: {
+/** Reap orphaned OpenClaw-owned ACPX wrapper trees during runtime startup. */
+export async function reapStaleOpenClawOwnedAcpxOrphans(params: {
   wrapperRoot: string;
   deps?: AcpxProcessCleanupDeps;
 }): Promise<AcpxStartupReapResult> {
@@ -416,7 +409,7 @@ export async function reapStaleAstroclawOwnedAcpxOrphans(params: {
   const orphans = processes.filter(
     (processInfo) =>
       processInfo.ppid === 1 &&
-      isAstroclawOwnedAcpxProcessCommand({
+      isOpenClawOwnedAcpxProcessCommand({
         command: processInfo.command,
         wrapperRoot: params.wrapperRoot,
       }),
