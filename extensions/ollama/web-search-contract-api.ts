@@ -1,7 +1,8 @@
+// Ollama API module exposes the plugin public contract.
 import {
   createWebSearchProviderContractFields,
   type WebSearchProviderPlugin,
-} from "astroclaw/plugin-sdk/provider-web-search-contract";
+} from "openclaw/plugin-sdk/provider-web-search-contract";
 
 export function createOllamaWebSearchProvider(): WebSearchProviderPlugin {
   return {
@@ -13,7 +14,7 @@ export function createOllamaWebSearchProvider(): WebSearchProviderPlugin {
     envVars: [],
     placeholder: "(run ollama signin)",
     signupUrl: "https://ollama.com/",
-    docsUrl: "https://docs.astroclaw.ai/tools/web",
+    docsUrl: "https://docs.openclaw.ai/tools/web",
     autoDetectOrder: 110,
     credentialPath: "",
     ...createWebSearchProviderContractFields({
