@@ -1,4 +1,7 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Normalizes tool availability metadata from plugin manifests.
+import { isRecord } from "@openclaw/normalization-core/record-coerce";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { coerceSecretRef, type SecretRef } from "../config/types.secrets.js";
 import { resolveDefaultSecretProviderAlias } from "../secrets/ref-contract.js";
 import type { PluginManifestRecord } from "./manifest-registry.js";
@@ -10,10 +13,6 @@ import type {
 type ToolMetadata = NonNullable<PluginManifestRecord["toolMetadata"]>[string];
 export type ManifestConfigAvailabilitySignal = PluginManifestCapabilityProviderConfigSignal;
 export type ManifestAuthAvailabilitySignal = PluginManifestCapabilityProviderAuthSignal;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
 
 function readPath(root: unknown, path: string | undefined): unknown {
   if (!path?.trim()) {
@@ -34,25 +33,37 @@ function readPath(root: unknown, path: string | undefined): unknown {
 }
 
 function readStringAtPath(root: unknown, path: string): string | undefined {
-  const value = readPath(root, path);
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+  return normalizeOptionalString(readPath(root, path));
 }
 
-function readEffectiveConfig(params: {
-  config?: AstroclawConfig;
+function readEffectiveConfigs(params: {
+  config?: OpenClawConfig;
   rootPath: string;
   overlayPath?: string;
-}): Record<string, unknown> | undefined {
+  overlayMapPath?: string;
+}): Array<Record<string, unknown>> {
   const root = readPath(params.config, params.rootPath);
   if (!isRecord(root)) {
-    return undefined;
+    return [];
   }
   const overlay = readPath(root, params.overlayPath);
-  return isRecord(overlay) ? { ...root, ...overlay } : root;
+  const baseConfig = isRecord(overlay) ? { ...root, ...overlay } : root;
+  if (params.overlayMapPath?.trim()) {
+    const overlayMap = readPath(baseConfig, params.overlayMapPath);
+    if (!isRecord(overlayMap)) {
+      return [];
+    }
+    return Object.entries(overlayMap)
+      .toSorted(([left], [right]) => left.localeCompare(right))
+      .flatMap(([, mapOverlay]) =>
+        isRecord(mapOverlay) ? [{ ...baseConfig, ...mapOverlay }] : [],
+      );
+  }
+  return [baseConfig];
 }
 
 function hasConfiguredSecretRefInConfigPath(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   ref: SecretRef;
 }): boolean {
@@ -71,7 +82,7 @@ function hasConfiguredSecretRefInConfigPath(params: {
 }
 
 function hasConfiguredValue(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   value: unknown;
 }): boolean {
@@ -99,22 +110,39 @@ function hasConfiguredValue(params: {
 }
 
 export function manifestConfigSignalPasses(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   signal: ManifestConfigAvailabilitySignal;
 }): boolean {
-  const effectiveConfig = readEffectiveConfig({
+  const effectiveConfigs = readEffectiveConfigs({
     config: params.config,
     rootPath: params.signal.rootPath,
     overlayPath: params.signal.overlayPath,
+    overlayMapPath: params.signal.overlayMapPath,
   });
-  if (!effectiveConfig) {
+  if (effectiveConfigs.length === 0) {
     return false;
   }
+  return effectiveConfigs.some((effectiveConfig) =>
+    manifestEffectiveConfigSignalPasses({
+      config: params.config,
+      env: params.env,
+      effectiveConfig,
+      signal: params.signal,
+    }),
+  );
+}
+
+function manifestEffectiveConfigSignalPasses(params: {
+  config?: OpenClawConfig;
+  env: NodeJS.ProcessEnv;
+  effectiveConfig: Record<string, unknown>;
+  signal: ManifestConfigAvailabilitySignal;
+}): boolean {
   const modeSignal = params.signal.mode;
   if (modeSignal) {
     const modePath = modeSignal.path?.trim() || "mode";
-    const mode = readStringAtPath(effectiveConfig, modePath) ?? modeSignal.default;
+    const mode = readStringAtPath(params.effectiveConfig, modePath) ?? modeSignal.default;
     if (!mode) {
       return false;
     }
@@ -130,7 +158,7 @@ export function manifestConfigSignalPasses(params: {
       !hasConfiguredValue({
         config: params.config,
         env: params.env,
-        value: readPath(effectiveConfig, requiredPath),
+        value: readPath(params.effectiveConfig, requiredPath),
       })
     ) {
       return false;
@@ -143,7 +171,7 @@ export function manifestConfigSignalPasses(params: {
       hasConfiguredValue({
         config: params.config,
         env: params.env,
-        value: readPath(effectiveConfig, path),
+        value: readPath(params.effectiveConfig, path),
       }),
     )
   ) {
@@ -157,7 +185,7 @@ function normalizeBaseUrlForManifestGuard(value: string): string {
 }
 
 export function manifestProviderBaseUrlGuardPasses(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   guard: ManifestAuthAvailabilitySignal["providerBaseUrl"];
 }): boolean {
   const guard = params.guard;
@@ -211,7 +239,7 @@ function listToolAuthSignals(metadata: ToolMetadata): ManifestAuthAvailabilitySi
 function toolMetadataPasses(params: {
   plugin: PluginManifestRecord;
   metadata: ToolMetadata;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   hasAuthForProvider?: (providerId: string) => boolean;
 }): boolean {
@@ -257,7 +285,7 @@ function toolMetadataPasses(params: {
 export function hasManifestToolAvailability(params: {
   plugin: PluginManifestRecord;
   toolNames: readonly string[];
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   hasAuthForProvider?: (providerId: string) => boolean;
 }): boolean {
