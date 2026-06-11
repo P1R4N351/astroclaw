@@ -1,4 +1,5 @@
-import type { LookupFn, SsrFPolicy } from "astroclaw/plugin-sdk/ssrf-runtime";
+// Tlon plugin module implements auth behavior.
+import type { LookupFn, SsrFPolicy } from "openclaw/plugin-sdk/ssrf-runtime";
 import { UrbitAuthError } from "./errors.js";
 import { urbitFetch } from "./fetch.js";
 
