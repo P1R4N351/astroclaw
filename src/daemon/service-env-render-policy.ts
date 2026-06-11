@@ -1,16 +1,18 @@
+/** Applies platform render policy for managed daemon service environment values. */
 import type { MutableServiceEnvPlan } from "./service-env-plan.js";
 import {
   readManagedServiceEnvKeysFromEnvironment,
   writeManagedServiceEnvKeysToEnvironment,
 } from "./service-managed-env.js";
 
+// LaunchAgent plists need selected dotenv values inlined so launchd receives them.
 function isLaunchAgentServiceEnvironment(params: {
   platform: NodeJS.Platform;
   serviceEnvironment: Record<string, string | undefined>;
 }): boolean {
   return (
     params.platform === "darwin" &&
-    Boolean(params.serviceEnvironment.ASTROCLAW_LAUNCHD_LABEL?.trim())
+    Boolean(params.serviceEnvironment.OPENCLAW_LAUNCHD_LABEL?.trim())
   );
 }
 
@@ -21,14 +23,14 @@ export function applyManagedServiceEnvRenderPolicy(params: {
   platform: NodeJS.Platform;
 }): void {
   writeManagedServiceEnvKeysToEnvironment(params.plan.environment, params.managedServiceEnvKeys);
-  if (params.plan.environment.ASTROCLAW_SERVICE_MANAGED_ENV_KEYS) {
-    params.plan.environmentValueSources.ASTROCLAW_SERVICE_MANAGED_ENV_KEYS = "inline";
+  if (params.plan.environment.OPENCLAW_SERVICE_MANAGED_ENV_KEYS) {
+    params.plan.environmentValueSources.OPENCLAW_SERVICE_MANAGED_ENV_KEYS = "inline";
   }
   if (!isLaunchAgentServiceEnvironment(params)) {
     return;
   }
   const managedKeys = readManagedServiceEnvKeysFromEnvironment({
-    ASTROCLAW_SERVICE_MANAGED_ENV_KEYS: params.managedServiceEnvKeys,
+    OPENCLAW_SERVICE_MANAGED_ENV_KEYS: params.managedServiceEnvKeys,
   });
   if (managedKeys.size === 0) {
     return;
@@ -37,6 +39,8 @@ export function applyManagedServiceEnvRenderPolicy(params: {
     if (entry.source !== "state-dotenv" || !managedKeys.has(entry.normalizedKey)) {
       continue;
     }
+    // launchd does not read shell dotenv files; inline only the managed dotenv
+    // keys declared for this service.
     params.plan.environment[entry.rawKey] = entry.value;
     params.plan.environmentValueSources[entry.rawKey] = "inline";
   }
