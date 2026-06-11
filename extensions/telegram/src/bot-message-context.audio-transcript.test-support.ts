@@ -1,8 +1,9 @@
+// Telegram plugin module implements bot message context.audio transcript support behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const transcribeFirstAudioMock = vi.fn();
 const DEFAULT_MODEL = "anthropic/claude-opus-4-5";
-const DEFAULT_WORKSPACE = "/tmp/astroclaw";
+const DEFAULT_WORKSPACE = "/tmp/openclaw";
 const DEFAULT_MENTION_PATTERN = "\\bbot\\b";
 
 vi.mock("./media-understanding.runtime.js", () => ({
