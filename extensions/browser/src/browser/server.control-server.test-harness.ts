@@ -1,3 +1,7 @@
+/**
+ * Shared Browser control-server test harness with mocked Chrome, CDP,
+ * Playwright, Chrome MCP, config, and media dependencies.
+ */
 import { afterEach, beforeEach, vi } from "vitest";
 import { deriveDefaultBrowserCdpPortRange } from "../config/port-defaults.js";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
@@ -19,7 +23,7 @@ type HarnessState = {
       cdpPort?: number;
       cdpUrl?: string;
       color: string;
-      driver?: "astroclaw" | "existing-session";
+      driver?: "openclaw" | "existing-session";
       attachOnly?: boolean;
     }
   >;
@@ -36,7 +40,7 @@ const state: HarnessState = {
   cfgAttachOnly: false,
   cfgEvaluateEnabled: true,
   cfgSsrfPolicy: undefined,
-  cfgDefaultProfile: "astroclaw",
+  cfgDefaultProfile: "openclaw",
   cfgProfiles: {},
   tabUrl: "https://example.com",
   prevGatewayPort: undefined,
@@ -44,41 +48,48 @@ const state: HarnessState = {
   prevGatewayPassword: undefined,
 };
 
+/** Returns mutable Browser control-server harness state. */
 export function getBrowserControlServerTestState(): HarnessState {
   return state;
 }
 
+/** Returns the loopback base URL for the current test server. */
 export function getBrowserControlServerBaseUrl(): string {
   return `http://127.0.0.1:${state.testPort}`;
 }
 
 function restoreGatewayPortEnv(prevGatewayPort: string | undefined): void {
   if (prevGatewayPort === undefined) {
-    delete process.env.ASTROCLAW_GATEWAY_PORT;
+    delete process.env.OPENCLAW_GATEWAY_PORT;
     return;
   }
-  process.env.ASTROCLAW_GATEWAY_PORT = prevGatewayPort;
+  process.env.OPENCLAW_GATEWAY_PORT = prevGatewayPort;
 }
 
+/** Sets the mocked browser.evaluateEnabled config flag. */
 export function setBrowserControlServerEvaluateEnabled(enabled: boolean): void {
   state.cfgEvaluateEnabled = enabled;
 }
 
+/** Sets the mocked Browser SSRF policy. */
 export function setBrowserControlServerSsrFPolicy(policy: SsrFPolicy | undefined): void {
   state.cfgSsrfPolicy = policy;
 }
 
+/** Sets whether mocked Chrome/CDP probes should report reachable. */
 export function setBrowserControlServerReachable(reachable: boolean): void {
   state.reachable = reachable;
 }
 
+/** Sets the URL returned by mocked /json/list tab responses. */
 export function setBrowserControlServerTabUrl(url: string): void {
   state.tabUrl = url;
 }
 
+/** Sets mocked Browser profiles and default profile for config reload tests. */
 export function setBrowserControlServerProfiles(
   profiles: HarnessState["cfgProfiles"],
-  defaultProfile = Object.keys(profiles)[0] ?? "astroclaw",
+  defaultProfile = Object.keys(profiles)[0] ?? "openclaw",
 ): void {
   state.cfgProfiles = profiles;
   state.cfgDefaultProfile = defaultProfile;
@@ -98,6 +109,7 @@ const cdpMocks = vi.hoisted(() => ({
   })),
 }));
 
+/** Returns mocked CDP functions used by Browser control-server tests. */
 export function getCdpMocks(): {
   createTargetViaCdp: MockFn;
   snapshotAria: MockFn;
@@ -176,7 +188,11 @@ const pwMocks = vi.hoisted(() => ({
   fillFormViaPlaywright: vi.fn(async (_opts?: unknown) => {}),
   getConsoleMessagesViaPlaywright: vi.fn(async () => []),
   getNetworkRequestsViaPlaywright: vi.fn(async () => ({ requests: [] })),
+  getObservedBrowserStateViaPlaywright: vi.fn(async () => ({
+    dialogs: { pending: [], recent: [] },
+  })),
   getPageErrorsViaPlaywright: vi.fn(async () => ({ errors: [] })),
+  highlightViaPlaywright: vi.fn(async (_opts?: unknown) => {}),
   hoverViaPlaywright: vi.fn(async (_opts?: unknown) => {}),
   scrollIntoViewViaPlaywright: vi.fn(async (_opts?: unknown) => {}),
   navigateViaPlaywright: vi.fn(async () => ({ url: "https://example.com" })),
@@ -329,6 +345,7 @@ pwMocks.executeActViaPlaywright.mockImplementation(
   },
 );
 
+/** Returns mocked Playwright-backed Browser tool functions. */
 export function getPwMocks(): Record<string, MockFn> {
   return pwMocks as unknown as Record<string, MockFn>;
 }
@@ -368,7 +385,7 @@ const chromeMcpMocks = vi.hoisted(() => ({
   uploadChromeMcpFile: vi.fn(async () => {}),
 }));
 
-const chromeUserDataDir = vi.hoisted(() => ({ dir: "/tmp/astroclaw" }));
+const chromeUserDataDir = vi.hoisted(() => ({ dir: "/tmp/openclaw" }));
 installChromeUserDataDirHooks(chromeUserDataDir);
 
 function makeProc(pid = 123) {
@@ -400,7 +417,7 @@ function defaultBrowserCdpPortForState(testPort: number): number {
 
 function defaultProfilesForState(testPort: number): HarnessState["cfgProfiles"] {
   return {
-    astroclaw: { cdpPort: defaultBrowserCdpPortForState(testPort), color: "#FF4500" },
+    openclaw: { cdpPort: defaultBrowserCdpPortForState(testPort), color: "#FF4500" },
   };
 }
 
@@ -432,13 +449,13 @@ vi.mock("../config/config.js", async () => {
       ) => unknown;
     }) => {
       const draft = structuredClone(loadConfig());
-      const result = await params.mutate(draft, { snapshot: { path: "/tmp/astroclaw.json" } });
+      const result = await params.mutate(draft, { snapshot: { path: "/tmp/openclaw.json" } });
       await writeConfigFile(draft);
       return {
-        path: "/tmp/astroclaw.json",
+        path: "/tmp/openclaw.json",
         previousHash: "test-hash",
         persistedHash: "test-hash",
-        snapshot: { path: "/tmp/astroclaw.json" },
+        snapshot: { path: "/tmp/openclaw.json" },
         nextConfig: draft,
         result,
         attempts: 1,
@@ -466,7 +483,7 @@ const launchCalls = vi.hoisted(() => [] as Array<{ port: number }>);
 vi.mock("./chrome.js", () => ({
   isChromeCdpReady: vi.fn(async () => state.reachable),
   isChromeReachable: vi.fn(async () => state.reachable),
-  launchAstroclawChrome: vi.fn(async (_resolved: unknown, profile: { cdpPort: number }) => {
+  launchOpenClawChrome: vi.fn(async (_resolved: unknown, profile: { cdpPort: number }) => {
     launchCalls.push({ port: profile.cdpPort });
     state.reachable = true;
     return {
@@ -478,8 +495,8 @@ vi.mock("./chrome.js", () => ({
       proc,
     };
   }),
-  resolveAstroclawUserDataDir: vi.fn(() => chromeUserDataDir.dir),
-  stopAstroclawChrome: vi.fn(async () => {
+  resolveOpenClawUserDataDir: vi.fn(() => chromeUserDataDir.dir),
+  stopOpenClawChrome: vi.fn(async () => {
     state.reachable = false;
   }),
 }));
@@ -524,6 +541,7 @@ async function loadBrowserServerModule() {
   return await browserServerModulePromise;
 }
 
+/** Starts the Browser control server from the mocked config module. */
 export async function startBrowserControlServerFromConfig() {
   return await (await loadBrowserServerModule()).startBrowserControlServerFromConfig();
 }
@@ -532,6 +550,7 @@ async function stopBrowserControlServer(): Promise<void> {
   await (await loadBrowserServerModule()).stopBrowserControlServer();
 }
 
+/** Creates a minimal Response-like object for mocked fetch handlers. */
 export function makeResponse(
   body: unknown,
   init?: { ok?: boolean; status?: number; text?: string },
@@ -553,12 +572,13 @@ function mockClearAll(obj: Record<string, { mockClear: () => unknown }>) {
   }
 }
 
+/** Resets harness state, env, and mocks before one Browser control-server test. */
 export async function resetBrowserControlServerTestContext(): Promise<void> {
   state.reachable = false;
   state.cfgAttachOnly = false;
   state.cfgEvaluateEnabled = true;
   state.cfgSsrfPolicy = undefined;
-  state.cfgDefaultProfile = "astroclaw";
+  state.cfgDefaultProfile = "openclaw";
   state.cfgProfiles = defaultProfilesForState(state.testPort);
   state.tabUrl = "https://example.com";
 
@@ -569,14 +589,14 @@ export async function resetBrowserControlServerTestContext(): Promise<void> {
   state.testPort = await getFreePort();
   state.cdpBaseUrl = `http://127.0.0.1:${defaultBrowserCdpPortForState(state.testPort)}`;
   state.cfgProfiles = defaultProfilesForState(state.testPort);
-  state.prevGatewayPort = process.env.ASTROCLAW_GATEWAY_PORT;
-  process.env.ASTROCLAW_GATEWAY_PORT = String(state.testPort - 2);
+  state.prevGatewayPort = process.env.OPENCLAW_GATEWAY_PORT;
+  process.env.OPENCLAW_GATEWAY_PORT = String(state.testPort - 2);
   // Avoid flaky auth coupling: some suites temporarily set gateway env auth
   // which would make the browser control server require auth.
-  state.prevGatewayToken = process.env.ASTROCLAW_GATEWAY_TOKEN;
-  state.prevGatewayPassword = process.env.ASTROCLAW_GATEWAY_PASSWORD;
-  delete process.env.ASTROCLAW_GATEWAY_TOKEN;
-  delete process.env.ASTROCLAW_GATEWAY_PASSWORD;
+  state.prevGatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN;
+  state.prevGatewayPassword = process.env.OPENCLAW_GATEWAY_PASSWORD;
+  delete process.env.OPENCLAW_GATEWAY_TOKEN;
+  delete process.env.OPENCLAW_GATEWAY_PASSWORD;
 }
 
 function restoreGatewayAuthEnv(
@@ -584,17 +604,18 @@ function restoreGatewayAuthEnv(
   prevGatewayPassword: string | undefined,
 ): void {
   if (prevGatewayToken === undefined) {
-    delete process.env.ASTROCLAW_GATEWAY_TOKEN;
+    delete process.env.OPENCLAW_GATEWAY_TOKEN;
   } else {
-    process.env.ASTROCLAW_GATEWAY_TOKEN = prevGatewayToken;
+    process.env.OPENCLAW_GATEWAY_TOKEN = prevGatewayToken;
   }
   if (prevGatewayPassword === undefined) {
-    delete process.env.ASTROCLAW_GATEWAY_PASSWORD;
+    delete process.env.OPENCLAW_GATEWAY_PASSWORD;
   } else {
-    process.env.ASTROCLAW_GATEWAY_PASSWORD = prevGatewayPassword;
+    process.env.OPENCLAW_GATEWAY_PASSWORD = prevGatewayPassword;
   }
 }
 
+/** Restores globals/env and stops the Browser control server after one test. */
 export async function cleanupBrowserControlServerTestContext(): Promise<void> {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -603,6 +624,7 @@ export async function cleanupBrowserControlServerTestContext(): Promise<void> {
   await stopBrowserControlServer();
 }
 
+/** Installs beforeEach/afterEach hooks for Browser control-server tests. */
 export function installBrowserControlServerHooks() {
   const hookTimeoutMs = process.platform === "win32" ? 300_000 : 240_000;
   beforeEach(async () => {
