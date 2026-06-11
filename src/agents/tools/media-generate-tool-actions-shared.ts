@@ -1,9 +1,14 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+/**
+ * Shared media generation list/status actions.
+ *
+ * Builds provider list output, active-task status, and duplicate-guard responses for image/video/music tools.
+ */
 import {
   listMediaGenerationProviderModels,
   synthesizeMediaGenerationCatalogEntries,
   type MediaGenerationCatalogKind,
-} from "../../media-generation/catalog.js";
+} from "../../../packages/media-generation-core/src/catalog.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { getProviderEnvVars } from "../../secrets/provider-env-vars.js";
 import type { AuthProfileStore } from "../auth-profiles/types.js";
 import { isCapabilityProviderConfigured } from "./media-tool-shared.js";
@@ -21,7 +26,7 @@ type MediaGenerateProvider = {
   defaultModel?: string;
   models?: readonly string[];
   capabilities: unknown;
-  isConfigured?: (ctx: { cfg?: AstroclawConfig; agentDir?: string }) => boolean;
+  isConfigured?: (ctx: { cfg?: OpenClawConfig; agentDir?: string }) => boolean;
 };
 
 type MediaGenerateListProviderDetails<TProvider extends MediaGenerateProvider> = {
@@ -36,15 +41,18 @@ type MediaGenerateListProviderDetails<TProvider extends MediaGenerateProvider> =
   catalog: ReturnType<typeof synthesizeMediaGenerationCatalogEntries<TProvider["capabilities"]>>;
 };
 
+/** Common tool result shape for media generation list/status actions. */
 export type { MediaGenerateActionResult };
 
+/** Builds a provider list result with config/auth status and synthetic catalog entries. */
 export function createMediaGenerateProviderListActionResult<
   TProvider extends MediaGenerateProvider,
 >(params: {
   kind: MediaGenerationCatalogKind;
   providers: TProvider[];
   emptyText: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
+  workspaceDir?: string;
   agentDir?: string;
   authStore?: AuthProfileStore;
   listModes: (provider: TProvider) => string[];
@@ -72,11 +80,13 @@ export function createMediaGenerateProviderListActionResult<
           providers: params.providers,
           provider,
           cfg: params.cfg,
+          workspaceDir: params.workspaceDir,
           agentDir: params.agentDir,
           authStore: params.authStore,
         }),
         authEnvVars: getProviderEnvVars(provider.id),
         capabilities: provider.capabilities,
+        // Catalog entries are generated for model browser/search without invoking provider code.
         catalog: synthesizeMediaGenerationCatalogEntries({
           kind: params.kind,
           provider,
@@ -113,6 +123,7 @@ export function createMediaGenerateProviderListActionResult<
   };
 }
 
+/** Creates status and duplicate-guard action helpers for a media generation task type. */
 export function createMediaGenerateTaskStatusActions<Task>(params: {
   inactiveText: string;
   findActiveTask: (sessionKey?: string) => Task | undefined;
@@ -177,6 +188,7 @@ function createMediaGenerateDuplicateGuardResult<Task>(params: {
   if (!activeTask) {
     return undefined;
   }
+  // Duplicate guard returns the active status payload so callers can show current progress.
   return {
     content: [
       {
