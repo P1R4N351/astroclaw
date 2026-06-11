@@ -1,3 +1,5 @@
+// Gateway known-weak credential guard.
+// Rejects published placeholder auth values before the gateway starts.
 import type { ResolvedGatewayAuth } from "./auth.js";
 
 export const KNOWN_WEAK_GATEWAY_TOKEN_PLACEHOLDERS = [
@@ -25,12 +27,14 @@ const KNOWN_WEAK_GATEWAY_PASSWORDS: ReadonlySet<string> = new Set(
 
 export function assertGatewayAuthNotKnownWeak(auth: ResolvedGatewayAuth): void {
   if (auth.mode === "token") {
+    // Token/password checks stay separate because auth mode is exclusive and
+    // error text should name the credential the operator must rotate.
     const token = auth.token?.trim() ?? "";
     if (token && KNOWN_WEAK_GATEWAY_TOKENS.has(token)) {
       throw new Error(
         "Invalid config: gateway auth token is set to a published example placeholder " +
           "from docs or .env.example. Generate a real secret (e.g. `openssl rand -hex 32`) " +
-          "and set ASTROCLAW_GATEWAY_TOKEN or gateway.auth.token before starting " +
+          "and set OPENCLAW_GATEWAY_TOKEN or gateway.auth.token before starting " +
           "the gateway.",
       );
     }
@@ -41,7 +45,7 @@ export function assertGatewayAuthNotKnownWeak(auth: ResolvedGatewayAuth): void {
     if (password && KNOWN_WEAK_GATEWAY_PASSWORDS.has(password)) {
       throw new Error(
         "Invalid config: gateway auth password is set to the example placeholder " +
-          "from .env.example. Choose a real password and set ASTROCLAW_GATEWAY_PASSWORD " +
+          "from .env.example. Choose a real password and set OPENCLAW_GATEWAY_PASSWORD " +
           "or gateway.auth.password before starting the gateway.",
       );
     }
