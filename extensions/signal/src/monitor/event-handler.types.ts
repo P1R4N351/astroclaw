@@ -1,12 +1,13 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Signal type declarations define plugin contracts.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import type {
   DmPolicy,
   GroupPolicy,
   SignalReactionNotificationMode,
-} from "astroclaw/plugin-sdk/config-contracts";
-import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/config-contracts";
+import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import type { SignalSender } from "../identity.js";
 
 export type SignalEnvelope = {
@@ -77,7 +78,7 @@ export type SignalReceivePayload = {
 
 export type SignalEventHandlerDeps = {
   runtime: RuntimeEnv;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   baseUrl: string;
   account?: string;
   accountUuid?: string;
@@ -105,7 +106,7 @@ export type SignalEventHandlerDeps = {
     maxBytes: number;
   }) => Promise<{ path: string; contentType?: string } | null>;
   deliverReplies: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     replies: ReplyPayload[];
     target: string;
     baseUrl: string;
