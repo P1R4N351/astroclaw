@@ -1,17 +1,21 @@
+// Command config resolver that combines secret materialization with optional plugin auto-enable.
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import type { RuntimeEnv } from "../runtime.js";
 import {
   type CommandSecretResolutionMode,
   resolveCommandSecretRefsViaGateway,
 } from "./command-secret-gateway.js";
 
-export async function resolveCommandConfigWithSecrets<TConfig extends AstroclawConfig>(params: {
+/** Resolve command-scoped secrets and return both raw resolved and effective config views. */
+export async function resolveCommandConfigWithSecrets<TConfig extends OpenClawConfig>(params: {
   config: TConfig;
   commandName: string;
   targetIds: Set<string>;
   mode?: CommandSecretResolutionMode;
   allowedPaths?: Set<string>;
+  forcedActivePaths?: Set<string>;
+  optionalActivePaths?: Set<string>;
   runtime?: RuntimeEnv;
   autoEnable?: boolean;
   env?: NodeJS.ProcessEnv;
@@ -26,10 +30,12 @@ export async function resolveCommandConfigWithSecrets<TConfig extends AstroclawC
     targetIds: params.targetIds,
     ...(params.mode ? { mode: params.mode } : {}),
     ...(params.allowedPaths ? { allowedPaths: params.allowedPaths } : {}),
+    ...(params.forcedActivePaths ? { forcedActivePaths: params.forcedActivePaths } : {}),
+    ...(params.optionalActivePaths ? { optionalActivePaths: params.optionalActivePaths } : {}),
   });
   if (params.runtime) {
     for (const entry of diagnostics) {
-      params.runtime.log(`[secrets] ${entry}`);
+      params.runtime.error(`[secrets] ${entry}`);
     }
   }
   const effectiveConfig = params.autoEnable
