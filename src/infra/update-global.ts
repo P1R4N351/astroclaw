@@ -1,9 +1,10 @@
+// Runs package-manager based global update and install flows.
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
 import { BUNDLED_RUNTIME_SIDECAR_PATHS } from "../plugins/runtime-sidecar-paths.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 import { pathExists } from "../utils.js";
 import {
   applyNpmFreshnessBypassEnv,
@@ -19,8 +20,10 @@ import { readPackageVersion } from "./package-json.js";
 import { applyPathPrepend } from "./path-prepend.js";
 import { parseSemver } from "./runtime-guard.js";
 
+/** Supported package managers for OpenClaw global install and update flows. */
 export type GlobalInstallManager = "npm" | "pnpm" | "bun";
 
+/** Runs package-manager commands with timeout and environment control. */
 export type CommandRunner = (
   argv: string[],
   options: { timeoutMs: number; cwd?: string; env?: NodeJS.ProcessEnv },
@@ -31,18 +34,24 @@ type ResolvedGlobalInstallCommand = {
   command: string;
 };
 
+/**
+ * Resolved package-manager command plus the root paths used for install,
+ * verification, and staged package swaps.
+ */
 export type ResolvedGlobalInstallTarget = ResolvedGlobalInstallCommand & {
   globalRoot: string | null;
   packageRoot: string | null;
+  directNodeModulesRoot?: boolean;
 };
 
-const PRIMARY_PACKAGE_NAME = "astroclaw";
+const PRIMARY_PACKAGE_NAME = "openclaw";
 const ALL_PACKAGE_NAMES = [PRIMARY_PACKAGE_NAME] as const;
 const GLOBAL_RENAME_PREFIX = ".";
-export const ASTROCLAW_MAIN_PACKAGE_SPEC = "github:astroclaw/astroclaw#main";
+/** npm-compatible spec used when the user asks to install the moving main branch. */
+export const OPENCLAW_MAIN_PACKAGE_SPEC = "github:openclaw/openclaw#main";
 const COREPACK_ENABLE_DOWNLOAD_PROMPT_DEFAULT = "0";
 const NPM_GLOBAL_INSTALL_QUIET_FLAGS = ["--no-fund", "--no-audit", "--loglevel=error"] as const;
-const PNPM_ASTROCLAW_BUILD_ALLOWLIST_FLAG = `--allow-build=${PRIMARY_PACKAGE_NAME}`;
+const PNPM_OPENCLAW_BUILD_ALLOWLIST_FLAG = `--allow-build=${PRIMARY_PACKAGE_NAME}`;
 const FIRST_PACKAGED_DIST_INVENTORY_VERSION = { major: 2026, minor: 4, patch: 15 };
 const OMITTED_PRIVATE_QA_BUNDLED_PLUGIN_ROOTS = new Set([
   "dist/extensions/qa-channel",
@@ -50,6 +59,7 @@ const OMITTED_PRIVATE_QA_BUNDLED_PLUGIN_ROOTS = new Set([
   "dist/extensions/qa-matrix",
 ]);
 
+/** npm prefix layout paths needed to install, stage, and expose global bins. */
 export type NpmGlobalPrefixLayout = {
   prefix: string;
   globalRoot: string;
@@ -68,16 +78,22 @@ function normalizePackageVersionForComparison(value: string | null | undefined):
   return trimmed.replace(/^[vV](?=\d)/, "");
 }
 
+/** Returns true when a user target requests the moving main-branch package spec. */
 export function isMainPackageTarget(value: string): boolean {
   return normalizeLowercaseStringOrEmpty(normalizePackageTarget(value)) === "main";
 }
 
+/**
+ * Returns true for targets that should pass through as package-manager specs
+ * rather than being treated as registry dist-tags.
+ */
 export function isExplicitPackageInstallSpec(value: string): boolean {
   const trimmed = normalizePackageTarget(value);
   if (!trimmed) {
     return false;
   }
   return (
+    /\.(?:tgz|tar\.gz)$/iu.test(trimmed) ||
     trimmed.includes("://") ||
     trimmed.includes("#") ||
     /^(?:file|github|git\+ssh|git\+https|git\+http|git\+file|npm):/i.test(trimmed)
@@ -87,10 +103,12 @@ export function isExplicitPackageInstallSpec(value: string): boolean {
 function stripPrimaryPackageAlias(spec: string): string {
   const normalized = normalizePackageTarget(spec);
   const prefix = `${PRIMARY_PACKAGE_NAME}@`;
-  return normalized.startsWith(prefix) ? normalized.slice(prefix.length).trim() : normalized;
+  return normalized.toLowerCase().startsWith(prefix)
+    ? normalized.slice(prefix.length).trim()
+    : normalized;
 }
 
-function isPnpmAstroclawSourceInstallSpec(spec: string): boolean {
+function isPnpmOpenClawSourceInstallSpec(spec: string): boolean {
   const target = stripPrimaryPackageAlias(spec);
   return (
     /^github:/i.test(target) ||
@@ -99,6 +117,11 @@ function isPnpmAstroclawSourceInstallSpec(spec: string): boolean {
   );
 }
 
+/**
+ * Extracts a pinned installed version from package specs like `openclaw@1.2.3`.
+ * Moving tags, URLs, git refs, and aliases return null because they cannot be
+ * compared reliably after install.
+ */
 export function resolveExpectedInstalledVersionFromSpec(
   packageName: string,
   spec: string,
@@ -121,6 +144,10 @@ export function resolveExpectedInstalledVersionFromSpec(
   return normalizePackageVersionForComparison(rawVersion);
 }
 
+/**
+ * Verifies that a global package root looks like a packaged OpenClaw install
+ * and, when supplied, matches the expected concrete version.
+ */
 export async function collectInstalledGlobalPackageErrors(params: {
   packageRoot: string;
   expectedVersion?: string | null;
@@ -250,7 +277,7 @@ async function collectCriticalInstalledPackageDistPaths(packageRoot: string): Pr
       }
       if (
         (await pathExists(path.join(packageRoot, pluginRoot, "package.json"))) ||
-        (await pathExists(path.join(packageRoot, pluginRoot, "astroclaw.plugin.json")))
+        (await pathExists(path.join(packageRoot, pluginRoot, "openclaw.plugin.json")))
       ) {
         expectedFiles.add(relativePath);
       }
@@ -293,6 +320,10 @@ async function collectInstalledPathErrors(params: {
   return errors;
 }
 
+/**
+ * Returns true when a target can be resolved through npm registry metadata.
+ * Explicit tarball, URL, git, and main-branch specs bypass registry lookup.
+ */
 export function canResolveRegistryVersionForPackageTarget(value: string): boolean {
   const trimmed = normalizePackageTarget(value);
   if (!trimmed) {
@@ -309,7 +340,7 @@ async function resolvePortableGitPathPrepend(): Promise<string[]> {
   if (!localAppData) {
     return [];
   }
-  const portableGitRoot = path.join(localAppData, "Astroclaw", "deps", "portable-git");
+  const portableGitRoot = path.join(localAppData, "OpenClaw", "deps", "portable-git");
   const candidates = [
     path.join(portableGitRoot, "mingw64", "bin"),
     path.join(portableGitRoot, "usr", "bin"),
@@ -342,20 +373,24 @@ function applyCorepackDownloadPromptEnv(env: Record<string, string>) {
   }
 }
 
+/**
+ * Converts a user tag or explicit package target into the package-manager spec
+ * used by global install commands.
+ */
 export function resolveGlobalInstallSpec(params: {
   packageName: string;
   tag: string;
   env?: NodeJS.ProcessEnv;
 }): string {
   const override =
-    params.env?.ASTROCLAW_UPDATE_PACKAGE_SPEC?.trim() ||
-    process.env.ASTROCLAW_UPDATE_PACKAGE_SPEC?.trim();
+    params.env?.OPENCLAW_UPDATE_PACKAGE_SPEC?.trim() ||
+    process.env.OPENCLAW_UPDATE_PACKAGE_SPEC?.trim();
   if (override) {
     return override;
   }
   const target = normalizePackageTarget(params.tag);
   if (isMainPackageTarget(target)) {
-    return ASTROCLAW_MAIN_PACKAGE_SPEC;
+    return OPENCLAW_MAIN_PACKAGE_SPEC;
   }
   if (isExplicitPackageInstallSpec(target)) {
     return target;
@@ -363,6 +398,11 @@ export function resolveGlobalInstallSpec(params: {
   return `${params.packageName}@${target}`;
 }
 
+/**
+ * Builds the package-manager environment used for global installs.
+ * It keeps caller env values, adds platform-specific install defaults, and
+ * disables npm/corepack prompts that would otherwise hang unattended updates.
+ */
 export async function createGlobalInstallEnv(
   env?: NodeJS.ProcessEnv,
 ): Promise<NodeJS.ProcessEnv | undefined> {
@@ -417,8 +457,13 @@ function inferNpmPrefixFromPackageRoot(pkgRoot?: string | null): string | null {
   return null;
 }
 
+/**
+ * Infers npm prefix, package root, and bin paths from an npm global root.
+ * Direct `node_modules` roots are accepted only when the caller opts into them.
+ */
 export function resolveNpmGlobalPrefixLayoutFromGlobalRoot(
   globalRoot?: string | null,
+  options: { allowDirectNodeModulesRoot?: boolean } = {},
 ): NpmGlobalPrefixLayout | null {
   const trimmed = globalRoot?.trim();
   if (!trimmed) {
@@ -444,9 +489,20 @@ export function resolveNpmGlobalPrefixLayoutFromGlobalRoot(
       binDir: parentDir,
     };
   }
+  if (options.allowDirectNodeModulesRoot) {
+    return {
+      prefix: parentDir,
+      globalRoot: normalized,
+      binDir: path.join(normalized, ".bin"),
+    };
+  }
   return null;
 }
 
+/**
+ * Derives npm's global package and bin directories from a prefix root.
+ * Used for staged installs where OpenClaw creates the prefix itself.
+ */
 export function resolveNpmGlobalPrefixLayoutFromPrefix(prefix: string): NpmGlobalPrefixLayout {
   const resolvedPrefix = path.resolve(prefix);
   if (process.platform === "win32") {
@@ -483,6 +539,26 @@ function inferGlobalRootFromPackageRoot(pkgRoot?: string | null): string | null 
   return path.basename(globalRoot) === "node_modules" ? globalRoot : null;
 }
 
+function isDirectNpmNodeModulesRoot(globalRoot: string | null): boolean {
+  return (
+    globalRoot !== null &&
+    resolveNpmGlobalPrefixLayoutFromGlobalRoot(globalRoot) === null &&
+    resolveNpmGlobalPrefixLayoutFromGlobalRoot(globalRoot, {
+      allowDirectNodeModulesRoot: true,
+    }) !== null
+  );
+}
+
+function inferBunGlobalRootFromPackageRoot(pkgRoot?: string | null): string | null {
+  const directGlobalRoot = inferGlobalRootFromPackageRoot(pkgRoot);
+  if (!directGlobalRoot) {
+    return null;
+  }
+  return path.resolve(directGlobalRoot) === path.resolve(resolveBunGlobalRoot())
+    ? directGlobalRoot
+    : null;
+}
+
 function inferPnpmGlobalRootFromPackageRoot(pkgRoot?: string | null): string | null {
   const directGlobalRoot = inferGlobalRootFromPackageRoot(pkgRoot);
   if (resolvePnpmGlobalDirFromGlobalRoot(directGlobalRoot)) {
@@ -508,6 +584,10 @@ function inferPnpmGlobalRootFromPackageRoot(pkgRoot?: string | null): string | n
   return resolvePnpmGlobalDirFromGlobalRoot(globalRoot) ? globalRoot : null;
 }
 
+/**
+ * Resolves pnpm's global-dir from its active `node_modules` root.
+ * Versioned pnpm layouts put packages under `<globalDir>/<version>/node_modules`.
+ */
 export function resolvePnpmGlobalDirFromGlobalRoot(globalRoot?: string | null): string | null {
   const trimmed = globalRoot?.trim();
   if (!trimmed) {
@@ -546,6 +626,10 @@ function resolvePreferredGlobalManagerCommand(
   return resolvePreferredNpmCommand(pkgRoot) ?? manager;
 }
 
+/**
+ * Resolves the package-manager command to execute for a global install.
+ * npm may use the npm binary beside an existing package root when available.
+ */
 export function resolveGlobalInstallCommand(
   manager: GlobalInstallManager,
   pkgRoot?: string | null,
@@ -565,6 +649,21 @@ function normalizeGlobalInstallCommand(
     : managerOrCommand;
 }
 
+function resolveInstallCommandForManager(
+  managerOrCommand: GlobalInstallManager | ResolvedGlobalInstallCommand,
+  manager: GlobalInstallManager,
+  pkgRoot?: string | null,
+): ResolvedGlobalInstallCommand {
+  const normalized = normalizeGlobalInstallCommand(managerOrCommand, pkgRoot);
+  return normalized.manager === manager
+    ? normalized
+    : resolveGlobalInstallCommand(manager, pkgRoot);
+}
+
+/**
+ * Reads the global `node_modules` root for a package manager command.
+ * Bun uses its deterministic install root because it has no `root -g` command.
+ */
 export async function resolveGlobalRoot(
   managerOrCommand: GlobalInstallManager | ResolvedGlobalInstallCommand,
   runCommand: CommandRunner,
@@ -584,6 +683,7 @@ export async function resolveGlobalRoot(
   return root || null;
 }
 
+/** Resolves the OpenClaw package root under a package manager's global root. */
 export async function resolveGlobalPackageRoot(
   managerOrCommand: GlobalInstallManager | ResolvedGlobalInstallCommand,
   runCommand: CommandRunner,
@@ -597,31 +697,63 @@ export async function resolveGlobalPackageRoot(
   return path.join(root, PRIMARY_PACKAGE_NAME);
 }
 
+/**
+ * Resolves the effective global install target, honoring an existing package
+ * root when requested and detecting pnpm or bun layouts before command probes.
+ */
 export async function resolveGlobalInstallTarget(params: {
   manager: GlobalInstallManager | ResolvedGlobalInstallCommand;
   runCommand: CommandRunner;
   timeoutMs: number;
   pkgRoot?: string | null;
+  honorPackageRoot?: boolean;
 }): Promise<ResolvedGlobalInstallTarget> {
-  const command = normalizeGlobalInstallCommand(params.manager, params.pkgRoot);
+  const honoredPackageRootGlobalRoot = params.honorPackageRoot
+    ? inferGlobalRootFromPackageRoot(params.pkgRoot)
+    : null;
+  const pnpmPackageRootGlobalRoot = (await isPnpmGlobalPackageRoot(params.pkgRoot))
+    ? inferPnpmGlobalRootFromPackageRoot(params.pkgRoot)
+    : null;
+  const bunPackageRootGlobalRoot = inferBunGlobalRootFromPackageRoot(params.pkgRoot);
+  const honoredDirectNpmRoot =
+    pnpmPackageRootGlobalRoot === null &&
+    bunPackageRootGlobalRoot === null &&
+    isDirectNpmNodeModulesRoot(honoredPackageRootGlobalRoot);
+  const command = bunPackageRootGlobalRoot
+    ? resolveInstallCommandForManager(params.manager, "bun", params.pkgRoot)
+    : pnpmPackageRootGlobalRoot
+      ? resolveInstallCommandForManager(params.manager, "pnpm", params.pkgRoot)
+      : honoredDirectNpmRoot
+        ? resolveInstallCommandForManager(params.manager, "npm", params.pkgRoot)
+        : normalizeGlobalInstallCommand(params.manager, params.pkgRoot);
   const globalRoot = await resolveGlobalRoot(
     command,
     params.runCommand,
     params.timeoutMs,
     params.pkgRoot,
   );
-  const pkgRootGlobalRoot =
-    command.manager === "pnpm" && (await isPnpmGlobalPackageRoot(params.pkgRoot))
-      ? inferPnpmGlobalRootFromPackageRoot(params.pkgRoot)
-      : null;
-  const targetGlobalRoot = pkgRootGlobalRoot ?? globalRoot;
+  const pkgRootGlobalRoot = command.manager === "pnpm" ? pnpmPackageRootGlobalRoot : null;
+  const targetGlobalRoot =
+    (command.manager === "bun" ? bunPackageRootGlobalRoot : null) ??
+    pkgRootGlobalRoot ??
+    (command.manager === "npm" ? honoredPackageRootGlobalRoot : null) ??
+    globalRoot;
   return {
     ...command,
     globalRoot: targetGlobalRoot,
     packageRoot: targetGlobalRoot ? path.join(targetGlobalRoot, PRIMARY_PACKAGE_NAME) : null,
+    ...(honoredPackageRootGlobalRoot &&
+    targetGlobalRoot === honoredPackageRootGlobalRoot &&
+    honoredDirectNpmRoot
+      ? { directNodeModulesRoot: true }
+      : {}),
   };
 }
 
+/**
+ * Identifies which global package manager owns an existing package root.
+ * Command probes are checked first, then pnpm/bun layout fingerprints.
+ */
 export async function detectGlobalInstallManagerForRoot(
   runCommand: CommandRunner,
   pkgRoot: string,
@@ -677,6 +809,10 @@ export async function detectGlobalInstallManagerForRoot(
   return null;
 }
 
+/**
+ * Detects an installed global OpenClaw package by probing package-manager roots
+ * when no trusted package root is already available.
+ */
 export async function detectGlobalInstallManagerByPresence(
   runCommand: CommandRunner,
   timeoutMs: number,
@@ -702,6 +838,10 @@ export async function detectGlobalInstallManagerByPresence(
   return null;
 }
 
+/**
+ * Builds the primary package-manager argv for a global OpenClaw install.
+ * npm receives quiet/freshness-bypass flags; pnpm source installs allow builds.
+ */
 export function globalInstallArgs(
   managerOrCommand: GlobalInstallManager | ResolvedGlobalInstallCommand,
   spec: string,
@@ -715,7 +855,7 @@ export function globalInstallArgs(
       "add",
       "-g",
       ...(installPrefix ? ["--global-dir", installPrefix] : []),
-      ...(isPnpmAstroclawSourceInstallSpec(spec) ? [PNPM_ASTROCLAW_BUILD_ALLOWLIST_FLAG] : []),
+      ...(isPnpmOpenClawSourceInstallSpec(spec) ? [PNPM_OPENCLAW_BUILD_ALLOWLIST_FLAG] : []),
       spec,
     ];
   }
@@ -729,10 +869,16 @@ export function globalInstallArgs(
     ...(installPrefix ? ["--prefix", installPrefix] : []),
     spec,
     ...NPM_GLOBAL_INSTALL_QUIET_FLAGS,
-    ...createNpmFreshnessBypassArgs(),
+    ...createNpmFreshnessBypassArgs(process.env, new Date(), {
+      npmConfigPrefix: installPrefix,
+    }),
   ];
 }
 
+/**
+ * Builds npm's retry argv without optional dependencies.
+ * Non-npm managers have no equivalent fallback and return null.
+ */
 export function globalInstallFallbackArgs(
   managerOrCommand: GlobalInstallManager | ResolvedGlobalInstallCommand,
   spec: string,
@@ -751,10 +897,13 @@ export function globalInstallFallbackArgs(
     spec,
     "--omit=optional",
     ...NPM_GLOBAL_INSTALL_QUIET_FLAGS,
-    ...createNpmFreshnessBypassArgs(),
+    ...createNpmFreshnessBypassArgs(process.env, new Date(), {
+      npmConfigPrefix: installPrefix,
+    }),
   ];
 }
 
+/** Removes leftover hidden global package directories from interrupted renames. */
 export async function cleanupGlobalRenameDirs(params: {
   globalRoot: string;
   packageName: string;
@@ -766,7 +915,7 @@ export async function cleanupGlobalRenameDirs(params: {
     return { removed };
   }
   const prefix = `${GLOBAL_RENAME_PREFIX}${name}-`;
-  let entries: string[] = [];
+  let entries: string[];
   try {
     entries = await fs.readdir(root);
   } catch {
