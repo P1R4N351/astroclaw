@@ -1,8 +1,9 @@
+// Runtime contracts for approval handlers used by execution requests.
 import type {
   ChannelApprovalCapability,
   ChannelApprovalNativeAdapter,
 } from "../channels/plugins/types.adapters.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   CHANNEL_APPROVAL_NATIVE_RUNTIME_CONTEXT_CAPABILITY,
@@ -176,12 +177,13 @@ async function applyApprovalFinalAction(params: {
         entry: params.wrapped.entry,
         phase: params.phase,
       });
-      return;
+
+    // `clear-actions` updates interaction controls but leaves the delivered content in place.
     case "leave":
-      return;
   }
 }
 
+/** Adapts a strongly typed channel native approval spec into the erased runtime contract. */
 export function createChannelApprovalNativeRuntimeAdapter<
   TPendingPayload,
   TPreparedTarget,
@@ -307,7 +309,7 @@ export function createChannelApprovalNativeRuntimeAdapter<
 type ChannelApprovalHandlerRuntimeSpec<TRequest extends ApprovalRequest> = {
   label: string;
   clientDisplayName: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   gatewayUrl?: string;
   eventKinds?: readonly ExecApprovalChannelRuntimeEventKind[];
   channel?: string;
@@ -359,6 +361,7 @@ type ChannelApprovalHandlerLifecycleSpec<
   onStopped?: () => Promise<void> | void;
 };
 
+/** Adapter contract used by core to run a channel's native approval delivery lifecycle. */
 export type ChannelApprovalHandlerAdapter<
   TPendingEntry,
   TPreparedTarget,
@@ -383,6 +386,7 @@ export type ChannelApprovalHandlerAdapter<
   >;
 };
 
+/** Creates the shared approval handler runtime from channel-specific content and transport hooks. */
 export function createChannelApprovalHandler<
   TPendingEntry,
   TPreparedTarget,
@@ -430,13 +434,14 @@ export function createChannelApprovalHandler<
   });
 }
 
+/** Builds a shared approval handler from a plugin approval capability, or null when unsupported. */
 export async function createChannelApprovalHandlerFromCapability(params: {
   capability?: Pick<ChannelApprovalCapability, "native" | "nativeRuntime"> | null;
   label: string;
   clientDisplayName: string;
   channel: string;
   channelLabel: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   gatewayUrl?: string;
   context?: unknown;
