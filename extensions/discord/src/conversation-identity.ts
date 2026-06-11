@@ -1,7 +1,8 @@
+// Discord plugin module implements conversation identity behavior.
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { parseDiscordTarget } from "./target-parsing.js";
 
 function normalizeDiscordTarget(
