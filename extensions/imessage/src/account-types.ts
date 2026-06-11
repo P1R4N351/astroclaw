@@ -1,6 +1,7 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Imessage plugin module implements account types behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 
 export type IMessageAccountConfig = Omit<
-  NonNullable<NonNullable<AstroclawConfig["channels"]>["imessage"]>,
+  NonNullable<NonNullable<OpenClawConfig["channels"]>["imessage"]>,
   "accounts" | "defaultAccount"
 >;
