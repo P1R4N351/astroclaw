@@ -1,9 +1,15 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
-import { resolveOwningPluginIdsForProvider } from "../plugins/providers.js";
-import { normalizeProviderId } from "./provider-id.js";
+/**
+ * Live provider ownership helpers.
+ *
+ * Live provider checks use this to decide when two provider ids belong to the
+ * same plugin owner without repeating manifest/provider resolution work.
+ */
+import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { resolveOwningPluginIdsForProviderRef } from "../plugins/providers.js";
 
 type LiveProviderOwnerContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
   ownerCache: Map<string, readonly string[]>;
@@ -19,7 +25,7 @@ function resolveCachedOwningPluginIdsForProvider(
     return cached;
   }
   const owners =
-    resolveOwningPluginIdsForProvider({
+    resolveOwningPluginIdsForProviderRef({
       provider: normalized,
       config: context.config,
       workspaceDir: context.workspaceDir,
@@ -29,6 +35,7 @@ function resolveCachedOwningPluginIdsForProvider(
   return owners;
 }
 
+/** Returns whether two live provider ids resolve to at least one shared plugin owner. */
 export function liveProvidersShareOwningPlugin(
   left: string,
   right: string,
