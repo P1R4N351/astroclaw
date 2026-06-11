@@ -1,4 +1,5 @@
-import { loadBundledEntryExportSync } from "astroclaw/plugin-sdk/channel-entry-contract";
+// Zalo API module exposes the plugin public contract.
+import { loadBundledEntryExportSync } from "openclaw/plugin-sdk/channel-entry-contract";
 
 type SetupSurfaceModule = typeof import("./src/setup-surface.js");
 
