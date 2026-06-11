@@ -1,21 +1,22 @@
+// Openrouter provider module implements model/runtime integration.
 import type {
   GeneratedImageAsset,
   ImageGenerationProvider,
   ImageGenerationRequest,
-} from "astroclaw/plugin-sdk/image-generation";
+} from "openclaw/plugin-sdk/image-generation";
 import {
   generatedImageAssetFromBase64,
   generatedImageAssetFromDataUrl,
   toImageDataUrl,
-} from "astroclaw/plugin-sdk/image-generation";
-import { isProviderApiKeyConfigured } from "astroclaw/plugin-sdk/provider-auth";
-import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
+} from "openclaw/plugin-sdk/image-generation";
+import { isProviderApiKeyConfigured } from "openclaw/plugin-sdk/provider-auth";
+import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
 import {
   assertOkOrThrowHttpError,
   postJsonRequest,
   resolveProviderHttpRequestConfig,
-} from "astroclaw/plugin-sdk/provider-http";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-http";
+import { isRecord, normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { OPENROUTER_BASE_URL } from "./provider-catalog.js";
 
 const DEFAULT_MODEL = "google/gemini-3.1-flash-image-preview";
@@ -39,10 +40,6 @@ const SUPPORTED_ASPECT_RATIOS = [
   "21:9",
 ] as const;
 const OPENROUTER_IMAGE_MALFORMED_RESPONSE = "OpenRouter image generation response malformed";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
 
 function throwMalformedOpenRouterImageResponse(message: string | undefined): never | undefined {
   if (message) {
@@ -302,8 +299,8 @@ export function buildOpenRouterImageGenerationProvider(): ImageGenerationProvide
           allowPrivateNetwork: false,
           defaultHeaders: {
             Authorization: `Bearer ${auth.apiKey}`,
-            "HTTP-Referer": "https://astroclaw.ai",
-            "X-OpenRouter-Title": "Astroclaw",
+            "HTTP-Referer": "https://openclaw.ai",
+            "X-OpenRouter-Title": "OpenClaw",
           },
           provider: "openrouter",
           capability: "image",
