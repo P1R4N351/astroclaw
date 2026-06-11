@@ -1,4 +1,6 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Captures plugin registrations for controlled registry assembly.
+import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   AgentToolResultMiddleware,
   AgentToolResultMiddlewareOptions,
@@ -6,6 +8,7 @@ import type {
 import { normalizeAgentToolResultMiddlewareRuntimes } from "./agent-tool-result-middleware.js";
 import { buildPluginApi } from "./api-builder.js";
 import type { CodexAppServerExtensionFactory } from "./codex-app-server-extension-types.js";
+import type { EmbeddingProviderAdapter } from "./embedding-providers.js";
 import type {
   PluginAgentEventSubscriptionRegistration,
   PluginControlUiDescriptor,
@@ -23,13 +26,14 @@ import type {
   AnyAgentTool,
   AgentHarness,
   CliBackendPlugin,
-  AstroclawPluginApi,
+  OpenClawPluginApi,
   ImageGenerationProviderPlugin,
   MediaUnderstandingProviderPlugin,
+  TranscriptSourceProvider,
   MigrationProviderPlugin,
   MusicGenerationProviderPlugin,
-  AstroclawPluginCliCommandDescriptor,
-  AstroclawPluginCliRegistrar,
+  OpenClawPluginCliCommandDescriptor,
+  OpenClawPluginCliRegistrar,
   PluginTextTransformRegistration,
   ProviderPlugin,
   RealtimeTranscriptionProviderPlugin,
@@ -42,14 +46,14 @@ import type {
 } from "./types.js";
 
 type CapturedPluginCliRegistration = {
-  register: AstroclawPluginCliRegistrar;
+  register: OpenClawPluginCliRegistrar;
   parentPath: string[];
   commands: string[];
-  descriptors: AstroclawPluginCliCommandDescriptor[];
+  descriptors: OpenClawPluginCliCommandDescriptor[];
 };
 
 export type CapturedPluginRegistration = {
-  api: AstroclawPluginApi;
+  api: OpenClawPluginApi;
   providers: ProviderPlugin[];
   agentHarnesses: AgentHarness[];
   cliRegistrars: CapturedPluginCliRegistration[];
@@ -57,10 +61,12 @@ export type CapturedPluginRegistration = {
   textTransforms: PluginTextTransformRegistration[];
   codexAppServerExtensionFactories: CodexAppServerExtensionFactory[];
   agentToolResultMiddlewares: PluginAgentToolResultMiddlewareRegistration[];
+  embeddingProviders: EmbeddingProviderAdapter[];
   speechProviders: SpeechProviderPlugin[];
   realtimeTranscriptionProviders: RealtimeTranscriptionProviderPlugin[];
   realtimeVoiceProviders: RealtimeVoiceProviderPlugin[];
   mediaUnderstandingProviders: MediaUnderstandingProviderPlugin[];
+  transcriptSourceProviders: TranscriptSourceProvider[];
   imageGenerationProviders: ImageGenerationProviderPlugin[];
   videoGenerationProviders: VideoGenerationProviderPlugin[];
   musicGenerationProviders: MusicGenerationProviderPlugin[];
@@ -81,10 +87,10 @@ export type CapturedPluginRegistration = {
 };
 
 export function createCapturedPluginRegistration(params?: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   id?: string;
   name?: string;
-  registrationMode?: AstroclawPluginApi["registrationMode"];
+  registrationMode?: OpenClawPluginApi["registrationMode"];
   source?: string;
 }): CapturedPluginRegistration {
   const providers: ProviderPlugin[] = [];
@@ -94,10 +100,12 @@ export function createCapturedPluginRegistration(params?: {
   const textTransforms: PluginTextTransformRegistration[] = [];
   const codexAppServerExtensionFactories: CodexAppServerExtensionFactory[] = [];
   const agentToolResultMiddlewares: PluginAgentToolResultMiddlewareRegistration[] = [];
+  const embeddingProviders: EmbeddingProviderAdapter[] = [];
   const speechProviders: SpeechProviderPlugin[] = [];
   const realtimeTranscriptionProviders: RealtimeTranscriptionProviderPlugin[] = [];
   const realtimeVoiceProviders: RealtimeVoiceProviderPlugin[] = [];
   const mediaUnderstandingProviders: MediaUnderstandingProviderPlugin[] = [];
+  const transcriptSourceProviders: TranscriptSourceProvider[] = [];
   const imageGenerationProviders: ImageGenerationProviderPlugin[] = [];
   const videoGenerationProviders: VideoGenerationProviderPlugin[] = [];
   const musicGenerationProviders: MusicGenerationProviderPlugin[] = [];
@@ -134,10 +142,12 @@ export function createCapturedPluginRegistration(params?: {
     textTransforms,
     codexAppServerExtensionFactories,
     agentToolResultMiddlewares,
+    embeddingProviders,
     speechProviders,
     realtimeTranscriptionProviders,
     realtimeVoiceProviders,
     mediaUnderstandingProviders,
+    transcriptSourceProviders,
     imageGenerationProviders,
     videoGenerationProviders,
     musicGenerationProviders,
@@ -160,15 +170,13 @@ export function createCapturedPluginRegistration(params?: {
       name: pluginName,
       source: pluginSource,
       registrationMode: params?.registrationMode ?? "full",
-      config: params?.config ?? ({} as AstroclawConfig),
+      config: params?.config ?? ({} as OpenClawConfig),
       runtime: {} as PluginRuntime,
       logger: noopLogger,
       resolvePath: (input) => input,
       handlers: {
         registerCli(registrar, opts) {
-          const parentPath = (opts?.parentPath ?? [])
-            .map((segment) => segment.trim())
-            .filter(Boolean);
+          const parentPath = normalizeStringEntries(opts?.parentPath ?? []);
           const descriptors = (opts?.descriptors ?? [])
             .map((descriptor) => ({
               name: descriptor.name.trim(),
@@ -176,12 +184,10 @@ export function createCapturedPluginRegistration(params?: {
               hasSubcommands: descriptor.hasSubcommands,
             }))
             .filter((descriptor) => descriptor.name && descriptor.description);
-          const commands = [
+          const commands = normalizeStringEntries([
             ...(opts?.commands ?? []),
             ...descriptors.map((descriptor) => descriptor.name),
-          ]
-            .map((command) => command.trim())
-            .filter(Boolean);
+          ]);
           if (commands.length === 0) {
             return;
           }
@@ -224,6 +230,9 @@ export function createCapturedPluginRegistration(params?: {
         registerTextTransforms(transforms: PluginTextTransformRegistration) {
           textTransforms.push(transforms);
         },
+        registerEmbeddingProvider(provider: EmbeddingProviderAdapter) {
+          embeddingProviders.push(provider);
+        },
         registerSpeechProvider(provider: SpeechProviderPlugin) {
           speechProviders.push(provider);
         },
@@ -235,6 +244,9 @@ export function createCapturedPluginRegistration(params?: {
         },
         registerMediaUnderstandingProvider(provider: MediaUnderstandingProviderPlugin) {
           mediaUnderstandingProviders.push(provider);
+        },
+        registerTranscriptSourceProvider(provider: TranscriptSourceProvider) {
+          transcriptSourceProviders.push(provider);
         },
         registerImageGenerationProvider(provider: ImageGenerationProviderPlugin) {
           imageGenerationProviders.push(provider);
@@ -311,7 +323,7 @@ export function createCapturedPluginRegistration(params?: {
 
 export function capturePluginRegistration(
   params: NonNullable<Parameters<typeof createCapturedPluginRegistration>[0]> & {
-    register(api: AstroclawPluginApi): void;
+    register(api: OpenClawPluginApi): void;
   },
 ): CapturedPluginRegistration {
   const captured = createCapturedPluginRegistration(params);
