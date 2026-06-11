@@ -1,3 +1,4 @@
+// Builds the generated official channel catalog from publishable channel plugins.
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -5,6 +6,7 @@ import officialExternalChannelCatalog from "./lib/official-external-channel-cata
 import { isRecord, trimString } from "./lib/record-shared.mjs";
 import { writeTextFileIfChanged } from "./runtime-postbuild-shared.mjs";
 
+/** Generated official channel catalog path in dist. */
 export const OFFICIAL_CHANNEL_CATALOG_RELATIVE_PATH = "dist/channel-catalog.json";
 
 function toCatalogInstall(value, packageName) {
@@ -34,7 +36,7 @@ function buildCatalogEntry(packageJson) {
     return null;
   }
   const packageName = trimString(packageJson.name);
-  const manifest = isRecord(packageJson.astroclaw) ? packageJson.astroclaw : null;
+  const manifest = isRecord(packageJson.openclaw) ? packageJson.openclaw : null;
   const release = manifest && isRecord(manifest.release) ? manifest.release : null;
   const channel = manifest && isRecord(manifest.channel) ? manifest.channel : null;
   if (!packageName || !channel || release?.publishToNpm !== true) {
@@ -50,7 +52,7 @@ function buildCatalogEntry(packageJson) {
     name: packageName,
     ...(version ? { version } : {}),
     ...(description ? { description } : {}),
-    astroclaw: {
+    openclaw: {
       channel,
       install,
     },
@@ -58,9 +60,12 @@ function buildCatalogEntry(packageJson) {
 }
 
 function getCatalogChannelId(entry) {
-  return trimString(entry?.astroclaw?.channel?.id) || trimString(entry?.name);
+  return trimString(entry?.openclaw?.channel?.id) || trimString(entry?.name);
 }
 
+/**
+ * Collects publishable channel catalog entries from bundled and external channels.
+ */
 export function buildOfficialChannelCatalog(params = {}) {
   const repoRoot = params.cwd ?? params.repoRoot ?? process.cwd();
   const extensionsRoot = path.join(repoRoot, "extensions");
@@ -95,8 +100,8 @@ export function buildOfficialChannelCatalog(params = {}) {
   }
 
   entries.sort((left, right) => {
-    const leftId = trimString(left.astroclaw?.channel?.id) || left.name;
-    const rightId = trimString(right.astroclaw?.channel?.id) || right.name;
+    const leftId = trimString(left.openclaw?.channel?.id) || left.name;
+    const rightId = trimString(right.openclaw?.channel?.id) || right.name;
     return leftId.localeCompare(rightId);
   });
 
