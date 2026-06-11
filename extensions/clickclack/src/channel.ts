@@ -1,18 +1,22 @@
+/**
+ * ClickClack channel plugin definition: target parsing, account config, status,
+ * gateway startup, and outbound delivery wiring.
+ */
 import {
   buildChannelOutboundSessionRoute,
   buildThreadAwareOutboundSessionRoute,
   createChatChannelPlugin,
-} from "astroclaw/plugin-sdk/channel-core";
-import type { ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
+} from "openclaw/plugin-sdk/channel-core";
+import type { ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
 import {
   createMessageReceiptFromOutboundResults,
   defineChannelMessageAdapter,
-} from "astroclaw/plugin-sdk/channel-message";
-import { getChatChannelMeta } from "astroclaw/plugin-sdk/channel-plugin-common";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { getChatChannelMeta } from "openclaw/plugin-sdk/channel-plugin-common";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import {
   DEFAULT_ACCOUNT_ID,
   listClickClackAccountIds,
@@ -68,6 +72,9 @@ const clickClackMessageAdapter = defineChannelMessageAdapter({
   },
 });
 
+/**
+ * Channel plugin instance registered by the bundled ClickClack entry.
+ */
 export const clickClackPlugin: ChannelPlugin<ResolvedClickClackAccount> = createChatChannelPlugin({
   base: {
     id: CHANNEL_ID,
@@ -93,14 +100,6 @@ export const clickClackPlugin: ChannelPlugin<ResolvedClickClackAccount> = create
     messaging: {
       targetPrefixes: ["clickclack", "cc"],
       normalizeTarget: normalizeClickClackTarget,
-      parseExplicitTarget: ({ raw }) => {
-        const parsed = parseClickClackTarget(raw);
-        return {
-          to: buildClickClackTarget(parsed),
-          threadId: parsed.kind === "thread" ? parsed.id : undefined,
-          chatType: parsed.chatType,
-        };
-      },
       inferTargetChatType: ({ to }) => parseClickClackTarget(to).chatType,
       targetResolver: {
         looksLikeId: looksLikeClickClackTarget,
