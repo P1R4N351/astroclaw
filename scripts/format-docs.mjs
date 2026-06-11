@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+// Formats docs Markdown/MDX and repairs Mintlify accordion indentation.
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -55,7 +56,7 @@ function repairFiles(root, files) {
 }
 
 function copyDocsToTemp(files) {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-docs-format-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-docs-format-"));
   for (const relativePath of files) {
     const source = path.join(ROOT, relativePath);
     const target = path.join(tempRoot, relativePath);
