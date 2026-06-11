@@ -1,5 +1,6 @@
+// Mattermost helper module supports reactions helpers behavior.
 import { expect, vi } from "vitest";
-import type { AstroclawConfig } from "../../runtime-api.js";
+import type { OpenClawConfig } from "../../runtime-api.js";
 import type { MattermostFetch } from "./client.js";
 
 export function requestUrl(url: string | URL | Request): string {
@@ -12,7 +13,7 @@ export function requestUrl(url: string | URL | Request): string {
   return url.url;
 }
 
-export function createMattermostTestConfig(): AstroclawConfig {
+export function createMattermostTestConfig(): OpenClawConfig {
   return {
     channels: {
       mattermost: {
