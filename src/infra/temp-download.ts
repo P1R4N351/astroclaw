@@ -1,14 +1,17 @@
+// Creates private temporary workspaces for downloads.
 import "./fs-safe-defaults.js";
 import crypto from "node:crypto";
 import path from "node:path";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { tempWorkspace, type TempWorkspace } from "./private-temp-workspace.js";
-import { resolvePreferredAstroclawTmpDir } from "./tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
 
 const logger = createSubsystemLogger("infra:temp-download");
 
-export { resolvePreferredAstroclawTmpDir } from "./tmp-astroclaw-dir.js";
+export { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
 
+// Download targets expose both a default path and a name-safe file builder so
+// callers can keep all transient files inside the same workspace.
 type TempDownloadTarget = {
   dir: string;
   path: string;
@@ -18,7 +21,7 @@ type TempDownloadTarget = {
 };
 
 function resolveTempRoot(tmpDir?: string): string {
-  return tmpDir ?? resolvePreferredAstroclawTmpDir();
+  return tmpDir ?? resolvePreferredOpenClawTmpDir();
 }
 
 function sanitizeTempPrefix(prefix: string): string {
@@ -42,6 +45,7 @@ export function sanitizeTempFileName(fileName: string): string {
   return normalized || "download.bin";
 }
 
+/** Build a stable temp path shape while keeping caller-controlled text filename-safe. */
 export function buildRandomTempFilePath(params: {
   prefix: string;
   extension?: string;
@@ -102,6 +106,7 @@ export async function createTempDownloadTarget(params: {
   };
 }
 
+/** Run with a private temp download path and always attempt workspace cleanup. */
 export async function withTempDownloadPath<T>(
   params: {
     prefix: string;
