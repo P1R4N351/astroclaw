@@ -1,11 +1,12 @@
-import { createAccountStatusSink } from "astroclaw/plugin-sdk/channel-lifecycle";
-import { runStoppablePassiveMonitor } from "astroclaw/plugin-sdk/extension-shared";
+// Nextcloud Talk plugin module implements gateway behavior.
+import { createAccountStatusSink } from "openclaw/plugin-sdk/channel-outbound";
+import { runStoppablePassiveMonitor } from "openclaw/plugin-sdk/extension-shared";
 import { resolveNextcloudTalkAccount, type ResolvedNextcloudTalkAccount } from "./accounts.js";
 import {
   clearAccountEntryFields,
   DEFAULT_ACCOUNT_ID,
   type ChannelPlugin,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "./channel-api.js";
 import { monitorNextcloudTalkProvider } from "./monitor-runtime.js";
 import { getNextcloudTalkRuntime } from "./runtime.js";
@@ -42,7 +43,7 @@ export const nextcloudTalkGatewayAdapter: NonNullable<
     });
   },
   logoutAccount: async ({ accountId, cfg }) => {
-    const nextCfg = { ...cfg } as AstroclawConfig;
+    const nextCfg = { ...cfg } as OpenClawConfig;
     const nextSection = cfg.channels?.["nextcloud-talk"]
       ? { ...cfg.channels["nextcloud-talk"] }
       : undefined;
@@ -80,7 +81,7 @@ export const nextcloudTalkGatewayAdapter: NonNullable<
         const nextChannels = { ...nextCfg.channels } as Record<string, unknown>;
         delete nextChannels["nextcloud-talk"];
         if (Object.keys(nextChannels).length > 0) {
-          nextCfg.channels = nextChannels as AstroclawConfig["channels"];
+          nextCfg.channels = nextChannels as OpenClawConfig["channels"];
         } else {
           delete nextCfg.channels;
         }
