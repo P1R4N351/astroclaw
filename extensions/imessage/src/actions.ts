@@ -1,19 +1,21 @@
-import { readBooleanParam } from "astroclaw/plugin-sdk/boolean-param";
+// Imessage plugin module implements actions behavior.
+import { readBooleanParam } from "openclaw/plugin-sdk/boolean-param";
 import {
   createActionGate,
   jsonResult,
-  readNumberParam,
+  readNonNegativeIntegerParam,
+  readPositiveIntegerParam,
   readReactionParams,
   readStringParam,
-} from "astroclaw/plugin-sdk/channel-actions";
+} from "openclaw/plugin-sdk/channel-actions";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionName,
-} from "astroclaw/plugin-sdk/channel-contract";
-import { createLazyRuntimeNamedExport } from "astroclaw/plugin-sdk/lazy-runtime";
-import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { extractToolSend } from "astroclaw/plugin-sdk/tool-send";
+} from "openclaw/plugin-sdk/channel-contract";
+import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
+import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { extractToolSend } from "openclaw/plugin-sdk/tool-send";
 import { resolveIMessageAccount } from "./accounts.js";
 import { IMESSAGE_ACTION_NAMES, IMESSAGE_ACTIONS } from "./actions-contract.js";
 import { DEFAULT_IMESSAGE_PROBE_TIMEOUT_MS } from "./constants.js";
@@ -23,7 +25,7 @@ import {
   rememberIMessageReplyCache,
   type IMessageChatContext,
 } from "./monitor-reply-cache.js";
-import { getCachedIMessagePrivateApiStatus } from "./probe.js";
+import { getCachedIMessagePrivateApiStatus, probeIMessagePrivateApi } from "./probe.js";
 import { parseIMessageTarget, type IMessageTarget } from "./targets.js";
 
 const loadIMessageActionsRuntime = createLazyRuntimeNamedExport(
@@ -103,7 +105,7 @@ async function resolveChatGuid(params: {
   if (explicitChatGuid) {
     return explicitChatGuid;
   }
-  const explicitChatId = readNumberParam(params.actionParams, "chatId", { integer: true });
+  const explicitChatId = readPositiveIntegerParam(params.actionParams, "chatId");
   if (typeof explicitChatId === "number") {
     const resolved = await params.runtime.resolveChatGuidForTarget({
       target: { kind: "chat_id", chatId: explicitChatId },
@@ -198,7 +200,7 @@ function buildChatContextFromActionParams(params: {
 }): IMessageChatContext {
   const explicitChatGuid = readStringParam(params.actionParams, "chatGuid")?.trim();
   const explicitChatIdentifier = readStringParam(params.actionParams, "chatIdentifier")?.trim();
-  const explicitChatId = readNumberParam(params.actionParams, "chatId", { integer: true });
+  const explicitChatId = readPositiveIntegerParam(params.actionParams, "chatId");
   // Trim before the truthy check so a whitespace-only currentChannelId can't
   // reach parseIMessageTarget (which throws on empty/whitespace input and
   // would abort the whole action with a confusing "target is required").
@@ -416,7 +418,6 @@ export const imessageMessageActions: ChannelMessageActionAdapter = {
         // status adapter, which doesn't fire eagerly on first dispatch. Run
         // an inline probe so the first react/send-rich attempt after `imsg
         // launch` succeeds without requiring a manual `channels status`.
-        const { probeIMessagePrivateApi } = await import("./probe.js");
         privateApiStatus = await probeIMessagePrivateApi(
           cliPathForProbe,
           account.config.probeTimeoutMs ?? DEFAULT_IMESSAGE_PROBE_TIMEOUT_MS,
@@ -429,11 +430,17 @@ export const imessageMessageActions: ChannelMessageActionAdapter = {
         // disappeared — they only see "channel: running" in `channels status`.
         // Common cause: gateway restart un-injects the imsg-bridge-helper.dylib
         // from Messages.app while imsg rpc keeps running.
+        // imsg's status message names the actual blocker (SIP, library
+        // validation, macOS 26 AMFI gate) — append it so the operator isn't
+        // told to "run imsg launch" when the OS is rejecting the dylib.
+        const reason = privateApiStatus?.statusMessage
+          ? ` imsg reports: ${privateApiStatus.statusMessage}`
+          : "";
         log.warn(
-          `iMessage ${action} blocked: private API bridge unavailable (accountId=${account.accountId}, cliPath=${cliPathForProbe}). Run \`imsg launch\` to re-inject the dylib, then \`astroclaw channels status\` to refresh.`,
+          `iMessage ${action} blocked: private API bridge unavailable (accountId=${account.accountId}, cliPath=${cliPathForProbe}). Run \`imsg launch\` to re-inject the dylib, then \`openclaw channels status\` to refresh.${reason}`,
         );
         throw new Error(
-          `iMessage ${action} requires the imsg private API bridge. Run imsg launch, then astroclaw channels status to refresh capability detection.`,
+          `iMessage ${action} requires the imsg private API bridge. Run imsg launch, then openclaw channels status to refresh capability detection.${reason}`,
         );
       }
     };
@@ -486,7 +493,7 @@ export const imessageMessageActions: ChannelMessageActionAdapter = {
         );
       }
       const resolvedMessageId = messageId();
-      const partIndex = readNumberParam(params, "partIndex", { integer: true });
+      const partIndex = readNonNegativeIntegerParam(params, "partIndex");
       const resolvedChatGuid = await chatGuid();
       const reactionsToSend = remove && !reaction ? [...TAPBACK_KINDS] : reaction ? [reaction] : [];
       for (const kind of reactionsToSend) {
@@ -512,7 +519,7 @@ export const imessageMessageActions: ChannelMessageActionAdapter = {
       if (!text) {
         throw new Error("iMessage edit requires text, newText, or message.");
       }
-      const partIndex = readNumberParam(params, "partIndex", { integer: true });
+      const partIndex = readNonNegativeIntegerParam(params, "partIndex");
       const backwardsCompatMessage = readStringParam(params, "backwardsCompatMessage");
       const resolvedChatGuid = await chatGuid();
       await runtime.editMessage({
@@ -529,7 +536,7 @@ export const imessageMessageActions: ChannelMessageActionAdapter = {
     if (action === "unsend") {
       await assertPrivateApiEnabled();
       const resolvedMessageId = messageId({ requireFromMe: true });
-      const partIndex = readNumberParam(params, "partIndex", { integer: true });
+      const partIndex = readNonNegativeIntegerParam(params, "partIndex");
       const resolvedChatGuid = await chatGuid();
       await runtime.unsendMessage({
         chatGuid: resolvedChatGuid,
@@ -557,19 +564,19 @@ export const imessageMessageActions: ChannelMessageActionAdapter = {
           );
         }
         // Reply-with-attachment requires the `imsg send-rich --file` flag
-        // (astroclaw/imsg#114). Older imsg builds reject the option, so
+        // (openclaw/imsg#114). Older imsg builds reject the option, so
         // refuse loudly here rather than letting send-rich ship the text
         // alone and silently drop the attachment — the original symptom
-        // of astroclaw/astroclaw#79822.
+        // of openclaw/openclaw#79822.
         if (privateApiStatus?.cliCapabilities?.sendRichSupportsAttachment !== true) {
           throw new Error(
             "iMessage reply with an attachment needs an imsg build that exposes `send-rich --file` " +
-              "(astroclaw/imsg#114). Upgrade imsg, or use action 'upload-file' (with filePath/filename) " +
+              "(openclaw/imsg#114). Upgrade imsg, or use action 'upload-file' (with filePath/filename) " +
               "or action 'send' (with media) to deliver the file plus a separate 'reply' for any text.",
           );
         }
       }
-      const partIndex = readNumberParam(params, "partIndex", { integer: true });
+      const partIndex = readNonNegativeIntegerParam(params, "partIndex");
       const resolvedChatGuid = await chatGuid();
       const result = await runtime.sendRichMessage({
         chatGuid: resolvedChatGuid,
