@@ -1,8 +1,10 @@
+/** Shared image-generation request, provider, capability, and result contracts. */
+import type { MediaNormalizationEntry } from "../../packages/media-generation-core/src/normalization.js";
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
-import type { MediaNormalizationEntry } from "../media-generation/normalization.types.js";
 
+/** Binary image asset returned by an image-generation provider. */
 export type GeneratedImageAsset = {
   buffer: Buffer;
   mimeType: string;
@@ -30,7 +32,7 @@ export type ImageGenerationOpenAIOptions = {
   user?: string;
 };
 
-export type ImageGenerationProviderOptions = {
+export type ImageGenerationProviderOptions = Record<string, unknown> & {
   openai?: ImageGenerationOpenAIOptions;
 };
 
@@ -55,15 +57,16 @@ export type ImageGenerationSourceImage = {
 };
 
 export type ImageGenerationProviderConfiguredContext = {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   agentDir?: string;
 };
 
+/** Runtime request passed to an image-generation provider implementation. */
 export type ImageGenerationRequest = {
   provider: string;
   model: string;
   prompt: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentDir?: string;
   authStore?: AuthProfileStore;
   timeoutMs?: number;
@@ -99,8 +102,11 @@ type ImageGenerationEditCapabilities = ImageGenerationModeCapabilities & {
 
 type ImageGenerationGeometryCapabilities = {
   sizes?: string[];
+  sizesByModel?: Record<string, string[]>;
   aspectRatios?: string[];
+  aspectRatiosByModel?: Record<string, string[]>;
   resolutions?: ImageGenerationResolution[];
+  resolutionsByModel?: Record<string, ImageGenerationResolution[]>;
 };
 
 type ImageGenerationOutputCapabilities = {
@@ -127,6 +133,8 @@ export type ImageGenerationProvider = {
   aliases?: string[];
   label?: string;
   defaultModel?: string;
+  /** Default provider operation timeout in milliseconds when caller/config omit timeoutMs. */
+  defaultTimeoutMs?: number;
   models?: string[];
   capabilities: ImageGenerationProviderCapabilities;
   isConfigured?: (ctx: ImageGenerationProviderConfiguredContext) => boolean;
