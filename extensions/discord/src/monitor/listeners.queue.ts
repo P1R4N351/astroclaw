@@ -1,7 +1,8 @@
-import { createSubsystemLogger, formatDurationSeconds } from "astroclaw/plugin-sdk/runtime-env";
+// Discord plugin module implements listeners.queue behavior.
+import { createSubsystemLogger, formatDurationSeconds } from "openclaw/plugin-sdk/runtime-env";
 
 export type DiscordListenerLogger = ReturnType<
-  typeof import("astroclaw/plugin-sdk/runtime-env").createSubsystemLogger
+  typeof import("openclaw/plugin-sdk/runtime-env").createSubsystemLogger
 >;
 
 const DISCORD_SLOW_LISTENER_THRESHOLD_MS = 30_000;
