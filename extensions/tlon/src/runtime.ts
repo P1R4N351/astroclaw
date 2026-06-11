@@ -1,5 +1,6 @@
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
-import { createPluginRuntimeStore } from "astroclaw/plugin-sdk/runtime-store";
+// Tlon plugin module implements runtime behavior.
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+import { createPluginRuntimeStore } from "openclaw/plugin-sdk/runtime-store";
 
 const { setRuntime: setTlonRuntime, getRuntime: getTlonRuntime } =
   createPluginRuntimeStore<PluginRuntime>({
