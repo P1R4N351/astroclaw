@@ -1,23 +1,31 @@
+// Channel MCP server wires channel bridge tools into an MCP server instance.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { VERSION } from "../version.js";
-import { AstroclawChannelBridge } from "./channel-bridge.js";
+import { OpenClawChannelBridge } from "./channel-bridge.js";
 import { ClaudePermissionRequestSchema, type ClaudeChannelMode } from "./channel-shared.js";
 import { getChannelMcpCapabilities, registerChannelMcpTools } from "./channel-tools.js";
 
-export { AstroclawChannelBridge } from "./channel-bridge.js";
+/**
+ * MCP stdio server assembly for OpenClaw channel conversations.
+ *
+ * This module wires config, the Gateway bridge, protocol notifications, and
+ * registered tools into a lifecycle that callers can either embed or serve.
+ */
+export { OpenClawChannelBridge } from "./channel-bridge.js";
 
-export type AstroclawMcpServeOptions = {
+/** Options accepted by the channel MCP server factory and stdio entry point. */
+export type OpenClawMcpServeOptions = {
   gatewayUrl?: string;
   gatewayToken?: string;
   gatewayPassword?: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   claudeChannelMode?: ClaudeChannelMode;
   verbose?: boolean;
 };
 
-async function resolveMcpConfig(config: AstroclawConfig | undefined): Promise<AstroclawConfig> {
+async function resolveMcpConfig(config: OpenClawConfig | undefined): Promise<OpenClawConfig> {
   if (config) {
     return config;
   }
@@ -25,9 +33,10 @@ async function resolveMcpConfig(config: AstroclawConfig | undefined): Promise<As
   return getRuntimeConfig();
 }
 
-export async function createAstroclawChannelMcpServer(opts: AstroclawMcpServeOptions = {}): Promise<{
+/** Create an in-process channel MCP server plus explicit start and close hooks. */
+export async function createOpenClawChannelMcpServer(opts: OpenClawMcpServeOptions = {}): Promise<{
   server: McpServer;
-  bridge: AstroclawChannelBridge;
+  bridge: OpenClawChannelBridge;
   start: () => Promise<void>;
   close: () => Promise<void>;
 }> {
@@ -35,10 +44,10 @@ export async function createAstroclawChannelMcpServer(opts: AstroclawMcpServeOpt
   const claudeChannelMode = opts.claudeChannelMode ?? "auto";
   const capabilities = getChannelMcpCapabilities(claudeChannelMode);
   const server = new McpServer(
-    { name: "astroclaw", version: VERSION },
+    { name: "openclaw", version: VERSION },
     capabilities ? { capabilities } : undefined,
   );
-  const bridge = new AstroclawChannelBridge(cfg, {
+  const bridge = new OpenClawChannelBridge(cfg, {
     gatewayUrl: opts.gatewayUrl,
     gatewayToken: opts.gatewayToken,
     gatewayPassword: opts.gatewayPassword,
@@ -70,8 +79,9 @@ export async function createAstroclawChannelMcpServer(opts: AstroclawMcpServeOpt
   };
 }
 
-export async function serveAstroclawChannelMcp(opts: AstroclawMcpServeOptions = {}): Promise<void> {
-  const { server, start, close } = await createAstroclawChannelMcpServer(opts);
+/** Serve the channel MCP server over stdio until transport or process shutdown. */
+export async function serveOpenClawChannelMcp(opts: OpenClawMcpServeOptions = {}): Promise<void> {
+  const { server, start, close } = await createOpenClawChannelMcpServer(opts);
   const transport = new StdioServerTransport();
 
   let shuttingDown = false;
@@ -89,6 +99,7 @@ export async function serveAstroclawChannelMcp(opts: AstroclawMcpServeOptions = 
     process.stdin.off("close", shutdown);
     process.off("SIGINT", shutdown);
     process.off("SIGTERM", shutdown);
+    // The MCP SDK exposes transport close as a mutable handler rather than an EventEmitter API.
     transport["onclose"] = undefined;
     close().then(resolveClosed, resolveClosed);
   };
