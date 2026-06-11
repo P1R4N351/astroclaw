@@ -1,3 +1,9 @@
+// Agent config mutation and summary builders used by `openclaw agents` commands.
+import {
+  normalizeOptionalString,
+  resolvePrimaryStringValue,
+} from "@openclaw/normalization-core/string-coerce";
+import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
 import {
   listAgentEntries,
   resolveAgentDir,
@@ -8,9 +14,8 @@ import type { AgentIdentityFile } from "../agents/identity-file.js";
 import { identityHasValues, loadAgentIdentityFromWorkspace } from "../agents/identity-file.js";
 import { listRouteBindings } from "../config/bindings.js";
 import type { IdentityConfig } from "../config/types.base.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
-import { normalizeOptionalString, resolvePrimaryStringValue } from "../shared/string-coerce.js";
 
 export type AgentSummary = {
   id: string;
@@ -28,17 +33,18 @@ export type AgentSummary = {
   isDefault: boolean;
 };
 
-type AgentEntry = NonNullable<NonNullable<AstroclawConfig["agents"]>["list"]>[number];
+type AgentEntry = NonNullable<NonNullable<OpenClawConfig["agents"]>["list"]>[number];
 
 export type AgentIdentity = AgentIdentityFile;
 export { listAgentEntries };
 
+/** Find a configured agent entry by normalized id. */
 export function findAgentEntryIndex(list: AgentEntry[], agentId: string): number {
   const id = normalizeAgentId(agentId);
   return list.findIndex((entry) => normalizeAgentId(entry.id) === id);
 }
 
-function resolveAgentModel(cfg: AstroclawConfig, agentId: string) {
+function resolveAgentModel(cfg: OpenClawConfig, agentId: string) {
   const entry = listAgentEntries(cfg).find(
     (agent) => normalizeAgentId(agent.id) === normalizeAgentId(agentId),
   );
@@ -49,6 +55,7 @@ function resolveAgentModel(cfg: AstroclawConfig, agentId: string) {
   return resolvePrimaryStringValue(cfg.agents?.defaults?.model);
 }
 
+/** Load non-empty identity metadata from a workspace identity file. */
 export function loadAgentIdentity(workspace: string): AgentIdentity | null {
   const parsed = loadAgentIdentityFromWorkspace(workspace);
   if (!parsed) {
@@ -57,7 +64,8 @@ export function loadAgentIdentity(workspace: string): AgentIdentity | null {
   return identityHasValues(parsed) ? parsed : null;
 }
 
-export function buildAgentSummaries(cfg: AstroclawConfig): AgentSummary[] {
+/** Build config-derived summaries for text/JSON agent listing. */
+export function buildAgentSummaries(cfg: OpenClawConfig): AgentSummary[] {
   const defaultAgentId = normalizeAgentId(resolveDefaultAgentId(cfg));
   const configuredAgents = listAgentEntries(cfg);
   const orderedIds =
@@ -70,7 +78,7 @@ export function buildAgentSummaries(cfg: AstroclawConfig): AgentSummary[] {
     bindingCounts.set(agentId, (bindingCounts.get(agentId) ?? 0) + 1);
   }
 
-  const ordered = orderedIds.filter((id, index) => orderedIds.indexOf(id) === index);
+  const ordered = uniqueStrings(orderedIds);
 
   return ordered.map((id) => {
     const workspace = resolveAgentWorkspaceDir(cfg, id);
@@ -102,8 +110,9 @@ export function buildAgentSummaries(cfg: AstroclawConfig): AgentSummary[] {
   });
 }
 
+/** Add or update one agent entry while preserving the default-agent placeholder when needed. */
 export function applyAgentConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   params: {
     agentId: string;
     name?: string;
@@ -112,7 +121,7 @@ export function applyAgentConfig(
     model?: string;
     identity?: IdentityConfig;
   },
-): AstroclawConfig {
+): OpenClawConfig {
   const agentId = normalizeAgentId(params.agentId);
   const name = params.name?.trim();
   const list = listAgentEntries(cfg);
@@ -145,11 +154,12 @@ export function applyAgentConfig(
   };
 }
 
+/** Remove an agent and any config references that route or allow traffic to it. */
 export function pruneAgentConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId: string,
 ): {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   removedBindings: number;
   removedAllow: number;
 } {
