@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../runtime-api.js";
+// Msteams plugin module implements graph teams behavior.
+import type { OpenClawConfig } from "../runtime-api.js";
 import { type GraphResponse, fetchGraphJson, resolveGraphToken } from "./graph.js";
 
 // ---------------------------------------------------------------------------
@@ -15,7 +16,7 @@ type GraphTeamsChannel = {
 };
 
 type ListChannelsMSTeamsParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   teamId: string;
 };
 
@@ -30,7 +31,7 @@ type ListChannelsMSTeamsResult = {
 };
 
 type GetChannelInfoMSTeamsParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   teamId: string;
   channelId: string;
 };
@@ -84,7 +85,7 @@ export async function listChannelsMSTeams(
     description: ch.description,
     membershipType: ch.membershipType,
   }));
-  return { channels, truncated: !!nextPath };
+  return { channels, truncated: Boolean(nextPath) };
 }
 
 // ---------------------------------------------------------------------------
