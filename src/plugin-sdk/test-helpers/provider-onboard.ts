@@ -1,10 +1,13 @@
+/**
+ * Shared assertions for provider onboarding config migration and fallback behavior.
+ */
 import { expect } from "vitest";
 import {
   resolveAgentModelFallbackValues,
   resolveAgentModelPrimaryValue,
 } from "../provider-onboard.js";
 import type { ModelApi } from "../provider-onboard.js";
-import type { AstroclawConfig } from "../testing.js";
+import type { OpenClawConfig } from "../testing.js";
 import {
   createConfigWithFallbacks,
   createLegacyProviderConfig,
@@ -12,7 +15,7 @@ import {
 } from "./onboard-config.js";
 
 export function expectProviderOnboardAllowlistAlias(params: {
-  applyProviderConfig: (config: AstroclawConfig) => AstroclawConfig;
+  applyProviderConfig: (config: OpenClawConfig) => OpenClawConfig;
   modelRef: string;
   alias: string;
 }) {
@@ -32,7 +35,7 @@ export function expectProviderOnboardAllowlistAlias(params: {
 }
 
 export function expectProviderOnboardPrimaryAndFallbacks(params: {
-  applyConfig: (config: AstroclawConfig) => AstroclawConfig;
+  applyConfig: (config: OpenClawConfig) => OpenClawConfig;
   modelRef: string;
 }) {
   expectProviderOnboardPrimaryModel(params);
@@ -44,7 +47,7 @@ export function expectProviderOnboardPrimaryAndFallbacks(params: {
 }
 
 export function expectProviderOnboardPrimaryModel(params: {
-  applyConfig: (config: AstroclawConfig) => AstroclawConfig;
+  applyConfig: (config: OpenClawConfig) => OpenClawConfig;
   modelRef: string;
 }) {
   const cfg = params.applyConfig({});
@@ -52,7 +55,7 @@ export function expectProviderOnboardPrimaryModel(params: {
 }
 
 export function expectProviderOnboardPreservesPrimary(params: {
-  applyProviderConfig: (config: AstroclawConfig) => AstroclawConfig;
+  applyProviderConfig: (config: OpenClawConfig) => OpenClawConfig;
   primaryModelRef: string;
 }) {
   const cfg = params.applyProviderConfig({
@@ -62,7 +65,7 @@ export function expectProviderOnboardPreservesPrimary(params: {
 }
 
 export function expectProviderOnboardMergedLegacyConfig(params: {
-  applyProviderConfig: (config: AstroclawConfig) => AstroclawConfig;
+  applyProviderConfig: (config: OpenClawConfig) => OpenClawConfig;
   providerId: string;
   providerApi: ModelApi;
   baseUrl: string;
