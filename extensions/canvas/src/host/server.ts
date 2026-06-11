@@ -1,3 +1,6 @@
+/**
+ * Canvas host server and static-file/live-reload handler implementation.
+ */
 import * as fsSync from "node:fs";
 import fs from "node:fs/promises";
 import http, { type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -10,14 +13,14 @@ import {
   setTimeout as scheduleNativeTimeout,
 } from "node:timers";
 import chokidar from "chokidar";
-import { detectMime } from "astroclaw/plugin-sdk/media-mime";
-import { isTruthyEnvValue, type RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { resolveStateDir } from "astroclaw/plugin-sdk/state-paths";
+import { detectMime } from "openclaw/plugin-sdk/media-mime";
+import { isTruthyEnvValue, type RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { resolveStateDir } from "openclaw/plugin-sdk/state-paths";
 import {
   lowercasePreservingWhitespace,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { ensureDir, resolveUserPath } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { ensureDir, resolveUserPath } from "openclaw/plugin-sdk/text-utility-runtime";
 import { type WebSocket, WebSocketServer } from "ws";
 import {
   CANVAS_HOST_PATH,
@@ -29,6 +32,7 @@ import { normalizeUrlPath, resolveFileWithinRoot } from "./file-resolver.js";
 
 type ChokidarWatch = typeof import("chokidar").watch;
 
+/** Options for Canvas host creation. */
 export type CanvasHostOpts = {
   runtime: RuntimeEnv;
   rootDir?: string;
@@ -40,17 +44,20 @@ export type CanvasHostOpts = {
   webSocketServerClass?: typeof WebSocketServer;
 };
 
+/** Options for starting a standalone Canvas host HTTP server. */
 export type CanvasHostServerOpts = CanvasHostOpts & {
   handler?: CanvasHostHandler;
   ownsHandler?: boolean;
 };
 
+/** Running Canvas host server handle. */
 export type CanvasHostServer = {
   port: number;
   rootDir: string;
   close: () => Promise<void>;
 };
 
+/** Options for creating only the Canvas host request handler. */
 export type CanvasHostHandlerOpts = {
   runtime: RuntimeEnv;
   rootDir?: string;
@@ -61,6 +68,7 @@ export type CanvasHostHandlerOpts = {
   webSocketServerClass?: typeof WebSocketServer;
 };
 
+/** Canvas host handler for HTTP requests, WebSocket upgrades, and teardown. */
 export type CanvasHostHandler = {
   rootDir: string;
   basePath: string;
@@ -73,7 +81,7 @@ function defaultIndexHTML() {
   return `<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Astroclaw Canvas</title>
+<title>OpenClaw Canvas</title>
 <style>
   html, body { height: 100%; margin: 0; background: #000; color: #fff; font: 16px/1.4 -apple-system, BlinkMacSystemFont, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
   .wrap { min-height: 100%; display: grid; place-items: center; padding: 24px; }
@@ -91,7 +99,7 @@ function defaultIndexHTML() {
 <div class="wrap">
   <div class="card">
     <div class="title">
-      <h1>Astroclaw Canvas</h1>
+      <h1>OpenClaw Canvas</h1>
       <div class="sub">Interactive test page (auto-reload enabled)</div>
     </div>
 
@@ -116,14 +124,14 @@ function defaultIndexHTML() {
     !!(
       window.webkit &&
       window.webkit.messageHandlers &&
-      window.webkit.messageHandlers.astroclawCanvasA2UIAction
+      window.webkit.messageHandlers.openclawCanvasA2UIAction
     );
   const hasAndroid = () =>
     !!(
-      (window.astroclawCanvasA2UIAction &&
-        typeof window.astroclawCanvasA2UIAction.postMessage === "function")
+      (window.openclawCanvasA2UIAction &&
+        typeof window.openclawCanvasA2UIAction.postMessage === "function")
     );
-  const hasHelper = () => typeof window.astroclawSendUserAction === "function";
+  const hasHelper = () => typeof window.openclawSendUserAction === "function";
   const helperReady = hasHelper();
   statusEl.textContent = "";
   statusEl.appendChild(document.createTextNode("Bridge: "));
@@ -141,16 +149,16 @@ function defaultIndexHTML() {
     const d = ev && ev.detail || {};
     log("Action status: id=" + (d.id || "?") + " ok=" + String(!!d.ok) + (d.error ? (" error=" + d.error) : ""));
   };
-  window.addEventListener("astroclaw:a2ui-action-status", onStatus);
+  window.addEventListener("openclaw:a2ui-action-status", onStatus);
 
   function send(name, sourceComponentId) {
     if (!hasHelper()) {
-      log("No action bridge found. Ensure you're viewing this on an iOS/Android Astroclaw node canvas.");
+      log("No action bridge found. Ensure you're viewing this on an iOS/Android OpenClaw node canvas.");
       return;
     }
     const sendUserAction =
-      typeof window.astroclawSendUserAction === "function"
-        ? window.astroclawSendUserAction
+      typeof window.openclawSendUserAction === "function"
+        ? window.openclawSendUserAction
         : undefined;
     const ok = sendUserAction({
       name,
@@ -171,7 +179,7 @@ function defaultIndexHTML() {
 }
 
 function isDisabledByEnv() {
-  if (isTruthyEnvValue(process.env.ASTROCLAW_SKIP_CANVAS_HOST)) {
+  if (isTruthyEnvValue(process.env.OPENCLAW_SKIP_CANVAS_HOST)) {
     return true;
   }
   if (process.env.NODE_ENV === "test") {
@@ -185,7 +193,12 @@ function isDisabledByEnv() {
 
 function normalizeBasePath(rawPath: string | undefined) {
   const trimmed = (rawPath ?? CANVAS_HOST_PATH).trim();
-  const normalized = normalizeUrlPath(trimmed || CANVAS_HOST_PATH);
+  let normalized: string;
+  try {
+    normalized = normalizeUrlPath(trimmed || CANVAS_HOST_PATH);
+  } catch {
+    normalized = normalizeUrlPath(CANVAS_HOST_PATH);
+  }
   if (normalized === "/") {
     return "/";
   }
@@ -239,6 +252,7 @@ function resolveDefaultWatchFactory(): ChokidarWatch {
   throw new Error("chokidar.watch unavailable");
 }
 
+/** Creates a Canvas static-file handler with optional live reload. */
 export async function createCanvasHostHandler(
   opts: CanvasHostHandlerOpts,
 ): Promise<CanvasHostHandler> {
@@ -375,7 +389,7 @@ export async function createCanvasHostHandler(
           res.statusCode = 404;
           res.setHeader("Content-Type", "text/html; charset=utf-8");
           res.end(
-            `<!doctype html><meta charset="utf-8" /><title>Astroclaw Canvas</title><pre>Missing file.\nCreate ${rootDir}/index.html</pre>`,
+            `<!doctype html><meta charset="utf-8" /><title>OpenClaw Canvas</title><pre>Missing file.\nCreate ${rootDir}/index.html</pre>`,
           );
           return true;
         }
@@ -438,12 +452,15 @@ export async function createCanvasHostHandler(
         }
       }
       if (wss) {
-        await new Promise<void>((resolve) => wss.close(() => resolve()));
+        await new Promise<void>((resolve) => {
+          wss.close(() => resolve());
+        });
       }
     },
   };
 }
 
+/** Starts a standalone loopback Canvas host HTTP server. */
 export async function startCanvasHost(opts: CanvasHostServerOpts): Promise<CanvasHostServer> {
   if (isDisabledByEnv() && opts.allowInTests !== true) {
     return { port: 0, rootDir: "", close: async () => {} };
@@ -480,7 +497,7 @@ export async function startCanvasHost(opts: CanvasHostServerOpts): Promise<Canva
       res.statusCode = 404;
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.end("Not Found");
-    })().catch((err) => {
+    })().catch((err: unknown) => {
       opts.runtime.error(`Canvas host request failed: ${String(err)}`);
       res.statusCode = 500;
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -523,9 +540,9 @@ export async function startCanvasHost(opts: CanvasHostServerOpts): Promise<Canva
       if (ownsHandler) {
         await handler.close();
       }
-      await new Promise<void>((resolve, reject) =>
-        server.close((err) => (err ? reject(err) : resolve())),
-      );
+      await new Promise<void>((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      });
     },
   };
 }
