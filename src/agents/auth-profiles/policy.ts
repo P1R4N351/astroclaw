@@ -1,15 +1,23 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+/**
+ * Auth profile policy validation.
+ * Rejects SecretRef-backed OAuth material because OAuth credentials are mutable
+ * runtime state and must stay directly persisted by refresh flows.
+ */
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { coerceSecretRef, resolveSecretInputRef } from "../../config/types.secrets.js";
 import type { AuthProfileCredential, AuthProfileStore } from "./types.js";
 
-type SecretDefaults = NonNullable<AstroclawConfig["secrets"]>["defaults"];
+type SecretDefaults = NonNullable<OpenClawConfig["secrets"]>["defaults"];
 
+/** Validation error for SecretRef usage in OAuth auth profiles. */
 type OAuthSecretRefPolicyViolation = {
   profileId: string;
   path: string;
   reason: string;
 };
 
+// OAuth credentials are runtime-mutated during refresh. SecretRef-backed OAuth
+// fields would split mutable state across stores, so validation rejects them.
 function pushViolation(
   violations: OAuthSecretRefPolicyViolation[],
   profileId: string,
@@ -97,7 +105,7 @@ function collectOAuthModeSecretRefViolations(params: {
 
 function collectOAuthSecretRefPolicyViolations(params: {
   store: AuthProfileStore;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   profileIds?: Iterable<string>;
 }): OAuthSecretRefPolicyViolation[] {
   const defaults = params.cfg?.secrets?.defaults;
@@ -124,9 +132,10 @@ function collectOAuthSecretRefPolicyViolations(params: {
   return violations;
 }
 
+/** Throws when OAuth profiles contain unsupported SecretRef fields. */
 export function assertNoOAuthSecretRefPolicyViolations(params: {
   store: AuthProfileStore;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   profileIds?: Iterable<string>;
   context?: string;
 }): void {
