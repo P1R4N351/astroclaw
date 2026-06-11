@@ -1,7 +1,8 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
+// Discord plugin module implements listeners.reactions behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import { danger, logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
 import {
   ChannelType,
   type Client,
@@ -23,8 +24,8 @@ import { formatDiscordReactionEmoji, formatDiscordUserTag } from "./format.js";
 import { runDiscordListenerWithSlowLog, type DiscordListenerLogger } from "./listeners.queue.js";
 import { resolveFetchedDiscordThreadLikeChannelContext } from "./thread-channel-context.js";
 
-type LoadedConfig = AstroclawConfig;
-type RuntimeEnv = import("astroclaw/plugin-sdk/runtime-env").RuntimeEnv;
+type LoadedConfig = OpenClawConfig;
+type RuntimeEnv = import("openclaw/plugin-sdk/runtime-env").RuntimeEnv;
 
 type DiscordReactionEvent = Parameters<MessageReactionAddListener["handle"]>[0];
 
@@ -501,8 +502,6 @@ async function handleDiscordReactionEvent(
       enqueueSystemEvent(text, {
         sessionKey: route.sessionKey,
         contextKey,
-        forceSenderIsOwnerFalse: true,
-        trusted: false,
       });
     };
     const shouldNotifyReaction = (options: {
