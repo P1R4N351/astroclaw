@@ -1,7 +1,8 @@
+// Xai API module exposes the plugin public contract.
 import type {
   ProviderDefaultThinkingPolicyContext,
   ProviderThinkingProfile,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import { resolveXaiCatalogEntry } from "./model-definitions.js";
 
 export function resolveThinkingProfile(
