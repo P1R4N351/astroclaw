@@ -1,12 +1,13 @@
+/** Builds minimal, portable environment blocks for managed daemon services. */
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import {
   isNodeVersionManagerRuntime,
   resolveLinuxSystemCaBundle,
 } from "../bootstrap/node-extra-ca-certs.js";
 import { resolveNodeStartupTlsEnvironment } from "../bootstrap/node-startup-env.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
 import { VERSION } from "../version.js";
 import {
   GATEWAY_SERVICE_KIND,
@@ -51,7 +52,7 @@ type SharedServiceEnvironmentFields = {
 };
 
 export const SERVICE_PROXY_ENV_KEYS = [
-  "ASTROCLAW_PROXY_URL",
+  "OPENCLAW_PROXY_URL",
   "HTTP_PROXY",
   "HTTPS_PROXY",
   "NO_PROXY",
@@ -65,8 +66,10 @@ export const SERVICE_PROXY_ENV_KEYS = [
 function readServiceProxyEnvironment(
   env: Record<string, string | undefined>,
 ): Record<string, string | undefined> {
-  const proxyUrl = normalizeOptionalString(env.ASTROCLAW_PROXY_URL);
-  return proxyUrl ? { ASTROCLAW_PROXY_URL: proxyUrl } : {};
+  // Service env intentionally preserves only the canonical OpenClaw proxy knob;
+  // generic shell proxy vars are audited but not frozen into services.
+  const proxyUrl = normalizeOptionalString(env.OPENCLAW_PROXY_URL);
+  return proxyUrl ? { OPENCLAW_PROXY_URL: proxyUrl } : {};
 }
 
 function normalizeServicePathDir(dir: string | undefined): string | undefined {
@@ -90,6 +93,8 @@ function realpathServicePathDir(dir: string): string | undefined {
 function realpathExistingServicePathDir(dir: string): string | undefined {
   const parts: string[] = [];
   let current = dir;
+  // Resolve the nearest existing ancestor so future-created bin dirs can still
+  // be compared against the install workspace realpath.
   while (current && current !== path.posix.dirname(current)) {
     const realCurrent = realpathServicePathDir(current);
     if (realCurrent) {
@@ -333,6 +338,8 @@ function resolveLinuxUserBinDirs(
 export function getMinimalServicePathParts(options: MinimalServicePathOptions = {}): string[] {
   const platform = options.platform ?? process.platform;
   if (platform === "win32") {
+    // Windows scheduled tasks inherit PATH from the task host; generated cmd
+    // launchers should not freeze install-time PATH snapshots.
     return [];
   }
 
@@ -391,6 +398,14 @@ export function buildMinimalServicePath(options: BuildServicePathOptions = {}): 
   return getMinimalServicePathPartsFromEnv({ ...options, env }).join(path.posix.delimiter);
 }
 
+function resolveGatewaySystemdUnitEnv(env: Record<string, string | undefined>): string {
+  const override = normalizeOptionalString(env.OPENCLAW_SYSTEMD_UNIT);
+  if (override) {
+    return override.endsWith(".service") ? override : `${override}.service`;
+  }
+  return `${resolveGatewaySystemdServiceName(env.OPENCLAW_PROFILE)}.service`;
+}
+
 export function buildServiceEnvironment(params: {
   env: Record<string, string | undefined>;
   port: number;
@@ -407,22 +422,22 @@ export function buildServiceEnvironment(params: {
     extraPathDirs,
     params.execPath,
   );
-  const profile = env.ASTROCLAW_PROFILE;
-  const wrapperPath = normalizeOptionalString(env.ASTROCLAW_WRAPPER);
+  const profile = env.OPENCLAW_PROFILE;
+  const wrapperPath = normalizeOptionalString(env.OPENCLAW_WRAPPER);
   const resolvedLaunchdLabel =
     launchdLabel || (platform === "darwin" ? resolveGatewayLaunchAgentLabel(profile) : undefined);
-  const systemdUnit = `${resolveGatewaySystemdServiceName(profile)}.service`;
+  const systemdUnit = resolveGatewaySystemdUnitEnv(env);
   return {
     ...buildCommonServiceEnvironment(env, sharedEnv),
-    ASTROCLAW_PROFILE: profile,
-    ASTROCLAW_WRAPPER: wrapperPath,
-    ASTROCLAW_GATEWAY_PORT: String(port),
-    ASTROCLAW_LAUNCHD_LABEL: resolvedLaunchdLabel,
-    ASTROCLAW_SYSTEMD_UNIT: systemdUnit,
-    ASTROCLAW_WINDOWS_TASK_NAME: resolveGatewayWindowsTaskName(profile),
-    ASTROCLAW_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
-    ASTROCLAW_SERVICE_KIND: GATEWAY_SERVICE_KIND,
-    ASTROCLAW_SERVICE_VERSION: VERSION,
+    OPENCLAW_PROFILE: profile,
+    OPENCLAW_WRAPPER: wrapperPath,
+    OPENCLAW_GATEWAY_PORT: String(port),
+    OPENCLAW_LAUNCHD_LABEL: resolvedLaunchdLabel,
+    OPENCLAW_SYSTEMD_UNIT: systemdUnit,
+    OPENCLAW_WINDOWS_TASK_NAME: resolveGatewayWindowsTaskName(profile),
+    OPENCLAW_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
+    OPENCLAW_SERVICE_KIND: GATEWAY_SERVICE_KIND,
+    OPENCLAW_SERVICE_VERSION: VERSION,
   };
 }
 
@@ -440,20 +455,21 @@ export function buildNodeServiceEnvironment(params: {
     extraPathDirs,
     params.execPath,
   );
-  const gatewayToken = normalizeOptionalString(env.ASTROCLAW_GATEWAY_TOKEN);
-  const allowInsecurePrivateWs = normalizeOptionalString(env.ASTROCLAW_ALLOW_INSECURE_PRIVATE_WS);
+  const gatewayToken = normalizeOptionalString(env.OPENCLAW_GATEWAY_TOKEN);
+  const allowInsecurePrivateWs = normalizeOptionalString(env.OPENCLAW_ALLOW_INSECURE_PRIVATE_WS);
   return {
     ...buildCommonServiceEnvironment(env, sharedEnv),
-    ASTROCLAW_GATEWAY_TOKEN: gatewayToken,
-    ASTROCLAW_ALLOW_INSECURE_PRIVATE_WS: allowInsecurePrivateWs,
-    ASTROCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
-    ASTROCLAW_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
-    ASTROCLAW_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
-    ASTROCLAW_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
-    ASTROCLAW_LOG_PREFIX: "node",
-    ASTROCLAW_SERVICE_MARKER: NODE_SERVICE_MARKER,
-    ASTROCLAW_SERVICE_KIND: NODE_SERVICE_KIND,
-    ASTROCLAW_SERVICE_VERSION: VERSION,
+    OPENCLAW_GATEWAY_TOKEN: gatewayToken,
+    OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: allowInsecurePrivateWs,
+    OPENCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
+    OPENCLAW_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
+    OPENCLAW_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
+    OPENCLAW_WINDOWS_TASK_HIDDEN_LAUNCHER: "1",
+    OPENCLAW_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
+    OPENCLAW_LOG_PREFIX: "node",
+    OPENCLAW_SERVICE_MARKER: NODE_SERVICE_MARKER,
+    OPENCLAW_SERVICE_KIND: NODE_SERVICE_KIND,
+    OPENCLAW_SERVICE_VERSION: VERSION,
   };
 }
 
@@ -466,8 +482,8 @@ function buildCommonServiceEnvironment(
     TMPDIR: sharedEnv.tmpDir,
     NODE_EXTRA_CA_CERTS: sharedEnv.nodeCaCerts,
     NODE_USE_SYSTEM_CA: sharedEnv.nodeUseSystemCa,
-    ASTROCLAW_STATE_DIR: sharedEnv.stateDir,
-    ASTROCLAW_CONFIG_PATH: sharedEnv.configPath,
+    OPENCLAW_STATE_DIR: sharedEnv.stateDir,
+    OPENCLAW_CONFIG_PATH: sharedEnv.configPath,
     ...sharedEnv.proxyEnv,
   };
   if (sharedEnv.minimalPath) {
@@ -496,8 +512,8 @@ function resolveSharedServiceEnvironmentFields(
   extraPathDirs: string[] | undefined,
   execPath?: string,
 ): SharedServiceEnvironmentFields {
-  const stateDir = env.ASTROCLAW_STATE_DIR;
-  const configPath = env.ASTROCLAW_CONFIG_PATH;
+  const stateDir = env.OPENCLAW_STATE_DIR;
+  const configPath = env.OPENCLAW_CONFIG_PATH;
   const tmpDir = resolveServiceTmpDir(env, platform);
   // On macOS, launchd services don't inherit the shell environment, so Node's undici/fetch
   // cannot locate the system CA bundle. Default to /etc/ssl/cert.pem so TLS verification
