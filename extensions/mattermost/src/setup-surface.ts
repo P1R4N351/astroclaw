@@ -1,12 +1,13 @@
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Mattermost plugin module implements setup surface behavior.
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   applySetupAccountConfigPatch,
   createStandardChannelSetupStatus,
   formatDocsLink,
   createSetupTranslator,
   type ChannelSetupWizard,
-} from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
 import {
   applyMattermostSetupConfigPatch,
   isMattermostConfigured,
@@ -127,7 +128,7 @@ export const mattermostSetupWizard: ChannelSetupWizard = {
         }),
     },
   ],
-  disable: (cfg: AstroclawConfig) => ({
+  disable: (cfg: OpenClawConfig) => ({
     ...cfg,
     channels: {
       ...cfg.channels,
