@@ -1,6 +1,7 @@
-import { buildManifestModelProviderConfig } from "astroclaw/plugin-sdk/provider-catalog-shared";
-import type { ModelDefinitionConfig } from "astroclaw/plugin-sdk/provider-model-shared";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
+// Together plugin module implements models behavior.
+import { buildManifestModelProviderConfig } from "openclaw/plugin-sdk/provider-catalog-shared";
+import type { ModelDefinitionConfig } from "openclaw/plugin-sdk/provider-model-shared";
+import manifest from "./openclaw.plugin.json" with { type: "json" };
 
 const TOGETHER_MANIFEST_PROVIDER = buildManifestModelProviderConfig({
   providerId: "together",
