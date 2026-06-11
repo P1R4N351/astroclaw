@@ -1,3 +1,8 @@
+// Resolves ACP reset targets from sessions and command directives.
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
 import {
   buildConfiguredAcpSessionKey,
   normalizeBindingConfig,
@@ -5,13 +10,9 @@ import {
 } from "../../acp/persistent-bindings.types.js";
 import { resolveConfiguredBindingRecord } from "../../channels/plugins/binding-registry.js";
 import { listAcpBindings } from "../../config/bindings.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { getSessionBindingService } from "../../infra/outbound/session-binding-service.js";
 import { DEFAULT_ACCOUNT_ID, isAcpSessionKey } from "../../routing/session-key.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalString,
-} from "../../shared/string-coerce.js";
 
 const acpResetTargetDeps = {
   getSessionBindingService,
@@ -19,7 +20,7 @@ const acpResetTargetDeps = {
   resolveConfiguredBindingRecord,
 };
 
-export const __testing = {
+export const testing = {
   setDepsForTest(
     overrides?: Partial<{
       getSessionBindingService: typeof getSessionBindingService;
@@ -36,7 +37,7 @@ export const __testing = {
 };
 
 function resolveResetTargetAccountId(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: string;
   accountId?: string | null;
 }): string {
@@ -53,7 +54,7 @@ function resolveResetTargetAccountId(params: {
 }
 
 function resolveRawConfiguredAcpSessionKey(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: string;
   accountId: string;
   conversationId: string;
@@ -101,7 +102,7 @@ function resolveRawConfiguredAcpSessionKey(params: {
 }
 
 export function resolveEffectiveResetTargetSessionKey(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel?: string | null;
   accountId?: string | null;
   conversationId?: string | null;
@@ -182,3 +183,4 @@ export function resolveEffectiveResetTargetSessionKey(params: {
   }
   return activeAcpSessionKey;
 }
+export { testing as __testing };
