@@ -1,7 +1,8 @@
+// Moonshot API module exposes the plugin public contract.
 import {
   createWebSearchProviderContractFields,
   type WebSearchProviderPlugin,
-} from "astroclaw/plugin-sdk/provider-web-search-config-contract";
+} from "openclaw/plugin-sdk/provider-web-search-config-contract";
 
 export function createKimiWebSearchProvider(): WebSearchProviderPlugin {
   const credentialPath = "plugins.entries.moonshot.config.webSearch.apiKey";
@@ -15,7 +16,7 @@ export function createKimiWebSearchProvider(): WebSearchProviderPlugin {
     envVars: ["KIMI_API_KEY", "MOONSHOT_API_KEY"],
     placeholder: "sk-...",
     signupUrl: "https://platform.moonshot.cn/",
-    docsUrl: "https://docs.astroclaw.ai/tools/web",
+    docsUrl: "https://docs.openclaw.ai/tools/web",
     autoDetectOrder: 40,
     credentialPath,
     ...createWebSearchProviderContractFields({
