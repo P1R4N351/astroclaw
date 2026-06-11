@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Whatsapp plugin module implements message line behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { getPrimaryIdentityId, getReplyContext, getSenderIdentity } from "../../identity.js";
 import type { WebInboundMsg } from "../types.js";
 import {
@@ -18,7 +19,7 @@ export function formatReplyContext(msg: WebInboundMsg) {
 }
 
 export function buildInboundLine(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   msg: WebInboundMsg;
   agentId: string;
   previousTimestamp?: number;
