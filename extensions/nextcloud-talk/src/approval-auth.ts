@@ -1,8 +1,9 @@
+// Nextcloud Talk plugin module implements approval auth behavior.
 import {
   createResolvedApproverActionAuthAdapter,
   resolveApprovalApprovers,
-} from "astroclaw/plugin-sdk/approval-auth-runtime";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/approval-auth-runtime";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveNextcloudTalkAccount } from "./accounts.js";
 import type { CoreConfig } from "./types.js";
 
