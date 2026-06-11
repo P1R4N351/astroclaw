@@ -1,11 +1,20 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+/**
+ * Canvas plugin config parsing, enablement, and schema metadata.
+ */
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   normalizePluginsConfig,
   resolveEffectiveEnableState,
   resolvePluginConfigObject,
-} from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { isTruthyEnvValue } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/plugin-config-runtime";
+import { isTruthyEnvValue } from "openclaw/plugin-sdk/runtime-env";
+import {
+  asBoolean as readBoolean,
+  isRecord,
+  readStringValue as readString,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 
+/** Host-server configuration for Canvas and A2UI assets. */
 export type CanvasHostConfig = {
   enabled?: boolean;
   root?: string;
@@ -13,6 +22,7 @@ export type CanvasHostConfig = {
   liveReload?: boolean;
 };
 
+/** Canvas plugin configuration shape. */
 export type CanvasPluginConfig = {
   host?: CanvasHostConfig;
 };
@@ -21,18 +31,6 @@ type CanvasPluginConfigSchema = {
   parse: (value: unknown) => CanvasPluginConfig;
   uiHints: Record<string, { label: string; help?: string; advanced?: boolean }>;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function readBoolean(value: unknown): boolean | undefined {
-  return typeof value === "boolean" ? value : undefined;
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
 
 function readPositiveInteger(value: unknown): number | undefined {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
@@ -54,6 +52,7 @@ function parseCanvasHostConfig(value: unknown): CanvasHostConfig | undefined {
   };
 }
 
+/** Parses raw Canvas plugin config into a typed, normalized shape. */
 export function parseCanvasPluginConfig(value: unknown): CanvasPluginConfig {
   if (!isRecord(value)) {
     return {};
@@ -62,7 +61,8 @@ export function parseCanvasPluginConfig(value: unknown): CanvasPluginConfig {
   return host ? { host } : {};
 }
 
-export function isCanvasPluginEnabled(config?: AstroclawConfig): boolean {
+/** Returns whether the bundled Canvas plugin is effectively enabled. */
+export function isCanvasPluginEnabled(config?: OpenClawConfig): boolean {
   if (!config) {
     return true;
   }
@@ -75,8 +75,9 @@ export function isCanvasPluginEnabled(config?: AstroclawConfig): boolean {
   }).enabled;
 }
 
+/** Resolves Canvas host config from plugin config or root config. */
 export function resolveCanvasHostConfig(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   pluginConfig?: Record<string, unknown>;
 }): CanvasHostConfig {
   const pluginConfig =
@@ -85,8 +86,9 @@ export function resolveCanvasHostConfig(params: {
   return parsedPluginConfig.host ?? {};
 }
 
-export function isCanvasHostEnabled(config?: AstroclawConfig): boolean {
-  if (isTruthyEnvValue(process.env.ASTROCLAW_SKIP_CANVAS_HOST)) {
+/** Returns whether the Canvas hosted route/server surface should be active. */
+export function isCanvasHostEnabled(config?: OpenClawConfig): boolean {
+  if (isTruthyEnvValue(process.env.OPENCLAW_SKIP_CANVAS_HOST)) {
     return false;
   }
   if (!isCanvasPluginEnabled(config)) {
@@ -95,6 +97,7 @@ export function isCanvasHostEnabled(config?: AstroclawConfig): boolean {
   return resolveCanvasHostConfig({ config }).enabled !== false;
 }
 
+/** Config schema metadata for Canvas plugin settings. */
 export const canvasConfigSchema: CanvasPluginConfigSchema = {
   parse: parseCanvasPluginConfig,
   uiHints: {
@@ -109,7 +112,7 @@ export const canvasConfigSchema: CanvasPluginConfigSchema = {
     },
     "host.root": {
       label: "Canvas Host Root Directory",
-      help: "Directory to serve. Defaults to the Astroclaw state canvas directory.",
+      help: "Directory to serve. Defaults to the OpenClaw state canvas directory.",
       advanced: true,
     },
     "host.port": {
