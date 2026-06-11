@@ -1,7 +1,8 @@
+// Firecrawl API module exposes the plugin public contract.
 import {
   enablePluginInConfig,
   type WebFetchProviderPlugin,
-} from "astroclaw/plugin-sdk/provider-web-fetch-contract";
+} from "openclaw/plugin-sdk/provider-web-fetch-contract";
 import { FIRECRAWL_WEB_FETCH_PROVIDER_SHARED } from "./src/firecrawl-fetch-provider-shared.js";
 
 export function createFirecrawlWebFetchProvider(): WebFetchProviderPlugin {
