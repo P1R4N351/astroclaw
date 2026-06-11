@@ -1,14 +1,16 @@
+// Discord plugin module implements retry behavior.
 import {
   collectErrorGraphCandidates,
   extractErrorCode,
   formatErrorMessage,
   readErrorName,
-} from "astroclaw/plugin-sdk/error-runtime";
+} from "openclaw/plugin-sdk/error-runtime";
+import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
 import {
   createRateLimitRetryRunner,
   type RetryConfig,
   type RetryRunner,
-} from "astroclaw/plugin-sdk/retry-runtime";
+} from "openclaw/plugin-sdk/retry-runtime";
 import { RateLimitError } from "./internal/discord.js";
 
 const DISCORD_RETRY_DEFAULTS = {
@@ -45,13 +47,7 @@ function readDiscordErrorStatus(err: unknown): number | undefined {
       : "statusCode" in err && err.statusCode !== undefined
         ? err.statusCode
         : undefined;
-  if (typeof raw === "number" && Number.isFinite(raw)) {
-    return raw;
-  }
-  if (typeof raw === "string" && /^\d+$/.test(raw)) {
-    return Number(raw);
-  }
-  return undefined;
+  return parseStrictNonNegativeInteger(raw);
 }
 
 export function isRetryableDiscordTransientError(err: unknown): boolean {
