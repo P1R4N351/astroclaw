@@ -1,33 +1,35 @@
+// Telegram plugin module implements webhook behavior.
 import { createServer } from "node:http";
 import type { IncomingMessage } from "node:http";
 import net from "node:net";
 import { InputFile } from "grammy";
-import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { isDiagnosticsEnabled } from "astroclaw/plugin-sdk/diagnostic-runtime";
+import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { isDiagnosticsEnabled } from "openclaw/plugin-sdk/diagnostic-runtime";
 import {
   logWebhookError,
   logWebhookProcessed,
   logWebhookReceived,
   startDiagnosticHeartbeat,
   stopDiagnosticHeartbeat,
-} from "astroclaw/plugin-sdk/logging-core";
-import type { BackoffPolicy, RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/logging-core";
+import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
+import type { BackoffPolicy, RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   computeBackoff,
   defaultRuntime,
   formatDurationPrecise,
   sleepWithAbort,
-} from "astroclaw/plugin-sdk/runtime-env";
-import { safeEqualSecret } from "astroclaw/plugin-sdk/security-runtime";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/runtime-env";
+import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   applyBasicWebhookRequestGuards,
   createFixedWindowRateLimiter,
   WEBHOOK_RATE_LIMIT_DEFAULTS,
-} from "astroclaw/plugin-sdk/webhook-ingress";
-import { readJsonBodyWithLimit } from "astroclaw/plugin-sdk/webhook-request-guards";
+} from "openclaw/plugin-sdk/webhook-ingress";
+import { readJsonBodyWithLimit } from "openclaw/plugin-sdk/webhook-request-guards";
 import { resolveTelegramAllowedUpdates } from "./allowed-updates.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
 import { createTelegramBot } from "./bot.js";
@@ -155,22 +157,12 @@ function isTrustedProxyAddress(
     }
     if (trimmed.includes("/")) {
       const [address, prefix] = trimmed.split("/", 2);
-      const parsedPrefix = Number.parseInt(prefix ?? "", 10);
+      const parsedPrefix = parseStrictNonNegativeInteger(prefix);
       const family = net.isIP(address);
-      if (
-        family === 4 &&
-        Number.isInteger(parsedPrefix) &&
-        parsedPrefix >= 0 &&
-        parsedPrefix <= 32
-      ) {
+      if (family === 4 && parsedPrefix !== undefined && parsedPrefix >= 0 && parsedPrefix <= 32) {
         blockList.addSubnet(address, parsedPrefix, "ipv4");
       }
-      if (
-        family === 6 &&
-        Number.isInteger(parsedPrefix) &&
-        parsedPrefix >= 0 &&
-        parsedPrefix <= 128
-      ) {
+      if (family === 6 && parsedPrefix !== undefined && parsedPrefix >= 0 && parsedPrefix <= 128) {
         blockList.addSubnet(address, parsedPrefix, "ipv6");
       }
       continue;
@@ -209,7 +201,7 @@ function resolveForwardedClientIp(
   return undefined;
 }
 
-function resolveTelegramWebhookClientIp(req: IncomingMessage, config?: AstroclawConfig): string {
+function resolveTelegramWebhookClientIp(req: IncomingMessage, config?: OpenClawConfig): string {
   const remoteAddress = parseIpLiteral(req.socket.remoteAddress);
   const trustedProxies = config?.gateway?.trustedProxies;
   if (!remoteAddress) {
@@ -237,7 +229,7 @@ function resolveTelegramWebhookClientIp(req: IncomingMessage, config?: Astroclaw
 function resolveTelegramWebhookRateLimitKey(
   req: IncomingMessage,
   path: string,
-  config?: AstroclawConfig,
+  config?: OpenClawConfig,
 ): string {
   return `${path}:${resolveTelegramWebhookClientIp(req, config)}`;
 }
@@ -245,7 +237,7 @@ function resolveTelegramWebhookRateLimitKey(
 export async function startTelegramWebhook(opts: {
   token: string;
   accountId?: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   path?: string;
   port?: number;
   host?: string;
@@ -375,7 +367,7 @@ export async function startTelegramWebhook(opts: {
             durationMs: Date.now() - startTime,
           });
         }
-      })().catch((err) => {
+      })().catch((err: unknown) => {
         const errMsg = formatErrorMessage(err);
         if (diagnosticsEnabled) {
           logWebhookError({
@@ -386,7 +378,7 @@ export async function startTelegramWebhook(opts: {
         }
         runtime.log?.(`webhook update processing failed after ack: ${errMsg}`);
       });
-    })().catch((err) => {
+    })().catch((err: unknown) => {
       const errMsg = formatErrorMessage(err);
       if (diagnosticsEnabled) {
         logWebhookError({
