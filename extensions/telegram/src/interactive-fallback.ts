@@ -1,10 +1,11 @@
+// Telegram plugin module implements interactive fallback behavior.
 import {
   interactiveReplyToPresentation,
   normalizeMessagePresentation,
   normalizeInteractiveReply,
   renderMessagePresentationFallbackText,
   resolveInteractiveTextFallback,
-} from "astroclaw/plugin-sdk/interactive-runtime";
+} from "openclaw/plugin-sdk/interactive-runtime";
 
 export function resolveTelegramInteractiveTextFallback(params: {
   text?: string | null;
