@@ -1,5 +1,6 @@
-import type { ProviderCatalogContext } from "astroclaw/plugin-sdk/provider-catalog-shared";
-import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+// Ollama provider module implements model/runtime integration.
+import type { ProviderCatalogContext } from "openclaw/plugin-sdk/provider-catalog-shared";
+import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
 import {
   OLLAMA_DEFAULT_API_KEY,
   OLLAMA_PROVIDER_ID,
