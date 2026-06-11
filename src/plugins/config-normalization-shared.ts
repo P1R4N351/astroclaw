@@ -1,11 +1,14 @@
-import { normalizeChatChannelId } from "../channels/ids.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Shares plugin config normalization helpers across control-plane paths.
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import { normalizeArrayBackedTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { normalizeChatChannelId } from "../channels/ids.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { defaultSlotIdForKey } from "./slots.js";
 
+/** Canonical plugin config shape consumed by runtime policy and loaders. */
 export type NormalizedPluginsConfig = {
   enabled: boolean;
   allow: string[];
@@ -41,8 +44,10 @@ export type NormalizedPluginsConfig = {
   >;
 };
 
+/** Plugin id normalizer used while loading aliases or raw config. */
 export type NormalizePluginId = (id: string) => string;
 
+/** Default plugin id normalizer for already-canonical ids. */
 export const identityNormalizePluginId: NormalizePluginId = (id) => id.trim();
 
 function normalizeList(value: unknown, normalizePluginId: NormalizePluginId): string[] {
@@ -149,9 +154,9 @@ function normalizePluginEntries(
               (subagentRaw as { allowedModels?: unknown }).allowedModels,
             ),
             allowedModels: Array.isArray((subagentRaw as { allowedModels?: unknown }).allowedModels)
-              ? ((subagentRaw as { allowedModels?: unknown }).allowedModels as unknown[])
-                  .map((model) => normalizeOptionalString(model))
-                  .filter((model): model is string => Boolean(model))
+              ? normalizeArrayBackedTrimmedStringList(
+                  (subagentRaw as { allowedModels?: unknown }).allowedModels,
+                )
               : undefined,
           }
         : undefined;
@@ -179,9 +184,9 @@ function normalizePluginEntries(
               (llmRaw as { allowedModels?: unknown }).allowedModels,
             ),
             allowedModels: Array.isArray((llmRaw as { allowedModels?: unknown }).allowedModels)
-              ? ((llmRaw as { allowedModels?: unknown }).allowedModels as unknown[])
-                  .map((model) => normalizeOptionalString(model))
-                  .filter((model): model is string => Boolean(model))
+              ? normalizeArrayBackedTrimmedStringList(
+                  (llmRaw as { allowedModels?: unknown }).allowedModels,
+                )
               : undefined,
             allowAgentIdOverride: (llmRaw as { allowAgentIdOverride?: unknown })
               .allowAgentIdOverride,
@@ -219,8 +224,9 @@ function normalizePluginEntries(
   return normalized;
 }
 
+/** Normalizes plugin config while allowing callers to resolve aliases first. */
 export function normalizePluginsConfigWithResolver(
-  config?: AstroclawConfig["plugins"],
+  config?: OpenClawConfig["plugins"],
   normalizePluginId: NormalizePluginId = identityNormalizePluginId,
 ): NormalizedPluginsConfig {
   const memorySlot = normalizeSlotValue(config?.slots?.memory);
@@ -237,7 +243,7 @@ export function normalizePluginsConfigWithResolver(
   };
 }
 
-export function hasExplicitPluginConfig(plugins?: AstroclawConfig["plugins"]): boolean {
+export function hasExplicitPluginConfig(plugins?: OpenClawConfig["plugins"]): boolean {
   if (!plugins) {
     return false;
   }
@@ -263,7 +269,7 @@ export function hasExplicitPluginConfig(plugins?: AstroclawConfig["plugins"]): b
 }
 
 export function isBundledChannelEnabledByChannelConfig(
-  cfg: AstroclawConfig | undefined,
+  cfg: OpenClawConfig | undefined,
   pluginId: string,
 ): boolean {
   if (!cfg) {
