@@ -1,8 +1,12 @@
-import type { CliBackendPlugin } from "astroclaw/plugin-sdk/cli-backend";
+/**
+ * Claude CLI backend descriptor. It configures Claude Code process arguments,
+ * MCP bundling, session handling, environment scrubbing, and watchdog defaults.
+ */
+import type { CliBackendPlugin } from "openclaw/plugin-sdk/cli-backend";
 import {
   CLI_FRESH_WATCHDOG_DEFAULTS,
   CLI_RESUME_WATCHDOG_DEFAULTS,
-} from "astroclaw/plugin-sdk/cli-backend";
+} from "openclaw/plugin-sdk/cli-backend";
 import {
   CLAUDE_CLI_BACKEND_ID,
   CLAUDE_CLI_DEFAULT_MODEL_REF,
@@ -13,9 +17,11 @@ import {
   resolveClaudeCliExecutionArgs,
 } from "./cli-shared.js";
 
+/** Build the Claude CLI backend plugin descriptor. */
 export function buildAnthropicCliBackend(): CliBackendPlugin {
   return {
     id: CLAUDE_CLI_BACKEND_ID,
+    modelProvider: "anthropic",
     liveTest: {
       defaultModelRef: CLAUDE_CLI_DEFAULT_MODEL_REF,
       defaultImageProbe: true,
@@ -28,6 +34,7 @@ export function buildAnthropicCliBackend(): CliBackendPlugin {
     bundleMcp: true,
     bundleMcpMode: "claude-config-file",
     nativeToolMode: "always-on",
+    ownsNativeCompaction: true,
     config: {
       command: "claude",
       args: [
@@ -39,7 +46,7 @@ export function buildAnthropicCliBackend(): CliBackendPlugin {
         "--setting-sources",
         "user",
         "--allowedTools",
-        "mcp__astroclaw__*",
+        "mcp__openclaw__*",
       ],
       resumeArgs: [
         "-p",
@@ -50,7 +57,7 @@ export function buildAnthropicCliBackend(): CliBackendPlugin {
         "--setting-sources",
         "user",
         "--allowedTools",
-        "mcp__astroclaw__*",
+        "mcp__openclaw__*",
         "--resume",
         "{sessionId}",
       ],
@@ -67,7 +74,7 @@ export function buildAnthropicCliBackend(): CliBackendPlugin {
       sessionIdFields: [...CLAUDE_CLI_SESSION_ID_FIELDS],
       systemPromptFileArg: "--append-system-prompt-file",
       systemPromptMode: "append",
-      systemPromptWhen: "first",
+      systemPromptWhen: "always",
       clearEnv: [...CLAUDE_CLI_CLEAR_ENV],
       reliability: {
         watchdog: {
