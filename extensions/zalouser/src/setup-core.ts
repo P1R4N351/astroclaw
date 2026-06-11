@@ -1,9 +1,10 @@
+// Zalouser plugin module implements setup core behavior.
 import {
   createDelegatedSetupWizardProxy,
   createPatchedAccountSetupAdapter,
   createSetupTranslator,
   type ChannelSetupWizard,
-} from "astroclaw/plugin-sdk/setup-runtime";
+} from "openclaw/plugin-sdk/setup-runtime";
 
 const t = createSetupTranslator();
 
