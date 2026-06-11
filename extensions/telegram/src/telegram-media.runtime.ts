@@ -1,6 +1,7 @@
+// Telegram plugin module implements telegram media behavior.
 export {
   readRemoteMediaBuffer,
   MediaFetchError,
   saveMediaBuffer,
   saveRemoteMedia,
-} from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/media-runtime";
