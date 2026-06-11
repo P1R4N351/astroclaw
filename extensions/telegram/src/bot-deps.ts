@@ -1,28 +1,31 @@
-import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
-import { buildChannelInboundEventContext } from "astroclaw/plugin-sdk/channel-inbound";
+// Telegram plugin module implements bot deps behavior.
+import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
+import { buildChannelInboundEventContext } from "openclaw/plugin-sdk/channel-inbound";
 import {
   createChannelMessageReplyPipeline,
   deliverInboundReplyWithMessageSendContext,
-} from "astroclaw/plugin-sdk/channel-message";
-import { readChannelAllowFromStore } from "astroclaw/plugin-sdk/conversation-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { readChannelAllowFromStore } from "openclaw/plugin-sdk/conversation-runtime";
 import {
   recordInboundSession,
   upsertChannelPairingRequest,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { buildModelsProviderData } from "astroclaw/plugin-sdk/models-provider-runtime";
-import { dispatchReplyWithBufferedBlockDispatcher } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
-import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
-import { readSessionUpdatedAt, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
-import { loadSessionStore } from "astroclaw/plugin-sdk/session-store-runtime";
-import { listSkillCommandsForAgents } from "astroclaw/plugin-sdk/skill-commands-runtime";
-import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
-import { loadWebMedia } from "astroclaw/plugin-sdk/web-media";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { buildModelsProviderData } from "openclaw/plugin-sdk/models-provider-runtime";
+import { dispatchReplyWithBufferedBlockDispatcher } from "openclaw/plugin-sdk/reply-dispatch-runtime";
+import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
+import { readSessionUpdatedAt, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { loadSessionStore } from "openclaw/plugin-sdk/session-store-runtime";
+import { listSkillCommandsForAgents } from "openclaw/plugin-sdk/skill-commands-runtime";
+import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
+import { loadWebMedia } from "openclaw/plugin-sdk/web-media";
 import { syncTelegramMenuCommands } from "./bot-native-command-menu.js";
 import { deliverReplies, emitInternalMessageSentHook } from "./bot/delivery.js";
 import { createTelegramDraftStream } from "./draft-stream.js";
 import { resolveTelegramExecApproval } from "./exec-approval-resolver.js";
+import { createNativeTelegramToolProgressDraft } from "./native-tool-progress-draft.js";
+import { recordOutboundMessageForPromptContext } from "./outbound-message-context.js";
 import { editMessageTelegram } from "./send.js";
 import { wasSentByBot } from "./sent-message-cache.js";
 
@@ -47,10 +50,12 @@ export type TelegramBotDeps = {
   wasSentByBot: typeof wasSentByBot;
   resolveExecApproval?: typeof resolveTelegramExecApproval;
   createTelegramDraftStream?: typeof createTelegramDraftStream;
+  createNativeTelegramToolProgressDraft?: typeof createNativeTelegramToolProgressDraft;
   deliverReplies?: typeof deliverReplies;
   deliverInboundReplyWithMessageSendContext?: typeof deliverInboundReplyWithMessageSendContext;
   emitInternalMessageSentHook?: typeof emitInternalMessageSentHook;
   editMessageTelegram?: typeof editMessageTelegram;
+  recordOutboundMessageForPromptContext?: typeof recordOutboundMessageForPromptContext;
   createChannelMessageReplyPipeline?: typeof createChannelMessageReplyPipeline;
 };
 
@@ -115,6 +120,9 @@ export const defaultTelegramBotDeps: TelegramBotDeps = {
   get createTelegramDraftStream() {
     return createTelegramDraftStream;
   },
+  get createNativeTelegramToolProgressDraft() {
+    return createNativeTelegramToolProgressDraft;
+  },
   get deliverReplies() {
     return deliverReplies;
   },
@@ -126,6 +134,9 @@ export const defaultTelegramBotDeps: TelegramBotDeps = {
   },
   get editMessageTelegram() {
     return editMessageTelegram;
+  },
+  get recordOutboundMessageForPromptContext() {
+    return recordOutboundMessageForPromptContext;
   },
   get createChannelMessageReplyPipeline() {
     return createChannelMessageReplyPipeline;
