@@ -1,6 +1,7 @@
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+// Telegram plugin module implements bot native commands.menu test support behavior.
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import { expect, vi, type Mock } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 import type { TelegramNativeCommandDeps } from "./bot-native-command-deps.runtime.js";
 import {
   createNativeCommandTestParams as createBaseNativeCommandTestParams,
@@ -90,7 +91,7 @@ export function createCommandBot(params: CreateCommandBotParams = {}): CreateCom
 }
 
 export function createNativeCommandTestParams(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   params: Partial<RegisterTelegramNativeCommandsParams> = {},
 ): RegisterTelegramNativeCommandsParams {
   const dispatchResult: Awaited<
