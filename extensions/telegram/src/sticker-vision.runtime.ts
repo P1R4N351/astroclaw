@@ -1,13 +1,14 @@
+// Telegram plugin module implements sticker vision behavior.
 import {
   findModelInCatalog,
   loadModelCatalog,
   modelSupportsVision,
   resolveDefaultModelForAgent,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 
 export async function resolveStickerVisionSupportRuntime(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId?: string;
 }): Promise<boolean> {
   const catalog = await loadModelCatalog({ config: params.cfg });
