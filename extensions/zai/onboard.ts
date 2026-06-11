@@ -1,8 +1,9 @@
+// Zai setup module handles plugin onboarding behavior.
 import {
   applyProviderConfigWithModelCatalogPreset,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   buildZaiCatalogModels,
   resolveZaiBaseUrl,
@@ -11,17 +12,17 @@ import {
 
 export const ZAI_DEFAULT_MODEL_REF = `zai/${ZAI_DEFAULT_MODEL_ID}`;
 
-function resolveZaiPresetBaseUrl(cfg: AstroclawConfig, endpoint?: string): string {
+function resolveZaiPresetBaseUrl(cfg: OpenClawConfig, endpoint?: string): string {
   const existingProvider = cfg.models?.providers?.zai;
   const existingBaseUrl = normalizeOptionalString(existingProvider?.baseUrl) ?? "";
   return endpoint ? resolveZaiBaseUrl(endpoint) : existingBaseUrl || resolveZaiBaseUrl();
 }
 
 function applyZaiPreset(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   params?: { endpoint?: string; modelId?: string },
   primaryModelRef?: string,
-): AstroclawConfig {
+): OpenClawConfig {
   const modelId = normalizeOptionalString(params?.modelId) ?? ZAI_DEFAULT_MODEL_ID;
   const modelRef = `zai/${modelId}`;
   return applyProviderConfigWithModelCatalogPreset(cfg, {
@@ -35,16 +36,16 @@ function applyZaiPreset(
 }
 
 export function applyZaiProviderConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   params?: { endpoint?: string; modelId?: string },
-): AstroclawConfig {
+): OpenClawConfig {
   return applyZaiPreset(cfg, params);
 }
 
 export function applyZaiConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   params?: { endpoint?: string; modelId?: string },
-): AstroclawConfig {
+): OpenClawConfig {
   const modelId = normalizeOptionalString(params?.modelId) ?? ZAI_DEFAULT_MODEL_ID;
   const modelRef = modelId === ZAI_DEFAULT_MODEL_ID ? ZAI_DEFAULT_MODEL_REF : `zai/${modelId}`;
   return applyZaiPreset(cfg, params, modelRef);
