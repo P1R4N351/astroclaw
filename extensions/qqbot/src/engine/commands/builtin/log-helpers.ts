@@ -1,6 +1,8 @@
+// Qqbot helper module supports log helpers behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { loadJsonFile } from "astroclaw/plugin-sdk/json-store";
+import { loadJsonFile } from "openclaw/plugin-sdk/json-store";
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { getHomeDir, getQQBotDataDir, isWindows } from "../../utils/platform.js";
 import type { SlashCommandResult } from "../slash-commands.js";
 
@@ -8,7 +10,7 @@ import type { SlashCommandResult } from "../slash-commands.js";
 function getConfiguredLogFiles(): string[] {
   const homeDir = getHomeDir();
   const files: string[] = [];
-  for (const cli of ["astroclaw", "clawdbot", "moltbot"]) {
+  for (const cli of ["openclaw", "clawdbot", "moltbot"]) {
     try {
       const cfgPath = path.join(homeDir, `.${cli}`, `${cli}.json`);
       const cfg = loadJsonFile<{ logging?: { file?: unknown } }>(cfgPath);
@@ -53,12 +55,12 @@ function collectCandidateLogDirs(): string[] {
     if (!value) {
       continue;
     }
-    if (/STATE_DIR$/i.test(key) && /(ASTROCLAW|CLAWDBOT|MOLTBOT)/i.test(key)) {
+    if (/STATE_DIR$/i.test(key) && /(OPENCLAW|CLAWDBOT|MOLTBOT)/i.test(key)) {
       pushStateDir(value);
     }
   }
 
-  for (const name of [".astroclaw", ".clawdbot", ".moltbot", "astroclaw", "clawdbot", "moltbot"]) {
+  for (const name of [".openclaw", ".clawdbot", ".moltbot", "openclaw", "clawdbot", "moltbot"]) {
     pushDir(path.join(homeDir, name));
     pushDir(path.join(homeDir, name, "logs"));
   }
@@ -78,7 +80,7 @@ function collectCandidateLogDirs(): string[] {
         if (!entry.isDirectory()) {
           continue;
         }
-        if (!/(astroclaw|clawdbot|moltbot)/i.test(entry.name)) {
+        if (!/(openclaw|clawdbot|moltbot)/i.test(entry.name)) {
           continue;
         }
         const base = path.join(root, entry.name);
@@ -91,7 +93,7 @@ function collectCandidateLogDirs(): string[] {
   }
 
   if (!isWindows()) {
-    for (const name of ["astroclaw", "clawdbot", "moltbot"]) {
+    for (const name of ["openclaw", "clawdbot", "moltbot"]) {
       pushDir(path.join("/var/log", name));
     }
   }
@@ -112,7 +114,7 @@ function collectCandidateLogDirs(): string[] {
     tmpRoots.add("/tmp");
   }
   for (const tmpRoot of tmpRoots) {
-    for (const name of ["astroclaw", "clawdbot", "moltbot"]) {
+    for (const name of ["openclaw", "clawdbot", "moltbot"]) {
       pushDir(path.join(tmpRoot, name));
     }
   }
@@ -176,7 +178,7 @@ function collectRecentLogFiles(logDirs: string[]): LogCandidate[] {
   for (const dir of logDirs) {
     pushFile(path.join(dir, "gateway.log"), dir);
     pushFile(path.join(dir, "gateway.err.log"), dir);
-    pushFile(path.join(dir, "astroclaw.log"), dir);
+    pushFile(path.join(dir, "openclaw.log"), dir);
     pushFile(path.join(dir, "clawdbot.log"), dir);
     pushFile(path.join(dir, "moltbot.log"), dir);
 
@@ -189,7 +191,7 @@ function collectRecentLogFiles(logDirs: string[]): LogCandidate[] {
         if (!/\.(log|txt)$/i.test(entry.name)) {
           continue;
         }
-        if (!/(gateway|astroclaw|clawdbot|moltbot)/i.test(entry.name)) {
+        if (!/(gateway|openclaw|clawdbot|moltbot)/i.test(entry.name)) {
           continue;
         }
         pushFile(path.join(dir, entry.name), dir);
@@ -329,7 +331,7 @@ export function buildBotLogsResult(): SlashCommandResult {
   );
 
   const fileCount = recentFiles.length;
-  const topSources = Array.from(new Set(recentFiles.map((item) => item.sourceDir))).slice(0, 3);
+  const topSources = uniqueStrings(recentFiles.map((item) => item.sourceDir)).slice(0, 3);
   let summaryText = `共 ${fileCount} 个日志文件，包含 ${totalIncluded} 行内容`;
   if (truncatedCount > 0) {
     summaryText += `（其中 ${truncatedCount} 个文件已截断为最后 ${MAX_LINES_PER_FILE} 行，总计原始 ${totalOriginal} 行）`;
