@@ -1,10 +1,11 @@
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+// Line plugin module implements status behavior.
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 import {
   buildTokenChannelStatusSummary,
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
   createDependentCredentialStatusIssueCollector,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import { hasLineCredentials } from "./account-helpers.js";
 import { DEFAULT_ACCOUNT_ID, type ChannelPlugin, type ResolvedLineAccount } from "./channel-api.js";
 
