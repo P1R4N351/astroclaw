@@ -1,19 +1,20 @@
+// Crestodian overview gathers config, agent, tool, docs, source, and gateway status.
 import {
   listAgentEntries,
   resolveAgentEffectiveModelPrimary,
   resolveDefaultAgentId,
 } from "../agents/agent-scope.js";
 import {
-  ASTROCLAW_DOCS_URL,
-  ASTROCLAW_SOURCE_URL,
-  resolveAstroclawReferencePaths,
+  OPENCLAW_DOCS_URL,
+  OPENCLAW_SOURCE_URL,
+  resolveOpenClawReferencePaths,
 } from "../agents/docs-path.js";
 import {
   readConfigFileSnapshot,
   resolveConfigPath,
   resolveGatewayPort,
   type ConfigFileSnapshot,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "../config/config.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
 import { normalizeAgentId } from "../routing/session-key.js";
@@ -60,7 +61,7 @@ export type CrestodianOverview = {
   };
 };
 
-type AstroclawReferencePaths = Awaited<ReturnType<typeof resolveAstroclawReferencePaths>>;
+type OpenClawReferencePaths = Awaited<ReturnType<typeof resolveOpenClawReferencePaths>>;
 
 type GatewayConnectionDetails = {
   url: string;
@@ -73,12 +74,12 @@ type CrestodianOverviewDependencies = {
   resolveConfigPath?: typeof resolveConfigPath;
   resolveGatewayPort?: typeof resolveGatewayPort;
   buildGatewayConnectionDetails?: (input: {
-    config: AstroclawConfig;
+    config: OpenClawConfig;
     configPath: string;
   }) => GatewayConnectionDetails;
   probeLocalCommand?: typeof probeLocalCommand;
   probeGatewayUrl?: typeof probeGatewayUrl;
-  resolveAstroclawReferencePaths?: typeof resolveAstroclawReferencePaths;
+  resolveOpenClawReferencePaths?: typeof resolveOpenClawReferencePaths;
 };
 
 function issueMessages(snapshot: ConfigFileSnapshot): string[] {
@@ -88,7 +89,7 @@ function issueMessages(snapshot: ConfigFileSnapshot): string[] {
   });
 }
 
-function buildAgentSummaries(cfg: AstroclawConfig): CrestodianAgentSummary[] {
+function buildAgentSummaries(cfg: OpenClawConfig): CrestodianAgentSummary[] {
   const defaultAgentId = resolveDefaultAgentId(cfg);
   const entries = listAgentEntries(cfg);
   if (entries.length === 0) {
@@ -102,6 +103,7 @@ function buildAgentSummaries(cfg: AstroclawConfig): CrestodianAgentSummary[] {
   }
   const seen = new Set<string>();
   const summaries: CrestodianAgentSummary[] = [];
+  // Agent ids are normalized and deduped so config aliases do not produce duplicate setup choices.
   for (const entry of entries) {
     const id = normalizeAgentId(entry.id);
     if (seen.has(id)) {
@@ -127,8 +129,8 @@ function buildAgentSummaries(cfg: AstroclawConfig): CrestodianAgentSummary[] {
   return summaries;
 }
 
-function resolveFastTestReferences(env: NodeJS.ProcessEnv): AstroclawReferencePaths | undefined {
-  if (env.ASTROCLAW_TEST_FAST !== "1") {
+function resolveFastTestReferences(env: NodeJS.ProcessEnv): OpenClawReferencePaths | undefined {
+  if (env.OPENCLAW_TEST_FAST !== "1") {
     return undefined;
   }
   const sourcePath = process.cwd();
@@ -165,9 +167,10 @@ export async function loadCrestodianOverview(
   } catch (err) {
     gatewayError = err instanceof Error ? err.message : String(err);
   }
-  const resolveReferences = deps.resolveAstroclawReferencePaths ?? resolveAstroclawReferencePaths;
+  const resolveReferences = deps.resolveOpenClawReferencePaths ?? resolveOpenClawReferencePaths;
   const commandProbe = deps.probeLocalCommand ?? probeLocalCommand;
   const [codex, claude, gateway, references] = await Promise.all([
+    // Probes run in parallel; each individual probe is timeout-bounded in probes.ts.
     commandProbe("codex"),
     commandProbe("claude"),
     (deps.probeGatewayUrl ?? probeGatewayUrl)(gatewayUrl),
@@ -205,9 +208,9 @@ export async function loadCrestodianOverview(
     },
     references: {
       docsPath: references.docsPath ?? undefined,
-      docsUrl: ASTROCLAW_DOCS_URL,
+      docsUrl: OPENCLAW_DOCS_URL,
       sourcePath: references.sourcePath ?? undefined,
-      sourceUrl: ASTROCLAW_SOURCE_URL,
+      sourceUrl: OPENCLAW_SOURCE_URL,
     },
   };
 }
