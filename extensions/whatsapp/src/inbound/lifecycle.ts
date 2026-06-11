@@ -1,3 +1,4 @@
+// Whatsapp plugin module implements lifecycle behavior.
 type Listener = (...args: unknown[]) => void;
 
 type OffCapableEmitter = {
@@ -32,7 +33,7 @@ export function attachEmitterListener(
 
 export function closeInboundMonitorSocket(sock: ClosableSocket): void {
   if (typeof sock.end === "function") {
-    sock.end(new Error("Astroclaw WhatsApp listener close"));
+    sock.end(new Error("OpenClaw WhatsApp listener close"));
     return;
   }
   sock.ws?.close?.();
