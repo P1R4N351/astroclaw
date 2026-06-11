@@ -1,3 +1,4 @@
+/** Resolves /model directive selections and auth profile overrides. */
 import { ensureAuthProfileStore } from "../../agents/auth-profiles.js";
 import { isModelKeyAllowedBySet } from "../../agents/model-selection-shared.js";
 import {
@@ -6,7 +7,7 @@ import {
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
 import { resolveProviderIdForAuth } from "../../agents/provider-auth-aliases.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveProfileOverride } from "./directive-handling.auth-profile.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
 import { type ModelDirectiveSelection, resolveModelDirectiveSelection } from "./model-selection.js";
@@ -44,9 +45,10 @@ function resolveStoredNumericProfileModelDirective(params: { raw: string; agentD
   return { modelRaw, profileId, profileProvider: profile.provider };
 }
 
+/** Resolves the requested model/profile override from parsed inline directives. */
 export function resolveModelSelectionFromDirective(params: {
   directives: InlineDirectives;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentDir: string;
   defaultProvider: string;
   defaultModel: string;
