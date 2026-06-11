@@ -1,7 +1,8 @@
+// Configure wizard model/auth selection and gateway auth config helpers.
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
 import { resolveDefaultAgentWorkspaceDir } from "../agents/workspace.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { AstroclawConfig, GatewayAuthConfig } from "../config/config.js";
+import type { OpenClawConfig, GatewayAuthConfig } from "../config/config.js";
 import { isSecretRef, type SecretInput } from "../config/types.secrets.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
@@ -41,7 +42,7 @@ function sanitizeTokenValue(value: unknown): string | undefined {
 
 async function resolveProviderChoiceModelPrompt(params: {
   authChoice: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): Promise<ProviderChoiceModelPrompt | undefined> {
@@ -68,7 +69,7 @@ async function resolveProviderChoiceModelPrompt(params: {
   };
 }
 
-function hasConfiguredProviderModels(cfg: AstroclawConfig, provider: string | undefined): boolean {
+function hasConfiguredProviderModels(cfg: OpenClawConfig, provider: string | undefined): boolean {
   if (!provider) {
     return false;
   }
@@ -81,7 +82,7 @@ function hasConfiguredProviderModels(cfg: AstroclawConfig, provider: string | un
   );
 }
 
-function hasStaticManifestCatalogRows(cfg: AstroclawConfig, provider: string | undefined): boolean {
+function hasStaticManifestCatalogRows(cfg: OpenClawConfig, provider: string | undefined): boolean {
   if (!provider) {
     return false;
   }
@@ -93,13 +94,13 @@ function hasStaticManifestCatalogRows(cfg: AstroclawConfig, provider: string | u
   );
 }
 
-function listConfiguredModelProviders(cfg: AstroclawConfig): string[] {
+function listConfiguredModelProviders(cfg: OpenClawConfig): string[] {
   return Object.entries(cfg.models?.providers ?? {})
     .filter(([, provider]) => (provider.models?.length ?? 0) > 0)
     .map(([provider]) => provider);
 }
 
-function resolveSingleConfiguredProvider(cfg: AstroclawConfig): string | undefined {
+function resolveSingleConfiguredProvider(cfg: OpenClawConfig): string | undefined {
   const configuredProviders = listConfiguredModelProviders(cfg);
   return configuredProviders.length === 1 ? configuredProviders[0] : undefined;
 }
@@ -110,9 +111,28 @@ function resolveProviderFromModelRef(model: string | undefined): string | undefi
   return slashIndex > 0 ? trimmed?.slice(0, slashIndex) : undefined;
 }
 
+function resolveCanonicalOpenAISelectionForLegacyCodexPrimary(
+  cfg: OpenClawConfig,
+  selectedModels: readonly string[],
+): string | undefined {
+  const currentModel = cfg.agents?.defaults?.model;
+  const primary =
+    typeof currentModel === "string"
+      ? currentModel.trim()
+      : currentModel && typeof currentModel === "object" && typeof currentModel.primary === "string"
+        ? currentModel.primary.trim()
+        : undefined;
+  const modelId = primary?.startsWith("codex/") ? primary.slice("codex/".length).trim() : "";
+  if (!modelId) {
+    return undefined;
+  }
+  const canonical = `openai/${modelId}`;
+  return selectedModels.find((model) => model.trim() === canonical);
+}
+
 function resolveConfiguredProviderFromAuthChange(params: {
-  before: AstroclawConfig;
-  after: AstroclawConfig;
+  before: OpenClawConfig;
+  after: OpenClawConfig;
   preferredProvider?: string;
 }): string | undefined {
   if (hasConfiguredProviderModels(params.after, params.preferredProvider)) {
@@ -137,6 +157,7 @@ function resolveConfiguredProviderFromAuthChange(params: {
   );
 }
 
+/** Build gateway auth config, preserving Tailscale allowance and generating missing tokens. */
 export function buildGatewayAuthConfig(params: {
   existing?: GatewayAuthConfig;
   mode: GatewayAuthChoice;
@@ -169,7 +190,7 @@ export function buildGatewayAuthConfig(params: {
   if (params.mode === "trusted-proxy") {
     if (!params.trustedProxy) {
       throw new Error(
-        `trustedProxy config is required when mode is trusted-proxy. Run ${formatCliCommand("astroclaw configure --section gateway")} to configure Gateway auth interactively.`,
+        `trustedProxy config is required when mode is trusted-proxy. Run ${formatCliCommand("openclaw configure --section gateway")} to configure Gateway auth interactively.`,
       );
     }
     return { ...base, mode: "trusted-proxy", trustedProxy: params.trustedProxy };
@@ -177,13 +198,14 @@ export function buildGatewayAuthConfig(params: {
   return base;
 }
 
+/** Prompt for model provider credentials and default model allowlist settings. */
 export async function promptAuthConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
-): Promise<AstroclawConfig> {
+): Promise<OpenClawConfig> {
   let next = cfg;
-  let authChoice: string = "skip";
+  let authChoice = "skip";
   let preferredProvider: string | undefined;
   while (true) {
     authChoice = await promptAuthChoiceGrouped({
@@ -262,6 +284,16 @@ export async function promptAuthConfig(
     });
     const promptProvider =
       modelPrompt?.provider ?? preferredProvider ?? resolveSingleConfiguredProvider(next);
+    const hasPromptProviderConfiguredModels = hasConfiguredProviderModels(next, promptProvider);
+    const hasPromptProviderStaticManifestRows = hasStaticManifestCatalogRows(next, promptProvider);
+    const shouldLoadModelCatalog =
+      modelPrompt?.loadCatalog ??
+      (hasPromptProviderConfiguredModels || hasPromptProviderStaticManifestRows);
+    const useProviderScopedCatalog = Boolean(
+      promptProvider &&
+      shouldLoadModelCatalog &&
+      (modelPrompt?.loadCatalog === true || hasPromptProviderConfiguredModels),
+    );
     const allowlistSelection = await promptModelAllowlist({
       config: next,
       prompter,
@@ -271,12 +303,17 @@ export async function promptAuthConfig(
       initialSelections: modelPrompt?.initialSelections,
       message: modelPrompt?.message,
       preferredProvider: promptProvider,
-      loadCatalog:
-        modelPrompt?.loadCatalog ??
-        (hasConfiguredProviderModels(next, promptProvider) ||
-          hasStaticManifestCatalogRows(next, promptProvider)),
+      providerScopedCatalog: useProviderScopedCatalog,
+      loadCatalog: shouldLoadModelCatalog,
     });
     if (allowlistSelection.models) {
+      const canonicalPrimary = resolveCanonicalOpenAISelectionForLegacyCodexPrimary(
+        next,
+        allowlistSelection.models,
+      );
+      if (canonicalPrimary) {
+        next = applyPrimaryModel(next, canonicalPrimary);
+      }
       next = applyModelFallbacksFromSelection(next, allowlistSelection.models, {
         scopeKeys: allowlistSelection.scopeKeys,
       });
