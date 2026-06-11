@@ -1,11 +1,12 @@
-export { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
+// Slack API module exposes the plugin public contract.
+export { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
 export {
   PAIRING_APPROVED_MESSAGE,
   projectCredentialSnapshotFields,
   resolveConfiguredFromRequiredCredentialStatuses,
-} from "astroclaw/plugin-sdk/channel-status";
-export type { ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-export type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-status";
+export type { ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 export { looksLikeSlackTargetId, normalizeSlackMessagingTarget } from "./target-parsing.js";
 
 const SLACK_CHANNEL_META = {
