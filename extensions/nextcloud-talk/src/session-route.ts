@@ -1,9 +1,10 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { buildOutboundBaseSessionKey } from "astroclaw/plugin-sdk/routing";
+// Nextcloud Talk plugin module implements session route behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { buildOutboundBaseSessionKey } from "openclaw/plugin-sdk/routing";
 import { stripNextcloudTalkTargetPrefix } from "./normalize.js";
 
 type NextcloudTalkOutboundSessionRouteParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   accountId?: string | null;
   target: string;
