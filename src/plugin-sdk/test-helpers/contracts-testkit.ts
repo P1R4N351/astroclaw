@@ -1,11 +1,14 @@
+/**
+ * Core plugin SDK contract-test fixture builders and registration helpers.
+ */
 import type { PluginRegistryParams } from "../../plugins/registry-types.js";
-import type { AstroclawPluginApi } from "../plugin-entry.js";
+import type { OpenClawPluginApi } from "../plugin-entry.js";
 import {
   createPluginRecord,
   createPluginRegistry,
   registerProviderPlugins as registerProviders,
   requireRegisteredProvider as requireProvider,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type PluginRecord,
   type PluginRuntime,
 } from "../testing.js";
@@ -14,8 +17,9 @@ import { uniqueSortedStrings } from "./string-utils.js";
 
 export { registerProviders, requireProvider, uniqueSortedStrings };
 
+/** Creates a minimal plugin registry fixture with quiet logger defaults. */
 export function createPluginRegistryFixture(
-  config = {} as AstroclawConfig,
+  config = {} as OpenClawConfig,
   params: { hostServices?: PluginRegistryParams["hostServices"] } = {},
 ) {
   return {
@@ -33,11 +37,12 @@ export function createPluginRegistryFixture(
   };
 }
 
+/** Registers one plugin record against a registry fixture and invokes its register hook. */
 export function registerTestPlugin(params: {
   registry: ReturnType<typeof createPluginRegistry>;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   record: PluginRecord;
-  register(api: AstroclawPluginApi): void;
+  register(api: OpenClawPluginApi): void;
 }) {
   params.registry.registry.plugins.push(params.record);
   params.register(
@@ -47,15 +52,16 @@ export function registerTestPlugin(params: {
   );
 }
 
+/** Registers a virtual plugin record for tests that do not need a real package path. */
 export function registerVirtualTestPlugin(params: {
   registry: ReturnType<typeof createPluginRegistry>;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   id: string;
   name: string;
   source?: string;
   kind?: PluginRecord["kind"];
   contracts?: PluginRecord["contracts"];
-  register(this: void, api: AstroclawPluginApi): void;
+  register(this: void, api: OpenClawPluginApi): void;
 }) {
   registerTestPlugin({
     registry: params.registry,
