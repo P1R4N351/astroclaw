@@ -1,3 +1,4 @@
+// Optional bundled plugin cluster policy used by build and package scripts.
 const optionalBundledClusters = [
   "acpx",
   "diagnostics-otel",
@@ -13,9 +14,10 @@ const optionalBundledClusters = [
   "zalouser",
 ];
 
+/** Bundled plugin clusters that may be excluded from size-sensitive build lanes. */
 export const optionalBundledClusterSet = new Set(optionalBundledClusters);
 
-const OPTIONAL_BUNDLED_BUILD_ENV = "ASTROCLAW_INCLUDE_OPTIONAL_BUNDLED";
+const OPTIONAL_BUNDLED_BUILD_ENV = "OPENCLAW_INCLUDE_OPTIONAL_BUNDLED";
 
 function isOptionalBundledCluster(cluster) {
   return optionalBundledClusterSet.has(cluster);
@@ -29,11 +31,12 @@ function shouldIncludeOptionalBundledClusters(env = process.env) {
 
 function hasReleasedBundledInstall(packageJson) {
   return (
-    typeof packageJson?.astroclaw?.install?.npmSpec === "string" &&
-    packageJson.astroclaw.install.npmSpec.trim().length > 0
+    typeof packageJson?.openclaw?.install?.npmSpec === "string" &&
+    packageJson.openclaw.install.npmSpec.trim().length > 0
   );
 }
 
+/** Decide whether a bundled plugin cluster should be included in the current build. */
 export function shouldBuildBundledCluster(cluster, env = process.env, options = {}) {
   if (hasReleasedBundledInstall(options.packageJson)) {
     return true;
