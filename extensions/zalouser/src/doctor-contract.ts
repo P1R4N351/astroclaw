@@ -1,10 +1,11 @@
+// Zalouser plugin module implements doctor contract behavior.
 import type {
   ChannelDoctorConfigMutation,
   ChannelDoctorLegacyConfigRule,
-} from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 
-type ZalouserChannelsConfig = NonNullable<AstroclawConfig["channels"]>;
+type ZalouserChannelsConfig = NonNullable<OpenClawConfig["channels"]>;
 
 function asObjectRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -61,7 +62,7 @@ function normalizeZalouserGroupAllowAliases(params: {
   return { groups: nextGroups, changed };
 }
 
-function normalizeZalouserCompatibilityConfig(cfg: AstroclawConfig): ChannelDoctorConfigMutation {
+function normalizeZalouserCompatibilityConfig(cfg: OpenClawConfig): ChannelDoctorConfigMutation {
   const channels = asObjectRecord(cfg.channels);
   const zalouser = asObjectRecord(channels?.zalouser);
   if (!zalouser) {
@@ -138,19 +139,19 @@ export const legacyConfigRules: ChannelDoctorLegacyConfigRule[] = [
   {
     path: ["channels", "zalouser", "groups"],
     message:
-      'channels.zalouser.groups.<id>.allow is legacy; use channels.zalouser.groups.<id>.enabled instead. Run "astroclaw doctor --fix".',
+      'channels.zalouser.groups.<id>.allow is legacy; use channels.zalouser.groups.<id>.enabled instead. Run "openclaw doctor --fix".',
     match: hasLegacyZalouserGroupAllowAliases,
   },
   {
     path: ["channels", "zalouser", "accounts"],
     message:
-      'channels.zalouser.accounts.<id>.groups.<id>.allow is legacy; use channels.zalouser.accounts.<id>.groups.<id>.enabled instead. Run "astroclaw doctor --fix".',
+      'channels.zalouser.accounts.<id>.groups.<id>.allow is legacy; use channels.zalouser.accounts.<id>.groups.<id>.enabled instead. Run "openclaw doctor --fix".',
     match: hasLegacyZalouserAccountGroupAllowAliases,
   },
 ];
 
 export function normalizeCompatibilityConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }): ChannelDoctorConfigMutation {
   return normalizeZalouserCompatibilityConfig(params.cfg);
 }
