@@ -1,11 +1,11 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
-import {
-  normalizeModelCatalogProviderId,
-  planManifestModelCatalogRows,
-} from "../../model-catalog/index.js";
-import type { NormalizedModelCatalogRow } from "../../model-catalog/index.js";
+/** Manifest-backed model catalog row loaders for `openclaw models list`. */
+import { normalizeModelCatalogProviderId } from "@openclaw/model-catalog-core/model-catalog-refs";
+import type { NormalizedModelCatalogRow } from "@openclaw/model-catalog-core/model-catalog-types";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { planManifestModelCatalogRows } from "../../model-catalog/index.js";
 import { loadManifestMetadataSnapshot } from "../../plugins/manifest-contract-eligibility.js";
 import type { PluginManifestRegistry } from "../../plugins/manifest-registry.js";
+import type { PluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.types.js";
 import {
   getPluginRecord,
   isPluginEnabled,
@@ -16,7 +16,7 @@ import {
 type ManifestCatalogRowsForListMode = "static-authoritative" | "supplemental";
 
 function loadManifestCatalogRowsForPluginIds(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   index: PluginRegistrySnapshot;
   registry: PluginManifestRegistry;
@@ -54,7 +54,7 @@ function loadManifestCatalogRowsForPluginIds(params: {
 }
 
 function resolveConventionModelCatalogPluginIds(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   index: PluginRegistrySnapshot;
   providerFilter: string;
 }): readonly string[] {
@@ -76,7 +76,7 @@ function resolveConventionModelCatalogPluginIds(params: {
 }
 
 function resolveDeclaredModelCatalogPluginIds(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   index: PluginRegistrySnapshot;
   providerFilter: string;
 }): readonly string[] {
@@ -89,19 +89,22 @@ function resolveDeclaredModelCatalogPluginIds(params: {
 }
 
 function loadManifestCatalogRowsForList(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   providerFilter?: string;
   env?: NodeJS.ProcessEnv;
   mode?: ManifestCatalogRowsForListMode;
+  metadataSnapshot?: PluginMetadataSnapshot;
 }): readonly NormalizedModelCatalogRow[] {
   const providerFilter = params.providerFilter
     ? normalizeModelCatalogProviderId(params.providerFilter)
     : undefined;
   const mode = params.mode ?? "static-authoritative";
-  const snapshot = loadManifestMetadataSnapshot({
-    config: params.cfg,
-    env: params.env ?? process.env,
-  });
+  const snapshot =
+    params.metadataSnapshot ??
+    loadManifestMetadataSnapshot({
+      config: params.cfg,
+      env: params.env ?? process.env,
+    });
   const index = snapshot.index;
   if (!providerFilter) {
     return loadManifestCatalogRowsForPluginIds({
@@ -143,10 +146,12 @@ function loadManifestCatalogRowsForList(params: {
   });
 }
 
+/** Loads authoritative static manifest catalog rows for model-list output. */
 export function loadStaticManifestCatalogRowsForList(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   providerFilter?: string;
   env?: NodeJS.ProcessEnv;
+  metadataSnapshot?: PluginMetadataSnapshot;
 }): readonly NormalizedModelCatalogRow[] {
   return loadManifestCatalogRowsForList({
     ...params,
@@ -154,10 +159,12 @@ export function loadStaticManifestCatalogRowsForList(params: {
   });
 }
 
+/** Loads supplemental non-runtime manifest catalog rows for fallback list sources. */
 export function loadSupplementalManifestCatalogRowsForList(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   providerFilter?: string;
   env?: NodeJS.ProcessEnv;
+  metadataSnapshot?: PluginMetadataSnapshot;
 }): readonly NormalizedModelCatalogRow[] {
   return loadManifestCatalogRowsForList({
     ...params,
