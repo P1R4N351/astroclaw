@@ -1,3 +1,4 @@
+// OpenAI-compatible `/v1/models` HTTP route backed by configured OpenClaw agents.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { listAgentIds, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { getRuntimeConfig } from "../config/io.js";
@@ -10,8 +11,8 @@ import {
   sendMissingScopeForbidden,
 } from "./http-common.js";
 import {
-  ASTROCLAW_DEFAULT_MODEL_ID,
-  ASTROCLAW_MODEL_ID,
+  OPENCLAW_DEFAULT_MODEL_ID,
+  OPENCLAW_MODEL_ID,
   authorizeGatewayHttpRequestOrReply,
   type AuthorizedGatewayHttpRequest,
   resolveAgentIdFromModel,
@@ -39,7 +40,7 @@ function toOpenAiModel(id: string): OpenAiModelObject {
     id,
     object: "model",
     created: 0,
-    owned_by: "astroclaw",
+    owned_by: "openclaw",
     permission: [],
   };
 }
@@ -62,10 +63,10 @@ async function authorizeRequest(
 function loadAgentModelIds(): string[] {
   const cfg = getRuntimeConfig();
   const defaultAgentId = resolveDefaultAgentId(cfg);
-  const ids = new Set<string>([ASTROCLAW_MODEL_ID, ASTROCLAW_DEFAULT_MODEL_ID]);
-  ids.add(`astroclaw/${defaultAgentId}`);
+  const ids = new Set<string>([OPENCLAW_MODEL_ID, OPENCLAW_DEFAULT_MODEL_ID]);
+  ids.add(`openclaw/${defaultAgentId}`);
   for (const agentId of listAgentIds(cfg)) {
-    ids.add(`astroclaw/${agentId}`);
+    ids.add(`openclaw/${agentId}`);
   }
   return Array.from(ids);
 }
@@ -74,6 +75,7 @@ function resolveRequestPath(req: IncomingMessage): string {
   return new URL(req.url ?? "/", "http://localhost").pathname;
 }
 
+/** Handle OpenAI-compatible model list/detail requests, returning false for unrelated paths. */
 export async function handleOpenAiModelsHttpRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -124,7 +126,7 @@ export async function handleOpenAiModelsHttpRequest(
     return true;
   }
 
-  if (decodedId !== ASTROCLAW_MODEL_ID && !resolveAgentIdFromModel(decodedId)) {
+  if (decodedId !== OPENCLAW_MODEL_ID && !resolveAgentIdFromModel(decodedId)) {
     sendInvalidRequest(res, "Invalid model id.");
     return true;
   }
