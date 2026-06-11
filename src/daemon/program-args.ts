@@ -1,3 +1,4 @@
+/** Builds runtime command arguments for gateway and node service installs. */
 import { execFileSync } from "node:child_process";
 import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
@@ -16,7 +17,7 @@ type GatewayProgramArgs = {
 
 type GatewayRuntimePreference = "auto" | "node" | "bun";
 
-export const ASTROCLAW_WRAPPER_ENV_KEY = "ASTROCLAW_WRAPPER";
+export const OPENCLAW_WRAPPER_ENV_KEY = "OPENCLAW_WRAPPER";
 
 async function resolveCliEntrypointPathForService(): Promise<string> {
   const argv1 = process.argv[1];
@@ -28,6 +29,8 @@ async function resolveCliEntrypointPathForService(): Promise<string> {
   const resolvedPath = await resolveRealpathSafe(normalized);
   const looksLikeDist = isGatewayDistEntrypointPath(resolvedPath);
   if (looksLikeDist) {
+    // Existing installed command lines may point at versioned pnpm realpaths.
+    // Repair prefers stable package symlink paths when they still exist.
     const preferredDistEntrypoint = await findFirstAccessibleGatewayEntrypoint(
       buildGatewayDistEntrypointCandidates(normalized, resolvedPath),
       async (candidate) => {
@@ -44,7 +47,7 @@ async function resolveCliEntrypointPathForService(): Promise<string> {
     }
     // Prefer the original (possibly symlinked) path over the resolved realpath.
     // This keeps LaunchAgent/systemd paths stable across package version updates,
-    // since symlinks like node_modules/astroclaw -> .pnpm/astroclaw@X.Y.Z/...
+    // since symlinks like node_modules/openclaw -> .pnpm/openclaw@X.Y.Z/...
     // are automatically updated by pnpm, while the resolved path contains
     // version-specific directories that break after updates.
     const normalizedLooksLikeDist = isGatewayDistEntrypointPath(normalized);
@@ -130,6 +133,7 @@ function appendNodeModulesBinCandidates(
   if (parts[binIndex - 1] !== "node_modules") {
     return;
   }
+  // openclaw from node_modules/.bin points at the package root sibling.
   const binName = path.basename(inputPath);
   const nodeModulesDir = parts.slice(0, binIndex).join(path.sep);
   const packageRoot = path.join(nodeModulesDir, binName);
@@ -175,12 +179,12 @@ async function resolveBinaryPath(binary: string): Promise<string> {
       throw new Error("Bun not found in PATH. Install bun: https://bun.sh");
     }
     throw new Error(
-      "Node not found in PATH. Install Node 24 (recommended) or Node 22 LTS (22.16+).",
+      "Node not found in PATH. Install Node 24 (recommended) or Node 22 LTS (22.19+).",
     );
   }
 }
 
-export async function resolveAstroclawWrapperPath(
+export async function resolveOpenClawWrapperPath(
   inputPath: string | undefined,
 ): Promise<string | undefined> {
   const trimmed = inputPath?.trim();
@@ -193,11 +197,13 @@ export async function resolveAstroclawWrapperPath(
     if (!stat.isFile()) {
       throw new Error("not a regular file");
     }
+    // Wrappers replace the runtime executable, so require execute permission up
+    // front rather than generating a service that fails at boot.
     await fs.access(resolved, fsConstants.X_OK);
   } catch (error) {
     const detail = error instanceof Error ? ` (${error.message})` : "";
     throw new Error(
-      `${ASTROCLAW_WRAPPER_ENV_KEY} must point to an executable file: ${resolved}${detail}`,
+      `${OPENCLAW_WRAPPER_ENV_KEY} must point to an executable file: ${resolved}${detail}`,
       { cause: error },
     );
   }
@@ -211,7 +217,7 @@ async function resolveCliProgramArguments(params: {
   nodePath?: string;
   wrapperPath?: string;
 }): Promise<GatewayProgramArgs> {
-  const wrapperPath = await resolveAstroclawWrapperPath(params.wrapperPath);
+  const wrapperPath = await resolveOpenClawWrapperPath(params.wrapperPath);
   if (wrapperPath) {
     return { programArguments: [wrapperPath, ...params.args] };
   }
@@ -254,7 +260,8 @@ async function resolveCliProgramArguments(params: {
         programArguments: [execPath, cliEntrypointPath, ...params.args],
       };
     } catch (error) {
-      // If running under bun or another runtime that can execute TS directly
+      // Non-Node runtimes may execute the CLI wrapper directly; Node needs the
+      // built dist entrypoint so service restarts survive package layout.
       if (!isNodeRuntime(execPath)) {
         return { programArguments: [execPath, ...params.args] };
       }
@@ -262,12 +269,12 @@ async function resolveCliProgramArguments(params: {
     }
   }
 
-  // Dev mode: use bun to run TypeScript directly
+  // Dev mode: use bun to run TypeScript directly.
   const repoRoot = resolveRepoRootForDev();
   const devCliPath = path.join(repoRoot, "src", "entry.ts");
   await fs.access(devCliPath);
 
-  // If already running under bun, use current execPath
+  // If already running under bun, use current execPath.
   if (isBunRuntime(execPath)) {
     return {
       programArguments: [execPath, devCliPath, ...params.args],
@@ -275,7 +282,7 @@ async function resolveCliProgramArguments(params: {
     };
   }
 
-  // Otherwise resolve bun from PATH
+  // Otherwise resolve bun from PATH.
   const bunPath = await resolveBunPath();
   return {
     programArguments: [bunPath, devCliPath, ...params.args],
