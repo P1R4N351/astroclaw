@@ -1,4 +1,9 @@
+// Tracks host hook state and scheduled turn identifiers.
 import { randomUUID } from "node:crypto";
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
 import { loadSessionStore, updateSessionStore, type SessionEntry } from "../config/sessions.js";
 import { resolveAgentMainSessionKey } from "../config/sessions/main-session.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
@@ -6,16 +11,12 @@ import {
   resolveAllAgentSessionStoreTargetsSync,
   type SessionStoreTarget,
 } from "../config/sessions/targets.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   resolveSessionStoreAgentId,
   resolveSessionStoreKey,
 } from "../gateway/session-store-key.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalString,
-} from "../shared/string-coerce.js";
 export { clearPluginOwnedSessionState } from "./host-hook-cleanup.js";
 import {
   buildPluginAgentTurnPrepareContext,
@@ -118,7 +119,7 @@ function findFreshestStoreMatch(
 }
 
 function resolveSessionStoreCandidates(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
 }): SessionStoreTarget[] {
   const storeConfig = params.cfg.session?.store;
@@ -140,7 +141,7 @@ function resolveSessionStoreCandidates(params: {
 }
 
 function buildSessionStoreScanTargets(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   key: string;
   canonicalKey: string;
   agentId: string;
@@ -165,7 +166,7 @@ function buildSessionStoreScanTargets(params: {
   return [...targets];
 }
 
-function loadPluginHostHookSessionEntry(params: { cfg: AstroclawConfig; sessionKey: string }): {
+function loadPluginHostHookSessionEntry(params: { cfg: OpenClawConfig; sessionKey: string }): {
   storePath: string;
   entry?: SessionEntry;
   canonicalKey: string;
@@ -205,7 +206,7 @@ function loadPluginHostHookSessionEntry(params: { cfg: AstroclawConfig; sessionK
   };
 }
 
-function isPluginPromptInjectionEnabled(cfg: AstroclawConfig, pluginId: string): boolean {
+function isPluginPromptInjectionEnabled(cfg: OpenClawConfig, pluginId: string): boolean {
   const entry = cfg.plugins?.entries?.[pluginId];
   return entry?.hooks?.allowPromptInjection !== false;
 }
@@ -230,7 +231,7 @@ function toPluginNextTurnInjectionRecord(params: {
 }
 
 export async function enqueuePluginNextTurnInjection(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   pluginId: string;
   pluginName?: string;
   injection: PluginNextTurnInjection;
@@ -326,7 +327,7 @@ export async function enqueuePluginNextTurnInjection(params: {
 }
 
 export async function drainPluginNextTurnInjections(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey?: string;
   now?: number;
 }): Promise<PluginNextTurnInjectionRecord[]> {
@@ -386,7 +387,7 @@ export async function drainPluginNextTurnInjections(params: {
 }
 
 export async function drainPluginNextTurnInjectionContext(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey?: string;
   now?: number;
 }): Promise<PluginAgentTurnPrepareResult & { queuedInjections: PluginNextTurnInjectionRecord[] }> {
@@ -399,7 +400,7 @@ export async function drainPluginNextTurnInjectionContext(params: {
 
 // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Session-extension JSON reads are caller-typed by namespace.
 export function getPluginSessionExtensionSync<T extends PluginJsonValue = PluginJsonValue>(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   pluginId: string;
   sessionKey?: string;
   namespace: string;
@@ -418,7 +419,7 @@ export function getPluginSessionExtensionSync<T extends PluginJsonValue = Plugin
 }
 
 export function getPluginSessionExtensionStateSync(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   pluginId: string;
   sessionKey?: string;
 }): Record<string, PluginJsonValue> | undefined {
@@ -435,7 +436,7 @@ export function getPluginSessionExtensionStateSync(params: {
 }
 
 export async function patchPluginSessionExtension(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey: string;
   pluginId: string;
   namespace: string;
@@ -583,6 +584,13 @@ export async function projectPluginSessionExtensions(params: {
   sessionKey: string;
   entry: SessionEntry;
 }): Promise<PluginSessionExtensionProjection[]> {
+  return collectPluginSessionExtensionProjections(params);
+}
+
+function collectPluginSessionExtensionProjections(params: {
+  sessionKey: string;
+  entry: SessionEntry;
+}): PluginSessionExtensionProjection[] {
   const registry = getActivePluginRegistry();
   const extensions = registry?.sessionExtensions ?? [];
   if (extensions.length === 0) {
@@ -666,46 +674,5 @@ export function projectPluginSessionExtensionsSync(params: {
   sessionKey: string;
   entry: SessionEntry;
 }): PluginSessionExtensionProjection[] {
-  const registry = getActivePluginRegistry();
-  const extensions = registry?.sessionExtensions ?? [];
-  if (extensions.length === 0) {
-    return [];
-  }
-  const projections: PluginSessionExtensionProjection[] = [];
-  for (const registration of extensions) {
-    const state = params.entry.pluginExtensions?.[registration.pluginId]?.[
-      registration.extension.namespace
-    ] as PluginJsonValue | undefined;
-    if (state === undefined) {
-      continue;
-    }
-    const projected = projectSessionExtensionValue({
-      pluginId: registration.pluginId,
-      namespace: registration.extension.namespace,
-      project: registration.extension.project,
-      sessionKey: params.sessionKey,
-      sessionId: params.entry.sessionId,
-      state,
-    });
-    if (projected === PROJECTION_FAILED) {
-      continue;
-    }
-    if (isPromiseLike(projected)) {
-      discardUnexpectedPromiseProjection(projected);
-      continue;
-    }
-    if (projected === undefined || !isPluginJsonValue(projected)) {
-      // Validate the projection regardless of whether the extension has a
-      // `project` function: with a projector the value can be arbitrary;
-      // without one the persisted state could be hand-edited or malformed.
-      // Either way the size + shape check should run before projection.
-      continue;
-    }
-    projections.push({
-      pluginId: registration.pluginId,
-      namespace: registration.extension.namespace,
-      value: copyJsonValue(projected),
-    });
-  }
-  return projections;
+  return collectPluginSessionExtensionProjections(params);
 }
