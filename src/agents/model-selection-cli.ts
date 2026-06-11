@@ -1,9 +1,13 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Detects providers whose model selections are backed by CLI runtimes.
+ */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveRuntimeCliBackends } from "../plugins/cli-backends.runtime.js";
-import { resolvePluginSetupCliBackendRuntime } from "../plugins/setup-registry.runtime.js";
+import { resolvePluginSetupCliBackendDescriptor } from "../plugins/setup-registry.runtime.js";
 import { normalizeProviderId } from "./model-selection-normalize.js";
 
-export function isCliProvider(provider: string, cfg?: AstroclawConfig): boolean {
+/** Return true when a provider id resolves to a configured or plugin CLI backend. */
+export function isCliProvider(provider: string, cfg?: OpenClawConfig): boolean {
   const normalized = normalizeProviderId(provider);
   const backends = cfg?.agents?.defaults?.cliBackends ?? {};
   if (Object.keys(backends).some((key) => normalizeProviderId(key) === normalized)) {
@@ -13,7 +17,7 @@ export function isCliProvider(provider: string, cfg?: AstroclawConfig): boolean 
   if (cliBackends.some((backend) => normalizeProviderId(backend.id) === normalized)) {
     return true;
   }
-  if (resolvePluginSetupCliBackendRuntime({ backend: normalized, config: cfg })) {
+  if (resolvePluginSetupCliBackendDescriptor({ backend: normalized, config: cfg })) {
     return true;
   }
   return false;
