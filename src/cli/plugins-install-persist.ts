@@ -1,5 +1,7 @@
+// Persistence helpers for plugin and hook-pack installs plus related config mutation.
+import { theme } from "../../packages/terminal-core/src/theme.js";
 import { replaceConfigFile } from "../config/config.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { type HookInstallUpdate, recordHookInstall } from "../hooks/installs.js";
 import { isPathInside } from "../infra/path-guards.js";
@@ -18,7 +20,6 @@ import {
   type PluginUninstallDirectoryRemoval,
 } from "../plugins/uninstall.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
-import { theme } from "../terminal/theme.js";
 import { resolveUserPath, shortenHomePath } from "../utils.js";
 import {
   applySlotSelectionForPlugin,
@@ -29,7 +30,7 @@ import {
 import { commitPluginInstallRecordsWithConfig } from "./plugins-install-record-commit.js";
 import { refreshPluginRegistryAfterConfigMutation } from "./plugins-registry-refresh.js";
 
-function addInstalledPluginToAllowlist(cfg: AstroclawConfig, pluginId: string): AstroclawConfig {
+function addInstalledPluginToAllowlist(cfg: OpenClawConfig, pluginId: string): OpenClawConfig {
   const allow = cfg.plugins?.allow;
   if (!Array.isArray(allow) || allow.length === 0 || allow.includes(pluginId)) {
     return cfg;
@@ -43,7 +44,7 @@ function addInstalledPluginToAllowlist(cfg: AstroclawConfig, pluginId: string): 
   };
 }
 
-function removeInstalledPluginFromDenylist(cfg: AstroclawConfig, pluginId: string): AstroclawConfig {
+function removeInstalledPluginFromDenylist(cfg: OpenClawConfig, pluginId: string): OpenClawConfig {
   const deny = cfg.plugins?.deny;
   if (!Array.isArray(deny) || !deny.includes(pluginId)) {
     return cfg;
@@ -63,7 +64,7 @@ function removeInstalledPluginFromDenylist(cfg: AstroclawConfig, pluginId: strin
 }
 
 export type ConfigSnapshotForInstallPersist = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   baseHash: string | undefined;
 };
 
@@ -78,11 +79,12 @@ function sourceMatchesInstalledPath(params: {
 }
 
 function logShadowedNpmInstallWarning(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   pluginId: string;
   install: Omit<PluginInstallUpdate, "pluginId">;
   runtime: RuntimeEnv;
 }): void {
+  // Warn when a newly installed npm plugin is shadowed by an explicit config source.
   if (params.install.source !== "npm") {
     return;
   }
@@ -110,7 +112,7 @@ function logShadowedNpmInstallWarning(params: {
         `Warning: installed plugin "${params.pluginId}" is not the active source because a config-selected plugin with the same id is currently selected:`,
         `  active config source: ${shortenHomePath(active.source)}`,
         `  installed npm source: ${shortenHomePath(installedSource)}`,
-        "Run `astroclaw plugins doctor` for repair options.",
+        "Run `openclaw plugins doctor` for repair options.",
       ].join("\n"),
     ),
   );
@@ -161,7 +163,7 @@ function resolveReplacedManagedInstallRemoval(params: {
           [params.pluginId]: params.previousInstall,
         },
       },
-    } as AstroclawConfig,
+    } as OpenClawConfig,
     pluginId: params.pluginId,
     deleteFiles: true,
   });
@@ -184,10 +186,11 @@ export async function persistPluginInstall(params: {
   pluginId: string;
   install: Omit<PluginInstallUpdate, "pluginId">;
   enable?: boolean;
+  invalidateRuntimeCache?: boolean;
   successMessage?: string;
   warningMessage?: string;
   runtime?: RuntimeEnv;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const runtime = params.runtime ?? defaultRuntime;
   const installConfig =
     params.enable === false
@@ -260,6 +263,7 @@ export async function persistPluginInstall(params: {
     config: next,
     reason: "source-changed",
     installRecords: nextInstallRecords,
+    invalidateRuntimeCache: params.invalidateRuntimeCache,
     traceCommand: "install",
     logger: {
       warn: (message) => runtime.log(theme.warn(message)),
@@ -287,7 +291,7 @@ export async function persistHookPackInstall(params: {
   install: Omit<HookInstallUpdate, "hookId" | "hooks">;
   successMessage?: string;
   runtime?: RuntimeEnv;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const runtime = params.runtime ?? defaultRuntime;
   let next = enableInternalHookEntries(params.snapshot.config, params.hooks);
   next = recordHookInstall(next, {
