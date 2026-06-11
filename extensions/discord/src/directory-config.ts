@@ -1,8 +1,9 @@
-import { normalizeAccountId } from "astroclaw/plugin-sdk/account-id";
+// Discord helper module supports directory config behavior.
+import { normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 import {
   createResolvedDirectoryEntriesLister,
   type DirectoryConfigParams,
-} from "astroclaw/plugin-sdk/directory-config-runtime";
+} from "openclaw/plugin-sdk/directory-config-runtime";
 import {
   mergeDiscordAccountConfig,
   resolveDefaultDiscordAccountId,
