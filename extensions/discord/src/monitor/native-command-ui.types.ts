@@ -1,10 +1,11 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Discord type declarations define plugin contracts.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import type { ThreadBindingManager } from "./thread-bindings.js";
 
-type DiscordConfig = NonNullable<AstroclawConfig["channels"]>["discord"];
+type DiscordConfig = NonNullable<OpenClawConfig["channels"]>["discord"];
 
 export type DiscordCommandArgContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   discordConfig: DiscordConfig;
   accountId: string;
   sessionPrefix: string;
