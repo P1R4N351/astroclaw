@@ -1,10 +1,12 @@
+// Message-action threading helpers inherit reply/thread metadata only for
+// same-conversation sends and prepare outbound session mirroring.
 import { readStringParam } from "../../agents/tools/common.js";
 import type {
   ChannelId,
   ChannelThreadingAdapter,
   ChannelThreadingToolContext,
 } from "../../channels/plugins/types.public.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type {
   OutboundSessionRoute,
   ResolveOutboundSessionRouteParams,
@@ -17,10 +19,11 @@ function suppressesImplicitThreading(actionParams: Record<string, unknown>): boo
   return actionParams.topLevel === true || actionParams.threadId === null;
 }
 
+/** Resolves and writes the outbound thread id used by message-action sends. */
 export function resolveAndApplyOutboundThreadId(
   actionParams: Record<string, unknown>,
   context: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     to: string;
     accountId?: string | null;
     toolContext?: ChannelThreadingToolContext;
@@ -28,6 +31,7 @@ export function resolveAndApplyOutboundThreadId(
   },
 ): string | undefined {
   const threadId = readStringParam(actionParams, "threadId");
+  // `topLevel` and explicit null thread ids are caller opt-outs from inherited threading.
   if (!threadId && suppressesImplicitThreading(actionParams)) {
     return undefined;
   }
@@ -69,6 +73,7 @@ function isSameConversationTarget(
   return explicitTarget.trim() === currentChannelId;
 }
 
+/** Resolves and writes reply-to metadata for same-conversation message-action sends. */
 export function resolveAndApplyOutboundReplyToId(
   actionParams: Record<string, unknown>,
   context: {
@@ -108,6 +113,7 @@ export function resolveAndApplyOutboundReplyToId(
     if (hasRepliedRef?.value) {
       return undefined;
     }
+    // First-reply mode consumes the current inbound message once across batched sends.
     if (hasRepliedRef) {
       hasRepliedRef.value = true;
     }
@@ -122,8 +128,9 @@ export function resolveAndApplyOutboundReplyToId(
   return resolvedReplyToId;
 }
 
+/** Prepares outbound session mirroring metadata for message-action sends. */
 export async function prepareOutboundMirrorRoute(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: ChannelId;
   to: string;
   actionParams: Record<string, unknown>;
@@ -138,7 +145,7 @@ export async function prepareOutboundMirrorRoute(params: {
     params: ResolveOutboundSessionRouteParams,
   ) => Promise<OutboundSessionRoute | null>;
   ensureOutboundSessionEntry: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     channel: ChannelId;
     accountId?: string | null;
     route: OutboundSessionRoute;
@@ -178,10 +185,10 @@ export async function prepareOutboundMirrorRoute(params: {
     });
   }
   if (outboundRoute && !params.dryRun) {
-    params.actionParams.__sessionKey = outboundRoute.sessionKey;
+    params.actionParams["__sessionKey"] = outboundRoute.sessionKey;
   }
   if (params.agentId) {
-    params.actionParams.__agentId = params.agentId;
+    params.actionParams["__agentId"] = params.agentId;
   }
   return {
     resolvedThreadId,
