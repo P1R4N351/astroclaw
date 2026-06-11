@@ -1,26 +1,31 @@
+/**
+ * Prepares isolated Codex and Claude ACP wrapper commands for ACPX. The bridge
+ * copies safe auth/config state into plugin-owned homes and redacts diagnostics.
+ */
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
-import { readJsonFileWithFallback } from "astroclaw/plugin-sdk/json-store";
+import { readJsonFileWithFallback } from "openclaw/plugin-sdk/json-store";
 import {
   extractTrustedCodexProjectPaths,
   renderIsolatedCodexConfig,
 } from "./codex-trust-config.js";
+import { quoteCommandPart, splitCommandParts } from "./command-line.js";
 import { resolveAcpxPluginRoot } from "./config.js";
 import type { ResolvedAcpxPluginConfig } from "./config.js";
 import {
-  ASTROCLAW_ACPX_LEASE_ID_ARG,
-  ASTROCLAW_ACPX_LEASE_ID_ENV,
-  ASTROCLAW_GATEWAY_INSTANCE_ID_ARG,
+  OPENCLAW_ACPX_LEASE_ID_ARG,
+  OPENCLAW_ACPX_LEASE_ID_ENV,
+  OPENCLAW_GATEWAY_INSTANCE_ID_ARG,
 } from "./process-lease.js";
 
 const CODEX_ACP_PACKAGE = "@zed-industries/codex-acp";
 const CODEX_ACP_BIN = "codex-acp";
 const CLAUDE_ACP_PACKAGE = "@agentclientprotocol/claude-agent-acp";
 const CLAUDE_ACP_BIN = "claude-agent-acp";
-const RUN_CONFIGURED_COMMAND_SENTINEL = "--astroclaw-run-configured";
+const RUN_CONFIGURED_COMMAND_SENTINEL = "--openclaw-run-configured";
 const requireFromHere = createRequire(import.meta.url);
 
 type PackageManifest = {
@@ -37,64 +42,13 @@ function readSelfManifest(): PackageManifest {
 function readManifestDependencyVersion(packageName: string): string {
   const version = readSelfManifest().dependencies?.[packageName];
   if (typeof version !== "string" || version.trim() === "") {
-    throw new Error(`Missing ${packageName} dependency version in @astroclaw/acpx manifest`);
+    throw new Error(`Missing ${packageName} dependency version in @openclaw/acpx manifest`);
   }
   return version;
 }
 
 const CODEX_ACP_PACKAGE_VERSION = readManifestDependencyVersion(CODEX_ACP_PACKAGE);
 const CLAUDE_ACP_PACKAGE_VERSION = readManifestDependencyVersion(CLAUDE_ACP_PACKAGE);
-
-function quoteCommandPart(value: string): string {
-  return JSON.stringify(value);
-}
-
-function splitCommandParts(value: string): string[] {
-  const parts: string[] = [];
-  let current = "";
-  let quote: "'" | '"' | null = null;
-  let escaping = false;
-
-  for (const ch of value) {
-    if (escaping) {
-      current += ch;
-      escaping = false;
-      continue;
-    }
-    if (ch === "\\" && quote !== "'") {
-      escaping = true;
-      continue;
-    }
-    if (quote) {
-      if (ch === quote) {
-        quote = null;
-      } else {
-        current += ch;
-      }
-      continue;
-    }
-    if (ch === "'" || ch === '"') {
-      quote = ch;
-      continue;
-    }
-    if (/\s/.test(ch)) {
-      if (current) {
-        parts.push(current);
-        current = "";
-      }
-      continue;
-    }
-    current += ch;
-  }
-
-  if (escaping) {
-    current += "\\";
-  }
-  if (current) {
-    parts.push(current);
-  }
-  return parts;
-}
 
 function basename(value: string): string {
   return value.split(/[\\/]/).pop() ?? value;
@@ -143,7 +97,7 @@ async function resolveInstalledAcpPackageBinPath(
 }
 
 async function resolveInstalledCodexAcpBinPath(): Promise<string | undefined> {
-  // Keep Astroclaw's isolated CODEX_HOME wrapper, but launch the plugin-local
+  // Keep OpenClaw's isolated CODEX_HOME wrapper, but launch the plugin-local
   // Codex ACP adapter when the package dependency is available.
   return await resolveInstalledAcpPackageBinPath(CODEX_ACP_PACKAGE, CODEX_ACP_BIN);
 }
@@ -287,12 +241,12 @@ ${params.envSetup}
 const stderrLogFileNamePrefix = ${params.stderrLogFileNamePrefix ? JSON.stringify(params.stderrLogFileNamePrefix) : "undefined"};
 const stderrLogMaxChars = 256 * 1024;
 
-const astroClawWrapperArgs = new Set([
-  ${quoteCommandPart(ASTROCLAW_ACPX_LEASE_ID_ARG)},
-  ${quoteCommandPart(ASTROCLAW_GATEWAY_INSTANCE_ID_ARG)},
+const openClawWrapperArgs = new Set([
+  ${quoteCommandPart(OPENCLAW_ACPX_LEASE_ID_ARG)},
+  ${quoteCommandPart(OPENCLAW_GATEWAY_INSTANCE_ID_ARG)},
 ]);
 
-function readAstroclawWrapperArg(args, name) {
+function readOpenClawWrapperArg(args, name) {
   const index = args.indexOf(name);
   if (index < 0) {
     return undefined;
@@ -311,8 +265,8 @@ function resolveStderrLogPath(args) {
     return undefined;
   }
   const leaseId =
-    process.env[${JSON.stringify(ASTROCLAW_ACPX_LEASE_ID_ENV)}] ||
-    readAstroclawWrapperArg(args, ${quoteCommandPart(ASTROCLAW_ACPX_LEASE_ID_ARG)}) ||
+    process.env[${JSON.stringify(OPENCLAW_ACPX_LEASE_ID_ENV)}] ||
+    readOpenClawWrapperArg(args, ${quoteCommandPart(OPENCLAW_ACPX_LEASE_ID_ARG)}) ||
     "pid-" + process.pid;
   const fileName = stderrLogFileNamePrefix + "." + safeDiagnosticFilePart(leaseId) + ".log";
   return fileURLToPath(new URL("./" + fileName, import.meta.url));
@@ -412,11 +366,11 @@ function finishStderrLog() {
   writeRedactedStderrLog(text);
 }
 
-function stripAstroclawWrapperArgs(args) {
+function stripOpenClawWrapperArgs(args) {
   const stripped = [];
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];
-    if (astroClawWrapperArgs.has(value)) {
+    if (openClawWrapperArgs.has(value)) {
       index += 1;
       continue;
     }
@@ -436,7 +390,7 @@ try {
   // Stderr capture is diagnostic-only; never break the ACP adapter.
 }
 
-const configuredArgs = stripAstroclawWrapperArgs(rawConfiguredArgs);
+const configuredArgs = stripOpenClawWrapperArgs(rawConfiguredArgs);
 
 function resolveNpmCliPath() {
   const candidate = path.resolve(
@@ -473,7 +427,7 @@ const args =
     : [...defaultArgs, ...configuredArgs];
 
 if (!command) {
-  console.error("[astroclaw] missing configured ${params.displayName} ACP command");
+  console.error("[openclaw] missing configured ${params.displayName} ACP command");
   process.exit(1);
 }
 
@@ -542,7 +496,7 @@ const parentWatcher =
 parentWatcher?.unref?.();
 
 child.on("error", (error) => {
-  console.error(\`[astroclaw] failed to launch ${params.displayName} ACP wrapper: \${error.message}\`);
+  console.error(\`[openclaw] failed to launch ${params.displayName} ACP wrapper: \${error.message}\`);
   process.exit(1);
 });
 
@@ -578,6 +532,35 @@ function buildCodexAcpWrapperScript(installedBinPath?: string): string {
     installedBinPath,
     stderrLogFileNamePrefix: "codex-acp-wrapper.stderr",
     envSetup: `const codexHome = fileURLToPath(new URL("./codex-home/", import.meta.url));
+const codexAuthPath = fileURLToPath(new URL("./codex-home/auth.json", import.meta.url));
+const codexApiKey = (process.env.CODEX_API_KEY || process.env.OPENAI_API_KEY || "").trim();
+let shouldWriteCodexApiKeyAuth = false;
+if (codexApiKey) {
+  if (!existsSync(codexAuthPath)) {
+    shouldWriteCodexApiKeyAuth = true;
+  } else {
+    try {
+      const existingCodexAuth = JSON.parse(readFileSync(codexAuthPath, "utf8"));
+      shouldWriteCodexApiKeyAuth =
+        !existingCodexAuth ||
+        typeof existingCodexAuth !== "object" ||
+        typeof existingCodexAuth.OPENAI_API_KEY === "string";
+    } catch {
+      shouldWriteCodexApiKeyAuth = true;
+    }
+  }
+}
+if (shouldWriteCodexApiKeyAuth) {
+  writeFileSync(
+    codexAuthPath,
+    JSON.stringify({
+      OPENAI_API_KEY: codexApiKey,
+      tokens: null,
+      last_refresh: null,
+    }) + "\\n",
+    { mode: 0o600 },
+  );
+}
 const env = {
   ...process.env,
   CODEX_HOME: codexHome,
@@ -588,7 +571,7 @@ const env = {
 function buildClaudeAcpWrapperScript(installedBinPath?: string): string {
   return buildAdapterWrapperScript({
     displayName: "Claude",
-    // This package is patched in Astroclaw; fallback must not float to an unpatched newer release.
+    // This package is patched in OpenClaw; fallback must not float to an unpatched newer release.
     packageSpec: `${CLAUDE_ACP_PACKAGE}@${CLAUDE_ACP_PACKAGE_VERSION}`,
     binName: CLAUDE_ACP_BIN,
     installedBinPath,
@@ -745,6 +728,7 @@ function buildClaudeAcpWrapperCommand(wrapperPath: string, configuredCommand?: s
   return configuredCommand?.trim() || buildWrapperCommand(wrapperPath);
 }
 
+/** Prepare ACPX agent commands and isolated auth homes for Codex/Claude adapters. */
 export async function prepareAcpxCodexAuthConfig(params: {
   pluginConfig: ResolvedAcpxPluginConfig;
   stateDir: string;
