@@ -1,4 +1,5 @@
-import { defineBundledChannelEntry } from "astroclaw/plugin-sdk/channel-entry-contract";
+// Whatsapp plugin entrypoint registers its OpenClaw integration.
+import { defineBundledChannelEntry } from "openclaw/plugin-sdk/channel-entry-contract";
 
 export default defineBundledChannelEntry({
   id: "whatsapp",
@@ -10,7 +11,7 @@ export default defineBundledChannelEntry({
     exportName: "whatsappPlugin",
   },
   runtime: {
-    specifier: "./runtime-api.js",
+    specifier: "./runtime-setter-api.js",
     exportName: "setWhatsAppRuntime",
   },
 });
