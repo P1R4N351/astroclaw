@@ -1,9 +1,15 @@
+/**
+ * Minimal setup command.
+ *
+ * Ensures config, default workspace, and session directories exist without
+ * running the full onboarding wizard.
+ */
 import fs from "node:fs/promises";
 import JSON5 from "json5";
 import { z } from "zod";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { OptionalBootstrapFileName } from "../config/types.agent-defaults.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";
@@ -34,7 +40,7 @@ type SetupCommandDeps = {
   mkdir?: (dir: string, options: { recursive: true }) => Promise<unknown>;
   resolveSessionTranscriptsDir?: () => string | Promise<string>;
   replaceConfigFile?: (params: {
-    nextConfig: AstroclawConfig;
+    nextConfig: OpenClawConfig;
     afterWrite: { mode: "auto" };
   }) => Promise<unknown>;
 };
@@ -53,6 +59,8 @@ const configLoggingModuleLoader = createLazyImportLoader<ConfigLoggingModule>(
   () => import("../config/logging.js"),
 );
 
+// Keep setup's cold path small; config/workspace modules are loaded only when
+// their default dependency is actually needed.
 function loadAgentWorkspaceModule(): Promise<AgentWorkspaceModule> {
   return agentWorkspaceModuleLoader.load();
 }
@@ -89,7 +97,7 @@ async function ensureDefaultAgentWorkspace(
   return ensureAgentWorkspace(params);
 }
 
-async function writeDefaultConfigFile(config: AstroclawConfig): Promise<void> {
+async function writeDefaultConfigFile(config: OpenClawConfig): Promise<void> {
   const { replaceConfigFile } = await loadConfigIOModule();
   await replaceConfigFile({
     nextConfig: config,
@@ -117,17 +125,20 @@ async function resolveDefaultSessionTranscriptsDir(): Promise<string> {
 
 async function readConfigFileRaw(configPath: string): Promise<{
   exists: boolean;
-  parsed: AstroclawConfig;
+  parsed: OpenClawConfig;
 }> {
   try {
     const raw = await fs.readFile(configPath, "utf-8");
     const parsed = safeParseWithSchema(JsonRecordSchema, JSON5.parse(raw));
-    return { exists: true, parsed: (parsed ?? {}) as AstroclawConfig };
+    return { exists: true, parsed: (parsed ?? {}) as OpenClawConfig };
   } catch {
+    // Missing or malformed config should not block setup; setup writes only the
+    // minimal defaults it owns and leaves deeper repair to doctor/onboard.
     return { exists: false, parsed: {} };
   }
 }
 
+/** Prepares config, workspace, and session directories for a usable installation. */
 export async function setupCommand(
   opts?: { workspace?: string },
   runtime: RuntimeEnv = defaultRuntime,
@@ -147,7 +158,7 @@ export async function setupCommand(
   const workspace =
     desiredWorkspace ?? defaults.workspace ?? (await resolveDefaultAgentWorkspaceDir(deps));
 
-  const next: AstroclawConfig = {
+  const next: OpenClawConfig = {
     ...cfg,
     agents: {
       ...cfg.agents,
@@ -167,6 +178,8 @@ export async function setupCommand(
     defaults.workspace !== workspace ||
     cfg.gateway?.mode !== next.gateway?.mode
   ) {
+    // Preserve all existing config fields and touch only workspace/gateway mode
+    // defaults that this command owns.
     const replaceConfig =
       deps.replaceConfigFile ?? ((params) => writeDefaultConfigFile(params.nextConfig));
     await replaceConfig({
@@ -209,9 +222,9 @@ export async function setupCommand(
   runtime.log(`Sessions OK: ${shortenHomePath(sessionsDir)}`);
   runtime.log("");
   runtime.log("Setup complete: config, workspace, and session directories are ready.");
-  runtime.log(`Next guided path: ${formatCliCommand("astroclaw onboard")}.`);
+  runtime.log(`Next guided path: ${formatCliCommand("openclaw onboard")}.`);
   runtime.log(
-    `Next targeted changes: ${formatCliCommand("astroclaw configure")} for models, channels, Gateway, plugins, skills, and health checks.`,
+    `Next targeted changes: ${formatCliCommand("openclaw configure")} for models, channels, Gateway, plugins, skills, and health checks.`,
   );
-  runtime.log(`Add a chat channel later: ${formatCliCommand("astroclaw channels add")}.`);
+  runtime.log(`Add a chat channel later: ${formatCliCommand("openclaw channels add")}.`);
 }
