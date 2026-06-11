@@ -1,13 +1,14 @@
+// Lmstudio plugin module implements runtime behavior.
 import {
   CUSTOM_LOCAL_AUTH_MARKER,
   isKnownEnvApiKeyMarker,
   isNonSecretApiKeyMarker,
   normalizeApiKeyConfig,
   normalizeOptionalSecretInput,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { resolveConfiguredSecretInputString } from "astroclaw/plugin-sdk/secret-input-runtime";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-auth";
+import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
+import { resolveConfiguredSecretInputString } from "openclaw/plugin-sdk/secret-input-runtime";
 import {
   LMSTUDIO_DEFAULT_API_KEY_ENV_VAR,
   LMSTUDIO_LOCAL_API_KEY_PLACEHOLDER,
@@ -71,9 +72,10 @@ function shouldSuppressResolvedRuntimeApiKeyForHeaderAuth(
 }
 
 export async function resolveLmstudioConfiguredApiKey(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   path?: string;
+  allowUnresolved?: boolean;
 }): Promise<string | undefined> {
   const providerConfig = params.config?.models?.providers?.[LMSTUDIO_PROVIDER_ID];
   const apiKeyInput = providerConfig?.apiKey;
@@ -81,14 +83,32 @@ export async function resolveLmstudioConfiguredApiKey(params: {
     return undefined;
   }
 
+  const path = params.path ?? "models.providers.lmstudio.apiKey";
+  const env = params.env ?? process.env;
   const directApiKey = normalizeOptionalSecretInput(apiKeyInput);
   if (directApiKey !== undefined) {
-    const trimmed = normalizeApiKeyConfig(directApiKey).trim();
+    const resolved = params.config
+      ? await resolveConfiguredSecretInputString({
+          config: params.config,
+          env,
+          value: directApiKey,
+          path,
+          unresolvedReasonStyle: "detailed",
+        })
+      : { value: directApiKey };
+    if (resolved.unresolvedRefReason) {
+      if (params.allowUnresolved) {
+        return undefined;
+      }
+      throw new Error(`${path}: ${resolved.unresolvedRefReason}`);
+    }
+    const resolvedValue = normalizeOptionalSecretInput(resolved.value);
+    const trimmed = resolvedValue ? normalizeApiKeyConfig(resolvedValue).trim() : "";
     if (!trimmed) {
       return undefined;
     }
     if (isKnownEnvApiKeyMarker(trimmed)) {
-      const envValue = normalizeOptionalSecretInput((params.env ?? process.env)[trimmed]);
+      const envValue = normalizeOptionalSecretInput(env[trimmed]);
       return envValue;
     }
     return isNonSecretApiKeyMarker(trimmed) ? undefined : trimmed;
@@ -97,15 +117,17 @@ export async function resolveLmstudioConfiguredApiKey(params: {
   if (!params.config) {
     return undefined;
   }
-  const path = params.path ?? "models.providers.lmstudio.apiKey";
   const resolved = await resolveConfiguredSecretInputString({
     config: params.config,
-    env: params.env ?? process.env,
+    env,
     value: apiKeyInput,
     path,
     unresolvedReasonStyle: "detailed",
   });
   if (resolved.unresolvedRefReason) {
+    if (params.allowUnresolved) {
+      return undefined;
+    }
     throw new Error(`${path}: ${resolved.unresolvedRefReason}`);
   }
   const resolvedValue = normalizeOptionalSecretInput(resolved.value);
@@ -120,7 +142,7 @@ export async function resolveLmstudioConfiguredApiKey(params: {
 }
 
 export async function resolveLmstudioProviderHeaders(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   headers?: unknown;
   path?: string;
@@ -161,7 +183,7 @@ export async function resolveLmstudioProviderHeaders(params: {
  * Use this as the standard auth setup step before discovery or model load calls.
  */
 export async function resolveLmstudioRequestContext(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   env?: NodeJS.ProcessEnv;
   providerHeaders?: unknown;
@@ -188,7 +210,7 @@ export async function resolveLmstudioRequestContext(params: {
  * Resolves LM Studio runtime API key from config.
  */
 export async function resolveLmstudioRuntimeApiKey(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   env?: NodeJS.ProcessEnv;
   headers?: unknown;
@@ -205,6 +227,7 @@ export async function resolveLmstudioRuntimeApiKey(params: {
     configuredApiKeyPromise ??= resolveLmstudioConfiguredApiKey({
       config,
       env: params.env,
+      allowUnresolved: hasAuthorizationHeader,
     });
     return await configuredApiKeyPromise;
   };
@@ -221,7 +244,7 @@ export async function resolveLmstudioRuntimeApiKey(params: {
       [
         "LM Studio API key is required.",
         `Set models.providers.lmstudio.apiKey (for example "${envMarker}")`,
-        'or run "astroclaw models auth lmstudio".',
+        'or run "openclaw models auth lmstudio".',
       ].join(" "),
     );
   };
