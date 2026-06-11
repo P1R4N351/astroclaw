@@ -1,19 +1,21 @@
+// Slack plugin module implements accounts behavior.
 import {
   createAccountListHelpers,
   DEFAULT_ACCOUNT_ID,
+  hasConfiguredAccountValue,
   normalizeAccountId,
   resolveMergedAccountConfig,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/account-resolution";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/account-resolution";
 import {
   mapAllowFromEntries,
   normalizeChannelDmPolicy,
   resolveChannelDmAllowFrom,
   resolveChannelDmPolicy,
   type ChannelDmPolicy,
-} from "astroclaw/plugin-sdk/channel-config-helpers";
-import { resolveAccountEntry } from "astroclaw/plugin-sdk/routing";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-config-helpers";
+import { resolveAccountEntry } from "openclaw/plugin-sdk/routing";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { SlackAccountSurfaceFields } from "./account-surface-fields.js";
 import type { SlackAccountConfig } from "./runtime-api.js";
 import { resolveSlackAppToken, resolveSlackBotToken, resolveSlackUserToken } from "./token.js";
@@ -40,31 +42,112 @@ export type SlackConfigAccessorAccount = {
   defaultTo: string | undefined;
 };
 
-const { listAccountIds, resolveDefaultAccountId } = createAccountListHelpers("slack");
+const { listAccountIds, resolveDefaultAccountId } = createAccountListHelpers("slack", {
+  hasImplicitDefaultAccount: (cfg) => {
+    const slack = cfg.channels?.slack;
+    const hasBotToken =
+      hasConfiguredAccountValue(slack?.botToken) ||
+      hasConfiguredAccountValue(process.env.SLACK_BOT_TOKEN);
+    if (!hasBotToken) {
+      return false;
+    }
+    if (slack?.mode === "http") {
+      return hasConfiguredAccountValue(slack.signingSecret);
+    }
+    return (
+      hasConfiguredAccountValue(slack?.appToken) ||
+      hasConfiguredAccountValue(process.env.SLACK_APP_TOKEN)
+    );
+  },
+});
 export const listSlackAccountIds = listAccountIds;
 export const resolveDefaultSlackAccountId = resolveDefaultAccountId;
 
 function resolveSlackAccountConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
 ): SlackAccountConfig | undefined {
   return resolveAccountEntry(cfg.channels?.slack?.accounts, accountId);
 }
 
+type SlackStreamingConfig = NonNullable<SlackAccountConfig["streaming"]>;
+type SlackStreamingConfigValue = SlackStreamingConfig | boolean | string;
+
+function asStreamingConfigObject(value: unknown): SlackStreamingConfig | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as SlackStreamingConfig)
+    : undefined;
+}
+
+function asLegacyStreamingScalar(value: unknown): boolean | string | undefined {
+  return typeof value === "boolean" || typeof value === "string" ? value : undefined;
+}
+
+function mergeSlackStreamingConfig(
+  base: unknown,
+  account: unknown,
+): SlackStreamingConfigValue | undefined {
+  const accountObject = asStreamingConfigObject(account);
+  if (account !== undefined && !accountObject) {
+    return asLegacyStreamingScalar(account);
+  }
+  const baseObject = asStreamingConfigObject(base);
+  if (base !== undefined && !baseObject) {
+    return accountObject ?? asLegacyStreamingScalar(base);
+  }
+  const baseConfig = baseObject;
+  const accountConfig = accountObject;
+  if (!baseConfig || !accountConfig) {
+    return accountConfig ?? baseConfig;
+  }
+  return {
+    ...baseConfig,
+    ...accountConfig,
+    ...(baseConfig.preview || accountConfig.preview
+      ? { preview: { ...baseConfig.preview, ...accountConfig.preview } }
+      : {}),
+    ...(baseConfig.progress || accountConfig.progress
+      ? { progress: { ...baseConfig.progress, ...accountConfig.progress } }
+      : {}),
+    ...(baseConfig.block || accountConfig.block
+      ? {
+          block: {
+            ...baseConfig.block,
+            ...accountConfig.block,
+            ...(baseConfig.block?.coalesce || accountConfig.block?.coalesce
+              ? {
+                  coalesce: {
+                    ...baseConfig.block?.coalesce,
+                    ...accountConfig.block?.coalesce,
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 export function mergeSlackAccountConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
 ): SlackAccountConfig {
-  return resolveMergedAccountConfig<SlackAccountConfig>({
+  const accountConfig = resolveSlackAccountConfig(cfg, accountId);
+  const merged = resolveMergedAccountConfig<SlackAccountConfig>({
     channelConfig: cfg.channels?.slack as SlackAccountConfig,
     accounts: cfg.channels?.slack?.accounts as Record<string, Partial<SlackAccountConfig>>,
     accountId,
     nestedObjectKeys: ["botLoopProtection"],
   });
+  const streaming = mergeSlackStreamingConfig(
+    (cfg.channels?.slack as Record<string, unknown> | undefined)?.streaming,
+    (accountConfig as Record<string, unknown> | undefined)?.streaming,
+  );
+  return streaming !== undefined ? ({ ...merged, streaming } as SlackAccountConfig) : merged;
 }
 
 export function resolveSlackAccountAllowFrom(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): string[] | undefined {
   const accountId = normalizeAccountId(
@@ -80,7 +163,7 @@ export function resolveSlackAccountAllowFrom(params: {
 }
 
 export function resolveSlackConfigAccessorAccount(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): SlackConfigAccessorAccount {
   const accountId = normalizeAccountId(
@@ -94,7 +177,7 @@ export function resolveSlackConfigAccessorAccount(params: {
 }
 
 export function resolveSlackAccountDmPolicy(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): ChannelDmPolicy | undefined {
   const accountId = normalizeAccountId(
@@ -111,7 +194,7 @@ export function resolveSlackAccountDmPolicy(params: {
 }
 
 export function resolveSlackAccount(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): ResolvedSlackAccount {
   const accountId = normalizeAccountId(
@@ -173,7 +256,7 @@ export function resolveSlackAccount(params: {
   };
 }
 
-export function listEnabledSlackAccounts(cfg: AstroclawConfig): ResolvedSlackAccount[] {
+export function listEnabledSlackAccounts(cfg: OpenClawConfig): ResolvedSlackAccount[] {
   return listSlackAccountIds(cfg)
     .map((accountId) => resolveSlackAccount({ cfg, accountId }))
     .filter((account) => account.enabled);
