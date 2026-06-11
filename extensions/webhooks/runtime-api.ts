@@ -1,3 +1,4 @@
+// Webhooks API module exposes the plugin public contract.
 export {
   createFixedWindowRateLimiter,
   createWebhookInFlightLimiter,
@@ -10,6 +11,6 @@ export {
   WEBHOOK_IN_FLIGHT_DEFAULTS,
   WEBHOOK_RATE_LIMIT_DEFAULTS,
   type WebhookInFlightLimiter,
-} from "astroclaw/plugin-sdk/webhook-ingress";
-export { resolveConfiguredSecretInputString } from "astroclaw/plugin-sdk/secret-input-runtime";
-export type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/webhook-ingress";
+export { resolveConfiguredSecretInputString } from "openclaw/plugin-sdk/secret-input-runtime";
+export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
