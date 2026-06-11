@@ -1,9 +1,10 @@
-import { resolveApprovalOverGateway } from "astroclaw/plugin-sdk/approval-gateway-runtime";
-import type { ExecApprovalReplyDecision } from "astroclaw/plugin-sdk/approval-reply-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Telegram plugin module implements exec approval resolver behavior.
+import { resolveApprovalOverGateway } from "openclaw/plugin-sdk/approval-gateway-runtime";
+import type { ExecApprovalReplyDecision } from "openclaw/plugin-sdk/approval-reply-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 
 export type ResolveTelegramExecApprovalParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   approvalId: string;
   decision: ExecApprovalReplyDecision;
   senderId?: string | null;
