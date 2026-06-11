@@ -1,13 +1,14 @@
+// Slack plugin module implements account inspect behavior.
 import {
   DEFAULT_ACCOUNT_ID,
   normalizeAccountId,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/account-resolution";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/account-resolution";
 import {
   hasConfiguredSecretInput,
   normalizeSecretInputString,
-} from "astroclaw/plugin-sdk/secret-input";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/secret-input";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { SlackAccountSurfaceFields } from "./account-surface-fields.js";
 import {
   mergeSlackAccountConfig,
@@ -65,7 +66,7 @@ function inspectSlackToken(value: unknown): {
 }
 
 export function inspectSlackAccount(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   envBotToken?: string | null;
   envAppToken?: string | null;
