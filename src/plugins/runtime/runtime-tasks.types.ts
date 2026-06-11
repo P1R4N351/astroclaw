@@ -1,6 +1,7 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+// Runtime task types describe plugin task runtime config and invocation options.
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { TaskDeliveryState } from "../../tasks/task-registry.types.js";
-import type { AstroclawPluginToolContext } from "../tool-types.js";
+import type { OpenClawPluginToolContext } from "../tool-types.js";
 import type { PluginRuntimeTaskFlow } from "./runtime-taskflow.types.js";
 import type {
   TaskFlowDetail,
@@ -27,7 +28,7 @@ export type BoundTaskRunsRuntime = {
   list: () => TaskRunView[];
   findLatest: () => TaskRunDetail | undefined;
   resolve: (token: string) => TaskRunDetail | undefined;
-  cancel: (params: { taskId: string; cfg: AstroclawConfig }) => Promise<TaskRunCancelResult>;
+  cancel: (params: { taskId: string; cfg: OpenClawConfig }) => Promise<TaskRunCancelResult>;
 };
 
 export type PluginRuntimeTaskRuns = {
@@ -36,7 +37,7 @@ export type PluginRuntimeTaskRuns = {
     requesterOrigin?: TaskDeliveryState["requesterOrigin"];
   }) => BoundTaskRunsRuntime;
   fromToolContext: (
-    ctx: Pick<AstroclawPluginToolContext, "sessionKey" | "deliveryContext">,
+    ctx: Pick<OpenClawPluginToolContext, "sessionKey" | "deliveryContext">,
   ) => BoundTaskRunsRuntime;
 };
 
@@ -56,7 +57,7 @@ export type PluginRuntimeTaskFlows = {
     requesterOrigin?: TaskDeliveryState["requesterOrigin"];
   }) => BoundTaskFlowsRuntime;
   fromToolContext: (
-    ctx: Pick<AstroclawPluginToolContext, "sessionKey" | "deliveryContext">,
+    ctx: Pick<OpenClawPluginToolContext, "sessionKey" | "deliveryContext">,
   ) => BoundTaskFlowsRuntime;
 };
 
