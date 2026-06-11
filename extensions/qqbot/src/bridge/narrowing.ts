@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/core";
+// Qqbot plugin module implements narrowing behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { PluginRuntime } from "openclaw/plugin-sdk/core";
 import type { GatewayAccount } from "../engine/types.js";
 import type { ResolvedQQBotAccount } from "../types.js";
 
@@ -18,11 +19,11 @@ export function toGatewayAccount(account: ResolvedQQBotAccount): GatewayAccount 
 }
 
 /**
- * Persist Astroclaw config through the injected plugin runtime (typed entry point).
+ * Persist OpenClaw config through the injected plugin runtime (typed entry point).
  */
-export async function writeAstroclawConfigThroughRuntime(
+export async function writeOpenClawConfigThroughRuntime(
   runtime: PluginRuntime,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): Promise<void> {
   await runtime.config.replaceConfigFile({
     nextConfig: cfg,
