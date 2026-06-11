@@ -1,9 +1,10 @@
+// Sglang plugin entrypoint registers its OpenClaw integration.
 import {
   definePluginEntry,
-  type AstroclawPluginApi,
+  type OpenClawPluginApi,
   type ProviderAuthMethodNonInteractiveContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { buildProviderReplayFamilyHooks } from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { buildProviderReplayFamilyHooks } from "openclaw/plugin-sdk/provider-model-shared";
 import {
   SGLANG_DEFAULT_API_KEY_ENV_VAR,
   SGLANG_DEFAULT_BASE_URL,
@@ -15,14 +16,14 @@ import {
 const PROVIDER_ID = "sglang";
 
 async function loadProviderSetup() {
-  return await import("astroclaw/plugin-sdk/provider-setup");
+  return await import("openclaw/plugin-sdk/provider-setup");
 }
 
 export default definePluginEntry({
   id: "sglang",
   name: "SGLang Provider",
   description: "Bundled SGLang provider plugin",
-  register(api: AstroclawPluginApi) {
+  register(api: OpenClawPluginApi) {
     api.registerProvider({
       id: PROVIDER_ID,
       label: "SGLang",
