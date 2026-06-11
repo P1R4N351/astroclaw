@@ -1,5 +1,8 @@
+/**
+ * Codex CLI and app-server bundle MCP projection helpers.
+ */
 import { normalizeConfiguredMcpServers } from "../../config/mcp-config-normalize.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { BundleMcpConfig, BundleMcpServerConfig } from "../../plugins/bundle-mcp.js";
 import { isValidAgentId, normalizeAgentId } from "../../routing/session-key.js";
 import { buildCodexMcpServersConfig, normalizeCodexMcpServerConfig } from "../codex-mcp-config.js";
@@ -54,6 +57,7 @@ function isCodexMcpServerAllowedForAgent(
   return agentIds.includes(normalizeAgentId(options.agentId));
 }
 
+/** Returns Codex CLI args with TOML MCP server overrides injected. */
 export function injectCodexMcpConfigArgs(
   args: string[] | undefined,
   config: BundleMcpConfig,
@@ -75,7 +79,7 @@ export function injectCodexMcpConfigArgs(
  * plugin thread-config `apps` patch, so they must not be re-projected here.
  */
 export function buildCodexUserMcpServersThreadConfigPatch(
-  cfg: AstroclawConfig | undefined,
+  cfg: OpenClawConfig | undefined,
   options?: CodexUserMcpServersProjectionOptions,
 ): { mcp_servers: CodexThreadConfigObject } | undefined {
   const userServers = normalizeConfiguredMcpServers(cfg?.mcp?.servers);
@@ -85,6 +89,9 @@ export function buildCodexUserMcpServersThreadConfigPatch(
   }
   const mcp_servers: CodexThreadConfigObject = {};
   for (const [name, server] of entries) {
+    if (server.enabled === false) {
+      continue;
+    }
     if (!isCodexMcpServerAllowedForAgent(server as BundleMcpServerConfig, options)) {
       continue;
     }
