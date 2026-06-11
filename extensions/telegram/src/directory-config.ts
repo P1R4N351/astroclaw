@@ -1,7 +1,8 @@
-import { normalizeAccountId } from "astroclaw/plugin-sdk/account-core";
-import { mapAllowFromEntries } from "astroclaw/plugin-sdk/channel-config-helpers";
-import type { AstroclawConfig, TelegramAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createResolvedDirectoryEntriesLister } from "astroclaw/plugin-sdk/directory-config-runtime";
+// Telegram helper module supports directory config behavior.
+import { normalizeAccountId } from "openclaw/plugin-sdk/account-core";
+import { mapAllowFromEntries } from "openclaw/plugin-sdk/channel-config-helpers";
+import type { OpenClawConfig, TelegramAccountConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createResolvedDirectoryEntriesLister } from "openclaw/plugin-sdk/directory-config-runtime";
 import { mergeTelegramAccountConfig } from "./account-config.js";
 import { resolveDefaultTelegramAccountSelection } from "./account-selection.js";
 
@@ -10,7 +11,7 @@ type TelegramDirectoryAccount = {
 };
 
 function resolveTelegramDirectoryAccount(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string | null,
 ): TelegramDirectoryAccount {
   const resolvedAccountId = accountId?.trim()
