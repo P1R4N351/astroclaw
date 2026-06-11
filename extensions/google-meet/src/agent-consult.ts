@@ -1,6 +1,7 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import type { PluginRuntime, RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";
+// Google Meet plugin module implements agent consult behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import type { PluginRuntime, RuntimeLogger } from "openclaw/plugin-sdk/plugin-runtime";
 import {
   buildRealtimeVoiceAgentConsultWorkingResponse,
   consultRealtimeVoiceAgent,
@@ -11,9 +12,9 @@ import {
   type RealtimeVoiceToolCallEvent,
   type RealtimeVoiceTool,
   type TalkEventInput,
-} from "astroclaw/plugin-sdk/realtime-voice";
-import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/realtime-voice";
+import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { GoogleMeetConfig, GoogleMeetToolPolicy } from "./config.js";
 
 export const GOOGLE_MEET_AGENT_CONSULT_TOOL_NAME = REALTIME_VOICE_AGENT_CONSULT_TOOL_NAME;
@@ -42,9 +43,9 @@ export function submitGoogleMeetConsultWorkingResponse(
   });
 }
 
-export async function consultAstroclawAgentForGoogleMeet(params: {
+export async function consultOpenClawAgentForGoogleMeet(params: {
   config: GoogleMeetConfig;
-  fullConfig: AstroclawConfig;
+  fullConfig: OpenClawConfig;
   runtime: PluginRuntime;
   logger: RuntimeLogger;
   meetingSessionId: string;
@@ -83,7 +84,7 @@ export function handleGoogleMeetRealtimeConsultToolCall(params: {
   session: RealtimeVoiceBridgeSession;
   event: RealtimeVoiceToolCallEvent;
   config: GoogleMeetConfig;
-  fullConfig: AstroclawConfig;
+  fullConfig: OpenClawConfig;
   runtime: PluginRuntime;
   logger: RuntimeLogger;
   meetingSessionId: string;
@@ -125,7 +126,7 @@ export function handleGoogleMeetRealtimeConsultToolCall(params: {
     payload: { name: params.event.name, status: "working" },
   });
   submitGoogleMeetConsultWorkingResponse(params.session, callId);
-  void consultAstroclawAgentForGoogleMeet({
+  void consultOpenClawAgentForGoogleMeet({
     config: params.config,
     fullConfig: params.fullConfig,
     runtime: params.runtime,
@@ -144,7 +145,7 @@ export function handleGoogleMeetRealtimeConsultToolCall(params: {
       });
       params.session.submitToolResult(callId, result);
     })
-    .catch((error: Error) => {
+    .catch((error: unknown) => {
       params.onTalkEvent?.({
         type: "tool.error",
         callId,
