@@ -1,4 +1,5 @@
-import { defineSingleProviderPluginEntry } from "astroclaw/plugin-sdk/provider-entry";
+// Qianfan plugin entrypoint registers its OpenClaw integration.
+import { defineSingleProviderPluginEntry } from "openclaw/plugin-sdk/provider-entry";
 import { applyQianfanConfig, QIANFAN_DEFAULT_MODEL_REF } from "./onboard.js";
 import { buildQianfanProvider } from "./provider-catalog.js";
 
