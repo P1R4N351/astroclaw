@@ -1,3 +1,4 @@
+// STT live audio test helpers provide audio fixtures and expectations for speech plugins.
 import { expect } from "vitest";
 import type {
   RealtimeTranscriptionProviderConfig,
@@ -14,10 +15,10 @@ export function normalizeTranscriptForMatch(value: string): string {
 
 type ExpectedTranscriptMatch = RegExp | string;
 
-export const ASTROCLAW_LIVE_TRANSCRIPT_MARKER_RE = /open(?:claw|cl|flaw|clar|core)/;
+export const OPENCLAW_LIVE_TRANSCRIPT_MARKER_RE = /open(?:claw|cl|flaw|clar|core)/;
 
-export function expectAstroclawLiveTranscriptMarker(value: string): void {
-  expect(normalizeTranscriptForMatch(value)).toMatch(ASTROCLAW_LIVE_TRANSCRIPT_MARKER_RE);
+export function expectOpenClawLiveTranscriptMarker(value: string): void {
+  expect(normalizeTranscriptForMatch(value)).toMatch(OPENCLAW_LIVE_TRANSCRIPT_MARKER_RE);
 }
 
 export async function waitForLiveExpectation(expectation: () => void, timeoutMs = 30_000) {
@@ -29,7 +30,9 @@ export async function waitForLiveExpectation(expectation: () => void, timeoutMs 
       return;
     } catch (error) {
       lastError = error;
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100);
+      });
     }
   }
   throw lastError;
@@ -86,7 +89,9 @@ export async function streamAudioForLiveTest(params: {
   const delayMs = params.delayMs ?? 5;
   for (let offset = 0; offset < params.audio.byteLength; offset += chunkSize) {
     params.sendAudio(params.audio.subarray(offset, offset + chunkSize));
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await new Promise((resolve) => {
+      setTimeout(resolve, delayMs);
+    });
   }
 }
 
@@ -103,7 +108,7 @@ export async function runRealtimeSttLiveTest(params: {
   const transcripts: string[] = [];
   const partials: string[] = [];
   const errors: Error[] = [];
-  const expected = params.expectedNormalizedText ?? ASTROCLAW_LIVE_TRANSCRIPT_MARKER_RE;
+  const expected = params.expectedNormalizedText ?? OPENCLAW_LIVE_TRANSCRIPT_MARKER_RE;
   const session = params.provider.createSession({
     providerConfig: params.providerConfig,
     onPartial: (partial) => partials.push(partial),
