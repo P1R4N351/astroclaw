@@ -1,5 +1,10 @@
+/**
+ * Spawn requester origin resolver.
+ *
+ * Normalizes delivery targets and route bindings so spawned runs can attribute the requesting account/channel.
+ */
 import type { ChatType } from "../channels/chat-type.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveFirstBoundAccountId } from "../routing/bound-account-read.js";
 import { normalizeDeliveryContext } from "../utils/delivery-context.shared.js";
 
@@ -92,7 +97,7 @@ function extractRequesterPeer(
 }
 
 export function resolveRequesterOriginForChild(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   targetAgentId: string;
   requesterAgentId: string;
   requesterChannel?: string;
