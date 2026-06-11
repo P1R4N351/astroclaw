@@ -1,11 +1,12 @@
+// Qa Lab plugin module implements harness runtime behavior.
 import {
   buildMentionRegexes,
   implicitMentionKindWhen,
   matchesMentionPatterns,
   matchesMentionWithExplicit,
   resolveInboundMentionDecision,
-} from "astroclaw/plugin-sdk/channel-inbound";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/runtime-store";
+} from "openclaw/plugin-sdk/channel-inbound";
+import type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";
 
 type SessionRecord = {
   sessionKey: string;
@@ -84,9 +85,9 @@ export function createQaRunnerRuntime(): PluginRuntime {
           });
         },
       },
-      turn: {
-        async runAssembled(
-          params: Parameters<PluginRuntime["channel"]["turn"]["runAssembled"]>[0],
+      inbound: {
+        async dispatchReply(
+          params: Parameters<PluginRuntime["channel"]["inbound"]["dispatchReply"]>[0],
         ) {
           const sessionKey =
             typeof params.ctxPayload.SessionKey === "string"
