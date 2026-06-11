@@ -1,8 +1,9 @@
+// Nostr plugin entrypoint registers its OpenClaw integration.
 import {
   defineBundledChannelEntry,
   loadBundledEntryExportSync,
-} from "astroclaw/plugin-sdk/channel-entry-contract";
-import type { AstroclawConfig, PluginRuntime, ResolvedNostrAccount } from "./api.js";
+} from "openclaw/plugin-sdk/channel-entry-contract";
+import type { OpenClawConfig, PluginRuntime, ResolvedNostrAccount } from "./api.js";
 
 function createNostrProfileHttpHandler() {
   return loadBundledEntryExportSync<
@@ -46,7 +47,7 @@ export default defineBundledChannelEntry({
     const httpHandler = createNostrProfileHttpHandler()({
       getConfigProfile: (accountId: string) => {
         const runtime = getNostrRuntime();
-        const cfg = runtime.config.current() as AstroclawConfig;
+        const cfg = runtime.config.current() as OpenClawConfig;
         const account = resolveNostrAccount({ cfg, accountId });
         return account.profile;
       },
@@ -71,7 +72,7 @@ export default defineBundledChannelEntry({
       },
       getAccountInfo: (accountId: string) => {
         const runtime = getNostrRuntime();
-        const cfg = runtime.config.current() as AstroclawConfig;
+        const cfg = runtime.config.current() as OpenClawConfig;
         const account = resolveNostrAccount({ cfg, accountId });
         if (!account.configured || !account.publicKey) {
           return null;
