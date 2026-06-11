@@ -1,6 +1,7 @@
-import { buildManifestModelProviderConfig } from "astroclaw/plugin-sdk/provider-catalog-shared";
-import type { ModelDefinitionConfig } from "astroclaw/plugin-sdk/provider-model-shared";
-import manifest from "./astroclaw.plugin.json" with { type: "json" };
+// Zai plugin module implements model definitions behavior.
+import { buildManifestModelProviderConfig } from "openclaw/plugin-sdk/provider-catalog-shared";
+import type { ModelDefinitionConfig } from "openclaw/plugin-sdk/provider-model-shared";
+import manifest from "./openclaw.plugin.json" with { type: "json" };
 
 export const ZAI_CODING_GLOBAL_BASE_URL = "https://api.z.ai/api/coding/paas/v4";
 export const ZAI_CODING_CN_BASE_URL = "https://open.bigmodel.cn/api/coding/paas/v4";
