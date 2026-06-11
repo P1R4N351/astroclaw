@@ -1,12 +1,13 @@
+// Feishu plugin module implements dynamic agent behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AstroclawConfig, PluginRuntime } from "../runtime-api.js";
+import type { OpenClawConfig, PluginRuntime } from "../runtime-api.js";
 import type { DynamicAgentCreationConfig } from "./types.js";
 
 type MaybeCreateDynamicAgentResult = {
   created: boolean;
-  updatedCfg: AstroclawConfig;
+  updatedCfg: OpenClawConfig;
   agentId?: string;
 };
 
@@ -15,7 +16,7 @@ type MaybeCreateDynamicAgentResult = {
  * This creates a unique agent instance with its own workspace for each DM user.
  */
 export async function maybeCreateDynamicAgent(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   runtime: PluginRuntime;
   senderOpenId: string;
   dynamicCfg: DynamicAgentCreationConfig;
@@ -64,7 +65,7 @@ export async function maybeCreateDynamicAgent(params: {
     // Agent exists but binding doesn't - just add the binding
     log(`feishu: agent "${agentId}" exists, adding missing binding for ${senderOpenId}`);
 
-    const updatedCfg: AstroclawConfig = {
+    const updatedCfg: OpenClawConfig = {
       ...cfg,
       bindings: [
         ...existingBindings,
@@ -86,8 +87,8 @@ export async function maybeCreateDynamicAgent(params: {
   }
 
   // Resolve path templates with substitutions
-  const workspaceTemplate = dynamicCfg.workspaceTemplate ?? "~/.astroclaw/workspace-{agentId}";
-  const agentDirTemplate = dynamicCfg.agentDirTemplate ?? "~/.astroclaw/agents/{agentId}/agent";
+  const workspaceTemplate = dynamicCfg.workspaceTemplate ?? "~/.openclaw/workspace-{agentId}";
+  const agentDirTemplate = dynamicCfg.agentDirTemplate ?? "~/.openclaw/agents/{agentId}/agent";
 
   const workspace = resolveUserPath(
     workspaceTemplate.replace("{userId}", senderOpenId).replace("{agentId}", agentId),
@@ -105,7 +106,7 @@ export async function maybeCreateDynamicAgent(params: {
   await fs.promises.mkdir(agentDir, { recursive: true });
 
   // Update configuration with new agent and binding
-  const updatedCfg: AstroclawConfig = {
+  const updatedCfg: OpenClawConfig = {
     ...cfg,
     agents: {
       ...cfg.agents,
