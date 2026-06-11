@@ -1,12 +1,13 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Ollama provider module implements model/runtime integration.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   isNonSecretApiKeyMarker,
   normalizeOptionalSecretInput,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { resolveEnvApiKey } from "astroclaw/plugin-sdk/provider-auth-runtime";
+} from "openclaw/plugin-sdk/provider-auth";
+import { resolveEnvApiKey } from "openclaw/plugin-sdk/provider-auth-runtime";
 import {
   enablePluginInConfig,
-  readNumberParam,
+  readPositiveIntegerParam,
   readResponseText,
   readStringParam,
   resolveProviderWebSearchPluginConfig,
@@ -15,9 +16,9 @@ import {
   truncateText,
   wrapWebContent,
   type WebSearchProviderPlugin,
-} from "astroclaw/plugin-sdk/provider-web-search";
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-web-search";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { Type } from "typebox";
 import { OLLAMA_DEFAULT_BASE_URL } from "./defaults.js";
 import { readProviderBaseUrl } from "./provider-base-url.js";
@@ -32,7 +33,7 @@ const OLLAMA_WEB_SEARCH_SCHEMA = Type.Object(
   {
     query: Type.String({ description: "Search query string." }),
     count: Type.Optional(
-      Type.Number({
+      Type.Integer({
         description: "Number of results to return (1-10).",
         minimum: 1,
         maximum: 10,
@@ -82,7 +83,7 @@ function isOllamaCloudBaseUrl(baseUrl: string): boolean {
   }
 }
 
-function resolveConfiguredOllamaWebSearchApiKey(config?: AstroclawConfig): string | undefined {
+function resolveConfiguredOllamaWebSearchApiKey(config?: OpenClawConfig): string | undefined {
   const providerApiKey = normalizeOptionalSecretInput(config?.models?.providers?.ollama?.apiKey);
   if (providerApiKey && !isNonSecretApiKeyMarker(providerApiKey)) {
     return providerApiKey;
@@ -94,11 +95,11 @@ function resolveEnvOllamaWebSearchApiKey(): string | undefined {
   return resolveEnvApiKey("ollama")?.apiKey;
 }
 
-function resolveOllamaWebSearchApiKey(config?: AstroclawConfig): string | undefined {
+function resolveOllamaWebSearchApiKey(config?: OpenClawConfig): string | undefined {
   return resolveConfiguredOllamaWebSearchApiKey(config) ?? resolveEnvOllamaWebSearchApiKey();
 }
 
-function resolveOllamaWebSearchBaseUrl(config?: AstroclawConfig): string {
+function resolveOllamaWebSearchBaseUrl(config?: OpenClawConfig): string {
   const pluginBaseUrl = normalizeOptionalString(
     resolveProviderWebSearchPluginConfig(config, "ollama")?.baseUrl,
   );
@@ -164,7 +165,7 @@ function buildOllamaWebSearchAttempts(params: {
 }
 
 export async function runOllamaWebSearch(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   query: string;
   count?: number;
 }): Promise<Record<string, unknown>> {
@@ -268,11 +269,11 @@ export async function runOllamaWebSearch(params: {
 }
 
 async function warnOllamaWebSearchPrereqs(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   prompter: {
     note: (message: string, title?: string) => Promise<void>;
   };
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const baseUrl = resolveOllamaWebSearchBaseUrl(params.config);
   const { reachable } = await fetchOllamaModels(baseUrl);
   if (!reachable) {
@@ -311,7 +312,7 @@ export function createOllamaWebSearchProvider(): WebSearchProviderPlugin {
     envVars: [],
     placeholder: "(run ollama signin)",
     signupUrl: "https://ollama.com/",
-    docsUrl: "https://docs.astroclaw.ai/tools/web",
+    docsUrl: "https://docs.openclaw.ai/tools/web",
     autoDetectOrder: 110,
     credentialPath: "",
     getCredentialValue: () => undefined,
@@ -330,13 +331,16 @@ export function createOllamaWebSearchProvider(): WebSearchProviderPlugin {
         await runOllamaWebSearch({
           config: ctx.config,
           query: readStringParam(args, "query", { required: true }),
-          count: readNumberParam(args, "count", { integer: true }),
+          count: readPositiveIntegerParam(args, "count", {
+            max: 10,
+            message: "count must be an integer from 1 to 10.",
+          }),
         }),
     }),
   };
 }
 
-export const __testing = {
+export const testing = {
   buildOllamaWebSearchAttempts,
   normalizeOllamaWebSearchResult,
   resolveConfiguredOllamaWebSearchApiKey,
@@ -347,3 +351,4 @@ export const __testing = {
   readOllamaWebSearchResponse,
   warnOllamaWebSearchPrereqs,
 };
+export { testing as __testing };
