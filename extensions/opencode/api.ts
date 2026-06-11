@@ -1,7 +1,8 @@
+// Opencode API module exposes the plugin public contract.
 export {
   applyOpencodeZenModelDefault,
   OPENCODE_ZEN_DEFAULT_MODEL,
-} from "astroclaw/plugin-sdk/provider-onboard";
+} from "openclaw/plugin-sdk/provider-onboard";
 export {
   applyOpencodeZenConfig,
   applyOpencodeZenProviderConfig,
