@@ -1,40 +1,41 @@
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
+// Telegram plugin module implements channel behavior.
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
 import {
   buildDmGroupAccountAllowlistAdapter,
   createNestedAllowlistOverrideResolver,
-} from "astroclaw/plugin-sdk/allowlist-config-edit";
-import type { ChannelMessageActionAdapter } from "astroclaw/plugin-sdk/channel-contract";
+} from "openclaw/plugin-sdk/allowlist-config-edit";
+import type { ChannelMessageActionAdapter } from "openclaw/plugin-sdk/channel-contract";
 import {
   buildChannelOutboundSessionRoute,
   buildThreadAwareOutboundSessionRoute,
   clearAccountEntryFields,
   createChatChannelPlugin,
-} from "astroclaw/plugin-sdk/channel-core";
-import { createAccountStatusSink } from "astroclaw/plugin-sdk/channel-lifecycle";
-import { createChannelMessageAdapterFromOutbound } from "astroclaw/plugin-sdk/channel-message";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
+} from "openclaw/plugin-sdk/channel-core";
+import { createAccountStatusSink } from "openclaw/plugin-sdk/channel-outbound";
+import { createChannelMessageAdapterFromOutbound } from "openclaw/plugin-sdk/channel-outbound";
+import {
+  resolveOutboundSendDep,
+  type OutboundSendDeps,
+} from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
 import {
   PAIRING_APPROVED_MESSAGE,
   buildTokenChannelStatusSummary,
   projectCredentialSnapshotFields,
   resolveConfiguredFromCredentialStatuses,
-} from "astroclaw/plugin-sdk/channel-status";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createChannelDirectoryAdapter } from "astroclaw/plugin-sdk/directory-runtime";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import {
-  resolveOutboundSendDep,
-  type OutboundSendDeps,
-} from "astroclaw/plugin-sdk/outbound-send-deps";
-import { type RoutePeer } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/channel-status";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createChannelDirectoryAdapter } from "openclaw/plugin-sdk/directory-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import type { RoutePeer } from "openclaw/plugin-sdk/routing";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveTelegramAccount, type ResolvedTelegramAccount } from "./accounts.js";
 import { resolveTelegramAutoThreadId } from "./action-threading.js";
 import { lookupTelegramChatId } from "./api-fetch.js";
@@ -229,13 +230,13 @@ const telegramChannelOutbound = createTelegramOutboundAdapter({
       typeof target.threadId === "number"
         ? target.threadId
         : typeof target.threadId === "string"
-          ? Number.parseInt(target.threadId, 10)
+          ? parseTelegramThreadId(target.threadId)
           : undefined;
     const { sendTypingTelegram } = await loadTelegramSendModule();
     await sendTypingTelegram(target.to, {
       cfg,
       accountId: target.accountId ?? undefined,
-      ...(Number.isFinite(threadId) ? { messageThreadId: threadId } : {}),
+      ...(threadId !== undefined ? { messageThreadId: threadId } : {}),
     }).catch(() => {});
   },
   shouldTreatDeliveredTextAsVisible: shouldTreatTelegramDeliveredTextAsVisible,
@@ -243,7 +244,7 @@ const telegramChannelOutbound = createTelegramOutboundAdapter({
   preferFinalAssistantVisibleText: true,
 });
 
-const telegramMessageAdapter = createChannelMessageAdapterFromOutbound<AstroclawConfig>({
+const telegramMessageAdapter = createChannelMessageAdapterFromOutbound<OpenClawConfig>({
   id: "telegram",
   live: {
     capabilities: {
@@ -464,7 +465,7 @@ function resolveTelegramDeliveryTarget(params: {
   };
 }
 
-function parseTelegramExplicitTarget(raw: string) {
+function resolveTelegramRouteTarget(raw: string) {
   const target = parseTelegramTarget(raw);
   return {
     to: target.chatId,
@@ -496,7 +497,7 @@ function shouldStripTelegramThreadFromAnnounceOrigin(params: {
   if (!requesterChannel && !requesterTo.startsWith("telegram:")) {
     return true;
   }
-  const requesterTarget = parseTelegramExplicitTarget(requesterTo);
+  const requesterTarget = resolveTelegramRouteTarget(requesterTo);
   if (requesterTarget.chatType !== "group") {
     return true;
   }
@@ -504,12 +505,12 @@ function shouldStripTelegramThreadFromAnnounceOrigin(params: {
   if (!entryTo) {
     return false;
   }
-  const entryTarget = parseTelegramExplicitTarget(entryTo);
+  const entryTarget = resolveTelegramRouteTarget(entryTo);
   return entryTarget.to !== requesterTarget.to;
 }
 
 function resolveTelegramOutboundSessionRoute(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   accountId?: string | null;
   target: string;
@@ -553,25 +554,62 @@ function resolveTelegramOutboundSessionRoute(params: {
   if (isGroup) {
     return baseRoute;
   }
+  const canonicalThreadId =
+    resolvedThreadId !== undefined
+      ? buildTelegramCanonicalTopicThreadId({ chatId, topicId: resolvedThreadId })
+      : undefined;
   const route = buildThreadAwareOutboundSessionRoute({
     route: baseRoute,
-    threadId: resolvedThreadId,
+    threadId: canonicalThreadId,
     currentSessionKey: params.currentSessionKey,
     precedence: ["threadId", "currentSession"],
-    canRecoverCurrentThread: ({ route }) =>
-      route.chatType !== "direct" || (params.cfg.session?.dmScope ?? "main") !== "main",
+    canRecoverCurrentThread: ({ route: routeLocal }) =>
+      routeLocal.chatType !== "direct" || (params.cfg.session?.dmScope ?? "main") !== "main",
   });
+  const routeThreadId = resolveTelegramNativeTopicThreadId(route.threadId, resolvedThreadId);
   return {
     ...route,
+    ...(routeThreadId !== undefined ? { threadId: routeThreadId } : {}),
     from:
-      route.threadId !== undefined
-        ? `telegram:${chatId}:topic:${route.threadId}`
+      routeThreadId !== undefined
+        ? `telegram:${chatId}:topic:${routeThreadId}`
         : `telegram:${chatId}`,
   };
 }
 
+function buildTelegramCanonicalTopicThreadId(params: { chatId: string; topicId: number }): string {
+  // Core session routing sees one canonical thread id. Telegram topic ids are
+  // chat-scoped, so direct-topic sessions include the chat id to avoid collisions.
+  return `${params.chatId}:${params.topicId}`;
+}
+
+function resolveTelegramNativeTopicThreadId(
+  threadId?: string | number,
+  nativeTopicId?: number,
+): string | number | undefined {
+  if (nativeTopicId !== undefined) {
+    return nativeTopicId;
+  }
+  // Keep the chat-scoped canonical id inside OpenClaw state; translate it back
+  // only when returning Telegram route metadata used by send/typing paths.
+  if (threadId === undefined) {
+    return undefined;
+  }
+  const parsedThreadId = parseTelegramThreadId(threadId);
+  if (parsedThreadId !== undefined) {
+    return parsedThreadId;
+  }
+  if (typeof threadId === "string") {
+    const canonicalMatch = /:(\d+)$/.exec(threadId.trim());
+    if (canonicalMatch?.[1]) {
+      return Number(canonicalMatch[1]);
+    }
+  }
+  return threadId;
+}
+
 async function resolveTelegramTargets(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   inputs: string[];
   kind: "user" | "group";
@@ -753,8 +791,7 @@ export const telegramPlugin = createChatChannelPlugin({
       resolveSessionConversation: ({ kind, rawId }) =>
         resolveTelegramSessionConversation({ kind, rawId }),
       resolveSessionTarget: ({ kind, id }) => resolveTelegramSessionTarget({ kind, id }),
-      parseExplicitTarget: ({ raw }) => parseTelegramExplicitTarget(raw),
-      inferTargetChatType: ({ to }) => parseTelegramExplicitTarget(to).chatType,
+      inferTargetChatType: ({ to }) => resolveTelegramRouteTarget(to).chatType,
       preserveHeartbeatThreadIdForGroupRoute: true,
       formatTargetDisplay: ({ target, display, kind }) => {
         const formatted = display?.trim();
@@ -785,8 +822,7 @@ export const telegramPlugin = createChatChannelPlugin({
         await resolveTelegramTargets({ cfg, accountId, inputs, kind }),
     },
     lifecycle: {
-      detectLegacyStateMigrations: ({ cfg, env }) =>
-        detectTelegramLegacyStateMigrations({ cfg, env }),
+      detectLegacyStateMigrations: (params) => detectTelegramLegacyStateMigrations(params),
       onAccountConfigChanged: async ({ prevCfg, nextCfg, accountId }) => {
         const previousToken = resolveTelegramAccount({ cfg: prevCfg, accountId }).token.trim();
         const nextToken = resolveTelegramAccount({ cfg: nextCfg, accountId }).token.trim();
@@ -954,53 +990,60 @@ export const telegramPlugin = createChatChannelPlugin({
         let telegramBotLabel = "";
         let unauthorizedTokenReason: string | null = null;
         let botInfo: TelegramBotInfo | undefined;
-        const cachedBotInfo = await readStartupBotInfoCache({
-          accountId: account.accountId,
-          token,
-          log: ctx.log,
-        });
-        if (cachedBotInfo) {
-          botInfo = cachedBotInfo;
-          telegramBotLabel = ` (@${cachedBotInfo.username})`;
-        } else {
-          try {
-            const probe = await withTelegramStartupProbeSlot(ctx.abortSignal, () =>
-              resolveTelegramProbe()(
-                token,
-                resolveTelegramStartupProbeTimeoutMs(account.config.timeoutSeconds),
-                {
-                  accountId: account.accountId,
-                  proxyUrl: account.config.proxy,
-                  network: account.config.network,
-                  apiRoot: account.config.apiRoot,
-                  includeWebhookInfo: false,
-                },
-              ),
-            );
-            const username = probe.ok ? probe.bot?.username?.trim() : null;
-            if (username) {
-              telegramBotLabel = ` (@${username})`;
-            }
-            botInfo = probe.ok ? probe.botInfo : undefined;
-            if (probe.ok && probe.botInfo) {
-              await writeStartupBotInfoCache({
+        try {
+          const probe = await withTelegramStartupProbeSlot(ctx.abortSignal, () =>
+            resolveTelegramProbe()(
+              token,
+              resolveTelegramStartupProbeTimeoutMs(account.config.timeoutSeconds),
+              {
                 accountId: account.accountId,
-                token,
-                botInfo: probe.botInfo,
-                log: ctx.log,
-              });
+                proxyUrl: account.config.proxy,
+                network: account.config.network,
+                apiRoot: account.config.apiRoot,
+                includeWebhookInfo: false,
+              },
+            ),
+          );
+          const username = probe.ok ? probe.bot?.username?.trim() : null;
+          if (username) {
+            telegramBotLabel = ` (@${username})`;
+          }
+          botInfo = probe.ok ? probe.botInfo : undefined;
+          if (probe.ok && probe.botInfo) {
+            await writeStartupBotInfoCache({
+              accountId: account.accountId,
+              token,
+              botInfo: probe.botInfo,
+              log: ctx.log,
+            });
+          }
+          if (!probe.ok && probe.status === 401) {
+            await deleteStartupBotInfoCache(account.accountId);
+            unauthorizedTokenReason = formatTelegramUnauthorizedTokenError(account);
+          } else if (!probe.ok) {
+            botInfo = await readStartupBotInfoCache({
+              accountId: account.accountId,
+              token,
+              log: ctx.log,
+            });
+            if (botInfo) {
+              telegramBotLabel = ` (@${botInfo.username})`;
             }
-            if (!probe.ok && probe.status === 401) {
-              await deleteStartupBotInfoCache(account.accountId);
-              unauthorizedTokenReason = formatTelegramUnauthorizedTokenError(account);
-            }
-          } catch (err) {
-            if (ctx.abortSignal.aborted) {
-              return;
-            }
-            if (getTelegramRuntime().logging.shouldLogVerbose()) {
-              ctx.log?.debug?.(`[${account.accountId}] bot probe failed: ${String(err)}`);
-            }
+          }
+        } catch (err) {
+          if (ctx.abortSignal.aborted) {
+            return;
+          }
+          if (getTelegramRuntime().logging.shouldLogVerbose()) {
+            ctx.log?.debug?.(`[${account.accountId}] bot probe failed: ${String(err)}`);
+          }
+          botInfo = await readStartupBotInfoCache({
+            accountId: account.accountId,
+            token,
+            log: ctx.log,
+          });
+          if (botInfo) {
+            telegramBotLabel = ` (@${botInfo.username})`;
           }
         }
         if (unauthorizedTokenReason) {
@@ -1045,7 +1088,7 @@ export const telegramPlugin = createChatChannelPlugin({
       },
       logoutAccount: async ({ accountId, cfg }) => {
         const envToken = process.env.TELEGRAM_BOT_TOKEN?.trim() ?? "";
-        const nextCfg = { ...cfg } as AstroclawConfig;
+        const nextCfg = { ...cfg } as OpenClawConfig;
         const nextTelegram = cfg.channels?.telegram ? { ...cfg.channels.telegram } : undefined;
         let cleared = false;
         let changed = false;
