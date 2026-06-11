@@ -1,5 +1,6 @@
+// Msteams plugin module implements message handler support behavior.
 import { vi } from "vitest";
-import type { AstroclawConfig, PluginRuntime, RuntimeEnv } from "../../runtime-api.js";
+import type { OpenClawConfig, PluginRuntime, RuntimeEnv } from "../../runtime-api.js";
 import type { MSTeamsMessageHandlerDeps } from "../monitor-handler.js";
 import { installMSTeamsTestRuntime } from "../monitor-handler.test-helpers.js";
 
@@ -12,10 +13,15 @@ type MessageHandlerDepsOptions = {
   recordInboundSession?: ReturnType<typeof vi.fn>;
   resolveAgentRoute?: (params: { peer: { kind: string; id: string } }) => unknown;
   hasControlCommand?: PluginRuntime["channel"]["text"]["hasControlCommand"];
+  isControlCommandMessage?: PluginRuntime["channel"]["commands"]["isControlCommandMessage"];
+  shouldComputeCommandAuthorized?: PluginRuntime["channel"]["commands"]["shouldComputeCommandAuthorized"];
+  shouldHandleTextCommands?: PluginRuntime["channel"]["commands"]["shouldHandleTextCommands"];
+  createInboundDebouncer?: PluginRuntime["channel"]["debounce"]["createInboundDebouncer"];
+  resolveInboundDebounceMs?: PluginRuntime["channel"]["debounce"]["resolveInboundDebounceMs"];
 };
 
 export function createMessageHandlerDeps(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options: MessageHandlerDepsOptions = {},
 ) {
   const enqueueSystemEvent = options.enqueueSystemEvent ?? vi.fn();
@@ -41,6 +47,11 @@ export function createMessageHandlerDeps(
     recordInboundSession,
     resolveAgentRoute,
     hasControlCommand: options.hasControlCommand,
+    isControlCommandMessage: options.isControlCommandMessage,
+    shouldComputeCommandAuthorized: options.shouldComputeCommandAuthorized,
+    shouldHandleTextCommands: options.shouldHandleTextCommands,
+    createInboundDebouncer: options.createInboundDebouncer,
+    resolveInboundDebounceMs: options.resolveInboundDebounceMs,
     resolveTextChunkLimit: () => 4000,
     resolveStorePath: () => "/tmp/test-store",
   });
@@ -58,7 +69,7 @@ export function createMessageHandlerDeps(
     cfg,
     runtime: { error: vi.fn() } as unknown as RuntimeEnv,
     appId: "test-app",
-    adapter: {} as MSTeamsMessageHandlerDeps["adapter"],
+    app: {} as MSTeamsMessageHandlerDeps["app"],
     tokenProvider: {
       getAccessToken: vi.fn(async () => "token"),
     },
