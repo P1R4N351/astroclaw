@@ -1,6 +1,8 @@
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/memory-host-core";
-import type { AstroclawConfig, AstroclawPluginApi } from "../api.js";
+// Memory Wiki plugin module implements gateway behavior.
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { resolveDefaultAgentId } from "openclaw/plugin-sdk/memory-host-core";
+import { readPositiveIntegerParam } from "openclaw/plugin-sdk/param-readers";
+import type { OpenClawConfig, OpenClawPluginApi } from "../api.js";
 import { applyMemoryWikiMutation, normalizeMemoryWikiMutationInput } from "./apply.js";
 import { compileMemoryWikiVault } from "./compile.js";
 import {
@@ -30,7 +32,7 @@ const WRITE_SCOPE = "operator.write" as const;
 const ADMIN_SCOPE = "operator.admin" as const;
 const LOCAL_FILE_INGEST_SCOPE = ADMIN_SCOPE;
 type GatewayMethodContext = Parameters<
-  Parameters<AstroclawPluginApi["registerGatewayMethod"]>[1]
+  Parameters<OpenClawPluginApi["registerGatewayMethod"]>[1]
 >[0];
 type GatewayRespond = GatewayMethodContext["respond"];
 
@@ -51,20 +53,6 @@ function readStringParam(
   }
   if (options?.required) {
     throw new Error(`${key} is required.`);
-  }
-  return undefined;
-}
-
-function readNumberParam(params: Record<string, unknown>, key: string): number | undefined {
-  const value = params[key];
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
   }
   return undefined;
 }
@@ -91,7 +79,7 @@ function respondError(respond: GatewayRespond, error: unknown) {
 
 function resolveGatewayAgentId(
   requestParams: Record<string, unknown>,
-  appConfig: AstroclawConfig | undefined,
+  appConfig: OpenClawConfig | undefined,
 ): string | undefined {
   return (
     readStringParam(requestParams, "agentId") ??
@@ -101,15 +89,15 @@ function resolveGatewayAgentId(
 
 async function syncImportedSourcesIfNeeded(
   config: ResolvedMemoryWikiConfig,
-  appConfig?: AstroclawConfig,
+  appConfig?: OpenClawConfig,
 ) {
   await syncMemoryWikiImportedSources({ config, appConfig });
 }
 
 export function registerMemoryWikiGatewayMethods(params: {
-  api: AstroclawPluginApi;
+  api: OpenClawPluginApi;
   config: ResolvedMemoryWikiConfig;
-  appConfig?: AstroclawConfig;
+  appConfig?: OpenClawConfig;
 }) {
   const { api, config, appConfig } = params;
 
@@ -135,7 +123,7 @@ export function registerMemoryWikiGatewayMethods(params: {
     "wiki.importRuns",
     async ({ params: requestParams, respond }) => {
       try {
-        const limit = readNumberParam(requestParams, "limit");
+        const limit = readPositiveIntegerParam(requestParams, "limit");
         respond(true, await listMemoryWikiImportRuns(config, limit !== undefined ? { limit } : {}));
       } catch (error) {
         respondError(respond, error);
@@ -287,7 +275,7 @@ export function registerMemoryWikiGatewayMethods(params: {
       try {
         await syncImportedSourcesIfNeeded(config, appConfig);
         const query = readStringParam(requestParams, "query", { required: true });
-        const maxResults = readNumberParam(requestParams, "maxResults");
+        const maxResults = readPositiveIntegerParam(requestParams, "maxResults");
         const searchBackend = readEnumParam(requestParams, "backend", WIKI_SEARCH_BACKENDS);
         const searchCorpus = readEnumParam(requestParams, "corpus", WIKI_SEARCH_CORPORA);
         const mode = readEnumParam(requestParams, "mode", WIKI_SEARCH_MODES);
@@ -337,8 +325,8 @@ export function registerMemoryWikiGatewayMethods(params: {
       try {
         await syncImportedSourcesIfNeeded(config, appConfig);
         const lookup = readStringParam(requestParams, "lookup", { required: true });
-        const fromLine = readNumberParam(requestParams, "fromLine");
-        const lineCount = readNumberParam(requestParams, "lineCount");
+        const fromLine = readPositiveIntegerParam(requestParams, "fromLine");
+        const lineCount = readPositiveIntegerParam(requestParams, "lineCount");
         const searchBackend = readEnumParam(requestParams, "backend", WIKI_SEARCH_BACKENDS);
         const searchCorpus = readEnumParam(requestParams, "corpus", WIKI_SEARCH_CORPORA);
         const agentId = resolveGatewayAgentId(requestParams, appConfig);
