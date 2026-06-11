@@ -1,9 +1,11 @@
+/** Doctor warnings for heartbeat.session values that resolve to missing delivery sessions. */
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import { listAgentEntries, listAgentIds, resolveAgentConfig } from "../agents/agent-scope.js";
 import { canonicalizeMainSessionAlias } from "../config/sessions/main-session.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { loadSessionStore } from "../config/sessions/store-load.js";
 import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveHeartbeatIntervalMs } from "../infra/heartbeat-summary.js";
 import { resolveHeartbeatDeliveryTarget } from "../infra/outbound/targets.js";
 import {
@@ -12,15 +14,14 @@ import {
   toAgentStoreSessionKey,
 } from "../routing/session-key.js";
 import { isSubagentSessionKey } from "../sessions/session-key-utils.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
 
 type HeartbeatConfig = AgentDefaultsConfig["heartbeat"];
 
-function hasExplicitHeartbeatAgents(cfg: AstroclawConfig) {
+function hasExplicitHeartbeatAgents(cfg: OpenClawConfig) {
   return listAgentEntries(cfg).some((entry) => Boolean(entry?.heartbeat));
 }
 
-function resolveHeartbeatConfig(cfg: AstroclawConfig, agentId: string): HeartbeatConfig | undefined {
+function resolveHeartbeatConfig(cfg: OpenClawConfig, agentId: string): HeartbeatConfig | undefined {
   const defaults = cfg.agents?.defaults?.heartbeat;
   const overrides = resolveAgentConfig(cfg, agentId)?.heartbeat;
   if (!defaults && !overrides) {
@@ -29,7 +30,7 @@ function resolveHeartbeatConfig(cfg: AstroclawConfig, agentId: string): Heartbea
   return { ...defaults, ...overrides };
 }
 
-function listHeartbeatDoctorAgents(cfg: AstroclawConfig) {
+function listHeartbeatDoctorAgents(cfg: OpenClawConfig) {
   if (hasExplicitHeartbeatAgents(cfg)) {
     return listAgentEntries(cfg)
       .filter((entry) => entry?.heartbeat)
@@ -55,7 +56,7 @@ function listHeartbeatDoctorAgents(cfg: AstroclawConfig) {
  * Warning only — repair would mean rewriting the config, which is the
  * operator's intent to express.
  */
-export function describeHeartbeatSessionTargetIssues(cfg: AstroclawConfig): string[] {
+export function describeHeartbeatSessionTargetIssues(cfg: OpenClawConfig): string[] {
   const warnings: string[] = [];
   const sessionScope = cfg.session?.scope ?? "per-sender";
   for (const agentId of listHeartbeatDoctorAgents(cfg)) {
@@ -120,7 +121,7 @@ export function describeHeartbeatSessionTargetIssues(cfg: AstroclawConfig): stri
     }
     const storeAgentId = resolvedAgentId;
     const storePath = resolveStorePath(cfg.session?.store, { agentId: storeAgentId });
-    const store = loadSessionStore(storePath);
+    const store = loadSessionStore(storePath, { skipCache: true, clone: false });
     const entry = store[canonicalSession];
     if (entry) {
       continue;
