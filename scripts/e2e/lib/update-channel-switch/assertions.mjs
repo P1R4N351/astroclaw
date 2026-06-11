@@ -1,3 +1,4 @@
+// Assertions for update-channel switch E2E scenarios.
 import fs from "node:fs";
 import path from "node:path";
 import { legacyPackageAcceptanceCompat } from "../package-compat.mjs";
@@ -173,11 +174,11 @@ function assertUpdate(channel) {
 }
 
 function assertConfigChannel(channel) {
-  const config = readJson(path.join(process.env.HOME, ".astroclaw", "astroclaw.json"));
+  const config = readJson(path.join(process.env.HOME, ".openclaw", "openclaw.json"));
   if (config.update?.channel === channel) {
     return;
   }
-  if (process.env.ASTROCLAW_PACKAGE_ACCEPTANCE_LEGACY_COMPAT === "1") {
+  if (process.env.OPENCLAW_PACKAGE_ACCEPTANCE_LEGACY_COMPAT === "1") {
     console.log(
       `legacy package did not persist update.channel ${channel}; got ${JSON.stringify(config.update?.channel)}`,
     );
@@ -197,10 +198,10 @@ function assertStatusKind(kind) {
 
 switch (command) {
   case "prepare-git-fixture":
-    prepareGitFixture(args[0] ?? "/tmp/astroclaw-git");
+    prepareGitFixture(args[0] ?? "/tmp/openclaw-git");
     break;
   case "write-control-ui":
-    writeControlUi(args[0] ?? "/tmp/astroclaw-git");
+    writeControlUi(args[0] ?? "/tmp/openclaw-git");
     break;
   case "assert-update":
     assertUpdate(args[0]);
