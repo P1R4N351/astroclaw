@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
+// Discord plugin module implements recipient resolution behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
 import { resolveDiscordAccount } from "./accounts.js";
 import { parseAndResolveDiscordTarget } from "./target-resolver.js";
 import type { DiscordTargetParseOptions } from "./targets.js";
@@ -16,7 +17,7 @@ type DiscordRecipient =
 
 export async function parseAndResolveRecipient(
   raw: string,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string,
   parseOptions: DiscordTargetParseOptions = {},
 ): Promise<DiscordRecipient> {
@@ -36,4 +37,14 @@ export async function parseAndResolveRecipient(
     parseOptions,
   );
   return { kind: resolved.kind, id: resolved.id };
+}
+
+export async function parseAndResolveChannelRecipient(
+  raw: string,
+  cfg: OpenClawConfig,
+  accountId?: string,
+): Promise<DiscordRecipient> {
+  return await parseAndResolveRecipient(raw, cfg, accountId, {
+    defaultKind: "channel",
+  });
 }
