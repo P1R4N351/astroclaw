@@ -1,7 +1,14 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Crestodian planner backends choose safe local model runners available on this host.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { CrestodianOverview } from "./overview.js";
 
-const CRESTODIAN_CLAUDE_CLI_MODEL = "claude-opus-4-7";
+/**
+ * Local planner backend selection for Crestodian assistant mode.
+ *
+ * Crestodian only offers planners backed by tools present on the host, and the
+ * returned backend config is scoped to the workspace being repaired.
+ */
+const CRESTODIAN_CLAUDE_CLI_MODEL = "claude-opus-4-8";
 const CRESTODIAN_CODEX_MODEL = "gpt-5.5";
 
 type CrestodianLocalPlannerBackend = {
@@ -10,7 +17,7 @@ type CrestodianLocalPlannerBackend = {
   runner: "cli" | "embedded";
   provider: string;
   model: string;
-  buildConfig: (workspaceDir: string) => AstroclawConfig;
+  buildConfig: (workspaceDir: string) => OpenClawConfig;
 };
 
 const CLAUDE_CLI_BACKEND: CrestodianLocalPlannerBackend = {
@@ -32,6 +39,7 @@ const CODEX_APP_SERVER_BACKEND: CrestodianLocalPlannerBackend = {
   buildConfig: buildCodexAppServerPlannerConfig,
 };
 
+/** Select local assistant planner backends available for the current overview. */
 export function selectCrestodianLocalPlannerBackends(
   overview: CrestodianOverview,
 ): CrestodianLocalPlannerBackend[] {
@@ -45,7 +53,7 @@ export function selectCrestodianLocalPlannerBackends(
   return backends;
 }
 
-function buildCliPlannerConfig(workspaceDir: string, modelRef: string): AstroclawConfig {
+function buildCliPlannerConfig(workspaceDir: string, modelRef: string): OpenClawConfig {
   return {
     agents: {
       defaults: {
@@ -56,7 +64,7 @@ function buildCliPlannerConfig(workspaceDir: string, modelRef: string): Astrocla
   };
 }
 
-function buildCodexAppServerPlannerConfig(workspaceDir: string): AstroclawConfig {
+function buildCodexAppServerPlannerConfig(workspaceDir: string): OpenClawConfig {
   return {
     agents: {
       defaults: {
