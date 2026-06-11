@@ -1,6 +1,7 @@
-export { getChatChannelMeta, type ChannelPlugin } from "astroclaw/plugin-sdk/core";
+// Whatsapp API module exposes the plugin public contract.
+export { getChatChannelMeta, type ChannelPlugin } from "openclaw/plugin-sdk/core";
 export { buildChannelConfigSchema, WhatsAppConfigSchema } from "../config-api.js";
-export { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
+export { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
 export {
   formatWhatsAppConfigAllowFromEntries,
   resolveWhatsAppConfigAllowFrom,
@@ -12,12 +13,12 @@ export {
   readReactionParams,
   readStringParam,
   ToolAuthorizationError,
-} from "astroclaw/plugin-sdk/channel-actions";
-export { normalizeE164 } from "astroclaw/plugin-sdk/account-resolution";
-export type { DmPolicy, GroupPolicy } from "astroclaw/plugin-sdk/config-contracts";
-import type { AstroclawConfig as RuntimeAstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-actions";
+export { normalizeE164 } from "openclaw/plugin-sdk/account-resolution";
+export type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig as RuntimeOpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 
-export { type ChannelMessageActionName } from "astroclaw/plugin-sdk/channel-contract";
+export { type ChannelMessageActionName } from "openclaw/plugin-sdk/channel-contract";
 export { loadOutboundMediaFromUrl } from "./outbound-media.runtime.js";
 export {
   resolveWhatsAppGroupRequireMention,
@@ -39,7 +40,7 @@ export {
 export { resolveWhatsAppOutboundTarget } from "./resolve-outbound-target.js";
 export { resolveWhatsAppReactionLevel } from "./reaction-level.js";
 
-export type AstroclawConfig = RuntimeAstroclawConfig;
+export type OpenClawConfig = RuntimeOpenClawConfig;
 export type { WhatsAppAccountConfig } from "./account-types.js";
 
 type MonitorWebChannel = typeof import("./channel.runtime.js").monitorWebChannel;
@@ -54,6 +55,6 @@ function loadChannelRuntime() {
 export async function monitorWebChannel(
   ...args: Parameters<MonitorWebChannel>
 ): ReturnType<MonitorWebChannel> {
-  const { monitorWebChannel } = await loadChannelRuntime();
-  return await monitorWebChannel(...args);
+  const { monitorWebChannel: monitorWebChannelLocal } = await loadChannelRuntime();
+  return await monitorWebChannelLocal(...args);
 }
