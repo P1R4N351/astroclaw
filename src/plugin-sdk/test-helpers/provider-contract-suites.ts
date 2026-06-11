@@ -1,8 +1,9 @@
+// Provider contract suites provide shared assertions for provider plugin behavior.
 import { expect, it } from "vitest";
 import type { ProviderPlugin } from "../provider-model-shared.js";
 import type { WebFetchProviderPlugin } from "../provider-web-fetch-contract.js";
 import type { WebSearchProviderPlugin } from "../provider-web-search-contract.js";
-import type { AstroclawConfig } from "../testing.js";
+import type { OpenClawConfig } from "../testing.js";
 
 type Lazy<T> = T | (() => T);
 
@@ -164,13 +165,13 @@ export function installWebFetchProviderContractSuite(params: {
     expect(provider.getCredentialValue(fetchConfigTarget)).toEqual(credentialValue);
 
     if (provider.setConfiguredCredentialValue && provider.getConfiguredCredentialValue) {
-      const configTarget = {} as AstroclawConfig;
+      const configTarget = {} as OpenClawConfig;
       provider.setConfiguredCredentialValue(configTarget, credentialValue);
       expect(provider.getConfiguredCredentialValue(configTarget)).toEqual(credentialValue);
     }
 
     if (provider.applySelectionConfig && params.pluginId) {
-      const applied = provider.applySelectionConfig({} as AstroclawConfig);
+      const applied = provider.applySelectionConfig({} as OpenClawConfig);
       expect(applied.plugins?.entries?.[params.pluginId]?.enabled).toBe(true);
     }
   });
