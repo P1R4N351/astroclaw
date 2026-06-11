@@ -1,8 +1,9 @@
+// Matrix plugin module implements access state behavior.
 import {
   createChannelIngressResolver,
   defineStableChannelIngressIdentity,
   type ResolvedChannelMessageIngress,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
 import { normalizeMatrixAllowList, resolveMatrixAllowListMatch } from "./allowlist.js";
 
 type MatrixMonitorAccessState = {
