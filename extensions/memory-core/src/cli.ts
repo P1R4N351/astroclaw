@@ -1,9 +1,14 @@
+// Memory Core plugin module implements cli behavior.
 import type { Command } from "commander";
 import {
   formatDocsLink,
   formatHelpExamples,
   theme,
-} from "astroclaw/plugin-sdk/memory-core-host-runtime-cli";
+} from "openclaw/plugin-sdk/memory-core-host-runtime-cli";
+import {
+  parseStrictNonNegativeInteger,
+  parseStrictPositiveInteger,
+} from "openclaw/plugin-sdk/number-runtime";
 import type {
   MemoryCommandOptions,
   MemoryPromoteCommandOptions,
@@ -26,6 +31,8 @@ async function loadMemoryCliRuntime(): Promise<MemoryCliRuntime> {
   memoryCliRuntimePromise ??= import("./cli.runtime.js");
   return await memoryCliRuntimePromise;
 }
+
+const DECIMAL_NUMBER_RE = /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/;
 
 export async function runMemoryStatus(opts: MemoryCommandOptions) {
   const runtime = await loadMemoryCliRuntime();
@@ -65,6 +72,40 @@ async function runMemoryRemBackfill(opts: MemoryRemBackfillOptions) {
   await runtime.runMemoryRemBackfill(opts);
 }
 
+function invalidCliArgument(message: string): Error & { code: string; exitCode: number } {
+  const error = new Error(message) as Error & { code: string; exitCode: number };
+  error.name = "InvalidArgumentError";
+  // Commander recognizes parser failures by code; keep the import type-only for bundled plugin deps.
+  error.code = "commander.invalidArgument";
+  error.exitCode = 1;
+  return error;
+}
+
+function parseMemoryCliNumberOption(value: string, flag: string): number {
+  const trimmed = value.trim();
+  const parsed = DECIMAL_NUMBER_RE.test(trimmed) ? Number(trimmed) : Number.NaN;
+  if (!Number.isFinite(parsed)) {
+    throw invalidCliArgument(`${flag} must be a finite number.`);
+  }
+  return parsed;
+}
+
+function parseMemoryCliPositiveIntegerOption(value: string, flag: string): number {
+  const parsed = parseStrictPositiveInteger(value);
+  if (parsed === undefined) {
+    throw invalidCliArgument(`${flag} must be a positive integer.`);
+  }
+  return parsed;
+}
+
+function parseMemoryCliNonNegativeIntegerOption(value: string, flag: string): number {
+  const parsed = parseStrictNonNegativeInteger(value);
+  if (parsed === undefined) {
+    throw invalidCliArgument(`${flag} must be a non-negative integer.`);
+  }
+  return parsed;
+}
+
 export function registerMemoryCli(program: Command) {
   const memory = program
     .command("memory")
@@ -73,44 +114,44 @@ export function registerMemoryCli(program: Command) {
       "after",
       () =>
         `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["astroclaw memory status", "Show index and provider status."],
+          ["openclaw memory status", "Show index and provider status."],
           [
-            "astroclaw memory status --fix",
+            "openclaw memory status --fix",
             "Repair stale recall locks and normalize promotion metadata.",
           ],
-          ["astroclaw memory status --deep", "Probe embedding provider readiness."],
-          ["astroclaw memory index --force", "Force a full reindex."],
-          ['astroclaw memory search "meeting notes"', "Quick search using positional query."],
+          ["openclaw memory status --deep", "Probe embedding provider readiness."],
+          ["openclaw memory index --force", "Force a full reindex."],
+          ['openclaw memory search "meeting notes"', "Quick search using positional query."],
           [
-            'astroclaw memory search --query "deployment" --max-results 20',
+            'openclaw memory search --query "deployment" --max-results 20',
             "Limit results for focused troubleshooting.",
           ],
           [
-            `astroclaw memory promote --limit 10 --min-score ${DEFAULT_PROMOTION_MIN_SCORE}`,
+            `openclaw memory promote --limit 10 --min-score ${DEFAULT_PROMOTION_MIN_SCORE}`,
             "Review weighted short-term candidates for long-term memory.",
           ],
           [
-            "astroclaw memory promote --apply",
+            "openclaw memory promote --apply",
             "Append top-ranked short-term candidates into MEMORY.md.",
           ],
           [
-            'astroclaw memory promote-explain "router vlan"',
+            'openclaw memory promote-explain "router vlan"',
             "Explain why a specific candidate would or would not promote.",
           ],
           [
-            "astroclaw memory rem-harness --json",
+            "openclaw memory rem-harness --json",
             "Preview REM reflections, candidate truths, and deep promotion output.",
           ],
           [
-            "astroclaw memory rem-backfill --path ./memory",
+            "openclaw memory rem-backfill --path ./memory",
             "Write grounded historical REM entries into DREAMS.md for UI review.",
           ],
           [
-            "astroclaw memory rem-backfill --path ./memory --stage-short-term",
+            "openclaw memory rem-backfill --path ./memory --stage-short-term",
             "Also seed durable grounded candidates into the live short-term promotion store.",
           ],
-          ["astroclaw memory status --json", "Output machine-readable JSON (good for scripts)."],
-        ])}\n\n${theme.muted("Docs:")} ${formatDocsLink("/cli/memory", "docs.astroclaw.ai/cli/memory")}\n`,
+          ["openclaw memory status --json", "Output machine-readable JSON (good for scripts)."],
+        ])}\n\n${theme.muted("Docs:")} ${formatDocsLink("/cli/memory", "docs.openclaw.ai/cli/memory")}\n`,
     );
 
   memory
@@ -142,8 +183,12 @@ export function registerMemoryCli(program: Command) {
     .argument("[query]", "Search query")
     .option("--query <text>", "Search query (alternative to positional argument)")
     .option("--agent <id>", "Agent id (default: default agent)")
-    .option("--max-results <n>", "Max results", (value: string) => Number(value))
-    .option("--min-score <n>", "Minimum score", (value: string) => Number(value))
+    .option("--max-results <n>", "Max results", (value: string) =>
+      parseMemoryCliPositiveIntegerOption(value, "--max-results"),
+    )
+    .option("--min-score <n>", "Minimum score", (value: string) =>
+      parseMemoryCliNumberOption(value, "--min-score"),
+    )
     .option("--json", "Print JSON")
     .action(async (queryArg: string | undefined, opts: MemorySearchCommandOptions) => {
       await runMemorySearch(queryArg, opts);
@@ -153,21 +198,23 @@ export function registerMemoryCli(program: Command) {
     .command("promote")
     .description("Rank short-term recalls and optionally append top entries to MEMORY.md")
     .option("--agent <id>", "Agent id (default: default agent)")
-    .option("--limit <n>", "Max candidates", (value: string) => Number(value))
+    .option("--limit <n>", "Max candidates", (value: string) =>
+      parseMemoryCliPositiveIntegerOption(value, "--limit"),
+    )
     .option(
       "--min-score <n>",
       `Minimum weighted score (default: ${DEFAULT_PROMOTION_MIN_SCORE})`,
-      (value: string) => Number(value),
+      (value: string) => parseMemoryCliNumberOption(value, "--min-score"),
     )
     .option(
       "--min-recall-count <n>",
       `Minimum recall count (default: ${DEFAULT_PROMOTION_MIN_RECALL_COUNT})`,
-      (value: string) => Number(value),
+      (value: string) => parseMemoryCliNonNegativeIntegerOption(value, "--min-recall-count"),
     )
     .option(
       "--min-unique-queries <n>",
       `Minimum distinct query count (default: ${DEFAULT_PROMOTION_MIN_UNIQUE_QUERIES})`,
-      (value: string) => Number(value),
+      (value: string) => parseMemoryCliNonNegativeIntegerOption(value, "--min-unique-queries"),
     )
     .option("--apply", "Append selected candidates to MEMORY.md", false)
     .option("--include-promoted", "Include already promoted candidates", false)
