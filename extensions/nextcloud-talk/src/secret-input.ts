@@ -1,4 +1,5 @@
+// Nextcloud Talk plugin module implements secret input behavior.
 export {
   buildSecretInputSchema,
   normalizeResolvedSecretInputString,
-} from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/secret-input";
