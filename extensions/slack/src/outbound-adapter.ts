@@ -1,21 +1,22 @@
+// Slack plugin module implements outbound adapter behavior.
+import type { OutboundIdentity } from "openclaw/plugin-sdk/channel-outbound";
+import { resolveOutboundSendDep } from "openclaw/plugin-sdk/channel-outbound";
 import {
   attachChannelToResult,
   type ChannelOutboundAdapter,
   createAttachedChannelResultAdapter,
-} from "astroclaw/plugin-sdk/channel-send-result";
+} from "openclaw/plugin-sdk/channel-send-result";
 import {
   resolveInteractiveTextFallback,
   type InteractiveReply,
   type MessagePresentation,
-} from "astroclaw/plugin-sdk/interactive-runtime";
-import type { OutboundIdentity } from "astroclaw/plugin-sdk/outbound-runtime";
-import { resolveOutboundSendDep } from "astroclaw/plugin-sdk/outbound-send-deps";
+} from "openclaw/plugin-sdk/interactive-runtime";
 import {
   resolvePayloadMediaUrls,
   sendPayloadMediaSequenceAndFinalize,
   sendTextMediaPayload,
-} from "astroclaw/plugin-sdk/reply-payload";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/reply-payload";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { parseSlackBlocksInput } from "./blocks-input.js";
 import {
   buildSlackInteractiveBlocks,
@@ -150,20 +151,43 @@ export const slackOutbound: ChannelOutboundAdapter = {
     selects: true,
     context: true,
     divider: true,
+    limits: {
+      actions: {
+        maxActionsPerRow: 25,
+        maxLabelLength: 75,
+        maxValueBytes: 2000,
+        supportsStyles: true,
+      },
+      selects: {
+        maxOptions: 100,
+        maxLabelLength: 75,
+        maxValueBytes: 150,
+      },
+      text: {
+        maxLength: SLACK_TEXT_LIMIT,
+        encoding: "characters",
+        markdownDialect: "slack-mrkdwn",
+        supportsEdit: true,
+      },
+    },
   },
   renderPresentation: ({ payload, presentation }) => {
     const slackData = payload.channelData?.slack as Record<string, unknown> | undefined;
     const nativeBlocks = parseSlackBlocksInput(slackData?.blocks) as SlackBlock[] | undefined;
+    const presentationBlocks = buildSlackPresentationBlocks(
+      presentation,
+      resolveSlackInteractiveBlockOffsets(nativeBlocks),
+    );
+    if (presentationBlocks.length === 0) {
+      return null;
+    }
     return {
       ...payload,
       channelData: {
         ...payload.channelData,
         slack: {
           ...slackData,
-          presentationBlocks: buildSlackPresentationBlocks(
-            presentation,
-            resolveSlackInteractiveBlockOffsets(nativeBlocks),
-          ),
+          presentationBlocks,
         },
       },
     };
