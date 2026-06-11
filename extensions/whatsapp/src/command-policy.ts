@@ -1,4 +1,5 @@
-import type { ChannelPlugin } from "astroclaw/plugin-sdk/core";
+// Whatsapp plugin module implements command policy behavior.
+import type { ChannelPlugin } from "openclaw/plugin-sdk/core";
 
 export const whatsappCommandPolicy: NonNullable<ChannelPlugin["commands"]> = {
   enforceOwnerForCommands: true,
