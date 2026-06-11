@@ -1,21 +1,21 @@
 /**
  * @deprecated Legacy compat surface for plugins that still import
- * astroclaw/extension-api. Use the injected plugin runtime or focused
- * astroclaw/plugin-sdk subpaths instead.
+ * openclaw/extension-api. Use the injected plugin runtime or focused
+ * openclaw/plugin-sdk subpaths instead.
  */
 
 const shouldWarnExtensionApiImport =
   process.env.VITEST !== "true" &&
   process.env.NODE_ENV !== "test" &&
-  process.env.ASTROCLAW_SUPPRESS_EXTENSION_API_WARNING !== "1";
+  process.env.OPENCLAW_SUPPRESS_EXTENSION_API_WARNING !== "1";
 
 if (shouldWarnExtensionApiImport) {
   process.emitWarning(
-    "astroclaw/extension-api is deprecated. Migrate to api.runtime.agent.* or focused astroclaw/plugin-sdk/<subpath> imports. See https://docs.astroclaw.ai/plugins/sdk-migration",
+    "openclaw/extension-api is deprecated. Migrate to api.runtime.agent.* or focused openclaw/plugin-sdk/<subpath> imports. See https://docs.openclaw.ai/plugins/sdk-migration",
     {
-      code: "ASTROCLAW_EXTENSION_API_DEPRECATED",
+      code: "OPENCLAW_EXTENSION_API_DEPRECATED",
       detail:
-        "This compatibility bridge is temporary. Bundled plugins should use the injected plugin runtime instead of importing host-side agent helpers directly. Migration guide: https://docs.astroclaw.ai/plugins/sdk-migration",
+        "This compatibility bridge is temporary. Bundled plugins should use the injected plugin runtime instead of importing host-side agent helpers directly. Migration guide: https://docs.openclaw.ai/plugins/sdk-migration",
     },
   );
 }
@@ -24,7 +24,11 @@ export { resolveAgentDir, resolveAgentWorkspaceDir } from "./agents/agent-scope.
 export { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./agents/defaults.js";
 export { resolveAgentIdentity } from "./agents/identity.js";
 export { resolveThinkingDefault } from "./agents/model-selection.js";
-export { runEmbeddedPiAgent } from "./agents/pi-embedded.js";
+export {
+  runEmbeddedAgent,
+  /** @deprecated Use runEmbeddedAgent. */
+  runEmbeddedAgent as runEmbeddedPiAgent,
+} from "./agents/embedded-agent.js";
 export { resolveAgentTimeoutMs } from "./agents/timeout.js";
 export { ensureAgentWorkspace } from "./agents/workspace.js";
 export {
