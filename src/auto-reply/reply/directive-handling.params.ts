@@ -1,13 +1,15 @@
+/** Parameter contracts shared by directive-only and fast-lane directive handlers. */
 import type { ModelCatalogEntry } from "../../agents/model-catalog.js";
 import type { ModelAliasIndex } from "../../agents/model-selection.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { MsgContext } from "../templating.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "./directives.js";
 
+/** Core directive handler inputs that do not depend on the inbound message shape. */
 export type HandleDirectiveOnlyCoreParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   directives: InlineDirectives;
   sessionEntry: SessionEntry;
   sessionStore: Record<string, SessionEntry>;
@@ -32,6 +34,7 @@ export type HandleDirectiveOnlyCoreParams = {
   formatModelSwitchEvent: (label: string, alias?: string) => string;
 };
 
+/** Full directive-only command handler inputs. */
 export type HandleDirectiveOnlyParams = HandleDirectiveOnlyCoreParams & {
   ctx?: MsgContext;
   messageProvider?: string;
@@ -43,9 +46,11 @@ export type HandleDirectiveOnlyParams = HandleDirectiveOnlyCoreParams & {
   workspaceDir?: string;
   surface?: string;
   gatewayClientScopes?: string[];
+  commandAuthorized?: boolean;
   senderIsOwner?: boolean;
 };
 
+/** Inputs for applying inline directives before the full reply run is prepared. */
 export type ApplyInlineDirectivesFastLaneParams = HandleDirectiveOnlyCoreParams & {
   commandAuthorized: boolean;
   senderIsOwner: boolean;
@@ -53,7 +58,7 @@ export type ApplyInlineDirectivesFastLaneParams = HandleDirectiveOnlyCoreParams 
   workspaceDir?: string;
   agentId?: string;
   isGroup: boolean;
-  agentCfg?: NonNullable<AstroclawConfig["agents"]>["defaults"];
+  agentCfg?: NonNullable<OpenClawConfig["agents"]>["defaults"];
   modelState: {
     resolveDefaultThinkingLevel: () => Promise<ThinkLevel | undefined>;
     resolveThinkingCatalog: () => Promise<ModelCatalogEntry[] | undefined>;
