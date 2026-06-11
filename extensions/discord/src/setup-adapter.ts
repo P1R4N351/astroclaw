@@ -1,7 +1,8 @@
+// Discord plugin module implements setup adapter behavior.
 import {
   createEnvPatchedAccountSetupAdapter,
   type ChannelSetupAdapter,
-} from "astroclaw/plugin-sdk/setup-runtime";
+} from "openclaw/plugin-sdk/setup-runtime";
 
 const channel = "discord" as const;
 
