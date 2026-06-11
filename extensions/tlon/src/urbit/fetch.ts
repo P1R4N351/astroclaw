@@ -1,8 +1,9 @@
+// Tlon plugin module implements fetch behavior.
 import {
   fetchWithSsrFGuard,
   type LookupFn,
   type SsrFPolicy,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import { validateUrbitBaseUrl } from "./base-url.js";
 import { UrbitUrlError } from "./errors.js";
 
