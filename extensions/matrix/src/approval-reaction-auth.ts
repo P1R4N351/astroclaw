@@ -1,4 +1,5 @@
-import { resolveApprovalApprovers } from "astroclaw/plugin-sdk/approval-auth-runtime";
+// Matrix plugin module implements approval reaction auth behavior.
+import { resolveApprovalApprovers } from "openclaw/plugin-sdk/approval-auth-runtime";
 import { normalizeMatrixApproverId } from "./approval-ids.js";
 import { resolveMatrixAccount } from "./matrix/accounts.js";
 import type { CoreConfig } from "./types.js";
