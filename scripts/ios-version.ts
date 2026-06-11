@@ -1,3 +1,4 @@
+// Ios Version script supports OpenClaw repository automation.
 import path from "node:path";
 import { resolveIosVersion } from "./lib/ios-version.ts";
 
@@ -68,9 +69,9 @@ if (options.field) {
 if (options.format === "shell") {
   process.stdout.write(
     [
-      `ASTROCLAW_IOS_VERSION=${version.canonicalVersion}`,
-      `ASTROCLAW_MARKETING_VERSION=${version.marketingVersion}`,
-      `ASTROCLAW_BUILD_VERSION=${version.buildVersion}`,
+      `OPENCLAW_IOS_VERSION=${version.canonicalVersion}`,
+      `OPENCLAW_MARKETING_VERSION=${version.marketingVersion}`,
+      `OPENCLAW_BUILD_VERSION=${version.buildVersion}`,
     ].join("\n") + "\n",
   );
 } else {
