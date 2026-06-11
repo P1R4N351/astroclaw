@@ -1,7 +1,8 @@
+// Console logging helpers format and write messages to console streams.
 import util from "node:util";
-import type { AstroclawConfig } from "../config/types.js";
+import { stripAnsi } from "../../packages/terminal-core/src/ansi.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { isVerbose } from "../global-state.js";
-import { stripAnsi } from "../terminal/ansi.js";
 import { readLoggingConfig, shouldSkipMutatingLoggingConfigRead } from "./config.js";
 import { resolveEnvLogLevelOverride } from "./env-log-level.js";
 import { type LogLevel, normalizeLogLevel } from "./levels.js";
@@ -18,7 +19,7 @@ type ConsoleSettings = {
 };
 export type ConsoleLoggerSettings = ConsoleSettings;
 
-type ConsoleConfigLoader = () => AstroclawConfig["logging"] | undefined;
+type ConsoleConfigLoader = () => OpenClawConfig["logging"] | undefined;
 const loadConfigFallbackDefault: ConsoleConfigLoader = () => undefined;
 let loadConfigFallback: ConsoleConfigLoader = loadConfigFallbackDefault;
 
@@ -30,7 +31,7 @@ function normalizeConsoleLevel(level?: string): LogLevel {
   if (isVerbose()) {
     return "debug";
   }
-  if (!level && process.env.VITEST === "true" && process.env.ASTROCLAW_TEST_CONSOLE !== "1") {
+  if (!level && process.env.VITEST === "true" && process.env.OPENCLAW_TEST_CONSOLE !== "1") {
     return "silent";
   }
   return normalizeLogLevel(level, "info");
@@ -52,7 +53,7 @@ function resolveConsoleSettings(): ConsoleSettings {
   // Skip config-file and full config fallback reads in this fast path.
   if (
     process.env.VITEST === "true" &&
-    process.env.ASTROCLAW_TEST_CONSOLE !== "1" &&
+    process.env.OPENCLAW_TEST_CONSOLE !== "1" &&
     !isVerbose() &&
     !envLevel &&
     !loggingState.overrideSettings
@@ -60,7 +61,7 @@ function resolveConsoleSettings(): ConsoleSettings {
     return { level: "silent", style: normalizeConsoleStyle(undefined) };
   }
 
-  let cfg: AstroclawConfig["logging"] | undefined =
+  let cfg: OpenClawConfig["logging"] | undefined =
     (loggingState.overrideSettings as LoggerSettings | null) ?? readLoggingConfig();
   if (!cfg && !shouldSkipMutatingLoggingConfigRead()) {
     if (loggingState.resolvingConsoleSettings) {
@@ -198,6 +199,11 @@ export function enableConsoleCapture(): void {
     for (const stream of [process.stdout, process.stderr]) {
       stream.on("error", (err) => {
         if (isEpipeError(err)) {
+          // stdout/stderr broken means the process is orphaned (e.g. the parent
+          // service restarted and closed the journal pipe). Exit cleanly instead
+          // of spinning in a tight loop where every log attempt re-triggers EPIPE.
+          const exitCode = process.exitCode;
+          process.exit(exitCode !== undefined && exitCode !== 0 && exitCode !== "0" ? exitCode : 0);
           return;
         }
         throw err;
