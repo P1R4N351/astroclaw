@@ -1,4 +1,6 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Gateway startup session-store migration runner.
+// Keeps old orphaned session keys from surviving process upgrades.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { migrateOrphanedSessionKeys } from "../infra/state-migrations.js";
 
 type SessionMigrationLogger = {
@@ -12,10 +14,10 @@ type SessionMigrationLogger = {
  * Idempotent and best-effort: if the migration fails, gateway startup
  * continues normally. This ensures accumulated orphaned session keys
  * (from the write-path bug #29683) are cleaned up automatically on
- * upgrade rather than requiring a manual `astroclaw doctor` run.
+ * upgrade rather than requiring a manual `openclaw doctor` run.
  */
 export async function runStartupSessionMigration(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   log: SessionMigrationLogger;
   deps?: {
