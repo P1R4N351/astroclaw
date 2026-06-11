@@ -1,12 +1,13 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Shared plugin CLI helpers for install logging, file specs, hooks, and slot selection.
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { theme } from "../../packages/terminal-core/src/theme.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginKind } from "../plugins/plugin-kind.types.js";
 import { loadPluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import { applyExclusiveSlotSelection } from "../plugins/slots.js";
 import { buildPluginDiagnosticsReport } from "../plugins/status.js";
 import type { PluginLogger } from "../plugins/types.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
-import { theme } from "../terminal/theme.js";
 
 type HookInternalEntryLike = Record<string, unknown> & { enabled?: boolean };
 
@@ -46,7 +47,7 @@ function mergeRuntimeKinds(
   };
 }
 
-function loadRuntimeKindReportForPlugins(config: AstroclawConfig, pluginIds: readonly string[]) {
+function loadRuntimeKindReportForPlugins(config: OpenClawConfig, pluginIds: readonly string[]) {
   return buildPluginDiagnosticsReport({
     config,
     onlyPluginIds: [...pluginIds],
@@ -54,7 +55,7 @@ function loadRuntimeKindReportForPlugins(config: AstroclawConfig, pluginIds: rea
 }
 
 function buildSlotSelectionRegistry(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   pluginId: string,
 ): SlotSelectionRegistry {
   const plugins = loadPluginMetadataSnapshot({
@@ -96,9 +97,10 @@ export function resolveFileNpmSpecToLocalPath(
 }
 
 export function applySlotSelectionForPlugin(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   pluginId: string,
-): { config: AstroclawConfig; warnings: string[] } {
+): { config: OpenClawConfig; warnings: string[] } {
+  // Static metadata is preferred; runtime diagnostics fill in kind for older manifests.
   const report = buildSlotSelectionRegistry(config, pluginId);
   const plugin = report.plugins.find((entry) => entry.id === pluginId);
   if (!plugin) {
@@ -147,9 +149,9 @@ export function createHookPackInstallLogger(runtime: RuntimeEnv = defaultRuntime
 }
 
 export function enableInternalHookEntries(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   hookNames: string[],
-): AstroclawConfig {
+): OpenClawConfig {
   const entries = { ...config.hooks?.internal?.entries } as Record<string, HookInternalEntryLike>;
 
   for (const hookName of hookNames) {
@@ -179,7 +181,7 @@ export function formatPluginInstallWithHookFallbackError(
   const formattedPluginError = formatPluginInstallAttemptError(pluginError);
   const formattedHookError = formatPluginInstallAttemptError(hookError);
   if (/plugin already exists: .+ \(delete it first\)/.test(pluginError)) {
-    return `${formattedPluginError}\nUse \`astroclaw plugins update <id-or-npm-spec>\` to upgrade the tracked plugin, or rerun install with \`--force\` to replace it.`;
+    return `${formattedPluginError}\nUse \`openclaw plugins update <id-or-npm-spec>\` to upgrade the tracked plugin, or rerun install with \`--force\` to replace it.`;
   }
   if (
     pluginError.startsWith("Invalid extensions directory:") ||
