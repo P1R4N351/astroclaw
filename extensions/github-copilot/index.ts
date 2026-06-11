@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
+// Github Copilot plugin entrypoint registers its OpenClaw integration.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
 import {
   definePluginEntry,
   type ProviderCatalogContext,
@@ -9,7 +10,7 @@ import {
   type ProviderAuthMethodNonInteractiveContext,
   type UnifiedModelCatalogEntry,
   type UnifiedModelCatalogProviderContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import {
   applyAuthProfileConfig,
   coerceSecretRef,
@@ -18,11 +19,11 @@ import {
   normalizeOptionalSecretInput,
   resolveDefaultSecretProviderAlias,
   upsertAuthProfileWithLock,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { getCachedLiveCatalogValue } from "astroclaw/plugin-sdk/provider-catalog-shared";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-auth";
+import { getCachedLiveCatalogValue } from "openclaw/plugin-sdk/provider-catalog-shared";
 import { resolveFirstGithubToken } from "./auth.js";
 import { githubCopilotMemoryEmbeddingProviderAdapter } from "./embeddings.js";
+import { resolveCopilotExtendedThinkingLevels } from "./model-metadata.js";
 import {
   PROVIDER_ID,
   fetchCopilotModelCatalog,
@@ -34,7 +35,6 @@ import { wrapCopilotProviderStream } from "./stream.js";
 const COPILOT_ENV_VARS = ["COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"];
 const DEFAULT_COPILOT_MODEL = "github-copilot/claude-opus-4.7";
 const DEFAULT_COPILOT_PROFILE_ID = "github-copilot:github";
-const COPILOT_XHIGH_MODEL_IDS = ["gpt-5.4", "gpt-5.3-codex", "gpt-5.2", "gpt-5.2-codex"] as const;
 
 type GithubCopilotPluginConfig = {
   discovery?: {
@@ -46,7 +46,7 @@ async function loadGithubCopilotRuntime() {
   return await import("./register.runtime.js");
 }
 
-function applyCopilotDefaultModel(cfg: AstroclawConfig): AstroclawConfig {
+function applyCopilotDefaultModel(cfg: OpenClawConfig): OpenClawConfig {
   const defaults = cfg.agents?.defaults;
   const existingModel = defaults?.model;
   const existingPrimary =
@@ -188,7 +188,7 @@ async function resolveCopilotNonInteractiveToken(
 
 async function runGitHubCopilotNonInteractiveAuth(
   ctx: ProviderAuthMethodNonInteractiveContext,
-): Promise<AstroclawConfig | null> {
+): Promise<OpenClawConfig | null> {
   const opts = ctx.opts as Record<string, unknown> | undefined;
   const flagValue = normalizeOptionalSecretInput(opts?.githubCopilotToken);
   const resolved = await resolveCopilotNonInteractiveToken(ctx, flagValue);
@@ -256,7 +256,7 @@ export default definePluginEntry({
   register(api) {
     const startupPluginConfig = (api.pluginConfig ?? {}) as GithubCopilotPluginConfig;
 
-    function resolveCurrentPluginConfig(config?: AstroclawConfig): GithubCopilotPluginConfig {
+    function resolveCurrentPluginConfig(config?: OpenClawConfig): GithubCopilotPluginConfig {
       const runtimePluginConfig = resolvePluginConfigObject(config, "github-copilot");
       if (runtimePluginConfig) {
         return runtimePluginConfig as GithubCopilotPluginConfig;
@@ -268,8 +268,7 @@ export default definePluginEntry({
       ctx: ProviderCatalogContext,
     ): Promise<ProviderCatalogResult> {
       const pluginConfig = resolveCurrentPluginConfig(ctx.config);
-      const discoveryEnabled =
-        pluginConfig.discovery?.enabled ?? ctx.config?.models?.copilotDiscovery?.enabled;
+      const discoveryEnabled = pluginConfig.discovery?.enabled;
       if (discoveryEnabled === false) {
         return null;
       }
@@ -451,20 +450,19 @@ export default definePluginEntry({
       resolveDynamicModel: (ctx) => resolveCopilotForwardCompatModel(ctx),
       wrapStreamFn: wrapCopilotProviderStream,
       buildReplayPolicy: ({ modelId }) => buildGithubCopilotReplayPolicy(modelId),
-      resolveThinkingProfile: ({ modelId }) => ({
-        levels: [
-          { id: "off" },
-          { id: "minimal" },
-          { id: "low" },
-          { id: "medium" },
-          { id: "high" },
-          ...(COPILOT_XHIGH_MODEL_IDS.includes(
-            (normalizeOptionalLowercaseString(modelId) ?? "") as never,
-          )
-            ? [{ id: "xhigh" as const }]
-            : []),
-        ],
-      }),
+      resolveThinkingProfile: ({ modelId, compat }) => {
+        const extendedLevels = resolveCopilotExtendedThinkingLevels(modelId, compat);
+        return {
+          levels: [
+            { id: "off" },
+            { id: "minimal" },
+            { id: "low" },
+            { id: "medium" },
+            { id: "high" },
+            ...extendedLevels.map((id) => ({ id })),
+          ],
+        };
+      },
       prepareRuntimeAuth: async (ctx) => {
         const { resolveCopilotApiToken } = await loadGithubCopilotRuntime();
         const token = await resolveCopilotApiToken({
