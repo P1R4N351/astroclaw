@@ -1,4 +1,9 @@
-import type { AstroclawConfig } from "../config/types.js";
+/** Resolves provider auth secret refs from env, file, and exec-backed secret providers. */
+import {
+  normalizeOptionalString,
+  normalizeStringifiedOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.js";
 import { isValidEnvSecretRefId, type SecretRef } from "../config/types.secrets.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { encodeJsonPointerToken } from "../secrets/json-pointer.js";
@@ -10,10 +15,6 @@ import {
   resolveDefaultSecretProviderAlias,
 } from "../secrets/ref-contract.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";
-import {
-  normalizeOptionalString,
-  normalizeStringifiedOptionalString,
-} from "../shared/string-coerce.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 
 const secretResolveLoader = createLazyImportLoader(() => import("../secrets/resolve.js"));
@@ -26,6 +27,7 @@ const ENV_SOURCE_LABEL_RE = /(?:^|:\s)([A-Z][A-Z0-9_]*)$/;
 
 type SecretRefChoice = "env" | "provider"; // pragma: allowlist secret
 
+/** Copy overrides used while prompting for provider secret-ref setup. */
 export type SecretRefSetupPromptCopy = {
   sourceMessage?: string;
   envVarMessage?: string;
@@ -37,6 +39,7 @@ export type SecretRefSetupPromptCopy = {
   providerValidatedMessage?: (provider: string, id: string, source: "file" | "exec") => string;
 };
 
+/** Extracts a trailing env var name from a human-facing secret source label. */
 export function extractEnvVarFromSourceLabel(source: string): string | undefined {
   const match = ENV_SOURCE_LABEL_RE.exec(source.trim());
   return match?.[1];
@@ -44,7 +47,7 @@ export function extractEnvVarFromSourceLabel(source: string): string | undefined
 
 function resolveDefaultProviderEnvVar(
   provider: string,
-  config?: AstroclawConfig,
+  config?: OpenClawConfig,
 ): string | undefined {
   const envVars = getProviderEnvVars(provider, {
     ...(config ? { config } : {}),
@@ -58,7 +61,7 @@ function resolveDefaultFilePointerId(provider: string): string {
 }
 
 export function resolveRefFallbackInput(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   provider: string;
   preferredEnvVar?: string;
   env?: NodeJS.ProcessEnv;
@@ -95,7 +98,7 @@ export function resolveRefFallbackInput(params: {
 
 async function promptEnvSecretRefForSetup(params: {
   provider: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   prompter: WizardPrompter;
   defaultEnvVar: string;
   copy?: SecretRefSetupPromptCopy;
@@ -144,7 +147,7 @@ async function promptEnvSecretRefForSetup(params: {
   };
   await params.prompter.note(
     params.copy?.envValidatedMessage?.(envVar) ??
-      `Validated environment variable ${envVar}. Astroclaw will store a reference, not the key value.`,
+      `Validated environment variable ${envVar}. OpenClaw will store a reference, not the key value.`,
     "Reference validated",
   );
   return { ref, resolvedValue };
@@ -152,7 +155,7 @@ async function promptEnvSecretRefForSetup(params: {
 
 async function promptProviderSecretRefForSetup(params: {
   provider: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   prompter: WizardPrompter;
   defaultFilePointer: string;
   copy?: SecretRefSetupPromptCopy;
@@ -247,7 +250,7 @@ async function promptProviderSecretRefForSetup(params: {
     });
     await params.prompter.note(
       params.copy?.providerValidatedMessage?.(selectedProvider, id, providerEntry.source) ??
-        `Validated ${providerEntry.source} reference ${selectedProvider}:${id}. Astroclaw will store a reference, not the key value.`,
+        `Validated ${providerEntry.source} reference ${selectedProvider}:${id}. OpenClaw will store a reference, not the key value.`,
       "Reference validated",
     );
     return { ref, resolvedValue };
@@ -266,7 +269,7 @@ async function promptProviderSecretRefForSetup(params: {
 
 export async function promptSecretRefForSetup(params: {
   provider: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   prompter: WizardPrompter;
   preferredEnvVar?: string;
   copy?: SecretRefSetupPromptCopy;
