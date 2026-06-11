@@ -1,3 +1,4 @@
+// Diagnostic stability bundle helpers collect stable diagnostic data for comparison.
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -8,6 +9,7 @@ import type {
   DiagnosticMemoryUsage,
 } from "../infra/diagnostic-events.js";
 import { registerFatalErrorHook } from "../infra/fatal-error-hooks.js";
+import { parseStrictNonNegativeInteger } from "../infra/parse-finite-number.js";
 import { replaceFileAtomicSync } from "../infra/replace-file.js";
 import {
   getDiagnosticStabilitySnapshot,
@@ -22,7 +24,7 @@ export const DEFAULT_DIAGNOSTIC_STABILITY_BUNDLE_RETENTION = 20;
 export const MAX_DIAGNOSTIC_STABILITY_BUNDLE_BYTES = 5 * 1024 * 1024;
 
 const SAFE_REASON_CODE = /^[A-Za-z0-9_.:-]{1,120}$/u;
-const BUNDLE_PREFIX = "astroclaw-stability-";
+const BUNDLE_PREFIX = "openclaw-stability-";
 const BUNDLE_SUFFIX = ".json";
 const REDACTED_HOSTNAME = "<redacted-hostname>";
 const MAX_SAFE_ERROR_MESSAGE_LENGTH = 500;
@@ -740,10 +742,42 @@ function readStabilityEventRecord(
   assignOptionalNumber(sanitized, "ageMs", record.ageMs, `${label}.ageMs`);
   assignOptionalNumber(sanitized, "queueDepth", record.queueDepth, `${label}.queueDepth`);
   assignOptionalNumber(sanitized, "queueSize", record.queueSize, `${label}.queueSize`);
+  assignOptionalNumber(sanitized, "queueLength", record.queueLength, `${label}.queueLength`);
   assignOptionalNumber(sanitized, "waitMs", record.waitMs, `${label}.waitMs`);
   assignOptionalNumber(sanitized, "active", record.active, `${label}.active`);
   assignOptionalNumber(sanitized, "waiting", record.waiting, `${label}.waiting`);
   assignOptionalNumber(sanitized, "queued", record.queued, `${label}.queued`);
+  assignOptionalNumber(sanitized, "droppedEvents", record.droppedEvents, `${label}.droppedEvents`);
+  assignOptionalNumber(
+    sanitized,
+    "droppedTrustedEvents",
+    record.droppedTrustedEvents,
+    `${label}.droppedTrustedEvents`,
+  );
+  assignOptionalNumber(
+    sanitized,
+    "droppedUntrustedEvents",
+    record.droppedUntrustedEvents,
+    `${label}.droppedUntrustedEvents`,
+  );
+  assignOptionalNumber(
+    sanitized,
+    "droppedPriorityEvents",
+    record.droppedPriorityEvents,
+    `${label}.droppedPriorityEvents`,
+  );
+  assignOptionalNumber(
+    sanitized,
+    "maxQueueLength",
+    record.maxQueueLength,
+    `${label}.maxQueueLength`,
+  );
+  assignOptionalNumber(
+    sanitized,
+    "drainBatchSize",
+    record.drainBatchSize,
+    `${label}.drainBatchSize`,
+  );
 
   if (record.webhooks !== undefined) {
     const webhooks = readObject(record.webhooks, `${label}.webhooks`);
@@ -864,8 +898,7 @@ function readPositiveMemoryFile(file: string): number | "max" | undefined {
     if (raw === "max") {
       return "max";
     }
-    const parsed = Number.parseInt(raw, 10);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+    return parseStrictNonNegativeInteger(raw);
   } catch {
     return undefined;
   }
@@ -879,8 +912,8 @@ function readCgroupEventFile(file: string): Record<string, number> {
       if (!key || !SAFE_REASON_CODE.test(key)) {
         continue;
       }
-      const value = Number.parseInt(raw ?? "", 10);
-      if (Number.isFinite(value) && value >= 0) {
+      const value = parseStrictNonNegativeInteger(raw ?? "");
+      if (value !== undefined) {
         events[key] = value;
       }
     }
@@ -1317,7 +1350,7 @@ export function writeDiagnosticStabilityBundleSync(
       content: `${JSON.stringify(bundle, null, 2)}\n`,
       dirMode: 0o700,
       mode: 0o600,
-      tempPrefix: ".astroclaw-stability",
+      tempPrefix: ".openclaw-stability",
     });
     pruneOldBundles(dir, options.retention ?? DEFAULT_DIAGNOSTIC_STABILITY_BUNDLE_RETENTION);
     return { status: "written", path: file, bundle };
