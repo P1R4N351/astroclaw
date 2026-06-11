@@ -1,12 +1,13 @@
-import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Mattermost plugin module implements target resolution behavior.
+import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveMattermostAccount } from "./accounts.js";
 import {
   createMattermostClient,
   fetchMattermostUser,
   normalizeMattermostBaseUrl,
 } from "./client.js";
-import type { AstroclawConfig } from "./runtime-api.js";
+import type { OpenClawConfig } from "./runtime-api.js";
 
 export type MattermostOpaqueTargetResolution = {
   kind: "user" | "channel";
@@ -52,7 +53,7 @@ export function parseMattermostApiStatus(err: unknown): number | undefined {
 
 export async function resolveMattermostOpaqueTarget(params: {
   input: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   accountId?: string | null;
   token?: string;
   baseUrl?: string;
