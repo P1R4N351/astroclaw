@@ -1,11 +1,12 @@
+// Configure wizard helper for removing channel config sections safely.
+import { note } from "../../packages/terminal-core/src/note.js";
+import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import { listChatChannels } from "../channels/chat-meta.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { CONFIG_PATH } from "../config/config.js";
 import { isBlockedObjectKey } from "../config/prototype-keys.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { note } from "../terminal/note.js";
-import { sanitizeTerminalText } from "../terminal/safe-text.js";
 import { shortenHomePath } from "../utils.js";
 import { confirm, select } from "./configure.shared.js";
 import { guardCancel } from "./onboard-helpers.js";
@@ -29,7 +30,7 @@ const RESERVED_CHANNEL_CONFIG_KEYS = new Set(["defaults", "modelByChannel"]);
 const DONE_VALUE: Extract<ChannelRemovalSelectValue, { kind: "done" }> = { kind: "done" };
 
 function listConfiguredChannelRemovalChoices(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): ConfiguredChannelRemovalChoice[] {
   const channels = cfg.channels;
   if (!channels) {
@@ -66,19 +67,20 @@ function compareChannelRemovalChoices(
   );
 }
 
+/** Prompt for configured channel sections to remove from openclaw.json. */
 export async function removeChannelConfigWizard(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   runtime: RuntimeEnv,
-): Promise<AstroclawConfig> {
-  let next = { ...cfg };
+): Promise<OpenClawConfig> {
+  const next = { ...cfg };
 
   while (true) {
     const configured = listConfiguredChannelRemovalChoices(next);
     if (configured.length === 0) {
       note(
         [
-          "No channel config found in astroclaw.json.",
-          `Tip: \`${formatCliCommand("astroclaw channels status")}\` shows what is configured and enabled.`,
+          "No channel config found in openclaw.json.",
+          `Tip: \`${formatCliCommand("openclaw channels status")}\` shows what is configured and enabled.`,
         ].join("\n"),
         "Remove channel",
       );
@@ -120,7 +122,7 @@ export async function removeChannelConfigWizard(
     const nextChannels: Record<string, unknown> = { ...next.channels };
     delete nextChannels[channel];
     if (Object.keys(nextChannels).length) {
-      next.channels = nextChannels as AstroclawConfig["channels"];
+      next.channels = nextChannels as OpenClawConfig["channels"];
     } else {
       delete next.channels;
     }
