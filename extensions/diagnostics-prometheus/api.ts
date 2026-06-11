@@ -1,12 +1,14 @@
+// Diagnostics Prometheus API module exposes the plugin public contract.
 export type {
   DiagnosticEventMetadata,
   DiagnosticEventPayload,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
+export { isInternalDiagnosticEventMetadata } from "openclaw/plugin-sdk/diagnostic-runtime";
 export {
   emptyPluginConfigSchema,
-  type AstroclawPluginApi,
-  type AstroclawPluginHttpRouteHandler,
-  type AstroclawPluginService,
-  type AstroclawPluginServiceContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
-export { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
+  type OpenClawPluginApi,
+  type OpenClawPluginHttpRouteHandler,
+  type OpenClawPluginService,
+  type OpenClawPluginServiceContext,
+} from "openclaw/plugin-sdk/plugin-entry";
+export { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
