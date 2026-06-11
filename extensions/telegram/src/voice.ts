@@ -1,4 +1,5 @@
-import { isVoiceCompatibleAudio } from "astroclaw/plugin-sdk/media-runtime";
+// Telegram plugin module implements voice behavior.
+import { isVoiceCompatibleAudio } from "openclaw/plugin-sdk/media-runtime";
 
 function resolveTelegramVoiceDecision(opts: {
   wantsVoice: boolean;
