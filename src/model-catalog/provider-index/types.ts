@@ -1,6 +1,9 @@
-import type { ModelCatalogProvider } from "../types.js";
+// Provider-index types describe install hints, auth choices, and preview catalogs for discoverable providers.
+import type { ModelCatalogProvider } from "@openclaw/model-catalog-core/model-catalog-types";
 
-export type AstroclawProviderIndexPluginInstall = {
+// Normalized provider-index schema. It describes providers discoverable before
+// plugin install, including install hints, auth choices, and preview catalogs.
+export type OpenClawProviderIndexPluginInstall = {
   clawhubSpec?: string;
   npmSpec?: string;
   defaultChoice?: "clawhub" | "npm";
@@ -8,14 +11,14 @@ export type AstroclawProviderIndexPluginInstall = {
   expectedIntegrity?: string;
 };
 
-export type AstroclawProviderIndexPlugin = {
+export type OpenClawProviderIndexPlugin = {
   id: string;
   package?: string;
   source?: string;
-  install?: AstroclawProviderIndexPluginInstall;
+  install?: OpenClawProviderIndexPluginInstall;
 };
 
-export type AstroclawProviderIndexProviderAuthChoice = {
+export type OpenClawProviderIndexProviderAuthChoice = {
   method: string;
   choiceId: string;
   choiceLabel: string;
@@ -29,20 +32,20 @@ export type AstroclawProviderIndexProviderAuthChoice = {
   cliFlag?: string;
   cliOption?: string;
   cliDescription?: string;
-  onboardingScopes?: readonly ("text-inference" | "image-generation")[];
+  onboardingScopes?: readonly ("text-inference" | "image-generation" | "music-generation")[];
 };
 
-export type AstroclawProviderIndexProvider = {
+export type OpenClawProviderIndexProvider = {
   id: string;
   name: string;
-  plugin: AstroclawProviderIndexPlugin;
+  plugin: OpenClawProviderIndexPlugin;
   docs?: string;
   categories?: readonly string[];
-  authChoices?: readonly AstroclawProviderIndexProviderAuthChoice[];
+  authChoices?: readonly OpenClawProviderIndexProviderAuthChoice[];
   previewCatalog?: ModelCatalogProvider;
 };
 
-export type AstroclawProviderIndex = {
+export type OpenClawProviderIndex = {
   version: number;
-  providers: Readonly<Record<string, AstroclawProviderIndexProvider>>;
+  providers: Readonly<Record<string, OpenClawProviderIndexProvider>>;
 };
