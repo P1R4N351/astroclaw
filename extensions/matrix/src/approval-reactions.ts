@@ -1,4 +1,5 @@
-import type { ExecApprovalReplyDecision } from "astroclaw/plugin-sdk/approval-runtime";
+// Matrix plugin module implements approval reactions behavior.
+import type { ExecApprovalReplyDecision } from "openclaw/plugin-sdk/approval-runtime";
 import { getOptionalMatrixRuntime } from "./runtime.js";
 
 const MATRIX_APPROVAL_REACTION_META = {
