@@ -1,12 +1,13 @@
+// Qqbot helper module supports file utils behavior.
 import crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { mimeTypeFromFilePath } from "astroclaw/plugin-sdk/media-mime";
+import { mimeTypeFromFilePath } from "openclaw/plugin-sdk/media-mime";
 import {
   openLocalFileSafely,
   readRegularFile,
   statRegularFileSync,
-} from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/security-runtime";
 import { getPlatformAdapter } from "../adapter/index.js";
 import type { SsrfPolicyConfig } from "../adapter/types.js";
 import { MediaFileType } from "../types.js";
