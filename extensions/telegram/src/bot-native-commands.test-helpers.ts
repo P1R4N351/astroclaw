@@ -1,9 +1,11 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { ChannelGroupPolicy } from "astroclaw/plugin-sdk/config-contracts";
-import type { TelegramAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { MockFn } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+// Telegram helper module supports bot native commands helpers behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ChannelGroupPolicy } from "openclaw/plugin-sdk/config-contracts";
+import type { TelegramAccountConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { MockFn } from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import { vi } from "vitest";
+import type { TelegramNativeCommandDeps } from "./bot-native-command-deps.runtime.js";
 import type { RegisterTelegramNativeCommandsParams } from "./bot-native-commands.js";
 import { registerTelegramNativeCommands } from "./bot-native-commands.js";
 
@@ -13,7 +15,7 @@ type MatchPluginCommandFn = typeof import("./bot-native-commands.runtime.js").ma
 type ExecutePluginCommandFn =
   typeof import("./bot-native-commands.runtime.js").executePluginCommand;
 type DispatchReplyWithBufferedBlockDispatcherFn =
-  typeof import("astroclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
+  typeof import("openclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
 type DispatchReplyWithBufferedBlockDispatcherResult = Awaited<
   ReturnType<DispatchReplyWithBufferedBlockDispatcherFn>
 >;
@@ -24,6 +26,8 @@ type EnsureConfiguredBindingRouteReadyFn =
   typeof import("./bot-native-commands.runtime.js").ensureConfiguredBindingRouteReady;
 type GetAgentScopedMediaLocalRootsFn =
   typeof import("./bot-native-commands.runtime.js").getAgentScopedMediaLocalRoots;
+type ResolveThreadSessionKeysFn =
+  typeof import("./bot-native-commands.runtime.js").resolveThreadSessionKeys;
 type CreateChannelReplyPipelineFn =
   typeof import("./bot-native-commands.delivery.runtime.js").createChannelMessageReplyPipeline;
 type AnyMock = MockFn<(...args: unknown[]) => unknown>;
@@ -34,6 +38,7 @@ type NativeCommandHarness = {
   setMyCommands: AnyAsyncMock;
   log: AnyMock;
   bot: RegisterTelegramNativeCommandsParams["bot"];
+  readChannelAllowFromStore: AnyAsyncMock;
 };
 
 const pluginCommandMocks = vi.hoisted(() => ({
@@ -41,7 +46,7 @@ const pluginCommandMocks = vi.hoisted(() => ({
   matchPluginCommand: vi.fn<MatchPluginCommandFn>(() => null),
   executePluginCommand: vi.fn<ExecutePluginCommandFn>(async () => ({ text: "ok" })),
 }));
-vi.mock("astroclaw/plugin-sdk/plugin-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/plugin-runtime", () => ({
   getPluginCommandSpecs: pluginCommandMocks.getPluginCommandSpecs,
   matchPluginCommand: pluginCommandMocks.matchPluginCommand,
   executePluginCommand: pluginCommandMocks.executePluginCommand,
@@ -67,6 +72,19 @@ const replyPipelineMocks = vi.hoisted(() => {
       ok: true,
     })) as unknown as EnsureConfiguredBindingRouteReadyFn),
     getAgentScopedMediaLocalRoots: vi.fn<GetAgentScopedMediaLocalRootsFn>(() => []),
+    resolveThreadSessionKeys: vi.fn<ResolveThreadSessionKeysFn>(
+      ({ baseSessionKey, threadId, parentSessionKey, useSuffix = true, normalizeThreadId }) => {
+        const normalizedThreadId =
+          typeof threadId === "string" ? (normalizeThreadId?.(threadId) ?? threadId.trim()) : "";
+        return {
+          sessionKey:
+            normalizedThreadId && useSuffix
+              ? `${baseSessionKey}:thread:${normalizedThreadId.toLowerCase()}`
+              : baseSessionKey,
+          parentSessionKey,
+        };
+      },
+    ),
   };
 });
 const deliveryMocks = vi.hoisted(() => ({
@@ -82,17 +100,18 @@ vi.mock("./bot-native-commands.runtime.js", () => ({
   resolveChunkMode: replyPipelineMocks.resolveChunkMode,
   ensureConfiguredBindingRouteReady: replyPipelineMocks.ensureConfiguredBindingRouteReady,
   getAgentScopedMediaLocalRoots: replyPipelineMocks.getAgentScopedMediaLocalRoots,
+  resolveThreadSessionKeys: replyPipelineMocks.resolveThreadSessionKeys,
 }));
 vi.mock("./bot-native-commands.delivery.runtime.js", () => ({
   createChannelMessageReplyPipeline: replyPipelineMocks.createChannelMessageReplyPipeline,
   deliverReplies: deliveryMocks.deliverReplies,
   emitTelegramMessageSentHooks: vi.fn(),
 }));
-vi.mock("astroclaw/plugin-sdk/reply-dispatch-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/reply-dispatch-runtime", () => ({
   dispatchReplyWithBufferedBlockDispatcher:
     replyPipelineMocks.dispatchReplyWithBufferedBlockDispatcher,
 }));
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/conversation-runtime", () => ({
   readChannelAllowFromStore: vi.fn(async () => []),
   resolveConfiguredBindingRoute: vi.fn(({ route }: { route: unknown }) => ({
     route,
@@ -113,12 +132,13 @@ vi.mock("./bot/delivery.js", () => ({ deliverReplies: deliveryMocks.deliverRepli
 vi.mock("./bot/delivery.replies.js", () => ({ deliverReplies: deliveryMocks.deliverReplies }));
 
 export function createNativeCommandsHarness(params?: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   runtime?: RuntimeEnv;
   telegramCfg?: TelegramAccountConfig;
   allowFrom?: string[];
   groupAllowFrom?: string[];
   storeAllowFrom?: string[];
+  readChannelAllowFromStore?: AnyAsyncMock;
   useAccessGroups?: boolean;
   nativeEnabled?: boolean;
   groupConfig?: Record<string, unknown>;
@@ -128,9 +148,12 @@ export function createNativeCommandsHarness(params?: {
   const sendMessage: AnyAsyncMock = vi.fn(async () => undefined);
   const setMyCommands: AnyAsyncMock = vi.fn(async () => undefined);
   const log: AnyMock = vi.fn();
+  const readChannelAllowFromStore: AnyAsyncMock =
+    params?.readChannelAllowFromStore ?? vi.fn(async () => params?.storeAllowFrom ?? []);
   const telegramDeps = {
-    getRuntimeConfig: vi.fn(() => params?.cfg ?? ({} as AstroclawConfig)),
-    readChannelAllowFromStore: vi.fn(async () => params?.storeAllowFrom ?? []),
+    getRuntimeConfig: vi.fn(() => params?.cfg ?? ({} as OpenClawConfig)),
+    readChannelAllowFromStore:
+      readChannelAllowFromStore as TelegramNativeCommandDeps["readChannelAllowFromStore"],
     dispatchReplyWithBufferedBlockDispatcher:
       replyPipelineMocks.dispatchReplyWithBufferedBlockDispatcher,
     getPluginCommandSpecs: pluginCommandMocks.getPluginCommandSpecs,
@@ -149,7 +172,7 @@ export function createNativeCommandsHarness(params?: {
 
   registerTelegramNativeCommands({
     bot,
-    cfg: params?.cfg ?? ({} as AstroclawConfig),
+    cfg: params?.cfg ?? ({} as OpenClawConfig),
     runtime: params?.runtime ?? ({ log } as unknown as RuntimeEnv),
     accountId: "default",
     telegramCfg: params?.telegramCfg ?? ({} as TelegramAccountConfig),
@@ -177,7 +200,23 @@ export function createNativeCommandsHarness(params?: {
     opts: { token: "token" },
   });
 
-  return { handlers, sendMessage, setMyCommands, log, bot };
+  return { handlers, sendMessage, setMyCommands, log, bot, readChannelAllowFromStore };
+}
+
+export function createTelegramDmCommandContext(params?: { senderId?: number; username?: string }) {
+  const senderId = params?.senderId ?? 12345;
+  return {
+    message: {
+      chat: { id: senderId, type: "private" },
+      from: {
+        id: senderId,
+        username: params?.username ?? "testuser",
+      },
+      message_id: 1,
+      date: 1700000000,
+    },
+    match: "",
+  };
 }
 
 export function createTelegramGroupCommandContext(params?: {
