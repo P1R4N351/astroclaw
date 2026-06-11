@@ -1,11 +1,12 @@
+// Whatsapp plugin module implements auto reply harness behavior.
 import "./test-helpers.js";
 import { EventEmitter } from "node:events";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { resetInboundDedupe } from "astroclaw/plugin-sdk/reply-dedupe";
-import { resetLogger, setLoggerOverride } from "astroclaw/plugin-sdk/runtime-env";
-import { mockPinnedHostnameResolution } from "astroclaw/plugin-sdk/test-env";
+import { resetInboundDedupe } from "openclaw/plugin-sdk/reply-runtime";
+import { resetLogger, setLoggerOverride } from "openclaw/plugin-sdk/runtime-env";
+import { mockPinnedHostnameResolution } from "openclaw/plugin-sdk/test-env";
 import { afterAll, afterEach, beforeAll, beforeEach, vi, type Mock } from "vitest";
 import type { WebChannelStatus } from "./auto-reply/types.js";
 import type { WebInboundMessage, WebListenerCloseReason } from "./inbound.js";
@@ -29,6 +30,9 @@ type MockWebListener = {
   signalClose: () => void;
   sendMessage: () => Promise<WhatsAppSendResult>;
   sendPoll: () => Promise<WhatsAppSendResult>;
+  sendContact: () => Promise<WhatsAppSendResult>;
+  sendLocation: () => Promise<WhatsAppSendResult>;
+  sendSticker: () => Promise<WhatsAppSendResult>;
   sendReaction: () => Promise<WhatsAppSendResult>;
   sendComposingTo: () => Promise<void>;
 };
@@ -56,7 +60,7 @@ type MockSessionSocket = {
 };
 
 const TEST_NET_IP = "93.184.216.34";
-const WEB_AUTO_REPLY_SOCKETS_KEY = Symbol.for("astroclaw:webAutoReplySessionSockets");
+const WEB_AUTO_REPLY_SOCKETS_KEY = Symbol.for("openclaw:webAutoReplySessionSockets");
 
 function getSessionSockets(): MockSessionSocket[] {
   const store = globalThis as Record<PropertyKey, unknown>;
@@ -100,18 +104,25 @@ function resetWebAutoReplySessionSockets() {
   getSessionSockets().length = 0;
 }
 
-vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
-  abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
+vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
+  abortEmbeddedAgentRun: vi.fn().mockReturnValue(false),
   appendCronStyleCurrentTimeLine: (text: string) => text,
-  isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
-  isEmbeddedPiRunStreaming: vi.fn().mockReturnValue(false),
-  queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
+  isEmbeddedAgentRunActive: vi.fn().mockReturnValue(false),
+  isEmbeddedAgentRunStreaming: vi.fn().mockReturnValue(false),
+  queueEmbeddedAgentMessage: vi.fn().mockReturnValue(false),
   resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
+  resolveAgentIdentity: (
+    cfg: { agents?: { list?: Array<{ id: string; identity?: unknown }> } },
+    agentId: string,
+  ) =>
+    cfg.agents?.list?.find(
+      (entry) => entry.id.trim().toLowerCase() === agentId.trim().toLowerCase(),
+    )?.identity,
   resolveIdentityNamePrefix: (cfg: { messages?: { responsePrefix?: string } }, _agentId: string) =>
     cfg.messages?.responsePrefix,
   resolveMessagePrefix: (cfg: { messages?: { messagePrefix?: string } }) =>
     cfg.messages?.messagePrefix,
-  runEmbeddedPiAgent: vi.fn(),
+  runEmbeddedAgent: vi.fn(),
 }));
 
 async function rmDirWithRetries(
@@ -129,7 +140,6 @@ async function rmDirWithRetries(
       maxRetries: attempts,
       retryDelay: delayMs,
     });
-    return;
   } catch {
     // Fall back for older Node implementations (or unexpected retry behavior).
     for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -142,7 +152,9 @@ async function rmDirWithRetries(
             ? String((retryErr as { code?: unknown }).code)
             : null;
         if (code === "ENOTEMPTY" || code === "EBUSY" || code === "EPERM") {
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          await new Promise((resolve) => {
+            setTimeout(resolve, delayMs);
+          });
           continue;
         }
         throw retryErr;
@@ -160,7 +172,7 @@ let tempHomeId = 0;
 
 export function installWebAutoReplyTestHomeHooks() {
   beforeAll(async () => {
-    tempHomeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-web-home-suite-"));
+    tempHomeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-web-home-suite-"));
   });
 
   beforeEach(async () => {
@@ -188,7 +200,7 @@ export function installWebAutoReplyTestHomeHooks() {
 export async function makeSessionStore(
   entries: Record<string, unknown> = {},
 ): Promise<{ storePath: string; cleanup: () => Promise<void> }> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-session-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-session-"));
   const storePath = path.join(dir, "sessions.json");
   await fs.writeFile(storePath, JSON.stringify(entries));
   const cleanup = async () => {
@@ -255,6 +267,9 @@ export function createMockWebListener(): MockWebListener {
     signalClose: vi.fn(),
     sendMessage: vi.fn(async () => createAcceptedWhatsAppSendResult("text", "msg-1")),
     sendPoll: vi.fn(async () => createAcceptedWhatsAppSendResult("poll", "poll-1")),
+    sendContact: vi.fn(async () => createAcceptedWhatsAppSendResult("contact", "contact-1")),
+    sendLocation: vi.fn(async () => createAcceptedWhatsAppSendResult("location", "location-1")),
+    sendSticker: vi.fn(async () => createAcceptedWhatsAppSendResult("sticker", "sticker-1")),
     sendReaction: vi.fn(async () => createAcceptedWhatsAppSendResult("reaction", "reaction-1")),
     sendComposingTo: vi.fn(async () => undefined),
   };
