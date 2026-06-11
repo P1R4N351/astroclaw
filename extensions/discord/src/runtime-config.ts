@@ -1,11 +1,12 @@
+// Discord helper module supports runtime config behavior.
 import {
   getRuntimeConfigSnapshot,
   getRuntimeConfigSourceSnapshot,
   selectApplicableRuntimeConfig,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import type { AstroclawConfig } from "./runtime-api.js";
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
+import type { OpenClawConfig } from "./runtime-api.js";
 
-export function selectDiscordRuntimeConfig(inputConfig: AstroclawConfig): AstroclawConfig {
+export function selectDiscordRuntimeConfig(inputConfig: OpenClawConfig): OpenClawConfig {
   return (
     selectApplicableRuntimeConfig({
       inputConfig,
