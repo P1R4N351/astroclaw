@@ -1,11 +1,16 @@
+/**
+ * Merges bundled plugin MCP servers with user-configured MCP servers for agent
+ * runtimes.
+ */
 import { normalizeConfiguredMcpServers } from "../config/mcp-config-normalize.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   loadEnabledBundleMcpConfig,
   type BundleMcpConfig,
   type BundleMcpDiagnostic,
   type BundleMcpServerConfig,
 } from "../plugins/bundle-mcp.js";
+import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 
 type MergedBundleMcpConfig = {
   config: BundleMcpConfig;
@@ -14,7 +19,7 @@ type MergedBundleMcpConfig = {
 
 type BundleMcpServerMapper = (server: BundleMcpServerConfig, name: string) => BundleMcpServerConfig;
 
-const ASTROCLAW_TRANSPORT_TO_CLI_BUNDLE_TYPE: Record<string, string> = {
+const OPENCLAW_TRANSPORT_TO_CLI_BUNDLE_TYPE: Record<string, string> = {
   "streamable-http": "http",
   http: "http",
   sse: "sse",
@@ -22,10 +27,10 @@ const ASTROCLAW_TRANSPORT_TO_CLI_BUNDLE_TYPE: Record<string, string> = {
 };
 
 /**
- * User config stores Astroclaw MCP transport names, while CLI backends such as
+ * User config stores OpenClaw MCP transport names, while CLI backends such as
  * Claude Code and Gemini expect a downstream `type` field. Keep this adapter
- * out of the generic merge path because embedded Pi still consumes the raw
- * Astroclaw `transport` shape directly.
+ * out of the generic merge path because embedded OpenClaw still consumes the raw
+ * OpenClaw `transport` shape directly.
  */
 export function toCliBundleMcpServerConfig(server: BundleMcpServerConfig): BundleMcpServerConfig {
   const next = { ...server } as Record<string, unknown>;
@@ -35,7 +40,7 @@ export function toCliBundleMcpServerConfig(server: BundleMcpServerConfig): Bundl
     return next as BundleMcpServerConfig;
   }
   if (typeof rawTransport === "string") {
-    const mapped = ASTROCLAW_TRANSPORT_TO_CLI_BUNDLE_TYPE[rawTransport];
+    const mapped = OPENCLAW_TRANSPORT_TO_CLI_BUNDLE_TYPE[rawTransport];
     if (mapped) {
       next.type = mapped;
     }
@@ -43,25 +48,41 @@ export function toCliBundleMcpServerConfig(server: BundleMcpServerConfig): Bundl
   return next as BundleMcpServerConfig;
 }
 
+/** Loads enabled bundled MCP servers and overlays user config by server name. */
 export function loadMergedBundleMcpConfig(params: {
   workspaceDir: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
+  manifestRegistry?: Pick<PluginManifestRegistry, "plugins">;
   mapConfiguredServer?: BundleMcpServerMapper;
 }): MergedBundleMcpConfig {
   const bundleMcp = loadEnabledBundleMcpConfig({
     workspaceDir: params.workspaceDir,
     cfg: params.cfg,
+    manifestRegistry: params.manifestRegistry,
   });
   const configuredMcp = normalizeConfiguredMcpServers(params.cfg?.mcp?.servers);
+  const disabledConfiguredNames = new Set(
+    Object.entries(configuredMcp)
+      .filter(([, server]) => server.enabled === false)
+      .map(([name]) => name),
+  );
+  const enabledConfiguredMcp = Object.fromEntries(
+    Object.entries(configuredMcp).filter(([, server]) => server.enabled !== false),
+  );
+  const enabledBundleMcp = Object.fromEntries(
+    Object.entries(bundleMcp.config.mcpServers).filter(
+      ([name]) => !disabledConfiguredNames.has(name),
+    ),
+  );
   const mapConfiguredServer = params.mapConfiguredServer ?? ((server) => server);
 
   return {
     config: {
-      // Astroclaw config is the owner-managed layer, so it overrides bundle defaults.
+      // OpenClaw config is the owner-managed layer, so it overrides bundle defaults.
       mcpServers: {
-        ...bundleMcp.config.mcpServers,
+        ...enabledBundleMcp,
         ...Object.fromEntries(
-          Object.entries(configuredMcp).map(([name, server]) => [
+          Object.entries(enabledConfiguredMcp).map(([name, server]) => [
             name,
             mapConfiguredServer(server as BundleMcpServerConfig, name),
           ]),
