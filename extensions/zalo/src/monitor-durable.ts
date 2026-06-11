@@ -1,6 +1,7 @@
-import type { MarkdownTableMode } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveSendableOutboundReplyParts } from "astroclaw/plugin-sdk/reply-payload";
-import type { OutboundReplyPayload } from "astroclaw/plugin-sdk/reply-payload";
+// Zalo plugin module implements monitor durable behavior.
+import type { MarkdownTableMode } from "openclaw/plugin-sdk/config-contracts";
+import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
+import type { OutboundReplyPayload } from "openclaw/plugin-sdk/reply-payload";
 
 export type ZaloDurableReplyOptions = {
   to: string;
