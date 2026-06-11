@@ -1,9 +1,11 @@
+// Discord provider module implements model/runtime integration.
 import {
   createConnectedChannelStatusPatch,
   createTransportActivityStatusPatch,
-} from "astroclaw/plugin-sdk/gateway-runtime";
-import { danger } from "astroclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/gateway-runtime";
+import { asDateTimestampMs, parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
+import { danger } from "openclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import { attachDiscordGatewayLogging } from "../gateway-logging.js";
 import { getDiscordGatewayEmitter, waitForDiscordGatewayStop } from "../monitor.gateway.js";
 import type { DiscordVoiceManager } from "../voice/manager.js";
@@ -22,8 +24,8 @@ import type { DiscordMonitorStatusSink } from "./status.js";
 const DEFAULT_DISCORD_GATEWAY_READY_TIMEOUT_MS = 15_000;
 const DEFAULT_DISCORD_GATEWAY_RUNTIME_READY_TIMEOUT_MS = 30_000;
 const MAX_DISCORD_GATEWAY_READY_TIMEOUT_MS = 120_000;
-const DISCORD_GATEWAY_READY_TIMEOUT_ENV = "ASTROCLAW_DISCORD_READY_TIMEOUT_MS";
-const DISCORD_GATEWAY_RUNTIME_READY_TIMEOUT_ENV = "ASTROCLAW_DISCORD_RUNTIME_READY_TIMEOUT_MS";
+const DISCORD_GATEWAY_READY_TIMEOUT_ENV = "OPENCLAW_DISCORD_READY_TIMEOUT_MS";
+const DISCORD_GATEWAY_RUNTIME_READY_TIMEOUT_ENV = "OPENCLAW_DISCORD_RUNTIME_READY_TIMEOUT_MS";
 const DISCORD_GATEWAY_READY_POLL_MS = 250;
 const DISCORD_GATEWAY_READY_RETRY_BACKOFF_MS = 2_000;
 const DISCORD_GATEWAY_STARTUP_DISCONNECT_DRAIN_TIMEOUT_MS = 5_000;
@@ -33,12 +35,11 @@ const DISCORD_GATEWAY_TRANSPORT_ACTIVITY_STATUS_MIN_INTERVAL_MS = 30_000;
 type GatewayReadyWaitResult = "ready" | "stopped" | "timeout";
 
 function normalizeGatewayReadyTimeoutMs(value: unknown): number | undefined {
-  const numeric =
-    typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
-  if (!Number.isFinite(numeric) || numeric <= 0) {
+  const numeric = parseStrictPositiveInteger(value);
+  if (numeric === undefined) {
     return undefined;
   }
-  return Math.min(Math.floor(numeric), MAX_DISCORD_GATEWAY_READY_TIMEOUT_MS);
+  return Math.min(numeric, MAX_DISCORD_GATEWAY_READY_TIMEOUT_MS);
 }
 
 export function resolveDiscordGatewayReadyTimeoutMs(params?: {
@@ -184,7 +185,8 @@ function parseGatewayCloseCode(message: string): number | undefined {
 
 function resolveTransportActivityAt(event: unknown): number {
   const at = (event as { at?: unknown } | undefined)?.at;
-  return typeof at === "number" && Number.isFinite(at) && at >= 0 ? at : Date.now();
+  const timestampMs = asDateTimestampMs(at);
+  return timestampMs !== undefined && timestampMs >= 0 ? timestampMs : Date.now();
 }
 
 function createGatewayStatusObserver(params: {
@@ -555,6 +557,11 @@ export async function runDiscordGatewayLifecycle(params: {
     );
     if (params.voiceManager) {
       await params.voiceManager.destroy();
+      const { setDiscordTranscriptsVoiceManager } = await import("../voice/transcripts-source.js");
+      setDiscordTranscriptsVoiceManager({
+        accountId: params.accountId,
+        manager: null,
+      });
       params.voiceManagerRef.current = null;
     }
     params.threadBindings.stop();
