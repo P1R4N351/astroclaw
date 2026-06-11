@@ -1,8 +1,9 @@
+// Codex helper module supports helpers behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { readJsonFileWithFallback } from "astroclaw/plugin-sdk/json-store";
-import { pathExists } from "astroclaw/plugin-sdk/security-runtime";
+import { readJsonFileWithFallback } from "openclaw/plugin-sdk/json-store";
+import { pathExists } from "openclaw/plugin-sdk/security-runtime";
 
 export async function exists(filePath: string): Promise<boolean> {
   return await pathExists(filePath);
