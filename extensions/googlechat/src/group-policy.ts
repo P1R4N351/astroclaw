@@ -1,8 +1,9 @@
-import { resolveChannelGroupRequireMention } from "astroclaw/plugin-sdk/channel-policy";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/core";
+// Googlechat plugin module implements group policy behavior.
+import { resolveChannelGroupRequireMention } from "openclaw/plugin-sdk/channel-policy";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
 
 type GoogleChatGroupContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   groupId?: string | null;
 };
