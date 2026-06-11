@@ -1,7 +1,8 @@
+// Mistral setup module handles plugin onboarding behavior.
 import {
   createDefaultModelPresetAppliers,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildMistralModelDefinition,
   MISTRAL_BASE_URL,
@@ -12,7 +13,7 @@ export const MISTRAL_DEFAULT_MODEL_REF = `mistral/${MISTRAL_DEFAULT_MODEL_ID}`;
 
 const mistralPresetAppliers = createDefaultModelPresetAppliers({
   primaryModelRef: MISTRAL_DEFAULT_MODEL_REF,
-  resolveParams: (_cfg: AstroclawConfig) => ({
+  resolveParams: (_cfg: OpenClawConfig) => ({
     providerId: "mistral",
     api: "openai-completions",
     baseUrl: MISTRAL_BASE_URL,
@@ -22,10 +23,10 @@ const mistralPresetAppliers = createDefaultModelPresetAppliers({
   }),
 });
 
-export function applyMistralProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyMistralProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   return mistralPresetAppliers.applyProviderConfig(cfg);
 }
 
-export function applyMistralConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyMistralConfig(cfg: OpenClawConfig): OpenClawConfig {
   return mistralPresetAppliers.applyConfig(cfg);
 }
