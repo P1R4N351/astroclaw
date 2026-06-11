@@ -1,6 +1,8 @@
+// Links plugin peer packages for local development installs.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveAstroclawPackageRootSync } from "../infra/astroclaw-root.js";
+import { hasErrnoCode } from "../infra/errors.js";
+import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
 
 type PluginPeerLinkLogger = {
   info?: (message: string) => void;
@@ -14,7 +16,7 @@ type RelinkManagedNpmRootResult = {
   skipped: number;
 };
 
-type AstroclawPeerLinkAuditIssue = {
+export type OpenClawPeerLinkAuditIssue = {
   packageName: string;
   packageDir: string;
   reason: string;
@@ -23,10 +25,10 @@ type AstroclawPeerLinkAuditIssue = {
 type AuditManagedNpmRootResult = {
   checked: number;
   broken: number;
-  issues: AstroclawPeerLinkAuditIssue[];
+  issues: OpenClawPeerLinkAuditIssue[];
 };
 
-type AstroclawPeerLinkResult = "linked" | "skipped" | "unchanged";
+type OpenClawPeerLinkResult = "linked" | "skipped" | "unchanged";
 
 function readStringRecord(value: unknown): Record<string, string> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -73,12 +75,14 @@ async function listManagedNpmRootPackageDirs(npmRoot: string): Promise<string[]>
     }
     const entryPath = path.join(nodeModulesDir, entry.name);
     if (entry.name.startsWith("@")) {
-      const scopedEntries = await fs.readdir(entryPath, { withFileTypes: true }).catch((error) => {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-          return [];
-        }
-        throw error;
-      });
+      const scopedEntries = await fs
+        .readdir(entryPath, { withFileTypes: true })
+        .catch((error: unknown) => {
+          if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+            return [];
+          }
+          throw error;
+        });
       for (const scopedEntry of scopedEntries) {
         if (scopedEntry.isDirectory()) {
           packageDirs.push(path.join(entryPath, scopedEntry.name));
@@ -108,15 +112,20 @@ function managedPackageNameFromDir(params: { npmRoot: string; packageDir: string
     .join("/");
 }
 
-async function auditAstroclawPeerDependency(params: {
+async function auditOpenClawPeerDependency(params: {
   hostRoot: string;
-  npmRoot: string;
   packageDir: string;
-}): Promise<AstroclawPeerLinkAuditIssue | null> {
-  const packageName = managedPackageNameFromDir({
-    npmRoot: params.npmRoot,
-    packageDir: params.packageDir,
-  });
+  npmRoot?: string;
+  packageName?: string;
+}): Promise<OpenClawPeerLinkAuditIssue | null> {
+  const packageName =
+    params.packageName ??
+    (params.npmRoot
+      ? managedPackageNameFromDir({
+          npmRoot: params.npmRoot,
+          packageDir: params.packageDir,
+        })
+      : path.basename(params.packageDir));
   const nodeModulesDir = path.join(params.packageDir, "node_modules");
   try {
     const existing = await fs.lstat(nodeModulesDir);
@@ -132,13 +141,13 @@ async function auditAstroclawPeerDependency(params: {
       return {
         packageName,
         packageDir: params.packageDir,
-        reason: `missing ${path.join(nodeModulesDir, "astroclaw")}`,
+        reason: `missing ${path.join(nodeModulesDir, "openclaw")}`,
       };
     }
     throw error;
   }
 
-  const linkPath = path.join(nodeModulesDir, "astroclaw");
+  const linkPath = path.join(nodeModulesDir, "openclaw");
   const currentTarget = await safeRealpath(linkPath);
   if (!currentTarget) {
     return {
@@ -158,6 +167,30 @@ async function auditAstroclawPeerDependency(params: {
   return null;
 }
 
+export async function auditOpenClawPeerDependencyLink(params: {
+  packageDir: string;
+  packageName?: string;
+}): Promise<OpenClawPeerLinkAuditIssue | null> {
+  const packageName = params.packageName ?? path.basename(params.packageDir);
+  const hostRoot = resolveOpenClawPackageRootSync({
+    argv1: process.argv[1],
+    moduleUrl: import.meta.url,
+    cwd: process.cwd(),
+  });
+  if (!hostRoot) {
+    return {
+      packageName,
+      packageDir: params.packageDir,
+      reason: "could not locate openclaw package root",
+    };
+  }
+  return await auditOpenClawPeerDependency({
+    hostRoot,
+    packageDir: params.packageDir,
+    packageName,
+  });
+}
+
 async function ensureRealNodeModulesDir(params: {
   installedDir: string;
   logger: PluginPeerLinkLogger;
@@ -167,7 +200,7 @@ async function ensureRealNodeModulesDir(params: {
     const existing = await fs.lstat(nodeModulesDir);
     if (!existing.isDirectory() || existing.isSymbolicLink()) {
       params.logger.warn?.(
-        `Skipping astroclaw peerDependency link because ${nodeModulesDir} is not a real directory.`,
+        `Skipping openclaw peerDependency link because ${nodeModulesDir} is not a real directory.`,
       );
       return null;
     }
@@ -182,19 +215,19 @@ async function ensureRealNodeModulesDir(params: {
   const created = await fs.lstat(nodeModulesDir);
   if (!created.isDirectory() || created.isSymbolicLink()) {
     params.logger.warn?.(
-      `Skipping astroclaw peerDependency link because ${nodeModulesDir} is not a real directory.`,
+      `Skipping openclaw peerDependency link because ${nodeModulesDir} is not a real directory.`,
     );
     return null;
   }
   return nodeModulesDir;
 }
 
-async function linkAstroclawPeerDependency(params: {
+async function linkOpenClawPeerDependency(params: {
   hostRoot: string;
   installedDir: string;
   peerName: string;
   logger: PluginPeerLinkLogger;
-}): Promise<AstroclawPeerLinkResult> {
+}): Promise<OpenClawPeerLinkResult> {
   const nodeModulesDir = await ensureRealNodeModulesDir({
     installedDir: params.installedDir,
     logger: params.logger,
@@ -211,7 +244,32 @@ async function linkAstroclawPeerDependency(params: {
   }
 
   try {
-    await fs.rm(linkPath, { recursive: true, force: true });
+    const existing = await fs.lstat(linkPath).catch((err: unknown) => {
+      if (hasErrnoCode(err, "ENOENT")) {
+        return null;
+      }
+      throw err;
+    });
+    if (existing) {
+      if (!existing.isSymbolicLink()) {
+        if (params.peerName === "openclaw" && existing.isDirectory()) {
+          const existingPackageName = await readPackageName(linkPath);
+          if (existingPackageName === "openclaw") {
+            await fs.rm(linkPath, { recursive: true, force: true });
+            await fs.symlink(params.hostRoot, linkPath, "junction");
+            params.logger.info?.(
+              `Linked peerDependency "${params.peerName}" -> ${params.hostRoot}`,
+            );
+            return "linked";
+          }
+        }
+        params.logger.warn?.(
+          `Skipping openclaw peerDependency link because ${linkPath} already exists and is not a symlink.`,
+        );
+        return "skipped";
+      }
+      await fs.unlink(linkPath);
+    }
     await fs.symlink(params.hostRoot, linkPath, "junction");
     params.logger.info?.(`Linked peerDependency "${params.peerName}" -> ${params.hostRoot}`);
     return "linked";
@@ -221,29 +279,42 @@ async function linkAstroclawPeerDependency(params: {
   }
 }
 
+async function readPackageName(packageDir: string): Promise<string | undefined> {
+  try {
+    const raw = await fs.readFile(path.join(packageDir, "package.json"), "utf8");
+    const parsed = JSON.parse(raw) as { name?: unknown };
+    return typeof parsed.name === "string" ? parsed.name : undefined;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 /**
- * Symlink the host astroclaw package for plugins that declare it as a peer.
+ * Symlink the host openclaw package for plugins that declare it as a peer.
  * Plugin package managers still own third-party dependencies; this only wires
  * the host SDK package into the plugin-local Node graph.
  */
-export async function linkAstroclawPeerDependencies(params: {
+export async function linkOpenClawPeerDependencies(params: {
   installedDir: string;
   peerDependencies: Record<string, string>;
   logger: PluginPeerLinkLogger;
 }): Promise<{ repaired: number; skipped: number }> {
-  const peers = Object.keys(params.peerDependencies).filter((name) => name === "astroclaw");
+  const peers = Object.keys(params.peerDependencies).filter((name) => name === "openclaw");
   if (peers.length === 0) {
     return { repaired: 0, skipped: 0 };
   }
 
-  const hostRoot = resolveAstroclawPackageRootSync({
+  const hostRoot = resolveOpenClawPackageRootSync({
     argv1: process.argv[1],
     moduleUrl: import.meta.url,
     cwd: process.cwd(),
   });
   if (!hostRoot) {
     params.logger.warn?.(
-      "Could not locate astroclaw package root to symlink peerDependencies; plugin may fail to resolve astroclaw at runtime.",
+      "Could not locate openclaw package root to symlink peerDependencies; plugin may fail to resolve openclaw at runtime.",
     );
     return { repaired: 0, skipped: peers.length };
   }
@@ -251,7 +322,7 @@ export async function linkAstroclawPeerDependencies(params: {
   let repaired = 0;
   let skipped = 0;
   for (const peerName of peers) {
-    const result = await linkAstroclawPeerDependency({
+    const result = await linkOpenClawPeerDependency({
       hostRoot,
       installedDir: params.installedDir,
       peerName,
@@ -266,7 +337,7 @@ export async function linkAstroclawPeerDependencies(params: {
   return { repaired, skipped };
 }
 
-export async function relinkAstroclawPeerDependenciesInManagedNpmRoot(params: {
+export async function relinkOpenClawPeerDependenciesInManagedNpmRoot(params: {
   npmRoot: string;
   logger: PluginPeerLinkLogger;
 }): Promise<RelinkManagedNpmRootResult> {
@@ -276,11 +347,11 @@ export async function relinkAstroclawPeerDependenciesInManagedNpmRoot(params: {
   let skipped = 0;
   for (const packageDir of await listManagedNpmRootPackageDirs(params.npmRoot)) {
     const peerDependencies = await readPackagePeerDependencies(packageDir);
-    if (!Object.hasOwn(peerDependencies, "astroclaw")) {
+    if (!Object.hasOwn(peerDependencies, "openclaw")) {
       continue;
     }
     checked += 1;
-    const result = await linkAstroclawPeerDependencies({
+    const result = await linkOpenClawPeerDependencies({
       installedDir: packageDir,
       peerDependencies,
       logger: params.logger,
@@ -292,10 +363,10 @@ export async function relinkAstroclawPeerDependenciesInManagedNpmRoot(params: {
   return { checked, attempted, repaired, skipped };
 }
 
-export async function auditAstroclawPeerDependenciesInManagedNpmRoot(params: {
+export async function auditOpenClawPeerDependenciesInManagedNpmRoot(params: {
   npmRoot: string;
 }): Promise<AuditManagedNpmRootResult> {
-  const hostRoot = resolveAstroclawPackageRootSync({
+  const hostRoot = resolveOpenClawPackageRootSync({
     argv1: process.argv[1],
     moduleUrl: import.meta.url,
     cwd: process.cwd(),
@@ -305,14 +376,14 @@ export async function auditAstroclawPeerDependenciesInManagedNpmRoot(params: {
   }
 
   let checked = 0;
-  const issues: AstroclawPeerLinkAuditIssue[] = [];
+  const issues: OpenClawPeerLinkAuditIssue[] = [];
   for (const packageDir of await listManagedNpmRootPackageDirs(params.npmRoot)) {
     const peerDependencies = await readPackagePeerDependencies(packageDir);
-    if (!Object.hasOwn(peerDependencies, "astroclaw")) {
+    if (!Object.hasOwn(peerDependencies, "openclaw")) {
       continue;
     }
     checked += 1;
-    const issue = await auditAstroclawPeerDependency({
+    const issue = await auditOpenClawPeerDependency({
       hostRoot,
       npmRoot: params.npmRoot,
       packageDir,
