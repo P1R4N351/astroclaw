@@ -1,7 +1,9 @@
+// Package Artifact script supports OpenClaw repository automation.
 import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { readPositiveIntEnv } from "./env-limits.ts";
 import { exists, readJson } from "./filesystem.ts";
 import { die, repoRoot, run, say, sh } from "./host-command.ts";
 import type { PackageArtifact } from "./types.ts";
@@ -24,27 +26,27 @@ export async function packageBuildCommitFromTgz(tgzPath: string): Promise<string
   return info.commit ?? "";
 }
 
-export function resolveAstroclawRegistryVersion(specOrAlias: string): string {
+export function resolveOpenClawRegistryVersion(specOrAlias: string): string {
   const rawValue = specOrAlias.trim();
-  const value = rawValue.startsWith("astroclaw@") ? rawValue.slice("astroclaw@".length) : rawValue;
+  const value = rawValue.startsWith("openclaw@") ? rawValue.slice("openclaw@".length) : rawValue;
   if (!value) {
     return "";
   }
   if (value === "latest" || value === "beta" || /^\d/.test(value)) {
-    return npmViewVersion(`astroclaw@${value}`);
+    return npmViewVersion(`openclaw@${value}`);
   }
   const betaMatch = /^beta(\d+)$/u.exec(value);
   if (betaMatch) {
     const betaSuffix = `-beta.${betaMatch[1]}`;
     const versions = JSON.parse(
-      run("npm", ["view", "astroclaw", "versions", "--json"], { quiet: true }).stdout,
+      run("npm", ["view", "openclaw", "versions", "--json"], { quiet: true }).stdout,
     ) as string[];
     const match = versions
       .filter((version) => version.endsWith(betaSuffix))
       .toSorted((a, b) => a.localeCompare(b, undefined, { numeric: true }))
       .at(-1);
     if (!match) {
-      die(`no astroclaw registry version found for alias ${value}`);
+      die(`no openclaw registry version found for alias ${value}`);
     }
     return match;
   }
@@ -117,7 +119,7 @@ async function ensureCurrentBuildUnlocked(input: {
   }
 }
 
-export async function packAstroclaw(input: {
+export async function packOpenClaw(input: {
   destination: string;
   packageSpec?: string;
   requireControlUi?: boolean;
@@ -148,7 +150,7 @@ export async function packAstroclaw(input: {
     return { path: tgzPath, version };
   }
 
-  return await withPackageLock(path.join(tmpdir(), "astroclaw-parallels-build.lock"), async () => {
+  return await withPackageLock(path.join(tmpdir(), "openclaw-parallels-build.lock"), async () => {
     await ensureCurrentBuildUnlocked({
       checkDirty: true,
       requireControlUi: input.requireControlUi,
@@ -172,7 +174,7 @@ export async function packAstroclaw(input: {
     if (!packed) {
       die("npm pack did not report a filename");
     }
-    const tgzPath = path.join(input.destination, `astroclaw-main-${shortHead}.tgz`);
+    const tgzPath = path.join(input.destination, `openclaw-main-${shortHead}.tgz`);
     await copyFile(path.join(input.destination, packed), tgzPath);
     const buildCommit = await packageBuildCommitFromTgz(tgzPath);
     if (!buildCommit) {
@@ -194,10 +196,11 @@ async function withPackageLock<T>(lockDir: string, fn: () => Promise<T>): Promis
 }
 
 async function acquirePackageLock(lockDir: string, ownerToken: string): Promise<void> {
-  const timeoutMs = Number(process.env.ASTROCLAW_PARALLELS_PACKAGE_LOCK_TIMEOUT_MS || 30 * 60_000);
-  const staleMs = Number(process.env.ASTROCLAW_PARALLELS_PACKAGE_LOCK_STALE_MS || 2 * 60 * 60_000);
+  const timeoutMs = readPositiveIntEnv("OPENCLAW_PARALLELS_PACKAGE_LOCK_TIMEOUT_MS", 30 * 60_000);
+  const staleMs = readPositiveIntEnv("OPENCLAW_PARALLELS_PACKAGE_LOCK_STALE_MS", 2 * 60 * 60_000);
   const startedAt = Date.now();
-  let announcedWait = false;
+  let waitAnnouncementBudget = 1;
+  const consumeWaitAnnouncement = () => waitAnnouncementBudget-- > 0;
   while (Date.now() - startedAt < timeoutMs) {
     try {
       await mkdir(lockDir);
@@ -209,9 +212,8 @@ async function acquirePackageLock(lockDir: string, ownerToken: string): Promise<
       }
     }
     await removeStalePackageLock(lockDir, staleMs);
-    if (!announcedWait) {
+    if (consumeWaitAnnouncement()) {
       say(`Wait for Parallels package lock: ${lockDir}`);
-      announcedWait = true;
     }
     await delay(1_000);
   }
@@ -282,5 +284,7 @@ function isErrorCode(error: unknown, code: string): boolean {
 }
 
 async function delay(ms: number): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
