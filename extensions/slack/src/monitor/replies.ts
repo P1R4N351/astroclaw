@@ -1,18 +1,19 @@
+// Slack plugin module implements replies behavior.
 import type { MessageMetadata } from "@slack/types";
-import type { MarkdownTableMode, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   chunkMarkdownTextWithMode,
   isSilentReplyText,
   SILENT_REPLY_TOKEN,
   type ChunkMode,
-} from "astroclaw/plugin-sdk/reply-chunking";
+} from "openclaw/plugin-sdk/reply-chunking";
 import {
   deliverTextOrMediaReply,
   resolveSendableOutboundReplyParts,
   type ReplyPayload,
-} from "astroclaw/plugin-sdk/reply-payload";
-import { createReplyReferencePlanner } from "astroclaw/plugin-sdk/reply-reference";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/reply-payload";
+import { createReplyReferencePlanner } from "openclaw/plugin-sdk/reply-reference";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import { markdownToSlackMrkdwnChunks } from "../format.js";
 import { SLACK_TEXT_LIMIT } from "../limits.js";
 import { resolveSlackReplyBlocks } from "../reply-blocks.js";
@@ -34,7 +35,7 @@ export function resolveDeliveredSlackReplyThreadTs(params: {
 }
 
 export async function deliverReplies(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   replies: ReplyPayload[];
   target: string;
   token: string;
@@ -47,6 +48,9 @@ export async function deliverReplies(params: {
   metadata?: MessageMetadata;
 }) {
   for (const payload of params.replies) {
+    if (payload.isReasoning === true) {
+      continue;
+    }
     const threadTs = resolveDeliveredSlackReplyThreadTs({
       replyToMode: params.replyToMode,
       payloadReplyToId: payload.replyToId,
@@ -211,6 +215,9 @@ export async function deliverSlackSlashReplies(params: {
   const messages: Array<{ text: string; blocks?: ReturnType<typeof readSlackReplyBlocks> }> = [];
   const chunkLimit = Math.min(params.textLimit, SLACK_TEXT_LIMIT);
   for (const payload of params.replies) {
+    if (payload.isReasoning === true) {
+      continue;
+    }
     const reply = resolveSendableOutboundReplyParts(payload);
     const slackBlocks = readSlackReplyBlocks(payload);
     const text =
