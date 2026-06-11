@@ -1,4 +1,5 @@
-import { createWebSearchProviderContractFields } from "astroclaw/plugin-sdk/provider-web-search-contract";
+// Exa provider module implements model/runtime integration.
+import { createWebSearchProviderContractFields } from "openclaw/plugin-sdk/provider-web-search-contract";
 
 const EXA_CREDENTIAL_PATH = "plugins.entries.exa.config.webSearch.apiKey";
 const EXA_ONBOARDING_SCOPES: Array<"text-inference"> = ["text-inference"];
@@ -13,7 +14,7 @@ export function createExaWebSearchProviderBase() {
     envVars: ["EXA_API_KEY"],
     placeholder: "exa-...",
     signupUrl: "https://exa.ai/",
-    docsUrl: "https://docs.astroclaw.ai/tools/web",
+    docsUrl: "https://docs.openclaw.ai/tools/web",
     autoDetectOrder: 65,
     credentialPath: EXA_CREDENTIAL_PATH,
     ...createWebSearchProviderContractFields({
