@@ -1,11 +1,16 @@
+/**
+ * Local exec approval prompt suppression.
+ *
+ * Lets channel plugins hide generic local prompts while native approval routes are active.
+ */
 import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { hasActiveApprovalNativeRouteRuntime } from "../../infra/approval-native-route-coordinator.js";
 import { getChannelPlugin, normalizeChannelId } from "./registry.js";
 
 export function shouldSuppressLocalExecApprovalPrompt(params: {
   channel?: string | null;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   payload: ReplyPayload;
 }): boolean {
@@ -13,6 +18,8 @@ export function shouldSuppressLocalExecApprovalPrompt(params: {
   if (!channel) {
     return false;
   }
+  // Native-route state is process-local and transient. Pass it as a hint so the
+  // channel owns the UX decision without duplicating route lookup logic.
   return (
     getChannelPlugin(channel)?.outbound?.shouldSuppressLocalPayloadPrompt?.({
       cfg: params.cfg,
