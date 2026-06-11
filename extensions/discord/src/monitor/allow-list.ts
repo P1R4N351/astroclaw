@@ -1,14 +1,15 @@
-import type { AllowlistMatch } from "astroclaw/plugin-sdk/allow-from";
+// Discord plugin module implements allow list behavior.
+import type { AllowlistMatch } from "openclaw/plugin-sdk/allow-from";
 import {
   buildChannelKeyCandidates,
   resolveChannelEntryMatchWithFallback,
   resolveChannelMatchConfig,
   type ChannelMatchSource,
-} from "astroclaw/plugin-sdk/channel-targets";
+} from "openclaw/plugin-sdk/channel-targets";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { Guild, User } from "../internal/discord.js";
 import { formatDiscordUserTag } from "./format.js";
 
@@ -71,7 +72,7 @@ export function normalizeDiscordAllowList(raw: string[] | undefined, prefixes: s
       ids.add(maybeId);
       continue;
     }
-    const prefix = prefixes.find((entry) => text.startsWith(entry));
+    const prefix = prefixes.find((entryLocal) => text.startsWith(entryLocal));
     if (prefix) {
       const candidate = text.slice(prefix.length);
       if (candidate) {
