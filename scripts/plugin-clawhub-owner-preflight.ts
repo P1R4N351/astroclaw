@@ -1,8 +1,9 @@
 #!/usr/bin/env -S node --import tsx
+// Plugin Clawhub Owner Preflight script supports OpenClaw repository automation.
 
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { collectClawHubAstroclawOwnerErrors } from "./lib/plugin-clawhub-release.ts";
+import { collectClawHubOpenClawOwnerErrors } from "./lib/plugin-clawhub-release.ts";
 
 type ReleasePlanFile = {
   candidates?: Array<{
@@ -24,14 +25,14 @@ export async function runClawHubOwnerPreflight(argv: string[]) {
     )
     .map((candidate) => ({ packageName: candidate.packageName }));
 
-  const errors = await collectClawHubAstroclawOwnerErrors({ plugins: candidates });
+  const errors = await collectClawHubOpenClawOwnerErrors({ plugins: candidates });
   if (errors.length > 0) {
     throw new Error(
-      `ClawHub Astroclaw package ownership preflight failed:\n${errors.map((error) => `- ${error}`).join("\n")}`,
+      `ClawHub OpenClaw package ownership preflight failed:\n${errors.map((error) => `- ${error}`).join("\n")}`,
     );
   }
 
-  console.log(`ClawHub Astroclaw owner preflight passed for ${candidates.length} candidate(s).`);
+  console.log(`ClawHub OpenClaw owner preflight passed for ${candidates.length} candidate(s).`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
