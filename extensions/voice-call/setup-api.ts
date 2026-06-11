@@ -1,10 +1,14 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/plugin-entry";
-import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
-import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Voice Call API module exposes the plugin public contract.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/plugin-entry";
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { migrateVoiceCallLegacyConfigInput } from "./config-api.js";
 
-function migrateVoiceCallPluginConfig(config: AstroclawConfig): {
-  config: AstroclawConfig;
+// Setup-time entrypoint for voice-call config migrations.
+
+/** Migrate voice-call plugin config inside the full OpenClaw config object. */
+function migrateVoiceCallPluginConfig(config: OpenClawConfig): {
+  config: OpenClawConfig;
   changes: string[];
 } | null {
   const rawVoiceCallConfig = config.plugins?.entries?.["voice-call"]?.config;
@@ -37,6 +41,7 @@ function migrateVoiceCallPluginConfig(config: AstroclawConfig): {
   };
 }
 
+/** Setup plugin entry that registers voice-call config migrations. */
 export default definePluginEntry({
   id: "voice-call",
   name: "Voice Call Setup",
