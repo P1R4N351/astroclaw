@@ -1,10 +1,12 @@
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+// Telegram plugin module implements command ui behavior.
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import {
   buildBrowseProvidersButton,
   buildModelsKeyboard,
   buildProviderKeyboard,
   type ProviderInfo,
 } from "./model-buttons.js";
+import { buildTelegramNativeCommandCallbackData } from "./native-command-callback-data.js";
 
 export function buildCommandsPaginationKeyboard(
   currentPage: number,
@@ -94,7 +96,7 @@ export function buildTelegramModelsAddProviderChannelData(params: {
   const buttons = params.providers.map((provider) => [
     {
       text: provider.id,
-      callback_data: `/models add ${provider.id}`,
+      callback_data: buildTelegramNativeCommandCallbackData(`/models add ${provider.id}`),
     },
   ]);
   return {
