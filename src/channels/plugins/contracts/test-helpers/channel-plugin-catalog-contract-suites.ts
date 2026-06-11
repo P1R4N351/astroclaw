@@ -1,7 +1,12 @@
+/**
+ * External channel plugin catalog contract suites.
+ *
+ * Writes synthetic manifests and catalog files to prove parser behavior for discovered plugins.
+ */
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolvePreferredAstroclawTmpDir } from "../../../../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../../../infra/tmp-openclaw-dir.js";
 import { listChannelPluginCatalogEntries } from "../../catalog.js";
 
 function createCatalogEntry(params: {
@@ -13,7 +18,7 @@ function createCatalogEntry(params: {
 }) {
   return {
     name: params.packageName,
-    astroclaw: {
+    openclaw: {
       channel: {
         id: params.channelId,
         label: params.label,
@@ -51,7 +56,7 @@ function writeDiscoveredChannelPlugin(params: {
     path.join(pluginDir, "package.json"),
     JSON.stringify({
       name: params.packageName,
-      astroclaw: {
+      openclaw: {
         extensions: ["./index.js"],
         channel: {
           id: "demo-channel",
@@ -68,7 +73,7 @@ function writeDiscoveredChannelPlugin(params: {
     "utf8",
   );
   fs.writeFileSync(
-    path.join(pluginDir, "astroclaw.plugin.json"),
+    path.join(pluginDir, "openclaw.plugin.json"),
     JSON.stringify({
       id: params.pluginId,
       configSchema: {},
@@ -116,6 +121,7 @@ function expectCatalogEntryMatch(params: {
   ).toMatchObject(params.expected);
 }
 
+/** Installs catalog entry tests shared by plugin registry and manifest suites. */
 export function describeChannelPluginCatalogEntriesContract() {
   describe("channel plugin catalog entries contract", () => {
     it.each([
@@ -123,13 +129,13 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "includes external catalog entries",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-catalog-"),
+            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           writeCatalogFile(
             catalogPath,
             createCatalogEntry({
-              packageName: "@astroclaw/demo-channel",
+              packageName: "@openclaw/demo-channel",
               channelId: "demo-channel",
               label: "Demo Channel",
               blurb: "Demo entry",
@@ -147,7 +153,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "preserves plugin ids when they differ from channel ids",
         setup: () => {
           const stateDir = fs.mkdtempSync(
-            path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-channel-catalog-state-"),
+            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-channel-catalog-state-"),
           );
           writeDiscoveredChannelPlugin({
             stateDir,
@@ -160,8 +166,8 @@ export function describeChannelPluginCatalogEntriesContract() {
             channelId: "demo-channel",
             env: {
               ...process.env,
-              ASTROCLAW_STATE_DIR: stateDir,
-              ASTROCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
+              OPENCLAW_STATE_DIR: stateDir,
+              OPENCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
             },
             expected: { pluginId: "@vendor/demo-runtime" },
           };
@@ -171,7 +177,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "keeps discovered plugins ahead of external catalog overrides",
         setup: () => {
           const stateDir = fs.mkdtempSync(
-            path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-catalog-state-"),
+            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-state-"),
           );
           const catalogPath = path.join(stateDir, "catalog.json");
           writeDiscoveredChannelPlugin({
@@ -195,9 +201,9 @@ export function describeChannelPluginCatalogEntriesContract() {
             catalogPaths: [catalogPath],
             env: {
               ...process.env,
-              ASTROCLAW_STATE_DIR: stateDir,
+              OPENCLAW_STATE_DIR: stateDir,
               CLAWDBOT_STATE_DIR: undefined,
-              ASTROCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
+              OPENCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
             },
             expected: {
               install: { npmSpec: "@vendor/demo-channel-plugin" },
@@ -211,7 +217,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "accepts rich external manifest entries with pinned npm metadata",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-catalog-rich-"),
+            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-rich-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           fs.writeFileSync(
@@ -220,15 +226,15 @@ export function describeChannelPluginCatalogEntriesContract() {
               $schema: "./manifest.schema.json",
               schemaVersion: 1,
               description:
-                "Extension manifest. Declares plugin packages that Astroclaw can discover during onboarding and install on demand via `astroclaw plugins install`.",
+                "Extension manifest. Declares plugin packages that OpenClaw can discover during onboarding and install on demand via `openclaw plugins install`.",
               entries: [
                 {
-                  name: "@wecom/wecom-astroclaw-plugin",
+                  name: "@wecom/wecom-openclaw-plugin",
                   description:
-                    "Astroclaw WeCom (企业微信) channel plugin — community maintained, published on npm.",
+                    "OpenClaw WeCom (企业微信) channel plugin — community maintained, published on npm.",
                   source: "external",
                   kind: "channel",
-                  astroclaw: {
+                  openclaw: {
                     channel: {
                       id: "wecom",
                       label: "WeCom",
@@ -241,7 +247,7 @@ export function describeChannelPluginCatalogEntriesContract() {
                       order: 45,
                     },
                     install: {
-                      npmSpec: "@wecom/wecom-astroclaw-plugin@1.2.3",
+                      npmSpec: "@wecom/wecom-openclaw-plugin@1.2.3",
                       defaultChoice: "npm",
                       minHostVersion: ">=2026.4.10",
                       expectedIntegrity: "sha512-wecom",
@@ -265,7 +271,7 @@ export function describeChannelPluginCatalogEntriesContract() {
                 blurb: "企业微信 (WeCom) bot & conversation channel.",
               },
               install: {
-                npmSpec: "@wecom/wecom-astroclaw-plugin@1.2.3",
+                npmSpec: "@wecom/wecom-openclaw-plugin@1.2.3",
                 defaultChoice: "npm",
                 minHostVersion: ">=2026.4.10",
                 expectedIntegrity: "sha512-wecom",
@@ -273,8 +279,8 @@ export function describeChannelPluginCatalogEntriesContract() {
               installSource: {
                 defaultChoice: "npm",
                 npm: {
-                  spec: "@wecom/wecom-astroclaw-plugin@1.2.3",
-                  packageName: "@wecom/wecom-astroclaw-plugin",
+                  spec: "@wecom/wecom-openclaw-plugin@1.2.3",
+                  packageName: "@wecom/wecom-openclaw-plugin",
                   selector: "1.2.3",
                   selectorKind: "exact-version",
                   exactVersion: true,
@@ -291,12 +297,12 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "pins bare external prerelease package specs to the entry version",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-catalog-prerelease-"),
+            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-prerelease-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           writeCatalogFile(catalogPath, {
             ...createCatalogEntry({
-              packageName: "@astroclaw/prerelease-demo-channel",
+              packageName: "@openclaw/prerelease-demo-channel",
               channelId: "prerelease-demo",
               label: "Prerelease Demo",
               blurb: "Prerelease package pinning fixture",
@@ -307,11 +313,11 @@ export function describeChannelPluginCatalogEntriesContract() {
             channelId: "prerelease-demo",
             catalogPaths: [catalogPath],
             expected: {
-              install: { npmSpec: "@astroclaw/prerelease-demo-channel@2026.5.3-beta.1" },
+              install: { npmSpec: "@openclaw/prerelease-demo-channel@2026.5.3-beta.1" },
               installSource: {
                 npm: {
-                  spec: "@astroclaw/prerelease-demo-channel@2026.5.3-beta.1",
-                  packageName: "@astroclaw/prerelease-demo-channel",
+                  spec: "@openclaw/prerelease-demo-channel@2026.5.3-beta.1",
+                  packageName: "@openclaw/prerelease-demo-channel",
                   selector: "2026.5.3-beta.1",
                   selectorKind: "exact-version",
                   exactVersion: true,
@@ -325,7 +331,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "accepts external manifest entries with ClawHub-only install metadata",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-catalog-clawhub-"),
+            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-clawhub-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           fs.writeFileSync(
@@ -334,12 +340,12 @@ export function describeChannelPluginCatalogEntriesContract() {
               $schema: "./manifest.schema.json",
               schemaVersion: 1,
               description:
-                "Extension manifest. Declares plugin packages that Astroclaw can discover during onboarding and install on demand via `astroclaw plugins install`.",
+                "Extension manifest. Declares plugin packages that OpenClaw can discover during onboarding and install on demand via `openclaw plugins install`.",
               entries: [
                 {
                   source: "external",
                   kind: "channel",
-                  astroclaw: {
+                  openclaw: {
                     channel: {
                       id: "clawhub-chat",
                       label: "ClawHub Chat",
@@ -352,7 +358,7 @@ export function describeChannelPluginCatalogEntriesContract() {
                       order: 47,
                     },
                     install: {
-                      clawhubSpec: "clawhub:astroclaw/clawhub-chat@2026.5.2",
+                      clawhubSpec: "clawhub:openclaw/clawhub-chat@2026.5.2",
                       defaultChoice: "clawhub",
                       minHostVersion: ">=2026.5.1",
                     },
@@ -375,15 +381,15 @@ export function describeChannelPluginCatalogEntriesContract() {
                 blurb: "ClawHub-backed chat channel.",
               },
               install: {
-                clawhubSpec: "clawhub:astroclaw/clawhub-chat@2026.5.2",
+                clawhubSpec: "clawhub:openclaw/clawhub-chat@2026.5.2",
                 defaultChoice: "clawhub",
                 minHostVersion: ">=2026.5.1",
               },
               installSource: {
                 defaultChoice: "clawhub",
                 clawhub: {
-                  spec: "clawhub:astroclaw/clawhub-chat@2026.5.2",
-                  packageName: "astroclaw/clawhub-chat",
+                  spec: "clawhub:openclaw/clawhub-chat@2026.5.2",
+                  packageName: "openclaw/clawhub-chat",
                   version: "2026.5.2",
                   exactVersion: true,
                 },
@@ -397,7 +403,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "accepts rich external manifest entries for yuanbao with pinned npm metadata",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-catalog-yuanbao-"),
+            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-yuanbao-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           fs.writeFileSync(
@@ -406,17 +412,17 @@ export function describeChannelPluginCatalogEntriesContract() {
               $schema: "./manifest.schema.json",
               schemaVersion: 1,
               description:
-                "Extension manifest. Declares plugin packages that Astroclaw can discover during onboarding and install on demand via `astroclaw plugins install`.",
+                "Extension manifest. Declares plugin packages that OpenClaw can discover during onboarding and install on demand via `openclaw plugins install`.",
               entries: [
                 {
-                  name: "astroclaw-plugin-yuanbao",
+                  name: "openclaw-plugin-yuanbao",
                   description:
-                    "Astroclaw Yuanbao (元宝) channel plugin — community maintained, published on npm.",
+                    "OpenClaw Yuanbao (元宝) channel plugin — community maintained, published on npm.",
                   source: "external",
                   kind: "channel",
-                  astroclaw: {
+                  openclaw: {
                     channel: {
-                      id: "astroclaw-plugin-yuanbao",
+                      id: "openclaw-plugin-yuanbao",
                       label: "Yuanbao",
                       selectionLabel: "Yuanbao (Tencent Yuanbao)",
                       detailLabel: "Yuanbao",
@@ -427,7 +433,7 @@ export function describeChannelPluginCatalogEntriesContract() {
                       order: 78,
                     },
                     install: {
-                      npmSpec: "astroclaw-plugin-yuanbao@1.0.0",
+                      npmSpec: "openclaw-plugin-yuanbao@1.0.0",
                       defaultChoice: "npm",
                       minHostVersion: ">=2026.4.10",
                       expectedIntegrity: "sha512-yuanbao",
@@ -438,10 +444,10 @@ export function describeChannelPluginCatalogEntriesContract() {
             }),
           );
           return {
-            channelId: "astroclaw-plugin-yuanbao",
+            channelId: "openclaw-plugin-yuanbao",
             catalogPaths: [catalogPath],
             expected: {
-              id: "astroclaw-plugin-yuanbao",
+              id: "openclaw-plugin-yuanbao",
               meta: {
                 label: "Yuanbao",
                 selectionLabel: "Yuanbao (Tencent Yuanbao)",
@@ -451,7 +457,7 @@ export function describeChannelPluginCatalogEntriesContract() {
                 blurb: "Tencent Yuanbao AI assistant conversation channel.",
               },
               install: {
-                npmSpec: "astroclaw-plugin-yuanbao@1.0.0",
+                npmSpec: "openclaw-plugin-yuanbao@1.0.0",
                 defaultChoice: "npm",
                 minHostVersion: ">=2026.4.10",
                 expectedIntegrity: "sha512-yuanbao",
@@ -473,6 +479,7 @@ export function describeChannelPluginCatalogEntriesContract() {
   });
 }
 
+/** Installs catalog path resolution tests that depend on env/home/state paths. */
 export function describeChannelPluginCatalogPathResolutionContract() {
   describe("channel plugin catalog path resolution contract", () => {
     it.each([
@@ -480,13 +487,13 @@ export function describeChannelPluginCatalogPathResolutionContract() {
         name: "uses the provided env for external catalog path resolution",
         setup: () => {
           const home = fs.mkdtempSync(
-            path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-catalog-home-"),
+            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-home-"),
           );
           const catalogPath = path.join(home, "catalog.json");
           writeCatalogFile(
             catalogPath,
             createCatalogEntry({
-              packageName: "@astroclaw/env-demo-channel",
+              packageName: "@openclaw/env-demo-channel",
               channelId: "env-demo-channel",
               label: "Env Demo Channel",
               blurb: "Env demo entry",
@@ -496,8 +503,8 @@ export function describeChannelPluginCatalogPathResolutionContract() {
           return {
             env: {
               ...process.env,
-              ASTROCLAW_PLUGIN_CATALOG_PATHS: "~/catalog.json",
-              ASTROCLAW_HOME: home,
+              OPENCLAW_PLUGIN_CATALOG_PATHS: "~/catalog.json",
+              OPENCLAW_HOME: home,
               HOME: home,
             },
             expectedId: "env-demo-channel",
@@ -508,14 +515,14 @@ export function describeChannelPluginCatalogPathResolutionContract() {
         name: "uses the provided env for default catalog paths",
         setup: () => {
           const stateDir = fs.mkdtempSync(
-            path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-catalog-state-"),
+            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-state-"),
           );
           const catalogPath = path.join(stateDir, "plugins", "catalog.json");
           fs.mkdirSync(path.dirname(catalogPath), { recursive: true });
           writeCatalogFile(
             catalogPath,
             createCatalogEntry({
-              packageName: "@astroclaw/default-env-demo",
+              packageName: "@openclaw/default-env-demo",
               channelId: "default-env-demo",
               label: "Default Env Demo",
               blurb: "Default env demo entry",
@@ -524,7 +531,7 @@ export function describeChannelPluginCatalogPathResolutionContract() {
           return {
             env: {
               ...process.env,
-              ASTROCLAW_STATE_DIR: stateDir,
+              OPENCLAW_STATE_DIR: stateDir,
             },
             expectedId: "default-env-demo",
           };
