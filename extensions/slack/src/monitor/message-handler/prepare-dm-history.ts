@@ -1,9 +1,11 @@
-import { formatInboundEnvelope } from "astroclaw/plugin-sdk/channel-inbound";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Slack plugin module implements prepare dm history behavior.
+import { formatInboundEnvelope } from "openclaw/plugin-sdk/channel-inbound";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import type { SlackMonitorContext } from "../context.js";
+import { resolveSlackTimestampMs } from "./timestamp.js";
 
 type SlackDmHistoryMessage = {
   text?: string;
@@ -37,7 +39,7 @@ export async function resolveSlackDmHistoryContext(params: {
   currentMessageTs?: string;
   limit: number;
   envelopeOptions: ReturnType<
-    typeof import("astroclaw/plugin-sdk/channel-inbound").resolveEnvelopeFormatOptions
+    typeof import("openclaw/plugin-sdk/channel-inbound").resolveEnvelopeFormatOptions
   >;
 }): Promise<{ body: string | undefined; inboundHistory: SlackDmHistoryEntry[] | undefined }> {
   const maxMessages = Math.max(0, Math.floor(params.limit));
@@ -96,7 +98,7 @@ export async function resolveSlackDmHistoryContext(params: {
           ? await resolveUserLabel(message.user)
           : (normalizeOptionalString(message.username) ?? (message.bot_id ? "Bot" : "Unknown"));
       const sender = `${senderBase} (${role})`;
-      const timestamp = message.ts ? Math.round(Number(message.ts) * 1000) : undefined;
+      const timestamp = resolveSlackTimestampMs(message.ts);
       entries.push({ sender, body, timestamp });
       formatted.push(
         formatInboundEnvelope({
