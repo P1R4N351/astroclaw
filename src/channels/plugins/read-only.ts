@@ -1,7 +1,19 @@
+/**
+ * Read-only channel plugin discovery.
+ *
+ * Builds lightweight channel plugin views from config, manifests, and setup metadata.
+ */
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  sortUniqueStrings,
+  uniqueStrings,
+} from "@openclaw/normalization-core/string-normalization";
+import { sanitizeForLog } from "../../../packages/terminal-core/src/ansi.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import { resolveRuntimeConfigCacheKey } from "../../config/runtime-snapshot.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { isBlockedObjectKey } from "../../infra/prototype-keys.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
@@ -10,20 +22,20 @@ import {
   listConfiguredChannelIdsForReadOnlyScope,
   resolveDiscoverableScopedChannelPluginIds,
 } from "../../plugins/channel-plugin-ids.js";
-import { getCurrentPluginMetadataSnapshot } from "../../plugins/current-plugin-metadata-snapshot.js";
 import {
   channelPluginIdBelongsToManifest,
   resolveSetupChannelRegistration,
 } from "../../plugins/loader-channel-setup.js";
 import type { PluginManifestRecord } from "../../plugins/manifest-registry.js";
 import type { PluginDiagnostic } from "../../plugins/manifest-types.js";
-import { loadPluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.js";
+import { registerPluginMetadataProcessMemoLifecycleClear } from "../../plugins/plugin-metadata-lifecycle.js";
+import { resolvePluginMetadataSnapshot } from "../../plugins/plugin-metadata-snapshot.js";
 import {
   getCachedPluginModuleLoader,
   type PluginModuleLoaderCache,
 } from "../../plugins/plugin-module-loader-cache.js";
+import { getActivePluginChannelRegistryVersion } from "../../plugins/runtime.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
-import { sanitizeForLog } from "../../terminal/ansi.js";
 import { getBundledChannelSetupPlugin } from "./bundled.js";
 import {
   isSafeManifestChannelId,
@@ -46,9 +58,9 @@ const moduleLoaders: PluginModuleLoaderCache = new Map();
 const log = createSubsystemLogger("channels");
 
 type PluginLoaderModule = {
-  loadAstroclawPlugins: (params: {
-    config: AstroclawConfig;
-    activationSourceConfig?: AstroclawConfig;
+  loadOpenClawPlugins: (params: {
+    config: OpenClawConfig;
+    activationSourceConfig?: OpenClawConfig;
     env?: NodeJS.ProcessEnv;
     workspaceDir?: string;
     cache?: boolean;
@@ -81,7 +93,7 @@ function listBuiltPluginLoaderModuleCandidateUrls(importerUrl: string): URL[] {
     return [];
   }
   // Bundled read-only chunks live under dist/ with hashed names. Source-relative
-  // ../../plugins candidates would escape the installed astroclaw package there.
+  // ../../plugins candidates would escape the installed openclaw package there.
   const distRoot = importerPath.slice(0, distMarkerIndex + distMarker.length - 1);
   return BUILT_PLUGIN_LOADER_MODULE_CANDIDATES.map((candidate) =>
     pathToFileURL(path.join(distRoot, candidate)),
@@ -124,7 +136,7 @@ type ReadOnlyChannelPluginOptions = {
   env?: NodeJS.ProcessEnv;
   stateDir?: string;
   workspaceDir?: string;
-  activationSourceConfig?: AstroclawConfig;
+  activationSourceConfig?: OpenClawConfig;
   includePersistedAuthState?: boolean;
   includeSetupFallbackPlugins?: boolean;
 };
@@ -142,6 +154,102 @@ export type ReadOnlyChannelPluginLoadFailure = {
   message: string;
   source?: string;
 };
+
+const readOnlyChannelPluginResolutionCache = new Map<string, ReadOnlyChannelPluginResolution>();
+const MAX_READ_ONLY_CHANNEL_PLUGIN_RESOLUTION_CACHE_SIZE = 8;
+const readOnlyChannelPluginObjectIds = new WeakMap<ChannelPlugin, number>();
+let nextReadOnlyChannelPluginObjectId = 1;
+
+registerPluginMetadataProcessMemoLifecycleClear(() => {
+  readOnlyChannelPluginResolutionCache.clear();
+});
+
+function cloneReadOnlyChannelPluginResolution(
+  resolution: ReadOnlyChannelPluginResolution,
+): ReadOnlyChannelPluginResolution {
+  return {
+    plugins: [...resolution.plugins],
+    configuredChannelIds: [...resolution.configuredChannelIds],
+    missingConfiguredChannelIds: [...resolution.missingConfiguredChannelIds],
+    loadFailures: resolution.loadFailures.map((failure) => ({ ...failure })),
+  };
+}
+
+function rememberReadOnlyChannelPluginResolution(
+  key: string,
+  resolution: ReadOnlyChannelPluginResolution,
+): void {
+  if (readOnlyChannelPluginResolutionCache.has(key)) {
+    readOnlyChannelPluginResolutionCache.delete(key);
+  }
+  readOnlyChannelPluginResolutionCache.set(key, cloneReadOnlyChannelPluginResolution(resolution));
+  while (
+    readOnlyChannelPluginResolutionCache.size > MAX_READ_ONLY_CHANNEL_PLUGIN_RESOLUTION_CACHE_SIZE
+  ) {
+    const oldestKey = readOnlyChannelPluginResolutionCache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    readOnlyChannelPluginResolutionCache.delete(oldestKey);
+  }
+}
+
+function resolveReadOnlyChannelPluginResolutionCacheKey(params: {
+  cfg: OpenClawConfig;
+  options: ReadOnlyChannelPluginOptions;
+  env: NodeJS.ProcessEnv;
+  loadedChannelPlugins: readonly ChannelPlugin[];
+  workspaceDir?: string;
+}): string | null {
+  if (params.env !== process.env) {
+    return null;
+  }
+  if (params.options.includePersistedAuthState !== false) {
+    return null;
+  }
+  const activationSourceConfig = params.options.activationSourceConfig ?? params.cfg;
+  return [
+    resolveRuntimeConfigCacheKey(params.cfg),
+    activationSourceConfig === params.cfg
+      ? "activation:same"
+      : resolveRuntimeConfigCacheKey(activationSourceConfig),
+    `channel-registry:${getActivePluginChannelRegistryVersion()}`,
+    `loaded-channels:${fingerprintLoadedChannelPlugins(params.loadedChannelPlugins)}`,
+    `env:${hashEnvironment(params.env)}`,
+    `cwd:${process.cwd()}`,
+    `state:${params.options.stateDir ?? ""}`,
+    `workspace:${params.workspaceDir}`,
+    `setup:${params.options.includeSetupFallbackPlugins === true}`,
+  ].join("\0");
+}
+
+function resolveReadOnlyChannelPluginObjectId(plugin: ChannelPlugin): number {
+  const existing = readOnlyChannelPluginObjectIds.get(plugin);
+  if (existing !== undefined) {
+    return existing;
+  }
+  const next = nextReadOnlyChannelPluginObjectId;
+  nextReadOnlyChannelPluginObjectId += 1;
+  readOnlyChannelPluginObjectIds.set(plugin, next);
+  return next;
+}
+
+function fingerprintLoadedChannelPlugins(plugins: readonly ChannelPlugin[]): string {
+  return plugins
+    .map((plugin) => `${plugin.id}:${resolveReadOnlyChannelPluginObjectId(plugin)}`)
+    .join(",");
+}
+
+function hashEnvironment(env: NodeJS.ProcessEnv): string {
+  const hash = createHash("sha256");
+  for (const key of Object.keys(env).toSorted((left, right) => left.localeCompare(right))) {
+    hash.update(key);
+    hash.update("\0");
+    hash.update(env[key] ?? "");
+    hash.update("\0");
+  }
+  return hash.digest("base64url");
+}
 
 function addChannelPlugins(
   byId: Map<string, ChannelPlugin>,
@@ -185,10 +293,10 @@ function normalizeManifestText(value: string | undefined, fallback: string): str
 }
 
 function rebindChannelConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   sourceChannelId: string,
   targetChannelId: string,
-): AstroclawConfig {
+): OpenClawConfig {
   if (sourceChannelId === targetChannelId || !cfg.channels) {
     return cfg;
   }
@@ -196,30 +304,27 @@ function rebindChannelConfig(
     ...cfg,
     channels: {
       ...cfg.channels,
-      [sourceChannelId]: (cfg.channels as Record<string, unknown>)[targetChannelId],
+      [sourceChannelId]: cfg.channels[targetChannelId],
     },
   };
 }
 
 function restoreReboundChannelConfig(params: {
-  original: AstroclawConfig;
-  updated: AstroclawConfig;
+  original: OpenClawConfig;
+  updated: OpenClawConfig;
   sourceChannelId: string;
   targetChannelId: string;
-}): AstroclawConfig {
+}): OpenClawConfig {
   if (params.sourceChannelId === params.targetChannelId || !params.updated.channels) {
     return params.updated;
   }
   const nextChannels = { ...params.updated.channels };
-  if (Object.prototype.hasOwnProperty.call(nextChannels, params.sourceChannelId)) {
+  if (Object.hasOwn(nextChannels, params.sourceChannelId)) {
     nextChannels[params.targetChannelId] = nextChannels[params.sourceChannelId];
   } else {
     delete nextChannels[params.targetChannelId];
   }
-  if (
-    params.original.channels &&
-    Object.prototype.hasOwnProperty.call(params.original.channels, params.sourceChannelId)
-  ) {
+  if (params.original.channels && Object.hasOwn(params.original.channels, params.sourceChannelId)) {
     nextChannels[params.sourceChannelId] = params.original.channels[params.sourceChannelId];
   } else {
     delete nextChannels[params.sourceChannelId];
@@ -230,7 +335,7 @@ function restoreReboundChannelConfig(params: {
   };
 }
 
-function getChannelConfigRecord(cfg: AstroclawConfig, channelId: string): Record<string, unknown> {
+function getChannelConfigRecord(cfg: OpenClawConfig, channelId: string): Record<string, unknown> {
   if (!isSafeManifestChannelId(channelId)) {
     return {};
   }
@@ -244,24 +349,22 @@ function getChannelConfigRecord(cfg: AstroclawConfig, channelId: string): Record
     : {};
 }
 
-function listManifestChannelAccountIds(cfg: AstroclawConfig, channelId: string): string[] {
+function listManifestChannelAccountIds(cfg: OpenClawConfig, channelId: string): string[] {
   const channelConfig = getChannelConfigRecord(cfg, channelId);
   const accounts = channelConfig.accounts;
   if (accounts && typeof accounts === "object" && !Array.isArray(accounts)) {
-    return [
-      ...new Set(
-        Object.keys(accounts)
-          .filter((accountId) => !isBlockedObjectKey(accountId))
-          .map((accountId) => normalizeAccountId(accountId))
-          .filter((accountId) => !isBlockedObjectKey(accountId)),
-      ),
-    ].toSorted((left, right) => left.localeCompare(right));
+    return sortUniqueStrings(
+      Object.keys(accounts)
+        .filter((accountId) => !isBlockedObjectKey(accountId))
+        .map((accountId) => normalizeAccountId(accountId))
+        .filter((accountId) => !isBlockedObjectKey(accountId)),
+    );
   }
   return hasExplicitChannelConfig({ config: cfg, channelId }) ? [DEFAULT_ACCOUNT_ID] : [];
 }
 
 function resolveManifestChannelAccountConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channelId: string;
   accountId?: string | null;
 }): Record<string, unknown> {
@@ -374,7 +477,7 @@ function buildManifestChannelPlugin(params: {
 
 function canUseManifestChannelPlugin(record: PluginManifestRecord, channelId: string): boolean {
   const hasChannelConfig = Boolean(
-    record.channelConfigs && Object.prototype.hasOwnProperty.call(record.channelConfigs, channelId),
+    record.channelConfigs && Object.hasOwn(record.channelConfigs, channelId),
   );
   if (hasChannelConfig) {
     return record.setup?.requiresRuntime === false || !record.setupSource;
@@ -478,7 +581,7 @@ function rebindChannelPluginConfig(
   sourceChannelId: string,
   targetChannelId: string,
 ): ChannelPlugin["config"] {
-  const rebind = (cfg: AstroclawConfig) =>
+  const rebind = (cfg: OpenClawConfig) =>
     rebindChannelConfig(cfg, sourceChannelId, targetChannelId);
   return {
     ...config,
@@ -682,7 +785,7 @@ function addManifestChannelPlugins(
 }
 
 function resolveReadOnlyWorkspaceDir(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options: ReadOnlyChannelPluginOptions,
 ): string | undefined {
   return options.workspaceDir ?? resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
@@ -712,8 +815,8 @@ function listPluginIdsForChannels(
 }
 
 function resolveExternalReadOnlyChannelPluginIds(params: {
-  cfg: AstroclawConfig;
-  activationSourceConfig?: AstroclawConfig;
+  cfg: OpenClawConfig;
+  activationSourceConfig?: OpenClawConfig;
   channelIds: readonly string[];
   records: readonly PluginManifestRecord[];
   workspaceDir?: string;
@@ -747,52 +850,64 @@ function resolveExternalReadOnlyChannelPluginIds(params: {
 }
 
 export function listReadOnlyChannelPluginsForConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options?: ReadOnlyChannelPluginOptions,
 ): ChannelPlugin[] {
   return resolveReadOnlyChannelPluginsForConfig(cfg, options).plugins;
 }
 
 export function resolveReadOnlyChannelPluginsForConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options: ReadOnlyChannelPluginOptions = {},
 ): ReadOnlyChannelPluginResolution {
   const env = options.env ?? process.env;
   const workspaceDir = resolveReadOnlyWorkspaceDir(cfg, options);
-  const metadataSnapshot =
-    options.stateDir === undefined
-      ? getCurrentPluginMetadataSnapshot({
-          config: cfg,
-          env,
-          workspaceDir,
-        })
-      : undefined;
-  const manifestRecords =
-    metadataSnapshot?.plugins ??
-    loadPluginMetadataSnapshot({
-      config: cfg,
-      stateDir: options.stateDir,
-      workspaceDir,
-      env,
-    }).plugins;
+  const loadedChannelPlugins = listChannelPlugins();
+  const cacheKey = resolveReadOnlyChannelPluginResolutionCacheKey({
+    cfg,
+    options,
+    env,
+    loadedChannelPlugins,
+    workspaceDir,
+  });
+  const cached = cacheKey ? readOnlyChannelPluginResolutionCache.get(cacheKey) : undefined;
+  if (cached) {
+    return cloneReadOnlyChannelPluginResolution(cached);
+  }
+  const manifestRecords = resolvePluginMetadataSnapshot({
+    config: cfg,
+    stateDir: options.stateDir,
+    workspaceDir,
+    env,
+    allowWorkspaceScopedCurrent: true,
+  }).plugins;
   const bundledManifestRecords = listBundledChannelManifestRecords(manifestRecords);
   const externalManifestRecords = listExternalChannelManifestRecords(manifestRecords);
-  const configuredChannelIds = [
-    ...new Set(
-      listConfiguredChannelIdsForReadOnlyScope({
-        config: cfg,
-        activationSourceConfig: options.activationSourceConfig ?? cfg,
-        workspaceDir,
-        env,
-        includePersistedAuthState: options.includePersistedAuthState,
-        manifestRecords,
-      }),
-    ),
-  ].filter(isSafeManifestChannelId);
+  const activationSourceConfig = options.activationSourceConfig ?? cfg;
+  const configuredChannelIds = uniqueStrings([
+    ...listConfiguredChannelIdsForReadOnlyScope({
+      config: cfg,
+      activationSourceConfig,
+      workspaceDir,
+      env,
+      includePersistedAuthState: options.includePersistedAuthState,
+      manifestRecords,
+    }),
+    ...(activationSourceConfig === cfg
+      ? []
+      : listConfiguredChannelIdsForReadOnlyScope({
+          config: activationSourceConfig,
+          activationSourceConfig,
+          workspaceDir,
+          env,
+          includePersistedAuthState: options.includePersistedAuthState,
+          manifestRecords,
+        })),
+  ]).filter(isSafeManifestChannelId);
   const byId = new Map<string, ChannelPlugin>();
   const loadFailures: ReadOnlyChannelPluginLoadFailure[] = [];
 
-  addChannelPlugins(byId, listChannelPlugins());
+  addChannelPlugins(byId, loadedChannelPlugins);
 
   if (options.includeSetupFallbackPlugins === true) {
     for (const channelId of configuredChannelIds) {
@@ -858,7 +973,7 @@ export function resolveReadOnlyChannelPluginsForConfig(
             ] as const,
         ),
       );
-      const registry = loadPluginLoaderModule().loadAstroclawPlugins({
+      const registry = loadPluginLoaderModule().loadOpenClawPlugins({
         config: cfg,
         activationSourceConfig: options.activationSourceConfig ?? cfg,
         env,
@@ -892,10 +1007,14 @@ export function resolveReadOnlyChannelPluginsForConfig(
   }
 
   const plugins = [...byId.values()];
-  return {
+  const resolution = {
     plugins,
     configuredChannelIds,
     missingConfiguredChannelIds: configuredChannelIds.filter((channelId) => !byId.has(channelId)),
     loadFailures,
   };
+  if (cacheKey) {
+    rememberReadOnlyChannelPluginResolution(cacheKey, resolution);
+  }
+  return cloneReadOnlyChannelPluginResolution(resolution);
 }
