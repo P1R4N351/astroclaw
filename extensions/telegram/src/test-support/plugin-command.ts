@@ -1,3 +1,4 @@
+// Telegram plugin module implements plugin command behavior.
 import { vi } from "vitest";
 
 export const pluginCommandMocks = {
@@ -6,7 +7,7 @@ export const pluginCommandMocks = {
   executePluginCommand: vi.fn(async () => ({ text: "ok" })),
 };
 
-vi.mock("astroclaw/plugin-sdk/plugin-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/plugin-runtime", () => ({
   getPluginCommandSpecs: pluginCommandMocks.getPluginCommandSpecs,
   matchPluginCommand: pluginCommandMocks.matchPluginCommand,
   executePluginCommand: pluginCommandMocks.executePluginCommand,
