@@ -1,4 +1,6 @@
+// Plans grouped targeted Docker lane matrix entries.
 import { fileURLToPath } from "node:url";
+import { parsePositiveInt } from "./lib/numeric-options.mjs";
 
 const BASELINE_SHARDED_LANES = new Set(["published-upgrade-survivor", "update-migration"]);
 
@@ -13,26 +15,18 @@ function splitTokens(raw) {
   ];
 }
 
-function parsePositiveInt(raw, fallback, label) {
-  const parsed = Number.parseInt(String(raw ?? ""), 10);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-  if (parsed < 1) {
-    throw new Error(`${label} must be a positive integer. Got: ${JSON.stringify(raw)}`);
-  }
-  return parsed;
-}
-
 function sanitizeLabel(value) {
   return (
     String(value)
-      .replace(/^astroclaw@/u, "")
+      .replace(/^openclaw@/u, "")
       .replace(/[^A-Za-z0-9._-]+/g, "-")
       .replace(/^-+|-+$/g, "") || "targeted"
   );
 }
 
+/**
+ * Groups selected Docker lanes and expands sharded upgrade-survivor baselines.
+ */
 export function planTargetedDockerLaneGroups({
   groupSize = 1,
   lanes,
@@ -43,7 +37,7 @@ export function planTargetedDockerLaneGroups({
     throw new Error("docker_lanes is required when planning targeted Docker lane groups.");
   }
 
-  const parsedGroupSize = parsePositiveInt(groupSize, 1, "groupSize");
+  const parsedGroupSize = parsePositiveInt(groupSize, "groupSize");
   const baselineSpecs = splitTokens(upgradeSurvivorBaselines);
   const groups = [];
   let pendingLanes = [];
@@ -90,7 +84,7 @@ if (isMain) {
       planTargetedDockerLaneGroups({
         groupSize: process.env.GROUP_SIZE,
         lanes: process.env.LANES,
-        upgradeSurvivorBaselines: process.env.ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS,
+        upgradeSurvivorBaselines: process.env.OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS,
       }),
     ),
   );
