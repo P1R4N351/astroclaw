@@ -1,3 +1,5 @@
+// Implements guided and non-interactive `openclaw channels add` account setup.
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { getBundledChannelSetupPlugin } from "../../channels/plugins/bundled.js";
 import { parseOptionalDelimitedEntries } from "../../channels/plugins/helpers.js";
@@ -13,11 +15,11 @@ import {
 } from "../../cli/error-format.js";
 import { commitConfigWithPendingPluginInstalls } from "../../cli/plugins-install-record-commit.js";
 import { refreshPluginRegistryAfterConfigMutation } from "../../cli/plugins-registry-refresh.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
+import { parseStrictNonNegativeInteger } from "../../infra/parse-finite-number.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../../runtime.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
-import { normalizeOptionalLowercaseString } from "../../shared/string-coerce.js";
 import { createClackPrompter } from "../../wizard/clack-prompter.js";
 import { WizardCancelledError } from "../../wizard/prompts.js";
 import { applyAgentBindings, describeBinding } from "../agents.bindings.js";
@@ -52,7 +54,7 @@ export type ChannelsAddOptions = {
 const CHANNEL_ADD_CONTROL_OPTION_KEYS = new Set(["channel", "account"]);
 const NEXTCLOUD_TALK_CLI_ALIASES = new Set(["nextcloud-talk", "nc-talk", "nc"]);
 
-async function resolveCatalogChannelEntry(raw: string, cfg: AstroclawConfig | null) {
+async function resolveCatalogChannelEntry(raw: string, cfg: OpenClawConfig | null) {
   const trimmed = normalizeOptionalLowercaseString(raw);
   if (!trimmed) {
     return undefined;
@@ -66,8 +68,8 @@ async function resolveCatalogChannelEntry(raw: string, cfg: AstroclawConfig | nu
           }),
       )
     : await import("../../channels/plugins/catalog.js").then(
-        ({ listChannelPluginCatalogEntries }) =>
-          listChannelPluginCatalogEntries({ excludeWorkspace: true }),
+        ({ listRawChannelPluginCatalogEntries }) =>
+          listRawChannelPluginCatalogEntries({ excludeWorkspace: true }),
       );
   return entries.find((entry) => {
     if (normalizeOptionalLowercaseString(entry.id) === trimmed) {
@@ -79,14 +81,15 @@ async function resolveCatalogChannelEntry(raw: string, cfg: AstroclawConfig | nu
   });
 }
 
-function parseOptionalInt(value: unknown): number | undefined {
-  if (typeof value === "number") {
-    return value;
+function parseOptionalInt(value: unknown, flag: string): number | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
   }
-  if (typeof value === "string" && value.trim()) {
-    return Number.parseInt(value, 10);
+  const parsed = parseStrictNonNegativeInteger(value);
+  if (parsed === undefined) {
+    throw new Error(`${flag} must be a non-negative integer.`);
   }
-  return undefined;
+  return parsed;
 }
 
 function parseOptionalDelimitedInput(value: unknown): string[] | undefined {
@@ -116,12 +119,13 @@ function buildChannelSetupInput(opts: ChannelsAddOptions): ChannelSetupInput {
     input.secretFile ??= readOptionalString(input.tokenFile);
   }
 
-  input.initialSyncLimit = parseOptionalInt(opts.initialSyncLimit);
+  input.initialSyncLimit = parseOptionalInt(opts.initialSyncLimit, "--initial-sync-limit");
   input.groupChannels = parseOptionalDelimitedInput(opts.groupChannels);
   input.dmAllowlist = parseOptionalDelimitedInput(opts.dmAllowlist);
   return input as ChannelSetupInput;
 }
 
+/** Add or configure a channel account, using the wizard when no concrete flags are supplied. */
 export async function channelsAddCommand(
   opts: ChannelsAddOptions,
   runtime: RuntimeEnv = defaultRuntime,
@@ -147,7 +151,7 @@ async function channelsAddCommandImpl(
   if (!configSnapshot) {
     return;
   }
-  const cfg = (configSnapshot.sourceConfig ?? configSnapshot.config) as AstroclawConfig;
+  const cfg = (configSnapshot.sourceConfig ?? configSnapshot.config) as OpenClawConfig;
   const baseHash = configSnapshot.hash;
   let nextConfig = cfg;
   let pluginRegistrySourceChanged = false;
@@ -164,7 +168,7 @@ async function channelsAddCommandImpl(
     const accountIds: Partial<Record<ChannelChoice, string>> = {};
     const resolvedPlugins = new Map<ChannelChoice, ChannelSetupPlugin>();
     await prompter.intro("Channel setup");
-    let nextConfig = await onboardChannels.setupChannels(cfg, runtime, prompter, {
+    let nextConfigLocal = await onboardChannels.setupChannels(cfg, runtime, prompter, {
       allowDisable: false,
       allowSignalInstall: true,
       onPostWriteHook: (hook) => {
@@ -196,18 +200,18 @@ async function channelsAddCommandImpl(
       for (const channel of selection) {
         const accountId = accountIds[channel] ?? DEFAULT_ACCOUNT_ID;
         const plugin = resolvedPlugins.get(channel) ?? getLoadedChannelPlugin(channel);
-        const account = plugin?.config.resolveAccount(nextConfig, accountId) as
+        const account = plugin?.config.resolveAccount(nextConfigLocal, accountId) as
           | { name?: string }
           | undefined;
-        const snapshot = plugin?.config.describeAccount?.(account, nextConfig);
+        const snapshot = plugin?.config.describeAccount?.(account, nextConfigLocal);
         const existingName = snapshot?.name ?? account?.name;
         const name = await prompter.text({
           message: `${channel} display name for account "${accountId}"`,
           initialValue: existingName,
         });
         if (name?.trim()) {
-          nextConfig = applyAccountName({
-            cfg: nextConfig,
+          nextConfigLocal = applyAccountName({
+            cfg: nextConfigLocal,
             channel,
             accountId,
             name,
@@ -236,8 +240,8 @@ async function channelsAddCommandImpl(
         initialValue: true,
       });
       if (bindNow) {
-        const agentSummaries = buildAgentSummaries(nextConfig);
-        const defaultAgentId = resolveDefaultAgentId(nextConfig);
+        const agentSummaries = buildAgentSummaries(nextConfigLocal);
+        const defaultAgentId = resolveDefaultAgentId(nextConfigLocal);
         for (const target of bindTargets) {
           const targetAgentId = await prompter.select({
             message: `Send ${target.channel}/${target.accountId} messages to agent`,
@@ -247,13 +251,13 @@ async function channelsAddCommandImpl(
             })),
             initialValue: defaultAgentId,
           });
-          const bindingResult = applyAgentBindings(nextConfig, [
+          const bindingResult = applyAgentBindings(nextConfigLocal, [
             {
               agentId: targetAgentId,
               match: { channel: target.channel, accountId: target.accountId },
             },
           ]);
-          nextConfig = bindingResult.config;
+          nextConfigLocal = bindingResult.config;
           if (bindingResult.added.length > 0 || bindingResult.updated.length > 0) {
             await prompter.note(
               [
@@ -280,7 +284,7 @@ async function channelsAddCommandImpl(
     }
 
     const committed = await commitConfigWithPendingPluginInstalls({
-      nextConfig,
+      nextConfig: nextConfigLocal,
       ...(baseHash !== undefined ? { baseHash } : {}),
     });
     const writtenConfig = committed.config;
@@ -372,7 +376,7 @@ async function channelsAddCommandImpl(
 
   if (!channel) {
     const hint = catalogEntry
-      ? `Plugin ${catalogEntry.meta.label} could not be loaded after install. Run astroclaw doctor --fix, then retry astroclaw channels add.`
+      ? `Plugin ${catalogEntry.meta.label} could not be loaded after install. Run openclaw doctor --fix, then retry openclaw channels add.`
       : formatUnknownChannelMessage({ channel: rawChannel });
     runtime.error(hint);
     runtime.exit(1);
@@ -385,7 +389,7 @@ async function channelsAddCommandImpl(
       `${formatUnsupportedChannelActionMessage({
         channel,
         action: "non-interactive add",
-      })} Run ${formatCliCommand("astroclaw channels add")} with no flags for guided setup.`,
+      })} Run ${formatCliCommand("openclaw channels add")} with no flags for guided setup.`,
     );
     runtime.exit(1);
     return;
