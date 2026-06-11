@@ -1,9 +1,10 @@
-import type { Command } from "commander";
-import { defaultRuntime } from "../../runtime.js";
+// APNs test-push command for iOS nodes.
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "../../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import type { Command } from "commander";
+import { defaultRuntime } from "../../runtime.js";
 import { getNodesTheme, runNodesCommand } from "./cli-utils.js";
 import { callGatewayCli, nodesCallOpts, resolveNodeId } from "./rpc.js";
 import type { NodesRpcOpts } from "./types.js";
@@ -26,19 +27,20 @@ function normalizeEnvironment(value: unknown): "sandbox" | "production" | null {
   return null;
 }
 
+/** Register the node push-test command. */
 export function registerNodesPushCommand(nodes: Command) {
   nodesCallOpts(
     nodes
       .command("push")
       .description("Send an APNs test push to an iOS node")
       .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
-      .option("--title <text>", "Push title", "Astroclaw")
+      .option("--title <text>", "Push title", "OpenClaw")
       .option("--body <text>", "Push body")
       .option("--environment <sandbox|production>", "Override APNs environment")
       .action(async (opts: NodesPushOpts) => {
         await runNodesCommand("push", async () => {
           const nodeId = await resolveNodeId(opts, normalizeOptionalString(opts.node) ?? "");
-          const title = normalizeOptionalString(opts.title) || "Astroclaw";
+          const title = normalizeOptionalString(opts.title) || "OpenClaw";
           const body = normalizeOptionalString(opts.body) || `Push test for node ${nodeId}`;
           const environment = normalizeEnvironment(opts.environment);
           if (opts.environment && !environment) {
