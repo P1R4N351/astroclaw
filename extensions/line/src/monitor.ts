@@ -1,24 +1,26 @@
+// Line plugin module implements monitor behavior.
 import type { webhook } from "@line/bot-sdk";
-import { hasFinalChannelTurnDispatch } from "astroclaw/plugin-sdk/channel-message";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { chunkMarkdownText } from "astroclaw/plugin-sdk/reply-runtime";
+import { hasFinalInboundReplyDispatch } from "openclaw/plugin-sdk/channel-inbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { chunkMarkdownText } from "openclaw/plugin-sdk/reply-runtime";
 import {
   danger,
   logVerbose,
   waitForAbortSignal,
   type RuntimeEnv,
-} from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/runtime-env";
 import {
   isRequestBodyLimitError,
   normalizePluginHttpPath,
+  normalizeWebhookPath,
   registerWebhookTargetWithPluginRoute,
   requestBodyErrorToText,
   resolveSingleWebhookTarget,
-} from "astroclaw/plugin-sdk/webhook-ingress";
+} from "openclaw/plugin-sdk/webhook-ingress";
 import {
   beginWebhookRequestPipelineOrReject,
   createWebhookInFlightLimiter,
-} from "astroclaw/plugin-sdk/webhook-request-guards";
+} from "openclaw/plugin-sdk/webhook-request-guards";
 import { resolveDefaultLineAccountId } from "./accounts.js";
 import { deliverLineAutoReply } from "./auto-reply-delivery.js";
 import { createLineBot } from "./bot.js";
@@ -48,7 +50,7 @@ export interface MonitorLineProviderOptions {
   channelAccessToken: string;
   channelSecret: string;
   accountId?: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   runtime: RuntimeEnv;
   abortSignal?: AbortSignal;
   webhookUrl?: string;
@@ -117,7 +119,7 @@ export function clearLineRuntimeStateForTests() {
 }
 
 function startLineLoadingKeepalive(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   userId: string;
   accountId?: string;
   intervalMs?: number;
@@ -224,7 +226,7 @@ export async function monitorLineProvider(
         const textLimit = 5000;
         let replyTokenUsed = false;
         const core = getLineRuntime();
-        const turnResult = await core.channel.turn.run({
+        const turnResult = await core.channel.inbound.run({
           channel: "line",
           accountId: route.accountId,
           raw: ctx,
@@ -313,7 +315,7 @@ export async function monitorLineProvider(
           },
         });
         const dispatchResult = turnResult.dispatched ? turnResult.dispatchResult : undefined;
-        if (!hasFinalChannelTurnDispatch(dispatchResult)) {
+        if (!hasFinalInboundReplyDispatch(dispatchResult)) {
           logVerbose(`line: no response generated for message from ${ctxPayload.From}`);
         }
       } catch (err) {
@@ -336,7 +338,9 @@ export async function monitorLineProvider(
     },
   });
 
-  const normalizedPath = normalizePluginHttpPath(webhookPath, "/line/webhook") ?? "/line/webhook";
+  const normalizedPath = normalizeWebhookPath(
+    normalizePluginHttpPath(webhookPath, "/line/webhook") ?? "/line/webhook",
+  );
   const createScopedLineWebhookHandler = (target: LineWebhookTarget) =>
     createLineNodeWebhookHandler({
       channelSecret: target.channelSecret,
@@ -437,7 +441,7 @@ export async function monitorLineProvider(
             logVerbose(`line: received ${body.events.length} webhook events`);
             void Promise.resolve()
               .then(() => match.target.bot.handleWebhook(body))
-              .catch((err) => {
+              .catch((err: unknown) => {
                 match.target.runtime.error?.(
                   danger(`line webhook dispatch failed: ${String(err)}`),
                 );
