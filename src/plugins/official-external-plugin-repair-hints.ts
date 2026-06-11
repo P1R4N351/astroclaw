@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/** Builds doctor/install repair hints for missing official external plugin owners. */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveConfiguredChannelPresencePolicy } from "./channel-plugin-ids.js";
 import {
   getOfficialExternalPluginCatalogEntry,
@@ -8,6 +9,7 @@ import {
   resolveOfficialExternalPluginLabel,
 } from "./official-external-plugin-catalog.js";
 
+/** Repair hint for installing an official external plugin that owns a missing surface. */
 export type OfficialExternalPluginRepairHint = {
   pluginId: string;
   channelId?: string;
@@ -18,6 +20,7 @@ export type OfficialExternalPluginRepairHint = {
   repairHint: string;
 };
 
+/** Resolves install/doctor commands for an official external plugin or channel id. */
 export function resolveOfficialExternalPluginRepairHint(
   pluginIdOrChannelId: string,
 ): OfficialExternalPluginRepairHint | null {
@@ -37,8 +40,8 @@ export function resolveOfficialExternalPluginRepairHint(
   const pluginId = resolveOfficialExternalPluginId(entry) ?? pluginIdOrChannelId.trim();
   const channelId = manifest?.channel?.id?.trim();
   const label = resolveOfficialExternalPluginLabel(entry);
-  const installCommand = `astroclaw plugins install ${installSpec}`;
-  const doctorFixCommand = "astroclaw doctor --fix";
+  const installCommand = `openclaw plugins install ${installSpec}`;
+  const doctorFixCommand = "openclaw doctor --fix";
   return {
     pluginId,
     ...(channelId ? { channelId } : {}),
@@ -50,9 +53,10 @@ export function resolveOfficialExternalPluginRepairHint(
   };
 }
 
+/** Resolves a repair hint only when a missing configured channel is blocked by no plugin owner. */
 export function resolveMissingOfficialExternalChannelPluginRepairHint(params: {
-  config: AstroclawConfig;
-  activationSourceConfig?: AstroclawConfig;
+  config: OpenClawConfig;
+  activationSourceConfig?: OpenClawConfig;
   channelId: string;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
