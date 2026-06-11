@@ -1,6 +1,7 @@
-export { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+// Copilot Proxy API module exposes the plugin public contract.
+export { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 export type {
-  AstroclawPluginApi,
+  OpenClawPluginApi,
   ProviderAuthContext,
   ProviderAuthResult,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
