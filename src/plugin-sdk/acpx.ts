@@ -12,14 +12,17 @@ export type {
   AcpRuntimeEvent,
   AcpRuntimeHandle,
   AcpRuntimeStatus,
+  AcpRuntimeTurn,
   AcpRuntimeTurnInput,
+  AcpRuntimeTurnResult,
+  AcpRuntimeTurnResultError,
   AcpSessionUpdateTag,
-} from "../acp/runtime/types.js";
+} from "@openclaw/acp-core/runtime/types";
 export type {
-  AstroclawPluginApi,
-  AstroclawPluginConfigSchema,
-  AstroclawPluginService,
-  AstroclawPluginServiceContext,
+  OpenClawPluginApi,
+  OpenClawPluginConfigSchema,
+  OpenClawPluginService,
+  OpenClawPluginServiceContext,
   PluginLogger,
 } from "../plugins/types.js";
 export type {
