@@ -1,18 +1,19 @@
-import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
-import { hasConfiguredSecretInput } from "astroclaw/plugin-sdk/secret-input";
-import { patchChannelConfigForAccount } from "astroclaw/plugin-sdk/setup-runtime";
-import { formatDocsLink } from "astroclaw/plugin-sdk/setup-tools";
+// Slack plugin module implements setup shared behavior.
+import { describeAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
+import { hasConfiguredSecretInput } from "openclaw/plugin-sdk/secret-input";
+import { patchChannelConfigForAccount } from "openclaw/plugin-sdk/setup-runtime";
+import { formatDocsLink } from "openclaw/plugin-sdk/setup-tools";
 import type { ResolvedSlackAccount } from "./accounts.js";
-import type { AstroclawConfig } from "./channel-api.js";
+import type { OpenClawConfig } from "./channel-api.js";
 
 export const SLACK_CHANNEL = "slack" as const;
 
-export function buildSlackManifest(botName = "Astroclaw") {
-  const safeName = botName.trim() || "Astroclaw";
+export function buildSlackManifest(botName = "OpenClaw") {
+  const safeName = botName.trim() || "OpenClaw";
   const manifest = {
     display_information: {
       name: safeName,
-      description: `${safeName} connector for Astroclaw`,
+      description: `${safeName} connector for OpenClaw`,
     },
     features: {
       bot_user: {
@@ -25,7 +26,7 @@ export function buildSlackManifest(botName = "Astroclaw") {
         messages_tab_read_only_enabled: false,
       },
       assistant_view: {
-        assistant_description: `${safeName} connects Slack assistant threads to Astroclaw agents.`,
+        assistant_description: `${safeName} connects Slack assistant threads to OpenClaw agents.`,
         suggested_prompts: [
           {
             title: "What can you do?",
@@ -43,8 +44,8 @@ export function buildSlackManifest(botName = "Astroclaw") {
       },
       slash_commands: [
         {
-          command: "/astroclaw",
-          description: "Send a message to Astroclaw",
+          command: "/openclaw",
+          description: "Send a message to OpenClaw",
           should_escape: false,
         },
       ],
@@ -118,10 +119,10 @@ export function buildSlackSetupLines(): string[] {
 }
 
 export function setSlackChannelAllowlist(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   channelKeys: string[],
-): AstroclawConfig {
+): OpenClawConfig {
   const channels = Object.fromEntries(channelKeys.map((key) => [key, { enabled: true }]));
   return patchChannelConfigForAccount({
     cfg,
