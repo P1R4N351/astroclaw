@@ -1,4 +1,9 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Tool filesystem policy resolver.
+ *
+ * Combines global and agent fs/tool policy into workspace-only and root-expansion decisions.
+ */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveAgentConfig } from "./agent-scope.js";
 import { pickSandboxToolPolicy } from "./sandbox-tool-policy.js";
 import type { ToolFsPolicy } from "./tool-fs-policy.types.js";
@@ -13,7 +18,7 @@ export function createToolFsPolicy(params: { workspaceOnly?: boolean }): ToolFsP
   };
 }
 
-export function resolveToolFsConfig(params: { cfg?: AstroclawConfig; agentId?: string }): {
+export function resolveToolFsConfig(params: { cfg?: OpenClawConfig; agentId?: string }): {
   workspaceOnly?: boolean;
 } {
   const cfg = params.cfg;
@@ -26,14 +31,14 @@ export function resolveToolFsConfig(params: { cfg?: AstroclawConfig; agentId?: s
 }
 
 export function resolveEffectiveToolFsWorkspaceOnly(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   agentId?: string;
 }): boolean {
   return resolveToolFsConfig(params).workspaceOnly === true;
 }
 
 export function resolveEffectiveToolFsRootExpansionAllowed(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   agentId?: string;
 }): boolean {
   const cfg = params.cfg;
