@@ -1,9 +1,10 @@
+// Nextcloud Talk plugin module implements policy behavior.
 import {
   buildChannelKeyCandidates,
   normalizeChannelSlug,
   resolveChannelEntryMatchWithFallback,
   resolveNestedAllowlistDecision,
-} from "astroclaw/plugin-sdk/channel-targets";
+} from "openclaw/plugin-sdk/channel-targets";
 import type { AllowlistMatch, ChannelGroupContext, GroupToolPolicyConfig } from "../runtime-api.js";
 import type { NextcloudTalkRoomConfig } from "./types.js";
 
