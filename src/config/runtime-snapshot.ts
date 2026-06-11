@@ -1,9 +1,16 @@
+// Produces redacted runtime config snapshots for diagnostics and UI surfaces.
 import { createHash } from "node:crypto";
-import type { AstroclawConfig } from "./types.js";
+import type { OpenClawConfig } from "./types.js";
 
-export type RuntimeConfigSnapshotRefreshParams = {
-  sourceConfig: AstroclawConfig;
+export type RuntimeConfigSnapshotRefreshOptions = {
+  includeAuthStoreRefs?: boolean;
 };
+
+export type RuntimeConfigSnapshotRefreshParams = RuntimeConfigSnapshotRefreshOptions & {
+  sourceConfig: OpenClawConfig;
+  preflightResult?: unknown;
+};
+type MaybePromise<T> = T | Promise<T>;
 
 export type ConfigWriteAfterWrite =
   | { mode: "auto" }
@@ -57,14 +64,15 @@ export function resolveConfigWriteFollowUp(
 }
 
 export type RuntimeConfigSnapshotRefreshHandler = {
+  preflight?: (params: RuntimeConfigSnapshotRefreshParams) => MaybePromise<unknown>;
   refresh: (params: RuntimeConfigSnapshotRefreshParams) => boolean | Promise<boolean>;
   clearOnRefreshFailure?: () => void;
 };
 
 export type RuntimeConfigWriteNotification = {
   configPath: string;
-  sourceConfig: AstroclawConfig;
-  runtimeConfig: AstroclawConfig;
+  sourceConfig: OpenClawConfig;
+  runtimeConfig: OpenClawConfig;
   persistedHash: string;
   revision: number;
   fingerprint: string;
@@ -80,8 +88,8 @@ export type RuntimeConfigSnapshotMetadata = {
   updatedAtMs: number;
 };
 
-let runtimeConfigSnapshot: AstroclawConfig | null = null;
-let runtimeConfigSourceSnapshot: AstroclawConfig | null = null;
+let runtimeConfigSnapshot: OpenClawConfig | null = null;
+let runtimeConfigSourceSnapshot: OpenClawConfig | null = null;
 let runtimeConfigSnapshotMetadata: RuntimeConfigSnapshotMetadata | null = null;
 let runtimeConfigSnapshotRevision = 0;
 let runtimeConfigSnapshotRefreshHandler: RuntimeConfigSnapshotRefreshHandler | null = null;
@@ -101,7 +109,7 @@ function stableConfigStringify(value: unknown): string {
     .join(",")}}`;
 }
 
-function configSnapshotsMatch(left: AstroclawConfig, right: AstroclawConfig): boolean {
+function configSnapshotsMatch(left: OpenClawConfig, right: OpenClawConfig): boolean {
   if (left === right) {
     return true;
   }
@@ -112,13 +120,13 @@ function configSnapshotsMatch(left: AstroclawConfig, right: AstroclawConfig): bo
   }
 }
 
-export function hashRuntimeConfigValue(value: AstroclawConfig): string {
+export function hashRuntimeConfigValue(value: OpenClawConfig): string {
   return createHash("sha256").update(stableConfigStringify(value)).digest("base64url");
 }
 
 function createRuntimeConfigSnapshotMetadata(
-  config: AstroclawConfig,
-  sourceConfig?: AstroclawConfig,
+  config: OpenClawConfig,
+  sourceConfig?: OpenClawConfig,
 ): RuntimeConfigSnapshotMetadata {
   runtimeConfigSnapshotRevision += 1;
   return {
@@ -130,8 +138,8 @@ function createRuntimeConfigSnapshotMetadata(
 }
 
 export function setRuntimeConfigSnapshot(
-  config: AstroclawConfig,
-  sourceConfig?: AstroclawConfig,
+  config: OpenClawConfig,
+  sourceConfig?: OpenClawConfig,
 ): void {
   runtimeConfigSnapshot = config;
   runtimeConfigSourceSnapshot = sourceConfig ?? null;
@@ -149,11 +157,11 @@ export function clearRuntimeConfigSnapshot(): void {
   resetConfigRuntimeState();
 }
 
-export function getRuntimeConfigSnapshot(): AstroclawConfig | null {
+export function getRuntimeConfigSnapshot(): OpenClawConfig | null {
   return runtimeConfigSnapshot;
 }
 
-export function getRuntimeConfigSourceSnapshot(): AstroclawConfig | null {
+export function getRuntimeConfigSourceSnapshot(): OpenClawConfig | null {
   return runtimeConfigSourceSnapshot;
 }
 
@@ -161,7 +169,7 @@ export function getRuntimeConfigSnapshotMetadata(): RuntimeConfigSnapshotMetadat
   return runtimeConfigSnapshotMetadata;
 }
 
-export function resolveRuntimeConfigCacheKey(config: AstroclawConfig): string {
+export function resolveRuntimeConfigCacheKey(config: OpenClawConfig): string {
   const metadata = runtimeConfigSnapshotMetadata;
   if (metadata && config === runtimeConfigSnapshot) {
     return `runtime:${metadata.revision}:${metadata.fingerprint}`;
@@ -171,8 +179,8 @@ export function resolveRuntimeConfigCacheKey(config: AstroclawConfig): string {
 
 export function createRuntimeConfigWriteNotification(params: {
   configPath: string;
-  sourceConfig: AstroclawConfig;
-  runtimeConfig: AstroclawConfig;
+  sourceConfig: OpenClawConfig;
+  runtimeConfig: OpenClawConfig;
   persistedHash: string;
   writtenAtMs?: number;
   afterWrite?: ConfigWriteAfterWrite;
@@ -200,10 +208,10 @@ export function createRuntimeConfigWriteNotification(params: {
 }
 
 export function selectApplicableRuntimeConfig(params: {
-  inputConfig?: AstroclawConfig;
-  runtimeConfig?: AstroclawConfig | null;
-  runtimeSourceConfig?: AstroclawConfig | null;
-}): AstroclawConfig | undefined {
+  inputConfig?: OpenClawConfig;
+  runtimeConfig?: OpenClawConfig | null;
+  runtimeSourceConfig?: OpenClawConfig | null;
+}): OpenClawConfig | undefined {
   const runtimeConfig = params.runtimeConfig ?? null;
   if (!runtimeConfig) {
     return params.inputConfig;
@@ -254,7 +262,7 @@ export function notifyRuntimeConfigWriteListeners(event: RuntimeConfigWriteNotif
   }
 }
 
-export function loadPinnedRuntimeConfig(loadFresh: () => AstroclawConfig): AstroclawConfig {
+export function loadPinnedRuntimeConfig(loadFresh: () => OpenClawConfig): OpenClawConfig {
   if (runtimeConfigSnapshot) {
     return runtimeConfigSnapshot;
   }
@@ -263,19 +271,45 @@ export function loadPinnedRuntimeConfig(loadFresh: () => AstroclawConfig): Astro
   return getRuntimeConfigSnapshot() ?? config;
 }
 
+export async function preflightRuntimeSnapshotWrite(params: {
+  nextSourceConfig: OpenClawConfig;
+  refreshOptions?: RuntimeConfigSnapshotRefreshOptions;
+  createRefreshError: (detail: string, cause: unknown) => Error;
+  formatRefreshError: (error: unknown) => string;
+}): Promise<unknown> {
+  const refreshHandler = getRuntimeConfigSnapshotRefreshHandler();
+  if (!refreshHandler?.preflight) {
+    return undefined;
+  }
+  try {
+    return await refreshHandler.preflight({
+      sourceConfig: params.nextSourceConfig,
+      ...params.refreshOptions,
+    });
+  } catch (error) {
+    throw params.createRefreshError(params.formatRefreshError(error), error);
+  }
+}
+
 export async function finalizeRuntimeSnapshotWrite(params: {
-  nextSourceConfig: AstroclawConfig;
+  nextSourceConfig: OpenClawConfig;
+  refreshOptions?: RuntimeConfigSnapshotRefreshOptions;
   hadRuntimeSnapshot: boolean;
   hadBothSnapshots: boolean;
-  loadFreshConfig: () => AstroclawConfig;
+  loadFreshConfig: () => OpenClawConfig;
   notifyCommittedWrite: () => void;
   createRefreshError: (detail: string, cause: unknown) => Error;
   formatRefreshError: (error: unknown) => string;
+  preflightResult?: unknown;
 }): Promise<void> {
   const refreshHandler = getRuntimeConfigSnapshotRefreshHandler();
   if (refreshHandler) {
     try {
-      const refreshed = await refreshHandler.refresh({ sourceConfig: params.nextSourceConfig });
+      const refreshed = await refreshHandler.refresh({
+        sourceConfig: params.nextSourceConfig,
+        ...params.refreshOptions,
+        preflightResult: params.preflightResult,
+      });
       if (refreshed) {
         params.notifyCommittedWrite();
         return;
