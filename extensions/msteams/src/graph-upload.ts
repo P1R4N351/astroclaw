@@ -10,6 +10,7 @@
  */
 
 import type { MSTeamsAccessTokenProvider } from "./attachments/types.js";
+import { createMSTeamsHttpError } from "./http-error.js";
 import { buildUserAgent } from "./user-agent.js";
 
 const GRAPH_ROOT = "https://graph.microsoft.com/v1.0";
@@ -36,8 +37,8 @@ export async function uploadToOneDrive(params: {
   const fetchFn = params.fetchFn ?? fetch;
   const token = await params.tokenProvider.getAccessToken(GRAPH_SCOPE);
 
-  // Use "AstroclawShared" folder to organize bot-uploaded files
-  const uploadPath = `/AstroclawShared/${encodeURIComponent(params.filename)}`;
+  // Use "OpenClawShared" folder to organize bot-uploaded files
+  const uploadPath = `/OpenClawShared/${encodeURIComponent(params.filename)}`;
 
   const res = await fetchFn(`${GRAPH_ROOT}/me/drive/root:${uploadPath}:/content`, {
     method: "PUT",
@@ -50,8 +51,7 @@ export async function uploadToOneDrive(params: {
   });
 
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`OneDrive upload failed: ${res.status} ${res.statusText} - ${body}`);
+    throw await createMSTeamsHttpError(res, "OneDrive upload failed");
   }
 
   const data = (await res.json()) as {
@@ -103,8 +103,7 @@ async function createSharingLink(params: {
   });
 
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Create sharing link failed: ${res.status} ${res.statusText} - ${body}`);
+    throw await createMSTeamsHttpError(res, "Create sharing link failed");
   }
 
   const data = (await res.json()) as {
@@ -181,8 +180,8 @@ export async function uploadToSharePoint(params: {
   const fetchFn = params.fetchFn ?? fetch;
   const token = await params.tokenProvider.getAccessToken(GRAPH_SCOPE);
 
-  // Use "AstroclawShared" folder to organize bot-uploaded files
-  const uploadPath = `/AstroclawShared/${encodeURIComponent(params.filename)}`;
+  // Use "OpenClawShared" folder to organize bot-uploaded files
+  const uploadPath = `/OpenClawShared/${encodeURIComponent(params.filename)}`;
 
   const res = await fetchFn(
     `${GRAPH_ROOT}/sites/${params.siteId}/drive/root:${uploadPath}:/content`,
@@ -198,8 +197,7 @@ export async function uploadToSharePoint(params: {
   );
 
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`SharePoint upload failed: ${res.status} ${res.statusText} - ${body}`);
+    throw await createMSTeamsHttpError(res, "SharePoint upload failed");
   }
 
   const data = (await res.json()) as {
@@ -259,8 +257,7 @@ export async function getDriveItemProperties(params: {
   );
 
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Get driveItem properties failed: ${res.status} ${res.statusText} - ${body}`);
+    throw await createMSTeamsHttpError(res, "Get driveItem properties failed");
   }
 
   const data = (await res.json()) as {
@@ -371,8 +368,7 @@ async function getChatMembers(params: {
   });
 
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Get chat members failed: ${res.status} ${res.statusText} - ${body}`);
+    throw await createMSTeamsHttpError(res, "Get chat members failed");
   }
 
   const data = (await res.json()) as {
@@ -436,10 +432,7 @@ async function createSharePointSharingLink(params: {
   );
 
   if (!res.ok) {
-    const respBody = await res.text().catch(() => "");
-    throw new Error(
-      `Create SharePoint sharing link failed: ${res.status} ${res.statusText} - ${respBody}`,
-    );
+    throw await createMSTeamsHttpError(res, "Create SharePoint sharing link failed");
   }
 
   const data = (await res.json()) as {
