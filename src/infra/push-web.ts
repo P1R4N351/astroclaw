@@ -1,3 +1,4 @@
+// Stores and verifies web push subscriptions and delivery payloads.
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
@@ -36,7 +37,7 @@ const WEB_PUSH_STATE_FILENAME = "push/web-push-subscriptions.json";
 const VAPID_KEYS_FILENAME = "push/vapid-keys.json";
 const MAX_ENDPOINT_LENGTH = 2048;
 const MAX_KEY_LENGTH = 512;
-const DEFAULT_VAPID_SUBJECT = "mailto:astroclaw@localhost";
+const DEFAULT_VAPID_SUBJECT = "https://openclaw.ai";
 
 const withLock = createAsyncLock();
 
@@ -139,15 +140,15 @@ export async function resolveVapidKeys(baseDir?: string): Promise<VapidKeyPair> 
 }
 
 function resolveVapidSubjectFromEnv(): string {
-  return process.env.ASTROCLAW_VAPID_SUBJECT || DEFAULT_VAPID_SUBJECT;
+  return process.env.OPENCLAW_VAPID_SUBJECT || DEFAULT_VAPID_SUBJECT;
 }
 
 function resolveVapidPublicKeyFromEnv(): string | undefined {
-  return process.env.ASTROCLAW_VAPID_PUBLIC_KEY || undefined;
+  return process.env.OPENCLAW_VAPID_PUBLIC_KEY || undefined;
 }
 
 function resolveVapidPrivateKeyFromEnv(): string | undefined {
-  return process.env.ASTROCLAW_VAPID_PRIVATE_KEY || undefined;
+  return process.env.OPENCLAW_VAPID_PRIVATE_KEY || undefined;
 }
 
 // --- Subscription CRUD ---
