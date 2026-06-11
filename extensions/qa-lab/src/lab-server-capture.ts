@@ -1,5 +1,6 @@
+// Qa Lab plugin module implements lab server capture behavior.
 import net from "node:net";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 
 const CAPTURE_QUERY_PRESETS = new Set([
   "double-sends",
@@ -21,7 +22,7 @@ export function isCaptureQueryPreset(
   value: string,
 ): value is Parameters<
   ReturnType<
-    typeof import("astroclaw/plugin-sdk/proxy-capture").getDebugProxyCaptureStore
+    typeof import("openclaw/plugin-sdk/proxy-capture").getDebugProxyCaptureStore
   >["queryPreset"]
 >[0] {
   return CAPTURE_QUERY_PRESETS.has(value);
