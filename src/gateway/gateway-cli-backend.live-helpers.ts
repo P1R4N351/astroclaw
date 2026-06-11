@@ -1,8 +1,14 @@
+// CLI backend live helpers prepare workspace/bootstrap fixtures and gateway
+// clients for live CLI backend model/runtime tests.
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveCliBackendLiveTest } from "../agents/cli-backends.js";
-import { migrateLegacyRuntimeModelRef } from "../agents/model-runtime-aliases.js";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import type { EventFrame } from "../../packages/gateway-protocol/src/index.js";
+import {
+  listCliRuntimeModelBackendBindings,
+  resolveCliBackendLiveTest,
+} from "../agents/cli-backends.js";
 import { parseModelRef } from "../agents/model-selection.js";
 import {
   loadOrCreateDeviceIdentity,
@@ -15,12 +21,10 @@ import {
   requestDevicePairing,
 } from "../infra/device-pairing.js";
 import { isTruthyEnvValue } from "../infra/env.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 import { getFreePortBlockWithPermissionFallback } from "../test-utils/ports.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { startGatewayClientWhenEventLoopReady } from "./client-start-readiness.js";
 import { GatewayClient, type GatewayClientOptions } from "./client.js";
-import type { EventFrame } from "./protocol/index.js";
 
 // Aggregate docker live runs can contend on startup enough that the gateway
 // websocket handshake needs a wider budget than the single-provider reruns.
@@ -60,6 +64,28 @@ export type CliBackendLiveEnvSnapshot = {
   anthropicApiKeyOld?: string;
 };
 
+export const CLI_BACKEND_LIVE_PROVIDER_SKIP_ENV = "OPENCLAW_LIVE_CLI_BACKEND_ALLOW_PROVIDER_SKIP";
+export const CLI_BACKEND_LIVE_ADVISORY_ENV = "OPENCLAW_LIVE_CLI_BACKEND_ADVISORY";
+
+export type CliBackendLiveProviderSkipDecision = {
+  action: "fail" | "skip";
+  message: string;
+};
+
+function normalizeCliRuntimeModelTarget(raw: string | undefined): string | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  const parsed = parseModelRef(raw, "");
+  if (!parsed) {
+    return raw;
+  }
+  const binding = listCliRuntimeModelBackendBindings({ includeSetupRegistry: true }).find(
+    (entry) => entry.runtime === parsed.provider,
+  );
+  return binding ? `${binding.provider}/${parsed.model}` : raw;
+}
+
 export function resolveCliBackendLiveModelSelection(params: {
   rawModel: string;
   defaultProvider: string;
@@ -68,25 +94,25 @@ export function resolveCliBackendLiveModelSelection(params: {
   const parsed = parseModelRef(params.rawModel, params.defaultProvider);
   if (!parsed) {
     throw new Error(
-      `ASTROCLAW_LIVE_CLI_BACKEND_MODEL must resolve to a CLI backend model. Got: ${params.rawModel}`,
+      `OPENCLAW_LIVE_CLI_BACKEND_MODEL must resolve to a CLI backend model. Got: ${params.rawModel}`,
     );
   }
 
-  const migrated = migrateLegacyRuntimeModelRef(params.rawModel);
-  if (migrated?.legacyProvider === "codex-cli") {
+  if (parsed.provider === "codex-cli") {
     throw new Error(
-      "ASTROCLAW_LIVE_CLI_BACKEND_MODEL=codex-cli/... is no longer supported. Use a supported CLI backend such as claude-cli or google-gemini-cli.",
+      "OPENCLAW_LIVE_CLI_BACKEND_MODEL=codex-cli/... is no longer supported. Use a supported CLI backend such as claude-cli or google-gemini-cli.",
     );
   }
-  if (migrated?.cli) {
+  const cliBinding = listCliRuntimeModelBackendBindings({ includeSetupRegistry: true }).find(
+    (binding) => binding.runtime === parsed.provider,
+  );
+  if (cliBinding) {
     return {
-      providerId: migrated.runtime,
-      cliModelKey: `${migrated.runtime}/${migrated.model}`,
-      configModelKey: migrated.ref,
-      configModelSwitchTarget: params.modelSwitchTarget
-        ? (migrateLegacyRuntimeModelRef(params.modelSwitchTarget)?.ref ?? params.modelSwitchTarget)
-        : undefined,
-      agentRuntime: { id: migrated.runtime },
+      providerId: cliBinding.runtime,
+      cliModelKey: `${cliBinding.runtime}/${parsed.model}`,
+      configModelKey: `${cliBinding.provider}/${parsed.model}`,
+      configModelSwitchTarget: normalizeCliRuntimeModelTarget(params.modelSwitchTarget),
+      agentRuntime: { id: cliBinding.runtime },
     };
   }
 
@@ -96,7 +122,7 @@ export function resolveCliBackendLiveModelSelection(params: {
     cliModelKey: modelKey,
     configModelKey: modelKey,
     configModelSwitchTarget: params.modelSwitchTarget,
-    agentRuntime: { id: "pi" },
+    agentRuntime: { id: "openclaw" },
   };
 }
 
@@ -120,11 +146,11 @@ export function parseImageMode(raw?: string): "list" | "repeat" | undefined {
   if (trimmed === "list" || trimmed === "repeat") {
     return trimmed;
   }
-  throw new Error("ASTROCLAW_LIVE_CLI_BACKEND_IMAGE_MODE must be 'list' or 'repeat'.");
+  throw new Error("OPENCLAW_LIVE_CLI_BACKEND_IMAGE_MODE must be 'list' or 'repeat'.");
 }
 
 export function shouldRunCliImageProbe(providerId: string): boolean {
-  const raw = process.env.ASTROCLAW_LIVE_CLI_BACKEND_IMAGE_PROBE?.trim();
+  const raw = process.env.OPENCLAW_LIVE_CLI_BACKEND_IMAGE_PROBE?.trim();
   if (raw) {
     return isTruthyEnvValue(raw);
   }
@@ -132,7 +158,7 @@ export function shouldRunCliImageProbe(providerId: string): boolean {
 }
 
 export function shouldRunCliMcpProbe(providerId: string): boolean {
-  const raw = process.env.ASTROCLAW_LIVE_CLI_BACKEND_MCP_PROBE?.trim();
+  const raw = process.env.OPENCLAW_LIVE_CLI_BACKEND_MCP_PROBE?.trim();
   if (raw) {
     return isTruthyEnvValue(raw);
   }
@@ -146,18 +172,18 @@ export function resolveCliBackendLiveArgs(params: {
 }): { args: string[]; resumeArgs?: string[] } {
   const args =
     parseJsonStringArray(
-      "ASTROCLAW_LIVE_CLI_BACKEND_ARGS",
-      process.env.ASTROCLAW_LIVE_CLI_BACKEND_ARGS,
+      "OPENCLAW_LIVE_CLI_BACKEND_ARGS",
+      process.env.OPENCLAW_LIVE_CLI_BACKEND_ARGS,
     ) ?? params.defaultArgs;
   if (!args || args.length === 0) {
     throw new Error(
-      `ASTROCLAW_LIVE_CLI_BACKEND_ARGS is required for provider "${params.providerId}".`,
+      `OPENCLAW_LIVE_CLI_BACKEND_ARGS is required for provider "${params.providerId}".`,
     );
   }
   const resumeArgs =
     parseJsonStringArray(
-      "ASTROCLAW_LIVE_CLI_BACKEND_RESUME_ARGS",
-      process.env.ASTROCLAW_LIVE_CLI_BACKEND_RESUME_ARGS,
+      "OPENCLAW_LIVE_CLI_BACKEND_RESUME_ARGS",
+      process.env.OPENCLAW_LIVE_CLI_BACKEND_RESUME_ARGS,
     ) ?? params.defaultResumeArgs;
   return { args, resumeArgs };
 }
@@ -178,11 +204,59 @@ export function resolveCliModelSwitchProbeTarget(
 }
 
 export function shouldRunCliModelSwitchProbe(providerId: string, modelRef: string): boolean {
-  const raw = process.env.ASTROCLAW_LIVE_CLI_BACKEND_MODEL_SWITCH_PROBE?.trim();
+  const raw = process.env.OPENCLAW_LIVE_CLI_BACKEND_MODEL_SWITCH_PROBE?.trim();
   if (raw) {
     return isTruthyEnvValue(raw);
   }
   return typeof resolveCliModelSwitchProbeTarget(providerId, modelRef) === "string";
+}
+
+export function shouldAllowCliBackendLiveProviderSkip(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return (
+    isTruthyEnvValue(env[CLI_BACKEND_LIVE_PROVIDER_SKIP_ENV]) &&
+    isTruthyEnvValue(env[CLI_BACKEND_LIVE_ADVISORY_ENV])
+  );
+}
+
+export function resolveCliBackendLiveProviderSkipDecision(params: {
+  allowProviderSkip: boolean;
+  label: string;
+  providerId: string;
+  reasonLabel: string;
+}): CliBackendLiveProviderSkipDecision {
+  const message = `${params.label} for provider "${params.providerId}" was blocked by ${params.reasonLabel}.`;
+  if (params.allowProviderSkip) {
+    return { action: "skip", message };
+  }
+  return {
+    action: "fail",
+    message:
+      `${message} Set ${CLI_BACKEND_LIVE_ADVISORY_ENV}=1 and ` +
+      `${CLI_BACKEND_LIVE_PROVIDER_SKIP_ENV}=1 only for advisory live probes.`,
+  };
+}
+
+export function isCliBackendLiveTimeoutPayload(payload: unknown): boolean {
+  return (
+    typeof payload === "object" &&
+    payload !== null &&
+    (payload as { status?: unknown }).status === "timeout"
+  );
+}
+
+export function shouldRetryCliBackendLiveTimeout(params: {
+  attempt: number;
+  maxAttempts: number;
+  payload: unknown;
+  providerId: string;
+}): boolean {
+  return (
+    params.providerId === "codex-cli" &&
+    params.attempt < params.maxAttempts &&
+    isCliBackendLiveTimeoutPayload(params.payload)
+  );
 }
 
 export function matchesCliBackendReply(text: string, expected: string): boolean {
@@ -238,7 +312,9 @@ export async function createBootstrapWorkspace(
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 export function shouldRetryCliCronMcpProbeReply(text: string): boolean {
@@ -298,6 +374,8 @@ export async function connectTestGatewayClient(params: {
   maxAttemptTimeoutMs?: number;
   clientDisplayName?: string | null;
   requestTimeoutMs?: number;
+  tickWatchTimeoutMs?: number;
+  waitForEventLoopReady?: boolean;
   onEvent?: (evt: EventFrame) => void;
   onRetry?: (attempt: number, error: Error) => void;
 }): Promise<GatewayClient> {
@@ -338,11 +416,12 @@ async function connectClientOnce(params: {
   deviceIdentity?: DeviceIdentity;
   clientDisplayName?: string | null;
   requestTimeoutMs?: number;
+  tickWatchTimeoutMs?: number;
+  waitForEventLoopReady?: boolean;
   onEvent?: (evt: EventFrame) => void;
 }): Promise<GatewayClient> {
   return await new Promise<GatewayClient>((resolve, reject) => {
     let done = false;
-    let client: GatewayClient | undefined;
     const abortStart = new AbortController();
     const finish = (result: { client?: GatewayClient; error?: Error }) => {
       if (done) {
@@ -383,24 +462,34 @@ async function connectClientOnce(params: {
     if (params.requestTimeoutMs !== undefined) {
       clientOptions.requestTimeoutMs = params.requestTimeoutMs;
     }
+    if (params.tickWatchTimeoutMs !== undefined) {
+      clientOptions.tickWatchTimeoutMs = params.tickWatchTimeoutMs;
+    }
 
-    client = new GatewayClient(clientOptions);
+    const client: GatewayClient | undefined = new GatewayClient(clientOptions);
 
     const connectTimeout = setTimeout(
       () => finish({ error: new Error("gateway connect timeout") }),
       params.timeoutMs,
     );
     connectTimeout.unref();
-    void startGatewayClientWhenEventLoopReady(client, {
-      timeoutMs: params.timeoutMs,
-      signal: abortStart.signal,
-    }).then(
+    const startPromise =
+      params.waitForEventLoopReady === false
+        ? Promise.resolve().then(() => {
+            client.start();
+            return { ready: true, aborted: false };
+          })
+        : startGatewayClientWhenEventLoopReady(client, {
+            timeoutMs: params.timeoutMs,
+            signal: abortStart.signal,
+          });
+    void startPromise.then(
       (readiness) => {
         if (!readiness.ready && !readiness.aborted) {
           finish({ error: new Error("gateway event loop readiness timeout") });
         }
       },
-      (error) => {
+      (error: unknown) => {
         finish({ error: error instanceof Error ? error : new Error(String(error)) });
       },
     );
@@ -420,30 +509,30 @@ function isRetryableGatewayConnectError(error: Error): boolean {
 
 export function snapshotCliBackendLiveEnv(): CliBackendLiveEnvSnapshot {
   return {
-    configPath: process.env.ASTROCLAW_CONFIG_PATH,
-    stateDir: process.env.ASTROCLAW_STATE_DIR,
-    token: process.env.ASTROCLAW_GATEWAY_TOKEN,
-    skipChannels: process.env.ASTROCLAW_SKIP_CHANNELS,
-    skipProviders: process.env.ASTROCLAW_SKIP_PROVIDERS,
-    skipGmail: process.env.ASTROCLAW_SKIP_GMAIL_WATCHER,
-    skipCron: process.env.ASTROCLAW_SKIP_CRON,
-    skipCanvas: process.env.ASTROCLAW_SKIP_CANVAS_HOST,
-    skipBrowserControl: process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER,
-    bundledPluginsDir: process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR,
-    minimalGateway: process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY,
+    configPath: process.env.OPENCLAW_CONFIG_PATH,
+    stateDir: process.env.OPENCLAW_STATE_DIR,
+    token: process.env.OPENCLAW_GATEWAY_TOKEN,
+    skipChannels: process.env.OPENCLAW_SKIP_CHANNELS,
+    skipProviders: process.env.OPENCLAW_SKIP_PROVIDERS,
+    skipGmail: process.env.OPENCLAW_SKIP_GMAIL_WATCHER,
+    skipCron: process.env.OPENCLAW_SKIP_CRON,
+    skipCanvas: process.env.OPENCLAW_SKIP_CANVAS_HOST,
+    skipBrowserControl: process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER,
+    bundledPluginsDir: process.env.OPENCLAW_BUNDLED_PLUGINS_DIR,
+    minimalGateway: process.env.OPENCLAW_TEST_MINIMAL_GATEWAY,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     anthropicApiKeyOld: process.env.ANTHROPIC_API_KEY_OLD,
   };
 }
 
 export function applyCliBackendLiveEnv(preservedEnv: ReadonlySet<string>): void {
-  process.env.ASTROCLAW_SKIP_CHANNELS = "1";
-  process.env.ASTROCLAW_SKIP_PROVIDERS = "1";
-  process.env.ASTROCLAW_SKIP_GMAIL_WATCHER = "1";
-  process.env.ASTROCLAW_SKIP_CRON = "1";
-  process.env.ASTROCLAW_SKIP_CANVAS_HOST = "1";
-  process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
-  process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = "1";
+  process.env.OPENCLAW_SKIP_CHANNELS = "1";
+  process.env.OPENCLAW_SKIP_PROVIDERS = "1";
+  process.env.OPENCLAW_SKIP_GMAIL_WATCHER = "1";
+  process.env.OPENCLAW_SKIP_CRON = "1";
+  process.env.OPENCLAW_SKIP_CANVAS_HOST = "1";
+  process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
+  process.env.OPENCLAW_TEST_MINIMAL_GATEWAY = "1";
   if (!preservedEnv.has("ANTHROPIC_API_KEY")) {
     delete process.env.ANTHROPIC_API_KEY;
   }
@@ -453,17 +542,17 @@ export function applyCliBackendLiveEnv(preservedEnv: ReadonlySet<string>): void 
 }
 
 export function restoreCliBackendLiveEnv(snapshot: CliBackendLiveEnvSnapshot): void {
-  restoreEnvVar("ASTROCLAW_CONFIG_PATH", snapshot.configPath);
-  restoreEnvVar("ASTROCLAW_STATE_DIR", snapshot.stateDir);
-  restoreEnvVar("ASTROCLAW_GATEWAY_TOKEN", snapshot.token);
-  restoreEnvVar("ASTROCLAW_SKIP_CHANNELS", snapshot.skipChannels);
-  restoreEnvVar("ASTROCLAW_SKIP_PROVIDERS", snapshot.skipProviders);
-  restoreEnvVar("ASTROCLAW_SKIP_GMAIL_WATCHER", snapshot.skipGmail);
-  restoreEnvVar("ASTROCLAW_SKIP_CRON", snapshot.skipCron);
-  restoreEnvVar("ASTROCLAW_SKIP_CANVAS_HOST", snapshot.skipCanvas);
-  restoreEnvVar("ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER", snapshot.skipBrowserControl);
-  restoreEnvVar("ASTROCLAW_BUNDLED_PLUGINS_DIR", snapshot.bundledPluginsDir);
-  restoreEnvVar("ASTROCLAW_TEST_MINIMAL_GATEWAY", snapshot.minimalGateway);
+  restoreEnvVar("OPENCLAW_CONFIG_PATH", snapshot.configPath);
+  restoreEnvVar("OPENCLAW_STATE_DIR", snapshot.stateDir);
+  restoreEnvVar("OPENCLAW_GATEWAY_TOKEN", snapshot.token);
+  restoreEnvVar("OPENCLAW_SKIP_CHANNELS", snapshot.skipChannels);
+  restoreEnvVar("OPENCLAW_SKIP_PROVIDERS", snapshot.skipProviders);
+  restoreEnvVar("OPENCLAW_SKIP_GMAIL_WATCHER", snapshot.skipGmail);
+  restoreEnvVar("OPENCLAW_SKIP_CRON", snapshot.skipCron);
+  restoreEnvVar("OPENCLAW_SKIP_CANVAS_HOST", snapshot.skipCanvas);
+  restoreEnvVar("OPENCLAW_SKIP_BROWSER_CONTROL_SERVER", snapshot.skipBrowserControl);
+  restoreEnvVar("OPENCLAW_BUNDLED_PLUGINS_DIR", snapshot.bundledPluginsDir);
+  restoreEnvVar("OPENCLAW_TEST_MINIMAL_GATEWAY", snapshot.minimalGateway);
   restoreEnvVar("ANTHROPIC_API_KEY", snapshot.anthropicApiKey);
   restoreEnvVar("ANTHROPIC_API_KEY_OLD", snapshot.anthropicApiKeyOld);
 }
