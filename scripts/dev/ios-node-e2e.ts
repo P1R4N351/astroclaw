@@ -1,3 +1,9 @@
+// Ios Node E2E script supports OpenClaw repository automation.
+import { randomUUID } from "node:crypto";
+import {
+  MIN_CLIENT_PROTOCOL_VERSION,
+  PROTOCOL_VERSION,
+} from "../../packages/gateway-protocol/src/version.js";
 import { createArgReader, createGatewayWsClient, resolveGatewayUrl } from "./gateway-ws-client.ts";
 
 function writeStdoutLine(message = ""): void {
@@ -29,16 +35,16 @@ type NodeListNode = NonNullable<NodeListPayload["nodes"]>[number];
 
 const { get: getArg, has: hasFlag } = createArgReader();
 
-const urlRaw = getArg("--url") ?? process.env.ASTROCLAW_GATEWAY_URL;
-const token = getArg("--token") ?? process.env.ASTROCLAW_GATEWAY_TOKEN;
+const urlRaw = getArg("--url") ?? process.env.OPENCLAW_GATEWAY_URL;
+const token = getArg("--token") ?? process.env.OPENCLAW_GATEWAY_TOKEN;
 const nodeHint = getArg("--node");
-const dangerous = hasFlag("--dangerous") || process.env.ASTROCLAW_RUN_DANGEROUS === "1";
+const dangerous = hasFlag("--dangerous") || process.env.OPENCLAW_RUN_DANGEROUS === "1";
 const jsonOut = hasFlag("--json");
 
 if (!urlRaw || !token) {
   writeStderrLine(
     "Usage: bun scripts/dev/ios-node-e2e.ts --url <wss://host[:port]> --token <gateway.auth.token> [--node <id|name-substring>] [--dangerous] [--json]\n" +
-      "Or set env: ASTROCLAW_GATEWAY_URL / ASTROCLAW_GATEWAY_TOKEN",
+      "Or set env: OPENCLAW_GATEWAY_URL / OPENCLAW_GATEWAY_TOKEN",
   );
   process.exit(1);
 }
@@ -73,6 +79,52 @@ function formatErr(err: unknown): string {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function payloadShapeError(command: string, payload: unknown): string | null {
+  if (payload == null) {
+    return `${command} returned no payload`;
+  }
+  if (Array.isArray(payload)) {
+    return `${command} returned an array payload`;
+  }
+  if (!isRecord(payload)) {
+    return `${command} returned a ${typeof payload} payload`;
+  }
+  if (Object.keys(payload).length === 0) {
+    return `${command} returned an empty object payload`;
+  }
+  if (command === "device.info") {
+    const hasSystemName =
+      typeof payload.systemName === "string" && payload.systemName.trim().length > 0;
+    const hasSystemVersion =
+      typeof payload.systemVersion === "string" && payload.systemVersion.trim().length > 0;
+    if (!hasSystemName || !hasSystemVersion) {
+      return "device.info payload missing systemName/systemVersion";
+    }
+  }
+  return null;
+}
+
+function commandPayloadFromInvokePayload(payload: unknown): unknown {
+  if (!isRecord(payload)) {
+    return payload;
+  }
+  if (typeof payload.payloadJSON === "string") {
+    try {
+      return JSON.parse(payload.payloadJSON);
+    } catch {
+      return undefined;
+    }
+  }
+  if ("payload" in payload && ("ok" in payload || "nodeId" in payload || "command" in payload)) {
+    return commandPayloadFromInvokePayload(payload.payload);
+  }
+  return payload;
+}
+
 function pickIosNode(list: NodeListPayload, hint?: string): NodeListNode | null {
   const nodes = (list.nodes ?? []).filter((n) => n && n.connected);
   const ios = nodes.filter((n) => (n.platform ?? "").toLowerCase().includes("ios"));
@@ -97,15 +149,15 @@ async function main() {
   await waitOpen();
 
   const connectRes = await request("connect", {
-    minProtocol: 3,
-    maxProtocol: 3,
+    minProtocol: MIN_CLIENT_PROTOCOL_VERSION,
+    maxProtocol: PROTOCOL_VERSION,
     client: {
       id: "cli",
-      displayName: "astroclaw ios node e2e",
+      displayName: "openclaw ios node e2e",
       version: "dev",
       platform: "dev",
       mode: "cli",
-      instanceId: "astroclaw-dev-ios-node-e2e",
+      instanceId: "openclaw-dev-ios-node-e2e",
     },
     locale: "en-US",
     userAgent: "ios-node-e2e",
@@ -141,7 +193,9 @@ async function main() {
     const waitSeconds = Number.parseInt(getArg("--wait-seconds") ?? "25", 10);
     const deadline = Date.now() + Math.max(1, waitSeconds) * 1000;
     while (!node && Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => {
+        setTimeout(r, 1000);
+      });
       const res = await request("node.list").catch(() => null);
       if (!res?.ok) {
         continue;
@@ -161,7 +215,7 @@ async function main() {
     {
       id: "system.notify",
       command: "system.notify",
-      params: { title: "Astroclaw E2E", body: `ios-node-e2e @ ${isoNow()}`, delivery: "system" },
+      params: { title: "OpenClaw E2E", body: `ios-node-e2e @ ${isoNow()}`, delivery: "system" },
     },
     {
       id: "contacts.search",
@@ -224,7 +278,7 @@ async function main() {
         idempotencyKey: randomUUID(),
       },
       (t.timeoutMs ?? 12_000) + 2_000,
-    ).catch((err) => {
+    ).catch((err: unknown) => {
       results.push({ id: t.id, ok: false, error: formatErr(err) });
       return null;
     });
@@ -235,6 +289,13 @@ async function main() {
 
     if (!invokeRes.ok) {
       results.push({ id: t.id, ok: false, error: invokeRes.error });
+      continue;
+    }
+
+    const commandPayload = commandPayloadFromInvokePayload(invokeRes.payload);
+    const payloadError = payloadShapeError(t.command, commandPayload);
+    if (payloadError) {
+      results.push({ id: t.id, ok: false, error: payloadError, payload: invokeRes.payload });
       continue;
     }
 
