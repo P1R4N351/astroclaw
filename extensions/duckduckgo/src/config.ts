@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Duckduckgo helper module supports config behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export const DEFAULT_DDG_SAFE_SEARCH = "moderate";
 
@@ -13,7 +14,7 @@ type DdgPluginConfig = {
 };
 
 function resolveDdgWebSearchConfig(
-  config?: AstroclawConfig,
+  config?: OpenClawConfig,
 ): DdgPluginConfig["webSearch"] | undefined {
   const pluginConfig = config?.plugins?.entries?.duckduckgo?.config as DdgPluginConfig | undefined;
   const webSearch = pluginConfig?.webSearch;
@@ -23,7 +24,7 @@ function resolveDdgWebSearchConfig(
   return undefined;
 }
 
-export function resolveDdgRegion(config?: AstroclawConfig): string | undefined {
+export function resolveDdgRegion(config?: OpenClawConfig): string | undefined {
   const region = resolveDdgWebSearchConfig(config)?.region;
   if (typeof region !== "string") {
     return undefined;
@@ -32,7 +33,7 @@ export function resolveDdgRegion(config?: AstroclawConfig): string | undefined {
   return trimmed || undefined;
 }
 
-export function resolveDdgSafeSearch(config?: AstroclawConfig): DdgSafeSearch {
+export function resolveDdgSafeSearch(config?: OpenClawConfig): DdgSafeSearch {
   const safeSearch = resolveDdgWebSearchConfig(config)?.safeSearch;
   const normalized = normalizeLowercaseStringOrEmpty(safeSearch);
   if (normalized === "strict" || normalized === "off") {
