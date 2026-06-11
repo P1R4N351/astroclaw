@@ -1,5 +1,6 @@
-import { formatDocsLink } from "../../terminal/links.js";
-import { theme } from "../../terminal/theme.js";
+// Friendly parse-error formatter for Commander errors and root CLI recovery hints.
+import { formatDocsLink } from "../../../packages/terminal-core/src/links.js";
+import { theme } from "../../../packages/terminal-core/src/theme.js";
 import { getCommandPathWithRootOptions } from "../argv.js";
 import { formatCliCommand } from "../command-format.js";
 
@@ -20,13 +21,13 @@ function quote(value: string): string {
 
 function resolveHelpCommand(argv: string[] | undefined, options?: { root?: boolean }): string {
   if (options?.root || !argv) {
-    return formatCliCommand("astroclaw --help");
+    return formatCliCommand("openclaw --help");
   }
   const commandPath = getCommandPathWithRootOptions(argv, 2);
   if (commandPath.length === 0) {
-    return formatCliCommand("astroclaw --help");
+    return formatCliCommand("openclaw --help");
   }
-  return formatCliCommand(`astroclaw ${commandPath.join(" ")} --help`);
+  return formatCliCommand(`openclaw ${commandPath.join(" ")} --help`);
 }
 
 function lines(...items: Array<string | undefined>): string {
@@ -38,9 +39,10 @@ function formatHelpHint(argv: string[] | undefined, options?: { root?: boolean }
 }
 
 function formatDocsHint(): string {
-  return `${theme.muted("Docs:")} ${formatDocsLink("/cli", "docs.astroclaw.ai/cli")}`;
+  return `${theme.muted("Docs:")} ${formatDocsLink("/cli", "docs.openclaw.ai/cli")}`;
 }
 
+/** Convert Commander parse errors into OpenClaw-specific help and docs guidance. */
 export function formatCliParseErrorOutput(
   raw: string,
   options: FormatCliParseErrorOptions = {},
@@ -50,9 +52,9 @@ export function formatCliParseErrorOutput(
   if (unknownCommand) {
     const command = unknownCommand[1] ?? "";
     return lines(
-      theme.error(`Astroclaw does not know the command ${quote(command)}.`),
+      theme.error(`OpenClaw does not know the command ${quote(command)}.`),
       formatHelpHint(options.argv, { root: true }),
-      `${theme.muted("Plugin command?")} ${theme.command(formatCliCommand("astroclaw plugins list"))}`,
+      `${theme.muted("Plugin command?")} ${theme.command(formatCliCommand("openclaw plugins list"))}`,
       formatDocsHint(),
     );
   }
@@ -61,7 +63,7 @@ export function formatCliParseErrorOutput(
   if (unknownOption) {
     const option = unknownOption[1] ?? "";
     return lines(
-      theme.error(`Astroclaw does not recognize option ${quote(option)}.`),
+      theme.error(`OpenClaw does not recognize option ${quote(option)}.`),
       formatHelpHint(options.argv),
     );
   }
@@ -89,7 +91,7 @@ export function formatCliParseErrorOutput(
   }
 
   return lines(
-    theme.error(`Astroclaw could not parse this command: ${message}`),
+    theme.error(`OpenClaw could not parse this command: ${message}`),
     formatHelpHint(options.argv),
   );
 }
