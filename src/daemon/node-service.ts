@@ -1,3 +1,4 @@
+/** Adapts the generic gateway service manager for OpenClaw node-host services. */
 import {
   NODE_SERVICE_KIND,
   NODE_SERVICE_MARKER,
@@ -9,18 +10,22 @@ import {
 import type { GatewayService, GatewayServiceInstallArgs } from "./service.js";
 import { resolveGatewayService } from "./service.js";
 
+// Wraps the generic gateway service with node-specific service identifiers and env.
 function withNodeServiceEnv(
   env: Record<string, string | undefined>,
 ): Record<string, string | undefined> {
+  // Node services reuse gateway platform installers; env overrides select the
+  // node-specific labels, logs, task script, and service marker.
   return {
     ...env,
-    ASTROCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
-    ASTROCLAW_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
-    ASTROCLAW_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
-    ASTROCLAW_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
-    ASTROCLAW_LOG_PREFIX: "node",
-    ASTROCLAW_SERVICE_MARKER: NODE_SERVICE_MARKER,
-    ASTROCLAW_SERVICE_KIND: NODE_SERVICE_KIND,
+    OPENCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
+    OPENCLAW_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
+    OPENCLAW_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
+    OPENCLAW_WINDOWS_TASK_HIDDEN_LAUNCHER: "1",
+    OPENCLAW_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
+    OPENCLAW_LOG_PREFIX: "node",
+    OPENCLAW_SERVICE_MARKER: NODE_SERVICE_MARKER,
+    OPENCLAW_SERVICE_KIND: NODE_SERVICE_KIND,
   };
 }
 
@@ -30,17 +35,19 @@ function withNodeInstallEnv(args: GatewayServiceInstallArgs): GatewayServiceInst
     env: withNodeServiceEnv(args.env),
     environment: {
       ...args.environment,
-      ASTROCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
-      ASTROCLAW_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
-      ASTROCLAW_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
-      ASTROCLAW_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
-      ASTROCLAW_LOG_PREFIX: "node",
-      ASTROCLAW_SERVICE_MARKER: NODE_SERVICE_MARKER,
-      ASTROCLAW_SERVICE_KIND: NODE_SERVICE_KIND,
+      OPENCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
+      OPENCLAW_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
+      OPENCLAW_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
+      OPENCLAW_WINDOWS_TASK_HIDDEN_LAUNCHER: "1",
+      OPENCLAW_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
+      OPENCLAW_LOG_PREFIX: "node",
+      OPENCLAW_SERVICE_MARKER: NODE_SERVICE_MARKER,
+      OPENCLAW_SERVICE_KIND: NODE_SERVICE_KIND,
     },
   };
 }
 
+/** Returns a service controller bound to node-host labels across all platforms. */
 export function resolveNodeService(): GatewayService {
   const base = resolveGatewayService();
   return {
