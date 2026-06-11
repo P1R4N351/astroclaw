@@ -1,15 +1,49 @@
-import { createUnionActionGate } from "astroclaw/plugin-sdk/channel-actions";
+// Discord plugin module implements channel actions behavior.
+import { createUnionActionGate } from "openclaw/plugin-sdk/channel-actions";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionName,
   ChannelMessageToolDiscovery,
-} from "astroclaw/plugin-sdk/channel-contract";
-import type { DiscordActionConfig, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { extractToolSend } from "astroclaw/plugin-sdk/tool-send";
+} from "openclaw/plugin-sdk/channel-contract";
+import type { DiscordActionConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { extractToolSend } from "openclaw/plugin-sdk/tool-send";
 import { inspectDiscordAccount } from "./account-inspect.js";
 import { createDiscordActionGate, listDiscordAccountIds } from "./accounts.js";
 import { readDiscordComponentSpec } from "./components.js";
+import { withDiscordInboundEventDeliveryMetadata } from "./inbound-event-delivery.js";
+
+const trustedRequesterGuildAdminActions = new Set<ChannelMessageActionName>([
+  "emoji-upload",
+  "sticker-upload",
+  "role-add",
+  "role-remove",
+  "channel-create",
+  "channel-edit",
+  "channel-delete",
+  "channel-move",
+  "category-create",
+  "category-edit",
+  "category-delete",
+  "event-create",
+  "timeout",
+  "kick",
+  "ban",
+]);
+
+const localExecutionActions = new Set<ChannelMessageActionName>([
+  "send",
+  "upload-file",
+  "thread-reply",
+  "sticker",
+  "emoji-upload",
+  "sticker-upload",
+  "event-create",
+]);
+
+function resolveDiscordActionExecutionMode({ action }: { action: ChannelMessageActionName }) {
+  return localExecutionActions.has(action) ? "local" : "gateway";
+}
 
 let discordChannelActionsRuntimePromise:
   | Promise<typeof import("./channel-actions.runtime.js")>
@@ -20,13 +54,13 @@ async function loadDiscordChannelActionsRuntime() {
   return await discordChannelActionsRuntimePromise;
 }
 
-function listDiscoverableDiscordAccounts(cfg: AstroclawConfig) {
+function listDiscoverableDiscordAccounts(cfg: OpenClawConfig) {
   return listDiscordAccountIds(cfg)
     .map((accountId) => inspectDiscordAccount({ cfg, accountId }))
     .filter((account) => account.enabled && account.configured);
 }
 
-function resolveDiscordActionDiscovery(cfg: AstroclawConfig) {
+function resolveDiscordActionDiscovery(cfg: OpenClawConfig) {
   const accounts = listDiscoverableDiscordAccounts(cfg);
   if (accounts.length === 0) {
     return null;
@@ -44,7 +78,7 @@ function resolveDiscordActionDiscovery(cfg: AstroclawConfig) {
 }
 
 function resolveScopedDiscordActionDiscovery(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }) {
   if (!params.accountId) {
@@ -162,9 +196,14 @@ function describeDiscordMessageTool({
 }
 
 export const discordMessageActions: ChannelMessageActionAdapter = {
-  resolveExecutionMode: ({ action }) =>
-    action === "read" || action === "search" ? "gateway" : "local",
+  // Credential-only Discord actions run in the gateway when one is available.
+  // Send/file-style actions stay local because core owns their thread, media,
+  // component, and client-local payload semantics.
+  resolveExecutionMode: resolveDiscordActionExecutionMode,
   describeMessageTool: describeDiscordMessageTool,
+  requiresTrustedRequesterSender: ({ action, toolContext }) =>
+    normalizeOptionalString(toolContext?.currentChannelProvider)?.toLowerCase() === "discord" &&
+    trustedRequesterGuildAdminActions.has(action),
   extractToolSend: ({ args }) => {
     const action = normalizeOptionalString(args.action) ?? "";
     if (action === "sendMessage") {
@@ -180,6 +219,10 @@ export const discordMessageActions: ChannelMessageActionAdapter = {
     if (ctx.action !== "send") {
       return null;
     }
+    const payloadWithDeliveryMetadata = withDiscordInboundEventDeliveryMetadata(payload, {
+      sessionKey: ctx.sessionKey,
+      inboundEventKind: ctx.inboundEventKind,
+    });
     const rawComponents = ctx.params.components;
     if (typeof rawComponents === "function") {
       return null;
@@ -195,18 +238,18 @@ export const discordMessageActions: ChannelMessageActionAdapter = {
     }
     const filename = normalizeOptionalString(ctx.params.filename);
     if (!componentSpec && !nativeComponents && !embeds?.length && !filename) {
-      return payload;
+      return payloadWithDeliveryMetadata;
     }
     const discordData =
-      payload.channelData?.discord &&
-      typeof payload.channelData.discord === "object" &&
-      !Array.isArray(payload.channelData.discord)
-        ? (payload.channelData.discord as Record<string, unknown>)
+      payloadWithDeliveryMetadata.channelData?.discord &&
+      typeof payloadWithDeliveryMetadata.channelData.discord === "object" &&
+      !Array.isArray(payloadWithDeliveryMetadata.channelData.discord)
+        ? (payloadWithDeliveryMetadata.channelData.discord as Record<string, unknown>)
         : {};
     return {
-      ...payload,
+      ...payloadWithDeliveryMetadata,
       channelData: {
-        ...payload.channelData,
+        ...payloadWithDeliveryMetadata.channelData,
         discord: {
           ...discordData,
           ...(componentSpec ? { components: componentSpec } : {}),
@@ -227,6 +270,8 @@ export const discordMessageActions: ChannelMessageActionAdapter = {
     mediaAccess,
     mediaLocalRoots,
     mediaReadFile,
+    sessionKey,
+    inboundEventKind,
   }) => {
     return await (
       await loadDiscordChannelActionsRuntime()
@@ -240,6 +285,8 @@ export const discordMessageActions: ChannelMessageActionAdapter = {
       mediaAccess,
       mediaLocalRoots,
       mediaReadFile,
+      ...(sessionKey ? { sessionKey } : {}),
+      ...(inboundEventKind ? { inboundEventKind } : {}),
     });
   },
 };
