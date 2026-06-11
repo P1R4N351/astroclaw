@@ -1,4 +1,5 @@
-import { createPluginRuntimeStore } from "astroclaw/plugin-sdk/runtime-store";
+// Irc plugin module implements runtime behavior.
+import { createPluginRuntimeStore } from "openclaw/plugin-sdk/runtime-store";
 import type { PluginRuntime } from "./runtime-api.js";
 
 const {
