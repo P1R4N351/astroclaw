@@ -1,15 +1,16 @@
+/** Handles /bash and ! shell command chat shortcuts. */
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { getFinishedSession, getSession } from "../../agents/bash-process-registry.js";
 import { createExecTool } from "../../agents/bash-tools.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { isCommandFlagEnabled } from "../../config/commands.flags.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { logVerbose } from "../../globals.js";
 import { formatErrorMessage } from "../../infra/errors.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalString,
-} from "../../shared/string-coerce.js";
 import { clampInt } from "../../utils.js";
 import type { MsgContext } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
@@ -40,7 +41,7 @@ type ActiveBashJob =
 
 let activeJob: ActiveBashJob | null = null;
 
-function resolveForegroundMs(cfg: AstroclawConfig): number {
+function resolveForegroundMs(cfg: OpenClawConfig): number {
   const raw = cfg.commands?.bashForegroundMs;
   if (typeof raw !== "number" || Number.isNaN(raw)) {
     return DEFAULT_FOREGROUND_MS;
@@ -66,7 +67,7 @@ function formatOutputBlock(text: string) {
 
 function parseBashRequest(raw: string): BashRequest | null {
   const trimmed = raw.trimStart();
-  let restSource = "";
+  let restSource;
   if (normalizeLowercaseStringOrEmpty(trimmed).startsWith("/bash")) {
     const match = trimmed.match(/^\/bash(?:\s*:\s*|\s+|$)([\s\S]*)$/i);
     if (!match) {
@@ -104,7 +105,7 @@ function parseBashRequest(raw: string): BashRequest | null {
 
 function resolveRawCommandBody(params: {
   ctx: MsgContext;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId?: string;
   isGroup: boolean;
 }) {
@@ -181,9 +182,10 @@ function buildUsageReply(): ReplyPayload {
   };
 }
 
+/** Parses, authorizes, starts, polls, or stops chat-driven bash commands. */
 export async function handleBashChatCommand(params: {
   ctx: MsgContext;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId?: string;
   sessionKey: string;
   isGroup: boolean;
@@ -197,7 +199,7 @@ export async function handleBashChatCommand(params: {
     return buildDisabledCommandReply({
       label: "bash",
       configKey: "bash",
-      docsUrl: "https://docs.astroclaw.ai/tools/slash-commands#config",
+      docsUrl: "https://docs.openclaw.ai/tools/slash-commands#config",
     });
   }
 
