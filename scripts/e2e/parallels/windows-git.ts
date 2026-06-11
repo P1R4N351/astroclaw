@@ -1,3 +1,4 @@
+// Windows Git script supports OpenClaw repository automation.
 import path from "node:path";
 import type { WindowsGuest } from "./guest-transports.ts";
 import { die, run, say } from "./host-command.ts";
@@ -13,8 +14,8 @@ export async function prepareMinGitZip(tgzDir: string): Promise<string> {
 import urllib.request
 
 preferred_names = [
-    "MinGit-2.53.0.2-arm64.zip",
     "MinGit-2.53.0.2-64-bit.zip",
+    "MinGit-2.53.0.2-arm64.zip",
 ]
 fallback_urls = {
     "MinGit-2.53.0.2-arm64.zip": "https://github.com/git-for-windows/git/releases/download/v2.53.0.windows.2/MinGit-2.53.0.2-arm64.zip",
@@ -25,7 +26,7 @@ try:
     req = urllib.request.Request(
         "https://api.github.com/repos/git-for-windows/git/releases/latest",
         headers={
-            "User-Agent": "astroclaw-parallels-smoke",
+            "User-Agent": "openclaw-parallels-smoke",
             "Accept": "application/vnd.github+json",
         },
     )
@@ -55,9 +56,9 @@ if best is None:
             continue
         if "busybox" in name:
             continue
-        if "-arm64." in name:
+        if "-64-bit." in name:
             rank = 0
-        elif "-64-bit." in name:
+        elif "-arm64." in name:
             rank = 1
         elif "-32-bit." in name:
             rank = 2
@@ -117,7 +118,7 @@ export function ensureGuestGit(input: {
   const minGitName = path.basename(input.minGitZipPath);
   input.guest.powershell(
     `$ErrorActionPreference = 'Stop'
-$depsRoot = Join-Path $env:LOCALAPPDATA 'Astroclaw\\deps'
+$depsRoot = Join-Path $env:LOCALAPPDATA 'OpenClaw\\deps'
 $portableGit = Join-Path $depsRoot 'portable-git'
 $archive = Join-Path $env:TEMP ${psSingleQuote(minGitName)}
 if (Test-Path $portableGit) {
