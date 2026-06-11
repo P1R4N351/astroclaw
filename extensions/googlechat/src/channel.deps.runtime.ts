@@ -1,3 +1,4 @@
+// Googlechat plugin module implements channeleps behavior.
 export {
   buildChannelConfigSchema,
   chunkTextForOutbound,
@@ -11,7 +12,7 @@ export {
   type ChannelMessageActionAdapter,
   type ChannelMessageActionName,
   type ChannelStatusIssue,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "../runtime-api.js";
 export {
   type GoogleChatConfigAccessorAccount,
