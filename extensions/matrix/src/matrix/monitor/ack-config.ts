@@ -1,12 +1,13 @@
-import { resolveAckReaction } from "astroclaw/plugin-sdk/channel-feedback";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Matrix helper module supports ack config behavior.
+import { resolveAckReaction } from "openclaw/plugin-sdk/channel-feedback";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import type { CoreConfig } from "../../types.js";
 import { resolveMatrixAccountConfig } from "../account-config.js";
 
 type MatrixAckReactionScope = "group-mentions" | "group-all" | "direct" | "all" | "none" | "off";
 
 export function resolveMatrixAckReactionConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   accountId?: string | null;
 }): { ackReaction: string; ackReactionScope: MatrixAckReactionScope } {
