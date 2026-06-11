@@ -1,8 +1,10 @@
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+// Mattermost plugin module implements probe behavior.
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import {
   fetchWithSsrFGuard,
   ssrfPolicyFromPrivateNetworkOptIn,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import { normalizeMattermostBaseUrl, readMattermostError, type MattermostUser } from "./client.js";
 import type { BaseProbeResult } from "./runtime-api.js";
 
@@ -24,10 +26,11 @@ export async function probeMattermost(
   }
   const url = `${normalized}/api/v4/users/me`;
   const start = Date.now();
-  const controller = timeoutMs > 0 ? new AbortController() : undefined;
+  const resolvedTimeoutMs = timeoutMs > 0 ? resolveTimerTimeoutMs(timeoutMs, 2500) : 0;
+  const controller = resolvedTimeoutMs > 0 ? new AbortController() : undefined;
   let timer: NodeJS.Timeout | null = null;
   if (controller) {
-    timer = setTimeout(() => controller.abort(), timeoutMs);
+    timer = setTimeout(() => controller.abort(), resolvedTimeoutMs);
   }
   try {
     const { response: res, release } = await fetchWithSsrFGuard({
