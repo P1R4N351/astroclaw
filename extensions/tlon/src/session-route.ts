@@ -1,7 +1,8 @@
+// Tlon plugin module implements session route behavior.
 import {
   buildChannelOutboundSessionRoute,
   type ChannelOutboundSessionRouteParams,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 import { parseTlonTarget } from "./targets.js";
 
 export function resolveTlonOutboundSessionRoute(params: ChannelOutboundSessionRouteParams) {
