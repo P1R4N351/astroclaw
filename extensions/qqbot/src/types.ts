@@ -1,4 +1,5 @@
-import type { SecretInput } from "astroclaw/plugin-sdk/secret-input";
+// Qqbot type declarations define plugin contracts.
+import type { SecretInput } from "openclaw/plugin-sdk/secret-input";
 import type { QQBotDmPolicy, QQBotGroupPolicy } from "./engine/access/index.js";
 
 export type { QQBotDmPolicy, QQBotGroupPolicy };
