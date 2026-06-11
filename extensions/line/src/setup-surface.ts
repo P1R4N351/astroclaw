@@ -1,10 +1,11 @@
+// Line plugin module implements setup surface behavior.
 import {
   createAllowFromSection,
   createStandardChannelSetupStatus,
   mergeAllowFromEntries,
   createSetupTranslator,
-} from "astroclaw/plugin-sdk/setup";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/setup";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveDefaultLineAccountId } from "./accounts.js";
 import {
   isLineConfigured,
