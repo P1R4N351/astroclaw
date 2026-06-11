@@ -1,11 +1,12 @@
+// Discord plugin module implements thread bindings.session adapter behavior.
 import {
   resolveThreadBindingConversationIdFromBindingId,
   type BindingTargetKind,
   type SessionBindingAdapter,
   type SessionBindingRecord,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveDiscordChannelId } from "../target-parsing.js";
 import { resolveChannelIdForBinding } from "./thread-bindings.discord-api.js";
 import { resolveBindingRecordKey } from "./thread-bindings.state.js";
@@ -111,7 +112,7 @@ export function createThreadBindingSessionAdapter(params: {
   accountId: string;
   manager: ThreadBindingManager;
   defaults: ThreadBindingDefaults;
-  resolveCurrentCfg: () => AstroclawConfig;
+  resolveCurrentCfg: () => OpenClawConfig;
   resolveCurrentToken: () => string | undefined;
 }): SessionBindingAdapter {
   const toRecord = (entry: ThreadBindingRecord) => toSessionBindingRecord(entry, params.defaults);
