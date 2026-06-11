@@ -1,4 +1,10 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Interactive remote gateway onboarding.
+ *
+ * It can discover gateways, validate remote WebSocket security, and store
+ * remote token/password auth as plaintext or secret references.
+ */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { SecretInput } from "../config/types.secrets.js";
 import { isSecureWebSocketUrl } from "../gateway/net.js";
 import { discoverGatewayBeacons, type GatewayBonjourBeacon } from "../infra/bonjour-discovery.js";
@@ -6,6 +12,7 @@ import {
   buildGatewayDiscoveryLabel,
   buildGatewayDiscoveryTarget,
 } from "../infra/gateway-discovery-targets.js";
+import { parseStrictNonNegativeInteger } from "../infra/parse-finite-number.js";
 import { resolveWideAreaDiscoveryDomain } from "../infra/widearea-dns.js";
 import { resolveSecretInputModeForEnvSelection } from "../plugins/provider-auth-mode.js";
 import { promptSecretRefForSetup } from "../plugins/provider-auth-ref.js";
@@ -36,7 +43,7 @@ function validateGatewayWebSocketUrl(value: string): string | undefined {
   }
   if (
     !isSecureWebSocketUrl(trimmed, {
-      allowPrivateWs: process.env.ASTROCLAW_ALLOW_INSECURE_PRIVATE_WS === "1",
+      allowPrivateWs: process.env.OPENCLAW_ALLOW_INSECURE_PRIVATE_WS === "1",
     })
   ) {
     return t("wizard.remote.insecureRemoteUrl");
@@ -44,11 +51,12 @@ function validateGatewayWebSocketUrl(value: string): string | undefined {
   return undefined;
 }
 
+/** Prompts for remote gateway connection and auth settings. */
 export async function promptRemoteGatewayConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   prompter: WizardPrompter,
   options?: { secretInputMode?: SecretInputMode },
-): Promise<AstroclawConfig> {
+): Promise<OpenClawConfig> {
   let selectedBeacon: GatewayBonjourBeacon | null = null;
   let suggestedUrl = cfg.gateway?.remote?.url ?? DEFAULT_GATEWAY_URL;
   let discoveryTlsFingerprint: string | undefined;
@@ -66,13 +74,15 @@ export async function promptRemoteGatewayConfig(
     await prompter.note(
       [
         "Bonjour discovery requires dns-sd (macOS) or avahi-browse (Linux).",
-        "Docs: https://docs.astroclaw.ai/gateway/discovery",
+        "Docs: https://docs.openclaw.ai/gateway/discovery",
       ].join("\n"),
       "Discovery",
     );
   }
 
   if (wantsDiscover) {
+    // Wide-area discovery is bounded and optional; manual URL entry remains the
+    // fallback so setup is usable without Bonjour or DNS-SD results.
     const wideAreaDomain = resolveWideAreaDiscoveryDomain({
       configDomain: cfg.discovery?.wideArea?.domain,
     });
@@ -96,8 +106,8 @@ export async function promptRemoteGatewayConfig(
         ],
       });
       if (selection !== "manual") {
-        const idx = Number.parseInt(selection, 10);
-        selectedBeacon = Number.isFinite(idx) ? (beacons[idx] ?? null) : null;
+        const idx = parseStrictNonNegativeInteger(selection);
+        selectedBeacon = idx === undefined ? null : (beacons[idx] ?? null);
       }
     }
   }
@@ -127,6 +137,8 @@ export async function promptRemoteGatewayConfig(
           initialValue: false,
         });
         if (trusted) {
+          // Only pin discovery TLS when the user accepts the discovered endpoint;
+          // manual edits later clear the pin to avoid trusting a different host.
           discoveryTlsFingerprint = fingerprint;
           trustedDiscoveryUrl = suggestedUrl;
           await prompter.note(
@@ -148,7 +160,7 @@ export async function promptRemoteGatewayConfig(
           [
             "Start a tunnel before using the CLI:",
             `ssh -N -L 18789:127.0.0.1:18789 <user>@${host}${target.sshPort ? ` -p ${target.sshPort}` : ""}`,
-            "Docs: https://docs.astroclaw.ai/gateway/remote",
+            "Docs: https://docs.openclaw.ai/gateway/remote",
           ].join("\n"),
           t("wizard.remote.sshTunnelTitle"),
         );
@@ -187,14 +199,16 @@ export async function promptRemoteGatewayConfig(
       },
     });
     if (selectedMode === "ref") {
+      // Remote token refs use gateway-specific env var hints but still flow
+      // through the shared setup secret-ref contract.
       const resolved = await promptSecretRefForSetup({
         provider: "gateway-remote-token",
         config: cfg,
         prompter,
-        preferredEnvVar: "ASTROCLAW_GATEWAY_TOKEN",
+        preferredEnvVar: "OPENCLAW_GATEWAY_TOKEN",
         copy: {
           sourceMessage: t("wizard.remote.gatewayTokenStoredMessage"),
-          envVarPlaceholder: "ASTROCLAW_GATEWAY_TOKEN",
+          envVarPlaceholder: "OPENCLAW_GATEWAY_TOKEN",
         },
       });
       token = resolved.ref;
@@ -230,14 +244,16 @@ export async function promptRemoteGatewayConfig(
       },
     });
     if (selectedMode === "ref") {
+      // Password refs mirror token refs so remote auth can stay out of config
+      // even when password mode is selected.
       const resolved = await promptSecretRefForSetup({
         provider: "gateway-remote-password",
         config: cfg,
         prompter,
-        preferredEnvVar: "ASTROCLAW_GATEWAY_PASSWORD",
+        preferredEnvVar: "OPENCLAW_GATEWAY_PASSWORD",
         copy: {
           sourceMessage: t("wizard.remote.gatewayPasswordStoredMessage"),
-          envVarPlaceholder: "ASTROCLAW_GATEWAY_PASSWORD",
+          envVarPlaceholder: "OPENCLAW_GATEWAY_PASSWORD",
         },
       });
       password = resolved.ref;
