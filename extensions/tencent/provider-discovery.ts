@@ -1,4 +1,5 @@
-import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
+// Tencent provider module implements model/runtime integration.
+import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-model-shared";
 import { buildTokenHubProvider } from "./provider-catalog.js";
 
 const tencentProviderDiscovery: ProviderPlugin = {
