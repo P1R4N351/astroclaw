@@ -1,11 +1,16 @@
+/**
+ * Sandbox defaults and state paths.
+ *
+ * Centralizes image names, container prefixes, workspace paths, browser ports, and registry locations.
+ */
 import path from "node:path";
 import { CHANNEL_IDS } from "../../channels/ids.js";
 import { STATE_DIR } from "../../config/paths.js";
 
 export const DEFAULT_SANDBOX_WORKSPACE_ROOT = path.join(STATE_DIR, "sandboxes");
 
-export const DEFAULT_SANDBOX_IMAGE = "astroclaw-sandbox:bookworm-slim";
-export const DEFAULT_SANDBOX_CONTAINER_PREFIX = "astroclaw-sbx-";
+export const DEFAULT_SANDBOX_IMAGE = "openclaw-sandbox:bookworm-slim";
+export const DEFAULT_SANDBOX_CONTAINER_PREFIX = "openclaw-sbx-";
 export const DEFAULT_SANDBOX_WORKDIR = "/workspace";
 export const DEFAULT_SANDBOX_IDLE_HOURS = 24;
 export const DEFAULT_SANDBOX_MAX_AGE_DAYS = 7;
@@ -37,13 +42,13 @@ export const DEFAULT_TOOL_DENY = [
   ...CHANNEL_IDS,
 ] as const;
 
-export const DEFAULT_SANDBOX_BROWSER_IMAGE = "astroclaw-sandbox-browser:bookworm-slim";
-export const DEFAULT_SANDBOX_COMMON_IMAGE = "astroclaw-sandbox-common:bookworm-slim";
+export const DEFAULT_SANDBOX_BROWSER_IMAGE = "openclaw-sandbox-browser:bookworm-slim";
+export const DEFAULT_SANDBOX_COMMON_IMAGE = "openclaw-sandbox-common:bookworm-slim";
 export const SANDBOX_BROWSER_SECURITY_HASH_EPOCH = "2026-05-12-cdp-relay-auth";
 export const SANDBOX_BROWSER_IMAGE_CONTRACT_EPOCH = "2026-05-12-cdp-relay-auth";
 
-export const DEFAULT_SANDBOX_BROWSER_PREFIX = "astroclaw-sbx-browser-";
-export const DEFAULT_SANDBOX_BROWSER_NETWORK = "astroclaw-sandbox-browser";
+export const DEFAULT_SANDBOX_BROWSER_PREFIX = "openclaw-sbx-browser-";
+export const DEFAULT_SANDBOX_BROWSER_NETWORK = "openclaw-sandbox-browser";
 export const DEFAULT_SANDBOX_BROWSER_CDP_PORT = 9222;
 export const DEFAULT_SANDBOX_BROWSER_VNC_PORT = 5900;
 export const DEFAULT_SANDBOX_BROWSER_NOVNC_PORT = 6080;
