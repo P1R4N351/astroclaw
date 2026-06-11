@@ -1,8 +1,9 @@
+// Tencent setup module handles plugin onboarding behavior.
 import {
   applyAgentDefaultModelPrimary,
   applyProviderConfigWithModelCatalog,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildTokenHubModelDefinition,
   TOKENHUB_BASE_URL,
@@ -14,7 +15,7 @@ import {
 
 export const TOKENHUB_DEFAULT_MODEL_REF = `${TOKENHUB_PROVIDER_ID}/hy3-preview`;
 
-function applyTokenHubProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+function applyTokenHubProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[TOKENHUB_DEFAULT_MODEL_REF] = {
     ...models[TOKENHUB_DEFAULT_MODEL_REF],
@@ -30,7 +31,7 @@ function applyTokenHubProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
   });
 }
 
-export function applyTokenHubConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyTokenHubConfig(cfg: OpenClawConfig): OpenClawConfig {
   return applyAgentDefaultModelPrimary(
     applyTokenHubProviderConfig(cfg),
     TOKENHUB_DEFAULT_MODEL_REF,
