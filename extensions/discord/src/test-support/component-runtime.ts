@@ -1,14 +1,15 @@
+// Discord plugin module implements component runtime behavior.
 import {
   parsePluginBindingApprovalCustomId,
   resolvePinnedMainDmOwnerFromAllowlist,
-} from "astroclaw/plugin-sdk/conversation-runtime";
-import { isSingleUseReplyToMode } from "astroclaw/plugin-sdk/reply-reference";
+} from "openclaw/plugin-sdk/conversation-runtime";
+import { isSingleUseReplyToMode } from "openclaw/plugin-sdk/reply-reference";
 import { vi, type Mock } from "vitest";
 
 type UnknownMock = Mock<(...args: unknown[]) => unknown>;
 type AsyncUnknownMock = Mock<(...args: unknown[]) => Promise<unknown>>;
 type DispatchReplyWithBufferedBlockDispatcherFn =
-  typeof import("astroclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
+  typeof import("openclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
 type DispatchReplyMock = Mock<DispatchReplyWithBufferedBlockDispatcherFn>;
 
 type DiscordComponentRuntimeMocks = {
@@ -163,13 +164,13 @@ export function resetDiscordComponentRuntimeMocks() {
   readSessionUpdatedAtMock.mockClear().mockReturnValue(undefined);
   upsertPairingRequestMock.mockClear().mockResolvedValue({ code: "PAIRCODE", created: true });
   recordInboundSessionMock.mockClear().mockResolvedValue(undefined);
-  resolveStorePathMock.mockClear().mockReturnValue("/tmp/astroclaw-sessions-test.json");
+  resolveStorePathMock.mockClear().mockReturnValue("/tmp/openclaw-sessions-test.json");
   resolvePluginConversationBindingApprovalMock.mockReset().mockResolvedValue({
     status: "approved",
     binding: {
       bindingId: "binding-1",
-      pluginId: "astroclaw-codex-app-server",
-      pluginName: "Astroclaw App Server",
+      pluginId: "openclaw-codex-app-server",
+      pluginName: "OpenClaw App Server",
       pluginRoot: "/plugins/codex",
       channel: "discord",
       accountId: "default",
@@ -178,8 +179,8 @@ export function resetDiscordComponentRuntimeMocks() {
     },
     request: {
       id: "approval-1",
-      pluginId: "astroclaw-codex-app-server",
-      pluginName: "Astroclaw App Server",
+      pluginId: "openclaw-codex-app-server",
+      pluginName: "OpenClaw App Server",
       pluginRoot: "/plugins/codex",
       requestedAt: Date.now(),
       conversation: {
