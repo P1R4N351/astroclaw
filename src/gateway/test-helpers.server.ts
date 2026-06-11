@@ -1,9 +1,14 @@
+// Gateway server test helpers create isolated config/state dirs, start gateway
+// servers/clients, and provide common RPC/session fixtures.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import "./test-helpers.mocks.js";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from "vitest";
 import { WebSocket } from "ws";
-import "./test-helpers.mocks.js";
+import { PROTOCOL_VERSION } from "../../packages/gateway-protocol/src/index.js";
 import { parseConfigJson5, resetConfigRuntimeState } from "../config/config.js";
 import {
   clearSessionStoreCacheForTest,
@@ -31,15 +36,12 @@ import {
   parseAgentSessionKey,
   toAgentStoreSessionKey,
 } from "../routing/session-key.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
 import { resetTaskRegistryForTests } from "../tasks/runtime-internal.js";
 import { resetTaskFlowRegistryForTests } from "../tasks/task-flow-runtime-internal.js";
 import { captureEnv } from "../test-utils/env.js";
 import { getDeterministicFreePortBlock } from "../test-utils/ports.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { buildDeviceAuthPayloadV3 } from "./device-auth.js";
-import { PROTOCOL_VERSION } from "./protocol/index.js";
 import type { GatewayServerOptions } from "./server.js";
 import { resetTestPluginRegistry } from "./test-helpers.plugin-registry.js";
 import {
@@ -47,7 +49,7 @@ import {
   cronIsolatedRun,
   embeddedRunMock,
   getReplyFromConfig,
-  piSdkMock,
+  agentDiscoveryMock,
   sendWhatsAppMock,
   sessionStoreSaveDelayMs,
   setTestConfigRoot,
@@ -69,20 +71,19 @@ async function getServerModule() {
 const GATEWAY_TEST_ENV_KEYS = [
   "HOME",
   "USERPROFILE",
-  "ASTROCLAW_STATE_DIR",
-  "ASTROCLAW_CONFIG_PATH",
-  "ASTROCLAW_AGENT_DIR",
-  "PI_CODING_AGENT_DIR",
-  "ASTROCLAW_GATEWAY_TOKEN",
-  "ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER",
-  "ASTROCLAW_SKIP_GMAIL_WATCHER",
-  "ASTROCLAW_SKIP_CANVAS_HOST",
-  "ASTROCLAW_BUNDLED_PLUGINS_DIR",
-  "ASTROCLAW_DISABLE_BUNDLED_PLUGINS",
-  "ASTROCLAW_SKIP_CHANNELS",
-  "ASTROCLAW_SKIP_PROVIDERS",
-  "ASTROCLAW_SKIP_CRON",
-  "ASTROCLAW_TEST_MINIMAL_GATEWAY",
+  "OPENCLAW_STATE_DIR",
+  "OPENCLAW_CONFIG_PATH",
+  "OPENCLAW_AGENT_DIR",
+  "OPENCLAW_GATEWAY_TOKEN",
+  "OPENCLAW_SKIP_BROWSER_CONTROL_SERVER",
+  "OPENCLAW_SKIP_GMAIL_WATCHER",
+  "OPENCLAW_SKIP_CANVAS_HOST",
+  "OPENCLAW_BUNDLED_PLUGINS_DIR",
+  "OPENCLAW_DISABLE_BUNDLED_PLUGINS",
+  "OPENCLAW_SKIP_CHANNELS",
+  "OPENCLAW_SKIP_PROVIDERS",
+  "OPENCLAW_SKIP_CRON",
+  "OPENCLAW_TEST_MINIMAL_GATEWAY",
 ] as const;
 
 let gatewayEnvSnapshot: ReturnType<typeof captureEnv> | undefined;
@@ -129,11 +130,11 @@ function hasUnsyncedGatewayTestSessionConfig(): boolean {
 
 async function persistTestSessionConfig(): Promise<void> {
   const configPaths = new Set<string>();
-  if (process.env.ASTROCLAW_CONFIG_PATH) {
-    configPaths.add(process.env.ASTROCLAW_CONFIG_PATH);
+  if (process.env.OPENCLAW_CONFIG_PATH) {
+    configPaths.add(process.env.OPENCLAW_CONFIG_PATH);
   }
-  if (process.env.ASTROCLAW_STATE_DIR) {
-    configPaths.add(path.join(process.env.ASTROCLAW_STATE_DIR, "astroclaw.json"));
+  if (process.env.OPENCLAW_STATE_DIR) {
+    configPaths.add(path.join(process.env.OPENCLAW_STATE_DIR, "openclaw.json"));
   }
   const parsedConfigs = new Map<string, Record<string, unknown>>();
   let preservedTemplateStore: string | undefined;
@@ -229,27 +230,26 @@ export async function writeSessionStore(params: {
 
 async function setupGatewayTestHome() {
   gatewayEnvSnapshot = captureEnv([...GATEWAY_TEST_ENV_KEYS]);
-  tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-gateway-home-"));
+  tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-gateway-home-"));
   process.env.HOME = tempHome;
   process.env.USERPROFILE = tempHome;
-  process.env.ASTROCLAW_STATE_DIR = path.join(tempHome, ".astroclaw");
-  delete process.env.ASTROCLAW_CONFIG_PATH;
-  delete process.env.ASTROCLAW_AGENT_DIR;
-  delete process.env.PI_CODING_AGENT_DIR;
+  process.env.OPENCLAW_STATE_DIR = path.join(tempHome, ".openclaw");
+  delete process.env.OPENCLAW_CONFIG_PATH;
+  delete process.env.OPENCLAW_AGENT_DIR;
 }
 
 function applyGatewaySkipEnv() {
-  process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
-  process.env.ASTROCLAW_SKIP_GMAIL_WATCHER = "1";
-  process.env.ASTROCLAW_SKIP_CANVAS_HOST = "1";
-  process.env.ASTROCLAW_SKIP_CHANNELS = "1";
-  process.env.ASTROCLAW_SKIP_PROVIDERS = "1";
-  process.env.ASTROCLAW_SKIP_CRON = "1";
-  process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = "1";
-  process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS = "1";
-  process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = tempHome
-    ? path.join(tempHome, "astroclaw-test-no-bundled-extensions")
-    : "astroclaw-test-no-bundled-extensions";
+  process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
+  process.env.OPENCLAW_SKIP_GMAIL_WATCHER = "1";
+  process.env.OPENCLAW_SKIP_CANVAS_HOST = "1";
+  process.env.OPENCLAW_SKIP_CHANNELS = "1";
+  process.env.OPENCLAW_SKIP_PROVIDERS = "1";
+  process.env.OPENCLAW_SKIP_CRON = "1";
+  process.env.OPENCLAW_TEST_MINIMAL_GATEWAY = "1";
+  process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS = "1";
+  process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = tempHome
+    ? path.join(tempHome, "openclaw-test-no-bundled-extensions")
+    : "openclaw-test-no-bundled-extensions";
 }
 
 async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
@@ -260,10 +260,10 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
     throw new Error("resetGatewayTestState called before temp home was initialized");
   }
   applyGatewaySkipEnv();
-  delete process.env.ASTROCLAW_GATEWAY_TOKEN;
+  delete process.env.OPENCLAW_GATEWAY_TOKEN;
   resetTaskRegistryForTests({ persist: false });
   resetTaskFlowRegistryForTests({ persist: false });
-  const stateDir = process.env.ASTROCLAW_STATE_DIR;
+  const stateDir = process.env.OPENCLAW_STATE_DIR;
   if (stateDir) {
     await fs.rm(stateDir, {
       recursive: true,
@@ -274,7 +274,7 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
     await fs.mkdir(stateDir, { recursive: true });
   }
   if (options.uniqueConfigRoot) {
-    const suiteRoot = path.join(tempHome, ".astroclaw-test-suite");
+    const suiteRoot = path.join(tempHome, ".openclaw-test-suite");
     await fs.mkdir(suiteRoot, { recursive: true });
     tempConfigRoot = path.join(suiteRoot, `case-${suiteConfigRootSeq++}`);
     await fs.rm(tempConfigRoot, {
@@ -285,7 +285,7 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
     });
     await fs.mkdir(tempConfigRoot, { recursive: true });
   } else {
-    tempConfigRoot = path.join(tempHome, ".astroclaw-test");
+    tempConfigRoot = path.join(tempHome, ".openclaw-test");
     await fs.rm(tempConfigRoot, {
       recursive: true,
       force: true,
@@ -295,7 +295,7 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
     await fs.mkdir(tempConfigRoot, { recursive: true });
   }
   setTestConfigRoot(tempConfigRoot);
-  tempControlUiRoot = path.join(tempHome, ".astroclaw-test-control-ui");
+  tempControlUiRoot = path.join(tempHome, ".openclaw-test-control-ui");
   await fs.rm(tempControlUiRoot, {
     recursive: true,
     force: true,
@@ -305,7 +305,7 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
   await fs.mkdir(tempControlUiRoot, { recursive: true });
   await fs.writeFile(
     path.join(tempControlUiRoot, "index.html"),
-    "<!doctype html><title>astroclaw-test-control-ui</title>\n",
+    "<!doctype html><title>openclaw-test-control-ui</title>\n",
     "utf-8",
   );
   setTestConfigRoot(tempConfigRoot);
@@ -347,8 +347,8 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
   embeddedRunMock.abortCalls = [];
   embeddedRunMock.waitCalls = [];
   embeddedRunMock.waitResults.clear();
-  embeddedRunMock.compactEmbeddedPiSession.mockReset();
-  embeddedRunMock.compactEmbeddedPiSession.mockResolvedValue({
+  embeddedRunMock.compactEmbeddedAgentSession.mockReset();
+  embeddedRunMock.compactEmbeddedAgentSession.mockResolvedValue({
     ok: true,
     compacted: true,
     result: {
@@ -363,10 +363,10 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
   }
   resetAgentRunContextForTest();
   const mod = await getServerModule();
-  await mod.__resetModelCatalogCacheForTest();
-  piSdkMock.enabled = false;
-  piSdkMock.discoverCalls = 0;
-  piSdkMock.models = [];
+  await mod.resetModelCatalogCacheForTest();
+  agentDiscoveryMock.enabled = false;
+  agentDiscoveryMock.discoverCalls = 0;
+  agentDiscoveryMock.models = [];
 }
 
 async function cleanupGatewayTestHome(options: { restoreEnv: boolean }) {
@@ -399,7 +399,7 @@ async function resetGatewayTestRuntimeOnly() {
   vi.useRealTimers();
   setLoggerOverride({ level: "silent", consoleLevel: "silent" });
   applyGatewaySkipEnv();
-  delete process.env.ASTROCLAW_GATEWAY_TOKEN;
+  delete process.env.OPENCLAW_GATEWAY_TOKEN;
   resetConfigRuntimeState();
   resetTestPluginRegistry();
   clearGatewaySubagentRuntime();
@@ -438,8 +438,8 @@ async function resetGatewayTestRuntimeOnly() {
   embeddedRunMock.abortCalls = [];
   embeddedRunMock.waitCalls = [];
   embeddedRunMock.waitResults.clear();
-  embeddedRunMock.compactEmbeddedPiSession.mockReset();
-  embeddedRunMock.compactEmbeddedPiSession.mockResolvedValue({
+  embeddedRunMock.compactEmbeddedAgentSession.mockReset();
+  embeddedRunMock.compactEmbeddedAgentSession.mockResolvedValue({
     ok: true,
     compacted: true,
     result: {
@@ -461,6 +461,7 @@ export function installGatewayTestHooks(options?: { scope?: "test" | "suite" }) 
   const scope = options?.scope ?? "test";
   if (scope === "suite") {
     beforeAll(async () => {
+      vi.useRealTimers();
       if (activeSuiteHookScopeCount === 0) {
         await setupGatewayTestHome();
         await resetGatewayTestState({ uniqueConfigRoot: false });
@@ -468,6 +469,7 @@ export function installGatewayTestHooks(options?: { scope?: "test" | "suite" }) 
       activeSuiteHookScopeCount += 1;
     });
     beforeEach(async () => {
+      vi.useRealTimers();
       if (activeSuiteGatewayServerCount > 0) {
         await resetGatewayTestRuntimeOnly();
         return;
@@ -491,6 +493,7 @@ export function installGatewayTestHooks(options?: { scope?: "test" | "suite" }) 
   }
 
   beforeEach(async () => {
+    vi.useRealTimers();
     await setupGatewayTestHome();
     await resetGatewayTestState({ uniqueConfigRoot: false });
   }, 60_000);
@@ -515,8 +518,8 @@ type GatewayTestMessage = {
   [key: string]: unknown;
 };
 
-const CONNECT_CHALLENGE_NONCE_KEY = "__astroclawTestConnectChallengeNonce";
-const CONNECT_CHALLENGE_TRACKED_KEY = "__astroclawTestConnectChallengeTracked";
+const CONNECT_CHALLENGE_NONCE_KEY = "__openclawTestConnectChallengeNonce";
+const CONNECT_CHALLENGE_TRACKED_KEY = "__openclawTestConnectChallengeTracked";
 type TrackedWs = WebSocket & Record<string, unknown>;
 
 export function getTrackedConnectChallengeNonce(ws: WebSocket): string | undefined {
@@ -555,7 +558,6 @@ export function onceMessage<T extends GatewayTestMessage = GatewayTestMessage>(
   timeoutMs = 10_000,
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    let timer: ReturnType<typeof setTimeout>;
     function cleanup() {
       clearTimeout(timer);
       ws.off("message", handler);
@@ -572,7 +574,7 @@ export function onceMessage<T extends GatewayTestMessage = GatewayTestMessage>(
         resolve(obj);
       }
     }
-    timer = setTimeout(() => {
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
       cleanup();
       reject(new Error("timeout"));
     }, timeoutMs);
@@ -592,7 +594,7 @@ export async function startGatewayServer(port: number, opts?: GatewayServerOptio
     opts?.controlUiEnabled === undefined ? { ...opts, controlUiEnabled: false } : opts;
   if (
     resolvedOpts?.controlUiEnabled === true &&
-    process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY === "1" &&
+    process.env.OPENCLAW_TEST_MINIMAL_GATEWAY === "1" &&
     tempControlUiRoot &&
     typeof (testState.gatewayControlUi as { root?: unknown } | undefined)?.root !== "string"
   ) {
@@ -725,8 +727,8 @@ export async function createGatewaySuiteHarness(opts?: {
 
 export async function startServer(token?: string, opts?: GatewayServerOptions) {
   let port = await getFreePort();
-  const envSnapshot = captureEnv(["ASTROCLAW_GATEWAY_TOKEN"]);
-  const prev = process.env.ASTROCLAW_GATEWAY_TOKEN;
+  const envSnapshot = captureEnv(["OPENCLAW_GATEWAY_TOKEN"]);
+  const prev = process.env.OPENCLAW_GATEWAY_TOKEN;
   if (typeof token === "string") {
     testState.gatewayAuth = { mode: "token", token };
   }
@@ -736,9 +738,9 @@ export async function startServer(token?: string, opts?: GatewayServerOptions) {
       ? (testState.gatewayAuth as { token?: string }).token
       : undefined);
   if (fallbackToken === undefined) {
-    delete process.env.ASTROCLAW_GATEWAY_TOKEN;
+    delete process.env.OPENCLAW_GATEWAY_TOKEN;
   } else {
-    process.env.ASTROCLAW_GATEWAY_TOKEN = fallbackToken;
+    process.env.OPENCLAW_GATEWAY_TOKEN = fallbackToken;
   }
 
   const resolvedGatewayOpts: GatewayServerOptions =
@@ -797,7 +799,7 @@ function resolveDefaultTestDeviceIdentityPath(params: {
       "_",
     ),
   );
-  const suiteRoot = process.env.ASTROCLAW_STATE_DIR ?? process.env.HOME ?? os.tmpdir();
+  const suiteRoot = process.env.OPENCLAW_STATE_DIR ?? process.env.HOME ?? os.tmpdir();
   return path.join(suiteRoot, "test-device-identities", `${safe}.json`);
 }
 
@@ -973,13 +975,13 @@ export async function connectReq(
       ? undefined
       : typeof (testState.gatewayAuth as { token?: unknown } | undefined)?.token === "string"
         ? ((testState.gatewayAuth as { token?: string }).token ?? undefined)
-        : process.env.ASTROCLAW_GATEWAY_TOKEN;
+        : process.env.OPENCLAW_GATEWAY_TOKEN;
   const defaultPassword =
     opts?.skipDefaultAuth === true
       ? undefined
       : typeof (testState.gatewayAuth as { password?: unknown } | undefined)?.password === "string"
         ? ((testState.gatewayAuth as { password?: string }).password ?? undefined)
-        : process.env.ASTROCLAW_GATEWAY_PASSWORD;
+        : process.env.OPENCLAW_GATEWAY_PASSWORD;
   const token = opts?.token ?? defaultToken;
   const bootstrapToken = normalizeOptionalString(opts?.bootstrapToken);
   const deviceToken = normalizeOptionalString(opts?.deviceToken);
@@ -1185,7 +1187,9 @@ export async function waitForSystemEvent(timeoutMs = 2000) {
         return events;
       }
     }
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 10);
+    });
   }
   throw new Error("timeout waiting for system event");
 }
