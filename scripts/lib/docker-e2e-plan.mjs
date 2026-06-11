@@ -14,8 +14,8 @@ import {
 export { DEFAULT_LIVE_RETRIES };
 export { normalizeReleaseProfile };
 
-export const DEFAULT_E2E_BARE_IMAGE = "astroclaw-docker-e2e-bare:local";
-export const DEFAULT_E2E_FUNCTIONAL_IMAGE = "astroclaw-docker-e2e-functional:local";
+export const DEFAULT_E2E_BARE_IMAGE = "openclaw-docker-e2e-bare:local";
+export const DEFAULT_E2E_FUNCTIONAL_IMAGE = "openclaw-docker-e2e-functional:local";
 export const DEFAULT_E2E_IMAGE = DEFAULT_E2E_FUNCTIONAL_IMAGE;
 export const DEFAULT_PARALLELISM = 10;
 export const DEFAULT_PROFILE = "all";
@@ -28,7 +28,7 @@ export const DEFAULT_RESOURCE_LIMITS = {
   "live:gemini": 4,
   "live:opencode": 4,
   "live:openai": 1,
-  npm: 10,
+  npm: 5,
   service: 7,
 };
 export const DEFAULT_TAIL_PARALLELISM = 10;
@@ -66,7 +66,7 @@ function shellQuote(value) {
 function sanitizeLaneNameSuffix(value) {
   return (
     String(value)
-      .replace(/^astroclaw@/u, "")
+      .replace(/^openclaw@/u, "")
       .replace(/[^A-Za-z0-9._-]+/g, "-")
       .replace(/^-+|-+$/g, "") || "baseline"
   );
@@ -94,16 +94,16 @@ export function normalizeUpgradeSurvivorBaselineSpec(raw) {
   if (!value) {
     return undefined;
   }
-  const spec = value.startsWith("astroclaw@") ? value : `astroclaw@${value}`;
+  const spec = value.startsWith("openclaw@") ? value : `openclaw@${value}`;
   if (
-    !/^astroclaw@(?:alpha|beta|latest|[0-9]{4}\.[0-9]+\.[0-9]+(?:-(?:[0-9]+|alpha\.[0-9]+|beta\.[0-9]+))?)$/u.test(
+    !/^openclaw@(?:alpha|beta|latest|[0-9]{4}\.[0-9]+\.[0-9]+(?:-(?:[0-9]+|alpha\.[0-9]+|beta\.[0-9]+))?)$/u.test(
       spec,
     )
   ) {
     throw new Error(
       `invalid published upgrade survivor baseline: ${JSON.stringify(
         value,
-      )}. Expected astroclaw@latest, astroclaw@beta, astroclaw@alpha, or astroclaw@YYYY.M.D.`,
+      )}. Expected openclaw@latest, openclaw@beta, openclaw@alpha, or openclaw@YYYY.M.PATCH.`,
     );
   }
   return spec;
@@ -156,19 +156,19 @@ function parseUpgradeSurvivorScenarios(raw) {
 }
 
 function parsePublishedReleaseVersion(spec) {
-  const match = /^astroclaw@([0-9]{4})\.([0-9]+)\.([0-9]+)/u.exec(String(spec ?? ""));
+  const match = /^openclaw@([0-9]{4})\.([0-9]+)\.([0-9]+)/u.exec(String(spec ?? ""));
   if (!match) {
     return null;
   }
   return {
     year: Number(match[1]),
     month: Number(match[2]),
-    day: Number(match[3]),
+    patch: Number(match[3]),
   };
 }
 
 function comparePublishedReleaseVersion(a, b) {
-  return a.year - b.year || a.month - b.month || a.day - b.day;
+  return a.year - b.year || a.month - b.month || a.patch - b.patch;
 }
 
 function supportsUpgradeSurvivorPluginDependencyCleanup(baselineSpec) {
@@ -179,7 +179,7 @@ function supportsUpgradeSurvivorPluginDependencyCleanup(baselineSpec) {
   if (!version) {
     return true;
   }
-  return comparePublishedReleaseVersion(version, { year: 2026, month: 4, day: 23 }) >= 0;
+  return comparePublishedReleaseVersion(version, { year: 2026, month: 4, patch: 23 }) >= 0;
 }
 
 function expandUpgradeSurvivorBaselineLanes(poolLanes, rawBaselineSpecs, rawScenarios = "") {
@@ -209,11 +209,11 @@ function expandUpgradeSurvivorBaselineLanes(poolLanes, rawBaselineSpecs, rawScen
           const suffix = suffixParts.join("-");
           const name = suffix ? `${poolLane.name}-${suffix}` : poolLane.name;
           const commandPrefix = [
-            `ASTROCLAW_UPGRADE_SURVIVOR_ARTIFACT_DIR="$PWD/.artifacts/upgrade-survivor/${name}"`,
+            `OPENCLAW_UPGRADE_SURVIVOR_ARTIFACT_DIR="$PWD/.artifacts/upgrade-survivor/${name}"`,
             baselineSpec
-              ? `ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPEC=${shellQuote(baselineSpec)}`
+              ? `OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPEC=${shellQuote(baselineSpec)}`
               : "",
-            scenario ? `ASTROCLAW_UPGRADE_SURVIVOR_SCENARIO=${shellQuote(scenario)}` : "",
+            scenario ? `OPENCLAW_UPGRADE_SURVIVOR_SCENARIO=${shellQuote(scenario)}` : "",
           ]
             .filter(Boolean)
             .join(" ");
@@ -260,7 +260,7 @@ export function parseLiveMode(raw) {
     return mode;
   }
   throw new Error(
-    `ASTROCLAW_DOCKER_ALL_LIVE_MODE must be one of: all, skip, only. Got: ${JSON.stringify(raw)}`,
+    `OPENCLAW_DOCKER_ALL_LIVE_MODE must be one of: all, skip, only. Got: ${JSON.stringify(raw)}`,
   );
 }
 
@@ -270,7 +270,7 @@ export function parseProfile(raw) {
     return profile;
   }
   throw new Error(
-    `ASTROCLAW_DOCKER_ALL_PROFILE must be one of: ${DEFAULT_PROFILE}, ${RELEASE_PATH_PROFILE}. Got: ${JSON.stringify(raw)}`,
+    `OPENCLAW_DOCKER_ALL_PROFILE must be one of: ${DEFAULT_PROFILE}, ${RELEASE_PATH_PROFILE}. Got: ${JSON.stringify(raw)}`,
   );
 }
 
@@ -290,7 +290,7 @@ export function laneWeight(poolLane) {
 }
 
 export function laneResources(poolLane) {
-  return ["docker", ...(poolLane.resources ?? [])];
+  return [...new Set(["docker", ...(poolLane.resources ?? [])])];
 }
 
 export function laneSummary(poolLane) {
@@ -310,7 +310,7 @@ export function lanesNeedE2eImageKind(poolLanes, kind) {
   return poolLanes.some((poolLane) => poolLane.e2eImageKind === kind);
 }
 
-export function lanesNeedAstroclawPackage(poolLanes) {
+export function lanesNeedOpenClawPackage(poolLanes) {
   return poolLanes.some((poolLane) => poolLane.e2eImageKind);
 }
 
@@ -318,13 +318,14 @@ export function findLaneByName(name) {
   return dedupeLanes(
     expandUpgradeSurvivorBaselineLanes(
       [...allReleasePathLanes({ includeOpenWebUI: true }), ...mainLanes, ...tailLanes],
-      process.env.ASTROCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS,
-      process.env.ASTROCLAW_UPGRADE_SURVIVOR_SCENARIOS,
+      process.env.OPENCLAW_UPGRADE_SURVIVOR_BASELINE_SPECS,
+      process.env.OPENCLAW_UPGRADE_SURVIVOR_SCENARIOS,
     ),
   ).find((poolLane) => poolLane.name === name);
 }
 
 function laneCredentialRequirements(poolLane) {
+  const resources = laneResources(poolLane);
   const credentials = [];
   if (poolLane.name === "install-e2e-openai") {
     credentials.push("openai");
@@ -332,14 +333,23 @@ function laneCredentialRequirements(poolLane) {
   if (poolLane.name === "install-e2e-anthropic") {
     credentials.push("anthropic");
   }
-  if (
-    poolLane.name === "openwebui" ||
-    poolLane.name === "openai-chat-tools" ||
-    poolLane.name === "openai-web-search-minimal" ||
-    poolLane.name === "live-codex-npm-plugin" ||
-    poolLane.name === "live-plugin-tool"
-  ) {
+  if (resources.includes("live:openai")) {
     credentials.push("openai");
+  }
+  if (resources.includes("live:codex")) {
+    credentials.push("codex");
+  }
+  if (resources.includes("live:claude")) {
+    credentials.push("anthropic");
+  }
+  if (resources.includes("live:droid")) {
+    credentials.push("factory");
+  }
+  if (resources.includes("live:gemini")) {
+    credentials.push("gemini");
+  }
+  if (resources.includes("live:opencode")) {
+    credentials.push("opencode");
   }
   return credentials;
 }
@@ -377,7 +387,7 @@ function buildPlanJson(params) {
       e2eImage: imageKinds.length > 0,
       functionalImage: imageKinds.includes("functional"),
       liveImage: scheduledLanes.some((poolLane) => poolLane.needsLiveImage),
-      package: lanesNeedAstroclawPackage(scheduledLanes),
+      package: lanesNeedOpenClawPackage(scheduledLanes),
     },
     profile: params.profile,
     releaseProfile: params.releaseProfile,
@@ -442,14 +452,14 @@ export function resolveDockerE2ePlan(options) {
               upgradeSurvivorScenarios,
             );
           }
-          selectNamedLanes(selectableLanes, [selectedName], "ASTROCLAW_DOCKER_ALL_LANES");
+          selectNamedLanes(selectableLanes, [selectedName], "OPENCLAW_DOCKER_ALL_LANES");
           return [];
         })
       : undefined;
   const configuredLanes = selectedLanes
     ? selectedLanes
     : releaseLanes
-      ? releaseLanes
+      ? applyLiveMode(releaseLanes, options.liveMode)
       : options.liveMode === "only"
         ? applyLiveMode([...retriedMainLanes, ...retriedTailLanes], options.liveMode)
         : applyLiveMode(retriedMainLanes, options.liveMode);
