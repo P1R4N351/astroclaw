@@ -1,22 +1,23 @@
+// Defines plugin tool metadata and filesystem policy types.
 import type { ToolFsPolicy } from "../agents/tool-fs-policy.types.js";
 import type { AnyAgentTool } from "../agents/tools/common.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { HookEntry } from "../hooks/types.js";
 import type { DeliveryContext } from "../utils/delivery-context.types.js";
 
-export type AstroclawPluginActiveModelContext = {
+export type OpenClawPluginActiveModelContext = {
   provider?: string;
   modelId?: string;
   modelRef?: string;
 };
 
 /** Trusted execution context passed to plugin-owned agent tool factories. */
-export type AstroclawPluginToolContext = {
-  config?: AstroclawConfig;
+export type OpenClawPluginToolContext = {
+  config?: OpenClawConfig;
   /** Active runtime-resolved config snapshot when one is available. */
-  runtimeConfig?: AstroclawConfig;
+  runtimeConfig?: OpenClawConfig;
   /** Returns the latest runtime-resolved config snapshot for long-lived tool definitions. */
-  getRuntimeConfig?: () => AstroclawConfig | undefined;
+  getRuntimeConfig?: () => OpenClawConfig | undefined;
   /** Effective filesystem policy for the active tool run. */
   fsPolicy?: ToolFsPolicy;
   workspaceDir?: string;
@@ -28,9 +29,9 @@ export type AstroclawPluginToolContext = {
   /**
    * Runtime-supplied active model metadata for informational use, diagnostics,
    * and plugin-owned policy decisions. This is not a security boundary against
-   * the local operator, installed plugin code, or a modified Astroclaw runtime.
+   * the local operator, installed plugin code, or a modified OpenClaw runtime.
    */
-  activeModel?: AstroclawPluginActiveModelContext;
+  activeModel?: OpenClawPluginActiveModelContext;
   browser?: {
     sandboxBridgeUrl?: string;
     allowHostControl?: boolean;
@@ -45,22 +46,20 @@ export type AstroclawPluginToolContext = {
   deliveryContext?: DeliveryContext;
   /** Trusted sender id from inbound context (runtime-provided, not tool args). */
   requesterSenderId?: string;
-  /** Whether the trusted sender is an owner. */
-  senderIsOwner?: boolean;
   sandboxed?: boolean;
 };
 
-export type AstroclawPluginToolFactory = (
-  ctx: AstroclawPluginToolContext,
+export type OpenClawPluginToolFactory = (
+  ctx: OpenClawPluginToolContext,
 ) => AnyAgentTool | AnyAgentTool[] | null | undefined;
 
-export type AstroclawPluginToolOptions = {
+export type OpenClawPluginToolOptions = {
   name?: string;
   names?: string[];
   optional?: boolean;
 };
 
-export type AstroclawPluginHookOptions = {
+export type OpenClawPluginHookOptions = {
   entry?: HookEntry;
   name?: string;
   description?: string;
