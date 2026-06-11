@@ -1,4 +1,5 @@
-import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/channel-entry-contract";
+// Feishu API module exposes the plugin public contract.
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/channel-entry-contract";
 
 type FeishuSubagentHooksModule = typeof import("./src/subagent-hooks.js");
 
@@ -9,11 +10,7 @@ function loadFeishuSubagentHooksModule() {
   return feishuSubagentHooksPromise;
 }
 
-export function registerFeishuSubagentHooks(api: AstroclawPluginApi): void {
-  api.on("subagent_spawning", async (event, ctx) => {
-    const { handleFeishuSubagentSpawning } = await loadFeishuSubagentHooksModule();
-    return await handleFeishuSubagentSpawning(event, ctx);
-  });
+export function registerFeishuSubagentHooks(api: OpenClawPluginApi): void {
   api.on("subagent_delivery_target", async (event) => {
     const { handleFeishuSubagentDeliveryTarget } = await loadFeishuSubagentHooksModule();
     return handleFeishuSubagentDeliveryTarget(event);
@@ -23,9 +20,3 @@ export function registerFeishuSubagentHooks(api: AstroclawPluginApi): void {
     handleFeishuSubagentEnded(event);
   });
 }
-
-export {
-  handleFeishuSubagentDeliveryTarget,
-  handleFeishuSubagentEnded,
-  handleFeishuSubagentSpawning,
-} from "./src/subagent-hooks.js";
