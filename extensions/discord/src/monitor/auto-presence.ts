@@ -1,3 +1,4 @@
+// Discord plugin module implements auto presence behavior.
 import {
   clearExpiredCooldowns,
   ensureAuthProfileStore,
@@ -5,12 +6,12 @@ import {
   resolveProfilesUnavailableReason,
   type AuthProfileFailureReason,
   type AuthProfileStore,
-} from "astroclaw/plugin-sdk/agent-runtime";
+} from "openclaw/plugin-sdk/agent-runtime";
 import type {
   DiscordAccountConfig,
   DiscordAutoPresenceConfig,
-} from "astroclaw/plugin-sdk/config-contracts";
-import { warn } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/config-contracts";
+import { warn } from "openclaw/plugin-sdk/runtime-env";
 import type { Activity, UpdatePresenceData } from "../internal/gateway.js";
 import { resolveDiscordPresenceUpdate } from "./presence.js";
 
@@ -298,7 +299,7 @@ export function createDiscordAutoPresenceController(params: {
   let lastAppliedAt = 0;
 
   const runEvaluation = (options?: { force?: boolean }) => {
-    let decision: DiscordAutoPresenceDecision | null = null;
+    let decision: DiscordAutoPresenceDecision | null;
     try {
       decision = resolveDiscordAutoPresenceDecision({
         discordConfig: params.discordConfig,
