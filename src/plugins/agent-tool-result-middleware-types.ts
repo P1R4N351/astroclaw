@@ -1,8 +1,9 @@
-import type { AgentToolResult as PiAgentToolResult } from "@earendil-works/pi-agent-core";
+// Defines plugin middleware contracts for agent tool results.
+import type { AgentToolResult } from "../agents/runtime/index.js";
 
-export type AstroclawAgentToolResult<TResult = unknown> = PiAgentToolResult<TResult>;
+export type OpenClawAgentToolResult<TResult = unknown> = AgentToolResult<TResult>;
 
-export type AgentToolResultMiddlewareRuntime = "pi" | "codex";
+export type AgentToolResultMiddlewareRuntime = "openclaw" | "codex";
 /** @deprecated Use AgentToolResultMiddlewareRuntime. */
 export type AgentToolResultMiddlewareHarness =
   | AgentToolResultMiddlewareRuntime
@@ -16,7 +17,7 @@ export type AgentToolResultMiddlewareEvent = {
   args: Record<string, unknown>;
   cwd?: string;
   isError?: boolean;
-  result: AstroclawAgentToolResult;
+  result: OpenClawAgentToolResult;
 };
 
 export type AgentToolResultMiddlewareContext = {
@@ -30,7 +31,7 @@ export type AgentToolResultMiddlewareContext = {
 };
 
 export type AgentToolResultMiddlewareResult = {
-  result: AstroclawAgentToolResult;
+  result: OpenClawAgentToolResult;
 };
 
 export type AgentToolResultMiddleware = (
