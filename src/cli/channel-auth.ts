@@ -1,3 +1,6 @@
+// Channel login/logout command helpers for local config and gateway reconciliation.
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { sanitizeForLog } from "../../packages/terminal-core/src/ansi.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import {
   getChannelPlugin,
@@ -5,15 +8,13 @@ import {
   normalizeChannelId,
 } from "../channels/plugins/index.js";
 import { resolveInstallableChannelPlugin } from "../commands/channel-setup/channel-plugin-resolution.js";
-import { getRuntimeConfig, readConfigFileSnapshot, type AstroclawConfig } from "../config/config.js";
+import { getRuntimeConfig, readConfigFileSnapshot, type OpenClawConfig } from "../config/config.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import { callGateway } from "../gateway/call.js";
 import { setVerbose } from "../globals.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { isBlockedObjectKey } from "../infra/prototype-keys.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
-import { sanitizeForLog } from "../terminal/ansi.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { formatCliCommand } from "./command-format.js";
 import { formatUnsupportedChannelActionMessage } from "./error-format.js";
@@ -32,7 +33,7 @@ function supportsChannelAuthMode(plugin: ChannelPlugin, mode: ChannelAuthMode): 
   return mode === "login" ? Boolean(plugin.auth?.login) : Boolean(plugin.gateway?.logoutAccount);
 }
 
-function isConfiguredAuthPlugin(plugin: ChannelPlugin, cfg: AstroclawConfig): boolean {
+function isConfiguredAuthPlugin(plugin: ChannelPlugin, cfg: OpenClawConfig): boolean {
   const key = plugin.id;
   if (isBlockedObjectKey(key)) {
     return false;
@@ -66,7 +67,7 @@ function isConfiguredAuthPlugin(plugin: ChannelPlugin, cfg: AstroclawConfig): bo
   return false;
 }
 
-function resolveConfiguredAuthChannelInput(cfg: AstroclawConfig, mode: ChannelAuthMode): string {
+function resolveConfiguredAuthChannelInput(cfg: OpenClawConfig, mode: ChannelAuthMode): string {
   const configured = listChannelPlugins()
     .filter((plugin): plugin is ChannelPlugin => supportsChannelAuthMode(plugin, mode))
     .filter((plugin) => isConfiguredAuthPlugin(plugin, cfg))
@@ -77,7 +78,7 @@ function resolveConfiguredAuthChannelInput(cfg: AstroclawConfig, mode: ChannelAu
   }
   if (configured.length === 0) {
     throw new Error(
-      `No configured channel supports ${mode}. Run ${formatCliCommand("astroclaw channels status")} to inspect channels or ${formatCliCommand("astroclaw channels add --channel <channel>")} to add one.`,
+      `No configured channel supports ${mode}. Run ${formatCliCommand("openclaw channels status")} to inspect channels or ${formatCliCommand("openclaw channels add --channel <channel>")} to add one.`,
     );
   }
   const safeIds = configured.map(sanitizeForLog);
@@ -89,10 +90,10 @@ function resolveConfiguredAuthChannelInput(cfg: AstroclawConfig, mode: ChannelAu
 async function resolveChannelPluginForMode(
   opts: ChannelAuthOptions,
   mode: ChannelAuthMode,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   runtime: RuntimeEnv,
 ): Promise<{
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   configChanged: boolean;
   channelInput: string;
   channelId: string;
@@ -113,7 +114,7 @@ async function resolveChannelPluginForMode(
   const channelId = resolved.channelId ?? normalizedChannelId;
   if (!channelId) {
     throw new Error(
-      `Unsupported channel "${channelInput}". Run ${formatCliCommand("astroclaw channels list")} to see available channels.`,
+      `Unsupported channel "${channelInput}". Run ${formatCliCommand("openclaw channels list")} to see available channels.`,
     );
   }
   const plugin = resolved.plugin;
@@ -122,7 +123,7 @@ async function resolveChannelPluginForMode(
       formatUnsupportedChannelActionMessage({
         channel: channelId,
         action: mode,
-        inspectCommand: "astroclaw channels status --channel " + channelId,
+        inspectCommand: "openclaw channels status --channel " + channelId,
       }),
     );
   }
@@ -138,7 +139,7 @@ async function resolveChannelPluginForMode(
 function resolveAccountContext(
   plugin: ChannelPlugin,
   opts: ChannelAuthOptions,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ) {
   const accountId =
     normalizeOptionalString(opts.account) || resolveChannelDefaultAccountId({ plugin, cfg });
@@ -146,12 +147,13 @@ function resolveAccountContext(
 }
 
 async function reconcileGatewayRuntimeAfterLocalLogin(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   plugin: ChannelPlugin;
   channelId: string;
   accountId: string;
   runtime: RuntimeEnv;
 }) {
+  // Local auth writes are durable even when the gateway restart hook is unavailable or remote.
   if (!params.plugin.gateway?.startAccount) {
     return;
   }
@@ -181,7 +183,7 @@ async function reconcileGatewayRuntimeAfterLocalLogin(params: {
 }
 
 async function logoutViaGatewayRuntime(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channelId: string;
   accountId: string;
   runtime: RuntimeEnv;
@@ -236,7 +238,7 @@ export async function runChannelLogin(
       formatUnsupportedChannelActionMessage({
         channel: channelInput,
         action: "login",
-        inspectCommand: "astroclaw channels status --channel " + channelInput,
+        inspectCommand: "openclaw channels status --channel " + channelInput,
       }),
     );
   }
@@ -285,7 +287,7 @@ export async function runChannelLogout(
       formatUnsupportedChannelActionMessage({
         channel: channelInput,
         action: "logout",
-        inspectCommand: "astroclaw channels status --channel " + channelInput,
+        inspectCommand: "openclaw channels status --channel " + channelInput,
       }),
     );
   }
