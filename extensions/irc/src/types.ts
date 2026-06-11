@@ -1,3 +1,4 @@
+// Irc type declarations define plugin contracts.
 import type {
   BlockStreamingCoalesceConfig,
   DmConfig,
@@ -6,7 +7,7 @@ import type {
   GroupToolPolicyBySenderConfig,
   GroupToolPolicyConfig,
   MarkdownConfig,
-  AstroclawConfig,
+  OpenClawConfig,
   BaseProbeResult,
 } from "./runtime-api.js";
 
@@ -71,8 +72,8 @@ type IrcConfig = IrcAccountConfig & {
   defaultAccount?: string;
 };
 
-export type CoreConfig = AstroclawConfig & {
-  channels?: AstroclawConfig["channels"] & {
+export type CoreConfig = OpenClawConfig & {
+  channels?: OpenClawConfig["channels"] & {
     irc?: IrcConfig;
   };
 };
