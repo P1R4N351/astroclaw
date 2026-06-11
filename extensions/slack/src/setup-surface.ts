@@ -1,19 +1,21 @@
-import { adaptScopedAccountAccessor } from "astroclaw/plugin-sdk/channel-config-helpers";
+// Slack plugin module implements setup surface behavior.
+import { adaptScopedAccountAccessor } from "openclaw/plugin-sdk/channel-config-helpers";
 import {
   noteChannelLookupFailure,
   noteChannelLookupSummary,
   resolveEntriesWithOptionalToken,
   createSetupTranslator,
-  type AstroclawConfig,
+  type OpenClawConfig,
   parseMentionOrPrefixedId,
   promptLegacyChannelAllowFromForAccount,
   type WizardPrompter,
-} from "astroclaw/plugin-sdk/setup-runtime";
+} from "openclaw/plugin-sdk/setup-runtime";
 import type {
   ChannelSetupWizard,
   ChannelSetupWizardAllowFromEntry,
-} from "astroclaw/plugin-sdk/setup-runtime";
-import { formatDocsLink } from "astroclaw/plugin-sdk/setup-tools";
+} from "openclaw/plugin-sdk/setup-runtime";
+import { formatDocsLink } from "openclaw/plugin-sdk/setup-tools";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   resolveDefaultSlackAccountId,
   resolveSlackAccount,
@@ -54,10 +56,10 @@ async function resolveSlackAllowFromEntries(params: {
 }
 
 async function promptSlackAllowFrom(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
   accountId?: string;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const parseId = (value: string) =>
     parseMentionOrPrefixedId({
       value,
@@ -105,7 +107,7 @@ async function promptSlackAllowFrom(params: {
 }
 
 async function resolveSlackGroupAllowlist(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   credentialValues: { botToken?: string };
   entries: string[];
@@ -137,7 +139,7 @@ async function resolveSlackGroupAllowlist(params: {
         .filter((entry) => entry.resolved && entry.id)
         .map((entry) => entry.id as string);
       const unresolved = resolved.filter((entry) => !entry.resolved).map((entry) => entry.input);
-      keys = [...resolvedKeys, ...unresolved.map((entry) => entry.trim()).filter(Boolean)];
+      keys = [...resolvedKeys, ...normalizeStringEntries(unresolved)];
       await noteChannelLookupSummary({
         prompter: params.prompter,
         label: t("wizard.slack.channelsLabel"),
