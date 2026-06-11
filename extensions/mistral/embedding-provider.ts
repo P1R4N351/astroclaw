@@ -1,11 +1,12 @@
+// Mistral provider module implements model/runtime integration.
 import {
   createRemoteEmbeddingProvider,
   normalizeEmbeddingModelWithPrefixes,
   resolveRemoteEmbeddingClient,
   type MemoryEmbeddingProvider,
   type MemoryEmbeddingProviderCreateOptions,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
-import type { SsrFPolicy } from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
+import type { SsrFPolicy } from "openclaw/plugin-sdk/ssrf-runtime";
 
 type MistralEmbeddingClient = {
   baseUrl: string;
