@@ -1,4 +1,6 @@
+// Applies scoped config mutations while preserving IO and observer state.
 import { AsyncLocalStorage } from "node:async_hooks";
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
@@ -12,6 +14,7 @@ import { INCLUDE_KEY } from "./includes.js";
 import { createInvalidConfigError, formatInvalidConfigDetails } from "./io.invalid-config.js";
 import {
   readConfigFileSnapshotForWrite,
+  restoreEnvChangesIfUnchanged,
   resolveConfigSnapshotHash,
   writeConfigFile,
   type ConfigWriteOptions,
@@ -27,14 +30,16 @@ import {
   getRuntimeConfigSnapshotRefreshHandler,
   getRuntimeConfigSourceSnapshot,
   notifyRuntimeConfigWriteListeners,
+  preflightRuntimeSnapshotWrite,
   resolveConfigWriteAfterWrite,
   resolveConfigWriteFollowUp,
   type ConfigWriteAfterWrite,
   type ConfigWriteFollowUp,
 } from "./runtime-snapshot.js";
-import type { ConfigFileSnapshot, AstroclawConfig } from "./types.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "./types.js";
 import { validateConfigObjectWithPlugins } from "./validation.js";
 
+/** Selects whether a mutation starts from runtime or source config shape. */
 export type ConfigMutationBase = "runtime" | "source";
 
 const CONFIG_MUTATION_LOCK_OPTIONS = {
@@ -52,6 +57,7 @@ const DEFAULT_CONFIG_MUTATION_RETRY_ATTEMPTS = 5;
 const activeConfigMutationLocks = new AsyncLocalStorage<Set<string>>();
 const configMutationQueueTails = new Map<string, Promise<void>>();
 
+/** Raised when a config write loses an optimistic hash race. */
 export class ConfigMutationConflictError extends Error {
   readonly currentHash: string | null;
 
@@ -66,16 +72,17 @@ export type ConfigReplaceResult = {
   path: string;
   previousHash: string | null;
   snapshot: ConfigFileSnapshot;
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
   persistedHash: string | null;
   afterWrite: ConfigWriteAfterWrite;
   followUp: ConfigWriteFollowUp;
 };
 
 export type ConfigMutationIO = {
+  env?: NodeJS.ProcessEnv;
   readConfigFileSnapshotForWrite: typeof readConfigFileSnapshotForWrite;
   writeConfigFile: (
-    cfg: AstroclawConfig,
+    cfg: OpenClawConfig,
     options?: ConfigWriteOptions,
   ) => Promise<ConfigWriteResult | void>;
 };
@@ -87,12 +94,12 @@ export type ConfigMutationContext = {
 };
 
 export type ConfigTransformResult<T> = {
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
   result?: T;
 };
 
 export type ConfigMutationCommitParams = {
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
   snapshot: ConfigFileSnapshot;
   baseHash?: string;
   writeOptions?: ConfigWriteOptions;
@@ -101,7 +108,7 @@ export type ConfigMutationCommitParams = {
 };
 
 export type ConfigMutationCommitResult = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   persistedHash: string | null;
   afterWrite?: ConfigWriteAfterWrite;
 };
@@ -118,7 +125,7 @@ export type TransformConfigFileParams<T> = {
   io?: ConfigMutationIO;
   commit?: ConfigMutationCommit;
   transform: (
-    currentConfig: AstroclawConfig,
+    currentConfig: OpenClawConfig,
     context: ConfigMutationContext,
   ) => Promise<ConfigTransformResult<T>> | ConfigTransformResult<T>;
 };
@@ -235,10 +242,65 @@ function getSingleTopLevelIncludeTarget(params: {
   return resolved;
 }
 
+function formatJsonFileValue(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function hashFileRaw(raw: string | null): string {
+  const hash = crypto.createHash("sha256");
+  if (raw === null) {
+    hash.update("missing");
+  } else {
+    hash.update("present\0");
+    hash.update(raw, "utf-8");
+  }
+  return hash.digest("hex");
+}
+
+async function readFileRawIfExists(filePath: string): Promise<string | null> {
+  try {
+    return await fs.readFile(filePath, "utf-8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function rollbackJsonFileWriteIfUnchanged(params: {
+  filePath: string;
+  previousRaw: string | null;
+  committedHash: string;
+}): Promise<boolean> {
+  const currentRaw = await readFileRawIfExists(params.filePath);
+  if (hashFileRaw(currentRaw) !== params.committedHash) {
+    return false;
+  }
+  if (params.previousRaw !== null) {
+    await replaceFileAtomic({
+      filePath: params.filePath,
+      content: params.previousRaw,
+      dirMode: 0o700,
+      mode: 0o600,
+      tempPrefix: path.basename(params.filePath),
+    });
+    return true;
+  }
+  try {
+    await fs.unlink(params.filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
+      throw error;
+    }
+  }
+  return true;
+}
+
 async function writeJsonFileAtomic(filePath: string, value: unknown): Promise<void> {
   await replaceFileAtomic({
     filePath,
-    content: `${JSON.stringify(value, null, 2)}\n`,
+    content: formatJsonFileValue(value),
     dirMode: 0o700,
     mode: 0o600,
     tempPrefix: path.basename(filePath),
@@ -253,11 +315,11 @@ async function writeJsonFileAtomic(filePath: string, value: unknown): Promise<vo
 
 async function tryWriteSingleTopLevelIncludeMutation(params: {
   snapshot: ConfigFileSnapshot;
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
   afterWrite?: ConfigWriteOptions["afterWrite"];
   writeOptions?: ConfigWriteOptions;
   io?: ConfigMutationIO;
-}): Promise<{ persistedHash: string | null; persistedConfig: AstroclawConfig } | null> {
+}): Promise<{ persistedHash: string | null; persistedConfig: OpenClawConfig } | null> {
   const nextConfig = applyUnsetPathsForWrite(
     params.nextConfig,
     resolveManagedUnsetPathsForWrite(params.writeOptions?.unsetPaths),
@@ -289,67 +351,113 @@ async function tryWriteSingleTopLevelIncludeMutation(params: {
   const runtimeConfigSourceSnapshot = getRuntimeConfigSourceSnapshot();
   const hadRuntimeSnapshot = Boolean(runtimeConfigSnapshot);
   const hadBothSnapshots = Boolean(runtimeConfigSnapshot && runtimeConfigSourceSnapshot);
-  await writeJsonFileAtomic(includePath, nextConfigRecord[key]);
-  if (
-    params.writeOptions?.skipRuntimeSnapshotRefresh &&
-    !hadRuntimeSnapshot &&
-    !getRuntimeConfigSnapshotRefreshHandler()
-  ) {
-    return { persistedHash: null, persistedConfig: nextConfig };
-  }
-
-  const refreshed = await (
-    params.io?.readConfigFileSnapshotForWrite ?? readConfigFileSnapshotForWrite
-  )(params.writeOptions?.skipPluginValidation ? { skipPluginValidation: true } : undefined);
-  const refreshedSnapshot = refreshed.snapshot;
-  const persistedHash = resolveConfigSnapshotHash(refreshedSnapshot);
-  if (!refreshedSnapshot.valid) {
-    throw createInvalidConfigError(
-      params.snapshot.path,
-      formatInvalidConfigDetails(refreshedSnapshot.issues),
-    );
-  }
-  if (!persistedHash) {
-    throw new Error(
-      `Config was written to ${params.snapshot.path}, but no persisted hash was available.`,
-    );
-  }
-
-  const notifyCommittedWrite = () => {
-    const currentRuntimeConfig = getRuntimeConfigSnapshot();
-    if (!currentRuntimeConfig) {
-      return;
-    }
-    notifyRuntimeConfigWriteListeners(
-      createRuntimeConfigWriteNotification({
-        configPath: params.snapshot.path,
-        sourceConfig: refreshedSnapshot.sourceConfig,
-        runtimeConfig: currentRuntimeConfig,
-        persistedHash,
-        afterWrite: params.afterWrite ?? params.writeOptions?.afterWrite,
-      }),
-    );
-  };
-  await finalizeRuntimeSnapshotWrite({
-    nextSourceConfig: refreshedSnapshot.sourceConfig,
-    hadRuntimeSnapshot,
-    hadBothSnapshots,
-    loadFreshConfig: () => refreshedSnapshot.runtimeConfig,
-    notifyCommittedWrite,
+  const runtimePreflightResult = await preflightRuntimeSnapshotWrite({
+    nextSourceConfig: nextConfig,
+    refreshOptions: params.writeOptions?.runtimeRefresh,
     formatRefreshError: (error) => formatErrorMessage(error),
     createRefreshError: (detail, cause) =>
       new Error(
-        `Config was written to ${params.snapshot.path}, but runtime snapshot refresh failed: ${detail}`,
+        `Config write blocked before committing ${includePath}: active SecretRef resolution failed: ${detail}`,
         { cause },
       ),
   });
-  return { persistedHash, persistedConfig: refreshedSnapshot.sourceConfig };
+  const previousIncludeRaw = await readFileRawIfExists(includePath);
+  const committedIncludeRaw = formatJsonFileValue(nextConfigRecord[key]);
+  const committedIncludeHash = hashFileRaw(committedIncludeRaw);
+  await writeJsonFileAtomic(includePath, nextConfigRecord[key]);
+  const writeEnv = params.io?.env ?? process.env;
+  const envBeforePostWriteRead = { ...writeEnv };
+  let envAfterPostWriteRead = envBeforePostWriteRead;
+  try {
+    if (
+      params.writeOptions?.skipRuntimeSnapshotRefresh &&
+      !hadRuntimeSnapshot &&
+      !getRuntimeConfigSnapshotRefreshHandler()
+    ) {
+      return { persistedHash: null, persistedConfig: nextConfig };
+    }
+
+    let refreshed: Awaited<ReturnType<typeof readConfigFileSnapshotForWrite>>;
+    try {
+      refreshed = await (
+        params.io?.readConfigFileSnapshotForWrite ?? readConfigFileSnapshotForWrite
+      )(params.writeOptions?.skipPluginValidation ? { skipPluginValidation: true } : undefined);
+    } finally {
+      envAfterPostWriteRead = { ...writeEnv };
+    }
+    const refreshedSnapshot = refreshed.snapshot;
+    const persistedHash = resolveConfigSnapshotHash(refreshedSnapshot);
+    if (!refreshedSnapshot.valid) {
+      throw createInvalidConfigError(
+        params.snapshot.path,
+        formatInvalidConfigDetails(refreshedSnapshot.issues),
+      );
+    }
+    if (!persistedHash) {
+      throw new Error(
+        `Config was written to ${params.snapshot.path}, but no persisted hash was available.`,
+      );
+    }
+
+    const notifyCommittedWrite = () => {
+      const currentRuntimeConfig = getRuntimeConfigSnapshot();
+      if (!currentRuntimeConfig) {
+        return;
+      }
+      notifyRuntimeConfigWriteListeners(
+        createRuntimeConfigWriteNotification({
+          configPath: params.snapshot.path,
+          sourceConfig: refreshedSnapshot.sourceConfig,
+          runtimeConfig: currentRuntimeConfig,
+          persistedHash,
+          afterWrite: params.afterWrite ?? params.writeOptions?.afterWrite,
+        }),
+      );
+    };
+    await finalizeRuntimeSnapshotWrite({
+      nextSourceConfig: refreshedSnapshot.sourceConfig,
+      refreshOptions: params.writeOptions?.runtimeRefresh,
+      hadRuntimeSnapshot,
+      hadBothSnapshots,
+      loadFreshConfig: () => refreshedSnapshot.runtimeConfig,
+      notifyCommittedWrite,
+      preflightResult: runtimePreflightResult,
+      formatRefreshError: (error) => formatErrorMessage(error),
+      createRefreshError: (detail, cause) =>
+        new Error(
+          `Config was written to ${params.snapshot.path}, but runtime snapshot refresh failed: ${detail}`,
+          { cause },
+        ),
+    });
+    return { persistedHash, persistedConfig: refreshedSnapshot.sourceConfig };
+  } catch (error) {
+    try {
+      const rolledBack = await rollbackJsonFileWriteIfUnchanged({
+        filePath: includePath,
+        previousRaw: previousIncludeRaw,
+        committedHash: committedIncludeHash,
+      });
+      if (rolledBack) {
+        restoreEnvChangesIfUnchanged({
+          env: writeEnv,
+          before: envBeforePostWriteRead,
+          after: envAfterPostWriteRead,
+        });
+      }
+    } catch (rollbackError) {
+      throw new Error(
+        `${formatErrorMessage(error)} Rollback failed: ${formatErrorMessage(rollbackError)}`,
+        { cause: rollbackError },
+      );
+    }
+    throw error;
+  }
 }
 
 function resolveConfigWriteResult(
   result: ConfigWriteResult | void,
-  fallbackConfig: AstroclawConfig,
-): { persistedHash: string | null; persistedConfig: AstroclawConfig } {
+  fallbackConfig: OpenClawConfig,
+): { persistedHash: string | null; persistedConfig: OpenClawConfig } {
   if (result) {
     return {
       persistedHash: result.persistedHash,
@@ -360,7 +468,7 @@ function resolveConfigWriteResult(
 }
 
 export async function replaceConfigFile(params: {
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
   baseHash?: string;
   snapshot?: ConfigFileSnapshot;
   afterWrite?: ConfigWriteOptions["afterWrite"];
@@ -374,7 +482,7 @@ export async function replaceConfigFile(params: {
 }
 
 async function replaceConfigFileUnlocked(params: {
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
   baseHash?: string;
   snapshot?: ConfigFileSnapshot;
   afterWrite?: ConfigWriteOptions["afterWrite"];
@@ -403,13 +511,35 @@ async function replaceConfigFileUnlocked(params: {
     io: params.io,
   });
   if (!writeResult) {
+    const fallbackWriteOptions: ConfigWriteOptions = {
+      baseSnapshot: snapshot,
+      ...writeOptions,
+      ...params.writeOptions,
+      afterWrite,
+    };
+    const ioPreCommitRuntimePreflight = params.io
+      ? fallbackWriteOptions.preCommitRuntimePreflight
+      : undefined;
+    if (params.io) {
+      fallbackWriteOptions.preCommitRuntimePreflight = async (sourceConfig) => {
+        await ioPreCommitRuntimePreflight?.(sourceConfig);
+        await preflightRuntimeSnapshotWrite({
+          nextSourceConfig: sourceConfig,
+          refreshOptions: fallbackWriteOptions.runtimeRefresh,
+          formatRefreshError: (error) => formatErrorMessage(error),
+          createRefreshError: (detail, cause) =>
+            new Error(
+              `Config write blocked before committing ${snapshot.path}: active SecretRef resolution failed: ${detail}`,
+              { cause },
+            ),
+        });
+      };
+    }
     writeResult = resolveConfigWriteResult(
-      await (params.io?.writeConfigFile ?? writeConfigFile)(params.nextConfig, {
-        baseSnapshot: snapshot,
-        ...writeOptions,
-        ...params.writeOptions,
-        afterWrite,
-      }),
+      await (params.io?.writeConfigFile ?? writeConfigFile)(
+        params.nextConfig,
+        fallbackWriteOptions,
+      ),
       params.nextConfig,
     );
   }
@@ -523,7 +653,7 @@ export async function mutateConfigFile<T = void>(params: {
   afterWrite?: ConfigWriteOptions["afterWrite"];
   writeOptions?: ConfigWriteOptions;
   io?: ConfigMutationIO;
-  mutate: (draft: AstroclawConfig, context: ConfigMutationContext) => Promise<T | void> | T | void;
+  mutate: (draft: OpenClawConfig, context: ConfigMutationContext) => Promise<T | void> | T | void;
 }): Promise<ConfigMutationResult<T>> {
   return await transformConfigFile<T>({
     base: params.base,
@@ -546,7 +676,7 @@ export async function mutateConfigFileWithRetry<T = void>(params: {
   afterWrite?: ConfigWriteOptions["afterWrite"];
   writeOptions?: ConfigWriteOptions;
   io?: ConfigMutationIO;
-  mutate: (draft: AstroclawConfig, context: ConfigMutationContext) => Promise<T | void> | T | void;
+  mutate: (draft: OpenClawConfig, context: ConfigMutationContext) => Promise<T | void> | T | void;
 }): Promise<ConfigMutationResult<T>> {
   return await transformConfigFileWithRetry<T>({
     base: params.base,
