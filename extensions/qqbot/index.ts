@@ -1,12 +1,24 @@
+// Qqbot plugin entrypoint registers its OpenClaw integration.
 import {
   defineBundledChannelEntry,
   loadBundledEntryExportSync,
-  type AstroclawPluginApi,
-} from "astroclaw/plugin-sdk/channel-entry-contract";
+  type OpenClawPluginApi,
+} from "openclaw/plugin-sdk/channel-entry-contract";
 
-function registerQQBotFull(api: AstroclawPluginApi): void {
-  const register = loadBundledEntryExportSync<(api: AstroclawPluginApi) => void>(import.meta.url, {
-    specifier: "./api.js",
+function registerQQBotFull(api: OpenClawPluginApi): void {
+  if (api.registrationMode === "tool-discovery") {
+    const registerTools = loadBundledEntryExportSync<(api: OpenClawPluginApi) => void>(
+      import.meta.url,
+      {
+        specifier: "./tools-api.js",
+        exportName: "registerQQBotTools",
+      },
+    );
+    registerTools(api);
+    return;
+  }
+  const register = loadBundledEntryExportSync<(api: OpenClawPluginApi) => void>(import.meta.url, {
+    specifier: "./channel-entry-api.js",
     exportName: "registerQQBotFull",
   });
   register(api);
