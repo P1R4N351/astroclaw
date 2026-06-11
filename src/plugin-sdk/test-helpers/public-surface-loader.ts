@@ -1,3 +1,4 @@
+// Public surface loader test helpers import SDK subpaths for export-contract assertions.
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -29,7 +30,7 @@ function resolveSourceArtifactPath(packageDir: string, artifactBasename: string)
 
 function resolveExtensionDirByManifestId(pluginId: string): string {
   const pluginDir = path.resolve(repoRoot, "extensions", pluginId);
-  const manifest = readJson(path.join(pluginDir, "astroclaw.plugin.json")) as
+  const manifest = readJson(path.join(pluginDir, "openclaw.plugin.json")) as
     | { id?: unknown }
     | undefined;
   if (manifest?.id === pluginId) {
@@ -39,17 +40,19 @@ function resolveExtensionDirByManifestId(pluginId: string): string {
 }
 
 function resolveWorkspacePackageDir(packageName: string): string {
-  const extensionsDir = path.resolve(repoRoot, "extensions");
-  for (const entry of fs.readdirSync(extensionsDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
-    const packageDir = path.join(extensionsDir, entry.name);
-    const manifest = readJson(path.join(packageDir, "package.json")) as
-      | { name?: unknown }
-      | undefined;
-    if (manifest?.name === packageName) {
-      return packageDir;
+  for (const rootName of ["extensions", "packages"]) {
+    const rootDir = path.resolve(repoRoot, rootName);
+    for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const packageDir = path.join(rootDir, entry.name);
+      const manifest = readJson(path.join(packageDir, "package.json")) as
+        | { name?: unknown }
+        | undefined;
+      if (manifest?.name === packageName) {
+        return packageDir;
+      }
     }
   }
   throw new Error(`Unknown workspace package: ${packageName}`);
