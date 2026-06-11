@@ -1,10 +1,11 @@
+// Tlon API module exposes the plugin public contract.
 export {
   createDedupeCache,
   createLoggerBackedRuntime,
   fetchWithSsrFGuard,
   isBlockedHostnameOrIp,
   type LookupFn,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type ReplyPayload,
   type RuntimeEnv,
   SsrFBlockedError,
