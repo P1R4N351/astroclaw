@@ -1,10 +1,12 @@
+/** Resolves effective plugin ids from config, installed records, and activation metadata. */
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
+import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
 import {
   listExplicitlyDisabledChannelIdsForConfig,
   listPotentialConfiguredChannelIds,
 } from "../channels/config-presence.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
-import { normalizeOptionalLowercaseString } from "../shared/string-coerce.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   listExplicitConfiguredChannelIdsForConfig,
   loadGatewayStartupPluginPlan,
@@ -16,8 +18,8 @@ import { passesManifestOwnerBasePolicy } from "./manifest-owner-policy.js";
 import { defaultSlotIdForKey } from "./slots.js";
 
 function collectConfiguredChannelIds(
-  config: AstroclawConfig,
-  activationSourceConfig: AstroclawConfig,
+  config: OpenClawConfig,
+  activationSourceConfig: OpenClawConfig,
   env: NodeJS.ProcessEnv,
 ): string[] {
   const disabled = new Set([
@@ -40,7 +42,7 @@ function collectConfiguredChannelIds(
 }
 
 function collectBundledChannelOwnerPluginIds(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   channelIds: readonly string[];
   env: NodeJS.ProcessEnv;
   workspaceDir?: string;
@@ -58,9 +60,9 @@ function collectBundledChannelOwnerPluginIds(params: {
   const env = params.bundledPluginsDir
     ? {
         ...params.env,
-        ASTROCLAW_BUNDLED_PLUGINS_DIR: params.bundledPluginsDir,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: params.bundledPluginsDir,
         ...(params.env.VITEST || process.env.VITEST
-          ? { ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1" }
+          ? { OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1" }
           : {}),
       }
     : params.env;
@@ -92,10 +94,10 @@ function collectBundledChannelOwnerPluginIds(params: {
       }
     }
   }
-  return [...pluginIds].toSorted((left, right) => left.localeCompare(right));
+  return sortUniqueStrings(pluginIds);
 }
 
-function collectExplicitEffectivePluginIds(config: AstroclawConfig): string[] {
+function collectExplicitEffectivePluginIds(config: OpenClawConfig): string[] {
   const plugins = normalizePluginsConfig(config.plugins);
   if (!plugins.enabled) {
     return [];
@@ -118,10 +120,10 @@ function collectExplicitEffectivePluginIds(config: AstroclawConfig): string[] {
       ids.delete(pluginId);
     }
   }
-  return [...ids].toSorted((left, right) => left.localeCompare(right));
+  return sortUniqueStrings(ids);
 }
 
-function collectSelectedContextEnginePluginIds(config: AstroclawConfig): string[] {
+function collectSelectedContextEnginePluginIds(config: OpenClawConfig): string[] {
   const plugins = normalizePluginsConfig(config.plugins);
   if (!plugins.enabled) {
     return [];
@@ -139,8 +141,9 @@ function collectSelectedContextEnginePluginIds(config: AstroclawConfig): string[
   return [pluginId];
 }
 
+/** Lists plugin ids that are effectively enabled for a config/discovery context. */
 export function resolveEffectivePluginIds(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   workspaceDir?: string;
   bundledPluginsDir?: string;
@@ -184,5 +187,5 @@ export function resolveEffectivePluginIds(params: {
   }).pluginIds) {
     ids.add(pluginId);
   }
-  return [...ids].toSorted((left, right) => left.localeCompare(right));
+  return sortUniqueStrings(ids);
 }
