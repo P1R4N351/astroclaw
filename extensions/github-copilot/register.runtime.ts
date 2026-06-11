@@ -1,8 +1,9 @@
+// Github Copilot plugin module implements register behavior.
 import {
   coerceSecretRef,
   ensureAuthProfileStore,
   listProfilesForProvider,
-} from "astroclaw/plugin-sdk/provider-auth";
+} from "openclaw/plugin-sdk/provider-auth";
 import { githubCopilotLoginCommand } from "./login.js";
 import { PROVIDER_ID, resolveCopilotForwardCompatModel } from "./models.js";
 import { wrapCopilotAnthropicStream, wrapCopilotProviderStream } from "./stream.js";
