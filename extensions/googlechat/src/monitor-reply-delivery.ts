@@ -1,8 +1,9 @@
+// Googlechat plugin module implements monitor reply delivery behavior.
 import {
   deliverTextOrMediaReply,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { AstroclawConfig } from "../runtime-api.js";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { OpenClawConfig } from "../runtime-api.js";
 import type { ResolvedGoogleChatAccount } from "./accounts.js";
 import {
   deleteGoogleChatMessage,
@@ -13,12 +14,17 @@ import {
 import type { GoogleChatCoreRuntime, GoogleChatRuntimeEnv } from "./monitor-types.js";
 
 export async function deliverGoogleChatReply(params: {
-  payload: { text?: string; mediaUrls?: string[]; mediaUrl?: string; replyToId?: string };
+  payload: {
+    text?: string;
+    mediaUrls?: string[];
+    mediaUrl?: string;
+    replyToId?: string;
+  };
   account: ResolvedGoogleChatAccount;
   spaceId: string;
   runtime: GoogleChatRuntimeEnv;
   core: GoogleChatCoreRuntime;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   statusSink?: (patch: { lastInboundAt?: number; lastOutboundAt?: number }) => void;
   typingMessageName?: string;
 }): Promise<void> {
