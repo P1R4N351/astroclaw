@@ -1,16 +1,22 @@
+// Gateway startup Control UI origin seeding.
+// Adds runtime-only browser origins for non-loopback binds when safe.
 import {
   ensureControlUiAllowedOriginsForNonLoopbackBind,
   type GatewayNonLoopbackBindMode,
 } from "../config/gateway-control-ui-origins.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isContainerEnvironment } from "./net.js";
 
+/**
+ * Seeds runtime-only Control UI origins when a non-loopback gateway bind would
+ * otherwise reject the browser that just opened the local UI.
+ */
 export async function maybeSeedControlUiAllowedOriginsAtStartup(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   log: { info: (msg: string) => void; warn: (msg: string) => void };
   runtimeBind?: unknown;
   runtimePort?: unknown;
-}): Promise<{ config: AstroclawConfig; seededAllowedOrigins: boolean }> {
+}): Promise<{ config: OpenClawConfig; seededAllowedOrigins: boolean }> {
   const seeded = ensureControlUiAllowedOriginsForNonLoopbackBind(params.config, {
     isContainerEnvironment,
     runtimeBind: params.runtimeBind,
@@ -19,6 +25,8 @@ export async function maybeSeedControlUiAllowedOriginsAtStartup(params: {
   if (!seeded.seededOrigins || !seeded.bind) {
     return { config: params.config, seededAllowedOrigins: false };
   }
+  // This changes only the runtime config object. Operators still need explicit
+  // config entries for additional browser origins.
   params.log.info(buildSeededOriginsInfoLog(seeded.seededOrigins, seeded.bind));
   return { config: seeded.config, seededAllowedOrigins: true };
 }
