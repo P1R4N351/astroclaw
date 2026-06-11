@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+// Verifies plugin SDK subpath exports and generated entrypoint metadata.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,10 +42,10 @@ function readPrivateLocalOnlySubpaths() {
 }
 
 function parsePluginSdkSubpath(specifier) {
-  if (!specifier.startsWith("astroclaw/plugin-sdk/")) {
+  if (!specifier.startsWith("openclaw/plugin-sdk/")) {
     return null;
   }
-  const subpath = specifier.slice("astroclaw/plugin-sdk/".length);
+  const subpath = specifier.slice("openclaw/plugin-sdk/".length);
   return subpath || null;
 }
 
@@ -119,12 +120,12 @@ async function collectViolations() {
 async function main() {
   const violations = await collectViolations();
   if (violations.length === 0) {
-    console.log("OK: all referenced astroclaw/plugin-sdk/<subpath> imports are exported.");
+    console.log("OK: all referenced openclaw/plugin-sdk/<subpath> imports are exported.");
     return;
   }
 
   console.error(
-    "Rule: every referenced astroclaw/plugin-sdk/<subpath> must exist in the public package exports.",
+    "Rule: every referenced openclaw/plugin-sdk/<subpath> must exist in the public package exports.",
   );
   for (const violation of violations) {
     console.error(
@@ -134,7 +135,9 @@ async function main() {
   process.exit(1);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+main().catch(
+  /** @param {unknown} error */ (error) => {
+    console.error(error);
+    process.exit(1);
+  },
+);
