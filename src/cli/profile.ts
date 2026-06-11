@@ -1,11 +1,12 @@
+// Root --profile/--dev parsing and environment projection for profile-specific state.
 import os from "node:os";
 import path from "node:path";
-import { isValueToken } from "../infra/cli-root-options.js";
-import { resolveRequiredHomeDir } from "../infra/home-dir.js";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import { isValueToken } from "../infra/cli-root-options.js";
+import { resolveRequiredHomeDir } from "../infra/home-dir.js";
 import { resolveCliArgvInvocation } from "./argv-invocation.js";
 import { isValidProfileName } from "./profile-utils.js";
 import { scanCliRootOptions } from "./root-option-scan.js";
@@ -21,6 +22,7 @@ function isCommandLocalProfileOption(out: string[]): boolean {
 }
 
 export function parseCliProfileArgs(argv: string[]): CliProfileParseResult {
+  // Root profile flags are stripped before Commander sees argv, except command-local cases.
   let profile: string | null = null;
   let sawDev = false;
 
@@ -80,7 +82,7 @@ function resolveProfileStateDir(
   homedir: () => string,
 ): string {
   const suffix = normalizeLowercaseStringOrEmpty(profile) === "default" ? "" : `-${profile}`;
-  return path.join(resolveRequiredHomeDir(env as NodeJS.ProcessEnv, homedir), `.astroclaw${suffix}`);
+  return path.join(resolveRequiredHomeDir(env as NodeJS.ProcessEnv, homedir), `.openclaw${suffix}`);
 }
 
 export function applyCliProfileEnv(params: {
@@ -96,19 +98,19 @@ export function applyCliProfileEnv(params: {
   }
 
   // Convenience only: fill defaults, never override explicit env values.
-  env.ASTROCLAW_PROFILE = profile;
+  env.OPENCLAW_PROFILE = profile;
 
-  const existingStateDir = normalizeOptionalString(env.ASTROCLAW_STATE_DIR);
+  const existingStateDir = normalizeOptionalString(env.OPENCLAW_STATE_DIR);
   const stateDir = existingStateDir || resolveProfileStateDir(profile, env, homedir);
   if (!existingStateDir) {
-    env.ASTROCLAW_STATE_DIR = stateDir;
+    env.OPENCLAW_STATE_DIR = stateDir;
   }
 
-  if (!normalizeOptionalString(env.ASTROCLAW_CONFIG_PATH)) {
-    env.ASTROCLAW_CONFIG_PATH = path.join(stateDir, "astroclaw.json");
+  if (!normalizeOptionalString(env.OPENCLAW_CONFIG_PATH)) {
+    env.OPENCLAW_CONFIG_PATH = path.join(stateDir, "openclaw.json");
   }
 
-  if (profile === "dev" && !env.ASTROCLAW_GATEWAY_PORT?.trim()) {
-    env.ASTROCLAW_GATEWAY_PORT = "19001";
+  if (profile === "dev" && !env.OPENCLAW_GATEWAY_PORT?.trim()) {
+    env.OPENCLAW_GATEWAY_PORT = "19001";
   }
 }
