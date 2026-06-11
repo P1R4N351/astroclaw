@@ -1,5 +1,7 @@
+// Qa Lab plugin module implements qa credentials admin behavior.
 import { randomUUID } from "node:crypto";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import { z } from "zod";
 import {
   joinQaCredentialEndpoint,
@@ -8,6 +10,7 @@ import {
   parseQaCredentialPositiveIntegerEnv,
   QA_CREDENTIALS_DEFAULT_ENDPOINT_PREFIX,
 } from "./qa-credentials-common.runtime.js";
+import { fingerprintQaCredentialId } from "./qa-credentials-fingerprint.runtime.js";
 
 const DEFAULT_ENDPOINT_PREFIX = QA_CREDENTIALS_DEFAULT_ENDPOINT_PREFIX;
 const DEFAULT_HTTP_TIMEOUT_MS = 15_000;
@@ -32,6 +35,7 @@ const credentialLeaseSchema = z.object({
 
 const credentialRecordSchema = z.object({
   credentialId: z.string().min(1),
+  credentialFingerprint: z.string().optional(),
   kind: z.string().min(1),
   status: credentialStatusSchema,
   createdAtMs: z.number().int(),
@@ -163,13 +167,13 @@ function normalizeEndpointPrefix(value: string | undefined): string {
 }
 
 function resolveAdminAuthToken(env: NodeJS.ProcessEnv): string {
-  const token = env.ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER?.trim();
+  const token = env.OPENCLAW_QA_CONVEX_SECRET_MAINTAINER?.trim();
   if (token) {
     return token;
   }
   throw new QaCredentialAdminError({
     code: "MISSING_MAINTAINER_SECRET",
-    message: "Missing ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER for qa credential admin commands.",
+    message: "Missing OPENCLAW_QA_CONVEX_SECRET_MAINTAINER for qa credential admin commands.",
   });
 }
 
@@ -193,14 +197,14 @@ function summarizeQaCredentialDoctorStatus(checks: readonly QaCredentialDoctorCh
 export async function diagnoseQaCredentialBroker(options: AdminBaseOptions = {}) {
   const env = options.env ?? process.env;
   const checks: QaCredentialDoctorCheck[] = [];
-  const siteUrl = options.siteUrl?.trim() || env.ASTROCLAW_QA_CONVEX_SITE_URL?.trim();
-  const endpointPrefix = options.endpointPrefix?.trim() || env.ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX;
+  const siteUrl = options.siteUrl?.trim() || env.OPENCLAW_QA_CONVEX_SITE_URL?.trim();
+  const endpointPrefix = options.endpointPrefix?.trim() || env.OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX;
   let normalizedSiteUrl: string | null = null;
   let normalizedEndpointPrefix: string | null = null;
 
   if (!siteUrl) {
     addQaCredentialDoctorCheck(checks, {
-      name: "ASTROCLAW_QA_CONVEX_SITE_URL",
+      name: "OPENCLAW_QA_CONVEX_SITE_URL",
       status: "fail",
       details: "missing Convex credential broker site URL",
     });
@@ -208,13 +212,13 @@ export async function diagnoseQaCredentialBroker(options: AdminBaseOptions = {})
     try {
       normalizedSiteUrl = normalizeConvexSiteUrl(siteUrl, env);
       addQaCredentialDoctorCheck(checks, {
-        name: "ASTROCLAW_QA_CONVEX_SITE_URL",
+        name: "OPENCLAW_QA_CONVEX_SITE_URL",
         status: "pass",
         details: normalizedSiteUrl,
       });
     } catch (error) {
       addQaCredentialDoctorCheck(checks, {
-        name: "ASTROCLAW_QA_CONVEX_SITE_URL",
+        name: "OPENCLAW_QA_CONVEX_SITE_URL",
         status: "fail",
         details: formatErrorMessage(error),
       });
@@ -224,21 +228,21 @@ export async function diagnoseQaCredentialBroker(options: AdminBaseOptions = {})
   try {
     normalizedEndpointPrefix = normalizeEndpointPrefix(endpointPrefix);
     addQaCredentialDoctorCheck(checks, {
-      name: "ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX",
+      name: "OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX",
       status: "pass",
       details: normalizedEndpointPrefix,
     });
   } catch (error) {
     addQaCredentialDoctorCheck(checks, {
-      name: "ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX",
+      name: "OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX",
       status: "fail",
       details: formatErrorMessage(error),
     });
   }
 
   for (const [name, requiredFor] of [
-    ["ASTROCLAW_QA_CONVEX_SECRET_CI", "live lane leasing"],
-    ["ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER", "credential add/list/remove"],
+    ["OPENCLAW_QA_CONVEX_SECRET_CI", "live lane leasing"],
+    ["OPENCLAW_QA_CONVEX_SECRET_MAINTAINER", "credential add/list/remove"],
   ] as const) {
     const present = Boolean(env[name]?.trim());
     addQaCredentialDoctorCheck(checks, {
@@ -251,23 +255,23 @@ export async function diagnoseQaCredentialBroker(options: AdminBaseOptions = {})
   try {
     const timeoutMs = parsePositiveIntegerEnv(
       env,
-      "ASTROCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
+      "OPENCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
       DEFAULT_HTTP_TIMEOUT_MS,
     );
     addQaCredentialDoctorCheck(checks, {
-      name: "ASTROCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
+      name: "OPENCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
       status: "pass",
       details: `${timeoutMs}ms`,
     });
   } catch (error) {
     addQaCredentialDoctorCheck(checks, {
-      name: "ASTROCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
+      name: "OPENCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
       status: "fail",
       details: formatErrorMessage(error),
     });
   }
 
-  if (normalizedSiteUrl && normalizedEndpointPrefix && env.ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER) {
+  if (normalizedSiteUrl && normalizedEndpointPrefix && env.OPENCLAW_QA_CONVEX_SECRET_MAINTAINER) {
     try {
       const listed = await listQaCredentialSets({
         actorId: options.actorId,
@@ -306,20 +310,20 @@ export async function diagnoseQaCredentialBroker(options: AdminBaseOptions = {})
 
 function resolveAdminConfig(options: AdminBaseOptions): AdminConfig {
   const env = options.env ?? process.env;
-  const siteUrl = options.siteUrl?.trim() || env.ASTROCLAW_QA_CONVEX_SITE_URL?.trim();
+  const siteUrl = options.siteUrl?.trim() || env.OPENCLAW_QA_CONVEX_SITE_URL?.trim();
   if (!siteUrl) {
     throw new QaCredentialAdminError({
       code: "MISSING_SITE_URL",
-      message: "Missing ASTROCLAW_QA_CONVEX_SITE_URL for qa credential admin commands.",
+      message: "Missing OPENCLAW_QA_CONVEX_SITE_URL for qa credential admin commands.",
     });
   }
   const normalizedSiteUrl = normalizeConvexSiteUrl(siteUrl, env);
   const endpointPrefix = normalizeEndpointPrefix(
-    options.endpointPrefix?.trim() || env.ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX,
+    options.endpointPrefix?.trim() || env.OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX,
   );
   const actorId =
     options.actorId?.trim() ||
-    env.ASTROCLAW_QA_CREDENTIAL_OWNER_ID?.trim() ||
+    env.OPENCLAW_QA_CREDENTIAL_OWNER_ID?.trim() ||
     `qa-lab-admin-${process.pid}-${randomUUID().slice(0, 8)}`;
 
   return {
@@ -329,7 +333,7 @@ function resolveAdminConfig(options: AdminBaseOptions): AdminConfig {
     endpointPrefix,
     httpTimeoutMs: parsePositiveIntegerEnv(
       env,
-      "ASTROCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
+      "OPENCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS",
       DEFAULT_HTTP_TIMEOUT_MS,
     ),
     addUrl: joinQaCredentialEndpoint(normalizedSiteUrl, endpointPrefix, "admin/add"),
@@ -369,6 +373,7 @@ async function postJson<T>(params: {
   responseSchema: z.ZodType<T>;
   url: string;
 }) {
+  const httpTimeoutMs = resolveTimerTimeoutMs(params.httpTimeoutMs, DEFAULT_HTTP_TIMEOUT_MS);
   let response: Response;
   try {
     response = await params.fetchImpl(params.url, {
@@ -378,7 +383,7 @@ async function postJson<T>(params: {
         "content-type": "application/json",
       },
       body: JSON.stringify(params.body),
-      signal: AbortSignal.timeout(params.httpTimeoutMs),
+      signal: AbortSignal.timeout(httpTimeoutMs),
     });
   } catch (error) {
     throw new QaCredentialAdminError({
@@ -442,10 +447,17 @@ function normalizeLimit(value: number | undefined) {
   return value;
 }
 
+function withQaCredentialFingerprint(credential: QaCredentialRecord): QaCredentialRecord {
+  return {
+    ...credential,
+    credentialFingerprint: fingerprintQaCredentialId(credential.credentialId),
+  };
+}
+
 export async function addQaCredentialSet(options: AddQaCredentialSetOptions) {
   const config = resolveAdminConfig(options);
   const fetchImpl = options.fetchImpl ?? fetch;
-  return await postJson({
+  const result = await postJson({
     fetchImpl,
     authToken: config.authToken,
     httpTimeoutMs: config.httpTimeoutMs,
@@ -459,12 +471,16 @@ export async function addQaCredentialSet(options: AddQaCredentialSetOptions) {
       actorId: config.actorId,
     },
   });
+  return {
+    ...result,
+    credential: withQaCredentialFingerprint(result.credential),
+  };
 }
 
 export async function removeQaCredentialSet(options: RemoveQaCredentialSetOptions) {
   const config = resolveAdminConfig(options);
   const fetchImpl = options.fetchImpl ?? fetch;
-  return await postJson({
+  const result = await postJson({
     fetchImpl,
     authToken: config.authToken,
     httpTimeoutMs: config.httpTimeoutMs,
@@ -475,6 +491,10 @@ export async function removeQaCredentialSet(options: RemoveQaCredentialSetOption
       actorId: config.actorId,
     },
   });
+  return {
+    ...result,
+    credential: withQaCredentialFingerprint(result.credential),
+  };
 }
 
 export async function listQaCredentialSets(options: ListQaCredentialSetsOptions) {
@@ -482,7 +502,7 @@ export async function listQaCredentialSets(options: ListQaCredentialSetsOptions)
   const fetchImpl = options.fetchImpl ?? fetch;
   const status = normalizeStatus(options.status);
   const limit = normalizeLimit(options.limit);
-  return await postJson({
+  const result = await postJson({
     fetchImpl,
     authToken: config.authToken,
     httpTimeoutMs: config.httpTimeoutMs,
@@ -495,4 +515,8 @@ export async function listQaCredentialSets(options: ListQaCredentialSetsOptions)
       ...(limit !== undefined ? { limit } : {}),
     },
   });
+  return {
+    ...result,
+    credentials: result.credentials.map((credential) => withQaCredentialFingerprint(credential)),
+  };
 }
