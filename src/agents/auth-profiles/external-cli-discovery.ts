@@ -1,30 +1,37 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+/**
+ * External CLI auth discovery mode helpers.
+ * Converts provider/config lookup contexts into scoped discovery options for
+ * auth profile store loading.
+ */
+import { normalizeTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   resolveExternalCliAuthScopeFromConfig,
   type ExternalCliAuthScope,
 } from "./external-cli-scope.js";
 
+/** External CLI auth discovery mode used while loading auth profile stores. */
 export type ExternalCliAuthDiscovery =
   | {
       mode: "none";
       allowKeychainPrompt?: false;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
     }
   | {
       mode: "existing";
       allowKeychainPrompt?: boolean;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
     }
   | {
       mode: "scoped";
       allowKeychainPrompt?: boolean;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
       providerIds?: Iterable<string>;
       profileIds?: Iterable<string>;
     };
 
 type ProviderAuthDiscoveryParams = {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   provider: string;
   profileId?: string;
   preferredProfile?: string;
@@ -32,24 +39,23 @@ type ProviderAuthDiscoveryParams = {
 };
 
 type ConfigStatusDiscoveryParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   allowKeychainPrompt?: false;
 };
 
 type ProviderSetDiscoveryParams = {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   providers: Iterable<string>;
   allowKeychainPrompt?: false;
 };
 
 function normalizeStringList(values: Iterable<string | undefined>): string[] {
-  return [...values]
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value));
+  return normalizeTrimmedStringList([...values]);
 }
 
+/** Disables external CLI auth discovery. */
 export function externalCliDiscoveryNone(params?: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
 }): ExternalCliAuthDiscovery {
   return {
     mode: "none",
@@ -58,8 +64,9 @@ export function externalCliDiscoveryNone(params?: {
   };
 }
 
+/** Allows discovery of already-existing external CLI auth profiles. */
 export function externalCliDiscoveryExisting(params?: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   allowKeychainPrompt?: boolean;
 }): ExternalCliAuthDiscovery {
   return {
@@ -71,8 +78,9 @@ export function externalCliDiscoveryExisting(params?: {
   };
 }
 
+/** Allows external CLI auth discovery for specific providers and/or profiles. */
 export function externalCliDiscoveryScoped(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   providerIds?: Iterable<string>;
   profileIds?: Iterable<string>;
   allowKeychainPrompt?: boolean;
@@ -88,6 +96,7 @@ export function externalCliDiscoveryScoped(params: {
   };
 }
 
+/** Builds external CLI discovery options for a provider auth lookup. */
 export function externalCliDiscoveryForProviderAuth(
   params: ProviderAuthDiscoveryParams,
 ): ExternalCliAuthDiscovery {
@@ -100,6 +109,7 @@ export function externalCliDiscoveryForProviderAuth(
   });
 }
 
+/** Builds external CLI discovery options for config status checks. */
 export function externalCliDiscoveryForConfigStatus(
   params: ConfigStatusDiscoveryParams,
 ): ExternalCliAuthDiscovery {
@@ -111,6 +121,7 @@ export function externalCliDiscoveryForConfigStatus(
   });
 }
 
+/** Builds external CLI discovery options for a provider set. */
 export function externalCliDiscoveryForProviders(
   params: ProviderSetDiscoveryParams,
 ): ExternalCliAuthDiscovery {
@@ -126,7 +137,7 @@ export function externalCliDiscoveryForProviders(
 }
 
 function externalCliDiscoveryFromScope(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   scope: ExternalCliAuthScope | undefined;
   allowKeychainPrompt: false;
 }): ExternalCliAuthDiscovery {
