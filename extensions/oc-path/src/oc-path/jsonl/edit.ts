@@ -2,7 +2,7 @@
  * Mutate a `JsonlAst` at an OcPath. Append uses `appendJsonlOcPath`;
  * `setJsonlOcPath` only edits existing addresses.
  *
- * @module @astroclaw/oc-path/jsonl/edit
+ * @module @openclaw/oc-path/jsonl/edit
  */
 
 import type { JsoncEntry, JsoncValue } from "../jsonc/ast.js";
@@ -10,6 +10,7 @@ import type { OcPath } from "../oc-path.js";
 import {
   isPositionalSeg,
   isQuotedSeg,
+  parseArrayIndexSegment,
   resolvePositionalSeg,
   splitRespectingBrackets,
   unquoteSeg,
@@ -140,8 +141,8 @@ function replaceAt(
       }
       segNorm = resolved;
     }
-    const idx = Number(segNorm);
-    if (!Number.isInteger(idx) || idx < 0 || idx >= current.items.length) {
+    const idx = parseArrayIndexSegment(segNorm, current.items.length);
+    if (idx === null) {
       return null;
     }
     const child = current.items[idx];
