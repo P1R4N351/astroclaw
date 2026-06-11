@@ -1,13 +1,10 @@
-import { readChannelAllowFromStore } from "astroclaw/plugin-sdk/conversation-runtime";
-import { resolveNativeSkillsEnabled } from "astroclaw/plugin-sdk/native-command-config-runtime";
-import type { AstroclawConfig } from "../runtime-api.js";
+// Telegram plugin module implements security audit behavior.
+import { readChannelAllowFromStore } from "openclaw/plugin-sdk/conversation-runtime";
+import { resolveNativeSkillsEnabled } from "openclaw/plugin-sdk/native-command-config-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { OpenClawConfig } from "../runtime-api.js";
 import type { ResolvedTelegramAccount } from "./accounts.js";
 import { isNumericTelegramSenderUserId, normalizeTelegramAllowFromEntry } from "./allow-from.js";
-
-function normalizeOptionalString(value: string | null | undefined): string | undefined {
-  const normalized = value?.trim();
-  return normalized ? normalized : undefined;
-}
 
 function collectInvalidTelegramAllowFromEntries(params: { entries: unknown; target: Set<string> }) {
   if (!Array.isArray(params.entries)) {
@@ -55,7 +52,7 @@ function appendInvalidTelegramAllowFromFinding(
 }
 
 export async function collectTelegramSecurityAuditFindings(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   account: ResolvedTelegramAccount;
 }) {
