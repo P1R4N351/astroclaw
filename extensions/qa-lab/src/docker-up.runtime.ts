@@ -1,3 +1,4 @@
+// Qa Lab plugin module implements docker up behavior.
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { writeQaDockerHarnessFiles } from "./docker-harness.js";
@@ -106,7 +107,7 @@ export async function runQaDockerUp(
     composeFile,
   });
   await waitForDockerServiceHealth(
-    "astroclaw-qa-gateway",
+    "openclaw-qa-gateway",
     composeFile,
     repoRoot,
     runCommand,
@@ -119,7 +120,7 @@ export async function runQaDockerUp(
       .catch(() => false))
   ) {
     const containerGatewayUrl = await resolveComposeServiceUrl(
-      "astroclaw-qa-gateway",
+      "openclaw-qa-gateway",
       18789,
       composeFile,
       repoRoot,
