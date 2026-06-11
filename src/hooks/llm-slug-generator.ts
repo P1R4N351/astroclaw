@@ -5,22 +5,22 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
 import {
   resolveDefaultAgentId,
   resolveAgentWorkspaceDir,
   resolveAgentDir,
 } from "../agents/agent-scope.js";
+import { runEmbeddedAgent } from "../agents/embedded-agent.js";
 import { resolveDefaultModelForAgent } from "../agents/model-selection.js";
-import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { resolveAgentTimeoutMs } from "../agents/timeout.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 
 const log = createSubsystemLogger("llm-slug-generator");
 const DEFAULT_SLUG_GENERATOR_TIMEOUT_MS = 15_000;
 
-function resolveSlugGeneratorTimeoutMs(cfg: AstroclawConfig): number {
+function resolveSlugGeneratorTimeoutMs(cfg: OpenClawConfig): number {
   const configuredTimeoutSeconds = cfg.agents?.defaults?.timeoutSeconds;
   if (typeof configuredTimeoutSeconds !== "number" || !Number.isFinite(configuredTimeoutSeconds)) {
     return DEFAULT_SLUG_GENERATOR_TIMEOUT_MS;
@@ -33,7 +33,7 @@ function resolveSlugGeneratorTimeoutMs(cfg: AstroclawConfig): number {
  */
 export async function generateSlugViaLLM(params: {
   sessionContent: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }): Promise<string | null> {
   let tempSessionFile: string | null = null;
 
@@ -43,7 +43,7 @@ export async function generateSlugViaLLM(params: {
     const agentDir = resolveAgentDir(params.cfg, agentId);
 
     // Create a temporary session file for this one-off LLM call
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-slug-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-slug-"));
     tempSessionFile = path.join(tempDir, "session.jsonl");
 
     const prompt = `Based on this conversation, generate a short 1-2 word filename slug (lowercase, hyphen-separated, no file extension).
@@ -59,7 +59,7 @@ Reply with ONLY the slug, nothing else. Examples: "vendor-pitch", "api-design", 
     });
     const timeoutMs = resolveSlugGeneratorTimeoutMs(params.cfg);
 
-    const result = await runEmbeddedPiAgent({
+    const result = await runEmbeddedAgent({
       sessionId: `slug-generator-${Date.now()}`,
       sessionKey: "temp:slug-generator",
       agentId,
@@ -73,6 +73,9 @@ Reply with ONLY the slug, nothing else. Examples: "vendor-pitch", "api-design", 
       timeoutMs,
       runId: `slug-gen-${Date.now()}`,
       cleanupBundleMcpOnRunEnd: true,
+      // Internal helper run: route failures lane-local so an upstream 400/billing
+      // here cannot poison the shared profile (#71709).
+      authProfileFailurePolicy: "local",
     });
 
     // Extract text from payloads
