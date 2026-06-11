@@ -1,14 +1,19 @@
+// DNS setup helper for wide-area discovery using Tailscale addresses and CoreDNS.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import type { Command } from "commander";
+import { formatDocsLink } from "../../packages/terminal-core/src/links.js";
+import { getTerminalTableWidth, renderTable } from "../../packages/terminal-core/src/table.js";
+import { theme } from "../../packages/terminal-core/src/theme.js";
 import { getRuntimeConfig } from "../config/config.js";
 import { pickPrimaryTailnetIPv4, pickPrimaryTailnetIPv6 } from "../infra/tailnet.js";
-import { getWideAreaZonePath, resolveWideAreaDiscoveryDomain } from "../infra/widearea-dns.js";
+import {
+  getWideAreaZonePath,
+  normalizeWideAreaDomain,
+  resolveWideAreaDiscoveryDomain,
+} from "../infra/widearea-dns.js";
 import { defaultRuntime } from "../runtime.js";
-import { formatDocsLink } from "../terminal/links.js";
-import { getTerminalTableWidth, renderTable } from "../terminal/table.js";
-import { theme } from "../terminal/theme.js";
 
 type RunOpts = { allowFailure?: boolean; inherit?: boolean };
 
@@ -31,6 +36,7 @@ function run(cmd: string, args: string[], opts?: RunOpts): string {
 }
 
 function writeFileSudoIfNeeded(filePath: string, content: string): void {
+  // Zone/CoreDNS paths may be root-owned; fall back to sudo tee only after normal write fails.
   try {
     fs.writeFileSync(filePath, content, "utf-8");
     return;
@@ -105,7 +111,7 @@ export function registerDnsCli(program: Command) {
     .description("DNS helpers for wide-area discovery (Tailscale + CoreDNS)")
     .addHelpText(
       "after",
-      () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/dns", "docs.astroclaw.ai/cli/dns")}\n`,
+      () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/dns", "docs.openclaw.ai/cli/dns")}\n`,
     );
 
   dns
@@ -113,7 +119,7 @@ export function registerDnsCli(program: Command) {
     .description(
       "Set up CoreDNS to serve your discovery domain for unicast DNS-SD (Wide-Area Bonjour)",
     )
-    .option("--domain <domain>", "Wide-area discovery domain (e.g. astroclaw.internal)")
+    .option("--domain <domain>", "Wide-area discovery domain (e.g. openclaw.internal)")
     .option(
       "--apply",
       "Install/update CoreDNS config and (re)start the service (requires sudo)",
@@ -123,9 +129,13 @@ export function registerDnsCli(program: Command) {
       const cfg = getRuntimeConfig();
       const tailnetIPv4 = pickPrimaryTailnetIPv4();
       const tailnetIPv6 = pickPrimaryTailnetIPv6();
-      const wideAreaDomain = resolveWideAreaDiscoveryDomain({
-        configDomain: (opts.domain as string | undefined) ?? cfg.discovery?.wideArea?.domain,
-      });
+      const explicitDomain = (opts.domain as string | undefined) ?? cfg.discovery?.wideArea?.domain;
+      if (explicitDomain) {
+        // Throw on invalid CLI/config input before resolveWideAreaDiscoveryDomain
+        // silently swallows the validation error and falls back to env.
+        normalizeWideAreaDomain(explicitDomain);
+      }
+      const wideAreaDomain = resolveWideAreaDiscoveryDomain({ configDomain: explicitDomain });
       if (!wideAreaDomain) {
         throw new Error(
           "No wide-area domain configured. Set discovery.wideArea.domain or pass --domain.",
@@ -155,7 +165,7 @@ export function registerDnsCli(program: Command) {
       defaultRuntime.log("");
       defaultRuntime.log(
         theme.heading(
-          "Recommended config ($ASTROCLAW_CONFIG_PATH, default ~/.astroclaw/astroclaw.json):",
+          "Recommended config ($OPENCLAW_CONFIG_PATH, default ~/.openclaw/openclaw.json):",
         ),
       );
       defaultRuntime.writeJson({
@@ -229,7 +239,7 @@ export function registerDnsCli(program: Command) {
         const serial = `${y}${m}${d}01`;
 
         const zoneLines = [
-          `; created by astroclaw dns setup (will be overwritten by the gateway when wide-area discovery is enabled)`,
+          `; created by openclaw dns setup (will be overwritten by the gateway when wide-area discovery is enabled)`,
           `$ORIGIN ${wideAreaDomain}`,
           `$TTL 60`,
           `@ IN SOA ns1 hostmaster ${serial} 7200 3600 1209600 60`,
@@ -252,7 +262,7 @@ export function registerDnsCli(program: Command) {
         defaultRuntime.log("");
         defaultRuntime.log(
           theme.muted(
-            "Note: enable discovery.wideArea.enabled in the active Astroclaw config ($ASTROCLAW_CONFIG_PATH, default ~/.astroclaw/astroclaw.json) on the gateway and restart the gateway so it writes the DNS-SD zone.",
+            "Note: enable discovery.wideArea.enabled in the active OpenClaw config ($OPENCLAW_CONFIG_PATH, default ~/.openclaw/openclaw.json) on the gateway and restart the gateway so it writes the DNS-SD zone.",
           ),
         );
       }
