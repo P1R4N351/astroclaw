@@ -1,16 +1,17 @@
-import { resolveStableChannelMessageIngress } from "astroclaw/plugin-sdk/channel-ingress-runtime";
+// Whatsapp plugin module implements inbound policy behavior.
+import { resolveStableChannelMessageIngress } from "openclaw/plugin-sdk/channel-ingress-runtime";
 import {
   resolveChannelGroupPolicy,
   resolveChannelGroupRequireMention,
-} from "astroclaw/plugin-sdk/channel-policy";
+} from "openclaw/plugin-sdk/channel-policy";
 import type {
   ChannelGroupPolicy,
   DmPolicy,
   GroupPolicy,
-  AstroclawConfig,
-} from "astroclaw/plugin-sdk/config-contracts";
-import { resolveDefaultGroupPolicy } from "astroclaw/plugin-sdk/runtime-group-policy";
-import { resolveGroupSessionKey } from "astroclaw/plugin-sdk/session-store-runtime";
+  OpenClawConfig,
+} from "openclaw/plugin-sdk/config-contracts";
+import { resolveDefaultGroupPolicy } from "openclaw/plugin-sdk/runtime-group-policy";
+import { resolveGroupSessionKey } from "openclaw/plugin-sdk/session-store-runtime";
 import { resolveWhatsAppAccount, type ResolvedWhatsAppAccount } from "./accounts.js";
 import { getSelfIdentity, getSenderIdentity } from "./identity.js";
 import type { WebInboundMessage } from "./inbound/types.js";
@@ -63,7 +64,7 @@ function maybeSamePhoneDmAllowFrom(params: {
 function buildResolvedWhatsAppGroupConfig(params: {
   groupPolicy: GroupPolicy;
   groups: ResolvedWhatsAppAccount["groups"];
-}): AstroclawConfig {
+}): OpenClawConfig {
   return {
     channels: {
       whatsapp: {
@@ -71,11 +72,11 @@ function buildResolvedWhatsAppGroupConfig(params: {
         groups: params.groups,
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 export function resolveWhatsAppInboundPolicy(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   selfE164?: string | null;
 }): ResolvedWhatsAppInboundPolicy {
@@ -134,7 +135,7 @@ export function resolveWhatsAppInboundPolicy(params: {
 }
 
 export async function resolveWhatsAppIngressAccess(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   policy: ResolvedWhatsAppInboundPolicy;
   isGroup: boolean;
   conversationId: string;
@@ -177,7 +178,7 @@ export async function resolveWhatsAppIngressAccess(params: {
 }
 
 export async function resolveWhatsAppCommandAuthorized(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   msg: WebInboundMessage;
   policy?: ResolvedWhatsAppInboundPolicy;
 }): Promise<boolean> {
