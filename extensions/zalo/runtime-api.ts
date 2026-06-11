@@ -1,3 +1,4 @@
+// Zalo API module exposes the plugin public contract.
 export {
   addWildcardAllowFrom,
   applyAccountNameToChannelSection,
@@ -37,7 +38,7 @@ export {
   normalizeAccountId,
   normalizeResolvedSecretInputString,
   normalizeSecretInputString,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type OutboundReplyPayload,
   PAIRING_APPROVED_MESSAGE,
   type PluginRuntime,
