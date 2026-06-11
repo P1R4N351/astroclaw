@@ -1,21 +1,27 @@
+// Memory Host SDK module implements embeddings remote client behavior.
 import type { EmbeddingProviderOptions } from "./embeddings.types.js";
-import { requireApiKey, resolveApiKeyForProvider } from "./astroclaw-runtime-auth.js";
+import { requireApiKey, resolveApiKeyForProvider } from "./openclaw-runtime-auth.js";
 import { buildRemoteBaseUrlPolicy } from "./remote-http.js";
 import { resolveMemorySecretInputString } from "./secret-input.js";
 import type { SsrFPolicy } from "./ssrf-policy.js";
 import { normalizeOptionalString } from "./string-utils.js";
 
+// Builds authenticated remote embedding HTTP clients from agent memory config.
+
+/** Provider id used for remote embedding auth and config lookup. */
 export type RemoteEmbeddingProviderId = string;
 
-function resolveAstroclawAttributionHeaders(): Record<string, string> {
-  const version = typeof process !== "undefined" ? process.env.ASTROCLAW_VERSION?.trim() : undefined;
+/** Attribution headers for native OpenAI embedding calls. */
+function resolveOpenClawAttributionHeaders(): Record<string, string> {
+  const version = typeof process !== "undefined" ? process.env.OPENCLAW_VERSION?.trim() : undefined;
   return {
-    originator: "astroclaw",
+    originator: "openclaw",
     ...(version ? { version } : {}),
-    "User-Agent": version ? `astroclaw/${version}` : "astroclaw",
+    "User-Agent": version ? `openclaw/${version}` : "openclaw",
   };
 }
 
+/** Detect the native OpenAI embeddings API route that accepts attribution headers. */
 function isNativeOpenAIEmbeddingRoute(provider: string, baseUrl: string): boolean {
   if (provider !== "openai") {
     return false;
@@ -27,6 +33,7 @@ function isNativeOpenAIEmbeddingRoute(provider: string, baseUrl: string): boolea
   }
 }
 
+/** Resolve base URL, bearer headers, header overrides, and SSRF policy for remote embeddings. */
 export async function resolveRemoteEmbeddingBearerClient(params: {
   provider: RemoteEmbeddingProviderId;
   options: EmbeddingProviderOptions;
@@ -58,7 +65,7 @@ export async function resolveRemoteEmbeddingBearerClient(params: {
     ...headerOverrides,
   };
   if (isNativeOpenAIEmbeddingRoute(params.provider, baseUrl)) {
-    Object.assign(headers, resolveAstroclawAttributionHeaders());
+    Object.assign(headers, resolveOpenClawAttributionHeaders());
   }
   return { baseUrl, headers, ssrfPolicy: buildRemoteBaseUrlPolicy(baseUrl) };
 }
