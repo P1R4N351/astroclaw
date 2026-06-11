@@ -1,12 +1,14 @@
+// Provides fixture helpers for config backup rotation tests.
 import path from "node:path";
 import { expect } from "vitest";
 
+/** Platform flag shared by config backup permission tests. */
 export const IS_WINDOWS = process.platform === "win32";
 
-export function resolveConfigPathFromTempState(fileName = "astroclaw.json"): string {
-  const stateDir = process.env.ASTROCLAW_STATE_DIR?.trim();
+export function resolveConfigPathFromTempState(fileName = "openclaw.json"): string {
+  const stateDir = process.env.OPENCLAW_STATE_DIR?.trim();
   if (!stateDir) {
-    throw new Error("Expected ASTROCLAW_STATE_DIR to be set by withTempHome");
+    throw new Error("Expected OPENCLAW_STATE_DIR to be set by withTempHome");
   }
   return path.join(stateDir, fileName);
 }
