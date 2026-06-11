@@ -1,3 +1,4 @@
+// Formats guidance when an elevated command cannot run in the current channel.
 import { formatCliCommand } from "../../cli/command-format.js";
 
 export function formatElevatedUnavailableMessage(params: {
@@ -23,7 +24,7 @@ export function formatElevatedUnavailableMessage(params: {
   lines.push("- agents.list[].tools.elevated.allowFrom.<provider>");
   if (params.sessionKey) {
     lines.push(
-      `See: ${formatCliCommand(`astroclaw sandbox explain --session ${params.sessionKey}`)}`,
+      `See: ${formatCliCommand(`openclaw sandbox explain --session ${params.sessionKey}`)}`,
     );
   }
   return lines.join("\n");
