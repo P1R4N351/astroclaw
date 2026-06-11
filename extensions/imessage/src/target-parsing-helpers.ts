@@ -1,3 +1,4 @@
+// Imessage helper module supports target parsing helpers behavior.
 export {
   createAllowedChatSenderMatcher,
   parseChatAllowTargetPrefixes,
@@ -11,4 +12,4 @@ export {
   type ParsedChatAllowTarget,
   type ParsedChatTarget,
   type ServicePrefix,
-} from "astroclaw/plugin-sdk/channel-targets";
+} from "openclaw/plugin-sdk/channel-targets";
