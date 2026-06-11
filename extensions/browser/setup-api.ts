@@ -1,6 +1,10 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/plugin-entry";
-import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+/**
+ * Browser setup entry. It auto-enables the Browser plugin when config or tool
+ * policies reference browser control.
+ */
+import type { OpenClawConfig } from "openclaw/plugin-sdk/plugin-entry";
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { isRecord } from "./src/record-shared.js";
 
 function listContainsBrowser(value: unknown): boolean {
@@ -16,7 +20,7 @@ function toolPolicyReferencesBrowser(value: unknown): boolean {
   );
 }
 
-function hasBrowserToolReference(config: AstroclawConfig): boolean {
+function hasBrowserToolReference(config: OpenClawConfig): boolean {
   if (toolPolicyReferencesBrowser(config.tools)) {
     return true;
   }
@@ -26,6 +30,7 @@ function hasBrowserToolReference(config: AstroclawConfig): boolean {
     : false;
 }
 
+/** Setup entry that detects existing Browser configuration references. */
 export default definePluginEntry({
   id: "browser",
   name: "Browser Setup",
@@ -38,13 +43,10 @@ export default definePluginEntry({
       ) {
         return null;
       }
-      if (Object.prototype.hasOwnProperty.call(config, "browser")) {
+      if (Object.hasOwn(config, "browser")) {
         return "browser configured";
       }
-      if (
-        config.plugins?.entries &&
-        Object.prototype.hasOwnProperty.call(config.plugins.entries, "browser")
-      ) {
+      if (config.plugins?.entries && Object.hasOwn(config.plugins.entries, "browser")) {
         return "browser plugin configured";
       }
       if (hasBrowserToolReference(config)) {
