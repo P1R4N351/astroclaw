@@ -1,9 +1,10 @@
-import { createMigrationItem, summarizeMigrationItems } from "astroclaw/plugin-sdk/migration";
+// Migrate Claude plugin module implements plan behavior.
+import { createMigrationItem, summarizeMigrationItems } from "openclaw/plugin-sdk/migration";
 import type {
   MigrationItem,
   MigrationPlan,
   MigrationProviderContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import { buildConfigItems } from "./config.js";
 import { buildMemoryItems } from "./memory.js";
 import { buildSkillItems } from "./skills.js";
@@ -81,7 +82,7 @@ export async function buildClaudePlan(ctx: MigrationProviderContext): Promise<Mi
       : []),
     ...(items.some((item) => item.kind === "archive")
       ? [
-          "Some Claude files are archive-only. They will be copied into the migration report for manual review, not loaded into Astroclaw.",
+          "Some Claude files are archive-only. They will be copied into the migration report for manual review, not loaded into OpenClaw.",
         ]
       : []),
     ...(items.some((item) => item.kind === "manual")
@@ -95,7 +96,7 @@ export async function buildClaudePlan(ctx: MigrationProviderContext): Promise<Mi
     summary: summarizeMigrationItems(items),
     items,
     warnings,
-    nextSteps: ["Run astroclaw doctor after applying the migration."],
+    nextSteps: ["Run openclaw doctor after applying the migration."],
     metadata: { agentDir: targets.agentDir },
   };
 }
