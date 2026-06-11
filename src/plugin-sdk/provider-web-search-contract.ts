@@ -1,6 +1,6 @@
 // Public contract-safe web-search registration helpers for provider plugins.
 
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   WebSearchCredentialResolutionSource,
   WebSearchProviderSetupContext,
@@ -38,9 +38,11 @@ export type {
 } from "./provider-web-search-contract-fields.js";
 
 type CreateWebSearchProviderSelectionOptions = CreateWebSearchProviderContractFieldsOptions & {
+  /** Plugin id to enable when this provider is selected through setup/configuration flows. */
   selectionPluginId?: string;
 };
 
+/** Build the public web-search provider hooks, including optional selection-time plugin enabling. */
 export function createWebSearchProviderContractFields(
   options: CreateWebSearchProviderSelectionOptions,
 ): Pick<
@@ -59,7 +61,7 @@ export function createWebSearchProviderContractFields(
     ...createBaseWebSearchProviderContractFields(options),
     ...(selectionPluginId
       ? {
-          applySelectionConfig: (config: AstroclawConfig) =>
+          applySelectionConfig: (config: OpenClawConfig) =>
             enablePluginInConfig(config, selectionPluginId).config,
         }
       : {}),
