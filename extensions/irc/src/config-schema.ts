@@ -1,3 +1,4 @@
+// Irc helper module supports config schema behavior.
 import {
   DmPolicySchema,
   GroupPolicySchema,
@@ -6,7 +7,7 @@ import {
   ToolPolicySchema,
   buildChannelConfigSchema,
   requireOpenAllowFrom,
-} from "astroclaw/plugin-sdk/channel-config-schema";
+} from "openclaw/plugin-sdk/channel-config-schema";
 import { z } from "zod";
 import { ircChannelConfigUiHints } from "./config-ui-hints.js";
 
