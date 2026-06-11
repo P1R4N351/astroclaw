@@ -1,21 +1,29 @@
+/**
+ * Browser control authentication helpers.
+ *
+ * Resolves browser-control auth from Gateway auth config and auto-generates a
+ * token/password for local control when safe to persist one.
+ */
 import crypto from "node:crypto";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { getRuntimeConfig } from "../config/config.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
 import { ensureGatewayStartupAuth } from "../gateway/startup-auth.js";
 import { persistBrowserControlCredential } from "./config-mutations.js";
 
+/** Auth material accepted by browser-control HTTP middleware and clients. */
 export type BrowserControlAuth = {
   token?: string;
   password?: string;
 };
 
+/** Resolve browser-control auth material from config and environment. */
 export function resolveBrowserControlAuth(
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
   env: NodeJS.ProcessEnv = process.env,
 ): BrowserControlAuth {
   const auth = resolveGatewayAuth({
@@ -39,6 +47,7 @@ export function resolveBrowserControlAuth(
   }
 }
 
+/** Return true when startup may auto-generate browser-control auth. */
 export function shouldAutoGenerateBrowserAuth(env: NodeJS.ProcessEnv): boolean {
   const nodeEnv = normalizeLowercaseStringOrEmpty(env.NODE_ENV);
   if (nodeEnv === "test") {
@@ -52,7 +61,7 @@ export function shouldAutoGenerateBrowserAuth(env: NodeJS.ProcessEnv): boolean {
 }
 
 function hasExplicitNonStringGatewayCredentialForMode(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   mode: "none" | "trusted-proxy";
 }): boolean {
   const { cfg, mode } = params;
@@ -71,7 +80,7 @@ function generateBrowserControlToken(): string {
 }
 
 async function generateAndPersistBrowserControlToken(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 }): Promise<{
   auth: BrowserControlAuth;
@@ -93,7 +102,7 @@ async function generateAndPersistBrowserControlToken(params: {
 }
 
 async function generateAndPersistBrowserControlPassword(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 }): Promise<{
   auth: BrowserControlAuth;
@@ -114,8 +123,9 @@ async function generateAndPersistBrowserControlPassword(params: {
   return { auth: { password }, generatedToken: password };
 }
 
+/** Ensure browser-control auth exists, generating and persisting it when allowed. */
 export async function ensureBrowserControlAuth(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
 }): Promise<{
   auth: BrowserControlAuth;
