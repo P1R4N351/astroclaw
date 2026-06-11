@@ -1,11 +1,12 @@
+// Openai plugin module implements replay policy behavior.
 import type {
   ProviderReplayPolicy,
   ProviderReplayPolicyContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 
 const RESPONSES_FAMILY_APIS = new Set([
   "openai-responses",
-  "openai-codex-responses",
+  "openai-chatgpt-responses",
   "azure-openai-responses",
 ]);
 
