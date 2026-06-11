@@ -1,9 +1,10 @@
-import type { Api, Model } from "@earendil-works/pi-ai";
+// Runtime model auth helpers expose provider auth resolution to plugin runtimes.
 import {
   getApiKeyForModel as resolveModelApiKey,
   resolveApiKeyForProvider as resolveProviderApiKey,
 } from "../../agents/model-auth.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import type { Model } from "../../llm/types.js";
 import { prepareProviderRuntimeAuth } from "../provider-runtime.runtime.js";
 import type { ResolvedProviderRuntimeAuth } from "./model-auth-types.js";
 
@@ -24,8 +25,8 @@ export async function resolveApiKeyForProvider(
  * `prepareRuntimeAuth` exchange on top of the standard credential lookup.
  */
 export async function getRuntimeAuthForModel(params: {
-  model: Model<Api>;
-  cfg?: AstroclawConfig;
+  model: Model;
+  cfg?: OpenClawConfig;
   workspaceDir?: string;
 }): Promise<ResolvedProviderRuntimeAuth> {
   const resolvedAuth = await resolveModelApiKey({
