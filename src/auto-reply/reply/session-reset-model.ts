@@ -1,11 +1,15 @@
+/** Applies model override tokens embedded in reset/new command text. */
+import { normalizeProviderId } from "@openclaw/model-catalog-core/provider-id";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import type { ModelCatalogEntry } from "../../agents/model-catalog.types.js";
-import { isModelKeyAllowedBySet } from "../../agents/model-selection-shared.js";
-import { normalizeProviderId } from "../../agents/provider-id.js";
+import {
+  buildAllowedModelSetWithFallbacks,
+  isModelKeyAllowedBySet,
+} from "../../agents/model-selection-shared.js";
 import { resolveAgentModelFallbackValues } from "../../config/model-input.js";
 import type { SessionEntry } from "../../config/sessions.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
-import { normalizeOptionalString } from "../../shared/string-coerce.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
 import {
   modelKey,
@@ -15,6 +19,7 @@ import {
   type ModelDirectiveSelection,
 } from "./model-selection-directive.js";
 
+/** Result of applying a reset-message model override. */
 type ResetModelResult = {
   selection?: ModelDirectiveSelection;
   cleanedBody?: string;
@@ -30,13 +35,13 @@ function splitBody(body: string) {
   };
 }
 
-async function loadResetModelCatalog(cfg: AstroclawConfig): Promise<ModelCatalogEntry[]> {
+async function loadResetModelCatalog(cfg: OpenClawConfig): Promise<ModelCatalogEntry[]> {
   const { loadModelCatalog } = await import("../../agents/model-catalog.js");
   return loadModelCatalog({ config: cfg });
 }
 
 async function resolveResetFallbackModels(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId?: string;
 }): Promise<string[]> {
   if (params.agentId) {
@@ -50,7 +55,7 @@ async function resolveResetFallbackModels(params: {
 }
 
 async function buildResetAllowedModelKeys(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   catalog: ModelCatalogEntry[];
   defaultProvider: string;
   defaultModel?: string;
@@ -58,8 +63,6 @@ async function buildResetAllowedModelKeys(params: {
 }): Promise<Set<string>> {
   const rawAllowlist = Object.keys(params.cfg.agents?.defaults?.models ?? {});
   if (rawAllowlist.length > 0 || params.cfg.models?.providers) {
-    const { buildAllowedModelSetWithFallbacks } =
-      await import("../../agents/model-selection-shared.js");
     return buildAllowedModelSetWithFallbacks(params).allowedKeys;
   }
 
@@ -135,8 +138,10 @@ function applySelectionToSession(params: {
   }
 }
 
+/** Applies a model override embedded in a reset command body. */
+/** Applies a valid reset model override to session state and returns the cleaned body. */
 export async function applyResetModelOverride(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId?: string;
   resetTriggered: boolean;
   bodyStripped?: string;
@@ -201,6 +206,7 @@ export async function applyResetModelOverride(params: {
   let consumed = 0;
 
   if (providers.has(normalizeProviderId(first)) && second) {
+    // Support reset bodies like `openai gpt-5.5 rest of prompt`.
     const composite = `${normalizeProviderId(first)}/${second}`;
     const resolved = resolveSelection(composite);
     if (resolved.selection) {
