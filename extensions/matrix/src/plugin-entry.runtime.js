@@ -21,27 +21,27 @@ function normalizeLowercaseStringOrEmpty(value) {
   return typeof value === "string" ? value.toLowerCase() : "";
 }
 
-function hasTrustedAstroclawRootIndicator(packageRoot, packageJson) {
+function hasTrustedOpenClawRootIndicator(packageRoot, packageJson) {
   const packageExports = packageJson?.exports ?? {};
-  if (!Object.prototype.hasOwnProperty.call(packageExports, "./plugin-sdk")) {
+  if (!Object.hasOwn(packageExports, "./plugin-sdk")) {
     return false;
   }
-  const hasCliEntryExport = Object.prototype.hasOwnProperty.call(packageExports, "./cli-entry");
-  const hasAstroclawBin =
+  const hasCliEntryExport = Object.hasOwn(packageExports, "./cli-entry");
+  const hasOpenClawBin =
     (typeof packageJson?.bin === "string" &&
-      normalizeLowercaseStringOrEmpty(packageJson.bin).includes("astroclaw")) ||
+      normalizeLowercaseStringOrEmpty(packageJson.bin).includes("openclaw")) ||
     (typeof packageJson?.bin === "object" &&
       packageJson.bin !== null &&
-      typeof packageJson.bin.astroclaw === "string");
-  const hasAstroclawEntrypoint = fs.existsSync(path.join(packageRoot, "astroclaw.mjs"));
-  return hasCliEntryExport || hasAstroclawBin || hasAstroclawEntrypoint;
+      typeof packageJson.bin.openclaw === "string");
+  const hasOpenClawEntrypoint = fs.existsSync(path.join(packageRoot, "openclaw.mjs"));
+  return hasCliEntryExport || hasOpenClawBin || hasOpenClawEntrypoint;
 }
 
-function findAstroclawPackageRoot(startDir) {
+function findOpenClawPackageRoot(startDir) {
   let cursor = path.resolve(startDir);
   for (let i = 0; i < 12; i += 1) {
     const pkg = readPackageJson(cursor);
-    if (pkg?.name === "astroclaw" && hasTrustedAstroclawRootIndicator(cursor, pkg)) {
+    if (pkg?.name === "openclaw" && hasTrustedOpenClawRootIndicator(cursor, pkg)) {
       return { packageRoot: cursor, packageJson: pkg };
     }
     const parent = path.dirname(cursor);
@@ -78,7 +78,7 @@ function resolveBundledPluginRuntimeModulePath(moduleUrl, params) {
     }
   }
 
-  const location = findAstroclawPackageRoot(moduleDir);
+  const location = findOpenClawPackageRoot(moduleDir);
   if (location) {
     const { packageRoot } = location;
     const packageCandidates = [
