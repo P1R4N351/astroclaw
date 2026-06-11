@@ -7,17 +7,19 @@ import {
   DEFAULT_ACCOUNT_ID,
   listCombinedAccountIds,
   resolveMergedAccountConfig,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/account-resolution";
-import { resolveDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/account-resolution";
+import { resolveDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
+import { parseStrictInteger } from "openclaw/plugin-sdk/number-runtime";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type {
   SynologyChatChannelConfig,
   ResolvedSynologyChatAccount,
   SynologyWebhookPathSource,
 } from "./types.js";
 
-/** Extract the channel config from the full Astroclaw config object. */
-function getChannelConfig(cfg: AstroclawConfig): SynologyChatChannelConfig | undefined {
+/** Extract the channel config from the full OpenClaw config object. */
+function getChannelConfig(cfg: OpenClawConfig): SynologyChatChannelConfig | undefined {
   return cfg?.channels?.["synology-chat"] as SynologyChatChannelConfig | undefined;
 }
 
@@ -61,28 +63,33 @@ function parseAllowedUserIds(raw: string | string[] | undefined): string[] {
   if (Array.isArray(raw)) {
     return raw.filter(Boolean);
   }
-  return raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return normalizeStringEntries(raw.split(","));
+}
+
+function normalizeRateLimitPerMinuteValue(raw: unknown): number | undefined {
+  if (typeof raw === "number") {
+    return Number.isSafeInteger(raw) && raw >= 0 ? raw : undefined;
+  }
+  if (typeof raw !== "string") {
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return undefined;
+  }
+  const parsed = parseStrictInteger(trimmed);
+  return parsed != null && parsed >= 0 ? parsed : undefined;
 }
 
 function parseRateLimitPerMinute(raw: string | undefined): number {
-  if (raw == null) {
-    return 30;
-  }
-  const trimmed = raw.trim();
-  if (!/^-?\d+$/.test(trimmed)) {
-    return 30;
-  }
-  return Number.parseInt(trimmed, 10);
+  return normalizeRateLimitPerMinuteValue(raw) ?? 30;
 }
 
 /**
  * List all configured account IDs for this channel.
  * Returns ["default"] if there's a base config, plus any named accounts.
  */
-export function listAccountIds(cfg: AstroclawConfig): string[] {
+export function listAccountIds(cfg: OpenClawConfig): string[] {
   const channelCfg = getChannelConfig(cfg);
   if (!channelCfg) {
     return [];
@@ -99,7 +106,7 @@ export function listAccountIds(cfg: AstroclawConfig): string[] {
  * Falls back to env vars for the "default" account.
  */
 export function resolveAccount(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string | null,
 ): ResolvedSynologyChatAccount {
   const channelCfg = getChannelConfig(cfg) ?? {};
@@ -121,7 +128,7 @@ export function resolveAccount(
   const envNasHost = process.env.SYNOLOGY_NAS_HOST ?? "localhost";
   const envAllowedUserIds = process.env.SYNOLOGY_ALLOWED_USER_IDS ?? "";
   const envRateLimitValue = parseRateLimitPerMinute(process.env.SYNOLOGY_RATE_LIMIT);
-  const envBotName = process.env.ASTROCLAW_BOT_NAME ?? "Astroclaw";
+  const envBotName = process.env.OPENCLAW_BOT_NAME ?? "OpenClaw";
   const webhookPathSource = resolveWebhookPathSource({ accountId: id, channelCfg, rawAccount });
   const dangerouslyAllowInheritedWebhookPath =
     rawAccount.dangerouslyAllowInheritedWebhookPath ??
@@ -144,7 +151,8 @@ export function resolveAccount(
     dangerouslyAllowInheritedWebhookPath,
     dmPolicy: merged.dmPolicy ?? "allowlist",
     allowedUserIds: parseAllowedUserIds(merged.allowedUserIds ?? envAllowedUserIds),
-    rateLimitPerMinute: merged.rateLimitPerMinute ?? envRateLimitValue,
+    rateLimitPerMinute:
+      normalizeRateLimitPerMinuteValue(merged.rateLimitPerMinute) ?? envRateLimitValue,
     botName: merged.botName ?? envBotName,
     allowInsecureSsl: merged.allowInsecureSsl ?? false,
   };
