@@ -1,3 +1,4 @@
+// Qa Matrix plugin module implements events behavior.
 export type MatrixQaRoomEvent = {
   content?: Record<string, unknown>;
   event_id?: string;
@@ -66,7 +67,7 @@ export type MatrixQaObservedEvent = {
   approval?: MatrixQaObservedApproval;
 };
 
-const MATRIX_QA_APPROVAL_METADATA_KEY = "com.astroclaw.approval";
+const MATRIX_QA_APPROVAL_METADATA_KEY = "com.openclaw.approval";
 const MATRIX_QA_APPROVAL_COMMAND_PREVIEW_CHARS = 160;
 
 function normalizeMentionUserIds(value: unknown) {
