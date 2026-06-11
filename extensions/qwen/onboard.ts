@@ -1,19 +1,22 @@
+// Qwen setup module handles plugin onboarding behavior.
 import {
   createModelCatalogPresetAppliers,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   QWEN_CN_BASE_URL,
   QWEN_DEFAULT_MODEL_REF,
   QWEN_GLOBAL_BASE_URL,
+  QWEN_OAUTH_DEFAULT_MODEL_REF,
+  QWEN_OAUTH_PROVIDER_ID,
   QWEN_STANDARD_CN_BASE_URL,
   QWEN_STANDARD_GLOBAL_BASE_URL,
 } from "./models.js";
-import { buildQwenProvider } from "./provider-catalog.js";
+import { buildQwenOAuthProvider, buildQwenProvider } from "./provider-catalog.js";
 
 const qwenPresetAppliers = createModelCatalogPresetAppliers<[string]>({
   primaryModelRef: QWEN_DEFAULT_MODEL_REF,
-  resolveParams: (_cfg: AstroclawConfig, baseUrl: string) => {
+  resolveParams: (_cfg: OpenClawConfig, baseUrl: string) => {
     const provider = buildQwenProvider({ baseUrl });
     return {
       providerId: "qwen",
@@ -31,36 +34,57 @@ const qwenPresetAppliers = createModelCatalogPresetAppliers<[string]>({
   },
 });
 
-function applyQwenProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+const qwenOAuthPresetAppliers = createModelCatalogPresetAppliers<[]>({
+  primaryModelRef: QWEN_OAUTH_DEFAULT_MODEL_REF,
+  resolveParams: () => {
+    const provider = buildQwenOAuthProvider();
+    return {
+      providerId: QWEN_OAUTH_PROVIDER_ID,
+      api: provider.api ?? "openai-completions",
+      baseUrl: provider.baseUrl,
+      catalogModels: provider.models ?? [],
+      aliases: [
+        ...(provider.models ?? []).map((model) => `qwen-oauth/${model.id}`),
+        { modelRef: QWEN_OAUTH_DEFAULT_MODEL_REF, alias: "Qwen OAuth" },
+      ],
+    };
+  },
+});
+
+function applyQwenProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   return qwenPresetAppliers.applyProviderConfig(cfg, QWEN_GLOBAL_BASE_URL);
 }
 
-function applyQwenProviderConfigCn(cfg: AstroclawConfig): AstroclawConfig {
+function applyQwenProviderConfigCn(cfg: OpenClawConfig): OpenClawConfig {
   return qwenPresetAppliers.applyProviderConfig(cfg, QWEN_CN_BASE_URL);
 }
 
-export function applyQwenConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyQwenConfig(cfg: OpenClawConfig): OpenClawConfig {
   return qwenPresetAppliers.applyConfig(cfg, QWEN_GLOBAL_BASE_URL);
 }
 
-export function applyQwenConfigCn(cfg: AstroclawConfig): AstroclawConfig {
+export function applyQwenConfigCn(cfg: OpenClawConfig): OpenClawConfig {
   return qwenPresetAppliers.applyConfig(cfg, QWEN_CN_BASE_URL);
 }
 
-function applyQwenStandardProviderConfig(cfg: AstroclawConfig): AstroclawConfig {
+function applyQwenStandardProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   return qwenPresetAppliers.applyProviderConfig(cfg, QWEN_STANDARD_GLOBAL_BASE_URL);
 }
 
-function applyQwenStandardProviderConfigCn(cfg: AstroclawConfig): AstroclawConfig {
+function applyQwenStandardProviderConfigCn(cfg: OpenClawConfig): OpenClawConfig {
   return qwenPresetAppliers.applyProviderConfig(cfg, QWEN_STANDARD_CN_BASE_URL);
 }
 
-export function applyQwenStandardConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyQwenStandardConfig(cfg: OpenClawConfig): OpenClawConfig {
   return qwenPresetAppliers.applyConfig(cfg, QWEN_STANDARD_GLOBAL_BASE_URL);
 }
 
-export function applyQwenStandardConfigCn(cfg: AstroclawConfig): AstroclawConfig {
+export function applyQwenStandardConfigCn(cfg: OpenClawConfig): OpenClawConfig {
   return qwenPresetAppliers.applyConfig(cfg, QWEN_STANDARD_CN_BASE_URL);
+}
+
+export function applyQwenOAuthConfig(cfg: OpenClawConfig): OpenClawConfig {
+  return qwenOAuthPresetAppliers.applyConfig(cfg);
 }
 
 export const applyModelStudioProviderConfig = applyQwenProviderConfig;
