@@ -1,4 +1,8 @@
-import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+/**
+ * Alibaba Model Studio plugin entry. Registers the DashScope-backed video
+ * generation provider.
+ */
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { buildAlibabaVideoGenerationProvider } from "./video-generation-provider.js";
 
 export default definePluginEntry({
