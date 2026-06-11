@@ -1,4 +1,5 @@
-import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+// Vercel Ai Gateway provider module implements model/runtime integration.
+import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-shared";
 import {
   discoverVercelAiGatewayModels,
   getStaticVercelAiGatewayModelCatalog,
