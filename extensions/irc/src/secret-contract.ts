@@ -1,3 +1,4 @@
+// Irc plugin module implements secret contract behavior.
 import {
   collectNestedChannelFieldAssignments,
   collectSimpleChannelFieldAssignments,
@@ -7,14 +8,14 @@ import {
   isRecord,
   type ResolverContext,
   type SecretDefaults,
-} from "astroclaw/plugin-sdk/channel-secret-basic-runtime";
+} from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 
-export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
+export const secretTargetRegistryEntries: import("openclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
   [
     {
       id: "channels.irc.accounts.*.nickserv.password",
       targetType: "channels.irc.accounts.*.nickserv.password",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.irc.accounts.*.nickserv.password",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -25,7 +26,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.irc.accounts.*.password",
       targetType: "channels.irc.accounts.*.password",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.irc.accounts.*.password",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -36,7 +37,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.irc.nickserv.password",
       targetType: "channels.irc.nickserv.password",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.irc.nickserv.password",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -47,7 +48,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.irc.password",
       targetType: "channels.irc.password",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.irc.password",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
