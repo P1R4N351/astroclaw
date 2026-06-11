@@ -1,6 +1,7 @@
-import type { AstroclawPluginApi } from "../types.js";
+// Host hook fixtures provide reusable plugin host-hook doubles for contract tests.
+import type { OpenClawPluginApi } from "../types.js";
 
-export function registerHostHookFixture(api: AstroclawPluginApi) {
+export function registerHostHookFixture(api: OpenClawPluginApi) {
   api.session.state.registerSessionExtension({
     namespace: "workflow",
     description: "Generic approval-workflow state projection",
@@ -59,7 +60,7 @@ export function registerHostHookFixture(api: AstroclawPluginApi) {
   }));
 }
 
-export function registerTrustedHostHookFixture(api: AstroclawPluginApi) {
+export function registerTrustedHostHookFixture(api: OpenClawPluginApi) {
   registerHostHookFixture(api);
   api.registerTrustedToolPolicy({
     id: "budget-policy",
