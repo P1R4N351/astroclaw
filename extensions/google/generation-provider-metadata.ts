@@ -1,9 +1,10 @@
-import type { MusicGenerationProvider } from "astroclaw/plugin-sdk/music-generation";
-import { isProviderApiKeyConfigured } from "astroclaw/plugin-sdk/provider-auth";
+// Google provider module implements model/runtime integration.
+import type { MusicGenerationProvider } from "openclaw/plugin-sdk/music-generation";
+import { isProviderApiKeyConfigured } from "openclaw/plugin-sdk/provider-auth";
 import type {
   VideoGenerationProvider,
   VideoGenerationProviderConfiguredContext,
-} from "astroclaw/plugin-sdk/video-generation";
+} from "openclaw/plugin-sdk/video-generation";
 
 export const DEFAULT_GOOGLE_MUSIC_MODEL = "lyria-3-clip-preview";
 export const GOOGLE_PRO_MUSIC_MODEL = "lyria-3-pro-preview";
