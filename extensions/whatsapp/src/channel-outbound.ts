@@ -1,9 +1,10 @@
+// Whatsapp plugin module implements channel outbound behavior.
 import {
   createMessageReceiptFromOutboundResults,
   defineChannelMessageAdapter,
   type ChannelMessageSendResult,
-} from "astroclaw/plugin-sdk/channel-message";
-import { chunkText } from "astroclaw/plugin-sdk/reply-chunking";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { chunkText } from "openclaw/plugin-sdk/reply-chunking";
 import { createWhatsAppOutboundBase } from "./outbound-base.js";
 import { normalizeWhatsAppPayloadTextPreservingIndentation } from "./outbound-media-contract.js";
 import { resolveWhatsAppOutboundTarget } from "./resolve-outbound-target.js";
