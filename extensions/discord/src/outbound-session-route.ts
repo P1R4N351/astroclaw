@@ -1,10 +1,11 @@
-import { buildThreadAwareOutboundSessionRoute } from "astroclaw/plugin-sdk/channel-core";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { buildOutboundBaseSessionKey, type RoutePeer } from "astroclaw/plugin-sdk/routing";
+// Discord plugin module implements outbound session route behavior.
+import { buildThreadAwareOutboundSessionRoute } from "openclaw/plugin-sdk/channel-core";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { buildOutboundBaseSessionKey, type RoutePeer } from "openclaw/plugin-sdk/routing";
 import { parseDiscordTarget } from "./target-parsing.js";
 
 export type ResolveDiscordOutboundSessionRouteParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   accountId?: string | null;
   target: string;
@@ -68,5 +69,5 @@ function resolveDiscordOutboundTargetKindHint(params: {
   if (/^(user:|discord:|@|<@!?)/i.test(target)) {
     return "user";
   }
-  return undefined;
+  return "channel";
 }
