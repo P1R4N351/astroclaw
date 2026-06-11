@@ -5,10 +5,10 @@
  * resolves agent routes, and handles replies.
  */
 
-import type { MarkdownTableMode, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import type { MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { checkTwitchAccessControl } from "./access-control.js";
 import { getOrCreateClientManager } from "./client-manager-registry.js";
 import { getTwitchRuntime } from "./runtime.js";
@@ -23,7 +23,7 @@ export type TwitchRuntimeEnv = {
 export type TwitchMonitorOptions = {
   account: TwitchAccountConfig;
   accountId: string;
-  config: unknown; // AstroclawConfig
+  config: unknown; // OpenClawConfig
   runtime: TwitchRuntimeEnv;
   abortSignal: AbortSignal;
   statusSink?: (patch: { lastInboundAt?: number; lastOutboundAt?: number }) => void;
@@ -48,9 +48,9 @@ async function processTwitchMessage(params: {
   statusSink?: (patch: { lastInboundAt?: number; lastOutboundAt?: number }) => void;
 }): Promise<void> {
   const { message, account, accountId, config, runtime, core, statusSink } = params;
-  const cfg = config as AstroclawConfig;
+  const cfg = config as OpenClawConfig;
 
-  await core.channel.turn.run({
+  await core.channel.inbound.run({
     channel: "twitch",
     accountId,
     raw: message,
@@ -63,7 +63,7 @@ async function processTwitchMessage(params: {
         textForCommands: incoming.message,
         raw: incoming,
       }),
-      resolveTurn: (input) => {
+      resolveTurn: async (input) => {
         const route = core.channel.routing.resolveAgentRoute({
           cfg,
           channel: "twitch",
@@ -82,7 +82,7 @@ async function processTwitchMessage(params: {
           envelope: core.channel.reply.resolveEnvelopeFormatOptions(cfg),
           body: input.rawText,
         });
-        const ctxPayload = core.channel.turn.buildContext({
+        const ctxPayload = core.channel.inbound.buildContext({
           channel: "twitch",
           accountId,
           messageId: input.id,
@@ -97,10 +97,6 @@ async function processTwitchMessage(params: {
             kind: "group",
             id: message.channel,
             label: message.channel,
-            routePeer: {
-              kind: "group",
-              id: message.channel,
-            },
           },
           route: {
             agentId: route.agentId,
@@ -109,14 +105,12 @@ async function processTwitchMessage(params: {
           },
           reply: {
             to: `twitch:channel:${message.channel}`,
-            originatingTo: `twitch:channel:${message.channel}`,
           },
           message: {
             body,
             rawBody: input.rawText,
             bodyForAgent: input.textForAgent,
             commandBody: input.textForCommands,
-            envelopeFrom: fromLabel,
           },
         });
         const storePath = core.channel.session.resolveStorePath(cfg.session?.store, {
@@ -295,7 +289,7 @@ export async function monitorTwitchProvider(
         core,
         statusSink,
       });
-    })().catch((err) => {
+    })().catch((err: unknown) => {
       runtime.error?.(`Message processing failed: ${String(err)}`);
     });
   });
