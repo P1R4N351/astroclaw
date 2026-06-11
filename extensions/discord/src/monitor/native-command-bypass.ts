@@ -1,4 +1,5 @@
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Discord plugin module implements native command bypass behavior.
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export function shouldBypassConfiguredAcpEnsure(commandName: string): boolean {
   const normalized = normalizeLowercaseStringOrEmpty(commandName);
