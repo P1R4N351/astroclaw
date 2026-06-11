@@ -1,11 +1,13 @@
+// Migrate Hermes helper module supports config behavior.
 import {
   applyMigrationConfigPatchItem,
   applyMigrationManualItem,
   createMigrationConfigPatchItem,
   createMigrationManualItem,
   hasMigrationConfigPatchConflict,
-} from "astroclaw/plugin-sdk/migration";
-import type { MigrationItem, MigrationProviderContext } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/migration";
+import type { MigrationItem, MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { childRecord, isRecord, readString, readStringArray } from "./helpers.js";
 
 type HermesProviderConfig = {
@@ -81,7 +83,7 @@ function collectHermesProviders(
       ...Object.keys(childRecord(raw, "models")),
       readString(raw.model),
     ].filter((value): value is string => Boolean(value));
-    collected.push({ id, baseUrl, apiKeyEnv, models: [...new Set(models)] });
+    collected.push({ id, baseUrl, apiKeyEnv, models: uniqueStrings(models) });
   }
 
   const customProviders = config.custom_providers;
@@ -101,7 +103,7 @@ function collectHermesProviders(
         ...Object.keys(childRecord(raw, "models")),
         readString(raw.model),
       ].filter((value): value is string => Boolean(value));
-      collected.push({ id, baseUrl, apiKeyEnv, models: [...new Set(models)] });
+      collected.push({ id, baseUrl, apiKeyEnv, models: uniqueStrings(models) });
     }
   }
 
@@ -177,7 +179,7 @@ export function buildConfigItems(params: {
         target: "memory",
         path: ["memory"],
         value: { backend: "builtin" },
-        message: "Use Astroclaw built-in file memory for imported Hermes memory files.",
+        message: "Use OpenClaw built-in file memory for imported Hermes memory files.",
         conflict:
           !params.ctx.overwrite &&
           hasMigrationConfigPatchConflict(params.ctx.config, ["memory"], { backend: true }),
@@ -189,7 +191,7 @@ export function buildConfigItems(params: {
         target: "plugins.slots",
         path: ["plugins", "slots"],
         value: { memory: "memory-core" },
-        message: "Select the default Astroclaw memory plugin for imported file memory.",
+        message: "Select the default OpenClaw memory plugin for imported file memory.",
         conflict:
           !params.ctx.overwrite &&
           hasMigrationConfigPatchConflict(params.ctx.config, ["plugins", "slots"], {
@@ -223,7 +225,7 @@ export function buildConfigItems(params: {
         id: "manual:memory-provider:honcho",
         source: "config.yaml:memory.provider",
         message:
-          "Hermes used Honcho memory. Astroclaw keeps built-in memory selected until the matching plugin is installed and reviewed.",
+          "Hermes used Honcho memory. OpenClaw keeps built-in memory selected until the matching plugin is installed and reviewed.",
         recommendation:
           "Install or review the Honcho memory plugin before selecting it for plugins.slots.memory.",
       }),
@@ -233,8 +235,8 @@ export function buildConfigItems(params: {
       createMigrationManualItem({
         id: `manual:memory-provider:${memoryProvider}`,
         source: "config.yaml:memory.provider",
-        message: `Hermes memory provider "${memoryProvider}" does not have a known Astroclaw mapping.`,
-        recommendation: "Install or configure an equivalent Astroclaw memory plugin manually.",
+        message: `Hermes memory provider "${memoryProvider}" does not have a known OpenClaw mapping.`,
+        recommendation: "Install or configure an equivalent OpenClaw memory plugin manually.",
       }),
     );
   }
