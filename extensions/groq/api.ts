@@ -1,4 +1,5 @@
-import type { ModelCompatConfig } from "astroclaw/plugin-sdk/provider-model-shared";
+// Groq API module exposes the plugin public contract.
+import type { ModelCompatConfig } from "openclaw/plugin-sdk/provider-model-shared";
 
 const GROQ_QWEN3_32B_ID = "qwen/qwen3-32b";
 const GROQ_GPT_OSS_REASONING_IDS = new Set([
@@ -47,14 +48,4 @@ export function resolveGroqReasoningCompatPatch(
     };
   }
   return null;
-}
-
-export function contributeGroqResolvedModelCompat(params: {
-  modelId: string;
-  model: { api?: unknown; provider?: unknown };
-}): Partial<ModelCompatConfig> | undefined {
-  if (params.model.api !== "openai-completions" || params.model.provider !== "groq") {
-    return undefined;
-  }
-  return resolveGroqReasoningCompatPatch(params.modelId) ?? undefined;
 }
