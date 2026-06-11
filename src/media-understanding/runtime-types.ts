@@ -1,5 +1,7 @@
+// Public media-understanding runtime API types for file-based image/audio/video
+// helpers and direct structured extraction.
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import type { ActiveMediaModel } from "./active-model.types.js";
 import type {
   MediaUnderstandingDecision,
@@ -11,12 +13,21 @@ import type {
 export type RunMediaUnderstandingFileParams = {
   capability: "image" | "audio" | "video";
   filePath: string;
-  cfg: AstroclawConfig;
+  mediaUrl?: string;
+  cfg: OpenClawConfig;
   agentDir?: string;
+  workspaceDir?: string;
   mime?: string;
   activeModel?: ActiveMediaModel;
   prompt?: string;
   timeoutMs?: number;
+  scopeContext?: MediaUnderstandingScopeContext;
+};
+
+export type MediaUnderstandingScopeContext = {
+  sessionKey?: string;
+  channel?: string;
+  chatType?: string;
 };
 
 export type RunMediaUnderstandingFileResult = {
@@ -29,18 +40,23 @@ export type RunMediaUnderstandingFileResult = {
 
 export type DescribeImageFileParams = {
   filePath: string;
-  cfg: AstroclawConfig;
+  mediaUrl?: string;
+  cfg: OpenClawConfig;
   agentDir?: string;
+  workspaceDir?: string;
   mime?: string;
   activeModel?: ActiveMediaModel;
   prompt?: string;
   timeoutMs?: number;
+  scopeContext?: MediaUnderstandingScopeContext;
 };
 
 export type DescribeImageFileWithModelParams = {
   filePath: string;
-  cfg: AstroclawConfig;
+  mediaUrl?: string;
+  cfg: OpenClawConfig;
   agentDir?: string;
+  workspaceDir?: string;
   mime?: string;
   provider: string;
   model: string;
@@ -60,7 +76,7 @@ export type ExtractStructuredWithModelParams = {
   schemaName?: string;
   jsonSchema?: unknown;
   jsonMode?: boolean;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentDir?: string;
   provider: string;
   model: string;
@@ -76,16 +92,18 @@ type ExtractStructuredWithModelResult = Awaited<
 
 export type DescribeVideoFileParams = {
   filePath: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentDir?: string;
+  workspaceDir?: string;
   mime?: string;
   activeModel?: ActiveMediaModel;
 };
 
 export type TranscribeAudioFileParams = {
   filePath: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentDir?: string;
+  workspaceDir?: string;
   mime?: string;
   activeModel?: ActiveMediaModel;
   language?: string;
