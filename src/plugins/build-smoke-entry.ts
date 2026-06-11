@@ -1,7 +1,8 @@
+// Re-exports plugin modules used by build smoke checks.
 export {
   clearPluginCommands,
   executePluginCommand,
   getPluginCommandSpecs,
   matchPluginCommand,
 } from "./commands.js";
-export { loadAstroclawPlugins } from "./loader.js";
+export { loadOpenClawPlugins } from "./loader.js";
