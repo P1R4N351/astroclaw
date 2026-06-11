@@ -1,9 +1,10 @@
+// Telegram plugin module implements ingress behavior.
 import {
   createChannelIngressResolver,
   defineStableChannelIngressIdentity,
   type ChannelIngressEventInput,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import type { DmPolicy, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
+import type { DmPolicy, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { normalizeAllowFrom, type NormalizedAllowFrom } from "./bot-access.js";
 
 const TELEGRAM_CHANNEL_ID = "telegram";
@@ -23,7 +24,7 @@ export function createTelegramIngressSubject(senderId: string) {
 
 export function createTelegramIngressResolver(params: {
   accountId?: string;
-  cfg?: Pick<AstroclawConfig, "accessGroups" | "commands">;
+  cfg?: Pick<OpenClawConfig, "accessGroups" | "commands">;
 }) {
   return createChannelIngressResolver({
     channelId: TELEGRAM_CHANNEL_ID,
@@ -53,7 +54,7 @@ function telegramConversation(params: {
 
 export async function resolveTelegramCommandIngressAuthorization(params: {
   accountId: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   dmPolicy: DmPolicy;
   isGroup: boolean;
   chatId: string | number;
