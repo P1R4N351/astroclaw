@@ -1,63 +1,37 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/** Compatibility helpers that auto-enable bundled plugins for legacy and Vitest flows. */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginEntryConfig } from "../config/types.plugins.js";
 import { hasExplicitPluginConfig } from "./config-policy.js";
 import { normalizePluginId } from "./config-state.js";
 
-export function withBundledPluginAllowlistCompat(params: {
-  config: AstroclawConfig | undefined;
-  pluginIds: readonly string[];
-}): AstroclawConfig | undefined {
-  if (params.config?.plugins?.bundledDiscovery !== "compat") {
-    return params.config;
-  }
-  const allow = params.config?.plugins?.allow;
-  if (!Array.isArray(allow) || allow.length === 0) {
-    return params.config;
-  }
-
-  const allowSet = new Set(allow.map((entry) => entry.trim()).filter(Boolean));
-  let changed = false;
-  for (const pluginId of params.pluginIds) {
-    if (!allowSet.has(pluginId)) {
-      allowSet.add(pluginId);
-      changed = true;
-    }
-  }
-
-  if (!changed) {
-    return params.config;
-  }
-
-  return {
-    ...params.config,
-    plugins: {
-      ...params.config?.plugins,
-      allow: [...allowSet],
-    },
-  };
-}
-
+/** Returns config with selected bundled plugins explicitly enabled when compat rules require it. */
 export function withBundledPluginEnablementCompat(params: {
-  config: AstroclawConfig | undefined;
+  config: OpenClawConfig | undefined;
   pluginIds: readonly string[];
-}): AstroclawConfig | undefined {
+}): OpenClawConfig | undefined {
   const existingEntries = params.config?.plugins?.entries ?? {};
   const forcePluginsEnabled = params.config?.plugins?.enabled === false;
-  const useCompatDiscovery = params.config?.plugins?.bundledDiscovery === "compat";
   const allow = params.config?.plugins?.allow;
+  const bypassAllowlist = params.config?.plugins?.bundledDiscovery === "compat";
   const allowSet =
-    !useCompatDiscovery && Array.isArray(allow) && allow.length > 0
+    !bypassAllowlist && Array.isArray(allow) && allow.length > 0
       ? new Set(allow.map((pluginId) => normalizePluginId(pluginId)).filter(Boolean))
       : undefined;
   let hasEligiblePlugin = false;
   let changed = false;
   const nextEntries: Record<string, PluginEntryConfig> = { ...existingEntries };
+  const nextAllow = bypassAllowlist && Array.isArray(allow) ? new Set(allow) : undefined;
 
   for (const pluginId of params.pluginIds) {
     if (allowSet && !allowSet.has(pluginId)) {
       continue;
     }
     hasEligiblePlugin = true;
+    const beforeAllowSize = nextAllow?.size;
+    nextAllow?.add(pluginId);
+    if (nextAllow && nextAllow.size !== beforeAllowSize) {
+      changed = true;
+    }
     if (existingEntries[pluginId] !== undefined) {
       continue;
     }
@@ -76,6 +50,7 @@ export function withBundledPluginEnablementCompat(params: {
     plugins: {
       ...params.config?.plugins,
       ...(forcePluginsEnabled ? { enabled: true } : {}),
+      ...(nextAllow ? { allow: [...nextAllow] } : {}),
       entries: {
         ...existingEntries,
         ...nextEntries,
@@ -84,11 +59,12 @@ export function withBundledPluginEnablementCompat(params: {
   };
 }
 
+/** Enables bundled plugins in Vitest when tests did not provide explicit plugin config. */
 export function withBundledPluginVitestCompat(params: {
-  config: AstroclawConfig | undefined;
+  config: OpenClawConfig | undefined;
   pluginIds: readonly string[];
   env?: NodeJS.ProcessEnv;
-}): AstroclawConfig | undefined {
+}): OpenClawConfig | undefined {
   const env = params.env ?? process.env;
   const isVitest = Boolean(env.VITEST);
   if (
