@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
+// Doctor warning builder for allowlist policies that would block every sender.
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { getDoctorChannelCapabilities } from "../channel-capabilities.js";
 import type { DoctorAccountRecord, DoctorAllowFromList } from "../types.js";
 import { hasAllowFromEntries } from "./allowlist.js";
@@ -7,7 +8,7 @@ import { shouldSkipChannelDoctorDefaultEmptyGroupAllowlistWarning } from "./chan
 type CollectEmptyAllowlistPolicyWarningsParams = {
   account: DoctorAccountRecord;
   channelName?: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   doctorFixCommand: string;
   parent?: DoctorAccountRecord;
   prefix: string;
@@ -22,6 +23,7 @@ function allowsGroupAllowFromFallback(channelName?: string): boolean {
   return getDoctorChannelCapabilities(channelName).groupAllowFromFallbackToAllowFrom;
 }
 
+/** Collect DM/group allowlist warnings for one channel or account config record. */
 export function collectEmptyAllowlistPolicyWarningsForAccount(
   params: CollectEmptyAllowlistPolicyWarningsParams,
 ): string[] {
