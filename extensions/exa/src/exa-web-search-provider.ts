@@ -1,4 +1,5 @@
-import type { WebSearchProviderPlugin } from "astroclaw/plugin-sdk/provider-web-search-contract";
+// Exa provider module implements model/runtime integration.
+import type { WebSearchProviderPlugin } from "openclaw/plugin-sdk/provider-web-search-contract";
 import { createExaWebSearchProviderBase } from "./exa-web-search-provider.shared.js";
 
 const EXA_SEARCH_TYPES = ["auto", "neural", "fast", "deep", "deep-reasoning", "instant"] as const;
@@ -19,7 +20,7 @@ const ExaSearchSchema = {
   properties: {
     query: { type: "string", description: "Search query string." },
     count: {
-      type: "number",
+      type: "integer",
       description: "Number of results to return (1-100, subject to Exa search-type limits).",
       minimum: 1,
       maximum: EXA_MAX_SEARCH_COUNT,
