@@ -1,3 +1,4 @@
+// Memory Wiki plugin module implements bridge behavior.
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -5,8 +6,8 @@ import {
   getMemoryCapabilityRegistration,
   listActiveMemoryPublicArtifacts,
   type MemoryPluginPublicArtifact,
-} from "astroclaw/plugin-sdk/memory-host-core";
-import type { AstroclawConfig } from "../api.js";
+} from "openclaw/plugin-sdk/memory-host-core";
+import type { OpenClawConfig } from "../api.js";
 import type { ResolvedMemoryWikiConfig } from "./config.js";
 import { appendMemoryWikiLog } from "./log.js";
 import {
@@ -18,6 +19,7 @@ import {
 import { writeImportedSourcePage } from "./source-page-shared.js";
 import { resolveArtifactKey } from "./source-path-shared.js";
 import {
+  assertMemoryWikiSourceSyncStateCapacity,
   pruneImportedSourceEntries,
   readMemoryWikiSourceSyncState,
   writeMemoryWikiSourceSyncState,
@@ -191,8 +193,8 @@ async function writeBridgeSourcePage(params: {
           renderMarkdownFence(raw, contentLanguage),
           "",
           "## Notes",
-          "<!-- astroclaw:human:start -->",
-          "<!-- astroclaw:human:end -->",
+          "<!-- openclaw:human:start -->",
+          "<!-- openclaw:human:end -->",
           "",
         ].join("\n"),
       });
@@ -202,7 +204,7 @@ async function writeBridgeSourcePage(params: {
 
 export async function syncMemoryWikiBridgeSources(params: {
   config: ResolvedMemoryWikiConfig;
-  appConfig?: AstroclawConfig;
+  appConfig?: OpenClawConfig;
 }): Promise<BridgeMemoryWikiResult> {
   await initializeMemoryWikiVault(params.config);
   if (
@@ -223,16 +225,20 @@ export async function syncMemoryWikiBridgeSources(params: {
   }
 
   const publicArtifacts = await listActiveMemoryPublicArtifacts({ cfg: params.appConfig });
-  const state = await readMemoryWikiSourceSyncState(params.config.vault.path);
   const results: Array<{ pagePath: string; changed: boolean; created: boolean }> = [];
-  let artifactCount = 0;
   const activeKeys = new Set<string>();
   const artifacts = await collectBridgeArtifacts(params.config.bridge, publicArtifacts);
+  const state = await readMemoryWikiSourceSyncState(params.config.vault.path);
+  assertMemoryWikiSourceSyncStateCapacity({
+    state,
+    group: "bridge",
+    incomingCount: artifacts.length,
+  });
   const agentIdsByWorkspace = new Map<string, string[]>();
   for (const artifact of publicArtifacts) {
     agentIdsByWorkspace.set(artifact.workspaceDir, artifact.agentIds);
   }
-  artifactCount = artifacts.length;
+  const artifactCount = artifacts.length;
   for (const artifact of artifacts) {
     const stats = await fs.stat(artifact.absolutePath);
     activeKeys.add(artifact.syncKey);
