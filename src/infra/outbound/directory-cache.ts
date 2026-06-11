@@ -1,11 +1,17 @@
+// Directory cache stores short-lived channel directory lookups and invalidates
+// them on config-object changes or resolver signature updates.
 import type { ChannelDirectoryEntryKind, ChannelId } from "../../channels/plugins/types.public.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { resolveNonNegativeIntegerOption } from "../numeric-options.js";
 
 type CacheEntry<T> = {
   value: T;
   fetchedAt: number;
 };
 
+/**
+ * Stable dimensions that partition channel-directory cache entries.
+ */
 export type DirectoryCacheKey = {
   channel: ChannelId;
   accountId?: string | null;
@@ -14,24 +20,32 @@ export type DirectoryCacheKey = {
   signature?: string | null;
 };
 
+/**
+ * Serializes channel-directory lookup dimensions into a cache key.
+ */
 export function buildDirectoryCacheKey(key: DirectoryCacheKey): string {
   const signature = key.signature ?? "default";
   return `${key.channel}:${key.accountId ?? "default"}:${key.kind}:${key.source}:${signature}`;
 }
 
+/**
+ * Small TTL cache for channel directory lookups tied to a config object reference.
+ */
 export class DirectoryCache<T> {
   private readonly cache = new Map<string, CacheEntry<T>>();
-  private lastConfigRef: AstroclawConfig | null = null;
+  private lastConfigRef: OpenClawConfig | null = null;
+  private readonly ttlMs: number;
   private readonly maxSize: number;
 
-  constructor(
-    private readonly ttlMs: number,
-    maxSize = 2000,
-  ) {
-    this.maxSize = Math.max(1, Math.floor(maxSize));
+  constructor(ttlMs: number, maxSize = 2000) {
+    this.ttlMs = resolveNonNegativeIntegerOption(ttlMs, 0);
+    this.maxSize = Math.max(1, resolveNonNegativeIntegerOption(maxSize, 2000));
   }
 
-  get(key: string, cfg: AstroclawConfig): T | undefined {
+  /**
+   * Returns a cached value after applying config, TTL, and capacity invalidation.
+   */
+  get(key: string, cfg: OpenClawConfig): T | undefined {
     this.resetIfConfigChanged(cfg);
     this.pruneExpired(Date.now());
     const entry = this.cache.get(key);
@@ -41,7 +55,10 @@ export class DirectoryCache<T> {
     return entry.value;
   }
 
-  set(key: string, value: T, cfg: AstroclawConfig): void {
+  /**
+   * Stores a value and refreshes its recency for bounded-size eviction.
+   */
+  set(key: string, value: T, cfg: OpenClawConfig): void {
     this.resetIfConfigChanged(cfg);
     const now = Date.now();
     this.pruneExpired(now);
@@ -53,6 +70,9 @@ export class DirectoryCache<T> {
     this.evictToMaxSize();
   }
 
+  /**
+   * Clears matching entries without disturbing unrelated cached lookups.
+   */
   clearMatching(match: (key: string) => boolean): void {
     for (const key of this.cache.keys()) {
       if (match(key)) {
@@ -61,14 +81,18 @@ export class DirectoryCache<T> {
     }
   }
 
-  clear(cfg?: AstroclawConfig): void {
+  /**
+   * Drops all cached entries and optionally adopts the current config reference.
+   */
+  clear(cfg?: OpenClawConfig): void {
     this.cache.clear();
     if (cfg) {
       this.lastConfigRef = cfg;
     }
   }
 
-  private resetIfConfigChanged(cfg: AstroclawConfig): void {
+  private resetIfConfigChanged(cfg: OpenClawConfig): void {
+    // Directory availability can change with config snapshots; ref changes must not leak stale entries.
     if (this.lastConfigRef && this.lastConfigRef !== cfg) {
       this.cache.clear();
     }
