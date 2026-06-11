@@ -1,3 +1,4 @@
+// Checks gateway port usage and reports listener diagnostics.
 import { danger, info, shouldLogVerbose, warn } from "../globals.js";
 import { logDebug } from "../logger.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -6,7 +7,14 @@ import { isErrno } from "./errors.js";
 import { formatPortDiagnostics } from "./ports-format.js";
 import { inspectPortUsage } from "./ports-inspect.js";
 import { tryListenOnPort } from "./ports-probe.js";
-import type { PortListener, PortListenerKind, PortUsage, PortUsageStatus } from "./ports-types.js";
+import type {
+  PortConnection,
+  PortConnections,
+  PortListener,
+  PortListenerKind,
+  PortUsage,
+  PortUsageStatus,
+} from "./ports-types.js";
 
 class PortInUseError extends Error {
   port: number;
@@ -56,10 +64,10 @@ export async function handlePortError(
     if (details) {
       runtime.error(info("Port listener details:"));
       runtime.error(details);
-      if (/astroclaw|src\/index\.ts|dist\/index\.js/.test(details)) {
+      if (/openclaw|src\/index\.ts|dist\/index\.js/.test(details)) {
         runtime.error(
           warn(
-            "It looks like another Astroclaw instance is already running. Stop it or pick a different port.",
+            "It looks like another OpenClaw instance is already running. Stop it or pick a different port.",
           ),
         );
       }
@@ -85,7 +93,14 @@ export async function handlePortError(
 }
 
 export { PortInUseError };
-export type { PortListener, PortListenerKind, PortUsage, PortUsageStatus };
+export type {
+  PortConnection,
+  PortConnections,
+  PortListener,
+  PortListenerKind,
+  PortUsage,
+  PortUsageStatus,
+};
 export {
   buildPortHints,
   classifyPortListener,
@@ -94,4 +109,4 @@ export {
   isExpectedGatewayListeners,
   isSingleExpectedGatewayListener,
 } from "./ports-format.js";
-export { inspectPortUsage } from "./ports-inspect.js";
+export { inspectPortConnections, inspectPortUsage } from "./ports-inspect.js";
