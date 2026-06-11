@@ -1,5 +1,6 @@
-import { primeChannelOutboundSendMock } from "astroclaw/plugin-sdk/channel-contract-testing";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+// Slack plugin module implements outbound payload harness behavior.
+import { primeChannelOutboundSendMock } from "openclaw/plugin-sdk/channel-contract-testing";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import { vi, type Mock } from "vitest";
 import { slackOutbound } from "./outbound-adapter.js";
 
