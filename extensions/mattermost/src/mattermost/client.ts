@@ -1,12 +1,14 @@
-import { sleep } from "astroclaw/plugin-sdk/runtime-env";
+// Mattermost plugin module implements client behavior.
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
+import { sleep } from "openclaw/plugin-sdk/runtime-env";
 import {
   fetchWithSsrFGuard,
   ssrfPolicyFromPrivateNetworkOptIn,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { z } from "zod";
 
 export type MattermostFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -157,7 +159,6 @@ export function createMattermostClient(params: {
     if (contentType.includes("application/json")) {
       return (await res.json()) as T;
     }
-
     return (await res.text()) as T;
   };
 
@@ -296,9 +297,10 @@ export async function createMattermostDirectChannelWithRetry(
     maxRetries = 3,
     initialDelayMs = 1000,
     maxDelayMs = 10000,
-    timeoutMs = 30000,
+    timeoutMs: rawTimeoutMs = 30000,
     onRetry,
   } = options;
+  const timeoutMs = resolveTimerTimeoutMs(rawTimeoutMs, 30000);
 
   let lastError: Error | undefined;
 
@@ -591,7 +593,6 @@ export async function uploadMattermostFile(
     const detail = await readMattermostError(res);
     throw new Error(`Mattermost API ${res.status} ${res.statusText}: ${detail || "unknown error"}`);
   }
-
   const data = (await res.json()) as { file_infos?: MattermostFileInfo[] };
   const info = data.file_infos?.[0];
   if (!info?.id) {
