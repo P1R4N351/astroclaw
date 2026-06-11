@@ -1,8 +1,11 @@
-import type { AstroclawPluginSecurityAuditContext } from "astroclaw/plugin-sdk/plugin-entry";
-import { hasConfiguredSecretInput } from "astroclaw/plugin-sdk/secret-input";
-import { formatCliCommand } from "astroclaw/plugin-sdk/setup-tools";
-import { isPrivateNetworkOptInEnabled, isPrivateIpAddress } from "astroclaw/plugin-sdk/ssrf-policy";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+/**
+ * Browser plugin security audit checks for auth and remote CDP exposure.
+ */
+import type { OpenClawPluginSecurityAuditContext } from "openclaw/plugin-sdk/plugin-entry";
+import { hasConfiguredSecretInput } from "openclaw/plugin-sdk/secret-input";
+import { formatCliCommand } from "openclaw/plugin-sdk/setup-tools";
+import { isPrivateNetworkOptInEnabled, isPrivateIpAddress } from "openclaw/plugin-sdk/ssrf-policy";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { redactCdpUrl, resolveBrowserConfig, resolveProfile } from "./browser/config.js";
 import { resolveBrowserControlAuth } from "./browser/control-auth.js";
 import { hasNonEmptyString } from "./record-shared.js";
@@ -18,7 +21,8 @@ function isTrustedPrivateHostname(hostname: string): boolean {
   return normalized.length > 0 && BLOCKED_HOSTNAMES.has(normalized);
 }
 
-export function collectBrowserSecurityAuditFindings(ctx: AstroclawPluginSecurityAuditContext) {
+/** Collects Browser plugin security audit findings for the current config/env. */
+export function collectBrowserSecurityAuditFindings(ctx: OpenClawPluginSecurityAuditContext) {
   const findings: Array<{
     checkId: string;
     severity: "warn" | "critical";
@@ -36,7 +40,7 @@ export function collectBrowserSecurityAuditFindings(ctx: AstroclawPluginSecurity
       severity: "warn" as const,
       title: "Browser control config looks invalid",
       detail: String(err),
-      remediation: `Fix browser.cdpUrl in ${ctx.configPath} and re-run "${formatCliCommand("astroclaw security audit --deep")}".`,
+      remediation: `Fix browser.cdpUrl in ${ctx.configPath} and re-run "${formatCliCommand("openclaw security audit --deep")}".`,
     });
     return findings;
   }
@@ -49,7 +53,7 @@ export function collectBrowserSecurityAuditFindings(ctx: AstroclawPluginSecurity
   const explicitAuthMode = ctx.config.gateway?.auth?.mode;
   const tokenConfigured =
     Boolean(browserAuth.token) ||
-    hasNonEmptyString(ctx.env.ASTROCLAW_GATEWAY_TOKEN) ||
+    hasNonEmptyString(ctx.env.OPENCLAW_GATEWAY_TOKEN) ||
     hasConfiguredSecretInput(ctx.config.gateway?.auth?.token, ctx.config.secrets?.defaults);
   const passwordCanWin =
     explicitAuthMode === "password" ||
@@ -60,7 +64,7 @@ export function collectBrowserSecurityAuditFindings(ctx: AstroclawPluginSecurity
   const passwordConfigured =
     Boolean(browserAuth.password) ||
     (passwordCanWin &&
-      (hasNonEmptyString(ctx.env.ASTROCLAW_GATEWAY_PASSWORD) ||
+      (hasNonEmptyString(ctx.env.OPENCLAW_GATEWAY_PASSWORD) ||
         hasConfiguredSecretInput(
           ctx.config.gateway?.auth?.password,
           ctx.config.secrets?.defaults,
