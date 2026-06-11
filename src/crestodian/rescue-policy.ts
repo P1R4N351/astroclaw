@@ -1,6 +1,13 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Crestodian rescue policy gates remote writes by owner, DM, sandbox, and YOLO posture.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 
+/**
+ * Policy checks for remote Crestodian rescue commands.
+ *
+ * Rescue intentionally opens only for owner-controlled, non-sandboxed YOLO host
+ * posture unless config explicitly enables it, because remote commands can write local state.
+ */
 type CrestodianRescueDecision =
   | {
       allowed: true;
@@ -22,7 +29,7 @@ type CrestodianRescueDecision =
     };
 
 type CrestodianRescuePolicyInput = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId?: string;
   senderIsOwner: boolean;
   isDirectMessage: boolean;
@@ -32,7 +39,7 @@ function resolvePendingTtlMinutes(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 15;
 }
 
-function resolveAgentEntry(cfg: AstroclawConfig, agentId?: string) {
+function resolveAgentEntry(cfg: OpenClawConfig, agentId?: string) {
   if (!agentId) {
     return undefined;
   }
@@ -42,12 +49,12 @@ function resolveAgentEntry(cfg: AstroclawConfig, agentId?: string) {
   );
 }
 
-function resolveScopedExecConfig(cfg: AstroclawConfig, agentId?: string) {
+function resolveScopedExecConfig(cfg: OpenClawConfig, agentId?: string) {
   return resolveAgentEntry(cfg, agentId)?.tools?.exec;
 }
 
 function resolveScopedSandboxMode(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId?: string,
 ): "off" | "non-main" | "all" {
   return (
@@ -55,7 +62,7 @@ function resolveScopedSandboxMode(
   );
 }
 
-function isYoloHostPosture(cfg: AstroclawConfig, agentId?: string): boolean {
+function isYoloHostPosture(cfg: OpenClawConfig, agentId?: string): boolean {
   const scopedExec = resolveScopedExecConfig(cfg, agentId);
   const globalExec = cfg.tools?.exec;
   const security = scopedExec?.security ?? globalExec?.security ?? "full";
@@ -63,6 +70,7 @@ function isYoloHostPosture(cfg: AstroclawConfig, agentId?: string): boolean {
   return security === "full" && ask === "off";
 }
 
+/** Decide whether a message-channel rescue command is allowed for this sender/context. */
 export function resolveCrestodianRescuePolicy(
   input: CrestodianRescuePolicyInput,
 ): CrestodianRescueDecision {
@@ -72,6 +80,7 @@ export function resolveCrestodianRescuePolicy(
   const pendingTtlMinutes = resolvePendingTtlMinutes(rescue?.pendingTtlMinutes);
   const sandboxActive = resolveScopedSandboxMode(input.cfg, input.agentId) !== "off";
   const yolo = !sandboxActive && isYoloHostPosture(input.cfg, input.agentId);
+  // "auto" means rescue follows host posture; explicit false/true still keeps owner/DM gates.
   const enabled = configuredEnabled === "auto" ? yolo : configuredEnabled;
 
   if (!enabled) {
@@ -97,7 +106,7 @@ export function resolveCrestodianRescuePolicy(
       sandboxActive,
       reason: "sandbox-active",
       message:
-        "Crestodian rescue is blocked because Astroclaw sandboxing is active. Fix the install locally or disable sandboxing before using remote rescue.",
+        "Crestodian rescue is blocked because OpenClaw sandboxing is active. Fix the install locally or disable sandboxing before using remote rescue.",
     };
   }
   if (configuredEnabled === "auto" && !yolo) {
@@ -122,7 +131,7 @@ export function resolveCrestodianRescuePolicy(
       yolo,
       sandboxActive,
       reason: "not-owner",
-      message: "Crestodian rescue only accepts commands from an Astroclaw owner.",
+      message: "Crestodian rescue only accepts commands from an OpenClaw owner.",
     };
   }
   if (ownerDmOnly && !input.isDirectMessage) {
