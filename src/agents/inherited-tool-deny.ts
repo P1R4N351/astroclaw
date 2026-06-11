@@ -1,3 +1,7 @@
+/**
+ * Normalizes inherited tool allow/deny lists and ACP compatibility errors.
+ */
+import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
 import { isToolAllowedByPolicyName } from "./tool-policy-match.js";
 import { normalizeToolName } from "./tool-policy-shared.js";
 
@@ -15,7 +19,7 @@ const ACP_UNSUPPORTED_INHERITED_TOOL_DENY = [
   "write",
 ] as const;
 
-// Inherited allowlists are rebuilt from the effective Astroclaw tool surface.
+// Inherited allowlists are rebuilt from the effective OpenClaw tool surface.
 // ACP-only aliases can appear in explicit deny policies, but not in that
 // effective allowlist unless a plugin happens to expose matching tool names.
 const ACP_REQUIRED_INHERITED_TOOL_ALLOW = [
@@ -31,20 +35,12 @@ export function normalizeInheritedToolDenylist(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const entry of value) {
-    if (typeof entry !== "string") {
-      continue;
-    }
-    const normalized = normalizeToolName(entry);
-    if (!normalized || seen.has(normalized)) {
-      continue;
-    }
-    seen.add(normalized);
-    result.push(normalized);
-  }
-  return result;
+  return uniqueStrings(
+    value.flatMap((entry) => {
+      const normalized = typeof entry === "string" ? normalizeToolName(entry) : "";
+      return normalized ? [normalized] : [];
+    }),
+  );
 }
 
 export function inheritedToolDenyPatch(value: unknown): { inheritedToolDeny?: string[] } {
