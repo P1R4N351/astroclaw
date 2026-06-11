@@ -1,3 +1,6 @@
+/**
+ * Runtime boundary checks for bundled plugin public-surface facade imports.
+ */
 import fs from "node:fs";
 import path from "node:path";
 import JSON5 from "json5";
@@ -8,13 +11,14 @@ import {
   getRuntimeConfigSnapshot,
   getRuntimeConfigSourceSnapshot,
 } from "../config/runtime-snapshot.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { resolveBundledPluginsDir } from "../plugins/bundled-dir.js";
 import {
   createPluginActivationSource,
   normalizePluginsConfig,
   resolveEffectivePluginActivationState,
 } from "../plugins/config-state.js";
+import { getCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
 import { isPluginEnabledByDefaultForPlatform } from "../plugins/default-enablement.js";
 import {
   loadPluginManifestRegistry,
@@ -28,8 +32,9 @@ const ALWAYS_ALLOWED_RUNTIME_DIR_NAMES = new Set([
   "media-understanding-core",
   "speech-core",
 ]);
-const EMPTY_FACADE_BOUNDARY_CONFIG: AstroclawConfig = {};
+const EMPTY_FACADE_BOUNDARY_CONFIG: OpenClawConfig = {};
 
+/** Minimal manifest shape needed to decide whether a bundled facade may load. */
 export type FacadePluginManifestLike = Pick<
   PluginManifestRecord,
   "id" | "origin" | "enabledByDefault" | "enabledByDefaultOnPlatforms" | "rootDir" | "channels"
@@ -41,7 +46,7 @@ type FacadeModuleLocation = {
 };
 
 function readFacadeBoundaryConfigSafely(): {
-  rawConfig: AstroclawConfig;
+  rawConfig: OpenClawConfig;
 } {
   try {
     const sourceSnapshot = getRuntimeConfigSourceSnapshot();
@@ -60,7 +65,7 @@ function readFacadeBoundaryConfigSafely(): {
     const parsed = JSON5.parse(raw);
     const rawConfig =
       parsed && typeof parsed === "object"
-        ? (parsed as AstroclawConfig)
+        ? (parsed as OpenClawConfig)
         : EMPTY_FACADE_BOUNDARY_CONFIG;
     return { rawConfig };
   } catch {
@@ -93,12 +98,23 @@ function getFacadeBoundaryResolvedConfig() {
 function getFacadeManifestRegistry(params: {
   env?: NodeJS.ProcessEnv;
 }): readonly PluginManifestRecord[] {
+  const envOption = params.env ? { env: params.env } : {};
+  const resolved = getFacadeBoundaryResolvedConfig();
+  const current = getCurrentPluginMetadataSnapshot({
+    config: resolved.config,
+    ...envOption,
+    allowWorkspaceScopedSnapshot: true,
+  });
+  if (current?.manifestRegistry) {
+    return current.manifestRegistry.plugins;
+  }
   return loadPluginManifestRegistry({
-    config: getFacadeBoundaryResolvedConfig().config,
-    ...(params.env ? { env: params.env } : {}),
+    config: resolved.config,
+    ...envOption,
   }).plugins;
 }
 
+/** Resolves the concrete plugin module location recorded in the manifest registry. */
 export function resolveRegistryPluginModuleLocation(params: {
   dirName: string;
   artifactBasename: string;
@@ -120,7 +136,7 @@ function readBundledPluginManifestRecordFromDir(params: {
   const manifestPath = path.join(
     params.pluginsRoot,
     params.resolvedDirName,
-    "astroclaw.plugin.json",
+    "openclaw.plugin.json",
   );
   if (!fs.existsSync(manifestPath)) {
     return null;
@@ -226,6 +242,7 @@ function resolveBundledPluginManifestRecord(params: {
   return resolved;
 }
 
+/** Resolves the stable plugin id used for telemetry and error reporting. */
 export function resolveTrackedFacadePluginId(params: {
   dirName: string;
   artifactBasename: string;
@@ -237,6 +254,7 @@ export function resolveTrackedFacadePluginId(params: {
   return resolveBundledPluginManifestRecord(params)?.id ?? params.dirName;
 }
 
+/** Evaluates whether a bundled plugin's api/runtime-api facade is currently enabled. */
 export function resolveBundledPluginPublicSurfaceAccess(params: {
   dirName: string;
   artifactBasename: string;
@@ -274,10 +292,11 @@ export function resolveBundledPluginPublicSurfaceAccess(params: {
   });
 }
 
+/** Applies normalized config and default enablement rules to one bundled manifest. */
 export function evaluateBundledPluginPublicSurfaceAccess(params: {
   params: { dirName: string; artifactBasename: string };
   manifestRecord: FacadePluginManifestLike;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   normalizedPluginsConfig: ReturnType<typeof normalizePluginsConfig>;
   activationSource: ReturnType<typeof createPluginActivationSource>;
   autoEnabledReasons: Record<string, string[]>;
@@ -305,6 +324,7 @@ export function evaluateBundledPluginPublicSurfaceAccess(params: {
   };
 }
 
+/** Throws the public error used when a disabled bundled plugin facade is imported. */
 export function throwForBundledPluginPublicSurfaceAccess(params: {
   access: { allowed: boolean; pluginId?: string; reason?: string };
   request: { dirName: string; artifactBasename: string };
@@ -315,6 +335,7 @@ export function throwForBundledPluginPublicSurfaceAccess(params: {
   );
 }
 
+/** Resolves bundled facade access and throws unless the facade is allowed to load. */
 export function resolveActivatedBundledPluginPublicSurfaceAccessOrThrow(params: {
   dirName: string;
   artifactBasename: string;
