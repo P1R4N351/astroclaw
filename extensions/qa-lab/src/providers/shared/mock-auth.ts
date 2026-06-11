@@ -1,5 +1,7 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { applyAuthProfileConfig } from "astroclaw/plugin-sdk/provider-auth-api-key";
+// Qa Lab plugin module implements mock auth behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { applyAuthProfileConfig } from "openclaw/plugin-sdk/provider-auth-api-key";
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveQaAgentAuthDir, writeQaAuthProfiles } from "./auth-store.js";
 
 /** Providers the mock harness stages placeholder credentials for by default. */
@@ -32,13 +34,13 @@ function buildQaMockProfileId(provider: string): string {
  * serializer; anything beyond that is ignored by the mock.
  */
 export async function stageQaMockAuthProfiles(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   stateDir: string;
   agentIds?: readonly string[];
   providers?: readonly string[];
-}): Promise<AstroclawConfig> {
-  const agentIds = [...new Set(params.agentIds ?? QA_MOCK_AUTH_AGENT_IDS)];
-  const providers = [...new Set(params.providers ?? QA_MOCK_AUTH_PROVIDERS)];
+}): Promise<OpenClawConfig> {
+  const agentIds = uniqueStrings(params.agentIds ?? QA_MOCK_AUTH_AGENT_IDS);
+  const providers = uniqueStrings(params.providers ?? QA_MOCK_AUTH_PROVIDERS);
   let next = params.cfg;
   for (const agentId of agentIds) {
     await writeQaAuthProfiles({
