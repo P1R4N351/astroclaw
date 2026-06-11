@@ -1,11 +1,13 @@
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { ErrorCodes, errorShape } from "astroclaw/plugin-sdk/gateway-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Voice Call plugin entrypoint registers its OpenClaw integration.
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { ErrorCodes, errorShape } from "openclaw/plugin-sdk/gateway-runtime";
+import { timestampMsToIsoString } from "openclaw/plugin-sdk/number-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { Type } from "typebox";
 import {
   definePluginEntry,
   type GatewayRequestHandlerOptions,
-  type AstroclawPluginApi,
+  type OpenClawPluginApi,
 } from "./api.js";
 import { createVoiceCallRuntime, type VoiceCallRuntime } from "./runtime-entry.js";
 import { registerVoiceCallCli } from "./src/cli.js";
@@ -94,12 +96,12 @@ const voiceCallConfigSchema = {
     "realtime.instructions": { label: "Realtime Instructions", advanced: true },
     "realtime.toolPolicy": {
       label: "Realtime Tool Policy",
-      help: "Controls the shared astroclaw_agent_consult tool.",
+      help: "Controls the shared openclaw_agent_consult tool.",
       advanced: true,
     },
     "realtime.consultPolicy": {
       label: "Realtime Consult Policy",
-      help: "Guides when the realtime voice model should call astroclaw_agent_consult.",
+      help: "Guides when the realtime voice model should call openclaw_agent_consult.",
       advanced: true,
     },
     "realtime.fastContext.enabled": {
@@ -125,7 +127,7 @@ const voiceCallConfigSchema = {
     },
     "realtime.agentContext.enabled": {
       label: "Enable Agent Voice Context",
-      help: "Injects a compact agent identity, system prompt, and workspace context capsule into realtime voice instructions.",
+      help: "Injects a compact agent identity and workspace context capsule into realtime voice instructions.",
       advanced: true,
     },
     "realtime.agentContext.maxChars": {
@@ -134,10 +136,6 @@ const voiceCallConfigSchema = {
     },
     "realtime.agentContext.includeIdentity": {
       label: "Include Agent Identity",
-      advanced: true,
-    },
-    "realtime.agentContext.includeSystemPrompt": {
-      label: "Include Agent System Prompt",
       advanced: true,
     },
     "realtime.agentContext.includeWorkspaceFiles": {
@@ -182,9 +180,9 @@ const VoiceCallToolSchema = Type.Union([
     to: Type.Optional(Type.String({ description: "Call target" })),
     message: Type.String({ description: "Intro message" }),
     mode: Type.Optional(Type.Union([Type.Literal("notify"), Type.Literal("conversation")])),
-    sessionKey: Type.Optional(Type.String({ description: "Astroclaw session key for the call" })),
+    sessionKey: Type.Optional(Type.String({ description: "OpenClaw session key for the call" })),
     requesterSessionKey: Type.Optional(
-      Type.String({ description: "Astroclaw session key that initiated the call" }),
+      Type.String({ description: "OpenClaw session key that initiated the call" }),
     ),
     dtmfSequence: Type.Optional(Type.String({ description: "DTMF digits to play before connect" })),
   }),
@@ -216,9 +214,9 @@ const VoiceCallToolSchema = Type.Union([
     to: Type.Optional(Type.String({ description: "Call target" })),
     sid: Type.Optional(Type.String({ description: "Call SID" })),
     message: Type.Optional(Type.String({ description: "Optional intro message" })),
-    sessionKey: Type.Optional(Type.String({ description: "Astroclaw session key for the call" })),
+    sessionKey: Type.Optional(Type.String({ description: "OpenClaw session key for the call" })),
     requesterSessionKey: Type.Optional(
-      Type.String({ description: "Astroclaw session key that initiated the call" }),
+      Type.String({ description: "OpenClaw session key that initiated the call" }),
     ),
     dtmfSequence: Type.Optional(Type.String({ description: "DTMF digits to play before connect" })),
   }),
@@ -231,12 +229,12 @@ function asParamRecord(params: unknown): Record<string, unknown> {
 }
 
 function isCliOnlyProcess(): boolean {
-  return process.env.ASTROCLAW_CLI === "1" && !process.argv.slice(2).includes("gateway");
+  return process.env.OPENCLAW_CLI === "1" && !process.argv.slice(2).includes("gateway");
 }
 
-const VOICE_CALL_RUNTIME_KEY = Symbol.for("astroclaw.voice-call.runtime");
-const VOICE_CALL_RUNTIME_PROMISE_KEY = Symbol.for("astroclaw.voice-call.runtimePromise");
-const VOICE_CALL_RUNTIME_STOP_PROMISE_KEY = Symbol.for("astroclaw.voice-call.runtimeStopPromise");
+const VOICE_CALL_RUNTIME_KEY = Symbol.for("openclaw.voice-call.runtime");
+const VOICE_CALL_RUNTIME_PROMISE_KEY = Symbol.for("openclaw.voice-call.runtimePromise");
+const VOICE_CALL_RUNTIME_STOP_PROMISE_KEY = Symbol.for("openclaw.voice-call.runtimeStopPromise");
 
 type VoiceCallRuntimeGlobalState = typeof globalThis & {
   [VOICE_CALL_RUNTIME_KEY]?: VoiceCallRuntime | null;
@@ -257,7 +255,7 @@ export default definePluginEntry({
   name: "Voice Call",
   description: "Voice-call plugin with Telnyx/Twilio/Plivo providers",
   configSchema: voiceCallConfigSchema,
-  register(api: AstroclawPluginApi) {
+  register(api: OpenClawPluginApi) {
     const config = resolveVoiceCallConfig(voiceCallConfigSchema.parse(api.pluginConfig));
     const validation = validateProviderConfig(config);
 
@@ -265,7 +263,7 @@ export default definePluginEntry({
       for (const warning of formatVoiceCallLegacyConfigWarnings({
         value: api.pluginConfig,
         configPathPrefix: "plugins.entries.voice-call.config",
-        doctorFixCommand: "astroclaw doctor --fix",
+        doctorFixCommand: "openclaw doctor --fix",
       })) {
         api.logger.warn(warning);
       }
@@ -303,6 +301,7 @@ export default definePluginEntry({
             coreConfig: api.config as CoreConfig,
             fullConfig: api.config,
             agentRuntime: api.runtime.agent,
+            stateRuntime: api.runtime.state,
             ttsRuntime: api.runtime.tts,
             logger: api.logger,
           });
@@ -351,10 +350,11 @@ export default definePluginEntry({
       if (!call) {
         return undefined;
       }
+      const endedAt = timestampMsToIsoString(call.endedAt);
       const details = [
         `last state=${call.state}`,
         call.endReason ? `endReason=${call.endReason}` : undefined,
-        call.endedAt ? `endedAt=${new Date(call.endedAt).toISOString()}` : undefined,
+        endedAt ? `endedAt=${endedAt}` : undefined,
       ].filter(Boolean);
       return `call is not active (${details.join(", ")})`;
     };
@@ -813,6 +813,7 @@ export default definePluginEntry({
           program,
           config,
           ensureRuntime,
+          stateRuntime: api.runtime.state,
           logger: api.logger,
         }),
       { commands: ["voicecall"] },
@@ -833,7 +834,7 @@ export default definePluginEntry({
           );
           return;
         }
-        void ensureRuntime().catch((err) => {
+        void ensureRuntime().catch((err: unknown) => {
           api.logger.error(`[voice-call] Failed to start runtime: ${formatErrorMessage(err)}`);
         });
       },
