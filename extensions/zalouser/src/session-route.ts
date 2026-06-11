@@ -1,11 +1,12 @@
+// Zalouser plugin module implements session route behavior.
 import {
   buildChannelOutboundSessionRoute,
   type ChannelOutboundSessionRouteParams,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 
 function stripZalouserTargetPrefix(raw: string): string {
   return raw
