@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+// Syncs source docs into the generated publish tree.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -11,9 +12,9 @@ const ROOT = path.resolve(HERE, "..");
 const SOURCE_DOCS_DIR = path.join(ROOT, "docs");
 const SOURCE_CONFIG_PATH = path.join(SOURCE_DOCS_DIR, "docs.json");
 const INTERNAL_DOCS_DIRS = ["internal"];
-const DEFAULT_CLAWHUB_SOURCE_REPO = "astroclaw/clawhub";
+const DEFAULT_CLAWHUB_SOURCE_REPO = "openclaw/clawhub";
 const CLAWHUB_DOCS_TARGET_DIR = "clawhub";
-const CLAWHUB_REPO_ENV = "ASTROCLAW_DOCS_SYNC_CLAWHUB_REPO";
+const CLAWHUB_REPO_ENV = "OPENCLAW_DOCS_SYNC_CLAWHUB_REPO";
 const DEFAULT_CLAWHUB_REPO_CANDIDATES = [
   path.resolve(ROOT, "..", "clawhub-docs-clawhub"),
   path.resolve(ROOT, "..", "clawhub"),
@@ -21,15 +22,15 @@ const DEFAULT_CLAWHUB_REPO_CANDIDATES = [
 const SYNC_SUPPORT_FILES = [
   {
     source: path.join(ROOT, "scripts", "check-docs-mdx.mjs"),
-    target: path.join(".astroclaw-sync", "check-docs-mdx.mjs"),
+    target: path.join(".openclaw-sync", "check-docs-mdx.mjs"),
   },
   {
     source: path.join(ROOT, "scripts", "lib", "mintlify-accordion.mjs"),
-    target: path.join(".astroclaw-sync", "lib", "mintlify-accordion.mjs"),
+    target: path.join(".openclaw-sync", "lib", "mintlify-accordion.mjs"),
   },
   {
     source: path.join(ROOT, ".github", "codex", "prompts", "docs-mdx-repair.md"),
-    target: path.join(".astroclaw-sync", "docs-mdx-repair.md"),
+    target: path.join(".openclaw-sync", "docs-mdx-repair.md"),
   },
 ];
 const GENERATED_LOCALES = [
@@ -169,42 +170,50 @@ const GENERATED_LOCALES = [
   },
 ];
 
-function parseArgs(argv) {
+function readOptionValue(argv, index, optionName) {
+  const value = argv[index + 1];
+  if (value === undefined || value === "" || value.startsWith("--")) {
+    throw new Error(`${optionName} requires a value`);
+  }
+  return value;
+}
+
+export function parseArgs(argv) {
   const args = {
     target: "",
     sourceRepo: "",
     sourceSha: "",
     clawhubRepo: process.env[CLAWHUB_REPO_ENV] || "",
     clawhubSourceRepo:
-      process.env.ASTROCLAW_DOCS_SYNC_CLAWHUB_SOURCE_REPO || DEFAULT_CLAWHUB_SOURCE_REPO,
-    clawhubSourceSha: process.env.ASTROCLAW_DOCS_SYNC_CLAWHUB_SOURCE_SHA || "",
+      process.env.OPENCLAW_DOCS_SYNC_CLAWHUB_SOURCE_REPO || DEFAULT_CLAWHUB_SOURCE_REPO,
+    clawhubSourceSha: process.env.OPENCLAW_DOCS_SYNC_CLAWHUB_SOURCE_SHA || "",
   };
 
   for (let index = 0; index < argv.length; index += 1) {
     const part = argv[index];
     switch (part) {
       case "--target":
-        args.target = argv[index + 1] ?? "";
+        args.target = readOptionValue(argv, index, part);
         index += 1;
         break;
       case "--source-repo":
-        args.sourceRepo = argv[index + 1] ?? "";
+        args.sourceRepo = readOptionValue(argv, index, part);
         index += 1;
         break;
       case "--source-sha":
-        args.sourceSha = argv[index + 1] ?? "";
+        args.sourceSha = readOptionValue(argv, index, part);
         index += 1;
         break;
       case "--clawhub-repo":
-        args.clawhubRepo = argv[index + 1] ?? "";
+        args.clawhubRepo = readOptionValue(argv, index, part);
         index += 1;
         break;
       case "--clawhub-source-repo":
-        args.clawhubSourceRepo = argv[index + 1] ?? "";
+        args.clawhubSourceRepo = readOptionValue(argv, index, part);
         index += 1;
         break;
       case "--clawhub-source-sha":
-        args.clawhubSourceSha = argv[index + 1] ?? "";
+        args.clawhubSourceSha = readOptionValue(argv, index, part);
         index += 1;
         break;
       default:
@@ -298,6 +307,9 @@ function getGitHeadSha(repoPath) {
   }
 }
 
+/**
+ * Resolves the local ClawHub repository path used for docs mirroring.
+ */
 export function resolveClawHubRepoPath(value = "", options = {}) {
   const required = options.required !== false;
   const candidates = [
@@ -542,7 +554,7 @@ function rewriteClawHubMarkdownLinkTarget(rawTarget, relativeSourceDir, source) 
     return rawTarget;
   }
 
-  let normalizedRelative = "";
+  let normalizedRelative;
   if (pathPart.startsWith("docs/")) {
     normalizedRelative = normalizeSlashes(pathPart.slice("docs/".length));
   } else if (
@@ -579,6 +591,9 @@ function rewriteClawHubMarkdownLinks(raw, relativeSourcePath, source) {
   });
 }
 
+/**
+ * Mirrors ClawHub docs into the target docs tree.
+ */
 export function syncClawHubDocsTree(targetDocsDir, options = {}) {
   const repoPath = resolveClawHubRepoPath(options.repoPath || "", {
     required: options.required !== false,
@@ -691,7 +706,7 @@ function writeSyncMetadata(targetRoot, args, sources) {
     repository: args.sourceRepo || "",
     sha: args.sourceSha || "",
     sources: {
-      astroclaw: {
+      openclaw: {
         repository: args.sourceRepo || "",
         sha: args.sourceSha || "",
       },
@@ -703,7 +718,7 @@ function writeSyncMetadata(targetRoot, args, sources) {
     },
     syncedAt: new Date().toISOString(),
   };
-  writeJson(path.join(targetRoot, ".astroclaw-sync", "source.json"), metadata);
+  writeJson(path.join(targetRoot, ".openclaw-sync", "source.json"), metadata);
 }
 
 function syncSupportFiles(targetRoot) {
