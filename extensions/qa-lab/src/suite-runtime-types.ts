@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Qa Lab plugin module implements suite runtime types behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import type { QaProviderMode } from "./model-selection.js";
 import type { QaTransportActionName, QaTransportAdapter } from "./qa-transport.js";
 
@@ -39,7 +40,7 @@ export type QaSuiteRuntimeEnv = {
   mock: {
     baseUrl: string;
   } | null;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 };
 
 export type QaSkillStatusEntry = {
@@ -71,6 +72,7 @@ export type QaDreamingStatus = {
 
 export type QaRawSessionStoreEntry = {
   sessionId?: string;
+  sessionFile?: string;
   status?: string;
   spawnedBy?: string;
   label?: string;
