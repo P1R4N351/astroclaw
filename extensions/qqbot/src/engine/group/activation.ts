@@ -1,3 +1,4 @@
+// Qqbot plugin module implements activation behavior.
 import fs from "node:fs";
 import path from "node:path";
 
@@ -64,9 +65,9 @@ function resolveSessionStorePath(
   }
 
   const stateDir =
-    process.env.ASTROCLAW_STATE_DIR?.trim() ||
+    process.env.OPENCLAW_STATE_DIR?.trim() ||
     process.env.CLAWDBOT_STATE_DIR?.trim() ||
-    path.join(process.env.HOME || process.env.USERPROFILE || "", ".astroclaw");
+    path.join(process.env.HOME || process.env.USERPROFILE || "", ".openclaw");
   return path.join(stateDir, "agents", resolvedAgentId, "sessions", "sessions.json");
 }
 
