@@ -1,4 +1,9 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+/**
+ * Stateful binding target driver registry.
+ *
+ * Stores lifecycle drivers for binding targets that carry mutable external session state.
+ */
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type {
   ConfiguredBindingResolution,
   StatefulBindingTargetDescriptor,
@@ -12,22 +17,23 @@ export type StatefulBindingTargetResetResult =
   | { ok: true }
   | { ok: false; skipped?: boolean; error?: string };
 
+/** Driver contract for lifecycle operations on one stateful target family. */
 export type StatefulBindingTargetDriver = {
   id: string;
   ensureReady: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     bindingResolution: ConfiguredBindingResolution;
   }) => Promise<StatefulBindingTargetReadyResult>;
   ensureSession: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     bindingResolution: ConfiguredBindingResolution;
   }) => Promise<StatefulBindingTargetSessionResult>;
   resolveTargetBySessionKey?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     sessionKey: string;
   }) => StatefulBindingTargetDescriptor | null;
   resetInPlace?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     sessionKey: string;
     bindingTarget: StatefulBindingTargetDescriptor;
     reason: "new" | "reset";
@@ -49,6 +55,8 @@ export function registerStatefulBindingTargetDriver(driver: StatefulBindingTarge
   const normalized = { ...driver, id };
   const existing = registeredStatefulBindingTargetDrivers.get(id);
   if (existing) {
+    // Builtins and tests may register through multiple load paths. First writer
+    // wins so process-local sessions keep using the same driver instance.
     return;
   }
   registeredStatefulBindingTargetDrivers.set(id, normalized);
@@ -67,13 +75,15 @@ export function getStatefulBindingTargetDriver(id: string): StatefulBindingTarge
 }
 
 export function resolveStatefulBindingTargetBySessionKey(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey: string;
 }): { driver: StatefulBindingTargetDriver; bindingTarget: StatefulBindingTargetDescriptor } | null {
   const sessionKey = params.sessionKey.trim();
   if (!sessionKey) {
     return null;
   }
+  // Session keys are globally opaque to callers. Ask each registered driver so
+  // channel-specific encodings stay private to their owner.
   for (const driver of listStatefulBindingTargetDrivers()) {
     const bindingTarget = driver.resolveTargetBySessionKey?.({
       cfg: params.cfg,
