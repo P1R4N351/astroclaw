@@ -1,6 +1,7 @@
-import { stringEnum } from "astroclaw/plugin-sdk/channel-actions";
-import type { AnyAgentTool, AstroclawPluginToolContext } from "astroclaw/plugin-sdk/core";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+// Zalouser plugin module implements tool behavior.
+import { stringEnum } from "openclaw/plugin-sdk/channel-actions";
+import type { AnyAgentTool, OpenClawPluginToolContext } from "openclaw/plugin-sdk/core";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import { Type } from "typebox";
 import { sendImageZalouser, sendLinkZalouser, sendMessageZalouser } from "./send.js";
 import { parseZalouserOutboundTarget } from "./session-route.js";
@@ -41,7 +42,7 @@ type ToolParams = {
   url?: string;
 };
 
-type ZalouserToolContext = Pick<AstroclawPluginToolContext, "deliveryContext">;
+type ZalouserToolContext = Pick<OpenClawPluginToolContext, "deliveryContext">;
 
 function json(payload: unknown): AgentToolResult {
   return {
