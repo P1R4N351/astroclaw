@@ -1,10 +1,11 @@
+// Feishu plugin module implements client behavior.
 import type { Agent } from "node:https";
 import { createRequire } from "node:module";
 import * as Lark from "@larksuiteoapi/node-sdk";
 import {
   readPluginPackageVersion,
   resolveAmbientNodeProxyAgent,
-} from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/extension-shared";
 import {
   FEISHU_HTTP_TIMEOUT_ENV_VAR,
   FEISHU_HTTP_TIMEOUT_MAX_MS,
@@ -18,7 +19,7 @@ const pluginVersion = readPluginPackageVersion({ require });
 
 export { pluginVersion };
 
-const FEISHU_USER_AGENT = `astroclaw-feishu-builtin/${pluginVersion}/${process.platform}`;
+const FEISHU_USER_AGENT = `openclaw-feishu-builtin/${pluginVersion}/${process.platform}`;
 export { FEISHU_USER_AGENT };
 
 const FEISHU_WS_CONFIG = {
