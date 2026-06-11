@@ -1,28 +1,30 @@
+// Irc plugin module implements inbound behavior.
+import { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";
 import {
   channelIngressRoutes,
   createChannelIngressResolver,
   defineStableChannelIngressIdentity,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import { createChannelPairingController } from "astroclaw/plugin-sdk/channel-pairing";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
-import { resolveInboundRouteEnvelopeBuilderWithRuntime } from "astroclaw/plugin-sdk/inbound-envelope";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
+import { createChannelPairingController } from "openclaw/plugin-sdk/channel-pairing";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
+import { resolveInboundRouteEnvelopeBuilderWithRuntime } from "openclaw/plugin-sdk/inbound-envelope";
 import {
   deliverFormattedTextWithAttachments,
   type OutboundReplyPayload,
-} from "astroclaw/plugin-sdk/reply-payload";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+} from "openclaw/plugin-sdk/reply-payload";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
 import {
   GROUP_POLICY_BLOCKED_LABEL,
   resolveAllowlistProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "astroclaw/plugin-sdk/runtime-group-policy";
+} from "openclaw/plugin-sdk/runtime-group-policy";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
   normalizeStringEntries,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { ResolvedIrcAccount } from "./accounts.js";
 import { buildIrcAllowlistCandidates, normalizeIrcAllowEntry } from "./normalize.js";
 import { resolveIrcGroupMatch, resolveIrcRequireMention } from "./policy.js";
@@ -206,7 +208,7 @@ export async function handleIrcInbound(params: {
     providerKey: "irc",
     accountId: account.accountId,
     blockedLabel: GROUP_POLICY_BLOCKED_LABEL.channel,
-    log: (message) => runtime.log?.(message),
+    log: (messageLocal) => runtime.log?.(messageLocal),
   });
 
   const groupMatch = resolveIrcGroupMatch({
@@ -215,11 +217,11 @@ export async function handleIrcInbound(params: {
   });
 
   const allowTextCommands = core.channel.commands.shouldHandleTextCommands({
-    cfg: config as AstroclawConfig,
+    cfg: config as OpenClawConfig,
     surface: CHANNEL_ID,
   });
-  const hasControlCommand = core.channel.text.hasControlCommand(rawBody, config as AstroclawConfig);
-  const mentionRegexes = core.channel.mentions.buildMentionRegexes(config as AstroclawConfig);
+  const hasControlCommand = core.channel.text.hasControlCommand(rawBody, config as OpenClawConfig);
+  const mentionRegexes = core.channel.mentions.buildMentionRegexes(config as OpenClawConfig);
   const mentionNick = connectedNick?.trim() || account.nick;
   const explicitMentionRegex = mentionNick
     ? new RegExp(`\\b${escapeIrcRegexLiteral(mentionNick)}\\b[:,]?`, "i")
@@ -247,7 +249,7 @@ export async function handleIrcInbound(params: {
     channelId: CHANNEL_ID,
     accountId: account.accountId,
     identity: ircIngressIdentity,
-    cfg: config as AstroclawConfig,
+    cfg: config as OpenClawConfig,
     readStoreAllowFrom: async () => await pairing.readAllowFromStore(),
   }).message({
     subject: createIrcIngressSubject(message),
@@ -322,7 +324,6 @@ export async function handleIrcInbound(params: {
       access.ingress.decisiveGateId === "command" &&
       access.commandAccess.shouldBlockControlCommand
     ) {
-      const { logInboundDrop } = await import("astroclaw/plugin-sdk/channel-inbound");
       logInboundDrop({
         log: (line) => runtime.log?.(line),
         channel: CHANNEL_ID,
@@ -345,9 +346,13 @@ export async function handleIrcInbound(params: {
     return;
   }
 
-  const peerId = message.isGroup ? message.target : message.senderNick;
+  const channelTarget =
+    message.target.startsWith("#") || message.target.startsWith("&")
+      ? message.target
+      : `#${message.target}`;
+  const peerId = message.isGroup ? channelTarget : message.senderNick;
   const { route, buildEnvelope } = resolveInboundRouteEnvelopeBuilderWithRuntime({
-    cfg: config as AstroclawConfig,
+    cfg: config as OpenClawConfig,
     channel: CHANNEL_ID,
     accountId: account.accountId,
     peer: {
@@ -372,8 +377,8 @@ export async function handleIrcInbound(params: {
     Body: body,
     RawBody: rawBody,
     CommandBody: rawBody,
-    From: message.isGroup ? `irc:channel:${message.target}` : `irc:${senderDisplay}`,
-    To: `irc:${peerId}`,
+    From: message.isGroup ? `channel:${channelTarget}` : `irc:${senderDisplay}`,
+    To: message.isGroup ? `channel:${channelTarget}` : `irc:${peerId}`,
     SessionKey: route.sessionKey,
     AccountId: route.accountId,
     ChatType: message.isGroup ? "group" : "direct",
@@ -388,12 +393,12 @@ export async function handleIrcInbound(params: {
     MessageSid: message.messageId,
     Timestamp: message.timestamp,
     OriginatingChannel: CHANNEL_ID,
-    OriginatingTo: `irc:${peerId}`,
+    OriginatingTo: message.isGroup ? `channel:${channelTarget}` : `irc:${peerId}`,
     CommandAuthorized: commandAuthorized,
   });
 
-  await core.channel.turn.runAssembled({
-    cfg: config as AstroclawConfig,
+  await core.channel.inbound.dispatchReply({
+    cfg: config as OpenClawConfig,
     channel: CHANNEL_ID,
     accountId: account.accountId,
     agentId: route.agentId,
