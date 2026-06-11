@@ -1,10 +1,11 @@
-import type { AgentToolResult } from "@earendil-works/pi-agent-core";
+// Discord plugin module implements runtime.moderation behavior.
+import type { AgentToolResult } from "openclaw/plugin-sdk/agent-core";
 import {
   type ActionGate,
   jsonResult,
   readStringParam,
   type DiscordActionConfig,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "../runtime-api.js";
 import {
   banMemberDiscord,
@@ -31,7 +32,7 @@ async function verifySenderModerationPermission(params: {
   senderUserId?: string;
   requiredPermission: bigint;
   accountId?: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }) {
   // CLI/manual flows may not have sender context; enforce only when present.
   if (!params.senderUserId) {
@@ -52,7 +53,7 @@ export async function handleDiscordModerationAction(
   action: string,
   params: Record<string, unknown>,
   isActionEnabled: ActionGate<DiscordActionConfig>,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): Promise<AgentToolResult<unknown>> {
   if (!isDiscordModerationAction(action)) {
     throw new Error(`Unknown action: ${action}`);
