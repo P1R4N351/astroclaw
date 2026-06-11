@@ -1,10 +1,11 @@
-export type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Diffs API module exposes the plugin public contract.
+export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 export {
   definePluginEntry,
   type AnyAgentTool,
-  type AstroclawPluginApi,
-  type AstroclawPluginConfigSchema,
-  type AstroclawPluginToolContext,
+  type OpenClawPluginApi,
+  type OpenClawPluginConfigSchema,
+  type OpenClawPluginToolContext,
   type PluginLogger,
-} from "astroclaw/plugin-sdk/plugin-entry";
-export { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+} from "openclaw/plugin-sdk/plugin-entry";
+export { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
