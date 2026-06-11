@@ -1,4 +1,5 @@
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Discord plugin module implements message handlerm preflight behavior.
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { resolveDiscordConversationIdentity } from "../conversation-identity.js";
 import type { User } from "../internal/discord.js";
 import { resolveDiscordDmCommandAccess, type DiscordDmPolicy } from "./dm-command-auth.js";
@@ -10,18 +11,22 @@ import type {
 } from "./message-handler.preflight.types.js";
 
 let conversationRuntimePromise:
-  | Promise<typeof import("astroclaw/plugin-sdk/conversation-binding-runtime")>
+  | Promise<typeof import("openclaw/plugin-sdk/conversation-binding-runtime")>
   | undefined;
 let discordSendRuntimePromise: Promise<typeof import("../send.js")> | undefined;
 
 async function loadConversationRuntime() {
-  conversationRuntimePromise ??= import("astroclaw/plugin-sdk/conversation-binding-runtime");
+  conversationRuntimePromise ??= import("openclaw/plugin-sdk/conversation-binding-runtime");
   return await conversationRuntimePromise;
 }
 
 async function loadDiscordSendRuntime() {
   discordSendRuntimePromise ??= import("../send.js");
   return await discordSendRuntimePromise;
+}
+
+function resolveDiscordDmPairingSenderId(sender: DiscordSenderIdentity): string {
+  return sender.isPluralKit ? `pk:${sender.id}` : sender.id;
 }
 
 export async function resolveDiscordDmPreflightAccess(params: {
@@ -79,10 +84,15 @@ export async function resolveDiscordDmPreflightAccess(params: {
   await handleDiscordDmCommandDecision({
     senderAccess: dmAccess.senderAccess,
     accountId: params.resolvedAccountId,
+    // Use the resolved sender identity (e.g. PluralKit member UUID) here so
+    // the pairing record is keyed under the same stableId that
+    // resolveDiscordDmCommandAccess / createDiscordDmIngressSubject use on
+    // subsequent inbound messages. Previously this used the raw gateway
+    // author id, which only matched non-PK users.
     sender: {
-      id: params.author.id,
-      tag: formatDiscordUserTag(params.author),
-      name: params.author.username ?? undefined,
+      id: resolveDiscordDmPairingSenderId(params.sender),
+      tag: params.sender.tag ?? formatDiscordUserTag(params.author),
+      name: params.sender.name ?? params.author.username ?? undefined,
     },
     onPairingCreated: async (code) => {
       logVerbose(
