@@ -1,4 +1,5 @@
-import { buildChannelConfigSchema } from "astroclaw/plugin-sdk/channel-config-schema";
+// Tlon helper module supports config schema behavior.
+import { buildChannelConfigSchema } from "openclaw/plugin-sdk/channel-config-schema";
 import { z } from "zod";
 
 const ShipSchema = z.string().min(1);
