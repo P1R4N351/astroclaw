@@ -1,10 +1,12 @@
-import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
+// Moonshot provider module implements model/runtime integration.
+import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-model-shared";
 import { buildMoonshotProvider } from "./provider-catalog.js";
 
 const moonshotProviderDiscovery: ProviderPlugin = {
   id: "moonshot",
   label: "Moonshot",
   docsPath: "/providers/moonshot",
+  aliases: ["moonshotai", "moonshot-ai"],
   auth: [],
   staticCatalog: {
     order: "simple",
