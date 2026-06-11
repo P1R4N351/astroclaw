@@ -16,7 +16,7 @@ type HookRunnerGlobalState = {
   registry: GlobalHookRunnerRegistry | null;
 };
 
-const hookRunnerGlobalStateKey = Symbol.for("astroclaw.plugins.hook-runner-global-state");
+const hookRunnerGlobalStateKey = Symbol.for("openclaw.plugins.hook-runner-global-state");
 const getState = () =>
   resolveGlobalSingleton<HookRunnerGlobalState>(hookRunnerGlobalStateKey, () => ({
     hookRunner: null,
@@ -42,6 +42,7 @@ export function initializeGlobalHookRunner(registry: GlobalHookRunnerRegistry): 
     catchErrors: true,
     failurePolicyByHook: {
       before_agent_run: "fail-closed",
+      before_install: "fail-closed",
       before_tool_call: "fail-closed",
     },
   });
