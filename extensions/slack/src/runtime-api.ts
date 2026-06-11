@@ -1,24 +1,25 @@
+// Slack API module exposes the plugin public contract.
 export {
   buildComputedAccountStatusSnapshot,
   PAIRING_APPROVED_MESSAGE,
   projectCredentialSnapshotFields,
   resolveConfiguredFromRequiredCredentialStatuses,
-} from "astroclaw/plugin-sdk/channel-status";
+} from "openclaw/plugin-sdk/channel-status";
 export { buildChannelConfigSchema, SlackConfigSchema } from "../config-api.js";
-export type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
-export { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
+export type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
+export { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
 export type {
   ChannelPlugin,
-  AstroclawPluginApi,
+  OpenClawPluginApi,
   PluginRuntime,
-} from "astroclaw/plugin-sdk/channel-plugin-common";
-export type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-export type { SlackAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-plugin-common";
+export type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+export type { SlackAccountConfig } from "openclaw/plugin-sdk/config-contracts";
 export {
   emptyPluginConfigSchema,
   formatPairingApproveHint,
-} from "astroclaw/plugin-sdk/channel-plugin-common";
-export { loadOutboundMediaFromUrl } from "astroclaw/plugin-sdk/outbound-media";
+} from "openclaw/plugin-sdk/channel-plugin-common";
+export { loadOutboundMediaFromUrl } from "openclaw/plugin-sdk/outbound-media";
 export { looksLikeSlackTargetId, normalizeSlackMessagingTarget } from "./target-parsing.js";
 export { getChatChannelMeta } from "./channel-api.js";
 export {
@@ -26,7 +27,8 @@ export {
   imageResultFromFile,
   jsonResult,
   readNumberParam,
+  readPositiveIntegerParam,
   readReactionParams,
   readStringParam,
   withNormalizedTimestamp,
-} from "astroclaw/plugin-sdk/channel-actions";
+} from "openclaw/plugin-sdk/channel-actions";
