@@ -1,7 +1,8 @@
+// Minimax provider module implements model/runtime integration.
 import {
   createWebSearchProviderContractFields,
   type WebSearchProviderPlugin,
-} from "astroclaw/plugin-sdk/provider-web-search-config-contract";
+} from "openclaw/plugin-sdk/provider-web-search-config-contract";
 
 const MINIMAX_CREDENTIAL_PATH = "plugins.entries.minimax.config.webSearch.apiKey";
 const MINIMAX_TOKEN_PLAN_ENV_VARS = [
@@ -25,7 +26,7 @@ const MiniMaxSearchSchema = {
   properties: {
     query: { type: "string", description: "Search query string." },
     count: {
-      type: "number",
+      type: "integer",
       description: "Number of results to return (1-10).",
       minimum: 1,
       maximum: 10,
@@ -43,7 +44,7 @@ export function createMiniMaxWebSearchProvider(): WebSearchProviderPlugin {
     envVars: [...MINIMAX_WEB_SEARCH_ENV_VARS],
     placeholder: "sk-cp-...",
     signupUrl: "https://platform.minimax.io/user-center/basic-information/interface-key",
-    docsUrl: "https://docs.astroclaw.ai/tools/minimax-search",
+    docsUrl: "https://docs.openclaw.ai/tools/minimax-search",
     autoDetectOrder: 15,
     credentialPath: MINIMAX_CREDENTIAL_PATH,
     ...createWebSearchProviderContractFields({
