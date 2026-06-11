@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../api.js";
+// Memory Wiki helper module supports config compat behavior.
+import type { OpenClawConfig } from "../api.js";
 
 type LegacyConfigRule = {
   path: Array<string | number>;
@@ -13,20 +14,20 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function hasLegacyBridgeArtifactToggle(value: unknown): boolean {
-  return Object.prototype.hasOwnProperty.call(asRecord(value) ?? {}, "readMemoryCore");
+  return Object.hasOwn(asRecord(value) ?? {}, "readMemoryCore");
 }
 
 export const legacyConfigRules: LegacyConfigRule[] = [
   {
     path: ["plugins", "entries", "memory-wiki", "config", "bridge"],
     message:
-      'plugins.entries.memory-wiki.config.bridge.readMemoryCore is legacy; use plugins.entries.memory-wiki.config.bridge.readMemoryArtifacts. Run "astroclaw doctor --fix".',
+      'plugins.entries.memory-wiki.config.bridge.readMemoryCore is legacy; use plugins.entries.memory-wiki.config.bridge.readMemoryArtifacts. Run "openclaw doctor --fix".',
     match: hasLegacyBridgeArtifactToggle,
   },
 ];
 
-export function migrateMemoryWikiLegacyConfig(config: AstroclawConfig): {
-  config: AstroclawConfig;
+export function migrateMemoryWikiLegacyConfig(config: OpenClawConfig): {
+  config: OpenClawConfig;
   changes: string[];
 } | null {
   const rawEntry = asRecord(config.plugins?.entries?.["memory-wiki"]);
@@ -49,7 +50,7 @@ export function migrateMemoryWikiLegacyConfig(config: AstroclawConfig): {
   nextPluginConfig.bridge = nextBridge;
 
   const legacyValue = nextBridge.readMemoryCore;
-  const hasCanonical = Object.prototype.hasOwnProperty.call(nextBridge, "readMemoryArtifacts");
+  const hasCanonical = Object.hasOwn(nextBridge, "readMemoryArtifacts");
   if (!hasCanonical) {
     nextBridge.readMemoryArtifacts = legacyValue;
   }
@@ -67,8 +68,8 @@ export function migrateMemoryWikiLegacyConfig(config: AstroclawConfig): {
   };
 }
 
-export function normalizeCompatibilityConfig({ cfg }: { cfg: AstroclawConfig }): {
-  config: AstroclawConfig;
+export function normalizeCompatibilityConfig({ cfg }: { cfg: OpenClawConfig }): {
+  config: OpenClawConfig;
   changes: string[];
 } {
   return migrateMemoryWikiLegacyConfig(cfg) ?? { config: cfg, changes: [] };
