@@ -2,13 +2,17 @@
 // Imports packaged dist modules so the Docker lane verifies the npm tarball,
 // while this small test driver stays mounted from the checkout.
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-import { runCli, shouldStartCrestodianForBareRoot } from "../../dist/cli/run-main.js";
+import {
+  runCli,
+  shouldStartCrestodianForModernOnboard,
+  shouldStartOnboardingForFreshInstall,
+} from "../../dist/cli/run-main.js";
 import { clearConfigCache } from "../../dist/config/config.js";
-import type { AstroclawConfig } from "../../dist/config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../dist/config/types.openclaw.js";
 import { runCrestodian } from "../../dist/crestodian/crestodian.js";
 import type { RuntimeEnv } from "../../dist/runtime.js";
+import { createE2eStateDir } from "./lib/temp-state-dir.ts";
 
 type CrestodianFirstRunCommand = {
   id: string;
@@ -63,22 +67,26 @@ function renderCommandTemplate(template: string, vars: Record<string, string>): 
 
 async function main() {
   const spec = await readFirstRunSpec();
-  const stateDir =
-    process.env.ASTROCLAW_STATE_DIR ??
-    (await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-crestodian-first-run-")));
-  const configPath = process.env.ASTROCLAW_CONFIG_PATH ?? path.join(stateDir, "astroclaw.json");
-  process.env.ASTROCLAW_STATE_DIR = stateDir;
-  process.env.ASTROCLAW_CONFIG_PATH = configPath;
+  const tempState = await createE2eStateDir("openclaw-crestodian-first-run-");
+  tempState.registerExitCleanup();
+  const stateDir = tempState.stateDir;
+  const configPath = process.env.OPENCLAW_CONFIG_PATH ?? path.join(stateDir, "openclaw.json");
+  process.env.OPENCLAW_STATE_DIR = stateDir;
+  process.env.OPENCLAW_CONFIG_PATH = configPath;
   await fs.rm(stateDir, { recursive: true, force: true });
   await fs.mkdir(stateDir, { recursive: true });
   clearConfigCache();
 
   assert(
-    shouldStartCrestodianForBareRoot(["node", "astroclaw"]),
-    "bare astroclaw invocation did not route to Crestodian",
+    await shouldStartOnboardingForFreshInstall(["node", "openclaw"]),
+    "fresh bare OpenClaw invocation did not route to onboarding",
+  );
+  assert(
+    shouldStartCrestodianForModernOnboard(["node", "openclaw", "onboard", "--modern"]),
+    "modern onboard invocation did not route to Crestodian",
   );
   process.exitCode = undefined;
-  await runCli(["node", "astroclaw", "onboard", "--modern", "--non-interactive", "--json"]);
+  await runCli(["node", "openclaw", "onboard", "--modern", "--non-interactive", "--json"]);
   assert(
     process.exitCode === undefined || process.exitCode === 0,
     "modern onboard overview exited nonzero",
@@ -123,7 +131,7 @@ async function main() {
     );
   }
 
-  const config = JSON.parse(await fs.readFile(configPath, "utf8")) as AstroclawConfig;
+  const config = JSON.parse(await fs.readFile(configPath, "utf8")) as OpenClawConfig;
   assert(
     config.agents?.defaults?.workspace === spec.dockerDefaultWorkspace,
     "first-run setup did not write default workspace",
@@ -169,7 +177,7 @@ async function main() {
   console.log("Crestodian first-run Docker E2E passed");
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error(err);
   process.exit(1);
 });
