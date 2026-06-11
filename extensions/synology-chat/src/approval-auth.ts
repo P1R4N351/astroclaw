@@ -1,7 +1,8 @@
+// Synology Chat plugin module implements approval auth behavior.
 import {
   createResolvedApproverActionAuthAdapter,
   resolveApprovalApprovers,
-} from "astroclaw/plugin-sdk/approval-auth-runtime";
+} from "openclaw/plugin-sdk/approval-auth-runtime";
 import { resolveAccount } from "./accounts.js";
 
 function normalizeSynologyChatApproverId(value: string | number): string | undefined {
