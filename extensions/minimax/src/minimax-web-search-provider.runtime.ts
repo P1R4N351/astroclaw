@@ -1,8 +1,9 @@
+// Minimax provider module implements model/runtime integration.
 import {
   createProviderHttpError,
   formatProviderHttpErrorMessage,
   readProviderJsonResponse,
-} from "astroclaw/plugin-sdk/provider-http";
+} from "openclaw/plugin-sdk/provider-http";
 import {
   DEFAULT_SEARCH_COUNT,
   buildSearchCacheKey,
@@ -10,9 +11,10 @@ import {
   mergeScopedSearchConfig,
   readCachedSearchPayload,
   readConfiguredSecretString,
-  readNumberParam,
+  readPositiveIntegerParam,
   readProviderEnvValue,
   readStringParam,
+  MAX_SEARCH_COUNT,
   resolveProviderWebSearchPluginConfig,
   resolveSearchCacheTtlMs,
   resolveSearchCount,
@@ -22,8 +24,8 @@ import {
   wrapWebContent,
   writeCachedSearchPayload,
   type SearchConfigRecord,
-} from "astroclaw/plugin-sdk/provider-web-search";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-web-search";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 const MINIMAX_SEARCH_ENDPOINT_GLOBAL = "https://api.minimax.io/v1/coding_plan/search";
 const MINIMAX_SEARCH_ENDPOINT_CN = "https://api.minimaxi.com/v1/coding_plan/search";
@@ -190,8 +192,8 @@ async function runMiniMaxSearch(params: {
 function missingMiniMaxKeyPayload() {
   return {
     error: "missing_minimax_api_key",
-    message: `web_search (minimax) needs a MiniMax Token Plan key or OAuth token. Run \`${formatCliCommand("astroclaw configure --section web")}\` to store it, or set MINIMAX_CODE_PLAN_KEY, MINIMAX_CODING_API_KEY, MINIMAX_OAUTH_TOKEN, or MINIMAX_API_KEY in the Gateway environment.`,
-    docs: "https://docs.astroclaw.ai/tools/web",
+    message: `web_search (minimax) needs a MiniMax Token Plan key or OAuth token. Run \`${formatCliCommand("openclaw configure --section web")}\` to store it, or set MINIMAX_CODE_PLAN_KEY, MINIMAX_CODING_API_KEY, MINIMAX_OAUTH_TOKEN, or MINIMAX_API_KEY in the Gateway environment.`,
+    docs: "https://docs.openclaw.ai/tools/web",
   };
 }
 
@@ -214,7 +216,12 @@ export async function executeMiniMaxWebSearchProviderTool(
   const params = args;
   const query = readStringParam(params, "query", { required: true });
   const count =
-    readNumberParam(params, "count", { integer: true }) ?? searchConfig?.maxResults ?? undefined;
+    readPositiveIntegerParam(params, "count", {
+      max: MAX_SEARCH_COUNT,
+      message: `count must be an integer from 1 to ${MAX_SEARCH_COUNT}.`,
+    }) ??
+    searchConfig?.maxResults ??
+    undefined;
 
   const resolvedCount = resolveSearchCount(count, DEFAULT_SEARCH_COUNT);
   const endpoint = resolveMiniMaxEndpoint(searchConfig, config);
@@ -259,7 +266,7 @@ export async function executeMiniMaxWebSearchProviderTool(
   return payload;
 }
 
-export const __testing = {
+export const testing = {
   MINIMAX_SEARCH_ENDPOINT_GLOBAL,
   MINIMAX_SEARCH_ENDPOINT_CN,
   resolveMiniMaxApiKey,
@@ -267,3 +274,4 @@ export const __testing = {
   resolveMiniMaxRegion,
   readMiniMaxSearchJsonResponse: readProviderJsonResponse<MiniMaxSearchResponse>,
 } as const;
+export { testing as __testing };
