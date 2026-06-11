@@ -1,16 +1,17 @@
+// Mattermost plugin module implements secret contract behavior.
 import {
   collectSimpleChannelFieldAssignments,
   getChannelSurface,
   type ResolverContext,
   type SecretDefaults,
   type SecretTargetRegistryEntry,
-} from "astroclaw/plugin-sdk/channel-secret-basic-runtime";
+} from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 
 export const secretTargetRegistryEntries: SecretTargetRegistryEntry[] = [
   {
     id: "channels.mattermost.accounts.*.botToken",
     targetType: "channels.mattermost.accounts.*.botToken",
-    configFile: "astroclaw.json",
+    configFile: "openclaw.json",
     pathPattern: "channels.mattermost.accounts.*.botToken",
     secretShape: "secret_input",
     expectedResolvedValue: "string",
@@ -21,7 +22,7 @@ export const secretTargetRegistryEntries: SecretTargetRegistryEntry[] = [
   {
     id: "channels.mattermost.botToken",
     targetType: "channels.mattermost.botToken",
-    configFile: "astroclaw.json",
+    configFile: "openclaw.json",
     pathPattern: "channels.mattermost.botToken",
     secretShape: "secret_input",
     expectedResolvedValue: "string",
