@@ -1,9 +1,10 @@
-import {
-  type ChatCommandDefinition,
-  type CommandArgDefinition,
-  type CommandArgValues,
-  type NativeCommandSpec,
-} from "astroclaw/plugin-sdk/native-command-registry";
+// Discord plugin module implements native command.args behavior.
+import type {
+  ChatCommandDefinition,
+  CommandArgDefinition,
+  CommandArgValues,
+  NativeCommandSpec,
+} from "openclaw/plugin-sdk/native-command-registry";
 import type { CommandInteraction } from "../internal/discord.js";
 import type { DiscordCommandArgs } from "./native-command.types.js";
 
