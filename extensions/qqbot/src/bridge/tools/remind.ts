@@ -1,9 +1,10 @@
-import { callGatewayTool } from "astroclaw/plugin-sdk/agent-harness-runtime";
+// Qqbot plugin module implements remind behavior.
+import { callGatewayTool } from "openclaw/plugin-sdk/agent-harness-runtime";
 import type {
   AnyAgentTool,
-  AstroclawPluginApi,
-  AstroclawPluginToolContext,
-} from "astroclaw/plugin-sdk/core";
+  OpenClawPluginApi,
+  OpenClawPluginToolContext,
+} from "openclaw/plugin-sdk/core";
 import { RemindSchema, executeScheduledRemind } from "../../engine/tools/remind-logic.js";
 import type { RemindCronAction, RemindParams } from "../../engine/tools/remind-logic.js";
 import { getRequestContext } from "../../engine/utils/request-context.js";
@@ -43,13 +44,12 @@ const defaultDeps: RemindToolDeps = {
 };
 
 export function createRemindTool(
-  toolContext: AstroclawPluginToolContext = {},
+  toolContext: OpenClawPluginToolContext = {},
   deps: RemindToolDeps = defaultDeps,
 ): AnyAgentTool {
   return {
     name: "qqbot_remind",
     label: "QQBot Reminder",
-    ownerOnly: true,
     description:
       "Create, list, and remove QQ reminders. " +
       "This tool schedules Gateway cron jobs directly; do not call the cron tool after it succeeds.\n" +
@@ -60,19 +60,6 @@ export function createRemindTool(
       'Time examples: "5m", "1h", "0 8 * * *"',
     parameters: RemindSchema,
     async execute(_toolCallId, params) {
-      if (toolContext.senderIsOwner !== true) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({
-                error: "QQ reminders require an owner-authorized sender.",
-              }),
-            },
-          ],
-          details: { error: "QQ reminders require an owner-authorized sender." },
-        };
-      }
       const ctx = getRequestContext();
       return await executeScheduledRemind(
         params as RemindParams,
@@ -86,6 +73,6 @@ export function createRemindTool(
   };
 }
 
-export function registerRemindTool(api: AstroclawPluginApi): void {
+export function registerRemindTool(api: OpenClawPluginApi): void {
   api.registerTool((ctx) => createRemindTool(ctx), { name: "qqbot_remind" });
 }
