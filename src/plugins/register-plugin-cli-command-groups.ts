@@ -1,3 +1,4 @@
+// Registers plugin-provided CLI command groups.
 import type { Command } from "commander";
 import {
   findCommandGroupEntry,
@@ -6,7 +7,7 @@ import {
   removeCommandGroupNames,
   type CommandGroupEntry,
 } from "../cli/program/register-command-groups.js";
-import type { AstroclawPluginCliCommandDescriptor, PluginLogger } from "./types.js";
+import type { OpenClawPluginCliCommandDescriptor, PluginLogger } from "./types.js";
 
 export type PluginCliCommandGroupEntry = CommandGroupEntry & {
   pluginId: string;
@@ -20,7 +21,7 @@ function canRegisterPluginCliLazily(entry: PluginCliCommandGroupEntry): boolean 
     return false;
   }
   const descriptorNames = new Set(
-    (entry.placeholders as readonly AstroclawPluginCliCommandDescriptor[]).map(
+    (entry.placeholders as readonly OpenClawPluginCliCommandDescriptor[]).map(
       (descriptor) => descriptor.name,
     ),
   );
