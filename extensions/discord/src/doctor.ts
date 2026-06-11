@@ -1,7 +1,8 @@
-import { type ChannelDoctorAdapter } from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { collectProviderDangerousNameMatchingScopes } from "astroclaw/plugin-sdk/runtime-doctor";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Discord plugin module implements doctor behavior.
+import type { ChannelDoctorAdapter } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { collectProviderDangerousNameMatchingScopes } from "openclaw/plugin-sdk/runtime-doctor";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { inspectDiscordAccount } from "./account-inspect.js";
 import { resolveDefaultDiscordAccountId } from "./accounts.js";
 import { normalizeCompatibilityConfig as normalizeDiscordCompatibilityConfig } from "./doctor-contract.js";
@@ -27,7 +28,7 @@ function sanitizeForLog(value: string): string {
 }
 
 function collectDiscordAccountScopes(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): Array<{ prefix: string; account: Record<string, unknown> }> {
   const scopes: Array<{ prefix: string; account: Record<string, unknown> }> = [];
   const discord = asObjectRecord(cfg.channels?.discord);
@@ -104,7 +105,7 @@ function collectDiscordIdLists(
   return refs;
 }
 
-export function scanDiscordNumericIdEntries(cfg: AstroclawConfig): DiscordNumericIdHit[] {
+export function scanDiscordNumericIdEntries(cfg: OpenClawConfig): DiscordNumericIdHit[] {
   const hits: DiscordNumericIdHit[] = [];
   const scanList = (pathLabel: string, list: unknown) => {
     if (!Array.isArray(list)) {
@@ -177,9 +178,9 @@ export function collectDiscordNumericIdWarnings(params: {
 }
 
 export function maybeRepairDiscordNumericIds(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   doctorFixCommand: string,
-): { config: AstroclawConfig; changes: string[]; warnings?: string[] } {
+): { config: OpenClawConfig; changes: string[]; warnings?: string[] } {
   const hits = scanDiscordNumericIdEntries(cfg);
   if (hits.length === 0) {
     return { config: cfg, changes: [] };
@@ -238,7 +239,7 @@ export function maybeRepairDiscordNumericIds(
 }
 
 export function collectDiscordMissingEnvTokenWarnings(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
 }): string[] {
   if (resolveDefaultDiscordAccountId(params.cfg) !== "default") {
@@ -257,7 +258,7 @@ export function collectDiscordMissingEnvTokenWarnings(params: {
   ];
 }
 
-function collectDiscordMutableAllowlistWarnings(cfg: AstroclawConfig): string[] {
+function collectDiscordMutableAllowlistWarnings(cfg: OpenClawConfig): string[] {
   const hits: Array<{ path: string; entry: string }> = [];
   const addHits = (pathLabel: string, list: unknown) => {
     if (!Array.isArray(list)) {
