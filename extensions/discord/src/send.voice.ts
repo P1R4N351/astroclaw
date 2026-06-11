@@ -1,19 +1,20 @@
+// Discord plugin module implements send.voice behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   extensionForMime,
   maxBytesForKind,
   unlinkIfExists,
-} from "astroclaw/plugin-sdk/media-runtime";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import type { RetryConfig } from "astroclaw/plugin-sdk/retry-runtime";
-import { tempWorkspace, resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
-import { loadWebMediaRaw } from "astroclaw/plugin-sdk/web-media";
+} from "openclaw/plugin-sdk/media-runtime";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import type { RetryConfig } from "openclaw/plugin-sdk/retry-runtime";
+import { tempWorkspace, resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { loadWebMediaRaw } from "openclaw/plugin-sdk/web-media";
 import { resolveDiscordAccount } from "./accounts.js";
 import type { RequestClient } from "./internal/discord.js";
-import { parseAndResolveRecipient } from "./recipient-resolution.js";
+import { parseAndResolveChannelRecipient } from "./recipient-resolution.js";
 import { createDiscordSendResult } from "./send.receipt.js";
 import { buildDiscordSendError, createDiscordClient, resolveChannelId } from "./send.shared.js";
 import type { DiscordSendResult } from "./send.types.js";
@@ -24,7 +25,7 @@ import {
 } from "./voice-message.js";
 
 type VoiceMessageOpts = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   token?: string;
   accountId?: string;
   verbose?: boolean;
@@ -55,7 +56,7 @@ async function materializeVoiceMessageInput(
   const extFromMime = media.contentType ? extensionForMime(media.contentType) : "";
   const ext = extFromName || extFromMime || ".bin";
   const workspace = await tempWorkspace({
-    rootDir: resolvePreferredAstroclawTmpDir(),
+    rootDir: resolvePreferredOpenClawTmpDir(),
     prefix: "voice-src-",
   });
   const filePath = await workspace.write(`input${ext}`, media.buffer);
@@ -95,7 +96,7 @@ export async function sendVoiceMessageDiscord(
     token = client.token;
     rest = client.rest;
     const request = client.request;
-    const recipient = await parseAndResolveRecipient(to, cfg, opts.accountId);
+    const recipient = await parseAndResolveChannelRecipient(to, cfg, opts.accountId);
     channelId = (await resolveChannelId(rest, recipient, request)).channelId;
 
     const ogg = await ensureOggOpus(localInputPath);
