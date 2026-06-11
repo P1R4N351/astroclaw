@@ -1,6 +1,8 @@
+// Diagnostic support export helpers write support bundles to disk.
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { asOptionalRecord } from "@openclaw/normalization-core/record-coerce";
 import { parseConfigJson5 } from "../config/io.js";
 import { resolveConfigPath, resolveStateDir } from "../config/paths.js";
 import { redactConfigObject } from "../config/redact-snapshot.js";
@@ -35,7 +37,7 @@ export const DIAGNOSTIC_SUPPORT_EXPORT_VERSION = 1;
 
 const DEFAULT_LOG_LIMIT = 5000;
 const DEFAULT_LOG_MAX_BYTES = 1_000_000;
-const SUPPORT_EXPORT_PREFIX = "astroclaw-diagnostics-";
+const SUPPORT_EXPORT_PREFIX = "openclaw-diagnostics-";
 const SUPPORT_EXPORT_SUFFIX = ".zip";
 type Awaitable<T> = T | Promise<T>;
 type SupportSnapshotReader = () => Awaitable<unknown>;
@@ -57,7 +59,7 @@ export type DiagnosticSupportExportOptions = {
 export type DiagnosticSupportExportManifest = {
   version: typeof DIAGNOSTIC_SUPPORT_EXPORT_VERSION;
   generatedAt: string;
-  astroclawVersion: string;
+  openclawVersion: string;
   platform: NodeJS.Platform;
   arch: string;
   node: string;
@@ -98,6 +100,10 @@ type ConfigShape = {
     authMode?: unknown;
     tailscale?: unknown;
   };
+  discovery?: {
+    mdnsMode?: unknown;
+    bonjourEnvOverride: "unset" | "force-enabled" | "force-disabled" | "unrecognized";
+  };
   channels?: {
     count: number;
     ids: string[];
@@ -134,6 +140,21 @@ type FailedSanitizedLogTail = Omit<IncludedSanitizedLogTail, "status"> & {
 
 type SanitizedLogTail = IncludedSanitizedLogTail | FailedSanitizedLogTail;
 
+type BonjourLogSummary = {
+  count: number;
+  warnings: number;
+  last?: {
+    time?: string;
+    level?: string;
+    kind: "disabled" | "restarted" | "ciao_suppressed" | "conflict" | "watchdog" | "other";
+  };
+  flags: {
+    disabled: boolean;
+    restarted: boolean;
+    ciaoSuppressed: boolean;
+  };
+};
+
 type SupportSnapshotStatus =
   | {
       status: "included";
@@ -165,13 +186,6 @@ function normalizePositiveInteger(value: unknown, fallback: number): number {
   return Math.floor(parsed);
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  return value as Record<string, unknown>;
-}
-
 function safeScalar(value: unknown): unknown {
   if (typeof value === "boolean") {
     return value;
@@ -186,16 +200,46 @@ function safeScalar(value: unknown): unknown {
   return undefined;
 }
 
-function sortedObjectKeys(value: unknown): string[] {
-  return Object.keys(asRecord(value) ?? {}).toSorted((a, b) => a.localeCompare(b));
+function resolveBonjourEnvOverride(
+  env: NodeJS.ProcessEnv,
+): NonNullable<ConfigShape["discovery"]>["bonjourEnvOverride"] {
+  const raw = env.OPENCLAW_DISABLE_BONJOUR?.trim().toLowerCase();
+  if (!raw) {
+    return "unset";
+  }
+  switch (raw) {
+    case "1":
+    case "true":
+    case "yes":
+    case "on":
+      return "force-disabled";
+    case "0":
+    case "false":
+    case "no":
+    case "off":
+      return "force-enabled";
+    default:
+      return "unrecognized";
+  }
 }
 
-function sanitizeConfigShape(parsed: unknown, configPath: string, stat: fs.Stats): ConfigShape {
-  const root = asRecord(parsed) ?? {};
-  const gateway = asRecord(root.gateway);
-  const auth = asRecord(gateway?.auth);
-  const channels = asRecord(root.channels);
-  const plugins = asRecord(root.plugins);
+function sortedObjectKeys(value: unknown): string[] {
+  return Object.keys(asOptionalRecord(value) ?? {}).toSorted((a, b) => a.localeCompare(b));
+}
+
+function sanitizeConfigShape(
+  parsed: unknown,
+  configPath: string,
+  stat: fs.Stats,
+  env: NodeJS.ProcessEnv,
+): ConfigShape {
+  const root = asOptionalRecord(parsed) ?? {};
+  const gateway = asOptionalRecord(root.gateway);
+  const auth = asOptionalRecord(gateway?.auth);
+  const discovery = asOptionalRecord(root.discovery);
+  const mdns = asOptionalRecord(discovery?.mdns);
+  const channels = asOptionalRecord(root.channels);
+  const plugins = asOptionalRecord(root.plugins);
   const agents = Array.isArray(root.agents) ? root.agents : undefined;
 
   const shape: ConfigShape = {
@@ -214,6 +258,14 @@ function sanitizeConfigShape(parsed: unknown, configPath: string, stat: fs.Stats
       port: safeScalar(gateway.port),
       authMode: safeScalar(auth?.mode),
       tailscale: safeScalar(gateway.tailscale),
+    };
+  }
+
+  const bonjourEnvOverride = resolveBonjourEnvOverride(env);
+  if (mdns || bonjourEnvOverride !== "unset") {
+    shape.discovery = {
+      mdnsMode: safeScalar(mdns?.mode),
+      bonjourEnvOverride,
     };
   }
 
@@ -299,7 +351,7 @@ function readConfigExport(options: {
       };
     }
     return {
-      shape: sanitizeConfigShape(parsed.parsed, redactedConfigPath, stat),
+      shape: sanitizeConfigShape(parsed.parsed, redactedConfigPath, stat, options.env),
       sanitized: sanitizeConfigDetails(parsed.parsed, options),
     };
   } catch (error) {
@@ -362,7 +414,7 @@ function readStabilityBundle(
   stateDir: string,
 ): ReadDiagnosticStabilityBundleResult {
   if (target === false) {
-    return { status: "missing", dir: "$ASTROCLAW_STATE_DIR/logs/stability" };
+    return { status: "missing", dir: "$OPENCLAW_STATE_DIR/logs/stability" };
   }
   if (target === undefined || target === "latest") {
     return readLatestDiagnosticStabilityBundleSync({ stateDir });
@@ -401,6 +453,73 @@ function failedLogTail(error: unknown, redaction: SupportRedactionContext): Sani
       },
     ],
   };
+}
+
+function logString(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function isBonjourLogRecord(record: Record<string, unknown>): boolean {
+  const sourceFields = ["subsystem", "logger", "module", "pluginId", "component"];
+  if (sourceFields.some((field) => logString(record, field)?.toLowerCase().includes("bonjour"))) {
+    return true;
+  }
+  return logString(record, "msg")?.toLowerCase().startsWith("bonjour:") === true;
+}
+
+function classifyBonjourLogKind(
+  normalizedMsg: string,
+): NonNullable<BonjourLogSummary["last"]>["kind"] {
+  if (normalizedMsg.includes("disabling")) {
+    return "disabled";
+  }
+  if (normalizedMsg.includes("restarting")) {
+    return "restarted";
+  }
+  if (normalizedMsg.includes("suppressing ciao")) {
+    return "ciao_suppressed";
+  }
+  if (normalizedMsg.includes("conflict")) {
+    return "conflict";
+  }
+  if (normalizedMsg.includes("watchdog")) {
+    return "watchdog";
+  }
+  return "other";
+}
+
+function summarizeBonjourLogs(logTail: SanitizedLogTail): BonjourLogSummary {
+  const summary: BonjourLogSummary = {
+    count: 0,
+    warnings: 0,
+    flags: {
+      disabled: false,
+      restarted: false,
+      ciaoSuppressed: false,
+    },
+  };
+  for (const record of logTail.lines) {
+    if (!isBonjourLogRecord(record)) {
+      continue;
+    }
+    summary.count += 1;
+    const level = logString(record, "level")?.toLowerCase();
+    if (level === "warn" || level === "error") {
+      summary.warnings += 1;
+    }
+    const msg = logString(record, "msg");
+    const normalizedMsg = msg?.toLowerCase() ?? "";
+    summary.flags.disabled ||= normalizedMsg.includes("disabling");
+    summary.flags.restarted ||= normalizedMsg.includes("restarting");
+    summary.flags.ciaoSuppressed ||= normalizedMsg.includes("suppressing ciao");
+    summary.last = {
+      ...(logString(record, "time") ? { time: logString(record, "time") } : {}),
+      ...(logString(record, "level") ? { level: logString(record, "level") } : {}),
+      kind: classifyBonjourLogKind(normalizedMsg),
+    };
+  }
+  return summary;
 }
 
 async function collectSupportLogTail(params: {
@@ -478,14 +597,14 @@ function renderSummary(params: {
     return `${label} snapshot skipped`;
   };
   return [
-    "# Astroclaw Diagnostics Export",
+    "# OpenClaw Diagnostics Export",
     "",
     "Attach this zip to the bug report. It is designed for maintainers to inspect without asking for raw logs first.",
     "",
     "## Generated",
     "",
     `Generated: ${params.generatedAt}`,
-    `Astroclaw: ${VERSION}`,
+    `OpenClaw: ${VERSION}`,
     "",
     "## Contents",
     "",
@@ -498,11 +617,11 @@ function renderSummary(params: {
     "## Maintainer Quick Read",
     "",
     "- `manifest.json`: file inventory and privacy notes",
-    "- `diagnostics.json`: top-level summary of config, logs, stability, status, and health",
+    "- `diagnostics.json`: top-level summary of config, logs, Bonjour/mDNS, stability, status, and health",
     "- `config/sanitized.json`: config values with credentials, private identifiers, and prompt text redacted",
     "- `status/gateway-status.json`: sanitized service/connectivity snapshot",
     "- `health/gateway-health.json`: sanitized Gateway health snapshot",
-    "- `logs/astroclaw-sanitized.jsonl`: sanitized log summaries and metadata",
+    "- `logs/openclaw-sanitized.jsonl`: sanitized log summaries and metadata",
     "- `stability/latest.json`: newest payload-free stability bundle, when available",
     "",
     "## Privacy",
@@ -584,7 +703,7 @@ export async function buildDiagnosticSupportExport(
   ]);
   const diagnostics = {
     generatedAt,
-    astroclawVersion: VERSION,
+    openclawVersion: VERSION,
     process: {
       platform: process.platform,
       arch: process.arch,
@@ -602,6 +721,7 @@ export async function buildDiagnosticSupportExport(
       reset: logTail.reset,
     },
     stability: describeStabilityForDiagnostics(stability, redaction),
+    bonjour: summarizeBonjourLogs(logTail),
     status: statusSnapshot.summary,
     health: healthSnapshot.summary,
   };
@@ -610,7 +730,7 @@ export async function buildDiagnosticSupportExport(
     jsonSupportBundleFile("config/shape.json", config.shape),
     jsonSupportBundleFile("config/sanitized.json", config.sanitized ?? null),
     jsonlSupportBundleFile(
-      "logs/astroclaw-sanitized.jsonl",
+      "logs/openclaw-sanitized.jsonl",
       logTail.lines.map((line) => JSON.stringify(line)),
     ),
   ];
@@ -641,7 +761,7 @@ export async function buildDiagnosticSupportExport(
   const manifest: DiagnosticSupportExportManifest = {
     version: DIAGNOSTIC_SUPPORT_EXPORT_VERSION,
     generatedAt,
-    astroclawVersion: VERSION,
+    openclawVersion: VERSION,
     platform: process.platform,
     arch: process.arch,
     node: process.versions.node,
