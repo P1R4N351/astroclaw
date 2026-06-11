@@ -1,3 +1,4 @@
+// Slack plugin module implements registry behavior.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { normalizeSlackWebhookPath } from "./paths.js";
 
@@ -15,7 +16,7 @@ type RegisterSlackHttpHandlerArgs = {
   accountId?: string;
 };
 
-const SLACK_HTTP_ROUTES_GLOBAL_KEY = Symbol.for("astroclaw.slack.httpRoutes.v1");
+const SLACK_HTTP_ROUTES_GLOBAL_KEY = Symbol.for("openclaw.slack.httpRoutes.v1");
 
 function getSlackHttpRoutes(): Map<string, SlackHttpRequestHandler> {
   const globalStore = globalThis as Record<PropertyKey, unknown>;
