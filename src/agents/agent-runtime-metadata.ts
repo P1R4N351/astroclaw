@@ -1,23 +1,14 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/** Resolves agent runtime metadata from model/provider policy and ACP session overlays. */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { applyAcpRuntimeOverlay, type AgentRuntimeMetadata } from "./acp-runtime-overlay.js";
 import { resolveAgentHarnessPolicy } from "./harness/policy.js";
 import { resolveDefaultModelForAgent } from "./model-selection.js";
 
 export type { AgentRuntimeMetadata };
 
-export function resolveAgentRuntimeMetadata(
-  _cfg: AstroclawConfig,
-  _agentId: string,
-  _env: NodeJS.ProcessEnv = process.env,
-): AgentRuntimeMetadata {
-  return {
-    id: "auto",
-    source: "implicit",
-  };
-}
-
+/** Resolves the runtime id/source that should be reported for a model-backed agent session. */
 export function resolveModelAgentRuntimeMetadata(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   provider?: string;
   model?: string;
