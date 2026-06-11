@@ -1,6 +1,8 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { canResolveEnvSecretRefInReadOnlyPath } from "astroclaw/plugin-sdk/extension-shared";
-import { resolveSecretInputString, normalizeSecretInput } from "astroclaw/plugin-sdk/secret-input";
+// Firecrawl helper module supports config behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { canResolveEnvSecretRefInReadOnlyPath } from "openclaw/plugin-sdk/extension-shared";
+import { resolvePositiveTimeoutSeconds } from "openclaw/plugin-sdk/provider-web-fetch";
+import { resolveSecretInputString, normalizeSecretInput } from "openclaw/plugin-sdk/secret-input";
 
 export const DEFAULT_FIRECRAWL_BASE_URL = "https://api.firecrawl.dev";
 export const DEFAULT_FIRECRAWL_SEARCH_TIMEOUT_SECONDS = 30;
@@ -8,13 +10,13 @@ export const DEFAULT_FIRECRAWL_SCRAPE_TIMEOUT_SECONDS = 60;
 export const DEFAULT_FIRECRAWL_MAX_AGE_MS = 172_800_000;
 const FIRECRAWL_API_KEY_ENV_VAR = "FIRECRAWL_API_KEY";
 
-type WebSearchConfig = NonNullable<AstroclawConfig["tools"]>["web"] extends infer Web
+type WebSearchConfig = NonNullable<OpenClawConfig["tools"]>["web"] extends infer Web
   ? Web extends { search?: infer Search }
     ? Search
     : undefined
   : undefined;
 
-type WebFetchConfig = NonNullable<AstroclawConfig["tools"]>["web"] extends infer Web
+type WebFetchConfig = NonNullable<OpenClawConfig["tools"]>["web"] extends infer Web
   ? Web extends { fetch?: infer Fetch }
     ? Fetch
     : undefined
@@ -53,7 +55,7 @@ type FirecrawlFetchConfig =
     }
   | undefined;
 
-function resolveSearchConfig(cfg?: AstroclawConfig): WebSearchConfig {
+function resolveSearchConfig(cfg?: OpenClawConfig): WebSearchConfig {
   const search = cfg?.tools?.web?.search;
   if (!search || typeof search !== "object") {
     return undefined;
@@ -61,7 +63,7 @@ function resolveSearchConfig(cfg?: AstroclawConfig): WebSearchConfig {
   return search;
 }
 
-function resolveFetchConfig(cfg?: AstroclawConfig): WebFetchConfig {
+function resolveFetchConfig(cfg?: OpenClawConfig): WebFetchConfig {
   const fetch = cfg?.tools?.web?.fetch;
   if (!fetch || typeof fetch !== "object") {
     return undefined;
@@ -69,7 +71,7 @@ function resolveFetchConfig(cfg?: AstroclawConfig): WebFetchConfig {
   return fetch;
 }
 
-export function resolveFirecrawlSearchConfig(cfg?: AstroclawConfig): FirecrawlSearchConfig {
+export function resolveFirecrawlSearchConfig(cfg?: OpenClawConfig): FirecrawlSearchConfig {
   const pluginConfig = cfg?.plugins?.entries?.firecrawl?.config as PluginEntryConfig;
   const pluginWebSearch = pluginConfig?.webSearch;
   if (pluginWebSearch && typeof pluginWebSearch === "object" && !Array.isArray(pluginWebSearch)) {
@@ -86,7 +88,7 @@ export function resolveFirecrawlSearchConfig(cfg?: AstroclawConfig): FirecrawlSe
   return firecrawl as FirecrawlSearchConfig;
 }
 
-function resolveFirecrawlFetchConfig(cfg?: AstroclawConfig): FirecrawlFetchConfig {
+function resolveFirecrawlFetchConfig(cfg?: OpenClawConfig): FirecrawlFetchConfig {
   const pluginConfig = cfg?.plugins?.entries?.firecrawl?.config as PluginEntryConfig;
   const pluginWebFetch = pluginConfig?.webFetch;
   if (pluginWebFetch && typeof pluginWebFetch === "object" && !Array.isArray(pluginWebFetch)) {
@@ -111,7 +113,7 @@ type ConfiguredSecretResolution =
 function resolveConfiguredSecret(
   value: unknown,
   path: string,
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
 ): ConfiguredSecretResolution {
   const resolved = resolveSecretInputString({
     value,
@@ -146,7 +148,7 @@ function resolveConfiguredSecret(
   return envValue ? { status: "available", value: envValue } : { status: "missing" };
 }
 
-export function resolveFirecrawlApiKey(cfg?: AstroclawConfig): string | undefined {
+export function resolveFirecrawlApiKey(cfg?: OpenClawConfig): string | undefined {
   const pluginConfig = cfg?.plugins?.entries?.firecrawl?.config as PluginEntryConfig;
   const search = resolveFirecrawlSearchConfig(cfg);
   const fetch = resolveFirecrawlFetchConfig(cfg);
@@ -184,7 +186,7 @@ export function resolveFirecrawlApiKey(cfg?: AstroclawConfig): string | undefine
   return normalizeSecretInput(process.env[FIRECRAWL_API_KEY_ENV_VAR]) || undefined;
 }
 
-export function resolveFirecrawlBaseUrl(cfg?: AstroclawConfig): string {
+export function resolveFirecrawlBaseUrl(cfg?: OpenClawConfig): string {
   const search = resolveFirecrawlSearchConfig(cfg);
   const fetch = resolveFirecrawlFetchConfig(cfg);
   const configured =
@@ -195,7 +197,7 @@ export function resolveFirecrawlBaseUrl(cfg?: AstroclawConfig): string {
   return configured || DEFAULT_FIRECRAWL_BASE_URL;
 }
 
-export function resolveFirecrawlOnlyMainContent(cfg?: AstroclawConfig, override?: boolean): boolean {
+export function resolveFirecrawlOnlyMainContent(cfg?: OpenClawConfig, override?: boolean): boolean {
   if (typeof override === "boolean") {
     return override;
   }
@@ -206,7 +208,7 @@ export function resolveFirecrawlOnlyMainContent(cfg?: AstroclawConfig, override?
   return true;
 }
 
-export function resolveFirecrawlMaxAgeMs(cfg?: AstroclawConfig, override?: number): number {
+export function resolveFirecrawlMaxAgeMs(cfg?: OpenClawConfig, override?: number): number {
   if (typeof override === "number" && Number.isFinite(override) && override >= 0) {
     return Math.floor(override);
   }
@@ -222,26 +224,16 @@ export function resolveFirecrawlMaxAgeMs(cfg?: AstroclawConfig, override?: numbe
 }
 
 export function resolveFirecrawlScrapeTimeoutSeconds(
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
   override?: number,
 ): number {
-  if (typeof override === "number" && Number.isFinite(override) && override > 0) {
-    return Math.floor(override);
-  }
   const fetch = resolveFirecrawlFetchConfig(cfg);
-  if (
-    typeof fetch?.timeoutSeconds === "number" &&
-    Number.isFinite(fetch.timeoutSeconds) &&
-    fetch.timeoutSeconds > 0
-  ) {
-    return Math.floor(fetch.timeoutSeconds);
-  }
-  return DEFAULT_FIRECRAWL_SCRAPE_TIMEOUT_SECONDS;
+  return resolvePositiveTimeoutSeconds(
+    override,
+    resolvePositiveTimeoutSeconds(fetch?.timeoutSeconds, DEFAULT_FIRECRAWL_SCRAPE_TIMEOUT_SECONDS),
+  );
 }
 
 export function resolveFirecrawlSearchTimeoutSeconds(override?: number): number {
-  if (typeof override === "number" && Number.isFinite(override) && override > 0) {
-    return Math.floor(override);
-  }
-  return DEFAULT_FIRECRAWL_SEARCH_TIMEOUT_SECONDS;
+  return resolvePositiveTimeoutSeconds(override, DEFAULT_FIRECRAWL_SEARCH_TIMEOUT_SECONDS);
 }
