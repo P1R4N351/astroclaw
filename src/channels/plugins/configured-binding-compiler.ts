@@ -1,10 +1,15 @@
-import { listConfiguredBindings } from "../../config/bindings.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
-import { pickFirstExistingAgentId } from "../../routing/resolve-route.js";
+/**
+ * Configured binding compiler.
+ *
+ * Compiles config rules into channel/provider-specific binding registry entries.
+ */
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "../../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import { listConfiguredBindings } from "../../config/bindings.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { pickFirstExistingAgentId } from "../../routing/resolve-route.js";
 import { resolveChannelConfiguredBindingProvider } from "./binding-provider.js";
 import type { CompiledConfiguredBinding, ConfiguredBindingChannel } from "./binding-types.js";
 import { resolveConfiguredBindingConsumer } from "./configured-binding-consumers.js";
@@ -13,9 +18,6 @@ import type {
   ChannelConfiguredBindingConversationRef,
   ChannelConfiguredBindingProvider,
 } from "./types.adapters.js";
-
-// Configured bindings are channel-owned rules compiled from config, separate
-// from runtime plugin-owned conversation bindings.
 
 export type CompiledConfiguredBindingRegistry = {
   rulesByChannel: Map<ConfiguredBindingChannel, CompiledConfiguredBinding[]>;
@@ -71,7 +73,7 @@ function compileConfiguredBindingTarget(params: {
 }
 
 function compileConfiguredBindingRule(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: ConfiguredBindingChannel;
   binding: CompiledConfiguredBinding["binding"];
   target: ChannelConfiguredBindingConversationRef;
@@ -119,7 +121,7 @@ function pushCompiledRule(
 }
 
 function compileConfiguredBindingRegistry(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }): CompiledConfiguredBindingRegistry {
   const rulesByChannel = new Map<ConfiguredBindingChannel, CompiledConfiguredBinding[]>();
 
@@ -163,13 +165,13 @@ function compileConfiguredBindingRegistry(params: {
 }
 
 export function resolveCompiledBindingRegistry(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): CompiledConfiguredBindingRegistry {
   return compileConfiguredBindingRegistry({ cfg });
 }
 
 export function primeCompiledBindingRegistry(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): CompiledConfiguredBindingRegistry {
   return compileConfiguredBindingRegistry({ cfg });
 }
