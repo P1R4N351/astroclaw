@@ -1,18 +1,19 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Telegram plugin module implements target writeback behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   readConfigFileSnapshotForWrite,
   replaceConfigFile,
-} from "astroclaw/plugin-sdk/config-mutation";
+} from "openclaw/plugin-sdk/config-mutation";
 import {
   loadCronStore,
   resolveCronStorePath,
   saveCronStore,
-} from "astroclaw/plugin-sdk/cron-store-runtime";
-import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/cron-store-runtime";
+import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   normalizeTelegramChatId,
   normalizeTelegramLookupTarget,
@@ -103,7 +104,7 @@ function rewriteTargetIfMatch(params: {
 }
 
 function replaceTelegramDefaultToTargets(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   matchKey: string;
   resolvedTarget: string;
 }): boolean {
@@ -142,11 +143,12 @@ function replaceTelegramDefaultToTargets(params: {
 }
 
 export async function maybePersistResolvedTelegramTarget(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   rawTarget: string;
   resolvedChatId: string;
   verbose?: boolean;
   gatewayClientScopes?: readonly string[];
+  trustedInternalWriteback?: boolean;
 }): Promise<void> {
   const raw = params.rawTarget.trim();
   if (!raw) {
@@ -160,10 +162,10 @@ export async function maybePersistResolvedTelegramTarget(params: {
     return;
   }
   const { matchKey, resolvedTarget } = rewrite;
-  if (
-    Array.isArray(params.gatewayClientScopes) &&
-    !params.gatewayClientScopes.includes(TELEGRAM_ADMIN_SCOPE)
-  ) {
+  const hasGatewayAdminScope = params.gatewayClientScopes?.includes(TELEGRAM_ADMIN_SCOPE) === true;
+  const trustedInternalWriteback =
+    params.gatewayClientScopes === undefined && params.trustedInternalWriteback === true;
+  if (!hasGatewayAdminScope && !trustedInternalWriteback) {
     writebackLogger.warn(
       `skipping Telegram target writeback for ${raw} because gateway caller is missing ${TELEGRAM_ADMIN_SCOPE}`,
     );
