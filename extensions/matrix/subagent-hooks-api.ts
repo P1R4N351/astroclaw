@@ -1,4 +1,5 @@
-import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/channel-entry-contract";
+// Matrix API module exposes the plugin public contract.
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/channel-entry-contract";
 
 type MatrixSubagentHooksModule = typeof import("./src/matrix/subagent-hooks.js");
 
@@ -9,11 +10,7 @@ function loadMatrixSubagentHooksModule() {
   return matrixSubagentHooksPromise;
 }
 
-export function registerMatrixSubagentHooks(api: AstroclawPluginApi): void {
-  api.on("subagent_spawning", async (event) => {
-    const { handleMatrixSubagentSpawning } = await loadMatrixSubagentHooksModule();
-    return await handleMatrixSubagentSpawning(api, event);
-  });
+export function registerMatrixSubagentHooks(api: OpenClawPluginApi): void {
   api.on("subagent_ended", async (event) => {
     const { handleMatrixSubagentEnded } = await loadMatrixSubagentHooksModule();
     await handleMatrixSubagentEnded(event);
@@ -23,9 +20,3 @@ export function registerMatrixSubagentHooks(api: AstroclawPluginApi): void {
     return handleMatrixSubagentDeliveryTarget(event);
   });
 }
-
-export {
-  handleMatrixSubagentDeliveryTarget,
-  handleMatrixSubagentEnded,
-  handleMatrixSubagentSpawning,
-} from "./src/matrix/subagent-hooks.js";
