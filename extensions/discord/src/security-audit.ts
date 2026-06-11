@@ -1,18 +1,15 @@
-import { coerceNativeSetting, normalizeAllowFromList } from "astroclaw/plugin-sdk/channel-policy";
-import { readChannelAllowFromStore } from "astroclaw/plugin-sdk/conversation-runtime";
-import { isDangerousNameMatchingEnabled } from "astroclaw/plugin-sdk/dangerous-name-runtime";
+// Discord plugin module implements security audit behavior.
+import { coerceNativeSetting, normalizeAllowFromList } from "openclaw/plugin-sdk/channel-policy";
+import { readChannelAllowFromStore } from "openclaw/plugin-sdk/conversation-runtime";
+import { isDangerousNameMatchingEnabled } from "openclaw/plugin-sdk/dangerous-name-runtime";
 import {
   resolveNativeCommandsEnabled,
   resolveNativeSkillsEnabled,
-} from "astroclaw/plugin-sdk/native-command-config-runtime";
+} from "openclaw/plugin-sdk/native-command-config-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { ResolvedDiscordAccount } from "./accounts.js";
-import type { AstroclawConfig } from "./runtime-api.js";
+import type { OpenClawConfig } from "./runtime-api.js";
 import { isDiscordMutableAllowEntry } from "./security-doctor.js";
-
-function normalizeOptionalString(value: string | null | undefined): string | undefined {
-  const normalized = value?.trim();
-  return normalized ? normalized : undefined;
-}
 
 function addDiscordNameBasedEntries(params: {
   target: Set<string>;
@@ -35,7 +32,7 @@ function addDiscordNameBasedEntries(params: {
 }
 
 export async function collectDiscordSecurityAuditFindings(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   account: ResolvedDiscordAccount;
   orderedAccountIds: string[];
@@ -74,7 +71,7 @@ export async function collectDiscordSecurityAuditFindings(params: {
   addDiscordNameBasedEntries({
     target: discordNameBasedAllowEntries,
     values: storeAllowFrom,
-    source: "~/.astroclaw/credentials/discord-allowFrom.json",
+    source: "~/.openclaw/credentials/discord-allowFrom.json",
   });
 
   const guildEntries = (discordCfg.guilds as Record<string, unknown> | undefined) ?? {};
