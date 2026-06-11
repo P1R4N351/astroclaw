@@ -1,3 +1,8 @@
+/**
+ * ACP stateful target driver for configured bindings.
+ *
+ * Ensures ACP-backed bound sessions exist, are ready, and can be reset by Gateway.
+ */
 import {
   ensureConfiguredAcpBindingReady,
   ensureConfiguredAcpBindingSession,
@@ -5,7 +10,7 @@ import {
 import { resolveConfiguredAcpBindingSpecBySessionKey } from "../../acp/persistent-bindings.resolve.js";
 import { resolveConfiguredAcpBindingSpecFromRecord } from "../../acp/persistent-bindings.types.js";
 import { readAcpSessionEntry } from "../../acp/runtime/session-meta.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { isAcpSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { performGatewaySessionReset } from "./acp-stateful-target-reset.runtime.js";
 import type {
@@ -20,7 +25,7 @@ import type {
 } from "./stateful-target-drivers.js";
 
 function toAcpStatefulBindingTargetDescriptor(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey: string;
 }): StatefulBindingTargetDescriptor | null {
   const sessionKey = params.sessionKey.trim();
@@ -68,7 +73,7 @@ function toAcpStatefulBindingTargetDescriptor(params: {
 }
 
 async function ensureAcpTargetReady(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   bindingResolution: ConfiguredBindingResolution;
 }): Promise<StatefulBindingTargetReadyResult> {
   const configuredBinding = resolveConfiguredAcpBindingSpecFromRecord(
@@ -90,7 +95,7 @@ async function ensureAcpTargetReady(params: {
 }
 
 async function ensureAcpTargetSession(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   bindingResolution: ConfiguredBindingResolution;
 }): Promise<StatefulBindingTargetSessionResult> {
   const spec = resolveConfiguredAcpBindingSpecFromRecord(params.bindingResolution.record);
@@ -108,7 +113,7 @@ async function ensureAcpTargetSession(params: {
 }
 
 async function resetAcpTargetInPlace(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey: string;
   bindingTarget: StatefulBindingTargetDescriptor;
   reason: "new" | "reset";
