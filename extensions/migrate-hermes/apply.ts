@@ -1,17 +1,19 @@
+// Migrate Hermes plugin module implements apply behavior.
 import path from "node:path";
-import { markMigrationItemSkipped, summarizeMigrationItems } from "astroclaw/plugin-sdk/migration";
+import { markMigrationItemSkipped, summarizeMigrationItems } from "openclaw/plugin-sdk/migration";
 import {
   archiveMigrationItem,
   copyMigrationFileItem,
   withCachedMigrationConfigRuntime,
   writeMigrationReport,
-} from "astroclaw/plugin-sdk/migration-runtime";
+} from "openclaw/plugin-sdk/migration-runtime";
 import type {
   MigrationApplyResult,
   MigrationItem,
   MigrationPlan,
   MigrationProviderContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { applyAuthItem } from "./auth.js";
 import { applyConfigItem, applyManualItem } from "./config.js";
 import { appendItem } from "./helpers.js";
 import { applyModelItem } from "./model.js";
@@ -54,8 +56,10 @@ export async function applyHermesPlan(params: {
       appliedItem = applyManualItem(item);
     } else if (item.action === "archive") {
       appliedItem = await archiveMigrationItem(item, reportDir);
+    } else if (item.kind === "auth") {
+      appliedItem = await applyAuthItem(applyCtx, item, targets);
     } else if (item.kind === "secret") {
-      appliedItem = await applySecretItem(params.ctx, item, targets);
+      appliedItem = await applySecretItem(applyCtx, item, targets);
     } else if (item.action === "append") {
       appliedItem = await appendItem(item);
     } else {
