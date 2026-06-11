@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+// Scans source files for usage of deprecated API markers.
 import fs from "node:fs";
 import path from "node:path";
 import { collectDeprecatedInternalConfigApiViolations } from "./lib/deprecated-config-api-guard.mjs";
+import { buildDeprecatedPluginSdkModuleSpecifiers } from "./lib/deprecated-plugin-sdk-usage.mjs";
 
 const repoRoot = process.cwd();
 
@@ -11,6 +13,13 @@ const skippedFilePatterns = [
   /\.test\.[cm]?[jt]sx?$/u,
   /\.spec\.[cm]?[jt]sx?$/u,
   /\.e2e\.[cm]?[jt]sx?$/u,
+  /\.test-(?:harness|loader|support)\.[cm]?[jt]sx?$/u,
+  /\.contract-test-support\.[cm]?[jt]sx?$/u,
+  /(?:^|\/)test-(?:helpers|support)\.[cm]?[jt]sx?$/u,
+  /(?:^|\/)(?:test-helpers|test-support)\//u,
+  /^extensions\/test-support\//u,
+  /^src\/channels\/plugins\/contracts\/test-helpers\//u,
+  /^src\/plugins\/contracts\/tts-contract-suites\.ts$/u,
   /\.d\.ts$/u,
 ];
 
@@ -130,23 +139,15 @@ const rules = [
   },
   {
     id: "plugin-sdk-compat-subpaths",
-    roots: ["src", "extensions", "packages"],
-    moduleSpecifiers: [
-      "astroclaw/plugin-sdk/agent-dir-compat",
-      "astroclaw/plugin-sdk/channel-config-schema-legacy",
-      "astroclaw/plugin-sdk/channel-reply-pipeline",
-      "astroclaw/plugin-sdk/channel-runtime",
-      "astroclaw/plugin-sdk/compat",
-      "astroclaw/plugin-sdk/discord",
-      "astroclaw/plugin-sdk/infra-runtime",
-      "astroclaw/plugin-sdk/mattermost",
-      "astroclaw/plugin-sdk/matrix",
-      "astroclaw/plugin-sdk/telegram-account",
-      "astroclaw/plugin-sdk/testing",
-      "astroclaw/plugin-sdk/test-utils",
-      "astroclaw/plugin-sdk/zalouser",
-    ],
+    roots: ["src", "packages"],
+    moduleSpecifiers: buildDeprecatedPluginSdkModuleSpecifiers(),
     message: "use focused non-deprecated plugin SDK subpaths",
+  },
+  {
+    id: "extension-plugin-sdk-compat-subpaths",
+    roots: ["extensions"],
+    moduleSpecifiers: buildDeprecatedPluginSdkModuleSpecifiers(),
+    message: "extensions must use focused non-deprecated plugin SDK subpaths",
   },
   {
     id: "message-api",
@@ -165,6 +166,7 @@ const rules = [
     allowedFiles: [
       "src/channels/turn/durable-delivery.ts",
       "src/channels/turn/kernel.ts",
+      "src/channels/message/inbound-reply-dispatch.ts",
       "src/infra/outbound/deliver-runtime.ts",
       "src/infra/outbound/deliver.ts",
       "src/plugin-sdk/channel-message-runtime.ts",
