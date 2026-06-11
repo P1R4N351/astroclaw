@@ -1,5 +1,6 @@
-import { DEFAULT_ACCOUNT_ID, type AstroclawConfig } from "astroclaw/plugin-sdk/account-resolution";
-import { registerPluginHttpRoute } from "astroclaw/plugin-sdk/webhook-ingress";
+// Synology Chat plugin module implements gateway runtime behavior.
+import { DEFAULT_ACCOUNT_ID, type OpenClawConfig } from "openclaw/plugin-sdk/account-resolution";
+import { registerPluginHttpRoute } from "openclaw/plugin-sdk/webhook-ingress";
 import { listAccountIds, resolveAccount } from "./accounts.js";
 import { dispatchSynologyChatInboundEvent } from "./inbound-event.js";
 import type { ResolvedSynologyChatAccount } from "./types.js";
@@ -69,7 +70,7 @@ function createUnknownArgsLogAdapter(
 }
 
 function collectSynologyGatewayStartupIssues(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   account: ResolvedSynologyChatAccount;
   accountId: string;
 }): SynologyGatewayStartupIssue[] {
@@ -143,7 +144,7 @@ function collectSynologyGatewayStartupIssues(params: {
 }
 
 export function collectSynologyGatewayRoutingWarnings(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   account: ResolvedSynologyChatAccount;
 }): string[] {
   return collectSynologyGatewayStartupIssues({
@@ -159,7 +160,7 @@ export function collectSynologyGatewayRoutingWarnings(params: {
 }
 
 export function validateSynologyGatewayAccountStartup(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   account: ResolvedSynologyChatAccount;
   accountId: string;
   log?: SynologyGatewayLog;
