@@ -1,3 +1,4 @@
+// Telegram plugin module implements interactive dispatch behavior.
 import {
   createInteractiveConversationBindingHelpers,
   dispatchPluginInteractiveHandler,
@@ -5,7 +6,7 @@ import {
   type PluginConversationBindingRequestParams,
   type PluginConversationBindingRequestResult,
   type PluginInteractiveRegistration,
-} from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/plugin-runtime";
 
 type TelegramInteractiveButtons = Array<
   Array<{ text: string; callback_data: string; style?: "danger" | "success" | "primary" }>
