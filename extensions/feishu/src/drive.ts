@@ -1,6 +1,7 @@
+// Feishu plugin module implements drive behavior.
 import type * as Lark from "@larksuiteoapi/node-sdk";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import type { AstroclawPluginApi } from "../runtime-api.js";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import type { OpenClawPluginApi } from "../runtime-api.js";
 import { listEnabledFeishuAccounts } from "./accounts.js";
 import { cleanupAmbientCommentTypingReaction } from "./comment-reaction.js";
 import {
@@ -731,7 +732,7 @@ export async function deliverCommentThreadText(
 
 // ============ Tool Registration ============
 
-export function registerFeishuDriveTools(api: AstroclawPluginApi) {
+export function registerFeishuDriveTools(api: OpenClawPluginApi) {
   if (!api.config) {
     return;
   }
