@@ -1,7 +1,8 @@
-import type { AstroclawPluginNodeInvokePolicy } from "astroclaw/plugin-sdk/plugin-entry";
+// File Transfer plugin module implements lazy node invoke policy behavior.
+import type { OpenClawPluginNodeInvokePolicy } from "openclaw/plugin-sdk/plugin-entry";
 import { FILE_TRANSFER_NODE_INVOKE_COMMANDS } from "./node-invoke-policy-commands.js";
 
-type LoadFileTransferNodeInvokePolicy = () => Promise<AstroclawPluginNodeInvokePolicy>;
+type LoadFileTransferNodeInvokePolicy = () => Promise<OpenClawPluginNodeInvokePolicy>;
 
 const loadFileTransferNodeInvokePolicy: LoadFileTransferNodeInvokePolicy = async () => {
   const { createFileTransferNodeInvokePolicy } = await import("./node-invoke-policy.js");
@@ -10,13 +11,13 @@ const loadFileTransferNodeInvokePolicy: LoadFileTransferNodeInvokePolicy = async
 
 export function createLazyFileTransferNodeInvokePolicy(
   loadPolicy: LoadFileTransferNodeInvokePolicy = loadFileTransferNodeInvokePolicy,
-): AstroclawPluginNodeInvokePolicy {
-  let policyPromise: Promise<AstroclawPluginNodeInvokePolicy> | undefined;
+): OpenClawPluginNodeInvokePolicy {
+  let policyPromise: Promise<OpenClawPluginNodeInvokePolicy> | undefined;
 
   return {
     commands: [...FILE_TRANSFER_NODE_INVOKE_COMMANDS],
     async handle(ctx) {
-      let policy: AstroclawPluginNodeInvokePolicy;
+      let policy: OpenClawPluginNodeInvokePolicy;
       try {
         policyPromise ??= loadPolicy();
         policy = await policyPromise;
