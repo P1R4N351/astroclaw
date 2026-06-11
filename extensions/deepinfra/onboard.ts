@@ -1,15 +1,16 @@
+// Deepinfra setup module handles plugin onboarding behavior.
 import {
   applyAgentDefaultModelPrimary,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import { DEEPINFRA_BASE_URL, DEEPINFRA_DEFAULT_MODEL_REF } from "./provider-models.js";
 
 export { DEEPINFRA_BASE_URL, DEEPINFRA_DEFAULT_MODEL_REF };
 
 export function applyDeepInfraProviderConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   modelRef: string = DEEPINFRA_DEFAULT_MODEL_REF,
-): AstroclawConfig {
+): OpenClawConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[modelRef] = {
     ...models[modelRef],
@@ -29,8 +30,8 @@ export function applyDeepInfraProviderConfig(
 }
 
 export function applyDeepInfraConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   modelRef: string = DEEPINFRA_DEFAULT_MODEL_REF,
-): AstroclawConfig {
+): OpenClawConfig {
   return applyAgentDefaultModelPrimary(applyDeepInfraProviderConfig(cfg, modelRef), modelRef);
 }
