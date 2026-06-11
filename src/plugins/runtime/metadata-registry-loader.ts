@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
-import { loadAstroclawPlugins } from "../loader.js";
+// Metadata registry loader builds plugin metadata registries without activating runtime barrels.
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { loadOpenClawPlugins } from "../loader.js";
 import type { PluginManifestRegistry } from "../manifest-registry.js";
 import { hasExplicitPluginIdScope } from "../plugin-scope.js";
 import type { PluginRegistry } from "../registry.js";
@@ -10,9 +11,10 @@ import {
   type PluginRuntimeLoadContext,
 } from "./load-context.js";
 
+/** Loads a non-activated plugin metadata registry snapshot for validation/status callers. */
 export function loadPluginMetadataRegistrySnapshot(options?: {
-  config?: AstroclawConfig;
-  activationSourceConfig?: AstroclawConfig;
+  config?: OpenClawConfig;
+  activationSourceConfig?: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   logger?: PluginLogger;
   workspaceDir?: string;
@@ -23,7 +25,7 @@ export function loadPluginMetadataRegistrySnapshot(options?: {
 }): PluginRegistry {
   const context = options?.runtimeContext ?? resolvePluginRuntimeLoadContext(options);
 
-  return loadAstroclawPlugins(
+  return loadOpenClawPlugins(
     buildPluginRuntimeLoadOptions(context, {
       ...(options?.config !== undefined ? { config: options.config } : {}),
       ...(options?.activationSourceConfig !== undefined
