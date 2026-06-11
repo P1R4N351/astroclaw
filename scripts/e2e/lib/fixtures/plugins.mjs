@@ -1,3 +1,4 @@
+// Plugin fixture writer commands for E2E scenarios.
 import path from "node:path";
 import { requireArg, write, writeJson } from "./common.mjs";
 
@@ -19,7 +20,7 @@ function writePluginDemo([dir]) {
     path.join(requireArg(dir, "dir"), "index.js"),
     'module.exports = { id: "demo-plugin", name: "Demo Plugin", description: "Docker E2E demo plugin", register(api) { api.registerTool(() => null, { name: "demo_tool" }); api.registerGatewayMethod("demo.ping", async () => ({ ok: true })); api.registerCli(() => {}, { commands: ["demo"] }); api.registerService({ id: "demo-service", start: () => {} }); }, };\n',
   );
-  writePluginManifest(path.join(dir, "astroclaw.plugin.json"), "demo-plugin", {
+  writePluginManifest(path.join(dir, "openclaw.plugin.json"), "demo-plugin", {
     contracts: { tools: ["demo_tool"] },
   });
 }
@@ -35,25 +36,25 @@ function writePlugin([dir, id, version, method, name]) {
     requireArg(value, label);
   }
   writeJson(path.join(dir, "package.json"), {
-    name: `@astroclaw/${id}`,
+    name: `@openclaw/${id}`,
     version,
-    astroclaw: { extensions: ["./index.js"] },
+    openclaw: { extensions: ["./index.js"] },
   });
   write(
     path.join(dir, "index.js"),
     `module.exports = { id: ${JSON.stringify(id)}, name: ${JSON.stringify(name)}, register(api) { api.registerGatewayMethod(${JSON.stringify(method)}, async () => ({ ok: true })); }, };\n`,
   );
-  writePluginManifest(path.join(dir, "astroclaw.plugin.json"), id);
+  writePluginManifest(path.join(dir, "openclaw.plugin.json"), id);
 }
 
 function writePluginWithVendoredDependency([dir, id, version, method, name]) {
   writePlugin([dir, id, version, method, name]);
   const packageJsonPath = path.join(dir, "package.json");
   writeJson(packageJsonPath, {
-    name: `@astroclaw/${id}`,
+    name: `@openclaw/${id}`,
     version,
     dependencies: { "is-number": "7.0.0" },
-    astroclaw: { extensions: ["./index.js"] },
+    openclaw: { extensions: ["./index.js"] },
   });
   write(
     path.join(dir, "index.js"),
@@ -75,17 +76,17 @@ function writePluginWithCli([dir, id, version, method, name, cliRoot, cliOutput]
     requireArg(value, label);
   }
   writeJson(path.join(dir, "package.json"), {
-    name: `@astroclaw/${id}`,
+    name: `@openclaw/${id}`,
     version,
     dependencies: { "is-number": "file:./deps/is-number" },
-    astroclaw: { extensions: ["./index.js"] },
+    openclaw: { extensions: ["./index.js"] },
   });
   writeFakeIsNumberPackage(path.join(dir, "deps", "is-number"));
   write(
     path.join(dir, "index.js"),
     `const isNumber = require("is-number");\nmodule.exports = { id: ${JSON.stringify(id)}, name: ${JSON.stringify(name)}, register(api) { api.registerGatewayMethod(${JSON.stringify(method)}, async () => ({ ok: isNumber(42) })); api.registerCli(({ program }) => { const root = program.command(${JSON.stringify(cliRoot)}).description(${JSON.stringify(`${name} fixture command`)}); root.command("ping").description("Print fixture ping output").action(() => { console.log(${JSON.stringify(cliOutput)}); }); }, { descriptors: [{ name: ${JSON.stringify(cliRoot)}, description: ${JSON.stringify(`${name} fixture command`)}, hasSubcommands: true }] }); }, };\n`,
   );
-  writePluginManifest(path.join(dir, "astroclaw.plugin.json"), id);
+  writePluginManifest(path.join(dir, "openclaw.plugin.json"), id);
 }
 
 function writePluginWithCliRegistryDependency([
@@ -109,20 +110,20 @@ function writePluginWithCliRegistryDependency([
     requireArg(value, label);
   }
   writeJson(path.join(dir, "package.json"), {
-    name: `@astroclaw/${id}`,
+    name: `@openclaw/${id}`,
     version,
     dependencies: { "is-number": "7.0.0" },
-    astroclaw: { extensions: ["./index.js"] },
+    openclaw: { extensions: ["./index.js"] },
   });
   write(
     path.join(dir, "index.js"),
     `const isNumber = require("is-number");\nmodule.exports = { id: ${JSON.stringify(id)}, name: ${JSON.stringify(name)}, register(api) { api.registerGatewayMethod(${JSON.stringify(method)}, async () => ({ ok: isNumber(42) })); api.registerCli(({ program }) => { const root = program.command(${JSON.stringify(cliRoot)}).description(${JSON.stringify(`${name} fixture command`)}); root.command("ping").description("Print fixture ping output").action(() => { console.log(${JSON.stringify(cliOutput)}); }); }, { descriptors: [{ name: ${JSON.stringify(cliRoot)}, description: ${JSON.stringify(`${name} fixture command`)}, hasSubcommands: true }] }); }, };\n`,
   );
-  writePluginManifest(path.join(dir, "astroclaw.plugin.json"), id);
+  writePluginManifest(path.join(dir, "openclaw.plugin.json"), id);
 }
 
-function writeClaudeBundle([root]) {
-  root = requireArg(root, "root");
+function writeClaudeBundle(args) {
+  const root = requireArg(args[0], "root");
   writeJson(path.join(root, ".claude-plugin", "plugin.json"), { name: "claude-bundle-e2e" });
   write(
     path.join(root, "commands", "office-hours.md"),
@@ -130,8 +131,8 @@ function writeClaudeBundle([root]) {
   );
 }
 
-function writePluginMarketplace([root]) {
-  root = requireArg(root, "root");
+function writePluginMarketplace(args) {
+  const root = requireArg(args[0], "root");
   writeJson(path.join(root, ".claude-plugin", "marketplace.json"), {
     name: "Fixture Marketplace",
     version: "1.0.0",
@@ -153,7 +154,7 @@ function writePluginMarketplace([root]) {
   writeJson(path.join(process.env.HOME, ".claude", "plugins", "known_marketplaces.json"), {
     "claude-fixtures": {
       installLocation: root,
-      source: { type: "github", repo: "astroclaw/fixture-marketplace" },
+      source: { type: "github", repo: "openclaw/fixture-marketplace" },
     },
   });
 }
