@@ -1,18 +1,20 @@
-import { normalizeAnyChannelId } from "../../channels/registry.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+/** Builds normalized command context from inbound message and authorization state. */
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "../../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import { normalizeAnyChannelId } from "../../channels/registry.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
 import { normalizeCommandBody } from "../commands-registry-normalize.js";
 import type { MsgContext } from "../templating.js";
 import type { CommandContext } from "./commands-types.js";
 import { stripMentions } from "./mentions.js";
 
+/** Builds command routing/auth metadata consumed by command handlers. */
 export function buildCommandContext(params: {
   ctx: MsgContext;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId?: string;
   sessionKey?: string;
   isGroup: boolean;
