@@ -1,15 +1,16 @@
+// Line plugin module implements outbound behavior.
 import {
   defineChannelMessageAdapter,
   type ChannelMessageSendResult,
   type MessageReceiptPartKind,
-} from "astroclaw/plugin-sdk/channel-message";
+} from "openclaw/plugin-sdk/channel-outbound";
 import {
   createAttachedChannelResultAdapter,
   createEmptyChannelResult,
-} from "astroclaw/plugin-sdk/channel-send-result";
-import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
-import { resolveOutboundMediaUrls } from "astroclaw/plugin-sdk/reply-payload";
-import { type ChannelPlugin, type ResolvedLineAccount } from "./channel-api.js";
+} from "openclaw/plugin-sdk/channel-send-result";
+import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { resolveOutboundMediaUrls } from "openclaw/plugin-sdk/reply-payload";
+import type { ChannelPlugin, ResolvedLineAccount } from "./channel-api.js";
 import { resolveLineOutboundMedia, type LineOutboundMediaResolved } from "./outbound-media.js";
 import { buildLineQuickReplyFallbackText } from "./quick-reply-fallback.js";
 import { getLineRuntime } from "./runtime.js";
