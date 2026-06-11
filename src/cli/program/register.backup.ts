@@ -1,20 +1,22 @@
+// Backup command registration for local state archive creation and verification.
 import type { Command } from "commander";
+import { formatDocsLink } from "../../../packages/terminal-core/src/links.js";
+import { theme } from "../../../packages/terminal-core/src/theme.js";
 import { backupVerifyCommand } from "../../commands/backup-verify.js";
 import { backupCreateCommand } from "../../commands/backup.js";
 import { defaultRuntime } from "../../runtime.js";
-import { formatDocsLink } from "../../terminal/links.js";
-import { theme } from "../../terminal/theme.js";
 import { runCommandWithRuntime } from "../cli-utils.js";
 import { formatHelpExamples } from "../help-format.js";
 
+/** Register backup create/verify subcommands. */
 export function registerBackupCommand(program: Command) {
   const backup = program
     .command("backup")
-    .description("Create and verify local backup archives for Astroclaw state")
+    .description("Create and verify local backup archives for OpenClaw state")
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/backup", "docs.astroclaw.ai/cli/backup")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/backup", "docs.openclaw.ai/cli/backup")}\n`,
     );
 
   backup
@@ -30,24 +32,24 @@ export function registerBackupCommand(program: Command) {
       "after",
       () =>
         `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["astroclaw backup create", "Create a timestamped backup in the current directory."],
+          ["openclaw backup create", "Create a timestamped backup in the current directory."],
           [
-            "astroclaw backup create --output ~/Backups",
+            "openclaw backup create --output ~/Backups",
             "Write the archive into an existing backup directory.",
           ],
           [
-            "astroclaw backup create --dry-run --json",
+            "openclaw backup create --dry-run --json",
             "Preview the archive plan without writing any files.",
           ],
           [
-            "astroclaw backup create --verify",
+            "openclaw backup create --verify",
             "Create the archive and immediately validate its manifest and payload layout.",
           ],
           [
-            "astroclaw backup create --no-include-workspace",
+            "openclaw backup create --no-include-workspace",
             "Back up state/config without agent workspace files.",
           ],
-          ["astroclaw backup create --only-config", "Back up only the active JSON config file."],
+          ["openclaw backup create --only-config", "Back up only the active JSON config file."],
         ])}`,
     )
     .action(async (opts) => {
@@ -72,11 +74,11 @@ export function registerBackupCommand(program: Command) {
       () =>
         `\n${theme.heading("Examples:")}\n${formatHelpExamples([
           [
-            "astroclaw backup verify ./2026-03-09T00-00-00.000Z-astroclaw-backup.tar.gz",
+            "openclaw backup verify ./2026-03-09T08-00-00.000+08-00-openclaw-backup.tar.gz",
             "Check that the archive structure and manifest are intact.",
           ],
           [
-            "astroclaw backup verify ~/Backups/latest.tar.gz --json",
+            "openclaw backup verify ~/Backups/latest.tar.gz --json",
             "Emit machine-readable verification output.",
           ],
         ])}`,
