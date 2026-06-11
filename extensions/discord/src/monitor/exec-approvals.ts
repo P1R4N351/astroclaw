@@ -1,10 +1,11 @@
+// Discord plugin module implements exec approvals behavior.
 import { ButtonStyle } from "discord-api-types/v10";
-import { resolveApprovalOverGateway } from "astroclaw/plugin-sdk/approval-gateway-runtime";
-import type { ExecApprovalDecision } from "astroclaw/plugin-sdk/approval-runtime";
+import { resolveApprovalOverGateway } from "openclaw/plugin-sdk/approval-gateway-runtime";
+import type { ExecApprovalDecision } from "openclaw/plugin-sdk/approval-runtime";
 import type {
   DiscordExecApprovalConfig,
-  AstroclawConfig,
-} from "astroclaw/plugin-sdk/config-contracts";
+  OpenClawConfig,
+} from "openclaw/plugin-sdk/config-contracts";
 import { Button, type ButtonInteraction, type ComponentData } from "../internal/discord.js";
 export { buildExecApprovalCustomId } from "../approval-handler.runtime.js";
 import { getDiscordExecApprovalApprovers } from "../exec-approvals.js";
@@ -112,10 +113,13 @@ export class ExecApprovalButton extends Button {
     } catch {}
 
     const result = await this.ctx.resolveApproval(parsed.approvalId, parsed.action);
-    if (!result.ok && result.reason !== "not-found") {
+    if (!result.ok) {
       try {
         await interaction.followUp({
-          content: `Failed to submit approval decision for **${decisionLabel}**. The request may have expired or already been resolved.`,
+          content:
+            result.reason === "not-found"
+              ? `That approval request is no longer pending. It may have expired or already been resolved.`
+              : `Failed to submit approval decision for **${decisionLabel}**. The request may have expired or already been resolved.`,
           ephemeral: true,
         });
       } catch {}
@@ -128,7 +132,7 @@ export function createExecApprovalButton(ctx: ExecApprovalButtonContext): Button
 }
 
 export function createDiscordExecApprovalButtonContext(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   config: DiscordExecApprovalConfig;
   gatewayUrl?: string;
