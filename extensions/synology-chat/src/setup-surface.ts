@@ -1,3 +1,4 @@
+// Synology Chat plugin module implements setup surface behavior.
 import {
   createAllowFromSection,
   createSetupTranslator,
@@ -10,9 +11,12 @@ import {
   splitSetupEntries,
   type ChannelSetupAdapter,
   type ChannelSetupWizard,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/setup";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/setup";
+import {
+  normalizeOptionalString,
+  normalizeStringEntries,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { listAccountIds, resolveAccount } from "./accounts.js";
 import type { SynologyChatAccountRaw, SynologyChatChannelConfig } from "./types.js";
 
@@ -38,11 +42,11 @@ const SYNOLOGY_ALLOW_FROM_HELP_LINES = [
   `Docs: ${formatDocsLink("/channels/synology-chat", "channels/synology-chat")}`,
 ];
 
-function getChannelConfig(cfg: AstroclawConfig): SynologyChatChannelConfig {
+function getChannelConfig(cfg: OpenClawConfig): SynologyChatChannelConfig {
   return (cfg.channels?.[channel] as SynologyChatChannelConfig | undefined) ?? {};
 }
 
-function getRawAccountConfig(cfg: AstroclawConfig, accountId: string): SynologyChatAccountRaw {
+function getRawAccountConfig(cfg: OpenClawConfig, accountId: string): SynologyChatAccountRaw {
   const channelConfig = getChannelConfig(cfg);
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return channelConfig;
@@ -51,12 +55,12 @@ function getRawAccountConfig(cfg: AstroclawConfig, accountId: string): SynologyC
 }
 
 function patchSynologyChatAccountConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   patch: Record<string, unknown>;
   clearFields?: string[];
   enabled?: boolean;
-}): AstroclawConfig {
+}): OpenClawConfig {
   const channelConfig = getChannelConfig(params.cfg);
   if (params.accountId === DEFAULT_ACCOUNT_ID) {
     const nextChannelConfig = { ...channelConfig } as Record<string, unknown>;
@@ -100,7 +104,7 @@ function patchSynologyChatAccountConfig(params: {
   };
 }
 
-function isSynologyChatConfigured(cfg: AstroclawConfig, accountId: string): boolean {
+function isSynologyChatConfigured(cfg: OpenClawConfig, accountId: string): boolean {
   const account = resolveAccount(cfg, accountId);
   return Boolean(account.token.trim() && account.incomingUrl.trim());
 }
@@ -142,15 +146,12 @@ function normalizeSynologyAllowedUserId(value: unknown): string {
   return "";
 }
 
-function resolveExistingAllowedUserIds(cfg: AstroclawConfig, accountId: string): string[] {
+function resolveExistingAllowedUserIds(cfg: OpenClawConfig, accountId: string): string[] {
   const raw = getRawAccountConfig(cfg, accountId).allowedUserIds;
   if (Array.isArray(raw)) {
     return raw.map(normalizeSynologyAllowedUserId).filter(Boolean);
   }
-  return normalizeSynologyAllowedUserId(raw)
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
+  return normalizeStringEntries(normalizeSynologyAllowedUserId(raw).split(","));
 }
 
 export const synologyChatSetupAdapter: ChannelSetupAdapter = {
