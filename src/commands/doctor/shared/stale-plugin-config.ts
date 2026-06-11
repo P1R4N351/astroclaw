@@ -1,11 +1,13 @@
+// Doctor scanner and repair for plugin/channel config that references missing plugins.
+import { sanitizeForLog } from "../../../../packages/terminal-core/src/ansi.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../../agents/agent-scope.js";
 import { CHANNEL_IDS } from "../../../channels/ids.js";
-import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
+import { shouldSuppressMissingCodexPluginDiagnostics } from "../../../config/codex-plugin-diagnostics.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { normalizePluginId } from "../../../plugins/config-state.js";
 import { loadInstalledPluginIndexInstallRecordsSync } from "../../../plugins/installed-plugin-index-records.js";
 import { loadManifestMetadataSnapshot } from "../../../plugins/manifest-contract-eligibility.js";
 import { defaultSlotIdForKey, type PluginSlotKey } from "../../../plugins/slots.js";
-import { sanitizeForLog } from "../../../terminal/ansi.js";
 import { asObjectRecord } from "./object.js";
 
 const CHANNEL_CONFIG_META_KEYS = new Set(["defaults", "modelByChannel"]);
@@ -34,7 +36,7 @@ type StalePluginRegistryState = {
 };
 
 function collectPluginRegistryState(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env?: NodeJS.ProcessEnv,
 ): StalePluginRegistryState {
   const workspaceDir = resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
@@ -78,8 +80,9 @@ function collectPluginRegistryState(
   };
 }
 
+/** Return true when plugin discovery errors should pause stale-plugin auto-removal. */
 export function isStalePluginAutoRepairBlocked(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env?: NodeJS.ProcessEnv,
 ): boolean {
   if (cfg.plugins?.enabled === false) {
@@ -88,8 +91,9 @@ export function isStalePluginAutoRepairBlocked(
   return collectPluginRegistryState(cfg, env).hasDiscoveryErrors;
 }
 
+/** Scan plugin/channel config surfaces for ids no longer present in manifests or installs. */
 export function scanStalePluginConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env?: NodeJS.ProcessEnv,
 ): StalePluginConfigHit[] {
   if (cfg.plugins?.enabled === false) {
@@ -99,7 +103,7 @@ export function scanStalePluginConfig(
 }
 
 function scanStalePluginConfigWithState(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   registryState: StalePluginRegistryState,
 ): StalePluginConfigHit[] {
   const plugins = asObjectRecord(cfg.plugins);
@@ -146,6 +150,9 @@ function scanStalePluginConfigWithState(
     for (const rawPluginId of Object.keys(entries)) {
       const pluginId = normalizePluginId(rawPluginId);
       if (!pluginId || knownIds.has(pluginId) || registryState.knownChannelIds.has(pluginId)) {
+        continue;
+      }
+      if (pluginId === "codex" && shouldSuppressMissingCodexPluginDiagnostics(cfg)) {
         continue;
       }
       hits.push({
@@ -203,7 +210,7 @@ function scanStalePluginConfigWithState(
 }
 
 function collectDanglingChannelIds(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   registryState: StalePluginRegistryState;
   staleEvidenceIds: ReadonlySet<string>;
 }): string[] {
@@ -233,7 +240,7 @@ function collectDanglingChannelIds(params: {
 }
 
 function collectDependentChannelConfigHits(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   channelIds: readonly string[],
 ): StalePluginConfigHit[] {
   if (channelIds.length === 0) {
@@ -301,6 +308,7 @@ function formatStalePluginHitWarning(hit: StalePluginConfigHit): string {
   return `- ${hit.pathLabel}: model override references missing channel plugin "${hit.pluginId}".`;
 }
 
+/** Format warnings for stale plugin config hits. */
 export function collectStalePluginConfigWarnings(params: {
   hits: StalePluginConfigHit[];
   doctorFixCommand: string;
@@ -322,12 +330,13 @@ export function collectStalePluginConfigWarnings(params: {
   return lines.map((line) => sanitizeForLog(line));
 }
 
+/** Remove stale plugin ids and dangling channel references when discovery is healthy. */
 export function maybeRepairStalePluginConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env?: NodeJS.ProcessEnv,
   params?: { preservePluginIds?: Iterable<string> },
 ): {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   changes: string[];
 } {
   if (cfg.plugins?.enabled === false) {
@@ -442,7 +451,7 @@ export function maybeRepairStalePluginConfig(
   return { config: next, changes };
 }
 
-function removeDanglingChannelReferences(config: AstroclawConfig, channelIds: readonly string[]) {
+function removeDanglingChannelReferences(config: OpenClawConfig, channelIds: readonly string[]) {
   const staleChannelIds = new Set(channelIds.map((channelId) => normalizePluginId(channelId)));
   const channels = asObjectRecord(config.channels);
   if (channels) {
