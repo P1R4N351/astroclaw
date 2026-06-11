@@ -1,12 +1,17 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Updates static model allowlist entries in agent defaults. Setup uses this
+ * helper to keep both raw and canonical provider/model keys present.
+ */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { DEFAULT_PROVIDER } from "./defaults.js";
 import { resolveStaticAllowlistModelKey } from "./model-ref-shared.js";
 
+/** Ensures a static model allowlist entry exists in agent defaults. */
 export function ensureStaticModelAllowlistEntry(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   modelRef: string;
   defaultProvider?: string;
-}): AstroclawConfig {
+}): OpenClawConfig {
   const rawModelRef = params.modelRef.trim();
   if (!rawModelRef) {
     return params.cfg;
