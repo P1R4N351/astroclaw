@@ -1,3 +1,4 @@
+// Feishu plugin module implements secret contract behavior.
 import {
   collectConditionalChannelFieldAssignments,
   collectSimpleChannelFieldAssignments,
@@ -7,13 +8,13 @@ import {
   type ResolverContext,
   type SecretDefaults,
   type SecretTargetRegistryEntry,
-} from "astroclaw/plugin-sdk/channel-secret-basic-runtime";
+} from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 
 export const secretTargetRegistryEntries: SecretTargetRegistryEntry[] = [
   {
     id: "channels.feishu.accounts.*.appSecret",
     targetType: "channels.feishu.accounts.*.appSecret",
-    configFile: "astroclaw.json",
+    configFile: "openclaw.json",
     pathPattern: "channels.feishu.accounts.*.appSecret",
     secretShape: "secret_input",
     expectedResolvedValue: "string",
@@ -24,7 +25,7 @@ export const secretTargetRegistryEntries: SecretTargetRegistryEntry[] = [
   {
     id: "channels.feishu.accounts.*.encryptKey",
     targetType: "channels.feishu.accounts.*.encryptKey",
-    configFile: "astroclaw.json",
+    configFile: "openclaw.json",
     pathPattern: "channels.feishu.accounts.*.encryptKey",
     secretShape: "secret_input",
     expectedResolvedValue: "string",
@@ -35,7 +36,7 @@ export const secretTargetRegistryEntries: SecretTargetRegistryEntry[] = [
   {
     id: "channels.feishu.accounts.*.verificationToken",
     targetType: "channels.feishu.accounts.*.verificationToken",
-    configFile: "astroclaw.json",
+    configFile: "openclaw.json",
     pathPattern: "channels.feishu.accounts.*.verificationToken",
     secretShape: "secret_input",
     expectedResolvedValue: "string",
@@ -46,7 +47,7 @@ export const secretTargetRegistryEntries: SecretTargetRegistryEntry[] = [
   {
     id: "channels.feishu.appSecret",
     targetType: "channels.feishu.appSecret",
-    configFile: "astroclaw.json",
+    configFile: "openclaw.json",
     pathPattern: "channels.feishu.appSecret",
     secretShape: "secret_input",
     expectedResolvedValue: "string",
@@ -57,7 +58,7 @@ export const secretTargetRegistryEntries: SecretTargetRegistryEntry[] = [
   {
     id: "channels.feishu.encryptKey",
     targetType: "channels.feishu.encryptKey",
-    configFile: "astroclaw.json",
+    configFile: "openclaw.json",
     pathPattern: "channels.feishu.encryptKey",
     secretShape: "secret_input",
     expectedResolvedValue: "string",
@@ -68,7 +69,7 @@ export const secretTargetRegistryEntries: SecretTargetRegistryEntry[] = [
   {
     id: "channels.feishu.verificationToken",
     targetType: "channels.feishu.verificationToken",
-    configFile: "astroclaw.json",
+    configFile: "openclaw.json",
     pathPattern: "channels.feishu.verificationToken",
     secretShape: "secret_input",
     expectedResolvedValue: "string",
