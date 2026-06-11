@@ -1,10 +1,11 @@
-import type { ChannelSetupWizard } from "astroclaw/plugin-sdk/setup";
+// Whatsapp plugin module implements setup surface behavior.
+import type { ChannelSetupWizard } from "openclaw/plugin-sdk/setup";
 import {
   DEFAULT_ACCOUNT_ID,
   setSetupChannelEnabled,
   createSetupTranslator,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/setup";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/setup";
 import { listWhatsAppAccountIds, resolveWhatsAppAuthDir } from "./accounts.js";
 import { formatWhatsAppWebAuthStatusState, readWebAuthState } from "./auth-store.js";
 
@@ -15,7 +16,7 @@ const channel = "whatsapp" as const;
 type WhatsAppSetupLinkState = "linked" | "not-linked" | "unstable";
 
 async function readWhatsAppSetupLinkState(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
 ): Promise<WhatsAppSetupLinkState> {
   const { authDir } = resolveWhatsAppAuthDir({ cfg, accountId });
