@@ -1,3 +1,6 @@
+// Pure helpers for parsing, adding, removing, and generating agent route bindings.
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeSortedUniqueStringEntries } from "@openclaw/normalization-core/string-normalization";
 import { getBundledChannelSetupPlugin } from "../channels/plugins/bundled.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import { getLoadedChannelPlugin } from "../channels/plugins/index.js";
@@ -6,11 +9,9 @@ import { normalizeChannelId as normalizeBundledChannelId } from "../channels/reg
 import { formatUnknownChannelMessage } from "../cli/error-format.js";
 import { isRouteBinding, listRouteBindings } from "../config/bindings.js";
 import type { AgentRouteBinding } from "../config/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { listManifestChannelContributionIds } from "../plugins/manifest-contribution-ids.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAgentId } from "../routing/session-key.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
-import { normalizeStringEntries } from "../shared/string-normalization.js";
 import type { ChannelChoice } from "./onboard-types.js";
 
 export { describeBinding } from "./agents.binding-format.js";
@@ -22,9 +23,7 @@ function bindingMatchKey(match: AgentRouteBinding["match"]) {
 }
 
 function bindingMatchIdentityKey(match: AgentRouteBinding["match"]) {
-  const roles = Array.isArray(match.roles)
-    ? Array.from(new Set(normalizeStringEntries(match.roles).toSorted()))
-    : [];
+  const roles = Array.isArray(match.roles) ? normalizeSortedUniqueStringEntries(match.roles) : [];
   return JSON.stringify([
     match.channel,
     match.peer?.kind ?? "",
@@ -55,11 +54,12 @@ function canUpgradeBindingAccountScope(params: {
   );
 }
 
+/** Merge new route bindings into config while reporting adds, upgrades, skips, and conflicts. */
 export function applyAgentBindings(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   bindings: AgentRouteBinding[],
 ): {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   added: AgentRouteBinding[];
   updated: AgentRouteBinding[];
   skipped: AgentRouteBinding[];
@@ -141,11 +141,12 @@ export function applyAgentBindings(
   };
 }
 
+/** Remove matching route bindings from config without disturbing non-route binding entries. */
 export function removeAgentBindings(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   bindings: AgentRouteBinding[],
 ): {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   removed: AgentRouteBinding[];
   missing: AgentRouteBinding[];
   conflicts: Array<{ binding: AgentRouteBinding; existingAgentId: string }>;
@@ -209,7 +210,7 @@ export function removeAgentBindings(
   };
 }
 
-function resolveDefaultAccountId(cfg: AstroclawConfig, provider: ChannelId): string {
+function resolveDefaultAccountId(cfg: OpenClawConfig, provider: ChannelId): string {
   const plugin = getBindingChannelPlugin(provider);
   if (!plugin) {
     return DEFAULT_ACCOUNT_ID;
@@ -217,7 +218,7 @@ function resolveDefaultAccountId(cfg: AstroclawConfig, provider: ChannelId): str
   return resolveChannelDefaultAccountId({ plugin, cfg });
 }
 
-function listManifestChannelIds(config: AstroclawConfig): Set<string> {
+function listManifestChannelIds(config: OpenClawConfig): Set<string> {
   return new Set(
     listManifestChannelContributionIds({
       includeDisabled: true,
@@ -229,7 +230,7 @@ function listManifestChannelIds(config: AstroclawConfig): Set<string> {
 
 function normalizeBindingChannelId(
   raw: string | undefined,
-  config: AstroclawConfig,
+  config: OpenClawConfig,
 ): ChannelId | null {
   const bundled = normalizeBundledChannelId(raw);
   if (bundled) {
@@ -248,7 +249,7 @@ function getBindingChannelPlugin(channel: ChannelId) {
 
 function resolveBindingAccountId(params: {
   channel: ChannelId;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   agentId: string;
   explicitAccountId?: string;
 }): string | undefined {
@@ -266,6 +267,10 @@ function resolveBindingAccountId(params: {
     return pluginAccountId.trim();
   }
 
+  if (plugin && plugin.config.listAccountIds(params.config).length > 1) {
+    return "*";
+  }
+
   if (plugin?.meta.forceAccountBinding) {
     return resolveDefaultAccountId(params.config, params.channel);
   }
@@ -276,7 +281,7 @@ function resolveBindingAccountId(params: {
 export function buildChannelBindings(params: {
   agentId: string;
   selection: ChannelChoice[];
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   accountIds?: Partial<Record<ChannelChoice, string>>;
 }): AgentRouteBinding[] {
   const bindings: AgentRouteBinding[] = [];
@@ -300,7 +305,7 @@ export function buildChannelBindings(params: {
 export function parseBindingSpecs(params: {
   agentId: string;
   specs?: string[];
-  config: AstroclawConfig;
+  config: OpenClawConfig;
 }): { bindings: AgentRouteBinding[]; errors: string[] } {
   const bindings: AgentRouteBinding[] = [];
   const errors: string[] = [];
