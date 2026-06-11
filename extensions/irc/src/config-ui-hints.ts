@@ -1,9 +1,10 @@
-import type { ChannelConfigUiHint } from "astroclaw/plugin-sdk/core";
+// Irc helper module supports config ui hints behavior.
+import type { ChannelConfigUiHint } from "openclaw/plugin-sdk/core";
 
 export const ircChannelConfigUiHints = {
   "": {
     label: "IRC",
-    help: "IRC channel provider configuration and compatibility settings for classic IRC transport workflows. Use this section when bridging legacy chat infrastructure into Astroclaw.",
+    help: "IRC channel provider configuration and compatibility settings for classic IRC transport workflows. Use this section when bridging legacy chat infrastructure into OpenClaw.",
   },
   dmPolicy: {
     label: "IRC DM Policy",
