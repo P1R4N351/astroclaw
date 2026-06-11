@@ -1,16 +1,17 @@
+// Feishu plugin module implements setup core behavior.
 import {
   DEFAULT_ACCOUNT_ID,
   type ChannelSetupAdapter,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/setup";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/setup";
 import { resolveDefaultFeishuAccountId } from "./accounts.js";
 import type { FeishuConfig } from "./types.js";
 
 export function setFeishuNamedAccountEnabled(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   enabled: boolean,
-): AstroclawConfig {
+): OpenClawConfig {
   const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
   return {
     ...cfg,
