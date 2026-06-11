@@ -1,4 +1,5 @@
-import { readStringValue } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Google plugin module implements oauth token shared behavior.
+import { readStringValue } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 type GoogleOauthApiKeyCredential = {
   type?: string;
