@@ -1,3 +1,4 @@
+// Signal plugin module implements sse reconnect behavior.
 import {
   computeBackoff,
   logVerbose,
@@ -5,7 +6,7 @@ import {
   sleepWithAbort,
   type BackoffPolicy,
   type RuntimeEnv,
-} from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/runtime-env";
 import { type SignalApiMode, type SignalSseEvent, streamSignalEvents } from "./client-adapter.js";
 
 const DEFAULT_RECONNECT_POLICY: BackoffPolicy = {
