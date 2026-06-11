@@ -1,4 +1,5 @@
-const REAUTH_HINT = "Re-run `astroclaw googlemeet auth login` and store the refreshed oauth block.";
+// Google Meet plugin module implements google api errors behavior.
+const REAUTH_HINT = "Re-run `openclaw googlemeet auth login` and store the refreshed oauth block.";
 
 function scopeText(scopes: readonly string[]): string {
   return scopes.map((scope) => `\`${scope}\``).join(", ");
