@@ -1,9 +1,10 @@
+// Matrix API module exposes the plugin public contract.
 export {
   DEFAULT_ACCOUNT_ID,
   normalizeAccountId,
   normalizeOptionalAccountId,
-} from "astroclaw/plugin-sdk/account-id";
+} from "openclaw/plugin-sdk/account-id";
 export {
   isPrivateNetworkOptInEnabled,
   ssrfPolicyFromDangerouslyAllowPrivateNetwork,
-} from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/ssrf-runtime";
