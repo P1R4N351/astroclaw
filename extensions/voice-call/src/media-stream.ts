@@ -9,19 +9,20 @@
 
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import type {
   RealtimeTranscriptionProviderConfig,
   RealtimeTranscriptionProviderPlugin,
   RealtimeTranscriptionSession,
-} from "astroclaw/plugin-sdk/realtime-transcription";
+} from "openclaw/plugin-sdk/realtime-transcription";
 import {
   createTalkSessionController,
   recordTalkObservabilityEvent,
   type TalkEvent,
   type TalkEventInput,
   type TalkSessionController,
-} from "astroclaw/plugin-sdk/realtime-voice";
+} from "openclaw/plugin-sdk/realtime-voice";
 import { type RawData, WebSocket, WebSocketServer } from "ws";
 
 /**
@@ -33,7 +34,7 @@ export interface MediaStreamConfig {
   /** Provider-owned config blob passed into the transcription session. */
   providerConfig: RealtimeTranscriptionProviderConfig;
   /** Full runtime config, used by providers that can resolve OAuth profiles. */
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   /** Close sockets that never send a valid `start` frame within this window. */
   preStartTimeoutMs?: number;
   /** Max concurrent pre-start sockets. */
@@ -155,7 +156,10 @@ export class MediaStreamHandler {
 
   constructor(config: MediaStreamConfig) {
     this.config = config;
-    this.preStartTimeoutMs = config.preStartTimeoutMs ?? DEFAULT_PRE_START_TIMEOUT_MS;
+    this.preStartTimeoutMs = resolveTimerTimeoutMs(
+      config.preStartTimeoutMs,
+      DEFAULT_PRE_START_TIMEOUT_MS,
+    );
     this.maxPendingConnections = config.maxPendingConnections ?? DEFAULT_MAX_PENDING_CONNECTIONS;
     this.maxPendingConnectionsPerIp =
       config.maxPendingConnectionsPerIp ?? DEFAULT_MAX_PENDING_CONNECTIONS_PER_IP;
@@ -172,7 +176,9 @@ export class MediaStreamHandler {
         // Reject oversized frames before app-level parsing runs on unauthenticated sockets.
         maxPayload: MAX_INBOUND_MESSAGE_BYTES,
       });
-      this.wss.on("connection", (ws, req) => this.handleConnection(ws, req));
+      this.wss.on("connection", (ws, req) => {
+        void this.handleConnection(ws, req);
+      });
     }
 
     const currentConnections = this.getCurrentConnectionCount();
@@ -226,7 +232,7 @@ export class MediaStreamHandler {
       return;
     }
 
-    ws.on("message", async (data: RawData) => {
+    ws.on("message", (data: RawData) => {
       try {
         const message = parseTwilioMediaMessage(data);
 
