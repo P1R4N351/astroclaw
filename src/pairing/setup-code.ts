@@ -1,10 +1,22 @@
+// Generates setup codes used to pair external channels with OpenClaw.
 import os from "node:os";
+import {
+  isCarrierGradeNatIpv4Address,
+  isIpv4Address,
+  isIpv6Address,
+  isLoopbackIpAddress,
+  isRfc1918Ipv4Address,
+  parseCanonicalIpAddress,
+} from "@openclaw/net-policy/ip";
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
 import { resolveGatewayPort } from "../config/paths.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { normalizeSecretInputString, resolveSecretInputRef } from "../config/types.secrets.js";
 import { materializeGatewayAuthSecretRefs } from "../gateway/auth-config-utils.js";
 import { assertExplicitGatewayAuthModeWhenBothConfigured } from "../gateway/auth-mode-policy.js";
-import { isLoopbackHost, isSecureWebSocketUrl } from "../gateway/net.js";
 import { issueDeviceBootstrapToken } from "../infra/device-bootstrap.js";
 import {
   pickMatchingExternalInterfaceAddress,
@@ -13,17 +25,9 @@ import {
 import { PAIRING_SETUP_BOOTSTRAP_PROFILE } from "../shared/device-bootstrap-profile.js";
 import { resolveGatewayBindUrl } from "../shared/gateway-bind-url.js";
 import {
-  isCarrierGradeNatIpv4Address,
-  isIpv4Address,
-  isIpv6Address,
-  isRfc1918Ipv4Address,
-  parseCanonicalIpAddress,
-} from "../shared/net/ip.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalString,
-} from "../shared/string-coerce.js";
-import { resolveTailnetHostWithRunner } from "../shared/tailscale-status.js";
+  resolveTailnetHostWithRunner,
+  resolveTailscalePublishedHost,
+} from "../shared/tailscale-status.js";
 
 export type PairingSetupPayload = {
   url: string;
@@ -124,13 +128,15 @@ function isPrivateLanHost(host: string): boolean {
 
 function isMobilePairingCleartextAllowedHost(host: string): boolean {
   const normalized = normalizeMobilePairingHost(host);
-  return isLoopbackHost(normalized) || normalized === "10.0.2.2" || isPrivateLanHost(normalized);
+  return (
+    normalized === "localhost" ||
+    isLoopbackIpAddress(normalized) ||
+    normalized === "10.0.2.2" ||
+    isPrivateLanHost(normalized)
+  );
 }
 
 function validateMobilePairingUrl(url: string, source?: string): string | null {
-  if (isSecureWebSocketUrl(url)) {
-    return null;
-  }
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -139,6 +145,9 @@ function validateMobilePairingUrl(url: string, source?: string): string | null {
   }
   const protocol =
     parsed.protocol === "https:" ? "wss:" : parsed.protocol === "http:" ? "ws:" : parsed.protocol;
+  if (protocol === "wss:") {
+    return null;
+  }
   if (protocol !== "ws:" || isMobilePairingCleartextAllowedHost(parsed.hostname)) {
     return null;
   }
@@ -198,7 +207,7 @@ function parseNormalizedGatewayUrl(raw: string): string | null {
 }
 
 function resolveScheme(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   opts?: {
     forceSecure?: boolean;
   },
@@ -242,7 +251,7 @@ function pickTailnetIPv4(
 }
 
 function resolvePairingSetupAuthLabel(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv,
 ): ResolveAuthLabelResult {
   const mode = cfg.gateway?.auth?.mode;
@@ -255,8 +264,8 @@ function resolvePairingSetupAuthLabel(
     value: cfg.gateway?.auth?.password,
     defaults,
   }).ref;
-  const envToken = normalizeOptionalString(env.ASTROCLAW_GATEWAY_TOKEN);
-  const envPassword = normalizeOptionalString(env.ASTROCLAW_GATEWAY_PASSWORD);
+  const envToken = normalizeOptionalString(env.OPENCLAW_GATEWAY_TOKEN);
+  const envPassword = normalizeOptionalString(env.OPENCLAW_GATEWAY_PASSWORD);
   const token =
     envToken || (tokenRef ? undefined : normalizeSecretInputString(cfg.gateway?.auth?.token));
   const password =
@@ -285,7 +294,7 @@ function resolvePairingSetupAuthLabel(
 }
 
 async function resolveGatewayUrl(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   opts: {
     env: NodeJS.ProcessEnv;
     publicUrl?: string;
@@ -322,7 +331,18 @@ async function resolveGatewayUrl(
     if (!host) {
       return { error: "Tailscale Serve is enabled, but MagicDNS could not be resolved." };
     }
-    return { url: `wss://${host}`, source: `gateway.tailscale.mode=${tailscaleMode}` };
+    const publishedHost = resolveTailscalePublishedHost({
+      tailscaleMode,
+      tailnetHost: host,
+      serviceName: cfg.gateway?.tailscale?.serviceName,
+    });
+    if (!publishedHost) {
+      return {
+        error:
+          "Tailscale Serve serviceName is configured, but Service MagicDNS could not be derived.",
+      };
+    }
+    return { url: `wss://${publishedHost}`, source: `gateway.tailscale.mode=${tailscaleMode}` };
   }
 
   if (remoteUrl) {
@@ -354,7 +374,7 @@ export function encodePairingSetupCode(payload: PairingSetupPayload): string {
 }
 
 export async function resolvePairingSetupFromConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options: ResolvePairingSetupOptions = {},
 ): Promise<PairingSetupResolution> {
   assertExplicitGatewayAuthModeWhenBothConfigured(cfg);
@@ -363,8 +383,8 @@ export async function resolvePairingSetupFromConfig(
     cfg,
     env,
     mode: cfg.gateway?.auth?.mode,
-    hasTokenCandidate: Boolean(normalizeOptionalString(env.ASTROCLAW_GATEWAY_TOKEN)),
-    hasPasswordCandidate: Boolean(normalizeOptionalString(env.ASTROCLAW_GATEWAY_PASSWORD)),
+    hasTokenCandidate: Boolean(normalizeOptionalString(env.OPENCLAW_GATEWAY_TOKEN)),
+    hasPasswordCandidate: Boolean(normalizeOptionalString(env.OPENCLAW_GATEWAY_PASSWORD)),
   });
   const authLabel = resolvePairingSetupAuthLabel(cfgForAuth, env);
   if (authLabel.error) {
