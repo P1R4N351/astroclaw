@@ -1,11 +1,13 @@
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { retryAsync } from "astroclaw/plugin-sdk/retry-runtime";
+// Matrix helper module supports config behavior.
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { resolveOptionalIntegerOption } from "openclaw/plugin-sdk/number-runtime";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { retryAsync } from "openclaw/plugin-sdk/retry-runtime";
 import {
   coerceSecretRef,
   normalizeResolvedSecretInputString,
-} from "astroclaw/plugin-sdk/secret-input-runtime";
-import type { PinnedDispatcherPolicy } from "astroclaw/plugin-sdk/ssrf-dispatcher";
+} from "openclaw/plugin-sdk/secret-input-runtime";
+import type { PinnedDispatcherPolicy } from "openclaw/plugin-sdk/ssrf-dispatcher";
 import {
   requiresExplicitMatrixDefaultAccount,
   resolveMatrixDefaultOrOnlyAccountId,
@@ -412,7 +414,7 @@ function readMatrixAccountConfigField(
 }
 
 function clampMatrixInitialSyncLimit(value: unknown): number | undefined {
-  return typeof value === "number" ? Math.max(0, Math.floor(value)) : undefined;
+  return resolveOptionalIntegerOption(value, { min: 0 });
 }
 
 function buildMatrixNetworkFields(params: {
@@ -736,7 +738,7 @@ export async function resolveMatrixAuth(params?: {
       identifier: { type: "m.id.user", user: resolved.userId },
       password,
       device_id: resolved.deviceId,
-      initial_device_display_name: resolved.deviceName ?? "Astroclaw Gateway",
+      initial_device_display_name: resolved.deviceName ?? "OpenClaw Gateway",
     })) as {
       access_token?: string;
       user_id?: string;
