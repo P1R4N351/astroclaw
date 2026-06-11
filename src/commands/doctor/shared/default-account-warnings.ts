@@ -1,6 +1,11 @@
+// Doctor warnings for multi-account channels missing explicit default account routing.
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
 import { normalizeChatChannelId } from "../../../channels/ids.js";
 import { listRouteBindings } from "../../../config/bindings.js";
-import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import {
   formatChannelAccountsDefaultPath,
   formatSetExplicitDefaultInstruction,
@@ -11,10 +16,6 @@ import {
   normalizeAccountId,
   normalizeOptionalAccountId,
 } from "../../../routing/session-key.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalString,
-} from "../../../shared/string-coerce.js";
 import { asObjectRecord } from "./object.js";
 
 type ChannelMissingDefaultAccountContext = {
@@ -32,7 +33,7 @@ function normalizeBindingChannelKey(raw?: string | null): string {
 }
 
 function collectChannelsMissingDefaultAccount(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): ChannelMissingDefaultAccountContext[] {
   const channels = asObjectRecord(cfg.channels);
   if (!channels) {
@@ -65,7 +66,8 @@ function collectChannelsMissingDefaultAccount(
   return contexts;
 }
 
-export function collectMissingDefaultAccountBindingWarnings(cfg: AstroclawConfig): string[] {
+/** Warn when account-scoped route bindings do not cover channels without accounts.default. */
+export function collectMissingDefaultAccountBindingWarnings(cfg: OpenClawConfig): string[] {
   const bindings = listRouteBindings(cfg);
   const warnings: string[] = [];
 
@@ -130,7 +132,8 @@ export function collectMissingDefaultAccountBindingWarnings(cfg: AstroclawConfig
   return warnings;
 }
 
-export function collectMissingExplicitDefaultAccountWarnings(cfg: AstroclawConfig): string[] {
+/** Warn when multi-account channels omit or misconfigure an explicit default account. */
+export function collectMissingExplicitDefaultAccountWarnings(cfg: OpenClawConfig): string[] {
   const warnings: string[] = [];
   for (const { channelKey, channel, normalizedAccountIds } of collectChannelsMissingDefaultAccount(
     cfg,
