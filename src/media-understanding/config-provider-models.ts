@@ -1,8 +1,10 @@
-import type { AstroclawConfig } from "../config/types.js";
+// Config provider model helpers discover image-capable custom providers for
+// media-understanding auto-registration.
+import type { OpenClawConfig } from "../config/types.js";
 import { normalizeMediaProviderId } from "./provider-id.js";
 
 type ConfigProvider = NonNullable<
-  NonNullable<NonNullable<AstroclawConfig["models"]>["providers"]>[string]
+  NonNullable<NonNullable<OpenClawConfig["models"]>["providers"]>[string]
 >;
 
 type ConfigProviderModel = NonNullable<ConfigProvider["models"]>[number];
@@ -14,7 +16,8 @@ function hasImageCapableModel(providerCfg: ConfigProvider): boolean {
   );
 }
 
-export function resolveImageCapableConfigProviderIds(cfg?: AstroclawConfig): string[] {
+/** Finds configured model providers that can be auto-registered for image understanding. */
+export function resolveImageCapableConfigProviderIds(cfg?: OpenClawConfig): string[] {
   const configProviders = cfg?.models?.providers;
   if (!configProviders || typeof configProviders !== "object") {
     return [];
