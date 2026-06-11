@@ -1,3 +1,4 @@
+// Msteams plugin module implements setup surface behavior.
 import {
   createTopLevelChannelAllowFromSetter,
   createTopLevelChannelDmPolicy,
@@ -7,9 +8,9 @@ import {
   createSetupTranslator,
   type ChannelSetupDmPolicy,
   type ChannelSetupWizard,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type WizardPrompter,
-} from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
 import type { MSTeamsTeamConfig } from "../runtime-api.js";
 import { formatUnknownError } from "./errors.js";
 import {
@@ -42,9 +43,9 @@ function looksLikeGuid(value: string): boolean {
 }
 
 async function promptMSTeamsAllowFrom(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const existing = params.cfg.channels?.msteams?.allowFrom ?? [];
   await params.prompter.note(
     [
@@ -110,9 +111,9 @@ async function promptMSTeamsAllowFrom(params: {
 }
 
 function setMSTeamsTeamsAllowlist(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   entries: Array<{ teamKey: string; channelKey?: string }>,
-): AstroclawConfig {
+): OpenClawConfig {
   const baseTeams = cfg.channels?.msteams?.teams ?? {};
   const teams: Record<string, { channels?: Record<string, unknown> }> = { ...baseTeams };
   for (const entry of entries) {
@@ -142,7 +143,7 @@ function setMSTeamsTeamsAllowlist(
   };
 }
 
-function listMSTeamsGroupEntries(cfg: AstroclawConfig): string[] {
+function listMSTeamsGroupEntries(cfg: OpenClawConfig): string[] {
   return Object.entries(cfg.channels?.msteams?.teams ?? {}).flatMap(([teamKey, value]) => {
     const channels = value?.channels ?? {};
     const channelKeys = Object.keys(channels);
@@ -154,7 +155,7 @@ function listMSTeamsGroupEntries(cfg: AstroclawConfig): string[] {
 }
 
 async function resolveMSTeamsGroupAllowlist(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   entries: string[];
   prompter: Pick<WizardPrompter, "note">;
 }): Promise<Array<{ teamKey: string; channelKey?: string }>> {
@@ -283,7 +284,9 @@ export const msteamsSetupWizard: ChannelSetupWizard = {
             {
               isRemote: true,
               openUrl: openDelegatedOAuthUrl,
-              log: (msg) => params.prompter.note(msg),
+              log: (msg) => {
+                void params.prompter.note(msg);
+              },
               note: (msg, title) => params.prompter.note(msg, title),
               prompt: (msg) => params.prompter.text({ message: msg }),
               progress,
