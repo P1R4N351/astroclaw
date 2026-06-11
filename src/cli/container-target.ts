@@ -1,7 +1,8 @@
+// CLI container targeting: parse --container and re-exec the command inside Docker/Podman.
 import { spawnSync } from "node:child_process";
 import { isIP } from "node:net";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import { consumeRootOptionToken, FLAG_TERMINATOR } from "../infra/cli-root-options.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
 import { resolveCliArgvInvocation } from "./argv-invocation.js";
 import { scanCliRootOptions } from "./root-option-scan.js";
 import { takeCliRootOptionValue } from "./root-option-value.js";
@@ -27,7 +28,7 @@ type ContainerRuntimeExec = {
   argsPrefix: string[];
 };
 
-const CONTAINER_ALLOW_LOOPBACK_PROXY_URL_ENV = "ASTROCLAW_CONTAINER_ALLOW_LOOPBACK_PROXY_URL";
+const CONTAINER_ALLOW_LOOPBACK_PROXY_URL_ENV = "OPENCLAW_CONTAINER_ALLOW_LOOPBACK_PROXY_URL";
 
 export function parseCliContainerArgs(argv: string[]): CliContainerParseResult {
   let container: string | null = null;
@@ -60,7 +61,7 @@ export function resolveCliContainerTarget(
   if (!parsed.ok) {
     throw new Error(parsed.error);
   }
-  return parsed.container ?? normalizeOptionalString(env.ASTROCLAW_CONTAINER) ?? null;
+  return parsed.container ?? normalizeOptionalString(env.OPENCLAW_CONTAINER) ?? null;
 }
 
 function isContainerRunning(params: {
@@ -134,24 +135,25 @@ function buildContainerExecArgs(params: {
   stdinIsTTY: boolean;
   stdoutIsTTY: boolean;
 }): string[] {
+  // Preserve proxy env only after loopback validation; localhost would point inside the container.
   const envFlag = params.exec.runtime === "docker" ? "-e" : "--env";
-  const proxyUrl = normalizeOptionalString(params.env.ASTROCLAW_PROXY_URL);
+  const proxyUrl = normalizeOptionalString(params.env.OPENCLAW_PROXY_URL);
   if (proxyUrl) {
     assertContainerProxyUrlIsReachable(proxyUrl, params.env);
   }
-  const proxyEnvArgs = proxyUrl ? [envFlag, `ASTROCLAW_PROXY_URL=${proxyUrl}`] : [];
+  const proxyEnvArgs = proxyUrl ? [envFlag, `OPENCLAW_PROXY_URL=${proxyUrl}`] : [];
   const interactiveFlags = ["-i", ...(params.stdinIsTTY && params.stdoutIsTTY ? ["-t"] : [])];
   return [
     ...params.exec.argsPrefix,
     "exec",
     ...interactiveFlags,
     envFlag,
-    `ASTROCLAW_CONTAINER_HINT=${params.containerName}`,
+    `OPENCLAW_CONTAINER_HINT=${params.containerName}`,
     envFlag,
-    "ASTROCLAW_CLI_CONTAINER_BYPASS=1",
+    "OPENCLAW_CLI_CONTAINER_BYPASS=1",
     ...proxyEnvArgs,
     params.containerName,
-    "astroclaw",
+    "openclaw",
     ...params.argv,
   ];
 }
@@ -170,7 +172,7 @@ function assertContainerProxyUrlIsReachable(proxyUrl: string, env: NodeJS.Proces
     return;
   }
   throw new Error(
-    `ASTROCLAW_PROXY_URL=${redactProxyUrlForMessage(proxyUrl)} is loopback; 127.0.0.1 inside a container points at the container, not the host. ` +
+    `OPENCLAW_PROXY_URL=${redactProxyUrlForMessage(proxyUrl)} is loopback; 127.0.0.1 inside a container points at the container, not the host. ` +
       `Use a container-reachable proxy address, or set ${CONTAINER_ALLOW_LOOPBACK_PROXY_URL_ENV}=1 if this is intentional.`,
   );
 }
@@ -217,20 +219,20 @@ function buildContainerExecEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const next = { ...env };
   // Container-targeted CLI invocations should use the container's own profile
   // and gateway auth/runtime state rather than inheriting host overrides.
-  delete next.ASTROCLAW_PROFILE;
-  delete next.ASTROCLAW_GATEWAY_PORT;
-  delete next.ASTROCLAW_GATEWAY_URL;
-  delete next.ASTROCLAW_GATEWAY_TOKEN;
-  delete next.ASTROCLAW_GATEWAY_PASSWORD;
+  delete next.OPENCLAW_PROFILE;
+  delete next.OPENCLAW_GATEWAY_PORT;
+  delete next.OPENCLAW_GATEWAY_URL;
+  delete next.OPENCLAW_GATEWAY_TOKEN;
+  delete next.OPENCLAW_GATEWAY_PASSWORD;
   // The child CLI should render container-aware follow-up commands via
-  // ASTROCLAW_CONTAINER_HINT, but it should not treat itself as still
+  // OPENCLAW_CONTAINER_HINT, but it should not treat itself as still
   // container-targeted for validation/routing.
-  next.ASTROCLAW_CONTAINER = "";
+  next.OPENCLAW_CONTAINER = "";
   return next;
 }
 
 function isBlockedContainerCommand(argv: string[]): boolean {
-  if (resolveCliArgvInvocation(["node", "astroclaw", ...argv]).primary === "update") {
+  if (resolveCliArgvInvocation(["node", "openclaw", ...argv]).primary === "update") {
     return true;
   }
   for (let i = 0; i < argv.length; i += 1) {
@@ -264,7 +266,7 @@ export function maybeRunCliInContainer(
     stdoutIsTTY: deps?.stdoutIsTTY ?? process.stdout.isTTY,
   };
 
-  if (resolvedDeps.env.ASTROCLAW_CLI_CONTAINER_BYPASS === "1") {
+  if (resolvedDeps.env.OPENCLAW_CLI_CONTAINER_BYPASS === "1") {
     return { handled: false, argv };
   }
 
@@ -278,7 +280,7 @@ export function maybeRunCliInContainer(
   }
   if (isBlockedContainerCommand(parsed.argv.slice(2))) {
     throw new Error(
-      "astroclaw update is not supported with --container; rebuild or restart the container image instead.",
+      "openclaw update is not supported with --container; rebuild or restart the container image instead.",
     );
   }
 
