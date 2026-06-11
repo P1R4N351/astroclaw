@@ -1,6 +1,12 @@
+/**
+ * Sandbox input path normalization and boundary checks.
+ *
+ * Handles host paths, file URLs, temporary media paths, and workspace root assertions.
+ */
 import os from "node:os";
 import path from "node:path";
 import { URL } from "node:url";
+import { isPassThroughRemoteMediaSource } from "@openclaw/media-core/media-source-url";
 import { isWindowsDrivePath } from "../infra/archive-path.js";
 import {
   assertNoWindowsNetworkPath,
@@ -9,8 +15,7 @@ import {
 } from "../infra/local-file-access.js";
 import { assertNoPathAliasEscape, type PathAliasPolicy } from "../infra/path-alias-guards.js";
 import { isPathInside } from "../infra/path-guards.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
-import { isPassThroughRemoteMediaSource } from "../media/media-source-url.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { resolveConfigDir } from "../utils.js";
 
 const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
@@ -278,11 +283,11 @@ async function resolveAllowedTmpMediaPath(params: {
     return undefined;
   }
   const resolved = path.resolve(resolveSandboxInputPath(params.candidate, params.sandboxRoot));
-  const astroClawTmpDir = path.resolve(resolvePreferredAstroclawTmpDir());
-  if (!isPathInside(astroClawTmpDir, resolved)) {
+  const openClawTmpDir = path.resolve(resolvePreferredOpenClawTmpDir());
+  if (!isPathInside(openClawTmpDir, resolved)) {
     return undefined;
   }
-  await assertNoTmpAliasEscape({ filePath: resolved, tmpRoot: astroClawTmpDir });
+  await assertNoTmpAliasEscape({ filePath: resolved, tmpRoot: openClawTmpDir });
   return resolved;
 }
 
