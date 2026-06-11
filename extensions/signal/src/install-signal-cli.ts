@@ -1,15 +1,16 @@
+// Signal plugin module implements install signal cli behavior.
 import { createWriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { runPluginCommandWithTimeout } from "astroclaw/plugin-sdk/run-command";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { CONFIG_DIR, extractArchive, resolveBrewExecutable } from "astroclaw/plugin-sdk/setup-tools";
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { runPluginCommandWithTimeout } from "openclaw/plugin-sdk/run-command";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { CONFIG_DIR, extractArchive, resolveBrewExecutable } from "openclaw/plugin-sdk/setup-tools";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 
 export type ReleaseAsset = {
   name?: string;
@@ -29,6 +30,7 @@ type ReleaseResponse = {
 const MAX_SIGNAL_CLI_ARCHIVE_BYTES = 256 * 1024 * 1024;
 const SIGNAL_CLI_DOWNLOAD_TIMEOUT_MS = 5 * 60_000;
 const SIGNAL_CLI_RELEASE_INFO_TIMEOUT_MS = 30_000;
+const CONTENT_LENGTH_RE = /^\d+$/;
 
 export type SignalInstallResult = {
   ok: boolean;
@@ -136,7 +138,10 @@ export async function downloadToFile(
 
     const rawLength = response.headers.get("content-length");
     if (rawLength !== null) {
-      const declaredLength = Number(rawLength);
+      const trimmedLength = rawLength.trim();
+      const declaredLength = CONTENT_LENGTH_RE.test(trimmedLength)
+        ? Number(trimmedLength)
+        : Number.NaN;
       if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
         throw new Error(
           `signal-cli archive exceeds the ${maxBytes}-byte download cap (declared ${declaredLength}).`,
@@ -283,7 +288,7 @@ export async function installSignalCliFromRelease(
     auditContext: "signal-cli-release-info",
     init: {
       headers: {
-        "User-Agent": "astroclaw",
+        "User-Agent": "openclaw",
         Accept: "application/vnd.github+json",
       },
     },
@@ -319,7 +324,7 @@ export async function installSignalCliFromRelease(
     };
   }
 
-  const tmpDir = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-signal-"));
+  const tmpDir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-signal-"));
   const archivePath = path.join(tmpDir, asset.name);
 
   runtime.log(`Downloading signal-cli ${version} (${asset.name})…`);
