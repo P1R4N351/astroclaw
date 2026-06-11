@@ -1,11 +1,12 @@
+// Qwen plugin module implements models behavior.
 import {
   applyProviderNativeStreamingUsageCompat,
   supportsNativeStreamingUsageCompat,
-} from "astroclaw/plugin-sdk/provider-catalog-shared";
+} from "openclaw/plugin-sdk/provider-catalog-shared";
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/provider-model-shared";
 
 export const QWEN_BASE_URL = "https://coding-intl.dashscope.aliyuncs.com/v1";
 export const QWEN_GLOBAL_BASE_URL = QWEN_BASE_URL;
@@ -13,6 +14,8 @@ export const QWEN_CN_BASE_URL = "https://coding.dashscope.aliyuncs.com/v1";
 export const QWEN_STANDARD_CN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
 export const QWEN_STANDARD_GLOBAL_BASE_URL =
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+export const QWEN_OAUTH_PROVIDER_ID = "qwen-oauth";
+export const QWEN_OAUTH_BASE_URL = "https://portal.qwen.ai/v1";
 
 export const QWEN_DEFAULT_MODEL_ID = "qwen3.5-plus";
 export const QWEN_36_PLUS_MODEL_ID = "qwen3.6-plus";
@@ -23,6 +26,7 @@ export const QWEN_DEFAULT_COST = {
   cacheWrite: 0,
 };
 export const QWEN_DEFAULT_MODEL_REF = `qwen/${QWEN_DEFAULT_MODEL_ID}`;
+export const QWEN_OAUTH_DEFAULT_MODEL_REF = `qwen-oauth/${QWEN_DEFAULT_MODEL_ID}`;
 
 export const QWEN_MODEL_CATALOG: ReadonlyArray<ModelDefinitionConfig> = [
   {
@@ -176,6 +180,10 @@ export function buildQwenModelDefinition(params: {
 
 export function buildQwenDefaultModelDefinition(): ModelDefinitionConfig {
   return buildQwenModelDefinition({ id: QWEN_DEFAULT_MODEL_ID });
+}
+
+export function buildQwenOAuthModelCatalog(): ReadonlyArray<ModelDefinitionConfig> {
+  return QWEN_MODEL_CATALOG.map((model) => ({ ...model, maxTokens: 65_536 }));
 }
 
 /** @deprecated Use QWEN_BASE_URL. */
