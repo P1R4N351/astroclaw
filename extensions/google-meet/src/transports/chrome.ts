@@ -1,7 +1,10 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { callGatewayFromCli } from "astroclaw/plugin-sdk/gateway-runtime";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/plugin-runtime";
-import type { RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";
+// Google Meet plugin module implements chrome behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { callGatewayFromCli } from "openclaw/plugin-sdk/gateway-runtime";
+import { addTimerTimeoutGraceMs } from "openclaw/plugin-sdk/number-runtime";
+import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
+import type { RuntimeLogger } from "openclaw/plugin-sdk/plugin-runtime";
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { GoogleMeetConfig, GoogleMeetMode } from "../config.js";
 import {
   startNodeAgentAudioBridge,
@@ -14,6 +17,10 @@ import {
   type ChromeRealtimeAudioBridgeHandle,
 } from "../realtime.js";
 import {
+  GOOGLE_MEET_SYSTEM_PROFILER_COMMAND,
+  outputMentionsBlackHole2ch,
+} from "./chrome-audio-device.js";
+import {
   asBrowserTabs,
   callBrowserProxyOnNode,
   isSameMeetUrlForReuse,
@@ -23,8 +30,6 @@ import {
   type BrowserTab,
 } from "./chrome-browser-proxy.js";
 import type { GoogleMeetChromeHealth } from "./types.js";
-
-export const GOOGLE_MEET_SYSTEM_PROFILER_COMMAND = "/usr/sbin/system_profiler";
 
 type BrowserRequestParams = {
   method: "GET" | "POST" | "DELETE";
@@ -41,20 +46,17 @@ const chromeTransportDeps: {
   callGatewayFromCli,
 };
 
-export const __testing = {
+export const testing = {
   setDepsForTest(deps: { callGatewayFromCli?: typeof callGatewayFromCli } | null) {
     chromeTransportDeps.callGatewayFromCli = deps?.callGatewayFromCli ?? callGatewayFromCli;
   },
   meetStatusScriptForTest: meetStatusScript,
   parseMeetBrowserStatusForTest: parseMeetBrowserStatus,
+  resolveBrowserGatewayTimeoutMsForTest: resolveBrowserGatewayTimeoutMs,
 };
 
 function isGoogleMeetTalkBackMode(mode: GoogleMeetMode): boolean {
   return mode === "agent" || mode === "bidi";
-}
-
-export function outputMentionsBlackHole2ch(output: string): boolean {
-  return /\bBlackHole\s+2ch\b/i.test(output);
 }
 
 export async function assertBlackHole2chAvailable(params: {
@@ -79,7 +81,7 @@ export async function assertBlackHole2chAvailable(params: {
     throw new Error(
       [
         "BlackHole 2ch audio device not found.",
-        "Install BlackHole 2ch and route Chrome input/output through the Astroclaw audio bridge.",
+        "Install BlackHole 2ch and route Chrome input/output through the OpenClaw audio bridge.",
         hint,
       ]
         .filter(Boolean)
@@ -91,7 +93,7 @@ export async function assertBlackHole2chAvailable(params: {
 export async function launchChromeMeet(params: {
   runtime: PluginRuntime;
   config: GoogleMeetConfig;
-  fullConfig: AstroclawConfig;
+  fullConfig: OpenClawConfig;
   meetingSessionId: string;
   requesterSessionKey?: string;
   mode: GoogleMeetMode;
@@ -137,7 +139,7 @@ export async function launchChromeMeet(params: {
     if (params.config.chrome.audioBridgeCommand) {
       if (params.mode === "agent") {
         throw new Error(
-          "Chrome agent mode requires chrome.audioInputCommand and chrome.audioOutputCommand so Astroclaw can run STT and regular TTS directly.",
+          "Chrome agent mode requires chrome.audioInputCommand and chrome.audioOutputCommand so OpenClaw can run STT and regular TTS directly.",
         );
       }
       const bridge = await params.runtime.system.runCommandWithTimeout(
@@ -292,7 +294,7 @@ async function callLocalBrowserRequest(params: BrowserRequestParams) {
     "browser.request",
     {
       json: true,
-      timeout: String(params.timeoutMs + 5_000),
+      timeout: String(resolveBrowserGatewayTimeoutMs(params.timeoutMs)),
     },
     {
       method: params.method,
@@ -304,6 +306,10 @@ async function callLocalBrowserRequest(params: BrowserRequestParams) {
   );
 }
 
+function resolveBrowserGatewayTimeoutMs(timeoutMs: number): number {
+  return addTimerTimeoutGraceMs(timeoutMs) ?? 1;
+}
+
 function mergeBrowserNotes(
   browser: GoogleMeetChromeHealth | undefined,
   notes: string[],
@@ -313,7 +319,7 @@ function mergeBrowserNotes(
   }
   return {
     ...browser,
-    notes: [...new Set([...(browser.notes ?? []), ...notes])],
+    notes: uniqueStrings([...(browser.notes ?? []), ...notes]),
   };
 }
 
@@ -500,16 +506,16 @@ function meetStatusScript(params: {
   const captionState = (() => {
     if (!captureCaptions) return undefined;
     const w = window;
-    if (!inCall && !w.__astroclawMeetCaptions) return undefined;
-    if (!w.__astroclawMeetCaptions) {
-      w.__astroclawMeetCaptions = {
+    if (!inCall && !w.__openclawMeetCaptions) return undefined;
+    if (!w.__openclawMeetCaptions) {
+      w.__openclawMeetCaptions = {
         enabledAttempted: false,
         observerInstalled: false,
         lines: [],
         seen: {}
       };
     }
-    return w.__astroclawMeetCaptions;
+    return w.__openclawMeetCaptions;
   })();
   const recordCaption = (speaker, captionText) => {
     if (!captionState) return;
@@ -582,20 +588,20 @@ function meetStatusScript(params: {
   let manualActionMessage;
   if (!inCall && (host === "accounts.google.com" || /use your google account|to continue to google meet|choose an account|sign in to (join|continue)/i.test(pageText))) {
     manualActionReason = "google-login-required";
-    manualActionMessage = "Sign in to Google in the Astroclaw browser profile, then retry the Meet join.";
+    manualActionMessage = "Sign in to Google in the OpenClaw browser profile, then retry the Meet join.";
   } else if (!inCall && /asking to be let in|you.?ll join when someone lets you in|waiting to be let in|ask to join/i.test(pageText)) {
     manualActionReason = "meet-admission-required";
-    manualActionMessage = "Admit the Astroclaw browser participant in Google Meet, then retry speech.";
+    manualActionMessage = "Admit the OpenClaw browser participant in Google Meet, then retry speech.";
   } else if (permissionNeeded) {
     manualActionReason = "meet-permission-required";
     manualActionMessage = allowMicrophone
-      ? "Allow microphone/camera/speaker permissions for Meet in the Astroclaw browser profile, then retry."
-      : "Join without microphone/camera permissions in the Astroclaw browser profile, then retry.";
+      ? "Allow microphone/camera/speaker permissions for Meet in the OpenClaw browser profile, then retry."
+      : "Join without microphone/camera permissions in the OpenClaw browser profile, then retry.";
   } else if (!inCall && (allowMicrophone ? !microphoneChoice : !noMicrophoneChoice) && /do you want people to hear you in the meeting/i.test(pageText)) {
     manualActionReason = "meet-audio-choice-required";
     manualActionMessage = allowMicrophone
-      ? "Meet is showing the microphone choice. Click Use microphone in the Astroclaw browser profile, then retry."
-      : "Meet is showing the microphone choice. Choose the no-microphone option in the Astroclaw browser profile, then retry.";
+      ? "Meet is showing the microphone choice. Click Use microphone in the OpenClaw browser profile, then retry."
+      : "Meet is showing the microphone choice. Choose the no-microphone option in the OpenClaw browser profile, then retry.";
   }
   return JSON.stringify({
     clickedJoin: Boolean(join),
@@ -749,7 +755,7 @@ async function openMeetWithBrowserRequest(params: {
         manualActionRequired: true,
         manualActionReason: "browser-control-unavailable",
         manualActionMessage:
-          "Open the Astroclaw browser profile, finish Google Meet login, admission, or permission prompts, then retry.",
+          "Open the OpenClaw browser profile, finish Google Meet login, admission, or permission prompts, then retry.",
         notes: [
           ...permissionNotes,
           `Browser control could not inspect or auto-join Meet: ${
@@ -761,7 +767,9 @@ async function openMeetWithBrowserRequest(params: {
     }
     const remainingWaitMs = deadline - Date.now();
     if (remainingWaitMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, Math.min(750, remainingWaitMs)));
+      await new Promise((resolve) => {
+        setTimeout(resolve, Math.min(750, remainingWaitMs));
+      });
     }
   } while (Date.now() < deadline);
   return { launched: true, browser };
@@ -958,7 +966,7 @@ export async function recoverCurrentMeetTabOnNode(params: {
 export async function launchChromeMeetOnNode(params: {
   runtime: PluginRuntime;
   config: GoogleMeetConfig;
-  fullConfig: AstroclawConfig;
+  fullConfig: OpenClawConfig;
   meetingSessionId: string;
   requesterSessionKey?: string;
   mode: GoogleMeetMode;
@@ -1016,7 +1024,7 @@ export async function launchChromeMeetOnNode(params: {
       audioBridgeCommand: params.config.chrome.audioBridgeCommand,
       audioBridgeHealthCommand: params.config.chrome.audioBridgeHealthCommand,
     },
-    timeoutMs: params.config.chrome.joinTimeoutMs + 5_000,
+    timeoutMs: addTimerTimeoutGraceMs(params.config.chrome.joinTimeoutMs) ?? 1,
   });
   const result = parseNodeStartResult(raw);
   if (result.audioBridge?.type === "node-command-pair") {
@@ -1062,3 +1070,4 @@ export async function launchChromeMeetOnNode(params: {
     browser: browserControl.browser ?? result.browser,
   };
 }
+export { testing as __testing };
