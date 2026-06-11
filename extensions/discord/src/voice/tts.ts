@@ -1,13 +1,14 @@
+// Discord plugin module implements tts behavior.
 import {
   getTtsProvider,
   resolveAgentDir,
   resolveTtsConfig,
   resolveTtsPrefsPath,
   type ResolvedTtsConfig,
-} from "astroclaw/plugin-sdk/agent-runtime";
-import type { AstroclawConfig, TtsConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { parseTtsDirectives } from "astroclaw/plugin-sdk/speech";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig, TtsConfig } from "openclaw/plugin-sdk/config-contracts";
+import { parseTtsDirectives } from "openclaw/plugin-sdk/speech";
+import { normalizeOptionalString, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { getDiscordRuntime } from "../runtime.js";
 import { sanitizeVoiceReplyTextForSpeech } from "./sanitize.js";
 
@@ -40,7 +41,7 @@ function mergeTtsConfig(base: TtsConfig, override?: TtsConfig): TtsConfig {
   const baseProviders = base.providers ?? {};
   const overrideProviders = override.providers ?? {};
   const mergedProviders = Object.fromEntries(
-    [...new Set([...Object.keys(baseProviders), ...Object.keys(overrideProviders)])].map(
+    uniqueStrings([...Object.keys(baseProviders), ...Object.keys(overrideProviders)]).map(
       (providerId) => {
         const baseProvider = baseProviders[providerId] ?? {};
         const overrideProvider = overrideProviders[providerId] ?? {};
@@ -65,8 +66,8 @@ function mergeTtsConfig(base: TtsConfig, override?: TtsConfig): TtsConfig {
   };
 }
 
-function resolveVoiceTtsConfig(params: { cfg: AstroclawConfig; override?: TtsConfig }): {
-  cfg: AstroclawConfig;
+function resolveVoiceTtsConfig(params: { cfg: OpenClawConfig; override?: TtsConfig }): {
+  cfg: OpenClawConfig;
   resolved: ResolvedTtsConfig;
 } {
   if (!params.override) {
@@ -86,7 +87,7 @@ function resolveVoiceTtsConfig(params: { cfg: AstroclawConfig; override?: TtsCon
 }
 
 export async function transcribeVoiceAudio(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   filePath: string;
 }): Promise<string | undefined> {
@@ -100,7 +101,7 @@ export async function transcribeVoiceAudio(params: {
 }
 
 export async function synthesizeVoiceReplyAudio(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   override?: TtsConfig;
   replyText: string;
   speakerLabel: string;
