@@ -1,8 +1,9 @@
+// Cron Mcp Cleanup Seed script supports OpenClaw repository automation.
 import fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
-import { applyDockerOpenAiProviderConfig, type AstroclawConfig } from "./docker-openai-seed.ts";
+import { applyDockerOpenAiProviderConfig, type OpenClawConfig } from "./docker-openai-seed.ts";
 
 const require = createRequire(import.meta.url);
 
@@ -22,7 +23,7 @@ import fsp from "node:fs/promises";
 import { McpServer } from ${JSON.stringify(sdkMcpServerPath)};
 import { StdioServerTransport } from ${JSON.stringify(sdkStdioServerPath)};
 
-process.title = "astroclaw-cron-mcp-cleanup-probe";
+process.title = "openclaw-cron-mcp-cleanup-probe";
 await fsp.mkdir(${JSON.stringify(path.dirname(params.pidPath))}, { recursive: true });
 await fsp.writeFile(${JSON.stringify(params.pidPath)}, String(process.pid), "utf8");
 await fsp.appendFile(${JSON.stringify(params.pidsPath)}, String(process.pid) + "\\n", "utf8");
@@ -51,9 +52,9 @@ await server.connect(new StdioServerTransport());
 }
 
 async function main() {
-  const stateDir = process.env.ASTROCLAW_STATE_DIR?.trim() || path.join(os.homedir(), ".astroclaw");
+  const stateDir = process.env.OPENCLAW_STATE_DIR?.trim() || path.join(os.homedir(), ".openclaw");
   const configPath =
-    process.env.ASTROCLAW_CONFIG_PATH?.trim() || path.join(stateDir, "astroclaw.json");
+    process.env.OPENCLAW_CONFIG_PATH?.trim() || path.join(stateDir, "openclaw.json");
   const probeDir = path.join(stateDir, "cron-mcp-cleanup");
   const serverPath = path.join(probeDir, "probe-server.mjs");
   const pidPath = path.join(probeDir, "probe.pid");
@@ -112,7 +113,7 @@ async function main() {
           },
         },
       },
-    } satisfies AstroclawConfig,
+    } satisfies OpenClawConfig,
     "sk-docker-cron-mcp-cleanup-test",
   );
 
