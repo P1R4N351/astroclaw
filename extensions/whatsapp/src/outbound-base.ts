@@ -1,16 +1,17 @@
+// Whatsapp plugin module implements outbound base behavior.
 import {
   DEFAULT_ACCOUNT_ID,
   listCombinedAccountIds,
   normalizeOptionalAccountId,
   resolveListedDefaultAccountId,
-} from "astroclaw/plugin-sdk/account-core";
+} from "openclaw/plugin-sdk/account-core";
+import { resolveOutboundSendDep } from "openclaw/plugin-sdk/channel-outbound";
 import {
   createAttachedChannelResultAdapter,
   type ChannelOutboundAdapter,
-} from "astroclaw/plugin-sdk/channel-send-result";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveOutboundSendDep } from "astroclaw/plugin-sdk/outbound-send-deps";
-import { sendTextMediaPayload } from "astroclaw/plugin-sdk/reply-payload";
+} from "openclaw/plugin-sdk/channel-send-result";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { sendTextMediaPayload } from "openclaw/plugin-sdk/reply-payload";
 import {
   normalizeWhatsAppOutboundPayload,
   normalizeWhatsAppPayloadText,
@@ -22,7 +23,7 @@ import { toWhatsappJid } from "./text-runtime.js";
 type WhatsAppChunker = NonNullable<ChannelOutboundAdapter["chunker"]>;
 type WhatsAppSendTextOptions = {
   verbose: boolean;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   mediaUrl?: string;
   mediaAccess?: {
     localRoots?: readonly string[];
@@ -32,6 +33,7 @@ type WhatsAppSendTextOptions = {
   mediaReadFile?: (filePath: string) => Promise<Buffer>;
   gifPlayback?: boolean;
   audioAsVoice?: boolean;
+  forceDocument?: boolean;
   accountId?: string;
   quotedMessageKey?: {
     id: string;
@@ -50,7 +52,7 @@ type WhatsAppSendMessage = (
 type WhatsAppSendPoll = (
   to: string,
   poll: Parameters<NonNullable<ChannelOutboundAdapter["sendPoll"]>>[0]["poll"],
-  options: { verbose: boolean; accountId?: string; cfg: AstroclawConfig },
+  options: { verbose: boolean; accountId?: string; cfg: OpenClawConfig },
 ) => Promise<{ messageId: string; toJid: string }>;
 
 type CreateWhatsAppOutboundBaseParams = {
@@ -63,7 +65,7 @@ type CreateWhatsAppOutboundBaseParams = {
   skipEmptyText?: boolean;
 };
 
-function resolveQuoteLookupAccountId(cfg?: AstroclawConfig, accountId?: string | null): string {
+function resolveQuoteLookupAccountId(cfg?: OpenClawConfig, accountId?: string | null): string {
   const explicitAccountId = normalizeOptionalAccountId(accountId);
   if (explicitAccountId) {
     return explicitAccountId;
@@ -192,6 +194,7 @@ export function createWhatsAppOutboundBase({
         accountId,
         deps,
         gifPlayback,
+        forceDocument,
         replyToId,
       }) => {
         const send =
@@ -214,6 +217,7 @@ export function createWhatsAppOutboundBase({
           ...(audioAsVoice === undefined ? {} : { audioAsVoice }),
           accountId: accountId ?? undefined,
           gifPlayback,
+          forceDocument,
           quotedMessageKey,
         });
       },
