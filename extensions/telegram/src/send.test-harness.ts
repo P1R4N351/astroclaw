@@ -1,11 +1,12 @@
-import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
+// Telegram plugin module implements send harness behavior.
+import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
 import {
   buildOutboundMediaLoadOptions,
   isGifMedia,
   kindFromMime,
   normalizePollInput,
-} from "astroclaw/plugin-sdk/media-runtime";
-import type { MockFn } from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/media-runtime";
+import type { MockFn } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { beforeEach, vi } from "vitest";
 
 const { botApi, botConfigUseSpy, botCtorSpy } = vi.hoisted(() => ({
@@ -13,6 +14,7 @@ const { botApi, botConfigUseSpy, botCtorSpy } = vi.hoisted(() => ({
   botApi: {
     deleteMessage: vi.fn(),
     editForumTopic: vi.fn(),
+    editMessageCaption: vi.fn(),
     editMessageText: vi.fn(),
     editMessageReplyMarkup: vi.fn(),
     pinChatMessage: vi.fn(),
@@ -50,7 +52,7 @@ const { probeVideoDimensions } = vi.hoisted(() => ({
 const { loadConfig, resolveStorePath } = vi.hoisted(() => ({
   loadConfig: vi.fn(() => ({})),
   resolveStorePath: vi.fn(
-    (storePath?: string) => storePath ?? "/tmp/astroclaw-telegram-send-tests.json",
+    (storePath?: string) => storePath ?? "/tmp/openclaw-telegram-send-tests.json",
   ),
 }));
 
@@ -99,7 +101,7 @@ type TelegramSendTestMocks = {
   probeVideoDimensions: MockFn;
 };
 
-vi.mock("astroclaw/plugin-sdk/web-media", () => ({
+vi.mock("openclaw/plugin-sdk/web-media", () => ({
   loadWebMedia,
 }));
 
@@ -139,17 +141,21 @@ vi.mock("grammy", () => ({
   InputFile: function InputFile() {},
 }));
 
-vi.mock("undici", () => ({
-  Agent: undiciAgentCtor,
-  EnvHttpProxyAgent: undiciEnvHttpProxyAgentCtor,
-  ProxyAgent: undiciProxyAgentCtor,
-  fetch: undiciFetch,
-  setGlobalDispatcher: undiciSetGlobalDispatcher,
-}));
+vi.mock("undici", async () => {
+  const actual = await vi.importActual<typeof import("undici")>("undici");
+  return {
+    ...actual,
+    Agent: undiciAgentCtor,
+    EnvHttpProxyAgent: undiciEnvHttpProxyAgentCtor,
+    ProxyAgent: undiciProxyAgentCtor,
+    fetch: undiciFetch,
+    setGlobalDispatcher: undiciSetGlobalDispatcher,
+  };
+});
 
-vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-config-runtime")>(
-    "astroclaw/plugin-sdk/plugin-config-runtime",
+vi.mock("openclaw/plugin-sdk/plugin-config-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-config-runtime")>(
+    "openclaw/plugin-sdk/plugin-config-runtime",
   );
   return {
     ...actual,
@@ -192,7 +198,7 @@ export function getTelegramSendTestMocks(): TelegramSendTestMocks {
 export function installTelegramSendTestHooks() {
   beforeEach(() => {
     loadConfig.mockReturnValue({});
-    resolveStorePath.mockReturnValue("/tmp/astroclaw-telegram-send-tests.json");
+    resolveStorePath.mockReturnValue("/tmp/openclaw-telegram-send-tests.json");
     loadWebMedia.mockReset();
     probeVideoDimensions.mockReset();
     probeVideoDimensions.mockResolvedValue(undefined);
