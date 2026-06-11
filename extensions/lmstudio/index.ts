@@ -1,13 +1,14 @@
+// Lmstudio plugin entrypoint registers its OpenClaw integration.
 import {
   definePluginEntry,
-  AstroclawConfig,
-  type AstroclawPluginApi,
+  type OpenClawPluginApi,
   type ProviderAuthContext,
   type ProviderAuthMethodNonInteractiveContext,
   type ProviderAuthResult,
   type ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import { CUSTOM_LOCAL_AUTH_MARKER } from "astroclaw/plugin-sdk/provider-auth";
+} from "openclaw/plugin-sdk/plugin-entry";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/plugin-entry";
+import { CUSTOM_LOCAL_AUTH_MARKER } from "openclaw/plugin-sdk/provider-auth";
 import { lmstudioMemoryEmbeddingProviderAdapter } from "./memory-embedding-adapter.js";
 import {
   LMSTUDIO_DEFAULT_API_KEY_ENV_VAR,
@@ -25,7 +26,7 @@ const PROVIDER_ID = "lmstudio";
 // Intentional: dynamic models are cached per LM Studio endpoint (`baseUrl`) only.
 const cachedDynamicModels = new Map<string, ProviderRuntimeModel[]>();
 
-function resolveLmstudioAugmentedCatalogEntries(config: AstroclawConfig | undefined) {
+function resolveLmstudioAugmentedCatalogEntries(config: OpenClawConfig | undefined) {
   if (!config) {
     return [];
   }
@@ -52,7 +53,7 @@ export default definePluginEntry({
   id: PROVIDER_ID,
   name: "LM Studio Provider",
   description: "Bundled LM Studio provider plugin",
-  register(api: AstroclawPluginApi) {
+  register(api: OpenClawPluginApi) {
     api.registerMemoryEmbeddingProvider(lmstudioMemoryEmbeddingProviderAdapter);
     api.registerProvider({
       id: PROVIDER_ID,
