@@ -1,7 +1,8 @@
+// Mistral plugin module implements memory embedding adapter behavior.
 import {
   isMissingEmbeddingApiKeyError,
   type MemoryEmbeddingProviderAdapter,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+} from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import {
   createMistralEmbeddingProvider,
   DEFAULT_MISTRAL_EMBEDDING_MODEL,
