@@ -1,3 +1,4 @@
+// Shared root CLI failure formatting with debug stack gating and recovery hints.
 import { isTruthyEnvValue } from "../infra/env.js";
 import { formatErrorMessage, formatUncaughtError } from "../infra/errors.js";
 import { formatCliCommand } from "./command-format.js";
@@ -15,34 +16,35 @@ function hasDebugArg(argv: string[] | undefined): boolean {
 }
 
 function shouldShowStack(argv: string[] | undefined, env: NodeJS.ProcessEnv): boolean {
-  return hasDebugArg(argv) || isTruthyEnvValue(env.ASTROCLAW_DEBUG);
+  return hasDebugArg(argv) || isTruthyEnvValue(env.OPENCLAW_DEBUG);
 }
 
 function pushPrefixed(out: string[], value: string): void {
   for (const line of value.split("\n")) {
     if (line.trim().length > 0) {
-      out.push(`[astroclaw] ${line}`);
+      out.push(`[openclaw] ${line}`);
     }
   }
 }
 
 export function formatCliFailureLines(options: FormatCliFailureOptions): string[] {
+  // Default output stays terse; stack traces require explicit debug intent.
   const env = options.env ?? process.env;
   const lines = [
-    `[astroclaw] ${options.title}`,
-    `[astroclaw] Reason: ${formatErrorMessage(options.error)}`,
+    `[openclaw] ${options.title}`,
+    `[openclaw] Reason: ${formatErrorMessage(options.error)}`,
   ];
 
   if (shouldShowStack(options.argv, env)) {
-    lines.push("[astroclaw] Stack:");
+    lines.push("[openclaw] Stack:");
     pushPrefixed(lines, formatUncaughtError(options.error));
   } else {
-    lines.push("[astroclaw] Debug: set ASTROCLAW_DEBUG=1 to include the stack trace.");
+    lines.push("[openclaw] Debug: set OPENCLAW_DEBUG=1 to include the stack trace.");
   }
 
   if (options.includeDoctorHint !== false) {
-    lines.push(`[astroclaw] Try: ${formatCliCommand("astroclaw doctor", env)}`);
+    lines.push(`[openclaw] Try: ${formatCliCommand("openclaw doctor", env)}`);
   }
-  lines.push(`[astroclaw] Help: ${formatCliCommand("astroclaw --help", env)}`);
+  lines.push(`[openclaw] Help: ${formatCliCommand("openclaw --help", env)}`);
   return lines;
 }
