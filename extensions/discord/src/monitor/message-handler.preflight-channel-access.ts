@@ -1,5 +1,6 @@
-import { logDebug } from "astroclaw/plugin-sdk/logging-core";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Discord plugin module implements message handler.preflight channel access behavior.
+import { logDebug } from "openclaw/plugin-sdk/logging-core";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import {
   isDiscordGroupAllowedByPolicy,
   resolveGroupDmAllow,
