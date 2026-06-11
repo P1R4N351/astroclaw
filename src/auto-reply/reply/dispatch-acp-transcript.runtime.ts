@@ -1,4 +1,5 @@
-import { resolveAcpSessionCwd } from "../../acp/runtime/session-identifiers.js";
+// Bridges ACP transcript events into persisted OpenClaw session transcripts.
+import { resolveAcpSessionCwd } from "@openclaw/acp-core/runtime/session-identifiers";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { persistAcpTurnTranscript } from "../../agents/command/attempt-execution.js";
 import {
@@ -7,10 +8,10 @@ import {
   resolveStorePath,
 } from "../../config/sessions.js";
 import type { SessionAcpMeta } from "../../config/sessions/types.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 
 export async function persistAcpDispatchTranscript(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey: string;
   promptText: string;
   finalText: string;
