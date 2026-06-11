@@ -1,8 +1,11 @@
+/**
+ * Shared Canvas CLI helpers for snapshot payload parsing and temp paths.
+ */
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import * as path from "node:path";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/security-runtime";
-import { asRecord, readStringValue } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/security-runtime";
+import { asRecord, readStringValue } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 type CanvasSnapshotPayload = {
   format: CanvasSnapshotFormat;
@@ -20,6 +23,7 @@ function normalizeCanvasSnapshotFormat(value: string | undefined): CanvasSnapsho
   return null;
 }
 
+/** Normalizes Canvas snapshot output extensions, mapping jpeg to jpg. */
 export function normalizeCanvasSnapshotFileExtension(value: string): CanvasSnapshotFileExtension {
   const format = normalizeCanvasSnapshotFormat(value.startsWith(".") ? value.slice(1) : value);
   if (!format) {
@@ -28,6 +32,7 @@ export function normalizeCanvasSnapshotFileExtension(value: string): CanvasSnaps
   return format === "jpeg" ? "jpg" : format;
 }
 
+/** Parses the node.invoke canvas.snapshot payload shape. */
 export function parseCanvasSnapshotPayload(value: unknown): CanvasSnapshotPayload {
   const obj = asRecord(value);
   const format = normalizeCanvasSnapshotFormat(readStringValue(obj.format));
@@ -39,7 +44,7 @@ export function parseCanvasSnapshotPayload(value: unknown): CanvasSnapshotPayloa
 }
 
 function resolveCliName(): string {
-  return "astroclaw";
+  return "openclaw";
 }
 
 function resolveCanvasSnapshotId(id: string): string {
@@ -50,7 +55,7 @@ function resolveCanvasSnapshotId(id: string): string {
 }
 
 function resolveTempPathParts(opts: { ext: string; tmpDir?: string; id?: string }) {
-  const tmpDir = opts.tmpDir ?? resolvePreferredAstroclawTmpDir();
+  const tmpDir = opts.tmpDir ?? resolvePreferredOpenClawTmpDir();
   if (!opts.tmpDir) {
     fs.mkdirSync(tmpDir, { recursive: true, mode: 0o700 });
   }
@@ -61,6 +66,7 @@ function resolveTempPathParts(opts: { ext: string; tmpDir?: string; id?: string 
   };
 }
 
+/** Builds a safe temp path for a Canvas snapshot output file. */
 export function canvasSnapshotTempPath(opts: { ext: string; tmpDir?: string; id?: string }) {
   const { tmpDir, id, ext } = resolveTempPathParts(opts);
   const cliName = resolveCliName();
