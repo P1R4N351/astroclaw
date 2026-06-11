@@ -1,16 +1,20 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Voice Call plugin module implements realtime fast context behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   resolveRealtimeVoiceFastContextConsult,
   type RealtimeVoiceFastContextConsultResult,
   type RealtimeVoiceFastContextConfig,
-} from "astroclaw/plugin-sdk/realtime-voice";
+} from "openclaw/plugin-sdk/realtime-voice";
 
 type Logger = {
   debug?: (message: string) => void;
 };
 
+// Voice-call labels for the SDK realtime fast-context resolver.
+
+/** Resolve fast-context consult data using caller-oriented labels. */
 export async function resolveRealtimeFastContextConsult(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   sessionKey: string;
   config: RealtimeVoiceFastContextConfig;
@@ -21,7 +25,7 @@ export async function resolveRealtimeFastContextConsult(params: {
     ...params,
     labels: {
       audienceLabel: "caller",
-      contextName: "Astroclaw memory or session context",
+      contextName: "OpenClaw memory or session context",
     },
   });
 }
