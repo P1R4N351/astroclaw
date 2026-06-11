@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
+// Verifies published plugin npm packages include built runtime entries and
+// metadata expected by OpenClaw.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import * as tar from "tar";
+
+const DEFAULT_NPM_COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_NPM_COMMAND_MAX_BUFFER_BYTES = 16 * 1024 * 1024;
 
 function readPackageStringList(packageLabel, fieldName, value) {
   if (!Array.isArray(value)) {
@@ -96,23 +101,23 @@ export function collectPluginNpmPublishedRuntimeErrors(params) {
   const errors = [];
   const extensionsResult = readPackageStringList(
     packageLabel,
-    "astroclaw.extensions",
-    packageJson.astroclaw?.extensions,
+    "openclaw.extensions",
+    packageJson.openclaw?.extensions,
   );
   const runtimeExtensionsResult = readPackageStringList(
     packageLabel,
-    "astroclaw.runtimeExtensions",
-    packageJson.astroclaw?.runtimeExtensions,
+    "openclaw.runtimeExtensions",
+    packageJson.openclaw?.runtimeExtensions,
   );
   const setupEntryResult = readOptionalPackageString(
     packageLabel,
-    "astroclaw.setupEntry",
-    packageJson.astroclaw?.setupEntry,
+    "openclaw.setupEntry",
+    packageJson.openclaw?.setupEntry,
   );
   const runtimeSetupEntryResult = readOptionalPackageString(
     packageLabel,
-    "astroclaw.runtimeSetupEntry",
-    packageJson.astroclaw?.runtimeSetupEntry,
+    "openclaw.runtimeSetupEntry",
+    packageJson.openclaw?.runtimeSetupEntry,
   );
   errors.push(
     ...extensionsResult.errors,
@@ -130,7 +135,7 @@ export function collectPluginNpmPublishedRuntimeErrors(params) {
 
   if (runtimeExtensions.length > 0 && runtimeExtensions.length !== extensions.length) {
     errors.push(
-      `${packageLabel} package.json astroclaw.runtimeExtensions length (${runtimeExtensions.length}) must match astroclaw.extensions length (${extensions.length})`,
+      `${packageLabel} package.json openclaw.runtimeExtensions length (${runtimeExtensions.length}) must match openclaw.extensions length (${extensions.length})`,
     );
     return errors;
   }
@@ -158,7 +163,7 @@ export function collectPluginNpmPublishedRuntimeErrors(params) {
 
   if (runtimeSetupEntry && !setupEntry) {
     errors.push(
-      `${packageLabel} package.json astroclaw.runtimeSetupEntry requires astroclaw.setupEntry`,
+      `${packageLabel} package.json openclaw.runtimeSetupEntry requires openclaw.setupEntry`,
     );
     return errors;
   }
@@ -188,30 +193,87 @@ export function collectPluginNpmPublishedRuntimeErrors(params) {
   return errors;
 }
 
-function npmPack(spec, destinationDir) {
-  const output = execFileSync(
-    "npm",
-    ["pack", spec, "--json", "--ignore-scripts", "--pack-destination", destinationDir],
-    {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-  const rows = JSON.parse(output);
-  const filename = rows?.[0]?.filename;
-  if (typeof filename !== "string" || !filename) {
-    throw new Error(`npm pack ${spec} did not report a tarball filename`);
+export function resolveNpmPackFilename(output) {
+  const filename = output
+    .split(/\r?\n/u)
+    .findLast((line) => line.trim().length > 0)
+    ?.trim();
+  if (typeof filename !== "string" || !filename.endsWith(".tgz")) {
+    throw new Error(`npm pack did not report a tarball filename`);
   }
+  return filename;
+}
+
+export function readPositiveIntEnv(name, fallback, env = process.env) {
+  const text = String(env[name] ?? fallback).trim();
+  if (!/^\d+$/u.test(text)) {
+    throw new Error(`invalid ${name}: ${text}`);
+  }
+  const value = Number(text);
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`invalid ${name}: ${text}`);
+  }
+  return value;
+}
+
+export function readPluginNpmCommandOptions(env = process.env) {
+  return {
+    encoding: "utf8",
+    killSignal: "SIGKILL",
+    maxBuffer: readPositiveIntEnv(
+      "OPENCLAW_PLUGIN_NPM_COMMAND_MAX_BUFFER_BYTES",
+      DEFAULT_NPM_COMMAND_MAX_BUFFER_BYTES,
+      env,
+    ),
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: readPositiveIntEnv(
+      "OPENCLAW_PLUGIN_NPM_COMMAND_TIMEOUT_MS",
+      DEFAULT_NPM_COMMAND_TIMEOUT_MS,
+      env,
+    ),
+  };
+}
+
+export function runPluginNpmCommand(args, params = {}) {
+  const execFileSyncImpl = params.execFileSyncImpl ?? execFileSync;
+  return execFileSyncImpl("npm", args, readPluginNpmCommandOptions(params.env));
+}
+
+function npmPack(spec, destinationDir) {
+  const output = runPluginNpmCommand([
+    "pack",
+    spec,
+    "--ignore-scripts",
+    "--pack-destination",
+    destinationDir,
+  ]);
+  const filename = resolveNpmPackFilename(output);
   return path.isAbsolute(filename) ? filename : path.join(destinationDir, filename);
 }
 
+export function parseNpmReadmeMetadata(raw) {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return "";
+  }
+  return typeof parsed === "string" ? parsed.trim() : "";
+}
+
+function npmViewReadme(spec) {
+  return runPluginNpmCommand(["view", spec, "readme", "--json", "--prefer-online"]);
+}
+
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 async function packPublishedPackage(spec, destinationDir) {
-  const attempts = Number.parseInt(process.env.ASTROCLAW_PLUGIN_NPM_VERIFY_ATTEMPTS ?? "90", 10);
-  const delayMs = Number.parseInt(process.env.ASTROCLAW_PLUGIN_NPM_VERIFY_DELAY_MS ?? "10000", 10);
+  const attempts = readPositiveIntEnv("OPENCLAW_PLUGIN_NPM_VERIFY_ATTEMPTS", 90);
+  const delayMs = readPositiveIntEnv("OPENCLAW_PLUGIN_NPM_VERIFY_DELAY_MS", 10000);
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
@@ -224,6 +286,30 @@ async function packPublishedPackage(spec, destinationDir) {
         );
         await sleep(delayMs);
       }
+    }
+  }
+  throw lastError;
+}
+
+async function verifyPublishedPackageReadme(spec) {
+  const attempts = readPositiveIntEnv("OPENCLAW_PLUGIN_NPM_README_VERIFY_ATTEMPTS", 6);
+  const delayMs = readPositiveIntEnv("OPENCLAW_PLUGIN_NPM_README_VERIFY_DELAY_MS", 10000);
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const readme = parseNpmReadmeMetadata(npmViewReadme(spec));
+      if (readme) {
+        return readme;
+      }
+      lastError = new Error(`npm view ${spec} readme returned empty metadata`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts) {
+      console.error(
+        `npm readme metadata for ${spec} not ready (attempt ${attempt}/${attempts}); retrying in ${delayMs}ms...`,
+      );
+      await sleep(delayMs);
     }
   }
   throw lastError;
@@ -246,14 +332,28 @@ function readPackedPackage(tarballPath, extractDir) {
   tar.x({ file: tarballPath, cwd: extractDir, sync: true });
   const packageDir = path.join(extractDir, "package");
   const packageJson = JSON.parse(fs.readFileSync(path.join(packageDir, "package.json"), "utf8"));
+  const files = listFiles(packageDir);
   return {
     packageJson,
-    files: listFiles(packageDir),
+    files,
+    readme: readPackedPackageReadme(packageDir, files),
   };
 }
 
+export function findPackedPackageReadmePath(files) {
+  return files.find((file) => /^readme(?:\.(?:md|markdown|txt|rst))?$/iu.test(file)) ?? "";
+}
+
+function readPackedPackageReadme(packageDir, files) {
+  const readmePath = findPackedPackageReadmePath(files);
+  if (!readmePath) {
+    return "";
+  }
+  return fs.readFileSync(path.join(packageDir, readmePath), "utf8").trim();
+}
+
 export async function verifyPublishedPluginRuntime(spec) {
-  const workingDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-plugin-npm-runtime."));
+  const workingDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-plugin-npm-runtime."));
   try {
     const tarballPath = await packPublishedPackage(spec, workingDir);
     const extractDir = path.join(workingDir, "extract");
@@ -266,10 +366,23 @@ export async function verifyPublishedPluginRuntime(spec) {
     if (errors.length > 0) {
       throw new Error(errors.join("\n"));
     }
+    let readme;
+    try {
+      readme = await verifyPublishedPackageReadme(spec);
+    } catch (error) {
+      if (!packedPackage.readme) {
+        throw error;
+      }
+      console.error(
+        `npm readme metadata for ${spec} was unavailable; verified README from published tarball instead.`,
+      );
+      readme = packedPackage.readme;
+    }
     return {
       packageName: packedPackage.packageJson.name,
       version: packedPackage.packageJson.version,
       fileCount: packedPackage.files.length,
+      readmeLength: readme.length,
     };
   } finally {
     fs.rmSync(workingDir, { force: true, recursive: true });
@@ -283,15 +396,17 @@ async function main(argv) {
   }
   const result = await verifyPublishedPluginRuntime(spec);
   console.log(
-    `plugin-npm-published-runtime-check: ${result.packageName}@${result.version} OK (${result.fileCount} files)`,
+    `plugin-npm-published-runtime-check: ${result.packageName}@${result.version} OK (${result.fileCount} files, ${result.readmeLength} readme chars)`,
   );
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  main(process.argv.slice(2)).catch((error) => {
-    console.error(
-      `plugin-npm-published-runtime-check: ${error instanceof Error ? error.message : String(error)}`,
-    );
-    process.exitCode = 1;
-  });
+  main(process.argv.slice(2)).catch(
+    /** @param {unknown} error */ (error) => {
+      console.error(
+        `plugin-npm-published-runtime-check: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exitCode = 1;
+    },
+  );
 }
