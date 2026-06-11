@@ -1,4 +1,5 @@
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+// Feishu plugin module implements tool result behavior.
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 
 export function jsonToolResult(data: unknown) {
   return {
