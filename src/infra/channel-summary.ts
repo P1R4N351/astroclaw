@@ -1,3 +1,6 @@
+// Formats channel account summaries for CLI status surfaces.
+import { sanitizeForLog } from "../../packages/terminal-core/src/ansi.js";
+import { theme } from "../../packages/terminal-core/src/theme.js";
 import { resolveInspectedChannelAccount } from "../channels/account-inspection.js";
 import { hasConfiguredUnavailableCredentialStatus } from "../channels/account-snapshot-fields.js";
 import {
@@ -7,17 +10,15 @@ import {
 import { formatChannelStatusState } from "../channels/plugins/status-state.js";
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { ChannelAccountSnapshot } from "../channels/plugins/types.public.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
-import { sanitizeForLog } from "../terminal/ansi.js";
-import { theme } from "../terminal/theme.js";
 import { formatTimeAgo } from "./format-time/format-relative.ts";
 
 export type ChannelSummaryOptions = {
   colorize?: boolean;
   includeAllowFrom?: boolean;
   plugins?: readonly ChannelPlugin[];
-  sourceConfig?: AstroclawConfig;
+  sourceConfig?: OpenClawConfig;
 };
 
 const DEFAULT_OPTIONS: Omit<Required<ChannelSummaryOptions>, "plugins" | "sourceConfig"> = {
@@ -44,14 +45,14 @@ const formatAccountLabel = (params: { accountId: string; name?: string }) => {
 const accountLine = (label: string, details: string[]) =>
   `  - ${label}${details.length ? ` (${details.join(", ")})` : ""}`;
 
-async function loadChannelSummaryConfig(): Promise<AstroclawConfig> {
+async function loadChannelSummaryConfig(): Promise<OpenClawConfig> {
   const { getRuntimeConfig } = await import("../config/config.js");
   return getRuntimeConfig();
 }
 
 async function listChannelSummaryPlugins(params: {
-  cfg: AstroclawConfig;
-  sourceConfig: AstroclawConfig;
+  cfg: OpenClawConfig;
+  sourceConfig: OpenClawConfig;
 }): Promise<ChannelPlugin[]> {
   const { listReadOnlyChannelPluginsForConfig } = await import("../channels/plugins/read-only.js");
   return listReadOnlyChannelPluginsForConfig(params.cfg, {
@@ -63,7 +64,7 @@ async function listChannelSummaryPlugins(params: {
 const buildAccountDetails = (params: {
   entry: ChannelAccountEntry;
   plugin: ChannelPlugin;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   includeAllowFrom: boolean;
 }): string[] => {
   const details: string[] = [];
@@ -120,7 +121,7 @@ const buildAccountDetails = (params: {
 };
 
 export async function buildChannelSummary(
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
   options?: ChannelSummaryOptions,
 ): Promise<string[]> {
   const effective = cfg ?? (await loadChannelSummaryConfig());
