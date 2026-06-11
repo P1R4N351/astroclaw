@@ -1,7 +1,8 @@
+// Google API module exposes the plugin public contract.
 import {
   resolveProviderHttpRequestConfig,
   type ProviderRequestTransportOverrides,
-} from "astroclaw/plugin-sdk/provider-http";
+} from "openclaw/plugin-sdk/provider-http";
 import { parseGeminiAuth } from "./gemini-auth.js";
 export { parseGeminiAuth };
 export { applyGoogleGeminiModelDefault, GOOGLE_GEMINI_DEFAULT_MODEL } from "./onboard.js";
@@ -30,6 +31,8 @@ export {
 export {
   DEFAULT_GOOGLE_API_BASE_URL,
   isGoogleGenerativeAiApi,
+  isGoogleVertexBaseUrl,
+  isGoogleVertexHostname,
   normalizeGoogleApiBaseUrl,
   normalizeGoogleGenerativeAiBaseUrl,
   normalizeGoogleProviderConfig,
