@@ -1,8 +1,9 @@
+// Voice Call plugin module implements manager behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { VoiceCallConfig } from "./config.js";
 import type { CallManagerContext, StreamSessionIssuer } from "./manager/context.js";
 import { processEvent as processManagerEvent } from "./manager/events.js";
@@ -20,6 +21,7 @@ import {
   loadActiveCallsFromStore,
   persistCallRecord,
 } from "./manager/store.js";
+import { resolveVoiceCallSecondsTimerDelayMs } from "./manager/timer-delays.js";
 import { startMaxDurationTimer } from "./manager/timers.js";
 import type { VoiceCallProvider } from "./providers/base.js";
 import {
@@ -50,7 +52,7 @@ function resolveDefaultStoreBase(config: VoiceCallConfig, storePath?: string): s
   if (rawOverride) {
     return resolveUserPath(rawOverride);
   }
-  const preferred = path.join(os.homedir(), ".astroclaw", "voice-calls");
+  const preferred = path.join(os.homedir(), ".openclaw", "voice-calls");
   const candidates = [preferred].map((dir) => resolveUserPath(dir));
   const existing =
     candidates.find((dir) => {
@@ -129,7 +131,7 @@ export class CallManager {
     for (const [callId, call] of verified) {
       if (call.answeredAt && !TerminalStates.has(call.state)) {
         const elapsed = Date.now() - call.answeredAt;
-        const maxDurationMs = this.config.maxDurationSeconds * 1000;
+        const maxDurationMs = resolveVoiceCallSecondsTimerDelayMs(this.config.maxDurationSeconds);
         if (elapsed >= maxDurationMs) {
           // Already expired — remove instead of keeping
           verified.delete(callId);
@@ -174,7 +176,7 @@ export class CallManager {
       return new Map();
     }
 
-    const maxAgeMs = this.config.maxDurationSeconds * 1000;
+    const maxAgeMs = resolveVoiceCallSecondsTimerDelayMs(this.config.maxDurationSeconds);
     const now = Date.now();
     const verified = new Map<CallId, CallRecord>();
     const verifyTasks: Array<{ callId: CallId; call: CallRecord; promise: Promise<void> }> = [];
@@ -203,7 +205,7 @@ export class CallManager {
             providerCallId: call.providerCallId,
             reason: "timeout",
           })
-          .catch((err) => {
+          .catch((err: unknown) => {
             console.warn(
               `[voice-call] Failed to hang up expired restored call ${callId}:`,
               err instanceof Error ? err.message : String(err),
@@ -400,7 +402,7 @@ export class CallManager {
       return;
     }
 
-    void this.speakInitialMessage(call.providerCallId).catch((err) => {
+    void this.speakInitialMessage(call.providerCallId).catch((err: unknown) => {
       console.warn(
         `[voice-call] Failed to speak initial message for call ${call.callId}: ${formatErrorMessage(err)}`,
       );
