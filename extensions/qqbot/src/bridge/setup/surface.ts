@@ -1,8 +1,9 @@
+// Qqbot plugin module implements surface behavior.
 import {
   createStandardChannelSetupStatus,
   setSetupChannelEnabled,
-} from "astroclaw/plugin-sdk/setup";
-import type { ChannelSetupWizard } from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
+import type { ChannelSetupWizard } from "openclaw/plugin-sdk/setup";
 import { isAccountConfigured } from "../../engine/config/resolve.js";
 import { listQQBotAccountIds, resolveQQBotAccount } from "../config.js";
 import { finalizeQQBotSetup } from "./finalize.js";
