@@ -1,3 +1,4 @@
+/** Shared helpers for model commands that read or mutate model config. */
 import { listAgentIds } from "../../agents/agent-scope.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import {
@@ -9,7 +10,7 @@ import {
 } from "../../agents/model-selection.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import {
-  type AstroclawConfig,
+  type OpenClawConfig,
   readConfigFileSnapshot,
   replaceConfigFile,
 } from "../../config/config.js";
@@ -18,6 +19,7 @@ import { normalizeAgentModelRefForConfig, toAgentModelListLike } from "../../con
 import type { AgentModelEntryConfig } from "../../config/types.agent-defaults.js";
 import type { AgentModelConfig } from "../../config/types.agents-shared.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
+import { canonicalizeModelCatalogProviderRef } from "./provider-aliases.js";
 export { normalizeAlias } from "./alias-name.js";
 export { isLocalBaseUrl } from "./list.local-url.js";
 
@@ -27,6 +29,7 @@ export const ensureFlagCompatibility = (opts: { json?: boolean; plain?: boolean 
   }
 };
 
+/** Formats token counts as compact K-suffixed labels. */
 export const formatTokenK = (value?: number | null) => {
   if (!value || !Number.isFinite(value)) {
     return "-";
@@ -37,6 +40,7 @@ export const formatTokenK = (value?: number | null) => {
   return `${Math.round(value / 1024)}k`;
 };
 
+/** Formats millisecond durations for model command output. */
 export const formatMs = (value?: number | null) => {
   if (value === null || value === undefined) {
     return "-";
@@ -50,7 +54,8 @@ export const formatMs = (value?: number | null) => {
   return `${Math.round(value / 100) / 10}s`;
 };
 
-export async function loadValidConfigOrThrow(): Promise<AstroclawConfig> {
+/** Loads config from disk and throws a formatted error when validation fails. */
+export async function loadValidConfigOrThrow(): Promise<OpenClawConfig> {
   const snapshot = await readConfigFileSnapshot();
   if (!snapshot.valid) {
     const issues = formatConfigIssueLines(snapshot.issues, "-").join("\n");
@@ -59,15 +64,25 @@ export async function loadValidConfigOrThrow(): Promise<AstroclawConfig> {
   return snapshot.runtimeConfig ?? snapshot.config;
 }
 
+/** Runtime config snapshot supplied to model config mutators. */
+export type UpdateConfigContext = {
+  runtimeConfig: OpenClawConfig;
+};
+
+/** Reads source config, applies a mutator, and writes only the source-form config. */
 export async function updateConfig(
-  mutator: (cfg: AstroclawConfig) => AstroclawConfig,
-): Promise<AstroclawConfig> {
+  mutator: (cfg: OpenClawConfig, context: UpdateConfigContext) => OpenClawConfig,
+): Promise<OpenClawConfig> {
   const snapshot = await readConfigFileSnapshot();
   if (!snapshot.valid) {
     const issues = formatConfigIssueLines(snapshot.issues, "-").join("\n");
     throw new Error(`Invalid config at ${snapshot.path}\n${issues}`);
   }
-  const next = mutator(structuredClone(snapshot.sourceConfig ?? snapshot.config));
+  const sourceConfig = structuredClone(snapshot.sourceConfig ?? snapshot.config);
+  const runtimeConfig = structuredClone(snapshot.runtimeConfig ?? snapshot.config);
+  // Mutate source config so SecretRefs and unresolved placeholders do not get
+  // overwritten by runtime-resolved secret values.
+  const next = mutator(sourceConfig, { runtimeConfig });
   await replaceConfigFile({
     nextConfig: next,
     baseHash: snapshot.hash,
@@ -75,7 +90,8 @@ export async function updateConfig(
   return next;
 }
 
-export function resolveModelTarget(params: { raw: string; cfg: AstroclawConfig }): {
+/** Resolves a CLI model reference through aliases and catalog provider aliases. */
+export function resolveModelTarget(params: { raw: string; cfg: OpenClawConfig }): {
   provider: string;
   model: string;
 } {
@@ -91,11 +107,28 @@ export function resolveModelTarget(params: { raw: string; cfg: AstroclawConfig }
   if (!resolved) {
     throw new Error(`Invalid model reference: ${params.raw}`);
   }
-  return resolved.ref;
+  return canonicalizeModelCatalogProviderRef(resolved.ref, { cfg: params.cfg });
 }
 
+function resolveAuthoredModelAliasTarget(params: {
+  raw: string;
+  cfg: OpenClawConfig;
+}): { provider: string; model: string } | undefined {
+  const aliasIndex = buildModelAliasIndex({
+    cfg: params.cfg,
+    defaultProvider: DEFAULT_PROVIDER,
+  });
+  const resolved = resolveModelRefFromString({
+    raw: params.raw,
+    defaultProvider: DEFAULT_PROVIDER,
+    aliasIndex,
+  });
+  return resolved?.alias ? resolved.ref : undefined;
+}
+
+/** Resolves model reference strings to canonical provider/model keys. */
 export function resolveModelKeysFromEntries(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   entries: readonly string[];
 }): string[] {
   const aliasIndex = buildModelAliasIndex({
@@ -114,7 +147,8 @@ export function resolveModelKeysFromEntries(params: {
     .map((entry) => modelKey(entry.ref.provider, entry.ref.model));
 }
 
-export function buildAllowlistSet(cfg: AstroclawConfig): Set<string> {
+/** Builds the configured model allowlist from agents.defaults.models keys. */
+export function buildAllowlistSet(cfg: OpenClawConfig): Set<string> {
   const allowed = new Set<string>();
   const models = cfg.agents?.defaults?.models ?? {};
   for (const raw of Object.keys(models)) {
@@ -127,8 +161,9 @@ export function buildAllowlistSet(cfg: AstroclawConfig): Set<string> {
   return allowed;
 }
 
+/** Validates an optional agent id against configured agents. */
 export function resolveKnownAgentId(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   rawAgentId?: string | null;
 }): string | undefined {
   const raw = params.rawAgentId?.trim();
@@ -139,14 +174,16 @@ export function resolveKnownAgentId(params: {
   const knownAgents = listAgentIds(params.cfg);
   if (!knownAgents.includes(agentId)) {
     throw new Error(
-      `Unknown agent id "${raw}". Use "${formatCliCommand("astroclaw agents list")}" to see configured agents.`,
+      `Unknown agent id "${raw}". Use "${formatCliCommand("openclaw agents list")}" to see configured agents.`,
     );
   }
   return agentId;
 }
 
+/** Normalized primary/fallback config shape used by text and image defaults. */
 export type PrimaryFallbackConfig = { primary?: string; fallbacks?: string[] };
 
+/** Upserts the canonical model entry and folds legacy key metadata into it. */
 export function upsertCanonicalModelConfigEntry(
   models: Record<string, AgentModelEntryConfig>,
   params: { provider: string; model: string },
@@ -173,6 +210,7 @@ export function upsertCanonicalModelConfigEntry(
   }
 
   if (legacyEntry) {
+    // Preserve legacy per-model params while moving the entry to provider/model.
     models[key] = {
       ...legacyEntry,
       ...models[key],
@@ -190,6 +228,7 @@ export function upsertCanonicalModelConfigEntry(
   return key;
 }
 
+/** Merges primary/fallback patches while normalizing refs for config storage. */
 export function mergePrimaryFallbackConfig(
   existing: PrimaryFallbackConfig | undefined,
   patch: { primary?: string; fallbacks?: string[] },
@@ -207,12 +246,27 @@ export function mergePrimaryFallbackConfig(
   return next;
 }
 
+/** Applies a default text/image primary-model update and ensures the model entry exists. */
 export function applyDefaultModelPrimaryUpdate(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
+  resolveCfg?: OpenClawConfig;
   modelRaw: string;
   field: "model" | "imageModel";
-}): AstroclawConfig {
-  const resolved = resolveModelTarget({ raw: params.modelRaw, cfg: params.cfg });
+}): OpenClawConfig {
+  const resolved =
+    params.resolveCfg && params.resolveCfg !== params.cfg
+      ? (resolveAuthoredModelAliasTarget({
+          raw: params.modelRaw,
+          cfg: params.cfg,
+        }) ??
+        resolveModelTarget({
+          raw: params.modelRaw,
+          cfg: params.resolveCfg,
+        }))
+      : resolveModelTarget({
+          raw: params.modelRaw,
+          cfg: params.cfg,
+        });
   const nextModels = {
     ...params.cfg.agents?.defaults?.models,
   } as Record<string, AgentModelEntryConfig>;
