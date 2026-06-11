@@ -1,10 +1,11 @@
-import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
+// Test Support provider module implements model/runtime integration.
+import type { ModelRegistry } from "openclaw/plugin-sdk/agent-sessions";
 import type {
   ProviderCatalogContext,
   ProviderResolveDynamicModelContext,
   ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/plugin-entry";
-import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
+} from "openclaw/plugin-sdk/plugin-entry";
+import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-model-shared";
 
 export function createProviderDynamicModelContext(params: {
   provider: string;
