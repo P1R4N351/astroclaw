@@ -1,11 +1,13 @@
+// Log file path helpers resolve log output paths for local runtime logs.
 import path from "node:path";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import {
-  POSIX_ASTROCLAW_TMP_DIR,
-  resolvePreferredAstroclawTmpDir,
-} from "../infra/tmp-astroclaw-dir.js";
+  POSIX_OPENCLAW_TMP_DIR,
+  resolvePreferredOpenClawTmpDir,
+} from "../infra/tmp-openclaw-dir.js";
 
-const LOG_PREFIX = "astroclaw";
+// Default logger path uses the preferred tmp directory when Node fs is available.
+const LOG_PREFIX = "openclaw";
 const LOG_SUFFIX = ".log";
 
 function canUseNodeFs(): boolean {
@@ -32,10 +34,11 @@ function formatLocalDate(date: Date): string {
 }
 
 function resolveDefaultRollingLogFile(date = new Date()): string {
-  const logDir = canUseNodeFs() ? resolvePreferredAstroclawTmpDir() : POSIX_ASTROCLAW_TMP_DIR;
+  const logDir = canUseNodeFs() ? resolvePreferredOpenClawTmpDir() : POSIX_OPENCLAW_TMP_DIR;
   return path.join(logDir, `${LOG_PREFIX}-${formatLocalDate(date)}${LOG_SUFFIX}`);
 }
 
-export function resolveConfiguredLogFilePath(config?: AstroclawConfig | null): string {
+/** Resolves the configured log file or today's rolling default log path. */
+export function resolveConfiguredLogFilePath(config?: OpenClawConfig | null): string {
   return config?.logging?.file ?? resolveDefaultRollingLogFile();
 }
