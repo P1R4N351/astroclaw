@@ -1,12 +1,18 @@
+// Diffs plugin module implements browser behavior.
 import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { writeExternalFileWithinRoot } from "astroclaw/plugin-sdk/security-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { writeExternalFileWithinRoot } from "openclaw/plugin-sdk/security-runtime";
 import { chromium } from "playwright-core";
-import type { AstroclawConfig } from "../api.js";
+import type { OpenClawConfig } from "../api.js";
 import type { DiffRenderOptions, DiffTheme } from "./types.js";
-import { VIEWER_ASSET_PREFIX, getServedViewerAsset } from "./viewer-assets.js";
+import {
+  LANGUAGE_PACK_VIEWER_ASSET_PREFIX,
+  VIEWER_ASSET_PREFIX,
+  getServedLanguagePackViewerAsset,
+  getServedViewerAsset,
+} from "./viewer-assets.js";
 
 const DEFAULT_BROWSER_IDLE_MS = 30_000;
 const SHARED_BROWSER_KEY = "__default__";
@@ -48,10 +54,10 @@ let sharedBrowserState: SharedBrowserState | null = null;
 let executablePathCache: ExecutablePathCache | null = null;
 
 export class PlaywrightDiffScreenshotter implements DiffScreenshotter {
-  private readonly config: AstroclawConfig;
+  private readonly config: OpenClawConfig;
   private readonly browserIdleMs: number;
 
-  constructor(params: { config: AstroclawConfig; browserIdleMs?: number }) {
+  constructor(params: { config: OpenClawConfig; browserIdleMs?: number }) {
     this.config = params.config;
     this.browserIdleMs = params.browserIdleMs ?? DEFAULT_BROWSER_IDLE_MS;
   }
@@ -97,12 +103,18 @@ export class PlaywrightDiffScreenshotter implements DiffScreenshotter {
             await route.abort();
             return;
           }
-          if (!parsed.pathname.startsWith(VIEWER_ASSET_PREFIX)) {
+          const isBaseViewerAsset = parsed.pathname.startsWith(VIEWER_ASSET_PREFIX);
+          const isLanguagePackViewerAsset = parsed.pathname.startsWith(
+            LANGUAGE_PACK_VIEWER_ASSET_PREFIX,
+          );
+          if (!isBaseViewerAsset && !isLanguagePackViewerAsset) {
             await route.abort();
             return;
           }
           const pathname = parsed.pathname;
-          const asset = await getServedViewerAsset(pathname);
+          const asset = isLanguagePackViewerAsset
+            ? await getServedLanguagePackViewerAsset(pathname)
+            : await getServedViewerAsset(pathname);
           if (!asset) {
             await route.abort();
             return;
@@ -116,10 +128,10 @@ export class PlaywrightDiffScreenshotter implements DiffScreenshotter {
         await page.setContent(injectBaseHref(params.html), { waitUntil: "load" });
         await page.waitForFunction(
           () => {
-            if (document.documentElement.dataset.astroclawDiffsReady === "true") {
+            if (document.documentElement.dataset.openclawDiffsReady === "true") {
               return true;
             }
-            return [...document.querySelectorAll("[data-astroclaw-diff-host]")].every((element) => {
+            return [...document.querySelectorAll("[data-openclaw-diff-host]")].every((element) => {
               return (
                 element instanceof HTMLElement && element.shadowRoot?.querySelector("[data-diffs]")
               );
@@ -165,15 +177,15 @@ export class PlaywrightDiffScreenshotter implements DiffScreenshotter {
           await page.evaluate(() => {
             const html = document.documentElement;
             const body = document.body;
-            const frame = document.querySelector(".oc-frame");
+            const frameLocal = document.querySelector(".oc-frame");
 
             html.style.background = "transparent";
             body.style.margin = "0";
             body.style.padding = "0";
             body.style.background = "transparent";
             body.style.setProperty("-webkit-print-color-adjust", "exact");
-            if (frame instanceof HTMLElement) {
-              frame.style.margin = "0";
+            if (frameLocal instanceof HTMLElement) {
+              frameLocal.style.margin = "0";
             }
           });
 
@@ -305,11 +317,11 @@ function injectBaseHref(html: string): string {
   return html.replace("<head>", `<head><base href="${LOCAL_VIEWER_BASE_HREF}" />`);
 }
 
-async function resolveBrowserExecutablePath(config: AstroclawConfig): Promise<string | undefined> {
+async function resolveBrowserExecutablePath(config: OpenClawConfig): Promise<string | undefined> {
   const cacheKey = JSON.stringify({
     configPath: config.browser?.executablePath?.trim() || "",
     env: [
-      process.env.ASTROCLAW_BROWSER_EXECUTABLE_PATH ?? "",
+      process.env.OPENCLAW_BROWSER_EXECUTABLE_PATH ?? "",
       process.env.BROWSER_EXECUTABLE_PATH ?? "",
       process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? "",
     ],
@@ -320,7 +332,7 @@ async function resolveBrowserExecutablePath(config: AstroclawConfig): Promise<st
     return await executablePathCache.valuePromise;
   }
 
-  const valuePromise = resolveBrowserExecutablePathUncached(config).catch((error) => {
+  const valuePromise = resolveBrowserExecutablePathUncached(config).catch((error: unknown) => {
     if (executablePathCache?.valuePromise === valuePromise) {
       executablePathCache = null;
     }
@@ -334,7 +346,7 @@ async function resolveBrowserExecutablePath(config: AstroclawConfig): Promise<st
 }
 
 async function resolveBrowserExecutablePathUncached(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
 ): Promise<string | undefined> {
   const configPath = config.browser?.executablePath?.trim();
   if (configPath) {
@@ -343,7 +355,7 @@ async function resolveBrowserExecutablePathUncached(
   }
 
   const envCandidates = [
-    process.env.ASTROCLAW_BROWSER_EXECUTABLE_PATH,
+    process.env.OPENCLAW_BROWSER_EXECUTABLE_PATH,
     process.env.BROWSER_EXECUTABLE_PATH,
     process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
   ]
@@ -366,7 +378,7 @@ async function resolveBrowserExecutablePathUncached(
 }
 
 async function acquireSharedBrowser(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   idleMs: number;
 }): Promise<BrowserLease> {
   const executablePath = await resolveBrowserExecutablePath(params.config);
@@ -394,7 +406,7 @@ async function acquireSharedBrowser(params: {
         }
         return browser;
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         if (sharedBrowserState?.browserPromise === browserPromise) {
           sharedBrowserState = null;
         }
