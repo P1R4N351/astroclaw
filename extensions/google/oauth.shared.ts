@@ -1,6 +1,7 @@
-export const CLIENT_ID_KEYS = ["ASTROCLAW_GEMINI_OAUTH_CLIENT_ID", "GEMINI_CLI_OAUTH_CLIENT_ID"];
+// Google plugin module implements oauth.shared behavior.
+export const CLIENT_ID_KEYS = ["OPENCLAW_GEMINI_OAUTH_CLIENT_ID", "GEMINI_CLI_OAUTH_CLIENT_ID"];
 export const CLIENT_SECRET_KEYS = [
-  "ASTROCLAW_GEMINI_OAUTH_CLIENT_SECRET",
+  "OPENCLAW_GEMINI_OAUTH_CLIENT_SECRET",
   "GEMINI_CLI_OAUTH_CLIENT_SECRET",
 ];
 export const REDIRECT_URI = "http://localhost:8085/oauth2callback";
