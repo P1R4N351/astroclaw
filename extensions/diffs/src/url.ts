@@ -1,10 +1,11 @@
-import type { AstroclawConfig } from "../api.js";
+// Diffs plugin module implements url behavior.
+import type { OpenClawConfig } from "../api.js";
 
 const DEFAULT_GATEWAY_PORT = 18789;
 type ViewerBaseUrlFieldName = "baseUrl" | "viewerBaseUrl";
 
 export function buildViewerUrl(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   viewerPath: string;
   baseUrl?: string;
 }): string {
@@ -44,7 +45,7 @@ export function normalizeViewerBaseUrl(
   return withoutTrailingSlash;
 }
 
-function resolveGatewayBaseUrl(config: AstroclawConfig): string {
+function resolveGatewayBaseUrl(config: OpenClawConfig): string {
   const scheme = config.gateway?.tls?.enabled ? "https" : "http";
   const port =
     typeof config.gateway?.port === "number" ? config.gateway.port : DEFAULT_GATEWAY_PORT;
