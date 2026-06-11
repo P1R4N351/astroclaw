@@ -1,21 +1,23 @@
+// Main interactive configure/update wizard implementation.
 import fsPromises from "node:fs/promises";
 import nodePath from "node:path";
 import { isDeepStrictEqual } from "node:util";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { note } from "../../packages/terminal-core/src/note.js";
 import { describeCodexNativeWebSearch } from "../agents/codex-native-web-search.shared.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { formatPortRangeHint } from "../cli/error-format.js";
 import { commitConfigWithPendingPluginInstalls } from "../cli/plugins-install-record-commit.js";
+import { parsePort } from "../cli/shared/parse-port.js";
 import { readConfigFileSnapshot, resolveGatewayPort } from "../config/config.js";
 import { logConfigUpdated } from "../config/logging.js";
 import { ConfigMutationConflictError } from "../config/mutate.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { ensureControlUiAssetsBuilt } from "../infra/control-ui-assets.js";
 import { resolvePluginContributionOwners } from "../plugins/plugin-registry.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
-import { note } from "../terminal/note.js";
 import { isPlainObject, resolveUserPath } from "../utils.js";
 import { createClackPrompter } from "../wizard/clack-prompter.js";
 import { WizardCancelledError } from "../wizard/prompts.js";
@@ -52,6 +54,7 @@ import {
 } from "./onboard-helpers.js";
 import { promptRemoteGatewayConfig } from "./onboard-remote.js";
 import { setupSkills } from "./onboard-skills.js";
+import type { OnboardMode } from "./onboard-types.js";
 
 type ConfigureSectionChoice = WizardSection | "__continue";
 type SetupPluginConfigModule = typeof import("../wizard/setup.plugin-config.js");
@@ -63,8 +66,7 @@ const setupPluginConfigModuleLoader = createLazyImportLoader<SetupPluginConfigMo
 );
 
 function validateGatewayPortInput(value: unknown): string | undefined {
-  const port = Number(typeof value === "string" ? value.trim() : value);
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+  if (parsePort(value) === null) {
     return formatPortRangeHint();
   }
   return undefined;
@@ -95,7 +97,7 @@ function mergeWizardConfigOntoLatest(current: unknown, base: unknown, next: unkn
 }
 
 async function resolveGatewaySecretInputForWizard(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   value: unknown;
   path: string;
 }): Promise<string | undefined> {
@@ -112,7 +114,7 @@ async function resolveGatewaySecretInputForWizard(params: {
 }
 
 async function runGatewayHealthCheck(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   runtime: RuntimeEnv;
   port: number;
 }): Promise<void> {
@@ -135,8 +137,8 @@ async function runGatewayHealthCheck(params: {
     value: params.cfg.gateway?.auth?.password,
     path: "gateway.auth.password",
   });
-  const token = process.env.ASTROCLAW_GATEWAY_TOKEN ?? configuredToken;
-  const password = process.env.ASTROCLAW_GATEWAY_PASSWORD ?? configuredPassword;
+  const token = process.env.OPENCLAW_GATEWAY_TOKEN ?? configuredToken;
+  const password = process.env.OPENCLAW_GATEWAY_PASSWORD ?? configuredPassword;
 
   await waitForGatewayReachable({
     url: wsUrl,
@@ -152,8 +154,8 @@ async function runGatewayHealthCheck(params: {
     note(
       [
         "Docs:",
-        "https://docs.astroclaw.ai/gateway/health",
-        "https://docs.astroclaw.ai/gateway/troubleshooting",
+        "https://docs.openclaw.ai/gateway/health",
+        "https://docs.openclaw.ai/gateway/troubleshooting",
       ].join("\n"),
       "Health check help",
     );
@@ -193,7 +195,7 @@ async function promptChannelMode(runtime: RuntimeEnv): Promise<ChannelsWizardMod
         {
           value: "remove",
           label: "Remove channel config",
-          hint: "Delete channel tokens/settings from astroclaw.json",
+          hint: "Delete channel tokens/settings from openclaw.json",
         },
       ],
       initialValue: "configure",
@@ -203,11 +205,11 @@ async function promptChannelMode(runtime: RuntimeEnv): Promise<ChannelsWizardMod
 }
 
 async function promptWebToolsConfig(
-  nextConfig: AstroclawConfig,
+  nextConfig: OpenClawConfig,
   runtime: RuntimeEnv,
   prompter: ReturnType<typeof createClackPrompter>,
-): Promise<AstroclawConfig> {
-  type WebSearchConfig = NonNullable<NonNullable<AstroclawConfig["tools"]>["web"]>["search"];
+): Promise<OpenClawConfig> {
+  type WebSearchConfig = NonNullable<NonNullable<OpenClawConfig["tools"]>["web"]>["search"];
   const existingSearch = nextConfig.tools?.web?.search;
   const existingFetch = nextConfig.tools?.web?.fetch;
   const { isCodexNativeWebSearchRelevant } = await import("../agents/codex-native-web-search.js");
@@ -222,7 +224,7 @@ async function promptWebToolsConfig(
     [
       "Web search lets your agent look things up online using the `web_search` tool.",
       "Choose a managed provider now, and Codex-capable models can also use native Codex web search.",
-      "Docs: https://docs.astroclaw.ai/tools/web",
+      "Docs: https://docs.openclaw.ai/tools/web",
     ].join("\n"),
     "Web search",
   );
@@ -320,7 +322,7 @@ async function promptWebToolsConfig(
           [
             "No web search providers are currently available under this plugin policy.",
             "Enable plugins or remove deny rules, then rerun configure.",
-            "Docs: https://docs.astroclaw.ai/tools/web",
+            "Docs: https://docs.openclaw.ai/tools/web",
           ].join("\n"),
           "Web search",
         );
@@ -370,17 +372,18 @@ async function promptWebToolsConfig(
   };
 }
 
+/** Run the configure/update wizard, optionally limited to selected sections. */
 export async function runConfigureWizard(
   opts: ConfigureWizardParams,
   runtime: RuntimeEnv = defaultRuntime,
 ) {
   try {
-    intro(opts.command === "update" ? "Astroclaw update wizard" : "Astroclaw configure");
+    intro(opts.command === "update" ? "OpenClaw update wizard" : "OpenClaw configure");
     const prompter = createClackPrompter();
 
     const snapshot = await readConfigFileSnapshot();
     let currentBaseHash = snapshot.hash;
-    const baseConfig: AstroclawConfig = snapshot.valid
+    const baseConfig: OpenClawConfig = snapshot.valid
       ? (snapshot.sourceConfig ?? snapshot.config)
       : {};
 
@@ -392,88 +395,100 @@ export async function runConfigureWizard(
           [
             ...snapshot.issues.map((iss) => `- ${iss.path}: ${iss.message}`),
             "",
-            "Docs: https://docs.astroclaw.ai/gateway/configuration",
+            "Docs: https://docs.openclaw.ai/gateway/configuration",
           ].join("\n"),
           "Config issues",
         );
       }
       if (!snapshot.valid) {
         outro(
-          `Config invalid. Run \`${formatCliCommand("astroclaw doctor")}\` to repair it, then re-run configure.`,
+          `Config invalid. Run \`${formatCliCommand("openclaw doctor")}\` to repair it, then re-run configure.`,
         );
         runtime.exit(1);
         return;
       }
     }
 
-    const localUrl = "ws://127.0.0.1:18789";
-    const remoteUrl = normalizeOptionalString(baseConfig.gateway?.remote?.url) ?? "";
-    const localProbePromise = (async () => {
-      const [baseLocalProbeToken, baseLocalProbePassword] = await Promise.all([
-        resolveGatewaySecretInputForWizard({
-          cfg: baseConfig,
-          value: baseConfig.gateway?.auth?.token,
-          path: "gateway.auth.token",
-        }),
-        resolveGatewaySecretInputForWizard({
-          cfg: baseConfig,
-          value: baseConfig.gateway?.auth?.password,
-          path: "gateway.auth.password",
-        }),
-      ]);
-      return probeGatewayReachable({
-        url: localUrl,
-        token: process.env.ASTROCLAW_GATEWAY_TOKEN ?? baseLocalProbeToken,
-        password: process.env.ASTROCLAW_GATEWAY_PASSWORD ?? baseLocalProbePassword,
-        timeoutMs: GATEWAY_HINT_PROBE_TIMEOUT_MS,
-      });
-    })();
-    const remoteProbePromise = remoteUrl
-      ? (async () => {
-          const baseRemoteProbeToken = await resolveGatewaySecretInputForWizard({
+    const selectedSections = opts.sections;
+    const shouldPromptGatewayRunMode =
+      !selectedSections ||
+      selectedSections.includes("gateway") ||
+      selectedSections.includes("daemon") ||
+      selectedSections.includes("health");
+    const promptGatewayRunMode = async (): Promise<OnboardMode> => {
+      const localUrl = "ws://127.0.0.1:18789";
+      const remoteUrl = normalizeOptionalString(baseConfig.gateway?.remote?.url) ?? "";
+      const localProbePromise = (async () => {
+        const [baseLocalProbeToken, baseLocalProbePassword] = await Promise.all([
+          resolveGatewaySecretInputForWizard({
             cfg: baseConfig,
-            value: baseConfig.gateway?.remote?.token,
-            path: "gateway.remote.token",
-          });
-          return probeGatewayReachable({
-            url: remoteUrl,
-            token: baseRemoteProbeToken,
-            timeoutMs: GATEWAY_HINT_PROBE_TIMEOUT_MS,
-          });
-        })()
-      : Promise.resolve(null);
-    const [localProbe, remoteProbe] = await Promise.all([localProbePromise, remoteProbePromise]);
+            value: baseConfig.gateway?.auth?.token,
+            path: "gateway.auth.token",
+          }),
+          resolveGatewaySecretInputForWizard({
+            cfg: baseConfig,
+            value: baseConfig.gateway?.auth?.password,
+            path: "gateway.auth.password",
+          }),
+        ]);
+        return probeGatewayReachable({
+          url: localUrl,
+          token: process.env.OPENCLAW_GATEWAY_TOKEN ?? baseLocalProbeToken,
+          password: process.env.OPENCLAW_GATEWAY_PASSWORD ?? baseLocalProbePassword,
+          timeoutMs: GATEWAY_HINT_PROBE_TIMEOUT_MS,
+        });
+      })();
+      const remoteProbePromise = remoteUrl
+        ? (async () => {
+            const baseRemoteProbeToken = await resolveGatewaySecretInputForWizard({
+              cfg: baseConfig,
+              value: baseConfig.gateway?.remote?.token,
+              path: "gateway.remote.token",
+            });
+            return probeGatewayReachable({
+              url: remoteUrl,
+              token: baseRemoteProbeToken,
+              timeoutMs: GATEWAY_HINT_PROBE_TIMEOUT_MS,
+            });
+          })()
+        : Promise.resolve(null);
+      const [localProbe, remoteProbe] = await Promise.all([localProbePromise, remoteProbePromise]);
+      return guardCancel(
+        await select({
+          message: "Where will the Gateway run?",
+          options: [
+            {
+              value: "local",
+              label: "Local (this machine)",
+              hint: localProbe.ok
+                ? `Gateway reachable (${localUrl})`
+                : `No gateway detected (${localUrl})`,
+            },
+            {
+              value: "remote",
+              label: "Remote (info-only)",
+              hint: !remoteUrl
+                ? "No remote URL configured yet"
+                : remoteProbe?.ok
+                  ? `Gateway reachable (${remoteUrl})`
+                  : `Configured but unreachable (${remoteUrl})`,
+            },
+          ],
+        }),
+        runtime,
+      );
+    };
 
-    const mode = guardCancel(
-      await select({
-        message: "Where will the Gateway run?",
-        options: [
-          {
-            value: "local",
-            label: "Local (this machine)",
-            hint: localProbe.ok
-              ? `Gateway reachable (${localUrl})`
-              : `No gateway detected (${localUrl})`,
-          },
-          {
-            value: "remote",
-            label: "Remote (info-only)",
-            hint: !remoteUrl
-              ? "No remote URL configured yet"
-              : remoteProbe?.ok
-                ? `Gateway reachable (${remoteUrl})`
-                : `Configured but unreachable (${remoteUrl})`,
-          },
-        ],
-      }),
-      runtime,
-    );
+    const mode = shouldPromptGatewayRunMode ? await promptGatewayRunMode() : "local";
+    const metadataMode: OnboardMode =
+      shouldPromptGatewayRunMode || baseConfig.gateway?.mode !== "remote" ? mode : "remote";
+    const shouldSkipGatewaySummary = !shouldPromptGatewayRunMode;
 
-    if (mode === "remote") {
+    if (shouldPromptGatewayRunMode && mode === "remote") {
       let remoteConfig = await promptRemoteGatewayConfig(baseConfig, prompter);
       remoteConfig = applyWizardMetadata(remoteConfig, {
         command: opts.command,
-        mode,
+        mode: metadataMode,
       });
       const committed = await commitConfigWithPendingPluginInstalls({
         nextConfig: remoteConfig,
@@ -489,7 +504,7 @@ export async function runConfigureWizard(
     let nextConfig = { ...baseConfig };
     let mergeBaseConfig = structuredClone(baseConfig);
     let didSetGatewayMode = false;
-    if (nextConfig.gateway?.mode !== "local") {
+    if (shouldPromptGatewayRunMode && nextConfig.gateway?.mode !== "local") {
       nextConfig = {
         ...nextConfig,
         gateway: {
@@ -508,7 +523,7 @@ export async function runConfigureWizard(
     const persistConfig = async () => {
       nextConfig = applyWizardMetadata(nextConfig, {
         command: opts.command,
-        mode,
+        mode: metadataMode,
       });
 
       // Retry loop: if config was mutated by a plugin, re-read and merge before retry
@@ -542,7 +557,7 @@ export async function runConfigureWizard(
               diskConfig,
               mergeBaseConfig,
               nextConfig,
-            ) as AstroclawConfig;
+            ) as OpenClawConfig;
             continue;
           }
           throw err;
@@ -627,11 +642,11 @@ export async function runConfigureWizard(
         }),
         runtime,
       );
-      gatewayPort = Number.parseInt(portInput, 10);
+      gatewayPort = parsePort(portInput) ?? gatewayPort;
     };
 
-    if (opts.sections) {
-      const selected = opts.sections;
+    if (selectedSections) {
+      const selected = selectedSections;
       if (!selected || selected.length === 0) {
         outro("No configuration changes selected.");
         return;
@@ -767,6 +782,20 @@ export async function runConfigureWizard(
       }
     }
 
+    if (shouldSkipGatewaySummary) {
+      const remoteUrl = normalizeOptionalString(nextConfig.gateway?.remote?.url);
+      if (remoteUrl) {
+        note(
+          ["Remote Gateway:", remoteUrl, "Docs: https://docs.openclaw.ai/gateway/remote"].join(
+            "\n",
+          ),
+          "Gateway",
+        );
+      }
+      outro("Configuration updated.");
+      return;
+    }
+
     const controlUiAssets = await ensureControlUiAssetsBuilt(runtime);
     if (!controlUiAssets.ok && controlUiAssets.message) {
       runtime.error(controlUiAssets.message);
@@ -781,21 +810,21 @@ export async function runConfigureWizard(
       tlsEnabled: nextConfig.gateway?.tls?.enabled === true,
     });
     const newPassword =
-      process.env.ASTROCLAW_GATEWAY_PASSWORD ??
+      process.env.OPENCLAW_GATEWAY_PASSWORD ??
       (await resolveGatewaySecretInputForWizard({
         cfg: nextConfig,
         value: nextConfig.gateway?.auth?.password,
         path: "gateway.auth.password",
       }));
     const oldPassword =
-      process.env.ASTROCLAW_GATEWAY_PASSWORD ??
+      process.env.OPENCLAW_GATEWAY_PASSWORD ??
       (await resolveGatewaySecretInputForWizard({
         cfg: baseConfig,
         value: baseConfig.gateway?.auth?.password,
         path: "gateway.auth.password",
       }));
     const token =
-      process.env.ASTROCLAW_GATEWAY_TOKEN ??
+      process.env.OPENCLAW_GATEWAY_TOKEN ??
       (await resolveGatewaySecretInputForWizard({
         cfg: nextConfig,
         value: nextConfig.gateway?.auth?.token,
@@ -823,7 +852,7 @@ export async function runConfigureWizard(
         `Web UI: ${links.httpUrl}`,
         `Gateway WS: ${links.wsUrl}`,
         gatewayStatusLine,
-        "Docs: https://docs.astroclaw.ai/web/control-ui",
+        "Docs: https://docs.openclaw.ai/web/control-ui",
       ].join("\n"),
       "Control UI",
     );
