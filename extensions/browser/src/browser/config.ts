@@ -1,14 +1,17 @@
+/**
+ * Browser config resolution.
+ *
+ * Normalizes raw browser config into resolved runtime defaults, profile
+ * records, SSRF policy, timeouts, headless mode, and managed Chrome settings.
+ */
 import os from "node:os";
 import path from "node:path";
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
 import {
   normalizeOptionalString,
   normalizeOptionalTrimmedStringList,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import {
-  type BrowserConfig,
-  type BrowserProfileConfig,
-  type AstroclawConfig,
-} from "../config/config.js";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { BrowserConfig, BrowserProfileConfig, OpenClawConfig } from "../config/config.js";
 import { resolveGatewayPort } from "../config/paths.js";
 import {
   DEFAULT_BROWSER_CONTROL_PORT,
@@ -29,9 +32,9 @@ import {
   DEFAULT_BROWSER_TAB_CLEANUP_IDLE_MINUTES,
   DEFAULT_BROWSER_TAB_CLEANUP_MAX_TABS_PER_SESSION,
   DEFAULT_BROWSER_TAB_CLEANUP_SWEEP_MINUTES,
-  DEFAULT_ASTROCLAW_BROWSER_COLOR,
-  DEFAULT_ASTROCLAW_BROWSER_ENABLED,
-  DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME,
+  DEFAULT_OPENCLAW_BROWSER_COLOR,
+  DEFAULT_OPENCLAW_BROWSER_ENABLED,
+  DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME,
 } from "./constants.js";
 import { DEFAULT_UPLOAD_DIR } from "./paths.js";
 
@@ -40,9 +43,9 @@ export {
   DEFAULT_BROWSER_ACTION_TIMEOUT_MS,
   DEFAULT_BROWSER_DEFAULT_PROFILE_NAME,
   DEFAULT_BROWSER_EVALUATE_ENABLED,
-  DEFAULT_ASTROCLAW_BROWSER_COLOR,
-  DEFAULT_ASTROCLAW_BROWSER_ENABLED,
-  DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME,
+  DEFAULT_OPENCLAW_BROWSER_COLOR,
+  DEFAULT_OPENCLAW_BROWSER_ENABLED,
+  DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME,
   DEFAULT_UPLOAD_DIR,
   parseBrowserHttpUrl,
   redactCdpUrl,
@@ -57,6 +60,7 @@ type BrowserSsrFPolicyCompat = NonNullable<BrowserConfig["ssrfPolicy"]> & {
   allowPrivateNetwork?: boolean;
 };
 
+/** Browser config after defaults, derived ports, and profile defaults are applied. */
 export type ResolvedBrowserConfig = {
   enabled: boolean;
   evaluateEnabled: boolean;
@@ -84,6 +88,7 @@ export type ResolvedBrowserConfig = {
   extraArgs: string[];
 };
 
+/** Normalized tab-cleanup settings for session-owned browser tabs. */
 export type ResolvedBrowserTabCleanupConfig = {
   enabled: boolean;
   idleMinutes: number;
@@ -91,6 +96,7 @@ export type ResolvedBrowserTabCleanupConfig = {
   sweepMinutes: number;
 };
 
+/** Runtime browser profile settings resolved from global and profile config. */
 export type ResolvedBrowserProfile = {
   name: string;
   cdpPort: number;
@@ -101,7 +107,7 @@ export type ResolvedBrowserProfile = {
   mcpCommand?: string;
   mcpArgs?: string[];
   color: string;
-  driver: "astroclaw" | "existing-session";
+  driver: "openclaw" | "existing-session";
   executablePath?: string;
   headless: boolean;
   headlessSource?: "profile" | "config" | "default";
@@ -110,8 +116,10 @@ export type ResolvedBrowserProfile = {
 
 const DEFAULT_BROWSER_CDP_PORT_RANGE_START = 18800;
 const MAX_BROWSER_STARTUP_TIMEOUT_MS = 120_000;
-export const ASTROCLAW_BROWSER_HEADLESS_ENV = "ASTROCLAW_BROWSER_HEADLESS";
+/** Environment variable that overrides managed Chrome headless mode. */
+export const OPENCLAW_BROWSER_HEADLESS_ENV = "OPENCLAW_BROWSER_HEADLESS";
 
+/** Source that determined managed Chrome headless mode. */
 export type ManagedBrowserHeadlessSource =
   | "request"
   | "env"
@@ -125,6 +133,7 @@ type ManagedBrowserHeadlessMode = {
   source: ManagedBrowserHeadlessSource;
 };
 
+/** Inputs used to resolve managed Chrome headless mode. */
 export type ManagedBrowserHeadlessOptions = {
   headlessOverride?: boolean;
   env?: NodeJS.ProcessEnv;
@@ -134,11 +143,11 @@ export type ManagedBrowserHeadlessOptions = {
 function normalizeHexColor(raw: string | undefined): string {
   const value = (raw ?? "").trim();
   if (!value) {
-    return DEFAULT_ASTROCLAW_BROWSER_COLOR;
+    return DEFAULT_OPENCLAW_BROWSER_COLOR;
   }
   const normalized = value.startsWith("#") ? value : `#${value}`;
   if (!/^#[0-9a-fA-F]{6}$/.test(normalized)) {
-    return DEFAULT_ASTROCLAW_BROWSER_COLOR;
+    return DEFAULT_OPENCLAW_BROWSER_COLOR;
   }
   return normalized.toUpperCase();
 }
@@ -164,6 +173,16 @@ function normalizeNonNegativeInteger(raw: number | undefined, fallback: number):
 function normalizePositiveInteger(raw: number | undefined, fallback: number): number {
   const value = typeof raw === "number" && Number.isFinite(raw) ? Math.floor(raw) : fallback;
   return value <= 0 ? fallback : value;
+}
+
+const MAX_BROWSER_TIMER_MINUTES = Math.floor(MAX_TIMER_TIMEOUT_MS / 60_000);
+
+function normalizeNonNegativeTimerMinutes(raw: number | undefined, fallback: number): number {
+  return Math.min(normalizeNonNegativeInteger(raw, fallback), MAX_BROWSER_TIMER_MINUTES);
+}
+
+function normalizePositiveTimerMinutes(raw: number | undefined, fallback: number): number {
+  return Math.min(normalizePositiveInteger(raw, fallback), MAX_BROWSER_TIMER_MINUTES);
 }
 
 function normalizeExecutablePath(raw: string | undefined): string | undefined {
@@ -213,7 +232,7 @@ function hasLinuxDisplay(env: NodeJS.ProcessEnv): boolean {
 }
 
 function isLocalManagedProfile(profile: ResolvedBrowserProfile): boolean {
-  return profile.driver === "astroclaw" && profile.cdpIsLoopback && !profile.attachOnly;
+  return profile.driver === "openclaw" && profile.cdpIsLoopback && !profile.attachOnly;
 }
 
 function resolveBrowserTabCleanupConfig(
@@ -222,7 +241,7 @@ function resolveBrowserTabCleanupConfig(
   const raw = cfg?.tabCleanup;
   return {
     enabled: raw?.enabled ?? true,
-    idleMinutes: normalizeNonNegativeInteger(
+    idleMinutes: normalizeNonNegativeTimerMinutes(
       raw?.idleMinutes,
       DEFAULT_BROWSER_TAB_CLEANUP_IDLE_MINUTES,
     ),
@@ -230,7 +249,7 @@ function resolveBrowserTabCleanupConfig(
       raw?.maxTabsPerSession,
       DEFAULT_BROWSER_TAB_CLEANUP_MAX_TABS_PER_SESSION,
     ),
-    sweepMinutes: normalizePositiveInteger(
+    sweepMinutes: normalizePositiveTimerMinutes(
       raw?.sweepMinutes,
       DEFAULT_BROWSER_TAB_CLEANUP_SWEEP_MINUTES,
     ),
@@ -301,8 +320,8 @@ function ensureDefaultProfile(
   legacyCdpUrl?: string,
 ): Record<string, BrowserProfileConfig> {
   const result = { ...profiles };
-  if (!result[DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME]) {
-    result[DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME] = {
+  if (!result[DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME]) {
+    result[DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME] = {
       cdpPort: legacyCdpPort ?? derivedDefaultCdpPort ?? DEFAULT_BROWSER_CDP_PORT_RANGE_START,
       color: defaultColor,
       ...(legacyCdpUrl ? { cdpUrl: legacyCdpUrl } : {}),
@@ -326,11 +345,37 @@ function ensureDefaultUserBrowserProfile(
   return result;
 }
 
+function applyLegacyCdpUrlToExistingSessionDefaultProfile(
+  profiles: Record<string, BrowserProfileConfig>,
+  defaultProfile: string,
+  legacyCdpUrl: string | undefined,
+): Record<string, BrowserProfileConfig> {
+  if (!legacyCdpUrl) {
+    return profiles;
+  }
+  const profile = profiles[defaultProfile];
+  if (
+    !profile ||
+    profile.driver !== "existing-session" ||
+    normalizeOptionalString(profile.cdpUrl)
+  ) {
+    return profiles;
+  }
+  return {
+    ...profiles,
+    [defaultProfile]: {
+      ...profile,
+      cdpUrl: legacyCdpUrl,
+    },
+  };
+}
+
+/** Resolve raw browser config into runtime browser defaults. */
 export function resolveBrowserConfig(
   cfg: BrowserConfig | undefined,
-  rootConfig?: AstroclawConfig,
+  rootConfig?: OpenClawConfig,
 ): ResolvedBrowserConfig {
-  const enabled = cfg?.enabled ?? DEFAULT_ASTROCLAW_BROWSER_ENABLED;
+  const enabled = cfg?.enabled ?? DEFAULT_OPENCLAW_BROWSER_ENABLED;
   const evaluateEnabled = cfg?.evaluateEnabled ?? DEFAULT_BROWSER_EVALUATE_ENABLED;
   const gatewayPort = resolveGatewayPort(rootConfig);
   const controlPort = deriveDefaultBrowserControlPort(gatewayPort ?? DEFAULT_BROWSER_CONTROL_PORT);
@@ -397,7 +442,7 @@ export function resolveBrowserConfig(
   const legacyCdpPort = rawCdpUrl ? cdpInfo.port : undefined;
   const isWsUrl = cdpInfo.parsed.protocol === "ws:" || cdpInfo.parsed.protocol === "wss:";
   const legacyCdpUrl = rawCdpUrl && isWsUrl ? cdpInfo.normalized : undefined;
-  const profiles = ensureDefaultUserBrowserProfile(
+  let profiles = ensureDefaultUserBrowserProfile(
     ensureDefaultProfile(
       cfg?.profiles,
       defaultColor,
@@ -412,9 +457,14 @@ export function resolveBrowserConfig(
     defaultProfileFromConfig ??
     (profiles[DEFAULT_BROWSER_DEFAULT_PROFILE_NAME]
       ? DEFAULT_BROWSER_DEFAULT_PROFILE_NAME
-      : profiles[DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME]
-        ? DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME
+      : profiles[DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME]
+        ? DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME
         : "user");
+  profiles = applyLegacyCdpUrlToExistingSessionDefaultProfile(
+    profiles,
+    defaultProfile,
+    rawCdpUrl ? cdpInfo.normalized : undefined,
+  );
 
   const extraArgs = Array.isArray(cfg?.extraArgs)
     ? cfg.extraArgs.filter(
@@ -450,6 +500,7 @@ export function resolveBrowserConfig(
   };
 }
 
+/** Resolve one configured browser profile by name. */
 export function resolveProfile(
   resolved: ResolvedBrowserConfig,
   profileName: string,
@@ -462,8 +513,8 @@ export function resolveProfile(
   const rawProfileUrl = profile.cdpUrl?.trim() ?? "";
   let cdpHost = resolved.cdpHost;
   let cdpPort = profile.cdpPort ?? 0;
-  let cdpUrl = "";
-  const driver = profile.driver === "existing-session" ? "existing-session" : "astroclaw";
+  let cdpUrl;
+  const driver = profile.driver === "existing-session" ? "existing-session" : "openclaw";
   const headless = profile.headless ?? resolved.headless;
   const headlessSource =
     typeof profile.headless === "boolean" ? "profile" : resolved.headlessSource;
@@ -502,8 +553,20 @@ export function resolveProfile(
   } else if (rawProfileUrl) {
     const parsed = parseBrowserHttpUrl(rawProfileUrl, `browser.profiles.${profileName}.cdpUrl`);
     cdpHost = parsed.parsed.hostname;
-    cdpPort = parsed.port;
-    cdpUrl = parsed.normalized;
+    // Port precedence: explicit URL port > configured cdpPort > protocol default.
+    if (parsed.hasExplicitPort) {
+      cdpPort = parsed.port;
+      cdpUrl = parsed.normalizedWithPort;
+    } else if (cdpPort) {
+      // URL omitted the port but we have an explicit cdpPort — inject it while
+      // preserving the rest of the URL (path, query, credentials, etc.).
+      const rebuilt = new URL(rawProfileUrl);
+      rebuilt.port = String(cdpPort);
+      cdpUrl = rebuilt.toString().replace(/\/$/, "");
+    } else {
+      cdpPort = parsed.port;
+      cdpUrl = parsed.normalized;
+    }
   } else if (cdpPort) {
     cdpUrl = `${resolved.cdpProtocol}://${resolved.cdpHost}:${cdpPort}`;
   } else {
@@ -525,6 +588,7 @@ export function resolveProfile(
   };
 }
 
+/** Resolve effective headless mode for a managed browser profile. */
 export function resolveManagedBrowserHeadlessMode(
   resolved: ResolvedBrowserConfig,
   profile: ResolvedBrowserProfile,
@@ -540,7 +604,7 @@ export function resolveManagedBrowserHeadlessMode(
 
   const env = params.env ?? process.env;
   const platform = params.platform ?? process.platform;
-  const envHeadless = parseBooleanValue(env[ASTROCLAW_BROWSER_HEADLESS_ENV]);
+  const envHeadless = parseBooleanValue(env[OPENCLAW_BROWSER_HEADLESS_ENV]);
   if (envHeadless !== undefined) {
     return { headless: envHeadless, source: "env" };
   }
@@ -557,6 +621,7 @@ export function resolveManagedBrowserHeadlessMode(
   return { headless: resolved.headless, source: "default" };
 }
 
+/** Return a Linux display error for headed managed Chrome when no display exists. */
 export function getManagedBrowserMissingDisplayError(
   resolved: ResolvedBrowserConfig,
   profile: ResolvedBrowserProfile,
@@ -580,17 +645,18 @@ export function getManagedBrowserMissingDisplayError(
     mode.source === "request"
       ? "request override"
       : mode.source === "env"
-        ? `${ASTROCLAW_BROWSER_HEADLESS_ENV}=0`
+        ? `${OPENCLAW_BROWSER_HEADLESS_ENV}=0`
         : mode.source === "profile"
           ? `browser.profiles.${profile.name}.headless=false`
           : "browser.headless=false";
   return (
     `Headed browser start requested for profile "${profile.name}" via ${sourceHint}, ` +
     "but no Linux display server was detected ($DISPLAY/$WAYLAND_DISPLAY unset). " +
-    `Set ${ASTROCLAW_BROWSER_HEADLESS_ENV}=1, remove the headed override, or launch under Xvfb.`
+    `Set ${OPENCLAW_BROWSER_HEADLESS_ENV}=1, remove the headed override, or launch under Xvfb.`
   );
 }
 
+/** Return whether local browser control should start for a resolved config. */
 export function shouldStartLocalBrowserServer(_resolved: unknown) {
   return true;
 }
