@@ -6,7 +6,7 @@ import path from "node:path";
 import {
   pathExistsSync,
   resolveLocalPathFromRootsSync,
-} from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/security-runtime";
 import type { GatewayAccount } from "../types.js";
 import { MediaFileType } from "../types.js";
 import {
@@ -303,7 +303,7 @@ export async function sendVoice(
   ctx: MediaTargetContext,
   voicePath: string,
   directUploadFormats?: string[],
-  transcodeEnabled: boolean = true,
+  transcodeEnabled = true,
 ): Promise<OutboundResult> {
   const resolvedMediaPath = resolveOutboundMediaPath(voicePath, "voice", {
     allowMissingLocalPath: true,
