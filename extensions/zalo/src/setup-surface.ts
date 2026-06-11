@@ -1,3 +1,4 @@
+// Zalo plugin module implements setup surface behavior.
 import {
   buildSingleChannelSecretPromptState,
   createStandardChannelSetupStatus,
@@ -6,10 +7,10 @@ import {
   promptSingleChannelSecretInput,
   runSingleChannelSecretStep,
   type ChannelSetupWizard,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type SecretInput,
   createSetupTranslator,
-} from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
 import { resolveZaloAccount } from "./accounts.js";
 import { noteZaloTokenHelp, promptZaloAllowFrom } from "./setup-allow-from.js";
 import { zaloDmPolicy } from "./setup-core.js";
@@ -21,13 +22,13 @@ const channel = "zalo" as const;
 type UpdateMode = "polling" | "webhook";
 
 function setZaloUpdateMode(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   mode: UpdateMode,
   webhookUrl?: string,
   webhookSecret?: SecretInput,
   webhookPath?: string,
-): AstroclawConfig {
+): OpenClawConfig {
   const isDefault = accountId === DEFAULT_ACCOUNT_ID;
   if (mode === "polling") {
     if (isDefault) {
@@ -43,7 +44,7 @@ function setZaloUpdateMode(
           ...cfg.channels,
           zalo: rest,
         },
-      } as AstroclawConfig;
+      } as OpenClawConfig;
     }
     const accounts = { ...cfg.channels?.zalo?.accounts } as Record<string, Record<string, unknown>>;
     const existing = accounts[accountId] ?? {};
@@ -58,7 +59,7 @@ function setZaloUpdateMode(
           accounts,
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
   if (isDefault) {
@@ -73,7 +74,7 @@ function setZaloUpdateMode(
           webhookPath,
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
   const accounts = { ...cfg.channels?.zalo?.accounts } as Record<string, Record<string, unknown>>;
@@ -92,7 +93,7 @@ function setZaloUpdateMode(
         accounts,
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 export { zaloSetupAdapter } from "./setup-core.js";
@@ -160,7 +161,7 @@ export const zaloSetupWizard: ChannelSetupWizard = {
                   enabled: true,
                 },
               },
-            } as AstroclawConfig)
+            } as OpenClawConfig)
           : currentCfg,
       applySet: async (currentCfg, value) =>
         accountId === DEFAULT_ACCOUNT_ID
@@ -174,7 +175,7 @@ export const zaloSetupWizard: ChannelSetupWizard = {
                   botToken: value,
                 },
               },
-            } as AstroclawConfig)
+            } as OpenClawConfig)
           : ({
               ...currentCfg,
               channels: {
@@ -194,7 +195,7 @@ export const zaloSetupWizard: ChannelSetupWizard = {
                   },
                 },
               },
-            } as AstroclawConfig),
+            } as OpenClawConfig),
     });
     next = tokenStep.cfg;
 
