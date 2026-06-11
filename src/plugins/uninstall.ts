@@ -1,11 +1,12 @@
+// Removes installed plugins and updates plugin index records.
 import { realpathSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {
-  readAstroclawManagedNpmRootOverrides,
+  readOpenClawManagedNpmRootOverrides,
   syncManagedNpmRootPeerDependencies,
 } from "../infra/npm-managed-root.js";
 import { createSafeNpmInstallEnv } from "../infra/safe-package-install.js";
@@ -14,8 +15,9 @@ import {
   resolveDefaultPluginGitDir,
   resolveDefaultPluginNpmDir,
   resolvePluginInstallDir,
+  resolvePluginNpmProjectsDir,
 } from "./install-paths.js";
-import { relinkAstroclawPeerDependenciesInManagedNpmRoot } from "./plugin-peer-link.js";
+import { relinkOpenClawPeerDependenciesInManagedNpmRoot } from "./plugin-peer-link.js";
 import { defaultSlotIdForKey } from "./slots.js";
 
 export type UninstallActions = {
@@ -94,7 +96,7 @@ export function formatUninstallSlotResetPreview(slotKey: "memory" | "contextEngi
 export type UninstallPluginResult =
   | {
       ok: true;
-      config: AstroclawConfig;
+      config: OpenClawConfig;
       pluginId: string;
       actions: UninstallActions;
       warnings: string[];
@@ -118,7 +120,7 @@ export type PluginUninstallDirectoryRemoval = {
 export type PluginUninstallPlanResult =
   | {
       ok: true;
-      config: AstroclawConfig;
+      config: OpenClawConfig;
       pluginId: string;
       actions: UninstallActions;
       directoryRemoval: PluginUninstallDirectoryRemoval | null;
@@ -211,8 +213,42 @@ function resolveNpmManagedInstall(params: {
       const packageName = resolveNpmPackageNameFromInstallPath({ installPath, nodeModulesRoot });
       return packageName ? { installPath, npmRoot, packageName } : null;
     }
+    const projectMatch = resolveNpmManagedProjectInstall({
+      installPath,
+      projectsDir: resolvePluginNpmProjectsDir(npmRoot),
+    });
+    if (projectMatch) {
+      return projectMatch;
+    }
   }
   return null;
+}
+
+function resolveNpmManagedProjectInstall(params: {
+  installPath: string;
+  projectsDir: string;
+}): { installPath: string; npmRoot: string; packageName: string } | null {
+  if (
+    !isPathInsideOrEqual(params.projectsDir, params.installPath) ||
+    resolveComparablePath(params.projectsDir) === resolveComparablePath(params.installPath)
+  ) {
+    return null;
+  }
+  const relativePath = path.relative(
+    path.resolve(params.projectsDir),
+    path.resolve(params.installPath),
+  );
+  const segments = relativePath.split(path.sep).filter(Boolean);
+  if (segments.length < 3 || segments[1] !== "node_modules") {
+    return null;
+  }
+  const npmRoot = path.join(params.projectsDir, segments[0] ?? "");
+  const nodeModulesRoot = path.join(npmRoot, "node_modules");
+  const packageName = resolveNpmPackageNameFromInstallPath({
+    installPath: params.installPath,
+    nodeModulesRoot,
+  });
+  return packageName ? { installPath: params.installPath, npmRoot, packageName } : null;
 }
 
 function resolveNpmPackageNameFromInstallPath(params: {
@@ -346,10 +382,10 @@ function isPathInsideOrEqual(parent: string, child: string): boolean {
  * and owned channel config.
  */
 export function removePluginFromConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   pluginId: string,
   opts?: { channelIds?: string[] },
-): { config: AstroclawConfig; actions: Omit<UninstallActions, "directory"> } {
+): { config: OpenClawConfig; actions: Omit<UninstallActions, "directory"> } {
   const actions = createEmptyConfigUninstallActions();
 
   const pluginsConfig = cfg.plugins ?? {};
@@ -478,17 +514,17 @@ export function removePluginFromConfig(
     }
   }
 
-  const config: AstroclawConfig = {
+  const config: OpenClawConfig = {
     ...cfg,
     plugins: Object.keys(cleanedPlugins).length > 0 ? cleanedPlugins : undefined,
-    channels: channels as AstroclawConfig["channels"],
+    channels: channels as OpenClawConfig["channels"],
   };
 
   return { config, actions };
 }
 
 export type UninstallPluginParams = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   pluginId: string;
   channelIds?: string[];
   deleteFiles?: boolean;
@@ -622,6 +658,7 @@ export async function applyPluginUninstallDirectoryRemoval(
         timeoutMs: 300_000,
         env: createSafeNpmInstallEnv(process.env, {
           legacyPeerDeps: true,
+          npmConfigCwd: removal.cleanup.npmRoot,
           packageLock: true,
           quiet: true,
         }),
@@ -637,7 +674,7 @@ export async function applyPluginUninstallDirectoryRemoval(
       );
     }
     try {
-      const managedOverrides = await readAstroclawManagedNpmRootOverrides();
+      const managedOverrides = await readOpenClawManagedNpmRootOverrides();
       const syncedPeerDependencies = await syncManagedNpmRootPeerDependencies({
         npmRoot: removal.cleanup.npmRoot,
         managedOverrides,
@@ -660,6 +697,7 @@ export async function applyPluginUninstallDirectoryRemoval(
             timeoutMs: 300_000,
             env: createSafeNpmInstallEnv(process.env, {
               legacyPeerDeps: true,
+              npmConfigCwd: removal.cleanup.npmRoot,
               packageLock: true,
               quiet: true,
             }),
@@ -681,7 +719,7 @@ export async function applyPluginUninstallDirectoryRemoval(
       );
     }
     try {
-      await relinkAstroclawPeerDependenciesInManagedNpmRoot({
+      await relinkOpenClawPeerDependenciesInManagedNpmRoot({
         npmRoot: removal.cleanup.npmRoot,
         logger: {
           warn: (message) => warnings.push(message),
