@@ -1,4 +1,5 @@
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime";
+// Tlon plugin module implements discovery behavior.
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime";
 import type { Foreigns } from "../urbit/foreigns.js";
 import { asRecord, formatErrorMessage } from "./utils.js";
 
