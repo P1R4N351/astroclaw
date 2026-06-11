@@ -1,4 +1,5 @@
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Mattermost helper module supports normalize behavior.
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export function normalizeMattermostMessagingTarget(raw: string): string | undefined {
   const trimmed = raw.trim();
