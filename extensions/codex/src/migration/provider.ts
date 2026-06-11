@@ -1,8 +1,9 @@
+// Codex provider module implements model/runtime integration.
 import type {
   MigrationPlan,
   MigrationProviderContext,
   MigrationProviderPlugin,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import { applyCodexMigrationPlan, prepareTargetCodexAppServer } from "./apply.js";
 import { buildCodexMigrationPlan } from "./plan.js";
 import { discoverCodexSource, hasCodexSource } from "./source.js";
