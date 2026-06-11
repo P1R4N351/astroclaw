@@ -1,3 +1,4 @@
+// Plugin runtime entrypoint assembles runtime helpers available to activated plugins.
 import { getRuntimeConfig } from "../../config/config.js";
 import { resolveStateDir } from "../../config/paths.js";
 import {
@@ -229,7 +230,7 @@ export function createPluginRuntime(_options: CreatePluginRuntimeOptions = {}): 
     legacyTaskFlow: taskFlow,
   });
   const runtime = {
-    // Sourced from the shared Astroclaw version resolver (#52899) so plugins
+    // Sourced from the shared OpenClaw version resolver (#52899) so plugins
     // always see the same version the CLI reports, avoiding API-version drift.
     version: VERSION,
     config: createRuntimeConfig(),
@@ -252,6 +253,14 @@ export function createPluginRuntime(_options: CreatePluginRuntimeOptions = {}): 
       resolveStateDir,
       openKeyedStore: () => {
         throw new Error("openKeyedStore is only available through the plugin runtime proxy.");
+      },
+      openSyncKeyedStore: () => {
+        throw new Error("openSyncKeyedStore is only available through the plugin runtime proxy.");
+      },
+      openChannelIngressQueue: () => {
+        throw new Error(
+          "openChannelIngressQueue is only available through the plugin runtime proxy.",
+        );
       },
     },
     tasks,
