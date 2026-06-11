@@ -1,3 +1,4 @@
+// Slack plugin module implements secret contract behavior.
 import {
   collectConditionalChannelFieldAssignments,
   collectSimpleChannelFieldAssignments,
@@ -5,14 +6,14 @@ import {
   hasOwnProperty,
   type ResolverContext,
   type SecretDefaults,
-} from "astroclaw/plugin-sdk/channel-secret-basic-runtime";
+} from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 
-export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
+export const secretTargetRegistryEntries: import("openclaw/plugin-sdk/channel-secret-basic-runtime").SecretTargetRegistryEntry[] =
   [
     {
       id: "channels.slack.accounts.*.appToken",
       targetType: "channels.slack.accounts.*.appToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.slack.accounts.*.appToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -23,7 +24,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.slack.accounts.*.botToken",
       targetType: "channels.slack.accounts.*.botToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.slack.accounts.*.botToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -34,7 +35,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.slack.accounts.*.signingSecret",
       targetType: "channels.slack.accounts.*.signingSecret",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.slack.accounts.*.signingSecret",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -45,7 +46,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.slack.accounts.*.userToken",
       targetType: "channels.slack.accounts.*.userToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.slack.accounts.*.userToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -56,7 +57,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.slack.appToken",
       targetType: "channels.slack.appToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.slack.appToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -67,7 +68,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.slack.botToken",
       targetType: "channels.slack.botToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.slack.botToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -78,7 +79,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.slack.signingSecret",
       targetType: "channels.slack.signingSecret",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.slack.signingSecret",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
@@ -89,7 +90,7 @@ export const secretTargetRegistryEntries: import("astroclaw/plugin-sdk/channel-s
     {
       id: "channels.slack.userToken",
       targetType: "channels.slack.userToken",
-      configFile: "astroclaw.json",
+      configFile: "openclaw.json",
       pathPattern: "channels.slack.userToken",
       secretShape: "secret_input",
       expectedResolvedValue: "string",
