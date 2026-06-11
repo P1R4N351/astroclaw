@@ -1,3 +1,4 @@
+// Telegram plugin module implements setup surface behavior.
 import {
   createAllowFromSection,
   createStandardChannelSetupStatus,
@@ -7,9 +8,9 @@ import {
   setSetupChannelEnabled,
   splitSetupEntries,
   createSetupTranslator,
-} from "astroclaw/plugin-sdk/setup";
-import type { ChannelSetupWizard } from "astroclaw/plugin-sdk/setup";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/setup";
+import type { ChannelSetupWizard } from "openclaw/plugin-sdk/setup";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { inspectTelegramAccount } from "./account-inspect.js";
 import { listTelegramAccountIds, resolveTelegramAccount } from "./accounts.js";
 import {
