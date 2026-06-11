@@ -1,27 +1,28 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/memory-core-host-runtime-core";
-import type { MemorySearchResult } from "astroclaw/plugin-sdk/memory-core-host-runtime-files";
-import { resolveSessionAgentId } from "astroclaw/plugin-sdk/memory-host-core";
+// Memory Core plugin module implements session search visibility behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import type { MemorySearchResult } from "openclaw/plugin-sdk/memory-core-host-runtime-files";
+import { resolveSessionAgentId } from "openclaw/plugin-sdk/memory-host-core";
 import {
   extractTranscriptIdentityFromSessionsMemoryHit,
   loadCombinedSessionStoreForGateway,
   resolveTranscriptStemToSessionKeys,
-} from "astroclaw/plugin-sdk/session-transcript-hit";
+} from "openclaw/plugin-sdk/session-transcript-hit";
 import {
   createAgentToAgentPolicy,
   createSessionVisibilityGuard,
   resolveEffectiveSessionToolsVisibility,
-} from "astroclaw/plugin-sdk/session-visibility";
+} from "openclaw/plugin-sdk/session-visibility";
 
 function normalizeAgentIdForCompare(value: string | undefined): string | undefined {
   return value?.trim().toLowerCase() || undefined;
 }
 
-function isGlobalSessionKeyForSharedScope(cfg: AstroclawConfig, key: string): boolean {
+function isGlobalSessionKeyForSharedScope(cfg: OpenClawConfig, key: string): boolean {
   return cfg.session?.scope === "global" && key.trim().toLowerCase() === "global";
 }
 
 function filterSessionKeysByScopedAgent(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   keys: string[];
   scopedAgentId: string | undefined;
 }): string[] {
@@ -42,7 +43,7 @@ function filterSessionKeysByScopedAgent(params: {
 }
 
 export async function filterMemorySearchHitsBySessionVisibility(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId?: string;
   requesterSessionKey: string | undefined;
   sandboxed: boolean;
@@ -87,6 +88,7 @@ export async function filterMemorySearchHitsBySessionVisibility(params: {
     if (!identity) {
       continue;
     }
+    const isQmdSessionHit = hit.path.replace(/\\/g, "/").startsWith("qmd/");
     const normalizedScopedAgentId = normalizeAgentIdForCompare(scopedAgentId);
     const normalizedOwnerAgentId = normalizeAgentIdForCompare(identity.ownerAgentId);
     if (
@@ -98,20 +100,34 @@ export async function filterMemorySearchHitsBySessionVisibility(params: {
     }
     const archivedOwnerMatchesScope = Boolean(
       identity.archived &&
-      identity.ownerAgentId &&
-      (!scopedAgentId ||
-        normalizeAgentIdForCompare(identity.ownerAgentId) ===
-          normalizeAgentIdForCompare(scopedAgentId)),
+      ((identity.ownerAgentId &&
+        (!scopedAgentId ||
+          normalizeAgentIdForCompare(identity.ownerAgentId) ===
+            normalizeAgentIdForCompare(scopedAgentId))) ||
+        (isQmdSessionHit && scopedAgentId)),
     );
-    const archivedOwnerAgentId = archivedOwnerMatchesScope ? identity.ownerAgentId : undefined;
+    const archivedOwnerAgentId = archivedOwnerMatchesScope
+      ? (identity.ownerAgentId ?? scopedAgentId)
+      : undefined;
+    const liveKeys = identity.liveStem
+      ? resolveTranscriptStemToSessionKeys({
+          store: combinedSessionStore,
+          stem: identity.liveStem,
+          allowQmdSlugFallback: false,
+        })
+      : [];
     const keys = filterSessionKeysByScopedAgent({
       cfg: params.cfg,
       scopedAgentId,
-      keys: resolveTranscriptStemToSessionKeys({
-        store: combinedSessionStore,
-        stem: identity.stem,
-        ...(archivedOwnerAgentId ? { archivedOwnerAgentId } : {}),
-      }),
+      keys:
+        liveKeys.length > 0
+          ? liveKeys
+          : resolveTranscriptStemToSessionKeys({
+              store: combinedSessionStore,
+              stem: identity.stem,
+              allowQmdSlugFallback: isQmdSessionHit && !identity.archived,
+              ...(archivedOwnerAgentId ? { archivedOwnerAgentId } : {}),
+            }),
     });
     if (keys.length === 0) {
       continue;
