@@ -1,9 +1,10 @@
-export { loadAstroclawProviderIndex } from "./load.js";
-export { normalizeAstroclawProviderIndex } from "./normalize.js";
+// Provider-index public facade for normalized provider discovery metadata.
+export { loadOpenClawProviderIndex } from "./load.js";
+export { normalizeOpenClawProviderIndex } from "./normalize.js";
 export type {
-  AstroclawProviderIndex,
-  AstroclawProviderIndexPluginInstall,
-  AstroclawProviderIndexPlugin,
-  AstroclawProviderIndexProviderAuthChoice,
-  AstroclawProviderIndexProvider,
+  OpenClawProviderIndex,
+  OpenClawProviderIndexPluginInstall,
+  OpenClawProviderIndexPlugin,
+  OpenClawProviderIndexProviderAuthChoice,
+  OpenClawProviderIndexProvider,
 } from "./types.js";
