@@ -1,17 +1,18 @@
+// Matrix plugin module implements actions behavior.
 import {
   createActionGate,
-  readNumberParam,
+  readPositiveIntegerParam,
   readStringParam,
   ToolAuthorizationError,
-} from "astroclaw/plugin-sdk/channel-actions";
+} from "openclaw/plugin-sdk/channel-actions";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionContext,
   ChannelMessageActionName,
   ChannelMessageToolDiscovery,
-} from "astroclaw/plugin-sdk/channel-contract";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { extractToolSend } from "astroclaw/plugin-sdk/tool-send";
+} from "openclaw/plugin-sdk/channel-contract";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { extractToolSend } from "openclaw/plugin-sdk/tool-send";
 import { Type } from "typebox";
 import { requiresExplicitMatrixDefaultAccount } from "./account-selection.js";
 import { resolveDefaultMatrixAccountId, resolveMatrixAccount } from "./matrix/accounts.js";
@@ -218,7 +219,9 @@ export const matrixMessageActions: ChannelMessageActionAdapter = {
 
     if (action === "reactions") {
       const messageId = readStringParam(params, "messageId", { required: true });
-      const limit = readNumberParam(params, "limit", { integer: true });
+      const limit = readPositiveIntegerParam(params, "limit", {
+        message: "limit must be a positive integer.",
+      });
       return await dispatch({
         action: "reactions",
         roomId: resolveRoomId(),
@@ -228,13 +231,16 @@ export const matrixMessageActions: ChannelMessageActionAdapter = {
     }
 
     if (action === "read") {
-      const limit = readNumberParam(params, "limit", { integer: true });
+      const limit = readPositiveIntegerParam(params, "limit", {
+        message: "limit must be a positive integer.",
+      });
       return await dispatch({
         action: "readMessages",
         roomId: resolveRoomId(),
         limit,
         before: readStringParam(params, "before"),
         after: readStringParam(params, "after"),
+        threadId: readStringParam(params, "threadId"),
       });
     }
 
