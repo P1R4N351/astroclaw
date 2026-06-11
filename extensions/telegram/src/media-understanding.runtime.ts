@@ -1,11 +1,12 @@
+// Telegram plugin module implements media understanding behavior.
 import {
   describeImageWithModel as describeImageWithModelImpl,
   transcribeFirstAudio as transcribeFirstAudioImpl,
-} from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/media-runtime";
 
 type DescribeImageWithModel =
-  typeof import("astroclaw/plugin-sdk/media-runtime").describeImageWithModel;
-type TranscribeFirstAudio = typeof import("astroclaw/plugin-sdk/media-runtime").transcribeFirstAudio;
+  typeof import("openclaw/plugin-sdk/media-runtime").describeImageWithModel;
+type TranscribeFirstAudio = typeof import("openclaw/plugin-sdk/media-runtime").transcribeFirstAudio;
 
 export async function describeImageWithModel(
   ...args: Parameters<DescribeImageWithModel>
