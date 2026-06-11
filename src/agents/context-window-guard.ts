@@ -1,6 +1,12 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Resolves effective model context windows and formats guard warnings/blocks.
+ *
+ * Configured model values can cap provider metadata, and local endpoints get
+ * more actionable remediation text.
+ */
+import { findNormalizedProviderValue } from "@openclaw/model-catalog-core/provider-id";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveProviderEndpoint } from "./provider-attribution.js";
-import { findNormalizedProviderValue } from "./provider-id.js";
 
 export const CONTEXT_WINDOW_HARD_MIN_TOKENS = 4_000;
 export const CONTEXT_WINDOW_WARN_BELOW_TOKENS = 8_000;
@@ -23,8 +29,30 @@ function normalizePositiveInt(value: unknown): number | null {
   return int > 0 ? int : null;
 }
 
+function modelIdMatchesProviderScope(params: {
+  configuredId?: string;
+  provider: string;
+  modelId: string;
+}): boolean {
+  const configuredId = params.configuredId?.trim();
+  if (!configuredId) {
+    return false;
+  }
+  if (configuredId === params.modelId) {
+    return true;
+  }
+  const providerPrefix = params.provider ? `${params.provider}/` : "";
+  if (!providerPrefix) {
+    return false;
+  }
+  const stripProvider = (id: string) =>
+    id.startsWith(providerPrefix) ? id.slice(providerPrefix.length) : id;
+  return stripProvider(configuredId) === stripProvider(params.modelId);
+}
+
+/** Resolve the effective context window and source for one provider/model. */
 export function resolveContextWindowInfo(params: {
-  cfg: AstroclawConfig | undefined;
+  cfg: OpenClawConfig | undefined;
   provider: string;
   modelId: string;
   modelContextTokens?: number;
@@ -40,7 +68,13 @@ export function resolveContextWindowInfo(params: {
       | undefined;
     const providerEntry = findNormalizedProviderValue(providers, params.provider);
     const models = Array.isArray(providerEntry?.models) ? providerEntry.models : [];
-    const match = models.find((m) => m?.id === params.modelId);
+    const match = models.find((model) =>
+      modelIdMatchesProviderScope({
+        configuredId: model?.id,
+        provider: params.provider,
+        modelId: params.modelId,
+      }),
+    );
     return normalizePositiveInt(match?.contextTokens) ?? normalizePositiveInt(match?.contextWindow);
   })();
   const fromModel =
@@ -56,6 +90,7 @@ export function resolveContextWindowInfo(params: {
 
   const capTokens = normalizePositiveInt(params.cfg?.agents?.defaults?.contextTokens);
   if (capTokens && capTokens < baseInfo.tokens) {
+    // Agent defaults can intentionally cap a larger model context window.
     return { tokens: capTokens, referenceTokens: baseInfo.tokens, source: "agentContextTokens" };
   }
 
@@ -89,6 +124,7 @@ function resolveContextWindowGuardHint(params: {
   };
 }
 
+/** Derive warning/block floors from the resolved model context window. */
 export function resolveContextWindowGuardThresholds(
   contextWindowTokens: number,
 ): ContextWindowGuardThresholds {
@@ -105,6 +141,7 @@ export function resolveContextWindowGuardThresholds(
   };
 }
 
+/** Format a non-blocking low-context warning message. */
 export function formatContextWindowWarningMessage(params: {
   provider: string;
   modelId: string;
@@ -118,13 +155,13 @@ export function formatContextWindowWarningMessage(params: {
   }
   if (params.guard.source === "agentContextTokens") {
     return (
-      `${base}; Astroclaw is capped by agents.defaults.contextTokens, so raise that cap ` +
+      `${base}; OpenClaw is capped by agents.defaults.contextTokens, so raise that cap ` +
       `if you want to use more of the model context window`
     );
   }
   if (params.guard.source === "modelsConfig") {
     return (
-      `${base}; Astroclaw is using the configured model context limit for this model, ` +
+      `${base}; OpenClaw is using the configured model context limit for this model, ` +
       `so raise contextWindow/contextTokens if it is set too low`
     );
   }
@@ -134,6 +171,7 @@ export function formatContextWindowWarningMessage(params: {
   );
 }
 
+/** Format a blocking context-window guard message. */
 export function formatContextWindowBlockMessage(params: {
   guard: ContextWindowGuardResult;
   runtimeBaseUrl?: string | null;
@@ -146,21 +184,22 @@ export function formatContextWindowBlockMessage(params: {
     return base;
   }
   if (params.guard.source === "agentContextTokens") {
-    return `${base} Astroclaw is capped by agents.defaults.contextTokens. Raise that cap.`;
+    return `${base} OpenClaw is capped by agents.defaults.contextTokens. Raise that cap.`;
   }
   if (params.guard.source === "modelsConfig") {
     return (
-      `${base} Astroclaw is using the configured model context limit for this model. ` +
+      `${base} OpenClaw is using the configured model context limit for this model. ` +
       `Raise contextWindow/contextTokens or choose a larger model.`
     );
   }
   return (
     `${base} This looks like a local model endpoint. ` +
     `Raise the server/model context limit or choose a larger model. ` +
-    `Astroclaw local/self-hosted runs work best at ${params.guard.warnBelowTokens}+ tokens.`
+    `OpenClaw local/self-hosted runs work best at ${params.guard.warnBelowTokens}+ tokens.`
   );
 }
 
+/** Evaluate whether the resolved context window should warn or block. */
 export function evaluateContextWindowGuard(params: {
   info: ContextWindowInfo;
   warnBelowTokens?: number;
