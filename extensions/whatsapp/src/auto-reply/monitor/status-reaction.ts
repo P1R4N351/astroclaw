@@ -1,20 +1,22 @@
+// Whatsapp plugin module implements status reaction behavior.
 import {
   createStatusReactionController,
   shouldAckReactionForWhatsApp,
   type StatusReactionController,
-} from "astroclaw/plugin-sdk/channel-feedback";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/channel-feedback";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { getSenderIdentity } from "../../identity.js";
 import { resolveWhatsAppReactionLevel } from "../../reaction-level.js";
 import { sendReactionWhatsApp } from "../../send.js";
 import type { WebInboundMsg } from "../types.js";
+import { resolveWhatsAppAckEmoji } from "./ack-emoji.js";
 import { resolveGroupActivationFor } from "./group-activation.js";
 
 export type { StatusReactionController };
 
 export type WhatsAppStatusReactionParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   msg: WebInboundMsg;
   agentId: string;
   sessionKey: string;
@@ -44,7 +46,11 @@ export async function createWhatsAppStatusReactionController(
   }
 
   const ackConfig = params.cfg.channels?.whatsapp?.ackReaction;
-  const ackEmoji = (ackConfig?.emoji ?? "").trim();
+  const ackEmoji = resolveWhatsAppAckEmoji({
+    cfg: params.cfg,
+    agentId: params.agentId,
+    ackConfig,
+  });
   if (!ackEmoji) {
     return null;
   }
