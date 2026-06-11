@@ -1,5 +1,10 @@
-import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { SessionManager } from "@earendil-works/pi-coding-agent";
+/**
+ * Session transcript guard for tool-call/result consistency.
+ *
+ * Caps large tool results, repairs missing results, applies redaction, and emits transcript update events.
+ */
+import { resolveIntegerOption } from "@openclaw/normalization-core/number-coercion";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import {
   boundedJsonUtf8Bytes,
   firstEnumerableOwnKeys,
@@ -16,18 +21,20 @@ import type {
   PluginHookBeforeMessageWriteResult,
 } from "../plugins/types.js";
 import { emitSessionTranscriptUpdate } from "../sessions/transcript-events.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
-import { formatContextLimitTruncationNotice } from "./pi-embedded-runner/context-truncation-notice.js";
+import { isTranscriptOnlyOpenClawAssistantModel } from "../shared/transcript-only-openclaw-assistant.js";
+import { formatContextLimitTruncationNotice } from "./embedded-agent-runner/context-truncation-notice.js";
 import {
   DEFAULT_MAX_LIVE_TOOL_RESULT_CHARS,
   truncateToolResultMessage,
-} from "./pi-embedded-runner/tool-result-truncation.js";
+} from "./embedded-agent-runner/tool-result-truncation.js";
+import type { AgentMessage } from "./runtime/index.js";
 import {
   getRawSessionAppendMessage,
   setRawSessionAppendMessage,
 } from "./session-raw-append-message.js";
 import { createPendingToolCallState } from "./session-tool-result-state.js";
 import { makeMissingToolResult, sanitizeToolCallInputs } from "./session-transcript-repair.js";
+import type { SessionManager } from "./sessions/index.js";
 import { extractToolCallsFromAssistant, extractToolResultId } from "./tool-call-id.js";
 
 /**
@@ -46,13 +53,32 @@ function capToolResultSize(msg: AgentMessage, maxChars: number): AgentMessage {
 }
 
 function resolveMaxToolResultChars(opts?: { maxToolResultChars?: number }): number {
-  return Math.max(1, opts?.maxToolResultChars ?? DEFAULT_MAX_LIVE_TOOL_RESULT_CHARS);
+  return resolveIntegerOption(opts?.maxToolResultChars, DEFAULT_MAX_LIVE_TOOL_RESULT_CHARS, {
+    min: 1,
+  });
 }
 
 type UserAgentMessage = Extract<AgentMessage, { role: "user" }>;
+type CompactionAppendValidator = (entryId: string, appendedText: string) => boolean;
 
 function isUserAgentMessage(message: AgentMessage): message is UserAgentMessage {
   return message.role === "user";
+}
+
+function isExpectedCompactionAppend(entryId: string, appendedText: string): boolean {
+  const lines = appendedText
+    .trimEnd()
+    .split("\n")
+    .filter((line) => line.length > 0);
+  if (lines.length !== 1) {
+    return false;
+  }
+  try {
+    const entry = JSON.parse(lines[0]) as { type?: unknown; id?: unknown };
+    return entry.type === "compaction" && entry.id === entryId;
+  } catch {
+    return false;
+  }
 }
 
 type TranscriptSeqByEntryId = Map<string, number>;
@@ -111,7 +137,7 @@ const MAX_PERSISTED_DETAIL_SESSION_COUNT = 10;
 const MAX_PERSISTED_DETAIL_FALLBACK_STRING_CHARS = 200;
 const MAX_PERSISTED_DETAIL_REDACTION_LOOKAHEAD_CHARS = 1_024;
 const MAX_PERSISTED_DETAIL_BOUNDARY_OVERLAP_CHARS = 512;
-const PERSISTED_DETAIL_REDACTION_BOUNDARY = "\u0000ASTROCLAW_PERSISTED_DETAIL_BOUNDARY\u0000";
+const PERSISTED_DETAIL_REDACTION_BOUNDARY = "\u0000OPENCLAW_PERSISTED_DETAIL_BOUNDARY\u0000";
 const PARTIAL_STRUCTURED_SECRET_VALUE_RE =
   /(?:["']?(?:api[-_]?key|apikey|token|secret|password|passwd|access[-_]?token|accesstoken|refresh[-_]?token|refreshtoken|auth[-_]?token|authtoken|client[-_]?secret|clientsecret|app[-_]?secret|appsecret|card[-_]?number|cardnumber|cvc|cvv)["']?\s*[:=]\s*["']?)(?!\*{3})(?=[^\s"',}\]]{8,})/i;
 const PARTIAL_PRIVATE_KEY_BLOCK_RE =
@@ -142,7 +168,7 @@ function redactPersistedDetailString(
   const redactedPrefix =
     boundaryIndex >= 0
       ? redactedScan.slice(0, boundaryIndex)
-      : "[Astroclaw persisted detail redacted: boundary marker removed]";
+      : "[OpenClaw persisted detail redacted: boundary marker removed]";
   const safePrefixChars = Math.max(
     0,
     maxChars - Math.min(maxChars, MAX_PERSISTED_DETAIL_BOUNDARY_OVERLAP_CHARS),
@@ -151,10 +177,10 @@ function redactPersistedDetailString(
   const persistedPrefix =
     PARTIAL_STRUCTURED_SECRET_VALUE_RE.test(initialPersistedPrefix) ||
     PARTIAL_PRIVATE_KEY_BLOCK_RE.test(initialPersistedPrefix)
-      ? "[Astroclaw persisted detail redacted: partial secret span omitted]"
+      ? "[OpenClaw persisted detail redacted: partial secret span omitted]"
       : initialPersistedPrefix;
-  const boundaryNotice = "[Astroclaw persisted detail redacted: boundary overlap omitted]";
-  return `${persistedPrefix}${persistedPrefix ? "\n" : ""}${boundaryNotice}\n\n[Astroclaw persisted detail truncated: ${Math.max(
+  const boundaryNotice = "[OpenClaw persisted detail redacted: boundary overlap omitted]";
+  return `${persistedPrefix}${persistedPrefix ? "\n" : ""}${boundaryNotice}\n\n[OpenClaw persisted detail truncated: ${Math.max(
     0,
     value.length - maxChars,
   )} original chars omitted]`;
@@ -201,7 +227,7 @@ function redactPersistedDetailValue(
     return value;
   }
   if (depth >= 8) {
-    return "[Astroclaw persisted detail redacted: max depth exceeded]";
+    return "[OpenClaw persisted detail redacted: max depth exceeded]";
   }
   if (Array.isArray(value)) {
     let changed = false;
@@ -502,13 +528,13 @@ function normalizePersistedToolResultName(
   return toolResult;
 }
 
-function isTranscriptOnlyAstroclawAssistantMessage(message: AgentMessage): boolean {
+function isTranscriptOnlyOpenClawAssistantMessage(message: AgentMessage): boolean {
   if (!message || message.role !== "assistant") {
     return false;
   }
   const provider = normalizeOptionalString((message as { provider?: unknown }).provider) ?? "";
   const model = normalizeOptionalString((message as { model?: unknown }).model) ?? "";
-  return provider === "astroclaw" && (model === "delivery-mirror" || model === "gateway-injected");
+  return isTranscriptOnlyOpenClawAssistantModel(provider, model);
 }
 
 export { getRawSessionAppendMessage };
@@ -518,6 +544,8 @@ export function installSessionToolResultGuard(
   opts?: {
     /** Optional session key for transcript update broadcasts. */
     sessionKey?: string;
+    /** Optional agent id for selected-global transcript update broadcasts. */
+    agentId?: string;
     /**
      * Optional transform applied to any message before persistence.
      */
@@ -553,8 +581,17 @@ export function installSessionToolResultGuard(
     maxToolResultChars?: number;
     suppressNextUserMessagePersistence?: boolean;
     suppressTranscriptOnlyAssistantPersistence?: boolean;
+    suppressAssistantErrorPersistence?: boolean;
     onUserMessagePersisted?: (
       message: Extract<AgentMessage, { role: "user" }>,
+    ) => void | Promise<void>;
+    onMessagePersisted?: (message: AgentMessage) => void | Promise<void>;
+    withCompactionPersistence?: (
+      append: () => string,
+      validateAppend: CompactionAppendValidator,
+    ) => string;
+    onAssistantErrorMessagePersisted?: (
+      message: Extract<AgentMessage, { role: "assistant" }>,
     ) => void | Promise<void>;
   },
 ): {
@@ -594,6 +631,7 @@ export function installSessionToolResultGuard(
   ): { entryId: string; messageSeq?: number; sessionFile?: string | null } => {
     const parentEntryId = sessionManager.getLeafId();
     const entryId = originalAppend(message as never);
+    void opts?.onMessagePersisted?.(message);
     const sessionFile = getSessionFile();
     if (!sessionFile) {
       return { entryId, sessionFile };
@@ -609,6 +647,15 @@ export function installSessionToolResultGuard(
       }),
     };
   };
+  const originalAppendCompaction = sessionManager.appendCompaction.bind(sessionManager);
+  const guardedAppendCompaction = ((
+    ...args: Parameters<SessionManager["appendCompaction"]>
+  ): string => {
+    const append = () => originalAppendCompaction(...args);
+    return opts?.withCompactionPersistence
+      ? opts.withCompactionPersistence(append, isExpectedCompactionAppend)
+      : append();
+  }) as SessionManager["appendCompaction"];
 
   /**
    * Run the before_message_write hook. Returns the (possibly modified) message,
@@ -727,15 +774,22 @@ export function installSessionToolResultGuard(
     const transcriptOnlyAssistant =
       nextRole === "assistant" &&
       toolCalls.length === 0 &&
-      isTranscriptOnlyAstroclawAssistantMessage(nextMessage);
+      isTranscriptOnlyOpenClawAssistantMessage(nextMessage);
     if (
       !transcriptOnlyAssistant &&
       pendingState.shouldFlushBeforeNonToolResult(nextRole, toolCalls.length)
     ) {
       flushPendingToolResults();
     }
-    // If new tool calls arrive while older ones are pending, flush the old ones first.
-    if (pendingState.shouldFlushBeforeNewToolCalls(toolCalls.length)) {
+    // If synthetic results are disabled, a new assistant tool-call turn is a safe
+    // boundary to drop older pending ids. When synthetic results are enabled,
+    // do not synthesize here: parallel tool-result appends can still be racing
+    // this assistant append, and transcript repair can move late real results
+    // back into strict provider order before the next replay.
+    if (
+      !allowSyntheticToolResults &&
+      pendingState.shouldFlushBeforeNewToolCalls(toolCalls.length)
+    ) {
       flushPendingToolResults();
     }
 
@@ -748,6 +802,13 @@ export function installSessionToolResultGuard(
       finalRole === "assistant" &&
       toolCalls.length === 0 &&
       opts?.suppressTranscriptOnlyAssistantPersistence === true
+    ) {
+      return undefined;
+    }
+    if (
+      finalRole === "assistant" &&
+      opts?.suppressAssistantErrorPersistence === true &&
+      (finalMessage as { stopReason?: string }).stopReason === "error"
     ) {
       return undefined;
     }
@@ -764,6 +825,7 @@ export function installSessionToolResultGuard(
       emitSessionTranscriptUpdate({
         sessionFile,
         sessionKey: opts?.sessionKey,
+        ...(opts?.agentId ? { agentId: opts.agentId } : {}),
         message: finalMessage,
         messageId: typeof result === "string" ? result : undefined,
         ...(messageSeq !== undefined ? { messageSeq } : {}),
@@ -776,12 +838,21 @@ export function installSessionToolResultGuard(
     if (isUserAgentMessage(finalMessage)) {
       void opts?.onUserMessagePersisted?.(finalMessage);
     }
+    if (
+      finalRole === "assistant" &&
+      (finalMessage as { stopReason?: string }).stopReason === "error"
+    ) {
+      void opts?.onAssistantErrorMessagePersisted?.(
+        finalMessage as Extract<AgentMessage, { role: "assistant" }>,
+      );
+    }
 
     return result;
   };
 
   // Monkey-patch appendMessage with our guarded version.
   sessionManager.appendMessage = guardedAppend as SessionManager["appendMessage"];
+  sessionManager.appendCompaction = guardedAppendCompaction;
 
   return {
     flushPendingToolResults,
