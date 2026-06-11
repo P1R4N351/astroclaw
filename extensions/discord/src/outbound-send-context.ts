@@ -1,10 +1,11 @@
-import type { AstroclawConfig, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
-import { createReplyToFanout, type ReplyToResolution } from "astroclaw/plugin-sdk/outbound-runtime";
+// Discord plugin module implements outbound send context behavior.
+import { createReplyToFanout, type ReplyToResolution } from "openclaw/plugin-sdk/channel-outbound";
 import {
   resolveOutboundSendDep,
   type OutboundSendDeps,
-} from "astroclaw/plugin-sdk/outbound-send-deps";
-import { normalizeOptionalStringifiedId } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeOptionalStringifiedId } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { withDiscordDeliveryRetry } from "./delivery-retry.js";
 
 type DiscordSendRuntime = typeof import("./send.js");
@@ -52,7 +53,7 @@ export function resolveDiscordFormattingOptions(ctx: {
 }
 
 export async function createDiscordPayloadSendContext(ctx: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   to: string;
   accountId?: string | null;
   deps?: OutboundSendDeps;
