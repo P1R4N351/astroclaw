@@ -1,8 +1,9 @@
+// Line plugin module implements send receipt behavior.
 import {
   createMessageReceiptFromOutboundResults,
   type MessageReceipt,
   type MessageReceiptPartKind,
-} from "astroclaw/plugin-sdk/channel-message";
+} from "openclaw/plugin-sdk/channel-outbound";
 
 export function createLineSendReceipt(params: {
   messageId: string;
