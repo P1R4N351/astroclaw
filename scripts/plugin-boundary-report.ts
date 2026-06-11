@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+// Plugin Boundary Report script supports OpenClaw repository automation.
+import { spawnSync } from "node:child_process";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -23,7 +25,7 @@ const SKIPPED_DIRS = new Set([
 ]);
 const TEXT_FILE_PATTERN = /\.(?:[cm]?[jt]sx?|json|mdx?|ya?ml)$/u;
 const PLUGIN_SDK_SPECIFIER_PATTERN =
-  /\b(?:from\s*["']|import\s*\(\s*["']|require\s*\(\s*["']|vi\.(?:mock|doMock)\s*\(\s*["'])(astroclaw\/plugin-sdk\/([a-z0-9][a-z0-9-]*))["']/g;
+  /\b(?:from\s*["']|import\s*\(\s*["']|require\s*\(\s*["']|vi\.(?:mock|doMock)\s*\(\s*["'])(openclaw\/plugin-sdk\/([a-z0-9][a-z0-9-]*))["']/g;
 
 type CliOptions = {
   json: boolean;
@@ -148,10 +150,68 @@ function collectTextFiles(dir: string): string[] {
   return files;
 }
 
+function isExistingTextFile(file: string): boolean {
+  try {
+    return lstatSync(file).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function collectWorkspaceTextFiles(): string[] {
-  return SOURCE_ROOTS.flatMap((root) => collectTextFiles(resolve(REPO_ROOT, root))).toSorted(
-    (left, right) => relative(REPO_ROOT, left).localeCompare(relative(REPO_ROOT, right)),
+  const gitFiles = collectWorkspaceTextFilesFromGit();
+  return (
+    gitFiles ?? SOURCE_ROOTS.flatMap((root) => collectTextFiles(resolve(REPO_ROOT, root)))
+  ).toSorted((left, right) => relative(REPO_ROOT, left).localeCompare(relative(REPO_ROOT, right)));
+}
+
+function collectWorkspaceTextFilesFromGit(): string[] | null {
+  const result = spawnSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard", "--", ...SOURCE_ROOTS],
+    {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      maxBuffer: 32 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    },
   );
+  if (result.status !== 0) {
+    return null;
+  }
+  return result.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && TEXT_FILE_PATTERN.test(line))
+    .filter((line) => !line.split("/").some((part) => SKIPPED_DIRS.has(part)))
+    .map((line) => resolve(REPO_ROOT, line))
+    .filter(isExistingTextFile);
+}
+
+function collectWorkspaceTextFilesMatchingGit(pattern: string): string[] | null {
+  const result = spawnSync(
+    "git",
+    ["grep", "--untracked", "-l", "-E", pattern, "--", ...SOURCE_ROOTS],
+    {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      maxBuffer: 32 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    },
+  );
+  if (result.status === 1) {
+    return [];
+  }
+  if (result.status !== 0) {
+    return null;
+  }
+  return result.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && TEXT_FILE_PATTERN.test(line))
+    .filter((line) => !line.split("/").some((part) => SKIPPED_DIRS.has(part)))
+    .map((line) => resolve(REPO_ROOT, line))
+    .filter(isExistingTextFile);
 }
 
 function repoRelative(file: string): string {
@@ -164,6 +224,26 @@ function collectWorkspaceTextFileSources(): WorkspaceTextFile[] {
     relativeFile: repoRelative(file),
     source: readFileSync(file, "utf8"),
   }));
+}
+
+function collectSummaryWorkspaceTextFileSources(): WorkspaceTextFile[] {
+  const pluginSdkFiles = collectWorkspaceTextFilesMatchingGit(
+    String.raw`openclaw/plugin-sdk/[a-z0-9][a-z0-9-]*`,
+  );
+  if (!pluginSdkFiles) {
+    return collectWorkspaceTextFileSources();
+  }
+  const files = new Set(pluginSdkFiles);
+  for (const file of collectTextFiles(resolve(REPO_ROOT, "packages/memory-host-sdk/src"))) {
+    files.add(file);
+  }
+  return [...files]
+    .toSorted((left, right) => repoRelative(left).localeCompare(repoRelative(right)))
+    .map((file) => ({
+      file,
+      relativeFile: repoRelative(file),
+      source: readFileSync(file, "utf8"),
+    }));
 }
 
 function isDocsFile(file: string): boolean {
@@ -248,10 +328,10 @@ function extractCompatTokens(record: PluginCompatRecord): string[] {
         tokens.add(token);
       }
     }
-    for (const match of value.matchAll(/\bastroclaw\/[a-z0-9/-]+\b/g)) {
+    for (const match of value.matchAll(/\bopenclaw\/[a-z0-9/-]+\b/g)) {
       tokens.add(match[0]);
     }
-    for (const match of value.matchAll(/\bASTROCLAW_[A-Z0-9_]+\b/g)) {
+    for (const match of value.matchAll(/\bOPENCLAW_[A-Z0-9_]+\b/g)) {
       tokens.add(match[0]);
     }
     for (const match of value.matchAll(/\b[a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+\b/g)) {
@@ -444,7 +524,9 @@ function buildSummary(report: BoundaryReport, owner?: string): BoundaryReportSum
 }
 
 function buildReport(options: Pick<CliOptions, "owner" | "summary"> = {}): BoundaryReport {
-  const files = collectWorkspaceTextFileSources();
+  const files = options.summary
+    ? collectSummaryWorkspaceTextFileSources()
+    : collectWorkspaceTextFileSources();
   const pluginIds = collectBundledPluginIds();
   const compatRecords = collectCompatDebt(files, new Date(), {
     includeReferenceFiles: !options.summary,
