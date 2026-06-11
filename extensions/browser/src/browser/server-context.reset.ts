@@ -1,3 +1,6 @@
+/**
+ * Browser profile reset operations for local managed profiles.
+ */
 import fs from "node:fs";
 import type { ResolvedBrowserProfile } from "./config.js";
 import { BrowserResetUnsupportedError } from "./errors.js";
@@ -11,19 +14,20 @@ type ResetDeps = {
   getProfileState: () => ProfileRuntimeState;
   stopRunningBrowser: () => Promise<{ stopped: boolean }>;
   isHttpReachable: (timeoutMs?: number) => Promise<boolean>;
-  resolveAstroclawUserDataDir: (profileName: string) => string;
+  resolveOpenClawUserDataDir: (profileName: string) => string;
 };
 
 type ResetOps = {
   resetProfile: () => Promise<{ moved: boolean; from: string; to?: string }>;
 };
 
+/** Builds the reset-profile operation for one resolved browser profile. */
 export function createProfileResetOps({
   profile,
   getProfileState,
   stopRunningBrowser,
   isHttpReachable,
-  resolveAstroclawUserDataDir,
+  resolveOpenClawUserDataDir,
 }: ResetDeps): ResetOps {
   const capabilities = getBrowserProfileCapabilities(profile);
   const resetProfile = async () => {
@@ -33,7 +37,7 @@ export function createProfileResetOps({
       );
     }
 
-    const userDataDir = resolveAstroclawUserDataDir(profile.name);
+    const userDataDir = resolveOpenClawUserDataDir(profile.name);
     const profileState = getProfileState();
     profileState.managedLaunchFailure = undefined;
     profileState.ensureBrowserAvailable = null;
