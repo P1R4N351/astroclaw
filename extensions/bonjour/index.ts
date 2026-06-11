@@ -1,20 +1,25 @@
-import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+/**
+ * Bonjour gateway-discovery plugin entry. It advertises the local gateway over
+ * mDNS and lazily loads the ciao-based advertiser.
+ */
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 function formatBonjourInstanceName(displayName: string) {
   const trimmed = displayName.trim();
   if (!trimmed) {
-    return "Astroclaw";
+    return "OpenClaw";
   }
-  if (/astroclaw/i.test(trimmed)) {
+  if (/openclaw/i.test(trimmed)) {
     return trimmed;
   }
-  return `${trimmed} (Astroclaw)`;
+  return `${trimmed} (OpenClaw)`;
 }
 
+/** Plugin entry for Bonjour/mDNS gateway discovery. */
 export default definePluginEntry({
   id: "bonjour",
   name: "Bonjour Gateway Discovery",
-  description: "Advertise the local Astroclaw gateway over Bonjour/mDNS.",
+  description: "Advertise the local OpenClaw gateway over Bonjour/mDNS.",
   register(api) {
     api.registerGatewayDiscoveryService({
       id: "bonjour",
@@ -24,7 +29,7 @@ export default definePluginEntry({
           { registerUncaughtExceptionHandler, registerUnhandledRejectionHandler },
         ] = await Promise.all([
           import("./src/advertiser.js"),
-          import("astroclaw/plugin-sdk/runtime"),
+          import("openclaw/plugin-sdk/runtime"),
         ]);
         const advertiser = await startGatewayBonjourAdvertiser(
           {
@@ -32,6 +37,7 @@ export default definePluginEntry({
             gatewayPort: ctx.gatewayPort,
             gatewayTlsEnabled: ctx.gatewayTlsEnabled,
             gatewayTlsFingerprintSha256: ctx.gatewayTlsFingerprintSha256,
+            gatewayDirectReachable: ctx.gatewayDirectReachable,
             canvasPort: ctx.canvasPort,
             sshPort: ctx.sshPort,
             tailnetDns: ctx.tailnetDns,
