@@ -1,7 +1,9 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Gateway setup prompt shared constants.
+// Provides Tailscale copy and Control UI origin updates for CLI setup flows.
+import { isIpv6Address, parseCanonicalIpAddress } from "@openclaw/net-policy/ip";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { getTailnetHostname } from "../infra/tailscale.js";
-import { isIpv6Address, parseCanonicalIpAddress } from "../shared/net/ip.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 
 export const TAILSCALE_EXPOSURE_OPTIONS = [
   { value: "off", label: "Off", hint: "No Tailscale exposure" },
@@ -27,8 +29,8 @@ export const TAILSCALE_MISSING_BIN_NOTE_LINES = [
 
 export const TAILSCALE_DOCS_LINES = [
   "Docs:",
-  "https://docs.astroclaw.ai/gateway/tailscale",
-  "https://docs.astroclaw.ai/web",
+  "https://docs.openclaw.ai/gateway/tailscale",
+  "https://docs.openclaw.ai/web",
 ] as const;
 
 function normalizeTailnetHostForUrl(rawHost: string): string | null {
@@ -65,10 +67,10 @@ function appendAllowedOrigin(existing: string[] | undefined, origin: string): st
 }
 
 export async function maybeAddTailnetOriginToControlUiAllowedOrigins(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   tailscaleMode: string;
   tailscaleBin?: string | null;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   if (params.tailscaleMode !== "serve" && params.tailscaleMode !== "funnel") {
     return params.config;
   }
@@ -81,6 +83,8 @@ export async function maybeAddTailnetOriginToControlUiAllowedOrigins(params: {
 
   const existing = params.config.gateway?.controlUi?.allowedOrigins ?? [];
   const updatedOrigins = appendAllowedOrigin(existing, tsOrigin);
+  // Preserve all unrelated gateway/controlUi config while adding the derived
+  // tailnet origin, because setup writes partial gateway config objects.
   return {
     ...params.config,
     gateway: {
