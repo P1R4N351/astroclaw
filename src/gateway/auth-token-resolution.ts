@@ -1,4 +1,6 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Gateway auth token resolution applies explicit/config/SecretRef/env
+// precedence with caller-controlled env fallback behavior.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { trimToUndefined } from "./credentials.js";
 import {
@@ -6,11 +8,14 @@ import {
   type SecretInputUnresolvedReasonStyle,
 } from "./resolve-configured-secret-input-string.js";
 
+// Single-token resolver for local gateway auth consumers that need to know
+// whether the winning token came from explicit args, config, SecretRef, or env.
 type GatewayAuthTokenResolutionSource = "explicit" | "config" | "secretRef" | "env";
 type GatewayAuthTokenEnvFallback = "never" | "no-secret-ref" | "always";
 
+/** Resolves gateway.auth.token with configurable env fallback and SecretRef diagnostics. */
 export async function resolveGatewayAuthToken(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   explicitToken?: string;
   envFallback?: GatewayAuthTokenEnvFallback;
@@ -36,7 +41,7 @@ export async function resolveGatewayAuthToken(params: {
     defaults: params.cfg.secrets?.defaults,
   }).ref;
   const envFallback = params.envFallback ?? "always";
-  const envToken = trimToUndefined(params.env.ASTROCLAW_GATEWAY_TOKEN);
+  const envToken = trimToUndefined(params.env.OPENCLAW_GATEWAY_TOKEN);
 
   if (!tokenRef) {
     const configToken = trimToUndefined(tokenInput);
@@ -71,6 +76,8 @@ export async function resolveGatewayAuthToken(params: {
       secretRefConfigured: true,
     };
   }
+  // Env fallback after a configured SecretRef is intentionally opt-in so
+  // callers can fail closed when unresolved secrets should block startup.
   if (envFallback === "always" && envToken) {
     return {
       token: envToken,
