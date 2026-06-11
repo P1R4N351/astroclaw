@@ -1,4 +1,5 @@
-import type { OAuthCredential } from "astroclaw/plugin-sdk/provider-auth";
+// Google plugin module implements oauth behavior.
+import type { OAuthCredential } from "openclaw/plugin-sdk/provider-auth";
 import { clearCredentialsCache, extractGeminiCliCredentials } from "./oauth.credentials.js";
 import {
   buildAuthUrl,
@@ -42,10 +43,11 @@ export async function loginGeminiCliOAuth(
   }
 
   ctx.progress.update("Complete sign-in in browser...");
+  ctx.log(`\nOpen this URL in your browser:\n\n${authUrl}\n`);
   try {
     await ctx.openUrl(authUrl);
   } catch {
-    ctx.log(`\nOpen this URL in your browser:\n\n${authUrl}\n`);
+    // The URL is already visible; browser launch is best-effort.
   }
 
   try {
