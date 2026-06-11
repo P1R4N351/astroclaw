@@ -1,3 +1,4 @@
+// Discord plugin module implements native command arg ui behavior.
 import { ButtonStyle } from "discord-api-types/v10";
 import {
   buildCommandTextFromArgs,
@@ -9,8 +10,8 @@ import {
   type CommandArgDefinition,
   type CommandArgValues,
   type CommandArgs,
-} from "astroclaw/plugin-sdk/command-auth-native";
-import { chunkItems } from "astroclaw/plugin-sdk/text-chunking";
+} from "openclaw/plugin-sdk/command-auth-native";
+import { chunkItems } from "openclaw/plugin-sdk/text-chunking";
 import {
   Button,
   Row,
@@ -109,7 +110,7 @@ export async function handleDiscordCommandArgInteraction(params: {
     await clearWithMessage("Sorry, that command is no longer available.");
     return;
   }
-  const argUpdateResult = await clearWithMessage(`✅ Selected ${parsed.value}.`);
+  const argUpdateResult = await clearWithMessage(`⏳ Applying ${parsed.value}...`);
   if (argUpdateResult === null) {
     return;
   }
