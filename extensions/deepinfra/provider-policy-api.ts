@@ -1,4 +1,5 @@
-import type { ModelProviderConfig } from "astroclaw/plugin-sdk/provider-model-types";
+// Deepinfra API module exposes the plugin public contract.
+import type { ModelProviderConfig } from "openclaw/plugin-sdk/provider-model-types";
 
 /**
  * Passthrough normalization for DeepInfra provider config.
