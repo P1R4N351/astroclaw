@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Audits repo ownership seams, optional plugin leaks, and nearby test coverage signals.
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -125,7 +126,7 @@ async function walkAllCodeFiles(rootDir, options = {}) {
   const includeTests = options.includeTests === true;
 
   async function walk(dir) {
-    let entries = [];
+    let entries;
     try {
       entries = await fs.readdir(dir, { withFileTypes: true });
     } catch {
@@ -420,7 +421,7 @@ function packageClusterMeta(relativePackagePath) {
   if (relativePackagePath === "ui/package.json") {
     return {
       cluster: "ui",
-      packageName: "astroclaw-control-ui",
+      packageName: "openclaw-control-ui",
       packagePath: relativePackagePath,
       reachability: "workspace-ui",
     };
@@ -503,7 +504,7 @@ async function buildMissingPackages(params = {}) {
       continue;
     }
     const missing = Object.keys(pkg.dependencies ?? {})
-      .filter((dep) => dep !== "astroclaw" && !rootDeps.has(dep))
+      .filter((dep) => dep !== "openclaw" && !rootDeps.has(dep))
       .toSorted(compareStrings);
     if (missing.length === 0) {
       continue;
@@ -523,7 +524,7 @@ async function buildMissingPackages(params = {}) {
       decisionReason: classification.reason,
       packageName: pkg.name ?? meta.packageName,
       packagePath: relativePackagePath,
-      npmSpec: redactNpmSpec(pkg.astroclaw?.install?.npmSpec),
+      npmSpec: redactNpmSpec(pkg.openclaw?.install?.npmSpec),
       private: pkg.private === true,
       pluginSdkReachability:
         pluginSdkEntries.length > 0 ? { staticEntryPoints: pluginSdkEntries } : undefined,
@@ -584,7 +585,7 @@ function describeCronSeamKinds(relativePath, source) {
   const seamKinds = [];
   const importsAgentRunner = hasAnyImportSource(source, [
     "../../agents/cli-runner.js",
-    "../../agents/pi-embedded.js",
+    "../../agents/embedded-agent.js",
     "../../agents/model-fallback.js",
     "../../agents/subagent-registry.js",
     "../../infra/agent-events.js",
@@ -625,7 +626,7 @@ function describeCronSeamKinds(relativePath, source) {
 
   if (
     importsAgentRunner &&
-    /\brunCliAgent\b|\brunEmbeddedPiAgent\b|\brunWithModelFallback\b|\bregisterAgentRunContext\b/.test(
+    /\brunCliAgent\b|\brunEmbeddedAgent\b|\brunWithModelFallback\b|\bregisterAgentRunContext\b/.test(
       source,
     )
   ) {
@@ -746,7 +747,7 @@ function describeSubagentSeamKinds(relativePath, source) {
 
   if (
     (importsAnnounceDelivery || isAnnounceDispatchPath) &&
-    /\brunSubagentAnnounceFlow\b|\brunSubagentAnnounceDispatch\b|\benqueueAnnounce\b|\bcreateBoundDeliveryRouter\b|\bqueueEmbeddedPiMessage\b|\bwaitForEmbeddedPiRunEnd\b|\bqueue-fallback\b|\bdirect-primary\b/.test(
+    /\brunSubagentAnnounceFlow\b|\brunSubagentAnnounceDispatch\b|\benqueueAnnounce\b|\bcreateBoundDeliveryRouter\b|\bqueueEmbeddedAgentMessage\b|\bwaitForEmbeddedAgentRunEnd\b|\bqueue-fallback\b|\bdirect-primary\b/.test(
       source,
     )
   ) {
