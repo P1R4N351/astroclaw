@@ -1,7 +1,8 @@
+// Moonshot setup module handles plugin onboarding behavior.
 import {
   createDefaultModelPresetAppliers,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildMoonshotProvider,
   MOONSHOT_BASE_URL,
@@ -12,7 +13,7 @@ export const MOONSHOT_DEFAULT_MODEL_REF = `moonshot/${MOONSHOT_DEFAULT_MODEL_ID}
 
 const moonshotPresetAppliers = createDefaultModelPresetAppliers<[string]>({
   primaryModelRef: MOONSHOT_DEFAULT_MODEL_REF,
-  resolveParams: (_cfg: AstroclawConfig, baseUrl: string) => {
+  resolveParams: (_cfg: OpenClawConfig, baseUrl: string) => {
     const defaultModel = buildMoonshotProvider().models[0];
     if (!defaultModel) {
       return null;
@@ -29,10 +30,10 @@ const moonshotPresetAppliers = createDefaultModelPresetAppliers<[string]>({
   },
 });
 
-export function applyMoonshotConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyMoonshotConfig(cfg: OpenClawConfig): OpenClawConfig {
   return moonshotPresetAppliers.applyConfig(cfg, MOONSHOT_BASE_URL);
 }
 
-export function applyMoonshotConfigCn(cfg: AstroclawConfig): AstroclawConfig {
+export function applyMoonshotConfigCn(cfg: OpenClawConfig): OpenClawConfig {
   return moonshotPresetAppliers.applyConfig(cfg, MOONSHOT_CN_BASE_URL);
 }
