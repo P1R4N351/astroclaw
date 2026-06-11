@@ -1,16 +1,21 @@
+/**
+ * Codex-backed media understanding provider for bounded image description and
+ * structured extraction turns.
+ */
 import {
   type JsonSchemaObject,
   validateJsonSchemaValue,
-} from "astroclaw/plugin-sdk/json-schema-runtime";
-import {
-  type ImagesDescriptionRequest,
-  type ImagesDescriptionResult,
-  type MediaUnderstandingProvider,
-  type StructuredExtractionRequest,
-  type StructuredExtractionResult,
-} from "astroclaw/plugin-sdk/media-understanding";
+} from "openclaw/plugin-sdk/json-schema-runtime";
+import type {
+  ImagesDescriptionRequest,
+  ImagesDescriptionResult,
+  MediaUnderstandingProvider,
+  StructuredExtractionRequest,
+  StructuredExtractionResult,
+} from "openclaw/plugin-sdk/media-understanding";
+import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
 import { CODEX_PROVIDER_ID, FALLBACK_CODEX_MODELS } from "./provider-catalog.js";
-import { type CodexAppServerClientFactory } from "./src/app-server/client-factory.js";
+import type { CodexAppServerClientFactory } from "./src/app-server/client-factory.js";
 import type { CodexAppServerClient } from "./src/app-server/client.js";
 import { resolveCodexAppServerRuntimeOptions } from "./src/app-server/config.js";
 import { readModelListResult } from "./src/app-server/models.js";
@@ -31,17 +36,23 @@ import {
   type JsonObject,
   type JsonValue,
 } from "./src/app-server/protocol.js";
+import { buildCodexRuntimeThreadConfig } from "./src/app-server/thread-lifecycle.js";
 
 const DEFAULT_CODEX_IMAGE_MODEL =
   FALLBACK_CODEX_MODELS.find((model) => model.inputModalities.includes("image"))?.id ??
   FALLBACK_CODEX_MODELS[0]?.id;
 const DEFAULT_CODEX_IMAGE_PROMPT = "Describe the image.";
 
+/** Dependencies and plugin config for Codex media-understanding calls. */
 export type CodexMediaUnderstandingProviderOptions = {
   pluginConfig?: unknown;
   clientFactory?: CodexAppServerClientFactory;
 };
 
+/**
+ * Builds the media-understanding provider that delegates image tasks to an
+ * isolated Codex app-server session.
+ */
 export function buildCodexMediaUnderstandingProvider(
   options: CodexMediaUnderstandingProviderOptions = {},
 ): MediaUnderstandingProvider {
@@ -94,7 +105,7 @@ async function describeCodexImages(
     options,
     taskLabel: "image understanding",
     developerInstructions:
-      "You are Astroclaw's bounded image-understanding worker. Describe only the provided image content. Do not call tools, edit files, or ask follow-up questions.",
+      "You are OpenClaw's bounded image-understanding worker. Describe only the provided image content. Do not call tools, edit files, or ask follow-up questions.",
     input: [
       { type: "text", text: buildCodexImagePrompt(req), text_elements: [] },
       ...req.images.map((image) => ({
@@ -123,8 +134,10 @@ async function runBoundedCodexVisionTurn(params: BoundedCodexVisionTurnParams): 
   const appServer = resolveCodexAppServerRuntimeOptions({
     pluginConfig: params.options.pluginConfig,
   });
-  const timeoutMs = Math.max(100, params.timeoutMs);
+  const timeoutMs = resolveTimerTimeoutMs(params.timeoutMs, 100, 100);
   const ownsClient = !params.options.clientFactory;
+  // Tests inject a client factory; production creates an isolated app-server
+  // client so media tasks cannot reuse the interactive attempt session.
   const client = params.options.clientFactory
     ? await params.options.clientFactory(appServer.start, params.profile)
     : await import("./src/app-server/shared-client.js").then(
@@ -156,8 +169,12 @@ async function runBoundedCodexVisionTurn(params: BoundedCodexVisionTurnParams): 
           cwd: params.agentDir || process.cwd(),
           approvalPolicy: "on-request",
           sandbox: "read-only",
-          serviceName: "Astroclaw",
+          serviceName: "OpenClaw",
           developerInstructions: params.developerInstructions,
+          // Media workers are bounded read-only turns; native code mode and
+          // dynamic tools stay disabled to avoid side effects while inspecting media.
+          config: buildCodexRuntimeThreadConfig(undefined, { nativeCodeModeEnabled: false }),
+          environments: [],
           dynamicTools: [],
           experimentalRawEvents: true,
           persistExtendedHistory: false,
@@ -228,7 +245,7 @@ async function extractCodexStructured(
     options,
     taskLabel: "structured extraction",
     developerInstructions:
-      "You are Astroclaw's bounded structured-extraction worker. Return only the requested extraction. Do not call tools, edit files, ask follow-up questions, or include secrets.",
+      "You are OpenClaw's bounded structured-extraction worker. Return only the requested extraction. Do not call tools, edit files, ask follow-up questions, or include secrets.",
     input: buildCodexStructuredInput(req),
     requiredModalities: requiredStructuredModalities(),
   });
@@ -242,7 +259,7 @@ function denyCodexImageApprovalRequest(request: { method: string }): JsonValue |
   ) {
     return {
       decision: "decline",
-      reason: "Astroclaw Codex image understanding does not grant tool or file approvals.",
+      reason: "OpenClaw Codex image understanding does not grant tool or file approvals.",
     };
   }
   if (request.method === "item/permissions/requestApproval") {
@@ -251,7 +268,7 @@ function denyCodexImageApprovalRequest(request: { method: string }): JsonValue |
   if (request.method.includes("requestApproval")) {
     return {
       decision: "decline",
-      reason: "Astroclaw Codex image understanding does not grant native approvals.",
+      reason: "OpenClaw Codex image understanding does not grant native approvals.",
     };
   }
   if (request.method === "mcpServer/elicitation/request") {
