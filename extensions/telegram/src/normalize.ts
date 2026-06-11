@@ -1,4 +1,5 @@
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Telegram helper module supports normalize behavior.
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { normalizeTelegramLookupTarget, parseTelegramTarget } from "./targets.js";
 
 const TELEGRAM_PREFIX_RE = /^(telegram|tg):/i;
