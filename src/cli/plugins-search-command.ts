@@ -1,3 +1,6 @@
+// ClawHub-backed plugin search command; queries installable plugin families and merges scores.
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+import { theme } from "../../packages/terminal-core/src/theme.js";
 import {
   searchClawHubPackages,
   type ClawHubPackageFamily,
@@ -5,9 +8,8 @@ import {
 } from "../infra/clawhub.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { defaultRuntime, writeRuntimeJson, type RuntimeEnv } from "../runtime.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
-import { theme } from "../terminal/theme.js";
 
+/** Options accepted by `openclaw plugins search`. */
 export type PluginsSearchOptions = {
   json?: boolean;
   limit?: number;
@@ -63,9 +65,10 @@ function formatPackageSearchLine(entry: ClawHubPackageSearchResult): string {
     pkg.latestVersion ? `v${pkg.latestVersion}` : undefined,
   ].filter(Boolean);
   const summary = pkg.summary ? theme.muted(` — ${pkg.summary}`) : "";
-  return `${pkg.name}  ${theme.muted(flags.join(" | "))}${summary}\n  ${theme.muted(`Install: astroclaw plugins install clawhub:${pkg.name}`)}`;
+  return `${pkg.name}  ${theme.muted(flags.join(" | "))}${summary}\n  ${theme.muted(`Install: openclaw plugins install clawhub:${pkg.name}`)}`;
 }
 
+/** Search ClawHub for installable plugins and write JSON or terminal output. */
 export async function runPluginsSearchCommand(
   queryParts: string[] | string,
   opts: PluginsSearchOptions = {},
@@ -75,7 +78,7 @@ export async function runPluginsSearchCommand(
     Array.isArray(queryParts) ? queryParts.join(" ") : queryParts,
   );
   if (!query) {
-    runtime.error("Usage: astroclaw plugins search <query>");
+    runtime.error("Usage: openclaw plugins search <query>");
     return runtime.exit(1);
   }
 
