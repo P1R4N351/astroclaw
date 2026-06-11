@@ -1,4 +1,5 @@
-import type { ChannelStructuredComponents } from "astroclaw/plugin-sdk/channel-contract";
+// Discord plugin module implements interactive dispatch behavior.
+import type { ChannelStructuredComponents } from "openclaw/plugin-sdk/channel-contract";
 import {
   createInteractiveConversationBindingHelpers,
   dispatchPluginInteractiveHandler,
@@ -6,7 +7,7 @@ import {
   type PluginConversationBindingRequestParams,
   type PluginConversationBindingRequestResult,
   type PluginInteractiveRegistration,
-} from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/plugin-runtime";
 
 export type DiscordInteractiveHandlerContext = {
   channel: "discord";
