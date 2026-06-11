@@ -1,11 +1,12 @@
+// Zalouser plugin module implements status issues behavior.
 import type {
   ChannelAccountSnapshot,
   ChannelStatusIssue,
-} from "astroclaw/plugin-sdk/channel-contract";
+} from "openclaw/plugin-sdk/channel-contract";
 import {
   coerceStatusIssueAccountId,
   readStatusIssueFields,
-} from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/extension-shared";
 
 const ZALOUSER_STATUS_FIELDS = [
   "accountId",
@@ -38,7 +39,7 @@ export function collectZalouserStatusIssues(
         accountId,
         kind: "auth",
         message: "Not authenticated (no saved Zalo session).",
-        fix: "Run: astroclaw channels login --channel zalouser",
+        fix: "Run: openclaw channels login --channel zalouser",
       });
       continue;
     }
