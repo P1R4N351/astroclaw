@@ -1,17 +1,18 @@
+// Discord plugin module implements send.outbound behavior.
 import { ChannelType } from "discord-api-types/v10";
-import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
-import type { MarkdownTableMode, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
-import type { OutboundMediaAccess, PollInput } from "astroclaw/plugin-sdk/media-runtime";
-import { requireRuntimeConfig } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import { resolveChunkMode, type ChunkMode } from "astroclaw/plugin-sdk/reply-chunking";
-import type { RetryConfig } from "astroclaw/plugin-sdk/retry-runtime";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { convertMarkdownTables } from "astroclaw/plugin-sdk/text-chunking";
+import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
+import type { MarkdownTableMode, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
+import type { OutboundMediaAccess, PollInput } from "openclaw/plugin-sdk/media-runtime";
+import { requireRuntimeConfig } from "openclaw/plugin-sdk/plugin-config-runtime";
+import { resolveChunkMode, type ChunkMode } from "openclaw/plugin-sdk/reply-chunking";
+import type { RetryConfig } from "openclaw/plugin-sdk/retry-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { convertMarkdownTables } from "openclaw/plugin-sdk/text-chunking";
 import { resolveDiscordAccount } from "./accounts.js";
 import { createChannelMessage, createThread, type RequestClient } from "./internal/discord.js";
 import { rewriteDiscordKnownMentions } from "./mentions.js";
-import { parseAndResolveRecipient } from "./recipient-resolution.js";
+import { parseAndResolveChannelRecipient } from "./recipient-resolution.js";
 import { createDiscordSendResult, type DiscordReceiptResultSource } from "./send.receipt.js";
 import {
   buildDiscordMessageRequest,
@@ -32,7 +33,7 @@ import {
 } from "./send.shared.js";
 import type { DiscordSendResult } from "./send.types.js";
 type DiscordSendOpts = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   token?: string;
   accountId?: string;
   mediaUrl?: string;
@@ -140,7 +141,7 @@ async function resolveDiscordSendTarget(
 ): Promise<{ rest: RequestClient; request: DiscordClientRequest; channelId: string }> {
   const cfg = requireRuntimeConfig(opts.cfg, "Discord send target resolution");
   const { rest, request } = createDiscordClient({ ...opts, cfg });
-  const recipient = await parseAndResolveRecipient(to, cfg, opts.accountId);
+  const recipient = await parseAndResolveChannelRecipient(to, cfg, opts.accountId);
   const { channelId } = await resolveChannelId(rest, recipient, request);
   return { rest, request, channelId };
 }
@@ -181,7 +182,7 @@ export async function sendMessageDiscord(
     mentionAliases: accountInfo.config.mentionAliases,
   });
   const { token, rest, request } = createDiscordClient({ ...opts, cfg });
-  const recipient = await parseAndResolveRecipient(to, cfg, opts.accountId);
+  const recipient = await parseAndResolveChannelRecipient(to, cfg, opts.accountId);
   const { channelId } = await resolveChannelId(rest, recipient, request);
 
   // Forum/Media channels reject POST /messages; auto-create a thread post instead.
