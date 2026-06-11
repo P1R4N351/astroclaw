@@ -1,6 +1,9 @@
+// Channel setup status helpers format channel setup progress and docs links.
+import { formatDocsLink } from "../../packages/terminal-core/src/links.js";
+import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { listChatChannels } from "../channels/chat-meta.js";
-import { listChannelPluginCatalogEntries } from "../channels/plugins/catalog.js";
+import type { ChannelPluginCatalogEntry } from "../channels/plugins/catalog.js";
 import { listChannelSetupPlugins } from "../channels/plugins/setup-registry.js";
 import type { ChannelSetupPlugin } from "../channels/plugins/setup-wizard-types.js";
 import type { ChannelMeta } from "../channels/plugins/types.core.js";
@@ -16,22 +19,20 @@ import type {
 } from "../commands/channel-setup/types.js";
 import type { ChannelChoice } from "../commands/onboard-types.js";
 import { isChannelConfigured } from "../config/channel-configured.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   findBundledPluginSourceInMap,
   resolveBundledPluginSources,
   type BundledPluginSource,
 } from "../plugins/bundled-sources.js";
-import { formatDocsLink } from "../terminal/links.js";
-import { sanitizeTerminalText } from "../terminal/safe-text.js";
 import { t, wizardT } from "../wizard/i18n/index.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { FlowContribution } from "./types.js";
 
 type ChannelStatusSummary = {
   installedPlugins: ChannelSetupPlugin[];
-  catalogEntries: ReturnType<typeof listChannelPluginCatalogEntries>;
-  installedCatalogEntries: ReturnType<typeof listChannelPluginCatalogEntries>;
+  catalogEntries: ChannelPluginCatalogEntry[];
+  installedCatalogEntries: ChannelPluginCatalogEntry[];
   statusByChannel: Map<ChannelChoice, ChannelSetupStatus>;
   statusLines: string[];
 };
@@ -336,7 +337,7 @@ export function findBundledSourceForCatalogChannel(params: {
 }
 
 export async function collectChannelStatus(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   options?: SetupChannelsOptions;
   accountOverrides: Partial<Record<ChannelChoice, string>>;
   installedPlugins?: ChannelSetupPlugin[];
@@ -442,7 +443,7 @@ export async function collectChannelStatus(params: {
 }
 
 export async function noteChannelStatus(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
   options?: SetupChannelsOptions;
   accountOverrides?: Partial<Record<ChannelChoice, string>>;
@@ -480,11 +481,11 @@ export async function noteChannelPrimer(
     [
       t("wizard.channelsPrimer.inboundSafety"),
       t("wizard.channelsPrimer.approveWith", {
-        command: formatCliCommand("astroclaw pairing approve <channel> <code>"),
+        command: formatCliCommand("openclaw pairing approve <channel> <code>"),
       }),
       t("wizard.channelsPrimer.openDm"),
       t("wizard.channelsPrimer.multiUserDm", {
-        command: formatCliCommand('astroclaw config set session.dmScope "per-channel-peer"'),
+        command: formatCliCommand('openclaw config set session.dmScope "per-channel-peer"'),
       }),
       t("wizard.channelsPrimer.docs", {
         link: formatDocsLink("/channels/pairing", "channels/pairing"),
@@ -512,7 +513,7 @@ export function resolveQuickstartDefault(
 }
 
 export function resolveChannelSelectionNoteLines(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   installedPlugins: ChannelSetupPlugin[];
   selection: ChannelChoice[];
 }): string[] {
