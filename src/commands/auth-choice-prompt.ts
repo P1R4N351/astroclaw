@@ -1,5 +1,6 @@
+// Interactive grouped auth-choice prompt used by onboarding and agent setup.
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { WizardPrompter, WizardSelectOption } from "../wizard/prompts.js";
 import { buildAuthChoiceGroups, compareAuthChoiceGroups } from "./auth-choice-options.js";
 import type { AuthChoiceGroup } from "./auth-choice-options.static.js";
@@ -18,11 +19,12 @@ function groupToOption(group: AuthChoiceGroup): WizardSelectOption {
   return { value: group.value, label: group.label, hint: group.hint };
 }
 
+/** Prompt for a provider group and auth method, with fallback flat selection when needed. */
 export async function promptAuthChoiceGrouped(params: {
   prompter: WizardPrompter;
   store: AuthProfileStore;
   includeSkip: boolean;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): Promise<AuthChoice> {
