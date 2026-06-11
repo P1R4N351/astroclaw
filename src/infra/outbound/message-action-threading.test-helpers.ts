@@ -1,8 +1,10 @@
+// Shared threading test helpers build small tool contexts and auto-thread
+// resolvers without importing delivery runtime.
 import { vi } from "vitest";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 
 type AutoThreadResolver = (params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   to: string;
   toolContext?: Record<string, unknown>;
@@ -10,13 +12,14 @@ type AutoThreadResolver = (params: {
 }) => string | undefined;
 
 type OutboundThreadContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   to: string;
   accountId?: string | null;
   toolContext?: Record<string, unknown>;
   resolveAutoThreadId?: AutoThreadResolver;
 };
 
+// Mutate actionParams like the real outbound path so tests assert forwarded thread ids.
 function resolveOutboundThreadId(
   actionParams: Record<string, unknown>,
   context: OutboundThreadContext,
@@ -38,6 +41,7 @@ function resolveOutboundThreadId(
   return resolved ?? undefined;
 }
 
+/** Creates mocks for reply/thread resolution used by outbound message action tests. */
 export function createOutboundThreadingMock() {
   const resolveOutboundReplyToId = vi.fn(
     (
@@ -127,7 +131,7 @@ export function createOutboundThreadingMock() {
         resolveAutoThreadId,
       }: {
         actionParams: Record<string, unknown>;
-        cfg: AstroclawConfig;
+        cfg: OpenClawConfig;
         to: string;
         accountId?: string | null;
         toolContext?: Record<string, unknown>;
@@ -142,7 +146,7 @@ export function createOutboundThreadingMock() {
           resolveAutoThreadId,
         });
         if (agentId) {
-          actionParams.__agentId = agentId;
+          actionParams["__agentId"] = agentId;
         }
         return {
           resolvedThreadId,
