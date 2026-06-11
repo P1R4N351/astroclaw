@@ -1,10 +1,18 @@
-import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
+/**
+ * Core channel plugin public types.
+ *
+ * Defines channel metadata, capabilities, action discovery, setup, status, and runtime contexts.
+ */
 import type { TSchema } from "typebox";
+import type {
+  GatewayClientMode,
+  GatewayClientName,
+} from "../../../packages/gateway-protocol/src/client-info.js";
+import type { AgentTool, AgentToolResult } from "../../agents/runtime/index.js";
 import type { ReplyPayload } from "../../auto-reply/reply-payload.js";
 import type { MsgContext } from "../../auto-reply/templating.js";
 import type { MarkdownTableMode } from "../../config/types.base.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
-import type { GatewayClientMode, GatewayClientName } from "../../gateway/protocol/client-info.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { MessagePresentation } from "../../interactive/payload.js";
 import type { OutboundMediaAccess } from "../../media/load-options.js";
 import type { PollInput } from "../../polls.js";
@@ -15,6 +23,7 @@ import type { ChannelMessageActionName as ChannelMessageActionNameFromList } fro
 import type { ChannelMessageCapability } from "./message-capabilities.js";
 
 export type { ChannelId } from "./channel-id.types.js";
+export type { ChannelLegacyStateMigrationPlan } from "./legacy-state-migration.types.js";
 
 export type ChannelExposure = {
   configured?: boolean;
@@ -25,12 +34,10 @@ export type ChannelExposure = {
 export type ChannelOutboundTargetMode = "explicit" | "implicit" | "heartbeat";
 
 /** Agent tool registered by a channel plugin. */
-export type ChannelAgentTool = AgentTool<TSchema, unknown> & {
-  ownerOnly?: boolean;
-};
+export type ChannelAgentTool = AgentTool;
 
 /** Lazy agent-tool factory used when tool availability depends on config. */
-export type ChannelAgentToolFactory = (params: { cfg?: AstroclawConfig }) => ChannelAgentTool[];
+export type ChannelAgentToolFactory = (params: { cfg?: OpenClawConfig }) => ChannelAgentTool[];
 
 /**
  * Discovery-time inputs passed to channel action adapters when the core is
@@ -39,7 +46,7 @@ export type ChannelAgentToolFactory = (params: { cfg?: AstroclawConfig }) => Cha
  * tool params or runtime handles.
  */
 export type ChannelMessageActionDiscoveryContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   currentChannelId?: string | null;
   currentChannelProvider?: string | null;
   currentThreadTs?: string | null;
@@ -153,13 +160,6 @@ export type ChannelHeartbeatDeps = {
   hasActiveWebListener?: (accountId?: string) => boolean;
 };
 
-export type ChannelLegacyStateMigrationPlan = {
-  kind: "copy" | "move";
-  label: string;
-  sourcePath: string;
-  targetPath: string;
-};
-
 /** User-facing metadata used in docs, pickers, and setup surfaces. */
 export type ChannelMeta = {
   id: ChannelId;
@@ -261,7 +261,7 @@ export type ChannelLogSink = {
 };
 
 export type ChannelGroupContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   groupId?: string | null;
   /** Human label for channel-like group conversations (e.g. #general). */
   groupChannel?: string | null;
@@ -328,7 +328,7 @@ export type ChannelSecurityDmPolicy = {
 };
 
 export type ChannelSecurityContext<ResolvedAccount = unknown> = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   account: ResolvedAccount;
 };
@@ -336,18 +336,18 @@ export type ChannelSecurityContext<ResolvedAccount = unknown> = {
 export type ChannelMentionAdapter = {
   stripRegexes?: (params: {
     ctx: MsgContext;
-    cfg: AstroclawConfig | undefined;
+    cfg: OpenClawConfig | undefined;
     agentId?: string;
   }) => RegExp[];
   stripPatterns?: (params: {
     ctx: MsgContext;
-    cfg: AstroclawConfig | undefined;
+    cfg: OpenClawConfig | undefined;
     agentId?: string;
   }) => string[];
   stripMentions?: (params: {
     text: string;
     ctx: MsgContext;
-    cfg: AstroclawConfig | undefined;
+    cfg: OpenClawConfig | undefined;
     agentId?: string;
   }) => string;
 };
@@ -366,7 +366,7 @@ export type ChannelStructuredComponents = unknown[];
 export type ChannelCrossContextPresentationFactory = (params: {
   originLabel: string;
   message: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }) => MessagePresentation;
 
@@ -397,7 +397,7 @@ export type ChannelOutboundSessionRoute = {
 
 export type ChannelThreadingAdapter = {
   resolveReplyToMode?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
     chatType?: string | null;
   }) => "off" | "first" | "all" | "batched";
@@ -415,13 +415,13 @@ export type ChannelThreadingAdapter = {
    */
   allowTagsWhenOff?: boolean;
   buildToolContext?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
     context: ChannelThreadingContext;
     hasRepliedRef?: { value: boolean };
   }) => ChannelThreadingToolContext | undefined;
   resolveAutoThreadId?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
     to: string;
     toolContext?: ChannelThreadingToolContext;
@@ -432,13 +432,13 @@ export type ChannelThreadingAdapter = {
     threadId?: string | number | null;
   }) => string | undefined;
   resolveReplyTransport?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
     threadId?: string | number | null;
     replyToId?: string | null;
   }) => ChannelReplyTransport | null;
   resolveFocusedBinding?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
     context: ChannelThreadingContext;
   }) => ChannelFocusedBindingContext | null;
@@ -467,6 +467,8 @@ export type ChannelThreadingToolContext = {
   currentMessageId?: string | number;
   replyToMode?: "off" | "first" | "all" | "batched";
   hasRepliedRef?: { value: boolean };
+  /** True when posting at the parent conversation root would leak a thread-originated reply. */
+  sameChannelThreadRequired?: boolean;
   /**
    * When true, skip cross-context decoration (e.g., "[from X]" prefix).
    * Use this for direct tool invocations where the agent is composing a new message,
@@ -502,11 +504,11 @@ export type ChannelMessagingAdapter = {
     chatType: "group" | "channel";
   } | null;
   resolveInboundAttachmentRoots?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
   }) => string[];
   resolveRemoteInboundAttachmentRoots?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
   }) => string[];
   /**
@@ -518,6 +520,7 @@ export type ChannelMessagingAdapter = {
     to?: string;
     conversationId?: string;
     threadId?: string | number;
+    threadParentId?: string | number;
     isGroup: boolean;
   }) => {
     conversationId?: string;
@@ -561,6 +564,11 @@ export type ChannelMessagingAdapter = {
     id: string;
     threadId?: string | null;
   }) => string | undefined;
+  /**
+   * @deprecated Use `targetResolver` for target id normalization and
+   * `resolveOutboundSessionRoute` for session/thread identity. This remains for
+   * compatibility with older route parsing helpers.
+   */
   parseExplicitTarget?: (params: { raw: string }) => {
     to: string;
     threadId?: string | number;
@@ -579,11 +587,11 @@ export type ChannelMessagingAdapter = {
   buildCrossContextPresentation?: ChannelCrossContextPresentationFactory;
   transformReplyPayload?: (params: {
     payload: ReplyPayload;
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
   }) => ReplyPayload | null;
   enableInteractiveReplies?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
   }) => boolean;
   hasStructuredReplyPayload?: (params: { payload: ReplyPayload }) => boolean;
@@ -595,7 +603,7 @@ export type ChannelMessagingAdapter = {
      * resolution. This should complement directory lookup, not duplicate it.
      */
     resolveTarget?: (params: {
-      cfg: AstroclawConfig;
+      cfg: OpenClawConfig;
       accountId?: string | null;
       input: string;
       normalized: string;
@@ -617,7 +625,7 @@ export type ChannelMessagingAdapter = {
    * Keep session-key orchestration in core and channel-native routing rules here.
    */
   resolveOutboundSessionRoute?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     agentId: string;
     accountId?: string | null;
     target: string;
@@ -634,9 +642,9 @@ export type ChannelMessagingAdapter = {
 };
 
 export type ChannelAgentPromptAdapter = {
-  messageToolHints?: (params: { cfg: AstroclawConfig; accountId?: string | null }) => string[];
+  messageToolHints?: (params: { cfg: OpenClawConfig; accountId?: string | null }) => string[];
   messageToolCapabilities?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
   }) => string[] | undefined;
   inboundFormattingHints?: (params: { accountId?: string | null }) =>
@@ -646,7 +654,7 @@ export type ChannelAgentPromptAdapter = {
       }
     | undefined;
   reactionGuidance?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string | null;
   }) => { level: "minimal" | "extensive"; channelLabel?: string } | undefined;
 };
@@ -669,7 +677,7 @@ export type ChannelMessageActionName = ChannelMessageActionNameFromList;
 export type ChannelMessageActionContext = {
   channel: ChannelId;
   action: ChannelMessageActionName;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   params: Record<string, unknown>;
   mediaAccess?: OutboundMediaAccess;
   mediaLocalRoots?: readonly string[];
@@ -680,6 +688,7 @@ export type ChannelMessageActionContext = {
    * never be sourced from tool/model-controlled params.
    */
   requesterSenderId?: string | null;
+  /** Trusted owner identity bit from command/channel-action auth. */
   senderIsOwner?: boolean;
   sessionKey?: string | null;
   sessionId?: string | null;
@@ -695,6 +704,7 @@ export type ChannelMessageActionContext = {
   };
   toolContext?: ChannelThreadingToolContext;
   dryRun?: boolean;
+  gatewayClientScopes?: readonly string[];
 };
 
 export type ChannelToolSend = {
@@ -769,7 +779,7 @@ export type ChannelPollResult = {
 
 /** Shared poll input after core has normalized the common poll model. */
 export type ChannelPollContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   to: string;
   poll: PollInput;
   accountId?: string | null;
