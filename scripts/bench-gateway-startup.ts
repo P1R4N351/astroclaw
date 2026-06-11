@@ -1,4 +1,5 @@
-import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
+// Bench Gateway Startup script supports OpenClaw repository automation.
+import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { request } from "node:http";
 import { createServer } from "node:net";
@@ -6,6 +7,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { pathToFileURL } from "node:url";
+import { parseStrictIntegerOption } from "./lib/dev-tooling-safety.ts";
+import { delay, stopChild } from "./lib/gateway-bench-child.ts";
 
 type GatewayBenchCase = {
   config: Record<string, unknown>;
@@ -33,6 +36,7 @@ type ProbeTransition = {
 type GatewaySample = {
   cpuCoreRatio: number | null;
   cpuMs: number | null;
+  exitedBeforeTeardown?: boolean;
   exitCode: number | null;
   firstOutputMs: number | null;
   gatewayReadyLogLine: string | null;
@@ -70,6 +74,12 @@ type CaseResult = {
     readyzMs: SummaryStats | null;
     startupTrace: Record<string, SummaryStats>;
   };
+};
+
+type BenchmarkFailure = {
+  id: string;
+  reason: string;
+  sampleIndex: number;
 };
 
 type PluginFixtureResult = {
@@ -119,13 +129,13 @@ const GATEWAY_CASES: readonly GatewayBenchCase[] = [
   {
     id: "skipChannels",
     name: "gateway, skip channels",
-    env: { ASTROCLAW_SKIP_CHANNELS: "1" },
+    env: { OPENCLAW_SKIP_CHANNELS: "1" },
     config: BASE_CONFIG,
   },
   {
     id: "oneInternalHook",
     name: "gateway, one configured internal hook",
-    env: { ASTROCLAW_SKIP_CHANNELS: "1" },
+    env: { OPENCLAW_SKIP_CHANNELS: "1" },
     config: {
       ...BASE_CONFIG,
       hooks: {
@@ -140,7 +150,7 @@ const GATEWAY_CASES: readonly GatewayBenchCase[] = [
   {
     id: "allInternalHooks",
     name: "gateway, all internal hooks",
-    env: { ASTROCLAW_SKIP_CHANNELS: "1" },
+    env: { OPENCLAW_SKIP_CHANNELS: "1" },
     config: {
       ...BASE_CONFIG,
       hooks: {
@@ -153,7 +163,7 @@ const GATEWAY_CASES: readonly GatewayBenchCase[] = [
   {
     id: "fiftyPlugins",
     name: "gateway, 50 manifest plugins",
-    env: { ASTROCLAW_SKIP_CHANNELS: "1" },
+    env: { OPENCLAW_SKIP_CHANNELS: "1" },
     pluginActivationOnStartup: true,
     pluginCount: 50,
     config: BASE_CONFIG,
@@ -161,48 +171,77 @@ const GATEWAY_CASES: readonly GatewayBenchCase[] = [
   {
     id: "fiftyStartupLazyPlugins",
     name: "gateway, 50 startup-lazy manifest plugins",
-    env: { ASTROCLAW_SKIP_CHANNELS: "1" },
+    env: { OPENCLAW_SKIP_CHANNELS: "1" },
     pluginActivationOnStartup: false,
     pluginCount: 50,
     config: BASE_CONFIG,
   },
 ] as const;
 
-function parseFlagValue(flag: string): string | undefined {
-  const index = process.argv.indexOf(flag);
-  if (index === -1) {
-    return undefined;
+function readRequiredFlagValue(argv: string[], index: number, flag: string): string {
+  const value = argv[index + 1];
+  if (!value || value.startsWith("-")) {
+    throw new Error(`${flag} requires a value`);
   }
-  return process.argv[index + 1];
+  return value;
 }
 
-function hasFlag(flag: string): boolean {
-  return process.argv.includes(flag);
+function parseFlagValue(argv: string[], flag: string): string | undefined {
+  for (let index = 0; index < argv.length; index += 1) {
+    if (argv[index] === flag) {
+      return readRequiredFlagValue(argv, index, flag);
+    }
+  }
+  return undefined;
 }
 
-function hasHelpFlag(): boolean {
-  return hasFlag("--help") || hasFlag("-h");
+function hasFlag(argv: string[], flag: string): boolean {
+  return argv.includes(flag);
 }
 
-function parseRepeatableFlag(flag: string): string[] {
+function hasHelpFlag(argv: string[]): boolean {
+  return hasFlag(argv, "--help") || hasFlag(argv, "-h");
+}
+
+function parseRepeatableFlag(argv: string[], flag: string): string[] {
   const values: string[] = [];
-  for (let index = 0; index < process.argv.length; index += 1) {
-    if (process.argv[index] === flag && process.argv[index + 1]) {
-      values.push(process.argv[index + 1]);
+  for (let index = 0; index < argv.length; index += 1) {
+    if (argv[index] === flag) {
+      values.push(readRequiredFlagValue(argv, index, flag));
+      index += 1;
     }
   }
   return values;
 }
 
-function parsePositiveInt(raw: string | undefined, fallback: number): number {
-  if (!raw) {
-    return fallback;
+function parsePositiveInt(raw: string | undefined, fallback: number, label: string): number {
+  return parseStrictIntegerOption({ fallback, label, min: 1, raw });
+}
+
+function parseNonNegativeInt(raw: string | undefined, fallback: number, label: string): number {
+  return parseStrictIntegerOption({ fallback, label, min: 0, raw });
+}
+
+function resolveEntry(raw: string | undefined): string {
+  const entry = raw?.trim() || DEFAULT_ENTRY;
+  if (entry.includes("\0")) {
+    throw new Error("--entry must not contain NUL bytes");
   }
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return fallback;
+  if (entry.startsWith("-")) {
+    throw new Error(`--entry must be a file path, not a Node option: ${JSON.stringify(entry)}`);
   }
-  return parsed;
+  return entry;
+}
+
+function resolveOutputPath(raw: string | undefined): string | undefined {
+  const output = raw?.trim();
+  if (!output) {
+    return undefined;
+  }
+  if (output.includes("\0")) {
+    throw new Error("--output must not contain NUL bytes");
+  }
+  return output;
 }
 
 function resolveCases(caseIds: string[]): GatewayBenchCase[] {
@@ -219,21 +258,25 @@ function resolveCases(caseIds: string[]): GatewayBenchCase[] {
   });
 }
 
-function parseOptions(): CliOptions {
+function parseOptions(argv: string[] = process.argv.slice(2)): CliOptions {
   return {
-    cases: resolveCases(parseRepeatableFlag("--case")),
-    cpuProfDir: parseFlagValue("--cpu-prof-dir"),
-    entry: parseFlagValue("--entry") ?? DEFAULT_ENTRY,
-    json: hasFlag("--json"),
-    output: parseFlagValue("--output"),
-    runs: parsePositiveInt(parseFlagValue("--runs"), DEFAULT_RUNS),
-    timeoutMs: parsePositiveInt(parseFlagValue("--timeout-ms"), DEFAULT_TIMEOUT_MS),
-    warmup: parsePositiveInt(parseFlagValue("--warmup"), DEFAULT_WARMUP),
+    cases: resolveCases(parseRepeatableFlag(argv, "--case")),
+    cpuProfDir: parseFlagValue(argv, "--cpu-prof-dir"),
+    entry: resolveEntry(parseFlagValue(argv, "--entry")),
+    json: hasFlag(argv, "--json"),
+    output: resolveOutputPath(parseFlagValue(argv, "--output")),
+    runs: parsePositiveInt(parseFlagValue(argv, "--runs"), DEFAULT_RUNS, "--runs"),
+    timeoutMs: parsePositiveInt(
+      parseFlagValue(argv, "--timeout-ms"),
+      DEFAULT_TIMEOUT_MS,
+      "--timeout-ms",
+    ),
+    warmup: parseNonNegativeInt(parseFlagValue(argv, "--warmup"), DEFAULT_WARMUP, "--warmup"),
   };
 }
 
 function printUsage(): void {
-  console.log(`Astroclaw Gateway startup benchmark
+  console.log(`OpenClaw Gateway startup benchmark
 
 Usage:
   pnpm test:startup:gateway -- [options]
@@ -350,6 +393,69 @@ function summarizeCase(benchCase: GatewayBenchCase, samples: GatewaySample[]): C
       startupTrace,
     },
   };
+}
+
+function collectResultFailures(
+  results: CaseResult[],
+  options: { processMetricsRequired?: boolean } = {},
+): BenchmarkFailure[] {
+  const processMetricsRequired = options.processMetricsRequired ?? process.platform !== "win32";
+  const failures: BenchmarkFailure[] = [];
+  for (const result of results) {
+    result.samples.forEach((sample, index) => {
+      const missing: string[] = [];
+      if (sample.healthz.status !== 200 || sample.healthz.ms == null) {
+        missing.push("/healthz");
+      }
+      if (sample.readyz.status !== 200 || sample.readyz.ms == null) {
+        missing.push("/readyz");
+      }
+      if (processMetricsRequired) {
+        if (sample.cpuMs == null || sample.cpuCoreRatio == null) {
+          missing.push("cpu");
+        }
+        if (sample.maxRssMb == null) {
+          missing.push("rss");
+        }
+      }
+      if (missing.length > 0) {
+        failures.push({
+          id: result.id,
+          reason: `missing ${missing.join(", ")}`,
+          sampleIndex: index + 1,
+        });
+        return;
+      }
+      if (sample.exitedBeforeTeardown === true) {
+        failures.push({
+          id: result.id,
+          reason:
+            sample.signal == null
+              ? `child exited ${sample.exitCode ?? "before teardown"}`
+              : `child exited by ${sample.signal}`,
+          sampleIndex: index + 1,
+        });
+      }
+    });
+  }
+  return failures;
+}
+
+function printBenchmarkFailures(failures: BenchmarkFailure[]): void {
+  if (failures.length === 0) {
+    return;
+  }
+  console.error(
+    `[gateway-startup-bench] failed: ${failures.length} sample(s) did not produce ready probes or process metrics`,
+  );
+  for (const failure of failures.slice(0, 8)) {
+    console.error(
+      `[gateway-startup-bench] ${failure.id} run ${failure.sampleIndex}: ${failure.reason}`,
+    );
+  }
+  if (failures.length > 8) {
+    console.error(`[gateway-startup-bench] ${failures.length - 8} more sample failure(s) omitted`);
+  }
 }
 
 function formatMs(value: number | null): string {
@@ -523,10 +629,6 @@ function requestStatus(port: number, pathname: string): Promise<number> {
   });
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function writePluginFixtures(
   root: string,
   count: number,
@@ -543,7 +645,7 @@ function writePluginFixtures(
     const entry = path.join(pluginDir, "index.cjs");
     writeFileSync(entry, `module.exports = { id: ${JSON.stringify(id)}, register() {} };\n`);
     writeFileSync(
-      path.join(pluginDir, "astroclaw.plugin.json"),
+      path.join(pluginDir, "openclaw.plugin.json"),
       `${JSON.stringify(
         {
           id,
@@ -576,7 +678,7 @@ function writeConfig(root: string, benchCase: GatewayBenchCase): string {
         : {}),
     },
   };
-  const configPath = path.join(root, "astroclaw.json");
+  const configPath = path.join(root, "openclaw.json");
   writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
   return configPath;
 }
@@ -590,56 +692,23 @@ function sanitizedEnv(
     CI: process.env.CI ?? "1",
     HOME: root,
     LANG: process.env.LANG ?? "en_US.UTF-8",
-    LOGNAME: process.env.LOGNAME ?? "astroclaw-bench",
+    LOGNAME: process.env.LOGNAME ?? "openclaw-bench",
     NO_COLOR: "1",
     PATH: process.env.PATH,
     SHELL: process.env.SHELL,
     TMPDIR: process.env.TMPDIR,
-    USER: process.env.USER ?? "astroclaw-bench",
+    USER: process.env.USER ?? "openclaw-bench",
     npm_config_update_notifier: "false",
-    ASTROCLAW_CONFIG: configPath,
-    ASTROCLAW_CONFIG_PATH: configPath,
-    ASTROCLAW_GATEWAY_STARTUP_TRACE: "1",
-    ASTROCLAW_HOME: root,
-    ASTROCLAW_LOCAL_CHECK: "0",
-    ASTROCLAW_NO_RESPAWN: "1",
-    ASTROCLAW_STATE_DIR: path.join(root, "state"),
-    ASTROCLAW_TEST_DISABLE_UPDATE_CHECK: "1",
+    OPENCLAW_CONFIG: configPath,
+    OPENCLAW_CONFIG_PATH: configPath,
+    OPENCLAW_GATEWAY_STARTUP_TRACE: "1",
+    OPENCLAW_HOME: root,
+    OPENCLAW_NO_RESPAWN: "1",
+    OPENCLAW_STATE_DIR: path.join(root, "state"),
+    OPENCLAW_TEST_DISABLE_UPDATE_CHECK: "1",
     ...benchCase.env,
   };
   return env;
-}
-
-async function stopChild(child: ChildProcessWithoutNullStreams): Promise<{
-  exitCode: number | null;
-  signal: string | null;
-}> {
-  if (child.exitCode != null || child.signalCode != null) {
-    return { exitCode: child.exitCode, signal: child.signalCode };
-  }
-  const exited = new Promise<{ exitCode: number | null; signal: string | null }>((resolve) => {
-    child.once("exit", (exitCode, signal) => resolve({ exitCode, signal }));
-  });
-  killProcessTree(child, "SIGTERM");
-  const timeout = delay(2000).then(() => {
-    if (child.exitCode == null && child.signalCode == null) {
-      killProcessTree(child, "SIGKILL");
-    }
-    return exited;
-  });
-  return Promise.race([exited, timeout]);
-}
-
-function killProcessTree(child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals): void {
-  if (process.platform !== "win32" && child.pid !== undefined) {
-    try {
-      process.kill(-child.pid, signal);
-      return;
-    } catch {
-      // Fall back to the direct child below.
-    }
-  }
-  child.kill(signal);
 }
 
 function collectStartupTrace(line: string, startupTrace: Record<string, number>): void {
@@ -781,7 +850,7 @@ async function runGatewaySample(options: {
   sampleIndex: number;
   timeoutMs: number;
 }): Promise<GatewaySample> {
-  const root = mkdtempSync(path.join(tmpdir(), "astroclaw-gateway-bench-"));
+  const root = mkdtempSync(path.join(tmpdir(), "openclaw-gateway-bench-"));
   const port = await getFreePort();
   const configPath = writeConfig(root, options.benchCase);
   const env = sanitizedEnv(root, configPath, options.benchCase);
@@ -804,7 +873,7 @@ async function runGatewaySample(options: {
           "--cpu-prof-dir",
           options.cpuProfDir,
           "--cpu-prof-name",
-          `astroclaw-gateway-${options.benchCase.id}-${options.sampleIndex}-${Date.now()}.cpuprofile`,
+          `openclaw-gateway-${options.benchCase.id}-${options.sampleIndex}-${Date.now()}.cpuprofile`,
         ]
       : []),
     options.entry,
@@ -892,12 +961,14 @@ async function runGatewaySample(options: {
   const exit = await stopChild(child);
   clearInterval(rssTimer);
   sampleRss();
-  await childExitPromise.catch(() => null);
+  // stopChild is the bounded teardown wait; the raw exit promise may never settle.
+  void childExitPromise.catch(() => null);
   rmSync(root, { force: true, maxRetries: 3, recursive: true, retryDelay: 100 });
 
   return {
     cpuCoreRatio,
     cpuMs,
+    exitedBeforeTeardown: exit.exitedBeforeTeardown,
     exitCode: exit.exitCode,
     firstOutputMs,
     gatewayReadyLogLine,
@@ -976,12 +1047,13 @@ function printResult(result: CaseResult): void {
 }
 
 async function main() {
-  if (hasHelpFlag()) {
+  const argv = process.argv.slice(2);
+  if (hasHelpFlag(argv)) {
     printUsage();
     return;
   }
 
-  const options = parseOptions();
+  const options = parseOptions(argv);
   if (options.cpuProfDir) {
     mkdirSync(options.cpuProfDir, { recursive: true });
   }
@@ -1010,25 +1082,39 @@ async function main() {
   }
   if (options.json) {
     console.log(JSON.stringify(payload, null, 2));
-    return;
+  } else {
+    for (const result of results) {
+      printResult(result);
+    }
   }
-  for (const result of results) {
-    printResult(result);
+
+  const failures = collectResultFailures(results);
+  if (failures.length > 0) {
+    printBenchmarkFailures(failures);
+    process.exitCode = 1;
   }
 }
 
-export const __testing = {
+export const testing = {
   classifyGatewayReadyLog,
   classifyProbeErrorKind,
+  collectResultFailures,
   collectStartupTrace,
+  parseOptions,
+  parseNonNegativeInt,
+  parsePositiveInt,
+  resolveEntry,
+  sanitizedEnv,
+  stopChild,
   summarizeCase,
   waitForProbe,
   writeConfig,
 };
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  main().catch((err) => {
+  main().catch((err: unknown) => {
     console.error(err instanceof Error ? err.stack : String(err));
     process.exitCode = 1;
   });
 }
+export { testing as __testing };
