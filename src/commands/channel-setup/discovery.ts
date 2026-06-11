@@ -1,13 +1,14 @@
+// Builds the channel setup list from bundled channels, installed plugins, and trusted catalog entries.
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { listChatChannels } from "../../channels/chat-meta.js";
-import { type ChannelPluginCatalogEntry } from "../../channels/plugins/catalog.js";
+import type { ChannelPluginCatalogEntry } from "../../channels/plugins/catalog.js";
 import { isChannelVisibleInSetup } from "../../channels/plugins/exposure.js";
 import { normalizeChannelMeta } from "../../channels/plugins/meta-normalization.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
 import type { ChannelMeta } from "../../channels/plugins/types.public.js";
 import { isStaticallyChannelConfigured } from "../../config/channel-configured-shared.js";
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { listManifestChannelContributionIds } from "../../plugins/manifest-contribution-ids.js";
 import type { ChannelChoice } from "../onboard-types.js";
 import {
@@ -20,6 +21,7 @@ type ChannelCatalogEntry = {
   meta: ChannelMeta;
 };
 
+/** Return true when channel metadata should appear in setup/onboarding choices. */
 export function shouldShowChannelInSetup(
   meta: Pick<ChannelMeta, "exposure" | "showConfigured" | "showInSetup">,
 ): boolean {
@@ -34,12 +36,13 @@ export type ResolvedChannelSetupEntries = {
   installableCatalogById: Map<ChannelChoice, ChannelPluginCatalogEntry>;
 };
 
-function resolveWorkspaceDir(cfg: AstroclawConfig, workspaceDir?: string): string | undefined {
+function resolveWorkspaceDir(cfg: OpenClawConfig, workspaceDir?: string): string | undefined {
   return workspaceDir ?? resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
 }
 
+/** List channel ids contributed by currently installed manifest-backed plugins. */
 export function listManifestInstalledChannelIds(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): Set<ChannelChoice> {
@@ -57,8 +60,9 @@ export function listManifestInstalledChannelIds(params: {
   );
 }
 
+/** Return true when a trusted catalog channel is already installed through plugin manifests. */
 export function isCatalogChannelInstalled(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   entry: ChannelPluginCatalogEntry;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
@@ -66,8 +70,9 @@ export function isCatalogChannelInstalled(params: {
   return listManifestInstalledChannelIds(params).has(params.entry.id as ChannelChoice);
 }
 
+/** Merge configured channels and installable catalog channels into setup display buckets. */
 export function resolveChannelSetupEntries(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   installedPlugins: ChannelPlugin[];
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
