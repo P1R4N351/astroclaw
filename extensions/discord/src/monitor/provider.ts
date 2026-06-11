@@ -1,26 +1,27 @@
-import type { ChannelRuntimeSurface } from "astroclaw/plugin-sdk/channel-contract";
+// Discord provider module implements model/runtime integration.
+import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract";
 import {
   listNativeCommandSpecsForConfig,
   listSkillCommandsForAgents,
-} from "astroclaw/plugin-sdk/command-auth-native";
-import type { AstroclawConfig, ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
-import { createConnectedChannelStatusPatch } from "astroclaw/plugin-sdk/gateway-runtime";
+} from "openclaw/plugin-sdk/command-auth-native";
+import type { OpenClawConfig, ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+import { createConnectedChannelStatusPatch } from "openclaw/plugin-sdk/gateway-runtime";
 import {
   resolveNativeCommandsEnabled,
   resolveNativeSkillsEnabled,
-} from "astroclaw/plugin-sdk/native-command-config-runtime";
-import { resolveTextChunkLimit } from "astroclaw/plugin-sdk/reply-chunking";
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
-import { isVerbose, logVerbose, shouldLogVerbose, warn } from "astroclaw/plugin-sdk/runtime-env";
-import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
-import { createNonExitingRuntime, type RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/native-command-config-runtime";
+import { resolveTextChunkLimit } from "openclaw/plugin-sdk/reply-chunking";
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
+import { isVerbose, logVerbose, shouldLogVerbose, warn } from "openclaw/plugin-sdk/runtime-env";
+import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+import { createNonExitingRuntime, type RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   GROUP_POLICY_BLOCKED_LABEL,
   resolveOpenProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
   warnMissingProviderGroupPolicyFallbackOnce,
-} from "astroclaw/plugin-sdk/runtime-group-policy";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/ssrf-runtime";
+} from "openclaw/plugin-sdk/runtime-group-policy";
+import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   resolveDiscordAccount,
   resolveDiscordAccountAllowFrom,
@@ -66,7 +67,7 @@ import type { DiscordMonitorStatusSink } from "./status.js";
 export type MonitorDiscordOpts = {
   token?: string;
   accountId?: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   runtime?: RuntimeEnv;
   channelRuntime?: ChannelRuntimeSurface;
   abortSignal?: AbortSignal;
@@ -478,9 +479,9 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     const logger = createSubsystemLogger("discord/monitor");
     const guildHistories = new Map<
       string,
-      import("astroclaw/plugin-sdk/reply-history").HistoryEntry[]
+      import("openclaw/plugin-sdk/reply-history").HistoryEntry[]
     >();
-    let { botUserId, botUserName } = await fetchDiscordBotIdentity({
+    const { botUserId, botUserName } = await fetchDiscordBotIdentity({
       client,
       token,
       runtime,
@@ -510,6 +511,11 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
         accountId: account.accountId,
         runtime,
         botUserId,
+      });
+      const { setDiscordTranscriptsVoiceManager } = await import("../voice/transcripts-source.js");
+      setDiscordTranscriptsVoiceManager({
+        accountId: account.accountId,
+        manager: voiceManager,
       });
       voiceManagerRef.current = voiceManager;
       registerDiscordListener(client.listeners, new DiscordVoiceReadyListener(voiceManager));
@@ -620,7 +626,7 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
   }
 }
 
-export const __testing = {
+export const testing = {
   createDiscordGatewayPlugin,
   resolveDiscordRuntimeGroupPolicy: resolveOpenProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
@@ -685,3 +691,4 @@ export const __testing = {
 };
 
 export const resolveDiscordRuntimeGroupPolicy = resolveOpenProviderRuntimeGroupPolicy;
+export { testing as __testing };
