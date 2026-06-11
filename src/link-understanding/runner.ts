@@ -1,6 +1,8 @@
+// Link-understanding runner fetches allowed URLs and invokes configured commands with bounded content.
+import { readResponseWithLimit } from "@openclaw/media-core/read-response-with-limit";
 import type { MsgContext } from "../auto-reply/templating.js";
 import { applyTemplate } from "../auto-reply/templating.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { LinkModelConfig, LinkToolsConfig } from "../config/types.tools.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { fetchWithSsrFGuard, GUARDED_FETCH_MODE } from "../infra/net/fetch-guard.js";
@@ -10,7 +12,6 @@ import {
   normalizeMediaUnderstandingChatType,
   resolveMediaUnderstandingScope,
 } from "../media-understanding/scope.js";
-import { readResponseWithLimit } from "../media/read-response-with-limit.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { DEFAULT_LINK_TIMEOUT_SECONDS } from "./defaults.js";
 import { extractLinksFromMessage } from "./detect.js";
@@ -80,7 +81,7 @@ async function fetchLinkContent(params: {
     init: {
       headers: {
         Accept: "text/*,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "User-Agent": "Astroclaw-LinkUnderstanding/1.0",
+        "User-Agent": "OpenClaw-LinkUnderstanding/1.0",
       },
     },
   });
@@ -117,6 +118,7 @@ async function runCliEntry(params: {
   const args = params.entry.args ?? [];
   const timeoutMs = resolveTimeoutMsFromConfig({ config: params.config, entry: params.entry });
   if (isUrlFetcherCommand(command) && args.some(isLinkUrlTemplate)) {
+    // curl/wget URL templates mark the entry as a fetcher; guarded fetch already supplied content.
     return params.content;
   }
 
@@ -138,8 +140,8 @@ async function runCliEntry(params: {
     timeoutMs,
     input: params.content,
     env: {
-      ASTROCLAW_LINK_FINAL_URL: params.finalUrl,
-      ASTROCLAW_LINK_URL: params.url,
+      OPENCLAW_LINK_FINAL_URL: params.finalUrl,
+      OPENCLAW_LINK_URL: params.url,
     },
   });
   if (result.code !== 0) {
@@ -184,8 +186,12 @@ async function runLinkEntries(params: {
   return null;
 }
 
+/**
+ * Fetches detected links through the SSRF guard and runs configured CLI processors.
+ * Returns detected URLs even when processors are absent so callers can report discovery.
+ */
 export async function runLinkUnderstanding(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   ctx: MsgContext;
   message?: string;
 }): Promise<LinkUnderstandingResult> {
