@@ -4,7 +4,7 @@
  */
 
 export * from "../agents/agent-scope.js";
-export { resolveAstroclawAgentDir } from "./agent-dir-compat.js";
+export { resolveOpenClawAgentDir } from "./agent-dir-compat.js";
 export * from "../agents/current-time.js";
 export * from "../agents/date-time.js";
 export * from "../agents/defaults.js";
@@ -16,10 +16,9 @@ export * from "../agents/model-catalog.js";
 export * from "../agents/model-catalog-scope.js";
 export * from "../agents/model-selection.js";
 export * from "../agents/simple-completion-runtime.js";
-export * from "../agents/pi-embedded-block-chunker.js";
-export * from "../agents/pi-embedded-utils.js";
+export * from "../agents/embedded-agent-block-chunker.js";
+export * from "../agents/embedded-agent-utils.js";
 export * from "../agents/provider-auth-aliases.js";
-export * from "../agents/provider-id.js";
 export * from "../agents/sandbox-paths.js";
 export * from "../agents/schema/typebox.js";
 export * from "../agents/tools/common.js";
