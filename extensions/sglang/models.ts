@@ -1,8 +1,9 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { discoverOpenAICompatibleLocalModels } from "astroclaw/plugin-sdk/provider-setup";
+// Sglang plugin module implements models behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { discoverOpenAICompatibleLocalModels } from "openclaw/plugin-sdk/provider-setup";
 import { SGLANG_DEFAULT_BASE_URL, SGLANG_PROVIDER_LABEL } from "./defaults.js";
 
-type ModelsConfig = NonNullable<AstroclawConfig["models"]>;
+type ModelsConfig = NonNullable<OpenClawConfig["models"]>;
 type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];
 
 export async function buildSglangProvider(params?: {
