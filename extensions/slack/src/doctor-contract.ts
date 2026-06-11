@@ -1,14 +1,15 @@
+// Slack plugin module implements doctor contract behavior.
 import type {
   ChannelDoctorConfigMutation,
   ChannelDoctorLegacyConfigRule,
-} from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   asObjectRecord,
   hasLegacyAccountStreamingAliases,
   hasLegacyStreamingAliases,
   normalizeLegacyChannelAliases,
-} from "astroclaw/plugin-sdk/runtime-doctor";
+} from "openclaw/plugin-sdk/runtime-doctor";
 import { resolveSlackNativeStreaming, resolveSlackStreamingMode } from "./streaming-compat.js";
 
 function hasLegacySlackStreamingAliases(value: unknown): boolean {
@@ -21,7 +22,7 @@ function hasLegacySlackChannelAllowAlias(value: unknown): boolean {
     return false;
   }
   return Object.values(channels).some((channel) =>
-    Object.prototype.hasOwnProperty.call(asObjectRecord(channel) ?? {}, "allow"),
+    Object.hasOwn(asObjectRecord(channel) ?? {}, "allow"),
   );
 }
 
@@ -34,7 +35,7 @@ function normalizeSlackChannelAllowAliases(params: {
   const nextChannels = { ...params.channels };
   for (const [channelId, channelValue] of Object.entries(params.channels)) {
     const channel = asObjectRecord(channelValue);
-    if (!channel || !Object.prototype.hasOwnProperty.call(channel, "allow")) {
+    if (!channel || !Object.hasOwn(channel, "allow")) {
       continue;
     }
     const nextChannel = { ...channel };
@@ -71,13 +72,13 @@ export const legacyConfigRules: ChannelDoctorLegacyConfigRule[] = [
   {
     path: ["channels", "slack"],
     message:
-      'channels.slack.channels.<id>.allow is legacy; use channels.slack.channels.<id>.enabled instead. Run "astroclaw doctor --fix".',
+      'channels.slack.channels.<id>.allow is legacy; use channels.slack.channels.<id>.enabled instead. Run "openclaw doctor --fix".',
     match: hasLegacySlackChannelAllowAlias,
   },
   {
     path: ["channels", "slack", "accounts"],
     message:
-      'channels.slack.accounts.<id>.channels.<id>.allow is legacy; use channels.slack.accounts.<id>.channels.<id>.enabled instead. Run "astroclaw doctor --fix".',
+      'channels.slack.accounts.<id>.channels.<id>.allow is legacy; use channels.slack.accounts.<id>.channels.<id>.enabled instead. Run "openclaw doctor --fix".',
     match: (value) => {
       const accounts = asObjectRecord(value);
       if (!accounts) {
@@ -91,7 +92,7 @@ export const legacyConfigRules: ChannelDoctorLegacyConfigRule[] = [
 export function normalizeCompatibilityConfig({
   cfg,
 }: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }): ChannelDoctorConfigMutation {
   const rawEntry = asObjectRecord((cfg.channels as Record<string, unknown> | undefined)?.slack);
   if (!rawEntry) {
@@ -99,8 +100,8 @@ export function normalizeCompatibilityConfig({
   }
 
   const changes: string[] = [];
-  let updated = rawEntry;
-  let changed = false;
+  let updated;
+  let changed;
 
   const aliases = normalizeLegacyChannelAliases({
     entry: rawEntry,
@@ -164,8 +165,8 @@ export function normalizeCompatibilityConfig({
       ...cfg,
       channels: {
         ...cfg.channels,
-        slack: updated as unknown as NonNullable<AstroclawConfig["channels"]>["slack"],
-      } as AstroclawConfig["channels"],
+        slack: updated as unknown as NonNullable<OpenClawConfig["channels"]>["slack"],
+      } as OpenClawConfig["channels"],
     },
     changes,
   };
