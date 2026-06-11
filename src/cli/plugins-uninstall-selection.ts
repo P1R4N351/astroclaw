@@ -1,12 +1,14 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Plugin uninstall id resolver for registry ids, display names, npm specs, and ClawHub specs.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { parseClawHubPluginSpec } from "../infra/clawhub-spec.js";
 import type { PluginRecord } from "../plugins/registry.js";
 
+/** Resolve user input to the plugin id that should be removed from config/install records. */
 export function resolvePluginUninstallId<
   TPlugin extends Pick<PluginRecord, "id" | "name">,
 >(params: {
   rawId: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   plugins: TPlugin[];
 }): { pluginId: string; plugin?: TPlugin } {
   const rawId = params.rawId.trim();
