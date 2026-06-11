@@ -1,3 +1,5 @@
+// Test-only config helpers for gateway status SecretRef scenarios.
+/** Builds gateway config where local and remote auth values use environment SecretRefs. */
 export function createSecretRefGatewayConfig(params?: { gatewayMode?: "local" | "remote" }) {
   return {
     secrets: {
@@ -9,8 +11,8 @@ export function createSecretRefGatewayConfig(params?: { gatewayMode?: "local" | 
       ...(params?.gatewayMode ? { mode: params.gatewayMode } : {}),
       auth: {
         mode: "token" as const,
-        token: { source: "env", provider: "default", id: "ASTROCLAW_GATEWAY_TOKEN" },
-        password: { source: "env", provider: "default", id: "ASTROCLAW_GATEWAY_PASSWORD" },
+        token: { source: "env", provider: "default", id: "OPENCLAW_GATEWAY_TOKEN" },
+        password: { source: "env", provider: "default", id: "OPENCLAW_GATEWAY_PASSWORD" },
       },
       remote: {
         url: "wss://remote.example:18789",
