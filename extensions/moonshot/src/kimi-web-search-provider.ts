@@ -1,8 +1,9 @@
+// Moonshot provider module implements model/runtime integration.
 import {
   createWebSearchProviderContractFields,
   type WebSearchProviderPlugin,
   type WebSearchProviderSetupContext,
-} from "astroclaw/plugin-sdk/provider-web-search-config-contract";
+} from "openclaw/plugin-sdk/provider-web-search-config-contract";
 
 const KIMI_CREDENTIAL_PATH = "plugins.entries.moonshot.config.webSearch.apiKey";
 type KimiWebSearchProviderRuntime = typeof import("./kimi-web-search-provider.runtime.js");
@@ -19,7 +20,7 @@ const KimiSearchSchema = {
   properties: {
     query: { type: "string", description: "Search query string." },
     count: {
-      type: "number",
+      type: "integer",
       description: "Number of results to return (1-10).",
       minimum: 1,
       maximum: 10,
@@ -49,7 +50,7 @@ export function createKimiWebSearchProvider(): WebSearchProviderPlugin {
     envVars: ["KIMI_API_KEY", "MOONSHOT_API_KEY"],
     placeholder: "sk-...",
     signupUrl: "https://platform.moonshot.cn/",
-    docsUrl: "https://docs.astroclaw.ai/tools/web",
+    docsUrl: "https://docs.openclaw.ai/tools/web",
     autoDetectOrder: 40,
     credentialPath: KIMI_CREDENTIAL_PATH,
     ...createWebSearchProviderContractFields({
