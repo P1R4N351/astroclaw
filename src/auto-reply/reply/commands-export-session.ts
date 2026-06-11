@@ -1,12 +1,14 @@
+// Builds export bundles for a session transcript and runtime context.
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isRecord } from "@openclaw/normalization-core/record-coerce";
 import {
   migrateSessionEntries,
-  type FileEntry as PiSessionFileEntry,
-  type SessionEntry as PiSessionEntry,
+  type FileEntry as SessionFileEntry,
+  type SessionEntry as AgentSessionEntry,
   type SessionHeader,
-} from "@earendil-works/pi-coding-agent";
+} from "../../agents/sessions/session-manager.js";
 import { pathExists } from "../../infra/fs-safe.js";
 import type { ReplyPayload } from "../types.js";
 import {
@@ -22,7 +24,7 @@ const EXPORT_HTML_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 
 
 interface SessionData {
   header: SessionHeader | null;
-  entries: PiSessionEntry[];
+  entries: AgentSessionEntry[];
   leafId: string | null;
   systemPrompt?: string;
   tools?: Array<{ name: string; description?: string; parameters?: unknown }>;
@@ -46,13 +48,13 @@ async function loadTemplate(fileName: string): Promise<string> {
 function replaceHtmlPlaceholder(template: string, name: string, value: string): string {
   let replaced = false;
   const placeholder = new RegExp(
-    `(<(?:script|style)\\b(?=[^>]*\\bdata-astroclaw-export-placeholder="${name}")[^>]*>)(</(?:script|style)>)`,
+    `(<(?:script|style)\\b(?=[^>]*\\bdata-openclaw-export-placeholder="${name}")[^>]*>)(</(?:script|style)>)`,
   );
   const next = template.replace(
     placeholder,
     (_match: string, openTag: string, closeTag: string) => {
       replaced = true;
-      const finalOpenTag = openTag.replace(/\sdata-astroclaw-export-placeholder="[^"]*"/, "");
+      const finalOpenTag = openTag.replace(/\sdata-openclaw-export-placeholder="[^"]*"/, "");
       return `${finalOpenTag}${value}${closeTag}`;
     },
   );
@@ -71,7 +73,7 @@ async function generateHtml(sessionData: SessionData): Promise<string> {
     loadTemplate(path.join("vendor", "highlight.min.js")),
   ]);
 
-  // Use pi-mono dark theme colors (matching their theme/dark.json)
+  // Use the bundled dark session-export palette
   const themeVars = `
     --cyan: #00d7ff;
     --blue: #5f87ff;
@@ -156,11 +158,7 @@ async function writeNewDefaultExportFile(filePath: string, html: string): Promis
   throw new Error(`Could not find an unused export filename near ${filePath}`);
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function isSessionFileEntry(value: unknown): value is PiSessionFileEntry {
+function isSessionFileEntry(value: unknown): value is SessionFileEntry {
   if (!isRecord(value) || typeof value.type !== "string") {
     return false;
   }
@@ -172,10 +170,10 @@ function isSessionFileEntry(value: unknown): value is PiSessionFileEntry {
 }
 
 function parseSessionEntriesWithWarnings(content: string): {
-  entries: PiSessionFileEntry[];
+  entries: SessionFileEntry[];
   warnings: SessionExportJsonlWarning[];
 } {
-  const entries: PiSessionFileEntry[] = [];
+  const entries: SessionFileEntry[] = [];
   const warnings: SessionExportJsonlWarning[] = [];
   const rows = content.split(/\r?\n/u);
   for (const [index, rawLine] of rows.entries()) {
@@ -240,7 +238,7 @@ function formatSessionExportWarning(summary: SessionExportWarningSummary): strin
 
 async function readSessionDataFromTranscript(sessionFile: string): Promise<{
   header: SessionHeader | null;
-  entries: PiSessionEntry[];
+  entries: AgentSessionEntry[];
   leafId: string | null;
   warnings: SessionExportWarningSummary[];
 }> {
@@ -249,7 +247,9 @@ async function readSessionDataFromTranscript(sessionFile: string): Promise<{
   migrateSessionEntries(fileEntries);
   const header =
     fileEntries.find((entry): entry is SessionHeader => entry.type === "session") ?? null;
-  const entries = fileEntries.filter((entry): entry is PiSessionEntry => entry.type !== "session");
+  const entries = fileEntries.filter(
+    (entry): entry is AgentSessionEntry => entry.type !== "session",
+  );
   const lastEntry = entries.at(-1);
   const leafId = typeof lastEntry?.id === "string" ? lastEntry.id : null;
   return { header, entries, leafId, warnings: summarizeSessionExportWarnings(warnings) };
@@ -300,7 +300,7 @@ export async function buildExportSessionReply(params: HandleCommandsParams): Pro
 
   // 6. Determine output path
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const defaultFileName = `astroclaw-session-${entry.sessionId.slice(0, 8)}-${timestamp}.html`;
+  const defaultFileName = `openclaw-session-${entry.sessionId.slice(0, 8)}-${timestamp}.html`;
   let outputPath = args.outputPath
     ? path.resolve(
         args.outputPath.startsWith("~")
