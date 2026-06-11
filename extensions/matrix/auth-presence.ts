@@ -1,8 +1,9 @@
+// Matrix plugin module implements auth presence behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveStateDir } from "astroclaw/plugin-sdk/state-paths";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveStateDir } from "openclaw/plugin-sdk/state-paths";
 import {
   resolveMatrixCredentialsDir,
   resolveMatrixCredentialsFilename,
@@ -10,13 +11,13 @@ import {
 
 type MatrixAuthPresenceParams =
   | {
-      cfg: AstroclawConfig;
+      cfg: OpenClawConfig;
       env?: NodeJS.ProcessEnv;
     }
-  | AstroclawConfig;
+  | OpenClawConfig;
 
 function listMatrixCredentialPaths(
-  _cfg: AstroclawConfig,
+  _cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv = process.env,
 ): readonly string[] {
   const credentialsDir = resolveMatrixCredentialsDir(resolveStateDir(env, os.homedir));
