@@ -1,3 +1,4 @@
+// Defines IRC channel configuration types.
 import type { CommonChannelMessagingConfig } from "./types.channel-messaging-common.js";
 import type { GroupToolPolicyBySenderConfig, GroupToolPolicyConfig } from "./types.tools.js";
 
@@ -12,7 +13,7 @@ export type IrcAccountConfig = CommonChannelMessagingConfig & {
   nick?: string;
   /** IRC USER field username (defaults to nick). */
   username?: string;
-  /** IRC USER field realname (default: Astroclaw). */
+  /** IRC USER field realname (default: OpenClaw). */
   realname?: string;
   /** Optional IRC server password (sensitive). */
   password?: string;
@@ -33,7 +34,7 @@ export type IrcAccountConfig = CommonChannelMessagingConfig & {
     /** Email used with NickServ REGISTER. */
     registerEmail?: string;
   };
-  /** Auto-join channel list at connect (example: ["#astroclaw"]). */
+  /** Auto-join channel list at connect (example: ["#openclaw"]). */
   channels?: string[];
   /** Outbound text chunk size (chars). Default: 350. */
   textChunkLimit?: number;
