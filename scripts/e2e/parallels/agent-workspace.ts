@@ -1,14 +1,15 @@
+// Agent Workspace script supports OpenClaw repository automation.
 export function posixAgentWorkspaceScript(purpose: string): string {
   return `set -eu
-workspace="\${ASTROCLAW_WORKSPACE_DIR:-$HOME/.astroclaw/workspace}"
-mkdir -p "$workspace/.astroclaw"
+workspace="\${OPENCLAW_WORKSPACE_DIR:-$HOME/.openclaw/workspace}"
+mkdir -p "$workspace/.openclaw"
 cat > "$workspace/IDENTITY.md" <<'IDENTITY_EOF'
 # Identity
 
-- Name: Astroclaw
+- Name: OpenClaw
 - Purpose: ${purpose}
 IDENTITY_EOF
-cat > "$workspace/.astroclaw/workspace-state.json" <<'STATE_EOF'
+cat > "$workspace/.openclaw/workspace-state.json" <<'STATE_EOF'
 {
   "version": 1,
   "setupCompletedAt": "2026-01-01T00:00:00.000Z"
@@ -18,14 +19,14 @@ rm -f "$workspace/BOOTSTRAP.md"`;
 }
 
 export function windowsAgentWorkspaceScript(purpose: string): string {
-  return `$workspace = $env:ASTROCLAW_WORKSPACE_DIR
-if (-not $workspace) { $workspace = Join-Path $env:USERPROFILE '.astroclaw\\workspace' }
-$stateDir = Join-Path $workspace '.astroclaw'
+  return `$workspace = $env:OPENCLAW_WORKSPACE_DIR
+if (-not $workspace) { $workspace = Join-Path $env:USERPROFILE '.openclaw\\workspace' }
+$stateDir = Join-Path $workspace '.openclaw'
 New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
 @'
 # Identity
 
-- Name: Astroclaw
+- Name: OpenClaw
 - Purpose: ${purpose}
 '@ | Set-Content -Path (Join-Path $workspace 'IDENTITY.md') -Encoding UTF8
 @'
