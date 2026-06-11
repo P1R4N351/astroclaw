@@ -1,14 +1,15 @@
-import { coerceNativeSetting, normalizeAllowFromList } from "astroclaw/plugin-sdk/channel-policy";
-import { readChannelAllowFromStore } from "astroclaw/plugin-sdk/conversation-runtime";
+// Slack plugin module implements security audit behavior.
+import { coerceNativeSetting, normalizeAllowFromList } from "openclaw/plugin-sdk/channel-policy";
+import { readChannelAllowFromStore } from "openclaw/plugin-sdk/conversation-runtime";
 import {
   resolveNativeCommandsEnabled,
   resolveNativeSkillsEnabled,
-} from "astroclaw/plugin-sdk/native-command-config-runtime";
+} from "openclaw/plugin-sdk/native-command-config-runtime";
 import type { ResolvedSlackAccount } from "./accounts.js";
-import type { AstroclawConfig } from "./runtime-api.js";
+import type { OpenClawConfig } from "./runtime-api.js";
 
 export async function collectSlackSecurityAuditFindings(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   account: ResolvedSlackAccount;
 }) {
