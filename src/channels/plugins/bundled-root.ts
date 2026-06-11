@@ -1,10 +1,15 @@
+/**
+ * Bundled channel package-root resolver.
+ *
+ * Computes cache scopes for generated channel metadata across source and packaged layouts.
+ */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveAstroclawPackageRootSync } from "../../infra/astroclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../../infra/openclaw-root.js";
 import { resolveBundledPluginsDir } from "../../plugins/bundled-dir.js";
 
-const ASTROCLAW_PACKAGE_ROOT =
-  resolveAstroclawPackageRootSync({
+const OPENCLAW_PACKAGE_ROOT =
+  resolveOpenClawPackageRootSync({
     argv1: process.argv[1],
     cwd: process.cwd(),
     moduleUrl: import.meta.url.startsWith("file:") ? import.meta.url : undefined,
@@ -28,17 +33,22 @@ function derivePackageRootFromExtensionsDir(extensionsDir: string): string {
   return parentDir;
 }
 
+/**
+ * Resolves the package/cache scope used for bundled channel plugin metadata.
+ */
 export function resolveBundledChannelRootScope(
   env: NodeJS.ProcessEnv = process.env,
 ): BundledChannelRootScope {
   const bundledPluginsDir = resolveBundledPluginsDir(env);
   if (!bundledPluginsDir) {
     return {
-      packageRoot: ASTROCLAW_PACKAGE_ROOT,
-      cacheKey: ASTROCLAW_PACKAGE_ROOT,
+      packageRoot: OPENCLAW_PACKAGE_ROOT,
+      cacheKey: OPENCLAW_PACKAGE_ROOT,
     };
   }
   const resolvedPluginsDir = path.resolve(bundledPluginsDir);
+  // A direct extensions directory belongs to the package root; any other scan dir is its own
+  // cache scope so tests and packaged runtimes do not share stale metadata.
   return {
     packageRoot:
       path.basename(resolvedPluginsDir) === "extensions"
