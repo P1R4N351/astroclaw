@@ -1,3 +1,4 @@
+// OpenClaw SDK module implements client behavior.
 import { randomUUID } from "node:crypto";
 import { EventHub } from "./event-hub.js";
 import { normalizeGatewayEvent } from "./normalize.js";
@@ -12,8 +13,8 @@ import type {
   EnvironmentsListResult,
   GatewayEvent,
   GatewayRequestOptions,
-  AstroclawEvent,
-  AstroclawTransport,
+  OpenClawEvent,
+  OpenClawTransport,
   RunCreateParams,
   RunResult,
   RunTimestamp,
@@ -28,20 +29,23 @@ import type {
   ToolInvokeResult,
 } from "./types.js";
 
+// High-level OpenClaw SDK client. Namespaces below translate friendly SDK calls
+// into current Gateway RPC methods and normalize event streams for consumers.
 const MAX_REPLAY_RUNS = 100;
 const MAX_REPLAY_EVENTS_PER_RUN = 500;
 const MAX_NORMALIZED_REPLAY_EVENTS = 2000;
 
-export type AstroclawOptions = {
+/** Connection and transport options for the OpenClaw SDK client. */
+export type OpenClawOptions = {
   gateway?: "auto" | (string & {});
   url?: string;
   token?: string;
   password?: string;
   requestTimeoutMs?: number;
-  transport?: AstroclawTransport;
+  transport?: OpenClawTransport;
 };
 
-function resolveGatewayUrl(options: AstroclawOptions): string | undefined {
+function resolveGatewayUrl(options: OpenClawOptions): string | undefined {
   if (options.url) {
     return options.url;
   }
@@ -52,18 +56,33 @@ function resolveGatewayUrl(options: AstroclawOptions): string | undefined {
 }
 
 function runStatusFromWaitPayload(payload: unknown): RunResult["status"] {
+  // Gateway wait payloads come from several runtime paths. Preserve timeout vs
+  // cancellation semantics from metadata instead of trusting one status field.
   const record =
     typeof payload === "object" && payload !== null
       ? (payload as Record<string, unknown> & { aborted?: unknown; status?: unknown })
       : {};
   const status = typeof record.status === "string" ? record.status.toLowerCase() : undefined;
   const stopReason = typeof record.stopReason === "string" ? record.stopReason.toLowerCase() : "";
+  const pendingError = record.pendingError === true;
+  const timeoutPhase =
+    typeof record.timeoutPhase === "string" ? record.timeoutPhase.toLowerCase() : undefined;
+  const statusAlreadyTimeoutAttributed = status === "timeout" || status === "timed_out";
+  const hardTimeout =
+    !pendingError &&
+    ((record.providerStarted === true && statusAlreadyTimeoutAttributed) ||
+      timeoutPhase === "preflight" ||
+      timeoutPhase === "provider" ||
+      timeoutPhase === "post_turn");
   const hasTerminalTimeoutMetadata =
     readOptionalTimestamp(record.endedAt) !== undefined ||
-    readOptionalString(record.error) !== undefined ||
+    (!pendingError && readOptionalString(record.error) !== undefined) ||
     stopReason.length > 0 ||
     typeof record.livenessState === "string" ||
     record.yielded === true;
+  if (hardTimeout) {
+    return "timed_out";
+  }
   if (
     status === "aborted" ||
     status === "cancelled" ||
@@ -157,7 +176,7 @@ function assertNoUnsupportedRunOptions(params: AgentRunParams): void {
     return;
   }
   throw new Error(
-    `Astroclaw Gateway does not support per-run SDK option${
+    `OpenClaw Gateway does not support per-run SDK option${
       unsupported.length === 1 ? "" : "s"
     } yet: ${unsupported.join(", ")}`,
   );
@@ -184,7 +203,7 @@ function buildAgentParams(params: AgentRunParams): Record<string, unknown> {
 }
 
 function unsupportedGatewayApi(api: string): never {
-  throw new Error(`${api} is not supported by the current Astroclaw Gateway yet`);
+  throw new Error(`${api} is not supported by the current OpenClaw Gateway yet`);
 }
 
 type ChatProjectionState = "delta" | "final";
@@ -212,7 +231,7 @@ function requireArtifactQueryScope(api: string, params: unknown): ArtifactQuery 
   return params;
 }
 
-function readChatProjection(event: AstroclawEvent): ChatProjection | undefined {
+function readChatProjection(event: OpenClawEvent): ChatProjection | undefined {
   const raw = event.raw;
   if (event.type !== "raw" || raw?.event !== "chat") {
     return undefined;
@@ -249,11 +268,11 @@ function readChatProjectionReplace(payload: Record<string, unknown>): boolean {
   return payload.replace === true;
 }
 
-function isAssistantRunEvent(event: AstroclawEvent): boolean {
+function isAssistantRunEvent(event: OpenClawEvent): boolean {
   return event.type === "assistant.delta" || event.type === "assistant.message";
 }
 
-function isTerminalRunEvent(event: AstroclawEvent): boolean {
+function isTerminalRunEvent(event: OpenClawEvent): boolean {
   return (
     event.type === "run.completed" ||
     event.type === "run.failed" ||
@@ -263,10 +282,10 @@ function isTerminalRunEvent(event: AstroclawEvent): boolean {
 }
 
 function normalizeChatProjectionEvent(
-  event: AstroclawEvent,
+  event: OpenClawEvent,
   projection: ChatProjection,
   previousText: string | undefined,
-): AstroclawEvent {
+): OpenClawEvent {
   const text = readChatProjectionText(projection.payload);
   const deltaText = readChatProjectionDeltaText(projection.payload);
   const hasPreviousText = previousText !== undefined;
@@ -287,7 +306,8 @@ function normalizeChatProjectionEvent(
   };
 }
 
-export class Astroclaw {
+/** Root SDK client with namespaces for agents, sessions, runs, and gateway APIs. */
+export class OpenClaw {
   readonly agents: AgentsNamespace;
   readonly sessions: SessionsNamespace;
   readonly runs: RunsNamespace;
@@ -298,16 +318,16 @@ export class Astroclaw {
   readonly approvals: ApprovalsNamespace;
   readonly environments: EnvironmentsNamespace;
 
-  private readonly transport: AstroclawTransport;
-  private readonly normalizedEvents = new EventHub<AstroclawEvent>({
+  private readonly transport: OpenClawTransport;
+  private readonly normalizedEvents = new EventHub<OpenClawEvent>({
     replayLimit: MAX_NORMALIZED_REPLAY_EVENTS,
   });
-  private readonly replayByRunId = new Map<string, AstroclawEvent[]>();
+  private readonly replayByRunId = new Map<string, OpenClawEvent[]>();
   private connected = false;
   private eventPumpPromise: Promise<void> | null = null;
   private eventPumpReady: Promise<void> | null = null;
 
-  constructor(options: AstroclawOptions = {}) {
+  constructor(options: OpenClawOptions = {}) {
     this.transport =
       options.transport ??
       new GatewayClientTransport({
@@ -357,14 +377,14 @@ export class Astroclaw {
     return await this.transport.request<T>(method, params, options);
   }
 
-  events(filter?: (event: AstroclawEvent) => boolean): AsyncIterable<AstroclawEvent> {
+  events(filter?: (event: OpenClawEvent) => boolean): AsyncIterable<OpenClawEvent> {
     return this.iterateEvents(filter);
   }
 
   runEvents(
     runId: string,
-    filter?: (event: AstroclawEvent) => boolean,
-  ): AsyncIterable<AstroclawEvent> {
+    filter?: (event: OpenClawEvent) => boolean,
+  ): AsyncIterable<OpenClawEvent> {
     return this.iterateRunEvents(runId, filter);
   }
 
@@ -373,8 +393,8 @@ export class Astroclaw {
   }
 
   private async *iterateEvents(
-    filter?: (event: AstroclawEvent) => boolean,
-  ): AsyncIterable<AstroclawEvent> {
+    filter?: (event: OpenClawEvent) => boolean,
+  ): AsyncIterable<OpenClawEvent> {
     await this.connect();
     for await (const event of this.normalizedEvents.stream(filter)) {
       yield event;
@@ -383,14 +403,14 @@ export class Astroclaw {
 
   private async *iterateRunEvents(
     runId: string,
-    filter?: (event: AstroclawEvent) => boolean,
-  ): AsyncIterable<AstroclawEvent> {
+    filter?: (event: OpenClawEvent) => boolean,
+  ): AsyncIterable<OpenClawEvent> {
     await this.connect();
     const replayEvents = this.replaySnapshot(runId);
     let hasCanonicalAssistantRunEvent = replayEvents.some(isAssistantRunEvent);
     let hasTerminalRunEvent = replayEvents.some(isTerminalRunEvent);
     let previousChatProjectionText: string | undefined;
-    const toRunStreamEvent = (event: AstroclawEvent): AstroclawEvent | undefined => {
+    const toRunStreamEvent = (event: OpenClawEvent): OpenClawEvent | undefined => {
       const chatProjection = readChatProjection(event);
       if (chatProjection?.state === "delta") {
         if (hasCanonicalAssistantRunEvent) {
@@ -422,10 +442,9 @@ export class Astroclaw {
       }
       return event;
     };
-    const matches = (event: AstroclawEvent) => event.runId === runId;
+    const matches = (event: OpenClawEvent) => event.runId === runId;
     const liveSource = this.normalizedEvents.stream(matches, { replay: true });
     const live = liveSource[Symbol.asyncIterator]();
-    let nextLive = live.next();
     const seen = new Set<string>();
     try {
       for (const event of replayEvents) {
@@ -440,11 +459,10 @@ export class Astroclaw {
         yield runEvent;
       }
       while (true) {
-        const next = await nextLive;
+        const next = await live.next();
         if (next.done) {
           break;
         }
-        nextLive = live.next();
         if (seen.has(next.value.id)) {
           continue;
         }
@@ -476,8 +494,11 @@ export class Astroclaw {
       };
     });
     this.eventPumpPromise = (async () => {
-      const iterator = this.transport.events()[Symbol.asyncIterator]();
+      let iterator: AsyncIterator<GatewayEvent> | undefined;
+      let pumpError: unknown;
+      let hasPumpError = false;
       try {
+        iterator = this.transport.events()[Symbol.asyncIterator]();
         while (true) {
           const next = iterator.next();
           await Promise.resolve();
@@ -490,19 +511,33 @@ export class Astroclaw {
           this.recordReplayEvent(normalized);
           this.normalizedEvents.publish(normalized);
         }
+      } catch (error) {
+        pumpError = error;
+        hasPumpError = true;
       } finally {
         markReady();
-        await iterator.return?.();
-        this.normalizedEvents.close();
+        try {
+          await iterator?.return?.();
+        } catch (error) {
+          if (!hasPumpError) {
+            pumpError = error;
+            hasPumpError = true;
+          }
+        }
       }
-    })().catch(() => {
-      markReady();
+      if (hasPumpError) {
+        this.normalizedEvents.close(pumpError);
+        return;
+      }
       this.normalizedEvents.close();
+    })().catch((error: unknown) => {
+      markReady();
+      this.normalizedEvents.close(error);
     });
     return this.eventPumpReady;
   }
 
-  private recordReplayEvent(event: AstroclawEvent): void {
+  private recordReplayEvent(event: OpenClawEvent): void {
     if (!event.runId) {
       return;
     }
@@ -523,14 +558,15 @@ export class Astroclaw {
     }
   }
 
-  private replaySnapshot(runId: string): AstroclawEvent[] {
+  private replaySnapshot(runId: string): OpenClawEvent[] {
     return [...(this.replayByRunId.get(runId) ?? [])];
   }
 }
 
+/** Agent-scoped helper for runs and identity lookups. */
 export class Agent {
   constructor(
-    private readonly client: Astroclaw,
+    private readonly client: OpenClaw,
     readonly id: string,
   ) {}
 
@@ -548,14 +584,15 @@ export class Agent {
   }
 }
 
+/** Run handle for streaming events, waiting, and cancellation. */
 export class Run {
   constructor(
-    private readonly client: Astroclaw,
+    private readonly client: OpenClaw,
     readonly id: string,
     readonly sessionKey?: string,
   ) {}
 
-  events(filter?: (event: AstroclawEvent) => boolean): AsyncIterable<AstroclawEvent> {
+  events(filter?: (event: OpenClawEvent) => boolean): AsyncIterable<OpenClawEvent> {
     return this.client.runEvents(this.id, filter);
   }
 
@@ -569,7 +606,7 @@ export class Run {
       },
       { timeoutMs: null },
     );
-    const record = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
+    const record = asRecord(raw);
     const status = runStatusFromWaitPayload(raw);
     const error = readOptionalString(record.error)
       ? { message: readOptionalString(record.error) ?? "run failed" }
@@ -594,9 +631,10 @@ export class Run {
   }
 }
 
+/** Session handle for sending messages and session-scoped mutations. */
 export class Session {
   constructor(
-    private readonly client: Astroclaw,
+    private readonly client: OpenClaw,
     readonly key: string,
     readonly info?: unknown,
   ) {}
@@ -605,7 +643,7 @@ export class Session {
     const params: SessionSendParams =
       typeof input === "string" ? { key: this.key, message: input } : { ...input, key: this.key };
     const raw = await this.client.request("sessions.send", params, { expectFinal: true });
-    const record = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
+    const record = asRecord(raw);
     const runId = readOptionalString(record.runId);
     if (!runId) {
       throw new Error("sessions.send did not return a runId");
@@ -629,8 +667,9 @@ export class Session {
   }
 }
 
+/** Agent management namespace. */
 export class AgentsNamespace {
-  constructor(private readonly client: Astroclaw) {}
+  constructor(private readonly client: OpenClaw) {}
 
   async list(params?: Record<string, unknown>): Promise<unknown> {
     return await this.client.request("agents.list", params);
@@ -653,8 +692,9 @@ export class AgentsNamespace {
   }
 }
 
+/** Session management namespace. */
 export class SessionsNamespace {
-  constructor(private readonly client: Astroclaw) {}
+  constructor(private readonly client: OpenClaw) {}
 
   async list(params?: Record<string, unknown>): Promise<unknown> {
     return await this.client.request("sessions.list", params);
@@ -662,7 +702,7 @@ export class SessionsNamespace {
 
   async create(params: SessionCreateParams = {}): Promise<Session> {
     const raw = await this.client.request("sessions.create", params);
-    const record = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
+    const record = asRecord(raw);
     const key =
       readOptionalString(record.key) ?? readOptionalString(record.sessionKey) ?? params.key;
     if (!key) {
@@ -685,15 +725,16 @@ export class SessionsNamespace {
   }
 }
 
+/** Run creation and lifecycle namespace. */
 export class RunsNamespace {
-  constructor(private readonly client: Astroclaw) {}
+  constructor(private readonly client: OpenClaw) {}
 
   async create(params: RunCreateParams): Promise<Run> {
     const raw = await this.client.request("agent", buildAgentParams(params), {
       expectFinal: false,
       timeoutMs: params.timeoutMs,
     });
-    const record = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
+    const record = asRecord(raw);
     const runId = readOptionalString(record.runId);
     if (!runId) {
       throw new Error("agent did not return a runId");
@@ -705,7 +746,7 @@ export class RunsNamespace {
     return new Run(this.client, runId);
   }
 
-  events(runId: string): AsyncIterable<AstroclawEvent> {
+  events(runId: string): AsyncIterable<OpenClawEvent> {
     return new Run(this.client, runId).events();
   }
 
@@ -720,7 +761,7 @@ export class RunsNamespace {
 
 class RpcNamespace {
   constructor(
-    protected readonly client: Astroclaw,
+    protected readonly client: OpenClaw,
     private readonly prefix: string,
   ) {}
 
@@ -733,8 +774,9 @@ class RpcNamespace {
   }
 }
 
+/** Task query and cancellation namespace. */
 export class TasksNamespace extends RpcNamespace {
-  constructor(client: Astroclaw) {
+  constructor(client: OpenClaw) {
     super(client, "tasks");
   }
 
@@ -754,8 +796,9 @@ export class TasksNamespace extends RpcNamespace {
   }
 }
 
+/** Model catalog and auth status namespace. */
 export class ModelsNamespace extends RpcNamespace {
-  constructor(client: Astroclaw) {
+  constructor(client: OpenClaw) {
     super(client, "models");
   }
 
@@ -768,8 +811,9 @@ export class ModelsNamespace extends RpcNamespace {
   }
 }
 
+/** Tool catalog, effective tool, and direct invocation namespace. */
 export class ToolsNamespace extends RpcNamespace {
-  constructor(client: Astroclaw) {
+  constructor(client: OpenClaw) {
     super(client, "tools");
   }
 
@@ -793,8 +837,9 @@ export class ToolsNamespace extends RpcNamespace {
   }
 }
 
+/** Run/session artifact listing and download namespace. */
 export class ArtifactsNamespace extends RpcNamespace {
-  constructor(client: Astroclaw) {
+  constructor(client: OpenClaw) {
     super(client, "artifacts");
   }
 
@@ -817,8 +862,9 @@ export class ArtifactsNamespace extends RpcNamespace {
   }
 }
 
+/** Approval request listing and response namespace. */
 export class ApprovalsNamespace {
-  constructor(private readonly client: Astroclaw) {}
+  constructor(private readonly client: OpenClaw) {}
 
   async list(params?: unknown): Promise<unknown> {
     return await this.client.request("exec.approval.list", params);
@@ -829,8 +875,9 @@ export class ApprovalsNamespace {
   }
 }
 
+/** Environment discovery namespace. */
 export class EnvironmentsNamespace extends RpcNamespace {
-  constructor(client: Astroclaw) {
+  constructor(client: OpenClaw) {
     super(client, "environments");
   }
 
