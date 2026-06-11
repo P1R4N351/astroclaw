@@ -1,3 +1,4 @@
+// Diagnostics Otel API module exposes the plugin public contract.
 export {
   createChildDiagnosticTraceContext,
   createDiagnosticTraceContext,
@@ -11,10 +12,10 @@ export {
   type DiagnosticEventMetadata,
   type DiagnosticEventPayload,
   type DiagnosticTraceContext,
-} from "astroclaw/plugin-sdk/diagnostic-runtime";
-export { emptyPluginConfigSchema, type AstroclawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/diagnostic-runtime";
+export { emptyPluginConfigSchema, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 export type {
-  AstroclawPluginService,
-  AstroclawPluginServiceContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
-export { redactSensitiveText } from "astroclaw/plugin-sdk/security-runtime";
+  OpenClawPluginService,
+  OpenClawPluginServiceContext,
+} from "openclaw/plugin-sdk/plugin-entry";
+export { redactSensitiveText } from "openclaw/plugin-sdk/security-runtime";
