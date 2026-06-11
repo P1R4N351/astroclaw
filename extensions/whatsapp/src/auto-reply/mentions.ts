@@ -1,8 +1,9 @@
+// Whatsapp plugin module implements mentions behavior.
 import {
   buildMentionRegexes,
   normalizeMentionText,
-} from "astroclaw/plugin-sdk/channel-mention-gating";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-mention-gating";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   getComparableIdentityValues,
   getMentionIdentities,
@@ -25,8 +26,12 @@ export type MentionTargets = {
   self: WhatsAppIdentity;
 };
 
-export function buildMentionConfig(cfg: AstroclawConfig, agentId?: string): MentionConfig {
-  const mentionRegexes = buildMentionRegexes(cfg, agentId);
+export function buildMentionConfig(
+  cfg: OpenClawConfig,
+  agentId?: string,
+  options?: Parameters<typeof buildMentionRegexes>[2],
+): MentionConfig {
+  const mentionRegexes = buildMentionRegexes(cfg, agentId, options);
   return { mentionRegexes, allowFrom: cfg.channels?.whatsapp?.allowFrom };
 }
 
