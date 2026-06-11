@@ -1,12 +1,13 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Qa Channel setup module handles plugin onboarding behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { DEFAULT_ACCOUNT_ID } from "./accounts.js";
 import type { CoreConfig } from "./types.js";
 
 export function applyQaSetup(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   input: Record<string, unknown>;
-}): AstroclawConfig {
+}): OpenClawConfig {
   const nextCfg = structuredClone(params.cfg) as CoreConfig;
   const section = nextCfg.channels?.["qa-channel"] ?? {};
   const accounts = { ...section.accounts };
@@ -34,5 +35,5 @@ export function applyQaSetup(params: {
       accounts,
     };
   }
-  return nextCfg as AstroclawConfig;
+  return nextCfg as OpenClawConfig;
 }
