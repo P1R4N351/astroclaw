@@ -1,4 +1,5 @@
-import { defineBundledChannelSetupEntry } from "astroclaw/plugin-sdk/channel-entry-contract";
+// Twitch plugin module implements setup entry behavior.
+import { defineBundledChannelSetupEntry } from "openclaw/plugin-sdk/channel-entry-contract";
 
 export default defineBundledChannelSetupEntry({
   importMetaUrl: import.meta.url,
