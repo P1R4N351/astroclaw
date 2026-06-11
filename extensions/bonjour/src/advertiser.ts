@@ -1,9 +1,13 @@
+/**
+ * Bonjour advertiser runtime. It publishes gateway/canvas/SSH service records,
+ * watches ciao state, and repairs stuck or conflicting advertisements.
+ */
 import type { ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
-import type { PluginLogger } from "astroclaw/plugin-sdk/plugin-entry";
-import { isTruthyEnvValue } from "astroclaw/plugin-sdk/runtime-env";
+import type { PluginLogger } from "openclaw/plugin-sdk/plugin-entry";
+import { isTruthyEnvValue } from "openclaw/plugin-sdk/runtime-env";
 import { classifyCiaoProcessError, type CiaoProcessErrorClassification } from "./ciao.js";
 import { formatBonjourError } from "./errors.js";
 
@@ -12,16 +16,19 @@ const childProcessModule = nodeRequire("node:child_process") as {
   exec: typeof import("node:child_process").exec;
 };
 
+/** Running Bonjour advertiser handle. */
 export type GatewayBonjourAdvertiser = {
   stop: () => Promise<void>;
 };
 
+/** Input data used to publish OpenClaw gateway Bonjour records. */
 export type GatewayBonjourAdvertiseOpts = {
   instanceName?: string;
   gatewayPort: number;
   sshPort?: number;
   gatewayTlsEnabled?: boolean;
   gatewayTlsFingerprintSha256?: string;
+  gatewayDirectReachable?: boolean;
   canvasPort?: number;
   tailnetDns?: string;
   cliPath?: string;
@@ -86,7 +93,7 @@ const CONFLICT_SETTLE_MS = 30_000;
 // previous 8s threshold was triggering false-positive teardowns on every gateway
 // restart in such environments. 20s gives healthy networks plenty of room while
 // still catching genuinely stuck advertisers (announce that never completes).
-// See https://github.com/astroclaw/astroclaw/issues/72481
+// See https://github.com/openclaw/openclaw/issues/72481
 const STUCK_ANNOUNCING_MS = 20_000;
 const MAX_CONSECUTIVE_RESTARTS = 3;
 const MAX_CONSECUTIVE_STUCK_STATE_RESTARTS = 1;
@@ -116,7 +123,7 @@ async function loadCiaoModule(): Promise<CiaoModule> {
 }
 
 function readBonjourDisableOverride(): boolean | null {
-  const raw = process.env.ASTROCLAW_DISABLE_BONJOUR;
+  const raw = process.env.OPENCLAW_DISABLE_BONJOUR;
   const normalized = raw?.trim().toLowerCase();
   if (!normalized) {
     return null;
@@ -202,7 +209,7 @@ function resolveSystemMdnsHostname(): string | null {
 const MAX_DNS_LABEL_BYTES = 63;
 const utf8Encoder = new TextEncoder();
 
-function truncateToDnsLabel(name: string, fallback = "Astroclaw"): string {
+function truncateToDnsLabel(name: string, fallback = "OpenClaw"): string {
   const encoded = utf8Encoder.encode(name);
   if (encoded.byteLength <= MAX_DNS_LABEL_BYTES) {
     return name;
@@ -220,12 +227,12 @@ function truncateToDnsLabel(name: string, fallback = "Astroclaw"): string {
 
 function safeServiceName(name: string) {
   const trimmed = name.trim();
-  return trimmed.length > 0 ? truncateToDnsLabel(trimmed) : "Astroclaw";
+  return trimmed.length > 0 ? truncateToDnsLabel(trimmed) : "OpenClaw";
 }
 
 function prettifyInstanceName(name: string) {
   const normalized = name.trim().replace(/\s+/g, " ");
-  return normalized.replace(/\s+\(Astroclaw\)\s*$/i, "").trim() || normalized;
+  return normalized.replace(/\s+\(OpenClaw\)\s*$/i, "").trim() || normalized;
 }
 
 function serviceSummary(label: string, svc: BonjourService): string {
@@ -358,6 +365,7 @@ function installCiaoUnhandledRejectionListener(handler: UnhandledRejectionHandle
   };
 }
 
+/** Start Bonjour advertisements for the local gateway services. */
 export async function startGatewayBonjourAdvertiser(
   opts: GatewayBonjourAdvertiseOpts,
   deps: BonjourAdvertiserDeps = {},
@@ -425,18 +433,18 @@ export async function startGatewayBonjourAdvertiser(
     cleanupUncaughtException = deps.registerUncaughtExceptionHandler?.(handleCiaoProcessError);
 
     const hostnameRaw =
-      process.env.ASTROCLAW_MDNS_HOSTNAME?.trim() || resolveSystemMdnsHostname() || "astroclaw";
+      process.env.OPENCLAW_MDNS_HOSTNAME?.trim() || resolveSystemMdnsHostname() || "openclaw";
     const hostname = truncateToDnsLabel(
       hostnameRaw
         .replace(/\.local$/i, "")
         .split(".")[0]
-        .trim() || "astroclaw",
-      "astroclaw",
+        .trim() || "openclaw",
+      "openclaw",
     );
     const instanceName =
       typeof opts.instanceName === "string" && opts.instanceName.trim()
         ? opts.instanceName.trim()
-        : `${hostname} (Astroclaw)`;
+        : `${hostname} (OpenClaw)`;
     const displayName = prettifyInstanceName(instanceName);
 
     const txtBase: Record<string, string> = {
@@ -450,6 +458,9 @@ export async function startGatewayBonjourAdvertiser(
       if (opts.gatewayTlsFingerprintSha256) {
         txtBase.gatewayTlsSha256 = opts.gatewayTlsFingerprintSha256;
       }
+    }
+    if (opts.gatewayDirectReachable) {
+      txtBase.gatewayDirectReachable = "1";
     }
     if (typeof opts.canvasPort === "number" && opts.canvasPort > 0) {
       txtBase.canvasPort = String(opts.canvasPort);
@@ -476,7 +487,7 @@ export async function startGatewayBonjourAdvertiser(
 
       const gateway = responder.createService({
         name: safeServiceName(instanceName),
-        type: "astroclaw-gw",
+        type: "openclaw-gw",
         protocol: Protocol.TCP,
         port: opts.gatewayPort,
         domain: "local",
@@ -491,7 +502,10 @@ export async function startGatewayBonjourAdvertiser(
       return { responder, services };
     }
 
-    async function stopCycle(cycle: BonjourCycle | null, opts?: { shutdownResponder?: boolean }) {
+    async function stopCycle(
+      cycle: BonjourCycle | null,
+      optsValue?: { shutdownResponder?: boolean },
+    ) {
       if (!cycle) {
         return;
       }
@@ -503,7 +517,7 @@ export async function startGatewayBonjourAdvertiser(
         }
       }
       try {
-        if (opts?.shutdownResponder) {
+        if (optsValue?.shutdownResponder) {
           await cycle.responder.shutdown();
         }
       } catch {
@@ -564,7 +578,7 @@ export async function startGatewayBonjourAdvertiser(
             .then(() => {
               logger.info(`bonjour: advertised ${serviceSummary(label, svc)}`);
             })
-            .catch((err) => {
+            .catch((err: unknown) => {
               handleAdvertiseFailure(label, svc, err, "failed");
             });
         } catch (err) {
@@ -611,7 +625,7 @@ export async function startGatewayBonjourAdvertiser(
       }
     };
 
-    const recreateAdvertiser = async (reason: string, opts?: { stuckState?: boolean }) => {
+    const recreateAdvertiser = async (reason: string, optsLocal?: { stuckState?: boolean }) => {
       if (stopped || disabled) {
         return;
       }
@@ -620,7 +634,9 @@ export async function startGatewayBonjourAdvertiser(
       }
       recreatePromise = (async () => {
         consecutiveRestarts += 1;
-        consecutiveStuckStateRestarts = opts?.stuckState ? consecutiveStuckStateRestarts + 1 : 0;
+        consecutiveStuckStateRestarts = optsLocal?.stuckState
+          ? consecutiveStuckStateRestarts + 1
+          : 0;
         const now = Date.now();
         while (
           restartTimestamps.length > 0 &&
@@ -643,7 +659,7 @@ export async function startGatewayBonjourAdvertiser(
                   RESTART_WINDOW_MS / 60_000,
                 )} minutes`;
           logger.warn(
-            `bonjour: disabling advertiser after ${detail} (${reason}); set discovery.mdns.mode="off" or ASTROCLAW_DISABLE_BONJOUR=1 to disable mDNS discovery`,
+            `bonjour: disabling advertiser after ${detail} (${reason}); set discovery.mdns.mode="off" or OPENCLAW_DISABLE_BONJOUR=1 to disable mDNS discovery`,
           );
           const previous = cycle;
           cycle = null;
@@ -738,7 +754,7 @@ export async function startGatewayBonjourAdvertiser(
           )})`,
         );
         try {
-          void svc.advertise().catch((err) => {
+          void svc.advertise().catch((err: unknown) => {
             logger.warn(
               `bonjour: watchdog re-advertise failed (${serviceSummary(label, svc)}): ${formatBonjourError(err)}`,
             );
