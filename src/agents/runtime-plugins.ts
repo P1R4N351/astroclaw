@@ -1,4 +1,9 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/**
+ * Ensures runtime plugin registries are loaded for agent execution. Startup
+ * plugin IDs from metadata scope the load when available.
+ */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { normalizePluginsConfig } from "../plugins/config-state.js";
 import { getCurrentPluginMetadataSnapshot } from "../plugins/current-plugin-metadata-snapshot.js";
 import { getActivePluginRuntimeSubagentMode } from "../plugins/runtime.js";
 import { ensureStandaloneRuntimePluginRegistryLoaded } from "../plugins/runtime/standalone-runtime-registry-loader.js";
@@ -13,7 +18,7 @@ type StartupScopedPluginSnapshot = NonNullable<
 };
 
 function resolveStartupPluginIdsFromCurrentSnapshot(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
 }): string[] | undefined {
   const snapshot = getCurrentPluginMetadataSnapshot({
@@ -27,11 +32,15 @@ function resolveStartupPluginIdsFromCurrentSnapshot(params: {
   return pluginIds.filter((pluginId): pluginId is string => typeof pluginId === "string");
 }
 
+/** Ensure standalone runtime plugins are loaded for the current agent context. */
 export function ensureRuntimePluginsLoaded(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string | null;
   allowGatewaySubagentBinding?: boolean;
 }): void {
+  if (params.config && !normalizePluginsConfig(params.config.plugins).enabled) {
+    return;
+  }
   const workspaceDir =
     typeof params.workspaceDir === "string" && params.workspaceDir.trim()
       ? resolveUserPath(params.workspaceDir)
@@ -49,6 +58,7 @@ export function ensureRuntimePluginsLoaded(params: {
       config: params.config,
       workspaceDir,
       ...(startupPluginIds === undefined ? {} : { onlyPluginIds: startupPluginIds }),
+      ...(startupPluginIds === undefined ? {} : { forceFullRuntimeForChannelPlugins: true }),
       runtimeOptions: allowGatewaySubagentBinding
         ? { allowGatewaySubagentBinding: true }
         : undefined,
