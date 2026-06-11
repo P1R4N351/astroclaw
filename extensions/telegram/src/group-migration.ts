@@ -1,7 +1,8 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { TelegramGroupConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { normalizeAccountId } from "astroclaw/plugin-sdk/routing";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Telegram plugin module implements group migration behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { TelegramGroupConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeAccountId } from "openclaw/plugin-sdk/routing";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 type TelegramGroups = Record<string, TelegramGroupConfig>;
 
@@ -14,7 +15,7 @@ type TelegramGroupMigrationResult = {
 };
 
 function resolveAccountGroups(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string | null,
 ): { groups?: TelegramGroups } {
   if (!accountId) {
@@ -58,7 +59,7 @@ export function migrateTelegramGroupsInPlace(
 }
 
 export function migrateTelegramGroupConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   oldChatId: string;
   newChatId: string;
