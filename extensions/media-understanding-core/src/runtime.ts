@@ -1,3 +1,4 @@
+// Media Understanding Core plugin module implements runtime behavior.
 export {
   describeImageFile,
   describeImageFileWithModel,
@@ -6,4 +7,4 @@ export {
   transcribeAudioFile,
   type RunMediaUnderstandingFileParams,
   type RunMediaUnderstandingFileResult,
-} from "astroclaw/plugin-sdk/media-understanding-runtime";
+} from "openclaw/plugin-sdk/media-understanding-runtime";
