@@ -1,4 +1,5 @@
-import { normalizeOptionalAccountId } from "astroclaw/plugin-sdk/account-id";
+// Matrix plugin module implements shared behavior.
+import { normalizeOptionalAccountId } from "openclaw/plugin-sdk/account-id";
 import type { CoreConfig } from "../../types.js";
 import type { MatrixClient } from "../sdk.js";
 import { LogService } from "../sdk/logger.js";
