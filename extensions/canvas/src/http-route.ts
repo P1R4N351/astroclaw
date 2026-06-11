@@ -1,19 +1,25 @@
+/**
+ * Canvas HTTP route adapter that lazily starts the host handler for plugin
+ * routed requests.
+ */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Duplex } from "node:stream";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import { isCanvasHostEnabled, resolveCanvasHostConfig } from "./config.js";
 import { A2UI_PATH, CANVAS_HOST_PATH, CANVAS_WS_PATH, handleA2uiHttpRequest } from "./host/a2ui.js";
 import { createCanvasHostHandler, type CanvasHostHandler } from "./host/server.js";
 
+/** Canvas route handler shape registered with the plugin HTTP router. */
 export type CanvasHttpRouteHandler = {
   handleHttpRequest: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
   handleUpgrade: (req: IncomingMessage, socket: Duplex, head: Buffer) => Promise<boolean>;
   close: () => Promise<void>;
 };
 
+/** Creates a lazily initialized Canvas HTTP/WebSocket route handler. */
 export function createCanvasHttpRouteHandler(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   pluginConfig?: Record<string, unknown>;
   runtime: RuntimeEnv;
   allowInTests?: boolean;
