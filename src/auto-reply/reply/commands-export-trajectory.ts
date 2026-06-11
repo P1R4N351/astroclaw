@@ -1,3 +1,4 @@
+// Implements trajectory export command packaging for the active session agent.
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { createExecTool } from "../../agents/bash-tools.js";
 import type { ExecToolDetails } from "../../agents/bash-tools.js";
@@ -17,19 +18,20 @@ import {
   resolveExportCommandSessionTarget,
 } from "./commands-export-common.js";
 import {
-  buildCurrentAstroclawCliArgv,
-  buildCurrentAstroclawCliCommand,
-} from "./commands-astroclaw-cli.js";
+  buildCurrentOpenClawCliArgv,
+  buildCurrentOpenClawCliCommand,
+} from "./commands-openclaw-cli.js";
 import {
   deliverPrivateCommandReply,
   readCommandDeliveryTarget,
   readCommandMessageThreadId,
+  resolvePrivateCommandApprovalRouteExpiresAtMs,
   resolvePrivateCommandRouteTargets,
   type PrivateCommandRouteTarget,
 } from "./commands-private-route.js";
 import type { HandleCommandsParams } from "./commands-types.js";
 
-const EXPORT_TRAJECTORY_DOCS_URL = "https://docs.astroclaw.ai/tools/trajectory";
+const EXPORT_TRAJECTORY_DOCS_URL = "https://docs.openclaw.ai/tools/trajectory";
 const EXPORT_TRAJECTORY_EXEC_SCOPE_KEY = "chat:export-trajectory";
 const MAX_TRAJECTORY_EXPORT_ENCODED_REQUEST_CHARS = 8192;
 const EXPORT_TRAJECTORY_PRIVATE_ROUTE_UNAVAILABLE =
@@ -53,7 +55,7 @@ type ExportTrajectoryCommandDeps = {
 const defaultExportTrajectoryCommandDeps: ExportTrajectoryCommandDeps = {
   createExecTool,
   resolvePrivateTrajectoryTargets: resolvePrivateTrajectoryTargetsForCommand,
-  deliverPrivateTrajectoryReply: deliverPrivateTrajectoryReply,
+  deliverPrivateTrajectoryReply,
 };
 
 export async function buildExportTrajectoryCommandReply(
@@ -216,7 +218,7 @@ function buildTrajectoryExportApprovalRequest(
       turnSourceThreadId: readCommandMessageThreadId(params) ?? null,
     },
     createdAtMs: now,
-    expiresAtMs: now + 5 * 60_000,
+    expiresAtMs: resolvePrivateCommandApprovalRouteExpiresAtMs(now),
   };
 }
 
@@ -357,9 +359,9 @@ function buildTrajectoryExportExecRequest(
   }
   const args = ["sessions", "export-trajectory", "--request-json-base64", encodedRequest, "--json"];
   return {
-    argv: buildCurrentAstroclawCliArgv(args),
-    command: buildCurrentAstroclawCliCommand(args),
-    displayCommand: ["astroclaw", ...args].join(" "),
+    argv: buildCurrentOpenClawCliArgv(args),
+    command: buildCurrentOpenClawCliCommand(args),
+    displayCommand: ["openclaw", ...args].join(" "),
     encodedRequest,
     request,
   };
