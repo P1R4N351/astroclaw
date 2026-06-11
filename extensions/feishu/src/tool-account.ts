@@ -1,6 +1,7 @@
+// Feishu plugin module implements tool account behavior.
 import type * as Lark from "@larksuiteoapi/node-sdk";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
-import type { AstroclawPluginApi } from "../runtime-api.js";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import type { OpenClawPluginApi } from "../runtime-api.js";
 import {
   listFeishuAccountIds,
   resolveFeishuAccount,
@@ -13,7 +14,7 @@ import type { FeishuToolsConfig, ResolvedFeishuAccount } from "./types.js";
 type AccountAwareParams = { accountId?: string };
 
 function resolveImplicitToolAccountId(params: {
-  api: Pick<AstroclawPluginApi, "config">;
+  api: Pick<OpenClawPluginApi, "config">;
   executeParams?: AccountAwareParams;
   defaultAccountId?: string;
 }): string | undefined {
@@ -48,7 +49,7 @@ function resolveImplicitToolAccountId(params: {
 }
 
 export function resolveFeishuToolAccount(params: {
-  api: Pick<AstroclawPluginApi, "config">;
+  api: Pick<OpenClawPluginApi, "config">;
   executeParams?: AccountAwareParams;
   defaultAccountId?: string;
 }): ResolvedFeishuAccount {
@@ -62,7 +63,7 @@ export function resolveFeishuToolAccount(params: {
 }
 
 export function createFeishuToolClient(params: {
-  api: Pick<AstroclawPluginApi, "config">;
+  api: Pick<OpenClawPluginApi, "config">;
   executeParams?: AccountAwareParams;
   defaultAccountId?: string;
 }): Lark.Client {
@@ -79,6 +80,8 @@ export function resolveAnyEnabledFeishuToolsConfig(
     drive: false,
     perm: false,
     scopes: false,
+    bitable: false,
+    base: false,
   };
   for (const account of accounts) {
     const cfg = resolveToolsConfig(account.config.tools);
@@ -88,6 +91,8 @@ export function resolveAnyEnabledFeishuToolsConfig(
     merged.drive = merged.drive || cfg.drive;
     merged.perm = merged.perm || cfg.perm;
     merged.scopes = merged.scopes || cfg.scopes;
+    merged.bitable = merged.bitable || cfg.bitable;
+    merged.base = merged.base || cfg.base;
   }
   return merged;
 }
