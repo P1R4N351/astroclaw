@@ -1,11 +1,12 @@
+// Nostr API module exposes the plugin public contract.
 export {
   buildChannelConfigSchema,
   DEFAULT_ACCOUNT_ID,
   formatPairingApproveHint,
   type ChannelPlugin,
-} from "astroclaw/plugin-sdk/channel-plugin-common";
-export type { ChannelOutboundAdapter } from "astroclaw/plugin-sdk/channel-contract";
+} from "openclaw/plugin-sdk/channel-plugin-common";
+export type { ChannelOutboundAdapter } from "openclaw/plugin-sdk/channel-contract";
 export {
   collectStatusIssuesFromLastError,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
