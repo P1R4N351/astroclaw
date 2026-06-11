@@ -1,4 +1,7 @@
+// Slack plugin module implements slash harness behavior.
 import { vi } from "vitest";
+
+type AsyncMock = ReturnType<typeof vi.fn<(...args: unknown[]) => Promise<unknown>>>;
 
 const mocks = vi.hoisted(() => ({
   dispatchMock: vi.fn(),
@@ -7,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   resolveAgentRouteMock: vi.fn(),
   finalizeInboundContextMock: vi.fn(),
   resolveConversationLabelMock: vi.fn(),
-  recordSessionMetaFromInboundMock: vi.fn(),
+  recordSessionMetaFromInboundMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   resolveStorePathMock: vi.fn(),
 }));
 
@@ -32,7 +35,7 @@ type SlashHarnessMocks = {
   resolveAgentRouteMock: ReturnType<typeof vi.fn>;
   finalizeInboundContextMock: ReturnType<typeof vi.fn>;
   resolveConversationLabelMock: ReturnType<typeof vi.fn>;
-  recordSessionMetaFromInboundMock: ReturnType<typeof vi.fn>;
+  recordSessionMetaFromInboundMock: AsyncMock;
   resolveStorePathMock: ReturnType<typeof vi.fn>;
 };
 
@@ -52,5 +55,5 @@ export function resetSlackSlashMocks() {
   mocks.finalizeInboundContextMock.mockReset().mockImplementation((ctx: unknown) => ctx);
   mocks.resolveConversationLabelMock.mockReset().mockReturnValue(undefined);
   mocks.recordSessionMetaFromInboundMock.mockReset().mockResolvedValue(undefined);
-  mocks.resolveStorePathMock.mockReset().mockReturnValue("/tmp/astroclaw-sessions.json");
+  mocks.resolveStorePathMock.mockReset().mockReturnValue("/tmp/openclaw-sessions.json");
 }
