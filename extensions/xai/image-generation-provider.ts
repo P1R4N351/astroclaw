@@ -1,19 +1,20 @@
+// Xai provider module implements model/runtime integration.
 import type {
   ImageGenerationProvider,
   ImageGenerationRequest,
   ImageGenerationSourceImage,
-} from "astroclaw/plugin-sdk/image-generation";
+} from "openclaw/plugin-sdk/image-generation";
 import {
   createOpenAiCompatibleImageGenerationProvider,
   toImageDataUrl,
-} from "astroclaw/plugin-sdk/image-generation";
+} from "openclaw/plugin-sdk/image-generation";
 import {
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { XAI_BASE_URL, XAI_DEFAULT_IMAGE_MODEL, XAI_IMAGE_MODELS } from "./model-definitions.js";
 
-const DEFAULT_TIMEOUT_MS = 180_000;
+const DEFAULT_TIMEOUT_MS = 600_000;
 
 const XAI_SUPPORTED_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "2:3", "3:2"] as const;
 
