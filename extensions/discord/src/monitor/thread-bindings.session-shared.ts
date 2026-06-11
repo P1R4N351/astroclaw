@@ -1,4 +1,5 @@
-import { normalizeAccountId } from "astroclaw/plugin-sdk/routing";
+// Discord plugin module implements thread bindings.session shared behavior.
+import { normalizeAccountId } from "openclaw/plugin-sdk/routing";
 import {
   BINDINGS_BY_THREAD_ID,
   ensureBindingsLoaded,
