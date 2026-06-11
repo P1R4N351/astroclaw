@@ -1,15 +1,16 @@
+// Feishu plugin module implements policy behavior.
 import {
   normalizeAccountId,
   resolveMergedAccountConfig,
-} from "astroclaw/plugin-sdk/account-resolution";
+} from "openclaw/plugin-sdk/account-resolution";
 import {
   createChannelIngressResolver,
   defineStableChannelIngressIdentity,
   type ChannelIngressIdentitySubjectInput,
   type ResolveChannelMessageIngressParams,
-} from "astroclaw/plugin-sdk/channel-ingress-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/core";
-import { normalizeOptionalLowercaseString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/channel-ingress-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
+import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { ChannelGroupContext } from "../runtime-api.js";
 import { detectIdType } from "./targets.js";
 import type { FeishuConfig } from "./types.js";
@@ -39,7 +40,7 @@ const feishuIngressIdentity = defineStableChannelIngressIdentity({
   resolveEntryId: ({ entryIndex }) => `feishu-entry-${entryIndex + 1}`,
 });
 
-function normalizeFeishuAllowEntry(raw: string): string {
+export function normalizeFeishuAllowEntry(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) {
     return "";
@@ -106,7 +107,7 @@ function createFeishuIngressSubject(params: {
 }
 
 function createFeishuIngressResolver(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   accountId?: string | null;
   readAllowFromStore?: ResolveChannelMessageIngressParams["readStoreAllowFrom"];
 }) {
@@ -120,7 +121,7 @@ function createFeishuIngressResolver(params: {
 }
 
 export async function resolveFeishuDmIngressAccess(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   dmPolicy?: string | null;
   allowFrom?: Array<string | number> | null;
@@ -155,7 +156,7 @@ export async function resolveFeishuDmIngressAccess(params: {
 }
 
 export async function resolveFeishuGroupConversationIngressAccess(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   chatId: string;
   groupPolicy: FeishuGroupPolicy;
@@ -185,7 +186,7 @@ export async function resolveFeishuGroupConversationIngressAccess(params: {
 }
 
 export async function resolveFeishuGroupSenderActivationIngressAccess(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   chatId: string;
   allowFrom?: Array<string | number> | null;
@@ -257,7 +258,7 @@ export function hasExplicitFeishuGroupConfig(params: {
   if (!groupId) {
     return false;
   }
-  if (Object.prototype.hasOwnProperty.call(groups, groupId) && groupId !== "*") {
+  if (Object.hasOwn(groups, groupId) && groupId !== "*") {
     return true;
   }
 
@@ -283,7 +284,7 @@ export function resolveFeishuGroupToolPolicy(params: ChannelGroupContext) {
 
 export function resolveFeishuReplyPolicy(params: {
   isDirectMessage: boolean;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   groupId?: string | null;
   /**
