@@ -1,7 +1,9 @@
+// Gateway credential planning helpers.
+// Classifies local/remote auth inputs before SecretRef resolution.
+import { normalizeOptionalString } from "../../packages/normalization-core/src/string-coerce.js";
 import { containsEnvVarReference } from "../config/env-substitution.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { hasConfiguredSecretInput, resolveSecretInputRef } from "../config/types.secrets.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
 
 type GatewayCredentialInputPath =
   | "gateway.auth.token"
@@ -17,6 +19,7 @@ type GatewayConfiguredCredentialInput = {
   hasSecretRef: boolean;
 };
 
+/** Precomputed Gateway credential surfaces used by startup, secret resolution, and clients. */
 export type GatewayCredentialPlan = {
   configuredMode: "local" | "remote";
   authMode?: string;
@@ -41,13 +44,14 @@ export type GatewayCredentialPlan = {
   remotePasswordActive: boolean;
 };
 
-type GatewaySecretDefaults = NonNullable<AstroclawConfig["secrets"]>["defaults"];
+type GatewaySecretDefaults = NonNullable<OpenClawConfig["secrets"]>["defaults"];
 
+/** Normalize optional Gateway credential strings to nonempty values. */
 export const trimToUndefined = normalizeOptionalString;
 
 /**
  * Like trimToUndefined but also rejects unresolved env var placeholders (e.g. `${VAR}`).
- * This prevents literal placeholder strings like `${ASTROCLAW_GATEWAY_TOKEN}` from being
+ * This prevents literal placeholder strings like `${OPENCLAW_GATEWAY_TOKEN}` from being
  * accepted as valid credentials when the referenced env var is missing.
  * Note: legitimate credential values containing literal `${UPPER_CASE}` patterns will
  * also be rejected, but this is an extremely unlikely edge case.
@@ -60,14 +64,17 @@ export function trimCredentialToUndefined(value: unknown): string | undefined {
   return trimmed;
 }
 
+/** True when the process env supplies a nonempty Gateway token candidate. */
 export function hasGatewayTokenEnvCandidate(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(trimToUndefined(env.ASTROCLAW_GATEWAY_TOKEN));
+  return Boolean(trimToUndefined(env.OPENCLAW_GATEWAY_TOKEN));
 }
 
+/** True when the process env supplies a nonempty Gateway password candidate. */
 export function hasGatewayPasswordEnvCandidate(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(trimToUndefined(env.ASTROCLAW_GATEWAY_PASSWORD));
+  return Boolean(trimToUndefined(env.OPENCLAW_GATEWAY_PASSWORD));
 }
 
+/** Classify one configured credential input without resolving secret refs. */
 function resolveConfiguredGatewayCredentialInput(params: {
   value: unknown;
   defaults?: GatewaySecretDefaults;
@@ -86,8 +93,9 @@ function resolveConfiguredGatewayCredentialInput(params: {
   };
 }
 
+/** Build the shared credential plan for Gateway startup, local auth, and remote client auth. */
 export function createGatewayCredentialPlan(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   defaults?: GatewaySecretDefaults;
 }): GatewayCredentialPlan {
@@ -96,8 +104,8 @@ export function createGatewayCredentialPlan(params: {
   const remote = gateway?.remote;
   const defaults = params.defaults ?? params.config.secrets?.defaults;
   const authMode = gateway?.auth?.mode;
-  const envToken = trimToUndefined(env.ASTROCLAW_GATEWAY_TOKEN);
-  const envPassword = trimToUndefined(env.ASTROCLAW_GATEWAY_PASSWORD);
+  const envToken = trimToUndefined(env.OPENCLAW_GATEWAY_TOKEN);
+  const envPassword = trimToUndefined(env.OPENCLAW_GATEWAY_PASSWORD);
 
   const localToken = resolveConfiguredGatewayCredentialInput({
     value: gateway?.auth?.token,
@@ -120,6 +128,8 @@ export function createGatewayCredentialPlan(params: {
     path: "gateway.remote.password",
   });
 
+  // The local token surface is disabled by password/none/trusted-proxy modes so
+  // token refs do not get resolved for auth modes that cannot consume them.
   const localTokenCanWin =
     authMode !== "password" && authMode !== "none" && authMode !== "trusted-proxy";
   const tokenCanWin = Boolean(envToken || localToken.configured || remoteToken.configured);
@@ -137,7 +147,11 @@ export function createGatewayCredentialPlan(params: {
   const remoteUrlConfigured = Boolean(trimToUndefined(remote?.url));
   const tailscaleRemoteExposure =
     gateway?.tailscale?.mode === "serve" || gateway?.tailscale?.mode === "funnel";
+  // Remote credential surfaces are considered active when the gateway is used
+  // remotely or when local auth may be borrowed for a published Tailscale URL.
   const remoteConfiguredSurface = remoteMode || remoteUrlConfigured || tailscaleRemoteExposure;
+  // Remote credentials may borrow local auth credentials only when the remote
+  // surface exists but no explicit remote/env candidate can satisfy the mode.
   const remoteTokenFallbackActive = localTokenCanWin && !envToken && !localToken.configured;
   const remotePasswordFallbackActive =
     authMode !== "trusted-proxy" && !envPassword && !localPassword.configured && passwordCanWin;
