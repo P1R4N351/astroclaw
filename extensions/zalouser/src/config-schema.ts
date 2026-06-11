@@ -1,3 +1,4 @@
+// Zalouser helper module supports config schema behavior.
 import {
   AllowFromListSchema,
   buildCatchallMultiAccountChannelSchema,
@@ -5,7 +6,7 @@ import {
   GroupPolicySchema,
   MarkdownConfigSchema,
   ToolPolicySchema,
-} from "astroclaw/plugin-sdk/channel-config-schema";
+} from "openclaw/plugin-sdk/channel-config-schema";
 import { z } from "zod";
 
 const groupConfigSchema = z.object({
