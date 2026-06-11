@@ -1,13 +1,14 @@
+// Channel setup plugin install/reload helpers used by onboarding and channel commands.
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import type { ChannelPluginCatalogEntry } from "../../channels/plugins/catalog.js";
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import {
   resolveConfiguredChannelPluginIds,
   resolveDiscoverableScopedChannelPluginIds,
 } from "../../plugins/channel-plugin-ids.js";
-import { loadAstroclawPlugins } from "../../plugins/loader.js";
+import { loadOpenClawPlugins } from "../../plugins/loader.js";
 import { createPluginLoaderLogger } from "../../plugins/logger.js";
 import type { PluginRegistry } from "../../plugins/registry.js";
 import type { RuntimeEnv } from "../../runtime.js";
@@ -20,7 +21,7 @@ import {
 import { getTrustedChannelPluginCatalogEntry } from "./trusted-catalog.js";
 
 type InstallResult = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   installed: boolean;
   pluginId?: string;
   status: OnboardingPluginInstallStatus;
@@ -39,8 +40,9 @@ function toOnboardingPluginInstallEntry(
   };
 }
 
+/** Install or reuse the plugin package required by a trusted channel catalog entry. */
 export async function ensureChannelSetupPluginInstalled(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   entry: ChannelPluginCatalogEntry;
   prompter: WizardPrompter;
   runtime: RuntimeEnv;
@@ -67,8 +69,9 @@ export async function ensureChannelSetupPluginInstalled(params: {
   };
 }
 
+/** Reload configured channel setup plugins after config or install-record changes. */
 export function reloadChannelSetupPluginRegistry(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   runtime: RuntimeEnv;
   workspaceDir?: string;
 }): void {
@@ -76,7 +79,7 @@ export function reloadChannelSetupPluginRegistry(params: {
 }
 
 function loadChannelSetupPluginRegistry(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   runtime: RuntimeEnv;
   workspaceDir?: string;
   onlyPluginIds?: string[];
@@ -97,7 +100,7 @@ function loadChannelSetupPluginRegistry(params: {
       env: process.env,
     });
   const log = createSubsystemLogger("plugins");
-  return loadAstroclawPlugins({
+  return loadOpenClawPlugins({
     config: resolvedConfig,
     activationSourceConfig: params.cfg,
     autoEnabledReasons: autoEnabled.autoEnabledReasons,
@@ -112,7 +115,7 @@ function loadChannelSetupPluginRegistry(params: {
 }
 
 function resolveScopedChannelPluginId(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: string;
   pluginId?: string;
   workspaceDir?: string;
@@ -130,7 +133,7 @@ function resolveScopedChannelPluginId(params: {
 }
 
 function resolveUniqueManifestScopedChannelPluginId(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: string;
   workspaceDir?: string;
 }): string | undefined {
@@ -143,8 +146,9 @@ function resolveUniqueManifestScopedChannelPluginId(params: {
   return matches.length === 1 ? matches[0] : undefined;
 }
 
+/** Reload only the plugin that can contribute setup support for one channel id. */
 export function reloadChannelSetupPluginRegistryForChannel(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   runtime: RuntimeEnv;
   channel: string;
   pluginId?: string;
@@ -162,8 +166,9 @@ export function reloadChannelSetupPluginRegistryForChannel(params: {
   });
 }
 
+/** Load an inactive setup-plugin registry snapshot for resolving a channel without side effects. */
 export function loadChannelSetupPluginRegistrySnapshotForChannel(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   runtime: RuntimeEnv;
   channel: string;
   pluginId?: string;
