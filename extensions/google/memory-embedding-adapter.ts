@@ -1,10 +1,11 @@
+// Google plugin module implements memory embedding adapter behavior.
 import {
   hasNonTextEmbeddingParts,
   isMissingEmbeddingApiKeyError,
   mapBatchEmbeddingsByIndex,
   sanitizeEmbeddingCacheHeaders,
   type MemoryEmbeddingProviderAdapter,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+} from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import { runGeminiEmbeddingBatches } from "./embedding-batch.js";
 import {
   buildGeminiEmbeddingRequest,
