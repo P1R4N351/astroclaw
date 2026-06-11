@@ -1,3 +1,4 @@
+// Synology Chat plugin module implements channel mocks behavior.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Mock } from "vitest";
 import { vi } from "vitest";
@@ -88,24 +89,24 @@ async function readRequestBodyWithLimitForTest(req: IncomingMessage): Promise<st
   });
 }
 
-vi.mock("astroclaw/plugin-sdk/setup", async () => {
-  const actual = await vi.importActual<object>("astroclaw/plugin-sdk/setup");
+vi.mock("openclaw/plugin-sdk/setup", async () => {
+  const actual = await vi.importActual<object>("openclaw/plugin-sdk/setup");
   return {
     ...actual,
     DEFAULT_ACCOUNT_ID: "default",
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/channel-config-schema", async () => {
-  const actual = await vi.importActual<object>("astroclaw/plugin-sdk/channel-config-schema");
+vi.mock("openclaw/plugin-sdk/channel-config-schema", async () => {
+  const actual = await vi.importActual<object>("openclaw/plugin-sdk/channel-config-schema");
   return {
     ...actual,
     buildChannelConfigSchema: vi.fn((schema: unknown) => ({ schema })),
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/webhook-ingress", async () => {
-  const actual = await vi.importActual<object>("astroclaw/plugin-sdk/webhook-ingress");
+vi.mock("openclaw/plugin-sdk/webhook-ingress", async () => {
+  const actual = await vi.importActual<object>("openclaw/plugin-sdk/webhook-ingress");
   return {
     ...actual,
     registerPluginHttpRoute: registerPluginHttpRouteMock,
@@ -138,10 +139,10 @@ vi.mock("./runtime.js", () => ({
         dispatchReplyWithBufferedBlockDispatcher,
       },
       session: {
-        resolveStorePath: vi.fn(() => "/tmp/astroclaw/synology-chat-sessions.json"),
+        resolveStorePath: vi.fn(() => "/tmp/openclaw/synology-chat-sessions.json"),
         recordInboundSession: vi.fn(async () => undefined),
       },
-      turn: {
+      inbound: {
         run: vi.fn(async (params) => {
           const input = await params.adapter.ingest(params.raw);
           if (!input) {
