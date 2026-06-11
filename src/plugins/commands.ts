@@ -5,11 +5,12 @@
  * These commands are processed before built-in commands and before agent invocation.
  */
 
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { resolveBoundAgentIdForSession } from "../agents/session-agent-binding.js";
 import { resolveConversationBindingContext } from "../channels/conversation-binding-context.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { ADMIN_SCOPE, isOperatorScope } from "../gateway/operator-scopes.js";
 import { logVerbose } from "../globals.js";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 import {
   clearPluginCommands,
   clearPluginCommandsForPlugin,
@@ -21,7 +22,9 @@ import {
   validatePluginCommandDefinition,
 } from "./command-registration.js";
 import {
+  canExposeSenderIsOwner,
   isTrustedReservedCommandOwner,
+  listRegisteredPluginAgentPromptGuidance,
   pluginCommands,
   setPluginCommandRegistryLocked,
   type RegisteredPluginCommand,
@@ -34,7 +37,7 @@ import {
 } from "./conversation-binding.js";
 import { getActivePluginChannelRegistry } from "./runtime.js";
 import type {
-  AstroclawPluginCommandDefinition,
+  OpenClawPluginCommandDefinition,
   PluginCommandContext,
   PluginCommandResult,
 } from "./types.js";
@@ -47,6 +50,7 @@ export {
   clearPluginCommandsForPlugin,
   getPluginCommandSpecs,
   listProviderPluginCommandSpecs,
+  listRegisteredPluginAgentPromptGuidance,
   registerPluginCommand,
   validateCommandName,
   validatePluginCommandDefinition,
@@ -133,7 +137,7 @@ function sanitizeArgs(args: string | undefined): string | undefined {
 }
 
 function resolveBindingConversationFromCommand(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   channel: string;
   senderId?: string;
   from?: string;
@@ -155,7 +159,7 @@ function resolveBindingConversationFromCommand(params: {
     return null;
   }
   return resolveConversationBindingContext({
-    cfg: params.config ?? ({} as AstroclawConfig),
+    cfg: params.config ?? ({} as OpenClawConfig),
     channel: params.channel,
     accountId: params.accountId,
     threadId: params.messageThreadId,
@@ -165,6 +169,54 @@ function resolveBindingConversationFromCommand(params: {
     commandTo: params.to,
     fallbackTo: params.to ?? params.from,
   });
+}
+
+type PluginCommandRuntimeLlm = NonNullable<PluginCommandContext["runtimeContext"]>["llm"];
+type PluginCommandLlmCompleteParams = Parameters<
+  NonNullable<PluginCommandRuntimeLlm>["complete"]
+>[0];
+
+function buildPluginCommandRuntimeContext(params: {
+  command: RegisteredPluginCommand;
+  config: OpenClawConfig;
+  agentId?: string;
+  sessionKey?: string;
+  authProfileId?: string;
+}): PluginCommandContext["runtimeContext"] {
+  const sessionKey = params.sessionKey?.trim();
+  const agentId = resolveBoundAgentIdForSession({
+    config: params.config,
+    agentId: params.agentId,
+    sessionKey,
+  });
+  if (!sessionKey && !agentId) {
+    return undefined;
+  }
+  return {
+    llm: {
+      complete: async (request: PluginCommandLlmCompleteParams) => {
+        const { createRuntimeLlm } = await import("./runtime/runtime-llm.runtime.js");
+        return await createRuntimeLlm({
+          getConfig: () => params.config,
+          authority: {
+            caller: {
+              kind: "plugin",
+              id: params.command.pluginId,
+              name: params.command.pluginName,
+            },
+            pluginIdForPolicy: params.command.pluginId,
+            requiresBoundAgent: true,
+            ...(sessionKey ? { sessionKey } : {}),
+            ...(agentId ? { agentId } : {}),
+            ...(params.authProfileId ? { preferredProfile: params.authProfileId } : {}),
+            allowAgentIdOverride: false,
+            allowModelOverride: false,
+            allowComplete: true,
+          },
+        }).complete(request);
+      },
+    },
+  };
 }
 
 /**
@@ -182,11 +234,14 @@ export async function executePluginCommand(params: {
   isAuthorizedSender: boolean;
   senderIsOwner?: boolean;
   gatewayClientScopes?: PluginCommandContext["gatewayClientScopes"];
+  /** Host-resolved agent authority for plugin-owned or non-agent-shaped session keys. */
+  agentId?: string;
   sessionKey?: PluginCommandContext["sessionKey"];
   sessionId?: PluginCommandContext["sessionId"];
   sessionFile?: PluginCommandContext["sessionFile"];
+  authProfileId?: string;
   commandBody: string;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   from?: PluginCommandContext["from"];
   to?: PluginCommandContext["to"];
   accountId?: PluginCommandContext["accountId"];
@@ -253,7 +308,7 @@ export async function executePluginCommand(params: {
   });
   const effectiveAccountId = bindingConversation?.accountId ?? params.accountId;
   const senderIsOwnerForCommand =
-    requiredScopes.length > 0 ||
+    canExposeSenderIsOwner(command) ||
     (isTrustedReservedCommandOwner(command) &&
       command.ownership === "reserved" &&
       isReservedCommandName(command.name) &&
@@ -301,6 +356,13 @@ export async function executePluginCommand(params: {
     messageThreadId: params.messageThreadId,
     threadParentId: params.threadParentId,
     diagnosticsSessions: params.diagnosticsSessions,
+    runtimeContext: buildPluginCommandRuntimeContext({
+      command,
+      config,
+      agentId: params.agentId,
+      sessionKey: params.sessionKey,
+      authProfileId: params.authProfileId,
+    }),
     ...(diagnosticsUploadApprovedForCommand === undefined
       ? {}
       : { diagnosticsUploadApproved: diagnosticsUploadApprovedForCommand }),
@@ -386,10 +448,11 @@ export function listPluginCommands(): Array<{
   }));
 }
 
-function listPluginInvocationNames(command: AstroclawPluginCommandDefinition): string[] {
+function listPluginInvocationNames(command: OpenClawPluginCommandDefinition): string[] {
   return listPluginInvocationKeys(command);
 }
 
-export const __testing = {
+export const testing = {
   resolveBindingConversationFromCommand,
 };
+export { testing as __testing };
