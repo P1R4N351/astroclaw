@@ -1,12 +1,14 @@
-import { getExecApprovalReplyMetadata } from "astroclaw/plugin-sdk/approval-runtime";
+// Qqbot plugin module implements channel behavior.
+import { getExecApprovalReplyMetadata } from "openclaw/plugin-sdk/approval-runtime";
 import {
   createMessageReceiptFromOutboundResults,
   defineChannelMessageAdapter,
   type ChannelMessageSendResult,
   type MessageReceiptPartKind,
-} from "astroclaw/plugin-sdk/channel-message";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { ChannelPlugin } from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ChannelPlugin } from "openclaw/plugin-sdk/core";
+import { sanitizeAssistantVisibleText } from "openclaw/plugin-sdk/text-chunking";
 // Register the PlatformAdapter before any core/ module is used.
 import "./bridge/bootstrap.js";
 import { getQQBotApprovalCapability } from "./bridge/approval/capability.js";
@@ -17,16 +19,18 @@ import {
   resolveQQBotAccount,
 } from "./bridge/config.js";
 import type { GatewayContext } from "./bridge/gateway.js";
-import { toGatewayAccount, writeAstroclawConfigThroughRuntime } from "./bridge/narrowing.js";
+import { toGatewayAccount, writeOpenClawConfigThroughRuntime } from "./bridge/narrowing.js";
 import { getQQBotRuntime } from "./bridge/runtime.js";
 import { qqbotSetupWizard } from "./bridge/setup/surface.js";
 import { qqbotChannelConfigSchema } from "./config-schema.js";
+import { qqbotDoctor } from "./doctor.js";
 import { loadCredentialBackup, saveCredentialBackup } from "./engine/config/credential-backup.js";
 import { clearAccountCredentials } from "./engine/config/credentials.js";
 import {
   normalizeTarget as coreNormalizeTarget,
   looksLikeQQBotTarget,
 } from "./engine/messaging/target-parser.js";
+import { resolveQQBotGroupToolPolicy } from "./group-policy.js";
 import type { ResolvedQQBotAccount } from "./types.js";
 
 // Shared promise so concurrent multi-account startups serialize the dynamic
@@ -35,6 +39,14 @@ let gatewayModulePromise: Promise<typeof import("./bridge/gateway.js")> | undefi
 function loadGatewayModule(): Promise<typeof import("./bridge/gateway.js")> {
   gatewayModulePromise ??= import("./bridge/gateway.js");
   return gatewayModulePromise;
+}
+
+let outboundMessagingModulePromise:
+  | Promise<typeof import("./engine/messaging/outbound.js")>
+  | undefined;
+function loadOutboundMessagingModule(): Promise<typeof import("./engine/messaging/outbound.js")> {
+  outboundMessagingModulePromise ??= import("./engine/messaging/outbound.js");
+  return outboundMessagingModulePromise;
 }
 
 function createQQBotSendReceipt(params: {
@@ -59,7 +71,7 @@ function createQQBotSendReceipt(params: {
 }
 
 async function sendQQBotText(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   to: string;
   text: string;
   accountId?: string | null;
@@ -69,7 +81,7 @@ async function sendQQBotText(params: {
   // platform adapter, etc.) have executed before engine code runs.
   await loadGatewayModule();
   const account = resolveQQBotAccount(params.cfg, params.accountId);
-  const { sendText } = await import("./engine/messaging/outbound.js");
+  const { sendText } = await loadOutboundMessagingModule();
   const result = await sendText({
     to: params.to,
     text: params.text,
@@ -90,7 +102,7 @@ async function sendQQBotText(params: {
 }
 
 async function sendQQBotMedia(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   to: string;
   text?: string | null;
   mediaUrl?: string | null;
@@ -100,7 +112,7 @@ async function sendQQBotMedia(params: {
   // Same guard as sendText — ensure adapters are registered.
   await loadGatewayModule();
   const account = resolveQQBotAccount(params.cfg, params.accountId);
-  const { sendMedia } = await import("./engine/messaging/outbound.js");
+  const { sendMedia } = await loadOutboundMessagingModule();
   const result = await sendMedia({
     to: params.to,
     text: params.text ?? "",
@@ -172,7 +184,7 @@ function persistAccountCredentialSnapshot(account: ResolvedQQBotAccount): void {
 }
 
 function shouldSuppressLocalQQBotApprovalPrompt(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   payload: { text?: string; channelData?: unknown };
   hint?: { kind: "approval-pending" | "approval-resolved"; approvalKind: "exec" | "plugin" };
@@ -206,13 +218,14 @@ export const qqbotPlugin: ChannelPlugin<ResolvedQQBotAccount> = {
   },
   reload: { configPrefixes: ["channels.qqbot"] },
   configSchema: qqbotChannelConfigSchema,
+  doctor: qqbotDoctor,
   config: {
     ...qqbotConfigAdapter,
     /**
      * Treat an account as configured when either the live config has
      * credentials OR a recoverable credential backup exists. This mirrors
      * the standalone plugin and lets the gateway survive a hot upgrade
-     * that wiped astroclaw.json mid-flight.
+     * that wiped openclaw.json mid-flight.
      */
     isConfigured: (account: ResolvedQQBotAccount | undefined) => {
       if (qqbotConfigAdapter.isConfigured(account)) {
@@ -229,6 +242,9 @@ export const qqbotPlugin: ChannelPlugin<ResolvedQQBotAccount> = {
     ...qqbotSetupAdapterShared,
   },
   approvalCapability: getQQBotApprovalCapability(),
+  groups: {
+    resolveToolPolicy: resolveQQBotGroupToolPolicy,
+  },
   message: qqbotMessageAdapter,
   messaging: {
     targetPrefixes: ["qqbot"],
@@ -245,6 +261,7 @@ export const qqbotPlugin: ChannelPlugin<ResolvedQQBotAccount> = {
     chunker: (text, limit) => getQQBotRuntime().channel.text.chunkMarkdownText(text, limit),
     chunkerMode: "markdown",
     textChunkLimit: 5000,
+    sanitizeText: ({ text }) => sanitizeAssistantVisibleText(text),
     shouldSuppressLocalPayloadPrompt: ({ cfg, accountId, payload, hint }) =>
       shouldSuppressLocalQQBotApprovalPrompt({
         cfg,
@@ -277,7 +294,7 @@ export const qqbotPlugin: ChannelPlugin<ResolvedQQBotAccount> = {
 
       // Recover credentials from the per-account backup if the live
       // config is missing appId/secret (e.g. a hot-upgrade wiped
-      // astroclaw.json). We only restore when both fields are empty so a
+      // openclaw.json). We only restore when both fields are empty so a
       // user's intentional clear isn't silently undone.
       if (!account.appId || !account.clientSecret) {
         const backup = loadCredentialBackup(account.accountId);
@@ -287,7 +304,7 @@ export const qqbotPlugin: ChannelPlugin<ResolvedQQBotAccount> = {
               appId: backup.appId,
               clientSecret: backup.clientSecret,
             });
-            await writeAstroclawConfigThroughRuntime(getQQBotRuntime(), nextCfg);
+            await writeOpenClawConfigThroughRuntime(getQQBotRuntime(), nextCfg);
             cfg = nextCfg;
             account = resolveQQBotAccount(nextCfg, account.accountId);
             log?.info(
@@ -325,7 +342,7 @@ export const qqbotPlugin: ChannelPlugin<ResolvedQQBotAccount> = {
             lastConnectedAt: Date.now(),
           });
           // Snapshot credentials so we can recover from the next hot
-          // upgrade that might wipe astroclaw.json mid-flight.
+          // upgrade that might wipe openclaw.json mid-flight.
           persistAccountCredentialSnapshot(account);
         },
         onResumed: () => {
@@ -354,10 +371,10 @@ export const qqbotPlugin: ChannelPlugin<ResolvedQQBotAccount> = {
       );
 
       if (changed) {
-        await writeAstroclawConfigThroughRuntime(getQQBotRuntime(), nextCfg as AstroclawConfig);
+        await writeOpenClawConfigThroughRuntime(getQQBotRuntime(), nextCfg as OpenClawConfig);
       }
 
-      const resolved = resolveQQBotAccount((changed ? nextCfg : cfg) as AstroclawConfig, accountId);
+      const resolved = resolveQQBotAccount((changed ? nextCfg : cfg) as OpenClawConfig, accountId);
       const loggedOut = resolved.secretSource === "none";
       const envToken = Boolean(process.env.QQBOT_CLIENT_SECRET);
 
