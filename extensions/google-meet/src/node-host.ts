@@ -1,7 +1,7 @@
+// Google Meet plugin module implements node host behavior.
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   DEFAULT_GOOGLE_MEET_AUDIO_INPUT_COMMAND,
   DEFAULT_GOOGLE_MEET_AUDIO_OUTPUT_COMMAND,
@@ -9,7 +9,7 @@ import {
 import {
   GOOGLE_MEET_SYSTEM_PROFILER_COMMAND,
   outputMentionsBlackHole2ch,
-} from "./transports/chrome.js";
+} from "./transports/chrome-audio-device.js";
 
 type NodeBridgeSession = {
   id: string;
@@ -33,16 +33,6 @@ type NodeBridgeSession = {
 
 const sessions = new Map<string, NodeBridgeSession>();
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
 function readStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -51,6 +41,20 @@ function readStringArray(value: unknown): string[] | undefined {
     (entry): entry is string => typeof entry === "string" && entry.length > 0,
   );
   return result.length > 0 ? result : undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function readNumber(value: unknown, fallback: number): number {
@@ -301,7 +305,7 @@ function startChrome(params: Record<string, unknown>) {
     if (bridgeCommand) {
       if (mode === "agent") {
         throw new Error(
-          "Chrome agent mode requires audioInputCommand and audioOutputCommand so Astroclaw can run STT and regular TTS directly.",
+          "Chrome agent mode requires audioInputCommand and audioOutputCommand so OpenClaw can run STT and regular TTS directly.",
         );
       }
       const bridge = runCommandWithTimeout(bridgeCommand, timeoutMs);
@@ -358,7 +362,7 @@ function startChrome(params: Record<string, unknown>) {
             status: "chrome-opened",
             browserUrl: url,
             notes: [
-              "Browser page control is handled by Astroclaw browser automation when using chrome-node.",
+              "Browser page control is handled by OpenClaw browser automation when using chrome-node.",
             ],
           }
         : undefined,
