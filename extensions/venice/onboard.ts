@@ -1,7 +1,8 @@
+// Venice setup module handles plugin onboarding behavior.
 import {
   createModelCatalogPresetAppliers,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildVeniceModelDefinition,
   VENICE_BASE_URL,
@@ -13,7 +14,7 @@ export { VENICE_DEFAULT_MODEL_REF };
 
 const venicePresetAppliers = createModelCatalogPresetAppliers({
   primaryModelRef: VENICE_DEFAULT_MODEL_REF,
-  resolveParams: (_cfg: AstroclawConfig) => ({
+  resolveParams: (_cfg: OpenClawConfig) => ({
     providerId: "venice",
     api: "openai-completions",
     baseUrl: VENICE_BASE_URL,
@@ -22,6 +23,6 @@ const venicePresetAppliers = createModelCatalogPresetAppliers({
   }),
 });
 
-export function applyVeniceConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyVeniceConfig(cfg: OpenClawConfig): OpenClawConfig {
   return venicePresetAppliers.applyConfig(cfg);
 }
