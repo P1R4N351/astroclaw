@@ -1,5 +1,9 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { DoctorSessionRouteStateOwner } from "astroclaw/plugin-sdk/runtime-doctor";
+/**
+ * Doctor contract hooks for Codex plugin config migrations and session-route
+ * ownership warnings.
+ */
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { DoctorSessionRouteStateOwner } from "openclaw/plugin-sdk/runtime-doctor";
 
 type LegacyConfigRule = {
   path: string[];
@@ -14,20 +18,24 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function hasRetiredDynamicToolsProfile(value: unknown): boolean {
-  return Object.prototype.hasOwnProperty.call(asRecord(value) ?? {}, "codexDynamicToolsProfile");
+  return Object.hasOwn(asRecord(value) ?? {}, "codexDynamicToolsProfile");
 }
 
+/** Legacy Codex config keys that doctor should report or repair. */
 export const legacyConfigRules: LegacyConfigRule[] = [
   {
     path: ["plugins", "entries", "codex", "config"],
     message:
-      'plugins.entries.codex.config.codexDynamicToolsProfile is retired; Codex app-server always keeps Codex-native workspace tools native. Run "astroclaw doctor --fix".',
+      'plugins.entries.codex.config.codexDynamicToolsProfile is retired; Codex app-server always keeps Codex-native workspace tools native. Run "openclaw doctor --fix".',
     match: hasRetiredDynamicToolsProfile,
   },
 ];
 
-export function normalizeCompatibilityConfig({ cfg }: { cfg: AstroclawConfig }): {
-  config: AstroclawConfig;
+/**
+ * Removes retired Codex plugin config keys while preserving unrelated config.
+ */
+export function normalizeCompatibilityConfig({ cfg }: { cfg: OpenClawConfig }): {
+  config: OpenClawConfig;
   changes: string[];
 } {
   const rawEntry = asRecord(cfg.plugins?.entries?.codex);
@@ -36,7 +44,7 @@ export function normalizeCompatibilityConfig({ cfg }: { cfg: AstroclawConfig }):
     return { config: cfg, changes: [] };
   }
 
-  const nextConfig = structuredClone(cfg) as AstroclawConfig & {
+  const nextConfig = structuredClone(cfg) as OpenClawConfig & {
     plugins?: Record<string, unknown>;
   };
   const nextPlugins = asRecord(nextConfig.plugins);
@@ -56,6 +64,7 @@ export function normalizeCompatibilityConfig({ cfg }: { cfg: AstroclawConfig }):
   };
 }
 
+/** Session/auth ownership metadata used by doctor route-state checks. */
 export const sessionRouteStateOwners: DoctorSessionRouteStateOwner[] = [
   {
     id: "codex",
