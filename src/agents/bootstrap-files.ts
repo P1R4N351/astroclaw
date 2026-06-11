@@ -1,19 +1,23 @@
+/**
+ * Resolves workspace bootstrap files for agent runs and converts them into
+ * bounded context files.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import type { AgentContextInjection } from "../config/types.agent-defaults.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
-import { normalizeOptionalString } from "../shared/string-coerce.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveUserPath } from "../utils.js";
 import { resolveAgentConfig, resolveSessionAgentIds } from "./agent-scope.js";
 import { getOrLoadBootstrapFiles } from "./bootstrap-cache.js";
 import { applyBootstrapHookOverrides } from "./bootstrap-hooks.js";
-import { shouldIncludeHeartbeatGuidanceForSystemPrompt } from "./heartbeat-system-prompt.js";
-import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
+import type { EmbeddedContextFile } from "./embedded-agent-helpers.js";
 import {
   buildBootstrapContextFiles,
   resolveBootstrapMaxChars,
   resolveBootstrapTotalMaxChars,
-} from "./pi-embedded-helpers.js";
+} from "./embedded-agent-helpers.js";
+import { shouldIncludeHeartbeatGuidanceForSystemPrompt } from "./heartbeat-system-prompt.js";
 import {
   DEFAULT_HEARTBEAT_FILENAME,
   DEFAULT_BOOTSTRAP_FILENAME,
@@ -29,12 +33,14 @@ type BootstrapContextRunKind = "default" | "heartbeat" | "cron";
 
 const CONTINUATION_SCAN_MAX_TAIL_BYTES = 256 * 1024;
 const CONTINUATION_SCAN_MAX_RECORDS = 500;
-export const FULL_BOOTSTRAP_COMPLETED_CUSTOM_TYPE = "astroclaw:bootstrap-context:full";
+export const FULL_BOOTSTRAP_COMPLETED_CUSTOM_TYPE = "openclaw:bootstrap-context:full";
 const BOOTSTRAP_WARNING_DEDUPE_LIMIT = 1024;
 const seenBootstrapWarnings = new Set<string>();
 const bootstrapWarningOrder: string[] = [];
 
 function rememberBootstrapWarning(key: string): boolean {
+  // Warning keys include workspace/session/message so repeated setup failures
+  // stay quiet without hiding distinct bootstrap problems.
   if (seenBootstrapWarnings.has(key)) {
     return false;
   }
@@ -49,13 +55,15 @@ function rememberBootstrapWarning(key: string): boolean {
   return true;
 }
 
-export function _resetBootstrapWarningCacheForTest(): void {
+/** Clears the per-process bootstrap warning dedupe cache for isolated tests. */
+export function resetBootstrapWarningCacheForTest(): void {
   seenBootstrapWarnings.clear();
   bootstrapWarningOrder.length = 0;
 }
 
+/** Resolves the effective bootstrap injection mode for a session agent. */
 export function resolveContextInjectionMode(
-  config?: AstroclawConfig,
+  config?: OpenClawConfig,
   agentId?: string | null,
 ): AgentContextInjection {
   const agentMode =
@@ -66,6 +74,7 @@ export function resolveContextInjectionMode(
   return config?.agents?.defaults?.contextInjection ?? "always";
 }
 
+/** Checks whether the session transcript still has a valid full-bootstrap marker. */
 export async function hasCompletedBootstrapTurn(sessionFile: string): Promise<boolean> {
   try {
     const stat = await fs.lstat(sessionFile);
@@ -98,6 +107,8 @@ export async function hasCompletedBootstrapTurn(sessionFile: string): Promise<bo
       let compactedAfterLatestAssistant = false;
 
       for (let i = records.length - 1; i >= 0; i--) {
+        // Only the tail matters: compaction after the marker makes earlier
+        // bootstrap context unreliable for continuation prompts.
         const line = records[i];
         if (!line) {
           continue;
@@ -137,6 +148,7 @@ export async function hasCompletedBootstrapTurn(sessionFile: string): Promise<bo
   }
 }
 
+/** Builds a session-scoped warning sink that dedupes repeated bootstrap warnings. */
 export function makeBootstrapWarn(params: {
   sessionLabel: string;
   workspaceDir?: string;
@@ -205,7 +217,7 @@ function applyContextModeFilter(params: {
 }
 
 function shouldExcludeHeartbeatBootstrapFile(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   sessionKey?: string;
   sessionId?: string;
   agentId?: string;
@@ -274,9 +286,10 @@ async function isWorkspaceSetupCompletedForContext(workspaceDir: string): Promis
   }
 }
 
+/** Resolves hook-adjusted, session-filtered bootstrap files for a run. */
 export async function resolveBootstrapFilesForRun(params: {
   workspaceDir: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   sessionKey?: string;
   sessionId?: string;
   agentId?: string;
@@ -323,9 +336,10 @@ export async function resolveBootstrapFilesForRun(params: {
   );
 }
 
+/** Resolves both raw bootstrap metadata and bounded context files for a run. */
 export async function resolveBootstrapContextForRun(params: {
   workspaceDir: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   sessionKey?: string;
   sessionId?: string;
   agentId?: string;
@@ -341,10 +355,11 @@ export async function resolveBootstrapContextForRun(params: {
   return { bootstrapFiles, contextFiles };
 }
 
+/** Builds bounded context files from already-resolved bootstrap file metadata. */
 export function buildBootstrapContextForFiles(
   bootstrapFiles: WorkspaceBootstrapFile[],
   params: {
-    config?: AstroclawConfig;
+    config?: OpenClawConfig;
     agentId?: string | null;
     warn?: (message: string) => void;
   },
