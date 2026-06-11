@@ -1,3 +1,4 @@
+// Device Pair API module exposes the plugin public contract.
 export {
   approveDevicePairing,
   clearDeviceBootstrapTokens,
@@ -6,15 +7,15 @@ export {
   listDevicePairing,
   revokeDeviceBootstrapToken,
   type DeviceBootstrapProfile,
-} from "astroclaw/plugin-sdk/device-bootstrap";
-export { definePluginEntry, type AstroclawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/device-bootstrap";
+export { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 export {
   resolveGatewayBindUrl,
   resolveGatewayPort,
   resolveTailnetHostWithRunner,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 export {
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   runPluginCommandWithTimeout,
-} from "astroclaw/plugin-sdk/sandbox";
+} from "openclaw/plugin-sdk/sandbox";
 export { renderQrPngBase64, renderQrPngDataUrl, writeQrPngTempFile } from "./qr-image.js";
