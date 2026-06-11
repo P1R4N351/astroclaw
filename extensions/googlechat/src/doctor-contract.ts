@@ -1,11 +1,12 @@
+// Googlechat plugin module implements doctor contract behavior.
 import type {
   ChannelDoctorConfigMutation,
   ChannelDoctorLegacyConfigRule,
-} from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { asObjectRecord } from "astroclaw/plugin-sdk/runtime-doctor";
+} from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { asObjectRecord } from "openclaw/plugin-sdk/runtime-doctor";
 
-type GoogleChatChannelsConfig = NonNullable<AstroclawConfig["channels"]>;
+type GoogleChatChannelsConfig = NonNullable<OpenClawConfig["channels"]>;
 
 function hasLegacyGoogleChatStreamMode(value: unknown): boolean {
   return asObjectRecord(value)?.streamMode !== undefined;
@@ -16,9 +17,7 @@ function hasLegacyGoogleChatGroupAllowAlias(value: unknown): boolean {
   if (!groups) {
     return false;
   }
-  return Object.values(groups).some((group) =>
-    Object.prototype.hasOwnProperty.call(asObjectRecord(group) ?? {}, "allow"),
-  );
+  return Object.values(groups).some((group) => Object.hasOwn(asObjectRecord(group) ?? {}, "allow"));
 }
 
 function hasLegacyAccountAliases(value: unknown, match: (entry: unknown) => boolean): boolean {
@@ -38,7 +37,7 @@ function normalizeGoogleChatGroups(params: {
   const nextGroups = { ...params.groups };
   for (const [groupId, groupValue] of Object.entries(params.groups)) {
     const group = asObjectRecord(groupValue);
-    if (!group || !Object.prototype.hasOwnProperty.call(group, "allow")) {
+    if (!group || !Object.hasOwn(group, "allow")) {
       continue;
     }
     const nextGroup = { ...group };
@@ -105,13 +104,13 @@ export const legacyConfigRules: ChannelDoctorLegacyConfigRule[] = [
   {
     path: ["channels", "googlechat"],
     message:
-      'channels.googlechat.groups.<id>.allow is legacy; use channels.googlechat.groups.<id>.enabled instead. Run "astroclaw doctor --fix".',
+      'channels.googlechat.groups.<id>.allow is legacy; use channels.googlechat.groups.<id>.enabled instead. Run "openclaw doctor --fix".',
     match: hasLegacyGoogleChatGroupAllowAlias,
   },
   {
     path: ["channels", "googlechat", "accounts"],
     message:
-      'channels.googlechat.accounts.<id>.groups.<id>.allow is legacy; use channels.googlechat.accounts.<id>.groups.<id>.enabled instead. Run "astroclaw doctor --fix".',
+      'channels.googlechat.accounts.<id>.groups.<id>.allow is legacy; use channels.googlechat.accounts.<id>.groups.<id>.enabled instead. Run "openclaw doctor --fix".',
     match: (value) => hasLegacyAccountAliases(value, hasLegacyGoogleChatGroupAllowAlias),
   },
 ];
@@ -119,7 +118,7 @@ export const legacyConfigRules: ChannelDoctorLegacyConfigRule[] = [
 export function normalizeCompatibilityConfig({
   cfg,
 }: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }): ChannelDoctorConfigMutation {
   const rawEntry = asObjectRecord(
     (cfg.channels as Record<string, unknown> | undefined)?.googlechat,
@@ -130,7 +129,7 @@ export function normalizeCompatibilityConfig({
 
   const changes: string[] = [];
   let updated = rawEntry;
-  let changed = false;
+  let changed;
 
   const root = normalizeGoogleChatEntry({
     entry: updated,
