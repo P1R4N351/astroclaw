@@ -1,7 +1,8 @@
+// Bundles language-server metadata exposed by plugins.
 import fs from "node:fs";
 import path from "node:path";
 import { applyMergePatch } from "../config/merge-patch.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { readRootJsonObjectSync } from "../infra/json-files.js";
 import { isRecord } from "../utils.js";
 import {
@@ -16,12 +17,15 @@ import {
 } from "./bundle-manifest.js";
 import type { PluginBundleFormat } from "./manifest-types.js";
 
+/** LSP server config block loaded from plugin bundle metadata. */
 export type BundleLspServerConfig = Record<string, unknown>;
 
+/** Merged LSP config contributed by enabled plugin bundles. */
 export type BundleLspConfig = {
   lspServers: Record<string, BundleLspServerConfig>;
 };
 
+/** Runtime support summary for bundle-declared LSP servers. */
 export type BundleLspRuntimeSupport = {
   hasStdioServer: boolean;
   supportedServerNames: string[];
@@ -124,6 +128,7 @@ function loadBundleLspConfig(params: {
   return { config: merged, diagnostics };
 }
 
+/** Inspects whether one plugin bundle has supported LSP runtime servers. */
 export function inspectBundleLspRuntimeSupport(params: {
   pluginId: string;
   rootDir: string;
@@ -141,9 +146,10 @@ export function inspectBundleLspRuntimeSupport(params: {
   };
 }
 
+/** Loads and merges enabled bundle LSP config across plugin manifests. */
 export function loadEnabledBundleLspConfig(params: {
   workspaceDir: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
 }): { config: BundleLspConfig; diagnostics: Array<{ pluginId: string; message: string }> } {
   return loadEnabledBundleConfig({
     workspaceDir: params.workspaceDir,
