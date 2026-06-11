@@ -1,4 +1,5 @@
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Telegram plugin module implements action threading behavior.
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { parseTelegramTarget } from "./targets.js";
 
 export function resolveTelegramAutoThreadId(params: {
