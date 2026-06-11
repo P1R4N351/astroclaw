@@ -1,6 +1,7 @@
-import { recordChannelActivity } from "astroclaw/plugin-sdk/channel-activity-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Discord plugin module implements send.webhook behavior.
+import { recordChannelActivity } from "openclaw/plugin-sdk/channel-activity-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveDiscordClientAccountContext } from "./client.js";
 import {
   DiscordError,
@@ -14,7 +15,7 @@ import { createDiscordSendResult } from "./send.receipt.js";
 import type { DiscordSendResult } from "./send.types.js";
 
 type DiscordWebhookSendOpts = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   webhookId: string;
   webhookToken: string;
   accountId?: string;
