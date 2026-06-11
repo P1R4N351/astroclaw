@@ -1,8 +1,9 @@
+// Zalouser plugin entrypoint registers its OpenClaw integration.
 import {
   type AnyAgentTool,
   defineBundledChannelEntry,
   loadBundledEntryExportSync,
-} from "astroclaw/plugin-sdk/channel-entry-contract";
+} from "openclaw/plugin-sdk/channel-entry-contract";
 
 function createZalouserTool(context?: unknown): AnyAgentTool {
   const createTool = loadBundledEntryExportSync<(context?: unknown) => AnyAgentTool>(
