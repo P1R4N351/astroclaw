@@ -1,7 +1,11 @@
+/**
+ * Bridges Codex item/tool user-input requests to OpenClaw messaging prompts and
+ * turns replies into app-server answer payloads.
+ */
 import {
   embeddedAgentLog,
   type EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness-runtime";
+} from "openclaw/plugin-sdk/agent-harness-runtime";
 import { formatCodexDisplayText } from "../command-formatters.js";
 import {
   isJsonObject,
@@ -44,6 +48,7 @@ type CodexUserInputBridge = {
   cancelPending: () => void;
 };
 
+/** Creates a per-turn bridge for pending Codex user-input requests. */
 export function createCodexUserInputBridge(params: {
   paramsForRun: EmbeddedRunAttemptParams;
   threadId: string;
@@ -94,9 +99,11 @@ export function createCodexUserInputBridge(params: {
           resolvePending(emptyUserInputResponse());
           return;
         }
-        void deliverUserInputPrompt(params.paramsForRun, requestParams.questions).catch((error) => {
-          embeddedAgentLog.warn("failed to deliver codex user input prompt", { error });
-        });
+        void deliverUserInputPrompt(params.paramsForRun, requestParams.questions).catch(
+          (error: unknown) => {
+            embeddedAgentLog.warn("failed to deliver codex user input prompt", { error });
+          },
+        );
       });
     },
     handleQueuedMessage(text) {
@@ -239,6 +246,8 @@ function formatUserInputPrompt(questions: UserInputQuestion[]): string {
 }
 
 function buildUserInputResponse(questions: UserInputQuestion[], inputText: string): JsonObject {
+  // Multi-question replies may use "header: answer" or numbered lines. Keep the
+  // parser permissive so chat-channel replies remain ergonomic.
   const answers: JsonObject = {};
   if (questions.length === 1) {
     const question = questions[0];
