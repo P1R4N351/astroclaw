@@ -1,7 +1,9 @@
-import type { AstroclawConfig, HookConfig } from "../config/config.js";
+// Hook policy helpers decide when hooks may run for a configured event.
+import type { OpenClawConfig, HookConfig } from "../config/config.js";
 import { resolveHookKey } from "./frontmatter.js";
 import type { HookEntry, HookSource } from "./types.js";
 
+/** Human-readable reason for disabling a hook at policy resolution time. */
 export type HookEnableStateReason = "disabled in config" | "workspace hook (disabled by default)";
 
 type HookEnableState = {
@@ -24,42 +26,44 @@ type HookResolutionCollision = {
 };
 
 const HOOK_SOURCE_POLICIES: Record<HookSource, HookSourcePolicy> = {
-  "astroclaw-bundled": {
+  "openclaw-bundled": {
     precedence: 10,
     trustedLocalCode: true,
     defaultEnableMode: "default-on",
-    canOverride: ["astroclaw-bundled"],
-    canBeOverriddenBy: ["astroclaw-managed", "astroclaw-plugin"],
+    canOverride: ["openclaw-bundled"],
+    canBeOverriddenBy: ["openclaw-managed", "openclaw-plugin"],
   },
-  "astroclaw-plugin": {
+  "openclaw-plugin": {
     precedence: 20,
     trustedLocalCode: true,
     defaultEnableMode: "default-on",
-    canOverride: ["astroclaw-bundled", "astroclaw-plugin"],
-    canBeOverriddenBy: ["astroclaw-managed"],
+    canOverride: ["openclaw-bundled", "openclaw-plugin"],
+    canBeOverriddenBy: ["openclaw-managed"],
   },
-  "astroclaw-managed": {
+  "openclaw-managed": {
     precedence: 30,
     trustedLocalCode: true,
     defaultEnableMode: "default-on",
-    canOverride: ["astroclaw-bundled", "astroclaw-managed", "astroclaw-plugin"],
-    canBeOverriddenBy: ["astroclaw-managed"],
+    canOverride: ["openclaw-bundled", "openclaw-managed", "openclaw-plugin"],
+    canBeOverriddenBy: ["openclaw-managed"],
   },
-  "astroclaw-workspace": {
+  "openclaw-workspace": {
     precedence: 40,
     trustedLocalCode: true,
     defaultEnableMode: "explicit-opt-in",
-    canOverride: ["astroclaw-workspace"],
-    canBeOverriddenBy: ["astroclaw-workspace"],
+    canOverride: ["openclaw-workspace"],
+    canBeOverriddenBy: ["openclaw-workspace"],
   },
 };
 
+/** Resolve source trust, precedence, default enablement, and override rules. */
 function getHookSourcePolicy(source: HookSource): HookSourcePolicy {
   return HOOK_SOURCE_POLICIES[source];
 }
 
+/** Resolve explicit per-hook config by hook key. */
 export function resolveHookConfig(
-  config: AstroclawConfig | undefined,
+  config: OpenClawConfig | undefined,
   hookKey: string,
 ): HookConfig | undefined {
   const hooks = config?.hooks?.internal?.entries;
@@ -73,16 +77,17 @@ export function resolveHookConfig(
   return entry;
 }
 
+/** Resolve whether a hook is enabled before runtime requirement checks. */
 export function resolveHookEnableState(params: {
   entry: HookEntry;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   hookConfig?: HookConfig;
 }): HookEnableState {
   const { entry, config } = params;
   const hookKey = resolveHookKey(entry.hook.name, entry);
   const hookConfig = params.hookConfig ?? resolveHookConfig(config, hookKey);
 
-  if (entry.hook.source === "astroclaw-plugin") {
+  if (entry.hook.source === "openclaw-plugin") {
     return { enabled: true };
   }
   if (hookConfig?.enabled === false) {
@@ -106,6 +111,7 @@ function canOverrideHook(candidate: HookEntry, existing: HookEntry): boolean {
   );
 }
 
+/** Merge hook entries by name using source precedence and override policy. */
 export function resolveHookEntries(
   entries: HookEntry[],
   opts?: {
@@ -128,6 +134,8 @@ export function resolveHookEntries(
       merged.set(entry.hook.name, entry);
       continue;
     }
+    // Source policy is asymmetric: higher precedence alone is not enough unless
+    // both source policies agree the candidate may replace the existing hook.
     if (canOverrideHook(entry, existing)) {
       merged.set(entry.hook.name, entry);
       continue;
