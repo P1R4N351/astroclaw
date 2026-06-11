@@ -1,21 +1,22 @@
+// Tokenjuice plugin module implements tool result middleware behavior.
 import process from "node:process";
 import type {
   AgentToolResultMiddleware,
   AgentToolResultMiddlewareEvent,
-  AstroclawAgentToolResult,
-} from "astroclaw/plugin-sdk/agent-harness";
-import { createTokenjuiceAstroclawEmbeddedExtension } from "./runtime-api.js";
+  OpenClawAgentToolResult,
+} from "openclaw/plugin-sdk/agent-harness";
+import { createTokenjuiceOpenClawEmbeddedExtension } from "./runtime-api.js";
 
 type TokenjuiceToolResultHandler = (
   event: {
     toolName: string;
     input: Record<string, unknown>;
-    content: AstroclawAgentToolResult["content"];
+    content: OpenClawAgentToolResult["content"];
     details: unknown;
     isError?: boolean;
   },
   ctx: { cwd: string },
-) => Promise<Partial<AstroclawAgentToolResult> | void> | Partial<AstroclawAgentToolResult> | void;
+) => Promise<Partial<OpenClawAgentToolResult> | void> | Partial<OpenClawAgentToolResult> | void;
 
 function readCwd(event: AgentToolResultMiddlewareEvent): string {
   if (event.cwd?.trim()) {
@@ -30,7 +31,7 @@ function readCwd(event: AgentToolResultMiddlewareEvent): string {
 
 export function createTokenjuiceAgentToolResultMiddleware(): AgentToolResultMiddleware {
   const handlers: TokenjuiceToolResultHandler[] = [];
-  createTokenjuiceAstroclawEmbeddedExtension()({
+  createTokenjuiceOpenClawEmbeddedExtension()({
     on(event, handler) {
       if (event === "tool_result") {
         handlers.push(handler as TokenjuiceToolResultHandler);
