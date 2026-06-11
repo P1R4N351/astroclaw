@@ -1,9 +1,10 @@
+// Imessage plugin module implements setup surface behavior.
 import {
   createDetectedBinaryStatus,
   setSetupChannelEnabled,
   type ChannelSetupWizard,
-} from "astroclaw/plugin-sdk/setup";
-import { detectBinary } from "astroclaw/plugin-sdk/setup-tools";
+} from "openclaw/plugin-sdk/setup";
+import { detectBinary } from "openclaw/plugin-sdk/setup-tools";
 import { resolveIMessageAccount } from "./accounts.js";
 import {
   createIMessageCliPathTextInput,
