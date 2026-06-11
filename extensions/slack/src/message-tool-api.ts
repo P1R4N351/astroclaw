@@ -1,9 +1,10 @@
+// Slack API module exposes the plugin public contract.
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionName,
   ChannelMessageToolDiscovery,
   ChannelMessageToolSchemaContribution,
-} from "astroclaw/plugin-sdk/channel-contract";
+} from "openclaw/plugin-sdk/channel-contract";
 import { Type, type TSchema } from "typebox";
 import { isSlackInteractiveRepliesEnabled } from "./interactive-replies.js";
 import { listSlackMessageActions } from "./message-actions.js";
