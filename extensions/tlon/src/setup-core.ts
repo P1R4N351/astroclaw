@@ -1,3 +1,4 @@
+// Tlon plugin module implements setup core behavior.
 import {
   DEFAULT_ACCOUNT_ID,
   formatDocsLink,
@@ -9,12 +10,12 @@ import {
   type ChannelSetupAdapter,
   type ChannelSetupInput,
   type ChannelSetupWizard,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/setup";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/setup";
 import {
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { buildTlonAccountFields, type TlonAccountFieldsInput } from "./account-fields.js";
 import { normalizeShip } from "./targets.js";
 import { listTlonAccountIds, resolveTlonAccount, type TlonResolvedAccount } from "./types.js";
@@ -34,11 +35,11 @@ function isConfigured(account: TlonResolvedAccount): boolean {
 
 type TlonSetupWizardBaseParams = {
   resolveConfigured: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string;
   }) => boolean | Promise<boolean>;
   resolveStatusLines?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string;
     configured: boolean;
   }) => string[] | Promise<string[]>;
@@ -128,7 +129,7 @@ export function createTlonSetupWizardBase(params: TlonSetupWizardBaseParams): Ch
 }
 
 export async function resolveTlonSetupConfigured(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string,
 ): Promise<boolean> {
   if (accountId) {
@@ -143,7 +144,7 @@ export async function resolveTlonSetupConfigured(
 }
 
 export async function resolveTlonSetupStatusLines(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId?: string,
 ): Promise<string[]> {
   const configured = await resolveTlonSetupConfigured(cfg, accountId);
@@ -152,10 +153,10 @@ export async function resolveTlonSetupStatusLines(
 }
 
 export function applyTlonSetupConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   input: TlonSetupInput;
-}): AstroclawConfig {
+}): OpenClawConfig {
   const { cfg, accountId, input } = params;
   const useDefault = accountId === DEFAULT_ACCOUNT_ID;
   const namedConfig = prepareScopedSetupConfig({
