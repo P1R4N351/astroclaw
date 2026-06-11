@@ -1,6 +1,7 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Discord helper module supports config behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 
-export const EMPTY_DISCORD_TEST_CONFIG = {} as AstroclawConfig;
+export const EMPTY_DISCORD_TEST_CONFIG = {} as OpenClawConfig;
 
 export const EMPTY_DISCORD_TEST_OPTS = {
   cfg: EMPTY_DISCORD_TEST_CONFIG,
