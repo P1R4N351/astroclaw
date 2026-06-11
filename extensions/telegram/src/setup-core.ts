@@ -1,14 +1,15 @@
-import type { ChannelSetupAdapter } from "astroclaw/plugin-sdk/setup-runtime";
+// Telegram plugin module implements setup core behavior.
+import type { ChannelSetupAdapter } from "openclaw/plugin-sdk/setup-runtime";
 import {
   createEnvPatchedAccountSetupAdapter,
   patchChannelConfigForAccount,
   promptResolvedAllowFrom,
   splitSetupEntries,
   createSetupTranslator,
-  type AstroclawConfig,
+  type OpenClawConfig,
   type WizardPrompter,
-} from "astroclaw/plugin-sdk/setup-runtime";
-import { formatCliCommand, formatDocsLink } from "astroclaw/plugin-sdk/setup-tools";
+} from "openclaw/plugin-sdk/setup-runtime";
+import { formatCliCommand, formatDocsLink } from "openclaw/plugin-sdk/setup-tools";
 import { resolveDefaultTelegramAccountId, resolveTelegramAccount } from "./accounts.js";
 import { isNumericTelegramSenderUserId } from "./allow-from.js";
 
@@ -23,19 +24,19 @@ export function getTelegramTokenHelpLines(): string[] {
     t("wizard.telegram.tokenHelpCopyToken"),
     t("wizard.telegram.tokenEnvTip"),
     t("wizard.channels.docs", { link: formatDocsLink("/telegram") }),
-    t("wizard.telegram.website", { url: "https://astroclaw.ai" }),
+    t("wizard.telegram.website", { url: "https://openclaw.ai" }),
   ];
 }
 
 export function getTelegramUserIdHelpLines(): string[] {
   return [
     t("wizard.telegram.userIdHelpLogs", {
-      command: formatCliCommand("astroclaw logs --follow"),
+      command: formatCliCommand("openclaw logs --follow"),
     }),
     t("wizard.telegram.userIdHelpGetUpdates"),
     t("wizard.telegram.userIdHelpThirdParty"),
     t("wizard.channels.docs", { link: formatDocsLink("/telegram") }),
-    t("wizard.telegram.website", { url: "https://astroclaw.ai" }),
+    t("wizard.telegram.website", { url: "https://openclaw.ai" }),
   ];
 }
 
@@ -55,7 +56,7 @@ export function parseTelegramAllowFromId(raw: string): string | null {
 }
 
 export async function promptTelegramAllowFromForAccount(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
   accountId?: string;
 }) {
