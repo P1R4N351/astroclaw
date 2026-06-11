@@ -1,5 +1,10 @@
+/**
+ * Declarative channel setup wizard contract.
+ *
+ * Defines status, credentials, prompts, group access, and finalization types for setup flows.
+ */
 import type { DmPolicy } from "../../config/types.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { WizardPrompter } from "../../wizard/prompts.js";
 import type { ChannelAccessPolicy } from "./setup-group-access.js";
@@ -20,6 +25,7 @@ export type ChannelSetupPlugin = {
   setupWizard?: ChannelSetupWizard | ChannelSetupWizardAdapter;
 };
 
+/** Status block shown before users select channels during setup. */
 export type ChannelSetupWizardStatus = {
   configuredLabel: string;
   unconfiguredLabel: string;
@@ -28,26 +34,27 @@ export type ChannelSetupWizardStatus = {
   configuredScore?: number;
   unconfiguredScore?: number;
   resolveConfigured: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string;
   }) => boolean | Promise<boolean>;
   resolveStatusLines?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string;
     configured: boolean;
   }) => string[] | Promise<string[]>;
   resolveSelectionHint?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string;
     configured: boolean;
   }) => string | undefined | Promise<string | undefined>;
   resolveQuickstartScore?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId?: string;
     configured: boolean;
   }) => number | undefined | Promise<number | undefined>;
 };
 
+/** Snapshot of one credential before prompting or reusing existing config. */
 export type ChannelSetupWizardCredentialState = {
   accountConfigured: boolean;
   hasConfiguredValue: boolean;
@@ -57,26 +64,29 @@ export type ChannelSetupWizardCredentialState = {
 
 export type ChannelSetupWizardCredentialValues = Partial<Record<string, string>>;
 
+/** Optional explanatory note shown when its owning step is reached. */
 export type ChannelSetupWizardNote = {
   title: string;
   lines: string[];
   shouldShow?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
   }) => boolean | Promise<boolean>;
 };
 
+/** Lets a wizard configure an account entirely from existing environment. */
 export type ChannelSetupWizardEnvShortcut = {
   prompt: string;
   preferredEnvVar?: string;
-  isAvailable: (params: { cfg: AstroclawConfig; accountId: string }) => boolean;
+  isAvailable: (params: { cfg: OpenClawConfig; accountId: string }) => boolean;
   apply: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
-  }) => AstroclawConfig | Promise<AstroclawConfig>;
+  }) => OpenClawConfig | Promise<OpenClawConfig>;
 };
 
+/** Declarative secret/input step for a channel account credential. */
 export type ChannelSetupWizardCredential = {
   inputKey: keyof ChannelSetupInput;
   providerHint: string;
@@ -87,31 +97,32 @@ export type ChannelSetupWizardCredential = {
   envPrompt: string;
   keepPrompt: string;
   inputPrompt: string;
-  allowEnv?: (params: { cfg: AstroclawConfig; accountId: string }) => boolean;
+  allowEnv?: (params: { cfg: OpenClawConfig; accountId: string }) => boolean;
   inspect: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
   }) => ChannelSetupWizardCredentialState;
   shouldPrompt?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
     currentValue?: string;
     state: ChannelSetupWizardCredentialState;
   }) => boolean | Promise<boolean>;
   applyUseEnv?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
-  }) => AstroclawConfig | Promise<AstroclawConfig>;
+  }) => OpenClawConfig | Promise<OpenClawConfig>;
   applySet?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
     value: unknown;
     resolvedValue: string;
-  }) => AstroclawConfig | Promise<AstroclawConfig>;
+  }) => OpenClawConfig | Promise<OpenClawConfig>;
 };
 
+/** Declarative non-secret text step that can depend on resolved credentials. */
 export type ChannelSetupWizardTextInput = {
   inputKey: keyof ChannelSetupInput;
   message: string;
@@ -123,17 +134,17 @@ export type ChannelSetupWizardTextInput = {
   confirmCurrentValue?: boolean;
   keepPrompt?: string | ((value: string) => string);
   currentValue?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
   }) => string | undefined | Promise<string | undefined>;
   initialValue?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
   }) => string | undefined | Promise<string | undefined>;
   shouldPrompt?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
     currentValue?: string;
@@ -141,21 +152,21 @@ export type ChannelSetupWizardTextInput = {
   applyCurrentValue?: boolean;
   validate?: (params: {
     value: string;
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
   }) => string | undefined;
   normalizeValue?: (params: {
     value: string;
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
   }) => string;
   applySet?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     value: string;
-  }) => AstroclawConfig | Promise<AstroclawConfig>;
+  }) => OpenClawConfig | Promise<OpenClawConfig>;
 };
 
 export type ChannelSetupWizardAllowFromEntry = {
@@ -164,6 +175,7 @@ export type ChannelSetupWizardAllowFromEntry = {
   id: string | null;
 };
 
+/** Channel-specific resolver for user-entered allowlist targets. */
 export type ChannelSetupWizardAllowFrom = {
   helpTitle?: string;
   helpLines?: string[];
@@ -174,48 +186,50 @@ export type ChannelSetupWizardAllowFrom = {
   parseInputs?: (raw: string) => string[];
   parseId: (raw: string) => string | null;
   resolveEntries: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
     entries: string[];
   }) => Promise<ChannelSetupWizardAllowFromEntry[]>;
   apply: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     allowFrom: string[];
-  }) => AstroclawConfig | Promise<AstroclawConfig>;
+  }) => OpenClawConfig | Promise<OpenClawConfig>;
 };
 
+/** Declarative group/DM access policy step used by interactive setup. */
 export type ChannelSetupWizardGroupAccess = {
   label: string;
   placeholder: string;
   helpTitle?: string;
   helpLines?: string[];
   skipAllowlistEntries?: boolean;
-  currentPolicy: (params: { cfg: AstroclawConfig; accountId: string }) => ChannelAccessPolicy;
-  currentEntries: (params: { cfg: AstroclawConfig; accountId: string }) => string[];
-  updatePrompt: (params: { cfg: AstroclawConfig; accountId: string }) => boolean;
+  currentPolicy: (params: { cfg: OpenClawConfig; accountId: string }) => ChannelAccessPolicy;
+  currentEntries: (params: { cfg: OpenClawConfig; accountId: string }) => string[];
+  updatePrompt: (params: { cfg: OpenClawConfig; accountId: string }) => boolean;
   setPolicy: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     policy: ChannelAccessPolicy;
-  }) => AstroclawConfig;
+  }) => OpenClawConfig;
   resolveAllowlist?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     credentialValues: ChannelSetupWizardCredentialValues;
     entries: string[];
     prompter: Pick<WizardPrompter, "note">;
   }) => Promise<unknown>;
   applyAllowlist?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     resolved: unknown;
-  }) => AstroclawConfig;
+  }) => OpenClawConfig;
 };
 
+/** Optional pre-step hook for deriving helper config or credential values. */
 export type ChannelSetupWizardPrepare = (params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   credentialValues: ChannelSetupWizardCredentialValues;
   runtime: ChannelSetupConfigureContext["runtime"];
@@ -223,17 +237,18 @@ export type ChannelSetupWizardPrepare = (params: {
   options?: ChannelSetupConfigureContext["options"];
 }) =>
   | {
-      cfg?: AstroclawConfig;
+      cfg?: OpenClawConfig;
       credentialValues?: ChannelSetupWizardCredentialValues;
     }
   | void
   | Promise<{
-      cfg?: AstroclawConfig;
+      cfg?: OpenClawConfig;
       credentialValues?: ChannelSetupWizardCredentialValues;
     } | void>;
 
+/** Optional post-step hook for final validation, writes, or post prompts. */
 export type ChannelSetupWizardFinalize = (params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   credentialValues: ChannelSetupWizardCredentialValues;
   runtime: ChannelSetupConfigureContext["runtime"];
@@ -242,22 +257,23 @@ export type ChannelSetupWizardFinalize = (params: {
   forceAllowFrom: boolean;
 }) =>
   | {
-      cfg?: AstroclawConfig;
+      cfg?: OpenClawConfig;
       credentialValues?: ChannelSetupWizardCredentialValues;
     }
   | void
   | Promise<{
-      cfg?: AstroclawConfig;
+      cfg?: OpenClawConfig;
       credentialValues?: ChannelSetupWizardCredentialValues;
     } | void>;
 
+/** Full declarative setup wizard consumed by the generic setup adapter. */
 export type ChannelSetupWizard = {
   channel: string;
   status: ChannelSetupWizardStatus;
   introNote?: ChannelSetupWizardNote;
   envShortcut?: ChannelSetupWizardEnvShortcut;
   resolveAccountIdForConfigure?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     prompter: WizardPrompter;
     options?: ChannelSetupConfigureContext["options"];
     accountOverride?: string;
@@ -266,7 +282,7 @@ export type ChannelSetupWizard = {
     defaultAccountId: string;
   }) => string | Promise<string>;
   resolveShouldPromptAccountIds?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     options?: ChannelSetupConfigureContext["options"];
     shouldPromptAccountIds: boolean;
   }) => boolean;
@@ -279,10 +295,11 @@ export type ChannelSetupWizard = {
   dmPolicy?: ChannelSetupDmPolicy;
   allowFrom?: ChannelSetupWizardAllowFrom;
   groupAccess?: ChannelSetupWizardGroupAccess;
-  disable?: (cfg: AstroclawConfig) => AstroclawConfig;
+  disable?: (cfg: OpenClawConfig) => OpenClawConfig;
   onAccountRecorded?: ChannelSetupWizardAdapter["onAccountRecorded"];
 };
 
+/** Runtime options for selecting and configuring one or more channels. */
 export type SetupChannelsOptions = {
   allowDisable?: boolean;
   allowSignalInstall?: boolean;
@@ -303,11 +320,11 @@ export type SetupChannelsOptions = {
 };
 
 export type PromptAccountIdParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: WizardPrompter;
   label: string;
   currentId?: string;
-  listAccountIds: (cfg: AstroclawConfig) => string[];
+  listAccountIds: (cfg: OpenClawConfig) => string[];
   defaultAccountId: string;
 };
 
@@ -321,14 +338,16 @@ export type ChannelSetupStatus = {
   quickstartScore?: number;
 };
 
+/** Shared context for status checks before channel selection. */
 export type ChannelSetupStatusContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   options?: SetupChannelsOptions;
   accountOverrides: Partial<Record<ChannelId, string>>;
 };
 
+/** Shared context for applying setup changes for a selected channel. */
 export type ChannelSetupConfigureContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   runtime: RuntimeEnv;
   prompter: WizardPrompter;
   options?: SetupChannelsOptions;
@@ -337,21 +356,23 @@ export type ChannelSetupConfigureContext = {
   forceAllowFrom: boolean;
 };
 
+/** Context passed after setup has written config to disk. */
 export type ChannelOnboardingPostWriteContext = {
-  previousCfg: AstroclawConfig;
-  cfg: AstroclawConfig;
+  previousCfg: OpenClawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   runtime: RuntimeEnv;
 };
 
+/** Deferred hook for channel work that must run after config persistence. */
 export type ChannelOnboardingPostWriteHook = {
   channel: ChannelId;
   accountId: string;
-  run: (ctx: { cfg: AstroclawConfig; runtime: RuntimeEnv }) => Promise<void> | void;
+  run: (ctx: { cfg: OpenClawConfig; runtime: RuntimeEnv }) => Promise<void> | void;
 };
 
 export type ChannelSetupResult = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string;
 };
 
@@ -362,24 +383,26 @@ export type ChannelSetupInteractiveContext = ChannelSetupConfigureContext & {
   label: string;
 };
 
+/** Optional direct-message policy contract exposed by setup adapters. */
 export type ChannelSetupDmPolicy = {
   label: string;
   channel: ChannelId;
   policyKey: string;
   allowFromKey: string;
   resolveConfigKeys?: (
-    cfg: AstroclawConfig,
+    cfg: OpenClawConfig,
     accountId?: string,
   ) => { policyKey: string; allowFromKey: string };
-  getCurrent: (cfg: AstroclawConfig, accountId?: string) => DmPolicy;
-  setPolicy: (cfg: AstroclawConfig, policy: DmPolicy, accountId?: string) => AstroclawConfig;
+  getCurrent: (cfg: OpenClawConfig, accountId?: string) => DmPolicy;
+  setPolicy: (cfg: OpenClawConfig, policy: DmPolicy, accountId?: string) => OpenClawConfig;
   promptAllowFrom?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     prompter: WizardPrompter;
     accountId?: string;
-  }) => Promise<AstroclawConfig>;
+  }) => Promise<OpenClawConfig>;
 };
 
+/** Imperative adapter consumed by onboarding and setup flows. */
 export type ChannelSetupWizardAdapter = {
   channel: ChannelId;
   getStatus: (ctx: ChannelSetupStatusContext) => Promise<ChannelSetupStatus>;
@@ -393,5 +416,5 @@ export type ChannelSetupWizardAdapter = {
   afterConfigWritten?: (ctx: ChannelOnboardingPostWriteContext) => Promise<void> | void;
   dmPolicy?: ChannelSetupDmPolicy;
   onAccountRecorded?: (accountId: string, options?: SetupChannelsOptions) => void;
-  disable?: (cfg: AstroclawConfig) => AstroclawConfig;
+  disable?: (cfg: OpenClawConfig) => OpenClawConfig;
 };
