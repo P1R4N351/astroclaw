@@ -1,7 +1,8 @@
+// Discord plugin module implements resolve users behavior.
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { fetchDiscord } from "./api.js";
 import { listGuilds, type DiscordGuildSummary } from "./guilds.js";
 import {
