@@ -1,5 +1,6 @@
-import { resolveLoggerBackedRuntime } from "astroclaw/plugin-sdk/extension-shared";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+// Irc plugin module implements monitor behavior.
+import { resolveLoggerBackedRuntime } from "openclaw/plugin-sdk/extension-shared";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveIrcAccount } from "./accounts.js";
 import { connectIrcClient, type IrcClient } from "./client.js";
 import { buildIrcConnectOptions } from "./connect-options.js";
