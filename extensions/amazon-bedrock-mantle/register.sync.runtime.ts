@@ -1,6 +1,10 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
-import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+/**
+ * Synchronous Amazon Bedrock Mantle provider registration. It wires discovery,
+ * runtime bearer-token preparation, stream wrappers, and failover classifiers.
+ */
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import {
   mergeImplicitMantleProvider,
   resolveImplicitMantleProvider,
@@ -15,12 +19,13 @@ type BedrockMantlePluginConfig = {
   };
 };
 
-export function registerBedrockMantlePlugin(api: AstroclawPluginApi): void {
+/** Register the Amazon Bedrock Mantle provider with OpenClaw. */
+export function registerBedrockMantlePlugin(api: OpenClawPluginApi): void {
   const providerId = "amazon-bedrock-mantle";
   const startupPluginConfig = (api.pluginConfig ?? {}) as BedrockMantlePluginConfig;
 
   function resolveCurrentPluginConfig(
-    config: AstroclawConfig | undefined,
+    config: OpenClawConfig | undefined,
   ): BedrockMantlePluginConfig | undefined {
     const runtimePluginConfig = resolvePluginConfigObject(config, providerId);
     return (
