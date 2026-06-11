@@ -1,16 +1,17 @@
+// Registry Jiti mock helpers install Vitest mocks for plugin registry import tests.
 import { vi } from "vitest";
 
 const registryJitiMocks = vi.hoisted(() => ({
   createJiti: vi.fn(),
-  discoverAstroclawPlugins: vi.fn(),
+  discoverOpenClawPlugins: vi.fn(),
   loadPluginManifestRegistry: vi.fn(),
   loadPluginRegistrySnapshot: vi.fn(),
 }));
 
 vi.mock("../discovery.js", () => ({
-  discoverAstroclawPlugins: (
-    ...args: Parameters<typeof registryJitiMocks.discoverAstroclawPlugins>
-  ) => registryJitiMocks.discoverAstroclawPlugins(...args),
+  discoverOpenClawPlugins: (
+    ...args: Parameters<typeof registryJitiMocks.discoverOpenClawPlugins>
+  ) => registryJitiMocks.discoverOpenClawPlugins(...args),
 }));
 
 vi.mock("../manifest-registry.js", () => ({
@@ -39,10 +40,10 @@ vi.mock("../plugin-registry.js", async (importOriginal) => {
 });
 export function resetRegistryJitiMocks(): void {
   registryJitiMocks.createJiti.mockReset();
-  registryJitiMocks.discoverAstroclawPlugins.mockReset();
+  registryJitiMocks.discoverOpenClawPlugins.mockReset();
   registryJitiMocks.loadPluginManifestRegistry.mockReset();
   registryJitiMocks.loadPluginRegistrySnapshot.mockReset();
-  registryJitiMocks.discoverAstroclawPlugins.mockReturnValue({
+  registryJitiMocks.discoverOpenClawPlugins.mockReturnValue({
     candidates: [],
     diagnostics: [],
   });
