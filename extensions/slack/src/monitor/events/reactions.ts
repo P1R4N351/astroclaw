@@ -1,7 +1,8 @@
+// Slack plugin module implements reactions behavior.
 import type { SlackEventMiddlewareArgs } from "@slack/bolt";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
-import { danger } from "astroclaw/plugin-sdk/runtime-env";
-import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { danger } from "openclaw/plugin-sdk/runtime-env";
+import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
 import { allowListMatches, normalizeAllowListLower } from "../allow-list.js";
 import type { SlackMonitorContext } from "../context.js";
 import type { SlackReactionEvent } from "../types.js";
@@ -88,8 +89,6 @@ export function registerSlackReactionEvents(params: {
       enqueueSystemEvent(text, {
         sessionKey: ingressContext.sessionKey,
         contextKey: `slack:reaction:${action}:${item.channel}:${item.ts}:${event.user}:${emojiLabel}`,
-        forceSenderIsOwnerFalse: true,
-        trusted: false,
       });
     } catch (err) {
       ctx.runtime.error?.(danger(`slack reaction handler failed: ${formatErrorMessage(err)}`));
