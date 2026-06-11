@@ -1,3 +1,4 @@
+/** Applies migration plans with backup, filtering, reporting, and progress output. */
 import fs from "node:fs/promises";
 import { withProgress } from "../../cli/progress.js";
 import type { ProgressReporter } from "../../cli/progress.js";
@@ -14,11 +15,12 @@ import type { MigrateApplyOptions } from "./types.js";
 function shouldTreatMissingBackupAsEmptyState(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return (
-    message.includes("No local Astroclaw state was found to back up") ||
-    message.includes("No Astroclaw config file was found to back up")
+    message.includes("No local OpenClaw state was found to back up") ||
+    message.includes("No OpenClaw config file was found to back up")
   );
 }
 
+/** Creates a verified pre-migration backup, treating absent local state as empty. */
 export async function createPreMigrationBackup(opts: {
   output?: string;
 }): Promise<string | undefined> {
@@ -45,6 +47,7 @@ export async function createPreMigrationBackup(opts: {
   }
 }
 
+/** Applies the selected migration provider plan and writes the final result. */
 export async function runMigrationApply(params: {
   runtime: RuntimeEnv;
   opts: MigrateApplyOptions;
@@ -69,7 +72,7 @@ export async function runMigrationApply(params: {
           includeSecrets: params.opts.includeSecrets,
           overwrite: params.opts.overwrite,
           configOverride: params.opts.configOverride,
-          providerOptions: buildMigrationProviderOptions(params.opts),
+          providerOptions: buildMigrationProviderOptions(params.opts, params.providerId),
           runtime: params.runtime,
           json: params.opts.json,
         }),
@@ -81,6 +84,8 @@ export async function runMigrationApply(params: {
       applyMigrationSkillSelection(preflightPlan, params.opts.skills),
       params.opts.plugins,
     );
+    // Selection is applied before conflict checks so deselected conflicting items
+    // cannot block an otherwise safe migration.
     assertConflictFreePlan(selectedPlan, params.providerId);
     const stateDir = resolveStateDir();
     const reportDir = buildMigrationReportDir(params.providerId, stateDir);
@@ -99,7 +104,7 @@ export async function runMigrationApply(params: {
       includeSecrets: params.opts.includeSecrets,
       overwrite: params.opts.overwrite,
       configOverride: params.opts.configOverride,
-      providerOptions: buildMigrationProviderOptions(params.opts),
+      providerOptions: buildMigrationProviderOptions(params.opts, params.providerId),
       runtime: params.runtime,
       backupPath,
       reportDir,
