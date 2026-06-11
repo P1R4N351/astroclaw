@@ -1,10 +1,11 @@
+// Protocol Gen script supports OpenClaw repository automation.
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ProtocolSchemas } from "../src/gateway/protocol/schema.js";
+import { ProtocolSchemas } from "../packages/gateway-protocol/src/schema.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, "..");
 
 async function writeJsonSchema() {
   const definitions: Record<string, unknown> = {};
@@ -14,8 +15,8 @@ async function writeJsonSchema() {
 
   const rootSchema = {
     $schema: "http://json-schema.org/draft-07/schema#",
-    $id: "https://astroclaw.ai/protocol.schema.json",
-    title: "Astroclaw Gateway Protocol",
+    $id: "https://openclaw.ai/protocol.schema.json",
+    title: "OpenClaw Gateway Protocol",
     description: "Handshake, request/response, and event frames for the Gateway WebSocket.",
     oneOf: [
       { $ref: "#/definitions/RequestFrame" },
@@ -45,7 +46,7 @@ async function main() {
   await writeJsonSchema();
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error(err);
   process.exit(1);
 });
