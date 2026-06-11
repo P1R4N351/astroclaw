@@ -1,24 +1,25 @@
+// Slack plugin module implements context behavior.
 import type { App } from "@slack/bolt";
-import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
-import { formatAllowlistMatchMeta } from "astroclaw/plugin-sdk/allow-from";
+import { resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-runtime";
+import { formatAllowlistMatchMeta } from "openclaw/plugin-sdk/allow-from";
 import type {
-  AstroclawConfig,
+  OpenClawConfig,
   SlackReactionNotificationMode,
-} from "astroclaw/plugin-sdk/config-contracts";
-import type { SessionScope } from "astroclaw/plugin-sdk/config-contracts";
-import type { DmPolicy, GroupPolicy } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveRuntimeConversationBindingRoute } from "astroclaw/plugin-sdk/conversation-runtime";
-import { createDedupeCache } from "astroclaw/plugin-sdk/dedupe-runtime";
-import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
-import { resolveAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { resolveThreadSessionKeys } from "astroclaw/plugin-sdk/routing";
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { getChildLogger } from "astroclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/config-contracts";
+import type { SessionScope } from "openclaw/plugin-sdk/config-contracts";
+import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk/config-contracts";
+import { resolveRuntimeConversationBindingRoute } from "openclaw/plugin-sdk/conversation-runtime";
+import { createDedupeCache } from "openclaw/plugin-sdk/dedupe-runtime";
+import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
+import { resolveAgentRoute } from "openclaw/plugin-sdk/routing";
+import { resolveThreadSessionKeys } from "openclaw/plugin-sdk/routing";
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
+import { getChildLogger } from "openclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import { formatSlackError } from "../errors.js";
 import type { SlackMessageEvent } from "../types.js";
 import { normalizeAllowList, normalizeAllowListLower, normalizeSlackSlug } from "./allow-list.js";
@@ -91,7 +92,7 @@ export function parseSlackAssistantThreadMetadata(value: unknown) {
 }
 
 export type SlackMonitorContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   botToken: string;
   app: App;
@@ -125,7 +126,7 @@ export type SlackMonitorContext = {
   threadHistoryScope: "thread" | "channel";
   threadInheritParent: boolean;
   threadRequireExplicitMention: boolean;
-  slashCommand: Required<import("astroclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
+  slashCommand: Required<import("openclaw/plugin-sdk/config-contracts").SlackSlashCommandConfig>;
   textLimit: number;
   ackReactionScope: string;
   typingReaction: string;
@@ -178,7 +179,7 @@ const SLACK_ASSISTANT_CONTEXT_TTL_MS = 24 * 60 * 60 * 1000;
 const SLACK_ASSISTANT_CONTEXT_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 
 export function createSlackMonitorContext(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId: string;
   botToken: string;
   app: App;
