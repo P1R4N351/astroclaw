@@ -1,12 +1,13 @@
-import type { ReplyToMode } from "astroclaw/plugin-sdk/config-contracts";
-import type { TelegramAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Telegram plugin module implements bot message behavior.
+import type { ReplyToMode } from "openclaw/plugin-sdk/config-contracts";
+import type { TelegramAccountConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   createSubsystemLogger,
   danger,
   logVerbose,
   shouldLogVerbose,
-} from "astroclaw/plugin-sdk/runtime-env";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+} from "openclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import type { TelegramBotDeps } from "./bot-deps.js";
 import {
   buildTelegramMessageContext,
@@ -45,6 +46,10 @@ type TelegramMessageProcessorDeps = Omit<
   textLimit: number;
   telegramDeps: TelegramBotDeps;
   opts: Pick<TelegramBotOptions, "token">;
+};
+
+export type TelegramMessageProcessorLifecycle = {
+  onDispatchStart?: () => Promise<void> | void;
 };
 
 export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDeps) => {
@@ -104,13 +109,14 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
     replyMedia?: TelegramMediaRef[],
     replyChain?: TelegramReplyChainEntry[],
     promptContext?: TelegramPromptContextEntry[],
+    lifecycle?: TelegramMessageProcessorLifecycle,
   ) => {
     const ingressReceivedAtMs =
       typeof options?.receivedAtMs === "number" && Number.isFinite(options.receivedAtMs)
         ? options.receivedAtMs
         : undefined;
     const ingressDebugEnabled =
-      shouldLogVerbose() || process.env.ASTROCLAW_DEBUG_TELEGRAM_INGRESS === "1";
+      shouldLogVerbose() || process.env.OPENCLAW_DEBUG_TELEGRAM_INGRESS === "1";
     const ingressContextStartMs = ingressReceivedAtMs ? Date.now() : undefined;
     const context = await buildTelegramMessageContext({
       primaryCtx,
@@ -146,7 +152,7 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
             (options?.ingressBuffer ? ` buffer=${options.ingressBuffer}` : ""),
         );
       }
-      return;
+      return false;
     }
     if (ingressDebugEnabled && ingressReceivedAtMs && ingressContextStartMs) {
       logVerbose(
@@ -155,8 +161,11 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
           (options?.ingressBuffer ? ` buffer=${options.ingressBuffer}` : ""),
       );
     }
-    if (context.ctxPayload.InboundEventKind !== "room_event") {
-      void context.sendTyping().catch((err) => {
+    if (
+      context.ctxPayload.InboundEventKind !== "room_event" &&
+      context.initialTypingCueSent !== true
+    ) {
+      void context.sendTyping().catch((err: unknown) => {
         logVerbose(`telegram early typing cue failed for chat ${context.chatId}: ${String(err)}`);
       });
     }
@@ -171,6 +180,7 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
         mediaType: allMedia[0]?.contentType,
       }),
     );
+    await lifecycle?.onDispatchStart?.();
     try {
       await dispatchTelegramMessage({
         context,
@@ -200,5 +210,6 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
         );
       } catch {}
     }
+    return true;
   };
 };
