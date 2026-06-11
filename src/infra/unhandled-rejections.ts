@@ -1,6 +1,7 @@
+// Installs fatal and transient unhandled rejection/exception handlers.
 import process from "node:process";
-import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
-import { restoreTerminalState } from "../terminal/restore.js";
+import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
+import { restoreTerminalState } from "../../packages/terminal-core/src/restore.js";
 import {
   collectErrorGraphCandidates,
   extractErrorCode,
@@ -12,11 +13,11 @@ import { runFatalErrorHooks } from "./fatal-error-hooks.js";
 type UnhandledRejectionHandler = (reason: unknown) => boolean;
 type UncaughtExceptionHandler = (error: unknown) => boolean;
 
-// Plugins resolve `astroclaw/plugin-sdk/runtime` through their own staged
+// Plugins resolve `openclaw/plugin-sdk/runtime` through their own staged
 // `node_modules`, which loads a separate copy of this module. To keep registry
 // state shared across instances, anchor the handlers Set on globalThis.
-const HANDLERS_GLOBAL_KEY = Symbol.for("astroclaw.unhandledRejection.handlers");
-const EXCEPTION_HANDLERS_GLOBAL_KEY = Symbol.for("astroclaw.uncaughtException.handlers");
+const HANDLERS_GLOBAL_KEY = Symbol.for("openclaw.unhandledRejection.handlers");
+const EXCEPTION_HANDLERS_GLOBAL_KEY = Symbol.for("openclaw.uncaughtException.handlers");
 const handlers: Set<UnhandledRejectionHandler> = (() => {
   const g = globalThis as unknown as Record<symbol, Set<UnhandledRejectionHandler>>;
   const existing = g[HANDLERS_GLOBAL_KEY];
@@ -57,6 +58,7 @@ const TRANSIENT_NETWORK_CODES = new Set([
   "ESOCKETTIMEDOUT",
   "ECONNABORTED",
   "EPIPE",
+  "ENETDOWN",
   "EHOSTUNREACH",
   "ENETUNREACH",
   "EADDRNOTAVAIL",
@@ -93,6 +95,7 @@ const TRANSIENT_SQLITE_ERRCODES = new Set([5, 6, 10, 14]);
 const BENIGN_UNCAUGHT_EXCEPTION_CODES = new Set(["EPIPE", "EIO"]);
 const BENIGN_UNCAUGHT_EXCEPTION_NETWORK_CODES = new Set([
   "ECONNREFUSED",
+  "ENETDOWN",
   "EHOSTUNREACH",
   "ENETUNREACH",
   "EADDRNOTAVAIL",
@@ -106,9 +109,10 @@ const BENIGN_UNCAUGHT_EXCEPTION_NETWORK_CODES = new Set([
 ]);
 
 const TRANSIENT_NETWORK_MESSAGE_CODE_RE =
-  /\b(ECONNRESET|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ESOCKETTIMEDOUT|ECONNABORTED|EPIPE|EHOSTUNREACH|ENETUNREACH|EADDRNOTAVAIL|EAI_AGAIN|EPROTO|UND_ERR_CONNECT_TIMEOUT|UND_ERR_DNS_RESOLVE_FAILED|UND_ERR_CONNECT|UND_ERR_SOCKET|UND_ERR_HEADERS_TIMEOUT|UND_ERR_BODY_TIMEOUT|ERR_HTTP2_INVALID_SESSION)\b/i;
+  /\b(ECONNRESET|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ESOCKETTIMEDOUT|ECONNABORTED|EPIPE|ENETDOWN|EHOSTUNREACH|ENETUNREACH|EADDRNOTAVAIL|EAI_AGAIN|EPROTO|UND_ERR_CONNECT_TIMEOUT|UND_ERR_DNS_RESOLVE_FAILED|UND_ERR_CONNECT|UND_ERR_SOCKET|UND_ERR_HEADERS_TIMEOUT|UND_ERR_BODY_TIMEOUT|ERR_HTTP2_INVALID_SESSION)\b/i;
 const BENIGN_UNCAUGHT_EXCEPTION_NETWORK_MESSAGE_CODE_RE =
-  /\b(ECONNREFUSED|EHOSTUNREACH|ENETUNREACH|EADDRNOTAVAIL|EAI_AGAIN|ENOTFOUND|ETIMEDOUT|UND_ERR_CONNECT_TIMEOUT|UND_ERR_DNS_RESOLVE_FAILED|UND_ERR_CONNECT|ERR_HTTP2_INVALID_SESSION)\b/i;
+  /\b(ECONNREFUSED|ENETDOWN|EHOSTUNREACH|ENETUNREACH|EADDRNOTAVAIL|EAI_AGAIN|ENOTFOUND|ETIMEDOUT|UND_ERR_CONNECT_TIMEOUT|UND_ERR_DNS_RESOLVE_FAILED|UND_ERR_CONNECT|ERR_HTTP2_INVALID_SESSION)\b/i;
+const WS_PRE_HANDSHAKE_CLOSE_MESSAGE = "websocket was closed before the connection was established";
 
 const TRANSIENT_SQLITE_MESSAGE_CODE_RE =
   /\b(SQLITE_BUSY|SQLITE_CANTOPEN|SQLITE_IOERR|SQLITE_LOCKED)\b/i;
@@ -172,6 +176,16 @@ function isWrappedFetchFailedMessage(message: string): boolean {
   // Keep wrapped variants (for example "...: fetch failed") while avoiding broad
   // matches like "Web fetch failed (404): ..." that are not transport failures.
   return /:\s*fetch failed$/.test(message);
+}
+
+function isBenignUncaughtNetworkMessage(message: string): boolean {
+  if (BENIGN_UNCAUGHT_EXCEPTION_NETWORK_MESSAGE_CODE_RE.test(message)) {
+    return true;
+  }
+
+  // `ws` emits this exact Error when close()/terminate() aborts a CONNECTING socket.
+  // Keep exact matching so arbitrary WebSocket errors still take the fatal path.
+  return message === WS_PRE_HANDSHAKE_CLOSE_MESSAGE;
 }
 
 function getErrorCause(err: unknown): unknown {
@@ -435,7 +449,7 @@ function isBenignUncaughtNetworkException(err: unknown): boolean {
       continue;
     }
     const message = normalizeLowercaseStringOrEmpty((candidate as { message?: unknown }).message);
-    if (message && BENIGN_UNCAUGHT_EXCEPTION_NETWORK_MESSAGE_CODE_RE.test(message)) {
+    if (message && isBenignUncaughtNetworkMessage(message)) {
       return true;
     }
   }
@@ -470,7 +484,7 @@ export function isUnhandledRejectionHandled(reason: unknown): boolean {
       }
     } catch (err) {
       console.error(
-        "[astroclaw] Unhandled rejection handler failed:",
+        "[openclaw] Unhandled rejection handler failed:",
         err instanceof Error ? (err.stack ?? err.message) : err,
       );
     }
@@ -493,7 +507,7 @@ export function isUncaughtExceptionHandled(error: unknown): boolean {
       }
     } catch (err) {
       console.error(
-        "[astroclaw] Uncaught exception handler failed:",
+        "[openclaw] Uncaught exception handler failed:",
         err instanceof Error ? (err.stack ?? err.message) : err,
       );
     }
@@ -504,7 +518,7 @@ export function isUncaughtExceptionHandled(error: unknown): boolean {
 export function installUnhandledRejectionHandler(): void {
   const exitWithTerminalRestore = (reason: string, error?: unknown, hookReason = reason) => {
     for (const message of runFatalErrorHooks({ reason: hookReason, error })) {
-      console.error("[astroclaw]", message);
+      console.error("[openclaw]", message);
     }
     restoreTerminalState(reason, { resumeStdinIfPaused: false });
     process.exit(1);
@@ -518,31 +532,31 @@ export function installUnhandledRejectionHandler(): void {
     // AbortError is typically an intentional cancellation (e.g., during shutdown)
     // Log it but don't crash - these are expected during graceful shutdown
     if (isAbortError(reason)) {
-      console.warn("[astroclaw] Suppressed AbortError:", formatUncaughtError(reason));
+      console.warn("[openclaw] Suppressed AbortError:", formatUncaughtError(reason));
       return;
     }
 
     if (isFatalError(reason)) {
-      console.error("[astroclaw] FATAL unhandled rejection:", formatUncaughtError(reason));
+      console.error("[openclaw] FATAL unhandled rejection:", formatUncaughtError(reason));
       exitWithTerminalRestore("fatal unhandled rejection", reason, "fatal_unhandled_rejection");
       return;
     }
 
     if (isConfigError(reason)) {
-      console.error("[astroclaw] CONFIGURATION ERROR - requires fix:", formatUncaughtError(reason));
+      console.error("[openclaw] CONFIGURATION ERROR - requires fix:", formatUncaughtError(reason));
       exitWithTerminalRestore("configuration error", reason, "configuration_error");
       return;
     }
 
     if (isTransientUnhandledRejectionError(reason)) {
       console.warn(
-        "[astroclaw] Non-fatal unhandled rejection (continuing):",
+        "[openclaw] Non-fatal unhandled rejection (continuing):",
         formatUncaughtError(reason),
       );
       return;
     }
 
-    console.error("[astroclaw] Unhandled promise rejection:", formatUncaughtError(reason));
+    console.error("[openclaw] Unhandled promise rejection:", formatUncaughtError(reason));
     exitWithTerminalRestore("unhandled rejection", reason, "unhandled_rejection");
   });
 }
