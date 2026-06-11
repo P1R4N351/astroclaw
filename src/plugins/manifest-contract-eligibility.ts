@@ -1,8 +1,9 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
-import { getCurrentPluginMetadataSnapshot } from "./current-plugin-metadata-snapshot.js";
+// Determines which manifest contracts are eligible for plugin activation.
+import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isInstalledPluginEnabled } from "./installed-plugin-index.js";
 import type { PluginManifestContractListKey, PluginManifestRecord } from "./manifest-registry.js";
-import { loadPluginMetadataSnapshot } from "./plugin-metadata-snapshot.js";
+import { resolvePluginMetadataSnapshot } from "./plugin-metadata-snapshot.js";
 import type {
   PluginMetadataManifestView,
   PluginMetadataRegistryView,
@@ -15,7 +16,7 @@ export function isManifestPluginAvailableForControlPlane(params: {
     PluginManifestRecord,
     "id" | "origin" | "enabledByDefault" | "enabledByDefaultOnPlatforms"
   >;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
 }): boolean {
   if (params.plugin.origin === "bundled") {
     return true;
@@ -36,7 +37,7 @@ export function listAvailableManifestContractPlugins(params: {
   snapshot: Pick<PluginMetadataSnapshot, "index" | "plugins">;
   contract: PluginManifestContractListKey;
   value?: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
 }): PluginManifestRecord[] {
   return params.snapshot.plugins.filter(
     (plugin) =>
@@ -56,7 +57,7 @@ export function listAvailableManifestContractPlugins(params: {
 export function listAvailableManifestContractValues(params: {
   snapshot: Pick<PluginMetadataSnapshot, "index" | "plugins">;
   contract: PluginManifestContractListKey;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
 }): string[] {
   const values = new Set<string>();
   for (const plugin of listAvailableManifestContractPlugins(params)) {
@@ -64,11 +65,11 @@ export function listAvailableManifestContractValues(params: {
       values.add(value);
     }
   }
-  return [...values].toSorted((left, right) => left.localeCompare(right));
+  return sortUniqueStrings(values);
 }
 
 export function loadManifestContractSnapshot(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): PluginMetadataManifestView {
@@ -80,7 +81,7 @@ export function loadManifestContractSnapshot(params: {
 }
 
 export function loadManifestMetadataRegistry(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): PluginMetadataRegistryView {
@@ -92,24 +93,16 @@ export function loadManifestMetadataRegistry(params: {
 }
 
 export function loadManifestMetadataSnapshot(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): PluginMetadataSnapshot {
   const config = params.config ?? {};
   const env = params.env ?? process.env;
-  const current = getCurrentPluginMetadataSnapshot({
+  return resolvePluginMetadataSnapshot({
     config,
     env,
     ...(params.workspaceDir ? { workspaceDir: params.workspaceDir } : {}),
-    ...(params.workspaceDir === undefined ? { allowWorkspaceScopedSnapshot: true } : {}),
-  });
-  if (current) {
-    return current;
-  }
-  return loadPluginMetadataSnapshot({
-    config,
-    env,
-    ...(params.workspaceDir ? { workspaceDir: params.workspaceDir } : {}),
+    allowWorkspaceScopedCurrent: params.workspaceDir === undefined,
   });
 }
