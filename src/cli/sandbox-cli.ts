@@ -1,9 +1,10 @@
+// Commander registration for sandbox container list, recreate, and explain commands.
 import type { Command } from "commander";
+import { formatDocsLink } from "../../packages/terminal-core/src/links.js";
+import { theme } from "../../packages/terminal-core/src/theme.js";
 import { sandboxExplainCommand } from "../commands/sandbox-explain.js";
 import { sandboxListCommand, sandboxRecreateCommand } from "../commands/sandbox.js";
 import { defaultRuntime } from "../runtime.js";
-import { formatDocsLink } from "../terminal/links.js";
-import { theme } from "../terminal/theme.js";
 import { formatHelpExamples } from "./help-format.js";
 
 // --- Types ---
@@ -14,36 +15,37 @@ type CommandOptions = Record<string, unknown>;
 
 const SANDBOX_EXAMPLES = {
   main: [
-    ["astroclaw sandbox list", "List all sandbox containers."],
-    ["astroclaw sandbox list --browser", "List only browser containers."],
-    ["astroclaw sandbox recreate --all", "Recreate all containers."],
-    ["astroclaw sandbox recreate --session main", "Recreate a specific session."],
-    ["astroclaw sandbox recreate --agent mybot", "Recreate agent containers."],
-    ["astroclaw sandbox explain", "Explain effective sandbox config."],
+    ["openclaw sandbox list", "List all sandbox containers."],
+    ["openclaw sandbox list --browser", "List only browser containers."],
+    ["openclaw sandbox recreate --all", "Recreate all containers."],
+    ["openclaw sandbox recreate --session main", "Recreate a specific session."],
+    ["openclaw sandbox recreate --agent mybot", "Recreate agent containers."],
+    ["openclaw sandbox explain", "Explain effective sandbox config."],
   ],
   list: [
-    ["astroclaw sandbox list", "List all sandbox containers."],
-    ["astroclaw sandbox list --browser", "List only browser containers."],
-    ["astroclaw sandbox list --json", "JSON output."],
+    ["openclaw sandbox list", "List all sandbox containers."],
+    ["openclaw sandbox list --browser", "List only browser containers."],
+    ["openclaw sandbox list --json", "JSON output."],
   ],
   recreate: [
-    ["astroclaw sandbox recreate --all", "Recreate all containers."],
-    ["astroclaw sandbox recreate --session main", "Recreate a specific session."],
-    ["astroclaw sandbox recreate --agent mybot", "Recreate a specific agent (includes sub-agents)."],
-    ["astroclaw sandbox recreate --browser --all", "Recreate only browser containers."],
-    ["astroclaw sandbox recreate --all --force", "Skip confirmation."],
+    ["openclaw sandbox recreate --all", "Recreate all containers."],
+    ["openclaw sandbox recreate --session main", "Recreate a specific session."],
+    ["openclaw sandbox recreate --agent mybot", "Recreate a specific agent (includes sub-agents)."],
+    ["openclaw sandbox recreate --browser --all", "Recreate only browser containers."],
+    ["openclaw sandbox recreate --all --force", "Skip confirmation."],
   ],
   explain: [
-    ["astroclaw sandbox explain", "Show effective sandbox config."],
-    ["astroclaw sandbox explain --session agent:main:main", "Explain a specific session."],
-    ["astroclaw sandbox explain --agent work", "Explain an agent sandbox."],
-    ["astroclaw sandbox explain --json", "JSON output."],
+    ["openclaw sandbox explain", "Show effective sandbox config."],
+    ["openclaw sandbox explain --session agent:main:main", "Explain a specific session."],
+    ["openclaw sandbox explain --agent work", "Explain an agent sandbox."],
+    ["openclaw sandbox explain --json", "JSON output."],
   ],
 } as const;
 
 function createRunner(
   commandFn: (opts: CommandOptions, runtime: typeof defaultRuntime) => Promise<void>,
 ) {
+  // Sandbox commands share the default runtime error/exit behavior.
   return async (opts: CommandOptions) => {
     try {
       await commandFn(opts, defaultRuntime);
@@ -67,7 +69,7 @@ export function registerSandboxCli(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/sandbox", "docs.astroclaw.ai/cli/sandbox")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/sandbox", "docs.openclaw.ai/cli/sandbox")}\n`,
     )
     .action(() => {
       sandbox.help({ error: true });
