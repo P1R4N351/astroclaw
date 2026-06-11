@@ -1,27 +1,31 @@
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
-import { buildDmGroupAccountAllowlistAdapter } from "astroclaw/plugin-sdk/allowlist-config-edit";
-import { createChatChannelPlugin, type ChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
-import { defineChannelMessageAdapter } from "astroclaw/plugin-sdk/channel-message";
-import { createPairingPrefixStripper } from "astroclaw/plugin-sdk/channel-pairing";
+// Signal plugin module implements channel behavior.
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
+import { buildDmGroupAccountAllowlistAdapter } from "openclaw/plugin-sdk/allowlist-config-edit";
+import { createChatChannelPlugin, type ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+import { defineChannelMessageAdapter } from "openclaw/plugin-sdk/channel-outbound";
+import { resolveOutboundSendDep } from "openclaw/plugin-sdk/channel-outbound";
+import { createPairingPrefixStripper } from "openclaw/plugin-sdk/channel-pairing";
 import {
   attachChannelToResult,
   attachChannelToResults,
-} from "astroclaw/plugin-sdk/channel-send-result";
-import { PAIRING_APPROVED_MESSAGE } from "astroclaw/plugin-sdk/channel-status";
-import { resolveMarkdownTableMode } from "astroclaw/plugin-sdk/markdown-table-runtime";
-import { resolveChannelMediaMaxBytes } from "astroclaw/plugin-sdk/media-runtime";
-import { resolveOutboundSendDep } from "astroclaw/plugin-sdk/outbound-send-deps";
-import { chunkText, resolveTextChunkLimit } from "astroclaw/plugin-sdk/reply-chunking";
-import { buildOutboundBaseSessionKey, type RoutePeer } from "astroclaw/plugin-sdk/routing";
+} from "openclaw/plugin-sdk/channel-send-result";
+import { PAIRING_APPROVED_MESSAGE } from "openclaw/plugin-sdk/channel-status";
+import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
+import { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";
+import { chunkText, resolveTextChunkLimit } from "openclaw/plugin-sdk/reply-chunking";
+import { buildOutboundBaseSessionKey, type RoutePeer } from "openclaw/plugin-sdk/routing";
 import {
   buildBaseChannelStatusSummary,
   collectStatusIssuesFromLastError,
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/status-helpers";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveSignalAccount, type ResolvedSignalAccount } from "./accounts.js";
-import { signalApprovalAuth } from "./approval-auth.js";
+import {
+  shouldSuppressLocalSignalExecApprovalPrompt,
+  signalApprovalCapability,
+} from "./approval-native.js";
 import { markdownToSignalTextChunks } from "./format.js";
 import { signalMessageActions } from "./message-actions.js";
 import { looksLikeSignalTargetId, normalizeSignalMessagingTarget } from "./normalize.js";
@@ -150,17 +154,6 @@ function inferSignalTargetChatType(rawTo: string) {
   return "direct" as const;
 }
 
-function parseSignalExplicitTarget(raw: string) {
-  const normalized = normalizeSignalMessagingTarget(raw);
-  if (!normalized) {
-    return null;
-  }
-  return {
-    to: normalized,
-    chatType: inferSignalTargetChatType(normalized),
-  };
-}
-
 function buildSignalBaseSessionKey(params: {
   cfg: Parameters<typeof resolveSignalAccount>[0]["cfg"];
   agentId: string;
@@ -285,7 +278,7 @@ export const signalPlugin: ChannelPlugin<ResolvedSignalAccount, SignalProbe> =
         setup: signalSetupAdapter,
       }),
       actions: signalMessageActions,
-      approvalCapability: signalApprovalAuth,
+      approvalCapability: signalApprovalCapability,
       allowlist: buildDmGroupAccountAllowlistAdapter({
         channelId: "signal",
         resolveAccount: resolveSignalAccount,
@@ -308,7 +301,6 @@ export const signalPlugin: ChannelPlugin<ResolvedSignalAccount, SignalProbe> =
       messaging: {
         targetPrefixes: ["signal"],
         normalizeTarget: normalizeSignalMessagingTarget,
-        parseExplicitTarget: ({ raw }) => parseSignalExplicitTarget(raw),
         inferTargetChatType: ({ to }) => inferSignalTargetChatType(to),
         resolveOutboundSessionRoute: (params) => resolveSignalOutboundSessionRoute(params),
         targetResolver: {
@@ -376,6 +368,7 @@ export const signalPlugin: ChannelPlugin<ResolvedSignalAccount, SignalProbe> =
             accountId: account.accountId,
             config: ctx.cfg,
             runtime: ctx.runtime,
+            channelRuntime: ctx.channelRuntime,
             abortSignal: ctx.abortSignal,
             mediaMaxMb: account.config.mediaMaxMb,
           });
@@ -404,6 +397,13 @@ export const signalPlugin: ChannelPlugin<ResolvedSignalAccount, SignalProbe> =
         chunker: chunkText,
         chunkerMode: "text",
         textChunkLimit: 4000,
+        shouldSuppressLocalPayloadPrompt: ({ cfg, accountId, payload, hint }) =>
+          shouldSuppressLocalSignalExecApprovalPrompt({
+            cfg,
+            accountId,
+            payload,
+            hint,
+          }),
         sendFormattedText: async ({ cfg, to, text, accountId, deps, abortSignal }) =>
           await sendFormattedSignalText({
             cfg,
