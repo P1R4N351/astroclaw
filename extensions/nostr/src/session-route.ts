@@ -1,8 +1,9 @@
+// Nostr plugin module implements session route behavior.
 import {
   buildChannelOutboundSessionRoute,
   stripChannelTargetPrefix,
   type ChannelOutboundSessionRouteParams,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 
 export function resolveNostrOutboundSessionRoute(params: ChannelOutboundSessionRouteParams) {
   const target = stripChannelTargetPrefix(params.target, "nostr");
