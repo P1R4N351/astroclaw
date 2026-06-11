@@ -1,3 +1,5 @@
+// Implements agent route binding list/add/remove subcommands.
+import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
 import { listAgentEntries, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { isRouteBinding, listRouteBindings } from "../config/bindings.js";
@@ -82,14 +84,14 @@ function resolveTargetAgentIdOrExit(params: {
   });
   if (!agentId) {
     params.runtime.error(
-      `Unable to resolve agent id. Run ${formatCliCommand("astroclaw agents list")} to choose one.`,
+      `Unable to resolve agent id. Run ${formatCliCommand("openclaw agents list")} to choose one.`,
     );
     params.runtime.exit(1);
     return null;
   }
   if (!hasAgent(params.cfg, agentId)) {
     params.runtime.error(
-      `Agent "${agentId}" not found. Run ${formatCliCommand("astroclaw agents list")} to see configured agents.`,
+      `Agent "${agentId}" not found. Run ${formatCliCommand("openclaw agents list")} to see configured agents.`,
     );
     params.runtime.exit(1);
     return null;
@@ -115,7 +117,7 @@ async function resolveParsedBindingsOrExit(params: {
   bindings: AgentRouteBinding[];
   errors: string[];
 } | null> {
-  const specs = (params.bindValues ?? []).map((value) => value.trim()).filter(Boolean);
+  const specs = normalizeStringEntries(params.bindValues);
   if (specs.length === 0) {
     params.runtime.error(params.emptyMessage);
     params.runtime.exit(1);
@@ -172,6 +174,7 @@ async function resolveConfigAndTargetAgentIdOrExit(params: {
   return { cfg, agentId, baseHash: configSnapshot.hash };
 }
 
+/** List configured agent route bindings, optionally filtered by target agent. */
 export async function agentsBindingsCommand(
   opts: AgentsBindingsListOptions,
   runtime: RuntimeEnv = defaultRuntime,
@@ -184,14 +187,14 @@ export async function agentsBindingsCommand(
   const filterAgentId = resolveAgentId(cfg, opts.agent?.trim());
   if (opts.agent && !filterAgentId) {
     runtime.error(
-      `Agent id is required. Run ${formatCliCommand("astroclaw agents list")} to choose one.`,
+      `Agent id is required. Run ${formatCliCommand("openclaw agents list")} to choose one.`,
     );
     runtime.exit(1);
     return;
   }
   if (filterAgentId && !hasAgent(cfg, filterAgentId)) {
     runtime.error(
-      `Agent "${filterAgentId}" not found. Run ${formatCliCommand("astroclaw agents list")} to see configured agents.`,
+      `Agent "${filterAgentId}" not found. Run ${formatCliCommand("openclaw agents list")} to see configured agents.`,
     );
     runtime.exit(1);
     return;
@@ -227,6 +230,7 @@ export async function agentsBindingsCommand(
   );
 }
 
+/** Add route bindings for an agent and fail when another agent already owns the route. */
 export async function agentsBindCommand(
   opts: AgentsBindOptions,
   runtime: RuntimeEnv = defaultRuntime,
@@ -308,6 +312,7 @@ export async function agentsBindCommand(
   }
 }
 
+/** Remove selected route bindings, or all bindings owned by an agent with `--all`. */
 export async function agentsUnbindCommand(
   opts: AgentsUnbindOptions,
   runtime: RuntimeEnv = defaultRuntime,
@@ -332,6 +337,20 @@ export async function agentsUnbindCommand(
     const keptRoutes = existing.filter((binding) => normalizeAgentId(binding.agentId) !== agentId);
     const nonRoutes = (cfg.bindings ?? []).filter((binding) => !isRouteBinding(binding));
     if (removed.length === 0) {
+      if (
+        emitJsonPayload({
+          runtime,
+          json: opts.json,
+          payload: {
+            agentId,
+            removed: [] as string[],
+            missing: [] as string[],
+            conflicts: [] as string[],
+          },
+        })
+      ) {
+        return;
+      }
       runtime.log(`No bindings to remove for agent "${agentId}".`);
       return;
     }
