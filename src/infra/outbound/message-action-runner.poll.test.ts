@@ -1,6 +1,8 @@
+// Covers message-action poll handling through plugin dispatch and core gateway
+// poll fallback.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../../channels/plugins/types.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { getActivePluginRegistry, setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { runMessageAction } from "./message-action-runner.js";
@@ -53,7 +55,7 @@ const pollerConfig = {
       botToken: "poller-test",
     },
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 const pollerTestPlugin: ChannelPlugin = {
   id: "poller",
@@ -100,7 +102,7 @@ const pollerTestPlugin: ChannelPlugin = {
 };
 
 async function runPollAction(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   actionParams: Record<string, unknown>;
   toolContext?: Record<string, unknown>;
   inboundEventKind?: "user_request" | "room_event";
@@ -190,6 +192,24 @@ describe("runMessageAction poll handling", () => {
     expect(call?.threadId).toBe("42");
     expect(call?.ctx?.params?.threadId).toBe("42");
   });
+
+  it.each([0, -1, 1.5, "1.5", "soon"])(
+    "rejects invalid pollDurationHours value %s",
+    async (pollDurationHours) => {
+      await expect(
+        runPollAction({
+          cfg: pollerConfig,
+          actionParams: {
+            channel: "poller",
+            target: "poller:123",
+            pollQuestion: "Lunch?",
+            pollOption: ["Pizza", "Sushi"],
+            pollDurationHours,
+          },
+        }),
+      ).rejects.toThrow(/pollDurationHours must be a positive integer/i);
+    },
+  );
 
   it("passes inbound event kind to poll execution", async () => {
     const call = await runPollAction({
