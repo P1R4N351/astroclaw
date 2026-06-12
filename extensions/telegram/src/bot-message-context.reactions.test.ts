@@ -1,3 +1,4 @@
+// Telegram tests cover bot message context.reactions plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BuildTelegramMessageContextParams } from "./bot-message-context.types.js";
 
@@ -76,7 +77,7 @@ describe("buildTelegramMessageContext reactions", () => {
       },
       cfg: {
         agents: {
-          defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/astroclaw" },
+          defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/openclaw" },
         },
         channels: {
           telegram: {
@@ -122,7 +123,7 @@ describe("buildTelegramMessageContext reactions", () => {
       },
       cfg: {
         agents: {
-          defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/astroclaw" },
+          defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/openclaw" },
         },
         channels: {
           telegram: {
@@ -171,7 +172,7 @@ describe("buildTelegramMessageContext reactions", () => {
       },
       cfg: {
         agents: {
-          defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/astroclaw" },
+          defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/openclaw" },
         },
         channels: { telegram: { dmPolicy: "open", allowFrom: ["*"] } },
         messages: {
