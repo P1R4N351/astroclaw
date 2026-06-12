@@ -1,3 +1,5 @@
+// Exercises recursive command-risk detection through interpreters, carriers,
+// shell wrappers, env split-string, eval, and source invocations.
 import { describe, expect, it } from "vitest";
 import {
   buildCommandPayloadCandidates,
@@ -211,7 +213,7 @@ describe("command-analysis risks", () => {
     expect(
       buildCommandPayloadCandidates(["sudo", "--command-timeout=1", "/approve", "abc"]),
     ).toEqual(["/approve abc"]);
-    expect(buildCommandPayloadCandidates(["sudo", "ASTROCLAW_ENV=1", "/approve", "abc"])).toEqual([
+    expect(buildCommandPayloadCandidates(["sudo", "OPENCLAW_ENV=1", "/approve", "abc"])).toEqual([
       "/approve abc",
     ]);
     expect(buildCommandPayloadCandidates(["sudo", "--shell", "/approve", "abc"])).toEqual([
@@ -241,7 +243,7 @@ describe("command-analysis risks", () => {
     expect(buildCommandPayloadCandidates(["env", "-P", "/usr/bin", "/approve", "abc"])).toEqual([
       "/approve abc",
     ]);
-    expect(buildCommandPayloadCandidates(["exec", "-a", "astroclaw", "/approve", "abc"])).toEqual([
+    expect(buildCommandPayloadCandidates(["exec", "-a", "openclaw", "/approve", "abc"])).toEqual([
       "/approve abc",
     ]);
     expect(buildCommandPayloadCandidates(["command", "-v", "/approve"])).toEqual([
@@ -255,13 +257,13 @@ describe("command-analysis risks", () => {
         "env",
         "env",
         "env",
-        "astroclaw",
+        "openclaw",
         "channels",
         "login",
         "--channel",
         "whatsapp",
       ]),
-    ).toContain("astroclaw channels login --channel whatsapp");
+    ).toContain("openclaw channels login --channel whatsapp");
   });
 
   it("checks both effective and original argv for segment inline eval", () => {
