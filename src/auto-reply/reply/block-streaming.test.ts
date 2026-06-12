@@ -1,5 +1,6 @@
+// Tests block streaming policy and buffered reply pipeline behavior.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import {
   resolveBlockStreamingChunking,
   resolveEffectiveBlockStreamingConfig,
@@ -7,7 +8,7 @@ import {
 
 describe("resolveEffectiveBlockStreamingConfig", () => {
   it("applies ACP-style overrides while preserving chunk/coalescer bounds", () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     const baseChunking = resolveBlockStreamingChunking(cfg, "discord");
     const resolved = resolveEffectiveBlockStreamingConfig({
       cfg,
@@ -60,7 +61,7 @@ describe("resolveEffectiveBlockStreamingConfig", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const resolved = resolveEffectiveBlockStreamingConfig({
       cfg,
@@ -72,6 +73,78 @@ describe("resolveEffectiveBlockStreamingConfig", () => {
     expect(resolved.coalescing.joiner).toBe("\n\n");
   });
 
+  it("honors channel and account scoped nested block coalescing", () => {
+    const cfg = {
+      channels: {
+        imessage: {
+          streaming: { block: { coalesce: { minChars: 25, maxChars: 80, idleMs: 5 } } },
+          accounts: {
+            personal: {
+              streaming: { block: { coalesce: { minChars: 10, maxChars: 40, idleMs: 2 } } },
+            },
+          },
+        },
+      },
+    } as OpenClawConfig;
+
+    expect(
+      resolveEffectiveBlockStreamingConfig({ cfg, provider: "imessage" }).coalescing,
+    ).toMatchObject({ minChars: 25, maxChars: 80, idleMs: 5 });
+    expect(
+      resolveEffectiveBlockStreamingConfig({
+        cfg,
+        provider: "imessage",
+        accountId: "personal",
+      }).coalescing,
+    ).toMatchObject({ minChars: 10, maxChars: 40, idleMs: 2 });
+  });
+
+  it("merges partial account nested block coalescing over channel config", () => {
+    const cfg = {
+      channels: {
+        imessage: {
+          streaming: { block: { coalesce: { minChars: 25, maxChars: 80, idleMs: 5 } } },
+          accounts: {
+            personal: {
+              streaming: { block: { coalesce: { idleMs: 2 } } },
+            },
+          },
+        },
+      },
+    } as OpenClawConfig;
+
+    expect(
+      resolveEffectiveBlockStreamingConfig({
+        cfg,
+        provider: "imessage",
+        accountId: "personal",
+      }).coalescing,
+    ).toMatchObject({ minChars: 25, maxChars: 80, idleMs: 2 });
+  });
+
+  it("merges legacy account block coalescing over channel nested config", () => {
+    const cfg = {
+      channels: {
+        imessage: {
+          streaming: { block: { coalesce: { minChars: 25, maxChars: 80, idleMs: 5 } } },
+          accounts: {
+            personal: {
+              blockStreamingCoalesce: { idleMs: 2 },
+            },
+          },
+        },
+      },
+    } as OpenClawConfig;
+
+    expect(
+      resolveEffectiveBlockStreamingConfig({
+        cfg,
+        provider: "imessage",
+        accountId: "personal",
+      }).coalescing,
+    ).toMatchObject({ minChars: 25, maxChars: 80, idleMs: 2 });
+  });
+
   it("allows ACP maxChunkChars overrides above base defaults up to provider text limits", () => {
     const cfg = {
       channels: {
@@ -79,7 +152,7 @@ describe("resolveEffectiveBlockStreamingConfig", () => {
           textChunkLimit: 4096,
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const baseChunking = resolveBlockStreamingChunking(cfg, "discord");
     expect(baseChunking.maxChars).toBeLessThan(1800);
