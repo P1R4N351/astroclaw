@@ -1,11 +1,12 @@
+// Zalo tests cover monitor.webhook plugin behavior.
 import type { RequestListener } from "node:http";
 import {
   createEmptyPluginRegistry,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { withServer } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { withServer } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig, PluginRuntime } from "../runtime-api.js";
+import type { OpenClawConfig, PluginRuntime } from "../runtime-api.js";
 import { handleZaloWebhookRequest } from "./monitor.js";
 import type { ZaloRuntimeEnv } from "./monitor.types.js";
 import {
@@ -34,14 +35,16 @@ const DEFAULT_ACCOUNT: ResolvedZaloAccount = {
 };
 
 function createWebhookRequestHandler(processUpdate?: ZaloWebhookProcessUpdate): RequestListener {
-  return async (req, res) => {
-    const handled = processUpdate
-      ? await handleZaloWebhookRequestInternal(req, res, processUpdate)
-      : await handleZaloWebhookRequest(req, res);
-    if (!handled) {
-      res.statusCode = 404;
-      res.end("not found");
-    }
+  return (req, res) => {
+    void (async () => {
+      const handled = processUpdate
+        ? await handleZaloWebhookRequestInternal(req, res, processUpdate)
+        : await handleZaloWebhookRequest(req, res);
+      if (!handled) {
+        res.statusCode = 404;
+        res.end("not found");
+      }
+    })();
   };
 }
 
@@ -52,14 +55,14 @@ function registerTarget(params: {
   secret?: string;
   statusSink?: (patch: { lastInboundAt?: number; lastOutboundAt?: number }) => void;
   account?: ResolvedZaloAccount;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   core?: PluginRuntime;
   runtime?: Partial<ZaloRuntimeEnv>;
 }): () => void {
   return registerZaloWebhookTarget({
     token: "tok",
     account: params.account ?? DEFAULT_ACCOUNT,
-    config: params.config ?? ({} as AstroclawConfig),
+    config: params.config ?? ({} as OpenClawConfig),
     runtime: (params.runtime ?? {}) as ZaloRuntimeEnv,
     core: params.core ?? ({} as PluginRuntime),
     secret: params.secret ?? "secret",
@@ -688,7 +691,7 @@ describe("handleZaloWebhookRequest", () => {
         gateway: {
           trustedProxies: ["127.0.0.1"],
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
 
     try {
