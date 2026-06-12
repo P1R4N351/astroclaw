@@ -1,5 +1,6 @@
+// Covers heartbeat model override routing.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveAgentMainSessionKey, resolveMainSessionKey } from "../config/sessions.js";
 import { runHeartbeatOnce } from "./heartbeat-runner.js";
 import {
@@ -18,7 +19,7 @@ type SeedSessionInput = {
   lastTo: string;
   updatedAt?: number;
 };
-type AgentDefaultsConfig = NonNullable<NonNullable<AstroclawConfig["agents"]>["defaults"]>;
+type AgentDefaultsConfig = NonNullable<NonNullable<OpenClawConfig["agents"]>["defaults"]>;
 type HeartbeatConfig = NonNullable<AgentDefaultsConfig["heartbeat"]>;
 
 function expectReplyOptions(options: unknown, expected: Record<string, unknown>) {
@@ -56,7 +57,7 @@ async function withHeartbeatFixture(
       };
       return run({ tmpDir, storePath, replySpy, seedSession });
     },
-    { prefix: "astroclaw-hb-model-" },
+    { prefix: "openclaw-hb-model-" },
   );
 }
 
@@ -67,7 +68,7 @@ afterEach(() => {
 describe("runHeartbeatOnce – heartbeat model override", () => {
   async function runHeartbeatWithSeed(params: {
     seedSession: (sessionKey: string, input: SeedSessionInput) => Promise<void>;
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     sessionKey: string;
     replySpy: HeartbeatReplySpy;
     agentId?: string;
@@ -96,6 +97,8 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
   }
 
   async function runDefaultsHeartbeat(params: {
+    every?: string;
+    defaultTimeoutSeconds?: number;
     model?: string;
     suppressToolErrorWarnings?: boolean;
     timeoutSeconds?: number;
@@ -103,12 +106,13 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
     isolatedSession?: boolean;
   }) {
     return withHeartbeatFixture(async ({ tmpDir, storePath, replySpy, seedSession }) => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
+            timeoutSeconds: params.defaultTimeoutSeconds,
             heartbeat: {
-              every: "5m",
+              every: params.every ?? "5m",
               target: "whatsapp",
               model: params.model,
               suppressToolErrorWarnings: params.suppressToolErrorWarnings,
@@ -138,7 +142,7 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
     heartbeat: Partial<HeartbeatConfig>;
   }): Promise<void> {
     await withHeartbeatFixture(async ({ tmpDir, storePath, replySpy, seedSession }) => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             heartbeat: {
@@ -209,6 +213,30 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
     });
   });
 
+  it("uses heartbeat cadence as the default reply-run timeout override", async () => {
+    const replyOpts = await runDefaultsHeartbeat({});
+    expectReplyOptions(replyOpts, {
+      isHeartbeat: true,
+      timeoutOverrideSeconds: 300,
+    });
+  });
+
+  it("caps the default heartbeat reply-run timeout override", async () => {
+    const replyOpts = await runDefaultsHeartbeat({ every: "30m" });
+    expectReplyOptions(replyOpts, {
+      isHeartbeat: true,
+      timeoutOverrideSeconds: 600,
+    });
+  });
+
+  it("preserves explicit default agent timeout for heartbeat runs", async () => {
+    const replyOpts = await runDefaultsHeartbeat({ defaultTimeoutSeconds: 60, every: "30m" });
+    expectReplyOptions(replyOpts, {
+      isHeartbeat: true,
+      timeoutOverrideSeconds: 60,
+    });
+  });
+
   it("passes bootstrapContextMode when heartbeat lightContext is enabled", async () => {
     const replyOpts = await runDefaultsHeartbeat({ lightContext: true });
     expectReplyOptions(replyOpts, {
@@ -219,7 +247,7 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
 
   it("uses isolated session key when isolatedSession is enabled", async () => {
     await withHeartbeatFixture(async ({ tmpDir, storePath, replySpy, seedSession }) => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -248,7 +276,7 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
 
   it("uses main session key when isolatedSession is not set", async () => {
     await withHeartbeatFixture(async ({ tmpDir, storePath, replySpy, seedSession }) => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
