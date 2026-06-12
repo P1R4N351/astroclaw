@@ -1,3 +1,4 @@
+// Matrix tests cover verification plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const withResolvedActionClientMock = vi.fn();
@@ -16,9 +17,9 @@ vi.mock("../../runtime.js", () => ({
   }),
 }));
 
-vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-config-runtime")>(
-    "astroclaw/plugin-sdk/plugin-config-runtime",
+vi.mock("openclaw/plugin-sdk/plugin-config-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-config-runtime")>(
+    "openclaw/plugin-sdk/plugin-config-runtime",
   );
   return {
     ...actual,
@@ -497,7 +498,7 @@ describe("matrix verification actions", () => {
     expect(getOwnDeviceVerificationStatus).toHaveBeenCalledTimes(1);
   });
 
-  it("does not complete self-verification until the Astroclaw device has full Matrix identity trust", async () => {
+  it("does not complete self-verification until the OpenClaw device has full Matrix identity trust", async () => {
     const requested = {
       completed: false,
       hasSas: false,
@@ -589,7 +590,7 @@ describe("matrix verification actions", () => {
       startVerification: vi.fn(async () => sas),
     };
     const getOwnDeviceIdentityVerificationStatus = vi.fn(
-      async () => await new Promise<never>(() => undefined),
+      async () => await new Promise<never>(() => {}),
     );
     const getOwnDeviceVerificationStatus = vi.fn(async () => mockVerifiedOwnerStatus());
     const getOwnCrossSigningPublicationStatus = vi.fn(async () =>
@@ -778,7 +779,7 @@ describe("matrix verification actions", () => {
     expect(crypto.startVerification).not.toHaveBeenCalled();
     expect(crypto.cancelVerification).toHaveBeenCalledWith("verification-1", {
       code: "m.user",
-      reason: "Astroclaw self-verification did not complete",
+      reason: "OpenClaw self-verification did not complete",
     });
   });
 
@@ -952,7 +953,7 @@ describe("matrix verification actions", () => {
 
     expect(crypto.cancelVerification).toHaveBeenCalledWith("verification-1", {
       code: "m.user",
-      reason: "Astroclaw self-verification did not complete",
+      reason: "OpenClaw self-verification did not complete",
     });
   });
 
@@ -986,7 +987,7 @@ describe("matrix verification actions", () => {
     expect(crypto.listVerifications).toHaveBeenCalledTimes(1);
     expect(crypto.cancelVerification).toHaveBeenCalledWith("verification-1", {
       code: "m.user",
-      reason: "Astroclaw self-verification did not complete",
+      reason: "OpenClaw self-verification did not complete",
     });
   });
 
@@ -1019,7 +1020,7 @@ describe("matrix verification actions", () => {
 
     expect(crypto.cancelVerification).toHaveBeenCalledWith("verification-1", {
       code: "m.user",
-      reason: "Astroclaw self-verification did not complete",
+      reason: "OpenClaw self-verification did not complete",
     });
   });
 
