@@ -1,5 +1,7 @@
+// Docker backend manager tests cover runtime image matching and removal error
+// handling for sandbox and browser containers.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 
 const dockerMocks = vi.hoisted(() => ({
   dockerContainerState: vi.fn(),
@@ -21,7 +23,7 @@ vi.mock("./docker.js", async () => {
 
 const { dockerSandboxBackendManager } = await import("./docker-backend.js");
 
-function createConfig(): AstroclawConfig {
+function createConfig(): OpenClawConfig {
   return {
     agents: {
       defaults: {
@@ -30,11 +32,11 @@ function createConfig(): AstroclawConfig {
           scope: "session",
           workspaceAccess: "none",
           docker: {
-            image: "astroclaw-sandbox:bookworm-slim",
+            image: "openclaw-sandbox:bookworm-slim",
           },
           browser: {
             enabled: true,
-            image: "astroclaw-sandbox-browser:bookworm-slim",
+            image: "openclaw-sandbox-browser:bookworm-slim",
           },
         },
       },
@@ -60,7 +62,7 @@ describe("docker sandbox backend manager", () => {
   it("matches ordinary sandbox runtimes against sandbox.docker.image", async () => {
     dockerMocks.execDocker.mockResolvedValueOnce({
       code: 0,
-      stdout: "astroclaw-sandbox:bookworm-slim\n",
+      stdout: "openclaw-sandbox:bookworm-slim\n",
       stderr: "",
     });
 
@@ -81,7 +83,7 @@ describe("docker sandbox backend manager", () => {
 
     expect(result).toEqual({
       running: true,
-      actualConfigLabel: "astroclaw-sandbox:bookworm-slim",
+      actualConfigLabel: "openclaw-sandbox:bookworm-slim",
       configLabelMatch: true,
     });
   });
@@ -89,7 +91,7 @@ describe("docker sandbox backend manager", () => {
   it("matches browser runtimes against sandbox.browser.image", async () => {
     dockerMocks.execDocker.mockResolvedValueOnce({
       code: 0,
-      stdout: "astroclaw-sandbox-browser:bookworm-slim\n",
+      stdout: "openclaw-sandbox-browser:bookworm-slim\n",
       stderr: "",
     });
 
@@ -110,15 +112,17 @@ describe("docker sandbox backend manager", () => {
 
     expect(result).toEqual({
       running: true,
-      actualConfigLabel: "astroclaw-sandbox-browser:bookworm-slim",
+      actualConfigLabel: "openclaw-sandbox-browser:bookworm-slim",
       configLabelMatch: true,
     });
   });
 
   it("defaults docker-backed runtime matching to sandbox.docker.image when label kind is missing", async () => {
+    // Older registry entries did not record configLabelKind; keep ordinary
+    // sandbox matching stable for those existing containers.
     dockerMocks.execDocker.mockResolvedValueOnce({
       code: 0,
-      stdout: "astroclaw-sandbox:bookworm-slim\n",
+      stdout: "openclaw-sandbox:bookworm-slim\n",
       stderr: "",
     });
 
@@ -138,7 +142,7 @@ describe("docker sandbox backend manager", () => {
 
     expect(result).toEqual({
       running: true,
-      actualConfigLabel: "astroclaw-sandbox:bookworm-slim",
+      actualConfigLabel: "openclaw-sandbox:bookworm-slim",
       configLabelMatch: true,
     });
   });
@@ -159,7 +163,7 @@ describe("docker sandbox backend manager", () => {
           sessionKey: "agent:coder:main",
           createdAtMs: 1,
           lastUsedAtMs: 1,
-          image: "astroclaw-sandbox:bookworm-slim",
+          image: "openclaw-sandbox:bookworm-slim",
         },
         config: createConfig(),
       }),
@@ -167,6 +171,8 @@ describe("docker sandbox backend manager", () => {
   });
 
   it("treats already-missing Docker runtimes as removed", async () => {
+    // Prune/remove flows are idempotent; Docker may have already removed the
+    // container by the time the manager runs.
     dockerMocks.execDocker.mockResolvedValueOnce({
       code: 1,
       stdout: "",
@@ -182,7 +188,7 @@ describe("docker sandbox backend manager", () => {
           sessionKey: "agent:coder:main",
           createdAtMs: 1,
           lastUsedAtMs: 1,
-          image: "astroclaw-sandbox:bookworm-slim",
+          image: "openclaw-sandbox:bookworm-slim",
         },
         config: createConfig(),
       }),
