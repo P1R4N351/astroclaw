@@ -1,3 +1,4 @@
+// Launchd integration tests cover daemon CLI behavior in macOS-like scenarios.
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
@@ -181,11 +182,11 @@ describeLaunchdIntegration("launchd integration", () => {
 
   beforeAll(async () => {
     const testId = randomUUID().slice(0, 8);
-    homeDir = await fs.mkdtemp(path.join(os.tmpdir(), `astroclaw-launchd-int-${testId}-`));
+    homeDir = await fs.mkdtemp(path.join(os.tmpdir(), `openclaw-launchd-int-${testId}-`));
     env = {
       HOME: homeDir,
-      ASTROCLAW_LAUNCHD_LABEL: `ai.astroclaw.launchd-int-${testId}`,
-      ASTROCLAW_LOG_PREFIX: `gateway-launchd-int-${testId}`,
+      OPENCLAW_LAUNCHD_LABEL: `ai.openclaw.launchd-int-${testId}`,
+      OPENCLAW_LOG_PREFIX: `gateway-launchd-int-${testId}`,
     };
   });
 
@@ -204,12 +205,7 @@ describeLaunchdIntegration("launchd integration", () => {
 
   it("restarts launchd service and keeps it running with a new pid", async () => {
     const launchEnv = launchEnvOrThrow(env);
-    try {
-      await initializeLaunchdRuntime(launchEnv, stdout);
-    } catch {
-      // Best-effort integration check only; skip when launchctl is unstable in CI.
-      return;
-    }
+    await initializeLaunchdRuntime(launchEnv, stdout);
     const before = await waitForRunningRuntime({ env: launchEnv });
     await restartLaunchAgent({ env: launchEnv, stdout });
     await expectRuntimePidReplaced({ env: launchEnv, previousPid: before.pid });
@@ -217,11 +213,7 @@ describeLaunchdIntegration("launchd integration", () => {
 
   it("keeps LaunchAgent supervision after a raw SIGTERM", async () => {
     const launchEnv = launchEnvOrThrow(env);
-    try {
-      await initializeLaunchdRuntime(launchEnv, stdout);
-    } catch {
-      return;
-    }
+    await initializeLaunchdRuntime(launchEnv, stdout);
 
     const before = await waitForRunningRuntime({ env: launchEnv });
     process.kill(before.pid, "SIGTERM");
@@ -230,11 +222,7 @@ describeLaunchdIntegration("launchd integration", () => {
 
   it("stops persistently without reinstall and starts later", async () => {
     const launchEnv = launchEnvOrThrow(env);
-    try {
-      await initializeLaunchdRuntime(launchEnv, stdout);
-    } catch {
-      return;
-    }
+    await initializeLaunchdRuntime(launchEnv, stdout);
 
     const before = await waitForRunningRuntime({ env: launchEnv });
     await stopLaunchAgent({ env: launchEnv, stdout });
@@ -247,11 +235,7 @@ describeLaunchdIntegration("launchd integration", () => {
 
   it("stops persistently without reinstall and restarts later", async () => {
     const launchEnv = launchEnvOrThrow(env);
-    try {
-      await initializeLaunchdRuntime(launchEnv, stdout);
-    } catch {
-      return;
-    }
+    await initializeLaunchdRuntime(launchEnv, stdout);
 
     const before = await waitForRunningRuntime({ env: launchEnv });
     await stopLaunchAgent({ env: launchEnv, stdout });
