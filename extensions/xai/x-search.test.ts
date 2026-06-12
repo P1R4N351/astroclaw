@@ -1,4 +1,5 @@
-import { withFetchPreconnect } from "astroclaw/plugin-sdk/test-env";
+// Xai tests cover x search plugin behavior.
+import { withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createXSearchTool } from "./x-search.js";
 
@@ -16,12 +17,12 @@ function installXSearchFetch(payload?: Record<string, unknown>) {
                   {
                     type: "output_text",
                     text: "Found X posts",
-                    annotations: [{ type: "url_citation", url: "https://x.com/astroclaw/status/1" }],
+                    annotations: [{ type: "url_citation", url: "https://x.com/openclaw/status/1" }],
                   },
                 ],
               },
             ],
-            citations: ["https://x.com/astroclaw/status/1"],
+            citations: ["https://x.com/openclaw/status/1"],
           },
         ),
     } as Response),
@@ -72,6 +73,34 @@ afterEach(() => {
 });
 
 describe("xai x_search tool", () => {
+  it("describes query as the required instruction for the Grok X-search agent", () => {
+    const tool = createXSearchTool({
+      config: {
+        plugins: {
+          entries: {
+            xai: {
+              config: {
+                webSearch: {
+                  apiKey: "xai-plugin-key", // pragma: allowlist secret
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const parameters = tool?.parameters as
+      | { properties?: { query?: { description?: string } } }
+      | undefined;
+    const queryDescription = parameters?.properties?.query?.description;
+
+    expect(queryDescription).toContain("Natural-language instruction");
+    expect(queryDescription).toContain("Grok X-search agent");
+    expect(queryDescription).toContain("meaningful and non-empty");
+    expect(queryDescription).not.toContain("allowed_x_handles");
+  });
+
   it("enables x_search when runtime config carries the shared xAI key", () => {
     const tool = createXSearchTool({
       config: {},
@@ -156,7 +185,7 @@ describe("xai x_search tool", () => {
 
     const result = await tool?.execute?.("x-search:1", {
       query: "dinner recipes",
-      allowed_x_handles: ["astroclaw"],
+      allowed_x_handles: ["openclaw"],
       excluded_x_handles: ["spam"],
       from_date: "2026-03-01",
       to_date: "2026-03-20",
@@ -171,7 +200,7 @@ describe("xai x_search tool", () => {
     expect(body.tools).toEqual([
       {
         type: "x_search",
-        allowed_x_handles: ["astroclaw"],
+        allowed_x_handles: ["openclaw"],
         excluded_x_handles: ["spam"],
         from_date: "2026-03-01",
         to_date: "2026-03-20",
@@ -179,7 +208,7 @@ describe("xai x_search tool", () => {
       },
     ]);
     expect((result?.details as { citations?: string[] } | undefined)?.citations).toEqual([
-      "https://x.com/astroclaw/status/1",
+      "https://x.com/openclaw/status/1",
     ]);
   });
 
