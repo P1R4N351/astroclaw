@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+// Qa Lab tests cover qa credentials admin plugin behavior.
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   addQaCredentialSet,
   diagnoseQaCredentialBroker,
@@ -52,6 +54,10 @@ async function expectQaCredentialAdminError(promise: Promise<unknown>, code: str
 }
 
 describe("qa credential admin runtime", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("adds a credential set through the admin endpoint", async () => {
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
@@ -79,12 +85,13 @@ describe("qa credential admin runtime", () => {
       actorId: "maintainer-local",
       siteUrl: "https://first-schnauzer-821.convex.site",
       env: {
-        ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
       },
       fetchImpl,
     });
 
     expect(result.credential.credentialId).toBe("cred-1");
+    expect(result.credential.credentialFingerprint).toMatch(/^sha256:[0-9a-f]{16}$/);
     expect(requireFirstFetchInput(fetchImpl)).toBe(
       "https://first-schnauzer-821.convex.site/qa-credentials/v1/admin/add",
     );
@@ -119,7 +126,7 @@ describe("qa credential admin runtime", () => {
       listQaCredentialSets({
         siteUrl: "http://qa-cred.example.convex.site",
         env: {
-          ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
+          OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
         },
         fetchImpl: vi.fn(),
       }),
@@ -127,7 +134,7 @@ describe("qa credential admin runtime", () => {
     );
   });
 
-  it("allows loopback http admin site URLs when ASTROCLAW_QA_ALLOW_INSECURE_HTTP is enabled", async () => {
+  it("allows loopback http admin site URLs when OPENCLAW_QA_ALLOW_INSECURE_HTTP is enabled", async () => {
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
         status: "ok",
@@ -139,8 +146,8 @@ describe("qa credential admin runtime", () => {
     await listQaCredentialSets({
       siteUrl: "http://127.0.0.1:3210",
       env: {
-        ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
-        ASTROCLAW_QA_ALLOW_INSECURE_HTTP: "1",
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
+        OPENCLAW_QA_ALLOW_INSECURE_HTTP: "1",
       },
       fetchImpl,
     });
@@ -150,13 +157,37 @@ describe("qa credential admin runtime", () => {
     );
   });
 
+  it("caps oversized admin HTTP timeouts before creating abort signals", async () => {
+    const timeoutController = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout").mockReturnValue(timeoutController.signal);
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({
+        status: "ok",
+        count: 0,
+        credentials: [],
+      }),
+    );
+
+    await listQaCredentialSets({
+      siteUrl: "https://first-schnauzer-821.convex.site",
+      env: {
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
+        OPENCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS: String(Number.MAX_SAFE_INTEGER),
+      },
+      fetchImpl,
+    });
+
+    expect(timeoutSpy).toHaveBeenCalledWith(MAX_TIMER_TIMEOUT_MS);
+    expect(requireFirstFetchInit(fetchImpl).signal).toBe(timeoutController.signal);
+  });
+
   it("rejects unsafe endpoint-prefix overrides", async () => {
     await expectQaCredentialAdminError(
       listQaCredentialSets({
         siteUrl: "https://first-schnauzer-821.convex.site",
         endpointPrefix: "//evil.example",
         env: {
-          ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
+          OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
         },
         fetchImpl: vi.fn(),
       }),
@@ -181,7 +212,7 @@ describe("qa credential admin runtime", () => {
         credentialId: "cred-1",
         siteUrl: "https://first-schnauzer-821.convex.site",
         env: {
-          ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
+          OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
         },
         fetchImpl,
       }),
@@ -219,12 +250,13 @@ describe("qa credential admin runtime", () => {
       limit: 5,
       siteUrl: "https://first-schnauzer-821.convex.site",
       env: {
-        ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
       },
       fetchImpl,
     });
 
     expect(result.credentials).toHaveLength(1);
+    expect(result.credentials[0]?.credentialFingerprint).toMatch(/^sha256:[0-9a-f]{16}$/);
     const bodyText = requireFirstFetchInit(fetchImpl).body;
     expect(typeof bodyText).toBe("string");
     const body = JSON.parse(bodyText as string) as Record<string, unknown>;
@@ -257,8 +289,8 @@ describe("qa credential admin runtime", () => {
     const result = await diagnoseQaCredentialBroker({
       siteUrl: "https://first-schnauzer-821.convex.site",
       env: {
-        ASTROCLAW_QA_CONVEX_SECRET_CI: "ci-secret",
-        ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
+        OPENCLAW_QA_CONVEX_SECRET_CI: "ci-secret",
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maint-secret",
       },
       fetchImpl,
     });
