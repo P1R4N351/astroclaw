@@ -1,3 +1,4 @@
+// Codex tests cover computer use plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -276,7 +277,7 @@ describe("Codex Computer Use setup", () => {
 
   it("auto-registers the bundled Codex app marketplace during auto-install", async () => {
     const bundledMarketplacePath = fs.mkdtempSync(
-      path.join(os.tmpdir(), "astroclaw-codex-bundled-marketplace-"),
+      path.join(os.tmpdir(), "openclaw-codex-bundled-marketplace-"),
     );
     cleanupPaths.push(bundledMarketplacePath);
     const request = createBundledMarketplaceComputerUseRequest(bundledMarketplacePath);
