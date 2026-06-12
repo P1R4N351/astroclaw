@@ -1,8 +1,9 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Ollama tests cover web search provider plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createOllamaWebSearchProvider as createContractOllamaWebSearchProvider } from "../web-search-contract-api.js";
 import {
-  __testing as testing,
+  testing,
   createOllamaWebSearchProvider,
   runOllamaWebSearch,
 } from "./web-search-provider.js";
@@ -11,7 +12,7 @@ const { fetchWithSsrFGuardMock } = vi.hoisted(() => ({
   fetchWithSsrFGuardMock: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: fetchWithSsrFGuardMock,
 }));
 
@@ -21,11 +22,11 @@ type OllamaProviderConfigOverride = Partial<{
   baseUrl: string;
   baseURL: string;
   models: NonNullable<
-    NonNullable<NonNullable<AstroclawConfig["models"]>["providers"]>[string]
+    NonNullable<NonNullable<OpenClawConfig["models"]>["providers"]>[string]
   >["models"];
 }>;
 
-function createOllamaConfig(provider: OllamaProviderConfigOverride = {}): AstroclawConfig {
+function createOllamaConfig(provider: OllamaProviderConfigOverride = {}): OpenClawConfig {
   return {
     models: {
       providers: {
@@ -40,7 +41,7 @@ function createOllamaConfig(provider: OllamaProviderConfigOverride = {}): Astroc
   };
 }
 
-function createOllamaConfigWithWebSearchBaseUrl(baseUrl: string): AstroclawConfig {
+function createOllamaConfigWithWebSearchBaseUrl(baseUrl: string): OpenClawConfig {
   return {
     ...createOllamaConfig(),
     plugins: {
@@ -99,7 +100,7 @@ function expectOllamaWebSearchRequest(
       method: "POST",
       headers: params.headers ?? { "Content-Type": "application/json" },
       body: JSON.stringify({
-        query: params.query ?? "astroclaw",
+        query: params.query ?? "openclaw",
         max_results: params.maxResults ?? 5,
       }),
       signal: request.init.signal,
@@ -219,8 +220,8 @@ describe("ollama web search provider", () => {
         JSON.stringify({
           results: [
             {
-              title: "Astroclaw",
-              url: "https://astroclaw.ai/docs",
+              title: "OpenClaw",
+              url: "https://openclaw.ai/docs",
               content: "Gateway docs and setup details",
             },
           ],
@@ -240,21 +241,21 @@ describe("ollama web search provider", () => {
     if (!tool) {
       throw new Error("Expected tool definition");
     }
-    const result = await tool.execute({ query: "astroclaw docs", count: 3 });
+    const result = await tool.execute({ query: "openclaw docs", count: 3 });
 
     expectOllamaWebSearchRequest(fetchCall(), {
       url: "http://ollama.local:11434/api/experimental/web_search",
-      query: "astroclaw docs",
+      query: "openclaw docs",
       maxResults: 3,
       policy: {
         allowPrivateNetwork: true,
         hostnameAllowlist: ["ollama.local"],
       },
     });
-    expect(result.query).toBe("astroclaw docs");
+    expect(result.query).toBe("openclaw docs");
     expect(result.provider).toBe("ollama");
     expect(result.count).toBe(1);
-    expectSingleSearchResultUrl(result.results, "https://astroclaw.ai/docs");
+    expectSingleSearchResultUrl(result.results, "https://openclaw.ai/docs");
     expect(release).toHaveBeenCalledTimes(1);
   });
 
@@ -279,7 +280,7 @@ describe("ollama web search provider", () => {
 
     const result = await runOllamaWebSearch({
       config: createOllamaConfig(),
-      query: "astroclaw",
+      query: "openclaw",
     });
 
     expect(result.count).toBe(1);
@@ -310,7 +311,7 @@ describe("ollama web search provider", () => {
         baseUrl: "https://ollama.com",
         apiKey: "cloud-config-secret",
       }),
-      query: "astroclaw",
+      query: "openclaw",
     });
 
     expect(result.count).toBe(1);
@@ -357,7 +358,7 @@ describe("ollama web search provider", () => {
 
       const result = await runOllamaWebSearch({
         config: createOllamaConfig(),
-        query: "astroclaw",
+        query: "openclaw",
       });
 
       expect(result.count).toBe(1);
@@ -386,7 +387,7 @@ describe("ollama web search provider", () => {
       release: vi.fn(async () => {}),
     });
 
-    await expect(runOllamaWebSearch({ query: "latest astroclaw release" })).rejects.toThrow(
+    await expect(runOllamaWebSearch({ query: "latest openclaw release" })).rejects.toThrow(
       "ollama signin",
     );
   });
@@ -400,7 +401,7 @@ describe("ollama web search provider", () => {
     await expect(
       runOllamaWebSearch({
         config: createOllamaConfig(),
-        query: "astroclaw",
+        query: "openclaw",
       }),
     ).rejects.toThrow("Ollama web search returned malformed JSON");
   });
