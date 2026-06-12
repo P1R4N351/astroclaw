@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Talk provider registry stores realtime voice provider factories.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   resolvePluginCapabilityProvider,
   resolvePluginCapabilityProviders,
@@ -10,38 +11,51 @@ import {
 import type { RealtimeVoiceProviderPlugin } from "../plugins/types.js";
 import type { RealtimeVoiceProviderId } from "./provider-types.js";
 
+/**
+ * Normalizes realtime voice provider ids so direct ids and aliases compare through one registry key.
+ */
 export function normalizeRealtimeVoiceProviderId(
   providerId: string | undefined,
 ): RealtimeVoiceProviderId | undefined {
   return normalizeCapabilityProviderId(providerId);
 }
 
-function resolveRealtimeVoiceProviderEntries(cfg?: AstroclawConfig): RealtimeVoiceProviderPlugin[] {
+// Realtime voice providers are regular plugin capability providers; Talk keeps this small
+// wrapper so gateway and SDK callers do not need to know the manifest capability key.
+function resolveRealtimeVoiceProviderEntries(cfg?: OpenClawConfig): RealtimeVoiceProviderPlugin[] {
   return resolvePluginCapabilityProviders({
     key: "realtimeVoiceProviders",
     cfg,
   });
 }
 
-function buildProviderMaps(cfg?: AstroclawConfig): {
+function buildProviderMaps(cfg?: OpenClawConfig): {
   canonical: Map<string, RealtimeVoiceProviderPlugin>;
   aliases: Map<string, RealtimeVoiceProviderPlugin>;
 } {
   return buildCapabilityProviderMaps(resolveRealtimeVoiceProviderEntries(cfg));
 }
 
-export function listRealtimeVoiceProviders(cfg?: AstroclawConfig): RealtimeVoiceProviderPlugin[] {
+/**
+ * Lists canonical realtime voice provider plugins in registry order.
+ */
+export function listRealtimeVoiceProviders(cfg?: OpenClawConfig): RealtimeVoiceProviderPlugin[] {
   return [...buildProviderMaps(cfg).canonical.values()];
 }
 
+/**
+ * Resolves a realtime voice provider by canonical id or declared alias.
+ */
 export function getRealtimeVoiceProvider(
   providerId: string | undefined,
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
 ): RealtimeVoiceProviderPlugin | undefined {
   const normalized = normalizeRealtimeVoiceProviderId(providerId);
   if (!normalized) {
     return undefined;
   }
+  // Prefer the capability runtime's direct provider lookup; alias maps are a secondary
+  // Talk-level convenience for user config and gateway requests.
   const directProvider = resolvePluginCapabilityProvider({
     key: "realtimeVoiceProviders",
     providerId: normalized,
@@ -53,13 +67,17 @@ export function getRealtimeVoiceProvider(
   return buildProviderMaps(cfg).aliases.get(normalized);
 }
 
+/**
+ * Converts a realtime voice provider id or alias into the canonical provider id when known.
+ */
 export function canonicalizeRealtimeVoiceProviderId(
   providerId: string | undefined,
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
 ): RealtimeVoiceProviderId | undefined {
   const normalized = normalizeRealtimeVoiceProviderId(providerId);
   if (!normalized) {
     return undefined;
   }
+  // Unknown ids stay normalized so validation can report the same operator-facing value.
   return getRealtimeVoiceProvider(normalized, cfg)?.id ?? normalized;
 }
