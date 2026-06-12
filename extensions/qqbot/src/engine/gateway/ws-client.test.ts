@@ -1,3 +1,4 @@
+// Qqbot tests cover ws client plugin behavior.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const webSocketCtorMock = vi.hoisted(() =>
   vi.fn(function webSocketCtorMockImpl(_url: string, _options?: Record<string, unknown>) {
@@ -67,7 +68,7 @@ describe("createQQWSClient", () => {
   it("does not set a ws proxy agent when proxy env is absent", async () => {
     await createQQWSClient({
       gatewayUrl: "wss://qq.example.test/ws",
-      userAgent: "astroclaw-qqbot-test",
+      userAgent: "openclaw-qqbot-test",
     });
 
     expect(webSocketCtorMock).toHaveBeenCalledTimes(1);
@@ -75,7 +76,7 @@ describe("createQQWSClient", () => {
     expectWebSocketCtorCall([
       "wss://qq.example.test/ws",
       {
-        headers: { "User-Agent": "astroclaw-qqbot-test" },
+        headers: { "User-Agent": "openclaw-qqbot-test" },
       },
     ]);
   });
@@ -85,7 +86,7 @@ describe("createQQWSClient", () => {
 
     await createQQWSClient({
       gatewayUrl: "wss://qq.example.test/ws",
-      userAgent: "astroclaw-qqbot-test",
+      userAgent: "openclaw-qqbot-test",
     });
 
     expect(webSocketCtorMock).toHaveBeenCalledTimes(1);
@@ -94,7 +95,7 @@ describe("createQQWSClient", () => {
       "wss://qq.example.test/ws",
       {
         agent: { proxied: true },
-        headers: { "User-Agent": "astroclaw-qqbot-test" },
+        headers: { "User-Agent": "openclaw-qqbot-test" },
       },
     ]);
   });
@@ -104,7 +105,7 @@ describe("createQQWSClient", () => {
 
     await createQQWSClient({
       gatewayUrl: "wss://qq.example.test/ws",
-      userAgent: "astroclaw-qqbot-test",
+      userAgent: "openclaw-qqbot-test",
     });
 
     expect(webSocketCtorMock).toHaveBeenCalledTimes(1);
@@ -113,7 +114,7 @@ describe("createQQWSClient", () => {
       "wss://qq.example.test/ws",
       {
         agent: { proxied: true },
-        headers: { "User-Agent": "astroclaw-qqbot-test" },
+        headers: { "User-Agent": "openclaw-qqbot-test" },
       },
     ]);
   });
@@ -123,7 +124,7 @@ describe("createQQWSClient", () => {
 
     await createQQWSClient({
       gatewayUrl: "wss://qq.example.test/ws",
-      userAgent: "astroclaw-qqbot-test",
+      userAgent: "openclaw-qqbot-test",
     });
 
     expect(webSocketCtorMock).toHaveBeenCalledTimes(1);
@@ -132,7 +133,7 @@ describe("createQQWSClient", () => {
       "wss://qq.example.test/ws",
       {
         agent: { proxied: true },
-        headers: { "User-Agent": "astroclaw-qqbot-test" },
+        headers: { "User-Agent": "openclaw-qqbot-test" },
       },
     ]);
   });
