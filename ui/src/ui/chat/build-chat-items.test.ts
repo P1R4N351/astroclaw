@@ -1,9 +1,10 @@
+// Control UI tests cover build chat items behavior.
 import { describe, expect, it } from "vitest";
 import type { MessageGroup } from "../types/chat-types.ts";
 import { buildChatItems, type BuildChatItemsProps } from "./build-chat-items.ts";
 
 const SENDER_METADATA_BLOCK =
-  'Sender (untrusted metadata):\n```json\n{"label":"astroclaw-control-ui","id":"astroclaw-control-ui"}\n```';
+  'Sender (untrusted metadata):\n```json\n{"label":"openclaw-control-ui","id":"openclaw-control-ui"}\n```';
 
 function createProps(overrides: Partial<BuildChatItemsProps> = {}): BuildChatItemsProps {
   return {
@@ -65,6 +66,66 @@ describe("buildChatItems", () => {
 
     expect(groups).toHaveLength(2);
     expect(groups.map((group) => group.senderLabel)).toEqual(["Iris", "Joaquin De Rojas"]);
+  });
+
+  it("keeps differently cased user roles in one group", () => {
+    const groups = messageGroups({
+      messages: [
+        {
+          role: "user",
+          content: "first",
+          timestamp: 1000,
+        },
+        {
+          role: "User",
+          content: "second",
+          timestamp: 1001,
+        },
+      ],
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].role).toBe("user");
+    expect(groups[0].messages).toHaveLength(2);
+  });
+
+  it("keeps forwarded assistant display messages separate from local assistant replies", () => {
+    const groups = messageGroups({
+      messages: [
+        {
+          role: "assistant",
+          content: "local reply",
+          timestamp: 1000,
+        },
+        {
+          role: "assistant",
+          content: "forwarded report",
+          senderLabel: "Forwarded from main",
+          timestamp: 1001,
+        },
+      ],
+    });
+
+    expect(groups).toHaveLength(2);
+    expect(groups.map((group) => group.senderLabel)).toEqual([null, "Forwarded from main"]);
+  });
+
+  it("keeps empty forwarded assistant display groups", () => {
+    const groups = messageGroups({
+      messages: [
+        {
+          role: "assistant",
+          content: [{ type: "text", text: "" }],
+          senderLabel: "Forwarded from main",
+          timestamp: 1000,
+        },
+      ],
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].role).toBe("assistant");
+    expect(groups[0].senderLabel).toBe("Forwarded from main");
+    expect(groups[0].messages).toHaveLength(1);
   });
 
   it("collapses consecutive duplicate text messages into one rendered item with a count", () => {
@@ -194,7 +255,31 @@ describe("buildChatItems", () => {
         key: "stream:main:1",
         text: "Visible reply",
         startedAt: 1,
+        isStreaming: true,
       },
+    ]);
+  });
+
+  it("deduplicates accumulated stream snapshots around tool cards", () => {
+    const items = buildChatItems(
+      createProps({
+        streamSegments: [
+          { text: "First thought.", ts: 1 },
+          { text: "First thought. After tool.", ts: 3 },
+        ],
+        toolMessages: [
+          { role: "toolResult", content: "Tool one", timestamp: 2 },
+          { role: "toolResult", content: "Tool two", timestamp: 4 },
+        ],
+        stream: "First thought. After tool. Final sentence.",
+        streamStartedAt: 5,
+      }),
+    );
+
+    expect(items.filter((item) => item.kind === "stream")).toMatchObject([
+      { text: "First thought." },
+      { text: "After tool." },
+      { text: "Final sentence." },
     ]);
   });
 
@@ -204,7 +289,7 @@ describe("buildChatItems", () => {
         {
           role: "user",
           content: SENDER_METADATA_BLOCK,
-          senderLabel: "astroclaw-control-ui",
+          senderLabel: "openclaw-control-ui",
           timestamp: 1,
         },
       ],
@@ -233,6 +318,27 @@ describe("buildChatItems", () => {
     expect(noticeMessage.content).toBe("Showing last 100 messages (5 hidden).");
     expect(groups).toHaveLength(101);
     expect(messageRecord(groups[1]).content).toBe("message 5");
+    expect(messageRecord(groups[groups.length - 1]).content).toBe("message 104");
+  });
+
+  it("honors a smaller history render window and preserves the hidden-count notice", () => {
+    const items = buildChatItems(
+      createProps({
+        historyRenderLimit: 30,
+        messages: Array.from({ length: 105 }, (_, index) => ({
+          role: index % 2 === 0 ? "user" : "assistant",
+          content: `message ${index}`,
+          timestamp: index,
+        })),
+      }),
+    );
+
+    const groups = items.filter((item) => item.kind === "group");
+
+    const noticeGroup = requireGroup(items[0]);
+    expect(messageRecord(noticeGroup).content).toBe("Showing last 30 messages (75 hidden).");
+    expect(groups).toHaveLength(31);
+    expect(messageRecord(groups[1]).content).toBe("message 75");
     expect(messageRecord(groups[groups.length - 1]).content).toBe("message 104");
   });
 
@@ -366,6 +472,7 @@ describe("buildChatItems", () => {
       kind: "stream",
       text: "Older streamed output.",
       startedAt: 1_000,
+      isStreaming: false,
     });
     expect(requireGroup(items[1]).role).toBe("assistant");
   });
@@ -383,8 +490,150 @@ describe("buildChatItems", () => {
       kind: "stream",
       text: "Timestamped stream.",
       startedAt: Number.MAX_SAFE_INTEGER,
+      isStreaming: false,
     });
     expect(messageRecord(requireGroup(items[1])).content).toBe("Missing timestamp.");
+  });
+
+  it("renders an active stream after the persisted user turn it answers", () => {
+    const items = buildChatItems(
+      createProps({
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "Persisted prompt." }],
+            timestamp: 2_000,
+          },
+        ],
+        stream: "Visible partial answer.",
+        streamStartedAt: 1_000,
+      }),
+    );
+
+    expect(items).toHaveLength(2);
+    expect(requireGroup(items[0]).role).toBe("user");
+    expect(items[1]).toMatchObject({
+      kind: "stream",
+      text: "Visible partial answer.",
+      startedAt: 2_001,
+      isStreaming: true,
+    });
+  });
+
+  it("renders submitted queued sends as user turns before chat.send ACK", () => {
+    const groups = messageGroups({
+      messages: [{ role: "assistant", content: "Ready.", timestamp: 1 }],
+      queue: [
+        {
+          id: "pending-send-1",
+          text: "first visible send",
+          createdAt: 2,
+          sendSubmittedAtMs: 10,
+          sendState: "sending",
+        },
+      ],
+    });
+
+    expect(groups.map((group) => group.role)).toEqual(["assistant", "user"]);
+    expect(messageRecord(groups[1]).content).toStrictEqual([
+      { type: "text", text: "first visible send" },
+    ]);
+  });
+
+  it("renders submitted queued attachment sends with attachment blocks before chat.send ACK", () => {
+    const groups = messageGroups({
+      queue: [
+        {
+          id: "pending-attachment-send-1",
+          text: "see attached",
+          createdAt: 2,
+          sendSubmittedAtMs: 10,
+          sendState: "sending",
+          attachments: [
+            {
+              id: "attachment-1",
+              mimeType: "image/png",
+              fileName: "screenshot.png",
+              previewUrl: "/media/screenshot.png",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(messageRecord(groups[0]).content).toStrictEqual([
+      { type: "text", text: "see attached" },
+      {
+        type: "image",
+        url: "/media/screenshot.png",
+        source: { type: "url", url: "/media/screenshot.png" },
+      },
+    ]);
+  });
+
+  it("does not collapse pending sends with matching history text", () => {
+    const groups = messageGroups({
+      messages: [{ role: "user", content: "same prompt", timestamp: 1 }],
+      queue: [
+        {
+          id: "pending-send-1",
+          text: "same prompt",
+          createdAt: 2,
+          sendSubmittedAtMs: 10,
+          sendState: "sending",
+        },
+      ],
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].messages).toHaveLength(2);
+    expect(groups[0].messages[0].duplicateCount).toBeUndefined();
+    expect(groups[0].messages[1].duplicateCount).toBeUndefined();
+  });
+
+  it("keeps failed queued sends out of the thread", () => {
+    const groups = messageGroups({
+      queue: [
+        {
+          id: "failed-send-1",
+          text: "restore me to the composer",
+          createdAt: 1,
+          sendSubmittedAtMs: 10,
+          sendState: "failed",
+        },
+      ],
+    });
+
+    expect(groups).toStrictEqual([]);
+  });
+
+  it("filters submitted queued sends while chat search is active", () => {
+    const groups = messageGroups({
+      searchOpen: true,
+      searchQuery: "matching",
+      queue: [
+        {
+          id: "pending-send-1",
+          text: "matching prompt",
+          createdAt: 1,
+          sendSubmittedAtMs: 10,
+          sendState: "sending",
+        },
+        {
+          id: "pending-send-2",
+          text: "unrelated prompt",
+          createdAt: 2,
+          sendSubmittedAtMs: 11,
+          sendState: "sending",
+        },
+      ],
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(messageRecord(groups[0]).content).toStrictEqual([
+      { type: "text", text: "matching prompt" },
+    ]);
   });
 
   it("attaches lifted canvas previews to the nearest assistant turn", () => {
@@ -414,7 +663,7 @@ describe("buildChatItems", () => {
             view: {
               backend: "canvas",
               id: "cv_nearest_turn",
-              url: "/__astroclaw__/canvas/documents/cv_nearest_turn/index.html",
+              url: "/__openclaw__/canvas/documents/cv_nearest_turn/index.html",
               title: "Nearest turn demo",
               preferred_height: 320,
             },
@@ -452,7 +701,7 @@ describe("buildChatItems", () => {
             view: {
               backend: "canvas",
               id: "cv_empty_anchor",
-              url: "/__astroclaw__/canvas/documents/cv_empty_anchor/index.html",
+              url: "/__openclaw__/canvas/documents/cv_empty_anchor/index.html",
               title: "Empty anchor demo",
               preferred_height: 320,
             },
@@ -495,7 +744,7 @@ describe("buildChatItems", () => {
               view: {
                 backend: "canvas",
                 id: "cv_generic_inline",
-                url: "/__astroclaw__/canvas/documents/cv_generic_inline/index.html",
+                url: "/__openclaw__/canvas/documents/cv_generic_inline/index.html",
                 title: "Inline generic preview",
                 preferred_height: 420,
               },
@@ -539,7 +788,7 @@ describe("buildChatItems", () => {
                 view: {
                   backend: "canvas",
                   id: "cv_streamed_artifact",
-                  url: "/__astroclaw__/canvas/documents/cv_streamed_artifact/index.html",
+                  url: "/__openclaw__/canvas/documents/cv_streamed_artifact/index.html",
                   title: "Streamed demo",
                   preferred_height: 320,
                 },
@@ -571,7 +820,7 @@ describe("buildChatItems", () => {
           {
             role: "system",
             timestamp: 2_000,
-            __astroclaw: {
+            __openclaw: {
               kind: "compaction",
               id: "checkpoint-1",
             },
@@ -585,7 +834,7 @@ describe("buildChatItems", () => {
     expect(divider.kind).toBe("divider");
     expect(divider.label).toBe("Compacted history");
     expect(divider.description).toBe(
-      "Earlier turns are preserved in a compaction checkpoint. Open session checkpoints to branch or restore that pre-compaction view.",
+      "The compacted transcript is preserved as a checkpoint. Open session checkpoints to branch or restore from that compacted view.",
     );
     const action = requireRecord(divider.action);
     expect(action.kind).toBe("session-checkpoints");
@@ -616,7 +865,7 @@ function createAssistantCanvasBlock(params: { suffix: string }) {
       render: "url",
       viewId,
       title: "Inline demo",
-      url: `/__astroclaw__/canvas/documents/${viewId}/index.html`,
+      url: `/__openclaw__/canvas/documents/${viewId}/index.html`,
       preferredHeight: 360,
     },
   };
