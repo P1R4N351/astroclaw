@@ -1,3 +1,4 @@
+// QR dashboard integration tests cover QR dashboard command wiring and rendered output.
 import { Command } from "commander";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureEnv } from "../test-utils/env.js";
@@ -117,8 +118,8 @@ describe("cli integration: qr + dashboard token SecretRef", () => {
   beforeAll(() => {
     envSnapshot = captureEnv([
       "SHARED_GATEWAY_TOKEN",
-      "ASTROCLAW_GATEWAY_TOKEN",
-      "ASTROCLAW_GATEWAY_PASSWORD",
+      "OPENCLAW_GATEWAY_TOKEN",
+      "OPENCLAW_GATEWAY_PASSWORD",
     ]);
   });
 
@@ -131,8 +132,8 @@ describe("cli integration: qr + dashboard token SecretRef", () => {
       recovered: false,
     });
     runtimeExit.mockImplementation(() => {});
-    delete process.env.ASTROCLAW_GATEWAY_TOKEN;
-    delete process.env.ASTROCLAW_GATEWAY_PASSWORD;
+    delete process.env.OPENCLAW_GATEWAY_TOKEN;
+    delete process.env.OPENCLAW_GATEWAY_PASSWORD;
     delete process.env.SHARED_GATEWAY_TOKEN;
   });
 
@@ -141,7 +142,7 @@ describe("cli integration: qr + dashboard token SecretRef", () => {
     process.env.SHARED_GATEWAY_TOKEN = "shared-token-123";
     loadConfigMock.mockReturnValue(fixture);
     readConfigFileSnapshotMock.mockResolvedValue({
-      path: "/tmp/astroclaw.json",
+      path: "/tmp/openclaw.json",
       exists: true,
       valid: true,
       issues: [],
@@ -175,7 +176,7 @@ describe("cli integration: qr + dashboard token SecretRef", () => {
     const fixture = createGatewayTokenRefFixture();
     loadConfigMock.mockReturnValue(fixture);
     readConfigFileSnapshotMock.mockResolvedValue({
-      path: "/tmp/astroclaw.json",
+      path: "/tmp/openclaw.json",
       exists: true,
       valid: true,
       issues: [],
@@ -193,7 +194,7 @@ describe("cli integration: qr + dashboard token SecretRef", () => {
     expect(joined).toContain("Dashboard URL: http://127.0.0.1:18789/");
     expect(joined).not.toContain("#token=");
     expect(joined).toContain("Token auto-auth unavailable");
-    expect(joined).toContain("Set ASTROCLAW_GATEWAY_TOKEN");
+    expect(joined).toContain("Set OPENCLAW_GATEWAY_TOKEN");
   });
 
   afterAll(() => {
