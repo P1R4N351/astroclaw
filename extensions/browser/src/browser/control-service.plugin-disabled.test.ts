@@ -1,3 +1,4 @@
+// Browser tests cover control service.plugin disabled plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -30,7 +31,7 @@ vi.mock("./config.js", () => ({
   resolveBrowserConfig: vi.fn(() => ({
     enabled: true,
     controlPort: 18791,
-    profiles: { astroclaw: { cdpPort: 18800 } },
+    profiles: { openclaw: { cdpPort: 18800 } },
   })),
 }));
 
