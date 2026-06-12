@@ -1,6 +1,7 @@
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-message";
+// Tlon tests cover channel.message adapter plugin behavior.
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 
 const mocks = vi.hoisted(() => ({
   sendText: vi.fn(),
@@ -24,7 +25,7 @@ const cfg = {
       code: "lidlut-tabwed-pillex-ridrup",
     },
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 describe("tlon channel message adapter", () => {
   beforeEach(() => {
@@ -130,6 +131,7 @@ describe("tlon channel message adapter", () => {
     expect(proofs).toStrictEqual([
       { capability: "text", status: "verified" },
       { capability: "media", status: "verified" },
+      { capability: "poll", status: "not_declared" },
       { capability: "payload", status: "not_declared" },
       { capability: "silent", status: "not_declared" },
       { capability: "replyTo", status: "verified" },
