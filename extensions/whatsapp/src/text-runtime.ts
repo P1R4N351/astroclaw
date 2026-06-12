@@ -1,10 +1,11 @@
+// Whatsapp plugin module implements text runtime behavior.
 export {
   convertMarkdownTables,
   sanitizeAssistantVisibleText,
   sanitizeAssistantVisibleTextWithProfile,
   stripToolCallXmlTags,
-} from "astroclaw/plugin-sdk/text-chunking";
-export { normalizeE164, resolveUserPath, sleep } from "astroclaw/plugin-sdk/text-utility-runtime";
+} from "openclaw/plugin-sdk/text-chunking";
+export { normalizeE164, resolveUserPath, sleep } from "openclaw/plugin-sdk/text-utility-runtime";
 export {
   assertWebChannel,
   isSelfChatMode,
