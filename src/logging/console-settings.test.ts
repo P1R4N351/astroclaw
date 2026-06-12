@@ -1,4 +1,6 @@
+// Console settings tests cover console logger configuration behavior.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureEnv } from "../test-utils/env.js";
 import { captureConsoleSnapshot, type ConsoleSnapshot } from "./test-helpers/console-snapshot.js";
 
 const shouldSkipMutatingLoggingConfigReadMock = vi.hoisted(() => vi.fn(() => false));
@@ -21,7 +23,7 @@ vi.mock("./logger.js", () => ({
 
 let loadConfigCalls = 0;
 let originalIsTty: boolean | undefined;
-let originalAstroclawTestConsole: string | undefined;
+let envSnapshot: ReturnType<typeof captureEnv> | undefined;
 let snapshot: ConsoleSnapshot;
 let logging: typeof import("../logging.js");
 let state: typeof import("./state.js");
@@ -37,8 +39,8 @@ beforeEach(() => {
   shouldSkipMutatingLoggingConfigReadMock.mockReturnValue(false);
   snapshot = captureConsoleSnapshot();
   originalIsTty = process.stdout.isTTY;
-  originalAstroclawTestConsole = process.env.ASTROCLAW_TEST_CONSOLE;
-  process.env.ASTROCLAW_TEST_CONSOLE = "1";
+  envSnapshot = captureEnv(["OPENCLAW_TEST_CONSOLE"]);
+  process.env.OPENCLAW_TEST_CONSOLE = "1";
   Object.defineProperty(process.stdout, "isTTY", { value: false, configurable: true });
 });
 
@@ -49,11 +51,8 @@ afterEach(() => {
   console.error = snapshot.error;
   console.debug = snapshot.debug;
   console.trace = snapshot.trace;
-  if (originalAstroclawTestConsole === undefined) {
-    delete process.env.ASTROCLAW_TEST_CONSOLE;
-  } else {
-    process.env.ASTROCLAW_TEST_CONSOLE = originalAstroclawTestConsole;
-  }
+  envSnapshot?.restore();
+  envSnapshot = undefined;
   Object.defineProperty(process.stdout, "isTTY", { value: originalIsTty, configurable: true });
   logging.setConsoleConfigLoaderForTests();
   vi.restoreAllMocks();
@@ -74,21 +73,21 @@ function loadLogging() {
 
 describe("getConsoleSettings", () => {
   it("does not recurse when loadConfig logs during resolution", () => {
-    const { logging } = loadLogging();
-    logging.setConsoleTimestampPrefix(true);
-    logging.enableConsoleCapture();
-    const { getConsoleSettings } = logging;
+    const { logging: loggingValue } = loadLogging();
+    loggingValue.setConsoleTimestampPrefix(true);
+    loggingValue.enableConsoleCapture();
+    const { getConsoleSettings } = loggingValue;
     getConsoleSettings();
     expect(loadConfigCalls).toBe(1);
   });
 
   it("skips config fallback during re-entrant resolution", () => {
-    const { logging, state } = loadLogging();
-    state.loggingState.resolvingConsoleSettings = true;
-    logging.setConsoleTimestampPrefix(true);
-    logging.enableConsoleCapture();
-    logging.getConsoleSettings();
+    const { logging: loggingLocal, state: stateLocal } = loadLogging();
+    stateLocal.loggingState.resolvingConsoleSettings = true;
+    loggingLocal.setConsoleTimestampPrefix(true);
+    loggingLocal.enableConsoleCapture();
+    loggingLocal.getConsoleSettings();
     expect(loadConfigCalls).toBe(0);
-    state.loggingState.resolvingConsoleSettings = false;
+    stateLocal.loggingState.resolvingConsoleSettings = false;
   });
 });
