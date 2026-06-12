@@ -1,5 +1,6 @@
+// Plugin install persist tests cover saving installed plugin records after install.
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   applyExclusiveSlotSelection,
   buildPluginDiagnosticsReport,
@@ -45,7 +46,7 @@ describe("persistPluginInstall", () => {
       plugins: {
         allow: ["memory-core"],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         allow: ["alpha", "memory-core"],
@@ -53,9 +54,9 @@ describe("persistPluginInstall", () => {
           alpha: { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockImplementation((...args: unknown[]) => {
-      const [cfg, pluginId] = args as [AstroclawConfig, string];
+      const [cfg, pluginId] = args as [OpenClawConfig, string];
       expect(pluginId).toBe("alpha");
       expect(cfg.plugins?.allow).toEqual(["alpha", "memory-core"]);
       return { config: enabledConfig };
@@ -112,14 +113,14 @@ describe("persistPluginInstall", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         entries: {
           alpha: { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockReturnValue({ config: enabledConfig });
     clearPluginRegistryLoadCache.mockImplementation(() => {
       throw new Error("cache unavailable");
@@ -149,25 +150,25 @@ describe("persistPluginInstall", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         entries: {
           codex: { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockReturnValue({ config: enabledConfig });
     setInstalledPluginIndexInstallRecords({
       codex: {
         source: "clawhub",
-        spec: "clawhub:@astroclaw/codex",
-        installPath: "/tmp/astroclaw/extensions/codex",
+        spec: "clawhub:@openclaw/codex",
+        installPath: "/tmp/openclaw/extensions/codex",
       },
     });
     planPluginUninstall.mockReturnValueOnce({
       ok: true,
-      config: {} as AstroclawConfig,
+      config: {} as OpenClawConfig,
       pluginId: "codex",
       actions: {
         entry: false,
@@ -181,7 +182,7 @@ describe("persistPluginInstall", () => {
         directory: false,
       },
       directoryRemoval: {
-        target: "/tmp/astroclaw/extensions/codex",
+        target: "/tmp/openclaw/extensions/codex",
       },
     });
     applyPluginUninstallDirectoryRemoval.mockResolvedValueOnce({
@@ -197,8 +198,8 @@ describe("persistPluginInstall", () => {
       pluginId: "codex",
       install: {
         source: "npm",
-        spec: "@astroclaw/codex",
-        installPath: "/tmp/astroclaw/npm/node_modules/@astroclaw/codex",
+        spec: "@openclaw/codex",
+        installPath: "/tmp/openclaw/npm/node_modules/@openclaw/codex",
       },
     });
 
@@ -208,8 +209,8 @@ describe("persistPluginInstall", () => {
           installs: {
             codex: {
               source: "clawhub",
-              spec: "clawhub:@astroclaw/codex",
-              installPath: "/tmp/astroclaw/extensions/codex",
+              spec: "clawhub:@openclaw/codex",
+              installPath: "/tmp/openclaw/extensions/codex",
             },
           },
         },
@@ -218,14 +219,14 @@ describe("persistPluginInstall", () => {
       deleteFiles: true,
     });
     expect(applyPluginUninstallDirectoryRemoval).toHaveBeenCalledWith({
-      target: "/tmp/astroclaw/extensions/codex",
+      target: "/tmp/openclaw/extensions/codex",
     });
     const cleanupOrder =
       applyPluginUninstallDirectoryRemoval.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER;
     const refreshOrder = refreshPluginRegistry.mock.invocationCallOrder[0] ?? 0;
     expect(cleanupOrder).toBeLessThan(refreshOrder);
     expect(runtimeLogs.join("\n")).toContain(
-      "Removed previous plugin install directory: /tmp/astroclaw/extensions/codex",
+      "Removed previous plugin install directory: /tmp/openclaw/extensions/codex",
     );
   });
 
@@ -235,20 +236,20 @@ describe("persistPluginInstall", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         entries: {
           codex: { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockReturnValue({ config: enabledConfig });
     setInstalledPluginIndexInstallRecords({
       codex: {
         source: "npm",
-        spec: "@astroclaw/codex",
-        installPath: "/tmp/astroclaw/npm/node_modules/@astroclaw/codex",
+        spec: "@openclaw/codex",
+        installPath: "/tmp/openclaw/npm/node_modules/@openclaw/codex",
       },
     });
 
@@ -260,8 +261,8 @@ describe("persistPluginInstall", () => {
       pluginId: "codex",
       install: {
         source: "npm",
-        spec: "@astroclaw/codex@latest",
-        installPath: "/tmp/astroclaw/npm/node_modules/@astroclaw/codex",
+        spec: "@openclaw/codex@latest",
+        installPath: "/tmp/openclaw/npm/node_modules/@openclaw/codex",
       },
     });
 
@@ -275,21 +276,21 @@ describe("persistPluginInstall", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         entries: {
           discord: { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockReturnValue({ config: enabledConfig });
     buildPluginSnapshotReport.mockReturnValue({
       plugins: [
         {
           id: "discord",
           origin: "config",
-          source: "/tmp/astroclaw-upstream/extensions/discord/index.ts",
+          source: "/tmp/openclaw-upstream/extensions/discord/index.ts",
           status: "error",
         },
       ],
@@ -304,8 +305,8 @@ describe("persistPluginInstall", () => {
       pluginId: "discord",
       install: {
         source: "npm",
-        spec: "@astroclaw/discord",
-        installPath: "/tmp/astroclaw/npm/node_modules/@astroclaw/discord/index.ts",
+        spec: "@openclaw/discord",
+        installPath: "/tmp/openclaw/npm/node_modules/@openclaw/discord/index.ts",
       },
     });
 
@@ -319,12 +320,12 @@ describe("persistPluginInstall", () => {
       'Warning: installed plugin "discord" is not the active source',
     );
     expect(runtimeLogs.join("\n")).toContain(
-      "active config source: /tmp/astroclaw-upstream/extensions/discord/index.ts",
+      "active config source: /tmp/openclaw-upstream/extensions/discord/index.ts",
     );
     expect(runtimeLogs.join("\n")).toContain(
-      "installed npm source: /tmp/astroclaw/npm/node_modules/@astroclaw/discord/index.ts",
+      "installed npm source: /tmp/openclaw/npm/node_modules/@openclaw/discord/index.ts",
     );
-    expect(runtimeLogs.join("\n")).toContain("astroclaw plugins doctor");
+    expect(runtimeLogs.join("\n")).toContain("openclaw plugins doctor");
   });
 
   it("does not warn when the config-selected source is inside the npm install path", async () => {
@@ -333,21 +334,21 @@ describe("persistPluginInstall", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         entries: {
           discord: { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockReturnValue({ config: enabledConfig });
     buildPluginSnapshotReport.mockReturnValue({
       plugins: [
         {
           id: "discord",
           origin: "config",
-          source: "/tmp/astroclaw/npm/node_modules/@astroclaw/discord/dist/index.js",
+          source: "/tmp/openclaw/npm/node_modules/@openclaw/discord/dist/index.js",
           status: "loaded",
         },
       ],
@@ -362,8 +363,8 @@ describe("persistPluginInstall", () => {
       pluginId: "discord",
       install: {
         source: "npm",
-        spec: "@astroclaw/discord",
-        installPath: "/tmp/astroclaw/npm/node_modules/@astroclaw/discord",
+        spec: "@openclaw/discord",
+        installPath: "/tmp/openclaw/npm/node_modules/@openclaw/discord",
       },
     });
 
@@ -376,14 +377,14 @@ describe("persistPluginInstall", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         entries: {
           alpha: { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockReturnValue({ config: enabledConfig });
     refreshPluginRegistry.mockRejectedValueOnce(new Error("registry unavailable"));
 
@@ -406,13 +407,48 @@ describe("persistPluginInstall", () => {
     expectRuntimeLogIncludes("Plugin registry refresh failed");
   });
 
+  it("skips runtime cache invalidation when the caller opts out", async () => {
+    const { persistPluginInstall } = await import("./plugins-install-persist.js");
+    const baseConfig = {
+      plugins: {
+        entries: {},
+      },
+    } as OpenClawConfig;
+    const enabledConfig = {
+      plugins: {
+        entries: {
+          alpha: { enabled: true },
+        },
+      },
+    } as OpenClawConfig;
+    enablePluginInConfig.mockReturnValue({ config: enabledConfig });
+
+    const next = await persistPluginInstall({
+      snapshot: {
+        config: baseConfig,
+        baseHash: "config-1",
+      },
+      pluginId: "alpha",
+      install: {
+        source: "npm",
+        spec: "alpha@1.0.0",
+        installPath: "/tmp/alpha",
+      },
+      invalidateRuntimeCache: false,
+    });
+
+    expect(next).toEqual(enabledConfig);
+    expect(refreshPluginRegistry).toHaveBeenCalledTimes(1);
+    expect(clearPluginRegistryLoadCache).not.toHaveBeenCalled();
+  });
+
   it("removes stale denylist entries before enabling installed plugins", async () => {
     const { persistPluginInstall } = await import("./plugins-install-persist.js");
     const baseConfig = {
       plugins: {
         deny: ["alpha", "other"],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         deny: ["other"],
@@ -420,9 +456,9 @@ describe("persistPluginInstall", () => {
           alpha: { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockImplementation((...args: unknown[]) => {
-      const [cfg, pluginId] = args as [AstroclawConfig, string];
+      const [cfg, pluginId] = args as [OpenClawConfig, string];
       expect(pluginId).toBe("alpha");
       expect(cfg.plugins?.deny).toEqual(["other"]);
       return { config: enabledConfig };
@@ -452,7 +488,7 @@ describe("persistPluginInstall", () => {
           "legacy-memory-a": { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         entries: {
@@ -460,7 +496,7 @@ describe("persistPluginInstall", () => {
           "legacy-memory": { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockReturnValue({ config: enabledConfig });
     loadPluginManifestRegistry.mockReturnValue({
       plugins: [{ id: "legacy-memory" }],
@@ -471,7 +507,7 @@ describe("persistPluginInstall", () => {
       diagnostics: [],
     });
     applyExclusiveSlotSelection.mockImplementation(((params: {
-      config: AstroclawConfig;
+      config: OpenClawConfig;
       selectedId: string;
       selectedKind?: string;
       registry?: { plugins: Array<{ id: string; kind?: string }> };
@@ -528,7 +564,7 @@ describe("persistPluginInstall", () => {
           "legacy-memory-a": { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         entries: {
@@ -536,14 +572,14 @@ describe("persistPluginInstall", () => {
           "memory-b": { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockReturnValue({ config: enabledConfig });
     loadPluginManifestRegistry.mockReturnValue({
       plugins: [{ id: "memory-b", kind: "memory" }],
       diagnostics: [],
     });
     applyExclusiveSlotSelection.mockImplementation(((params: {
-      config: AstroclawConfig;
+      config: OpenClawConfig;
       selectedId: string;
       selectedKind?: string;
       registry?: { plugins: Array<{ id: string; kind?: string }> };
@@ -594,14 +630,14 @@ describe("persistPluginInstall", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledConfig = {
       plugins: {
         entries: {
           plain: { enabled: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     enablePluginInConfig.mockReturnValue({ config: enabledConfig });
     loadPluginManifestRegistry.mockReturnValue({
       plugins: [{ id: "plain" }],
@@ -647,7 +683,7 @@ describe("persistPluginInstall", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const next = await persistPluginInstall({
       snapshot: {
@@ -688,7 +724,7 @@ describe("persistPluginInstall", () => {
         allow: ["memory-core"],
         deny: ["memory-lancedb"],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const next = await persistPluginInstall({
       snapshot: {
