@@ -1,3 +1,4 @@
+// Control UI tests cover open external url behavior.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { openExternalUrlSafe, resolveSafeExternalUrl } from "./open-external-url.ts";
 
@@ -7,7 +8,7 @@ afterEach(() => {
 });
 
 describe("resolveSafeExternalUrl", () => {
-  const baseHref = "https://astroclaw.ai/chat";
+  const baseHref = "https://openclaw.ai/chat";
 
   it("allows absolute https URLs", () => {
     expect(resolveSafeExternalUrl("https://example.com/a.png?x=1#y", baseHref)).toBe(
@@ -17,13 +18,13 @@ describe("resolveSafeExternalUrl", () => {
 
   it("allows relative URLs resolved against the current origin", () => {
     expect(resolveSafeExternalUrl("/assets/pic.png", baseHref)).toBe(
-      "https://astroclaw.ai/assets/pic.png",
+      "https://openclaw.ai/assets/pic.png",
     );
   });
 
   it("allows blob URLs", () => {
-    expect(resolveSafeExternalUrl("blob:https://astroclaw.ai/abc-123", baseHref)).toBe(
-      "blob:https://astroclaw.ai/abc-123",
+    expect(resolveSafeExternalUrl("blob:https://openclaw.ai/abc-123", baseHref)).toBe(
+      "blob:https://openclaw.ai/abc-123",
     );
   });
 
@@ -94,7 +95,7 @@ describe("openExternalUrlSafe", () => {
       .mockImplementation(() => openedLikeProxy as unknown as Window);
 
     const opened = openExternalUrlSafe("https://example.com/safe.png", {
-      baseHref: "https://astroclaw.ai/chat",
+      baseHref: "https://openclaw.ai/chat",
     });
 
     expect(openMock).toHaveBeenCalledWith(
