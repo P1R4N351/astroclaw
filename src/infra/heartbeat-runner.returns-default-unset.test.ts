@@ -1,10 +1,11 @@
+// Tests heartbeat runner behavior when defaults are unset.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { HEARTBEAT_PROMPT } from "../auto-reply/heartbeat.js";
 import type { ChannelOutboundAdapter } from "../channels/plugins/types.public.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   resolveAgentIdFromSessionKey,
   resolveAgentMainSessionKey,
@@ -24,6 +25,7 @@ import {
 } from "./heartbeat-runner.js";
 import {
   resolveHeartbeatDeliveryTarget,
+  resolveHeartbeatDeliveryTargetWithSessionRoute,
   resolveHeartbeatSenderContext,
 } from "./outbound/targets.js";
 import { telegramMessagingForTest } from "./outbound/targets.test-helpers.js";
@@ -195,7 +197,7 @@ function expectReplyCall(
   index: number,
   bodyFields: Record<string, unknown>,
   optionsFields?: Record<string, unknown>,
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
 ) {
   const call = replySpy.mock.calls[index];
   if (!call) {
@@ -220,11 +222,10 @@ function expectReplyCall(
 function replyBody(
   replySpy: ReturnType<typeof vi.fn>,
   index = 0,
-): { Body?: string; ForceSenderIsOwnerFalse?: boolean; Provider?: string } {
+): { Body?: string; Provider?: string } {
   const call = replySpy.mock.calls[index];
   return requireRecord(call?.[0], `reply call ${index} body`) as {
     Body?: string;
-    ForceSenderIsOwnerFalse?: boolean;
     Provider?: string;
   };
 }
@@ -289,13 +290,21 @@ beforeAll(async () => {
     },
   };
 
+  const discordPlugin = createOutboundTestPlugin({
+    id: "discord",
+    outbound: {
+      deliveryMode: "direct",
+    },
+  });
+
   testRegistry = createTestRegistry([
     { pluginId: "whatsapp", plugin: whatsappPlugin, source: "test" },
     { pluginId: "telegram", plugin: telegramPlugin, source: "test" },
+    { pluginId: "discord", plugin: discordPlugin, source: "test" },
   ]);
   setActivePluginRegistry(testRegistry);
 
-  fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-heartbeat-suite-"));
+  fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-heartbeat-suite-"));
 });
 
 beforeEach(() => {
@@ -363,12 +372,12 @@ describe("resolveHeartbeatIntervalMs", () => {
 
 describe("resolveHeartbeatPrompt", () => {
   it.each([
-    { name: "default prompt", cfg: {} as AstroclawConfig, expected: HEARTBEAT_PROMPT },
+    { name: "default prompt", cfg: {} as OpenClawConfig, expected: HEARTBEAT_PROMPT },
     {
       name: "trimmed override prompt",
       cfg: {
         agents: { defaults: { heartbeat: { prompt: "  ping  " } } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       expected: "ping",
     },
   ])("uses $name", ({ cfg, expected }) => {
@@ -378,7 +387,7 @@ describe("resolveHeartbeatPrompt", () => {
 
 describe("isHeartbeatEnabledForAgent", () => {
   it("enables only explicit heartbeat agents when configured", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: { heartbeat: { every: "30m" } },
         list: [{ id: "main" }, { id: "ops", heartbeat: { every: "1h" } }],
@@ -389,7 +398,7 @@ describe("isHeartbeatEnabledForAgent", () => {
   });
 
   it("uses global heartbeat defaults for all agents when no explicit heartbeat entries exist", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: { heartbeat: { every: "30m" } },
         list: [{ id: "main" }, { id: "ops" }],
@@ -400,7 +409,7 @@ describe("isHeartbeatEnabledForAgent", () => {
   });
 
   it("falls back to default agent when no heartbeat config exists", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         list: [{ id: "main" }, { id: "ops" }],
       },
@@ -419,7 +428,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   it("resolves target variants across route and allowlist rules", () => {
     const cases: Array<{
       name: string;
-      cfg: AstroclawConfig;
+      cfg: OpenClawConfig;
       entry: typeof baseEntry & {
         lastChannel?: "whatsapp" | "telegram" | "webchat";
         lastTo?: string;
@@ -520,6 +529,20 @@ describe("resolveHeartbeatDeliveryTarget", () => {
         expected: {
           channel: "telegram",
           to: "-100123",
+          chatType: "group",
+          accountId: undefined,
+          lastChannel: undefined,
+          lastAccountId: undefined,
+        },
+      },
+      {
+        name: "infer explicit discord channel target",
+        cfg: { agents: { defaults: { heartbeat: { target: "discord", to: "channel:123" } } } },
+        entry: baseEntry,
+        expected: {
+          channel: "discord",
+          to: "channel:123",
+          chatType: "channel",
           accountId: undefined,
           lastChannel: undefined,
           lastAccountId: undefined,
@@ -532,6 +555,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
         expected: {
           channel: "telegram",
           to: "5232990709",
+          chatType: "direct",
           accountId: undefined,
           lastChannel: "telegram",
           lastAccountId: undefined,
@@ -559,16 +583,20 @@ describe("resolveHeartbeatDeliveryTarget", () => {
     { name: "topic suffix", to: "-100111:topic:42", expectedTo: "-100111", expectedThreadId: 42 },
     { name: "plain chat id", to: "-100111", expectedTo: "-100111", expectedThreadId: undefined },
   ])(
-    "parses optional telegram :topic: threadId suffix: $name",
-    ({ to, expectedTo, expectedThreadId }) => {
-      const cfg: AstroclawConfig = {
+    "parses optional telegram :topic: threadId suffix through session route: $name",
+    async ({ to, expectedTo, expectedThreadId }) => {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             heartbeat: { target: "telegram", to },
           },
         },
       };
-      const result = resolveHeartbeatDeliveryTarget({ cfg, entry: baseEntry });
+      const result = await resolveHeartbeatDeliveryTargetWithSessionRoute({
+        cfg,
+        agentId: "heartbeat-agent",
+        entry: baseEntry,
+      });
       expect(result.channel).toBe("telegram");
       expect(result.to).toBe(expectedTo);
       expect(result.threadId).toBe(expectedThreadId);
@@ -582,6 +610,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
       expected: {
         channel: "telegram",
         to: "-100123",
+        chatType: "group",
         accountId: "work",
         lastChannel: undefined,
         lastAccountId: undefined,
@@ -601,7 +630,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   ] as const)(
     "handles explicit heartbeat accountId allow/deny: $name",
     ({ accountId, expected }) => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             heartbeat: { target: "telegram", to: "-100123", accountId },
@@ -614,7 +643,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
   );
 
   it("prefers per-agent heartbeat overrides when provided", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: { defaults: { heartbeat: { target: "telegram", to: "-100123" } } },
     };
     const heartbeat = { target: "whatsapp", to: "120363401234567890@g.us" } as const;
@@ -636,7 +665,7 @@ describe("resolveHeartbeatDeliveryTarget", () => {
 
 describe("resolveHeartbeatSenderContext", () => {
   it("prefers delivery accountId for allowFrom resolution", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         telegram: {
           allowFrom: ["111"],
@@ -688,7 +717,7 @@ describe("runHeartbeatOnce", () => {
   });
 
   it("skips when agent heartbeat is not enabled", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: { heartbeat: { every: "30m" } },
         list: [{ id: "main" }, { id: "ops", heartbeat: { every: "1h" } }],
@@ -703,7 +732,7 @@ describe("runHeartbeatOnce", () => {
   });
 
   it("skips outside active hours", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           userTimezone: "UTC",
@@ -731,7 +760,7 @@ describe("runHeartbeatOnce", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.fn();
     try {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -789,7 +818,7 @@ describe("runHeartbeatOnce", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.fn();
     try {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             heartbeat: { every: "30m", prompt: "Default prompt" },
@@ -868,7 +897,7 @@ describe("runHeartbeatOnce", () => {
     const replySpy = vi.fn();
     const agentId = "ops";
     try {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             heartbeat: { every: "30m", prompt: "Default prompt" },
@@ -955,7 +984,7 @@ describe("runHeartbeatOnce", () => {
       peerKind: "group" as const,
       peerId: "120363401234567890@g.us",
       message: "Group alert",
-      applyOverride: ({ cfg, sessionKey }: { cfg: AstroclawConfig; sessionKey: string }) => {
+      applyOverride: ({ cfg, sessionKey }: { cfg: OpenClawConfig; sessionKey: string }) => {
         if (cfg.agents?.defaults?.heartbeat) {
           cfg.agents.defaults.heartbeat.session = sessionKey;
         }
@@ -980,7 +1009,7 @@ describe("runHeartbeatOnce", () => {
       try {
         const tmpDir = await createCaseDir(caseDir);
         const storePath = path.join(tmpDir, "sessions.json");
-        const cfg: AstroclawConfig = {
+        const cfg: OpenClawConfig = {
           agents: {
             defaults: {
               workspace: tmpDir,
@@ -1073,7 +1102,7 @@ describe("runHeartbeatOnce", () => {
     try {
       const tmpDir = await createCaseDir("hb-subagent-guard");
       const storePath = path.join(tmpDir, "sessions.json");
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -1148,7 +1177,7 @@ describe("runHeartbeatOnce", () => {
     const storePath = path.join(tmpDir, "sessions.json");
     const replySpy = vi.fn();
     try {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -1216,13 +1245,31 @@ describe("runHeartbeatOnce", () => {
         name: "raw flagged reasoning + final payload",
         caseDir: "hb-reasoning-raw",
         replies: [{ text: "Because it helps", isReasoning: true }, { text: "Final alert" }],
-        expectedTexts: ["Reasoning:\n_Because it helps_", "Final alert"],
+        expectedTexts: ["Thinking\n\n_Because it helps_", "Final alert"],
       },
       {
         name: "raw flagged reasoning + HEARTBEAT_OK",
         caseDir: "hb-reasoning-heartbeat-ok",
         replies: [{ text: "Because it helps", isReasoning: true }, { text: "HEARTBEAT_OK" }],
-        expectedTexts: ["Reasoning:\n_Because it helps_"],
+        expectedTexts: ["Thinking\n\n_Because it helps_"],
+      },
+      {
+        name: "visible final that starts with thinking prose",
+        caseDir: "hb-thinking-visible-final",
+        replies: [{ text: "Thinking... all clear" }],
+        expectedTexts: ["Thinking... all clear"],
+      },
+      {
+        name: "visible final that is exactly thinking label",
+        caseDir: "hb-thinking-exact-final",
+        replies: [{ text: "Thinking..." }],
+        expectedTexts: ["Thinking..."],
+      },
+      {
+        name: "visible final that starts with thinking status line",
+        caseDir: "hb-thinking-status-final",
+        replies: [{ text: "Thinking...\nI'll check that now" }],
+        expectedTexts: ["Thinking...\nI'll check that now"],
       },
     ]),
   )(
@@ -1232,7 +1279,7 @@ describe("runHeartbeatOnce", () => {
       try {
         const tmpDir = await createCaseDir(caseDir);
         const storePath = path.join(tmpDir, "sessions.json");
-        const cfg: AstroclawConfig = {
+        const cfg: OpenClawConfig = {
           agents: {
             defaults: {
               workspace: tmpDir,
@@ -1292,11 +1339,11 @@ describe("runHeartbeatOnce", () => {
   );
 
   it("loads the default agent session from templated stores", async () => {
-    const tmpDir = await createCaseDir("astroclaw-hb");
+    const tmpDir = await createCaseDir("openclaw-hb");
     const storeTemplate = path.join(tmpDir, "agents", "{agentId}", "sessions.json");
     const replySpy = vi.fn();
     try {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: { workspace: tmpDir, heartbeat: { every: "5m", target: "whatsapp" } },
           list: [{ id: "work", default: true }],
@@ -1366,7 +1413,7 @@ describe("runHeartbeatOnce", () => {
     queueCronEvent?: boolean;
     replyText?: string;
   }) {
-    const tmpDir = await createCaseDir("astroclaw-hb");
+    const tmpDir = await createCaseDir("openclaw-hb");
     const storePath = path.join(tmpDir, "sessions.json");
     const workspaceDir = path.join(tmpDir, "workspace");
     await fs.mkdir(workspaceDir, { recursive: true });
@@ -1423,7 +1470,7 @@ describe("runHeartbeatOnce", () => {
       await fs.mkdir(path.join(workspaceDir, "HEARTBEAT.md"), { recursive: true });
     }
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           workspace: workspaceDir,
@@ -1492,7 +1539,7 @@ describe("runHeartbeatOnce", () => {
   });
 
   it("keeps non-task HEARTBEAT.md context while stripping blank-line-separated task blocks", async () => {
-    const tmpDir = await createCaseDir("astroclaw-hb-tasks-context");
+    const tmpDir = await createCaseDir("openclaw-hb-tasks-context");
     const storePath = path.join(tmpDir, "sessions.json");
     const workspaceDir = path.join(tmpDir, "workspace");
     await fs.mkdir(workspaceDir, { recursive: true });
@@ -1518,7 +1565,7 @@ Some global directive after tasks.
       "utf-8",
     );
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           workspace: workspaceDir,
@@ -1567,7 +1614,7 @@ Some global directive after tasks.
   });
 
   it("strips documented unindented task entries while keeping following top-level bullets", async () => {
-    const tmpDir = await createCaseDir("astroclaw-hb-unindented-tasks-context");
+    const tmpDir = await createCaseDir("openclaw-hb-unindented-tasks-context");
     const storePath = path.join(tmpDir, "sessions.json");
     const workspaceDir = path.join(tmpDir, "workspace");
     await fs.mkdir(workspaceDir, { recursive: true });
@@ -1589,7 +1636,7 @@ tasks:
       "utf-8",
     );
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           workspace: workspaceDir,
@@ -1775,7 +1822,7 @@ tasks:
   it("uses an internal-only cron prompt when heartbeat delivery target is none", async () => {
     const tmpDir = await createCaseDir("hb-cron-target-none");
     const storePath = path.join(tmpDir, "sessions.json");
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           workspace: tmpDir,
@@ -1832,7 +1879,7 @@ tasks:
   it("uses an internal-only exec prompt when heartbeat delivery target is none", async () => {
     const tmpDir = await createCaseDir("hb-exec-target-none");
     const storePath = path.join(tmpDir, "sessions.json");
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           workspace: tmpDir,
@@ -1879,7 +1926,6 @@ tasks:
       expect(sendWhatsApp).toHaveBeenCalledTimes(0);
       const calledCtx = replyBody(replySpy);
       expect(calledCtx.Provider).toBe("exec-event");
-      expect(calledCtx.ForceSenderIsOwnerFalse).toBe(true);
       expect(calledCtx.Body).toContain("Handle the result internally");
       expect(calledCtx.Body).not.toContain("Please relay the command output to the user");
     } finally {
