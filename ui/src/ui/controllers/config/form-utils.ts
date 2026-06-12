@@ -1,3 +1,4 @@
+// Control UI controller manages form utils gateway state.
 import JSON5 from "json5";
 
 export function cloneConfigObject<T>(value: T): T {
@@ -8,7 +9,7 @@ export function serializeConfigForm(form: Record<string, unknown>): string {
   return `${JSON.stringify(form, null, 2).trimEnd()}\n`;
 }
 
-const REDACTED_SENTINEL = "__ASTROCLAW_REDACTED__";
+const REDACTED_SENTINEL = "__OPENCLAW_REDACTED__";
 type SanitizeResult = { omitted: true } | { omitted: false; value: unknown };
 
 const OMIT_VALUE: SanitizeResult = { omitted: true };
@@ -22,7 +23,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function hasOwnRecordValue(record: Record<string, unknown> | null, key: string): boolean {
-  return record != null && Object.prototype.hasOwnProperty.call(record, key);
+  return record != null && Object.hasOwn(record, key);
 }
 
 function sanitizeRedactedValue(params: {
@@ -70,7 +71,7 @@ function sanitizeRedactedValue(params: {
   const next: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(params.value)) {
     const originalFormValue =
-      originalFormRecord != null && Object.prototype.hasOwnProperty.call(originalFormRecord, key)
+      originalFormRecord != null && Object.hasOwn(originalFormRecord, key)
         ? originalFormRecord[key]
         : undefined;
     const originalRawPathExists = hasOwnRecordValue(originalRawRecord, key);
