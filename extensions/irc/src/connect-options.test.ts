@@ -1,3 +1,4 @@
+// Irc tests cover connect options plugin behavior.
 import { describe, expect, it } from "vitest";
 import { buildIrcConnectOptions } from "./connect-options.js";
 
@@ -7,9 +8,9 @@ describe("buildIrcConnectOptions", () => {
       host: "irc.libera.chat",
       port: 6697,
       tls: true,
-      nick: "astroclaw",
-      username: "astroclaw",
-      realname: "Astroclaw Bot",
+      nick: "openclaw",
+      username: "openclaw",
+      realname: "OpenClaw Bot",
       password: "server-pass",
       config: {
         nickserv: {
@@ -30,9 +31,9 @@ describe("buildIrcConnectOptions", () => {
       host: "irc.libera.chat",
       port: 6697,
       tls: true,
-      nick: "astroclaw",
-      username: "astroclaw",
-      realname: "Astroclaw Bot",
+      nick: "openclaw",
+      username: "openclaw",
+      realname: "OpenClaw Bot",
       password: "server-pass",
       nickserv: {
         enabled: true,
