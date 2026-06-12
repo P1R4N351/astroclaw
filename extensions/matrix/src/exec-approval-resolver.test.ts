@@ -1,10 +1,11 @@
+// Matrix tests cover exec approval resolver plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const approvalRuntimeHoisted = vi.hoisted(() => ({
   resolveApprovalOverGatewaySpy: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/approval-gateway-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/approval-gateway-runtime", () => ({
   resolveApprovalOverGateway: (...args: unknown[]) =>
     approvalRuntimeHoisted.resolveApprovalOverGatewaySpy(...args),
 }));
