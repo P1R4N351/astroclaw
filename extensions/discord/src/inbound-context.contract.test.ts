@@ -1,4 +1,5 @@
-import { expectChannelInboundContextContract } from "astroclaw/plugin-sdk/channel-contract-testing";
+// Discord tests cover inbound context.contract plugin behavior.
+import { expectChannelInboundContextContract } from "openclaw/plugin-sdk/channel-contract-testing";
 import { describe, it } from "vitest";
 import { buildFinalizedDiscordDirectInboundContext } from "./monitor/inbound-context.test-helpers.js";
 
