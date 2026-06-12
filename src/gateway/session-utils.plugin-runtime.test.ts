@@ -1,5 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+/**
+ * Tests session utility interactions with plugin runtime state.
+ */
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { OpenClawConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 
 const normalizeProviderModelIdWithPluginMock = vi.fn();
@@ -17,19 +20,24 @@ vi.mock("../plugins/current-plugin-metadata-snapshot.js", () => ({
   getCurrentPluginMetadataSnapshot: () => emptyPluginMetadataSnapshot,
 }));
 
+let sessionUtils: typeof import("./session-utils.js");
+
 describe("gateway session list plugin runtime normalization", () => {
-  beforeEach(() => {
+  beforeAll(async () => {
     vi.resetModules();
+    sessionUtils = await import("./session-utils.js");
+  });
+
+  beforeEach(() => {
     normalizeProviderModelIdWithPluginMock.mockReset();
   });
 
   it("skips provider runtime normalization for lightweight list rows", async () => {
-    const { listSessionsFromStoreAsync } = await import("./session-utils.js");
     const cfg = {
       agents: {
         defaults: { model: { primary: "custom-provider/custom-legacy-model" } },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const store = Object.fromEntries(
       Array.from({ length: 3 }, (_value, index) => [
         `session-${index}`,
@@ -37,7 +45,7 @@ describe("gateway session list plugin runtime normalization", () => {
       ]),
     );
 
-    const listed = await listSessionsFromStoreAsync({
+    const listed = await sessionUtils.listSessionsFromStoreAsync({
       cfg,
       storePath: "",
       store,
@@ -62,14 +70,13 @@ describe("gateway session list plugin runtime normalization", () => {
       },
     );
 
-    const { buildGatewaySessionRow } = await import("./session-utils.js");
     const cfg = {
       agents: {
         defaults: { model: { primary: "custom-provider/custom-legacy-model" } },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
-    const row = buildGatewaySessionRow({
+    const row = sessionUtils.buildGatewaySessionRow({
       cfg,
       storePath: "",
       store: {},
