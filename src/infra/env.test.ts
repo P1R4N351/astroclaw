@@ -1,3 +1,4 @@
+// Tests infra environment loading and variable normalization.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { withEnv } from "../test-utils/env.js";
 import { isTruthyEnvValue, logAcceptedEnvOption, normalizeEnv, normalizeZaiEnv } from "./env.js";
@@ -70,16 +71,16 @@ describe("logAcceptedEnvOption", () => {
       {
         VITEST: "",
         NODE_ENV: "development",
-        ASTROCLAW_TEST_ENV: "  line one\nline two  ",
+        OPENCLAW_TEST_ENV: "  line one\nline two  ",
       },
       () => {
         logAcceptedEnvOption({
-          key: "ASTROCLAW_TEST_ENV",
+          key: "OPENCLAW_TEST_ENV",
           description: "test option",
           redact: true,
         });
         logAcceptedEnvOption({
-          key: "ASTROCLAW_TEST_ENV",
+          key: "OPENCLAW_TEST_ENV",
           description: "test option",
           redact: true,
         });
@@ -90,7 +91,7 @@ describe("logAcceptedEnvOption", () => {
       expect(loggerMocks.info).toHaveBeenCalledTimes(1);
     });
     expect(loggerMocks.info).toHaveBeenCalledWith(
-      "env: ASTROCLAW_TEST_ENV=<redacted> (test option)",
+      "env: OPENCLAW_TEST_ENV=<redacted> (test option)",
     );
   });
 
@@ -101,11 +102,11 @@ describe("logAcceptedEnvOption", () => {
       {
         VITEST: "1",
         NODE_ENV: "development",
-        ASTROCLAW_BLANK_ENV: "value",
+        OPENCLAW_BLANK_ENV: "value",
       },
       () => {
         logAcceptedEnvOption({
-          key: "ASTROCLAW_BLANK_ENV",
+          key: "OPENCLAW_BLANK_ENV",
           description: "skipped in vitest",
         });
       },
@@ -115,11 +116,11 @@ describe("logAcceptedEnvOption", () => {
       {
         VITEST: "",
         NODE_ENV: "development",
-        ASTROCLAW_BLANK_ENV: "   ",
+        OPENCLAW_BLANK_ENV: "   ",
       },
       () => {
         logAcceptedEnvOption({
-          key: "ASTROCLAW_BLANK_ENV",
+          key: "OPENCLAW_BLANK_ENV",
           description: "blank value",
         });
       },
