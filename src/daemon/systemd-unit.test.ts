@@ -1,21 +1,22 @@
+// Systemd unit tests cover generated systemd unit files.
 import { describe, expect, it } from "vitest";
 import { buildSystemdUnit } from "./systemd-unit.js";
 
 describe("buildSystemdUnit", () => {
   it("quotes arguments with whitespace", () => {
     const unit = buildSystemdUnit({
-      description: "Astroclaw Gateway",
-      programArguments: ["/usr/bin/astroclaw", "gateway", "--name", "My Bot"],
+      description: "OpenClaw Gateway",
+      programArguments: ["/usr/bin/openclaw", "gateway", "--name", "My Bot"],
       environment: {},
     });
     const execStart = unit.split("\n").find((line) => line.startsWith("ExecStart="));
-    expect(execStart).toBe('ExecStart=/usr/bin/astroclaw gateway --name "My Bot"');
+    expect(execStart).toBe('ExecStart=/usr/bin/openclaw gateway --name "My Bot"');
   });
 
   it("renders control-group kill mode for child-process cleanup", () => {
     const unit = buildSystemdUnit({
-      description: "Astroclaw Gateway",
-      programArguments: ["/usr/bin/astroclaw", "gateway", "run"],
+      description: "OpenClaw Gateway",
+      programArguments: ["/usr/bin/openclaw", "gateway", "run"],
       environment: {},
     });
     expect(unit).toContain("KillMode=control-group");
@@ -30,8 +31,8 @@ describe("buildSystemdUnit", () => {
   it("rejects environment values with line breaks", () => {
     expect(() =>
       buildSystemdUnit({
-        description: "Astroclaw Gateway",
-        programArguments: ["/usr/bin/astroclaw", "gateway", "start"],
+        description: "OpenClaw Gateway",
+        programArguments: ["/usr/bin/openclaw", "gateway", "start"],
         environment: {
           INJECT: "ok\nExecStartPre=/bin/touch /tmp/oc15789_rce",
         },
@@ -41,17 +42,17 @@ describe("buildSystemdUnit", () => {
 
   it("renders EnvironmentFile entries before inline Environment values", () => {
     const unit = buildSystemdUnit({
-      description: "Astroclaw Gateway",
-      programArguments: ["/usr/bin/astroclaw", "gateway", "run"],
-      environmentFiles: ["/home/test/.astroclaw/.env"],
+      description: "OpenClaw Gateway",
+      programArguments: ["/usr/bin/openclaw", "gateway", "run"],
+      environmentFiles: ["/home/test/.openclaw/.env"],
       environment: {
-        ASTROCLAW_GATEWAY_PORT: "18789",
+        OPENCLAW_GATEWAY_PORT: "18789",
       },
     });
-    expect(unit).toContain("EnvironmentFile=-/home/test/.astroclaw/.env");
-    expect(unit).toContain("Environment=ASTROCLAW_GATEWAY_PORT=18789");
-    expect(unit.indexOf("EnvironmentFile=-/home/test/.astroclaw/.env")).toBeLessThan(
-      unit.indexOf("Environment=ASTROCLAW_GATEWAY_PORT=18789"),
+    expect(unit).toContain("EnvironmentFile=-/home/test/.openclaw/.env");
+    expect(unit).toContain("Environment=OPENCLAW_GATEWAY_PORT=18789");
+    expect(unit.indexOf("EnvironmentFile=-/home/test/.openclaw/.env")).toBeLessThan(
+      unit.indexOf("Environment=OPENCLAW_GATEWAY_PORT=18789"),
     );
   });
 });
