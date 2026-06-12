@@ -1,9 +1,10 @@
+// Verifies compaction settings config parsing and defaults.
 import { describe, expect, it } from "vitest";
 import { applyCompactionDefaults } from "./defaults.js";
-import type { AstroclawConfig } from "./types.js";
+import type { OpenClawConfig } from "./types.js";
 
 function materializeCompactionConfig(
-  compaction: NonNullable<NonNullable<AstroclawConfig["agents"]>["defaults"]>["compaction"],
+  compaction: NonNullable<NonNullable<OpenClawConfig["agents"]>["defaults"]>["compaction"],
 ) {
   const cfg = applyCompactionDefaults({
     agents: {
@@ -56,7 +57,7 @@ describe("config compaction settings", () => {
     expect(compaction?.maxActiveTranscriptBytes).toBe("20mb");
   });
 
-  it("preserves pi compaction override values", () => {
+  it("preserves legacy compaction override values", () => {
     const compaction = materializeCompactionConfig({
       reserveTokens: 15_000,
       keepRecentTokens: 12_000,
