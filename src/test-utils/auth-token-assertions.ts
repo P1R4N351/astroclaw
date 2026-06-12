@@ -1,10 +1,12 @@
+// Assertion helpers for auth token redaction and token shape tests.
 import { expect } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
+/** Asserts the generated Gateway auth token is both returned and persisted. */
 export function expectGeneratedTokenPersistedToGatewayAuth(params: {
   generatedToken?: string;
   authToken?: string;
-  persistedConfig?: AstroclawConfig;
+  persistedConfig?: OpenClawConfig;
 }) {
   expect(params.generatedToken).toMatch(/^[0-9a-f]{48}$/);
   expect(params.authToken).toBe(params.generatedToken);
