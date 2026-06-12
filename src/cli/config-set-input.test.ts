@@ -1,3 +1,4 @@
+// Config set input tests cover config value parsing from CLI input and files.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -79,7 +80,7 @@ describe("config set input parsing", () => {
 
   it("parses valid --batch-file payloads", () => {
     withBatchFile(
-      "astroclaw-config-set-input-",
+      "openclaw-config-set-input-",
       '[{"path":"gateway.auth.mode","value":"token"}]',
       (batchPath) => {
         const parsed = parseBatchSource({
@@ -96,7 +97,7 @@ describe("config set input parsing", () => {
   });
 
   it("rejects malformed --batch-file payloads", () => {
-    withBatchFile("astroclaw-config-set-input-invalid-", "{}", (batchPath) => {
+    withBatchFile("openclaw-config-set-input-invalid-", "{}", (batchPath) => {
       expect(() =>
         parseBatchSource({
           batchFile: batchPath,
