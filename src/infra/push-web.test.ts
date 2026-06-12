@@ -1,3 +1,4 @@
+// Tests web push subscription storage and delivery helpers.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -58,7 +59,11 @@ describe("resolveVapidKeys", () => {
     const keys = await resolveVapidKeys(tmpDir);
     expect(keys.publicKey).toBe("test-public-key-base64url");
     expect(keys.privateKey).toBe("test-private-key-base64url");
-    expect(keys.subject).toMatch(/^mailto:/);
+    expect(keys.subject).toBe("https://openclaw.ai");
+    const persistedKeys = JSON.parse(
+      await fs.readFile(path.join(tmpDir, "push", "vapid-keys.json"), "utf8"),
+    ) as { subject?: string };
+    expect(persistedKeys.subject).toBe("https://openclaw.ai");
 
     // Second call returns same keys.
     const keys2 = await resolveVapidKeys(tmpDir);
@@ -72,9 +77,9 @@ describe("resolveVapidKeys", () => {
     await resolveVapidKeys(tmpDir);
 
     // Set env overrides.
-    process.env.ASTROCLAW_VAPID_PUBLIC_KEY = "env-public";
-    process.env.ASTROCLAW_VAPID_PRIVATE_KEY = "env-private";
-    process.env.ASTROCLAW_VAPID_SUBJECT = "mailto:env@test.com";
+    process.env.OPENCLAW_VAPID_PUBLIC_KEY = "env-public";
+    process.env.OPENCLAW_VAPID_PRIVATE_KEY = "env-private";
+    process.env.OPENCLAW_VAPID_SUBJECT = "mailto:env@test.com";
     try {
       const keys = await resolveVapidKeys(tmpDir);
       expect(keys.publicKey).toBe("env-public");
@@ -82,9 +87,9 @@ describe("resolveVapidKeys", () => {
       expect(keys.subject).toBe("mailto:env@test.com");
       expect(vi.mocked(webPush.generateVAPIDKeys)).toHaveBeenCalledTimes(1);
     } finally {
-      delete process.env.ASTROCLAW_VAPID_PUBLIC_KEY;
-      delete process.env.ASTROCLAW_VAPID_PRIVATE_KEY;
-      delete process.env.ASTROCLAW_VAPID_SUBJECT;
+      delete process.env.OPENCLAW_VAPID_PUBLIC_KEY;
+      delete process.env.OPENCLAW_VAPID_PRIVATE_KEY;
+      delete process.env.OPENCLAW_VAPID_SUBJECT;
     }
   });
 });
@@ -211,7 +216,7 @@ describe("sending", () => {
     expect(result.ok).toBe(true);
     expect(vi.mocked(webPush.setVapidDetails)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(webPush.setVapidDetails)).toHaveBeenCalledWith(
-      "mailto:astroclaw@localhost",
+      "https://openclaw.ai",
       "test-public-key-base64url",
       "test-private-key-base64url",
     );
