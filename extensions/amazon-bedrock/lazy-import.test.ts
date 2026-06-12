@@ -1,4 +1,5 @@
-import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
+// Amazon Bedrock tests cover lazy import plugin behavior.
+import { registerSingleProviderPlugin } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 function mockBedrockSdkImportTripwire(): () => number {
