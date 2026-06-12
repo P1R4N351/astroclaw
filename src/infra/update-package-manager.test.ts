@@ -1,3 +1,4 @@
+// Covers package manager resolution for update build flows.
 import { describe, expect, it } from "vitest";
 import {
   resolveUpdateBuildManager,
@@ -13,7 +14,7 @@ describe("resolveUpdateBuildManager", () => {
       calls.push({ argv, path: options.env?.PATH ?? options.env?.Path ?? "" });
       if (key === "pnpm --version") {
         const envPath = options.env?.PATH ?? options.env?.Path ?? "";
-        if (envPath.includes("astroclaw-update-pnpm-")) {
+        if (envPath.includes("openclaw-update-pnpm-")) {
           paths.push(envPath);
           return { stdout: "11.0.0", stderr: "", code: 0 };
         }
@@ -45,7 +46,7 @@ describe("resolveUpdateBuildManager", () => {
       ]);
       const tempRoot = calls[3]?.argv[3];
       expect(typeof tempRoot).toBe("string");
-      expect(tempRoot?.includes("astroclaw-update-pnpm-")).toBe(true);
+      expect(tempRoot?.includes("openclaw-update-pnpm-")).toBe(true);
       expect(paths).toHaveLength(1);
       expect(paths[0]?.split(":")[0]).toBe(`${tempRoot}/node_modules/.bin`);
       await result.cleanup?.();
