@@ -1,3 +1,4 @@
+// Prompt composition scenarios build reusable agent prompt fixtures.
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
@@ -7,10 +8,10 @@ import {
   buildBootstrapPromptWarning,
 } from "../../../src/agents/bootstrap-budget.js";
 import { resolveBootstrapContextForRun } from "../../../src/agents/bootstrap-files.js";
-import { buildCurrentInboundPrompt } from "../../../src/agents/pi-embedded-runner/run/runtime-context-prompt.js";
-import { buildEmbeddedSystemPrompt } from "../../../src/agents/pi-embedded-runner/system-prompt.js";
+import { buildCurrentInboundPrompt } from "../../../src/agents/embedded-agent-runner/run/runtime-context-prompt.js";
+import { buildEmbeddedSystemPrompt } from "../../../src/agents/embedded-agent-runner/system-prompt.js";
 import { buildAgentSystemPrompt } from "../../../src/agents/system-prompt.js";
-import { createStubTool } from "../../../src/agents/test-helpers/pi-tool-stubs.js";
+import { createStubTool } from "../../../src/agents/test-helpers/agent-tool-stubs.js";
 import {
   buildDirectChatContext,
   buildGroupChatContext,
@@ -23,9 +24,12 @@ import {
 import { buildReplyPromptEnvelope } from "../../../src/auto-reply/reply/prompt-prelude.js";
 import type { TemplateContext } from "../../../src/auto-reply/templating.js";
 import { SILENT_REPLY_TOKEN } from "../../../src/auto-reply/tokens.js";
-import type { AstroclawConfig } from "../../../src/config/config.js";
+import type { OpenClawConfig } from "../../../src/config/config.js";
 import { makeTempWorkspace, writeWorkspaceFile } from "../../../src/test-helpers/workspace.js";
 
+// Prompt composition scenarios for system/body prompt stability tests.
+
+/** One turn in a prompt composition scenario. */
 export type PromptScenarioTurn = {
   id: string;
   label: string;
@@ -34,6 +38,7 @@ export type PromptScenarioTurn = {
   notes: string[];
 };
 
+/** Multi-turn prompt composition scenario fixture. */
 export type PromptScenario = {
   scenario: string;
   focus: string;
@@ -157,7 +162,7 @@ function buildAutoReplySystemPrompt(params: {
       : "",
     params.includeGroupIntro
       ? buildGroupIntro({
-          cfg: {} as AstroclawConfig,
+          cfg: {} as OpenClawConfig,
           sessionCtx: params.sessionCtx,
           defaultActivation: "mention",
           silentToken: SILENT_REPLY_TOKEN,
@@ -497,7 +502,7 @@ async function createToolRichScenario(workspaceDir: string): Promise<PromptScena
   const skillsPrompt = [
     "<available_skills>",
     "<skill><name>checks</name><description>Run checks before landing changes.</description><location>/skills/checks/SKILL.md</location></skill>",
-    "<skill><name>release</name><description>Release Astroclaw safely.</description><location>/skills/release/SKILL.md</location></skill>",
+    "<skill><name>release</name><description>Release OpenClaw safely.</description><location>/skills/release/SKILL.md</location></skill>",
     "</available_skills>",
   ].join("\n");
   const contextFiles = await readContextFiles(workspaceDir, ["AGENTS.md", "TOOLS.md", "SOUL.md"]);
@@ -566,7 +571,7 @@ async function createBootstrapWarningScenario(workspaceDir: string): Promise<Pro
         bootstrapTotalMaxChars: 2_200,
       },
     },
-  } satisfies AstroclawConfig;
+  } satisfies OpenClawConfig;
   const largeAgents = "# AGENTS.md\n\n" + "Rules.\n".repeat(5_000);
   const largeTools = "# TOOLS.md\n\n" + "Notes.\n".repeat(3_000);
   await writeWorkspaceFile({ dir: workspaceDir, name: "AGENTS.md", content: largeAgents });
@@ -733,8 +738,9 @@ async function createMaintenanceScenario(workspaceDir: string): Promise<PromptSc
   };
 }
 
+/** Create a temp workspace with prompt composition context files. */
 export async function createWorkspaceWithPromptCompositionFiles(): Promise<string> {
-  const workspaceDir = await makeTempWorkspace("astroclaw-prompt-cache-");
+  const workspaceDir = await makeTempWorkspace("openclaw-prompt-cache-");
   await writeWorkspaceFile({
     dir: workspaceDir,
     name: "AGENTS.md",
@@ -761,6 +767,7 @@ export async function createWorkspaceWithPromptCompositionFiles(): Promise<strin
   return workspaceDir;
 }
 
+/** Create all prompt composition scenarios plus cleanup handles. */
 export async function createPromptCompositionScenarios(): Promise<{
   workspaceDir: string;
   warningWorkspaceDir: string;
@@ -768,7 +775,7 @@ export async function createPromptCompositionScenarios(): Promise<{
   cleanup: () => Promise<void>;
 }> {
   const workspaceDir = await createWorkspaceWithPromptCompositionFiles();
-  const warningWorkspaceDir = await makeTempWorkspace("astroclaw-prompt-cache-warning-");
+  const warningWorkspaceDir = await makeTempWorkspace("openclaw-prompt-cache-warning-");
   const scenarios = [
     createDirectScenario(workspaceDir),
     createGroupScenario(workspaceDir),
