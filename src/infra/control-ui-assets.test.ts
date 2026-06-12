@@ -1,3 +1,4 @@
+// Tests Control UI asset discovery and expected bundled files.
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -64,9 +65,9 @@ vi.mock("./control-ui-assets.fs.runtime.js", async () => {
   return wrapped;
 });
 
-vi.mock("./astroclaw-root.js", () => ({
-  resolveAstroclawPackageRoot: vi.fn(async () => null),
-  resolveAstroclawPackageRootSync: vi.fn(() => null),
+vi.mock("./openclaw-root.js", () => ({
+  resolveOpenClawPackageRoot: vi.fn(async () => null),
+  resolveOpenClawPackageRootSync: vi.fn(() => null),
 }));
 
 let resolveControlUiRepoRoot: typeof import("./control-ui-assets.js").resolveControlUiRepoRoot;
@@ -75,7 +76,7 @@ let resolveControlUiDistIndexHealth: typeof import("./control-ui-assets.js").res
 let isPackageProvenControlUiRootSync: typeof import("./control-ui-assets.js").isPackageProvenControlUiRootSync;
 let resolveControlUiRootOverrideSync: typeof import("./control-ui-assets.js").resolveControlUiRootOverrideSync;
 let resolveControlUiRootSync: typeof import("./control-ui-assets.js").resolveControlUiRootSync;
-let astroclawRoot: typeof import("./astroclaw-root.js");
+let openclawRoot: typeof import("./openclaw-root.js");
 
 describe("control UI assets helpers (fs-mocked)", () => {
   beforeAll(async () => {
@@ -87,7 +88,7 @@ describe("control UI assets helpers (fs-mocked)", () => {
       resolveControlUiRootOverrideSync,
       resolveControlUiRootSync,
     } = await import("./control-ui-assets.js"));
-    astroclawRoot = await import("./astroclaw-root.js");
+    openclawRoot = await import("./openclaw-root.js");
   });
 
   beforeEach(() => {
@@ -122,8 +123,8 @@ describe("control UI assets helpers (fs-mocked)", () => {
   });
 
   it("resolves dist control-ui index path for symlinked argv1 via realpath", async () => {
-    const pkgRoot = abs("fixtures/bun-global/astroclaw");
-    const wrapperArgv1 = abs("fixtures/bin/astroclaw");
+    const pkgRoot = abs("fixtures/bun-global/openclaw");
+    const wrapperArgv1 = abs("fixtures/bin/openclaw");
     const realEntrypoint = path.join(pkgRoot, "dist", "index.js");
 
     state.realpaths.set(wrapperArgv1, realEntrypoint);
@@ -133,29 +134,29 @@ describe("control UI assets helpers (fs-mocked)", () => {
     );
   });
 
-  it("uses resolveAstroclawPackageRoot when available", async () => {
-    const pkgRoot = abs("fixtures/astroclaw");
+  it("uses resolveOpenClawPackageRoot when available", async () => {
+    const pkgRoot = abs("fixtures/openclaw");
     (
-      astroclawRoot.resolveAstroclawPackageRoot as unknown as ReturnType<typeof vi.fn>
+      openclawRoot.resolveOpenClawPackageRoot as unknown as ReturnType<typeof vi.fn>
     ).mockResolvedValueOnce(pkgRoot);
 
-    await expect(resolveControlUiDistIndexPath(abs("fixtures/bin/astroclaw"))).resolves.toBe(
+    await expect(resolveControlUiDistIndexPath(abs("fixtures/bin/openclaw"))).resolves.toBe(
       path.join(pkgRoot, "dist", "control-ui", "index.html"),
     );
   });
 
   it("falls back to package.json name matching when root resolution fails", async () => {
     const root = abs("fixtures/fallback");
-    setFile(path.join(root, "package.json"), JSON.stringify({ name: "astroclaw" }));
+    setFile(path.join(root, "package.json"), JSON.stringify({ name: "openclaw" }));
     setFile(path.join(root, "dist", "control-ui", "index.html"), "<html></html>\n");
 
-    await expect(resolveControlUiDistIndexPath(path.join(root, "astroclaw.mjs"))).resolves.toBe(
+    await expect(resolveControlUiDistIndexPath(path.join(root, "openclaw.mjs"))).resolves.toBe(
       path.join(root, "dist", "control-ui", "index.html"),
     );
   });
 
   it("returns null when fallback package name does not match", async () => {
-    const root = abs("fixtures/not-astroclaw");
+    const root = abs("fixtures/not-openclaw");
     setFile(path.join(root, "package.json"), JSON.stringify({ name: "malicious-pkg" }));
     setFile(path.join(root, "dist", "control-ui", "index.html"), "<html></html>\n");
 
@@ -192,9 +193,9 @@ describe("control UI assets helpers (fs-mocked)", () => {
   });
 
   it("resolves control-ui root for dist bundle argv1 and moduleUrl candidates", () => {
-    const pkgRoot = abs("fixtures/astroclaw-bundle");
+    const pkgRoot = abs("fixtures/openclaw-bundle");
     (
-      astroclawRoot.resolveAstroclawPackageRootSync as unknown as ReturnType<typeof vi.fn>
+      openclawRoot.resolveOpenClawPackageRootSync as unknown as ReturnType<typeof vi.fn>
     ).mockReturnValueOnce(pkgRoot);
 
     const uiDir = path.join(pkgRoot, "dist", "control-ui");
@@ -211,8 +212,8 @@ describe("control UI assets helpers (fs-mocked)", () => {
   });
 
   it("prefers packaged app Control UI assets in Contents/Resources", () => {
-    const execPath = abs("fixtures/Astroclaw.app/Contents/MacOS/Astroclaw");
-    const bundledUiDir = abs("fixtures/Astroclaw.app/Contents/Resources/control-ui");
+    const execPath = abs("fixtures/OpenClaw.app/Contents/MacOS/OpenClaw");
+    const bundledUiDir = abs("fixtures/OpenClaw.app/Contents/Resources/control-ui");
     setFile(path.join(bundledUiDir, "index.html"), "<html></html>\n");
 
     state.realpaths.set(execPath, execPath);
@@ -221,8 +222,8 @@ describe("control UI assets helpers (fs-mocked)", () => {
   });
 
   it("resolves control-ui root for symlinked argv1 via realpath", () => {
-    const pkgRoot = abs("fixtures/bun-global/astroclaw");
-    const wrapperArgv1 = abs("fixtures/bin/astroclaw");
+    const pkgRoot = abs("fixtures/bun-global/openclaw");
+    const wrapperArgv1 = abs("fixtures/bin/openclaw");
     const realEntrypoint = path.join(pkgRoot, "dist", "index.js");
     const uiDir = path.join(pkgRoot, "dist", "control-ui");
 
@@ -233,12 +234,12 @@ describe("control UI assets helpers (fs-mocked)", () => {
   });
 
   it("detects package-proven control-ui roots", () => {
-    const pkgRoot = abs("fixtures/astroclaw-package-root");
+    const pkgRoot = abs("fixtures/openclaw-package-root");
     const uiDir = path.join(pkgRoot, "dist", "control-ui");
     setDir(uiDir);
     setFile(path.join(uiDir, "index.html"), "<html></html>\n");
     (
-      astroclawRoot.resolveAstroclawPackageRootSync as unknown as ReturnType<typeof vi.fn>
+      openclawRoot.resolveOpenClawPackageRootSync as unknown as ReturnType<typeof vi.fn>
     ).mockReturnValueOnce(pkgRoot);
 
     expect(
@@ -249,12 +250,12 @@ describe("control UI assets helpers (fs-mocked)", () => {
   });
 
   it("does not treat fallback roots as package-proven", () => {
-    const pkgRoot = abs("fixtures/astroclaw-package-root");
+    const pkgRoot = abs("fixtures/openclaw-package-root");
     const fallbackRoot = abs("fixtures/fallback-root/dist/control-ui");
     setDir(fallbackRoot);
     setFile(path.join(fallbackRoot, "index.html"), "<html></html>\n");
     (
-      astroclawRoot.resolveAstroclawPackageRootSync as unknown as ReturnType<typeof vi.fn>
+      openclawRoot.resolveOpenClawPackageRootSync as unknown as ReturnType<typeof vi.fn>
     ).mockReturnValueOnce(pkgRoot);
 
     expect(
