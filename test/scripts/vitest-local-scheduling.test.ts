@@ -1,3 +1,4 @@
+// Vitest Local Scheduling tests cover vitest local scheduling script behavior.
 import { describe, expect, it } from "vitest";
 import {
   resolveLocalVitestEnv,
@@ -8,12 +9,12 @@ import {
 
 describe("vitest local full-suite profile", () => {
   it("forces local Vitest runs back onto local-check policy", () => {
-    expect(resolveLocalVitestEnv({ ASTROCLAW_LOCAL_CHECK: "0", PATH: "/usr/bin" })).toEqual({
-      ASTROCLAW_LOCAL_CHECK: "1",
+    expect(resolveLocalVitestEnv({ OPENCLAW_LOCAL_CHECK: "0", PATH: "/usr/bin" })).toEqual({
+      OPENCLAW_LOCAL_CHECK: "1",
       PATH: "/usr/bin",
     });
-    expect(resolveLocalVitestEnv({ ASTROCLAW_LOCAL_CHECK: "false", PATH: "/usr/bin" })).toEqual({
-      ASTROCLAW_LOCAL_CHECK: "1",
+    expect(resolveLocalVitestEnv({ OPENCLAW_LOCAL_CHECK: "false", PATH: "/usr/bin" })).toEqual({
+      OPENCLAW_LOCAL_CHECK: "1",
       PATH: "/usr/bin",
     });
   });
@@ -22,12 +23,12 @@ describe("vitest local full-suite profile", () => {
     expect(
       resolveLocalVitestEnv({
         CI: "true",
-        ASTROCLAW_LOCAL_CHECK: "0",
+        OPENCLAW_LOCAL_CHECK: "0",
         PATH: "/usr/bin",
       }),
     ).toEqual({
       CI: "true",
-      ASTROCLAW_LOCAL_CHECK: "0",
+      OPENCLAW_LOCAL_CHECK: "0",
       PATH: "/usr/bin",
     });
   });
@@ -120,7 +121,7 @@ describe("vitest local full-suite profile", () => {
   });
 
   it("lets explicit system throttle opt-out ignore memory pressure", () => {
-    const env = { ASTROCLAW_VITEST_DISABLE_SYSTEM_THROTTLE: "1" };
+    const env = { OPENCLAW_VITEST_DISABLE_SYSTEM_THROTTLE: "1" };
     const hostInfo = {
       cpuCount: 10,
       loadAverage1m: 0,
@@ -137,5 +138,21 @@ describe("vitest local full-suite profile", () => {
       shardParallelism: 4,
       vitestMaxWorkers: 1,
     });
+  });
+
+  it("rejects malformed explicit worker limits", () => {
+    const hostInfo = {
+      cpuCount: 10,
+      loadAverage1m: 0,
+      totalMemoryBytes: 24 * 1024 ** 3,
+      freeMemoryBytes: 12 * 1024 ** 3,
+    };
+
+    expect(() =>
+      resolveLocalVitestScheduling({ OPENCLAW_VITEST_MAX_WORKERS: "8x" }, hostInfo, "threads"),
+    ).toThrow("OPENCLAW_VITEST_MAX_WORKERS must be a positive integer; got: 8x");
+    expect(() =>
+      resolveLocalVitestScheduling({ OPENCLAW_TEST_WORKERS: "1e0" }, hostInfo, "threads"),
+    ).toThrow("OPENCLAW_TEST_WORKERS must be a positive integer; got: 1e0");
   });
 });
