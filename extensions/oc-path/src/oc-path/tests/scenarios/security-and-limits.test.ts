@@ -1,3 +1,4 @@
+// OC Path tests cover security and limits plugin behavior.
 import { describe, expect, it } from "vitest";
 import {
   MAX_PATH_LENGTH,
@@ -11,7 +12,6 @@ import {
 } from "../../index.js";
 import { parseJsonc } from "../../jsonc/parse.js";
 import { parseJsonl } from "../../jsonl/parse.js";
-
 
 describe("encoding edges", () => {
   it("strips leading UTF-8 BOM from path string", () => {
@@ -36,7 +36,6 @@ describe("encoding edges", () => {
     expect(() => parseOcPath("oc://X.md/items/[k=a\x00b]")).toThrow(OcPathError);
   });
 });
-
 
 describe("file-slot containment", () => {
   it("rejects absolute POSIX file slot", () => {
@@ -72,7 +71,6 @@ describe("file-slot containment", () => {
     expect(() => formatOcPath({ file: "foo/../bar" })).toThrow(/Parent-directory/);
   });
 });
-
 
 describe("path-string and traversal caps", () => {
   it("parseOcPath rejects strings longer than MAX_PATH_LENGTH", () => {
@@ -123,18 +121,16 @@ describe("path-string and traversal caps", () => {
   });
 });
 
-
 describe("sentinel literal at format boundary", () => {
   it("formatOcPath rejects a struct carrying the redaction sentinel", () => {
-    expect(() => formatOcPath({ file: "AGENTS.md", section: "__ASTROCLAW_REDACTED__" })).toThrow(
+    expect(() => formatOcPath({ file: "AGENTS.md", section: "__OPENCLAW_REDACTED__" })).toThrow(
       /sentinel literal/,
     );
   });
 });
 
-
 describe("numeric segments dispatch by node kind", () => {
-  it("negative numeric key on object resolves as literal key (astroclaw#59934)", () => {
+  it("negative numeric key on object resolves as literal key (openclaw#59934)", () => {
     // Telegram supergroup IDs are negative numbers used as map keys.
     const ast = parseJsonc(
       '{"channels":{"telegram":{"groups":{"-5028303500":{"requireMention":false}}}}}',
@@ -152,7 +148,6 @@ describe("numeric segments dispatch by node kind", () => {
     expect(m?.kind === "leaf" && m.valueText).toBe("bar");
   });
 });
-
 
 describe("setOcPath value coercion is locale-independent and exact-match", () => {
   it("number coercion accepts `1.5`, refuses `1,5`", () => {
@@ -173,7 +168,6 @@ describe("setOcPath value coercion is locale-independent and exact-match", () =>
     expect(setOcPath(ast, parseOcPath("oc://X/x"), "yes").ok).toBe(false);
   });
 });
-
 
 describe("predicate-value injection is contained", () => {
   it("regex metacharacters in predicate value match literally, not as regex", () => {
@@ -212,7 +206,6 @@ describe("predicate-value injection is contained", () => {
     expect(matches).toHaveLength(1);
   });
 });
-
 
 describe("structural rejection", () => {
   it("rejects mismatched brackets and braces", () => {
