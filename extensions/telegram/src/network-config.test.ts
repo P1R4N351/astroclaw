@@ -1,19 +1,20 @@
-import type { TelegramNetworkConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Telegram tests cover network config plugin behavior.
+import type { TelegramNetworkConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   isTruthyEnvValue: (value: string | undefined) =>
     typeof value === "string" && /^(1|true|yes|on)$/i.test(value.trim()),
   isWSL2Sync: vi.fn(() => false),
 }));
 
-let isWSL2Sync: typeof import("astroclaw/plugin-sdk/runtime-env").isWSL2Sync;
+let isWSL2Sync: typeof import("openclaw/plugin-sdk/runtime-env").isWSL2Sync;
 let resetTelegramNetworkConfigStateForTests: typeof import("./network-config.js").resetTelegramNetworkConfigStateForTests;
 let resolveTelegramAutoSelectFamilyDecision: typeof import("./network-config.js").resolveTelegramAutoSelectFamilyDecision;
 let resolveTelegramDnsResultOrderDecision: typeof import("./network-config.js").resolveTelegramDnsResultOrderDecision;
 
 async function loadModule() {
-  ({ isWSL2Sync } = await import("astroclaw/plugin-sdk/runtime-env"));
+  ({ isWSL2Sync } = await import("openclaw/plugin-sdk/runtime-env"));
   ({
     resetTelegramNetworkConfigStateForTests,
     resolveTelegramAutoSelectFamilyDecision,
@@ -42,38 +43,38 @@ describe("resolveTelegramAutoSelectFamilyDecision", () => {
     {
       name: "prefers env enable over env disable",
       env: {
-        ASTROCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY: "1",
-        ASTROCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY: "1",
+        OPENCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY: "1",
+        OPENCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY: "1",
       },
       expected: {
         value: true,
-        source: "env:ASTROCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY",
+        source: "env:OPENCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY",
       },
     },
     {
       name: "uses env disable when set",
-      env: { ASTROCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY: "1" },
+      env: { OPENCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY: "1" },
       expected: {
         value: false,
-        source: "env:ASTROCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY",
+        source: "env:OPENCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY",
       },
     },
     {
       name: "prefers env enable over config",
-      env: { ASTROCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY: "1" },
+      env: { OPENCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY: "1" },
       network: { autoSelectFamily: false },
       expected: {
         value: true,
-        source: "env:ASTROCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY",
+        source: "env:OPENCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY",
       },
     },
     {
       name: "prefers env disable over config",
-      env: { ASTROCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY: "1" },
+      env: { OPENCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY: "1" },
       network: { autoSelectFamily: true },
       expected: {
         value: false,
-        source: "env:ASTROCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY",
+        source: "env:OPENCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY",
       },
     },
     {
@@ -119,10 +120,10 @@ describe("resolveTelegramAutoSelectFamilyDecision", () => {
       },
       {
         name: "respects env override on WSL2",
-        env: { ASTROCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY: "1" },
+        env: { OPENCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY: "1" },
         expected: {
           value: true,
-          source: "env:ASTROCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY",
+          source: "env:OPENCLAW_TELEGRAM_ENABLE_AUTO_SELECT_FAMILY",
         },
       },
       {
@@ -163,20 +164,20 @@ describe("resolveTelegramDnsResultOrderDecision", () => {
   it.each([
     {
       name: "uses env override when provided",
-      env: { ASTROCLAW_TELEGRAM_DNS_RESULT_ORDER: "verbatim" },
+      env: { OPENCLAW_TELEGRAM_DNS_RESULT_ORDER: "verbatim" },
       nodeMajor: 22,
       expected: {
         value: "verbatim",
-        source: "env:ASTROCLAW_TELEGRAM_DNS_RESULT_ORDER",
+        source: "env:OPENCLAW_TELEGRAM_DNS_RESULT_ORDER",
       },
     },
     {
       name: "normalizes trimmed env values",
-      env: { ASTROCLAW_TELEGRAM_DNS_RESULT_ORDER: "  IPV4FIRST  " },
+      env: { OPENCLAW_TELEGRAM_DNS_RESULT_ORDER: "  IPV4FIRST  " },
       nodeMajor: 20,
       expected: {
         value: "ipv4first",
-        source: "env:ASTROCLAW_TELEGRAM_DNS_RESULT_ORDER",
+        source: "env:OPENCLAW_TELEGRAM_DNS_RESULT_ORDER",
       },
     },
     {
@@ -193,14 +194,14 @@ describe("resolveTelegramDnsResultOrderDecision", () => {
     },
     {
       name: "ignores invalid env values and falls back to config",
-      env: { ASTROCLAW_TELEGRAM_DNS_RESULT_ORDER: "bogus" },
+      env: { OPENCLAW_TELEGRAM_DNS_RESULT_ORDER: "bogus" },
       network: { dnsResultOrder: "ipv4first" },
       nodeMajor: 20,
       expected: { value: "ipv4first", source: "config" },
     },
     {
       name: "ignores invalid env and config values before applying Node 22 default",
-      env: { ASTROCLAW_TELEGRAM_DNS_RESULT_ORDER: "bogus" },
+      env: { OPENCLAW_TELEGRAM_DNS_RESULT_ORDER: "bogus" },
       network: { dnsResultOrder: "invalid" } as unknown as TelegramNetworkConfig,
       defaultResultOrder: "ipv6first",
       nodeMajor: 22,
