@@ -1,9 +1,10 @@
+// Slack tests cover provider.interop plugin behavior.
 import { describe, expect, it } from "vitest";
 import {
   createSlackBoltApp,
   createSlackSocketModeLogger,
   resolveSlackBoltInterop,
-  shouldSkipAstroclawSlackSelfEvent,
+  shouldSkipOpenClawSlackSelfEvent,
 } from "./provider-support.js";
 
 describe("resolveSlackBoltInterop", () => {
@@ -373,28 +374,28 @@ describe("createSlackBoltApp", () => {
 
   it("keeps Bolt self filtering except assistant message_changed events", () => {
     expect(
-      shouldSkipAstroclawSlackSelfEvent({
+      shouldSkipOpenClawSlackSelfEvent({
         context: { botUserId: "U_BOT", botId: "B_BOT" },
         event: { type: "reaction_added", user: "U_BOT" },
       }),
     ).toBe(true);
 
     expect(
-      shouldSkipAstroclawSlackSelfEvent({
+      shouldSkipOpenClawSlackSelfEvent({
         context: { botUserId: "U_BOT", botId: "B_BOT" },
         event: { type: "message", subtype: "message_changed", user: "U_BOT" },
       }),
     ).toBe(false);
 
     expect(
-      shouldSkipAstroclawSlackSelfEvent({
+      shouldSkipOpenClawSlackSelfEvent({
         context: { botUserId: "U_BOT", botId: "B_BOT" },
         event: { type: "message", user: "U_BOT" },
       }),
     ).toBe(true);
 
     expect(
-      shouldSkipAstroclawSlackSelfEvent({
+      shouldSkipOpenClawSlackSelfEvent({
         context: { botUserId: "U_BOT", botId: "B_BOT" },
         event: { type: "message", user: "U_OTHER" },
         message: { subtype: "bot_message", bot_id: "B_BOT" },
