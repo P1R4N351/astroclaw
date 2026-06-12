@@ -1,8 +1,9 @@
+// Xiaomi tests cover xiaomi plugin behavior.
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { isLiveTestEnabled } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { isLiveTestEnabled } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
@@ -23,7 +24,7 @@ describeLive("xiaomi plugin live", () => {
     const provider = requireRegisteredProvider(speechProviders, "xiaomi");
 
     const audioFile = await provider.synthesize({
-      text: "Astroclaw Xiaomi MiMo text to speech integration test OK.",
+      text: "OpenClaw Xiaomi MiMo text to speech integration test OK.",
       cfg: { plugins: { enabled: true } } as never,
       providerConfig: { apiKey: XIAOMI_API_KEY, format: "mp3", voice: "mimo_default" },
       target: "audio-file",
@@ -40,7 +41,7 @@ describeLive("xiaomi plugin live", () => {
     const provider = requireRegisteredProvider(speechProviders, "xiaomi");
 
     const voiceNote = await provider.synthesize({
-      text: "Astroclaw Xiaomi MiMo voice note test OK.",
+      text: "OpenClaw Xiaomi MiMo voice note test OK.",
       cfg: { plugins: { enabled: true } } as never,
       providerConfig: { apiKey: XIAOMI_API_KEY, format: "mp3", voice: "mimo_default" },
       target: "voice-note",
