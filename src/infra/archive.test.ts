@@ -1,3 +1,4 @@
+// Tests archive creation and extraction helpers.
 import fs from "node:fs/promises";
 import path from "node:path";
 import JSZip from "jszip";
@@ -12,7 +13,7 @@ import {
   resolvePackedRootDir,
 } from "./archive.js";
 
-const fixtureRootTracker = createSuiteTempRootTracker({ prefix: "astroclaw-archive-" });
+const fixtureRootTracker = createSuiteTempRootTracker({ prefix: "openclaw-archive-" });
 const directorySymlinkType = process.platform === "win32" ? "junction" : undefined;
 const ARCHIVE_EXTRACT_TIMEOUT_MS = 15_000;
 
