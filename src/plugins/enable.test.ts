@@ -1,9 +1,10 @@
+// Covers plugin enablement decisions and disabled-state handling.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
-import { enablePluginInConfig } from "./enable.js";
+import type { OpenClawConfig } from "../config/config.js";
+import { enableExplicitlySelectedPluginInConfig, enablePluginInConfig } from "./enable.js";
 
 function expectEnableResult(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   pluginId: string,
   params: {
     enabled: boolean;
@@ -41,7 +42,7 @@ describe("enablePluginInConfig", () => {
   it.each([
     {
       name: "enables a plugin entry",
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       pluginId: "google",
       expectedEnabled: true,
       assert: (result: ReturnType<typeof enablePluginInConfig>) => {
@@ -54,7 +55,7 @@ describe("enablePluginInConfig", () => {
         plugins: {
           allow: ["memory-core"],
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       pluginId: "google",
       expectedEnabled: false,
       assert: (result: ReturnType<typeof enablePluginInConfig>) => {
@@ -68,7 +69,7 @@ describe("enablePluginInConfig", () => {
         plugins: {
           allow: ["google"],
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       pluginId: "google",
       expectedEnabled: true,
       assert: (result: ReturnType<typeof enablePluginInConfig>) => {
@@ -82,7 +83,7 @@ describe("enablePluginInConfig", () => {
         plugins: {
           deny: ["google"],
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       pluginId: "google",
       expectedEnabled: false,
       assert: (result: ReturnType<typeof enablePluginInConfig>) => {
@@ -91,7 +92,7 @@ describe("enablePluginInConfig", () => {
     },
     {
       name: "writes built-in channels to channels.<id>.enabled and plugins.entries",
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       pluginId: "telegram",
       expectedEnabled: true,
       assert: expectBuiltInChannelEnabled,
@@ -102,7 +103,7 @@ describe("enablePluginInConfig", () => {
         plugins: {
           allow: ["memory-core"],
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       pluginId: "telegram",
       expectedEnabled: false,
       assert: (result: ReturnType<typeof enablePluginInConfig>) => {
@@ -117,7 +118,7 @@ describe("enablePluginInConfig", () => {
         plugins: {
           allow: ["telegram"],
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       pluginId: "telegram",
       expectedEnabled: true,
       assert: (result: ReturnType<typeof enablePluginInConfig>) => {
@@ -139,7 +140,7 @@ describe("enablePluginInConfig", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       pluginId: "telegram",
       expectedEnabled: true,
       assert: expectBuiltInChannelEnabledWithAllowlist,
@@ -152,12 +153,65 @@ describe("enablePluginInConfig", () => {
   });
 
   it("can enable a built-in channel plugin entry without mutating channel config", () => {
-    const result = enablePluginInConfig({} as AstroclawConfig, "twitch", {
+    const result = enablePluginInConfig({} as OpenClawConfig, "twitch", {
       updateChannelConfig: false,
     });
 
     expect(result.enabled).toBe(true);
     expect(result.config.plugins?.entries?.twitch?.enabled).toBe(true);
     expect(result.config.channels?.twitch).toBeUndefined();
+  });
+});
+
+describe("enableExplicitlySelectedPluginInConfig", () => {
+  it("appends ClickClack to a restrictive allowlist before enabling it", () => {
+    const result = enableExplicitlySelectedPluginInConfig(
+      {
+        plugins: {
+          allow: ["memory-core"],
+        },
+      } as OpenClawConfig,
+      "clickclack",
+    );
+
+    expect(result.enabled).toBe(true);
+    expect(result.config.plugins?.allow).toEqual(["memory-core", "clickclack"]);
+    expect(result.config.plugins?.entries?.clickclack?.enabled).toBe(true);
+    expect(result.config.channels?.clickclack?.enabled).toBe(true);
+  });
+
+  it("keeps unrelated explicit plugin enables blocked by a restrictive allowlist", () => {
+    const cfg = {
+      plugins: {
+        allow: ["memory-core"],
+      },
+    } as OpenClawConfig;
+
+    const result = enableExplicitlySelectedPluginInConfig(cfg, "google");
+
+    expect(result).toEqual({
+      config: cfg,
+      enabled: false,
+      pluginId: "google",
+      reason: "blocked by allowlist",
+    });
+  });
+
+  it("keeps ClickClack blocked by the denylist without changing the allowlist", () => {
+    const cfg = {
+      plugins: {
+        allow: ["memory-core"],
+        deny: ["clickclack"],
+      },
+    } as OpenClawConfig;
+
+    const result = enableExplicitlySelectedPluginInConfig(cfg, "clickclack");
+
+    expect(result).toEqual({
+      config: cfg,
+      enabled: false,
+      pluginId: "clickclack",
+      reason: "blocked by denylist",
+    });
   });
 });
