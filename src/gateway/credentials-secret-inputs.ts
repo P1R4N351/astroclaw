@@ -1,4 +1,6 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Gateway credential secret-input resolver.
+// Resolves SecretRefs before applying Gateway credential precedence rules.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { resolveSecretInputString } from "../secrets/resolve-secret-input-string.js";
 import {
@@ -21,7 +23,7 @@ import {
 } from "./secret-input-paths.js";
 
 type GatewayCredentialSecretInputOptions = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   explicitAuth?: ExplicitGatewayAuth;
   urlOverride?: string;
   urlOverrideSource?: "cli" | "env";
@@ -35,6 +37,7 @@ type GatewayCredentialSecretInputOptions = {
   remotePasswordFallback?: GatewayRemoteCredentialFallback;
 };
 
+/** Internal options after explicit auth has been trimmed to real credential values. */
 type NormalizedGatewayCredentialSecretInputOptions = Omit<
   GatewayCredentialSecretInputOptions,
   "explicitAuth"
@@ -53,7 +56,7 @@ function resolveExplicitGatewayAuth(opts?: ExplicitGatewayAuth): ExplicitGateway
 }
 
 async function resolveGatewaySecretInputString(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   value: unknown;
   path: string;
   env: NodeJS.ProcessEnv;
@@ -74,7 +77,7 @@ async function resolveGatewaySecretInputString(params: {
 }
 
 function hasConfiguredGatewaySecretRef(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   path: SupportedGatewaySecretInputPath,
 ): boolean {
   return Boolean(
@@ -86,7 +89,7 @@ function hasConfiguredGatewaySecretRef(
 }
 
 function resolveGatewayCredentialsFromConfigOptions(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   options: NormalizedGatewayCredentialSecretInputOptions;
 }) {
@@ -127,10 +130,10 @@ function localAuthModeAllowsGatewaySecretInputPath(params: {
   return true;
 }
 
-function gatewaySecretInputPathCanWin(params: {
+function canGatewaySecretInputPathWin(params: {
   options: NormalizedGatewayCredentialSecretInputOptions;
   env: NodeJS.ProcessEnv;
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   path: SupportedGatewaySecretInputPath;
 }): boolean {
   if (!hasConfiguredGatewaySecretRef(params.config, params.path)) {
@@ -147,7 +150,7 @@ function gatewaySecretInputPathCanWin(params: {
   ) {
     return false;
   }
-  const sentinel = `__ASTROCLAW_GATEWAY_SECRET_REF_PROBE_${params.path.replaceAll(".", "_")}__`;
+  const sentinel = `__OPENCLAW_GATEWAY_SECRET_REF_PROBE_${params.path.replaceAll(".", "_")}__`;
   const probeConfig = structuredClone(params.config);
   for (const candidatePath of ALL_GATEWAY_SECRET_INPUT_PATHS) {
     if (!hasConfiguredGatewaySecretRef(probeConfig, candidatePath)) {
@@ -159,6 +162,8 @@ function gatewaySecretInputPathCanWin(params: {
       value: undefined,
     });
   }
+  // Inject one path at a time so normal credential precedence decides whether
+  // that secret ref is on the active auth path without resolving real secrets.
   assignResolvedGatewaySecretInput({
     config: probeConfig,
     path: params.path,
@@ -172,16 +177,38 @@ function gatewaySecretInputPathCanWin(params: {
         options: params.options,
       }),
     );
-    const tokenCanWin = resolved.token === sentinel && !resolved.password;
-    const passwordCanWin = resolved.password === sentinel && !resolved.token;
+    const authMode = params.config.gateway?.auth?.mode;
+    const tokenCanWin =
+      resolved.token === sentinel &&
+      ((mode === "local" && authMode === "token") || !resolved.password);
+    const passwordCanWin =
+      resolved.password === sentinel &&
+      ((mode === "local" && (authMode === "password" || authMode === "trusted-proxy")) ||
+        !resolved.token);
     return tokenCanWin || passwordCanWin;
   } catch {
     return false;
   }
 }
 
+/** Test whether resolving a configured secret-ref path could affect selected credentials. */
+export function gatewaySecretInputPathCanWin(
+  params: GatewayCredentialSecretInputOptions & { path: SupportedGatewaySecretInputPath },
+): boolean {
+  const { path, env = process.env, ...options } = params;
+  return canGatewaySecretInputPathWin({
+    options: {
+      ...options,
+      explicitAuth: resolveExplicitGatewayAuth(options.explicitAuth),
+    },
+    env,
+    config: params.config,
+    path,
+  });
+}
+
 async function resolveConfiguredGatewaySecretInput(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   path: SupportedGatewaySecretInputPath;
   env: NodeJS.ProcessEnv;
 }): Promise<string | undefined> {
@@ -196,12 +223,12 @@ async function resolveConfiguredGatewaySecretInput(params: {
 async function resolvePreferredGatewaySecretInputs(params: {
   options: NormalizedGatewayCredentialSecretInputOptions;
   env: NodeJS.ProcessEnv;
-  config: AstroclawConfig;
-}): Promise<AstroclawConfig> {
+  config: OpenClawConfig;
+}): Promise<OpenClawConfig> {
   let nextConfig = params.config;
   for (const path of ALL_GATEWAY_SECRET_INPUT_PATHS) {
     if (
-      !gatewaySecretInputPathCanWin({
+      !canGatewaySecretInputPathWin({
         options: params.options,
         env: params.env,
         config: nextConfig,
@@ -233,6 +260,7 @@ async function resolvePreferredGatewaySecretInputs(params: {
   return nextConfig;
 }
 
+/** Resolve only secret refs that can win, then select Gateway credentials. */
 async function resolveGatewayCredentialsFromConfigWithSecretInputs(params: {
   options: NormalizedGatewayCredentialSecretInputOptions;
   env: NodeJS.ProcessEnv;
@@ -263,6 +291,8 @@ async function resolveGatewayCredentialsFromConfigWithSecretInputs(params: {
       if (resolvedConfig === params.options.config) {
         resolvedConfig = structuredClone(params.options.config);
       }
+      // Resolve refs lazily on demand as a backstop for precedence cases the
+      // optimistic scan skipped, but stop if the same path loops.
       const resolvedValue = await resolveConfiguredGatewaySecretInput({
         config: resolvedConfig,
         path,
@@ -278,6 +308,7 @@ async function resolveGatewayCredentialsFromConfigWithSecretInputs(params: {
   }
 }
 
+/** Resolve Gateway credentials after materializing winning configured secret refs. */
 export async function resolveGatewayCredentialsWithSecretInputs(
   params: GatewayCredentialSecretInputOptions,
 ): Promise<{ token?: string; password?: string }> {
