@@ -1,10 +1,11 @@
+// Doctor legacy-config tests cover compatibility normalizers for old channel, browser, and config shapes.
 import { describe, expect, it } from "vitest";
 import { normalizeLegacyStreamingAliases } from "../config/channel-compat-normalization.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { normalizeLegacyBrowserConfig } from "./doctor/shared/legacy-config-core-normalizers.js";
 
-function asLegacyConfig(value: unknown): AstroclawConfig {
-  return value as AstroclawConfig;
+function asLegacyConfig(value: unknown): OpenClawConfig {
+  return value as OpenClawConfig;
 }
 
 function getLegacyProperty(value: unknown, key: string): unknown {
