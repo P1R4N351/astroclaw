@@ -1,6 +1,12 @@
+/**
+ * iOS gateway client-id classification tests.
+ */
 import { describe, expect, test } from "vitest";
-import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES } from "./protocol/client-info.js";
-import { validateConnectParams } from "./protocol/index.js";
+import {
+  GATEWAY_CLIENT_IDS,
+  GATEWAY_CLIENT_MODES,
+} from "../../packages/gateway-protocol/src/client-info.js";
+import { validateConnectParams } from "../../packages/gateway-protocol/src/index.js";
 
 function makeConnectParams(clientId: string) {
   return {
@@ -31,7 +37,7 @@ describe("connect params client id validation", () => {
   );
 
   test("rejects unknown client ids", () => {
-    const ok = validateConnectParams(makeConnectParams("astroclaw-mobile"));
+    const ok = validateConnectParams(makeConnectParams("openclaw-mobile"));
     expect(ok).toBe(false);
   });
 });
