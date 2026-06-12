@@ -1,5 +1,6 @@
+// Legacy web-fetch migration tests cover doctor repair of old web fetch config.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../../config/config.js";
+import type { OpenClawConfig } from "../../../config/config.js";
 import {
   listLegacyWebFetchConfigPaths,
   migrateLegacyWebFetchConfig,
@@ -21,7 +22,7 @@ describe("legacy web fetch config", () => {
           },
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(res.config.tools?.web?.fetch).toEqual({
       provider: "firecrawl",
@@ -55,7 +56,7 @@ describe("legacy web fetch config", () => {
           },
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(res.config.plugins?.entries?.firecrawl).toEqual({
       enabled: true,
