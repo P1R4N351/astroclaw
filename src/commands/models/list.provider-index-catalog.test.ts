@@ -1,8 +1,9 @@
+// Model provider index catalog tests cover model list catalog indexing and provider grouping.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { loadProviderIndexCatalogRowsForList } from "./list.provider-index-catalog.js";
 
-const baseConfig = {} satisfies AstroclawConfig;
+const baseConfig = {} satisfies OpenClawConfig;
 
 describe("loadProviderIndexCatalogRowsForList", () => {
   it("returns provider-index preview rows when the provider plugin is enabled", () => {
