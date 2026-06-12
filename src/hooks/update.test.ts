@@ -1,5 +1,6 @@
+// Hook update tests cover updating installed hook records and config.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { HookNpmIntegrityDriftParams } from "./install.js";
 
 const installHooksFromNpmSpecMock = vi.fn();
@@ -15,7 +16,7 @@ function createHookInstallConfig(params: {
   hookId: string;
   spec: string;
   integrity?: string;
-}): AstroclawConfig {
+}): OpenClawConfig {
   return {
     hooks: {
       internal: {
@@ -29,7 +30,7 @@ function createHookInstallConfig(params: {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 describe("updateNpmInstalledHookPacks", () => {
@@ -50,14 +51,14 @@ describe("updateNpmInstalledHookPacks", () => {
           actualIntegrity: "sha512-new",
           resolution: {
             integrity: "sha512-new",
-            resolvedSpec: "@astroclaw/demo-hooks@1.0.0",
+            resolvedSpec: "@openclaw/demo-hooks@1.0.0",
             version: "1.0.0",
           },
         });
         if (proceed === false) {
           return {
             ok: false,
-            error: "aborted: npm package integrity drift detected for @astroclaw/demo-hooks@1.0.0",
+            error: "aborted: npm package integrity drift detected for @openclaw/demo-hooks@1.0.0",
           };
         }
         return {
@@ -72,7 +73,7 @@ describe("updateNpmInstalledHookPacks", () => {
 
     const config = createHookInstallConfig({
       hookId: "demo-hooks",
-      spec: "@astroclaw/demo-hooks@1.0.0",
+      spec: "@openclaw/demo-hooks@1.0.0",
       integrity: "sha512-old",
     });
     const result = await updateNpmInstalledHookPacks({
@@ -82,7 +83,7 @@ describe("updateNpmInstalledHookPacks", () => {
     });
 
     expect(warn).toHaveBeenCalledWith(
-      'Integrity drift for hook pack "demo-hooks" (@astroclaw/demo-hooks@1.0.0): expected sha512-old, got sha512-new',
+      'Integrity drift for hook pack "demo-hooks" (@openclaw/demo-hooks@1.0.0): expected sha512-old, got sha512-new',
     );
     expect(result.changed).toBe(false);
     expect(result.config).toBe(config);
@@ -91,8 +92,50 @@ describe("updateNpmInstalledHookPacks", () => {
         hookId: "demo-hooks",
         status: "error",
         message:
-          'Failed to update hook pack "demo-hooks": aborted: npm package integrity drift detected for @astroclaw/demo-hooks@1.0.0',
+          'Failed to update hook pack "demo-hooks": aborted: npm package integrity drift detected for @openclaw/demo-hooks@1.0.0',
       },
     ]);
+  });
+
+  it("preserves hook pack update selector and records npm resolution metadata after update", async () => {
+    installHooksFromNpmSpecMock.mockResolvedValue({
+      ok: true,
+      hookPackId: "demo-hooks",
+      hooks: ["demo"],
+      targetDir: "/tmp/hooks/demo-hooks",
+      version: "1.2.3",
+      npmResolution: {
+        name: "@openclaw/demo-hooks",
+        version: "1.2.3",
+        resolvedSpec: "@openclaw/demo-hooks@1.2.3",
+        integrity: "sha512-new",
+        shasum: "abc123",
+        resolvedAt: "2026-05-11T20:00:00.000Z",
+      },
+    });
+
+    const result = await updateNpmInstalledHookPacks({
+      config: createHookInstallConfig({
+        hookId: "demo-hooks",
+        spec: "@openclaw/demo-hooks",
+      }),
+      hookIds: ["demo-hooks"],
+    });
+
+    expect(result.changed).toBe(true);
+    expect(result.config.hooks?.internal?.installs?.["demo-hooks"]).toEqual({
+      source: "npm",
+      spec: "@openclaw/demo-hooks",
+      installPath: "/tmp/hooks/demo-hooks",
+      version: "1.2.3",
+      resolvedName: "@openclaw/demo-hooks",
+      resolvedVersion: "1.2.3",
+      resolvedSpec: "@openclaw/demo-hooks@1.2.3",
+      integrity: "sha512-new",
+      shasum: "abc123",
+      resolvedAt: "2026-05-11T20:00:00.000Z",
+      hooks: ["demo"],
+      installedAt: expect.any(String),
+    });
   });
 });
