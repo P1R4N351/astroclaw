@@ -1,3 +1,4 @@
+// Qqbot tests cover inbound attachments plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { processAttachments, type AudioConvertPort } from "./inbound-attachments.js";
 
@@ -10,7 +11,7 @@ vi.mock("../utils/file-utils.js", () => ({
 }));
 
 vi.mock("../utils/platform.js", () => ({
-  getQQBotMediaDir: () => "/tmp/astroclaw-qqbot-downloads",
+  getQQBotMediaDir: () => "/tmp/openclaw-qqbot-downloads",
 }));
 
 vi.mock("../utils/stt.js", () => ({
@@ -64,7 +65,7 @@ describe("engine/gateway/inbound-attachments", () => {
 
     expect(downloadFileMock).toHaveBeenCalledWith(
       "https://cdn.example.test/a.png",
-      "/tmp/astroclaw-qqbot-downloads",
+      "/tmp/openclaw-qqbot-downloads",
       "a.png",
     );
     expect(result.imageUrls).toEqual(["https://cdn.example.test/a.png"]);
@@ -73,7 +74,7 @@ describe("engine/gateway/inbound-attachments", () => {
   });
 
   it("prefers voice_wav_url for voice downloads and transcribes with configured STT", async () => {
-    downloadFileMock.mockResolvedValue("/tmp/astroclaw-qqbot-downloads/voice.wav");
+    downloadFileMock.mockResolvedValue("/tmp/openclaw-qqbot-downloads/voice.wav");
     resolveSTTConfigMock.mockReturnValue({
       baseUrl: "https://stt.example.test",
       apiKey: "key",
@@ -96,12 +97,12 @@ describe("engine/gateway/inbound-attachments", () => {
 
     expect(downloadFileMock).toHaveBeenCalledWith(
       "https://cdn.example.test/voice.wav",
-      "/tmp/astroclaw-qqbot-downloads",
+      "/tmp/openclaw-qqbot-downloads",
     );
-    expect(transcribeAudioMock).toHaveBeenCalledWith("/tmp/astroclaw-qqbot-downloads/voice.wav", {
+    expect(transcribeAudioMock).toHaveBeenCalledWith("/tmp/openclaw-qqbot-downloads/voice.wav", {
       channels: { qqbot: { stt: {} } },
     });
-    expect(result.voiceAttachmentPaths).toEqual(["/tmp/astroclaw-qqbot-downloads/voice.wav"]);
+    expect(result.voiceAttachmentPaths).toEqual(["/tmp/openclaw-qqbot-downloads/voice.wav"]);
     expect(result.voiceAttachmentUrls).toEqual(["https://cdn.example.test/voice.wav"]);
     expect(result.voiceAsrReferTexts).toEqual(["platform text"]);
     expect(result.voiceTranscripts).toEqual(["transcribed voice"]);
