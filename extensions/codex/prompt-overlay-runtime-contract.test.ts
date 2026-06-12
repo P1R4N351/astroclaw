@@ -1,9 +1,10 @@
+// Codex tests cover prompt overlay runtime contract plugin behavior.
 import {
   codexPromptOverlayContext,
   GPT5_CONTRACT_MODEL_ID,
   NON_GPT5_CONTRACT_MODEL_ID,
   sharedGpt5PersonalityConfig,
-} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
 import { describe, expect, it } from "vitest";
 import { buildCodexProvider } from "./provider.js";
 
