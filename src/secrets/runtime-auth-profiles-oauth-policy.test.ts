@@ -1,5 +1,6 @@
+/** Tests OAuth policy handling while collecting auth-profile secrets. */
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   loadAuthStoreWithProfiles,
   setupSecretsRuntimeSnapshotTestHooks,
@@ -7,7 +8,7 @@ import {
 
 const { prepareSecretsRuntimeSnapshot } = setupSecretsRuntimeSnapshotTestHooks();
 
-function withAuthProfileMode(mode: "api_key" | "aws-sdk" | "oauth" | "token"): AstroclawConfig {
+function withAuthProfileMode(mode: "api_key" | "aws-sdk" | "oauth" | "token"): OpenClawConfig {
   return {
     auth: {
       profiles: {
@@ -22,7 +23,7 @@ function withAuthProfileMode(mode: "api_key" | "aws-sdk" | "oauth" | "token"): A
         default: { source: "env" },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 describe("secrets runtime oauth auth-profile SecretRef policy", () => {
@@ -41,7 +42,7 @@ describe("secrets runtime oauth auth-profile SecretRef policy", () => {
         env: { ANTHROPIC_TOKEN: "token-value" } as NodeJS.ProcessEnv,
         loadAuthStore: () => store,
         loadablePluginOrigins: new Map(),
-        agentDirs: ["/tmp/astroclaw-secrets-runtime-main"],
+        agentDirs: ["/tmp/openclaw-secrets-runtime-main"],
       }),
     ).rejects.toThrow(/OAuth \+ SecretRef is not supported/i);
   });
@@ -60,7 +61,7 @@ describe("secrets runtime oauth auth-profile SecretRef policy", () => {
       env: { ANTHROPIC_TOKEN: "token-value" } as NodeJS.ProcessEnv,
       loadAuthStore: () => store,
       loadablePluginOrigins: new Map(),
-      agentDirs: ["/tmp/astroclaw-secrets-runtime-main"],
+      agentDirs: ["/tmp/openclaw-secrets-runtime-main"],
     });
 
     const resolved = snapshot.authStores[0]?.store.profiles["anthropic:default"];
