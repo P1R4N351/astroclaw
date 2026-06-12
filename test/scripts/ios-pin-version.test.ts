@@ -1,3 +1,4 @@
+// Ios Pin Version tests cover ios pin version script behavior.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -10,10 +11,10 @@ installIosFixtureCleanup();
 describe("parseArgs", () => {
   it("requires exactly one pin source", () => {
     expect(() => parseArgs([])).toThrow(
-      "Choose exactly one of --from-gateway or --version <YYYY.M.D>",
+      "Choose exactly one of --from-gateway or --version <YYYY.M.PATCH>",
     );
     expect(() => parseArgs(["--from-gateway", "--version", "2026.4.7"])).toThrow(
-      "Choose exactly one of --from-gateway or --version <YYYY.M.D>",
+      "Choose exactly one of --from-gateway or --version <YYYY.M.PATCH>",
     );
   });
 });
@@ -22,13 +23,13 @@ describe("pinIosVersion", () => {
   it("pins an explicit iOS release version and syncs generated artifacts", () => {
     const rootDir = writeIosFixture({
       version: "2026.4.6",
-      changelog: `# Astroclaw iOS Changelog
+      changelog: `# OpenClaw iOS Changelog
 
 ## Unreleased
 
 - Draft release notes.
 `,
-      prefix: "astroclaw-ios-pin-",
+      prefix: "openclaw-ios-pin-",
     });
 
     const result = pinIosVersion({
@@ -47,7 +48,7 @@ describe("pinIosVersion", () => {
     );
     expect(
       fs.readFileSync(path.join(rootDir, "apps", "ios", "Config", "Version.xcconfig"), "utf8"),
-    ).toContain("ASTROCLAW_MARKETING_VERSION = 2026.4.7");
+    ).toContain("OPENCLAW_MARKETING_VERSION = 2026.4.7");
     expect(
       fs.readFileSync(
         path.join(rootDir, "apps", "ios", "fastlane", "metadata", "en-US", "release_notes.txt"),
@@ -61,13 +62,13 @@ describe("pinIosVersion", () => {
     const rootDir = writeIosFixture({
       version: "2026.4.6",
       packageVersion: "2026.4.10-beta.3",
-      changelog: `# Astroclaw iOS Changelog
+      changelog: `# OpenClaw iOS Changelog
 
 ## Unreleased
 
 - Candidate release notes.
 `,
-      prefix: "astroclaw-ios-pin-",
+      prefix: "openclaw-ios-pin-",
     });
 
     const result = pinIosVersion({
@@ -86,7 +87,7 @@ describe("pinIosVersion", () => {
   it("can skip syncing checked-in artifacts when requested", () => {
     const rootDir = writeIosFixture({
       version: "2026.4.6",
-      changelog: `# Astroclaw iOS Changelog
+      changelog: `# OpenClaw iOS Changelog
 
 ## Unreleased
 
@@ -94,7 +95,7 @@ describe("pinIosVersion", () => {
 `,
       versionXcconfig: "stale\n",
       releaseNotes: "stale\n",
-      prefix: "astroclaw-ios-pin-",
+      prefix: "openclaw-ios-pin-",
     });
 
     const result = pinIosVersion({
