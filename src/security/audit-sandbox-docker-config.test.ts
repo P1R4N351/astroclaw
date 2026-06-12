@@ -1,7 +1,9 @@
+// Verifies Docker sandbox config security audit findings.
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
+import { withEnvAsync } from "../test-utils/env.js";
 import {
   collectSandboxDangerousConfigFindings,
   collectSandboxDockerNoopFindings,
@@ -42,13 +44,9 @@ describe("security audit sandbox docker config", () => {
   });
 
   it("evaluates sandbox docker config findings", async () => {
-    const isolatedHome = path.join(os.tmpdir(), "astroclaw-security-audit-home");
-    const previousHome = process.env.HOME;
-    const previousUserProfile = process.env.USERPROFILE;
-    process.env.HOME = isolatedHome;
-    process.env.USERPROFILE = isolatedHome;
+    const isolatedHome = path.join(os.tmpdir(), "openclaw-security-audit-home");
     vi.spyOn(os, "homedir").mockReturnValue(isolatedHome);
-    try {
+    await withEnvAsync({ HOME: isolatedHome, USERPROFILE: isolatedHome }, async () => {
       const cases = [
         {
           name: "mode off with docker config only",
@@ -61,7 +59,7 @@ describe("security audit sandbox docker config", () => {
                 },
               },
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           expectedFindings: [{ checkId: "sandbox.docker_config_mode_off" }],
         },
         {
@@ -76,7 +74,7 @@ describe("security audit sandbox docker config", () => {
               },
               list: [{ id: "ops", sandbox: { mode: "all" } }],
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           expectedFindings: [],
           expectedAbsent: ["sandbox.docker_config_mode_off"],
         },
@@ -96,7 +94,7 @@ describe("security audit sandbox docker config", () => {
                 },
               },
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           expectedFindings: [
             { checkId: "sandbox.dangerous_bind_mount", severity: "critical" },
             { checkId: "sandbox.dangerous_network_mode", severity: "critical" },
@@ -117,7 +115,7 @@ describe("security audit sandbox docker config", () => {
                 },
               },
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           expectedFindings: [
             {
               checkId: "sandbox.dangerous_bind_mount",
@@ -134,12 +132,12 @@ describe("security audit sandbox docker config", () => {
                 sandbox: {
                   mode: "all",
                   docker: {
-                    binds: ["D:/data/astroclaw/src:/src:ro"],
+                    binds: ["D:/data/openclaw/src:/src:ro"],
                   },
                 },
               },
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           expectedFindings: [],
           expectedAbsent: ["sandbox.bind_mount_non_absolute"],
         },
@@ -156,7 +154,7 @@ describe("security audit sandbox docker config", () => {
                 },
               },
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           expectedFindings: [
             {
               checkId: "sandbox.dangerous_network_mode",
@@ -190,17 +188,6 @@ describe("security audit sandbox docker config", () => {
           });
         }),
       );
-    } finally {
-      if (previousHome === undefined) {
-        delete process.env.HOME;
-      } else {
-        process.env.HOME = previousHome;
-      }
-      if (previousUserProfile === undefined) {
-        delete process.env.USERPROFILE;
-      } else {
-        process.env.USERPROFILE = previousUserProfile;
-      }
-    }
+    });
   });
 });
