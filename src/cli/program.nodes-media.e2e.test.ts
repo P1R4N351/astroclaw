@@ -1,3 +1,4 @@
+// Program nodes media e2e tests cover media-oriented node commands through the full CLI program.
 import * as fs from "node:fs/promises";
 import { Command } from "commander";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,7 +21,7 @@ async function expectLoggedSingleMediaFile(params?: {
   expectedPathPattern?: RegExp;
 }): Promise<string> {
   const out = getFirstRuntimeLogLine();
-  const mediaPath = out.replace(/^MEDIA:/, "").trim();
+  const mediaPath = out.trim();
   if (params?.expectedPathPattern) {
     expect(mediaPath).toMatch(params.expectedPathPattern);
   }
@@ -141,17 +142,17 @@ describe("cli program (nodes media)", () => {
     const out = getFirstRuntimeLogLine();
     const mediaPaths: string[] = [];
     for (const line of out.split("\n")) {
-      if (!line.startsWith("MEDIA:")) {
+      const mediaPath = line.trim();
+      if (!mediaPath) {
         continue;
       }
-      const mediaPath = line.replace(/^MEDIA:/, "");
       if (mediaPath.length > 0) {
         mediaPaths.push(mediaPath);
       }
     }
     expect(mediaPaths).toHaveLength(2);
-    expect(mediaPaths[0]).toContain("astroclaw-camera-snap-");
-    expect(mediaPaths[1]).toContain("astroclaw-camera-snap-");
+    expect(mediaPaths[0]).toContain("openclaw-camera-snap-");
+    expect(mediaPaths[1]).toContain("openclaw-camera-snap-");
 
     try {
       // Content bytes are covered by single-output camera/file tests; here we
@@ -185,7 +186,7 @@ describe("cli program (nodes media)", () => {
     expect(invoke.commandParams.format).toBe("mp4");
 
     await expectLoggedSingleMediaFile({
-      expectedPathPattern: /astroclaw-camera-clip-front-.*\.mp4$/,
+      expectedPathPattern: /openclaw-camera-clip-front-.*\.mp4$/,
     });
   });
 
@@ -328,7 +329,7 @@ describe("cli program (nodes media)", () => {
           height: 480,
         },
         argv: ["nodes", "camera", "snap", "--node", "ios-node", "--facing", "front"],
-        expectedPathPattern: /astroclaw-camera-snap-front-.*\.jpg$/,
+        expectedPathPattern: /openclaw-camera-snap-front-.*\.jpg$/,
       },
       {
         label: "runs nodes camera clip with url payload",
@@ -340,7 +341,7 @@ describe("cli program (nodes media)", () => {
           hasAudio: true,
         },
         argv: ["nodes", "camera", "clip", "--node", "ios-node", "--duration", "5000"],
-        expectedPathPattern: /astroclaw-camera-clip-front-.*\.mp4$/,
+        expectedPathPattern: /openclaw-camera-clip-front-.*\.mp4$/,
       },
     ])("$label", async ({ command, payload, argv, expectedPathPattern }) => {
       await runAndExpectUrlPayloadMediaFile({
