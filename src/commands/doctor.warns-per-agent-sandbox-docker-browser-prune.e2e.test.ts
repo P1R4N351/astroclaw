@@ -1,3 +1,4 @@
+// Doctor sandbox browser prune e2e tests cover per-agent stale browser artifacts and warning output.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -28,7 +29,7 @@ describe("doctor command", () => {
           list: [
             {
               id: "work",
-              workspace: "~/astroclaw-work",
+              workspace: "~/openclaw-work",
               sandbox: {
                 mode: "all",
                 scope: "shared",
@@ -60,17 +61,17 @@ describe("doctor command", () => {
   it("does not warn when only the active workspace is present", async () => {
     mockDoctorConfigSnapshot({
       config: {
-        agents: { defaults: { workspace: "/Users/steipete/astroclaw" } },
+        agents: { defaults: { workspace: "/Users/steipete/openclaw" } },
       },
     });
 
     const homedirSpy = vi.spyOn(os, "homedir").mockReturnValue("/Users/steipete");
     const realExists = fs.existsSync;
-    const legacyPath = path.join("/Users/steipete", "astroclaw");
+    const legacyPath = path.join("/Users/steipete", "openclaw");
     const legacyAgentsPath = path.join(legacyPath, "AGENTS.md");
     const existsSpy = vi.spyOn(fs, "existsSync").mockImplementation((value) => {
       if (
-        value === "/Users/steipete/astroclaw" ||
+        value === "/Users/steipete/openclaw" ||
         value === legacyPath ||
         value === legacyAgentsPath
       ) {
