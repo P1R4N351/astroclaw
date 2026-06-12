@@ -1,3 +1,4 @@
+// Verifies last-session persistence and lookup for TUI launch.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -14,7 +15,7 @@ import {
 const tempDirs: string[] = [];
 
 async function makeTempStateDir() {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-tui-last-session-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-tui-last-session-"));
   tempDirs.push(dir);
   return dir;
 }
