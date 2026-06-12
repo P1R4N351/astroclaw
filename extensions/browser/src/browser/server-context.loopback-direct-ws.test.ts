@@ -1,3 +1,4 @@
+// Browser tests cover server context.loopback direct ws plugin behavior.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { withBrowserFetchPreconnect } from "../../test-fetch.js";
 import * as cdpModule from "./cdp.js";
@@ -51,16 +52,16 @@ describe("browser server-context loopback direct WebSocket profiles", () => {
     });
 
     global.fetch = withBrowserFetchPreconnect(fetchMock);
-    const state = makeState("astroclaw");
+    const state = makeState("openclaw");
     state.resolved.ssrfPolicy = {};
-    state.resolved.profiles.astroclaw = {
+    state.resolved.profiles.openclaw = {
       cdpUrl: "ws://127.0.0.1:18800/devtools/browser/SESSION?token=abc",
       color: "#FF4500",
     };
     const ctx = createTestBrowserRouteContext({ getState: () => state });
-    const astroclaw = ctx.forProfile("astroclaw");
+    const openclaw = ctx.forProfile("openclaw");
 
-    const opened = await astroclaw.openTab("about:blank");
+    const opened = await openclaw.openTab("about:blank");
     expect(opened.targetId).toBe("CREATED");
     expect(createTargetViaCdp).toHaveBeenCalledWith({
       cdpUrl: "ws://127.0.0.1:18800/devtools/browser/SESSION?token=abc",
@@ -96,17 +97,17 @@ describe("browser server-context loopback direct WebSocket profiles", () => {
     });
 
     global.fetch = withBrowserFetchPreconnect(fetchMock);
-    const state = makeState("astroclaw");
+    const state = makeState("openclaw");
     state.resolved.ssrfPolicy = {};
-    state.resolved.profiles.astroclaw = {
+    state.resolved.profiles.openclaw = {
       cdpUrl: "ws://127.0.0.1:18800/devtools/browser/SESSION?token=abc",
       color: "#FF4500",
     };
     const ctx = createTestBrowserRouteContext({ getState: () => state });
-    const astroclaw = ctx.forProfile("astroclaw");
+    const openclaw = ctx.forProfile("openclaw");
 
-    await astroclaw.focusTab("T1");
-    await astroclaw.closeTab("T1");
+    await openclaw.focusTab("T1");
+    await openclaw.closeTab("T1");
 
     expectFetchCalledWithManualRedirect(
       fetchMock,
@@ -145,19 +146,19 @@ describe("browser server-context loopback direct WebSocket profiles", () => {
     });
 
     global.fetch = withBrowserFetchPreconnect(fetchMock);
-    const state = makeState("astroclaw");
-    state.resolved.profiles.astroclaw = {
+    const state = makeState("openclaw");
+    state.resolved.profiles.openclaw = {
       cdpUrl: "wss://127.0.0.1:18800/cdp?token=abc",
       color: "#FF4500",
     };
     const ctx = createTestBrowserRouteContext({ getState: () => state });
-    const astroclaw = ctx.forProfile("astroclaw");
+    const openclaw = ctx.forProfile("openclaw");
 
-    const tabs = await astroclaw.listTabs();
+    const tabs = await openclaw.listTabs();
     expect(tabs.map((tab) => tab.targetId)).toEqual(["T2"]);
 
-    await astroclaw.focusTab("T2");
-    await astroclaw.closeTab("T2");
+    await openclaw.focusTab("T2");
+    await openclaw.closeTab("T2");
   });
 
   it("blocks direct WebSocket tab operations when strict SSRF hostname allowlist rejects the cdpUrl", async () => {
@@ -166,21 +167,21 @@ describe("browser server-context loopback direct WebSocket profiles", () => {
     });
 
     global.fetch = withBrowserFetchPreconnect(fetchMock);
-    const state = makeState("astroclaw");
+    const state = makeState("openclaw");
     state.resolved.ssrfPolicy = {
       dangerouslyAllowPrivateNetwork: false,
       hostnameAllowlist: ["browserless.example.com"],
     };
-    state.resolved.profiles.astroclaw = {
+    state.resolved.profiles.openclaw = {
       cdpUrl: "ws://10.0.0.42:18800/devtools/browser/SESSION?token=abc",
       color: "#FF4500",
     };
     const ctx = createTestBrowserRouteContext({ getState: () => state });
-    const astroclaw = ctx.forProfile("astroclaw");
+    const openclaw = ctx.forProfile("openclaw");
 
-    await expect(astroclaw.listTabs()).rejects.toBeInstanceOf(BrowserCdpEndpointBlockedError);
-    await expect(astroclaw.focusTab("T1")).rejects.toBeInstanceOf(BrowserCdpEndpointBlockedError);
-    await expect(astroclaw.closeTab("T1")).rejects.toBeInstanceOf(BrowserCdpEndpointBlockedError);
+    await expect(openclaw.listTabs()).rejects.toBeInstanceOf(BrowserCdpEndpointBlockedError);
+    await expect(openclaw.focusTab("T1")).rejects.toBeInstanceOf(BrowserCdpEndpointBlockedError);
+    await expect(openclaw.closeTab("T1")).rejects.toBeInstanceOf(BrowserCdpEndpointBlockedError);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
