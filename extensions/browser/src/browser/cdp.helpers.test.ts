@@ -1,3 +1,5 @@
+// Browser tests cover cdp.helpers plugin behavior.
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveCdpReachabilityPolicy } from "./cdp-reachability-policy.js";
 import {
@@ -11,8 +13,8 @@ import { assertBrowserNavigationAllowed } from "./navigation-guard.js";
 
 const fetchWithSsrFGuardMock = vi.hoisted(() => vi.fn());
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>();
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>();
   return {
     ...actual,
     fetchWithSsrFGuard: (...args: unknown[]) => fetchWithSsrFGuardMock(...args),
@@ -134,7 +136,7 @@ describe("cdp helpers", () => {
     });
 
     await expect(
-      fetchOk("http://astroclaw:relay-token@127.0.0.1:9222/json/version", 250),
+      fetchOk("http://openclaw:relay-token@127.0.0.1:9222/json/version", 250),
     ).resolves.toBeUndefined();
 
     const request = requireGuardedFetchRequest();
@@ -181,7 +183,7 @@ function createProfile(overrides: Partial<ResolvedBrowserProfile>): ResolvedBrow
     cdpHost: "172.29.128.1",
     cdpIsLoopback: false,
     color: "#123456",
-    driver: "astroclaw",
+    driver: "openclaw",
     attachOnly: false,
     ...overrides,
     headless: overrides.headless ?? false,
@@ -246,6 +248,20 @@ describe("resolveCdpReachabilityTimeouts", () => {
     ).toEqual({
       httpTimeoutMs: 1750,
       wsTimeoutMs: 3250,
+    });
+  });
+
+  it("caps remote reachability timeouts to timer-safe values", () => {
+    expect(
+      resolveCdpReachabilityTimeouts({
+        profileIsLoopback: false,
+        timeoutMs: Number.MAX_SAFE_INTEGER,
+        remoteHttpTimeoutMs: Number.MAX_SAFE_INTEGER,
+        remoteHandshakeTimeoutMs: Number.MAX_SAFE_INTEGER,
+      }),
+    ).toEqual({
+      httpTimeoutMs: MAX_TIMER_TIMEOUT_MS,
+      wsTimeoutMs: MAX_TIMER_TIMEOUT_MS,
     });
   });
 });
