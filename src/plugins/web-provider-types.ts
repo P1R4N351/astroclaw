@@ -1,5 +1,6 @@
+// Defines web provider plugin schema and runtime types.
 import type { TSchema } from "typebox";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type {
   RuntimeWebFetchMetadata,
@@ -27,9 +28,10 @@ export type WebFetchProviderToolDefinition = {
 };
 
 export type WebSearchProviderContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   searchConfig?: Record<string, unknown>;
   runtimeMetadata?: RuntimeWebSearchMetadata;
+  agentDir?: string;
 };
 
 export type WebSearchProviderToolExecutionContext = {
@@ -37,7 +39,7 @@ export type WebSearchProviderToolExecutionContext = {
 };
 
 export type WebFetchProviderContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   fetchConfig?: Record<string, unknown>;
   runtimeMetadata?: RuntimeWebFetchMetadata;
 };
@@ -49,8 +51,13 @@ export type WebSearchProviderConfiguredCredentialFallback = {
   value: unknown;
 };
 
+export type WebFetchProviderConfiguredCredentialFallback = {
+  path: string;
+  value: unknown;
+};
+
 export type WebSearchRuntimeMetadataContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   searchConfig?: Record<string, unknown>;
   runtimeMetadata?: RuntimeWebSearchMetadata;
   resolvedCredential?: {
@@ -61,7 +68,7 @@ export type WebSearchRuntimeMetadataContext = {
 };
 
 export type WebSearchProviderSetupContext = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   runtime: RuntimeEnv;
   prompter: WizardPrompter;
   quickstartDefaults?: boolean;
@@ -71,7 +78,7 @@ export type WebSearchProviderSetupContext = {
 export type WebFetchCredentialResolutionSource = "config" | "secretRef" | "env" | "missing";
 
 export type WebFetchRuntimeMetadataContext = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   fetchConfig?: Record<string, unknown>;
   runtimeMetadata?: RuntimeWebFetchMetadata;
   resolvedCredential?: {
@@ -89,6 +96,8 @@ export type WebSearchProviderPlugin = {
   requiresCredential?: boolean;
   credentialLabel?: string;
   envVars: string[];
+  /** Optional model-provider auth profile id that can satisfy this web provider without a tool-specific API key. */
+  authProviderId?: string;
   placeholder: string;
   signupUrl: string;
   docsUrl?: string;
@@ -99,13 +108,13 @@ export type WebSearchProviderPlugin = {
   inactiveSecretPaths?: string[];
   getCredentialValue: (searchConfig?: Record<string, unknown>) => unknown;
   setCredentialValue: (searchConfigTarget: Record<string, unknown>, value: unknown) => void;
-  getConfiguredCredentialValue?: (config?: AstroclawConfig) => unknown;
-  setConfiguredCredentialValue?: (configTarget: AstroclawConfig, value: unknown) => void;
+  getConfiguredCredentialValue?: (config?: OpenClawConfig) => unknown;
+  setConfiguredCredentialValue?: (configTarget: OpenClawConfig, value: unknown) => void;
   getConfiguredCredentialFallback?: (
-    config?: AstroclawConfig,
+    config?: OpenClawConfig,
   ) => WebSearchProviderConfiguredCredentialFallback | undefined;
-  applySelectionConfig?: (config: AstroclawConfig) => AstroclawConfig;
-  runSetup?: (ctx: WebSearchProviderSetupContext) => AstroclawConfig | Promise<AstroclawConfig>;
+  applySelectionConfig?: (config: OpenClawConfig) => OpenClawConfig;
+  runSetup?: (ctx: WebSearchProviderSetupContext) => OpenClawConfig | Promise<OpenClawConfig>;
   resolveRuntimeMetadata?: (
     ctx: WebSearchRuntimeMetadataContext,
   ) => Partial<RuntimeWebSearchMetadata> | Promise<Partial<RuntimeWebSearchMetadata>>;
@@ -131,9 +140,12 @@ export type WebFetchProviderPlugin = {
   inactiveSecretPaths?: string[];
   getCredentialValue: (fetchConfig?: Record<string, unknown>) => unknown;
   setCredentialValue: (fetchConfigTarget: Record<string, unknown>, value: unknown) => void;
-  getConfiguredCredentialValue?: (config?: AstroclawConfig) => unknown;
-  setConfiguredCredentialValue?: (configTarget: AstroclawConfig, value: unknown) => void;
-  applySelectionConfig?: (config: AstroclawConfig) => AstroclawConfig;
+  getConfiguredCredentialValue?: (config?: OpenClawConfig) => unknown;
+  setConfiguredCredentialValue?: (configTarget: OpenClawConfig, value: unknown) => void;
+  getConfiguredCredentialFallback?: (
+    config?: OpenClawConfig,
+  ) => WebFetchProviderConfiguredCredentialFallback | undefined;
+  applySelectionConfig?: (config: OpenClawConfig) => OpenClawConfig;
   resolveRuntimeMetadata?: (
     ctx: WebFetchRuntimeMetadataContext,
   ) => Partial<RuntimeWebFetchMetadata> | Promise<Partial<RuntimeWebFetchMetadata>>;
