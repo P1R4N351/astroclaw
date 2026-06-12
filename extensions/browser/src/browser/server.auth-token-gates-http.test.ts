@@ -1,3 +1,4 @@
+// Browser tests cover server.auth token gates http plugin behavior.
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { isAuthorizedBrowserRequest } from "./http-auth.js";
@@ -41,7 +42,9 @@ describe("browser control HTTP auth", () => {
     if (!current) {
       return;
     }
-    await new Promise<void>((resolve) => current.close(() => resolve()));
+    await new Promise<void>((resolve) => {
+      current.close(() => resolve());
+    });
   });
 
   it("requires bearer auth for standalone browser HTTP routes", async () => {
@@ -90,7 +93,7 @@ describe("browser control HTTP auth", () => {
 
     const password = await realFetch(`${base}/`, {
       headers: {
-        "x-astroclaw-password": "browser-password",
+        "x-openclaw-password": "browser-password",
       },
     });
     expect(password.status).toBe(200);
@@ -101,7 +104,7 @@ describe("browser control HTTP auth", () => {
 
     const password = await realFetch(`${base}/`, {
       headers: {
-        "x-astroclaw-password": "browser-control-secret",
+        "x-openclaw-password": "browser-control-secret",
       },
     });
     expect(password.status).toBe(401);
