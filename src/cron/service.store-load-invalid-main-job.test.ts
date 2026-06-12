@@ -1,3 +1,4 @@
+// Cron store load tests cover invalid persisted main job recovery.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -14,7 +15,7 @@ const noopLogger = createNoopLogger();
 installCronTestHooks({ logger: noopLogger });
 
 async function makeStorePath() {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-cron-store-load-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-cron-store-load-"));
   return {
     dir,
     storePath: path.join(dir, "cron", "jobs.json"),
