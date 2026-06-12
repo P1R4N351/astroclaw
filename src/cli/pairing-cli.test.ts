@@ -1,6 +1,7 @@
+// Pairing CLI tests cover pairing command registration and pairing status output.
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { theme } from "../terminal/theme.js";
+import { theme } from "../../packages/terminal-core/src/theme.js";
 import { registerPairingCli } from "./pairing-cli.js";
 
 const mocks = vi.hoisted(() => ({
@@ -91,7 +92,7 @@ describe("pairing cli", () => {
     readConfigFileSnapshotForWrite.mockClear();
     readConfigFileSnapshotForWrite.mockResolvedValue({
       snapshot: {
-        path: "/tmp/astroclaw.json",
+        path: "/tmp/openclaw.json",
         exists: true,
         raw: "{}",
         parsed: {},
@@ -253,7 +254,7 @@ describe("pairing cli", () => {
   it("does not overwrite an existing command owner when approving pairing", async () => {
     readConfigFileSnapshotForWrite.mockResolvedValueOnce({
       snapshot: {
-        path: "/tmp/astroclaw.json",
+        path: "/tmp/openclaw.json",
         exists: true,
         raw: "{}",
         parsed: {},
