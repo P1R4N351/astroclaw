@@ -1,3 +1,4 @@
+// Whatsapp tests cover doctor plugin behavior.
 import { describe, expect, it } from "vitest";
 import { normalizeCompatibilityConfig } from "./doctor.js";
 
@@ -27,7 +28,7 @@ describe("whatsapp doctor compatibility", () => {
           whatsapp: {
             accounts: {
               work: {
-                authDir: "/tmp/astroclaw-wa-auth",
+                authDir: "/tmp/openclaw-wa-auth",
               },
             },
           },
