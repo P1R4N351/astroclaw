@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Qqbot tests cover slash commands impl plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { resolveQQBotCommandsAllowFrom, resolveSlashCommandAuth } from "./slash-command-auth.js";
 import { getWrittenQQBotConfig, installCommandRuntime } from "./slash-command-test-support.js";
@@ -73,7 +74,7 @@ describe("QQBot framework slash commands", () => {
   });
 
   it("does not write streaming config when the sender is not command-authorized", async () => {
-    const writes: AstroclawConfig[] = [];
+    const writes: OpenClawConfig[] = [];
     installCommandRuntime(
       {
         channels: {
@@ -93,7 +94,7 @@ describe("QQBot framework slash commands", () => {
   });
 
   it("does not write streaming config when allowFrom mixes wildcard with another sender", async () => {
-    const writes: AstroclawConfig[] = [];
+    const writes: OpenClawConfig[] = [];
     const allowFrom = ["*", "TRUSTED_OPENID"];
     installCommandRuntime(
       {
@@ -125,7 +126,7 @@ describe("QQBot framework slash commands", () => {
   });
 
   it("writes streaming config when commands.allowFrom grants the sender in open DM configs", async () => {
-    const writes: AstroclawConfig[] = [];
+    const writes: OpenClawConfig[] = [];
     installCommandRuntime(
       {
         commands: {
@@ -171,7 +172,7 @@ describe("QQBot framework slash commands", () => {
   });
 
   it("writes streaming config when the sender is command-authorized", async () => {
-    const writes: AstroclawConfig[] = [];
+    const writes: OpenClawConfig[] = [];
     const allowFrom = ["*", "TRUSTED_OPENID"];
     installCommandRuntime(
       {
