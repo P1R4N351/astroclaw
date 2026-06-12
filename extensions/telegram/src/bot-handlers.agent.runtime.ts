@@ -1,5 +1,6 @@
+// Telegram plugin module implements bot handlers.agent behavior.
 export {
   resolveAgentDir,
   resolveDefaultAgentId,
   resolveDefaultModelForAgent,
-} from "astroclaw/plugin-sdk/agent-runtime";
+} from "openclaw/plugin-sdk/agent-runtime";
