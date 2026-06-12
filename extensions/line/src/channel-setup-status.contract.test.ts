@@ -1,8 +1,9 @@
+// Line tests cover channel setup status.contract plugin behavior.
 import {
   installChannelSetupContractSuite,
   installChannelStatusContractSuite,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect } from "vitest";
 import { linePlugin, lineSetupPlugin } from "../api.js";
 
@@ -12,7 +13,7 @@ describe("line setup contract", () => {
     cases: [
       {
         name: "default account stores token and secret",
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         input: {
           channelAccessToken: "line-token",
           channelSecret: "line-secret",
@@ -26,7 +27,7 @@ describe("line setup contract", () => {
       },
       {
         name: "non-default env setup is rejected",
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: "ops",
         input: {
           useEnv: true,
@@ -52,7 +53,7 @@ describe("line status contract", () => {
               channelSecret: "line-secret",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         runtime: {
           accountId: "default",
           running: true,
