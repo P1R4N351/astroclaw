@@ -1,3 +1,4 @@
+// Verifies models.json writes, plugin catalog writes, and ready-cache serialization.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,8 +11,13 @@ import {
   withModelsTempHome,
 } from "./models-config.e2e-harness.js";
 import { readGeneratedModelsJson } from "./models-config.test-utils.js";
+import {
+  encodePluginModelCatalogRelativePath,
+  PLUGIN_MODEL_CATALOG_FILE,
+  PLUGIN_MODEL_CATALOG_GENERATED_BY,
+} from "./plugin-model-catalog.js";
 
-const planAstroclawModelsJsonMock = vi.fn();
+const planOpenClawModelsJsonMock = vi.fn();
 const writePrivateStoreTextWriteMock = vi.fn();
 let actualPrivateFileStore:
   | typeof import("../infra/private-file-store.js").privateFileStore
@@ -19,11 +25,12 @@ let actualPrivateFileStore:
 
 installModelsConfigTestHooks();
 
-let ensureAstroclawModelsJson: typeof import("./models-config.js").ensureAstroclawModelsJson;
+let ensureOpenClawModelsJson: typeof import("./models-config.js").ensureOpenClawModelsJson;
 let clearCurrentPluginMetadataSnapshot: typeof import("../plugins/current-plugin-metadata-snapshot.js").clearCurrentPluginMetadataSnapshot;
 let setCurrentPluginMetadataSnapshot: typeof import("../plugins/current-plugin-metadata-snapshot.js").setCurrentPluginMetadataSnapshot;
 
 function createPluginMetadataSnapshot(workspaceDir: string): PluginMetadataSnapshot {
+  // Minimal process snapshot used to prove when metadata may be reused.
   const policyHash = resolveInstalledPluginIndexPolicyHash({});
   return {
     policyHash,
@@ -67,6 +74,7 @@ function createPluginMetadataSnapshot(workspaceDir: string): PluginMetadataSnaps
 }
 
 async function expectMissingPath(operation: Promise<unknown>) {
+  // Filesystem deletion assertions should fail on the errno, not path text.
   let error: NodeJS.ErrnoException | undefined;
   try {
     await operation;
@@ -82,7 +90,8 @@ function planParamsAt(callIndex: number): {
   providerDiscoveryTimeoutMs?: number;
   workspaceDir?: string;
 } {
-  const call = planAstroclawModelsJsonMock.mock.calls[callIndex];
+  // Planner call shape is the contract between ensureOpenClawModelsJson and planning.
+  const call = planOpenClawModelsJsonMock.mock.calls[callIndex];
   if (!call) {
     throw new Error(`expected models planner call #${callIndex + 1}`);
   }
@@ -96,7 +105,7 @@ function planParamsAt(callIndex: number): {
 
 beforeAll(async () => {
   vi.doMock("./models-config.plan.js", () => ({
-    planAstroclawModelsJson: (...args: unknown[]) => planAstroclawModelsJsonMock(...args),
+    planOpenClawModelsJson: (...args: unknown[]) => planOpenClawModelsJsonMock(...args),
   }));
   vi.doMock("../infra/private-file-store.js", async () => {
     const actual = await vi.importActual<typeof import("../infra/private-file-store.js")>(
@@ -119,7 +128,7 @@ beforeAll(async () => {
       },
     };
   });
-  ({ ensureAstroclawModelsJson } = await import("./models-config.js"));
+  ({ ensureOpenClawModelsJson } = await import("./models-config.js"));
   ({ clearCurrentPluginMetadataSnapshot, setCurrentPluginMetadataSnapshot } =
     await import("../plugins/current-plugin-metadata-snapshot.js"));
 });
@@ -139,7 +148,7 @@ beforeEach(() => {
         );
       },
     );
-  planAstroclawModelsJsonMock
+  planOpenClawModelsJsonMock
     .mockReset()
     .mockImplementation(async (params: { cfg?: typeof CUSTOM_PROXY_MODELS_CONFIG }) => ({
       action: "write",
@@ -154,7 +163,7 @@ describe("models-config write serialization", () => {
       setCurrentPluginMetadataSnapshot(snapshot, { config: {} });
       const agentDir = path.join(home, "agent-non-default");
 
-      await ensureAstroclawModelsJson({}, agentDir);
+      await ensureOpenClawModelsJson({}, agentDir);
 
       const params = planParamsAt(0);
       expect(params.pluginMetadataSnapshot).not.toBe(snapshot);
@@ -168,11 +177,28 @@ describe("models-config write serialization", () => {
       setCurrentPluginMetadataSnapshot(snapshot, { config: {} });
       const agentDir = path.join(home, "agent-non-default");
 
-      await ensureAstroclawModelsJson({}, agentDir, { workspaceDir });
+      await ensureOpenClawModelsJson({}, agentDir, { workspaceDir });
 
       const params = planParamsAt(0);
       expect(params.workspaceDir).toBe(workspaceDir);
       expect(params.pluginMetadataSnapshot).toBe(snapshot);
+    });
+  });
+
+  it("does not reuse persisted plugin metadata for provider-scoped discovery", async () => {
+    await withModelsTempHome(async (home) => {
+      const workspaceDir = path.join(home, "agent-workspace");
+      const snapshot = createPluginMetadataSnapshot(workspaceDir);
+      setCurrentPluginMetadataSnapshot(snapshot, { config: {} });
+      const agentDir = path.join(home, "agent-non-default");
+
+      await ensureOpenClawModelsJson({}, agentDir, {
+        workspaceDir,
+        providerDiscoveryProviderIds: ["google"],
+      });
+
+      const params = planParamsAt(0);
+      expect(params.pluginMetadataSnapshot).not.toBe(snapshot);
     });
   });
 
@@ -184,30 +210,126 @@ describe("models-config write serialization", () => {
         },
       };
 
-      const result = await ensureAstroclawModelsJson(cfg);
+      const result = await ensureOpenClawModelsJson(cfg);
 
-      expect(result.agentDir).toBe(path.join(home, ".astroclaw", "agents", "ops", "agent"));
+      expect(result.agentDir).toBe(path.join(home, ".openclaw", "agents", "ops", "agent"));
       await expect(fs.access(path.join(result.agentDir, "models.json"))).resolves.toBeUndefined();
       await expectMissingPath(
-        fs.access(path.join(home, ".astroclaw", "agents", "main", "agent", "models.json")),
+        fs.access(path.join(home, ".openclaw", "agents", "main", "agent", "models.json")),
       );
+    });
+  });
+
+  it("writes plugin-owned model catalogs beside the agent plugin state", async () => {
+    await withModelsTempHome(async (home) => {
+      const agentDir = path.join(home, "agent");
+      planOpenClawModelsJsonMock.mockImplementation(async () => ({
+        action: "write",
+        contents: `${JSON.stringify({ providers: {} }, null, 2)}\n`,
+        pluginCatalogWrites: {
+          [encodePluginModelCatalogRelativePath("zai")]: `${JSON.stringify(
+            {
+              generatedBy: PLUGIN_MODEL_CATALOG_GENERATED_BY,
+              providers: {
+                zai: {
+                  baseUrl: "https://api.z.ai/api/paas/v4",
+                  api: "openai-completions",
+                  apiKey: "ZAI_API_KEY",
+                  models: [{ id: "glm-5.1", name: "GLM 5.1" }],
+                },
+              },
+            },
+            null,
+            2,
+          )}\n`,
+        },
+      }));
+
+      await ensureOpenClawModelsJson({}, agentDir);
+
+      const root = JSON.parse(await fs.readFile(path.join(agentDir, "models.json"), "utf8")) as {
+        providers?: Record<string, unknown>;
+      };
+      const catalog = JSON.parse(
+        await fs.readFile(path.join(agentDir, "plugins", "zai", PLUGIN_MODEL_CATALOG_FILE), "utf8"),
+      ) as { providers?: Record<string, unknown> };
+      expect(root.providers).toEqual({});
+      expect(root).not.toHaveProperty("pluginCatalogs");
+      expect(Object.keys(catalog.providers ?? {})).toEqual(["zai"]);
+    });
+  });
+
+  it("removes stale plugin-owned model catalogs", async () => {
+    await withModelsTempHome(async (home) => {
+      const agentDir = path.join(home, "agent");
+      const staleCatalog = path.join(
+        agentDir,
+        "plugins",
+        "old-provider",
+        PLUGIN_MODEL_CATALOG_FILE,
+      );
+      await fs.mkdir(path.dirname(staleCatalog), { recursive: true });
+      await fs.writeFile(
+        staleCatalog,
+        `${JSON.stringify(
+          { generatedBy: PLUGIN_MODEL_CATALOG_GENERATED_BY, providers: {} },
+          null,
+          2,
+        )}\n`,
+      );
+      planOpenClawModelsJsonMock.mockImplementation(async () => ({
+        action: "noop",
+        pluginCatalogWrites: {},
+      }));
+      await fs.mkdir(agentDir, { recursive: true });
+      await fs.writeFile(
+        path.join(agentDir, "models.json"),
+        `${JSON.stringify({ providers: {} })}\n`,
+      );
+
+      const result = await ensureOpenClawModelsJson({}, agentDir);
+
+      expect(result.wrote).toBe(true);
+      await expect(fs.access(staleCatalog)).rejects.toMatchObject({ code: "ENOENT" });
+    });
+  });
+
+  it("keeps generated plugin catalogs on non-authoritative skip plans", async () => {
+    await withModelsTempHome(async (home) => {
+      const agentDir = path.join(home, "agent");
+      const catalogPath = path.join(agentDir, "plugins", "zai", PLUGIN_MODEL_CATALOG_FILE);
+      await fs.mkdir(path.dirname(catalogPath), { recursive: true });
+      await fs.writeFile(
+        catalogPath,
+        `${JSON.stringify(
+          { generatedBy: PLUGIN_MODEL_CATALOG_GENERATED_BY, providers: {} },
+          null,
+          2,
+        )}\n`,
+      );
+      planOpenClawModelsJsonMock.mockImplementation(async () => ({ action: "skip" }));
+
+      const result = await ensureOpenClawModelsJson({}, agentDir);
+
+      expect(result.wrote).toBe(false);
+      await expect(fs.access(catalogPath)).resolves.toBeUndefined();
     });
   });
 
   it("does not reuse scoped startup discovery cache for a different provider scope", async () => {
     await withModelsTempHome(async (home) => {
-      planAstroclawModelsJsonMock.mockImplementation(async () => ({ action: "skip" }));
+      planOpenClawModelsJsonMock.mockImplementation(async () => ({ action: "skip" }));
       const agentDir = path.join(home, "agent");
-      await ensureAstroclawModelsJson({}, agentDir, {
+      await ensureOpenClawModelsJson({}, agentDir, {
         providerDiscoveryProviderIds: ["openai"],
         providerDiscoveryTimeoutMs: 5000,
       });
-      await ensureAstroclawModelsJson({}, agentDir, {
+      await ensureOpenClawModelsJson({}, agentDir, {
         providerDiscoveryProviderIds: ["anthropic"],
         providerDiscoveryTimeoutMs: 5000,
       });
 
-      expect(planAstroclawModelsJsonMock).toHaveBeenCalledTimes(2);
+      expect(planOpenClawModelsJsonMock).toHaveBeenCalledTimes(2);
       const params = planParamsAt(1);
       expect(params.providerDiscoveryProviderIds).toEqual(["anthropic"]);
       expect(params.providerDiscoveryTimeoutMs).toBe(5000);
@@ -216,41 +338,41 @@ describe("models-config write serialization", () => {
 
   it("keeps the ready cache warm after models.json is written", async () => {
     await withModelsTempHome(async () => {
-      await ensureAstroclawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
-      await ensureAstroclawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
+      await ensureOpenClawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
+      await ensureOpenClawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
 
-      expect(planAstroclawModelsJsonMock).toHaveBeenCalledTimes(1);
+      expect(planOpenClawModelsJsonMock).toHaveBeenCalledTimes(1);
     });
   });
 
   it("invalidates the ready cache when models.json changes externally", async () => {
     await withModelsTempHome(async () => {
-      await ensureAstroclawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
-      await ensureAstroclawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
+      await ensureOpenClawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
+      await ensureOpenClawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
 
       const modelPath = path.join(resolveDefaultAgentDir({}), "models.json");
       await fs.writeFile(modelPath, `${JSON.stringify({ external: true })}\n`, "utf8");
       const externalMtime = new Date(Date.now() + 2000);
       await fs.utimes(modelPath, externalMtime, externalMtime);
-      await ensureAstroclawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
+      await ensureOpenClawModelsJson(CUSTOM_PROXY_MODELS_CONFIG);
 
-      expect(planAstroclawModelsJsonMock).toHaveBeenCalledTimes(2);
+      expect(planOpenClawModelsJsonMock).toHaveBeenCalledTimes(2);
     });
   });
 
   it("keeps distinct config fingerprints cached without evicting each other", async () => {
     await withModelsTempHome(async () => {
-      planAstroclawModelsJsonMock.mockImplementation(async () => ({ action: "noop" }));
+      planOpenClawModelsJsonMock.mockImplementation(async () => ({ action: "noop" }));
       const first = structuredClone(CUSTOM_PROXY_MODELS_CONFIG);
       const second = structuredClone(CUSTOM_PROXY_MODELS_CONFIG);
       first.agents = { defaults: { model: "openai/gpt-5.4" } };
       second.agents = { defaults: { model: "anthropic/claude-sonnet-4-5" } };
 
-      await ensureAstroclawModelsJson(first);
-      await ensureAstroclawModelsJson(second);
-      await ensureAstroclawModelsJson(first);
+      await ensureOpenClawModelsJson(first);
+      await ensureOpenClawModelsJson(second);
+      await ensureOpenClawModelsJson(first);
 
-      expect(planAstroclawModelsJsonMock).toHaveBeenCalledTimes(2);
+      expect(planOpenClawModelsJsonMock).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -279,6 +401,7 @@ describe("models-config write serialization", () => {
       let modelsWriteCount = 0;
       writePrivateStoreTextWriteMock.mockImplementation(
         async (params: { filePath: string; rootDir: string; content: string | Uint8Array }) => {
+          // Hold both writes at the store boundary to prove the outer serializer works.
           const isModelsWrite = path.basename(params.filePath) === "models.json";
           if (isModelsWrite) {
             modelsWriteCount += 1;
@@ -308,8 +431,8 @@ describe("models-config write serialization", () => {
       );
 
       const writes = Promise.all([
-        ensureAstroclawModelsJson(first),
-        ensureAstroclawModelsJson(second),
+        ensureOpenClawModelsJson(first),
+        ensureOpenClawModelsJson(second),
       ]);
       await firstModelsWriteStarted;
       await Promise.resolve();
