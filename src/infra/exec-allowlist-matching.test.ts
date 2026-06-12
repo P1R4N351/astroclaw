@@ -1,3 +1,4 @@
+// Covers exec allowlist pattern matching.
 import { describe, expect, it } from "vitest";
 import { matchAllowlist, type ExecAllowlistEntry } from "./exec-approvals.js";
 
@@ -30,12 +31,12 @@ describe("exec allowlist matching", () => {
   it("does not let bare command-name patterns match path-selected executables", () => {
     const relativeResolution = {
       rawExecutable: "./rg",
-      resolvedPath: "/tmp/astroclaw-workspace/rg",
+      resolvedPath: "/tmp/openclaw-workspace/rg",
       executableName: "rg",
     };
     const absoluteResolution = {
-      rawExecutable: "/tmp/astroclaw-workspace/rg",
-      resolvedPath: "/tmp/astroclaw-workspace/rg",
+      rawExecutable: "/tmp/openclaw-workspace/rg",
+      resolvedPath: "/tmp/openclaw-workspace/rg",
       executableName: "rg",
     };
 
@@ -121,5 +122,31 @@ describe("exec allowlist matching", () => {
     for (const { pattern, resolution } of literalCases) {
       expect(matchAllowlist([{ pattern }], resolution)?.pattern).toBe(pattern);
     }
+  });
+
+  it("matches path-shaped allowlist entries against the executable trust realpath", () => {
+    const resolution = {
+      rawExecutable: "rg",
+      resolvedPath: "/opt/homebrew/bin/rg",
+      resolvedRealPath: "/opt/homebrew/Cellar/ripgrep/14.1.1/bin/rg",
+      executableName: "rg",
+    };
+
+    expect(
+      matchAllowlist([{ pattern: "/opt/homebrew/Cellar/ripgrep/14.1.1/bin/rg" }], resolution)
+        ?.pattern,
+    ).toBe("/opt/homebrew/Cellar/ripgrep/14.1.1/bin/rg");
+    expect(matchAllowlist([{ pattern: "/opt/homebrew/bin/rg" }], resolution)).toBeNull();
+  });
+
+  it("keeps basename allowlist entries on the PATH-resolved executable name", () => {
+    const resolution = {
+      rawExecutable: "rg",
+      resolvedPath: "/opt/homebrew/bin/rg",
+      resolvedRealPath: "/opt/homebrew/Cellar/ripgrep/14.1.1/bin/rg",
+      executableName: "rg",
+    };
+
+    expect(matchAllowlist([{ pattern: "rg" }], resolution)?.pattern).toBe("rg");
   });
 });
