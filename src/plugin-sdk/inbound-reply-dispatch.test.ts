@@ -1,8 +1,9 @@
+// Inbound reply dispatch tests cover plugin reply routing from inbound channel messages.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DispatchReplyWithBufferedBlockDispatcher } from "../auto-reply/reply/provider-dispatcher.types.js";
 import type { FinalizedMsgContext } from "../auto-reply/templating.js";
 import type { RecordInboundSession } from "../channels/session.types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const deliverInboundReplyWithMessageSendContext = vi.hoisted(() => vi.fn());
 
@@ -75,7 +76,7 @@ describe("recordInboundSessionAndDispatchReply", () => {
     } as FinalizedMsgContext;
 
     await recordChannelMessageReplyDispatch({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       channel: "test",
       accountId: "default",
       agentId: "main",
@@ -117,7 +118,7 @@ describe("recordInboundSessionAndDispatchReply", () => {
     }) as DispatchReplyWithBufferedBlockDispatcher;
 
     await recordInboundSessionAndDispatchReply({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       channel: "telegram",
       accountId: "default",
       agentId: "main",
@@ -180,7 +181,7 @@ describe("recordInboundSessionAndDispatchReply", () => {
     } as FinalizedMsgContext;
 
     await dispatchChannelMessageReplyWithBase({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       channel: "telegram",
       accountId: "default",
       route: {
@@ -222,12 +223,72 @@ describe("recordInboundSessionAndDispatchReply", () => {
     expect(deliver).not.toHaveBeenCalled();
   });
 
+  it("returns durable no-send results through the SDK compatibility deliverer", async () => {
+    deliverInboundReplyWithMessageSendContext.mockResolvedValue({
+      status: "handled_no_send",
+      reason: "no_visible_result",
+      delivery: {
+        messageIds: [],
+        visibleReplySent: false,
+      },
+    });
+    const recordInboundSession = vi.fn(async () => undefined) as unknown as RecordInboundSession;
+    const deliver = vi.fn(async () => undefined);
+    let deliveryResult: unknown;
+    const dispatchReplyWithBufferedBlockDispatcher = vi.fn(async (params) => {
+      deliveryResult = await params.dispatcherOptions.deliver(
+        { text: "cancelled durable" },
+        { kind: "final" },
+      );
+      return {
+        queuedFinal: true,
+        counts: { tool: 0, block: 0, final: 1 },
+      };
+    }) as DispatchReplyWithBufferedBlockDispatcher;
+
+    await recordInboundSessionAndDispatchReply({
+      cfg: {} as OpenClawConfig,
+      channel: "telegram",
+      accountId: "default",
+      agentId: "main",
+      routeSessionKey: "agent:main:telegram:peer",
+      storePath: "/tmp/sessions.json",
+      ctxPayload: {
+        Body: "body",
+        RawBody: "body",
+        CommandBody: "body",
+        From: "sender",
+        To: "123",
+        OriginatingTo: "123",
+        SessionKey: "agent:main:telegram:peer",
+        Provider: "telegram",
+        Surface: "telegram",
+      } as FinalizedMsgContext,
+      recordInboundSession,
+      dispatchReplyWithBufferedBlockDispatcher,
+      deliver,
+      durable: { replyToMode: "first" },
+      onRecordError: vi.fn(),
+      onDispatchError: vi.fn(),
+    });
+
+    expect(deliveryResult).toMatchObject({ visibleReplySent: false });
+    expect(deliver).not.toHaveBeenCalled();
+  });
+
   it("exports shared visible reply dispatch helpers", () => {
     expect(hasVisibleInboundReplyDispatch(undefined)).toBe(false);
     expect(
       hasVisibleInboundReplyDispatch({
         queuedFinal: false,
         counts: { tool: 0, block: 1, final: 0 },
+      }),
+    ).toBe(true);
+    expect(
+      hasVisibleInboundReplyDispatch({
+        queuedFinal: false,
+        counts: { tool: 0, block: 0, final: 0 },
+        observedReplyDelivery: true,
       }),
     ).toBe(true);
     expect(
@@ -248,7 +309,7 @@ describe("recordInboundSessionAndDispatchReply", () => {
     });
   });
 
-  it("exposes channel-message dispatch names as the canonical helpers for new channel code", () => {
+  it("keeps deprecated channel-message dispatch names as aliases for focused helpers", () => {
     expect(createChannelMessageReplyPipeline).toBe(createChannelReplyPipeline);
     expect(resolveChannelMessageSourceReplyDeliveryMode).toBe(
       resolveChannelSourceReplyDeliveryMode,
