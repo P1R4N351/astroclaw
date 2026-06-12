@@ -1,3 +1,4 @@
+// Test Built Status Message Runtime tests cover test built status message runtime script behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,7 +15,7 @@ afterEach(() => {
 });
 
 function makeDistDir(): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-status-runtime-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-status-runtime-"));
   tempDirs.push(root);
   const distDir = path.join(root, "dist");
   fs.mkdirSync(distDir, { recursive: true });
