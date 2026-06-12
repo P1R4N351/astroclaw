@@ -1,3 +1,4 @@
+// Covers Claude bundle inspection for plugin packaging metadata.
 import fs from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -150,7 +151,7 @@ describe("Claude bundle plugin inspect integration", () => {
   }
 
   beforeAll(() => {
-    rootDir = makeTrackedTempDir("astroclaw-claude-bundle", tempDirs);
+    rootDir = makeTrackedTempDir("openclaw-claude-bundle", tempDirs);
     setupClaudeInspectFixture();
   });
 
