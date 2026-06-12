@@ -1,32 +1,38 @@
+// Slack plugin module implements slash behavior.
 import type { SlackActionMiddlewareArgs, SlackCommandMiddlewareArgs } from "@slack/bolt";
-import { resolveDefaultModelForAgent } from "astroclaw/plugin-sdk/agent-runtime";
-import { createChannelMessageReplyPipeline } from "astroclaw/plugin-sdk/channel-message";
+import { resolveDefaultModelForAgent } from "openclaw/plugin-sdk/agent-runtime";
+import { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-outbound";
 import {
   formatCommandArgMenuTitle,
   resolveStoredModelOverride,
   type ChatCommandDefinition,
-} from "astroclaw/plugin-sdk/command-auth-native";
+} from "openclaw/plugin-sdk/command-auth-native";
 import {
   type CommandArgs,
   resolveNativeCommandSessionTargets,
-} from "astroclaw/plugin-sdk/command-auth-native";
-import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+} from "openclaw/plugin-sdk/command-auth-native";
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   resolveNativeCommandsEnabled,
   resolveNativeSkillsEnabled,
-} from "astroclaw/plugin-sdk/native-command-config-runtime";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-import type { ResolvedAgentRoute } from "astroclaw/plugin-sdk/routing";
-import { danger, logVerbose } from "astroclaw/plugin-sdk/runtime-env";
-import { loadSessionStore, resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+} from "openclaw/plugin-sdk/native-command-config-runtime";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import type { ResolvedAgentRoute } from "openclaw/plugin-sdk/routing";
+import { danger, logVerbose, warn } from "openclaw/plugin-sdk/runtime-env";
+import { loadSessionStore, resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "astroclaw/plugin-sdk/string-coerce-runtime";
-import { chunkItems } from "astroclaw/plugin-sdk/text-chunking";
+  normalizeStringEntriesLower,
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { chunkItems } from "openclaw/plugin-sdk/text-chunking";
 import type { ResolvedSlackAccount } from "../accounts.js";
 import { SLACK_MAX_BLOCKS } from "../blocks-input.js";
 import { formatSlackError } from "../errors.js";
+import {
+  compileSlackInteractiveReplies,
+  isSlackInteractiveRepliesEnabled,
+} from "../interactive-replies.js";
 import { truncateSlackText } from "../truncate.js";
 import { resolveSlackCommandIngress, resolveSlackEffectiveAllowFrom } from "./auth.js";
 import { resolveSlackChannelConfig, type SlackChannelConfigResolved } from "./channel-config.js";
@@ -45,8 +51,8 @@ import { resolveSlackRoomContextHints } from "./room-context.js";
 
 type SlackBlock = { type: string; [key: string]: unknown };
 
-const SLACK_COMMAND_ARG_ACTION_ID = "astroclaw_cmdarg";
-const SLACK_COMMAND_ARG_ACTION_LISTENER = /^astroclaw_cmdarg/;
+const SLACK_COMMAND_ARG_ACTION_ID = "openclaw_cmdarg";
+const SLACK_COMMAND_ARG_ACTION_LISTENER = /^openclaw_cmdarg/;
 const SLACK_COMMAND_ARG_VALUE_PREFIX = "cmdarg";
 const SLACK_COMMAND_ARG_BUTTON_ROW_SIZE = 5;
 const SLACK_COMMAND_ARG_OVERFLOW_MIN = 3;
@@ -715,6 +721,14 @@ export async function registerSlackMonitorSlashCommands(params: {
         agentId: route.agentId,
         channel: "slack",
         accountId: route.accountId,
+        transformReplyPayload: (payload) => {
+          if (payload.isReasoning === true) {
+            return null;
+          }
+          return isSlackInteractiveRepliesEnabled({ cfg, accountId: route.accountId })
+            ? compileSlackInteractiveReplies(payload)
+            : payload;
+        },
       });
 
       const deliverSlashPayloads = async (replies: ReplyPayload[]) => {
@@ -784,7 +798,7 @@ export async function registerSlackMonitorSlashCommands(params: {
       provider: "slack",
     });
     const existingNativeNames = new Set(
-      nativeCommands.map((c) => normalizeLowercaseStringOrEmpty(c.name)).filter(Boolean),
+      normalizeStringEntriesLower(nativeCommands.map((command) => command.name)),
     );
     const { listProviderPluginCommandSpecs } = await loadSlackPluginCommandsRuntime();
     for (const pluginCommand of listProviderPluginCommandSpecs("slack")) {
@@ -913,6 +927,11 @@ export async function registerSlackMonitorSlashCommands(params: {
     registerArgOptions();
   } catch (err) {
     supportsExternalArgMenus = false;
+    runtime.log?.(
+      warn(
+        "slack: external arg-menu registration failed; falling back to static slash command menus. Enable verbose logs for details.",
+      ),
+    );
     logVerbose(
       `slack: external arg-menu registration failed, falling back to static menus: ${formatErrorMessage(err)}`,
     );
