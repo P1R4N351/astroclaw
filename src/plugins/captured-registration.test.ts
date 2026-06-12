@@ -1,6 +1,7 @@
+// Covers captured plugin registration behavior in test registries.
 import { describe, expect, it } from "vitest";
 import { capturePluginRegistration } from "./captured-registration.js";
-import type { AnyAgentTool, AstroclawPluginApi } from "./types.js";
+import type { AnyAgentTool, OpenClawPluginApi } from "./types.js";
 
 describe("captured plugin registration", () => {
   it("keeps a complete plugin API surface available while capturing supported capabilities", () => {
@@ -107,8 +108,8 @@ describe("captured plugin registration", () => {
   });
 
   it("returns synthetic scheduled-turn ids independent of human-readable names", async () => {
-    let scheduleSessionTurn: AstroclawPluginApi["scheduleSessionTurn"] | undefined;
-    let registerSessionSchedulerJob: AstroclawPluginApi["registerSessionSchedulerJob"] | undefined;
+    let scheduleSessionTurn: OpenClawPluginApi["scheduleSessionTurn"] | undefined;
+    let registerSessionSchedulerJob: OpenClawPluginApi["registerSessionSchedulerJob"] | undefined;
     const captured = capturePluginRegistration({
       id: "captured-custom-plugin",
       name: "Captured Custom Plugin",
