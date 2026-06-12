@@ -1,7 +1,9 @@
+// Model pricing cache tests protect provider/model normalization, manifest
+// metadata lookup, fetch preconnect behavior, cache refresh, and logging.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { modelKey } from "../agents/model-selection.js";
 import type { normalizeProviderModelIdWithRuntime } from "../agents/provider-model-normalization.runtime.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resetLogger, setLoggerOverride } from "../logging/logger.js";
 import { loggingState } from "../logging/state.js";
 import type { PluginManifestRecord, PluginManifestRegistry } from "../plugins/manifest-registry.js";
@@ -21,7 +23,7 @@ const normalizeProviderModelIdWithRuntimeMock = vi.hoisted(() =>
 const pluginManifestRegistryMocks = vi.hoisted(() => ({
   manifestRegistry: undefined as PluginManifestRegistry | undefined,
   loadPluginManifestRegistryForInstalledIndex: vi.fn(),
-  listAstroclawPluginManifestMetadata: vi.fn(),
+  listOpenClawPluginManifestMetadata: vi.fn(),
 }));
 
 vi.mock("../agents/provider-model-normalization.runtime.js", () => {
@@ -48,18 +50,18 @@ vi.mock("../plugins/manifest-metadata-scan.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../plugins/manifest-metadata-scan.js")>();
   return {
     ...actual,
-    listAstroclawPluginManifestMetadata: (
-      params?: Parameters<typeof actual.listAstroclawPluginManifestMetadata>[0],
+    listOpenClawPluginManifestMetadata: (
+      params?: Parameters<typeof actual.listOpenClawPluginManifestMetadata>[0],
     ) => {
-      pluginManifestRegistryMocks.listAstroclawPluginManifestMetadata(params);
-      return actual.listAstroclawPluginManifestMetadata(params);
+      pluginManifestRegistryMocks.listOpenClawPluginManifestMetadata(params);
+      return actual.listOpenClawPluginManifestMetadata(params);
     },
   };
 });
 
 import { getGatewayModelPricingHealth } from "./model-pricing-cache-state.js";
 import {
-  __resetGatewayModelPricingCacheForTest,
+  resetGatewayModelPricingCacheForTest,
   collectConfiguredModelPricingRefs,
   getCachedGatewayModelPricing,
   refreshGatewayModelPricingCache,
@@ -97,15 +99,15 @@ function requireAbortSignal(signal: RequestInit["signal"] | undefined): AbortSig
 
 describe("model-pricing-cache", () => {
   beforeEach(() => {
-    __resetGatewayModelPricingCacheForTest();
+    resetGatewayModelPricingCacheForTest();
     pluginManifestRegistryMocks.manifestRegistry = undefined;
     pluginManifestRegistryMocks.loadPluginManifestRegistryForInstalledIndex.mockClear();
-    pluginManifestRegistryMocks.listAstroclawPluginManifestMetadata.mockClear();
+    pluginManifestRegistryMocks.listOpenClawPluginManifestMetadata.mockClear();
     normalizeProviderModelIdWithRuntimeMock.mockClear();
   });
 
   afterEach(() => {
-    __resetGatewayModelPricingCacheForTest();
+    resetGatewayModelPricingCacheForTest();
     loggingState.rawConsole = null;
     resetLogger();
   });
@@ -118,6 +120,7 @@ describe("model-pricing-cache", () => {
           imageModel: { primary: "google/gemini-3-pro" },
           compaction: { model: "opus" },
           heartbeat: { model: "xai/grok-4" },
+          subagents: { model: { primary: "anthropic/claude-haiku-4-5" } },
           models: {
             "openai/gpt-5.4": { alias: "gpt" },
             "anthropic/claude-opus-4-6": { alias: "opus" },
@@ -144,7 +147,6 @@ describe("model-pricing-cache", () => {
         mappings: [{ model: "zai/glm-5" }],
       },
       tools: {
-        subagents: { model: { primary: "anthropic/claude-haiku-4-5" } },
         media: {
           models: [{ provider: "google", model: "gemini-2.5-pro" }],
           image: {
@@ -157,7 +159,7 @@ describe("model-pricing-cache", () => {
           summaryModel: "openai/gpt-5.4",
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const refs = collectConfiguredModelPricingRefs(config).map((ref) =>
       modelKey(ref.provider, ref.model),
@@ -193,7 +195,7 @@ describe("model-pricing-cache", () => {
           },
         },
       },
-    } as AstroclawConfig).map((ref) => modelKey(ref.provider, ref.model));
+    } as OpenClawConfig).map((ref) => modelKey(ref.provider, ref.model));
 
     expect(refs).toContain("tavily/search-preview");
   });
@@ -229,7 +231,7 @@ describe("model-pricing-cache", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const fetchImpl = vi.fn<typeof fetch>();
 
     await refreshGatewayModelPricingCache({ config, fetchImpl });
@@ -276,7 +278,7 @@ describe("model-pricing-cache", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const fetchImpl = vi.fn<typeof fetch>();
 
     await refreshGatewayModelPricingCache({
@@ -344,7 +346,7 @@ describe("model-pricing-cache", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const fetchImpl = vi.fn<typeof fetch>();
 
     await refreshGatewayModelPricingCache({ config, fetchImpl });
@@ -352,7 +354,7 @@ describe("model-pricing-cache", () => {
     expect(
       pluginManifestRegistryMocks.loadPluginManifestRegistryForInstalledIndex,
     ).not.toHaveBeenCalled();
-    expect(pluginManifestRegistryMocks.listAstroclawPluginManifestMetadata).not.toHaveBeenCalled();
+    expect(pluginManifestRegistryMocks.listOpenClawPluginManifestMetadata).not.toHaveBeenCalled();
     expect(normalizeProviderModelIdWithRuntimeMock).not.toHaveBeenCalled();
     expect(fetchImpl).not.toHaveBeenCalled();
     expect(getCachedGatewayModelPricing({ provider: "custom", model: "gpt-local" })).toEqual({
@@ -387,7 +389,7 @@ describe("model-pricing-cache", () => {
       tools: {
         subagents: { model: { primary: "my-local-gpu/qwen2.5-coder:7b" } },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const fetchImpl = vi.fn<typeof fetch>();
 
     await refreshGatewayModelPricingCache({ config, fetchImpl });
@@ -414,7 +416,7 @@ describe("model-pricing-cache", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const failingFetch = withFetchPreconnect(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (url.includes("openrouter.ai")) {
@@ -468,7 +470,7 @@ describe("model-pricing-cache", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (url.includes("openrouter.ai")) {
@@ -491,6 +493,46 @@ describe("model-pricing-cache", () => {
     expect(health.sources[0]?.source).toBe("openrouter");
     expect(health.sources[0]?.state).toBe("degraded");
     expect(health.sources[0]?.detail).toContain("OpenRouter pricing response is malformed JSON");
+  });
+
+  it("records malformed pricing content-length headers as source failures", async () => {
+    const config = {
+      agents: {
+        defaults: {
+          model: { primary: "custom/gpt-remote" },
+        },
+      },
+      models: {
+        providers: {
+          custom: {
+            baseUrl: "https://models.example/v1",
+            api: "openai-completions",
+            models: [{ id: "gpt-remote" }],
+          },
+        },
+      },
+    } as unknown as OpenClawConfig;
+    const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes("openrouter.ai")) {
+        return new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", "Content-Length": "1e3" },
+        });
+      }
+      return new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    await refreshGatewayModelPricingCache({ config, fetchImpl });
+
+    const health = getGatewayModelPricingHealth();
+    expect(health.state).toBe("degraded");
+    expect(health.sources).toHaveLength(1);
+    expect(health.sources[0]?.source).toBe("openrouter");
+    expect(health.sources[0]?.detail).toContain("invalid content-length header: 1e3");
   });
 
   it("records and clears scheduled refresh rejections for health surfaces", async () => {
@@ -522,7 +564,7 @@ describe("model-pricing-cache", () => {
             },
           },
         },
-      } as unknown as AstroclawConfig;
+      } as unknown as OpenClawConfig;
       const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
         const url =
           typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -595,7 +637,7 @@ describe("model-pricing-cache", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const fetchImpl = vi.fn<typeof fetch>();
 
     await refreshGatewayModelPricingCache({ config, fetchImpl });
@@ -614,6 +656,7 @@ describe("model-pricing-cache", () => {
       agents: {
         defaults: {
           model: { primary: "anthropic/claude-opus-4-6" },
+          subagents: { model: { primary: "zai/glm-openrouter-test" } },
         },
         list: [
           {
@@ -622,10 +665,7 @@ describe("model-pricing-cache", () => {
           },
         ],
       },
-      tools: {
-        subagents: { model: { primary: "zai/glm-openrouter-test" } },
-      },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -710,7 +750,7 @@ describe("model-pricing-cache", () => {
           model: { primary: "openrouter/auto" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -757,7 +797,7 @@ describe("model-pricing-cache", () => {
           model: { primary: "volcengine/doubao-seed-2-0-pro" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -836,7 +876,7 @@ describe("model-pricing-cache", () => {
           model: { primary: "volcengine/doubao-open" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -898,7 +938,7 @@ describe("model-pricing-cache", () => {
           model: { primary: "dashscope/qwen-plus" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -975,7 +1015,7 @@ describe("model-pricing-cache", () => {
           model: { primary: "anthropic/claude-opus-4-6" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -1022,7 +1062,7 @@ describe("model-pricing-cache", () => {
           model: { primary: "anthropic/claude-opus-4-6" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const fetchImpl = withFetchPreconnect(
       vi.fn(async (input: RequestInfo | URL) => {
         const url =
@@ -1055,7 +1095,7 @@ describe("model-pricing-cache", () => {
           model: { primary: "anthropic/claude-opus-4-6" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const abortedUrls: string[] = [];
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
     const fetchImpl = withFetchPreconnect(
@@ -1069,7 +1109,7 @@ describe("model-pricing-cache", () => {
               "abort",
               () => {
                 abortedUrls.push(url);
-                reject(signal.reason);
+                reject(toLintErrorObject(signal.reason, "Non-Error rejection"));
               },
               { once: true },
             );
@@ -1104,7 +1144,7 @@ describe("model-pricing-cache", () => {
         },
       },
       models: { pricing: { enabled: false } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const fetchImpl = withFetchPreconnect(vi.fn());
 
     const stop = startGatewayModelPricingRefresh({ config, fetchImpl });
@@ -1122,7 +1162,7 @@ describe("model-pricing-cache", () => {
         },
       },
       models: { pricing: { enabled: false } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const fetchImpl = withFetchPreconnect(vi.fn());
 
     await refreshGatewayModelPricingCache({ config, fetchImpl });
@@ -1146,7 +1186,7 @@ describe("model-pricing-cache", () => {
           model: { primary: "anthropic/claude-opus-4-6" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const timeoutError = new DOMException(
       "The operation was aborted due to timeout",
       "TimeoutError",
@@ -1180,7 +1220,7 @@ describe("model-pricing-cache", () => {
           model: { primary: "kimi/kimi-k2.6" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const fetchImpl = withFetchPreconnect(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -1235,7 +1275,21 @@ function createManifestRecord(overrides: Partial<PluginManifestRecord>): PluginM
     origin: "global",
     rootDir: "/tmp/plugin",
     source: "/tmp/plugin/index.js",
-    manifestPath: "/tmp/plugin/astroclaw.plugin.json",
+    manifestPath: "/tmp/plugin/openclaw.plugin.json",
     ...overrides,
   };
+}
+
+function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
+  if (value instanceof Error) {
+    return value;
+  }
+  if (typeof value === "string") {
+    return new Error(value);
+  }
+  const error = new Error(fallbackMessage, { cause: value });
+  if ((typeof value === "object" && value !== null) || typeof value === "function") {
+    Object.assign(error, value);
+  }
+  return error;
 }
