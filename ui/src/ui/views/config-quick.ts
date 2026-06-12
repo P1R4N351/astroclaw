@@ -327,7 +327,7 @@ type ProfileSettings = {
 };
 
 const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
-  bootstrapMaxChars: 12_000,
+  bootstrapMaxChars: 20_000,
   bootstrapTotalMaxChars: 60_000,
   contextInjection: "always",
 };
@@ -931,7 +931,7 @@ function renderPresetsCard(props: QuickSettingsProps) {
         <div class="qs-profiles__copy">
           <div class="qs-profiles__eyebrow">Bootstrap Context</div>
           <p class="qs-profiles__intro">
-            Choose how much workspace context Astroclaw injects into each run. These profiles do not
+            Choose how much workspace context OpenClaw injects into each run. These profiles do not
             change your model, tools, channels, or theme.
           </p>
           ${stateBanner}
@@ -1078,7 +1078,7 @@ export function renderQuickSettings(props: QuickSettingsProps) {
   return html`
     <div class="qs-container">
       <div class="qs-header">
-        <h2 class="qs-header__title">${icons.settings} Settings</h2>
+        <h2 class="qs-header__title">${icons.settings} Quick Settings</h2>
         <button class="btn btn--sm" @click=${props.onAdvancedSettings}>
           Advanced ${icons.chevronRight}
         </button>
