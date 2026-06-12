@@ -1,3 +1,4 @@
+// Verifies plugin import specifier normalization and rejection cases.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toSafeImportPath } from "./import-specifier.js";
 
@@ -27,7 +28,7 @@ describe("toSafeImportPath", () => {
       "file:///C:/Users/alice/plugin/index.mjs",
     );
     expect(toSafeImportPath("./relative/index.mjs")).toBe("./relative/index.mjs");
-    expect(toSafeImportPath("@astroclaw/plugin")).toBe("@astroclaw/plugin");
+    expect(toSafeImportPath("@openclaw/plugin")).toBe("@openclaw/plugin");
   });
 
   it("does not rewrite non-Windows paths", () => {
