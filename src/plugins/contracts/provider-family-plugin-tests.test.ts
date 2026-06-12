@@ -1,7 +1,7 @@
+// Provider family plugin tests cover grouped provider-family contract cases.
 import fs from "node:fs";
-import { basename, dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { basename, resolve } from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
 import { expectNoReaddirSyncDuring } from "../../test-utils/fs-scan-assertions.js";
 import { listGitTrackedFiles, toRepoRelativePath } from "../../test-utils/repo-files.js";
 import { loadPluginManifestRegistry } from "../manifest-registry.js";
@@ -19,8 +19,8 @@ type ExpectedSharedFamilyContract = {
   toolCompatFamilies?: readonly string[];
 };
 
-const SRC_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const REPO_ROOT = resolve(SRC_ROOT, "..");
+const REPO_ROOT = resolve(process.cwd());
+const BUNDLED_SOURCE_EXTENSIONS_ROOT = resolve(REPO_ROOT, "extensions");
 const SHARED_FAMILY_HOOK_PATTERNS: ReadonlyArray<{
   kind: SharedFamilyHookKind;
   regex: RegExp;
@@ -46,6 +46,13 @@ const EXPECTED_SENTINEL_SHARED_FAMILY_ASSIGNMENTS: Record<string, ExpectedShared
     toolCompatFamilies: ["openai"],
   },
 };
+let bundledPluginRootsCache:
+  | Array<{
+      pluginId: string;
+      rootDir: string;
+    }>
+  | undefined;
+const filesByDirCache = new Map<string, string[]>();
 
 function toRepoRelative(path: string): string {
   return toRepoRelativePath(REPO_ROOT, path);
@@ -72,8 +79,13 @@ function listGitFiles(dir: string): string[] | null {
 }
 
 function listFiles(dir: string): string[] {
+  const cached = filesByDirCache.get(dir);
+  if (cached) {
+    return cached;
+  }
   const gitFiles = listGitFiles(dir);
   if (gitFiles) {
+    filesByDirCache.set(dir, gitFiles);
     return gitFiles;
   }
 
@@ -91,17 +103,29 @@ function listFiles(dir: string): string[] {
     files.push(entryPath);
   }
 
+  filesByDirCache.set(dir, files);
   return files;
 }
 
 function listBundledPluginRoots() {
-  return loadPluginManifestRegistry({})
+  if (bundledPluginRootsCache) {
+    return bundledPluginRootsCache;
+  }
+  bundledPluginRootsCache = loadPluginManifestRegistry({
+    workspaceDir: REPO_ROOT,
+    env: {
+      ...process.env,
+      OPENCLAW_BUNDLED_PLUGINS_DIR: BUNDLED_SOURCE_EXTENSIONS_ROOT,
+      OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR: "1",
+    },
+  })
     .plugins.filter((plugin) => plugin.origin === "bundled")
     .map((plugin) => ({
       pluginId: plugin.id,
       rootDir: resolveBundledPluginSourceRoot(plugin.rootDir, plugin.workspaceDir),
     }))
     .toSorted((left, right) => left.pluginId.localeCompare(right.pluginId));
+  return bundledPluginRootsCache;
 }
 
 function resolveBundledPluginSourceRoot(rootDir: string, workspaceDir?: string): string {
@@ -211,8 +235,27 @@ function collectSharedFamilyAssignments(): Map<string, ExpectedSharedFamilyContr
 }
 
 describe("provider family plugin-boundary inventory", () => {
+  let bundledRoots: ReturnType<typeof listBundledPluginRoots>;
+  let sharedFamilyProviders: ReturnType<typeof collectSharedFamilyProviders>;
+  let providerBoundaryTests: ReturnType<typeof collectProviderBoundaryTests>;
+  let actualAssignments: Record<string, ExpectedSharedFamilyContract>;
+
+  beforeAll(() => {
+    bundledRoots = listBundledPluginRoots();
+    for (const plugin of bundledRoots) {
+      listFiles(plugin.rootDir);
+    }
+    sharedFamilyProviders = collectSharedFamilyProviders();
+    providerBoundaryTests = collectProviderBoundaryTests();
+    actualAssignments = Object.fromEntries(
+      [...collectSharedFamilyAssignments().entries()].toSorted(([left], [right]) =>
+        left.localeCompare(right),
+      ),
+    );
+  });
+
   it("lists bundled plugin files from git without walking plugin roots", () => {
-    const bundledRoots = listBundledPluginRoots();
+    filesByDirCache.clear();
     expectNoReaddirSyncDuring(() => {
       const files = bundledRoots.flatMap((plugin) => listFiles(plugin.rootDir));
 
@@ -222,9 +265,6 @@ describe("provider family plugin-boundary inventory", () => {
   });
 
   it("keeps shared-family provider hooks covered by at least one plugin-boundary test", () => {
-    const sharedFamilyProviders = collectSharedFamilyProviders();
-    const providerBoundaryTests = collectProviderBoundaryTests();
-
     const missing = [...sharedFamilyProviders.entries()]
       .filter(([pluginId]) => !providerBoundaryTests.has(pluginId))
       .map(([pluginId, inventory]) => {
@@ -237,12 +277,6 @@ describe("provider family plugin-boundary inventory", () => {
   });
 
   it("keeps sentinel shared-family assignments wired through bundled provider sources", () => {
-    const actualAssignments = Object.fromEntries(
-      [...collectSharedFamilyAssignments().entries()].toSorted(([left], [right]) =>
-        left.localeCompare(right),
-      ),
-    );
-
     for (const [pluginId, expected] of Object.entries(
       EXPECTED_SENTINEL_SHARED_FAMILY_ASSIGNMENTS,
     )) {
