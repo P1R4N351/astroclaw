@@ -1,9 +1,10 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Qqbot tests cover framework registration plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import type {
-  AstroclawPluginApi,
-  AstroclawPluginCommandDefinition,
+  OpenClawPluginApi,
+  OpenClawPluginCommandDefinition,
   PluginCommandContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import { describe, expect, it } from "vitest";
 import {
   getWrittenQQBotConfig,
@@ -12,7 +13,7 @@ import {
 import { ensurePlatformAdapter } from "../bootstrap.js";
 import { registerQQBotFrameworkCommands } from "./framework-registration.js";
 
-function createConfig(): AstroclawConfig {
+function createConfig(): OpenClawConfig {
   return {
     channels: {
       qqbot: {
@@ -30,24 +31,24 @@ function createConfig(): AstroclawConfig {
   };
 }
 
-function registerCommands(): AstroclawPluginCommandDefinition[] {
+function registerCommands(): OpenClawPluginCommandDefinition[] {
   ensurePlatformAdapter();
-  const commands: AstroclawPluginCommandDefinition[] = [];
+  const commands: OpenClawPluginCommandDefinition[] = [];
   const api = {
     logger: {},
-    registerCommand: (command: AstroclawPluginCommandDefinition) => {
+    registerCommand: (command: OpenClawPluginCommandDefinition) => {
       commands.push(command);
     },
-  } as unknown as AstroclawPluginApi;
+  } as unknown as OpenClawPluginApi;
 
   registerQQBotFrameworkCommands(api);
   return commands;
 }
 
 function findCommand(
-  commands: AstroclawPluginCommandDefinition[],
+  commands: OpenClawPluginCommandDefinition[],
   name: string,
-): AstroclawPluginCommandDefinition {
+): OpenClawPluginCommandDefinition {
   const command = commands.find((entry) => entry.name === name);
   if (!command) {
     throw new Error(`expected QQBot command ${name}`);
@@ -56,7 +57,7 @@ function findCommand(
 }
 
 function createCommandContext(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   from: string | undefined,
 ): PluginCommandContext {
   return {
@@ -83,7 +84,7 @@ describe("registerQQBotFrameworkCommands", () => {
 
   it("preserves the private-chat guard for bot-streaming on generic framework calls", async () => {
     const config = createConfig();
-    const writes: AstroclawConfig[] = [];
+    const writes: OpenClawConfig[] = [];
     installCommandRuntime(config, writes);
     const command = findCommand(registerCommands(), "bot-streaming");
 
@@ -101,7 +102,7 @@ describe("registerQQBotFrameworkCommands", () => {
 
   it("allows bot-streaming on explicit QQBot private-chat framework calls", async () => {
     const config = createConfig();
-    const writes: AstroclawConfig[] = [];
+    const writes: OpenClawConfig[] = [];
     installCommandRuntime(config, writes);
     const command = findCommand(registerCommands(), "bot-streaming");
 
