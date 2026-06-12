@@ -1,10 +1,11 @@
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+// Logger transport tests cover file and console transport routing.
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createSuiteLogPathTracker } from "./log-test-helpers.js";
 
 type LoggerModule = typeof import("./logger.js");
 
-const logPathTracker = createSuiteLogPathTracker("astroclaw-logger-transport-");
+const logPathTracker = createSuiteLogPathTracker("openclaw-logger-transport-");
 const importedModules: LoggerModule[] = [];
 
 async function importLoggerModule(scope: string): Promise<LoggerModule> {
@@ -44,7 +45,7 @@ describe("logger transport registry", () => {
       (loggerModule as unknown as Record<string, unknown>).registerLogTransport,
     ).toBeUndefined();
     expect(
-      (loggerModule.__test__ as unknown as Record<string, unknown>).registerLogTransportForTest,
+      (loggerModule.testApi as unknown as Record<string, unknown>).registerLogTransportForTest,
     ).toBeUndefined();
   });
 
@@ -53,7 +54,7 @@ describe("logger transport registry", () => {
 
     expect(
       (globalThis as typeof globalThis & Record<PropertyKey, unknown>)[
-        Symbol.for("astroclaw.logging.transports")
+        Symbol.for("openclaw.logging.transports")
       ],
     ).toBeUndefined();
   });
