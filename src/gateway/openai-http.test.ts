@@ -1,14 +1,16 @@
+// OpenAI-compatible HTTP tests cover chat completions, streaming, tool calls,
+// session context, auth scopes, and provider error mapping.
 import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { FailoverError } from "../agents/failover-error.js";
+import { createClientToolNameConflictError } from "../agents/agent-tool-definition-adapter.js";
 import {
   createStubSessionHarness,
   emitAssistantTextDelta,
-} from "../agents/pi-embedded-subscribe.e2e-harness.js";
-import { subscribeEmbeddedPiSession } from "../agents/pi-embedded-subscribe.js";
-import { createClientToolNameConflictError } from "../agents/pi-tool-definition-adapter.js";
+} from "../agents/embedded-agent-subscribe.e2e-harness.js";
+import { subscribeEmbeddedAgentSession } from "../agents/embedded-agent-subscribe.js";
+import { FailoverError } from "../agents/failover-error.js";
 import { HISTORY_CONTEXT_MARKER } from "../auto-reply/reply/history.js";
 import { CURRENT_MESSAGE_MARKER } from "../auto-reply/reply/mentions.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
@@ -66,9 +68,9 @@ async function startTokenServer(port: number, opts?: { openAiChatCompletionsEnab
 }
 
 async function writeGatewayConfig(config: Record<string, unknown>) {
-  const configPath = process.env.ASTROCLAW_CONFIG_PATH;
+  const configPath = process.env.OPENCLAW_CONFIG_PATH;
   if (!configPath) {
-    throw new Error("ASTROCLAW_CONFIG_PATH is required for gateway config tests");
+    throw new Error("OPENCLAW_CONFIG_PATH is required for gateway config tests");
   }
   await fs.mkdir(path.dirname(configPath), { recursive: true });
   await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
@@ -79,7 +81,7 @@ async function postChatCompletions(port: number, body: unknown, headers?: Record
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-astroclaw-scopes": "operator.write",
+      "x-openclaw-scopes": "operator.write",
       ...headers,
     },
     body: JSON.stringify(body),
@@ -110,11 +112,14 @@ type FirstAgentCommandOptions = {
   message?: string;
   messageChannel?: string;
   model?: string;
-  senderIsOwner?: boolean;
   sessionKey?: string;
   streamParams?: {
+    frequencyPenalty?: number;
     maxTokens?: number;
+    presencePenalty?: number;
     responseFormat?: Record<string, unknown>;
+    seed?: number;
+    stop?: string[];
     temperature?: number;
     topP?: number;
   };
@@ -161,7 +166,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     const expectInvalidRequestNoDispatch = async (messages: unknown[]) => {
       agentCommand.mockClear();
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         messages,
       });
       expect(res.status).toBe(400);
@@ -174,11 +179,10 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     const postSyncUserMessage = async (message: string) => {
       const res = await postChatCompletions(port, {
         stream: false,
-        model: "astroclaw",
+        model: "openclaw",
         messages: [{ role: "user", content: message }],
       });
       expect(res.status).toBe(200);
-      expect(getFirstAgentCall()?.senderIsOwner).toBe(false);
       return (await res.json()) as Record<string, unknown>;
     };
 
@@ -208,14 +212,14 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       }
 
       await expectAgentSessionKeyMatch({
-        body: { model: "astroclaw", messages: [{ role: "user", content: "hi" }] },
-        headers: { "x-astroclaw-agent-id": "beta" },
+        body: { model: "openclaw", messages: [{ role: "user", content: "hi" }] },
+        headers: { "x-openclaw-agent-id": "beta" },
         matcher: /^agent:beta:/,
       });
 
       await expectAgentSessionKeyMatch({
         body: {
-          model: "astroclaw/beta",
+          model: "openclaw/beta",
           messages: [{ role: "user", content: "hi" }],
         },
         matcher: /^agent:beta:/,
@@ -223,7 +227,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
       await expectAgentSessionKeyMatch({
         body: {
-          model: "astroclaw/default",
+          model: "openclaw/default",
           messages: [{ role: "user", content: "hi" }],
         },
         matcher: /^agent:main:/,
@@ -233,10 +237,10 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(
           port,
-          { model: "astroclaw", messages: [{ role: "user", content: "hi" }] },
+          { model: "openclaw", messages: [{ role: "user", content: "hi" }] },
           {
-            "x-astroclaw-agent-id": "beta",
-            "x-astroclaw-session-key": "agent:beta:openai:custom",
+            "x-openclaw-agent-id": "beta",
+            "x-openclaw-session-key": "agent:beta:openai:custom",
           },
         );
         expect(res.status).toBe(200);
@@ -249,7 +253,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
           user: "alice",
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(res.status).toBe(200);
@@ -263,10 +267,10 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const res = await postChatCompletions(
           port,
           {
-            model: "astroclaw",
+            model: "openclaw",
             messages: [{ role: "user", content: "hi" }],
           },
-          { "x-astroclaw-message-channel": "custom-client-channel" },
+          { "x-openclaw-message-channel": "custom-client-channel" },
         );
         expect(res.status).toBe(200);
         expect(getFirstAgentCall()?.messageChannel).toBe("custom-client-channel");
@@ -278,11 +282,11 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const res = await postChatCompletions(
           port,
           {
-            model: "astroclaw",
+            model: "openclaw",
             messages: [{ role: "user", content: "hi" }],
           },
           {
-            "x-astroclaw-model": "openai/gpt-5.4",
+            "x-openclaw-model": "openai/gpt-5.4",
           },
         );
         expect(res.status).toBe(200);
@@ -305,11 +309,11 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const res = await postChatCompletions(
           port,
           {
-            model: "astroclaw",
+            model: "openclaw",
             messages: [{ role: "user", content: "hi" }],
           },
           {
-            "x-astroclaw-model": "gpt-5.4",
+            "x-openclaw-model": "gpt-5.4",
           },
         );
         expect(res.status).toBe(200);
@@ -328,7 +332,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const json = (await res.json()) as { error?: { type?: string; message?: string } };
         expect(json.error?.type).toBe("invalid_request_error");
         expect(json.error?.message).toBe(
-          "Invalid `model`. Use `astroclaw` or `astroclaw/<agentId>`.",
+          "Invalid `model`. Use `openclaw` or `openclaw/<agentId>`.",
         );
         expect(agentCommand).toHaveBeenCalledTimes(0);
       }
@@ -338,22 +342,22 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const res = await postChatCompletions(
           port,
           {
-            model: "astroclaw",
+            model: "openclaw",
             messages: [{ role: "user", content: "hi" }],
           },
-          { "x-astroclaw-model": "openai/" },
+          { "x-openclaw-model": "openai/" },
         );
         expect(res.status).toBe(400);
         const json = (await res.json()) as { error?: { type?: string; message?: string } };
         expect(json.error?.type).toBe("invalid_request_error");
-        expect(json.error?.message).toBe("Invalid `x-astroclaw-model`.");
+        expect(json.error?.message).toBe("Invalid `x-openclaw-model`.");
         expect(agentCommand).toHaveBeenCalledTimes(0);
       }
 
       {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             {
               role: "user",
@@ -374,7 +378,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const imageData = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAA";
         mockAgentOnce([{ text: "looks good" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             {
               role: "user",
@@ -402,7 +406,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const imageData = "QUJDRA==";
         mockAgentOnce([{ text: "supports data-uri params" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             {
               role: "user",
@@ -440,7 +444,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "I can see the image" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             {
               role: "user",
@@ -466,7 +470,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "follow up answer" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             {
               role: "user",
@@ -489,7 +493,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "latest image only" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             {
               role: "user",
@@ -521,7 +525,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const largeMessage = "x".repeat(1_200_000);
         mockAgentOnce([{ text: "accepted" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: largeMessage }],
         });
         expect(res.status).toBe(200);
@@ -556,7 +560,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "I am Claude" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             { role: "system", content: "You are a helpful assistant." },
             { role: "user", content: "Hello, who are you?" },
@@ -577,7 +581,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             { role: "system", content: "You are a helpful assistant." },
             { role: "user", content: "Hello" },
@@ -595,7 +599,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "hello" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             { role: "developer", content: "You are a helpful assistant." },
             { role: "user", content: "Hello" },
@@ -611,7 +615,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "ok" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             { role: "system", content: "You are a helpful assistant." },
             { role: "user", content: "What's the weather?" },
@@ -632,7 +636,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "tool follow-up ok" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             {
               role: "user",
@@ -661,7 +665,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "tool choice none" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           tool_choice: "none",
           tools: [
             {
@@ -684,7 +688,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "tool choice auto" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           tool_choice: "auto",
           tools: [
             {
@@ -712,8 +716,21 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
       {
         agentCommand.mockClear();
+        agentCommand.mockResolvedValueOnce({
+          payloads: [{ text: "tool choice function" }],
+          meta: {
+            stopReason: "tool_calls",
+            pendingToolCalls: [
+              {
+                id: "call_1",
+                name: "get_weather",
+                arguments: '{"city":"Taipei"}',
+              },
+            ],
+          },
+        } as never);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           tool_choice: { type: "function", function: { name: "get_weather" } },
           tools: [
             {
@@ -739,31 +756,141 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
           ],
           messages: [{ role: "user", content: "weather?" }],
         });
-        expect(res.status).toBe(400);
+        expect(res.status).toBe(200);
+        const firstCall = getFirstAgentCall();
+        const clientTools = firstCall?.clientTools ?? [];
+        expect(clientTools).toHaveLength(1);
+        expect(clientTools[0]?.function?.name).toBe("get_weather");
+        expect(firstCall?.extraSystemPrompt ?? "").toContain("You must call the get_weather tool");
+        const json = (await res.json()) as { choices?: Array<{ finish_reason?: string | null }> };
+        expect(json.choices?.[0]?.finish_reason).toBe("tool_calls");
+      }
+
+      {
+        agentCommand.mockClear();
+        agentCommand.mockResolvedValueOnce({
+          payloads: [{ text: "tool choice required" }],
+          meta: {
+            stopReason: "tool_calls",
+            pendingToolCalls: [
+              {
+                id: "call_1",
+                name: "get_weather",
+                arguments: '{"city":"Taipei"}',
+              },
+            ],
+          },
+        } as never);
+        const res = await postChatCompletions(port, {
+          model: "openclaw",
+          tool_choice: "required",
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "get_weather",
+                description: "Get current weather",
+                parameters: {
+                  type: "object",
+                  properties: { city: { type: "string" } },
+                  required: ["city"],
+                },
+              },
+            },
+          ],
+          messages: [{ role: "user", content: "weather?" }],
+        });
+        expect(res.status).toBe(200);
+        const firstCall = getFirstAgentCall();
+        const clientTools = firstCall?.clientTools ?? [];
+        expect(clientTools).toHaveLength(1);
+        expect(clientTools[0]?.function?.name).toBe("get_weather");
+        expect(firstCall?.extraSystemPrompt ?? "").toContain(
+          "You must call one of the available tools",
+        );
+        const json = (await res.json()) as { choices?: Array<{ finish_reason?: string | null }> };
+        expect(json.choices?.[0]?.finish_reason).toBe("tool_calls");
+      }
+
+      {
+        mockAgentOnce([{ text: "plain text despite required" }]);
+        const res = await postChatCompletions(port, {
+          model: "openclaw",
+          tool_choice: "required",
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "get_weather",
+                description: "Get current weather",
+                parameters: { type: "object", properties: {} },
+              },
+            },
+          ],
+          messages: [{ role: "user", content: "weather?" }],
+        });
+        expect(res.status).toBe(502);
         const json = (await res.json()) as { error?: { type?: string; message?: string } };
-        expect(json.error?.type).toBe("invalid_request_error");
-        expect(json.error?.message ?? "").toContain("not supported");
-        expect(agentCommand).toHaveBeenCalledTimes(0);
+        expect(json.error?.type).toBe("api_error");
+        expect(json.error?.message ?? "").toContain("tool_choice=required was not satisfied");
+      }
+
+      {
+        agentCommand.mockClear();
+        agentCommand.mockResolvedValueOnce({
+          payloads: [{ text: "Calling a different tool." }],
+          meta: {
+            stopReason: "tool_calls",
+            pendingToolCalls: [{ id: "call_1", name: "get_time", arguments: "{}" }],
+          },
+        } as never);
+        const res = await postChatCompletions(port, {
+          model: "openclaw",
+          tool_choice: { type: "function", function: { name: "get_weather" } },
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "get_weather",
+                description: "Get current weather",
+                parameters: { type: "object", properties: {} },
+              },
+            },
+            {
+              type: "function",
+              function: {
+                name: "get_time",
+                description: "Get current time",
+                parameters: { type: "object", properties: {} },
+              },
+            },
+          ],
+          messages: [{ role: "user", content: "weather?" }],
+        });
+        expect(res.status).toBe(502);
+        const json = (await res.json()) as { error?: { type?: string; message?: string } };
+        expect(json.error?.type).toBe("api_error");
+        expect(json.error?.message ?? "").toContain("tool_choice required a get_weather tool call");
       }
 
       {
         agentCommand.mockClear();
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           tool_choice: "required",
           messages: [{ role: "user", content: "weather?" }],
         });
         expect(res.status).toBe(400);
         const json = (await res.json()) as { error?: { type?: string; message?: string } };
         expect(json.error?.type).toBe("invalid_request_error");
-        expect(json.error?.message ?? "").toContain("tool_choice=required");
+        expect(json.error?.message ?? "").toContain("no tools were provided");
         expect(agentCommand).toHaveBeenCalledTimes(0);
       }
 
       {
         agentCommand.mockClear();
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           tool_choice: { type: "function", function: { name: "missing_tool" } },
           tools: [
             {
@@ -780,14 +907,14 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         expect(res.status).toBe(400);
         const json = (await res.json()) as { error?: { type?: string; message?: string } };
         expect(json.error?.type).toBe("invalid_request_error");
-        expect(json.error?.message ?? "").toContain("not supported");
+        expect(json.error?.message ?? "").toContain("unknown tool");
         expect(agentCommand).toHaveBeenCalledTimes(0);
       }
 
       {
         agentCommand.mockClear();
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           tool_choice: {
             type: "allowed_tools",
             tools: [{ type: "function", function: { name: "x" } }],
@@ -814,7 +941,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         agentCommand.mockClear();
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           tools: [
             {
               type: "function",
@@ -834,7 +961,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "ok" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             { role: "user", content: "What's the weather?" },
             { role: "assistant", content: "Checking the weather." },
@@ -857,7 +984,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       {
         mockAgentOnce([{ text: "ok" }]);
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [
             { role: "user", content: "What's the weather?" },
             {
@@ -898,7 +1025,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         agentCommand.mockRejectedValueOnce(createClientToolNameConflictError(["exec"]));
         const res = await postChatCompletions(port, {
           stream: false,
-          model: "astroclaw",
+          model: "openclaw",
           tools: [
             {
               type: "function",
@@ -946,7 +1073,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         } as never);
         const res = await postChatCompletions(port, {
           stream: false,
-          model: "astroclaw",
+          model: "openclaw",
           tool_choice: "auto",
           tools: [
             {
@@ -1022,7 +1149,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         } as never);
         const res = await postChatCompletions(port, {
           stream: false,
-          model: "astroclaw",
+          model: "openclaw",
           tool_choice: "auto",
           tools: [
             {
@@ -1065,7 +1192,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         agentCommand.mockImplementationOnce((async (opts: unknown) => {
           const runId = (opts as { runId?: string } | undefined)?.runId ?? "";
           const { session, emit } = createStubSessionHarness();
-          subscribeEmbeddedPiSession({ session, runId });
+          subscribeEmbeddedAgentSession({ session, runId });
           emit({ type: "message_start", message: { role: "assistant" } });
           for (const delta of ["<", "final>Title\n", "Line one\nLine two</", "final>"]) {
             emitAssistantTextDelta({ emit, delta });
@@ -1075,7 +1202,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const splitFinalRes = await postChatCompletions(port, {
           stream: true,
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(splitFinalRes.status).toBe(200);
@@ -1135,6 +1262,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
           prompt_tokens: 30,
           completion_tokens: 5,
           total_tokens: 35,
+          prompt_tokens_details: { cached_tokens: 20 },
         });
       }
 
@@ -1201,6 +1329,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
           prompt_tokens: 2,
           completion_tokens: 0,
           total_tokens: 2,
+          prompt_tokens_details: { cached_tokens: 2 },
         });
       }
 
@@ -1253,12 +1382,12 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const json = await postSyncUserMessage("hi");
         const choice0 = (json.choices as Array<Record<string, unknown>>)[0] ?? {};
         const msg = (choice0.message as Record<string, unknown> | undefined) ?? {};
-        expect(msg.content).toBe("No response from Astroclaw.");
+        expect(msg.content).toBe("No response from OpenClaw.");
       }
 
       {
         const res = await postChatCompletions(port, {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "system", content: "yo" }],
         });
         expect(res.status).toBe(400);
@@ -1283,7 +1412,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "hello" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         max_completion_tokens: 256,
         messages: [{ role: "user", content: "hi" }],
       });
@@ -1295,7 +1424,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "hello" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         max_tokens: 128,
         messages: [{ role: "user", content: "hi" }],
       });
@@ -1307,7 +1436,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "hello" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         max_completion_tokens: 64,
         max_tokens: 999,
         messages: [{ role: "user", content: "hi" }],
@@ -1320,7 +1449,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "hello" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         messages: [{ role: "user", content: "hi" }],
       });
       expect(res.status).toBe(200);
@@ -1340,7 +1469,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "hello" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         temperature: 0.3,
         top_p: 0.95,
         messages: [{ role: "user", content: "hi" }],
@@ -1353,7 +1482,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "hello" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         temperature: 0,
         messages: [{ role: "user", content: "hi" }],
       });
@@ -1367,7 +1496,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "hello" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         messages: [{ role: "user", content: "hi" }],
       });
       expect(res.status).toBe(200);
@@ -1378,7 +1507,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       agentCommand.mockClear();
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         temperature: 999,
         messages: [{ role: "user", content: "hi" }],
       });
@@ -1392,7 +1521,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       agentCommand.mockClear();
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         top_p: 5,
         messages: [{ role: "user", content: "hi" }],
       });
@@ -1400,6 +1529,104 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       const json = (await res.json()) as { error?: { type?: string; message?: string } };
       expect(json.error?.type).toBe("invalid_request_error");
       expect(json.error?.message).toMatch(/top_p/);
+      expect(agentCommand).toHaveBeenCalledTimes(0);
+    }
+  });
+
+  it("forwards inbound penalty and seed params into streamParams", async () => {
+    const port = enabledPort;
+    const mockAgentOnce = (payloads: Array<{ text: string }>) => {
+      agentCommand.mockClear();
+      agentCommand.mockResolvedValueOnce({ payloads } as never);
+    };
+    const getStreamParams = () => firstAgentCommandOptions()?.streamParams;
+
+    {
+      mockAgentOnce([{ text: "hello" }]);
+      const res = await postChatCompletions(port, {
+        model: "openclaw",
+        frequency_penalty: -0.5,
+        presence_penalty: 1.25,
+        seed: 12345,
+        messages: [{ role: "user", content: "hi" }],
+      });
+      expect(res.status).toBe(200);
+      expect(getStreamParams()).toMatchObject({
+        frequencyPenalty: -0.5,
+        presencePenalty: 1.25,
+        seed: 12345,
+      });
+      await res.text();
+    }
+
+    for (const body of [{ frequency_penalty: 3 }, { presence_penalty: -3 }, { seed: 1.5 }]) {
+      agentCommand.mockClear();
+      const res = await postChatCompletions(port, {
+        model: "openclaw",
+        ...body,
+        messages: [{ role: "user", content: "hi" }],
+      });
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error?: { type?: string; message?: string } };
+      expect(json.error?.type).toBe("invalid_request_error");
+      expect(agentCommand).toHaveBeenCalledTimes(0);
+    }
+  });
+
+  it("forwards inbound stop into streamParams", async () => {
+    const port = enabledPort;
+    const mockAgentOnce = (payloads: Array<{ text: string }>) => {
+      agentCommand.mockClear();
+      agentCommand.mockResolvedValueOnce({ payloads } as never);
+    };
+    const getStreamParams = () => firstAgentCommandOptions()?.streamParams;
+
+    {
+      mockAgentOnce([{ text: "hello" }]);
+      const res = await postChatCompletions(port, {
+        model: "openclaw",
+        stop: "\n\n",
+        messages: [{ role: "user", content: "hi" }],
+      });
+      expect(res.status).toBe(200);
+      expect(getStreamParams()).toMatchObject({ stop: ["\n\n"] });
+      await res.text();
+    }
+
+    {
+      mockAgentOnce([{ text: "hello" }]);
+      const res = await postChatCompletions(port, {
+        model: "openclaw",
+        stop: ["User:", "Assistant:"],
+        messages: [{ role: "user", content: "hi" }],
+      });
+      expect(res.status).toBe(200);
+      expect(getStreamParams()).toMatchObject({ stop: ["User:", "Assistant:"] });
+      await res.text();
+    }
+
+    {
+      mockAgentOnce([{ text: "hello" }]);
+      const res = await postChatCompletions(port, {
+        model: "openclaw",
+        messages: [{ role: "user", content: "hi" }],
+      });
+      expect(res.status).toBe(200);
+      expect(getStreamParams()).toBeUndefined();
+      await res.text();
+    }
+
+    for (const stop of [["a", "b", "c", "d", "e"], [""], [123], {}]) {
+      agentCommand.mockClear();
+      const res = await postChatCompletions(port, {
+        model: "openclaw",
+        stop,
+        messages: [{ role: "user", content: "hi" }],
+      });
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error?: { type?: string; message?: string } };
+      expect(json.error?.type).toBe("invalid_request_error");
+      expect(json.error?.message).toMatch(/stop/);
       expect(agentCommand).toHaveBeenCalledTimes(0);
     }
   });
@@ -1422,7 +1649,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     );
 
     const res = await postChatCompletions(port, {
-      model: "astroclaw",
+      model: "openclaw",
       messages: [{ role: "user", content: "hi" }],
     });
     expect(res.status).toBe(400);
@@ -1446,7 +1673,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "{}" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         response_format: { type: "json_object" },
         messages: [{ role: "user", content: "hi" }],
       });
@@ -1458,7 +1685,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "{}" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         response_format: {
           type: "json_schema",
           json_schema: { name: "test", schema: { type: "object" } },
@@ -1475,7 +1702,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "hello" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         response_format: { type: "text" },
         messages: [{ role: "user", content: "hi" }],
       });
@@ -1487,7 +1714,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       mockAgentOnce([{ text: "hello" }]);
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         messages: [{ role: "user", content: "hi" }],
       });
       expect(res.status).toBe(200);
@@ -1498,7 +1725,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     {
       agentCommand.mockClear();
       const res = await postChatCompletions(port, {
-        model: "astroclaw",
+        model: "openclaw",
         response_format: { type: "xml" },
         messages: [{ role: "user", content: "hi" }],
       });
@@ -1523,7 +1750,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
           authorization: "Bearer wrong",
         };
         const body = {
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         };
 
@@ -1567,7 +1794,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const res = await postChatCompletions(port, {
           stream: true,
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(res.status).toBe(200);
@@ -1603,7 +1830,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const repeatedRes = await postChatCompletions(port, {
           stream: true,
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(repeatedRes.status).toBe(200);
@@ -1628,13 +1855,46 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const fallbackRes = await postChatCompletions(port, {
           stream: true,
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(fallbackRes.status).toBe(200);
         const fallbackText = await fallbackRes.text();
         expect(fallbackText).toContain("[DONE]");
         expect(fallbackText).toContain("hello");
+      }
+
+      {
+        agentCommand.mockClear();
+        agentCommand.mockImplementationOnce((async (opts: unknown) =>
+          buildAssistantDeltaResult({
+            opts,
+            emit: emitAgentEvent,
+            deltas: ["plain text despite required"],
+            text: "plain text despite required",
+          })) as never);
+
+        const requiredFailureRes = await postChatCompletions(port, {
+          stream: true,
+          model: "openclaw",
+          tool_choice: "required",
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "get_weather",
+                description: "Get weather",
+                parameters: { type: "object", properties: {} },
+              },
+            },
+          ],
+          messages: [{ role: "user", content: "weather?" }],
+        });
+        expect(requiredFailureRes.status).toBe(200);
+        const requiredFailureText = await requiredFailureRes.text();
+        expect(requiredFailureText).toContain("[DONE]");
+        expect(requiredFailureText).toContain("tool_choice=required was not satisfied");
+        expect(requiredFailureText).not.toContain("plain text despite required");
       }
 
       {
@@ -1655,7 +1915,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const toolCallRes = await postChatCompletions(port, {
           stream: true,
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(toolCallRes.status).toBe(200);
@@ -1730,7 +1990,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         const toolCallUsageRes = await postChatCompletions(port, {
           stream: true,
           stream_options: { include_usage: true },
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(toolCallUsageRes.status).toBe(200);
@@ -1775,18 +2035,24 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const lateToolCallRes = await postChatCompletions(port, {
           stream: true,
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(lateToolCallRes.status).toBe(200);
-        const lateToolCallTextPromise = lateToolCallRes.text();
-        const earlyCompletion = await Promise.race([
-          lateToolCallTextPromise.then(() => "completed" as const),
-          new Promise<"pending">((resolve) => {
-            setTimeout(() => resolve("pending"), 1200);
-          }),
-        ]);
-        expect(earlyCompletion).toBe("pending");
+        if (!lateToolCallRes.body) {
+          throw new Error("expected streaming response body");
+        }
+        const reader = lateToolCallRes.body.getReader();
+        const decoder = new TextDecoder();
+        let lateToolCallText = "";
+        while (!lateToolCallText.includes("Let me check that.")) {
+          const { done, value } = await reader.read();
+          if (done) {
+            throw new Error("stream ended before early assistant delta");
+          }
+          lateToolCallText += decoder.decode(value, { stream: true });
+        }
+        expect(lateToolCallText).not.toContain("[DONE]");
 
         resolveLateToolCall?.({
           payloads: [{ text: "Let me check that." }],
@@ -1801,7 +2067,14 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
             ],
           },
         });
-        const lateToolCallText = await lateToolCallTextPromise;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) {
+            lateToolCallText += decoder.decode();
+            break;
+          }
+          lateToolCallText += decoder.decode(value, { stream: true });
+        }
         const lateToolCallData = parseSseDataLines(lateToolCallText);
         const lateToolCallChunks = lateToolCallData
           .filter((d) => d !== "[DONE]")
@@ -1826,7 +2099,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const toolConflictRes = await postChatCompletions(port, {
           stream: true,
-          model: "astroclaw",
+          model: "openclaw",
           tools: [
             {
               type: "function",
@@ -1868,7 +2141,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
         const errorRes = await postChatCompletions(port, {
           stream: true,
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         });
         expect(errorRes.status).toBe(200);
@@ -1950,7 +2223,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         clientReq.end(
           JSON.stringify({
             stream: true,
-            model: "astroclaw",
+            model: "openclaw",
             messages: [{ role: "user", content: "hi" }],
           }),
         );
@@ -1996,7 +2269,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     const res = await postChatCompletions(port, {
       stream: true,
       stream_options: { include_usage: true },
-      model: "astroclaw",
+      model: "openclaw",
       messages: [{ role: "user", content: "hi" }],
     });
     expect(res.status).toBe(200);
@@ -2013,6 +2286,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       prompt_tokens: 15,
       completion_tokens: 5,
       total_tokens: 20,
+      prompt_tokens_details: { cached_tokens: 3 },
     });
     expect(usageChunk?.choices).toStrictEqual([]);
   });
@@ -2038,7 +2312,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     const res = await postChatCompletions(port, {
       stream: true,
       stream_options: { include_usage: true },
-      model: "astroclaw",
+      model: "openclaw",
       messages: [{ role: "user", content: "hi" }],
     });
     expect(res.status).toBe(200);
@@ -2082,7 +2356,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     const res = await postChatCompletions(port, {
       stream: true,
       stream_options: { include_usage: true },
-      model: "astroclaw",
+      model: "openclaw",
       messages: [{ role: "user", content: "hi" }],
     });
     expect(res.status).toBe(200);
@@ -2140,7 +2414,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         JSON.stringify({
           stream: true,
           stream_options: { include_usage: true },
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         }),
       );
@@ -2177,7 +2451,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
 
     const res = await postChatCompletions(port, {
       stream: true,
-      model: "astroclaw",
+      model: "openclaw",
       messages: [{ role: "user", content: "hi" }],
     });
     expect(res.status).toBe(200);
@@ -2192,7 +2466,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     expect(usageChunks).toHaveLength(0);
   });
 
-  it("treats shared-secret bearer callers as owner operators", async () => {
+  it("accepts shared-secret bearer callers", async () => {
     const port = await getFreePort();
     const server = await startTokenServer(port);
     try {
@@ -2204,16 +2478,15 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         headers: {
           authorization: "Bearer secret",
           "content-type": "application/json",
-          "x-astroclaw-scopes": "operator.approvals",
+          "x-openclaw-scopes": "operator.approvals",
         },
         body: JSON.stringify({
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         }),
       });
 
       expect(res.status).toBe(200);
-      expect(firstAgentCommandOptions()?.senderIsOwner).toBe(true);
       await res.text();
     } finally {
       await server.close({ reason: "openai token auth owner test done" });
@@ -2252,7 +2525,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
     clientReq.end(
       JSON.stringify({
         stream: true,
-        model: "astroclaw",
+        model: "openclaw",
         messages: [{ role: "user", content: "hi" }],
       }),
     );
@@ -2305,7 +2578,7 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       clientReq.on("error", () => {});
       clientReq.end(
         JSON.stringify({
-          model: "astroclaw",
+          model: "openclaw",
           messages: [{ role: "user", content: "hi" }],
         }),
       );
