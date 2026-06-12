@@ -1,3 +1,4 @@
+// Canvas tests cover tool plugin behavior.
 import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -11,14 +12,14 @@ const mocks = vi.hoisted(() => ({
   resolveNodeIdFromList: vi.fn(() => "node-1"),
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/agent-harness-runtime", () => ({
   callGatewayTool: mocks.callGatewayTool,
   listNodes: mocks.listNodes,
   resolveNodeIdFromList: mocks.resolveNodeIdFromList,
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-actions", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("astroclaw/plugin-sdk/channel-actions")>()),
+vi.mock("openclaw/plugin-sdk/channel-actions", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("openclaw/plugin-sdk/channel-actions")>()),
   imageResultFromFile: mocks.imageResultFromFile,
 }));
 
@@ -44,7 +45,7 @@ describe("Canvas tool", () => {
   it.skipIf(process.platform === "win32")(
     "rejects jsonlPath symlinks that resolve outside the workspace",
     async () => {
-      tempRoot = await mkdtemp(path.join(os.tmpdir(), "astroclaw-canvas-tool-"));
+      tempRoot = await mkdtemp(path.join(os.tmpdir(), "openclaw-canvas-tool-"));
       const workspaceDir = path.join(tempRoot, "workspace");
       await mkdir(workspaceDir);
       const outsidePath = path.join(tempRoot, "outside.jsonl");
@@ -92,9 +93,75 @@ describe("Canvas tool", () => {
         }
       | undefined;
     expect(imageResultParams?.label).toBe("canvas:snapshot");
-    expect(imageResultParams?.path).toMatch(/astroclaw-canvas-snapshot-.*\.png$/);
+    expect(imageResultParams?.path).toMatch(/openclaw-canvas-snapshot-.*\.png$/);
     expect(imageResultParams?.details).toEqual({ format: "png" });
     expect(imageResultParams?.imageSanitization).toEqual({ maxDimensionPx: 1600 });
+  });
+
+  it("normalizes numeric string params before invoking node canvas commands", async () => {
+    mocks.callGatewayTool.mockResolvedValue({
+      payload: {
+        format: "png",
+        base64: Buffer.from("not-a-real-png").toString("base64"),
+      },
+    });
+    const tool = createCanvasTool();
+
+    await tool.execute("tool-call-1", {
+      action: "present",
+      timeoutMs: "1500",
+      x: "10.5",
+      y: "-2",
+      width: "640",
+      height: "480",
+    });
+
+    expect(mocks.callGatewayTool).toHaveBeenLastCalledWith(
+      "node.invoke",
+      { timeoutMs: 1500 },
+      expect.objectContaining({
+        command: "canvas.present",
+        params: {
+          placement: {
+            x: 10.5,
+            y: -2,
+            width: 640,
+            height: 480,
+          },
+        },
+      }),
+    );
+
+    await tool.execute("tool-call-2", {
+      action: "snapshot",
+      maxWidth: "800",
+      quality: "0.75",
+    });
+
+    expect(mocks.callGatewayTool).toHaveBeenLastCalledWith(
+      "node.invoke",
+      {},
+      expect.objectContaining({
+        command: "canvas.snapshot",
+        params: {
+          format: "png",
+          maxWidth: 800,
+          quality: 0.75,
+        },
+      }),
+    );
+  });
+
+  it("rejects malformed numeric canvas params before invoking node commands", async () => {
+    const tool = createCanvasTool();
+
+    await expect(
+      tool.execute("tool-call-1", {
+        action: "snapshot",
+        maxWidth: "800px",
+      }),
+    ).rejects.toThrow("maxWidth must be a positive integer");
+    expect(mocks.callGatewayTool).not.toHaveBeenCalled();
   });
 
   it("rejects node-controlled snapshot formats before creating image results", async () => {
