@@ -1,3 +1,4 @@
+// Imessage tests cover media staging plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -14,7 +15,7 @@ async function writeTempFile(name: string, contents: Buffer | string): Promise<s
 
 describe("stageIMessageAttachments", () => {
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-imessage-media-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-imessage-media-"));
   });
 
   afterEach(async () => {
