@@ -1,6 +1,10 @@
+// Tests ACP commands for status, reset, and runtime session control.
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AcpRuntimeError } from "../../acp/runtime/errors.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { SessionBindingRecord } from "../../infra/outbound/session-binding-service.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import {
@@ -91,10 +95,28 @@ vi.mock("../../acp/runtime/session-meta.js", () => ({
 }));
 
 vi.mock("../../agents/acp-spawn.js", () => ({
-  resolveAcpSpawnRuntimePolicyError: (params: { cfg?: AstroclawConfig }) =>
+  resolveAcpSpawnRuntimePolicyError: (params: { cfg?: OpenClawConfig }) =>
     params.cfg?.agents?.defaults?.sandbox?.mode === "all"
       ? 'Sandboxed sessions cannot spawn ACP sessions because runtime="acp" runs on the host. Use runtime="subagent" from sandboxed sessions.'
       : undefined,
+  resolveRuntimeCwdForAcpSpawn: async (params: { explicitCwd?: string; resolvedCwd?: string }) => {
+    if (params.explicitCwd) {
+      return params.resolvedCwd;
+    }
+    if (!params.resolvedCwd) {
+      return undefined;
+    }
+    try {
+      await fs.access(params.resolvedCwd);
+      return params.resolvedCwd;
+    } catch (error) {
+      const code = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
+      if (code === "ENOENT" || code === "ENOTDIR") {
+        return undefined;
+      }
+      throw error;
+    }
+  },
 }));
 
 vi.mock("../../config/sessions.js", async () => {
@@ -120,8 +142,8 @@ vi.mock("../../infra/outbound/session-binding-service.js", async () => {
 
 const { handleAcpCommand } = await import("./commands-acp.js");
 const { buildCommandTestParams } = await import("./commands-spawn.test-harness.js");
-const { __testing: acpManagerTesting } = await import("../../acp/control-plane/manager.js");
-const { __testing: acpResetTargetTesting, resolveEffectiveResetTargetSessionKey } =
+const { testing: acpManagerTesting } = await import("../../acp/control-plane/manager.js");
+const { testing: acpResetTargetTesting, resolveEffectiveResetTargetSessionKey } =
   await import("./acp-reset-target.js");
 const { createTaskRecord, resetTaskRegistryForTests } =
   await import("../../tasks/task-registry.js");
@@ -485,9 +507,9 @@ const baseCfg = {
       },
     },
   },
-} satisfies AstroclawConfig;
+} satisfies OpenClawConfig;
 
-function createDiscordParams(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+function createDiscordParams(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   const params = buildCommandTestParams(commandBody, cfg, {
     Provider: "discord",
     Surface: "discord",
@@ -535,6 +557,11 @@ function createAcpSessionEntry(options?: {
   return {
     sessionKey,
     storeSessionKey: sessionKey,
+    entry: {
+      sessionId: "sess-acp",
+      updatedAt: Date.now(),
+      label: "codex-main",
+    },
     acp: {
       backend: "acpx",
       agent: "codex",
@@ -692,7 +719,7 @@ function mockBoundThreadSession(options?: {
   );
 }
 
-function createThreadParams(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+function createThreadParams(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   const params = createDiscordParams(commandBody, cfg);
   params.ctx.MessageThreadId = defaultThreadId;
   return params;
@@ -711,7 +738,7 @@ type ConversationCommandFixture = {
 function createConversationParams(
   commandBody: string,
   fixture: ConversationCommandFixture,
-  cfg: AstroclawConfig = baseCfg,
+  cfg: OpenClawConfig = baseCfg,
 ) {
   const params = buildCommandTestParams(commandBody, cfg, {
     Provider: fixture.channel,
@@ -728,15 +755,15 @@ function createConversationParams(
   return params;
 }
 
-async function runDiscordAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runDiscordAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(createDiscordParams(commandBody, cfg), true);
 }
 
-async function runThreadAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runThreadAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(createThreadParams(commandBody, cfg), true);
 }
 
-async function runTelegramAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runTelegramAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(
     createConversationParams(
       commandBody,
@@ -751,7 +778,7 @@ async function runTelegramAcpCommand(commandBody: string, cfg: AstroclawConfig =
   );
 }
 
-async function runTelegramDmAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runTelegramDmAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(
     createConversationParams(
       commandBody,
@@ -765,7 +792,7 @@ async function runTelegramDmAcpCommand(commandBody: string, cfg: AstroclawConfig
   );
 }
 
-async function runSlackDmAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runSlackDmAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(
     createConversationParams(
       commandBody,
@@ -780,7 +807,7 @@ async function runSlackDmAcpCommand(commandBody: string, cfg: AstroclawConfig = 
   );
 }
 
-function createMatrixThreadParams(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+function createMatrixThreadParams(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   const params = createConversationParams(
     commandBody,
     {
@@ -793,7 +820,7 @@ function createMatrixThreadParams(commandBody: string, cfg: AstroclawConfig = ba
   return params;
 }
 
-async function runMatrixAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runMatrixAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(
     createConversationParams(
       commandBody,
@@ -807,11 +834,11 @@ async function runMatrixAcpCommand(commandBody: string, cfg: AstroclawConfig = b
   );
 }
 
-async function runMatrixThreadAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runMatrixThreadAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(createMatrixThreadParams(commandBody, cfg), true);
 }
 
-async function runFeishuDmAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runFeishuDmAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(
     createConversationParams(
       commandBody,
@@ -826,7 +853,7 @@ async function runFeishuDmAcpCommand(commandBody: string, cfg: AstroclawConfig =
   );
 }
 
-async function runLineDmAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runLineDmAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(
     createConversationParams(
       commandBody,
@@ -841,7 +868,7 @@ async function runLineDmAcpCommand(commandBody: string, cfg: AstroclawConfig = b
   );
 }
 
-async function runIMessageDmAcpCommand(commandBody: string, cfg: AstroclawConfig = baseCfg) {
+async function runIMessageDmAcpCommand(commandBody: string, cfg: OpenClawConfig = baseCfg) {
   return handleAcpCommand(
     createConversationParams(
       commandBody,
@@ -858,7 +885,7 @@ async function runIMessageDmAcpCommand(commandBody: string, cfg: AstroclawConfig
 async function runInternalAcpCommand(params: {
   commandBody: string;
   scopes: string[];
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
 }) {
   const commandParams = buildCommandTestParams(params.commandBody, params.cfg ?? baseCfg, {
     Provider: INTERNAL_MESSAGE_CHANNEL,
@@ -1162,6 +1189,73 @@ describe("/acp command", () => {
     expect(seededWithoutEntry?.runtimeSessionName).toContain(":runtime");
   });
 
+  it("inherits the target agent workspace when /acp spawn omits --cwd", async () => {
+    hoisted.ensureSessionMock.mockResolvedValueOnce({
+      sessionKey: "agent:codex:acp:s2",
+      backend: "acpx",
+      runtimeSessionName: "agent:codex:acp:s2:runtime",
+      agentSessionId: "codex-inner-2",
+      backendSessionId: "acpx-2",
+    });
+
+    const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-"));
+    try {
+      const cfg = {
+        ...baseCfg,
+        agents: {
+          list: [
+            {
+              id: "codex",
+              workspace,
+            },
+          ],
+        },
+      } satisfies OpenClawConfig;
+
+      const result = await runDiscordAcpCommand("/acp spawn codex", cfg);
+
+      expect(result?.reply?.text).toContain("Spawned ACP session agent:codex:acp:");
+      expectMockCallFields(hoisted.ensureSessionMock, {
+        agent: "codex",
+        mode: "persistent",
+        cwd: workspace,
+      });
+    } finally {
+      await fs.rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to the backend default cwd when the inherited target workspace is missing", async () => {
+    hoisted.ensureSessionMock.mockResolvedValueOnce({
+      sessionKey: "agent:codex:acp:s3",
+      backend: "acpx",
+      runtimeSessionName: "agent:codex:acp:s3:runtime",
+      agentSessionId: "codex-inner-3",
+      backendSessionId: "acpx-3",
+    });
+
+    const cfg = {
+      ...baseCfg,
+      agents: {
+        list: [
+          {
+            id: "codex",
+            workspace: "/home/bob/codex-workspace-missing",
+          },
+        ],
+      },
+    } satisfies OpenClawConfig;
+
+    const result = await runDiscordAcpCommand("/acp spawn codex", cfg);
+
+    expect(result?.reply?.text).toContain("Spawned ACP session agent:codex:acp:");
+    expectMockCallFields(hoisted.ensureSessionMock, {
+      agent: "codex",
+      mode: "persistent",
+      cwd: undefined,
+    });
+  });
+
   it("persists ACP spawn labels without a nested gateway self-call", async () => {
     const params = createDiscordParams("/acp spawn codex --bind here --label inbox");
 
@@ -1200,7 +1294,7 @@ describe("/acp command", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = await runDiscordAcpCommand("/acp spawn codex --bind here", cfg);
 
@@ -1286,7 +1380,7 @@ describe("/acp command", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = await runMatrixAcpCommand("/acp spawn codex --bind here", cfg);
 
@@ -1312,7 +1406,7 @@ describe("/acp command", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = await runMatrixAcpCommand("/acp spawn codex", cfg);
 
@@ -1338,7 +1432,7 @@ describe("/acp command", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = await runMatrixThreadAcpCommand("/acp spawn codex --thread here", cfg);
 
@@ -1410,7 +1504,7 @@ describe("/acp command", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = await runDiscordAcpCommand("/acp spawn codex", cfg);
 
@@ -1431,7 +1525,7 @@ describe("/acp command", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = await runMatrixAcpCommand("/acp spawn codex", cfg);
 
@@ -1447,7 +1541,7 @@ describe("/acp command", () => {
           sandbox: { mode: "all" },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = await runDiscordAcpCommand("/acp spawn codex", cfg);
 
@@ -1538,7 +1632,7 @@ describe("/acp command", () => {
           defaultAccount: "work",
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
     hoisted.sessionBindingResolveByConversationMock.mockImplementation(
       (ref: {
         channel?: string;
@@ -1585,7 +1679,7 @@ describe("/acp command", () => {
         ...baseCfg.acp,
         dispatch: { enabled: false },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
     const result = await runDiscordAcpCommand("/acp steer tighten logging", cfg);
     expect(result?.reply?.text).toContain("ACP dispatch is disabled by policy");
     expect(hoisted.runTurnMock).not.toHaveBeenCalled();
@@ -1711,25 +1805,7 @@ describe("/acp command", () => {
     hoisted.sessionBindingListBySessionMock.mockImplementation((key: string) =>
       key === defaultAcpSessionKey ? [createBoundThreadSession(key) as SessionBindingRecord] : [],
     );
-    hoisted.loadSessionStoreMock.mockReturnValue({
-      [defaultAcpSessionKey]: {
-        sessionId: "sess-1",
-        updatedAt: Date.now(),
-        label: "codex-main",
-        acp: {
-          backend: "acpx",
-          agent: "codex",
-          runtimeSessionName: "runtime-1",
-          mode: "persistent",
-          state: "idle",
-          lastActivityAt: Date.now(),
-        },
-      },
-      "agent:main:main": {
-        sessionId: "sess-main",
-        updatedAt: Date.now(),
-      },
-    });
+    hoisted.listAcpSessionEntriesMock.mockResolvedValue([createAcpSessionEntry()]);
 
     const result = await runDiscordAcpCommand("/acp sessions", baseCfg);
 
@@ -1770,6 +1846,33 @@ describe("/acp command", () => {
     expect(hoisted.getStatusMock).toHaveBeenCalledTimes(1);
   });
 
+  it("tolerates Date-invalid ACP status timestamps", async () => {
+    mockBoundThreadSession();
+    hoisted.readAcpSessionEntryMock.mockReturnValue({
+      ...createAcpSessionEntry(),
+      acp: {
+        ...createAcpSessionEntry().acp,
+        lastActivityAt: 8_700_000_000_000_000,
+      },
+    });
+    createTaskRecord({
+      runtime: "acp",
+      ownerKey: "agent:main:main",
+      scopeKind: "session",
+      childSessionKey: defaultAcpSessionKey,
+      runId: "acp-run-1",
+      task: "Inspect ACP backlog",
+      status: "running",
+      lastEventAt: 8_700_000_000_000_000,
+    });
+
+    const result = await runThreadAcpCommand("/acp status", baseCfg);
+
+    expect(result?.reply?.text).toContain("ACP status:");
+    expect(result?.reply?.text).toContain("lastActivityAt: n/a");
+    expect(result?.reply?.text).not.toContain("taskUpdatedAt:");
+  });
+
   it("sanitizes leaked task and runtime details in ACP status output", async () => {
     mockBoundThreadSession({
       identity: {
@@ -1800,7 +1903,7 @@ describe("/acp command", () => {
           lastUpdatedAt: Date.now(),
         },
         lastError: [
-          "Astroclaw runtime context (internal):",
+          "OpenClaw runtime context (internal):",
           "This context is runtime-generated, not user-authored. Keep internal details private.",
           "",
           "[Internal task completion event]",
@@ -1810,7 +1913,7 @@ describe("/acp command", () => {
     });
     hoisted.getStatusMock.mockResolvedValue({
       summary: [
-        "Astroclaw runtime context (internal):",
+        "OpenClaw runtime context (internal):",
         "This context is runtime-generated, not user-authored. Keep internal details private.",
         "",
         "[Internal task completion event]",
@@ -1818,7 +1921,7 @@ describe("/acp command", () => {
       ].join("\n"),
       details: {
         payload: [
-          "Astroclaw runtime context (internal):",
+          "OpenClaw runtime context (internal):",
           "This context is runtime-generated, not user-authored. Keep internal details private.",
           "",
           "[Internal task completion event]",
@@ -1839,7 +1942,7 @@ describe("/acp command", () => {
       runId: "acp-run-1",
       endedAt: Date.now(),
       error: [
-        "Astroclaw runtime context (internal):",
+        "OpenClaw runtime context (internal):",
         "This context is runtime-generated, not user-authored. Keep internal details private.",
         "",
         "[Internal task completion event]",
@@ -1852,7 +1955,7 @@ describe("/acp command", () => {
 
     expect(result?.reply?.text).toContain("ACP status:");
     expect(result?.reply?.text).toContain("taskSummary: Needs approval to continue.");
-    expect(result?.reply?.text).not.toContain("Astroclaw runtime context (internal):");
+    expect(result?.reply?.text).not.toContain("OpenClaw runtime context (internal):");
     expect(result?.reply?.text).not.toContain("Internal task completion event");
   });
 
