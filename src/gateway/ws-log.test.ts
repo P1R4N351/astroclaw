@@ -1,3 +1,6 @@
+/**
+ * Gateway WebSocket log formatting tests.
+ */
 import { describe, expect, test } from "vitest";
 import { formatForLog, shortId, summarizeAgentEventForWsLog } from "./ws-log.js";
 
@@ -37,7 +40,7 @@ describe("gateway ws log helpers", () => {
     expect(formatForLog(input)).toBe(expected);
   });
 
-  test("formatForLog walks cause chain so the underlying error is not hidden (astroclaw-4a8)", () => {
+  test("formatForLog walks cause chain so the underlying error is not hidden (openclaw-4a8)", () => {
     const root = Object.assign(new Error('"Method not found": nes/close (-32601)'), {
       name: "RequestError",
     });
