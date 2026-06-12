@@ -1,110 +1,92 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
+/**
+ * Tests live helper utilities for gateway CLI backend probes.
+ */
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { testing as cliBackendsTesting } from "../agents/cli-backends.js";
 
-const gatewayClientState = vi.hoisted(() => ({
-  lastOptions: undefined as Record<string, unknown> | undefined,
-}));
-
-vi.mock("./client.js", () => ({
-  GatewayClient: class MockGatewayClient {
-    constructor(options: Record<string, unknown>) {
-      gatewayClientState.lastOptions = options;
-    }
-
-    start() {
-      const options = gatewayClientState.lastOptions as
-        | { onHelloOk?: (hello: { type: "hello-ok" }) => void }
-        | undefined;
-      queueMicrotask(() => options?.onHelloOk?.({ type: "hello-ok" }));
-    }
-
-    async stopAndWait() {}
+vi.mock("./client-start-readiness.js", () => ({
+  startGatewayClientWhenEventLoopReady: async (client: { start: () => void }) => {
+    client.start();
+    return { ready: true, aborted: false, elapsedMs: 0, maxDriftMs: 0, checks: 0 };
   },
 }));
 
 describe("gateway cli backend live helpers", () => {
+  let liveHelpers: typeof import("./gateway-cli-backend.live-helpers.js");
+
+  beforeAll(async () => {
+    liveHelpers = await import("./gateway-cli-backend.live-helpers.js");
+  });
+
+  beforeEach(() => {
+    vi.useRealTimers();
+  });
+
   afterEach(() => {
-    gatewayClientState.lastOptions = undefined;
-    delete process.env.ASTROCLAW_SKIP_CHANNELS;
-    delete process.env.ASTROCLAW_SKIP_PROVIDERS;
-    delete process.env.ASTROCLAW_SKIP_GMAIL_WATCHER;
-    delete process.env.ASTROCLAW_SKIP_CRON;
-    delete process.env.ASTROCLAW_SKIP_CANVAS_HOST;
-    delete process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER;
-    delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
-    delete process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY;
+    vi.useRealTimers();
+    cliBackendsTesting.resetDepsForTest();
+    delete process.env.OPENCLAW_SKIP_CHANNELS;
+    delete process.env.OPENCLAW_SKIP_PROVIDERS;
+    delete process.env.OPENCLAW_SKIP_GMAIL_WATCHER;
+    delete process.env.OPENCLAW_SKIP_CRON;
+    delete process.env.OPENCLAW_SKIP_CANVAS_HOST;
+    delete process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER;
+    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+    delete process.env.OPENCLAW_TEST_MINIMAL_GATEWAY;
+    delete process.env.OPENCLAW_LIVE_CLI_BACKEND_ALLOW_PROVIDER_SKIP;
+    delete process.env.OPENCLAW_LIVE_CLI_BACKEND_ADVISORY;
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_API_KEY_OLD;
   });
 
   it("applies and restores live env including minimal gateway mode", async () => {
     const { applyCliBackendLiveEnv, restoreCliBackendLiveEnv, snapshotCliBackendLiveEnv } =
-      await import("./gateway-cli-backend.live-helpers.js");
+      liveHelpers;
 
-    process.env.ASTROCLAW_SKIP_CHANNELS = "old-channels";
-    process.env.ASTROCLAW_SKIP_PROVIDERS = "old-providers";
-    process.env.ASTROCLAW_SKIP_GMAIL_WATCHER = "old-gmail";
-    process.env.ASTROCLAW_SKIP_CRON = "old-cron";
-    process.env.ASTROCLAW_SKIP_CANVAS_HOST = "old-canvas";
-    process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER = "old-browser";
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = "old-bundled";
-    process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = "old-minimal";
+    process.env.OPENCLAW_SKIP_CHANNELS = "old-channels";
+    process.env.OPENCLAW_SKIP_PROVIDERS = "old-providers";
+    process.env.OPENCLAW_SKIP_GMAIL_WATCHER = "old-gmail";
+    process.env.OPENCLAW_SKIP_CRON = "old-cron";
+    process.env.OPENCLAW_SKIP_CANVAS_HOST = "old-canvas";
+    process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER = "old-browser";
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = "old-bundled";
+    process.env.OPENCLAW_TEST_MINIMAL_GATEWAY = "old-minimal";
     process.env.ANTHROPIC_API_KEY = "old-anthropic";
     process.env.ANTHROPIC_API_KEY_OLD = "old-anthropic-old";
 
     const snapshot = snapshotCliBackendLiveEnv();
     applyCliBackendLiveEnv(new Set<string>());
 
-    expect(process.env.ASTROCLAW_SKIP_CHANNELS).toBe("1");
-    expect(process.env.ASTROCLAW_SKIP_PROVIDERS).toBe("1");
-    expect(process.env.ASTROCLAW_SKIP_GMAIL_WATCHER).toBe("1");
-    expect(process.env.ASTROCLAW_SKIP_CRON).toBe("1");
-    expect(process.env.ASTROCLAW_SKIP_CANVAS_HOST).toBe("1");
-    expect(process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER).toBe("1");
-    expect(process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR).toBe("old-bundled");
-    expect(process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY).toBe("1");
+    expect(process.env.OPENCLAW_SKIP_CHANNELS).toBe("1");
+    expect(process.env.OPENCLAW_SKIP_PROVIDERS).toBe("1");
+    expect(process.env.OPENCLAW_SKIP_GMAIL_WATCHER).toBe("1");
+    expect(process.env.OPENCLAW_SKIP_CRON).toBe("1");
+    expect(process.env.OPENCLAW_SKIP_CANVAS_HOST).toBe("1");
+    expect(process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER).toBe("1");
+    expect(process.env.OPENCLAW_BUNDLED_PLUGINS_DIR).toBe("old-bundled");
+    expect(process.env.OPENCLAW_TEST_MINIMAL_GATEWAY).toBe("1");
     expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
     expect(process.env.ANTHROPIC_API_KEY_OLD).toBeUndefined();
 
     restoreCliBackendLiveEnv(snapshot);
 
-    expect(process.env.ASTROCLAW_SKIP_CHANNELS).toBe("old-channels");
-    expect(process.env.ASTROCLAW_SKIP_PROVIDERS).toBe("old-providers");
-    expect(process.env.ASTROCLAW_SKIP_GMAIL_WATCHER).toBe("old-gmail");
-    expect(process.env.ASTROCLAW_SKIP_CRON).toBe("old-cron");
-    expect(process.env.ASTROCLAW_SKIP_CANVAS_HOST).toBe("old-canvas");
-    expect(process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER).toBe("old-browser");
-    expect(process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR).toBe("old-bundled");
-    expect(process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY).toBe("old-minimal");
+    expect(process.env.OPENCLAW_SKIP_CHANNELS).toBe("old-channels");
+    expect(process.env.OPENCLAW_SKIP_PROVIDERS).toBe("old-providers");
+    expect(process.env.OPENCLAW_SKIP_GMAIL_WATCHER).toBe("old-gmail");
+    expect(process.env.OPENCLAW_SKIP_CRON).toBe("old-cron");
+    expect(process.env.OPENCLAW_SKIP_CANVAS_HOST).toBe("old-canvas");
+    expect(process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER).toBe("old-browser");
+    expect(process.env.OPENCLAW_BUNDLED_PLUGINS_DIR).toBe("old-bundled");
+    expect(process.env.OPENCLAW_TEST_MINIMAL_GATEWAY).toBe("old-minimal");
     expect(process.env.ANTHROPIC_API_KEY).toBe("old-anthropic");
     expect(process.env.ANTHROPIC_API_KEY_OLD).toBe("old-anthropic-old");
-  });
-
-  it("builds the live gateway client with test identity defaults", async () => {
-    const { connectTestGatewayClient } = await import("./gateway-cli-backend.live-helpers.js");
-
-    const client = await connectTestGatewayClient({
-      url: "ws://127.0.0.1:18789",
-      token: "gateway-token",
-    });
-
-    expect(client.start).toBeTypeOf("function");
-    expect(client.stopAndWait).toBeTypeOf("function");
-    expect(gatewayClientState.lastOptions?.url).toBe("ws://127.0.0.1:18789");
-    expect(gatewayClientState.lastOptions?.token).toBe("gateway-token");
-    expect(gatewayClientState.lastOptions?.clientName).toBe(GATEWAY_CLIENT_NAMES.TEST);
-    expect(gatewayClientState.lastOptions?.clientDisplayName).toBe("vitest-live");
-    expect(gatewayClientState.lastOptions?.clientVersion).toBe("dev");
-    expect(gatewayClientState.lastOptions?.mode).toBe(GATEWAY_CLIENT_MODES.TEST);
-    expect(gatewayClientState.lastOptions?.connectChallengeTimeoutMs).toBe(45_000);
-    expect(gatewayClientState.lastOptions).not.toHaveProperty("requestTimeoutMs");
   });
 
   it("defaults the model switch probe to Claude Sonnet -> Opus", async () => {
     const { resolveCliModelSwitchProbeTarget, shouldRunCliModelSwitchProbe } =
       await import("./gateway-cli-backend.live-helpers.js");
 
-    delete process.env.ASTROCLAW_LIVE_CLI_BACKEND_MODEL_SWITCH_PROBE;
+    delete process.env.OPENCLAW_LIVE_CLI_BACKEND_MODEL_SWITCH_PROBE;
 
     expect(resolveCliModelSwitchProbeTarget("claude-cli", "claude-cli/claude-sonnet-4-6")).toBe(
       "claude-cli/claude-opus-4-6",
@@ -129,6 +111,25 @@ describe("gateway cli backend live helpers", () => {
   it("configures legacy CLI model refs as canonical provider models plus CLI runtime", async () => {
     const { resolveCliBackendLiveModelSelection } =
       await import("./gateway-cli-backend.live-helpers.js");
+    cliBackendsTesting.setDepsForTest({
+      resolveRuntimeCliBackends: () => [],
+      resolvePluginSetupRegistry: () => ({
+        providers: [],
+        cliBackends: [
+          {
+            pluginId: "claude",
+            backend: {
+              id: "claude-cli",
+              modelProvider: "anthropic",
+              config: { command: "claude", args: [] },
+            },
+          },
+        ],
+        configMigrations: [],
+        autoEnableProbes: [],
+        diagnostics: [],
+      }),
+    });
 
     expect(
       resolveCliBackendLiveModelSelection({
@@ -148,20 +149,96 @@ describe("gateway cli backend live helpers", () => {
   it("lets env disable the model switch probe", async () => {
     const { shouldRunCliModelSwitchProbe } = await import("./gateway-cli-backend.live-helpers.js");
 
-    process.env.ASTROCLAW_LIVE_CLI_BACKEND_MODEL_SWITCH_PROBE = "0";
+    process.env.OPENCLAW_LIVE_CLI_BACKEND_MODEL_SWITCH_PROBE = "0";
 
     expect(shouldRunCliModelSwitchProbe("claude-cli", "claude-cli/claude-sonnet-4-6")).toBe(false);
+  });
+
+  it("requires provider results by default for explicit CLI backend live probes", async () => {
+    const {
+      CLI_BACKEND_LIVE_ADVISORY_ENV,
+      CLI_BACKEND_LIVE_PROVIDER_SKIP_ENV,
+      resolveCliBackendLiveProviderSkipDecision,
+      shouldAllowCliBackendLiveProviderSkip,
+    } = await import("./gateway-cli-backend.live-helpers.js");
+
+    expect(shouldAllowCliBackendLiveProviderSkip({})).toBe(false);
+    expect(
+      resolveCliBackendLiveProviderSkipDecision({
+        allowProviderSkip: false,
+        label: "agent request",
+        providerId: "claude-cli",
+        reasonLabel: "auth drift",
+      }),
+    ).toEqual({
+      action: "fail",
+      message:
+        'agent request for provider "claude-cli" was blocked by auth drift. Set OPENCLAW_LIVE_CLI_BACKEND_ADVISORY=1 and OPENCLAW_LIVE_CLI_BACKEND_ALLOW_PROVIDER_SKIP=1 only for advisory live probes.',
+    });
+
+    expect(
+      shouldAllowCliBackendLiveProviderSkip({ [CLI_BACKEND_LIVE_PROVIDER_SKIP_ENV]: "1" }),
+    ).toBe(false);
+    expect(
+      shouldAllowCliBackendLiveProviderSkip({
+        [CLI_BACKEND_LIVE_ADVISORY_ENV]: "1",
+        [CLI_BACKEND_LIVE_PROVIDER_SKIP_ENV]: "1",
+      }),
+    ).toBe(true);
+    expect(
+      resolveCliBackendLiveProviderSkipDecision({
+        allowProviderSkip: true,
+        label: "agent request",
+        providerId: "claude-cli",
+        reasonLabel: "Claude API capacity",
+      }),
+    ).toEqual({
+      action: "skip",
+      message: 'agent request for provider "claude-cli" was blocked by Claude API capacity.',
+    });
+  });
+
+  it("retries Codex CLI timeout payloads only before the final attempt", async () => {
+    const { isCliBackendLiveTimeoutPayload, shouldRetryCliBackendLiveTimeout } =
+      await import("./gateway-cli-backend.live-helpers.js");
+    const timeoutPayload = { status: "timeout" };
+
+    expect(isCliBackendLiveTimeoutPayload(timeoutPayload)).toBe(true);
+    expect(
+      shouldRetryCliBackendLiveTimeout({
+        attempt: 1,
+        maxAttempts: 2,
+        payload: timeoutPayload,
+        providerId: "codex-cli",
+      }),
+    ).toBe(true);
+    expect(
+      shouldRetryCliBackendLiveTimeout({
+        attempt: 2,
+        maxAttempts: 2,
+        payload: timeoutPayload,
+        providerId: "codex-cli",
+      }),
+    ).toBe(false);
+    expect(
+      shouldRetryCliBackendLiveTimeout({
+        attempt: 1,
+        maxAttempts: 2,
+        payload: timeoutPayload,
+        providerId: "claude-cli",
+      }),
+    ).toBe(false);
   });
 
   it("allows live env overrides for fresh and resume CLI args", async () => {
     const { resolveCliBackendLiveArgs } = await import("./gateway-cli-backend.live-helpers.js");
 
-    process.env.ASTROCLAW_LIVE_CLI_BACKEND_ARGS = JSON.stringify([
+    process.env.OPENCLAW_LIVE_CLI_BACKEND_ARGS = JSON.stringify([
       "exec",
       "--sandbox",
       "danger-full-access",
     ]);
-    process.env.ASTROCLAW_LIVE_CLI_BACKEND_RESUME_ARGS = JSON.stringify([
+    process.env.OPENCLAW_LIVE_CLI_BACKEND_RESUME_ARGS = JSON.stringify([
       "exec",
       "resume",
       "{sessionId}",
