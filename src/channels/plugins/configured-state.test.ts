@@ -1,3 +1,4 @@
+// Configured state tests cover channel plugin configured-state detection and summaries.
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import {
@@ -43,7 +44,7 @@ describe("bundled channel configured-state metadata", () => {
       hasBundledChannelConfiguredState({
         channelId: "irc",
         cfg: {},
-        env: { IRC_HOST: "irc.example.com", IRC_NICK: "astroclaw" },
+        env: { IRC_HOST: "irc.example.com", IRC_NICK: "openclaw" },
       }),
     ).toBe(true);
   });
