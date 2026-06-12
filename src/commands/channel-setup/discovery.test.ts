@@ -1,3 +1,4 @@
+// Channel setup discovery tests cover visible setup choices from bundled, installed, and trusted catalog sources.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginAutoEnableResult } from "../../config/plugin-auto-enable.js";
 
@@ -30,6 +31,7 @@ vi.mock("../../config/plugin-auto-enable.js", () => ({
 
 vi.mock("../../channels/plugins/catalog.js", () => ({
   listChannelPluginCatalogEntries: (_args?: unknown) => listChannelPluginCatalogEntries(),
+  listRawChannelPluginCatalogEntries: (_args?: unknown) => listChannelPluginCatalogEntries(),
 }));
 
 vi.mock("../../channels/chat-meta.js", () => ({
@@ -76,17 +78,17 @@ describe("listManifestInstalledChannelIds", () => {
     const installedIds = listManifestInstalledChannelIds({
       cfg: {} as never,
       workspaceDir: "/tmp/workspace",
-      env: { ASTROCLAW_HOME: "/tmp/home" } as NodeJS.ProcessEnv,
+      env: { OPENCLAW_HOME: "/tmp/home" } as NodeJS.ProcessEnv,
     });
 
     expect(applyPluginAutoEnable).toHaveBeenCalledWith({
       config: {},
-      env: { ASTROCLAW_HOME: "/tmp/home" },
+      env: { OPENCLAW_HOME: "/tmp/home" },
     });
     expect(loadPluginRegistrySnapshot).toHaveBeenCalledWith({
       config: autoEnabledConfig,
       workspaceDir: "/tmp/workspace",
-      env: { ASTROCLAW_HOME: "/tmp/home" },
+      env: { OPENCLAW_HOME: "/tmp/home" },
     });
     expect(listPluginContributionIds).toHaveBeenCalledWith({
       index: {
@@ -96,7 +98,7 @@ describe("listManifestInstalledChannelIds", () => {
       contribution: "channels",
       config: autoEnabledConfig,
       workspaceDir: "/tmp/workspace",
-      env: { ASTROCLAW_HOME: "/tmp/home" },
+      env: { OPENCLAW_HOME: "/tmp/home" },
     });
     expect(installedIds).toEqual(new Set(["slack"]));
   });
@@ -128,7 +130,7 @@ describe("listManifestInstalledChannelIds", () => {
         } as never,
       ],
       workspaceDir: "/tmp/workspace",
-      env: { ASTROCLAW_HOME: "/tmp/home" } as NodeJS.ProcessEnv,
+      env: { OPENCLAW_HOME: "/tmp/home" } as NodeJS.ProcessEnv,
     });
 
     expect(resolved.entries.map((entry) => entry.id)).toEqual(["telegram"]);
@@ -156,7 +158,7 @@ describe("listManifestInstalledChannelIds", () => {
         } as never,
       ],
       workspaceDir: "/tmp/workspace",
-      env: { ASTROCLAW_HOME: "/tmp/home" } as NodeJS.ProcessEnv,
+      env: { OPENCLAW_HOME: "/tmp/home" } as NodeJS.ProcessEnv,
     });
 
     expect(resolved).toStrictEqual({
