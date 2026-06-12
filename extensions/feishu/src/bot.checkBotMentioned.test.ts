@@ -1,3 +1,4 @@
+// Feishu tests cover bot.checkBotMentioned plugin behavior.
 import { describe, it, expect } from "vitest";
 import { parseFeishuMessageEvent, type FeishuMessageEvent } from "./bot.js";
 
@@ -78,9 +79,9 @@ describe("parseFeishuMessageEvent – mentionedBot", () => {
 
   it("returns mentionedBot=true when bot mention name differs from configured botName", () => {
     const event = makeEvent("group", [
-      { key: "@_user_1", name: "Astroclaw Bot (Alias)", id: { open_id: BOT_OPEN_ID } },
+      { key: "@_user_1", name: "OpenClaw Bot (Alias)", id: { open_id: BOT_OPEN_ID } },
     ]);
-    const ctx = parseFeishuMessageEvent(event, BOT_OPEN_ID, "Astroclaw Bot");
+    const ctx = parseFeishuMessageEvent(event, BOT_OPEN_ID, "OpenClaw Bot");
     expect(ctx.mentionedBot).toBe(true);
   });
 
@@ -168,14 +169,14 @@ describe("parseFeishuMessageEvent – mentionedBot", () => {
   });
 
   it("returns mentionedBot=true for post message with at (no top-level mentions)", () => {
-    const BOT_OPEN_ID = "ou_bot_123";
+    const BOT_OPEN_IDLocal = "ou_bot_123";
     const event = makePostEvent({
       content: [
-        [{ tag: "at", user_id: BOT_OPEN_ID, user_name: "claw" }],
+        [{ tag: "at", user_id: BOT_OPEN_IDLocal, user_name: "claw" }],
         [{ tag: "text", text: "What does this document say" }],
       ],
     });
-    const ctx = parseFeishuMessageEvent(event, BOT_OPEN_ID);
+    const ctx = parseFeishuMessageEvent(event, BOT_OPEN_IDLocal);
     expect(ctx.mentionedBot).toBe(true);
   });
 
