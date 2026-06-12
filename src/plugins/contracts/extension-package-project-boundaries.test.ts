@@ -1,3 +1,4 @@
+// Extension package boundary tests cover package/project boundaries for bundled extensions.
 import fs from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -59,17 +60,17 @@ const MEMORY_HOST_SDK_EXPORTS = [
   "./status",
 ] as const;
 const MEMORY_HOST_SDK_ALLOWED_CORE_BRIDGE_FILES = [
-  "packages/memory-host-sdk/src/host/astroclaw-runtime-auth.ts",
-  "packages/memory-host-sdk/src/host/astroclaw-runtime-network.ts",
-  "packages/memory-host-sdk/src/host/astroclaw-runtime.ts",
+  "packages/memory-host-sdk/src/host/openclaw-runtime-auth.ts",
+  "packages/memory-host-sdk/src/host/openclaw-runtime-network.ts",
+  "packages/memory-host-sdk/src/host/openclaw-runtime.ts",
 ] as const;
 const MEMORY_HOST_SDK_RUNTIME_ADAPTER_FILES = [
-  "packages/memory-host-sdk/src/host/astroclaw-runtime-agent.ts",
-  "packages/memory-host-sdk/src/host/astroclaw-runtime-cli.ts",
-  "packages/memory-host-sdk/src/host/astroclaw-runtime-config.ts",
-  "packages/memory-host-sdk/src/host/astroclaw-runtime-io.ts",
-  "packages/memory-host-sdk/src/host/astroclaw-runtime-memory.ts",
-  "packages/memory-host-sdk/src/host/astroclaw-runtime-session.ts",
+  "packages/memory-host-sdk/src/host/openclaw-runtime-agent.ts",
+  "packages/memory-host-sdk/src/host/openclaw-runtime-cli.ts",
+  "packages/memory-host-sdk/src/host/openclaw-runtime-config.ts",
+  "packages/memory-host-sdk/src/host/openclaw-runtime-io.ts",
+  "packages/memory-host-sdk/src/host/openclaw-runtime-memory.ts",
+  "packages/memory-host-sdk/src/host/openclaw-runtime-session.ts",
 ] as const;
 
 // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Test helper lets assertions ascribe JSON file shape.
@@ -123,10 +124,10 @@ function collectCoreReferenceFiles(relativeDir: string): string[] {
   });
 }
 
-function collectAstroclawRuntimeDirectImportFiles(relativeDir: string): string[] {
+function collectOpenClawRuntimeDirectImportFiles(relativeDir: string): string[] {
   return collectCodeFiles(relativeDir).filter((file) => {
     const source = fs.readFileSync(resolve(REPO_ROOT, file), "utf8");
-    return source.includes('"./astroclaw-runtime.js"');
+    return source.includes('"./openclaw-runtime.js"');
   });
 }
 
@@ -167,7 +168,7 @@ describe("opt-in extension package boundaries", () => {
       expect(tsconfig.exclude).toEqual([...EXTENSION_PACKAGE_BOUNDARY_EXCLUDE]);
 
       const packageJson = readExtensionPackageBoundaryPackageJson(extensionName, REPO_ROOT);
-      expect(packageJson.devDependencies?.["@astroclaw/plugin-sdk"]).toBe("workspace:*");
+      expect(packageJson.devDependencies?.["@openclaw/plugin-sdk"]).toBe("workspace:*");
     }
   });
 
@@ -194,6 +195,13 @@ describe("opt-in extension package boundaries", () => {
     expect(tsconfig.compilerOptions?.outDir).toBe("dist");
     expect(tsconfig.compilerOptions?.rootDir).toBe("../..");
     expect(tsconfig.include).toEqual([
+      "../../packages/markdown-core/src/**/*.ts",
+      "../../packages/media-core/src/**/*.ts",
+      "../../packages/media-generation-core/src/**/*.ts",
+      "../../packages/model-catalog-core/src/**/*.ts",
+      "../../packages/normalization-core/src/**/*.ts",
+      "../../packages/acp-core/src/**/*.ts",
+      "../../packages/terminal-core/src/**/*.ts",
       "../../src/plugin-sdk/**/*.ts",
       "../../src/video-generation/dashscope-compatible.ts",
       "../../src/video-generation/types.ts",
@@ -201,7 +209,7 @@ describe("opt-in extension package boundaries", () => {
     ]);
 
     const packageJson = readJsonFile<PackageJson>("packages/plugin-sdk/package.json");
-    expect(packageJson.name).toBe("@astroclaw/plugin-sdk");
+    expect(packageJson.name).toBe("@openclaw/plugin-sdk");
     expect(packageJson.exports?.["./account-id"]?.types).toBe(
       "./dist/src/plugin-sdk/account-id.d.ts",
     );
@@ -220,6 +228,9 @@ describe("opt-in extension package boundaries", () => {
     expect(packageJson.exports?.["./core"]?.types).toBe("./dist/src/plugin-sdk/core.d.ts");
     expect(packageJson.exports?.["./error-runtime"]?.types).toBe(
       "./dist/src/plugin-sdk/error-runtime.d.ts",
+    );
+    expect(packageJson.exports?.["./exec-approvals-runtime"]?.types).toBe(
+      "./dist/src/plugin-sdk/exec-approvals-runtime.d.ts",
     );
     expect(packageJson.exports?.["./plugin-entry"]?.types).toBe(
       "./dist/src/plugin-sdk/plugin-entry.d.ts",
@@ -289,7 +300,7 @@ describe("opt-in extension package boundaries", () => {
     const packageJson = readJsonFile<PackageJson>("packages/memory-host-sdk/package.json");
     const packageExports = packageJson.exports as unknown as Record<string, string>;
 
-    expect(packageJson.name).toBe("@astroclaw/memory-host-sdk");
+    expect(packageJson.name).toBe("@openclaw/memory-host-sdk");
     expect(packageJson.version).toBe("0.0.0-private");
     expect(packageJson.private).toBe(true);
     expect(packageJson.type).toBe("module");
@@ -311,7 +322,7 @@ describe("opt-in extension package boundaries", () => {
     expect(collectCoreReferenceFiles("packages/memory-host-sdk/src")).toEqual([
       ...MEMORY_HOST_SDK_ALLOWED_CORE_BRIDGE_FILES,
     ]);
-    expect(collectAstroclawRuntimeDirectImportFiles("packages/memory-host-sdk/src")).toEqual([
+    expect(collectOpenClawRuntimeDirectImportFiles("packages/memory-host-sdk/src")).toEqual([
       ...MEMORY_HOST_SDK_RUNTIME_ADAPTER_FILES,
     ]);
   });
