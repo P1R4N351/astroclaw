@@ -1,3 +1,4 @@
+// Live probes provider response headers used for request-id diagnostics.
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   LIVE_CACHE_TEST_ENABLED,
@@ -16,12 +17,13 @@ describeLive("provider response headers (live)", () => {
       fixture = await resolveLiveDirectModel({
         provider: "openai",
         api: "openai-responses",
-        envVar: "ASTROCLAW_LIVE_OPENAI_CACHE_MODEL",
+        envVar: "OPENCLAW_LIVE_OPENAI_CACHE_MODEL",
         preferredModelIds: ["gpt-5.5", "gpt-5.4-mini", "gpt-5.4"],
       });
     }, 120_000);
 
     it("returns request-id style headers from Responses", async () => {
+      // Raw fetch keeps provider response headers visible outside SDK wrappers.
       const response = await withLiveCacheHeartbeat(
         fetch("https://api.openai.com/v1/responses", {
           method: "POST",
@@ -61,7 +63,7 @@ describeLive("provider response headers (live)", () => {
       fixture = await resolveLiveDirectModel({
         provider: "anthropic",
         api: "anthropic-messages",
-        envVar: "ASTROCLAW_LIVE_ANTHROPIC_CACHE_MODEL",
+        envVar: "OPENCLAW_LIVE_ANTHROPIC_CACHE_MODEL",
         preferredModelIds: ["claude-sonnet-4-6", "claude-sonnet-4-6", "claude-haiku-3-5"],
       });
     }, 120_000);
