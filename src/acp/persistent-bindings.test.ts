@@ -1,7 +1,8 @@
+/** Tests configured channel-to-ACP binding resolution and generated session keys. */
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import type { ChannelConfiguredBindingProvider, ChannelPlugin } from "../channels/plugins/types.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createChannelTestPluginBase, createTestRegistry } from "../test-utils/channel-plugins.js";
 import { buildConfiguredAcpSessionKey } from "./persistent-bindings.types.js";
@@ -16,7 +17,7 @@ let persistentBindingsResolveModule: Pick<
   "resolveConfiguredAcpBindingRecord" | "resolveConfiguredAcpBindingSpecBySessionKey"
 >;
 
-type ConfiguredBinding = NonNullable<AstroclawConfig["bindings"]>[number];
+type ConfiguredBinding = NonNullable<OpenClawConfig["bindings"]>[number];
 type BindingRecordInput = Parameters<
   PersistentBindingsModule["resolveConfiguredAcpBindingRecord"]
 >[0];
@@ -26,7 +27,7 @@ const baseCfg = {
   agents: {
     list: [{ id: "codex" }, { id: "claude" }],
   },
-} satisfies AstroclawConfig;
+} satisfies OpenClawConfig;
 
 const defaultDiscordConversationId = "1478836151241412759";
 const defaultDiscordAccountId = "default";
@@ -259,13 +260,13 @@ function createConfiguredBindingTestPlugin(
 
 function createCfgWithBindings(
   bindings: ConfiguredBinding[],
-  overrides?: Partial<AstroclawConfig>,
-): AstroclawConfig {
+  overrides?: Partial<OpenClawConfig>,
+): OpenClawConfig {
   return {
     ...baseCfg,
     ...overrides,
     bindings,
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function createDiscordBinding(params: {
@@ -324,7 +325,7 @@ function createFeishuBinding(params: {
   } as ConfiguredBinding;
 }
 
-function resolveBindingRecord(cfg: AstroclawConfig, overrides: Partial<BindingRecordInput> = {}) {
+function resolveBindingRecord(cfg: OpenClawConfig, overrides: Partial<BindingRecordInput> = {}) {
   return persistentBindings.resolveConfiguredAcpBindingRecord({
     cfg,
     channel: "discord",
@@ -335,7 +336,7 @@ function resolveBindingRecord(cfg: AstroclawConfig, overrides: Partial<BindingRe
 }
 
 function resolveDiscordBindingSpecBySession(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   conversationId = defaultDiscordConversationId,
 ) {
   const resolved = resolveBindingRecord(cfg, { conversationId });
@@ -383,7 +384,7 @@ describe("resolveConfiguredAcpBindingRecord", () => {
       createDiscordBinding({
         agentId: "codex",
         conversationId: defaultDiscordConversationId,
-        acp: { cwd: "/repo/astroclaw" },
+        acp: { cwd: "/repo/openclaw" },
       }),
     ]);
     const resolved = resolveBindingRecord(cfg);
@@ -707,7 +708,7 @@ describe("resolveConfiguredAcpBindingRecord", () => {
       ],
       {
         agents: {
-          list: [{ id: "codex", workspace: "/workspace/astroclaw" }, { id: "claude" }],
+          list: [{ id: "codex", workspace: "/workspace/openclaw" }, { id: "claude" }],
         },
       },
     );
