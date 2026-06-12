@@ -1,3 +1,4 @@
+// Empty allowlist policy tests cover doctor policy behavior when allowlists are empty.
 import { describe, expect, it, vi } from "vitest";
 import { collectEmptyAllowlistPolicyWarningsForAccount } from "./empty-allowlist-policy.js";
 
@@ -23,12 +24,12 @@ describe("doctor empty allowlist policy warnings", () => {
     const warnings = collectEmptyAllowlistPolicyWarningsForAccount({
       account: { dmPolicy: "allowlist" },
       channelName: "signal",
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
       prefix: "channels.signal",
     });
 
     expect(warnings).toEqual([
-      '- channels.signal.dmPolicy is "allowlist" but allowFrom is empty — all DMs will be blocked. Add sender IDs to channels.signal.allowFrom, or run "astroclaw doctor --fix" to auto-migrate from pairing store when entries exist.',
+      '- channels.signal.dmPolicy is "allowlist" but allowFrom is empty — all DMs will be blocked. Add sender IDs to channels.signal.allowFrom, or run "openclaw doctor --fix" to auto-migrate from pairing store when entries exist.',
     ]);
   });
 
@@ -36,7 +37,7 @@ describe("doctor empty allowlist policy warnings", () => {
     const warnings = collectEmptyAllowlistPolicyWarningsForAccount({
       account: { groupPolicy: "allowlist" },
       channelName: "imessage",
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
       prefix: "channels.imessage",
     });
 
@@ -49,7 +50,7 @@ describe("doctor empty allowlist policy warnings", () => {
     const warnings = collectEmptyAllowlistPolicyWarningsForAccount({
       account: { groupPolicy: "allowlist" },
       channelName: "zalouser",
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
       prefix: "channels.zalouser",
     });
 
@@ -60,7 +61,7 @@ describe("doctor empty allowlist policy warnings", () => {
     const warnings = collectEmptyAllowlistPolicyWarningsForAccount({
       account: { groupPolicy: "allowlist" },
       channelName: "discord",
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
       prefix: "channels.discord",
     });
 
