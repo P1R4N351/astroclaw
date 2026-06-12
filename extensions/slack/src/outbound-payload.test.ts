@@ -1,7 +1,8 @@
-import { installChannelOutboundPayloadContractSuite } from "astroclaw/plugin-sdk/channel-contract-testing";
-import type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
+// Slack tests cover outbound payload plugin behavior.
+import { installChannelOutboundPayloadContractSuite } from "openclaw/plugin-sdk/channel-contract-testing";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
 import { describe, expect, it } from "vitest";
-import { createSlackOutboundPayloadHarness } from "../test-api.js";
+import { createSlackOutboundPayloadHarness, slackOutbound } from "../test-api.js";
 
 function createHarness(params: {
   payload: ReplyPayload;
@@ -62,6 +63,32 @@ describe("slackOutbound sendPayload", () => {
     expect(sendOptions(call).blocks).toEqual([{ type: "divider" }]);
     expect(result.channel).toBe("slack");
     expect(result.messageId).toBe("sl-1");
+  });
+
+  it("keeps the portable fallback when presentation renders no Slack blocks", async () => {
+    const payload: ReplyPayload = {
+      presentation: {
+        blocks: [
+          {
+            type: "buttons",
+            buttons: [{ label: "Launch", webApp: { url: "https://example.com/app" } }],
+          },
+        ],
+      },
+    };
+
+    const rendered = await slackOutbound.renderPresentation?.({
+      payload,
+      presentation: payload.presentation!,
+      ctx: {
+        cfg: {},
+        to: "C12345",
+        text: "",
+        payload,
+      },
+    });
+
+    expect(rendered).toBeNull();
   });
 
   it("sends media before a separate interactive blocks message", async () => {
@@ -125,7 +152,7 @@ describe("slackOutbound sendPayload", () => {
             blocks: [
               {
                 type: "actions",
-                block_id: "astroclaw_reply_buttons_1",
+                block_id: "openclaw_reply_buttons_1",
                 elements: [],
               },
             ],
@@ -157,11 +184,11 @@ describe("slackOutbound sendPayload", () => {
     expect(call[0]).toBe(to);
     expect(call[1]).toBe("Deploy?");
     const blocks = sendOptions(call).blocks;
-    expect(blocks?.[0]?.block_id).toBe("astroclaw_reply_buttons_1");
-    expect(blocks?.[1]?.block_id).toBe("astroclaw_reply_buttons_2");
-    expect(blocks?.[1]?.elements?.[0]?.action_id).toBe("astroclaw:reply_button:2:1");
-    expect(blocks?.[2]?.block_id).toBe("astroclaw_reply_buttons_3");
-    expect(blocks?.[2]?.elements?.[0]?.action_id).toBe("astroclaw:reply_button:3:1");
+    expect(blocks?.[0]?.block_id).toBe("openclaw_reply_buttons_1");
+    expect(blocks?.[1]?.block_id).toBe("openclaw_reply_buttons_2");
+    expect(blocks?.[1]?.elements?.[0]?.action_id).toBe("openclaw:reply_button:2:1");
+    expect(blocks?.[2]?.block_id).toBe("openclaw_reply_buttons_3");
+    expect(blocks?.[2]?.elements?.[0]?.action_id).toBe("openclaw:reply_button:3:1");
   });
 });
 
