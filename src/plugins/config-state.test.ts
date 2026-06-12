@@ -1,3 +1,4 @@
+// Covers plugin config state normalization and reset behavior.
 import { describe, expect, it, vi } from "vitest";
 import {
   createPluginActivationSource,
@@ -166,10 +167,10 @@ describe("normalizePluginsConfig", () => {
 
   it("normalizes legacy plugin ids to their merged bundled plugin id", () => {
     const result = normalizePluginsConfig({
-      allow: ["openai-codex", "google-gemini-cli", "minimax-portal-auth"],
-      deny: ["openai-codex", "google-gemini-cli", "minimax-portal-auth"],
+      allow: ["openai", "google-gemini-cli", "minimax-portal-auth"],
+      deny: ["openai", "google-gemini-cli", "minimax-portal-auth"],
       entries: {
-        "openai-codex": {
+        openai: {
           enabled: true,
         },
         "google-gemini-cli": {
@@ -189,7 +190,7 @@ describe("normalizePluginsConfig", () => {
   });
 
   it("normalizes unknown plugin ids without consulting discovery", async () => {
-    const discoverPlugins = vi.spyOn(discovery, "discoverAstroclawPlugins");
+    const discoverPlugins = vi.spyOn(discovery, "discoverOpenClawPlugins");
     discoverPlugins.mockClear();
 
     const result = normalizePluginsConfig({
@@ -209,12 +210,12 @@ describe("normalizePluginsConfig", () => {
   });
 
   it("does not consult discovery or manifests for alias lookup", async () => {
-    const discoverPlugins = vi.spyOn(discovery, "discoverAstroclawPlugins").mockReturnValue({
+    const discoverPlugins = vi.spyOn(discovery, "discoverOpenClawPlugins").mockReturnValue({
       candidates: [
         {
           idHint: "anthropic",
-          source: "/tmp/astroclaw-bundled-anthropic/index.js",
-          rootDir: "/tmp/astroclaw-bundled-anthropic",
+          source: "/tmp/openclaw-bundled-anthropic/index.js",
+          rootDir: "/tmp/openclaw-bundled-anthropic",
           origin: "bundled",
           bundledManifest: {
             id: "anthropic",
@@ -224,8 +225,8 @@ describe("normalizePluginsConfig", () => {
         },
         {
           idHint: "external-anthropic",
-          source: "/tmp/astroclaw-global-anthropic/index.js",
-          rootDir: "/tmp/astroclaw-global-anthropic",
+          source: "/tmp/openclaw-global-anthropic/index.js",
+          rootDir: "/tmp/openclaw-global-anthropic",
           origin: "global",
         },
       ],
@@ -233,7 +234,7 @@ describe("normalizePluginsConfig", () => {
     });
     const loadManifest = vi.spyOn(manifest, "loadPluginManifest").mockReturnValue({
       ok: true,
-      manifestPath: "/tmp/astroclaw-global-anthropic/astroclaw.plugin.json",
+      manifestPath: "/tmp/openclaw-global-anthropic/openclaw.plugin.json",
       manifest: {
         id: "external-anthropic",
         configSchema: {},
