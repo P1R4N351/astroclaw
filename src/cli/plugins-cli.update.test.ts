@@ -1,6 +1,7 @@
+// Plugins CLI update tests cover plugin update command behavior and output.
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   loadConfig,
   refreshPluginRegistry,
@@ -16,13 +17,13 @@ import {
   writePersistedInstalledPluginIndexInstallRecords,
 } from "./plugins-cli-test-helpers.js";
 
-const ORIGINAL_ASTROCLAW_NIX_MODE = process.env.ASTROCLAW_NIX_MODE;
+const ORIGINAL_OPENCLAW_NIX_MODE = process.env.OPENCLAW_NIX_MODE;
 
 function createTrackedPluginConfig(params: {
   pluginId: string;
   spec: string;
   resolvedName?: string;
-}): AstroclawConfig {
+}): OpenClawConfig {
   return {
     plugins: {
       installs: {
@@ -34,7 +35,7 @@ function createTrackedPluginConfig(params: {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function expectRestartNoticeLogged() {
@@ -60,14 +61,14 @@ describe("plugins cli update", () => {
   });
 
   afterEach(() => {
-    if (ORIGINAL_ASTROCLAW_NIX_MODE === undefined) {
-      delete process.env.ASTROCLAW_NIX_MODE;
+    if (ORIGINAL_OPENCLAW_NIX_MODE === undefined) {
+      delete process.env.OPENCLAW_NIX_MODE;
     } else {
-      process.env.ASTROCLAW_NIX_MODE = ORIGINAL_ASTROCLAW_NIX_MODE;
+      process.env.OPENCLAW_NIX_MODE = ORIGINAL_OPENCLAW_NIX_MODE;
     }
   });
 
-  it("shows the dangerous unsafe install override in update help", () => {
+  it("shows the deprecated unsafe install flag in update help", () => {
     const program = new Command();
     registerPluginsCli(program);
 
@@ -76,22 +77,23 @@ describe("plugins cli update", () => {
     const helpText = updateCommand?.helpInformation() ?? "";
 
     expect(helpText).toContain("--dangerously-force-unsafe-install");
-    expect(helpText).toContain("Bypass built-in dangerous-code update");
-    expect(helpText).toContain("blocking for plugins");
+    expect(helpText).toContain("Deprecated no-op");
+    expect(helpText).toContain("install policy and");
+    expect(helpText).toContain("plugin hooks may still block");
   });
 
   it("refuses plugin updates in Nix mode before package-manager work", async () => {
-    const previous = process.env.ASTROCLAW_NIX_MODE;
-    process.env.ASTROCLAW_NIX_MODE = "1";
+    const previous = process.env.OPENCLAW_NIX_MODE;
+    process.env.OPENCLAW_NIX_MODE = "1";
     try {
       await expect(runPluginsCommand(["plugins", "update", "--all"])).rejects.toThrow(
-        "ASTROCLAW_NIX_MODE=1",
+        "OPENCLAW_NIX_MODE=1",
       );
     } finally {
       if (previous === undefined) {
-        delete process.env.ASTROCLAW_NIX_MODE;
+        delete process.env.OPENCLAW_NIX_MODE;
       } else {
-        process.env.ASTROCLAW_NIX_MODE = previous;
+        process.env.OPENCLAW_NIX_MODE = previous;
       }
     }
 
@@ -114,7 +116,7 @@ describe("plugins cli update", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const nextConfig = {
       hooks: {
         internal: {
@@ -127,7 +129,7 @@ describe("plugins cli update", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     loadConfig.mockReturnValue(cfg);
     updateNpmInstalledPlugins.mockResolvedValue({
@@ -162,7 +164,7 @@ describe("plugins cli update", () => {
       plugins: {
         installs: {},
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     await expect(runPluginsCommand(["plugins", "update"])).rejects.toThrow("__exit__:1");
 
@@ -175,7 +177,7 @@ describe("plugins cli update", () => {
       plugins: {
         installs: {},
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     await runPluginsCommand(["plugins", "update", "--all"]);
 
@@ -186,8 +188,8 @@ describe("plugins cli update", () => {
 
   it("passes dangerous force unsafe install to plugin updates", async () => {
     const config = createTrackedPluginConfig({
-      pluginId: "astroclaw-codex-app-server",
-      spec: "astroclaw-codex-app-server@beta",
+      pluginId: "openclaw-codex-app-server",
+      spec: "openclaw-codex-app-server@beta",
     });
     loadConfig.mockReturnValue(config);
     setInstalledPluginIndexInstallRecords(config.plugins?.installs ?? {});
@@ -200,14 +202,42 @@ describe("plugins cli update", () => {
     await runPluginsCommand([
       "plugins",
       "update",
-      "astroclaw-codex-app-server",
+      "openclaw-codex-app-server",
       "--dangerously-force-unsafe-install",
     ]);
 
     const updateParams = expectSingleCallParams(updateNpmInstalledPlugins);
     expect(updateParams.config).toEqual(config);
-    expect(updateParams.pluginIds).toEqual(["astroclaw-codex-app-server"]);
+    expect(updateParams.pluginIds).toEqual(["openclaw-codex-app-server"]);
     expect(updateParams.dangerouslyForceUnsafeInstall).toBe(true);
+    expect(
+      runtimeLogs.some((message) =>
+        message.includes(
+          "--dangerously-force-unsafe-install is deprecated and no longer affects plugin updates",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("does not sync official catalog specs for manual plugin updates", async () => {
+    const config = createTrackedPluginConfig({
+      pluginId: "codex",
+      spec: "@openclaw/codex@2026.5.28",
+      resolvedName: "@openclaw/codex",
+    });
+    loadConfig.mockReturnValue(config);
+    setInstalledPluginIndexInstallRecords(config.plugins?.installs ?? {});
+    updateNpmInstalledPlugins.mockResolvedValue({
+      config,
+      changed: false,
+      outcomes: [],
+    });
+
+    await runPluginsCommand(["plugins", "update", "codex"]);
+
+    const updateParams = expectSingleCallParams(updateNpmInstalledPlugins);
+    expect(updateParams.pluginIds).toEqual(["codex"]);
+    expect(updateParams.syncOfficialPluginInstalls).toBeUndefined();
   });
 
   it("writes updated config when updater reports changes", async () => {
@@ -216,21 +246,21 @@ describe("plugins cli update", () => {
         installs: {
           alpha: {
             source: "npm",
-            spec: "@astroclaw/alpha@1.0.0",
+            spec: "@openclaw/alpha@1.0.0",
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const nextConfig = {
       plugins: {
         installs: {
           alpha: {
             source: "npm",
-            spec: "@astroclaw/alpha@1.1.0",
+            spec: "@openclaw/alpha@1.1.0",
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     loadConfig.mockReturnValue(cfg);
     setInstalledPluginIndexInstallRecords(cfg.plugins?.installs ?? {});
     updateNpmInstalledPlugins.mockResolvedValue({
@@ -268,29 +298,29 @@ describe("plugins cli update", () => {
         installs: {
           alpha: {
             source: "npm",
-            spec: "@astroclaw/alpha@1.0.0",
+            spec: "@openclaw/alpha@1.0.0",
           },
           beta: {
             source: "npm",
-            spec: "@astroclaw/beta@1.0.0",
+            spec: "@openclaw/beta@1.0.0",
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const nextConfig = {
       plugins: {
         installs: {
           alpha: {
             source: "npm",
-            spec: "@astroclaw/alpha@1.1.0",
+            spec: "@openclaw/alpha@1.1.0",
           },
           beta: {
             source: "npm",
-            spec: "@astroclaw/beta@1.0.0",
+            spec: "@openclaw/beta@1.0.0",
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     loadConfig.mockReturnValue(cfg);
     setInstalledPluginIndexInstallRecords(cfg.plugins?.installs ?? {});
     updateNpmInstalledPlugins.mockResolvedValue({
@@ -334,7 +364,7 @@ describe("plugins cli update", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     loadConfig.mockReturnValue(cfg);
     updateNpmInstalledPlugins.mockResolvedValue({
       config: cfg,
