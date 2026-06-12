@@ -1,3 +1,4 @@
+// Matrix tests cover plugin entry plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -30,13 +31,13 @@ function writeFixtureFile(fixtureRoot: string, relativePath: string, value: stri
   fs.writeFileSync(fullPath, value, "utf8");
 }
 
-function writeAstroclawPackageFixture(fixtureRoot: string) {
+function writeOpenClawPackageFixture(fixtureRoot: string) {
   writeFixtureFile(
     fixtureRoot,
     "package.json",
     JSON.stringify(
       {
-        name: "astroclaw",
+        name: "openclaw",
         type: "module",
         exports: {
           "./plugin-sdk": "./dist/plugin-sdk/index.js",
@@ -46,7 +47,7 @@ function writeAstroclawPackageFixture(fixtureRoot: string) {
       2,
     ) + "\n",
   );
-  writeFixtureFile(fixtureRoot, "astroclaw.mjs", "export {};\n");
+  writeFixtureFile(fixtureRoot, "openclaw.mjs", "export {};\n");
   writeFixtureFile(fixtureRoot, "dist/plugin-sdk/index.js", "export {};\n");
 }
 
@@ -89,7 +90,7 @@ afterEach(() => {
 it("loads the source-checkout runtime wrapper through native ESM import", async () => {
   const fixtureRoot = makeFixtureRoot(".tmp-matrix-source-runtime-");
 
-  writeAstroclawPackageFixture(fixtureRoot);
+  writeOpenClawPackageFixture(fixtureRoot);
   writeSourceRuntimeWrapperFixture(fixtureRoot);
 
   expectRuntimeWrapperExports(
@@ -100,7 +101,7 @@ it("loads the source-checkout runtime wrapper through native ESM import", async 
 it("loads the packaged runtime wrapper without recursing through the stable root alias", async () => {
   const fixtureRoot = makeFixtureRoot(".tmp-matrix-runtime-");
 
-  writeAstroclawPackageFixture(fixtureRoot);
+  writeOpenClawPackageFixture(fixtureRoot);
   writeFixtureFile(
     fixtureRoot,
     "dist/plugin-entry.runtime-C88YIa_v.js",
@@ -125,7 +126,7 @@ it("loads the packaged runtime wrapper without recursing through the stable root
 it("does not load when only a TypeScript Matrix runtime shim exists", async () => {
   const fixtureRoot = makeFixtureRoot(".tmp-matrix-runtime-ts-only-");
 
-  writeAstroclawPackageFixture(fixtureRoot);
+  writeOpenClawPackageFixture(fixtureRoot);
   writeSourceRuntimeWrapperFixture(fixtureRoot, { runtimeExtension: ".ts" });
 
   await expect(
