@@ -1,5 +1,6 @@
+// Onboard config tests cover workspace, bootstrap, and local setup config mutations.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   applyLocalSetupWorkspaceConfig,
   ONBOARDING_DEFAULT_DM_SCOPE,
@@ -12,7 +13,7 @@ describe("applyLocalSetupWorkspaceConfig", () => {
   });
 
   it("sets secure dmScope default when unset", () => {
-    const baseConfig: AstroclawConfig = {};
+    const baseConfig: OpenClawConfig = {};
     const result = applyLocalSetupWorkspaceConfig(baseConfig, "/tmp/workspace");
 
     expect(result.session?.dmScope).toBe(ONBOARDING_DEFAULT_DM_SCOPE);
@@ -22,7 +23,7 @@ describe("applyLocalSetupWorkspaceConfig", () => {
   });
 
   it("preserves existing dmScope when already configured", () => {
-    const baseConfig: AstroclawConfig = {
+    const baseConfig: OpenClawConfig = {
       session: {
         dmScope: "main",
       },
@@ -33,7 +34,7 @@ describe("applyLocalSetupWorkspaceConfig", () => {
   });
 
   it("preserves explicit non-main dmScope values", () => {
-    const baseConfig: AstroclawConfig = {
+    const baseConfig: OpenClawConfig = {
       session: {
         dmScope: "per-account-channel-peer",
       },
@@ -44,7 +45,7 @@ describe("applyLocalSetupWorkspaceConfig", () => {
   });
 
   it("preserves an explicit tools.profile when already configured", () => {
-    const baseConfig: AstroclawConfig = {
+    const baseConfig: OpenClawConfig = {
       tools: {
         profile: "full",
       },
@@ -52,5 +53,29 @@ describe("applyLocalSetupWorkspaceConfig", () => {
     const result = applyLocalSetupWorkspaceConfig(baseConfig, "/tmp/workspace");
 
     expect(result.tools?.profile).toBe("full");
+  });
+
+  it("preserves agents.list and bindings on onboard rerun (openclaw#84692)", () => {
+    const baseConfig: OpenClawConfig = {
+      agents: {
+        list: [
+          { id: "alpha", model: "anthropic/claude-3-5-sonnet" },
+          { id: "beta", model: "openai/gpt-4o" },
+        ],
+      },
+      bindings: [
+        {
+          type: "route",
+          agentId: "alpha",
+          match: { channel: "discord", peer: { kind: "direct", id: "user-1" } },
+        },
+      ],
+    } as OpenClawConfig;
+
+    const result = applyLocalSetupWorkspaceConfig(baseConfig, "/tmp/workspace");
+
+    expect(result.agents?.list).toHaveLength(2);
+    expect(result.agents?.list?.map((a) => a.id)).toEqual(["alpha", "beta"]);
+    expect(result.bindings).toEqual(baseConfig.bindings);
   });
 });
