@@ -1,3 +1,4 @@
+// Auth-choice plugin provider tests cover loaded provider setup, plugin install, and credential routing.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyAuthChoiceLoadedPluginProvider,
@@ -192,7 +193,7 @@ function buildLocalProviderInstallCatalogEntry() {
     label: LOCAL_PROVIDER_LABEL,
     origin: "bundled" as const,
     install: {
-      npmSpec: "@astroclaw/local-provider",
+      npmSpec: "@openclaw/local-provider",
     },
   };
 }
