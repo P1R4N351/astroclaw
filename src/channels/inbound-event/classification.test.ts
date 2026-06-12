@@ -1,5 +1,6 @@
+// Inbound event classification tests cover message type and routing classification.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   classifyChannelInboundEvent,
   resolveUnmentionedGroupInboundPolicy,
@@ -49,7 +50,7 @@ describe("resolveUnmentionedGroupInboundPolicy", () => {
           },
         ],
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     expect(resolveUnmentionedGroupInboundPolicy({ cfg, agentId: "room-agent" })).toBe("room_event");
     expect(resolveUnmentionedGroupInboundPolicy({ cfg, agentId: "other" })).toBe("user_request");
