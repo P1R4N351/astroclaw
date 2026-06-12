@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { TelegramAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Telegram tests cover group access.base access plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { TelegramAccountConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { normalizeAllowFrom, type NormalizedAllowFrom } from "./bot-access.js";
 import {
@@ -76,7 +77,7 @@ describe("evaluateTelegramGroupBaseAccess", () => {
  */
 const baseCfg = {
   channels: { telegram: {} },
-} as unknown as AstroclawConfig;
+} as unknown as OpenClawConfig;
 
 const baseTelegramCfg: TelegramAccountConfig = {
   groupPolicy: "allowlist",
