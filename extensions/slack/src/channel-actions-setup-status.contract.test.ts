@@ -1,9 +1,10 @@
+// Slack tests cover channel actions setup status.contract plugin behavior.
 import {
   installChannelActionsContractSuite,
   installChannelSetupContractSuite,
   installChannelStatusContractSuite,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect } from "vitest";
 import { slackPlugin } from "../api.js";
 import { slackSetupPlugin } from "../setup-plugin-api.js";
@@ -38,7 +39,7 @@ describe("slack actions contract", () => {
               appToken: "xapp-test",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         expectedActions: slackDefaultActions,
         expectedCapabilities: ["presentation"],
       },
@@ -54,7 +55,7 @@ describe("slack actions contract", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         expectedActions: slackDefaultActions,
         expectedCapabilities: ["presentation"],
       },
@@ -66,7 +67,7 @@ describe("slack actions contract", () => {
               enabled: true,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         expectedActions: [],
         expectedCapabilities: [],
       },
@@ -80,7 +81,7 @@ describe("slack setup contract", () => {
     cases: [
       {
         name: "default account stores tokens and enables the channel",
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         input: {
           botToken: "xoxb-test",
           appToken: "xapp-test",
@@ -94,7 +95,7 @@ describe("slack setup contract", () => {
       },
       {
         name: "non-default env setup is rejected",
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: "ops",
         input: {
           useEnv: true,
@@ -119,7 +120,7 @@ describe("slack status contract", () => {
               appToken: "xapp-test",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         runtime: {
           accountId: "default",
           connected: true,
