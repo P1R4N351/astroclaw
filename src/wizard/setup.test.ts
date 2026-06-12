@@ -1,7 +1,8 @@
+// Setup wizard tests cover end-to-end onboarding prompt flows.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { ProviderPlugin } from "astroclaw/plugin-sdk/provider-model-shared";
+import type { ProviderPlugin } from "openclaw/plugin-sdk/provider-model-shared";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
 import { DEFAULT_BOOTSTRAP_FILENAME } from "../agents/workspace.js";
@@ -111,14 +112,14 @@ const ensureWorkspaceAndSessions = vi.hoisted(() => vi.fn(async () => {}));
 const replaceConfigFile = vi.hoisted(() => vi.fn(async () => ({ config: {} })));
 const resolveGatewayPort = vi.hoisted(() =>
   vi.fn((_cfg?: unknown, env?: NodeJS.ProcessEnv) => {
-    const raw = env?.ASTROCLAW_GATEWAY_PORT ?? process.env.ASTROCLAW_GATEWAY_PORT;
+    const raw = env?.OPENCLAW_GATEWAY_PORT ?? process.env.OPENCLAW_GATEWAY_PORT;
     const port = raw ? Number.parseInt(raw, 10) : Number.NaN;
     return Number.isFinite(port) && port > 0 ? port : 18789;
   }),
 );
 const readConfigFileSnapshot = vi.hoisted(() =>
   vi.fn(async () => ({
-    path: "/tmp/.astroclaw/astroclaw.json",
+    path: "/tmp/.openclaw/openclaw.json",
     exists: false,
     raw: null as string | null,
     parsed: {},
@@ -265,7 +266,7 @@ vi.mock("../config/config.js", () => ({
 }));
 
 vi.mock("../commands/onboard-helpers.js", () => ({
-  DEFAULT_WORKSPACE: "/tmp/astroclaw-workspace",
+  DEFAULT_WORKSPACE: "/tmp/openclaw-workspace",
   applyWizardMetadata: (cfg: unknown) => cfg,
   summarizeExistingConfig: () => "summary",
   handleReset: async () => {},
@@ -353,7 +354,7 @@ describe("runSetupWizard", () => {
   let suiteCase = 0;
 
   beforeAll(async () => {
-    suiteRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-onboard-suite-"));
+    suiteRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-onboard-suite-"));
   });
 
   afterAll(async () => {
@@ -371,7 +372,7 @@ describe("runSetupWizard", () => {
   it("skips provider entries without an id during preferred-provider lookup", async () => {
     setupChannels.mockClear();
     readConfigFileSnapshot.mockResolvedValueOnce({
-      path: "/tmp/.astroclaw/astroclaw.json",
+      path: "/tmp/.openclaw/openclaw.json",
       exists: true,
       raw: "{}",
       parsed: {},
@@ -434,7 +435,7 @@ describe("runSetupWizard", () => {
 
   it("exits when config is invalid", async () => {
     readConfigFileSnapshot.mockResolvedValueOnce({
-      path: "/tmp/.astroclaw/astroclaw.json",
+      path: "/tmp/.openclaw/openclaw.json",
       exists: true,
       raw: "{}",
       parsed: {},
@@ -550,7 +551,7 @@ describe("runSetupWizard", () => {
     );
     expectRecordFields(
       replaceParams.writeOptions,
-      { allowConfigSizeDrop: true },
+      { allowConfigSizeDrop: false },
       "config replacement write options",
     );
     expect(getMockCallArg(ensureWorkspaceAndSessions, 0, 0, "workspace setup")).toBe(workspaceDir);
@@ -559,6 +560,89 @@ describe("runSetupWizard", () => {
       getMockCallArg(ensureWorkspaceAndSessions, 0, 2, "workspace setup"),
       { skipBootstrap: true },
       "workspace setup options",
+    );
+  });
+
+  it("allows size-drop writes for pending plugin install record migration", async () => {
+    replaceConfigFile.mockClear();
+    readConfigFileSnapshot.mockResolvedValueOnce({
+      path: "/tmp/.openclaw/openclaw.json",
+      exists: true,
+      raw: "{}",
+      parsed: {},
+      resolved: {},
+      valid: true,
+      config: {
+        plugins: {
+          installs: {
+            demo: { source: "npm", spec: "@openclaw/demo-plugin" },
+          },
+        },
+      },
+      issues: [],
+      warnings: [],
+      legacyIssues: [],
+    });
+
+    const workspaceDir = await makeCaseDir("plugin-install-migration-");
+    const select = vi.fn(async ({ options }: WizardSelectParams<unknown>) => {
+      const values = options.map((option) => option.value);
+      if (values.includes("keep")) {
+        return "keep";
+      }
+      if (values.includes("quickstart")) {
+        return "quickstart";
+      }
+      if (values.includes("__skip__")) {
+        return "__skip__";
+      }
+      return values[0];
+    }) as unknown as WizardPrompter["select"];
+    const prompter = buildWizardPrompter({ select });
+    const runtime = createRuntime();
+
+    await runSetupWizard(
+      {
+        acceptRisk: true,
+        flow: "quickstart",
+        authChoice: "skip",
+        installDaemon: false,
+        skipBootstrap: true,
+        skipChannels: true,
+        skipSkills: true,
+        skipSearch: true,
+        skipHealth: true,
+        skipUi: true,
+        workspace: workspaceDir,
+      },
+      runtime,
+      prompter,
+    );
+
+    expect(replaceConfigFile).toHaveBeenCalledTimes(3);
+    const migrationParams = requireRecord(
+      getMockCallArg(replaceConfigFile, 0, 0, "migration config replacement"),
+      "migration config replacement params",
+    );
+    expect(
+      requireRecord(migrationParams.nextConfig, "migration next config").plugins,
+    ).toBeUndefined();
+    const migrationWriteOptions = expectRecordFields(
+      migrationParams.writeOptions,
+      { allowConfigSizeDrop: true },
+      "migration config replacement write options",
+    );
+    expect(migrationWriteOptions.unsetPaths).toContainEqual(["plugins", "installs"]);
+
+    const replaceParams = requireRecord(
+      getMockCallArg(replaceConfigFile, 2, 0, "config replacement"),
+      "config replacement params",
+    );
+    expect(requireRecord(replaceParams.nextConfig, "next config").plugins).toBeUndefined();
+    expectRecordFields(
+      replaceParams.writeOptions,
+      { allowConfigSizeDrop: false },
+      "config replacement write options",
     );
   });
 
@@ -861,7 +945,7 @@ describe("runSetupWizard", () => {
         agents: {
           defaults: {
             model: {
-              primary: "openai-codex/gpt-5.5",
+              primary: "openai/gpt-5.5",
             },
           },
         },
@@ -875,7 +959,7 @@ describe("runSetupWizard", () => {
       {
         acceptRisk: true,
         flow: "quickstart",
-        authChoice: "openai-codex-api-key",
+        authChoice: "openai-chatgpt-api-key",
         openaiApiKey: "sk-flag-value",
         installDaemon: false,
         skipChannels: true,
@@ -890,7 +974,7 @@ describe("runSetupWizard", () => {
     );
 
     expect(applyAuthChoice).toHaveBeenCalledTimes(1);
-    const call = getMockCallArg(applyAuthChoice, 0, 0, "openai-codex auth choice");
+    const call = getMockCallArg(applyAuthChoice, 0, 0, "openai auth choice");
     const opts = (call as { opts?: Record<string, unknown> }).opts ?? {};
     expect(opts.openaiApiKey).toBe("sk-flag-value");
   });
@@ -907,7 +991,7 @@ describe("runSetupWizard", () => {
       },
     ]);
     readConfigFileSnapshot.mockResolvedValueOnce({
-      path: "/tmp/.astroclaw/astroclaw.json",
+      path: "/tmp/.openclaw/openclaw.json",
       exists: true,
       raw: "{}",
       parsed: {},
@@ -958,11 +1042,11 @@ describe("runSetupWizard", () => {
   });
 
   it("resolves gateway.auth.password SecretRef for local setup probe", async () => {
-    const previous = process.env.ASTROCLAW_GATEWAY_PASSWORD;
-    process.env.ASTROCLAW_GATEWAY_PASSWORD = "gateway-ref-password"; // pragma: allowlist secret
+    const previous = process.env.OPENCLAW_GATEWAY_PASSWORD;
+    process.env.OPENCLAW_GATEWAY_PASSWORD = "gateway-ref-password"; // pragma: allowlist secret
     probeGatewayReachable.mockClear();
     readConfigFileSnapshot.mockResolvedValueOnce({
-      path: "/tmp/.astroclaw/astroclaw.json",
+      path: "/tmp/.openclaw/openclaw.json",
       exists: true,
       raw: "{}",
       parsed: {},
@@ -975,7 +1059,7 @@ describe("runSetupWizard", () => {
             password: {
               source: "env",
               provider: "default",
-              id: "ASTROCLAW_GATEWAY_PASSWORD",
+              id: "OPENCLAW_GATEWAY_PASSWORD",
             },
           },
         },
@@ -1012,9 +1096,9 @@ describe("runSetupWizard", () => {
       );
     } finally {
       if (previous === undefined) {
-        delete process.env.ASTROCLAW_GATEWAY_PASSWORD;
+        delete process.env.OPENCLAW_GATEWAY_PASSWORD;
       } else {
-        process.env.ASTROCLAW_GATEWAY_PASSWORD = previous;
+        process.env.OPENCLAW_GATEWAY_PASSWORD = previous;
       }
     }
 
@@ -1061,8 +1145,8 @@ describe("runSetupWizard", () => {
   });
 
   it("shows the resolved gateway port in quickstart for fresh envs", async () => {
-    const previousPort = process.env.ASTROCLAW_GATEWAY_PORT;
-    process.env.ASTROCLAW_GATEWAY_PORT = "18791";
+    const previousPort = process.env.OPENCLAW_GATEWAY_PORT;
+    process.env.OPENCLAW_GATEWAY_PORT = "18791";
     const note: WizardPrompter["note"] = vi.fn(async () => {});
     const prompter = buildWizardPrompter({ note });
     const runtime = createRuntime();
@@ -1085,9 +1169,9 @@ describe("runSetupWizard", () => {
       );
     } finally {
       if (previousPort === undefined) {
-        delete process.env.ASTROCLAW_GATEWAY_PORT;
+        delete process.env.OPENCLAW_GATEWAY_PORT;
       } else {
-        process.env.ASTROCLAW_GATEWAY_PORT = previousPort;
+        process.env.OPENCLAW_GATEWAY_PORT = previousPort;
       }
     }
 
@@ -1102,10 +1186,10 @@ describe("runSetupWizard", () => {
   });
 
   it("localizes the quickstart summary", async () => {
-    const previousPort = process.env.ASTROCLAW_GATEWAY_PORT;
-    const previousLocale = process.env.ASTROCLAW_LOCALE;
-    process.env.ASTROCLAW_GATEWAY_PORT = "18791";
-    process.env.ASTROCLAW_LOCALE = "zh-CN";
+    const previousPort = process.env.OPENCLAW_GATEWAY_PORT;
+    const previousLocale = process.env.OPENCLAW_LOCALE;
+    process.env.OPENCLAW_GATEWAY_PORT = "18791";
+    process.env.OPENCLAW_LOCALE = "zh-CN";
     const note: WizardPrompter["note"] = vi.fn(async () => {});
     const prompter = buildWizardPrompter({ note });
     const runtime = createRuntime();
@@ -1128,14 +1212,14 @@ describe("runSetupWizard", () => {
       );
     } finally {
       if (previousPort === undefined) {
-        delete process.env.ASTROCLAW_GATEWAY_PORT;
+        delete process.env.OPENCLAW_GATEWAY_PORT;
       } else {
-        process.env.ASTROCLAW_GATEWAY_PORT = previousPort;
+        process.env.OPENCLAW_GATEWAY_PORT = previousPort;
       }
       if (previousLocale === undefined) {
-        delete process.env.ASTROCLAW_LOCALE;
+        delete process.env.OPENCLAW_LOCALE;
       } else {
-        process.env.ASTROCLAW_LOCALE = previousLocale;
+        process.env.OPENCLAW_LOCALE = previousLocale;
       }
     }
 
@@ -1155,13 +1239,13 @@ describe("runSetupWizard", () => {
     resolvePluginProvidersRuntime.mockClear();
     resolveManifestProviderAuthChoice.mockReturnValue({
       pluginId: "openai",
-      providerId: "openai-codex",
+      providerId: "openai",
       methodId: "oauth",
-      choiceId: "openai-codex",
+      choiceId: "openai",
       choiceLabel: "ChatGPT/Codex Browser Login",
     });
     resolvePluginSetupProvider.mockReturnValue({
-      id: "openai-codex",
+      id: "openai",
       label: "OpenAI Codex",
       auth: [
         {
@@ -1177,7 +1261,7 @@ describe("runSetupWizard", () => {
         },
       ],
     });
-    promptAuthChoiceGrouped.mockResolvedValueOnce("openai-codex");
+    promptAuthChoiceGrouped.mockResolvedValueOnce("openai");
     const prompter = buildWizardPrompter({});
     const runtime = createRuntime();
 
@@ -1198,7 +1282,7 @@ describe("runSetupWizard", () => {
     expectRecordFields(
       getMockCallArg(resolvePluginSetupProvider, 0, 0, "plugin setup provider"),
       {
-        provider: "openai-codex",
+        provider: "openai",
         pluginIds: ["openai"],
       },
       "plugin setup provider params",
