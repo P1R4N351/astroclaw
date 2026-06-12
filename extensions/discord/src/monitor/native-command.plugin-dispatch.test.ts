@@ -1,18 +1,20 @@
+// Discord tests cover native command.plugin dispatch plugin behavior.
 import { ChannelType } from "discord-api-types/v10";
-import type { NativeCommandSpec } from "astroclaw/plugin-sdk/command-auth";
-import { resolveDirectStatusReplyForSession } from "astroclaw/plugin-sdk/command-status-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { NativeCommandSpec } from "openclaw/plugin-sdk/command-auth-native";
+import { resolveDirectStatusReplyForSession } from "openclaw/plugin-sdk/command-status-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   clearPluginCommands,
   executePluginCommand,
   matchPluginCommand,
   registerPluginCommand,
-} from "astroclaw/plugin-sdk/plugin-runtime";
+} from "openclaw/plugin-sdk/plugin-runtime";
 import {
   createTestRegistry,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { dispatchReplyWithDispatcher } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { dispatchReplyWithDispatcher } from "openclaw/plugin-sdk/reply-dispatch-runtime";
+import { getSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineThrowingDiscordChannelGetter } from "../test-support/partial-channel.js";
 import { resolveDiscordNativeInteractionRouteState } from "./native-command-route.js";
@@ -23,22 +25,23 @@ import {
 import { createNoopThreadBindingManager } from "./thread-bindings.manager.js";
 
 let createDiscordNativeCommand: typeof import("./native-command.js").createDiscordNativeCommand;
-let discordNativeCommandTesting: typeof import("./native-command.js").__testing;
+let discordNativeCommandTesting: typeof import("./native-command.js").testing;
 const runtimeModuleMocks = vi.hoisted(() => ({
   matchPluginCommand: vi.fn(),
   executePluginCommand: vi.fn(),
   dispatchReplyWithDispatcher: vi.fn(),
   resolveDirectStatusReplyForSession: vi.fn(),
+  getSessionEntry: vi.fn(),
 }));
 
-function createConfig(): AstroclawConfig {
+function createConfig(): OpenClawConfig {
   return {
     channels: {
       discord: {
         dm: { enabled: true, policy: "open", allowFrom: ["*"] },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function createConfiguredAcpBinding(params: {
@@ -104,7 +107,7 @@ function createConfiguredAcpCase(params: {
           agentId: params.agentId,
         }),
       ],
-    } as AstroclawConfig,
+    } as OpenClawConfig,
     interaction: createInteraction({
       channelType: params.channelType,
       channelId: params.channelId,
@@ -114,7 +117,7 @@ function createConfiguredAcpCase(params: {
   };
 }
 
-async function createNativeCommand(cfg: AstroclawConfig, commandSpec: NativeCommandSpec) {
+async function createNativeCommand(cfg: OpenClawConfig, commandSpec: NativeCommandSpec) {
   return createDiscordNativeCommand({
     command: commandSpec,
     cfg,
@@ -264,7 +267,7 @@ function expectNoFollowUpContent(interaction: MockCommandInteraction, content: s
   expect(matched).toBe(false);
 }
 
-async function createPluginCommand(params: { cfg: AstroclawConfig; name: string }) {
+async function createPluginCommand(params: { cfg: OpenClawConfig; name: string }) {
   return createDiscordNativeCommand({
     command: {
       name: params.name,
@@ -317,7 +320,7 @@ function registerScopedPairPlugin(
 }
 
 async function expectPairCommandReply(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   commandName: string;
   interaction: MockCommandInteraction;
   expectedRegisteredName?: string;
@@ -350,7 +353,7 @@ async function expectPairCommandReply(params: {
   expect(params.interaction.reply).not.toHaveBeenCalled();
 }
 
-async function createStatusCommand(cfg: AstroclawConfig) {
+async function createStatusCommand(cfg: OpenClawConfig) {
   return await createNativeCommand(cfg, {
     name: "status",
     description: "Status",
@@ -369,7 +372,7 @@ function createDispatchSpy() {
 }
 
 async function expectBoundStatusCommandDirectReply(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   interaction: MockCommandInteraction;
   expectedPattern: RegExp;
 }) {
@@ -392,7 +395,7 @@ async function expectBoundStatusCommandDirectReply(params: {
 
 describe("Discord native plugin command dispatch", () => {
   beforeAll(async () => {
-    ({ createDiscordNativeCommand, __testing: discordNativeCommandTesting } =
+    ({ createDiscordNativeCommand, testing: discordNativeCommandTesting } =
       await import("./native-command.js"));
   });
 
@@ -408,6 +411,7 @@ describe("Discord native plugin command dispatch", () => {
     discordNativeCommandTesting.setResolveDiscordNativeInteractionRouteState(
       resolveDiscordNativeInteractionRouteState,
     );
+    discordNativeCommandTesting.setGetSessionEntry(getSessionEntry);
   });
 
   beforeEach(() => {
@@ -430,11 +434,13 @@ describe("Discord native plugin command dispatch", () => {
     runtimeModuleMocks.resolveDirectStatusReplyForSession.mockResolvedValue({
       text: "status reply",
     });
+    runtimeModuleMocks.getSessionEntry.mockReset();
+    runtimeModuleMocks.getSessionEntry.mockReturnValue(undefined);
     discordNativeCommandTesting.setMatchPluginCommand(
-      runtimeModuleMocks.matchPluginCommand as typeof import("astroclaw/plugin-sdk/plugin-runtime").matchPluginCommand,
+      runtimeModuleMocks.matchPluginCommand as typeof import("openclaw/plugin-sdk/plugin-runtime").matchPluginCommand,
     );
     discordNativeCommandTesting.setExecutePluginCommand(
-      runtimeModuleMocks.executePluginCommand as typeof import("astroclaw/plugin-sdk/plugin-runtime").executePluginCommand,
+      runtimeModuleMocks.executePluginCommand as typeof import("openclaw/plugin-sdk/plugin-runtime").executePluginCommand,
     );
     discordNativeCommandTesting.setDispatchReplyWithDispatcher(
       runtimeModuleMocks.dispatchReplyWithDispatcher as typeof dispatchReplyWithDispatcher,
@@ -449,6 +455,9 @@ describe("Discord native plugin command dispatch", () => {
           : `agent:main:discord:channel:${params.conversationId}`,
         accountId: params.accountId,
       }),
+    );
+    discordNativeCommandTesting.setGetSessionEntry(
+      runtimeModuleMocks.getSessionEntry as typeof import("openclaw/plugin-sdk/session-store-runtime").getSessionEntry,
     );
   });
 
@@ -476,6 +485,101 @@ describe("Discord native plugin command dispatch", () => {
     });
   });
 
+  it("passes the active auth profile to Discord plugin commands", async () => {
+    const cfg = createConfig();
+    const interaction = createInteraction();
+    runtimeModuleMocks.getSessionEntry.mockReturnValue({
+      sessionId: "discord-session",
+      authProfileOverride: "openai:owner@example.com",
+      updatedAt: Date.now(),
+    });
+
+    registerPairPlugin();
+    const command = await createPluginCommand({
+      cfg,
+      name: "pair",
+    });
+    const executeSpy = runtimeModuleMocks.executePluginCommand.mockResolvedValue({
+      text: "paired:now",
+    });
+
+    await (command as { run: (interaction: unknown) => Promise<void> }).run(
+      Object.assign(interaction, {
+        options: {
+          getString: () => "now",
+          getBoolean: () => null,
+          getFocused: () => "",
+        },
+      }) as unknown,
+    );
+
+    expectPluginCommandExecution({
+      mock: executeSpy,
+      commandName: "pair",
+      expected: {
+        authProfileId: "openai:owner@example.com",
+      },
+    });
+  });
+
+  it("passes the configured binding agent to plugin-owned Discord command sessions", async () => {
+    const cfg = createConfig();
+    const interaction = createInteraction();
+    const pluginSessionKey = "plugin-binding:openclaw-codex-app-server:dm";
+    discordNativeCommandTesting.setResolveDiscordNativeInteractionRouteState(async () => ({
+      ...createConfiguredRouteState({
+        sessionKey: pluginSessionKey,
+        agentId: "main",
+      }),
+      configuredBinding: {
+        statefulTarget: {
+          kind: "stateful",
+          driverId: "codex",
+          sessionKey: pluginSessionKey,
+          agentId: "codex",
+        },
+      } as never,
+    }));
+    runtimeModuleMocks.getSessionEntry.mockReturnValue({
+      sessionId: "codex-session",
+      authProfileOverride: "openai:owner@example.com",
+      updatedAt: Date.now(),
+    });
+
+    registerPairPlugin();
+    const command = await createPluginCommand({
+      cfg,
+      name: "pair",
+    });
+    const executeSpy = runtimeModuleMocks.executePluginCommand.mockResolvedValue({
+      text: "paired:now",
+    });
+
+    await (command as { run: (interaction: unknown) => Promise<void> }).run(
+      Object.assign(interaction, {
+        options: {
+          getString: () => "now",
+          getBoolean: () => null,
+          getFocused: () => "",
+        },
+      }) as unknown,
+    );
+
+    expectPluginCommandExecution({
+      mock: executeSpy,
+      commandName: "pair",
+      expected: {
+        agentId: "codex",
+        sessionKey: pluginSessionKey,
+        authProfileId: "openai:owner@example.com",
+      },
+    });
+    expect(runtimeModuleMocks.getSessionEntry).toHaveBeenCalledWith({
+      agentId: "codex",
+      sessionKey: pluginSessionKey,
+    });
+  });
+
   it("does not treat Discord DM allowlist users as scoped plugin command owners", async () => {
     const cfg = {
       channels: {
@@ -483,7 +587,7 @@ describe("Discord native plugin command dispatch", () => {
           dm: { enabled: true, policy: "open", allowFrom: ["user:owner"] },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const interaction = createInteraction();
     interaction.options.getString.mockReturnValue("now");
     const handler = registerScopedPairPlugin();
@@ -508,7 +612,7 @@ describe("Discord native plugin command dispatch", () => {
           dm: { enabled: true, policy: "open", allowFrom: ["*"] },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const interaction = createInteraction({ userId: "123456789012345678" });
     interaction.options.getString.mockReturnValue("now");
     const handler = registerScopedPairPlugin();
@@ -559,7 +663,7 @@ describe("Discord native plugin command dispatch", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const commandSpec: NativeCommandSpec = {
       name: "pair",
       description: "Pair",
@@ -621,7 +725,7 @@ describe("Discord native plugin command dispatch", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const commandSpec: NativeCommandSpec = {
       name: "pair",
       description: "Pair",
@@ -681,7 +785,7 @@ describe("Discord native plugin command dispatch", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const commandSpec: NativeCommandSpec = {
       name: "pair",
       description: "Pair",
@@ -738,7 +842,7 @@ describe("Discord native plugin command dispatch", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const interaction = createInteraction({
       channelType: ChannelType.GroupDM,
       channelId: "blocked-group",
@@ -893,7 +997,7 @@ describe("Discord native plugin command dispatch", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const commandSpec: NativeCommandSpec = {
       name: "cron_jobs",
       description: "List cron jobs",
@@ -961,7 +1065,7 @@ describe("Discord native plugin command dispatch", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const commandSpec: NativeCommandSpec = {
       name: "cron_jobs",
       description: "List cron jobs",
@@ -1067,7 +1171,7 @@ describe("Discord native plugin command dispatch", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const interaction = createInteraction({
       channelType: ChannelType.GuildText,
       channelId,
