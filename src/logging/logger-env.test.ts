@@ -1,3 +1,4 @@
+// Logger env tests cover log level and transport behavior from environment config.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getResolvedConsoleSettings,
@@ -5,14 +6,15 @@ import {
   resetLogger,
   setLoggerOverride,
 } from "../logging.js";
+import { captureEnv } from "../test-utils/env.js";
 import { createSuiteLogPathTracker } from "./log-test-helpers.js";
 import { loggingState } from "./state.js";
 
 const defaultMaxFileBytes = 100 * 1024 * 1024;
-const logPathTracker = createSuiteLogPathTracker("astroclaw-test-env-log-level-");
+const logPathTracker = createSuiteLogPathTracker("openclaw-test-env-log-level-");
 
-describe("ASTROCLAW_LOG_LEVEL", () => {
-  let originalEnv: string | undefined;
+describe("OPENCLAW_LOG_LEVEL", () => {
+  let envSnapshot: ReturnType<typeof captureEnv> | undefined;
   let testLogPath = "";
 
   beforeAll(async () => {
@@ -20,20 +22,17 @@ describe("ASTROCLAW_LOG_LEVEL", () => {
   });
 
   beforeEach(() => {
-    originalEnv = process.env.ASTROCLAW_LOG_LEVEL;
+    envSnapshot = captureEnv(["OPENCLAW_LOG_LEVEL"]);
     testLogPath = logPathTracker.nextPath();
-    delete process.env.ASTROCLAW_LOG_LEVEL;
+    delete process.env.OPENCLAW_LOG_LEVEL;
     loggingState.invalidEnvLogLevelValue = null;
     resetLogger();
     setLoggerOverride(null);
   });
 
   afterEach(() => {
-    if (originalEnv === undefined) {
-      delete process.env.ASTROCLAW_LOG_LEVEL;
-    } else {
-      process.env.ASTROCLAW_LOG_LEVEL = originalEnv;
-    }
+    envSnapshot?.restore();
+    envSnapshot = undefined;
     loggingState.invalidEnvLogLevelValue = null;
     resetLogger();
     setLoggerOverride(null);
@@ -52,7 +51,7 @@ describe("ASTROCLAW_LOG_LEVEL", () => {
       consoleStyle: "json",
       file: testLogPath,
     });
-    process.env.ASTROCLAW_LOG_LEVEL = "debug";
+    process.env.OPENCLAW_LOG_LEVEL = "debug";
 
     expect(getResolvedLoggerSettings()).toEqual({
       level: "debug",
@@ -72,7 +71,7 @@ describe("ASTROCLAW_LOG_LEVEL", () => {
       consoleStyle: "compact",
       file: testLogPath,
     });
-    process.env.ASTROCLAW_LOG_LEVEL = "nope";
+    process.env.OPENCLAW_LOG_LEVEL = "nope";
     const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(
       () => true as unknown as ReturnType<typeof process.stderr.write>, // preserve stream contract in test spy
     );
@@ -84,8 +83,8 @@ describe("ASTROCLAW_LOG_LEVEL", () => {
 
     const warnings = stderrSpy.mock.calls
       .map(([firstArg]) => String(firstArg))
-      .filter((line) => line.includes("ASTROCLAW_LOG_LEVEL"));
+      .filter((line) => line.includes("OPENCLAW_LOG_LEVEL"));
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('Ignoring invalid ASTROCLAW_LOG_LEVEL="nope"');
+    expect(warnings[0]).toContain('Ignoring invalid OPENCLAW_LOG_LEVEL="nope"');
   });
 });
