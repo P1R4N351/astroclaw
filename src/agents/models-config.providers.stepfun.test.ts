@@ -1,3 +1,4 @@
+// Verifies StepFun standard and Step Plan catalog pairing across regions.
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -37,6 +38,7 @@ function buildStepFunCatalog(params: {
   profileId?: string;
   env?: NodeJS.ProcessEnv;
 }): ModelProviderConfig | null {
+  // Region can be explicit, profile-tagged, or env-inferred; catalog ids stay paired.
   if (!params.apiKey) {
     return null;
   }
@@ -75,6 +77,7 @@ function inferRegionFromBaseUrl(baseUrl: string | undefined): StepFunRegion | un
 }
 
 function inferRegionFromProfileId(profileId: string | undefined): StepFunRegion | undefined {
+  // Auth profile suffixes are the lightweight region signal for paired providers.
   if (!profileId) {
     return undefined;
   }
@@ -126,7 +129,7 @@ describe("StepFun provider catalog", () => {
   });
 
   it("falls back to global endpoints for untagged StepFun auth profiles", () => {
-    const agentDir = mkdtempSync(join(tmpdir(), "astroclaw-test-"));
+    const agentDir = mkdtempSync(join(tmpdir(), "openclaw-test-"));
 
     upsertAuthProfile({
       profileId: "stepfun:default",
@@ -183,6 +186,7 @@ describe("StepFun provider catalog", () => {
       }),
     };
     const pairedStandard = buildStepFunCatalog({
+      // Paired surfaces should converge on the same regional host family.
       surface: "standard",
       apiKey: "test-stepfun-key",
       explicitBaseUrl: resolveDefaultBaseUrl(
@@ -196,7 +200,7 @@ describe("StepFun provider catalog", () => {
   });
 
   it("discovers both providers from shared regional auth profiles", () => {
-    const agentDir = mkdtempSync(join(tmpdir(), "astroclaw-test-"));
+    const agentDir = mkdtempSync(join(tmpdir(), "openclaw-test-"));
 
     upsertAuthProfile({
       profileId: "stepfun:cn",
