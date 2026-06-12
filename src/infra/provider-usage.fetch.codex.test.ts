@@ -1,3 +1,4 @@
+// Covers Codex provider usage fetch parsing.
 import { describe, expect, it } from "vitest";
 import { createProviderUsageFetch, makeResponse } from "../test-utils/provider-usage-fetch.js";
 import { fetchCodexUsage } from "./provider-usage.fetch.codex.js";
@@ -36,8 +37,8 @@ describe("fetchCodexUsage", () => {
     const mockFetch = createProviderUsageFetch(async (_url, init) => {
       const headers = (init?.headers as Record<string, string> | undefined) ?? {};
       expect(headers["ChatGPT-Account-Id"]).toBe("acct-1");
-      expect(headers.originator).toBe("astroclaw");
-      expect(headers["User-Agent"]).toMatch(/^astroclaw\//);
+      expect(headers.originator).toBe("openclaw");
+      expect(headers["User-Agent"]).toMatch(/^openclaw\//);
       return makeResponse(200, {
         rate_limit: {
           primary_window: {
@@ -58,7 +59,7 @@ describe("fetchCodexUsage", () => {
 
     const result = await fetchCodexUsage("token", "acct-1", 5000, mockFetch);
 
-    expect(result.provider).toBe("openai-codex");
+    expect(result.provider).toBe("openai");
     expect(result.plan).toBe("Plus ($12.50)");
     expect(result.windows).toEqual([
       { label: "3h", usedPercent: 35.5, resetAt: 1_700_000_000_000 },
