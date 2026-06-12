@@ -1,3 +1,4 @@
+// Help tests cover command help generation and inherited help options.
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProgramContext } from "./context.js";
@@ -10,11 +11,11 @@ const formatDocsLinkMock = vi.hoisted(() =>
 );
 const resolveCommitHashMock = vi.hoisted(() => vi.fn<() => string | null>(() => "abc1234"));
 
-vi.mock("../../terminal/links.js", () => ({
+vi.mock("../../../packages/terminal-core/src/links.js", () => ({
   formatDocsLink: formatDocsLinkMock,
 }));
 
-vi.mock("../../terminal/theme.js", () => ({
+vi.mock("../../../packages/terminal-core/src/theme.js", () => ({
   isRich: () => false,
   theme: {
     heading: (s: string) => s,
@@ -35,7 +36,7 @@ vi.mock("../../infra/git-commit.js", () => ({
 }));
 
 vi.mock("../cli-name.js", () => ({
-  resolveCliName: () => "astroclaw",
+  resolveCliName: () => "openclaw",
   replaceCliName: (cmd: string) => cmd,
 }));
 
@@ -61,18 +62,18 @@ describe("configureProgramHelp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     originalArgv = [...process.argv];
-    originalSuppressHelpBanner = process.env.ASTROCLAW_SUPPRESS_HELP_BANNER;
+    originalSuppressHelpBanner = process.env.OPENCLAW_SUPPRESS_HELP_BANNER;
     hasEmittedCliBannerMock.mockReturnValue(false);
     resolveCommitHashMock.mockReturnValue("abc1234");
-    delete process.env.ASTROCLAW_SUPPRESS_HELP_BANNER;
+    delete process.env.OPENCLAW_SUPPRESS_HELP_BANNER;
   });
 
   afterEach(() => {
     process.argv = originalArgv;
     if (originalSuppressHelpBanner === undefined) {
-      delete process.env.ASTROCLAW_SUPPRESS_HELP_BANNER;
+      delete process.env.OPENCLAW_SUPPRESS_HELP_BANNER;
     } else {
-      process.env.ASTROCLAW_SUPPRESS_HELP_BANNER = originalSuppressHelpBanner;
+      process.env.OPENCLAW_SUPPRESS_HELP_BANNER = originalSuppressHelpBanner;
     }
   });
 
@@ -117,7 +118,7 @@ describe("configureProgramHelp", () => {
   }
 
   it("adds root help hint and marks commands with subcommands", () => {
-    process.argv = ["node", "astroclaw", "--help"];
+    process.argv = ["node", "openclaw", "--help"];
     const program = makeProgramWithCommands();
     configureProgramHelp(program, testProgramContext);
 
@@ -129,7 +130,7 @@ describe("configureProgramHelp", () => {
   });
 
   it("includes banner and docs/examples in root help output", () => {
-    process.argv = ["node", "astroclaw", "--help"];
+    process.argv = ["node", "openclaw", "--help"];
     const program = makeProgramWithCommands();
     configureProgramHelp(program, testProgramContext);
 
@@ -141,12 +142,12 @@ describe("configureProgramHelp", () => {
     expect(version).toBe(testProgramContext.programVersion);
     expect(options?.mode).toBe("default");
     expect(help).toContain("Examples:");
-    expect(help).toContain("https://docs.astroclaw.ai/cli");
+    expect(help).toContain("https://docs.openclaw.ai/cli");
   });
 
   it("suppresses banner formatting when parent default help requests it", () => {
-    process.argv = ["node", "astroclaw", "channels"];
-    process.env.ASTROCLAW_SUPPRESS_HELP_BANNER = "1";
+    process.argv = ["node", "openclaw", "channels"];
+    process.env.OPENCLAW_SUPPRESS_HELP_BANNER = "1";
     const program = makeProgramWithCommands();
     configureProgramHelp(program, testProgramContext);
 
@@ -156,13 +157,31 @@ describe("configureProgramHelp", () => {
   });
 
   it("prints version and exits immediately when version flags are present", () => {
-    process.argv = ["node", "astroclaw", "--version"];
-    expectVersionExit({ expectedVersion: "Astroclaw 9.9.9-test (abc1234)" });
+    process.argv = ["node", "openclaw", "--version"];
+    expectVersionExit({ expectedVersion: "OpenClaw 9.9.9-test (abc1234)" });
   });
 
   it("prints version and exits immediately without commit metadata", () => {
-    process.argv = ["node", "astroclaw", "--version"];
+    process.argv = ["node", "openclaw", "--version"];
     resolveCommitHashMock.mockReturnValue(null);
-    expectVersionExit({ expectedVersion: "Astroclaw 9.9.9-test" });
+    expectVersionExit({ expectedVersion: "OpenClaw 9.9.9-test" });
+  });
+
+  it("does not treat subcommand --version options as root version requests", () => {
+    process.argv = ["node", "openclaw", "skills", "verify", "discrawl", "--version", "1.0.0"];
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+      throw new Error(`exit:${code ?? ""}`);
+    }) as typeof process.exit);
+
+    try {
+      const program = makeProgramWithCommands();
+      expect(() => configureProgramHelp(program, testProgramContext)).not.toThrow();
+      expect(logSpy).not.toHaveBeenCalled();
+      expect(exitSpy).not.toHaveBeenCalled();
+    } finally {
+      logSpy.mockRestore();
+      exitSpy.mockRestore();
+    }
   });
 });
