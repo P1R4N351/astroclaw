@@ -1,4 +1,5 @@
-import { expectPairingReplyText } from "astroclaw/plugin-sdk/channel-test-helpers";
+// Tests user-facing pairing messages and setup command copy.
+import { expectPairingReplyText } from "openclaw/plugin-sdk/channel-test-helpers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { captureEnv } from "../test-utils/env.js";
 import { buildPairingReply } from "./pairing-messages.js";
@@ -7,9 +8,9 @@ describe("buildPairingReply", () => {
   let envSnapshot: ReturnType<typeof captureEnv>;
 
   beforeEach(() => {
-    envSnapshot = captureEnv(["ASTROCLAW_CONTAINER_HINT", "ASTROCLAW_PROFILE"]);
-    delete process.env.ASTROCLAW_CONTAINER_HINT;
-    process.env.ASTROCLAW_PROFILE = "isolated";
+    envSnapshot = captureEnv(["OPENCLAW_CONTAINER_HINT", "OPENCLAW_PROFILE"]);
+    delete process.env.OPENCLAW_CONTAINER_HINT;
+    process.env.OPENCLAW_PROFILE = "isolated";
   });
 
   afterEach(() => {
@@ -51,9 +52,12 @@ describe("buildPairingReply", () => {
 
   function expectPairingApproveCommand(text: string, testCase: (typeof pairingReplyCases)[number]) {
     const commandRe = new RegExp(
-      `(?:astroclaw|astroclaw) --profile isolated pairing approve ${testCase.channel} ${testCase.code}`,
+      `(?:openclaw|openclaw) --profile isolated pairing approve ${testCase.channel} ${testCase.code}`,
     );
     expect(text).toMatch(commandRe);
+    expect(
+      text.match(new RegExp(`pairing approve ${testCase.channel} ${testCase.code}`, "g")),
+    ).toHaveLength(1);
   }
 
   function expectProfileAwarePairingReply(testCase: (typeof pairingReplyCases)[number]) {
