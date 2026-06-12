@@ -1,3 +1,5 @@
+// Gateway net tests cover bind-host selection, loopback/private host detection,
+// trusted proxy IP resolution, container defaults, and interface matching.
 import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeNetworkInterfacesSnapshot } from "../test-helpers/network-interfaces.js";
@@ -591,7 +593,7 @@ describe("isContainerEnvironment", () => {
     vi.spyOn(fs, "readFileSync").mockReturnValue("10:cpuset:/\n9:perf_event:/\n8:memory:/\n0::/\n");
 
     process.env.FLY_MACHINE_ID = "3d8d5459a03038";
-    process.env.FLY_APP_NAME = "astroclaw-test";
+    process.env.FLY_APP_NAME = "openclaw-test";
     expect(isContainerEnvironment()).toBe(true);
   });
 
