@@ -1,3 +1,5 @@
+// Extra bootstrap file tests cover glob/literal path loading, workspace
+// containment checks, symlink handling, and diagnostics for skipped files.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -15,7 +17,7 @@ describe("loadExtraBootstrapFiles", () => {
   };
 
   beforeAll(async () => {
-    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-extra-bootstrap-"));
+    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-extra-bootstrap-"));
   });
 
   afterAll(async () => {
@@ -38,6 +40,42 @@ describe("loadExtraBootstrapFiles", () => {
         name: "TOOLS.md",
         path: path.join(packageDir, "TOOLS.md"),
         content: "tools",
+        missing: false,
+      },
+    ]);
+  });
+
+  it("loads glob patterns with explicit current-directory prefixes", async () => {
+    const workspaceDir = await createWorkspaceDir("glob-current-dir");
+    const packageDir = path.join(workspaceDir, "packages", "core");
+    await fs.mkdir(packageDir, { recursive: true });
+    await fs.writeFile(path.join(packageDir, "AGENTS.md"), "agents", "utf-8");
+
+    const files = await loadExtraBootstrapFiles(workspaceDir, ["./packages/*/AGENTS.md"]);
+
+    expect(files).toStrictEqual([
+      {
+        name: "AGENTS.md",
+        path: path.join(packageDir, "AGENTS.md"),
+        content: "agents",
+        missing: false,
+      },
+    ]);
+  });
+
+  it("loads literal bootstrap paths with square brackets", async () => {
+    const workspaceDir = await createWorkspaceDir("literal-brackets");
+    const packageDir = path.join(workspaceDir, "pkg[1]");
+    await fs.mkdir(packageDir, { recursive: true });
+    await fs.writeFile(path.join(packageDir, "AGENTS.md"), "literal agents", "utf-8");
+
+    const files = await loadExtraBootstrapFiles(workspaceDir, ["pkg[1]/AGENTS.md"]);
+
+    expect(files).toStrictEqual([
+      {
+        name: "AGENTS.md",
+        path: path.join(packageDir, "AGENTS.md"),
+        content: "literal agents",
         missing: false,
       },
     ]);
@@ -81,6 +119,8 @@ describe("loadExtraBootstrapFiles", () => {
   });
 
   it("rejects hardlinked aliases to files outside workspace", async () => {
+    // Hardlinks can look like in-workspace files by path; inode/realpath checks
+    // keep outside bootstrap content from entering the prompt.
     if (process.platform === "win32") {
       return;
     }
