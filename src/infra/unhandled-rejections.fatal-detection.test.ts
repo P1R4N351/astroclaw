@@ -1,9 +1,10 @@
+// Tests fatal unhandled rejection detection in process bootstrap.
 import process from "node:process";
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
 
 const restoreTerminalStateMock = vi.hoisted(() => vi.fn());
 
-vi.mock("../terminal/restore.js", () => ({
+vi.mock("../../packages/terminal-core/src/restore.js", () => ({
   restoreTerminalState: restoreTerminalStateMock,
 }));
 
@@ -100,7 +101,7 @@ describe("installUnhandledRejectionHandler - fatal detection", () => {
 
       expectConsoleLogWithMessage(
         consoleErrorSpy,
-        "[astroclaw] FATAL unhandled rejection:",
+        "[openclaw] FATAL unhandled rejection:",
         "Out of memory",
       );
     });
@@ -137,7 +138,7 @@ describe("installUnhandledRejectionHandler - fatal detection", () => {
 
       expectConsoleLogWithMessage(
         consoleErrorSpy,
-        "[astroclaw] CONFIGURATION ERROR - requires fix:",
+        "[openclaw] CONFIGURATION ERROR - requires fix:",
         "Invalid config",
       );
     });
@@ -150,6 +151,9 @@ describe("installUnhandledRejectionHandler - fatal detection", () => {
           cause: { code: "UND_ERR_CONNECT_TIMEOUT", syscall: "connect" },
         }),
         Object.assign(new Error("DNS resolve failed"), { code: "UND_ERR_DNS_RESOLVE_FAILED" }),
+        Object.assign(new Error("connect ENETDOWN 149.154.167.220:443"), {
+          code: "ENETDOWN",
+        }),
         Object.assign(new Error("Connection reset"), { code: "ECONNRESET" }),
         Object.assign(new Error("Timeout"), { code: "ETIMEDOUT" }),
         Object.assign(
@@ -181,7 +185,7 @@ describe("installUnhandledRejectionHandler - fatal detection", () => {
 
       expectConsoleLogWithMessage(
         consoleWarnSpy,
-        "[astroclaw] Non-fatal unhandled rejection (continuing):",
+        "[openclaw] Non-fatal unhandled rejection (continuing):",
         "fetch failed",
       );
     });
@@ -205,7 +209,7 @@ describe("installUnhandledRejectionHandler - fatal detection", () => {
 
       expectConsoleLogWithMessage(
         consoleWarnSpy,
-        "[astroclaw] Non-fatal unhandled rejection (continuing):",
+        "[openclaw] Non-fatal unhandled rejection (continuing):",
         "unable to open database file",
       );
     });
@@ -216,7 +220,7 @@ describe("installUnhandledRejectionHandler - fatal detection", () => {
       expectExitCodeFromUnhandled(genericErr, [1], "unhandled rejection");
       expectConsoleLogWithMessage(
         consoleErrorSpy,
-        "[astroclaw] Unhandled promise rejection:",
+        "[openclaw] Unhandled promise rejection:",
         "Something went wrong",
       );
     });
@@ -239,7 +243,7 @@ describe("installUnhandledRejectionHandler - fatal detection", () => {
       expectExitCodeFromUnhandled(abortErr, []);
       expectConsoleLogWithMessage(
         consoleWarnSpy,
-        "[astroclaw] Suppressed AbortError:",
+        "[openclaw] Suppressed AbortError:",
         "This operation was aborted",
       );
     });
