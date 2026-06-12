@@ -1,3 +1,4 @@
+// Volcengine tests cover tts plugin behavior.
 import { describe, expect, it } from "vitest";
 import { volcengineTTS } from "./tts.js";
 
@@ -7,12 +8,12 @@ const hasVolcengineTtsCredentials = Boolean(
   seedSpeechApiKey || (process.env.VOLCENGINE_TTS_APPID && process.env.VOLCENGINE_TTS_TOKEN),
 );
 const describeLive =
-  process.env.ASTROCLAW_LIVE_TEST === "1" && hasVolcengineTtsCredentials ? describe : describe.skip;
+  process.env.OPENCLAW_LIVE_TEST === "1" && hasVolcengineTtsCredentials ? describe : describe.skip;
 
 describeLive("Volcengine TTS live", () => {
   it("synthesizes mp3 audio with .profile credentials", async () => {
     const audio = await volcengineTTS({
-      text: "Astroclaw live test.",
+      text: "OpenClaw live test.",
       apiKey: seedSpeechApiKey,
       appId: process.env.VOLCENGINE_TTS_APPID,
       token: process.env.VOLCENGINE_TTS_TOKEN,
