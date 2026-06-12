@@ -1,3 +1,4 @@
+// Msteams tests cover file consent plugin behavior.
 import { describe, expect, it, vi } from "vitest";
 import {
   CONSENT_UPLOAD_HOST_ALLOWLIST,
@@ -269,7 +270,7 @@ describe("CONSENT_UPLOAD_HOST_ALLOWLIST", () => {
 // ─── uploadToConsentUrl (integration with validation) ────────────────────────
 
 describe("uploadToConsentUrl", () => {
-  it("sends the Astroclaw User-Agent header with consent uploads", async () => {
+  it("sends the OpenClaw User-Agent header with consent uploads", async () => {
     const fetchFn = vi.fn<typeof fetch>(async () => new Response(null, { status: 200 }));
 
     await uploadToConsentUrl({
