@@ -1,3 +1,5 @@
+// Verifies plain-text sanitization strips runtime scaffolding, tool-call blocks,
+// prompt-data wrappers, and conservative HTML markup.
 import { describe, expect, it } from "vitest";
 import { sanitizeForPlainText, stripInternalRuntimeScaffolding } from "./sanitize-text.js";
 
@@ -142,12 +144,12 @@ describe("stripInternalRuntimeScaffolding", () => {
       stripInternalRuntimeScaffolding(
         [
           "before",
-          "<<<BEGIN_ASTROCLAW_INTERNAL_CONTEXT>>>",
+          "<<<BEGIN_OPENCLAW_INTERNAL_CONTEXT>>>",
           "internal metadata",
           "<<<BEGIN_UNTRUSTED_CHILD_RESULT>>>",
           "raw child output",
           "<<<END_UNTRUSTED_CHILD_RESULT>>>",
-          "<<<END_ASTROCLAW_INTERNAL_CONTEXT>>>",
+          "<<<END_OPENCLAW_INTERNAL_CONTEXT>>>",
           "after",
         ].join("\n"),
       ),
@@ -201,15 +203,15 @@ describe("stripInternalRuntimeScaffolding", () => {
   it("fails closed on unmatched runtime context delimiters", () => {
     expect(
       stripInternalRuntimeScaffolding(
-        ["visible", "<<<BEGIN_ASTROCLAW_INTERNAL_CONTEXT>>>", "internal metadata"].join("\n"),
+        ["visible", "<<<BEGIN_OPENCLAW_INTERNAL_CONTEXT>>>", "internal metadata"].join("\n"),
       ),
     ).toBe("visible");
   });
 
   it("preserves inline delimiter mentions", () => {
     expect(
-      stripInternalRuntimeScaffolding("visible <<<END_ASTROCLAW_INTERNAL_CONTEXT>>> inline mention"),
-    ).toBe("visible <<<END_ASTROCLAW_INTERNAL_CONTEXT>>> inline mention");
+      stripInternalRuntimeScaffolding("visible <<<END_OPENCLAW_INTERNAL_CONTEXT>>> inline mention"),
+    ).toBe("visible <<<END_OPENCLAW_INTERNAL_CONTEXT>>> inline mention");
     expect(stripInternalRuntimeScaffolding("what is <<<BEGIN_UNTRUSTED_CHILD_RESULT>>>?")).toBe(
       "what is <<<BEGIN_UNTRUSTED_CHILD_RESULT>>>?",
     );
@@ -218,10 +220,23 @@ describe("stripInternalRuntimeScaffolding", () => {
     );
   });
 
+  it("strips Grok-style tool call text before outbound delivery", () => {
+    expect(
+      stripInternalRuntimeScaffolding(
+        [
+          "Before",
+          '[tool:read] {"path":"/app/skills/meme-maker/SKILL.md"}',
+          '[tool:message] {"action":"send","message":"[tool:read] {\\"path\\":\\"/app/skills/meme-maker/SKILL.md\\"}"}',
+          "After",
+        ].join("\n"),
+      ),
+    ).toBe("Before\nAfter");
+  });
+
   it("removes stray standalone marker lines", () => {
     expect(
       stripInternalRuntimeScaffolding(
-        ["visible", "<<<END_ASTROCLAW_INTERNAL_CONTEXT>>>", "after"].join("\n"),
+        ["visible", "<<<END_OPENCLAW_INTERNAL_CONTEXT>>>", "after"].join("\n"),
       ),
     ).toBe("visible\nafter");
     expect(
