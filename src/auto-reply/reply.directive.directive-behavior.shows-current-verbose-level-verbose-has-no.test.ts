@@ -1,10 +1,11 @@
+/** Tests directive behavior when /verbose has no explicit value. */
 import "./reply.directive.directive-behavior.e2e-mocks.js";
 import { describe, expect, it } from "vitest";
 import type { ModelAliasIndex } from "../agents/model-selection.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { installDirectiveBehaviorE2EHooks } from "./reply.directive.directive-behavior.e2e-harness.js";
-import { runEmbeddedPiAgentMock } from "./reply.directive.directive-behavior.e2e-mocks.js";
+import { runEmbeddedAgentMock } from "./reply.directive.directive-behavior.e2e-mocks.js";
 import { handleDirectiveOnly } from "./reply/directive-handling.impl.js";
 import type { HandleDirectiveOnlyParams } from "./reply/directive-handling.params.js";
 import { parseInlineDirectives } from "./reply/directive-handling.parse.js";
@@ -28,10 +29,10 @@ async function runDirectiveStatus(
     agents: {
       defaults: {
         model: "anthropic/claude-opus-4-6",
-        workspace: "/tmp/astroclaw",
+        workspace: "/tmp/openclaw",
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
   const effectiveSessionKey = overrides.sessionKey ?? sessionKey;
   const effectiveSessionEntry = overrides.sessionEntry ?? sessionEntry;
   const effectiveSessionStore = overrides.sessionStore ?? {
@@ -77,7 +78,7 @@ describe("directive behavior", () => {
         agents: {
           defaults: {
             model: "anthropic/claude-opus-4-6",
-            workspace: "/tmp/astroclaw",
+            workspace: "/tmp/openclaw",
             models: {
               "anthropic/claude-opus-4-6": {
                 params: { fastMode: true },
@@ -85,7 +86,7 @@ describe("directive behavior", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
     expect(fastText).toContain("Current fast mode: on (config)");
     expect(fastText).toContain("Options: status, on, off, default.");
@@ -114,7 +115,7 @@ describe("directive behavior", () => {
         agents: {
           defaults: {
             model: "anthropic/claude-opus-4-6",
-            workspace: "/tmp/astroclaw",
+            workspace: "/tmp/openclaw",
           },
         },
         tools: {
@@ -125,7 +126,7 @@ describe("directive behavior", () => {
             node: "mac-1",
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
     expect(execText).toContain(
       "Current exec defaults: host=gateway, effective=gateway, security=allowlist, ask=always, node=mac-1.",
@@ -133,7 +134,7 @@ describe("directive behavior", () => {
     expect(execText).toContain(
       "Options: host=auto|sandbox|gateway|node, security=deny|allowlist|full, ask=off|on-miss|always, node=<id>.",
     );
-    expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+    expect(runEmbeddedAgentMock).not.toHaveBeenCalled();
   });
   it("treats /fast status like the no-argument status query", async () => {
     const { text: statusText } = await runDirectiveStatus("/fast status", {
@@ -142,7 +143,7 @@ describe("directive behavior", () => {
         agents: {
           defaults: {
             model: "anthropic/claude-opus-4-6",
-            workspace: "/tmp/astroclaw",
+            workspace: "/tmp/openclaw",
             models: {
               "anthropic/claude-opus-4-6": {
                 params: { fastMode: true },
@@ -150,12 +151,12 @@ describe("directive behavior", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
 
     expect(statusText).toContain("Current fast mode: on (config)");
     expect(statusText).toContain("Options: status, on, off, default.");
-    expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+    expect(runEmbeddedAgentMock).not.toHaveBeenCalled();
   });
   it("enforces per-agent elevated restrictions and status visibility", async () => {
     const { text: deniedText } = await runDirectiveStatus("/elevated on", {
@@ -171,7 +172,7 @@ describe("directive behavior", () => {
     });
     expect(deniedText).toContain("agents.list[].tools.elevated.enabled");
 
-    expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+    expect(runEmbeddedAgentMock).not.toHaveBeenCalled();
   });
   it("applies per-agent allowlist requirements before allowing elevated", async () => {
     const { text: deniedText } = await runDirectiveStatus("/elevated on", {
@@ -193,7 +194,7 @@ describe("directive behavior", () => {
       elevatedAllowed: true,
     });
     expect(allowedText).toContain("Elevated mode set to ask");
-    expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+    expect(runEmbeddedAgentMock).not.toHaveBeenCalled();
   });
   it("handles runtime warning, invalid level, and multi-directive elevated inputs", async () => {
     for (const scenario of [
@@ -221,7 +222,7 @@ describe("directive behavior", () => {
         expect(text).toContain(snippet);
       }
     }
-    expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+    expect(runEmbeddedAgentMock).not.toHaveBeenCalled();
   });
   it("persists queue overrides and reset behavior", async () => {
     const interrupt = await runDirectiveStatus("/queue interrupt");
@@ -256,7 +257,7 @@ describe("directive behavior", () => {
     expect(reset.sessionEntry.queueDebounceMs).toBeUndefined();
     expect(reset.sessionEntry.queueCap).toBeUndefined();
     expect(reset.sessionEntry.queueDrop).toBeUndefined();
-    expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+    expect(runEmbeddedAgentMock).not.toHaveBeenCalled();
   });
 
   it("shows current trace level and persists trace directives", async () => {
@@ -281,7 +282,7 @@ describe("directive behavior", () => {
     expect(raw.text).toContain("Trace set to raw.");
     expect(raw.text).toContain("may contain sensitive information");
     expect(raw.sessionEntry.traceLevel).toBe("raw");
-    expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+    expect(runEmbeddedAgentMock).not.toHaveBeenCalled();
   });
 
   it("blocks /trace for non-owners without delegated gateway scope", async () => {
