@@ -1,12 +1,13 @@
+// Xai tests cover onboard plugin behavior.
 import {
   resolveAgentModelFallbackValues,
   resolveAgentModelPrimaryValue,
-} from "astroclaw/plugin-sdk/provider-onboard";
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   createConfigWithFallbacks,
   createLegacyProviderConfig,
   EXPECTED_FALLBACKS,
-} from "astroclaw/plugin-sdk/provider-test-contracts";
+} from "openclaw/plugin-sdk/provider-test-contracts";
 import { describe, expect, it } from "vitest";
 import { applyXaiConfig, applyXaiProviderConfig, XAI_DEFAULT_MODEL_REF } from "./onboard.js";
 
@@ -57,6 +58,7 @@ describe("xai onboard", () => {
     expect(cfg.models?.providers?.xai?.apiKey).toBe("old-key");
     expect(cfg.models?.providers?.xai?.models.map((m) => m.id)).toEqual([
       "custom-model",
+      "grok-build-0.1",
       "grok-4.3",
       "grok-4.20-beta-latest-reasoning",
       "grok-4.20-beta-latest-non-reasoning",
@@ -69,6 +71,7 @@ describe("xai onboard", () => {
     expect(cfg.models?.providers?.xai?.baseUrl).toBe("https://api.x.ai/v1");
     expect(cfg.models?.providers?.xai?.api).toBe("openai-responses");
     expect(cfg.models?.providers?.xai?.models.map((m) => m.id)).toEqual([
+      "grok-build-0.1",
       "grok-4.3",
       "grok-4.20-beta-latest-reasoning",
       "grok-4.20-beta-latest-non-reasoning",
