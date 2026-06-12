@@ -1,4 +1,6 @@
-import { createParameterFreeTool } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+// Runtime plan build tests cover the assembled agent runtime policy object:
+// auth, transport, tools, prompt, delivery, transcript, and observability.
+import { createParameterFreeTool } from "openclaw/plugin-sdk/agent-runtime-test-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resetConfigRuntimeState, setRuntimeConfigSnapshot } from "../../config/config.js";
 import {
@@ -18,7 +20,10 @@ vi.mock("../../plugins/manifest-contract-eligibility.js", () => ({
 }));
 
 vi.mock("../../plugins/provider-hook-runtime.js", () => ({
-  __testing: {},
+  clearProviderRuntimePluginCacheForTest: vi.fn(),
+  testing: {
+    clearProviderRuntimePluginCacheForTest: vi.fn(),
+  },
   ensureProviderRuntimePluginHandle: vi.fn(
     (params) => params.runtimeHandle ?? { provider: "openai" },
   ),
@@ -90,6 +95,8 @@ describe("AgentRuntimePlan", () => {
   });
 
   it("defers default transport extra params until they are read", () => {
+    // Extra params are lazy so plan construction stays cheap and provider hooks
+    // only run if a transport path actually needs them.
     const prepareProviderExtraParamsMock = vi.mocked(prepareProviderExtraParams);
     prepareProviderExtraParamsMock.mockClear();
 
@@ -98,7 +105,7 @@ describe("AgentRuntimePlan", () => {
       modelId: "gpt-5.4",
       modelApi: "openai-responses",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       model: gpt54Model,
     });
 
@@ -113,16 +120,18 @@ describe("AgentRuntimePlan", () => {
   });
 
   it("records resolved model, auth, transport, tool, delivery, and observability policy", () => {
+    // This is the broad contract snapshot for the runtime plan facade; callers
+    // read these nested policies instead of recomputing runtime decisions.
     const plan = buildAgentRuntimePlan({
       provider: "openai",
       modelId: "gpt-5.4",
       modelApi: "openai-responses",
       harnessId: "codex",
       harnessRuntime: "codex",
-      authProfileProvider: "openai-codex",
-      sessionAuthProfileId: "openai-codex:work",
+      authProfileProvider: "openai",
+      sessionAuthProfileId: "openai:work",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       model: {
         ...gpt54Model,
         baseUrl: "https://api.openai.com/v1",
@@ -130,9 +139,10 @@ describe("AgentRuntimePlan", () => {
     });
 
     expect(plan.auth.providerForAuth).toBe("openai");
-    expect(plan.auth.authProfileProviderForAuth).toBe("openai-codex");
-    expect(plan.auth.harnessAuthProvider).toBe("openai-codex");
-    expect(plan.auth.forwardedAuthProfileId).toBe("openai-codex:work");
+    expect(plan.auth.authProfileProviderForAuth).toBe("openai");
+    expect(plan.auth.harnessAuthProvider).toBe("openai");
+    expect(plan.auth.forwardedAuthProfileId).toBe("openai:work");
+    expect(plan.delivery.isSilentPayload({ text: "NO_REPLY\n\nNO_REPLY" })).toBe(true);
     expect(plan.delivery.isSilentPayload({ text: '{"action":"NO_REPLY"}' })).toBe(true);
     expect(
       plan.delivery.isSilentPayload({
@@ -179,13 +189,13 @@ describe("AgentRuntimePlan", () => {
     expect(plan.observability.harnessId).toBe("codex");
   });
 
-  it("keeps Astroclaw-owned tool-schema normalization reachable from the plan", () => {
+  it("keeps OpenClaw-owned tool-schema normalization reachable from the plan", () => {
     const plan = buildAgentRuntimePlan({
       provider: "openai",
       modelId: "gpt-5.4",
       modelApi: "openai-responses",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       model: {
         ...gpt54Model,
         baseUrl: "https://api.openai.com/v1",
@@ -210,12 +220,12 @@ describe("AgentRuntimePlan", () => {
       authProfileMode: "api_key",
       sessionAuthProfileId: "openai:work",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
     });
 
     expect(plan.auth.providerForAuth).toBe("openai");
     expect(plan.auth.authProfileProviderForAuth).toBe("openai");
-    expect(plan.auth.harnessAuthProvider).toBe("openai-codex");
+    expect(plan.auth.harnessAuthProvider).toBe("openai");
     expect(plan.auth.forwardedAuthProfileId).toBe("openai:work");
   });
 
@@ -226,22 +236,19 @@ describe("AgentRuntimePlan", () => {
       modelApi: "openai-responses",
       harnessId: "codex",
       harnessRuntime: "codex",
-      authProfileProvider: "openai-codex",
+      authProfileProvider: "openai",
       authProfileMode: "oauth",
-      sessionAuthProfileId: "openai-codex:work",
-      sessionAuthProfileCandidateIds: ["openai-codex:work", "openai:backup"],
+      sessionAuthProfileId: "openai:work",
+      sessionAuthProfileCandidateIds: ["openai:work", "openai:backup"],
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
     });
 
-    expect(plan.auth.forwardedAuthProfileId).toBe("openai-codex:work");
-    expect(plan.auth.forwardedAuthProfileCandidateIds).toEqual([
-      "openai-codex:work",
-      "openai:backup",
-    ]);
+    expect(plan.auth.forwardedAuthProfileId).toBe("openai:work");
+    expect(plan.auth.forwardedAuthProfileCandidateIds).toEqual(["openai:work", "openai:backup"]);
   });
 
-  it("does not forward non-api-key OpenAI profiles into the Codex harness auth slot", () => {
+  it("forwards OpenAI OAuth profiles into the Codex harness auth slot", () => {
     const plan = buildAgentRuntimePlan({
       provider: "openai",
       modelId: "gpt-5.4",
@@ -252,28 +259,28 @@ describe("AgentRuntimePlan", () => {
       authProfileMode: "oauth",
       sessionAuthProfileId: "openai:work",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
     });
 
-    expect(plan.auth.forwardedAuthProfileId).toBeUndefined();
+    expect(plan.auth.forwardedAuthProfileId).toBe("openai:work");
   });
 
-  it("forwards OpenAI Codex profiles for explicit OpenAI PI runs", () => {
+  it("forwards OpenAI Codex profiles for explicit OpenAI OpenClaw runs", () => {
     const plan = buildAgentRuntimePlan({
       provider: "openai",
       modelId: "gpt-5.4",
       modelApi: "openai-responses",
-      harnessId: "pi",
-      harnessRuntime: "pi",
-      authProfileProvider: "openai-codex",
-      sessionAuthProfileId: "openai-codex:work",
+      harnessId: "openclaw",
+      harnessRuntime: "openclaw",
+      authProfileProvider: "openai",
+      sessionAuthProfileId: "openai:work",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
     });
 
     expect(plan.auth.providerForAuth).toBe("openai");
-    expect(plan.auth.authProfileProviderForAuth).toBe("openai-codex");
-    expect(plan.auth.forwardedAuthProfileId).toBe("openai-codex:work");
+    expect(plan.auth.authProfileProviderForAuth).toBe("openai");
+    expect(plan.auth.forwardedAuthProfileId).toBe("openai:work");
   });
 
   it("resolves follow-up routes with the prepared provider handle", () => {
@@ -293,7 +300,7 @@ describe("AgentRuntimePlan", () => {
       provider: "openai",
       modelId: "gpt-5.4",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       providerRuntimeHandle,
     });
 
@@ -330,7 +337,7 @@ describe("AgentRuntimePlan", () => {
     };
     const resolvedHandle: ProviderRuntimePluginHandle = {
       ...suppliedHandle,
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       env: process.env,
       plugin: {} as never,
     };
@@ -341,7 +348,7 @@ describe("AgentRuntimePlan", () => {
       provider: "openai",
       modelId: "gpt-5.4",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       providerRuntimeHandle: suppliedHandle,
     });
 
@@ -355,11 +362,11 @@ describe("AgentRuntimePlan", () => {
 
     expect(resolveProviderRuntimePluginHandleMock).toHaveBeenCalledWith({
       provider: "openai",
+      modelId: "gpt-5.4",
       config: suppliedHandle.config,
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       env: process.env,
       applyAutoEnable: undefined,
-      bundledProviderAllowlistCompat: undefined,
       bundledProviderVitestCompat: undefined,
     });
     const followupCall = latestFollowupRouteCall();
@@ -379,7 +386,7 @@ describe("AgentRuntimePlan", () => {
     };
     const resolvedHandle: ProviderRuntimePluginHandle = {
       provider: "openai",
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       env: process.env,
       plugin: {} as never,
     };
@@ -390,7 +397,7 @@ describe("AgentRuntimePlan", () => {
       provider: "openai",
       modelId: "gpt-5.4",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       providerRuntimeHandle: suppliedHandle,
     });
 
@@ -402,11 +409,11 @@ describe("AgentRuntimePlan", () => {
 
     expect(resolveProviderRuntimePluginHandleMock).toHaveBeenCalledWith({
       provider: "openai",
+      modelId: "gpt-5.4",
       config: {},
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       env: process.env,
       applyAutoEnable: undefined,
-      bundledProviderAllowlistCompat: undefined,
       bundledProviderVitestCompat: undefined,
     });
     const followupCall = latestFollowupRouteCall();
@@ -425,7 +432,7 @@ describe("AgentRuntimePlan", () => {
       provider: "openai",
       modelId: "gpt-5.4",
       config: runtimeConfig,
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
     });
 
     expect(manifestMocks.loadManifestMetadataSnapshot).not.toHaveBeenCalled();
@@ -434,7 +441,7 @@ describe("AgentRuntimePlan", () => {
 
     expect(manifestMocks.loadManifestMetadataSnapshot).toHaveBeenCalledWith({
       config: sourceConfig,
-      workspaceDir: "/tmp/astroclaw-runtime-plan",
+      workspaceDir: "/tmp/openclaw-runtime-plan",
       env: process.env,
     });
   });
