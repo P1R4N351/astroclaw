@@ -1,9 +1,10 @@
-import { completeSimple, type Model } from "@earendil-works/pi-ai";
+// Byteplus tests cover live plugin behavior.
+import { completeSimple, type Model } from "openclaw/plugin-sdk/llm";
 import {
   createSingleUserPromptMessage,
   extractNonEmptyAssistantText,
   isLiveTestEnabled,
-} from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import { BYTEPLUS_CODING_BASE_URL, BYTEPLUS_DEFAULT_COST } from "./models.js";
 
