@@ -1,5 +1,6 @@
+// Threading helper tests cover channel thread metadata and reply-thread helper behavior.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import {
   createScopedAccountReplyToModeResolver,
   createStaticReplyToModeResolver,
@@ -8,7 +9,7 @@ import {
 
 describe("createStaticReplyToModeResolver", () => {
   it.each(["off", "all"] as const)("always returns the configured mode %s", (mode) => {
-    expect(createStaticReplyToModeResolver(mode)({ cfg: {} as AstroclawConfig })).toBe(mode);
+    expect(createStaticReplyToModeResolver(mode)({ cfg: {} as OpenClawConfig })).toBe(mode);
   });
 });
 
@@ -18,12 +19,12 @@ describe("createTopLevelChannelReplyToModeResolver", () => {
   it.each([
     {
       name: "reads the top-level channel config",
-      cfg: { channels: { "demo-top-level": { replyToMode: "first" } } } as AstroclawConfig,
+      cfg: { channels: { "demo-top-level": { replyToMode: "first" } } } as OpenClawConfig,
       expected: "first",
     },
     {
       name: "falls back to off",
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       expected: "off",
     },
   ])("$name", ({ cfg, expected }) => {
@@ -61,7 +62,7 @@ describe("createScopedAccountReplyToModeResolver", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolver({ cfg, accountId })).toBe(expected);
   });
@@ -76,7 +77,7 @@ describe("createScopedAccountReplyToModeResolver", () => {
       },
     });
 
-    expect(resolver({ cfg: {} as AstroclawConfig, chatType: "group" })).toBe("first");
+    expect(resolver({ cfg: {} as OpenClawConfig, chatType: "group" })).toBe("first");
     expect(seen).toEqual(["group"]);
   });
 });
