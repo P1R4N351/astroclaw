@@ -1,8 +1,9 @@
-import { logVerbose } from "astroclaw/plugin-sdk/runtime-env";
+// Slack tests cover send.identity fallback plugin behavior.
+import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSlackSendTestClient, installSlackBlockTestMocks } from "./blocks.test-helpers.js";
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   logVerbose: vi.fn(),
   danger: (message: string) => message,
   shouldLogVerbose: () => false,
