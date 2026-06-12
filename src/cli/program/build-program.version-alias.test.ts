@@ -1,3 +1,4 @@
+// Build program version alias tests cover version flag aliases on the root program.
 import process from "node:process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildProgram } from "./build-program.js";
@@ -15,7 +16,7 @@ describe("buildProgram version alias handling", () => {
   });
 
   it("exits with version output for root -v", () => {
-    process.argv = ["node", "astroclaw", "-v"];
+    process.argv = ["node", "openclaw", "-v"];
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`process.exit:${String(code)}`);
@@ -27,7 +28,7 @@ describe("buildProgram version alias handling", () => {
   });
 
   it("does not treat subcommand -v as root version alias", () => {
-    process.argv = ["node", "astroclaw", "acp", "-v"];
+    process.argv = ["node", "openclaw", "acp", "-v"];
     const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`unexpected process.exit:${String(code)}`);
     }) as typeof process.exit);
