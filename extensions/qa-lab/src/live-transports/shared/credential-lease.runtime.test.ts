@@ -1,3 +1,5 @@
+// Qa Lab tests cover credential lease plugin behavior.
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   acquireQaCredentialLease,
@@ -82,8 +84,8 @@ describe("credential lease runtime", () => {
       source: "convex",
       role: "maintainer",
       env: {
-        ASTROCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
-        ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
+        OPENCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
       },
       fetchImpl,
       resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
@@ -119,7 +121,7 @@ describe("credential lease runtime", () => {
           credentialId: "cred-chunked",
           leaseToken: "lease-chunked",
           payload: {
-            __astroclawQaCredentialPayloadChunksV1: true,
+            __openclawQaCredentialPayloadChunksV1: true,
             byteLength: serialized.length,
             chunkCount: 2,
           },
@@ -133,8 +135,8 @@ describe("credential lease runtime", () => {
       source: "convex",
       role: "ci",
       env: {
-        ASTROCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
-        ASTROCLAW_QA_CONVEX_SECRET_CI: "ci-secret",
+        OPENCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
+        OPENCLAW_QA_CONVEX_SECRET_CI: "ci-secret",
       },
       fetchImpl,
       resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
@@ -177,8 +179,8 @@ describe("credential lease runtime", () => {
       kind: "telegram",
       source: "convex",
       env: {
-        ASTROCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
-        ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
+        OPENCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
       },
       fetchImpl,
       resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
@@ -206,8 +208,8 @@ describe("credential lease runtime", () => {
       source: "convex",
       env: {
         CI: "true",
-        ASTROCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
-        ASTROCLAW_QA_CONVEX_SECRET_CI: "ci-secret",
+        OPENCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
+        OPENCLAW_QA_CONVEX_SECRET_CI: "ci-secret",
       },
       fetchImpl,
       resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
@@ -253,9 +255,9 @@ describe("credential lease runtime", () => {
       kind: "telegram",
       source: "convex",
       env: {
-        ASTROCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
-        ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
-        ASTROCLAW_QA_CREDENTIAL_ACQUIRE_TIMEOUT_MS: "90000",
+        OPENCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
+        OPENCLAW_QA_CREDENTIAL_ACQUIRE_TIMEOUT_MS: "90000",
       },
       fetchImpl,
       randomImpl: () => 0,
@@ -282,8 +284,8 @@ describe("credential lease runtime", () => {
         kind: "telegram",
         source: "convex",
         env: {
-          ASTROCLAW_QA_CONVEX_SITE_URL: "http://qa-cred.example.convex.site",
-          ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
+          OPENCLAW_QA_CONVEX_SITE_URL: "http://qa-cred.example.convex.site",
+          OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
         },
         resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
         parsePayload: (payload) =>
@@ -292,7 +294,7 @@ describe("credential lease runtime", () => {
     ).rejects.toThrow("must use https://");
   });
 
-  it("allows loopback http URLs when ASTROCLAW_QA_ALLOW_INSECURE_HTTP is enabled", async () => {
+  it("allows loopback http URLs when OPENCLAW_QA_ALLOW_INSECURE_HTTP is enabled", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(
       jsonResponse({
         status: "ok",
@@ -307,9 +309,9 @@ describe("credential lease runtime", () => {
       source: "convex",
       role: "maintainer",
       env: {
-        ASTROCLAW_QA_CONVEX_SITE_URL: "http://127.0.0.1:3210",
-        ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
-        ASTROCLAW_QA_ALLOW_INSECURE_HTTP: "1",
+        OPENCLAW_QA_CONVEX_SITE_URL: "http://127.0.0.1:3210",
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
+        OPENCLAW_QA_ALLOW_INSECURE_HTTP: "1",
       },
       fetchImpl,
       resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
@@ -320,21 +322,52 @@ describe("credential lease runtime", () => {
     expect(fetchUrl(fetchImpl)).toBe("http://127.0.0.1:3210/qa-credentials/v1/acquire");
   });
 
+  it("caps oversized convex HTTP timeouts before creating abort signals", async () => {
+    const timeoutController = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout").mockReturnValue(timeoutController.signal);
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({
+        status: "ok",
+        credentialId: "cred-timeout",
+        leaseToken: "lease-timeout",
+        payload: { groupId: "-100123", driverToken: "driver", sutToken: "sut" },
+      }),
+    );
+
+    await acquireQaCredentialLease({
+      kind: "telegram",
+      source: "convex",
+      role: "maintainer",
+      env: {
+        OPENCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
+        OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
+        OPENCLAW_QA_CREDENTIAL_HTTP_TIMEOUT_MS: String(Number.MAX_SAFE_INTEGER),
+      },
+      fetchImpl,
+      resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
+      parsePayload: (payload) =>
+        payload as { groupId: string; driverToken: string; sutToken: string },
+    });
+
+    expect(timeoutSpy).toHaveBeenCalledWith(MAX_TIMER_TIMEOUT_MS);
+    expect(fetchInit(fetchImpl).signal).toBe(timeoutController.signal);
+  });
+
   it("rejects unsafe endpoint prefix overrides", async () => {
     await expect(
       acquireQaCredentialLease({
         kind: "telegram",
         source: "convex",
         env: {
-          ASTROCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
-          ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
-          ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX: "//evil.example",
+          OPENCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
+          OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
+          OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX: "//evil.example",
         },
         resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
         parsePayload: (payload) =>
           payload as { groupId: string; driverToken: string; sutToken: string },
       }),
-    ).rejects.toThrow("ASTROCLAW_QA_CONVEX_ENDPOINT_PREFIX must be an absolute path");
+    ).rejects.toThrow("OPENCLAW_QA_CONVEX_ENDPOINT_PREFIX must be an absolute path");
   });
 
   it("releases acquired lease when payload parsing fails", async () => {
@@ -356,8 +389,8 @@ describe("credential lease runtime", () => {
         source: "convex",
         role: "maintainer",
         env: {
-          ASTROCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
-          ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
+          OPENCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
+          OPENCLAW_QA_CONVEX_SECRET_MAINTAINER: "maintainer-secret",
         },
         fetchImpl,
         resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
@@ -380,13 +413,13 @@ describe("credential lease runtime", () => {
         source: "convex",
         role: "maintainer",
         env: {
-          ASTROCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
+          OPENCLAW_QA_CONVEX_SITE_URL: "https://qa-cred.example.convex.site",
         },
         resolveEnvPayload: () => ({ groupId: "-1", driverToken: "unused", sutToken: "unused" }),
         parsePayload: (payload) =>
           payload as { groupId: string; driverToken: string; sutToken: string },
       }),
-    ).rejects.toThrow("ASTROCLAW_QA_CONVEX_SECRET_MAINTAINER");
+    ).rejects.toThrow("OPENCLAW_QA_CONVEX_SECRET_MAINTAINER");
   });
 
   it("captures heartbeat failures for fail-fast checks", async () => {
