@@ -1,3 +1,4 @@
+// Memory Wiki tests cover bridge plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -5,13 +6,13 @@ import {
   clearMemoryPluginState,
   type MemoryPluginPublicArtifact,
   registerMemoryCapability,
-} from "astroclaw/plugin-sdk/memory-host-core";
+} from "openclaw/plugin-sdk/memory-host-core";
 import {
   appendMemoryHostEvent,
   resolveMemoryHostEventLogPath,
-} from "astroclaw/plugin-sdk/memory-host-events";
+} from "openclaw/plugin-sdk/memory-host-events";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../api.js";
+import type { OpenClawConfig } from "../api.js";
 import { syncMemoryWikiBridgeSources } from "./bridge.js";
 import { createMemoryWikiTestHarness } from "./test-helpers.js";
 
@@ -111,7 +112,7 @@ describe("syncMemoryWikiBridgeSources", () => {
       },
     ]);
 
-    const appConfig: AstroclawConfig = {
+    const appConfig: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true, workspace: workspaceDir }],
       },
@@ -143,7 +144,7 @@ describe("syncMemoryWikiBridgeSources", () => {
     expect(second.skippedCount).toBe(3);
     expect(second.removedCount).toBe(0);
 
-    const logLines = (await fs.readFile(path.join(vaultDir, ".astroclaw-wiki", "log.jsonl"), "utf8"))
+    const logLines = (await fs.readFile(path.join(vaultDir, ".openclaw-wiki", "log.jsonl"), "utf8"))
       .trim()
       .split("\n");
     expect(logLines).toHaveLength(2);
@@ -179,7 +180,7 @@ describe("syncMemoryWikiBridgeSources", () => {
 
     await fs.writeFile(path.join(workspaceDir, "MEMORY.md"), "# Durable Memory\n", "utf8");
 
-    const appConfig: AstroclawConfig = {
+    const appConfig: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true, workspace: workspaceDir }],
       },
@@ -234,7 +235,7 @@ describe("syncMemoryWikiBridgeSources", () => {
       },
     ]);
 
-    const appConfig: AstroclawConfig = {
+    const appConfig: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true, workspace: workspaceDir }],
       },
@@ -277,7 +278,7 @@ describe("syncMemoryWikiBridgeSources", () => {
         contentType: "markdown",
       },
     ]);
-    const appConfig: AstroclawConfig = {
+    const appConfig: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true, workspace: workspaceDir }],
       },
@@ -326,7 +327,7 @@ describe("syncMemoryWikiBridgeSources", () => {
         contentType: "markdown",
       },
     ]);
-    const appConfig: AstroclawConfig = {
+    const appConfig: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true, workspace: workspaceDir }],
       },
@@ -344,6 +345,80 @@ describe("syncMemoryWikiBridgeSources", () => {
       "Refusing to write imported source page through symlink",
     );
     await expect(fs.readFile(externalTarget, "utf8")).resolves.toBe("external target\n");
+  });
+
+  async function createDirectoryCollisionFixture(params: {
+    workspaceName: string;
+    vaultName: string;
+    populateDirectory?: boolean;
+  }) {
+    const workspaceDir = await createBridgeWorkspace(params.workspaceName);
+    const { rootDir: vaultDir, config } = await createVault({
+      rootDir: nextCaseRoot(params.vaultName),
+      config: {
+        vaultMode: "bridge",
+        bridge: {
+          enabled: true,
+          readMemoryArtifacts: true,
+          indexMemoryRoot: true,
+        },
+      },
+    });
+    const memoryPath = path.join(workspaceDir, "MEMORY.md");
+    await fs.writeFile(memoryPath, "# Durable Memory\n", "utf8");
+    registerBridgeArtifacts([
+      {
+        kind: "memory-root",
+        workspaceDir,
+        relativePath: "MEMORY.md",
+        absolutePath: memoryPath,
+        agentIds: ["main"],
+        contentType: "markdown",
+      },
+    ]);
+    const appConfig: OpenClawConfig = {
+      agents: {
+        list: [{ id: "main", default: true, workspace: workspaceDir }],
+      },
+    };
+    const first = await syncMemoryWikiBridgeSources({ config, appConfig });
+    const pagePath = first.pagePaths[0] ?? "";
+    const pageAbsPath = path.join(vaultDir, pagePath);
+    await fs.rm(pageAbsPath);
+    await fs.mkdir(pageAbsPath);
+    if (params.populateDirectory) {
+      await fs.writeFile(path.join(pageAbsPath, "child.md"), "blocking child\n", "utf8");
+    }
+    await fs.writeFile(memoryPath, "# Updated Durable Memory\n", "utf8");
+    return { appConfig, config, pageAbsPath };
+  }
+
+  it("reports non-symlink bridge source write safety failures without symlink wording", async () => {
+    const { appConfig, config } = await createDirectoryCollisionFixture({
+      workspaceName: "not-file-workspace",
+      vaultName: "not-file-vault",
+      populateDirectory: true,
+    });
+
+    const second = syncMemoryWikiBridgeSources({ config, appConfig });
+    await expect(second).rejects.toThrow(
+      /Refusing to write imported source page \((not-empty|not-file|path-mismatch)\): sources\//u,
+    );
+    await expect(second).rejects.not.toThrow("through symlink");
+  });
+
+  it("does not remove empty directory bridge source collisions as hardlinks", async () => {
+    const { appConfig, config, pageAbsPath } = await createDirectoryCollisionFixture({
+      workspaceName: "empty-directory-workspace",
+      vaultName: "empty-directory-vault",
+    });
+
+    const second = syncMemoryWikiBridgeSources({ config, appConfig });
+    await expect(second).rejects.toThrow(
+      /Refusing to write imported source page \((not-file|path-mismatch)\): sources\//u,
+    );
+    await expect(second).rejects.not.toThrow("through symlink");
+    await expect(fs.stat(pageAbsPath)).resolves.toSatisfy((stat) => stat.isDirectory());
   });
 
   it("replaces bridge source page hardlinks without clobbering their target", async () => {
@@ -371,7 +446,7 @@ describe("syncMemoryWikiBridgeSources", () => {
         contentType: "markdown",
       },
     ]);
-    const appConfig: AstroclawConfig = {
+    const appConfig: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true, workspace: workspaceDir }],
       },
@@ -421,7 +496,7 @@ describe("syncMemoryWikiBridgeSources", () => {
       },
     ]);
 
-    const appConfig: AstroclawConfig = {
+    const appConfig: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true, workspace: workspaceDir }],
       },
