@@ -1,28 +1,47 @@
+// Moonshot tests cover index plugin behavior.
 import fs from "node:fs";
-import type { Context, Model } from "@earendil-works/pi-ai";
-import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { createCapturedThinkingConfigStream } from "astroclaw/plugin-sdk/provider-test-contracts";
+import type { Context, Model } from "openclaw/plugin-sdk/llm";
+import { registerSingleProviderPlugin } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { createCapturedThinkingConfigStream } from "openclaw/plugin-sdk/provider-test-contracts";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 import { createKimiWebSearchProvider } from "./src/kimi-web-search-provider.js";
 
 type MoonshotManifest = {
-  providerAuthEnvVars?: Record<string, string[]>;
+  providerAuthAliases?: Record<string, string>;
+  setup?: {
+    providers?: Array<{
+      id?: string;
+      envVars?: string[];
+    }>;
+  };
 };
 
 function readManifest(): MoonshotManifest {
   return JSON.parse(
-    fs.readFileSync(new URL("./astroclaw.plugin.json", import.meta.url), "utf8"),
+    fs.readFileSync(new URL("./openclaw.plugin.json", import.meta.url), "utf8"),
   ) as MoonshotManifest;
 }
 
 describe("moonshot provider plugin", () => {
   it("mirrors Kimi web-search env credentials in manifest metadata", () => {
-    const manifestEnvVars = readManifest().providerAuthEnvVars?.moonshot ?? [];
+    const manifestEnvVars =
+      readManifest().setup?.providers?.find((provider) => provider.id === "moonshot")?.envVars ??
+      [];
 
     expect([...manifestEnvVars].toSorted()).toStrictEqual(
       [...createKimiWebSearchProvider().envVars].toSorted(),
     );
+  });
+
+  it("declares shipped Moonshot provider aliases in runtime and manifest metadata", async () => {
+    const provider = await registerSingleProviderPlugin(plugin);
+
+    expect(provider.aliases).toEqual(["moonshotai", "moonshot-ai"]);
+    expect(readManifest().providerAuthAliases).toEqual({
+      moonshotai: "moonshot",
+      "moonshot-ai": "moonshot",
+    });
   });
 
   it("owns replay policy for OpenAI-compatible Moonshot transports without mangling native Kimi tool_call IDs", async () => {
