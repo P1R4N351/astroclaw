@@ -1,3 +1,4 @@
+// Qa Lab tests cover suite runtime agent process.integration plugin behavior.
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -35,7 +36,7 @@ describe("qa suite runtime CLI integration", () => {
         "import fs from 'node:fs';",
         "import path from 'node:path';",
         "const [command, subcommand] = process.argv.slice(2);",
-        "const metadataPath = path.join(process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR ?? '', 'memory-core', 'cli-metadata.js');",
+        "const metadataPath = path.join(process.env.OPENCLAW_BUNDLED_PLUGINS_DIR ?? '', 'memory-core', 'cli-metadata.js');",
         "if (command === 'memory' && subcommand === 'status' && fs.existsSync(metadataPath)) {",
         "  console.log(JSON.stringify({ command, subcommand, status: 'ok' }));",
         "  process.exit(0);",
@@ -55,7 +56,7 @@ describe("qa suite runtime CLI integration", () => {
             tempRoot,
             runtimeEnv: {
               ...process.env,
-              ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledPluginsDir,
+              OPENCLAW_BUNDLED_PLUGINS_DIR: bundledPluginsDir,
             },
           },
           primaryModel: "openai/gpt-5.5",
