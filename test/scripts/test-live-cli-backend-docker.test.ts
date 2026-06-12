@@ -1,3 +1,4 @@
+// Test Live Cli Backend Docker tests cover test live cli backend docker script behavior.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -25,8 +26,8 @@ describe("scripts/test-live-cli-backend-docker.sh", () => {
   it("forwards both fresh and resume CLI arg overrides into the Docker container", () => {
     const forwardedVars = readForwardedDockerEnvVars();
 
-    expect(forwardedVars).toContain("ASTROCLAW_LIVE_CLI_BACKEND_ARGS");
-    expect(forwardedVars).toContain("ASTROCLAW_LIVE_CLI_BACKEND_RESUME_ARGS");
-    expect(forwardedVars).toContain("ASTROCLAW_TEST_CONSOLE");
+    expect(forwardedVars).toContain("OPENCLAW_LIVE_CLI_BACKEND_ARGS");
+    expect(forwardedVars).toContain("OPENCLAW_LIVE_CLI_BACKEND_RESUME_ARGS");
+    expect(forwardedVars).toContain("OPENCLAW_TEST_CONSOLE");
   });
 });
