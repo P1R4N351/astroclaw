@@ -1,5 +1,6 @@
+// Provider discovery contract helpers define reusable discovery tests for provider plugins.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AuthProfileStore, AstroclawConfig } from "../provider-auth.js";
+import type { AuthProfileStore, OpenClawConfig } from "../provider-auth.js";
 import {
   registerProviderPlugins as registerProviders,
   requireRegisteredProvider as requireProvider,
@@ -81,7 +82,7 @@ function runCatalog(
   state: DiscoveryState,
   params: {
     provider: ProviderHandle;
-    config?: AstroclawConfig;
+    config?: OpenClawConfig;
     env?: NodeJS.ProcessEnv;
     resolveProviderApiKey?: () => { apiKey: string | undefined; discoveryApiKey?: string };
     resolveProviderAuth?: (
@@ -135,17 +136,17 @@ function providerModelIds(provider: Record<string, unknown>): Array<unknown> {
 function installDiscoveryHooks(state: DiscoveryState, options: DiscoveryContractOptions) {
   beforeAll(async () => {
     vi.resetModules();
-    vi.doMock("astroclaw/plugin-sdk/agent-runtime", () => {
+    vi.doMock("openclaw/plugin-sdk/agent-runtime", () => {
       return {
         ensureAuthProfileStore: ensureAuthProfileStoreMock,
         listProfilesForProvider: listProfilesForProviderMock,
       };
     });
-    vi.doMock("astroclaw/plugin-sdk/provider-auth", () => {
+    vi.doMock("openclaw/plugin-sdk/provider-auth", () => {
       return {
         DEFAULT_COPILOT_API_BASE_URL: "https://api.individual.githubcopilot.com",
         MINIMAX_OAUTH_MARKER: "minimax-oauth",
-        applyAuthProfileConfig: (config: AstroclawConfig) => config,
+        applyAuthProfileConfig: (config: OpenClawConfig) => config,
         buildApiKeyCredential: (
           provider: string,
           key: unknown,
@@ -409,7 +410,7 @@ export function describeVllmProviderDiscoveryContract(params: {
                 },
               },
             },
-          } as unknown as AstroclawConfig,
+          } as unknown as OpenClawConfig,
           env: {
             VLLM_API_KEY: "env-vllm-key",
           } as NodeJS.ProcessEnv,
@@ -465,7 +466,7 @@ export function describeVllmProviderDiscoveryContract(params: {
                 },
               },
             },
-          } as unknown as AstroclawConfig,
+          } as unknown as OpenClawConfig,
           env: {
             VLLM_API_KEY: "env-vllm-key",
           } as NodeJS.ProcessEnv,
@@ -515,7 +516,7 @@ export function describeVllmProviderDiscoveryContract(params: {
                 },
               },
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           env: {
             VLLM_API_KEY: "env-vllm-key",
           } as NodeJS.ProcessEnv,
@@ -615,7 +616,7 @@ export function describeSglangProviderDiscoveryContract(params: {
                 },
               },
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           env: {
             SGLANG_API_KEY: "env-sglang-key",
           } as NodeJS.ProcessEnv,
@@ -666,7 +667,7 @@ export function describeSglangProviderDiscoveryContract(params: {
                 },
               },
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           env: {
             SGLANG_API_KEY: "env-sglang-key",
           } as NodeJS.ProcessEnv,
@@ -717,6 +718,7 @@ export function describeMinimaxProviderDiscoveryContract(
         apiKey: "minimax-key",
       });
       const ids = providerModelIds(provider);
+      expect(ids).toContain("MiniMax-M3");
       expect(ids).toContain("MiniMax-M2.7");
       expect(ids).toContain("MiniMax-M2.7-highspeed");
     });
