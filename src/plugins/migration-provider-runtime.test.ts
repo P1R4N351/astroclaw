@@ -1,5 +1,6 @@
+// Covers migration provider runtime hooks supplied by plugins.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginRegistry } from "./registry-types.js";
 import { createEmptyPluginRegistry } from "./registry.js";
 
@@ -140,7 +141,7 @@ describe("migration provider runtime", () => {
     }));
 
     ensureStandaloneMigrationProviderRegistryLoaded({
-      cfg: { plugins: { enabled: false } } as AstroclawConfig,
+      cfg: { plugins: { enabled: false } } as OpenClawConfig,
     });
 
     const standaloneParams = requireMockCallArg(
@@ -152,7 +153,7 @@ describe("migration provider runtime", () => {
       loadOptions?: {
         activate?: unknown;
         onlyPluginIds?: unknown;
-        config?: AstroclawConfig;
+        config?: OpenClawConfig;
       };
     };
     expect(standaloneParams.surface).toBe("active");
@@ -168,7 +169,7 @@ describe("migration provider runtime", () => {
   it("loads configured external migration-provider plugins from manifest contracts", () => {
     const cfg = {
       plugins: { entries: { "external-migration": { enabled: true } } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const provider = createMigrationProvider("external-import");
     const active = createEmptyPluginRegistry();
     const loaded = createEmptyPluginRegistry();
@@ -232,7 +233,7 @@ describe("migration provider runtime", () => {
       "loadPluginManifestRegistry",
     ) as {
       index?: MockPluginIndex;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
       env?: NodeJS.ProcessEnv;
       includeDisabled?: unknown;
     };
@@ -296,7 +297,7 @@ describe("migration provider runtime", () => {
       "loadPluginManifestRegistry",
     ) as {
       index?: MockPluginIndex;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
       env?: NodeJS.ProcessEnv;
       includeDisabled?: unknown;
       workspaceDir?: unknown;
