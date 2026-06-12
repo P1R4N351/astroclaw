@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/core";
+// Feishu tests cover policy plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
 import { describe, expect, it } from "vitest";
 import { FeishuConfigSchema } from "./config-schema.js";
 import {
@@ -9,12 +10,12 @@ import {
 } from "./policy.js";
 import type { FeishuConfig } from "./types.js";
 
-function createCfg(feishu: Record<string, unknown>): AstroclawConfig {
+function createCfg(feishu: Record<string, unknown>): OpenClawConfig {
   return {
     channels: {
       feishu,
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function createFeishuConfig(overrides: Partial<FeishuConfig>): FeishuConfig {
