@@ -1,3 +1,4 @@
+// Ollama tests cover wsl2 crash loop check plugin behavior.
 import { promisify } from "node:util";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -5,7 +6,7 @@ const { isWSL2SyncMock } = vi.hoisted(() => ({
   isWSL2SyncMock: vi.fn(() => false),
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   isWSL2Sync: isWSL2SyncMock,
 }));
 
