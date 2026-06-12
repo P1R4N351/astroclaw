@@ -1,5 +1,6 @@
+// Memory host dreaming tests cover dreaming artifact persistence and lookup.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   formatMemoryDreamingDay,
   isSameMemoryDreamingDay,
@@ -90,7 +91,7 @@ describe("memory dreaming host helpers", () => {
           userTimezone: "America/Los_Angeles",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const resolved = resolveMemoryDreamingConfig({
       pluginConfig: {},
@@ -157,7 +158,7 @@ describe("memory dreaming host helpers", () => {
           { id: "gamma", workspace: "/workspace/shared" },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveMemoryDreamingWorkspaces(cfg)).toEqual([
       {
@@ -179,7 +180,7 @@ describe("memory dreaming host helpers", () => {
           { id: "agi-cdo", workspace: "/workspace/agi-cdo" },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(
       resolveMemoryDreamingWorkspaces(cfg, {
@@ -209,7 +210,7 @@ describe("memory dreaming host helpers", () => {
           workspace: "/workspace",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveMemoryDreamingWorkspaces(cfg)).toEqual([
       {
@@ -235,11 +236,11 @@ describe("memory dreaming host helpers", () => {
       resolveMemoryDreamingPluginId({
         plugins: {
           slots: {
-            memory: "memos-local-astroclaw-plugin",
+            memory: "memos-local-openclaw-plugin",
           },
         },
-      } as AstroclawConfig),
-    ).toBe("memos-local-astroclaw-plugin");
+      } as OpenClawConfig),
+    ).toBe("memos-local-openclaw-plugin");
   });
 
   it("reads dreaming config from the configured memory-slot owner", () => {
@@ -247,10 +248,10 @@ describe("memory dreaming host helpers", () => {
       resolveMemoryDreamingPluginConfig({
         plugins: {
           slots: {
-            memory: "memos-local-astroclaw-plugin",
+            memory: "memos-local-openclaw-plugin",
           },
           entries: {
-            "memos-local-astroclaw-plugin": {
+            "memos-local-openclaw-plugin": {
               config: {
                 dreaming: {
                   enabled: true,
@@ -259,7 +260,7 @@ describe("memory dreaming host helpers", () => {
             },
           },
         },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
     ).toEqual({
       dreaming: {
         enabled: true,
@@ -285,7 +286,7 @@ describe("memory dreaming host helpers", () => {
             },
           },
         },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
     ).toEqual({
       dreaming: {
         enabled: true,
@@ -308,7 +309,7 @@ describe("memory dreaming host helpers", () => {
             },
           },
         },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
     ).toEqual({
       dreaming: {
         enabled: true,
@@ -324,7 +325,7 @@ describe("memory dreaming host helpers", () => {
             memory: "none",
           },
         },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
     ).toBe("memory-core");
 
     expect(
@@ -343,7 +344,7 @@ describe("memory dreaming host helpers", () => {
             },
           },
         },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
     ).toEqual({
       dreaming: {
         enabled: true,
