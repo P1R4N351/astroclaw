@@ -1,11 +1,13 @@
+// Applies safe automatic fixes for supported security audit findings.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
+import { resolveAuthProfileDatabaseFilePaths } from "../agents/auth-profiles/sqlite.js";
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import { createConfigIO, replaceConfigFile } from "../config/config.js";
 import { collectIncludePathsRecursive } from "../config/includes-scan.js";
 import { resolveConfigPath, resolveOAuthDir, resolveStateDir } from "../config/paths.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { runExec } from "../process/exec.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { createIcaclsResetCommand, formatIcaclsResetCommand, type ExecFn } from "./windows-acl.js";
@@ -190,14 +192,14 @@ async function safeAclReset(params: {
 }
 
 function setGroupPolicyAllowlist(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: string;
   changes: string[];
 }): void {
   if (!params.cfg.channels) {
     return;
   }
-  const section = params.cfg.channels[params.channel as keyof AstroclawConfig["channels"]] as
+  const section = params.cfg.channels[params.channel as keyof OpenClawConfig["channels"]] as
     | Record<string, unknown>
     | undefined;
   if (!section || typeof section !== "object") {
@@ -231,8 +233,8 @@ function setGroupPolicyAllowlist(params: {
   }
 }
 
-function applyConfigFixes(params: { cfg: AstroclawConfig; env: NodeJS.ProcessEnv }): {
-  cfg: AstroclawConfig;
+function applyConfigFixes(params: { cfg: OpenClawConfig; env: NodeJS.ProcessEnv }): {
+  cfg: OpenClawConfig;
   changes: string[];
 } {
   const next = structuredClone(params.cfg ?? {});
@@ -251,11 +253,11 @@ function applyConfigFixes(params: { cfg: AstroclawConfig; env: NodeJS.ProcessEnv
 }
 
 export async function applySecurityFixConfigMutations(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   channelPlugins?: ChannelPlugin[];
 }): Promise<{
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   changes: string[];
 }> {
   const fixed = applyConfigFixes({ cfg: params.cfg, env: params.env });
@@ -271,7 +273,7 @@ export async function applySecurityFixConfigMutations(params: {
 }
 
 async function collectChannelSecurityConfigFixMutation(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   channelPlugins?: ChannelPlugin[];
 }) {
@@ -312,7 +314,7 @@ export async function collectSecurityPermissionTargets(params: {
   env: NodeJS.ProcessEnv;
   stateDir: string;
   configPath: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   includePaths?: readonly string[];
 }): Promise<SecurityPermissionTarget[]> {
   const targets: SecurityPermissionTarget[] = [
@@ -362,6 +364,9 @@ export async function collectSecurityPermissionTargets(params: {
     targets.push({ path: agentRoot, mode: 0o700, require: "dir" });
     targets.push({ path: agentDir, mode: 0o700, require: "dir" });
 
+    for (const databasePath of resolveAuthProfileDatabaseFilePaths(agentDir)) {
+      targets.push({ path: databasePath, mode: 0o600, require: "file" });
+    }
     const authPath = path.join(agentDir, "auth-profiles.json");
     targets.push({ path: authPath, mode: 0o600, require: "file" });
 
@@ -453,7 +458,7 @@ export async function fixSecurityFootguns(opts?: {
     configPath,
     cfg: snap.config ?? {},
     includePaths,
-  }).catch((err) => {
+  }).catch((err: unknown) => {
     errors.push(`collectSecurityPermissionTargets failed: ${String(err)}`);
     return [] as SecurityPermissionTarget[];
   });
