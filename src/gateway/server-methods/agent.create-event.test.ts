@@ -1,7 +1,11 @@
+/**
+ * Tests agent creation event emission from gateway agent methods.
+ */
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearActiveSessionsForShutdownTracker } from "../active-sessions-shutdown-tracker.js";
 
 const configMocks = vi.hoisted(() => ({
   storePath: "",
@@ -10,7 +14,7 @@ const configMocks = vi.hoisted(() => ({
     agents: {
       defaults: {
         model: { primary: "anthropic/claude-opus-4-6" },
-        workspace: configMocks.workspaceDir || "/tmp/astroclaw-agent-create-event",
+        workspace: configMocks.workspaceDir || "/tmp/openclaw-agent-create-event",
       },
     },
     session: {
@@ -51,7 +55,7 @@ describe("agent handler session create events", () => {
   let storePath: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-agent-create-event-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-agent-create-event-"));
     storePath = path.join(tempDir, "sessions.json");
     configMocks.storePath = storePath;
     configMocks.workspaceDir = tempDir;
@@ -62,6 +66,7 @@ describe("agent handler session create events", () => {
   });
 
   afterEach(async () => {
+    clearActiveSessionsForShutdownTracker();
     await fs.rm(tempDir, { recursive: true, force: true });
     vi.restoreAllMocks();
   });
