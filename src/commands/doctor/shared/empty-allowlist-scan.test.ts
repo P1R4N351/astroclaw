@@ -1,3 +1,4 @@
+// Empty allowlist scan tests cover doctor detection of unconfigured sender allowlists.
 import { describe, expect, it, vi } from "vitest";
 import { scanEmptyAllowlistPolicyWarnings } from "./empty-allowlist-scan.js";
 
@@ -27,12 +28,12 @@ describe("doctor empty allowlist policy scan", () => {
           },
         },
       },
-      { doctorFixCommand: "astroclaw doctor --fix" },
+      { doctorFixCommand: "openclaw doctor --fix" },
     );
 
     expect(warnings).toEqual([
-      '- channels.signal.dmPolicy is "allowlist" but allowFrom is empty — all DMs will be blocked. Add sender IDs to channels.signal.allowFrom, or run "astroclaw doctor --fix" to auto-migrate from pairing store when entries exist.',
-      '- channels.signal.accounts.work.dmPolicy is "allowlist" but allowFrom is empty — all DMs will be blocked. Add sender IDs to channels.signal.accounts.work.allowFrom, or run "astroclaw doctor --fix" to auto-migrate from pairing store when entries exist.',
+      '- channels.signal.dmPolicy is "allowlist" but allowFrom is empty — all DMs will be blocked. Add sender IDs to channels.signal.allowFrom, or run "openclaw doctor --fix" to auto-migrate from pairing store when entries exist.',
+      '- channels.signal.accounts.work.dmPolicy is "allowlist" but allowFrom is empty — all DMs will be blocked. Add sender IDs to channels.signal.accounts.work.allowFrom, or run "openclaw doctor --fix" to auto-migrate from pairing store when entries exist.',
     ]);
   });
 
@@ -46,7 +47,7 @@ describe("doctor empty allowlist policy scan", () => {
         },
       },
       {
-        doctorFixCommand: "astroclaw doctor --fix",
+        doctorFixCommand: "openclaw doctor --fix",
         extraWarningsForAccount: ({ channelName, prefix }) =>
           channelName === "telegram" ? [`extra:${prefix}`] : [],
       },
@@ -78,7 +79,7 @@ describe("doctor empty allowlist policy scan", () => {
           },
         },
       },
-      { doctorFixCommand: "astroclaw doctor --fix", extraWarningsForAccount },
+      { doctorFixCommand: "openclaw doctor --fix", extraWarningsForAccount },
     );
 
     expect(warnings).toEqual(["extra:channels.signal"]);
