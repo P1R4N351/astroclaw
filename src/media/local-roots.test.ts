@@ -1,6 +1,8 @@
+// Local media root tests cover allowed root normalization and matching.
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import { withEnv } from "../test-utils/env.js";
 import {
   appendLocalMediaParentRoots,
   buildMediaLocalRoots,
@@ -15,8 +17,7 @@ function normalizeHostPath(value: string): string {
 
 describe("local media roots", () => {
   function withStateDir<T>(stateDir: string, run: () => T): T {
-    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
-    return run();
+    return withEnv({ OPENCLAW_STATE_DIR: stateDir }, run);
   }
 
   function expectNormalizedRootsContain(
@@ -72,14 +73,10 @@ describe("local media roots", () => {
     }
   }
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it.each([
     {
       name: "keeps temp, media cache, canvas, and workspace roots by default",
-      stateDir: path.join("/tmp", "astroclaw-media-roots-state"),
+      stateDir: path.join("/tmp", "openclaw-media-roots-state"),
       getRoots: () => getDefaultMediaLocalRoots(),
       expectedContained: ["media", "canvas", "workspace", "sandboxes"],
       expectedExcluded: ["agents"],
@@ -87,7 +84,7 @@ describe("local media roots", () => {
     },
     {
       name: "adds the active agent workspace without re-opening broad agent state roots",
-      stateDir: path.join("/tmp", "astroclaw-agent-media-roots-state"),
+      stateDir: path.join("/tmp", "openclaw-agent-media-roots-state"),
       getRoots: () => getAgentScopedMediaLocalRoots({}, "ops"),
       expectedContained: ["workspace-ops", "sandboxes"],
       expectedExcluded: ["agents"],
@@ -126,8 +123,11 @@ describe("local media roots", () => {
     expect(roots.map(normalizeHostPath)).not.toContain(normalizeHostPath("/"));
   });
 
-  it("does not widen local roots for pass-through remote media schemes", () => {
-    const roots = appendLocalMediaParentRoots(["/tmp/base"], ["mxc://matrix.org/abc123def456"]);
+  it("does not widen local roots for pass-through media schemes", () => {
+    const roots = appendLocalMediaParentRoots(
+      ["/tmp/base"],
+      ["mxc://matrix.org/abc123def456", "buffer://message-send/attachment"],
+    );
 
     expect(roots.map(normalizeHostPath)).toEqual([normalizeHostPath("/tmp/base")]);
   });
@@ -135,25 +135,25 @@ describe("local media roots", () => {
   it.each([
     {
       name: "widens agent media roots for concrete local sources when workspaceOnly is disabled",
-      stateDir: path.join("/tmp", "astroclaw-flexible-media-roots-state"),
+      stateDir: path.join("/tmp", "openclaw-flexible-media-roots-state"),
       cfg: {},
       shouldContainPictures: true,
     },
     {
       name: "does not widen agent media roots when workspaceOnly is enabled",
-      stateDir: path.join("/tmp", "astroclaw-flexible-media-roots-state"),
+      stateDir: path.join("/tmp", "openclaw-flexible-media-roots-state"),
       cfg: { tools: { fs: { workspaceOnly: true } } },
       shouldContainPictures: false,
     },
     {
       name: "does not widen media roots for messaging-profile agents without filesystem tools",
-      stateDir: path.join("/tmp", "astroclaw-messaging-media-roots-state"),
+      stateDir: path.join("/tmp", "openclaw-messaging-media-roots-state"),
       cfg: { tools: { profile: "messaging" } },
       shouldContainPictures: false,
     },
     {
       name: "does not widen media roots when messaging-profile agents only configure filesystem guards",
-      stateDir: path.join("/tmp", "astroclaw-messaging-fs-media-roots-state"),
+      stateDir: path.join("/tmp", "openclaw-messaging-fs-media-roots-state"),
       cfg: {
         tools: {
           profile: "messaging",
@@ -164,7 +164,7 @@ describe("local media roots", () => {
     },
     {
       name: "widens media roots when messaging-profile agents explicitly allow reads",
-      stateDir: path.join("/tmp", "astroclaw-messaging-read-media-roots-state"),
+      stateDir: path.join("/tmp", "openclaw-messaging-read-media-roots-state"),
       cfg: {
         tools: {
           profile: "messaging",
@@ -186,8 +186,8 @@ describe("local media roots", () => {
   });
 
   it("keeps the config-dir media cache root when state and config paths differ", () => {
-    const stateDir = path.join("/tmp", "astroclaw-legacy-state");
-    const configDir = path.join("/tmp", "astroclaw-current-config");
+    const stateDir = path.join("/tmp", "openclaw-legacy-state");
+    const configDir = path.join("/tmp", "openclaw-current-config");
     const roots = buildMediaLocalRoots(stateDir, configDir);
 
     expectNormalizedRootsContain(roots, [
