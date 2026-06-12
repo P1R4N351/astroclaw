@@ -1,17 +1,18 @@
+// Tests reply session persistence, route updates, and label behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import * as bootstrapCache from "../../agents/bootstrap-cache.js";
 import {
-  __testing as sessionMcpTesting,
+  testing as sessionMcpTesting,
   getOrCreateSessionMcpRuntime,
-} from "../../agents/pi-bundle-mcp-tools.js";
-import type { AstroclawConfig } from "../../config/config.js";
+} from "../../agents/agent-bundle-mcp-tools.js";
+import * as bootstrapCache from "../../agents/bootstrap-cache.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import { formatZonedTimestamp } from "../../infra/format-time/format-datetime.ts";
 import {
-  __testing as sessionBindingTesting,
+  testing as sessionBindingTesting,
   getSessionBindingService,
   registerSessionBindingAdapter,
 } from "../../infra/outbound/session-binding-service.js";
@@ -120,7 +121,7 @@ let suiteRoot = "";
 let suiteCase = 0;
 
 beforeAll(async () => {
-  suiteRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-session-suite-"));
+  suiteRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-session-suite-"));
 });
 
 afterAll(async () => {
@@ -141,7 +142,7 @@ async function makeStorePath(prefix: string): Promise<string> {
 }
 
 const createStorePath = makeStorePath;
-const TEST_NATIVE_MODEL_PROFILE_ID = "openai-codex:secondary@example.test";
+const TEST_NATIVE_MODEL_PROFILE_ID = "openai:secondary@example.test";
 
 function requireString(value: string | undefined, label: string): string {
   if (!value) {
@@ -178,6 +179,38 @@ async function writeSessionStoreFast(
 ): Promise<void> {
   await fs.mkdir(path.dirname(storePath), { recursive: true });
   await fs.writeFile(storePath, JSON.stringify(store), "utf-8");
+}
+
+async function writeTerminalTranscriptSessionStore(params: {
+  storePath: string;
+  sessionKey: string;
+  sessionId: string;
+  status?: SessionEntry["status"];
+  omitStatus?: boolean;
+  updatedAt: number;
+  endedAt: number;
+  transcriptMtimeMs: number;
+}): Promise<void> {
+  const sessionFile = `${params.sessionId}.jsonl`;
+  const transcriptPath = path.join(path.dirname(params.storePath), sessionFile);
+  await fs.writeFile(
+    transcriptPath,
+    `${JSON.stringify({ type: "session", id: params.sessionId })}\n`,
+    "utf-8",
+  );
+  await fs.utimes(transcriptPath, params.transcriptMtimeMs / 1000, params.transcriptMtimeMs / 1000);
+  const status = params.status ?? (params.omitStatus ? undefined : "done");
+  await writeSessionStoreFast(params.storePath, {
+    [params.sessionKey]: {
+      sessionId: params.sessionId,
+      sessionFile,
+      updatedAt: params.updatedAt,
+      startedAt: params.endedAt - 10_000,
+      endedAt: params.endedAt,
+      runtimeMs: 9_000,
+      ...(status ? { status } : {}),
+    },
+  });
 }
 
 function setMinimalCurrentConversationBindingRegistryForTests(): void {
@@ -346,7 +379,7 @@ afterEach(async () => {
 describe("initSessionState thread forking", () => {
   it("forks a new session from the parent session file", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const root = await makeCaseDir("astroclaw-thread-session-");
+    const root = await makeCaseDir("openclaw-thread-session-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
 
@@ -391,7 +424,7 @@ describe("initSessionState thread forking", () => {
 
     const cfg = {
       session: { store: storePath },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const threadSessionKey = "agent:main:slack:channel:c1:thread:123";
     const threadLabel = "Slack thread #general: starter";
@@ -433,7 +466,7 @@ describe("initSessionState thread forking", () => {
 
   it("forks from parent when thread session key already exists but was not forked yet", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const root = await makeCaseDir("astroclaw-thread-session-existing-");
+    const root = await makeCaseDir("openclaw-thread-session-existing-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
 
@@ -483,7 +516,7 @@ describe("initSessionState thread forking", () => {
 
     const cfg = {
       session: { store: storePath },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const first = await initSessionState({
       ctx: {
@@ -514,7 +547,7 @@ describe("initSessionState thread forking", () => {
   });
 
   it("skips fork and creates fresh session when parent tokens exceed threshold", async () => {
-    const root = await makeCaseDir("astroclaw-thread-session-overflow-");
+    const root = await makeCaseDir("openclaw-thread-session-overflow-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
 
@@ -561,7 +594,7 @@ describe("initSessionState thread forking", () => {
 
     const cfg = {
       session: { store: storePath },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const threadSessionKey = "agent:main:slack:channel:c1:thread:456";
     const result = await initSessionState({
@@ -583,7 +616,7 @@ describe("initSessionState thread forking", () => {
   });
 
   it("skips fork when resolved parent token estimate exceeds threshold", async () => {
-    const root = await makeCaseDir("astroclaw-thread-session-overflow-estimated-");
+    const root = await makeCaseDir("openclaw-thread-session-overflow-estimated-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
 
@@ -616,7 +649,7 @@ describe("initSessionState thread forking", () => {
 
     const cfg = {
       session: { store: storePath },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const threadSessionKey = "agent:main:slack:channel:c1:thread:estimated";
     const result = await initSessionState({
@@ -644,12 +677,12 @@ describe("initSessionState thread forking", () => {
   });
 
   it("records topic-specific session files when MessageThreadId is present", async () => {
-    const root = await makeCaseDir("astroclaw-topic-session-");
+    const root = await makeCaseDir("openclaw-topic-session-");
     const storePath = path.join(root, "sessions.json");
 
     const cfg = {
       session: { store: storePath },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -666,12 +699,12 @@ describe("initSessionState thread forking", () => {
   });
 
   it("records topic-specific session files from SessionKey when MessageThreadId is absent", async () => {
-    const root = await makeCaseDir("astroclaw-topic-session-key-");
+    const root = await makeCaseDir("openclaw-topic-session-key-");
     const storePath = path.join(root, "sessions.json");
 
     const cfg = {
       session: { store: storePath },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     setActivePluginRegistry(createSessionConversationTestRegistry());
     try {
@@ -694,9 +727,9 @@ describe("initSessionState thread forking", () => {
 
 describe("initSessionState RawBody", () => {
   it("uses RawBody for command extraction and reset triggers when Body contains wrapped context", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-");
+    const root = await makeCaseDir("openclaw-rawbody-");
     const storePath = path.join(root, "sessions.json");
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const statusResult = await initSessionState({
       ctx: {
@@ -725,7 +758,7 @@ describe("initSessionState RawBody", () => {
   });
 
   it("preserves argument casing while still matching reset triggers case-insensitively", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-reset-case-");
+    const root = await makeCaseDir("openclaw-rawbody-reset-case-");
     const storePath = path.join(root, "sessions.json");
 
     const cfg = {
@@ -733,7 +766,7 @@ describe("initSessionState RawBody", () => {
         store: storePath,
         resetTriggers: ["/new"],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const ctx = {
       RawBody: "/NEW KeepThisCase",
@@ -753,7 +786,7 @@ describe("initSessionState RawBody", () => {
   });
 
   it("drops cached skills snapshot when /new rotates an existing session", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-reset-skills-");
+    const root = await makeCaseDir("openclaw-rawbody-reset-skills-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:signal:direct:uuid:reset-skills";
     const existingSessionId = "session-with-stale-skills";
@@ -763,6 +796,28 @@ describe("initSessionState RawBody", () => {
         sessionId: existingSessionId,
         updatedAt: Date.now(),
         systemSent: true,
+        totalTokens: 64_000,
+        totalTokensFresh: false,
+        contextTokens: 128_000,
+        contextBudgetStatus: {
+          schemaVersion: 1,
+          source: "pre-prompt-estimate",
+          updatedAt: Date.now(),
+          provider: "anthropic",
+          model: "claude-sonnet-4.6",
+          route: "fits",
+          shouldCompact: false,
+          estimatedPromptTokens: 64_000,
+          contextTokenBudget: 128_000,
+          promptBudgetBeforeReserve: 112_000,
+          reserveTokens: 16_000,
+          effectiveReserveTokens: 16_000,
+          remainingPromptBudgetTokens: 48_000,
+          overflowTokens: 0,
+          toolResultReducibleChars: 0,
+          messageCount: 8,
+          unwindowedMessageCount: 8,
+        },
         skillsSnapshot: {
           prompt: "<available_skills><skill><name>stale</name></skill></available_skills>",
           skills: [{ name: "stale" }],
@@ -776,7 +831,7 @@ describe("initSessionState RawBody", () => {
         store: storePath,
         resetTriggers: ["/new"],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -792,16 +847,27 @@ describe("initSessionState RawBody", () => {
     expect(result.resetTriggered).toBe(true);
     expect(result.sessionId).not.toBe(existingSessionId);
     expect(result.sessionEntry.skillsSnapshot).toBeUndefined();
+    expect(result.sessionEntry.totalTokens).toBeUndefined();
+    expect(result.sessionEntry.contextTokens).toBeUndefined();
+    expect(result.sessionEntry.contextBudgetStatus).toBeUndefined();
 
     const store = JSON.parse(await fs.readFile(storePath, "utf-8")) as Record<
       string,
-      { skillsSnapshot?: unknown }
+      {
+        skillsSnapshot?: unknown;
+        totalTokens?: number;
+        contextTokens?: number;
+        contextBudgetStatus?: unknown;
+      }
     >;
     expect(store[sessionKey]?.skillsSnapshot).toBeUndefined();
+    expect(store[sessionKey]?.totalTokens).toBeUndefined();
+    expect(store[sessionKey]?.contextTokens).toBeUndefined();
+    expect(store[sessionKey]?.contextBudgetStatus).toBeUndefined();
   });
 
   it("drains stale system events when /new rotates an existing session", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-reset-system-events-");
+    const root = await makeCaseDir("openclaw-rawbody-reset-system-events-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:system-events";
     const existingSessionId = "session-with-stale-events";
@@ -821,7 +887,7 @@ describe("initSessionState RawBody", () => {
         store: storePath,
         resetTriggers: ["/new"],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -847,8 +913,113 @@ describe("initSessionState RawBody", () => {
     expect(peekSystemEvents(existingSessionId)).toStrictEqual([]);
   });
 
+  it("preserves a user model override across an implicit daily stale rollover (#90119)", async () => {
+    // Regression: a user-set /model override persisted on a session that then
+    // goes stale at the daily reset boundary must survive the implicit
+    // rollover. Previously the carryover was gated on resetTriggered, so the
+    // next non-/new turn dropped the override and reverted to the default
+    // model despite the "Model set to ... for this session" ack.
+    const root = await makeCaseDir("openclaw-daily-rollover-model-");
+    const storePath = path.join(root, "sessions.json");
+    const sessionKey = "agent:main:discord:channel:daily-rollover";
+    const existingSessionId = "session-before-daily-reset";
+    // Stale under the default daily reset (atHour 4): started ~48h ago so
+    // sessionStartedAt < today's reset boundary.
+    const staleStartedAt = Date.now() - 48 * 60 * 60 * 1000;
+
+    await writeSessionStoreFast(storePath, {
+      [sessionKey]: {
+        sessionId: existingSessionId,
+        updatedAt: staleStartedAt,
+        sessionStartedAt: staleStartedAt,
+        lastInteractionAt: staleStartedAt,
+        systemSent: true,
+        // User-driven override (the thing /model writes).
+        providerOverride: "minimax",
+        modelOverride: "m2.7",
+        modelOverrideSource: "user",
+      },
+    });
+
+    const cfg = {
+      session: { store: storePath },
+    } as OpenClawConfig;
+
+    const result = await initSessionState({
+      ctx: {
+        // Ordinary message — NOT a reset trigger.
+        RawBody: "hello again",
+        ChatType: "channel",
+        SessionKey: sessionKey,
+      },
+      cfg,
+      commandAuthorized: true,
+    });
+
+    // The session rolled over implicitly (stale), not via /new.
+    expect(result.isNewSession).toBe(true);
+    expect(result.resetTriggered).toBe(false);
+    expect(result.sessionId).not.toBe(existingSessionId);
+    // The user override must survive.
+    expect(result.sessionEntry.providerOverride).toBe("minimax");
+    expect(result.sessionEntry.modelOverride).toBe("m2.7");
+    expect(result.sessionEntry.modelOverrideSource).toBe("user");
+
+    const store = JSON.parse(await fs.readFile(storePath, "utf-8")) as Record<
+      string,
+      { providerOverride?: string; modelOverride?: string; modelOverrideSource?: string }
+    >;
+    expect(store[sessionKey]?.modelOverride).toBe("m2.7");
+    expect(store[sessionKey]?.modelOverrideSource).toBe("user");
+  });
+
+  it("clears an auto-fallback model override on an implicit daily stale rollover (#90119)", async () => {
+    // Counterpart: auto-created fallback overrides must still be cleared on a
+    // daily rollover so stale sessions return to the configured default.
+    const root = await makeCaseDir("openclaw-daily-rollover-fallback-");
+    const storePath = path.join(root, "sessions.json");
+    const sessionKey = "agent:main:discord:channel:daily-rollover-fallback";
+    const existingSessionId = "session-before-daily-reset-fallback";
+    const staleStartedAt = Date.now() - 48 * 60 * 60 * 1000;
+
+    await writeSessionStoreFast(storePath, {
+      [sessionKey]: {
+        sessionId: existingSessionId,
+        updatedAt: staleStartedAt,
+        sessionStartedAt: staleStartedAt,
+        lastInteractionAt: staleStartedAt,
+        systemSent: true,
+        // Auto-fallback override (rate-limit/auto-pin), not user-driven.
+        providerOverride: "minimax",
+        modelOverride: "m2.7",
+        modelOverrideFallbackOriginProvider: "openai",
+        modelOverrideFallbackOriginModel: "gpt-4o-mini",
+      },
+    });
+
+    const cfg = {
+      session: { store: storePath },
+    } as OpenClawConfig;
+
+    const result = await initSessionState({
+      ctx: {
+        RawBody: "hello again",
+        ChatType: "channel",
+        SessionKey: sessionKey,
+      },
+      cfg,
+      commandAuthorized: true,
+    });
+
+    expect(result.isNewSession).toBe(true);
+    expect(result.resetTriggered).toBe(false);
+    expect(result.sessionEntry.modelOverride).toBeUndefined();
+    expect(result.sessionEntry.providerOverride).toBeUndefined();
+    expect(result.sessionEntry.modelOverrideSource).toBeUndefined();
+  });
+
   it("rotates local session state for /new on bound ACP sessions", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-acp-reset-");
+    const root = await makeCaseDir("openclaw-rawbody-acp-reset-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:codex:acp:binding:discord:default:feedface";
     const existingSessionId = "session-existing";
@@ -881,7 +1052,7 @@ describe("initSessionState RawBody", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -904,7 +1075,7 @@ describe("initSessionState RawBody", () => {
   });
 
   it("rotates local session state for ACP /new when no matching conversation binding exists", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-acp-reset-no-conversation-");
+    const root = await makeCaseDir("openclaw-rawbody-acp-reset-no-conversation-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:codex:acp:binding:discord:default:feedface";
     const existingSessionId = "session-existing";
@@ -925,7 +1096,7 @@ describe("initSessionState RawBody", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -949,7 +1120,7 @@ describe("initSessionState RawBody", () => {
   });
 
   it("keeps custom reset triggers working on bound ACP sessions", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-acp-custom-reset-");
+    const root = await makeCaseDir("openclaw-rawbody-acp-custom-reset-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:codex:acp:binding:discord:default:feedface";
     const existingSessionId = "session-existing";
@@ -985,7 +1156,7 @@ describe("initSessionState RawBody", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -1008,7 +1179,7 @@ describe("initSessionState RawBody", () => {
   });
 
   it("keeps normal /new behavior for unbound ACP-shaped session keys", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-acp-unbound-reset-");
+    const root = await makeCaseDir("openclaw-rawbody-acp-unbound-reset-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:codex:acp:binding:discord:default:feedface";
     const existingSessionId = "session-existing";
@@ -1029,7 +1200,7 @@ describe("initSessionState RawBody", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -1052,7 +1223,7 @@ describe("initSessionState RawBody", () => {
   });
 
   it("does not suppress /new when active conversation binding points to a non-ACP session", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-acp-nonacp-binding-");
+    const root = await makeCaseDir("openclaw-rawbody-acp-nonacp-binding-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:codex:acp:binding:discord:default:feedface";
     const existingSessionId = "session-existing";
@@ -1087,7 +1258,7 @@ describe("initSessionState RawBody", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     sessionBindingTesting.resetSessionBindingAdaptersForTests();
     registerSessionBindingAdapter({
@@ -1138,7 +1309,7 @@ describe("initSessionState RawBody", () => {
   });
 
   it("does not suppress /new when active target session key is non-ACP even with configured ACP binding", async () => {
-    const root = await makeCaseDir("astroclaw-rawbody-acp-configured-fallback-target-");
+    const root = await makeCaseDir("openclaw-rawbody-acp-configured-fallback-target-");
     const storePath = path.join(root, "sessions.json");
     const channelId = "1478836151241412759";
     const fallbackSessionKey = "agent:main:discord:channel:focus-target";
@@ -1172,7 +1343,7 @@ describe("initSessionState RawBody", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -1200,7 +1371,7 @@ describe("initSessionState RawBody", () => {
     const targetSessionKey = "agent:main:main";
     const cfg = {
       session: { store: storePath },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     setMinimalCurrentConversationBindingRegistryForTests();
     registerCurrentConversationBindingAdapterForTest({
@@ -1220,8 +1391,8 @@ describe("initSessionState RawBody", () => {
 
     const result = await initSessionState({
       ctx: {
-        Body: `/model openai-codex/gpt-5.4@${TEST_NATIVE_MODEL_PROFILE_ID}`,
-        CommandBody: `/model openai-codex/gpt-5.4@${TEST_NATIVE_MODEL_PROFILE_ID}`,
+        Body: `/model openai/gpt-5.4@${TEST_NATIVE_MODEL_PROFILE_ID}`,
+        CommandBody: `/model openai/gpt-5.4@${TEST_NATIVE_MODEL_PROFILE_ID}`,
         Provider: "slack",
         Surface: "slack",
         AccountId: "default",
@@ -1242,15 +1413,15 @@ describe("initSessionState RawBody", () => {
   });
 
   it("uses the default per-agent sessions store when config store is unset", async () => {
-    const root = await makeCaseDir("astroclaw-session-store-default-");
-    const stateDir = path.join(root, ".astroclaw");
+    const root = await makeCaseDir("openclaw-session-store-default-");
+    const stateDir = path.join(root, ".openclaw");
     const agentId = "worker1";
     const sessionKey = `agent:${agentId}:telegram:12345`;
     const sessionId = "sess-worker-1";
     const sessionFile = path.join(stateDir, "agents", agentId, "sessions", `${sessionId}.jsonl`);
     const storePath = path.join(stateDir, "agents", agentId, "sessions", "sessions.json");
 
-    vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
+    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
     try {
       await fs.mkdir(path.dirname(storePath), { recursive: true });
       await writeSessionStoreFast(storePath, {
@@ -1261,7 +1432,7 @@ describe("initSessionState RawBody", () => {
         },
       });
 
-      const cfg = {} as AstroclawConfig;
+      const cfg = {} as OpenClawConfig;
       const result = await initSessionState({
         ctx: {
           Body: "hello",
@@ -1340,7 +1511,7 @@ describe("initSessionState RawBody", () => {
       channel: conversation.channel as "slack" | "signal" | "googlechat",
       accountId: "default",
     });
-    const storePath = await createStorePath("astroclaw-generic-current-binding-");
+    const storePath = await createStorePath("openclaw-generic-current-binding-");
     const boundSessionKey = `agent:codex:acp:binding:${conversation.channel}:default:test`;
 
     await getSessionBindingService().bind({
@@ -1357,7 +1528,7 @@ describe("initSessionState RawBody", () => {
       },
       cfg: {
         session: { store: storePath },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       commandAuthorized: true,
     });
 
@@ -1383,7 +1554,7 @@ describe("initSessionState reset policy", () => {
 
   it("defaults to daily reset at 4am local time", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
-    const root = await makeCaseDir("astroclaw-reset-daily-");
+    const root = await makeCaseDir("openclaw-reset-daily-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:s1";
     const existingSessionId = "daily-session-id";
@@ -1399,7 +1570,7 @@ describe("initSessionState reset policy", () => {
       sessionKey: existingSessionId,
     });
 
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
     const result = await initSessionState({
       ctx: { Body: "hello", SessionKey: sessionKey },
       cfg,
@@ -1425,7 +1596,7 @@ describe("initSessionState reset policy", () => {
 
   it("treats sessions as stale before the daily reset when updated before yesterday's boundary", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 3, 0, 0));
-    const root = await makeCaseDir("astroclaw-reset-daily-edge-");
+    const root = await makeCaseDir("openclaw-reset-daily-edge-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:s-edge";
     const existingSessionId = "daily-edge-session";
@@ -1437,7 +1608,7 @@ describe("initSessionState reset policy", () => {
       },
     });
 
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
     const result = await initSessionState({
       ctx: { Body: "hello", SessionKey: sessionKey },
       cfg,
@@ -1450,7 +1621,7 @@ describe("initSessionState reset policy", () => {
 
   it("expires sessions when idle timeout wins over daily reset", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
-    const root = await makeCaseDir("astroclaw-reset-idle-");
+    const root = await makeCaseDir("openclaw-reset-idle-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:s2";
     const existingSessionId = "idle-session-id";
@@ -1467,7 +1638,7 @@ describe("initSessionState reset policy", () => {
         store: storePath,
         reset: { mode: "daily", atHour: 4, idleMinutes: 30 },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: { Body: "hello", SessionKey: sessionKey },
       cfg,
@@ -1480,7 +1651,7 @@ describe("initSessionState reset policy", () => {
 
   it("drains stale system events when idle rollover creates a new session", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
-    const root = await makeCaseDir("astroclaw-reset-idle-system-events-");
+    const root = await makeCaseDir("openclaw-reset-idle-system-events-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:idle-system-events";
     const existingSessionId = "idle-system-events-session";
@@ -1501,7 +1672,7 @@ describe("initSessionState reset policy", () => {
         store: storePath,
         reset: { mode: "idle", idleMinutes: 30 },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: { Body: "hello", SessionKey: sessionKey },
       cfg,
@@ -1522,9 +1693,152 @@ describe("initSessionState reset policy", () => {
     expect(peekSystemEvents(existingSessionId)).toStrictEqual([]);
   });
 
+  it("reuses completed run entries while the session is still fresh", async () => {
+    vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
+    const root = await makeCaseDir("openclaw-reset-terminal-entry-");
+    const storePath = path.join(root, "sessions.json");
+    const sessionKey = "agent:main:whatsapp:dm:terminal-entry";
+    const existingSessionId = "terminal-entry-old";
+    await writeSessionStoreFast(storePath, {
+      [sessionKey]: {
+        sessionId: existingSessionId,
+        updatedAt: Date.now(),
+        startedAt: Date.now() - 10_000,
+        endedAt: Date.now() - 1_000,
+        runtimeMs: 9_000,
+        status: "done",
+      },
+    });
+
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
+    const result = await initSessionState({
+      ctx: { Body: "hello", SessionKey: sessionKey },
+      cfg,
+      commandAuthorized: true,
+    });
+
+    expect(result.isNewSession).toBe(false);
+    expect(result.sessionId).toBe(existingSessionId);
+
+    const persisted = JSON.parse(await fs.readFile(storePath, "utf-8")) as Record<
+      string,
+      SessionEntry
+    >;
+    expect(persisted[sessionKey]?.sessionId).toBe(existingSessionId);
+    expect(persisted[sessionKey]?.status).toBe("done");
+    expect(persisted[sessionKey]?.startedAt).toBe(Date.now() - 10_000);
+    expect(persisted[sessionKey]?.endedAt).toBe(Date.now() - 1_000);
+    expect(persisted[sessionKey]?.runtimeMs).toBe(9_000);
+  });
+
+  it.each([
+    {
+      name: "non-main terminal rows ignore transcript mtime",
+      sessionKey: "agent:main:whatsapp:dm:terminal-entry",
+      updatedAtOffsetMs: -5_000,
+      endedAtOffsetMs: -6_000,
+      transcriptMtimeOffsetMs: -3_000,
+      expectNewSession: false,
+    },
+    {
+      name: "main terminal rows rotate when transcript is newer than updatedAt",
+      sessionKey: "agent:main:main",
+      updatedAtOffsetMs: -10_000,
+      endedAtOffsetMs: -11_000,
+      transcriptMtimeOffsetMs: 0,
+      expectNewSession: true,
+    },
+    {
+      name: "main endedAt-only rows rotate when transcript is newer than updatedAt",
+      sessionKey: "agent:main:main",
+      updatedAtOffsetMs: -10_000,
+      endedAtOffsetMs: -11_000,
+      transcriptMtimeOffsetMs: 0,
+      omitStatus: true,
+      expectNewSession: true,
+    },
+    {
+      name: "failed main terminal rows reuse when the transcript exists",
+      sessionKey: "agent:main:main",
+      status: "failed" as const,
+      updatedAtOffsetMs: -10_000,
+      endedAtOffsetMs: -11_000,
+      transcriptMtimeOffsetMs: 0,
+      expectNewSession: false,
+    },
+    {
+      name: "main terminal rows reuse when updatedAt already reflects the transcript",
+      sessionKey: "agent:main:main",
+      updatedAtOffsetMs: -1_000,
+      endedAtOffsetMs: -6_000,
+      transcriptMtimeOffsetMs: -4_000,
+      expectNewSession: false,
+    },
+    {
+      name: "main terminal rows reuse when transcript mtime differs only by sub-millisecond precision",
+      sessionKey: "agent:main:main",
+      updatedAtOffsetMs: -4_000,
+      endedAtOffsetMs: -6_000,
+      transcriptMtimeOffsetMs: -3_999.5,
+      expectNewSession: false,
+    },
+    {
+      name: "main terminal rows reuse when transcript is not newer than updatedAt",
+      sessionKey: "agent:main:main",
+      updatedAtOffsetMs: -10_000,
+      endedAtOffsetMs: -11_000,
+      transcriptMtimeOffsetMs: -15_000,
+      expectNewSession: false,
+    },
+  ])("$name", async (scenario) => {
+    vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
+    const root = await makeCaseDir("openclaw-reset-terminal-entry-");
+    const storePath = path.join(root, "sessions.json");
+    const existingSessionId = "terminal-entry-old";
+    const now = Date.now();
+    const terminalUpdatedAt = now + scenario.updatedAtOffsetMs;
+    const terminalEndedAt = now + scenario.endedAtOffsetMs;
+    await writeTerminalTranscriptSessionStore({
+      storePath,
+      sessionKey: scenario.sessionKey,
+      sessionId: existingSessionId,
+      status: scenario.status,
+      omitStatus: scenario.omitStatus,
+      updatedAt: terminalUpdatedAt,
+      endedAt: terminalEndedAt,
+      transcriptMtimeMs: now + scenario.transcriptMtimeOffsetMs,
+    });
+
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
+    const result = await initSessionState({
+      ctx: { Body: "hello", SessionKey: scenario.sessionKey },
+      cfg,
+      commandAuthorized: true,
+    });
+
+    expect(result.isNewSession).toBe(scenario.expectNewSession);
+    const persisted = JSON.parse(await fs.readFile(storePath, "utf-8")) as Record<
+      string,
+      SessionEntry
+    >;
+    const entry = persisted[scenario.sessionKey];
+    if (scenario.expectNewSession) {
+      expect(result.sessionId).not.toBe(existingSessionId);
+      expect(entry?.sessionId).not.toBe(existingSessionId);
+      expect(entry?.status).toBeUndefined();
+      expect(entry?.startedAt).toBeUndefined();
+      expect(entry?.endedAt).toBeUndefined();
+      expect(entry?.runtimeMs).toBeUndefined();
+    } else {
+      expect(result.sessionId).toBe(existingSessionId);
+      expect(entry?.status).toBe(scenario.status ?? "done");
+      expect(entry?.endedAt).toBe(terminalEndedAt);
+    }
+  });
+
   it("keeps the existing stale session for /reset soft", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
-    const root = await makeCaseDir("astroclaw-reset-soft-stale-");
+    const root = await makeCaseDir("openclaw-reset-soft-stale-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:soft-stale";
     const existingSessionId = "soft-stale-session-id";
@@ -1541,7 +1855,7 @@ describe("initSessionState reset policy", () => {
         store: storePath,
         reset: { mode: "daily", atHour: 4, idleMinutes: 30 },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: {
         Body: "/reset soft",
@@ -1564,7 +1878,7 @@ describe("initSessionState reset policy", () => {
 
   it("keeps the existing stale session for /reset: soft", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
-    const root = await makeCaseDir("astroclaw-reset-soft-colon-stale-");
+    const root = await makeCaseDir("openclaw-reset-soft-colon-stale-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:soft-colon-stale";
     const existingSessionId = "soft-colon-stale-session-id";
@@ -1581,7 +1895,7 @@ describe("initSessionState reset policy", () => {
         store: storePath,
         reset: { mode: "daily", atHour: 4, idleMinutes: 30 },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: {
         Body: "/reset: soft",
@@ -1604,7 +1918,7 @@ describe("initSessionState reset policy", () => {
 
   it("keeps the existing stale session for multiline /reset soft tails", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
-    const root = await makeCaseDir("astroclaw-reset-soft-multiline-stale-");
+    const root = await makeCaseDir("openclaw-reset-soft-multiline-stale-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:soft-multiline-stale";
     const existingSessionId = "soft-multiline-stale-session-id";
@@ -1621,7 +1935,7 @@ describe("initSessionState reset policy", () => {
         store: storePath,
         reset: { mode: "daily", atHour: 4, idleMinutes: 30 },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: {
         Body: "/reset soft\nre-read persona files",
@@ -1644,7 +1958,7 @@ describe("initSessionState reset policy", () => {
 
   it("does not preserve a stale session for unauthorized /reset soft", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
-    const root = await makeCaseDir("astroclaw-reset-soft-stale-unauthorized-");
+    const root = await makeCaseDir("openclaw-reset-soft-stale-unauthorized-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:soft-stale-unauthorized";
     const existingSessionId = "soft-stale-unauthorized-session-id";
@@ -1661,7 +1975,7 @@ describe("initSessionState reset policy", () => {
         store: storePath,
         reset: { mode: "daily", atHour: 4, idleMinutes: 30 },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: {
         Body: "/reset soft",
@@ -1686,7 +2000,7 @@ describe("initSessionState reset policy", () => {
 
   it("uses per-type overrides for thread sessions", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
-    const root = await makeCaseDir("astroclaw-reset-thread-");
+    const root = await makeCaseDir("openclaw-reset-thread-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:slack:channel:c1:thread:123";
     const existingSessionId = "thread-session-id";
@@ -1704,7 +2018,7 @@ describe("initSessionState reset policy", () => {
         reset: { mode: "daily", atHour: 4 },
         resetByType: { thread: { mode: "idle", idleMinutes: 180 } },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: { Body: "reply", SessionKey: sessionKey, ThreadLabel: "Slack thread" },
       cfg,
@@ -1717,7 +2031,7 @@ describe("initSessionState reset policy", () => {
 
   it("detects thread sessions without thread key suffix", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
-    const root = await makeCaseDir("astroclaw-reset-thread-nosuffix-");
+    const root = await makeCaseDir("openclaw-reset-thread-nosuffix-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:discord:channel:c1";
     const existingSessionId = "thread-nosuffix";
@@ -1734,7 +2048,7 @@ describe("initSessionState reset policy", () => {
         store: storePath,
         resetByType: { thread: { mode: "idle", idleMinutes: 180 } },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: { Body: "reply", SessionKey: sessionKey, ThreadLabel: "Discord thread" },
       cfg,
@@ -1747,7 +2061,7 @@ describe("initSessionState reset policy", () => {
 
   it("defaults to daily resets when only resetByType is configured", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
-    const root = await makeCaseDir("astroclaw-reset-type-default-");
+    const root = await makeCaseDir("openclaw-reset-type-default-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:s4";
     const existingSessionId = "type-default-session";
@@ -1764,7 +2078,7 @@ describe("initSessionState reset policy", () => {
         store: storePath,
         resetByType: { thread: { mode: "idle", idleMinutes: 60 } },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: { Body: "hello", SessionKey: sessionKey },
       cfg,
@@ -1777,7 +2091,7 @@ describe("initSessionState reset policy", () => {
 
   it("keeps legacy idleMinutes behavior without reset config", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
-    const root = await makeCaseDir("astroclaw-reset-legacy-");
+    const root = await makeCaseDir("openclaw-reset-legacy-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:whatsapp:dm:s3";
     const existingSessionId = "legacy-session-id";
@@ -1794,7 +2108,7 @@ describe("initSessionState reset policy", () => {
         store: storePath,
         idleMinutes: 240,
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: { Body: "hello", SessionKey: sessionKey },
       cfg,
@@ -1813,7 +2127,7 @@ describe("initSessionState reset policy", () => {
 describe("initSessionState browser tab cleanup", () => {
   it("closes tracked browser tabs when idle session expires", async () => {
     vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
-    const storePath = await createStorePath("astroclaw-tab-cleanup-idle-");
+    const storePath = await createStorePath("openclaw-tab-cleanup-idle-");
     const sessionKey = "agent:main:whatsapp:dm:tab-idle";
     const existingSessionId = "tab-idle-session-id";
 
@@ -1829,7 +2143,7 @@ describe("initSessionState browser tab cleanup", () => {
         store: storePath,
         reset: { mode: "daily", atHour: 4, idleMinutes: 30 },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: { Body: "hello", SessionKey: sessionKey },
       cfg,
@@ -1844,8 +2158,68 @@ describe("initSessionState browser tab cleanup", () => {
     expect(cleanupParams.sessionKeys).toEqual([existingSessionId, sessionKey]);
   });
 
+  it("skips browser tab cleanup when root browser support is disabled", async () => {
+    vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
+    const storePath = await createStorePath("openclaw-tab-cleanup-browser-disabled-");
+    const sessionKey = "agent:main:webchat:dm:tab-disabled";
+    const existingSessionId = "tab-disabled-session-id";
+
+    await writeSessionStoreFast(storePath, {
+      [sessionKey]: {
+        sessionId: existingSessionId,
+        updatedAt: new Date(2026, 0, 18, 4, 45, 0).getTime(),
+      },
+    });
+
+    const cfg = {
+      browser: { enabled: false },
+      session: {
+        store: storePath,
+        reset: { mode: "daily", atHour: 4, idleMinutes: 30 },
+      },
+    } as OpenClawConfig;
+    const result = await initSessionState({
+      ctx: { Body: "hello", SessionKey: sessionKey },
+      cfg,
+      commandAuthorized: true,
+    });
+
+    expect(result.isNewSession).toBe(true);
+    expect(browserMaintenanceMocks.closeTrackedBrowserTabsForSessions).not.toHaveBeenCalled();
+  });
+
+  it("skips browser tab cleanup when the browser plugin entry is disabled", async () => {
+    vi.setSystemTime(new Date(2026, 0, 18, 5, 30, 0));
+    const storePath = await createStorePath("openclaw-tab-cleanup-browser-plugin-disabled-");
+    const sessionKey = "agent:main:webchat:dm:tab-plugin-disabled";
+    const existingSessionId = "tab-plugin-disabled-session-id";
+
+    await writeSessionStoreFast(storePath, {
+      [sessionKey]: {
+        sessionId: existingSessionId,
+        updatedAt: new Date(2026, 0, 18, 4, 45, 0).getTime(),
+      },
+    });
+
+    const cfg = {
+      plugins: { entries: { browser: { enabled: false } } },
+      session: {
+        store: storePath,
+        reset: { mode: "daily", atHour: 4, idleMinutes: 30 },
+      },
+    } as OpenClawConfig;
+    const result = await initSessionState({
+      ctx: { Body: "hello", SessionKey: sessionKey },
+      cfg,
+      commandAuthorized: true,
+    });
+
+    expect(result.isNewSession).toBe(true);
+    expect(browserMaintenanceMocks.closeTrackedBrowserTabsForSessions).not.toHaveBeenCalled();
+  });
+
   it("closes tracked browser tabs on explicit /new reset", async () => {
-    const storePath = await createStorePath("astroclaw-tab-cleanup-reset-");
+    const storePath = await createStorePath("openclaw-tab-cleanup-reset-");
     const sessionKey = "agent:main:telegram:dm:tab-reset";
     const existingSessionId = "tab-reset-session-id";
 
@@ -1858,7 +2232,7 @@ describe("initSessionState browser tab cleanup", () => {
 
     const cfg = {
       session: { store: storePath, idleMinutes: 999 },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: {
         Body: "/new",
@@ -1879,12 +2253,12 @@ describe("initSessionState browser tab cleanup", () => {
   });
 
   it("does not close browser tabs for a fresh session without previous state", async () => {
-    const storePath = await createStorePath("astroclaw-tab-cleanup-fresh-");
+    const storePath = await createStorePath("openclaw-tab-cleanup-fresh-");
     const sessionKey = "agent:main:telegram:dm:tab-fresh";
 
     const cfg = {
       session: { store: storePath, idleMinutes: 999 },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await initSessionState({
       ctx: {
         Body: "hello",
@@ -1901,7 +2275,7 @@ describe("initSessionState browser tab cleanup", () => {
 
 describe("initSessionState channel reset overrides", () => {
   it("uses channel-specific reset policy when configured", async () => {
-    const root = await makeCaseDir("astroclaw-channel-idle-");
+    const root = await makeCaseDir("openclaw-channel-idle-");
     const storePath = path.join(root, "sessions.json");
     const sessionKey = "agent:main:discord:dm:123";
     const sessionId = "session-override";
@@ -1921,7 +2295,7 @@ describe("initSessionState channel reset overrides", () => {
         resetByType: { direct: { mode: "idle", idleMinutes: 10 } },
         resetByChannel: { discord: { mode: "idle", idleMinutes: 10080 } },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -1952,7 +2326,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
     });
   }
 
-  function makeCfg(params: { storePath: string; allowFrom: string[] }): AstroclawConfig {
+  function makeCfg(params: { storePath: string; allowFrom: string[] }): OpenClawConfig {
     return {
       session: { store: params.storePath, idleMinutes: 999 },
       channels: {
@@ -1961,13 +2335,13 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
           groupPolicy: "open",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
   it("applies WhatsApp group reset authorization across sender variants", async () => {
     const sessionKey = "agent:main:whatsapp:group:120363406150318674@g.us";
     const existingSessionId = "existing-session-123";
-    const storePath = await createStorePath("astroclaw-group-reset");
+    const storePath = await createStorePath("openclaw-group-reset");
     const cases = [
       {
         name: "authorized sender",
@@ -2033,7 +2407,7 @@ describe("initSessionState reset triggers in WhatsApp groups", () => {
   it("starts a fresh session when a scoped WhatsApp group entry only contains activation state", async () => {
     const sessionKey =
       "agent:main:whatsapp:group:120363406150318674@g.us:thread:whatsapp-account-work";
-    const storePath = await createStorePath("astroclaw-group-activation-backfill-");
+    const storePath = await createStorePath("openclaw-group-activation-backfill-");
     await writeSessionStoreFast(storePath, {
       [sessionKey]: {
         groupActivation: "always",
@@ -2092,7 +2466,7 @@ describe("initSessionState reset triggers in Slack channels", () => {
     const existingSessionId = "existing-session-123";
     const sessionKey = "agent:main:slack:channel:c2";
     const body = "<@U123> /new take notes";
-    const storePath = await createStorePath("astroclaw-slack-channel-new-");
+    const storePath = await createStorePath("openclaw-slack-channel-new-");
     await seedSessionStore({
       storePath,
       sessionKey,
@@ -2100,7 +2474,7 @@ describe("initSessionState reset triggers in Slack channels", () => {
     });
     const cfg = {
       session: { store: storePath, idleMinutes: 999 },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -2146,7 +2520,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   }
 
   it("preserves behavior overrides across /new and /reset", async () => {
-    const storePath = await createStorePath("astroclaw-reset-overrides-");
+    const storePath = await createStorePath("openclaw-reset-overrides-");
     const sessionKey = "agent:main:telegram:dm:user-overrides";
     const existingSessionId = "existing-session-overrides";
     const overrides = {
@@ -2176,7 +2550,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
       const cfg = {
         session: { store: storePath, idleMinutes: 999 },
-      } as AstroclawConfig;
+      } as OpenClawConfig;
 
       const result = await initSessionState({
         ctx: {
@@ -2202,7 +2576,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("preserves usage family metadata across /new and /reset", async () => {
-    const storePath = await createStorePath("astroclaw-reset-usage-family-");
+    const storePath = await createStorePath("openclaw-reset-usage-family-");
     const sessionKey = "agent:main:telegram:dm:user-usage-family";
     const existingSessionId = "existing-session-usage-family";
     const cases = [
@@ -2241,7 +2615,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
         },
         cfg: {
           session: { store: storePath, idleMinutes: 999 },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         commandAuthorized: true,
       });
 
@@ -2265,7 +2639,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("preserves selected auth profile overrides across /new and /reset", async () => {
-    const storePath = await createStorePath("astroclaw-reset-model-auth-");
+    const storePath = await createStorePath("openclaw-reset-model-auth-");
     const sessionKey = "agent:main:telegram:dm:user-model-auth";
     const existingSessionId = "existing-session-model-auth";
     const overrides = {
@@ -2304,7 +2678,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
       const cfg = {
         session: { store: storePath, idleMinutes: 999 },
-      } as AstroclawConfig;
+      } as OpenClawConfig;
 
       const result = await initSessionState({
         ctx: {
@@ -2348,14 +2722,14 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("clears auto-sourced model/provider/auth overrides on /new and /reset (#69301)", async () => {
-    const storePath = await createStorePath("astroclaw-reset-auto-overrides-");
+    const storePath = await createStorePath("openclaw-reset-auto-overrides-");
     const sessionKey = "agent:main:telegram:direct:6761477233";
     const existingSessionId = "existing-session-auto-overrides";
     const autoOverrides = {
-      providerOverride: "openai-codex",
+      providerOverride: "openai",
       modelOverride: "gpt-5.4",
       modelOverrideSource: "auto",
-      authProfileOverride: "openai-codex:default",
+      authProfileOverride: "openai:default",
       authProfileOverrideSource: "auto",
       authProfileOverrideCompactionCount: 1,
       verboseLevel: "on",
@@ -2375,7 +2749,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
       const cfg = {
         session: { store: storePath, idleMinutes: 999 },
-      } as AstroclawConfig;
+      } as OpenClawConfig;
 
       const result = await initSessionState({
         ctx: {
@@ -2408,11 +2782,11 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("clears recovered auto fallback model overrides without modelOverrideSource on /new and /reset", async () => {
-    const storePath = await createStorePath("astroclaw-reset-recovered-auto-fallback-");
+    const storePath = await createStorePath("openclaw-reset-recovered-auto-fallback-");
     const sessionKey = "agent:main:telegram:direct:6761477233";
     const existingSessionId = "existing-session-recovered-auto-fallback";
     const autoOverrides = {
-      providerOverride: "openai-codex",
+      providerOverride: "openai",
       modelOverride: "gpt-5.4",
       modelOverrideFallbackOriginProvider: "anthropic",
       modelOverrideFallbackOriginModel: "claude-opus-4-6",
@@ -2433,7 +2807,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
       const cfg = {
         session: { store: storePath, idleMinutes: 999 },
-      } as AstroclawConfig;
+      } as OpenClawConfig;
 
       const result = await initSessionState({
         ctx: {
@@ -2466,8 +2840,66 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
     }
   });
 
+  it("clears recovered Codex fallback metadata for Discord channel sessions on /new", async () => {
+    const storePath = await createStorePath("openclaw-reset-discord-codex-fallback-");
+    const sessionKey = "agent:main:discord:channel:1488013357016420522";
+    const existingSessionId = "existing-discord-codex-fallback";
+    await seedSessionStoreWithOverrides({
+      storePath,
+      sessionKey,
+      sessionId: existingSessionId,
+      overrides: {
+        providerOverride: "codex",
+        modelOverride: "gpt-5.4",
+        modelOverrideFallbackOriginProvider: "openai",
+        modelOverrideFallbackOriginModel: "gpt-5.5",
+        totalTokens: 231_980,
+        contextTokens: 272_000,
+        totalTokensFresh: true,
+      },
+    });
+
+    const result = await initSessionState({
+      ctx: {
+        Body: "/new",
+        RawBody: "/new",
+        CommandBody: "/new",
+        From: "discord-user",
+        To: "discord-bot",
+        ChatType: "group",
+        SessionKey: sessionKey,
+        Provider: "discord",
+        Surface: "discord",
+      },
+      cfg: {
+        session: { store: storePath, idleMinutes: 999 },
+        agents: {
+          defaults: {
+            model: {
+              primary: "codex/gpt-5.5",
+              fallbacks: [],
+            },
+          },
+        },
+      } as OpenClawConfig,
+      commandAuthorized: true,
+    });
+
+    expect(result.isNewSession).toBe(true);
+    expect(result.resetTriggered).toBe(true);
+    expect(result.sessionId).not.toBe(existingSessionId);
+    expect(result.sessionEntry.providerOverride).toBeUndefined();
+    expect(result.sessionEntry.modelOverride).toBeUndefined();
+    expect(result.sessionEntry.modelOverrideSource).toBeUndefined();
+    expect(result.sessionEntry.modelOverrideFallbackOriginProvider).toBeUndefined();
+    expect(result.sessionEntry.modelOverrideFallbackOriginModel).toBeUndefined();
+    expect(result.sessionEntry.totalTokens).toBeUndefined();
+    expect(result.sessionEntry.contextTokens).toBeUndefined();
+    expect(result.sessionEntry.totalTokensFresh).toBeUndefined();
+  });
+
   it("preserves spawned session ownership metadata across /new and /reset", async () => {
-    const storePath = await createStorePath("astroclaw-reset-spawned-metadata-");
+    const storePath = await createStorePath("openclaw-reset-spawned-metadata-");
     const sessionKey = "subagent:owned-child";
     const existingSessionId = "existing-session-owned-child";
     const overrides = {
@@ -2495,7 +2927,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
       const cfg = {
         session: { store: storePath, idleMinutes: 999 },
-      } as AstroclawConfig;
+      } as OpenClawConfig;
 
       const result = await initSessionState({
         ctx: {
@@ -2521,7 +2953,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("requires operator.admin when Provider is internal even if Surface carries external metadata", async () => {
-    const storePath = await createStorePath("astroclaw-internal-reset-provider-authoritative-");
+    const storePath = await createStorePath("openclaw-internal-reset-provider-authoritative-");
     const sessionKey = "agent:main:telegram:dm:provider-authoritative";
     const existingSessionId = "existing-session-provider-authoritative";
 
@@ -2534,7 +2966,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
     const cfg = {
       session: { store: storePath, idleMinutes: 999 },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -2558,7 +2990,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("keeps the existing session for /reset soft", async () => {
-    const storePath = await createStorePath("astroclaw-soft-reset-session-");
+    const storePath = await createStorePath("openclaw-soft-reset-session-");
     const sessionKey = "agent:main:telegram:dm:user-soft-reset";
     const existingSessionId = "existing-session-soft-reset";
 
@@ -2579,7 +3011,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
     const cfg = {
       session: { store: storePath, idleMinutes: 999 },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -2601,7 +3033,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("keeps the existing session for /reset newline soft", async () => {
-    const storePath = await createStorePath("astroclaw-reset-newline-soft-");
+    const storePath = await createStorePath("openclaw-reset-newline-soft-");
     const sessionKey = "agent:main:telegram:dm:user-reset-newline-soft";
     const existingSessionId = "existing-session-reset-newline-soft";
 
@@ -2614,7 +3046,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
     const cfg = {
       session: { store: storePath, idleMinutes: 999 },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -2636,7 +3068,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("archives the old session store entry on /new", async () => {
-    const storePath = await createStorePath("astroclaw-archive-old-");
+    const storePath = await createStorePath("openclaw-archive-old-");
     const sessionKey = "agent:main:telegram:dm:user-archive";
     const existingSessionId = "existing-session-archive";
     const transcriptPath = path.join(path.dirname(storePath), `${existingSessionId}.jsonl`);
@@ -2650,7 +3082,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
     const cfg = {
       session: { store: storePath, idleMinutes: 999 },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -2685,7 +3117,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
     try {
       // Simulate: it is 5am, session was last active at 3am (before 4am daily boundary)
       vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
-      const storePath = await createStorePath("astroclaw-stale-archive-");
+      const storePath = await createStorePath("openclaw-stale-archive-");
       const sessionKey = "agent:main:telegram:dm:archive-stale-user";
       const existingSessionId = "stale-session-to-be-archived";
       const transcriptPath = path.join(path.dirname(storePath), `${existingSessionId}.jsonl`);
@@ -2698,7 +3130,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
       });
       await fs.writeFile(transcriptPath, '{"type":"message"}\n', "utf8");
 
-      const cfg = { session: { store: storePath } } as AstroclawConfig;
+      const cfg = { session: { store: storePath } } as OpenClawConfig;
       const result = await initSessionState({
         ctx: {
           Body: "hello",
@@ -2732,7 +3164,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
-      const storePath = await createStorePath("astroclaw-cli-implicit-reset-");
+      const storePath = await createStorePath("openclaw-cli-implicit-reset-");
       const sessionKey = "agent:main:telegram:dm:claude-cli-user";
       const existingSessionId = "provider-owned-session";
       const transcriptPath = path.join(path.dirname(storePath), `${existingSessionId}.jsonl`);
@@ -2759,7 +3191,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
       });
       await fs.writeFile(transcriptPath, '{"type":"message"}\n', "utf8");
 
-      const cfg = { session: { store: storePath } } as AstroclawConfig;
+      const cfg = { session: { store: storePath } } as OpenClawConfig;
       const result = await initSessionState({
         ctx: {
           Body: "hello",
@@ -2793,7 +3225,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("honors explicit reset policies for provider-owned CLI sessions", async () => {
-    const storePath = await createStorePath("astroclaw-cli-explicit-reset-");
+    const storePath = await createStorePath("openclaw-cli-explicit-reset-");
     const sessionKey = "agent:main:telegram:dm:claude-cli-explicit-user";
     const existingSessionId = "provider-owned-explicit-session";
     const cfg = {
@@ -2801,7 +3233,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
         store: storePath,
         reset: { mode: "idle", idleMinutes: 1 },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await writeSessionStoreFast(storePath, {
       [sessionKey]: {
@@ -2838,7 +3270,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("disposes the previous bundle MCP runtime on session rollover", async () => {
-    const storePath = await createStorePath("astroclaw-stale-runtime-dispose-");
+    const storePath = await createStorePath("openclaw-stale-runtime-dispose-");
     const sessionKey = "agent:main:telegram:dm:runtime-stale-user";
     const existingSessionId = "stale-runtime-session";
     const cfg = {
@@ -2846,7 +3278,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
         store: storePath,
         reset: { mode: "idle", idleMinutes: 1 },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await writeSessionStoreFast(storePath, {
       [sessionKey]: {
@@ -2884,12 +3316,12 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
   });
 
   it("idle-based new session does NOT preserve overrides (no entry to read)", async () => {
-    const storePath = await createStorePath("astroclaw-idle-no-preserve-");
+    const storePath = await createStorePath("openclaw-idle-no-preserve-");
     const sessionKey = "agent:main:telegram:dm:new-user";
 
     const cfg = {
       session: { store: storePath, idleMinutes: 0 },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -2925,7 +3357,7 @@ describe("drainFormattedSystemEvents", () => {
       enqueueSystemEvent("Model switched.", { sessionKey: "agent:main:main" });
 
       const result = await drainFormattedSystemEvents({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         sessionKey: "agent:main:main",
         isMainSession: true,
         isNewSession: false,
@@ -2945,7 +3377,7 @@ describe("drainFormattedSystemEvents", () => {
     ]);
 
     const result = await drainFormattedSystemEvents({
-      cfg: { channels: {} } as AstroclawConfig,
+      cfg: { channels: {} } as OpenClawConfig,
       sessionKey: "agent:main:main",
       isMainSession: true,
       isNewSession: true,
@@ -2973,7 +3405,7 @@ describe("persistSessionUsageUpdate", () => {
   }
 
   it("uses lastCallUsage for totalTokens when provided", async () => {
-    const storePath = await createStorePath("astroclaw-usage-");
+    const storePath = await createStorePath("openclaw-usage-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -2999,8 +3431,61 @@ describe("persistSessionUsageUpdate", () => {
     expect(stored[sessionKey].outputTokens).toBe(10_000);
   });
 
+  it("accounts goal usage when fresh token snapshots are persisted", async () => {
+    const storePath = await createStorePath("openclaw-usage-goal-");
+    const sessionKey = "main";
+    await seedSessionStore({
+      storePath,
+      sessionKey,
+      entry: {
+        sessionId: "s1",
+        updatedAt: 1,
+        goal: {
+          schemaVersion: 1,
+          id: "goal-1",
+          objective: "ship",
+          status: "active",
+          createdAt: 1,
+          updatedAt: 1,
+          tokenStart: 0,
+          tokenStartFresh: false,
+          tokensUsed: 0,
+          tokenBudget: 20,
+          continuationTurns: 0,
+        },
+      },
+    });
+
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      usage: { input: 100, output: 5, total: 105 },
+      lastCallUsage: { input: 100, output: 5, total: 105 },
+      contextTokensUsed: 200_000,
+    });
+
+    const stored1 = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored1[sessionKey].goal.tokenStart).toBe(100);
+    expect(stored1[sessionKey].goal.tokenStartFresh).toBe(true);
+    expect(stored1[sessionKey].goal.tokensUsed).toBe(0);
+    expect(stored1[sessionKey].goal.status).toBe("active");
+
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      usage: { input: 125, output: 5, total: 130 },
+      lastCallUsage: { input: 125, output: 5, total: 130 },
+      contextTokensUsed: 200_000,
+    });
+
+    const stored2 = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored2[sessionKey].goal.tokenStart).toBe(100);
+    expect(stored2[sessionKey].goal.tokensUsed).toBe(25);
+    expect(stored2[sessionKey].goal.status).toBe("budget_limited");
+  });
+
   it("uses lastCallUsage cache counters when available", async () => {
-    const storePath = await createStorePath("astroclaw-usage-cache-");
+    const storePath = await createStorePath("openclaw-usage-cache-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3034,7 +3519,7 @@ describe("persistSessionUsageUpdate", () => {
   });
 
   it("marks totalTokens as unknown when no fresh context snapshot is available", async () => {
-    const storePath = await createStorePath("astroclaw-usage-");
+    const storePath = await createStorePath("openclaw-usage-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3055,7 +3540,7 @@ describe("persistSessionUsageUpdate", () => {
   });
 
   it("preserves fresh post-compaction totalTokens across stale usage updates", async () => {
-    const storePath = await createStorePath("astroclaw-usage-");
+    const storePath = await createStorePath("openclaw-usage-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3082,7 +3567,7 @@ describe("persistSessionUsageUpdate", () => {
   });
 
   it("marks older fresh totalTokens stale when no compaction preservation is requested", async () => {
-    const storePath = await createStorePath("astroclaw-usage-");
+    const storePath = await createStorePath("openclaw-usage-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3108,7 +3593,7 @@ describe("persistSessionUsageUpdate", () => {
   });
 
   it("uses promptTokens when available without lastCallUsage", async () => {
-    const storePath = await createStorePath("astroclaw-usage-");
+    const storePath = await createStorePath("openclaw-usage-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3130,7 +3615,7 @@ describe("persistSessionUsageUpdate", () => {
   });
 
   it("treats CLI usage as a fresh context snapshot when requested", async () => {
-    const storePath = await createStorePath("astroclaw-usage-cli-");
+    const storePath = await createStorePath("openclaw-usage-cli-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3165,8 +3650,178 @@ describe("persistSessionUsageUpdate", () => {
     });
   });
 
+  it("clears stale CLI binding when usage update reports an unflushed replacement", async () => {
+    const storePath = await createStorePath("openclaw-usage-cli-clear-");
+    const sessionKey = "main";
+    await seedSessionStore({
+      storePath,
+      sessionKey,
+      entry: {
+        sessionId: "s1",
+        updatedAt: Date.now(),
+        cliSessionIds: {
+          "claude-cli": "stale-cli-session",
+          "codex-cli": "codex-session",
+        },
+        cliSessionBindings: {
+          "claude-cli": {
+            sessionId: "stale-cli-session",
+            authProfileId: "anthropic:old",
+          },
+          "codex-cli": {
+            sessionId: "codex-session",
+          },
+        },
+        claudeCliSessionId: "stale-cli-session",
+      },
+    });
+
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      usage: { input: 24_000, output: 2_000, cacheRead: 8_000 },
+      usageIsContextSnapshot: true,
+      providerUsed: "claude-cli",
+      clearCliSessionBinding: true,
+      contextTokensUsed: 200_000,
+    });
+
+    const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored[sessionKey].cliSessionIds?.["claude-cli"]).toBeUndefined();
+    expect(stored[sessionKey].cliSessionIds?.["codex-cli"]).toBe("codex-session");
+    expect(stored[sessionKey].cliSessionBindings?.["claude-cli"]).toBeUndefined();
+    expect(stored[sessionKey].cliSessionBindings?.["codex-cli"]).toEqual({
+      sessionId: "codex-session",
+    });
+    expect(stored[sessionKey].claudeCliSessionId).toBeUndefined();
+  });
+
+  it("prefers fresh final usage over zero compactionTokensAfter", async () => {
+    const storePath = await createStorePath("openclaw-usage-compaction-reset-");
+    const sessionKey = "main";
+    await seedSessionStore({
+      storePath,
+      sessionKey,
+      entry: {
+        sessionId: "s1",
+        updatedAt: Date.now(),
+        totalTokens: 1_794_391,
+        totalTokensFresh: true,
+        inputTokens: 20,
+        outputTokens: 10_855,
+        cacheRead: 1_761_324,
+        cacheWrite: 33_047,
+      },
+    });
+
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      usage: { input: 20, output: 10_855, cacheRead: 1_761_324, cacheWrite: 33_047 },
+      lastCallUsage: { input: 20, output: 10_855, cacheRead: 1_761_324, cacheWrite: 33_047 },
+      usageIsContextSnapshot: true,
+      providerUsed: "claude-cli",
+      contextTokensUsed: 1_048_576,
+      compactionTokensAfter: 0,
+    });
+
+    const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored[sessionKey].totalTokens).toBe(1_794_391);
+    expect(stored[sessionKey].totalTokensFresh).toBe(true);
+    expect(stored[sessionKey].inputTokens).toBe(20);
+    expect(stored[sessionKey].outputTokens).toBe(10_855);
+    expect(stored[sessionKey].cacheRead).toBe(1_761_324);
+    expect(stored[sessionKey].cacheWrite).toBe(33_047);
+  });
+
+  it("prefers fresh lastCallUsage over positive compactionTokensAfter", async () => {
+    const storePath = await createStorePath("openclaw-usage-compaction-positive-");
+    const sessionKey = "main";
+    await seedSessionStore({
+      storePath,
+      sessionKey,
+      entry: {
+        sessionId: "s1",
+        updatedAt: Date.now(),
+        totalTokens: 180_000,
+        totalTokensFresh: true,
+      },
+    });
+
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      usage: { input: 100_000, output: 3_000, cacheRead: 20_000 },
+      lastCallUsage: { input: 91_000, output: 1_000, cacheRead: 4_000 },
+      providerUsed: "openai",
+      contextTokensUsed: 200_000,
+      compactionTokensAfter: 80_000,
+    });
+
+    const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored[sessionKey].totalTokens).toBe(95_000);
+    expect(stored[sessionKey].totalTokensFresh).toBe(true);
+    expect(stored[sessionKey].inputTokens).toBe(100_000);
+    expect(stored[sessionKey].outputTokens).toBe(3_000);
+    expect(stored[sessionKey].cacheRead).toBe(4_000);
+  });
+
+  it("uses positive compactionTokensAfter when final usage has no prompt total", async () => {
+    const storePath = await createStorePath("openclaw-usage-compaction-fallback-");
+    const sessionKey = "main";
+    await seedSessionStore({
+      storePath,
+      sessionKey,
+      entry: {
+        sessionId: "s1",
+        updatedAt: Date.now(),
+        totalTokens: 180_000,
+        totalTokensFresh: true,
+        inputTokens: 5_000,
+        outputTokens: 2_000,
+        cacheRead: 50_000,
+        contextBudgetStatus: {
+          schemaVersion: 1,
+          source: "pre-prompt-estimate",
+          updatedAt: 1,
+          provider: "claude-cli",
+          model: "claude-opus-4-7",
+          route: "compact_only",
+          shouldCompact: true,
+          estimatedPromptTokens: 180_000,
+          contextTokenBudget: 1_048_576,
+          promptBudgetBeforeReserve: 1_044_480,
+          reserveTokens: 4_096,
+          effectiveReserveTokens: 4_096,
+          remainingPromptBudgetTokens: 864_480,
+          overflowTokens: 0,
+          toolResultReducibleChars: 0,
+          messageCount: 0,
+          unwindowedMessageCount: 0,
+        },
+      },
+    });
+
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      usage: { output: 125 },
+      lastCallUsage: { output: 125 },
+      providerUsed: "claude-cli",
+      compactionTokensAfter: 80_000,
+    });
+
+    const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored[sessionKey].totalTokens).toBe(80_000);
+    expect(stored[sessionKey].totalTokensFresh).toBe(true);
+    expect(stored[sessionKey].inputTokens).toBeUndefined();
+    expect(stored[sessionKey].outputTokens).toBeUndefined();
+    expect(stored[sessionKey].cacheRead).toBeUndefined();
+    expect(stored[sessionKey].contextBudgetStatus).toBeUndefined();
+  });
+
   it("persists totalTokens from promptTokens when usage is unavailable", async () => {
-    const storePath = await createStorePath("astroclaw-usage-");
+    const storePath = await createStorePath("openclaw-usage-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3195,7 +3850,7 @@ describe("persistSessionUsageUpdate", () => {
   });
 
   it("keeps non-clamped lastCallUsage totalTokens when exceeding context window", async () => {
-    const storePath = await createStorePath("astroclaw-usage-");
+    const storePath = await createStorePath("openclaw-usage-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3217,7 +3872,7 @@ describe("persistSessionUsageUpdate", () => {
   });
 
   it("snapshots estimatedCostUsd instead of accumulating (fixes #69347)", async () => {
-    const storePath = await createStorePath("astroclaw-usage-cost-");
+    const storePath = await createStorePath("openclaw-usage-cost-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3228,7 +3883,7 @@ describe("persistSessionUsageUpdate", () => {
       },
     });
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       models: {
         providers: {
           openai: {
@@ -3285,7 +3940,7 @@ describe("persistSessionUsageUpdate", () => {
   });
 
   it("preserves the displayed session model when heartbeat usage uses a heartbeat model", async () => {
-    const storePath = await createStorePath("astroclaw-usage-heartbeat-model-");
+    const storePath = await createStorePath("openclaw-usage-heartbeat-model-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3293,7 +3948,7 @@ describe("persistSessionUsageUpdate", () => {
       entry: {
         sessionId: "s1",
         updatedAt: Date.now(),
-        modelProvider: "openai-codex",
+        modelProvider: "openai",
         model: "gpt-5.4",
       },
     });
@@ -3304,13 +3959,13 @@ describe("persistSessionUsageUpdate", () => {
       isHeartbeat: true,
       usage: { input: 1_200, output: 100, cacheRead: 300, cacheWrite: 10 },
       lastCallUsage: { input: 900, output: 80, cacheRead: 200, cacheWrite: 5 },
-      providerUsed: "openai-codex",
+      providerUsed: "openai",
       modelUsed: "gpt-5.1-codex-mini",
       contextTokensUsed: 128_000,
     });
 
     const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
-    expect(stored[sessionKey].modelProvider).toBe("openai-codex");
+    expect(stored[sessionKey].modelProvider).toBe("openai");
     expect(stored[sessionKey].model).toBe("gpt-5.4");
     expect(stored[sessionKey].inputTokens).toBe(1_200);
     expect(stored[sessionKey].outputTokens).toBe(100);
@@ -3318,8 +3973,82 @@ describe("persistSessionUsageUpdate", () => {
     expect(stored[sessionKey].totalTokens).toBe(1_105);
   });
 
+  it("preserves the displayed session model when an internal announce uses fallback", async () => {
+    const storePath = await createStorePath("openclaw-usage-internal-announce-model-");
+    const sessionKey = "agent:main:telegram:group:-1003871627242:topic:6823";
+    await seedSessionStore({
+      storePath,
+      sessionKey,
+      entry: {
+        sessionId: "s1",
+        updatedAt: Date.now(),
+        modelProvider: "openai",
+        model: "gpt-5.5",
+        contextTokens: 200_000,
+        inputTokens: 1_234,
+        outputTokens: 56,
+        cacheRead: 7,
+        cacheWrite: 8,
+        totalTokens: 1_305,
+        totalTokensFresh: true,
+        estimatedCostUsd: 0.123,
+        cliSessionIds: { "claude-cli": "visible-cli-session" },
+        cliSessionBindings: {
+          "claude-cli": {
+            sessionId: "visible-cli-session",
+            authProfileId: "anthropic:visible",
+          },
+        },
+        claudeCliSessionId: "visible-cli-session",
+      },
+    });
+
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      preserveUserFacingSessionModelState: true,
+      usage: { input: 39_908, output: 122, cacheRead: 0, cacheWrite: 0 },
+      lastCallUsage: { input: 39_908, output: 122, cacheRead: 0, cacheWrite: 0 },
+      providerUsed: "google",
+      modelUsed: "gemini-2.5-flash",
+      cliSessionId: "internal-cli-session",
+      cliSessionBinding: {
+        sessionId: "internal-cli-session",
+        authProfileId: "anthropic:internal",
+      },
+      contextTokensUsed: 1_000_000,
+    });
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      preserveUserFacingSessionModelState: true,
+      providerUsed: "claude-cli",
+      modelUsed: "claude-sonnet-4-6",
+      cliSessionId: "internal-cli-session-2",
+      contextTokensUsed: 900_000,
+    });
+
+    const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored[sessionKey].modelProvider).toBe("openai");
+    expect(stored[sessionKey].model).toBe("gpt-5.5");
+    expect(stored[sessionKey].contextTokens).toBe(200_000);
+    expect(stored[sessionKey].inputTokens).toBe(1_234);
+    expect(stored[sessionKey].outputTokens).toBe(56);
+    expect(stored[sessionKey].cacheRead).toBe(7);
+    expect(stored[sessionKey].cacheWrite).toBe(8);
+    expect(stored[sessionKey].totalTokens).toBe(1_305);
+    expect(stored[sessionKey].totalTokensFresh).toBe(true);
+    expect(stored[sessionKey].estimatedCostUsd).toBe(0.123);
+    expect(stored[sessionKey].cliSessionIds?.["claude-cli"]).toBe("visible-cli-session");
+    expect(stored[sessionKey].cliSessionBindings?.["claude-cli"]).toEqual({
+      sessionId: "visible-cli-session",
+      authProfileId: "anthropic:visible",
+    });
+    expect(stored[sessionKey].claudeCliSessionId).toBe("visible-cli-session");
+  });
+
   it("persists zero estimatedCostUsd for free priced models", async () => {
-    const storePath = await createStorePath("astroclaw-usage-free-cost-");
+    const storePath = await createStorePath("openclaw-usage-free-cost-");
     const sessionKey = "main";
     await seedSessionStore({
       storePath,
@@ -3336,7 +4065,7 @@ describe("persistSessionUsageUpdate", () => {
       cfg: {
         models: {
           providers: {
-            "openai-codex": {
+            openai: {
               baseUrl: "https://api.openai.com/v1",
               models: [
                 {
@@ -3352,10 +4081,10 @@ describe("persistSessionUsageUpdate", () => {
             },
           },
         },
-      } satisfies AstroclawConfig,
+      } satisfies OpenClawConfig,
       usage: { input: 5_107, output: 1_827, cacheRead: 1_536, cacheWrite: 0 },
       lastCallUsage: { input: 5_107, output: 1_827, cacheRead: 1_536, cacheWrite: 0 },
-      providerUsed: "openai-codex",
+      providerUsed: "openai",
       modelUsed: "gpt-5.3-codex-spark",
       contextTokensUsed: 200_000,
     });
@@ -3368,7 +4097,7 @@ describe("persistSessionUsageUpdate", () => {
 describe("initSessionState stale threadId fallback", () => {
   it("does not inherit lastThreadId from a previous thread interaction in non-thread sessions", async () => {
     const storePath = await createStorePath("stale-thread-");
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     // First interaction: inside a DM topic (thread session)
     const threadResult = await initSessionState({
@@ -3398,7 +4127,7 @@ describe("initSessionState stale threadId fallback", () => {
 
   it("preserves explicit transport thread routing in non-thread sessions", async () => {
     const storePath = await createStorePath("transport-thread-");
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3419,7 +4148,7 @@ describe("initSessionState stale threadId fallback", () => {
 
   it("preserves lastThreadId within the same thread session", async () => {
     const storePath = await createStorePath("preserve-thread-");
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     // First message in thread
     await initSessionState({
@@ -3465,7 +4194,7 @@ describe("initSessionState dmScope delivery migration", () => {
     });
     const cfg = {
       session: { store: storePath, dmScope: "per-channel-peer" },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3485,6 +4214,7 @@ describe("initSessionState dmScope delivery migration", () => {
       SessionEntry
     >;
     expect(persisted["agent:main:main"]?.sessionId).toBe("legacy-main");
+    expect(persisted["agent:main:main"]?.route).toBeUndefined();
     expect(persisted["agent:main:main"]?.deliveryContext).toBeUndefined();
     expect(persisted["agent:main:main"]?.lastChannel).toBeUndefined();
     expect(persisted["agent:main:main"]?.lastTo).toBeUndefined();
@@ -3511,7 +4241,7 @@ describe("initSessionState dmScope delivery migration", () => {
     });
     const cfg = {
       session: { store: storePath, dmScope: "per-channel-peer" },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await initSessionState({
       ctx: {
@@ -3556,6 +4286,12 @@ describe("initSessionState internal channel routing preservation", () => {
           accountId: "default",
           threadId: "stale-root",
         },
+        route: {
+          channel: "mattermost",
+          accountId: "default",
+          target: { to: "channel:CHAN1" },
+          thread: { id: "stale-root", kind: "thread", source: "session" },
+        },
         origin: {
           provider: "mattermost",
           to: "channel:CHAN1",
@@ -3564,7 +4300,7 @@ describe("initSessionState internal channel routing preservation", () => {
         },
       },
     });
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3586,6 +4322,11 @@ describe("initSessionState internal channel routing preservation", () => {
       to: "channel:CHAN1",
       accountId: "default",
     });
+    expect(result.sessionEntry.route).toEqual({
+      channel: "mattermost",
+      accountId: "default",
+      target: { to: "channel:CHAN1" },
+    });
     expect(result.sessionEntry.origin).toEqual({
       provider: "mattermost",
       to: "channel:CHAN1",
@@ -3601,6 +4342,11 @@ describe("initSessionState internal channel routing preservation", () => {
       channel: "mattermost",
       to: "channel:CHAN1",
       accountId: "default",
+    });
+    expect(persisted[sessionKey]?.route).toEqual({
+      channel: "mattermost",
+      accountId: "default",
+      target: { to: "channel:CHAN1" },
     });
     expect(persisted[sessionKey]?.origin).toEqual({
       provider: "mattermost",
@@ -3618,7 +4364,7 @@ describe("initSessionState internal channel routing preservation", () => {
         updatedAt: Date.now(),
       },
     });
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3660,7 +4406,7 @@ describe("initSessionState internal channel routing preservation", () => {
         },
       },
     });
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3707,7 +4453,7 @@ describe("initSessionState internal channel routing preservation", () => {
         },
       },
     });
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3746,7 +4492,7 @@ describe("initSessionState internal channel routing preservation", () => {
     });
     const cfg = {
       session: { store: storePath, dmScope: "per-channel-peer" },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3780,7 +4526,7 @@ describe("initSessionState internal channel routing preservation", () => {
     });
     const cfg = {
       session: { store: storePath, dmScope: "per-channel-peer" },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3815,7 +4561,7 @@ describe("initSessionState internal channel routing preservation", () => {
         },
       },
     });
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3837,7 +4583,7 @@ describe("initSessionState internal channel routing preservation", () => {
   it("uses session key channel hint when first turn is internal webchat", async () => {
     const storePath = await createStorePath("session-key-channel-hint-");
     const sessionKey = "agent:main:telegram:group:98765";
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3855,7 +4601,7 @@ describe("initSessionState internal channel routing preservation", () => {
 
   it("keeps internal route when there is no persisted external fallback", async () => {
     const storePath = await createStorePath("no-external-fallback-");
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3874,7 +4620,7 @@ describe("initSessionState internal channel routing preservation", () => {
 
   it("keeps webchat channel for webchat/main sessions", async () => {
     const storePath = await createStorePath("preserve-webchat-main-");
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3906,7 +4652,7 @@ describe("initSessionState internal channel routing preservation", () => {
         },
       },
     });
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3939,7 +4685,7 @@ describe("initSessionState internal channel routing preservation", () => {
         },
       },
     });
-    const cfg = { session: { store: storePath } } as AstroclawConfig;
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
@@ -3967,7 +4713,7 @@ describe("initSessionState internal channel routing preservation", () => {
           defaultAccount: "work",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await initSessionState({
       ctx: {
