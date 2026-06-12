@@ -1,3 +1,4 @@
+// Verifies bundled capability metadata emitted by plugins.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -12,7 +13,7 @@ import {
   hasBundledPluginContractSnapshotCapabilities,
 } from "./contracts/inventory/bundled-capability-metadata.js";
 import { pluginTestRepoRoot as repoRoot } from "./generated-plugin-test-helpers.js";
-import type { AstroclawPackageManifest } from "./manifest.js";
+import type { OpenClawPackageManifest } from "./manifest.js";
 import type { PluginManifest } from "./manifest.js";
 
 function listGitExtensionPackagePaths(extensionsDir: string): string[] | null {
@@ -48,14 +49,14 @@ function readManifestRecords(): PluginManifest[] {
   return listExtensionPackagePaths(extensionsDir)
     .filter((packagePath) => {
       const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf-8")) as {
-        astroclaw?: AstroclawPackageManifest;
+        openclaw?: OpenClawPackageManifest;
       };
-      return normalizeBundledPluginStringList(packageJson.astroclaw?.extensions).length > 0;
+      return normalizeBundledPluginStringList(packageJson.openclaw?.extensions).length > 0;
     })
     .map(
       (packagePath) =>
         JSON.parse(
-          fs.readFileSync(path.join(path.dirname(packagePath), "astroclaw.plugin.json"), "utf-8"),
+          fs.readFileSync(path.join(path.dirname(packagePath), "openclaw.plugin.json"), "utf-8"),
         ) as PluginManifest,
     )
     .toSorted((left, right) => left.id.localeCompare(right.id));
@@ -85,11 +86,13 @@ describe("bundled capability metadata", () => {
       pluginId: "migrate-hermes",
       cliBackendIds: [],
       providerIds: [],
-      providerAuthEnvVars: {},
+      providerEnvVars: {},
+      embeddingProviderIds: [],
       speechProviderIds: [],
       realtimeTranscriptionProviderIds: [],
       realtimeVoiceProviderIds: [],
       mediaUnderstandingProviderIds: [],
+      transcriptSourceProviderIds: [],
       documentExtractorIds: [],
       imageGenerationProviderIds: [],
       videoGenerationProviderIds: [],
