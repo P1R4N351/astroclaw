@@ -1,3 +1,5 @@
+// Verifies generated talk default config stays aligned with schema.
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,7 +13,19 @@ import {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 function readRepoFile(relativePath: string): string {
-  return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+  try {
+    return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  // Sparse worktrees may omit app sources, but the tracked blob is still the parity source.
+  return execFileSync("git", ["show", `HEAD:${relativePath}`], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
 }
 
 describe("talk silence timeout defaults", () => {
@@ -24,10 +38,10 @@ describe("talk silence timeout defaults", () => {
   });
 
   it("matches the Apple and Android runtime constants", () => {
-    const macDefaults = readRepoFile("apps/macos/Sources/Astroclaw/TalkDefaults.swift");
+    const macDefaults = readRepoFile("apps/macos/Sources/OpenClaw/TalkDefaults.swift");
     const iosDefaults = readRepoFile("apps/ios/Sources/Voice/TalkDefaults.swift");
     const androidDefaults = readRepoFile(
-      "apps/android/app/src/main/java/ai/astroclaw/app/voice/TalkDefaults.kt",
+      "apps/android/app/src/main/java/ai/openclaw/app/voice/TalkDefaults.kt",
     );
 
     expect(macDefaults).toContain(
