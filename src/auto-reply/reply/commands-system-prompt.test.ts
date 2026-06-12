@@ -1,14 +1,22 @@
+// Tests system prompt command output and bundled prompt section selection.
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveSessionAgentIds } from "../../agents/agent-scope.js";
+import { createOpenClawCodingTools } from "../../agents/agent-tools.js";
 import { resolveBootstrapContextForRun } from "../../agents/bootstrap-files.js";
-import { createAstroclawCodingTools } from "../../agents/pi-tools.js";
-import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
+import {
+  ensureSandboxWorkspaceForSession,
+  resolveSandboxRuntimeStatus,
+} from "../../agents/sandbox.js";
 import { buildAgentSystemPrompt } from "../../agents/system-prompt.js";
+import { resolveReusableWorkspaceSkillSnapshot } from "../../skills/runtime/session-snapshot.js";
 import { resolveCommandsSystemPromptBundle } from "./commands-system-prompt.js";
 import type { HandleCommandsParams } from "./commands-types.js";
 
-const { createAstroclawCodingToolsMock } = vi.hoisted(() => ({
-  createAstroclawCodingToolsMock: vi.fn(() => []),
+const { createOpenClawCodingToolsMock } = vi.hoisted(() => ({
+  createOpenClawCodingToolsMock: vi.fn(() => []),
 }));
 
 vi.mock("../../agents/bootstrap-files.js", () => ({
@@ -19,15 +27,20 @@ vi.mock("../../agents/bootstrap-files.js", () => ({
 }));
 
 vi.mock("../../agents/sandbox.js", () => ({
+  ensureSandboxWorkspaceForSession: vi.fn(async () => null),
   resolveSandboxRuntimeStatus: vi.fn(() => ({ sandboxed: false, mode: "off" })),
 }));
 
-vi.mock("../../agents/skills.js", () => ({
-  buildWorkspaceSkillSnapshot: vi.fn(() => ({ prompt: "", skills: [], resolvedSkills: [] })),
+vi.mock("../../skills/runtime/remote.js", () => ({
+  getRemoteSkillEligibility: vi.fn(() => false),
 }));
 
-vi.mock("../../agents/skills/refresh.js", () => ({
-  getSkillsSnapshotVersion: vi.fn(() => "test-snapshot"),
+vi.mock("../../skills/runtime/session-snapshot.js", () => ({
+  resolveReusableWorkspaceSkillSnapshot: vi.fn(() => ({
+    snapshot: { prompt: "", skills: [], resolvedSkills: [] },
+    shouldRefresh: false,
+    snapshotVersion: "test-snapshot",
+  })),
 }));
 
 vi.mock("../../agents/agent-scope.js", () => ({
@@ -52,16 +65,12 @@ vi.mock("../../agents/system-prompt.js", () => ({
   buildAgentSystemPrompt: vi.fn(() => "system prompt"),
 }));
 
-vi.mock("../../agents/pi-tools.js", () => ({
-  createAstroclawCodingTools: createAstroclawCodingToolsMock,
+vi.mock("../../agents/agent-tools.js", () => ({
+  createOpenClawCodingTools: createOpenClawCodingToolsMock,
 }));
 
 vi.mock("../../tts/tts.js", () => ({
   buildTtsSystemPromptHint: vi.fn(() => undefined),
-}));
-
-vi.mock("../../infra/skills-remote.js", () => ({
-  getRemoteSkillEligibility: vi.fn(() => false),
 }));
 
 function makeParams(): HandleCommandsParams {
@@ -127,16 +136,22 @@ function requireFirstArg(
 describe("resolveCommandsSystemPromptBundle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    createAstroclawCodingToolsMock.mockClear();
-    createAstroclawCodingToolsMock.mockReturnValue([]);
+    createOpenClawCodingToolsMock.mockClear();
+    createOpenClawCodingToolsMock.mockReturnValue([]);
+    vi.mocked(ensureSandboxWorkspaceForSession).mockResolvedValue(null);
+    vi.mocked(resolveReusableWorkspaceSkillSnapshot).mockReturnValue({
+      snapshot: { prompt: "", skills: [], resolvedSkills: [] },
+      shouldRefresh: false,
+      snapshotVersion: "test-snapshot",
+    } as never);
   });
 
   it("opts command tool builds into gateway subagent binding", async () => {
     await resolveCommandsSystemPromptBundle(makeParams());
 
     const toolParams = requireFirstArg(
-      vi.mocked(createAstroclawCodingTools),
-      "createAstroclawCodingTools",
+      vi.mocked(createOpenClawCodingTools),
+      "createOpenClawCodingTools",
     );
     expect(toolParams.allowGatewaySubagentBinding).toBe(true);
     expect(toolParams.sessionKey).toBe("agent:main:default");
@@ -173,8 +188,8 @@ describe("resolveCommandsSystemPromptBundle", () => {
     await resolveCommandsSystemPromptBundle(params);
 
     const toolParams = requireFirstArg(
-      vi.mocked(createAstroclawCodingTools),
-      "createAstroclawCodingTools",
+      vi.mocked(createOpenClawCodingTools),
+      "createOpenClawCodingTools",
     );
     expect(toolParams.agentId).toBe("target");
     expect(toolParams.sessionKey).toBe("agent:target:telegram:direct:target-session");
@@ -215,8 +230,8 @@ describe("resolveCommandsSystemPromptBundle", () => {
     );
     expect(bootstrapParams.sessionId).toBe("target-session");
     const toolParams = requireFirstArg(
-      vi.mocked(createAstroclawCodingTools),
-      "createAstroclawCodingTools",
+      vi.mocked(createOpenClawCodingTools),
+      "createOpenClawCodingTools",
     );
     expect(toolParams.groupId).toBe("target-group");
     expect(toolParams.groupChannel).toBe("#target");
@@ -253,12 +268,93 @@ describe("resolveCommandsSystemPromptBundle", () => {
     expect(sandboxInfo?.elevated?.fullAccessBlockedReason).toBe("host-policy");
   });
 
+  it("uses materialized sandbox skill paths for sandbox command prompts", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-command-sandbox-skills-"));
+    try {
+      const workspaceDir = path.join(root, "workspace");
+      const skillsWorkspaceDir = path.join(root, "state", "sandbox-skills");
+      const skillDir = path.join(skillsWorkspaceDir, "skills", "gog");
+      await fs.mkdir(skillDir, { recursive: true });
+      await fs.writeFile(
+        path.join(skillDir, "SKILL.md"),
+        ["---", "name: gog", "description: Gog skill", "---", "# Gog", ""].join("\n"),
+        "utf8",
+      );
+      const params = makeParams();
+      params.workspaceDir = workspaceDir;
+      vi.mocked(resolveSandboxRuntimeStatus).mockReturnValue({
+        sandboxed: true,
+        mode: "workspace-write",
+      } as never);
+      vi.mocked(ensureSandboxWorkspaceForSession).mockResolvedValue({
+        workspaceDir,
+        containerWorkdir: "/workspace",
+        skillsWorkspaceDir,
+        skillsEligibility: {
+          remote: {
+            platforms: ["linux"],
+            hasBin: () => true,
+            hasAnyBin: () => true,
+            note: "sandbox",
+          },
+        },
+        workspaceAccess: "rw",
+      } as never);
+      vi.mocked(resolveReusableWorkspaceSkillSnapshot).mockReturnValue({
+        snapshot: {
+          prompt:
+            "<available_skills>~/.npm-global/lib/node_modules/openclaw/skills/gog/SKILL.md</available_skills>",
+          skills: [],
+          resolvedSkills: [],
+        },
+        shouldRefresh: false,
+        snapshotVersion: "host-snapshot",
+      } as never);
+
+      const result = await resolveCommandsSystemPromptBundle(params);
+
+      expect(result.skillsPrompt).toContain(
+        "/workspace/.openclaw/sandbox-skills/skills/gog/SKILL.md",
+      );
+      expect(result.skillsPrompt).not.toContain("~/.npm-global");
+      expect(vi.mocked(resolveReusableWorkspaceSkillSnapshot)).not.toHaveBeenCalled();
+      const promptParams = requireFirstArg(
+        vi.mocked(buildAgentSystemPrompt),
+        "buildAgentSystemPrompt",
+      );
+      expect(promptParams.skillsPrompt).toContain(
+        "/workspace/.openclaw/sandbox-skills/skills/gog/SKILL.md",
+      );
+      expect(String(promptParams.skillsPrompt)).not.toContain("~/.npm-global");
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves host skill snapshots for custom backends without a declared workdir", async () => {
+    const params = makeParams();
+    vi.mocked(resolveSandboxRuntimeStatus).mockReturnValue({
+      sandboxed: true,
+      mode: "workspace-write",
+    } as never);
+    vi.mocked(ensureSandboxWorkspaceForSession).mockResolvedValue({
+      workspaceDir: params.workspaceDir,
+      skillsWorkspaceDir: "/tmp/sandbox-skills",
+      workspaceAccess: "rw",
+    });
+
+    const result = await resolveCommandsSystemPromptBundle(params);
+
+    expect(result.skillsPrompt).toBe("");
+    expect(vi.mocked(resolveReusableWorkspaceSkillSnapshot)).toHaveBeenCalledOnce();
+  });
+
   it("uses config-backed prompt settings for the target agent", async () => {
     vi.mocked(resolveSandboxRuntimeStatus).mockReturnValue({
       sandboxed: false,
       mode: "off",
     } as never);
-    createAstroclawCodingToolsMock.mockReturnValue([{ name: "sessions_spawn" }] as never);
+    createOpenClawCodingToolsMock.mockReturnValue([{ name: "sessions_spawn" }] as never);
     const params = makeParams();
     params.cfg = {
       agents: {
