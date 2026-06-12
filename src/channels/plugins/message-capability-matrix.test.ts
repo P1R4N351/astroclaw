@@ -1,5 +1,6 @@
+// Message capability matrix tests cover channel message feature support across plugin surfaces.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { ChannelMessageActionAdapter, ChannelPlugin } from "./types.js";
 
 const telegramDescribeMessageToolMock = vi.fn();
@@ -121,7 +122,7 @@ describe("channel action capability matrix", () => {
     discordDescribeMessageToolMock.mockReset();
   });
 
-  function getCapabilities(plugin: Pick<ChannelPlugin, "actions">, cfg: AstroclawConfig) {
+  function getCapabilities(plugin: Pick<ChannelPlugin, "actions">, cfg: OpenClawConfig) {
     const describeMessageTool: ChannelMessageActionAdapter["describeMessageTool"] | undefined =
       plugin.actions?.describeMessageTool;
     return [...(describeMessageTool?.({ cfg })?.capabilities ?? [])];
@@ -135,7 +136,7 @@ describe("channel action capability matrix", () => {
           appToken: "xapp-test",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const interactiveCfg = {
       channels: {
         slack: {
@@ -144,7 +145,7 @@ describe("channel action capability matrix", () => {
           capabilities: { interactiveReplies: true },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(getCapabilities(slackPlugin, baseCfg)).toEqual(["presentation"]);
     expect(getCapabilities(slackPlugin, interactiveCfg)).toEqual(["presentation"]);
@@ -155,7 +156,7 @@ describe("channel action capability matrix", () => {
       capabilities: ["presentation"],
     });
 
-    const result = getCapabilities(telegramPlugin, {} as AstroclawConfig);
+    const result = getCapabilities(telegramPlugin, {} as OpenClawConfig);
 
     expect(result).toEqual(["presentation"]);
     expect(telegramDescribeMessageToolMock).toHaveBeenCalledWith({ cfg: {} });
@@ -163,7 +164,7 @@ describe("channel action capability matrix", () => {
       capabilities: ["presentation"],
     });
 
-    const discordResult = getCapabilities(discordPlugin, {} as AstroclawConfig);
+    const discordResult = getCapabilities(discordPlugin, {} as OpenClawConfig);
 
     expect(discordResult).toEqual(["presentation"]);
     expect(discordDescribeMessageToolMock).toHaveBeenCalledWith({ cfg: {} });
@@ -178,14 +179,14 @@ describe("channel action capability matrix", () => {
           baseUrl: "https://chat.example.com",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const unconfiguredCfg = {
       channels: {
         mattermost: {
           enabled: true,
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const configuredFeishuCfg = {
       channels: {
         feishu: {
@@ -194,7 +195,7 @@ describe("channel action capability matrix", () => {
           appSecret: "secret",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const disabledFeishuCfg = {
       channels: {
         feishu: {
@@ -203,7 +204,7 @@ describe("channel action capability matrix", () => {
           appSecret: "secret",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const configuredMsteamsCfg = {
       channels: {
         msteams: {
@@ -213,7 +214,7 @@ describe("channel action capability matrix", () => {
           appPassword: "secret",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const disabledMsteamsCfg = {
       channels: {
         msteams: {
@@ -223,7 +224,7 @@ describe("channel action capability matrix", () => {
           appPassword: "secret",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(getCapabilities(mattermostPlugin, configuredCfg)).toEqual(["presentation"]);
     expect(getCapabilities(mattermostPlugin, unconfiguredCfg)).toStrictEqual([]);
@@ -241,7 +242,7 @@ describe("channel action capability matrix", () => {
           botToken: "zl-token",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(getCapabilities(zaloPlugin, cfg)).toStrictEqual([]);
   });
