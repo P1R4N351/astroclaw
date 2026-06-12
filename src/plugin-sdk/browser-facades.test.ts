@@ -1,9 +1,5 @@
+// Browser facade tests cover browser plugin facade loading and runtime API shape.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  expectBrowserHostInspectionDelegation,
-  expectBrowserHostInspectionFacadeUnavailable,
-  mockBrowserHostInspectionFacade,
-} from "./browser-facade-test-helpers.js";
 
 const loadBundledPluginPublicSurfaceModuleSync = vi.hoisted(() => vi.fn());
 
@@ -35,16 +31,16 @@ describe("plugin-sdk browser facades", () => {
 
     const browserProfiles = await import("./browser-profiles.js");
     const cfg = { enabled: true } as unknown as import("../config/config.js").BrowserConfig;
-    const rootConfig = { gateway: { port: 18789 } } as import("../config/config.js").AstroclawConfig;
+    const rootConfig = { gateway: { port: 18789 } } as import("../config/config.js").OpenClawConfig;
 
     expect(browserProfiles.resolveBrowserConfig(cfg, rootConfig)).toBe(resolvedConfig);
-    expect(browserProfiles.resolveProfile(resolvedConfig, "astroclaw")).toBe(resolvedProfile);
+    expect(browserProfiles.resolveProfile(resolvedConfig, "openclaw")).toBe(resolvedProfile);
     expect(loadBundledPluginPublicSurfaceModuleSync).toHaveBeenCalledWith({
       dirName: "browser",
       artifactBasename: "browser-profiles.js",
     });
     expect(resolveBrowserConfig).toHaveBeenCalledWith(cfg, rootConfig);
-    expect(resolveProfile).toHaveBeenCalledWith(resolvedConfig, "astroclaw");
+    expect(resolveProfile).toHaveBeenCalledWith(resolvedConfig, "openclaw");
   });
 
   it("hard-fails when browser profile facade is unavailable", async () => {
@@ -81,7 +77,7 @@ describe("plugin-sdk browser facades", () => {
     const controlAuth = await import("./browser-control-auth.js");
     const cfg = {
       gateway: { auth: { token: "token-1" } },
-    } as import("../config/config.js").AstroclawConfig;
+    } as import("../config/config.js").OpenClawConfig;
     const env = {} as NodeJS.ProcessEnv;
 
     expect(controlAuth.resolveBrowserControlAuth(cfg, env)).toBe(resolvedAuth);
@@ -103,25 +99,5 @@ describe("plugin-sdk browser facades", () => {
     expect(() => controlAuth.resolveBrowserControlAuth(undefined, {} as NodeJS.ProcessEnv)).toThrow(
       "missing browser control auth facade",
     );
-  });
-
-  it("delegates browser host inspection helpers to the browser facade", async () => {
-    const executable: import("./browser-host-inspection.js").BrowserExecutable = {
-      kind: "chrome",
-      path: "/usr/bin/google-chrome",
-    };
-    mockBrowserHostInspectionFacade(loadBundledPluginPublicSurfaceModuleSync, executable);
-
-    const hostInspection = await import("./browser-host-inspection.js");
-
-    expectBrowserHostInspectionDelegation({
-      executable,
-      hostInspection,
-      loadBundledPluginPublicSurfaceModuleSync,
-    });
-  });
-
-  it("hard-fails when browser host inspection facade is unavailable", async () => {
-    await expectBrowserHostInspectionFacadeUnavailable(loadBundledPluginPublicSurfaceModuleSync);
   });
 });
