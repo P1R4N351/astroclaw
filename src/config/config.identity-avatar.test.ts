@@ -1,3 +1,4 @@
+// Covers identity avatar config normalization and file-path handling.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { withTempHome } from "./test-helpers.js";
@@ -6,10 +7,10 @@ import { validateConfigObject } from "./validation.js";
 describe("identity avatar validation", () => {
   it("accepts workspace-relative avatar paths", async () => {
     await withTempHome(async (home) => {
-      const workspace = path.join(home, "astroclaw");
+      const workspace = path.join(home, "openclaw");
       const res = validateConfigObject({
         agents: {
-          list: [{ id: "main", workspace, identity: { avatar: "avatars/astroclaw.png" } }],
+          list: [{ id: "main", workspace, identity: { avatar: "avatars/openclaw.png" } }],
         },
       });
       expect(res.ok).toBe(true);
@@ -18,7 +19,7 @@ describe("identity avatar validation", () => {
 
   it("accepts http(s) and data avatars", async () => {
     await withTempHome(async (home) => {
-      const workspace = path.join(home, "astroclaw");
+      const workspace = path.join(home, "openclaw");
       const httpRes = validateConfigObject({
         agents: {
           list: [{ id: "main", workspace, identity: { avatar: "https://example.com/avatar.png" } }],
@@ -37,7 +38,7 @@ describe("identity avatar validation", () => {
 
   it("rejects avatar paths outside workspace", async () => {
     await withTempHome(async (home) => {
-      const workspace = path.join(home, "astroclaw");
+      const workspace = path.join(home, "openclaw");
       const res = validateConfigObject({
         agents: {
           list: [{ id: "main", workspace, identity: { avatar: "../oops.png" } }],
