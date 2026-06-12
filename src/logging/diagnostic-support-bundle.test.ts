@@ -1,3 +1,4 @@
+// Diagnostic support bundle tests cover collected files and redaction in bundles.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,7 +15,7 @@ describe("diagnostic support bundle helpers", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-support-bundle-"));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-support-bundle-"));
   });
 
   afterEach(() => {
