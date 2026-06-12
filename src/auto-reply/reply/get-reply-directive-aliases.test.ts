@@ -1,12 +1,13 @@
+/** Tests directive alias parsing for get-reply command paths. */
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { parseInlineDirectives } from "./directive-handling.parse.js";
 import {
   reserveSkillCommandNames,
   resolveConfiguredDirectiveAliases,
 } from "./get-reply-directive-aliases.js";
 
-function configWithModelAlias(alias: string): AstroclawConfig {
+function configWithModelAlias(alias: string): OpenClawConfig {
   return {
     agents: {
       defaults: {
@@ -15,7 +16,7 @@ function configWithModelAlias(alias: string): AstroclawConfig {
         },
       },
     },
-  } as unknown as AstroclawConfig;
+  } as unknown as OpenClawConfig;
 }
 
 describe("reply directive aliases", () => {
