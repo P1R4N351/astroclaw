@@ -1,3 +1,4 @@
+// Openshell tests cover mirror plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -11,7 +12,7 @@ import {
 const dirs: string[] = [];
 
 async function makeTmpDir(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-mirror-test-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-mirror-test-"));
   dirs.push(dir);
   return dir;
 }
