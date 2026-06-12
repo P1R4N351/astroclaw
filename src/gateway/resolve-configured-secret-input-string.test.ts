@@ -1,11 +1,14 @@
+/**
+ * Tests configured secret input resolution for gateway method parameters.
+ */
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import {
   resolveConfiguredSecretInputWithFallback,
   resolveRequiredConfiguredSecretRefInputString,
 } from "./resolve-configured-secret-input-string.js";
 
-function createConfig(value: unknown): AstroclawConfig {
+function createConfig(value: unknown): OpenClawConfig {
   return {
     gateway: {
       auth: {
@@ -17,7 +20,7 @@ function createConfig(value: unknown): AstroclawConfig {
         default: { source: "env" },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 describe("resolveConfiguredSecretInputWithFallback", () => {
