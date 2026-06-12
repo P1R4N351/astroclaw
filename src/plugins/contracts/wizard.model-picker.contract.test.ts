@@ -1,3 +1,4 @@
-import { describeProviderWizardModelPickerContract } from "astroclaw/plugin-sdk/provider-test-contracts";
+// Wizard model picker contract tests cover provider setup wizard model selection.
+import { describeProviderWizardModelPickerContract } from "openclaw/plugin-sdk/provider-test-contracts";
 
 describeProviderWizardModelPickerContract();
