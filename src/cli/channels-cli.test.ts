@@ -1,6 +1,8 @@
+// Channels CLI tests cover channel command registration and option parsing.
 import { Command } from "commander";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PluginPackageChannel } from "../plugins/manifest.js";
+import { mockProcessPlatform } from "../test-utils/vitest-spies.js";
 import { registerChannelsCli } from "./channels-cli.js";
 
 const listBundledPackageChannelMetadataMock = vi.hoisted(() =>
@@ -19,34 +21,31 @@ function getChannelAddOptionFlags(program: Command): string[] {
 
 describe("registerChannelsCli", () => {
   const originalArgv = [...process.argv];
-  const originalPlatform = Object.getOwnPropertyDescriptor(process, "platform");
 
   afterEach(() => {
     process.argv = [...originalArgv];
-    if (originalPlatform) {
-      Object.defineProperty(process, "platform", originalPlatform);
-    }
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 
   it("loads channel-specific add options only for channels add invocations", async () => {
-    process.argv = ["node", "astroclaw", "channels"];
-    await registerChannelsCli(new Command().name("astroclaw"));
+    process.argv = ["node", "openclaw", "channels"];
+    await registerChannelsCli(new Command().name("openclaw"));
 
     expect(listBundledPackageChannelMetadataMock).not.toHaveBeenCalled();
 
-    process.argv = ["node", "astroclaw", "channels", "add", "--help"];
-    await registerChannelsCli(new Command().name("astroclaw"));
+    process.argv = ["node", "openclaw", "channels", "add", "--help"];
+    await registerChannelsCli(new Command().name("openclaw"));
 
     expect(listBundledPackageChannelMetadataMock).toHaveBeenCalledTimes(1);
   });
 
   it("uses caller argv instead of raw process argv for channel-specific add options", async () => {
-    process.argv = ["node", "astroclaw", "channels"];
+    process.argv = ["node", "openclaw", "channels"];
 
-    await registerChannelsCli(new Command().name("astroclaw"), [
+    await registerChannelsCli(new Command().name("openclaw"), [
       "node",
-      "astroclaw",
+      "openclaw",
       "channels",
       "add",
       "--help",
@@ -62,8 +61,8 @@ describe("registerChannelsCli", () => {
         cliAddOptions: [{ flags: "--homeserver <url>", description: "Matrix homeserver URL" }],
       },
     ]);
-    process.argv = ["node", "astroclaw", "completion", "--write-state"];
-    const program = new Command().name("astroclaw");
+    process.argv = ["node", "openclaw", "completion", "--write-state"];
+    const program = new Command().name("openclaw");
 
     await registerChannelsCli(program, process.argv, { includeSetupOptions: true });
 
@@ -78,10 +77,10 @@ describe("registerChannelsCli", () => {
         cliAddOptions: [{ flags: "--homeserver <url>", description: "Matrix homeserver URL" }],
       },
     ]);
-    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    mockProcessPlatform("win32");
     process.argv = [
       "C:\\Program Files\\nodejs\\node.exe",
-      "C:\\repo\\astroclaw.js",
+      "C:\\repo\\openclaw.js",
       "C:\\Program Files\\nodejs\\node.exe",
       "channels",
       "add",
@@ -90,7 +89,7 @@ describe("registerChannelsCli", () => {
       "--homeserver",
       "https://matrix.example.org",
     ];
-    const program = new Command().name("astroclaw");
+    const program = new Command().name("openclaw");
 
     await registerChannelsCli(program);
 
