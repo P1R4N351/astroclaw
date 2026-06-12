@@ -1,3 +1,4 @@
+// Covers channel-configured checks from bootstrap and plugin metadata.
 import { describe, expect, it, vi } from "vitest";
 import { isChannelConfigured } from "./channel-configured.js";
 
@@ -23,7 +24,7 @@ describe("isChannelConfigured", () => {
     expect(
       isChannelConfigured({}, "irc", {
         IRC_HOST: "irc.example.com",
-        IRC_NICK: "astroclaw",
+        IRC_NICK: "openclaw",
       }),
     ).toBe(true);
   });
@@ -49,12 +50,12 @@ describe("isChannelConfigured", () => {
       isChannelConfigured(
         {
           channels: {
-            "astroclaw-weixin": {
+            "openclaw-weixin": {
               enabled: true,
             },
           },
         },
-        "astroclaw-weixin",
+        "openclaw-weixin",
         {},
       ),
     ).toBe(true);
@@ -65,12 +66,12 @@ describe("isChannelConfigured", () => {
       isChannelConfigured(
         {
           channels: {
-            "astroclaw-weixin": {
+            "openclaw-weixin": {
               enabled: false,
             },
           },
         },
-        "astroclaw-weixin",
+        "openclaw-weixin",
         {},
       ),
     ).toBe(false);
@@ -78,7 +79,7 @@ describe("isChannelConfigured", () => {
 
   it("does not treat persisted Matrix credentials as configured channel state", () => {
     expect(
-      isChannelConfigured({}, "matrix", { ASTROCLAW_STATE_DIR: "state-with-matrix-creds" }),
+      isChannelConfigured({}, "matrix", { OPENCLAW_STATE_DIR: "state-with-matrix-creds" }),
     ).toBe(false);
   });
 });
