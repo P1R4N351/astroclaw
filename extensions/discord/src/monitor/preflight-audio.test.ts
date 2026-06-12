@@ -1,3 +1,4 @@
+// Discord tests cover preflight audio plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const transcribeFirstAudioMock = vi.hoisted(() => vi.fn());
@@ -8,7 +9,7 @@ vi.mock("./preflight-audio.runtime.js", () => ({
 
 import { resolveDiscordPreflightAudioMentionContext } from "./preflight-audio.js";
 
-const cfg = {} as import("astroclaw/plugin-sdk/config-contracts").AstroclawConfig;
+const cfg = {} as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
 
 describe("resolveDiscordPreflightAudioMentionContext", () => {
   beforeEach(() => {
