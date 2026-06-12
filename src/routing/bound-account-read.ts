@@ -1,7 +1,8 @@
+// Bound account read helpers extract account bindings from channel records.
 import { normalizeChatType, type ChatType } from "../channels/chat-type.js";
 import { listRouteBindings } from "../config/bindings.js";
 import type { AgentRouteBinding } from "../config/types.agents.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   normalizeRouteBindingChannelId,
   normalizeRouteBindingId,
@@ -58,7 +59,7 @@ function buildExactPeerIdSet(params: {
 }
 
 export function resolveFirstBoundAccountId(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channelId: string;
   agentId: string;
   peerId?: string;
