@@ -1,3 +1,4 @@
+// Browser tests cover server context.remote profile tab ops.fallback plugin behavior.
 import { describe, expect, it, vi } from "vitest";
 import { withBrowserFetchPreconnect } from "../../test-fetch.js";
 import {
@@ -11,9 +12,9 @@ installRemoteProfileTestLifecycle(deps);
 
 describe("browser remote profile fallback and attachOnly behavior", () => {
   it("uses profile-level attachOnly when global attachOnly is false", async () => {
-    const state = deps.makeState("astroclaw");
+    const state = deps.makeState("openclaw");
     state.resolved.attachOnly = false;
-    state.resolved.profiles.astroclaw = {
+    state.resolved.profiles.openclaw = {
       cdpPort: 18800,
       attachOnly: true,
       color: "#FF4500",
@@ -22,10 +23,10 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
     const reachableMock = vi
       .mocked(deps.chromeModule.isChromeReachable)
       .mockResolvedValueOnce(false);
-    const launchMock = vi.mocked(deps.chromeModule.launchAstroclawChrome);
+    const launchMock = vi.mocked(deps.chromeModule.launchOpenClawChrome);
     const ctx = deps.createBrowserRouteContext({ getState: () => state });
 
-    await expect(ctx.forProfile("astroclaw").ensureBrowserAvailable()).rejects.toThrow(
+    await expect(ctx.forProfile("openclaw").ensureBrowserAvailable()).rejects.toThrow(
       /attachOnly is enabled/i,
     );
     expect(reachableMock).toHaveBeenCalled();
@@ -33,9 +34,9 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
   });
 
   it("keeps attachOnly websocket failures off the loopback ownership error path", async () => {
-    const state = deps.makeState("astroclaw");
+    const state = deps.makeState("openclaw");
     state.resolved.attachOnly = false;
-    state.resolved.profiles.astroclaw = {
+    state.resolved.profiles.openclaw = {
       cdpPort: 18800,
       attachOnly: true,
       color: "#FF4500",
@@ -47,10 +48,10 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
     const wsReachableMock = vi
       .mocked(deps.chromeModule.isChromeCdpReady)
       .mockResolvedValueOnce(false);
-    const launchMock = vi.mocked(deps.chromeModule.launchAstroclawChrome);
+    const launchMock = vi.mocked(deps.chromeModule.launchOpenClawChrome);
     const ctx = deps.createBrowserRouteContext({ getState: () => state });
 
-    await expect(ctx.forProfile("astroclaw").ensureBrowserAvailable()).rejects.toThrow(
+    await expect(ctx.forProfile("openclaw").ensureBrowserAvailable()).rejects.toThrow(
       /attachOnly is enabled and CDP websocket/i,
     );
     expect(httpReachableMock).toHaveBeenCalled();
@@ -67,7 +68,7 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
             id: "T1",
             title: "Tab 1",
             url: "https://example.com",
-            webSocketDebuggerUrl: "wss://browserless.example/devtools/page/T1",
+            webSocketDebuggerUrl: "wss://1.1.1.1:9222/devtools/page/T1",
             type: "page",
           },
         ]),
@@ -87,21 +88,21 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
             id: "OMNI",
             title: "Omnibox Popup",
             url: "chrome://omnibox-popup.top-chrome/",
-            webSocketDebuggerUrl: "wss://browserless.example/devtools/page/OMNI",
+            webSocketDebuggerUrl: "wss://1.1.1.1:9222/devtools/page/OMNI",
             type: "page",
           },
           {
             id: "UNTRUSTED",
             title: "Untrusted",
             url: "chrome-untrusted://foo/",
-            webSocketDebuggerUrl: "wss://browserless.example/devtools/page/UNTRUSTED",
+            webSocketDebuggerUrl: "wss://1.1.1.1:9222/devtools/page/UNTRUSTED",
             type: "page",
           },
           {
             id: "T1",
             title: "Tab 1",
             url: "https://example.com",
-            webSocketDebuggerUrl: "wss://browserless.example/devtools/page/T1",
+            webSocketDebuggerUrl: "wss://1.1.1.1:9222/devtools/page/T1",
             type: "page",
           },
         ]),
@@ -110,6 +111,55 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
 
     const tabs = await remote.listTabs();
     expect(tabs.map((t) => t.targetId)).toEqual(["T1"]);
+  });
+
+  it("rejects policy-blocked discovered CDP websocket URLs from raw tab listings", async () => {
+    vi.spyOn(deps.pwAiModule, "getPwAiModule").mockResolvedValue(null);
+    const { state, remote } = deps.createRemoteRouteHarness(
+      vi.fn(
+        deps.createJsonListFetchMock([
+          {
+            id: "T_BLOCKED",
+            title: "Blocked",
+            url: "https://example.com",
+            webSocketDebuggerUrl: "ws://169.254.169.254/devtools/page/T_BLOCKED",
+            type: "page",
+          },
+        ]),
+      ),
+    );
+    state.resolved.ssrfPolicy = { dangerouslyAllowPrivateNetwork: false };
+
+    await expect(remote.listTabs()).rejects.toBeInstanceOf(deps.BrowserCdpEndpointBlockedError);
+  });
+
+  it("rejects policy-blocked discovered CDP websocket URLs from raw tab creation", async () => {
+    vi.spyOn(deps.pwAiModule, "getPwAiModule").mockResolvedValue(null);
+    vi.spyOn(deps.cdpModule, "createTargetViaCdp").mockRejectedValue(
+      new Error("Target.createTarget unavailable"),
+    );
+    const fetchMock = vi.fn(async (url: unknown) => {
+      const u = String(url);
+      if (!u.includes("/json/new")) {
+        throw new Error(`unexpected fetch: ${u}`);
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          id: "T_BLOCKED",
+          title: "Blocked",
+          url: "about:blank",
+          webSocketDebuggerUrl: "ws://169.254.169.254/devtools/page/T_BLOCKED",
+          type: "page",
+        }),
+      } as unknown as Response;
+    });
+    const { state, remote } = deps.createRemoteRouteHarness(fetchMock);
+    state.resolved.ssrfPolicy = { dangerouslyAllowPrivateNetwork: false };
+
+    await expect(remote.openTab("about:blank")).rejects.toBeInstanceOf(
+      deps.BrowserCdpEndpointBlockedError,
+    );
   });
 
   it("fails closed for remote tab opens in strict mode without Playwright", async () => {
@@ -123,7 +173,7 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("does not enforce managed tab cap for remote astroclaw profiles", async () => {
+  it("does not enforce managed tab cap for remote openclaw profiles", async () => {
     const listPagesViaPlaywright = vi
       .fn()
       .mockResolvedValueOnce([
@@ -175,7 +225,7 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
             id: "T_REMOTE",
             title: "Remote Tab",
             url: "https://example.com",
-            webSocketDebuggerUrl: "wss://browserless.example/devtools/page/T_REMOTE",
+            webSocketDebuggerUrl: "wss://1.1.1.1:9222/devtools/page/T_REMOTE",
             type: "page",
           },
         ]),
@@ -203,10 +253,10 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
     const createTargetViaCdp = vi
       .spyOn(deps.cdpModule, "createTargetViaCdp")
       .mockResolvedValue({ targetId: "T_ATTACH" });
-    const state = deps.makeState("astroclaw");
+    const state = deps.makeState("openclaw");
     state.resolved.remoteCdpTimeoutMs = 2345;
     state.resolved.remoteCdpHandshakeTimeoutMs = 6789;
-    state.resolved.profiles.astroclaw = {
+    state.resolved.profiles.openclaw = {
       cdpPort: 18800,
       attachOnly: true,
       color: "#FF4500",
@@ -225,7 +275,7 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
     global.fetch = withBrowserFetchPreconnect(fetchMock);
     const ctx = deps.createBrowserRouteContext({ getState: () => state });
 
-    const opened = await ctx.forProfile("astroclaw").openTab("https://example.com");
+    const opened = await ctx.forProfile("openclaw").openTab("https://example.com");
 
     expect(opened.targetId).toBe("T_ATTACH");
     expect(createTargetViaCdp).toHaveBeenCalledWith({
@@ -244,7 +294,7 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
     const createTargetViaCdp = vi
       .spyOn(deps.cdpModule, "createTargetViaCdp")
       .mockResolvedValue({ targetId: "T_LOCAL" });
-    const state = deps.makeState("astroclaw");
+    const state = deps.makeState("openclaw");
     const fetchMock = vi.fn(
       deps.createJsonListFetchMock([
         {
@@ -259,7 +309,7 @@ describe("browser remote profile fallback and attachOnly behavior", () => {
     global.fetch = withBrowserFetchPreconnect(fetchMock);
     const ctx = deps.createBrowserRouteContext({ getState: () => state });
 
-    await ctx.forProfile("astroclaw").openTab("http://127.0.0.1:3000");
+    await ctx.forProfile("openclaw").openTab("http://127.0.0.1:3000");
 
     expect(createTargetViaCdp).toHaveBeenCalledWith({
       cdpUrl: "http://127.0.0.1:18800",
