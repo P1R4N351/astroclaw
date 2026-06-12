@@ -1,13 +1,14 @@
+// Agent ACP tests cover ACP runtime integration, embedded agent dispatch, and agent command behavior.
 import fs from "node:fs";
 import path from "node:path";
-import { withTempHome as withTempHomeBase } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome as withTempHomeBase } from "openclaw/plugin-sdk/test-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "./agent-command.test-mocks.js";
 import * as acpManagerModule from "../acp/control-plane/manager.js";
 import { AcpRuntimeError } from "../acp/runtime/errors.js";
-import * as embeddedModule from "../agents/pi-embedded.js";
+import * as embeddedModule from "../agents/embedded-agent.js";
 import * as configIoModule from "../config/io.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { agentCommand } from "./agent.js";
 import { createThrowingTestRuntime } from "./test-runtime-config-helpers.js";
@@ -34,6 +35,8 @@ const attemptExecutionMocks = vi.hoisted(() => ({
   emitAcpLifecycleStart: vi.fn(),
   emitAcpLifecycleEnd: vi.fn(),
   emitAcpLifecycleError: vi.fn(),
+  emitAcpPromptSubmitted: vi.fn(),
+  emitAcpRuntimeEvent: vi.fn(),
   persistAcpTurnTranscript: vi.fn(
     async ({ sessionEntry }: { sessionEntry?: unknown }) => sessionEntry,
   ),
@@ -74,6 +77,8 @@ vi.mock("../agents/command/attempt-execution.runtime.js", () => {
     emitAcpLifecycleStart: attemptExecutionMocks.emitAcpLifecycleStart,
     emitAcpLifecycleEnd: attemptExecutionMocks.emitAcpLifecycleEnd,
     emitAcpLifecycleError: attemptExecutionMocks.emitAcpLifecycleError,
+    emitAcpPromptSubmitted: attemptExecutionMocks.emitAcpPromptSubmitted,
+    emitAcpRuntimeEvent: attemptExecutionMocks.emitAcpRuntimeEvent,
     emitAcpAssistantDelta: ({
       runId,
       text,
@@ -111,16 +116,16 @@ vi.mock("../agents/command/attempt-execution.runtime.js", () => {
 });
 
 const loadConfigSpy = vi.spyOn(configIoModule, "loadConfig");
-const runEmbeddedPiAgentSpy = vi.spyOn(embeddedModule, "runEmbeddedPiAgent");
+const runEmbeddedAgentSpy = vi.spyOn(embeddedModule, "runEmbeddedAgent");
 const getAcpSessionManagerSpy = vi.spyOn(acpManagerModule, "getAcpSessionManager");
 
 const runtime = createThrowingTestRuntime();
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeBase(fn, { prefix: "astroclaw-agent-acp-" });
+  return withTempHomeBase(fn, { prefix: "openclaw-agent-acp-" });
 }
 
-function createAcpEnabledConfig(home: string, storePath: string): AstroclawConfig {
+function createAcpEnabledConfig(home: string, storePath: string): OpenClawConfig {
   return {
     acp: {
       enabled: true,
@@ -132,7 +137,7 @@ function createAcpEnabledConfig(home: string, storePath: string): AstroclawConfi
       defaults: {
         model: { primary: "openai/gpt-5.5" },
         models: { "openai/gpt-5.5": {} },
-        workspace: path.join(home, "astroclaw"),
+        workspace: path.join(home, "openclaw"),
       },
     },
     session: { store: storePath, mainKey: "main" },
@@ -148,7 +153,7 @@ function mockConfig(home: string, storePath: string) {
 function mockConfigWithAcpOverrides(
   home: string,
   storePath: string,
-  acpOverrides: Partial<NonNullable<AstroclawConfig["acp"]>>,
+  acpOverrides: Partial<NonNullable<OpenClawConfig["acp"]>>,
 ) {
   const cfg = createAcpEnabledConfig(home, storePath);
   cfg.acp = {
@@ -202,7 +207,7 @@ function resolveReadySession(
 function mockAcpManager(params: {
   runTurn: (params: unknown) => Promise<void>;
   resolveSession?: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     sessionKey: string;
   }) => ReturnType<ReturnType<typeof acpManagerModule.getAcpSessionManager>["resolveSession"]>;
 }) {
@@ -312,7 +317,7 @@ function firstRunTurnInput(runTurn: { mock: { calls: unknown[][] } }) {
 }
 
 async function runAcpSessionWithPolicyOverridesAndExpectBlocked(params: {
-  acpOverrides: Partial<NonNullable<AstroclawConfig["acp"]>>;
+  acpOverrides: Partial<NonNullable<OpenClawConfig["acp"]>>;
   resolveSession?: Parameters<typeof mockAcpManager>[0]["resolveSession"];
 }) {
   await withTempHome(async (home) => {
@@ -328,7 +333,7 @@ async function runAcpSessionWithPolicyOverridesAndExpectBlocked(params: {
 
     await expectAcpCommandRejects("agent:codex:acp:test", "ACP_DISPATCH_DISABLED");
     expect(runTurn).not.toHaveBeenCalled();
-    expect(runEmbeddedPiAgentSpy).not.toHaveBeenCalled();
+    expect(runEmbeddedAgentSpy).not.toHaveBeenCalled();
   });
 }
 
@@ -353,7 +358,7 @@ async function expectAcpCommandRejects(
 describe("agentCommand ACP runtime routing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    runEmbeddedPiAgentSpy.mockResolvedValue({
+    runEmbeddedAgentSpy.mockResolvedValue({
       payloads: [{ text: "embedded" }],
       meta: {
         durationMs: 5,
@@ -371,7 +376,7 @@ describe("agentCommand ACP runtime routing", () => {
       expect(runTurnInput?.sessionKey).toBe("agent:codex:acp:test");
       expect(runTurnInput?.text).toBe("  ping\n");
       expect(runTurnInput?.mode).toBe("prompt");
-      expect(runEmbeddedPiAgentSpy).not.toHaveBeenCalled();
+      expect(runEmbeddedAgentSpy).not.toHaveBeenCalled();
       const hasAckLog = vi
         .mocked(runtime.log)
         .mock.calls.some(([first]) => typeof first === "string" && first.includes("ACP_OK"));
@@ -441,7 +446,7 @@ describe("agentCommand ACP runtime routing", () => {
         "ACP metadata is missing",
       );
       expect(runTurn).not.toHaveBeenCalled();
-      expect(runEmbeddedPiAgentSpy).not.toHaveBeenCalled();
+      expect(runEmbeddedAgentSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -449,7 +454,7 @@ describe("agentCommand ACP runtime routing", () => {
     for (const acpOverrides of [
       { enabled: false },
       { dispatch: { enabled: false } },
-    ] satisfies Array<Partial<NonNullable<AstroclawConfig["acp"]>>>) {
+    ] satisfies Array<Partial<NonNullable<OpenClawConfig["acp"]>>>) {
       await runAcpSessionWithPolicyOverridesAndExpectBlocked({ acpOverrides });
     }
   });
@@ -474,7 +479,7 @@ describe("agentCommand ACP runtime routing", () => {
         "not allowed by policy",
       );
       expect(runTurn).not.toHaveBeenCalled();
-      expect(runEmbeddedPiAgentSpy).not.toHaveBeenCalled();
+      expect(runEmbeddedAgentSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -497,7 +502,7 @@ describe("agentCommand ACP runtime routing", () => {
       const runTurnInput = firstRunTurnInput(runTurn);
       expect(runTurnInput?.sessionKey).toBe("agent:kimi:acp:test");
       expect(runTurnInput?.text).toBe("ping");
-      expect(runEmbeddedPiAgentSpy).not.toHaveBeenCalled();
+      expect(runEmbeddedAgentSpy).not.toHaveBeenCalled();
     });
   });
 });
