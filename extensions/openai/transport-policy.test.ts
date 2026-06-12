@@ -1,4 +1,5 @@
-import type { ProviderRuntimeModel } from "astroclaw/plugin-sdk/plugin-entry";
+// Openai tests cover transport policy plugin behavior.
+import type { ProviderRuntimeModel } from "openclaw/plugin-sdk/plugin-entry";
 import { describe, expect, it } from "vitest";
 import {
   resolveOpenAITransportTurnState,
@@ -37,13 +38,13 @@ describe("openai transport policy", () => {
       transport: "websocket",
     });
     expect(state?.headers?.["x-client-request-id"]).toBe("session-123");
-    expect(state?.headers?.["x-astroclaw-session-id"]).toBe("session-123");
-    expect(state?.headers?.["x-astroclaw-turn-id"]).toBe("turn-123");
-    expect(state?.headers?.["x-astroclaw-turn-attempt"]).toBe("2");
-    expect(state?.metadata?.astroclaw_session_id).toBe("session-123");
-    expect(state?.metadata?.astroclaw_turn_id).toBe("turn-123");
-    expect(state?.metadata?.astroclaw_turn_attempt).toBe("2");
-    expect(state?.metadata?.astroclaw_transport).toBe("websocket");
+    expect(state?.headers?.["x-openclaw-session-id"]).toBe("session-123");
+    expect(state?.headers?.["x-openclaw-turn-id"]).toBe("turn-123");
+    expect(state?.headers?.["x-openclaw-turn-attempt"]).toBe("2");
+    expect(state?.metadata?.openclaw_session_id).toBe("session-123");
+    expect(state?.metadata?.openclaw_turn_id).toBe("turn-123");
+    expect(state?.metadata?.openclaw_turn_attempt).toBe("2");
+    expect(state?.metadata?.openclaw_transport).toBe("websocket");
   });
 
   it("skips turn state for proxy-like OpenAI routes", () => {
@@ -62,13 +63,13 @@ describe("openai transport policy", () => {
 
   it("keeps Codex request identity session-scoped while adding turn metadata", () => {
     const state = resolveOpenAITransportTurnState({
-      provider: "openai-codex",
+      provider: "openai",
       modelId: "gpt-5.4",
       model: {
         ...nativeModel,
-        provider: "openai-codex",
-        api: "openai-codex-responses",
-        baseUrl: "https://chatgpt.com/backend-api",
+        provider: "openai",
+        api: "openai-chatgpt-responses",
+        baseUrl: "https://chatgpt.com/backend-api/codex",
       },
       sessionId: "session-123",
       turnId: "turn-123",
@@ -76,9 +77,9 @@ describe("openai transport policy", () => {
       transport: "stream",
     });
     expect(state?.headers?.["x-client-request-id"]).toBe("session-123");
-    expect(state?.headers?.["x-astroclaw-session-id"]).toBe("session-123");
-    expect(state?.headers?.["x-astroclaw-turn-id"]).toBe("turn-123");
-    expect(state?.headers?.["x-astroclaw-turn-attempt"]).toBe("2");
+    expect(state?.headers?.["x-openclaw-session-id"]).toBe("session-123");
+    expect(state?.headers?.["x-openclaw-turn-id"]).toBe("turn-123");
+    expect(state?.headers?.["x-openclaw-turn-attempt"]).toBe("2");
   });
 
   it("returns websocket session headers and cooldown for native routes", () => {
@@ -89,7 +90,7 @@ describe("openai transport policy", () => {
       sessionId: "session-123",
     });
     expect(policy?.headers?.["x-client-request-id"]).toBe("session-123");
-    expect(policy?.headers?.["x-astroclaw-session-id"]).toBe("session-123");
+    expect(policy?.headers?.["x-openclaw-session-id"]).toBe("session-123");
     expect(policy?.degradeCooldownMs).toBe(60_000);
   });
 
@@ -105,24 +106,24 @@ describe("openai transport policy", () => {
       sessionId: "session-123",
     });
     expect(policy?.headers?.["x-client-request-id"]).toBe("session-123");
-    expect(policy?.headers?.["x-astroclaw-session-id"]).toBe("session-123");
+    expect(policy?.headers?.["x-openclaw-session-id"]).toBe("session-123");
     expect(policy?.degradeCooldownMs).toBe(60_000);
   });
 
   it("treats ChatGPT Codex backend routes as native OpenAI-family transports", () => {
     const policy = resolveOpenAIWebSocketSessionPolicy({
-      provider: "openai-codex",
+      provider: "openai",
       modelId: "gpt-5.4",
       model: {
         ...nativeModel,
-        provider: "openai-codex",
-        api: "openai-codex-responses",
-        baseUrl: "https://chatgpt.com/backend-api",
+        provider: "openai",
+        api: "openai-chatgpt-responses",
+        baseUrl: "https://chatgpt.com/backend-api/codex",
       },
       sessionId: "session-123",
     });
     expect(policy?.headers?.["x-client-request-id"]).toBe("session-123");
-    expect(policy?.headers?.["x-astroclaw-session-id"]).toBe("session-123");
+    expect(policy?.headers?.["x-openclaw-session-id"]).toBe("session-123");
     expect(policy?.degradeCooldownMs).toBe(60_000);
   });
 });
