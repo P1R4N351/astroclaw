@@ -1,15 +1,143 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { captureEnv } from "astroclaw/plugin-sdk/test-env";
+// Telegram tests cover action runtime plugin behavior.
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
+import { captureEnv } from "openclaw/plugin-sdk/test-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handleTelegramAction, telegramActionRuntime } from "./action-runtime.js";
 import { beginTelegramInboundEventDeliveryCorrelation } from "./inbound-event-delivery.js";
+import {
+  getTopicName,
+  resetTopicNameCacheForTest,
+  resolveTopicNameCacheScope,
+  setTelegramTopicNameStoreFactoryForTest,
+} from "./topic-name-cache.js";
 
 const originalTelegramActionRuntime = { ...telegramActionRuntime };
 const reactMessageTelegram = vi.fn(async () => ({ ok: true }));
-const sendMessageTelegram = vi.fn(async () => ({
-  messageId: "789",
-  chatId: "123",
-}));
+const sendMessageTelegram = vi.fn(
+  async (_to: string, _text: string, _opts?: Record<string, unknown>) => ({
+    messageId: "789",
+    chatId: "123",
+  }),
+);
+const sendDurableMessageBatch = vi.fn(
+  async (params: {
+    cfg: OpenClawConfig;
+    to: string;
+    accountId?: string;
+    payloads: Array<{
+      text?: string;
+      mediaUrl?: string;
+      mediaUrls?: string[];
+      audioAsVoice?: boolean;
+      delivery?: {
+        pin?: true | { enabled?: boolean; notify?: boolean; required?: boolean };
+      };
+      channelData?: { telegram?: { buttons?: unknown; quoteText?: string } };
+    }>;
+    replyToId?: string;
+    threadId?: string | number;
+    forceDocument?: boolean;
+    silent?: boolean;
+    gatewayClientScopes?: readonly string[];
+    session?: {
+      key?: string;
+      agentId?: string;
+      requesterAccountId?: string;
+    };
+    mediaAccess?: {
+      localRoots?: readonly string[];
+      readFile?: (filePath: string) => Promise<Buffer>;
+    };
+  }) => {
+    const payload = params.payloads[0] ?? {};
+    const mediaUrls = payload.mediaUrls?.length
+      ? payload.mediaUrls
+      : payload.mediaUrl
+        ? [payload.mediaUrl]
+        : [];
+    const telegramData = payload.channelData?.telegram;
+    const cfg = params.cfg as {
+      channels?: {
+        telegram?: {
+          botToken?: string;
+          accounts?: Record<string, { botToken?: string }>;
+        };
+      };
+    };
+    const token =
+      (params.accountId
+        ? cfg.channels?.telegram?.accounts?.[params.accountId]?.botToken
+        : undefined) ??
+      cfg.channels?.telegram?.botToken ??
+      process.env.TELEGRAM_BOT_TOKEN;
+    const baseOptions = {
+      cfg: params.cfg,
+      token,
+      accountId: params.accountId,
+      gatewayClientScopes: params.gatewayClientScopes,
+      replyToMessageId:
+        params.replyToId == null ? undefined : Number.parseInt(params.replyToId, 10),
+      messageThreadId:
+        params.threadId == null ? undefined : Number.parseInt(String(params.threadId), 10),
+      quoteText: telegramData?.quoteText,
+      asVoice: payload.audioAsVoice,
+      silent: params.silent,
+      forceDocument: params.forceDocument,
+      mediaLocalRoots: params.mediaAccess?.localRoots,
+      mediaReadFile: params.mediaAccess?.readFile,
+    };
+    const calls = mediaUrls.length > 0 ? mediaUrls : [undefined];
+    let last = { messageId: "789", chatId: "123" };
+    for (const [index, mediaUrl] of calls.entries()) {
+      last = await sendMessageTelegram(params.to, index === 0 ? (payload.text ?? "") : "", {
+        ...baseOptions,
+        ...(mediaUrl ? { mediaUrl } : {}),
+        ...(index === 0 && telegramData?.buttons ? { buttons: telegramData.buttons } : {}),
+      });
+    }
+    const pin =
+      payload.delivery?.pin === true
+        ? { enabled: true }
+        : payload.delivery?.pin && payload.delivery.pin.enabled
+          ? payload.delivery.pin
+          : undefined;
+    if (pin && last.messageId) {
+      try {
+        await pinMessageTelegram(params.to, last.messageId, {
+          cfg: params.cfg,
+          accountId: params.accountId,
+          notify: pin.notify,
+          verbose: false,
+          gatewayClientScopes: params.gatewayClientScopes,
+        });
+      } catch (err) {
+        if (pin.required) {
+          throw err;
+        }
+      }
+    }
+    return {
+      status: "sent",
+      results: [{ channel: "telegram", messageId: last.messageId, chatId: last.chatId }],
+      receipt: {
+        primaryPlatformMessageId: last.messageId,
+        platformMessageIds: [last.messageId],
+        parts: [
+          {
+            platformMessageId: last.messageId,
+            kind: mediaUrls.length > 0 ? "media" : "text",
+            index: 0,
+          },
+        ],
+        sentAt: Date.now(),
+      },
+    } as const;
+  },
+);
 const sendPollTelegram = vi.fn(async () => ({
   messageId: "790",
   chatId: "123",
@@ -25,23 +153,62 @@ const editMessageTelegram = vi.fn(async () => ({
   messageId: "456",
   chatId: "123",
 }));
+const editMessageReplyMarkupTelegram = vi.fn(async () => ({
+  ok: true,
+  messageId: "456",
+  chatId: "123",
+}));
 const editForumTopicTelegram = vi.fn(async () => ({
   ok: true,
   chatId: "123",
   messageThreadId: 42,
   name: "Renamed",
 }));
-const pinMessageTelegram = vi.fn(async () => ({
-  ok: true,
-  messageId: "789",
-  chatId: "123",
-}));
+const pinMessageTelegram = vi.fn(
+  async (_to: string, _messageId: string, _opts?: Record<string, unknown>) => ({
+    ok: true,
+    messageId: "789",
+    chatId: "123",
+  }),
+);
 const createForumTopicTelegram = vi.fn(async () => ({
   topicId: 99,
   name: "Topic",
   chatId: "123",
 }));
 let envSnapshot: ReturnType<typeof captureEnv>;
+
+type TopicNameEntryForTest = {
+  name: string;
+  iconColor?: number;
+  iconCustomEmojiId?: string;
+  closed?: boolean;
+  updatedAt: number;
+};
+
+const topicNameStoresForTest = new Map<string, Map<string, TopicNameEntryForTest>>();
+
+function installTopicNameStoreForTest() {
+  topicNameStoresForTest.clear();
+  setTelegramTopicNameStoreFactoryForTest((namespace) => {
+    const entries = topicNameStoresForTest.get(namespace) ?? new Map();
+    topicNameStoresForTest.set(namespace, entries);
+    return {
+      async register(key, value) {
+        entries.set(key, value);
+      },
+      async entries() {
+        return Array.from(entries, ([key, value]) => ({ key, value }));
+      },
+      async delete(key) {
+        return entries.delete(key);
+      },
+      async clear() {
+        entries.clear();
+      },
+    };
+  });
+}
 
 type MockCallSource = {
   mock: {
@@ -76,13 +243,13 @@ describe("handleTelegramAction", () => {
     emoji: "✅",
   } as const;
 
-  function reactionConfig(reactionLevel: "minimal" | "extensive" | "off" | "ack"): AstroclawConfig {
+  function reactionConfig(reactionLevel: "minimal" | "extensive" | "off" | "ack"): OpenClawConfig {
     return {
       channels: { telegram: { botToken: "tok", reactionLevel } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
-  function telegramConfig(overrides?: Record<string, unknown>): AstroclawConfig {
+  function telegramConfig(overrides?: Record<string, unknown>): OpenClawConfig {
     return {
       channels: {
         telegram: {
@@ -90,7 +257,11 @@ describe("handleTelegramAction", () => {
           ...overrides,
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
+  }
+
+  function topicCacheScopeFor(cfg: OpenClawConfig, accountId: string): string {
+    return resolveTopicNameCacheScope(resolveStorePath(cfg.session?.store, { agentId: accountId }));
   }
 
   async function sendInlineButtonsMessage(params: {
@@ -130,24 +301,30 @@ describe("handleTelegramAction", () => {
   }
 
   beforeEach(() => {
-    envSnapshot = captureEnv(["TELEGRAM_BOT_TOKEN"]);
+    envSnapshot = captureEnv(["OPENCLAW_STATE_DIR", "TELEGRAM_BOT_TOKEN"]);
+    resetTopicNameCacheForTest();
+    installTopicNameStoreForTest();
     Object.assign(telegramActionRuntime, originalTelegramActionRuntime, {
       reactMessageTelegram,
+      sendDurableMessageBatch,
       sendMessageTelegram,
       sendPollTelegram,
       sendStickerTelegram,
       deleteMessageTelegram,
       editMessageTelegram,
+      editMessageReplyMarkupTelegram,
       editForumTopicTelegram,
       pinMessageTelegram,
       createForumTopicTelegram,
     });
     reactMessageTelegram.mockClear();
+    sendDurableMessageBatch.mockClear();
     sendMessageTelegram.mockClear();
     sendPollTelegram.mockClear();
     sendStickerTelegram.mockClear();
     deleteMessageTelegram.mockClear();
     editMessageTelegram.mockClear();
+    editMessageReplyMarkupTelegram.mockClear();
     editForumTopicTelegram.mockClear();
     pinMessageTelegram.mockClear();
     createForumTopicTelegram.mockClear();
@@ -155,6 +332,9 @@ describe("handleTelegramAction", () => {
   });
 
   afterEach(() => {
+    setTelegramTopicNameStoreFactoryForTest(undefined);
+    resetTopicNameCacheForTest();
+    topicNameStoresForTest.clear();
     envSnapshot.restore();
   });
 
@@ -206,7 +386,7 @@ describe("handleTelegramAction", () => {
   it("soft-fails when messageId is missing", async () => {
     const cfg = {
       channels: { telegram: { botToken: "tok", reactionLevel: "minimal" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await handleTelegramAction(
       {
         action: "react",
@@ -218,6 +398,24 @@ describe("handleTelegramAction", () => {
     const details = resultDetails(result);
     expect(details.ok).toBe(false);
     expect(details.reason).toBe("missing_message_id");
+    expect(reactMessageTelegram).not.toHaveBeenCalled();
+  });
+
+  it("soft-fails fractional reaction message ids", async () => {
+    const result = await handleTelegramAction(
+      {
+        action: "react",
+        chatId: "123",
+        messageId: 456.5,
+        emoji: "✅",
+      },
+      reactionConfig("minimal"),
+    );
+
+    expect(resultDetails(result)).toMatchObject({
+      ok: false,
+      reason: "missing_message_id",
+    });
     expect(reactMessageTelegram).not.toHaveBeenCalled();
   });
 
@@ -241,7 +439,7 @@ describe("handleTelegramAction", () => {
   });
 
   it("rejects sticker actions when disabled by default", async () => {
-    const cfg = { channels: { telegram: { botToken: "tok" } } } as AstroclawConfig;
+    const cfg = { channels: { telegram: { botToken: "tok" } } } as OpenClawConfig;
     await expect(
       handleTelegramAction(
         {
@@ -258,7 +456,7 @@ describe("handleTelegramAction", () => {
   it("sends stickers when enabled", async () => {
     const cfg = {
       channels: { telegram: { botToken: "tok", actions: { sticker: true } } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     await handleTelegramAction(
       {
         action: "sendSticker",
@@ -276,7 +474,7 @@ describe("handleTelegramAction", () => {
   it("accepts shared sticker action aliases", async () => {
     const cfg = {
       channels: { telegram: { botToken: "tok", actions: { sticker: true } } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     await handleTelegramAction(
       {
         action: "sticker",
@@ -294,6 +492,52 @@ describe("handleTelegramAction", () => {
     expect(options.token).toBe("tok");
     expect(options.replyToMessageId).toBe(9);
     expect(options.messageThreadId).toBe(11);
+  });
+
+  it("treats null primary id aliases as absent", async () => {
+    await handleTelegramAction(
+      {
+        action: "sendSticker",
+        to: "123",
+        fileId: "sticker",
+        replyToMessageId: null,
+        replyTo: 9,
+        messageThreadId: null,
+        threadId: 11,
+      },
+      telegramConfig({ actions: { sticker: true } }),
+    );
+    const call = mockCall(sendStickerTelegram, 0, "sticker null aliases");
+    const options = requireRecord(call[2], "sticker null alias options");
+    expect(options.replyToMessageId).toBe(9);
+    expect(options.messageThreadId).toBe(11);
+  });
+
+  it("rejects fractional Telegram thread and reply ids before sending", async () => {
+    await expect(
+      handleTelegramAction(
+        {
+          action: "sendMessage",
+          to: "123",
+          content: "hello",
+          replyToMessageId: 9.5,
+        },
+        telegramConfig(),
+      ),
+    ).rejects.toThrow("replyToMessageId must be a positive integer.");
+    await expect(
+      handleTelegramAction(
+        {
+          action: "sendSticker",
+          to: "123",
+          fileId: "sticker",
+          threadId: 11.5,
+        },
+        telegramConfig({ actions: { sticker: true } }),
+      ),
+    ).rejects.toThrow("threadId must be a positive integer.");
+    expect(sendDurableMessageBatch).not.toHaveBeenCalled();
+    expect(sendStickerTelegram).not.toHaveBeenCalled();
   });
 
   it("removes reactions when remove flag set", async () => {
@@ -344,7 +588,7 @@ describe("handleTelegramAction", () => {
           actions: { reactions: false },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = await handleTelegramAction(
       {
         action: "react",
@@ -367,6 +611,10 @@ describe("handleTelegramAction", () => {
         content: "Hello, Telegram!",
       },
       telegramConfig(),
+      {
+        gatewayClientScopes: ["operator.write"],
+        sessionKey: "agent:main:telegram:direct:123",
+      },
     );
     const call = mockCall(sendMessageTelegram, 0, "text message");
     expect(call[0]).toBe("@testchannel");
@@ -374,6 +622,15 @@ describe("handleTelegramAction", () => {
     const options = requireRecord(call[2], "text message options");
     expect(options.token).toBe("tok");
     expect(options.mediaUrl).toBeUndefined();
+    const durableCall = mockCall(sendDurableMessageBatch, 0, "durable text message");
+    expect(requireRecord(durableCall[0], "durable text message params")).toMatchObject({
+      channel: "telegram",
+      to: "@testchannel",
+      durability: "required",
+      gatewayClientScopes: ["operator.write"],
+      session: { key: "agent:main:telegram:direct:123", agentId: "main" },
+      payloads: [{ text: "Hello, Telegram!" }],
+    });
     expect(result.content).toStrictEqual([
       {
         type: "text",
@@ -385,6 +642,155 @@ describe("handleTelegramAction", () => {
       messageId: "789",
       chatId: "123",
     });
+  });
+
+  it("persists sendMessage action deliveries before Telegram platform send", async () => {
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-telegram-action-durable-"));
+    const {
+      createOutboundTestPlugin,
+      createTestRegistry,
+      readQueuedDeliveryEntriesForTest,
+      setActivePluginRegistry,
+    } = await import("openclaw/plugin-sdk/plugin-test-runtime");
+    const readDurableQueueEntries = () => readQueuedDeliveryEntriesForTest(stateDir);
+    const sendText = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        const entries = readDurableQueueEntries();
+        expect(entries).toHaveLength(1);
+        expect(entries[0]).toMatchObject({
+          channel: "telegram",
+          to: "12345",
+          payloads: [
+            {
+              text: "times out after queue write",
+              delivery: { pin: { enabled: true, required: true } },
+            },
+          ],
+          session: { key: "agent:main:telegram:direct:12345", agentId: "main" },
+          gatewayClientScopes: ["operator.write"],
+          retryCount: 0,
+        });
+        throw new Error("telegram timeout");
+      })
+      .mockImplementationOnce(async () => {
+        const entries = readDurableQueueEntries();
+        const liveEntry = entries.find((entry) =>
+          JSON.stringify(entry.payloads).includes("delivers after queue write"),
+        );
+        expect(liveEntry).toMatchObject({
+          channel: "telegram",
+          to: "12345",
+          payloads: [{ text: "delivers after queue write" }],
+          retryCount: 0,
+        });
+        return { channel: "telegram", messageId: "tg-ok" };
+      });
+
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    telegramActionRuntime.sendDurableMessageBatch =
+      originalTelegramActionRuntime.sendDurableMessageBatch;
+    setActivePluginRegistry(
+      createTestRegistry([
+        {
+          pluginId: "telegram",
+          source: "test",
+          plugin: createOutboundTestPlugin({
+            id: "telegram",
+            outbound: {
+              deliveryMode: "direct",
+              deliveryCapabilities: {
+                durableFinal: {
+                  text: true,
+                  media: true,
+                  payload: true,
+                  silent: true,
+                  replyTo: true,
+                  thread: true,
+                  messageSendingHooks: true,
+                  batch: true,
+                },
+              },
+              sendText,
+            },
+          }),
+        },
+      ]),
+    );
+
+    try {
+      await expect(
+        handleTelegramAction(
+          {
+            action: "sendMessage",
+            to: "12345",
+            content: "times out after queue write",
+            delivery: { pin: { enabled: true, required: true } },
+          },
+          telegramConfig(),
+          {
+            gatewayClientScopes: ["operator.write"],
+            sessionKey: "agent:main:telegram:direct:12345",
+          },
+        ),
+      ).rejects.toThrow("telegram timeout");
+
+      const retryableEntries = readDurableQueueEntries();
+      expect(retryableEntries).toHaveLength(1);
+      expect(retryableEntries[0]).toMatchObject({
+        payloads: [
+          {
+            text: "times out after queue write",
+            delivery: { pin: { enabled: true, required: true } },
+          },
+        ],
+        retryCount: 1,
+      });
+      expect(String(retryableEntries[0]?.lastError)).toContain("telegram timeout");
+
+      const result = await handleTelegramAction(
+        {
+          action: "sendMessage",
+          to: "12345",
+          content: "delivers after queue write",
+        },
+        telegramConfig(),
+        { sessionKey: "agent:main:telegram:direct:12345" },
+      );
+
+      expect(result.details).toMatchObject({
+        ok: true,
+        messageId: "tg-ok",
+      });
+      expect(readDurableQueueEntries()).toHaveLength(1);
+      expect(readDurableQueueEntries()[0]).toMatchObject({
+        payloads: [
+          {
+            text: "times out after queue write",
+            delivery: { pin: { enabled: true, required: true } },
+          },
+        ],
+        retryCount: 1,
+      });
+    } finally {
+      setActivePluginRegistry(createTestRegistry([]));
+      fs.rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
+  it("normalizes legacy group targets for sendMessage actions", async () => {
+    await handleTelegramAction(
+      {
+        action: "sendMessage",
+        to: "group:-1001234567890:topic:77",
+        content: "Recovered",
+      },
+      telegramConfig(),
+    );
+
+    const call = mockCall(sendMessageTelegram, 0, "legacy group target");
+    expect(call[0]).toBe("-1001234567890:topic:77");
+    expect(call[1]).toBe("Recovered");
   });
 
   it("marks the matching inbound event delivered after a successful send", async () => {
@@ -550,6 +956,7 @@ describe("handleTelegramAction", () => {
         media: "https://example.com/image.jpg",
       },
       telegramConfig(),
+      { gatewayClientScopes: ["operator.write"] },
     );
     const call = mockCall(sendMessageTelegram, 0, "send alias");
     expect(call[0]).toBe("@testchannel");
@@ -557,6 +964,60 @@ describe("handleTelegramAction", () => {
     const options = requireRecord(call[2], "send alias options");
     expect(options.token).toBe("tok");
     expect(options.mediaUrl).toBe("https://example.com/image.jpg");
+  });
+
+  it.each(["path", "filePath"] as const)("uses top-level %s as sendMessage media", async (key) => {
+    const mediaPath = `/tmp/customer_support_${key}.png`;
+    await handleTelegramAction(
+      {
+        action: "sendMessage",
+        to: "telegram:-100123:topic:879",
+        message: "Productivity",
+        [key]: mediaPath,
+      },
+      telegramConfig(),
+    );
+    const call = mockCall(sendMessageTelegram, 0, `${key} media`);
+    expect(call[0]).toBe("telegram:-100123:topic:879");
+    expect(call[1]).toBe("Productivity");
+    const options = requireRecord(call[2], `${key} media options`);
+    expect(options.token).toBe("tok");
+    expect(options.mediaUrl).toBe(mediaPath);
+  });
+
+  it("sends all attachment paths as sendMessage media", async () => {
+    await handleTelegramAction(
+      {
+        action: "sendMessage",
+        to: "telegram:-100123:topic:879",
+        message: "1/2 Productivity",
+        attachments: [
+          {
+            type: "image",
+            path: "/tmp/customer_support_productivity.png",
+            name: "customer_support_productivity.png",
+          },
+          {
+            type: "image",
+            filePath: "/tmp/customer_support_resolution.png",
+            name: "customer_support_resolution.png",
+          },
+        ],
+      },
+      telegramConfig(),
+    );
+    const call = mockCall(sendMessageTelegram, 0, "attachment media");
+    expect(call[0]).toBe("telegram:-100123:topic:879");
+    expect(call[1]).toBe("1/2 Productivity");
+    const options = requireRecord(call[2], "attachment media options");
+    expect(options.token).toBe("tok");
+    expect(options.mediaUrl).toBe("/tmp/customer_support_productivity.png");
+    const followUpCall = mockCall(sendMessageTelegram, 1, "second attachment media");
+    expect(followUpCall[0]).toBe("telegram:-100123:topic:879");
+    expect(followUpCall[1]).toBe("");
+    const followUpOptions = requireRecord(followUpCall[2], "second attachment media options");
+    expect(followUpOptions.token).toBe("tok");
+    expect(followUpOptions.mediaUrl).toBe("/tmp/customer_support_resolution.png");
   });
 
   it("sends a poll", async () => {
@@ -591,6 +1052,22 @@ describe("handleTelegramAction", () => {
     expect(details.messageId).toBe("790");
     expect(details.chatId).toBe("123");
     expect(details.pollId).toBe("poll-1");
+  });
+
+  it("rejects fractional poll durations before sending", async () => {
+    await expect(
+      handleTelegramAction(
+        {
+          action: "poll",
+          to: "@testchannel",
+          question: "Ready?",
+          answers: ["Yes", "No"],
+          durationSeconds: 60.5,
+        },
+        telegramConfig(),
+      ),
+    ).rejects.toThrow("durationSeconds must be a positive integer.");
+    expect(sendPollTelegram).not.toHaveBeenCalled();
   });
 
   it("accepts shared poll action aliases", async () => {
@@ -668,6 +1145,39 @@ describe("handleTelegramAction", () => {
     ]);
   });
 
+  it("forwards gateway client scopes into Telegram send target resolution", async () => {
+    await handleTelegramAction(
+      {
+        action: "sendMessage",
+        to: "@testchannel",
+        content: "Hello from CLI",
+      },
+      telegramConfig(),
+      { gatewayClientScopes: ["operator.write"] },
+    );
+    const call = mockCall(sendMessageTelegram, 0, "gateway-scoped send");
+    expect(requireRecord(call[2], "gateway-scoped send options").gatewayClientScopes).toEqual([
+      "operator.write",
+    ]);
+  });
+
+  it("forwards gateway client scopes into Telegram poll target resolution", async () => {
+    await handleTelegramAction(
+      {
+        action: "poll",
+        to: "@testchannel",
+        question: "Ready?",
+        answers: ["Yes", "No"],
+      },
+      telegramConfig(),
+      { gatewayClientScopes: ["operator.write"] },
+    );
+    const call = mockCall(sendPollTelegram, 0, "gateway-scoped poll");
+    expect(requireRecord(call[2], "gateway-scoped poll options").gatewayClientScopes).toEqual([
+      "operator.write",
+    ]);
+  });
+
   it.each([
     {
       name: "react",
@@ -738,21 +1248,74 @@ describe("handleTelegramAction", () => {
         readCallOpts: (calls: unknown[][], argIndex: number) => Record<string, unknown>,
       ) => readCallOpts(editForumTopicTelegram.mock.calls as unknown[][], 2),
     },
-  ])("forwards resolved cfg for $name action", async ({ params, cfg, assertCall }) => {
-    const readCallOpts = (calls: unknown[][], argIndex: number): Record<string, unknown> => {
-      const args = calls[0];
-      if (!Array.isArray(args)) {
-        throw new Error("Expected Telegram action call args");
-      }
-      const opts = args[argIndex];
-      if (!opts || typeof opts !== "object") {
-        throw new Error("Expected Telegram action options object");
-      }
-      return opts as Record<string, unknown>;
-    };
-    await handleTelegramAction(params as Record<string, unknown>, cfg);
-    const opts = assertCall(readCallOpts);
-    expect(opts.cfg).toBe(cfg);
+  ])(
+    "forwards resolved cfg and gateway scopes for $name action",
+    async ({ params, cfg, assertCall }) => {
+      const readCallOpts = (calls: unknown[][], argIndex: number): Record<string, unknown> => {
+        const args = calls[0];
+        if (!Array.isArray(args)) {
+          throw new Error("Expected Telegram action call args");
+        }
+        const opts = args[argIndex];
+        if (!opts || typeof opts !== "object") {
+          throw new Error("Expected Telegram action options object");
+        }
+        return opts as Record<string, unknown>;
+      };
+      await handleTelegramAction(params as Record<string, unknown>, cfg, {
+        gatewayClientScopes: ["operator.write"],
+      });
+      const opts = assertCall(readCallOpts);
+      expect(opts.cfg).toBe(cfg);
+      expect(opts.gatewayClientScopes).toEqual(["operator.write"]);
+    },
+  );
+
+  it("stores created forum topic names in the account-scoped cache", async () => {
+    createForumTopicTelegram.mockResolvedValueOnce({
+      topicId: 99,
+      name: "Topic",
+      chatId: "-100123",
+    });
+    const cfg = {
+      ...telegramConfig({ actions: { createForumTopic: true } }),
+      session: { store: path.join(os.tmpdir(), "openclaw-telegram-action-sessions.json") },
+    } as OpenClawConfig;
+
+    await handleTelegramAction(
+      { action: "createForumTopic", accountId: "work", chatId: "alias-chat", name: "Topic" },
+      cfg,
+    );
+
+    const scope = topicCacheScopeFor(cfg, "work");
+    await expect(getTopicName("-100123", 99, scope)).resolves.toBe("Topic");
+    await expect(getTopicName("alias-chat", 99, scope)).resolves.toBeUndefined();
+  });
+
+  it("stores edited forum topic names in the account-scoped cache", async () => {
+    editForumTopicTelegram.mockResolvedValueOnce({
+      ok: true,
+      chatId: "-100123",
+      messageThreadId: 42,
+      name: "New",
+    });
+    const cfg = {
+      ...telegramConfig({ actions: { editForumTopic: true } }),
+      session: { store: path.join(os.tmpdir(), "openclaw-telegram-action-sessions.json") },
+    } as OpenClawConfig;
+
+    await handleTelegramAction(
+      {
+        action: "editForumTopic",
+        accountId: "work",
+        chatId: "alias-chat",
+        messageThreadId: 42,
+        name: "New",
+      },
+      cfg,
+    );
+
+    await expect(getTopicName("-100123", 42, topicCacheScopeFor(cfg, "work"))).resolves.toBe("New");
   });
 
   it.each([
@@ -866,6 +1429,50 @@ describe("handleTelegramAction", () => {
     ]);
   });
 
+  it("edits reply markup when editMessage only changes buttons", async () => {
+    await handleTelegramAction(
+      {
+        action: "editMessage",
+        chatId: "123456",
+        messageId: 321,
+        presentation: {
+          blocks: [
+            {
+              type: "buttons",
+              buttons: [{ label: "Open", url: "https://example.com" }],
+            },
+          ],
+        },
+      },
+      telegramConfig({ capabilities: { inlineButtons: "all" } }),
+    );
+
+    expect(editMessageTelegram).not.toHaveBeenCalled();
+    const call = mockCall(editMessageReplyMarkupTelegram, 0, "reply markup edit");
+    expect(call[0]).toBe("123456");
+    expect(call[1]).toBe(321);
+    expect(call[2]).toEqual([[{ text: "Open", url: "https://example.com" }]]);
+    expect(requireRecord(call[3], "reply markup edit options").token).toBe("tok");
+  });
+
+  it("uses Telegram caption edits when editMessage receives a caption", async () => {
+    await handleTelegramAction(
+      {
+        action: "editMessage",
+        chatId: "123456",
+        messageId: 321,
+        caption: "Updated caption",
+      },
+      telegramConfig(),
+    );
+
+    const call = mockCall(editMessageTelegram, 0, "caption edit");
+    expect(call[0]).toBe("123456");
+    expect(call[1]).toBe(321);
+    expect(call[2]).toBe("Updated caption");
+    expect(requireRecord(call[3], "caption edit options").editMode).toBe("caption");
+  });
+
   it("pins action sends when delivery pin is requested", async () => {
     await handleTelegramAction(
       {
@@ -875,6 +1482,7 @@ describe("handleTelegramAction", () => {
         delivery: { pin: { enabled: true } },
       },
       telegramConfig(),
+      { gatewayClientScopes: ["operator.write"] },
     );
 
     const call = mockCall(pinMessageTelegram, 0, "delivery pin");
@@ -883,6 +1491,11 @@ describe("handleTelegramAction", () => {
     const options = requireRecord(call[2], "delivery pin options");
     expect(options.accountId).toBeUndefined();
     expect(options.verbose).toBe(false);
+    expect(options.gatewayClientScopes).toEqual(["operator.write"]);
+    const durableCall = mockCall(sendDurableMessageBatch, 0, "durable delivery pin");
+    expect(requireRecord(durableCall[0], "durable delivery pin params")).toMatchObject({
+      payloads: [{ delivery: { pin: { enabled: true } } }],
+    });
   });
 
   it("passes delivery pin notify requests for action sends", async () => {
@@ -900,6 +1513,10 @@ describe("handleTelegramAction", () => {
     expect(call[0]).toBe("123456");
     expect(call[1]).toBe("789");
     expect(requireRecord(call[2], "delivery pin notify options").notify).toBe(true);
+    const durableCall = mockCall(sendDurableMessageBatch, 0, "durable delivery pin notify");
+    expect(requireRecord(durableCall[0], "durable delivery pin notify params")).toMatchObject({
+      payloads: [{ delivery: { pin: { enabled: true, notify: true } } }],
+    });
   });
 
   it("fails required action-send pins when pinning fails", async () => {
@@ -923,7 +1540,7 @@ describe("handleTelegramAction", () => {
       channels: {
         telegram: { botToken: "tok", actions: { sendMessage: false } },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     await expect(
       handleTelegramAction(
         {
@@ -941,7 +1558,7 @@ describe("handleTelegramAction", () => {
       channels: {
         telegram: { botToken: "tok", actions: { poll: false } },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     await expect(
       handleTelegramAction(
         {
@@ -958,7 +1575,7 @@ describe("handleTelegramAction", () => {
   it("deletes a message", async () => {
     const cfg = {
       channels: { telegram: { botToken: "tok" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     await handleTelegramAction(
       {
         action: "deleteMessage",
@@ -973,6 +1590,36 @@ describe("handleTelegramAction", () => {
     expect(requireRecord(call[2], "delete message options").token).toBe("tok");
   });
 
+  it("rejects fractional message ids before mutating messages", async () => {
+    const cfg = {
+      channels: { telegram: { botToken: "tok" } },
+    } as OpenClawConfig;
+
+    await expect(
+      handleTelegramAction(
+        {
+          action: "deleteMessage",
+          chatId: "123",
+          messageId: 456.5,
+        },
+        cfg,
+      ),
+    ).rejects.toThrow("messageId must be a positive integer.");
+    await expect(
+      handleTelegramAction(
+        {
+          action: "editMessage",
+          chatId: "123",
+          messageId: 456.5,
+          content: "updated",
+        },
+        cfg,
+      ),
+    ).rejects.toThrow("messageId must be a positive integer.");
+    expect(deleteMessageTelegram).not.toHaveBeenCalled();
+    expect(editMessageTelegram).not.toHaveBeenCalled();
+  });
+
   it("surfaces non-fatal delete warnings", async () => {
     deleteMessageTelegram.mockResolvedValueOnce({
       ok: false,
@@ -980,7 +1627,7 @@ describe("handleTelegramAction", () => {
     } as unknown as Awaited<ReturnType<typeof deleteMessageTelegram>>);
     const cfg = {
       channels: { telegram: { botToken: "tok" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await handleTelegramAction(
       {
@@ -1010,7 +1657,7 @@ describe("handleTelegramAction", () => {
       channels: {
         telegram: { botToken: "tok", actions: { deleteMessage: false } },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     await expect(
       handleTelegramAction(
         {
@@ -1025,7 +1672,7 @@ describe("handleTelegramAction", () => {
 
   it("throws on missing bot token for sendMessage", async () => {
     delete process.env.TELEGRAM_BOT_TOKEN;
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     await expect(
       handleTelegramAction(
         {
@@ -1041,7 +1688,7 @@ describe("handleTelegramAction", () => {
   it("allows inline buttons by default (allowlist)", async () => {
     const cfg = {
       channels: { telegram: { botToken: "tok" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     await handleTelegramAction(
       {
         action: "sendMessage",
@@ -1210,7 +1857,7 @@ describe("handleTelegramAction per-account gating", () => {
     >;
     topLevelBotToken?: string;
     topLevelActions?: { reactions?: boolean };
-  }): AstroclawConfig {
+  }): OpenClawConfig {
     return {
       channels: {
         telegram: {
@@ -1219,10 +1866,10 @@ describe("handleTelegramAction per-account gating", () => {
           accounts: params.accounts,
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
-  async function expectAccountStickerSend(cfg: AstroclawConfig, accountId = "media") {
+  async function expectAccountStickerSend(cfg: OpenClawConfig, accountId = "media") {
     await handleTelegramAction(
       { action: "sendSticker", to: "123", fileId: "sticker-id", accountId },
       cfg,
@@ -1251,7 +1898,7 @@ describe("handleTelegramAction per-account gating", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await expect(
       handleTelegramAction(
