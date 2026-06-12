@@ -1,3 +1,4 @@
+// Browser tests cover server context.stop running browser plugin behavior.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBrowserRouteContext } from "./server-context.js";
 import { makeBrowserProfile, makeBrowserServerState } from "./server-context.test-harness.js";
@@ -10,11 +11,11 @@ vi.mock("./pw-ai.js", () => pwAiMocks);
 vi.mock("./chrome.js", () => ({
   isChromeCdpReady: vi.fn(async () => true),
   isChromeReachable: vi.fn(async () => true),
-  launchAstroclawChrome: vi.fn(async () => {
+  launchOpenClawChrome: vi.fn(async () => {
     throw new Error("unexpected launch");
   }),
-  resolveAstroclawUserDataDir: vi.fn(() => "/tmp/astroclaw-test"),
-  stopAstroclawChrome: vi.fn(async () => {}),
+  resolveOpenClawUserDataDir: vi.fn(() => "/tmp/openclaw-test"),
+  stopOpenClawChrome: vi.fn(async () => {}),
 }));
 vi.mock("./chrome-mcp.js", () => ({
   closeChromeMcpSession: vi.fn(async () => false),
