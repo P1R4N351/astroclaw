@@ -1,3 +1,4 @@
+// Telegram plugin module implements bot message context.implicit mention support behavior.
 import { describe, expect, it } from "vitest";
 import { buildTelegramMessageContextForTest } from "./bot-message-context.test-harness.js";
 import { TELEGRAM_FORUM_SERVICE_FIELDS } from "./forum-service-message.js";
@@ -33,7 +34,7 @@ describe("buildTelegramMessageContext implicitMention forum service messages", (
             : {}),
           from: {
             id: params.replyFromId ?? BOT_ID,
-            first_name: "Astroclaw",
+            first_name: "OpenClaw",
             is_bot: params.replyFromIsBot ?? true,
           },
           ...params.replyToMessageExtra,
