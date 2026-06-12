@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Discord tests cover doctor plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import {
   collectDiscordMissingEnvTokenWarnings,
@@ -116,6 +117,150 @@ describe("discord doctor", () => {
       },
     });
     expect(mainTts?.edge).toBeUndefined();
+  });
+
+  it("does not move unsupported root and account tts provider aliases", () => {
+    const normalize = getDiscordCompatibilityNormalizer();
+
+    const result = normalize({
+      cfg: {
+        channels: {
+          discord: {
+            tts: {
+              edge: {
+                voice: "en-US-RootNeural",
+              },
+            },
+            voice: {
+              tts: {
+                edge: {
+                  voice: "en-US-VoiceNeural",
+                },
+              },
+            },
+            accounts: {
+              main: {
+                tts: {
+                  edge: {
+                    voice: "en-US-AccountNeural",
+                  },
+                },
+                voice: {
+                  tts: {
+                    edge: {
+                      voice: "en-US-AccountVoiceNeural",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      } as never,
+    });
+
+    expect(result.changes).toEqual([
+      "Moved channels.discord.accounts.main.voice.tts.edge → channels.discord.accounts.main.voice.tts.providers.microsoft.",
+      "Moved channels.discord.voice.tts.edge → channels.discord.voice.tts.providers.microsoft.",
+    ]);
+    const discordConfig = result.config.channels?.discord as
+      | {
+          tts?: Record<string, unknown>;
+          voice?: { tts?: Record<string, unknown> };
+          accounts?: {
+            main?: {
+              tts?: Record<string, unknown>;
+              voice?: { tts?: Record<string, unknown> };
+            };
+          };
+        }
+      | undefined;
+    expect(discordConfig?.tts).toEqual({
+      edge: {
+        voice: "en-US-RootNeural",
+      },
+    });
+    expect(discordConfig?.accounts?.main?.tts).toEqual({
+      edge: {
+        voice: "en-US-AccountNeural",
+      },
+    });
+    expect(discordConfig?.voice?.tts).toEqual({
+      providers: {
+        microsoft: {
+          voice: "en-US-VoiceNeural",
+        },
+      },
+    });
+    expect(discordConfig?.accounts?.main?.voice?.tts).toEqual({
+      providers: {
+        microsoft: {
+          voice: "en-US-AccountVoiceNeural",
+        },
+      },
+    });
+  });
+
+  it("removes unsupported Discord realtime wake names", () => {
+    const normalize = getDiscordCompatibilityNormalizer();
+
+    const result = normalize({
+      cfg: {
+        channels: {
+          discord: {
+            voice: {
+              realtime: {
+                wakeNames: ["Claw", "Claw Bot Helper", "Open Claw"],
+              },
+            },
+            accounts: {
+              work: {
+                voice: {
+                  realtime: {
+                    wakeNames: ["Work Bot Helper", "Work Bot"],
+                  },
+                },
+              },
+              invalid: {
+                voice: {
+                  realtime: {
+                    wakeNames: ["Only Three Words"],
+                  },
+                },
+              },
+              empty: {
+                voice: {
+                  realtime: {
+                    wakeNames: [],
+                  },
+                },
+              },
+            },
+          },
+        },
+      } as never,
+    });
+
+    expect(result.changes).toEqual([
+      "Shortened 1 unsupported channels.discord.accounts.work.voice.realtime.wakeNames entries to one or two words.",
+      "Shortened 1 unsupported channels.discord.accounts.invalid.voice.realtime.wakeNames entries to one or two words.",
+      "Removed empty channels.discord.accounts.empty.voice.realtime.wakeNames; unset wake names use the default agent/OpenClaw fallback.",
+      "Shortened 1 unsupported channels.discord.voice.realtime.wakeNames entries to one or two words.",
+    ]);
+    expect(result.config.channels?.discord?.voice?.realtime?.wakeNames).toEqual([
+      "Claw",
+      "Claw Bot",
+      "Open Claw",
+    ]);
+    expect(result.config.channels?.discord?.accounts?.work?.voice?.realtime?.wakeNames).toEqual([
+      "Work Bot",
+    ]);
+    expect(result.config.channels?.discord?.accounts?.invalid?.voice?.realtime?.wakeNames).toEqual([
+      "Only Three",
+    ]);
+    expect(result.config.channels?.discord?.accounts?.empty?.voice?.realtime?.wakeNames).toBe(
+      undefined,
+    );
   });
 
   it("moves legacy guild channel allow toggles into enabled", () => {
@@ -305,7 +450,7 @@ describe("discord doctor", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const hits = scanDiscordNumericIdEntries(cfg);
     expect(hits.map((hit) => hit.path)).toEqual([
@@ -328,9 +473,9 @@ describe("discord doctor", () => {
           guilds: { main: { users: [111], roles: [222] } },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
-    const result = maybeRepairDiscordNumericIds(cfg, "astroclaw doctor --fix");
+    const result = maybeRepairDiscordNumericIds(cfg, "openclaw doctor --fix");
     expect(result.config.channels?.discord?.allowFrom).toEqual(["123"]);
     expect(result.config.channels?.discord?.dm?.allowFrom).toEqual(["99"]);
     expect(result.config.channels?.discord?.guilds?.main?.users).toEqual(["111"]);
@@ -342,11 +487,11 @@ describe("discord doctor", () => {
   it("formats repair guidance for unsafe numeric ids", () => {
     const warnings = collectDiscordNumericIdWarnings({
       hits: [{ path: "channels.discord.allowFrom[0]", entry: 106232522769186816, safe: false }],
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(warnings[0]).toContain("cannot be auto-repaired");
-    expect(warnings[1]).toContain("astroclaw doctor --fix");
+    expect(warnings[1]).toContain("openclaw doctor --fix");
   });
 
   it("warns when default env fallback token is missing after migration", async () => {
@@ -356,7 +501,7 @@ describe("discord doctor", () => {
           allowFrom: ["123"],
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const missingTokenWarning =
       "- channels.discord: default account has no available bot token, and DISCORD_BOT_TOKEN is absent in this doctor environment. After migration, verify DISCORD_BOT_TOKEN is present in the state-dir .env or configure channels.discord.token / channels.discord.accounts.default.token as a SecretRef.";
@@ -369,7 +514,7 @@ describe("discord doctor", () => {
     expect(
       await discordDoctor.collectPreviewWarnings?.({
         cfg,
-        doctorFixCommand: "astroclaw doctor --fix",
+        doctorFixCommand: "openclaw doctor --fix",
         env: {},
       }),
     ).toStrictEqual([missingTokenWarning]);
@@ -386,7 +531,7 @@ describe("discord doctor", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     expect(collectDiscordMissingEnvTokenWarnings({ cfg, env: {} })).toStrictEqual([]);
   });
