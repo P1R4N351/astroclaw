@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Whatsapp tests cover outbound adapter.poll plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
@@ -6,9 +7,9 @@ const hoisted = vi.hoisted(() => ({
   sendReactionWhatsApp: vi.fn(async () => undefined),
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
-    "astroclaw/plugin-sdk/runtime-env",
+vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
+    "openclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -34,7 +35,7 @@ describe("whatsappOutbound sendPoll", () => {
   });
 
   it("threads cfg through poll send options", async () => {
-    const cfg = { marker: "resolved-cfg" } as AstroclawConfig;
+    const cfg = { marker: "resolved-cfg" } as OpenClawConfig;
     const poll = {
       question: "Lunch?",
       options: ["Pizza", "Sushi"],
