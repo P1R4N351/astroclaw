@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Tests reset hook fallback behavior inside the get-reply directive pipeline.
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildNativeResetContext,
   createGetReplyContinueDirectivesResult,
@@ -42,9 +43,12 @@ function createContinueDirectivesResult(resetHookTriggered: boolean) {
 }
 
 describe("getReplyFromConfig reset-hook fallback", () => {
-  beforeEach(async () => {
+  beforeAll(async () => {
     await loadGetReplyRuntimeForTest();
-    vi.stubEnv("ASTROCLAW_ALLOW_SLOW_REPLY_TESTS", "1");
+  });
+
+  beforeEach(() => {
+    vi.stubEnv("OPENCLAW_ALLOW_SLOW_REPLY_TESTS", "1");
     mocks.resolveReplyDirectives.mockReset();
     mocks.handleInlineActions.mockReset();
     mocks.emitResetCommandHooks.mockReset();
