@@ -1,7 +1,9 @@
+/** Tests plugin install command handling and config updates. */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { withTempHome } from "../../config/home-env.test-harness.js";
+import { expectObjectFields, mockFirstObjectArg } from "../../test-utils/mock-call-assertions.js";
 import { createCommandWorkspaceHarness } from "./commands-filesystem.test-support.js";
 import { handlePluginsCommand } from "./commands-plugins.js";
 import { buildPluginsCommandParams } from "./commands.test-harness.js";
@@ -55,7 +57,7 @@ vi.mock("../../cli/plugins-install-persist.js", () => ({
   persistPluginInstall: persistPluginInstallMock,
 }));
 
-const workspaceHarness = createCommandWorkspaceHarness("astroclaw-command-plugins-install-");
+const workspaceHarness = createCommandWorkspaceHarness("openclaw-command-plugins-install-");
 
 function buildPluginsParams(commandBodyNormalized: string, workspaceDir: string) {
   return buildPluginsCommandParams({
@@ -63,33 +65,6 @@ function buildPluginsParams(commandBodyNormalized: string, workspaceDir: string)
     workspaceDir,
     gatewayClientScopes: ["operator.admin", "operator.write", "operator.pairing"],
   });
-}
-
-function mockCall(mock: unknown, index = 0): Array<unknown> {
-  const calls = (mock as { mock?: { calls?: Array<Array<unknown>> } }).mock?.calls ?? [];
-  const call = calls.at(index);
-  if (!call) {
-    throw new Error(`Expected mock call ${index + 1}`);
-  }
-  return call;
-}
-
-function mockFirstObjectArg(mock: unknown): Record<string, unknown> {
-  const [arg] = mockCall(mock);
-  if (!arg || typeof arg !== "object") {
-    throw new Error("expected first mock argument object");
-  }
-  return arg as Record<string, unknown>;
-}
-
-function expectObjectFields(value: unknown, expected: Record<string, unknown>): void {
-  if (!value || typeof value !== "object") {
-    throw new Error("expected object fields");
-  }
-  const record = value as Record<string, unknown>;
-  for (const [key, expectedValue] of Object.entries(expected)) {
-    expect(record[key], key).toEqual(expectedValue);
-  }
 }
 
 function expectPersistedInstall(pluginId: string, expectedInstall: Record<string, unknown>): void {
@@ -118,7 +93,7 @@ describe("handleCommands /plugins install", () => {
     });
     persistPluginInstallMock.mockResolvedValue({});
 
-    await withTempHome("astroclaw-command-plugins-home-", async () => {
+    await withTempHome("openclaw-command-plugins-home-", async () => {
       const workspaceDir = await workspaceHarness.createWorkspace();
       const pluginDir = path.join(workspaceDir, "fixtures", "path-install-plugin");
       await fs.mkdir(pluginDir, { recursive: true });
@@ -146,11 +121,11 @@ describe("handleCommands /plugins install", () => {
       targetDir: "/tmp/clawhub-demo",
       version: "1.2.3",
       extensions: ["index.js"],
-      packageName: "@astroclaw/clawhub-demo",
+      packageName: "@openclaw/clawhub-demo",
       clawhub: {
         source: "clawhub",
         clawhubUrl: "https://clawhub.ai",
-        clawhubPackage: "@astroclaw/clawhub-demo",
+        clawhubPackage: "@openclaw/clawhub-demo",
         clawhubFamily: "code-plugin",
         clawhubChannel: "official",
         version: "1.2.3",
@@ -160,10 +135,10 @@ describe("handleCommands /plugins install", () => {
     });
     persistPluginInstallMock.mockResolvedValue({});
 
-    await withTempHome("astroclaw-command-plugins-home-", async () => {
+    await withTempHome("openclaw-command-plugins-home-", async () => {
       const workspaceDir = await workspaceHarness.createWorkspace();
       const params = buildPluginsParams(
-        "/plugins install clawhub:@astroclaw/clawhub-demo@1.2.3",
+        "/plugins install clawhub:@openclaw/clawhub-demo@1.2.3",
         workspaceDir,
       );
       const result = await handlePluginsCommand(params, true);
@@ -172,25 +147,25 @@ describe("handleCommands /plugins install", () => {
       }
       expect(result.reply?.text).toContain('Installed plugin "clawhub-demo"');
       expect(mockFirstObjectArg(installPluginFromClawHubMock).spec).toBe(
-        "clawhub:@astroclaw/clawhub-demo@1.2.3",
+        "clawhub:@openclaw/clawhub-demo@1.2.3",
       );
       expectPersistedInstall("clawhub-demo", {
         source: "clawhub",
-        spec: "clawhub:@astroclaw/clawhub-demo@1.2.3",
+        spec: "clawhub:@openclaw/clawhub-demo@1.2.3",
         installPath: "/tmp/clawhub-demo",
         version: "1.2.3",
         integrity: "sha512-demo",
-        clawhubPackage: "@astroclaw/clawhub-demo",
+        clawhubPackage: "@openclaw/clawhub-demo",
         clawhubChannel: "official",
       });
     });
   });
 
   it("refuses plugin installs in Nix mode before package installer side effects", async () => {
-    const previousNixMode = process.env.ASTROCLAW_NIX_MODE;
-    process.env.ASTROCLAW_NIX_MODE = "1";
+    const previousNixMode = process.env.OPENCLAW_NIX_MODE;
+    process.env.OPENCLAW_NIX_MODE = "1";
     try {
-      await withTempHome("astroclaw-command-plugins-home-", async () => {
+      await withTempHome("openclaw-command-plugins-home-", async () => {
         const workspaceDir = await workspaceHarness.createWorkspace();
         const params = buildPluginsParams("/plugins install @acme/demo", workspaceDir);
         const result = await handlePluginsCommand(params, true);
@@ -198,8 +173,8 @@ describe("handleCommands /plugins install", () => {
           throw new Error("expected plugin install result");
         }
 
-        expect(result.reply?.text).toContain("ASTROCLAW_NIX_MODE=1");
-        expect(result.reply?.text).toContain("nix-astroclaw#quick-start");
+        expect(result.reply?.text).toContain("OPENCLAW_NIX_MODE=1");
+        expect(result.reply?.text).toContain("nix-openclaw#quick-start");
         expect(installPluginFromNpmSpecMock).not.toHaveBeenCalled();
         expect(installPluginFromPathMock).not.toHaveBeenCalled();
         expect(installPluginFromClawHubMock).not.toHaveBeenCalled();
@@ -208,9 +183,9 @@ describe("handleCommands /plugins install", () => {
       });
     } finally {
       if (previousNixMode === undefined) {
-        delete process.env.ASTROCLAW_NIX_MODE;
+        delete process.env.OPENCLAW_NIX_MODE;
       } else {
-        process.env.ASTROCLAW_NIX_MODE = previousNixMode;
+        process.env.OPENCLAW_NIX_MODE = previousNixMode;
       }
     }
   });
@@ -231,7 +206,7 @@ describe("handleCommands /plugins install", () => {
     });
     persistPluginInstallMock.mockResolvedValue({});
 
-    await withTempHome("astroclaw-command-plugins-home-", async () => {
+    await withTempHome("openclaw-command-plugins-home-", async () => {
       const workspaceDir = await workspaceHarness.createWorkspace();
       const params = buildPluginsParams(
         "/plugins install git:github.com/acme/git-demo@v1.2.3",
@@ -264,11 +239,11 @@ describe("handleCommands /plugins install", () => {
       targetDir: "/tmp/alias-demo",
       version: "1.0.0",
       extensions: ["index.js"],
-      packageName: "@astroclaw/alias-demo",
+      packageName: "@openclaw/alias-demo",
       clawhub: {
         source: "clawhub",
         clawhubUrl: "https://clawhub.ai",
-        clawhubPackage: "@astroclaw/alias-demo",
+        clawhubPackage: "@openclaw/alias-demo",
         clawhubFamily: "code-plugin",
         clawhubChannel: "official",
         version: "1.0.0",
@@ -278,10 +253,10 @@ describe("handleCommands /plugins install", () => {
     });
     persistPluginInstallMock.mockResolvedValue({});
 
-    await withTempHome("astroclaw-command-plugins-home-", async () => {
+    await withTempHome("openclaw-command-plugins-home-", async () => {
       const workspaceDir = await workspaceHarness.createWorkspace();
       const params = buildPluginsParams(
-        "/plugin add clawhub:@astroclaw/alias-demo@1.0.0",
+        "/plugin add clawhub:@openclaw/alias-demo@1.0.0",
         workspaceDir,
       );
       const result = await handlePluginsCommand(params, true);
@@ -290,7 +265,7 @@ describe("handleCommands /plugins install", () => {
       }
       expect(result.reply?.text).toContain('Installed plugin "alias-demo"');
       expect(mockFirstObjectArg(installPluginFromClawHubMock).spec).toBe(
-        "clawhub:@astroclaw/alias-demo@1.0.0",
+        "clawhub:@openclaw/alias-demo@1.0.0",
       );
     });
   });
@@ -298,44 +273,44 @@ describe("handleCommands /plugins install", () => {
   it("trusts catalog npm package installs with alternate selectors", async () => {
     installPluginFromNpmSpecMock.mockResolvedValue({
       ok: true,
-      pluginId: "wecom-astroclaw-plugin",
-      targetDir: "/tmp/wecom-astroclaw-plugin",
+      pluginId: "wecom-openclaw-plugin",
+      targetDir: "/tmp/wecom-openclaw-plugin",
       version: "2026.4.23",
       extensions: ["index.js"],
       npmResolution: {
-        name: "@wecom/wecom-astroclaw-plugin",
+        name: "@wecom/wecom-openclaw-plugin",
         version: "2026.4.23",
-        resolvedSpec: "@wecom/wecom-astroclaw-plugin@2026.4.23",
+        resolvedSpec: "@wecom/wecom-openclaw-plugin@2026.4.23",
         integrity: "sha512-wecom",
         resolvedAt: "2026-05-04T20:00:00.000Z",
       },
     });
     persistPluginInstallMock.mockResolvedValue({});
 
-    await withTempHome("astroclaw-command-plugins-home-", async () => {
+    await withTempHome("openclaw-command-plugins-home-", async () => {
       const workspaceDir = await workspaceHarness.createWorkspace();
       const params = buildPluginsParams(
-        "/plugins install @wecom/wecom-astroclaw-plugin@latest",
+        "/plugins install @wecom/wecom-openclaw-plugin@latest",
         workspaceDir,
       );
       const result = await handlePluginsCommand(params, true);
       if (result === null) {
         throw new Error("expected plugin install result");
       }
-      expect(result.reply?.text).toContain('Installed plugin "wecom-astroclaw-plugin"');
+      expect(result.reply?.text).toContain('Installed plugin "wecom-openclaw-plugin"');
       const npmInstallArgs = mockFirstObjectArg(installPluginFromNpmSpecMock);
       expectObjectFields(npmInstallArgs, {
-        spec: "@wecom/wecom-astroclaw-plugin@latest",
-        expectedPluginId: "wecom-astroclaw-plugin",
+        spec: "@wecom/wecom-openclaw-plugin@latest",
+        expectedPluginId: "wecom-openclaw-plugin",
         trustedSourceLinkedOfficialInstall: true,
       });
       expect(npmInstallArgs.expectedIntegrity).toBeUndefined();
-      expectPersistedInstall("wecom-astroclaw-plugin", {
+      expectPersistedInstall("wecom-openclaw-plugin", {
         source: "npm",
-        spec: "@wecom/wecom-astroclaw-plugin@latest",
-        installPath: "/tmp/wecom-astroclaw-plugin",
+        spec: "@wecom/wecom-openclaw-plugin@latest",
+        installPath: "/tmp/wecom-openclaw-plugin",
         version: "2026.4.23",
-        resolvedName: "@wecom/wecom-astroclaw-plugin",
+        resolvedName: "@wecom/wecom-openclaw-plugin",
         resolvedVersion: "2026.4.23",
       });
     });
