@@ -1,3 +1,4 @@
+// Onboard command tests cover guided setup entrypoints, setup aliases, and CLI messaging.
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { formatCliCommand } from "../cli/command-format.js";
@@ -24,7 +25,7 @@ vi.mock("../config/config.js", () => ({
 }));
 
 vi.mock("./onboard-helpers.js", () => ({
-  DEFAULT_WORKSPACE: "~/.astroclaw/workspace",
+  DEFAULT_WORKSPACE: "~/.openclaw/workspace",
   handleReset: mocks.handleReset,
 }));
 
@@ -69,7 +70,7 @@ describe("setupWizardCommand", () => {
 
     expect(runtime.error).toHaveBeenCalledOnce();
     expect(runtime.error).toHaveBeenCalledWith(
-      `Invalid --secret-input-mode. Use "plaintext" or "ref", or run ${formatCliCommand("astroclaw onboard")} for the interactive setup.`,
+      `Invalid --secret-input-mode. Use "plaintext" or "ref", or run ${formatCliCommand("openclaw onboard")} for the interactive setup.`,
     );
     expect(runtime.exit).toHaveBeenCalledWith(1);
     expect(mocks.runInteractiveSetup).not.toHaveBeenCalled();
@@ -85,10 +86,10 @@ describe("setupWizardCommand", () => {
 
       expect(runtime.log).toHaveBeenCalledWith(
         [
-          "Windows detected - Astroclaw runs great on WSL2!",
+          "Windows detected - OpenClaw runs great on WSL2!",
           "Native Windows might be trickier.",
           "Quick setup: wsl --install (one command, one reboot)",
-          "Guide: https://docs.astroclaw.ai/windows",
+          "Guide: https://docs.openclaw.ai/windows",
         ].join("\n"),
       );
     } finally {
@@ -117,7 +118,7 @@ describe("setupWizardCommand", () => {
       config: {
         agents: {
           defaults: {
-            workspace: "/tmp/astroclaw-custom-workspace",
+            workspace: "/tmp/openclaw-custom-workspace",
           },
         },
       },
@@ -132,7 +133,7 @@ describe("setupWizardCommand", () => {
 
     expect(mocks.handleReset).toHaveBeenCalledWith(
       "config+creds+sessions",
-      path.resolve("/tmp/astroclaw-custom-workspace"),
+      path.resolve("/tmp/openclaw-custom-workspace"),
       runtime,
     );
   });
@@ -164,7 +165,7 @@ describe("setupWizardCommand", () => {
 
     expect(runtime.error).toHaveBeenCalledOnce();
     expect(runtime.error).toHaveBeenCalledWith(
-      `Invalid --reset-scope. Use "config", "config+creds+sessions", or "full". Run ${formatCliCommand("astroclaw onboard --reset --reset-scope config")} for a config-only reset.`,
+      `Invalid --reset-scope. Use "config", "config+creds+sessions", or "full". Run ${formatCliCommand("openclaw onboard --reset --reset-scope config")} for a config-only reset.`,
     );
     expect(runtime.exit).toHaveBeenCalledWith(1);
     expect(mocks.handleReset).not.toHaveBeenCalled();
