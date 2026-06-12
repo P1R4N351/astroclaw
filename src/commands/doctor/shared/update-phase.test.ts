@@ -1,13 +1,19 @@
+// Update phase tests cover doctor behavior during staged update phases.
 import { describe, expect, it } from "vitest";
 import {
+  UPDATE_DEFER_CONFIGURED_PLUGIN_INSTALL_REPAIR_ENV,
   UPDATE_IN_PROGRESS_ENV,
+  UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE_ENV,
   UPDATE_POST_CORE_CONVERGENCE_ENV,
+  isLegacyPackageUpdateDoctorPass,
+  isLegacyParentWritableUpdateDoctorPass,
   isPostCoreConvergencePass,
   isUpdatePackageSwapInProgress,
+  shouldDeferConfiguredPluginInstallRepair,
 } from "./update-phase.js";
 
 describe("update-phase env helpers", () => {
-  it("treats only ASTROCLAW_UPDATE_IN_PROGRESS=1 as package-swap-in-progress", () => {
+  it("treats only OPENCLAW_UPDATE_IN_PROGRESS=1 as package-swap-in-progress", () => {
     expect(isUpdatePackageSwapInProgress({ [UPDATE_IN_PROGRESS_ENV]: "1" })).toBe(true);
     expect(isUpdatePackageSwapInProgress({ [UPDATE_IN_PROGRESS_ENV]: "0" })).toBe(false);
     expect(isUpdatePackageSwapInProgress({})).toBe(false);
@@ -29,5 +35,80 @@ describe("update-phase env helpers", () => {
     };
     expect(isUpdatePackageSwapInProgress(env)).toBe(false);
     expect(isPostCoreConvergencePass(env)).toBe(true);
+  });
+
+  it("defers configured plugin repair for post-core handoffs", () => {
+    expect(
+      shouldDeferConfiguredPluginInstallRepair({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+      }),
+    ).toBe(false);
+    expect(
+      shouldDeferConfiguredPluginInstallRepair({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+        [UPDATE_DEFER_CONFIGURED_PLUGIN_INSTALL_REPAIR_ENV]: "1",
+      }),
+    ).toBe(true);
+    expect(
+      shouldDeferConfiguredPluginInstallRepair({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+        [UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE_ENV]: "1",
+      }),
+    ).toBe(true);
+    expect(
+      shouldDeferConfiguredPluginInstallRepair({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+        [UPDATE_DEFER_CONFIGURED_PLUGIN_INSTALL_REPAIR_ENV]: "1",
+        [UPDATE_POST_CORE_CONVERGENCE_ENV]: "1",
+      }),
+    ).toBe(false);
+  });
+
+  it("identifies legacy package update doctor passes", () => {
+    expect(
+      isLegacyPackageUpdateDoctorPass({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+      }),
+    ).toBe(true);
+    expect(
+      isLegacyPackageUpdateDoctorPass({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+        [UPDATE_DEFER_CONFIGURED_PLUGIN_INSTALL_REPAIR_ENV]: "1",
+      }),
+    ).toBe(false);
+    expect(
+      isLegacyPackageUpdateDoctorPass({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+        [UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE_ENV]: "1",
+      }),
+    ).toBe(false);
+    expect(
+      isLegacyPackageUpdateDoctorPass({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+        [UPDATE_POST_CORE_CONVERGENCE_ENV]: "1",
+      }),
+    ).toBe(false);
+  });
+
+  it("identifies writable legacy parents that need old-readable config writes", () => {
+    expect(
+      isLegacyParentWritableUpdateDoctorPass({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+        [UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE_ENV]: "1",
+      }),
+    ).toBe(true);
+    expect(
+      isLegacyParentWritableUpdateDoctorPass({
+        [UPDATE_IN_PROGRESS_ENV]: "1",
+        [UPDATE_DEFER_CONFIGURED_PLUGIN_INSTALL_REPAIR_ENV]: "1",
+        [UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE_ENV]: "1",
+      }),
+    ).toBe(false);
+    expect(
+      isLegacyParentWritableUpdateDoctorPass({
+        [UPDATE_POST_CORE_CONVERGENCE_ENV]: "1",
+        [UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE_ENV]: "1",
+      }),
+    ).toBe(false);
   });
 });
