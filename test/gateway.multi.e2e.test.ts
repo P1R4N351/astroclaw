@@ -1,3 +1,4 @@
+// Gateway multi E2E tests validate multi-gateway runtime behavior.
 import { afterAll, describe, expect, it } from "vitest";
 import { GatewayClient } from "../src/gateway/client.js";
 import {
@@ -38,7 +39,7 @@ describe("gateway multi-instance e2e", () => {
             text: "wake a",
             mode: "now",
           },
-          { "x-astroclaw-token": gwA.hookToken },
+          { "x-openclaw-token": gwA.hookToken },
         ),
         postJson(
           `http://127.0.0.1:${gwB.port}/hooks/wake`,
@@ -46,7 +47,7 @@ describe("gateway multi-instance e2e", () => {
             text: "wake b",
             mode: "now",
           },
-          { "x-astroclaw-token": gwB.hookToken },
+          { "x-openclaw-token": gwB.hookToken },
         ),
       ]);
       expect(hookResA.status).toBe(200);
