@@ -1,3 +1,4 @@
+/** Tests inactive channel variants in secrets runtime collection. */
 import { describe, expect, it } from "vitest";
 import "./runtime-channel-inactive-variants.test-support.ts";
 import {
@@ -31,7 +32,7 @@ describe("secrets runtime snapshot channel inactive variants", () => {
         },
       }),
       env: {},
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -62,7 +63,7 @@ describe("secrets runtime snapshot channel inactive variants", () => {
         },
       }),
       env: {},
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -97,7 +98,7 @@ describe("secrets runtime snapshot channel inactive variants", () => {
         },
       }),
       env: {},
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -137,7 +138,7 @@ describe("secrets runtime snapshot channel inactive variants", () => {
         },
       }),
       env: {},
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -182,7 +183,7 @@ describe("secrets runtime snapshot channel inactive variants", () => {
       env: {
         GOOGLECHAT_WORK_SERVICE_ACCOUNT: "work-service-account-json",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
