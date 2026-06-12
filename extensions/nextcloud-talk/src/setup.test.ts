@@ -1,7 +1,8 @@
+// Nextcloud Talk tests cover setup plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/routing";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/routing";
 import { describe, expect, it } from "vitest";
 import { resolveNextcloudTalkAccount } from "./accounts.js";
 import {
@@ -372,7 +373,7 @@ describe("resolveNextcloudTalkAccount", () => {
   });
 
   it.runIf(process.platform !== "win32")("rejects symlinked botSecretFile paths", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-nextcloud-talk-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-nextcloud-talk-"));
     const secretFile = path.join(dir, "secret.txt");
     const secretLink = path.join(dir, "secret-link.txt");
     fs.writeFileSync(secretFile, "bot-secret\n", "utf8");
@@ -387,9 +388,9 @@ describe("resolveNextcloudTalkAccount", () => {
       },
     } as CoreConfig;
 
-    const account = resolveNextcloudTalkAccount({ cfg });
-    expect(account.secret).toBe("");
-    expect(account.secretSource).toBe("none");
+    expect(() => resolveNextcloudTalkAccount({ cfg })).toThrow(
+      /Nextcloud Talk bot secret file.*must not be a symlink/,
+    );
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
