@@ -1,10 +1,12 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Synology Chat tests cover core plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
 import {
   createPluginSetupWizardConfigure,
   createTestWizardPrompter,
   runSetupWizardConfigure,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import type { WizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { WizardPrompter } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { listAccountIds, resolveAccount } from "./accounts.js";
 import { SynologyChatChannelConfigSchema } from "./config-schema.js";
@@ -24,7 +26,7 @@ const synologyChatSetupPlugin = {
   config: {
     listAccountIds,
     defaultAccountId: () => "default",
-    resolveAllowFrom: ({ cfg, accountId }: { cfg: AstroclawConfig; accountId?: string }) =>
+    resolveAllowFrom: ({ cfg, accountId }: { cfg: OpenClawConfig; accountId?: string }) =>
       resolveAccount(cfg, accountId).allowedUserIds,
   },
 };
@@ -86,7 +88,7 @@ describe("synology-chat core", () => {
     delete process.env.SYNOLOGY_NAS_HOST;
     delete process.env.SYNOLOGY_ALLOWED_USER_IDS;
     delete process.env.SYNOLOGY_RATE_LIMIT;
-    delete process.env.ASTROCLAW_BOT_NAME;
+    delete process.env.OPENCLAW_BOT_NAME;
   });
 
   it("exports dangerouslyAllowNameMatching in the JSON schema", () => {
@@ -131,7 +133,7 @@ describe("synology-chat core", () => {
 
     const result = await runSetupWizardConfigure({
       configure: synologyChatConfigure,
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       prompter,
       options: {},
     });
@@ -151,7 +153,7 @@ describe("synology-chat core", () => {
 
     const result = await runSetupWizardConfigure({
       configure: synologyChatConfigure,
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       prompter,
       options: {},
       forceAllowFrom: true,
@@ -206,14 +208,14 @@ describe("synology-chat account resolution", () => {
     expect(account.dangerouslyAllowInheritedWebhookPath).toBe(false);
     expect(account.dmPolicy).toBe("allowlist");
     expect(account.rateLimitPerMinute).toBe(30);
-    expect(account.botName).toBe("Astroclaw");
+    expect(account.botName).toBe("OpenClaw");
   });
 
   it("uses env var fallbacks", () => {
     process.env.SYNOLOGY_CHAT_TOKEN = "env-tok";
     process.env.SYNOLOGY_CHAT_INCOMING_URL = "https://nas/incoming";
     process.env.SYNOLOGY_NAS_HOST = "192.0.2.1";
-    process.env.ASTROCLAW_BOT_NAME = "TestBot";
+    process.env.OPENCLAW_BOT_NAME = "TestBot";
 
     const cfg = { channels: { "synology-chat": {} } };
     const account = resolveAccount(cfg);
@@ -324,6 +326,28 @@ describe("synology-chat account resolution", () => {
 
     process.env.SYNOLOGY_RATE_LIMIT = "0abc";
     expect(resolveAccount({ channels: { "synology-chat": {} } }).rateLimitPerMinute).toBe(30);
+
+    process.env.SYNOLOGY_RATE_LIMIT = "-1";
+    expect(resolveAccount({ channels: { "synology-chat": {} } }).rateLimitPerMinute).toBe(30);
+  });
+
+  it("ignores malformed configured rate limits", () => {
+    process.env.SYNOLOGY_RATE_LIMIT = "12";
+
+    expect(
+      resolveAccount({
+        channels: {
+          "synology-chat": { rateLimitPerMinute: -1 },
+        },
+      }).rateLimitPerMinute,
+    ).toBe(12);
+    expect(
+      resolveAccount({
+        channels: {
+          "synology-chat": { rateLimitPerMinute: 1.5 },
+        },
+      }).rateLimitPerMinute,
+    ).toBe(12);
   });
 });
 
@@ -423,5 +447,24 @@ describe("synology-chat security helpers", () => {
     expect(capped.check("user3")).toBe(true);
     expect(capped.check("user4")).toBe(true);
     expect(capped.size()).toBeLessThanOrEqual(3);
+  });
+
+  it("caps oversized rate limit windows before constructing the limiter", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    try {
+      const limiter = new RateLimiter(1, Number.MAX_SAFE_INTEGER);
+
+      expect(limiter.check("user1")).toBe(true);
+      expect(limiter.check("user1")).toBe(false);
+
+      vi.setSystemTime(MAX_TIMER_TIMEOUT_MS - 1);
+      expect(limiter.check("user1")).toBe(false);
+
+      vi.setSystemTime(MAX_TIMER_TIMEOUT_MS);
+      expect(limiter.check("user1")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
