@@ -1,3 +1,4 @@
+// Targeted Docker Lane Groups tests cover targeted docker lane groups script behavior.
 import { describe, expect, it } from "vitest";
 import { planTargetedDockerLaneGroups } from "../../scripts/plan-targeted-docker-lane-groups.mjs";
 
@@ -24,7 +25,7 @@ describe("scripts/plan-targeted-docker-lane-groups", () => {
         lanes:
           "doctor-switch update-channel-switch published-upgrade-survivor plugins-offline plugin-update",
         upgradeSurvivorBaselines:
-          "astroclaw@2026.5.3-1 astroclaw@2026.5.3 astroclaw@2026.5.2 astroclaw@2026.4.23",
+          "openclaw@2026.5.3-1 openclaw@2026.5.3 openclaw@2026.5.2 openclaw@2026.4.23",
       }),
     ).toEqual([
       {
@@ -34,22 +35,22 @@ describe("scripts/plan-targeted-docker-lane-groups", () => {
       {
         docker_lanes: "published-upgrade-survivor",
         label: "published-upgrade-survivor-2026.5.3-1",
-        published_upgrade_survivor_baselines: "astroclaw@2026.5.3-1",
+        published_upgrade_survivor_baselines: "openclaw@2026.5.3-1",
       },
       {
         docker_lanes: "published-upgrade-survivor",
         label: "published-upgrade-survivor-2026.5.3",
-        published_upgrade_survivor_baselines: "astroclaw@2026.5.3",
+        published_upgrade_survivor_baselines: "openclaw@2026.5.3",
       },
       {
         docker_lanes: "published-upgrade-survivor",
         label: "published-upgrade-survivor-2026.5.2",
-        published_upgrade_survivor_baselines: "astroclaw@2026.5.2",
+        published_upgrade_survivor_baselines: "openclaw@2026.5.2",
       },
       {
         docker_lanes: "published-upgrade-survivor",
         label: "published-upgrade-survivor-2026.4.23",
-        published_upgrade_survivor_baselines: "astroclaw@2026.4.23",
+        published_upgrade_survivor_baselines: "openclaw@2026.4.23",
       },
       { docker_lanes: "plugins-offline plugin-update", label: "plugins-offline--plugin-update" },
     ]);
@@ -59,10 +60,25 @@ describe("scripts/plan-targeted-docker-lane-groups", () => {
     expect(
       planTargetedDockerLaneGroups({
         lanes: "published-upgrade-survivor",
-        upgradeSurvivorBaselines: "astroclaw@2026.5.2",
+        upgradeSurvivorBaselines: "openclaw@2026.5.2",
       }),
     ).toEqual([
       { docker_lanes: "published-upgrade-survivor", label: "published-upgrade-survivor" },
     ]);
+  });
+
+  it("rejects malformed group size values", () => {
+    expect(() =>
+      planTargetedDockerLaneGroups({
+        groupSize: "2x",
+        lanes: "doctor-switch update-channel-switch",
+      }),
+    ).toThrow("groupSize must be a positive integer");
+    expect(() =>
+      planTargetedDockerLaneGroups({
+        groupSize: 0,
+        lanes: "doctor-switch update-channel-switch",
+      }),
+    ).toThrow("groupSize must be a positive integer");
   });
 });
