@@ -1,12 +1,14 @@
-import type { AstroclawPluginApi } from "./types.js";
+// Builds plugin API facades exposed to bundled and external plugins.
+import type { OpenClawPluginApi } from "./types.js";
 
 type PluginApiFacadeFields = Pick<
-  AstroclawPluginApi,
+  OpenClawPluginApi,
   "agent" | "lifecycle" | "runContext" | "session"
 >;
-export type AstroclawPluginApiWithoutFacades = Omit<AstroclawPluginApi, keyof PluginApiFacadeFields>;
+/** Plugin API shape without nested facade namespaces attached. */
+export type OpenClawPluginApiWithoutFacades = Omit<OpenClawPluginApi, keyof PluginApiFacadeFields>;
 type PluginApiFacadeSource = Pick<
-  AstroclawPluginApi,
+  OpenClawPluginApi,
   | "clearRunContext"
   | "emitAgentEvent"
   | "enqueueNextTurnInjection"
@@ -23,6 +25,7 @@ type PluginApiFacadeSource = Pick<
   | "unscheduleSessionTurnsByTag"
 >;
 
+/** Attaches nested facade namespaces to the flat plugin API implementation. */
 export function attachPluginApiFacades<T extends object>(
   api: T & PluginApiFacadeSource & Partial<PluginApiFacadeFields>,
 ): T & PluginApiFacadeFields {
