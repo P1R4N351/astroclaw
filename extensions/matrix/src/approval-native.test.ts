@@ -1,10 +1,11 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Matrix tests cover approval native plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { matrixApprovalCapability } from "./approval-native.js";
 
 function buildConfig(
-  overrides?: Partial<NonNullable<NonNullable<AstroclawConfig["channels"]>["matrix"]>>,
-): AstroclawConfig {
+  overrides?: Partial<NonNullable<NonNullable<OpenClawConfig["channels"]>["matrix"]>>,
+): OpenClawConfig {
   return {
     channels: {
       matrix: {
@@ -19,7 +20,7 @@ function buildConfig(
         ...overrides,
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 describe("matrix approval capability", () => {
