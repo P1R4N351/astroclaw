@@ -1,17 +1,18 @@
+// Whatsapp tests cover channel actions plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   describeWhatsAppMessageActions,
   resolveWhatsAppAgentReactionGuidance,
 } from "./channel-actions.js";
-import type { AstroclawConfig } from "./runtime-api.js";
+import type { OpenClawConfig } from "./runtime-api.js";
 
 const hoisted = vi.hoisted(() => ({
-  listWhatsAppAccountIds: vi.fn((cfg: AstroclawConfig) => {
+  listWhatsAppAccountIds: vi.fn((cfg: OpenClawConfig) => {
     const accountIds = Object.keys(cfg.channels?.whatsapp?.accounts ?? {});
     return accountIds.length > 0 ? accountIds : ["default"];
   }),
   resolveWhatsAppAccount: vi.fn(
-    ({ cfg, accountId }: { cfg: AstroclawConfig; accountId?: string | null }) => ({
+    ({ cfg, accountId }: { cfg: OpenClawConfig; accountId?: string | null }) => ({
       enabled:
         accountId == null ? true : cfg.channels?.whatsapp?.accounts?.[accountId]?.enabled !== false,
     }),
@@ -35,7 +36,7 @@ vi.mock("./channel-actions.runtime.js", async () => {
       cfg,
       accountId,
     }: {
-      cfg: AstroclawConfig;
+      cfg: OpenClawConfig;
       accountId?: string;
     }) => {
       const accountLevel =
@@ -65,7 +66,7 @@ describe("whatsapp channel action helpers", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveWhatsAppAgentReactionGuidance({ cfg, accountId: "default" })).toBe("minimal");
   });
@@ -73,7 +74,7 @@ describe("whatsapp channel action helpers", () => {
   it("omits reaction guidance when WhatsApp is not configured", () => {
     expect(
       resolveWhatsAppAgentReactionGuidance({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: "default",
       }),
     ).toBeUndefined();
@@ -87,7 +88,7 @@ describe("whatsapp channel action helpers", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveWhatsAppAgentReactionGuidance({ cfg, accountId: "default" })).toBe("minimal");
   });
@@ -100,7 +101,7 @@ describe("whatsapp channel action helpers", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveWhatsAppAgentReactionGuidance({ cfg, accountId: "default" })).toBeUndefined();
   });
@@ -113,7 +114,7 @@ describe("whatsapp channel action helpers", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveWhatsAppAgentReactionGuidance({ cfg, accountId: "default" })).toBeUndefined();
   });
@@ -125,17 +126,18 @@ describe("whatsapp channel action helpers", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(describeWhatsAppMessageActions({ cfg, accountId: "default" })?.actions).toEqual([
       "react",
       "poll",
+      "upload-file",
     ]);
   });
 
   it("returns null when WhatsApp is not configured", () => {
     expect(
-      describeWhatsAppMessageActions({ cfg: {} as AstroclawConfig, accountId: "default" }),
+      describeWhatsAppMessageActions({ cfg: {} as OpenClawConfig, accountId: "default" }),
     ).toBeNull();
   });
 
@@ -147,10 +149,11 @@ describe("whatsapp channel action helpers", () => {
           allowFrom: ["*"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(describeWhatsAppMessageActions({ cfg, accountId: "default" })?.actions).toEqual([
       "poll",
+      "upload-file",
     ]);
   });
 
@@ -167,11 +170,12 @@ describe("whatsapp channel action helpers", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(describeWhatsAppMessageActions({ cfg, accountId: "work" })?.actions).toEqual([
       "react",
       "poll",
+      "upload-file",
     ]);
   });
 
@@ -188,10 +192,14 @@ describe("whatsapp channel action helpers", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     hoisted.listWhatsAppAccountIds.mockReturnValue(["default", "work"]);
 
-    expect(describeWhatsAppMessageActions({ cfg })?.actions).toEqual(["react", "poll"]);
+    expect(describeWhatsAppMessageActions({ cfg })?.actions).toEqual([
+      "react",
+      "poll",
+      "upload-file",
+    ]);
   });
 
   it("omits react in global discovery when only disabled accounts enable agent reactions", () => {
@@ -208,9 +216,9 @@ describe("whatsapp channel action helpers", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     hoisted.listWhatsAppAccountIds.mockReturnValue(["default", "work"]);
 
-    expect(describeWhatsAppMessageActions({ cfg })?.actions).toEqual(["poll"]);
+    expect(describeWhatsAppMessageActions({ cfg })?.actions).toEqual(["poll", "upload-file"]);
   });
 });
