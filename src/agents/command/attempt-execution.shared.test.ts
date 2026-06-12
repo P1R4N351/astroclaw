@@ -1,3 +1,5 @@
+// Covers shared attempt-execution helpers for prompt materialization and
+// guarded session-store persistence.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,6 +16,8 @@ import {
 import type { AgentCommandOpts } from "./types.js";
 
 function makeTaskCompletionEvents(): NonNullable<AgentCommandOpts["internalEvents"]> {
+  // The result deliberately contains internal markers to prove child output
+  // cannot spoof OpenClaw runtime-context envelopes.
   return [
     {
       type: "task_completion",
@@ -37,11 +41,11 @@ function makeTaskCompletionEvents(): NonNullable<AgentCommandOpts["internalEvent
 }
 
 describe("attempt execution prompt materialization", () => {
-  it("materializes ACP internal events without Astroclaw internal runtime markers", () => {
+  it("materializes ACP internal events without OpenClaw internal runtime markers", () => {
     const events = makeTaskCompletionEvents();
     const body = [
       INTERNAL_RUNTIME_CONTEXT_BEGIN,
-      "Astroclaw runtime context (internal):",
+      "OpenClaw runtime context (internal):",
       "hidden completion event",
       INTERNAL_RUNTIME_CONTEXT_END,
       "",
@@ -50,6 +54,8 @@ describe("attempt execution prompt materialization", () => {
 
     const prompt = resolveAcpPromptBody(body, events);
 
+    // ACP receives visible event text, while private runtime envelopes stay out
+    // of the model-facing prompt.
     expect(prompt).toContain("A background task completed.");
     expect(prompt).toContain("inspect ACP delivery");
     expect(prompt).toContain("child result");
@@ -66,7 +72,7 @@ describe("attempt execution prompt materialization", () => {
     const transcriptBody = resolveInternalEventTranscriptBody(
       [
         INTERNAL_RUNTIME_CONTEXT_BEGIN,
-        "Astroclaw runtime context (internal):",
+        "OpenClaw runtime context (internal):",
         "hidden completion event",
         INTERNAL_RUNTIME_CONTEXT_END,
       ].join("\n"),
@@ -82,7 +88,7 @@ describe("attempt execution prompt materialization", () => {
 
 describe("persistSessionEntry", () => {
   it("clears stale local entries when guarded persistence sees no persisted entry", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-session-store-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-session-store-"));
     try {
       const storePath = path.join(dir, "sessions.json");
       const sessionStore = {
@@ -92,6 +98,8 @@ describe("persistSessionEntry", () => {
         },
       };
 
+      // A guarded write can decline persistence after rereading disk; local
+      // memory must be cleared too so later turns do not reuse stale entries.
       const persisted = await persistSessionEntry({
         sessionStore,
         sessionKey: "main",
