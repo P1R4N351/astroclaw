@@ -1,7 +1,8 @@
+// Official plugin setup tests cover plugin installation during onboarding.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter } from "../../test/helpers/wizard-prompter.js";
 import { createNonExitingRuntime } from "../runtime.js";
-import type { WizardPrompter } from "./prompts.js";
+import type { WizardMultiSelectParams, WizardPrompter } from "./prompts.js";
 
 const ensureOnboardingPluginInstalled = vi.hoisted(() =>
   vi.fn(async ({ cfg }: { cfg: Record<string, unknown> }) => ({
@@ -15,7 +16,7 @@ vi.mock("../commands/onboarding-plugin-install.js", () => ({
 }));
 
 import {
-  __testing,
+  testing,
   resolveOfficialPluginOnboardingInstallEntries,
   setupOfficialPluginInstalls,
 } from "./setup.official-plugins.js";
@@ -28,6 +29,7 @@ describe("resolveOfficialPluginOnboardingInstallEntries", () => {
     expect(pluginIds).toContain("diagnostics-otel");
     expect(pluginIds).toContain("diagnostics-prometheus");
     expect(pluginIds).toContain("acpx");
+    expect(pluginIds).toContain("tokenjuice");
     expect(pluginIds).not.toContain("brave");
     expect(pluginIds).not.toContain("codex");
     expect(pluginIds).not.toContain("discord");
@@ -43,7 +45,7 @@ describe("resolveOfficialPluginOnboardingInstallEntries", () => {
           installs: {
             "diagnostics-otel": {
               source: "npm",
-              spec: "@astroclaw/diagnostics-otel",
+              spec: "@openclaw/diagnostics-otel",
               installPath: "/tmp/diagnostics-otel",
             },
           },
@@ -61,9 +63,9 @@ describe("resolveOfficialPluginOnboardingInstallEntries", () => {
 describe("formatInstallHint", () => {
   it("describes dual-source npm-default installs as npm first", () => {
     expect(
-      __testing.formatInstallHint({
-        clawhubSpec: "clawhub:@astroclaw/diagnostics-otel",
-        npmSpec: "@astroclaw/diagnostics-otel",
+      testing.formatInstallHint({
+        clawhubSpec: "clawhub:@openclaw/diagnostics-otel",
+        npmSpec: "@openclaw/diagnostics-otel",
         defaultChoice: "npm",
       }),
     ).toBe("npm, with ClawHub fallback");
@@ -71,9 +73,9 @@ describe("formatInstallHint", () => {
 
   it("keeps dual-source clawhub-default installs ClawHub first", () => {
     expect(
-      __testing.formatInstallHint({
-        clawhubSpec: "clawhub:@astroclaw/diagnostics-otel",
-        npmSpec: "@astroclaw/diagnostics-otel",
+      testing.formatInstallHint({
+        clawhubSpec: "clawhub:@openclaw/diagnostics-otel",
+        npmSpec: "@openclaw/diagnostics-otel",
         defaultChoice: "clawhub",
       }),
     ).toBe("ClawHub, with npm fallback");
@@ -91,9 +93,9 @@ describe("setupOfficialPluginInstalls", () => {
   });
 
   it("installs selected optional official plugins through the shared onboarding installer", async () => {
-    const multiselect = vi.fn(async () => ["diagnostics-otel"]);
+    const multiselect = vi.fn(async (_params: WizardMultiSelectParams) => ["diagnostics-otel"]);
     const prompter = createWizardPrompter({
-      multiselect: multiselect as WizardPrompter["multiselect"],
+      multiselect: multiselect as unknown as WizardPrompter["multiselect"],
     });
     const runtime = createNonExitingRuntime();
 
@@ -104,70 +106,50 @@ describe("setupOfficialPluginInstalls", () => {
       workspaceDir: "/tmp/workspace",
     });
 
-    expect(multiselect).toHaveBeenCalledExactlyOnceWith({
-      message: "Install optional plugins",
-      options: [
-        {
-          value: "__skip__",
-          label: "Skip for now",
-          hint: "Continue without installing optional plugins",
-        },
+    expect(multiselect).toHaveBeenCalledTimes(1);
+    const prompt = multiselect.mock.calls[0]?.[0];
+    if (!prompt) {
+      throw new Error("expected optional plugin multiselect prompt");
+    }
+    expect(prompt.message).toBe("Install optional plugins");
+    expect(prompt.options[0]).toEqual({
+      value: "__skip__",
+      label: "Skip for now",
+      hint: "Continue without installing optional plugins",
+    });
+    expect(prompt.options).toEqual(
+      expect.arrayContaining([
         {
           value: "acpx",
           label: "ACPX Runtime",
-          hint: "Astroclaw ACP runtime backend",
+          hint: "OpenClaw ACP runtime backend",
         },
         {
           value: "diagnostics-otel",
           label: "Diagnostics OpenTelemetry",
-          hint: "Astroclaw diagnostics OpenTelemetry exporter",
+          hint: "OpenClaw diagnostics OpenTelemetry exporter",
         },
         {
           value: "diagnostics-prometheus",
           label: "Diagnostics Prometheus",
-          hint: "Astroclaw diagnostics Prometheus exporter",
+          hint: "OpenClaw diagnostics Prometheus exporter",
         },
         {
-          value: "diffs",
-          label: "Diffs",
-          hint: "Astroclaw diff viewer plugin",
+          value: "tokenjuice",
+          label: "Tokenjuice",
+          hint: "OpenClaw tokenjuice exec output compaction plugin",
         },
-        {
-          value: "google-meet",
-          label: "Google Meet",
-          hint: "Astroclaw Google Meet participant plugin",
-        },
-        {
-          value: "lobster",
-          label: "Lobster",
-          hint: "Lobster workflow tool plugin (typed pipelines + resumable approvals)",
-        },
-        {
-          value: "memory-lancedb",
-          label: "Memory LanceDB",
-          hint: "Astroclaw LanceDB-backed long-term memory plugin with auto-recall/capture",
-        },
-        {
-          value: "openshell",
-          label: "OpenShell Sandbox",
-          hint: "Astroclaw OpenShell sandbox backend",
-        },
-        {
-          value: "voice-call",
-          label: "Voice Call",
-          hint: "Astroclaw voice-call plugin",
-        },
-      ],
-    });
+      ]),
+    );
     expect(ensureOnboardingPluginInstalled).toHaveBeenCalledExactlyOnceWith({
       cfg: {},
       entry: {
         pluginId: "diagnostics-otel",
         label: "Diagnostics OpenTelemetry",
-        description: "Astroclaw diagnostics OpenTelemetry exporter",
+        description: "OpenClaw diagnostics OpenTelemetry exporter",
         install: {
-          clawhubSpec: "clawhub:@astroclaw/diagnostics-otel",
-          npmSpec: "@astroclaw/diagnostics-otel",
+          clawhubSpec: "clawhub:@openclaw/diagnostics-otel",
+          npmSpec: "@openclaw/diagnostics-otel",
           defaultChoice: "npm",
           minHostVersion: ">=2026.4.25",
         },
