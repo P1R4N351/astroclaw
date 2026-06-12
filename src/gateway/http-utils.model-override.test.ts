@@ -1,6 +1,9 @@
+/**
+ * Tests HTTP model override parsing from gateway request headers and URLs.
+ */
 import type { IncomingMessage } from "node:http";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 
 const loadConfigMock = vi.fn();
 const loadGatewayModelCatalogMock = vi.fn();
@@ -34,7 +37,7 @@ describe("resolveOpenAiCompatModelOverride", () => {
           },
         },
       },
-    } satisfies AstroclawConfig);
+    } satisfies OpenClawConfig);
     loadGatewayModelCatalogMock
       .mockReset()
       .mockResolvedValue([{ id: "gpt-5.4", name: "GPT 5.4", provider: "openai" }]);
@@ -43,9 +46,9 @@ describe("resolveOpenAiCompatModelOverride", () => {
   it("rejects CLI model overrides outside the configured allowlist", async () => {
     await expect(
       resolveOpenAiCompatModelOverride({
-        req: createReq({ "x-astroclaw-model": "claude-cli/opus" }),
+        req: createReq({ "x-openclaw-model": "claude-cli/opus" }),
         agentId: "main",
-        model: "astroclaw",
+        model: "openclaw",
       }),
     ).resolves.toEqual({
       errorMessage: "Model 'claude-cli/opus' is not allowed for agent 'main'.",
