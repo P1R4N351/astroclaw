@@ -1,10 +1,11 @@
+// Onboard search provider tests cover provider discovery, credential reuse, and search setup choices.
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
 
 const mocks = vi.hoisted(() => ({
   resolvePluginWebSearchProviders: vi.fn<
-    (params?: { config?: AstroclawConfig }) => PluginWebSearchProviderEntry[]
+    (params?: { config?: OpenClawConfig }) => PluginWebSearchProviderEntry[]
   >(() => []),
   resolveWebSearchInstallCatalogEntries: vi.fn(() => []),
 }));
@@ -109,7 +110,7 @@ describe("onboard-search provider resolution", () => {
       params?.config ? [customEntry] : [],
     );
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         web: {
           search: {
@@ -149,7 +150,7 @@ describe("onboard-search provider resolution", () => {
       params?.config ? [customEntry] : [],
     );
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       plugins: {
         installs: {
           "custom-plugin": {
@@ -196,7 +197,7 @@ describe("onboard-search provider resolution", () => {
   it("does not treat hard-disabled bundled providers as selectable credentials", () => {
     mocks.resolvePluginWebSearchProviders.mockReturnValue([]);
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         web: {
           search: {
@@ -245,7 +246,7 @@ describe("onboard-search provider resolution", () => {
       progress: vi.fn(() => ({ update: vi.fn(), stop: vi.fn() })),
     };
 
-    const result = await mod.setupSearch({} as AstroclawConfig, {} as never, prompter as never);
+    const result = await mod.setupSearch({} as OpenClawConfig, {} as never, prompter as never);
 
     expect(result.tools?.web?.search?.provider).toBe("duckduckgo");
     expect(result.plugins?.entries?.duckduckgo?.enabled).toBe(true);
