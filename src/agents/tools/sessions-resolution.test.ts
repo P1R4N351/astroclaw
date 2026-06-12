@@ -1,5 +1,7 @@
+// Sessions resolution tests cover alias mapping, session-id lookup, visibility
+// verification, and requester-spawned access checks.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 const callGatewayMock = vi.fn();
 vi.mock("../../gateway/call.js", () => ({
   callGateway: (opts: unknown) => callGatewayMock(opts),
@@ -51,7 +53,7 @@ describe("resolveMainSessionAlias", () => {
   it("uses normalized main key and global alias for global scope", () => {
     const cfg = {
       session: { mainKey: " Primary ", scope: "global" },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveMainSessionAlias(cfg)).toEqual({
       mainKey: "primary",
@@ -61,7 +63,7 @@ describe("resolveMainSessionAlias", () => {
   });
 
   it("falls back to per-sender defaults", () => {
-    expect(resolveMainSessionAlias({} as AstroclawConfig)).toEqual({
+    expect(resolveMainSessionAlias({} as OpenClawConfig)).toEqual({
       mainKey: "main",
       alias: "main",
       scope: "per-sender",
@@ -72,7 +74,7 @@ describe("resolveMainSessionAlias", () => {
     const cfg = {
       session: { mainKey: "  work ", scope: "per-sender" },
       routing: { sessions: { mainKey: "legacy-main" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveMainSessionAlias(cfg)).toEqual({
       mainKey: "work",
@@ -124,11 +126,11 @@ describe("session key display/internal mapping", () => {
   it("maps interactive client ids to the requester session", () => {
     expect(
       resolveCurrentSessionClientAlias({
-        key: "astroclaw-tui",
+        key: "openclaw-tui",
         requesterInternalKey: "agent:main:main",
       }),
     ).toBe("agent:main:main");
-    expect(resolveCurrentSessionClientAlias({ key: "astroclaw-tui" })).toBeUndefined();
+    expect(resolveCurrentSessionClientAlias({ key: "openclaw-tui" })).toBeUndefined();
     expect(
       resolveCurrentSessionClientAlias({
         key: "node-host",
@@ -218,6 +220,8 @@ describe("resolved session visibility checks", () => {
   });
 
   it("does not hide an exact spawned target behind the sessions.list visibility cap", async () => {
+    // Exact spawned-session resolution should not depend on a truncated list
+    // response; otherwise high-volume session stores hide valid children.
     callGatewayMock.mockImplementation(
       async (request: { method?: string; params?: { key?: string } }) => {
         if (request.method === "sessions.resolve") {
@@ -331,7 +335,7 @@ describe("resolveSessionReference", () => {
 
   it("treats the TUI client label as the requester session", async () => {
     const result = await resolveSessionReference({
-      sessionKey: "astroclaw-tui",
+      sessionKey: "openclaw-tui",
       alias: "main",
       mainKey: "main",
       requesterInternalKey: "agent:main:main",
