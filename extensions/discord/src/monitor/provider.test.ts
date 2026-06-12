@@ -1,6 +1,8 @@
+// Discord tests cover provider plugin behavior.
 import { EventEmitter } from "node:events";
-import type { ChannelRuntimeSurface } from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract";
+import { createPluginRuntimeMock } from "openclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { RateLimitError } from "../internal/discord.js";
 import {
@@ -38,8 +40,8 @@ const {
 } = getProviderMonitorTestMocks();
 
 let monitorDiscordProvider: typeof import("./provider.js").monitorDiscordProvider;
-let providerTesting: typeof import("./provider.js").__testing;
-let runtimeEnvModule: typeof import("astroclaw/plugin-sdk/runtime-env");
+let providerTesting: typeof import("./provider.js").testing;
+let runtimeEnvModule: typeof import("openclaw/plugin-sdk/runtime-env");
 
 function createAcpRuntimeError(code: string, message: string): Error & { code: string } {
   return Object.assign(new Error(message), { code });
@@ -65,6 +67,7 @@ function createTestChannelRuntime(): ChannelRuntimeSurface {
     },
   };
   return {
+    ...createPluginRuntimeMock().channel,
     runtimeContexts,
   };
 }
@@ -87,7 +90,7 @@ function createRateLimitError(
   return new RateLimitErrorCtor(response, body, fallbackRequest);
 }
 
-function createConfigWithDiscordAccount(overrides: Record<string, unknown> = {}): AstroclawConfig {
+function createConfigWithDiscordAccount(overrides: Record<string, unknown> = {}): OpenClawConfig {
   return {
     channels: {
       discord: {
@@ -99,7 +102,7 @@ function createConfigWithDiscordAccount(overrides: Record<string, unknown> = {})
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 type MockCallReader = { mock: { calls: unknown[][] } };
@@ -145,7 +148,7 @@ vi.mock("../voice/manager.runtime.js", () => {
 });
 describe("monitorDiscordProvider", () => {
   type ReconcileHealthProbeParams = {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     accountId: string;
     sessionKey: string;
     binding: unknown;
@@ -153,7 +156,7 @@ describe("monitorDiscordProvider", () => {
   };
 
   type ReconcileStartupParams = {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     healthProbe?: (
       params: ReconcileHealthProbeParams,
     ) => Promise<{ status: string; reason?: string }>;
@@ -209,9 +212,9 @@ describe("monitorDiscordProvider", () => {
   };
 
   beforeAll(async () => {
-    vi.doMock("astroclaw/plugin-sdk/plugin-runtime", async () => {
-      const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-runtime")>(
-        "astroclaw/plugin-sdk/plugin-runtime",
+    vi.doMock("openclaw/plugin-sdk/plugin-runtime", async () => {
+      const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-runtime")>(
+        "openclaw/plugin-sdk/plugin-runtime",
       );
       return {
         ...actual,
@@ -242,9 +245,9 @@ describe("monitorDiscordProvider", () => {
     vi.doMock("../token.js", () => ({
       normalizeDiscordToken: (value?: string) => value,
     }));
-    runtimeEnvModule = await import("astroclaw/plugin-sdk/runtime-env");
+    runtimeEnvModule = await import("openclaw/plugin-sdk/runtime-env");
     vi.spyOn(runtimeEnvModule, "logVerbose").mockImplementation(() => undefined);
-    ({ monitorDiscordProvider, __testing: providerTesting } = await import("./provider.js"));
+    ({ monitorDiscordProvider, testing: providerTesting } = await import("./provider.js"));
   });
 
   beforeEach(() => {
@@ -711,6 +714,45 @@ describe("monitorDiscordProvider", () => {
     }
   });
 
+  it("treats out-of-range running ACP activity timestamps as stale on probe timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(10 * 60 * 1000);
+      getAcpSessionStatusMock.mockImplementation(
+        ({ signal }: { signal?: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+          }),
+      );
+
+      await monitorDiscordProvider({
+        config: baseConfig(),
+        runtime: baseRuntime(),
+      });
+
+      const probePromise = getHealthProbe()({
+        cfg: baseConfig(),
+        accountId: "default",
+        sessionKey: "agent:codex:acp:timeout-invalid-activity",
+        binding: {} as never,
+        session: {
+          acp: {
+            state: "running",
+            lastActivityAt: Number.MAX_SAFE_INTEGER,
+          },
+        } as never,
+      });
+
+      await vi.advanceTimersByTimeAsync(8_100);
+      await expect(probePromise).resolves.toEqual({
+        status: "stale",
+        reason: "status-timeout-running-stale",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("falls back to legacy missing-session message classification", async () => {
     getAcpSessionStatusMock.mockRejectedValue(new Error("ACP session metadata missing"));
 
@@ -776,7 +818,7 @@ describe("monitorDiscordProvider", () => {
     expect(drained[0]?.message).toContain("4014");
   });
 
-  it("passes Astroclaw event queue defaults to the Discord client", async () => {
+  it("passes OpenClaw event queue defaults to the Discord client", async () => {
     await monitorDiscordProvider({
       config: baseConfig(),
       runtime: baseRuntime(),
@@ -964,6 +1006,32 @@ describe("monitorDiscordProvider", () => {
     });
 
     expect(details).toBe(" (status=429, retryAfter=3.2s, scope=route)");
+  });
+
+  it("does not parse malformed Discord deploy retry_after values", () => {
+    const details = providerTesting.formatDiscordDeployErrorDetails({
+      status: 429,
+      rawBody: {
+        message: "You are being rate limited.",
+        retry_after: "0x2",
+        global: false,
+      },
+    });
+
+    expect(details).toBe(" (status=429, scope=route)");
+  });
+
+  it("rejects malformed Discord deploy rate-limit status values", () => {
+    const details = providerTesting.formatDiscordDeployErrorDetails({
+      status: 429.5,
+      rawBody: {
+        message: "You are being rate limited.",
+        retry_after: 3.172,
+        global: false,
+      },
+    });
+
+    expect(details).toBe(" (retryAfter=3.2s, scope=route)");
   });
 
   it("formats rejected Discord deploy entries with command details", () => {
