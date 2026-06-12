@@ -1,3 +1,4 @@
+// Plugin update selection tests cover CLI plugin update target selection.
 import { describe, expect, it } from "vitest";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { resolvePluginUpdateSelection } from "./plugins-update-selection.js";
@@ -20,18 +21,18 @@ describe("resolvePluginUpdateSelection", () => {
     expect(
       resolvePluginUpdateSelection({
         installs: {
-          "astroclaw-codex-app-server": createNpmInstall({
-            spec: "astroclaw-codex-app-server",
-            installPath: "/tmp/astroclaw-codex-app-server",
-            resolvedName: "astroclaw-codex-app-server",
+          "openclaw-codex-app-server": createNpmInstall({
+            spec: "openclaw-codex-app-server",
+            installPath: "/tmp/openclaw-codex-app-server",
+            resolvedName: "openclaw-codex-app-server",
           }),
         },
-        rawId: "astroclaw-codex-app-server@beta",
+        rawId: "openclaw-codex-app-server@beta",
       }),
     ).toEqual({
-      pluginIds: ["astroclaw-codex-app-server"],
+      pluginIds: ["openclaw-codex-app-server"],
       specOverrides: {
-        "astroclaw-codex-app-server": "astroclaw-codex-app-server@beta",
+        "openclaw-codex-app-server": "openclaw-codex-app-server@beta",
       },
     });
   });
@@ -41,17 +42,17 @@ describe("resolvePluginUpdateSelection", () => {
       resolvePluginUpdateSelection({
         installs: {
           "voice-call": createNpmInstall({
-            spec: "@astroclaw/voice-call",
+            spec: "@openclaw/voice-call",
             installPath: "/tmp/voice-call",
-            resolvedName: "@astroclaw/voice-call",
+            resolvedName: "@openclaw/voice-call",
           }),
         },
-        rawId: "@astroclaw/voice-call@beta",
+        rawId: "@openclaw/voice-call@beta",
       }),
     ).toEqual({
       pluginIds: ["voice-call"],
       specOverrides: {
-        "voice-call": "@astroclaw/voice-call@beta",
+        "voice-call": "@openclaw/voice-call@beta",
       },
     });
   });
@@ -60,18 +61,18 @@ describe("resolvePluginUpdateSelection", () => {
     expect(
       resolvePluginUpdateSelection({
         installs: {
-          "astroclaw-codex-app-server": createNpmInstall({
-            spec: "astroclaw-codex-app-server",
-            installPath: "/tmp/astroclaw-codex-app-server",
-            resolvedName: "astroclaw-codex-app-server",
+          "openclaw-codex-app-server": createNpmInstall({
+            spec: "openclaw-codex-app-server",
+            installPath: "/tmp/openclaw-codex-app-server",
+            resolvedName: "openclaw-codex-app-server",
           }),
         },
-        rawId: "astroclaw-codex-app-server@0.2.0-beta.4",
+        rawId: "openclaw-codex-app-server@0.2.0-beta.4",
       }),
     ).toEqual({
-      pluginIds: ["astroclaw-codex-app-server"],
+      pluginIds: ["openclaw-codex-app-server"],
       specOverrides: {
-        "astroclaw-codex-app-server": "astroclaw-codex-app-server@0.2.0-beta.4",
+        "openclaw-codex-app-server": "openclaw-codex-app-server@0.2.0-beta.4",
       },
     });
   });
@@ -80,16 +81,16 @@ describe("resolvePluginUpdateSelection", () => {
     expect(
       resolvePluginUpdateSelection({
         installs: {
-          "astroclaw-codex-app-server": createNpmInstall({
-            spec: "astroclaw-codex-app-server@beta",
-            installPath: "/tmp/astroclaw-codex-app-server",
-            resolvedName: "astroclaw-codex-app-server",
+          "openclaw-codex-app-server": createNpmInstall({
+            spec: "openclaw-codex-app-server@beta",
+            installPath: "/tmp/openclaw-codex-app-server",
+            resolvedName: "openclaw-codex-app-server",
           }),
         },
-        rawId: "astroclaw-codex-app-server",
+        rawId: "openclaw-codex-app-server",
       }),
     ).toEqual({
-      pluginIds: ["astroclaw-codex-app-server"],
+      pluginIds: ["openclaw-codex-app-server"],
     });
   });
 
