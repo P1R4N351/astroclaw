@@ -1,3 +1,4 @@
+// Signal tests cover event handler.silent ingest plugin behavior.
 import { describe, expect, it, vi } from "vitest";
 import {
   createBaseSignalEventHandlerDeps,
@@ -18,9 +19,9 @@ const internalHookMocks = vi.hoisted(() => ({
   triggerInternalHook: vi.fn(async () => undefined),
 }));
 
-vi.mock("astroclaw/plugin-sdk/hook-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/hook-runtime")>(
-    "astroclaw/plugin-sdk/hook-runtime",
+vi.mock("openclaw/plugin-sdk/hook-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/hook-runtime")>(
+    "openclaw/plugin-sdk/hook-runtime",
   );
   return {
     ...actual,
