@@ -1,3 +1,4 @@
+// Covers config write preparation diffs and metadata preservation.
 import { describe, expect, it } from "vitest";
 import {
   collectChangedPaths,
@@ -8,7 +9,7 @@ import {
   resolveWriteEnvSnapshotForPath,
   unsetPathForWrite,
 } from "./io.write-prepare.js";
-import type { AstroclawConfig } from "./types.js";
+import type { OpenClawConfig } from "./types.js";
 
 describe("config io write prepare", () => {
   it("persists caller changes onto resolved config without leaking runtime defaults", () => {
@@ -51,11 +52,11 @@ describe("config io write prepare", () => {
           plugins: {
             entries: {},
             installs: {
-              "astroclaw-web-search": {
+              "openclaw-web-search": {
                 source: "npm",
-                spec: "@ollama/astroclaw-web-search",
-                installPath: "/tmp/astroclaw-web-search",
-                resolvedName: "@ollama/astroclaw-web-search",
+                spec: "@ollama/openclaw-web-search",
+                installPath: "/tmp/openclaw-web-search",
+                resolvedName: "@ollama/openclaw-web-search",
                 resolvedVersion: "0.2.2",
               },
             },
@@ -65,17 +66,17 @@ describe("config io write prepare", () => {
           plugins: {
             entries: {},
             installs: {
-              "astroclaw-web-search": {
+              "openclaw-web-search": {
                 source: "npm",
-                spec: "@ollama/astroclaw-web-search@0.2.2",
-                installPath: "/tmp/astroclaw-web-search",
-                resolvedName: "@ollama/astroclaw-web-search",
+                spec: "@ollama/openclaw-web-search@0.2.2",
+                installPath: "/tmp/openclaw-web-search",
+                resolvedName: "@ollama/openclaw-web-search",
                 resolvedVersion: "0.2.2",
               },
             },
           },
         },
-      }) as AstroclawConfig,
+      }) as OpenClawConfig,
       [["plugins", "installs"]],
     ) as {
       plugins?: {
@@ -118,7 +119,7 @@ describe("config io write prepare", () => {
         agents: { list: [{ id: "main" }, { id: "ops" }] },
         gateway: { mode: "local" },
       },
-    }) as AstroclawConfig;
+    }) as OpenClawConfig;
 
     expect(persisted.agents?.defaults?.params).toEqual({
       transport: "sse",
@@ -132,7 +133,7 @@ describe("config io write prepare", () => {
   });
 
   it("preserves authored Google model params under normalized config keys", () => {
-    const sourceConfig: AstroclawConfig = {
+    const sourceConfig: OpenClawConfig = {
       agents: {
         defaults: {
           model: { primary: "google/gemini-3-pro-preview" },
@@ -158,7 +159,7 @@ describe("config io write prepare", () => {
           },
         },
       },
-    }) as AstroclawConfig;
+    }) as OpenClawConfig;
 
     expect(persisted.agents?.defaults?.model).toEqual({
       primary: "google/gemini-3.1-pro-preview",
@@ -170,7 +171,7 @@ describe("config io write prepare", () => {
   });
 
   it("normalizes retired Google model refs during unrelated config writes", () => {
-    const sourceConfig: AstroclawConfig = {
+    const sourceConfig: OpenClawConfig = {
       agents: {
         defaults: {
           model: {
@@ -211,17 +212,9 @@ describe("config io write prepare", () => {
           },
         ],
       },
-      tools: {
-        subagents: {
-          model: {
-            primary: "google/gemini-3-pro-preview",
-            fallbacks: ["google/gemini-3-pro-preview"],
-          },
-        },
-      },
       gateway: { port: 18789 },
     };
-    const runtimeConfig: AstroclawConfig = {
+    const runtimeConfig: OpenClawConfig = {
       agents: {
         defaults: {
           model: {
@@ -262,14 +255,6 @@ describe("config io write prepare", () => {
           },
         ],
       },
-      tools: {
-        subagents: {
-          model: {
-            primary: "google/gemini-3.1-pro-preview",
-            fallbacks: ["google/gemini-3.1-pro-preview"],
-          },
-        },
-      },
       gateway: { port: 18789 },
     };
     const persisted = resolvePersistCandidateForWrite({
@@ -279,7 +264,7 @@ describe("config io write prepare", () => {
         ...runtimeConfig,
         gateway: { port: 18888 },
       },
-    }) as AstroclawConfig;
+    }) as OpenClawConfig;
 
     expect(persisted.agents?.defaults?.model).toEqual({
       primary: "google/gemini-3.1-pro-preview",
@@ -310,10 +295,6 @@ describe("config io write prepare", () => {
         alias: "Ops Gemini",
       },
     });
-    expect(persisted.tools?.subagents?.model).toEqual({
-      primary: "google/gemini-3.1-pro-preview",
-      fallbacks: ["google/gemini-3.1-pro-preview"],
-    });
     expect(persisted.gateway?.port).toBe(18888);
   });
 
@@ -327,7 +308,7 @@ describe("config io write prepare", () => {
       contextWindow: 1_048_576,
       maxTokens: 65_536,
     });
-    const sourceConfig: AstroclawConfig = {
+    const sourceConfig: OpenClawConfig = {
       models: {
         providers: {
           google: {
@@ -342,7 +323,7 @@ describe("config io write prepare", () => {
       },
       gateway: { port: 18789 },
     };
-    const runtimeConfig: AstroclawConfig = {
+    const runtimeConfig: OpenClawConfig = {
       models: {
         providers: {
           google: {
@@ -364,7 +345,7 @@ describe("config io write prepare", () => {
         ...runtimeConfig,
         gateway: { port: 18888 },
       },
-    }) as AstroclawConfig;
+    }) as OpenClawConfig;
 
     expect(persisted.models?.providers?.google?.models).toEqual([
       makeModel("google/gemini-3.1-pro-preview", "Gemini 3 Pro"),
@@ -375,8 +356,64 @@ describe("config io write prepare", () => {
     expect(persisted.gateway?.port).toBe(18888);
   });
 
+  it("normalizes manifest-backed provider catalog refs during unrelated config writes", () => {
+    const makeModel = (id: string) => ({
+      id,
+      name: "Custom latest",
+      reasoning: false,
+      input: ["text" as const],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 200_000,
+      maxTokens: 8192,
+    });
+    const sourceConfig: OpenClawConfig = {
+      models: {
+        providers: {
+          myproxy: {
+            baseUrl: "https://proxy.example/v1",
+            models: [makeModel("latest")],
+          },
+        },
+      },
+      gateway: { port: 18789 },
+    };
+    const runtimeConfig: OpenClawConfig = {
+      models: {
+        providers: {
+          myproxy: {
+            baseUrl: "https://proxy.example/v1",
+            models: [makeModel("vendor/modern-model")],
+          },
+        },
+      },
+      gateway: { port: 18789 },
+    };
+    const persisted = resolvePersistCandidateForWrite({
+      runtimeConfig,
+      sourceConfig,
+      nextConfig: {
+        ...runtimeConfig,
+        gateway: { port: 18888 },
+      },
+      modelIdNormalizationPolicies: new Map([
+        [
+          "myproxy",
+          {
+            aliases: { latest: "modern-model" },
+            prefixWhenBare: "vendor",
+          },
+        ],
+      ]),
+    }) as OpenClawConfig;
+
+    expect(persisted.models?.providers?.myproxy?.models).toEqual([
+      makeModel("vendor/modern-model"),
+    ]);
+    expect(persisted.gateway?.port).toBe(18888);
+  });
+
   it("allows explicit unsets to remove authored agent provider params", () => {
-    const sourceConfig: AstroclawConfig = {
+    const sourceConfig: OpenClawConfig = {
       agents: {
         defaults: {
           params: { transport: "sse", openaiWsWarmup: false },
@@ -396,7 +433,7 @@ describe("config io write prepare", () => {
         ["agents", "defaults", "params"],
         ["agents", "defaults", "models", "openai/gpt-5.4", "params"],
       ],
-    }) as AstroclawConfig;
+    }) as OpenClawConfig;
 
     expect(persisted.agents?.defaults).not.toHaveProperty("params");
     expect(persisted.agents?.defaults?.models?.["openai/gpt-5.4"]).not.toHaveProperty("params");
@@ -463,8 +500,8 @@ describe("config io write prepare", () => {
       'channels.telegram.dmPolicy = "open" requires channels.telegram.allowFrom to include "*"',
     );
 
-    expect(message).toContain("astroclaw config set channels.telegram.allowFrom '[\"*\"]'");
-    expect(message).toContain('astroclaw config set channels.telegram.dmPolicy "pairing"');
+    expect(message).toContain("openclaw config set channels.telegram.allowFrom '[\"*\"]'");
+    expect(message).toContain('openclaw config set channels.telegram.dmPolicy "pairing"');
   });
 
   it("unsets explicit paths when runtime defaults would otherwise reappear", () => {
@@ -481,10 +518,10 @@ describe("config io write prepare", () => {
   });
 
   it("does not mutate caller config when unsetting existing config objects", () => {
-    const input: AstroclawConfig = {
+    const input: OpenClawConfig = {
       gateway: { mode: "local" },
       commands: { ownerDisplay: "hash" },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const next = unsetPathForWrite(input, ["commands", "ownerDisplay"]);
 
@@ -496,10 +533,10 @@ describe("config io write prepare", () => {
   });
 
   it("keeps caller arrays immutable when unsetting array entries", () => {
-    const input: AstroclawConfig = {
+    const input: OpenClawConfig = {
       gateway: { mode: "local" },
       tools: { alsoAllow: ["exec", "fetch", "read"] },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const next = unsetPathForWrite(input, ["tools", "alsoAllow", "1"]);
 
@@ -510,11 +547,29 @@ describe("config io write prepare", () => {
     ]);
   });
 
+  it("treats invalid array-index unset paths as no-ops", () => {
+    const input: OpenClawConfig = {
+      gateway: { mode: "local" },
+      tools: { alsoAllow: ["exec", "fetch"] },
+    } satisfies OpenClawConfig;
+
+    for (const path of [
+      ["tools", "alsoAllow", "1abc"],
+      ["tools", "alsoAllow", "+0"],
+      ["tools", "alsoAllow", "9007199254740993"],
+      ["tools", "alsoAllow", "4294967294"],
+    ]) {
+      const next = unsetPathForWrite(input, path);
+      expect(next.changed).toBe(false);
+      expect(next.next).toBe(input);
+    }
+  });
+
   it("treats missing unset paths as no-op without mutating caller config", () => {
-    const input: AstroclawConfig = {
+    const input: OpenClawConfig = {
       gateway: { mode: "local" },
       commands: { ownerDisplay: "hash" },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const next = unsetPathForWrite(input, ["commands", "missingKey"]);
 
@@ -527,10 +582,10 @@ describe("config io write prepare", () => {
   });
 
   it("ignores blocked prototype-key unset path segments", () => {
-    const input: AstroclawConfig = {
+    const input: OpenClawConfig = {
       gateway: { mode: "local" },
       commands: { ownerDisplay: "hash" },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const blocked = [
       ["commands", "__proto__"],
@@ -672,8 +727,8 @@ describe("config io write prepare", () => {
     const snapshot = { OPENAI_API_KEY: "sk-secret" };
     expect(
       resolveWriteEnvSnapshotForPath({
-        actualConfigPath: "/tmp/astroclaw.json",
-        expectedConfigPath: "/tmp/astroclaw.json",
+        actualConfigPath: "/tmp/openclaw.json",
+        expectedConfigPath: "/tmp/openclaw.json",
         envSnapshotForRestore: snapshot,
       }),
     ).toBe(snapshot);
@@ -682,7 +737,7 @@ describe("config io write prepare", () => {
   it("drops the read-time env snapshot when writing a different config path", () => {
     expect(
       resolveWriteEnvSnapshotForPath({
-        actualConfigPath: "/tmp/astroclaw.json",
+        actualConfigPath: "/tmp/openclaw.json",
         expectedConfigPath: "/tmp/other.json",
         envSnapshotForRestore: { OPENAI_API_KEY: "sk-secret" },
       }),
@@ -697,19 +752,19 @@ describe("config io write prepare", () => {
           cliPath: "/usr/local/bin/imsg",
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
-    const runtimeConfig: AstroclawConfig = {
+    const runtimeConfig: OpenClawConfig = {
       gateway: { port: 18789 },
       channels: {
         imessage: {
           cliPath: "/usr/local/bin/imsg",
         },
       },
-    } satisfies AstroclawConfig;
-    (runtimeConfig.channels?.imessage as Record<string, unknown>).runtimeOnlyDefault = true;
+    } satisfies OpenClawConfig;
+    (runtimeConfig.channels!.imessage as Record<string, unknown>).runtimeOnlyDefault = true;
 
-    const nextConfig: AstroclawConfig = structuredClone(runtimeConfig);
+    const nextConfig: OpenClawConfig = structuredClone(runtimeConfig);
     nextConfig.gateway = {
       ...nextConfig.gateway,
       auth: { mode: "token" },
@@ -731,7 +786,7 @@ describe("config io write prepare", () => {
   });
 
   it("does not reintroduce legacy nested dm.policy defaults in the persisted candidate", () => {
-    const sourceConfig: AstroclawConfig = {
+    const sourceConfig: OpenClawConfig = {
       channels: {
         discord: {
           dmPolicy: "pairing",
@@ -743,7 +798,7 @@ describe("config io write prepare", () => {
         },
       },
       gateway: { port: 18789 },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const nextConfig = structuredClone(sourceConfig);
     delete (nextConfig.channels?.discord?.dm as { enabled?: boolean; policy?: string } | undefined)
@@ -797,9 +852,9 @@ describe("config io write prepare", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
-    const nextConfig: AstroclawConfig = {
+    const nextConfig: OpenClawConfig = {
       ...structuredClone(sourceConfig),
       gateway: {
         auth: { mode: "token" },
@@ -832,26 +887,26 @@ describe("config io write prepare", () => {
   });
 
   it("preserves root $schema during unrelated partial writes", () => {
-    const sourceConfig: AstroclawConfig = {
-      $schema: "https://astroclaw.ai/config.json",
+    const sourceConfig: OpenClawConfig = {
+      $schema: "https://openclaw.ai/config.json",
       gateway: { mode: "local" },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const persisted = resolvePersistCandidateForWrite({
       runtimeConfig: sourceConfig,
       sourceConfig,
       nextConfig: {
         gateway: { mode: "local", port: 18789 },
-      } satisfies AstroclawConfig,
-    }) as AstroclawConfig;
+      } satisfies OpenClawConfig,
+    }) as OpenClawConfig;
 
-    expect(persisted.$schema).toBe("https://astroclaw.ai/config.json");
+    expect(persisted.$schema).toBe("https://openclaw.ai/config.json");
     expect(persisted.gateway).toEqual({ mode: "local", port: 18789 });
   });
 
   it("rejects writes that would flatten a root include", () => {
     const sourceConfig = {
-      $schema: "https://astroclaw.ai/config-from-include.json",
+      $schema: "https://openclaw.ai/config-from-include.json",
       gateway: { mode: "local" },
     };
 
@@ -872,7 +927,7 @@ describe("config io write prepare", () => {
 
   it("does not restore root $schema when the next config explicitly clears it", () => {
     const sourceConfig = {
-      $schema: "https://astroclaw.ai/config.json",
+      $schema: "https://openclaw.ai/config.json",
       gateway: { mode: "local" },
     };
 
@@ -891,7 +946,7 @@ describe("config io write prepare", () => {
 
   it("does not restore root $schema when the next config sets an invalid value", () => {
     const sourceConfig = {
-      $schema: "https://astroclaw.ai/config.json",
+      $schema: "https://openclaw.ai/config.json",
       gateway: { mode: "local" },
     };
 
@@ -1009,6 +1064,42 @@ describe("config io write prepare", () => {
       id: "gpt-5.5",
       contextWindow: 128000,
     });
+  });
+
+  it("ignores unsafe array-index explicit set paths", () => {
+    const runtimeConfig = {
+      models: {
+        providers: {
+          openai: {
+            models: [{ id: "gpt-5.5", contextWindow: 128000 }],
+          },
+        },
+      },
+    };
+    const sourceConfig = {
+      models: {
+        providers: {
+          openai: {
+            models: [{ id: "gpt-5.5" }],
+          },
+        },
+      },
+    };
+
+    const persisted = resolvePersistCandidateForWrite({
+      runtimeConfig,
+      sourceConfig,
+      nextConfig: sourceConfig,
+      explicitSetValueSource: runtimeConfig,
+      explicitSetPaths: [
+        ["models", "providers", "openai", "models", "0abc", "contextWindow"],
+        ["models", "providers", "openai", "models", "+0", "contextWindow"],
+        ["models", "providers", "openai", "models", "9007199254740993", "contextWindow"],
+        ["models", "providers", "openai", "models", "4294967294", "contextWindow"],
+      ],
+    }) as { models?: { providers?: { openai?: { models?: Array<Record<string, unknown>> } } } };
+
+    expect(persisted.models?.providers?.openai?.models).toEqual([{ id: "gpt-5.5" }]);
   });
 
   it("rejects default-valued explicit writes under include-owned paths", () => {
