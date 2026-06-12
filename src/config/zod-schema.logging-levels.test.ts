@@ -1,9 +1,10 @@
+// Verifies logging-level schema parsing and defaults.
 import { describe, expect, it } from "vitest";
-import { AstroclawSchema } from "./zod-schema.js";
+import { OpenClawSchema } from "./zod-schema.js";
 
-describe("AstroclawSchema logging levels", () => {
+describe("OpenClawSchema logging levels", () => {
   it("accepts valid logging level values for level and consoleLevel", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       logging: {
         level: "debug",
         consoleLevel: "warn",
@@ -14,12 +15,12 @@ describe("AstroclawSchema logging levels", () => {
   });
 
   it("rejects invalid logging level values", () => {
-    const invalidLevel = AstroclawSchema.safeParse({
+    const invalidLevel = OpenClawSchema.safeParse({
       logging: {
         level: "loud",
       },
     });
-    const invalidConsoleLevel = AstroclawSchema.safeParse({
+    const invalidConsoleLevel = OpenClawSchema.safeParse({
       logging: {
         consoleLevel: "verbose",
       },
