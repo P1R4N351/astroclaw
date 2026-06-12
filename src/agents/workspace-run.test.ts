@@ -1,8 +1,9 @@
+// Workspace run tests cover runtime workspace resolution from explicit input,
+// agent config, session keys, and environment fallback.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveRunWorkspaceDir } from "./workspace-run.js";
-import { resolveDefaultAgentWorkspaceDir } from "./workspace.js";
 
 describe("resolveRunWorkspaceDir", () => {
   it("resolves explicit workspace values without fallback", () => {
@@ -25,7 +26,7 @@ describe("resolveRunWorkspaceDir", () => {
         defaults: { workspace: defaultWorkspace },
         list: [{ id: "research", workspace: researchWorkspace }],
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = resolveRunWorkspaceDir({
       workspaceDir: undefined,
@@ -45,7 +46,7 @@ describe("resolveRunWorkspaceDir", () => {
       agents: {
         defaults: { workspace: defaultWorkspace },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = resolveRunWorkspaceDir({
       workspaceDir: "   ",
@@ -60,12 +61,12 @@ describe("resolveRunWorkspaceDir", () => {
   });
 
   it("falls back to built-in main workspace when config is unavailable", () => {
-    const workspaceDir = path.join(path.sep, "srv", "astroclaw-workspace");
+    const workspaceDir = path.join(path.sep, "srv", "openclaw-workspace");
     const result = resolveRunWorkspaceDir({
       workspaceDir: null,
       sessionKey: "agent:main:subagent:test",
       config: undefined,
-      env: { ...process.env, ASTROCLAW_WORKSPACE_DIR: workspaceDir },
+      env: { ...process.env, OPENCLAW_WORKSPACE_DIR: workspaceDir },
     });
 
     expect(result.usedFallback).toBe(true);
@@ -88,8 +89,8 @@ describe("resolveRunWorkspaceDir", () => {
     const env = {
       ...process.env,
       HOME: "/home/runner",
-      ASTROCLAW_HOME: undefined,
-      ASTROCLAW_STATE_DIR: "/tmp/astroclaw-state",
+      OPENCLAW_HOME: undefined,
+      OPENCLAW_STATE_DIR: "/tmp/openclaw-state",
     } satisfies NodeJS.ProcessEnv;
     const result = resolveRunWorkspaceDir({
       workspaceDir: undefined,
@@ -101,10 +102,12 @@ describe("resolveRunWorkspaceDir", () => {
 
     expect(result.agentId).toBe("research");
     expect(result.agentIdSource).toBe("explicit");
-    expect(result.workspaceDir).toBe(path.resolve("/tmp/astroclaw-state", "workspace-research"));
+    expect(result.workspaceDir).toBe(path.resolve("/tmp/openclaw-state", "workspace-research"));
   });
 
   it("throws for malformed agent session keys even when config has a default agent", () => {
+    // Malformed agent-prefixed keys are configuration/data errors; default
+    // agents should not mask them as legacy main-session keys.
     const mainWorkspace = path.join(process.cwd(), "tmp", "workspace-main-default");
     const researchWorkspace = path.join(process.cwd(), "tmp", "workspace-research-default");
     const cfg = {
@@ -115,7 +118,7 @@ describe("resolveRunWorkspaceDir", () => {
           { id: "research", workspace: researchWorkspace, default: true },
         ],
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     expect(() =>
       resolveRunWorkspaceDir({
@@ -132,7 +135,7 @@ describe("resolveRunWorkspaceDir", () => {
       agents: {
         defaults: { workspace: fallbackWorkspace },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const result = resolveRunWorkspaceDir({
       workspaceDir: undefined,
