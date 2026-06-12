@@ -1,5 +1,6 @@
+/** Tests web-tool secret metadata resolution from config and plugins. */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type {
   PluginWebFetchProviderEntry,
   PluginWebSearchProviderEntry,
@@ -115,8 +116,8 @@ vi.mock("../plugins/installed-plugin-index-records.js", async () => {
   };
 });
 
-function asConfig(value: unknown): AstroclawConfig {
-  return value as AstroclawConfig;
+function asConfig(value: unknown): OpenClawConfig {
+  return value as OpenClawConfig;
 }
 
 function providerPluginId(provider: ProviderUnderTest): string {
@@ -145,7 +146,7 @@ function ensureRecord(target: Record<string, unknown>, key: string): Record<stri
 }
 
 function setConfiguredProviderKey(
-  configTarget: AstroclawConfig,
+  configTarget: OpenClawConfig,
   pluginId: string,
   value: unknown,
 ): void {
@@ -157,7 +158,7 @@ function setConfiguredProviderKey(
   webSearch.apiKey = value;
 }
 
-function setConfiguredFetchProviderKey(configTarget: AstroclawConfig, value: unknown): void {
+function setConfiguredFetchProviderKey(configTarget: OpenClawConfig, value: unknown): void {
   const plugins = ensureRecord(configTarget as Record<string, unknown>, "plugins");
   const entries = ensureRecord(plugins, "entries");
   const pluginEntry = ensureRecord(entries, "firecrawl");
@@ -271,6 +272,19 @@ function buildTestWebFetchProviders(): PluginWebFetchProviderEntry[] {
           ? (entryConfig as { webFetch?: { apiKey?: unknown } }).webFetch?.apiKey
           : undefined;
       },
+      getConfiguredCredentialFallback: (config) => {
+        const entryConfig = config?.plugins?.entries?.firecrawl?.config;
+        const apiKey =
+          entryConfig && typeof entryConfig === "object"
+            ? (entryConfig as { webSearch?: { apiKey?: unknown } }).webSearch?.apiKey
+            : undefined;
+        return apiKey === undefined
+          ? undefined
+          : {
+              path: "plugins.entries.firecrawl.config.webSearch.apiKey",
+              value: apiKey,
+            };
+      },
       setConfiguredCredentialValue: (configTarget, value) => {
         setConfiguredFetchProviderKey(configTarget, value);
       },
@@ -279,7 +293,7 @@ function buildTestWebFetchProviders(): PluginWebFetchProviderEntry[] {
   ];
 }
 
-async function runRuntimeWebTools(params: { config: AstroclawConfig; env?: NodeJS.ProcessEnv }) {
+async function runRuntimeWebTools(params: { config: OpenClawConfig; env?: NodeJS.ProcessEnv }) {
   const sourceConfig = structuredClone(params.config);
   const resolvedConfig = structuredClone(params.config);
   const context = createResolverContext({
@@ -297,7 +311,7 @@ async function runRuntimeWebTools(params: { config: AstroclawConfig; env?: NodeJ
 function createProviderSecretRefConfig(
   provider: ProviderUnderTest,
   envRefId: string,
-): AstroclawConfig {
+): OpenClawConfig {
   return asConfig({
     tools: {
       web: {
@@ -322,7 +336,7 @@ function createProviderSecretRefConfig(
   });
 }
 
-function readProviderKey(config: AstroclawConfig, provider: ProviderUnderTest): unknown {
+function readProviderKey(config: OpenClawConfig, provider: ProviderUnderTest): unknown {
   const pluginConfig = config.plugins?.entries?.[providerPluginId(provider)]?.config as
     | { webSearch?: { apiKey?: unknown } }
     | undefined;
@@ -913,6 +927,37 @@ describe("runtime web tools resolution", () => {
     expect(readProviderKey(resolvedConfig, "gemini")).toBe("gemini-env-runtime-key");
   });
 
+  it("does not mirror provider env fallback over configured fallback SecretRefs", async () => {
+    const { metadata, resolvedConfig } = await runRuntimeWebTools({
+      config: asConfig({
+        tools: {
+          web: {
+            search: {
+              enabled: true,
+            },
+          },
+        },
+        models: {
+          providers: {
+            google: {
+              apiKey: { source: "env", provider: "default", id: "GOOGLE_PROVIDER_REF" },
+            },
+          },
+        },
+      }),
+      env: {
+        GEMINI_API_KEY: "gemini-env-runtime-key",
+        GOOGLE_PROVIDER_REF: "google-provider-ref-key",
+      },
+    });
+
+    expect(metadata.search.providerSource).toBe("auto-detect");
+    expect(metadata.search.selectedProvider).toBe("gemini");
+    expect(metadata.search.selectedProviderKeySource).toBe("env");
+    expect(readProviderKey(resolvedConfig, "gemini")).toBe("gemini-env-runtime-key");
+    expect(resolvedConfig.models?.providers?.google?.apiKey).toBe("google-provider-ref-key");
+  });
+
   it("warns when provider is invalid and falls back to auto-detect", async () => {
     const { metadata, resolvedConfig, context } = await runRuntimeWebTools({
       config: asConfig({
@@ -1308,7 +1353,7 @@ describe("runtime web tools resolution", () => {
     loadInstalledPluginIndexInstallRecordsSyncMock.mockReturnValue({
       "external-search": {
         source: "npm",
-        spec: "@astroclaw/external-search",
+        spec: "@openclaw/external-search",
       },
     });
 
@@ -1329,7 +1374,7 @@ describe("runtime web tools resolution", () => {
 
     expect(metadata.search.selectedProvider).toBe("brave");
     expect(resolveBundledWebSearchProvidersFromPublicArtifactsMock).not.toHaveBeenCalled();
-    expect(firstMockArg(resolvePluginWebSearchProvidersMock).bundledAllowlistCompat).toBe(true);
+    expect(firstMockArg(resolvePluginWebSearchProvidersMock).config).toBeDefined();
   });
 
   it("uses bundled public artifacts for bundled web fetch provider discovery", async () => {
@@ -1356,7 +1401,7 @@ describe("runtime web tools resolution", () => {
     loadInstalledPluginIndexInstallRecordsSyncMock.mockReturnValue({
       "external-fetch": {
         source: "npm",
-        spec: "@astroclaw/external-fetch",
+        spec: "@openclaw/external-fetch",
       },
     });
 
@@ -1378,7 +1423,7 @@ describe("runtime web tools resolution", () => {
 
     expect(metadata.fetch.selectedProvider).toBe("firecrawl");
     expect(resolveBundledWebFetchProvidersFromPublicArtifactsMock).not.toHaveBeenCalled();
-    expect(firstMockArg(resolvePluginWebFetchProvidersMock).bundledAllowlistCompat).toBe(true);
+    expect(firstMockArg(resolvePluginWebFetchProvidersMock).origin).toBe("bundled");
   });
 
   it("uses env fallback for unresolved web fetch provider SecretRef when active", async () => {
@@ -1421,6 +1466,44 @@ describe("runtime web tools resolution", () => {
       code: "WEB_FETCH_PROVIDER_KEY_UNRESOLVED_FALLBACK_USED",
       path: "plugins.entries.firecrawl.config.webFetch.apiKey",
     });
+  });
+
+  it("resolves web fetch fallback SecretRefs with provider env var allowlist", async () => {
+    const { metadata, resolvedConfig } = await runRuntimeWebTools({
+      config: asConfig({
+        plugins: {
+          entries: {
+            firecrawl: {
+              config: {
+                webSearch: {
+                  apiKey: { source: "env", provider: "default", id: "FIRECRAWL_API_KEY" },
+                },
+              },
+            },
+          },
+        },
+        tools: {
+          web: {
+            fetch: {
+              provider: "firecrawl",
+            },
+          },
+        },
+      }),
+      env: {
+        FIRECRAWL_API_KEY: "firecrawl-search-ref-key",
+      },
+    });
+
+    expect(metadata.fetch.selectedProvider).toBe("firecrawl");
+    expect(metadata.fetch.selectedProviderKeySource).toBe("env");
+    expect(
+      (
+        resolvedConfig.plugins?.entries?.firecrawl?.config as
+          | { webFetch?: { apiKey?: unknown } }
+          | undefined
+      )?.webFetch?.apiKey,
+    ).toBe("firecrawl-search-ref-key");
   });
 
   it("resolves plugin-owned web fetch SecretRefs without tools.web.fetch", async () => {
@@ -1641,7 +1724,7 @@ describe("runtime web tools resolution", () => {
 
     beforeEach(() => {
       loadInstalledPluginIndexInstallRecordsSyncMock.mockReturnValue({
-        brave: { source: "npm", spec: "@astroclaw/brave-search" },
+        brave: { source: "npm", spec: "@openclaw/brave-search" },
       });
       resolveManifestContractOwnerPluginIdMock.mockImplementation(externalBraveImpl);
     });
