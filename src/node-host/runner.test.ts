@@ -1,3 +1,4 @@
+/** Tests node-host runner command parsing, timeout, and plugin dispatch behavior. */
 import { describe, expect, it, vi } from "vitest";
 import type { GatewayClientOptions } from "../gateway/client.js";
 import {
@@ -56,7 +57,7 @@ vi.mock("../infra/machine-name.js", () => ({
 }));
 
 vi.mock("../infra/path-env.js", () => ({
-  ensureAstroclawCliOnPath: vi.fn(),
+  ensureOpenClawCliOnPath: vi.fn(),
 }));
 
 vi.mock("./config.js", () => ({
