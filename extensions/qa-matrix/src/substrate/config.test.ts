@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Qa Matrix tests cover config plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import {
   buildMatrixQaConfig,
@@ -51,7 +52,7 @@ describe("matrix qa config", () => {
   };
 
   it("builds default Matrix QA config from provisioned topology", () => {
-    const next = buildMatrixQaConfig({} as AstroclawConfig, {
+    const next = buildMatrixQaConfig({} as OpenClawConfig, {
       driverUserId: "@driver:matrix-qa.test",
       homeserver: "http://127.0.0.1:28008/",
       observerUserId: "@observer:matrix-qa.test",
@@ -81,7 +82,7 @@ describe("matrix qa config", () => {
   });
 
   it("applies room-keyed Matrix QA config overrides", () => {
-    const next = buildMatrixQaConfig({} as AstroclawConfig, {
+    const next = buildMatrixQaConfig({} as OpenClawConfig, {
       driverUserId: "@driver:matrix-qa.test",
       homeserver: "http://127.0.0.1:28008/",
       observerUserId: "@observer:matrix-qa.test",
@@ -109,6 +110,7 @@ describe("matrix qa config", () => {
         allowBots: "mentions",
         configuredBotRoles: ["observer"],
         groupAllowFrom: ["@driver:matrix-qa.test", "@observer:matrix-qa.test"],
+        groupMentionPatterns: ["\\S"],
         groupsByKey: {
           secondary: {
             allowBots: false,
@@ -126,6 +128,10 @@ describe("matrix qa config", () => {
           spawnSessions: true,
         },
         threadReplies: "always",
+        audio: {
+          echoTranscript: false,
+          enabled: true,
+        },
         toolProfile: "coding",
       },
       observerAccessToken: "observer-token",
@@ -146,6 +152,11 @@ describe("matrix qa config", () => {
       minChars: 1,
     });
     expect(next.tools?.profile).toBe("coding");
+    expect(next.tools?.media?.audio).toEqual({
+      echoTranscript: false,
+      enabled: true,
+    });
+    expect(next.messages?.groupChat?.mentionPatterns).toEqual(["\\S"]);
     const observer = next.channels?.matrix?.accounts?.["qa-observer-bot-source"];
     expect(observer?.accessToken).toBe("observer-token");
     expect(observer?.enabled).toBe(false);
@@ -183,7 +194,7 @@ describe("matrix qa config", () => {
   });
 
   it("rewrites the owned Matrix QA account instead of retaining stale override fields", () => {
-    const overridden = buildMatrixQaConfig({} as AstroclawConfig, {
+    const overridden = buildMatrixQaConfig({} as OpenClawConfig, {
       driverUserId: "@driver:matrix-qa.test",
       homeserver: "http://127.0.0.1:28008/",
       observerUserId: "@observer:matrix-qa.test",
@@ -226,6 +237,7 @@ describe("matrix qa config", () => {
         dm: {
           sessionScope: "per-room",
         },
+        groupMentionPatterns: ["\\S"],
         groupPolicy: "open",
         streaming: true,
       },
@@ -254,6 +266,7 @@ describe("matrix qa config", () => {
       execApprovals: undefined,
       configuredBotRoles: [],
       groupAllowFrom: ["@driver:matrix-qa.test"],
+      groupMentionPatterns: ["\\S"],
       groupPolicy: "open",
       groupsByKey: {
         main: {
@@ -276,6 +289,7 @@ describe("matrix qa config", () => {
     });
     expect(summarizeMatrixQaConfigSnapshot(snapshot)).toContain("allowBots=<default>");
     expect(summarizeMatrixQaConfigSnapshot(snapshot)).toContain("configuredBotRoles=<none>");
+    expect(summarizeMatrixQaConfigSnapshot(snapshot)).toContain("groupMentionPatterns=\\S");
     expect(summarizeMatrixQaConfigSnapshot(snapshot)).toContain("autoJoin=allowlist");
     expect(summarizeMatrixQaConfigSnapshot(snapshot)).toContain("streaming=partial");
     expect(summarizeMatrixQaConfigSnapshot(snapshot)).toContain(
@@ -308,7 +322,7 @@ describe("matrix qa config", () => {
   });
 
   it("applies Matrix approval delivery overrides with gateway forwarding enabled", () => {
-    const next = buildMatrixQaConfig({} as AstroclawConfig, {
+    const next = buildMatrixQaConfig({} as OpenClawConfig, {
       driverUserId: "@driver:matrix-qa.test",
       homeserver: "http://127.0.0.1:28008/",
       observerUserId: "@observer:matrix-qa.test",
@@ -362,7 +376,7 @@ describe("matrix qa config", () => {
 
   it("rejects configured bot roles without matching side-account auth", () => {
     expect(() =>
-      buildMatrixQaConfig({} as AstroclawConfig, {
+      buildMatrixQaConfig({} as OpenClawConfig, {
         driverUserId: "@driver:matrix-qa.test",
         homeserver: "http://127.0.0.1:28008/",
         observerUserId: "@observer:matrix-qa.test",
@@ -379,7 +393,7 @@ describe("matrix qa config", () => {
 
   it("rejects the SUT role as a configured bot source", () => {
     expect(() =>
-      buildMatrixQaConfig({} as AstroclawConfig, {
+      buildMatrixQaConfig({} as OpenClawConfig, {
         driverUserId: "@driver:matrix-qa.test",
         homeserver: "http://127.0.0.1:28008/",
         observerUserId: "@observer:matrix-qa.test",
@@ -396,7 +410,7 @@ describe("matrix qa config", () => {
 
   it("rejects unknown room-key overrides", () => {
     expect(() =>
-      buildMatrixQaConfig({} as AstroclawConfig, {
+      buildMatrixQaConfig({} as OpenClawConfig, {
         driverUserId: "@driver:matrix-qa.test",
         homeserver: "http://127.0.0.1:28008/",
         observerUserId: "@observer:matrix-qa.test",
