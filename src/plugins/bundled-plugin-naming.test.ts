@@ -1,3 +1,4 @@
+// Verifies bundled plugin naming conventions and package metadata.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -9,9 +10,9 @@ type PluginManifestShape = {
   id?: unknown;
 };
 
-type AstroclawPackageShape = {
+type OpenClawPackageShape = {
   name?: unknown;
-  astroclaw?: {
+  openclaw?: {
     install?: {
       npmSpec?: unknown;
     };
@@ -44,9 +45,8 @@ const ALLOWED_PACKAGE_SUFFIXES = [
   "-media-understanding",
 ] as const;
 
-// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Test helper lets assertions ascribe JSON file shape.
-function readJsonFile<T>(filePath: string): T {
-  return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+function readJsonFile(filePath: string): unknown {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
 function normalizeText(value: unknown): string | undefined {
@@ -73,7 +73,7 @@ function listExternalBundledPluginDirs(): string[] | null {
 
   const metadataByDir = new Map<string, Set<string>>();
   for (const file of files) {
-    const match = /^extensions\/([^/]+)\/(astroclaw\.plugin\.json|package\.json)$/u.exec(file);
+    const match = /^extensions\/([^/]+)\/(openclaw\.plugin\.json|package\.json)$/u.exec(file);
     if (!match) {
       continue;
     }
@@ -86,7 +86,7 @@ function listExternalBundledPluginDirs(): string[] | null {
   return [...metadataByDir.entries()]
     .filter(
       ([, metadataFiles]) =>
-        metadataFiles.has("package.json") && metadataFiles.has("astroclaw.plugin.json"),
+        metadataFiles.has("package.json") && metadataFiles.has("openclaw.plugin.json"),
     )
     .map(([dirName]) => dirName)
     .toSorted();
@@ -94,7 +94,7 @@ function listExternalBundledPluginDirs(): string[] | null {
 
 function listGitPluginMetadataFiles(): string[] | null {
   return listGitTrackedFiles({
-    pathspecs: ["extensions/*/package.json", "extensions/*/astroclaw.plugin.json"],
+    pathspecs: ["extensions/*/package.json", "extensions/*/openclaw.plugin.json"],
   });
 }
 
@@ -112,7 +112,7 @@ function listFindPluginMetadataFiles(): string[] | null {
       "package.json",
       "-o",
       "-name",
-      "astroclaw.plugin.json",
+      "openclaw.plugin.json",
       ")",
     ],
     {
@@ -137,13 +137,13 @@ function readBundledPluginRecords(): BundledPluginRecord[] {
   return listBundledPluginDirs().flatMap((dirName) => {
     const rootDir = path.join(EXTENSIONS_ROOT, dirName);
     const packagePath = path.join(rootDir, "package.json");
-    const manifestPath = path.join(rootDir, "astroclaw.plugin.json");
+    const manifestPath = path.join(rootDir, "openclaw.plugin.json");
     if (!fs.existsSync(packagePath) || !fs.existsSync(manifestPath)) {
       return [];
     }
 
-    const manifest = readJsonFile<PluginManifestShape>(manifestPath);
-    const pkg = readJsonFile<AstroclawPackageShape>(packagePath);
+    const manifest = readJsonFile(manifestPath) as PluginManifestShape;
+    const pkg = readJsonFile(packagePath) as OpenClawPackageShape;
     const manifestId = normalizeText(manifest.id);
     const packageName = normalizeText(pkg.name);
     if (!manifestId || !packageName) {
@@ -155,15 +155,15 @@ function readBundledPluginRecords(): BundledPluginRecord[] {
         dirName,
         packageName,
         manifestId,
-        installNpmSpec: normalizeText(pkg.astroclaw?.install?.npmSpec),
-        channelId: normalizeText(pkg.astroclaw?.channel?.id),
+        installNpmSpec: normalizeText(pkg.openclaw?.install?.npmSpec),
+        channelId: normalizeText(pkg.openclaw?.channel?.id),
       },
     ];
   });
 }
 
 function resolveAllowedPackageNamesForId(pluginId: string): string[] {
-  return ALLOWED_PACKAGE_SUFFIXES.map((suffix) => `@astroclaw/${pluginId}${suffix}`);
+  return ALLOWED_PACKAGE_SUFFIXES.map((suffix) => `@openclaw/${pluginId}${suffix}`);
 }
 
 function resolveBundledPluginMismatches(
@@ -196,7 +196,7 @@ describe("bundled plugin naming guardrails", () => {
   it.each([
     {
       name: "keeps bundled workspace package names anchored to the plugin id",
-      message: `Bundled extension package names must stay anchored to the manifest id via @astroclaw/<id> or an approved suffix (${ALLOWED_PACKAGE_SUFFIXES.join(", ")}). Update the plugin naming docs and this invariant before adding a new naming form.`,
+      message: `Bundled extension package names must stay anchored to the manifest id via @openclaw/<id> or an approved suffix (${ALLOWED_PACKAGE_SUFFIXES.join(", ")}). Update the plugin naming docs and this invariant before adding a new naming form.`,
       collectMismatches: (records: BundledPluginRecord[]) =>
         records
           .filter(
@@ -211,7 +211,7 @@ describe("bundled plugin naming guardrails", () => {
     {
       name: "keeps bundled workspace directories aligned with the plugin id unless explicitly allowlisted",
       message:
-        "Bundled extension directory names should match astroclaw.plugin.json:id. If a legacy exception is unavoidable, add it to DIR_ID_EXCEPTIONS with a comment.",
+        "Bundled extension directory names should match openclaw.plugin.json:id. If a legacy exception is unavoidable, add it to DIR_ID_EXCEPTIONS with a comment.",
       collectMismatches: (records: BundledPluginRecord[]) =>
         records
           .filter(
@@ -220,9 +220,9 @@ describe("bundled plugin naming guardrails", () => {
           .map(({ dirName, manifestId }) => `${dirName} -> ${manifestId}`),
     },
     {
-      name: "keeps bundled astroclaw.install.npmSpec aligned with the package name",
+      name: "keeps bundled openclaw.install.npmSpec aligned with the package name",
       message:
-        "Bundled astroclaw.install.npmSpec values must match the package name so install/update paths stay deterministic.",
+        "Bundled openclaw.install.npmSpec values must match the package name so install/update paths stay deterministic.",
       collectMismatches: (records: BundledPluginRecord[]) =>
         records
           .filter(
@@ -237,7 +237,7 @@ describe("bundled plugin naming guardrails", () => {
     {
       name: "keeps non-packaged bundled plugins from advertising npm installs",
       message:
-        "Non-packaged bundled plugins are source-only/private and must not advertise astroclaw.install.npmSpec.",
+        "Non-packaged bundled plugins are source-only/private and must not advertise openclaw.install.npmSpec.",
       collectMismatches: (records: BundledPluginRecord[]) =>
         records
           .filter(
@@ -249,7 +249,7 @@ describe("bundled plugin naming guardrails", () => {
     {
       name: "keeps bundled channel ids aligned with the canonical plugin id",
       message:
-        "Bundled astroclaw.channel.id values must match astroclaw.plugin.json:id for the owning plugin.",
+        "Bundled openclaw.channel.id values must match openclaw.plugin.json:id for the owning plugin.",
       collectMismatches: (records: BundledPluginRecord[]) =>
         records
           .filter(
