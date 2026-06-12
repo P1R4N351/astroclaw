@@ -1,8 +1,9 @@
+// Whatsapp tests cover socket timing plugin behavior.
 import { describe, expect, it } from "vitest";
 import { DEFAULT_WHATSAPP_SOCKET_TIMING, resolveWhatsAppSocketTiming } from "./socket-timing.js";
 
 describe("resolveWhatsAppSocketTiming", () => {
-  it("uses Astroclaw's explicit WhatsApp Web socket defaults", () => {
+  it("uses OpenClaw's explicit WhatsApp Web socket defaults", () => {
     expect(resolveWhatsAppSocketTiming({})).toEqual(DEFAULT_WHATSAPP_SOCKET_TIMING);
   });
 
