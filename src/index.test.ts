@@ -1,3 +1,4 @@
+// Tests public package entrypoint exports and load behavior.
 import fs from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { applyTemplate, runLegacyCliEntry } from "./index.js";
@@ -22,7 +23,7 @@ describe("legacy root entry", () => {
       "Hello operator",
     );
 
-    await runLegacyCliEntry(["astroclaw", "status"], { runCli });
-    expect(runCli).toHaveBeenCalledWith(["astroclaw", "status"]);
+    await runLegacyCliEntry(["openclaw", "status"], { runCli });
+    expect(runCli).toHaveBeenCalledWith(["openclaw", "status"]);
   });
 });
