@@ -1,13 +1,14 @@
+/** Verifies plugin loader behavior for native module loading and resolver hooks. */
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const tempDirs: string[] = [];
 
 function makeTempDir() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-plugin-loader-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-plugin-loader-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -15,7 +16,7 @@ function makeTempDir() {
 function writeBundledPluginFixture(id: string) {
   const pluginRoot = makeTempDir();
   fs.writeFileSync(
-    path.join(pluginRoot, "astroclaw.plugin.json"),
+    path.join(pluginRoot, "openclaw.plugin.json"),
     JSON.stringify(
       {
         id,
@@ -46,7 +47,7 @@ function writePackagedPluginFixture(id: string) {
       {
         name: id,
         type: "commonjs",
-        astroclaw: {
+        openclaw: {
           extensions: ["./index.cjs"],
         },
       },
@@ -56,7 +57,7 @@ function writePackagedPluginFixture(id: string) {
     "utf-8",
   );
   fs.writeFileSync(
-    path.join(pluginRoot, "astroclaw.plugin.json"),
+    path.join(pluginRoot, "openclaw.plugin.json"),
     JSON.stringify(
       {
         id,
@@ -82,7 +83,7 @@ function writePackagedPluginFixture(id: string) {
 afterEach(() => {
   vi.resetModules();
   vi.doUnmock("./plugin-module-loader-cache.js");
-  delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
+  delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
   for (const dir of tempDirs.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -115,16 +116,17 @@ describe("createPluginModuleLoader", () => {
   it("loads bundled JavaScript without creating a module loader", async () => {
     const sourceLoaderCalls = mockSourceLoaderCalls();
 
-    const { loadAstroclawPlugins } = await importFreshModule<typeof import("./loader.js")>(
+    const { loadOpenClawPlugins } = await importFreshModule<typeof import("./loader.js")>(
       import.meta.url,
       "./loader.js?scope=native-module-loader",
     );
 
     const pluginRoot = writeBundledPluginFixture("demo");
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = pluginRoot;
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = pluginRoot;
 
-    loadAstroclawPlugins({
+    loadOpenClawPlugins({
       cache: false,
+      installRecords: {},
       workspaceDir: pluginRoot,
       onlyPluginIds: ["demo"],
       config: {
@@ -144,16 +146,18 @@ describe("createPluginModuleLoader", () => {
   it("loads packaged JavaScript without creating a module loader", async () => {
     const sourceLoaderCalls = mockSourceLoaderCalls();
 
-    const { loadAstroclawPlugins } = await importFreshModule<typeof import("./loader.js")>(
+    const { loadOpenClawPlugins } = await importFreshModule<typeof import("./loader.js")>(
       import.meta.url,
       "./loader.js?scope=packaged-native-module-loader",
     );
 
     const pluginRoot = writePackagedPluginFixture("npm-demo");
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = makeTempDir();
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = makeTempDir();
 
-    const registry = loadAstroclawPlugins({
+    const registry = loadOpenClawPlugins({
       cache: false,
+      installRecords: {},
+      onlyPluginIds: ["npm-demo"],
       config: {
         plugins: {
           enabled: true,
