@@ -1,5 +1,6 @@
+// Config-flow step tests cover doctor repair step ordering and mutation planning.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../../config/config.js";
+import type { OpenClawConfig } from "../../../config/config.js";
 import type { DoctorConfigPreflightResult } from "../../doctor-config-preflight.js";
 
 const { migrateLegacyConfigMock, stripUnknownConfigKeysMock } = vi.hoisted(() => ({
@@ -19,7 +20,7 @@ import { applyLegacyCompatibilityStep, applyUnknownConfigKeyStep } from "./confi
 
 function createLegacyStepResult(
   snapshot: DoctorConfigPreflightResult["snapshot"],
-  doctorFixCommand = "astroclaw doctor --fix",
+  doctorFixCommand = "openclaw doctor --fix",
 ) {
   return applyLegacyCompatibilityStep({
     snapshot,
@@ -37,7 +38,7 @@ function createLegacyStepResult(
 describe("doctor config flow steps", () => {
   beforeEach(() => {
     migrateLegacyConfigMock.mockReset();
-    migrateLegacyConfigMock.mockImplementation((config: AstroclawConfig) => ({
+    migrateLegacyConfigMock.mockImplementation((config: OpenClawConfig) => ({
       config,
       changes: [],
     }));
@@ -68,7 +69,7 @@ describe("doctor config flow steps", () => {
     expect(result.issueLines).toEqual(["- heartbeat: use agents.defaults.heartbeat"]);
     expect(result.changeLines).not.toStrictEqual([]);
     expect(result.state.fixHints).toStrictEqual([
-      'Run "astroclaw doctor --fix" to migrate legacy config keys.',
+      'Run "openclaw doctor --fix" to migrate legacy config keys.',
     ]);
     expect(result.state.pendingChanges).toBe(true);
   });
@@ -97,7 +98,7 @@ describe("doctor config flow steps", () => {
     expect(result.changeLines).toStrictEqual([]);
     expect(result.state.pendingChanges).toBe(true);
     expect(result.state.fixHints).toStrictEqual([
-      'Run "astroclaw doctor --fix" to migrate legacy config keys.',
+      'Run "openclaw doctor --fix" to migrate legacy config keys.',
     ]);
   });
 
@@ -150,18 +151,18 @@ describe("doctor config flow steps", () => {
     const result = applyUnknownConfigKeyStep({
       state: {
         cfg: {},
-        candidate: { bogus: true } as unknown as AstroclawConfig,
+        candidate: { bogus: true } as unknown as OpenClawConfig,
         pendingChanges: false,
         fixHints: [],
       },
       shouldRepair: false,
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(result.removed).toEqual(["bogus"]);
     expect(result.state.candidate).toStrictEqual({});
     expect(result.state.fixHints).toStrictEqual([
-      'Run "astroclaw doctor --fix" to remove these keys.',
+      'Run "openclaw doctor --fix" to remove these keys.',
     ]);
   });
 
@@ -212,12 +213,12 @@ describe("doctor config flow steps", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         pendingChanges: false,
         fixHints: [],
       },
       shouldRepair: true,
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(result.repairs).toEqual([
@@ -278,12 +279,12 @@ describe("doctor config flow steps", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         pendingChanges: false,
         fixHints: [],
       },
       shouldRepair: true,
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(result.repairs).toStrictEqual([]);
@@ -328,12 +329,12 @@ describe("doctor config flow steps", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         pendingChanges: false,
         fixHints: [],
       },
       shouldRepair: true,
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(result.repairs).toEqual([
@@ -380,12 +381,12 @@ describe("doctor config flow steps", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         pendingChanges: false,
         fixHints: [],
       },
       shouldRepair: true,
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(result.state.cfg.auth?.profiles?.["openai:default"]).toEqual({
@@ -429,12 +430,12 @@ describe("doctor config flow steps", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         pendingChanges: false,
         fixHints: [],
       },
       shouldRepair: true,
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(result.warnings).toStrictEqual([]);
@@ -479,12 +480,12 @@ describe("doctor config flow steps", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         pendingChanges: false,
         fixHints: [],
       },
       shouldRepair: true,
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(result.state.cfg.auth?.profiles?.["openai:default"]).toEqual({
