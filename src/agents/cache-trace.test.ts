@@ -1,12 +1,15 @@
+/** Tests diagnostic cache-trace event writing, redaction, and stream wrapping. */
 import crypto from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveUserPath } from "../utils.js";
 import { createCacheTrace } from "./cache-trace.js";
 
 describe("createCacheTrace", () => {
   function createMemoryTraceForTest() {
     const lines: string[] = [];
+    // In-memory writer keeps cache trace assertions deterministic without
+    // touching real diagnostic log paths.
     const trace = createCacheTrace({
       cfg: {
         diagnostics: {
@@ -27,7 +30,7 @@ describe("createCacheTrace", () => {
 
   it("returns null when diagnostics cache tracing is disabled", () => {
     const trace = createCacheTrace({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       env: {},
     });
 
@@ -41,7 +44,7 @@ describe("createCacheTrace", () => {
         diagnostics: {
           cacheTrace: {
             enabled: true,
-            filePath: "~/.astroclaw/logs/cache-trace.jsonl",
+            filePath: "~/.openclaw/logs/cache-trace.jsonl",
           },
         },
       },
@@ -54,7 +57,7 @@ describe("createCacheTrace", () => {
     });
 
     expect(typeof trace?.recordStage).toBe("function");
-    expect(trace?.filePath).toBe(resolveUserPath("~/.astroclaw/logs/cache-trace.jsonl"));
+    expect(trace?.filePath).toBe(resolveUserPath("~/.openclaw/logs/cache-trace.jsonl"));
 
     trace?.recordStage("session:loaded", {
       messages: [],
@@ -159,7 +162,7 @@ describe("createCacheTrace", () => {
         },
       },
       env: {
-        ASTROCLAW_CACHE_TRACE: "0",
+        OPENCLAW_CACHE_TRACE: "0",
       },
       writer: {
         filePath: "memory",
@@ -266,7 +269,8 @@ describe("createCacheTrace", () => {
 
     const parent: Record<string, unknown> = { role: "user", content: "hello" };
     const child: Record<string, unknown> = { ref: parent };
-    parent.child = child; // circular reference
+    // Cache tracing must fingerprint cyclic prompt payloads instead of recursing forever.
+    parent.child = child;
 
     trace?.recordStage("prompt:images", {
       messages: [parent] as unknown as [],
