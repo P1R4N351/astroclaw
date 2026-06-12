@@ -1,11 +1,13 @@
+// Exercises MCP stdio process lifecycle, JSON-RPC IO, and close escalation.
 import type { SpawnOptions } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AstroclawStdioClientTransport } from "./mcp-stdio-transport.js";
+import { OpenClawStdioClientTransport } from "./mcp-stdio-transport.js";
 
 const spawnMock = vi.hoisted(() => vi.fn());
 const killProcessTreeMock = vi.hoisted(() => vi.fn());
+const signalProcessTreeMock = vi.hoisted(() => vi.fn());
 
 vi.mock("node:child_process", async () => ({
   ...(await vi.importActual<typeof import("node:child_process")>("node:child_process")),
@@ -14,9 +16,12 @@ vi.mock("node:child_process", async () => ({
 
 vi.mock("../process/kill-tree.js", () => ({
   killProcessTree: killProcessTreeMock,
+  signalProcessTree: signalProcessTreeMock,
 }));
 
 class MockChildProcess extends EventEmitter {
+  // Minimal child-process surface needed by the transport: stdio streams,
+  // pid, and lifecycle events.
   exitCode: number | null = null;
   pid = 4321;
   stdin = new PassThrough();
@@ -24,18 +29,21 @@ class MockChildProcess extends EventEmitter {
   stderr = new PassThrough();
 }
 
-describe("AstroclawStdioClientTransport", () => {
+describe("OpenClawStdioClientTransport", () => {
   afterEach(() => {
     vi.useRealTimers();
     spawnMock.mockReset();
     killProcessTreeMock.mockReset();
+    signalProcessTreeMock.mockReset();
   });
 
   it("starts stdio MCP servers in a disposable process group on POSIX", async () => {
+    // Detached POSIX process groups let OpenClaw clean up child tool servers
+    // without relying on shell-specific process trees.
     const child = new MockChildProcess();
     spawnMock.mockReturnValue(child);
 
-    const transport = new AstroclawStdioClientTransport({
+    const transport = new OpenClawStdioClientTransport({
       command: "npx",
       args: ["-y", "example-mcp"],
       env: { EXAMPLE: "1" },
@@ -74,7 +82,7 @@ describe("AstroclawStdioClientTransport", () => {
     const child = new MockChildProcess();
     spawnMock.mockReturnValue(child);
 
-    const transport = new AstroclawStdioClientTransport({ command: "npx" });
+    const transport = new OpenClawStdioClientTransport({ command: "npx" });
     const started = transport.start();
     child.emit("spawn");
     await started;
@@ -88,12 +96,37 @@ describe("AstroclawStdioClientTransport", () => {
     await closing;
   });
 
+  it("force-SIGKILLs synchronously when killProcessTree's grace expires (#86412)", async () => {
+    vi.useFakeTimers();
+    const child = new MockChildProcess();
+    spawnMock.mockReturnValue(child);
+
+    const transport = new OpenClawStdioClientTransport({ command: "npx" });
+    const started = transport.start();
+    child.emit("spawn");
+    await started;
+
+    const closing = transport.close();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(killProcessTreeMock).toHaveBeenCalledWith(4321);
+    expect(signalProcessTreeMock).not.toHaveBeenCalled();
+
+    // killProcessTree's SIGKILL is .unref()'d (#86412); close() force-SIGKILLs
+    // synchronously instead.
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(signalProcessTreeMock).toHaveBeenCalledWith(4321, "SIGKILL");
+
+    child.exitCode = 0;
+    child.emit("close", 0);
+    await closing;
+  });
+
   it("does not kill the process tree when graceful stdio close exits", async () => {
     vi.useFakeTimers();
     const child = new MockChildProcess();
     spawnMock.mockReturnValue(child);
 
-    const transport = new AstroclawStdioClientTransport({ command: "npx" });
+    const transport = new OpenClawStdioClientTransport({ command: "npx" });
     const started = transport.start();
     child.emit("spawn");
     await started;
@@ -110,7 +143,7 @@ describe("AstroclawStdioClientTransport", () => {
     const child = new MockChildProcess();
     spawnMock.mockReturnValue(child);
 
-    const transport = new AstroclawStdioClientTransport({ command: "npx" });
+    const transport = new OpenClawStdioClientTransport({ command: "npx" });
     const onmessage = vi.fn();
     Object.assign(transport, { onmessage });
     const started = transport.start();
@@ -143,7 +176,7 @@ describe("AstroclawStdioClientTransport", () => {
     child.stdin = brokenStdin;
     spawnMock.mockReturnValue(child);
 
-    const transport = new AstroclawStdioClientTransport({ command: "npx" });
+    const transport = new OpenClawStdioClientTransport({ command: "npx" });
     const started = transport.start();
     child.emit("spawn");
     await started;
@@ -162,7 +195,7 @@ describe("AstroclawStdioClientTransport", () => {
     child.stdin = brokenStdin;
     spawnMock.mockReturnValue(child);
 
-    const transport = new AstroclawStdioClientTransport({ command: "npx" });
+    const transport = new OpenClawStdioClientTransport({ command: "npx" });
     const started = transport.start();
     child.emit("spawn");
     await started;
