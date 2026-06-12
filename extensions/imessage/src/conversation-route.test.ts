@@ -1,8 +1,9 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Imessage tests cover conversation route plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
-  __testing as sessionBindingTesting,
+  testing as sessionBindingTesting,
   registerSessionBindingAdapter,
-} from "astroclaw/plugin-sdk/conversation-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveIMessageConversationRoute } from "./conversation-route.js";
 
@@ -11,7 +12,7 @@ const baseCfg = {
   agents: {
     list: [{ id: "main" }, { id: "codex" }],
   },
-} satisfies AstroclawConfig;
+} satisfies OpenClawConfig;
 
 describe("resolveIMessageConversationRoute", () => {
   beforeEach(() => {
