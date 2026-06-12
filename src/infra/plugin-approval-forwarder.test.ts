@@ -1,6 +1,7 @@
+// Covers plugin approval forwarding through channel capabilities.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createChannelTestPluginBase, createTestRegistry } from "../test-utils/channel-plugins.js";
 import { createExecApprovalForwarder } from "./exec-approval-forwarder.js";
@@ -23,7 +24,7 @@ const PLUGIN_TARGETS_CFG = {
       targets: [{ channel: "slack", to: "U123" }],
     },
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 const PLUGIN_DISABLED_CFG = {
   approvals: {
@@ -31,9 +32,9 @@ const PLUGIN_DISABLED_CFG = {
       enabled: false,
     },
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
-function createForwarder(params: { cfg: AstroclawConfig; deliver?: ReturnType<typeof vi.fn> }) {
+function createForwarder(params: { cfg: OpenClawConfig; deliver?: ReturnType<typeof vi.fn> }) {
   const deliver = params.deliver ?? vi.fn().mockResolvedValue([]);
   const forwarder = createExecApprovalForwarder({
     getConfig: () => params.cfg,
@@ -69,7 +70,7 @@ async function flushPendingDelivery(): Promise<void> {
 }
 
 type DeliveryArgs = {
-  payloads?: Array<{ text?: string; interactive?: unknown }>;
+  payloads?: Array<{ text?: string; presentation?: unknown; interactive?: unknown }>;
 };
 
 function deliveryArgs(deliver: ReturnType<typeof vi.fn>): DeliveryArgs | undefined {
@@ -137,23 +138,35 @@ describe("plugin approval forwarding", () => {
       expect(text).toContain("Sensitive tool call");
       expect(text).toContain("plugin-req-1");
       expect(text).toContain("/approve");
-      expect(payload?.interactive).toEqual({
+      expect(payload?.presentation).toEqual({
         blocks: [
           {
             type: "buttons",
             buttons: [
               {
                 label: "Allow Once",
+                action: {
+                  type: "command",
+                  command: "/approve plugin-req-1 allow-once",
+                },
                 value: "/approve plugin-req-1 allow-once",
                 style: "success",
               },
               {
                 label: "Allow Always",
+                action: {
+                  type: "command",
+                  command: "/approve plugin-req-1 allow-always",
+                },
                 value: "/approve plugin-req-1 allow-always",
                 style: "primary",
               },
               {
                 label: "Deny",
+                action: {
+                  type: "command",
+                  command: "/approve plugin-req-1 deny",
+                },
                 value: "/approve plugin-req-1 deny",
                 style: "danger",
               },
@@ -161,6 +174,7 @@ describe("plugin approval forwarding", () => {
           },
         ],
       });
+      expect(payload?.interactive).toBeUndefined();
     });
 
     it("renders only request-scoped plugin approval decisions", async () => {
@@ -177,20 +191,28 @@ describe("plugin approval forwarding", () => {
       expect(result).toBe(true);
       await flushPendingDelivery();
       const payload = firstDeliveredPayload(deliver);
-      expect(payload?.text).toContain("Reply with: /approve <id> allow-once|deny");
+      expect(payload?.text).toContain("Reply with: /approve plugin-req-1 allow-once|deny");
       expect(payload?.text).not.toContain("allow-always");
-      expect(payload?.interactive).toEqual({
+      expect(payload?.presentation).toEqual({
         blocks: [
           {
             type: "buttons",
             buttons: [
               {
                 label: "Allow Once",
+                action: {
+                  type: "command",
+                  command: "/approve plugin-req-1 allow-once",
+                },
                 value: "/approve plugin-req-1 allow-once",
                 style: "success",
               },
               {
                 label: "Deny",
+                action: {
+                  type: "command",
+                  command: "/approve plugin-req-1 deny",
+                },
                 value: "/approve plugin-req-1 deny",
                 style: "danger",
               },
@@ -198,6 +220,7 @@ describe("plugin approval forwarding", () => {
           },
         ],
       });
+      expect(payload?.interactive).toBeUndefined();
     });
 
     it("includes severity icon for critical", async () => {
@@ -218,7 +241,7 @@ describe("plugin approval forwarding", () => {
           exec: { enabled: true, mode: "targets", targets: [{ channel: "slack", to: "U123" }] },
           plugin: { enabled: false },
         },
-      } as AstroclawConfig;
+      } as OpenClawConfig;
       const { forwarder } = createForwarder({ cfg });
       const result = await forwarder.handlePluginApprovalRequested!(makePluginRequest());
       expect(result).toBe(false);
@@ -234,7 +257,7 @@ describe("plugin approval forwarding", () => {
             targets: [{ channel: "slack", to: "U123" }],
           },
         },
-      } as AstroclawConfig;
+      } as OpenClawConfig;
       const deliver = vi.fn().mockResolvedValue([]);
       const { forwarder } = createForwarder({ cfg, deliver });
       const result = await forwarder.handlePluginApprovalRequested!(makePluginRequest());
@@ -244,7 +267,7 @@ describe("plugin approval forwarding", () => {
     });
 
     it("returns false when no approvals config at all", async () => {
-      const cfg = {} as AstroclawConfig;
+      const cfg = {} as OpenClawConfig;
       const { forwarder } = createForwarder({ cfg });
       const result = await forwarder.handlePluginApprovalRequested!(makePluginRequest());
       expect(result).toBe(false);
