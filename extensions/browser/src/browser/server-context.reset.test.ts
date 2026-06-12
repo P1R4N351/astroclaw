@@ -1,3 +1,4 @@
+// Browser tests cover server context.reset plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -23,24 +24,24 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-function localAstroclawProfile(): Parameters<typeof createProfileResetOps>[0]["profile"] {
+function localOpenClawProfile(): Parameters<typeof createProfileResetOps>[0]["profile"] {
   return {
-    name: "astroclaw",
+    name: "openclaw",
     cdpUrl: "http://127.0.0.1:18800",
     cdpHost: "127.0.0.1",
     cdpIsLoopback: true,
     cdpPort: 18800,
     color: "#f60",
-    driver: "astroclaw",
+    driver: "openclaw",
     headless: false,
     attachOnly: false,
   };
 }
 
-function createLocalAstroclawResetOps(
+function createLocalOpenClawResetOps(
   params: Omit<Parameters<typeof createProfileResetOps>[0], "profile">,
 ) {
-  return createProfileResetOps({ profile: localAstroclawProfile(), ...params });
+  return createProfileResetOps({ profile: localOpenClawProfile(), ...params });
 }
 
 function createStatelessResetOps(profile: Parameters<typeof createProfileResetOps>[0]["profile"]) {
@@ -49,14 +50,14 @@ function createStatelessResetOps(profile: Parameters<typeof createProfileResetOp
     getProfileState: () => ({ profile: {} as never, running: null }),
     stopRunningBrowser: vi.fn(async () => ({ stopped: false })),
     isHttpReachable: vi.fn(async () => false),
-    resolveAstroclawUserDataDir: (name: string) => `/tmp/${name}`,
+    resolveOpenClawUserDataDir: (name: string) => `/tmp/${name}`,
   });
 }
 
 describe("createProfileResetOps", () => {
   it("rejects remote non-extension profiles", async () => {
     const ops = createStatelessResetOps({
-      ...localAstroclawProfile(),
+      ...localOpenClawProfile(),
       name: "remote",
       cdpUrl: "https://browserless.example/chrome",
       cdpHost: "browserless.example",
@@ -69,8 +70,8 @@ describe("createProfileResetOps", () => {
   });
 
   it("stops local browser, closes playwright connection, and trashes profile dir", async () => {
-    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-reset-"));
-    const profileDir = path.join(tempRoot, "astroclaw");
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-reset-"));
+    const profileDir = path.join(tempRoot, "openclaw");
     fs.mkdirSync(profileDir, { recursive: true });
 
     const stopRunningBrowser = vi.fn(async () => ({ stopped: true }));
@@ -80,11 +81,11 @@ describe("createProfileResetOps", () => {
       running: { pid: 1 } as never,
     }));
 
-    const ops = createLocalAstroclawResetOps({
+    const ops = createLocalOpenClawResetOps({
       getProfileState,
       stopRunningBrowser,
       isHttpReachable,
-      resolveAstroclawUserDataDir: () => profileDir,
+      resolveOpenClawUserDataDir: () => profileDir,
     });
 
     const result = await ops.resetProfile();
@@ -102,16 +103,16 @@ describe("createProfileResetOps", () => {
   });
 
   it("forces playwright disconnect when loopback cdp is occupied by non-owned process", async () => {
-    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-reset-no-own-"));
-    const profileDir = path.join(tempRoot, "astroclaw");
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-reset-no-own-"));
+    const profileDir = path.join(tempRoot, "openclaw");
     fs.mkdirSync(profileDir, { recursive: true });
 
     const stopRunningBrowser = vi.fn(async () => ({ stopped: false }));
-    const ops = createLocalAstroclawResetOps({
+    const ops = createLocalOpenClawResetOps({
       getProfileState: () => ({ profile: {} as never, running: null }),
       stopRunningBrowser,
       isHttpReachable: vi.fn(async () => true),
-      resolveAstroclawUserDataDir: () => profileDir,
+      resolveOpenClawUserDataDir: () => profileDir,
     });
 
     await ops.resetProfile();
