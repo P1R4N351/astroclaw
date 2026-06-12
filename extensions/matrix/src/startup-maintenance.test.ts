@@ -1,6 +1,7 @@
+// Matrix tests cover startup maintenance plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempHome } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome } from "openclaw/plugin-sdk/test-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const legacyCryptoInspectorAvailability = vi.hoisted(() => ({
@@ -15,7 +16,7 @@ import { runMatrixStartupMaintenance } from "./startup-maintenance.js";
 import { resolveMatrixAccountStorageRoot } from "./storage-paths.js";
 
 async function seedLegacyMatrixState(home: string) {
-  const stateDir = path.join(home, ".astroclaw");
+  const stateDir = path.join(home, ".openclaw");
   await fs.mkdir(path.join(stateDir, "matrix"), { recursive: true });
   await fs.writeFile(path.join(stateDir, "matrix", "bot-storage.json"), '{"legacy":true}');
 }
@@ -37,7 +38,7 @@ function makeMatrixStartupConfig(includeCredentials = true) {
 }
 
 async function seedLegacyMatrixCrypto(home: string) {
-  const stateDir = path.join(home, ".astroclaw");
+  const stateDir = path.join(home, ".openclaw");
   const { rootDir } = resolveMatrixAccountStorageRoot({
     stateDir,
     homeserver: "https://matrix.example.org",
@@ -142,7 +143,7 @@ describe("runMatrixStartupMaintenance", () => {
 
       expectWarningOnlyMaintenanceSkipped(harness);
       expect(harness.log.warn).toHaveBeenCalledWith(
-        `matrix: Legacy Matrix state detected at ${path.join(home, ".astroclaw", "matrix")}, but the new account-scoped target could not be resolved yet (need homeserver, userId, and access token for channels.matrix). Start the gateway once with a working Matrix login, or rerun "astroclaw doctor --fix" after cached credentials are available.`,
+        `matrix: Legacy Matrix state detected at ${path.join(home, ".openclaw", "matrix")}, but the new account-scoped target could not be resolved yet (need homeserver, userId, and access token for channels.matrix). Start the gateway once with a working Matrix login, or rerun "openclaw doctor --fix" after cached credentials are available.`,
       );
     });
   });
