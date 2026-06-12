@@ -1,5 +1,6 @@
+// Tests heartbeat runner scheduling and timer cleanup.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { startHeartbeatRunner } from "./heartbeat-runner.js";
 import { computeNextHeartbeatPhaseDueMs, resolveHeartbeatPhaseMs } from "./heartbeat-schedule.js";
 import {
@@ -29,14 +30,14 @@ describe("startHeartbeatRunner", () => {
   }
 
   function heartbeatConfig(
-    list?: NonNullable<NonNullable<AstroclawConfig["agents"]>["list"]>,
-  ): AstroclawConfig {
+    list?: NonNullable<NonNullable<OpenClawConfig["agents"]>["list"]>,
+  ): OpenClawConfig {
     return {
       agents: {
         defaults: { heartbeat: { every: "30m" } },
         ...(list ? { list } : {}),
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
   function resolveDueFromNow(nowMs: number, intervalMs: number, agentId: string) {
@@ -142,7 +143,7 @@ describe("startHeartbeatRunner", () => {
   }
 
   async function expectWakeDispatch(params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     runSpy: MockRunOnce;
     wake: Parameters<typeof requestHeartbeat>[0];
     expectedCall: Record<string, unknown>;
@@ -189,7 +190,7 @@ describe("startHeartbeatRunner", () => {
           { id: "ops", heartbeat: { every: "15m" } },
         ],
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     const nowAfterReload = Date.now();
     const nextMainDueMs = resolveDueFromNow(nowAfterReload, 10 * 60_000, "main");
@@ -273,7 +274,7 @@ describe("startHeartbeatRunner", () => {
 
     const cfg = {
       agents: { defaults: { heartbeat: { every: "30m" } } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const firstDueMs = resolveDueFromNow(0, 30 * 60_000, "main");
 
     // Start runner A
@@ -363,6 +364,65 @@ describe("startHeartbeatRunner", () => {
     runner.stop();
   });
 
+  it("advances cadence after non-retryable disabled skips", async () => {
+    useFakeHeartbeatTime();
+    const timeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    const runSpy = vi.fn().mockResolvedValue({ status: "skipped", reason: "disabled" } as const);
+
+    const intervalMs = 10 * 60_000;
+    const runner = startHeartbeatRunner({
+      cfg: heartbeatConfig([{ id: "main", heartbeat: { every: "10m" } }]),
+      runOnce: runSpy,
+      stableSchedulerSeed: TEST_SCHEDULER_SEED,
+    });
+    const firstDueMs = resolveDueFromNow(0, intervalMs, "main");
+
+    await vi.advanceTimersByTimeAsync(firstDueMs + 1);
+    expect(runSpy).toHaveBeenCalledTimes(1);
+
+    const delays = timeoutSpy.mock.calls
+      .map((call) => call[1])
+      .filter((delay): delay is number => typeof delay === "number");
+    expect(delays[delays.length - 1]).toBeGreaterThan(5_000);
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(runSpy).toHaveBeenCalledTimes(1);
+
+    timeoutSpy.mockRestore();
+    runner.stop();
+  });
+
+  it("advances cadence after flood deferrals without wake-layer retry", async () => {
+    useFakeHeartbeatTime();
+    const timeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    const runSpy = vi.fn().mockResolvedValue({ status: "ran", durationMs: 1 } as const);
+
+    const intervalMs = 1_000;
+    const runner = startHeartbeatRunner({
+      cfg: heartbeatConfig([{ id: "main", heartbeat: { every: "1s" } }]),
+      runOnce: runSpy,
+      stableSchedulerSeed: TEST_SCHEDULER_SEED,
+    });
+    const firstDueMs = resolveDueFromNow(0, intervalMs, "main");
+
+    await vi.advanceTimersByTimeAsync(firstDueMs + 1);
+    for (let i = 0; i < 4; i++) {
+      await vi.advanceTimersByTimeAsync(intervalMs);
+    }
+    expect(runSpy).toHaveBeenCalledTimes(5);
+
+    await vi.advanceTimersByTimeAsync(intervalMs);
+    expect(runSpy).toHaveBeenCalledTimes(5);
+
+    const delays = timeoutSpy.mock.calls
+      .map((call) => call[1])
+      .filter((delay): delay is number => typeof delay === "number");
+    expect(delays[delays.length - 1]).toBeGreaterThan(0);
+
+    timeoutSpy.mockRestore();
+    runner.stop();
+  });
+
   it("does not push nextDueMs forward on repeated requests-in-flight skips", async () => {
     useFakeHeartbeatTime();
 
@@ -421,7 +481,7 @@ describe("startHeartbeatRunner", () => {
           { id: "main", heartbeat: { every: "30m" } },
           { id: "ops", heartbeat: { every: "15m" } },
         ]),
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       runSpy,
       wake: {
         source: "cron",
@@ -483,7 +543,7 @@ describe("startHeartbeatRunner", () => {
             },
           },
         ]),
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       runSpy,
       wake: {
         source: "cron",
@@ -526,7 +586,7 @@ describe("startHeartbeatRunner", () => {
             },
           },
         ]),
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       runSpy,
       wake: {
         source: "hook",
@@ -580,7 +640,7 @@ describe("startHeartbeatRunner", () => {
           { id: "main", heartbeat: { every: "30m" } },
           { id: "finance", heartbeat: { every: "30m" } },
         ]),
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       runSpy,
       wake: {
         source: "exec-event",
@@ -655,7 +715,7 @@ describe("startHeartbeatRunner", () => {
   });
 
   it("preserves immediate delivery for repeated bare wake reasons", async () => {
-    // 'wake' is the immediate-path reason from `astroclaw system event --mode now`
+    // 'wake' is the immediate-path reason from `openclaw system event --mode now`
     // and must NOT be deferred. Verify the runner allows multiple back-to-back
     // wake requests through (subject only to the flood guard backstop).
     useFakeHeartbeatTime();
