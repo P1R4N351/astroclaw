@@ -1,3 +1,5 @@
+// Gateway plugin tests cover plugin loading, auto-enable, runtime registry setup,
+// request-scope injection, diagnostics, and handler dispatch integration.
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { PluginLookUpTable } from "../plugins/plugin-lookup-table.js";
 import type { PluginRegistry } from "../plugins/registry.js";
@@ -6,7 +8,7 @@ import type { PluginRuntime } from "../plugins/runtime/types.js";
 import type { PluginDiagnostic } from "../plugins/types.js";
 import type { GatewayRequestContext, GatewayRequestOptions } from "./server-methods/types.js";
 
-const loadAstroclawPlugins = vi.hoisted(() => vi.fn());
+const loadOpenClawPlugins = vi.hoisted(() => vi.fn());
 const clearActivatedPluginRuntimeState = vi.hoisted(() => vi.fn());
 const loadPluginLookUpTable = vi.hoisted(() =>
   vi.fn(() => ({
@@ -36,7 +38,7 @@ const handleGatewayRequest = vi.hoisted(() =>
 
 vi.mock("../plugins/loader.js", () => ({
   clearActivatedPluginRuntimeState,
-  loadAstroclawPlugins,
+  loadOpenClawPlugins,
 }));
 
 vi.mock("../plugins/runtime/load-context.js", () => ({
@@ -88,10 +90,12 @@ const createRegistry = (diagnostics: PluginDiagnostic[]): PluginRegistry => ({
   commands: [],
   providers: [],
   modelCatalogProviders: [],
+  embeddingProviders: [],
   speechProviders: [],
   realtimeTranscriptionProviders: [],
   realtimeVoiceProviders: [],
   mediaUnderstandingProviders: [],
+  transcriptSourceProviders: [],
   imageGenerationProviders: [],
   musicGenerationProviders: [],
   videoGenerationProviders: [],
@@ -118,7 +122,6 @@ function createLookUpTableForTest(params: {
   pluginIds?: readonly string[];
 }): PluginLookUpTable {
   return {
-    key: "test",
     policyHash: "test",
     index: {
       version: 1,
@@ -228,7 +231,7 @@ function readRecordField(record: Record<string, unknown>, key: string, label: st
 
 function getLastPluginLoadOptions(): Record<string, unknown> {
   return requireRecord(
-    getLastMockFirstArg(loadAstroclawPlugins, "plugin load"),
+    getLastMockFirstArg(loadOpenClawPlugins, "plugin load"),
     "plugin load options",
   );
 }
@@ -276,7 +279,7 @@ function getLastPluginLoadLogger(): {
   error: (message: string) => void;
   debug?: (message: string) => void;
 } {
-  const call = getLastMockFirstArg(loadAstroclawPlugins, "plugin load") as
+  const call = getLastMockFirstArg(loadOpenClawPlugins, "plugin load") as
     | {
         logger?: {
           info: (message: string) => void;
@@ -308,7 +311,7 @@ async function createSubagentRuntime(
   cfg: Record<string, unknown> = {},
 ): Promise<PluginRuntime["subagent"]> {
   const log = createTestLog();
-  loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+  loadOpenClawPlugins.mockReturnValue(createRegistry([]));
   serverPluginBootstrapModule.loadGatewayStartupPlugins({
     cfg,
     workspaceDir: "/tmp",
@@ -316,7 +319,7 @@ async function createSubagentRuntime(
     coreGatewayHandlers: {},
     baseMethods: [],
   });
-  const call = getLastMockFirstArg(loadAstroclawPlugins, "plugin load") as
+  const call = getLastMockFirstArg(loadOpenClawPlugins, "plugin load") as
     | { runtimeOptions?: { allowGatewaySubagentBinding?: boolean } }
     | undefined;
   if (call?.runtimeOptions?.allowGatewaySubagentBinding !== true) {
@@ -366,7 +369,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   clearActivatedPluginRuntimeState.mockClear();
-  loadAstroclawPlugins.mockReset();
+  loadOpenClawPlugins.mockReset();
   loadPluginLookUpTable.mockReset().mockReturnValue({
     startup: {
       pluginIds: ["discord", "telegram"],
@@ -418,7 +421,7 @@ describe("loadGatewayPlugins", () => {
         message: "failed to load plugin: boom",
       },
     ];
-    loadAstroclawPlugins.mockReturnValue(createRegistry(diagnostics));
+    loadOpenClawPlugins.mockReturnValue(createRegistry(diagnostics));
     const log = loadGatewayStartupPluginsForTest();
 
     expect(log.error).toHaveBeenCalledWith(
@@ -428,7 +431,7 @@ describe("loadGatewayPlugins", () => {
   });
 
   test("loads only gateway startup plugin ids", () => {
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
     loadGatewayPluginsForTest();
 
     expect(applyPluginAutoEnable).toHaveBeenCalledWith({
@@ -446,7 +449,7 @@ describe("loadGatewayPlugins", () => {
   });
 
   test("routes plugin registration logs through the plugin logger", () => {
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
     const log = loadGatewayPluginsForTest();
 
     const logger = getLastPluginLoadLogger();
@@ -460,7 +463,7 @@ describe("loadGatewayPlugins", () => {
   });
 
   test("can suppress provisional plugin info logs while preserving warnings", () => {
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
     loadGatewayPluginsForTest({
       suppressPluginInfoLogs: true,
     });
@@ -474,7 +477,7 @@ describe("loadGatewayPlugins", () => {
   });
 
   test("reuses the provided startup plugin scope without recomputing it", () => {
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
 
     loadGatewayPluginsForTest({
       pluginIds: ["browser"],
@@ -485,7 +488,7 @@ describe("loadGatewayPlugins", () => {
   });
 
   test("reuses a provided lookup table for startup scope and auto-enable manifests", () => {
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
     const manifestRegistry = { plugins: [], diagnostics: [] };
 
     loadGatewayPluginsForTest({
@@ -507,7 +510,7 @@ describe("loadGatewayPlugins", () => {
 
   test("pins the initial startup channel registry against later active-registry churn", () => {
     const startupRegistry = createRegistry([]);
-    loadAstroclawPlugins.mockReturnValue(startupRegistry);
+    loadOpenClawPlugins.mockReturnValue(startupRegistry);
 
     loadGatewayStartupPluginsForTest({
       pluginIds: ["slack"],
@@ -532,7 +535,7 @@ describe("loadGatewayPlugins", () => {
         slack: ["slack configured"],
       },
     });
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
 
     loadGatewayStartupPluginsForTest({
       cfg: resolvedConfig,
@@ -613,7 +616,7 @@ describe("loadGatewayPlugins", () => {
         telegram: ["telegram configured"],
       },
     });
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
 
     loadGatewayStartupPluginsForTest({
       cfg: runtimeConfig,
@@ -664,7 +667,7 @@ describe("loadGatewayPlugins", () => {
     });
 
     expect(clearActivatedPluginRuntimeState).toHaveBeenCalledTimes(1);
-    expect(loadAstroclawPlugins).not.toHaveBeenCalled();
+    expect(loadOpenClawPlugins).not.toHaveBeenCalled();
     expect(result.pluginRegistry.plugins).toStrictEqual([]);
     expect(result.gatewayMethods).toEqual(["sessions.get"]);
   });
@@ -696,7 +699,7 @@ describe("loadGatewayPlugins", () => {
         slack: ["slack configured"],
       },
     });
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
 
     loadGatewayPluginsForTest();
 
@@ -723,7 +726,7 @@ describe("loadGatewayPlugins", () => {
         slack: ["slack configured"],
       },
     });
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
 
     loadGatewayPluginsForTest({
       cfg: resolvedConfig,
@@ -770,8 +773,99 @@ describe("loadGatewayPlugins", () => {
     });
   });
 
+  test("times out while waiting for the first in-process gateway response", async () => {
+    serverPluginsModule.setFallbackGatewayContext(createTestContext("initial-response-timeout"));
+    handleGatewayRequest.mockImplementationOnce(async () => {
+      await new Promise(() => {});
+    });
+
+    await expect(
+      serverPluginsModule.dispatchGatewayMethodInProcess(
+        "sessions.delete",
+        { key: "stuck-session" },
+        { timeoutMs: 5 },
+      ),
+    ).rejects.toThrow("gateway request timeout for sessions.delete");
+  });
+
+  test("returns an accepted in-process response without waiting for handler completion", async () => {
+    serverPluginsModule.setFallbackGatewayContext(createTestContext("accepted-before-complete"));
+    handleGatewayRequest.mockImplementationOnce(async (opts: HandleGatewayRequestOptions) => {
+      opts.respond(true, { status: "accepted", runId: "run-accepted" });
+      await new Promise(() => {});
+    });
+
+    await expect(
+      serverPluginsModule.dispatchGatewayMethodInProcess(
+        "agent",
+        { sessionKey: "s-accepted" },
+        { timeoutMs: 5 },
+      ),
+    ).resolves.toEqual({ status: "accepted", runId: "run-accepted" });
+  });
+
+  test("uses one timeout budget across accepted and final in-process responses", async () => {
+    vi.useFakeTimers();
+    try {
+      serverPluginsModule.setFallbackGatewayContext(createTestContext("single-final-deadline"));
+      handleGatewayRequest.mockImplementationOnce(async (opts: HandleGatewayRequestOptions) => {
+        setTimeout(() => {
+          opts.respond(true, { status: "accepted", runId: "run-deadline" });
+        }, 7);
+        setTimeout(() => {
+          opts.respond(true, { status: "ok", runId: "run-deadline" });
+        }, 13);
+        await new Promise((resolve) => {
+          setTimeout(resolve, 13);
+        });
+      });
+
+      const result = expect(
+        serverPluginsModule.dispatchGatewayMethodInProcess(
+          "agent",
+          { sessionKey: "s-deadline" },
+          { expectFinal: true, timeoutMs: 10 },
+        ),
+      ).rejects.toThrow("gateway request timeout for agent");
+
+      await vi.advanceTimersByTimeAsync(10);
+      await result;
+      await vi.advanceTimersByTimeAsync(10);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("clears final-response timeout when handler rejects after accepted response", async () => {
+    vi.useFakeTimers();
+    try {
+      serverPluginsModule.setFallbackGatewayContext(createTestContext("accepted-then-error"));
+      handleGatewayRequest.mockImplementationOnce(async (opts: HandleGatewayRequestOptions) => {
+        opts.respond(true, { status: "accepted", runId: "run-error-after-accepted" });
+        await new Promise((resolve) => {
+          setTimeout(resolve, 5);
+        });
+        throw new Error("handler failed after accepted");
+      });
+
+      const result = expect(
+        serverPluginsModule.dispatchGatewayMethodInProcess(
+          "agent",
+          { sessionKey: "s-error-after-accepted" },
+          { expectFinal: true, timeoutMs: 1_000 },
+        ),
+      ).rejects.toThrow("handler failed after accepted");
+
+      await vi.advanceTimersByTimeAsync(5);
+      await result;
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("filters connected plugin nodes locally without sending unsupported node.list params", async () => {
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
     loadGatewayStartupPluginsForTest();
     serverPluginsModule.setFallbackGatewayContext(createTestContext("nodes-list-filter"));
     handleGatewayRequest.mockImplementationOnce(async (opts: HandleGatewayRequestOptions) => {
@@ -967,7 +1061,7 @@ describe("loadGatewayPlugins", () => {
         }),
       ),
     ).rejects.toThrow(
-      'plugin "voice-call" is not trusted for fallback provider/model override requests. See https://docs.astroclaw.ai/tools/plugin#runtime-helpers and search for: plugins.entries.<id>.subagent.allowModelOverride',
+      'plugin "voice-call" is not trusted for fallback provider/model override requests. See https://docs.openclaw.ai/plugins/sdk-runtime#api-runtime-subagent and search for: plugins.entries.<id>.subagent.allowModelOverride',
     );
   });
 
@@ -1192,7 +1286,7 @@ describe("loadGatewayPlugins", () => {
   });
 
   test("can prefer setup-runtime channel plugins during startup loads", () => {
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
     loadGatewayPluginsForTest({
       preferSetupRuntimeForChannelPlugins: true,
     });
@@ -1201,7 +1295,7 @@ describe("loadGatewayPlugins", () => {
   });
 
   test("primes configured bindings during gateway startup", () => {
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
     const cfg = {};
     const autoEnabledConfig = { channels: { slack: { enabled: true } }, autoEnabled: true };
     applyPluginAutoEnable.mockReturnValue({
@@ -1259,7 +1353,7 @@ describe("loadGatewayPlugins", () => {
         message: "failed to load plugin: boom",
       },
     ];
-    loadAstroclawPlugins.mockReturnValue(createRegistry(diagnostics));
+    loadOpenClawPlugins.mockReturnValue(createRegistry(diagnostics));
     const log = createTestLog();
 
     reloadDeferredGatewayPlugins({
@@ -1277,7 +1371,7 @@ describe("loadGatewayPlugins", () => {
 
   test("reuses the initial startup plugin scope during deferred reloads", () => {
     const { reloadDeferredGatewayPlugins } = serverPluginBootstrapModule;
-    loadAstroclawPlugins.mockReturnValue(createRegistry([]));
+    loadOpenClawPlugins.mockReturnValue(createRegistry([]));
     const manifestRegistry = { plugins: [], diagnostics: [] };
 
     reloadDeferredGatewayPlugins({
@@ -1308,7 +1402,7 @@ describe("loadGatewayPlugins", () => {
     const { prepareGatewayPluginLoad } = serverPluginBootstrapModule;
     const order: string[] = [];
     const pluginRegistry = createRegistry([]);
-    loadAstroclawPlugins.mockReturnValue(pluginRegistry);
+    loadOpenClawPlugins.mockReturnValue(pluginRegistry);
     primeConfiguredBindingRegistry.mockImplementation(() => {
       order.push("prime");
       return { bindingCount: 0, channelCount: 0 };
@@ -1385,11 +1479,14 @@ describe("loadGatewayPlugins", () => {
     const runtime = await createSubagentRuntime(serverPlugins);
     let currentContext = createTestContext("before-resolver-update");
 
+    expect(serverPlugins.hasInProcessGatewayContext()).toBe(false);
     serverPlugins.setFallbackGatewayContextResolver(() => currentContext);
+    expect(serverPlugins.hasInProcessGatewayContext()).toBe(true);
     await runtime.run({ sessionKey: "s-4", message: "before resolver update" });
     expect(getLastDispatchedContext()).toBe(currentContext);
 
     currentContext = createTestContext("after-resolver-update");
+    expect(serverPlugins.hasInProcessGatewayContext()).toBe(true);
     await runtime.run({ sessionKey: "s-4", message: "after resolver update" });
     expect(getLastDispatchedContext()).toBe(currentContext);
   });
@@ -1431,6 +1528,7 @@ describe("loadGatewayPlugins", () => {
 
     serverPlugins.clearFallbackGatewayContext();
 
+    expect(serverPlugins.hasInProcessGatewayContext()).toBe(false);
     await expect(runtime.run({ sessionKey: "s-7", message: "after clear" })).rejects.toThrow(
       "No scope set and no fallback context available",
     );
