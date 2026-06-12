@@ -1,3 +1,4 @@
+// Tests session fork runtime behavior and copied session artifacts.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -22,7 +23,7 @@ afterEach(async () => {
 
 describe("resolveParentForkTokenCountRuntime", () => {
   it("falls back to recent transcript usage when cached totals are stale", async () => {
-    const root = await makeRoot("astroclaw-parent-fork-token-estimate-");
+    const root = await makeRoot("openclaw-parent-fork-token-estimate-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
 
@@ -79,7 +80,7 @@ describe("resolveParentForkTokenCountRuntime", () => {
   });
 
   it("falls back to a conservative byte estimate when stale parent transcript has no usage", async () => {
-    const root = await makeRoot("astroclaw-parent-fork-byte-estimate-");
+    const root = await makeRoot("openclaw-parent-fork-byte-estimate-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
 
@@ -123,7 +124,7 @@ describe("resolveParentForkTokenCountRuntime", () => {
   });
 
   it("uses the latest usage snapshot instead of tail aggregates for parent fork checks", async () => {
-    const root = await makeRoot("astroclaw-parent-fork-latest-usage-");
+    const root = await makeRoot("openclaw-parent-fork-latest-usage-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
 
@@ -173,7 +174,7 @@ describe("resolveParentForkTokenCountRuntime", () => {
   });
 
   it("keeps parent fork checks conservative for content appended after latest usage", async () => {
-    const root = await makeRoot("astroclaw-parent-fork-post-usage-tail-");
+    const root = await makeRoot("openclaw-parent-fork-post-usage-tail-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
 
@@ -224,7 +225,7 @@ describe("resolveParentForkTokenCountRuntime", () => {
 
 describe("forkSessionFromParentRuntime", () => {
   it("forks the active branch without synchronously opening the session manager", async () => {
-    const root = await makeRoot("astroclaw-parent-fork-");
+    const root = await makeRoot("openclaw-parent-fork-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
     const parentSessionFile = path.join(sessionsDir, "parent.jsonl");
@@ -315,7 +316,7 @@ describe("forkSessionFromParentRuntime", () => {
   });
 
   it("creates a header-only child when the parent has no entries", async () => {
-    const root = await makeRoot("astroclaw-parent-fork-empty-");
+    const root = await makeRoot("openclaw-parent-fork-empty-");
     const sessionsDir = path.join(root, "sessions");
     await fs.mkdir(sessionsDir);
     const parentSessionFile = path.join(sessionsDir, "parent.jsonl");
