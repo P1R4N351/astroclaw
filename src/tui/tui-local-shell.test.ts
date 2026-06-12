@@ -1,3 +1,4 @@
+// Verifies local shell process handling for TUI local mode.
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
 import { createLocalShellRunner } from "./tui-local-shell.js";
@@ -78,7 +79,7 @@ describe("createLocalShellRunner", () => {
     expect(harness.spawnCommand).not.toHaveBeenCalled();
   });
 
-  it("sets ASTROCLAW_SHELL when running local shell commands", async () => {
+  it("sets OPENCLAW_SHELL when running local shell commands", async () => {
     const spawnCommand = vi.fn((_command: string, _options: unknown) => {
       const stdout = new EventEmitter();
       const stderr = new EventEmitter();
@@ -107,7 +108,7 @@ describe("createLocalShellRunner", () => {
     expect(harness.createSelectorSpy).toHaveBeenCalledTimes(1);
     expect(spawnCommand).toHaveBeenCalledTimes(1);
     const spawnOptions = requireSpawnOptions(spawnCommand);
-    expect(spawnOptions.env?.ASTROCLAW_SHELL).toBe("tui-local");
+    expect(spawnOptions.env?.OPENCLAW_SHELL).toBe("tui-local");
     expect(spawnOptions.env?.PATH).toBe("/tmp/bin");
     expect(harness.messages).toContain("local shell: enabled for this session");
   });
