@@ -1,14 +1,15 @@
+// Verifies schema hint metadata and sensitive path handling.
+import { isSensitiveUrlConfigPath } from "@openclaw/net-policy/redact-sensitive-url";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { buildSecretInputSchema } from "../plugin-sdk/secret-input-schema.js";
-import { isSensitiveUrlConfigPath } from "../shared/net/redact-sensitive-url.js";
 import { FIELD_HELP } from "./schema.help.js";
-import { __test__, isPluginOwnedChannelHintPath, isSensitiveConfigPath } from "./schema.hints.js";
+import { testApi, isPluginOwnedChannelHintPath, isSensitiveConfigPath } from "./schema.hints.js";
 import { FIELD_LABELS } from "./schema.labels.js";
-import { AstroclawSchema } from "./zod-schema.js";
+import { OpenClawSchema } from "./zod-schema.js";
 import { sensitive } from "./zod-schema.sensitive.js";
 
-const { collectMatchingSchemaPaths, mapSensitivePaths } = __test__;
+const { collectMatchingSchemaPaths, mapSensitivePaths } = testApi;
 const BUNDLED_CHANNEL_HINT_PREFIXES = [
   "channels.discord",
   "channels.imessage",
@@ -158,12 +159,12 @@ describe("mapSensitivePaths", () => {
   });
 
   it("main schema yields correct hints (samples)", () => {
-    const schema = AstroclawSchema.toJSONSchema({
+    const schema = OpenClawSchema.toJSONSchema({
       target: "draft-07",
       unrepresentable: "any",
     });
-    schema.title = "AstroclawConfig";
-    const hints = mapSensitivePaths(AstroclawSchema, "", {});
+    schema.title = "OpenClawConfig";
+    const hints = mapSensitivePaths(OpenClawSchema, "", {});
 
     expect(hints["agents.defaults.memorySearch.remote.apiKey"]?.sensitive).toBe(true);
     expect(hints["agents.list[].memorySearch.remote.apiKey"]?.sensitive).toBe(true);
@@ -173,6 +174,7 @@ describe("mapSensitivePaths", () => {
     expect(hints["models.providers.*.request.headers.*"]?.sensitive).toBe(true);
     expect(hints["models.providers.*.request.proxy.tls.cert"]?.sensitive).toBe(true);
     expect(hints["proxy.proxyUrl"]?.sensitive).toBe(true);
+    expect(hints["proxy.tls.caFile"]?.sensitive).toBeUndefined();
     expect(hints["skills.entries.*.apiKey"]?.sensitive).toBe(true);
   });
 
@@ -194,7 +196,7 @@ describe("mapSensitivePaths", () => {
 
 describe("collectMatchingSchemaPaths", () => {
   it("finds base-config URL fields that may embed secrets", () => {
-    const paths = collectMatchingSchemaPaths(AstroclawSchema, "", isSensitiveUrlConfigPath);
+    const paths = collectMatchingSchemaPaths(OpenClawSchema, "", isSensitiveUrlConfigPath);
 
     expect(paths.has("mcp.servers.*.url")).toBe(true);
     expect(paths.has("models.providers.*.baseUrl")).toBe(true);
