@@ -1,3 +1,4 @@
+// Setup gateway config tests cover gateway prompt choices and config output.
 import { describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
 import { DEFAULT_DANGEROUS_NODE_COMMANDS } from "../gateway/node-command-policy.js";
@@ -28,12 +29,12 @@ describe("configureGatewayForSetup", () => {
   function createPrompter(params: { selectQueue: string[]; textQueue: Array<string | undefined> }) {
     const selectQueue = [...params.selectQueue];
     const textQueue = [...params.textQueue];
-    const select = vi.fn(async (params: WizardSelectParams<unknown>) => {
+    const select = vi.fn(async (paramsLocal: WizardSelectParams<unknown>) => {
       const next = selectQueue.shift();
       if (next !== undefined) {
         return next;
       }
-      return params.initialValue ?? params.options[0]?.value;
+      return paramsLocal.initialValue ?? paramsLocal.options[0]?.value;
     }) as unknown as WizardPrompter["select"];
 
     return buildWizardPrompter({
@@ -99,9 +100,9 @@ describe("configureGatewayForSetup", () => {
     expect(result.nextConfig.gateway?.nodes?.denyCommands).toContain("screen.record");
   });
 
-  it("prefers ASTROCLAW_GATEWAY_TOKEN during quickstart token setup", async () => {
-    const prevToken = process.env.ASTROCLAW_GATEWAY_TOKEN;
-    process.env.ASTROCLAW_GATEWAY_TOKEN = "token-from-env";
+  it("prefers OPENCLAW_GATEWAY_TOKEN during quickstart token setup", async () => {
+    const prevToken = process.env.OPENCLAW_GATEWAY_TOKEN;
+    process.env.OPENCLAW_GATEWAY_TOKEN = "token-from-env";
     mocks.randomToken.mockReturnValue("generated-token");
     mocks.randomToken.mockClear();
 
@@ -114,16 +115,16 @@ describe("configureGatewayForSetup", () => {
       expect(result.settings.gatewayToken).toBe("token-from-env");
     } finally {
       if (prevToken === undefined) {
-        delete process.env.ASTROCLAW_GATEWAY_TOKEN;
+        delete process.env.OPENCLAW_GATEWAY_TOKEN;
       } else {
-        process.env.ASTROCLAW_GATEWAY_TOKEN = prevToken;
+        process.env.OPENCLAW_GATEWAY_TOKEN = prevToken;
       }
     }
   });
 
-  it("keeps ASTROCLAW_GATEWAY_TOKEN in advanced flow when user confirms keeping existing", async () => {
-    const prevToken = process.env.ASTROCLAW_GATEWAY_TOKEN;
-    process.env.ASTROCLAW_GATEWAY_TOKEN = "advanced-env-token";
+  it("keeps OPENCLAW_GATEWAY_TOKEN in advanced flow when user confirms keeping existing", async () => {
+    const prevToken = process.env.OPENCLAW_GATEWAY_TOKEN;
+    process.env.OPENCLAW_GATEWAY_TOKEN = "advanced-env-token";
     mocks.randomToken.mockReturnValue("should-not-be-used");
     mocks.randomToken.mockClear();
 
@@ -164,9 +165,9 @@ describe("configureGatewayForSetup", () => {
       expect(mocks.randomToken).not.toHaveBeenCalled();
     } finally {
       if (prevToken === undefined) {
-        delete process.env.ASTROCLAW_GATEWAY_TOKEN;
+        delete process.env.OPENCLAW_GATEWAY_TOKEN;
       } else {
-        process.env.ASTROCLAW_GATEWAY_TOKEN = prevToken;
+        process.env.OPENCLAW_GATEWAY_TOKEN = prevToken;
       }
     }
   });
@@ -254,12 +255,12 @@ describe("configureGatewayForSetup", () => {
   });
 
   it("honors secretInputMode=ref for gateway password prompts", async () => {
-    const previous = process.env.ASTROCLAW_GATEWAY_PASSWORD;
-    process.env.ASTROCLAW_GATEWAY_PASSWORD = "gateway-secret"; // pragma: allowlist secret
+    const previous = process.env.OPENCLAW_GATEWAY_PASSWORD;
+    process.env.OPENCLAW_GATEWAY_PASSWORD = "gateway-secret"; // pragma: allowlist secret
     try {
       const prompter = createPrompter({
         selectQueue: ["loopback", "password", "off", "env"],
-        textQueue: ["18789", "ASTROCLAW_GATEWAY_PASSWORD"],
+        textQueue: ["18789", "OPENCLAW_GATEWAY_PASSWORD"],
       });
       const runtime = createRuntime();
 
@@ -278,24 +279,24 @@ describe("configureGatewayForSetup", () => {
       expect(result.nextConfig.gateway?.auth?.password).toEqual({
         source: "env",
         provider: "default",
-        id: "ASTROCLAW_GATEWAY_PASSWORD",
+        id: "OPENCLAW_GATEWAY_PASSWORD",
       });
     } finally {
       if (previous === undefined) {
-        delete process.env.ASTROCLAW_GATEWAY_PASSWORD;
+        delete process.env.OPENCLAW_GATEWAY_PASSWORD;
       } else {
-        process.env.ASTROCLAW_GATEWAY_PASSWORD = previous;
+        process.env.OPENCLAW_GATEWAY_PASSWORD = previous;
       }
     }
   });
 
   it("stores gateway token as SecretRef when secretInputMode=ref", async () => {
-    const previous = process.env.ASTROCLAW_GATEWAY_TOKEN;
-    process.env.ASTROCLAW_GATEWAY_TOKEN = "token-from-env";
+    const previous = process.env.OPENCLAW_GATEWAY_TOKEN;
+    process.env.OPENCLAW_GATEWAY_TOKEN = "token-from-env";
     try {
       const prompter = createPrompter({
         selectQueue: ["loopback", "token", "off", "env"],
-        textQueue: ["18789", "ASTROCLAW_GATEWAY_TOKEN"],
+        textQueue: ["18789", "OPENCLAW_GATEWAY_TOKEN"],
       });
       const runtime = createRuntime();
 
@@ -314,14 +315,14 @@ describe("configureGatewayForSetup", () => {
       expect(result.nextConfig.gateway?.auth?.token).toEqual({
         source: "env",
         provider: "default",
-        id: "ASTROCLAW_GATEWAY_TOKEN",
+        id: "OPENCLAW_GATEWAY_TOKEN",
       });
       expect(result.settings.gatewayToken).toBe("token-from-env");
     } finally {
       if (previous === undefined) {
-        delete process.env.ASTROCLAW_GATEWAY_TOKEN;
+        delete process.env.OPENCLAW_GATEWAY_TOKEN;
       } else {
-        process.env.ASTROCLAW_GATEWAY_TOKEN = previous;
+        process.env.OPENCLAW_GATEWAY_TOKEN = previous;
       }
     }
   });
