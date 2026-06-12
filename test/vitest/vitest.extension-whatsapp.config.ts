@@ -1,3 +1,4 @@
+// Vitest extension whatsapp config wires the extension whatsapp test shard.
 import { whatsAppExtensionTestRoots } from "./vitest.extension-whatsapp-paths.mjs";
 import { loadPatternListFromEnv } from "./vitest.pattern-file.ts";
 import { createScopedVitestConfig } from "./vitest.scoped-config.ts";
@@ -5,7 +6,7 @@ import { createScopedVitestConfig } from "./vitest.scoped-config.ts";
 export function loadIncludePatternsFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): string[] | null {
-  return loadPatternListFromEnv("ASTROCLAW_VITEST_INCLUDE_FILE", env);
+  return loadPatternListFromEnv("OPENCLAW_VITEST_INCLUDE_FILE", env);
 }
 
 export function createExtensionWhatsAppVitestConfig(
