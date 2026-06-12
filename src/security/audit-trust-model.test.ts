@@ -1,11 +1,12 @@
+// Verifies trust-model audit findings and severity mapping.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   collectExposureMatrixFindings,
   collectLikelyMultiUserSetupFindings,
 } from "./audit-extra.sync.js";
 
-function audit(cfg: AstroclawConfig) {
+function audit(cfg: OpenClawConfig) {
   return [...collectExposureMatrixFindings(cfg), ...collectLikelyMultiUserSetupFindings(cfg)];
 }
 
@@ -27,7 +28,7 @@ describe("security audit trust model findings", () => {
         cfg: {
           tools: { elevated: { enabled: true, allowFrom: { whatsapp: ["+1"] } } },
           channels: { whatsapp: { groupPolicy: "open" } },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: () => {
           const findings = audit(cases[0].cfg);
           expect(
@@ -44,7 +45,7 @@ describe("security audit trust model findings", () => {
         cfg: {
           channels: { whatsapp: { groupPolicy: "open" } },
           tools: { elevated: { enabled: false } },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: () => {
           const findings = audit(cases[1].cfg);
           expect(
@@ -69,7 +70,7 @@ describe("security audit trust model findings", () => {
               sandbox: { mode: "all" },
             },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: () => {
           const findings = audit(cases[2].cfg);
           expect(
@@ -89,7 +90,7 @@ describe("security audit trust model findings", () => {
             deny: ["group:runtime"],
             fs: { workspaceOnly: true },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: () => {
           const findings = audit(cases[3].cfg);
           expect(
@@ -115,7 +116,7 @@ describe("security audit trust model findings", () => {
             },
           },
           tools: { elevated: { enabled: false } },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: () => {
           const findings = audit(cases[4].cfg);
           const finding = requireMultiUserHeuristicFinding(findings);
@@ -136,7 +137,7 @@ describe("security audit trust model findings", () => {
             },
           },
           tools: { elevated: { enabled: false } },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: () => {
           const findings = audit(cases[5].cfg);
           expect(
