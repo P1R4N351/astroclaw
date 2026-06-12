@@ -1,12 +1,13 @@
+// Discord tests cover native command.commands allowfrom plugin behavior.
 import { ChannelType } from "discord-api-types/v10";
-import type { NativeCommandSpec } from "astroclaw/plugin-sdk/command-auth";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { DiscordAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
-import * as pluginCommandsModule from "astroclaw/plugin-sdk/plugin-runtime";
-import * as dispatcherModule from "astroclaw/plugin-sdk/reply-dispatch-runtime";
+import type { NativeCommandSpec } from "openclaw/plugin-sdk/command-auth-native";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { DiscordAccountConfig } from "openclaw/plugin-sdk/config-contracts";
+import * as pluginCommandsModule from "openclaw/plugin-sdk/plugin-runtime";
+import * as dispatcherModule from "openclaw/plugin-sdk/reply-dispatch-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defineThrowingDiscordChannelGetter } from "../test-support/partial-channel.js";
-import { __testing as nativeCommandTesting, createDiscordNativeCommand } from "./native-command.js";
+import { testing as nativeCommandTesting, createDiscordNativeCommand } from "./native-command.js";
 import {
   createMockCommandInteraction,
   type MockCommandInteraction,
@@ -26,7 +27,7 @@ function createInteraction(params?: { userId?: string }): MockCommandInteraction
   });
 }
 
-function createConfig(): AstroclawConfig {
+function createConfig(): OpenClawConfig {
   return {
     commands: {
       allowFrom: {
@@ -48,10 +49,10 @@ function createConfig(): AstroclawConfig {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
-function createCommand(cfg: AstroclawConfig, discordConfig?: DiscordAccountConfig) {
+function createCommand(cfg: OpenClawConfig, discordConfig?: DiscordAccountConfig) {
   const commandSpec: NativeCommandSpec = {
     name: "ping",
     description: "Ping",
@@ -92,7 +93,7 @@ function firstDispatchReplyCall(): Parameters<
 
 async function runGuildSlashCommand(params?: {
   userId?: string;
-  mutateConfig?: (cfg: AstroclawConfig) => void;
+  mutateConfig?: (cfg: OpenClawConfig) => void;
   runtimeDiscordConfig?: DiscordAccountConfig;
   mutateInteraction?: (interaction: MockCommandInteraction) => void;
 }) {
@@ -138,6 +139,22 @@ describe("Discord native slash commands with commands.allowFrom", () => {
   it("authorizes guild slash commands when commands.allowFrom.discord matches the sender", async () => {
     const { dispatchSpy, interaction } = await runGuildSlashCommand();
     expect(interaction.defer).toHaveBeenCalledWith({ ephemeral: true });
+    expect(dispatchSpy).toHaveBeenCalledTimes(1);
+    expectNotUnauthorizedReply(interaction);
+  });
+
+  it("authorizes command allowlist users even when commands.ownerAllowFrom is also configured", async () => {
+    const { dispatchSpy, interaction } = await runGuildSlashCommand({
+      userId: "999999999999999999",
+      mutateConfig: (cfg) => {
+        cfg.commands = {
+          ownerAllowFrom: ["user:123456789012345678"],
+          allowFrom: {
+            discord: ["user:999999999999999999"],
+          },
+        };
+      },
+    });
     expect(dispatchSpy).toHaveBeenCalledTimes(1);
     expectNotUnauthorizedReply(interaction);
   });
@@ -319,6 +336,19 @@ describe("Discord native slash commands with commands.allowFrom", () => {
             ...cfg.channels?.discord,
             allowFrom: ["user:123456789012345678"],
           },
+        };
+      },
+    });
+    expect(dispatchSpy).not.toHaveBeenCalled();
+    expectUnauthorizedReply(interaction);
+  });
+
+  it("rejects guild slash commands when commands.ownerAllowFrom fails even if the channel-level native gate allowed the command", async () => {
+    const { dispatchSpy, interaction } = await runGuildSlashCommand({
+      userId: "999999999999999999",
+      mutateConfig: (cfg) => {
+        cfg.commands = {
+          ownerAllowFrom: ["user:123456789012345678"],
         };
       },
     });
