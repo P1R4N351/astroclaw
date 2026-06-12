@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Imessage tests cover actions plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const probeMock = vi.hoisted(() => ({
@@ -25,9 +26,9 @@ const loggerMock = vi.hoisted(() => ({
   fatal: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
-    "astroclaw/plugin-sdk/runtime-env",
+vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
+    "openclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -60,7 +61,7 @@ vi.mock("./monitor-reply-cache.js", async () => {
 
 const { imessageMessageActions } = await import("./actions.js");
 
-function cfg(actions?: Record<string, boolean | undefined>): AstroclawConfig {
+function cfg(actions?: Record<string, boolean | undefined>): OpenClawConfig {
   return {
     channels: {
       imessage: {
@@ -69,7 +70,7 @@ function cfg(actions?: Record<string, boolean | undefined>): AstroclawConfig {
         actions,
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function imsgOptions(chatGuid = "") {
@@ -304,6 +305,52 @@ describe("imessage message actions", () => {
     ]);
   });
 
+  it("rejects fractional chatId params before resolving chat GUIDs", async () => {
+    probeMock.getCachedIMessagePrivateApiStatus.mockReturnValue({
+      available: true,
+      v2Ready: true,
+      selectors: {},
+    });
+
+    await expect(
+      imessageMessageActions.handleAction?.({
+        action: "react",
+        cfg: cfg(),
+        params: {
+          chatId: 42.5,
+          messageId: "message-guid",
+          emoji: "👍",
+        },
+      } as never),
+    ).rejects.toThrow("chatId must be a positive integer");
+
+    expect(runtimeMock.resolveChatGuidForTarget).not.toHaveBeenCalled();
+    expect(runtimeMock.sendReaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects fractional partIndex values before invoking bridge actions", async () => {
+    probeMock.getCachedIMessagePrivateApiStatus.mockReturnValue({
+      available: true,
+      v2Ready: true,
+      selectors: {},
+    });
+
+    await expect(
+      imessageMessageActions.handleAction?.({
+        action: "react",
+        cfg: cfg(),
+        params: {
+          chatGuid: "iMessage;+;chat0000",
+          messageId: "message-guid",
+          emoji: "👍",
+          partIndex: 1.5,
+        },
+      } as never),
+    ).rejects.toThrow("partIndex must be a non-negative integer");
+
+    expect(runtimeMock.sendReaction).not.toHaveBeenCalled();
+  });
+
   it("resolves short message ids before invoking bridge actions", async () => {
     probeMock.getCachedIMessagePrivateApiStatus.mockReturnValue({
       available: true,
@@ -393,7 +440,7 @@ describe("imessage message actions", () => {
     });
   });
 
-  describe("reply with attachment (astroclaw/imsg#114 plumbing)", () => {
+  describe("reply with attachment (openclaw/imsg#114 plumbing)", () => {
     // The core message-action runner hydrates path/media/filePath/etc.
     // through the outbound media resolver (mediaLocalRoots/sandbox/size)
     // before reaching this handler, writing the result into `buffer` +
@@ -513,7 +560,7 @@ describe("imessage message actions", () => {
     it("rejects reply + attachment when imsg does not advertise send-rich --file", async () => {
       // Older imsg builds reject `--file` on send-rich, so refuse loudly
       // here rather than letting send-rich ship the text alone and silently
-      // drop the attachment (the original astroclaw/astroclaw#79822 symptom).
+      // drop the attachment (the original openclaw/openclaw#79822 symptom).
       probeMock.getCachedIMessagePrivateApiStatus.mockReturnValue({
         available: true,
         v2Ready: true,
