@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Slack tests cover message tools plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { listSlackMessageActions } from "./message-actions.js";
 import { describeSlackMessageTool } from "./message-tool-api.js";
@@ -87,7 +88,7 @@ describe("Slack message tools", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(listSlackMessageActions(cfg)).toEqual([
       "send",
@@ -142,7 +143,7 @@ describe("Slack message tools", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(listSlackMessageActions(cfg, "default")).toEqual(["send"]);
     expect(listSlackMessageActions(cfg, "work")).toEqual([
@@ -251,7 +252,7 @@ describe("Slack message tools", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
 
     expect(discovery.actions).toEqual(["send"]);
