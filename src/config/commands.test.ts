@@ -1,3 +1,4 @@
+// Covers command config normalization and path validation.
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
@@ -105,8 +106,8 @@ describe("resolveNativeSkillsEnabled", () => {
     setActivePluginRegistry(createTestRegistry([]));
     const env = {
       ...process.env,
-      ASTROCLAW_BUNDLED_PLUGINS_DIR: path.resolve("extensions"),
-      ASTROCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY: "1",
+      OPENCLAW_BUNDLED_PLUGINS_DIR: path.resolve("extensions"),
+      OPENCLAW_DISABLE_PERSISTED_PLUGIN_REGISTRY: "1",
     };
 
     expect(
