@@ -1,4 +1,5 @@
-import { createPluginRuntimeMock } from "astroclaw/plugin-sdk/channel-test-helpers";
+// Irc tests cover inbound.behavior plugin behavior.
+import { createPluginRuntimeMock } from "openclaw/plugin-sdk/channel-test-helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedIrcAccount } from "./accounts.js";
 import { handleIrcInbound } from "./inbound.js";
@@ -57,7 +58,7 @@ function createAccount(overrides?: Partial<ResolvedIrcAccount>): ResolvedIrcAcco
     accountId: "default",
     enabled: true,
     server: "irc.example.com",
-    nick: "Astroclaw",
+    nick: "OpenClaw",
     config: {
       dmPolicy: "pairing",
       allowFrom: [],
@@ -124,7 +125,7 @@ describe("irc inbound behavior", () => {
     expect(sendReply).toHaveBeenCalledWith(
       "alice",
       [
-        "Astroclaw: access not configured.",
+        "OpenClaw: access not configured.",
         "",
         "Your IRC id: alice!ident@example.com",
         "Pairing code:",
@@ -133,9 +134,8 @@ describe("irc inbound behavior", () => {
         "```",
         "",
         "Ask the bot owner to approve with:",
-        "astroclaw pairing approve irc CODE",
         "```",
-        "astroclaw pairing approve irc CODE",
+        "openclaw pairing approve irc CODE",
         "```",
       ].join("\n"),
       undefined,
@@ -195,8 +195,53 @@ describe("irc inbound behavior", () => {
     });
 
     const assembledRequest = (
-      coreRuntime.channel.turn.runAssembled as unknown as { mock: { calls: unknown[][] } }
+      coreRuntime.channel.inbound.dispatchReply as unknown as { mock: { calls: unknown[][] } }
     ).mock.calls[0]?.[0] as { replyPipeline?: unknown } | undefined;
     expect(assembledRequest?.replyPipeline).toEqual({});
+  });
+
+  it("uses channel:# prefix for group channel From and OriginatingTo fields", async () => {
+    const coreRuntime = createPluginRuntimeMock();
+    const runtime = createRuntimeEnv();
+    setIrcRuntime(coreRuntime as never);
+
+    await handleIrcInbound({
+      message: createMessage({
+        target: "#ops",
+        isGroup: true,
+        senderNick: "alice",
+        senderUser: "ident",
+        senderHost: "example.com",
+        text: "hello",
+      }),
+      account: createAccount({
+        config: {
+          dmPolicy: "open",
+          allowFrom: ["*"],
+          groupPolicy: "open",
+          groupAllowFrom: [],
+          groups: {
+            "#ops": { enabled: true, requireMention: false },
+          },
+        },
+      }),
+      config: { channels: { irc: {} } } as CoreConfig,
+      runtime,
+      sendReply: vi.fn(async () => {}),
+    });
+
+    const ctx = (
+      coreRuntime.channel.reply.finalizeInboundContext as unknown as {
+        mock: { calls: unknown[][] };
+      }
+    ).mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+    expect(
+      (coreRuntime.channel.inbound.dispatchReply as unknown as { mock: { calls: unknown[][] } })
+        .mock.calls.length,
+    ).toBe(1);
+    expect(runtime.log).not.toHaveBeenCalled();
+    expect(ctx?.From).toBe("channel:#ops");
+    expect(ctx?.To).toBe("channel:#ops");
+    expect(ctx?.OriginatingTo).toBe("channel:#ops");
   });
 });
