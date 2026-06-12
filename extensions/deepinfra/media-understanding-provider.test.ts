@@ -1,7 +1,8 @@
+// Deepinfra tests cover media understanding provider plugin behavior.
 import {
   describeImagesWithModel,
   describeImageWithModel,
-} from "astroclaw/plugin-sdk/media-understanding";
+} from "openclaw/plugin-sdk/media-understanding";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   deepinfraMediaUnderstandingProvider,
@@ -12,9 +13,9 @@ const { transcribeOpenAiCompatibleAudioMock } = vi.hoisted(() => ({
   transcribeOpenAiCompatibleAudioMock: vi.fn(async () => ({ text: "hello", model: "whisper" })),
 }));
 
-vi.mock("astroclaw/plugin-sdk/media-understanding", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-understanding")>(
-    "astroclaw/plugin-sdk/media-understanding",
+vi.mock("openclaw/plugin-sdk/media-understanding", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-understanding")>(
+    "openclaw/plugin-sdk/media-understanding",
   );
   return {
     ...actual,
@@ -23,7 +24,7 @@ vi.mock("astroclaw/plugin-sdk/media-understanding", async () => {
 });
 
 afterAll(() => {
-  vi.doUnmock("astroclaw/plugin-sdk/media-understanding");
+  vi.doUnmock("openclaw/plugin-sdk/media-understanding");
   vi.resetModules();
 });
 
