@@ -1,19 +1,20 @@
+// Frontmatter tests cover shared Markdown frontmatter parsing helpers.
 import { describe, expect, it, test } from "vitest";
 import {
-  applyAstroclawManifestInstallCommonFields,
+  applyOpenClawManifestInstallCommonFields,
   getFrontmatterString,
   normalizeStringList,
   parseFrontmatterBool,
-  parseAstroclawManifestInstallBase,
-  resolveAstroclawManifestBlock,
-  resolveAstroclawManifestInstall,
-  resolveAstroclawManifestOs,
-  resolveAstroclawManifestRequires,
+  parseOpenClawManifestInstallBase,
+  resolveOpenClawManifestBlock,
+  resolveOpenClawManifestInstall,
+  resolveOpenClawManifestOs,
+  resolveOpenClawManifestRequires,
 } from "./frontmatter.js";
 
 function expectInstallBase(
-  parsed: ReturnType<typeof parseAstroclawManifestInstallBase>,
-): NonNullable<ReturnType<typeof parseAstroclawManifestInstallBase>> {
+  parsed: ReturnType<typeof parseOpenClawManifestInstallBase>,
+): NonNullable<ReturnType<typeof parseOpenClawManifestInstallBase>> {
   if (parsed === undefined) {
     throw new Error("Expected manifest install base");
   }
@@ -39,28 +40,28 @@ describe("shared/frontmatter", () => {
     expect(parseFrontmatterBool("maybe", false)).toBe(false);
   });
 
-  test("resolveAstroclawManifestBlock reads current manifest keys and custom metadata fields", () => {
+  test("resolveOpenClawManifestBlock reads current manifest keys and custom metadata fields", () => {
     expect(
-      resolveAstroclawManifestBlock({
+      resolveOpenClawManifestBlock({
         frontmatter: {
-          metadata: "{ astroclaw: { foo: 1, bar: 'baz' } }",
+          metadata: "{ openclaw: { foo: 1, bar: 'baz' } }",
         },
       }),
     ).toEqual({ foo: 1, bar: "baz" });
 
     expect(
-      resolveAstroclawManifestBlock({
+      resolveOpenClawManifestBlock({
         frontmatter: {
-          pluginMeta: "{ astroclaw: { foo: 2 } }",
+          pluginMeta: "{ openclaw: { foo: 2 } }",
         },
         key: "pluginMeta",
       }),
     ).toEqual({ foo: 2 });
   });
 
-  test("resolveAstroclawManifestBlock reads legacy manifest keys", () => {
+  test("resolveOpenClawManifestBlock reads legacy manifest keys", () => {
     expect(
-      resolveAstroclawManifestBlock({
+      resolveOpenClawManifestBlock({
         frontmatter: {
           metadata: "{ clawdbot: { requires: { bins: ['op'] }, install: [] } }",
         },
@@ -68,54 +69,54 @@ describe("shared/frontmatter", () => {
     ).toEqual({ requires: { bins: ["op"] }, install: [] });
   });
 
-  test("resolveAstroclawManifestBlock prefers current manifest keys over legacy keys", () => {
+  test("resolveOpenClawManifestBlock prefers current manifest keys over legacy keys", () => {
     expect(
-      resolveAstroclawManifestBlock({
+      resolveOpenClawManifestBlock({
         frontmatter: {
           metadata:
-            "{ astroclaw: { requires: { bins: ['current'] } }, clawdbot: { requires: { bins: ['legacy'] } } }",
+            "{ openclaw: { requires: { bins: ['current'] } }, clawdbot: { requires: { bins: ['legacy'] } } }",
         },
       }),
     ).toEqual({ requires: { bins: ["current"] } });
   });
 
-  test("resolveAstroclawManifestBlock returns undefined for invalid input", () => {
-    expect(resolveAstroclawManifestBlock({ frontmatter: {} })).toBeUndefined();
+  test("resolveOpenClawManifestBlock returns undefined for invalid input", () => {
+    expect(resolveOpenClawManifestBlock({ frontmatter: {} })).toBeUndefined();
     expect(
-      resolveAstroclawManifestBlock({ frontmatter: { metadata: "not-json5" } }),
+      resolveOpenClawManifestBlock({ frontmatter: { metadata: "not-json5" } }),
     ).toBeUndefined();
-    expect(resolveAstroclawManifestBlock({ frontmatter: { metadata: "123" } })).toBeUndefined();
-    expect(resolveAstroclawManifestBlock({ frontmatter: { metadata: "[]" } })).toBeUndefined();
+    expect(resolveOpenClawManifestBlock({ frontmatter: { metadata: "123" } })).toBeUndefined();
+    expect(resolveOpenClawManifestBlock({ frontmatter: { metadata: "[]" } })).toBeUndefined();
     expect(
-      resolveAstroclawManifestBlock({ frontmatter: { metadata: "{ nope: { a: 1 } }" } }),
+      resolveOpenClawManifestBlock({ frontmatter: { metadata: "{ nope: { a: 1 } }" } }),
     ).toBeUndefined();
   });
 
   it("normalizes manifest requirement and os lists", () => {
     expect(
-      resolveAstroclawManifestRequires({
+      resolveOpenClawManifestRequires({
         requires: {
           bins: "bun, node",
           anyBins: [" ffmpeg ", ""],
-          env: ["ASTROCLAW_TOKEN", " ASTROCLAW_URL "],
+          env: ["OPENCLAW_TOKEN", " OPENCLAW_URL "],
           config: null,
         },
       }),
     ).toEqual({
       bins: ["bun", "node"],
       anyBins: ["ffmpeg"],
-      env: ["ASTROCLAW_TOKEN", "ASTROCLAW_URL"],
+      env: ["OPENCLAW_TOKEN", "OPENCLAW_URL"],
       config: [],
     });
-    expect(resolveAstroclawManifestRequires({})).toBeUndefined();
-    expect(resolveAstroclawManifestOs({ os: [" darwin ", "linux", ""] })).toEqual([
+    expect(resolveOpenClawManifestRequires({})).toBeUndefined();
+    expect(resolveOpenClawManifestOs({ os: [" darwin ", "linux", ""] })).toEqual([
       "darwin",
       "linux",
     ]);
   });
 
   it("parses and applies install common fields", () => {
-    const parsed = parseAstroclawManifestInstallBase(
+    const parsed = parseOpenClawManifestInstallBase(
       {
         type: " Brew ",
         id: "brew.git",
@@ -137,9 +138,9 @@ describe("shared/frontmatter", () => {
       label: "Git",
       bins: ["git", "git"],
     });
-    expect(parseAstroclawManifestInstallBase({ kind: "bad" }, ["brew"])).toBeUndefined();
+    expect(parseOpenClawManifestInstallBase({ kind: "bad" }, ["brew"])).toBeUndefined();
     expect(
-      applyAstroclawManifestInstallCommonFields<{
+      applyOpenClawManifestInstallCommonFields<{
         extra: boolean;
         id?: string;
         label?: string;
@@ -154,7 +155,7 @@ describe("shared/frontmatter", () => {
   });
 
   it("prefers explicit kind, ignores invalid common fields, and leaves missing ones untouched", () => {
-    const parsed = parseAstroclawManifestInstallBase(
+    const parsed = parseOpenClawManifestInstallBase(
       {
         kind: " npm ",
         type: "brew",
@@ -176,7 +177,7 @@ describe("shared/frontmatter", () => {
       kind: "npm",
     });
     expect(
-      applyAstroclawManifestInstallCommonFields(
+      applyOpenClawManifestInstallCommonFields(
         { id: "keep", label: "Keep", bins: ["bun"] },
         parsed!,
       ),
@@ -189,7 +190,7 @@ describe("shared/frontmatter", () => {
 
   it("maps install entries through the parser and filters rejected specs", () => {
     expect(
-      resolveAstroclawManifestInstall(
+      resolveOpenClawManifestInstall(
         {
           install: [{ id: "keep" }, { id: "drop" }, "bad"],
         },
