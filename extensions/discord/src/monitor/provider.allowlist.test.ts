@@ -1,5 +1,6 @@
-import type { DiscordAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createNonExitingRuntimeEnv } from "astroclaw/plugin-sdk/plugin-test-runtime";
+// Discord tests cover provider.allowlist plugin behavior.
+import type { DiscordAccountConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createNonExitingRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as resolveChannelsModule from "../resolve-channels.js";
 import * as resolveUsersModule from "../resolve-users.js";
