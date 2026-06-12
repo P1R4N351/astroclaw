@@ -1,3 +1,4 @@
+// Searxng tests cover searxng search provider plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   resolveSearxngBaseUrl,
@@ -70,7 +71,7 @@ describe("searxng web search provider", () => {
     }
 
     const result = await tool.execute({
-      query: "astroclaw docs",
+      query: "openclaw docs",
       count: 4,
       categories: "general,news",
       language: "en",
@@ -78,18 +79,36 @@ describe("searxng web search provider", () => {
 
     expect(runSearxngSearch).toHaveBeenCalledWith({
       config: { test: true },
-      query: "astroclaw docs",
+      query: "openclaw docs",
       count: 4,
       categories: "general,news",
       language: "en",
     });
     expect(result).toEqual({
       config: { test: true },
-      query: "astroclaw docs",
+      query: "openclaw docs",
       count: 4,
       categories: "general,news",
       language: "en",
     });
+  });
+
+  it("rejects fractional and out-of-range counts before searching", async () => {
+    const provider = createSearxngWebSearchProvider();
+    const tool = provider.createTool({
+      config: { test: true },
+    } as never);
+    if (!tool) {
+      throw new Error("Expected tool definition");
+    }
+
+    await expect(tool.execute({ query: "openclaw docs", count: 4.5 })).rejects.toThrow(
+      "count must be an integer from 1 to 10.",
+    );
+    await expect(tool.execute({ query: "openclaw docs", count: 11 })).rejects.toThrow(
+      "count must be an integer from 1 to 10.",
+    );
+    expect(runSearxngSearch).not.toHaveBeenCalled();
   });
 
   it("reads base URL from plugin config SecretRef, then env var, stripping trailing slashes", () => {
