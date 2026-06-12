@@ -1,3 +1,5 @@
+// HTTP request trace tests ensure gateway request scope reaches logs and
+// diagnostic events for per-request debugging.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -29,9 +31,9 @@ async function listen(server: ReturnType<typeof createGatewayHttpServer>): Promi
 }
 
 async function closeServer(server: ReturnType<typeof createGatewayHttpServer>): Promise<void> {
-  await new Promise<void>((resolve, reject) =>
-    server.close((err) => (err ? reject(err) : resolve())),
-  );
+  await new Promise<void>((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
 }
 
 afterEach(() => {
@@ -43,7 +45,7 @@ afterEach(() => {
 
 describe("gateway HTTP request trace scope", () => {
   it("threads active request trace through logs and diagnostics", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-gateway-request-trace-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-gateway-request-trace-"));
     const logPath = path.join(dir, "gateway.log");
     const events: Array<{ trace?: DiagnosticTraceContext; type: string }> = [];
     const stop = onDiagnosticEvent((event) => {
