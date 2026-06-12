@@ -1,9 +1,10 @@
+// Plugins CLI install tests cover plugin install command selection and output.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { installedPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
+import { installedPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   listOfficialExternalPluginCatalogEntries,
   resolveOfficialExternalPluginId,
@@ -12,6 +13,7 @@ import {
 import {
   applyExclusiveSlotSelection,
   buildPluginSnapshotReport,
+  clearPluginRegistryLoadCache,
   enablePluginInConfig,
   findBundledPluginSourceMock,
   installHooksFromNpmSpec,
@@ -37,10 +39,10 @@ import {
   writePersistedInstalledPluginIndexInstallRecords,
 } from "./plugins-cli-test-helpers.js";
 
-const CLI_STATE_ROOT = "/tmp/astroclaw-state";
-const ORIGINAL_ASTROCLAW_STATE_DIR = process.env.ASTROCLAW_STATE_DIR;
-const ORIGINAL_ASTROCLAW_NIX_MODE = process.env.ASTROCLAW_NIX_MODE;
-const PROFILE_STATE_ROOT = "/tmp/astroclaw-ledger-profile";
+const CLI_STATE_ROOT = "/tmp/openclaw-state";
+const ORIGINAL_OPENCLAW_STATE_DIR = process.env.OPENCLAW_STATE_DIR;
+const ORIGINAL_OPENCLAW_NIX_MODE = process.env.OPENCLAW_NIX_MODE;
+const PROFILE_STATE_ROOT = "/tmp/openclaw-ledger-profile";
 
 const OFFICIAL_EXTERNAL_NPM_INSTALLS_WITHOUT_INTEGRITY = listOfficialExternalPluginCatalogEntries()
   .map((entry) => {
@@ -60,11 +62,11 @@ function cliInstallPath(pluginId: string): string {
 }
 
 function useProfileExtensionsDir(): string {
-  process.env.ASTROCLAW_STATE_DIR = PROFILE_STATE_ROOT;
+  process.env.OPENCLAW_STATE_DIR = PROFILE_STATE_ROOT;
   return path.resolve(PROFILE_STATE_ROOT, "extensions");
 }
 
-function createEnabledPluginConfig(pluginId: string): AstroclawConfig {
+function createEnabledPluginConfig(pluginId: string): OpenClawConfig {
   return {
     plugins: {
       entries: {
@@ -73,15 +75,15 @@ function createEnabledPluginConfig(pluginId: string): AstroclawConfig {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
-function createEmptyPluginConfig(): AstroclawConfig {
+function createEmptyPluginConfig(): OpenClawConfig {
   return {
     plugins: {
       entries: {},
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function createClawHubInstallResult(params: {
@@ -138,12 +140,12 @@ function createNpmPackPluginInstallResult(
     targetDir: cliInstallPath(pluginId),
     version: "1.2.3",
     extensions: ["dist/index.js"],
-    manifestName: `@astroclaw/${pluginId}`,
-    npmTarballName: `astroclaw-${pluginId}-1.2.3.tgz`,
+    manifestName: `@openclaw/${pluginId}`,
+    npmTarballName: `openclaw-${pluginId}-1.2.3.tgz`,
     npmResolution: {
-      name: `@astroclaw/${pluginId}`,
+      name: `@openclaw/${pluginId}`,
       version: "1.2.3",
-      resolvedSpec: `@astroclaw/${pluginId}@1.2.3`,
+      resolvedSpec: `@openclaw/${pluginId}@1.2.3`,
       integrity: "sha512-pack-demo",
       shasum: "packdemosha",
       resolvedAt: "2026-05-06T00:00:00.000Z",
@@ -194,7 +196,7 @@ function primeNpmPluginFallback(pluginId = "demo") {
   return { cfg, enabledCfg };
 }
 
-function createPathHookPackInstalledConfig(tmpRoot: string): AstroclawConfig {
+function createPathHookPackInstalledConfig(tmpRoot: string): OpenClawConfig {
   return {
     hooks: {
       internal: {
@@ -207,10 +209,10 @@ function createPathHookPackInstalledConfig(tmpRoot: string): AstroclawConfig {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
-function createNpmHookPackInstalledConfig(): AstroclawConfig {
+function createNpmHookPackInstalledConfig(): OpenClawConfig {
   return {
     hooks: {
       internal: {
@@ -222,7 +224,7 @@ function createNpmHookPackInstalledConfig(): AstroclawConfig {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function createHookPackInstallResult(targetDir: string): {
@@ -242,20 +244,21 @@ function createHookPackInstallResult(targetDir: string): {
 }
 
 function primeHookPackNpmFallback() {
-  const cfg = {} as AstroclawConfig;
+  const cfg = {} as OpenClawConfig;
   const installedCfg = createNpmHookPackInstalledConfig();
 
   loadConfig.mockReturnValue(cfg);
   mockClawHubPackageNotFound("@acme/demo-hooks");
   installPluginFromNpmSpec.mockResolvedValue({
     ok: false,
-    error: "package.json missing astroclaw.plugin.json",
+    error: "package.json missing openclaw.plugin.json",
   });
   installHooksFromNpmSpec.mockResolvedValue({
     ...createHookPackInstallResult("/tmp/hooks/demo-hooks"),
     npmResolution: {
       name: "@acme/demo-hooks",
-      spec: "@acme/demo-hooks@1.2.3",
+      version: "1.2.3",
+      resolvedSpec: "@acme/demo-hooks@1.2.3",
       integrity: "sha256-demo",
     },
   });
@@ -269,7 +272,7 @@ function primeBlockedNpmPluginInstall(params: {
   pluginId: string;
   code?: "security_scan_blocked" | "security_scan_failed";
 }) {
-  loadConfig.mockReturnValue({} as AstroclawConfig);
+  loadConfig.mockReturnValue({} as OpenClawConfig);
   mockClawHubPackageNotFound(params.spec);
   installPluginFromNpmSpec.mockResolvedValue({
     ok: false,
@@ -281,10 +284,10 @@ function primeBlockedNpmPluginInstall(params: {
 function primeHookPackPathFallback(params: {
   tmpRoot: string;
   pluginInstallError: string;
-}): AstroclawConfig {
+}): OpenClawConfig {
   const installedCfg = createPathHookPackInstalledConfig(params.tmpRoot);
 
-  loadConfig.mockReturnValue({} as AstroclawConfig);
+  loadConfig.mockReturnValue({} as OpenClawConfig);
   installPluginFromPath.mockResolvedValueOnce({
     ok: false,
     error: params.pluginInstallError,
@@ -302,6 +305,7 @@ type MockWithCalls = {
 };
 
 type PluginInstallCall = {
+  allowSourceTypeScriptEntries?: boolean;
   archivePath?: string;
   dangerouslyForceUnsafeInstall?: boolean;
   dryRun?: boolean;
@@ -380,10 +384,10 @@ function persistedInstallRecord(pluginId: string, callIndex = 0): PersistedInsta
   return record;
 }
 
-function replaceConfigCall(callIndex = 0): { baseHash?: string; nextConfig?: AstroclawConfig } {
+function replaceConfigCall(callIndex = 0): { baseHash?: string; nextConfig?: OpenClawConfig } {
   return mockCallArg(replaceConfigFile, callIndex) as {
     baseHash?: string;
-    nextConfig?: AstroclawConfig;
+    nextConfig?: OpenClawConfig;
   };
 }
 
@@ -401,15 +405,15 @@ describe("plugins cli install", () => {
   });
 
   afterEach(() => {
-    if (ORIGINAL_ASTROCLAW_STATE_DIR === undefined) {
-      delete process.env.ASTROCLAW_STATE_DIR;
+    if (ORIGINAL_OPENCLAW_STATE_DIR === undefined) {
+      delete process.env.OPENCLAW_STATE_DIR;
     } else {
-      process.env.ASTROCLAW_STATE_DIR = ORIGINAL_ASTROCLAW_STATE_DIR;
+      process.env.OPENCLAW_STATE_DIR = ORIGINAL_OPENCLAW_STATE_DIR;
     }
-    if (ORIGINAL_ASTROCLAW_NIX_MODE === undefined) {
-      delete process.env.ASTROCLAW_NIX_MODE;
+    if (ORIGINAL_OPENCLAW_NIX_MODE === undefined) {
+      delete process.env.OPENCLAW_NIX_MODE;
     } else {
-      process.env.ASTROCLAW_NIX_MODE = ORIGINAL_ASTROCLAW_NIX_MODE;
+      process.env.OPENCLAW_NIX_MODE = ORIGINAL_OPENCLAW_NIX_MODE;
     }
   });
 
@@ -429,10 +433,10 @@ describe("plugins cli install", () => {
   });
 
   it("refuses plugin installs in Nix mode before installer side effects", async () => {
-    process.env.ASTROCLAW_NIX_MODE = "1";
+    process.env.OPENCLAW_NIX_MODE = "1";
 
     await expect(runPluginsCommand(["plugins", "install", "@acme/demo"])).rejects.toThrow(
-      "ASTROCLAW_NIX_MODE=1",
+      "OPENCLAW_NIX_MODE=1",
     );
 
     expect(installPluginFromNpmSpec).not.toHaveBeenCalled();
@@ -489,7 +493,7 @@ describe("plugins cli install", () => {
       throw invalidConfigErr;
     });
     readConfigFileSnapshot.mockResolvedValue({
-      path: "/tmp/astroclaw-config.json5",
+      path: "/tmp/openclaw-config.json5",
       exists: true,
       raw: '{ "models": { "default": 123 } }',
       parsed: { models: { default: 123 } },
@@ -505,7 +509,7 @@ describe("plugins cli install", () => {
     await expect(runPluginsCommand(["plugins", "install", "alpha"])).rejects.toThrow("__exit__:1");
 
     expect(runtimeErrors.at(-1)).toContain(
-      "Config invalid; run `astroclaw doctor --fix` before installing plugins.",
+      "Config invalid; run `openclaw doctor --fix` before installing plugins.",
     );
     expect(installPluginFromMarketplace).not.toHaveBeenCalled();
     expect(installPluginFromNpmSpec).not.toHaveBeenCalled();
@@ -517,7 +521,7 @@ describe("plugins cli install", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledCfg = {
       plugins: {
         entries: {
@@ -526,7 +530,7 @@ describe("plugins cli install", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     loadConfig.mockReturnValue(cfg);
     installPluginFromMarketplace.mockResolvedValue({
       ok: true,
@@ -561,6 +565,7 @@ describe("plugins cli install", () => {
     expect(replaceConfigCall().nextConfig).toBe(enabledCfg);
     expect(runtimeLogsContain("slot adjusted")).toBe(true);
     expect(runtimeLogsContain("Installed plugin: alpha")).toBe(true);
+    expect(clearPluginRegistryLoadCache).not.toHaveBeenCalled();
   });
 
   it("passes force through as overwrite mode for marketplace installs", async () => {
@@ -578,7 +583,7 @@ describe("plugins cli install", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledCfg = createEnabledPluginConfig("demo");
     loadConfig.mockReturnValue(cfg);
     parseClawHubPluginSpec.mockReturnValue({ name: "demo" });
@@ -660,7 +665,7 @@ describe("plugins cli install", () => {
           paths: ["/existing/plugin"],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     loadConfig.mockReturnValue(cfg);
     findBundledPluginSourceMock.mockReturnValue({
       pluginId,
@@ -681,7 +686,7 @@ describe("plugins cli install", () => {
 
     const writtenConfig = writeConfigFile.mock.calls[
       writeConfigFile.mock.calls.length - 1
-    ]?.[0] as AstroclawConfig;
+    ]?.[0] as OpenClawConfig;
     expect(writtenConfig.plugins?.entries?.[pluginId]).toBeUndefined();
     expect(writtenConfig.plugins?.load?.paths).toEqual(["/existing/plugin"]);
     const record = persistedInstallRecord(pluginId);
@@ -705,7 +710,7 @@ describe("plugins cli install", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledCfg = createEnabledPluginConfig(pluginId);
     loadConfig.mockReturnValue(cfg);
     findBundledPluginSourceMock.mockReturnValue({
@@ -736,7 +741,7 @@ describe("plugins cli install", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledCfg = createEnabledPluginConfig("demo");
 
     loadConfig.mockReturnValue(cfg);
@@ -767,7 +772,7 @@ describe("plugins cli install", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledCfg = createEnabledPluginConfig("demo");
 
     loadConfig.mockReturnValue(cfg);
@@ -823,12 +828,12 @@ describe("plugins cli install", () => {
       lookup: { kind: "pluginId", value: "brave" },
     });
     expect(installPluginFromClawHub).not.toHaveBeenCalled();
-    expect(npmInstallCall().spec).toBe("@astroclaw/brave-plugin");
+    expect(npmInstallCall().spec).toBe("@openclaw/brave-plugin");
     expect(npmInstallCall().expectedPluginId).toBe("brave");
     expect(npmInstallCall().trustedSourceLinkedOfficialInstall).toBe(true);
     const record = persistedInstallRecord("brave");
     expect(record.source).toBe("npm");
-    expect(record.spec).toBe("@astroclaw/brave-plugin");
+    expect(record.spec).toBe("@openclaw/brave-plugin");
     expect(record.installPath).toBe(cliInstallPath("brave"));
     expect(record.version).toBe("1.2.3");
     expect(writeConfigFile).toHaveBeenCalledWith(enabledCfg);
@@ -836,11 +841,11 @@ describe("plugins cli install", () => {
 
   it("passes third-party external catalog integrity with catalog install trust", async () => {
     const cfg = createEmptyPluginConfig();
-    const enabledCfg = createEnabledPluginConfig("wecom-astroclaw-plugin");
+    const enabledCfg = createEnabledPluginConfig("wecom-openclaw-plugin");
     loadConfig.mockReturnValue(cfg);
     findBundledPluginSourceMock.mockReturnValue(undefined);
     installPluginFromNpmSpec.mockResolvedValue(
-      createNpmPluginInstallResult("wecom-astroclaw-plugin"),
+      createNpmPluginInstallResult("wecom-openclaw-plugin"),
     );
     enablePluginInConfig.mockReturnValue({ config: enabledCfg });
     applyExclusiveSlotSelection.mockReturnValue({
@@ -850,8 +855,8 @@ describe("plugins cli install", () => {
 
     await runPluginsCommand(["plugins", "install", "wecom"]);
 
-    expect(npmInstallCall().spec).toBe("@wecom/wecom-astroclaw-plugin@2026.5.7");
-    expect(npmInstallCall().expectedPluginId).toBe("wecom-astroclaw-plugin");
+    expect(npmInstallCall().spec).toBe("@wecom/wecom-openclaw-plugin@2026.5.7");
+    expect(npmInstallCall().expectedPluginId).toBe("wecom-openclaw-plugin");
     expect(npmInstallCall().expectedIntegrity).toBe(
       "sha512-TCkP9as00WfEhgFWG8YL/rcmaWGIshAki2HQh83nTRccGfVBCoGjrEboTTqq3yDmK9koWTV11zi8u8A4dNtvug==",
     );
@@ -890,19 +895,19 @@ describe("plugins cli install", () => {
     findBundledPluginSourceMock.mockReturnValue(undefined);
     installPluginFromNpmSpec.mockResolvedValue({
       ok: false,
-      error: "package.json missing astroclaw.extensions",
-      code: "missing_astroclaw_extensions",
+      error: "package.json missing openclaw.extensions",
+      code: "missing_openclaw_extensions",
     });
     installHooksFromNpmSpec.mockResolvedValue({
       ok: false,
       error:
-        "aborted: npm package integrity drift detected for @wecom/wecom-astroclaw-plugin@2026.5.7",
+        "aborted: npm package integrity drift detected for @wecom/wecom-openclaw-plugin@2026.5.7",
     });
 
     await expect(runPluginsCommand(["plugins", "install", "wecom"])).rejects.toThrow("__exit__:1");
 
     expect(npmInstallCall().trustedSourceLinkedOfficialInstall).toBe(true);
-    expect(hookNpmInstallCall().spec).toBe("@wecom/wecom-astroclaw-plugin@2026.5.7");
+    expect(hookNpmInstallCall().spec).toBe("@wecom/wecom-openclaw-plugin@2026.5.7");
     expect(hookNpmInstallCall().expectedIntegrity).toBe(
       "sha512-TCkP9as00WfEhgFWG8YL/rcmaWGIshAki2HQh83nTRccGfVBCoGjrEboTTqq3yDmK9koWTV11zi8u8A4dNtvug==",
     );
@@ -929,6 +934,36 @@ describe("plugins cli install", () => {
     expect(record.installPath).toBe(cliInstallPath("demo"));
     expect(record.version).toBe("1.2.3");
     expect(writeConfigFile).toHaveBeenCalledWith(enabledCfg);
+  });
+
+  it("stores npm resolution metadata without changing the active plugin install selector", async () => {
+    const cfg = createEmptyPluginConfig();
+    const enabledCfg = createEnabledPluginConfig("demo");
+    loadConfig.mockReturnValue(cfg);
+    installPluginFromNpmSpec.mockResolvedValue({
+      ok: true,
+      pluginId: "demo",
+      targetDir: cliInstallPath("demo"),
+      version: "1.2.3",
+      npmResolution: {
+        name: "demo",
+        version: "1.2.3",
+        resolvedSpec: "demo@1.2.3",
+        integrity: "sha512-demo",
+      },
+    });
+    enablePluginInConfig.mockReturnValue({ config: enabledCfg });
+    applyExclusiveSlotSelection.mockReturnValue({
+      config: enabledCfg,
+      warnings: [],
+    });
+
+    await runPluginsCommand(["plugins", "install", "demo"]);
+
+    const record = persistedInstallRecord("demo");
+    expect(record.spec).toBe("demo");
+    expect(record.resolvedSpec).toBe("demo@1.2.3");
+    expect(record.integrity).toBe("sha512-demo");
   });
 
   it("passes bare npm selectors through npm without ClawHub lookup", async () => {
@@ -975,7 +1010,7 @@ describe("plugins cli install", () => {
   it("installs npm-pack archives through npm install semantics", async () => {
     const cfg = createEmptyPluginConfig();
     const enabledCfg = createEnabledPluginConfig("demo");
-    const archivePath = "/tmp/astroclaw-demo-1.2.3.tgz";
+    const archivePath = "/tmp/openclaw-demo-1.2.3.tgz";
 
     loadConfig.mockReturnValue(cfg);
     installPluginFromNpmPackArchive.mockResolvedValue(createNpmPackPluginInstallResult("demo"));
@@ -994,7 +1029,7 @@ describe("plugins cli install", () => {
     expect(installPluginFromNpmSpec).not.toHaveBeenCalled();
     const record = persistedInstallRecord("demo");
     expect(record.source).toBe("npm");
-    expect(record.spec).toBe("@astroclaw/demo@1.2.3");
+    expect(record.spec).toBe("@openclaw/demo@1.2.3");
     expect(record.sourcePath).toBe(archivePath);
     expect(record.installPath).toBe(cliInstallPath("demo"));
     expect(record.version).toBe("1.2.3");
@@ -1002,7 +1037,7 @@ describe("plugins cli install", () => {
     expect(record.artifactFormat).toBe("tgz");
     expect(record.npmIntegrity).toBe("sha512-pack-demo");
     expect(record.npmShasum).toBe("packdemosha");
-    expect(record.npmTarballName).toBe("astroclaw-demo-1.2.3.tgz");
+    expect(record.npmTarballName).toBe("openclaw-demo-1.2.3.tgz");
     expect(writeConfigFile).toHaveBeenCalledWith(enabledCfg);
   });
 
@@ -1040,9 +1075,9 @@ describe("plugins cli install", () => {
       warnings: [],
     });
 
-    await runPluginsCommand(["plugins", "install", "npm:@astroclaw/discord"]);
+    await runPluginsCommand(["plugins", "install", "npm:@openclaw/discord"]);
 
-    expect(npmInstallCall().spec).toBe("@astroclaw/discord");
+    expect(npmInstallCall().spec).toBe("@openclaw/discord");
     expect(npmInstallCall().expectedPluginId).toBe("discord");
     expect(npmInstallCall().trustedSourceLinkedOfficialInstall).toBe(true);
     expect(installPluginFromClawHub).not.toHaveBeenCalled();
@@ -1053,6 +1088,7 @@ describe("plugins cli install", () => {
     const enabledCfg = createEnabledPluginConfig("discord");
 
     loadConfig.mockReturnValue(cfg);
+    findBundledPluginSourceMock.mockReturnValue(undefined);
     installPluginFromNpmSpec.mockResolvedValue(createNpmPluginInstallResult("discord"));
     enablePluginInConfig.mockReturnValue({ config: enabledCfg });
     recordPluginInstall.mockReturnValue(enabledCfg);
@@ -1061,21 +1097,72 @@ describe("plugins cli install", () => {
       warnings: [],
     });
 
-    await runPluginsCommand(["plugins", "install", "@astroclaw/discord"]);
+    await runPluginsCommand(["plugins", "install", "@openclaw/discord"]);
 
-    expect(npmInstallCall().spec).toBe("@astroclaw/discord");
+    expect(npmInstallCall().spec).toBe("@openclaw/discord");
     expect(npmInstallCall().expectedPluginId).toBe("discord");
     expect(npmInstallCall().trustedSourceLinkedOfficialInstall).toBe(true);
     expect(installPluginFromClawHub).not.toHaveBeenCalled();
   });
 
-  it("marks catalog npm package installs with alternate selectors as trusted", async () => {
+  it("uses bundled OpenClaw package specs instead of pinning stale managed npm overrides", async () => {
     const cfg = createEmptyPluginConfig();
-    const enabledCfg = createEnabledPluginConfig("wecom-astroclaw-plugin");
+    const enabledCfg = createEnabledPluginConfig("discord");
+    const bundledPath = "/app/dist/extensions/discord";
 
     loadConfig.mockReturnValue(cfg);
+    findBundledPluginSourceMock.mockImplementation((params: unknown) => {
+      const { lookup } = params as {
+        lookup: { kind: "pluginId" | "npmSpec"; value: string };
+      };
+      return lookup.kind === "npmSpec" && lookup.value === "@openclaw/discord"
+        ? {
+            pluginId: "discord",
+            localPath: bundledPath,
+            npmSpec: "@openclaw/discord",
+            version: "2026.5.24-beta.2",
+          }
+        : undefined;
+    });
+    enablePluginInConfig.mockReturnValue({ config: enabledCfg });
+    recordPluginInstall.mockReturnValue(enabledCfg);
+    applyExclusiveSlotSelection.mockReturnValue({
+      config: enabledCfg,
+      warnings: [],
+    });
+
+    await runPluginsCommand([
+      "plugins",
+      "install",
+      "@openclaw/discord@2026.5.20",
+      "--pin",
+      "--force",
+    ]);
+
+    expect(installPluginFromNpmSpec).not.toHaveBeenCalled();
+    expect(findBundledPluginSourceMock).toHaveBeenCalledWith({
+      lookup: { kind: "npmSpec", value: "@openclaw/discord@2026.5.20" },
+    });
+    expect(findBundledPluginSourceMock).toHaveBeenCalledWith({
+      lookup: { kind: "npmSpec", value: "@openclaw/discord" },
+    });
+    const record = persistedInstallRecord("discord");
+    expect(record.source).toBe("path");
+    expect(record.spec).toBe("@openclaw/discord@2026.5.20");
+    expect(record.sourcePath).toBe(bundledPath);
+    expect(record.installPath).toBe(bundledPath);
+    expect(runtimeLogsContain("ships with the current OpenClaw build")).toBe(true);
+    expect(runtimeLogsContain("npm:@openclaw/discord@2026.5.20")).toBe(true);
+  });
+
+  it("marks catalog npm package installs with alternate selectors as trusted", async () => {
+    const cfg = createEmptyPluginConfig();
+    const enabledCfg = createEnabledPluginConfig("wecom-openclaw-plugin");
+
+    loadConfig.mockReturnValue(cfg);
+    findBundledPluginSourceMock.mockReturnValue(undefined);
     installPluginFromNpmSpec.mockResolvedValue(
-      createNpmPluginInstallResult("wecom-astroclaw-plugin"),
+      createNpmPluginInstallResult("wecom-openclaw-plugin"),
     );
     enablePluginInConfig.mockReturnValue({ config: enabledCfg });
     recordPluginInstall.mockReturnValue(enabledCfg);
@@ -1084,12 +1171,12 @@ describe("plugins cli install", () => {
       warnings: [],
     });
 
-    await runPluginsCommand(["plugins", "install", "@wecom/wecom-astroclaw-plugin@latest"]);
+    await runPluginsCommand(["plugins", "install", "@wecom/wecom-openclaw-plugin@latest"]);
 
     // Alternate selectors stay trusted by catalog package name, but must not
     // inherit catalog integrity unless the install spec matches exactly.
-    expect(npmInstallCall().spec).toBe("@wecom/wecom-astroclaw-plugin@latest");
-    expect(npmInstallCall().expectedPluginId).toBe("wecom-astroclaw-plugin");
+    expect(npmInstallCall().spec).toBe("@wecom/wecom-openclaw-plugin@latest");
+    expect(npmInstallCall().expectedPluginId).toBe("wecom-openclaw-plugin");
     expect(npmInstallCall().trustedSourceLinkedOfficialInstall).toBe(true);
     expect(npmInstallCall().expectedIntegrity).toBeUndefined();
     expect(installPluginFromClawHub).not.toHaveBeenCalled();
@@ -1135,18 +1222,23 @@ describe("plugins cli install", () => {
     expect(npmInstallCall().spec).toBe("demo");
     expect(npmInstallCall().mode).toBe("update");
     expect(npmInstallCall().dangerouslyForceUnsafeInstall).toBe(true);
+    expect(
+      runtimeLogsContain(
+        "--dangerously-force-unsafe-install is deprecated and no longer affects plugin installs",
+      ),
+    ).toBe(true);
     expect(installPluginFromClawHub).not.toHaveBeenCalled();
   });
 
   it("reports npm install failures without trying ClawHub when npm: prefix is used", async () => {
-    loadConfig.mockReturnValue({} as AstroclawConfig);
+    loadConfig.mockReturnValue({} as OpenClawConfig);
     installPluginFromNpmSpec.mockResolvedValue({
       ok: false,
       error: "npm install failed",
     });
     installHooksFromNpmSpec.mockResolvedValue({
       ok: false,
-      error: "package.json missing astroclaw.hooks",
+      error: "package.json missing openclaw.hooks",
     });
 
     await expect(runPluginsCommand(["plugins", "install", "npm:demo"])).rejects.toThrow(
@@ -1158,7 +1250,7 @@ describe("plugins cli install", () => {
   });
 
   it("adds a Git PATH hint when npm plugin dependency install cannot spawn git", async () => {
-    loadConfig.mockReturnValue({} as AstroclawConfig);
+    loadConfig.mockReturnValue({} as OpenClawConfig);
     installPluginFromNpmSpec.mockResolvedValue({
       ok: false,
       error: [
@@ -1170,11 +1262,11 @@ describe("plugins cli install", () => {
     });
     installHooksFromNpmSpec.mockResolvedValue({
       ok: false,
-      error: "package.json missing astroclaw.hooks",
+      error: "package.json missing openclaw.hooks",
     });
 
     await expect(
-      runPluginsCommand(["plugins", "install", "npm:@astroclaw/whatsapp"]),
+      runPluginsCommand(["plugins", "install", "npm:@openclaw/whatsapp"]),
     ).rejects.toThrow("__exit__:1");
 
     expect(installPluginFromClawHub).not.toHaveBeenCalled();
@@ -1186,7 +1278,7 @@ describe("plugins cli install", () => {
   });
 
   it("does not resolve npm: prefixed bundled plugin ids through bundled installs", async () => {
-    loadConfig.mockReturnValue({ plugins: { load: { paths: [] } } } as AstroclawConfig);
+    loadConfig.mockReturnValue({ plugins: { load: { paths: [] } } } as OpenClawConfig);
     installPluginFromNpmSpec.mockResolvedValue({
       ok: false,
       error: "Package not found on npm: memory-lancedb.",
@@ -1194,7 +1286,7 @@ describe("plugins cli install", () => {
     });
     installHooksFromNpmSpec.mockResolvedValue({
       ok: false,
-      error: "package.json missing astroclaw.hooks",
+      error: "package.json missing openclaw.hooks",
     });
 
     await expect(runPluginsCommand(["plugins", "install", "npm:memory-lancedb"])).rejects.toThrow(
@@ -1208,7 +1300,7 @@ describe("plugins cli install", () => {
   });
 
   it("rejects empty npm: prefix installs before resolver lookup", async () => {
-    loadConfig.mockReturnValue({} as AstroclawConfig);
+    loadConfig.mockReturnValue({} as OpenClawConfig);
 
     await expect(runPluginsCommand(["plugins", "install", "npm:"])).rejects.toThrow("__exit__:1");
 
@@ -1247,14 +1339,14 @@ describe("plugins cli install", () => {
   });
 
   it("rejects --pin for git installs and points at git refs", async () => {
-    loadConfig.mockReturnValue({} as AstroclawConfig);
+    loadConfig.mockReturnValue({} as OpenClawConfig);
 
     await expect(
       runPluginsCommand(["plugins", "install", "git:github.com/acme/demo", "--pin"]),
     ).rejects.toThrow("__exit__:1");
 
     expect(installPluginFromGitSpec).not.toHaveBeenCalled();
-    expect(runtimeErrors.at(-1)).toContain("astroclaw plugins install git:<repo>@<ref>");
+    expect(runtimeErrors.at(-1)).toContain("openclaw plugins install git:<repo>@<ref>");
   });
 
   it("passes dangerous force unsafe install to marketplace installs", async () => {
@@ -1288,9 +1380,9 @@ describe("plugins cli install", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledCfg = createEnabledPluginConfig("demo");
-    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-plugin-link-"));
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-plugin-link-"));
 
     loadConfig.mockReturnValue(cfg);
     installPluginFromPath.mockResolvedValueOnce({
@@ -1321,11 +1413,12 @@ describe("plugins cli install", () => {
 
     expect(pathInstallCall().path).toBe(tmpRoot);
     expect(pathInstallCall().dryRun).toBe(true);
+    expect(pathInstallCall().allowSourceTypeScriptEntries).toBe(true);
     expect(pathInstallCall().dangerouslyForceUnsafeInstall).toBe(true);
   });
 
   it("passes dangerous force unsafe install to linked hook-pack probe fallback", async () => {
-    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-hook-link-"));
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-hook-link-"));
     primeHookPackPathFallback({
       tmpRoot,
       pluginInstallError: "plugin install probe failed",
@@ -1349,10 +1442,10 @@ describe("plugins cli install", () => {
   });
 
   it("does not fall back to hook pack for linked path when a no-flag security scan blocks", async () => {
-    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-link-plugin-"));
+    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-link-plugin-"));
     const pluginInstallError = "plugin blocked by security scan";
 
-    loadConfig.mockReturnValue({} as AstroclawConfig);
+    loadConfig.mockReturnValue({} as OpenClawConfig);
     installPluginFromPath.mockResolvedValue({
       ok: false,
       error: pluginInstallError,
@@ -1373,7 +1466,7 @@ describe("plugins cli install", () => {
   });
 
   it("passes dangerous force unsafe install to local hook-pack fallback installs", async () => {
-    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-hook-install-"));
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-hook-install-"));
     primeHookPackPathFallback({
       tmpRoot,
       pluginInstallError: "plugin install failed",
@@ -1397,7 +1490,7 @@ describe("plugins cli install", () => {
 
   it("passes the active profile extensions dir to local path installs", async () => {
     const extensionsDir = useProfileExtensionsDir();
-    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-local-plugin-"));
+    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-local-plugin-"));
     const cfg = createEmptyPluginConfig();
     const enabledCfg = createEnabledPluginConfig("demo");
 
@@ -1435,16 +1528,16 @@ describe("plugins cli install", () => {
   });
 
   it("suggests update or --force when npm plugin install target already exists", async () => {
-    loadConfig.mockReturnValue({} as AstroclawConfig);
+    loadConfig.mockReturnValue({} as OpenClawConfig);
     mockClawHubPackageNotFound("@example/lossless-claw");
     installPluginFromNpmSpec.mockResolvedValue({
       ok: false,
       error:
-        "plugin already exists: /home/astroclaw/.astroclaw/extensions/lossless-claw (delete it first)",
+        "plugin already exists: /home/openclaw/.openclaw/extensions/lossless-claw (delete it first)",
     });
     installHooksFromNpmSpec.mockResolvedValue({
       ok: false,
-      error: "package.json missing astroclaw.hooks",
+      error: "package.json missing openclaw.hooks",
     });
 
     await expect(
@@ -1452,22 +1545,22 @@ describe("plugins cli install", () => {
     ).rejects.toThrow("__exit__:1");
 
     expect(runtimeErrors.at(-1)).toContain(
-      "Use `astroclaw plugins update <id-or-npm-spec>` to upgrade the tracked plugin, or rerun install with `--force` to replace it.",
+      "Use `openclaw plugins update <id-or-npm-spec>` to upgrade the tracked plugin, or rerun install with `--force` to replace it.",
     );
     expect(runtimeErrors.at(-1)).not.toContain("Also not a valid hook pack");
   });
 
   it("does not append hook-pack fallback details for managed extensions boundary failures", async () => {
-    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-local-plugin-"));
+    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-local-plugin-"));
 
-    loadConfig.mockReturnValue({} as AstroclawConfig);
+    loadConfig.mockReturnValue({} as OpenClawConfig);
     installPluginFromPath.mockResolvedValue({
       ok: false,
       error: "Invalid path: must stay within extensions directory",
     });
     installHooksFromPath.mockResolvedValue({
       ok: false,
-      error: "package.json missing astroclaw.hooks",
+      error: "package.json missing openclaw.hooks",
     });
 
     try {
@@ -1483,7 +1576,7 @@ describe("plugins cli install", () => {
   });
 
   it("passes the install logger to the --link dry-run probe", async () => {
-    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-link-plugin-"));
+    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-link-plugin-"));
     const cfg = {
       plugins: {
         entries: {},
@@ -1491,7 +1584,7 @@ describe("plugins cli install", () => {
           paths: [],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const enabledCfg = createEnabledPluginConfig("demo");
 
     loadConfig.mockReturnValue(cfg);
@@ -1504,9 +1597,7 @@ describe("plugins cli install", () => {
           dangerouslyForceUnsafeInstall?: boolean;
         },
       ];
-      params.logger?.warn?.(
-        'WARNING: Plugin "demo" forced despite dangerous code patterns via --dangerously-force-unsafe-install: index.js:1',
-      );
+      params.logger?.warn?.("WARNING: installer warning from dry-run probe");
       return {
         ok: true,
         pluginId: "demo",
@@ -1536,21 +1627,23 @@ describe("plugins cli install", () => {
 
     expect(pathInstallCall().path).toBe(localPluginDir);
     expect(pathInstallCall().dryRun).toBe(true);
+    expect(pathInstallCall().allowSourceTypeScriptEntries).toBe(true);
     expect(pathInstallCall().dangerouslyForceUnsafeInstall).toBe(true);
     expect(typeof pathInstallCall().logger?.info).toBe("function");
     expect(typeof pathInstallCall().logger?.warn).toBe("function");
+    expect(runtimeLogsContain("installer warning from dry-run probe")).toBe(true);
     expect(
       runtimeLogsContain(
-        "forced despite dangerous code patterns via --dangerously-force-unsafe-install",
+        "--dangerously-force-unsafe-install is deprecated and no longer affects plugin installs",
       ),
     ).toBe(true);
   });
 
   it("does not fall back to hook pack for local path when a no-flag security scan fails", async () => {
-    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-local-plugin-"));
+    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-local-plugin-"));
     const pluginInstallError = "plugin security scan failed";
 
-    loadConfig.mockReturnValue({} as AstroclawConfig);
+    loadConfig.mockReturnValue({} as OpenClawConfig);
     installPluginFromPath.mockResolvedValue({
       ok: false,
       error: pluginInstallError,
@@ -1571,8 +1664,8 @@ describe("plugins cli install", () => {
   });
 
   it("does not fall back to hook pack for local path when dangerous force unsafe install is set", async () => {
-    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-local-plugin-"));
-    const cfg = {} as AstroclawConfig;
+    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-local-plugin-"));
+    const cfg = {} as OpenClawConfig;
     const pluginInstallError = "plugin blocked by security scan";
 
     loadConfig.mockReturnValue(cfg);
@@ -1600,8 +1693,8 @@ describe("plugins cli install", () => {
   });
 
   it("does not fall back to hook pack for local path when security scan fails under dangerous force unsafe install", async () => {
-    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-local-plugin-"));
-    const cfg = {} as AstroclawConfig;
+    const localPluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-local-plugin-"));
+    const cfg = {} as OpenClawConfig;
     const pluginInstallError = "plugin security scan failed";
 
     loadConfig.mockReturnValue(cfg);
@@ -1629,7 +1722,7 @@ describe("plugins cli install", () => {
   });
 
   it("does not fall back to hook pack for npm installs when dangerous force unsafe install is set", async () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     const pluginInstallError = "plugin blocked by security scan";
 
     loadConfig.mockReturnValue(cfg);
@@ -1668,7 +1761,7 @@ describe("plugins cli install", () => {
   });
 
   it("does not fall back to hook pack for npm installs when security scan fails under dangerous force unsafe install", async () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     const pluginInstallError = "plugin security scan failed";
 
     loadConfig.mockReturnValue(cfg);
@@ -1692,8 +1785,8 @@ describe("plugins cli install", () => {
   });
 
   it("still falls back to local hook pack when dangerous force unsafe install is set for non-security errors", async () => {
-    const localHookDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-local-hook-pack-"));
-    const cfg = {} as AstroclawConfig;
+    const localHookDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-local-hook-pack-"));
+    const cfg = {} as OpenClawConfig;
     const installedCfg = {
       hooks: {
         internal: {
@@ -1705,13 +1798,13 @@ describe("plugins cli install", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     loadConfig.mockReturnValue(cfg);
     installPluginFromPath.mockResolvedValue({
       ok: false,
-      error: "package.json missing astroclaw.plugin.json",
-      code: "missing_astroclaw_extensions",
+      error: "package.json missing openclaw.plugin.json",
+      code: "missing_openclaw_extensions",
     });
     installHooksFromPath.mockResolvedValue({
       ok: true,
@@ -1738,7 +1831,7 @@ describe("plugins cli install", () => {
   });
 
   it("still falls back to npm hook pack when dangerous force unsafe install is set for non-security errors", async () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     const installedCfg = {
       hooks: {
         internal: {
@@ -1750,7 +1843,7 @@ describe("plugins cli install", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     loadConfig.mockReturnValue(cfg);
     installPluginFromClawHub.mockResolvedValue({
@@ -1760,8 +1853,8 @@ describe("plugins cli install", () => {
     });
     installPluginFromNpmSpec.mockResolvedValue({
       ok: false,
-      error: "package.json missing astroclaw.plugin.json",
-      code: "missing_astroclaw_extensions",
+      error: "package.json missing openclaw.plugin.json",
+      code: "missing_openclaw_extensions",
     });
     installHooksFromNpmSpec.mockResolvedValue({
       ok: true,
@@ -1771,7 +1864,8 @@ describe("plugins cli install", () => {
       version: "1.2.3",
       npmResolution: {
         name: "@acme/demo-hooks",
-        spec: "@acme/demo-hooks@1.2.3",
+        version: "1.2.3",
+        resolvedSpec: "@acme/demo-hooks@1.2.3",
         integrity: "sha256-demo",
       },
     });
@@ -1792,7 +1886,7 @@ describe("plugins cli install", () => {
     parseClawHubPluginSpec.mockReturnValue({ name: "demo" });
     installPluginFromClawHub.mockResolvedValue({
       ok: false,
-      error: 'Use "astroclaw skills install demo" instead.',
+      error: 'Use "openclaw skills install demo" instead.',
       code: "skill_package",
     });
 
@@ -1801,7 +1895,7 @@ describe("plugins cli install", () => {
     );
 
     expect(installPluginFromNpmSpec).not.toHaveBeenCalled();
-    expect(runtimeErrors.at(-1)).toContain('Use "astroclaw skills install demo" instead.');
+    expect(runtimeErrors.at(-1)).toContain('Use "openclaw skills install demo" instead.');
   });
 
   it("falls back to installing hook packs from npm specs", async () => {
@@ -1810,8 +1904,13 @@ describe("plugins cli install", () => {
     await runPluginsCommand(["plugins", "install", "@acme/demo-hooks"]);
 
     expect(hookNpmInstallCall().spec).toBe("@acme/demo-hooks");
-    expect(recordHookInstallCall().hookId).toBe("demo-hooks");
-    expect(recordHookInstallCall().hooks).toEqual(["command-audit"]);
+    const record = recordHookInstallCall();
+    expect(record.hookId).toBe("demo-hooks");
+    expect(record.spec).toBe("@acme/demo-hooks");
+    expect(record.resolvedVersion).toBe("1.2.3");
+    expect(record.resolvedSpec).toBe("@acme/demo-hooks@1.2.3");
+    expect(record.integrity).toBe("sha256-demo");
+    expect(record.hooks).toEqual(["command-audit"]);
     expect(writeConfigFile).toHaveBeenCalledWith(installedCfg);
     expect(runtimeLogsContain("Installed hook pack: demo-hooks")).toBe(true);
   });
