@@ -1,3 +1,4 @@
+// Vitest extension provider openai config wires the extension provider openai test shard.
 import path from "node:path";
 import { providerOpenAiExtensionTestRoots } from "./vitest.extension-provider-paths.mjs";
 import { loadPatternListFromEnv } from "./vitest.pattern-file.ts";
@@ -7,7 +8,7 @@ import { repoRoot } from "./vitest.shared.config.ts";
 export function loadIncludePatternsFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): string[] | null {
-  return loadPatternListFromEnv("ASTROCLAW_VITEST_INCLUDE_FILE", env);
+  return loadPatternListFromEnv("OPENCLAW_VITEST_INCLUDE_FILE", env);
 }
 
 export function createExtensionProviderOpenAiVitestConfig(
