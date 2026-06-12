@@ -1,3 +1,4 @@
+// Browser tests cover doctor plugin behavior.
 import { describe, expect, it } from "vitest";
 import { buildBrowserDoctorReport } from "./doctor.js";
 
@@ -19,8 +20,8 @@ describe("buildBrowserDoctorReport", () => {
       uid: 1000,
       status: {
         enabled: true,
-        profile: "astroclaw",
-        driver: "astroclaw",
+        profile: "openclaw",
+        driver: "openclaw",
         transport: "cdp",
         running: false,
         cdpReady: false,
@@ -32,7 +33,7 @@ describe("buildBrowserDoctorReport", () => {
         detectedBrowser: "chromium",
         detectedExecutablePath: "/usr/bin/chromium",
         detectError: null,
-        userDataDir: "/tmp/astroclaw",
+        userDataDir: "/tmp/openclaw",
         color: "#FF4500",
         headless: false,
         noSandbox: false,
@@ -85,8 +86,8 @@ describe("buildBrowserDoctorReport", () => {
       uid: 0,
       status: {
         enabled: true,
-        profile: "astroclaw",
-        driver: "astroclaw",
+        profile: "openclaw",
+        driver: "openclaw",
         transport: "cdp",
         running: false,
         cdpReady: false,
@@ -98,7 +99,7 @@ describe("buildBrowserDoctorReport", () => {
         detectedBrowser: null,
         detectedExecutablePath: null,
         detectError: null,
-        userDataDir: "/tmp/astroclaw",
+        userDataDir: "/tmp/openclaw",
         color: "#FF4500",
         headless: false,
         headlessSource: "config",
@@ -127,8 +128,8 @@ describe("buildBrowserDoctorReport", () => {
       uid: 1000,
       status: {
         enabled: true,
-        profile: "astroclaw",
-        driver: "astroclaw",
+        profile: "openclaw",
+        driver: "openclaw",
         transport: "cdp",
         running: false,
         cdpReady: false,
@@ -140,7 +141,7 @@ describe("buildBrowserDoctorReport", () => {
         detectedBrowser: "chrome",
         detectedExecutablePath: "/usr/bin/google-chrome-stable",
         detectError: null,
-        userDataDir: "/tmp/astroclaw",
+        userDataDir: "/tmp/openclaw",
         color: "#FF4500",
         headless: true,
         headlessSource: "linux-display-fallback",
