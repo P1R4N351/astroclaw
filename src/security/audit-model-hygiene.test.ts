@@ -1,12 +1,13 @@
+// Covers model hygiene audit findings and provider routing risks.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { collectModelHygieneFindings } from "./audit-extra.sync.js";
 
 describe("security audit model hygiene findings", () => {
   it("classifies legacy and weak-tier model identifiers", () => {
     const cases: Array<{
       name: string;
-      cfg: AstroclawConfig;
+      cfg: OpenClawConfig;
       expectedPresent?: Array<{ checkId: string; severity: "warn" }>;
       expectedAbsentCheckId?: string;
     }> = [
@@ -62,13 +63,13 @@ describe("security audit model hygiene findings", () => {
             fallbacks: ["gpt-prev", "gpt-mini"],
           },
           models: {
-            "openai-codex/gpt-5.5": { alias: "gpt" },
-            "openai-codex/gpt-5.4": { alias: "gpt-prev" },
+            "openai/gpt-5.5": { alias: "gpt" },
+            "openai/gpt-5.4": { alias: "gpt-prev" },
             "openai/gpt-5-mini": { alias: "gpt-mini" },
           },
         },
       },
-    } satisfies AstroclawConfig);
+    } satisfies OpenClawConfig);
 
     expect(findings.map((finding) => finding.checkId)).not.toContain("models.weak_tier");
   });
