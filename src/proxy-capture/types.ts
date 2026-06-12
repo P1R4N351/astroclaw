@@ -1,3 +1,5 @@
+// Shared debug-proxy capture schema. These records back the SQLite store, CLI
+// reports, and runtime capture events for HTTP/SSE/websocket traffic.
 export type CaptureProtocol = "http" | "https" | "sse" | "ws" | "wss" | "connect";
 
 export type CaptureDirection = "outbound" | "inbound" | "local";
@@ -18,7 +20,7 @@ export type CaptureSessionRecord = {
   startedAt: number;
   endedAt?: number;
   mode: string;
-  sourceScope: "astroclaw";
+  sourceScope: "openclaw";
   sourceProcess: string;
   proxyUrl?: string;
   dbPath: string;
@@ -37,7 +39,7 @@ export type CaptureBlobRecord = {
 export type CaptureEventRecord = {
   sessionId: string;
   ts: number;
-  sourceScope: "astroclaw";
+  sourceScope: "openclaw";
   sourceProcess: string;
   protocol: CaptureProtocol;
   direction: CaptureDirection;
