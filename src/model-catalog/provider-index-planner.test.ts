@@ -1,3 +1,4 @@
+// Provider-index planner tests cover preview catalog row generation and provider filtering.
 import { describe, expect, it } from "vitest";
 import { planProviderIndexModelCatalogRows } from "./index.js";
 
@@ -13,7 +14,7 @@ describe("provider index model catalog planner", () => {
             name: "Moonshot AI",
             plugin: {
               id: "moonshot",
-              package: "@astroclaw/plugin-moonshot",
+              package: "@openclaw/plugin-moonshot",
             },
             previewCatalog: {
               models: [{ id: "kimi-k2.6", name: "Kimi K2.6", contextWindow: 262144 }],
