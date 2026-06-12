@@ -1,5 +1,6 @@
+/** Tests image-generation runtime fallback, overrides, and error reporting. */
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   generateImage,
   listRuntimeImageGenerationProviders,
@@ -9,7 +10,7 @@ import {
 import type { ImageGenerationProvider } from "./types.js";
 
 let providers: ImageGenerationProvider[] = [];
-let listedConfigs: Array<AstroclawConfig | undefined> = [];
+let listedConfigs: Array<OpenClawConfig | undefined> = [];
 let providerEnvVars: Record<string, string[]> = {};
 let warnings: string[] = [];
 
@@ -75,7 +76,7 @@ describe("image-generation runtime", () => {
             imageGenerationModel: { primary: "image-plugin/img-v1" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "draw a cat",
       agentDir: "/tmp/agent",
       authStore,
@@ -128,7 +129,7 @@ describe("image-generation runtime", () => {
             imageGenerationModel: { primary: "image-plugin/img-v1" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "draw a cat",
       autoProviderFallback: false,
     };
@@ -173,11 +174,50 @@ describe("image-generation runtime", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "draw a cat",
     });
 
     expect(seenTimeoutMs).toBe(180_000);
+  });
+
+  it("uses provider default image-generation timeout when the call and config omit timeoutMs", async () => {
+    let seenTimeoutMs: number | undefined;
+    const provider: ImageGenerationProvider = {
+      id: "image-plugin",
+      defaultTimeoutMs: 600_000,
+      capabilities: {
+        generate: {},
+        edit: { enabled: false },
+      },
+      async generateImage(req: { timeoutMs?: number }) {
+        seenTimeoutMs = req.timeoutMs;
+        return {
+          images: [
+            {
+              buffer: Buffer.from("png-bytes"),
+              mimeType: "image/png",
+              fileName: "sample.png",
+            },
+          ],
+          model: "img-v1",
+        };
+      },
+    };
+    providers = [provider];
+
+    await runGenerateImage({
+      cfg: {
+        agents: {
+          defaults: {
+            imageGenerationModel: { primary: "image-plugin/img-v1" },
+          },
+        },
+      } as OpenClawConfig,
+      prompt: "draw a cat",
+    });
+
+    expect(seenTimeoutMs).toBe(600_000);
   });
 
   it("auto-detects and falls through to another configured image-generation provider by default", async () => {
@@ -212,7 +252,7 @@ describe("image-generation runtime", () => {
     ];
 
     const result = await runGenerateImage({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       prompt: "draw a cat",
     });
 
@@ -277,7 +317,7 @@ describe("image-generation runtime", () => {
             imageGenerationModel: { primary: "openai/gpt-image-1" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "draw a cat",
       size: "1024x1024",
       aspectRatio: "1:1",
@@ -342,7 +382,7 @@ describe("image-generation runtime", () => {
             imageGenerationModel: { primary: "openai/gpt-image-2" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "draw a cheap preview",
       quality: "low",
       outputFormat: "jpeg",
@@ -410,7 +450,7 @@ describe("image-generation runtime", () => {
             imageGenerationModel: { primary: "vydra/grok-imagine" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "draw a cat",
       quality: "low",
       outputFormat: "jpeg",
@@ -477,7 +517,7 @@ describe("image-generation runtime", () => {
             imageGenerationModel: { primary: "minimax/image-01" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "draw a cat",
       size: "1280x720",
     });
@@ -496,6 +536,64 @@ describe("image-generation runtime", () => {
     expect(result.metadata.requestedSize).toBe("1280x720");
     expect(result.metadata.normalizedAspectRatio).toBe("16:9");
     expect(result.metadata.aspectRatioDerivedFromSize).toBe("16:9");
+  });
+
+  it("uses model-specific geometry lists before provider normalization", async () => {
+    let seenRequest:
+      | {
+          size?: string;
+          aspectRatio?: string;
+        }
+      | undefined;
+    providers = [
+      {
+        id: "fal",
+        capabilities: {
+          generate: {
+            supportsSize: true,
+            supportsAspectRatio: true,
+          },
+          edit: {
+            enabled: true,
+            supportsSize: true,
+            supportsAspectRatio: true,
+          },
+          geometry: {
+            sizes: ["1024x1024", "1536x1024", "1024x1536"],
+            sizesByModel: {
+              "krea/v2/medium/text-to-image": [],
+            },
+            aspectRatios: ["1:1", "4:3", "3:2", "16:9"],
+          },
+        },
+        async generateImage(req) {
+          seenRequest = {
+            size: req.size,
+            aspectRatio: req.aspectRatio,
+          };
+          return {
+            images: [{ buffer: Buffer.from("png-bytes"), mimeType: "image/png" }],
+          };
+        },
+      },
+    ];
+
+    await runGenerateImage({
+      cfg: {
+        agents: {
+          defaults: {
+            imageGenerationModel: { primary: "fal/krea/v2/medium/text-to-image" },
+          },
+        },
+      } as OpenClawConfig,
+      prompt: "draw a cat",
+      size: "1024x768",
+    });
+
+    expect(seenRequest).toEqual({
+      size: "1024x768",
+      aspectRatio: undefined,
+    });
   });
 
   it("lists runtime image-generation providers through the provider registry", () => {
@@ -524,9 +622,9 @@ describe("image-generation runtime", () => {
     providers = registryProviders;
 
     expect(
-      listRuntimeImageGenerationProviders({ config: {} as AstroclawConfig }, runtimeDeps),
+      listRuntimeImageGenerationProviders({ config: {} as OpenClawConfig }, runtimeDeps),
     ).toEqual(registryProviders);
-    expect(listedConfigs).toEqual([{} as AstroclawConfig]);
+    expect(listedConfigs).toEqual([{} as OpenClawConfig]);
   });
 
   it("builds a generic config hint without hardcoded provider ids", async () => {
@@ -562,7 +660,7 @@ describe("image-generation runtime", () => {
     };
 
     await expect(
-      runGenerateImage({ cfg: {} as AstroclawConfig, prompt: "draw a cat" }),
+      runGenerateImage({ cfg: {} as OpenClawConfig, prompt: "draw a cat" }),
     ).rejects.toThrow(
       'No image-generation model configured. Set agents.defaults.imageGenerationModel.primary to a provider/model like "vision-one/paint-v1". If you want a specific provider, also configure that provider\'s auth/API key first (vision-one: VISION_ONE_API_KEY; vision-two: VISION_TWO_API_KEY).',
     );
