@@ -1,7 +1,8 @@
+// Matrix tests cover approval handler plugin behavior.
 import type {
   ExecApprovalRequest,
   PluginApprovalRequest,
-} from "astroclaw/plugin-sdk/approval-runtime";
+} from "openclaw/plugin-sdk/approval-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { matrixApprovalNativeRuntime } from "./approval-handler.runtime.js";
 import {
@@ -19,7 +20,7 @@ type MatrixPendingPluginApprovalView = Extract<
   { approvalKind: "plugin" }
 >;
 
-const MATRIX_APPROVAL_METADATA_KEY = "com.astroclaw.approval";
+const MATRIX_APPROVAL_METADATA_KEY = "com.openclaw.approval";
 
 function expectRecordFields(value: unknown, expected: Record<string, unknown>) {
   if (!value || typeof value !== "object") {
