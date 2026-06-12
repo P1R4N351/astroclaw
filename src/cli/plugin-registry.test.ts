@@ -1,3 +1,4 @@
+// Plugin registry CLI tests cover registry loading, command integration, and reset behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyPluginRegistry } from "../plugins/registry.js";
 
@@ -40,7 +41,7 @@ function expectConfiguredChannelPluginIdsParams(expected: {
   expect(params?.workspaceDir).toBe(expected.workspaceDir);
 }
 
-function expectLoadAstroclawPluginsCall(
+function expectLoadOpenClawPluginsCall(
   callIndex: number,
   expected: {
     config?: unknown;
@@ -51,7 +52,7 @@ function expectLoadAstroclawPluginsCall(
     workspaceDir?: string;
   },
 ) {
-  const params = mocks.loadAstroclawPlugins.mock.calls[callIndex]?.[0] as
+  const params = mocks.loadOpenClawPlugins.mock.calls[callIndex]?.[0] as
     | {
         config?: unknown;
         activationSourceConfig?: unknown;
@@ -78,7 +79,7 @@ function expectLoadAstroclawPluginsCall(
 }
 
 const mocks = vi.hoisted(() => ({
-  loadAstroclawPlugins: vi.fn<typeof import("../plugins/loader.js").loadAstroclawPlugins>(),
+  loadOpenClawPlugins: vi.fn<typeof import("../plugins/loader.js").loadOpenClawPlugins>(),
   resolveCompatibleRuntimePluginRegistry:
     vi.fn<typeof import("../plugins/loader.js").resolveCompatibleRuntimePluginRegistry>(),
   resolveRuntimePluginRegistry:
@@ -99,11 +100,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 let ensurePluginRegistryLoaded: typeof import("./plugin-registry.js").ensurePluginRegistryLoaded;
-let resetPluginRegistryLoadedForTests: typeof import("./plugin-registry.js").__testing.resetPluginRegistryLoadedForTests;
+let resetPluginRegistryLoadedForTests: typeof import("./plugin-registry.js").testing.resetPluginRegistryLoadedForTests;
 
 vi.mock("../plugins/loader.js", () => ({
-  loadAstroclawPlugins: (...args: Parameters<typeof mocks.loadAstroclawPlugins>) =>
-    mocks.loadAstroclawPlugins(...args),
+  loadOpenClawPlugins: (...args: Parameters<typeof mocks.loadOpenClawPlugins>) =>
+    mocks.loadOpenClawPlugins(...args),
   resolveCompatibleRuntimePluginRegistry: (
     ...args: Parameters<typeof mocks.resolveCompatibleRuntimePluginRegistry>
   ) => mocks.resolveCompatibleRuntimePluginRegistry(...args),
@@ -180,11 +181,11 @@ describe("ensurePluginRegistryLoaded", () => {
   beforeAll(async () => {
     const mod = await import("./plugin-registry.js");
     ensurePluginRegistryLoaded = mod.ensurePluginRegistryLoaded;
-    resetPluginRegistryLoadedForTests = () => mod.__testing.resetPluginRegistryLoadedForTests();
+    resetPluginRegistryLoadedForTests = () => mod.testing.resetPluginRegistryLoadedForTests();
   });
 
   beforeEach(() => {
-    mocks.loadAstroclawPlugins.mockReset();
+    mocks.loadOpenClawPlugins.mockReset();
     mocks.resolveCompatibleRuntimePluginRegistry.mockReset();
     mocks.resolveRuntimePluginRegistry.mockReset();
     mocks.getActivePluginRegistry.mockReset();
@@ -247,8 +248,8 @@ describe("ensurePluginRegistryLoaded", () => {
       config: autoEnabledConfig,
       workspaceDir: "/tmp/workspace",
     });
-    expect(mocks.loadAstroclawPlugins).toHaveBeenCalledTimes(1);
-    expectLoadAstroclawPluginsCall(0, {
+    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(1);
+    expectLoadOpenClawPluginsCall(0, {
       config: autoEnabledConfig,
       activationSourceConfig: autoEnabledConfig,
       autoEnabledReasons: {
@@ -281,12 +282,12 @@ describe("ensurePluginRegistryLoaded", () => {
     ensurePluginRegistryLoaded({ scope: "configured-channels" });
     ensurePluginRegistryLoaded({ scope: "channels" });
 
-    expect(mocks.loadAstroclawPlugins).toHaveBeenCalledTimes(2);
-    expectLoadAstroclawPluginsCall(0, {
+    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(2);
+    expectLoadOpenClawPluginsCall(0, {
       onlyPluginIds: ["demo-channel-a"],
       throwOnLoadError: true,
     });
-    expectLoadAstroclawPluginsCall(1, {
+    expectLoadOpenClawPluginsCall(1, {
       onlyPluginIds: ["demo-channel-a", "demo-channel-b"],
       throwOnLoadError: true,
     });
@@ -315,8 +316,8 @@ describe("ensurePluginRegistryLoaded", () => {
 
     ensurePluginRegistryLoaded({ scope: "all" });
 
-    expect(mocks.loadAstroclawPlugins).toHaveBeenCalledTimes(1);
-    expectLoadAstroclawPluginsCall(0, {
+    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(1);
+    expectLoadOpenClawPluginsCall(0, {
       config,
       onlyPluginIds: ["demo"],
       throwOnLoadError: true,
@@ -349,8 +350,8 @@ describe("ensurePluginRegistryLoaded", () => {
 
     ensurePluginRegistryLoaded({ scope: "configured-channels" });
 
-    expect(mocks.loadAstroclawPlugins).toHaveBeenCalledTimes(1);
-    expectLoadAstroclawPluginsCall(0, {
+    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(1);
+    expectLoadOpenClawPluginsCall(0, {
       config: activatedConfig,
       activationSourceConfig: activatedConfig,
       onlyPluginIds: ["demo-channel-a"],
@@ -388,8 +389,8 @@ describe("ensurePluginRegistryLoaded", () => {
     } as never);
     ensurePluginRegistryLoaded({ scope: "configured-channels" });
 
-    expect(mocks.loadAstroclawPlugins).toHaveBeenCalledTimes(1);
-    expectLoadAstroclawPluginsCall(0, {
+    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(1);
+    expectLoadOpenClawPluginsCall(0, {
       config: activatedConfig,
       activationSourceConfig: activatedConfig,
       onlyPluginIds: ["demo-channel-a"],
