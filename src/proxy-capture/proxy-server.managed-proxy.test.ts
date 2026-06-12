@@ -1,3 +1,4 @@
+// Managed proxy tests cover proxy server lifecycle with managed capture files.
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer as createHttpServer } from "node:http";
 import { Socket, type AddressInfo } from "node:net";
@@ -18,7 +19,7 @@ async function cleanupTestDirs(): Promise<void> {
 }
 
 async function makeSettings() {
-  testRoot = await mkdtemp(join(tmpdir(), "astroclaw-debug-proxy-managed-proxy-"));
+  testRoot = await mkdtemp(join(tmpdir(), "openclaw-debug-proxy-managed-proxy-"));
   const certDir = join(testRoot, "certs");
   await mkdir(certDir, { recursive: true });
   await writeFile(join(certDir, "root-ca.pem"), "test root cert\n", "utf8");
@@ -40,14 +41,16 @@ async function connectThroughProxy(proxyUrl: string): Promise<string> {
   let data = "";
   socket.setEncoding("utf8");
   socket.on("data", (chunk) => {
-    data += chunk;
+    data += chunk.toString();
   });
   await new Promise<void>((resolve, reject) => {
     socket.once("error", reject);
     socket.connect(Number(target.port), target.hostname, resolve);
   });
   socket.write("CONNECT example.com:443 HTTP/1.1\r\nHost: example.com:443\r\n\r\n");
-  await new Promise<void>((resolve) => socket.once("end", resolve));
+  await new Promise<void>((resolve) => {
+    socket.once("end", resolve);
+  });
   socket.destroy();
   return data;
 }
@@ -59,14 +62,16 @@ async function requestThroughProxy(proxyUrl: string, targetUrl: string): Promise
   let data = "";
   socket.setEncoding("utf8");
   socket.on("data", (chunk) => {
-    data += chunk;
+    data += chunk.toString();
   });
   await new Promise<void>((resolve, reject) => {
     socket.once("error", reject);
     socket.connect(Number(proxy.port), proxy.hostname, resolve);
   });
   socket.write(`GET ${target.href} HTTP/1.1\r\nHost: ${target.host}\r\nConnection: close\r\n\r\n`);
-  await new Promise<void>((resolve) => socket.once("end", resolve));
+  await new Promise<void>((resolve) => {
+    socket.once("end", resolve);
+  });
   socket.destroy();
   return data;
 }
@@ -77,14 +82,16 @@ async function requestRawThroughProxy(proxyUrl: string, request: string): Promis
   let data = "";
   socket.setEncoding("utf8");
   socket.on("data", (chunk) => {
-    data += chunk;
+    data += chunk.toString();
   });
   await new Promise<void>((resolve, reject) => {
     socket.once("error", reject);
     socket.connect(Number(proxy.port), proxy.hostname, resolve);
   });
   socket.write(request);
-  await new Promise<void>((resolve) => socket.once("end", resolve));
+  await new Promise<void>((resolve) => {
+    socket.once("end", resolve);
+  });
   socket.destroy();
   return data;
 }
@@ -124,26 +131,26 @@ async function startCanaryOrigin(): Promise<{
 }
 
 describe("debug proxy managed-proxy direct upstream policy", () => {
-  const originalProxyActive = process.env["ASTROCLAW_PROXY_ACTIVE"];
+  const originalProxyActive = process.env["OPENCLAW_PROXY_ACTIVE"];
   const originalAllowDirect =
-    process.env["ASTROCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"];
+    process.env["OPENCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"];
 
   beforeEach(async () => {
     await cleanupTestDirs();
-    delete process.env["ASTROCLAW_PROXY_ACTIVE"];
-    delete process.env["ASTROCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"];
+    delete process.env["OPENCLAW_PROXY_ACTIVE"];
+    delete process.env["OPENCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"];
   });
 
   afterEach(async () => {
     if (originalProxyActive === undefined) {
-      delete process.env["ASTROCLAW_PROXY_ACTIVE"];
+      delete process.env["OPENCLAW_PROXY_ACTIVE"];
     } else {
-      process.env["ASTROCLAW_PROXY_ACTIVE"] = originalProxyActive;
+      process.env["OPENCLAW_PROXY_ACTIVE"] = originalProxyActive;
     }
     if (originalAllowDirect === undefined) {
-      delete process.env["ASTROCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"];
+      delete process.env["OPENCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"];
     } else {
-      process.env["ASTROCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"] =
+      process.env["OPENCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"] =
         originalAllowDirect;
     }
     await cleanupTestDirs();
@@ -154,7 +161,7 @@ describe("debug proxy managed-proxy direct upstream policy", () => {
   });
 
   it("rejects direct upstreams while managed proxy mode is active", () => {
-    process.env["ASTROCLAW_PROXY_ACTIVE"] = "1";
+    process.env["OPENCLAW_PROXY_ACTIVE"] = "1";
 
     expect(() => assertDebugProxyDirectUpstreamAllowed()).toThrow(
       /Debug proxy direct upstream forwarding is disabled/,
@@ -162,7 +169,7 @@ describe("debug proxy managed-proxy direct upstream policy", () => {
   });
 
   it("uses shared truthy parsing for managed proxy mode", () => {
-    process.env["ASTROCLAW_PROXY_ACTIVE"] = "true";
+    process.env["OPENCLAW_PROXY_ACTIVE"] = "true";
 
     expect(() => assertDebugProxyDirectUpstreamAllowed()).toThrow(
       /Debug proxy direct upstream forwarding is disabled/,
@@ -170,14 +177,14 @@ describe("debug proxy managed-proxy direct upstream policy", () => {
   });
 
   it("allows direct upstreams with explicit diagnostic override", () => {
-    process.env["ASTROCLAW_PROXY_ACTIVE"] = "1";
-    process.env["ASTROCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"] = "1";
+    process.env["OPENCLAW_PROXY_ACTIVE"] = "1";
+    process.env["OPENCLAW_DEBUG_PROXY_ALLOW_DIRECT_CONNECT_WITH_MANAGED_PROXY"] = "1";
 
     expect(assertDebugProxyDirectUpstreamAllowed()).toBeUndefined();
   });
 
   it("rejects CONNECT upstreams before opening direct sockets while managed proxy mode is active", async () => {
-    process.env["ASTROCLAW_PROXY_ACTIVE"] = "1";
+    process.env["OPENCLAW_PROXY_ACTIVE"] = "1";
     const server = await startDebugProxyServer({ settings: await makeSettings() });
     try {
       const response = await connectThroughProxy(server.proxyUrl);
@@ -191,7 +198,7 @@ describe("debug proxy managed-proxy direct upstream policy", () => {
   });
 
   it("rejects absolute-form HTTP proxy requests before opening direct upstreams while managed proxy mode is active", async () => {
-    process.env["ASTROCLAW_PROXY_ACTIVE"] = "1";
+    process.env["OPENCLAW_PROXY_ACTIVE"] = "1";
     const origin = await startCanaryOrigin();
     const server = await startDebugProxyServer({ settings: await makeSettings() });
     try {
