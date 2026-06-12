@@ -18,7 +18,6 @@ function createOverviewProps(overrides: Partial<OverviewProps> = {}): OverviewPr
       lastActiveSessionKey: "main",
       theme: "claw",
       themeMode: "system",
-      chatFocusMode: false,
       chatShowThinking: true,
       chatShowToolCalls: true,
       splitRatio: 0.6,
@@ -108,11 +107,11 @@ describe("overview view rendering", () => {
 
     const hint = container.querySelector(".mono")?.closest(".muted") ?? null;
     expect(compactText(hint)).toBe(
-      "Scope upgrade pending approval. This device is already paired, but the requested wider scope is waiting for approval. astroclaw devices approve req-123 astroclaw devices list On mobile? Copy the full URL (including #token=...) from astroclaw dashboard --no-open on your desktop. Docs: Device pairing",
+      "Scope upgrade pending approval. This device is already paired, but the requested wider scope is waiting for approval. openclaw devices approve req-123 openclaw devices list On mobile? Copy the full URL (including #token=...) from openclaw dashboard --no-open on your desktop. Docs: Device pairing",
     );
     expect([...container.querySelectorAll(".mono")].map((node) => node.textContent)).toEqual([
-      "astroclaw devices approve req-123",
-      "astroclaw devices list",
+      "openclaw devices approve req-123",
+      "openclaw devices list",
     ]);
   });
 
@@ -128,10 +127,10 @@ describe("overview view rendering", () => {
 
     const hint = container.querySelector(".mono")?.closest(".muted") ?? null;
     expect(compactText(hint)).toBe(
-      "Scope upgrade pending approval. This device is already paired, but the requested wider scope is waiting for approval. astroclaw devices list On mobile? Copy the full URL (including #token=...) from astroclaw dashboard --no-open on your desktop. Docs: Device pairing",
+      "Scope upgrade pending approval. This device is already paired, but the requested wider scope is waiting for approval. openclaw devices list On mobile? Copy the full URL (including #token=...) from openclaw dashboard --no-open on your desktop. Docs: Device pairing",
     );
     expect([...container.querySelectorAll(".mono")].map((node) => node.textContent)).toEqual([
-      "astroclaw devices list",
+      "openclaw devices list",
     ]);
   });
 
@@ -192,7 +191,7 @@ describe("overview view rendering", () => {
         ts: Date.now(),
         providers: [
           {
-            provider: "openai-codex",
+            provider: "openai",
             displayName: "Codex",
             status: "ok",
             profiles: [{ profileId: "codex", type: "oauth", status: "ok" }],
