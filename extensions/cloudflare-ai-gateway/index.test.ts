@@ -1,5 +1,6 @@
-import type { StreamFn } from "@earendil-works/pi-agent-core";
-import { capturePluginRegistration } from "astroclaw/plugin-sdk/plugin-test-runtime";
+// Cloudflare Ai Gateway tests cover index plugin behavior.
+import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
+import { capturePluginRegistration } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
