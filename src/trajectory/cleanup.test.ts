@@ -1,3 +1,4 @@
+// Trajectory cleanup tests cover retention pruning of trajectory artifacts.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -10,7 +11,7 @@ import { resolveTrajectoryFilePath, resolveTrajectoryPointerFilePath } from "./p
 
 function runtimeEvent(sessionId: string): string {
   return `${JSON.stringify({
-    traceSchema: "astroclaw-trajectory",
+    traceSchema: "openclaw-trajectory",
     schemaVersion: 1,
     traceId: sessionId,
     source: "runtime",
@@ -24,7 +25,7 @@ function runtimeEvent(sessionId: string): string {
 
 function pointerFile(sessionId: string, runtimeFile: string): string {
   return `${JSON.stringify({
-    traceSchema: "astroclaw-trajectory-pointer",
+    traceSchema: "openclaw-trajectory-pointer",
     schemaVersion: 1,
     sessionId,
     runtimeFile,
@@ -43,7 +44,7 @@ async function expectPathMissing(targetPath: string): Promise<void> {
 
 describe("trajectory cleanup", () => {
   it("removes adjacent trajectory sidecars for a deleted session", async () => {
-    await withTempDir({ prefix: "astroclaw-trajectory-cleanup-" }, async (dir) => {
+    await withTempDir({ prefix: "openclaw-trajectory-cleanup-" }, async (dir) => {
       const sessionId = "session-1";
       const storePath = path.join(dir, "sessions.json");
       const sessionFile = path.join(dir, `${sessionId}.jsonl`);
@@ -66,7 +67,7 @@ describe("trajectory cleanup", () => {
   });
 
   it("skips removed sessions still referenced by surviving store rows", async () => {
-    await withTempDir({ prefix: "astroclaw-trajectory-cleanup-" }, async (dir) => {
+    await withTempDir({ prefix: "openclaw-trajectory-cleanup-" }, async (dir) => {
       const sessionId = "shared-session";
       const storePath = path.join(dir, "sessions.json");
       const sessionFile = path.join(dir, `${sessionId}.jsonl`);
@@ -89,7 +90,7 @@ describe("trajectory cleanup", () => {
   });
 
   it("only removes external pointer targets that prove they belong to the session", async () => {
-    await withTempDir({ prefix: "astroclaw-trajectory-cleanup-" }, async (dir) => {
+    await withTempDir({ prefix: "openclaw-trajectory-cleanup-" }, async (dir) => {
       const sessionId = "session-2";
       const sessionsDir = path.join(dir, "sessions");
       const storePath = path.join(sessionsDir, "sessions.json");
