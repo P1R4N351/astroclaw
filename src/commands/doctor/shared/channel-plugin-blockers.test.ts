@@ -1,3 +1,4 @@
+// Channel plugin blocker tests cover doctor diagnostics for blocked channel plugin setup.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as manifestRegistry from "../../../plugins/manifest-registry.js";
 import { scanConfiguredChannelPluginBlockers } from "./channel-plugin-blockers.js";
@@ -117,7 +118,7 @@ describe("channel plugin blockers", () => {
           enabledByDefault: true,
         },
         {
-          id: "astroclaw-lark",
+          id: "openclaw-lark",
           origin: "config",
           channels: ["feishu"],
           enabledByDefault: false,
@@ -139,7 +140,7 @@ describe("channel plugin blockers", () => {
           feishu: {
             enabled: false,
           },
-          "astroclaw-lark": {
+          "openclaw-lark": {
             enabled: true,
           },
         },
@@ -166,7 +167,7 @@ describe("channel plugin blockers", () => {
           enabledByDefault: true,
         },
         {
-          id: "astroclaw-lark",
+          id: "openclaw-lark",
           origin: "config",
           channels: ["feishu"],
           enabledByDefault: false,
