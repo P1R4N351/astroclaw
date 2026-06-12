@@ -1,7 +1,10 @@
+// Daemon shared tests cover shared daemon CLI helpers and validation.
 import { describe, expect, it } from "vitest";
-import { theme } from "../../terminal/theme.js";
+import { theme } from "../../../packages/terminal-core/src/theme.js";
 import {
   filterContainerGenericHints,
+  parsePortFromArgs,
+  renderRuntimeHints,
   renderGatewayServiceStartHints,
   resolveDaemonContainerContext,
   resolveRuntimeStatusColor,
@@ -20,62 +23,82 @@ describe("resolveRuntimeStatusColor", () => {
   });
 });
 
+describe("parsePortFromArgs", () => {
+  it("rejects inline port values with trailing equals-separated text", () => {
+    expect(parsePortFromArgs(["--port=123=bad"])).toBeNull();
+  });
+
+  it("accepts valid inline and space-separated port values", () => {
+    expect(parsePortFromArgs(["--port=14720"])).toBe(14_720);
+    expect(parsePortFromArgs(["--port", "14721"])).toBe(14_721);
+  });
+});
+
 describe("renderGatewayServiceStartHints", () => {
+  it("uses GUI session wording for installed LaunchAgents that cannot access gui/$UID", () => {
+    expect(
+      renderRuntimeHints(
+        { missingSupervision: true, missingGuiSession: true },
+        {} as NodeJS.ProcessEnv,
+      ).join("\n"),
+    ).toContain("logged-in macOS GUI session");
+  });
+
   it("resolves daemon container context from either env key", () => {
     expect(
       resolveDaemonContainerContext({
-        ASTROCLAW_CONTAINER: "astroclaw-demo-container",
+        OPENCLAW_CONTAINER: "openclaw-demo-container",
       } as NodeJS.ProcessEnv),
-    ).toBe("astroclaw-demo-container");
+    ).toBe("openclaw-demo-container");
     expect(
       resolveDaemonContainerContext({
-        ASTROCLAW_CONTAINER_HINT: "astroclaw-demo-container",
+        OPENCLAW_CONTAINER_HINT: "openclaw-demo-container",
       } as NodeJS.ProcessEnv),
-    ).toBe("astroclaw-demo-container");
+    ).toBe("openclaw-demo-container");
   });
 
-  it("prepends a single container restart hint when ASTROCLAW_CONTAINER is set", () => {
+  it("prepends a single container restart hint when OPENCLAW_CONTAINER is set", () => {
     expect(
       renderGatewayServiceStartHints({
-        ASTROCLAW_CONTAINER: "astroclaw-demo-container",
+        OPENCLAW_CONTAINER: "openclaw-demo-container",
       } as NodeJS.ProcessEnv),
     ).toContain(
-      "Restart the container or the service that manages it for astroclaw-demo-container.",
+      "Restart the container or the service that manages it for openclaw-demo-container.",
     );
   });
 
-  it("prepends a single container restart hint when ASTROCLAW_CONTAINER_HINT is set", () => {
+  it("prepends a single container restart hint when OPENCLAW_CONTAINER_HINT is set", () => {
     expect(
       renderGatewayServiceStartHints({
-        ASTROCLAW_CONTAINER_HINT: "astroclaw-demo-container",
+        OPENCLAW_CONTAINER_HINT: "openclaw-demo-container",
       } as NodeJS.ProcessEnv),
     ).toContain(
-      "Restart the container or the service that manages it for astroclaw-demo-container.",
+      "Restart the container or the service that manages it for openclaw-demo-container.",
     );
   });
 });
 
 describe("filterContainerGenericHints", () => {
-  it("drops the generic container foreground hint when ASTROCLAW_CONTAINER is set", () => {
+  it("drops the generic container foreground hint when OPENCLAW_CONTAINER is set", () => {
     expect(
       filterContainerGenericHints(
         [
           "systemd user services are unavailable; install/enable systemd or run the gateway under your supervisor.",
-          "If you're in a container, run the gateway in the foreground instead of `astroclaw gateway`.",
+          "If you're in a container, run the gateway in the foreground instead of `openclaw gateway`.",
         ],
-        { ASTROCLAW_CONTAINER: "astroclaw-demo-container" } as NodeJS.ProcessEnv,
+        { OPENCLAW_CONTAINER: "openclaw-demo-container" } as NodeJS.ProcessEnv,
       ),
     ).toStrictEqual([]);
   });
 
-  it("drops the generic container foreground hint when ASTROCLAW_CONTAINER_HINT is set", () => {
+  it("drops the generic container foreground hint when OPENCLAW_CONTAINER_HINT is set", () => {
     expect(
       filterContainerGenericHints(
         [
           "systemd user services are unavailable; install/enable systemd or run the gateway under your supervisor.",
-          "If you're in a container, run the gateway in the foreground instead of `astroclaw gateway`.",
+          "If you're in a container, run the gateway in the foreground instead of `openclaw gateway`.",
         ],
-        { ASTROCLAW_CONTAINER_HINT: "astroclaw-demo-container" } as NodeJS.ProcessEnv,
+        { OPENCLAW_CONTAINER_HINT: "openclaw-demo-container" } as NodeJS.ProcessEnv,
       ),
     ).toStrictEqual([]);
   });
