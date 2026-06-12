@@ -1,3 +1,4 @@
+// Tests package installation from npm registry specs.
 import { describe, expect, it, vi } from "vitest";
 
 const validateRegistryNpmSpecMock = vi.hoisted(() => vi.fn());
@@ -24,7 +25,7 @@ describe("installFromValidatedNpmSpecArchive", () => {
       installFromValidatedNpmSpecArchive({
         spec: "  nope  ",
         timeoutMs: 30_000,
-        tempDirPrefix: "astroclaw-npm-",
+        tempDirPrefix: "openclaw-npm-",
         installFromArchive: vi.fn(),
         archiveInstallParams: {},
       }),
@@ -51,9 +52,9 @@ describe("installFromValidatedNpmSpecArchive", () => {
 
     await expect(
       installFromValidatedNpmSpecArchive({
-        spec: "  @astroclaw/demo@beta  ",
+        spec: "  @openclaw/demo@beta  ",
         timeoutMs: 45_000,
-        tempDirPrefix: "astroclaw-npm-",
+        tempDirPrefix: "openclaw-npm-",
         expectedIntegrity: "sha512-demo",
         onIntegrityDrift,
         warn,
@@ -63,8 +64,8 @@ describe("installFromValidatedNpmSpecArchive", () => {
     ).resolves.toBe(finalized);
 
     expect(installFromNpmSpecArchiveWithInstallerMock).toHaveBeenCalledWith({
-      tempDirPrefix: "astroclaw-npm-",
-      spec: "@astroclaw/demo@beta",
+      tempDirPrefix: "openclaw-npm-",
+      spec: "@openclaw/demo@beta",
       timeoutMs: 45_000,
       expectedIntegrity: "sha512-demo",
       onIntegrityDrift,
