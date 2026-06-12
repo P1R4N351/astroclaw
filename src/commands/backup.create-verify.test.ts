@@ -1,3 +1,4 @@
+// Backup create/verify tests cover archive creation, runtime output, and verification failure handling.
 import { describe, expect, it, vi } from "vitest";
 import type { RuntimeEnv } from "../runtime.js";
 import { backupCreateCommand } from "./backup.js";
@@ -43,8 +44,8 @@ function requireBackupVerifyCall(): [RuntimeEnv, Record<string, unknown>] {
 describe("backupCreateCommand verify wrapper", () => {
   it("optionally verifies the archive after writing it", async () => {
     createBackupArchiveMock.mockResolvedValue({
-      archivePath: "/tmp/astroclaw-backup.tar.gz",
-      archiveRoot: "astroclaw-backup",
+      archivePath: "/tmp/openclaw-backup.tar.gz",
+      archiveRoot: "openclaw-backup",
       createdAt: "2026-04-07T00:00:00.000Z",
       runtimeVersion: "test",
       assetCount: 1,
@@ -57,7 +58,7 @@ describe("backupCreateCommand verify wrapper", () => {
     });
     backupVerifyCommandMock.mockResolvedValue({
       ok: true,
-      archivePath: "/tmp/astroclaw-backup.tar.gz",
+      archivePath: "/tmp/openclaw-backup.tar.gz",
     });
 
     const runtime = createRuntime();
@@ -67,7 +68,7 @@ describe("backupCreateCommand verify wrapper", () => {
     expect(backupVerifyCommandMock).toHaveBeenCalledOnce();
     const [verifyRuntime, verifyOptions] = requireBackupVerifyCall();
     expect(verifyOptions).toStrictEqual({
-      archive: "/tmp/astroclaw-backup.tar.gz",
+      archive: "/tmp/openclaw-backup.tar.gz",
       json: false,
     });
     const verifyLog = verifyRuntime?.log;
