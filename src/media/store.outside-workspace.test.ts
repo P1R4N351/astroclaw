@@ -1,3 +1,4 @@
+// Outside-workspace store tests cover media storage outside project roots.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -48,7 +49,7 @@ describe("media store outside-workspace mapping", () => {
 
   beforeAll(async () => {
     ({ SaveMediaSourceError, saveMediaSource } = await import("./store.js"));
-    tempHome = await createTempHomeEnv("astroclaw-media-store-test-home-");
+    tempHome = await createTempHomeEnv("openclaw-media-store-test-home-");
     home = tempHome.home;
   });
 
