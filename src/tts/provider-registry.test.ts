@@ -1,5 +1,6 @@
+// TTS provider registry tests cover registration and provider resolution.
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import type { SpeechProviderPlugin } from "../plugins/types.js";
 import {
   createSpeechProviderRegistry,
@@ -22,8 +23,8 @@ function createSpeechProvider(id: string, aliases?: string[]): SpeechProviderPlu
 }
 
 describe("speech provider registry", () => {
-  const getProviderCalls: Array<{ providerId: string; cfg?: AstroclawConfig }> = [];
-  const listProvidersCalls: Array<{ cfg?: AstroclawConfig }> = [];
+  const getProviderCalls: Array<{ providerId: string; cfg?: OpenClawConfig }> = [];
+  const listProvidersCalls: Array<{ cfg?: OpenClawConfig }> = [];
   let providers: SpeechProviderPlugin[] = [];
   let directProvider: SpeechProviderPlugin | undefined;
   let registry: ReturnType<typeof createSpeechProviderRegistry>;
@@ -46,7 +47,7 @@ describe("speech provider registry", () => {
   });
 
   it("lists providers from the speech capability runtime", () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     providers = [createSpeechProvider("demo-speech")];
 
     expect(registry.listSpeechProviders(cfg).map((provider) => provider.id)).toEqual([
@@ -56,7 +57,7 @@ describe("speech provider registry", () => {
   });
 
   it("gets providers by normalized id through the capability runtime", () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     directProvider = createSpeechProvider("microsoft", ["edge"]);
 
     expect(registry.getSpeechProvider(" MICROSOFT ", cfg)).toBe(directProvider);
