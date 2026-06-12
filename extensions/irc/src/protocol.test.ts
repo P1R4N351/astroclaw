@@ -1,3 +1,4 @@
+// Irc tests cover protocol plugin behavior.
 import { describe, expect, it } from "vitest";
 import {
   parseIrcLine,
@@ -31,7 +32,7 @@ describe("irc protocol", () => {
   });
 
   it("validates targets and rejects control characters", () => {
-    expect(sanitizeIrcTarget("#astroclaw")).toBe("#astroclaw");
+    expect(sanitizeIrcTarget("#openclaw")).toBe("#openclaw");
     expect(() => sanitizeIrcTarget("#bad\\nPING")).toThrow(/Invalid IRC target/);
     expect(() => sanitizeIrcTarget(" user")).toThrow(/Invalid IRC target/);
   });
