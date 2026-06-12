@@ -1,9 +1,10 @@
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
+// Imessage tests cover reaction system event plugin behavior.
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { enqueueIMessageReactionSystemEvent } from "./reaction-system-event.js";
 
-vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/system-event-runtime", () => ({
   enqueueSystemEvent: vi.fn(() => true),
 }));
 
@@ -33,8 +34,6 @@ describe("enqueueIMessageReactionSystemEvent", () => {
       {
         sessionKey: "agent:main:main",
         contextKey: "imessage:reaction:added:3:lobster-reply-guid:+15555550123:👎",
-        forceSenderIsOwnerFalse: true,
-        trusted: false,
       },
     );
     expect(runtime.log).toHaveBeenCalledWith(
