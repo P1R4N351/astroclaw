@@ -1,10 +1,17 @@
+// Plugin ClawHub release tests validate plugin release metadata and artifacts.
 import { execFileSync } from "node:child_process";
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { delimiter, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   collectClawHubPublishablePluginPackages,
-  collectClawHubAstroclawOwnerErrors,
   collectClawHubVersionGateErrors,
   collectPluginClawHubReleasePathsFromGitRange,
   collectPluginClawHubReleasePlan,
@@ -14,7 +21,7 @@ import {
 } from "../scripts/lib/plugin-clawhub-release.ts";
 import {
   collectPublishablePluginPackages,
-  ASTROCLAW_PLUGIN_NPM_REPOSITORY_URL,
+  OPENCLAW_PLUGIN_NPM_REPOSITORY_URL,
 } from "../scripts/lib/plugin-npm-release.ts";
 import { cleanupTempDirs, makeTempRepoRoot } from "./helpers/temp-repo.js";
 
@@ -29,7 +36,7 @@ describe("resolveChangedClawHubPublishablePluginPackages", () => {
     {
       extensionId: "feishu",
       packageDir: "extensions/feishu",
-      packageName: "@astroclaw/feishu",
+      packageName: "@openclaw/feishu",
       version: "2026.4.1",
       channel: "stable",
       publishTag: "latest",
@@ -37,7 +44,7 @@ describe("resolveChangedClawHubPublishablePluginPackages", () => {
     {
       extensionId: "zalo",
       packageDir: "extensions/zalo",
-      packageName: "@astroclaw/zalo",
+      packageName: "@openclaw/zalo",
       version: "2026.4.1-beta.1",
       channel: "beta",
       publishTag: "beta",
@@ -61,7 +68,7 @@ describe("collectClawHubPublishablePluginPackages", () => {
     });
 
     expect(() => collectClawHubPublishablePluginPackages(repoDir)).toThrow(
-      "astroclaw.compat.pluginApi is required for external code plugin packages.",
+      "openclaw.compat.pluginApi is required for external code plugin packages.",
     );
   });
 
@@ -83,9 +90,9 @@ describe("collectClawHubPublishablePluginPackages", () => {
       join(repoDir, "extensions", "broken-plugin", "package.json"),
       JSON.stringify(
         {
-          name: "@astroclaw/broken-plugin",
+          name: "@openclaw/broken-plugin",
           version: "2026.4.1",
-          astroclaw: {
+          openclaw: {
             extensions: ["./index.ts"],
             release: {
               publishToClawHub: true,
@@ -99,21 +106,21 @@ describe("collectClawHubPublishablePluginPackages", () => {
 
     expect(
       collectClawHubPublishablePluginPackages(repoDir, {
-        packageNames: ["@astroclaw/demo-plugin"],
+        packageNames: ["@openclaw/demo-plugin"],
       }).map((plugin) => plugin.packageName),
-    ).toEqual(["@astroclaw/demo-plugin"]);
+    ).toEqual(["@openclaw/demo-plugin"]);
   });
 });
 
-describe("Astroclaw dual-published plugin metadata", () => {
+describe("OpenClaw dual-published plugin metadata", () => {
   const dualPublishedPlugins = [
     {
       extensionId: "diagnostics-otel",
-      packageName: "@astroclaw/diagnostics-otel",
+      packageName: "@openclaw/diagnostics-otel",
     },
     {
       extensionId: "diagnostics-prometheus",
-      packageName: "@astroclaw/diagnostics-prometheus",
+      packageName: "@openclaw/diagnostics-prometheus",
     },
   ] as const;
 
@@ -133,7 +140,7 @@ describe("Astroclaw dual-published plugin metadata", () => {
       const packageJson = JSON.parse(
         readFileSync(`extensions/${plugin.extensionId}/package.json`, "utf8"),
       ) as {
-        astroclaw?: {
+        openclaw?: {
           install?: {
             clawhubSpec?: string;
             defaultChoice?: string;
@@ -146,13 +153,13 @@ describe("Astroclaw dual-published plugin metadata", () => {
         };
       };
 
-      expect(packageJson.astroclaw?.install).toEqual({
+      expect(packageJson.openclaw?.install).toEqual({
         clawhubSpec: `clawhub:${plugin.packageName}`,
         defaultChoice: "npm",
         minHostVersion: ">=2026.4.25",
         npmSpec: plugin.packageName,
       });
-      expect(packageJson.astroclaw?.release).toEqual({
+      expect(packageJson.openclaw?.release).toEqual({
         publishToClawHub: true,
         publishToNpm: true,
       });
@@ -188,7 +195,7 @@ describe("collectClawHubVersionGateErrors", () => {
     });
 
     expect(errors).toEqual([
-      "@astroclaw/demo-plugin@2026.4.1: changed publishable plugin still has the same version in package.json.",
+      "@openclaw/demo-plugin@2026.4.1: changed publishable plugin still has the same version in package.json.",
     ]);
   });
 
@@ -202,22 +209,22 @@ describe("collectClawHubVersionGateErrors", () => {
       join(repoDir, "extensions", "demo-plugin", "package.json"),
       JSON.stringify(
         {
-          name: "@astroclaw/demo-plugin",
+          name: "@openclaw/demo-plugin",
           version: "2026.4.1",
           repository: {
             type: "git",
-            url: ASTROCLAW_PLUGIN_NPM_REPOSITORY_URL,
+            url: OPENCLAW_PLUGIN_NPM_REPOSITORY_URL,
           },
-          astroclaw: {
+          openclaw: {
             extensions: ["./index.ts"],
             compat: {
               pluginApi: ">=2026.4.1",
             },
             install: {
-              npmSpec: "@astroclaw/demo-plugin",
+              npmSpec: "@openclaw/demo-plugin",
             },
             build: {
-              astroclawVersion: "2026.4.1",
+              openclawVersion: "2026.4.1",
             },
             release: {
               publishToClawHub: true,
@@ -318,7 +325,7 @@ describe("collectPluginClawHubReleasePlan", () => {
 
     const plan = await collectPluginClawHubReleasePlan({
       rootDir: repoDir,
-      selection: ["@astroclaw/demo-plugin"],
+      selection: ["@openclaw/demo-plugin"],
       fetchImpl: async () => new Response("{}", { status: 200 }),
       registryBaseUrl: "https://clawhub.ai",
     });
@@ -327,10 +334,11 @@ describe("collectPluginClawHubReleasePlan", () => {
     expect(plan.skippedPublished).toHaveLength(1);
     expect(plan.skippedPublished[0]).toEqual({
       alreadyPublished: true,
+      artifactName: "clawhub-package-openclaw-demo-plugin-2026.4.1",
       channel: "stable",
       extensionId: "demo-plugin",
       packageDir: "extensions/demo-plugin",
-      packageName: "@astroclaw/demo-plugin",
+      packageName: "@openclaw/demo-plugin",
       publishTag: "latest",
       version: "2026.4.1",
     });
@@ -344,9 +352,9 @@ describe("collectPluginClawHubReleasePlan", () => {
       join(repoDir, "extensions", "broken-plugin", "package.json"),
       JSON.stringify(
         {
-          name: "@astroclaw/broken-plugin",
+          name: "@openclaw/broken-plugin",
           version: "2026.4.1",
-          astroclaw: {
+          openclaw: {
             extensions: ["./index.ts"],
             release: {
               publishToClawHub: true,
@@ -360,56 +368,15 @@ describe("collectPluginClawHubReleasePlan", () => {
 
     const plan = await collectPluginClawHubReleasePlan({
       rootDir: repoDir,
-      selection: ["@astroclaw/demo-plugin"],
+      selection: ["@openclaw/demo-plugin"],
       fetchImpl: async () => new Response("{}", { status: 404 }),
       registryBaseUrl: "https://clawhub.ai",
     });
 
-    expect(plan.candidates.map((plugin) => plugin.packageName)).toEqual(["@astroclaw/demo-plugin"]);
-  });
-});
-
-describe("collectClawHubAstroclawOwnerErrors", () => {
-  it("requires Astroclaw-scoped release candidates to already belong to the Astroclaw publisher", async () => {
-    const errors = await collectClawHubAstroclawOwnerErrors({
-      plugins: [
-        { packageName: "@astroclaw/demo-plugin" },
-        { packageName: "@astroclaw/missing-plugin" },
-        { packageName: "@other/safe-plugin" },
-      ],
-      registryBaseUrl: "https://clawhub.ai",
-      fetchImpl: async (url) => {
-        const pathname = new URL(url instanceof Request ? url.url : url).pathname;
-        if (pathname.includes("%40astroclaw%2Fmissing-plugin")) {
-          return new Response("not found", { status: 404 });
-        }
-        return new Response(
-          JSON.stringify({
-            owner: { handle: "steipete" },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        );
-      },
-    });
-
-    expect(errors).toEqual([
-      "@astroclaw/demo-plugin: ClawHub package owner must be @astroclaw; got @steipete.",
-      "@astroclaw/missing-plugin: ClawHub package row must already exist under @astroclaw before Astroclaw release publish.",
+    expect(plan.candidates.map((plugin) => plugin.packageName)).toEqual(["@openclaw/demo-plugin"]);
+    expect(plan.candidates.map((plugin) => plugin.artifactName)).toEqual([
+      "clawhub-package-openclaw-demo-plugin-2026.4.1",
     ]);
-  });
-
-  it("passes when Astroclaw-scoped release candidates belong to the Astroclaw publisher", async () => {
-    const errors = await collectClawHubAstroclawOwnerErrors({
-      plugins: [{ packageName: "@astroclaw/demo-plugin" }],
-      registryBaseUrl: "https://clawhub.ai",
-      fetchImpl: async () =>
-        new Response(JSON.stringify({ owner: { handle: "astroclaw" } }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-    });
-
-    expect(errors).toStrictEqual([]);
   });
 });
 
@@ -425,6 +392,9 @@ describe("plugin-clawhub-publish.sh", () => {
       `#!/usr/bin/env bash
 set -euo pipefail
 printf '%s\\n' "$*" >> ${JSON.stringify(markerPath)}
+if [[ "\${1:-}" == "--workdir" ]]; then
+  shift 2
+fi
 if [[ "\${1:-}" == "package" && "\${2:-}" == "pack" ]]; then
   pack_destination=""
   while [[ "$#" -gt 0 ]]; do
@@ -439,9 +409,9 @@ if [[ "\${1:-}" == "package" && "\${2:-}" == "pack" ]]; then
     esac
   done
   mkdir -p "$pack_destination"
-  pack_path="$pack_destination/astroclaw-demo-plugin-2026.4.1.tgz"
+  pack_path="$pack_destination/openclaw-demo-plugin-2026.4.1.tgz"
   printf 'fake tgz\\n' > "$pack_path"
-  printf '{"path":"%s","name":"@astroclaw/demo-plugin","version":"2026.4.1"}\\n' "$pack_path"
+  printf '{"path":"%s","name":"@openclaw/demo-plugin","version":"2026.4.1"}\\n' "$pack_path"
 fi
 exit 0
 `,
@@ -460,7 +430,7 @@ exit 0
         encoding: "utf8",
         env: {
           ...process.env,
-          ASTROCLAW_PLUGIN_NPM_RUNTIME_BUILD: "0",
+          OPENCLAW_PLUGIN_NPM_RUNTIME_BUILD: "0",
           PATH: `${binDir}${delimiter}${process.env.PATH ?? ""}`,
         },
       },
@@ -469,10 +439,78 @@ exit 0
     expect(output).toContain("Publish command: CLAWHUB_WORKDIR=");
     expect(output).toContain("Resolved ClawPack:");
     const invocations = readFileSync(markerPath, "utf8");
-    expect(invocations).toContain("package pack ./extensions/demo-plugin");
+    const resolvedRepoDir = realpathSync(repoDir);
+    expect(invocations).toContain(`--workdir ${resolvedRepoDir}`);
+    expect(invocations).toContain(
+      `package pack ${join(resolvedRepoDir, "extensions/demo-plugin")}`,
+    );
     expect(invocations).toContain("package publish ");
     expect(invocations).toContain(".tgz --tags latest");
     expect(invocations).toContain("--dry-run");
+  });
+
+  it("packs a reusable workflow artifact without publishing", () => {
+    const repoDir = createTempPluginRepo();
+    const binDir = join(repoDir, "bin");
+    const markerPath = join(repoDir, "clawhub-invoked");
+    const outputDir = join(repoDir, "clawhub-artifacts");
+    mkdirSync(binDir, { recursive: true });
+    const clawhubPath = join(binDir, "clawhub");
+    writeFileSync(
+      clawhubPath,
+      `#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\\n' "$*" >> ${JSON.stringify(markerPath)}
+if [[ "\${1:-}" == "--workdir" ]]; then
+  shift 2
+fi
+if [[ "\${1:-}" == "package" && "\${2:-}" == "pack" ]]; then
+  pack_destination=""
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --pack-destination)
+        pack_destination="\${2:-}"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+  mkdir -p "$pack_destination"
+  pack_path="$pack_destination/openclaw-demo-plugin-2026.4.1.tgz"
+  printf 'fake tgz\\n' > "$pack_path"
+  printf '{"path":"%s","name":"@openclaw/demo-plugin","version":"2026.4.1"}\\n' "$pack_path"
+fi
+exit 0
+`,
+    );
+    chmodSync(clawhubPath, 0o755);
+
+    const output = execFileSync(
+      "bash",
+      [
+        join(process.cwd(), "scripts/plugin-clawhub-publish.sh"),
+        "--pack",
+        "extensions/demo-plugin",
+      ],
+      {
+        cwd: repoDir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          OPENCLAW_CLAWHUB_PACK_OUTPUT_DIR: outputDir,
+          OPENCLAW_PLUGIN_NPM_RUNTIME_BUILD: "0",
+          PATH: `${binDir}${delimiter}${process.env.PATH ?? ""}`,
+        },
+      },
+    );
+
+    expect(output).toContain("Packed ClawPack:");
+    expect(existsSync(join(outputDir, "openclaw-demo-plugin-2026.4.1.tgz"))).toBe(true);
+    const invocations = readFileSync(markerPath, "utf8");
+    expect(invocations).toContain("package pack ");
+    expect(invocations).not.toContain("package publish ");
   });
 });
 
@@ -501,13 +539,13 @@ function createTempPluginRepo(
     includeClawHubContract?: boolean;
   } = {},
 ) {
-  const repoDir = makeTempRepoRoot(tempDirs, "astroclaw-clawhub-release-");
+  const repoDir = makeTempRepoRoot(tempDirs, "openclaw-clawhub-release-");
   const extensionId = options.extensionId ?? "demo-plugin";
   const extensionIds = [extensionId, ...(options.extraExtensionIds ?? [])];
 
   writeFileSync(
     join(repoDir, "package.json"),
-    JSON.stringify({ name: "astroclaw-test-root" }, null, 2),
+    JSON.stringify({ name: "openclaw-test-root" }, null, 2),
   );
   writeFileSync(join(repoDir, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
   for (const currentExtensionId of extensionIds) {
@@ -516,13 +554,13 @@ function createTempPluginRepo(
       join(repoDir, "extensions", currentExtensionId, "package.json"),
       JSON.stringify(
         {
-          name: `@astroclaw/${currentExtensionId}`,
+          name: `@openclaw/${currentExtensionId}`,
           version: "2026.4.1",
           repository: {
             type: "git",
-            url: ASTROCLAW_PLUGIN_NPM_REPOSITORY_URL,
+            url: OPENCLAW_PLUGIN_NPM_REPOSITORY_URL,
           },
-          astroclaw: {
+          openclaw: {
             extensions: ["./index.ts"],
             ...(options.includeClawHubContract === false
               ? {}
@@ -531,11 +569,11 @@ function createTempPluginRepo(
                     pluginApi: ">=2026.4.1",
                   },
                   build: {
-                    astroclawVersion: "2026.4.1",
+                    openclawVersion: "2026.4.1",
                   },
                 }),
             install: {
-              npmSpec: `@astroclaw/${currentExtensionId}`,
+              npmSpec: `@openclaw/${currentExtensionId}`,
             },
             release: {
               publishToClawHub: options.publishToClawHub ?? true,
