@@ -1,3 +1,4 @@
+// Matrix tests cover handler.media failure plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { installMatrixMonitorTestRuntime } from "../../test-runtime.js";
 import { MatrixMediaSizeLimitError } from "../media-errors.js";
@@ -40,7 +41,7 @@ function createMediaFailureHarness() {
       channel: "matrix",
       matchedBy: "binding.account",
     }),
-    resolveStorePath: () => "/tmp/astroclaw-test-session.json",
+    resolveStorePath: () => "/tmp/openclaw-test-session.json",
     readSessionUpdatedAt: () => 123,
     getRoomInfo: async () => ({
       name: "Media Room",
