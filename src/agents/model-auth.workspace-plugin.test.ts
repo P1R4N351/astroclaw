@@ -1,8 +1,9 @@
+// Proves workspace plugin auth evidence participates in model auth checks.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import type { AuthProfileStore } from "./auth-profiles.js";
 import { resolveEnvApiKey } from "./model-auth-env.js";
@@ -14,11 +15,13 @@ import {
 import { hasAuthForModelProvider } from "./model-provider-auth.js";
 
 async function writeWorkspaceAuthEvidencePlugin(workspaceDir: string) {
-  const pluginDir = path.join(workspaceDir, ".astroclaw", "extensions", "workspace-cloud");
+  // Creates a trusted workspace plugin manifest with local-file auth evidence
+  // so runtime and picker checks exercise the same scoped metadata path.
+  const pluginDir = path.join(workspaceDir, ".openclaw", "extensions", "workspace-cloud");
   await fs.mkdir(pluginDir, { recursive: true });
   await fs.writeFile(path.join(pluginDir, "index.ts"), "export default {}\n", "utf8");
   await fs.writeFile(
-    path.join(pluginDir, "astroclaw.plugin.json"),
+    path.join(pluginDir, "openclaw.plugin.json"),
     JSON.stringify({
       id: "workspace-cloud",
       configSchema: { type: "object" },
@@ -44,7 +47,9 @@ async function writeWorkspaceAuthEvidencePlugin(workspaceDir: string) {
 
 describe("workspace plugin model auth evidence", () => {
   it("uses trusted workspace plugin auth evidence across runtime and picker auth checks", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-workspace-auth-"));
+    // Without workspace scope the same env var is ignored; with scope, the
+    // plugin-owned marker is accepted across all auth surfaces.
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-workspace-auth-"));
     const workspaceDir = path.join(tempRoot, "workspace");
     const bundledDir = path.join(tempRoot, "bundled");
     const stateDir = path.join(tempRoot, "state");
@@ -54,7 +59,7 @@ describe("workspace plugin model auth evidence", () => {
     await fs.writeFile(credentialsPath, "{}", "utf8");
     await writeWorkspaceAuthEvidencePlugin(workspaceDir);
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       plugins: {
         allow: ["workspace-cloud"],
       },
@@ -64,8 +69,8 @@ describe("workspace plugin model auth evidence", () => {
     try {
       await withEnvAsync(
         {
-          ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
-          ASTROCLAW_STATE_DIR: stateDir,
+          OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+          OPENCLAW_STATE_DIR: stateDir,
           WORKSPACE_CLOUD_CREDENTIALS: credentialsPath,
         },
         async () => {
@@ -102,14 +107,14 @@ describe("workspace plugin model auth evidence", () => {
               store,
             }),
           ).resolves.toBe(true);
-          expect(
+          await expect(
             hasAuthForModelProvider({
               provider: "workspace-cloud",
               cfg,
               workspaceDir,
               store,
             }),
-          ).toBe(true);
+          ).resolves.toBe(true);
         },
       );
     } finally {
