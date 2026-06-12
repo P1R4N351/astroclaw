@@ -1,3 +1,4 @@
+/** Integration tests for auth-profile secret runtime preparation. */
 import { readFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -89,9 +90,9 @@ describe("secrets runtime snapshot auth integration", () => {
   });
 
   it("recomputes config-derived agent dirs when refreshing active secrets runtime snapshots", async () => {
-    await withTempHome("astroclaw-secrets-runtime-agent-dirs-", async (home) => {
-      const mainAgentDir = path.join(home, ".astroclaw", "agents", "main", "agent");
-      const opsAgentDir = path.join(home, ".astroclaw", "agents", "ops", "agent");
+    await withTempHome("openclaw-secrets-runtime-agent-dirs-", async (home) => {
+      const mainAgentDir = path.join(home, ".openclaw", "agents", "main", "agent");
+      const opsAgentDir = path.join(home, ".openclaw", "agents", "ops", "agent");
       await fs.mkdir(mainAgentDir, { recursive: true });
       await fs.mkdir(opsAgentDir, { recursive: true });
       await fs.writeFile(
