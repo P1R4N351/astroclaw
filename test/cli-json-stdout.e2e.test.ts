@@ -1,7 +1,8 @@
+// CLI JSON stdout E2E tests validate machine-readable CLI output.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempHome } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 
 describe("cli json stdout contract", () => {
@@ -16,11 +17,11 @@ describe("cli json stdout contract", () => {
           ...process.env,
           HOME: tempHome,
           USERPROFILE: tempHome,
-          ASTROCLAW_TEST_FAST: "1",
+          OPENCLAW_TEST_FAST: "1",
         };
-        delete env.ASTROCLAW_HOME;
-        delete env.ASTROCLAW_STATE_DIR;
-        delete env.ASTROCLAW_CONFIG_PATH;
+        delete env.OPENCLAW_HOME;
+        delete env.OPENCLAW_STATE_DIR;
+        delete env.OPENCLAW_CONFIG_PATH;
         delete env.VITEST;
 
         const entry = path.resolve(process.cwd(), "src/entry.ts");
@@ -46,7 +47,7 @@ describe("cli json stdout contract", () => {
         expect(stdout).not.toContain("Doctor changes");
         expect(stdout).not.toContain("Config invalid");
       },
-      { prefix: "astroclaw-json-e2e-" },
+      { prefix: "openclaw-json-e2e-" },
     );
   });
 });
