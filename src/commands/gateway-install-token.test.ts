@@ -1,21 +1,11 @@
+// Gateway install token tests cover token resolution from config, env, and command options.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { resolveGatewayInstallToken } from "./gateway-install-token.js";
 
 const readConfigFileSnapshotMock = vi.hoisted(() => vi.fn());
 const readConfigFileSnapshotForWriteMock = vi.hoisted(() => vi.fn());
 const replaceConfigFileMock = vi.hoisted(() => vi.fn());
-const resolveSecretInputRefMock = vi.hoisted(() =>
-  vi.fn((): { ref: unknown } => ({ ref: undefined })),
-);
-const hasConfiguredSecretInputMock = vi.hoisted(() =>
-  vi.fn((value: unknown) => {
-    if (typeof value === "string") {
-      return value.trim().length > 0;
-    }
-    return value != null;
-  }),
-);
 const resolveGatewayAuthMock = vi.hoisted(() =>
   vi.fn(() => ({
     mode: "token",
@@ -26,17 +16,12 @@ const resolveGatewayAuthMock = vi.hoisted(() =>
 );
 const shouldRequireGatewayTokenForInstallMock = vi.hoisted(() => vi.fn(() => true));
 const resolveSecretRefValuesMock = vi.hoisted(() => vi.fn());
-const secretRefKeyMock = vi.hoisted(() => vi.fn(() => "env:default:ASTROCLAW_GATEWAY_TOKEN"));
+const secretRefKeyMock = vi.hoisted(() => vi.fn(() => "env:default:OPENCLAW_GATEWAY_TOKEN"));
 const randomTokenMock = vi.hoisted(() => vi.fn(() => "generated-token"));
 
 vi.mock("./gateway-install-token.persist.runtime.js", () => ({
   readConfigFileSnapshotForWrite: readConfigFileSnapshotForWriteMock,
   replaceConfigFile: replaceConfigFileMock,
-}));
-
-vi.mock("../config/types.secrets.js", () => ({
-  resolveSecretInputRef: resolveSecretInputRefMock,
-  hasConfiguredSecretInput: hasConfiguredSecretInputMock,
 }));
 
 vi.mock("../gateway/auth.js", () => ({
@@ -75,13 +60,6 @@ describe("resolveGatewayInstallToken", () => {
       snapshot: await readConfigFileSnapshotMock(),
       writeOptions: {},
     }));
-    resolveSecretInputRefMock.mockReturnValue({ ref: undefined });
-    hasConfiguredSecretInputMock.mockImplementation((value: unknown) => {
-      if (typeof value === "string") {
-        return value.trim().length > 0;
-      }
-      return value != null;
-    });
     resolveSecretRefValuesMock.mockResolvedValue(new Map());
     shouldRequireGatewayTokenForInstallMock.mockReturnValue(true);
     resolveGatewayAuthMock.mockReturnValue({
@@ -97,7 +75,7 @@ describe("resolveGatewayInstallToken", () => {
     const result = await resolveGatewayInstallToken({
       config: {
         gateway: { auth: { token: "config-token" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {} as NodeJS.ProcessEnv,
     });
 
@@ -110,17 +88,16 @@ describe("resolveGatewayInstallToken", () => {
   });
 
   it("validates SecretRef token but does not persist resolved plaintext", async () => {
-    const tokenRef = { source: "env", provider: "default", id: "ASTROCLAW_GATEWAY_TOKEN" };
-    resolveSecretInputRefMock.mockReturnValue({ ref: tokenRef });
+    const tokenRef = { source: "env", provider: "default", id: "OPENCLAW_GATEWAY_TOKEN" };
     resolveSecretRefValuesMock.mockResolvedValue(
-      new Map([["env:default:ASTROCLAW_GATEWAY_TOKEN", "resolved-token"]]),
+      new Map([["env:default:OPENCLAW_GATEWAY_TOKEN", "resolved-token"]]),
     );
 
     const result = await resolveGatewayInstallToken({
       config: {
         gateway: { auth: { mode: "token", token: tokenRef } },
-      } as AstroclawConfig,
-      env: { ASTROCLAW_GATEWAY_TOKEN: "resolved-token" } as NodeJS.ProcessEnv,
+      } as OpenClawConfig,
+      env: { OPENCLAW_GATEWAY_TOKEN: "resolved-token" } as NodeJS.ProcessEnv,
     });
 
     expect(result.token).toBeUndefined();
@@ -130,15 +107,12 @@ describe("resolveGatewayInstallToken", () => {
   });
 
   it("returns unavailable reason when token SecretRef is unresolved in token mode", async () => {
-    resolveSecretInputRefMock.mockReturnValue({
-      ref: { source: "env", provider: "default", id: "MISSING_GATEWAY_TOKEN" },
-    });
     resolveSecretRefValuesMock.mockRejectedValue(new Error("missing env var"));
 
     const result = await resolveGatewayInstallToken({
       config: {
         gateway: { auth: { mode: "token", token: "${MISSING_GATEWAY_TOKEN}" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {} as NodeJS.ProcessEnv,
     });
 
@@ -157,7 +131,7 @@ describe("resolveGatewayInstallToken", () => {
             password: "password-value", // pragma: allowlist secret
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {} as NodeJS.ProcessEnv,
       autoGenerateWhenMissing: true,
       persistGeneratedToken: true,
@@ -165,8 +139,8 @@ describe("resolveGatewayInstallToken", () => {
 
     expect(result.token).toBeUndefined();
     expect(result.unavailableReason).toContain("gateway.auth.mode is unset");
-    expect(result.unavailableReason).toContain("astroclaw config set gateway.auth.mode token");
-    expect(result.unavailableReason).toContain("astroclaw config set gateway.auth.mode password");
+    expect(result.unavailableReason).toContain("openclaw config set gateway.auth.mode token");
+    expect(result.unavailableReason).toContain("openclaw config set gateway.auth.mode password");
     expect(replaceConfigFileMock).not.toHaveBeenCalled();
     expect(resolveSecretRefValuesMock).not.toHaveBeenCalled();
   });
@@ -175,7 +149,7 @@ describe("resolveGatewayInstallToken", () => {
     const result = await resolveGatewayInstallToken({
       config: {
         gateway: { auth: { mode: "token" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {} as NodeJS.ProcessEnv,
       autoGenerateWhenMissing: true,
     });
@@ -193,7 +167,7 @@ describe("resolveGatewayInstallToken", () => {
     const result = await resolveGatewayInstallToken({
       config: {
         gateway: { auth: { mode: "token" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {} as NodeJS.ProcessEnv,
       autoGenerateWhenMissing: true,
       persistGeneratedToken: true,
@@ -226,20 +200,17 @@ describe("resolveGatewayInstallToken", () => {
       config: {
         gateway: {
           auth: {
-            token: "${ASTROCLAW_GATEWAY_TOKEN}",
+            token: "${OPENCLAW_GATEWAY_TOKEN}",
           },
         },
       },
       issues: [],
     });
-    resolveSecretInputRefMock.mockReturnValueOnce({ ref: undefined }).mockReturnValueOnce({
-      ref: { source: "env", provider: "default", id: "ASTROCLAW_GATEWAY_TOKEN" },
-    });
 
     const result = await resolveGatewayInstallToken({
       config: {
         gateway: { auth: { mode: "token" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {} as NodeJS.ProcessEnv,
       autoGenerateWhenMissing: true,
       persistGeneratedToken: true,
@@ -265,7 +236,7 @@ describe("resolveGatewayInstallToken", () => {
             default: { source: "env" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {} as NodeJS.ProcessEnv,
       autoGenerateWhenMissing: true,
       persistGeneratedToken: true,
@@ -279,7 +250,7 @@ describe("resolveGatewayInstallToken", () => {
 
   it("passes the install env through to gateway auth resolution", async () => {
     const env = {
-      ASTROCLAW_GATEWAY_PASSWORD: "dotenv-password", // pragma: allowlist secret
+      OPENCLAW_GATEWAY_PASSWORD: "dotenv-password", // pragma: allowlist secret
     } as NodeJS.ProcessEnv;
     shouldRequireGatewayTokenForInstallMock.mockReturnValue(false);
     resolveGatewayAuthMock.mockReturnValue({
@@ -292,7 +263,7 @@ describe("resolveGatewayInstallToken", () => {
     const result = await resolveGatewayInstallToken({
       config: {
         gateway: { auth: {} },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env,
       autoGenerateWhenMissing: true,
       persistGeneratedToken: true,
@@ -310,8 +281,7 @@ describe("resolveGatewayInstallToken", () => {
   });
 
   it("skips token SecretRef resolution when token auth is not required", async () => {
-    const tokenRef = { source: "env", provider: "default", id: "ASTROCLAW_GATEWAY_TOKEN" };
-    resolveSecretInputRefMock.mockReturnValue({ ref: tokenRef });
+    const tokenRef = { source: "env", provider: "default", id: "OPENCLAW_GATEWAY_TOKEN" };
     shouldRequireGatewayTokenForInstallMock.mockReturnValue(false);
 
     const result = await resolveGatewayInstallToken({
@@ -322,7 +292,7 @@ describe("resolveGatewayInstallToken", () => {
             token: tokenRef,
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {} as NodeJS.ProcessEnv,
     });
 
