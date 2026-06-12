@@ -1,3 +1,4 @@
+// Zalouser plugin module implements setup surface behavior.
 import {
   addWildcardAllowFrom,
   DEFAULT_ACCOUNT_ID,
@@ -11,8 +12,9 @@ import {
   type ChannelSetupDmPolicy,
   type ChannelSetupWizard,
   type DmPolicy,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/setup";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/setup";
+import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   checkZcaAuthenticated,
   listZalouserAccountIds,
@@ -38,18 +40,15 @@ const ZALOUSER_ALLOWLIST_TITLE = t("wizard.zalouser.allowlistTitle");
 const ZALOUSER_GROUPS_TITLE = t("wizard.zalouser.groupsTitle");
 
 function parseZalouserEntries(raw: string): string[] {
-  return raw
-    .split(/[\n,;]+/g)
-    .map((entry) => entry.trim())
-    .filter(Boolean);
+  return normalizeStringEntries(raw.split(/[\n,;]+/g));
 }
 
 function setZalouserAccountScopedConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   defaultPatch: Record<string, unknown>,
   accountPatch: Record<string, unknown> = defaultPatch,
-): AstroclawConfig {
+): OpenClawConfig {
   return patchScopedAccountConfig({
     cfg,
     channelKey: channel,
@@ -60,10 +59,10 @@ function setZalouserAccountScopedConfig(
 }
 
 function setZalouserDmPolicy(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   policy: DmPolicy,
-): AstroclawConfig {
+): OpenClawConfig {
   const resolvedAccountId = normalizeAccountId(accountId) ?? DEFAULT_ACCOUNT_ID;
   const resolved = resolveZalouserAccountSync({ cfg, accountId: resolvedAccountId });
   return setZalouserAccountScopedConfig(
@@ -81,20 +80,20 @@ function setZalouserDmPolicy(
 }
 
 function setZalouserGroupPolicy(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   groupPolicy: "open" | "allowlist" | "disabled",
-): AstroclawConfig {
+): OpenClawConfig {
   return setZalouserAccountScopedConfig(cfg, accountId, {
     groupPolicy,
   });
 }
 
 function setZalouserGroupAllowlist(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   accountId: string,
   groupKeys: string[],
-): AstroclawConfig {
+): OpenClawConfig {
   const groups = Object.fromEntries(
     groupKeys.map((key) => [key, { enabled: true, requireMention: true }]),
   );
@@ -103,8 +102,8 @@ function setZalouserGroupAllowlist(
   });
 }
 
-function ensureZalouserPluginEnabled(cfg: AstroclawConfig): AstroclawConfig {
-  const next: AstroclawConfig = {
+function ensureZalouserPluginEnabled(cfg: OpenClawConfig): OpenClawConfig {
+  const next: OpenClawConfig = {
     ...cfg,
     plugins: {
       ...cfg.plugins,
@@ -146,10 +145,10 @@ async function noteZalouserHelp(
 }
 
 async function promptZalouserAllowFrom(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: Parameters<NonNullable<ChannelSetupDmPolicy["promptAllowFrom"]>>[0]["prompter"];
   accountId: string;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const { cfg, prompter, accountId } = params;
   const resolved = resolveZalouserAccountSync({ cfg, accountId });
   const existingAllowFrom = resolved.config.allowFrom ?? [];
@@ -167,7 +166,7 @@ async function promptZalouserAllowFrom(params: {
           t("wizard.zalouser.noDmAllowlist"),
           t("wizard.zalouser.directChatsBlocked"),
           t("wizard.zalouser.peersLookupTip", {
-            command: formatCliCommand("astroclaw directory peers list --channel zalouser"),
+            command: formatCliCommand("openclaw directory peers list --channel zalouser"),
           }),
         ].join("\n"),
         ZALOUSER_ALLOWLIST_TITLE,
@@ -238,7 +237,7 @@ const zalouserDmPolicy: ChannelSetupDmPolicy = {
         ? (normalizeAccountId(accountId) ?? DEFAULT_ACCOUNT_ID)
         : resolveDefaultZalouserAccountId(cfg);
     return await promptZalouserAllowFrom({
-      cfg: cfg,
+      cfg,
       prompter,
       accountId: id,
     });
@@ -246,10 +245,10 @@ const zalouserDmPolicy: ChannelSetupDmPolicy = {
 };
 
 async function promptZalouserQuickstartDmPolicy(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: Parameters<NonNullable<ChannelSetupWizard["prepare"]>>[0]["prompter"];
   accountId: string;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const { cfg, prompter, accountId } = params;
   const resolved = resolveZalouserAccountSync({ cfg, accountId });
   const existingPolicy = resolved.config.dmPolicy ?? "pairing";
@@ -432,7 +431,7 @@ export const zalouserSetupWizard: ChannelSetupWizard = {
             t("wizard.zalouser.noGroupAllowlist"),
             t("wizard.zalouser.groupChatsBlocked"),
             t("wizard.zalouser.groupsLookupTip", {
-              command: formatCliCommand("astroclaw directory groups list --channel zalouser"),
+              command: formatCliCommand("openclaw directory groups list --channel zalouser"),
             }),
             t("wizard.zalouser.groupMentionRequirement"),
           ].join("\n"),
@@ -440,7 +439,7 @@ export const zalouserSetupWizard: ChannelSetupWizard = {
         );
         return [];
       }
-      const updatedAccount = resolveZalouserAccountSync({ cfg: cfg, accountId });
+      const updatedAccount = resolveZalouserAccountSync({ cfg, accountId });
       try {
         const resolved = await resolveZaloGroupsByEntries({
           profile: updatedAccount.profile,
@@ -450,7 +449,7 @@ export const zalouserSetupWizard: ChannelSetupWizard = {
           .filter((entry) => entry.resolved && entry.id)
           .map((entry) => entry.id as string);
         const unresolved = resolved.filter((entry) => !entry.resolved).map((entry) => entry.input);
-        const keys = [...resolvedIds, ...unresolved.map((entry) => entry.trim()).filter(Boolean)];
+        const keys = [...resolvedIds, ...normalizeStringEntries(unresolved)];
         const resolution = formatResolvedUnresolvedNote({
           resolved: resolvedIds,
           unresolved,
@@ -464,7 +463,7 @@ export const zalouserSetupWizard: ChannelSetupWizard = {
           t("wizard.zalouser.groupLookupFailed", { error: String(err) }),
           ZALOUSER_GROUPS_TITLE,
         );
-        return entries.map((entry) => entry.trim()).filter(Boolean);
+        return normalizeStringEntries(entries);
       }
     },
     applyAllowlist: ({ cfg, accountId, resolved }) =>
