@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+/** Tests block streaming behavior for auto-reply output delivery. */
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { OpenClawConfig } from "../config/config.js";
 import { withFastReplyConfig } from "./reply/get-reply-fast-path.js";
 import { loadGetReplyModuleForTest } from "./reply/get-reply.test-loader.js";
 import { createMockTypingController } from "./reply/reply.test-helpers.js";
@@ -103,7 +104,7 @@ function createTelegramMessage(messageSid: string): MsgContext {
   };
 }
 
-function createReplyConfig(streamMode?: "block"): AstroclawConfig {
+function createReplyConfig(streamMode?: "block"): OpenClawConfig {
   return withFastReplyConfig({
     agents: {
       defaults: {
@@ -118,7 +119,7 @@ function createReplyConfig(streamMode?: "block"): AstroclawConfig {
       },
     },
     session: { store: "/tmp/sessions.json" },
-  } as AstroclawConfig);
+  } as OpenClawConfig);
 }
 
 function createContinueDirectivesResult() {
@@ -172,9 +173,12 @@ function createContinueDirectivesResult() {
 }
 
 describe("block streaming", () => {
-  beforeEach(async () => {
+  beforeAll(async () => {
     await loadFreshGetReplyModuleForTest();
-    vi.stubEnv("ASTROCLAW_TEST_FAST", "1");
+  });
+
+  beforeEach(() => {
+    vi.stubEnv("OPENCLAW_TEST_FAST", "1");
     mocks.resolveReplyDirectives.mockReset();
     mocks.handleInlineActions.mockReset();
     mocks.initSessionState.mockReset();
