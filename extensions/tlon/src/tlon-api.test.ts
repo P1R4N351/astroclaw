@@ -1,3 +1,4 @@
+// Tlon tests cover tlon api plugin behavior.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { authenticate } from "./urbit/auth.js";
 import { scryUrbitPath } from "./urbit/channel-ops.js";
@@ -8,8 +9,8 @@ const { mockFetchGuard, mockRelease, mockGetSignedUrl } = vi.hoisted(() => ({
   mockGetSignedUrl: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async () => {
-  const original = (await vi.importActual("astroclaw/plugin-sdk/ssrf-runtime")) as Record<
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async () => {
+  const original = (await vi.importActual("openclaw/plugin-sdk/ssrf-runtime")) as Record<
     string,
     unknown
   >;
@@ -31,7 +32,7 @@ vi.mock("./urbit/channel-ops.js", () => ({
   scryUrbitPath: vi.fn(),
 }));
 
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 import { configureClient, uploadFile } from "./tlon-api.js";
 
 const mockAuthenticate = vi.mocked(authenticate);
