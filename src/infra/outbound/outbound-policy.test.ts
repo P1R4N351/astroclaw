@@ -1,7 +1,9 @@
+// Covers message action allowlists plus cross-context marker/decorator policy
+// for same-provider and cross-provider sends.
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { vi } from "vitest";
 import type { ChannelMessageActionName } from "../../channels/plugins/types.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { CrossContextDecoration } from "./outbound-policy.js";
 
 let applyCrossContextDecoration: typeof import("./outbound-policy.js").applyCrossContextDecoration;
@@ -80,16 +82,16 @@ const workspaceConfig = {
       appToken: "workspace-app-test",
     },
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 const richChatConfig = {
   channels: {
     richchat: {},
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 function expectCrossContextPolicyResult(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   channel: string;
   action: "send" | "upload-file";
   to: string;
@@ -138,7 +140,7 @@ describe("outbound policy helpers", () => {
         tools: {
           message: { crossContext: { allowAcrossProviders: true } },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       channel: "forum",
       action: "send" as const,
       to: "forum:@ops",
@@ -161,7 +163,7 @@ describe("outbound policy helpers", () => {
         tools: {
           message: { crossContext: { allowWithinProvider: false } },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       channel: "workspace",
       action: "send" as const,
       to: "C999",
@@ -175,7 +177,7 @@ describe("outbound policy helpers", () => {
         tools: {
           message: { crossContext: { allowWithinProvider: false } },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       channel: "workspace",
       action: "upload-file" as const,
       to: "C999",
@@ -200,7 +202,7 @@ describe("outbound policy helpers", () => {
             },
           ],
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       channel: "workspace",
       action: "send" as const,
       to: "C999",
