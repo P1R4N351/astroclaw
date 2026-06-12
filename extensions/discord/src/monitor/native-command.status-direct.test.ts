@@ -1,5 +1,6 @@
+// Discord tests cover native command.status direct plugin behavior.
 import { ChannelType } from "discord-api-types/v10";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockCommandInteraction as createInteraction } from "./native-command.test-helpers.js";
 import { createNoopThreadBindingManager } from "./thread-bindings.js";
@@ -10,9 +11,9 @@ const runtimeModuleMocks = vi.hoisted(() => ({
   resolveDirectStatusReplyForSession: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/reply-dispatch-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/reply-dispatch-runtime")>(
-    "astroclaw/plugin-sdk/reply-dispatch-runtime",
+vi.mock("openclaw/plugin-sdk/reply-dispatch-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/reply-dispatch-runtime")>(
+    "openclaw/plugin-sdk/reply-dispatch-runtime",
   );
   return {
     ...actual,
@@ -21,19 +22,19 @@ vi.mock("astroclaw/plugin-sdk/reply-dispatch-runtime", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/command-status-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/command-status-runtime", () => ({
   resolveDirectStatusReplyForSession: (...args: unknown[]) =>
     runtimeModuleMocks.resolveDirectStatusReplyForSession(...args),
 }));
 
-vi.mock("astroclaw/plugin-sdk/web-media", () => ({
+vi.mock("openclaw/plugin-sdk/web-media", () => ({
   loadWebMedia: (...args: unknown[]) => runtimeModuleMocks.loadWebMedia(...args),
 }));
 
 let createDiscordNativeCommand: typeof import("./native-command.js").createDiscordNativeCommand;
-let discordNativeCommandTesting: typeof import("./native-command.js").__testing;
+let discordNativeCommandTesting: typeof import("./native-command.js").testing;
 
-function createConfig(params?: { requireMention?: boolean }): AstroclawConfig {
+function createConfig(params?: { requireMention?: boolean }): OpenClawConfig {
   return {
     commands: {
       useAccessGroups: false,
@@ -54,10 +55,10 @@ function createConfig(params?: { requireMention?: boolean }): AstroclawConfig {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
-async function createStatusCommand(cfg: AstroclawConfig) {
+async function createStatusCommand(cfg: OpenClawConfig) {
   return createDiscordNativeCommand({
     command: {
       name: "status",
@@ -115,7 +116,7 @@ function firstMockArg(mock: MockWithCalls, label: string) {
 }
 
 function firstStatusCall(): {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   sessionKey: string;
   channel: string;
   isGroup: boolean;
@@ -126,7 +127,7 @@ function firstStatusCall(): {
     "resolveDirectStatusReplyForSession",
   );
   return call as {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     sessionKey: string;
     channel: string;
     isGroup: boolean;
@@ -136,7 +137,7 @@ function firstStatusCall(): {
 
 describe("discord native /status", () => {
   beforeAll(async () => {
-    ({ createDiscordNativeCommand, __testing: discordNativeCommandTesting } =
+    ({ createDiscordNativeCommand, testing: discordNativeCommandTesting } =
       await import("./native-command.js"));
   });
 
@@ -158,10 +159,10 @@ describe("discord native /status", () => {
       fileName: "status.png",
     });
     discordNativeCommandTesting.setDispatchReplyWithDispatcher(
-      runtimeModuleMocks.dispatchReplyWithDispatcher as typeof import("astroclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithDispatcher,
+      runtimeModuleMocks.dispatchReplyWithDispatcher as typeof import("openclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithDispatcher,
     );
     discordNativeCommandTesting.setMatchPluginCommand(
-      (() => null) as typeof import("astroclaw/plugin-sdk/plugin-runtime").matchPluginCommand,
+      (() => null) as typeof import("openclaw/plugin-sdk/plugin-runtime").matchPluginCommand,
     );
     setDefaultRouteState();
   });
@@ -194,9 +195,9 @@ describe("discord native /status", () => {
         handler: async () => ({ text: "plugin status" }),
       },
       args: undefined,
-    })) as typeof import("astroclaw/plugin-sdk/plugin-runtime").matchPluginCommand);
+    })) as typeof import("openclaw/plugin-sdk/plugin-runtime").matchPluginCommand);
     discordNativeCommandTesting.setExecutePluginCommand(
-      executePluginCommand as typeof import("astroclaw/plugin-sdk/plugin-runtime").executePluginCommand,
+      executePluginCommand as typeof import("openclaw/plugin-sdk/plugin-runtime").executePluginCommand,
     );
     const cfg = createConfig();
     const command = await createStatusCommand(cfg);
