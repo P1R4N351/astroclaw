@@ -1,10 +1,14 @@
+/**
+ * Regression coverage for identity-driven acknowledgement reactions.
+ * Confirms account, channel, global, identity, and explicit-empty precedence.
+ */
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveAckReaction } from "./identity.js";
 
 describe("resolveAckReaction", () => {
   it("prefers account-level overrides", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       messages: { ackReaction: "👀" },
       agents: { list: [{ id: "main", identity: { emoji: "✅" } }] },
       channels: {
@@ -23,7 +27,7 @@ describe("resolveAckReaction", () => {
   });
 
   it("falls back to channel-level overrides", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       messages: { ackReaction: "👀" },
       agents: { list: [{ id: "main", identity: { emoji: "✅" } }] },
       channels: {
@@ -42,7 +46,7 @@ describe("resolveAckReaction", () => {
   });
 
   it("uses the global ackReaction when channel overrides are missing", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       messages: { ackReaction: "✅" },
       agents: { list: [{ id: "main", identity: { emoji: "😺" } }] },
     };
@@ -51,7 +55,7 @@ describe("resolveAckReaction", () => {
   });
 
   it("falls back to the agent identity emoji when global config is unset", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: { list: [{ id: "main", identity: { emoji: "🔥" } }] },
     };
 
@@ -59,13 +63,13 @@ describe("resolveAckReaction", () => {
   });
 
   it("returns the default emoji when no config is present", () => {
-    const cfg: AstroclawConfig = {};
+    const cfg: OpenClawConfig = {};
 
     expect(resolveAckReaction(cfg, "main")).toBe("👀");
   });
 
   it("allows empty strings to disable reactions", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       messages: { ackReaction: "👀" },
       channels: {
         telegram: {
