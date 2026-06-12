@@ -1,5 +1,6 @@
+// Discord tests cover monitor.threading utils plugin behavior.
 import type { GatewayPresenceUpdate } from "discord-api-types/v10";
-import { buildAgentSessionKey } from "astroclaw/plugin-sdk/routing";
+import { buildAgentSessionKey } from "openclaw/plugin-sdk/routing";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "../internal/discord.js";
 import { EMPTY_DISCORD_TEST_CONFIG } from "../test-support/config.js";
@@ -273,7 +274,7 @@ describe("resolveDiscordPresenceUpdate", () => {
     const presence = resolveDiscordPresenceUpdate({
       activity: "Live",
       activityType: 1,
-      activityUrl: "https://twitch.tv/astroclaw",
+      activityUrl: "https://twitch.tv/openclaw",
     });
     expect(presence).toEqual({
       since: null,
@@ -281,7 +282,7 @@ describe("resolveDiscordPresenceUpdate", () => {
         {
           type: 1,
           name: "Live",
-          url: "https://twitch.tv/astroclaw",
+          url: "https://twitch.tv/openclaw",
         },
       ],
       status: "online",
