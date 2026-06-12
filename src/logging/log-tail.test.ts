@@ -1,3 +1,4 @@
+// Log tail tests cover reading, parsing, and limiting recent log entries.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -35,8 +36,8 @@ describe("readConfiguredLogTail", () => {
 
   it("applies redaction once per request across all returned lines", async () => {
     const { readConfiguredLogTail } = await import("./log-tail.js");
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-log-tail-"));
-    const file = path.join(tempDir, "astroclaw-2026-01-22.log");
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-log-tail-"));
+    const file = path.join(tempDir, "openclaw-2026-01-22.log");
 
     await fs.writeFile(file, "custom-secret-abcdefghijklmnopqrstuvwxyz\nsecond line\n");
     setLoggerOverride({ file });
