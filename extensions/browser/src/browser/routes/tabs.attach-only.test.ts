@@ -1,3 +1,4 @@
+// Browser tests cover tabs.attach only plugin behavior.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "../../../test-support.js";
 import "../server-context.chrome-test-harness.js";
@@ -23,7 +24,7 @@ describe("browser tab routes attachOnly loopback profiles", () => {
         cdpIsLoopback: true,
         cdpPort: 9222,
         color: "#00AA00",
-        driver: "astroclaw",
+        driver: "openclaw",
         headless: false,
         attachOnly: true,
       },
