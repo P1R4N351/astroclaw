@@ -1,9 +1,11 @@
+// Interactive surface auth tests document token precedence for remote gateway
+// surfaces that need browser or control-UI access.
 import { describe, expect, it } from "vitest";
 import type { GatewayRemoteConfig } from "../config/types.gateway.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveGatewayInteractiveSurfaceAuth } from "./auth-surface-resolution.js";
 
-function remoteGatewayConfig(remote?: GatewayRemoteConfig): AstroclawConfig {
+function remoteGatewayConfig(remote?: GatewayRemoteConfig): OpenClawConfig {
   return {
     gateway: {
       mode: "remote",
@@ -16,12 +18,12 @@ function remoteGatewayConfig(remote?: GatewayRemoteConfig): AstroclawConfig {
 }
 
 describe("resolveGatewayInteractiveSurfaceAuth", () => {
-  it("uses ASTROCLAW_GATEWAY_TOKEN as remote interactive fallback", async () => {
+  it("uses OPENCLAW_GATEWAY_TOKEN as remote interactive fallback", async () => {
     await expect(
       resolveGatewayInteractiveSurfaceAuth({
         config: remoteGatewayConfig(),
         env: {
-          ASTROCLAW_GATEWAY_TOKEN: "env-token",
+          OPENCLAW_GATEWAY_TOKEN: "env-token",
         },
         surface: "remote",
       }),
@@ -31,12 +33,12 @@ describe("resolveGatewayInteractiveSurfaceAuth", () => {
     });
   });
 
-  it("keeps configured remote token ahead of ASTROCLAW_GATEWAY_TOKEN", async () => {
+  it("keeps configured remote token ahead of OPENCLAW_GATEWAY_TOKEN", async () => {
     await expect(
       resolveGatewayInteractiveSurfaceAuth({
         config: remoteGatewayConfig({ token: "remote-token" }),
         env: {
-          ASTROCLAW_GATEWAY_TOKEN: "env-token",
+          OPENCLAW_GATEWAY_TOKEN: "env-token",
         },
         surface: "remote",
       }),
@@ -46,7 +48,7 @@ describe("resolveGatewayInteractiveSurfaceAuth", () => {
     });
   });
 
-  it("falls back to ASTROCLAW_GATEWAY_TOKEN when the remote token ref is unresolved", async () => {
+  it("falls back to OPENCLAW_GATEWAY_TOKEN when the remote token ref is unresolved", async () => {
     await expect(
       resolveGatewayInteractiveSurfaceAuth({
         config: {
@@ -55,7 +57,7 @@ describe("resolveGatewayInteractiveSurfaceAuth", () => {
           }),
         },
         env: {
-          ASTROCLAW_GATEWAY_TOKEN: "env-token",
+          OPENCLAW_GATEWAY_TOKEN: "env-token",
         },
         surface: "remote",
       }),
