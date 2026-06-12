@@ -1,10 +1,12 @@
+// Sandbox user fallback tests cover docker.user resolution from explicit config
+// or workspace ownership.
 import { describe, expect, it } from "vitest";
 import { resolveSandboxDockerUser } from "./context.js";
 import type { SandboxDockerConfig } from "./types.js";
 
 const baseDocker: SandboxDockerConfig = {
   image: "ghcr.io/example/sandbox:latest",
-  containerPrefix: "astroclaw-sandbox-",
+  containerPrefix: "openclaw-sandbox-",
   workdir: "/workspace",
   readOnlyRoot: true,
   tmpfs: ["/tmp"],
