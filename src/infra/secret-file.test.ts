@@ -1,3 +1,4 @@
+// Covers private secret file read/write behavior.
 import * as fsPromises from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,7 +13,7 @@ import {
 } from "./secret-file.js";
 
 const tempDirs = createTrackedTempDirs();
-const createTempDir = () => tempDirs.make("astroclaw-secret-file-test-");
+const createTempDir = () => tempDirs.make("openclaw-secret-file-test-");
 
 afterEach(async () => {
   await tempDirs.cleanup();
@@ -111,21 +112,21 @@ describe("readSecretFileSync", () => {
     await expectSecretFileError({ setup, expectedMessage, options });
   });
 
+  it("throws from the try helper for rejected files", async () => {
+    const file = await createSecretPath(async (dir) => {
+      const target = path.join(dir, "target.txt");
+      const link = path.join(dir, "secret-link.txt");
+      await fsPromises.writeFile(target, "top-secret\n", "utf8");
+      await fsPromises.symlink(target, link);
+      return link;
+    });
+
+    expect(() =>
+      tryReadSecretFileSync(file, "Telegram bot token", { rejectSymlink: true }),
+    ).toThrow(`Telegram bot token file at ${file} must not be a symlink.`);
+  });
+
   it.each([
-    {
-      name: "returns undefined from the non-throwing helper for rejected files",
-      pathValue: async () =>
-        createSecretPath(async (dir) => {
-          const target = path.join(dir, "target.txt");
-          const link = path.join(dir, "secret-link.txt");
-          await fsPromises.writeFile(target, "top-secret\n", "utf8");
-          await fsPromises.symlink(target, link);
-          return link;
-        }),
-      label: "Telegram bot token",
-      options: { rejectSymlink: true },
-      expected: undefined,
-    },
     {
       name: "returns undefined from the non-throwing helper for blank file paths",
       pathValue: async () => "   ",
