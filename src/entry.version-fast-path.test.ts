@@ -1,3 +1,4 @@
+// Tests version fast-path output before the full entrypoint loads.
 import { describe, expect, it, vi } from "vitest";
 import { tryHandleRootVersionFastPath } from "./entry.version-fast-path.js";
 
@@ -9,7 +10,7 @@ vi.mock("./cli/argv.js", () => ({
 vi.mock("./cli/container-target.js", () => ({
   parseCliContainerArgs: (argv: string[]) => ({ ok: true, container: null, argv }),
   resolveCliContainerTarget: (argv: string[], env: NodeJS.ProcessEnv = process.env) =>
-    argv.includes("--container") ? "demo" : (env.ASTROCLAW_CONTAINER ?? null),
+    argv.includes("--container") ? "demo" : (env.OPENCLAW_CONTAINER ?? null),
 }));
 
 async function flushVersionFastPath() {
@@ -32,14 +33,14 @@ describe("entry root version fast path", () => {
     }));
 
     expect(
-      tryHandleRootVersionFastPath(["node", "astroclaw", "--version"], {
+      tryHandleRootVersionFastPath(["node", "openclaw", "--version"], {
         output,
         exit,
         resolveVersion,
       }),
     ).toBe(true);
     await flushVersionFastPath();
-    expect(output).toHaveBeenCalledWith("Astroclaw 9.9.9-test (abc1234)");
+    expect(output).toHaveBeenCalledWith("OpenClaw 9.9.9-test (abc1234)");
     expect(exit).toHaveBeenCalledWith(0);
 
     output.mockClear();
@@ -50,20 +51,20 @@ describe("entry root version fast path", () => {
     });
 
     expect(
-      tryHandleRootVersionFastPath(["node", "astroclaw", "--version"], {
+      tryHandleRootVersionFastPath(["node", "openclaw", "--version"], {
         output,
         exit,
         resolveVersion,
       }),
     ).toBe(true);
     await flushVersionFastPath();
-    expect(output).toHaveBeenCalledWith("Astroclaw 9.9.9-test");
+    expect(output).toHaveBeenCalledWith("OpenClaw 9.9.9-test");
     expect(exit).toHaveBeenCalledWith(0);
 
     output.mockClear();
     exit.mockClear();
     expect(
-      tryHandleRootVersionFastPath(["node", "astroclaw", "--container", "demo", "--version"], {
+      tryHandleRootVersionFastPath(["node", "openclaw", "--container", "demo", "--version"], {
         output,
         exit,
         resolveVersion,
@@ -74,8 +75,8 @@ describe("entry root version fast path", () => {
     expect(exit).not.toHaveBeenCalled();
 
     expect(
-      tryHandleRootVersionFastPath(["node", "astroclaw", "--version"], {
-        env: { ASTROCLAW_CONTAINER: "demo" },
+      tryHandleRootVersionFastPath(["node", "openclaw", "--version"], {
+        env: { OPENCLAW_CONTAINER: "demo" },
         output,
         exit,
         resolveVersion,
