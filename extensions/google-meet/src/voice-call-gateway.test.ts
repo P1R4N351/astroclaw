@@ -1,3 +1,4 @@
+// Google Meet tests cover voice call gateway plugin behavior.
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveGoogleMeetConfig } from "./config.js";
 import {
@@ -12,7 +13,7 @@ const gatewayMocks = vi.hoisted(() => ({
   startGatewayClientWhenEventLoopReady: vi.fn(async () => ({ ready: true, aborted: false })),
 }));
 
-vi.mock("astroclaw/plugin-sdk/gateway-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/gateway-runtime", () => ({
   GatewayClient: vi.fn(function MockGatewayClient(params: { onHelloOk?: () => void }) {
     queueMicrotask(() => params.onHelloOk?.());
     return {
@@ -37,7 +38,7 @@ describe("Google Meet voice-call gateway", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("astroclaw/plugin-sdk/gateway-runtime");
+    vi.doUnmock("openclaw/plugin-sdk/gateway-runtime");
     vi.resetModules();
   });
 
