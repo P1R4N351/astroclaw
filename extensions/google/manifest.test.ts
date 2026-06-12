@@ -1,3 +1,4 @@
+// Google tests cover manifest plugin behavior.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
@@ -58,7 +59,7 @@ const RETIRED_GEMINI_CHAT_MODELS = [
 const GOOGLE_CHAT_PROVIDERS = ["google", "google-gemini-cli", "google-vertex"] as const;
 
 function loadManifest(): GoogleManifest {
-  return JSON.parse(readFileSync(new URL("./astroclaw.plugin.json", import.meta.url), "utf8"));
+  return JSON.parse(readFileSync(new URL("./openclaw.plugin.json", import.meta.url), "utf8"));
 }
 
 describe("google manifest model catalog", () => {
