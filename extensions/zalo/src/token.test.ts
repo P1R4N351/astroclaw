@@ -1,3 +1,4 @@
+// Zalo tests cover token plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -75,7 +76,7 @@ describe("resolveZaloToken", () => {
   });
 
   it.runIf(process.platform !== "win32")("rejects symlinked token files", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-zalo-token-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-zalo-token-"));
     const tokenFile = path.join(dir, "token.txt");
     const tokenLink = path.join(dir, "token-link.txt");
     fs.writeFileSync(tokenFile, "file-token\n", "utf8");
@@ -84,9 +85,7 @@ describe("resolveZaloToken", () => {
     const cfg = {
       tokenFile: tokenLink,
     } as ZaloConfig;
-    const res = resolveZaloToken(cfg);
-    expect(res.token).toBe("");
-    expect(res.source).toBe("none");
+    expect(() => resolveZaloToken(cfg)).toThrow(/Zalo token file.*must not be a symlink/);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });
