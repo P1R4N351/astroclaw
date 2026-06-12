@@ -1,9 +1,11 @@
+// Apply echo-transcript tests cover integrated audio media understanding with
+// best-effort transcript delivery.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MsgContext } from "../auto-reply/templating.js";
-import type { AstroclawConfig } from "../config/types.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import type { OpenClawConfig } from "../config/types.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { createSafeAudioFixtureBuffer } from "./runner.test-utils.js";
 import type { MediaUnderstandingProvider } from "./types.js";
 
@@ -35,7 +37,7 @@ const runCommandWithTimeoutMock = vi.hoisted(() => vi.fn());
 const mockDeliverOutboundPayloads = vi.hoisted(() => vi.fn());
 
 const { MediaFetchErrorMock } = vi.hoisted(() => {
-  class MediaFetchErrorMock extends Error {
+  class MediaFetchErrorMockLocal extends Error {
     code: string;
     constructor(message: string, code: string) {
       super(message);
@@ -43,7 +45,7 @@ const { MediaFetchErrorMock } = vi.hoisted(() => {
       this.code = code;
     }
   }
-  return { MediaFetchErrorMock };
+  return { MediaFetchErrorMock: MediaFetchErrorMockLocal };
 });
 
 // ---------------------------------------------------------------------------
@@ -52,7 +54,7 @@ const { MediaFetchErrorMock } = vi.hoisted(() => {
 
 let applyMediaUnderstanding: typeof import("./apply.js").applyMediaUnderstanding;
 
-const TEMP_MEDIA_PREFIX = "astroclaw-echo-transcript-test-";
+const TEMP_MEDIA_PREFIX = "openclaw-echo-transcript-test-";
 let suiteTempMediaRootDir = "";
 
 async function createTempAudioFile(): Promise<string> {
@@ -79,10 +81,10 @@ function createAudioConfigWithEcho(opts?: {
   echoFormat?: string;
   transcribedText?: string;
 }): {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   providers: Record<string, { id: string; transcribeAudio: () => Promise<{ text: string }> }>;
 } {
-  const cfg: AstroclawConfig = {
+  const cfg: OpenClawConfig = {
     tools: {
       media: {
         audio: {
@@ -104,7 +106,7 @@ function createAudioConfigWithEcho(opts?: {
   return { cfg, providers };
 }
 
-function disableImageUnderstanding(cfg: AstroclawConfig): void {
+function disableImageUnderstanding(cfg: OpenClawConfig): void {
   if (!cfg.tools?.media) {
     throw new Error("Expected media tool config");
   }
@@ -160,13 +162,20 @@ describe("applyMediaUnderstanding – echo transcript", () => {
     vi.doMock("../agents/model-auth.js", () => ({
       resolveApiKeyForProvider: resolveApiKeyForProviderMock,
       hasAvailableAuthForProvider: hasAvailableAuthForProviderMock,
+      isProviderAuthError: (err: unknown, code?: string) =>
+        err instanceof Error &&
+        "code" in err &&
+        (code === undefined || (err as { code?: unknown }).code === code),
       requireApiKey: (auth: { apiKey?: string; mode?: string }, provider: string) => {
         if (auth?.apiKey) {
           return auth.apiKey;
         }
-        throw new Error(
+        const err = new Error(
           `No API key resolved for provider "${provider}" (auth mode: ${auth?.mode}).`,
         );
+        (err as { code?: string; provider?: string }).code = "missing-api-key";
+        (err as { code?: string; provider?: string }).provider = provider;
+        throw err;
       },
       resolveAwsSdkEnvVarName: vi.fn(() => undefined),
       resolveEnvApiKey: vi.fn(() => null),
@@ -221,7 +230,7 @@ describe("applyMediaUnderstanding – echo transcript", () => {
       };
     });
 
-    const baseDir = resolvePreferredAstroclawTmpDir();
+    const baseDir = resolvePreferredOpenClawTmpDir();
     await fs.mkdir(baseDir, { recursive: true });
     suiteTempMediaRootDir = await fs.mkdtemp(path.join(baseDir, TEMP_MEDIA_PREFIX));
     const mod = await import("./apply.js");
