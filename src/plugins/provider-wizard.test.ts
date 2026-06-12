@@ -1,3 +1,4 @@
+// Covers provider setup wizard prompts supplied by plugins.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildProviderPluginMethodChoice,
@@ -63,7 +64,7 @@ function createSglangConfig() {
 
 function createHomeEnv(suffix = "", overrides?: Partial<NodeJS.ProcessEnv>) {
   return {
-    ASTROCLAW_HOME: `/tmp/astroclaw-home${suffix}`,
+    OPENCLAW_HOME: `/tmp/openclaw-home${suffix}`,
     ...overrides,
   } as NodeJS.ProcessEnv;
 }
