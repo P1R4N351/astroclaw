@@ -1,3 +1,4 @@
+// Slack tests cover slash plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSlackSlashMocks, resetSlackSlashMocks } from "./slash.test-harness.js";
 
@@ -312,7 +313,7 @@ function createArgMenusHarness() {
     action: (id: string | RegExp, handler: (args: unknown) => Promise<void>) => {
       actions.set(id, handler);
     },
-    options: function (this: unknown, id: string, handler: (args: unknown) => Promise<void>) {
+    options(this: unknown, id: string, handler: (args: unknown) => Promise<void>) {
       optionsReceiverContexts.push(this);
       options.set(id, handler);
     },
@@ -335,7 +336,7 @@ function createArgMenusHarness() {
     channelsConfig: undefined,
     slashCommand: {
       enabled: true,
-      name: "astroclaw",
+      name: "openclaw",
       ephemeral: true,
       sessionPrefix: "slack:slash",
     },
@@ -563,8 +564,8 @@ describe("Slack native command argument menus", () => {
     unsafeConfirmHandler = requireHandler(harness.commands, "/unsafeconfirm", "/unsafeconfirm");
     longConfirmHandler = requireHandler(harness.commands, "/longconfirm", "/longconfirm");
     agentStatusHandler = requireHandler(harness.commands, "/agentstatus", "/agentstatus");
-    argMenuHandler = requireHandler(harness.actions, /^astroclaw_cmdarg/, "arg-menu action");
-    argMenuOptionsHandler = requireHandler(harness.options, "astroclaw_cmdarg", "arg-menu options");
+    argMenuHandler = requireHandler(harness.actions, /^openclaw_cmdarg/, "arg-menu action");
+    argMenuOptionsHandler = requireHandler(harness.options, "openclaw_cmdarg", "arg-menu options");
   });
 
   beforeEach(() => {
@@ -577,10 +578,10 @@ describe("Slack native command argument menus", () => {
     expect(testHarness.commands.size).toBeGreaterThan(0);
     expect(
       Array.from(testHarness.actions.keys()).some(
-        (key) => key instanceof RegExp && String(key) === String(/^astroclaw_cmdarg/),
+        (key) => key instanceof RegExp && String(key) === String(/^openclaw_cmdarg/),
       ),
     ).toBe(true);
-    expect(testHarness.options.has("astroclaw_cmdarg")).toBe(true);
+    expect(testHarness.options.has("openclaw_cmdarg")).toBe(true);
     expect(testHarness.optionsReceiverContexts[0]).toBe(testHarness.app);
   });
 
@@ -588,6 +589,7 @@ describe("Slack native command argument menus", () => {
     const commands = new Map<string, (args: unknown) => Promise<void>>();
     const actions = new Map<string | RegExp, (args: unknown) => Promise<void>>();
     const postEphemeral = vi.fn().mockResolvedValue({ ok: true });
+    const runtimeLog = vi.fn();
     const app = {
       client: { chat: { postEphemeral } },
       command: (name: string, handler: (args: unknown) => Promise<void>) => {
@@ -603,7 +605,7 @@ describe("Slack native command argument menus", () => {
     };
     const ctx = {
       cfg: { commands: { native: true, nativeSkills: false } },
-      runtime: {},
+      runtime: { log: runtimeLog },
       botToken: "bot-token",
       botUserId: "bot",
       teamId: "T1",
@@ -618,7 +620,7 @@ describe("Slack native command argument menus", () => {
       channelsConfig: undefined,
       slashCommand: {
         enabled: true,
-        name: "astroclaw",
+        name: "openclaw",
         ephemeral: true,
         sessionPrefix: "slack:slash",
       },
@@ -636,9 +638,15 @@ describe("Slack native command argument menus", () => {
     // Registration should not throw despite app.options() throwing
     await registerCommands(ctx, account);
     expect(commands.size).toBeGreaterThan(0);
+    expect(runtimeLog).toHaveBeenCalledTimes(1);
+    expect(runtimeLog).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "slack: external arg-menu registration failed; falling back to static slash command menus.",
+      ),
+    );
     expect(
       Array.from(actions.keys()).some(
-        (key) => key instanceof RegExp && String(key) === String(/^astroclaw_cmdarg/),
+        (key) => key instanceof RegExp && String(key) === String(/^openclaw_cmdarg/),
       ),
     ).toBe(true);
 
@@ -666,8 +674,8 @@ describe("Slack native command argument menus", () => {
     const actions = expectArgMenuLayout(respond);
     const elementType = actions?.elements?.[0]?.type;
     expect(elementType).toBe("button");
-    expect(actions?.elements?.[0]?.action_id).toBe("astroclaw_cmdarg_0_0");
-    expect(actions?.elements?.[1]?.action_id).toBe("astroclaw_cmdarg_0_1");
+    expect(actions?.elements?.[0]?.action_id).toBe("openclaw_cmdarg_0_0");
+    expect(actions?.elements?.[1]?.action_id).toBe("openclaw_cmdarg_0_1");
     expect(actions?.elements?.[0]).toHaveProperty("confirm");
   });
 
@@ -676,7 +684,7 @@ describe("Slack native command argument menus", () => {
     const actions = expectArgMenuLayout(respond);
     const element = actions?.elements?.[0];
     expect(element?.type).toBe("static_select");
-    expect(element?.action_id).toBe("astroclaw_cmdarg");
+    expect(element?.action_id).toBe("openclaw_cmdarg");
     expect(element).toHaveProperty("confirm");
   });
 
@@ -738,7 +746,7 @@ describe("Slack native command argument menus", () => {
   it("shows an overflow menu when choices fit compact range", async () => {
     const element = await getFirstActionElementFromCommand(reportCompactHandler);
     expect(element?.type).toBe("overflow");
-    expect(element?.action_id).toBe("astroclaw_cmdarg");
+    expect(element?.action_id).toBe("openclaw_cmdarg");
     expect(element).toHaveProperty("confirm");
   });
 
@@ -826,15 +834,15 @@ describe("Slack native command argument menus", () => {
     const actions = findFirstActionsBlock(payload);
     const element = actions?.elements?.[0];
     expect(element?.type).toBe("external_select");
-    expect(element?.action_id).toBe("astroclaw_cmdarg");
-    expect(blockId).toContain("astroclaw_cmdarg_ext:");
-    const token = (blockId ?? "").slice("astroclaw_cmdarg_ext:".length);
+    expect(element?.action_id).toBe("openclaw_cmdarg");
+    expect(blockId).toContain("openclaw_cmdarg_ext:");
+    const token = (blockId ?? "").slice("openclaw_cmdarg_ext:".length);
     expect(token).toMatch(/^[A-Za-z0-9_-]{24}$/);
   });
 
   it("serves filtered options for external_select menus", async () => {
     const { blockId } = await runCommandAndResolveActionsBlock(reportExternalHandler);
-    expect(blockId).toContain("astroclaw_cmdarg_ext:");
+    expect(blockId).toContain("openclaw_cmdarg_ext:");
 
     const ackOptions = vi.fn().mockResolvedValue(undefined);
     await argMenuOptionsHandler({
@@ -865,7 +873,7 @@ describe("Slack native command argument menus", () => {
     );
     const argMenuOptionsTrackingHandler = requireHandler(
       trackingHarness.options,
-      "astroclaw_cmdarg",
+      "openclaw_cmdarg",
       "arg-menu options",
     );
     const { blockId } = await runCommandAndResolveActionsBlock(reportExternalTrackingHandler);
@@ -886,7 +894,7 @@ describe("Slack native command argument menus", () => {
 
   it("rejects external_select option requests without user identity", async () => {
     const { blockId } = await runCommandAndResolveActionsBlock(reportExternalHandler);
-    expect(blockId).toContain("astroclaw_cmdarg_ext:");
+    expect(blockId).toContain("openclaw_cmdarg_ext:");
 
     const ackOptions = vi.fn().mockResolvedValue(undefined);
     await argMenuOptionsHandler({
@@ -923,7 +931,7 @@ describe("Slack native command argument menus", () => {
     await registerCommands(trackingHarness.ctx, trackingHarness.account, trackEvent);
     const argMenuTrackingHandler = requireHandler(
       trackingHarness.actions,
-      /^astroclaw_cmdarg/,
+      /^openclaw_cmdarg/,
       "arg-menu action",
     );
 
@@ -1001,7 +1009,7 @@ function createPolicyHarness(overrides?: {
     channelsConfig: overrides?.channelsConfig,
     slashCommand: {
       enabled: true,
-      name: "astroclaw",
+      name: "openclaw",
       ephemeral: true,
       sessionPrefix: "slack:slash",
     },
