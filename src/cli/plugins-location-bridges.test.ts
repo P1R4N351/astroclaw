@@ -1,3 +1,4 @@
+// Plugin location bridge tests cover CLI plugin path bridging between install surfaces.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { InstalledPluginIndex } from "../plugins/installed-plugin-index.js";
 import type { InstalledPluginStartupInfo } from "../plugins/installed-plugin-index.js";
@@ -61,8 +62,8 @@ function makeRegistry(pluginId: string): PluginManifestRegistry {
         activation: {},
         startup: {},
         packageInstall: {
-          clawhubSpec: `clawhub:@astroclaw/${pluginId}`,
-          npmSpec: `@astroclaw/${pluginId}`,
+          clawhubSpec: `clawhub:@openclaw/${pluginId}`,
+          npmSpec: `@openclaw/${pluginId}`,
           defaultChoice: "clawhub",
         },
       },
@@ -81,7 +82,7 @@ describe("listPersistedBundledPluginLocationBridges", () => {
     readPersistedInstalledPluginIndexMock.mockResolvedValue(
       makeIndex({
         pluginId: "diagnostics-otel",
-        manifestPath: "/app/dist/extensions/diagnostics-otel/astroclaw.plugin.json",
+        manifestPath: "/app/dist/extensions/diagnostics-otel/openclaw.plugin.json",
         manifestHash: "hash",
         source: "/app/dist/extensions/diagnostics-otel/index.js",
         rootDir: "/app/dist/extensions/diagnostics-otel",
@@ -92,13 +93,13 @@ describe("listPersistedBundledPluginLocationBridges", () => {
         packageInstall: {
           defaultChoice: "clawhub",
           clawhub: {
-            spec: "clawhub:@astroclaw/diagnostics-otel",
-            packageName: "@astroclaw/diagnostics-otel",
+            spec: "clawhub:@openclaw/diagnostics-otel",
+            packageName: "@openclaw/diagnostics-otel",
             exactVersion: false,
           },
           npm: {
-            spec: "@astroclaw/diagnostics-otel",
-            packageName: "@astroclaw/diagnostics-otel",
+            spec: "@openclaw/diagnostics-otel",
+            packageName: "@openclaw/diagnostics-otel",
             selectorKind: "none",
             exactVersion: false,
             pinState: "floating-without-integrity",
@@ -116,8 +117,8 @@ describe("listPersistedBundledPluginLocationBridges", () => {
         bundledPluginId: "diagnostics-otel",
         pluginId: "diagnostics-otel",
         preferredSource: "npm",
-        npmSpec: "@astroclaw/diagnostics-otel",
-        clawhubSpec: "clawhub:@astroclaw/diagnostics-otel",
+        npmSpec: "@openclaw/diagnostics-otel",
+        clawhubSpec: "clawhub:@openclaw/diagnostics-otel",
         channelIds: ["diagnostics-otel"],
       },
     ]);
@@ -127,7 +128,7 @@ describe("listPersistedBundledPluginLocationBridges", () => {
     readPersistedInstalledPluginIndexMock.mockResolvedValue(
       makeIndex({
         pluginId: "diagnostics-otel",
-        manifestPath: "/app/dist/extensions/diagnostics-otel/astroclaw.plugin.json",
+        manifestPath: "/app/dist/extensions/diagnostics-otel/openclaw.plugin.json",
         manifestHash: "hash",
         source: "/app/dist/extensions/diagnostics-otel/index.js",
         rootDir: "/app/dist/extensions/diagnostics-otel",
@@ -138,8 +139,8 @@ describe("listPersistedBundledPluginLocationBridges", () => {
         packageInstall: {
           defaultChoice: "clawhub",
           clawhub: {
-            spec: "clawhub:@astroclaw/diagnostics-otel",
-            packageName: "@astroclaw/diagnostics-otel",
+            spec: "clawhub:@openclaw/diagnostics-otel",
+            packageName: "@openclaw/diagnostics-otel",
             exactVersion: false,
           },
           warnings: [],
@@ -155,8 +156,8 @@ describe("listPersistedBundledPluginLocationBridges", () => {
         bundledPluginId: "diagnostics-otel",
         pluginId: "diagnostics-otel",
         preferredSource: "npm",
-        npmSpec: "@astroclaw/diagnostics-otel",
-        clawhubSpec: "clawhub:@astroclaw/diagnostics-otel",
+        npmSpec: "@openclaw/diagnostics-otel",
+        clawhubSpec: "clawhub:@openclaw/diagnostics-otel",
         channelIds: ["diagnostics-otel"],
       },
     ]);
@@ -166,7 +167,7 @@ describe("listPersistedBundledPluginLocationBridges", () => {
     readPersistedInstalledPluginIndexMock.mockResolvedValue(
       makeIndex({
         pluginId: "local-only",
-        manifestPath: "/app/dist/extensions/local-only/astroclaw.plugin.json",
+        manifestPath: "/app/dist/extensions/local-only/openclaw.plugin.json",
         manifestHash: "hash",
         source: "/app/dist/extensions/local-only/index.js",
         rootDir: "/app/dist/extensions/local-only",
