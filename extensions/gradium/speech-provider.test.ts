@@ -1,4 +1,5 @@
-import { installPinnedHostnameTestHooks } from "astroclaw/plugin-sdk/test-env";
+// Gradium tests cover speech provider plugin behavior.
+import { installPinnedHostnameTestHooks } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildGradiumSpeechProvider } from "./speech-provider.js";
 
@@ -52,7 +53,7 @@ describe("gradium speech provider", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await provider.synthesize({
-      text: "Astroclaw test",
+      text: "OpenClaw test",
       cfg: {} as never,
       providerConfig: { apiKey: "gsk_test123" },
       target: "audio-file",
@@ -65,7 +66,7 @@ describe("gradium speech provider", () => {
     const headers = new Headers(init.headers);
     expect(headers.get("x-api-key")).toBe("gsk_test123");
     expect(JSON.parse(init.body as string)).toEqual({
-      text: "Astroclaw test",
+      text: "OpenClaw test",
       voice_id: "YTpq7expH9539ERJ",
       only_audio: true,
       output_format: "wav",
@@ -96,6 +97,29 @@ describe("gradium speech provider", () => {
     expect(result.fileExtension).toBe(".opus");
     expect(result.voiceCompatible).toBe(true);
     expect(result.audioBuffer).toEqual(audioData);
+  });
+
+  it("applies the configured media byte cap to synthesized audio", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(new Uint8Array(2048), { status: 200 })),
+    );
+
+    await expect(
+      provider.synthesize({
+        text: "OpenClaw test",
+        cfg: {
+          agents: {
+            defaults: {
+              mediaMaxMb: 0.001,
+            },
+          },
+        } as never,
+        providerConfig: { apiKey: "gsk_test123" },
+        target: "audio-file",
+        timeoutMs: 30_000,
+      }),
+    ).rejects.toThrow("Gradium TTS audio response exceeds");
   });
 
   it("uses ulaw_8000 for telephony synthesis", async () => {
