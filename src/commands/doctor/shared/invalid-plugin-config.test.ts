@@ -1,5 +1,6 @@
+// Invalid plugin config tests cover doctor diagnostics for malformed plugin configuration.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 
 const validationMocks = vi.hoisted(() => ({
   validateConfigObjectWithPlugins: vi.fn(),
@@ -45,7 +46,7 @@ describe("doctor invalid plugin config repair", () => {
           },
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(result.changes).toEqual([
       "- plugins.entries: quarantined 1 invalid plugin config (community-feedback)",
@@ -83,7 +84,7 @@ describe("doctor invalid plugin config repair", () => {
           },
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(result.config.plugins?.entries?.["pack/one"]).toEqual({
       enabled: false,
@@ -113,7 +114,7 @@ describe("doctor invalid plugin config repair", () => {
           },
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(result.changes).toEqual([
       "- plugins.entries: quarantined 1 invalid plugin config (community-feedback)",
@@ -141,7 +142,7 @@ describe("doctor invalid plugin config repair", () => {
       gateway: {
         mode: "invalid",
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     expect(maybeRepairInvalidPluginConfig(cfg)).toEqual({ config: cfg, changes: [] });
   });
