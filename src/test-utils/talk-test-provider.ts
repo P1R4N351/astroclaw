@@ -1,5 +1,7 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Test provider implementation for chat-style runtime interactions.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
+/** Test-only speech provider identity used by talk config assertions. */
 export const TALK_TEST_PROVIDER_ID = "acme-speech";
 export const TALK_TEST_PROVIDER_LABEL = "Acme Speech";
 export const TALK_TEST_PROVIDER_API_KEY_PATH = `talk.providers.${TALK_TEST_PROVIDER_ID}.apiKey`;
@@ -10,7 +12,7 @@ export const TALK_TEST_PROVIDER_API_KEY_PATH_SEGMENTS = [
   "apiKey",
 ] as const;
 
-export function buildTalkTestProviderConfig(apiKey: unknown): AstroclawConfig {
+export function buildTalkTestProviderConfig(apiKey: unknown): OpenClawConfig {
   return {
     talk: {
       providers: {
@@ -19,9 +21,9 @@ export function buildTalkTestProviderConfig(apiKey: unknown): AstroclawConfig {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
-export function readTalkTestProviderApiKey(config: AstroclawConfig): unknown {
+export function readTalkTestProviderApiKey(config: OpenClawConfig): unknown {
   return config.talk?.providers?.[TALK_TEST_PROVIDER_ID]?.apiKey;
 }
