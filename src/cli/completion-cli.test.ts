@@ -1,3 +1,4 @@
+// Completion CLI tests cover shell completion command generation and install output.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -8,15 +9,23 @@ import { getCompletionScript } from "./completion-cli.js";
 
 function createCompletionProgram(): Command {
   const program = new Command();
-  program.name("astroclaw");
+  program.name("openclaw");
   program.description("CLI root");
   program.option("-v, --verbose", "Verbose output");
 
   const gateway = program.command("gateway").description("Gateway commands");
   gateway.option("--force", "Force the action");
+  gateway.option("-t, --token <token>", "Gateway token");
 
   gateway.command("status").description("Show gateway status").option("--json", "JSON output");
   gateway.command("restart").description("Restart gateway");
+  program
+    .command("agent")
+    .description("Agent commands")
+    .option("--verbose <on|off>", "Set verbosity");
+  const sessions = program.command("sessions").description("Session commands");
+  sessions.option("--verbose", "Verbose output");
+  sessions.command("cleanup").description("Clean sessions").option("--dry-run", "Preview cleanup");
 
   return program;
 }
@@ -25,9 +34,9 @@ describe("completion-cli", () => {
   it("generates zsh functions for nested subcommands", () => {
     const script = getCompletionScript("zsh", createCompletionProgram());
 
-    expect(script).toContain("_astroclaw_gateway()");
-    expect(script).toContain("(status) _astroclaw_gateway_status ;;");
-    expect(script).toContain("(restart) _astroclaw_gateway_restart ;;");
+    expect(script).toContain("_openclaw_gateway()");
+    expect(script).toContain("(status) _openclaw_gateway_status ;;");
+    expect(script).toContain("(restart) _openclaw_gateway_restart ;;");
     expect(script).toContain("--force[Force the action]");
   });
 
@@ -47,9 +56,9 @@ describe("completion-cli", () => {
       throw probe.error;
     }
 
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-zsh-completion-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-zsh-completion-"));
     try {
-      const scriptPath = path.join(tempDir, "astroclaw.zsh");
+      const scriptPath = path.join(tempDir, "openclaw.zsh");
       await fs.writeFile(scriptPath, getCompletionScript("zsh", createCompletionProgram()), "utf8");
 
       const result = spawnSync(
@@ -58,13 +67,13 @@ describe("completion-cli", () => {
           "-fc",
           `
             source ${JSON.stringify(scriptPath)}
-            [[ -z "\${_comps[astroclaw]-}" ]] || exit 10
-            [[ "\${precmd_functions[(r)_astroclaw_register_completion]}" = "_astroclaw_register_completion" ]] || exit 11
+            [[ -z "\${_comps[openclaw]-}" ]] || exit 10
+            [[ "\${precmd_functions[(r)_openclaw_register_completion]}" = "_openclaw_register_completion" ]] || exit 11
             autoload -Uz compinit
             compinit -C
-            _astroclaw_register_completion
-            [[ -z "\${precmd_functions[(r)_astroclaw_register_completion]}" ]] || exit 12
-            [[ "\${_comps[astroclaw]-}" = "_astroclaw_root_completion" ]]
+            _openclaw_register_completion
+            [[ -z "\${precmd_functions[(r)_openclaw_register_completion]}" ]] || exit 12
+            [[ "\${_comps[openclaw]-}" = "_openclaw_root_completion" ]]
           `,
         ],
         {
@@ -89,21 +98,56 @@ describe("completion-cli", () => {
 
     expect(script).toContain("if ($commandPath -eq 'gateway') {");
     expect(script).toContain("if ($commandPath -eq 'gateway status') {");
-    expect(script).not.toContain("if ($commandPath -eq 'astroclaw gateway') {");
-    expect(script).toContain("$completions = @('status','restart','--force')");
+    expect(script).not.toContain("if ($commandPath -eq 'openclaw gateway') {");
+    expect(script).toContain("$completions = @('status','restart','--force','--token')");
+    expect(script).not.toContain("'-t,'");
+  });
+
+  it("generates valid PowerShell root arrays when commands or options are empty", () => {
+    const commandsOnly = new Command().name("openclaw");
+    commandsOnly.command("status");
+    const optionsOnly = new Command().name("openclaw").option("--json", "JSON output");
+    const empty = new Command().name("openclaw");
+
+    expect(getCompletionScript("powershell", commandsOnly)).toContain("$completions = @('status')");
+    expect(getCompletionScript("powershell", optionsOnly)).toContain("$completions = @('--json')");
+    expect(getCompletionScript("powershell", empty)).toContain("$completions = @()");
   });
 
   it("generates fish completions for root and nested command contexts", () => {
     const script = getCompletionScript("fish", createCompletionProgram());
 
     expect(script).toContain(
-      'complete -c astroclaw -n "__fish_use_subcommand" -a "gateway" -d \'Gateway commands\'',
+      'complete -c openclaw -n "__fish_use_subcommand" -a "gateway" -d \'Gateway commands\'',
     );
     expect(script).toContain(
-      'complete -c astroclaw -n "__fish_seen_subcommand_from gateway" -a "status" -d \'Show gateway status\'',
+      'complete -c openclaw -n "__openclaw_command_path_matches gateway -- -t --token" -a "status" -d \'Show gateway status\'',
     );
     expect(script).toContain(
-      "complete -c astroclaw -n \"__fish_seen_subcommand_from gateway\" -l force -d 'Force the action'",
+      "complete -c openclaw -n \"__openclaw_command_path_matches gateway -- -t --token\" -l force -d 'Force the action'",
     );
+    expect(script).toContain(
+      "complete -c openclaw -n \"__openclaw_command_path_matches gateway status -- -t --token\" -l json -d 'JSON output'",
+    );
+    expect(script).toContain("__openclaw_command_path_matches gateway -- -t --token");
+    expect(script).toContain("if contains -- $flag $value_options");
+  });
+
+  it("scopes fish value-taking option skips to the active command path", () => {
+    const script = getCompletionScript("fish", createCompletionProgram());
+
+    expect(script).toContain("__openclaw_command_path_matches agent -- --verbose");
+    expect(script).toContain("__openclaw_command_path_matches sessions cleanup --");
+    expect(script).not.toContain("__openclaw_command_path_matches sessions cleanup -- --verbose");
+    expect(script).toContain(
+      "complete -c openclaw -n \"__openclaw_command_path_matches sessions cleanup --\" -l dry-run -d 'Preview cleanup'",
+    );
+  });
+
+  it("generates Bash completions without comma-suffixed short flags", () => {
+    const script = getCompletionScript("bash", createCompletionProgram());
+
+    expect(script).toContain("--token");
+    expect(script).not.toContain("-t,");
   });
 });
