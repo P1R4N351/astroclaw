@@ -1,3 +1,4 @@
+/** Tests self-hosted provider setup helpers and auth/config defaults. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configureOpenAICompatibleSelfHostedProviderNonInteractive,
@@ -50,7 +51,7 @@ function createContext(params: {
       customModelId: params.modelId,
     },
     runtime: createRuntime() as never,
-    agentDir: "/tmp/astroclaw-self-hosted-test-agent",
+    agentDir: "/tmp/openclaw-self-hosted-test-agent",
     resolveApiKey: vi.fn<ProviderAuthMethodNonInteractiveContext["resolveApiKey"]>(
       async () => resolved,
     ),
