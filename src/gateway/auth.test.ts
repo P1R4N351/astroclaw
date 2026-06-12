@@ -1,3 +1,5 @@
+// Gateway auth tests cover shared-secret, Tailscale, loopback, forwarded-header,
+// control-UI, and HTTP/WebSocket authorization decisions.
 import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeNetworkInterfacesSnapshot } from "../test-helpers/network-interfaces.js";
@@ -92,12 +94,12 @@ describe("gateway auth", () => {
     expect(res.user).toBe(params.expected.user);
   }
 
-  it("resolves token/password from ASTROCLAW gateway env vars", () => {
+  it("resolves token/password from OPENCLAW gateway env vars", () => {
     const auth = resolveGatewayAuth({
       authConfig: {},
       env: {
-        ASTROCLAW_GATEWAY_TOKEN: "env-token",
-        ASTROCLAW_GATEWAY_PASSWORD: "env-password",
+        OPENCLAW_GATEWAY_TOKEN: "env-token",
+        OPENCLAW_GATEWAY_PASSWORD: "env-password",
       } as NodeJS.ProcessEnv,
     });
 
@@ -144,6 +146,7 @@ describe("gateway auth", () => {
     { name: "X-Forwarded-For", headers: { "x-forwarded-for": "203.0.113.10" } },
     { name: "X-Forwarded-Proto", headers: { "x-forwarded-proto": "https" } },
     { name: "X-Forwarded-Host", headers: { "x-forwarded-host": "gateway.example" } },
+    { name: "X-Forwarded-User", headers: { "x-forwarded-user": "nick@example.com" } },
     { name: "X-Real-IP", headers: { "x-real-ip": "203.0.113.10" } },
   ])("treats $name as forwarded request evidence", ({ headers }) => {
     const req = {
@@ -190,8 +193,8 @@ describe("gateway auth", () => {
         password: "config-password", // pragma: allowlist secret
       },
       env: {
-        ASTROCLAW_GATEWAY_TOKEN: "env-token",
-        ASTROCLAW_GATEWAY_PASSWORD: "env-password",
+        OPENCLAW_GATEWAY_TOKEN: "env-token",
+        OPENCLAW_GATEWAY_PASSWORD: "env-password",
       } as NodeJS.ProcessEnv,
     });
 
@@ -202,12 +205,12 @@ describe("gateway auth", () => {
   it("treats env-template auth secrets as SecretRefs instead of plaintext", () => {
     const auth = resolveGatewayAuth({
       authConfig: {
-        token: "${ASTROCLAW_GATEWAY_TOKEN}",
-        password: "${ASTROCLAW_GATEWAY_PASSWORD}",
+        token: "${OPENCLAW_GATEWAY_TOKEN}",
+        password: "${OPENCLAW_GATEWAY_PASSWORD}",
       },
       env: {
-        ASTROCLAW_GATEWAY_TOKEN: "env-token",
-        ASTROCLAW_GATEWAY_PASSWORD: "env-password",
+        OPENCLAW_GATEWAY_TOKEN: "env-token",
+        OPENCLAW_GATEWAY_PASSWORD: "env-password",
       } as NodeJS.ProcessEnv,
     });
 
@@ -530,7 +533,7 @@ describe("gateway auth", () => {
     ).toThrow(/provider reference object/);
   });
 
-  it("accepts password mode when env provides ASTROCLAW_GATEWAY_PASSWORD", () => {
+  it("accepts password mode when env provides OPENCLAW_GATEWAY_PASSWORD", () => {
     const rawPasswordRef = { source: "exec", provider: "op", id: "pw" } as never;
     const auth = resolveGatewayAuth({
       authConfig: {
@@ -538,7 +541,7 @@ describe("gateway auth", () => {
         password: rawPasswordRef,
       },
       env: {
-        ASTROCLAW_GATEWAY_PASSWORD: "env-password",
+        OPENCLAW_GATEWAY_PASSWORD: "env-password",
       } as NodeJS.ProcessEnv,
     });
 
@@ -633,7 +636,7 @@ describe("trusted-proxy auth", () => {
       headers: {
         "x-forwarded-user": "nick@example.com",
         "x-forwarded-proto": "https",
-        "x-astroclaw-proxy-auth": "present",
+        "x-openclaw-proxy-auth": "present",
       },
     });
 
@@ -886,7 +889,7 @@ describe("trusted-proxy auth", () => {
         },
       },
       env: {
-        ASTROCLAW_GATEWAY_TOKEN: "shared-secret",
+        OPENCLAW_GATEWAY_TOKEN: "shared-secret",
       } as NodeJS.ProcessEnv,
     },
   ])("rejects trusted-proxy mode when shared token comes from $name", ({ authConfig, env }) => {
@@ -1024,7 +1027,7 @@ describe("trusted-proxy auth", () => {
       expect(res.reason).toBe("trusted_proxy_loopback_source");
     });
 
-    it("rejects local-direct password credentials when trusted-proxy auth fails", async () => {
+    it("accepts local-direct password fallback when trusted-proxy auth fails", async () => {
       const limiter = createLimiterSpy();
       const res = await authorizeLocalDirect({
         password: "local-password", // pragma: allowlist secret
@@ -1032,13 +1035,13 @@ describe("trusted-proxy auth", () => {
         rateLimiter: limiter,
       });
 
-      expect(res).toEqual({ ok: false, reason: "trusted_proxy_loopback_source" });
-      expect(limiter.check).not.toHaveBeenCalled();
-      expect(limiter.reset).not.toHaveBeenCalled();
+      expect(res).toEqual({ ok: true, method: "password" });
+      expect(limiter.check).toHaveBeenCalledWith("127.0.0.1", "shared-secret");
+      expect(limiter.reset).toHaveBeenCalledWith("127.0.0.1", "shared-secret");
       expect(limiter.recordFailure).not.toHaveBeenCalled();
     });
 
-    it("ignores wrong local-direct password credentials when trusted-proxy auth fails", async () => {
+    it("rejects wrong local-direct password fallback and records the failure", async () => {
       const limiter = createLimiterSpy();
       const res = await authorizeLocalDirect({
         password: "local-password", // pragma: allowlist secret
@@ -1046,13 +1049,13 @@ describe("trusted-proxy auth", () => {
         rateLimiter: limiter,
       });
 
-      expect(res).toEqual({ ok: false, reason: "trusted_proxy_loopback_source" });
-      expect(limiter.check).not.toHaveBeenCalled();
-      expect(limiter.recordFailure).not.toHaveBeenCalled();
+      expect(res).toEqual({ ok: false, reason: "password_mismatch" });
+      expect(limiter.check).toHaveBeenCalledWith("127.0.0.1", "shared-secret");
+      expect(limiter.recordFailure).toHaveBeenCalledWith("127.0.0.1", "shared-secret");
       expect(limiter.reset).not.toHaveBeenCalled();
     });
 
-    it("does not apply shared-secret rate limits to trusted-proxy failures", async () => {
+    it("enforces rate-limit lockout before local-direct password fallback", async () => {
       const limiter = createLimiterSpy();
       limiter.check.mockReturnValueOnce({
         allowed: false,
@@ -1066,10 +1069,27 @@ describe("trusted-proxy auth", () => {
         rateLimiter: limiter,
       });
 
-      expect(res).toEqual({ ok: false, reason: "trusted_proxy_loopback_source" });
-      expect(limiter.check).not.toHaveBeenCalled();
+      expect(res).toEqual({
+        ok: false,
+        reason: "rate_limited",
+        rateLimited: true,
+        retryAfterMs: 2500,
+      });
       expect(limiter.recordFailure).not.toHaveBeenCalled();
       expect(limiter.reset).not.toHaveBeenCalled();
+    });
+
+    it("accepts local-direct password fallback before required-header failure", async () => {
+      const res = await authorizeLocalDirect({
+        password: "local-password", // pragma: allowlist secret
+        connectPassword: "local-password", // pragma: allowlist secret
+        trustedProxy: {
+          ...trustedProxyConfig,
+          allowLoopback: true,
+        },
+      });
+
+      expect(res).toEqual({ ok: true, method: "password" });
     });
 
     it("keeps local-direct trusted-proxy on proxy failure when no password is supplied", async () => {
