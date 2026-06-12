@@ -1,3 +1,4 @@
+// Channel plugin resolution tests cover trusted catalog lookup, install prompts, and setup plugin snapshots.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPluginCatalogEntry } from "../../channels/plugins/catalog.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.js";
@@ -20,6 +21,7 @@ vi.mock("../../agents/agent-scope.js", () => ({
 
 vi.mock("../../channels/plugins/catalog.js", () => ({
   listChannelPluginCatalogEntries: mocks.listChannelPluginCatalogEntries,
+  listRawChannelPluginCatalogEntries: mocks.listChannelPluginCatalogEntries,
   getChannelPluginCatalogEntry: mocks.getChannelPluginCatalogEntry,
 }));
 
@@ -78,6 +80,7 @@ describe("resolveInstallableChannelPlugin", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getChannelPlugin.mockReturnValue(undefined);
+    mocks.getChannelPluginCatalogEntry.mockReturnValue(undefined);
     mocks.ensureChannelSetupPluginInstalled.mockResolvedValue({
       cfg: {},
       installed: false,
@@ -97,9 +100,12 @@ describe("resolveInstallableChannelPlugin", () => {
     });
     const bundledPlugin = createPlugin("telegram");
 
-    mocks.listChannelPluginCatalogEntries.mockImplementation(
-      ({ excludeWorkspace }: { excludeWorkspace?: boolean }) =>
-        excludeWorkspace ? [bundledEntry] : [workspaceEntry],
+    mocks.listChannelPluginCatalogEntries.mockImplementation(() => [workspaceEntry]);
+    mocks.getChannelPluginCatalogEntry.mockImplementation(
+      (_channel: string, opts?: { excludePluginRefs?: Array<{ pluginId: string }> }) =>
+        opts?.excludePluginRefs?.some((entry) => entry.pluginId === "evil-telegram-shadow")
+          ? bundledEntry
+          : undefined,
     );
     mocks.loadChannelSetupPluginRegistrySnapshotForChannel.mockImplementation(
       ({ pluginId }: { pluginId?: string }) => ({
@@ -167,11 +173,11 @@ describe("resolveInstallableChannelPlugin", () => {
 
   it("returns an existing plugin that lacks the requested capability without reinstalling", async () => {
     const catalogEntry = createCatalogEntry({
-      id: "astroclaw-weixin",
-      pluginId: "@tencent-weixin/astroclaw-weixin",
+      id: "openclaw-weixin",
+      pluginId: "@tencent-weixin/openclaw-weixin",
       origin: "bundled",
     });
-    const installedPlugin = createPlugin("astroclaw-weixin");
+    const installedPlugin = createPlugin("openclaw-weixin");
 
     mocks.listChannelPluginCatalogEntries.mockReturnValue([catalogEntry]);
     mocks.getChannelPlugin.mockReturnValue(installedPlugin);
@@ -179,7 +185,7 @@ describe("resolveInstallableChannelPlugin", () => {
     const result = await resolveInstallableChannelPlugin({
       cfg: { plugins: { enabled: true } },
       runtime: {} as never,
-      rawChannel: "astroclaw-weixin",
+      rawChannel: "openclaw-weixin",
       allowInstall: true,
       supports: (plugin) => Boolean(plugin.directory),
     });
@@ -192,11 +198,11 @@ describe("resolveInstallableChannelPlugin", () => {
 
   it("returns a scoped installed plugin that lacks the requested capability without reinstalling", async () => {
     const catalogEntry = createCatalogEntry({
-      id: "astroclaw-weixin",
-      pluginId: "@tencent-weixin/astroclaw-weixin",
+      id: "openclaw-weixin",
+      pluginId: "@tencent-weixin/openclaw-weixin",
       origin: "bundled",
     });
-    const scopedPlugin = createPlugin("astroclaw-weixin");
+    const scopedPlugin = createPlugin("openclaw-weixin");
 
     mocks.listChannelPluginCatalogEntries.mockReturnValue([catalogEntry]);
     mocks.loadChannelSetupPluginRegistrySnapshotForChannel.mockReturnValue({
@@ -207,7 +213,7 @@ describe("resolveInstallableChannelPlugin", () => {
     const result = await resolveInstallableChannelPlugin({
       cfg: { plugins: { enabled: true } },
       runtime: {} as never,
-      rawChannel: "astroclaw-weixin",
+      rawChannel: "openclaw-weixin",
       allowInstall: true,
       supports: (plugin) => Boolean(plugin.directory),
     });
