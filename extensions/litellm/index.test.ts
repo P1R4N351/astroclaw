@@ -1,7 +1,8 @@
+// Litellm tests cover index plugin behavior.
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { capturePluginRegistration } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { capturePluginRegistration } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it, vi } from "vitest";
 import plugin from "./index.js";
 
@@ -16,8 +17,8 @@ const LITELLM_DEFAULT_MODEL = {
     cacheRead: 0,
     cacheWrite: 0,
   },
-  contextWindow: 128_000,
-  maxTokens: 8_192,
+  contextWindow: 1_000_000,
+  maxTokens: 128_000,
 };
 
 function registerProvider() {
@@ -31,7 +32,7 @@ describe("litellm plugin", () => {
   it("honors --custom-base-url in non-interactive API-key setup", async () => {
     const provider = registerProvider();
     const auth = provider?.auth?.[0];
-    const agentDir = mkdtempSync(join(tmpdir(), "astroclaw-litellm-auth-"));
+    const agentDir = mkdtempSync(join(tmpdir(), "openclaw-litellm-auth-"));
     const resolveApiKey = vi.fn(async () => ({ key: "litellm-test-key", source: "flag" as const }));
     const toApiKeyCredential = vi.fn(({ provider: providerId, resolved }) => ({
       type: "api_key" as const,
