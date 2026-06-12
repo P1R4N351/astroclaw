@@ -1,13 +1,14 @@
+// Codex tests cover outcome fallback runtime contract plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
-import type { EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness";
-import { classifyEmbeddedPiRunResultForModelFallback } from "astroclaw/plugin-sdk/agent-harness-runtime";
+import type { EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness";
+import { classifyEmbeddedAgentRunResultForModelFallback } from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   createContractRunResult,
   OUTCOME_FALLBACK_RUNTIME_CONTRACT,
-} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
+import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   CodexAppServerEventProjector,
@@ -21,10 +22,10 @@ const tempDirs = new Set<string>();
 
 type ProjectorNotification = Parameters<CodexAppServerEventProjector["handleNotification"]>[0];
 type ProjectedAttemptResult = ReturnType<CodexAppServerEventProjector["buildResult"]>;
-type MirrorTaggedMessage = { __astroclaw?: { mirrorIdentity?: string } };
+type MirrorTaggedMessage = { __openclaw?: { mirrorIdentity?: string } };
 
 async function createParams(): Promise<EmbeddedRunAttemptParams> {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-codex-outcome-contract-"));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-outcome-contract-"));
   tempDirs.add(tempDir);
   const sessionFile = path.join(tempDir, "session.jsonl");
   SessionManager.open(sessionFile);
@@ -72,7 +73,7 @@ function forCurrentTurn(
 
 function classifyProjectedAttemptResult(result: ProjectedAttemptResult) {
   const finalAssistantText = result.assistantTexts.join("\n\n").trim();
-  return classifyEmbeddedPiRunResultForModelFallback({
+  return classifyEmbeddedAgentRunResultForModelFallback({
     provider: "codex",
     model: OUTCOME_FALLBACK_RUNTIME_CONTRACT.primaryModel,
     result: createContractRunResult({
@@ -89,7 +90,7 @@ function classifyProjectedAttemptResult(result: ProjectedAttemptResult) {
 }
 
 function readMirrorIdentity(message: unknown): string | undefined {
-  const meta = (message as MirrorTaggedMessage | undefined)?.__astroclaw;
+  const meta = (message as MirrorTaggedMessage | undefined)?.["__openclaw"];
   return meta?.mirrorIdentity;
 }
 
@@ -101,7 +102,7 @@ afterEach(async () => {
 });
 
 describe("Outcome/fallback runtime contract - Codex app-server adapter", () => {
-  it("preserves an empty terminal turn for Astroclaw-owned fallback classification", async () => {
+  it("preserves an empty terminal turn for OpenClaw-owned fallback classification", async () => {
     const projector = await createProjector();
     await projector.handleNotification(
       forCurrentTurn("turn/completed", {
@@ -141,7 +142,7 @@ describe("Outcome/fallback runtime contract - Codex app-server adapter", () => {
     expect(result.promptError).toBeNull();
   });
 
-  it("preserves reasoning-only terminal turns for Astroclaw-owned fallback classification", async () => {
+  it("preserves reasoning-only terminal turns for OpenClaw-owned fallback classification", async () => {
     const projector = await createProjector();
     await projector.handleNotification(
       forCurrentTurn("item/reasoning/textDelta", {
@@ -179,7 +180,7 @@ describe("Outcome/fallback runtime contract - Codex app-server adapter", () => {
         text: `Codex reasoning:\n${OUTCOME_FALLBACK_RUNTIME_CONTRACT.reasoningOnlyText}`,
       },
     ]);
-    expect(reasoningMessage.api).toBe("openai-codex-responses");
+    expect(reasoningMessage.api).toBe("openai-chatgpt-responses");
     expect(reasoningMessage.provider).toBe("codex");
     expect(reasoningMessage.model).toBe(OUTCOME_FALLBACK_RUNTIME_CONTRACT.primaryModel);
     expect(reasoningMessage.usage).toStrictEqual({
@@ -201,7 +202,7 @@ describe("Outcome/fallback runtime contract - Codex app-server adapter", () => {
     expect(reasoningMessage.timestamp).toBeGreaterThan(0);
   });
 
-  it("preserves planning-only terminal turns for Astroclaw-owned fallback classification", async () => {
+  it("preserves planning-only terminal turns for OpenClaw-owned fallback classification", async () => {
     const projector = await createProjector();
     await projector.handleNotification(
       forCurrentTurn("item/plan/delta", {
@@ -245,7 +246,7 @@ describe("Outcome/fallback runtime contract - Codex app-server adapter", () => {
         text: `Codex plan:\n${OUTCOME_FALLBACK_RUNTIME_CONTRACT.planningOnlyText}`,
       },
     ]);
-    expect(planMessage.api).toBe("openai-codex-responses");
+    expect(planMessage.api).toBe("openai-chatgpt-responses");
     expect(planMessage.provider).toBe("codex");
     expect(planMessage.model).toBe(OUTCOME_FALLBACK_RUNTIME_CONTRACT.primaryModel);
     expect(planMessage.usage).toStrictEqual({
