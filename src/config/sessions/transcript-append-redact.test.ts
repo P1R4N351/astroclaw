@@ -1,7 +1,8 @@
+// Transcript append redaction tests cover secret scrubbing when appending transcript entries.
 import fs from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { onSessionTranscriptUpdate } from "../../sessions/transcript-events.js";
 import { resolveSessionTranscriptPathInDir } from "./paths.js";
 import { useTempSessionsFixture } from "./test-helpers.js";
@@ -22,6 +23,8 @@ vi.mock("../../logging/config.js", async (importOriginal) => {
 });
 
 const EMAIL_PATTERN = String.raw`([\w]|[-.])+@([\w]|[-.])+\.\w+`;
+const IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAARcnVOZAAAAKIDABCDEFGHIJKLMNOP8JJRuAAAAABJRU5ErkJggg==";
 
 function readMessages(sessionFile: string) {
   return fs
@@ -44,7 +47,7 @@ describe("appendSessionTranscriptMessage - redaction", () => {
 
   it("masks secrets in message content before writing to disk", async () => {
     const sessionFile = resolveSessionTranscriptPathInDir("redact-on", fixture.sessionsDir());
-    const config: AstroclawConfig = { logging: { redactSensitive: "tools" } };
+    const config: OpenClawConfig = { logging: { redactSensitive: "tools" } };
 
     await appendSessionTranscriptMessage({
       transcriptPath: sessionFile,
@@ -65,9 +68,44 @@ describe("appendSessionTranscriptMessage - redaction", () => {
     expect(msg.content[0].text).not.toContain("sk-abcdef1234567890xyz");
   });
 
+  it("preserves image base64 payloads before writing to disk", async () => {
+    const sessionFile = resolveSessionTranscriptPathInDir(
+      "redact-image-base64",
+      fixture.sessionsDir(),
+    );
+    const config: OpenClawConfig = { logging: { redactSensitive: "tools" } };
+
+    await appendSessionTranscriptMessage({
+      transcriptPath: sessionFile,
+      message: {
+        role: "user",
+        content: [
+          { type: "text", text: "my key is sk-abcdef1234567890xyz" },
+          {
+            type: "image",
+            data: IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING,
+            mimeType: "image/png",
+          },
+        ],
+      },
+      config,
+    });
+
+    const raw = fs.readFileSync(sessionFile, "utf-8");
+    expect(raw).not.toContain("sk-abcdef1234567890xyz");
+    expect(raw).toContain(IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING);
+    expect(raw).not.toContain("AKID…MNOP");
+
+    const [msg] = readMessages(sessionFile) as Array<{
+      content: Array<{ type: string; text?: string; data?: string }>;
+    }>;
+    expect(msg.content[0].text).not.toContain("sk-abcdef1234567890xyz");
+    expect(msg.content[1].data).toBe(IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING);
+  });
+
   it("writes content unchanged when redactSensitive is off", async () => {
     const sessionFile = resolveSessionTranscriptPathInDir("redact-off", fixture.sessionsDir());
-    const config: AstroclawConfig = { logging: { redactSensitive: "off" } };
+    const config: OpenClawConfig = { logging: { redactSensitive: "off" } };
 
     await appendSessionTranscriptMessage({
       transcriptPath: sessionFile,
@@ -103,7 +141,7 @@ describe("appendSessionTranscriptMessage - redaction", () => {
       "redact-string-payload",
       fixture.sessionsDir(),
     );
-    const config: AstroclawConfig = { logging: { redactSensitive: "tools" } };
+    const config: OpenClawConfig = { logging: { redactSensitive: "tools" } };
 
     await appendSessionTranscriptMessage({
       transcriptPath: sessionFile,
@@ -125,7 +163,7 @@ describe("appendSessionTranscriptMessage - redaction", () => {
       "redact-structured-no-role",
       fixture.sessionsDir(),
     );
-    const config: AstroclawConfig = { logging: { redactSensitive: "tools" } };
+    const config: OpenClawConfig = { logging: { redactSensitive: "tools" } };
 
     await appendSessionTranscriptMessage({
       transcriptPath: sessionFile,
@@ -133,7 +171,7 @@ describe("appendSessionTranscriptMessage - redaction", () => {
         apiKey: "plainsecretvalue123",
         password: "hunter2",
         nested: { accessToken: ["nestedplainsecret123"] },
-        command: "OPENAI_API_KEY=sk-abcdef1234567890xyz astroclaw health",
+        command: "OPENAI_API_KEY=sk-abcdef1234567890xyz openclaw health",
         safe: "visible",
       },
       config,
@@ -156,7 +194,7 @@ describe("appendSessionTranscriptMessage - redaction", () => {
     expect(msg.apiKey).toBe("plains…e123");
     expect(msg.password).toBe("***");
     expect(msg.nested.accessToken[0]).toBe("nested…t123");
-    expect(msg.command).toBe("OPENAI_API_KEY=sk-abc…0xyz astroclaw health");
+    expect(msg.command).toBe("OPENAI_API_KEY=sk-abc…0xyz openclaw health");
     expect(msg.safe).toBe("visible");
   });
 
@@ -196,7 +234,7 @@ describe("appendSessionTranscriptMessage - redaction", () => {
       "redact-tool-call-args",
       fixture.sessionsDir(),
     );
-    const config: AstroclawConfig = { logging: { redactSensitive: "tools" } };
+    const config: OpenClawConfig = { logging: { redactSensitive: "tools" } };
 
     await appendSessionTranscriptMessage({
       transcriptPath: sessionFile,
@@ -208,7 +246,7 @@ describe("appendSessionTranscriptMessage - redaction", () => {
             id: "call_1",
             name: "shell",
             arguments: {
-              command: "OPENAI_API_KEY=sk-abcdef1234567890xyz astroclaw health",
+              command: "OPENAI_API_KEY=sk-abcdef1234567890xyz openclaw health",
               env: { nested: ["token sk-abcdef1234567890xyz"] },
               apiKey: "plainsecretvalue123",
               password: "hunter2",
@@ -223,8 +261,8 @@ describe("appendSessionTranscriptMessage - redaction", () => {
     expect(raw).not.toContain("sk-abcdef1234567890xyz");
     expect(raw).not.toContain("plainsecretvalue123");
     expect(raw).not.toContain("hunter2");
-    expect(raw).toContain("OPENAI_API_KEY=sk-abc…0xyz astroclaw health");
-    expect(raw).toContain("astroclaw health");
+    expect(raw).toContain("OPENAI_API_KEY=sk-abc…0xyz openclaw health");
+    expect(raw).toContain("openclaw health");
 
     const [msg] = readMessages(sessionFile) as Array<{
       content: Array<{
@@ -237,7 +275,7 @@ describe("appendSessionTranscriptMessage - redaction", () => {
       }>;
     }>;
     expect(JSON.stringify(msg.content[0].arguments)).not.toContain("sk-abcdef1234567890xyz");
-    expect(msg.content[0].arguments.command).toBe("OPENAI_API_KEY=sk-abc…0xyz astroclaw health");
+    expect(msg.content[0].arguments.command).toBe("OPENAI_API_KEY=sk-abc…0xyz openclaw health");
     expect(msg.content[0].arguments.env.nested[0]).toBe("token sk-abc…0xyz");
     expect(msg.content[0].arguments.apiKey).toBe("plains…e123");
     expect(msg.content[0].arguments.password).toBe("***");
@@ -248,7 +286,7 @@ describe("appendSessionTranscriptMessage - redaction", () => {
       "redact-tool-result-details",
       fixture.sessionsDir(),
     );
-    const config: AstroclawConfig = { logging: { redactSensitive: "tools" } };
+    const config: OpenClawConfig = { logging: { redactSensitive: "tools" } };
 
     await appendSessionTranscriptMessage({
       transcriptPath: sessionFile,
@@ -291,6 +329,38 @@ describe("appendSessionTranscriptMessage - redaction", () => {
     expect(msg.details.password).toBe("***");
     expect(msg.details.nested.accessToken[0]).toBe("nested…t123");
   });
+
+  it("preserves env placeholders in persisted tool results", async () => {
+    const sessionFile = resolveSessionTranscriptPathInDir(
+      "issue-80379-tool-result-env-placeholders",
+      fixture.sessionsDir(),
+    );
+    const config: OpenClawConfig = { logging: { redactSensitive: "tools" } };
+    const toolOutput =
+      'DISCORD_BOT_TOKEN="${DISCORD_BOT_TOKEN:-}"\nTELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"';
+
+    await appendSessionTranscriptMessage({
+      transcriptPath: sessionFile,
+      message: {
+        role: "toolResult",
+        toolCallId: "call_80379",
+        toolName: "read",
+        content: [{ type: "text", text: toolOutput }],
+        isError: false,
+        timestamp: Date.now(),
+      },
+      config,
+    });
+
+    const raw = fs.readFileSync(sessionFile, "utf-8");
+    expect(raw).toContain("${DISCORD_BOT_TOKEN:-}");
+    expect(raw).toContain("${TELEGRAM_BOT_TOKEN:-}");
+
+    const [msg] = readMessages(sessionFile) as Array<{
+      content: Array<{ text: string }>;
+    }>;
+    expect(msg.content[0].text).toBe(toolOutput);
+  });
 });
 
 describe("appendExactAssistantMessageToSessionTranscript - redaction", () => {
@@ -308,7 +378,7 @@ describe("appendExactAssistantMessageToSessionTranscript - redaction", () => {
     fs.writeFileSync(storePath, JSON.stringify(store, null, 2), { encoding: "utf-8", mode: 0o600 });
 
     const fakeApiKey = "sk-proj-FAKEKEYFORTESTINGONLY1234567890";
-    const config: AstroclawConfig = { logging: { redactSensitive: "off" } };
+    const config: OpenClawConfig = { logging: { redactSensitive: "off" } };
 
     const result = await appendExactAssistantMessageToSessionTranscript({
       sessionKey,
@@ -318,7 +388,7 @@ describe("appendExactAssistantMessageToSessionTranscript - redaction", () => {
         role: "assistant",
         content: [{ type: "text", text: `Here is your key: ${fakeApiKey}` }],
         api: "openai-responses",
-        provider: "astroclaw",
+        provider: "openclaw",
         model: "test-model",
         usage: {
           input: 0,
@@ -354,7 +424,7 @@ describe("appendExactAssistantMessageToSessionTranscript - redaction", () => {
     );
 
     const fakeApiKey = "sk-proj-FAKEKEYFORTESTINGONLY1234567890";
-    const config: AstroclawConfig = { logging: { redactSensitive: "tools" } };
+    const config: OpenClawConfig = { logging: { redactSensitive: "tools" } };
     const updates: Array<{ message?: unknown }> = [];
     const unsubscribe = onSessionTranscriptUpdate((update) => updates.push(update));
 
@@ -367,7 +437,7 @@ describe("appendExactAssistantMessageToSessionTranscript - redaction", () => {
           role: "assistant",
           content: [{ type: "text", text: `Here is your key: ${fakeApiKey}` }],
           api: "openai-responses",
-          provider: "astroclaw",
+          provider: "openclaw",
           model: "test-model",
           usage: {
             input: 0,
@@ -409,7 +479,7 @@ describe("appendExactAssistantMessageToSessionTranscript - redaction", () => {
     );
 
     const fakeApiKey = "sk-proj-FAKEKEYFORTESTINGONLY1234567890";
-    const config: AstroclawConfig = { logging: { redactSensitive: "tools" } };
+    const config: OpenClawConfig = { logging: { redactSensitive: "tools" } };
 
     const first = await appendAssistantMessageToSessionTranscript({
       sessionKey,
@@ -456,7 +526,7 @@ describe("appendExactAssistantMessageToSessionTranscript - redaction", () => {
         role: "assistant",
         content: [{ type: "text", text: `Here is your key: ${fakeApiKey}` }],
         api: "openai-responses",
-        provider: "astroclaw",
+        provider: "openclaw",
         model: "legacy-assistant",
         usage: {
           input: 0,
