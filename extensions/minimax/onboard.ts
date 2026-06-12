@@ -1,14 +1,16 @@
+// Minimax setup module handles plugin onboarding behavior.
 import {
   applyAgentDefaultModelPrimary,
   applyOnboardAuthAgentModelsAndProviders,
   type ModelProviderConfig,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/provider-onboard";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/provider-onboard";
 import {
   buildMinimaxApiModelDefinition,
   MINIMAX_API_BASE_URL,
   MINIMAX_CN_API_BASE_URL,
 } from "./model-definitions.js";
+import { MINIMAX_DEFAULT_MODEL_ID } from "./provider-models.js";
 
 type MinimaxApiProviderConfigParams = {
   providerId: string;
@@ -17,9 +19,9 @@ type MinimaxApiProviderConfigParams = {
 };
 
 function applyMinimaxApiProviderConfigWithBaseUrl(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   params: MinimaxApiProviderConfigParams,
-): AstroclawConfig {
+): OpenClawConfig {
   const providers = { ...cfg.models?.providers } as Record<string, ModelProviderConfig>;
   const existingProvider = providers[params.providerId];
   const existingModels = existingProvider?.models ?? [];
@@ -52,17 +54,17 @@ function applyMinimaxApiProviderConfigWithBaseUrl(
 }
 
 function applyMinimaxApiConfigWithBaseUrl(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   params: MinimaxApiProviderConfigParams,
-): AstroclawConfig {
+): OpenClawConfig {
   const next = applyMinimaxApiProviderConfigWithBaseUrl(cfg, params);
   return applyAgentDefaultModelPrimary(next, `${params.providerId}/${params.modelId}`);
 }
 
 export function applyMinimaxApiProviderConfig(
-  cfg: AstroclawConfig,
-  modelId: string = "MiniMax-M2.7",
-): AstroclawConfig {
+  cfg: OpenClawConfig,
+  modelId = MINIMAX_DEFAULT_MODEL_ID,
+): OpenClawConfig {
   return applyMinimaxApiProviderConfigWithBaseUrl(cfg, {
     providerId: "minimax",
     modelId,
@@ -71,9 +73,9 @@ export function applyMinimaxApiProviderConfig(
 }
 
 export function applyMinimaxApiConfig(
-  cfg: AstroclawConfig,
-  modelId: string = "MiniMax-M2.7",
-): AstroclawConfig {
+  cfg: OpenClawConfig,
+  modelId = MINIMAX_DEFAULT_MODEL_ID,
+): OpenClawConfig {
   return applyMinimaxApiConfigWithBaseUrl(cfg, {
     providerId: "minimax",
     modelId,
@@ -82,9 +84,9 @@ export function applyMinimaxApiConfig(
 }
 
 export function applyMinimaxApiProviderConfigCn(
-  cfg: AstroclawConfig,
-  modelId: string = "MiniMax-M2.7",
-): AstroclawConfig {
+  cfg: OpenClawConfig,
+  modelId = MINIMAX_DEFAULT_MODEL_ID,
+): OpenClawConfig {
   return applyMinimaxApiProviderConfigWithBaseUrl(cfg, {
     providerId: "minimax",
     modelId,
@@ -93,9 +95,9 @@ export function applyMinimaxApiProviderConfigCn(
 }
 
 export function applyMinimaxApiConfigCn(
-  cfg: AstroclawConfig,
-  modelId: string = "MiniMax-M2.7",
-): AstroclawConfig {
+  cfg: OpenClawConfig,
+  modelId = MINIMAX_DEFAULT_MODEL_ID,
+): OpenClawConfig {
   return applyMinimaxApiConfigWithBaseUrl(cfg, {
     providerId: "minimax",
     modelId,
