@@ -1,7 +1,11 @@
+/** Doctor diagnostics for pending, paired, and locally cached device auth state. */
 import path from "node:path";
+import { normalizeUniqueSingleOrTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import { note } from "../../packages/terminal-core/src/note.js";
+import { sanitizeTerminalText } from "../../packages/terminal-core/src/safe-text.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveStateDir } from "../config/paths.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { callGateway } from "../gateway/call.js";
 import {
   listApprovedPairedDeviceRoles,
@@ -15,8 +19,6 @@ import { JsonFileReadError, tryReadJsonSync } from "../infra/json-files.js";
 import type { DeviceAuthStore } from "../shared/device-auth.js";
 import { normalizeDeviceAuthScopes } from "../shared/device-auth.js";
 import { roleScopesAllow } from "../shared/operator-scope-compat.js";
-import { note } from "../terminal/note.js";
-import { sanitizeTerminalText } from "../terminal/safe-text.js";
 
 type GatewayListedPairedDevice = Omit<PairedDevice, "tokens" | "approvedScopes"> & {
   tokens?: DeviceAuthTokenSummary[];
@@ -103,29 +105,6 @@ function isDeviceAuthStoreTokenEntry(value: unknown): value is DeviceAuthStore["
   );
 }
 
-function uniqueStrings(...items: Array<string | string[] | undefined>): string[] {
-  const values = new Set<string>();
-  for (const item of items) {
-    if (!item) {
-      continue;
-    }
-    if (Array.isArray(item)) {
-      for (const value of item) {
-        const trimmed = value.trim();
-        if (trimmed) {
-          values.add(trimmed);
-        }
-      }
-      continue;
-    }
-    const trimmed = item.trim();
-    if (trimmed) {
-      values.add(trimmed);
-    }
-  }
-  return [...values];
-}
-
 function normalizeGatewayPairedDevice(device: GatewayListedPairedDevice): DoctorPairedDevice {
   return {
     ...device,
@@ -141,7 +120,7 @@ function normalizeLocalPairedDevice(device: PairedDevice): DoctorPairedDevice {
 }
 
 async function loadDoctorPairingSnapshot(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   healthOk: boolean;
 }): Promise<DoctorPairingSnapshot | null> {
   if (params.healthOk) {
@@ -252,8 +231,8 @@ function resolvePendingPairingIssue(
     displayName: pending.displayName,
     clientId: pending.clientId,
   });
-  const approveCommand = formatCliArgs(["astroclaw", "devices", "approve", pending.requestId]);
-  const inspectCommand = formatCliArgs(["astroclaw", "devices", "list"]);
+  const approveCommand = formatCliArgs(["openclaw", "devices", "approve", pending.requestId]);
+  const inspectCommand = formatCliArgs(["openclaw", "devices", "list"]);
   if (!paired) {
     return {
       kind: "first-time",
@@ -270,10 +249,12 @@ function resolvePendingPairingIssue(
       deviceLabel,
       approveCommand,
       inspectCommand,
-      removeCommand: formatCliArgs(["astroclaw", "devices", "remove", pending.deviceId]),
+      removeCommand: formatCliArgs(["openclaw", "devices", "remove", pending.deviceId]),
     };
   }
-  const requestedRoles = uniqueStrings(pending.roles, pending.role);
+  const requestedRoles = normalizeUniqueSingleOrTrimmedStringList(
+    [pending.roles, pending.role].flat(),
+  );
   const approvedRoles = listApprovedPairedDeviceRoles(paired);
   if (requestedRoles.some((role) => !approvedRoles.includes(role))) {
     return {
@@ -358,7 +339,7 @@ function collectPairedRecordIssues(snapshot: DoctorPairingSnapshot): string[] {
     for (const role of approvedRoles) {
       const token = findTokenSummary(device, role);
       const rotateCommand = formatCliArgs([
-        "astroclaw",
+        "openclaw",
         "devices",
         "rotate",
         "--device",
@@ -477,7 +458,7 @@ function collectLocalDeviceAuthIssues(snapshot: DoctorPairingSnapshot): string[]
       continue;
     }
     const rotateCommand = formatCliArgs([
-      "astroclaw",
+      "openclaw",
       "devices",
       "rotate",
       "--device",
@@ -486,6 +467,7 @@ function collectLocalDeviceAuthIssues(snapshot: DoctorPairingSnapshot): string[]
       role,
     ]);
     const gatewayIssuedAtMs = pairedToken.rotatedAtMs ?? pairedToken.createdAtMs;
+    // Local device auth survives gateway restarts; compare timestamps to catch stale cached tokens.
     if (entry.updatedAtMs < gatewayIssuedAtMs) {
       lines.push(
         `- Local cached ${role} device token for ${deviceLabel} predates the gateway rotation. This is a stale device-token pattern and can fail with device token mismatch. Reconnect with shared gateway auth to refresh it, or rotate again with ${rotateCommand}.`,
@@ -505,11 +487,17 @@ function collectLocalDeviceAuthIssues(snapshot: DoctorPairingSnapshot): string[]
 
 function formatPairingStoreReadIssue(error: JsonFileReadError): string {
   const problem = error.reason === "parse" ? "contains invalid JSON" : "could not be read";
-  return `- Device pairing store ${error.filePath} ${problem}. Astroclaw refused to treat it as empty to avoid overwriting approved pairings. Fix the JSON or file permissions, or move it aside and re-pair devices.`;
+  return `- Device pairing store ${error.filePath} ${problem}. OpenClaw refused to treat it as empty to avoid overwriting approved pairings. Fix the JSON or file permissions, or move it aside and re-pair devices.`;
 }
 
+/**
+ * Emits device pairing repair guidance from live gateway state or local pairing files.
+ *
+ * Remote gateways only report through the gateway API; local gateways can fall back to on-disk
+ * pairing state when the gateway is down.
+ */
 export async function noteDevicePairingHealth(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   healthOk: boolean;
 }): Promise<void> {
   let snapshot: DoctorPairingSnapshot | null;
