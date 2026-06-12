@@ -1,3 +1,4 @@
+// Control UI tests cover agents utils behavior.
 import { describe, expect, it } from "vitest";
 import {
   agentLogoUrl,
@@ -108,18 +109,18 @@ describe("sortLocaleStrings", () => {
 describe("agentLogoUrl", () => {
   it("keeps base-mounted control UI logo paths absolute to the mount", () => {
     expect(agentLogoUrl("/ui")).toBe("/ui/favicon.svg");
-    expect(agentLogoUrl("/apps/astroclaw/")).toBe("/apps/astroclaw/favicon.svg");
+    expect(agentLogoUrl("/apps/openclaw/")).toBe("/apps/openclaw/favicon.svg");
   });
 
-  it("uses a route-relative fallback before basePath bootstrap finishes", () => {
-    expect(agentLogoUrl("")).toBe("favicon.svg");
+  it("uses a root-relative fallback when no basePath is configured", () => {
+    expect(agentLogoUrl("")).toBe("/favicon.svg");
   });
 });
 
 describe("assistantAvatarFallbackUrl", () => {
   it("uses the bundled Molty png for assistant profile fallbacks", () => {
     expect(assistantAvatarFallbackUrl("/ui")).toBe("/ui/apple-touch-icon.png");
-    expect(assistantAvatarFallbackUrl("")).toBe("apple-touch-icon.png");
+    expect(assistantAvatarFallbackUrl("")).toBe("/apple-touch-icon.png");
   });
 });
 
@@ -202,7 +203,7 @@ describe("buildAgentContext", () => {
         workspace: "/tmp/agent-workspace",
         model: {
           primary: "openai/gpt-5.5",
-          fallbacks: ["openai-codex/gpt-5.2-codex"],
+          fallbacks: ["openai/gpt-5.2-codex"],
         },
         agentRuntime: { id: "claude-cli", fallback: "none", source: "agent" },
       },
@@ -227,7 +228,7 @@ describe("buildAgentContext", () => {
             workspace: "/tmp/default-workspace",
             model: {
               primary: "openai/gpt-5.5",
-              fallbacks: ["openai-codex/gpt-5.2-codex"],
+              fallbacks: ["openai/gpt-5.2-codex"],
             },
           },
           list: [{ id: "main" }],
