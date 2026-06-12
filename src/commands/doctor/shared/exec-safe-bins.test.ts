@@ -1,8 +1,9 @@
+// Exec safe-bin tests cover doctor validation of executable helper paths.
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../../config/config.js";
+import type { OpenClawConfig } from "../../../config/config.js";
 import {
   collectExecSafeBinCoverageWarnings,
   collectExecSafeBinTrustedDirHintWarnings,
@@ -26,7 +27,7 @@ describe("doctor exec safe bin helpers", () => {
           safeBinProfiles: { jq: {} },
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(hits).toEqual([
       { scopePath: "tools.exec", bin: "node", kind: "missingProfile", isInterpreter: true },
@@ -52,13 +53,13 @@ describe("doctor exec safe bin helpers", () => {
             "jq supports broad jq programs and builtins (for example `env`), so prefer explicit allowlist entries or approval-gated runs instead of safeBins.",
         },
       ],
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(warnings).toEqual([
       "- tools.exec.safeBins includes interpreter/runtime 'node' without profile.",
       "- agents.list.runner.tools.exec.safeBins includes 'jq': jq supports broad jq programs and builtins (for example `env`), so prefer explicit allowlist entries or approval-gated runs instead of safeBins.",
-      '- Run "astroclaw doctor --fix" to scaffold missing custom safeBinProfiles entries.',
+      '- Run "openclaw doctor --fix" to scaffold missing custom safeBinProfiles entries.',
     ]);
   });
 
@@ -69,7 +70,7 @@ describe("doctor exec safe bin helpers", () => {
           safeBins: ["node", "jq"],
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(result.changes).toEqual([
       "- tools.exec.safeBinProfiles.jq: added scaffold profile {} (review and tighten flags/positionals).",
@@ -88,7 +89,7 @@ describe("doctor exec safe bin helpers", () => {
           safeBins: ["awk", "sed"],
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(result.changes).toStrictEqual([]);
     expect(result.warnings).toEqual([
@@ -107,7 +108,7 @@ describe("doctor exec safe bin helpers", () => {
           safeBins: ["busybox", "toybox"],
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(result.changes).toStrictEqual([]);
     expect(result.warnings).toEqual([
@@ -118,7 +119,7 @@ describe("doctor exec safe bin helpers", () => {
   });
 
   it("flags safeBins that resolve outside trusted directories", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "astroclaw-safe-bin-"));
+    const tempDir = mkdtempSync(join(tmpdir(), "openclaw-safe-bin-"));
     try {
       const binPath = join(tempDir, "custom-safe-bin");
       writeFileSync(binPath, "#!/bin/sh\nexit 0\n");
@@ -134,7 +135,7 @@ describe("doctor exec safe bin helpers", () => {
             safeBinProfiles: { "custom-safe-bin": {} },
           },
         },
-      } as AstroclawConfig);
+      } as OpenClawConfig);
 
       expect(hits).toStrictEqual([
         {
