@@ -1,5 +1,6 @@
+// Setup plugin config tests cover plugin choices and generated config.
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { PluginConfigUiHint } from "../plugins/types.js";
 import type { WizardPrompter } from "./prompts.js";
 import {
@@ -121,7 +122,7 @@ describe("discoverUnconfiguredPlugins", () => {
         gateway: { label: "Gateway" },
       }),
     ];
-    const config: AstroclawConfig = {
+    const config: OpenClawConfig = {
       plugins: {
         entries: {
           openshell: {
@@ -146,7 +147,7 @@ describe("discoverUnconfiguredPlugins", () => {
         gateway: { label: "Gateway" },
       }),
     ];
-    const config: AstroclawConfig = {
+    const config: OpenClawConfig = {
       plugins: {
         entries: {
           openshell: {
@@ -168,7 +169,7 @@ describe("discoverUnconfiguredPlugins", () => {
         endpoint: { label: "Endpoint" },
       }),
     ];
-    const config: AstroclawConfig = {
+    const config: OpenClawConfig = {
       plugins: {
         entries: {
           "test-plugin": {
@@ -216,7 +217,7 @@ describe("discoverUnconfiguredPlugins", () => {
         },
       ),
     ];
-    const config: AstroclawConfig = {
+    const config: OpenClawConfig = {
       plugins: {
         entries: {
           brave: {
