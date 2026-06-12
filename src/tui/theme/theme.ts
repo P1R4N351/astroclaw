@@ -1,11 +1,12 @@
+// TUI theme defines shared colors and text styles for Pi TUI components.
 import type {
   EditorTheme,
   MarkdownTheme,
   SelectListTheme,
   SettingsListTheme,
 } from "@earendil-works/pi-tui";
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
 import chalk from "chalk";
-import { normalizeOptionalLowercaseString } from "../../shared/string-coerce.js";
 import type { SearchableSelectListTheme } from "../components/searchable-select-list.js";
 
 const DARK_TEXT = "#E8E3D5";
@@ -45,7 +46,7 @@ function pickHigherContrastText(r: number, g: number, b: number): boolean {
 }
 
 function isLightBackground(): boolean {
-  const explicit = normalizeOptionalLowercaseString(process.env.ASTROCLAW_THEME);
+  const explicit = normalizeOptionalLowercaseString(process.env.OPENCLAW_THEME);
   if (explicit === "light") {
     return true;
   }
