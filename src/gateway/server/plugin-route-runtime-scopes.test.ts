@@ -1,3 +1,6 @@
+/**
+ * Plugin route runtime-scope regression tests for trusted-proxy headers.
+ */
 import type { IncomingMessage } from "node:http";
 import { describe, expect, it } from "vitest";
 import { resolvePluginRouteRuntimeOperatorScopes } from "./plugin-route-runtime-scopes.js";
@@ -9,7 +12,7 @@ function createReq(headers: Record<string, string> = {}): IncomingMessage {
 describe("resolvePluginRouteRuntimeOperatorScopes", () => {
   it("preserves declared trusted-proxy scopes when the header is present", () => {
     expect(
-      resolvePluginRouteRuntimeOperatorScopes(createReq({ "x-astroclaw-scopes": "operator.read" }), {
+      resolvePluginRouteRuntimeOperatorScopes(createReq({ "x-openclaw-scopes": "operator.read" }), {
         authMethod: "trusted-proxy",
         trustDeclaredOperatorScopes: true,
       }),
@@ -30,7 +33,7 @@ describe("resolvePluginRouteRuntimeOperatorScopes", () => {
       resolvePluginRouteRuntimeOperatorScopes(
         createReq({
           authorization: "Bearer secret",
-          "x-astroclaw-scopes": "operator.admin,operator.write",
+          "x-openclaw-scopes": "operator.admin,operator.write",
         }),
         { authMethod: "token", trustDeclaredOperatorScopes: false },
       ),
@@ -40,7 +43,7 @@ describe("resolvePluginRouteRuntimeOperatorScopes", () => {
   it("does not trust caller-declared admin scopes on plugin routes for mode=none requests", () => {
     expect(
       resolvePluginRouteRuntimeOperatorScopes(
-        createReq({ "x-astroclaw-scopes": "operator.admin,operator.write" }),
+        createReq({ "x-openclaw-scopes": "operator.admin,operator.write" }),
         { authMethod: "none", trustDeclaredOperatorScopes: true },
       ),
     ).toEqual(["operator.write"]);
@@ -85,7 +88,7 @@ describe("resolvePluginRouteRuntimeOperatorScopes", () => {
   it("preserves trusted-proxy declared scopes for routes opting into trusted-operator surface", () => {
     expect(
       resolvePluginRouteRuntimeOperatorScopes(
-        createReq({ "x-astroclaw-scopes": "operator.admin,operator.write" }),
+        createReq({ "x-openclaw-scopes": "operator.admin,operator.write" }),
         { authMethod: "trusted-proxy", trustDeclaredOperatorScopes: true },
         "trusted-operator",
       ),
