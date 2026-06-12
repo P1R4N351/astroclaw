@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import * as agentRuntimeModule from "astroclaw/plugin-sdk/simple-completion-runtime";
+// Discord tests cover thread title.generate plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import * as agentRuntimeModule from "openclaw/plugin-sdk/simple-completion-runtime";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_DISCORD_TEST_CONFIG } from "../test-support/config.js";
 
@@ -35,7 +36,7 @@ beforeEach(() => {
     selection: {
       provider: "anthropic",
       modelId: "claude-sonnet-4-6",
-      agentDir: "/tmp/astroclaw-agent",
+      agentDir: "/tmp/openclaw-agent",
     },
     model: {
       provider: "anthropic",
@@ -69,7 +70,7 @@ describe("generateThreadTitle", () => {
         provider: "openrouter",
         modelId: "anthropic/claude-sonnet-4-5",
         profileId: "work",
-        agentDir: "/tmp/astroclaw-agent",
+        agentDir: "/tmp/openclaw-agent",
       },
       model: {
         provider: "openrouter",
@@ -87,7 +88,7 @@ describe("generateThreadTitle", () => {
           model: "openrouter/anthropic/claude-sonnet-4-5@work",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await generateThreadTitle({
       cfg,
@@ -140,7 +141,7 @@ describe("generateThreadTitle", () => {
       selection: {
         provider: "anthropic",
         modelId: "claude-sonnet-4-6",
-        agentDir: "/tmp/astroclaw-agent",
+        agentDir: "/tmp/openclaw-agent",
       },
     } as Awaited<ReturnType<typeof agentRuntimeModule.prepareSimpleCompletionModelForAgent>>);
 
