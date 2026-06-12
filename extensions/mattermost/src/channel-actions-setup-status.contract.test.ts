@@ -1,9 +1,10 @@
+// Mattermost tests cover channel actions setup status.contract plugin behavior.
 import {
   installChannelActionsContractSuite,
   installChannelSetupContractSuite,
   installChannelStatusContractSuite,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect } from "vitest";
 import { mattermostPlugin, mattermostSetupPlugin } from "../channel-plugin-api.js";
 
@@ -22,7 +23,7 @@ describe("mattermost actions contract", () => {
               baseUrl: "https://chat.example.com",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         expectedActions: ["send", "react"],
         expectedCapabilities: ["presentation"],
       },
@@ -37,7 +38,7 @@ describe("mattermost actions contract", () => {
               actions: { reactions: false },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         expectedActions: ["send"],
         expectedCapabilities: ["presentation"],
       },
@@ -49,7 +50,7 @@ describe("mattermost actions contract", () => {
               enabled: true,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         expectedActions: [],
         expectedCapabilities: [],
       },
@@ -63,7 +64,7 @@ describe("mattermost setup contract", () => {
     cases: [
       {
         name: "default account stores token and normalized base URL",
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         input: {
           botToken: "test-token",
           httpUrl: "https://chat.example.com/",
@@ -81,7 +82,7 @@ describe("mattermost setup contract", () => {
       },
       {
         name: "missing credentials are rejected",
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         input: {
           httpUrl: "",
         },
@@ -106,7 +107,7 @@ describe("mattermost status contract", () => {
               baseUrl: "https://chat.example.com",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         runtime: {
           accountId: "default",
           connected: true,
