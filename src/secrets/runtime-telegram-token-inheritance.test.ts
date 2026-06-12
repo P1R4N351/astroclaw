@@ -1,3 +1,4 @@
+/** Tests Telegram token inheritance in secrets runtime collection. */
 import { describe, expect, it } from "vitest";
 import "./runtime-telegram.test-support.ts";
 import {
@@ -29,7 +30,7 @@ describe("secrets runtime snapshot telegram token inheritance", () => {
           },
         }),
         env: {},
-        agentDirs: ["/tmp/astroclaw-agent-main"],
+        agentDirs: ["/tmp/openclaw-agent-main"],
         loadAuthStore: () => loadAuthStoreWithProfiles({}),
       }),
     ).rejects.toThrow('Environment variable "MISSING_ENABLED_TELEGRAM_TOKEN" is missing or empty.');
@@ -55,7 +56,7 @@ describe("secrets runtime snapshot telegram token inheritance", () => {
           },
         }),
         env: {},
-        agentDirs: ["/tmp/astroclaw-agent-main"],
+        agentDirs: ["/tmp/openclaw-agent-main"],
         loadAuthStore: () => loadAuthStoreWithProfiles({}),
       }),
     ).rejects.toThrow('Environment variable "MISSING_ENABLED_TELEGRAM_TOKEN" is missing or empty.');
@@ -90,7 +91,7 @@ describe("secrets runtime snapshot telegram token inheritance", () => {
       env: {
         TELEGRAM_WORK_TOKEN: "telegram-work-token",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -127,7 +128,7 @@ describe("secrets runtime snapshot telegram token inheritance", () => {
           },
         }),
         env: {},
-        agentDirs: ["/tmp/astroclaw-agent-main"],
+        agentDirs: ["/tmp/openclaw-agent-main"],
         loadAuthStore: () => loadAuthStoreWithProfiles({}),
       }),
     ).rejects.toThrow(
@@ -157,7 +158,7 @@ describe("secrets runtime snapshot telegram token inheritance", () => {
       env: {
         TELEGRAM_BASE_TOKEN: "telegram-base-token",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -187,7 +188,7 @@ describe("secrets runtime snapshot telegram token inheritance", () => {
         },
       }),
       env: {},
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -216,7 +217,7 @@ describe("secrets runtime snapshot telegram token inheritance", () => {
         },
       }),
       env: {},
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -250,7 +251,7 @@ describe("secrets runtime snapshot telegram token inheritance", () => {
         },
       }),
       env: {},
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
