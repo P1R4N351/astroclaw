@@ -1,7 +1,8 @@
+// Msteams tests cover oauth plugin behavior.
 import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: async (params: {
     url: string;
     init?: RequestInit;
@@ -246,6 +247,25 @@ describe("exchangeMSTeamsCodeForTokens", () => {
         verifier: "v",
       }),
     ).rejects.toThrow("MSTeams token exchange failed: malformed JSON response");
+  });
+
+  it("rejects unsafe token exchange expiry values", async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response('{"access_token":"at-unsafe","refresh_token":"rt-unsafe","expires_in":1e309}', {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(
+      exchangeMSTeamsCodeForTokens({
+        tenantId: "t",
+        clientId: "c",
+        clientSecret: "s", // pragma: allowlist secret
+        code: "unsafe-expiry",
+        verifier: "v",
+      }),
+    ).rejects.toThrow("MSTeams token exchange failed: invalid token response fields");
   });
 });
 
