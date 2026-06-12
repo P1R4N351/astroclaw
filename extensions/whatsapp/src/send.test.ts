@@ -1,12 +1,13 @@
+// Whatsapp tests cover send plugin behavior.
 import crypto from "node:crypto";
 import fsSync from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { redactIdentifier } from "astroclaw/plugin-sdk/logging-core";
-import { MEDIA_FFMPEG_MAX_AUDIO_DURATION_SECS } from "astroclaw/plugin-sdk/media-runtime";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { redactIdentifier } from "openclaw/plugin-sdk/logging-core";
+import { MEDIA_FFMPEG_MAX_AUDIO_DURATION_SECS } from "openclaw/plugin-sdk/media-runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { WhatsAppSendKind, WhatsAppSendResult } from "./inbound/send-result.js";
+import { createAcceptedWhatsAppSendResult } from "./inbound/send-result.test-helper.js";
 import type { ActiveWebListener } from "./inbound/types.js";
 
 const hoisted = vi.hoisted(() => ({
@@ -18,21 +19,12 @@ const loadWebMediaMock = vi.fn();
 let sendMessageWhatsApp: typeof import("./send.js").sendMessageWhatsApp;
 let sendPollWhatsApp: typeof import("./send.js").sendPollWhatsApp;
 let sendReactionWhatsApp: typeof import("./send.js").sendReactionWhatsApp;
-let resetLogger: typeof import("astroclaw/plugin-sdk/runtime-env").resetLogger;
-let setLoggerOverride: typeof import("astroclaw/plugin-sdk/runtime-env").setLoggerOverride;
+let resetLogger: typeof import("openclaw/plugin-sdk/runtime-env").resetLogger;
+let setLoggerOverride: typeof import("openclaw/plugin-sdk/runtime-env").setLoggerOverride;
 
-const WHATSAPP_TEST_CFG: AstroclawConfig = {
+const WHATSAPP_TEST_CFG: OpenClawConfig = {
   channels: { whatsapp: {} },
 };
-
-function acceptedSendResult(kind: WhatsAppSendKind, id: string): WhatsAppSendResult {
-  return {
-    kind,
-    messageId: id,
-    keys: [{ id }],
-    providerAccepted: true,
-  };
-}
 
 vi.mock("./connection-controller-registry.js", async () => {
   const actual = await vi.importActual<typeof import("./connection-controller-registry.js")>(
@@ -61,9 +53,9 @@ vi.mock("./outbound-media.runtime.js", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-runtime")>(
-    "astroclaw/plugin-sdk/media-runtime",
+vi.mock("openclaw/plugin-sdk/media-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-runtime")>(
+    "openclaw/plugin-sdk/media-runtime",
   );
   return {
     ...actual,
@@ -81,13 +73,15 @@ vi.mock("./text-runtime.js", async () => {
 
 describe("web outbound", () => {
   const sendComposingTo = vi.fn(async () => {});
-  const sendMessage = vi.fn(async () => acceptedSendResult("text", "msg123"));
-  const sendPoll = vi.fn(async () => acceptedSendResult("poll", "poll123"));
-  const sendReaction = vi.fn(async () => acceptedSendResult("reaction", "reaction123"));
+  const sendMessage = vi.fn(async () => createAcceptedWhatsAppSendResult("text", "msg123"));
+  const sendPoll = vi.fn(async () => createAcceptedWhatsAppSendResult("poll", "poll123"));
+  const sendReaction = vi.fn(async () =>
+    createAcceptedWhatsAppSendResult("reaction", "reaction123"),
+  );
 
   beforeAll(async () => {
     ({ sendMessageWhatsApp, sendPollWhatsApp, sendReactionWhatsApp } = await import("./send.js"));
-    ({ resetLogger, setLoggerOverride } = await import("astroclaw/plugin-sdk/runtime-env"));
+    ({ resetLogger, setLoggerOverride } = await import("openclaw/plugin-sdk/runtime-env"));
   });
 
   beforeEach(() => {
@@ -107,6 +101,7 @@ describe("web outbound", () => {
           };
           mediaLocalRoots?: readonly string[];
           mediaReadFile?: (filePath: string) => Promise<Buffer>;
+          optimizeImages?: boolean;
         },
       ) =>
         await loadWebMediaMock(mediaUrl, {
@@ -142,6 +137,31 @@ describe("web outbound", () => {
     });
     expect(sendComposingTo).toHaveBeenCalledWith("+1555");
     expect(sendMessage).toHaveBeenCalledWith("+1555", "hi", undefined, undefined);
+  });
+
+  it("returns the actual outbound key remote JID when Baileys resolves a LID target", async () => {
+    sendMessage.mockResolvedValueOnce({
+      kind: "text",
+      messageId: "msg-lid",
+      keys: [
+        {
+          id: "msg-lid",
+          remoteJid: "123456789@lid",
+          fromMe: true,
+        },
+      ],
+      providerAccepted: true,
+    });
+
+    const result = await sendMessageWhatsApp("+1555", "hi", {
+      verbose: false,
+      cfg: WHATSAPP_TEST_CFG,
+    });
+
+    expect(result).toEqual({
+      messageId: "msg-lid",
+      toJid: "123456789@lid",
+    });
   });
 
   it("sends newsletter messages via the active listener without composing presence", async () => {
@@ -183,7 +203,7 @@ describe("web outbound", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
 
     expect(result).toEqual({
@@ -364,6 +384,51 @@ describe("web outbound", () => {
     });
   });
 
+  it("sends prehydrated media without loading the original media URL again", async () => {
+    const buf = Buffer.from("hydrated");
+    await sendMessageWhatsApp("+1555", "hydrated caption", {
+      verbose: false,
+      cfg: WHATSAPP_TEST_CFG,
+      mediaUrl: "https://one-shot.test/photo.png",
+      mediaPayload: {
+        buffer: buf,
+        contentType: "image/png",
+        fileName: "photo.png",
+      },
+    });
+
+    expect(hoisted.loadOutboundMediaFromUrl).not.toHaveBeenCalled();
+    expect(sendMessage).toHaveBeenLastCalledWith("+1555", "hydrated caption", buf, "image/png");
+  });
+
+  it("uses prehydrated media for forced document sends", async () => {
+    const hydrated = Buffer.from("hydrated-original");
+
+    await sendMessageWhatsApp("+1555", "document caption", {
+      verbose: false,
+      cfg: WHATSAPP_TEST_CFG,
+      mediaUrl: "/tmp/photo.png",
+      mediaPayload: {
+        buffer: hydrated,
+        contentType: "image/png",
+        fileName: "photo.png",
+      },
+      forceDocument: true,
+    });
+
+    expect(hoisted.loadOutboundMediaFromUrl).not.toHaveBeenCalled();
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      "+1555",
+      "document caption",
+      hydrated,
+      "image/png",
+      {
+        asDocument: true,
+        fileName: "photo.png",
+      },
+    );
+  });
+
   it("maps image with caption", async () => {
     const buf = Buffer.from("img");
     loadWebMediaMock.mockResolvedValueOnce({
@@ -451,6 +516,125 @@ describe("web outbound", () => {
     });
   });
 
+  it("keeps explicit document kind for prehydrated image payloads", async () => {
+    const buf = Buffer.from("image-as-document");
+
+    await sendMessageWhatsApp("+1555", "doc", {
+      verbose: false,
+      cfg: WHATSAPP_TEST_CFG,
+      mediaPayload: {
+        buffer: buf,
+        contentType: "image/png",
+        kind: "document",
+        fileName: "photo.png",
+      },
+    });
+
+    expect(sendMessage).toHaveBeenLastCalledWith("+1555", "doc", buf, "image/png", {
+      fileName: "photo.png",
+    });
+  });
+
+  it("maps documents without fileName to MIME-aware default filename", async () => {
+    const buf = Buffer.from("pdf");
+    loadWebMediaMock.mockResolvedValueOnce({
+      buffer: buf,
+      contentType: "application/pdf",
+      kind: "document",
+    });
+    await sendMessageWhatsApp("+1555", "doc", {
+      verbose: false,
+      cfg: WHATSAPP_TEST_CFG,
+      mediaUrl: "media://generated",
+    });
+    expect(sendMessage).toHaveBeenLastCalledWith("+1555", "doc", buf, "application/pdf", {
+      fileName: "file.pdf",
+    });
+  });
+
+  it("forces document branch when forceDocument is true with image media", async () => {
+    const buf = Buffer.from("img");
+    loadWebMediaMock.mockResolvedValueOnce({
+      buffer: buf,
+      contentType: "image/jpeg",
+      kind: "image",
+      fileName: "promo.jpg",
+    });
+    await sendMessageWhatsApp("+1555", "look", {
+      verbose: false,
+      cfg: WHATSAPP_TEST_CFG,
+      mediaUrl: "/tmp/pic.jpg",
+      forceDocument: true,
+    });
+    expect(sendMessage).toHaveBeenLastCalledWith("+1555", "look", buf, "image/jpeg", {
+      asDocument: true,
+      fileName: "promo.jpg",
+    });
+    expect(hoisted.loadOutboundMediaFromUrl).toHaveBeenCalledWith(
+      "/tmp/pic.jpg",
+      expect.objectContaining({ optimizeImages: false }),
+    );
+  });
+
+  it("forces document branch when forceDocument is true with video media", async () => {
+    const buf = Buffer.from("video");
+    loadWebMediaMock.mockResolvedValueOnce({
+      buffer: buf,
+      contentType: "video/mp4",
+      kind: "video",
+      fileName: "clip.mp4",
+    });
+    await sendMessageWhatsApp("+1555", "watch", {
+      verbose: false,
+      cfg: WHATSAPP_TEST_CFG,
+      mediaUrl: "/tmp/clip.mp4",
+      forceDocument: true,
+    });
+    expect(sendMessage).toHaveBeenLastCalledWith("+1555", "watch", buf, "video/mp4", {
+      asDocument: true,
+      fileName: "clip.mp4",
+    });
+  });
+
+  it("falls back to a default filename when forceDocument media has no fileName", async () => {
+    const buf = Buffer.from("img");
+    loadWebMediaMock.mockResolvedValueOnce({
+      buffer: buf,
+      contentType: "image/png",
+      kind: "image",
+    });
+    await sendMessageWhatsApp("+1555", "promo", {
+      verbose: false,
+      cfg: WHATSAPP_TEST_CFG,
+      mediaUrl: "/tmp/pic.png",
+      forceDocument: true,
+    });
+    expect(sendMessage).toHaveBeenLastCalledWith("+1555", "promo", buf, "image/png", {
+      asDocument: true,
+      fileName: "file.png",
+    });
+  });
+
+  it("keeps audio on the voice-note path when forceDocument is true", async () => {
+    const buf = Buffer.from("audio");
+    loadWebMediaMock.mockResolvedValueOnce({
+      buffer: buf,
+      contentType: "audio/ogg",
+      kind: "audio",
+      fileName: "voice.ogg",
+    });
+
+    await sendMessageWhatsApp("+1555", "voice note", {
+      verbose: false,
+      cfg: WHATSAPP_TEST_CFG,
+      mediaUrl: "/tmp/voice.ogg",
+      forceDocument: true,
+    });
+
+    expect(sendMessage).toHaveBeenNthCalledWith(1, "+1555", "", buf, "audio/ogg; codecs=opus");
+    expect(sendMessage).toHaveBeenNthCalledWith(2, "+1555", "voice note", undefined, undefined);
+  });
+
   it("uses account-aware WhatsApp media caps for outbound uploads", async () => {
     hoisted.controllerListeners.set("work", {
       sendComposingTo,
@@ -475,7 +659,7 @@ describe("web outbound", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await sendMessageWhatsApp("+1555", "pic", {
       verbose: false,
@@ -513,7 +697,7 @@ describe("web outbound", () => {
   });
 
   it("redacts recipients and poll text in outbound logs", async () => {
-    const logPath = path.join(os.tmpdir(), `astroclaw-outbound-${crypto.randomUUID()}.log`);
+    const logPath = path.join(os.tmpdir(), `openclaw-outbound-${crypto.randomUUID()}.log`);
     setLoggerOverride({ level: "trace", file: logPath });
 
     await sendPollWhatsApp(
