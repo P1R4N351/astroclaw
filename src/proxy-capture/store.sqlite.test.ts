@@ -1,3 +1,4 @@
+// Proxy capture SQLite store tests cover persisted capture reads and writes.
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -23,14 +24,14 @@ afterEach(() => {
 });
 
 function makeStore() {
-  const root = mkdtempSync(path.join(os.tmpdir(), "astroclaw-proxy-capture-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "openclaw-proxy-capture-"));
   cleanupDirs.push(root);
   return new DebugProxyCaptureStore(path.join(root, "capture.sqlite"), path.join(root, "blobs"));
 }
 
 describe("DebugProxyCaptureStore", () => {
   it("keeps the cached store open until the last lease releases", () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), "astroclaw-proxy-capture-lease-"));
+    const root = mkdtempSync(path.join(os.tmpdir(), "openclaw-proxy-capture-lease-"));
     cleanupDirs.push(root);
     const dbPath = path.join(root, "capture.sqlite");
     const blobDir = path.join(root, "blobs");
@@ -64,8 +65,8 @@ describe("DebugProxyCaptureStore", () => {
       id: "session-1",
       startedAt: Date.now(),
       mode: "proxy-run",
-      sourceScope: "astroclaw",
-      sourceProcess: "astroclaw",
+      sourceScope: "openclaw",
+      sourceProcess: "openclaw",
       dbPath: store.dbPath,
       blobDir: store.blobDir,
     });
@@ -76,8 +77,8 @@ describe("DebugProxyCaptureStore", () => {
     store.recordEvent({
       sessionId: "session-1",
       ts: 1,
-      sourceScope: "astroclaw",
-      sourceProcess: "astroclaw",
+      sourceScope: "openclaw",
+      sourceProcess: "openclaw",
       protocol: "https",
       direction: "outbound",
       kind: "request",
@@ -90,8 +91,8 @@ describe("DebugProxyCaptureStore", () => {
     store.recordEvent({
       sessionId: "session-1",
       ts: 2,
-      sourceScope: "astroclaw",
-      sourceProcess: "astroclaw",
+      sourceScope: "openclaw",
+      sourceProcess: "openclaw",
       protocol: "https",
       direction: "outbound",
       kind: "request",
@@ -124,16 +125,16 @@ describe("DebugProxyCaptureStore", () => {
         id: sessionId,
         startedAt: Date.now(),
         mode: "proxy-run",
-        sourceScope: "astroclaw",
-        sourceProcess: "astroclaw",
+        sourceScope: "openclaw",
+        sourceProcess: "openclaw",
         dbPath: store.dbPath,
         blobDir: store.blobDir,
       });
       store.recordEvent({
         sessionId,
         ts: Date.now(),
-        sourceScope: "astroclaw",
-        sourceProcess: "astroclaw",
+        sourceScope: "openclaw",
+        sourceProcess: "openclaw",
         protocol: "https",
         direction: "outbound",
         kind: "request",
