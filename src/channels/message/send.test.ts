@@ -1,5 +1,6 @@
+// Message send tests cover outbound channel message dispatch and error handling.
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { OutboundDeliveryError } from "../../infra/outbound/deliver-types.js";
 import type { OutboundPayloadDeliveryOutcome } from "../../infra/outbound/deliver-types.js";
 import type { OutboundDeliveryIntent } from "../../infra/outbound/deliver.js";
@@ -31,7 +32,7 @@ type DeliveryRequest = DeliveryIntentCallbackParams & {
   threadId?: string | number;
 };
 
-const cfg = {} as AstroclawConfig;
+const cfg = {} as OpenClawConfig;
 
 function requireMockCall(
   mock: { mock: { calls: unknown[][] } },
