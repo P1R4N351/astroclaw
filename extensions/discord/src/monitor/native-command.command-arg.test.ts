@@ -1,6 +1,7 @@
-import type { ChatCommandDefinition } from "astroclaw/plugin-sdk/command-auth";
-import * as commandRegistryModule from "astroclaw/plugin-sdk/command-auth";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Discord tests cover native command.command arg plugin behavior.
+import type { ChatCommandDefinition } from "openclaw/plugin-sdk/command-auth-native";
+import * as commandRegistryModule from "openclaw/plugin-sdk/command-auth-native";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createDiscordCommandArgFallbackButton,
@@ -34,13 +35,13 @@ function createCommandDefinition(): ChatCommandDefinition {
 }
 
 function createContext(
-  discordConfig: NonNullable<AstroclawConfig["channels"]>["discord"],
+  discordConfig: NonNullable<OpenClawConfig["channels"]>["discord"],
 ): CommandArgContext {
   const cfg = {
     channels: {
       discord: discordConfig,
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
   return {
     cfg,
     discordConfig,
