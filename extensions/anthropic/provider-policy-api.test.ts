@@ -1,5 +1,5 @@
-import { strict as assert } from "node:assert";
-import type { ModelDefinitionConfig } from "astroclaw/plugin-sdk/provider-model-types";
+// Anthropic tests cover provider policy api plugin behavior.
+import type { ModelDefinitionConfig } from "openclaw/plugin-sdk/provider-model-types";
 import { describe, expect, it } from "vitest";
 import {
   applyConfigDefaults,
@@ -7,41 +7,7 @@ import {
   resolveThinkingProfile,
 } from "./provider-policy-api.js";
 
-const MAX_POLICY_TEXT_LENGTH = 128;
-const MAX_THINKING_LEVELS = 16;
-const DEFAULT_CONTEXT_WINDOW = 128_000;
-const DEFAULT_MAX_TOKENS = 8_192;
-
-type PolicyLevel = {
-  readonly id: string;
-};
-
-function assertPolicyText(value: string, label: string): void {
-  assert.equal(typeof value, "string", `${label} must be a string`);
-  assert.ok(value.length > 0, `${label} must be non-empty`);
-  assert.ok(value.length <= MAX_POLICY_TEXT_LENGTH, `${label} must be bounded`);
-}
-
-function assertLevelsWithinContract(levels: readonly PolicyLevel[]): void {
-  assert.ok(Array.isArray(levels), "levels must be an array");
-  assert.ok(levels.length <= MAX_THINKING_LEVELS, "levels must be bounded");
-
-  for (let index = 0; index < MAX_THINKING_LEVELS; index += 1) {
-    if (index >= levels.length) {
-      return;
-    }
-
-    const level = levels[index];
-    assert.ok(level !== undefined, "level must exist");
-    assertPolicyText(level.id, "level.id");
-  }
-}
-
-// P10-RELAX(rule 3): This test fixture factory allocates isolated model configs per test case.
 function createModel(id: string, name: string): ModelDefinitionConfig {
-  assertPolicyText(id, "model.id");
-  assertPolicyText(name, "model.name");
-
   return {
     id,
     name,
@@ -53,64 +19,25 @@ function createModel(id: string, name: string): ModelDefinitionConfig {
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: DEFAULT_CONTEXT_WINDOW,
-    maxTokens: DEFAULT_MAX_TOKENS,
+    contextWindow: 128_000,
+    maxTokens: 8_192,
   };
 }
 
-function collectLegacyExtendedLevelIds(levels: readonly PolicyLevel[] | undefined): string[] {
+function collectLegacyExtendedLevelIds(levels: readonly { id: string }[] | undefined): string[] {
   const ids: string[] = [];
-
-  if (levels === undefined) {
-    return ids;
-  }
-
-  assertLevelsWithinContract(levels);
-
-  for (let index = 0; index < MAX_THINKING_LEVELS; index += 1) {
-    if (index >= levels.length) {
-      return ids;
-    }
-
-    const level = levels[index];
-    assert.ok(level !== undefined, "level must exist");
-
+  for (const level of levels ?? []) {
     if (level.id === "xhigh" || level.id === "max") {
-      const nextLength = ids.push(level.id);
-      assert.equal(nextLength, ids.length, "push result must match array length");
-      assert.ok(nextLength <= MAX_THINKING_LEVELS, "legacy level ids must be bounded");
+      ids.push(level.id);
     }
   }
-
   return ids;
 }
 
-function levelIds(levels: readonly PolicyLevel[] | undefined): string[] {
-  const ids: string[] = [];
-
-  if (levels === undefined) {
-    return ids;
-  }
-
-  assertLevelsWithinContract(levels);
-
-  for (let index = 0; index < MAX_THINKING_LEVELS; index += 1) {
-    if (index >= levels.length) {
-      return ids;
-    }
-
-    const level = levels[index];
-    assert.ok(level !== undefined, "level must exist");
-
-    const nextLength = ids.push(level.id);
-    assert.equal(nextLength, ids.length, "push result must match array length");
-    assert.ok(nextLength <= MAX_THINKING_LEVELS, "level ids must be bounded");
-  }
-
-  return ids;
+function levelIds(levels: readonly { id: string }[] | undefined): string[] {
+  return (levels ?? []).map((level) => level.id);
 }
 
-// P10-RELAX(rule 3): Vitest cases allocate isolated input fixtures to avoid shared mutable state.
 describe("anthropic provider policy public artifact", () => {
   it("normalizes Anthropic provider config", () => {
     const normalized = normalizeConfig({
@@ -120,7 +47,6 @@ describe("anthropic provider policy public artifact", () => {
         models: [createModel("claude-sonnet-4-6", "Claude Sonnet 4.6")],
       },
     });
-
     expect(normalized.api).toBe("anthropic-messages");
     expect(normalized.baseUrl).toBe("https://api.anthropic.com");
   });
@@ -133,7 +59,6 @@ describe("anthropic provider policy public artifact", () => {
         models: [createModel("claude-sonnet-4-6", "Claude Sonnet 4.6")],
       },
     });
-
     expect(normalized.api).toBe("anthropic-messages");
   });
 
@@ -143,12 +68,12 @@ describe("anthropic provider policy public artifact", () => {
       models: [createModel("gpt-5.4", "GPT-5.4")],
     };
 
-    const normalized = normalizeConfig({
-      provider: "openai-codex",
-      providerConfig,
-    });
-
-    expect(normalized).toBe(providerConfig);
+    expect(
+      normalizeConfig({
+        provider: "openai",
+        providerConfig,
+      }),
+    ).toBe(providerConfig);
   });
 
   it("applies Anthropic API-key defaults without loading the full provider plugin", () => {
@@ -174,39 +99,97 @@ describe("anthropic provider policy public artifact", () => {
     expect(nextConfig.agents?.defaults?.contextPruning?.ttl).toBe("1h");
   });
 
-  it("exposes Claude Opus 4.7 thinking levels without loading the full provider plugin", () => {
+  it("adds cacheRetention defaults for dated Anthropic primary model refs", () => {
+    const nextConfig = applyConfigDefaults({
+      config: {
+        auth: {
+          profiles: {
+            "anthropic:default": {
+              provider: "anthropic",
+              mode: "api_key",
+            },
+          },
+        },
+        agents: {
+          defaults: {
+            model: { primary: "anthropic/claude-sonnet-4-20250514" },
+          },
+        },
+      },
+      env: {},
+    });
+
+    expect(
+      nextConfig.agents?.defaults?.models?.["anthropic/claude-sonnet-4-6"]?.params?.cacheRetention,
+    ).toBe("short");
+  });
+
+  it("exposes Claude Opus 4.8 thinking levels without loading the full provider plugin", () => {
     const profile = resolveThinkingProfile({
       provider: "anthropic",
-      modelId: "claude-opus-4-7",
+      modelId: "claude-opus-4-8",
     });
     const ids = levelIds(profile?.levels);
-
     expect(ids).toContain("xhigh");
     expect(ids).toContain("adaptive");
     expect(ids).toContain("max");
     expect(profile?.defaultLevel).toBe("off");
   });
 
-  it("keeps adaptive-only Claude profiles aligned with the runtime provider", () => {
+  it("exposes the always-adaptive Claude Fable 5 thinking profile", () => {
     const profile = resolveThinkingProfile({
       provider: "anthropic",
-      modelId: "claude-opus-4-6",
+      modelId: "claude-fable-5",
     });
 
-    assert.ok(profile !== null, "Expected Anthropic policy profile");
-    assert.ok(profile.levels !== undefined, "Expected Anthropic policy levels");
+    expect(profile).toEqual({
+      levels: [
+        { id: "off" },
+        { id: "minimal" },
+        { id: "low" },
+        { id: "medium" },
+        { id: "high" },
+        { id: "xhigh" },
+        { id: "adaptive" },
+        { id: "max" },
+      ],
+      defaultLevel: "high",
+      preserveWhenCatalogReasoningFalse: true,
+    });
+    expect(
+      resolveThinkingProfile({
+        provider: "claude-cli",
+        modelId: "claude-fable-5",
+      }),
+    ).toEqual({
+      levels: [{ id: "off" }],
+      defaultLevel: "off",
+    });
+  });
 
-    expect(levelIds(profile.levels)).toContain("adaptive");
-    expect(profile.defaultLevel).toBe("adaptive");
-    expect(collectLegacyExtendedLevelIds(profile.levels)).toStrictEqual([]);
+  it("exposes native max without xhigh for direct Claude 4.6 routes", () => {
+    for (const provider of ["anthropic", "claude-cli"]) {
+      const profile = resolveThinkingProfile({
+        provider,
+        modelId: "claude-opus-4-6",
+      });
+
+      if (!profile) {
+        throw new Error(`Expected ${provider} policy profile`);
+      }
+      expect(levelIds(profile.levels)).toContain("adaptive");
+      expect(levelIds(profile.levels)).toContain("max");
+      expect(profile.defaultLevel).toBe("adaptive");
+      expect(collectLegacyExtendedLevelIds(profile.levels)).toStrictEqual(["max"]);
+    }
   });
 
   it("does not expose Anthropic thinking profiles for unrelated providers", () => {
-    const profile = resolveThinkingProfile({
-      provider: "openai",
-      modelId: "claude-opus-4-7",
-    });
-
-    expect(profile).toBeNull();
+    expect(
+      resolveThinkingProfile({
+        provider: "openai",
+        modelId: "claude-opus-4-7",
+      }),
+    ).toBeNull();
   });
 });
