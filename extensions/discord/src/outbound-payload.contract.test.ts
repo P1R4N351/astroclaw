@@ -1,8 +1,9 @@
+// Discord tests cover outbound payload.contract plugin behavior.
 import {
   installChannelOutboundPayloadContractSuite,
   primeChannelOutboundSendMock,
   type OutboundPayloadHarnessParams,
-} from "astroclaw/plugin-sdk/channel-contract-testing";
+} from "openclaw/plugin-sdk/channel-contract-testing";
 import { describe, vi } from "vitest";
 import { discordOutbound } from "./outbound-adapter.js";
 
