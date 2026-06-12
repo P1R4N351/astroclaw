@@ -1,5 +1,6 @@
+// Verifies generated models.json preserves source secret markers from runtime snapshots.
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createFixtureSuite } from "../test-utils/fixture-suite.js";
 import { NON_ENV_SECRETREF_MARKER } from "./model-auth-markers.js";
 import {
@@ -16,13 +17,17 @@ vi.mock("../plugins/manifest-registry.js", () => ({
 
 vi.mock("./model-auth-env-vars.js", () => ({
   listKnownProviderEnvApiKeyNames: () => ["OPENAI_API_KEY"],
-  PROVIDER_ENV_API_KEY_CANDIDATES: { openai: ["OPENAI_API_KEY"] },
   resolveProviderEnvApiKeyCandidates: () => ({ openai: ["OPENAI_API_KEY"] }),
   resolveProviderEnvAuthEvidence: () => ({}),
+  resolveProviderEnvAuthLookupMaps: () => ({
+    aliasMap: {},
+    envCandidateMap: { openai: ["OPENAI_API_KEY"] },
+    authEvidenceMap: {},
+  }),
 }));
 
 vi.mock("../plugins/provider-runtime.js", () => ({
-  applyProviderConfigDefaultsWithPlugin: (config: AstroclawConfig) => config,
+  applyProviderConfigDefaultsWithPlugin: (config: OpenClawConfig) => config,
   applyProviderNativeStreamingUsageCompatWithPlugin: () => undefined,
   normalizeProviderConfigWithPlugin: () => undefined,
   resolveProviderConfigApiKeyWithPlugin: () => undefined,
@@ -44,19 +49,19 @@ installModelsConfigTestHooks();
 let clearConfigCache: typeof import("../config/io.js").clearConfigCache;
 let clearRuntimeConfigSnapshot: typeof import("../config/io.js").clearRuntimeConfigSnapshot;
 let setRuntimeConfigSnapshot: typeof import("../config/io.js").setRuntimeConfigSnapshot;
-let ensureAstroclawModelsJson: typeof import("./models-config.js").ensureAstroclawModelsJson;
+let ensureOpenClawModelsJson: typeof import("./models-config.js").ensureOpenClawModelsJson;
 let resetModelsJsonReadyCacheForTest: typeof import("./models-config.js").resetModelsJsonReadyCacheForTest;
-let planAstroclawModelsJsonWithDeps: typeof import("./models-config.plan.js").planAstroclawModelsJsonWithDeps;
+let planOpenClawModelsJsonWithDeps: typeof import("./models-config.plan.js").planOpenClawModelsJsonWithDeps;
 let readGeneratedModelsJson: typeof import("./models-config.test-utils.js").readGeneratedModelsJson;
-const fixtureSuite = createFixtureSuite("astroclaw-models-runtime-source-");
+const fixtureSuite = createFixtureSuite("openclaw-models-runtime-source-");
 
 beforeAll(async () => {
   await fixtureSuite.setup();
   ({ clearConfigCache, clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } =
     await import("../config/io.js"));
-  ({ ensureAstroclawModelsJson, resetModelsJsonReadyCacheForTest } =
+  ({ ensureOpenClawModelsJson, resetModelsJsonReadyCacheForTest } =
     await import("./models-config.js"));
-  ({ planAstroclawModelsJsonWithDeps } = await import("./models-config.plan.js"));
+  ({ planOpenClawModelsJsonWithDeps } = await import("./models-config.plan.js"));
   ({ readGeneratedModelsJson } = await import("./models-config.test-utils.js"));
 });
 
@@ -70,7 +75,7 @@ afterAll(async () => {
   await fixtureSuite.cleanup();
 });
 
-function createOpenAiApiKeySourceConfig(): AstroclawConfig {
+function createOpenAiApiKeySourceConfig(): OpenClawConfig {
   return {
     models: {
       providers: {
@@ -85,7 +90,8 @@ function createOpenAiApiKeySourceConfig(): AstroclawConfig {
   };
 }
 
-function createOpenAiApiKeyRuntimeConfig(): AstroclawConfig {
+function createOpenAiApiKeyRuntimeConfig(): OpenClawConfig {
+  // Runtime config simulates already-resolved secrets that must not be persisted.
   return {
     models: {
       providers: {
@@ -100,7 +106,41 @@ function createOpenAiApiKeyRuntimeConfig(): AstroclawConfig {
   };
 }
 
-function createOpenAiHeaderSourceConfig(): AstroclawConfig {
+function createCustomProviderApiKeySourceConfig(): OpenClawConfig {
+  return {
+    models: {
+      providers: {
+        litellm: {
+          baseUrl: "https://litellm.example/v1",
+          apiKey: {
+            source: "env",
+            provider: "default",
+            id: "OPENCLAW_MODEL_LITELLM_API_KEY", // pragma: allowlist secret
+          },
+          api: "openai-completions" as const,
+          models: [],
+        },
+      },
+    },
+  };
+}
+
+function createCustomProviderApiKeyRuntimeConfig(): OpenClawConfig {
+  return {
+    models: {
+      providers: {
+        litellm: {
+          baseUrl: "https://litellm.example/v1",
+          apiKey: "sk-litellm-runtime-secret", // pragma: allowlist secret
+          api: "openai-completions" as const,
+          models: [],
+        },
+      },
+    },
+  };
+}
+
+function createOpenAiHeaderSourceConfig(): OpenClawConfig {
   return {
     models: {
       providers: {
@@ -126,7 +166,7 @@ function createOpenAiHeaderSourceConfig(): AstroclawConfig {
   };
 }
 
-function createOpenAiHeaderRuntimeConfig(): AstroclawConfig {
+function createOpenAiHeaderRuntimeConfig(): OpenClawConfig {
   return {
     models: {
       providers: {
@@ -144,7 +184,7 @@ function createOpenAiHeaderRuntimeConfig(): AstroclawConfig {
   };
 }
 
-function createOpenAiSourceConfigWithHeadersAndApiKey(): AstroclawConfig {
+function createOpenAiSourceConfigWithHeadersAndApiKey(): OpenClawConfig {
   const config = createOpenAiHeaderSourceConfig();
   config.models!.providers!.openai.apiKey = {
     source: "env",
@@ -154,13 +194,13 @@ function createOpenAiSourceConfigWithHeadersAndApiKey(): AstroclawConfig {
   return config;
 }
 
-function createOpenAiRuntimeConfigWithHeadersAndApiKey(): AstroclawConfig {
+function createOpenAiRuntimeConfigWithHeadersAndApiKey(): OpenClawConfig {
   const config = createOpenAiHeaderRuntimeConfig();
   config.models!.providers!.openai.apiKey = "sk-runtime-resolved"; // pragma: allowlist secret
   return config;
 }
 
-function withGatewayTokenMode(config: AstroclawConfig): AstroclawConfig {
+function withGatewayTokenMode(config: OpenClawConfig): OpenClawConfig {
   return {
     ...config,
     gateway: {
@@ -183,14 +223,15 @@ async function expectGeneratedProviderApiKey(
 }
 
 async function planGeneratedProviders(params: {
-  config: AstroclawConfig;
-  sourceConfigForSecrets: AstroclawConfig;
+  config: OpenClawConfig;
+  sourceConfigForSecrets: OpenClawConfig;
 }) {
-  const plan = await planAstroclawModelsJsonWithDeps(
+  // Planner assertions avoid filesystem noise for marker-projection cases.
+  const plan = await planOpenClawModelsJsonWithDeps(
     {
       cfg: params.config,
       sourceConfigForSecrets: params.sourceConfigForSecrets,
-      agentDir: "/tmp/astroclaw-models-plan",
+      agentDir: "/tmp/openclaw-models-plan",
       env: {},
       existingRaw: "",
       existingParsed: null,
@@ -212,6 +253,7 @@ async function planGeneratedProviders(params: {
 function expectOpenAiHeaderMarkers(
   providers: Record<string, { headers?: Record<string, string> }>,
 ) {
+  // Env header refs keep their id; non-env refs collapse to the shared sentinel.
   expect(providers.openai?.headers?.Authorization).toBe(
     "secretref-env:OPENAI_HEADER_TOKEN", // pragma: allowlist secret
   );
@@ -220,7 +262,7 @@ function expectOpenAiHeaderMarkers(
 
 describe("models-config runtime source snapshot", () => {
   it("uses runtime source snapshot markers when passed the active runtime config", () => {
-    const sourceConfig: AstroclawConfig = {
+    const sourceConfig: OpenClawConfig = {
       models: {
         providers: {
           openai: createOpenAiApiKeySourceConfig().models!.providers!.openai,
@@ -233,7 +275,7 @@ describe("models-config runtime source snapshot", () => {
         },
       },
     };
-    const runtimeConfig: AstroclawConfig = {
+    const runtimeConfig: OpenClawConfig = {
       models: {
         providers: {
           openai: createOpenAiApiKeyRuntimeConfig().models!.providers!.openai,
@@ -260,7 +302,7 @@ describe("models-config runtime source snapshot", () => {
       unsetEnv(MODELS_CONFIG_IMPLICIT_ENV_VARS);
       const sourceConfig = createOpenAiApiKeySourceConfig();
       const runtimeConfig = createOpenAiApiKeyRuntimeConfig();
-      const clonedRuntimeConfig: AstroclawConfig = {
+      const clonedRuntimeConfig: OpenClawConfig = {
         ...runtimeConfig,
         agents: {
           defaults: {
@@ -271,8 +313,26 @@ describe("models-config runtime source snapshot", () => {
 
       try {
         setRuntimeConfigSnapshot(runtimeConfig, sourceConfig);
-        await ensureAstroclawModelsJson(clonedRuntimeConfig, agentDir);
+        await ensureOpenClawModelsJson(clonedRuntimeConfig, agentDir);
         await expectGeneratedProviderApiKey(agentDir, "openai", "OPENAI_API_KEY"); // pragma: allowlist secret
+      } finally {
+        clearRuntimeConfigSnapshot();
+        clearConfigCache();
+      }
+    });
+  });
+
+  it("preserves source markers for custom-provider api keys after models status secret resolution", async () => {
+    const agentDir = await fixtureSuite.createCaseDir("agent");
+    await withTempEnv(MODELS_CONFIG_IMPLICIT_ENV_VARS, async () => {
+      unsetEnv(MODELS_CONFIG_IMPLICIT_ENV_VARS);
+      const sourceConfig = createCustomProviderApiKeySourceConfig();
+      const runtimeConfig = createCustomProviderApiKeyRuntimeConfig();
+
+      try {
+        setRuntimeConfigSnapshot(runtimeConfig, sourceConfig);
+        await ensureOpenClawModelsJson(runtimeConfig, agentDir);
+        await expectGeneratedProviderApiKey(agentDir, "litellm", "OPENCLAW_MODEL_LITELLM_API_KEY"); // pragma: allowlist secret
       } finally {
         clearRuntimeConfigSnapshot();
         clearConfigCache();
@@ -286,7 +346,7 @@ describe("models-config runtime source snapshot", () => {
       unsetEnv(MODELS_CONFIG_IMPLICIT_ENV_VARS);
       const sourceConfig = createOpenAiApiKeySourceConfig();
       const runtimeConfig = createOpenAiApiKeyRuntimeConfig();
-      const firstCandidate: AstroclawConfig = {
+      const firstCandidate: OpenClawConfig = {
         ...runtimeConfig,
         models: {
           providers: {
@@ -294,13 +354,13 @@ describe("models-config runtime source snapshot", () => {
               ...runtimeConfig.models!.providers!.openai,
               baseUrl: "https://api.openai.com/v1",
               headers: {
-                "X-Astroclaw-Test": "one",
+                "X-OpenClaw-Test": "one",
               },
             },
           },
         },
       };
-      const secondCandidate: AstroclawConfig = {
+      const secondCandidate: OpenClawConfig = {
         ...runtimeConfig,
         models: {
           providers: {
@@ -308,7 +368,7 @@ describe("models-config runtime source snapshot", () => {
               ...runtimeConfig.models!.providers!.openai,
               baseUrl: "https://mirror.example/v1",
               headers: {
-                "X-Astroclaw-Test": "two",
+                "X-OpenClaw-Test": "two",
               },
             },
           },
@@ -317,7 +377,7 @@ describe("models-config runtime source snapshot", () => {
 
       try {
         setRuntimeConfigSnapshot(runtimeConfig, sourceConfig);
-        await ensureAstroclawModelsJson(firstCandidate, agentDir);
+        await ensureOpenClawModelsJson(firstCandidate, agentDir);
         let parsed = await readGeneratedModelsJson<{
           providers: Record<
             string,
@@ -326,10 +386,10 @@ describe("models-config runtime source snapshot", () => {
         }>(agentDir);
         expect(parsed.providers.openai?.baseUrl).toBe("https://api.openai.com/v1");
         expect(parsed.providers.openai?.apiKey).toBe("OPENAI_API_KEY"); // pragma: allowlist secret
-        expect(parsed.providers.openai?.headers?.["X-Astroclaw-Test"]).toBe("one");
+        expect(parsed.providers.openai?.headers?.["X-OpenClaw-Test"]).toBe("one");
 
         // Header changes still rewrite models.json, but merge mode preserves the existing baseUrl.
-        await ensureAstroclawModelsJson(secondCandidate, agentDir);
+        await ensureOpenClawModelsJson(secondCandidate, agentDir);
         parsed = await readGeneratedModelsJson<{
           providers: Record<
             string,
@@ -338,7 +398,7 @@ describe("models-config runtime source snapshot", () => {
         }>(agentDir);
         expect(parsed.providers.openai?.baseUrl).toBe("https://api.openai.com/v1");
         expect(parsed.providers.openai?.apiKey).toBe("OPENAI_API_KEY"); // pragma: allowlist secret
-        expect(parsed.providers.openai?.headers?.["X-Astroclaw-Test"]).toBe("two");
+        expect(parsed.providers.openai?.headers?.["X-OpenClaw-Test"]).toBe("two");
       } finally {
         clearRuntimeConfigSnapshot();
         clearConfigCache();
