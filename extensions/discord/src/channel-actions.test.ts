@@ -1,6 +1,7 @@
-import type { ChannelMessageActionContext } from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { withEnv } from "astroclaw/plugin-sdk/test-env";
+// Discord tests cover channel actions plugin behavior.
+import type { ChannelMessageActionContext } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { withEnv } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it, vi } from "vitest";
 
 const handleDiscordMessageActionMock = vi.hoisted(() =>
@@ -23,7 +24,7 @@ describe("discordMessageActions", () => {
               enabled: true,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
       });
 
       expect(discovery).toEqual({
@@ -49,7 +50,7 @@ describe("discordMessageActions", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
 
     expect(discovery?.capabilities).toEqual(["presentation"]);
@@ -97,7 +98,7 @@ describe("discordMessageActions", () => {
             },
           },
         },
-      } as unknown as AstroclawConfig,
+      } as unknown as OpenClawConfig,
     });
 
     expect(discovery?.capabilities).toEqual(["presentation"]);
@@ -139,6 +140,29 @@ describe("discordMessageActions", () => {
     ]);
   });
 
+  it("requires trusted requester sender for privileged guild admin actions only from Discord turns", () => {
+    for (const action of ["channel-delete", "timeout", "kick", "ban"] as const) {
+      expect(
+        discordMessageActions.requiresTrustedRequesterSender?.({
+          action,
+          toolContext: { currentChannelProvider: "discord" },
+        }),
+      ).toBe(true);
+    }
+    expect(
+      discordMessageActions.requiresTrustedRequesterSender?.({
+        action: "channel-delete",
+        toolContext: { currentChannelProvider: "telegram" },
+      }),
+    ).toBe(false);
+    expect(
+      discordMessageActions.requiresTrustedRequesterSender?.({
+        action: "read",
+        toolContext: { currentChannelProvider: "discord" },
+      }),
+    ).toBe(false);
+  });
+
   it("describes scoped account actions when only the account token is an unresolved SecretRef", () => {
     const discovery = discordMessageActions.describeMessageTool?.({
       cfg: {
@@ -159,7 +183,7 @@ describe("discordMessageActions", () => {
             },
           },
         },
-      } as unknown as AstroclawConfig,
+      } as unknown as OpenClawConfig,
       accountId: "ops",
     });
 
@@ -220,7 +244,7 @@ describe("discordMessageActions", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const defaultDiscovery = discordMessageActions.describeMessageTool?.({
       cfg,
@@ -312,7 +336,7 @@ describe("discordMessageActions", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
 
     expect(discovery?.actions).toContain("send");
@@ -330,25 +354,31 @@ describe("discordMessageActions", () => {
             token: "Bot token-main",
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
     expect(discovery?.schema).toBeUndefined();
   });
 
-  it.each(["read", "search"])("routes %s actions through gateway execution mode", (action) => {
-    expect(discordMessageActions.resolveExecutionMode?.({ action: action as never })).toBe(
-      "gateway",
-    );
-  });
-
-  it.each(["send", "upload-file", "edit", "delete", "react", "pin", "poll"])(
-    "routes %s actions through local execution mode",
+  it.each(["read", "search", "edit", "delete", "react", "pin", "poll", "channel-info"])(
+    "routes %s actions through gateway execution mode",
     (action) => {
       expect(discordMessageActions.resolveExecutionMode?.({ action: action as never })).toBe(
-        "local",
+        "gateway",
       );
     },
   );
+
+  it.each([
+    "send",
+    "upload-file",
+    "thread-reply",
+    "sticker",
+    "emoji-upload",
+    "sticker-upload",
+    "event-create",
+  ])("keeps %s on local execution mode", (action) => {
+    expect(discordMessageActions.resolveExecutionMode?.({ action: action as never })).toBe("local");
+  });
 
   it("extracts send targets for message and thread reply actions", () => {
     expect(
@@ -375,7 +405,7 @@ describe("discordMessageActions", () => {
       ctx: {
         channel: "discord",
         action: "send",
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         params: {
           components: {
             text: "Choose",
@@ -414,12 +444,39 @@ describe("discordMessageActions", () => {
     });
   });
 
+  it("prepares inbound event delivery metadata for durable core sends", async () => {
+    const prepared = await discordMessageActions.prepareSendPayload?.({
+      ctx: {
+        channel: "discord",
+        action: "send",
+        cfg: {} as OpenClawConfig,
+        params: {},
+        sessionKey: "agent:main:discord:channel:c1",
+        inboundEventKind: "room_event",
+      },
+      to: "channel:123",
+      payload: { text: "hello" },
+    });
+
+    expect(prepared).toEqual({
+      text: "hello",
+      channelData: {
+        discord: {
+          __openclawInboundEventDelivery: {
+            sessionKey: "agent:main:discord:channel:c1",
+            inboundEventKind: "room_event",
+          },
+        },
+      },
+    });
+  });
+
   it("keeps non-serializable Discord component sends on the legacy action path", async () => {
     const prepared = await discordMessageActions.prepareSendPayload?.({
       ctx: {
         channel: "discord",
         action: "send",
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         params: {
           components: () => [],
         },
@@ -438,7 +495,7 @@ describe("discordMessageActions", () => {
           token: "Bot token-main",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const toolContext: ChannelMessageActionContext["toolContext"] = {
       currentChannelProvider: "discord",
     };
