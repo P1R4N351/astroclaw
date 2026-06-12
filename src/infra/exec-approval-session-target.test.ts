@@ -1,7 +1,8 @@
+// Covers approval session target resolution.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import {
   parseRawSessionConversationRef,
@@ -64,16 +65,16 @@ const baseRequest: ExecApprovalRequest = {
 function writeStoreFile(
   storePath: string,
   entries: Record<string, Partial<SessionEntry>>,
-): AstroclawConfig {
+): OpenClawConfig {
   fs.mkdirSync(path.dirname(storePath), { recursive: true });
   fs.writeFileSync(storePath, JSON.stringify(entries), "utf-8");
   return {
     session: { store: storePath },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function expectResolvedSessionTarget(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   request: ExecApprovalRequest,
 ): ReturnType<typeof resolveExecApprovalSessionTarget> {
   return resolveExecApprovalSessionTarget({ cfg, request });
@@ -107,7 +108,7 @@ function buildPluginRequest(
   };
 }
 
-function resolveSlackPluginOriginTarget(params: { cfg: AstroclawConfig; turnSourceTo: string }) {
+function resolveSlackPluginOriginTarget(params: { cfg: OpenClawConfig; turnSourceTo: string }) {
   return resolveApprovalRequestOriginTarget({
     cfg: params.cfg,
     request: buildPluginRequest({
@@ -135,7 +136,7 @@ describe("exec approval session target", () => {
   };
 
   it("returns null for blank session keys, missing entries, and unresolved targets", () => {
-    withTempDirSync({ prefix: "astroclaw-exec-approval-session-target-" }, (tmpDir) => {
+    withTempDirSync({ prefix: "openclaw-exec-approval-session-target-" }, (tmpDir) => {
       const storePath = path.join(tmpDir, "sessions.json");
       const cfg = writeStoreFile(storePath, {
         "agent:main:main": {
@@ -158,7 +159,7 @@ describe("exec approval session target", () => {
   });
 
   it("prefers turn-source routing over stale session delivery state", () => {
-    withTempDirSync({ prefix: "astroclaw-exec-approval-session-target-" }, (tmpDir) => {
+    withTempDirSync({ prefix: "openclaw-exec-approval-session-target-" }, (tmpDir) => {
       const storePath = path.join(tmpDir, "sessions.json");
       const cfg = writeStoreFile(storePath, {
         "agent:main:main": {
@@ -235,7 +236,7 @@ describe("exec approval session target", () => {
   ] satisfies PlaceholderStoreCase[])(
     "$name",
     ({ relativeStoreDir, entries, request, expected }) => {
-      withTempDirSync({ prefix: "astroclaw-exec-approval-session-target-" }, (tmpDir) => {
+      withTempDirSync({ prefix: "openclaw-exec-approval-session-target-" }, (tmpDir) => {
         const cfg = writeStoreFile(path.join(tmpDir, relativeStoreDir, "sessions.json"), entries);
         cfg.session = { store: path.join(tmpDir, "{agentId}", "sessions.json") };
         expect(expectResolvedSessionTarget(cfg, request)).toEqual(expected);
@@ -244,7 +245,7 @@ describe("exec approval session target", () => {
   );
 
   it("preserves string thread ids from the session store", () => {
-    withTempDirSync({ prefix: "astroclaw-exec-approval-session-target-" }, (tmpDir) => {
+    withTempDirSync({ prefix: "openclaw-exec-approval-session-target-" }, (tmpDir) => {
       const storePath = path.join(tmpDir, "sessions.json");
       const cfg = writeStoreFile(storePath, {
         "agent:main:main": {
@@ -302,7 +303,7 @@ describe("exec approval session target", () => {
   });
 
   it("prefers explicit turn-source account bindings when session store is missing", () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     const request = buildRequest({
       turnSourceChannel: "slack",
       turnSourceAccountId: "Work",
@@ -329,7 +330,7 @@ describe("exec approval session target", () => {
   });
 
   it("rejects mismatched channel bindings before account checks", () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     const request = buildRequest({
       turnSourceChannel: "discord",
       turnSourceAccountId: "work",
@@ -347,7 +348,7 @@ describe("exec approval session target", () => {
   });
 
   it("falls back to the stored session binding when turn source uses another channel", () => {
-    withTempDirSync({ prefix: "astroclaw-exec-approval-session-target-" }, (tmpDir) => {
+    withTempDirSync({ prefix: "openclaw-exec-approval-session-target-" }, (tmpDir) => {
       const storePath = path.join(tmpDir, "sessions.json");
       const cfg = writeStoreFile(storePath, {
         "agent:main:matrix:channel:!ops:example.org": {
@@ -377,7 +378,7 @@ describe("exec approval session target", () => {
   });
 
   it("falls back to the session-bound account when no turn-source account is present", () => {
-    withTempDirSync({ prefix: "astroclaw-exec-approval-session-target-" }, (tmpDir) => {
+    withTempDirSync({ prefix: "openclaw-exec-approval-session-target-" }, (tmpDir) => {
       const storePath = path.join(tmpDir, "sessions.json");
       const cfg = writeStoreFile(storePath, {
         "agent:main:main": {
@@ -404,7 +405,7 @@ describe("exec approval session target", () => {
   });
 
   it("prefers explicit turn-source accounts over stale session account bindings", () => {
-    withTempDirSync({ prefix: "astroclaw-exec-approval-session-target-" }, (tmpDir) => {
+    withTempDirSync({ prefix: "openclaw-exec-approval-session-target-" }, (tmpDir) => {
       const storePath = path.join(tmpDir, "sessions.json");
       const cfg = writeStoreFile(storePath, {
         "agent:main:main": {
@@ -433,7 +434,7 @@ describe("exec approval session target", () => {
   });
 
   it("reconciles plugin-request turn source and session origin targets through the shared helper", () => {
-    withTempDirSync({ prefix: "astroclaw-exec-approval-session-target-" }, (tmpDir) => {
+    withTempDirSync({ prefix: "openclaw-exec-approval-session-target-" }, (tmpDir) => {
       const storePath = path.join(tmpDir, "sessions.json");
       const cfg = writeStoreFile(storePath, {
         "agent:main:main": {
@@ -454,7 +455,7 @@ describe("exec approval session target", () => {
   });
 
   it("returns null when explicit turn source conflicts with the session-bound origin target", () => {
-    withTempDirSync({ prefix: "astroclaw-exec-approval-session-target-" }, (tmpDir) => {
+    withTempDirSync({ prefix: "openclaw-exec-approval-session-target-" }, (tmpDir) => {
       const storePath = path.join(tmpDir, "sessions.json");
       const cfg = writeStoreFile(storePath, {
         "agent:main:main": {
@@ -476,7 +477,7 @@ describe("exec approval session target", () => {
 
   it("falls back to a legacy origin target when no turn-source or session target exists", () => {
     const target = resolveApprovalRequestOriginTarget({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       request: buildPluginRequest({ sessionKey: "agent:main:missing" }),
       channel: "discord",
       accountId: "default",
