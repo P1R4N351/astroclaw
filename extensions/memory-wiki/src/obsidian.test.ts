@@ -1,3 +1,4 @@
+// Memory Wiki tests cover obsidian plugin behavior.
 import { describe, expect, it } from "vitest";
 import { resolveMemoryWikiConfig } from "./config.js";
 import { runObsidianDaily, runObsidianSearch } from "./obsidian.js";
@@ -9,7 +10,7 @@ describe("runObsidianSearch", () => {
         obsidian: {
           enabled: true,
           useOfficialCli: true,
-          vaultName: "Astroclaw Wiki",
+          vaultName: "OpenClaw Wiki",
         },
       },
       { homedir: "/Users/tester" },
@@ -35,7 +36,7 @@ describe("runObsidianSearch", () => {
     expect(calls).toEqual([
       {
         command: "/usr/local/bin/obsidian",
-        argv: ["vault=Astroclaw Wiki", "search", "query=agent memory"],
+        argv: ["vault=OpenClaw Wiki", "search", "query=agent memory"],
       },
     ]);
     expect(result.stdout).toBe("search output\n");
