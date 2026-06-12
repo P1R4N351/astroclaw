@@ -1,3 +1,4 @@
+// Daemon install integration tests cover service install paths with filesystem fixtures.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -44,16 +45,16 @@ describe("runDaemonInstall integration", () => {
   beforeAll(async () => {
     envSnapshot = captureEnv([
       "HOME",
-      "ASTROCLAW_STATE_DIR",
-      "ASTROCLAW_CONFIG_PATH",
-      "ASTROCLAW_GATEWAY_TOKEN",
-      "ASTROCLAW_GATEWAY_PASSWORD",
+      "OPENCLAW_STATE_DIR",
+      "OPENCLAW_CONFIG_PATH",
+      "OPENCLAW_GATEWAY_TOKEN",
+      "OPENCLAW_GATEWAY_PASSWORD",
     ]);
-    tempHome = await makeTempWorkspace("astroclaw-daemon-install-int-");
-    configPath = path.join(tempHome, "astroclaw.json");
+    tempHome = await makeTempWorkspace("openclaw-daemon-install-int-");
+    configPath = path.join(tempHome, "openclaw.json");
     process.env.HOME = tempHome;
-    process.env.ASTROCLAW_STATE_DIR = tempHome;
-    process.env.ASTROCLAW_CONFIG_PATH = configPath;
+    process.env.OPENCLAW_STATE_DIR = tempHome;
+    process.env.OPENCLAW_CONFIG_PATH = configPath;
   });
 
   afterAll(async () => {
@@ -66,8 +67,8 @@ describe("runDaemonInstall integration", () => {
     resetRuntimeCapture();
     clearRuntimeConfigSnapshot();
     // Keep these defined-but-empty so dotenv won't repopulate from local .env.
-    process.env.ASTROCLAW_GATEWAY_TOKEN = "";
-    process.env.ASTROCLAW_GATEWAY_PASSWORD = "";
+    process.env.OPENCLAW_GATEWAY_TOKEN = "";
+    process.env.OPENCLAW_GATEWAY_PASSWORD = "";
     serviceMock.isLoaded.mockResolvedValue(false);
     await fs.writeFile(configPath, JSON.stringify({}, null, 2));
     clearConfigCache();
@@ -107,7 +108,7 @@ describe("runDaemonInstall integration", () => {
     expect(joined).toContain("MISSING_GATEWAY_TOKEN");
   });
 
-  it("refuses service install when config was written by a newer Astroclaw", async () => {
+  it("refuses service install when config was written by a newer OpenClaw", async () => {
     await fs.writeFile(
       configPath,
       JSON.stringify(
@@ -159,6 +160,6 @@ describe("runDaemonInstall integration", () => {
     expect(persistedToken).toEqual(expect.stringMatching(/^[0-9a-f]{48}$/));
 
     const installEnv = serviceMock.install.mock.calls[0]?.[0]?.environment;
-    expect(installEnv?.ASTROCLAW_GATEWAY_TOKEN).toBeUndefined();
+    expect(installEnv?.OPENCLAW_GATEWAY_TOKEN).toBeUndefined();
   });
 });
