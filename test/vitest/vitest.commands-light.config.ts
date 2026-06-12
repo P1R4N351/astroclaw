@@ -1,3 +1,4 @@
+// Vitest commands light config wires the commands light test shard.
 import { commandsLightTestFiles } from "./vitest.commands-light-paths.mjs";
 import { createScopedVitestConfig } from "./vitest.scoped-config.ts";
 import { getUnitFastTestFiles } from "./vitest.unit-fast-paths.mjs";
@@ -7,7 +8,7 @@ export function createCommandsLightVitestConfig(env?: Record<string, string | un
     dir: "src/commands",
     env,
     exclude: getUnitFastTestFiles(),
-    includeAstroclawRuntimeSetup: false,
+    includeOpenClawRuntimeSetup: false,
     name: "commands-light",
     passWithNoTests: true,
   });
