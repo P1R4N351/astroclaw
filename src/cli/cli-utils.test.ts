@@ -1,3 +1,4 @@
+// CLI utility tests cover shared command helpers, option parsing, and output formatting.
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 import { registerDnsCli } from "./dns-cli.js";
@@ -10,7 +11,7 @@ import {
 import { waitForever } from "./wait.js";
 
 describe("waitForever", () => {
-  it("creates an unref'ed interval and returns a pending promise", () => {
+  it("keeps the event loop alive (ref'd interval) and returns a pending promise", () => {
     const unref = vi.fn();
     const interval = { unref } as unknown as ReturnType<typeof setInterval>;
     const setIntervalSpy = vi.spyOn(global, "setInterval").mockReturnValue(interval);
@@ -20,7 +21,11 @@ describe("waitForever", () => {
       const [callback, delay] = setIntervalSpy.mock.calls[0] ?? [];
       expect(typeof callback).toBe("function");
       expect(delay).toBe(1_000_000);
-      expect(unref).toHaveBeenCalledTimes(1);
+      // Regression guard for the previous `.unref()` bug: an unref'd interval
+      // does NOT keep the event loop alive, so `await waitForever()` would
+      // exit immediately with code 13 ("unsettled top-level await"). The
+      // function must NOT unref the interval.
+      expect(unref).not.toHaveBeenCalled();
       expect(promise).toBeInstanceOf(Promise);
     } finally {
       setIntervalSpy.mockRestore();
@@ -30,25 +35,25 @@ describe("waitForever", () => {
 
 describe("shouldSkipRespawnForArgv", () => {
   it.each([
-    { argv: ["node", "astroclaw", "--help"] },
-    { argv: ["node", "astroclaw", "-V"] },
-    { argv: ["node", "astroclaw", "tui"] },
-    { argv: ["node", "astroclaw", "terminal"] },
-    { argv: ["node", "astroclaw", "chat"] },
-    { argv: ["node", "astroclaw", "gateway"] },
-    { argv: ["node", "astroclaw", "gateway", "--port", "14720", "--bind", "loopback"] },
-    { argv: ["node", "astroclaw", "gateway", "run", "--port=14720", "--bind", "loopback"] },
+    { argv: ["node", "openclaw", "--help"] },
+    { argv: ["node", "openclaw", "-V"] },
+    { argv: ["node", "openclaw", "tui"] },
+    { argv: ["node", "openclaw", "terminal"] },
+    { argv: ["node", "openclaw", "chat"] },
+    { argv: ["node", "openclaw", "gateway"] },
+    { argv: ["node", "openclaw", "gateway", "--port", "14720", "--bind", "loopback"] },
+    { argv: ["node", "openclaw", "gateway", "run", "--port=14720", "--bind", "loopback"] },
     {
-      argv: ["node", "astroclaw", "--profile", "server", "gateway", "run", "--allow-unconfigured"],
+      argv: ["node", "openclaw", "--profile", "server", "gateway", "run", "--allow-unconfigured"],
     },
   ] as const)("skips respawn for argv %j", ({ argv }) => {
     expect(shouldSkipRespawnForArgv([...argv]), argv.join(" ")).toBe(true);
   });
 
   it.each([
-    { argv: ["node", "astroclaw", "status"] },
-    { argv: ["node", "astroclaw", "gateway", "status"] },
-    { argv: ["node", "astroclaw", "gateway", "call", "health"] },
+    { argv: ["node", "openclaw", "status"] },
+    { argv: ["node", "openclaw", "gateway", "status"] },
+    { argv: ["node", "openclaw", "gateway", "call", "health"] },
   ] as const)("keeps respawn path for argv %j", ({ argv }) => {
     expect(shouldSkipRespawnForArgv([...argv]), argv.join(" ")).toBe(false);
   });
@@ -56,18 +61,18 @@ describe("shouldSkipRespawnForArgv", () => {
 
 describe("shouldSkipStartupEnvironmentRespawnForArgv", () => {
   it.each([
-    { argv: ["node", "astroclaw", "--help"] },
-    { argv: ["node", "astroclaw", "gateway"] },
-    { argv: ["node", "astroclaw", "gateway", "run", "--port=14720"] },
+    { argv: ["node", "openclaw", "--help"] },
+    { argv: ["node", "openclaw", "gateway"] },
+    { argv: ["node", "openclaw", "gateway", "run", "--port=14720"] },
   ] as const)("skips startup env respawn for argv %j", ({ argv }) => {
     expect(shouldSkipStartupEnvironmentRespawnForArgv([...argv]), argv.join(" ")).toBe(true);
   });
 
   it.each([
-    { argv: ["node", "astroclaw", "tui"] },
-    { argv: ["node", "astroclaw", "terminal"] },
-    { argv: ["node", "astroclaw", "chat"] },
-    { argv: ["node", "astroclaw", "status"] },
+    { argv: ["node", "openclaw", "tui"] },
+    { argv: ["node", "openclaw", "terminal"] },
+    { argv: ["node", "openclaw", "chat"] },
+    { argv: ["node", "openclaw", "status"] },
   ] as const)("allows startup env respawn for argv %j", ({ argv }) => {
     expect(shouldSkipStartupEnvironmentRespawnForArgv([...argv]), argv.join(" ")).toBe(false);
   });
@@ -79,14 +84,33 @@ describe("dns cli", () => {
     try {
       const program = new Command();
       registerDnsCli(program);
-      await program.parseAsync(["dns", "setup", "--domain", "astroclaw.internal"], { from: "user" });
+      await program.parseAsync(["dns", "setup", "--domain", "openclaw.internal"], { from: "user" });
       const output = log.mock.calls.map((call) => call.join(" ")).join("\\n");
       expect(output).toContain("DNS setup");
-      expect(output).toContain("astroclaw.internal");
+      expect(output).toContain("openclaw.internal");
     } finally {
       log.mockRestore();
     }
   });
+
+  it.each(["foo/bar", "../../x", "evil\nrecords"])(
+    "rejects invalid --domain %j with explicit DNS-name diagnostic",
+    async (domain) => {
+      const log = vi.spyOn(console, "log").mockImplementation(() => {});
+      try {
+        const program = new Command();
+        registerDnsCli(program);
+        await expect(
+          program.parseAsync(["dns", "setup", "--domain", domain], { from: "user" }),
+        ).rejects.toThrow("wide-area discovery domain must be a valid DNS name");
+        const output = log.mock.calls.map((call) => call.join(" ")).join("\\n");
+        expect(output).not.toContain("No wide-area domain configured");
+        expect(output).not.toContain("DNS setup");
+      } finally {
+        log.mockRestore();
+      }
+    },
+  );
 });
 
 describe("parseByteSize", () => {
@@ -126,5 +150,10 @@ describe("parseDurationMs", () => {
   it("rejects invalid composite strings", () => {
     expect(() => parseDurationMs("1h30")).toThrow(/Invalid duration/);
     expect(() => parseDurationMs("1h-30m")).toThrow(/Invalid duration/);
+  });
+
+  it("rejects unsafe millisecond results", () => {
+    expect(() => parseDurationMs("9007199254740993ms")).toThrow(/Invalid duration/);
+    expect(() => parseDurationMs("9007199254740990ms10ms")).toThrow(/Invalid duration/);
   });
 });
