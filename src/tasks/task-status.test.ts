@@ -1,3 +1,4 @@
+// Covers task status snapshots and user-facing task status formatting.
 import { describe, expect, it } from "vitest";
 import type { TaskRecord } from "./task-registry.types.js";
 import {
@@ -79,7 +80,7 @@ describe("task status formatting", () => {
     const task = makeTask({
       status: "failed",
       error: [
-        "Astroclaw runtime context (internal):",
+        "OpenClaw runtime context (internal):",
         "This context is runtime-generated, not user-authored. Keep internal details private.",
         "",
         "[Internal task completion event]",
@@ -93,7 +94,7 @@ describe("task status formatting", () => {
   it("sanitizes task titles before truncation", () => {
     const task = makeTask({
       task: [
-        "Astroclaw runtime context (internal):",
+        "OpenClaw runtime context (internal):",
         "This context is runtime-generated, not user-authored. Keep internal details private.",
         "",
         "[Internal task completion event]",
@@ -108,7 +109,7 @@ describe("task status formatting", () => {
     const task = makeTask({
       status: "failed",
       error: [
-        "Astroclaw runtime context (internal):",
+        "OpenClaw runtime context (internal):",
         "This context is runtime-generated, not user-authored. Keep internal details private.",
         "",
         "[Internal task completion event]",
@@ -134,7 +135,7 @@ describe("task status formatting", () => {
     expect(
       sanitizeTaskStatusText(
         [
-          "Astroclaw runtime context (internal):",
+          "OpenClaw runtime context (internal):",
           "This context is runtime-generated, not user-authored. Keep internal details private.",
           "",
           "[Internal task completion event]",
