@@ -1,9 +1,6 @@
-import assert from "node:assert/strict";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
+// Bonjour tests cover index plugin behavior.
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import { afterAll, describe, expect, it, vi } from "vitest";
-
-type TestApi = ReturnType<typeof createTestPluginApi>;
-type DiscoveryService = Parameters<TestApi["registerGatewayDiscoveryService"]>[0];
 
 const mocks = vi.hoisted(() => ({
   advertiserModuleLoaded: vi.fn(),
@@ -20,7 +17,7 @@ vi.mock("./src/advertiser.js", () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/runtime", () => {
+vi.mock("openclaw/plugin-sdk/runtime", () => {
   mocks.runtimeModuleLoaded();
   return {
     registerUncaughtExceptionHandler: mocks.registerUncaughtExceptionHandler,
@@ -30,28 +27,17 @@ vi.mock("astroclaw/plugin-sdk/runtime", () => {
 
 const { default: bonjourPlugin } = await import("./index.js");
 
-function requireDiscoveryService(service: DiscoveryService | undefined): DiscoveryService {
-  expect(service).toBeDefined();
-  assert.notEqual(service, undefined, "expected bonjour plugin to register a discovery service");
-  expect(service.id).toBe("bonjour");
-  assert.equal(service.id, "bonjour", "expected bonjour discovery service id");
-  return service;
-}
-
-function expectRuntimeNotLoaded(): void {
-  expect(mocks.advertiserModuleLoaded).not.toHaveBeenCalled();
-  expect(mocks.runtimeModuleLoaded).not.toHaveBeenCalled();
-}
-
 afterAll(() => {
   vi.doUnmock("./src/advertiser.js");
-  vi.doUnmock("astroclaw/plugin-sdk/runtime");
+  vi.doUnmock("openclaw/plugin-sdk/runtime");
   vi.resetModules();
 });
 
 describe("bonjour plugin entry", () => {
   it("lazy-loads advertiser runtime when gateway discovery advertises", async () => {
-    let discoveryService: DiscoveryService | undefined;
+    let discoveryService:
+      | Parameters<ReturnType<typeof createTestPluginApi>["registerGatewayDiscoveryService"]>[0]
+      | undefined;
     const logger = {
       info: vi.fn(),
       warn: vi.fn(),
@@ -65,26 +51,33 @@ describe("bonjour plugin entry", () => {
       },
     });
 
-    expectRuntimeNotLoaded();
+    expect(mocks.advertiserModuleLoaded).not.toHaveBeenCalled();
+    expect(mocks.runtimeModuleLoaded).not.toHaveBeenCalled();
 
     bonjourPlugin.register(api);
 
-    const registeredDiscoveryService = requireDiscoveryService(discoveryService);
-    expectRuntimeNotLoaded();
+    expect(discoveryService?.id).toBe("bonjour");
+    expect(mocks.advertiserModuleLoaded).not.toHaveBeenCalled();
+    expect(mocks.runtimeModuleLoaded).not.toHaveBeenCalled();
+
+    if (!discoveryService) {
+      throw new Error("expected bonjour plugin to register a discovery service");
+    }
 
     const stop = vi.fn();
     mocks.startGatewayBonjourAdvertiser.mockResolvedValueOnce({ stop });
 
     await expect(
-      registeredDiscoveryService.advertise({
+      discoveryService.advertise({
         machineDisplayName: "Dev Box",
         gatewayPort: 3210,
         gatewayTlsEnabled: true,
         gatewayTlsFingerprintSha256: "abc123",
+        gatewayDirectReachable: true,
         canvasPort: 9876,
         sshPort: 22,
         tailnetDns: "dev.tailnet.ts.net",
-        cliPath: "/usr/local/bin/astroclaw",
+        cliPath: "/usr/local/bin/openclaw",
         minimal: false,
       }),
     ).resolves.toEqual({ stop });
@@ -93,14 +86,15 @@ describe("bonjour plugin entry", () => {
     expect(mocks.runtimeModuleLoaded).toHaveBeenCalledTimes(1);
     expect(mocks.startGatewayBonjourAdvertiser).toHaveBeenCalledWith(
       {
-        instanceName: "Dev Box (Astroclaw)",
+        instanceName: "Dev Box (OpenClaw)",
         gatewayPort: 3210,
         gatewayTlsEnabled: true,
         gatewayTlsFingerprintSha256: "abc123",
+        gatewayDirectReachable: true,
         canvasPort: 9876,
         sshPort: 22,
         tailnetDns: "dev.tailnet.ts.net",
-        cliPath: "/usr/local/bin/astroclaw",
+        cliPath: "/usr/local/bin/openclaw",
         minimal: false,
       },
       {
