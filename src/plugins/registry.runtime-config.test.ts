@@ -1,5 +1,6 @@
+// Verifies plugin registry behavior with runtime config inputs.
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createPluginRecord } from "./loader-records.js";
 import { createPluginRegistry } from "./registry.js";
 import { getPluginRuntimeGatewayRequestScope } from "./runtime/gateway-request-scope.js";
@@ -20,16 +21,48 @@ function createTestRegistry(runtime: PluginRuntime) {
 }
 
 describe("plugin registry runtime config scope", () => {
+  it("adds plugin context to lazy runtime resolution failures", () => {
+    const runtime = new Proxy({} as PluginRuntime, {
+      get() {
+        throw new Error("Unable to resolve plugin runtime module; loader=/tmp/openclaw-loader.js");
+      },
+    });
+    const pluginRegistry = createTestRegistry(runtime);
+    const record = createPluginRecord({
+      id: "diagnostic-plugin",
+      name: "Diagnostic Plugin",
+      source: "/plugins/diagnostic-plugin/index.js",
+      origin: "global",
+      enabled: true,
+      configSchema: false,
+    });
+    const api = pluginRegistry.createApi(record, { config: {} as OpenClawConfig });
+
+    let thrown: unknown;
+    try {
+      void api.runtime.version;
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Error);
+    const message = (thrown as Error).message;
+    expect(message).toContain("Unable to resolve plugin runtime module");
+    expect(message).toContain("pluginRuntimeContext=pluginId:diagnostic-plugin");
+    expect(message).toContain("property:version");
+    expect(message).toContain("source:/plugins/diagnostic-plugin/index.js");
+  });
+
   it("runs config helpers with the owning plugin scope", async () => {
     let currentScope = getPluginRuntimeGatewayRequestScope();
     let mutateScope = getPluginRuntimeGatewayRequestScope();
     let replaceScope = getPluginRuntimeGatewayRequestScope();
-    const config = {} as AstroclawConfig;
+    const config = {} as OpenClawConfig;
     const replaceResult = {
-      path: "/tmp/astroclaw.json",
+      path: "/tmp/openclaw.json",
       previousHash: null,
       persistedHash: "persisted-hash",
-      snapshot: { path: "/tmp/astroclaw.json" },
+      snapshot: { path: "/tmp/openclaw.json" },
       nextConfig: config,
       afterWrite: { mode: "auto" },
       followUp: { mode: "auto", requiresRestart: false },
