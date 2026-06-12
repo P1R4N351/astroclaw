@@ -1,5 +1,6 @@
+// Verifies owner display hashing uses a dedicated secret and raw mode disables it.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { ensureOwnerDisplaySecret, resolveOwnerDisplaySetting } from "./owner-display.js";
 
 describe("resolveOwnerDisplaySetting", () => {
@@ -9,7 +10,7 @@ describe("resolveOwnerDisplaySetting", () => {
         ownerDisplay: "hash",
         ownerDisplaySecret: "  owner-secret  ",
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveOwnerDisplaySetting(cfg)).toEqual({
       ownerDisplay: "hash",
@@ -18,6 +19,7 @@ describe("resolveOwnerDisplaySetting", () => {
   });
 
   it("does not fall back to gateway tokens when hash secret is missing", () => {
+    // Gateway auth tokens are unrelated secrets and must never seed owner hashes.
     const cfg = {
       commands: {
         ownerDisplay: "hash",
@@ -26,7 +28,7 @@ describe("resolveOwnerDisplaySetting", () => {
         auth: { token: "gateway-auth-token" },
         remote: { token: "gateway-remote-token" },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveOwnerDisplaySetting(cfg)).toEqual({
       ownerDisplay: "hash",
@@ -40,7 +42,7 @@ describe("resolveOwnerDisplaySetting", () => {
         ownerDisplay: "raw",
         ownerDisplaySecret: "owner-secret", // pragma: allowlist secret
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveOwnerDisplaySetting(cfg)).toEqual({
       ownerDisplay: "raw",
@@ -55,7 +57,7 @@ describe("ensureOwnerDisplaySecret", () => {
       commands: {
         ownerDisplay: "hash",
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = ensureOwnerDisplaySecret(cfg, () => "generated-owner-secret");
     expect(result.generatedSecret).toBe("generated-owner-secret");
@@ -69,7 +71,7 @@ describe("ensureOwnerDisplaySecret", () => {
         ownerDisplay: "hash",
         ownerDisplaySecret: "existing-owner-secret", // pragma: allowlist secret
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = ensureOwnerDisplaySecret(cfg, () => "generated-owner-secret");
     expect(result.generatedSecret).toBeUndefined();
