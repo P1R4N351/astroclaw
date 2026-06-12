@@ -1,6 +1,7 @@
+// Covers OpenClaw CLI PATH construction.
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ensureAstroclawCliOnPath } from "./path-env.js";
+import { ensureOpenClawCliOnPath } from "./path-env.js";
 
 const state = vi.hoisted(() => ({
   dirs: new Set<string>(),
@@ -44,11 +45,11 @@ vi.mock("./env.js", () => ({
   isTruthyEnvValue: (value?: string) => value === "1" || value === "true",
 }));
 
-describe("ensureAstroclawCliOnPath", () => {
+describe("ensureOpenClawCliOnPath", () => {
   const envKeys = [
     "PATH",
-    "ASTROCLAW_PATH_BOOTSTRAPPED",
-    "ASTROCLAW_ALLOW_PROJECT_LOCAL_BIN",
+    "OPENCLAW_PATH_BOOTSTRAPPED",
+    "OPENCLAW_ALLOW_PROJECT_LOCAL_BIN",
     "MISE_DATA_DIR",
     "HOMEBREW_PREFIX",
     "HOMEBREW_BREW_FILE",
@@ -78,9 +79,9 @@ describe("ensureAstroclawCliOnPath", () => {
   });
 
   function setupAppCliRoot(name: string) {
-    const tmp = abs(`/tmp/astroclaw-path/${name}`);
+    const tmp = abs(`/tmp/openclaw-path/${name}`);
     const appBinDir = path.join(tmp, "AppBin");
-    const appCli = path.join(appBinDir, "astroclaw");
+    const appCli = path.join(appBinDir, "openclaw");
     setDir(tmp);
     setDir(appBinDir);
     setExe(appCli);
@@ -94,14 +95,14 @@ describe("ensureAstroclawCliOnPath", () => {
     platform: NodeJS.Platform;
     allowProjectLocalBin?: boolean;
   }) {
-    ensureAstroclawCliOnPath(params);
+    ensureOpenClawCliOnPath(params);
     return (process.env.PATH ?? "").split(path.delimiter);
   }
 
   function resetBootstrapEnv(pathValue = "/usr/bin") {
     process.env.PATH = pathValue;
-    delete process.env.ASTROCLAW_PATH_BOOTSTRAPPED;
-    delete process.env.ASTROCLAW_ALLOW_PROJECT_LOCAL_BIN;
+    delete process.env.OPENCLAW_PATH_BOOTSTRAPPED;
+    delete process.env.OPENCLAW_ALLOW_PROJECT_LOCAL_BIN;
     delete process.env.HOMEBREW_PREFIX;
     delete process.env.HOMEBREW_BREW_FILE;
     delete process.env.XDG_BIN_HOME;
@@ -118,7 +119,7 @@ describe("ensureAstroclawCliOnPath", () => {
     }
   }
 
-  it("prepends the bundled app bin dir when a sibling astroclaw exists", () => {
+  it("prepends the bundled app bin dir when a sibling openclaw exists", () => {
     const { tmp, appBinDir, appCli } = setupAppCliRoot("case-bundled");
     resetBootstrapEnv();
 
@@ -132,7 +133,7 @@ describe("ensureAstroclawCliOnPath", () => {
   });
 
   it("keeps the current runtime directory ahead of system PATH hardening", () => {
-    const tmp = abs("/tmp/astroclaw-path/case-runtime-dir");
+    const tmp = abs("/tmp/openclaw-path/case-runtime-dir");
     const nodeBinDir = path.join(tmp, "node-bin");
     const nodeExec = path.join(nodeBinDir, "node");
     setDir(tmp);
@@ -153,8 +154,8 @@ describe("ensureAstroclawCliOnPath", () => {
 
   it("is idempotent", () => {
     process.env.PATH = "/bin";
-    process.env.ASTROCLAW_PATH_BOOTSTRAPPED = "1";
-    ensureAstroclawCliOnPath({
+    process.env.OPENCLAW_PATH_BOOTSTRAPPED = "1";
+    ensureOpenClawCliOnPath({
       execPath: "/tmp/does-not-matter",
       cwd: "/tmp",
       homeDir: "/tmp",
@@ -198,7 +199,7 @@ describe("ensureAstroclawCliOnPath", () => {
     ({ envValue, allowProjectLocalBin }) => {
       const { tmp, appCli } = setupAppCliRoot("case-project-local");
       const localBinDir = path.join(tmp, "node_modules", ".bin");
-      const localCli = path.join(localBinDir, "astroclaw");
+      const localCli = path.join(localBinDir, "openclaw");
       setDir(path.join(tmp, "node_modules"));
       setDir(localBinDir);
       setExe(localCli);
@@ -215,9 +216,9 @@ describe("ensureAstroclawCliOnPath", () => {
 
       resetBootstrapEnv();
       if (envValue === undefined) {
-        delete process.env.ASTROCLAW_ALLOW_PROJECT_LOCAL_BIN;
+        delete process.env.OPENCLAW_ALLOW_PROJECT_LOCAL_BIN;
       } else {
-        process.env.ASTROCLAW_ALLOW_PROJECT_LOCAL_BIN = envValue;
+        process.env.OPENCLAW_ALLOW_PROJECT_LOCAL_BIN = envValue;
       }
 
       const withOptIn = bootstrapPath({
@@ -317,7 +318,7 @@ describe("ensureAstroclawCliOnPath", () => {
     {
       name: "appends Linuxbrew dirs after system dirs",
       setup: () => {
-        const tmp = abs("/tmp/astroclaw-path/case-linuxbrew");
+        const tmp = abs("/tmp/openclaw-path/case-linuxbrew");
         const execDir = path.join(tmp, "exec");
         setDir(tmp);
         setDir(execDir);
@@ -365,5 +366,43 @@ describe("ensureAstroclawCliOnPath", () => {
 
     expect(updated).not.toContain(maliciousBin);
     expect(updated).not.toContain(maliciousSbin);
+  });
+
+  it("does not probe Linuxbrew fallbacks on macOS unless already inherited", () => {
+    const { tmp, appCli } = setupAppCliRoot("case-no-darwin-linuxbrew");
+    const homeLinuxbrewBin = path.join(tmp, ".linuxbrew", "bin");
+    const globalLinuxbrewBin = "/home/linuxbrew/.linuxbrew/bin";
+    setDir(path.join(tmp, ".linuxbrew"));
+    setDir(homeLinuxbrewBin);
+    setDir("/home");
+    setDir("/home/linuxbrew");
+    setDir("/home/linuxbrew/.linuxbrew");
+    setDir(globalLinuxbrewBin);
+    resetBootstrapEnv("/usr/bin:/bin");
+
+    const updated = bootstrapPath({
+      execPath: appCli,
+      cwd: tmp,
+      homeDir: tmp,
+      platform: "darwin",
+    });
+
+    expect(updated).not.toContain(homeLinuxbrewBin);
+    expect(updated).not.toContain(globalLinuxbrewBin);
+  });
+
+  it("keeps inherited Linuxbrew path entries on macOS", () => {
+    const { tmp, appCli } = setupAppCliRoot("case-keep-darwin-linuxbrew");
+    const globalLinuxbrewBin = "/home/linuxbrew/.linuxbrew/bin";
+    resetBootstrapEnv(`${globalLinuxbrewBin}:/usr/bin:/bin`);
+
+    const updated = bootstrapPath({
+      execPath: appCli,
+      cwd: tmp,
+      homeDir: tmp,
+      platform: "darwin",
+    });
+
+    expect(updated).toContain(globalLinuxbrewBin);
   });
 });
