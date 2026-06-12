@@ -1,13 +1,15 @@
+// Github Activity Helper tests cover github activity helper script behavior.
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { writeNodeBackedJq } from "./test-helpers.ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const helperPath = path.join(
   repoRoot,
-  ".agents/skills/astroclaw-pr-maintainer/scripts/github-activity.sh",
+  ".agents/skills/openclaw-pr-maintainer/scripts/github-activity.sh",
 );
 const tempDirs: string[] = [];
 
@@ -24,6 +26,7 @@ function runHelper(args: string[]) {
   const logPath = path.join(dir, "gh.log");
   const ghPath = path.join(binDir, "gh");
   mkdirSync(binDir);
+  writeNodeBackedJq(binDir);
   writeFileSync(
     ghPath,
     `#!/usr/bin/env bash
@@ -66,16 +69,16 @@ exit 64
   };
 }
 
-describe("astroclaw-pr-maintainer github activity helper", () => {
+describe("openclaw-pr-maintainer github activity helper", () => {
   it("counts PRs and issues from one paginated issues response", () => {
     const { log, result } = runHelper(["--months", "1", "kevinslin"]);
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("Kevin Lin (@kevinslin, User, account created 2010-09-21");
-    expect(result.stdout).toContain("astroclaw/astroclaw last 1mo: 2 PRs, 1 issues, 2 commits");
-    expect(log.match(/repos\/astroclaw\/astroclaw\/issues/g)).toHaveLength(1);
-    expect(log.match(/repos\/astroclaw\/astroclaw\/commits/g)).toHaveLength(1);
+    expect(result.stdout).toContain("openclaw/openclaw last 1mo: 2 PRs, 1 issues, 2 commits");
+    expect(log.match(/repos\/openclaw\/openclaw\/issues/g)).toHaveLength(1);
+    expect(log.match(/repos\/openclaw\/openclaw\/commits/g)).toHaveLength(1);
     expect(log).toMatch(/since=\d{4}-\d{2}-\d{2}T00:00:00Z/);
   });
 
