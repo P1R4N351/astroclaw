@@ -1,11 +1,12 @@
+// Session send policy tests cover message send eligibility decisions.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { resolveSendPolicy } from "./send-policy.js";
 
 describe("resolveSendPolicy", () => {
   const cfgWithRules = (
-    rules: NonNullable<NonNullable<AstroclawConfig["session"]>["sendPolicy"]>["rules"],
+    rules: NonNullable<NonNullable<OpenClawConfig["session"]>["sendPolicy"]>["rules"],
   ) =>
     ({
       session: {
@@ -14,17 +15,17 @@ describe("resolveSendPolicy", () => {
           rules,
         },
       },
-    }) as AstroclawConfig;
+    }) as OpenClawConfig;
 
   it("defaults to allow", () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
     expect(resolveSendPolicy({ cfg })).toBe("allow");
   });
 
   it("entry override wins", () => {
     const cfg = {
       session: { sendPolicy: { default: "allow" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const entry: SessionEntry = {
       sessionId: "s",
       updatedAt: 0,
@@ -65,6 +66,12 @@ describe("resolveSendPolicy", () => {
       cfg: cfgWithRules([{ action: "deny", match: { rawKeyPrefix: "agent:main:demo-channel:" } }]),
       sessionKey: "agent:main:other-channel:group:dev",
       expected: "allow",
+    },
+    {
+      name: "channel-scoped deny fires for direct session key without explicit channel field",
+      cfg: cfgWithRules([{ action: "deny", match: { channel: "demo-channel" } }]),
+      sessionKey: "demo-channel:direct:user-1",
+      expected: "deny",
     },
   ])("$name", ({ cfg, entry, sessionKey, expected }) => {
     expect(resolveSendPolicy({ cfg, entry, sessionKey })).toBe(expected);
