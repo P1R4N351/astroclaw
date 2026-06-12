@@ -1,3 +1,4 @@
+// Config footprint guardrail tests cover forbidden direct plugin config access patterns.
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -179,12 +180,12 @@ describe("config footprint guardrails", () => {
     );
     const bundledSchemaExportBlocks = Array.from(
       bundledSection.matchAll(
-        /export \{(?<exports>[^}]*)\} from "\.\.\/config\/zod-schema\.providers-(?:core|whatsapp)\.js";/g,
+        /export \{(?<exports>[^}]*)\} from "\.\.\/config\/zod-schema\.providers-(?:core|googlechat|whatsapp)\.js";/g,
       ),
     )
       .map((match) => match.groups?.exports)
       .filter((block): block is string => Boolean(block));
-    expect(bundledSchemaExportBlocks).toHaveLength(2);
+    expect(bundledSchemaExportBlocks).toHaveLength(3);
     const exportedSchemaNames = Array.from(
       bundledSchemaExportBlocks.join("\n").matchAll(/\b([A-Z][A-Za-z0-9]+ConfigSchema)\b/g),
     )
@@ -206,9 +207,9 @@ describe("config footprint guardrails", () => {
       expect(source).not.toContain(schemaName);
     }
     expect(bundledSource).toContain("Bundled-channel config schemas");
-    expect(bundledSource).toContain("astroclaw/plugin-sdk/channel-config-schema");
+    expect(bundledSource).toContain("openclaw/plugin-sdk/channel-config-schema");
     expect(legacySource).toContain("Compatibility surface for bundled channel schemas");
-    expect(legacySource).toContain("astroclaw/plugin-sdk/bundled-channel-config-schema");
+    expect(legacySource).toContain("openclaw/plugin-sdk/bundled-channel-config-schema");
     expect(legacySource).toContain('export * from "./bundled-channel-config-schema.js";');
   });
 });
