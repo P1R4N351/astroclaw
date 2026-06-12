@@ -1,8 +1,9 @@
-import type { AstroclawPluginApi as MatrixEntryPluginApi } from "astroclaw/plugin-sdk/channel-entry-contract";
+// Matrix tests cover subagent hooks plugin behavior.
+import type { OpenClawPluginApi as MatrixEntryPluginApi } from "openclaw/plugin-sdk/channel-entry-contract";
 import {
   getRequiredHookHandler,
   registerHookHandlersForTest,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
+} from "openclaw/plugin-sdk/channel-test-helpers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerMatrixSubagentHooks } from "../../subagent-hooks-api.js";
 
@@ -17,7 +18,7 @@ const removeBindingRecordMock = vi.hoisted(() => vi.fn(() => false));
 const resolveMatrixBaseConfigMock = vi.hoisted(() => vi.fn((): any => ({})));
 const findMatrixAccountConfigMock = vi.hoisted(() => vi.fn((): any => undefined));
 
-vi.mock("astroclaw/plugin-sdk/conversation-binding-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/conversation-binding-runtime", () => ({
   getSessionBindingService: () => ({
     bind: bindMock,
     getCapabilities: getCapabilitiesMock,
@@ -55,7 +56,10 @@ const fakeApi = { config: {} } as never;
 function registerHandlersForTest(config: Record<string, unknown> = {}) {
   return registerHookHandlersForTest<MatrixEntryPluginApi>({
     config,
-    register: registerMatrixSubagentHooks,
+    register: (api) => {
+      registerMatrixSubagentHooks(api);
+      api.on("subagent_spawning", (event) => handleMatrixSubagentSpawning(api, event));
+    },
   });
 }
 
