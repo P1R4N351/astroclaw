@@ -1,3 +1,4 @@
+// Regresses rejection of legacy routing allowFrom config.
 import { describe, expect, it } from "vitest";
 import { validateConfigObject } from "./validation.js";
 
@@ -38,7 +39,7 @@ describe("legacy config detection", () => {
         list: [
           {
             id: "work",
-            workspace: "~/astroclaw-work",
+            workspace: "~/openclaw-work",
             tools: {
               elevated: {
                 enabled: false,
