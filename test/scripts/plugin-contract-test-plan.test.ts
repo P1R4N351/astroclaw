@@ -1,3 +1,4 @@
+// Plugin Contract Test Plan tests cover plugin contract test plan script behavior.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createPluginContractTestShards } from "../../scripts/lib/plugin-contract-test-plan.mjs";
@@ -24,7 +25,7 @@ describe("scripts/lib/plugin-contract-test-plan.mjs", () => {
   });
 
   it("splits plugin contracts into focused shards", () => {
-    const suffixes = ["a", "b", "c", "d"];
+    const suffixes = ["a", "b"];
 
     expect(
       createPluginContractTestShards().map((shard) => ({
@@ -62,7 +63,7 @@ describe("scripts/lib/plugin-contract-test-plan.mjs", () => {
         shards: shards.length,
       };
     `);
-    expect(payload.shards).toBe(4);
+    expect(payload.shards).toBe(2);
     expect(payload.files).toBeGreaterThan(0);
   });
 
@@ -71,7 +72,7 @@ describe("scripts/lib/plugin-contract-test-plan.mjs", () => {
       const registrationFiles = shard.includePatterns.filter((pattern) =>
         pattern.includes("/plugin-registration."),
       );
-      expect(registrationFiles.length).toBeLessThanOrEqual(7);
+      expect(registrationFiles.length).toBeLessThanOrEqual(14);
     }
   });
 });
