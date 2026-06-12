@@ -1,3 +1,4 @@
+// Covers interactive plugin registry entries and lifecycle behavior.
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import * as conversationBinding from "./conversation-binding.js";
 import { createInteractiveConversationBindingHelpers } from "./interactive-binding-helpers.js";
@@ -486,7 +487,7 @@ describe("plugin interactive handlers", () => {
 
   it("hydrates legacy interactive state shapes before clearing handlers", async () => {
     const globalStore = globalThis as Record<PropertyKey, unknown>;
-    const stateKey = Symbol.for("astroclaw.pluginInteractiveState");
+    const stateKey = Symbol.for("openclaw.pluginInteractiveState");
     const originalState = globalStore[stateKey];
 
     globalStore[stateKey] = {
