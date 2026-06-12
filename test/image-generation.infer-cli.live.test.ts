@@ -1,3 +1,4 @@
+// Live image generation CLI tests validate inferred CLI image generation.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -10,7 +11,7 @@ const GOOGLE_IMAGE_KEY =
   process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim() || "";
 const LIVE =
   isLiveTestEnabled() &&
-  isTruthyEnvValue(process.env.ASTROCLAW_LIVE_INFER_CLI_TEST) &&
+  isTruthyEnvValue(process.env.OPENCLAW_LIVE_INFER_CLI_TEST) &&
   GOOGLE_IMAGE_KEY.length > 0;
 const describeLive = LIVE ? describe : describe.skip;
 
@@ -22,8 +23,8 @@ function parseJsonEnvelope(stdout: string): Record<string, unknown> {
 }
 
 describeLive("image generation infer CLI live", () => {
-  it("generates an image through astroclaw infer", () => {
-    const outputBase = path.join(os.tmpdir(), `astroclaw-infer-image-${process.pid}.png`);
+  it("generates an image through openclaw infer", () => {
+    const outputBase = path.join(os.tmpdir(), `openclaw-infer-image-${process.pid}.png`);
     const result = spawnSync(
       process.execPath,
       [
