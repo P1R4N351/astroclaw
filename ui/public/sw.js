@@ -1,13 +1,13 @@
-// Astroclaw Control – Service Worker
+// OpenClaw Control – Service Worker
 // Handles offline caching and push notifications.
 
-const CACHE_PREFIX = "astroclaw-control-";
-const EMBEDDED_CACHE_VERSION = "__ASTROCLAW_CONTROL_UI_BUILD_ID__";
+const CACHE_PREFIX = "openclaw-control-";
+const EMBEDDED_CACHE_VERSION = "__OPENCLAW_CONTROL_UI_BUILD_ID__";
 const URL_CACHE_VERSION = new URL(self.location.href).searchParams
   .get("v")
   ?.replace(/[^a-zA-Z0-9._-]/g, "-");
 const CACHE_VERSION =
-  (EMBEDDED_CACHE_VERSION !== "__ASTROCLAW_CONTROL_UI_BUILD_ID__"
+  (EMBEDDED_CACHE_VERSION !== "__OPENCLAW_CONTROL_UI_BUILD_ID__"
     ? EMBEDDED_CACHE_VERSION
     : URL_CACHE_VERSION) || "dev";
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
@@ -46,6 +46,14 @@ self.addEventListener("fetch", (event) => {
 
   // Skip non-GET and cross-origin requests.
   if (event.request.method !== "GET" || url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Skip top-level navigations so the browser can handle HTTP auth
+  // challenges natively — WWW-Authenticate dialogs are bypassed when the
+  // response comes from a service worker, breaking reverse-proxy setups
+  // with basic/digest auth in front of the gateway.
+  if (event.request.mode === "navigate") {
     return;
   }
 
@@ -99,15 +107,15 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: "Astroclaw", body: event.data.text() };
+    data = { title: "OpenClaw", body: event.data.text() };
   }
 
-  const title = data.title || "Astroclaw";
+  const title = data.title || "OpenClaw";
   const options = {
     body: data.body || "",
     icon: "./apple-touch-icon.png",
     badge: "./favicon-32.png",
-    tag: data.tag || "astroclaw-notification",
+    tag: data.tag || "openclaw-notification",
     data: { url: data.url || "./" },
   };
 
