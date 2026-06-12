@@ -1,3 +1,4 @@
+// Verifies logging config parsing and file path handling.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -5,7 +6,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createConfigIO: vi.fn().mockReturnValue({
-    configPath: "/tmp/astroclaw-dev/astroclaw.json",
+    configPath: "/tmp/openclaw-dev/openclaw.json",
   }),
 }));
 
@@ -28,18 +29,18 @@ beforeEach(() => {
 
 describe("config logging", () => {
   it("formats the live config path when no explicit path is provided", () => {
-    expect(formatConfigPath()).toBe("/tmp/astroclaw-dev/astroclaw.json");
+    expect(formatConfigPath()).toBe("/tmp/openclaw-dev/openclaw.json");
   });
 
   it("logs the live config path when no explicit path is provided", () => {
     const runtime = { log: vi.fn() };
     logConfigUpdated(runtime as never);
-    expect(runtime.log).toHaveBeenCalledWith("Updated config: /tmp/astroclaw-dev/astroclaw.json");
+    expect(runtime.log).toHaveBeenCalledWith("Updated config: /tmp/openclaw-dev/openclaw.json");
   });
 
   it("formats backup as an indented detail when present", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-config-log-"));
-    const configPath = path.join(dir, "astroclaw.json");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-config-log-"));
+    const configPath = path.join(dir, "openclaw.json");
     const backupPath = `${configPath}.bak`;
     fs.writeFileSync(backupPath, "{}", "utf8");
 
