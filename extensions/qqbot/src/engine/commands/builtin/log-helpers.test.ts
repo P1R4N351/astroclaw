@@ -1,22 +1,23 @@
+// Qqbot tests cover log helpers plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const platformMock = await vi.hoisted(async () => {
-  const fs = await import("node:fs");
-  const path = await import("node:path");
+  const fsLocal = await import("node:fs");
+  const pathLocal = await import("node:path");
   return {
-    fs,
+    fs: fsLocal,
     homeDir: "",
-    path,
+    path: pathLocal,
   };
 });
 
 vi.mock("../../utils/platform.js", () => ({
   getHomeDir: () => platformMock.homeDir,
   getQQBotDataDir: (...subPaths: string[]) => {
-    const dir = platformMock.path.join(platformMock.homeDir, ".astroclaw", "qqbot", ...subPaths);
+    const dir = platformMock.path.join(platformMock.homeDir, ".openclaw", "qqbot", ...subPaths);
     platformMock.fs.mkdirSync(dir, { recursive: true });
     return dir;
   },
@@ -29,7 +30,7 @@ describe("buildBotLogsResult", () => {
   let tempHome: string;
 
   beforeEach(() => {
-    tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-qqbot-logs-"));
+    tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-qqbot-logs-"));
     platformMock.homeDir = tempHome;
   });
 
@@ -41,7 +42,7 @@ describe("buildBotLogsResult", () => {
   it("suffixes same-second log exports instead of overwriting", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-05T10:11:12.345Z"));
-    const logDir = path.join(tempHome, ".astroclaw", "logs");
+    const logDir = path.join(tempHome, ".openclaw", "logs");
     fs.mkdirSync(logDir, { recursive: true });
     fs.writeFileSync(path.join(logDir, "gateway.log"), "line 1\nline 2\n", "utf8");
 
