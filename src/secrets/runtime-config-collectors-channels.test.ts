@@ -1,5 +1,6 @@
+/** Tests channel-specific runtime config secret collectors. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { ResolverContext } from "./runtime-shared.js";
 
 const getBootstrapChannelSecrets = vi.fn();
@@ -52,7 +53,7 @@ describe("runtime channel config collectors", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     collectChannelConfigAssignments({
       config,
@@ -81,7 +82,7 @@ describe("runtime channel config collectors", () => {
       channels: {
         legacy: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     collectChannelConfigAssignments({
       config,
