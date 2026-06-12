@@ -1,4 +1,5 @@
-import type { waitForTransportReady } from "astroclaw/plugin-sdk/transport-ready-runtime";
+// Imessage tests cover monitor.media policy plugin behavior.
+import type { waitForTransportReady } from "openclaw/plugin-sdk/transport-ready-runtime";
 import { describe, expect, it, vi } from "vitest";
 import type { createIMessageRpcClient } from "./client.js";
 import { monitorIMessageProvider } from "./monitor.js";
@@ -11,12 +12,12 @@ const createIMessageRpcClientMock = vi.hoisted(() => vi.fn<typeof createIMessage
 const stageIMessageAttachmentsMock = vi.hoisted(() => vi.fn<typeof stageIMessageAttachments>());
 const readChannelAllowFromStoreMock = vi.hoisted(() => vi.fn(async () => [] as string[]));
 
-vi.mock("astroclaw/plugin-sdk/transport-ready-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/transport-ready-runtime", () => ({
   waitForTransportReady: waitForTransportReadyMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/conversation-runtime")>();
+vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/conversation-runtime")>();
   return {
     ...actual,
     readChannelAllowFromStore: readChannelAllowFromStoreMock,
@@ -25,8 +26,8 @@ vi.mock("astroclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-inbound")>();
+vi.mock("openclaw/plugin-sdk/channel-inbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-inbound")>();
   return {
     ...actual,
     createChannelInboundDebouncer: vi.fn((opts) => ({
@@ -55,12 +56,14 @@ describe("iMessage monitor attachment policy", () => {
     stageIMessageAttachmentsMock.mockResolvedValue([]);
     readChannelAllowFromStoreMock.mockResolvedValue([]);
 
-    const attachmentPath = "/Users/astroclaw/Library/Messages/Attachments/AA/BB/photo.heic";
-    let onNotification: ((message: { method: string; params: unknown }) => void) | undefined;
+    const attachmentPath = "/Users/openclaw/Library/Messages/Attachments/AA/BB/photo.heic";
+    let onNotification:
+      | ((message: { method: string; params: unknown }) => void | Promise<void>)
+      | undefined;
     const client = {
       request: vi.fn(async () => ({ subscription: 1 })),
       waitForClose: vi.fn(async () => {
-        onNotification?.({
+        void onNotification?.({
           method: "message",
           params: {
             message: {
@@ -104,12 +107,12 @@ describe("iMessage monitor attachment policy", () => {
             groups: { "*": { requireMention: true } },
           },
         },
-        messages: { groupChat: { mentionPatterns: ["@astroclaw"] } },
+        messages: { groupChat: { mentionPatterns: ["@openclaw"] } },
         session: { mainKey: "main" },
       } as never,
     });
 
-    expect(readChannelAllowFromStoreMock).toHaveBeenCalled();
+    await vi.waitFor(() => expect(readChannelAllowFromStoreMock).toHaveBeenCalled());
     expect(stageIMessageAttachmentsMock).not.toHaveBeenCalled();
   });
 });
