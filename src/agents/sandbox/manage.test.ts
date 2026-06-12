@@ -1,3 +1,5 @@
+// Sandbox management tests cover browser runtime listing/removal metadata and
+// backend manager wiring.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 let listSandboxBrowsers: typeof import("./manage.js").listSandboxBrowsers;
@@ -102,11 +104,11 @@ describe("listSandboxBrowsers", () => {
             scope: "session",
             workspaceAccess: "none",
             docker: {
-              image: "astroclaw-sandbox:bookworm-slim",
+              image: "openclaw-sandbox:bookworm-slim",
             },
             browser: {
               enabled: true,
-              image: "astroclaw-sandbox-browser:bookworm-slim",
+              image: "openclaw-sandbox-browser:bookworm-slim",
             },
           },
         },
@@ -127,19 +129,21 @@ describe("listSandboxBrowsers", () => {
     });
     backendMocks.describeRuntime.mockResolvedValue({
       running: true,
-      actualConfigLabel: "astroclaw-sandbox-browser:bookworm-slim",
+      actualConfigLabel: "openclaw-sandbox-browser:bookworm-slim",
       configLabelMatch: true,
     });
   });
 
   it("compares browser runtimes against sandbox.browser.image", async () => {
+    // Browser containers have a different configured image than shell sandboxes;
+    // management views must compare against the browser label kind.
     const results = await listSandboxBrowsers();
 
     const describeInput = firstDescribeRuntimeInput();
     expect(describeInput?.agentId).toBe("coder");
     expect(describeInput?.entry?.configLabelKind).toBe("BrowserImage");
     expect(results).toHaveLength(1);
-    expect(results[0]?.image).toBe("astroclaw-sandbox-browser:bookworm-slim");
+    expect(results[0]?.image).toBe("openclaw-sandbox-browser:bookworm-slim");
     expect(results[0]?.running).toBe(true);
     expect(results[0]?.imageMatch).toBe(true);
   });
