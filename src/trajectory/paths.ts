@@ -1,8 +1,11 @@
+// Trajectory path helpers resolve storage paths for trajectory artifacts.
 import fs from "node:fs";
 import path from "node:path";
 import { resolveHomeRelativePath } from "../infra/home-dir.js";
 import { isPathInside } from "../infra/path-guards.js";
 
+// Runtime trajectory path helpers. Paths are either beside the session file or
+// inside OPENCLAW_TRAJECTORY_DIR, with names scrubbed for filesystem safety.
 export const TRAJECTORY_RUNTIME_CAPTURE_MAX_BYTES = 10 * 1024 * 1024;
 export const TRAJECTORY_RUNTIME_FILE_MAX_BYTES = 50 * 1024 * 1024;
 export const TRAJECTORY_RUNTIME_EVENT_MAX_BYTES = 256 * 1024;
@@ -18,6 +21,8 @@ export function safeTrajectorySessionFileName(sessionId: string): string {
   return /[A-Za-z0-9]/u.test(safe) ? safe : "session";
 }
 
+// Pointer files are overwritten atomically by callers. O_NOFOLLOW is optional
+// because some platforms do not expose it, but use it when Node provides it.
 export function resolveTrajectoryPointerOpenFlags(
   constants: TrajectoryPointerOpenFlagConstants = fs.constants,
 ): number {
@@ -45,7 +50,7 @@ export function resolveTrajectoryFilePath(params: {
   sessionId: string;
 }): string {
   const env = params.env ?? process.env;
-  const dirOverride = env.ASTROCLAW_TRAJECTORY_DIR?.trim();
+  const dirOverride = env.OPENCLAW_TRAJECTORY_DIR?.trim();
   if (dirOverride) {
     return resolveContainedPath(
       resolveHomeRelativePath(dirOverride),
@@ -63,6 +68,8 @@ export function resolveTrajectoryFilePath(params: {
     : `${params.sessionFile}.trajectory.jsonl`;
 }
 
+// Sidecar pointer naming contract used to discover runtime trace files from a
+// persisted session file during support-bundle export.
 export function resolveTrajectoryPointerFilePath(sessionFile: string): string {
   return sessionFile.endsWith(".jsonl")
     ? `${sessionFile.slice(0, -".jsonl".length)}.trajectory-path.json`
