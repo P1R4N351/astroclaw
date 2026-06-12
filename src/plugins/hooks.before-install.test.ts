@@ -1,3 +1,4 @@
+// Covers hook behavior before plugin install state exists.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createHookRunner } from "./hooks.js";
 import { addTestHook } from "./hooks.test-helpers.js";
@@ -27,7 +28,7 @@ function addBeforeInstallHook(
 }
 
 const stubCtx: PluginHookBeforeInstallContext = {
-  origin: "astroclaw-workspace",
+  origin: "openclaw-workspace",
   targetType: "skill",
   requestKind: "skill-install",
 };
@@ -37,7 +38,7 @@ const stubEvent: PluginHookBeforeInstallEvent = {
   targetType: "skill",
   sourcePath: "/tmp/demo-skill",
   sourcePathKind: "directory",
-  origin: "astroclaw-workspace",
+  origin: "openclaw-workspace",
   request: {
     kind: "skill-install",
     mode: "install",
