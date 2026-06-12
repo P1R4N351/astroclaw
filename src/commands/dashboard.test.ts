@@ -1,3 +1,4 @@
+// Dashboard command tests cover dashboard URL selection, gateway bind modes, and runtime output.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GatewayBindMode } from "../config/types.gateway.js";
 import { dashboardCommand } from "./dashboard.js";
@@ -43,7 +44,7 @@ function mockSnapshot(params?: {
 }) {
   const token = params?.token ?? "abc123";
   mocks.readConfigFileSnapshot.mockResolvedValue({
-    path: "/tmp/astroclaw.json",
+    path: "/tmp/openclaw.json",
     exists: true,
     raw: "{}",
     parsed: {},
