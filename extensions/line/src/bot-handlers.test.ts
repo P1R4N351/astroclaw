@@ -1,5 +1,6 @@
+// Line tests cover bot handlers plugin behavior.
 import type { webhook } from "@line/bot-sdk";
-import type { HistoryEntry } from "astroclaw/plugin-sdk/reply-history";
+import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LineAccountConfig } from "./types.js";
 
@@ -8,11 +9,11 @@ type PostbackEvent = webhook.PostbackEvent;
 
 // Avoid pulling in globals/pairing/media dependencies; this suite only asserts
 // allowlist/groupPolicy gating and message-context wiring.
-vi.mock("astroclaw/plugin-sdk/channel-inbound", () => ({
+vi.mock("openclaw/plugin-sdk/channel-inbound", () => ({
   buildMentionRegexes: () => [],
   matchesMentionPatterns: () => false,
 }));
-vi.mock("astroclaw/plugin-sdk/channel-pairing", () => ({
+vi.mock("openclaw/plugin-sdk/channel-pairing", () => ({
   createChannelPairingChallengeIssuer:
     ({ upsertPairingRequest }: { upsertPairingRequest: (args: unknown) => Promise<unknown> }) =>
     async ({ senderId, onCreated }: { senderId: string; onCreated?: () => void }) => {
@@ -20,8 +21,9 @@ vi.mock("astroclaw/plugin-sdk/channel-pairing", () => ({
       onCreated?.();
     },
 }));
-vi.mock("astroclaw/plugin-sdk/command-auth", () => ({
+vi.mock("openclaw/plugin-sdk/command-auth-native", () => ({
   hasControlCommand: (text: string) => text.trim().startsWith("!"),
+  shouldComputeCommandAuthorized: (text: string) => text.trim().startsWith("!"),
   resolveControlCommandGate: ({
     hasControlCommand,
     authorizers,
@@ -33,7 +35,7 @@ vi.mock("astroclaw/plugin-sdk/command-auth", () => ({
       hasControlCommand && authorizers.some((entry) => entry.allowed || !entry.configured),
   }),
 }));
-vi.mock("astroclaw/plugin-sdk/runtime-group-policy", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-group-policy", () => ({
   resolveAllowlistProviderRuntimeGroupPolicy: ({
     groupPolicy,
     defaultGroupPolicy,
@@ -48,11 +50,11 @@ vi.mock("astroclaw/plugin-sdk/runtime-group-policy", () => ({
     cfg.channels?.line?.groupPolicy ?? "open",
   warnMissingProviderGroupPolicyFallbackOnce: () => {},
 }));
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   danger: (text: string) => text,
   logVerbose: () => {},
 }));
-vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
+vi.mock("openclaw/plugin-sdk/reply-history", () => ({
   DEFAULT_GROUP_HISTORY_LIMIT: 20,
   createChannelHistoryWindow: ({ historyMap }: { historyMap: Map<string, HistoryEntry[]> }) => ({
     record: ({
@@ -115,7 +117,7 @@ vi.mock("astroclaw/plugin-sdk/reply-history", () => ({
     historyMap.set(historyKey, [...existing, entry].slice(-limit));
   },
 }));
-vi.mock("astroclaw/plugin-sdk/routing", () => ({
+vi.mock("openclaw/plugin-sdk/routing", () => ({
   resolveAgentRoute: () => ({ agentId: "default" }),
 }));
 
@@ -124,7 +126,7 @@ const { readAllowFromStoreMock, upsertPairingRequestMock } = vi.hoisted(() => ({
   upsertPairingRequestMock: vi.fn(async (_args: unknown) => ({ code: "CODE", created: true })),
 }));
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/conversation-runtime", () => ({
   resolvePairingIdLabel: () => "lineUserId",
   readChannelAllowFromStore: readAllowFromStoreMock,
   upsertChannelPairingRequest: upsertPairingRequestMock,
@@ -319,14 +321,14 @@ describe("handleLineWebhookEvents", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("astroclaw/plugin-sdk/channel-inbound");
-    vi.doUnmock("astroclaw/plugin-sdk/channel-pairing");
-    vi.doUnmock("astroclaw/plugin-sdk/command-auth");
-    vi.doUnmock("astroclaw/plugin-sdk/runtime-group-policy");
-    vi.doUnmock("astroclaw/plugin-sdk/runtime-env");
-    vi.doUnmock("astroclaw/plugin-sdk/reply-history");
-    vi.doUnmock("astroclaw/plugin-sdk/routing");
-    vi.doUnmock("astroclaw/plugin-sdk/conversation-runtime");
+    vi.doUnmock("openclaw/plugin-sdk/channel-inbound");
+    vi.doUnmock("openclaw/plugin-sdk/channel-pairing");
+    vi.doUnmock("openclaw/plugin-sdk/command-auth-native");
+    vi.doUnmock("openclaw/plugin-sdk/runtime-group-policy");
+    vi.doUnmock("openclaw/plugin-sdk/runtime-env");
+    vi.doUnmock("openclaw/plugin-sdk/reply-history");
+    vi.doUnmock("openclaw/plugin-sdk/routing");
+    vi.doUnmock("openclaw/plugin-sdk/conversation-runtime");
     vi.doUnmock("./download.js");
     vi.doUnmock("./send.js");
     vi.doUnmock("./bot-message-context.js");
