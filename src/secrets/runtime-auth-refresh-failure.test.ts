@@ -1,3 +1,4 @@
+/** Tests secrets runtime refresh failure handling for auth-profile stores. */
 import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withTempHome } from "../config/home-env.test-harness.js";
@@ -45,7 +46,7 @@ describe("secrets runtime snapshot auth refresh failure", () => {
     if (os.platform() === "win32") {
       return;
     }
-    await withTempHome("astroclaw-secrets-runtime-refresh-fail-", async (home) => {
+    await withTempHome("openclaw-secrets-runtime-refresh-fail-", async (home) => {
       const { secretFile, agentDir } = await createOpenAIFileRuntimeFixture(home);
 
       let loadAuthStoreCalls = 0;
