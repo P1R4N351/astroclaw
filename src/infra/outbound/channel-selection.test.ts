@@ -1,3 +1,5 @@
+// Covers message channel selection from explicit input, tool context fallback,
+// configured accounts, and missing official external plugin repair hints.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -39,10 +41,10 @@ vi.mock("../../plugins/official-external-plugin-repair-hints.js", () => ({
           pluginId: channelId,
           channelId,
           label: channelId === "whatsapp" ? "WhatsApp" : "Feishu",
-          installSpec: `@astroclaw/${channelId}`,
-          installCommand: `astroclaw plugins install @astroclaw/${channelId}`,
-          doctorFixCommand: "astroclaw doctor --fix",
-          repairHint: `Install the official external plugin with: astroclaw plugins install @astroclaw/${channelId}, or run: astroclaw doctor --fix.`,
+          installSpec: `@openclaw/${channelId}`,
+          installCommand: `openclaw plugins install @openclaw/${channelId}`,
+          doctorFixCommand: "openclaw doctor --fix",
+          repairHint: `Install the official external plugin with: openclaw plugins install @openclaw/${channelId}, or run: openclaw doctor --fix.`,
         }
       : null,
 }));
@@ -50,14 +52,14 @@ vi.mock("../../plugins/official-external-plugin-repair-hints.js", () => ({
 type ChannelSelectionModule = typeof import("./channel-selection.js");
 type RuntimeModule = typeof import("../../runtime.js");
 
-let __testing: ChannelSelectionModule["__testing"];
+let testing: ChannelSelectionModule["testing"];
 let listConfiguredMessageChannels: ChannelSelectionModule["listConfiguredMessageChannels"];
 let resolveMessageChannelSelection: ChannelSelectionModule["resolveMessageChannelSelection"];
 let runtimeModule: RuntimeModule;
 
 beforeAll(async () => {
   runtimeModule = await import("../../runtime.js");
-  ({ __testing, listConfiguredMessageChannels, resolveMessageChannelSelection } =
+  ({ testing, listConfiguredMessageChannels, resolveMessageChannelSelection } =
     await import("./channel-selection.js"));
 });
 
@@ -97,7 +99,7 @@ describe("listConfiguredMessageChannels", () => {
     mocks.resolveOutboundChannelPlugin.mockImplementation(({ channel }: { channel: string }) => ({
       id: channel,
     }));
-    __testing.resetLoggedChannelSelectionErrors();
+    testing.resetLoggedChannelSelectionErrors();
     errorSpy.mockClear();
   });
 
@@ -245,6 +247,36 @@ describe("resolveMessageChannelSelection", () => {
     verify?.(setupResult as never);
   });
 
+  it("allows bootstrap while checking explicit and fallback channels", async () => {
+    const cfg = {} as never;
+    mocks.resolveOutboundChannelPlugin.mockImplementation(({ channel }: { channel: string }) =>
+      channel === "beta" ? { id: "beta" } : undefined,
+    );
+
+    await expect(
+      expectResolvedSelection({
+        cfg,
+        channel: "alpha",
+        fallbackChannel: "beta",
+      }),
+    ).resolves.toEqual({
+      channel: "beta",
+      configured: [],
+      source: "tool-context-fallback",
+    });
+
+    expect(mocks.resolveOutboundChannelPlugin).toHaveBeenNthCalledWith(1, {
+      channel: "alpha",
+      cfg,
+      allowBootstrap: true,
+    });
+    expect(mocks.resolveOutboundChannelPlugin).toHaveBeenNthCalledWith(2, {
+      channel: "beta",
+      cfg,
+      allowBootstrap: true,
+    });
+  });
+
   it.each([
     {
       params: { cfg: {} as never, channel: "channel:C123", fallbackChannel: "not-a-channel" },
@@ -267,12 +299,12 @@ describe("resolveMessageChannelSelection", () => {
         channel: "feishu",
       },
       expectedMessage:
-        "Channel is unavailable: feishu. Install the official external plugin with: astroclaw plugins install @astroclaw/feishu, or run: astroclaw doctor --fix.",
+        "Channel is unavailable: feishu. Install the official external plugin with: openclaw plugins install @openclaw/feishu, or run: openclaw doctor --fix.",
     },
     {
       params: { cfg: {} as never },
       expectedMessage:
-        "Channel is required (no configured channels detected). Run astroclaw channels add to configure one",
+        "Channel is required (no configured channels detected). Run openclaw channels add to configure one",
     },
     {
       setup: () => {
@@ -281,7 +313,7 @@ describe("resolveMessageChannelSelection", () => {
       },
       params: { cfg: { channels: { whatsapp: { enabled: true } } } as never },
       expectedMessage:
-        "Channel is required (no available channels detected). Configured official external channel WhatsApp is missing its plugin. Install the official external plugin with: astroclaw plugins install @astroclaw/whatsapp, or run: astroclaw doctor --fix.",
+        "Channel is required (no available channels detected). Configured official external channel WhatsApp is missing its plugin. Install the official external plugin with: openclaw plugins install @openclaw/whatsapp, or run: openclaw doctor --fix.",
     },
     {
       setup: () => {
@@ -294,7 +326,7 @@ describe("resolveMessageChannelSelection", () => {
       },
       params: { cfg: { channels: { whatsapp: { enabled: true } } } as never },
       expectedMessage:
-        "Channel is required (no configured channels detected). Run astroclaw channels add to configure one",
+        "Channel is required (no configured channels detected). Run openclaw channels add to configure one",
     },
     {
       setup: () => {
