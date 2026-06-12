@@ -1,12 +1,13 @@
-import { adaptScopedAccountAccessor } from "astroclaw/plugin-sdk/channel-config-helpers";
+// Zalo tests cover setup surface plugin behavior.
+import { adaptScopedAccountAccessor } from "openclaw/plugin-sdk/channel-config-helpers";
 import {
   createPluginSetupWizardConfigure,
   createTestWizardPrompter,
   runSetupWizardConfigure,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import type { WizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { WizardPrompter } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 import { listZaloAccountIds, resolveDefaultZaloAccountId, resolveZaloAccount } from "./accounts.js";
 import { zaloDmPolicy } from "./setup-core.js";
 import { zaloSetupAdapter, zaloSetupWizard } from "./setup-surface.js";
@@ -54,7 +55,7 @@ describe("zalo setup wizard", () => {
 
     const result = await runSetupWizardConfigure({
       configure: zaloConfigure,
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       prompter,
       options: { secretInputMode: "plaintext" as const },
     });
@@ -84,14 +85,14 @@ describe("zalo setup wizard", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         "work",
       ),
     ).toBe("allowlist");
   });
 
   it("reports account-scoped config keys for named accounts", () => {
-    expect(zaloDmPolicy.resolveConfigKeys?.({} as AstroclawConfig, "work")).toEqual({
+    expect(zaloDmPolicy.resolveConfigKeys?.({} as OpenClawConfig, "work")).toEqual({
       policyKey: "channels.zalo.accounts.work.dmPolicy",
       allowFromKey: "channels.zalo.accounts.work.allowFrom",
     });
@@ -112,7 +113,7 @@ describe("zalo setup wizard", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(zaloDmPolicy.getCurrent(cfg)).toBe("allowlist");
     expect(zaloDmPolicy.resolveConfigKeys?.(cfg)).toEqual({
@@ -148,7 +149,7 @@ describe("zalo setup wizard", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       "open",
       "work",
     );
@@ -185,7 +186,7 @@ describe("zalo setup wizard", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
 
     expect(configured).toBe(false);
