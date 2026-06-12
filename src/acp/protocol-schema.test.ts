@@ -1,3 +1,4 @@
+/** Tests vendored ACP SDK schema fixtures against valid and invalid protocol payloads. */
 import { PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import {
   zCloseSessionRequest,
@@ -40,7 +41,7 @@ const fixtures: SchemaFixture[] = [
     name: "session/new",
     schema: zNewSessionRequest,
     valid: {
-      cwd: "/tmp/astroclaw",
+      cwd: "/tmp/openclaw",
       mcpServers: [],
     },
     invalid: {
@@ -81,11 +82,11 @@ const fixtures: SchemaFixture[] = [
     name: "session/list",
     schema: zListSessionsRequest,
     valid: {
-      cwd: "/tmp/astroclaw",
+      cwd: "/tmp/openclaw",
       cursor: null,
     },
     invalid: {
-      cwd: "/tmp/astroclaw",
+      cwd: "/tmp/openclaw",
       cursor: 123,
     },
   },
@@ -94,7 +95,7 @@ const fixtures: SchemaFixture[] = [
     schema: zLoadSessionRequest,
     valid: {
       sessionId: "agent:main:work",
-      cwd: "/tmp/astroclaw",
+      cwd: "/tmp/openclaw",
       mcpServers: [],
     },
     invalid: {
@@ -107,7 +108,7 @@ const fixtures: SchemaFixture[] = [
     schema: zResumeSessionRequest,
     valid: {
       sessionId: "agent:main:work",
-      cwd: "/tmp/astroclaw",
+      cwd: "/tmp/openclaw",
       mcpServers: [],
     },
     invalid: {
