@@ -1,3 +1,4 @@
+// Session kind classification tests cover chat, ACP, and agent session metadata classification.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../config/sessions/types.js";
 import {
@@ -122,7 +123,7 @@ describe("sessionsCommand kind classification (catalog #19)", () => {
     // RED today. The classifier ignores `spawnedBy` and `deliveryContext`,
     // so an ACP key with no `:group:` substring and no `chatType` falls
     // through to `"direct"`. Operators see this session in
-    // `astroclaw sessions --json` as `kind: "direct"` even though it was
+    // `openclaw sessions --json` as `kind: "direct"` even though it was
     // plainly spawned from a group/topic. See `src/commands/sessions.ts:136-152`.
     const store = writeStore(
       { [ACP_SPAWN_CHILD_KEY]: buildAcpSpawnChildEntry() },
