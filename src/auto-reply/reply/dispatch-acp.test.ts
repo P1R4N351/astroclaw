@@ -1,10 +1,11 @@
+// Tests ACP dispatch wiring, command bypass, and runtime event handling.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AcpRuntimeError } from "../../acp/runtime/errors.js";
 import type { AcpSessionStoreEntry } from "../../acp/runtime/session-meta.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { SessionBindingRecord } from "../../infra/outbound/session-binding-service.js";
 import type { MediaUnderstandingSkipError } from "../../media-understanding/errors.js";
 import { withFetchPreconnect } from "../../test-utils/fetch-mock.js";
@@ -32,8 +33,8 @@ const managerMocks = vi.hoisted(() => ({
 }));
 
 const policyMocks = vi.hoisted(() => ({
-  resolveAcpDispatchPolicyError: vi.fn<(cfg: AstroclawConfig) => AcpRuntimeError | null>(() => null),
-  resolveAcpAgentPolicyError: vi.fn<(cfg: AstroclawConfig, agent: string) => AcpRuntimeError | null>(
+  resolveAcpDispatchPolicyError: vi.fn<(cfg: OpenClawConfig) => AcpRuntimeError | null>(() => null),
+  resolveAcpAgentPolicyError: vi.fn<(cfg: OpenClawConfig, agent: string) => AcpRuntimeError | null>(
     () => null,
   ),
 }));
@@ -72,7 +73,7 @@ const ttsMocks = vi.hoisted(() => ({
     const params = paramsUnknown as { payload: unknown };
     return params.payload;
   }),
-  resolveTtsConfig: vi.fn((_cfg: AstroclawConfig) => ({ mode: "final" })),
+  resolveTtsConfig: vi.fn((_cfg: OpenClawConfig) => ({ mode: "final" })),
 }));
 
 const mediaUnderstandingMocks = vi.hoisted(() => ({
@@ -87,7 +88,7 @@ const diagnosticMocks = vi.hoisted(() => ({
 
 const sessionMetaMocks = vi.hoisted(() => ({
   readAcpSessionEntry: vi.fn<
-    (params: { sessionKey: string; cfg?: AstroclawConfig }) => AcpSessionStoreEntry | null
+    (params: { sessionKey: string; cfg?: OpenClawConfig }) => AcpSessionStoreEntry | null
   >(() => null),
 }));
 
@@ -110,9 +111,9 @@ vi.mock("./dispatch-acp-manager.runtime.js", () => ({
 }));
 
 vi.mock("../../acp/policy.js", () => ({
-  resolveAcpDispatchPolicyError: (cfg: AstroclawConfig) =>
+  resolveAcpDispatchPolicyError: (cfg: OpenClawConfig) =>
     policyMocks.resolveAcpDispatchPolicyError(cfg),
-  resolveAcpAgentPolicyError: (cfg: AstroclawConfig, agent: string) =>
+  resolveAcpAgentPolicyError: (cfg: OpenClawConfig, agent: string) =>
     policyMocks.resolveAcpAgentPolicyError(cfg, agent),
 }));
 
@@ -169,13 +170,13 @@ vi.mock("./dispatch-acp-media.runtime.js", () => ({
     constructor(private readonly attachments: Array<{ path?: string; index: number }>) {}
     async getBuffer({ attachmentIndex }: { attachmentIndex: number }) {
       const attachment = this.attachments.find((item) => item.index === attachmentIndex);
-      const path = attachment?.path;
-      const buffer = path ? acpAttachmentBuffers.get(path) : undefined;
+      const pathLocal = attachment?.path;
+      const buffer = pathLocal ? acpAttachmentBuffers.get(pathLocal) : undefined;
       if (buffer) {
         return {
           buffer,
           mime: "image/png",
-          fileName: path,
+          fileName: pathLocal,
           size: buffer.length,
         };
       }
@@ -187,12 +188,17 @@ vi.mock("./dispatch-acp-media.runtime.js", () => ({
 }));
 
 vi.mock("./dispatch-acp-session.runtime.js", () => ({
-  readAcpSessionEntry: (params: { sessionKey: string; cfg?: AstroclawConfig }) =>
+  readAcpSessionEntry: (params: { sessionKey: string; cfg?: OpenClawConfig }) =>
     sessionMetaMocks.readAcpSessionEntry(params),
 }));
 
 vi.mock("../../logging/diagnostic.js", () => ({
   markDiagnosticSessionProgress: diagnosticMocks.markDiagnosticSessionProgress,
+  isStuckSessionRecoveryEnabled: (config?: { diagnostics?: { enabled?: boolean } }) =>
+    config?.diagnostics?.enabled !== false,
+  requestStuckDiagnosticSessionRecovery: vi.fn(),
+  resolveStuckSessionWarnMs: () => 120_000,
+  resolveStuckSessionAbortMs: () => 360_000,
 }));
 
 vi.mock("./dispatch-acp-transcript.runtime.js", () => ({
@@ -212,7 +218,7 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function mockArg(source: MockCallSource, callIndex: number, argIndex: number, label: string) {
+function mockArg(source: MockCallSource, callIndex: number, argIndex: number, _label: string) {
   return source.mock.calls[callIndex]?.[argIndex];
 }
 
@@ -276,7 +282,7 @@ function setReadyAcpResolution() {
   });
 }
 
-function createAcpConfigWithVisibleToolTags(): AstroclawConfig {
+function createAcpConfigWithVisibleToolTags(): OpenClawConfig {
   return createAcpTestConfig({
     acp: {
       enabled: true,
@@ -292,7 +298,7 @@ function createAcpConfigWithVisibleToolTags(): AstroclawConfig {
 
 async function runDispatch(params: {
   bodyForAgent: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   dispatcher?: ReplyDispatcher;
   shouldRouteToOriginating?: boolean;
   originatingChannel?: string;
@@ -304,6 +310,7 @@ async function runDispatch(params: {
   suppressUserDelivery?: boolean;
   suppressReplyLifecycle?: boolean;
   sourceReplyDeliveryMode?: "automatic" | "message_tool_only";
+  toolsAllow?: string[];
 }) {
   const targetSessionKey = params.sessionKeyOverride ?? sessionKey;
   return tryDispatchAcpReply({
@@ -331,6 +338,7 @@ async function runDispatch(params: {
       : {}),
     shouldSendToolSummaries: true,
     bypassForCommand: false,
+    toolsAllow: params.toolsAllow,
     ...(params.onReplyStart ? { onReplyStart: params.onReplyStart } : {}),
     recordProcessed: vi.fn(),
     markIdle: vi.fn(),
@@ -1213,7 +1221,7 @@ describe("tryDispatchAcpReply", () => {
       mimeType: "image/png",
       data: Buffer.from("inline-image").toString("base64"),
     };
-    const historyPath = "/tmp/astroclaw-history-inline.png";
+    const historyPath = "/tmp/openclaw-history-inline.png";
     acpAttachmentBuffers.set(historyPath, Buffer.from("history-image"));
 
     await runDispatch({
@@ -1387,6 +1395,35 @@ describe("tryDispatchAcpReply", () => {
     expect(bindingServiceMocks.unbind).not.toHaveBeenCalled();
   });
 
+  it("fails closed when ACP dispatch cannot enforce restrictive runtime toolsAllow", async () => {
+    setReadyAcpResolution();
+    const { dispatcher } = createDispatcher();
+
+    await runDispatch({
+      bodyForAgent: "test",
+      dispatcher,
+      toolsAllow: ["message"],
+    });
+
+    expect(managerMocks.runTurn).not.toHaveBeenCalled();
+    expect(dispatcherCall(dispatcher.sendFinalReply).isError).toBe(true);
+    expect(dispatcherCall(dispatcher.sendFinalReply).text).toContain("runtime toolsAllow");
+  });
+
+  it("allows wildcard runtime toolsAllow through ACP dispatch", async () => {
+    setReadyAcpResolution();
+    const { dispatcher } = createDispatcher();
+
+    await runDispatch({
+      bodyForAgent: "test",
+      dispatcher,
+      toolsAllow: ["*"],
+    });
+
+    expect(managerMocks.runTurn).toHaveBeenCalledOnce();
+    expect(runTurnCall().text).toBe("test");
+  });
+
   it("does not unbind stale bindings when ACP dispatch is disabled by policy", async () => {
     managerMocks.resolveSession.mockReturnValue({
       kind: "stale",
@@ -1550,11 +1587,11 @@ describe("tryDispatchAcpReply", () => {
         : [],
     );
     sessionMetaMocks.readAcpSessionEntry.mockImplementation(
-      (params: { sessionKey: string; cfg?: AstroclawConfig }) =>
+      (params: { sessionKey: string; cfg?: OpenClawConfig }) =>
         params.sessionKey === canonicalSessionKey
           ? {
               cfg: params.cfg ?? createAcpTestConfig(),
-              storePath: "/tmp/astroclaw-session-store.json",
+              storePath: "/tmp/openclaw-session-store.json",
               sessionKey: canonicalSessionKey,
               storeSessionKey: canonicalSessionKey,
               acp: createAcpSessionMeta({
@@ -1617,11 +1654,11 @@ describe("tryDispatchAcpReply", () => {
         : [],
     );
     sessionMetaMocks.readAcpSessionEntry.mockImplementation(
-      (params: { sessionKey: string; cfg?: AstroclawConfig }) =>
+      (params: { sessionKey: string; cfg?: OpenClawConfig }) =>
         params.sessionKey === canonicalSessionKey
           ? {
               cfg: params.cfg ?? createAcpTestConfig(),
-              storePath: "/tmp/astroclaw-session-store.json",
+              storePath: "/tmp/openclaw-session-store.json",
               sessionKey: canonicalSessionKey,
               storeSessionKey: canonicalSessionKey,
               acp: createAcpSessionMeta({
@@ -1856,7 +1893,7 @@ describe("tryDispatchAcpReply", () => {
     setReadyAcpResolution();
     ttsMocks.resolveTtsConfig.mockReturnValue({ mode: "final" });
     queueTtsReplies({
-      mediaUrl: "/tmp/astroclaw-media/acp-tts.ogg",
+      mediaUrl: "/tmp/openclaw-media/acp-tts.ogg",
       audioAsVoice: true,
     } as MockTtsReply);
     mockVisibleTextTurn("WebChat ACP block reply.");
@@ -1883,7 +1920,7 @@ describe("tryDispatchAcpReply", () => {
     });
 
     const finalPayload = dispatcherCall(dispatcher.sendFinalReply);
-    expect(finalPayload.mediaUrl).toBe("/tmp/astroclaw-media/acp-tts.ogg");
+    expect(finalPayload.mediaUrl).toBe("/tmp/openclaw-media/acp-tts.ogg");
     expect(finalPayload.audioAsVoice).toBe(true);
     expect(finalPayload.spokenText).toBe("WebChat ACP block reply.");
     expect(finalPayload.trustedLocalMedia).toBe(true);
