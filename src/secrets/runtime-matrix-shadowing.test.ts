@@ -1,3 +1,4 @@
+/** Tests shadowing precedence in secrets runtime matrix scenarios. */
 import { describe, expect, it } from "vitest";
 import "./runtime-matrix.test-support.ts";
 import {
@@ -48,7 +49,7 @@ describe("secrets runtime snapshot matrix shadowing", () => {
       env: {
         MATRIX_OPS_ACCESS_TOKEN: "ops-token",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -131,7 +132,7 @@ describe("secrets runtime snapshot matrix shadowing", () => {
     const snapshot = await prepareSecretsRuntimeSnapshot({
       config: asConfig(config),
       env,
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -215,7 +216,7 @@ describe("secrets runtime snapshot matrix shadowing", () => {
     const snapshot = await prepareSecretsRuntimeSnapshot({
       config: asConfig(config),
       env,
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
