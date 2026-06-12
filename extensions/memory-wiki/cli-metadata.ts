@@ -1,9 +1,10 @@
-import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
+// Memory Wiki plugin module implements cli metadata behavior.
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 export default definePluginEntry({
   id: "memory-wiki",
   name: "Memory Wiki",
-  description: "Persistent wiki compiler and Obsidian-friendly knowledge vault for Astroclaw.",
+  description: "Persistent wiki compiler and Obsidian-friendly knowledge vault for OpenClaw.",
   register(api) {
     api.registerCli(
       async ({ program, config: appConfig }) => {
