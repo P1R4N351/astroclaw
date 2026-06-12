@@ -1,3 +1,4 @@
+/** Tests provider env-var candidate and auth evidence lookup. */
 import { describe, expect, it } from "vitest";
 import {
   getProviderEnvVars,
@@ -28,7 +29,7 @@ describe("provider env vars", () => {
     }
     expect(providerAuthNames).toContain("MINIMAX_CODE_PLAN_KEY");
     expect(providerAuthNames).toContain("MINIMAX_CODING_API_KEY");
-    expect(listKnownSecretEnvVarNames()).not.toContain("ASTROCLAW_API_KEY");
+    expect(listKnownSecretEnvVarNames()).not.toContain("OPENCLAW_API_KEY");
   });
 
   it("omits env keys case-insensitively", () => {
@@ -36,20 +37,20 @@ describe("provider env vars", () => {
       {
         OpenAI_Api_Key: "openai-secret",
         Github_Token: "gh-secret",
-        ASTROCLAW_API_KEY: "keep-me",
+        OPENCLAW_API_KEY: "keep-me",
       },
       ["OPENAI_API_KEY", "GITHUB_TOKEN"],
     );
 
     expect(env.OpenAI_Api_Key).toBeUndefined();
     expect(env.Github_Token).toBeUndefined();
-    expect(env.ASTROCLAW_API_KEY).toBe("keep-me");
+    expect(env.OPENCLAW_API_KEY).toBe("keep-me");
   });
 
   it("ignores prototype-chain keys when resolving provider env vars", () => {
     expect(getProviderEnvVars("__proto__")).toStrictEqual([]);
     expect(getProviderEnvVars("constructor")).toStrictEqual([]);
-    expect(getProviderEnvVars("openai")).toEqual(["OPENAI_API_KEY"]);
+    expect(getProviderEnvVars("openai")).toEqual(["CODEX_API_KEY", "OPENAI_API_KEY"]);
     expect(getProviderEnvVars("anthropic")).toEqual(["ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY"]);
     expect(getProviderEnvVars("fal")).toEqual(["FAL_KEY", "FAL_API_KEY"]);
   });
