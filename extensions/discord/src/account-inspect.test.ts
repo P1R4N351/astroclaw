@@ -1,9 +1,10 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Discord tests cover account inspect plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { inspectDiscordAccount } from "./account-inspect.js";
 
-function asConfig(value: unknown): AstroclawConfig {
-  return value as AstroclawConfig;
+function asConfig(value: unknown): OpenClawConfig {
+  return value as OpenClawConfig;
 }
 
 describe("inspectDiscordAccount", () => {
