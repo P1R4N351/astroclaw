@@ -1,3 +1,4 @@
+// Media parse tests cover media reference parsing from text and payloads.
 import { describe, expect, it } from "vitest";
 import { splitMediaFromOutput, type SplitMediaFromOutputOptions } from "./parse.js";
 
@@ -52,7 +53,7 @@ describe("splitMediaFromOutput", () => {
     ["media/inbound/image.png", "MEDIA:media/inbound/image.png"],
     ["./screenshot.png", "  MEDIA:./screenshot.png"],
     ["~/Pictures/My File.png", "MEDIA:~/Pictures/My File.png"],
-    ["~/.astroclaw/media/browser/snap.png", "MEDIA:~/.astroclaw/media/browser/snap.png"],
+    ["~/.openclaw/media/browser/snap.png", "MEDIA:~/.openclaw/media/browser/snap.png"],
     ["C:\\Users\\pete\\Pictures\\snap.png", "MEDIA:C:\\Users\\pete\\Pictures\\snap.png"],
     ["/tmp/tts-fAJy8C/voice-1770246885083.opus", "MEDIA:/tmp/tts-fAJy8C/voice-1770246885083.opus"],
     ["image.png", "MEDIA:image.png"],
