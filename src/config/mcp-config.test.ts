@@ -1,6 +1,7 @@
+// Covers MCP config normalization, validation, and serialization.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempHome } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it, vi } from "vitest";
 import {
   listConfiguredMcpServers,
@@ -13,11 +14,11 @@ function validationOk(raw: unknown) {
 }
 
 const mockReadSourceConfigSnapshot = vi.hoisted(() => async () => {
-  const fs = await import("node:fs/promises");
-  const path = await import("node:path");
-  const configPath = path.join(process.env.ASTROCLAW_STATE_DIR ?? "", "astroclaw.json");
+  const fsValue = await import("node:fs/promises");
+  const pathValue = await import("node:path");
+  const configPath = pathValue.join(process.env.OPENCLAW_STATE_DIR ?? "", "openclaw.json");
   try {
-    const raw = await fs.readFile(configPath, "utf-8");
+    const raw = await fsValue.readFile(configPath, "utf-8");
     const parsed = JSON.parse(raw);
     return {
       valid: true,
@@ -35,10 +36,10 @@ const mockReadSourceConfigSnapshot = vi.hoisted(() => async () => {
 });
 
 const mockReplaceConfigFile = vi.hoisted(() => async ({ nextConfig }: { nextConfig: unknown }) => {
-  const fs = await import("node:fs/promises");
-  const path = await import("node:path");
-  const configPath = path.join(process.env.ASTROCLAW_STATE_DIR ?? "", "astroclaw.json");
-  await fs.writeFile(configPath, JSON.stringify(nextConfig, null, 2), "utf-8");
+  const fsLocal = await import("node:fs/promises");
+  const pathLocal = await import("node:path");
+  const configPath = pathLocal.join(process.env.OPENCLAW_STATE_DIR ?? "", "openclaw.json");
+  await fsLocal.writeFile(configPath, JSON.stringify(nextConfig, null, 2), "utf-8");
 });
 
 vi.mock("./io.js", () => ({
@@ -60,18 +61,18 @@ async function withMcpConfigHome<T>(
 ) {
   return await withTempHome(
     async (home) => {
-      const configPath = path.join(home, ".astroclaw", "astroclaw.json");
+      const configPath = path.join(home, ".openclaw", "openclaw.json");
       await fs.mkdir(path.dirname(configPath), { recursive: true });
       await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
       return await fn({ configPath });
     },
     {
-      prefix: "astroclaw-mcp-config-",
+      prefix: "openclaw-mcp-config-",
       skipSessionCleanup: true,
       env: {
-        ASTROCLAW_CONFIG_PATH: undefined,
-        ASTROCLAW_BUNDLED_PLUGINS_DIR: undefined,
-        ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+        OPENCLAW_CONFIG_PATH: undefined,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: undefined,
+        OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
       },
     },
   );
@@ -174,6 +175,37 @@ describe("config mcp config", () => {
       expect(loaded.mcpServers.remote).toEqual({
         url: "https://example.com/mcp",
         transport: "streamable-http",
+      });
+    });
+  });
+
+  it("canonicalizes common MCP operator aliases when saving config", async () => {
+    await withMcpConfigHome({}, async () => {
+      const setResult = await setConfiguredMcpServer({
+        name: "remote",
+        server: {
+          url: "https://example.com/mcp",
+          connect_timeout: 5,
+          supports_parallel_tool_calls: true,
+          ssl_verify: false,
+          client_cert: "/tmp/client.crt",
+          client_key: "/tmp/client.key",
+        },
+      });
+
+      expect(setResult.ok).toBe(true);
+      const loaded = await listConfiguredMcpServers();
+      expect(loaded.ok).toBe(true);
+      if (!loaded.ok) {
+        throw new Error("expected MCP config to load");
+      }
+      expect(loaded.mcpServers.remote).toEqual({
+        url: "https://example.com/mcp",
+        connectTimeout: 5,
+        supportsParallelToolCalls: true,
+        sslVerify: false,
+        clientCert: "/tmp/client.crt",
+        clientKey: "/tmp/client.key",
       });
     });
   });
