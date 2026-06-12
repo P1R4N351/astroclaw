@@ -1,9 +1,12 @@
+// Tests APNS push signing and request construction.
 import { generateKeyPairSync } from "node:crypto";
 import { createServer, type Server as HttpServer } from "node:http";
 import http2 from "node:http2";
 import net from "node:net";
+import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { startProxy, stopProxy, type ProxyHandle } from "./net/proxy/proxy-lifecycle.js";
+import { appendApnsResponseBodyCapture, createApnsResponseBodyCapture } from "./push-apns-http2.js";
 import {
   sendApnsAlert,
   sendApnsBackgroundWake,
@@ -87,7 +90,7 @@ function createDirectApnsSendFixture(params: {
       nodeId: params.nodeId,
       transport: "direct" as const,
       token: "ABCD1234ABCD1234ABCD1234ABCD1234",
-      topic: "ai.astroclaw.ios",
+      topic: "ai.openclaw.ios",
       environment: params.environment,
       updatedAtMs: 1,
     },
@@ -120,14 +123,14 @@ function createRelayApnsSendFixture(params: {
       relayHandle: params.relayHandle ?? "relay-handle-12345678",
       sendGrant: "send-grant-123",
       installationId: "install-123",
-      topic: "ai.astroclaw.ios",
+      topic: "ai.openclaw.ios",
       environment: "production" as const,
       distribution: "official" as const,
       updatedAtMs: 1,
       tokenDebugSuffix: params.tokenDebugSuffix,
     },
     relayConfig: {
-      baseUrl: "https://relay.astroclaw.test",
+      baseUrl: "https://relay.openclaw.test",
       timeoutMs: 2_500,
     },
     gatewayIdentity: {
@@ -196,12 +199,14 @@ function requirePayload(sendRequest: Record<string, unknown>) {
   return requireRecord(sendRequest.payload, "APNs payload");
 }
 
-async function startFakeApnsServer(): Promise<{
+async function startFakeApnsServer(params?: { responseBody?: string; status?: number }): Promise<{
   port: number;
   requests: CapturedApnsRequest[];
   stop: () => Promise<void>;
 }> {
   const requests: CapturedApnsRequest[] = [];
+  const responseBody = params?.responseBody ?? "";
+  const status = params?.status ?? 200;
   const server = http2.createSecureServer({
     key: testApnsServerKeyPem,
     cert: testApnsServerCert,
@@ -215,8 +220,8 @@ async function startFakeApnsServer(): Promise<{
     });
     stream.on("end", () => {
       requests.push({ headers, body });
-      stream.respond({ ":status": 200, "apns-id": "proxied-apns-id" });
-      stream.end();
+      stream.respond({ ":status": status, "apns-id": "proxied-apns-id" });
+      stream.end(responseBody);
     });
   });
   const port = await listen(server);
@@ -277,6 +282,19 @@ afterEach(async () => {
 });
 
 describe("push APNs send semantics", () => {
+  it("bounds APNs response body capture", () => {
+    const capture = createApnsResponseBodyCapture();
+
+    appendApnsResponseBodyCapture(capture, "abc", 5);
+    appendApnsResponseBodyCapture(capture, "def", 5);
+
+    expect(capture).toEqual({
+      text: "abcde",
+      bytes: 6,
+      truncated: true,
+    });
+  });
+
   it("sends alert pushes with alert headers and payload", async () => {
     const { send, registration, auth } = createDirectApnsSendFixture({
       nodeId: "ios-node-alert",
@@ -306,12 +324,12 @@ describe("push APNs send semantics", () => {
       alert: { title: "Wake", body: "Ping" },
       sound: "default",
     });
-    const astroclawPayload = requireRecord(payload.astroclaw, "astroclaw payload");
-    expectRecordFields(astroclawPayload, {
+    const openclawPayload = requireRecord(payload.openclaw, "openclaw payload");
+    expectRecordFields(openclawPayload, {
       kind: "push.test",
       nodeId: "ios-node-alert",
     });
-    expect(typeof astroclawPayload.ts).toBe("number");
+    expect(typeof openclawPayload.ts).toBe("number");
     expect(result.ok).toBe(true);
     expect(result.status).toBe(200);
     expect(result.transport).toBe("direct");
@@ -320,7 +338,7 @@ describe("push APNs send semantics", () => {
   it("routes direct APNs HTTP/2 requests through the active managed proxy", async () => {
     const apnsServer = await startFakeApnsServer();
     const proxy = await startConnectProxy(apnsServer.port);
-    let proxyHandle: ProxyHandle | null = null;
+    let proxyHandle: ProxyHandle | null | undefined;
     const previousTlsRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -356,7 +374,7 @@ describe("push APNs send semantics", () => {
       const request = apnsServer.requests[0];
       expect(request?.headers[":method"]).toBe("POST");
       expect(request?.headers[":path"]).toBe("/3/device/abcd1234abcd1234abcd1234abcd1234");
-      expect(request?.headers["apns-topic"]).toBe("ai.astroclaw.ios");
+      expect(request?.headers["apns-topic"]).toBe("ai.openclaw.ios");
       expect(request?.headers["apns-push-type"]).toBe("alert");
       expect(request?.body).toContain('"nodeId":"ios-node-proxied-alert"');
     } finally {
@@ -365,7 +383,57 @@ describe("push APNs send semantics", () => {
       } else {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousTlsRejectUnauthorized;
       }
-      await stopProxy(proxyHandle);
+      await stopProxy(proxyHandle ?? null);
+      await proxy.stop();
+      await apnsServer.stop();
+    }
+  });
+
+  it("bounds oversized direct APNs error bodies while preserving parseable reasons", async () => {
+    const apnsServer = await startFakeApnsServer({
+      status: 400,
+      responseBody: '{"reason":"BadDeviceToken"}' + " ".repeat(20_000),
+    });
+    const proxy = await startConnectProxy(apnsServer.port);
+    let proxyHandle: ProxyHandle | null | undefined;
+    const previousTlsRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+    try {
+      proxyHandle = await startProxy({ enabled: true, proxyUrl: proxy.proxyUrl });
+      const { registration, auth } = createDirectApnsSendFixture({
+        nodeId: "ios-node-proxied-error-body",
+        environment: "sandbox",
+        sendResult: {
+          status: 200,
+          apnsId: "unused",
+          body: "",
+        },
+      });
+
+      const result = await sendApnsAlert({
+        registration,
+        nodeId: "ios-node-proxied-error-body",
+        title: "Wake",
+        body: "Ping",
+        auth,
+        timeoutMs: 2_500,
+      });
+
+      expectRecordFields(requireRecord(result, "APNs result"), {
+        ok: false,
+        status: 400,
+        apnsId: "proxied-apns-id",
+        reason: "BadDeviceToken",
+        transport: "direct",
+      });
+    } finally {
+      if (previousTlsRejectUnauthorized === undefined) {
+        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+      } else {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousTlsRejectUnauthorized;
+      }
+      await stopProxy(proxyHandle ?? null);
       await proxy.stop();
       await apnsServer.stop();
     }
@@ -398,13 +466,13 @@ describe("push APNs send semantics", () => {
     expect(payload.aps).toEqual({
       "content-available": 1,
     });
-    const astroclawPayload = requireRecord(payload.astroclaw, "astroclaw payload");
-    expectRecordFields(astroclawPayload, {
+    const openclawPayload = requireRecord(payload.openclaw, "openclaw payload");
+    expectRecordFields(openclawPayload, {
       kind: "node.wake",
       reason: "node.invoke",
       nodeId: "ios-node-wake",
     });
-    expect(typeof astroclawPayload.ts).toBe("number");
+    expect(typeof openclawPayload.ts).toBe("number");
     const aps = requireRecord(payload.aps, "APNs aps payload");
     expect(aps.alert).toBeUndefined();
     expect(aps.sound).toBeUndefined();
@@ -439,19 +507,19 @@ describe("push APNs send semantics", () => {
     expect(payload.aps).toEqual({
       alert: {
         title: "Exec approval required",
-        body: "Open Astroclaw to review this request.",
+        body: "Open OpenClaw to review this request.",
       },
       sound: "default",
-      category: "astroclaw.exec-approval",
+      category: "openclaw.exec-approval",
       "content-available": 1,
     });
-    const astroclawPayload = requireRecord(payload.astroclaw, "astroclaw payload");
-    expectRecordFields(astroclawPayload, {
+    const openclawPayload = requireRecord(payload.openclaw, "openclaw payload");
+    expectRecordFields(openclawPayload, {
       kind: "exec.approval.requested",
       approvalId: "approval-123",
     });
-    expect(typeof astroclawPayload.ts).toBe("number");
-    expectNoProperties(astroclawPayload, [
+    expect(typeof openclawPayload.ts).toBe("number");
+    expectNoProperties(openclawPayload, [
       "host",
       "nodeId",
       "agentId",
@@ -489,12 +557,12 @@ describe("push APNs send semantics", () => {
     expect(payload.aps).toEqual({
       "content-available": 1,
     });
-    const astroclawPayload = requireRecord(payload.astroclaw, "astroclaw payload");
-    expectRecordFields(astroclawPayload, {
+    const openclawPayload = requireRecord(payload.openclaw, "openclaw payload");
+    expectRecordFields(openclawPayload, {
       kind: "exec.approval.resolved",
       approvalId: "approval-123",
     });
-    expect(typeof astroclawPayload.ts).toBe("number");
+    expect(typeof openclawPayload.ts).toBe("number");
     expect(result.ok).toBe(true);
     expect(result.transport).toBe("direct");
   });
@@ -529,6 +597,30 @@ describe("push APNs send semantics", () => {
       tokenSuffix: "abcd1234",
       transport: "direct",
     });
+  });
+
+  it("caps oversized direct send timeouts", async () => {
+    const { send, registration, auth } = createDirectApnsSendFixture({
+      nodeId: "ios-node-direct-timeout-cap",
+      environment: "sandbox",
+      sendResult: {
+        status: 200,
+        apnsId: "apns-timeout-cap-id",
+        body: "{}",
+      },
+    });
+
+    await sendApnsAlert({
+      registration,
+      nodeId: "ios-node-direct-timeout-cap",
+      title: "Wake",
+      body: "Ping",
+      auth,
+      requestSender: send,
+      timeoutMs: Number.MAX_SAFE_INTEGER,
+    });
+
+    expect(requireSendRequest(send).timeoutMs).toBe(MAX_TIMER_TIMEOUT_MS);
   });
 
   it("fails closed before sending when direct registrations carry invalid topics", async () => {
@@ -575,7 +667,7 @@ describe("push APNs send semantics", () => {
     });
 
     const payload = requirePayload(requireSendRequest(send));
-    expectRecordFields(requireRecord(payload.astroclaw, "astroclaw payload"), {
+    expectRecordFields(requireRecord(payload.openclaw, "openclaw payload"), {
       kind: "node.wake",
       reason: "node.invoke",
       nodeId: "ios-node-wake-default-reason",
@@ -664,13 +756,13 @@ describe("push APNs send semantics", () => {
     });
     const payload = requirePayload(sent);
     expect(payload.aps).toEqual({ "content-available": 1 });
-    const astroclawPayload = requireRecord(payload.astroclaw, "astroclaw payload");
-    expectRecordFields(astroclawPayload, {
+    const openclawPayload = requireRecord(payload.openclaw, "openclaw payload");
+    expectRecordFields(openclawPayload, {
       kind: "node.wake",
       reason: "queue.retry",
       nodeId: "ios-node-relay-wake",
     });
-    expect(typeof astroclawPayload.ts).toBe("number");
+    expect(typeof openclawPayload.ts).toBe("number");
     expectRecordFields(requireRecord(result, "APNs result"), {
       ok: false,
       status: 429,
@@ -705,19 +797,19 @@ describe("push APNs send semantics", () => {
     expect(payload.aps).toEqual({
       alert: {
         title: "Exec approval required",
-        body: "Open Astroclaw to review this request.",
+        body: "Open OpenClaw to review this request.",
       },
       sound: "default",
-      category: "astroclaw.exec-approval",
+      category: "openclaw.exec-approval",
       "content-available": 1,
     });
-    const astroclawPayload = requireRecord(payload.astroclaw, "astroclaw payload");
-    expectRecordFields(astroclawPayload, {
+    const openclawPayload = requireRecord(payload.openclaw, "openclaw payload");
+    expectRecordFields(openclawPayload, {
       kind: "exec.approval.requested",
       approvalId: "approval-relay-1",
     });
-    expect(typeof astroclawPayload.ts).toBe("number");
-    expectNoProperties(astroclawPayload, [
+    expect(typeof openclawPayload.ts).toBe("number");
+    expectNoProperties(openclawPayload, [
       "commandText",
       "host",
       "nodeId",
