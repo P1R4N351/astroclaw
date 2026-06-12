@@ -1,5 +1,6 @@
+// Tests subagent focus commands, active target state, and reply copy.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
 import type { SessionBindingRecord } from "../../infra/outbound/session-binding-service.js";
 import { createEmptyInlineDirectives } from "./commands-subagents.test-helpers.js";
@@ -41,7 +42,7 @@ function buildFocusSessionBindingService() {
   };
 }
 
-vi.mock("../../acp/runtime/session-identifiers.js", () => ({
+vi.mock("@openclaw/acp-core/runtime/session-identifiers", () => ({
   resolveAcpSessionCwd: () => undefined,
   resolveAcpThreadSessionDetailLines: (params: {
     meta?: { identity?: Record<string, unknown> };
@@ -85,7 +86,7 @@ vi.mock("../../channels/thread-bindings-policy.js", () => ({
     threadId?: string;
   }) => (params.channel === ROOM_CHANNEL && !params.threadId ? "child" : "current"),
   resolveThreadBindingSpawnPolicy: (params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     channel: string;
     accountId: string;
   }) => {
@@ -126,7 +127,7 @@ vi.mock("./commands-subagents/shared.js", async () => {
 
 const baseCfg = {
   session: { mainKey: "main", scope: "per-sender" },
-} satisfies AstroclawConfig;
+} satisfies OpenClawConfig;
 
 function createSessionBindingRecord(
   overrides?: Partial<SessionBindingRecord>,
@@ -194,7 +195,7 @@ function firstSessionBindingBindInput(): SessionBindingBindInput {
 }
 
 function buildCommandParams(params?: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   chatType?: string;
   senderId?: string;
   sessionEntry?: SessionEntry;
@@ -218,7 +219,7 @@ function buildCommandParams(params?: {
     elevated: { enabled: false, allowed: false, failures: [] },
     sessionEntry: params?.sessionEntry,
     sessionKey: "agent:main:main",
-    workspaceDir: "/tmp/astroclaw-subagents-focus",
+    workspaceDir: "/tmp/openclaw-subagents-focus",
     defaultGroupActivation: () => "mention",
     resolvedVerboseLevel: "off",
     resolvedReasoningLevel: "off",
@@ -231,7 +232,7 @@ function buildCommandParams(params?: {
 }
 
 function buildFocusContext(params?: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   chatType?: string;
   senderId?: string;
   token?: string;
@@ -390,8 +391,8 @@ describe("focus actions", () => {
                 spawnSessions: true,
               },
             },
-          } as AstroclawConfig["channels"],
-        } as AstroclawConfig,
+          } as OpenClawConfig["channels"],
+        } as OpenClawConfig,
       }),
     );
 
@@ -439,8 +440,8 @@ describe("focus actions", () => {
                 spawnSessions: false,
               },
             },
-          } as AstroclawConfig["channels"],
-        } as AstroclawConfig,
+          } as OpenClawConfig["channels"],
+        } as OpenClawConfig,
       }),
     );
 
