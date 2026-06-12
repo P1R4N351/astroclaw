@@ -1,3 +1,5 @@
+// Covers plugin-dispatched message actions, target resolution, dry-run behavior,
+// and plugin tool-result extraction.
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonResult } from "../../agents/tools/common.js";
@@ -7,7 +9,7 @@ import type {
   ChannelMessageActionName,
   ChannelPlugin,
 } from "../../channels/plugins/types.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { getActivePluginRegistry, setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../../utils/message-channel.js";
@@ -90,6 +92,7 @@ const mocks = vi.hoisted(() => ({
   executePollAction: vi.fn(),
   callGatewayLeastPrivilege: vi.fn(),
   randomIdempotencyKey: vi.fn(() => "idem-gateway-action"),
+  maybeApplyTtsToPayload: vi.fn(async (params: { payload: unknown }) => params.payload),
 }));
 
 vi.mock("./channel-resolution.js", () => ({
@@ -105,6 +108,10 @@ vi.mock("./outbound-send-service.js", () => ({
 vi.mock("./message.gateway.runtime.js", () => ({
   callGatewayLeastPrivilege: mocks.callGatewayLeastPrivilege,
   randomIdempotencyKey: mocks.randomIdempotencyKey,
+}));
+
+vi.mock("../../tts/tts.runtime.js", () => ({
+  maybeApplyTtsToPayload: mocks.maybeApplyTtsToPayload,
 }));
 
 vi.mock("./outbound-session.js", () => ({
@@ -268,6 +275,10 @@ describe("runMessageAction plugin dispatch", () => {
     );
     mocks.callGatewayLeastPrivilege.mockReset();
     mocks.randomIdempotencyKey.mockClear();
+    mocks.maybeApplyTtsToPayload.mockReset();
+    mocks.maybeApplyTtsToPayload.mockImplementation(
+      async (params: { payload: unknown }) => params.payload,
+    );
   });
 
   describe("alias-based plugin action dispatch", () => {
@@ -329,7 +340,7 @@ describe("runMessageAction plugin dispatch", () => {
               enabled: true,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "pin",
         params: {
           channel: "actionhub",
@@ -345,7 +356,7 @@ describe("runMessageAction plugin dispatch", () => {
               enabled: true,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "list-pins",
         params: {
           channel: "actionhub",
@@ -371,9 +382,9 @@ describe("runMessageAction plugin dispatch", () => {
     });
 
     it("routes execution context ids into plugin handleAction", async () => {
-      const stateDir = path.join("/tmp", "astroclaw-plugin-dispatch-media-roots");
+      const stateDir = path.join("/tmp", "openclaw-plugin-dispatch-media-roots");
       const expectedWorkspaceRoot = path.resolve(stateDir, "workspace-alpha");
-      vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
+      vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
 
       await runMessageAction({
         cfg: {
@@ -382,7 +393,7 @@ describe("runMessageAction plugin dispatch", () => {
               enabled: true,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "pin",
         params: {
           channel: "actionhub",
@@ -432,7 +443,7 @@ describe("runMessageAction plugin dispatch", () => {
     });
 
     it("routes gateway-executed plugin actions through gateway RPC instead of local dispatch", async () => {
-      const handleAction = vi.fn(async () =>
+      const handleActionEntry = vi.fn(async () =>
         jsonResult({
           ok: true,
           local: true,
@@ -444,7 +455,7 @@ describe("runMessageAction plugin dispatch", () => {
         blurb: "Gateway Chat reaction test plugin.",
         actions: ["react"],
         capabilities: { chatTypes: ["direct"], reactions: true },
-        handleAction,
+        handleAction: handleActionEntry,
       });
       setActivePluginRegistry(
         createTestRegistry([
@@ -467,7 +478,7 @@ describe("runMessageAction plugin dispatch", () => {
               enabled: true,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "react",
         params: {
           channel: "gatewaychat",
@@ -480,6 +491,7 @@ describe("runMessageAction plugin dispatch", () => {
         sessionKey: "agent:alpha:main",
         sessionId: "session-123",
         agentId: "alpha",
+        inboundEventKind: "room_event",
         toolContext: {
           currentChannelProvider: "gatewaychat",
           currentMessageId: "wamid.1",
@@ -506,6 +518,7 @@ describe("runMessageAction plugin dispatch", () => {
           sessionKey: "agent:alpha:main",
           sessionId: "session-123",
           agentId: "alpha",
+          inboundTurnKind: "room_event",
           idempotencyKey: "idem-gateway-action",
         },
         "gateway call params",
@@ -518,7 +531,7 @@ describe("runMessageAction plugin dispatch", () => {
         },
         "gateway tool context",
       );
-      expect(handleAction).not.toHaveBeenCalled();
+      expect(handleActionEntry).not.toHaveBeenCalled();
       expectRecordFields(
         result,
         {
@@ -569,7 +582,7 @@ describe("runMessageAction plugin dispatch", () => {
               enabled: true,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "react",
         params: {
           channel: "gatewaychat",
@@ -602,7 +615,7 @@ describe("runMessageAction plugin dispatch", () => {
     });
 
     it("routes gateway-executed plugin sends through gateway RPC instead of local dispatch", async () => {
-      const handleAction = vi.fn(async () => jsonResult({ ok: true, local: true }));
+      const handleActionResult = vi.fn(async () => jsonResult({ ok: true, local: true }));
       const gatewayPlugin = createGatewayActionPlugin({
         pluginId: "gatewaychat",
         label: "Gateway Chat",
@@ -613,7 +626,7 @@ describe("runMessageAction plugin dispatch", () => {
             looksLikeId: () => true,
           },
         },
-        handleAction,
+        handleAction: handleActionResult,
       });
       setActivePluginRegistry(
         createTestRegistry([
@@ -636,7 +649,7 @@ describe("runMessageAction plugin dispatch", () => {
               enabled: true,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "send",
         params: {
           channel: "gatewaychat",
@@ -674,7 +687,7 @@ describe("runMessageAction plugin dispatch", () => {
         "gateway message params",
       );
       expect(mocks.executeSendAction).not.toHaveBeenCalled();
-      expect(handleAction).not.toHaveBeenCalled();
+      expect(handleActionResult).not.toHaveBeenCalled();
       expectRecordFields(
         result,
         {
@@ -692,6 +705,296 @@ describe("runMessageAction plugin dispatch", () => {
           messageId: "gw-send-1",
         },
         "result payload",
+      );
+    });
+
+    it("preserves buffer-only send bytes for gateway-side materialization", async () => {
+      const gatewayPlugin = createGatewayActionPlugin({
+        pluginId: "gatewaychat",
+        label: "Gateway Chat",
+        blurb: "Gateway Chat send test plugin.",
+        actions: ["send"],
+        messaging: {
+          targetResolver: {
+            looksLikeId: () => true,
+          },
+        },
+        handleAction: vi.fn(async () => jsonResult({ ok: true })),
+      });
+      setActivePluginRegistry(
+        createTestRegistry([
+          {
+            pluginId: "gatewaychat",
+            source: "test",
+            plugin: gatewayPlugin,
+          },
+        ]),
+      );
+      mocks.callGatewayLeastPrivilege.mockResolvedValue({
+        ok: true,
+        messageId: "gw-send-buffer",
+      });
+
+      await runMessageAction({
+        cfg: {
+          channels: {
+            gatewaychat: {
+              enabled: true,
+            },
+          },
+        } as OpenClawConfig,
+        action: "send",
+        params: {
+          channel: "gatewaychat",
+          target: "user-123",
+          buffer: Buffer.from("gateway bytes").toString("base64"),
+          filename: "gateway.txt",
+          contentType: "text/plain",
+        },
+        gateway: {
+          clientName: "cli",
+          mode: "cli",
+        },
+      });
+
+      const gatewayCall = readMockCallArg(
+        mocks.callGatewayLeastPrivilege,
+        "gateway least privilege call",
+      );
+      const gatewayParams = readRecordField(gatewayCall, "params", "gateway call params");
+      expectRecordFields(
+        readRecordField(gatewayParams, "params", "gateway message params"),
+        {
+          to: "user-123",
+          media: "buffer://message-send/attachment",
+          mediaUrl: "buffer://message-send/attachment",
+          mediaUrls: ["buffer://message-send/attachment"],
+          buffer: Buffer.from("gateway bytes").toString("base64"),
+          filename: "gateway.txt",
+          contentType: "text/plain",
+        },
+        "gateway message params",
+      );
+      expect(mocks.executeSendAction).not.toHaveBeenCalled();
+    });
+
+    it("preserves buffer-only send bytes for gateway delivery-mode channels", async () => {
+      const gatewayDeliveryPlugin: ChannelPlugin = {
+        id: "gatewaydeliver",
+        meta: {
+          id: "gatewaydeliver",
+          label: "Gateway Deliver",
+          selectionLabel: "Gateway Deliver",
+          docsPath: "/channels/gatewaydeliver",
+          blurb: "Gateway delivery-mode send test plugin.",
+        },
+        capabilities: { chatTypes: ["direct"] },
+        config: createAlwaysConfiguredPluginConfig(),
+        messaging: {
+          targetResolver: {
+            looksLikeId: () => true,
+          },
+        },
+        outbound: { deliveryMode: "gateway" },
+      };
+      setActivePluginRegistry(
+        createTestRegistry([
+          {
+            pluginId: "gatewaydeliver",
+            source: "test",
+            plugin: gatewayDeliveryPlugin,
+          },
+        ]),
+      );
+      mocks.executeSendAction.mockResolvedValueOnce({
+        handledBy: "core",
+        payload: { ok: true },
+        sendResult: {
+          channel: "gatewaydeliver",
+          to: "user-123",
+          via: "gateway",
+          mediaUrl: "buffer://message-send/attachment",
+        },
+      });
+
+      await runMessageAction({
+        cfg: {
+          channels: {
+            gatewaydeliver: {
+              enabled: true,
+            },
+          },
+        } as OpenClawConfig,
+        action: "send",
+        params: {
+          channel: "gatewaydeliver",
+          target: "user-123",
+          buffer: Buffer.from("gateway delivery bytes").toString("base64"),
+          filename: "delivery.txt",
+          contentType: "text/plain",
+        },
+        gateway: {
+          clientName: "cli",
+          mode: "cli",
+        },
+      });
+
+      const executeCall = readMockCallArg(mocks.executeSendAction, "execute send call");
+      expectRecordFields(
+        executeCall,
+        {
+          mediaUrl: "buffer://message-send/attachment",
+          mediaUrls: ["buffer://message-send/attachment"],
+          buffer: Buffer.from("gateway delivery bytes").toString("base64"),
+          filename: "delivery.txt",
+          contentType: "text/plain",
+        },
+        "execute send call",
+      );
+    });
+
+    it("applies TTS before gateway-executed plugin sends", async () => {
+      const gatewayPlugin = createGatewayActionPlugin({
+        pluginId: "gatewaychat",
+        label: "Gateway Chat",
+        blurb: "Gateway Chat send test plugin.",
+        actions: ["send"],
+        messaging: {
+          targetResolver: {
+            looksLikeId: () => true,
+          },
+        },
+        handleAction: vi.fn(async () => jsonResult({ ok: true, local: true })),
+      });
+      setActivePluginRegistry(
+        createTestRegistry([
+          {
+            pluginId: "gatewaychat",
+            source: "test",
+            plugin: gatewayPlugin,
+          },
+        ]),
+      );
+      mocks.callGatewayLeastPrivilege.mockResolvedValue({
+        ok: true,
+        messageId: "gw-send-tts",
+      });
+      mocks.maybeApplyTtsToPayload.mockResolvedValueOnce({
+        mediaUrl: "file:///tmp/openclaw-voice.ogg",
+        audioAsVoice: true,
+        spokenText: "hello there",
+      });
+
+      await runMessageAction({
+        cfg: {
+          channels: {
+            gatewaychat: {
+              enabled: true,
+            },
+          },
+          messages: {
+            tts: {
+              auto: "tagged",
+            },
+          },
+        } as OpenClawConfig,
+        action: "send",
+        params: {
+          channel: "gatewaychat",
+          target: "user-123",
+          message: "[[tts:text]]hello there[[/tts:text]]",
+        },
+        gateway: {
+          clientName: "cli",
+          mode: "cli",
+        },
+        dryRun: false,
+      });
+
+      const gatewayCall = readMockCallArg(
+        mocks.callGatewayLeastPrivilege,
+        "gateway least privilege call",
+      );
+      const gatewayParams = readRecordField(gatewayCall, "params", "gateway call params");
+      expectRecordFields(
+        readRecordField(gatewayParams, "params", "gateway message params"),
+        {
+          message: "",
+          media: "file:///tmp/openclaw-voice.ogg",
+          mediaUrl: "file:///tmp/openclaw-voice.ogg",
+          asVoice: true,
+          audioAsVoice: true,
+        },
+        "gateway message params",
+      );
+      expect(mocks.executeSendAction).not.toHaveBeenCalled();
+    });
+
+    it("applies TTS before local plugin send fallback dispatch", async () => {
+      const handleActionValue = vi.fn(async ({ params }: { params: Record<string, unknown> }) =>
+        jsonResult({ ok: true, params }),
+      );
+      const localPlugin = createGatewayActionPlugin({
+        pluginId: "localchat",
+        label: "Local Chat",
+        blurb: "Local Chat send test plugin.",
+        actions: ["send"],
+        gatewayActions: [],
+        messaging: {
+          targetResolver: {
+            looksLikeId: () => true,
+          },
+        },
+        handleAction: handleActionValue,
+      });
+      setActivePluginRegistry(
+        createTestRegistry([
+          {
+            pluginId: "localchat",
+            source: "test",
+            plugin: localPlugin,
+          },
+        ]),
+      );
+      mocks.maybeApplyTtsToPayload.mockResolvedValueOnce({
+        mediaUrl: "file:///tmp/openclaw-voice.ogg",
+        audioAsVoice: true,
+        spokenText: "hello there",
+      });
+
+      await runMessageAction({
+        cfg: {
+          channels: {
+            localchat: {
+              enabled: true,
+            },
+          },
+          messages: {
+            tts: {
+              auto: "tagged",
+            },
+          },
+        } as OpenClawConfig,
+        action: "send",
+        params: {
+          channel: "localchat",
+          target: "user-123",
+          message: "[[tts:text]]hello there[[/tts:text]]",
+        },
+        dryRun: false,
+      });
+
+      const call = readFirstPluginCall(handleActionValue);
+      expectRecordFields(
+        readRecordField(call, "params", "local plugin params"),
+        {
+          message: "",
+          media: "file:///tmp/openclaw-voice.ogg",
+          mediaUrl: "file:///tmp/openclaw-voice.ogg",
+          asVoice: true,
+          audioAsVoice: true,
+        },
+        "local plugin params",
       );
     });
 
@@ -754,7 +1057,7 @@ describe("runMessageAction plugin dispatch", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "send",
         params: {
           channel: "policydest",
@@ -830,7 +1133,7 @@ describe("runMessageAction plugin dispatch", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "send",
         params: {
           channel: "policydest",
@@ -921,7 +1224,7 @@ describe("runMessageAction plugin dispatch", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "send",
         params: {
           channel: "policydest",
@@ -1003,7 +1306,7 @@ describe("runMessageAction plugin dispatch", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "send",
         params: {
           channel: "policychat",
@@ -1076,7 +1379,7 @@ describe("runMessageAction plugin dispatch", () => {
             enabled: true,
           },
         },
-      } as AstroclawConfig;
+      } as OpenClawConfig;
 
       const presentation = {
         blocks: [{ type: "text", text: "Presentation-only payload" }],
@@ -1155,7 +1458,7 @@ describe("runMessageAction plugin dispatch", () => {
               botToken: "tok",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "poll",
         params: {
           channel: "pollchat",
@@ -1210,7 +1513,7 @@ describe("runMessageAction plugin dispatch", () => {
     });
 
     it("routes gateway-executed plugin polls through gateway RPC instead of local dispatch", async () => {
-      const handleAction = vi.fn(async () => jsonResult({ ok: true, local: true }));
+      const handleActionLocal = vi.fn(async () => jsonResult({ ok: true, local: true }));
       const pollGatewayPlugin = createGatewayActionPlugin({
         pluginId: "pollchat",
         label: "Poll Chat",
@@ -1221,7 +1524,7 @@ describe("runMessageAction plugin dispatch", () => {
             looksLikeId: () => true,
           },
         },
-        handleAction,
+        handleAction: handleActionLocal,
       });
       setActivePluginRegistry(
         createTestRegistry([
@@ -1244,7 +1547,7 @@ describe("runMessageAction plugin dispatch", () => {
               botToken: "tok",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "poll",
         params: {
           channel: "pollchat",
@@ -1284,7 +1587,7 @@ describe("runMessageAction plugin dispatch", () => {
         "gateway poll params",
       );
       expect(mocks.executePollAction).not.toHaveBeenCalled();
-      expect(handleAction).not.toHaveBeenCalled();
+      expect(handleActionLocal).not.toHaveBeenCalled();
       expectRecordFields(
         result,
         {
@@ -1353,7 +1656,7 @@ describe("runMessageAction plugin dispatch", () => {
               token: "tok",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         action: "poll",
         params: {
           channel: "guildchat",
@@ -1440,7 +1743,7 @@ describe("runMessageAction plugin dispatch", () => {
         blocks: [{ type: "buttons", buttons: [{ label: "A", value: "a" }] }],
       };
       const result = await runMessageAction({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         action: "send",
         params: {
           channel: "componentchat",
@@ -1466,7 +1769,7 @@ describe("runMessageAction plugin dispatch", () => {
     it("throws on invalid presentation JSON strings", async () => {
       await expect(
         runMessageAction({
-          cfg: {} as AstroclawConfig,
+          cfg: {} as OpenClawConfig,
           action: "send",
           params: {
             channel: "componentchat",
@@ -1526,7 +1829,7 @@ describe("runMessageAction plugin dispatch", () => {
       {
         name: "uses defaultAccountId override",
         args: {
-          cfg: {} as AstroclawConfig,
+          cfg: {} as OpenClawConfig,
           defaultAccountId: "ops",
         },
         expectedAccountId: "ops",
@@ -1538,7 +1841,7 @@ describe("runMessageAction plugin dispatch", () => {
             bindings: [
               { agentId: "agent-b", match: { channel: "accountchat", accountId: "account-b" } },
             ],
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           agentId: "agent-b",
         },
         expectedAccountId: "account-b",
@@ -1569,7 +1872,7 @@ describe("runMessageAction plugin dispatch", () => {
                 match: { channel: "accountchat", accountId: "agent-fallback" },
               },
             ],
-          } as AstroclawConfig,
+          } as OpenClawConfig,
           agentId: "agent-b",
           target: "channel:C_TARGET",
         },
