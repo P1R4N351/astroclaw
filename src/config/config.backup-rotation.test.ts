@@ -1,3 +1,4 @@
+// Covers config backup rotation limits and cleanup behavior.
 import fs from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
@@ -13,7 +14,7 @@ import {
   resolveConfigPathFromTempState,
 } from "./config.backup-rotation.test-helpers.js";
 import { withTempHome } from "./test-helpers.js";
-import type { AstroclawConfig } from "./types.js";
+import type { OpenClawConfig } from "./types.js";
 
 async function expectRegularFile(filePath: string): Promise<void> {
   expect((await fs.stat(filePath)).isFile()).toBe(true);
@@ -33,10 +34,10 @@ describe("config backup rotation", () => {
   it("keeps a 5-deep backup ring for config writes", async () => {
     await withTempHome(async () => {
       const configPath = resolveConfigPathFromTempState();
-      const buildConfig = (version: number): AstroclawConfig =>
+      const buildConfig = (version: number): OpenClawConfig =>
         ({
           agents: { list: [{ id: `v${version}` }] },
-        }) as AstroclawConfig;
+        }) as OpenClawConfig;
 
       const writeVersion = async (version: number) => {
         const json = JSON.stringify(buildConfig(version), null, 2).trimEnd().concat("\n");
