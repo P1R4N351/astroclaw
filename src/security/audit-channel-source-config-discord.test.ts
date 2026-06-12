@@ -1,12 +1,13 @@
+// Verifies Discord channel source-config audit behavior.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { stubAuditChannelPlugin } from "./audit-channel-test-helpers.js";
 import { collectChannelSecurityFindings } from "./audit-channel.js";
 
 function stubDiscordPlugin(params: {
-  resolveAccount: (cfg: AstroclawConfig, accountId: string | null | undefined) => unknown;
-  inspectAccount?: (cfg: AstroclawConfig, accountId: string | null | undefined) => unknown;
-  isConfigured?: (account: unknown, cfg: AstroclawConfig) => boolean;
+  resolveAccount: (cfg: OpenClawConfig, accountId: string | null | undefined) => unknown;
+  inspectAccount?: (cfg: OpenClawConfig, accountId: string | null | undefined) => unknown;
+  isConfigured?: (account: unknown, cfg: OpenClawConfig) => boolean;
 }) {
   return stubAuditChannelPlugin({
     id: "discord",
@@ -39,7 +40,7 @@ function stubDiscordPlugin(params: {
 
 describe("security audit channel source-config fallback discord", () => {
   it("keeps source-configured channel security findings when resolved inspection is incomplete", async () => {
-    const sourceConfig: AstroclawConfig = {
+    const sourceConfig: OpenClawConfig = {
       commands: { native: true },
       channels: {
         discord: {
@@ -56,7 +57,7 @@ describe("security audit channel source-config fallback discord", () => {
         },
       },
     };
-    const resolvedConfig: AstroclawConfig = {
+    const resolvedConfig: OpenClawConfig = {
       commands: { native: true },
       channels: {
         discord: {
