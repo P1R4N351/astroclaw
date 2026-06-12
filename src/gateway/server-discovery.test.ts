@@ -1,3 +1,6 @@
+/**
+ * Gateway server discovery tests.
+ */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const getTailnetHostname = vi.hoisted(() => vi.fn());
@@ -10,21 +13,21 @@ describe("resolveTailnetDnsHint", () => {
   const prevTailnetDns = { value: undefined as string | undefined };
 
   beforeEach(() => {
-    prevTailnetDns.value = process.env.ASTROCLAW_TAILNET_DNS;
-    delete process.env.ASTROCLAW_TAILNET_DNS;
+    prevTailnetDns.value = process.env.OPENCLAW_TAILNET_DNS;
+    delete process.env.OPENCLAW_TAILNET_DNS;
     getTailnetHostname.mockClear();
   });
 
   afterEach(() => {
     if (prevTailnetDns.value === undefined) {
-      delete process.env.ASTROCLAW_TAILNET_DNS;
+      delete process.env.OPENCLAW_TAILNET_DNS;
     } else {
-      process.env.ASTROCLAW_TAILNET_DNS = prevTailnetDns.value;
+      process.env.OPENCLAW_TAILNET_DNS = prevTailnetDns.value;
     }
   });
 
   test("returns env hint when disabled", async () => {
-    process.env.ASTROCLAW_TAILNET_DNS = "studio.tailnet.ts.net.";
+    process.env.OPENCLAW_TAILNET_DNS = "studio.tailnet.ts.net.";
     const value = await resolveTailnetDnsHint({ enabled: false });
     expect(value).toBe("studio.tailnet.ts.net");
     expect(getTailnetHostname).not.toHaveBeenCalled();
