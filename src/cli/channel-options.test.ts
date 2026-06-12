@@ -1,6 +1,7 @@
+// Channel option tests cover channel command option parsing and config resolution.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { __testing, formatCliChannelOptions, resolveCliChannelOptions } from "./channel-options.js";
-import { __testing as startupMetadataTesting } from "./startup-metadata.js";
+import { testing, formatCliChannelOptions, resolveCliChannelOptions } from "./channel-options.js";
+import { testing as startupMetadataTesting } from "./startup-metadata.js";
 
 const readFileSyncMock = vi.hoisted(() => vi.fn());
 
@@ -19,14 +20,14 @@ vi.mock("node:fs", async () => {
 
 describe("resolveCliChannelOptions", () => {
   beforeEach(() => {
-    __testing.resetPrecomputedChannelOptionsForTests();
+    testing.resetPrecomputedChannelOptionsForTests();
     startupMetadataTesting.clearStartupMetadataCache();
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    __testing.resetPrecomputedChannelOptionsForTests();
-    delete process.env.ASTROCLAW_PLUGIN_CATALOG_PATHS;
+    testing.resetPrecomputedChannelOptionsForTests();
+    delete process.env.OPENCLAW_PLUGIN_CATALOG_PATHS;
   });
 
   it("uses precomputed startup metadata when available", () => {
@@ -49,7 +50,7 @@ describe("resolveCliChannelOptions", () => {
   });
 
   it("ignores external catalog env during CLI bootstrap", () => {
-    process.env.ASTROCLAW_PLUGIN_CATALOG_PATHS = "/tmp/plugins-catalog.json";
+    process.env.OPENCLAW_PLUGIN_CATALOG_PATHS = "/tmp/plugins-catalog.json";
     readFileSyncMock.mockReturnValue(JSON.stringify({ channelOptions: ["cached", "quietchat"] }));
 
     expect(resolveCliChannelOptions()).toEqual(["cached", "quietchat"]);
