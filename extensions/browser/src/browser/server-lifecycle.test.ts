@@ -1,7 +1,8 @@
+// Browser tests cover server lifecycle plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { stopAstroclawChromeMock } = vi.hoisted(() => ({
-  stopAstroclawChromeMock: vi.fn(async () => {}),
+const { stopOpenClawChromeMock } = vi.hoisted(() => ({
+  stopOpenClawChromeMock: vi.fn(async () => {}),
 }));
 
 const { createBrowserRouteContextMock, listKnownProfileNamesMock } = vi.hoisted(() => ({
@@ -10,7 +11,7 @@ const { createBrowserRouteContextMock, listKnownProfileNamesMock } = vi.hoisted(
 }));
 
 vi.mock("./chrome.js", () => ({
-  stopAstroclawChrome: stopAstroclawChromeMock,
+  stopOpenClawChrome: stopOpenClawChromeMock,
 }));
 
 vi.mock("./server-context.js", () => ({
@@ -24,7 +25,7 @@ const { ensureExtensionRelayForProfiles, stopKnownBrowserProfiles } =
 beforeEach(() => {
   createBrowserRouteContextMock.mockClear();
   listKnownProfileNamesMock.mockClear();
-  stopAstroclawChromeMock.mockClear();
+  stopOpenClawChromeMock.mockClear();
 });
 
 describe("ensureExtensionRelayForProfiles", () => {
@@ -40,9 +41,9 @@ describe("ensureExtensionRelayForProfiles", () => {
 
 describe("stopKnownBrowserProfiles", () => {
   it("stops all known profiles and ignores per-profile failures", async () => {
-    listKnownProfileNamesMock.mockReturnValue(["astroclaw", "user"]);
+    listKnownProfileNamesMock.mockReturnValue(["openclaw", "user"]);
     const stopMap: Record<string, ReturnType<typeof vi.fn>> = {
-      astroclaw: vi.fn(async () => {}),
+      openclaw: vi.fn(async () => {}),
       user: vi.fn(async () => {
         throw new Error("profile stop failed");
       }),
@@ -60,7 +61,7 @@ describe("stopKnownBrowserProfiles", () => {
       onWarn,
     });
 
-    expect(stopMap.astroclaw).toHaveBeenCalledTimes(1);
+    expect(stopMap.openclaw).toHaveBeenCalledTimes(1);
     expect(stopMap.user).toHaveBeenCalledTimes(1);
     expect(onWarn).not.toHaveBeenCalled();
   });
@@ -75,7 +76,7 @@ describe("stopKnownBrowserProfiles", () => {
     const localRuntime = {
       profile: {
         name: "deleted-local",
-        driver: "astroclaw",
+        driver: "openclaw",
       },
       running: {
         pid: 42,
@@ -94,7 +95,7 @@ describe("stopKnownBrowserProfiles", () => {
       onWarn: vi.fn(),
     });
 
-    expect(stopAstroclawChromeMock).toHaveBeenCalledWith(launchedBrowser);
+    expect(stopOpenClawChromeMock).toHaveBeenCalledWith(launchedBrowser);
     expect(localRuntime.running).toBeNull();
   });
 
@@ -112,6 +113,6 @@ describe("stopKnownBrowserProfiles", () => {
       onWarn,
     });
 
-    expect(onWarn).toHaveBeenCalledWith("astroclaw browser stop failed: Error: oops");
+    expect(onWarn).toHaveBeenCalledWith("openclaw browser stop failed: Error: oops");
   });
 });
