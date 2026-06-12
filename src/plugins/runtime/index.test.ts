@@ -1,9 +1,10 @@
+// Plugin runtime index tests cover runtime entrypoint exports and registry setup.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import {
   resetConfigRuntimeState,
   setRuntimeConfigSnapshot,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "../../config/config.js";
 import { onAgentEvent } from "../../infra/agent-events.js";
 import {
@@ -228,7 +229,7 @@ describe("plugin runtime command execution", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig);
+    } as unknown as OpenClawConfig);
 
     const runtime = createPluginRuntime();
     const policy = runtime.agent.resolveThinkingPolicy({
@@ -310,7 +311,12 @@ describe("plugin runtime command execution", () => {
           "resolveThinkingPolicy",
           "resolveAgentDir",
         ]);
+        expect(runtime.agent.runEmbeddedPiAgent).toBe(runtime.agent.runEmbeddedAgent);
         expectFunctionKeys(runtime.agent.session as Record<string, unknown>, [
+          "getSessionEntry",
+          "listSessionEntries",
+          "patchSessionEntry",
+          "upsertSessionEntry",
           "updateSessionStore",
           "updateSessionStoreEntry",
           "resolveSessionFilePath",
@@ -349,7 +355,7 @@ describe("plugin runtime command execution", () => {
       api: "openai-responses",
       baseUrl: "https://workspace-cloud.example/v1",
     };
-    const cfg = { plugins: { allow: ["workspace-cloud"] } } as AstroclawConfig;
+    const cfg = { plugins: { allow: ["workspace-cloud"] } } as OpenClawConfig;
     runtimeModelAuthMocks.getApiKeyForModel.mockResolvedValue({
       apiKey: "model-key",
       source: "workspace cloud credentials",
