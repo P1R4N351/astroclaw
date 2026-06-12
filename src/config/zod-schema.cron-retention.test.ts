@@ -1,9 +1,10 @@
+// Verifies cron retention schema parsing and defaults.
 import { describe, expect, it } from "vitest";
-import { AstroclawSchema } from "./zod-schema.js";
+import { OpenClawSchema } from "./zod-schema.js";
 
-describe("AstroclawSchema cron retention and run-log validation", () => {
+describe("OpenClawSchema cron retention and run-log validation", () => {
   it("accepts valid cron.sessionRetention and runLog values", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       cron: {
         sessionRetention: "1h30m",
         runLog: {
@@ -17,7 +18,7 @@ describe("AstroclawSchema cron retention and run-log validation", () => {
 
   it("rejects invalid cron.sessionRetention", () => {
     expect(() =>
-      AstroclawSchema.parse({
+      OpenClawSchema.parse({
         cron: {
           sessionRetention: "abc",
         },
@@ -27,7 +28,7 @@ describe("AstroclawSchema cron retention and run-log validation", () => {
 
   it("rejects invalid cron.runLog.maxBytes", () => {
     expect(() =>
-      AstroclawSchema.parse({
+      OpenClawSchema.parse({
         cron: {
           runLog: {
             maxBytes: "wat",
