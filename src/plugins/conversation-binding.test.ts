@@ -1,3 +1,4 @@
+// Covers plugin conversation binding persistence and lookup behavior.
 import fs from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,7 +12,7 @@ import type { PluginRegistry } from "./registry.js";
 import { cleanupTrackedTempDirs, makeTrackedTempDir } from "./test-helpers/fs-fixtures.js";
 
 const tempDirs: string[] = [];
-const tempRoot = makeTrackedTempDir("astroclaw-plugin-binding", tempDirs);
+const tempRoot = makeTrackedTempDir("openclaw-plugin-binding", tempDirs);
 const approvalsPath = path.join(tempRoot, "plugin-binding-approvals.json");
 
 const sessionBindingState = vi.hoisted(() => {
@@ -98,7 +99,7 @@ vi.mock("../infra/home-dir.js", async () => {
   return {
     ...actual,
     expandHomePrefix: (value: string) => {
-      if (value === "~/.astroclaw/plugin-binding-approvals.json") {
+      if (value === "~/.openclaw/plugin-binding-approvals.json") {
         return approvalsPath;
       }
       return actual.expandHomePrefix(value);
@@ -118,7 +119,7 @@ vi.mock("./runtime.js", async () => {
   };
 });
 
-let __testing: typeof import("./conversation-binding.js").__testing;
+let testing: typeof import("./conversation-binding.js").testing;
 let buildPluginBindingApprovalCustomId: typeof import("./conversation-binding.js").buildPluginBindingApprovalCustomId;
 let detachPluginConversationBinding: typeof import("./conversation-binding.js").detachPluginConversationBinding;
 let getCurrentPluginConversationBinding: typeof import("./conversation-binding.js").getCurrentPluginConversationBinding;
@@ -169,7 +170,7 @@ afterAll(() => {
 
 beforeAll(async () => {
   ({
-    __testing,
+    testing,
     buildPluginBindingApprovalCustomId,
     detachPluginConversationBinding,
     getCurrentPluginConversationBinding,
@@ -282,7 +283,7 @@ async function approveBindingRequest(
 async function importDuplicateConversationBindingModules() {
   const first = await importConversationBindingModule(`first-${Date.now()}`);
   const second = await importConversationBindingModule(`second-${Date.now()}`);
-  first.__testing.reset();
+  first.testing.reset();
   return { first, second };
 }
 
@@ -307,7 +308,9 @@ async function requestResolvedBinding(input: PluginBindingRequestInput) {
 }
 
 async function flushMicrotasks(): Promise<void> {
-  await new Promise<void>((resolve) => setImmediate(resolve));
+  await new Promise<void>((resolve) => {
+    setImmediate(resolve);
+  });
 }
 
 function createDeferredVoid(): { promise: Promise<void>; resolve: () => void } {
@@ -415,7 +418,7 @@ async function expectResolutionDoesNotWait(params: {
 describe("plugin conversation binding approvals", () => {
   beforeEach(() => {
     sessionBindingState.reset();
-    __testing.reset();
+    testing.reset();
     setActivePluginRegistry(createEmptyPluginRegistry());
     fs.rmSync(approvalsPath, { force: true });
     unregisterSessionBindingAdapter({ channel: "discord", accountId: "default" });
@@ -506,7 +509,7 @@ describe("plugin conversation binding approvals", () => {
     expect(approved.binding.pluginRoot).toBe("/plugins/codex-a");
     expect(approved.binding.conversationId).toBe("-10099:topic:77");
 
-    second.__testing.reset();
+    second.testing.reset();
   });
 
   it("shares persistent approvals across duplicate module instances", async () => {
@@ -541,7 +544,7 @@ describe("plugin conversation binding approvals", () => {
 
     expect(rebound.status).toBe("bound");
 
-    first.__testing.reset();
+    first.testing.reset();
     fs.rmSync(approvalsPath, { force: true });
   });
 
@@ -612,8 +615,8 @@ describe("plugin conversation binding approvals", () => {
     const data = {
       kind: "codex-app-server-session",
       version: 1,
-      sessionFile: "/tmp/astroclaw/session.jsonl",
-      workspaceDir: "/workspace/astroclaw",
+      sessionFile: "/tmp/openclaw/session.jsonl",
+      workspaceDir: "/workspace/openclaw",
     };
     const binding = await requestResolvedBinding(
       createCodexBindRequest({
@@ -914,7 +917,7 @@ describe("plugin conversation binding approvals", () => {
       name: "migrates a legacy codex thread binding session key through the new approval flow",
       existingRecord: {
         bindingId: "binding-legacy-codex-thread",
-        targetSessionKey: "astroclaw-app-server:thread:019ce411-6322-7db2-a821-1a61c530e7d9",
+        targetSessionKey: "openclaw-app-server:thread:019ce411-6322-7db2-a821-1a61c530e7d9",
         targetKind: "session" as const,
         conversation: {
           channel: "telegram",
@@ -931,10 +934,10 @@ describe("plugin conversation binding approvals", () => {
         accountId: "default",
         conversationId: "8460800771",
         summary: "Bind this conversation to Codex thread 019ce411-6322-7db2-a821-1a61c530e7d9.",
-        pluginId: "astroclaw-codex-app-server",
+        pluginId: "openclaw-codex-app-server",
       }),
       expectedBinding: {
-        pluginId: "astroclaw-codex-app-server",
+        pluginId: "openclaw-codex-app-server",
         pluginRoot: "/plugins/codex-a",
         conversationId: "8460800771",
       },
