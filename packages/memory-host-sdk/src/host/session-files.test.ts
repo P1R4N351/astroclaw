@@ -1,3 +1,4 @@
+// Memory Host SDK tests cover session files behavior.
 import fsSync from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -25,15 +26,15 @@ afterAll(() => {
 beforeEach(() => {
   tmpDir = path.join(fixtureRoot, `case-${fixtureId++}`);
   fsSync.mkdirSync(tmpDir, { recursive: true });
-  originalStateDir = process.env.ASTROCLAW_STATE_DIR;
-  process.env.ASTROCLAW_STATE_DIR = tmpDir;
+  originalStateDir = process.env.OPENCLAW_STATE_DIR;
+  process.env.OPENCLAW_STATE_DIR = tmpDir;
 });
 
 afterEach(() => {
   if (originalStateDir === undefined) {
-    delete process.env.ASTROCLAW_STATE_DIR;
+    delete process.env.OPENCLAW_STATE_DIR;
   } else {
-    process.env.ASTROCLAW_STATE_DIR = originalStateDir;
+    process.env.OPENCLAW_STATE_DIR = originalStateDir;
   }
 });
 
@@ -105,7 +106,7 @@ describe("buildSessionEntry", () => {
     // Line 7: user message
     const jsonlLines = [
       JSON.stringify({ type: "custom", customType: "model-snapshot", data: {} }),
-      JSON.stringify({ type: "custom", customType: "astroclaw.cache-ttl", data: {} }),
+      JSON.stringify({ type: "custom", customType: "openclaw.cache-ttl", data: {} }),
       JSON.stringify({ type: "session-meta", agentId: "test" }),
       JSON.stringify({ type: "message", message: { role: "user", content: "Hello world" } }),
       JSON.stringify({ type: "custom", customType: "tool-result", data: {} }),
@@ -294,5 +295,23 @@ describe("buildSessionEntry", () => {
     const entry = requireSessionEntry(await buildSessionEntry(filePath));
     expect(entry.content).toBe("Assistant: User-facing summary.\nUser: Actual user follow-up.");
     expect(entry.lineMap).toStrictEqual([2, 3]);
+  });
+
+  it("drops Date-invalid numeric message timestamps", async () => {
+    const jsonlLines = [
+      JSON.stringify({
+        type: "message",
+        message: {
+          role: "user",
+          content: "Hello",
+          timestamp: 8_640_000_000_000_001,
+        },
+      }),
+    ];
+    const filePath = path.join(tmpDir, "invalid-timestamp-session.jsonl");
+    fsSync.writeFileSync(filePath, jsonlLines.join("\n"));
+
+    const entry = requireSessionEntry(await buildSessionEntry(filePath));
+    expect(entry.messageTimestampsMs).toStrictEqual([0]);
   });
 });
