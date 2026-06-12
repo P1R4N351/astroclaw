@@ -1,6 +1,8 @@
+// Control UI view renders debug screen content.
 import { html, nothing } from "lit";
 import { t } from "../../i18n/index.ts";
 import type { EventLogEntry } from "../app-events.ts";
+import { formatTimeMs } from "../format.ts";
 import { formatEventPayload } from "../presenter.ts";
 
 export type DebugProps = {
@@ -60,7 +62,7 @@ export function renderDebug(props: DebugProps) {
                     ? ` · ${t("debug.security.info", { count: String(info) })}`
                     : ""}.
                   ${t("debug.security.runPrefix")}
-                  <span class="mono">astroclaw security audit --deep</span>
+                  <span class="mono">openclaw security audit --deep</span>
                   ${t("debug.security.runSuffix")}
                 </div>`
               : nothing}
@@ -136,7 +138,7 @@ ${JSON.stringify(props.models ?? [], null, 2)}</pre
                   <div class="list-item debug-event-log__item">
                     <div class="list-main">
                       <div class="list-title">${evt.event}</div>
-                      <div class="list-sub">${new Date(evt.ts).toLocaleTimeString()}</div>
+                      <div class="list-sub">${formatTimeMs(evt.ts, undefined, "")}</div>
                     </div>
                     <div class="list-meta debug-event-log__meta">
                       <pre class="code-block debug-event-log__payload">
