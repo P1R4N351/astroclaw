@@ -1,12 +1,20 @@
+// Control UI HTTP tests cover static asset serving, bootstrap config, avatar and
+// assistant media routes, pairing helpers, and session-generation metadata.
 import { createHash } from "node:crypto";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import type { IncomingMessage } from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { resolveStateDir } from "../config/paths.js";
-import { approveDevicePairing, requestDevicePairing } from "../infra/device-pairing.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import {
+  approveDevicePairing,
+  ensureDeviceToken,
+  requestDevicePairing,
+} from "../infra/device-pairing.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { withEnvAsync } from "../test-utils/env.js";
 import type { ResolvedGatewayAuth } from "./auth.js";
 import { CONTROL_UI_BOOTSTRAP_CONFIG_PATH } from "./control-ui-contract.js";
 import {
@@ -14,6 +22,7 @@ import {
   handleControlUiAvatarRequest,
   handleControlUiHttpRequest,
 } from "./control-ui.js";
+import { resolveSharedGatewaySessionGeneration } from "./server/ws-shared-generation.js";
 import { makeMockHttpResponse } from "./test-http-response.js";
 
 describe("handleControlUiHttpRequest", () => {
@@ -21,7 +30,7 @@ describe("handleControlUiHttpRequest", () => {
     indexHtml?: string;
     fn: (tmp: string) => Promise<T>;
   }) {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-ui-"));
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-"));
     try {
       await fs.writeFile(path.join(tmp, "index.html"), params.indexHtml ?? "<html></html>\n");
       return await params.fn(tmp);
@@ -192,7 +201,7 @@ describe("handleControlUiHttpRequest", () => {
     headers?: IncomingMessage["headers"];
   }) {
     return await runAssistantMediaRequest({
-      url: `/__astroclaw__/assistant-media?${params.meta ? "meta=1&" : ""}source=${encodeURIComponent(params.filePath)}`,
+      url: `/__openclaw__/assistant-media?${params.meta ? "meta=1&" : ""}source=${encodeURIComponent(params.filePath)}`,
       method: "GET",
       auth: createTrustedProxyAuth(),
       trustedProxies: ["10.0.0.1"],
@@ -254,7 +263,7 @@ describe("handleControlUiHttpRequest", () => {
     prefix: string;
     fn: (tmpRoot: string) => Promise<T>;
   }) {
-    const tmpRoot = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), params.prefix));
+    const tmpRoot = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), params.prefix));
     try {
       return await params.fn(tmpRoot);
     } finally {
@@ -266,7 +275,7 @@ describe("handleControlUiHttpRequest", () => {
     siblingDir: string;
     fn: (paths: { root: string; sibling: string }) => Promise<T>;
   }) {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-ui-root-"));
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-root-"));
     try {
       const root = path.join(tmp, "ui");
       const sibling = path.join(tmp, params.siblingDir);
@@ -279,29 +288,49 @@ describe("handleControlUiHttpRequest", () => {
     }
   }
 
-  async function withPairedOperatorDeviceToken<T>(params: { fn: (token: string) => Promise<T> }) {
-    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-ui-device-token-"));
-    vi.stubEnv("ASTROCLAW_HOME", tempHome);
+  async function withPairedOperatorDeviceToken<T>(params: {
+    issuerGeneration?: string;
+    browserMetadata?: boolean;
+    fn: (token: string) => Promise<T>;
+  }) {
+    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-device-token-"));
     try {
-      const deviceId = "control-ui-device";
-      const requested = await requestDevicePairing({
-        deviceId,
-        publicKey: "test-public-key",
-        role: "operator",
-        scopes: ["operator.read"],
-        clientId: "astroclaw-control-ui",
-        clientMode: "webchat",
+      return await withEnvAsync({ OPENCLAW_HOME: tempHome }, async () => {
+        const deviceId = "control-ui-device";
+        const requested = await requestDevicePairing({
+          deviceId,
+          publicKey: "test-public-key",
+          role: "operator",
+          scopes: ["operator.read"],
+          ...(params.browserMetadata
+            ? {
+                clientId: "openclaw-control-ui",
+                clientMode: "webchat",
+              }
+            : {}),
+        });
+        const approved = await approveDevicePairing(requested.request.requestId, {
+          callerScopes: ["operator.read"],
+        });
+        expect(approved?.status).toBe("approved");
+        let operatorToken =
+          approved?.status === "approved" ? approved.device.tokens?.operator?.token : undefined;
+        if (params.issuerGeneration) {
+          const issued = await ensureDeviceToken({
+            deviceId,
+            role: "operator",
+            scopes: ["operator.read"],
+            issuer: {
+              kind: "shared-gateway-auth",
+              generation: params.issuerGeneration,
+            },
+          });
+          operatorToken = issued?.token;
+        }
+        expect(typeof operatorToken).toBe("string");
+        return await params.fn(operatorToken ?? "");
       });
-      const approved = await approveDevicePairing(requested.request.requestId, {
-        callerScopes: ["operator.read"],
-      });
-      expect(approved?.status).toBe("approved");
-      const operatorToken =
-        approved?.status === "approved" ? approved.device.tokens?.operator?.token : undefined;
-      expect(typeof operatorToken).toBe("string");
-      return await params.fn(operatorToken ?? "");
     } finally {
-      vi.unstubAllEnvs();
       await fs.rm(tempHome, { recursive: true, force: true });
     }
   }
@@ -339,7 +368,7 @@ describe("handleControlUiHttpRequest", () => {
         const filePath = path.join(tmpRoot, "photo.png");
         await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
         const { res, handled } = await runAssistantMediaRequest({
-          url: `/__astroclaw__/assistant-media?source=${encodeURIComponent(filePath)}&token=test-token`,
+          url: `/__openclaw__/assistant-media?source=${encodeURIComponent(filePath)}&token=test-token`,
           method: "GET",
           auth: { mode: "token", token: "test-token", allowTailscale: false },
         });
@@ -358,7 +387,7 @@ describe("handleControlUiHttpRequest", () => {
 
     try {
       const { res, handled } = await runAssistantMediaRequest({
-        url: `/__astroclaw__/assistant-media?source=${encodeURIComponent(`media://inbound/${id}`)}&token=test-token`,
+        url: `/__openclaw__/assistant-media?source=${encodeURIComponent(`media://inbound/${id}`)}&token=test-token`,
         method: "GET",
         auth: { mode: "token", token: "test-token", allowTailscale: false },
       });
@@ -378,7 +407,7 @@ describe("handleControlUiHttpRequest", () => {
 
     try {
       const { res, handled, end } = await runAssistantMediaRequest({
-        url: `/__astroclaw__/assistant-media?meta=1&source=${encodeURIComponent(`media://inbound/${id}`)}&token=test-token`,
+        url: `/__openclaw__/assistant-media?meta=1&source=${encodeURIComponent(`media://inbound/${id}`)}&token=test-token`,
         method: "GET",
         auth: { mode: "token", token: "test-token", allowTailscale: false },
       });
@@ -398,12 +427,12 @@ describe("handleControlUiHttpRequest", () => {
   });
 
   it("rejects assistant local media outside allowed preview roots", async () => {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-ui-media-blocked-"));
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-media-blocked-"));
     try {
       const filePath = path.join(tmp, "photo.png");
       await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
       const { res, handled, end } = await runAssistantMediaRequest({
-        url: `/__astroclaw__/assistant-media?source=${encodeURIComponent(filePath)}&token=test-token`,
+        url: `/__openclaw__/assistant-media?source=${encodeURIComponent(filePath)}&token=test-token`,
         method: "GET",
         auth: { mode: "token", token: "test-token", allowTailscale: false },
       });
@@ -420,7 +449,7 @@ describe("handleControlUiHttpRequest", () => {
         const filePath = path.join(tmpRoot, "photo.png");
         await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
         const { res, handled, end } = await runAssistantMediaRequest({
-          url: `/__astroclaw__/assistant-media?meta=1&source=${encodeURIComponent(filePath)}&token=test-token`,
+          url: `/__openclaw__/assistant-media?meta=1&source=${encodeURIComponent(filePath)}&token=test-token`,
           method: "GET",
           auth: { mode: "token", token: "test-token", allowTailscale: false },
         });
@@ -438,6 +467,36 @@ describe("handleControlUiHttpRequest", () => {
     });
   });
 
+  it("reports assistant media metadata when the process clock is outside the Date range", async () => {
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(8_640_000_000_000_001);
+    try {
+      await withAllowedAssistantMediaRoot({
+        prefix: "ui-media-bad-clock-",
+        fn: async (tmpRoot) => {
+          const filePath = path.join(tmpRoot, "photo.png");
+          await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
+          const { res, handled, end } = await runAssistantMediaRequest({
+            url: `/__openclaw__/assistant-media?meta=1&source=${encodeURIComponent(filePath)}&token=test-token`,
+            method: "GET",
+            auth: { mode: "token", token: "test-token", allowTailscale: false },
+          });
+          expect(handled).toBe(true);
+          expect(res.statusCode).toBe(200);
+          const payload = responseJson(end) as {
+            available?: boolean;
+            mediaTicket?: string;
+            mediaTicketExpiresAt?: string;
+          };
+          expect(payload.available).toBe(true);
+          expect(payload.mediaTicket).toBeUndefined();
+          expect(payload.mediaTicketExpiresAt).toBeUndefined();
+        },
+      });
+    } finally {
+      dateNowSpy.mockRestore();
+    }
+  });
+
   it("serves assistant local media with a scoped media ticket after metadata auth", async () => {
     await withAllowedAssistantMediaRoot({
       prefix: "ui-media-ticket-",
@@ -445,7 +504,7 @@ describe("handleControlUiHttpRequest", () => {
         const filePath = path.join(tmpRoot, "photo.png");
         await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
         const meta = await runAssistantMediaRequest({
-          url: `/__astroclaw__/assistant-media?meta=1&source=${encodeURIComponent(filePath)}`,
+          url: `/__openclaw__/assistant-media?meta=1&source=${encodeURIComponent(filePath)}`,
           method: "GET",
           auth: { mode: "token", token: "test-token", allowTailscale: false },
           headers: {
@@ -460,7 +519,7 @@ describe("handleControlUiHttpRequest", () => {
         expect(payload.mediaTicket).toMatch(/^v1\./);
 
         const media = await runAssistantMediaRequest({
-          url: `/__astroclaw__/assistant-media?source=${encodeURIComponent(filePath)}&mediaTicket=${encodeURIComponent(payload.mediaTicket ?? "")}`,
+          url: `/__openclaw__/assistant-media?source=${encodeURIComponent(filePath)}&mediaTicket=${encodeURIComponent(payload.mediaTicket ?? "")}`,
           method: "GET",
           auth: { mode: "token", token: "test-token", allowTailscale: false },
         });
@@ -477,7 +536,7 @@ describe("handleControlUiHttpRequest", () => {
         const filePath = path.join(tmpRoot, "photo.png");
         await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
         const meta = await runAssistantMediaRequest({
-          url: `/__astroclaw__/assistant-media?meta=1&source=${encodeURIComponent(filePath)}`,
+          url: `/__openclaw__/assistant-media?meta=1&source=${encodeURIComponent(filePath)}`,
           method: "GET",
           auth: { mode: "token", token: "test-token", allowTailscale: false },
           headers: {
@@ -489,7 +548,7 @@ describe("handleControlUiHttpRequest", () => {
         };
 
         const refresh = await runAssistantMediaRequest({
-          url: `/__astroclaw__/assistant-media?meta=1&source=${encodeURIComponent(filePath)}&mediaTicket=${encodeURIComponent(payload.mediaTicket ?? "")}`,
+          url: `/__openclaw__/assistant-media?meta=1&source=${encodeURIComponent(filePath)}&mediaTicket=${encodeURIComponent(payload.mediaTicket ?? "")}`,
           method: "GET",
           auth: { mode: "token", token: "test-token", allowTailscale: false },
         });
@@ -507,7 +566,7 @@ describe("handleControlUiHttpRequest", () => {
         const filePath = path.join(tmpRoot, "photo.png");
         await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
         const { res, handled, end } = await runAssistantMediaRequest({
-          url: `/__astroclaw__/assistant-media?source=${encodeURIComponent(filePath)}&mediaTicket=v1.invalid.invalid`,
+          url: `/__openclaw__/assistant-media?source=${encodeURIComponent(filePath)}&mediaTicket=v1.invalid.invalid`,
           method: "GET",
           auth: { mode: "token", token: "test-token", allowTailscale: false },
         });
@@ -520,7 +579,7 @@ describe("handleControlUiHttpRequest", () => {
 
   it("reports assistant local media availability failures with a reason", async () => {
     const { res, handled, end } = await runAssistantMediaRequest({
-      url: `/__astroclaw__/assistant-media?meta=1&source=${encodeURIComponent("/Users/test/Documents/private.pdf")}&token=test-token`,
+      url: `/__openclaw__/assistant-media?meta=1&source=${encodeURIComponent("/Users/test/Documents/private.pdf")}&token=test-token`,
       method: "GET",
       auth: { mode: "token", token: "test-token", allowTailscale: false },
     });
@@ -540,7 +599,7 @@ describe("handleControlUiHttpRequest", () => {
         const filePath = path.join(tmpRoot, "photo.png");
         await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
         const { res, handled, end } = await runAssistantMediaRequest({
-          url: `/__astroclaw__/assistant-media?source=${encodeURIComponent(filePath)}`,
+          url: `/__openclaw__/assistant-media?source=${encodeURIComponent(filePath)}`,
           method: "GET",
           auth: { mode: "token", token: "test-token", allowTailscale: false },
         });
@@ -560,9 +619,42 @@ describe("handleControlUiHttpRequest", () => {
             const filePath = path.join(tmpRoot, "photo.png");
             await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
             const { res, handled } = await runAssistantMediaRequest({
-              url: `/__astroclaw__/assistant-media?source=${encodeURIComponent(filePath)}`,
+              url: `/__openclaw__/assistant-media?source=${encodeURIComponent(filePath)}`,
               method: "GET",
               auth: { mode: "token", token: "shared-token", allowTailscale: false },
+              headers: {
+                authorization: `Bearer ${operatorToken}`,
+              },
+            });
+            expect(handled).toBe(true);
+            expect(res.statusCode).toBe(200);
+          },
+        });
+      },
+    });
+  });
+
+  it("accepts shared-gateway issuer tagged device tokens on assistant media requests", async () => {
+    const auth = {
+      mode: "token",
+      token: "shared-token",
+      allowTailscale: false,
+    } satisfies ResolvedGatewayAuth;
+    const issuerGeneration = resolveSharedGatewaySessionGeneration(auth);
+    expect(typeof issuerGeneration).toBe("string");
+    await withPairedOperatorDeviceToken({
+      issuerGeneration,
+      browserMetadata: true,
+      fn: async (operatorToken) => {
+        await withAllowedAssistantMediaRoot({
+          prefix: "ui-media-issued-device-token-",
+          fn: async (tmpRoot) => {
+            const filePath = path.join(tmpRoot, "photo.png");
+            await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
+            const { res, handled } = await runAssistantMediaRequest({
+              url: `/__openclaw__/assistant-media?source=${encodeURIComponent(filePath)}`,
+              method: "GET",
+              auth,
               headers: {
                 authorization: `Bearer ${operatorToken}`,
               },
@@ -584,7 +676,7 @@ describe("handleControlUiHttpRequest", () => {
             const filePath = path.join(tmpRoot, "photo.png");
             await fs.writeFile(filePath, Buffer.from("not-a-real-png"));
             const { res, handled } = await runAssistantMediaRequest({
-              url: `/__astroclaw__/assistant-media?source=${encodeURIComponent(filePath)}&token=${encodeURIComponent(operatorToken)}`,
+              url: `/__openclaw__/assistant-media?source=${encodeURIComponent(filePath)}&token=${encodeURIComponent(operatorToken)}`,
               method: "GET",
               auth: { mode: "token", token: "shared-token", allowTailscale: false },
             });
@@ -624,7 +716,7 @@ describe("handleControlUiHttpRequest", () => {
         const { res, handled, end } = await runTrustedProxyAssistantMediaRequest({
           filePath,
           headers: {
-            "x-astroclaw-scopes": "operator.approvals",
+            "x-openclaw-scopes": "operator.approvals",
           },
         });
         expectMissingOperatorReadResponse({ handled, res, end });
@@ -642,7 +734,7 @@ describe("handleControlUiHttpRequest", () => {
           filePath,
           meta: true,
           headers: {
-            "x-astroclaw-scopes": "",
+            "x-openclaw-scopes": "",
           },
         });
         expectMissingOperatorReadResponse({ handled, res, end });
@@ -781,10 +873,10 @@ describe("handleControlUiHttpRequest", () => {
       fn: async (tmp) => {
         const { res, end } = makeMockHttpResponse();
         const handled = await handleControlUiHttpRequest(
-          { url: `/astroclaw${CONTROL_UI_BOOTSTRAP_CONFIG_PATH}`, method: "GET" } as IncomingMessage,
+          { url: `/openclaw${CONTROL_UI_BOOTSTRAP_CONFIG_PATH}`, method: "GET" } as IncomingMessage,
           res,
           {
-            basePath: "/astroclaw",
+            basePath: "/openclaw",
             root: { kind: "resolved", path: tmp },
             config: {
               agents: { defaults: { workspace: tmp } },
@@ -794,17 +886,180 @@ describe("handleControlUiHttpRequest", () => {
         );
         expect(handled).toBe(true);
         const parsed = parseBootstrapPayload(end);
-        expect(parsed.basePath).toBe("/astroclaw");
+        expect(parsed.basePath).toBe("/openclaw");
         expect(parsed.assistantName).toBe("Ops");
-        expect(parsed.assistantAvatar).toBe("/astroclaw/avatar/main");
+        expect(parsed.assistantAvatar).toBe("/openclaw/avatar/main");
         expect(parsed.assistantAgentId).toBe("main");
         expect(Array.isArray(parsed.localMediaPreviewRoots)).toBe(true);
       },
     });
   });
 
+  it("serves bootstrap config under the configured /__openclaw__ basePath (#66946)", async () => {
+    await withControlUiRoot({
+      fn: async (tmp) => {
+        const { res, end } = makeMockHttpResponse();
+        const handled = await handleControlUiHttpRequest(
+          {
+            url: "/__openclaw__/control-ui-config.json",
+            method: "GET",
+          } as IncomingMessage,
+          res,
+          {
+            basePath: "/__openclaw__",
+            root: { kind: "resolved", path: tmp },
+            config: {
+              agents: { defaults: { workspace: tmp } },
+              ui: { assistant: { name: "Ops", avatar: "ops.png" } },
+            },
+          },
+        );
+        expect(handled).toBe(true);
+        expect(res.statusCode).not.toBe(404);
+        const parsed = parseBootstrapPayload(end);
+        expect(parsed.basePath).toBe("/__openclaw__");
+        expect(parsed.assistantAgentId).toBe("main");
+      },
+    });
+  });
+
+  // Real reported scenario: the gateway has NO configured `gateway.controlUi.basePath`,
+  // so the SPA is served at the default `/__openclaw__/` namespace. The browser opens
+  // the default entry, `inferBasePathFromPathname("/__openclaw__/")` yields `/__openclaw__`,
+  // and the loader fetches `/__openclaw__/control-ui-config.json`. Before this fix the
+  // gateway only matched the bare `/control-ui-config.json` for an empty base path, so the
+  // default-entry request 404ed (issue #66946). This case fails without the namespace alias.
+  it("serves bootstrap config at the default /__openclaw__ entry with no configured basePath (#66946)", async () => {
+    await withControlUiRoot({
+      fn: async (tmp) => {
+        const { res, end } = makeMockHttpResponse();
+        const handled = await handleControlUiHttpRequest(
+          {
+            url: "/__openclaw__/control-ui-config.json",
+            method: "GET",
+          } as IncomingMessage,
+          res,
+          {
+            // No basePath: simulates the default deployment from the issue report.
+            root: { kind: "resolved", path: tmp },
+            config: {
+              agents: { defaults: { workspace: tmp } },
+              ui: { assistant: { name: "Ops", avatar: "ops.png" } },
+            },
+          },
+        );
+        expect(handled).toBe(true);
+        expect(res.statusCode).not.toBe(404);
+        const parsed = parseBootstrapPayload(end);
+        // Configured base path is empty, so the payload reports "" (the loader keeps
+        // its own inferred base path; it does not read this field back for the fetch).
+        expect(parsed.basePath).toBe("");
+        expect(parsed.assistantAgentId).toBe("main");
+      },
+    });
+  });
+
+  it("still serves bootstrap config at the bare /control-ui-config.json for compatibility (#66946)", async () => {
+    await withControlUiRoot({
+      fn: async (tmp) => {
+        const { res, handled, end } = await runBootstrapConfigRequest({ rootPath: tmp });
+        expect(handled).toBe(true);
+        expect(res.statusCode).not.toBe(404);
+        const parsed = parseBootstrapPayload(end);
+        expect(parsed.basePath).toBe("");
+        expect(parsed.assistantAgentId).toBe("main");
+      },
+    });
+  });
+
+  // Compatibility regression: current main and v2026.6.1 serve and document the
+  // single-underscore `/__openclaw/control-ui-config.json` endpoint under an empty
+  // base path. #66946 makes the config path base-path-relative; this case proves
+  // the old documented endpoint still returns config (no upgrade 404 break).
+  // Without the LEGACY_BOOTSTRAP_CONFIG_PATH alias this request 404s, so it is not
+  // vacuous.
+  it("still serves bootstrap config at the legacy /__openclaw/control-ui-config.json with no configured basePath (#66946)", async () => {
+    await withControlUiRoot({
+      fn: async (tmp) => {
+        const { res, end } = makeMockHttpResponse();
+        const handled = await handleControlUiHttpRequest(
+          {
+            url: "/__openclaw/control-ui-config.json",
+            method: "GET",
+          } as IncomingMessage,
+          res,
+          {
+            // No basePath: matches the legacy default deployment that documented
+            // and served the single-underscore endpoint.
+            root: { kind: "resolved", path: tmp },
+            config: {
+              agents: { defaults: { workspace: tmp } },
+              ui: { assistant: { name: "Ops", avatar: "ops.png" } },
+            },
+          },
+        );
+        expect(handled).toBe(true);
+        expect(res.statusCode).not.toBe(404);
+        const parsed = parseBootstrapPayload(end);
+        expect(parsed.basePath).toBe("");
+        expect(parsed.assistantAgentId).toBe("main");
+      },
+    });
+  });
+
+  // Compatibility regression for configured-base-path deployments: when a
+  // `gateway.controlUi.basePath` is set (e.g. `/openclaw`), current main and
+  // v2026.6.1 serve the bootstrap config at `${basePath}/__openclaw/control-ui-config.json`
+  // (single underscore). #66946 moves the canonical path to
+  // `${basePath}/control-ui-config.json`; this case proves the old configured-base-path
+  // endpoint still returns config so older bundles and proxies that still request it
+  // do not 404 after upgrade. Without the configured-base-path legacy alias this
+  // request 404s, so the assertion is not vacuous.
+  it("still serves bootstrap config at the legacy ${basePath}/__openclaw/control-ui-config.json under a configured basePath (#66946)", async () => {
+    await withControlUiRoot({
+      fn: async (tmp) => {
+        const { res, end } = makeMockHttpResponse();
+        const handled = await handleControlUiHttpRequest(
+          {
+            url: "/openclaw/__openclaw/control-ui-config.json",
+            method: "GET",
+          } as IncomingMessage,
+          res,
+          {
+            basePath: "/openclaw",
+            root: { kind: "resolved", path: tmp },
+            config: {
+              agents: { defaults: { workspace: tmp } },
+              ui: { assistant: { name: "Ops", avatar: "ops.png" } },
+            },
+          },
+        );
+        expect(handled).toBe(true);
+        expect(res.statusCode).not.toBe(404);
+        const parsed = parseBootstrapPayload(end);
+        // The configured base path is reported back so the loader resolves
+        // base-path-relative URLs against it.
+        expect(parsed.basePath).toBe("/openclaw");
+        expect(parsed.assistantAgentId).toBe("main");
+      },
+    });
+  });
+
+  it("does not serve bootstrap config from the doubled /__openclaw__/__openclaw path (#66946)", async () => {
+    await withControlUiRoot({
+      fn: async (tmp) => {
+        const { res, end, handled } = await runControlUiRequest({
+          url: "/__openclaw__/__openclaw/control-ui-config.json",
+          method: "GET",
+          rootPath: tmp,
+        });
+        expectNotFoundResponse({ handled, res, end });
+      },
+    });
+  });
+
   it("serves local avatar bytes through hardened avatar handler", async () => {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-avatar-http-"));
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-avatar-http-"));
     try {
       const avatarPath = path.join(tmp, "main.png");
       await fs.writeFile(avatarPath, "avatar-bytes\n");
@@ -824,8 +1079,8 @@ describe("handleControlUiHttpRequest", () => {
   });
 
   it("rejects avatar symlink paths from resolver", async () => {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-avatar-http-link-"));
-    const outside = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-avatar-http-outside-"));
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-avatar-http-link-"));
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-avatar-http-outside-"));
     try {
       const outsideFile = path.join(outside, "secret.txt");
       await fs.writeFile(outsideFile, "outside-secret\n");
@@ -846,7 +1101,7 @@ describe("handleControlUiHttpRequest", () => {
   });
 
   it("serves local avatar bytes when auth is enabled and the token is valid", async () => {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-avatar-auth-"));
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-avatar-auth-"));
     try {
       const avatarPath = path.join(tmp, "main.png");
       await fs.writeFile(avatarPath, "avatar-bytes\n");
@@ -871,7 +1126,7 @@ describe("handleControlUiHttpRequest", () => {
   it("serves local avatar bytes when paired device-token auth is valid", async () => {
     await withPairedOperatorDeviceToken({
       fn: async (operatorToken) => {
-        const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-avatar-device-token-"));
+        const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-avatar-device-token-"));
         try {
           const avatarPath = path.join(tmp, "main.png");
           await fs.writeFile(avatarPath, "avatar-bytes\n");
@@ -959,7 +1214,7 @@ describe("handleControlUiHttpRequest", () => {
     const { res, handled, end } = await runTrustedProxyAvatarRequest({
       meta: true,
       headers: {
-        "x-astroclaw-scopes": "",
+        "x-openclaw-scopes": "",
       },
     });
 
@@ -970,7 +1225,7 @@ describe("handleControlUiHttpRequest", () => {
     await withControlUiRoot({
       fn: async (tmp) => {
         const assetsDir = path.join(tmp, "assets");
-        const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-ui-outside-"));
+        const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-outside-"));
         try {
           const outsideFile = path.join(outsideDir, "secret.txt");
           await fs.mkdir(assetsDir, { recursive: true });
@@ -1012,6 +1267,30 @@ describe("handleControlUiHttpRequest", () => {
     });
   });
 
+  it("serves static assets without synchronous file reads", async () => {
+    await withControlUiRoot({
+      fn: async (tmp) => {
+        await writeAssetFile(tmp, "actual.txt", "inside-ok\n");
+        const readFileSync = vi.spyOn(fsSync, "readFileSync").mockImplementation(() => {
+          throw new Error("readFileSync should not run on Control UI request path");
+        });
+        try {
+          const { res, end, handled } = await runControlUiRequest({
+            url: "/assets/actual.txt",
+            method: "GET",
+            rootPath: tmp,
+          });
+
+          expect(handled).toBe(true);
+          expect(res.statusCode).toBe(200);
+          expect(responseBody(end)).toBe("inside-ok\n");
+        } finally {
+          readFileSync.mockRestore();
+        }
+      },
+    });
+  });
+
   it("serves HEAD for in-root assets without writing a body", async () => {
     await withControlUiRoot({
       fn: async (tmp) => {
@@ -1033,7 +1312,7 @@ describe("handleControlUiHttpRequest", () => {
   it("rejects symlinked SPA fallback index.html outside control-ui root", async () => {
     await withControlUiRoot({
       fn: async (tmp) => {
-        const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-ui-index-outside-"));
+        const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-index-outside-"));
         try {
           const outsideIndex = path.join(outsideDir, "index.html");
           await fs.writeFile(outsideIndex, "<html>outside</html>\n");
@@ -1056,7 +1335,7 @@ describe("handleControlUiHttpRequest", () => {
   it("rejects hardlinked index.html for non-package control-ui roots", async () => {
     await withControlUiRoot({
       fn: async (tmp) => {
-        const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-ui-index-hardlink-"));
+        const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-index-hardlink-"));
         try {
           const outsideIndex = path.join(outsideDir, "index.html");
           await fs.writeFile(outsideIndex, "<html>outside-hardlink</html>\n");
@@ -1122,10 +1401,10 @@ describe("handleControlUiHttpRequest", () => {
         await fs.writeFile(path.join(tmp, "sw.js"), "self.addEventListener('push', () => {});");
 
         for (const [url, expectedType] of [
-          ["/__astroclaw__/favicon.svg", "image/svg+xml"],
-          ["/__astroclaw__/manifest.webmanifest", "application/manifest+json; charset=utf-8"],
-          ["/__astroclaw__/apple-touch-icon.png", "image/png"],
-          ["/__astroclaw__/sw.js", "application/javascript; charset=utf-8"],
+          ["/__openclaw__/favicon.svg", "image/svg+xml"],
+          ["/__openclaw__/manifest.webmanifest", "application/manifest+json; charset=utf-8"],
+          ["/__openclaw__/apple-touch-icon.png", "image/png"],
+          ["/__openclaw__/sw.js", "application/javascript; charset=utf-8"],
         ] as const) {
           const { res, end, handled } = await runControlUiRequest({
             url,
@@ -1135,7 +1414,7 @@ describe("handleControlUiHttpRequest", () => {
 
           expect(handled, `expected ${url} to be handled`).toBe(true);
           expect(res.statusCode, `expected ${url} to be served`).toBe(200);
-          expect(res.setHeader).toHaveBeenCalledWith("Content-Type", expectedType);
+          expect(res["setHeader"]).toHaveBeenCalledWith("Content-Type", expectedType);
           expect(end, `expected ${url} to write a body`).toHaveBeenCalled();
         }
       },
@@ -1167,7 +1446,7 @@ describe("handleControlUiHttpRequest", () => {
         const handled = await handleControlUiHttpRequest(
           { url: "/imessage-webhook", method: "POST" } as IncomingMessage,
           res,
-          { basePath: "/astroclaw", root: { kind: "resolved", path: tmp } },
+          { basePath: "/openclaw", root: { kind: "resolved", path: tmp } },
         );
         expect(handled).toBe(false);
       },
@@ -1221,12 +1500,12 @@ describe("handleControlUiHttpRequest", () => {
   it("falls through POST requests under configured basePath (plugin webhook passthrough)", async () => {
     await withControlUiRoot({
       fn: async (tmp) => {
-        for (const route of ["/astroclaw", "/astroclaw/", "/astroclaw/some-page"]) {
+        for (const route of ["/openclaw", "/openclaw/", "/openclaw/some-page"]) {
           const { handled, end } = await runControlUiRequest({
             url: route,
             method: "POST",
             rootPath: tmp,
-            basePath: "/astroclaw",
+            basePath: "/openclaw",
           });
           expect(handled, `POST to ${route} should pass through to plugin handlers`).toBe(false);
           expect(end, `POST to ${route} should not write a response`).not.toHaveBeenCalled();
@@ -1245,10 +1524,10 @@ describe("handleControlUiHttpRequest", () => {
         const secretPathUrl = secretPath.split(path.sep).join("/");
         const absolutePathUrl = secretPathUrl.startsWith("/") ? secretPathUrl : `/${secretPathUrl}`;
         const { res, end, handled } = await runControlUiRequest({
-          url: `/astroclaw/${absolutePathUrl}`,
+          url: `/openclaw/${absolutePathUrl}`,
           method: "GET",
           rootPath: root,
-          basePath: "/astroclaw",
+          basePath: "/openclaw",
         });
         expectNotFoundResponse({ handled, res, end });
       },
@@ -1274,10 +1553,10 @@ describe("handleControlUiHttpRequest", () => {
         }
 
         const { res, end, handled } = await runControlUiRequest({
-          url: "/astroclaw/assets/leak.txt",
+          url: "/openclaw/assets/leak.txt",
           method: "GET",
           rootPath: root,
-          basePath: "/astroclaw",
+          basePath: "/openclaw",
         });
         expectNotFoundResponse({ handled, res, end });
       },
