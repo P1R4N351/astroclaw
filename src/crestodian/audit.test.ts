@@ -1,3 +1,4 @@
+// Crestodian audit tests cover filesystem-backed rescue audit scenarios.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -5,19 +6,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { appendCrestodianAuditEntry, resolveCrestodianAuditPath } from "./audit.js";
 
 describe("Crestodian audit log", () => {
-  const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
+  const previousStateDir = process.env.OPENCLAW_STATE_DIR;
 
   afterEach(() => {
     if (previousStateDir === undefined) {
-      delete process.env.ASTROCLAW_STATE_DIR;
+      delete process.env.OPENCLAW_STATE_DIR;
     } else {
-      process.env.ASTROCLAW_STATE_DIR = previousStateDir;
+      process.env.OPENCLAW_STATE_DIR = previousStateDir;
     }
   });
 
-  it("writes jsonl records under the Astroclaw audit dir", async () => {
+  it("writes jsonl records under the OpenClaw audit dir", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "crestodian-audit-"));
-    vi.stubEnv("ASTROCLAW_STATE_DIR", tempDir);
+    vi.stubEnv("OPENCLAW_STATE_DIR", tempDir);
 
     const auditPath = await appendCrestodianAuditEntry({
       operation: "config.setDefaultModel",
