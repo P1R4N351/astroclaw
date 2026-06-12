@@ -1,3 +1,4 @@
+// Plugin SDK subpath tests cover documented SDK subpath exports and package aliases.
 import fs, { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,15 +15,17 @@ import type {
   ChannelStatusIssue as ContractChannelStatusIssue,
   ChannelThreadingContext as ContractChannelThreadingContext,
   ChannelThreadingToolContext as ContractChannelThreadingToolContext,
-} from "astroclaw/plugin-sdk/channel-contract";
+} from "openclaw/plugin-sdk/channel-contract";
+import * as commandAuthSdk from "openclaw/plugin-sdk/command-auth";
 import type {
   ChannelMessageActionContext as CoreChannelMessageActionContext,
-  AstroclawPluginApi as CoreAstroclawPluginApi,
+  OpenClawPluginApi as CoreOpenClawPluginApi,
   PluginRuntime as CorePluginRuntime,
-} from "astroclaw/plugin-sdk/core";
-import * as providerEntrySdk from "astroclaw/plugin-sdk/provider-entry";
+} from "openclaw/plugin-sdk/core";
+import * as providerEntrySdk from "openclaw/plugin-sdk/provider-entry";
+import * as zalouserSdk from "openclaw/plugin-sdk/zalouser";
 import ts from "typescript";
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { beforeAll, describe, expect, expectTypeOf, it } from "vitest";
 import type { ChannelMessageActionContext } from "../../channels/plugins/types.js";
 import type {
   BaseProbeResult,
@@ -41,7 +44,7 @@ import * as channelActionsDirectSdk from "../../plugin-sdk/channel-actions.js";
 import * as channelLifecycleDirectSdk from "../../plugin-sdk/channel-lifecycle.js";
 import type {
   ChannelMessageActionContext as SharedChannelMessageActionContext,
-  AstroclawPluginApi as SharedAstroclawPluginApi,
+  OpenClawPluginApi as SharedOpenClawPluginApi,
   PluginRuntime as SharedPluginRuntime,
 } from "../../plugin-sdk/channel-plugin-common.js";
 import * as channelReplyPipelineDirectSdk from "../../plugin-sdk/channel-reply-pipeline.js";
@@ -52,7 +55,7 @@ import * as providerEntryDirectSdk from "../../plugin-sdk/provider-entry.js";
 import { expectNoReaddirSyncDuring } from "../../test-utils/fs-scan-assertions.js";
 import { listGitTrackedFiles, toRepoRelativePath } from "../../test-utils/repo-files.js";
 import type { PluginRuntime } from "../runtime/types.js";
-import type { AstroclawPluginApi } from "../types.js";
+import type { OpenClawPluginApi } from "../types.js";
 
 const SRC_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const REPO_ROOT = resolve(SRC_ROOT, "..");
@@ -155,9 +158,9 @@ const BROWSER_HELPER_EXPORT_PARITY_CONTRACTS: readonly BrowserHelperExportParity
       "DEFAULT_BROWSER_ACTION_TIMEOUT_MS",
       "DEFAULT_BROWSER_DEFAULT_PROFILE_NAME",
       "DEFAULT_BROWSER_EVALUATE_ENABLED",
-      "DEFAULT_ASTROCLAW_BROWSER_COLOR",
-      "DEFAULT_ASTROCLAW_BROWSER_ENABLED",
-      "DEFAULT_ASTROCLAW_BROWSER_PROFILE_NAME",
+      "DEFAULT_OPENCLAW_BROWSER_COLOR",
+      "DEFAULT_OPENCLAW_BROWSER_ENABLED",
+      "DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME",
       "DEFAULT_UPLOAD_DIR",
       "ResolvedBrowserConfig",
       "ResolvedBrowserProfile",
@@ -475,6 +478,25 @@ function isGeneratedBundledFacadeSubpath(subpath: string): boolean {
 }
 
 describe("plugin-sdk subpath exports", () => {
+  let deprecatedChannelRuntimeMatches: string[] = [];
+
+  beforeAll(() => {
+    deprecatedChannelRuntimeMatches = findRepoFilesContaining({
+      roots: [
+        resolve(REPO_ROOT, "src"),
+        resolve(REPO_ROOT, "extensions"),
+        resolve(REPO_ROOT, "test"),
+      ],
+      pattern:
+        /(?:from\s+|import\s+(?:type\s+)?|import\s*\(\s*)["']openclaw\/plugin-sdk\/channel-runtime(?=["'])/u,
+      exclude: [
+        "src/plugins/compat/registry.ts",
+        "src/plugins/sdk-alias.test.ts",
+        "src/plugins/contracts/plugin-sdk-root-alias.test.ts",
+      ],
+    });
+  });
+
   it("keeps the curated public list free of internal implementation subpaths", () => {
     for (const deniedSubpath of [
       "acpx",
@@ -570,9 +592,16 @@ describe("plugin-sdk subpath exports", () => {
     ]);
     expectSourceMentions("approval-auth-runtime", [
       "createResolvedApproverActionAuthAdapter",
+      "isImplicitSameChatApprovalAuthorization",
+      "markImplicitSameChatApprovalAuthorization",
       "resolveApprovalApprovers",
     ]);
-    expectSourceMentions("reply-chunking", ["chunkText", "chunkTextWithMode"]);
+    expectSourceMentions("reply-chunking", [
+      "chunkText",
+      "chunkTextWithMode",
+      "isSilentReplyPayloadText",
+      "isSilentReplyText",
+    ]);
     expectSourceMentions("reply-history", [
       "buildInboundHistoryFromEntries",
       "buildInboundHistoryFromMap",
@@ -833,21 +862,7 @@ describe("plugin-sdk subpath exports", () => {
   });
 
   it("keeps the deprecated channel-runtime shim unused in repo imports", () => {
-    const matches = findRepoFilesContaining({
-      roots: [
-        resolve(REPO_ROOT, "src"),
-        resolve(REPO_ROOT, "extensions"),
-        resolve(REPO_ROOT, "test"),
-      ],
-      pattern:
-        /(?:from\s+|import\s+(?:type\s+)?|import\s*\(\s*)["']astroclaw\/plugin-sdk\/channel-runtime(?=["'])/u,
-      exclude: [
-        "src/plugins/compat/registry.ts",
-        "src/plugins/sdk-alias.test.ts",
-        "src/plugins/contracts/plugin-sdk-root-alias.test.ts",
-      ],
-    });
-    expect(matches).toStrictEqual([]);
+    expect(deprecatedChannelRuntimeMatches).toStrictEqual([]);
   });
 
   it("keeps deprecated comparable channel target helpers behind compatibility shims", () => {
@@ -860,7 +875,6 @@ describe("plugin-sdk subpath exports", () => {
       pattern:
         /\b(?:ComparableChannelTarget|resolveComparableTargetFor(?:Channel|LoadedChannel)|comparableChannelTargets(?:Match|ShareRoute))\b/u,
       exclude: [
-        "src/channels/plugins/target-parsing.ts",
         "src/channels/plugins/target-parsing-loaded.ts",
         "src/channels/plugins/target-parsing.test.ts",
         "src/plugins/compat/registry.ts",
@@ -1140,7 +1154,7 @@ describe("plugin-sdk subpath exports", () => {
       "attachChannelToResult",
       "buildChannelSendResult",
     ]);
-    expectSourceMentions("direct-dm", [
+    expectSourceMentions("channel-inbound", [
       "createDirectDmPreCryptoGuardPolicy",
       "createPreCryptoDirectDmAuthorizer",
       "dispatchInboundDirectDmWithRuntime",
@@ -1317,35 +1331,35 @@ describe("plugin-sdk subpath exports", () => {
     expectTypeOf<ContractChannelStatusIssue>().toMatchTypeOf<ChannelStatusIssue>();
     expectTypeOf<ContractChannelThreadingContext>().toMatchTypeOf<ChannelThreadingContext>();
     expectTypeOf<ContractChannelThreadingToolContext>().toMatchTypeOf<ChannelThreadingToolContext>();
-    expectTypeOf<CoreAstroclawPluginApi>().toMatchTypeOf<AstroclawPluginApi>();
+    expectTypeOf<CoreOpenClawPluginApi>().toMatchTypeOf<OpenClawPluginApi>();
     expectTypeOf<CorePluginRuntime>().toMatchTypeOf<PluginRuntime>();
     expectTypeOf<CoreChannelMessageActionContext>().toMatchTypeOf<ChannelMessageActionContext>();
-    expectTypeOf<CoreAstroclawPluginApi>().toMatchTypeOf<SharedAstroclawPluginApi>();
+    expectTypeOf<CoreOpenClawPluginApi>().toMatchTypeOf<SharedOpenClawPluginApi>();
     expectTypeOf<CorePluginRuntime>().toMatchTypeOf<SharedPluginRuntime>();
     expectTypeOf<CoreChannelMessageActionContext>().toMatchTypeOf<SharedChannelMessageActionContext>();
   });
 
   it("keeps runtime entry subpaths importable", async () => {
-    const coreSdk = await importResolvedPluginSdkSubpath("astroclaw/plugin-sdk/core");
+    const coreSdk = await importResolvedPluginSdkSubpath("openclaw/plugin-sdk/core");
     const channelActionsSdk = await importResolvedPluginSdkSubpath(
-      "astroclaw/plugin-sdk/channel-actions",
+      "openclaw/plugin-sdk/channel-actions",
     );
     const globalSingletonSdk = await importResolvedPluginSdkSubpath(
-      "astroclaw/plugin-sdk/global-singleton",
+      "openclaw/plugin-sdk/global-singleton",
     );
-    const pluginEntrySdk = await importResolvedPluginSdkSubpath("astroclaw/plugin-sdk/plugin-entry");
+    const pluginEntrySdk = await importResolvedPluginSdkSubpath("openclaw/plugin-sdk/plugin-entry");
     const channelLifecycleSdk = await importResolvedPluginSdkSubpath(
-      "astroclaw/plugin-sdk/channel-lifecycle",
+      "openclaw/plugin-sdk/channel-lifecycle",
     );
     const channelPairingSdk = await importResolvedPluginSdkSubpath(
-      "astroclaw/plugin-sdk/channel-pairing",
+      "openclaw/plugin-sdk/channel-pairing",
     );
     const channelReplyPipelineSdk = await importResolvedPluginSdkSubpath(
-      "astroclaw/plugin-sdk/channel-reply-pipeline",
+      "openclaw/plugin-sdk/channel-reply-pipeline",
     );
     const representativeModules = [];
     for (const id of representativeRuntimeSmokeSubpaths) {
-      representativeModules.push(await importResolvedPluginSdkSubpath(`astroclaw/plugin-sdk/${id}`));
+      representativeModules.push(await importResolvedPluginSdkSubpath(`openclaw/plugin-sdk/${id}`));
     }
 
     expect(coreSdk.definePluginEntry).toBe(pluginEntrySdk.definePluginEntry);
@@ -1420,10 +1434,20 @@ describe("plugin-sdk subpath exports", () => {
     }
   });
 
-  it("keeps the Zalouser command-auth compatibility facade importable", async () => {
-    const zalouserSdk = await importResolvedPluginSdkSubpath("astroclaw/plugin-sdk/zalouser");
-    const commandAuthSdk = await importResolvedPluginSdkSubpath("astroclaw/plugin-sdk/command-auth");
+  it("keeps repeated silent-token semantics visible through the reply-chunking subpath", async () => {
+    const replyChunkingSdk = await importResolvedPluginSdkSubpath(
+      "openclaw/plugin-sdk/reply-chunking",
+    );
 
+    expect(replyChunkingSdk.isSilentReplyText("NO_REPLY\n\nNO_REPLY")).toBe(true);
+    expect(replyChunkingSdk.isSilentReplyPayloadText("NO_REPLY\n\nNO_REPLY")).toBe(true);
+    expect(replyChunkingSdk.isSilentReplyText("HEARTBEAT_OK\nHEARTBEAT_OK", "HEARTBEAT_OK")).toBe(
+      true,
+    );
+    expect(replyChunkingSdk.isSilentReplyText("Visible update\n\nNO_REPLY")).toBe(false);
+  });
+
+  it("keeps the Zalouser command-auth compatibility facade importable", () => {
     expect(zalouserSdk.resolveSenderCommandAuthorization).toBe(
       commandAuthSdk.resolveSenderCommandAuthorization,
     );
