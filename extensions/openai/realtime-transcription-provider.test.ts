@@ -1,3 +1,4 @@
+// Openai tests cover realtime transcription provider plugin behavior.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildOpenAIRealtimeTranscriptionProvider } from "./realtime-transcription-provider.js";
 
@@ -62,12 +63,12 @@ vi.mock("ws", () => ({
   default: FakeWebSocket,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth", () => ({
+vi.mock("openclaw/plugin-sdk/provider-auth", () => ({
   isProviderAuthProfileConfigured: providerAuthMocks.isProviderAuthProfileConfigured,
   resolveProviderAuthProfileApiKey: providerAuthMocks.resolveProviderAuthProfileApiKey,
 }));
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: ssrfMocks.fetchWithSsrFGuard,
 }));
 
@@ -144,7 +145,7 @@ describe("buildOpenAIRealtimeTranscriptionProvider", () => {
           openai: {
             language: "en",
             model: "gpt-4o-transcribe",
-            prompt: "expect Astroclaw product names",
+            prompt: "expect OpenClaw product names",
             silenceDurationMs: 900,
             vadThreshold: 0.45,
           },
@@ -155,7 +156,7 @@ describe("buildOpenAIRealtimeTranscriptionProvider", () => {
     expect(resolved).toEqual({
       language: "en",
       model: "gpt-4o-transcribe",
-      prompt: "expect Astroclaw product names",
+      prompt: "expect OpenClaw product names",
       silenceDurationMs: 900,
       vadThreshold: 0.45,
     });
@@ -179,6 +180,24 @@ describe("buildOpenAIRealtimeTranscriptionProvider", () => {
     expect(resolved?.vadThreshold).toBe(0);
   });
 
+  it("drops malformed VAD timing settings", () => {
+    const provider = buildOpenAIRealtimeTranscriptionProvider();
+    const resolved = provider.resolveConfig?.({
+      cfg: {} as never,
+      rawConfig: {
+        providers: {
+          openai: {
+            silenceDurationMs: -1,
+            vadThreshold: 1.5,
+          },
+        },
+      },
+    });
+
+    expect(resolved?.silenceDurationMs).toBeUndefined();
+    expect(resolved?.vadThreshold).toBeUndefined();
+  });
+
   it("accepts the legacy openai-realtime alias", () => {
     const provider = buildOpenAIRealtimeTranscriptionProvider();
     expect(provider.aliases).toContain("openai-realtime");
@@ -186,12 +205,12 @@ describe("buildOpenAIRealtimeTranscriptionProvider", () => {
 
   it("treats a Codex OAuth profile as configured when no API key is present", () => {
     const provider = buildOpenAIRealtimeTranscriptionProvider();
-    const cfg = { auth: { order: { "openai-codex": ["openai-codex:default"] } } };
+    const cfg = { auth: { order: { openai: ["openai:default"] } } };
     providerAuthMocks.isProviderAuthProfileConfigured.mockReturnValue(true);
 
     expect(provider.isConfigured({ cfg: cfg as never, providerConfig: {} })).toBe(true);
     expect(providerAuthMocks.isProviderAuthProfileConfigured).toHaveBeenCalledWith({
-      provider: "openai-codex",
+      provider: "openai",
       cfg,
     });
   });
@@ -204,7 +223,7 @@ describe("buildOpenAIRealtimeTranscriptionProvider", () => {
       response: new Response(JSON.stringify({ value: "ek-test" }), { status: 200 }),
       release,
     });
-    const cfg = { auth: { order: { "openai-codex": ["openai-codex:default"] } } };
+    const cfg = { auth: { order: { openai: ["openai:default"] } } };
     const session = provider.createSession({
       cfg: cfg as never,
       providerConfig: {},
@@ -215,7 +234,7 @@ describe("buildOpenAIRealtimeTranscriptionProvider", () => {
 
     expect(socket.headers?.Authorization).toBe("Bearer ek-test");
     expect(providerAuthMocks.resolveProviderAuthProfileApiKey).toHaveBeenCalledWith({
-      provider: "openai-codex",
+      provider: "openai",
       cfg,
     });
     const request = mockCallArg(ssrfMocks.fetchWithSsrFGuard);
@@ -280,7 +299,7 @@ describe("buildOpenAIRealtimeTranscriptionProvider", () => {
         apiKey: "sk-test", // pragma: allowlist secret
         language: "en",
         model: "gpt-4o-transcribe",
-        prompt: "expect Astroclaw product names",
+        prompt: "expect OpenClaw product names",
         silenceDurationMs: 900,
         vadThreshold: 0.45,
       },
@@ -305,7 +324,7 @@ describe("buildOpenAIRealtimeTranscriptionProvider", () => {
               transcription: {
                 model: "gpt-4o-transcribe",
                 language: "en",
-                prompt: "expect Astroclaw product names",
+                prompt: "expect OpenClaw product names",
               },
               turn_detection: {
                 type: "server_vad",
@@ -334,7 +353,7 @@ describe("buildOpenAIRealtimeTranscriptionProvider", () => {
               transcription: {
                 model: "gpt-4o-transcribe",
                 language: "en",
-                prompt: "expect Astroclaw product names",
+                prompt: "expect OpenClaw product names",
               },
               turn_detection: {
                 type: "server_vad",
