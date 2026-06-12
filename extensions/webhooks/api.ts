@@ -1,6 +1,7 @@
+// Webhooks API module exposes the plugin public contract.
 export {
   definePluginEntry,
-  type AstroclawPluginApi,
+  type OpenClawPluginApi,
   type PluginLogger,
   type PluginRuntime,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
