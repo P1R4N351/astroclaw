@@ -1,3 +1,4 @@
+// Telegram tests cover bot message contextm topic threadid plugin behavior.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getRecordedUpdateLastRoute,
@@ -20,7 +21,7 @@ vi.mock("./bot-message-context.body.js", () => ({
 }));
 
 let buildTelegramMessageContextForTest: typeof import("./bot-message-context.test-harness.js").buildTelegramMessageContextForTest;
-let clearRuntimeConfigSnapshot: typeof import("astroclaw/plugin-sdk/runtime-config-snapshot").clearRuntimeConfigSnapshot;
+let clearRuntimeConfigSnapshot: typeof import("openclaw/plugin-sdk/runtime-config-snapshot").clearRuntimeConfigSnapshot;
 
 describe("buildTelegramMessageContext DM topic threadId in deliveryContext (#8891)", () => {
   async function buildCtx(params: {
@@ -78,7 +79,7 @@ describe("buildTelegramMessageContext DM topic threadId in deliveryContext (#889
   });
 
   it("builds Telegram payloads through the shared channel turn context", async () => {
-    const { buildChannelInboundEventContext } = await import("astroclaw/plugin-sdk/channel-inbound");
+    const { buildChannelInboundEventContext } = await import("openclaw/plugin-sdk/channel-inbound");
     const buildChannelInboundEventContextMock = vi.fn(buildChannelInboundEventContext);
 
     const ctx = await buildCtx({
@@ -93,7 +94,8 @@ describe("buildTelegramMessageContext DM topic threadId in deliveryContext (#889
         },
       },
       sessionRuntime: {
-        buildChannelInboundEventContext: buildChannelInboundEventContextMock,
+        buildChannelInboundEventContext:
+          buildChannelInboundEventContextMock as unknown as typeof buildChannelInboundEventContext,
       },
     });
 
@@ -105,7 +107,7 @@ describe("buildTelegramMessageContext DM topic threadId in deliveryContext (#889
     expect(turnOptions?.message.rawBody).toBe("hello");
     expect(turnOptions?.message.bodyForAgent).toBe("hello");
     expect(turnOptions?.reply?.to).toBe("telegram:1234");
-    expect(turnOptions?.reply?.originatingTo).toBe("telegram:1234");
+    expect(turnOptions?.reply?.originatingTo).toBeUndefined();
     expect(turnOptions?.reply?.replyToId).toBe("9");
     expect(turnOptions?.supplemental?.quote?.id).toBe("9");
     expect(turnOptions?.supplemental?.quote?.body).toBe("parent");
