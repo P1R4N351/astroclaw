@@ -1,7 +1,9 @@
+// Matrix tests cover exec approvals plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { saveSessionStore } from "openclaw/plugin-sdk/session-store-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   getMatrixExecApprovalApprovers,
@@ -28,15 +30,15 @@ afterEach(() => {
 });
 
 function createTempDir(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-matrix-exec-approvals-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-matrix-exec-approvals-"));
   tempDirs.push(dir);
   return dir;
 }
 
 function buildConfig(
-  execApprovals?: NonNullable<NonNullable<AstroclawConfig["channels"]>["matrix"]>["execApprovals"],
-  channelOverrides?: Partial<NonNullable<NonNullable<AstroclawConfig["channels"]>["matrix"]>>,
-): AstroclawConfig {
+  execApprovals?: NonNullable<NonNullable<OpenClawConfig["channels"]>["matrix"]>["execApprovals"],
+  channelOverrides?: Partial<NonNullable<NonNullable<OpenClawConfig["channels"]>["matrix"]>>,
+): OpenClawConfig {
   return {
     channels: {
       matrix: {
@@ -47,7 +49,7 @@ function buildConfig(
         execApprovals,
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function matrixAccount(
@@ -70,7 +72,7 @@ function buildMultiAccountMatrixConfig(params: {
   opsExecApprovals?: MatrixExecApprovalConfig;
   defaultOverrides?: Partial<MatrixAccountConfig>;
   opsOverrides?: Partial<MatrixAccountConfig>;
-}): AstroclawConfig {
+}): OpenClawConfig {
   return {
     ...(params.sessionStorePath ? { session: { store: params.sessionStorePath } } : {}),
     channels: {
@@ -95,7 +97,7 @@ function buildMultiAccountMatrixConfig(params: {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function makeForeignChannelApprovalRequest(params: {
@@ -183,7 +185,7 @@ describe("matrix exec approvals", () => {
           ],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(isMatrixExecApprovalTargetRecipient({ cfg, senderId: "@target:example.org" })).toBe(
       true,
@@ -341,12 +343,12 @@ describe("matrix exec approvals", () => {
     ).toBe(false);
   });
 
-  it("scopes non-matrix turn sources to the stored matrix account", () => {
+  it("scopes non-matrix turn sources to the stored matrix account", async () => {
     const tmpDir = createTempDir();
     const storePath = path.join(tmpDir, "sessions.json");
-    fs.writeFileSync(
+    await saveSessionStore(
       storePath,
-      JSON.stringify({
+      {
         "agent:ops-agent:matrix:channel:!room:example.org": {
           sessionId: "main",
           updatedAt: 1,
@@ -358,8 +360,8 @@ describe("matrix exec approvals", () => {
           lastTo: "channel:C999",
           lastAccountId: "work",
         },
-      }),
-      "utf-8",
+      },
+      { skipMaintenance: true },
     );
     const cfg = buildMultiAccountMatrixConfig({ sessionStorePath: storePath });
     const request = makeForeignChannelApprovalRequest({
