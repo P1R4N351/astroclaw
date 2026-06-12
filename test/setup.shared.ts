@@ -1,17 +1,21 @@
+// Shared test setup installs common Vitest mocks and cleanup behavior.
 import { vi } from "vitest";
 
-declare global {
-  // Optional per-test delegate for the shared OAuth mock.
-  var __ASTROCLAW_TEST_REFRESH_OPENAI_CODEX_TOKEN__: ((...args: unknown[]) => unknown) | undefined;
-}
+const openAiCodexTokenRefreshTestHook = "__OPENCLAW_TEST_REFRESH_OPENAI_CODEX_TOKEN__";
+type GlobalWithOpenAiCodexTokenRefreshTestHook = typeof globalThis & {
+  [openAiCodexTokenRefreshTestHook]?: ((...args: unknown[]) => unknown) | undefined;
+};
 
-vi.mock("@earendil-works/pi-ai/oauth", () => ({
+vi.mock("../src/llm/oauth.js", () => ({
   getOAuthApiKey: () => undefined,
   getOAuthProviders: () => [],
   loginOpenAICodex: vi.fn(),
   refreshOpenAICodexToken: vi.fn((...args: unknown[]) =>
-    globalThis.__ASTROCLAW_TEST_REFRESH_OPENAI_CODEX_TOKEN__?.(...args),
+    (globalThis as GlobalWithOpenAiCodexTokenRefreshTestHook)[openAiCodexTokenRefreshTestHook]?.(
+      ...args,
+    ),
   ),
+  resetOAuthProviders: vi.fn(),
 }));
 
 vi.mock("@mariozechner/clipboard", () => ({
@@ -38,8 +42,8 @@ vi.mock("@mariozechner/clipboard", () => ({
 // Ensure Vitest environment is properly set.
 process.env.VITEST = "true";
 // Tests frequently point bundled plugin discovery at temp fixture roots. Production still rejects
-// arbitrary ASTROCLAW_BUNDLED_PLUGINS_DIR overrides unless this Vitest-only opt-in is present.
-process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR ??= "1";
+// arbitrary OPENCLAW_BUNDLED_PLUGINS_DIR overrides unless this Vitest-only opt-in is present.
+process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR ??= "1";
 // Vitest fork workers can load transitive lockfile helpers many times per worker.
 // Raise listener budget to avoid noisy MaxListeners warnings and warning-stack overhead.
 const TEST_PROCESS_MAX_LISTENERS = 256;
@@ -54,7 +58,7 @@ type SharedTestSetupOptions = {
   loadProfileEnv?: boolean;
 };
 
-const SHARED_TEST_SETUP = Symbol.for("astroclaw.sharedTestSetup");
+const SHARED_TEST_SETUP = Symbol.for("openclaw.sharedTestSetup");
 
 type SharedTestSetupHandle = {
   cleanup: () => void;
