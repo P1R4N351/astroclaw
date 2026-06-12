@@ -1,8 +1,9 @@
+// Qa Matrix tests cover harness plugin behavior.
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { __testing, startMatrixQaHarness, writeMatrixQaHarnessFiles } from "./harness.runtime.js";
+import { testing, startMatrixQaHarness, writeMatrixQaHarnessFiles } from "./harness.runtime.js";
 
 type MatrixQaHarnessDeps = Parameters<typeof startMatrixQaHarness>[1];
 type MatrixQaHarnessResult = Awaited<ReturnType<typeof startMatrixQaHarness>>;
@@ -17,7 +18,7 @@ async function withStartedMatrixHarness(
     const result = await startMatrixQaHarness(
       {
         outputDir,
-        repoRoot: "/repo/astroclaw",
+        repoRoot: "/repo/openclaw",
         homeserverPort: 28008,
       },
       deps,
@@ -75,14 +76,14 @@ describe("matrix harness runtime", () => {
         composeFile: string;
       };
 
-      expect(compose).toContain(`image: ${__testing.MATRIX_QA_DEFAULT_IMAGE}`);
+      expect(compose).toContain(`image: ${testing.MATRIX_QA_DEFAULT_IMAGE}`);
       expect(compose).toContain('      - "127.0.0.1:28008:8008"');
       expect(compose).toContain('TUWUNEL_ALLOW_ENCRYPTION: "true"');
       expect(compose).toContain('TUWUNEL_ALLOW_REGISTRATION: "true"');
       expect(compose).toContain('TUWUNEL_REGISTRATION_TOKEN: "secret-token"');
       expect(compose).toContain('TUWUNEL_SERVER_NAME: "matrix-qa.test"');
       expect(manifest).toEqual({
-        image: __testing.MATRIX_QA_DEFAULT_IMAGE,
+        image: testing.MATRIX_QA_DEFAULT_IMAGE,
         serverName: "matrix-qa.test",
         homeserverPort: 28008,
         composeFile: path.join(outputDir, "docker-compose.matrix-qa.yml"),
@@ -116,9 +117,9 @@ describe("matrix harness runtime", () => {
       },
       async ({ outputDir, result }) => {
         expect(calls).toEqual([
-          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml down --remove-orphans @/repo/astroclaw`,
-          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml up -d @/repo/astroclaw`,
-          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml ps --format json matrix-qa-homeserver @/repo/astroclaw`,
+          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml down --remove-orphans @/repo/openclaw`,
+          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml up -d @/repo/openclaw`,
+          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml ps --format json matrix-qa-homeserver @/repo/openclaw`,
         ]);
         expect(fetchCalls).toEqual([
           "http://127.0.0.1:28008/_matrix/client/versions",
@@ -130,7 +131,7 @@ describe("matrix harness runtime", () => {
         );
         await result.restartService();
         expect(calls).toContain(
-          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml restart matrix-qa-homeserver @/repo/astroclaw`,
+          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml restart matrix-qa-homeserver @/repo/openclaw`,
         );
       },
     );
@@ -170,10 +171,10 @@ describe("matrix harness runtime", () => {
       ({ outputDir, result }) => {
         expect(result.baseUrl).toBe("http://172.18.0.10:8008/");
         expect(calls).toContain(
-          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml ps -q matrix-qa-homeserver @/repo/astroclaw`,
+          `docker compose -f ${outputDir}/docker-compose.matrix-qa.yml ps -q matrix-qa-homeserver @/repo/openclaw`,
         );
         expect(calls).toContain(
-          "docker inspect --format {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} container-123 @/repo/astroclaw",
+          "docker inspect --format {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} container-123 @/repo/openclaw",
         );
       },
     );
