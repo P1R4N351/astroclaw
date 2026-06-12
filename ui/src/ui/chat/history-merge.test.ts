@@ -1,3 +1,4 @@
+// Control UI tests cover history merge behavior.
 import { describe, expect, it } from "vitest";
 import { preserveOptimisticTailMessages } from "../controllers/chat.ts";
 
@@ -6,7 +7,7 @@ describe("preserveOptimisticTailMessages", () => {
     const persistedUser = {
       role: "user",
       content: [{ type: "text", text: "first" }],
-      __astroclaw: { seq: 1 },
+      __openclaw: { seq: 1 },
     };
     const optimisticUser = {
       role: "user",
@@ -31,7 +32,7 @@ describe("preserveOptimisticTailMessages", () => {
     const persistedUser = {
       role: "user",
       content: [{ type: "text", text: "latest ask" }],
-      __astroclaw: { seq: 1 },
+      __openclaw: { seq: 1 },
     };
     const streamedAssistant = {
       role: "assistant",
@@ -41,7 +42,7 @@ describe("preserveOptimisticTailMessages", () => {
     const historyAssistant = {
       role: "assistant",
       content: [{ type: "text", text: "complete persisted answer" }],
-      __astroclaw: { seq: 2 },
+      __openclaw: { seq: 2 },
     };
 
     expect(
