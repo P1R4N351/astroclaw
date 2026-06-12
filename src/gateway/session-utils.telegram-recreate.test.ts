@@ -1,3 +1,6 @@
+/**
+ * Tests Telegram session recreation helpers and persisted session mapping.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -9,7 +12,7 @@ import {
   updateLastRoute,
   updateSessionStore,
 } from "../config/sessions.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createSuiteTempRootTracker } from "../test-helpers/temp-dir.js";
 import { listSessionsFromStore } from "./session-utils.js";
 
@@ -19,13 +22,13 @@ const cfg = {
   agents: {
     defaults: {
       model: "openai/gpt-5.4",
-      workspace: "/tmp/astroclaw",
+      workspace: "/tmp/openclaw",
     },
   },
   session: {
     dmScope: "per-channel-peer",
   },
-} satisfies Partial<AstroclawConfig> as AstroclawConfig;
+} satisfies Partial<OpenClawConfig> as OpenClawConfig;
 
 function createTelegramDirectContext(): MsgContext {
   return {
@@ -46,7 +49,7 @@ function createTelegramDirectContext(): MsgContext {
 
 describe("Telegram direct session recreation after delete", () => {
   const suiteRootTracker = createSuiteTempRootTracker({
-    prefix: "astroclaw-telegram-session-recreate-",
+    prefix: "openclaw-telegram-session-recreate-",
   });
   let tempDir = "";
   let storePath = "";
