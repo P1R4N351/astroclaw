@@ -1,10 +1,11 @@
+// Whatsapp tests cover setup surface plugin behavior.
 import {
   createPluginSetupWizardStatus,
   createQueuedWizardPrompter,
   runSetupWizardFinalize,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
-import { DEFAULT_ACCOUNT_ID, type AstroclawConfig } from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import { DEFAULT_ACCOUNT_ID, type OpenClawConfig } from "openclaw/plugin-sdk/setup";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { whatsappSetupWizard } from "./setup-surface.js";
 import {
@@ -26,18 +27,19 @@ import {
 } from "./setup-test-helpers.js";
 
 const hoisted = vi.hoisted(() => ({
-  detectWhatsAppLinked: vi.fn<(cfg: AstroclawConfig, accountId: string) => Promise<boolean>>(
+  detectWhatsAppLinked: vi.fn<(cfg: OpenClawConfig, accountId: string) => Promise<boolean>>(
     async () => false,
   ),
+  hasWebCredsSync: vi.fn(() => false),
   loginWeb: vi.fn(async () => {}),
   pathExists: vi.fn(async () => false),
   readWebAuthState: vi.fn<(authDir: string) => Promise<"linked" | "not-linked" | "unstable">>(
     async () => "not-linked",
   ),
   resolveWhatsAppAuthDir: vi.fn<
-    (params: { cfg: AstroclawConfig; accountId: string }) => { authDir: string }
+    (params: { cfg: OpenClawConfig; accountId: string }) => { authDir: string }
   >(() => ({
-    authDir: "/tmp/astroclaw-whatsapp-test",
+    authDir: "/tmp/openclaw-whatsapp-test",
   })),
 }));
 
@@ -53,9 +55,17 @@ vi.mock("./setup-finalize.js", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/setup", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/setup")>(
-    "astroclaw/plugin-sdk/setup",
+vi.mock("./creds-files.js", async () => {
+  const actual = await vi.importActual<typeof import("./creds-files.js")>("./creds-files.js");
+  return {
+    ...actual,
+    hasWebCredsSync: hoisted.hasWebCredsSync,
+  };
+});
+
+vi.mock("openclaw/plugin-sdk/setup", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/setup")>(
+    "openclaw/plugin-sdk/setup",
   );
   return {
     ...actual,
@@ -116,12 +126,12 @@ function createSeparatePhoneHarness(params: { selectValues: string[]; textValues
 }
 
 function expectFinalizeResult(result: Awaited<ReturnType<typeof runFinalizeWithHarness>>): {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 } {
   if (!result || typeof result !== "object" || !("cfg" in result) || !result.cfg) {
     throw new Error("Expected WhatsApp finalize result with cfg");
   }
-  return result as { cfg: AstroclawConfig };
+  return result as { cfg: OpenClawConfig };
 }
 
 async function runSeparatePhoneFlow(params: { selectValues: string[]; textValues?: string[] }) {
@@ -142,13 +152,15 @@ describe("whatsapp setup wizard", () => {
   beforeEach(() => {
     hoisted.detectWhatsAppLinked.mockReset();
     hoisted.detectWhatsAppLinked.mockResolvedValue(false);
+    hoisted.hasWebCredsSync.mockReset();
+    hoisted.hasWebCredsSync.mockReturnValue(false);
     hoisted.loginWeb.mockReset();
     hoisted.pathExists.mockReset();
     hoisted.pathExists.mockResolvedValue(false);
     hoisted.readWebAuthState.mockReset();
     hoisted.readWebAuthState.mockResolvedValue("not-linked");
     hoisted.resolveWhatsAppAuthDir.mockReset();
-    hoisted.resolveWhatsAppAuthDir.mockReturnValue({ authDir: "/tmp/astroclaw-whatsapp-test" });
+    hoisted.resolveWhatsAppAuthDir.mockReturnValue({ authDir: "/tmp/openclaw-whatsapp-test" });
   });
 
   it("applies owner allowlist when forceAllowFrom is enabled", async () => {
@@ -183,7 +195,7 @@ describe("whatsapp setup wizard", () => {
       await runFinalizeWithHarness({
         harness,
         accountId: "work",
-        cfg: createWhatsAppWorkAccountConfig() as AstroclawConfig,
+        cfg: createWhatsAppWorkAccountConfig() as OpenClawConfig,
       }),
     );
 
@@ -203,7 +215,7 @@ describe("whatsapp setup wizard", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountOverrides: {
         whatsapp: "work",
       },
@@ -236,7 +248,7 @@ describe("whatsapp setup wizard", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountOverrides: {},
     });
 
@@ -261,7 +273,7 @@ describe("whatsapp setup wizard", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountOverrides: {
         whatsapp: "work",
       },
@@ -281,7 +293,7 @@ describe("whatsapp setup wizard", () => {
       await runFinalizeWithHarness({
         harness,
         accountId: "",
-        cfg: createWhatsAppWorkAccountConfig({ defaultAccount: "work" }) as AstroclawConfig,
+        cfg: createWhatsAppWorkAccountConfig({ defaultAccount: "work" }) as OpenClawConfig,
       }),
     );
 
@@ -317,7 +329,7 @@ describe("whatsapp setup wizard", () => {
     const result = expectFinalizeResult(
       await runFinalizeWithHarness({
         harness,
-        cfg: createWhatsAppRootAllowFromConfig() as AstroclawConfig,
+        cfg: createWhatsAppRootAllowFromConfig() as OpenClawConfig,
       }),
     );
 
@@ -338,7 +350,7 @@ describe("whatsapp setup wizard", () => {
   });
 
   it("skips relink note when already linked and relink is declined", async () => {
-    hoisted.pathExists.mockResolvedValue(true);
+    hoisted.hasWebCredsSync.mockReturnValue(true);
     const harness = createSeparatePhoneHarness({
       selectValues: ["separate", "disabled"],
     });
