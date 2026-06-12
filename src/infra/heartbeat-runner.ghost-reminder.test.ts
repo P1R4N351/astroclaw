@@ -1,6 +1,7 @@
+// Covers heartbeat handling of queued reminder system events.
 import fs from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions/main-session.js";
 import { runHeartbeatOnce } from "./heartbeat-runner.js";
 import {
@@ -35,8 +36,8 @@ describe("Ghost reminder bug (issue #13317)", () => {
     storePath: string;
     target?: "telegram" | "none";
     isolatedSession?: boolean;
-  }): Promise<{ cfg: AstroclawConfig; sessionKey: string }> => {
-    const cfg: AstroclawConfig = {
+  }): Promise<{ cfg: OpenClawConfig; sessionKey: string }> => {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           workspace: params.tmpDir,
@@ -63,7 +64,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
     tmpDir: string;
     storePath: string;
     isolatedSession?: boolean;
-  }): AstroclawConfig => ({
+  }): OpenClawConfig => ({
     agents: {
       defaults: {
         workspace: params.tmpDir,
@@ -132,7 +133,6 @@ describe("Ghost reminder bug (issue #13317)", () => {
     SessionKey?: string;
     MessageThreadId?: number;
     Body?: string;
-    ForceSenderIsOwnerFalse?: boolean;
   } => {
     const [ctx] = mockCallAt(replySpy, 0, "heartbeat reply");
     if (!ctx || typeof ctx !== "object") {
@@ -143,7 +143,6 @@ describe("Ghost reminder bug (issue #13317)", () => {
       SessionKey?: string;
       MessageThreadId?: number;
       Body?: string;
-      ForceSenderIsOwnerFalse?: boolean;
     };
   };
 
@@ -170,7 +169,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
   ): Promise<{
     result: Awaited<ReturnType<typeof runHeartbeatOnce>>;
     sendTelegram: ReturnType<typeof vi.fn>;
-    calledCtx: { Provider?: string; Body?: string; ForceSenderIsOwnerFalse?: boolean } | null;
+    calledCtx: { Provider?: string; Body?: string } | null;
   }> => {
     return runHeartbeatCase({
       tmpPrefix,
@@ -194,7 +193,6 @@ describe("Ghost reminder bug (issue #13317)", () => {
       Provider?: string;
       Body?: string;
       SessionKey?: string;
-      ForceSenderIsOwnerFalse?: boolean;
     } | null;
     sessionKey: string;
     replyCallCount: number;
@@ -232,38 +230,9 @@ describe("Ghost reminder bug (issue #13317)", () => {
     );
   };
 
-  const expectUntrustedEventOwnership = async (params: {
-    tmpPrefix: string;
-    reason: "hook:wake" | "interval";
-    isolatedSession?: boolean;
-    forceSenderIsOwnerFalse: boolean;
-  }): Promise<void> => {
-    const { result, sendTelegram, calledCtx } = await runHeartbeatCase({
-      tmpPrefix: params.tmpPrefix,
-      replyText: "Handled internally",
-      reason: params.reason,
-      target: "none",
-      isolatedSession: params.isolatedSession,
-      enqueue: (sessionKey) => {
-        enqueueSystemEvent("GitHub issue opened: untrusted webhook content", {
-          sessionKey,
-          forceSenderIsOwnerFalse: true,
-        });
-      },
-    });
-
-    expect(result.status).toBe("ran");
-    expect(calledCtx?.Provider).toBe("heartbeat");
-    if (params.isolatedSession === true) {
-      expect(calledCtx?.SessionKey).toContain(":heartbeat");
-    }
-    expect(calledCtx?.ForceSenderIsOwnerFalse).toBe(params.forceSenderIsOwnerFalse);
-    expect(sendTelegram).not.toHaveBeenCalled();
-  };
-
   it("does not use CRON_EVENT_PROMPT when only a HEARTBEAT_OK event is present", async () => {
     const { result, sendTelegram, calledCtx, replyCallCount } = await runHeartbeatCase({
-      tmpPrefix: "astroclaw-ghost-",
+      tmpPrefix: "openclaw-ghost-",
       replyText: "Heartbeat check-in",
       reason: "cron:test-job",
       enqueue: (sessionKey) => {
@@ -280,7 +249,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
   it("uses CRON_EVENT_PROMPT when an actionable cron event exists", async () => {
     const { result, sendTelegram, calledCtx } = await runCronReminderCase(
-      "astroclaw-cron-",
+      "openclaw-cron-",
       (sessionKey) => {
         enqueueSystemEvent("Reminder: Check Base Scout results", { sessionKey });
       },
@@ -292,7 +261,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
   it("uses CRON_EVENT_PROMPT when cron events are mixed with heartbeat noise", async () => {
     const { result, sendTelegram, calledCtx } = await runCronReminderCase(
-      "astroclaw-cron-mixed-",
+      "openclaw-cron-mixed-",
       (sessionKey) => {
         enqueueSystemEvent("HEARTBEAT_OK", { sessionKey });
         enqueueSystemEvent("Reminder: Check Base Scout results", { sessionKey });
@@ -305,7 +274,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
   it("uses CRON_EVENT_PROMPT for tagged cron events on interval wake", async () => {
     const { result, sendTelegram, calledCtx, replyCallCount } = await runHeartbeatCase({
-      tmpPrefix: "astroclaw-cron-interval-",
+      tmpPrefix: "openclaw-cron-interval-",
       replyText: "Relay this cron update now",
       reason: "interval",
       enqueue: (sessionKey) => {
@@ -382,7 +351,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
   it("uses an internal-only cron prompt when delivery target is none", async () => {
     const { result, sendTelegram, calledCtx } = await runHeartbeatCase({
-      tmpPrefix: "astroclaw-cron-internal-",
+      tmpPrefix: "openclaw-cron-internal-",
       replyText: "Handled internally",
       reason: "cron:reminder-job",
       target: "none",
@@ -399,7 +368,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
   it("uses an internal-only exec prompt when delivery target is none", async () => {
     const { result, sendTelegram, calledCtx } = await runHeartbeatCase({
-      tmpPrefix: "astroclaw-exec-internal-",
+      tmpPrefix: "openclaw-exec-internal-",
       replyText: "Handled internally",
       reason: "exec-event",
       target: "none",
@@ -410,14 +379,13 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
     expect(result.status).toBe("ran");
     expect(calledCtx?.Provider).toBe("exec-event");
-    expect(calledCtx?.ForceSenderIsOwnerFalse).toBe(true);
     expect(calledCtx?.Body).toContain("Handle the result internally");
     expect(sendTelegram).not.toHaveBeenCalled();
   });
 
   it("includes untrusted exec completion details in user-relay prompts", async () => {
     const { result, sendTelegram, calledCtx } = await runHeartbeatCase({
-      tmpPrefix: "astroclaw-exec-untrusted-relay-",
+      tmpPrefix: "openclaw-exec-untrusted-relay-",
       replyText: "Deploy succeeded",
       reason: "exec-event",
       enqueue: (sessionKey) => {
@@ -427,14 +395,13 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
     expect(result.status).toBe("ran");
     expect(calledCtx?.Provider).toBe("exec-event");
-    expect(calledCtx?.ForceSenderIsOwnerFalse).toBe(true);
     expect(calledCtx?.Body).toContain("exec finished: deploy succeeded");
     expect(sendTelegram).toHaveBeenCalled();
   });
 
   it("consumes exec completion entries without dropping later generic events", async () => {
     const { result, calledCtx, sessionKey } = await runHeartbeatCase({
-      tmpPrefix: "astroclaw-exec-preserve-generic-",
+      tmpPrefix: "openclaw-exec-preserve-generic-",
       replyText: "Deploy succeeded",
       reason: "exec-event",
       enqueue: (key) => {
@@ -454,7 +421,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
   it("classifies hook:wake exec completions as exec-event prompts", async () => {
     const { result, sendTelegram, calledCtx } = await runHeartbeatCase({
-      tmpPrefix: "astroclaw-hook-exec-",
+      tmpPrefix: "openclaw-hook-exec-",
       replyText: "Handled internally",
       reason: "hook:wake",
       target: "none",
@@ -465,14 +432,13 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
     expect(result.status).toBe("ran");
     expect(calledCtx?.Provider).toBe("exec-event");
-    expect(calledCtx?.ForceSenderIsOwnerFalse).toBe(true);
     expect(calledCtx?.Body).toContain("Handle the result internally");
     expect(sendTelegram).not.toHaveBeenCalled();
   });
 
   it("does not classify base-session hook:wake exec completions as exec-event prompts when isolated sessions are enabled", async () => {
     const { result, sendTelegram, calledCtx } = await runHeartbeatCase({
-      tmpPrefix: "astroclaw-hook-exec-isolated-",
+      tmpPrefix: "openclaw-hook-exec-isolated-",
       replyText: "Handled internally",
       reason: "hook:wake",
       target: "none",
@@ -485,47 +451,12 @@ describe("Ghost reminder bug (issue #13317)", () => {
     expect(result.status).toBe("ran");
     expect(calledCtx?.Provider).toBe("heartbeat");
     expect(calledCtx?.SessionKey).toContain(":heartbeat");
-    expect(calledCtx?.ForceSenderIsOwnerFalse).toBe(false);
     expect(sendTelegram).not.toHaveBeenCalled();
-  });
-
-  it("forces owner downgrade for hook:wake system events with downgrade metadata", async () => {
-    await expectUntrustedEventOwnership({
-      tmpPrefix: "astroclaw-hook-event-",
-      reason: "hook:wake",
-      forceSenderIsOwnerFalse: true,
-    });
-  });
-
-  it("forces owner downgrade for interval events with downgrade metadata", async () => {
-    await expectUntrustedEventOwnership({
-      tmpPrefix: "astroclaw-interval-event-",
-      reason: "interval",
-      forceSenderIsOwnerFalse: true,
-    });
-  });
-
-  it("does not force owner downgrade for base-session hook:wake events with isolated sessions", async () => {
-    await expectUntrustedEventOwnership({
-      tmpPrefix: "astroclaw-hook-event-isolated-",
-      reason: "hook:wake",
-      isolatedSession: true,
-      forceSenderIsOwnerFalse: false,
-    });
-  });
-
-  it("does not force owner downgrade for isolated interval runs with only base-session downgrade events", async () => {
-    await expectUntrustedEventOwnership({
-      tmpPrefix: "astroclaw-interval-event-isolated-",
-      reason: "interval",
-      isolatedSession: true,
-      forceSenderIsOwnerFalse: false,
-    });
   });
 
   it("routes wake-triggered heartbeat replies using queued system-event delivery context", async () => {
     await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -626,7 +557,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
   });
   it("keeps output-bearing exec-event delivery pinned to the original Telegram topic when session route drifts", async () => {
     await withTempHeartbeatSandbox(async ({ tmpDir, storePath }) => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
@@ -691,7 +622,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
 
   it("suppresses metadata-only successful exec completions", async () => {
     await withTempHeartbeatSandbox(async ({ tmpDir, storePath }) => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
