@@ -1,3 +1,4 @@
+// Irc tests cover probe plugin behavior.
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { probeIrc } from "./probe.js";
 
@@ -61,7 +62,7 @@ describe("probeIrc", () => {
       host: "irc.libera.chat",
       port: 6697,
       tls: true,
-      nick: "astroclaw",
+      nick: "openclaw",
     };
     resolveIrcAccountMock.mockReturnValue(account);
     buildIrcConnectOptionsMock.mockReturnValue({ host: "irc.libera.chat" });
@@ -78,7 +79,7 @@ describe("probeIrc", () => {
         host: "irc.libera.chat",
         port: 6697,
         tls: true,
-        nick: "astroclaw",
+        nick: "openclaw",
         latencyMs: 45,
       });
       expect(quit).toHaveBeenCalledWith("probe");
@@ -93,7 +94,7 @@ describe("probeIrc", () => {
       host: "irc.libera.chat",
       port: 6667,
       tls: false,
-      nick: "astroclaw",
+      nick: "openclaw",
     });
     buildIrcConnectOptionsMock.mockReturnValue({ host: "irc.libera.chat" });
     connectIrcClientMock.mockRejectedValue({ code: "ECONNREFUSED" });
@@ -103,7 +104,7 @@ describe("probeIrc", () => {
       host: "irc.libera.chat",
       port: 6667,
       tls: false,
-      nick: "astroclaw",
+      nick: "openclaw",
       error: JSON.stringify({ code: "ECONNREFUSED" }),
     });
   });
