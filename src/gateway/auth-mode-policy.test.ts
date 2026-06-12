@@ -1,5 +1,7 @@
+// Covers gateway auth mode validation when token and password inputs are both
+// configured directly or via secret defaults.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   assertExplicitGatewayAuthModeWhenBothConfigured,
   EXPLICIT_GATEWAY_AUTH_MODE_REQUIRED_ERROR,
@@ -8,7 +10,7 @@ import {
 
 describe("gateway auth mode policy", () => {
   it("does not flag config when auth mode is explicit", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "token",
@@ -21,7 +23,7 @@ describe("gateway auth mode policy", () => {
   });
 
   it("does not flag config when only one auth credential is configured", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           token: "token-value",
@@ -32,7 +34,7 @@ describe("gateway auth mode policy", () => {
   });
 
   it("flags config when both token and password are configured and mode is unset", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           token: "token-value",
@@ -44,7 +46,7 @@ describe("gateway auth mode policy", () => {
   });
 
   it("flags config when both token/password SecretRefs are configured and mode is unset", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           token: { source: "env", provider: "default", id: "GW_TOKEN" },
@@ -61,7 +63,7 @@ describe("gateway auth mode policy", () => {
   });
 
   it("throws the shared explicit-mode error for ambiguous dual auth config", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           token: "token-value",
