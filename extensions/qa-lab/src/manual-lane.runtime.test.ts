@@ -1,3 +1,5 @@
+// Qa Lab tests cover manual lane plugin behavior.
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { startQaLabServer, startQaGatewayChild, startQaProviderServer } = vi.hoisted(() => ({
@@ -21,11 +23,13 @@ vi.mock("./providers/server-runtime.js", () => ({
 import { runQaManualLane } from "./manual-lane.runtime.js";
 
 describe("runQaManualLane", () => {
+  const gatewayCall = vi.fn();
   const gatewayStop = vi.fn();
   const mockStop = vi.fn();
   const labStop = vi.fn();
 
   beforeEach(() => {
+    gatewayCall.mockReset();
     gatewayStop.mockReset();
     mockStop.mockReset();
     labStop.mockReset();
@@ -57,10 +61,9 @@ describe("runQaManualLane", () => {
     });
 
     startQaGatewayChild.mockResolvedValue({
-      call: vi
-        .fn()
-        .mockResolvedValueOnce({ runId: "run-1" })
-        .mockResolvedValueOnce({ status: "ok" }),
+      call: gatewayCall.mockResolvedValueOnce({ runId: "run-1" }).mockResolvedValueOnce({
+        status: "ok",
+      }),
       stop: gatewayStop,
     });
 
@@ -80,7 +83,7 @@ describe("runQaManualLane", () => {
 
   it("starts the mock provider and threads its base url into the gateway child", async () => {
     const result = await runQaManualLane({
-      repoRoot: "/tmp/astroclaw-repo",
+      repoRoot: "/tmp/openclaw-repo",
       providerMode: "mock-openai",
       primaryModel: "mock-openai/gpt-5.5",
       alternateModel: "mock-openai/gpt-5.5-alt",
@@ -91,11 +94,11 @@ describe("runQaManualLane", () => {
 
     expect(startQaProviderServer).toHaveBeenCalledWith("mock-openai");
     const [gatewayOptions] = startQaGatewayChild.mock.calls[0] ?? [];
-    expect(gatewayOptions?.repoRoot).toBe("/tmp/astroclaw-repo");
+    expect(gatewayOptions?.repoRoot).toBe("/tmp/openclaw-repo");
     expect(gatewayOptions?.providerMode).toBe("mock-openai");
     expect(gatewayOptions?.providerBaseUrl).toBe("http://127.0.0.1:44080/v1");
     expect(startQaLabServer).toHaveBeenCalledWith({
-      repoRoot: "/tmp/astroclaw-repo",
+      repoRoot: "/tmp/openclaw-repo",
       embeddedGateway: "disabled",
     });
     expect(result.reply).toBe("Protocol note: mock reply.");
@@ -106,7 +109,7 @@ describe("runQaManualLane", () => {
 
   it("skips the mock provider bootstrap for live frontier runs", async () => {
     const result = await runQaManualLane({
-      repoRoot: "/tmp/astroclaw-repo",
+      repoRoot: "/tmp/openclaw-repo",
       providerMode: "live-frontier",
       primaryModel: "openai/gpt-5.5",
       alternateModel: "openai/gpt-5.5",
@@ -117,12 +120,34 @@ describe("runQaManualLane", () => {
 
     expect(startQaProviderServer).toHaveBeenCalledWith("live-frontier");
     expect(startQaLabServer).toHaveBeenCalledWith({
-      repoRoot: "/tmp/astroclaw-repo",
+      repoRoot: "/tmp/openclaw-repo",
       embeddedGateway: "disabled",
     });
     const [gatewayOptions] = startQaGatewayChild.mock.calls[0] ?? [];
     expect(gatewayOptions?.providerMode).toBe("live-frontier");
     expect(gatewayOptions?.providerBaseUrl).toBeUndefined();
     expect(result.reply).toBe("Protocol note: mock reply.");
+  });
+
+  it("caps the gateway client timeout for oversized manual waits", async () => {
+    const result = await runQaManualLane({
+      repoRoot: "/tmp/openclaw-repo",
+      providerMode: "mock-openai",
+      primaryModel: "mock-openai/gpt-5.5",
+      alternateModel: "mock-openai/gpt-5.5-alt",
+      message: "check the kickoff file",
+      timeoutMs: 9e15,
+      replySettleMs: 0,
+    });
+
+    expect(result.waited).toEqual({ status: "ok" });
+    expect(gatewayCall).toHaveBeenLastCalledWith(
+      "agent.wait",
+      {
+        runId: "run-1",
+        timeoutMs: 9e15,
+      },
+      { timeoutMs: MAX_TIMER_TIMEOUT_MS },
+    );
   });
 });
