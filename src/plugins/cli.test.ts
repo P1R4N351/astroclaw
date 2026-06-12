@@ -1,23 +1,25 @@
+/** CLI integration coverage for plugin commands, setup, status, and registry flows. */
 import { Command } from "commander";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 
 const mocks = vi.hoisted(() => ({
   memoryRegister: vi.fn(),
   otherRegister: vi.fn(),
   memoryListAction: vi.fn(),
-  loadAstroclawPluginCliRegistry: vi.fn(),
-  loadAstroclawPlugins: vi.fn(),
+  loadOpenClawPluginCliRegistry: vi.fn(),
+  loadOpenClawPlugins: vi.fn(),
   resolveManifestActivationPluginIds: vi.fn(),
   applyPluginAutoEnable: vi.fn(),
+  resolvePluginMetadataSnapshot: vi.fn(),
   loadConfig: vi.fn(),
   readConfigFileSnapshot: vi.fn(),
 }));
 
 vi.mock("./loader.js", () => ({
-  loadAstroclawPluginCliRegistry: (...args: unknown[]) =>
-    mocks.loadAstroclawPluginCliRegistry(...args),
-  loadAstroclawPlugins: (...args: unknown[]) => mocks.loadAstroclawPlugins(...args),
+  loadOpenClawPluginCliRegistry: (...args: unknown[]) =>
+    mocks.loadOpenClawPluginCliRegistry(...args),
+  loadOpenClawPlugins: (...args: unknown[]) => mocks.loadOpenClawPlugins(...args),
 }));
 
 vi.mock("./activation-planner.js", () => ({
@@ -27,6 +29,11 @@ vi.mock("./activation-planner.js", () => ({
 
 vi.mock("../config/plugin-auto-enable.js", () => ({
   applyPluginAutoEnable: (...args: unknown[]) => mocks.applyPluginAutoEnable(...args),
+}));
+
+vi.mock("./plugin-metadata-snapshot.js", () => ({
+  resolvePluginMetadataSnapshot: (...args: unknown[]) =>
+    mocks.resolvePluginMetadataSnapshot(...args),
 }));
 
 vi.mock("../config/config.js", () => ({
@@ -89,7 +96,7 @@ function createAutoEnabledCliFixture() {
   const rawConfig = {
     plugins: {},
     channels: { demo: { enabled: true } },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
   const autoEnabledConfig = {
     ...rawConfig,
     plugins: {
@@ -97,7 +104,7 @@ function createAutoEnabledCliFixture() {
         demo: { enabled: true },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
   return { rawConfig, autoEnabledConfig };
 }
 
@@ -110,15 +117,17 @@ function getMockCallObject(mock: ReturnType<typeof vi.fn>, callIndex = 0, argInd
 }
 
 function expectAutoEnabledCliLoad(params: {
-  rawConfig: AstroclawConfig;
-  autoEnabledConfig: AstroclawConfig;
+  rawConfig: OpenClawConfig;
+  autoEnabledConfig: OpenClawConfig;
   autoEnabledReasons?: Record<string, string[]>;
 }) {
-  expect(mocks.applyPluginAutoEnable).toHaveBeenCalledWith({
-    config: params.rawConfig,
-    env: process.env,
-  });
-  const loadOptions = getMockCallObject(mocks.loadAstroclawPlugins);
+  expect(mocks.applyPluginAutoEnable).toHaveBeenCalledWith(
+    expect.objectContaining({
+      config: params.rawConfig,
+      env: process.env,
+    }),
+  );
+  const loadOptions = getMockCallObject(mocks.loadOpenClawPlugins);
   expect(loadOptions.config).toBe(params.autoEnabledConfig);
   expect(loadOptions.activationSourceConfig).toBe(params.rawConfig);
   expect(loadOptions.autoEnabledReasons).toEqual(params.autoEnabledReasons ?? {});
@@ -145,23 +154,25 @@ describe("registerPluginCliCommands", () => {
       program.command("other").description("Other commands");
     });
     mocks.memoryListAction.mockReset();
-    mocks.loadAstroclawPluginCliRegistry.mockReset();
-    mocks.loadAstroclawPluginCliRegistry.mockResolvedValue(createCliRegistry());
-    mocks.loadAstroclawPlugins.mockReset();
-    mocks.loadAstroclawPlugins.mockReturnValue({
+    mocks.loadOpenClawPluginCliRegistry.mockReset();
+    mocks.loadOpenClawPluginCliRegistry.mockResolvedValue(createCliRegistry());
+    mocks.loadOpenClawPlugins.mockReset();
+    mocks.loadOpenClawPlugins.mockReturnValue({
       ...createCliRegistry(),
       diagnostics: [],
     });
     mocks.resolveManifestActivationPluginIds.mockReset();
     mocks.resolveManifestActivationPluginIds.mockReturnValue([]);
     mocks.applyPluginAutoEnable.mockReset();
+    mocks.resolvePluginMetadataSnapshot.mockReset();
+    mocks.resolvePluginMetadataSnapshot.mockReturnValue(undefined);
     mocks.applyPluginAutoEnable.mockImplementation(({ config }) => ({
       config,
       changes: [],
       autoEnabledReasons: {},
     }));
     mocks.loadConfig.mockReset();
-    mocks.loadConfig.mockReturnValue({} as AstroclawConfig);
+    mocks.loadConfig.mockReturnValue({} as OpenClawConfig);
     mocks.readConfigFileSnapshot.mockReset();
     mocks.readConfigFileSnapshot.mockResolvedValue({
       valid: true,
@@ -172,25 +183,25 @@ describe("registerPluginCliCommands", () => {
   it("skips plugin CLI registrars when commands already exist", async () => {
     const program = createProgram("memory");
 
-    await registerPluginCliCommands(program, {} as AstroclawConfig);
+    await registerPluginCliCommands(program, {} as OpenClawConfig);
 
     expect(mocks.memoryRegister).not.toHaveBeenCalled();
     expect(mocks.otherRegister).toHaveBeenCalledTimes(1);
   });
 
   it("forwards an explicit env to plugin loading", async () => {
-    const env = { ASTROCLAW_HOME: "/srv/astroclaw-home" } as NodeJS.ProcessEnv;
+    const env = { OPENCLAW_HOME: "/srv/openclaw-home" } as NodeJS.ProcessEnv;
 
-    await registerPluginCliCommands(createProgram(), {} as AstroclawConfig, env);
+    await registerPluginCliCommands(createProgram(), {} as OpenClawConfig, env);
 
-    const loadOptions = getMockCallObject(mocks.loadAstroclawPlugins);
+    const loadOptions = getMockCallObject(mocks.loadOpenClawPlugins);
     expect(loadOptions.env).toBe(env);
   });
 
   it("injects gateway-backed node runtime into plugin CLI commands", async () => {
-    await registerPluginCliCommands(createProgram(), {} as AstroclawConfig);
+    await registerPluginCliCommands(createProgram(), {} as OpenClawConfig);
 
-    const loadOptions = getMockCallObject(mocks.loadAstroclawPlugins) as {
+    const loadOptions = getMockCallObject(mocks.loadOpenClawPlugins) as {
       runtimeOptions?: { nodes?: { list?: unknown; invoke?: unknown } };
     };
     expect(typeof loadOptions.runtimeOptions?.nodes?.list).toBe("function");
@@ -200,21 +211,35 @@ describe("registerPluginCliCommands", () => {
   it("reuses loaded plugin CLI entries on repeat calls for the same program", async () => {
     const program = createProgram();
 
-    await registerPluginCliCommands(program, {} as AstroclawConfig);
-    await registerPluginCliCommands(program, {} as AstroclawConfig);
+    await registerPluginCliCommands(program, {} as OpenClawConfig);
+    await registerPluginCliCommands(program, {} as OpenClawConfig);
 
-    expect(mocks.loadAstroclawPlugins).toHaveBeenCalledTimes(1);
+    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(1);
   });
 
   it("reloads plugin CLI entries when the requested primary command changes", async () => {
     const program = createProgram();
 
-    await registerPluginCliCommands(program, {} as AstroclawConfig, undefined, undefined, {
+    await registerPluginCliCommands(program, {} as OpenClawConfig, undefined, undefined, {
       primary: "memory",
     });
-    await registerPluginCliCommands(program, {} as AstroclawConfig);
+    await registerPluginCliCommands(program, {} as OpenClawConfig);
 
-    expect(mocks.loadAstroclawPlugins).toHaveBeenCalledTimes(2);
+    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(2);
+  });
+
+  it("reloads plugin CLI entries when config or environment identity changes", async () => {
+    const program = createProgram();
+    const configA = {} as OpenClawConfig;
+    const configB = { plugins: {} } as OpenClawConfig;
+    const envA = { OPENCLAW_HOME: "/tmp/a" } as NodeJS.ProcessEnv;
+    const envB = { OPENCLAW_HOME: "/tmp/b" } as NodeJS.ProcessEnv;
+
+    await registerPluginCliCommands(program, configA, envA);
+    await registerPluginCliCommands(program, configA, envB);
+    await registerPluginCliCommands(program, configB, envB);
+
+    expect(mocks.loadOpenClawPlugins).toHaveBeenCalledTimes(3);
   });
 
   it("loads plugin CLI commands from the auto-enabled config snapshot", async () => {
@@ -249,7 +274,7 @@ describe("registerPluginCliCommands", () => {
         demo: ["demo configured"],
       },
     });
-    mocks.loadAstroclawPluginCliRegistry.mockResolvedValue({
+    mocks.loadOpenClawPluginCliRegistry.mockResolvedValue({
       cliRegistrars: [
         {
           pluginId: "matrix",
@@ -287,12 +312,29 @@ describe("registerPluginCliCommands", () => {
         hasSubcommands: true,
       },
     ]);
-    const registryOptions = getMockCallObject(mocks.loadAstroclawPluginCliRegistry);
+    const registryOptions = getMockCallObject(mocks.loadOpenClawPluginCliRegistry);
     expect(registryOptions.config).toBe(autoEnabledConfig);
     expect(registryOptions.activationSourceConfig).toBe(rawConfig);
     expect(registryOptions.autoEnabledReasons).toEqual({
       demo: ["demo configured"],
     });
+  });
+
+  it("keeps root-help descriptor load failures quiet", async () => {
+    const stderrWrite = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation((() => true) as unknown as typeof process.stderr.write);
+    mocks.loadOpenClawPluginCliRegistry.mockImplementationOnce((options: { logger?: unknown }) => {
+      const logger = options.logger as { error?: (message: string) => void };
+      logger.error?.("[plugins] stale failed to load from /tmp/stale: boom");
+      throw new Error("boom");
+    });
+
+    await expect(
+      getPluginCliCommandDescriptors({ plugins: { entries: { stale: {} } } } as OpenClawConfig),
+    ).resolves.toEqual([]);
+
+    expect(stderrWrite).not.toHaveBeenCalled();
   });
 
   it("keeps runtime CLI command registration on the full plugin loader for legacy channel plugins", async () => {
@@ -304,7 +346,7 @@ describe("registerPluginCliCommands", () => {
         demo: ["demo configured"],
       },
     });
-    mocks.loadAstroclawPlugins.mockReturnValue(
+    mocks.loadOpenClawPlugins.mockReturnValue(
       createCliRegistry({
         memoryCommands: ["legacy-channel"],
         memoryDescriptors: [
@@ -321,7 +363,7 @@ describe("registerPluginCliCommands", () => {
       mode: "lazy",
     });
 
-    const loadOptions = getMockCallObject(mocks.loadAstroclawPlugins);
+    const loadOptions = getMockCallObject(mocks.loadOpenClawPlugins);
     expect(loadOptions.config).toBe(autoEnabledConfig);
     expect(loadOptions.activationSourceConfig).toBe(rawConfig);
     expect(loadOptions.autoEnabledReasons).toEqual({
@@ -329,14 +371,15 @@ describe("registerPluginCliCommands", () => {
     });
     expect(loadOptions.activate).toBe(false);
     expect(loadOptions.cache).toBe(false);
-    expect(mocks.loadAstroclawPluginCliRegistry).not.toHaveBeenCalled();
+    expect(loadOptions.forceFullRuntimeForChannelPlugins).toBe(true);
+    expect(mocks.loadOpenClawPluginCliRegistry).not.toHaveBeenCalled();
   });
 
   it("lazy-registers descriptor-backed plugin commands on first invocation", async () => {
     const program = createProgram();
     program.exitOverride();
 
-    await registerPluginCliCommands(program, {} as AstroclawConfig, undefined, undefined, {
+    await registerPluginCliCommands(program, {} as OpenClawConfig, undefined, undefined, {
       mode: "lazy",
     });
 
@@ -351,7 +394,7 @@ describe("registerPluginCliCommands", () => {
   });
 
   it("falls back to eager registration when descriptors do not cover every command root", async () => {
-    mocks.loadAstroclawPlugins.mockReturnValue(
+    mocks.loadOpenClawPlugins.mockReturnValue(
       createCliRegistry({
         memoryCommands: ["memory", "memory-admin"],
         memoryDescriptors: [
@@ -368,7 +411,7 @@ describe("registerPluginCliCommands", () => {
       program.command("memory-admin");
     });
 
-    await registerPluginCliCommands(createProgram(), {} as AstroclawConfig, undefined, undefined, {
+    await registerPluginCliCommands(createProgram(), {} as OpenClawConfig, undefined, undefined, {
       mode: "lazy",
     });
 
@@ -380,7 +423,7 @@ describe("registerPluginCliCommands", () => {
     program.exitOverride();
     mocks.resolveManifestActivationPluginIds.mockReturnValue(["memory-core"]);
 
-    await registerPluginCliCommands(program, {} as AstroclawConfig, undefined, undefined, {
+    await registerPluginCliCommands(program, {} as OpenClawConfig, undefined, undefined, {
       mode: "lazy",
       primary: "memory",
     });
@@ -388,7 +431,7 @@ describe("registerPluginCliCommands", () => {
     expect(
       program.commands.reduce((count, command) => count + (command.name() === "memory" ? 1 : 0), 0),
     ).toBe(1);
-    const loadOptions = getMockCallObject(mocks.loadAstroclawPlugins);
+    const loadOptions = getMockCallObject(mocks.loadOpenClawPlugins);
     expect(loadOptions.onlyPluginIds).toEqual(["memory-core"]);
 
     await program.parseAsync(["memory", "list"], { from: "user" });
@@ -401,7 +444,7 @@ describe("registerPluginCliCommands", () => {
     const program = createProgram("nodes");
     program.exitOverride();
     mocks.resolveManifestActivationPluginIds.mockReturnValue(["memory-core"]);
-    mocks.loadAstroclawPlugins.mockReturnValue(
+    mocks.loadOpenClawPlugins.mockReturnValue(
       createCliRegistry({
         memoryParentPath: ["nodes"],
         memoryCommands: ["canvas"],
@@ -414,12 +457,12 @@ describe("registerPluginCliCommands", () => {
         ],
       }),
     );
-    mocks.memoryRegister.mockImplementation(({ program }: { program: Command }) => {
-      const canvas = program.command("canvas").description("Canvas commands");
+    mocks.memoryRegister.mockImplementation(({ program: programLocal }: { program: Command }) => {
+      const canvas = programLocal.command("canvas").description("Canvas commands");
       canvas.command("snapshot").action(mocks.memoryListAction);
     });
 
-    await registerPluginCliCommands(program, {} as AstroclawConfig, undefined, undefined, {
+    await registerPluginCliCommands(program, {} as OpenClawConfig, undefined, undefined, {
       mode: "lazy",
       primary: "nodes",
     });
@@ -438,13 +481,13 @@ describe("registerPluginCliCommands", () => {
     const program = createProgram();
     program.exitOverride();
 
-    await registerPluginCliCommands(program, {} as AstroclawConfig, undefined, undefined, {
+    await registerPluginCliCommands(program, {} as OpenClawConfig, undefined, undefined, {
       mode: "lazy",
       primary: "memory",
     });
 
-    expect(mocks.loadAstroclawPluginCliRegistry).toHaveBeenCalled();
-    const loadOptions = getMockCallObject(mocks.loadAstroclawPlugins);
+    expect(mocks.loadOpenClawPluginCliRegistry).toHaveBeenCalled();
+    const loadOptions = getMockCallObject(mocks.loadOpenClawPlugins);
     expect(loadOptions.onlyPluginIds).toEqual(["memory-core"]);
   });
 
@@ -460,17 +503,17 @@ describe("registerPluginCliCommands", () => {
         },
       ],
     });
-    mocks.loadAstroclawPluginCliRegistry.mockResolvedValue(nestedRegistry);
-    mocks.loadAstroclawPlugins.mockReturnValue(nestedRegistry);
+    mocks.loadOpenClawPluginCliRegistry.mockResolvedValue(nestedRegistry);
+    mocks.loadOpenClawPlugins.mockReturnValue(nestedRegistry);
     const program = createProgram("nodes");
     program.exitOverride();
 
-    await registerPluginCliCommands(program, {} as AstroclawConfig, undefined, undefined, {
+    await registerPluginCliCommands(program, {} as OpenClawConfig, undefined, undefined, {
       mode: "lazy",
       primary: "nodes",
     });
 
-    const loadOptions = getMockCallObject(mocks.loadAstroclawPlugins);
+    const loadOptions = getMockCallObject(mocks.loadOpenClawPlugins);
     expect(loadOptions.onlyPluginIds).toEqual(["memory-core"]);
   });
 
@@ -478,13 +521,13 @@ describe("registerPluginCliCommands", () => {
     const program = createProgram();
     program.exitOverride();
 
-    await registerPluginCliCommands(program, {} as AstroclawConfig, undefined, undefined, {
+    await registerPluginCliCommands(program, {} as OpenClawConfig, undefined, undefined, {
       mode: "lazy",
       primary: "missing-command",
     });
 
-    expect(mocks.loadAstroclawPluginCliRegistry).toHaveBeenCalled();
-    expect(mocks.loadAstroclawPlugins).not.toHaveBeenCalled();
+    expect(mocks.loadOpenClawPluginCliRegistry).toHaveBeenCalled();
+    expect(mocks.loadOpenClawPlugins).not.toHaveBeenCalled();
     expect(program.commands.map((command) => command.name())).not.toContain("missing-command");
   });
 
@@ -499,7 +542,7 @@ describe("registerPluginCliCommands", () => {
   });
 
   it("loads validated plugin CLI config when the snapshot is valid", async () => {
-    const loadedConfig = { plugins: { enabled: true } } as AstroclawConfig;
+    const loadedConfig = { plugins: { enabled: true } } as OpenClawConfig;
     mocks.readConfigFileSnapshot.mockResolvedValueOnce({
       valid: true,
       config: loadedConfig,
@@ -517,6 +560,6 @@ describe("registerPluginCliCommands", () => {
     });
 
     await expect(registerPluginCliCommandsFromValidatedConfig(createProgram())).resolves.toBeNull();
-    expect(mocks.loadAstroclawPlugins).not.toHaveBeenCalled();
+    expect(mocks.loadOpenClawPlugins).not.toHaveBeenCalled();
   });
 });
