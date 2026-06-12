@@ -1,4 +1,5 @@
-import { PAIRING_APPROVED_MESSAGE } from "astroclaw/plugin-sdk/channel-status";
+// Matrix tests cover channel.account paths plugin behavior.
+import { PAIRING_APPROVED_MESSAGE } from "openclaw/plugin-sdk/channel-status";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMatrixPairingText, createMatrixProbeAccount } from "./channel-account-paths.js";
 
