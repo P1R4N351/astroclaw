@@ -1,3 +1,4 @@
+// Matrix tests cover handler.strip mention plugin behavior.
 import { describe, expect, it } from "vitest";
 import { stripMatrixMentionPrefix } from "./mentions.js";
 
@@ -23,8 +24,8 @@ describe("stripMatrixMentionPrefix", () => {
 
   it("strips display name with separator", () => {
     const result = stripMatrixMentionPrefix({
-      text: "Astroclaw Bot: /model",
-      displayName: "Astroclaw Bot",
+      text: "OpenClaw Bot: /model",
+      displayName: "OpenClaw Bot",
       mentionRegexes: [],
     });
     expect(result).toBe("/model");
@@ -32,8 +33,8 @@ describe("stripMatrixMentionPrefix", () => {
 
   it("strips @display name with comma separator", () => {
     const result = stripMatrixMentionPrefix({
-      text: "@Astroclaw Bot, /model",
-      displayName: "Astroclaw Bot",
+      text: "@OpenClaw Bot, /model",
+      displayName: "OpenClaw Bot",
       mentionRegexes: [],
     });
     expect(result).toBe("/model");
@@ -63,15 +64,15 @@ describe("stripMatrixMentionPrefix", () => {
   });
 
   it("strips mention prefix with display name (case-insensitive)", () => {
-    const mentionRegexes = [/@Astroclaw Bot\b/i];
-    const text = "@astroclaw bot /model";
+    const mentionRegexes = [/@OpenClaw Bot\b/i];
+    const text = "@openclaw bot /model";
     const result = stripMatrixMentionPrefix({ text, mentionRegexes });
     expect(result).toBe("/model");
   });
 
   it("strips mention prefix with display name (exact case)", () => {
-    const mentionRegexes = [/@Astroclaw Bot\b/i];
-    const text = "@Astroclaw Bot /model";
+    const mentionRegexes = [/@OpenClaw Bot\b/i];
+    const text = "@OpenClaw Bot /model";
     const result = stripMatrixMentionPrefix({ text, mentionRegexes });
     expect(result).toBe("/model");
   });
