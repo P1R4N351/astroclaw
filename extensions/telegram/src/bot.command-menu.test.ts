@@ -1,9 +1,10 @@
+// Telegram tests cover bot.command menu plugin behavior.
 import {
   listNativeCommandSpecs,
   listNativeCommandSpecsForConfig,
-} from "astroclaw/plugin-sdk/native-command-registry";
+} from "openclaw/plugin-sdk/native-command-registry";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 
 const {
   getLoadConfigMock,
@@ -121,7 +122,7 @@ describe("createTelegramBot command menu", () => {
           ],
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
     loadConfig.mockReturnValue(config);
     const commandsSynced = waitForNextSetMyCommands();
 
@@ -163,7 +164,7 @@ describe("createTelegramBot command menu", () => {
           ],
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
     loadConfig.mockReturnValue(config);
     const commandsSynced = waitForNextSetMyCommands();
 
@@ -217,7 +218,7 @@ describe("createTelegramBot command menu", () => {
           ],
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
     loadConfig.mockReturnValue(config);
     const commandsSynced = waitForNextSetMyCommands();
 
