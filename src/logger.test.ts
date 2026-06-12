@@ -1,6 +1,8 @@
+// Tests root logger formatting and file output behavior.
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { theme } from "../packages/terminal-core/src/theme.js";
 import { isVerbose, isYes, logVerbose, setVerbose, setYes } from "./globals.js";
 import { logDebug, logError, logInfo, logSuccess, logWarn } from "./logger.js";
 import {
@@ -9,7 +11,6 @@ import {
   stripRedundantSubsystemPrefixForConsole,
 } from "./logging.js";
 import type { RuntimeEnv } from "./runtime.js";
-import { theme } from "./terminal/theme.js";
 import { withTempDirSync } from "./test-helpers/temp-dir.js";
 
 describe("logger helpers", () => {
@@ -35,21 +36,21 @@ describe("logger helpers", () => {
   });
 
   it("only logs debug when verbose is enabled", () => {
-    const logVerbose = vi.spyOn(console, "log").mockImplementation(() => {});
+    const logVerboseLocal = vi.spyOn(console, "log").mockImplementation(() => {});
     setVerbose(false);
     logDebug("quiet");
-    expect(logVerbose).not.toHaveBeenCalled();
+    expect(logVerboseLocal).not.toHaveBeenCalled();
 
     setVerbose(true);
-    logVerbose.mockClear();
+    logVerboseLocal.mockClear();
     logDebug("loud");
-    expect(logVerbose).toHaveBeenCalled();
-    logVerbose.mockRestore();
+    expect(logVerboseLocal).toHaveBeenCalled();
+    logVerboseLocal.mockRestore();
   });
 
   it("writes to configured log file at configured level", () => {
-    withTempDirSync({ prefix: "astroclaw-log-test-" }, (dir) => {
-      const logPath = path.join(dir, "astroclaw.log");
+    withTempDirSync({ prefix: "openclaw-log-test-" }, (dir) => {
+      const logPath = path.join(dir, "openclaw.log");
       setLoggerOverride({ level: "info", file: logPath });
       fs.writeFileSync(logPath, "");
       logInfo("hello");
@@ -60,8 +61,8 @@ describe("logger helpers", () => {
   });
 
   it("filters messages below configured level", () => {
-    withTempDirSync({ prefix: "astroclaw-log-test-" }, (dir) => {
-      const logPath = path.join(dir, "astroclaw.log");
+    withTempDirSync({ prefix: "openclaw-log-test-" }, (dir) => {
+      const logPath = path.join(dir, "openclaw.log");
       setLoggerOverride({ level: "warn", file: logPath });
       logInfo("info-only");
       logWarn("warn-only");
@@ -71,14 +72,14 @@ describe("logger helpers", () => {
   });
 
   it("uses daily rolling log files and prunes old ones", () => {
-    withTempDirSync({ prefix: "astroclaw-log-test-" }, (dir) => {
+    withTempDirSync({ prefix: "openclaw-log-test-" }, (dir) => {
       resetLogger();
       const today = localDateString(new Date());
-      const todayPath = path.join(dir, `astroclaw-${today}.log`);
+      const todayPath = path.join(dir, `openclaw-${today}.log`);
       setLoggerOverride({ level: "info", file: todayPath });
 
       // create an old file to be pruned
-      const oldPath = path.join(dir, "astroclaw-2000-01-01.log");
+      const oldPath = path.join(dir, "openclaw-2000-01-01.log");
       fs.writeFileSync(oldPath, "old");
       fs.utimesSync(oldPath, new Date(0), new Date(0));
 
