@@ -1,11 +1,12 @@
+// Slack tests cover channel.message adapter plugin behavior.
 import {
   verifyChannelMessageAdapterCapabilityProofs,
   verifyChannelMessageLiveCapabilityAdapterProofs,
   verifyChannelMessageLiveFinalizerProofs,
-} from "astroclaw/plugin-sdk/channel-message";
+} from "openclaw/plugin-sdk/channel-outbound";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { slackPlugin } from "./channel.js";
-import type { AstroclawConfig } from "./runtime-api.js";
+import type { OpenClawConfig } from "./runtime-api.js";
 
 const cfg = {
   channels: {
@@ -14,7 +15,7 @@ const cfg = {
       appToken: "xapp-test",
     },
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 type SlackMessageAdapter = NonNullable<typeof slackPlugin.message>;
 type SlackMessageSender = NonNullable<SlackMessageAdapter["send"]>;
