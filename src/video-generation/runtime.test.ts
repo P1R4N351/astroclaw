@@ -1,5 +1,6 @@
+// Video generation runtime tests cover provider execution and fallback behavior.
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import {
   generateVideo,
   listRuntimeVideoGenerationProviders,
@@ -9,7 +10,7 @@ import {
 import type { VideoGenerationProvider, VideoGenerationProviderOptionType } from "./types.js";
 
 let providers: VideoGenerationProvider[] = [];
-let listedConfigs: Array<AstroclawConfig | undefined> = [];
+let listedConfigs: Array<OpenClawConfig | undefined> = [];
 let providerEnvVars: Record<string, string[]> = {};
 
 const runtimeDeps: VideoGenerationRuntimeDeps = {
@@ -95,7 +96,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "video-plugin/vid-v1" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a cat",
       agentDir: "/tmp/agent",
       authStore,
@@ -140,11 +141,42 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "video-plugin/vid-v1", timeoutMs: 300_000 },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a cat",
     });
 
     expect(seenTimeoutMs).toBe(300_000);
+  });
+
+  it("uses provider default video-generation timeout when the call and config omit timeoutMs", async () => {
+    let seenTimeoutMs: number | undefined;
+    providers = [
+      {
+        id: "video-plugin",
+        defaultTimeoutMs: 600_000,
+        capabilities: {},
+        async generateVideo(req: { timeoutMs?: number }) {
+          seenTimeoutMs = req.timeoutMs;
+          return {
+            videos: [{ buffer: Buffer.from("mp4-bytes"), mimeType: "video/mp4" }],
+            model: "vid-v1",
+          };
+        },
+      },
+    ];
+
+    await runGenerateVideo({
+      cfg: {
+        agents: {
+          defaults: {
+            videoGenerationModel: { primary: "video-plugin/vid-v1" },
+          },
+        },
+      } as OpenClawConfig,
+      prompt: "animate a cat",
+    });
+
+    expect(seenTimeoutMs).toBe(600_000);
   });
 
   it("does not list providers when explicit config disables auto provider fallback", async () => {
@@ -173,7 +205,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "video-plugin/vid-v1" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a cat",
       autoProviderFallback: false,
     };
@@ -210,7 +242,7 @@ describe("video-generation runtime", () => {
     ];
 
     const result = await runGenerateVideo({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       prompt: "animate a cat",
     });
 
@@ -238,7 +270,7 @@ describe("video-generation runtime", () => {
     await runGenerateVideo({
       cfg: {
         agents: { defaults: { videoGenerationModel: { primary: "video-plugin/vid-v1" } } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "test",
       providerOptions: { seed: 42, draft: true, camera_fixed: false },
     });
@@ -255,7 +287,7 @@ describe("video-generation runtime", () => {
     await runGenerateVideo({
       cfg: {
         agents: { defaults: { videoGenerationModel: { primary: "video-plugin/vid-v1" } } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "test",
       providerOptions: { seed: 42 },
     });
@@ -282,7 +314,7 @@ describe("video-generation runtime", () => {
       runGenerateVideo({
         cfg: {
           agents: { defaults: { videoGenerationModel: { primary: "video-plugin/vid-v1" } } },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         prompt: "test",
         providerOptions: { seed: 42 },
       }),
@@ -305,7 +337,7 @@ describe("video-generation runtime", () => {
       runGenerateVideo({
         cfg: {
           agents: { defaults: { videoGenerationModel: { primary: "video-plugin/vid-v1" } } },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         prompt: "test",
         providerOptions: { seed: 42 },
       }),
@@ -328,7 +360,7 @@ describe("video-generation runtime", () => {
       runGenerateVideo({
         cfg: {
           agents: { defaults: { videoGenerationModel: { primary: "video-plugin/vid-v1" } } },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         prompt: "test",
         providerOptions: { seed: "forty-two" },
       }),
@@ -364,7 +396,7 @@ describe("video-generation runtime", () => {
     ];
 
     const result = await runGenerateVideo({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       prompt: "animate a cat",
       providerOptions: { seed: 42 },
     });
@@ -413,7 +445,7 @@ describe("video-generation runtime", () => {
         },
         async generateVideo(req) {
           seenSupportedDurationHint = (req as Record<symbol, readonly number[] | undefined>)[
-            Symbol.for("astroclaw.videoGeneration.supportedDurations")
+            Symbol.for("openclaw.videoGeneration.supportedDurations")
           ];
           seenRequest = {
             durationSeconds: req.durationSeconds,
@@ -436,7 +468,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "openrouter/google/veo-3.1" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a cat",
       durationSeconds: 6,
       providerOptions: { seed: 42 },
@@ -507,7 +539,7 @@ describe("video-generation runtime", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a cat",
       providerOptions: { seed: 42 },
     });
@@ -554,7 +586,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "openai/sora-2" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a cat",
       inputAudios: [{ url: "https://example.com/reference-audio.mp3", role: "reference_audio" }],
     });
@@ -617,7 +649,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "openrouter/minimax/hailuo-2.3" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate two references",
       inputImages: [
         { url: "https://example.com/first.png" },
@@ -663,7 +695,7 @@ describe("video-generation runtime", () => {
               videoGenerationModel: { primary: "openrouter/minimax/hailuo-2.3" },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         prompt: "restyle this clip",
         inputVideos: [{ url: "https://example.com/reference.mp4" }],
       }),
@@ -708,7 +740,7 @@ describe("video-generation runtime", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "Blend all references",
       inputImages: [{ url: "https://example.com/reference.png" }],
       inputVideos: [{ url: "https://example.com/reference.mp4" }],
@@ -739,7 +771,7 @@ describe("video-generation runtime", () => {
       runGenerateVideo({
         cfg: {
           agents: { defaults: { videoGenerationModel: { primary: "openai/sora-2" } } },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         prompt: "animate a cat",
         inputAudios: [{ url: "https://example.com/reference-audio.mp3" }],
       }),
@@ -780,7 +812,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "openai/sora-2" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a cat",
       durationSeconds: 6,
     });
@@ -812,7 +844,7 @@ describe("video-generation runtime", () => {
       runGenerateVideo({
         cfg: {
           agents: { defaults: { videoGenerationModel: { primary: "openai/sora-2" } } },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         prompt: "animate a cat",
         durationSeconds: 6,
       }),
@@ -838,7 +870,7 @@ describe("video-generation runtime", () => {
               videoGenerationModel: { primary: "video-plugin/vid-v1" },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         prompt: "animate a cat",
       }),
     ).rejects.toThrow(/neither buffer nor url is set/);
@@ -863,9 +895,9 @@ describe("video-generation runtime", () => {
     providers = registryProviders;
 
     expect(
-      listRuntimeVideoGenerationProviders({ config: {} as AstroclawConfig }, runtimeDeps),
+      listRuntimeVideoGenerationProviders({ config: {} as OpenClawConfig }, runtimeDeps),
     ).toEqual(registryProviders);
-    expect(listedConfigs).toEqual([{} as AstroclawConfig]);
+    expect(listedConfigs).toEqual([{} as OpenClawConfig]);
   });
 
   it("normalizes requested durations to supported provider values", async () => {
@@ -895,7 +927,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "video-plugin/vid-v1" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a cat",
       durationSeconds: 5,
     });
@@ -951,7 +983,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "openai/sora-2" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a lobster",
       size: "1280x720",
       aspectRatio: "16:9",
@@ -1003,7 +1035,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "minimax/MiniMax-Hailuo-2.3" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a lobster",
       resolution: "720P",
     });
@@ -1044,7 +1076,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "minimax/MiniMax-Hailuo-2.3" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a lobster",
       resolution: "4K",
     });
@@ -1098,7 +1130,7 @@ describe("video-generation runtime", () => {
             videoGenerationModel: { primary: "runway/gen4.5" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "animate a lobster",
       size: "1280x720",
       inputImages: [{ buffer: Buffer.from("png"), mimeType: "image/png" }],
@@ -1131,7 +1163,7 @@ describe("video-generation runtime", () => {
     providerEnvVars = { "motion-one": ["MOTION_ONE_API_KEY"] };
 
     await expect(
-      runGenerateVideo({ cfg: {} as AstroclawConfig, prompt: "animate a cat" }),
+      runGenerateVideo({ cfg: {} as OpenClawConfig, prompt: "animate a cat" }),
     ).rejects.toThrow(
       'No video-generation model configured. Set agents.defaults.videoGenerationModel.primary to a provider/model like "motion-one/animate-v1". If you want a specific provider, also configure that provider\'s auth/API key first (motion-one: MOTION_ONE_API_KEY).',
     );
