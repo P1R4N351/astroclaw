@@ -1,3 +1,4 @@
+// Qa Lab tests cover lab server plugin behavior.
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import os from "node:os";
@@ -11,7 +12,7 @@ import {
   type QaLabServerStartParams,
 } from "./lab-server.js";
 
-vi.mock("@astroclaw/qa-channel/api.js", async () => await import("../../qa-channel/api.js"));
+vi.mock("@openclaw/qa-channel/api.js", async () => await import("../../qa-channel/api.js"));
 
 const captureMock = vi.hoisted(() => {
   const sessions: Array<Record<string, unknown>> = [];
@@ -126,16 +127,16 @@ const captureMock = vi.hoisted(() => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/proxy-capture", () => ({
+vi.mock("openclaw/plugin-sdk/proxy-capture", () => ({
   acquireDebugProxyCaptureStore: () => ({
     store: captureMock.store,
     release: captureMock.store.close,
   }),
   getDebugProxyCaptureStore: () => captureMock.store,
   resolveDebugProxySettings: () => ({
-    dbPath: process.env.ASTROCLAW_DEBUG_PROXY_DB_PATH ?? "",
-    blobDir: process.env.ASTROCLAW_DEBUG_PROXY_BLOB_DIR ?? "",
-    proxyUrl: process.env.ASTROCLAW_DEBUG_PROXY_URL ?? "",
+    dbPath: process.env.OPENCLAW_DEBUG_PROXY_DB_PATH ?? "",
+    blobDir: process.env.OPENCLAW_DEBUG_PROXY_BLOB_DIR ?? "",
+    proxyUrl: process.env.OPENCLAW_DEBUG_PROXY_URL ?? "",
     sessionId: "qa-lab-test",
   }),
 }));
@@ -301,8 +302,7 @@ describe("qa-lab server", () => {
       port: 0,
       outputPath,
       repoRoot,
-      controlUiUrl: "http://127.0.0.1:18789/",
-      controlUiToken: "qa-token",
+      controlUiUrl: "http://127.0.0.1:18789/?token=qa-token&panel=chat#token=fragment-token",
       embeddedGateway: "disabled",
     });
     cleanups.push(async () => {
@@ -321,14 +321,21 @@ describe("qa-lab server", () => {
     };
     expect(bootstrap.defaults.conversationId).toBe("qa-operator");
     expect(bootstrap.defaults.senderId).toBe("qa-operator");
-    expect(bootstrap.controlUiUrl).toBe("http://127.0.0.1:18789/");
-    expect(bootstrap.controlUiEmbeddedUrl).toBe("http://127.0.0.1:18789/#token=qa-token");
+    expect(bootstrap.controlUiUrl).toBe("http://127.0.0.1:18789/?panel=chat");
+    expect(bootstrap.controlUiEmbeddedUrl).toBe("http://127.0.0.1:18789/?panel=chat");
     expect(bootstrap.kickoffTask).toContain("Lobster Invaders");
     expect(bootstrap.scenarios.length).toBeGreaterThanOrEqual(10);
     expect(bootstrap.scenarios.map((scenario) => scenario.id)).toContain("dm-chat-baseline");
     expect(bootstrap.runner.status).toBe("idle");
     expect(bootstrap.runner.selection.providerMode).toBe("live-frontier");
     expect(bootstrap.runner.selection.scenarioIds).toHaveLength(bootstrap.scenarios.length);
+
+    const startupStatus = (await (
+      await fetchWithRetry(`${lab.baseUrl}/api/capture/startup-status`)
+    ).json()) as {
+      status: { gateway: { url: string } };
+    };
+    expect(startupStatus.status.gateway.url).toBe("http://127.0.0.1:18789/?panel=chat");
 
     const messageResponse = await fetch(`${lab.baseUrl}/api/inbound/message`, {
       method: "POST",
@@ -453,7 +460,9 @@ describe("qa-lab server", () => {
   });
 
   it("proxies control-ui paths through /control-ui", async () => {
+    const authorizations: Array<string | undefined> = [];
     const upstream = createServer((req, res) => {
+      authorizations.push(req.headers.authorization);
       if ((req.url ?? "/") === "/healthz") {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify({ ok: true, status: "live" }));
@@ -472,9 +481,9 @@ describe("qa-lab server", () => {
     });
     cleanups.push(
       async () =>
-        await new Promise<void>((resolve, reject) =>
-          upstream.close((error) => (error ? reject(error) : resolve())),
-        ),
+        await new Promise<void>((resolve, reject) => {
+          upstream.close((error) => (error ? reject(error) : resolve()));
+        }),
     );
 
     const address = upstream.address();
@@ -488,7 +497,7 @@ describe("qa-lab server", () => {
       advertiseHost: "127.0.0.1",
       advertisePort: 43124,
       controlUiProxyTarget: `http://127.0.0.1:${address.port}/`,
-      controlUiToken: "proxy-token",
+      controlUiProxyToken: "proxy-token",
     });
     cleanups.push(async () => {
       await lab.stop();
@@ -499,9 +508,7 @@ describe("qa-lab server", () => {
       controlUiEmbeddedUrl: string | null;
     };
     expect(bootstrap.controlUiUrl).toBe("http://127.0.0.1:43124/control-ui/");
-    expect(bootstrap.controlUiEmbeddedUrl).toBe(
-      "http://127.0.0.1:43124/control-ui/#token=proxy-token",
-    );
+    expect(bootstrap.controlUiEmbeddedUrl).toBe("http://127.0.0.1:43124/control-ui/");
 
     const healthResponse = await fetchWithRetry(`${lab.listenUrl}/control-ui/healthz`);
     expect(healthResponse.status).toBe(200);
@@ -512,6 +519,7 @@ describe("qa-lab server", () => {
     expect(rootResponse.headers.get("x-frame-options")).toBeNull();
     expect(rootResponse.headers.get("content-security-policy")).toContain("frame-ancestors 'self'");
     expect(await rootResponse.text()).toContain("Control UI");
+    expect(authorizations).toEqual(["Bearer proxy-token", "Bearer proxy-token"]);
   });
 
   it("serves the built QA UI bundle when available", async () => {
@@ -641,7 +649,7 @@ describe("qa-lab server", () => {
         `  fs.writeFileSync(${JSON.stringify(stoppedPath)}, "terminated", "utf8");`,
         "  process.exit(0);",
         "});",
-        `fs.writeFileSync(${JSON.stringify(markerPath)}, process.env.ASTROCLAW_CODEX_DISCOVERY_LIVE || "", "utf8");`,
+        `fs.writeFileSync(${JSON.stringify(markerPath)}, process.env.OPENCLAW_CODEX_DISCOVERY_LIVE || "", "utf8");`,
         "setInterval(() => {}, 1000);",
       ].join("\n"),
       "utf8",
@@ -742,14 +750,13 @@ describe("qa-lab server", () => {
       ],
     });
     lab.setControlUi({
-      controlUiUrl: "http://127.0.0.1:18789/",
-      controlUiToken: "late-token",
+      controlUiUrl: "http://127.0.0.1:18789/?password=late-password#token=late-token",
     });
 
     const bootstrap = (await (await fetchWithRetry(`${lab.baseUrl}/api/bootstrap`)).json()) as {
       controlUiEmbeddedUrl: string | null;
     };
-    expect(bootstrap.controlUiEmbeddedUrl).toBe("http://127.0.0.1:18789/#token=late-token");
+    expect(bootstrap.controlUiEmbeddedUrl).toBe("http://127.0.0.1:18789/");
 
     const outcomes = (await (await fetchWithRetry(`${lab.baseUrl}/api/outcomes`)).json()) as {
       run: {
@@ -778,23 +785,23 @@ describe("qa-lab server", () => {
     cleanups.push(async () => {
       await rm(tempDir, { recursive: true, force: true });
     });
-    process.env.ASTROCLAW_DEBUG_PROXY_DB_PATH = path.join(tempDir, "capture.sqlite");
-    process.env.ASTROCLAW_DEBUG_PROXY_BLOB_DIR = path.join(tempDir, "blobs");
+    process.env.OPENCLAW_DEBUG_PROXY_DB_PATH = path.join(tempDir, "capture.sqlite");
+    process.env.OPENCLAW_DEBUG_PROXY_BLOB_DIR = path.join(tempDir, "blobs");
     const store = captureMock.store;
     store.upsertSession({
       id: "qa-capture-session",
       startedAt: Date.now(),
       mode: "proxy-run",
-      sourceScope: "astroclaw",
-      sourceProcess: "astroclaw",
-      dbPath: process.env.ASTROCLAW_DEBUG_PROXY_DB_PATH,
-      blobDir: process.env.ASTROCLAW_DEBUG_PROXY_BLOB_DIR,
+      sourceScope: "openclaw",
+      sourceProcess: "openclaw",
+      dbPath: process.env.OPENCLAW_DEBUG_PROXY_DB_PATH,
+      blobDir: process.env.OPENCLAW_DEBUG_PROXY_BLOB_DIR,
     });
     store.recordEvent({
       sessionId: "qa-capture-session",
       ts: Date.now(),
-      sourceScope: "astroclaw",
-      sourceProcess: "astroclaw",
+      sourceScope: "openclaw",
+      sourceProcess: "openclaw",
       protocol: "https",
       direction: "outbound",
       kind: "request",
@@ -814,8 +821,8 @@ describe("qa-lab server", () => {
     store.recordEvent({
       sessionId: "qa-capture-session",
       ts: Date.now() + 1,
-      sourceScope: "astroclaw",
-      sourceProcess: "astroclaw",
+      sourceScope: "openclaw",
+      sourceProcess: "openclaw",
       protocol: "https",
       direction: "outbound",
       kind: "request",
@@ -835,8 +842,8 @@ describe("qa-lab server", () => {
     store.recordEvent({
       sessionId: "qa-capture-session",
       ts: Date.now() + 2,
-      sourceScope: "astroclaw",
-      sourceProcess: "astroclaw",
+      sourceScope: "openclaw",
+      sourceProcess: "openclaw",
       protocol: "https",
       direction: "outbound",
       kind: "request",
@@ -856,8 +863,8 @@ describe("qa-lab server", () => {
       port: 0,
     });
     cleanups.push(async () => {
-      delete process.env.ASTROCLAW_DEBUG_PROXY_DB_PATH;
-      delete process.env.ASTROCLAW_DEBUG_PROXY_BLOB_DIR;
+      delete process.env.OPENCLAW_DEBUG_PROXY_DB_PATH;
+      delete process.env.OPENCLAW_DEBUG_PROXY_BLOB_DIR;
       await lab.stop();
     });
 
