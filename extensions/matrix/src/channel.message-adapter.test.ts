@@ -1,10 +1,11 @@
+// Matrix tests cover channel.message adapter plugin behavior.
 import {
   verifyChannelMessageAdapterCapabilityProofs,
   verifyChannelMessageLiveCapabilityAdapterProofs,
   verifyChannelMessageLiveFinalizerProofs,
-} from "astroclaw/plugin-sdk/channel-message";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+} from "openclaw/plugin-sdk/channel-outbound";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { OpenClawConfig } from "../runtime-api.js";
 
 const mocks = vi.hoisted(() => ({
   sendMessageMatrix: vi.fn(),
@@ -34,7 +35,7 @@ const cfg = {
       accessToken: "resolved-token",
     },
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 function lastMatrixSendOptions() {
   const options = mocks.sendMessageMatrix.mock.lastCall?.[2];
@@ -45,6 +46,25 @@ function lastMatrixSendOptions() {
 }
 
 describe("matrix channel message adapter", () => {
+  beforeAll(async () => {
+    mocks.sendMessageMatrix.mockResolvedValue({ messageId: "$warmup", roomId: "!room:example" });
+    const sendText = matrixPlugin.message?.send?.text;
+    if (!sendText) {
+      throw new Error("Expected Matrix message adapter text sender");
+    }
+    await sendText({
+      cfg,
+      to: "room:!room:example",
+      text: "warmup",
+      accountId: "default",
+    });
+    mocks.sendMessageMatrix.mockReset();
+  });
+
+  it("declares Matrix markdown rendering support for shared reply payloads", () => {
+    expect(matrixPlugin.meta.markdownCapable).toBe(true);
+  });
+
   beforeEach(() => {
     mocks.sendMessageMatrix.mockReset();
     mocks.sendMessageMatrix.mockResolvedValue({ messageId: "$event-1", roomId: "!room:example" });
@@ -83,7 +103,7 @@ describe("matrix channel message adapter", () => {
         to: "room:!room:example",
         text: "caption",
         mediaUrl: "file:///tmp/cat.png",
-        mediaLocalRoots: ["/tmp/astroclaw"],
+        mediaLocalRoots: ["/tmp/openclaw"],
         accountId: "default",
         audioAsVoice: true,
       });
@@ -93,7 +113,7 @@ describe("matrix channel message adapter", () => {
       const options = lastMatrixSendOptions();
       expect(options.cfg).toBe(cfg);
       expect(options.mediaUrl).toBe("file:///tmp/cat.png");
-      expect(options.mediaLocalRoots).toEqual(["/tmp/astroclaw"]);
+      expect(options.mediaLocalRoots).toEqual(["/tmp/openclaw"]);
       expect(options.audioAsVoice).toBe(true);
       expect(result.receipt.parts[0]?.kind).toBe("voice");
     };
@@ -165,7 +185,7 @@ describe("matrix channel message adapter", () => {
       | { extraContent?: Record<string, unknown> }
       | undefined;
     expect(matrixChannelData?.extraContent).toEqual({
-      "com.astroclaw.presentation": {
+      "com.openclaw.presentation": {
         ...presentation,
         version: 1,
         type: "message.presentation",
@@ -189,7 +209,7 @@ describe("matrix channel message adapter", () => {
     expect(options.accountId).toBe("default");
     expect(options.threadId).toBe("$thread");
     expect(options.extraContent).toEqual({
-      "com.astroclaw.presentation": {
+      "com.openclaw.presentation": {
         ...presentation,
         version: 1,
         type: "message.presentation",
