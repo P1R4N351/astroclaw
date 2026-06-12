@@ -1,8 +1,10 @@
+// agents_list tests cover subagent discovery, runtime metadata, and legacy
+// runtime override handling.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { createAgentsListTool } from "./agents-list-tool.js";
 
-const loadConfigMock = vi.fn<() => AstroclawConfig>();
+const loadConfigMock = vi.fn<() => OpenClawConfig>();
 
 type AgentListDetails = {
   requester?: string;
@@ -36,7 +38,7 @@ describe("agents_list tool", () => {
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4.5",
-          agentRuntime: { id: "pi" },
+          agentRuntime: { id: "openclaw" },
           subagents: { allowAgents: ["codex"] },
         },
         list: [
@@ -45,14 +47,14 @@ describe("agents_list tool", () => {
             id: "codex",
             name: "Codex",
             model: "openai/gpt-5.5",
-            agentRuntime: { id: "pi" },
+            agentRuntime: { id: "openclaw" },
             models: {
               "openai/gpt-5.5": { agentRuntime: { id: "codex" } },
             },
           },
         ],
       },
-    } satisfies AstroclawConfig);
+    } as unknown as OpenClawConfig);
 
     const result = await createAgentsListTool({ agentSessionKey: "agent:main:main" }).execute(
       "call",
@@ -75,12 +77,70 @@ describe("agents_list tool", () => {
     });
   });
 
+  it("does not advertise stale allowlist-only targets as spawnable agents", async () => {
+    // Allowlist entries are permissions, not agent definitions; stale ids should
+    // not be presented as runnable subagents.
+    loadConfigMock.mockReturnValue({
+      agents: {
+        list: [
+          {
+            id: "main",
+            default: true,
+            subagents: { allowAgents: ["stale"] },
+          },
+        ],
+      },
+    } satisfies OpenClawConfig);
+
+    const result = await createAgentsListTool({ agentSessionKey: "agent:main:main" }).execute(
+      "call",
+      {},
+    );
+    const details = result.details as AgentListDetails;
+
+    expect(details).toStrictEqual({
+      requester: "main",
+      allowAny: false,
+      agents: [],
+    });
+  });
+
   it("returns requester as the only target when no subagent allowlist is configured", async () => {
     loadConfigMock.mockReturnValue({
       agents: {
         list: [{ id: "main", default: true }, { id: "codex" }],
       },
-    } satisfies AstroclawConfig);
+    } satisfies OpenClawConfig);
+
+    const result = await createAgentsListTool({ agentSessionKey: "agent:main:main" }).execute(
+      "call",
+      {},
+    );
+    const details = result.details as AgentListDetails;
+
+    expect(details).toStrictEqual({
+      requester: "main",
+      allowAny: false,
+      agents: [
+        {
+          id: "main",
+          name: undefined,
+          configured: true,
+          model: undefined,
+          agentRuntime: { id: "codex", source: "implicit" },
+        },
+      ],
+    });
+  });
+
+  it("uses the implicit default agent as a configured target", async () => {
+    loadConfigMock.mockReturnValue({
+      agents: {
+        defaults: {
+          subagents: { allowAgents: ["main"] },
+        },
+      },
+    } satisfies OpenClawConfig);
 
     const result = await createAgentsListTool({ agentSessionKey: "agent:main:main" }).execute(
       "call",
@@ -104,7 +164,9 @@ describe("agents_list tool", () => {
   });
 
   it("ignores legacy env-forced plugin runtime selections", async () => {
-    vi.stubEnv("ASTROCLAW_AGENT_RUNTIME", "codex");
+    // Runtime selection now comes from config/model routing, not a process-wide
+    // legacy env override.
+    vi.stubEnv("OPENCLAW_AGENT_RUNTIME", "codex");
     loadConfigMock.mockReturnValue({
       agents: {
         defaults: {
@@ -112,7 +174,7 @@ describe("agents_list tool", () => {
         },
         list: [{ id: "main", default: true }],
       },
-    } satisfies AstroclawConfig);
+    } satisfies OpenClawConfig);
 
     const result = await createAgentsListTool({ agentSessionKey: "agent:main:main" }).execute(
       "call",
@@ -147,7 +209,7 @@ describe("agents_list tool", () => {
           { id: "strict", agentRuntime: { id: "codex" } },
         ],
       },
-    } satisfies AstroclawConfig);
+    } satisfies OpenClawConfig);
 
     const result = await createAgentsListTool({ agentSessionKey: "agent:main:main" }).execute(
       "call",
