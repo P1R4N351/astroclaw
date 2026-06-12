@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+// Tiny-audio runner tests cover minimum-size skip behavior before provider
+// transcription runs.
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MsgContext } from "../auto-reply/templating.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { MIN_AUDIO_FILE_BYTES } from "./defaults.js";
 import type {
   createMediaAttachmentCache,
@@ -51,7 +53,7 @@ const AUDIO_CAPABILITY_CFG = {
       },
     },
   },
-} as unknown as AstroclawConfig;
+} as unknown as OpenClawConfig;
 
 async function runAudioCapabilityWithTranscriber(params: {
   ctx: MsgContext;
@@ -78,9 +80,13 @@ async function runAudioCapabilityWithTranscriber(params: {
 }
 
 describe("runCapability skips tiny audio files", () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+  });
+
   it("skips audio transcription when file is smaller than MIN_AUDIO_FILE_BYTES", async () => {
     await withAudioFixture({
-      filePrefix: "astroclaw-tiny-audio",
+      filePrefix: "openclaw-tiny-audio",
       extension: "wav",
       mediaType: "audio/wav",
       fileContents: Buffer.alloc(100), // 100 bytes, way below 1024
@@ -112,7 +118,7 @@ describe("runCapability skips tiny audio files", () => {
 
   it("skips audio transcription for empty (0-byte) files", async () => {
     await withAudioFixture({
-      filePrefix: "astroclaw-empty-audio",
+      filePrefix: "openclaw-empty-audio",
       extension: "ogg",
       mediaType: "audio/ogg",
       fileContents: Buffer.alloc(0),
@@ -136,7 +142,7 @@ describe("runCapability skips tiny audio files", () => {
 
   it("proceeds with transcription when file meets minimum size", async () => {
     await withAudioFixture({
-      filePrefix: "astroclaw-ok-audio",
+      filePrefix: "openclaw-ok-audio",
       extension: "wav",
       mediaType: "audio/wav",
       fileContents: Buffer.alloc(MIN_AUDIO_FILE_BYTES + 100),
@@ -162,7 +168,7 @@ describe("runCapability skips tiny audio files", () => {
 
   it("marks the decision as failed when every audio model attempt fails", async () => {
     await withAudioFixture({
-      filePrefix: "astroclaw-failed-audio",
+      filePrefix: "openclaw-failed-audio",
       extension: "ogg",
       mediaType: "audio/ogg",
       fileContents: Buffer.alloc(MIN_AUDIO_FILE_BYTES + 100),
@@ -172,7 +178,7 @@ describe("runCapability skips tiny audio files", () => {
           media,
           cache,
           transcribeAudio: async () => {
-            throw new Error("upstream 500");
+            throw Object.assign(new Error("HTTP 400 validation failed"), { status: 400 });
           },
         });
 
@@ -189,7 +195,7 @@ describe("runCapability skips tiny audio files", () => {
           throw new Error("expected failed audio decision attempt");
         }
         expect(attempt.outcome).toBe("failed");
-        expect(attempt.reason).toContain("upstream 500");
+        expect(attempt.reason).toContain("HTTP 400 validation failed");
       },
     });
   });
