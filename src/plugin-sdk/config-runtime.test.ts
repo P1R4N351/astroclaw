@@ -1,8 +1,11 @@
+/**
+ * Tests config runtime exports and snapshot/cache behavior exposed through the SDK.
+ */
 import { describe, expect, it } from "vitest";
 import {
   resolveLivePluginConfigObject,
   resolvePluginConfigObject,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "./config-runtime.js";
 
 describe("resolvePluginConfigObject", () => {
@@ -19,7 +22,7 @@ describe("resolvePluginConfigObject", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     expect(resolvePluginConfigObject(config, "demo-plugin")).toEqual({
       enabled: false,
@@ -41,7 +44,7 @@ describe("resolvePluginConfigObject", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     expect(resolvePluginConfigObject(config, "missing-plugin")).toBeUndefined();
     expect(resolvePluginConfigObject(config, "demo-plugin")).toBeUndefined();
@@ -66,7 +69,7 @@ describe("resolveLivePluginConfigObject", () => {
       plugins: {
         entries: {},
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     expect(
       resolveLivePluginConfigObject(() => config, "demo-plugin", {
