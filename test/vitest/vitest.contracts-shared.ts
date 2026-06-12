@@ -1,3 +1,4 @@
+// Vitest contract shared helpers build contract test project configuration.
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 import { loadPatternListFromEnv, narrowIncludePatternsForCli } from "./vitest.pattern-file.ts";
@@ -44,7 +45,7 @@ export const pluginContractPatterns = ["src/plugins/contracts/**/*.test.ts"];
 export function loadContractsIncludePatternsFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): string[] | null {
-  return loadPatternListFromEnv("ASTROCLAW_VITEST_INCLUDE_FILE", env);
+  return loadPatternListFromEnv("OPENCLAW_VITEST_INCLUDE_FILE", env);
 }
 
 function narrowContractIncludePatterns(
