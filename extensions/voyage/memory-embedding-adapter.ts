@@ -1,9 +1,10 @@
+// Voyage plugin module implements memory embedding adapter behavior.
 import {
   isMissingEmbeddingApiKeyError,
   mapBatchEmbeddingsByIndex,
   sanitizeEmbeddingCacheHeaders,
   type MemoryEmbeddingProviderAdapter,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-embeddings";
+} from "openclaw/plugin-sdk/memory-core-host-engine-embeddings";
 import { runVoyageEmbeddingBatches } from "./embedding-batch.js";
 import {
   createVoyageEmbeddingProvider,
