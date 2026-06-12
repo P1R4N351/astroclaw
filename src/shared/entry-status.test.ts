@@ -1,23 +1,18 @@
-import { afterEach, describe, expect, it } from "vitest";
+// Entry status tests cover normalized status labels and terminal-state behavior.
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { mockProcessPlatform } from "../test-utils/vitest-spies.js";
 import {
   evaluateEntryMetadataRequirements,
   evaluateEntryMetadataRequirementsForCurrentPlatform,
   evaluateEntryRequirementsForCurrentPlatform,
 } from "./entry-status.js";
 
-const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
-
 function setPlatform(platform: NodeJS.Platform): void {
-  Object.defineProperty(process, "platform", {
-    value: platform,
-    configurable: true,
-  });
+  mockProcessPlatform(platform);
 }
 
 afterEach(() => {
-  if (originalPlatformDescriptor) {
-    Object.defineProperty(process, "platform", originalPlatformDescriptor);
-  }
+  vi.restoreAllMocks();
 });
 
 describe("shared/entry-status", () => {
@@ -26,18 +21,18 @@ describe("shared/entry-status", () => {
       always: false,
       metadata: {
         emoji: "🦀",
-        homepage: "https://astroclaw.ai",
+        homepage: "https://openclaw.ai",
         requires: {
           bins: ["bun"],
           anyBins: ["ffmpeg", "sox"],
-          env: ["ASTROCLAW_TOKEN"],
+          env: ["OPENCLAW_TOKEN"],
           config: ["gateway.bind"],
         },
         os: ["darwin"],
       },
       frontmatter: {
         emoji: "🙂",
-        homepage: "https://docs.astroclaw.ai",
+        homepage: "https://docs.openclaw.ai",
       },
       hasLocalBin: (bin) => bin === "bun",
       localPlatform: "linux",
@@ -50,18 +45,18 @@ describe("shared/entry-status", () => {
 
     expect(result).toEqual({
       emoji: "🦀",
-      homepage: "https://astroclaw.ai",
+      homepage: "https://openclaw.ai",
       required: {
         bins: ["bun"],
         anyBins: ["ffmpeg", "sox"],
-        env: ["ASTROCLAW_TOKEN"],
+        env: ["OPENCLAW_TOKEN"],
         config: ["gateway.bind"],
         os: ["darwin"],
       },
       missing: {
         bins: [],
         anyBins: [],
-        env: ["ASTROCLAW_TOKEN"],
+        env: ["OPENCLAW_TOKEN"],
         config: [],
         os: ["darwin"],
       },
@@ -99,7 +94,7 @@ describe("shared/entry-status", () => {
           },
         },
         frontmatter: {
-          website: " https://docs.astroclaw.ai ",
+          website: " https://docs.openclaw.ai ",
           emoji: "🙂",
         },
       },
@@ -110,7 +105,7 @@ describe("shared/entry-status", () => {
 
     expect(result).toEqual({
       emoji: "🙂",
-      homepage: "https://docs.astroclaw.ai",
+      homepage: "https://docs.openclaw.ai",
       required: {
         bins: ["missing-bin"],
         anyBins: [],
