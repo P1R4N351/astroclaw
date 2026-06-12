@@ -1,3 +1,4 @@
+// Qa Lab tests cover character eval plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -23,7 +24,7 @@ function makeRunJudge(rankings: TestJudgeRanking[]) {
 }
 
 function defaultModelTranscript(model: string) {
-  return `USER Alice: hi\n\nASSISTANT astroclaw: reply from ${model}`;
+  return `USER Alice: hi\n\nASSISTANT openclaw: reply from ${model}`;
 }
 
 function makeReplySuiteResult(params: CharacterRunSuiteParams, transcript?: string) {
@@ -89,17 +90,51 @@ function createConcurrencyGate(expectedActive: number) {
   };
 }
 
-function makeSuiteResult(params: { outputDir: string; model: string; transcript: string }) {
+async function makeSuiteResult(params: {
+  outputDir: string;
+  model: string;
+  transcript: string;
+  resultStatus?: "pass" | "fail";
+  summaryStatus?: "pass" | "fail";
+  summaryFailedCount?: number;
+}) {
+  const resultStatus = params.resultStatus ?? "pass";
+  const summaryStatus = params.summaryStatus ?? resultStatus;
+  const summaryFailedCount = params.summaryFailedCount ?? (summaryStatus === "fail" ? 1 : 0);
+  const summaryPath = path.join(params.outputDir, "qa-suite-summary.json");
+  await fs.mkdir(params.outputDir, { recursive: true });
+  await fs.writeFile(
+    summaryPath,
+    `${JSON.stringify(
+      {
+        counts: {
+          total: 1,
+          passed: summaryFailedCount > 0 ? 0 : 1,
+          failed: summaryFailedCount,
+        },
+        scenarios: [
+          {
+            name: "Character vibes",
+            status: summaryStatus,
+            steps: [],
+          },
+        ],
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
   return {
     outputDir: params.outputDir,
     reportPath: path.join(params.outputDir, "qa-suite-report.md"),
-    summaryPath: path.join(params.outputDir, "qa-suite-summary.json"),
+    summaryPath,
     report: "# report",
     watchUrl: "http://127.0.0.1:43124",
     scenarios: [
       {
         name: "Character vibes",
-        status: "pass",
+        status: resultStatus,
         steps: [
           {
             name: `transcript for ${params.model}`,
@@ -142,7 +177,7 @@ describe("runQaCharacterEval", () => {
   let tempRoot: string;
 
   beforeEach(async () => {
-    tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-character-eval-test-"));
+    tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-character-eval-test-"));
   });
 
   afterEach(async () => {
@@ -152,7 +187,7 @@ describe("runQaCharacterEval", () => {
   it("runs each requested model and writes a judged report with transcripts", async () => {
     const runSuite = vi.fn(async (params: CharacterRunSuiteParams) => {
       const model = params.primaryModel;
-      const transcript = `USER Alice: prompt for ${model}\n\nASSISTANT astroclaw: reply from ${model}`;
+      const transcript = `USER Alice: prompt for ${model}\n\nASSISTANT openclaw: reply from ${model}`;
       return makeSuiteResult({ outputDir: params.outputDir, model, transcript });
     });
     const runJudge = makeRunJudge([
@@ -224,7 +259,7 @@ describe("runQaCharacterEval", () => {
       makeSuiteResult({
         outputDir: params.outputDir,
         model: params.primaryModel,
-        transcript: "USER Alice: hi\n\nASSISTANT astroclaw: anonymous reply",
+        transcript: "USER Alice: hi\n\nASSISTANT openclaw: anonymous reply",
       }),
     );
     const runJudge = vi.fn(async (params: CharacterRunJudgeParams) => {
@@ -274,7 +309,7 @@ describe("runQaCharacterEval", () => {
       { model: "openai/gpt-5.5", rank: 1, score: 8, summary: "ok" },
       { model: "openai/gpt-5.2", rank: 2, score: 7.5, summary: "ok" },
       { model: "openai/gpt-5", rank: 3, score: 7.2, summary: "ok" },
-      { model: "anthropic/claude-opus-4-6", rank: 4, score: 7, summary: "ok" },
+      { model: "anthropic/claude-opus-4-8", rank: 4, score: 7, summary: "ok" },
       { model: "anthropic/claude-sonnet-4-6", rank: 5, score: 6.8, summary: "ok" },
       { model: "zai/glm-5.1", rank: 6, score: 6.3, summary: "ok" },
       { model: "moonshot/kimi-k2.5", rank: 7, score: 6.2, summary: "ok" },
@@ -294,7 +329,7 @@ describe("runQaCharacterEval", () => {
       "openai/gpt-5.5",
       "openai/gpt-5.2",
       "openai/gpt-5",
-      "anthropic/claude-opus-4-6",
+      "anthropic/claude-opus-4-8",
       "anthropic/claude-sonnet-4-6",
       "zai/glm-5.1",
       "moonshot/kimi-k2.5",
@@ -323,7 +358,7 @@ describe("runQaCharacterEval", () => {
     expect(runJudge).toHaveBeenCalledTimes(2);
     expect(runJudge.mock.calls.map(([params]) => params.judgeModel)).toEqual([
       "openai/gpt-5.5",
-      "anthropic/claude-opus-4-6",
+      "anthropic/claude-opus-4-8",
     ]);
     expect(runJudge.mock.calls.map(([params]) => params.judgeThinkingDefault)).toEqual([
       "xhigh",
@@ -407,7 +442,7 @@ describe("runQaCharacterEval", () => {
         outputDir: params.outputDir,
         model: params.primaryModel,
         transcript:
-          "USER Alice: Are you awake?\n\nASSISTANT Astroclaw QA: 400 model `qwen3.6-plus` is not supported.",
+          "USER Alice: Are you awake?\n\nASSISTANT OpenClaw QA: 400 model `qwen3.6-plus` is not supported.",
       }),
     );
     const runJudge = makeRunJudge([
@@ -429,12 +464,39 @@ describe("runQaCharacterEval", () => {
     });
   });
 
+  it("marks candidates failed when the suite summary has failed scenarios", async () => {
+    const runSuite = vi.fn(async (params: CharacterRunSuiteParams) =>
+      makeSuiteResult({
+        outputDir: params.outputDir,
+        model: params.primaryModel,
+        transcript: "USER Alice: hi\n\nASSISTANT openclaw: outwardly fine",
+        summaryStatus: "fail",
+        summaryFailedCount: 1,
+      }),
+    );
+    const runJudge = makeRunJudge([
+      { model: "openai/gpt-5.5", rank: 1, score: 0.5, summary: "failed" },
+    ]);
+
+    const result = await runQaCharacterEval({
+      repoRoot: tempRoot,
+      outputDir: path.join(tempRoot, "character"),
+      models: ["openai/gpt-5.5"],
+      judgeModels: ["openai/gpt-5.5"],
+      runSuite,
+      runJudge,
+    });
+
+    expect(result.runs[0]?.status).toBe("fail");
+    expect(result.runs[0]?.error).toBeUndefined();
+  });
+
   it("marks raw tool failure transcripts as failed output", async () => {
     const runSuite = vi.fn(async (params: CharacterRunSuiteParams) =>
       makeSuiteResult({
         outputDir: params.outputDir,
         model: params.primaryModel,
-        transcript: "ASSISTANT Astroclaw QA: ⚠️ ✍️ Write: to /tmp/precious.html failed",
+        transcript: "ASSISTANT OpenClaw QA: ⚠️ ✍️ Write: to /tmp/precious.html failed",
       }),
     );
     const runJudge = makeRunJudge([
@@ -462,7 +524,7 @@ describe("runQaCharacterEval", () => {
         outputDir: params.outputDir,
         model: params.primaryModel,
         transcript:
-          "ASSISTANT Astroclaw QA: ⚠️ Something went wrong while processing your request. Please try again, or use /new to start a fresh session.",
+          "ASSISTANT OpenClaw QA: ⚠️ Something went wrong while processing your request. Please try again, or use /new to start a fresh session.",
       }),
     );
     const runJudge = makeRunJudge([
@@ -490,7 +552,7 @@ describe("runQaCharacterEval", () => {
         outputDir: params.outputDir,
         model: params.primaryModel,
         transcript:
-          "ASSISTANT Astroclaw QA: The model did not produce a response before the LLM idle timeout. Please try again, or increase `agents.defaults.llm.idleTimeoutSeconds` in your config.",
+          "ASSISTANT OpenClaw QA: The model did not produce a response before the LLM idle timeout. Please try again, or increase `agents.defaults.llm.idleTimeoutSeconds` in your config.",
       }),
     );
     const runJudge = makeRunJudge([
@@ -518,7 +580,7 @@ describe("runQaCharacterEval", () => {
         outputDir: params.outputDir,
         model: params.primaryModel,
         transcript:
-          "ASSISTANT Astroclaw QA: checking thread context; then post a tight progress reply here.\nQA_LEAK_OK",
+          "ASSISTANT OpenClaw QA: checking thread context; then post a tight progress reply here.\nQA_LEAK_OK",
       }),
     );
     const runJudge = makeRunJudge([
@@ -577,11 +639,11 @@ describe("runQaCharacterEval", () => {
       candidateModelOptions: {
         "openai/gpt-5.5": { thinkingDefault: "xhigh", fastMode: false },
       },
-      judgeModels: ["openai/gpt-5.5", "anthropic/claude-opus-4-6"],
+      judgeModels: ["openai/gpt-5.5", "anthropic/claude-opus-4-8"],
       judgeThinkingDefault: "medium",
       judgeModelOptions: {
         "openai/gpt-5.5": { thinkingDefault: "xhigh", fastMode: true },
-        "anthropic/claude-opus-4-6": { thinkingDefault: "high" },
+        "anthropic/claude-opus-4-8": { thinkingDefault: "high" },
       },
       runSuite,
       runJudge,
@@ -607,7 +669,7 @@ describe("runQaCharacterEval", () => {
       return makeSuiteResult({
         outputDir: params.outputDir,
         model: params.primaryModel,
-        transcript: "USER Alice: hi\n\nASSISTANT astroclaw: hello",
+        transcript: "USER Alice: hi\n\nASSISTANT openclaw: hello",
       });
     });
     const runJudge = vi.fn(async (_params: CharacterRunJudgeParams) =>
