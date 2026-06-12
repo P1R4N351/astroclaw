@@ -1,3 +1,4 @@
+// Covers exec approval config normalization and safe-bin policy.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -17,11 +18,11 @@ import {
 describe("exec approvals wildcard agent", () => {
   it("merges wildcard allowlist entries with agent entries", () => {
     const dir = makeTempDir();
-    const prevAstroclawHome = process.env.ASTROCLAW_HOME;
+    const prevOpenClawHome = process.env.OPENCLAW_HOME;
 
     try {
-      process.env.ASTROCLAW_HOME = dir;
-      const approvalsPath = path.join(dir, ".astroclaw", "exec-approvals.json");
+      process.env.OPENCLAW_HOME = dir;
+      const approvalsPath = path.join(dir, ".openclaw", "exec-approvals.json");
       fs.mkdirSync(path.dirname(approvalsPath), { recursive: true });
       fs.writeFileSync(
         approvalsPath,
@@ -44,10 +45,10 @@ describe("exec approvals wildcard agent", () => {
         "/usr/bin/uname",
       ]);
     } finally {
-      if (prevAstroclawHome === undefined) {
-        delete process.env.ASTROCLAW_HOME;
+      if (prevOpenClawHome === undefined) {
+        delete process.env.OPENCLAW_HOME;
       } else {
-        process.env.ASTROCLAW_HOME = prevAstroclawHome;
+        process.env.OPENCLAW_HOME = prevOpenClawHome;
       }
     }
   });
@@ -63,6 +64,7 @@ describe("exec approvals node host allowlist check", () => {
       resolution: {
         rawExecutable: "python3",
         resolvedPath: "/usr/bin/python3",
+        resolvedRealPath: "/usr/bin/python3",
         executableName: "python3",
       },
       entries: [{ pattern: "/usr/bin/python3" }],
