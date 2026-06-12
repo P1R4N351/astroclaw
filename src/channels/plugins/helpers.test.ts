@@ -1,17 +1,18 @@
+// Channel plugin helper tests cover shared plugin helper behavior and edge cases.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import {
   buildAccountScopedDmSecurityPolicy,
   formatPairingApproveHint,
   parseOptionalDelimitedEntries,
 } from "./helpers.js";
 
-function cfgWithChannel(channelKey: string, accounts?: Record<string, unknown>): AstroclawConfig {
+function cfgWithChannel(channelKey: string, accounts?: Record<string, unknown>): OpenClawConfig {
   return {
     channels: {
       [channelKey]: accounts ? { accounts } : {},
     },
-  } as unknown as AstroclawConfig;
+  } as unknown as OpenClawConfig;
 }
 
 describe("buildAccountScopedDmSecurityPolicy", () => {
@@ -118,7 +119,7 @@ describe("buildAccountScopedDmSecurityPolicy", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         channelKey: "demo-root",
         accountId: "work",
         fallbackAccountId: "default",
@@ -144,14 +145,14 @@ describe("buildAccountScopedDmSecurityPolicy", () => {
         allowFrom: ["user-1"],
         defaultPolicy: "allowlist",
         policyPathSuffix: "dmPolicy",
-        approveHint: "astroclaw pairing approve demo-default <code>",
+        approveHint: "openclaw pairing approve demo-default <code>",
       },
       expected: {
         policy: "allowlist",
         allowFrom: ["user-1"],
         policyPath: "channels.demo-default.dmPolicy",
         allowFromPath: "channels.demo-default.",
-        approveHint: "astroclaw pairing approve demo-default <code>",
+        approveHint: "openclaw pairing approve demo-default <code>",
         normalizeEntry: undefined,
       },
     },
