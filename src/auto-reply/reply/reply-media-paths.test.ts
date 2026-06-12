@@ -1,7 +1,9 @@
+// Tests media path normalization and attachment metadata generation.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getReplyPayloadMetadata, setReplyPayloadMetadata } from "../reply-payload.js";
 
 const ensureSandboxWorkspaceForSession = vi.hoisted(() => vi.fn());
 const resolveOutboundAttachmentFromUrl = vi.hoisted(() => vi.fn());
@@ -106,6 +108,39 @@ describe("createReplyMediaPathNormalizer", () => {
     );
     const mediaAccess = requireRecord(options.mediaAccess, "media access");
     expect(mediaAccess.workspaceDir).toBe("/tmp/agent-workspace");
+  });
+
+  it("preserves reply metadata when media normalization clones the payload", async () => {
+    const normalize = createReplyMediaPathNormalizer({
+      cfg: {},
+      sessionKey: "session-key",
+      workspaceDir: "/tmp/agent-workspace",
+    });
+    const payload = setReplyPayloadMetadata(
+      {
+        text: "Here is the image",
+        mediaUrls: ["./out/photo.png"],
+      },
+      {
+        sourceReplyTranscriptMirror: {
+          sessionKey: "main",
+          text: "Here is the image",
+          mediaUrls: ["./out/photo.png"],
+          idempotencyKey: "source-reply:0",
+        },
+      },
+    );
+
+    const result = await normalize(payload);
+
+    expect(result).not.toBe(payload);
+    expectMedia(result, "/tmp/outbound-media/photo.png", ["/tmp/outbound-media/photo.png"]);
+    expect(getReplyPayloadMetadata(result)?.sourceReplyTranscriptMirror).toEqual({
+      sessionKey: "main",
+      text: "Here is the image",
+      mediaUrls: ["./out/photo.png"],
+      idempotencyKey: "source-reply:0",
+    });
   });
 
   it("maps sandbox-relative media back to the host sandbox workspace before staging", async () => {
@@ -218,12 +253,34 @@ describe("createReplyMediaPathNormalizer", () => {
     expect(resolveOutboundAttachmentFromUrl).not.toHaveBeenCalled();
   });
 
+  it("stages absolute workspace media paths before sandbox mapping", async () => {
+    ensureSandboxWorkspaceForSession.mockResolvedValue({
+      workspaceDir: "/tmp/sandboxes/session-1",
+      containerWorkdir: "/workspace",
+    });
+    const absolutePath = "/Users/peter/.openclaw/workspace/reports/screenshot.png";
+    const normalize = createReplyMediaPathNormalizer({
+      cfg: {},
+      sessionKey: "session-key",
+      workspaceDir: "/Users/peter/.openclaw/workspace",
+    });
+
+    const result = await normalize({
+      mediaUrls: [absolutePath],
+    });
+
+    expectMedia(result, "/tmp/outbound-media/screenshot.png", [
+      "/tmp/outbound-media/screenshot.png",
+    ]);
+    expectOutboundAttachmentCall(0, absolutePath, 5 * 1024 * 1024);
+  });
+
   it("stages absolute workspace media paths so the PR scenario now works", async () => {
-    const absolutePath = "/Users/peter/.astroclaw/workspace/exports/images/chart.png";
+    const absolutePath = "/Users/peter/.openclaw/workspace/exports/images/chart.png";
     const normalize = createReplyMediaPathNormalizer({
       cfg: { agents: { defaults: { mediaMaxMb: 8 } } },
       sessionKey: "session-key",
-      workspaceDir: "/Users/peter/.astroclaw/workspace",
+      workspaceDir: "/Users/peter/.openclaw/workspace",
     });
 
     const result = await normalize({
@@ -235,7 +292,7 @@ describe("createReplyMediaPathNormalizer", () => {
   });
 
   it("prefers channel account media limits when staging reply attachments", async () => {
-    const absolutePath = "/Users/peter/.astroclaw/workspace/exports/images/chart.png";
+    const absolutePath = "/Users/peter/.openclaw/workspace/exports/images/chart.png";
     const normalize = createReplyMediaPathNormalizer({
       cfg: {
         channels: {
@@ -251,7 +308,7 @@ describe("createReplyMediaPathNormalizer", () => {
         agents: { defaults: { mediaMaxMb: 8 } },
       },
       sessionKey: undefined,
-      workspaceDir: "/Users/peter/.astroclaw/workspace",
+      workspaceDir: "/Users/peter/.openclaw/workspace",
       messageProvider: "whatsapp",
       accountId: "work",
     });
@@ -298,7 +355,7 @@ describe("createReplyMediaPathNormalizer", () => {
   });
 
   it("keeps managed generated media under the shared media root", async () => {
-    vi.stubEnv("ASTROCLAW_STATE_DIR", "/Users/peter/.astroclaw");
+    vi.stubEnv("OPENCLAW_STATE_DIR", "/Users/peter/.openclaw");
     const normalize = createReplyMediaPathNormalizer({
       cfg: {},
       sessionKey: "session-key",
@@ -306,11 +363,11 @@ describe("createReplyMediaPathNormalizer", () => {
     });
 
     const result = await normalize({
-      mediaUrls: ["/Users/peter/.astroclaw/media/tool-image-generation/generated.png"],
+      mediaUrls: ["/Users/peter/.openclaw/media/tool-image-generation/generated.png"],
     });
 
-    expectMedia(result, "/Users/peter/.astroclaw/media/tool-image-generation/generated.png", [
-      "/Users/peter/.astroclaw/media/tool-image-generation/generated.png",
+    expectMedia(result, "/Users/peter/.openclaw/media/tool-image-generation/generated.png", [
+      "/Users/peter/.openclaw/media/tool-image-generation/generated.png",
     ]);
     expect(resolveOutboundAttachmentFromUrl).not.toHaveBeenCalled();
   });
@@ -320,7 +377,7 @@ describe("createReplyMediaPathNormalizer", () => {
       workspaceDir: "/tmp/sandboxes/session-1",
       containerWorkdir: "/workspace",
     });
-    vi.stubEnv("ASTROCLAW_STATE_DIR", "/Users/peter/.astroclaw");
+    vi.stubEnv("OPENCLAW_STATE_DIR", "/Users/peter/.openclaw");
     const normalize = createReplyMediaPathNormalizer({
       cfg: {},
       sessionKey: "session-key",
@@ -328,11 +385,11 @@ describe("createReplyMediaPathNormalizer", () => {
     });
 
     const result = await normalize({
-      mediaUrls: ["/Users/peter/.astroclaw/media/outbound/generated.png"],
+      mediaUrls: ["/Users/peter/.openclaw/media/outbound/generated.png"],
     });
 
-    expectMedia(result, "/Users/peter/.astroclaw/media/outbound/generated.png", [
-      "/Users/peter/.astroclaw/media/outbound/generated.png",
+    expectMedia(result, "/Users/peter/.openclaw/media/outbound/generated.png", [
+      "/Users/peter/.openclaw/media/outbound/generated.png",
     ]);
     expect(resolveOutboundAttachmentFromUrl).not.toHaveBeenCalled();
   });
@@ -341,15 +398,15 @@ describe("createReplyMediaPathNormalizer", () => {
     if (process.platform === "win32") {
       return;
     }
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-reply-media-state-"));
-    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-reply-media-outside-"));
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-reply-media-state-"));
+    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-reply-media-outside-"));
     const outsideFile = path.join(outsideDir, "secret.png");
     const symlinkPath = path.join(stateDir, "media", "outbound", "linked-secret.png");
     try {
       await fs.mkdir(path.dirname(symlinkPath), { recursive: true });
       await fs.writeFile(outsideFile, "secret", "utf8");
       await fs.symlink(outsideFile, symlinkPath);
-      vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
+      vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
       const normalize = createReplyMediaPathNormalizer({
         cfg: {},
         sessionKey: "session-key",
@@ -401,6 +458,23 @@ describe("createReplyMediaPathNormalizer", () => {
 
     expect(result.text).toBe("WA_MEDIA_DM_07\n⚠️ Media failed.");
     expectNoMedia(result);
+  });
+
+  it("keeps surviving media and appends a warning when some reply media is dropped", async () => {
+    resolveOutboundAttachmentFromUrl.mockRejectedValueOnce(new Error("file not found"));
+    const normalize = createReplyMediaPathNormalizer({
+      cfg: {},
+      sessionKey: "session-key",
+      workspaceDir: "/tmp/agent-workspace",
+    });
+
+    const result = await normalize({
+      text: "Here is the surviving attachment",
+      mediaUrls: ["./out/missing.png", "https://example.com/ok.png"],
+    });
+
+    expect(result.text).toBe("Here is the surviving attachment\n⚠️ Media failed.");
+    expectMedia(result, "https://example.com/ok.png", ["https://example.com/ok.png"]);
   });
 
   it("returns a warning-only text reply when media-only output is dropped upstream", async () => {
