@@ -1,3 +1,4 @@
+// Video Generation Core tests cover runtime plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateVideo, listRuntimeVideoGenerationProviders } from "./runtime.js";
 
@@ -6,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   listRuntimeVideoGenerationProviders: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/video-generation-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/video-generation-runtime", () => ({
   generateVideo: mocks.generateVideo,
   listRuntimeVideoGenerationProviders: mocks.listRuntimeVideoGenerationProviders,
 }));
