@@ -1,4 +1,5 @@
-import { createRuntimeEnv } from "astroclaw/plugin-sdk/plugin-test-runtime";
+// Matrix tests cover channelirectory plugin behavior.
+import { createRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { RuntimeEnv } from "../runtime-api.js";
 import { matrixPlugin } from "./channel.js";
