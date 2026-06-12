@@ -1,3 +1,4 @@
+// Vitest extension telegram config wires the extension telegram test shard.
 import { telegramExtensionTestRoots } from "./vitest.extension-telegram-paths.mjs";
 import { loadPatternListFromEnv } from "./vitest.pattern-file.ts";
 import { createScopedVitestConfig } from "./vitest.scoped-config.ts";
@@ -5,7 +6,7 @@ import { createScopedVitestConfig } from "./vitest.scoped-config.ts";
 export function loadIncludePatternsFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): string[] | null {
-  return loadPatternListFromEnv("ASTROCLAW_VITEST_INCLUDE_FILE", env);
+  return loadPatternListFromEnv("OPENCLAW_VITEST_INCLUDE_FILE", env);
 }
 
 export function createExtensionTelegramVitestConfig(
