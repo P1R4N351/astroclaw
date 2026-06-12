@@ -1,3 +1,4 @@
+/** Tests sandbox media staging for SCP remote-path inputs. */
 import fs from "node:fs/promises";
 import { basename, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +30,11 @@ vi.mock("node:child_process", async () => {
   };
 });
 
-import { stageSandboxMedia } from "./reply/stage-sandbox-media.js";
+import {
+  appendScpStderrTail,
+  SCP_STDERR_TAIL_CHARS,
+  stageSandboxMedia,
+} from "./reply/stage-sandbox-media.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -50,9 +55,9 @@ function createRemoteStageParams(home: string): {
   ]);
   return {
     cfg: createSandboxMediaStageConfig(home),
-    workspaceDir: join(home, "astroclaw"),
+    workspaceDir: join(home, "openclaw"),
     sessionKey,
-    remoteCacheDir: join(home, ".astroclaw", "media", "remote-cache", slugifySessionKey(sessionKey)),
+    remoteCacheDir: join(home, ".openclaw", "media", "remote-cache", slugifySessionKey(sessionKey)),
   };
 }
 
@@ -84,8 +89,16 @@ function requireFirstMockCall(mock: { mock: { calls: unknown[][] } }, label: str
 }
 
 describe("stageSandboxMedia scp remote paths", () => {
+  it("keeps only the tail of noisy scp stderr", () => {
+    const stderr = appendScpStderrTail("start-", `${"x".repeat(SCP_STDERR_TAIL_CHARS)}-end`);
+
+    expect(stderr).toHaveLength(SCP_STDERR_TAIL_CHARS);
+    expect(stderr).toContain("-end");
+    expect(stderr).not.toContain("start-");
+  });
+
   it("rejects remote attachment filenames with shell metacharacters before spawning scp", async () => {
-    await withSandboxMediaTempHome("astroclaw-triggers-", async (home) => {
+    await withSandboxMediaTempHome("openclaw-triggers-", async (home) => {
       const { cfg, workspaceDir, sessionKey, remoteCacheDir } = createRemoteStageParams(home);
       const remotePath = "/Users/demo/Library/Messages/Attachments/ab/cd/evil$(touch pwned).jpg";
       const { ctx, sessionCtx } = createRemoteContexts(remotePath);
@@ -108,7 +121,7 @@ describe("stageSandboxMedia scp remote paths", () => {
   });
 
   it("uses a slugged remote cache directory for session keys with path separators", async () => {
-    await withSandboxMediaTempHome("astroclaw-triggers-", async (home) => {
+    await withSandboxMediaTempHome("openclaw-triggers-", async (home) => {
       const { cfg, workspaceDir } = createRemoteStageParams(home);
       const sessionKey = "agent:main:explicit:../../escape";
       const remotePath = "/Users/demo/Library/Messages/Attachments/ab/cd/photo.jpg";
