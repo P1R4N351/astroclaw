@@ -1,3 +1,4 @@
+// Verifies Docker sandbox config parsing and validation.
 import { describe, expect, it } from "vitest";
 import {
   DANGEROUS_SANDBOX_DOCKER_BOOLEAN_KEYS,
@@ -68,7 +69,7 @@ describe("sandbox docker config", () => {
         defaults: {
           sandbox: {
             docker: {
-              binds: ["D:/data/astroclaw/src:/src:ro", "D:\\data\\astroclaw\\output:/output:rw"],
+              binds: ["D:/data/openclaw/src:/src:ro", "D:\\data\\openclaw\\output:/output:rw"],
             },
           },
         },
@@ -77,8 +78,8 @@ describe("sandbox docker config", () => {
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.config.agents?.defaults?.sandbox?.docker?.binds).toEqual([
-        "D:/data/astroclaw/src:/src:ro",
-        "D:\\data\\astroclaw\\output:/output:rw",
+        "D:/data/openclaw/src:/src:ro",
+        "D:\\data\\openclaw\\output:/output:rw",
       ]);
     }
   });
@@ -255,7 +256,10 @@ describe("sandbox browser binds config", () => {
         defaults: {
           sandbox: {
             browser: {
-              binds: ["/home/user/.chrome-profile:/data/chrome:rw"],
+              binds: [
+                "/home/user/.chrome-profile:/data/chrome:rw",
+                "D:/data/openclaw/chrome:/data/chrome-windows:rw",
+              ],
             },
           },
         },
@@ -265,7 +269,28 @@ describe("sandbox browser binds config", () => {
     if (res.ok) {
       expect(res.config.agents?.defaults?.sandbox?.browser?.binds).toEqual([
         "/home/user/.chrome-profile:/data/chrome:rw",
+        "D:/data/openclaw/chrome:/data/chrome-windows:rw",
       ]);
+    }
+  });
+
+  it("rejects relative source paths in browser binds", () => {
+    for (const bind of [
+      "relative/profile:/data/chrome:rw",
+      "D:relative\\profile:/data/chrome:rw",
+    ]) {
+      const res = validateConfigObject({
+        agents: {
+          defaults: {
+            sandbox: {
+              browser: {
+                binds: [bind],
+              },
+            },
+          },
+        },
+      });
+      expect(res.ok, bind).toBe(false);
     }
   });
 
@@ -333,16 +358,16 @@ describe("sandbox browser binds config", () => {
       globalBrowser: {},
       agentBrowser: {},
     });
-    expect(resolved.network).toBe("astroclaw-sandbox-browser");
+    expect(resolved.network).toBe("openclaw-sandbox-browser");
   });
 
   it("prefers agent browser network over global browser network", () => {
     const resolved = resolveSandboxBrowserConfig({
       scope: "agent",
-      globalBrowser: { network: "astroclaw-sandbox-browser-global" },
-      agentBrowser: { network: "astroclaw-sandbox-browser-agent" },
+      globalBrowser: { network: "openclaw-sandbox-browser-global" },
+      agentBrowser: { network: "openclaw-sandbox-browser-agent" },
     });
-    expect(resolved.network).toBe("astroclaw-sandbox-browser-agent");
+    expect(resolved.network).toBe("openclaw-sandbox-browser-agent");
   });
 
   it("merges cdpSourceRange with agent override", () => {
