@@ -1,12 +1,13 @@
+// Tlon tests cover media plugin behavior.
 import {
   readRemoteMediaBuffer,
   MAX_IMAGE_BYTES,
   saveRemoteMedia,
-} from "astroclaw/plugin-sdk/media-runtime";
+} from "openclaw/plugin-sdk/media-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { downloadMedia, extractImageBlocks } from "./media.js";
 
-vi.mock("astroclaw/plugin-sdk/media-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/media-runtime", () => ({
   MAX_IMAGE_BYTES: 6 * 1024 * 1024,
   readRemoteMediaBuffer: vi.fn(),
   saveRemoteMedia: vi.fn(),
@@ -42,7 +43,7 @@ describe("tlon monitor media", () => {
   it("stores fetched media through the shared inbound media store with the image cap", async () => {
     saveRemoteMediaMock.mockResolvedValue({
       id: "photo---uuid.png",
-      path: "/tmp/astroclaw/media/inbound/photo---uuid.png",
+      path: "/tmp/openclaw/media/inbound/photo---uuid.png",
       size: "image-data".length,
       contentType: "image/png",
     });
@@ -59,7 +60,7 @@ describe("tlon monitor media", () => {
       requestInit: { method: "GET" },
     });
     expect(result).toEqual({
-      localPath: "/tmp/astroclaw/media/inbound/photo---uuid.png",
+      localPath: "/tmp/openclaw/media/inbound/photo---uuid.png",
       contentType: "image/png",
       originalUrl: "https://example.com/photo.png",
     });
