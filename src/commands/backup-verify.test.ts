@@ -1,12 +1,14 @@
+// Backup verify tests cover archive inspection, gzip validation, and corrupted backup diagnostics.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { gzipSync } from "node:zlib";
 import * as tar from "tar";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildBackupArchiveRoot } from "./backup-shared.js";
 import { backupVerifyCommand } from "./backup-verify.js";
 
-const TEST_ARCHIVE_ROOT = "2026-03-09T00-00-00.000Z-astroclaw-backup";
+const TEST_ARCHIVE_ROOT = "2026-03-09T00-00-00.000Z-openclaw-backup";
 
 const createBackupVerifyRuntime = () => ({
   log: vi.fn(),
@@ -25,11 +27,37 @@ function createBackupManifest(assetArchivePath: string, archiveRoot = TEST_ARCHI
     assets: [
       {
         kind: "state",
-        sourcePath: "/tmp/.astroclaw",
+        sourcePath: "/tmp/.openclaw",
         archivePath: assetArchivePath,
       },
     ],
   };
+}
+
+function encodeTarEntry(params: {
+  path: string;
+  contents?: string;
+  type?: "File" | "Link";
+  linkpath?: string;
+}): Buffer {
+  const body = Buffer.from(params.contents ?? "", "utf8");
+  const header = new tar.Header({
+    path: params.path,
+    type: params.type ?? "File",
+    size: params.type === "Link" ? 0 : body.length,
+    mode: 0o600,
+    uid: 0,
+    gid: 0,
+    mtime: new Date(0),
+    ...(params.linkpath ? { linkpath: params.linkpath } : {}),
+  });
+  const headerBlock = Buffer.alloc(512);
+  header.encode(headerBlock);
+  if (params.type === "Link") {
+    return headerBlock;
+  }
+  const padding = Buffer.alloc((512 - (body.length % 512)) % 512);
+  return Buffer.concat([headerBlock, body, padding]);
 }
 
 async function createArchiveWithManifestContent(
@@ -45,7 +73,7 @@ async function createArchiveWithManifestContent(
   const manifestPath = path.join(tempDir, "manifest.json");
   const payloadPath = path.join(tempDir, "payload.txt");
   const payloadArchivePath =
-    options.payloadArchivePath ?? `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.astroclaw/payload.txt`;
+    options.payloadArchivePath ?? `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.openclaw/payload.txt`;
   try {
     await fs.writeFile(manifestPath, options.manifestContent, "utf8");
     await fs.writeFile(payloadPath, "payload\n", "utf8");
@@ -139,7 +167,7 @@ describe("backupVerifyCommand", () => {
   });
 
   it("verifies a valid backup archive", async () => {
-    const archiveDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-backup-verify-out-"));
+    const archiveDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backup-verify-out-"));
     try {
       const runtime = createBackupVerifyRuntime();
       const nowMs = Date.UTC(2026, 2, 9, 0, 0, 0);
@@ -147,7 +175,7 @@ describe("backupVerifyCommand", () => {
       const archivePath = path.join(archiveDir, "backup.tar.gz");
       const manifestPath = path.join(archiveDir, "manifest.json");
       const payloadPath = path.join(archiveDir, "state.txt");
-      const payloadArchivePath = `${archiveRoot}/payload/posix/tmp/.astroclaw/state.txt`;
+      const payloadArchivePath = `${archiveRoot}/payload/posix/tmp/.openclaw/state.txt`;
       await fs.writeFile(
         manifestPath,
         `${JSON.stringify(createBackupManifest(payloadArchivePath, archiveRoot), null, 2)}\n`,
@@ -183,7 +211,7 @@ describe("backupVerifyCommand", () => {
   });
 
   it("fails when the archive does not contain a manifest", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-backup-no-manifest-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backup-no-manifest-"));
     const archivePath = path.join(tempDir, "broken.tar.gz");
     try {
       const root = path.join(tempDir, "root");
@@ -201,10 +229,10 @@ describe("backupVerifyCommand", () => {
   });
 
   it("fails when the manifest references a missing asset payload", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-backup-missing-asset-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backup-missing-asset-"));
     const archivePath = path.join(tempDir, "broken.tar.gz");
     try {
-      const rootName = "2026-03-09T00-00-00.000Z-astroclaw-backup";
+      const rootName = "2026-03-09T00-00-00.000Z-openclaw-backup";
       const root = path.join(tempDir, rootName);
       await fs.mkdir(root, { recursive: true });
       const manifest = {
@@ -217,8 +245,8 @@ describe("backupVerifyCommand", () => {
         assets: [
           {
             kind: "state",
-            sourcePath: "/tmp/.astroclaw",
-            archivePath: `${rootName}/payload/posix/tmp/.astroclaw`,
+            sourcePath: "/tmp/.openclaw",
+            archivePath: `${rootName}/payload/posix/tmp/.openclaw`,
           },
         ],
       };
@@ -240,7 +268,7 @@ describe("backupVerifyCommand", () => {
   it("reports malformed manifest JSON without leaking parser internals", async () => {
     await createArchiveWithManifestContent(
       {
-        tempPrefix: "astroclaw-backup-bad-manifest-json-",
+        tempPrefix: "openclaw-backup-bad-manifest-json-",
         manifestContent: '{"schemaVersion":1,',
       },
       async (archivePath) => {
@@ -255,15 +283,30 @@ describe("backupVerifyCommand", () => {
     );
   });
 
+  it("rejects oversized manifest entries without retaining the full body", async () => {
+    await createArchiveWithManifestContent(
+      {
+        tempPrefix: "openclaw-backup-huge-manifest-",
+        manifestContent: "x".repeat(1024 * 1024 + 1),
+      },
+      async (archivePath) => {
+        const runtime = createBackupVerifyRuntime();
+        await expect(backupVerifyCommand(runtime, { archive: archivePath })).rejects.toThrow(
+          /Backup manifest exceeds 1048576 byte limit/,
+        );
+      },
+    );
+  });
+
   it("rejects unsafe archive paths", async () => {
     for (const { tempPrefix, archivePath, error } of [
       {
-        tempPrefix: "astroclaw-backup-traversal-",
+        tempPrefix: "openclaw-backup-traversal-",
         archivePath: `${TEST_ARCHIVE_ROOT}/payload/../escaped.txt`,
         error: /path traversal segments/i,
       },
       {
-        tempPrefix: "astroclaw-backup-backslash-",
+        tempPrefix: "openclaw-backup-backslash-",
         archivePath: `${TEST_ARCHIVE_ROOT}/payload\\..\\escaped.txt`,
         error: /forward slashes/i,
       },
@@ -284,8 +327,106 @@ describe("backupVerifyCommand", () => {
     }
   });
 
+  it("rejects unsafe hardlink targets", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backup-linkpath-"));
+    const archivePath = path.join(tempDir, "broken.tar.gz");
+    const payloadArchivePath = `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.openclaw/target.txt`;
+    const hardlinkArchivePath = `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.openclaw/hardlink.txt`;
+    try {
+      const archive = gzipSync(
+        Buffer.concat([
+          encodeTarEntry({
+            path: `${TEST_ARCHIVE_ROOT}/manifest.json`,
+            contents: `${JSON.stringify(createBackupManifest(payloadArchivePath), null, 2)}\n`,
+          }),
+          encodeTarEntry({ path: payloadArchivePath, contents: "payload\n" }),
+          encodeTarEntry({
+            path: hardlinkArchivePath,
+            type: "Link",
+            linkpath: `${TEST_ARCHIVE_ROOT}/payload/../escaped.txt`,
+          }),
+          Buffer.alloc(1024),
+        ]),
+      );
+      await fs.writeFile(archivePath, archive);
+
+      const runtime = createBackupVerifyRuntime();
+      await expect(backupVerifyCommand(runtime, { archive: archivePath })).rejects.toThrow(
+        /hardlink target.*path traversal segments/i,
+      );
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts root-relative internal hardlink targets from older backups", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backup-rootless-linkpath-"));
+    const archivePath = path.join(tempDir, "backup.tar.gz");
+    const rootRelativeTargetPath = "payload/posix/tmp/.openclaw/target.txt";
+    const payloadArchivePath = `${TEST_ARCHIVE_ROOT}/${rootRelativeTargetPath}`;
+    const hardlinkArchivePath = `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.openclaw/hardlink.txt`;
+    try {
+      const archive = gzipSync(
+        Buffer.concat([
+          encodeTarEntry({
+            path: `${TEST_ARCHIVE_ROOT}/manifest.json`,
+            contents: `${JSON.stringify(createBackupManifest(payloadArchivePath), null, 2)}\n`,
+          }),
+          encodeTarEntry({ path: payloadArchivePath, contents: "payload\n" }),
+          encodeTarEntry({
+            path: hardlinkArchivePath,
+            type: "Link",
+            linkpath: rootRelativeTargetPath,
+          }),
+          Buffer.alloc(1024),
+        ]),
+      );
+      await fs.writeFile(archivePath, archive);
+
+      const runtime = createBackupVerifyRuntime();
+      await expect(backupVerifyCommand(runtime, { archive: archivePath })).resolves.toMatchObject({
+        ok: true,
+      });
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects hardlink targets missing from archive entries", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backup-missing-linkpath-"));
+    const archivePath = path.join(tempDir, "broken.tar.gz");
+    const payloadArchivePath = `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.openclaw/target.txt`;
+    const hardlinkArchivePath = `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.openclaw/hardlink.txt`;
+    const missingTargetPath = `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.openclaw/missing-target.txt`;
+    try {
+      const archive = gzipSync(
+        Buffer.concat([
+          encodeTarEntry({
+            path: `${TEST_ARCHIVE_ROOT}/manifest.json`,
+            contents: `${JSON.stringify(createBackupManifest(payloadArchivePath), null, 2)}\n`,
+          }),
+          encodeTarEntry({ path: payloadArchivePath, contents: "payload\n" }),
+          encodeTarEntry({
+            path: hardlinkArchivePath,
+            type: "Link",
+            linkpath: missingTargetPath,
+          }),
+          Buffer.alloc(1024),
+        ]),
+      );
+      await fs.writeFile(archivePath, archive);
+
+      const runtime = createBackupVerifyRuntime();
+      await expect(backupVerifyCommand(runtime, { archive: archivePath })).rejects.toThrow(
+        /hardlink target is missing from archive entries/i,
+      );
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("ignores payload manifest.json files when locating the backup manifest", async () => {
-    const archiveDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-backup-verify-out-"));
+    const archiveDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backup-verify-out-"));
     try {
       const runtime = createBackupVerifyRuntime();
       const nowMs = Date.UTC(2026, 2, 9, 2, 0, 0);
@@ -294,7 +435,7 @@ describe("backupVerifyCommand", () => {
       const manifestPath = path.join(archiveDir, "manifest.json");
       const statePayloadPath = path.join(archiveDir, "state.txt");
       const workspaceManifestPayloadPath = path.join(archiveDir, "workspace-manifest.json");
-      const stateArchivePath = `${archiveRoot}/payload/posix/tmp/.astroclaw/state.txt`;
+      const stateArchivePath = `${archiveRoot}/payload/posix/tmp/.openclaw/state.txt`;
       const workspaceArchivePath = `${archiveRoot}/payload/posix/tmp/workspace/manifest.json`;
       await fs.writeFile(
         manifestPath,
@@ -304,7 +445,7 @@ describe("backupVerifyCommand", () => {
             assets: [
               {
                 kind: "state",
-                sourcePath: "/tmp/.astroclaw",
+                sourcePath: "/tmp/.openclaw",
                 archivePath: stateArchivePath,
               },
               {
@@ -357,10 +498,10 @@ describe("backupVerifyCommand", () => {
   });
 
   it("rejects duplicate manifest and payload entries", async () => {
-    const payloadArchivePath = `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.astroclaw/payload.txt`;
+    const payloadArchivePath = `${TEST_ARCHIVE_ROOT}/payload/posix/tmp/.openclaw/payload.txt`;
     for (const options of [
       {
-        tempPrefix: "astroclaw-backup-duplicate-manifest-",
+        tempPrefix: "openclaw-backup-duplicate-manifest-",
         payloads: [{ fileName: "payload.txt", contents: "payload\n" }],
         buildTarEntries: ({
           manifestPath,
@@ -372,7 +513,7 @@ describe("backupVerifyCommand", () => {
         error: /expected exactly one backup manifest entry, found 2/i,
       },
       {
-        tempPrefix: "astroclaw-backup-duplicate-payload-",
+        tempPrefix: "openclaw-backup-duplicate-payload-",
         payloads: [
           { fileName: "payload-a.txt", contents: "payload-a\n", archivePath: payloadArchivePath },
           { fileName: "payload-b.txt", contents: "payload-b\n", archivePath: payloadArchivePath },
