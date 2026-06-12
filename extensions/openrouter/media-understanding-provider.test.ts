@@ -1,7 +1,8 @@
+// Openrouter tests cover media understanding provider plugin behavior.
 import {
   describeImageWithModel,
   describeImagesWithModel,
-} from "astroclaw/plugin-sdk/media-understanding";
+} from "openclaw/plugin-sdk/media-understanding";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   openrouterMediaUnderstandingProvider,
@@ -20,7 +21,7 @@ const { assertOkOrThrowHttpErrorMock, postJsonRequestMock, resolveProviderHttpRe
     })),
   }));
 
-vi.mock("astroclaw/plugin-sdk/provider-http", () => ({
+vi.mock("openclaw/plugin-sdk/provider-http", () => ({
   assertOkOrThrowHttpError: assertOkOrThrowHttpErrorMock,
   postJsonRequest: postJsonRequestMock,
   requireTranscriptionText: (value: string | undefined, message: string) => {
@@ -92,8 +93,8 @@ describe("openrouter media understanding provider", () => {
       defaultHeaders: {
         Authorization: "Bearer sk-openrouter",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://astroclaw.ai",
-        "X-OpenRouter-Title": "Astroclaw",
+        "HTTP-Referer": "https://openclaw.ai",
+        "X-OpenRouter-Title": "OpenClaw",
       },
       provider: "openrouter",
       api: "openrouter-stt",
@@ -122,8 +123,8 @@ describe("openrouter media understanding provider", () => {
       throw new Error("expected OpenRouter request headers");
     }
     expect(headers.get("authorization")).toBe("Bearer sk-openrouter");
-    expect(headers.get("http-referer")).toBe("https://astroclaw.ai");
-    expect(headers.get("x-openrouter-title")).toBe("Astroclaw");
+    expect(headers.get("http-referer")).toBe("https://openclaw.ai");
+    expect(headers.get("x-openrouter-title")).toBe("OpenClaw");
     expect(release).toHaveBeenCalledOnce();
   });
 
@@ -151,6 +152,34 @@ describe("openrouter media understanding provider", () => {
       },
       temperature: 0.2,
     });
+  });
+
+  it("drops malformed temperature query options", async () => {
+    for (const temperature of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      const release = vi.fn(async () => {});
+      postJsonRequestMock.mockResolvedValueOnce({
+        response: new Response(JSON.stringify({ text: "ok" }), { status: 200 }),
+        release,
+      });
+
+      await transcribeOpenRouterAudio({
+        buffer: Buffer.from("audio"),
+        fileName: "voice.webm",
+        apiKey: "sk-openrouter",
+        timeoutMs: 5_000,
+        query: { temperature },
+        fetchFn: fetch,
+      });
+
+      expect(firstPostJsonRequest().body).toEqual({
+        model: "openai/whisper-large-v3-turbo",
+        input_audio: {
+          data: Buffer.from("audio").toString("base64"),
+          format: "webm",
+        },
+      });
+      postJsonRequestMock.mockClear();
+    }
   });
 
   it("falls back to filename extension when mime is missing", async () => {
