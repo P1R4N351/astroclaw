@@ -1,14 +1,15 @@
-import { callGatewayTool } from "astroclaw/plugin-sdk/agent-harness-runtime";
+// File Transfer tests cover file write tool plugin behavior.
+import { callGatewayTool } from "openclaw/plugin-sdk/agent-harness-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { createFileWriteTool } from "./file-write-tool.js";
 
-vi.mock("astroclaw/plugin-sdk/agent-harness-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/agent-harness-runtime", () => ({
   callGatewayTool: vi.fn(),
   listNodes: vi.fn(),
   resolveNodeIdFromList: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/media-store", () => ({
+vi.mock("openclaw/plugin-sdk/media-store", () => ({
   readMediaBuffer: vi.fn(),
 }));
 
