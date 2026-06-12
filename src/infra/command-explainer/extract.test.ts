@@ -1,3 +1,5 @@
+// Covers rich shell-command extraction, fake parser shapes, source span mapping,
+// nested wrapper parsing, and parser error handling.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Node as TreeSitterNode, Parser, Tree } from "web-tree-sitter";
 import { explainShellCommand } from "./extract.js";
@@ -196,14 +198,14 @@ describe("command explainer tree-sitter runtime", () => {
   it("reports missing parser packages and wasm files with explainer context", () => {
     expect(() =>
       resolvePackageFileForCommandExplanation(
-        "definitely-missing-astroclaw-parser-package",
+        "definitely-missing-openclaw-parser-package",
         "parser.wasm",
       ),
-    ).toThrow("Unable to resolve definitely-missing-astroclaw-parser-package");
+    ).toThrow("Unable to resolve definitely-missing-openclaw-parser-package");
 
     expect(() =>
-      resolvePackageFileForCommandExplanation("web-tree-sitter", "missing-astroclaw-parser.wasm"),
-    ).toThrow("Unable to locate missing-astroclaw-parser.wasm in web-tree-sitter");
+      resolvePackageFileForCommandExplanation("web-tree-sitter", "missing-openclaw-parser.wasm"),
+    ).toThrow("Unable to locate missing-openclaw-parser.wasm in web-tree-sitter");
   });
 
   it("reports parser progress cancellation as a timeout", async () => {
@@ -595,7 +597,7 @@ describe("command explainer tree-sitter runtime", () => {
   });
 
   it("detects eval, source, aliases, and carrier shell wrappers", async () => {
-    const evalCommand = await explainShellCommand('eval "$ASTROCLAW_CMD"');
+    const evalCommand = await explainShellCommand('eval "$OPENCLAW_CMD"');
     expectRisk(evalCommand.risks, { kind: "eval" });
 
     const builtinEval = await explainShellCommand("builtin eval 'echo hi'");
