@@ -1,25 +1,26 @@
+// Browser tests cover control auth.auto token plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectGeneratedTokenPersistedToGatewayAuth } from "../../test-support.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 
 const mocks = vi.hoisted(() => ({
-  getRuntimeConfig: vi.fn<() => AstroclawConfig>(),
-  writeConfigFile: vi.fn<(cfg: AstroclawConfig) => Promise<void>>(async (_cfg) => {}),
-  replaceConfigFile: vi.fn(async ({ nextConfig }: { nextConfig: AstroclawConfig }) => {
+  getRuntimeConfig: vi.fn<() => OpenClawConfig>(),
+  writeConfigFile: vi.fn<(cfg: OpenClawConfig) => Promise<void>>(async (_cfg) => {}),
+  replaceConfigFile: vi.fn(async ({ nextConfig }: { nextConfig: OpenClawConfig }) => {
     await mocks.writeConfigFile(nextConfig);
   }),
   mutateConfigFile: vi.fn(
     async (params: {
-      mutate: (draft: AstroclawConfig, context: { snapshot: { path: string } }) => unknown;
+      mutate: (draft: OpenClawConfig, context: { snapshot: { path: string } }) => unknown;
     }) => {
       const draft = structuredClone(mocks.getRuntimeConfig());
-      const result = await params.mutate(draft, { snapshot: { path: "/tmp/astroclaw.json" } });
+      const result = await params.mutate(draft, { snapshot: { path: "/tmp/openclaw.json" } });
       await mocks.writeConfigFile(draft);
       return {
-        path: "/tmp/astroclaw.json",
+        path: "/tmp/openclaw.json",
         previousHash: "test-hash",
         persistedHash: "test-hash",
-        snapshot: { path: "/tmp/astroclaw.json" },
+        snapshot: { path: "/tmp/openclaw.json" },
         nextConfig: draft,
         result,
         attempts: 1,
@@ -32,7 +33,7 @@ const mocks = vi.hoisted(() => ({
     ({
       authConfig,
     }: {
-      authConfig?: NonNullable<NonNullable<AstroclawConfig["gateway"]>["auth"]>;
+      authConfig?: NonNullable<NonNullable<OpenClawConfig["gateway"]>["auth"]>;
     }) => {
       const token =
         typeof authConfig?.token === "string"
@@ -49,7 +50,7 @@ const mocks = vi.hoisted(() => ({
       };
     },
   ),
-  ensureGatewayStartupAuth: vi.fn(async ({ cfg }: { cfg: AstroclawConfig }) => ({
+  ensureGatewayStartupAuth: vi.fn(async ({ cfg }: { cfg: OpenClawConfig }) => ({
     cfg: {
       ...cfg,
       gateway: {
@@ -84,7 +85,7 @@ vi.mock("../gateway/auth.js", () => ({
   resolveGatewayAuth: mocks.resolveGatewayAuth,
 }));
 
-function readPersistedConfig(): AstroclawConfig {
+function readPersistedConfig(): OpenClawConfig {
   const [call] = mocks.writeConfigFile.mock.calls;
   if (!call) {
     throw new Error("expected persisted config write");
@@ -97,7 +98,7 @@ function readPersistedConfig(): AstroclawConfig {
 }
 
 async function expectGeneratedBrowserAuthPersistence(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   mode: "none" | "trusted-proxy";
   generatedAuthField: "token" | "password";
 }) {
@@ -115,7 +116,7 @@ async function expectGeneratedBrowserAuthPersistence(params: {
   expect(mocks.ensureGatewayStartupAuth).not.toHaveBeenCalled();
 }
 
-async function expectUnresolvedBrowserSecretRefSkipsPersistence(cfg: AstroclawConfig) {
+async function expectUnresolvedBrowserSecretRefSkipsPersistence(cfg: OpenClawConfig) {
   mocks.getRuntimeConfig.mockReturnValue(cfg);
 
   const result = await ensureBrowserControlAuth({ cfg, env: {} as NodeJS.ProcessEnv });
@@ -130,7 +131,7 @@ let resolveBrowserControlAuth: typeof import("./control-auth.js").resolveBrowser
 
 describe("ensureBrowserControlAuth", () => {
   const expectExplicitModeSkipsAutoAuth = async (mode: "password") => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: { mode },
       },
@@ -173,7 +174,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("returns existing auth and skips writes", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           token: "already-set",
@@ -190,7 +191,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("returns only the active credential in password mode", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "password",
@@ -206,7 +207,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("returns only the resolved active credential when mode is inferred", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           token: "inactive-token",
@@ -221,7 +222,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("returns only the browser token in none mode", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "none",
@@ -237,7 +238,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("returns only the active token in token mode", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "token",
@@ -253,7 +254,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("returns only the browser password in trusted-proxy mode", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "trusted-proxy",
@@ -270,7 +271,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("does not accept an inactive token in trusted-proxy mode", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "trusted-proxy",
@@ -284,7 +285,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("auto-generates and persists a token when auth is missing", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       browser: {
         enabled: true,
       },
@@ -301,7 +302,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("skips auto-generation in test env", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       browser: {
         enabled: true,
       },
@@ -323,7 +324,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("auto-generates and persists browser auth token in none mode", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: { mode: "none" },
       },
@@ -339,7 +340,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("does not persist over unresolved token SecretRef in none mode", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "none",
@@ -354,7 +355,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("still auto-generates in none mode when only password SecretRef is set", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "none",
@@ -373,7 +374,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("auto-generates in trusted-proxy mode and persists browser auth password", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: { mode: "trusted-proxy", trustedProxy: { userHeader: "x-forwarded-user" } },
       },
@@ -389,7 +390,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("still auto-generates in trusted-proxy mode when only token SecretRef is set", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "trusted-proxy",
@@ -409,7 +410,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("does not persist over unresolved password SecretRef in trusted-proxy mode", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "trusted-proxy",
@@ -425,7 +426,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("reuses auth from latest config snapshot", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       browser: {
         enabled: true,
       },
@@ -449,7 +450,7 @@ describe("ensureBrowserControlAuth", () => {
   });
 
   it("fails when gateway.auth.token SecretRef is unresolved", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       gateway: {
         auth: {
           mode: "token",
