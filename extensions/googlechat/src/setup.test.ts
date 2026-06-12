@@ -1,18 +1,19 @@
+// Googlechat tests cover setup plugin behavior.
 import {
   expectLifecyclePatch,
   expectPendingUntilAbort,
   startAccountAndTrackLifecycle,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
+} from "openclaw/plugin-sdk/channel-test-helpers";
 import {
   createPluginSetupWizardConfigure,
   createPluginSetupWizardStatus,
   createTestWizardPrompter,
   runSetupWizardConfigure,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import type { WizardPrompter } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import type { WizardPrompter } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/setup";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 import {
   listGoogleChatAccountIds,
   resolveGoogleChatAccount,
@@ -178,7 +179,7 @@ describe("googlechat setup", () => {
 
     const result = await runSetupWizardConfigure({
       configure: googlechatConfigure,
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       prompter,
       options: {},
     });
@@ -211,7 +212,7 @@ describe("googlechat setup", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         "alerts",
       ),
     ).toBe("allowlist");
@@ -230,7 +231,7 @@ describe("googlechat setup", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountOverrides: {
         googlechat: "alerts",
       },
@@ -254,7 +255,7 @@ describe("googlechat setup", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountOverrides: {},
       options: {},
     });
@@ -287,7 +288,7 @@ describe("googlechat setup", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(googlechatSetupWizard.dmPolicy?.getCurrent(cfg)).toBe("allowlist");
     expect(googlechatSetupWizard.dmPolicy?.resolveConfigKeys?.(cfg)).toEqual({
@@ -324,7 +325,7 @@ describe("googlechat setup", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompter: prompter as any,
     });
 
@@ -349,7 +350,7 @@ describe("googlechat setup", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       "open",
       "alerts",
     );
@@ -412,7 +413,7 @@ describe("resolveGoogleChatAccount", () => {
   });
 
   it("inherits shared defaults from accounts.default for named accounts", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         googlechat: {
           accounts: {
@@ -437,7 +438,7 @@ describe("resolveGoogleChatAccount", () => {
   });
 
   it("prefers top-level and account overrides over accounts.default", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         googlechat: {
           audienceType: "project-number",
@@ -463,7 +464,7 @@ describe("resolveGoogleChatAccount", () => {
   });
 
   it("merges account bot loop protection over top-level defaults field-by-field", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         googlechat: {
           botLoopProtection: {
@@ -492,7 +493,7 @@ describe("resolveGoogleChatAccount", () => {
   });
 
   it("merges account bot loop protection over accounts.default field-by-field", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         googlechat: {
           accounts: {
@@ -523,7 +524,7 @@ describe("resolveGoogleChatAccount", () => {
   });
 
   it("does not inherit disabled state from accounts.default for named accounts", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         googlechat: {
           accounts: {
@@ -547,7 +548,7 @@ describe("resolveGoogleChatAccount", () => {
   });
 
   it("does not inherit default-account credentials into named accounts", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         googlechat: {
           accounts: {
@@ -575,7 +576,7 @@ describe("resolveGoogleChatAccount", () => {
   });
 
   it("does not inherit dangerous name matching from accounts.default", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         googlechat: {
           accounts: {
@@ -598,7 +599,7 @@ describe("resolveGoogleChatAccount", () => {
   });
 
   it("uses configured defaultAccount when accountId is omitted", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         googlechat: {
           defaultAccount: "alerts",
