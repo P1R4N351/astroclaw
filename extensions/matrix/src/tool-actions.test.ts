@@ -1,3 +1,4 @@
+// Matrix tests cover tool actions plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleMatrixAction } from "./tool-actions.js";
 import type { CoreConfig } from "./types.js";
@@ -119,6 +120,32 @@ describe("handleMatrixAction pollVote", () => {
     ).rejects.toThrow("pollId required");
   });
 
+  it("rejects fractional poll option indexes before voting", async () => {
+    await expect(
+      handleMatrixAction(
+        {
+          action: "pollVote",
+          roomId: "!room:example",
+          pollId: "$poll",
+          pollOptionIndex: 1.5,
+        },
+        {} as CoreConfig,
+      ),
+    ).rejects.toThrow("pollOptionIndex must be a positive integer.");
+    await expect(
+      handleMatrixAction(
+        {
+          action: "pollVote",
+          roomId: "!room:example",
+          pollId: "$poll",
+          pollOptionIndexes: [1, 2.5],
+        },
+        {} as CoreConfig,
+      ),
+    ).rejects.toThrow("pollOptionIndexes must contain positive integers.");
+    expect(mocks.voteMatrixPoll).not.toHaveBeenCalled();
+  });
+
   it("accepts messageId as a pollId alias for poll votes", async () => {
     const cfg = {} as CoreConfig;
     await handleMatrixAction(
@@ -202,6 +229,22 @@ describe("handleMatrixAction pollVote", () => {
     });
   });
 
+  it("rejects fractional reaction limits before listing reactions", async () => {
+    const cfg = { channels: { matrix: { actions: { reactions: true } } } } as CoreConfig;
+    await expect(
+      handleMatrixAction(
+        {
+          action: "reactions",
+          roomId: "!room:example",
+          messageId: "$msg",
+          limit: 5.5,
+        },
+        cfg,
+      ),
+    ).rejects.toThrow("limit must be a positive integer.");
+    expect(mocks.listMatrixReactions).not.toHaveBeenCalled();
+  });
+
   it("passes account-scoped opts to message sends", async () => {
     const cfg = { channels: { matrix: { actions: { messages: true } } } } as CoreConfig;
     await handleMatrixAction(
@@ -213,14 +256,14 @@ describe("handleMatrixAction pollVote", () => {
         threadId: "$thread",
       },
       cfg,
-      { mediaLocalRoots: ["/tmp/astroclaw-matrix-test"] },
+      { mediaLocalRoots: ["/tmp/openclaw-matrix-test"] },
     );
 
     expect(mocks.sendMatrixMessage).toHaveBeenCalledWith("room:!room:example", "hello", {
       cfg,
       accountId: "ops",
       mediaUrl: undefined,
-      mediaLocalRoots: ["/tmp/astroclaw-matrix-test"],
+      mediaLocalRoots: ["/tmp/openclaw-matrix-test"],
       replyToId: undefined,
       threadId: "$thread",
     });
@@ -236,14 +279,14 @@ describe("handleMatrixAction pollVote", () => {
         mediaUrl: "file:///tmp/photo.png",
       },
       cfg,
-      { mediaLocalRoots: ["/tmp/astroclaw-matrix-test"] },
+      { mediaLocalRoots: ["/tmp/openclaw-matrix-test"] },
     );
 
     expect(mocks.sendMatrixMessage).toHaveBeenCalledWith("room:!room:example", undefined, {
       cfg,
       accountId: "ops",
       mediaUrl: "file:///tmp/photo.png",
-      mediaLocalRoots: ["/tmp/astroclaw-matrix-test"],
+      mediaLocalRoots: ["/tmp/openclaw-matrix-test"],
       replyToId: undefined,
       threadId: undefined,
     });
@@ -260,14 +303,14 @@ describe("handleMatrixAction pollVote", () => {
         asVoice: true,
       },
       cfg,
-      { mediaLocalRoots: ["/tmp/astroclaw-matrix-test"] },
+      { mediaLocalRoots: ["/tmp/openclaw-matrix-test"] },
     );
 
     expect(mocks.sendMatrixMessage).toHaveBeenCalledWith("room:!room:example", undefined, {
       cfg,
       accountId: "ops",
       mediaUrl: "/tmp/clip.mp3",
-      mediaLocalRoots: ["/tmp/astroclaw-matrix-test"],
+      mediaLocalRoots: ["/tmp/openclaw-matrix-test"],
       replyToId: undefined,
       threadId: undefined,
       audioAsVoice: true,
@@ -283,7 +326,7 @@ describe("handleMatrixAction pollVote", () => {
         avatarPath: "/tmp/avatar.jpg",
       },
       cfg,
-      { mediaLocalRoots: ["/tmp/astroclaw-matrix-test"] },
+      { mediaLocalRoots: ["/tmp/openclaw-matrix-test"] },
     );
 
     expect(mocks.applyMatrixProfileUpdate).toHaveBeenCalledWith({
@@ -292,7 +335,7 @@ describe("handleMatrixAction pollVote", () => {
       displayName: undefined,
       avatarUrl: undefined,
       avatarPath: "/tmp/avatar.jpg",
-      mediaLocalRoots: ["/tmp/astroclaw-matrix-test"],
+      mediaLocalRoots: ["/tmp/openclaw-matrix-test"],
     });
   });
 
