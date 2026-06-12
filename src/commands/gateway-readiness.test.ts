@@ -1,3 +1,4 @@
+// Gateway readiness tests cover readiness checks, status details, and failure messages.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DaemonStatus } from "../cli/daemon-cli/status.gather.js";
 import { ensureGatewayReadyForOperation } from "./gateway-readiness.js";
@@ -80,7 +81,7 @@ describe("ensureGatewayReadyForOperation", () => {
 
     expect(result.ready).toBe(false);
     expect(confirm).toHaveBeenCalledWith(
-      "Gateway is not installed. Install and start it now so Astroclaw can open the dashboard?",
+      "Gateway is not installed. Install and start it now so OpenClaw can open the dashboard?",
       true,
     );
     expect(runtime.log.mock.calls.map(([line]) => String(line)).join("\n")).toContain(
@@ -96,7 +97,7 @@ describe("ensureGatewayReadyForOperation", () => {
         loaded: true,
         loadedText: "enabled",
         notLoadedText: "disabled",
-        command: { programArguments: ["astroclaw", "gateway", "run"] },
+        command: { programArguments: ["openclaw", "gateway", "run"] },
         runtime: { status: "running" },
       },
       port: { port: 18789, status: "busy", listeners: [], hints: [] },
@@ -125,7 +126,7 @@ describe("ensureGatewayReadyForOperation", () => {
         loaded: false,
         loadedText: "enabled",
         notLoadedText: "disabled",
-        command: { programArguments: ["astroclaw", "gateway", "run"] },
+        command: { programArguments: ["openclaw", "gateway", "run"] },
         runtime: { status: "stopped" },
       },
     });
@@ -135,7 +136,7 @@ describe("ensureGatewayReadyForOperation", () => {
         loaded: true,
         loadedText: "enabled",
         notLoadedText: "disabled",
-        command: { programArguments: ["astroclaw", "gateway", "run"] },
+        command: { programArguments: ["openclaw", "gateway", "run"] },
         runtime: { status: "running" },
       },
       port: { port: 18789, status: "busy", listeners: [], hints: [] },
@@ -164,7 +165,7 @@ describe("ensureGatewayReadyForOperation", () => {
         loaded: true,
         loadedText: "enabled",
         notLoadedText: "disabled",
-        command: { programArguments: ["astroclaw", "gateway", "run"] },
+        command: { programArguments: ["openclaw", "gateway", "run"] },
         runtime: { status: "running" },
       },
       port: { port: 18789, status: "busy", listeners: [], hints: [] },
@@ -193,7 +194,7 @@ describe("ensureGatewayReadyForOperation", () => {
         loaded: true,
         loadedText: "enabled",
         notLoadedText: "disabled",
-        command: { programArguments: ["astroclaw", "gateway", "run", "--port", "18789"] },
+        command: { programArguments: ["openclaw", "gateway", "run", "--port", "18789"] },
         runtime: { status: "running" },
       },
       port: { port: 18789, status: "free", listeners: [], hints: [] },
@@ -226,7 +227,7 @@ describe("ensureGatewayReadyForOperation", () => {
         loaded: true,
         loadedText: "enabled",
         notLoadedText: "disabled",
-        command: { programArguments: ["astroclaw", "gateway", "run", "--port", "18789"] },
+        command: { programArguments: ["openclaw", "gateway", "run", "--port", "18789"] },
         runtime: { status: "running" },
       },
       port: { port: 18789, status: "busy", listeners: [], hints: [] },
@@ -258,7 +259,7 @@ describe("ensureGatewayReadyForOperation", () => {
         loaded: true,
         loadedText: "enabled",
         notLoadedText: "disabled",
-        command: { programArguments: ["astroclaw", "gateway", "run"] },
+        command: { programArguments: ["openclaw", "gateway", "run"] },
         runtime: { status: "running" },
       },
       port: { port: 18789, status: "busy", listeners: [], hints: [] },
@@ -288,7 +289,7 @@ describe("ensureGatewayReadyForOperation", () => {
         loaded: true,
         loadedText: "enabled",
         notLoadedText: "disabled",
-        command: { programArguments: ["astroclaw", "gateway", "run"] },
+        command: { programArguments: ["openclaw", "gateway", "run"] },
         runtime: { status: "running" },
       },
       port: { port: 18789, status: "busy", listeners: [], hints: [] },
