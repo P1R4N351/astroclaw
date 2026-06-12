@@ -1,13 +1,14 @@
+// Elevenlabs tests cover elevenlabs plugin behavior.
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import {
   normalizeTranscriptForMatch,
   runRealtimeSttLiveTest,
   synthesizeElevenLabsLiveSpeech,
-} from "astroclaw/plugin-sdk/provider-test-contracts";
-import { isLiveTestEnabled } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/provider-test-contracts";
+import { isLiveTestEnabled } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 import { elevenLabsMediaUnderstandingProvider } from "./media-understanding-provider.js";
@@ -30,7 +31,7 @@ describeLive("elevenlabs plugin live", () => {
     const provider = requireRegisteredProvider(speechProviders, "elevenlabs");
 
     const audioFile = await provider.synthesize({
-      text: "Astroclaw ElevenLabs eleven v three text to speech integration test OK.",
+      text: "OpenClaw ElevenLabs eleven v three text to speech integration test OK.",
       cfg: { plugins: { enabled: true } } as never,
       providerConfig: { apiKey: ELEVENLABS_KEY, modelId: "eleven_v3" },
       target: "audio-file",
@@ -43,7 +44,7 @@ describeLive("elevenlabs plugin live", () => {
   }, 60_000);
 
   it("transcribes synthesized speech through the media provider", async () => {
-    const phrase = "Testing Astroclaw ElevenLabs speech to text integration OK.";
+    const phrase = "Testing OpenClaw ElevenLabs speech to text integration OK.";
     const audio = await synthesizeElevenLabsLiveSpeech({
       text: phrase,
       apiKey: ELEVENLABS_KEY,
@@ -60,13 +61,13 @@ describeLive("elevenlabs plugin live", () => {
     });
 
     const normalized = normalizeTranscriptForMatch(transcript?.text ?? "");
-    expect(normalized).toContain("astroclaw");
+    expect(normalized).toContain("openclaw");
     expect(normalized).toMatch(/(?:elevenlabs|11labs)/);
   }, 90_000);
 
   it("streams realtime STT through the registered transcription provider", async () => {
     const provider = buildElevenLabsRealtimeTranscriptionProvider();
-    const phrase = "Testing Astroclaw ElevenLabs realtime transcription integration OK.";
+    const phrase = "Testing OpenClaw ElevenLabs realtime transcription integration OK.";
     const speech = await synthesizeElevenLabsLiveSpeech({
       text: phrase,
       apiKey: ELEVENLABS_KEY,
