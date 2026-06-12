@@ -1,3 +1,4 @@
+// Channel session tests cover session persistence, lookup, and lifecycle helpers.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MsgContext } from "../auto-reply/templating.js";
 
@@ -52,7 +53,7 @@ describe("recordInboundSession", () => {
 
   it("does not pass ctx when updating a different session key", async () => {
     await recordInboundSession({
-      storePath: "/tmp/astroclaw-session-store.json",
+      storePath: "/tmp/openclaw-session-store.json",
       sessionKey: "agent:main:demo-channel:1234:thread:42",
       ctx,
       updateLastRoute: {
@@ -72,7 +73,7 @@ describe("recordInboundSession", () => {
 
   it("passes ctx when updating the same session key", async () => {
     await recordInboundSession({
-      storePath: "/tmp/astroclaw-session-store.json",
+      storePath: "/tmp/openclaw-session-store.json",
       sessionKey: "agent:main:demo-channel:1234:thread:42",
       ctx,
       updateLastRoute: {
@@ -92,7 +93,7 @@ describe("recordInboundSession", () => {
 
   it("normalizes mixed-case session keys before recording and route updates", async () => {
     await recordInboundSession({
-      storePath: "/tmp/astroclaw-session-store.json",
+      storePath: "/tmp/openclaw-session-store.json",
       sessionKey: "Agent:Main:Demo-Channel:1234:Thread:42",
       ctx,
       updateLastRoute: {
@@ -111,11 +112,42 @@ describe("recordInboundSession", () => {
     expect(route.ctx).toBe(ctx);
   });
 
+  it("preserves Signal group ids before recording and route updates", async () => {
+    const mixedGroupId = "VWATodkf2hc8zdOS76q9Tb0+5Bi522E03qLdaQ/9ypg=";
+    const signalCtx: MsgContext = {
+      Provider: "signal",
+      ChatType: "group",
+      From: `signal:group:${mixedGroupId}`,
+      To: `signal:group:${mixedGroupId}`,
+      SessionKey: `agent:main:signal:group:${mixedGroupId}`,
+      OriginatingTo: `signal:group:${mixedGroupId}`,
+    };
+
+    await recordInboundSession({
+      storePath: "/tmp/openclaw-session-store.json",
+      sessionKey: `Agent:Main:Signal:Group:${mixedGroupId}`,
+      ctx: signalCtx,
+      updateLastRoute: {
+        sessionKey: `Agent:Main:Signal:Group:${mixedGroupId}`,
+        channel: "signal",
+        to: `signal:group:${mixedGroupId}`,
+      },
+      onRecordError: vi.fn(),
+    });
+
+    expect(requireFirstCallArg(recordSessionMetaFromInboundMock).sessionKey).toBe(
+      `agent:main:signal:group:${mixedGroupId}`,
+    );
+    const route = requireFirstCallArg(updateLastRouteMock);
+    expect(route.sessionKey).toBe(`agent:main:signal:group:${mixedGroupId}`);
+    expect(route.ctx).toBe(signalCtx);
+  });
+
   it("skips last-route updates when main DM owner pin mismatches sender", async () => {
     const onSkip = vi.fn();
 
     await recordInboundSession({
-      storePath: "/tmp/astroclaw-session-store.json",
+      storePath: "/tmp/openclaw-session-store.json",
       sessionKey: "agent:main:demo-channel:1234:thread:42",
       ctx,
       updateLastRoute: {
@@ -140,7 +172,7 @@ describe("recordInboundSession", () => {
 
   it("forwards session creation policy to last-route updates", async () => {
     await recordInboundSession({
-      storePath: "/tmp/astroclaw-session-store.json",
+      storePath: "/tmp/openclaw-session-store.json",
       sessionKey: "agent:main:demo-channel:1234:thread:42",
       ctx,
       createIfMissing: false,
