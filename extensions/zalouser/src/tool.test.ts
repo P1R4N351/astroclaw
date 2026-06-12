@@ -1,3 +1,4 @@
+// Zalouser tests cover tool plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { sendImageZalouser, sendLinkZalouser, sendMessageZalouser } from "./send.js";
 import { createZalouserTool, executeZalouserTool } from "./tool.js";
@@ -162,10 +163,10 @@ describe("executeZalouserTool", () => {
     const linkResult = await executeZalouserTool("tool-1", {
       action: "link",
       threadId: "t-2",
-      url: "https://astroclaw.ai",
+      url: "https://openclaw.ai",
       message: "read this",
     });
-    expect(mockSendLink).toHaveBeenCalledWith("t-2", "https://astroclaw.ai", {
+    expect(mockSendLink).toHaveBeenCalledWith("t-2", "https://openclaw.ai", {
       profile: undefined,
       caption: "read this",
       isGroup: undefined,
