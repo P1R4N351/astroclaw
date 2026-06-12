@@ -1,3 +1,5 @@
+// Setup gateway config helpers build gateway config from onboarding answers.
+import { validateIPv4AddressInput } from "@openclaw/net-policy/ipv4";
 import { formatPortRangeHint } from "../cli/error-format.js";
 import {
   normalizeGatewayTokenInput,
@@ -5,7 +7,7 @@ import {
   validateGatewayPasswordInput,
 } from "../commands/onboard-helpers.js";
 import type { GatewayAuthChoice, SecretInputMode } from "../commands/onboard-types.js";
-import type { GatewayBindMode, GatewayTailscaleMode, AstroclawConfig } from "../config/config.js";
+import type { GatewayBindMode, GatewayTailscaleMode, OpenClawConfig } from "../config/config.js";
 import { ensureControlUiAllowedOriginsForNonLoopbackBind } from "../config/gateway-control-ui-origins.js";
 import {
   normalizeSecretInputString,
@@ -21,7 +23,6 @@ import { findTailscaleBinary } from "../infra/tailscale.js";
 import { resolveSecretInputModeForEnvSelection } from "../plugins/provider-auth-mode.js";
 import { promptSecretRefForSetup } from "../plugins/provider-auth-ref.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { validateIPv4AddressInput } from "../shared/net/ipv4.js";
 import { maskApiKey } from "../utils/mask-api-key.js";
 import { t } from "./i18n/index.js";
 import type { WizardPrompter } from "./prompts.js";
@@ -34,8 +35,8 @@ import type {
 
 type ConfigureGatewayOptions = {
   flow: WizardFlow;
-  baseConfig: AstroclawConfig;
-  nextConfig: AstroclawConfig;
+  baseConfig: OpenClawConfig;
+  nextConfig: OpenClawConfig;
   localPort: number;
   quickstartGateway: QuickstartGatewayDefaults;
   secretInputMode?: SecretInputMode;
@@ -44,7 +45,7 @@ type ConfigureGatewayOptions = {
 };
 
 type ConfigureGatewayResult = {
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
   settings: GatewayWizardSettings;
 };
 
@@ -237,10 +238,10 @@ export async function configureGatewayForSetup(
           provider: "gateway-auth-token",
           config: nextConfig,
           prompter,
-          preferredEnvVar: "ASTROCLAW_GATEWAY_TOKEN",
+          preferredEnvVar: "OPENCLAW_GATEWAY_TOKEN",
           copy: {
             sourceMessage: t("wizard.gateway.authTokenStoredMessage"),
-            envVarPlaceholder: "ASTROCLAW_GATEWAY_TOKEN",
+            envVarPlaceholder: "OPENCLAW_GATEWAY_TOKEN",
           },
         });
         gatewayTokenInput = resolved.ref;
@@ -248,12 +249,12 @@ export async function configureGatewayForSetup(
       }
     } else if (flow === "quickstart") {
       gatewayToken =
-        (quickstartTokenString ?? normalizeGatewayTokenInput(process.env.ASTROCLAW_GATEWAY_TOKEN)) ||
+        (quickstartTokenString ?? normalizeGatewayTokenInput(process.env.OPENCLAW_GATEWAY_TOKEN)) ||
         randomToken();
       gatewayTokenInput = gatewayToken;
     } else {
       const existingToken =
-        quickstartTokenString ?? normalizeGatewayTokenInput(process.env.ASTROCLAW_GATEWAY_TOKEN);
+        quickstartTokenString ?? normalizeGatewayTokenInput(process.env.OPENCLAW_GATEWAY_TOKEN);
       let tokenInput: string | undefined;
       if (existingToken) {
         const keep = await prompter.confirm({
@@ -297,10 +298,10 @@ export async function configureGatewayForSetup(
           provider: "gateway-auth-password",
           config: nextConfig,
           prompter,
-          preferredEnvVar: "ASTROCLAW_GATEWAY_PASSWORD",
+          preferredEnvVar: "OPENCLAW_GATEWAY_PASSWORD",
           copy: {
             sourceMessage: t("wizard.gateway.authPasswordStoredMessage"),
-            envVarPlaceholder: "ASTROCLAW_GATEWAY_PASSWORD",
+            envVarPlaceholder: "OPENCLAW_GATEWAY_PASSWORD",
           },
         });
         password = resolved.ref;
