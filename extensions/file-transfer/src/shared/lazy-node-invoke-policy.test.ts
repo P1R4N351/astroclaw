@@ -1,13 +1,14 @@
+// File Transfer tests cover lazy node invoke policy plugin behavior.
 import type {
-  AstroclawPluginNodeInvokePolicy,
-  AstroclawPluginNodeInvokePolicyContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+  OpenClawPluginNodeInvokePolicy,
+  OpenClawPluginNodeInvokePolicyContext,
+} from "openclaw/plugin-sdk/plugin-entry";
 import { describe, expect, it, vi } from "vitest";
 import { createLazyFileTransferNodeInvokePolicy } from "./lazy-node-invoke-policy.js";
 
 function createPolicyContext(
-  overrides: Partial<AstroclawPluginNodeInvokePolicyContext> = {},
-): AstroclawPluginNodeInvokePolicyContext {
+  overrides: Partial<OpenClawPluginNodeInvokePolicyContext> = {},
+): OpenClawPluginNodeInvokePolicyContext {
   return {
     nodeId: "node-1",
     command: "file.fetch",
@@ -20,7 +21,7 @@ function createPolicyContext(
       commands: ["file.fetch"],
     },
     client: null,
-    invokeNode: vi.fn<AstroclawPluginNodeInvokePolicyContext["invokeNode"]>(async () => ({
+    invokeNode: vi.fn<OpenClawPluginNodeInvokePolicyContext["invokeNode"]>(async () => ({
       ok: true,
       payload: { ok: true },
       payloadJSON: null,
@@ -31,7 +32,7 @@ function createPolicyContext(
 
 describe("lazy file-transfer node invoke policy", () => {
   it("exposes command metadata without loading the delegate", () => {
-    const loadPolicy = vi.fn<() => Promise<AstroclawPluginNodeInvokePolicy>>();
+    const loadPolicy = vi.fn<() => Promise<OpenClawPluginNodeInvokePolicy>>();
 
     const policy = createLazyFileTransferNodeInvokePolicy(loadPolicy);
 
@@ -40,16 +41,16 @@ describe("lazy file-transfer node invoke policy", () => {
   });
 
   it("loads and caches the delegate on first handle", async () => {
-    const invokeNode = vi.fn<AstroclawPluginNodeInvokePolicyContext["invokeNode"]>(async () => ({
+    const invokeNode = vi.fn<OpenClawPluginNodeInvokePolicyContext["invokeNode"]>(async () => ({
       ok: true,
       payload: { ok: true },
       payloadJSON: null,
     }));
-    const delegateHandle = vi.fn<AstroclawPluginNodeInvokePolicy["handle"]>(async (ctx) => {
+    const delegateHandle = vi.fn<OpenClawPluginNodeInvokePolicy["handle"]>(async (ctx) => {
       await ctx.invokeNode();
       return { ok: true, payload: { delegated: true } };
     });
-    const loadPolicy = vi.fn<() => Promise<AstroclawPluginNodeInvokePolicy>>(async () => ({
+    const loadPolicy = vi.fn<() => Promise<OpenClawPluginNodeInvokePolicy>>(async () => ({
       commands: ["file.fetch"],
       handle: delegateHandle,
     }));
@@ -70,7 +71,7 @@ describe("lazy file-transfer node invoke policy", () => {
   });
 
   it("fails closed when the delegate cannot load", async () => {
-    const invokeNode = vi.fn<AstroclawPluginNodeInvokePolicyContext["invokeNode"]>(async () => ({
+    const invokeNode = vi.fn<OpenClawPluginNodeInvokePolicyContext["invokeNode"]>(async () => ({
       ok: true,
       payload: { ok: true },
       payloadJSON: null,
