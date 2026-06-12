@@ -1,10 +1,11 @@
+// Skills CLI formatting tests cover skill listing and display formatting.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
-import type { SkillEntry } from "../agents/skills.js";
-import { createCanonicalFixtureSkill } from "../agents/skills.test-helpers.js";
+import { buildWorkspaceSkillStatus } from "../skills/discovery/status.js";
+import { createCanonicalFixtureSkill } from "../skills/test-support/test-helpers.js";
+import type { SkillEntry } from "../skills/types.js";
 import { captureEnv } from "../test-utils/env.js";
 import { formatSkillInfo, formatSkillsCheck, formatSkillsList } from "./skills-cli.format.js";
 
@@ -14,10 +15,10 @@ describe("skills-cli (e2e)", () => {
   let envSnapshot: ReturnType<typeof captureEnv>;
 
   beforeAll(() => {
-    envSnapshot = captureEnv(["ASTROCLAW_BUNDLED_SKILLS_DIR"]);
-    tempWorkspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-skills-test-"));
-    tempBundledDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-bundled-skills-test-"));
-    process.env.ASTROCLAW_BUNDLED_SKILLS_DIR = tempBundledDir;
+    envSnapshot = captureEnv(["OPENCLAW_BUNDLED_SKILLS_DIR"]);
+    tempWorkspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-skills-test-"));
+    tempBundledDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-bundled-skills-test-"));
+    process.env.OPENCLAW_BUNDLED_SKILLS_DIR = tempBundledDir;
   });
 
   afterAll(() => {
@@ -40,7 +41,7 @@ describe("skills-cli (e2e)", () => {
           description: "Capture UI screenshots",
           filePath,
           baseDir,
-          source: "astroclaw-bundled",
+          source: "openclaw-bundled",
         }),
         frontmatter: {},
         metadata: { emoji: "📸" },
@@ -80,7 +81,7 @@ describe("skills-cli (e2e)", () => {
           modelVisible: true,
           userInvocable: true,
           commandVisible: true,
-          source: "astroclaw-bundled",
+          source: "openclaw-bundled",
           bundled: true,
           missing: {
             bins: [],
