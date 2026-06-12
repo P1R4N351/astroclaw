@@ -1,5 +1,7 @@
+// Provider fallback tests verify web_fetch normalizes third-party fetch output
+// before exposing it to agents or cache entries.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { withFetchPreconnect } from "../../test-utils/fetch-mock.js";
 import { createWebFetchTool } from "./web-fetch.js";
 
@@ -14,8 +16,8 @@ const runtimeState = vi.hoisted(() => ({
 vi.mock("../../web-fetch/runtime.js", () => ({
   resolveWebFetchDefinition: resolveWebFetchDefinitionMock,
 }));
-vi.mock("../../secrets/runtime.js", () => ({
-  getActiveSecretsRuntimeSnapshot: () => runtimeState.activeSecretsRuntimeSnapshot,
+vi.mock("../../secrets/runtime-state.js", () => ({
+  getActiveSecretsRuntimeConfigSnapshot: () => runtimeState.activeSecretsRuntimeSnapshot,
 }));
 vi.mock("../../secrets/runtime-web-tools-state.js", () => ({
   getActiveRuntimeWebToolsMetadata: () => runtimeState.activeRuntimeWebToolsMetadata,
@@ -38,6 +40,8 @@ describe("web_fetch provider fallback normalization", () => {
   });
 
   it("re-wraps and truncates provider fallback payloads before caching or returning", async () => {
+    // Provider implementations may return raw text; core still owns the
+    // untrusted-content wrapper and maxChars enforcement.
     global.fetch = withFetchPreconnect(
       vi.fn(async () => {
         throw new Error("network failed");
@@ -70,7 +74,7 @@ describe("web_fetch provider fallback normalization", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       sandboxed: false,
     });
 
@@ -121,7 +125,7 @@ describe("web_fetch provider fallback normalization", () => {
     });
 
     const tool = createWebFetchTool({
-      config: {} as AstroclawConfig,
+      config: {} as OpenClawConfig,
       sandboxed: false,
     });
 
@@ -138,6 +142,8 @@ describe("web_fetch provider fallback normalization", () => {
   });
 
   it("late-binds provider fallback config and runtime metadata from the active runtime snapshot", async () => {
+    // Long-lived tool instances should observe the active runtime snapshot, not
+    // stale construction-time provider metadata.
     global.fetch = withFetchPreconnect(
       vi.fn(async () => {
         throw new Error("network failed");
@@ -152,7 +158,7 @@ describe("web_fetch provider fallback normalization", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     runtimeState.activeSecretsRuntimeSnapshot = { config: runtimeConfig };
     runtimeState.activeRuntimeWebToolsMetadata = {
       fetch: {
@@ -185,7 +191,7 @@ describe("web_fetch provider fallback normalization", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       sandboxed: false,
       runtimeWebFetch: {
         providerConfigured: "stale",
@@ -210,7 +216,7 @@ describe("web_fetch provider fallback normalization", () => {
     expect(details.externalContent?.provider).toBe("firecrawl");
     const definitionInput = resolveWebFetchDefinitionMock.mock.calls.at(0)?.[0] as
       | {
-          config?: AstroclawConfig;
+          config?: OpenClawConfig;
           runtimeWebFetch?: { selectedProvider?: string };
         }
       | undefined;
@@ -219,6 +225,8 @@ describe("web_fetch provider fallback normalization", () => {
   });
 
   it("scopes provider fallback cache entries by the late-bound provider", async () => {
+    // The same URL can be fetched by different providers with different auth
+    // and extraction semantics, so provider id is part of the cache identity.
     global.fetch = withFetchPreconnect(
       vi.fn(async () => {
         throw new Error("network failed");
@@ -263,7 +271,7 @@ describe("web_fetch provider fallback normalization", () => {
         diagnostics: [],
       };
       const tool = createWebFetchTool({
-        config: {} as AstroclawConfig,
+        config: {} as OpenClawConfig,
         sandboxed: false,
         lateBindRuntimeConfig: true,
       });
