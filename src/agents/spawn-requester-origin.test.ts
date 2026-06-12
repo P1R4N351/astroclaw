@@ -1,6 +1,8 @@
+// Spawn requester-origin tests prove child agents inherit the right channel,
+// account, and target peer from the parent request context.
 import { describe, expect, it } from "vitest";
 import type { AgentBindingMatch } from "../config/types.agents.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveRequesterOriginForChild } from "./spawn-requester-origin.js";
 
 describe("resolveRequesterOriginForChild", () => {
@@ -9,7 +11,7 @@ describe("resolveRequesterOriginForChild", () => {
   }
 
   function resolveAccount(params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     targetAgentId?: string;
     requesterAgentId?: string;
     requesterChannel: string;
@@ -53,7 +55,7 @@ describe("resolveRequesterOriginForChild", () => {
             accountId: "bot-alpha-qa",
           }),
         ],
-      } as AstroclawConfig;
+      } as OpenClawConfig;
 
       expectOrigin(
         resolveRequesterOriginForChild({
@@ -193,9 +195,11 @@ describe("resolveRequesterOriginForChild", () => {
       bindings: [routeBinding({ channel: "matrix", accountId: "bot-alpha-default" })],
     },
   ] as const)("selects target account: $name", (scenario) => {
+    // Binding priority is user-visible routing policy: peer and role scoped
+    // matches must beat broad channel defaults without losing same-agent calls.
     expect(
       resolveAccount({
-        cfg: { bindings: [...scenario.bindings] } as AstroclawConfig,
+        cfg: { bindings: [...scenario.bindings] } as OpenClawConfig,
         requesterChannel: scenario.requesterChannel,
         requesterAccountId: scenario.requesterAccountId,
         requesterAgentId: scenario.requesterAgentId,
@@ -221,7 +225,7 @@ describe("resolveRequesterOriginForChild", () => {
           accountId: "bot-alpha-teams",
         }),
       ],
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expectOrigin(
       resolveRequesterOriginForChild({
@@ -253,7 +257,7 @@ describe("resolveRequesterOriginForChild", () => {
           accountId: "bot-alpha-qa",
         }),
       ],
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expectOrigin(
       resolveRequesterOriginForChild({
@@ -295,7 +299,7 @@ describe("resolveRequesterOriginForChild", () => {
           accountId: "bot-alpha-current-guild",
         }),
       ],
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expectOrigin(
       resolveRequesterOriginForChild({
@@ -328,8 +332,10 @@ describe("resolveRequesterOriginForChild", () => {
           accountId: "bot-alpha-line",
         }),
       ],
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
+    // Some channel adapters prefix both channel id and peer kind; the resolver
+    // has to strip wrappers without treating canonical colon ids as wrappers.
     expectOrigin(
       resolveRequesterOriginForChild({
         cfg,
