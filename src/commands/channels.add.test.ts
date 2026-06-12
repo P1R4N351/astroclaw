@@ -1,8 +1,9 @@
+// Channels add tests cover guided setup, plugin install paths, and channel account config writes.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getBundledChannelSetupPlugin } from "../channels/plugins/bundled.js";
 import type { ChannelPluginCatalogEntry } from "../channels/plugins/catalog.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../plugins/runtime.js";
 import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
@@ -53,7 +54,7 @@ const channelWizardMocks = vi.hoisted(() => {
   };
   return {
     prompter,
-    setupChannels: vi.fn(async (...args: unknown[]) => args[0] as AstroclawConfig),
+    setupChannels: vi.fn(async (...args: unknown[]) => args[0] as OpenClawConfig),
   };
 });
 
@@ -65,6 +66,7 @@ const bundledMocks = vi.hoisted(() => ({
 vi.mock("../channels/plugins/catalog.js", () => ({
   getChannelPluginCatalogEntry: catalogMocks.getChannelPluginCatalogEntry,
   listChannelPluginCatalogEntries: catalogMocks.listChannelPluginCatalogEntries,
+  listRawChannelPluginCatalogEntries: catalogMocks.listChannelPluginCatalogEntries,
 }));
 
 vi.mock("./channel-setup/discovery.js", () => ({
@@ -442,13 +444,13 @@ describe("channelsAddCommand", () => {
     channelWizardMocks.prompter.text.mockClear();
     channelWizardMocks.setupChannels.mockClear();
     channelWizardMocks.setupChannels.mockImplementation(
-      async (...args: unknown[]) => args[0] as AstroclawConfig,
+      async (...args: unknown[]) => args[0] as OpenClawConfig,
     );
     setMinimalChannelsAddRegistryForTests();
   });
 
   it("keeps guided channel setup lazy until the user selects a channel", async () => {
-    const config: AstroclawConfig = { channels: {} };
+    const config: OpenClawConfig = { channels: {} };
     configMocks.readConfigFileSnapshot.mockResolvedValue({
       ...baseConfigSnapshot,
       sourceConfig: config,
@@ -637,7 +639,7 @@ describe("channelsAddCommand", () => {
       {
         channel: "whatsapp",
         account: "work",
-        authDir: "/tmp/astroclaw-wa-auth",
+        authDir: "/tmp/openclaw-wa-auth",
       },
       runtime,
       { hasFlags: true },
@@ -648,7 +650,7 @@ describe("channelsAddCommand", () => {
       accounts: {
         work: {
           enabled: true,
-          authDir: "/tmp/astroclaw-wa-auth",
+          authDir: "/tmp/openclaw-wa-auth",
         },
       },
     });
@@ -722,7 +724,7 @@ describe("channelsAddCommand", () => {
         blurb: "WhatsApp channel",
       },
       install: {
-        npmSpec: "@astroclaw/whatsapp",
+        npmSpec: "@openclaw/whatsapp",
       },
     };
     catalogMocks.listChannelPluginCatalogEntries.mockReturnValue([catalogEntry]);
@@ -763,7 +765,7 @@ describe("channelsAddCommand", () => {
       {
         channel: "whatsapp",
         account: "work",
-        authDir: "/tmp/astroclaw-wa-auth",
+        authDir: "/tmp/openclaw-wa-auth",
       },
       runtime,
       { hasFlags: true },
@@ -777,7 +779,7 @@ describe("channelsAddCommand", () => {
       accounts: {
         work: {
           enabled: true,
-          authDir: "/tmp/astroclaw-wa-auth",
+          authDir: "/tmp/openclaw-wa-auth",
         },
       },
     });
@@ -880,6 +882,39 @@ describe("channelsAddCommand", () => {
     expect(runtime.exit).not.toHaveBeenCalled();
   });
 
+  it("rejects malformed numeric channel setup options before plugin setup", async () => {
+    const applyAccountConfig = vi.fn(({ cfg, input }: ApplyAccountConfigParams) => ({
+      ...cfg,
+      channels: {
+        ...cfg.channels,
+        matrix: {
+          enabled: true,
+          initialSyncLimit: input.initialSyncLimit,
+        },
+      },
+    }));
+    const plugin = {
+      ...createChannelTestPluginBase({ id: "matrix", label: "Matrix" }),
+      setup: { applyAccountConfig },
+    };
+    configMocks.readConfigFileSnapshot.mockResolvedValue({ ...baseConfigSnapshot });
+    setActivePluginRegistry(createTestRegistry([{ pluginId: "matrix", plugin, source: "test" }]));
+
+    await expect(
+      channelsAddCommand(
+        {
+          channel: "matrix",
+          initialSyncLimit: "10x",
+        },
+        runtime,
+        { hasFlags: true },
+      ),
+    ).rejects.toThrow("--initial-sync-limit must be a non-negative integer.");
+
+    expect(applyAccountConfig).not.toHaveBeenCalled();
+    expect(configMocks.writeConfigFile).not.toHaveBeenCalled();
+  });
+
   it("falls back from untrusted workspace catalog shadows when adding by alias", async () => {
     configMocks.readConfigFileSnapshot.mockResolvedValue({ ...baseConfigSnapshot });
     setActivePluginRegistry(createTestRegistry());
@@ -903,9 +938,12 @@ describe("channelsAddCommand", () => {
         aliases: ["ext"],
       },
     };
-    catalogMocks.listChannelPluginCatalogEntries.mockImplementation(
-      ({ excludeWorkspace }: { excludeWorkspace?: boolean } = {}) =>
-        excludeWorkspace ? [trustedEntry] : [workspaceEntry],
+    catalogMocks.listChannelPluginCatalogEntries.mockImplementation(() => [workspaceEntry]);
+    catalogMocks.getChannelPluginCatalogEntry.mockImplementation(
+      (_channel: string, opts?: { excludePluginRefs?: Array<{ pluginId: string }> }) =>
+        opts?.excludePluginRefs?.some((entry) => entry.pluginId === "evil-external-chat-shadow")
+          ? trustedEntry
+          : undefined,
     );
     registerExternalChatSetupPlugin("@vendor/external-chat-plugin");
 
@@ -987,12 +1025,12 @@ describe("channelsAddCommand", () => {
       },
     };
     pluginInstallRecordCommitMocks.commitConfigWithPendingPluginInstalls.mockImplementationOnce(
-      async (params: { nextConfig: AstroclawConfig }) => {
+      async (params: { nextConfig: OpenClawConfig }) => {
         const { installs: _installs, ...plugins } = params.nextConfig.plugins ?? {};
-        const writtenConfig = { ...params.nextConfig, plugins };
-        await configMocks.writeConfigFile(writtenConfig);
+        const writtenConfigLocal = { ...params.nextConfig, plugins };
+        await configMocks.writeConfigFile(writtenConfigLocal);
         return {
-          config: writtenConfig,
+          config: writtenConfigLocal,
           installRecords,
           movedInstallRecords: true,
         };
