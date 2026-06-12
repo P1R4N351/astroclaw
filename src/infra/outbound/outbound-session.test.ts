@@ -1,5 +1,7 @@
+// Covers outbound session-route resolution through plugin hooks and fallback
+// target parsing, plus best-effort session metadata persistence.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { ensureOutboundSessionEntry, resolveOutboundSessionRoute } from "./outbound-session.js";
 import { setMinimalOutboundSessionPluginRegistryForTests } from "./outbound-session.test-helpers.js";
 
@@ -42,8 +44,8 @@ describe("resolveOutboundSessionRoute", () => {
     setMinimalOutboundSessionPluginRegistryForTests();
   });
 
-  const baseConfig = {} as AstroclawConfig;
-  const perChannelPeerCfg = { session: { dmScope: "per-channel-peer" } } as AstroclawConfig;
+  const baseConfig = {} as OpenClawConfig;
+  const perChannelPeerCfg = { session: { dmScope: "per-channel-peer" } } as OpenClawConfig;
   const identityLinksCfg = {
     session: {
       dmScope: "per-peer",
@@ -51,7 +53,7 @@ describe("resolveOutboundSessionRoute", () => {
         alice: ["guildchat:123"],
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
   const workspaceMpimCfg = {
     channels: {
       workspace: {
@@ -60,10 +62,10 @@ describe("resolveOutboundSessionRoute", () => {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 
   async function expectResolvedRoute(params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     channel: string;
     target: string;
     replyToId?: string;
@@ -102,7 +104,7 @@ describe("resolveOutboundSessionRoute", () => {
   type RouteCase = Parameters<typeof expectResolvedRoute>[0];
   type NamedRouteCase = RouteCase & { name: string };
 
-  const perChannelPeerSessionCfg = { session: { dmScope: "per-channel-peer" } } as AstroclawConfig;
+  const perChannelPeerSessionCfg = { session: { dmScope: "per-channel-peer" } } as OpenClawConfig;
 
   it.each([
     {
@@ -398,6 +400,18 @@ describe("resolveOutboundSessionRoute", () => {
         chatType: "channel",
       },
     },
+    {
+      name: "Legacy parser-only plugin chat type fallback",
+      cfg: baseConfig,
+      channel: "legacyparser",
+      target: "team-ops",
+      expected: {
+        sessionKey: "agent:main:legacyparser:group:team-ops",
+        from: "legacyparser:group:team-ops",
+        to: "channel:team-ops",
+        chatType: "group",
+      },
+    },
   ] satisfies NamedRouteCase[])("$name", async ({ name: _name, ...params }) => {
     await expectResolvedRoute(params);
   });
@@ -410,6 +424,7 @@ describe("resolveOutboundSessionRoute", () => {
         to: "user:123",
         kind: "user" as const,
         source: "directory" as const,
+        resolutionSource: "directory" as const,
       },
       expected: {
         sessionKey: "agent:main:guildchat:direct:123",
@@ -426,6 +441,7 @@ describe("resolveOutboundSessionRoute", () => {
         to: "channel:456",
         kind: "channel" as const,
         source: "directory" as const,
+        resolutionSource: "directory" as const,
       },
       expected: {
         sessionKey: "agent:main:guildchat:channel:456",
@@ -444,6 +460,7 @@ describe("resolveOutboundSessionRoute", () => {
         to: "user:dthcxgoxhifn3pwh65cut3ud3w",
         kind: "user" as const,
         source: "directory" as const,
+        resolutionSource: "directory" as const,
       },
       expected: {
         sessionKey: "agent:main:boardchat:direct:dthcxgoxhifn3pwh65cut3ud3w",
@@ -491,7 +508,7 @@ describe("ensureOutboundSessionEntry", () => {
         session: {
           store: "/stores/{agentId}.json",
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       channel: "workspace",
       route: {
         sessionKey: "agent:main:workspace:channel:c1",
