@@ -1,3 +1,4 @@
+// Line tests cover send plugin behavior.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -13,36 +14,36 @@ const {
   logVerboseMock,
   resolvePinnedHostnameWithPolicyMock,
 } = vi.hoisted(() => {
-  const pushMessageMock = vi.fn();
-  const replyMessageMock = vi.fn();
-  const showLoadingAnimationMock = vi.fn();
-  const getProfileMock = vi.fn();
-  const MessagingApiClientMock = vi.fn(function () {
+  const pushMessageMockLocal = vi.fn();
+  const replyMessageMockLocal = vi.fn();
+  const showLoadingAnimationMockLocal = vi.fn();
+  const getProfileMockLocal = vi.fn();
+  const MessagingApiClientMockLocal = vi.fn(function () {
     return {
-      pushMessage: pushMessageMock,
-      replyMessage: replyMessageMock,
-      showLoadingAnimation: showLoadingAnimationMock,
-      getProfile: getProfileMock,
+      pushMessage: pushMessageMockLocal,
+      replyMessage: replyMessageMockLocal,
+      showLoadingAnimation: showLoadingAnimationMockLocal,
+      getProfile: getProfileMockLocal,
     };
   });
-  const requireRuntimeConfigMock = vi.fn((cfg: unknown) => cfg ?? {});
-  const resolveLineAccountMock = vi.fn(() => ({ accountId: "default" }));
-  const resolveLineChannelAccessTokenMock = vi.fn(() => "line-token");
-  const recordChannelActivityMock = vi.fn();
-  const logVerboseMock = vi.fn();
-  const resolvePinnedHostnameWithPolicyMock = vi.fn();
+  const requireRuntimeConfigMockLocal = vi.fn((cfg: unknown) => cfg ?? {});
+  const resolveLineAccountMockLocal = vi.fn(() => ({ accountId: "default" }));
+  const resolveLineChannelAccessTokenMockLocal = vi.fn(() => "line-token");
+  const recordChannelActivityMockLocal = vi.fn();
+  const logVerboseMockLocal = vi.fn();
+  const resolvePinnedHostnameWithPolicyMockLocal = vi.fn();
   return {
-    pushMessageMock,
-    replyMessageMock,
-    showLoadingAnimationMock,
-    getProfileMock,
-    MessagingApiClientMock,
-    requireRuntimeConfigMock,
-    resolveLineAccountMock,
-    resolveLineChannelAccessTokenMock,
-    recordChannelActivityMock,
-    logVerboseMock,
-    resolvePinnedHostnameWithPolicyMock,
+    pushMessageMock: pushMessageMockLocal,
+    replyMessageMock: replyMessageMockLocal,
+    showLoadingAnimationMock: showLoadingAnimationMockLocal,
+    getProfileMock: getProfileMockLocal,
+    MessagingApiClientMock: MessagingApiClientMockLocal,
+    requireRuntimeConfigMock: requireRuntimeConfigMockLocal,
+    resolveLineAccountMock: resolveLineAccountMockLocal,
+    resolveLineChannelAccessTokenMock: resolveLineChannelAccessTokenMockLocal,
+    recordChannelActivityMock: recordChannelActivityMockLocal,
+    logVerboseMock: logVerboseMockLocal,
+    resolvePinnedHostnameWithPolicyMock: resolvePinnedHostnameWithPolicyMockLocal,
   };
 });
 
@@ -50,7 +51,7 @@ vi.mock("@line/bot-sdk", () => ({
   messagingApi: { MessagingApiClient: MessagingApiClientMock },
 }));
 
-vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/plugin-config-runtime", () => ({
   requireRuntimeConfig: requireRuntimeConfigMock,
 }));
 
@@ -62,13 +63,13 @@ vi.mock("./channel-access-token.js", () => ({
   resolveLineChannelAccessToken: resolveLineChannelAccessTokenMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/channel-activity-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/channel-activity-runtime", () => ({
   recordChannelActivity: recordChannelActivityMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
-    "astroclaw/plugin-sdk/runtime-env",
+vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
+    "openclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -76,7 +77,7 @@ vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
   resolvePinnedHostnameWithPolicy: resolvePinnedHostnameWithPolicyMock,
 }));
 
@@ -101,12 +102,12 @@ describe("LINE send helpers", () => {
 
   afterAll(() => {
     vi.doUnmock("@line/bot-sdk");
-    vi.doUnmock("astroclaw/plugin-sdk/plugin-config-runtime");
+    vi.doUnmock("openclaw/plugin-sdk/plugin-config-runtime");
     vi.doUnmock("./accounts.js");
     vi.doUnmock("./channel-access-token.js");
-    vi.doUnmock("astroclaw/plugin-sdk/channel-activity-runtime");
-    vi.doUnmock("astroclaw/plugin-sdk/runtime-env");
-    vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
+    vi.doUnmock("openclaw/plugin-sdk/channel-activity-runtime");
+    vi.doUnmock("openclaw/plugin-sdk/runtime-env");
+    vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
     vi.resetModules();
   });
 
