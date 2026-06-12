@@ -1,3 +1,4 @@
+// Deepinfra tests cover image generation provider plugin behavior.
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { buildDeepInfraImageGenerationProvider } from "./image-generation-provider.js";
 
@@ -26,11 +27,11 @@ const {
   })),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: resolveApiKeyForProviderMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-http", () => ({
+vi.mock("openclaw/plugin-sdk/provider-http", () => ({
   assertOkOrThrowHttpError: assertOkOrThrowHttpErrorMock,
   createProviderOperationDeadline: createProviderOperationDeadlineMock,
   postJsonRequest: postJsonRequestMock,
@@ -41,8 +42,8 @@ vi.mock("astroclaw/plugin-sdk/provider-http", () => ({
 }));
 
 afterAll(() => {
-  vi.doUnmock("astroclaw/plugin-sdk/provider-auth-runtime");
-  vi.doUnmock("astroclaw/plugin-sdk/provider-http");
+  vi.doUnmock("openclaw/plugin-sdk/provider-auth-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/provider-http");
   vi.resetModules();
 });
 
