@@ -1,3 +1,4 @@
+// Command execution startup tests cover startup behavior before CLI command execution.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const emitCliBannerMock = vi.hoisted(() => vi.fn());
@@ -28,14 +29,14 @@ describe("command-execution-startup", () => {
   it("resolves startup context from argv and mode", () => {
     expect(
       mod.resolveCliExecutionStartupContext({
-        argv: ["node", "astroclaw", "status", "--json"],
+        argv: ["node", "openclaw", "status", "--json"],
         jsonOutputMode: true,
         env: {},
         routeMode: true,
       }),
     ).toEqual({
       invocation: {
-        argv: ["node", "astroclaw", "status", "--json"],
+        argv: ["node", "openclaw", "status", "--json"],
         commandPath: ["status"],
         primary: "status",
         hasHelpOrVersion: false,
@@ -45,7 +46,7 @@ describe("command-execution-startup", () => {
       startupPolicy: {
         suppressDoctorStdout: true,
         hideBanner: false,
-        skipConfigGuard: true,
+        skipConfigGuard: false,
         loadPlugins: false,
         pluginRegistry: { scope: "channels" },
       },
@@ -53,28 +54,28 @@ describe("command-execution-startup", () => {
   });
 
   it("uses process env banner suppression when startup env is omitted", () => {
-    const originalHideBanner = process.env.ASTROCLAW_HIDE_BANNER;
+    const originalHideBanner = process.env.OPENCLAW_HIDE_BANNER;
     try {
-      process.env.ASTROCLAW_HIDE_BANNER = "1";
+      process.env.OPENCLAW_HIDE_BANNER = "1";
 
       expect(
         mod.resolveCliExecutionStartupContext({
-          argv: ["node", "astroclaw", "status"],
+          argv: ["node", "openclaw", "status"],
           jsonOutputMode: false,
         }).startupPolicy.hideBanner,
       ).toBe(true);
       expect(
         mod.resolveCliExecutionStartupContext({
-          argv: ["node", "astroclaw", "status"],
+          argv: ["node", "openclaw", "status"],
           jsonOutputMode: false,
           env: {},
         }).startupPolicy.hideBanner,
       ).toBe(false);
     } finally {
       if (originalHideBanner === undefined) {
-        delete process.env.ASTROCLAW_HIDE_BANNER;
+        delete process.env.OPENCLAW_HIDE_BANNER;
       } else {
-        process.env.ASTROCLAW_HIDE_BANNER = originalHideBanner;
+        process.env.OPENCLAW_HIDE_BANNER = originalHideBanner;
       }
     }
   });
@@ -82,7 +83,7 @@ describe("command-execution-startup", () => {
   it("skips local plugin bootstrap for JSON gateway agent calls", () => {
     expect(
       mod.resolveCliExecutionStartupContext({
-        argv: ["node", "astroclaw", "agent", "--agent", "main", "--message", "hi", "--json"],
+        argv: ["node", "openclaw", "agent", "--agent", "main", "--message", "hi", "--json"],
         jsonOutputMode: true,
       }).startupPolicy.loadPlugins,
     ).toBe(false);
@@ -90,7 +91,7 @@ describe("command-execution-startup", () => {
       mod.resolveCliExecutionStartupContext({
         argv: [
           "node",
-          "astroclaw",
+          "openclaw",
           "agent",
           "--agent",
           "main",
@@ -104,7 +105,7 @@ describe("command-execution-startup", () => {
     ).toBe(true);
     expect(
       mod.resolveCliExecutionStartupContext({
-        argv: ["node", "astroclaw", "agent", "--agent", "main", "--message", "hi"],
+        argv: ["node", "openclaw", "agent", "--agent", "main", "--message", "hi"],
         jsonOutputMode: false,
       }).startupPolicy.loadPlugins,
     ).toBe(true);
@@ -120,12 +121,12 @@ describe("command-execution-startup", () => {
         pluginRegistry: { scope: "all" },
       },
       version: "1.2.3",
-      argv: ["node", "astroclaw", "status"],
+      argv: ["node", "openclaw", "status"],
     });
 
     expect(routeLogsToStderrMock).toHaveBeenCalledTimes(1);
     expect(emitCliBannerMock).toHaveBeenCalledWith("1.2.3", {
-      argv: ["node", "astroclaw", "status"],
+      argv: ["node", "openclaw", "status"],
     });
 
     await mod.applyCliExecutionStartupPresentation({
@@ -143,6 +144,23 @@ describe("command-execution-startup", () => {
     expect(emitCliBannerMock).toHaveBeenCalledTimes(1);
   });
 
+  it("does not import the banner module for JSON output", async () => {
+    await mod.applyCliExecutionStartupPresentation({
+      startupPolicy: {
+        suppressDoctorStdout: true,
+        hideBanner: false,
+        skipConfigGuard: false,
+        loadPlugins: false,
+        pluginRegistry: { scope: "channels" },
+      },
+      version: "1.2.3",
+      argv: ["node", "openclaw", "status", "--json"],
+    });
+
+    expect(routeLogsToStderrMock).toHaveBeenCalledTimes(1);
+    expect(emitCliBannerMock).not.toHaveBeenCalled();
+  });
+
   it("forwards startup policy into bootstrap defaults and overrides", async () => {
     const statusRuntime = {} as never;
     await mod.ensureCliExecutionBootstrap({
@@ -151,7 +169,7 @@ describe("command-execution-startup", () => {
       startupPolicy: {
         suppressDoctorStdout: true,
         hideBanner: false,
-        skipConfigGuard: true,
+        skipConfigGuard: false,
         loadPlugins: false,
         pluginRegistry: { scope: "channels" },
       },
@@ -164,7 +182,7 @@ describe("command-execution-startup", () => {
       allowInvalid: undefined,
       loadPlugins: false,
       pluginRegistry: { scope: "channels" },
-      skipConfigGuard: true,
+      skipConfigGuard: false,
     });
 
     const messageRuntime = {} as never;
