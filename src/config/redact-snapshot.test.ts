@@ -1,3 +1,4 @@
+// Covers config snapshot redaction and restoration behavior.
 import JSON5 from "json5";
 import { describe, expect, it } from "vitest";
 import { redactSnapshotTestHints as mainSchemaHints } from "../../test/helpers/config/redact-snapshot-test-hints.js";
@@ -8,7 +9,7 @@ import {
   type TestSnapshot,
 } from "./redact-snapshot.test-helpers.js";
 import { buildConfigSchema, type ConfigUiHints } from "./schema.js";
-import type { ConfigFileSnapshot } from "./types.astroclaw.js";
+import type { ConfigFileSnapshot } from "./types.openclaw.js";
 
 function expectNestedLevelPairValue(
   source: Record<string, Record<string, Record<string, unknown>>>,
@@ -45,7 +46,7 @@ describe("redactConfigSnapshot", () => {
             {
               id: "demo",
               rootDir: "/private/plugin/root",
-              manifestPath: "/private/plugin/root/astroclaw.plugin.json",
+              manifestPath: "/private/plugin/root/openclaw.plugin.json",
             },
           ],
           diagnostics: [],
@@ -410,6 +411,56 @@ describe("redactConfigSnapshot", () => {
     );
   });
 
+  it("redacts install policy env values from config snapshots", () => {
+    const hints = buildConfigSchema().uiHints;
+    const raw = `{
+  security: {
+    installPolicy: {
+      enabled: true,
+      exec: {
+        source: "exec",
+        command: "/usr/local/bin/openclaw-install-policy",
+        env: {
+          POLICY_TOKEN: "operator-policy-secret-token",
+          AUDIT_ENDPOINT: "operator-policy-secret-endpoint",
+        },
+      },
+    },
+  },
+}`;
+    const snapshot = makeSnapshot(
+      {
+        security: {
+          installPolicy: {
+            enabled: true,
+            exec: {
+              source: "exec",
+              command: "/usr/local/bin/openclaw-install-policy",
+              env: {
+                POLICY_TOKEN: "operator-policy-secret-token",
+                AUDIT_ENDPOINT: "operator-policy-secret-endpoint",
+              },
+            },
+          },
+        },
+      },
+      raw,
+    );
+
+    const result = redactConfigSnapshot(snapshot, hints);
+    const cfg = result.config as typeof snapshot.config;
+    expect(cfg.security.installPolicy.exec.env.POLICY_TOKEN).toBe(REDACTED_SENTINEL);
+    expect(cfg.security.installPolicy.exec.env.AUDIT_ENDPOINT).toBe(REDACTED_SENTINEL);
+    expect(result.raw).toContain(REDACTED_SENTINEL);
+    expect(result.raw).not.toContain("operator-policy-secret-token");
+    expect(result.raw).not.toContain("operator-policy-secret-endpoint");
+
+    const restored = restoreRedactedValues(result.config, snapshot.config, hints);
+    expect(restored.security.installPolicy.exec.env.POLICY_TOKEN).toBe(
+      "operator-policy-secret-token",
+    );
+  });
+
   it("redacts model provider request proxy URLs from config snapshots", () => {
     const hints = buildConfigSchema().uiHints;
     const raw = `{
@@ -518,9 +569,9 @@ describe("redactConfigSnapshot", () => {
     const snapshot = makeSnapshot({
       channels: {
         irc: {
-          passwordFile: "/etc/astroclaw/irc-password.txt",
+          passwordFile: "/etc/openclaw/irc-password.txt",
           nickserv: {
-            passwordFile: "/etc/astroclaw/nickserv-password.txt",
+            passwordFile: "/etc/openclaw/nickserv-password.txt",
             password: "super-secret-nickserv-password",
           },
         },
@@ -532,8 +583,8 @@ describe("redactConfigSnapshot", () => {
     const irc = channels.irc;
     const nickserv = irc.nickserv as Record<string, unknown>;
 
-    expect(irc.passwordFile).toBe("/etc/astroclaw/irc-password.txt");
-    expect(nickserv.passwordFile).toBe("/etc/astroclaw/nickserv-password.txt");
+    expect(irc.passwordFile).toBe("/etc/openclaw/irc-password.txt");
+    expect(nickserv.passwordFile).toBe("/etc/openclaw/nickserv-password.txt");
     expect(nickserv.password).toBe(REDACTED_SENTINEL);
   });
 
