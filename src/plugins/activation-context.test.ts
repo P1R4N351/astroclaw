@@ -1,6 +1,7 @@
+// Covers plugin activation context construction and lazy boundaries.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeRegistry } from "../config/plugin-auto-enable.test-helpers.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   clearCurrentPluginMetadataSnapshot,
   setCurrentPluginMetadataSnapshot,
@@ -10,7 +11,7 @@ import type { PluginManifestRegistry } from "./manifest-registry.js";
 import type { PluginMetadataSnapshot } from "./plugin-metadata-snapshot.js";
 
 const applyPluginAutoEnableMock = vi.hoisted(() =>
-  vi.fn((params: { config?: AstroclawConfig }) => ({
+  vi.fn((params: { config?: OpenClawConfig }) => ({
     config: params.config,
     changes: [],
     autoEnabledReasons: {},
@@ -24,7 +25,7 @@ vi.mock("../config/plugin-auto-enable.js", () => ({
 import { resolveBundledPluginCompatibleActivationInputs } from "./activation-context.js";
 
 function createPluginMetadataSnapshot(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   manifestRegistry: PluginManifestRegistry;
   workspaceDir?: string;
 }): PluginMetadataSnapshot {
@@ -78,7 +79,7 @@ afterEach(() => {
 describe("resolveBundledPluginCompatibleActivationInputs", () => {
   it("passes the current manifest registry into activation auto-enable", () => {
     const manifestRegistry = makeRegistry([{ id: "openai", channels: [], providers: ["openai"] }]);
-    const workspaceDir = "/tmp/astroclaw-activation-workspace";
+    const workspaceDir = "/tmp/openclaw-activation-workspace";
     setCurrentPluginMetadataSnapshot(
       createPluginMetadataSnapshot({
         config: {},
