@@ -1,11 +1,12 @@
+// Summarizes extra security audit findings for user-facing output.
+import { resolveProviderToolPolicy } from "../agents/agent-tools.policy.js";
 import { parseModelRef } from "../agents/model-selection-normalize.js";
-import { resolveProviderToolPolicy } from "../agents/pi-tools.policy.js";
 import { resolveSandboxConfigForAgent } from "../agents/sandbox/config.js";
 import { resolveSandboxToolPolicyForAgent } from "../agents/sandbox/tool-policy.js";
 import type { SandboxToolPolicy } from "../agents/sandbox/types.js";
 import { isToolAllowedByPolicies } from "../agents/tool-policy-match.js";
 import { resolveToolProfilePolicy } from "../agents/tool-policy.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { AgentToolsConfig } from "../config/types.tools.js";
 import { hasConfiguredInternalHooks } from "../hooks/configured.js";
 import { hasConfiguredWebSearchCredential } from "../plugins/web-search-credential-presence.js";
@@ -13,6 +14,7 @@ import { inferParamBFromIdOrName } from "../shared/model-param-b.js";
 import { collectAuditModelRefs } from "./audit-model-refs.js";
 import { pickSandboxToolPolicy } from "./audit-tool-policy.js";
 
+/** Lightweight audit finding shape used by summary-only audit helpers. */
 export type SecurityAuditFinding = {
   checkId: string;
   severity: "info" | "warn" | "critical";
@@ -23,7 +25,7 @@ export type SecurityAuditFinding = {
 
 const SMALL_MODEL_PARAM_B_MAX = 300;
 
-function summarizeGroupPolicy(cfg: AstroclawConfig): {
+function summarizeGroupPolicy(cfg: OpenClawConfig): {
   open: number;
   allowlist: number;
   other: number;
@@ -58,7 +60,7 @@ function extractAgentIdFromSource(source: string): string | null {
 }
 
 function resolveToolPolicies(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentTools?: AgentToolsConfig;
   sandboxMode?: "off" | "non-main" | "all";
   agentId?: string | null;
@@ -107,16 +109,15 @@ function resolveToolPolicies(params: {
   return policies;
 }
 
-function hasWebSearchKey(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): boolean {
+function hasWebSearchKey(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): boolean {
   return hasConfiguredWebSearchCredential({
     config: cfg,
     env,
     origin: "bundled",
-    bundledAllowlistCompat: true,
   });
 }
 
-function isWebSearchEnabled(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): boolean {
+function isWebSearchEnabled(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): boolean {
   const enabled = cfg.tools?.web?.search?.enabled;
   if (enabled === false) {
     return false;
@@ -127,7 +128,7 @@ function isWebSearchEnabled(cfg: AstroclawConfig, env: NodeJS.ProcessEnv): boole
   return hasWebSearchKey(cfg, env);
 }
 
-function isWebFetchEnabled(cfg: AstroclawConfig): boolean {
+function isWebFetchEnabled(cfg: OpenClawConfig): boolean {
   const enabled = cfg.tools?.web?.fetch?.enabled;
   if (enabled === false) {
     return false;
@@ -135,11 +136,12 @@ function isWebFetchEnabled(cfg: AstroclawConfig): boolean {
   return true;
 }
 
-function isBrowserEnabled(cfg: AstroclawConfig): boolean {
+function isBrowserEnabled(cfg: OpenClawConfig): boolean {
   return cfg.browser?.enabled !== false;
 }
 
-export function collectAttackSurfaceSummaryFindings(cfg: AstroclawConfig): SecurityAuditFinding[] {
+/** Produce a concise inventory of major security-relevant surfaces. */
+export function collectAttackSurfaceSummaryFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const group = summarizeGroupPolicy(cfg);
   const elevated = cfg.tools?.elevated?.enabled !== false;
   const webhooksEnabled = cfg.hooks?.enabled === true;
@@ -169,8 +171,9 @@ export function collectAttackSurfaceSummaryFindings(cfg: AstroclawConfig): Secur
   ];
 }
 
+/** Flag small-parameter models when they retain web/browser tool exposure. */
 export function collectSmallModelRiskFindings(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 }): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
@@ -181,15 +184,13 @@ export function collectSmallModelRiskFindings(params: {
     return findings;
   }
 
-  const smallModels = models
-    .map((entry) => {
-      const paramB = inferParamBFromIdOrName(entry.id);
-      if (!paramB || paramB > SMALL_MODEL_PARAM_B_MAX) {
-        return null;
-      }
-      return { ...entry, paramB };
-    })
-    .filter((entry): entry is { id: string; source: string; paramB: number } => Boolean(entry));
+  const smallModels: Array<{ id: string; source: string; paramB: number }> = [];
+  for (const entry of models) {
+    const paramB = inferParamBFromIdOrName(entry.id);
+    if (paramB && paramB <= SMALL_MODEL_PARAM_B_MAX) {
+      smallModels.push({ id: entry.id, source: entry.source, paramB });
+    }
+  }
 
   if (smallModels.length === 0) {
     return findings;
@@ -200,6 +201,8 @@ export function collectSmallModelRiskFindings(params: {
   const exposureSet = new Set<string>();
   for (const entry of smallModels) {
     const agentId = extractAgentIdFromSource(entry.source);
+    // Evaluate each model in its agent context because sandbox/tool policy can
+    // differ per agent and provider override.
     const modelRef = parseModelRef(entry.id, "openai", {
       allowPluginNormalization: false,
     });
