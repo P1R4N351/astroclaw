@@ -1,3 +1,4 @@
-import { describeModelStudioProviderDiscoveryContract } from "astroclaw/plugin-sdk/provider-test-contracts";
+// Qwen tests cover provider discovery.contract plugin behavior.
+import { describeModelStudioProviderDiscoveryContract } from "openclaw/plugin-sdk/provider-test-contracts";
 
 describeModelStudioProviderDiscoveryContract(() => import("./index.js"));
