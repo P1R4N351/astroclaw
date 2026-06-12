@@ -1,3 +1,4 @@
+/** Tests Claude-style bundle-MCP config-file overlays for CLI backends. */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -15,7 +16,7 @@ setupCliBundleMcpTestHarness();
 describe("prepareCliBundleMcpConfig", () => {
   it("injects a strict empty --mcp-config overlay for bundle-MCP-enabled backends without servers", async () => {
     const workspaceDir = await cliBundleMcpHarness.tempHarness.createTempDir(
-      "astroclaw-cli-bundle-mcp-empty-",
+      "openclaw-cli-bundle-mcp-empty-",
     );
 
     const prepared = await prepareCliBundleMcpConfig({
@@ -30,6 +31,7 @@ describe("prepareCliBundleMcpConfig", () => {
     });
 
     expect(prepared.backend.args).toContain("--strict-mcp-config");
+    // Even empty overlays force Claude to ignore user/global MCP servers.
     const generatedConfigPath = requireMcpConfigPath(prepared.backend.args);
     const raw = JSON.parse(await fs.readFile(generatedConfigPath, "utf-8")) as {
       mcpServers?: Record<string, unknown>;
@@ -58,9 +60,10 @@ describe("prepareCliBundleMcpConfig", () => {
 
   it("loads workspace bundle MCP plugins from the configured workspace root", async () => {
     const workspaceDir = await cliBundleMcpHarness.tempHarness.createTempDir(
-      "astroclaw-cli-bundle-mcp-workspace-root-",
+      "openclaw-cli-bundle-mcp-workspace-root-",
     );
-    const pluginRoot = path.join(workspaceDir, ".astroclaw", "extensions", "workspace-probe");
+    const pluginRoot = path.join(workspaceDir, ".openclaw", "extensions", "workspace-probe");
+    // Workspace-local plugins should be resolved relative to workspaceDir, not HOME.
     const serverPath = path.join(pluginRoot, "servers", "probe.mjs");
     await fs.mkdir(path.dirname(serverPath), { recursive: true });
     await fs.writeFile(serverPath, "export {};\n", "utf-8");
@@ -116,11 +119,11 @@ describe("prepareCliBundleMcpConfig", () => {
     const prepared = await prepareBundleProbeCliConfig({
       additionalConfig: {
         mcpServers: {
-          astroclaw: {
+          openclaw: {
             type: "http",
             url: "http://127.0.0.1:23119/mcp",
             headers: {
-              Authorization: "Bearer ${ASTROCLAW_MCP_TOKEN}",
+              Authorization: "Bearer ${OPENCLAW_MCP_TOKEN}",
             },
           },
         },
@@ -131,16 +134,16 @@ describe("prepareCliBundleMcpConfig", () => {
     const raw = JSON.parse(await fs.readFile(generatedConfigPath, "utf-8")) as {
       mcpServers?: Record<string, { url?: string; headers?: Record<string, string> }>;
     };
-    expect(Object.keys(raw.mcpServers ?? {}).toSorted()).toEqual(["bundleProbe", "astroclaw"]);
-    expect(raw.mcpServers?.astroclaw?.url).toBe("http://127.0.0.1:23119/mcp");
-    expect(raw.mcpServers?.astroclaw?.headers?.Authorization).toBe("Bearer ${ASTROCLAW_MCP_TOKEN}");
+    expect(Object.keys(raw.mcpServers ?? {}).toSorted()).toEqual(["bundleProbe", "openclaw"]);
+    expect(raw.mcpServers?.openclaw?.url).toBe("http://127.0.0.1:23119/mcp");
+    expect(raw.mcpServers?.openclaw?.headers?.Authorization).toBe("Bearer ${OPENCLAW_MCP_TOKEN}");
 
     await prepared.cleanup?.();
   });
 
   it("preserves extra env values alongside generated MCP config", async () => {
     const workspaceDir = await cliBundleMcpHarness.tempHarness.createTempDir(
-      "astroclaw-cli-bundle-mcp-env-",
+      "openclaw-cli-bundle-mcp-env-",
     );
 
     const prepared = await prepareCliBundleMcpConfig({
@@ -153,14 +156,14 @@ describe("prepareCliBundleMcpConfig", () => {
       workspaceDir,
       config: { plugins: { enabled: false } },
       env: {
-        ASTROCLAW_MCP_TOKEN: "loopback-token-123",
-        ASTROCLAW_MCP_SESSION_KEY: "agent:main:telegram:group:chat123",
+        OPENCLAW_MCP_TOKEN: "loopback-token-123",
+        OPENCLAW_MCP_SESSION_KEY: "agent:main:telegram:group:chat123",
       },
     });
 
     expect(prepared.env).toEqual({
-      ASTROCLAW_MCP_TOKEN: "loopback-token-123",
-      ASTROCLAW_MCP_SESSION_KEY: "agent:main:telegram:group:chat123",
+      OPENCLAW_MCP_TOKEN: "loopback-token-123",
+      OPENCLAW_MCP_SESSION_KEY: "agent:main:telegram:group:chat123",
     });
 
     await prepared.cleanup?.();
@@ -173,7 +176,7 @@ describe("prepareCliBundleMcpConfig", () => {
         command: "node",
         args: ["./fake-cli.mjs"],
       },
-      workspaceDir: "/tmp/astroclaw-bundle-mcp-disabled",
+      workspaceDir: "/tmp/openclaw-bundle-mcp-disabled",
     });
 
     expect(prepared.backend.args).toEqual(["./fake-cli.mjs"]);
