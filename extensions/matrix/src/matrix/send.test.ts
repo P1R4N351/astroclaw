@@ -1,3 +1,4 @@
+// Matrix tests cover send plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginRuntime } from "../../runtime-api.js";
 import { setMatrixRuntime } from "../runtime.js";
@@ -9,7 +10,7 @@ import {
   sendSingleTextMessageMatrix,
   sendTypingMatrix,
 } from "./send.js";
-import { MATRIX_ASTROCLAW_FINALIZED_PREVIEW_KEY } from "./send/types.js";
+import { MATRIX_OPENCLAW_FINALIZED_PREVIEW_KEY } from "./send/types.js";
 
 const loadOutboundMediaFromUrlMock = vi.hoisted(() => vi.fn());
 const loadWebMediaMock = vi.fn().mockResolvedValue({
@@ -33,9 +34,9 @@ const resolveMarkdownTableModeMock = vi.fn(() => "code");
 const convertMarkdownTablesMock = vi.fn((text: string) => text);
 const chunkMarkdownTextWithModeMock = vi.fn((text: string) => (text ? [text] : []));
 
-vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-config-runtime")>(
-    "astroclaw/plugin-sdk/plugin-config-runtime",
+vi.mock("openclaw/plugin-sdk/plugin-config-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/plugin-config-runtime")>(
+    "openclaw/plugin-sdk/plugin-config-runtime",
   );
   return {
     ...actual,
@@ -452,7 +453,7 @@ describe("sendMessageMatrix media", () => {
       client,
       cfg: {} as never,
       mediaUrl: "file:///tmp/photo.png",
-      mediaLocalRoots: ["/tmp/astroclaw-matrix-test"],
+      mediaLocalRoots: ["/tmp/openclaw-matrix-test"],
     });
 
     expect(mockCallArg(loadWebMediaMock, "loadWebMedia", 0)).toBe("file:///tmp/photo.png");
@@ -461,7 +462,7 @@ describe("sendMessageMatrix media", () => {
       "media options",
     );
     expect(mediaOptions.maxBytes).toBeUndefined();
-    expect(mediaOptions.localRoots).toEqual(["/tmp/astroclaw-matrix-test"]);
+    expect(mediaOptions.localRoots).toEqual(["/tmp/openclaw-matrix-test"]);
   });
 });
 
@@ -606,6 +607,34 @@ describe("sendMessageMatrix threads", () => {
       "m.relates_to"?: {
         rel_type?: string;
         event_id?: string;
+        is_falling_back?: boolean;
+        "m.in_reply_to"?: { event_id?: string };
+      };
+    };
+
+    expect(content["m.relates_to"]).toEqual({
+      rel_type: "m.thread",
+      event_id: "$thread",
+    });
+    expect(content["m.relates_to"]).not.toHaveProperty("is_falling_back");
+    expect(content["m.relates_to"]).not.toHaveProperty("m.in_reply_to");
+  });
+
+  it("includes thread fallback metadata only with an explicit reply target", async () => {
+    const { client, sendMessage } = makeClient();
+
+    await sendMessageMatrix("room:!room:example", "hello thread", {
+      client,
+      cfg: {} as never,
+      threadId: "$thread",
+      replyToId: "$reply",
+    });
+
+    const content = sentContent(sendMessage) as {
+      "m.relates_to"?: {
+        rel_type?: string;
+        event_id?: string;
+        is_falling_back?: boolean;
         "m.in_reply_to"?: { event_id?: string };
       };
     };
@@ -614,7 +643,7 @@ describe("sendMessageMatrix threads", () => {
       rel_type: "m.thread",
       event_id: "$thread",
       is_falling_back: true,
-      "m.in_reply_to": { event_id: "$thread" },
+      "m.in_reply_to": { event_id: "$reply" },
     });
   });
 
@@ -664,16 +693,16 @@ describe("sendMessageMatrix threads", () => {
     await sendMessageMatrix("room:!room:example", "ignored", {
       client,
       cfg: {} as never,
-      extraContent: { "com.astroclaw.approval": { id: "req-1" } },
+      extraContent: { "com.openclaw.approval": { id: "req-1" } },
     });
 
     expect(sendMessage).toHaveBeenCalledTimes(3);
     expect(sentContent(sendMessage, 0).body).toBe("first");
-    expect(sentContent(sendMessage, 0)["com.astroclaw.approval"]).toEqual({ id: "req-1" });
+    expect(sentContent(sendMessage, 0)["com.openclaw.approval"]).toEqual({ id: "req-1" });
     expect(sentContent(sendMessage, 1).body).toBe("second");
-    expect(sentContent(sendMessage, 1)).not.toHaveProperty("com.astroclaw.approval");
+    expect(sentContent(sendMessage, 1)).not.toHaveProperty("com.openclaw.approval");
     expect(sentContent(sendMessage, 2).body).toBe("third");
-    expect(sentContent(sendMessage, 2)).not.toHaveProperty("com.astroclaw.approval");
+    expect(sentContent(sendMessage, 2)).not.toHaveProperty("com.openclaw.approval");
   });
 });
 
@@ -716,6 +745,30 @@ describe("sendSingleTextMessageMatrix", () => {
     );
   });
 
+  it("supports partial draft preview sends without activating mention-looking text", async () => {
+    const { client, sendMessage } = makeClient();
+
+    await sendSingleTextMessageMatrix(
+      "room:!room:example",
+      "Working...\n- `read matrix-progress-@room-@alice:example.org-!room:example.org.txt failed`",
+      {
+        client,
+        cfg: {} as never,
+        includeMentions: false,
+        live: true,
+      },
+    );
+
+    const content = sentContent(sendMessage);
+    expect(content.msgtype).toBe("m.text");
+    expect(content).not.toHaveProperty("m.mentions");
+    expect(content["org.matrix.msc4357.live"]).toEqual({});
+    expect((content as { formatted_body?: string }).formatted_body).toContain(
+      "<code>read matrix-progress-@room-@alice:example.org-!room:example.org.txt failed</code>",
+    );
+    expect((content as { formatted_body?: string }).formatted_body).not.toContain("matrix.to");
+  });
+
   it("does not activate mentions inside Matrix tool-progress code spans", async () => {
     const { client, sendMessage } = makeClient();
 
@@ -737,17 +790,34 @@ describe("sendSingleTextMessageMatrix", () => {
     expect(formattedBody).not.toContain("matrix.to");
   });
 
+  it("does not activate filename-embedded Matrix mentions in normal text", async () => {
+    const { client, sendMessage } = makeClient();
+
+    await sendSingleTextMessageMatrix(
+      "room:!room:example",
+      "read matrix-progress-@room-@alice:matrix-qa.test-!room:matrix-qa.test.txt failed",
+      {
+        client,
+        cfg: {} as never,
+      },
+    );
+
+    const content = sentContent(sendMessage);
+    expect(content["m.mentions"]).toEqual({});
+    expect((content as { formatted_body?: string }).formatted_body).not.toContain("matrix.to");
+  });
+
   it("merges extra content fields into single-event sends", async () => {
     const { client, sendMessage } = makeClient();
 
     const result = await sendSingleTextMessageMatrix("room:!room:example", "done", {
       client,
       cfg: {} as never,
-      extraContent: { [MATRIX_ASTROCLAW_FINALIZED_PREVIEW_KEY]: true },
+      extraContent: { [MATRIX_OPENCLAW_FINALIZED_PREVIEW_KEY]: true },
     });
 
     expect(sentContent(sendMessage).body).toBe("done");
-    expect(sentContent(sendMessage)[MATRIX_ASTROCLAW_FINALIZED_PREVIEW_KEY]).toBe(true);
+    expect(sentContent(sendMessage)[MATRIX_OPENCLAW_FINALIZED_PREVIEW_KEY]).toBe(true);
     expect(result.receipt.primaryPlatformMessageId).toBe("evt1");
     expect(result.receipt.platformMessageIds).toEqual(["evt1"]);
     expectTextReceiptPart(result.receipt.parts[0], "evt1");
@@ -864,12 +934,58 @@ describe("editMessageMatrix mentions", () => {
     await editMessageMatrix("room:!room:example", "$original", "done", {
       client,
       cfg: {} as never,
-      extraContent: { [MATRIX_ASTROCLAW_FINALIZED_PREVIEW_KEY]: true },
+      extraContent: { [MATRIX_OPENCLAW_FINALIZED_PREVIEW_KEY]: true },
     });
 
     const content = sentContent(sendMessage);
-    expect(content[MATRIX_ASTROCLAW_FINALIZED_PREVIEW_KEY]).toBe(true);
-    expect(newContent(content)[MATRIX_ASTROCLAW_FINALIZED_PREVIEW_KEY]).toBe(true);
+    expect(content[MATRIX_OPENCLAW_FINALIZED_PREVIEW_KEY]).toBe(true);
+    expect(newContent(content)[MATRIX_OPENCLAW_FINALIZED_PREVIEW_KEY]).toBe(true);
+  });
+
+  it("edits threaded originals with a pure replace relation", async () => {
+    const { client, getEvent, sendMessage } = makeClient();
+    getEvent.mockResolvedValue({
+      content: {
+        body: "before",
+        msgtype: "m.text",
+        "m.relates_to": {
+          rel_type: "m.thread",
+          event_id: "$thread",
+        },
+      },
+    });
+
+    await editMessageMatrix("room:!room:example", "$original", "done", {
+      client,
+      cfg: {} as never,
+      threadId: "$thread",
+    });
+
+    const content = sentContent(sendMessage);
+    expect(content["m.relates_to"]).toEqual({
+      rel_type: "m.replace",
+      event_id: "$original",
+    });
+    expect(newContent(content)).not.toHaveProperty("m.relates_to");
+  });
+
+  it("rejects thread edits when the original event is not already in that thread", async () => {
+    const { client, getEvent, sendMessage } = makeClient();
+    getEvent.mockResolvedValue({
+      content: {
+        body: "before",
+        msgtype: "m.text",
+      },
+    });
+
+    await expect(
+      editMessageMatrix("room:!room:example", "$original", "done", {
+        client,
+        cfg: {} as never,
+        threadId: "$thread",
+      }),
+    ).rejects.toThrow("cannot add or change the original event thread relation");
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 });
 
