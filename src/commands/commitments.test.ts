@@ -1,13 +1,14 @@
+// Commitments command tests cover commitment list/detail output and terminal formatting.
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { stripAnsi } from "../../packages/terminal-core/src/ansi.js";
 import type { CommitmentRecord } from "../commitments/types.js";
 import type { OutputRuntimeEnv } from "../runtime.js";
-import { stripAnsi } from "../terminal/ansi.js";
 import { commitmentsDismissCommand, commitmentsListCommand } from "./commitments.js";
 
 const mocks = vi.hoisted(() => ({
   listCommitments: vi.fn(),
   markCommitmentsStatus: vi.fn(),
-  resolveCommitmentStorePath: vi.fn(() => "/tmp/astroclaw-commitments.json"),
+  resolveCommitmentStorePath: vi.fn(() => "/tmp/openclaw-commitments.json"),
   getRuntimeConfig: vi.fn(() => ({
     commitments: {
       enabled: true,
@@ -82,11 +83,30 @@ describe("commitments command", () => {
 
     expect(logs.map(stripAnsi)).toEqual([
       "Commitments: 1",
-      "Store: /tmp/astroclaw-commitments.json",
+      "Store: /tmp/openclaw-commitments.json",
       "Status filter: pending",
       "ID               Status     Kind             Due                      Scope                        Suggested text",
       "cm_escape        pending    event_check_in   2026-04-30T17:00:00.000Z main/telegram/+15551234567   How did it go?\\nspoofed",
     ]);
+  });
+
+  it("tolerates Date-invalid commitment due timestamps in table output", async () => {
+    mocks.listCommitments.mockResolvedValue([
+      commitment({
+        dueWindow: {
+          earliestMs: 8_700_000_000_000_000,
+          latestMs: 8_700_000_000_000_000,
+          timezone: "UTC",
+        },
+      }),
+    ]);
+    const { runtime, logs } = createRuntime();
+
+    await commitmentsListCommand({}, runtime);
+
+    expect(logs.map(stripAnsi)).toContain(
+      "cm_escape        pending    event_check_in   n/a                      main/telegram/+15551234567   How did it go?\\nspoofed",
+    );
   });
 
   it("writes list JSON to runtime stdout instead of log output", async () => {
@@ -100,7 +120,7 @@ describe("commitments command", () => {
       count: 1,
       status: "pending",
       agentId: null,
-      store: "/tmp/astroclaw-commitments.json",
+      store: "/tmp/openclaw-commitments.json",
       commitments: [{ id: "cm_escape" }],
     });
   });
