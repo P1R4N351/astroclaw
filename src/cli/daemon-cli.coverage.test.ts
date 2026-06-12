@@ -1,3 +1,4 @@
+// Daemon CLI coverage tests cover daemon command branches and output behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -28,6 +29,10 @@ const inspectPortUsage = vi.fn(async (port: number) => ({
   listeners: [],
   hints: [],
 }));
+const inspectPortConnections = vi.fn(async (port: number) => ({
+  port,
+  connections: [],
+}));
 
 function collectMatching<T, U>(
   items: readonly T[],
@@ -54,9 +59,9 @@ const buildGatewayInstallPlan = vi.fn(
     programArguments: ["/bin/node", "cli", "gateway", "--port", String(params.port)],
     workingDirectory: process.cwd(),
     environment: {
-      ASTROCLAW_GATEWAY_PORT: String(params.port),
-      ...(params.wrapperPath ? { ASTROCLAW_WRAPPER: params.wrapperPath } : {}),
-      ...(params.token ? { ASTROCLAW_GATEWAY_TOKEN: params.token } : {}),
+      OPENCLAW_GATEWAY_PORT: String(params.port),
+      ...(params.wrapperPath ? { OPENCLAW_WRAPPER: params.wrapperPath } : {}),
+      ...(params.token ? { OPENCLAW_GATEWAY_TOKEN: params.token } : {}),
     },
   }),
 );
@@ -78,9 +83,9 @@ vi.mock("../gateway/probe-auth.js", () => ({
 }));
 
 vi.mock("../daemon/program-args.js", () => ({
-  ASTROCLAW_WRAPPER_ENV_KEY: "ASTROCLAW_WRAPPER",
+  OPENCLAW_WRAPPER_ENV_KEY: "OPENCLAW_WRAPPER",
   resolveGatewayProgramArguments: (opts: unknown) => resolveGatewayProgramArguments(opts),
-  resolveAstroclawWrapperPath: async (value: string | undefined) => value?.trim() || undefined,
+  resolveOpenClawWrapperPath: async (value: string | undefined) => value?.trim() || undefined,
 }));
 
 vi.mock("../daemon/service.js", async () => {
@@ -114,6 +119,7 @@ vi.mock("../daemon/inspect.js", () => ({
 }));
 
 vi.mock("../infra/ports.js", () => ({
+  inspectPortConnections: (port: number) => inspectPortConnections(port),
   inspectPortUsage: (port: number) => inspectPortUsage(port),
   formatPortDiagnostics: () => ["Port 18789 is already in use."],
 }));
@@ -178,20 +184,21 @@ describe("daemon-cli coverage", () => {
 
   beforeEach(() => {
     daemonProgram = createDaemonProgram();
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-daemon-cli-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-daemon-cli-"));
     envSnapshot = captureEnv([
-      "ASTROCLAW_STATE_DIR",
-      "ASTROCLAW_CONFIG_PATH",
-      "ASTROCLAW_GATEWAY_PORT",
-      "ASTROCLAW_PROFILE",
+      "OPENCLAW_STATE_DIR",
+      "OPENCLAW_CONFIG_PATH",
+      "OPENCLAW_GATEWAY_PORT",
+      "OPENCLAW_PROFILE",
     ]);
-    process.env.ASTROCLAW_STATE_DIR = tmpDir;
-    process.env.ASTROCLAW_CONFIG_PATH = path.join(tmpDir, "astroclaw.json");
-    delete process.env.ASTROCLAW_GATEWAY_PORT;
-    delete process.env.ASTROCLAW_PROFILE;
+    process.env.OPENCLAW_STATE_DIR = tmpDir;
+    process.env.OPENCLAW_CONFIG_PATH = path.join(tmpDir, "openclaw.json");
+    delete process.env.OPENCLAW_GATEWAY_PORT;
+    delete process.env.OPENCLAW_PROFILE;
     serviceReadCommand.mockResolvedValue(null);
     resolveGatewayProbeAuthSafeWithSecretInputs.mockClear();
     findExtraGatewayServices.mockClear();
+    inspectPortConnections.mockClear();
     buildGatewayInstallPlan.mockClear();
   });
 
@@ -222,12 +229,12 @@ describe("daemon-cli coverage", () => {
     serviceReadCommand.mockResolvedValueOnce({
       programArguments: ["/bin/node", "cli", "gateway", "--port", "19001"],
       environment: {
-        ASTROCLAW_PROFILE: "dev",
-        ASTROCLAW_STATE_DIR: "/tmp/astroclaw-daemon-state",
-        ASTROCLAW_CONFIG_PATH: "/tmp/astroclaw-daemon-state/astroclaw.json",
-        ASTROCLAW_GATEWAY_PORT: "19001",
+        OPENCLAW_PROFILE: "dev",
+        OPENCLAW_STATE_DIR: "/tmp/openclaw-daemon-state",
+        OPENCLAW_CONFIG_PATH: "/tmp/openclaw-daemon-state/openclaw.json",
+        OPENCLAW_GATEWAY_PORT: "19001",
       },
-      sourcePath: "/tmp/ai.astroclaw.gateway.plist",
+      sourcePath: "/tmp/ai.openclaw.gateway.plist",
     });
 
     await runDaemonCommand(["daemon", "status", "--json"]);
@@ -238,13 +245,14 @@ describe("daemon-cli coverage", () => {
     expect(inspectPortUsage).toHaveBeenCalledWith(19001);
 
     const parsed = parseFirstJsonRuntimeLine<{
-      gateway?: { port?: number; portSource?: string; probeUrl?: string };
+      gateway?: { port?: number; portSource?: string; probeUrl?: string; version?: string | null };
       config?: { mismatch?: boolean };
       rpc?: { url?: string; ok?: boolean };
     }>();
     expect(parsed.gateway?.port).toBe(19001);
     expect(parsed.gateway?.portSource).toBe("service args");
     expect(parsed.gateway?.probeUrl).toBe("ws://127.0.0.1:19001");
+    expect(parsed.gateway?.version).toBeNull();
     expect(parsed.config?.mismatch).toBe(true);
     expect(parsed.rpc?.url).toBe("ws://127.0.0.1:19001");
     expect(parsed.rpc?.ok).toBe(true);
@@ -295,12 +303,12 @@ describe("daemon-cli coverage", () => {
     serviceReadCommand.mockResolvedValueOnce({
       programArguments: ["/bin/node", "cli", "gateway", "--port", "18789"],
       environment: {
-        ASTROCLAW_WRAPPER: "/usr/local/bin/astroclaw-doppler",
+        OPENCLAW_WRAPPER: "/usr/local/bin/openclaw-doppler",
         PATH: "/custom/go/bin:/usr/bin",
         GOPATH: "/Users/test/.local/gopath",
         GOBIN: "/Users/test/.local/gopath/bin",
       },
-      sourcePath: "/tmp/ai.astroclaw.gateway.plist",
+      sourcePath: "/tmp/ai.openclaw.gateway.plist",
     });
 
     await runDaemonCommand(["daemon", "install", "--force", "--json"]);
@@ -311,12 +319,12 @@ describe("daemon-cli coverage", () => {
     );
     expect(installPlanParams.existingEnvironment).toEqual({
       PATH: "/custom/go/bin:/usr/bin",
-      ASTROCLAW_WRAPPER: "/usr/local/bin/astroclaw-doppler",
+      OPENCLAW_WRAPPER: "/usr/local/bin/openclaw-doppler",
       GOPATH: "/Users/test/.local/gopath",
       GOBIN: "/Users/test/.local/gopath/bin",
     });
-    expect((installPlanParams.env as NodeJS.ProcessEnv).ASTROCLAW_WRAPPER).toBe(
-      "/usr/local/bin/astroclaw-doppler",
+    expect((installPlanParams.env as NodeJS.ProcessEnv).OPENCLAW_WRAPPER).toBe(
+      "/usr/local/bin/openclaw-doppler",
     );
   });
 
@@ -328,12 +336,12 @@ describe("daemon-cli coverage", () => {
       "daemon",
       "install",
       "--wrapper",
-      "/usr/local/bin/astroclaw-doppler",
+      "/usr/local/bin/openclaw-doppler",
       "--json",
     ]);
 
     expect(requireMockCallArg(buildGatewayInstallPlan, "buildGatewayInstallPlan").wrapperPath).toBe(
-      "/usr/local/bin/astroclaw-doppler",
+      "/usr/local/bin/openclaw-doppler",
     );
   });
 
