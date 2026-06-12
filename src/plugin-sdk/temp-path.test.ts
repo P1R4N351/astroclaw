@@ -1,12 +1,13 @@
+// Temp path tests cover plugin SDK temp directory creation and cleanup helpers.
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { buildRandomTempFilePath, withTempDownloadPath } from "./temp-path.js";
 
 function expectPathInsideTmpRoot(resultPath: string) {
-  const tmpRoot = fsSync.realpathSync(resolvePreferredAstroclawTmpDir());
+  const tmpRoot = fsSync.realpathSync(resolvePreferredOpenClawTmpDir());
   let resolved = path.resolve(resultPath);
   try {
     resolved = path.join(fsSync.realpathSync(path.dirname(resultPath)), path.basename(resultPath));
@@ -83,7 +84,7 @@ describe("withTempDownloadPath", () => {
     if (expectedBasename) {
       expect(path.basename(capturedPath)).toBe(expectedBasename);
     } else {
-      expect(capturedPath).toContain(path.join(resolvePreferredAstroclawTmpDir(), "line-media-"));
+      expect(capturedPath).toContain(path.join(resolvePreferredOpenClawTmpDir(), "line-media-"));
     }
     if (expectCleanup) {
       let statError: NodeJS.ErrnoException | undefined;
