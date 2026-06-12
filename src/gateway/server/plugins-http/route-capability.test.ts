@@ -1,3 +1,6 @@
+/**
+ * Plugin node-capability route matching and surface listing tests.
+ */
 import { describe, expect, it } from "vitest";
 import type { PluginRegistry } from "../../../plugins/registry.js";
 import { resolvePluginRoutePathContext } from "./path-context.js";
@@ -27,7 +30,7 @@ describe("plugin node capability route metadata", () => {
       httpRoutes: [
         {
           pluginId: "canvas-plugin",
-          path: "/__astroclaw__/canvas/ws",
+          path: "/__openclaw__/canvas/ws",
           nodeCapability: { surface: "canvas" },
         },
       ],
@@ -36,7 +39,7 @@ describe("plugin node capability route metadata", () => {
     expect(
       findMatchingPluginNodeCapabilityRoute(
         registry,
-        resolvePluginRoutePathContext("/__astroclaw__/canvas/ws"),
+        resolvePluginRoutePathContext("/__openclaw__/canvas/ws"),
       )?.nodeCapability,
     ).toEqual({ surface: "canvas", scopeKey: "canvas-plugin:canvas" });
   });
