@@ -1,3 +1,4 @@
+// Verifies shell selection, PATH lookup, and platform-specific shell helpers.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -5,9 +6,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { captureEnv } from "../test-utils/env.js";
 import {
   detectRuntimeShell,
+  getShellEnv,
   getShellConfig,
   resolvePowerShellPath,
   resolveShellFromPath,
+  resolveShellFromWhich,
+  resolveWindowsBashPath,
 } from "./shell-utils.js";
 
 const isWin = process.platform === "win32";
@@ -16,7 +20,8 @@ function createTempCommandDir(
   tempDirs: string[],
   files: Array<{ name: string; executable?: boolean }>,
 ): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-shell-"));
+  // Temporary PATH entries model available shell binaries and permissions.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-shell-"));
   tempDirs.push(dir);
   for (const file of files) {
     const filePath = path.join(dir, file.name);
@@ -105,6 +110,19 @@ describe("getShellConfig", () => {
     expect(args).toEqual(["-c"]);
   });
 
+  it("uses an explicit custom shell path through the same resolver", () => {
+    const binDir = createTempCommandDir(tempDirs, [{ name: "zsh" }]);
+    const shellPath = path.join(binDir, "zsh");
+
+    expect(getShellConfig(shellPath)).toEqual({ shell: shellPath, args: ["-f", "-c"] });
+  });
+
+  it("rejects a missing explicit custom shell path", () => {
+    expect(() => getShellConfig(path.join(os.tmpdir(), "missing-openclaw-shell"))).toThrow(
+      "Custom shell path not found",
+    );
+  });
+
   it("falls back to sh on PATH when SHELL is /usr/bin/false", () => {
     const binDir = createTempCommandDir(tempDirs, [{ name: "sh" }]);
     process.env.SHELL = "/usr/bin/false";
@@ -141,6 +159,47 @@ describe("getShellConfig", () => {
   });
 });
 
+describe("resolveWindowsBashPath", () => {
+  const tempDirs: string[] = [];
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("finds Git Bash under ProgramFiles", () => {
+    const programFiles = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-git-bash-"));
+    tempDirs.push(programFiles);
+    const bashDir = path.join(programFiles, "Git", "bin");
+    fs.mkdirSync(bashDir, { recursive: true });
+    const bashPath = path.join(bashDir, "bash.exe");
+    fs.writeFileSync(bashPath, "");
+
+    expect(resolveWindowsBashPath({ ProgramFiles: programFiles, PATH: "" })).toBe(bashPath);
+  });
+});
+
+describe("getShellEnv", () => {
+  let envSnapshot: ReturnType<typeof captureEnv>;
+
+  beforeEach(() => {
+    envSnapshot = captureEnv(["PATH"]);
+  });
+
+  afterEach(() => {
+    envSnapshot.restore();
+  });
+
+  it("returns an env object with the OpenClaw bin dir on PATH", () => {
+    process.env.PATH = "/usr/bin";
+    const env = getShellEnv();
+
+    expect(env.PATH).toContain("/usr/bin");
+    expect(env.PATH).toContain(".openclaw");
+  });
+});
+
 describe("resolveShellFromPath", () => {
   let envSnapshot: ReturnType<typeof captureEnv>;
   const tempDirs: string[] = [];
@@ -173,11 +232,37 @@ describe("resolveShellFromPath", () => {
   });
 
   it("returns undefined when command does not exist", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-shell-empty-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-shell-empty-"));
     tempDirs.push(dir);
     process.env.PATH = dir;
     expect(resolveShellFromPath("bash")).toBeUndefined();
   });
+});
+
+describe("resolveShellFromWhich", () => {
+  let envSnapshot: ReturnType<typeof captureEnv>;
+  const tempDirs: string[] = [];
+
+  beforeEach(() => {
+    envSnapshot = captureEnv(["PATH"]);
+  });
+
+  afterEach(() => {
+    envSnapshot.restore();
+    for (const dir of tempDirs.splice(0)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  if (!isWin) {
+    it("uses command discovery as a fallback for bash-like shells", () => {
+      const originalPath = process.env.PATH ?? "";
+      const binDir = createTempCommandDir(tempDirs, [{ name: "bash" }]);
+      process.env.PATH = [binDir, originalPath].filter(Boolean).join(path.delimiter);
+
+      expect(resolveShellFromWhich("bash")).toBe(path.join(binDir, "bash"));
+    });
+  }
 });
 
 describe("detectRuntimeShell", () => {
@@ -185,7 +270,7 @@ describe("detectRuntimeShell", () => {
 
   beforeEach(() => {
     envSnapshot = captureEnv([
-      "ASTROCLAW_SHELL",
+      "OPENCLAW_SHELL",
       "SHELL",
       "POWERSHELL_DISTRIBUTION_CHANNEL",
       "BASH_VERSION",
@@ -195,7 +280,7 @@ describe("detectRuntimeShell", () => {
       "NU_VERSION",
       "NUSHELL_VERSION",
     ]);
-    delete process.env.ASTROCLAW_SHELL;
+    delete process.env.OPENCLAW_SHELL;
     delete process.env.POWERSHELL_DISTRIBUTION_CHANNEL;
     delete process.env.BASH_VERSION;
     delete process.env.ZSH_VERSION;
@@ -242,7 +327,7 @@ describe("resolvePowerShellPath", () => {
   });
 
   it("prefers PowerShell 7 in ProgramFiles", () => {
-    const base = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-pfiles-"));
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-pfiles-"));
     tempDirs.push(base);
     const pwsh7Dir = path.join(base, "PowerShell", "7");
     fs.mkdirSync(pwsh7Dir, { recursive: true });
@@ -259,8 +344,8 @@ describe("resolvePowerShellPath", () => {
   });
 
   it("prefers ProgramW6432 PowerShell 7 when ProgramFiles lacks pwsh", () => {
-    const programFiles = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-pfiles-"));
-    const programW6432 = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-pw6432-"));
+    const programFiles = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-pfiles-"));
+    const programW6432 = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-pw6432-"));
     tempDirs.push(programFiles, programW6432);
     const pwsh7Dir = path.join(programW6432, "PowerShell", "7");
     fs.mkdirSync(pwsh7Dir, { recursive: true });
@@ -277,8 +362,8 @@ describe("resolvePowerShellPath", () => {
   });
 
   it("finds pwsh on PATH when not in standard install locations", () => {
-    const programFiles = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-pfiles-"));
-    const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-bin-"));
+    const programFiles = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-pfiles-"));
+    const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-bin-"));
     tempDirs.push(programFiles, binDir);
     const pwshPath = path.join(binDir, "pwsh");
     fs.writeFileSync(pwshPath, "");
@@ -294,8 +379,8 @@ describe("resolvePowerShellPath", () => {
   });
 
   it("falls back to Windows PowerShell 5.1 path when pwsh is unavailable", () => {
-    const programFiles = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-pfiles-"));
-    const sysRoot = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-sysroot-"));
+    const programFiles = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-pfiles-"));
+    const sysRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-sysroot-"));
     tempDirs.push(programFiles, sysRoot);
     const ps51Dir = path.join(sysRoot, "System32", "WindowsPowerShell", "v1.0");
     fs.mkdirSync(ps51Dir, { recursive: true });
