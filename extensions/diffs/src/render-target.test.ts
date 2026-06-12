@@ -1,3 +1,4 @@
+// Diffs tests cover render target plugin behavior.
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { preloadFileDiffMock, preloadMultiFileDiffMock } = vi.hoisted(() => ({
@@ -122,7 +123,7 @@ describe("renderDiffDocument render targets", () => {
     );
 
     const payloads = [
-      ...(rendered.html ?? "").matchAll(/data-astroclaw-diff-payload>(.*?)<\/script>/g),
+      ...(rendered.html ?? "").matchAll(/data-openclaw-diff-payload>(.*?)<\/script>/g),
     ].map((match) => parseViewerPayloadJson(match[1] ?? ""));
 
     expect(payloads).toHaveLength(1);
