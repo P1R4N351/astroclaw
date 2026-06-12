@@ -1,3 +1,4 @@
+// Gmail setup utility tests cover setup file generation and config handling.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -26,7 +27,7 @@ describe("resolvePythonExecutablePath", () => {
   itUnix(
     "resolves a working python path and caches the result",
     async () => {
-      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-python-"));
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-python-"));
       try {
         const realPython = path.join(tmp, "python-real");
         await fs.writeFile(realPython, "#!/bin/sh\nexit 0\n", "utf-8");
@@ -68,7 +69,7 @@ describe("runGcloud", () => {
   itUnix(
     "overrides an inherited CLOUDSDK_PYTHON value with a resolved interpreter",
     async () => {
-      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-gcloud-python-"));
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-gcloud-python-"));
       try {
         const realPython = path.join(tmp, "python-real");
         await fs.writeFile(realPython, "#!/bin/sh\nexit 0\n", "utf-8");
