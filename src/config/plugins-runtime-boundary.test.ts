@@ -1,7 +1,8 @@
+// Verifies config code does not cross plugin runtime boundaries.
 import { describe, expect, it } from "vitest";
 import { FIELD_HELP } from "./schema.help.js";
 import { FIELD_LABELS } from "./schema.labels.js";
-import { AstroclawSchema } from "./zod-schema.js";
+import { OpenClawSchema } from "./zod-schema.js";
 
 function hasLegacyPluginsRuntimeKeys(keys: string[]): boolean {
   return keys.some((key) => key === "plugins.runtime" || key.startsWith("plugins.runtime."));
@@ -14,7 +15,7 @@ describe("plugins runtime boundary config", () => {
   });
 
   it("omits plugins.runtime from the generated config schema", () => {
-    const schema = AstroclawSchema.toJSONSchema({
+    const schema = OpenClawSchema.toJSONSchema({
       target: "draft-7",
       io: "input",
       reused: "ref",
@@ -26,7 +27,7 @@ describe("plugins runtime boundary config", () => {
   });
 
   it("rejects legacy plugins.runtime config entries", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         runtime: {
           allowLegacyExec: true,
