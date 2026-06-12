@@ -1,9 +1,10 @@
+// Covers dangerous config flag detection and reporting.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { collectEnabledInsecureOrDangerousFlagsFromContracts } from "./dangerous-config-flags-core.js";
 
-function asConfig(value: unknown): AstroclawConfig {
-  return value as AstroclawConfig;
+function asConfig(value: unknown): OpenClawConfig {
+  return value as OpenClawConfig;
 }
 
 describe("collectEnabledInsecureOrDangerousFlags", () => {
