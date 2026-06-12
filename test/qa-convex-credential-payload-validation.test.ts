@@ -1,3 +1,4 @@
+// QA Convex credential tests validate credential payload shapes.
 import { describe, expect, it } from "vitest";
 import {
   CredentialPayloadValidationError,
@@ -77,7 +78,7 @@ describe("QA Convex credential payload validation", () => {
         groupId: " -100123 ",
         sutToken: " sut-token ",
         testerUserId: " 8709353529 ",
-        testerUsername: " AstroclawTestUser ",
+        testerUsername: " OpenClawTestUser ",
         telegramApiId: " 123456 ",
         telegramApiHash: " api-hash ",
         tdlibDatabaseEncryptionKey: " db-key ",
@@ -91,7 +92,7 @@ describe("QA Convex credential payload validation", () => {
       groupId: "-100123",
       sutToken: "sut-token",
       testerUserId: "8709353529",
-      testerUsername: "AstroclawTestUser",
+      testerUsername: "OpenClawTestUser",
       telegramApiId: "123456",
       telegramApiHash: "api-hash",
       tdlibDatabaseEncryptionKey: "db-key",
@@ -107,7 +108,7 @@ describe("QA Convex credential payload validation", () => {
       groupId: "-100123",
       sutToken: "sut-token",
       testerUserId: "8709353529",
-      testerUsername: "AstroclawTestUser",
+      testerUsername: "OpenClawTestUser",
       telegramApiId: "123456",
       telegramApiHash: "api-hash",
       tdlibDatabaseEncryptionKey: "db-key",
