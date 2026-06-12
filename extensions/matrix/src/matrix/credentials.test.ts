@@ -1,3 +1,4 @@
+// Matrix tests cover credentials plugin behavior.
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import os from "node:os";
@@ -52,7 +53,7 @@ describe("matrix credentials storage", () => {
       },
     },
   ): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-matrix-creds-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-matrix-creds-"));
     tempDirs.push(dir);
     installMatrixTestRuntime({ cfg, stateDir: dir });
     return dir;
