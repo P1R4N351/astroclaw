@@ -1,3 +1,4 @@
+// Covers update status, dependency status, and registry fetch helpers.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +30,7 @@ describe("compareSemverStrings", () => {
     expect(compareSemverStrings("1.0.0", "1.0.0.beta.1")).toBe(1);
   });
 
-  it("treats Astroclaw stable correction releases as newer than their base release", () => {
+  it("treats OpenClaw stable correction releases as newer than their base release", () => {
     expect(compareSemverStrings("2026.5.3", "2026.5.3-1")).toBe(-1);
     expect(compareSemverStrings("2026.5.3-1", "2026.5.3")).toBe(1);
     expect(compareSemverStrings("2026.5.3-2", "2026.5.3-1")).toBe(1);
@@ -58,7 +59,7 @@ describe("resolveNpmChannelTag", () => {
           status: version != null ? 200 : 404,
           json: async () => ({
             version,
-            engines: version != null ? { node: ">=22.16.0" } : undefined,
+            engines: version != null ? { node: ">=22.19.0" } : undefined,
           }),
         } as Response;
       }),
@@ -113,7 +114,7 @@ describe("resolveNpmChannelTag", () => {
     ).resolves.toEqual({
       target: "latest",
       version: "1.0.4",
-      nodeEngine: ">=22.16.0",
+      nodeEngine: ">=22.19.0",
     });
     await expect(fetchNpmTagVersion({ tag: "latest", timeoutMs: 1000 })).resolves.toEqual({
       tag: "latest",
@@ -195,7 +196,7 @@ describe("formatGitInstallLabel", () => {
 
 describe("checkDepsStatus", () => {
   it("reports unknown, missing, stale, and ok states from lockfile markers", async () => {
-    await withTempDir({ prefix: "astroclaw-update-check-" }, async (base) => {
+    await withTempDir({ prefix: "openclaw-update-check-" }, async (base) => {
       await expect(checkDepsStatus({ root: base, manager: "unknown" })).resolves.toEqual({
         manager: "unknown",
         status: "unknown",
@@ -230,6 +231,20 @@ describe("checkDepsStatus", () => {
       expect(okDeps.status).toBe("ok");
     });
   });
+
+  it("uses npm-shrinkwrap as the npm dependency lock marker when present", async () => {
+    await withTempDir({ prefix: "openclaw-update-check-shrinkwrap-" }, async (root) => {
+      const shrinkwrapPath = path.join(root, "npm-shrinkwrap.json");
+      await fs.writeFile(shrinkwrapPath, "{}", "utf8");
+      await fs.mkdir(path.join(root, "node_modules"), { recursive: true });
+
+      const deps = await checkDepsStatus({ root, manager: "npm" });
+
+      expect(deps.manager).toBe("npm");
+      expect(deps.status).toBe("ok");
+      expect(deps.lockfilePath).toBe(shrinkwrapPath);
+    });
+  });
 });
 
 describe("checkUpdateStatus", () => {
@@ -245,7 +260,7 @@ describe("checkUpdateStatus", () => {
   });
 
   it("detects package installs for non-git roots", async () => {
-    await withTempDir({ prefix: "astroclaw-update-check-" }, async (root) => {
+    await withTempDir({ prefix: "openclaw-update-check-" }, async (root) => {
       await fs.writeFile(
         path.join(root, "package.json"),
         JSON.stringify({ packageManager: "npm@10.0.0" }),
@@ -269,14 +284,38 @@ describe("checkUpdateStatus", () => {
     });
   });
 
+  it("detects npm package installs that ship pnpm package metadata with shrinkwrap", async () => {
+    await withTempDir({ prefix: "openclaw-update-check-npm-shrinkwrap-" }, async (root) => {
+      await fs.writeFile(
+        path.join(root, "package.json"),
+        JSON.stringify({ name: "openclaw", packageManager: "pnpm@11.2.2" }),
+        "utf8",
+      );
+      await fs.writeFile(path.join(root, "npm-shrinkwrap.json"), "{}", "utf8");
+      await fs.mkdir(path.join(root, "node_modules"), { recursive: true });
+
+      const status = await checkUpdateStatus({
+        root,
+        includeRegistry: false,
+        fetchGit: false,
+        timeoutMs: 1000,
+      });
+
+      expect(status.installKind).toBe("package");
+      expect(status.packageManager).toBe("npm");
+      expect(status.deps?.manager).toBe("npm");
+      expect(status.deps?.lockfilePath).toBe(path.join(root, "npm-shrinkwrap.json"));
+    });
+  });
+
   it("treats symlinked git installs as git roots", async () => {
-    await withTempDir({ prefix: "astroclaw-update-check-git-" }, async (base) => {
+    await withTempDir({ prefix: "openclaw-update-check-git-" }, async (base) => {
       const repoRoot = path.join(base, "repo");
-      const linkedRoot = path.join(base, "linked-astroclaw");
+      const linkedRoot = path.join(base, "linked-openclaw");
       await fs.mkdir(repoRoot, { recursive: true });
       await fs.writeFile(
         path.join(repoRoot, "package.json"),
-        JSON.stringify({ name: "astroclaw", packageManager: "pnpm@10.0.0" }),
+        JSON.stringify({ name: "openclaw", packageManager: "pnpm@10.0.0" }),
         "utf8",
       );
       await runCommandWithTimeout(["git", "init"], { cwd: repoRoot, timeoutMs: 1000 });
