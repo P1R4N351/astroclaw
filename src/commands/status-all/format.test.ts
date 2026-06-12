@@ -1,3 +1,4 @@
+// Status-all format tests cover dashboard URLs, gateway summaries, overview rows, and JSON payload shapes.
 import { describe, expect, it } from "vitest";
 import {
   baseStatusExpectedUpdateChannelInfo,
@@ -54,7 +55,7 @@ describe("status-all format", () => {
   });
 
   it("formats dashboard values consistently", () => {
-    expect(formatStatusDashboardValue("https://astroclaw.local")).toBe("https://astroclaw.local");
+    expect(formatStatusDashboardValue("https://openclaw.local")).toBe("https://openclaw.local");
     expect(formatStatusDashboardValue("")).toBe("disabled");
     expect(formatStatusDashboardValue(null)).toBe("disabled");
   });
@@ -160,7 +161,7 @@ describe("status-all format", () => {
       formatStatusServiceValue({
         label: "LaunchAgent",
         installed: true,
-        managedByAstroclaw: true,
+        managedByOpenClaw: true,
         loadedText: "loaded",
         runtimeShort: "running",
       }),
@@ -220,7 +221,7 @@ describe("status-all format", () => {
         gatewayService: {
           label: "LaunchAgent",
           installed: true,
-          managedByAstroclaw: true,
+          managedByOpenClaw: true,
           loadedText: "loaded",
           runtimeShort: "running",
         },
@@ -284,14 +285,14 @@ describe("status-all format", () => {
     expect(
       buildStatusOverviewRows({
         prefixRows: [{ Item: "Version", Value: "1.0.0" }],
-        dashboardValue: "https://astroclaw.local",
+        dashboardValue: "https://openclaw.local",
         tailscaleValue: "serve · https://tail.example",
         channelLabel: "stable",
         gitLabel: "main @ v1.0.0",
         updateValue: "up to date",
         gatewayValue: "local · reachable",
         gatewayAuthWarning: "warning",
-        middleRows: [{ Item: "Security", Value: "Run: astroclaw security audit --deep" }],
+        middleRows: [{ Item: "Security", Value: "Run: openclaw security audit --deep" }],
         gatewaySelfValue: "gateway-host",
         gatewayServiceValue: "launchd loaded",
         nodeServiceValue: "node loaded",
@@ -300,14 +301,14 @@ describe("status-all format", () => {
       }),
     ).toEqual([
       { Item: "Version", Value: "1.0.0" },
-      { Item: "Dashboard", Value: "https://astroclaw.local" },
+      { Item: "Dashboard", Value: "https://openclaw.local" },
       { Item: "Tailscale exposure", Value: "serve · https://tail.example" },
       { Item: "Channel", Value: "stable" },
       { Item: "Git", Value: "main @ v1.0.0" },
       { Item: "Update", Value: "up to date" },
       { Item: "Gateway", Value: "local · reachable" },
       { Item: "Gateway auth warning", Value: "warning" },
-      { Item: "Security", Value: "Run: astroclaw security audit --deep" },
+      { Item: "Security", Value: "Run: openclaw security audit --deep" },
       { Item: "Gateway self", Value: "gateway-host" },
       { Item: "Gateway service", Value: "launchd loaded" },
       { Item: "Node service", Value: "node loaded" },
@@ -353,7 +354,7 @@ describe("status-all format", () => {
         gatewayService: {
           label: "LaunchAgent",
           installed: true,
-          managedByAstroclaw: true,
+          managedByOpenClaw: true,
           loadedText: "loaded",
           runtimeShort: "running",
         },
