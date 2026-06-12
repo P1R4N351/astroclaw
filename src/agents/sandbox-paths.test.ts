@@ -1,12 +1,15 @@
+// Verifies sandbox media path admission for workspace, tmp, managed, and remote sources.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it, vi } from "vitest";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { withEnvAsync } from "../test-utils/env.js";
 import { resolveAllowedManagedMediaPath, resolveSandboxedMediaSource } from "./sandbox-paths.js";
 
 async function withSandboxRoot<T>(run: (sandboxDir: string) => Promise<T>) {
+  // Real temp roots exercise path normalization and symlink/hardlink behavior.
   const sandboxDir = await fs.mkdtemp(path.join(os.tmpdir(), "sandbox-media-"));
   try {
     return await run(sandboxDir);
@@ -29,38 +32,39 @@ function makeTmpProbePath(prefix: string): string {
 }
 
 async function withManagedMediaRoot<T>(run: (ctx: { stateDir: string }) => Promise<T>) {
-  const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-managed-media-"));
-  vi.stubEnv("ASTROCLAW_STATE_DIR", stateDir);
+  const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-managed-media-"));
   try {
-    await fs.mkdir(path.join(stateDir, "media", "outbound"), { recursive: true });
-    await fs.mkdir(path.join(stateDir, "media", "tool-image-generation"), { recursive: true });
-    return await run({ stateDir });
+    return await withEnvAsync({ OPENCLAW_STATE_DIR: stateDir }, async () => {
+      await fs.mkdir(path.join(stateDir, "media", "outbound"), { recursive: true });
+      await fs.mkdir(path.join(stateDir, "media", "tool-image-generation"), { recursive: true });
+      return await run({ stateDir });
+    });
   } finally {
-    vi.unstubAllEnvs();
     await fs.rm(stateDir, { recursive: true, force: true });
   }
 }
 
-async function withOutsideHardlinkInAstroclawTmp<T>(
+async function withOutsideHardlinkInOpenClawTmp<T>(
   params: {
-    astroClawTmpDir: string;
+    openClawTmpDir: string;
     hardlinkPrefix: string;
     symlinkPrefix?: string;
   },
   run: (paths: { hardlinkPath: string; symlinkPath?: string }) => Promise<T>,
 ): Promise<void> {
+  // Hardlinks in allowed temp roots must still be rejected when inode points outside.
   const outsideDir = await fs.mkdtemp(path.join(process.cwd(), "sandbox-media-hardlink-outside-"));
   const outsideFile = path.join(outsideDir, "outside-secret.txt");
-  const hardlinkPath = path.join(params.astroClawTmpDir, makeTmpProbePath(params.hardlinkPrefix));
+  const hardlinkPath = path.join(params.openClawTmpDir, makeTmpProbePath(params.hardlinkPrefix));
   const symlinkPath = params.symlinkPrefix
-    ? path.join(params.astroClawTmpDir, makeTmpProbePath(params.symlinkPrefix))
+    ? path.join(params.openClawTmpDir, makeTmpProbePath(params.symlinkPrefix))
     : undefined;
   try {
-    if (isPathInside(params.astroClawTmpDir, outsideFile)) {
+    if (isPathInside(params.openClawTmpDir, outsideFile)) {
       return;
     }
     await fs.writeFile(outsideFile, "secret", "utf8");
-    await fs.mkdir(params.astroClawTmpDir, { recursive: true });
+    await fs.mkdir(params.openClawTmpDir, { recursive: true });
     try {
       await fs.link(outsideFile, hardlinkPath);
     } catch (err) {
@@ -83,24 +87,24 @@ async function withOutsideHardlinkInAstroclawTmp<T>(
 }
 
 describe("resolveSandboxedMediaSource", () => {
-  const astroClawTmpDir = resolvePreferredAstroclawTmpDir();
+  const openClawTmpDir = resolvePreferredOpenClawTmpDir();
 
   // Group 1: /tmp paths (the bug fix)
   it.each([
     {
-      name: "absolute paths under preferred Astroclaw tmp root",
-      media: path.join(astroClawTmpDir, "image.png"),
-      expected: path.join(astroClawTmpDir, "image.png"),
+      name: "absolute paths under preferred OpenClaw tmp root",
+      media: path.join(openClawTmpDir, "image.png"),
+      expected: path.join(openClawTmpDir, "image.png"),
     },
     {
-      name: "file:// URLs pointing to preferred Astroclaw tmp root",
-      media: pathToFileURL(path.join(astroClawTmpDir, "photo.png")).href,
-      expected: path.join(astroClawTmpDir, "photo.png"),
+      name: "file:// URLs pointing to preferred OpenClaw tmp root",
+      media: pathToFileURL(path.join(openClawTmpDir, "photo.png")).href,
+      expected: path.join(openClawTmpDir, "photo.png"),
     },
     {
-      name: "nested paths under preferred Astroclaw tmp root",
-      media: path.join(astroClawTmpDir, "subdir", "deep", "file.png"),
-      expected: path.join(astroClawTmpDir, "subdir", "deep", "file.png"),
+      name: "nested paths under preferred OpenClaw tmp root",
+      media: path.join(openClawTmpDir, "subdir", "deep", "file.png"),
+      expected: path.join(openClawTmpDir, "subdir", "deep", "file.png"),
     },
   ])("allows $name", async ({ media, expected }) => {
     await withSandboxRoot(async (sandboxDir) => {
@@ -221,12 +225,12 @@ describe("resolveSandboxedMediaSource", () => {
     },
     {
       name: "path traversal through tmpdir",
-      media: path.join(astroClawTmpDir, "..", "etc", "passwd"),
+      media: path.join(openClawTmpDir, "..", "etc", "passwd"),
       expected: /sandbox/i,
     },
     {
-      name: "absolute paths under host tmp outside astroclaw tmp root",
-      media: path.join(os.tmpdir(), "outside-astroclaw", "passwd"),
+      name: "absolute paths under host tmp outside openclaw tmp root",
+      media: path.join(os.tmpdir(), "outside-openclaw", "passwd"),
       expected: /sandbox/i,
     },
     {
@@ -270,19 +274,19 @@ describe("resolveSandboxedMediaSource", () => {
     });
   });
 
-  it("rejects symlinked Astroclaw tmp paths escaping tmp root", async () => {
+  it("rejects symlinked OpenClaw tmp paths escaping tmp root", async () => {
     if (process.platform === "win32") {
       return;
     }
     const outsideTmpTarget = path.resolve(process.cwd(), "package.json");
-    if (isPathInside(astroClawTmpDir, outsideTmpTarget)) {
+    if (isPathInside(openClawTmpDir, outsideTmpTarget)) {
       return;
     }
 
     await withSandboxRoot(async (sandboxDir) => {
       await fs.access(outsideTmpTarget);
-      await fs.mkdir(astroClawTmpDir, { recursive: true });
-      const symlinkPath = path.join(astroClawTmpDir, `tmp-link-escape-${process.pid}`);
+      await fs.mkdir(openClawTmpDir, { recursive: true });
+      const symlinkPath = path.join(openClawTmpDir, `tmp-link-escape-${process.pid}`);
       await fs.symlink(outsideTmpTarget, symlinkPath);
       try {
         await expectSandboxRejection(symlinkPath, sandboxDir, /symlink|sandbox/i);
@@ -312,13 +316,13 @@ describe("resolveSandboxedMediaSource", () => {
     });
   });
 
-  it("rejects hardlinked Astroclaw tmp paths to outside files", async () => {
+  it("rejects hardlinked OpenClaw tmp paths to outside files", async () => {
     if (process.platform === "win32") {
       return;
     }
-    await withOutsideHardlinkInAstroclawTmp(
+    await withOutsideHardlinkInOpenClawTmp(
       {
-        astroClawTmpDir,
+        openClawTmpDir,
         hardlinkPrefix: "sandbox-media-hardlink",
       },
       async ({ hardlinkPath }) => {
@@ -329,13 +333,13 @@ describe("resolveSandboxedMediaSource", () => {
     );
   });
 
-  it("rejects symlinked Astroclaw tmp paths to hardlinked outside files", async () => {
+  it("rejects symlinked OpenClaw tmp paths to hardlinked outside files", async () => {
     if (process.platform === "win32") {
       return;
     }
-    await withOutsideHardlinkInAstroclawTmp(
+    await withOutsideHardlinkInOpenClawTmp(
       {
-        astroClawTmpDir,
+        openClawTmpDir,
         hardlinkPrefix: "sandbox-media-hardlink-target",
         symlinkPrefix: "sandbox-media-hardlink-symlink",
       },
