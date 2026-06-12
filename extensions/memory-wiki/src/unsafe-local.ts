@@ -1,7 +1,8 @@
+// Memory Wiki plugin module implements unsafe local behavior.
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { BridgeMemoryWikiResult } from "./bridge.js";
 import type { ResolvedMemoryWikiConfig } from "./config.js";
 import { appendMemoryWikiLog } from "./log.js";
@@ -14,6 +15,7 @@ import {
 import { writeImportedSourcePage } from "./source-page-shared.js";
 import { resolveArtifactKey } from "./source-path-shared.js";
 import {
+  assertMemoryWikiSourceSyncStateCapacity,
   pruneImportedSourceEntries,
   readMemoryWikiSourceSyncState,
   writeMemoryWikiSourceSyncState,
@@ -184,8 +186,8 @@ async function writeUnsafeLocalSourcePage(params: {
           renderMarkdownFence(raw, detectFenceLanguage(params.artifact.absolutePath)),
           "",
           "## Notes",
-          "<!-- astroclaw:human:start -->",
-          "<!-- astroclaw:human:end -->",
+          "<!-- openclaw:human:start -->",
+          "<!-- openclaw:human:end -->",
           "",
         ].join("\n"),
       }),
@@ -214,6 +216,11 @@ export async function syncMemoryWikiUnsafeLocalSources(
 
   const artifacts = await collectUnsafeLocalArtifacts(config.unsafeLocal.paths);
   const state = await readMemoryWikiSourceSyncState(config.vault.path);
+  assertMemoryWikiSourceSyncStateCapacity({
+    state,
+    group: "unsafe-local",
+    incomingCount: artifacts.length,
+  });
   const activeKeys = new Set<string>();
   const results = await Promise.all(
     artifacts.map(async (artifact) => {
