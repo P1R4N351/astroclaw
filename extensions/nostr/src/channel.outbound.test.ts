@@ -1,6 +1,7 @@
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-message";
-import { createStartAccountContext } from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Nostr tests cover channel.outbound plugin behavior.
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
+import { createStartAccountContext } from "openclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PluginRuntime } from "../runtime-api.js";
 import { nostrPlugin } from "./channel.js";
@@ -57,12 +58,23 @@ async function startOutboundAccount(accountId?: string) {
     getProfileState: vi.fn(async () => null),
   };
   mocks.startNostrBus.mockResolvedValueOnce(bus as unknown);
+  const abort = new AbortController();
 
-  const cleanup = (await startNostrGatewayAccount(
+  const task = startNostrGatewayAccount(
     createStartAccountContext({
       account: buildResolvedNostrAccount(accountId ? { accountId } : undefined),
+      abortSignal: abort.signal,
     }),
-  )) as { stop: () => void };
+  );
+  await vi.waitFor(() => {
+    expect(mocks.startNostrBus).toHaveBeenCalledTimes(1);
+  });
+  const cleanup = {
+    stop: async () => {
+      abort.abort();
+      await task;
+    },
+  };
 
   return { cleanup, sendDm };
 }
@@ -81,7 +93,7 @@ describe("nostr outbound cfg threading", () => {
 
     const cfg = createCfg();
     await nostrOutboundAdapter.sendText({
-      cfg: cfg as AstroclawConfig,
+      cfg: cfg as OpenClawConfig,
       to: "NPUB123",
       text: "|a|b|",
       accountId: "default",
@@ -96,7 +108,7 @@ describe("nostr outbound cfg threading", () => {
     expect(mocks.normalizePubkey).toHaveBeenCalledWith("NPUB123");
     expect(sendDm).toHaveBeenCalledWith("normalized-npub123", "converted:|a|b|");
 
-    cleanup.stop();
+    await cleanup.stop();
   });
 
   it("uses the configured defaultAccount when accountId is omitted", async () => {
@@ -113,7 +125,7 @@ describe("nostr outbound cfg threading", () => {
     };
 
     await nostrOutboundAdapter.sendText({
-      cfg: cfg as AstroclawConfig,
+      cfg: cfg as OpenClawConfig,
       to: "NPUB123",
       text: "hello",
     });
@@ -125,7 +137,7 @@ describe("nostr outbound cfg threading", () => {
     });
     expect(sendDm).toHaveBeenCalledWith("normalized-npub123", "hello");
 
-    cleanup.stop();
+    await cleanup.stop();
   });
 
   it("backs declared message adapter capabilities with outbound sends", async () => {
@@ -144,7 +156,7 @@ describe("nostr outbound cfg threading", () => {
       proofs: {
         text: async () => {
           const result = await sendText({
-            cfg: createCfg() as AstroclawConfig,
+            cfg: createCfg() as OpenClawConfig,
             to: "NPUB123",
             text: "hello",
             accountId: "default",
@@ -158,6 +170,6 @@ describe("nostr outbound cfg threading", () => {
       },
     });
 
-    cleanup.stop();
+    await cleanup.stop();
   });
 });
