@@ -1,3 +1,4 @@
+// Daemon restart log tests cover restart log formatting and filtering.
 import { describe, expect, it } from "vitest";
 import {
   GATEWAY_RESTART_LOG_FILENAME,
@@ -5,34 +6,64 @@ import {
   renderPosixRestartLogSetup,
   resolveGatewayLogPaths,
   resolveGatewayRestartLogPath,
+  resolveGatewaySupervisorLogPaths,
 } from "./restart-logs.js";
 
 describe("restart log conventions", () => {
   it("resolves profile-aware gateway logs and restart attempts together", () => {
     const env = {
       HOME: "/Users/test",
-      ASTROCLAW_PROFILE: "work",
+      OPENCLAW_PROFILE: "work",
     };
 
     expect(resolveGatewayLogPaths(env)).toEqual({
-      logDir: "/Users/test/.astroclaw-work/logs",
-      stdoutPath: "/Users/test/.astroclaw-work/logs/gateway.log",
-      stderrPath: "/Users/test/.astroclaw-work/logs/gateway.err.log",
+      logDir: "/Users/test/.openclaw-work/logs",
+      stdoutPath: "/Users/test/.openclaw-work/logs/gateway.log",
+      stderrPath: "/Users/test/.openclaw-work/logs/gateway.err.log",
     });
     expect(resolveGatewayRestartLogPath(env)).toBe(
-      `/Users/test/.astroclaw-work/logs/${GATEWAY_RESTART_LOG_FILENAME}`,
+      `/Users/test/.openclaw-work/logs/${GATEWAY_RESTART_LOG_FILENAME}`,
     );
   });
 
-  it("honors ASTROCLAW_STATE_DIR for restart attempts", () => {
+  it("honors OPENCLAW_STATE_DIR for restart attempts", () => {
     const env = {
       HOME: "/Users/test",
-      ASTROCLAW_STATE_DIR: "/tmp/astroclaw-state",
+      OPENCLAW_STATE_DIR: "/tmp/openclaw-state",
     };
 
     expect(resolveGatewayRestartLogPath(env)).toBe(
-      `/tmp/astroclaw-state/logs/${GATEWAY_RESTART_LOG_FILENAME}`,
+      `/tmp/openclaw-state/logs/${GATEWAY_RESTART_LOG_FILENAME}`,
     );
+  });
+
+  it("keeps macOS LaunchAgent stdout outside the state directory", () => {
+    const env = {
+      HOME: "/Users/test",
+      OPENCLAW_STATE_DIR: "/Volumes/External/openclaw",
+    };
+
+    expect(resolveGatewaySupervisorLogPaths(env, { platform: "darwin" })).toEqual({
+      logDir: "/Users/test/Library/Logs/openclaw",
+      stdoutPath: "/Users/test/Library/Logs/openclaw/gateway.log",
+      stderrPath: "/Users/test/Library/Logs/openclaw/gateway.err.log",
+    });
+    expect(resolveGatewayRestartLogPath(env)).toBe(
+      `/Volumes/External/openclaw/logs/${GATEWAY_RESTART_LOG_FILENAME}`,
+    );
+  });
+
+  it("keeps macOS LaunchAgent logs profile-aware in the shared user log directory", () => {
+    const env = {
+      HOME: "/Users/test",
+      OPENCLAW_PROFILE: "work",
+    };
+
+    expect(resolveGatewaySupervisorLogPaths(env, { platform: "darwin" })).toEqual({
+      logDir: "/Users/test/Library/Logs/openclaw",
+      stdoutPath: "/Users/test/Library/Logs/openclaw/gateway-work.log",
+      stderrPath: "/Users/test/Library/Logs/openclaw/gateway-work.err.log",
+    });
   });
 
   it("renders best-effort POSIX log setup with escaped paths", () => {
@@ -41,9 +72,9 @@ describe("restart log conventions", () => {
     });
 
     expect(setup).toContain(
-      "if mkdir -p '/Users/test'\\''s/.astroclaw/logs' 2>/dev/null && : >>'/Users/test'\\''s/.astroclaw/logs/gateway-restart.log' 2>/dev/null; then",
+      "if mkdir -p '/Users/test'\\''s/.openclaw/logs' 2>/dev/null && : >>'/Users/test'\\''s/.openclaw/logs/gateway-restart.log' 2>/dev/null; then",
     );
-    expect(setup).toContain("exec >>'/Users/test'\\''s/.astroclaw/logs/gateway-restart.log' 2>&1");
+    expect(setup).toContain("exec >>'/Users/test'\\''s/.openclaw/logs/gateway-restart.log' 2>&1");
   });
 
   it("renders CMD log setup with quoted paths", () => {
@@ -51,9 +82,9 @@ describe("restart log conventions", () => {
       USERPROFILE: "C:\\Users\\Test User",
     });
 
-    expect(setup.quotedLogPath).toBe('"C:\\Users\\Test User/.astroclaw/logs/gateway-restart.log"');
+    expect(setup.quotedLogPath).toBe('"C:\\Users\\Test User/.openclaw/logs/gateway-restart.log"');
     expect(setup.lines).toContain(
-      'if not exist "C:\\Users\\Test User/.astroclaw/logs" mkdir "C:\\Users\\Test User/.astroclaw/logs" >nul 2>&1',
+      'if not exist "C:\\Users\\Test User/.openclaw/logs" mkdir "C:\\Users\\Test User/.openclaw/logs" >nul 2>&1',
     );
   });
 });
