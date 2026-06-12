@@ -1,3 +1,4 @@
+// Npm Runner tests cover npm runner script behavior.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveNpmRunner } from "../../scripts/npm-runner.mjs";
@@ -136,6 +137,6 @@ describe("resolveNpmRunner", () => {
         existsSync: () => false,
         platform: "win32",
       }),
-    ).toThrow("Astroclaw refuses to shell out to bare npm on Windows");
+    ).toThrow("OpenClaw refuses to shell out to bare npm on Windows");
   });
 });
