@@ -1,3 +1,4 @@
+// Tests session export command packaging, filesystem writes, and prompt bundle capture.
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HandleCommandsParams } from "./commands-types.js";
@@ -15,11 +16,12 @@ const hoisted = await vi.hoisted(async () => {
       sandboxRuntime: { sandboxed: false, mode: "off" },
     })),
     writeFileMock: vi.fn(
-      async (_filePath: string, _data: string, _encoding?: BufferEncoding) => undefined,
+      async (_filePath: string, _dataValue: string, _encoding?: BufferEncoding) => undefined,
     ),
     mkdirMock: vi.fn(async (_filePath: string, _options?: { recursive?: boolean }) => undefined),
     accessMock: vi.fn(async (_filePath: string) => undefined),
     pathExistsMock: vi.fn(async (_filePath: string) => true),
+    migrateSessionEntriesMock: vi.fn((_entries: unknown[]) => undefined),
     exportHtmlTemplateContents: new Map<string, string>(),
     sessionTranscriptContent: "",
   };
@@ -43,6 +45,14 @@ vi.mock("../../infra/fs-safe.js", () => ({
   pathExists: hoisted.pathExistsMock,
 }));
 
+vi.mock("../../agents/sessions/session-manager.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../agents/sessions/session-manager.js")>();
+  return {
+    ...actual,
+    migrateSessionEntries: hoisted.migrateSessionEntriesMock,
+  };
+});
+
 vi.mock("node:fs", async () => {
   const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
   const mockedFs = {
@@ -56,7 +66,7 @@ vi.mock("node:fs", async () => {
       if (filePath.includes("/export-html/")) {
         return actual.readFileSync(filePath, "utf8");
       }
-      return "";
+      return actual.readFileSync(filePath, "utf8");
     }),
   };
   return {
@@ -248,7 +258,7 @@ describe("buildExportSessionReply", () => {
     expect(html).not.toContain("{{SESSION_DATA}}");
     expect(html).not.toContain("{{MARKED_JS}}");
     expect(html).not.toContain("{{HIGHLIGHT_JS}}");
-    expect(html).not.toContain("data-astroclaw-export-placeholder");
+    expect(html).not.toContain("data-openclaw-export-placeholder");
     expect(html).toContain(
       Buffer.from(
         JSON.stringify({
@@ -273,11 +283,11 @@ describe("buildExportSessionReply", () => {
 
     const expectedBase = path.join(
       "/tmp/workspace",
-      "astroclaw-session-session--2026-05-05T10-11-12.html",
+      "openclaw-session-session--2026-05-05T10-11-12.html",
     );
     const expectedSuffix = path.join(
       "/tmp/workspace",
-      "astroclaw-session-session--2026-05-05T10-11-12-2.html",
+      "openclaw-session-session--2026-05-05T10-11-12-2.html",
     );
     expect(writeFilePath(0)).toBe(expectedBase);
     expect(writeFileArg(0, 2)).toEqual({
@@ -285,18 +295,18 @@ describe("buildExportSessionReply", () => {
       flag: "wx",
     });
     expect(writeFilePath(1)).toBe(expectedSuffix);
-    expect(reply.text).toContain("📄 File: astroclaw-session-session--2026-05-05T10-11-12-2.html");
+    expect(reply.text).toContain("📄 File: openclaw-session-session--2026-05-05T10-11-12-2.html");
   });
 
   it("preserves replacement text with dollar sequences", async () => {
     hoisted.exportHtmlTemplateContents.set(
       "template.html",
       [
-        '<style data-astroclaw-export-placeholder="CSS"></style>',
-        '<script id="session-data" type="application/json" data-astroclaw-export-placeholder="SESSION_DATA"></script>',
-        '<script data-astroclaw-export-placeholder="MARKED_JS"></script>',
-        '<script data-astroclaw-export-placeholder="HIGHLIGHT_JS"></script>',
-        '<script data-astroclaw-export-placeholder="JS"></script>',
+        '<style data-openclaw-export-placeholder="CSS"></style>',
+        '<script id="session-data" type="application/json" data-openclaw-export-placeholder="SESSION_DATA"></script>',
+        '<script data-openclaw-export-placeholder="MARKED_JS"></script>',
+        '<script data-openclaw-export-placeholder="HIGHLIGHT_JS"></script>',
+        '<script data-openclaw-export-placeholder="JS"></script>',
       ].join(""),
     );
     hoisted.exportHtmlTemplateContents.set("template.css", "/* {{THEME_VARS}} */$&$1");
