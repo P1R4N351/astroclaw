@@ -1,3 +1,4 @@
+// QR CLI tests cover QR command registration and terminal output behavior.
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { encodePairingSetupCode } from "../pairing/setup-code.js";
@@ -168,8 +169,8 @@ describe("registerQrCli", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetRuntimeCapture();
-    vi.stubEnv("ASTROCLAW_GATEWAY_TOKEN", "");
-    vi.stubEnv("ASTROCLAW_GATEWAY_PASSWORD", "");
+    vi.stubEnv("OPENCLAW_GATEWAY_TOKEN", "");
+    vi.stubEnv("OPENCLAW_GATEWAY_PASSWORD", "");
     runtimeExit.mockImplementation(() => {
       throw new Error("exit");
     });
@@ -215,7 +216,7 @@ describe("registerQrCli", () => {
     expect(output).toContain("Pairing QR");
     expect(output).toContain("ASCII-QR");
     expect(output).toContain("Gateway:");
-    expect(output).toContain("astroclaw devices approve <requestId>");
+    expect(output).toContain("openclaw devices approve <requestId>");
   });
 
   it("fails fast for insecure remote mobile pairing setup urls", async () => {
@@ -316,8 +317,8 @@ describe("registerQrCli", () => {
     expect(resolveCommandSecretRefsViaGateway).not.toHaveBeenCalled();
   });
 
-  it("uses ASTROCLAW_GATEWAY_PASSWORD without resolving local password SecretRef", async () => {
-    vi.stubEnv("ASTROCLAW_GATEWAY_PASSWORD", "password-from-env");
+  it("uses OPENCLAW_GATEWAY_PASSWORD without resolving local password SecretRef", async () => {
+    vi.stubEnv("OPENCLAW_GATEWAY_PASSWORD", "password-from-env");
     loadConfig.mockReturnValue(
       createLocalGatewayConfigWithAuth(
         createLocalGatewayPasswordRefAuth("MISSING_LOCAL_GATEWAY_PASSWORD"),
