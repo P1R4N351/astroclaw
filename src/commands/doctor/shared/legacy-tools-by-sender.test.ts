@@ -1,5 +1,6 @@
+// Legacy tools-by-sender tests cover doctor migration of sender-scoped tool config.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../../config/config.js";
+import type { OpenClawConfig } from "../../../config/config.js";
 import {
   collectLegacyToolsBySenderWarnings,
   maybeRepairLegacyToolsBySenderKeys,
@@ -22,7 +23,7 @@ describe("doctor legacy toolsBySender helpers", () => {
           },
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(hits).toEqual([
       {
@@ -49,7 +50,7 @@ describe("doctor legacy toolsBySender helpers", () => {
           },
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(result.changes).toEqual([
       "- channels.whatsapp.groups.123@g.us.toolsBySender: migrated 1 legacy key to typed id: entries (owner (kept existing id:owner), alice -> id:alice).",
@@ -71,13 +72,13 @@ describe("doctor legacy toolsBySender helpers", () => {
           targetKey: "id:owner",
         },
       ],
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(warnings).toEqual([
       "- Found 1 legacy untyped toolsBySender key (for example channels.whatsapp.groups.123@g.us.toolsBySender.owner).",
       "- Untyped sender keys are deprecated; use explicit prefixes (id:, e164:, username:, name:).",
-      '- Run "astroclaw doctor --fix" to migrate legacy keys to typed id: entries.',
+      '- Run "openclaw doctor --fix" to migrate legacy keys to typed id: entries.',
     ]);
   });
 });
