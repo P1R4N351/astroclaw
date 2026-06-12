@@ -1,15 +1,16 @@
-import { clearLiveCatalogCacheForTests } from "astroclaw/plugin-sdk/provider-catalog-shared";
+// Openrouter tests cover video generation provider plugin behavior.
+import { clearLiveCatalogCacheForTests } from "openclaw/plugin-sdk/provider-catalog-shared";
 import {
   expectExplicitVideoGenerationCapabilities,
   expectUnifiedModelCatalogEntries,
-} from "astroclaw/plugin-sdk/provider-test-contracts";
+} from "openclaw/plugin-sdk/provider-test-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildOpenRouterVideoGenerationProvider,
   listOpenRouterVideoModelCatalog,
 } from "./video-generation-provider.js";
 
-const SUPPORTED_DURATIONS_HINT = Symbol.for("astroclaw.videoGeneration.supportedDurations");
+const SUPPORTED_DURATIONS_HINT = Symbol.for("openclaw.videoGeneration.supportedDurations");
 
 const {
   assertOkOrThrowHttpErrorMock,
@@ -33,13 +34,13 @@ const {
   waitProviderOperationPollIntervalMock: vi.fn(async () => {}),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: resolveApiKeyForProviderMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-http", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/provider-http")>(
-    "astroclaw/plugin-sdk/provider-http",
+vi.mock("openclaw/plugin-sdk/provider-http", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/provider-http")>(
+    "openclaw/plugin-sdk/provider-http",
   );
   return {
     ...actual,
@@ -62,10 +63,10 @@ function releasedJson(value: unknown) {
 
 function releasedVideo(params: { contentType: string; bytes: string }) {
   return {
-    response: {
-      headers: new Headers({ "content-type": params.contentType }),
-      arrayBuffer: async () => Buffer.from(params.bytes),
-    },
+    response: new Response(Buffer.from(params.bytes), {
+      status: 200,
+      headers: { "content-type": params.contentType },
+    }),
     release: vi.fn(async () => {}),
   };
 }
@@ -551,6 +552,53 @@ describe("openrouter video generation provider", () => {
       generationId: "gen-123",
       usage: { cost: 0.25, is_byok: false },
     });
+  });
+
+  it("returns unsigned URL-only videos when downloads exceed the configured media cap", async () => {
+    postJsonRequestMock.mockResolvedValue(
+      releasedJson({
+        id: "job-123",
+        polling_url: "/api/v1/videos/job-123",
+        status: "completed",
+        unsigned_urls: ["https://cdn.openrouter.test/video.mp4"],
+      }),
+    );
+    fetchWithTimeoutGuardedMock.mockResolvedValueOnce(
+      releasedVideo({ contentType: "video/mp4", bytes: "too-large" }),
+    );
+
+    const provider = buildOpenRouterVideoGenerationProvider();
+    const result = await provider.generateVideo({
+      provider: "openrouter",
+      model: "google/veo-3.1",
+      prompt: "A glass cube reflects a neon skyline",
+      cfg: { agents: { defaults: { mediaMaxMb: 0.000001 } } } as never,
+    });
+
+    expect(result.videos).toEqual([
+      {
+        url: "https://cdn.openrouter.test/video.mp4",
+        mimeType: "video/mp4",
+        fileName: "video-1.mp4",
+      },
+    ]);
+  });
+
+  it("rejects malformed numeric seed values before submitting video jobs", async () => {
+    const provider = buildOpenRouterVideoGenerationProvider();
+    await expect(
+      provider.generateVideo({
+        provider: "openrouter",
+        model: "google/veo-3.1",
+        prompt: "A glass cube reflects a neon skyline",
+        cfg: {} as never,
+        providerOptions: {
+          seed: 42.9,
+        },
+      }),
+    ).rejects.toThrow("OpenRouter video seed must be an integer");
+
+    expect(postJsonRequestMock).not.toHaveBeenCalled();
   });
 
   it("wraps malformed successful OpenRouter submit responses", async () => {
