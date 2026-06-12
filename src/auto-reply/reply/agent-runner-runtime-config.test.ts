@@ -1,13 +1,14 @@
+// Tests agent runner runtime config assembly from command and session state.
 import { afterEach, describe, expect, it } from "vitest";
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
 } from "../../config/runtime-snapshot.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { buildEmbeddedRunBaseParams } from "./agent-runner-run-params.js";
 import type { FollowupRun } from "./queue.js";
 
-function makeRun(config: AstroclawConfig): FollowupRun["run"] {
+function makeRun(config: OpenClawConfig): FollowupRun["run"] {
   return {
     sessionId: "session-1",
     agentId: "agent-1",
@@ -37,7 +38,7 @@ afterEach(() => {
 
 describe("buildEmbeddedRunBaseParams runtime config", () => {
   it("keeps an already-resolved run config instead of reverting to a stale runtime snapshot", () => {
-    const staleSnapshot: AstroclawConfig = {
+    const staleSnapshot: OpenClawConfig = {
       models: {
         providers: {
           openai: {
@@ -52,7 +53,7 @@ describe("buildEmbeddedRunBaseParams runtime config", () => {
         },
       },
     };
-    const resolvedRunConfig: AstroclawConfig = {
+    const resolvedRunConfig: OpenClawConfig = {
       models: {
         providers: {
           openai: {
