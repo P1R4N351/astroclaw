@@ -1,3 +1,4 @@
+/** Tests host tool parameter parsers exposed to plugin callbacks. */
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { deriveToolParams } from "./host-tool-param-parsers.js";
@@ -49,7 +50,7 @@ describe("deriveToolParams", () => {
     const patch = ["*** Begin Patch", "*** Add File: @src/../new.ts", "+x", "*** End Patch"].join(
       "\n",
     );
-    const cwd = path.join("/tmp", "astroclaw-derived");
+    const cwd = path.join("/tmp", "openclaw-derived");
     expect(deriveToolParams("apply_patch", { input: patch }, { cwd })).toEqual({
       derivedPaths: [path.join(cwd, "new.ts")],
     });
