@@ -1,13 +1,12 @@
+// Doctor Claude CLI tests cover CLI discovery, version checks, and repair guidance.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CLAUDE_CLI_PROFILE_ID } from "../agents/auth-profiles/constants.js";
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import {
-  noteClaudeCliHealth,
-  resolveClaudeCliProjectDirForWorkspace,
-} from "./doctor-claude-cli.js";
+import { resolveClaudeCliProjectDirForWorkspace } from "../agents/command/claude-cli-project-dir.js";
+import { noteClaudeCliHealth } from "./doctor-claude-cli.js";
 
 function createStore(profiles: AuthProfileStore["profiles"] = {}): AuthProfileStore {
   return {
@@ -19,7 +18,7 @@ function createStore(profiles: AuthProfileStore["profiles"] = {}): AuthProfileSt
 async function withTempHome<T>(
   run: (params: { homeDir: string; workspaceDir: string }) => Promise<T> | T,
 ): Promise<T> {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-doctor-claude-cli-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-doctor-claude-cli-"));
   const homeDir = path.join(root, "home");
   const workspaceDir = path.join(root, "workspace");
   fs.mkdirSync(homeDir, { recursive: true });
@@ -59,11 +58,11 @@ describe("resolveClaudeCliProjectDirForWorkspace", () => {
   it("matches Claude's sanitized workspace project dir shape", () => {
     expect(
       resolveClaudeCliProjectDirForWorkspace({
-        workspaceDir: "/Users/vincentkoc/GIT/_Perso/astroclaw/.astroclaw/workspace",
+        workspaceDir: "/Users/vincentkoc/GIT/_Perso/openclaw/.openclaw/workspace",
         homeDir: "/Users/vincentkoc",
       }),
     ).toBe(
-      "/Users/vincentkoc/.claude/projects/-Users-vincentkoc-GIT--Perso-astroclaw--astroclaw-workspace",
+      "/Users/vincentkoc/.claude/projects/-Users-vincentkoc-GIT--Perso-openclaw--openclaw-workspace",
     );
   });
 });
@@ -127,7 +126,7 @@ describe("noteClaudeCliHealth", () => {
       expect(body).toContain("Binary: /opt/homebrew/bin/claude.");
       expect(body).toContain("Headless Claude auth: OK (oauth).");
       expect(body).toContain(
-        `Astroclaw auth profile: ${CLAUDE_CLI_PROFILE_ID} (provider claude-cli).`,
+        `OpenClaw auth profile: ${CLAUDE_CLI_PROFILE_ID} (provider claude-cli).`,
       );
       expect(body).toContain("Workspace:");
       expect(body).toContain("(writable).");
@@ -227,9 +226,9 @@ describe("noteClaudeCliHealth", () => {
 
       const body = noteBody(noteFn);
       expect(body).toContain("Headless Claude auth: OK (oauth).");
-      expect(body).toContain(`Astroclaw auth profile: missing (${CLAUDE_CLI_PROFILE_ID})`);
+      expect(body).toContain(`OpenClaw auth profile: missing (${CLAUDE_CLI_PROFILE_ID})`);
       expect(body).toContain(
-        "astroclaw models auth login --provider anthropic --method cli --set-default",
+        "openclaw models auth login --provider anthropic --method cli --set-default",
       );
       expect(body).toContain(
         "not created yet; it appears after the first Claude CLI turn in this workspace",
