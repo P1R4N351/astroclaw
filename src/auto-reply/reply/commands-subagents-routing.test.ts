@@ -1,5 +1,6 @@
+// Tests subagent routing commands and active focus handoff.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import {
   getActivePluginRegistry,
   resetPluginRuntimeStateForTest,
@@ -10,7 +11,6 @@ import { resolveCommandAuthorization } from "../command-auth.js";
 import type { MsgContext } from "../templating.js";
 import {
   COMMAND,
-  COMMAND_KILL,
   resolveHandledPrefix,
   resolveRequesterSessionKey,
   resolveSubagentsAction,
@@ -19,14 +19,7 @@ import {
 import { handleSubagentsCommand } from "./commands-subagents.js";
 import type { HandleCommandsParams } from "./commands-types.js";
 
-const handleSubagentsSpawnActionMock = vi.hoisted(() =>
-  vi.fn(async () => ({ shouldContinue: false, reply: { text: "spawned" } })),
-);
 const listControlledSubagentRunsMock = vi.hoisted(() => vi.fn(() => []));
-
-vi.mock("./commands-subagents/action-spawn.js", () => ({
-  handleSubagentsSpawnAction: handleSubagentsSpawnActionMock,
-}));
 
 vi.mock("./commands-subagents-control.runtime.js", () => ({
   listControlledSubagentRuns: listControlledSubagentRunsMock,
@@ -104,7 +97,7 @@ function buildParams(
     directives: {} as HandleCommandsParams["directives"],
     elevated: { enabled: true, allowed: true, failures: [] },
     sessionKey,
-    workspaceDir: "/tmp/astroclaw-commands-subagents",
+    workspaceDir: "/tmp/openclaw-commands-subagents",
     defaultGroupActivation: () => "mention",
     resolvedVerboseLevel: "off",
     resolvedReasoningLevel: "off",
@@ -150,7 +143,7 @@ describe("subagents command dispatch", () => {
 
   it("maps slash aliases to the right handled prefix", () => {
     expect(resolveHandledPrefix("/subagents list")).toBe(COMMAND);
-    expect(resolveHandledPrefix("/kill 1")).toBe(COMMAND_KILL);
+    expect(resolveHandledPrefix("/kill 1")).toBeNull();
     expect(resolveHandledPrefix("/steer 1 continue")).toBeNull();
     expect(resolveHandledPrefix("/unknown")).toBeNull();
   });
@@ -160,17 +153,9 @@ describe("subagents command dispatch", () => {
     expect(resolveSubagentsAction({ handledPrefix: COMMAND, restTokens: listTokens })).toBe("list");
     expect(listTokens).toStrictEqual([]);
 
-    const killTokens = ["1"];
-    expect(resolveSubagentsAction({ handledPrefix: COMMAND_KILL, restTokens: killTokens })).toBe(
-      "kill",
-    );
-    expect(killTokens).toEqual(["1"]);
-
     const steerTokens = ["steer", "1", "continue"];
-    expect(resolveSubagentsAction({ handledPrefix: COMMAND, restTokens: steerTokens })).toBe(
-      "steer",
-    );
-    expect(steerTokens).toEqual(["1", "continue"]);
+    expect(resolveSubagentsAction({ handledPrefix: COMMAND, restTokens: steerTokens })).toBeNull();
+    expect(steerTokens).toEqual(["steer", "1", "continue"]);
   });
 
   it("returns null for invalid /subagents actions", () => {
@@ -186,12 +171,12 @@ describe("subagents command dispatch", () => {
     });
   });
 
-  it("rejects native spawn commands from non-owner senders when the plugin enforces owner-only commands", async () => {
+  it("rejects native subagents commands from non-owner senders when the plugin enforces owner-only commands", async () => {
     registerOwnerEnforcingTelegramPlugin();
     const cfg = {
       commands: { allowFrom: { "*": ["*"] } },
       channels: { telegram: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const ctx = {
       Provider: "telegram",
       Surface: "telegram",
@@ -207,10 +192,7 @@ describe("subagents command dispatch", () => {
       cfg,
       commandAuthorized: true,
     });
-    const params = buildParams(
-      "/subagents spawn beta do the thing",
-      ctx as unknown as Record<string, unknown>,
-    );
+    const params = buildParams("/subagents list", ctx as unknown as Record<string, unknown>);
     params.cfg = cfg;
     params.command.senderId = auth.senderId;
     params.command.senderIsOwner = auth.senderIsOwner;
@@ -225,6 +207,5 @@ describe("subagents command dispatch", () => {
     expect(auth.isAuthorizedSender).toBe(false);
     expect(result).toEqual({ shouldContinue: false });
     expect(listControlledSubagentRunsMock).not.toHaveBeenCalled();
-    expect(handleSubagentsSpawnActionMock).not.toHaveBeenCalled();
   });
 });
