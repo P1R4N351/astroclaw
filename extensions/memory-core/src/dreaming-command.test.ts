@@ -1,9 +1,10 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Memory Core tests cover dreaming command plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import type {
-  AstroclawPluginCommandDefinition,
+  OpenClawPluginCommandDefinition,
   PluginCommandContext,
-} from "astroclaw/plugin-sdk/core";
-import type { AstroclawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/core";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import { describe, expect, it, vi } from "vitest";
 import { registerDreamingCommand } from "./dreaming-command.js";
 
@@ -14,26 +15,26 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function resolveStoredDreaming(config: AstroclawConfig): Record<string, unknown> {
+function resolveStoredDreaming(config: OpenClawConfig): Record<string, unknown> {
   const entry = asRecord(config.plugins?.entries?.["memory-core"]);
   const pluginConfig = asRecord(entry?.config);
   return asRecord(pluginConfig?.dreaming) ?? {};
 }
 
-function createHarness(initialConfig: AstroclawConfig = {}) {
-  const registered: { command?: AstroclawPluginCommandDefinition } = {};
-  let runtimeConfig: AstroclawConfig = initialConfig;
+function createHarness(initialConfig: OpenClawConfig = {}) {
+  const registered: { command?: OpenClawPluginCommandDefinition } = {};
+  let runtimeConfig: OpenClawConfig = initialConfig;
 
   const runtime = {
     config: {
       current: vi.fn(() => runtimeConfig),
       loadConfig: vi.fn(() => runtimeConfig),
-      mutateConfigFile: vi.fn(async ({ mutate }: { mutate: (draft: AstroclawConfig) => void }) => {
+      mutateConfigFile: vi.fn(async ({ mutate }: { mutate: (draft: OpenClawConfig) => void }) => {
         const draft = structuredClone(runtimeConfig);
         mutate(draft);
         runtimeConfig = draft;
         return {
-          path: "/tmp/astroclaw.json",
+          path: "/tmp/openclaw.json",
           previousHash: null,
           persistedHash: null,
           snapshot: {},
@@ -43,21 +44,21 @@ function createHarness(initialConfig: AstroclawConfig = {}) {
           result: undefined,
         };
       }),
-      replaceConfigFile: vi.fn(async ({ nextConfig }: { nextConfig: AstroclawConfig }) => {
+      replaceConfigFile: vi.fn(async ({ nextConfig }: { nextConfig: OpenClawConfig }) => {
         runtimeConfig = nextConfig;
       }),
-      writeConfigFile: vi.fn(async (nextConfig: AstroclawConfig) => {
+      writeConfigFile: vi.fn(async (nextConfig: OpenClawConfig) => {
         runtimeConfig = nextConfig;
       }),
     },
-  } as unknown as AstroclawPluginApi["runtime"];
+  } as unknown as OpenClawPluginApi["runtime"];
 
   const api = {
     runtime,
-    registerCommand: vi.fn((definition: AstroclawPluginCommandDefinition) => {
+    registerCommand: vi.fn((definition: OpenClawPluginCommandDefinition) => {
       registered.command = definition;
     }),
-  } as unknown as AstroclawPluginApi;
+  } as unknown as OpenClawPluginApi;
 
   registerDreamingCommand(api);
 
