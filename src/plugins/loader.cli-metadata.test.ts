@@ -1,12 +1,13 @@
+// Covers plugin loader CLI metadata without activating plugin runtimes.
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import {
   defineBundledChannelEntry,
-  type AstroclawPluginApi,
+  type OpenClawPluginApi,
 } from "../plugin-sdk/channel-entry-contract.js";
-import { loadAstroclawPluginCliRegistry, loadAstroclawPlugins } from "./loader.js";
+import { loadOpenClawPluginCliRegistry, loadOpenClawPlugins } from "./loader.js";
 import {
   cleanupPluginLoaderFixturesForTest,
   EMPTY_PLUGIN_SCHEMA,
@@ -48,7 +49,7 @@ describe("plugin loader CLI metadata", () => {
       });
       const errors: string[] = [];
 
-      const registry = await loadAstroclawPluginCliRegistry({
+      const registry = await loadOpenClawPluginCliRegistry({
         cache: false,
         logger: {
           info: () => {},
@@ -104,8 +105,8 @@ describe("plugin loader CLI metadata", () => {
     });
 
     const warnings: string[] = [];
-    const registry = await loadAstroclawPluginCliRegistry({
-      env: { ...process.env, ASTROCLAW_STATE_DIR: stateDir },
+    const registry = await loadOpenClawPluginCliRegistry({
+      env: { ...process.env, OPENCLAW_STATE_DIR: stateDir },
       logger: {
         info: () => {},
         warn: (msg: string) => warnings.push(msg),
@@ -147,7 +148,7 @@ describe("plugin loader CLI metadata", () => {
 };`,
     });
     fs.writeFileSync(
-      path.join(plugin.dir, "astroclaw.plugin.json"),
+      path.join(plugin.dir, "openclaw.plugin.json"),
       JSON.stringify(
         {
           id: "config-cli",
@@ -166,7 +167,7 @@ describe("plugin loader CLI metadata", () => {
       "utf-8",
     );
 
-    const registry = await loadAstroclawPluginCliRegistry({
+    const registry = await loadOpenClawPluginCliRegistry({
       config: {
         plugins: {
           load: { paths: [plugin.file] },
@@ -197,8 +198,8 @@ describe("plugin loader CLI metadata", () => {
       path.join(pluginDir, "package.json"),
       JSON.stringify(
         {
-          name: "@astroclaw/cli-metadata-channel",
-          astroclaw: { extensions: ["./index.cjs"], setupEntry: "./setup-entry.cjs" },
+          name: "@openclaw/cli-metadata-channel",
+          openclaw: { extensions: ["./index.cjs"], setupEntry: "./setup-entry.cjs" },
         },
         null,
         2,
@@ -206,7 +207,7 @@ describe("plugin loader CLI metadata", () => {
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(pluginDir, "astroclaw.plugin.json"),
+      path.join(pluginDir, "openclaw.plugin.json"),
       JSON.stringify(
         {
           id: "cli-metadata-channel",
@@ -275,7 +276,7 @@ module.exports = {
       "utf-8",
     );
 
-    const registry = await loadAstroclawPluginCliRegistry({
+    const registry = await loadOpenClawPluginCliRegistry({
       config: {
         plugins: {
           load: { paths: [pluginDir] },
@@ -298,14 +299,14 @@ module.exports = {
     const fullMarker = path.join(pluginDir, "full-loaded.txt");
 
     fs.mkdirSync(pluginDir, { recursive: true });
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = bundledRoot;
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledRoot;
 
     fs.writeFileSync(
       path.join(pluginDir, "package.json"),
       JSON.stringify(
         {
-          name: "@astroclaw/bundled-skip-channel",
-          astroclaw: { extensions: ["./index.cjs"] },
+          name: "@openclaw/bundled-skip-channel",
+          openclaw: { extensions: ["./index.cjs"] },
         },
         null,
         2,
@@ -313,7 +314,7 @@ module.exports = {
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(pluginDir, "astroclaw.plugin.json"),
+      path.join(pluginDir, "openclaw.plugin.json"),
       JSON.stringify(
         {
           id: "bundled-skip-channel",
@@ -337,7 +338,7 @@ module.exports = {
       "utf-8",
     );
 
-    const registry = await loadAstroclawPluginCliRegistry({
+    const registry = await loadOpenClawPluginCliRegistry({
       config: {
         plugins: {
           allow: ["bundled-skip-channel"],
@@ -366,14 +367,14 @@ module.exports = {
     const cliMarker = path.join(pluginDir, "cli-loaded.txt");
 
     fs.mkdirSync(pluginDir, { recursive: true });
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = bundledRoot;
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledRoot;
 
     fs.writeFileSync(
       path.join(pluginDir, "package.json"),
       JSON.stringify(
         {
-          name: "@astroclaw/bundled-cli-channel",
-          astroclaw: { extensions: ["./index.cjs"] },
+          name: "@openclaw/bundled-cli-channel",
+          openclaw: { extensions: ["./index.cjs"] },
         },
         null,
         2,
@@ -381,7 +382,7 @@ module.exports = {
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(pluginDir, "astroclaw.plugin.json"),
+      path.join(pluginDir, "openclaw.plugin.json"),
       JSON.stringify(
         {
           id: "bundled-cli-channel",
@@ -424,7 +425,7 @@ module.exports = {
       "utf-8",
     );
 
-    const registry = await loadAstroclawPluginCliRegistry({
+    const registry = await loadOpenClawPluginCliRegistry({
       config: {
         plugins: {
           allow: ["bundled-cli-channel"],
@@ -450,14 +451,14 @@ module.exports = {
     const fullMarker = path.join(pluginDir, "full-loaded.txt");
 
     fs.mkdirSync(pluginDir, { recursive: true });
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = bundledRoot;
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledRoot;
 
     fs.writeFileSync(
       path.join(pluginDir, "package.json"),
       JSON.stringify(
         {
-          name: "@astroclaw/bundled-skip-provider",
-          astroclaw: { extensions: ["./index.cjs"] },
+          name: "@openclaw/bundled-skip-provider",
+          openclaw: { extensions: ["./index.cjs"] },
         },
         null,
         2,
@@ -465,7 +466,7 @@ module.exports = {
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(pluginDir, "astroclaw.plugin.json"),
+      path.join(pluginDir, "openclaw.plugin.json"),
       JSON.stringify(
         {
           id: "bundled-skip-provider",
@@ -488,7 +489,7 @@ module.exports = {
       "utf-8",
     );
 
-    const registry = await loadAstroclawPluginCliRegistry({
+    const registry = await loadOpenClawPluginCliRegistry({
       config: {
         plugins: {
           allow: ["bundled-skip-provider"],
@@ -520,8 +521,8 @@ module.exports = {
       path.join(pluginDir, "package.json"),
       JSON.stringify(
         {
-          name: "@astroclaw/full-cli-metadata-channel",
-          astroclaw: { extensions: ["./index.cjs"] },
+          name: "@openclaw/full-cli-metadata-channel",
+          openclaw: { extensions: ["./index.cjs"] },
         },
         null,
         2,
@@ -529,7 +530,7 @@ module.exports = {
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(pluginDir, "astroclaw.plugin.json"),
+      path.join(pluginDir, "openclaw.plugin.json"),
       JSON.stringify(
         {
           id: "full-cli-metadata-channel",
@@ -589,7 +590,7 @@ module.exports = {
       "utf-8",
     );
 
-    const registry = loadAstroclawPlugins({
+    const registry = loadOpenClawPlugins({
       cache: false,
       config: {
         plugins: {
@@ -617,8 +618,8 @@ module.exports = {
       path.join(pluginDir, "package.json"),
       JSON.stringify(
         {
-          name: "@astroclaw/discovery-cli-metadata-channel",
-          astroclaw: { extensions: ["./index.cjs"] },
+          name: "@openclaw/discovery-cli-metadata-channel",
+          openclaw: { extensions: ["./index.cjs"] },
         },
         null,
         2,
@@ -626,7 +627,7 @@ module.exports = {
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(pluginDir, "astroclaw.plugin.json"),
+      path.join(pluginDir, "openclaw.plugin.json"),
       JSON.stringify(
         {
           id: "discovery-cli-metadata-channel",
@@ -689,7 +690,7 @@ module.exports = {
       "utf-8",
     );
 
-    const registry = loadAstroclawPlugins({
+    const registry = loadOpenClawPlugins({
       activate: false,
       cache: false,
       config: {
@@ -710,6 +711,111 @@ module.exports = {
     expect(fs.existsSync(runtimeMarker)).toBe(true);
     expect(registry.cliRegistrars.flatMap((entry) => entry.commands)).toContain(
       "discovery-cli-metadata-channel",
+    );
+  });
+
+  it("can force channel runtime entries for CLI registration when setup entries exist", () => {
+    useNoBundledPlugins();
+    const pluginDir = makeTempDir();
+    const modeMarker = path.join(pluginDir, "registration-mode.txt");
+    const setupMarker = path.join(pluginDir, "setup-loaded.txt");
+
+    fs.writeFileSync(
+      path.join(pluginDir, "package.json"),
+      JSON.stringify(
+        {
+          name: "@openclaw/force-runtime-cli-channel",
+          openclaw: { extensions: ["./index.cjs"], setupEntry: "./setup-entry.cjs" },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(pluginDir, "openclaw.plugin.json"),
+      JSON.stringify(
+        {
+          id: "force-runtime-cli-channel",
+          configSchema: EMPTY_PLUGIN_SCHEMA,
+          channels: ["force-runtime-cli-channel"],
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(pluginDir, "index.cjs"),
+      `${inlineChannelPluginEntryFactorySource()}
+module.exports = {
+  ...defineChannelPluginEntry({
+    id: "force-runtime-cli-channel",
+    name: "Force Runtime CLI Channel",
+    description: "force runtime cli channel",
+    plugin: {
+      id: "force-runtime-cli-channel",
+      meta: {
+        id: "force-runtime-cli-channel",
+        label: "Force Runtime CLI Channel",
+        selectionLabel: "Force Runtime CLI Channel",
+        docsPath: "/channels/force-runtime-cli-channel",
+        blurb: "force runtime cli channel",
+      },
+      capabilities: { chatTypes: ["direct"] },
+      config: {
+        listAccountIds: () => [],
+        resolveAccount: () => ({ accountId: "default" }),
+      },
+      outbound: { deliveryMode: "direct" },
+    },
+    registerCliMetadata(api) {
+      require("node:fs").writeFileSync(
+        ${JSON.stringify(modeMarker)},
+        String(api.registrationMode),
+        "utf-8",
+      );
+      api.registerCli(() => {}, {
+        descriptors: [
+          {
+            name: "force-runtime-cli-channel",
+            description: "Forced runtime channel CLI metadata",
+            hasSubcommands: true,
+          },
+        ],
+      });
+    },
+  }),
+};`,
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(pluginDir, "setup-entry.cjs"),
+      `require("node:fs").writeFileSync(${JSON.stringify(setupMarker)}, "loaded", "utf-8");`,
+      "utf-8",
+    );
+
+    const registry = loadOpenClawPlugins({
+      activate: false,
+      cache: false,
+      forceFullRuntimeForChannelPlugins: true,
+      config: {
+        plugins: {
+          load: { paths: [pluginDir] },
+          allow: ["force-runtime-cli-channel"],
+          entries: {
+            "force-runtime-cli-channel": {
+              enabled: true,
+            },
+          },
+        },
+      },
+    });
+
+    expect(fs.existsSync(setupMarker)).toBe(false);
+    expect(fs.readFileSync(modeMarker, "utf-8")).toBe("discovery");
+    expect(registry.cliRegistrars.flatMap((entry) => entry.commands)).toContain(
+      "force-runtime-cli-channel",
     );
   });
 
@@ -779,7 +885,7 @@ module.exports = {
 
     entry.register({
       registrationMode: "discovery",
-      runtime: {} as AstroclawPluginApi["runtime"],
+      runtime: {} as OpenClawPluginApi["runtime"],
       registerChannel: (registration) => {
         const plugin = "plugin" in registration ? registration.plugin : registration;
         channels.push(plugin.id);
@@ -787,7 +893,7 @@ module.exports = {
       registerCli: (_register, options) => {
         commands.push(...(options?.descriptors ?? []).map((descriptor) => descriptor.name));
       },
-    } as AstroclawPluginApi);
+    } as OpenClawPluginApi);
 
     expect(channels).toEqual(["bundled-discovery-cli"]);
     expect(fs.existsSync(runtimeMarker)).toBe(true);
@@ -823,7 +929,7 @@ module.exports = {
 };`,
     });
 
-    const registry = await loadAstroclawPluginCliRegistry({
+    const registry = await loadOpenClawPluginCliRegistry({
       cache: false,
       config: {
         plugins: {
@@ -870,7 +976,7 @@ module.exports = {
 };`,
     });
 
-    const registry = await loadAstroclawPluginCliRegistry({
+    const registry = await loadOpenClawPluginCliRegistry({
       config: {
         plugins: {
           load: { paths: [plugin.file] },
@@ -908,7 +1014,7 @@ module.exports = {
 };`,
     });
     fs.writeFileSync(
-      path.join(plugin.dir, "astroclaw.plugin.json"),
+      path.join(plugin.dir, "openclaw.plugin.json"),
       JSON.stringify(
         {
           id: "memory-external",
@@ -921,7 +1027,7 @@ module.exports = {
       "utf-8",
     );
 
-    const registry = await loadAstroclawPluginCliRegistry({
+    const registry = await loadOpenClawPluginCliRegistry({
       config: {
         plugins: {
           load: { paths: [plugin.file] },
@@ -961,7 +1067,7 @@ module.exports = {
 };`,
     });
 
-    const registry = await loadAstroclawPluginCliRegistry({
+    const registry = await loadOpenClawPluginCliRegistry({
       config: {
         plugins: {
           load: { paths: [plugin.file] },
