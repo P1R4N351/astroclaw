@@ -1,3 +1,5 @@
+// Covers session delivery queue recovery behavior.
+import { MAX_DATE_TIMESTAMP_MS } from "@openclaw/normalization-core/number-coercion";
 import { describe, expect, it, vi } from "vitest";
 import { withTempDir } from "../test-helpers/temp-dir.js";
 import {
@@ -11,7 +13,7 @@ import {
 
 describe("session-delivery queue recovery", () => {
   it("replays and acks pending entries on recovery", async () => {
-    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
       await enqueueSessionDelivery(
         {
           kind: "systemEvent",
@@ -38,8 +40,46 @@ describe("session-delivery queue recovery", () => {
     });
   });
 
+  it("defers recovery when the recovery budget would exceed the date range", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(MAX_DATE_TIMESTAMP_MS));
+
+    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
+      await enqueueSessionDelivery(
+        {
+          kind: "systemEvent",
+          sessionKey: "agent:main:main",
+          text: "leave queued",
+        },
+        tempDir,
+      );
+
+      const deliver = vi.fn(async () => undefined);
+      const warn = vi.fn();
+      const summary = await recoverPendingSessionDeliveries({
+        deliver,
+        stateDir: tempDir,
+        maxRecoveryMs: 1,
+        log: {
+          info: vi.fn(),
+          warn,
+          error: vi.fn(),
+        },
+      });
+
+      expect(deliver).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(
+        "Session delivery recovery time budget exceeded — remaining entries deferred",
+      );
+      expect(summary.recovered).toBe(0);
+      expect(await loadPendingSessionDeliveries(tempDir)).toHaveLength(1);
+    });
+
+    vi.useRealTimers();
+  });
+
   it("keeps failed entries queued with retry metadata for later recovery", async () => {
-    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
       await enqueueSessionDelivery(
         {
           kind: "agentTurn",
@@ -70,7 +110,7 @@ describe("session-delivery queue recovery", () => {
   });
 
   it("uses the entry retry budget when draining entries", async () => {
-    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
       const id = await enqueueSessionDelivery(
         {
           kind: "agentTurn",
@@ -111,7 +151,7 @@ describe("session-delivery queue recovery", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-23T00:00:00.000Z"));
 
-    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
       await enqueueSessionDelivery(
         {
           kind: "systemEvent",
@@ -161,7 +201,7 @@ describe("session-delivery queue recovery", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-23T00:00:00.000Z"));
 
-    await withTempDir({ prefix: "astroclaw-session-delivery-" }, async (tempDir) => {
+    await withTempDir({ prefix: "openclaw-session-delivery-" }, async (tempDir) => {
       const id = await enqueueSessionDelivery(
         {
           kind: "systemEvent",
