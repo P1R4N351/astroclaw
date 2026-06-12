@@ -1,3 +1,4 @@
+// Covers runtime snapshot writes produced by config IO.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   projectConfigOntoRuntimeSourceSnapshot,
@@ -5,9 +6,9 @@ import {
   setRuntimeConfigSnapshotRefreshHandler,
   setRuntimeConfigSnapshot,
 } from "./io.js";
-import type { AstroclawConfig } from "./types.js";
+import type { OpenClawConfig } from "./types.js";
 
-function createSourceConfig(): AstroclawConfig {
+function createSourceConfig(): OpenClawConfig {
   return {
     models: {
       providers: {
@@ -21,7 +22,7 @@ function createSourceConfig(): AstroclawConfig {
   };
 }
 
-function createRuntimeConfig(): AstroclawConfig {
+function createRuntimeConfig(): OpenClawConfig {
   return {
     models: {
       providers: {
@@ -50,7 +51,7 @@ describe("runtime config snapshot writes", () => {
   });
 
   it("skips source projection for non-runtime-derived configs", () => {
-    const sourceConfig: AstroclawConfig = {
+    const sourceConfig: OpenClawConfig = {
       ...createSourceConfig(),
       gateway: {
         auth: {
@@ -58,7 +59,7 @@ describe("runtime config snapshot writes", () => {
         },
       },
     };
-    const runtimeConfig: AstroclawConfig = {
+    const runtimeConfig: OpenClawConfig = {
       ...createRuntimeConfig(),
       gateway: {
         auth: {
@@ -66,7 +67,7 @@ describe("runtime config snapshot writes", () => {
         },
       },
     };
-    const independentConfig: AstroclawConfig = {
+    const independentConfig: OpenClawConfig = {
       models: {
         providers: {
           openai: {
