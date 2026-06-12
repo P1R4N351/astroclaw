@@ -1,11 +1,13 @@
+// Bundled channel catalog read tests cover catalog loading from bundled channel metadata.
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanupTempDirs, makeTempRepoRoot, writeJsonFile } from "../../test/helpers/temp-repo.js";
 
 // Delegate to the plugin-dir resolver for candidate-order policy; mock it here
-// so these tests focus on the loader's responsibility (parse package.jsons in
-// the returned dir, fall back to dist/channel-catalog.json when empty). The
+// so these tests focus on the loader's responsibility (merge
+// dist/channel-catalog.json entries with package.json metadata from the
+// returned dir). The
 // precedence policy (source vs dist-runtime vs dist, VITEST/tsx source-first,
 // isSourceCheckoutRoot detection, etc.) is exercised in
 // src/plugins/bundled-dir.test.ts and is intentionally not re-tested here.
@@ -14,13 +16,19 @@ vi.mock("../plugins/bundled-dir.js", () => ({
   resolveSourceCheckoutDependencyDiagnostic: vi.fn(() => null),
 }));
 
+vi.mock("../plugins/channel-catalog-registry.js", () => ({
+  listChannelCatalogEntries: vi.fn(() => {
+    throw new Error("bundled channel catalog read must not run full plugin discovery");
+  }),
+}));
+
 // The channel-catalog.json fallback still walks package roots via
-// resolveAstroclawPackageRootSync. Isolate from the real repo by mocking
+// resolveOpenClawPackageRootSync. Isolate from the real repo by mocking
 // moduleUrl/argv1 resolution to null and deriving only from the tmp cwd.
-vi.mock("../infra/astroclaw-root.js", () => ({
-  resolveAstroclawPackageRootSync: (opts: { cwd?: string; argv1?: string; moduleUrl?: string }) =>
+vi.mock("../infra/openclaw-root.js", () => ({
+  resolveOpenClawPackageRootSync: (opts: { cwd?: string; argv1?: string; moduleUrl?: string }) =>
     opts.cwd ?? null,
-  resolveAstroclawPackageRoot: async (opts: { cwd?: string; argv1?: string; moduleUrl?: string }) =>
+  resolveOpenClawPackageRoot: async (opts: { cwd?: string; argv1?: string; moduleUrl?: string }) =>
     opts.cwd ?? null,
 }));
 
@@ -28,19 +36,19 @@ import { resolveBundledPluginsDir } from "../plugins/bundled-dir.js";
 import { listBundledChannelCatalogEntries } from "./bundled-channel-catalog-read.js";
 
 const tempDirs: string[] = [];
-const originalBundledPluginsDir = process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
-const originalTrustBundledPluginsDir = process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
+const originalBundledPluginsDir = process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+const originalTrustBundledPluginsDir = process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
 
 afterEach(() => {
   if (originalBundledPluginsDir === undefined) {
-    delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
+    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
   } else {
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = originalBundledPluginsDir;
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = originalBundledPluginsDir;
   }
   if (originalTrustBundledPluginsDir === undefined) {
-    delete process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
+    delete process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
   } else {
-    process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = originalTrustBundledPluginsDir;
+    process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = originalTrustBundledPluginsDir;
   }
   cleanupTempDirs(tempDirs);
   vi.restoreAllMocks();
@@ -49,38 +57,39 @@ afterEach(() => {
 
 function useBundledPluginsDir(extensionsRoot: string | undefined): void {
   if (extensionsRoot) {
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = extensionsRoot;
-    process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = "1";
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = extensionsRoot;
+    process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = "1";
   } else {
-    delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
+    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
   }
   vi.mocked(resolveBundledPluginsDir).mockReturnValue(extensionsRoot);
 }
 
 function seedRoot(prefix: string): string {
   const root = makeTempRepoRoot(tempDirs, prefix);
-  writeJsonFile(path.join(root, "package.json"), { name: "astroclaw" });
+  writeJsonFile(path.join(root, "package.json"), { name: "openclaw" });
   vi.spyOn(process, "cwd").mockReturnValue(root);
   return root;
 }
 
 function seedChannelPkg(
   pkgJsonPath: string,
-  opts: { id: string; docsPath: string; label?: string; blurb?: string },
+  opts: { id: string; docsPath: string; label?: string; blurb?: string; markdownCapable?: boolean },
 ): void {
   const pluginDir = path.dirname(pkgJsonPath);
   writeJsonFile(pkgJsonPath, {
-    name: `@astroclaw/${opts.id}`,
-    astroclaw: {
+    name: `@openclaw/${opts.id}`,
+    openclaw: {
       channel: {
         id: opts.id,
         label: opts.label ?? opts.id,
         docsPath: opts.docsPath,
         blurb: opts.blurb ?? "test blurb",
+        ...(opts.markdownCapable !== undefined ? { markdownCapable: opts.markdownCapable } : {}),
       },
     },
   });
-  writeJsonFile(path.join(pluginDir, "astroclaw.plugin.json"), {
+  writeJsonFile(path.join(pluginDir, "openclaw.plugin.json"), {
     id: opts.id,
     configSchema: { type: "object" },
     channels: [opts.id],
@@ -117,8 +126,8 @@ describe("listBundledChannelCatalogEntries", () => {
     expect(telegram?.channel.label).toBe("Telegram");
   });
 
-  it("merges downloadable official catalog channels with bundled channels", () => {
-    const root = seedRoot("bcr-merge-official-");
+  it("merges the generated official catalog with bundled package metadata", () => {
+    const root = seedRoot("bcr-generated-official-");
     const extensionsRoot = path.join(root, "dist", "extensions");
     seedChannelPkg(path.join(extensionsRoot, "telegram", "package.json"), {
       id: "telegram",
@@ -128,8 +137,8 @@ describe("listBundledChannelCatalogEntries", () => {
     writeJsonFile(path.join(root, "dist", "channel-catalog.json"), {
       entries: [
         {
-          name: "@astroclaw/qqbot",
-          astroclaw: {
+          name: "@openclaw/qqbot",
+          openclaw: {
             channel: {
               id: "qqbot",
               label: "QQ Bot",
@@ -148,8 +157,38 @@ describe("listBundledChannelCatalogEntries", () => {
     expect(ids.has("telegram")).toBe(true);
   });
 
+  it("keeps bundled package metadata when generated catalog entries are stale", () => {
+    const root = seedRoot("bcr-package-wins-");
+    const extensionsRoot = path.join(root, "dist", "extensions");
+    seedChannelPkg(path.join(extensionsRoot, "matrix", "package.json"), {
+      id: "matrix",
+      docsPath: "/channels/matrix",
+      label: "Matrix",
+      markdownCapable: true,
+    });
+    writeJsonFile(path.join(root, "dist", "channel-catalog.json"), {
+      entries: [
+        {
+          name: "@openclaw/matrix",
+          openclaw: {
+            channel: {
+              id: "matrix",
+              label: "Matrix",
+              docsPath: "/channels/matrix",
+              blurb: "stale generated entry",
+            },
+          },
+        },
+      ],
+    });
+    useBundledPluginsDir(extensionsRoot);
+
+    const matrix = listBundledChannelCatalogEntries().find((entry) => entry.id === "matrix");
+    expect(matrix?.channel.markdownCapable).toBe(true);
+  });
+
   it("falls back to dist/channel-catalog.json when the resolver returns undefined", () => {
-    // ASTROCLAW_DISABLE_BUNDLED_PLUGINS, missing bundled tree, or an unresolvable
+    // OPENCLAW_DISABLE_BUNDLED_PLUGINS, missing bundled tree, or an unresolvable
     // package root all surface as undefined from resolveBundledPluginsDir. In
     // that case the loader should consult the shipped channel-catalog.json
     // rather than report zero bundled channels.
@@ -157,8 +196,8 @@ describe("listBundledChannelCatalogEntries", () => {
     writeJsonFile(path.join(root, "dist", "channel-catalog.json"), {
       entries: [
         {
-          name: "@astroclaw/fallback",
-          astroclaw: {
+          name: "@openclaw/fallback",
+          openclaw: {
             channel: {
               id: "fallback-channel",
               label: "Fallback",
@@ -176,7 +215,7 @@ describe("listBundledChannelCatalogEntries", () => {
   });
 
   it("falls back to dist/channel-catalog.json when the resolved dir has no plugin package.jsons", () => {
-    // A stale staged dir or an ASTROCLAW_BUNDLED_PLUGINS_DIR override pointing at
+    // A stale staged dir or an OPENCLAW_BUNDLED_PLUGINS_DIR override pointing at
     // an empty tree should not hide the shipped catalog entries. The loader's
     // own readdir returns nothing, bundledEntries is empty, and control falls
     // through to readOfficialCatalogFileSync.
@@ -186,8 +225,8 @@ describe("listBundledChannelCatalogEntries", () => {
     writeJsonFile(path.join(root, "dist", "channel-catalog.json"), {
       entries: [
         {
-          name: "@astroclaw/fallback",
-          astroclaw: {
+          name: "@openclaw/fallback",
+          openclaw: {
             channel: {
               id: "fallback-channel",
               label: "Fallback",
