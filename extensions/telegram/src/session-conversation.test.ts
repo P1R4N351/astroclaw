@@ -1,3 +1,4 @@
+// Telegram tests cover session conversation plugin behavior.
 import { describe, expect, it } from "vitest";
 import {
   resolveTelegramSessionConversation,
@@ -43,8 +44,8 @@ describe("resolveTelegramSessionTarget", () => {
   });
 
   it("normalizes channel session ids to lookup targets", () => {
-    expect(resolveTelegramSessionTarget({ kind: "channel", id: "@AstroclawTeam" })).toBe(
-      "@AstroclawTeam",
+    expect(resolveTelegramSessionTarget({ kind: "channel", id: "@OpenClawTeam" })).toBe(
+      "@OpenClawTeam",
     );
   });
 });
