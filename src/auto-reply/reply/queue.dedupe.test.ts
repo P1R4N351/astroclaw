@@ -1,4 +1,5 @@
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+// Tests follow-up queue message-id dedupe and drain scheduling behavior.
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { FollowupRun, QueueSettings } from "./queue.js";
 import {
@@ -186,7 +187,9 @@ describe("followup queue deduplication", () => {
 
       scheduleFollowupDrain(key, runFollowup);
       await done.promise;
-      await new Promise<void>((resolve) => setImmediate(resolve));
+      await new Promise<void>((resolve) => {
+        setImmediate(resolve);
+      });
 
       expect(
         enqueueB.enqueueFollowupRun(
