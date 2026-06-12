@@ -1,3 +1,4 @@
+// Covers installed plugin index read, write, and policy behavior.
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -5,6 +6,7 @@ import type { PluginCandidate } from "./discovery.js";
 import { buildInstalledPluginIndexRecords } from "./installed-plugin-index-record-builder.js";
 import {
   loadInstalledPluginIndexInstallRecordsSync,
+  readPersistedInstalledPluginIndexInstallRecordsSync,
   writePersistedInstalledPluginIndexInstallRecords,
 } from "./installed-plugin-index-records.js";
 import {
@@ -18,7 +20,7 @@ import {
 } from "./installed-plugin-index.js";
 import { recordPluginInstall } from "./installs.js";
 import type { PluginManifestRecord } from "./manifest-registry.js";
-import type { AstroclawPackageManifest } from "./manifest.js";
+import type { OpenClawPackageManifest } from "./manifest.js";
 import { cleanupTrackedTempDirs, makeTrackedTempDir } from "./test-helpers/fs-fixtures.js";
 
 vi.unmock("../version.js");
@@ -30,11 +32,11 @@ afterEach(() => {
 });
 
 function makeTempDir() {
-  return makeTrackedTempDir("astroclaw-installed-plugin-index", tempDirs);
+  return makeTrackedTempDir("openclaw-installed-plugin-index", tempDirs);
 }
 
 function writePluginManifest(rootDir: string, manifest: Record<string, unknown>) {
-  fs.writeFileSync(path.join(rootDir, "astroclaw.plugin.json"), JSON.stringify(manifest), "utf-8");
+  fs.writeFileSync(path.join(rootDir, "openclaw.plugin.json"), JSON.stringify(manifest), "utf-8");
 }
 
 function writePackageJson(rootDir: string, packageJson: Record<string, unknown>) {
@@ -88,8 +90,8 @@ function writeManifestlessClaudeBundle(rootDir: string, entries: readonly string
 
 function hermeticEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   return {
-    ASTROCLAW_BUNDLED_PLUGINS_DIR: undefined,
-    ASTROCLAW_VERSION: "2026.4.25",
+    OPENCLAW_BUNDLED_PLUGINS_DIR: undefined,
+    OPENCLAW_VERSION: "2026.4.25",
     VITEST: "true",
     ...overrides,
   };
@@ -102,7 +104,7 @@ function createPluginCandidate(params: {
   packageName?: string;
   packageVersion?: string;
   packageDir?: string;
-  packageManifest?: AstroclawPackageManifest;
+  packageManifest?: OpenClawPackageManifest;
   format?: PluginCandidate["format"];
   bundleFormat?: PluginCandidate["bundleFormat"];
 }): PluginCandidate {
@@ -199,6 +201,23 @@ function createRichPluginFixture(params: { id?: string; packageVersion?: string 
 }
 
 describe("installed plugin index", () => {
+  it("drops blocked install record keys while reading persisted index records", () => {
+    const root = makeTempDir();
+    const filePath = path.join(root, "installed-plugin-index.json");
+    fs.writeFileSync(
+      filePath,
+      '{"installRecords":{"safe":{"source":"npm","spec":"safe"},"constructor":{"source":"npm","spec":"poison"},"prototype":{"source":"npm","spec":"poison"},"__proto__":{"source":"npm","spec":"poison"}}}',
+      "utf-8",
+    );
+
+    const records = readPersistedInstalledPluginIndexInstallRecordsSync({ filePath });
+
+    expect(records?.safe).toEqual({ source: "npm", spec: "safe" });
+    expect(Object.hasOwn(records ?? {}, "constructor")).toBe(false);
+    expect(Object.hasOwn(records ?? {}, "prototype")).toBe(false);
+    expect(Object.hasOwn(records ?? {}, "__proto__")).toBe(false);
+  });
+
   it("builds a runtime-free installed plugin snapshot from manifest and package metadata", () => {
     const fixture = createRichPluginFixture();
 
@@ -326,7 +345,7 @@ describe("installed plugin index", () => {
   it("tolerates stale manifest records without normalized channels", () => {
     const rootDir = makeTempDir();
     writeRuntimeEntry(rootDir);
-    const manifestPath = path.join(rootDir, "astroclaw.plugin.json");
+    const manifestPath = path.join(rootDir, "openclaw.plugin.json");
 
     const records = buildInstalledPluginIndexRecords({
       candidates: [createPluginCandidate({ rootDir })],
@@ -658,7 +677,7 @@ describe("installed plugin index", () => {
     const config = {
       plugins: {
         entries: {
-          "openai-codex": {
+          openai: {
             enabled: false,
           },
         },
@@ -899,8 +918,8 @@ describe("installed plugin index", () => {
 
     const index = loadInstalledPluginIndex({
       env: hermeticEnv({
-        ASTROCLAW_DISABLE_BUNDLED_PLUGINS: "1",
-        ASTROCLAW_STATE_DIR: stateDir,
+        OPENCLAW_DISABLE_BUNDLED_PLUGINS: "1",
+        OPENCLAW_STATE_DIR: stateDir,
       }),
     });
 
@@ -1055,6 +1074,38 @@ describe("installed plugin index", () => {
     ]);
   });
 
+  it("treats legacy config-path startup metadata as migration invalidation", () => {
+    const fixture = createRichPluginFixture();
+    writePluginManifest(fixture.rootDir, {
+      id: "demo",
+      name: "Demo",
+      configSchema: { type: "object" },
+      providers: ["demo"],
+      activation: {
+        onConfigPaths: ["browser"],
+      },
+    });
+    const current = loadInstalledPluginIndex({
+      candidates: [fixture.candidate],
+      env: hermeticEnv(),
+    });
+    const previous = {
+      ...current,
+      plugins: current.plugins.map((plugin) => ({
+        ...plugin,
+        startup: {
+          sidecar: plugin.startup.sidecar,
+          memory: plugin.startup.memory,
+          deferConfiguredChannelFullLoadUntilAfterListen:
+            plugin.startup.deferConfiguredChannelFullLoadUntilAfterListen,
+          agentHarnesses: plugin.startup.agentHarnesses,
+        },
+      })),
+    };
+
+    expect(diffInstalledPluginIndexInvalidationReasons(previous, current)).toEqual(["migration"]);
+  });
+
   it("does not mark enabled-only migration snapshots stale for omitted disabled plugins", () => {
     const enabledFixture = createRichPluginFixture();
     const disabledFixture = createRichPluginFixture();
@@ -1151,7 +1202,7 @@ describe("installed plugin index", () => {
           },
         },
       },
-      env: hermeticEnv({ ASTROCLAW_VERSION: "2026.4.25" }),
+      env: hermeticEnv({ OPENCLAW_VERSION: "2026.4.25" }),
     });
 
     writePackageJson(fixture.rootDir, {
@@ -1177,7 +1228,7 @@ describe("installed plugin index", () => {
             resolvedVersion: "1.2.4",
           },
         },
-        env: hermeticEnv({ ASTROCLAW_VERSION: "2026.4.26" }),
+        env: hermeticEnv({ OPENCLAW_VERSION: "2026.4.26" }),
       }),
       compatRegistryVersion: "different-compat-registry",
     };
