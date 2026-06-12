@@ -1,3 +1,4 @@
+// Memory Wiki tests cover ingest plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -51,13 +52,13 @@ hello from source
 \`\`\`
 
 ## Notes
-<!-- astroclaw:human:start -->
-<!-- astroclaw:human:end -->
+<!-- openclaw:human:start -->
+<!-- openclaw:human:end -->
 
 ## Related
-<!-- astroclaw:wiki:related:start -->
+<!-- openclaw:wiki:related:start -->
 - No related pages yet.
-<!-- astroclaw:wiki:related:end -->
+<!-- openclaw:wiki:related:end -->
 `);
     await expect(fs.readFile(path.join(config.vault.path, "index.md"), "utf8")).resolves.toContain(
       "[meeting notes](sources/meeting-notes.md)",
