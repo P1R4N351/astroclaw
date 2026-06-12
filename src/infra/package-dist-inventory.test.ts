@@ -1,3 +1,4 @@
+// Covers package dist inventory collection and validation.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -15,7 +16,7 @@ import {
 
 describe("package dist inventory", () => {
   it("tracks missing and stale dist files", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-" }, async (packageRoot) => {
       const currentFile = path.join(packageRoot, "dist", "current-BR6xv1a1.js");
       await fs.mkdir(path.dirname(currentFile), { recursive: true });
       await fs.writeFile(currentFile, "export {};\n", "utf8");
@@ -40,7 +41,7 @@ describe("package dist inventory", () => {
   });
 
   it("keeps npm-omitted dist artifacts out of the inventory", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-pack-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-pack-" }, async (packageRoot) => {
       const packagedQaChannelRuntime = path.join(
         packageRoot,
         "dist",
@@ -85,6 +86,20 @@ describe("package dist inventory", () => {
         "qa-lab",
         "cli.d.ts",
       );
+      const omittedDeepPluginSdkDeclaration = path.join(
+        packageRoot,
+        "dist",
+        "plugin-sdk",
+        "src",
+        "plugin-sdk",
+        "provider-entry.d.ts",
+      );
+      const flatPluginSdkDeclaration = path.join(
+        packageRoot,
+        "dist",
+        "plugin-sdk",
+        "provider-entry.d.ts",
+      );
       const omittedQaRuntimeChunk = path.join(packageRoot, "dist", "qa-runtime-B9LDtssJ.js");
       const [omittedBuildStamp, omittedRuntimePostBuildStamp] = LOCAL_BUILD_METADATA_DIST_PATHS.map(
         (relativePath) => path.join(packageRoot, relativePath),
@@ -95,6 +110,7 @@ describe("package dist inventory", () => {
       await fs.mkdir(path.dirname(omittedQaMatrixChunk), { recursive: true });
       await fs.mkdir(path.dirname(omittedQaLabTypes), { recursive: true });
       await fs.mkdir(path.join(packageRoot, "dist", "plugin-sdk"), { recursive: true });
+      await fs.mkdir(path.dirname(omittedDeepPluginSdkDeclaration), { recursive: true });
       await fs.writeFile(packagedQaChannelRuntime, "export {};\n", "utf8");
       await fs.writeFile(packagedQaLabRuntime, "export {};\n", "utf8");
       await fs.writeFile(omittedQaChunk, "export {};\n", "utf8");
@@ -104,24 +120,88 @@ describe("package dist inventory", () => {
       await fs.writeFile(omittedQaChannelPluginSdk, "export {};\n", "utf8");
       await fs.writeFile(omittedQaChannelProtocolPluginSdk, "export {};\n", "utf8");
       await fs.writeFile(omittedQaLabTypes, "export {};\n", "utf8");
+      await fs.writeFile(omittedDeepPluginSdkDeclaration, "export {};\n", "utf8");
+      await fs.writeFile(flatPluginSdkDeclaration, "export {};\n", "utf8");
       await fs.writeFile(omittedQaRuntimeChunk, "export {};\n", "utf8");
       await fs.writeFile(omittedBuildStamp, "{}\n", "utf8");
       await fs.writeFile(omittedRuntimePostBuildStamp, "{}\n", "utf8");
       await fs.writeFile(omittedMap, "{}", "utf8");
 
-      await expect(writePackageDistInventory(packageRoot)).resolves.toStrictEqual([]);
+      await expect(writePackageDistInventory(packageRoot)).resolves.toStrictEqual([
+        "dist/plugin-sdk/provider-entry.d.ts",
+      ]);
+    });
+  });
+
+  it("honors package files exclusions when writing the dist inventory", async () => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-package-files-" }, async (packageRoot) => {
+      const packagedRuntime = path.join(packageRoot, "dist", "plugin-sdk", "runtime.js");
+      const omittedTestRuntime = path.join(
+        packageRoot,
+        "dist",
+        "plugin-sdk",
+        "plugin-test-runtime.js",
+      );
+      const omittedTestTypes = path.join(
+        packageRoot,
+        "dist",
+        "plugin-sdk",
+        "plugin-test-runtime.d.ts",
+      );
+      const omittedNestedHelper = path.join(
+        packageRoot,
+        "dist",
+        "plugin-sdk",
+        "src",
+        "test-utils",
+        "helpers.d.ts",
+      );
+      const omittedQaCompat = path.join(packageRoot, "dist", "plugin-sdk", "qa-channel.js");
+      const omittedRuntimeChunk = path.join(packageRoot, "dist", "qa-runtime-AbC123.js");
+      const omittedTopLevelMap = path.join(packageRoot, "dist", "runtime.js.map");
+      const omittedMap = path.join(packageRoot, "dist", "plugin-sdk", "runtime.js.map");
+
+      await fs.mkdir(path.dirname(packagedRuntime), { recursive: true });
+      await fs.mkdir(path.dirname(omittedNestedHelper), { recursive: true });
+      await fs.writeFile(
+        path.join(packageRoot, "package.json"),
+        JSON.stringify({
+          files: [
+            "dist/",
+            "!dist/plugin-sdk/plugin-test-runtime.js",
+            "!dist/plugin-sdk/plugin-test-runtime.d.ts",
+            "!dist/plugin-sdk/src/test-utils/**",
+            "!dist/plugin-sdk/qa-channel.*",
+            "!dist/qa-runtime-*.js",
+            "!dist/**/*.map",
+          ],
+        }),
+        "utf8",
+      );
+      await fs.writeFile(packagedRuntime, "export {};\n", "utf8");
+      await fs.writeFile(omittedTestRuntime, "export {};\n", "utf8");
+      await fs.writeFile(omittedTestTypes, "export {};\n", "utf8");
+      await fs.writeFile(omittedNestedHelper, "export {};\n", "utf8");
+      await fs.writeFile(omittedQaCompat, "export {};\n", "utf8");
+      await fs.writeFile(omittedRuntimeChunk, "export {};\n", "utf8");
+      await fs.writeFile(omittedTopLevelMap, "{}", "utf8");
+      await fs.writeFile(omittedMap, "{}", "utf8");
+
+      await expect(writePackageDistInventory(packageRoot)).resolves.toEqual([
+        "dist/plugin-sdk/runtime.js",
+      ]);
     });
   });
 
   it("keeps transient plugin dependency trees out of the inventory", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-plugin-deps-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-plugin-deps-" }, async (packageRoot) => {
       const realFile = path.join(packageRoot, "dist", "index.js");
       const rootDependencyPackage = path.join(
         packageRoot,
         "dist",
         "extensions",
         "node_modules",
-        "astroclaw",
+        "openclaw",
         "package.json",
       );
       const pluginDependencyPackage = path.join(
@@ -146,7 +226,7 @@ describe("package dist inventory", () => {
 
   it("omits packaged extension node_modules while keeping extension runtime files", async () => {
     await withTempDir(
-      { prefix: "astroclaw-dist-inventory-extension-node-modules-" },
+      { prefix: "openclaw-dist-inventory-extension-node-modules-" },
       async (packageRoot) => {
         const extensionRuntime = path.join(
           packageRoot,
@@ -160,7 +240,7 @@ describe("package dist inventory", () => {
           "dist",
           "extensions",
           "node_modules",
-          "astroclaw",
+          "openclaw",
           "package.json",
         );
         const extensionDependencyPackage = path.join(
@@ -188,7 +268,7 @@ describe("package dist inventory", () => {
   });
 
   it("keeps publishable externalized bundled plugin dist trees out of the inventory", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-externalized-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-externalized-" }, async (packageRoot) => {
       const externalizedRuntime = path.join(
         packageRoot,
         "dist",
@@ -233,8 +313,8 @@ describe("package dist inventory", () => {
       await fs.writeFile(
         externalizedPackageJson,
         JSON.stringify({
-          name: "@astroclaw/external-chat",
-          astroclaw: {
+          name: "@openclaw/external-chat",
+          openclaw: {
             release: {
               publishToClawHub: true,
               publishToNpm: true,
@@ -246,8 +326,8 @@ describe("package dist inventory", () => {
       await fs.writeFile(
         bundledPackageJson,
         JSON.stringify({
-          name: "@astroclaw/bundled-chat",
-          astroclaw: {},
+          name: "@openclaw/bundled-chat",
+          openclaw: {},
         }),
         "utf8",
       );
@@ -259,7 +339,7 @@ describe("package dist inventory", () => {
   });
 
   it("keeps publishable core-package runtime plugin dist trees in the inventory", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-core-runtime-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-core-runtime-" }, async (packageRoot) => {
       const coreRuntime = path.join(packageRoot, "dist", "extensions", "core-chat", "index.js");
       const corePackageJson = path.join(packageRoot, "extensions", "core-chat", "package.json");
 
@@ -269,8 +349,8 @@ describe("package dist inventory", () => {
       await fs.writeFile(
         corePackageJson,
         JSON.stringify({
-          name: "@astroclaw/core-chat",
-          astroclaw: {
+          name: "@openclaw/core-chat",
+          openclaw: {
             release: {
               publishToClawHub: true,
               publishToNpm: true,
@@ -287,7 +367,7 @@ describe("package dist inventory", () => {
   });
 
   it("reports runtime-created install staging dirs during installed dist verification", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-stage-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-stage-" }, async (packageRoot) => {
       const realFile = path.join(packageRoot, "dist", "real-AbC123.js");
       await fs.mkdir(path.dirname(realFile), { recursive: true });
       await fs.writeFile(realFile, "export {};\n", "utf8");
@@ -298,7 +378,7 @@ describe("package dist inventory", () => {
         "dist",
         "extensions",
         "brave",
-        ".astroclaw-install-stage",
+        ".openclaw-install-stage",
         "node_modules",
         "typebox",
         "build",
@@ -310,7 +390,7 @@ describe("package dist inventory", () => {
         "dist",
         "extensions",
         "browser",
-        ".astroclaw-install-stage-AbC123",
+        ".openclaw-install-stage-AbC123",
         "node_modules",
         "playwright-core",
         "package.json",
@@ -321,8 +401,8 @@ describe("package dist inventory", () => {
       await fs.writeFile(suffixedStageFile, "{}", "utf8");
 
       await expect(collectPackageDistInventoryErrors(packageRoot)).resolves.toEqual([
-        "unexpected packaged dist file dist/extensions/brave/.astroclaw-install-stage/node_modules/typebox/build/compile/code.mjs",
-        "unexpected packaged dist file dist/extensions/browser/.astroclaw-install-stage-AbC123/node_modules/playwright-core/package.json",
+        "unexpected packaged dist file dist/extensions/brave/.openclaw-install-stage/node_modules/typebox/build/compile/code.mjs",
+        "unexpected packaged dist file dist/extensions/browser/.openclaw-install-stage-AbC123/node_modules/playwright-core/package.json",
       ]);
     });
   });
@@ -330,37 +410,37 @@ describe("package dist inventory", () => {
   it("matches install-stage paths case-insensitively across path segments", () => {
     expect(
       isLegacyPluginDependencyInstallStagePath(
-        "dist/extensions/brave/.astroclaw-install-stage/node_modules/typebox/package.json",
+        "dist/extensions/brave/.openclaw-install-stage/node_modules/typebox/package.json",
       ),
     ).toBe(true);
     expect(
       isLegacyPluginDependencyInstallStagePath(
-        "dist/Extensions/browser/.ASTROCLAW-INSTALL-STAGE-AbC123/node_modules/playwright-core/package.json",
+        "dist/Extensions/browser/.OPENCLAW-INSTALL-STAGE-AbC123/node_modules/playwright-core/package.json",
       ),
     ).toBe(true);
     expect(
       isLegacyPluginDependencyInstallStagePath(
-        "Dist/Extensions/browser/.Astroclaw-Install-Stage/package.json",
+        "Dist/Extensions/browser/.OpenClaw-Install-Stage/package.json",
       ),
     ).toBe(true);
     expect(
       isLegacyPluginDependencyInstallStagePath(
-        "dist/extensions/browser/.astroclaw-runtime-deps-copy-AbC123/package.json",
+        "dist/extensions/browser/.openclaw-runtime-deps-copy-AbC123/package.json",
       ),
     ).toBe(false);
     expect(
-      isLegacyPluginDependencyInstallStagePath("dist/extensions/.astroclaw-install-stage"),
+      isLegacyPluginDependencyInstallStagePath("dist/extensions/.openclaw-install-stage"),
     ).toBe(false);
   });
 
   it("rejects pre-populated install-stage debris at publish time", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-stage-publish-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-stage-publish-" }, async (packageRoot) => {
       const seededStagePackageJson = path.join(
         packageRoot,
         "dist",
         "extensions",
         "evil",
-        ".astroclaw-install-stage",
+        ".openclaw-install-stage",
         "package.json",
       );
       const suffixedSeed = path.join(
@@ -368,7 +448,7 @@ describe("package dist inventory", () => {
         "dist",
         "extensions",
         "browser",
-        ".astroclaw-install-stage-AbC123",
+        ".openclaw-install-stage-AbC123",
         "node_modules",
         "playwright-core",
         "package.json",
@@ -379,8 +459,8 @@ describe("package dist inventory", () => {
       await fs.writeFile(suffixedSeed, "{}", "utf8");
 
       await expect(collectLegacyPluginDependencyStagingDebrisPaths(packageRoot)).resolves.toEqual([
-        "dist/extensions/browser/.astroclaw-install-stage-AbC123",
-        "dist/extensions/evil/.astroclaw-install-stage",
+        "dist/extensions/browser/.openclaw-install-stage-AbC123",
+        "dist/extensions/evil/.openclaw-install-stage",
       ]);
       await expect(assertNoLegacyPluginDependencyStagingDebris(packageRoot)).rejects.toThrow(
         /unexpected legacy plugin dependency staging debris/,
@@ -393,21 +473,21 @@ describe("package dist inventory", () => {
 
   it("rejects mixed-case install-stage debris on case-sensitive release builders", async () => {
     await withTempDir(
-      { prefix: "astroclaw-dist-inventory-stage-extensions-case-" },
+      { prefix: "openclaw-dist-inventory-stage-extensions-case-" },
       async (packageRoot) => {
         const mixedCaseStage = path.join(
           packageRoot,
           "dist",
           "Extensions",
           "evil",
-          ".Astroclaw-Install-Stage",
+          ".OpenClaw-Install-Stage",
           "package.json",
         );
         await fs.mkdir(path.dirname(mixedCaseStage), { recursive: true });
         await fs.writeFile(mixedCaseStage, "{}", "utf8");
 
         await expect(collectLegacyPluginDependencyStagingDebrisPaths(packageRoot)).resolves.toEqual(
-          ["dist/Extensions/evil/.Astroclaw-Install-Stage"],
+          ["dist/Extensions/evil/.OpenClaw-Install-Stage"],
         );
         await expect(writePackageDistInventory(packageRoot)).rejects.toThrow(
           /unexpected legacy plugin dependency staging debris/,
@@ -416,21 +496,21 @@ describe("package dist inventory", () => {
     );
 
     await withTempDir(
-      { prefix: "astroclaw-dist-inventory-stage-root-case-" },
+      { prefix: "openclaw-dist-inventory-stage-root-case-" },
       async (packageRoot) => {
         const mixedCaseStage = path.join(
           packageRoot,
           "Dist",
           "Extensions",
           "browser",
-          ".ASTROCLAW-INSTALL-STAGE-AbC123",
+          ".OPENCLAW-INSTALL-STAGE-AbC123",
           "package.json",
         );
         await fs.mkdir(path.dirname(mixedCaseStage), { recursive: true });
         await fs.writeFile(mixedCaseStage, "{}", "utf8");
 
         await expect(collectLegacyPluginDependencyStagingDebrisPaths(packageRoot)).resolves.toEqual(
-          ["Dist/Extensions/browser/.ASTROCLAW-INSTALL-STAGE-AbC123"],
+          ["Dist/Extensions/browser/.OPENCLAW-INSTALL-STAGE-AbC123"],
         );
         await expect(writePackageDistInventory(packageRoot)).rejects.toThrow(
           /unexpected legacy plugin dependency staging debris/,
@@ -440,7 +520,7 @@ describe("package dist inventory", () => {
   });
 
   it("treats a missing dist/extensions tree as no staging debris", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-no-extensions-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-no-extensions-" }, async (packageRoot) => {
       await fs.mkdir(path.join(packageRoot, "dist"), { recursive: true });
       await expect(collectLegacyPluginDependencyStagingDebrisPaths(packageRoot)).resolves.toEqual(
         [],
@@ -452,7 +532,7 @@ describe("package dist inventory", () => {
   });
 
   it("fails closed when the inventory is missing", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-missing-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-missing-" }, async (packageRoot) => {
       await fs.mkdir(path.join(packageRoot, "dist"), { recursive: true });
       await expect(collectPackageDistInventoryErrors(packageRoot)).resolves.toEqual([
         `missing package dist inventory ${PACKAGE_DIST_INVENTORY_RELATIVE_PATH}`,
@@ -461,7 +541,7 @@ describe("package dist inventory", () => {
   });
 
   it("rejects symlinked dist entries", async () => {
-    await withTempDir({ prefix: "astroclaw-dist-inventory-symlink-" }, async (packageRoot) => {
+    await withTempDir({ prefix: "openclaw-dist-inventory-symlink-" }, async (packageRoot) => {
       const distDir = path.join(packageRoot, "dist");
       await fs.mkdir(distDir, { recursive: true });
       await fs.writeFile(path.join(packageRoot, "escape.js"), "export {};\n", "utf8");
