@@ -1,8 +1,9 @@
+// Migrate Hermes provider module implements model/runtime integration.
 import type {
   MigrationPlan,
   MigrationProviderContext,
   MigrationProviderPlugin,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import { applyHermesPlan } from "./apply.js";
 import { buildHermesPlan } from "./plan.js";
 import { discoverHermesSource, hasHermesSource } from "./source.js";
