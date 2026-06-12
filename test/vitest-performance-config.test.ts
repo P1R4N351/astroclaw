@@ -1,3 +1,4 @@
+// Vitest performance config tests validate performance test project setup.
 import { describe, expect, it } from "vitest";
 import { loadVitestExperimentalConfig } from "./vitest/vitest.performance-config.ts";
 
@@ -14,7 +15,7 @@ describe("loadVitestExperimentalConfig", () => {
     expect(
       loadVitestExperimentalConfig(
         {
-          ASTROCLAW_VITEST_FS_MODULE_CACHE: "1",
+          OPENCLAW_VITEST_FS_MODULE_CACHE: "1",
         },
         "linux",
       ),
@@ -29,14 +30,14 @@ describe("loadVitestExperimentalConfig", () => {
     expect(
       loadVitestExperimentalConfig(
         {
-          ASTROCLAW_VITEST_FS_MODULE_CACHE_PATH: "/tmp/astroclaw-vitest-cache",
+          OPENCLAW_VITEST_FS_MODULE_CACHE_PATH: "/tmp/openclaw-vitest-cache",
         },
         "linux",
       ),
     ).toEqual({
       experimental: {
         fsModuleCache: true,
-        fsModuleCachePath: "/tmp/astroclaw-vitest-cache",
+        fsModuleCachePath: "/tmp/openclaw-vitest-cache",
       },
     });
   });
@@ -49,7 +50,7 @@ describe("loadVitestExperimentalConfig", () => {
     expect(
       loadVitestExperimentalConfig(
         {
-          ASTROCLAW_VITEST_FS_MODULE_CACHE: "1",
+          OPENCLAW_VITEST_FS_MODULE_CACHE: "1",
         },
         "win32",
       ),
@@ -64,7 +65,7 @@ describe("loadVitestExperimentalConfig", () => {
     expect(
       loadVitestExperimentalConfig(
         {
-          ASTROCLAW_VITEST_FS_MODULE_CACHE: "0",
+          OPENCLAW_VITEST_FS_MODULE_CACHE: "0",
         },
         "linux",
       ),
@@ -75,8 +76,8 @@ describe("loadVitestExperimentalConfig", () => {
     expect(
       loadVitestExperimentalConfig(
         {
-          ASTROCLAW_VITEST_IMPORT_DURATIONS: "true",
-          ASTROCLAW_VITEST_PRINT_IMPORT_BREAKDOWN: "1",
+          OPENCLAW_VITEST_IMPORT_DURATIONS: "true",
+          OPENCLAW_VITEST_PRINT_IMPORT_BREAKDOWN: "1",
         },
         "linux",
       ),
