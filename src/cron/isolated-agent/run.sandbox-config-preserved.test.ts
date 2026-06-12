@@ -1,3 +1,4 @@
+// Sandbox config preservation tests cover cron runs keeping sandbox settings intact.
 import { describe, expect, it } from "vitest";
 import { resolveSandboxConfigForAgent } from "../../agents/sandbox/config.js";
 import { buildCronAgentDefaultsConfig } from "./run-config.js";
@@ -87,10 +88,10 @@ describe("runCronIsolatedAgentTurn sandbox config preserved", () => {
     const runCfg = buildRunCfg("specialist", {
       sandbox: {
         docker: {
-          image: "ghcr.io/astroclaw/sandbox:custom",
+          image: "ghcr.io/openclaw/sandbox:custom",
         },
         browser: {
-          image: "ghcr.io/astroclaw/browser:custom",
+          image: "ghcr.io/openclaw/browser:custom",
         },
         prune: {
           idleHours: 1,
@@ -102,12 +103,12 @@ describe("runCronIsolatedAgentTurn sandbox config preserved", () => {
     expectDefaultSandboxPreserved(runCfg);
     expect(resolvedSandbox.mode).toBe("all");
     expect(resolvedSandbox.workspaceAccess).toBe("rw");
-    expect(resolvedSandbox.docker.image).toBe("ghcr.io/astroclaw/sandbox:custom");
+    expect(resolvedSandbox.docker.image).toBe("ghcr.io/openclaw/sandbox:custom");
     expect(resolvedSandbox.docker.network).toBe("none");
     expect(resolvedSandbox.docker.dangerouslyAllowContainerNamespaceJoin).toBe(true);
     expect(resolvedSandbox.docker.dangerouslyAllowExternalBindSources).toBe(true);
     expect(resolvedSandbox.browser.enabled).toBe(true);
-    expect(resolvedSandbox.browser.image).toBe("ghcr.io/astroclaw/browser:custom");
+    expect(resolvedSandbox.browser.image).toBe("ghcr.io/openclaw/browser:custom");
     expect(resolvedSandbox.browser.autoStart).toBe(false);
     expect(resolvedSandbox.prune.idleHours).toBe(1);
     expect(resolvedSandbox.prune.maxAgeDays).toBe(7);
