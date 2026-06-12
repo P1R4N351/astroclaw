@@ -1,3 +1,4 @@
+// Verifies tool package import boundaries and public barrel usage.
 import { spawnSync } from "node:child_process";
 import fs, { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -96,7 +97,7 @@ describe("tool system boundary", () => {
     });
   });
 
-  it("keeps production tool modules independent from Astroclaw subsystems", () => {
+  it("keeps production tool modules independent from OpenClaw subsystems", () => {
     const violations = listProductionToolModuleFiles().flatMap((fileName) => {
       const source = readFileSync(new URL(fileName, toolsDir), "utf8");
       return collectStaticModuleReferences(source)
