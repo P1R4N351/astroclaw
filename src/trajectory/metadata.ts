@@ -1,8 +1,8 @@
-import type { SkillSnapshot } from "../agents/skills.js";
+// Trajectory metadata helpers capture environment metadata for trajectory files.
 import { resolveStateDir } from "../config/paths.js";
 import { redactConfigObject } from "../config/redact-snapshot.js";
 import type { SessionSystemPromptReport } from "../config/sessions/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveCommitHash } from "../infra/git-commit.js";
 import { resolveOsSummary } from "../infra/os-summary.js";
 import {
@@ -12,11 +12,14 @@ import {
 } from "../logging/diagnostic-support-redaction.js";
 import { loadPluginMetadataSnapshot } from "../plugins/plugin-metadata-snapshot.js";
 import { getActivePluginRegistry, listImportedRuntimePluginIds } from "../plugins/runtime.js";
+import type { SkillSnapshot } from "../skills/types.js";
 import { VERSION } from "../version.js";
 
+// Runtime metadata capture for trajectory events. This records enough config,
+// plugin, skill, and prompt context to explain a run after logs are exported.
 type BuildTrajectoryRunMetadataParams = {
   env?: NodeJS.ProcessEnv;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir: string;
   sessionFile?: string;
   sessionKey?: string;
@@ -49,6 +52,7 @@ type BuildTrajectoryArtifactsParams = {
   timedOutDuringToolExecution: boolean;
   promptError?: string;
   promptErrorSource?: string | null;
+  terminalError?: string;
   usage?: unknown;
   promptCache?: unknown;
   compactionCount: number;
@@ -59,7 +63,7 @@ type BuildTrajectoryArtifactsParams = {
     completedCount: number;
     activeCount: number;
   };
-  toolMetas: Array<{ toolName: string; meta?: string }>;
+  toolMetas: Array<{ toolName: string; meta?: string; asyncStarted?: boolean }>;
   didSendViaMessagingTool: boolean;
   successfulCronAdds: number;
   messagingToolSentTexts: string[];
@@ -133,10 +137,12 @@ function buildPluginsFromActiveRegistry() {
 }
 
 function buildPluginsFromManifest(params: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }) {
+  // Startup captures can happen before runtime activation. Fall back to the
+  // manifest snapshot so exported runs still show configured plugin surfaces.
   const snapshot = loadPluginMetadataSnapshot({
     config: params.config ?? {},
     workspaceDir: params.workspaceDir,
@@ -176,9 +182,15 @@ function buildSkillsCapture(
   if (!skillsSnapshot) {
     return undefined;
   }
+  const filteredResolvedSkills =
+    skillsSnapshot.resolvedSkills?.filter(
+      (skill) => typeof skill.name === "string" && skill.name.length > 0,
+    ) ?? [];
   const entries =
-    skillsSnapshot.resolvedSkills && skillsSnapshot.resolvedSkills.length > 0
-      ? skillsSnapshot.resolvedSkills.map((skill) => ({
+    // Prefer resolved skill files when available; older call sites may only
+    // have the summarized skill catalog, which is still useful for support.
+    filteredResolvedSkills.length > 0
+      ? filteredResolvedSkills.map((skill) => ({
           id: skill.name,
           name: skill.name,
           description: skill.description,
@@ -189,17 +201,19 @@ function buildSkillsCapture(
           disableModelInvocation: skill.disableModelInvocation,
           available: true,
         }))
-      : skillsSnapshot.skills.map((skill) => ({
-          id: skill.name,
-          name: skill.name,
-          primaryEnv: skill.primaryEnv,
-          requiredEnv: skill.requiredEnv,
-          available: true,
-        }));
+      : skillsSnapshot.skills
+          .filter((skill) => typeof skill.name === "string" && skill.name.length > 0)
+          .map((skill) => ({
+            id: skill.name,
+            name: skill.name,
+            primaryEnv: skill.primaryEnv,
+            requiredEnv: skill.requiredEnv,
+            available: true,
+          }));
   return {
     snapshotVersion: skillsSnapshot.version,
     skillFilter: toSortedUniqueStrings(skillsSnapshot.skillFilter),
-    entries: entries.toSorted((left, right) => left.name.localeCompare(right.name)),
+    entries: entries.toSorted((left, right) => (left.name ?? "").localeCompare(right.name ?? "")),
   };
 }
 
@@ -226,8 +240,8 @@ export function buildTrajectoryRunMetadata(
   return {
     capturedAt: new Date().toISOString(),
     harness: {
-      type: "astroclaw",
-      name: "Astroclaw",
+      type: "openclaw",
+      name: "OpenClaw",
       version: VERSION,
       gitSha:
         resolveCommitHash({ cwd: params.workspaceDir, env, moduleUrl: import.meta.url }) ??
@@ -293,6 +307,8 @@ export function buildTrajectoryRunMetadata(
   };
 }
 
+// Completion artifact schema mirrored into trajectory export artifacts.json.
+// Keep field names close to runtime event data to make bundle diffs readable.
 export function buildTrajectoryArtifacts(
   params: BuildTrajectoryArtifactsParams,
 ): Record<string, unknown> {
@@ -307,6 +323,7 @@ export function buildTrajectoryArtifacts(
     timedOutDuringToolExecution: params.timedOutDuringToolExecution,
     promptError: params.promptError,
     promptErrorSource: params.promptErrorSource,
+    terminalError: params.terminalError,
     usage: params.usage,
     promptCache: params.promptCache,
     compactionCount: params.compactionCount,
