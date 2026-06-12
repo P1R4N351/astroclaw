@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Discord tests cover setup surface plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { createDiscordSetupWizardBase } from "./setup-core.js";
 
@@ -33,7 +34,7 @@ describe("discordSetupWizard.dmPolicy", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         "alerts",
       ),
     ).toBe("allowlist");
@@ -59,7 +60,7 @@ describe("discordSetupWizard.dmPolicy", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       "open",
       "alerts",
     );
@@ -88,7 +89,7 @@ describe("discordSetupWizard.status", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
     });
 
     expect(configured).toBe(false);
@@ -110,11 +111,11 @@ describe("discordSetupWizard.groupAccess", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountId: "default",
       resolved: [
         {
-          input: "Astroclaw/#triage",
+          input: "OpenClaw/#triage",
           resolved: true,
           guildId: "guild-1",
           channelId: "channel-1",
