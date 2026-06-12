@@ -1,5 +1,6 @@
+/** Tests context command behavior and token reporting. */
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { buildCommandContext } from "./commands-context.js";
 import { stripStructuralPrefixes } from "./mentions.js";
 import { buildTestCtx } from "./test-ctx.js";
@@ -19,7 +20,7 @@ describe("buildCommandContext", () => {
 
     const result = buildCommandContext({
       ctx,
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       isGroup: false,
       triggerBodyNormalized: "/id",
       commandAuthorized: true,
@@ -42,7 +43,7 @@ describe("buildCommandContext", () => {
 
     const result = buildCommandContext({
       ctx,
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       isGroup: false,
       triggerBodyNormalized: stripStructuralPrefixes("/reset soft\nre-read persona files"),
       commandAuthorized: true,
@@ -68,7 +69,7 @@ describe("buildCommandContext", () => {
 
     const result = buildCommandContext({
       ctx,
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       isGroup: false,
       triggerBodyNormalized: "/codex bind",
       commandAuthorized: true,
