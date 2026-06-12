@@ -1,3 +1,4 @@
+/** Tests Zalo token activity secret discovery in runtime config. */
 import { describe, expect, it } from "vitest";
 import "./runtime-zalo.test-support.ts";
 import {
@@ -30,7 +31,7 @@ describe("secrets runtime snapshot zalo token activity", () => {
       env: {
         ZALO_BOT_TOKEN: "resolved-zalo-token",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -57,7 +58,7 @@ describe("secrets runtime snapshot zalo token activity", () => {
       env: {
         ZALO_WORK_BOT_TOKEN: "resolved-zalo-work-token",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -87,7 +88,7 @@ describe("secrets runtime snapshot zalo token activity", () => {
       env: {
         ZALO_TOP_LEVEL_TOKEN: "resolved-zalo-top-level-token",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -114,7 +115,7 @@ describe("secrets runtime snapshot zalo token activity", () => {
       env: {
         ZALO_DEFAULT_TOKEN: "resolved-zalo-default-token",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
