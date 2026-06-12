@@ -1,3 +1,4 @@
+// Covers config IO permission-denied errors and recovery messaging.
 import { describe, expect, it } from "vitest";
 import { createConfigIO } from "./io.js";
 
@@ -24,7 +25,7 @@ function makeEaccesFs(configPath: string) {
 
 describe("config io EACCES handling", () => {
   it("returns a helpful error message when config file is not readable (EACCES)", async () => {
-    const configPath = "/data/.astroclaw/astroclaw.json";
+    const configPath = "/data/.openclaw/openclaw.json";
     const errors: string[] = [];
     const io = createConfigIO({
       configPath,
@@ -46,7 +47,7 @@ describe("config io EACCES handling", () => {
   });
 
   it("includes configPath in the chown hint for the correct remediation command", async () => {
-    const configPath = "/home/myuser/.astroclaw/astroclaw.json";
+    const configPath = "/home/myuser/.openclaw/openclaw.json";
     const io = createConfigIO({
       configPath,
       fs: makeEaccesFs(configPath),
