@@ -1,3 +1,4 @@
+// Status scan config tests cover scan command config loading and cold-start resolution.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadStatusScanCommandConfig,
@@ -17,7 +18,7 @@ describe("status.scan.config-shared", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.resolveConfigPath.mockReturnValue(
-      `/tmp/astroclaw-status-scan-config-shared-missing-${process.pid}.json`,
+      `/tmp/openclaw-status-scan-config-shared-missing-${process.pid}.json`,
     );
   });
 
@@ -100,12 +101,12 @@ describe("status.scan.config-shared", () => {
       commandName: "status --json",
       readBestEffortConfig,
       resolveConfig,
-      env: { VITEST: "true", ASTROCLAW_GATEWAY_TOKEN: "env-token" },
+      env: { VITEST: "true", OPENCLAW_GATEWAY_TOKEN: "env-token" },
       allowMissingConfigFastPath: true,
     });
 
     expect(result.secretDiagnostics).toEqual([
-      "ASTROCLAW_GATEWAY_TOKEN conflicts with gateway.auth.token: Remove ASTROCLAW_GATEWAY_TOKEN from the shell, ~/.astroclaw/.env, or launchctl env if gateway.auth.token is intended, or point gateway.auth.token at ${ASTROCLAW_GATEWAY_TOKEN} if the env var should be canonical.",
+      "OPENCLAW_GATEWAY_TOKEN conflicts with gateway.auth.token: Remove OPENCLAW_GATEWAY_TOKEN from the shell, ~/.openclaw/.env, or launchctl env if gateway.auth.token is intended, or point gateway.auth.token at ${OPENCLAW_GATEWAY_TOKEN} if the env var should be canonical.",
     ]);
   });
 
@@ -123,8 +124,8 @@ describe("status.scan.config-shared", () => {
       resolveConfig,
       env: {
         VITEST: "true",
-        ASTROCLAW_GATEWAY_TOKEN: "env-token",
-        ASTROCLAW_SERVICE_KIND: "gateway",
+        OPENCLAW_GATEWAY_TOKEN: "env-token",
+        OPENCLAW_SERVICE_KIND: "gateway",
       },
       allowMissingConfigFastPath: true,
     });
@@ -132,9 +133,9 @@ describe("status.scan.config-shared", () => {
     expect(result.secretDiagnostics).toStrictEqual([]);
   });
 
-  it("does not add a status diagnostic when config uses ASTROCLAW_GATEWAY_TOKEN", async () => {
+  it("does not add a status diagnostic when config uses OPENCLAW_GATEWAY_TOKEN", async () => {
     const sourceConfig = {
-      gateway: { auth: { token: "${ASTROCLAW_GATEWAY_TOKEN}" } },
+      gateway: { auth: { token: "${OPENCLAW_GATEWAY_TOKEN}" } },
       secrets: { providers: { default: { source: "env" as const } } },
     };
     const readBestEffortConfig = vi.fn(async () => sourceConfig);
@@ -147,7 +148,7 @@ describe("status.scan.config-shared", () => {
       commandName: "status --json",
       readBestEffortConfig,
       resolveConfig,
-      env: { VITEST: "true", ASTROCLAW_GATEWAY_TOKEN: "env-token" },
+      env: { VITEST: "true", OPENCLAW_GATEWAY_TOKEN: "env-token" },
       allowMissingConfigFastPath: true,
     });
 
@@ -172,7 +173,7 @@ describe("status.scan.config-shared", () => {
       commandName: "status --json",
       readBestEffortConfig,
       resolveConfig,
-      env: { VITEST: "true", ASTROCLAW_GATEWAY_TOKEN: "env-token" },
+      env: { VITEST: "true", OPENCLAW_GATEWAY_TOKEN: "env-token" },
       allowMissingConfigFastPath: true,
     });
 
