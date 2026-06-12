@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+/** Detects legacy SecretRef env markers in config values. */
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   LEGACY_SECRETREF_ENV_MARKER_PREFIX,
   parseLegacySecretRefEnvMarker,
@@ -10,6 +11,7 @@ import {
   type DiscoveredConfigSecretTarget,
 } from "./target-registry.js";
 
+/** Legacy marker string found on a registered secret target, with parsed ref when possible. */
 export type LegacySecretRefEnvMarkerCandidate = {
   path: string;
   pathSegments: string[];
@@ -23,7 +25,7 @@ function isLegacySecretRefEnvMarker(value: unknown): value is string {
 
 function toCandidate(
   target: DiscoveredConfigSecretTarget,
-  defaults: NonNullable<AstroclawConfig["secrets"]>["defaults"] | undefined,
+  defaults: NonNullable<OpenClawConfig["secrets"]>["defaults"] | undefined,
 ): LegacySecretRefEnvMarkerCandidate | null {
   if (!isLegacySecretRefEnvMarker(target.value)) {
     return null;
@@ -36,8 +38,11 @@ function toCandidate(
   };
 }
 
+/**
+ * Finds legacy env marker strings on registered secret targets without mutating config.
+ */
 export function collectLegacySecretRefEnvMarkerCandidates(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
 ): LegacySecretRefEnvMarkerCandidate[] {
   const defaults = config.secrets?.defaults;
   return discoverConfigSecretTargets(config)
@@ -45,8 +50,11 @@ export function collectLegacySecretRefEnvMarkerCandidates(
     .filter((candidate): candidate is LegacySecretRefEnvMarkerCandidate => candidate !== null);
 }
 
-export function migrateLegacySecretRefEnvMarkers(config: AstroclawConfig): {
-  config: AstroclawConfig;
+/**
+ * Converts parseable legacy env marker strings into structured env SecretRef objects.
+ */
+export function migrateLegacySecretRefEnvMarkers(config: OpenClawConfig): {
+  config: OpenClawConfig;
   changes: string[];
 } {
   const candidates = collectLegacySecretRefEnvMarkerCandidates(config).filter(
@@ -56,13 +64,14 @@ export function migrateLegacySecretRefEnvMarkers(config: AstroclawConfig): {
     return { config, changes: [] };
   }
 
-  const next = structuredClone(config) as AstroclawConfig & Record<string, unknown>;
+  const next = structuredClone(config) as OpenClawConfig & Record<string, unknown>;
   const changes: string[] = [];
   for (const candidate of candidates) {
     const ref = candidate.ref;
     if (!ref) {
       continue;
     }
+    // Only registered existing paths are rewritten; malformed markers remain for explicit repair.
     if (setPathExistingStrict(next, candidate.pathSegments, ref)) {
       changes.push(
         `Moved ${candidate.path} ${LEGACY_SECRETREF_ENV_MARKER_PREFIX}${ref.id} marker → structured env SecretRef.`,
