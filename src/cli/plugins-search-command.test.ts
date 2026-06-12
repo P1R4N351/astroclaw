@@ -1,3 +1,5 @@
+// Plugins search command tests cover plugin search command registration and results.
+import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
@@ -35,6 +37,7 @@ vi.mock("../infra/clawhub.js", () => ({
 }));
 
 const { runPluginsSearchCommand } = await import("./plugins-search-command.js");
+const { registerPluginsCli } = await import("./plugins-cli.js");
 
 describe("plugins search command", () => {
   beforeEach(() => {
@@ -53,7 +56,7 @@ describe("plugins search command", () => {
         {
           score: 12,
           package: {
-            name: "astroclaw-calendar",
+            name: "openclaw-calendar",
             displayName: "Calendar",
             family: "code-plugin",
             channel: "community",
@@ -69,7 +72,7 @@ describe("plugins search command", () => {
         {
           score: 10,
           package: {
-            name: "astroclaw-calendar-bundle",
+            name: "openclaw-calendar-bundle",
             displayName: "Calendar Bundle",
             family: "bundle-plugin",
             channel: "official",
@@ -94,9 +97,9 @@ describe("plugins search command", () => {
       family: "bundle-plugin",
       limit: 5,
     });
-    expect(mocks.logs.join("\n")).toContain("astroclaw-calendar");
+    expect(mocks.logs.join("\n")).toContain("openclaw-calendar");
     expect(mocks.logs.join("\n")).toContain(
-      "Install: astroclaw plugins install clawhub:astroclaw-calendar",
+      "Install: openclaw plugins install clawhub:openclaw-calendar",
     );
   });
 
@@ -106,5 +109,16 @@ describe("plugins search command", () => {
     await runPluginsSearchCommand("calendar", { json: true }, mocks.runtime);
 
     expect(mocks.runtime.writeJson).toHaveBeenCalledWith({ results: [] }, 2);
+  });
+
+  it("rejects partial numeric search limits", async () => {
+    const program = new Command();
+    program.exitOverride();
+    registerPluginsCli(program);
+
+    await expect(
+      program.parseAsync(["plugins", "search", "calendar", "--limit", "10ms"], { from: "user" }),
+    ).rejects.toThrow("--limit must be a positive integer.");
+    expect(mocks.searchClawHubPackages).not.toHaveBeenCalled();
   });
 });
