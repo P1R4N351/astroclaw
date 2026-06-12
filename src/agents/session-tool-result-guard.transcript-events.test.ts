@@ -1,5 +1,6 @@
-import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
+// Verifies guarded session managers emit transcript update events with stable sequence ids.
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   onSessionTranscriptUpdate,
@@ -10,6 +11,7 @@ import { guardSessionManager } from "./session-tool-result-guard-wrapper.js";
 const listeners: Array<() => void> = [];
 
 afterEach(() => {
+  // Remove all transcript listeners between tests to avoid duplicate broadcasts.
   while (listeners.length > 0) {
     listeners.pop()?.();
   }
@@ -21,7 +23,7 @@ describe("guardSessionManager transcript updates", () => {
     listeners.push(onSessionTranscriptUpdate((update) => updates.push(update)));
 
     const sm = SessionManager.inMemory();
-    const sessionFile = "/tmp/astroclaw-session-message-events.jsonl";
+    const sessionFile = "/tmp/openclaw-session-message-events.jsonl";
     Object.assign(sm, {
       getSessionFile: () => sessionFile,
     });
@@ -43,6 +45,7 @@ describe("guardSessionManager transcript updates", () => {
 
     expect(updates).toStrictEqual([
       {
+        agentId: "main",
         message: {
           content: [{ text: "hello from subagent", type: "text" }],
           role: "assistant",
@@ -93,7 +96,7 @@ describe("guardSessionManager transcript updates", () => {
       timestamp: Date.now(),
     } as Parameters<typeof sm.appendMessage>[0]);
     const getBranchSpy = vi.spyOn(sm, "getBranch");
-    const sessionFile = "/tmp/astroclaw-session-message-events.jsonl";
+    const sessionFile = "/tmp/openclaw-session-message-events.jsonl";
     Object.assign(sm, {
       getSessionFile: () => sessionFile,
     });
@@ -123,6 +126,7 @@ describe("guardSessionManager transcript updates", () => {
   });
 
   it("caches real tool result sequence before final assistant messages", () => {
+    // Tool results are persisted but not broadcast, so later visible messages must skip their seq.
     const updates: SessionTranscriptUpdate[] = [];
     listeners.push(onSessionTranscriptUpdate((update) => updates.push(update)));
 
@@ -133,7 +137,7 @@ describe("guardSessionManager transcript updates", () => {
       timestamp: Date.now(),
     } as Parameters<typeof sm.appendMessage>[0]);
     const getBranchSpy = vi.spyOn(sm, "getBranch");
-    const sessionFile = "/tmp/astroclaw-session-message-events.jsonl";
+    const sessionFile = "/tmp/openclaw-session-message-events.jsonl";
     Object.assign(sm, {
       getSessionFile: () => sessionFile,
     });
