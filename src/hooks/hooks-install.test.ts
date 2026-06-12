@@ -1,3 +1,4 @@
+// Hook install command tests cover hook installation workflow behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -13,7 +14,7 @@ import { loadInternalHooks } from "./loader.js";
 const tempDirs: string[] = [];
 
 async function makeTempDir() {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-hooks-e2e-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-hooks-e2e-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -49,7 +50,7 @@ describe("hooks install (e2e)", () => {
         {
           name: "@acme/hello-hooks",
           version: "0.0.0",
-          astroclaw: { hooks: ["./hooks/hello-hook"] },
+          openclaw: { hooks: ["./hooks/hello-hook"] },
         },
         null,
         2,
@@ -63,7 +64,7 @@ describe("hooks install (e2e)", () => {
         "---",
         'name: "hello-hook"',
         'description: "Test hook"',
-        'metadata: {"astroclaw":{"events":["command:new"]}}',
+        'metadata: {"openclaw":{"events":["command:new"]}}',
         "---",
         "",
         "# Hello Hook",
