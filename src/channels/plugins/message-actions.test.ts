@@ -1,6 +1,7 @@
+// Message action tests cover channel message action schema and invocation behavior.
 import { Type } from "typebox";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { defaultRuntime } from "../../runtime.js";
 import {
@@ -8,7 +9,7 @@ import {
   createTestRegistry,
 } from "../../test-utils/channel-plugins.js";
 import {
-  __testing,
+  testing,
   channelSupportsMessageCapability,
   channelSupportsMessageCapabilityForChannel,
   listCrossChannelSchemaSupportedMessageActions,
@@ -75,19 +76,19 @@ describe("message action capability checks", () => {
 
   afterEach(() => {
     setActivePluginRegistry(emptyRegistry);
-    __testing.resetLoggedMessageActionErrors();
+    testing.resetLoggedMessageActionErrors();
     errorSpy.mockClear();
   });
 
   it("aggregates capabilities across plugins", () => {
     activateMessageActionTestRegistry();
 
-    expect(listChannelMessageCapabilities({} as AstroclawConfig).toSorted()).toEqual([
+    expect(listChannelMessageCapabilities({} as OpenClawConfig).toSorted()).toEqual([
       "delivery-pin",
       "presentation",
     ]);
-    expect(channelSupportsMessageCapability({} as AstroclawConfig, "presentation")).toBe(true);
-    expect(channelSupportsMessageCapability({} as AstroclawConfig, "delivery-pin")).toBe(true);
+    expect(channelSupportsMessageCapability({} as OpenClawConfig, "presentation")).toBe(true);
+    expect(channelSupportsMessageCapability({} as OpenClawConfig, "delivery-pin")).toBe(true);
   });
 
   it("checks per-channel capabilities", () => {
@@ -95,42 +96,42 @@ describe("message action capability checks", () => {
 
     expect(
       listChannelMessageCapabilitiesForChannel({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         channel: "demo-buttons",
       }),
     ).toEqual(["presentation"]);
     expect(
       listChannelMessageCapabilitiesForChannel({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         channel: "demo-cards",
       }),
     ).toEqual(["delivery-pin"]);
     expect(
       channelSupportsMessageCapabilityForChannel(
-        { cfg: {} as AstroclawConfig, channel: "demo-buttons" },
+        { cfg: {} as OpenClawConfig, channel: "demo-buttons" },
         "presentation",
       ),
     ).toBe(true);
     expect(
       channelSupportsMessageCapabilityForChannel(
-        { cfg: {} as AstroclawConfig, channel: "demo-cards" },
+        { cfg: {} as OpenClawConfig, channel: "demo-cards" },
         "presentation",
       ),
     ).toBe(false);
     expect(
       channelSupportsMessageCapabilityForChannel(
-        { cfg: {} as AstroclawConfig, channel: "demo-buttons" },
+        { cfg: {} as OpenClawConfig, channel: "demo-buttons" },
         "delivery-pin",
       ),
     ).toBe(false);
     expect(
       channelSupportsMessageCapabilityForChannel(
-        { cfg: {} as AstroclawConfig, channel: "demo-cards" },
+        { cfg: {} as OpenClawConfig, channel: "demo-cards" },
         "delivery-pin",
       ),
     ).toBe(true);
     expect(
-      channelSupportsMessageCapabilityForChannel({ cfg: {} as AstroclawConfig }, "delivery-pin"),
+      channelSupportsMessageCapabilityForChannel({ cfg: {} as OpenClawConfig }, "delivery-pin"),
     ).toBe(false);
   });
 
@@ -151,7 +152,7 @@ describe("message action capability checks", () => {
 
     expect(
       listChannelMessageCapabilitiesForChannel({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         channel: "demo-cards-alias",
       }),
     ).toEqual(["delivery-pin"]);
@@ -183,11 +184,11 @@ describe("message action capability checks", () => {
       createTestRegistry([{ pluginId: "demo-unified", source: "test", plugin: unifiedPlugin }]),
     );
 
-    expect(listChannelMessageActions({} as AstroclawConfig)).toEqual(["send", "broadcast", "react"]);
-    expect(listChannelMessageCapabilities({} as AstroclawConfig)).toEqual(["presentation"]);
+    expect(listChannelMessageActions({} as OpenClawConfig)).toEqual(["send", "broadcast", "react"]);
+    expect(listChannelMessageCapabilities({} as OpenClawConfig)).toEqual(["presentation"]);
     expect(
       resolveChannelMessageToolSchemaProperties({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         channel: "demo-unified",
       }),
     ).toHaveProperty("components");
@@ -223,7 +224,7 @@ describe("message action capability checks", () => {
 
     expect(
       listCrossChannelSchemaSupportedMessageActions({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         channel: "demo-scoped-schema",
       }),
     ).toEqual(["read", "list-pins"]);
@@ -258,7 +259,7 @@ describe("message action capability checks", () => {
 
     expect(
       listCrossChannelSchemaSupportedMessageActions({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         channel: "demo-unscoped-schema",
       }),
     ).toStrictEqual([]);
@@ -298,7 +299,7 @@ describe("message action capability checks", () => {
 
     expect(
       listCrossChannelSchemaSupportedMessageActions({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         channel: "demo-empty-scoped-schema",
       }),
     ).toEqual(["read", "list-pins"]);
@@ -336,14 +337,14 @@ describe("message action capability checks", () => {
 
     expect(
       resolveChannelMessageToolMediaSourceParamKeys({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         action: "set-profile",
         channel: "demo-media",
       }),
     ).toEqual(["avatarUrl", "avatarPath"]);
     expect(
       resolveChannelMessageToolMediaSourceParamKeys({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         action: "send",
         channel: "demo-media",
       }),
@@ -373,7 +374,7 @@ describe("message action capability checks", () => {
 
     expect(
       resolveChannelMessageToolMediaSourceParamKeys({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         action: "set-profile",
         channel: "demo-media-flat",
       }),
@@ -400,12 +401,12 @@ describe("message action capability checks", () => {
       createTestRegistry([{ pluginId: "demo-crashing", source: "test", plugin: crashingPlugin }]),
     );
 
-    expect(listChannelMessageActions({} as AstroclawConfig)).toEqual(["send", "broadcast"]);
-    expect(listChannelMessageCapabilities({} as AstroclawConfig)).toStrictEqual([]);
+    expect(listChannelMessageActions({} as OpenClawConfig)).toEqual(["send", "broadcast"]);
+    expect(listChannelMessageCapabilities({} as OpenClawConfig)).toStrictEqual([]);
     expect(errorSpy).toHaveBeenCalledTimes(1);
 
-    expect(listChannelMessageActions({} as AstroclawConfig)).toEqual(["send", "broadcast"]);
-    expect(listChannelMessageCapabilities({} as AstroclawConfig)).toStrictEqual([]);
+    expect(listChannelMessageActions({} as OpenClawConfig)).toEqual(["send", "broadcast"]);
+    expect(listChannelMessageCapabilities({} as OpenClawConfig)).toStrictEqual([]);
     expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 });
