@@ -1,3 +1,4 @@
+// Tests prompt prelude construction for sender, routing, and context metadata.
 import { describe, expect, it } from "vitest";
 import { finalizeInboundContext } from "./inbound-context.js";
 import { buildReplyPromptEnvelope } from "./prompt-prelude.js";
@@ -25,7 +26,7 @@ describe("buildReplyPromptEnvelope", () => {
 
     expect(envelope.prefixedCommandBody).toContain("sender_id=telegram-user-1");
     expect(envelope.prefixedCommandBody).toContain("Startup context");
-    expect(envelope.transcriptCommandBody).toBe("[Astroclaw session reset]");
+    expect(envelope.transcriptCommandBody).toBe("[OpenClaw session reset]");
     expect(envelope.currentInboundContext).toBeUndefined();
   });
 
@@ -88,14 +89,13 @@ describe("buildReplyPromptEnvelope", () => {
       inboundEventKind: "room_event",
     });
 
-    expect(envelope.prefixedCommandBody).toBe("[Astroclaw room event]");
-    expect(envelope.queuedBody).toBe("[Astroclaw room event]");
+    expect(envelope.prefixedCommandBody).toBe("[OpenClaw room event]");
+    expect(envelope.queuedBody).toBe("[OpenClaw room event]");
     expect(envelope.transcriptCommandBody).toBe("");
     expect(envelope.currentInboundContext?.text).toBe(
       [
-        "[Astroclaw room event]",
+        "[OpenClaw room event]",
         "inbound_event_kind: room_event",
-        "visible_reply_contract: message_tool_only",
         [
           "Room context:",
           "Conversation info (untrusted metadata):",
@@ -110,6 +110,24 @@ describe("buildReplyPromptEnvelope", () => {
         "Current event:\n#35676 Keśava: No wtf",
         "Treat this as observed room activity. Decide whether to act.",
       ].join("\n\n"),
+    );
+    expect(envelope.currentInboundContext?.resumableText).toBe(
+      [
+        "[OpenClaw room event]",
+        "inbound_event_kind: room_event",
+        [
+          "Room context:",
+          "Conversation info (untrusted metadata):",
+          "```json",
+          JSON.stringify({ message_id: "35676", inbound_event_kind: "room_event" }, null, 2),
+          "```",
+        ].join("\n"),
+        "Current event:\n#35676 Keśava: No wtf",
+        "Treat this as observed room activity. Decide whether to act.",
+      ].join("\n\n"),
+    );
+    expect(envelope.currentInboundContext?.resumableText).not.toContain(
+      "Conversation context (untrusted, chronological, selected for current message):",
     );
   });
 
@@ -153,7 +171,7 @@ describe("buildReplyPromptEnvelope", () => {
       BodyStripped: "",
       Provider: "telegram",
       ChatType: "group",
-      MediaPaths: ["/tmp/astroclaw-photo.jpg"],
+      MediaPaths: ["/tmp/openclaw-photo.jpg"],
       MediaUrls: ["https://example.com/photo.jpg"],
       InboundHistory: [{ sender: "Alice", timestamp: 1_700_000_000_000, body: "context" }],
     });
