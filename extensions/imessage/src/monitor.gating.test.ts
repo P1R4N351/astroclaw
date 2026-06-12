@@ -1,18 +1,21 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Imessage tests cover monitor.gating plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { beforeEach, describe, expect, it } from "vitest";
-import { _resetIMessageShortIdState } from "./monitor-reply-cache.js";
+import { resetIMessageShortIdState } from "./monitor-reply-cache.js";
 import {
   buildIMessageInboundContext,
   resolveIMessageInboundDecision,
 } from "./monitor/inbound-processing.js";
 import { parseIMessageNotification } from "./monitor/parse-notification.js";
 import type { IMessagePayload } from "./monitor/types.js";
+import { installIMessageStateRuntimeForTest } from "./test-support/runtime.js";
 
 beforeEach(() => {
-  _resetIMessageShortIdState();
+  installIMessageStateRuntimeForTest();
+  resetIMessageShortIdState();
 });
 
-function baseCfg(): AstroclawConfig {
+function baseCfg(): OpenClawConfig {
   return {
     channels: {
       imessage: {
@@ -24,13 +27,13 @@ function baseCfg(): AstroclawConfig {
     },
     session: { mainKey: "main" },
     messages: {
-      groupChat: { mentionPatterns: ["@astroclaw"] },
+      groupChat: { mentionPatterns: ["@openclaw"] },
     },
-  } as unknown as AstroclawConfig;
+  } as unknown as OpenClawConfig;
 }
 
 async function resolve(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   message: IMessagePayload;
   storeAllowFrom?: string[];
 }) {
@@ -54,7 +57,7 @@ async function resolve(params: {
 }
 
 async function resolveDispatchDecision(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   message: IMessagePayload;
   groupHistories?: Parameters<typeof resolveIMessageInboundDecision>[0]["groupHistories"];
   allowFrom?: string[];
@@ -88,13 +91,13 @@ async function resolveDispatchDecision(params: {
 }
 
 async function buildDispatchContextPayload(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   message: IMessagePayload;
 }) {
   const { cfg, message } = params;
   const { decision, groupHistories } = await resolveDispatchDecision({ cfg, message });
 
-  const { ctxPayload } = buildIMessageInboundContext({
+  const { ctxPayload } = await buildIMessageInboundContext({
     cfg,
     decision,
     message,
@@ -106,7 +109,7 @@ async function buildDispatchContextPayload(params: {
 }
 
 describe("imessage monitor gating + envelope builders", () => {
-  it("parseIMessageNotification rejects malformed payloads", () => {
+  it("parseIMessageNotification rejects malformed payloads", async () => {
     expect(
       parseIMessageNotification({
         message: { chat_id: 1, sender: { nested: "nope" } },
@@ -114,7 +117,7 @@ describe("imessage monitor gating + envelope builders", () => {
     ).toBeNull();
   });
 
-  it("parseIMessageNotification preserves destination_caller_id metadata", () => {
+  it("parseIMessageNotification preserves destination_caller_id metadata", async () => {
     expect(
       parseIMessageNotification({
         message: {
@@ -159,7 +162,7 @@ describe("imessage monitor gating + envelope builders", () => {
       chat_id: 42,
       sender: "+15550002222",
       is_from_me: false,
-      text: "@astroclaw ping",
+      text: "@openclaw ping",
       is_group: true,
       chat_name: "Lobster Squad",
       participants: ["+1555", "+1556"],
@@ -183,7 +186,7 @@ describe("imessage monitor gating + envelope builders", () => {
       chat_identifier: "thread-42",
       sender: "+15550002222",
       is_from_me: false,
-      text: "@astroclaw ping",
+      text: "@openclaw ping",
       is_group: true,
       chat_name: "Lobster Squad",
       participants: ["+1555", "+1556"],
@@ -228,7 +231,7 @@ describe("imessage monitor gating + envelope builders", () => {
       chat_id: 55,
       sender: "+15550001111",
       is_from_me: false,
-      text: "@astroclaw replying now",
+      text: "@openclaw replying now",
       is_group: true,
       reply_to_id: 9001,
       reply_to_text: "blocked quote",
@@ -241,7 +244,7 @@ describe("imessage monitor gating + envelope builders", () => {
       groupAllowFrom: ["+15550001111"],
       groupPolicy: "allowlist",
     });
-    const { ctxPayload } = buildIMessageInboundContext({
+    const { ctxPayload } = await buildIMessageInboundContext({
       cfg,
       decision,
       message,
@@ -267,7 +270,7 @@ describe("imessage monitor gating + envelope builders", () => {
       chat_id: 55,
       sender: "+15550001111",
       is_from_me: false,
-      text: "@astroclaw replying now",
+      text: "@openclaw replying now",
       is_group: true,
       reply_to_id: 9001,
       reply_to_text: "quoted context",
@@ -280,7 +283,7 @@ describe("imessage monitor gating + envelope builders", () => {
       groupAllowFrom: ["chat_id:55"],
       groupPolicy: "allowlist",
     });
-    const { ctxPayload } = buildIMessageInboundContext({
+    const { ctxPayload } = await buildIMessageInboundContext({
       cfg,
       decision,
       message,
@@ -312,7 +315,7 @@ describe("imessage monitor gating + envelope builders", () => {
       chat_id: 56,
       sender: "+15559998888",
       is_from_me: false,
-      text: "@astroclaw replying now",
+      text: "@openclaw replying now",
       is_group: true,
       reply_to_id: 9002,
       reply_to_text: "own quoted context",
@@ -325,7 +328,7 @@ describe("imessage monitor gating + envelope builders", () => {
       groupAllowFrom: ["accessGroup:oncall"],
       groupPolicy: "allowlist",
     });
-    const { ctxPayload } = buildIMessageInboundContext({
+    const { ctxPayload } = await buildIMessageInboundContext({
       cfg,
       decision,
       message,
@@ -351,7 +354,7 @@ describe("imessage monitor gating + envelope builders", () => {
       chat_id: 55,
       sender: "+15550001111",
       is_from_me: false,
-      text: "@astroclaw replying now",
+      text: "@openclaw replying now",
       is_group: true,
       reply_to_id: 9001,
       reply_to_text: "quoted context",
@@ -364,7 +367,7 @@ describe("imessage monitor gating + envelope builders", () => {
       groupAllowFrom: ["+15550001111"],
       groupPolicy: "allowlist",
     });
-    const { ctxPayload } = buildIMessageInboundContext({
+    const { ctxPayload } = await buildIMessageInboundContext({
       cfg,
       decision,
       message,
@@ -445,12 +448,12 @@ describe("imessage monitor gating + envelope builders", () => {
         chat_id: 123,
         sender: "+15550001111",
         is_from_me: false,
-        text: "@astroclaw hello",
+        text: "@openclaw hello",
         is_group: true,
       },
       opts: {},
-      messageText: "@astroclaw hello",
-      bodyText: "@astroclaw hello",
+      messageText: "@openclaw hello",
+      bodyText: "@openclaw hello",
       allowFrom: ["*"],
       groupAllowFrom: [],
       groupPolicy: "open",
@@ -477,12 +480,12 @@ describe("imessage monitor gating + envelope builders", () => {
         chat_id: 202,
         sender: "+15550003333",
         is_from_me: false,
-        text: "@astroclaw hi",
+        text: "@openclaw hi",
         is_group: true,
       },
       opts: {},
-      messageText: "@astroclaw hi",
-      bodyText: "@astroclaw hi",
+      messageText: "@openclaw hi",
+      bodyText: "@openclaw hi",
       allowFrom: ["*"],
       groupAllowFrom: ["chat_id:101"],
       groupPolicy: "allowlist",
@@ -501,12 +504,12 @@ describe("imessage monitor gating + envelope builders", () => {
         chat_id: 101,
         sender: "+15550003333",
         is_from_me: false,
-        text: "@astroclaw ok",
+        text: "@openclaw ok",
         is_group: true,
       },
       opts: {},
-      messageText: "@astroclaw ok",
-      bodyText: "@astroclaw ok",
+      messageText: "@openclaw ok",
+      bodyText: "@openclaw ok",
       allowFrom: ["*"],
       groupAllowFrom: ["chat_id:101"],
       groupPolicy: "allowlist",
@@ -531,7 +534,7 @@ describe("imessage monitor gating + envelope builders", () => {
         chat_id: 101,
         sender: "+15550003333",
         is_from_me: false,
-        text: "@astroclaw ok",
+        text: "@openclaw ok",
         is_group: true,
       },
       allowFrom: ["chat_id:101"],
@@ -557,12 +560,12 @@ describe("imessage monitor gating + envelope builders", () => {
         chat_id: 101,
         sender: "+15550003333",
         is_from_me: false,
-        text: "@astroclaw ok",
+        text: "@openclaw ok",
         is_group: true,
       },
       opts: {},
-      messageText: "@astroclaw ok",
-      bodyText: "@astroclaw ok",
+      messageText: "@openclaw ok",
+      bodyText: "@openclaw ok",
       allowFrom: ["chat_id:101"],
       groupAllowFrom: [],
       groupPolicy: "allowlist",
@@ -592,12 +595,12 @@ describe("imessage monitor gating + envelope builders", () => {
         chat_id: 101,
         sender: "+15550003333",
         is_from_me: false,
-        text: "@astroclaw ok",
+        text: "@openclaw ok",
         is_group: true,
       },
       opts: {},
-      messageText: "@astroclaw ok",
-      bodyText: "@astroclaw ok",
+      messageText: "@openclaw ok",
+      bodyText: "@openclaw ok",
       allowFrom: ["chat_id:101"],
       groupAllowFrom: ["+15550004444"],
       groupPolicy: "allowlist",
@@ -690,12 +693,12 @@ describe("imessage monitor gating + envelope builders", () => {
         chat_id: 303,
         sender: "+15550003333",
         is_from_me: false,
-        text: "@astroclaw hi",
+        text: "@openclaw hi",
         is_group: true,
       },
       opts: {},
-      messageText: "@astroclaw hi",
-      bodyText: "@astroclaw hi",
+      messageText: "@openclaw hi",
+      bodyText: "@openclaw hi",
       allowFrom: ["*"],
       groupAllowFrom: [],
       groupPolicy: "disabled",
