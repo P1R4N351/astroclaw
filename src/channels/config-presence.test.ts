@@ -1,8 +1,9 @@
+// Config presence tests cover channel config detection and missing-config diagnostics.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   hasMeaningfulChannelConfig,
   hasPotentialConfiguredChannels,
@@ -18,18 +19,18 @@ const matrixPresenceOptions = {
   persistedAuthStateProbe: {
     listChannelIds: () => ["matrix"],
     hasState: ({ channelId, env }: { channelId: string; env?: NodeJS.ProcessEnv }) =>
-      channelId === "matrix" && Boolean(env?.ASTROCLAW_STATE_DIR?.includes("persisted-matrix")),
+      channelId === "matrix" && Boolean(env?.OPENCLAW_STATE_DIR?.includes("persisted-matrix")),
   },
 };
 
 function makeTempStateDir() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-channel-config-presence-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-channel-config-presence-"));
   tempDirs.push(dir);
   return dir;
 }
 
 function expectPotentialConfiguredChannelCase(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   expectedIds: string[];
   expectedConfigured: boolean;
@@ -82,7 +83,7 @@ describe("config presence", () => {
         slack: { botToken: "token" },
         discord: false,
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     expect(listExplicitlyDisabledChannelIdsForConfig(cfg)).toEqual(["matrix"]);
   });
@@ -108,12 +109,12 @@ describe("config presence", () => {
 
   it("detects persisted Matrix credentials without config or env", () => {
     const stateDir = makeTempStateDir().replace(
-      "astroclaw-channel-config-presence-",
+      "openclaw-channel-config-presence-",
       "persisted-matrix-",
     );
     fs.mkdirSync(stateDir, { recursive: true });
     tempDirs.push(stateDir);
-    const env = { ASTROCLAW_STATE_DIR: stateDir } as NodeJS.ProcessEnv;
+    const env = { OPENCLAW_STATE_DIR: stateDir } as NodeJS.ProcessEnv;
 
     expectPotentialConfiguredChannelCase({
       cfg: {},
