@@ -1,3 +1,5 @@
+// Gateway client bootstrap tests keep URL override provenance wired into shared
+// auth resolution so CLI and env callers authenticate against the intended target.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { resolveGatewayConnectionAuth } from "./connection-auth.js";
 
@@ -38,7 +40,7 @@ function expectLastAuthResolutionParams(expected: {
 describe("resolveGatewayUrlOverrideSource", () => {
   it("maps override url sources only", () => {
     expect(resolveGatewayUrlOverrideSource("cli --url")).toBe("cli");
-    expect(resolveGatewayUrlOverrideSource("env ASTROCLAW_GATEWAY_URL")).toBe("env");
+    expect(resolveGatewayUrlOverrideSource("env OPENCLAW_GATEWAY_URL")).toBe("env");
     expect(resolveGatewayUrlOverrideSource("config gateway.remote.url")).toBeUndefined();
   });
 });
