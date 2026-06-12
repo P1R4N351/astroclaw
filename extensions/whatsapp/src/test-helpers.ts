@@ -1,15 +1,16 @@
+// Whatsapp helper module supports test helpers behavior.
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatEnvelopeTimestamp } from "astroclaw/plugin-sdk/channel-test-helpers";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { formatEnvelopeTimestamp } from "openclaw/plugin-sdk/channel-test-helpers";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { vi } from "vitest";
 import type { MockBaileysSocket } from "../../../test/mocks/baileys.js";
 import { createMockBaileys } from "../../../test/mocks/baileys.js";
 
 // Use globalThis to store the mock config so it survives vi.mock hoisting
-const CONFIG_KEY = Symbol.for("astroclaw:testConfigMock");
-const SOURCE_CONFIG_KEY = Symbol.for("astroclaw:testSourceConfigMock");
+const CONFIG_KEY = Symbol.for("openclaw:testConfigMock");
+const SOURCE_CONFIG_KEY = Symbol.for("openclaw:testSourceConfigMock");
 const DEFAULT_CONFIG = {
   channels: {
     whatsapp: {
@@ -50,7 +51,7 @@ function resolveStorePathFallback(store?: string, opts?: { agentId?: string }) {
     const agentId = normalizeLowercaseStringOrEmpty(opts?.agentId?.trim() || "main");
     return path.join(
       process.env.HOME ?? "/tmp",
-      ".astroclaw",
+      ".openclaw",
       "agents",
       agentId,
       "sessions",
@@ -201,16 +202,29 @@ function resolveSenderLabelMock(sender?: TestInboundEnvelopeParams["sender"]) {
   return display || idPart || undefined;
 }
 
+function resolveDirectEnvelopeBodyLabelMock(from?: string) {
+  const label = sanitizeEnvelopeHeaderPart(from?.trim() || "");
+  const idMarkerIndex = label.search(/\s+id:/i);
+  if (idMarkerIndex > 0) {
+    const displayLabel = label.slice(0, idMarkerIndex).trim();
+    return displayLabel.includes(":") ? "(sender)" : displayLabel;
+  }
+  return label.includes(":") ? "(sender)" : label;
+}
+
 function formatInboundEnvelopeMock(params: TestInboundEnvelopeParams) {
   const chatType = normalizeLowercaseStringOrEmpty(params.chatType);
   const isDirect = !chatType || chatType === "direct";
   const sender = params.senderLabel?.trim() || resolveSenderLabelMock(params.sender);
+  const directSender = resolveDirectEnvelopeBodyLabelMock(params.from);
   const body =
     isDirect && params.fromMe
       ? `(self): ${params.body}`
-      : !isDirect && sender
-        ? `${sanitizeEnvelopeHeaderPart(sender)}: ${params.body}`
-        : params.body;
+      : isDirect && directSender
+        ? `${directSender}: ${params.body}`
+        : !isDirect && sender
+          ? `${sanitizeEnvelopeHeaderPart(sender)}: ${params.body}`
+          : params.body;
   const parts = [sanitizeEnvelopeHeaderPart(params.channel?.trim() || "Channel")];
   const from = params.from?.trim();
   if (from) {
@@ -629,17 +643,17 @@ vi.mock("./auto-reply/monitor/message-line.runtime.js", () => ({
     if (configured !== undefined) {
       return configured;
     }
-    return params?.hasAllowFrom === true ? "" : "[astroclaw]";
+    return params?.hasAllowFrom === true ? "" : "[openclaw]";
   },
 }));
 
 vi.mock("./auth-store.runtime.js", () => ({
-  resolveOAuthDir: () => "/tmp/astroclaw-oauth",
+  resolveOAuthDir: () => "/tmp/openclaw-oauth",
 }));
 
 vi.mock("./session.runtime.js", () => {
   const created = createMockBaileys();
-  (globalThis as Record<PropertyKey, unknown>)[Symbol.for("astroclaw:lastSocket")] =
+  (globalThis as Record<PropertyKey, unknown>)[Symbol.for("openclaw:lastSocket")] =
     created.lastSocket;
   return {
     ...created.mod,
@@ -670,7 +684,7 @@ function resetMockExport<T extends (...args: never[]) => unknown>(params: {
 
 export function resetBaileysMocks() {
   const recreated = createMockBaileys();
-  (globalThis as Record<PropertyKey, unknown>)[Symbol.for("astroclaw:lastSocket")] =
+  (globalThis as Record<PropertyKey, unknown>)[Symbol.for("openclaw:lastSocket")] =
     recreated.lastSocket;
 
   const makeWASocket = vi.mocked(baileys.makeWASocket);
@@ -714,7 +728,7 @@ export function resetBaileysMocks() {
 }
 
 export function getLastSocket(): MockBaileysSocket {
-  const getter = (globalThis as Record<PropertyKey, unknown>)[Symbol.for("astroclaw:lastSocket")];
+  const getter = (globalThis as Record<PropertyKey, unknown>)[Symbol.for("openclaw:lastSocket")];
   if (typeof getter === "function") {
     return (getter as () => MockBaileysSocket)();
   }
