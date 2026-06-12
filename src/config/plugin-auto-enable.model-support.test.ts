@@ -1,3 +1,4 @@
+// Verifies model-support based plugin auto-enable decisions.
 import { describe, expect, it } from "vitest";
 import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import { applyPluginAutoEnable } from "./plugin-auto-enable.js";
@@ -21,7 +22,7 @@ function makeRegistry(
       origin: "config" as const,
       rootDir: `/fake/${plugin.id}`,
       source: `/fake/${plugin.id}/index.js`,
-      manifestPath: `/fake/${plugin.id}/astroclaw.plugin.json`,
+      manifestPath: `/fake/${plugin.id}/openclaw.plugin.json`,
     })),
     diagnostics: [],
   };
