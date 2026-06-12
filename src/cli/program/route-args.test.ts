@@ -1,3 +1,4 @@
+// Route argument tests cover program route argument parsing and validation.
 import { describe, expect, it } from "vitest";
 import {
   parseAgentsListRouteArgs,
@@ -14,7 +15,7 @@ import {
 describe("route-args", () => {
   it("parses health and status route args", () => {
     expect(
-      parseHealthRouteArgs(["node", "astroclaw", "health", "--json", "--timeout", "5000"]),
+      parseHealthRouteArgs(["node", "openclaw", "health", "--json", "--timeout", "5000"]),
     ).toEqual({
       json: true,
       verbose: false,
@@ -23,7 +24,7 @@ describe("route-args", () => {
     expect(
       parseStatusRouteArgs([
         "node",
-        "astroclaw",
+        "openclaw",
         "status",
         "--json",
         "--deep",
@@ -40,14 +41,14 @@ describe("route-args", () => {
       verbose: false,
       timeoutMs: 5000,
     });
-    expect(parseStatusRouteArgs(["node", "astroclaw", "status", "--timeout"])).toBeNull();
+    expect(parseStatusRouteArgs(["node", "openclaw", "status", "--timeout"])).toBeNull();
   });
 
   it("parses gateway status route args and rejects probe-only ssh flags", () => {
     expect(
       parseGatewayStatusRouteArgs([
         "node",
-        "astroclaw",
+        "openclaw",
         "gateway",
         "status",
         "--url",
@@ -75,10 +76,10 @@ describe("route-args", () => {
       json: true,
     });
     expect(
-      parseGatewayStatusRouteArgs(["node", "astroclaw", "gateway", "status", "--ssh", "host"]),
+      parseGatewayStatusRouteArgs(["node", "openclaw", "gateway", "status", "--ssh", "host"]),
     ).toBeNull();
     expect(
-      parseGatewayStatusRouteArgs(["node", "astroclaw", "gateway", "status", "--ssh-auto"]),
+      parseGatewayStatusRouteArgs(["node", "openclaw", "gateway", "status", "--ssh-auto"]),
     ).toBeNull();
   });
 
@@ -86,7 +87,7 @@ describe("route-args", () => {
     expect(
       parseSessionsRouteArgs([
         "node",
-        "astroclaw",
+        "openclaw",
         "sessions",
         "--json",
         "--all-agents",
@@ -107,15 +108,15 @@ describe("route-args", () => {
       active: "true",
       limit: "25",
     });
-    expect(parseSessionsRouteArgs(["node", "astroclaw", "sessions", "--agent"])).toBeNull();
-    expect(parseSessionsRouteArgs(["node", "astroclaw", "sessions", "--limit"])).toBeNull();
+    expect(parseSessionsRouteArgs(["node", "openclaw", "sessions", "--agent"])).toBeNull();
+    expect(parseSessionsRouteArgs(["node", "openclaw", "sessions", "--limit"])).toBeNull();
     expect(
-      parseAgentsListRouteArgs(["node", "astroclaw", "agents", "list", "--json", "--bindings"]),
+      parseAgentsListRouteArgs(["node", "openclaw", "agents", "list", "--json", "--bindings"]),
     ).toEqual({
       json: true,
       bindings: true,
     });
-    expect(parseAgentsListRouteArgs(["node", "astroclaw", "agents"])).toEqual({
+    expect(parseAgentsListRouteArgs(["node", "openclaw", "agents"])).toEqual({
       json: false,
       bindings: false,
     });
@@ -125,7 +126,7 @@ describe("route-args", () => {
     expect(
       parseConfigGetRouteArgs([
         "node",
-        "astroclaw",
+        "openclaw",
         "--log-level",
         "debug",
         "config",
@@ -140,7 +141,7 @@ describe("route-args", () => {
     expect(
       parseConfigUnsetRouteArgs([
         "node",
-        "astroclaw",
+        "openclaw",
         "config",
         "unset",
         "--profile",
@@ -158,7 +159,7 @@ describe("route-args", () => {
     expect(
       parseConfigUnsetRouteArgs([
         "node",
-        "astroclaw",
+        "openclaw",
         "config",
         "unset",
         "--dry-run",
@@ -174,14 +175,14 @@ describe("route-args", () => {
         json: true,
       },
     });
-    expect(parseConfigGetRouteArgs(["node", "astroclaw", "config", "get", "--json"])).toBeNull();
+    expect(parseConfigGetRouteArgs(["node", "openclaw", "config", "get", "--json"])).toBeNull();
   });
 
   it("parses models list and models status route args", () => {
     expect(
       parseModelsListRouteArgs([
         "node",
-        "astroclaw",
+        "openclaw",
         "models",
         "list",
         "--provider",
@@ -201,7 +202,7 @@ describe("route-args", () => {
     expect(
       parseModelsStatusRouteArgs([
         "node",
-        "astroclaw",
+        "openclaw",
         "models",
         "status",
         "--probe-provider",
@@ -236,7 +237,7 @@ describe("route-args", () => {
       probe: true,
     });
     expect(
-      parseModelsStatusRouteArgs(["node", "astroclaw", "models", "status", "--probe-profile"]),
+      parseModelsStatusRouteArgs(["node", "openclaw", "models", "status", "--probe-profile"]),
     ).toBeNull();
   });
 });
