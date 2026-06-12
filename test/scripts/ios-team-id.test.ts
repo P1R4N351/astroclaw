@@ -1,3 +1,4 @@
+// Ios Team Id tests cover ios team id script behavior.
 import { execFileSync } from "node:child_process";
 import { chmodSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -141,7 +142,7 @@ function runScript(
 
 describe("scripts/ios-team-id.sh", () => {
   beforeAll(async () => {
-    fixtureRoot = makeTempDir(tempDirs, "astroclaw-ios-team-id-");
+    fixtureRoot = makeTempDir(tempDirs, "openclaw-ios-team-id-");
     sharedBinDir = path.join(fixtureRoot, "shared-bin");
     await mkdir(sharedBinDir, { recursive: true });
     sharedHomeDir = path.join(fixtureRoot, "home");
