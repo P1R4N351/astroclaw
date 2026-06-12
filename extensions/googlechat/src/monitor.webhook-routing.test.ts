@@ -1,12 +1,13 @@
+// Googlechat tests cover monitor.webhook routing plugin behavior.
 import { EventEmitter } from "node:events";
 import type { IncomingMessage } from "node:http";
 import {
   createEmptyPluginRegistry,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { createMockServerResponse } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { createMockServerResponse } from "openclaw/plugin-sdk/test-env";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig, PluginRuntime } from "../runtime-api.js";
+import type { OpenClawConfig, PluginRuntime } from "../runtime-api.js";
 import type { ResolvedGoogleChatAccount } from "./accounts.js";
 import { verifyGoogleChatRequest } from "./auth.js";
 import {
@@ -93,7 +94,7 @@ function registerTwoTargets() {
   const logA = vi.fn();
   const logB = vi.fn();
   const core = {} as PluginRuntime;
-  const config = {} as AstroclawConfig;
+  const config = {} as OpenClawConfig;
 
   const unregisterA = registerGoogleChatWebhookTarget({
     account: baseAccount("A"),
