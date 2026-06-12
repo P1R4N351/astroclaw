@@ -1,9 +1,11 @@
+/** Tests ACP prompt cwd-prefix provenance behavior. */
 import os from "node:os";
 import path from "node:path";
 import type { PromptRequest } from "@agentclientprotocol/sdk";
+import { createInMemorySessionStore } from "@openclaw/acp-core/session";
 import { describe, expect, it, vi } from "vitest";
 import type { GatewayClient } from "../gateway/client.js";
-import { createInMemorySessionStore } from "./session.js";
+import { withEnvAsync } from "../test-utils/env.js";
 import { AcpGatewayAgent } from "./translator.js";
 import { createAcpConnection, createAcpGateway } from "./translator.test-helpers.js";
 
@@ -39,13 +41,14 @@ describe("acp prompt cwd prefix", () => {
       cwd?: string;
       prefixCwd?: boolean;
       provenanceMode?: "meta" | "meta+receipt";
+      meta?: Record<string, unknown>;
     } = {},
   ) {
     const sessionStore = createInMemorySessionStore();
     sessionStore.createSession({
       sessionId: TEST_SESSION_ID,
       sessionKey: TEST_SESSION_KEY,
-      cwd: options.cwd ?? path.join(os.homedir(), "astroclaw-test"),
+      cwd: options.cwd ?? path.join(os.homedir(), "openclaw-test"),
     });
 
     const requestSpy = createStopAfterSendSpy();
@@ -59,44 +62,34 @@ describe("acp prompt cwd prefix", () => {
       },
     );
 
-    await expect(agent.prompt(TEST_PROMPT)).rejects.toThrow("stop-after-send");
+    await expect(
+      agent.prompt({
+        ...TEST_PROMPT,
+        _meta: options.meta ?? {},
+      } as unknown as PromptRequest),
+    ).rejects.toThrow("stop-after-send");
     return requestSpy;
   }
 
   async function runPromptWithCwd(cwd: string) {
     const pinnedHome = os.homedir();
-    const previousAstroclawHome = process.env.ASTROCLAW_HOME;
-    const previousHome = process.env.HOME;
-    delete process.env.ASTROCLAW_HOME;
-    process.env.HOME = pinnedHome;
-
-    try {
-      return await runPromptAndCaptureRequest({ cwd, prefixCwd: true });
-    } finally {
-      if (previousAstroclawHome === undefined) {
-        delete process.env.ASTROCLAW_HOME;
-      } else {
-        process.env.ASTROCLAW_HOME = previousAstroclawHome;
-      }
-      if (previousHome === undefined) {
-        delete process.env.HOME;
-      } else {
-        process.env.HOME = previousHome;
-      }
-    }
+    return await withEnvAsync(
+      { OPENCLAW_HOME: undefined, HOME: pinnedHome },
+      async () => await runPromptAndCaptureRequest({ cwd, prefixCwd: true }),
+    );
   }
 
   it("redacts home directory in prompt prefix", async () => {
-    const requestSpy = await runPromptWithCwd(path.join(os.homedir(), "astroclaw-test"));
+    const requestSpy = await runPromptWithCwd(path.join(os.homedir(), "openclaw-test"));
     const payload = chatSendPayload(requestSpy);
     expect(typeof payload.message).toBe("string");
-    expect(payload.message).toMatch(/\[Working directory: ~[\\/]astroclaw-test\]/);
+    expect(payload.message).toMatch(/\[Working directory: ~[\\/]openclaw-test\]/);
   });
 
   it("keeps backslash separators when cwd uses them", async () => {
-    const requestSpy = await runPromptWithCwd(`${os.homedir()}\\astroclaw-test`);
+    const requestSpy = await runPromptWithCwd(`${os.homedir()}\\openclaw-test`);
     const payload = chatSendPayload(requestSpy);
-    expect(payload.message).toContain("[Working directory: ~\\astroclaw-test]");
+    expect(payload.message).toContain("[Working directory: ~\\openclaw-test]");
   });
 
   it("injects system provenance metadata when enabled", async () => {
@@ -106,7 +99,7 @@ describe("acp prompt cwd prefix", () => {
       kind: "external_user",
       originSessionId: TEST_SESSION_ID,
       sourceChannel: "acp",
-      sourceTool: "astroclaw_acp",
+      sourceTool: "openclaw_acp",
     });
     expect(payload.systemProvenanceReceipt).toBeUndefined();
   });
@@ -118,14 +111,22 @@ describe("acp prompt cwd prefix", () => {
       kind: "external_user",
       originSessionId: TEST_SESSION_ID,
       sourceChannel: "acp",
-      sourceTool: "astroclaw_acp",
+      sourceTool: "openclaw_acp",
     });
     expect(typeof payload.systemProvenanceReceipt).toBe("string");
     const receipt = payload.systemProvenanceReceipt as string;
     expect(receipt).toContain("[Source Receipt]");
-    expect(receipt).toContain("bridge=astroclaw-acp");
+    expect(receipt).toContain("bridge=openclaw-acp");
     expect(receipt).toContain(`originSessionId=${TEST_SESSION_ID}`);
     expect(receipt).toContain(`targetSession=${TEST_SESSION_KEY}`);
+  });
+
+  it("does not forward malformed prompt timeout metadata", async () => {
+    for (const timeoutMs of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      const requestSpy = await runPromptAndCaptureRequest({ meta: { timeoutMs } });
+      const payload = chatSendPayload(requestSpy);
+      expect(payload.timeoutMs).toBeUndefined();
+    }
   });
 
   it("retries without provenance when the gateway rejects admin-only provenance fields", async () => {
@@ -142,7 +143,7 @@ describe("acp prompt cwd prefix", () => {
     sessionStore.createSession({
       sessionId: TEST_SESSION_ID,
       sessionKey: TEST_SESSION_KEY,
-      cwd: path.join(os.homedir(), "astroclaw-test"),
+      cwd: path.join(os.homedir(), "openclaw-test"),
     });
     const agent = new AcpGatewayAgent(
       createAcpConnection(),
@@ -160,7 +161,7 @@ describe("acp prompt cwd prefix", () => {
       kind: "external_user",
       originSessionId: TEST_SESSION_ID,
       sourceChannel: "acp",
-      sourceTool: "astroclaw_acp",
+      sourceTool: "openclaw_acp",
     });
     expect(firstPayload.systemProvenanceReceipt).toContain("[Source Receipt]");
 
