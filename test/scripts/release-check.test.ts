@@ -1,3 +1,4 @@
+// Release Check tests cover release check script behavior.
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,11 +14,11 @@ function requirePluginEntries(config: { plugins?: { entries?: Record<string, unk
 
 describe("release-check", () => {
   it("seeds packaged activation smoke with an included channel plugin", () => {
-    const homeDir = mkdtempSync(join(tmpdir(), "astroclaw-release-check-test-"));
+    const homeDir = mkdtempSync(join(tmpdir(), "openclaw-release-check-test-"));
     try {
       writePackedBundledPluginActivationConfig(homeDir);
       const config = JSON.parse(
-        readFileSync(join(homeDir, ".astroclaw", "astroclaw.json"), "utf8"),
+        readFileSync(join(homeDir, ".openclaw", "openclaw.json"), "utf8"),
       ) as {
         channels?: Record<string, unknown>;
         plugins?: { entries?: Record<string, unknown> };
