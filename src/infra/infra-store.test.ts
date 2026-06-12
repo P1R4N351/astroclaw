@@ -1,3 +1,4 @@
+// Tests infra store file persistence and recovery.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -30,7 +31,7 @@ import {
 const missingStoreDefaultCases = [
   {
     name: "voicewake store",
-    prefix: "astroclaw-voicewake-",
+    prefix: "openclaw-voicewake-",
     assertDefaults: async (baseDir: string) => {
       const cfg = await loadVoiceWakeConfig(baseDir);
       expect(cfg.triggers).toEqual(defaultVoiceWakeTriggers());
@@ -39,7 +40,7 @@ const missingStoreDefaultCases = [
   },
   {
     name: "voicewake routing store",
-    prefix: "astroclaw-voicewake-routing-",
+    prefix: "openclaw-voicewake-routing-",
     assertDefaults: async (baseDir: string) => {
       const cfg = await loadVoiceWakeRoutingConfig(baseDir);
       expect(cfg.version).toBe(1);
@@ -53,7 +54,7 @@ const missingStoreDefaultCases = [
 describe("infra store", () => {
   describe("state migrations fs", () => {
     it("treats array session stores as invalid", async () => {
-      await withTempDir("astroclaw-session-store-", async (dir) => {
+      await withTempDir("openclaw-session-store-", async (dir) => {
         const storePath = path.join(dir, "sessions.json");
         await fs.writeFile(storePath, "[]", "utf-8");
 
@@ -64,7 +65,7 @@ describe("infra store", () => {
     });
 
     it("parses JSON5 object session stores", async () => {
-      await withTempDir("astroclaw-session-store-", async (dir) => {
+      await withTempDir("openclaw-session-store-", async (dir) => {
         const storePath = path.join(dir, "sessions.json");
         await fs.writeFile(
           storePath,
@@ -91,7 +92,7 @@ describe("infra store", () => {
 
   describe("voicewake store", () => {
     it("sanitizes and persists triggers", async () => {
-      await withTempDir("astroclaw-voicewake-", async (baseDir) => {
+      await withTempDir("openclaw-voicewake-", async (baseDir) => {
         const saved = await setVoiceWakeTriggers(["  hi  ", "", "  there "], baseDir);
         expect(saved.triggers).toEqual(["hi", "there"]);
         expect(saved.updatedAtMs).toBeGreaterThan(0);
@@ -103,14 +104,14 @@ describe("infra store", () => {
     });
 
     it("falls back to defaults when triggers empty", async () => {
-      await withTempDir("astroclaw-voicewake-", async (baseDir) => {
+      await withTempDir("openclaw-voicewake-", async (baseDir) => {
         const saved = await setVoiceWakeTriggers(["", "   "], baseDir);
         expect(saved.triggers).toEqual(defaultVoiceWakeTriggers());
       });
     });
 
     it("sanitizes malformed persisted config values", async () => {
-      await withTempDir("astroclaw-voicewake-", async (baseDir) => {
+      await withTempDir("openclaw-voicewake-", async (baseDir) => {
         await fs.mkdir(path.join(baseDir, "settings"), { recursive: true });
         await fs.writeFile(
           path.join(baseDir, "settings", "voicewake.json"),
@@ -130,7 +131,7 @@ describe("infra store", () => {
 
   describe("voicewake routing store", () => {
     it("normalizes and persists routing config", async () => {
-      const baseDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-voicewake-routing-"));
+      const baseDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-voicewake-routing-"));
       const saved = await setVoiceWakeRoutingConfig(
         {
           defaultTarget: { mode: "current" },
@@ -283,6 +284,14 @@ describe("infra store", () => {
       expect(cache.check("a", 120)).toBe(false);
       expect(cache.check("c", 200)).toBe(false);
       expect(cache.size()).toBe(2);
+    });
+
+    it("bounds non-finite ttl and max size options", () => {
+      const cache = createDedupeCache({ ttlMs: Number.NaN, maxSize: Number.NaN });
+
+      expect(cache.check("a", 100)).toBe(false);
+      expect(cache.peek("a", 100)).toBe(false);
+      expect(cache.size()).toBe(0);
     });
 
     it("supports non-mutating existence checks via peek()", () => {
