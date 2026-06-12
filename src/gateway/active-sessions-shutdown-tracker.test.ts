@@ -1,5 +1,7 @@
+// Active-session shutdown tracker tests protect the in-memory drain list used
+// when gateway shutdown, restart, or lifecycle cleanup must emit one session_end.
 import { afterEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   clearActiveSessionsForShutdownTracker,
   forgetActiveSessionForShutdown,
@@ -13,7 +15,7 @@ import {
 // already been finalized through replace / reset / delete / compaction so
 // the shutdown drain never double-fires `session_end` for them.
 
-const cfg: AstroclawConfig = {};
+const cfg: OpenClawConfig = {};
 
 afterEach(() => {
   clearActiveSessionsForShutdownTracker();
