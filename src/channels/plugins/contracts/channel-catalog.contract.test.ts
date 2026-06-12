@@ -1,3 +1,4 @@
+// Channel catalog contract tests cover bundled and registry-backed channel catalog invariants.
 import {
   describeBundledMetadataOnlyChannelCatalogContract,
   describeChannelCatalogEntryContract,
@@ -6,7 +7,7 @@ import {
 
 describeChannelCatalogEntryContract({
   channelId: "msteams",
-  npmSpec: "@astroclaw/msteams",
+  npmSpec: "@openclaw/msteams",
   alias: "teams",
 });
 
@@ -21,17 +22,17 @@ const whatsappMeta = {
 
 describeBundledMetadataOnlyChannelCatalogContract({
   pluginId: "whatsapp",
-  packageName: "@astroclaw/whatsapp",
-  npmSpec: "@astroclaw/whatsapp",
+  packageName: "@openclaw/whatsapp",
+  npmSpec: "@openclaw/whatsapp",
   meta: whatsappMeta,
   defaultChoice: "npm",
 });
 
 describeOfficialFallbackChannelCatalogContract({
   channelId: "whatsapp",
-  npmSpec: "@astroclaw/whatsapp",
+  npmSpec: "@openclaw/whatsapp",
   meta: whatsappMeta,
-  packageName: "@astroclaw/whatsapp",
+  packageName: "@openclaw/whatsapp",
   pluginId: "whatsapp",
   externalNpmSpec: "@vendor/whatsapp-fork",
   externalLabel: "WhatsApp Fork",
@@ -39,12 +40,12 @@ describeOfficialFallbackChannelCatalogContract({
 
 describeChannelCatalogEntryContract({
   channelId: "wecom",
-  npmSpec: "@wecom/wecom-astroclaw-plugin@2026.5.7",
+  npmSpec: "@wecom/wecom-openclaw-plugin@2026.5.7",
   alias: "wework",
 });
 
 describeChannelCatalogEntryContract({
   channelId: "yuanbao",
-  npmSpec: "astroclaw-plugin-yuanbao@2.13.1",
+  npmSpec: "openclaw-plugin-yuanbao@2.13.1",
   alias: "yb",
 });
