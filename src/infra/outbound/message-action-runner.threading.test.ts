@@ -1,5 +1,7 @@
+// Covers message-action reply/thread inheritance, single-reply modes, and
+// outbound mirror route preparation.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import {
   prepareOutboundMirrorRoute,
   resolveAndApplyOutboundReplyToId,
@@ -27,7 +29,7 @@ const workspaceConfig = {
       botToken: "xoxb-test",
     },
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 const forumConfig = {
   channels: {
@@ -35,7 +37,7 @@ const forumConfig = {
       botToken: "forum-test",
     },
   },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 const defaultForumToolContext = {
   currentChannelId: "forum:123",
@@ -94,8 +96,8 @@ describe("message action threading helpers", () => {
     });
 
     expect(result.outboundRoute?.sessionKey).toBe(testCase.expectedSessionKey);
-    expect(actionParams.__sessionKey).toBe(testCase.expectedSessionKey);
-    expect(actionParams.__agentId).toBe("main");
+    expect(actionParams["__sessionKey"]).toBe(testCase.expectedSessionKey);
+    expect(actionParams["__agentId"]).toBe("main");
     expect(ensureOutboundSessionEntry).toHaveBeenCalledTimes(1);
   });
 
