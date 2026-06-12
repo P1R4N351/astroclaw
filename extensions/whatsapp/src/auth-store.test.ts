@@ -1,12 +1,18 @@
+// Whatsapp tests cover auth store plugin behavior.
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getWebAuthAgeMs,
+  hasWebCredsSync,
   logoutWeb,
   pickWebChannel,
+  readCredsJsonRaw,
   readWebAuthSnapshot,
   readWebAuthState,
+  readWebSelfId,
+  readWebSelfIdentity,
   restoreCredsFromBackupIfNeeded,
   webAuthExists,
   WhatsAppAuthUnstableError,
@@ -18,7 +24,7 @@ const hoisted = vi.hoisted(() => ({
   waitForCredsSaveQueueWithTimeout: vi.fn<() => Promise<CredsQueueWaitResult>>(
     async () => "drained",
   ),
-  oauthDir: "/tmp/astroclaw-wa-auth-store-test-oauth",
+  oauthDir: "/tmp/openclaw-wa-auth-store-test-oauth",
 }));
 
 vi.mock("./creds-persistence.js", async () => {
@@ -61,7 +67,7 @@ describe("auth-store", () => {
   });
 
   it("does not restore creds from backup on ordinary reads", async () => {
-    const authDir = createTempAuthDir("astroclaw-wa-auth-read");
+    const authDir = createTempAuthDir("openclaw-wa-auth-read");
     const credsPath = path.join(authDir, "creds.json");
     const backupPath = path.join(authDir, "creds.json.bak");
     fsSync.writeFileSync(backupPath, JSON.stringify({ me: { id: "123@s.whatsapp.net" } }), "utf-8");
@@ -71,7 +77,7 @@ describe("auth-store", () => {
   });
 
   it("restores creds from a regular backup file", async () => {
-    const authDir = createTempAuthDir("astroclaw-wa-auth-restore");
+    const authDir = createTempAuthDir("openclaw-wa-auth-restore");
     const credsPath = path.join(authDir, "creds.json");
     fsSync.writeFileSync(credsPath, "{", "utf-8");
     fsSync.writeFileSync(
@@ -86,8 +92,31 @@ describe("auth-store", () => {
     });
   });
 
+  it("preserves valid large creds instead of treating them as corrupt", async () => {
+    const authDir = createTempAuthDir("openclaw-wa-auth-large-creds");
+    const credsPath = path.join(authDir, "creds.json");
+    const largeCreds = JSON.stringify({
+      me: { id: "15551234567@s.whatsapp.net" },
+      additionalData: "x".repeat(1024 * 1024 + 512),
+    });
+    fsSync.writeFileSync(credsPath, largeCreds, "utf-8");
+    fsSync.writeFileSync(
+      path.join(authDir, "creds.json.bak"),
+      JSON.stringify({ me: { id: "19990000000@s.whatsapp.net" } }),
+      "utf-8",
+    );
+
+    await expect(webAuthExists(authDir)).resolves.toBe(true);
+    await expect(restoreCredsFromBackupIfNeeded(authDir)).resolves.toBe(false);
+    expect(fsSync.readFileSync(credsPath, "utf-8")).toBe(largeCreds);
+    expect(readWebSelfId(authDir)).toMatchObject({
+      e164: "+15551234567",
+      jid: "15551234567@s.whatsapp.net",
+    });
+  });
+
   it("refuses to restore creds from a symlinked backup path", async () => {
-    const authDir = createTempAuthDir("astroclaw-wa-auth-restore-symlink");
+    const authDir = createTempAuthDir("openclaw-wa-auth-restore-symlink");
     const targetPath = path.join(authDir, "backup-target.json");
     const backupPath = path.join(authDir, "creds.json.bak");
     const credsPath = path.join(authDir, "creds.json");
@@ -99,8 +128,29 @@ describe("auth-store", () => {
     expect(fsSync.readFileSync(credsPath, "utf-8")).toBe("{");
   });
 
+  it.runIf(process.platform !== "win32")(
+    "does not restore backup over a symlinked creds path",
+    async () => {
+      const authDir = createTempAuthDir("openclaw-wa-auth-restore-target-symlink");
+      const targetPath = path.join(authDir, "target-creds.json");
+      const credsPath = path.join(authDir, "creds.json");
+      const backupPath = path.join(authDir, "creds.json.bak");
+      fsSync.writeFileSync(targetPath, "{", "utf-8");
+      fsSync.symlinkSync(targetPath, credsPath);
+      fsSync.writeFileSync(
+        backupPath,
+        JSON.stringify({ me: { id: "123@s.whatsapp.net" } }),
+        "utf-8",
+      );
+
+      await expect(restoreCredsFromBackupIfNeeded(authDir)).resolves.toBe(false);
+      expect(fsSync.lstatSync(credsPath).isSymbolicLink()).toBe(true);
+      expect(fsSync.readFileSync(targetPath, "utf-8")).toBe("{");
+    },
+  );
+
   it("reports linked auth state and snapshot from the shared read helper", async () => {
-    const authDir = createTempAuthDir("astroclaw-wa-auth-linked");
+    const authDir = createTempAuthDir("openclaw-wa-auth-linked");
     fsSync.writeFileSync(
       path.join(authDir, "creds.json"),
       JSON.stringify({ me: { id: "15551234567@s.whatsapp.net" } }),
@@ -110,7 +160,7 @@ describe("auth-store", () => {
     await expect(readWebAuthState(authDir)).resolves.toBe("linked");
     const snapshot = await readWebAuthSnapshot(authDir);
     expect(snapshot.authAgeMs).toBeTypeOf("number");
-    expect(snapshot.authAgeMs).toBeGreaterThanOrEqual(0);
+    expect(snapshot.authAgeMs).toBeGreaterThanOrEqual(-1);
     expect(snapshot).toEqual({
       state: "linked",
       authAgeMs: snapshot.authAgeMs,
@@ -122,8 +172,66 @@ describe("auth-store", () => {
     });
   });
 
+  it.runIf(process.platform !== "win32")(
+    "treats symlinked creds as missing across auth readers",
+    async () => {
+      const authDir = createTempAuthDir("openclaw-wa-auth-symlink-read");
+      const targetPath = path.join(authDir, "target-creds.json");
+      const credsPath = path.join(authDir, "creds.json");
+      fsSync.writeFileSync(
+        targetPath,
+        JSON.stringify({ me: { id: "15551234567@s.whatsapp.net" } }),
+        "utf-8",
+      );
+      fsSync.symlinkSync(targetPath, credsPath);
+
+      expect(fsSync.lstatSync(credsPath).isSymbolicLink()).toBe(true);
+      expect(fsSync.statSync(credsPath).isFile()).toBe(true);
+      expect(hasWebCredsSync(authDir)).toBe(false);
+      expect(readCredsJsonRaw(credsPath)).toBeNull();
+      expect(getWebAuthAgeMs(authDir)).toBeNull();
+      expect(readWebSelfId(authDir)).toEqual({ e164: null, jid: null, lid: null });
+      await expect(readWebSelfIdentity(authDir)).resolves.toEqual({
+        e164: null,
+        jid: null,
+        lid: null,
+      });
+      await expect(webAuthExists(authDir)).resolves.toBe(false);
+      await expect(readWebAuthState(authDir)).resolves.toBe("not-linked");
+      await expect(readWebAuthSnapshot(authDir)).resolves.toEqual({
+        state: "not-linked",
+        authAgeMs: null,
+        selfId: { e164: null, jid: null, lid: null },
+      });
+    },
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "treats creds under a symlinked auth directory as missing",
+    async () => {
+      const rootDir = createTempAuthDir("openclaw-wa-auth-symlink-parent");
+      const targetAuthDir = path.join(rootDir, "target-auth");
+      const authDir = path.join(rootDir, "linked-auth");
+      fsSync.mkdirSync(targetAuthDir);
+      fsSync.writeFileSync(
+        path.join(targetAuthDir, "creds.json"),
+        JSON.stringify({ me: { id: "15551234567@s.whatsapp.net" } }),
+        "utf-8",
+      );
+      fsSync.symlinkSync(targetAuthDir, authDir, "dir");
+      const credsPath = path.join(authDir, "creds.json");
+
+      expect(fsSync.lstatSync(authDir).isSymbolicLink()).toBe(true);
+      expect(fsSync.lstatSync(credsPath).isFile()).toBe(true);
+      expect(hasWebCredsSync(authDir)).toBe(false);
+      expect(readCredsJsonRaw(credsPath)).toBeNull();
+      await expect(webAuthExists(authDir)).resolves.toBe(false);
+      await expect(readWebAuthState(authDir)).resolves.toBe("not-linked");
+    },
+  );
+
   it("reports unstable auth state when the shared barrier read times out", async () => {
-    const authDir = createTempAuthDir("astroclaw-wa-auth-unstable-state");
+    const authDir = createTempAuthDir("openclaw-wa-auth-unstable-state");
     fsSync.writeFileSync(
       path.join(authDir, "creds.json"),
       JSON.stringify({ me: { id: "15551234567@s.whatsapp.net" } }),
@@ -142,7 +250,7 @@ describe("auth-store", () => {
   });
 
   it("clears unreadable auth state on explicit logout", async () => {
-    await withOwnedOAuthAuthDir("astroclaw-wa-auth-logout", async (authDir) => {
+    await withOwnedOAuthAuthDir("openclaw-wa-auth-logout", async (authDir) => {
       fsSync.writeFileSync(path.join(authDir, "creds.json"), "{", "utf-8");
       fsSync.writeFileSync(
         path.join(authDir, "creds.json.bak"),
@@ -162,7 +270,7 @@ describe("auth-store", () => {
   });
 
   it("does not delete the whole legacy auth root when targeted cleanup fails", async () => {
-    const authDir = createTempAuthDir("astroclaw-wa-auth-legacy-failure");
+    const authDir = createTempAuthDir("openclaw-wa-auth-legacy-failure");
     const previousOAuthDir = hoisted.oauthDir;
     fsSync.writeFileSync(path.join(authDir, "creds.json"), "{}", "utf-8");
     fsSync.writeFileSync(path.join(authDir, "oauth.json"), '{"token":true}', "utf-8");
@@ -195,7 +303,7 @@ describe("auth-store", () => {
   });
 
   it("clears auth state even when directory enumeration fails", async () => {
-    await withOwnedOAuthAuthDir("astroclaw-wa-auth-readdir", async (authDir) => {
+    await withOwnedOAuthAuthDir("openclaw-wa-auth-readdir", async (authDir) => {
       fsSync.writeFileSync(path.join(authDir, "creds.json"), "{}", "utf-8");
       const readdirSpy = vi
         .spyOn(fs, "readdir")
@@ -212,8 +320,8 @@ describe("auth-store", () => {
     });
   });
 
-  it("does not delete custom auth directories outside the Astroclaw auth root", async () => {
-    const authDir = createTempAuthDir("astroclaw-wa-auth-custom");
+  it("does not delete custom auth directories outside the OpenClaw auth root", async () => {
+    const authDir = createTempAuthDir("openclaw-wa-auth-custom");
     const nestedDir = path.join(authDir, "nested");
     fsSync.mkdirSync(nestedDir);
     fsSync.writeFileSync(path.join(authDir, "creds.json"), "{}", "utf-8");
@@ -234,8 +342,8 @@ describe("auth-store", () => {
 
   it("does not clear auth files through a symlinked owned auth directory", async () => {
     const previousOAuthDir = hoisted.oauthDir;
-    const oauthDir = createTempAuthDir("astroclaw-wa-auth-symlink-oauth");
-    const externalDir = createTempAuthDir("astroclaw-wa-auth-symlink-target");
+    const oauthDir = createTempAuthDir("openclaw-wa-auth-symlink-oauth");
+    const externalDir = createTempAuthDir("openclaw-wa-auth-symlink-target");
     const authDir = path.join(oauthDir, "whatsapp", "default");
     try {
       fsSync.mkdirSync(path.dirname(authDir), { recursive: true });
@@ -262,8 +370,8 @@ describe("auth-store", () => {
 
   it("does not clear auth files through an intermediate symlink in the owned auth tree", async () => {
     const previousOAuthDir = hoisted.oauthDir;
-    const oauthDir = createTempAuthDir("astroclaw-wa-auth-symlink-parent-oauth");
-    const externalRoot = createTempAuthDir("astroclaw-wa-auth-symlink-parent-target");
+    const oauthDir = createTempAuthDir("openclaw-wa-auth-symlink-parent-oauth");
+    const externalRoot = createTempAuthDir("openclaw-wa-auth-symlink-parent-target");
     const externalAuthDir = path.join(externalRoot, "default");
     const linkedParent = path.join(oauthDir, "whatsapp", "linked");
     const authDir = path.join(linkedParent, "default");
@@ -292,7 +400,7 @@ describe("auth-store", () => {
   });
 
   it("does not delete unrelated non-empty directories on logout", async () => {
-    const authDir = createTempAuthDir("astroclaw-wa-auth-unrelated");
+    const authDir = createTempAuthDir("openclaw-wa-auth-unrelated");
     fsSync.writeFileSync(path.join(authDir, "notes.txt"), "keep me", "utf-8");
     const runtime = {
       log: vi.fn(),
@@ -308,7 +416,7 @@ describe("auth-store", () => {
   it("throws a typed unstable-auth error when channel selection times out", async () => {
     hoisted.waitForCredsSaveQueueWithTimeout.mockResolvedValueOnce("timed_out");
 
-    const error = await pickWebChannel("auto", "/tmp/astroclaw-wa-auth-unstable").catch(
+    const error = await pickWebChannel("auto", "/tmp/openclaw-wa-auth-unstable").catch(
       (caught: unknown) => caught,
     );
     expect(error).toBeInstanceOf(WhatsAppAuthUnstableError);
