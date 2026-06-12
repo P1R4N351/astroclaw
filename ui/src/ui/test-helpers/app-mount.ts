@@ -1,9 +1,10 @@
+// Control UI test helper supports app mount setup.
 import { afterEach, beforeEach, vi } from "vitest";
 import { i18n } from "../../i18n/index.ts";
 import { getSafeLocalStorage, getSafeSessionStorage } from "../../local-storage.ts";
 import { createStorageMock } from "../../test-helpers/storage.ts";
 import "../app.ts";
-import type { AstroclawApp } from "../app.ts";
+import type { OpenClawApp } from "../app.ts";
 
 class MockWebSocket {
   static CONNECTING = 0;
@@ -42,12 +43,12 @@ function createMatchMediaMock(width: number) {
   });
 }
 
-const mountedApps = new Set<AstroclawApp>();
+const mountedApps = new Set<OpenClawApp>();
 
 function collectMountedApps() {
-  return new Set<AstroclawApp>([
+  return new Set<OpenClawApp>([
     ...mountedApps,
-    ...document.querySelectorAll<AstroclawApp>("astroclaw-app"),
+    ...document.querySelectorAll<OpenClawApp>("openclaw-app"),
   ]);
 }
 
@@ -56,7 +57,9 @@ function nextMicrotask() {
 }
 
 function nextTimer() {
-  return new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, 0);
+  });
 }
 
 function nextFrame() {
@@ -69,13 +72,13 @@ function nextFrame() {
   });
 }
 
-async function waitForAppUpdates(apps: Iterable<AstroclawApp>) {
+async function waitForAppUpdates(apps: Iterable<OpenClawApp>) {
   for (const app of apps) {
     await app.updateComplete;
   }
 }
 
-async function drainAppWork(apps: Iterable<AstroclawApp>) {
+async function drainAppWork(apps: Iterable<OpenClawApp>) {
   const snapshot = [...apps];
   await nextMicrotask();
   await waitForAppUpdates(snapshot);
@@ -102,7 +105,7 @@ async function cleanupMountedApps() {
 
 export function mountApp(pathname: string) {
   window.history.replaceState({}, "", pathname);
-  const app = document.createElement("astroclaw-app") as AstroclawApp;
+  const app = document.createElement("openclaw-app") as OpenClawApp;
   mountedApps.add(app);
   document.body.append(app);
   app.connected = true;
@@ -115,7 +118,7 @@ export function registerAppMountHooks() {
     const localStorage = createStorageMock();
     const sessionStorage = createStorageMock();
     const matchMedia = createMatchMediaMock(390);
-    window.__ASTROCLAW_CONTROL_UI_BASE_PATH__ = undefined;
+    window["__OPENCLAW_CONTROL_UI_BASE_PATH__"] = undefined;
     vi.stubGlobal("localStorage", localStorage);
     vi.stubGlobal("sessionStorage", sessionStorage);
     vi.stubGlobal("matchMedia", matchMedia);
@@ -149,15 +152,12 @@ export function registerAppMountHooks() {
     document.body.innerHTML = "";
     await i18n.setLocale("en");
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => new Promise<Response>(() => undefined)) as unknown as typeof fetch,
-    );
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})) as unknown as typeof fetch);
   });
 
   afterEach(async () => {
     await cleanupMountedApps();
-    window.__ASTROCLAW_CONTROL_UI_BASE_PATH__ = undefined;
+    window["__OPENCLAW_CONTROL_UI_BASE_PATH__"] = undefined;
     getSafeLocalStorage()?.clear();
     getSafeSessionStorage()?.clear();
     await i18n.setLocale("en");
