@@ -1,3 +1,4 @@
+/** Tests agent bootstrap file discovery, filtering, and injected context modes. */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -8,7 +9,7 @@ import {
 } from "../hooks/internal-hooks.js";
 import { makeTempWorkspace } from "../test-helpers/workspace.js";
 import {
-  _resetBootstrapWarningCacheForTest,
+  resetBootstrapWarningCacheForTest,
   FULL_BOOTSTRAP_COMPLETED_CUSTOM_TYPE,
   hasCompletedBootstrapTurn,
   makeBootstrapWarn,
@@ -36,6 +37,8 @@ function registerExtraBootstrapFileHook() {
 function registerMalformedBootstrapFileHook() {
   registerInternalHook("agent:bootstrap", (event) => {
     const context = event.context as AgentBootstrapHookContext;
+    // Hook contracts are extension-facing; malformed entries must warn and drop
+    // without breaking normal project bootstrap files.
     context.bootstrapFiles = [
       ...context.bootstrapFiles,
       {
@@ -63,6 +66,8 @@ function registerMalformedBootstrapFileHook() {
 function registerDuplicateBootstrapFileHook() {
   registerInternalHook("agent:bootstrap", (event) => {
     const context = event.context as AgentBootstrapHookContext;
+    // Duplicates exercise canonical path dedupe between relative hook entries
+    // and resolved workspace files.
     context.bootstrapFiles = [
       ...context.bootstrapFiles,
       {
@@ -97,13 +102,15 @@ function registerBootstrapFileHook(relativePath = "BOOTSTRAP.md") {
 }
 
 async function createHeartbeatAgentsWorkspace() {
-  const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
+  const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
   await fs.writeFile(path.join(workspaceDir, "HEARTBEAT.md"), "check inbox", "utf8");
   await fs.writeFile(path.join(workspaceDir, "AGENTS.md"), "repo rules", "utf8");
   return workspaceDir;
 }
 
 function expectHeartbeatExcludedAndAgentsKept(files: WorkspaceBootstrapFile[]) {
+  // Heartbeat policy can remove HEARTBEAT.md for normal turns, but project rules
+  // must remain in the bootstrap set.
   const fileNames = files.map((file) => file.name);
   expect(fileNames).not.toContain("HEARTBEAT.md");
   expect(fileNames).toContain("AGENTS.md");
@@ -116,7 +123,7 @@ describe("resolveBootstrapFilesForRun", () => {
   it("applies bootstrap hook overrides", async () => {
     registerExtraBootstrapFileHook();
 
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
     const files = await resolveBootstrapFilesForRun({ workspaceDir });
 
     const filePaths = files.map((file) => file.path);
@@ -126,7 +133,7 @@ describe("resolveBootstrapFilesForRun", () => {
   it("drops malformed hook files with missing/invalid paths", async () => {
     registerMalformedBootstrapFileHook();
 
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
     const warnings: string[] = [];
     const files = await resolveBootstrapFilesForRun({
       workspaceDir,
@@ -149,7 +156,7 @@ describe("resolveBootstrapFilesForRun", () => {
   it("dedupes hook-injected bootstrap paths relative to the workspace", async () => {
     registerDuplicateBootstrapFileHook();
 
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
     const agentsPath = path.join(workspaceDir, "AGENTS.md");
     await fs.writeFile(agentsPath, "workspace rules", "utf8");
 
@@ -166,10 +173,10 @@ describe("resolveBootstrapFilesForRun", () => {
   });
 
   it("ignores stale workspace BOOTSTRAP.md once setup is completed", async () => {
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
-    await fs.mkdir(path.join(workspaceDir, ".astroclaw"), { recursive: true });
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
+    await fs.mkdir(path.join(workspaceDir, ".openclaw"), { recursive: true });
     await fs.writeFile(
-      path.join(workspaceDir, ".astroclaw", "workspace-state.json"),
+      path.join(workspaceDir, ".openclaw", "workspace-state.json"),
       `${JSON.stringify({
         version: 1,
         bootstrapSeededAt: "2026-05-16T00:00:00.000Z",
@@ -187,8 +194,8 @@ describe("resolveBootstrapFilesForRun", () => {
   });
 
   it("keeps BOOTSTRAP.md when setup state cannot be read", async () => {
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
-    await fs.mkdir(path.join(workspaceDir, ".astroclaw", "workspace-state.json"), {
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
+    await fs.mkdir(path.join(workspaceDir, ".openclaw", "workspace-state.json"), {
       recursive: true,
     });
     await fs.writeFile(path.join(workspaceDir, "AGENTS.md"), "rules", "utf8");
@@ -201,10 +208,10 @@ describe("resolveBootstrapFilesForRun", () => {
 
   it("does not let hooks re-add stale root BOOTSTRAP.md after setup is completed", async () => {
     registerBootstrapFileHook();
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
-    await fs.mkdir(path.join(workspaceDir, ".astroclaw"), { recursive: true });
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
+    await fs.mkdir(path.join(workspaceDir, ".openclaw"), { recursive: true });
     await fs.writeFile(
-      path.join(workspaceDir, ".astroclaw", "workspace-state.json"),
+      path.join(workspaceDir, ".openclaw", "workspace-state.json"),
       `${JSON.stringify({
         version: 1,
         bootstrapSeededAt: "2026-05-16T00:00:00.000Z",
@@ -222,11 +229,11 @@ describe("resolveBootstrapFilesForRun", () => {
 
   it("ignores stale root BOOTSTRAP.md for home-relative workspace paths", async () => {
     registerBootstrapFileHook();
-    const parentDir = await makeTempWorkspace("astroclaw-bootstrap-home-");
+    const parentDir = await makeTempWorkspace("openclaw-bootstrap-home-");
     const workspaceDir = path.join(parentDir, "workspace");
-    await fs.mkdir(path.join(workspaceDir, ".astroclaw"), { recursive: true });
+    await fs.mkdir(path.join(workspaceDir, ".openclaw"), { recursive: true });
     await fs.writeFile(
-      path.join(workspaceDir, ".astroclaw", "workspace-state.json"),
+      path.join(workspaceDir, ".openclaw", "workspace-state.json"),
       `${JSON.stringify({
         version: 1,
         bootstrapSeededAt: "2026-05-16T00:00:00.000Z",
@@ -237,29 +244,29 @@ describe("resolveBootstrapFilesForRun", () => {
     await fs.writeFile(path.join(workspaceDir, "AGENTS.md"), "rules", "utf8");
     await fs.writeFile(path.join(workspaceDir, "BOOTSTRAP.md"), "stale ritual", "utf8");
 
-    const previousAstroclawHome = process.env.ASTROCLAW_HOME;
-    process.env.ASTROCLAW_HOME = parentDir;
+    const previousOpenClawHome = process.env.OPENCLAW_HOME;
+    process.env.OPENCLAW_HOME = parentDir;
     try {
       const files = await resolveBootstrapFilesForRun({ workspaceDir: "~/workspace" });
 
       expect(files.map((file) => file.name)).toContain("AGENTS.md");
       expect(files.map((file) => file.name)).not.toContain("BOOTSTRAP.md");
     } finally {
-      if (previousAstroclawHome === undefined) {
-        delete process.env.ASTROCLAW_HOME;
+      if (previousOpenClawHome === undefined) {
+        delete process.env.OPENCLAW_HOME;
       } else {
-        process.env.ASTROCLAW_HOME = previousAstroclawHome;
+        process.env.OPENCLAW_HOME = previousOpenClawHome;
       }
     }
   });
 
   it("keeps hook-added nested BOOTSTRAP.md after setup is completed", async () => {
     registerBootstrapFileHook(path.join("packages", "core", "BOOTSTRAP.md"));
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
-    await fs.mkdir(path.join(workspaceDir, ".astroclaw"), { recursive: true });
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
+    await fs.mkdir(path.join(workspaceDir, ".openclaw"), { recursive: true });
     await fs.mkdir(path.join(workspaceDir, "packages", "core"), { recursive: true });
     await fs.writeFile(
-      path.join(workspaceDir, ".astroclaw", "workspace-state.json"),
+      path.join(workspaceDir, ".openclaw", "workspace-state.json"),
       `${JSON.stringify({
         version: 1,
         bootstrapSeededAt: "2026-05-16T00:00:00.000Z",
@@ -282,6 +289,62 @@ describe("resolveBootstrapFilesForRun", () => {
     );
     expect(files.map((file) => file.path)).not.toContain(path.join(workspaceDir, "BOOTSTRAP.md"));
   });
+
+  it("keeps subagent sessions to project and tool bootstrap files", async () => {
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-subagent-");
+    await Promise.all(
+      [
+        ["AGENTS.md", "project rules"],
+        ["TOOLS.md", "tool rules"],
+        ["SOUL.md", "persona"],
+        ["IDENTITY.md", "identity"],
+        ["USER.md", "user profile"],
+        ["MEMORY.md", "memory"],
+        ["HEARTBEAT.md", "heartbeat"],
+        ["BOOTSTRAP.md", "setup"],
+      ].map(([fileName, content]) =>
+        fs.writeFile(path.join(workspaceDir, fileName), content, "utf8"),
+      ),
+    );
+
+    const files = await resolveBootstrapFilesForRun({
+      workspaceDir,
+      sessionKey: "agent:main:subagent:worker",
+    });
+
+    expect(files.map((file) => file.name)).toStrictEqual(["AGENTS.md", "TOOLS.md"]);
+  });
+
+  it("keeps cron sessions on their existing minimal bootstrap files", async () => {
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-cron-");
+    await Promise.all(
+      [
+        ["AGENTS.md", "project rules"],
+        ["TOOLS.md", "tool rules"],
+        ["SOUL.md", "persona"],
+        ["IDENTITY.md", "identity"],
+        ["USER.md", "user profile"],
+        ["MEMORY.md", "memory"],
+        ["HEARTBEAT.md", "heartbeat"],
+        ["BOOTSTRAP.md", "setup"],
+      ].map(([fileName, content]) =>
+        fs.writeFile(path.join(workspaceDir, fileName), content, "utf8"),
+      ),
+    );
+
+    const files = await resolveBootstrapFilesForRun({
+      workspaceDir,
+      sessionKey: "agent:main:cron:daily:run:run-1",
+    });
+
+    expect(files.map((file) => file.name)).toStrictEqual([
+      "AGENTS.md",
+      "SOUL.md",
+      "TOOLS.md",
+      "IDENTITY.md",
+      "USER.md",
+    ]);
+  });
 });
 
 describe("resolveBootstrapContextForRun", () => {
@@ -291,7 +354,7 @@ describe("resolveBootstrapContextForRun", () => {
   it("returns context files for hook-adjusted bootstrap files", async () => {
     registerExtraBootstrapFileHook();
 
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
     const result = await resolveBootstrapContextForRun({ workspaceDir });
     const extra = result.contextFiles.find(
       (file) => file.path === path.join(workspaceDir, "EXTRA.md"),
@@ -301,7 +364,7 @@ describe("resolveBootstrapContextForRun", () => {
   });
 
   it("keeps BOOTSTRAP.md available in shared injected context for non-attempt consumers", async () => {
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
     await fs.writeFile(path.join(workspaceDir, "BOOTSTRAP.md"), "ritual", "utf8");
     await fs.writeFile(path.join(workspaceDir, "AGENTS.md"), "rules", "utf8");
 
@@ -315,7 +378,7 @@ describe("resolveBootstrapContextForRun", () => {
   });
 
   it("uses heartbeat-only bootstrap files in lightweight heartbeat mode", async () => {
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
     await fs.writeFile(path.join(workspaceDir, "HEARTBEAT.md"), "check inbox", "utf8");
     await fs.writeFile(path.join(workspaceDir, "SOUL.md"), "persona", "utf8");
 
@@ -330,7 +393,7 @@ describe("resolveBootstrapContextForRun", () => {
   });
 
   it("keeps bootstrap context empty in lightweight cron mode", async () => {
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
     await fs.writeFile(path.join(workspaceDir, "HEARTBEAT.md"), "check inbox", "utf8");
 
     const files = await resolveBootstrapFilesForRun({
@@ -383,7 +446,7 @@ describe("resolveBootstrapContextForRun", () => {
   });
 
   it("keeps HEARTBEAT.md for actual heartbeat runs even when the prompt section is disabled", async () => {
-    const workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-");
+    const workspaceDir = await makeTempWorkspace("openclaw-bootstrap-");
     await fs.writeFile(path.join(workspaceDir, "HEARTBEAT.md"), "check inbox", "utf8");
 
     const files = await resolveBootstrapFilesForRun({
@@ -410,7 +473,7 @@ describe("hasCompletedBootstrapTurn", () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(await fs.realpath("/tmp"), "astroclaw-bootstrap-turn-"));
+    tmpDir = await fs.mkdtemp(path.join(await fs.realpath("/tmp"), "openclaw-bootstrap-turn-"));
   });
 
   afterEach(async () => {
@@ -568,7 +631,7 @@ describe("hasCompletedBootstrapTurn", () => {
 
 describe("makeBootstrapWarn", () => {
   afterEach(() => {
-    _resetBootstrapWarningCacheForTest();
+    resetBootstrapWarningCacheForTest();
   });
 
   it("deduplicates repeated warnings for the same session and message", () => {
@@ -578,11 +641,11 @@ describe("makeBootstrapWarn", () => {
       warn: (message) => warnings.push(message),
     });
 
-    warn?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating");
-    warn?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating");
+    warn?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating");
+    warn?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating");
 
     expect(warnings).toEqual([
-      "workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating (sessionKey=agent:main:test-session)",
+      "workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating (sessionKey=agent:main:test-session)",
     ]);
   });
 
@@ -597,12 +660,12 @@ describe("makeBootstrapWarn", () => {
       warn: (message) => warnings.push(message),
     });
 
-    first?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating");
-    second?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating");
+    first?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating");
+    second?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating");
 
     expect(warnings).toEqual([
-      "workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating (sessionKey=agent:main:first-session)",
-      "workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating (sessionKey=agent:main:second-session)",
+      "workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating (sessionKey=agent:main:first-session)",
+      "workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating (sessionKey=agent:main:second-session)",
     ]);
   });
 
@@ -619,12 +682,12 @@ describe("makeBootstrapWarn", () => {
       warn: (message) => warnings.push(message),
     });
 
-    first?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating");
-    second?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating");
+    first?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating");
+    second?.("workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating");
 
     expect(warnings).toEqual([
-      "workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating (sessionKey=agent:main:shared-session)",
-      "workspace bootstrap file MEMORY.md is 36697 chars (limit 12000); truncating (sessionKey=agent:main:shared-session)",
+      "workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating (sessionKey=agent:main:shared-session)",
+      "workspace bootstrap file MEMORY.md is 36697 chars (limit 20000); truncating (sessionKey=agent:main:shared-session)",
     ]);
   });
 });
