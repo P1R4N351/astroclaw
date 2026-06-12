@@ -1,30 +1,30 @@
+// Migrate Hermes provider module implements model/runtime integration.
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { MigrationProviderContext } from "astroclaw/plugin-sdk/plugin-entry";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/provider-auth";
-import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
+import type { MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-auth";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 
 const tempRoots = new Set<string>();
+const TEMP_ROOT_PREFIX = "openclaw-migrate-hermes-";
 
-const logger = {
-  info() {},
-  warn() {},
-  error() {},
-  debug() {},
+function noop() {}
+
+const logger: MigrationProviderContext["logger"] = {
+  debug: noop,
+  error: noop,
+  info: noop,
+  warn: noop,
 };
 
 export async function makeTempRoot() {
-  const root = await fs.mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-migrate-hermes-"),
-  );
+  const root = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), TEMP_ROOT_PREFIX));
   tempRoots.add(root);
   return root;
 }
 
 export async function cleanupTempRoots() {
-  for (const root of tempRoots) {
-    await fs.rm(root, { force: true, recursive: true });
-  }
+  await Promise.all([...tempRoots].map((root) => fs.rm(root, { force: true, recursive: true })));
   tempRoots.clear();
 }
 
@@ -34,13 +34,11 @@ export async function writeFile(filePath: string, content: string) {
 }
 
 export function makeConfigRuntime(
-  config: AstroclawConfig,
-  onWrite?: (next: AstroclawConfig) => void,
+  config: OpenClawConfig,
+  onWrite?: (next: OpenClawConfig) => void,
 ): NonNullable<MigrationProviderContext["runtime"]> {
-  const commitConfig = (next: AstroclawConfig) => {
-    for (const key of Object.keys(config) as Array<keyof AstroclawConfig>) {
-      delete config[key];
-    }
+  const commitConfig = (next: OpenClawConfig) => {
+    (Object.keys(config) as Array<keyof OpenClawConfig>).forEach((key) => delete config[key]);
     Object.assign(config, next);
     onWrite?.(next);
   };
@@ -53,7 +51,7 @@ export function makeConfigRuntime(
         mutate,
       }: {
         afterWrite?: unknown;
-        mutate: (draft: AstroclawConfig, context: unknown) => Promise<unknown> | void;
+        mutate: (draft: OpenClawConfig, context: unknown) => Promise<unknown> | void;
       }) => {
         const next = structuredClone(config);
         const result = await mutate(next, {
@@ -74,7 +72,7 @@ export function makeConfigRuntime(
         nextConfig,
       }: {
         afterWrite?: unknown;
-        nextConfig: AstroclawConfig;
+        nextConfig: OpenClawConfig;
       }) => {
         commitConfig(nextConfig);
         return { afterWrite, followUp: { mode: "auto", requiresRestart: false }, nextConfig };
@@ -87,10 +85,10 @@ export function makeContext(params: {
   source: string;
   stateDir: string;
   workspaceDir: string;
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   includeSecrets?: boolean;
   overwrite?: boolean;
-  model?: NonNullable<NonNullable<AstroclawConfig["agents"]>["defaults"]>["model"];
+  model?: NonNullable<NonNullable<OpenClawConfig["agents"]>["defaults"]>["model"];
   reportDir?: string;
   runtime?: MigrationProviderContext["runtime"];
 }): MigrationProviderContext {
@@ -103,7 +101,7 @@ export function makeContext(params: {
           ...(params.model !== undefined ? { model: params.model } : {}),
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
   return {
     config,
     stateDir: params.stateDir,
