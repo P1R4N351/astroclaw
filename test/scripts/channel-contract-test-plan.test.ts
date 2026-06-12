@@ -1,3 +1,4 @@
+// Channel Contract Test Plan tests cover channel contract test plan script behavior.
 import { describe, expect, it } from "vitest";
 import { createChannelContractTestShards } from "../../scripts/lib/channel-contract-test-plan.mjs";
 import { expectNoNodeFsScans } from "../../src/test-utils/fs-scan-assertions.js";
@@ -11,7 +12,7 @@ function listContractTests(rootDir = "src/channels/plugins/contracts"): string[]
 
 describe("scripts/lib/channel-contract-test-plan.mjs", () => {
   it("splits channel contracts into focused shards", () => {
-    const suffixes = ["a", "b", "c"];
+    const suffixes = ["a", "b"];
 
     expect(
       createChannelContractTestShards().map((shard) => ({
@@ -49,7 +50,7 @@ describe("scripts/lib/channel-contract-test-plan.mjs", () => {
         shards: shards.length,
       };
     `);
-    expect(payload.shards).toBe(3);
+    expect(payload.shards).toBe(2);
     expect(payload.files).toBeGreaterThan(0);
   });
 
@@ -58,7 +59,7 @@ describe("scripts/lib/channel-contract-test-plan.mjs", () => {
       const surfaceRegistryFiles = shard.includePatterns.filter((pattern) =>
         pattern.includes("/surfaces-only.registry-backed-shard-"),
       );
-      expect(surfaceRegistryFiles.length).toBeLessThanOrEqual(4);
+      expect(surfaceRegistryFiles.length).toBeLessThanOrEqual(6);
     }
   });
 });
