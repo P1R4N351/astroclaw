@@ -1,3 +1,4 @@
+// Openshell tests cover config plugin behavior.
 import fsSync from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createOpenShellPluginConfigSchema, resolveOpenShellPluginConfig } from "./config.js";
@@ -9,7 +10,7 @@ describe("openshell plugin config", () => {
       command: "openshell",
       gateway: undefined,
       gatewayEndpoint: undefined,
-      from: "astroclaw",
+      from: "openclaw",
       policy: undefined,
       providers: [],
       gpu: false,
@@ -51,7 +52,7 @@ describe("openshell plugin config", () => {
       command: "openshell",
       gateway: undefined,
       gatewayEndpoint: undefined,
-      from: "astroclaw",
+      from: "openclaw",
       policy: undefined,
       providers: [],
       gpu: false,
@@ -70,9 +71,17 @@ describe("openshell plugin config", () => {
     ).toThrow("mode must be one of mirror, remote");
   });
 
+  it("rejects timeouts beyond Node's safe timer range", () => {
+    expect(() =>
+      resolveOpenShellPluginConfig({
+        timeoutSeconds: 2_147_001,
+      }),
+    ).toThrow("timeoutSeconds must be a number <= 2147000");
+  });
+
   it("keeps the runtime json schema in sync with the manifest config schema", () => {
     const manifest = JSON.parse(
-      fsSync.readFileSync(new URL("../astroclaw.plugin.json", import.meta.url), "utf8"),
+      fsSync.readFileSync(new URL("../openclaw.plugin.json", import.meta.url), "utf8"),
     ) as { configSchema?: unknown };
 
     expect(createOpenShellPluginConfigSchema().jsonSchema).toEqual(manifest.configSchema);
