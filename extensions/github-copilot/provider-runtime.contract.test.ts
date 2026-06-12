@@ -1,3 +1,4 @@
-import { describeGithubCopilotProviderRuntimeContract } from "astroclaw/plugin-sdk/provider-test-contracts";
+// Github Copilot tests cover provider runtime.contract plugin behavior.
+import { describeGithubCopilotProviderRuntimeContract } from "openclaw/plugin-sdk/provider-test-contracts";
 
 describeGithubCopilotProviderRuntimeContract(() => import("./index.js"));
