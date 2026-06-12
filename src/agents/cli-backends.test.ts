@@ -1,5 +1,6 @@
+/** Tests CLI backend config resolution, normalization, and live-test defaults. */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { CliBackendConfig } from "../config/types.js";
 import type {
   CliBackendAuthEpochMode,
@@ -8,7 +9,7 @@ import type {
   CliBundleMcpMode,
 } from "../plugins/types.js";
 import {
-  __testing as cliBackendsTesting,
+  testing as cliBackendsTesting,
   resolveCliBackendConfig,
   resolveCliBackendLiveTest,
 } from "./cli-backends.js";
@@ -31,6 +32,7 @@ function createBackendEntry(params: {
   bundleMcpMode?: CliBundleMcpMode;
   defaultAuthProfileId?: string;
   authEpochMode?: CliBackendAuthEpochMode;
+  ownsNativeCompaction?: boolean;
   prepareExecution?: () => Promise<null>;
   resolveExecutionArgs?: CliBackendResolveExecutionArgs;
   normalizeConfig?: (
@@ -38,6 +40,8 @@ function createBackendEntry(params: {
     context?: CliBackendNormalizeConfigContext,
   ) => CliBackendConfig;
 }) {
+  // Runtime/setup backend entries share most shape; tests build both from one
+  // helper so registry behavior stays aligned.
   return {
     pluginId: params.pluginId,
     source: "test",
@@ -48,6 +52,7 @@ function createBackendEntry(params: {
       ...(params.bundleMcpMode ? { bundleMcpMode: params.bundleMcpMode } : {}),
       ...(params.defaultAuthProfileId ? { defaultAuthProfileId: params.defaultAuthProfileId } : {}),
       ...(params.authEpochMode ? { authEpochMode: params.authEpochMode } : {}),
+      ...(params.ownsNativeCompaction ? { ownsNativeCompaction: params.ownsNativeCompaction } : {}),
       ...(params.prepareExecution ? { prepareExecution: params.prepareExecution } : {}),
       ...(params.resolveExecutionArgs ? { resolveExecutionArgs: params.resolveExecutionArgs } : {}),
       ...(params.normalizeConfig ? { normalizeConfig: params.normalizeConfig } : {}),
@@ -67,7 +72,7 @@ function createBackendEntry(params: {
             params.id === "claude-cli"
               ? "@anthropic-ai/claude-code"
               : params.id === "codex-cli"
-                ? "@openai/codex@0.130.0"
+                ? "@openai/codex@0.132.0"
                 : params.id === "google-gemini-cli"
                   ? "@google/gemini-cli"
                   : undefined,
@@ -101,7 +106,7 @@ function requireCliBackendConfig(...args: Parameters<typeof resolveCliBackendCon
   return resolved;
 }
 
-function createClaudeCliOverrideConfig(config: CliBackendConfig): AstroclawConfig {
+function createClaudeCliOverrideConfig(config: CliBackendConfig): OpenClawConfig {
   return {
     agents: {
       defaults: {
@@ -110,7 +115,7 @@ function createClaudeCliOverrideConfig(config: CliBackendConfig): AstroclawConfi
         },
       },
     },
-  } satisfies AstroclawConfig;
+  } satisfies OpenClawConfig;
 }
 
 const NORMALIZED_CLAUDE_FALLBACK_ARGS = [
@@ -150,6 +155,7 @@ function normalizeTestClaudeArgs(
   args: string[] | undefined,
   permission: { mode?: string; overrideExisting: boolean },
 ): string[] | undefined {
+  // Mirrors Claude backend normalization without loading the bundled runtime.
   if (!args) {
     return permission.mode ? ["--permission-mode", permission.mode] : args;
   }
@@ -230,6 +236,7 @@ beforeEach(() => {
       id: "claude-cli",
       bundleMcp: true,
       bundleMcpMode: "claude-config-file",
+      ownsNativeCompaction: true,
       config: {
         command: "claude",
         args: [
@@ -239,7 +246,7 @@ beforeEach(() => {
           "--setting-sources",
           "user",
           "--allowedTools",
-          "mcp__astroclaw__*",
+          "mcp__openclaw__*",
         ],
         resumeArgs: [
           "stream-json",
@@ -248,7 +255,7 @@ beforeEach(() => {
           "--setting-sources",
           "user",
           "--allowedTools",
-          "mcp__astroclaw__*",
+          "mcp__openclaw__*",
           "--resume",
           "{sessionId}",
         ],
@@ -369,7 +376,7 @@ beforeEach(() => {
               sessionArg: "--session-id",
               sessionMode: "always",
               systemPromptFileArg: "--append-system-prompt-file",
-              systemPromptWhen: "first",
+              systemPromptWhen: "always", // fix(#80374): was "first"
             },
           },
         },
@@ -428,7 +435,7 @@ describe("resolveCliBackendConfig reliability merge", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("codex-cli", cfg);
 
@@ -471,7 +478,7 @@ describe("resolveCliBackendConfig reliability merge", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("test-cli", cfg);
 
@@ -498,7 +505,7 @@ describe("resolveCliBackendLiveTest", () => {
       defaultModelRef: "codex-cli/gpt-5.5",
       defaultImageProbe: true,
       defaultMcpProbe: true,
-      dockerNpmPackage: "@openai/codex@0.130.0",
+      dockerNpmPackage: "@openai/codex@0.132.0",
       dockerBinaryName: "codex",
     });
   });
@@ -515,7 +522,7 @@ describe("resolveCliBackendLiveTest", () => {
 });
 
 describe("resolveCliBackendConfig claude-cli defaults", () => {
-  it("derives bypassPermissions from Astroclaw's default YOLO exec policy", () => {
+  it("derives bypassPermissions from OpenClaw's default YOLO exec policy", () => {
     const resolved = requireCliBackendConfig("claude-cli");
 
     expect(resolved?.bundleMcp).toBe(true);
@@ -527,7 +534,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
     expect(resolved?.config.args).toContain("--setting-sources");
     expect(resolved?.config.args).toContain("user");
     expect(resolved?.config.args).toContain("--allowedTools");
-    expect(resolved?.config.args).toContain("mcp__astroclaw__*");
+    expect(resolved?.config.args).toContain("mcp__openclaw__*");
     expect(resolved?.config.args).toContain("--permission-mode");
     expect(resolved?.config.args).toContain("bypassPermissions");
     expect(resolved?.config.args).not.toContain("--dangerously-skip-permissions");
@@ -540,13 +547,18 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
     expect(resolved?.config.resumeArgs).toContain("--setting-sources");
     expect(resolved?.config.resumeArgs).toContain("user");
     expect(resolved?.config.resumeArgs).toContain("--allowedTools");
-    expect(resolved?.config.resumeArgs).toContain("mcp__astroclaw__*");
+    expect(resolved?.config.resumeArgs).toContain("mcp__openclaw__*");
     expect(resolved?.config.resumeArgs).toContain("--permission-mode");
     expect(resolved?.config.resumeArgs).toContain("bypassPermissions");
     expect(resolved?.config.resumeArgs).not.toContain("--dangerously-skip-permissions");
   });
 
-  it("keeps Claude permission mode unset when Astroclaw exec policy is not YOLO", () => {
+  it("declares ownsNativeCompaction for claude-cli", () => {
+    const resolved = requireCliBackendConfig("claude-cli");
+    expect(resolved?.ownsNativeCompaction).toBe(true);
+  });
+
+  it("keeps Claude permission mode unset when OpenClaw exec policy is not YOLO", () => {
     const resolved = requireCliBackendConfig("claude-cli", {
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
     });
@@ -572,7 +584,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         ],
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const reviewer = resolveCliBackendConfig("claude-cli", cfg, { agentId: "reviewer" });
     const builder = resolveCliBackendConfig("claude-cli", cfg, { agentId: "builder" });
@@ -585,7 +597,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
     expect(builder?.config.resumeArgs).toContain("bypassPermissions");
   });
 
-  it("uses existing exec policy and raw Claude args as permission overrides", () => {
+  it("preserves raw Claude permission args during backend normalization", () => {
     const safe = resolveCliBackendConfig("claude-cli", {
       tools: { exec: { security: "full", ask: "off" } },
       agents: {
@@ -632,7 +644,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -679,7 +691,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
         },
       },
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -708,7 +720,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -752,7 +764,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -780,7 +792,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
         resumeArgs: ["-p", "--setting-sources", "--resume", "{sessionId}"],
       }),
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -796,7 +808,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
         resumeArgs: ["-p", "--permission-mode=--resume", "--resume", "{sessionId}"],
       }),
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -825,7 +837,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
         },
       },
       tools: { exec: { security: "allowlist", ask: "on-miss" } },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -853,7 +865,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -887,7 +899,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("claude-cli", cfg);
 
@@ -914,7 +926,7 @@ describe("resolveCliBackendConfig claude-cli defaults", () => {
       "bypassPermissions",
     ]);
     expect(resolved?.config.systemPromptFileArg).toBe("--append-system-prompt-file");
-    expect(resolved?.config.systemPromptWhen).toBe("first");
+    expect(resolved?.config.systemPromptWhen).toBe("always"); // fix(#80374): was "first"
     expect(resolved?.config.sessionArg).toBe("--session-id");
     expect(resolved?.config.sessionMode).toBe("always");
     expect(resolved?.config.input).toBe("stdin");
@@ -1016,7 +1028,7 @@ describe("resolveCliBackendConfig alias precedence", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const resolved = requireCliBackendConfig("kimi", cfg);
 
