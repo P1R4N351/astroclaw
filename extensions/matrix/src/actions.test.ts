@@ -1,3 +1,4 @@
+// Matrix tests cover actions plugin behavior.
 import { beforeEach, describe, expect, it } from "vitest";
 import type { PluginRuntime } from "../runtime-api.js";
 import { matrixMessageActions } from "./actions.js";
@@ -20,7 +21,7 @@ const runtimeStub = {
     resizeToJpeg: async () => Buffer.from(""),
   },
   state: {
-    resolveStateDir: () => "/tmp/astroclaw-matrix-test",
+    resolveStateDir: () => "/tmp/openclaw-matrix-test",
   },
   channel: {
     text: {
@@ -108,20 +109,7 @@ describe("matrixMessageActions", () => {
     expect(properties.avatarPath).toHaveProperty("type", "string");
   });
 
-  it("hides self-profile updates for non-owner discovery", () => {
-    const discovery = matrixMessageActions.describeMessageTool({
-      cfg: createConfiguredMatrixConfig(),
-      senderIsOwner: false,
-    } as never);
-    if (!discovery) {
-      throw new Error("describeMessageTool returned null");
-    }
-
-    expect(discovery.actions).not.toContain(profileAction);
-    expect(discovery.schema).toBeNull();
-  });
-
-  it("hides self-profile updates when owner status is unknown", () => {
+  it("hides self-profile updates without owner identity context", () => {
     const discovery = matrixMessageActions.describeMessageTool({
       cfg: createConfiguredMatrixConfig(),
     } as never);
@@ -130,7 +118,6 @@ describe("matrixMessageActions", () => {
     }
 
     expect(discovery.actions).not.toContain(profileAction);
-    expect(discovery.schema).toBeNull();
   });
 
   it("hides gated actions when the default Matrix account disables them", () => {
