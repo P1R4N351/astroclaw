@@ -1,15 +1,16 @@
+// Tests startup context loading and omission rules.
 import fsCore from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { buildSessionStartupContextPrelude, shouldApplyStartupContext } from "./startup-context.js";
 
 const tmpDirs: string[] = [];
 
 async function makeWorkspace(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-startup-context-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-startup-context-"));
   tmpDirs.push(dir);
   await fs.mkdir(path.join(dir, "memory"), { recursive: true });
   return dir;
@@ -34,7 +35,7 @@ describe("buildSessionStartupContextPrelude", () => {
       workspaceDir,
       cfg: {
         agents: { defaults: { userTimezone: "America/Chicago" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       nowMs: Date.UTC(2026, 3, 11, 18, 0, 0),
     });
 
@@ -61,7 +62,7 @@ describe("buildSessionStartupContextPrelude", () => {
       workspaceDir,
       cfg: {
         agents: { defaults: { userTimezone: "America/Chicago" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       nowMs: Date.UTC(2026, 3, 11, 18, 0, 0),
     });
 
@@ -81,7 +82,7 @@ describe("buildSessionStartupContextPrelude", () => {
       workspaceDir,
       cfg: {
         agents: { defaults: { userTimezone: "America/Chicago" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       // 2026-04-10 20:30 in America/Chicago, but 2026-04-11 in UTC.
       nowMs: Date.UTC(2026, 3, 11, 1, 30, 0),
     });
@@ -110,7 +111,7 @@ describe("buildSessionStartupContextPrelude", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       // 2026-04-11 00:30 in Asia/Tokyo, but still 2026-04-10 in UTC.
       nowMs: Date.UTC(2026, 3, 10, 15, 30, 0),
     });
@@ -146,7 +147,7 @@ describe("buildSessionStartupContextPrelude", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       // 2026-04-10 20:30 in America/Chicago, but 2026-04-11 in UTC.
       nowMs: Date.UTC(2026, 3, 11, 1, 30, 0),
     });
@@ -180,7 +181,7 @@ describe("buildSessionStartupContextPrelude", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       // 2026-04-11 00:30 in Asia/Tokyo, but still 2026-04-10 in UTC.
       nowMs: Date.UTC(2026, 3, 10, 15, 30, 0),
     });
@@ -214,7 +215,7 @@ describe("buildSessionStartupContextPrelude", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       // 2026-04-10 20:30 in America/Chicago, but 2026-04-11 in UTC.
       nowMs: Date.UTC(2026, 3, 11, 1, 30, 0),
     });
@@ -236,7 +237,7 @@ describe("buildSessionStartupContextPrelude", () => {
       workspaceDir,
       cfg: {
         agents: { defaults: { userTimezone: "America/Chicago" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       nowMs: Date.UTC(2026, 3, 11, 18, 0, 0),
     });
 
@@ -268,7 +269,7 @@ describe("buildSessionStartupContextPrelude", () => {
       workspaceDir,
       cfg: {
         agents: { defaults: { userTimezone: "America/Chicago" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       nowMs: Date.UTC(2026, 3, 11, 18, 0, 0),
     });
 
@@ -303,7 +304,7 @@ describe("buildSessionStartupContextPrelude", () => {
       workspaceDir,
       cfg: {
         agents: { defaults: { userTimezone: "America/Chicago" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       nowMs: Date.UTC(2026, 3, 11, 18, 0, 0),
     });
 
@@ -343,7 +344,7 @@ describe("buildSessionStartupContextPrelude", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       // 2026-04-10 20:30 in America/Chicago, but 2026-04-11 in UTC.
       nowMs: Date.UTC(2026, 3, 11, 1, 30, 0),
     });
@@ -383,7 +384,7 @@ describe("buildSessionStartupContextPrelude", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       nowMs: Date.UTC(2026, 3, 11, 18, 0, 0),
     });
 
@@ -409,7 +410,7 @@ describe("buildSessionStartupContextPrelude", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       nowMs: Date.UTC(2026, 3, 11, 18, 0, 0),
     });
 
@@ -433,7 +434,7 @@ describe("buildSessionStartupContextPrelude", () => {
       workspaceDir,
       cfg: {
         agents: { defaults: { userTimezone: "America/New_York" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       nowMs: Date.UTC(2026, 2, 9, 4, 30, 0),
     });
 
@@ -462,7 +463,7 @@ describe("buildSessionStartupContextPrelude", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       nowMs: Date.UTC(2026, 3, 11, 18, 0, 0),
     });
 
@@ -482,12 +483,12 @@ describe("shouldApplyStartupContext", () => {
   it("honors enabled=false and applyOn overrides", () => {
     const disabledCfg = {
       agents: { defaults: { startupContext: { enabled: false } } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     expect(shouldApplyStartupContext({ cfg: disabledCfg, action: "new" })).toBe(false);
 
     const applyOnCfg = {
       agents: { defaults: { startupContext: { applyOn: ["new"] } } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     expect(shouldApplyStartupContext({ cfg: applyOnCfg, action: "new" })).toBe(true);
     expect(shouldApplyStartupContext({ cfg: applyOnCfg, action: "reset" })).toBe(false);
   });
