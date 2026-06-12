@@ -1,5 +1,6 @@
+// Model override tests cover channel-level model selection and override precedence.
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../plugins/runtime.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
 import { createSessionConversationTestRegistry } from "../test-utils/session-conversation-registry.js";
@@ -23,7 +24,7 @@ describe("resolveChannelModelOverride", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         channel: "telegram",
         groupId: "-100123:topic:99",
       },
@@ -41,7 +42,7 @@ describe("resolveChannelModelOverride", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         channel: "telegram",
         groupId: "-100123:topic:99",
       },
@@ -58,7 +59,7 @@ describe("resolveChannelModelOverride", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         channel: "demo-thread",
         groupId: "999",
         parentSessionKey: "agent:main:demo-thread:channel:123:thread:456",
@@ -117,7 +118,7 @@ describe("resolveChannelModelOverride", () => {
             },
           },
         },
-      } as unknown as AstroclawConfig,
+      } as unknown as OpenClawConfig,
       channel: "channel-kind",
       groupId: "thread-123",
       groupChatType: "channel",
@@ -171,7 +172,7 @@ describe("resolveChannelModelOverride", () => {
             },
           },
         },
-      } as unknown as AstroclawConfig,
+      } as unknown as OpenClawConfig,
       channel: "scoped-chat",
       groupId: "unrelated",
       parentSessionKey: "agent:main:scoped-chat:group:room:topic:thread:sender:user",
@@ -179,6 +180,26 @@ describe("resolveChannelModelOverride", () => {
 
     expect(resolved?.model).toBe("demo-provider/demo-scoped-model");
     expect(resolved?.matchKey).toBe("room:topic:thread");
+  });
+
+  it("applies provider wildcard model overrides to direct chats", () => {
+    const resolved = resolveChannelModelOverride({
+      cfg: {
+        channels: {
+          modelByChannel: {
+            telegram: {
+              "*": "demo-provider/demo-direct-model",
+            },
+          },
+        },
+      } as unknown as OpenClawConfig,
+      channel: "telegram",
+      groupChatType: "direct",
+    });
+
+    expect(resolved?.model).toBe("demo-provider/demo-direct-model");
+    expect(resolved?.matchKey).toBe("*");
+    expect(resolved?.matchSource).toBe("wildcard");
   });
 
   it("prefers parent conversation ids over channel-name fallbacks", () => {
@@ -192,7 +213,7 @@ describe("resolveChannelModelOverride", () => {
             },
           },
         },
-      } as unknown as AstroclawConfig,
+      } as unknown as OpenClawConfig,
       channel: "telegram",
       groupId: "-100123:topic:99",
       groupChannel: "#general",
