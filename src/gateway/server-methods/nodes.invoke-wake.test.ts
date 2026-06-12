@@ -1,10 +1,15 @@
+// Node invoke wake tests cover APNs wake attempts, reconnect waits, nudge
+// throttling, command policy, and foreground-restricted command handling.
+import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ErrorCodes } from "../protocol/index.js";
+import { ErrorCodes } from "../../../packages/gateway-protocol/src/index.js";
+import { expectRecordFields, requireRecord } from "../test-helpers.assertions.js";
 import {
   clearNodeWakeState,
   maybeSendNodeWakeNudge,
   maybeWakeNodeWithApns,
   nodeHandlers,
+  waitForNodeReconnect,
 } from "./nodes.js";
 
 type MockNodeCommandPolicyParams = {
@@ -92,27 +97,6 @@ type TestNodeSession = {
   platform?: string;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  expect(isRecord(value), `${label} must be an object`).toBe(true);
-  return value as Record<string, unknown>;
-}
-
-function expectRecordFields(
-  value: unknown,
-  label: string,
-  expected: Record<string, unknown>,
-): Record<string, unknown> {
-  const record = requireRecord(value, label);
-  for (const [key, expectedValue] of Object.entries(expected)) {
-    expect(record[key], `${label}.${key}`).toEqual(expectedValue);
-  }
-  return record;
-}
-
 function requireString(value: unknown, label: string): string {
   expect(typeof value, `${label} must be a string`).toBe("string");
   return value as string;
@@ -185,6 +169,48 @@ function expectQueuedAction(
   return expectRecordFields(actions[0], "queued action", expected);
 }
 
+function expectWakeSendError(wake: unknown, reason: string, status: number) {
+  expectRecordFields(wake, "wake result", {
+    available: true,
+    throttled: false,
+    path: "send-error",
+    apnsReason: reason,
+    apnsStatus: status,
+  });
+}
+
+function expectNoAuthWake(wake: unknown, label: string, reason: string) {
+  expectRecordFields(wake, label, {
+    available: false,
+    throttled: false,
+    path: "no-auth",
+    apnsReason: reason,
+  });
+}
+
+async function expectWakeState(
+  nodeId: string,
+  expected: Record<string, unknown>,
+  label = "wake result",
+) {
+  expectRecordFields(await maybeWakeNodeWithApns(nodeId), label, expected);
+}
+
+async function expectNudgeState(nodeId: string, expected: Record<string, unknown>) {
+  expectRecordFields(await maybeSendNodeWakeNudge(nodeId), "nudge result", expected);
+}
+
+async function expectWakeAndNudgeSent(nodeId: string) {
+  await expectWakeState(nodeId, {
+    path: "sent",
+    throttled: false,
+  });
+  await expectNudgeState(nodeId, {
+    sent: true,
+    throttled: false,
+  });
+}
+
 const WAKE_WAIT_TIMEOUT_MS = 3_001;
 const DEFAULT_RELAY_CONFIG = {
   baseUrl: "https://relay.example.com",
@@ -205,7 +231,7 @@ function directRegistration(nodeId: string) {
     nodeId,
     transport: "direct" as const,
     token: "abcd1234abcd1234abcd1234abcd1234",
-    topic: "ai.astroclaw.ios",
+    topic: "ai.openclaw.ios",
     environment: "sandbox" as const,
     updatedAtMs: 1,
   };
@@ -218,7 +244,7 @@ function relayRegistration(nodeId: string) {
     relayHandle: "relay-handle-123",
     sendGrant: "send-grant-123",
     installationId: "install-123",
-    topic: "ai.astroclaw.ios",
+    topic: "ai.openclaw.ios",
     environment: "production" as const,
     distribution: "official" as const,
     updatedAtMs: 1,
@@ -240,7 +266,7 @@ function mockDirectWakeConfig(nodeId: string, overrides: WakeResultOverrides = {
     ok: true,
     status: 200,
     tokenSuffix: "1234abcd",
-    topic: "ai.astroclaw.ios",
+    topic: "ai.openclaw.ios",
     environment: "sandbox",
     transport: "direct",
     ...overrides,
@@ -266,7 +292,7 @@ function mockRelayWakeConfig(nodeId: string, overrides: WakeResultOverrides = {}
     ok: true,
     status: 200,
     tokenSuffix: "abcd1234",
-    topic: "ai.astroclaw.ios",
+    topic: "ai.openclaw.ios",
     environment: "production",
     transport: "relay",
     ...overrides,
@@ -336,6 +362,34 @@ function createNodeClient(nodeId: string, commands?: string[]) {
         version: "test",
       },
     },
+  };
+}
+
+function createForegroundUnavailableNodeRegistry(params: {
+  nodeId: string;
+  commands: string[];
+  platform: string;
+}) {
+  return {
+    get: vi.fn(() => ({
+      nodeId: params.nodeId,
+      commands: params.commands,
+      platform: params.platform,
+    })),
+    invoke: vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        code: "NODE_BACKGROUND_UNAVAILABLE",
+        message: "NODE_BACKGROUND_UNAVAILABLE: canvas/camera/screen commands require foreground",
+      },
+    }),
+  };
+}
+
+function createMissingNodeRegistry() {
+  return {
+    get: vi.fn(() => undefined),
+    invoke: vi.fn().mockResolvedValue({ ok: true }),
   };
 }
 
@@ -439,7 +493,7 @@ describe("node plugin surface refresh", () => {
         client: { id: "node-1", mode: "node" },
       },
       pluginSurfaceUrls: {
-        canvas: "http://127.0.0.1:18789/__astroclaw__/cap/old-token",
+        canvas: "http://127.0.0.1:18789/__openclaw__/cap/old-token",
       },
       pluginNodeCapabilitySurfaces: {
         canvas: { surface: "canvas", ttlMs: 100 },
@@ -466,8 +520,8 @@ describe("node plugin surface refresh", () => {
     const canvasUrl = requireString(pluginSurfaceUrls.canvas, "refresh canvas url");
     const parsedCanvasUrl = new URL(canvasUrl);
     expect(parsedCanvasUrl.origin).toBe("http://127.0.0.1:18789");
-    expect(parsedCanvasUrl.pathname.startsWith("/__astroclaw__/cap/")).toBe(true);
-    const capabilityToken = parsedCanvasUrl.pathname.slice("/__astroclaw__/cap/".length);
+    expect(parsedCanvasUrl.pathname.startsWith("/__openclaw__/cap/")).toBe(true);
+    const capabilityToken = parsedCanvasUrl.pathname.slice("/__openclaw__/cap/".length);
     expect(capabilityToken.length).toBeGreaterThan(0);
     expect(capabilityToken).not.toBe("old-token");
     expect(client.pluginSurfaceUrls.canvas).toBe(canvasUrl);
@@ -506,10 +560,7 @@ describe("node.invoke APNs wake path", () => {
   it("keeps the existing not-connected response when wake path is unavailable", async () => {
     mocks.loadApnsRegistration.mockResolvedValue(null);
 
-    const nodeRegistry = {
-      get: vi.fn(() => undefined),
-      invoke: vi.fn().mockResolvedValue({ ok: true }),
-    };
+    const nodeRegistry = createMissingNodeRegistry();
 
     const respond = await invokeNode({ nodeRegistry });
     const call = firstRespondCall(respond);
@@ -530,18 +581,8 @@ describe("node.invoke APNs wake path", () => {
     const first = await maybeWakeNodeWithApns("ios-node-relay-no-auth");
     const second = await maybeWakeNodeWithApns("ios-node-relay-no-auth");
 
-    expectRecordFields(first, "first wake result", {
-      available: false,
-      throttled: false,
-      path: "no-auth",
-      apnsReason: "relay config missing",
-    });
-    expectRecordFields(second, "second wake result", {
-      available: false,
-      throttled: false,
-      path: "no-auth",
-      apnsReason: "relay config missing",
-    });
+    expectNoAuthWake(first, "first wake result", "relay config missing");
+    expectNoAuthWake(second, "second wake result", "relay config missing");
     expect(mocks.resolveApnsRelayConfigFromEnv).toHaveBeenCalledTimes(2);
     expect(mocks.sendApnsBackgroundWake).not.toHaveBeenCalled();
   });
@@ -552,38 +593,24 @@ describe("node.invoke APNs wake path", () => {
       ok: true,
       status: 200,
       tokenSuffix: "1234abcd",
-      topic: "ai.astroclaw.ios",
+      topic: "ai.openclaw.ios",
       environment: "sandbox",
       transport: "direct",
     });
 
-    expectRecordFields(await maybeWakeNodeWithApns("ios-node-clear-wake"), "wake result", {
-      path: "sent",
-      throttled: false,
-    });
-    expectRecordFields(await maybeSendNodeWakeNudge("ios-node-clear-wake"), "nudge result", {
-      sent: true,
-      throttled: false,
-    });
-    expectRecordFields(await maybeWakeNodeWithApns("ios-node-clear-wake"), "wake result", {
+    await expectWakeAndNudgeSent("ios-node-clear-wake");
+    await expectWakeState("ios-node-clear-wake", {
       path: "throttled",
       throttled: true,
     });
-    expectRecordFields(await maybeSendNodeWakeNudge("ios-node-clear-wake"), "nudge result", {
+    await expectNudgeState("ios-node-clear-wake", {
       sent: false,
       throttled: true,
     });
 
     clearNodeWakeState("ios-node-clear-wake");
 
-    expectRecordFields(await maybeWakeNodeWithApns("ios-node-clear-wake"), "wake result", {
-      path: "sent",
-      throttled: false,
-    });
-    expectRecordFields(await maybeSendNodeWakeNudge("ios-node-clear-wake"), "nudge result", {
-      sent: true,
-      throttled: false,
-    });
+    await expectWakeAndNudgeSent("ios-node-clear-wake");
     expect(mocks.sendApnsBackgroundWake).toHaveBeenCalledTimes(2);
     expect(mocks.sendApnsAlert).toHaveBeenCalledTimes(2);
   });
@@ -628,6 +655,25 @@ describe("node.invoke APNs wake path", () => {
     const call = firstRespondCall(respond);
     expect(call[0]).toBe(true);
     expectRecordFields(call[1], "respond payload", { ok: true, nodeId: "ios-node-reconnect" });
+  });
+
+  it("caps oversized reconnect wait timers", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const nodeRegistry = {
+      get: vi.fn(() => undefined),
+    };
+
+    const reconnectPromise = waitForNodeReconnect({
+      nodeId: "ios-node-never-reconnects",
+      context: { nodeRegistry },
+      timeoutMs: Number.MAX_SAFE_INTEGER,
+      pollMs: Number.MAX_SAFE_INTEGER,
+    });
+
+    await vi.advanceTimersByTimeAsync(MAX_TIMER_TIMEOUT_MS);
+    await expect(reconnectPromise).resolves.toBe(false);
+    expect(nodeRegistry.get).toHaveBeenCalledWith("ios-node-never-reconnects");
   });
 
   it("broadcasts canonical Talk capture events for successful PTT node commands", async () => {
@@ -699,13 +745,7 @@ describe("node.invoke APNs wake path", () => {
     mocks.shouldClearStoredApnsRegistration.mockReturnValue(true);
     const wake = await maybeWakeNodeWithApns("ios-node-stale", { force: true });
 
-    expectRecordFields(wake, "wake result", {
-      available: true,
-      throttled: false,
-      path: "send-error",
-      apnsReason: "BadDeviceToken",
-      apnsStatus: 400,
-    });
+    expectWakeSendError(wake, "BadDeviceToken", 400);
     expect(mocks.clearApnsRegistrationIfCurrent).toHaveBeenCalledWith({
       nodeId: "ios-node-stale",
       registration,
@@ -722,20 +762,18 @@ describe("node.invoke APNs wake path", () => {
     mocks.shouldClearStoredApnsRegistration.mockReturnValue(false);
     const wake = await maybeWakeNodeWithApns("ios-node-relay", { force: true });
 
-    expectRecordFields(wake, "wake result", {
-      available: true,
-      throttled: false,
-      path: "send-error",
-      apnsReason: "Unregistered",
-      apnsStatus: 410,
-    });
-    expect(mocks.resolveApnsRelayConfigFromEnv).toHaveBeenCalledWith(process.env, {
-      push: {
-        apns: {
-          relay: DEFAULT_RELAY_CONFIG,
+    expectWakeSendError(wake, "Unregistered", 410);
+    expect(mocks.resolveApnsRelayConfigFromEnv).toHaveBeenCalledWith(
+      process.env,
+      {
+        push: {
+          apns: {
+            relay: DEFAULT_RELAY_CONFIG,
+          },
         },
       },
-    });
+      { registrationRelayOrigin: undefined },
+    );
     expect(mocks.shouldClearStoredApnsRegistration).toHaveBeenCalledWith({
       registration,
       result: {
@@ -743,7 +781,7 @@ describe("node.invoke APNs wake path", () => {
         status: 410,
         reason: "Unregistered",
         tokenSuffix: "abcd1234",
-        topic: "ai.astroclaw.ios",
+        topic: "ai.openclaw.ios",
         environment: "production",
         transport: "relay",
       },
@@ -755,10 +793,7 @@ describe("node.invoke APNs wake path", () => {
     vi.useFakeTimers();
     mockDirectWakeConfig("ios-node-throttle");
 
-    const nodeRegistry = {
-      get: vi.fn(() => undefined),
-      invoke: vi.fn().mockResolvedValue({ ok: true }),
-    };
+    const nodeRegistry = createMissingNodeRegistry();
 
     const invokePromise = invokeNode({
       nodeRegistry,
@@ -774,20 +809,11 @@ describe("node.invoke APNs wake path", () => {
   it("queues iOS foreground-only command failures and keeps them until acked", async () => {
     mocks.loadApnsRegistration.mockResolvedValue(null);
 
-    const nodeRegistry = {
-      get: vi.fn(() => ({
-        nodeId: "ios-node-queued",
-        commands: ["canvas.navigate"],
-        platform: "iOS 26.4.0",
-      })),
-      invoke: vi.fn().mockResolvedValue({
-        ok: false,
-        error: {
-          code: "NODE_BACKGROUND_UNAVAILABLE",
-          message: "NODE_BACKGROUND_UNAVAILABLE: canvas/camera/screen commands require foreground",
-        },
-      }),
-    };
+    const nodeRegistry = createForegroundUnavailableNodeRegistry({
+      nodeId: "ios-node-queued",
+      commands: ["canvas.navigate"],
+      platform: "iOS 26.4.0",
+    });
 
     const respond = await invokeNode({
       nodeRegistry,
@@ -868,20 +894,11 @@ describe("node.invoke APNs wake path", () => {
       },
     );
 
-    const nodeRegistry = {
-      get: vi.fn(() => ({
-        nodeId: "ios-node-policy",
-        commands: ["camera.snap", "canvas.navigate"],
-        platform: "iOS 26.4.0",
-      })),
-      invoke: vi.fn().mockResolvedValue({
-        ok: false,
-        error: {
-          code: "NODE_BACKGROUND_UNAVAILABLE",
-          message: "NODE_BACKGROUND_UNAVAILABLE: canvas/camera/screen commands require foreground",
-        },
-      }),
-    };
+    const nodeRegistry = createForegroundUnavailableNodeRegistry({
+      nodeId: "ios-node-policy",
+      commands: ["camera.snap", "canvas.navigate"],
+      platform: "iOS 26.4.0",
+    });
 
     await invokeNode({
       nodeRegistry,
@@ -920,39 +937,23 @@ describe("node.invoke APNs wake path", () => {
   it("dedupes queued foreground actions by idempotency key", async () => {
     mocks.loadApnsRegistration.mockResolvedValue(null);
 
-    const nodeRegistry = {
-      get: vi.fn(() => ({
-        nodeId: "ios-node-dedupe",
-        commands: ["canvas.navigate"],
-        platform: "iPadOS 26.4.0",
-      })),
-      invoke: vi.fn().mockResolvedValue({
-        ok: false,
-        error: {
-          code: "NODE_BACKGROUND_UNAVAILABLE",
-          message: "NODE_BACKGROUND_UNAVAILABLE: canvas/camera/screen commands require foreground",
-        },
-      }),
-    };
+    const nodeRegistry = createForegroundUnavailableNodeRegistry({
+      nodeId: "ios-node-dedupe",
+      commands: ["canvas.navigate"],
+      platform: "iPadOS 26.4.0",
+    });
 
-    await invokeNode({
-      nodeRegistry,
-      requestParams: {
-        nodeId: "ios-node-dedupe",
-        command: "canvas.navigate",
-        params: { url: "http://example.com/first" },
-        idempotencyKey: "idem-dedupe",
-      },
-    });
-    await invokeNode({
-      nodeRegistry,
-      requestParams: {
-        nodeId: "ios-node-dedupe",
-        command: "canvas.navigate",
-        params: { url: "http://example.com/first" },
-        idempotencyKey: "idem-dedupe",
-      },
-    });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await invokeNode({
+        nodeRegistry,
+        requestParams: {
+          nodeId: "ios-node-dedupe",
+          command: "canvas.navigate",
+          params: { url: "http://example.com/first" },
+          idempotencyKey: "idem-dedupe",
+        },
+      });
+    }
 
     const pullRespond = await pullPending("ios-node-dedupe", ["canvas.navigate"]);
     const pullCall = firstRespondCall(pullRespond);
