@@ -1,5 +1,7 @@
+// System prompt config tests cover config-to-prompt parameter resolution through
+// the canonical agent prompt facade.
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   buildConfiguredAgentSystemPrompt,
   resolveAgentSystemPromptConfig,
@@ -23,7 +25,7 @@ describe("resolveAgentSystemPromptConfig", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     expect(resolveAgentSystemPromptConfig({ config, agentId: "main" }).subagentDelegationMode).toBe(
       "prefer",
@@ -47,7 +49,7 @@ describe("resolveAgentSystemPromptConfig", () => {
           },
         ],
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     expect(
       resolveAgentSystemPromptConfig({ config, agentId: "coordinator" }).subagentDelegationMode,
@@ -68,7 +70,7 @@ describe("buildConfiguredAgentSystemPrompt", () => {
         },
       },
       agentId: "main",
-      workspaceDir: "/tmp/astroclaw",
+      workspaceDir: "/tmp/openclaw",
       toolNames: ["sessions_spawn", "subagents"],
     });
 
