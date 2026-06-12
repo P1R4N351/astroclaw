@@ -1,4 +1,5 @@
-import { assertBundledChannelEntries } from "astroclaw/plugin-sdk/channel-test-helpers";
+// Telegram tests cover index plugin behavior.
+import { assertBundledChannelEntries } from "openclaw/plugin-sdk/channel-test-helpers";
 import { beforeEach, describe, vi } from "vitest";
 import entry from "./index.js";
 import setupEntry from "./setup-entry.js";
