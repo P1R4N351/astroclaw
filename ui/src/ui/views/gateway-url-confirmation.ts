@@ -1,3 +1,4 @@
+// Control UI view renders gateway url confirmation screen content.
 import { html, nothing } from "lit";
 import { t } from "../../i18n/index.ts";
 import type { AppViewState } from "../app-view-state.ts";
@@ -14,7 +15,7 @@ export function renderGatewayUrlConfirmation(state: AppViewState) {
   const description = t("channels.gatewayUrlConfirmation.subtitle");
 
   return html`
-    <astroclaw-modal-dialog
+    <openclaw-modal-dialog
       label=${title}
       description=${description}
       @modal-cancel=${() => state.handleGatewayUrlCancel()}
@@ -39,6 +40,6 @@ export function renderGatewayUrlConfirmation(state: AppViewState) {
           </button>
         </div>
       </div>
-    </astroclaw-modal-dialog>
+    </openclaw-modal-dialog>
   `;
 }
