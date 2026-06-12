@@ -1,3 +1,4 @@
+// Backup command tests cover backup create, verify, and runtime output paths.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -8,6 +9,7 @@ import * as backupShared from "./backup-shared.js";
 import {
   buildBackupArchiveRoot,
   encodeAbsolutePathForBackupArchive,
+  formatBackupArchiveTimestamp,
   type BackupAsset,
   resolveBackupPlanFromPaths,
   resolveBackupPlanFromDisk,
@@ -57,7 +59,7 @@ describe("backup commands", () => {
     vi.spyOn(backupShared, "resolveBackupPlanFromDisk").mockResolvedValue(
       await resolveBackupPlanFromPaths({
         stateDir,
-        configPath: path.join(stateDir, "astroclaw.json"),
+        configPath: path.join(stateDir, "openclaw.json"),
         oauthDir: path.join(stateDir, "credentials"),
         workspaceDirs: [workspaceDir],
         includeWorkspace: true,
@@ -69,7 +71,7 @@ describe("backup commands", () => {
   }
 
   beforeAll(async () => {
-    tempHome = await createTempHomeEnv("astroclaw-backup-test-");
+    tempHome = await createTempHomeEnv("openclaw-backup-test-");
   });
 
   beforeEach(async () => {
@@ -99,17 +101,17 @@ describe("backup commands", () => {
   });
 
   async function withInvalidWorkspaceBackupConfig<T>(fn: (runtime: RuntimeEnv) => Promise<T>) {
-    const stateDir = path.join(tempHome.home, ".astroclaw");
+    const stateDir = path.join(tempHome.home, ".openclaw");
     const configPath = path.join(tempHome.home, "custom-config.json");
-    process.env.ASTROCLAW_CONFIG_PATH = configPath;
-    await fs.writeFile(path.join(stateDir, "astroclaw.json"), JSON.stringify({}), "utf8");
+    process.env.OPENCLAW_CONFIG_PATH = configPath;
+    await fs.writeFile(path.join(stateDir, "openclaw.json"), JSON.stringify({}), "utf8");
     await fs.writeFile(configPath, '{"agents": { defaults: { workspace: ', "utf8");
     const runtime = createBackupTestRuntime();
 
     try {
       return await fn(runtime);
     } finally {
-      delete process.env.ASTROCLAW_CONFIG_PATH;
+      delete process.env.OPENCLAW_CONFIG_PATH;
     }
   }
 
@@ -161,9 +163,18 @@ describe("backup commands", () => {
     ]);
   }
 
+  it("formats backup archive timestamps in local time with an explicit offset", () => {
+    expect(formatBackupArchiveTimestamp(Date.UTC(2026, 2, 14, 1, 2, 3, 456), 8 * 60)).toBe(
+      "2026-03-14T09-02-03.456+08-00",
+    );
+    expect(formatBackupArchiveTimestamp(Date.UTC(2026, 2, 14, 1, 2, 3, 456), -5 * 60)).toBe(
+      "2026-03-13T20-02-03.456-05-00",
+    );
+  });
+
   it("collapses default config, credentials, and workspace into the state backup root", async () => {
-    const stateDir = path.join(tempHome.home, ".astroclaw");
-    const configPath = path.join(stateDir, "astroclaw.json");
+    const stateDir = path.join(tempHome.home, ".openclaw");
+    const configPath = path.join(stateDir, "openclaw.json");
     const oauthDir = path.join(stateDir, "credentials");
     const workspaceDir = path.join(stateDir, "workspace");
     await fs.writeFile(configPath, JSON.stringify({}), "utf8");
@@ -190,9 +201,9 @@ describe("backup commands", () => {
       return;
     }
 
-    const stateDir = path.join(tempHome.home, ".astroclaw");
+    const stateDir = path.join(tempHome.home, ".openclaw");
     const workspaceDir = path.join(stateDir, "workspace");
-    const symlinkDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-workspace-link-"));
+    const symlinkDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-workspace-link-"));
     const workspaceLink = path.join(symlinkDir, "ws-link");
     try {
       await fs.mkdir(workspaceDir, { recursive: true });
@@ -200,7 +211,7 @@ describe("backup commands", () => {
       await fs.symlink(workspaceDir, workspaceLink);
       const plan = await resolveBackupPlanFromPaths({
         stateDir,
-        configPath: path.join(stateDir, "astroclaw.json"),
+        configPath: path.join(stateDir, "openclaw.json"),
         oauthDir: path.join(stateDir, "credentials"),
         workspaceDirs: [workspaceLink],
         includeWorkspace: true,
@@ -215,15 +226,15 @@ describe("backup commands", () => {
   });
 
   it("creates an archive with a manifest and external workspace payload", async () => {
-    const stateDir = path.join(tempHome.home, ".astroclaw");
-    const externalWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-workspace-"));
+    const stateDir = path.join(tempHome.home, ".openclaw");
+    const externalWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-workspace-"));
     const configPath = path.join(tempHome.home, "custom-config.json");
-    const backupDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-backups-"));
+    const backupDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backups-"));
     let capturedManifest: CapturedBackupManifest | null = null;
     let capturedEntryPaths: string[] = [];
     let capturedOnWriteEntry: ((entry: { path: string }) => void) | null = null;
     try {
-      process.env.ASTROCLAW_CONFIG_PATH = configPath;
+      process.env.OPENCLAW_CONFIG_PATH = configPath;
       await fs.writeFile(
         configPath,
         JSON.stringify({
@@ -340,15 +351,15 @@ describe("backup commands", () => {
         ),
       );
     } finally {
-      delete process.env.ASTROCLAW_CONFIG_PATH;
+      delete process.env.OPENCLAW_CONFIG_PATH;
       await fs.rm(externalWorkspace, { recursive: true, force: true });
       await fs.rm(backupDir, { recursive: true, force: true });
     }
   });
 
   it("keeps volatile-skip notices out of json output", async () => {
-    const stateDir = path.join(tempHome.home, ".astroclaw");
-    const backupDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-backups-json-"));
+    const stateDir = path.join(tempHome.home, ".openclaw");
+    const backupDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backups-json-"));
     try {
       const runtime = createBackupTestRuntime();
       await mockStateOnlyBackupPlan(stateDir);
@@ -390,8 +401,8 @@ describe("backup commands", () => {
   });
 
   it("rejects output paths that would be created inside a backed-up directory", async () => {
-    const stateDir = path.join(tempHome.home, ".astroclaw");
-    await fs.writeFile(path.join(stateDir, "astroclaw.json"), JSON.stringify({}), "utf8");
+    const stateDir = path.join(tempHome.home, ".openclaw");
+    await fs.writeFile(path.join(stateDir, "openclaw.json"), JSON.stringify({}), "utf8");
 
     const runtime = createBackupTestRuntime();
     await mockStateOnlyBackupPlan(stateDir);
@@ -408,11 +419,11 @@ describe("backup commands", () => {
       return;
     }
 
-    const stateDir = path.join(tempHome.home, ".astroclaw");
-    const symlinkDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-backup-link-"));
+    const stateDir = path.join(tempHome.home, ".openclaw");
+    const symlinkDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backup-link-"));
     const symlinkPath = path.join(symlinkDir, "linked-state");
     try {
-      await fs.writeFile(path.join(stateDir, "astroclaw.json"), JSON.stringify({}), "utf8");
+      await fs.writeFile(path.join(stateDir, "openclaw.json"), JSON.stringify({}), "utf8");
       await fs.symlink(stateDir, symlinkPath);
 
       const runtime = createBackupTestRuntime();
@@ -429,9 +440,9 @@ describe("backup commands", () => {
   });
 
   it("falls back to the home directory when cwd is inside a backed-up source tree", async () => {
-    const stateDir = path.join(tempHome.home, ".astroclaw");
+    const stateDir = path.join(tempHome.home, ".openclaw");
     const workspaceDir = path.join(stateDir, "workspace");
-    await fs.writeFile(path.join(stateDir, "astroclaw.json"), JSON.stringify({}), "utf8");
+    await fs.writeFile(path.join(stateDir, "openclaw.json"), JSON.stringify({}), "utf8");
     await fs.mkdir(workspaceDir, { recursive: true });
     await fs.writeFile(path.join(workspaceDir, "SOUL.md"), "# soul\n", "utf8");
     vi.spyOn(process, "cwd").mockReturnValue(workspaceDir);
@@ -448,11 +459,11 @@ describe("backup commands", () => {
     await fs.rm(result.archivePath, { force: true });
 
     if (process.platform !== "win32") {
-      const linkParent = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-backup-cwd-link-"));
+      const linkParent = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-backup-cwd-link-"));
       const workspaceLink = path.join(linkParent, "workspace-link");
       try {
         await fs.symlink(workspaceDir, workspaceLink);
-        vi.mocked(process.cwd).mockReturnValue(workspaceLink);
+        vi.mocked(process["cwd"]).mockReturnValue(workspaceLink);
         const symlinkNowMs = Date.UTC(2026, 2, 9, 1, 3, 4);
         await mockWorkspaceBackupPlan(stateDir, workspaceDir, symlinkNowMs);
         const symlinkResult = await backupCreateCommand(createBackupTestRuntime(), {
@@ -469,14 +480,14 @@ describe("backup commands", () => {
   });
 
   it("allows dry-run preview even when the target archive already exists", async () => {
-    const stateDir = path.join(tempHome.home, ".astroclaw");
+    const stateDir = path.join(tempHome.home, ".openclaw");
     const existingArchive = path.join(tempHome.home, "existing-backup.tar.gz");
-    await fs.writeFile(path.join(stateDir, "astroclaw.json"), JSON.stringify({}), "utf8");
+    await fs.writeFile(path.join(stateDir, "openclaw.json"), JSON.stringify({}), "utf8");
     await fs.writeFile(existingArchive, "already here", "utf8");
     vi.spyOn(backupShared, "resolveBackupPlanFromDisk").mockResolvedValue(
       await resolveBackupPlanFromPaths({
         stateDir,
-        configPath: path.join(stateDir, "astroclaw.json"),
+        configPath: path.join(stateDir, "openclaw.json"),
         oauthDir: path.join(stateDir, "credentials"),
         includeWorkspace: false,
         configInsideState: true,
@@ -521,8 +532,8 @@ describe("backup commands", () => {
   });
 
   it("backs up only the active config file when --only-config is requested", async () => {
-    const stateDir = path.join(tempHome.home, ".astroclaw");
-    const configPath = path.join(stateDir, "astroclaw.json");
+    const stateDir = path.join(tempHome.home, ".openclaw");
+    const configPath = path.join(stateDir, "openclaw.json");
     await fs.mkdir(path.join(stateDir, "credentials"), { recursive: true });
     await fs.writeFile(configPath, JSON.stringify({ theme: "config-only" }), "utf8");
     await fs.writeFile(path.join(stateDir, "state.txt"), "state\n", "utf8");
