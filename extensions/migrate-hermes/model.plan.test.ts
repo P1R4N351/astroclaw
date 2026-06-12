@@ -1,5 +1,6 @@
+// Migrate Hermes tests cover model.plan plugin behavior.
 import path from "node:path";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/provider-auth";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-auth";
 import { afterEach, describe, expect, it } from "vitest";
 import { HERMES_REASON_DEFAULT_MODEL_CONFIGURED } from "./items.js";
 import { buildHermesMigrationProvider } from "./provider.js";
@@ -101,7 +102,6 @@ describe("Hermes migration model planning", () => {
         model: {
           primary: "anthropic/claude-sonnet-4.6",
           fallbacks: ["openai/gpt-5.4"],
-          timeoutMs: 120_000,
         },
       }),
     );
@@ -137,7 +137,7 @@ describe("Hermes migration model planning", () => {
           },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const provider = buildHermesMigrationProvider();
     const plan = await provider.plan(makeContext({ source, stateDir, workspaceDir, config }));
