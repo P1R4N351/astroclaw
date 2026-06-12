@@ -1,9 +1,10 @@
+// Whatsapp tests cover group policy plugin behavior.
 import { describe, expect, it } from "vitest";
 import {
   resolveWhatsAppGroupRequireMention,
   resolveWhatsAppGroupToolPolicy,
 } from "./group-policy.js";
-import type { AstroclawConfig } from "./runtime-api.js";
+import type { OpenClawConfig } from "./runtime-api.js";
 
 describe("whatsapp group policy", () => {
   it("uses generic channel group policy helpers", () => {
@@ -22,7 +23,7 @@ describe("whatsapp group policy", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveWhatsAppGroupRequireMention({ cfg, groupId: "1203630@g.us" })).toBe(false);
     expect(resolveWhatsAppGroupRequireMention({ cfg, groupId: "other@g.us" })).toBe(true);
