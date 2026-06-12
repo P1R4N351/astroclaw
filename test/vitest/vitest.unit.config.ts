@@ -1,8 +1,12 @@
+// Vitest unit config wires the unit test shard.
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 import { loadPatternListFromEnv, narrowIncludePatternsForCli } from "./vitest.pattern-file.ts";
-import { resolveVitestIsolation } from "./vitest.scoped-config.ts";
+import {
+  resolveVitestIsolation,
+  shouldPassWithNoTestsForCliIncludes,
+} from "./vitest.scoped-config.ts";
 import {
   nonIsolatedRunnerPath,
   repoRoot,
@@ -23,13 +27,13 @@ const exclude = sharedTest.exclude ?? [];
 export function loadIncludePatternsFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): string[] | null {
-  return loadPatternListFromEnv("ASTROCLAW_VITEST_INCLUDE_FILE", env);
+  return loadPatternListFromEnv("OPENCLAW_VITEST_INCLUDE_FILE", env);
 }
 
 export function loadExtraExcludePatternsFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): string[] {
-  return loadPatternListFromEnv("ASTROCLAW_VITEST_EXTRA_EXCLUDE_FILE", env) ?? [];
+  return loadPatternListFromEnv("OPENCLAW_VITEST_EXTRA_EXCLUDE_FILE", env) ?? [];
 }
 
 const defaultUnitCoverageRoots = ["src", "packages", "test"] as const;
@@ -131,6 +135,15 @@ export function createUnitVitestConfigWithOptions(
     return ![...protectedIncludeFiles].some((file) => pattern === file || pattern.endsWith("/**"));
   });
   const extraExcludePatterns = options.extraExcludePatterns ?? [];
+  const resolvedExcludePatterns = [
+    ...new Set([
+      ...exclude,
+      ...baseExcludePatterns,
+      ...unitFastTestFiles,
+      ...extraExcludePatterns,
+      ...loadExtraExcludePatternsFromEnv(env),
+    ]),
+  ];
   return defineConfig({
     ...sharedVitestConfig,
     test: {
@@ -140,21 +153,13 @@ export function createUnitVitestConfigWithOptions(
       ...(isolate ? { runner: undefined } : { runner: nonIsolatedRunnerPath }),
       setupFiles: [
         ...new Set(
-          [...(sharedTest.setupFiles ?? []), "test/setup-astroclaw-runtime.ts"].map(
+          [...(sharedTest.setupFiles ?? []), "test/setup-openclaw-runtime.ts"].map(
             resolveRepoRootPath,
           ),
         ),
       ],
       include: envIncludePatterns ?? cliIncludePatterns ?? defaultIncludePatterns,
-      exclude: [
-        ...new Set([
-          ...exclude,
-          ...baseExcludePatterns,
-          ...unitFastTestFiles,
-          ...extraExcludePatterns,
-          ...loadExtraExcludePatternsFromEnv(env),
-        ]),
-      ],
+      exclude: resolvedExcludePatterns,
       coverage: {
         ...sharedTest.coverage,
         ...(coverageIncludePatterns !== null && coverageIncludePatterns.length > 0
@@ -168,7 +173,10 @@ export function createUnitVitestConfigWithOptions(
           ]),
         ],
       },
-      ...(options.passWithNoTests || cliIncludePatterns !== null ? { passWithNoTests: true } : {}),
+      ...(options.passWithNoTests ||
+      shouldPassWithNoTestsForCliIncludes(cliIncludePatterns, resolvedExcludePatterns)
+        ? { passWithNoTests: true }
+        : {}),
     },
   });
 }
