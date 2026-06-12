@@ -1,3 +1,4 @@
+// Vitest system load helper probes host load before expensive test lanes.
 import { spawnSync } from "node:child_process";
 
 type EnvMap = Record<string, string | undefined>;
@@ -98,7 +99,7 @@ export function detectVitestProcessStats(
     return { ...EMPTY_VITEST_PROCESS_STATS };
   }
 
-  if (isExplicitlyEnabled(env.ASTROCLAW_VITEST_DISABLE_SYSTEM_THROTTLE)) {
+  if (isExplicitlyEnabled(env.OPENCLAW_VITEST_DISABLE_SYSTEM_THROTTLE)) {
     return { ...EMPTY_VITEST_PROCESS_STATS };
   }
 
@@ -117,6 +118,6 @@ export function detectVitestProcessStats(
 }
 
 export function shouldPrintVitestThrottle(env: EnvMap = process.env): boolean {
-  const normalized = env.ASTROCLAW_VITEST_PRINT_SYSTEM_THROTTLE?.trim().toLowerCase();
+  const normalized = env.OPENCLAW_VITEST_PRINT_SYSTEM_THROTTLE?.trim().toLowerCase();
   return normalized ? BOOLEAN_TRUE_VALUES.has(normalized) : false;
 }
