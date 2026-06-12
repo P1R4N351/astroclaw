@@ -1,6 +1,7 @@
+// Tests reset model selection and persisted model override cleanup.
 import { describe, expect, it } from "vitest";
 import type { ModelCatalogEntry } from "../../agents/model-catalog.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { ModelAliasIndex } from "./model-selection-directive.js";
 import { applyResetModelOverride } from "./session-reset-model.js";
@@ -11,7 +12,7 @@ const modelCatalog: ModelCatalogEntry[] = [
 ];
 
 function createResetFixture(entry: Partial<SessionEntry> = {}) {
-  const cfg = {} as AstroclawConfig;
+  const cfg = {} as OpenClawConfig;
   const aliasIndex: ModelAliasIndex = { byAlias: new Map(), byKey: new Map() };
   const sessionEntry: SessionEntry = {
     sessionId: "s1",
