@@ -1,24 +1,44 @@
+// Qa Channel tests cover channel plugin behavior.
 import path from "node:path";
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-message";
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
 import {
   createPluginRuntimeMock,
   createStartAccountContext,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/channel-test-helpers";
+import type { PluginRuntime } from "openclaw/plugin-sdk/core";
 import {
   createTestRegistry,
   resetPluginRuntimeStateForTest,
   setActivePluginRegistry,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { extractToolPayload } from "astroclaw/plugin-sdk/tool-payload";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { extractToolPayload } from "openclaw/plugin-sdk/tool-payload";
 import { afterEach, describe, expect, it } from "vitest";
 import { createQaBusState, startQaBusServer } from "../../qa-lab/bus-api.js";
 import { qaChannelPlugin, setQaChannelRuntime } from "../api.js";
+import { listQaChannelAccountIds, resolveDefaultQaChannelAccountId } from "./accounts.js";
 
-type QaRunPreparedTurn = Parameters<PluginRuntime["channel"]["turn"]["runPrepared"]>[0];
+type QaDispatchTurn = Parameters<PluginRuntime["channel"]["inbound"]["dispatchReply"]>[0];
 
 afterEach(() => {
   resetPluginRuntimeStateForTest();
+});
+
+describe("QA channel account resolution", () => {
+  it("preserves top-level default account when named accounts are configured", () => {
+    const cfg = {
+      channels: {
+        "qa-channel": {
+          baseUrl: "http://127.0.0.1:8787",
+          accounts: {
+            work: { enabled: false },
+          },
+        },
+      },
+    };
+
+    expect(listQaChannelAccountIds(cfg)).toEqual(["default", "work"]);
+    expect(resolveDefaultQaChannelAccountId(cfg)).toBe("default");
+  });
 });
 
 function installQaChannelTestRegistry() {
@@ -36,13 +56,14 @@ function expectDispatchedContext(ctx: Record<string, unknown> | null): Record<st
 
 function createMockQaRuntime(params?: {
   onDispatch?: (ctx: Record<string, unknown>) => void;
+  toolStarts?: Array<{ name?: string; phase?: string; args?: Record<string, unknown> }>;
 }): PluginRuntime {
   const sessionUpdatedAt = new Map<string, number>();
   return createPluginRuntimeMock({
     channel: {
       mentions: {
         buildMentionRegexes() {
-          return [/^@astroclaw\b/i];
+          return [/^@openclaw\b/i];
         },
         matchesMentionPatterns(text: string, patterns: RegExp[]) {
           return patterns.some((pattern) => pattern.test(text));
@@ -91,18 +112,29 @@ function createMockQaRuntime(params?: {
         async dispatchReplyWithBufferedBlockDispatcher({
           ctx,
           dispatcherOptions,
+          replyOptions,
         }: {
           ctx: { BodyForAgent?: string; Body?: string };
           dispatcherOptions: { deliver: (payload: { text: string }) => Promise<void> };
+          replyOptions?: {
+            onToolStart?: (payload: {
+              name?: string;
+              phase?: string;
+              args?: Record<string, unknown>;
+            }) => Promise<void> | void;
+          };
         }) {
+          for (const toolStart of params?.toolStarts ?? []) {
+            await replyOptions?.onToolStart?.(toolStart);
+          }
           params?.onDispatch?.(ctx as Record<string, unknown>);
           await dispatcherOptions.deliver({
             text: `qa-echo: ${ctx.BodyForAgent ?? ctx.Body ?? ""}`,
           });
         },
       },
-      turn: {
-        async runPrepared(turn: QaRunPreparedTurn) {
+      inbound: {
+        async dispatchReply(turn: QaDispatchTurn) {
           await turn.recordInboundSession({
             storePath: turn.storePath,
             sessionKey:
@@ -117,7 +149,19 @@ function createMockQaRuntime(params?: {
             dispatched: true,
             ctxPayload: turn.ctxPayload,
             routeSessionKey: turn.routeSessionKey,
-            dispatchResult: await turn.runDispatch(),
+            dispatchResult: await turn.dispatchReplyWithBufferedBlockDispatcher({
+              ctx: turn.ctxPayload,
+              cfg: turn.cfg,
+              dispatcherOptions: {
+                ...turn.dispatcherOptions,
+                deliver: async (...args: Parameters<typeof turn.delivery.deliver>) => {
+                  await turn.delivery.deliver(...args);
+                },
+                onError: turn.delivery.onError,
+              },
+              replyOptions: turn.replyOptions,
+              replyResolver: turn.replyResolver,
+            }),
           };
         },
       },
@@ -130,8 +174,8 @@ function createQaChannelConfig(params: { baseUrl: string; allowFrom?: string[] }
     channels: {
       "qa-channel": {
         baseUrl: params.baseUrl,
-        botUserId: "astroclaw",
-        botDisplayName: "Astroclaw QA",
+        botUserId: "openclaw",
+        botDisplayName: "OpenClaw QA",
         allowFrom: params.allowFrom,
       },
     },
@@ -320,6 +364,63 @@ describe("qa-channel plugin", () => {
   });
 
   it(
+    "attaches sanitized agent tool starts to outbound qa bus messages",
+    { timeout: 20_000 },
+    async () => {
+      const harness = await startQaChannelTestHarness({
+        allowFrom: ["*"],
+        runtime: createMockQaRuntime({
+          toolStarts: [
+            {
+              name: "exec",
+              phase: "start",
+              args: {
+                command: "pwd",
+                apiToken: "secret-token",
+              },
+            },
+            {
+              name: "exec",
+              phase: "update",
+              args: {
+                command: "ignored update",
+              },
+            },
+          ],
+        }),
+      });
+
+      try {
+        harness.state.addInboundMessage({
+          conversation: { id: "alice", kind: "direct" },
+          senderId: "alice",
+          senderName: "Alice",
+          text: "hello",
+        });
+
+        const outbound = await harness.state.waitFor({
+          kind: "message-text",
+          textIncludes: "qa-echo: hello",
+          direction: "outbound",
+          timeoutMs: 15_000,
+        });
+
+        expect("toolCalls" in outbound ? outbound.toolCalls : undefined).toEqual([
+          {
+            name: "exec",
+            arguments: {
+              command: "[redacted]",
+              apiToken: "[redacted]",
+            },
+          },
+        ]);
+      } finally {
+        await harness.stop();
+      }
+    },
+  );
+
+  it(
     "surfaces shared group traffic with the room target as From",
     { timeout: 20_000 },
     async () => {
@@ -338,12 +439,12 @@ describe("qa-channel plugin", () => {
           conversation: { id: "qa-room", kind: "group", title: "QA Room" },
           senderId: "alice",
           senderName: "Alice",
-          text: "@astroclaw hello",
+          text: "@openclaw hello",
         });
 
         const outbound = await harness.state.waitFor({
           kind: "message-text",
-          textIncludes: "qa-echo: @astroclaw hello",
+          textIncludes: "qa-echo: @openclaw hello",
           direction: "outbound",
           timeoutMs: 15_000,
         });
