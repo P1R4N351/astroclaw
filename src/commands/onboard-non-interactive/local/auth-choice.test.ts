@@ -1,5 +1,6 @@
+// Non-interactive auth-choice tests cover built-in, custom, deprecated, and plugin provider dispatch.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../../config/config.js";
+import type { OpenClawConfig } from "../../../config/config.js";
 import { resolveAgentModelPrimaryValue } from "../../../config/model-input.js";
 import { applyNonInteractiveAuthChoice } from "./auth-choice.js";
 
@@ -22,6 +23,13 @@ vi.mock("../../../plugins/provider-auth-choices.js", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  applyNonInteractivePluginProviderChoice.mockReset();
+  applyNonInteractivePluginProviderChoice.mockResolvedValue(undefined);
+  resolveNonInteractiveApiKey.mockReset();
+  resolveManifestDeprecatedProviderAuthChoice.mockReset();
+  resolveManifestDeprecatedProviderAuthChoice.mockReturnValue(undefined);
+  resolveManifestProviderAuthChoices.mockReset();
+  resolveManifestProviderAuthChoices.mockReturnValue([]);
 });
 
 function createRuntime() {
@@ -35,7 +43,7 @@ function createRuntime() {
 describe("applyNonInteractiveAuthChoice", () => {
   it("resolves plugin provider auth before builtin custom-provider handling", async () => {
     const runtime = createRuntime();
-    const nextConfig = { agents: { defaults: {} } } as AstroclawConfig;
+    const nextConfig = { agents: { defaults: {} } } as OpenClawConfig;
     const resolvedConfig = { auth: { profiles: { "demo-provider:default": { mode: "api_key" } } } };
     applyNonInteractivePluginProviderChoice.mockResolvedValueOnce(resolvedConfig as never);
 
@@ -53,8 +61,8 @@ describe("applyNonInteractiveAuthChoice", () => {
 
   it("fails with manifest-owned replacement guidance for deprecated auth choices", async () => {
     const runtime = createRuntime();
-    const nextConfig = { agents: { defaults: {} } } as AstroclawConfig;
-    resolveManifestDeprecatedProviderAuthChoice.mockReturnValueOnce({
+    const nextConfig = { agents: { defaults: {} } } as OpenClawConfig;
+    resolveManifestDeprecatedProviderAuthChoice.mockReturnValue({
       choiceId: "demo-provider-modern-api",
     } as never);
 
@@ -76,7 +84,7 @@ describe("applyNonInteractiveAuthChoice", () => {
 
   it("escapes deprecated auth choice guidance for terminal output", async () => {
     const runtime = createRuntime();
-    const nextConfig = { agents: { defaults: {} } } as AstroclawConfig;
+    const nextConfig = { agents: { defaults: {} } } as OpenClawConfig;
     resolveManifestDeprecatedProviderAuthChoice.mockReturnValueOnce({
       choiceId: "modern\nchoice",
     } as never);
@@ -99,7 +107,7 @@ describe("applyNonInteractiveAuthChoice", () => {
 
   it("stores custom provider env refs through the local auth-choice seam", async () => {
     const runtime = createRuntime();
-    const nextConfig = { agents: { defaults: {} } } as AstroclawConfig;
+    const nextConfig = { agents: { defaults: {} } } as OpenClawConfig;
     resolveNonInteractiveApiKey.mockResolvedValueOnce({
       key: "custom-env-key",
       source: "env",
@@ -135,9 +143,29 @@ describe("applyNonInteractiveAuthChoice", () => {
     expect(apiKeyParams?.secretInputMode).toBe("ref");
   });
 
+  it("stores custom provider OpenAI Responses compatibility", async () => {
+    const runtime = createRuntime();
+    const nextConfig = { agents: { defaults: {} } } as OpenClawConfig;
+    resolveNonInteractiveApiKey.mockResolvedValueOnce(undefined);
+
+    const result = await applyNonInteractiveAuthChoice({
+      nextConfig,
+      authChoice: "custom-api-key",
+      opts: {
+        customBaseUrl: "https://models.custom.local/v1",
+        customModelId: "gpt-5.4",
+        customCompatibility: "openai-responses",
+      } as never,
+      runtime: runtime as never,
+      baseConfig: nextConfig,
+    });
+
+    expect(result?.models?.providers?.["custom-models-custom-local"]?.api).toBe("openai-responses");
+  });
+
   it("marks non-interactive custom provider models as image-capable when requested", async () => {
     const runtime = createRuntime();
-    const nextConfig = { agents: { defaults: {} } } as AstroclawConfig;
+    const nextConfig = { agents: { defaults: {} } } as OpenClawConfig;
     resolveNonInteractiveApiKey.mockResolvedValueOnce(undefined);
 
     const result = await applyNonInteractiveAuthChoice({
@@ -160,7 +188,7 @@ describe("applyNonInteractiveAuthChoice", () => {
 
   it("infers image-capable non-interactive custom provider models by known model id", async () => {
     const runtime = createRuntime();
-    const nextConfig = { agents: { defaults: {} } } as AstroclawConfig;
+    const nextConfig = { agents: { defaults: {} } } as OpenClawConfig;
     resolveNonInteractiveApiKey.mockResolvedValueOnce(undefined);
 
     const result = await applyNonInteractiveAuthChoice({
@@ -182,7 +210,7 @@ describe("applyNonInteractiveAuthChoice", () => {
 
   it("honors explicit text-only override for known custom vision models", async () => {
     const runtime = createRuntime();
-    const nextConfig = { agents: { defaults: {} } } as AstroclawConfig;
+    const nextConfig = { agents: { defaults: {} } } as OpenClawConfig;
     resolveNonInteractiveApiKey.mockResolvedValueOnce(undefined);
 
     const result = await applyNonInteractiveAuthChoice({
