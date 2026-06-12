@@ -1,3 +1,4 @@
+// Whatsapp tests cover media plugin behavior.
 import { Readable } from "node:stream";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { mockNormalizeMessageContent } from "../../../../test/mocks/baileys.js";
@@ -18,7 +19,7 @@ vi.mock("baileys", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/media-store", () => ({
+vi.mock("openclaw/plugin-sdk/media-store", () => ({
   saveMediaStream,
 }));
 
