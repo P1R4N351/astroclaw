@@ -1,3 +1,4 @@
+// Memory Wiki tests cover vault plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -35,7 +36,7 @@ describe("initializeMemoryWikiVault", () => {
       "Render mode: `obsidian`",
     );
     await expect(
-      fs.readFile(path.join(rootDir, ".astroclaw-wiki", "state.json"), "utf8"),
+      fs.readFile(path.join(rootDir, ".openclaw-wiki", "state.json"), "utf8"),
     ).resolves.toContain('"renderMode": "obsidian"');
   });
 
