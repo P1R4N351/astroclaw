@@ -1,4 +1,5 @@
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+// Telegram tests cover bot message context.topic agentid plugin behavior.
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { defaultRouteConfig } = vi.hoisted(() => ({
@@ -11,10 +12,10 @@ const { defaultRouteConfig } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
+vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/runtime-config-snapshot")
-  >("astroclaw/plugin-sdk/runtime-config-snapshot");
+    typeof import("openclaw/plugin-sdk/runtime-config-snapshot")
+  >("openclaw/plugin-sdk/runtime-config-snapshot");
   return {
     ...actual,
     getRuntimeConfig: vi.fn(() => defaultRouteConfig),
@@ -89,6 +90,35 @@ describe("buildTelegramMessageContext per-topic agentId routing", () => {
 
     expect(ctxA?.ctxPayload?.SessionKey).not.toBe(ctxB?.ctxPayload?.SessionKey);
     expect(ctxB?.ctxPayload?.SessionKey).not.toBe(ctxC?.ctxPayload?.SessionKey);
+  });
+
+  it("preserves topic routing when Telegram omits chat.is_forum", async () => {
+    const resolveTelegramGroupConfig = vi.fn(() => ({
+      groupConfig: { requireMention: false },
+      topicConfig: { agentId: "zu" },
+    }));
+    const ctx = await buildTelegramMessageContextForTest({
+      message: {
+        message_id: 1,
+        chat: {
+          id: -1001234567890,
+          type: "supergroup",
+          title: "Forum",
+        },
+        date: 1700000000,
+        text: "@bot hello",
+        is_topic_message: true,
+        message_thread_id: 3,
+        from: { id: 42, first_name: "Alice" },
+      },
+      options: { forceWasMentioned: true },
+      resolveGroupActivation: () => true,
+      resolveTelegramGroupConfig,
+    });
+
+    expect(resolveTelegramGroupConfig).toHaveBeenCalledWith(-1001234567890, 3);
+    expect(ctx?.ctxPayload?.SessionKey).toContain("agent:zu:");
+    expect(ctx?.ctxPayload?.SessionKey).toContain("telegram:group:-1001234567890:topic:3");
   });
 
   it("ignores whitespace-only agentId and uses group-level agent", async () => {
