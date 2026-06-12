@@ -1,5 +1,6 @@
+// Agent command-list tests cover provider metadata and command output for configured agents.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { OutputRuntimeEnv } from "../runtime.js";
 
 const {
@@ -54,7 +55,7 @@ function createRuntime(): OutputRuntimeEnv & { json: unknown[] } {
   };
 }
 
-function createConfig(): AstroclawConfig {
+function createConfig(): OpenClawConfig {
   return {
     agents: {
       list: [{ id: "main", default: true }],
@@ -126,14 +127,14 @@ describe("agentsListCommand", () => {
         [
           "Agents:",
           "- main (default)",
-          "  Workspace: ~/.astroclaw/workspace",
-          "  Agent dir: ~/.astroclaw/agents/main/agent",
+          "  Workspace: ~/.openclaw/workspace",
+          "  Agent dir: ~/.openclaw/agents/main/agent",
           "  Routing rules: 1",
           "  Routing: Telegram default",
           "  Providers:",
           "    - Telegram default: configured",
           "Routing rules map channel/account/peer to an agent. Use --bindings for full rules.",
-          "Channel status reflects local config/creds. For live health: astroclaw channels status --probe.",
+          "Channel status reflects local config/creds. For live health: openclaw channels status --probe.",
         ].join("\n"),
       ],
     ]);
