@@ -1,16 +1,19 @@
+// Covers locating OpenClaw docs and source paths from package roots.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  resolveAstroclawDocsPath,
-  resolveAstroclawReferencePaths,
-  resolveAstroclawSourcePath,
+  resolveOpenClawDocsPath,
+  resolveOpenClawReferencePaths,
+  resolveOpenClawSourcePath,
 } from "./docs-path.js";
 
 async function makePackageRoot(prefix: string): Promise<string> {
+  // Tests create minimal package roots so path resolution is checked without
+  // depending on this checkout's real docs or git state.
   const root = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
-  await fs.writeFile(path.join(root, "package.json"), '{"name":"astroclaw"}\n');
+  await fs.writeFile(path.join(root, "package.json"), '{"name":"openclaw"}\n');
   return root;
 }
 
@@ -19,55 +22,58 @@ async function writeDocsJson(root: string): Promise<void> {
   await fs.writeFile(path.join(root, "docs", "docs.json"), "{}\n");
 }
 
-describe("resolveAstroclawDocsPath", () => {
+describe("resolveOpenClawDocsPath", () => {
   it("uses the workspace docs directory when it has canonical docs metadata", async () => {
-    const root = await makePackageRoot("astroclaw-docs-workspace-");
+    const root = await makePackageRoot("openclaw-docs-workspace-");
     await writeDocsJson(root);
 
-    await expect(resolveAstroclawDocsPath({ workspaceDir: root })).resolves.toBe(
+    await expect(resolveOpenClawDocsPath({ workspaceDir: root })).resolves.toBe(
       path.join(root, "docs"),
     );
   });
 
   it("finds bundled package docs from a nested package path", async () => {
-    const root = await makePackageRoot("astroclaw-docs-package-");
+    const root = await makePackageRoot("openclaw-docs-package-");
     await writeDocsJson(root);
     const nested = path.join(root, "dist", "agents");
     await fs.mkdir(nested, { recursive: true });
 
-    await expect(resolveAstroclawDocsPath({ cwd: nested })).resolves.toBe(path.join(root, "docs"));
+    await expect(resolveOpenClawDocsPath({ cwd: nested })).resolves.toBe(path.join(root, "docs"));
   });
 
   it("does not accept incomplete template-only docs directories", async () => {
-    const root = await makePackageRoot("astroclaw-docs-incomplete-");
+    // Template folders alone are not published docs; docs.json is the canonical
+    // marker that the path is usable for model reference context.
+    const root = await makePackageRoot("openclaw-docs-incomplete-");
     await fs.mkdir(path.join(root, "docs", "reference", "templates"), { recursive: true });
 
-    await expect(resolveAstroclawDocsPath({ cwd: root })).resolves.toBeNull();
+    await expect(resolveOpenClawDocsPath({ cwd: root })).resolves.toBeNull();
   });
 });
 
-describe("resolveAstroclawSourcePath", () => {
+describe("resolveOpenClawSourcePath", () => {
   it("returns the package root only for git checkouts", async () => {
-    const root = await makePackageRoot("astroclaw-source-git-");
+    const root = await makePackageRoot("openclaw-source-git-");
     await fs.mkdir(path.join(root, ".git"));
 
-    await expect(resolveAstroclawSourcePath({ cwd: root })).resolves.toBe(root);
+    await expect(resolveOpenClawSourcePath({ cwd: root })).resolves.toBe(root);
   });
 
   it("omits source path for npm-style package installs", async () => {
-    const root = await makePackageRoot("astroclaw-source-npm-");
+    // npm installs may contain package files but not source checkout metadata.
+    const root = await makePackageRoot("openclaw-source-npm-");
 
-    await expect(resolveAstroclawSourcePath({ cwd: root })).resolves.toBeNull();
+    await expect(resolveOpenClawSourcePath({ cwd: root })).resolves.toBeNull();
   });
 });
 
-describe("resolveAstroclawReferencePaths", () => {
+describe("resolveOpenClawReferencePaths", () => {
   it("returns docs and local source together for git checkouts", async () => {
-    const root = await makePackageRoot("astroclaw-reference-git-");
+    const root = await makePackageRoot("openclaw-reference-git-");
     await writeDocsJson(root);
     await fs.mkdir(path.join(root, ".git"));
 
-    await expect(resolveAstroclawReferencePaths({ cwd: root })).resolves.toEqual({
+    await expect(resolveOpenClawReferencePaths({ cwd: root })).resolves.toEqual({
       docsPath: path.join(root, "docs"),
       sourcePath: root,
     });
