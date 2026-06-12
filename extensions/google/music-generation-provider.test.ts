@@ -1,23 +1,27 @@
+// Google tests cover music generation provider plugin behavior.
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 const { createGoogleGenAIMock, generateContentMock } = vi.hoisted(() => {
-  const generateContentMock = vi.fn();
-  const createGoogleGenAIMock = vi.fn(() => {
+  const generateContentMockLocal = vi.fn();
+  const createGoogleGenAIMockLocal = vi.fn(() => {
     return {
       models: {
-        generateContent: generateContentMock,
+        generateContent: generateContentMockLocal,
       },
     };
   });
-  return { createGoogleGenAIMock, generateContentMock };
+  return {
+    createGoogleGenAIMock: createGoogleGenAIMockLocal,
+    generateContentMock: generateContentMockLocal,
+  };
 });
 
 vi.mock("./google-genai-runtime.js", () => ({
   createGoogleGenAI: createGoogleGenAIMock,
 }));
 
-import * as providerAuthRuntime from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { expectExplicitMusicGenerationCapabilities } from "astroclaw/plugin-sdk/provider-test-contracts";
+import * as providerAuthRuntime from "openclaw/plugin-sdk/provider-auth-runtime";
+import { expectExplicitMusicGenerationCapabilities } from "openclaw/plugin-sdk/provider-test-contracts";
 import { buildGoogleMusicGenerationProvider } from "./music-generation-provider.js";
 
 type GoogleGenAIConfig = {
