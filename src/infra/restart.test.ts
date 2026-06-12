@@ -1,43 +1,48 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { captureFullEnv } from "../test-utils/env.js";
+// Covers gateway restart process and supervisor paths.
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureFullEnv, withEnv } from "../test-utils/env.js";
+import { mockProcessPlatform } from "../test-utils/vitest-spies.js";
 
 const spawnSyncMock = vi.hoisted(() => vi.fn());
+const execFileMock = vi.hoisted(() =>
+  Object.assign(vi.fn(), {
+    [Symbol.for("nodejs.util.promisify.custom")]: vi.fn(),
+    __promisify__: vi.fn(),
+  }),
+);
 const resolveLsofCommandSyncMock = vi.hoisted(() => vi.fn());
 const resolveGatewayPortMock = vi.hoisted(() => vi.fn());
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeChildProcessSpawnSync } = await import("astroclaw/plugin-sdk/test-node-mocks");
-  return mockNodeChildProcessSpawnSync(spawnSyncMock);
+  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
+  return mockNodeBuiltinModule(
+    () => vi.importActual<typeof import("node:child_process")>("node:child_process"),
+    {
+      execFile: execFileMock,
+      spawnSync: (...args: unknown[]) => spawnSyncMock(...args),
+    } as Partial<typeof import("node:child_process")>,
+  );
 });
 
 vi.mock("./ports-lsof.js", () => ({
   resolveLsofCommandSync: (...args: unknown[]) => resolveLsofCommandSyncMock(...args),
 }));
 
-vi.mock("../config/paths.js", async () => {
-  const actual = await vi.importActual<typeof import("../config/paths.js")>("../config/paths.js");
-  return {
-    ...actual,
-    resolveGatewayPort: (...args: unknown[]) => resolveGatewayPortMock(...args),
-  };
-});
+vi.mock("../config/paths.js", () => ({
+  resolveGatewayPort: (...args: unknown[]) => resolveGatewayPortMock(...args),
+  resolveStateDir: (env: NodeJS.ProcessEnv = process.env) =>
+    env.OPENCLAW_STATE_DIR ?? "/tmp/openclaw-state",
+}));
 
-let __testing: typeof import("./restart-stale-pids.js").__testing;
-let cleanStaleGatewayProcessesSync: typeof import("./restart-stale-pids.js").cleanStaleGatewayProcessesSync;
-let findGatewayPidsOnPortSync: typeof import("./restart-stale-pids.js").findGatewayPidsOnPortSync;
-let triggerAstroclawRestart: typeof import("./restart.js").triggerAstroclawRestart;
+const { testing, cleanStaleGatewayProcessesSync, findGatewayPidsOnPortSync } =
+  await import("./restart-stale-pids.js");
+const { triggerOpenClawRestart } = await import("./restart.js");
 
 let currentTimeMs = 0;
 const envSnapshot = captureFullEnv();
-const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
-
-beforeAll(async () => {
-  ({ __testing, cleanStaleGatewayProcessesSync, findGatewayPidsOnPortSync } =
-    await import("./restart-stale-pids.js"));
-  ({ triggerAstroclawRestart } = await import("./restart.js"));
-});
 
 beforeEach(() => {
+  execFileMock.mockReset();
   spawnSyncMock.mockReset();
   resolveLsofCommandSyncMock.mockReset();
   resolveGatewayPortMock.mockReset();
@@ -45,30 +50,21 @@ beforeEach(() => {
   currentTimeMs = 0;
   resolveLsofCommandSyncMock.mockReturnValue("/usr/sbin/lsof");
   resolveGatewayPortMock.mockReturnValue(18789);
-  __testing.setSleepSyncOverride((ms) => {
+  testing.setSleepSyncOverride((ms) => {
     currentTimeMs += ms;
   });
-  __testing.setDateNowOverride(() => currentTimeMs);
+  testing.setDateNowOverride(() => currentTimeMs);
 });
 
 afterEach(() => {
   envSnapshot.restore();
-  __testing.setSleepSyncOverride(null);
-  __testing.setDateNowOverride(null);
-  if (originalPlatformDescriptor) {
-    Object.defineProperty(process, "platform", originalPlatformDescriptor);
-  }
+  testing.setSleepSyncOverride(null);
+  testing.setDateNowOverride(null);
   vi.restoreAllMocks();
 });
 
 function setPlatform(platform: NodeJS.Platform): void {
-  if (!originalPlatformDescriptor) {
-    return;
-  }
-  Object.defineProperty(process, "platform", {
-    ...originalPlatformDescriptor,
-    value: platform,
-  });
+  mockProcessPlatform(platform);
 }
 
 function requireFirstSpawnSyncCall(): [unknown, unknown, unknown] {
@@ -80,7 +76,7 @@ function requireFirstSpawnSyncCall(): [unknown, unknown, unknown] {
 }
 
 describe.runIf(process.platform !== "win32")("findGatewayPidsOnPortSync", () => {
-  it("parses lsof output and filters non-astroclaw/current processes", () => {
+  it("parses lsof output and filters non-openclaw/current processes", () => {
     const gatewayPidA = process.pid + 1000;
     const gatewayPidB = process.pid + 2000;
     const foreignPid = process.pid + 3000;
@@ -89,13 +85,13 @@ describe.runIf(process.platform !== "win32")("findGatewayPidsOnPortSync", () => 
       status: 0,
       stdout: [
         `p${process.pid}`,
-        "castroclaw",
+        "copenclaw",
         `p${gatewayPidA}`,
-        "castroclaw-gateway",
+        "copenclaw-gateway",
         `p${foreignPid}`,
         "cnode",
         `p${gatewayPidB}`,
-        "cAstroclaw",
+        "cOpenClaw",
       ].join("\n"),
     });
 
@@ -137,7 +133,7 @@ describe.runIf(process.platform !== "win32")("cleanStaleGatewayProcessesSync", (
       .mockReturnValueOnce({
         error: undefined,
         status: 0,
-        stdout: [`p${stalePidA}`, "castroclaw", `p${stalePidB}`, "castroclaw-gateway"].join("\n"),
+        stdout: [`p${stalePidA}`, "copenclaw", `p${stalePidB}`, "copenclaw-gateway"].join("\n"),
       })
       .mockReturnValue({
         error: undefined,
@@ -162,7 +158,7 @@ describe.runIf(process.platform !== "win32")("cleanStaleGatewayProcessesSync", (
       .mockReturnValueOnce({
         error: undefined,
         status: 0,
-        stdout: [`p${stalePid}`, "castroclaw"].join("\n"),
+        stdout: [`p${stalePid}`, "copenclaw"].join("\n"),
       })
       .mockReturnValue({
         error: undefined,
@@ -175,7 +171,8 @@ describe.runIf(process.platform !== "win32")("cleanStaleGatewayProcessesSync", (
 
     expect(killed).toEqual([stalePid]);
     expect(resolveGatewayPortMock).not.toHaveBeenCalled();
-    expect(spawnSyncMock).toHaveBeenCalledTimes(2);
+    const lsofCalls = spawnSyncMock.mock.calls.filter((call) => call[0] === "/usr/sbin/lsof");
+    expect(lsofCalls).toHaveLength(2);
     const [command, args, options] = requireFirstSpawnSyncCall();
     expect(command).toBe("/usr/sbin/lsof");
     expect(args).toEqual(["-nP", "-iTCP:19999", "-sTCP:LISTEN", "-Fpc"]);
@@ -202,72 +199,74 @@ describe.runIf(process.platform !== "win32")("cleanStaleGatewayProcessesSync", (
   });
 });
 
-describe("triggerAstroclawRestart", () => {
+describe("triggerOpenClawRestart", () => {
   it("does not kickstart after bootstrap registers an unloaded LaunchAgent", () => {
     setPlatform("darwin");
-    delete process.env.VITEST;
-    delete process.env.NODE_ENV;
-    process.env.HOME = "/Users/test";
-    process.env.ASTROCLAW_PROFILE = "default";
-    const uid = typeof process.getuid === "function" ? process.getuid() : 501;
-    spawnSyncMock.mockImplementation((command: string, args: string[]) => {
-      if (command === "/usr/sbin/lsof") {
-        return { error: undefined, status: 1, stdout: "" };
-      }
-      if (command === "launchctl" && args[0] === "kickstart" && args[1] === "-k") {
-        return { error: undefined, status: 113, stderr: "service not loaded" };
-      }
-      if (command === "launchctl" && args[0] === "bootstrap") {
-        return { error: undefined, status: 0, stderr: "" };
-      }
-      return { error: undefined, status: 1, stdout: "" };
-    });
+    withEnv(
+      { VITEST: undefined, NODE_ENV: undefined, HOME: "/Users/test", OPENCLAW_PROFILE: "default" },
+      () => {
+        const uid = typeof process.getuid === "function" ? process.getuid() : 501;
+        spawnSyncMock.mockImplementation((command: string, args: string[]) => {
+          if (command === "/usr/sbin/lsof") {
+            return { error: undefined, status: 1, stdout: "" };
+          }
+          if (command === "launchctl" && args[0] === "kickstart" && args[1] === "-k") {
+            return { error: undefined, status: 113, stderr: "service not loaded" };
+          }
+          if (command === "launchctl" && args[0] === "bootstrap") {
+            return { error: undefined, status: 0, stderr: "" };
+          }
+          return { error: undefined, status: 1, stdout: "" };
+        });
 
-    const result = triggerAstroclawRestart();
+        const result = triggerOpenClawRestart();
 
-    expect(result).toEqual({
-      ok: true,
-      method: "launchctl",
-      tried: [
-        `launchctl kickstart -k gui/${uid}/ai.astroclaw.gateway`,
-        `launchctl bootstrap gui/${uid} /Users/test/Library/LaunchAgents/ai.astroclaw.gateway.plist`,
-      ],
-    });
+        expect(result).toEqual({
+          ok: true,
+          method: "launchctl",
+          tried: [
+            `launchctl kickstart -k gui/${uid}/ai.openclaw.gateway`,
+            `launchctl bootstrap gui/${uid} /Users/test/Library/LaunchAgents/ai.openclaw.gateway.plist`,
+          ],
+        });
+      },
+    );
   });
 
   it("continues when launchctl bootstrap reports the service is already loaded", () => {
     setPlatform("darwin");
-    delete process.env.VITEST;
-    delete process.env.NODE_ENV;
-    process.env.HOME = "/Users/test";
-    process.env.ASTROCLAW_PROFILE = "default";
-    const uid = typeof process.getuid === "function" ? process.getuid() : 501;
-    spawnSyncMock.mockImplementation((command: string, args: string[]) => {
-      if (command === "/usr/sbin/lsof") {
-        return { error: undefined, status: 1, stdout: "" };
-      }
-      if (command === "launchctl" && args[0] === "kickstart" && args[1] === "-k") {
-        return { error: undefined, status: 113, stderr: "service not loaded" };
-      }
-      if (command === "launchctl" && args[0] === "bootstrap") {
-        return { error: undefined, status: 37, stderr: "Operation already in progress" };
-      }
-      if (command === "launchctl" && args[0] === "kickstart") {
-        return { error: undefined, status: 0, stdout: "" };
-      }
-      return { error: undefined, status: 1, stdout: "" };
-    });
+    withEnv(
+      { VITEST: undefined, NODE_ENV: undefined, HOME: "/Users/test", OPENCLAW_PROFILE: "default" },
+      () => {
+        const uid = typeof process.getuid === "function" ? process.getuid() : 501;
+        spawnSyncMock.mockImplementation((command: string, args: string[]) => {
+          if (command === "/usr/sbin/lsof") {
+            return { error: undefined, status: 1, stdout: "" };
+          }
+          if (command === "launchctl" && args[0] === "kickstart" && args[1] === "-k") {
+            return { error: undefined, status: 113, stderr: "service not loaded" };
+          }
+          if (command === "launchctl" && args[0] === "bootstrap") {
+            return { error: undefined, status: 37, stderr: "Operation already in progress" };
+          }
+          if (command === "launchctl" && args[0] === "kickstart") {
+            return { error: undefined, status: 0, stdout: "" };
+          }
+          return { error: undefined, status: 1, stdout: "" };
+        });
 
-    const result = triggerAstroclawRestart();
+        const result = triggerOpenClawRestart();
 
-    expect(result).toEqual({
-      ok: true,
-      method: "launchctl",
-      tried: [
-        `launchctl kickstart -k gui/${uid}/ai.astroclaw.gateway`,
-        `launchctl bootstrap gui/${uid} /Users/test/Library/LaunchAgents/ai.astroclaw.gateway.plist`,
-        `launchctl kickstart gui/${uid}/ai.astroclaw.gateway`,
-      ],
-    });
+        expect(result).toEqual({
+          ok: true,
+          method: "launchctl",
+          tried: [
+            `launchctl kickstart -k gui/${uid}/ai.openclaw.gateway`,
+            `launchctl bootstrap gui/${uid} /Users/test/Library/LaunchAgents/ai.openclaw.gateway.plist`,
+            `launchctl kickstart gui/${uid}/ai.openclaw.gateway`,
+          ],
+        });
+      },
+    );
   });
 });
