@@ -1,9 +1,11 @@
+// Tests npm registry spec parsing for packages, tags, and versions.
 import { describe, expect, it } from "vitest";
 import {
-  compareAstroclawReleaseVersions,
+  compareOpenClawReleaseVersions,
   formatPrereleaseResolutionError,
   isExactSemverVersion,
-  isAstroclawStableCorrectionVersion,
+  isOpenClawOrgNpmSpec,
+  isOpenClawStableCorrectionVersion,
   isPrereleaseSemverVersion,
   isPrereleaseResolutionAllowed,
   parseRegistryNpmSpec,
@@ -20,22 +22,22 @@ function parseSpecOrThrow(spec: string) {
 
 describe("npm registry spec validation", () => {
   it.each([
-    "@astroclaw/voice-call",
-    "@astroclaw/voice-call@1.2.3",
-    "@astroclaw/voice-call@1.2.3-beta.4",
-    "@astroclaw/voice-call@latest",
-    "@astroclaw/voice-call@beta",
+    "@openclaw/voice-call",
+    "@openclaw/voice-call@1.2.3",
+    "@openclaw/voice-call@1.2.3-beta.4",
+    "@openclaw/voice-call@latest",
+    "@openclaw/voice-call@beta",
   ])("accepts %s", (spec) => {
     expect(validateRegistryNpmSpec(spec)).toBeNull();
   });
 
   it.each([
     {
-      spec: "@astroclaw/voice-call@^1.2.3",
+      spec: "@openclaw/voice-call@^1.2.3",
       expected: "exact version or dist-tag",
     },
     {
-      spec: "@astroclaw/voice-call@~1.2.3",
+      spec: "@openclaw/voice-call@~1.2.3",
       expected: "exact version or dist-tag",
     },
     {
@@ -43,15 +45,15 @@ describe("npm registry spec validation", () => {
       expected: "URLs are not allowed",
     },
     {
-      spec: "git+ssh://github.com/astroclaw/astroclaw",
+      spec: "git+ssh://github.com/openclaw/openclaw",
       expected: "URLs are not allowed",
     },
     {
-      spec: "@astroclaw/voice-call@",
+      spec: "@openclaw/voice-call@",
       expected: "missing version/tag after @",
     },
     {
-      spec: "@astroclaw/voice-call@../beta",
+      spec: "@openclaw/voice-call@../beta",
       expected: "invalid version/tag",
     },
   ])("rejects %s", ({ spec, expected }) => {
@@ -62,39 +64,39 @@ describe("npm registry spec validation", () => {
 describe("npm registry spec parsing helpers", () => {
   it.each([
     {
-      spec: "@astroclaw/voice-call",
+      spec: "@openclaw/voice-call",
       expected: {
-        name: "@astroclaw/voice-call",
-        raw: "@astroclaw/voice-call",
+        name: "@openclaw/voice-call",
+        raw: "@openclaw/voice-call",
         selectorKind: "none",
         selectorIsPrerelease: false,
       },
     },
     {
-      spec: "@astroclaw/voice-call@beta",
+      spec: "@openclaw/voice-call@beta",
       expected: {
-        name: "@astroclaw/voice-call",
-        raw: "@astroclaw/voice-call@beta",
+        name: "@openclaw/voice-call",
+        raw: "@openclaw/voice-call@beta",
         selector: "beta",
         selectorKind: "tag",
         selectorIsPrerelease: false,
       },
     },
     {
-      spec: "@astroclaw/voice-call@2026.5.3-1",
+      spec: "@openclaw/voice-call@2026.5.3-1",
       expected: {
-        name: "@astroclaw/voice-call",
-        raw: "@astroclaw/voice-call@2026.5.3-1",
+        name: "@openclaw/voice-call",
+        raw: "@openclaw/voice-call@2026.5.3-1",
         selector: "2026.5.3-1",
         selectorKind: "exact-version",
         selectorIsPrerelease: false,
       },
     },
     {
-      spec: "@astroclaw/voice-call@1.2.3-beta.1",
+      spec: "@openclaw/voice-call@1.2.3-beta.1",
       expected: {
-        name: "@astroclaw/voice-call",
-        raw: "@astroclaw/voice-call@1.2.3-beta.1",
+        name: "@openclaw/voice-call",
+        raw: "@openclaw/voice-call@1.2.3-beta.1",
         selector: "1.2.3-beta.1",
         selectorKind: "exact-version",
         selectorIsPrerelease: true,
@@ -102,6 +104,17 @@ describe("npm registry spec parsing helpers", () => {
     },
   ])("parses %s", ({ spec, expected }) => {
     expect(parseRegistryNpmSpec(spec)).toEqual(expected);
+  });
+
+  it.each([
+    { spec: "@openclaw/voice-call", expected: true },
+    { spec: "@openclaw/voice-call@1.2.3", expected: true },
+    { spec: "@other/voice-call", expected: false },
+    { spec: "voice-call", expected: false },
+    { spec: "npm:@openclaw/voice-call", expected: false },
+    { spec: undefined, expected: false },
+  ])("detects OpenClaw-org npm specs for %s", ({ spec, expected }) => {
+    expect(isOpenClawOrgNpmSpec(spec)).toBe(expected);
   });
 
   it.each([
@@ -116,7 +129,7 @@ describe("npm registry spec parsing helpers", () => {
     { value: "1.2.3-1", expected: true },
     { value: "2026.5.3-beta.1", expected: true },
     { value: "2026.5.3-1", expected: false },
-    { value: "2026.2.30-1", expected: true },
+    { value: "2026.2.30-1", expected: false },
     { value: "1.2.3", expected: false },
   ])("detects prerelease semver versions for %s", ({ value, expected }) => {
     expect(isPrereleaseSemverVersion(value)).toBe(expected);
@@ -127,9 +140,9 @@ describe("npm registry spec parsing helpers", () => {
     { value: "2026.5.3-2", expected: true },
     { value: "2026.5.3-beta.1", expected: false },
     { value: "1.2.3-1", expected: false },
-    { value: "2026.2.30-1", expected: false },
-  ])("detects Astroclaw stable correction versions for %s", ({ value, expected }) => {
-    expect(isAstroclawStableCorrectionVersion(value)).toBe(expected);
+    { value: "2026.2.30-1", expected: true },
+  ])("detects OpenClaw stable correction versions for %s", ({ value, expected }) => {
+    expect(isOpenClawStableCorrectionVersion(value)).toBe(expected);
   });
 
   it.each([
@@ -138,45 +151,45 @@ describe("npm registry spec parsing helpers", () => {
     { left: "2026.5.3", right: "2026.5.3-beta.3", expected: 1 },
     { left: "2026.5.3-beta.3", right: "2026.5.3-alpha.9", expected: 1 },
     { left: "1.2.3-1", right: "1.2.3", expected: null },
-  ])("compares Astroclaw release versions for %s and %s", ({ left, right, expected }) => {
-    expect(compareAstroclawReleaseVersions(left, right)).toBe(expected);
+  ])("compares OpenClaw release versions for %s and %s", ({ left, right, expected }) => {
+    expect(compareOpenClawReleaseVersions(left, right)).toBe(expected);
   });
 });
 
 describe("npm prerelease resolution policy", () => {
   it.each([
     {
-      spec: "@astroclaw/voice-call",
+      spec: "@openclaw/voice-call",
       resolvedVersion: "1.2.3-beta.1",
       expected: false,
     },
     {
-      spec: "@astroclaw/voice-call@latest",
+      spec: "@openclaw/voice-call@latest",
       resolvedVersion: "1.2.3-rc.1",
       expected: false,
     },
     {
-      spec: "@astroclaw/voice-call@latest",
+      spec: "@openclaw/voice-call@latest",
       resolvedVersion: "2026.5.3-1",
       expected: true,
     },
     {
-      spec: "@astroclaw/voice-call@beta",
+      spec: "@openclaw/voice-call@beta",
       resolvedVersion: "1.2.3-beta.4",
       expected: true,
     },
     {
-      spec: "@astroclaw/voice-call@1.2.3-beta.1",
+      spec: "@openclaw/voice-call@1.2.3-beta.1",
       resolvedVersion: "1.2.3-beta.1",
       expected: true,
     },
     {
-      spec: "@astroclaw/voice-call",
+      spec: "@openclaw/voice-call",
       resolvedVersion: "1.2.3",
       expected: true,
     },
     {
-      spec: "@astroclaw/voice-call@latest",
+      spec: "@openclaw/voice-call@latest",
       resolvedVersion: undefined,
       expected: true,
     },
@@ -191,12 +204,12 @@ describe("npm prerelease resolution policy", () => {
 
   it.each([
     {
-      spec: "@astroclaw/voice-call",
+      spec: "@openclaw/voice-call",
       resolvedVersion: "1.2.3-beta.1",
-      expected: `Use "@astroclaw/voice-call@beta"`,
+      expected: `Use "@openclaw/voice-call@beta"`,
     },
     {
-      spec: "@astroclaw/voice-call@beta",
+      spec: "@openclaw/voice-call@beta",
       resolvedVersion: "1.2.3-rc.1",
       expected: "Use an explicit prerelease tag or exact prerelease version",
     },
