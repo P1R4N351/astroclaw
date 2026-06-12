@@ -1,10 +1,11 @@
+// Vitest process config wires the process test shard.
 import { createScopedVitestConfig } from "./vitest.scoped-config.ts";
 
 export function createProcessVitestConfig(env?: Record<string, string | undefined>) {
   const config = createScopedVitestConfig(["src/process/**/*.test.ts"], {
     dir: "src",
     env,
-    includeAstroclawRuntimeSetup: false,
+    includeOpenClawRuntimeSetup: false,
     name: "process",
     passWithNoTests: true,
   });
