@@ -1,3 +1,4 @@
+// Slack tests cover monitor plugin behavior.
 import { describe, expect, it } from "vitest";
 import { buildSlackSlashCommandMatcher } from "./monitor/commands.js";
 import { isSlackChannelAllowedByPolicy } from "./monitor/policy.js";
@@ -128,16 +129,16 @@ describe("resolveSlackThreadTs", () => {
 
 describe("buildSlackSlashCommandMatcher", () => {
   it("matches with or without a leading slash", () => {
-    const matcher = buildSlackSlashCommandMatcher("astroclaw");
+    const matcher = buildSlackSlashCommandMatcher("openclaw");
 
-    expect(matcher.test("astroclaw")).toBe(true);
-    expect(matcher.test("/astroclaw")).toBe(true);
+    expect(matcher.test("openclaw")).toBe(true);
+    expect(matcher.test("/openclaw")).toBe(true);
   });
 
   it("does not match similar names", () => {
-    const matcher = buildSlackSlashCommandMatcher("astroclaw");
+    const matcher = buildSlackSlashCommandMatcher("openclaw");
 
-    expect(matcher.test("/astroclaw-bot")).toBe(false);
-    expect(matcher.test("astroclaw-bot")).toBe(false);
+    expect(matcher.test("/openclaw-bot")).toBe(false);
+    expect(matcher.test("openclaw-bot")).toBe(false);
   });
 });
