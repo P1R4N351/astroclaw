@@ -1,8 +1,9 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/provider-onboard";
+// Vydra setup module handles plugin onboarding behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-onboard";
 
 export const VYDRA_DEFAULT_IMAGE_MODEL_REF = "vydra/grok-imagine";
 
-export function applyVydraConfig(cfg: AstroclawConfig): AstroclawConfig {
+export function applyVydraConfig(cfg: OpenClawConfig): OpenClawConfig {
   if (cfg.agents?.defaults?.imageGenerationModel) {
     return cfg;
   }
