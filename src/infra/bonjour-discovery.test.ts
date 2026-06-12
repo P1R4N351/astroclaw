@@ -1,21 +1,13 @@
+// Covers Bonjour gateway beacon parsing and endpoint resolution.
 import { describe, expect, it, vi } from "vitest";
 import type { runCommandWithTimeout } from "../process/exec.js";
-import { discoverGatewayBeacons } from "./bonjour-discovery.js";
+import {
+  discoverGatewayBeacons,
+  type GatewayBonjourBeacon,
+  resolveGatewayDiscoveryEndpoint,
+} from "./bonjour-discovery.js";
 
-const WIDE_AREA_DOMAIN = "astroclaw.internal.";
-
-type BeaconRecord = {
-  domain?: string;
-  instanceName?: string;
-  displayName?: string;
-  host?: string;
-  port?: number;
-  tailnetDns?: string;
-  gatewayPort?: number;
-  sshPort?: number;
-  cliPath?: string;
-  txt?: Record<string, unknown>;
-};
+const WIDE_AREA_DOMAIN = "openclaw.internal.";
 
 function collectMatching<T, U>(
   items: readonly T[],
@@ -31,10 +23,22 @@ function collectMatching<T, U>(
   return matches;
 }
 
-function findBeaconByInstance(beacons: readonly BeaconRecord[], instanceName: string) {
+function findBeaconByInstance(
+  beacons: readonly GatewayBonjourBeacon[],
+  instanceName: string,
+): GatewayBonjourBeacon {
   const beacon = beacons.find((item) => item.instanceName === instanceName);
   if (!beacon) {
     throw new Error(`Expected beacon ${instanceName}`);
+  }
+  return beacon;
+}
+
+function getOnlyBeacon(beacons: readonly GatewayBonjourBeacon[]): GatewayBonjourBeacon {
+  expect(beacons).toHaveLength(1);
+  const beacon = beacons[0];
+  if (!beacon) {
+    throw new Error("Expected one beacon");
   }
   return beacon;
 }
@@ -52,8 +56,8 @@ describe("bonjour-discovery", () => {
         if (domain === "local.") {
           return {
             stdout: [
-              "Add 2 3 local. _astroclaw-gw._tcp. Peter\\226\\128\\153s Mac Studio Gateway",
-              "Add 2 3 local. _astroclaw-gw._tcp. Laptop Gateway",
+              "Add 2 3 local. _openclaw-gw._tcp. Peter\\226\\128\\153s Mac Studio Gateway",
+              "Add 2 3 local. _openclaw-gw._tcp. Laptop Gateway",
               "",
             ].join("\n"),
             stderr: "",
@@ -64,7 +68,7 @@ describe("bonjour-discovery", () => {
         }
         if (domain === WIDE_AREA_DOMAIN) {
           return {
-            stdout: [`Add 2 3 ${WIDE_AREA_DOMAIN} _astroclaw-gw._tcp. Tailnet Gateway`, ""].join(
+            stdout: [`Add 2 3 ${WIDE_AREA_DOMAIN} _openclaw-gw._tcp. Tailnet Gateway`, ""].join(
               "\n",
             ),
             stderr: "",
@@ -99,7 +103,7 @@ describe("bonjour-discovery", () => {
 
         return {
           stdout: [
-            `${instance}._astroclaw-gw._tcp. can be reached at ${host}:18789`,
+            `${instance}._openclaw-gw._tcp. can be reached at ${host}:18789`,
             txtParts.join(" "),
             "",
           ].join("\n"),
@@ -141,7 +145,7 @@ describe("bonjour-discovery", () => {
       const domain = argv[3] ?? "";
       if (argv[0] === "dns-sd" && argv[1] === "-B" && domain === "local.") {
         return {
-          stdout: ["Add 2 3 local. _astroclaw-gw._tcp. Studio Gateway", ""].join("\n"),
+          stdout: ["Add 2 3 local. _openclaw-gw._tcp. Studio Gateway", ""].join("\n"),
           stderr: "",
           code: 0,
           signal: null,
@@ -152,7 +156,7 @@ describe("bonjour-discovery", () => {
       if (argv[0] === "dns-sd" && argv[1] === "-L") {
         return {
           stdout: [
-            "Studio Gateway._astroclaw-gw._tcp. can be reached at studio.local:18789",
+            "Studio Gateway._openclaw-gw._tcp. can be reached at studio.local:18789",
             "txtvers=1 displayName=Peter\\226\\128\\153s\\032Mac\\032Studio lanHost=studio.local gatewayPort=18789 sshPort=22",
             "",
           ].join("\n"),
@@ -179,18 +183,62 @@ describe("bonjour-discovery", () => {
       run: run as unknown as typeof runCommandWithTimeout,
     });
 
-    expect(beacons).toHaveLength(1);
-    const beacon = beacons[0] as BeaconRecord;
+    const beacon = getOnlyBeacon(beacons);
     expect(beacon.domain).toBe("local.");
     expect(beacon.instanceName).toBe("Studio Gateway");
     expect(beacon.displayName).toBe("Peter’s Mac Studio");
     expect(beacon.txt?.displayName).toBe("Peter’s Mac Studio");
   });
 
+  it("rejects malformed and out-of-range advertised ports", async () => {
+    const run = vi.fn(async (argv: string[]) => {
+      const domain = argv[3] ?? "";
+      if (argv[0] === "dns-sd" && argv[1] === "-B" && domain === "local.") {
+        return {
+          stdout: ["Add 2 3 local. _openclaw-gw._tcp. Broken Gateway", ""].join("\n"),
+          stderr: "",
+          code: 0,
+          signal: null,
+          killed: false,
+        };
+      }
+
+      if (argv[0] === "dns-sd" && argv[1] === "-L") {
+        return {
+          stdout: [
+            "Broken Gateway._openclaw-gw._tcp. can be reached at broken.local:18789abc",
+            "txtvers=1 displayName=Broken gatewayPort=70000 sshPort=22x",
+            "",
+          ].join("\n"),
+          stderr: "",
+          code: 0,
+          signal: null,
+          killed: false,
+        };
+      }
+
+      throw new Error(`unexpected argv: ${argv.join(" ")}`);
+    });
+
+    const beacons = await discoverGatewayBeacons({
+      platform: "darwin",
+      timeoutMs: 800,
+      domains: ["local."],
+      run: run as unknown as typeof runCommandWithTimeout,
+    });
+
+    const beacon = getOnlyBeacon(beacons);
+    expect(beacon.host).toBe("broken.local");
+    expect(beacon.port).toBeUndefined();
+    expect(beacon.gatewayPort).toBeUndefined();
+    expect(beacon.sshPort).toBeUndefined();
+    expect(resolveGatewayDiscoveryEndpoint(beacon)).toBeNull();
+  });
+
   it("falls back to tailnet DNS probing for wide-area when split DNS is not configured", async () => {
     const calls: Array<{ argv: string[]; timeoutMs: number }> = [];
     const zone = WIDE_AREA_DOMAIN.replace(/\.$/, "");
-    const serviceBase = `_astroclaw-gw._tcp.${zone}`;
+    const serviceBase = `_openclaw-gw._tcp.${zone}`;
     const studioService = `studio-gateway.${serviceBase}`;
 
     const run = vi.fn(async (argv: string[], options: { timeoutMs: number }) => {
@@ -256,7 +304,7 @@ describe("bonjour-discovery", () => {
               `"transport=gateway"`,
               `"sshPort=22"`,
               `"tailnetDns=peters-mac-studio-1.sheep-coho.ts.net"`,
-              `"cliPath=/opt/homebrew/bin/astroclaw"`,
+              `"cliPath=/opt/homebrew/bin/openclaw"`,
               "",
             ].join(" "),
             stderr: "",
@@ -278,8 +326,7 @@ describe("bonjour-discovery", () => {
       run: run as unknown as typeof runCommandWithTimeout,
     });
 
-    expect(beacons).toHaveLength(1);
-    const beacon = beacons[0] as BeaconRecord;
+    const beacon = getOnlyBeacon(beacons);
     expect(beacon.domain).toBe(WIDE_AREA_DOMAIN);
     expect(beacon.instanceName).toBe("studio-gateway");
     expect(beacon.displayName).toBe("Studio");
@@ -288,7 +335,7 @@ describe("bonjour-discovery", () => {
     expect(beacon.tailnetDns).toBe("peters-mac-studio-1.sheep-coho.ts.net");
     expect(beacon.gatewayPort).toBe(18789);
     expect(beacon.sshPort).toBe(22);
-    expect(beacon.cliPath).toBe("/opt/homebrew/bin/astroclaw");
+    expect(beacon.cliPath).toBe("/opt/homebrew/bin/openclaw");
 
     expect(calls.map((c) => c.argv.slice(0, 2).join(" "))).toContain("tailscale status");
     expect(calls.map((c) => c.argv[0])).toContain("dig");
@@ -310,7 +357,7 @@ describe("bonjour-discovery", () => {
     await discoverGatewayBeacons({
       platform: "darwin",
       timeoutMs: 1,
-      domains: ["local", "astroclaw.internal"],
+      domains: ["local", "openclaw.internal"],
       run: run as unknown as typeof runCommandWithTimeout,
     });
 
@@ -320,7 +367,7 @@ describe("bonjour-discovery", () => {
       (c) => c[3],
     );
     expect(browseDomains).toContain("local.");
-    expect(browseDomains).toContain("astroclaw.internal.");
+    expect(browseDomains).toContain("openclaw.internal.");
 
     calls.length = 0;
     await discoverGatewayBeacons({
