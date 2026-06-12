@@ -1,3 +1,4 @@
+// Vitest extension slack config wires the extension slack test shard.
 import { createScopedVitestConfig } from "./vitest.scoped-config.ts";
 
 export function createExtensionSlackVitestConfig(
@@ -6,10 +7,11 @@ export function createExtensionSlackVitestConfig(
   return createScopedVitestConfig(["extensions/slack/**/*.test.ts"], {
     dir: "extensions",
     env,
-    includeAstroclawRuntimeSetup: false,
+    includeOpenClawRuntimeSetup: false,
     name: "extension-slack",
     passWithNoTests: true,
     setupFiles: ["test/setup.extensions.ts"],
+    fileParallelism: false,
   });
 }
 
