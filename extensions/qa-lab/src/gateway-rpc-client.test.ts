@@ -1,3 +1,4 @@
+// Qa Lab tests cover gateway rpc client plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const gatewayRpcMock = vi.hoisted(() => {
@@ -10,7 +11,7 @@ const gatewayRpcMock = vi.hoisted(() => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/gateway-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/gateway-runtime", () => ({
   callGatewayFromCli: gatewayRpcMock.callGatewayFromCli,
 }));
 
@@ -38,12 +39,12 @@ describe("startQaGatewayRpcClient", () => {
   });
 
   it("calls the in-process gateway cli helper without mutating process.env", async () => {
-    const originalHome = process.env.ASTROCLAW_HOME;
-    delete process.env.ASTROCLAW_HOME;
+    const originalHome = process.env.OPENCLAW_HOME;
+    delete process.env.OPENCLAW_HOME;
 
     try {
       gatewayRpcMock.callGatewayFromCli.mockImplementationOnce(async () => {
-        expect(process.env.ASTROCLAW_HOME).toBeUndefined();
+        expect(process.env.OPENCLAW_HOME).toBeUndefined();
         return { ok: true };
       });
 
@@ -78,13 +79,13 @@ describe("startQaGatewayRpcClient", () => {
       );
     } finally {
       if (originalHome === undefined) {
-        delete process.env.ASTROCLAW_HOME;
+        delete process.env.OPENCLAW_HOME;
       } else {
-        process.env.ASTROCLAW_HOME = originalHome;
+        process.env.OPENCLAW_HOME = originalHome;
       }
     }
 
-    expect(process.env.ASTROCLAW_HOME).toBe(originalHome);
+    expect(process.env.OPENCLAW_HOME).toBe(originalHome);
   });
 
   it("wraps request failures with gateway logs", async () => {
@@ -92,11 +93,11 @@ describe("startQaGatewayRpcClient", () => {
     const client = await startQaGatewayRpcClient({
       wsUrl: "ws://127.0.0.1:18789",
       token: "qa-token",
-      logs: () => "ASTROCLAW_GATEWAY_TOKEN=secret-token\nAuthorization: Bearer secret+/token=123456",
+      logs: () => "OPENCLAW_GATEWAY_TOKEN=secret-token\nAuthorization: Bearer secret+/token=123456",
     });
 
     await expect(client.request("health")).rejects.toThrow(
-      "gateway not connected\nGateway logs:\nASTROCLAW_GATEWAY_TOKEN=<redacted>\nAuthorization: Bearer <redacted>",
+      "gateway not connected\nGateway logs:\nOPENCLAW_GATEWAY_TOKEN=<redacted>\nAuthorization: Bearer <redacted>",
     );
   });
 
@@ -194,5 +195,35 @@ describe("startQaGatewayRpcClient", () => {
     await expect(firstRequest).resolves.toEqual({ ok: true });
     await expect(secondRequest).resolves.toEqual({ ok: true });
     expect(gatewayRpcMock.callGatewayFromCli).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects queued requests that have not started before stop", async () => {
+    let releaseFirst: (() => void) | null = null;
+    gatewayRpcMock.callGatewayFromCli.mockImplementationOnce(
+      async () =>
+        await new Promise<{ ok: boolean }>((resolve) => {
+          releaseFirst = () => resolve({ ok: true });
+        }),
+    );
+
+    const client = await startQaGatewayRpcClient({
+      wsUrl: "ws://127.0.0.1:18789",
+      token: "qa-token",
+      logs: () => "qa logs",
+    });
+
+    const firstRequest = client.request("health");
+    await Promise.resolve();
+    const secondRequest = client.request("status");
+    await Promise.resolve();
+
+    await client.stop();
+    expectReleaseCallback(releaseFirst)();
+
+    await expect(firstRequest).resolves.toEqual({ ok: true });
+    await expect(secondRequest).rejects.toThrow(
+      "gateway rpc client already stopped\nGateway logs:\nqa logs",
+    );
+    expect(gatewayRpcMock.callGatewayFromCli).toHaveBeenCalledTimes(1);
   });
 });
