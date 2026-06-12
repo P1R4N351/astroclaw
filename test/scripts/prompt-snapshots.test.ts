@@ -1,12 +1,10 @@
+// Prompt Snapshots tests cover prompt snapshots script behavior.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
-import {
-  createFormattedPromptSnapshotFiles,
-  deleteStalePromptSnapshotFiles,
-} from "../../scripts/generate-prompt-snapshots.js";
+import { describe, expect, it } from "vitest";
+import { deleteStalePromptSnapshotFiles } from "../../scripts/prompt-snapshot-files.js";
 import {
   defaultCatalogPathCandidates,
   findDefaultCatalogPath,
@@ -18,17 +16,10 @@ import { toRepoRelativePath } from "../../src/test-utils/repo-files.js";
 import {
   CODEX_MODEL_PROMPT_FIXTURE_DIR,
   CODEX_RUNTIME_HAPPY_PATH_PROMPT_SNAPSHOT_DIR,
-} from "../helpers/agents/happy-path-prompt-snapshots.js";
+} from "../helpers/agents/prompt-snapshot-paths.js";
 
-function requireGeneratedSnapshot(
-  generated: Array<{ path: string; content: string }>,
-  fileName: string,
-): string {
-  const match = generated.find((file) => file.path.endsWith(fileName));
-  if (!match) {
-    throw new Error(`Missing generated prompt snapshot ${fileName}`);
-  }
-  return match.content;
+function readCommittedSnapshot(fileName: string): string {
+  return fs.readFileSync(path.join(CODEX_RUNTIME_HAPPY_PATH_PROMPT_SNAPSHOT_DIR, fileName), "utf8");
 }
 
 function renderedPromptSection(content: string, heading: string, nextHeading: string): string {
@@ -113,12 +104,6 @@ function listFindCommittedPromptSnapshotFiles(): string[] | null {
 }
 
 describe("happy path prompt snapshots", () => {
-  let generatedSnapshots: Awaited<ReturnType<typeof createFormattedPromptSnapshotFiles>>;
-
-  beforeAll(async () => {
-    generatedSnapshots = await createFormattedPromptSnapshotFiles();
-  }, 300_000);
-
   it("lists committed Codex prompt snapshot artifacts without scanning directories in-process", () => {
     expectNoReaddirSyncDuring(() => {
       const committed = listCommittedPromptSnapshotFiles();
@@ -128,17 +113,20 @@ describe("happy path prompt snapshots", () => {
     });
   });
 
-  it("matches the committed Codex prompt snapshot artifacts", async () => {
-    const expectedPaths = new Set(generatedSnapshots.map((file) => file.path));
-    for (const file of generatedSnapshots) {
-      expect(fs.readFileSync(file.path, "utf8"), file.path).toBe(file.content);
-    }
-    const committed = listCommittedPromptSnapshotFiles();
-    expect(committed.toSorted()).toEqual([...expectedPaths].toSorted());
+  it("keeps the committed Codex prompt snapshot artifact set explicit", () => {
+    expect(listCommittedPromptSnapshotFiles().map((file) => path.basename(file))).toEqual([
+      "README.md",
+      "codex-dynamic-tools.discord-group.json",
+      "codex-dynamic-tools.heartbeat-turn.json",
+      "codex-dynamic-tools.telegram-direct.json",
+      "discord-group-codex-message-tool.md",
+      "telegram-direct-codex-message-tool.md",
+      "telegram-heartbeat-codex-tool.md",
+    ]);
   });
 
   it("deletes stale generated snapshot artifacts", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-prompt-snapshot-stale-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-prompt-snapshot-stale-"));
     try {
       const snapshotDir = path.join(root, CODEX_RUNTIME_HAPPY_PATH_PROMPT_SNAPSHOT_DIR);
       fs.mkdirSync(snapshotDir, { recursive: true });
@@ -160,10 +148,7 @@ describe("happy path prompt snapshots", () => {
   });
 
   it("renders the Codex model-bound prompt layers", async () => {
-    const telegram = requireGeneratedSnapshot(
-      generatedSnapshots,
-      "telegram-direct-codex-message-tool.md",
-    );
+    const telegram = readCommittedSnapshot("telegram-direct-codex-message-tool.md");
 
     expect(telegram).toContain("## Reconstructed Model-Bound Prompt Layers");
     expect(telegram).toContain("### System: Codex Model Instructions (gpt-5.5, pragmatic)");
@@ -172,43 +157,43 @@ describe("happy path prompt snapshots", () => {
     expect(telegram).toContain(
       "Approval policy is currently never. Do not provide the `sandbox_permissions`",
     );
-    expect(telegram).toContain(
-      "### User: Codex Config Instructions (Astroclaw Workspace Bootstrap Context)",
-    );
+    expect(telegram).toContain("### User: Codex Config Instructions");
+    expect(telegram).toContain("### User: Turn Input Text");
+    expect(telegram).toContain("OpenClaw runtime context for this turn:");
     expect(telegram).toContain("<SOUL.md contents will be here>");
+    expect(telegram).toContain("<IDENTITY.md contents will be here>");
     expect(telegram).toContain("<TOOLS.md contents will be here>");
-    expect(telegram).toContain("<HEARTBEAT.md contents will be here>");
+    expect(telegram).toContain("<USER.md contents will be here>");
+    expect(telegram).toContain("<MEMORY.md contents will be here>");
+    expect(telegram).not.toContain("<HEARTBEAT.md contents will be here>");
     expect(telegram).toContain("Codex loads AGENTS.md natively");
     expect(telegram).toContain("### Tools: Dynamic Tool Catalog");
   });
 
   it("keeps heartbeat guidance in heartbeat collaboration mode only", async () => {
-    const direct = requireGeneratedSnapshot(
-      generatedSnapshots,
-      "telegram-direct-codex-message-tool.md",
-    );
-    const group = requireGeneratedSnapshot(
-      generatedSnapshots,
-      "discord-group-codex-message-tool.md",
-    );
-    const heartbeat = requireGeneratedSnapshot(
-      generatedSnapshots,
-      "telegram-heartbeat-codex-tool.md",
-    );
+    const direct = readCommittedSnapshot("telegram-direct-codex-message-tool.md");
+    const group = readCommittedSnapshot("discord-group-codex-message-tool.md");
+    const heartbeat = readCommittedSnapshot("telegram-heartbeat-codex-tool.md");
     const heartbeatPhrase = "Use heartbeats to create useful proactive progress";
+    const agentSoulHeading = "## OpenClaw Agent Soul";
 
     expect(direct).toContain('"collaborationMode": {');
-    expect(direct).toContain('"developer_instructions": null');
+    expect(direct).toContain('"developer_instructions": "# Collaboration Mode: Default');
+    expect(direct).toContain(agentSoulHeading);
     expect(group).toContain('"collaborationMode": {');
-    expect(group).toContain('"developer_instructions": null');
+    expect(group).toContain('"developer_instructions": "# Collaboration Mode: Default');
+    expect(group).toContain(agentSoulHeading);
     expect(direct).not.toContain(heartbeatPhrase);
     expect(group).not.toContain(heartbeatPhrase);
+    expect(direct).not.toContain("This is an OpenClaw heartbeat turn.");
+    expect(group).not.toContain("This is an OpenClaw heartbeat turn.");
 
     expect(heartbeat).toContain('"collaborationMode": {');
-    expect(heartbeat).toContain('"developer_instructions": "This is an Astroclaw heartbeat turn.');
-    const astroClawRuntimeInstructions = renderedPromptSection(
+    expect(heartbeat).toContain('"developer_instructions": "This is an OpenClaw heartbeat turn.');
+    expect(heartbeat).toContain(agentSoulHeading);
+    const openClawRuntimeInstructions = renderedPromptSection(
       heartbeat,
-      "### Developer: Astroclaw Runtime Instructions",
+      "### Developer: OpenClaw Runtime Instructions",
       "### Developer: Codex Collaboration Mode Instructions",
     );
     const collaborationModeInstructions = renderedPromptSection(
@@ -217,8 +202,13 @@ describe("happy path prompt snapshots", () => {
       "### User: Turn Input Text",
     );
 
-    expect(astroClawRuntimeInstructions).not.toContain(heartbeatPhrase);
+    expect(openClawRuntimeInstructions).not.toContain(heartbeatPhrase);
     expect(collaborationModeInstructions).toContain(heartbeatPhrase);
+    expect(collaborationModeInstructions).toContain("HEARTBEAT.md exists");
+    expect(collaborationModeInstructions).toContain(
+      "/tmp/openclaw-happy-path/workspace/HEARTBEAT.md",
+    );
+    expect(collaborationModeInstructions).not.toContain("<HEARTBEAT.md contents will be here>");
     expect(collaborationModeInstructions.split(heartbeatPhrase)).toHaveLength(2);
   });
 
@@ -267,7 +257,7 @@ describe("happy path prompt snapshots", () => {
   });
 
   it("finds the first available default Codex model catalog source", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-codex-catalog-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-codex-catalog-"));
     try {
       const cachePath = path.join(root, ".codex", "models_cache.json");
       fs.mkdirSync(path.dirname(cachePath), { recursive: true });
@@ -286,7 +276,7 @@ describe("happy path prompt snapshots", () => {
   });
 
   it("skips Codex model prompt fixture sync when no default catalog exists", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-codex-catalog-missing-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-codex-catalog-missing-"));
     const chunks: string[] = [];
     try {
       const result = await runCodexModelPromptFixtureSync([], {
