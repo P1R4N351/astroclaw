@@ -1,15 +1,17 @@
+// Covers asynchronous extra security audit checks.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
+import * as skillScanner from "../skills/security/scanner.js";
 import {
   collectInstalledSkillsCodeSafetyFindings,
   collectPluginsCodeSafetyFindings,
+  collectStateDeepFilesystemFindings,
 } from "./audit-extra.async.js";
-import * as skillScanner from "./skill-scanner.js";
 
-vi.mock("../agents/skills.js", () => ({
+vi.mock("../skills/loading/workspace.js", () => ({
   loadWorkspaceSkillEntries: (workspaceDir: string) => {
     const sep = workspaceDir.includes("\\") ? "\\" : "/";
     const baseDir = `${workspaceDir}${sep}skills${sep}evil-skill`;
@@ -51,7 +53,7 @@ describe("audit-extra async code safety", () => {
       path.join(pluginDir, "package.json"),
       JSON.stringify({
         name: "evil-plugin",
-        astroclaw: { extensions: [".hidden/index.js"] },
+        openclaw: { extensions: [".hidden/index.js"] },
       }),
     );
 
@@ -72,7 +74,7 @@ description: test skill
   };
 
   beforeAll(async () => {
-    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-security-audit-async-"));
+    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-security-audit-async-"));
     const codeSafetyFixture = await createSharedCodeSafetyFixture();
     sharedCodeSafetyStateDir = codeSafetyFixture.stateDir;
     sharedCodeSafetyWorkspaceDir = codeSafetyFixture.workspaceDir;
@@ -122,7 +124,7 @@ description: test skill
       };
     });
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: { defaults: { workspace: sharedCodeSafetyWorkspaceDir } },
     };
     const [pluginFindings, skillFindings] = await Promise.all([
@@ -155,7 +157,7 @@ description: test skill
       path.join(pluginDir, "package.json"),
       JSON.stringify({
         name: "escape-plugin",
-        astroclaw: { extensions: ["../outside.js"] },
+        openclaw: { extensions: ["../outside.js"] },
       }),
     );
     await fs.writeFile(path.join(pluginDir, "index.js"), "export {};");
@@ -193,7 +195,7 @@ description: test skill
       const tmpDir = await makeTmpDir("audit-scanner-install-debris");
       for (const name of [
         "demo",
-        ".astroclaw-install-backups",
+        ".openclaw-install-backups",
         "node_modules",
         "old-plugin.backup-20260502",
         "old-plugin.disabled.20260502",
@@ -213,7 +215,7 @@ description: test skill
         "plugin code-safety",
       );
       expect(codeSafetyFinding.title).toContain('Plugin "demo"');
-      expect(findings.map((f) => f.title).join("\n")).not.toContain(".astroclaw-install-backups");
+      expect(findings.map((f) => f.title).join("\n")).not.toContain(".openclaw-install-backups");
     } finally {
       scanSpy.mockRestore();
     }
@@ -257,7 +259,7 @@ description: test skill
         path.join(pluginDir, "package.json"),
         JSON.stringify({
           name: "scanfail-plugin",
-          astroclaw: { extensions: ["index.js"] },
+          openclaw: { extensions: ["index.js"] },
         }),
       );
       await fs.writeFile(path.join(pluginDir, "index.js"), "export {};");
@@ -269,5 +271,34 @@ description: test skill
     } finally {
       scanSpy.mockRestore();
     }
+  });
+
+  it("audits canonical auth profile SQLite store permissions", async () => {
+    const stateDir = await makeTmpDir("audit-auth-sqlite-perms");
+    const agentDir = path.join(stateDir, "agents", "main", "agent");
+    await fs.mkdir(agentDir, { recursive: true });
+    const databasePath = path.join(agentDir, "openclaw-agent.sqlite");
+    for (const targetPath of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
+      await fs.writeFile(targetPath, "sqlite\n", "utf-8");
+      await fs.chmod(targetPath, 0o644);
+    }
+
+    const findings = await collectStateDeepFilesystemFindings({
+      cfg: {} as OpenClawConfig,
+      env: {},
+      stateDir,
+      platform: "linux",
+    });
+
+    const readableAuthTargets = findings
+      .filter((finding) => finding.checkId === "fs.auth_profiles.perms_readable")
+      .map((finding) => finding.detail);
+    expect(readableAuthTargets).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("openclaw-agent.sqlite"),
+        expect.stringContaining("openclaw-agent.sqlite-wal"),
+        expect.stringContaining("openclaw-agent.sqlite-shm"),
+      ]),
+    );
   });
 });
