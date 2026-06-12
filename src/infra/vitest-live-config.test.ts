@@ -1,3 +1,4 @@
+// Covers live Vitest config shape.
 import { describe, expect, it } from "vitest";
 import {
   normalizeConfigPath,
@@ -25,7 +26,7 @@ describe("live vitest config", () => {
     ]);
     expect(normalizeConfigPaths(liveConfig.test?.setupFiles)).toEqual([
       "test/setup.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
   });
 });
