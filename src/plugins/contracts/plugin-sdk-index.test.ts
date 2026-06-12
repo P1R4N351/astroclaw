@@ -1,9 +1,10 @@
+// Plugin SDK index tests cover SDK export baselines and public subpath availability.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { buildPluginSdkPackageExports } from "../../plugin-sdk/entrypoints.js";
-import type { ClawdbotConfig, AstroclawConfig, AstroclawSchemaType } from "../../plugin-sdk/index.js";
+import type { ClawdbotConfig, OpenClawConfig, OpenClawSchemaType } from "../../plugin-sdk/index.js";
 
 const pluginSdkIndexPath = fileURLToPath(new URL("../../plugin-sdk/index.ts", import.meta.url));
 
@@ -97,6 +98,7 @@ describe("plugin-sdk exports", () => {
   it("keeps the root runtime surface intentionally small", async () => {
     const runtimeExports = await readIndexRuntimeExports();
     expect([...runtimeExports].toSorted()).toEqual([
+      "assertContextEngineHostSupport",
       "buildMemorySystemPromptAddition",
       "delegateCompactionToRuntime",
       "emptyPluginConfigSchema",
@@ -108,8 +110,8 @@ describe("plugin-sdk exports", () => {
   });
 
   it("keeps deprecated root config type aliases aligned", () => {
-    expectTypeOf<ClawdbotConfig>().toEqualTypeOf<AstroclawConfig>();
-    expectTypeOf<AstroclawSchemaType>().toEqualTypeOf<AstroclawConfig>();
+    expectTypeOf<ClawdbotConfig>().toEqualTypeOf<OpenClawConfig>();
+    expectTypeOf<OpenClawSchemaType>().toEqualTypeOf<OpenClawConfig>();
   });
 
   it("keeps package.json plugin-sdk exports synced with the manifest", async () => {
