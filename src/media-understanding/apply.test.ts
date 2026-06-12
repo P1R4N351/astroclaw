@@ -1,10 +1,12 @@
+// Media-understanding apply tests cover attachment transcription/description,
+// local binary probing, file text extraction, and context mutation.
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MsgContext } from "../auto-reply/templating.js";
-import type { AstroclawConfig } from "../config/types.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import type { OpenClawConfig } from "../config/types.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { CLI_OUTPUT_MAX_BUFFER } from "./defaults.constants.js";
 import { createSafeAudioFixtureBuffer } from "./runner.test-utils.js";
@@ -27,6 +29,7 @@ const hasAvailableAuthForProviderMock = vi.hoisted(() =>
 );
 const readRemoteMediaBufferMock = vi.hoisted(() => vi.fn());
 const runFfmpegMock = vi.hoisted(() => vi.fn());
+const convertHeicToJpegMock = vi.hoisted(() => vi.fn());
 const runExecMock = vi.hoisted(() => vi.fn());
 
 let applyMediaUnderstanding: typeof import("./apply.js").applyMediaUnderstanding;
@@ -34,9 +37,10 @@ let clearMediaUnderstandingBinaryCacheForTests: typeof import("./runner.js").cle
 const mockedResolveApiKey = resolveApiKeyForProviderMock;
 const mockedReadRemoteMediaBuffer = readRemoteMediaBufferMock;
 const mockedRunFfmpeg = runFfmpegMock;
+const mockedConvertHeicToJpeg = convertHeicToJpegMock;
 const mockedRunExec = runExecMock;
 
-const TEMP_MEDIA_PREFIX = "astroclaw-media-";
+const TEMP_MEDIA_PREFIX = "openclaw-media-";
 let suiteTempMediaRootDir = "";
 let tempMediaDirCounter = 0;
 let sharedTempMediaCacheDir = "";
@@ -59,7 +63,7 @@ async function getSharedTempMediaCacheDir() {
   return sharedTempMediaCacheDir;
 }
 
-function createGroqAudioConfig(): AstroclawConfig {
+function createGroqAudioConfig(): OpenClawConfig {
   return {
     tools: {
       media: {
@@ -130,7 +134,7 @@ function expectCliRunOptions(options: unknown) {
   });
 }
 
-function createMediaDisabledConfig(): AstroclawConfig {
+function createMediaDisabledConfig(): OpenClawConfig {
   return {
     tools: {
       media: {
@@ -142,7 +146,7 @@ function createMediaDisabledConfig(): AstroclawConfig {
   };
 }
 
-function createMediaDisabledConfigWithAllowedMimes(allowedMimes: string[]): AstroclawConfig {
+function createMediaDisabledConfigWithAllowedMimes(allowedMimes: string[]): OpenClawConfig {
   return {
     ...createMediaDisabledConfig(),
     gateway: {
@@ -158,6 +162,8 @@ function createMediaDisabledConfigWithAllowedMimes(allowedMimes: string[]): Astr
 }
 
 async function createTempMediaFile(params: { fileName: string; content: Buffer | string }) {
+  // Many tests reuse identical fixture buffers; cache by content hash to keep
+  // setup cheap while each case still gets a stable local path.
   const normalizedContent =
     typeof params.content === "string" ? Buffer.from(params.content) : params.content;
   const contentHash = crypto.createHash("sha1").update(normalizedContent).digest("hex");
@@ -193,8 +199,8 @@ async function withMediaAutoDetectEnv<T>(
       GROQ_API_KEY: undefined,
       DEEPGRAM_API_KEY: undefined,
       GEMINI_API_KEY: undefined,
-      ASTROCLAW_AGENT_DIR: undefined,
-      PI_CODING_AGENT_DIR: undefined,
+      OPENCLAW_ANTIGRAVITY_CLI: undefined,
+      OPENCLAW_AGENT_DIR: undefined,
       ...env,
     },
     run,
@@ -220,14 +226,14 @@ async function createAudioCtx(params?: {
 
 async function setupAudioAutoDetectCase(stdout: string): Promise<{
   ctx: MsgContext;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
 }> {
   const ctx = await createAudioCtx({
     fileName: "sample.wav",
     mediaType: "audio/wav",
     content: createSafeAudioFixtureBuffer(2048),
   });
-  const cfg: AstroclawConfig = { tools: { media: { audio: {} } } };
+  const cfg: OpenClawConfig = { tools: { media: { audio: {} } } };
   mockedRunExec.mockResolvedValueOnce({
     stdout,
     stderr: "",
@@ -239,7 +245,7 @@ async function applyWithDisabledMedia(params: {
   body: string;
   mediaPath: string;
   mediaType?: string;
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
 }) {
   const ctx: MsgContext = {
     Body: params.body,
@@ -269,20 +275,28 @@ describe("applyMediaUnderstanding", () => {
     vi.doMock("../agents/model-auth.js", () => ({
       resolveApiKeyForProvider: resolveApiKeyForProviderMock,
       hasAvailableAuthForProvider: hasAvailableAuthForProviderMock,
+      isProviderAuthError: (err: unknown, code?: string) =>
+        err instanceof Error &&
+        "code" in err &&
+        (code === undefined || (err as { code?: unknown }).code === code),
       requireApiKey: (auth: { apiKey?: string; mode?: string }, provider: string) => {
         if (auth?.apiKey) {
           return auth.apiKey;
         }
-        throw new Error(
+        const err = new Error(
           `No API key resolved for provider "${provider}" (auth mode: ${auth?.mode}).`,
         );
+        (err as { code?: string; provider?: string }).code = "missing-api-key";
+        (err as { code?: string; provider?: string }).provider = provider;
+        throw err;
       },
     }));
     vi.doMock("../media/fetch.js", () => ({
       readRemoteMediaBuffer: readRemoteMediaBufferMock,
     }));
-    vi.doMock("../media/ffmpeg-exec.js", () => ({
+    vi.doMock("../media/media-services.js", () => ({
       runFfmpeg: runFfmpegMock,
+      convertHeicToJpeg: convertHeicToJpegMock,
     }));
     vi.doMock("../process/exec.js", () => ({
       runExec: runExecMock,
@@ -320,7 +334,7 @@ describe("applyMediaUnderstanding", () => {
     ({ applyMediaUnderstanding } = await import("./apply.js"));
     ({ clearMediaUnderstandingBinaryCacheForTests } = await import("./runner.js"));
 
-    const baseDir = resolvePreferredAstroclawTmpDir();
+    const baseDir = resolvePreferredOpenClawTmpDir();
     await fs.mkdir(baseDir, { recursive: true });
     suiteTempMediaRootDir = await fs.mkdtemp(path.join(baseDir, TEMP_MEDIA_PREFIX));
   });
@@ -335,6 +349,8 @@ describe("applyMediaUnderstanding", () => {
     hasAvailableAuthForProviderMock.mockClear();
     mockedReadRemoteMediaBuffer.mockClear();
     mockedRunFfmpeg.mockReset();
+    mockedConvertHeicToJpeg.mockReset();
+    mockedConvertHeicToJpeg.mockResolvedValue(Buffer.from("jpeg-normalized"));
     mockedRunExec.mockReset();
     mockedReadRemoteMediaBuffer.mockResolvedValue({
       buffer: createSafeAudioFixtureBuffer(2048),
@@ -360,7 +376,6 @@ describe("applyMediaUnderstanding", () => {
       cfg: createGroqAudioConfig(),
       providers: createGroqProviders(),
     });
-
     expect(result.appliedAudio).toBe(true);
     expectTranscriptApplied({
       ctx,
@@ -417,7 +432,7 @@ describe("applyMediaUnderstanding", () => {
       MediaType: "audio/ogg",
       ChatType: "direct",
     };
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -456,7 +471,7 @@ describe("applyMediaUnderstanding", () => {
     });
     ctx.Surface = "whatsapp";
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -497,7 +512,7 @@ describe("applyMediaUnderstanding", () => {
       ChatType: "dm",
     };
     const transcribeAudio = vi.fn(async () => ({ text: "should-not-run" }));
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -528,7 +543,7 @@ describe("applyMediaUnderstanding", () => {
         kind: "audio.transcription",
         attachmentIndex: 0,
         text: "[Voice note could not be transcribed because the audio attachment was too small]",
-        provider: "astroclaw",
+        provider: "openclaw",
         model: "synthetic-empty-audio",
       },
     ]);
@@ -547,7 +562,7 @@ describe("applyMediaUnderstanding", () => {
       content: Buffer.alloc(100),
     });
     const transcribeAudio = vi.fn(async () => ({ text: "should-not-run" }));
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -574,7 +589,7 @@ describe("applyMediaUnderstanding", () => {
         kind: "audio.transcription",
         attachmentIndex: 0,
         text: "[Voice note could not be transcribed because the audio attachment was too small]",
-        provider: "astroclaw",
+        provider: "openclaw",
         model: "synthetic-empty-audio",
       },
     ]);
@@ -593,7 +608,7 @@ describe("applyMediaUnderstanding", () => {
       content: Buffer.from([0, 255, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
     });
     const transcribeAudio = vi.fn(async () => ({ text: "should-not-run" }));
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -618,7 +633,7 @@ describe("applyMediaUnderstanding", () => {
 
   it("falls back to CLI model when provider fails", async () => {
     const ctx = await createAudioCtx();
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -661,7 +676,7 @@ describe("applyMediaUnderstanding", () => {
 
   it("reads parakeet-mlx transcript from output-dir txt file", async () => {
     const ctx = await createAudioCtx({ fileName: "sample.wav", mediaType: "audio/wav" });
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -699,7 +714,7 @@ describe("applyMediaUnderstanding", () => {
 
   it("falls back to stdout for parakeet-mlx when output format is not txt", async () => {
     const ctx = await createAudioCtx({ fileName: "sample.wav", mediaType: "audio/wav" });
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -771,6 +786,37 @@ describe("applyMediaUnderstanding", () => {
     expectCliRunOptions(options);
   });
 
+  it("skips auto-detected sherpa audio when structured output has empty text", async () => {
+    clearMediaUnderstandingBinaryCacheForTests();
+    const binDir = await createTempMediaDir();
+    const modelDir = await createTempMediaDir();
+    await createMockExecutable(binDir, "sherpa-onnx-offline");
+    await fs.writeFile(path.join(modelDir, "tokens.txt"), "a");
+    await fs.writeFile(path.join(modelDir, "encoder.onnx"), "a");
+    await fs.writeFile(path.join(modelDir, "decoder.onnx"), "a");
+    await fs.writeFile(path.join(modelDir, "joiner.onnx"), "a");
+
+    const emptySherpaJson =
+      '{"lang":"","emotion":"","event":"","text":"","timestamps":[],"durations":[],"tokens":[],"ys_log_probs":[],"words":[]}';
+    const { ctx, cfg } = await setupAudioAutoDetectCase(emptySherpaJson);
+
+    await withMediaAutoDetectEnv(
+      {
+        PATH: binDir,
+        SHERPA_ONNX_MODEL_DIR: modelDir,
+      },
+      async () => {
+        const result = await applyMediaUnderstanding({ ctx, cfg });
+        expect(result.appliedAudio).toBe(false);
+      },
+    );
+
+    expect(ctx.Transcript).toBeUndefined();
+    expect(ctx.Body).toBe("<media:audio>");
+    const [command] = getRunExecCall();
+    expect(command).toBe("sherpa-onnx-offline");
+  });
+
   it("auto-detects whisper-cli when sherpa is unavailable", async () => {
     clearMediaUnderstandingBinaryCacheForTests();
     const binDir = await createTempMediaDir();
@@ -818,7 +864,7 @@ describe("applyMediaUnderstanding", () => {
       mediaType: "audio/ogg",
       content: createSafeAudioFixtureBuffer(2048),
     });
-    const cfg: AstroclawConfig = { tools: { media: { audio: {} } } };
+    const cfg: OpenClawConfig = { tools: { media: { audio: {} } } };
 
     mockedRunFfmpeg.mockImplementationOnce(async (args: string[]) => {
       const wavPath = args.at(-1);
@@ -882,7 +928,7 @@ describe("applyMediaUnderstanding", () => {
       mediaType: "audio/wav",
       content: createSafeAudioFixtureBuffer(2048),
     });
-    const cfg: AstroclawConfig = { tools: { media: { audio: {} } } };
+    const cfg: OpenClawConfig = { tools: { media: { audio: {} } } };
     mockedResolveApiKey.mockResolvedValue({
       source: "none",
       mode: "api-key",
@@ -891,8 +937,7 @@ describe("applyMediaUnderstanding", () => {
     await withMediaAutoDetectEnv(
       {
         PATH: emptyBinDir,
-        ASTROCLAW_AGENT_DIR: isolatedAgentDir,
-        PI_CODING_AGENT_DIR: isolatedAgentDir,
+        OPENCLAW_AGENT_DIR: isolatedAgentDir,
       },
       async () => {
         const result = await applyMediaUnderstanding({ ctx, cfg });
@@ -903,6 +948,92 @@ describe("applyMediaUnderstanding", () => {
     expect(ctx.Transcript).toBeUndefined();
     expect(ctx.Body).toBe("<media:audio>");
     expect(mockedRunExec).not.toHaveBeenCalled();
+  });
+
+  it("does not probe Gemini CLI during media auto-detect", async () => {
+    clearMediaUnderstandingBinaryCacheForTests();
+    const binDir = await createTempMediaDir();
+    const isolatedAgentDir = await createTempMediaDir();
+    await createMockExecutable(binDir, "gemini");
+    const ctx = await createAudioCtx({
+      fileName: "sample.wav",
+      mediaType: "audio/wav",
+      content: createSafeAudioFixtureBuffer(2048),
+    });
+    const cfg: OpenClawConfig = { tools: { media: { audio: {} } } };
+    mockedResolveApiKey.mockResolvedValue({
+      source: "none",
+      mode: "api-key",
+    });
+
+    await withMediaAutoDetectEnv(
+      {
+        PATH: binDir,
+        OPENCLAW_AGENT_DIR: isolatedAgentDir,
+      },
+      async () => {
+        const result = await applyMediaUnderstanding({ ctx, cfg });
+        expect(result.appliedAudio).toBe(false);
+      },
+    );
+
+    expect(ctx.Transcript).toBeUndefined();
+    expect(ctx.Body).toBe("<media:audio>");
+    expect(mockedRunExec).not.toHaveBeenCalled();
+  });
+
+  it("uses Antigravity CLI as the last auto image fallback", async () => {
+    clearMediaUnderstandingBinaryCacheForTests();
+    const binDir = await createTempMediaDir();
+    await createMockExecutable(binDir, "agy");
+    const imagePath = await createTempMediaFile({
+      fileName: "photo.jpg",
+      content: "image-bytes",
+    });
+    const ctx: MsgContext = {
+      Body: "<media:image>",
+      MediaPath: imagePath,
+      MediaType: "image/jpeg",
+    };
+    const cfg: OpenClawConfig = { tools: { media: { image: {} } } };
+    mockedResolveApiKey.mockResolvedValue({
+      source: "none",
+      mode: "api-key",
+    });
+    mockedRunExec.mockImplementation(async (_command, args) => {
+      if (Array.isArray(args) && args.includes("--help")) {
+        return { stdout: "--print\n--add-dir\n--sandbox\n", stderr: "" };
+      }
+      return { stdout: "antigravity image description\n", stderr: "" };
+    });
+
+    await withMediaAutoDetectEnv({ PATH: binDir }, async () => {
+      const result = await applyMediaUnderstanding({ ctx, cfg });
+      expect(result.appliedImage).toBe(true);
+    });
+
+    expect(ctx.Body).toBe("[Image]\nDescription:\nantigravity image description");
+    expect(mockedRunExec).toHaveBeenCalledTimes(2);
+    const realImagePath = await fs.realpath(imagePath);
+    const [_probeCommand, _probeArgs, probeOptions] = getRunExecCall(0);
+    expect(probeOptions).toEqual({
+      timeoutMs: 3000,
+      cwd: expect.stringContaining("openclaw-antigravity-probe-"),
+    });
+    const [command, args, options] = getRunExecCall(1);
+    expect(command).toBe(path.join(binDir, "agy"));
+    expect(args).toEqual([
+      "--sandbox",
+      "--add-dir",
+      path.dirname(realImagePath),
+      "--print",
+      expect.stringContaining(realImagePath),
+    ]);
+    expect(options).toEqual({
+      timeoutMs: 60_000,
+      maxBuffer: CLI_OUTPUT_MAX_BUFFER,
+      cwd: path.dirname(realImagePath),
+    });
   });
 
   it("uses CLI image understanding and preserves caption for commands", async () => {
@@ -916,7 +1047,7 @@ describe("applyMediaUnderstanding", () => {
       MediaPath: imagePath,
       MediaType: "image/jpeg",
     };
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           image: {
@@ -962,7 +1093,7 @@ describe("applyMediaUnderstanding", () => {
       MediaPath: imagePath,
       MediaType: "image/jpeg",
     };
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           models: [
@@ -991,6 +1122,103 @@ describe("applyMediaUnderstanding", () => {
     expect(ctx.Body).toBe("[Image]\nDescription:\nshared description");
   });
 
+  it("uses media workspace for staged files and agent workspace for provider resolution", async () => {
+    const mediaWorkspaceDir = await createTempMediaDir();
+    const relativeImagePath = path.join("media", "inbound", "workspace.jpg");
+    const imagePath = path.join(mediaWorkspaceDir, relativeImagePath);
+    await fs.mkdir(path.dirname(imagePath), { recursive: true });
+    await fs.writeFile(imagePath, "image-bytes");
+    const describeImage = vi.fn(async () => ({ text: "workspace image" }));
+    const ctx: MsgContext = {
+      Body: "<media:image>",
+      MediaPath: relativeImagePath,
+      MediaType: "image/jpeg",
+      MediaWorkspaceDir: mediaWorkspaceDir,
+    };
+    const cfg: OpenClawConfig = {
+      tools: {
+        media: {
+          image: {
+            enabled: true,
+            models: [{ provider: "openai", model: "gpt-5.4" }],
+          },
+        },
+      },
+    };
+
+    const result = await applyMediaUnderstanding({
+      ctx,
+      cfg,
+      agentDir: "/tmp/openclaw-agent",
+      workspaceDir: "/tmp/openclaw-workspace",
+      providers: {
+        openai: {
+          id: "openai",
+          capabilities: ["image"],
+          describeImage,
+        },
+      },
+    });
+
+    expect(result.appliedImage).toBe(true);
+    expect(describeImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentDir: "/tmp/openclaw-agent",
+        workspaceDir: "/tmp/openclaw-workspace",
+        fileName: "workspace.jpg",
+        provider: "openai",
+        model: "gpt-5.4",
+      }),
+    );
+  });
+
+  it("normalizes HEIC images before tools.media.image provider execution", async () => {
+    const imagePath = await createTempMediaFile({
+      fileName: "photo.heic",
+      content: "heic-source",
+    });
+    const describeImage = vi.fn(async () => ({ text: "normalized image" }));
+    const ctx: MsgContext = {
+      Body: "<media:image>",
+      MediaPath: imagePath,
+      MediaType: "image/heic",
+    };
+    const cfg: OpenClawConfig = {
+      tools: {
+        media: {
+          image: {
+            enabled: true,
+            models: [{ provider: "openai", model: "gpt-5.4" }],
+          },
+        },
+      },
+    };
+
+    const result = await applyMediaUnderstanding({
+      ctx,
+      cfg,
+      agentDir: "/tmp/openclaw-agent",
+      providers: {
+        openai: {
+          id: "openai",
+          capabilities: ["image"],
+          describeImage,
+        },
+      },
+    });
+
+    expect(result.appliedImage).toBe(true);
+    expect(mockedConvertHeicToJpeg).toHaveBeenCalledWith(Buffer.from("heic-source"));
+    expect(describeImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        buffer: Buffer.from("jpeg-normalized"),
+        fileName: "photo.heic",
+        mime: "image/jpeg",
+      }),
+    );
+    expect(ctx.Body).toBe("[Image]\nDescription:\nnormalized image");
+  });
+
   it("uses active model when enabled and models are missing", async () => {
     const audioPath = await createTempMediaFile({
       fileName: "fallback.ogg",
@@ -1002,7 +1230,7 @@ describe("applyMediaUnderstanding", () => {
       MediaPath: audioPath,
       MediaType: "audio/ogg",
     };
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -1040,7 +1268,7 @@ describe("applyMediaUnderstanding", () => {
       MediaType: "audio/ogg",
       MediaTranscribedIndexes: [0],
     };
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -1086,7 +1314,7 @@ describe("applyMediaUnderstanding", () => {
       MediaPaths: [audioPathA, audioPathB],
       MediaTypes: ["audio/ogg", "audio/ogg"],
     };
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -1130,7 +1358,7 @@ describe("applyMediaUnderstanding", () => {
       MediaPaths: [validPath, tinyPath],
       MediaTypes: ["audio/ogg", "audio/ogg"],
     };
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: {
@@ -1180,7 +1408,7 @@ describe("applyMediaUnderstanding", () => {
       MediaPaths: [imagePath, audioPath, videoPath],
       MediaTypes: ["image/jpeg", "audio/ogg", "video/mp4"],
     };
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           image: { enabled: true, models: [{ provider: "openai", model: "gpt-5.4" }] },
@@ -1239,7 +1467,7 @@ describe("applyMediaUnderstanding", () => {
       MediaPaths: [imagePath, audioPath, videoPath],
       MediaTypes: ["image/jpeg", "audio/ogg", "video/mp4"],
     };
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           image: { enabled: true, models: [{ provider: "openai", model: "gpt-5.4" }] },
