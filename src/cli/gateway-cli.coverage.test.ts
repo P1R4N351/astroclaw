@@ -1,3 +1,4 @@
+// Gateway CLI coverage tests cover gateway command branches and output modes.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -158,6 +159,15 @@ describe("gateway-cli coverage", () => {
     expect(runtimeLogs.join("\n")).toContain('"ok": true');
   });
 
+  it("rejects invalid gateway call timeout before calling Gateway", async () => {
+    callGateway.mockClear();
+
+    await expectGatewayExit(["gateway", "call", "health", "--timeout", "1000ms", "--json"]);
+
+    expect(callGateway).not.toHaveBeenCalled();
+    expect(runtimeErrors.join("\n")).toContain("Gateway call failed: Error: Invalid --timeout");
+  });
+
   it("registers gateway probe and routes to gatewayStatusCommand", async () => {
     gatewayStatusCommand.mockClear();
 
@@ -214,12 +224,12 @@ describe("gateway-cli coverage", () => {
 
   it("prints the latest stability bundle without calling Gateway", async () => {
     callGateway.mockClear();
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-gateway-cli-bundle-"));
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-gateway-cli-bundle-"));
     try {
       const bundleDir = path.join(tempDir, "logs", "stability");
       const bundlePath = path.join(
         bundleDir,
-        "astroclaw-stability-2026-04-22T12-00-00-000Z-123-test.json",
+        "openclaw-stability-2026-04-22T12-00-00-000Z-123-test.json",
       );
       const bundle = {
         version: 1,
@@ -301,7 +311,7 @@ describe("gateway-cli coverage", () => {
       fs.mkdirSync(bundleDir, { recursive: true });
       fs.writeFileSync(bundlePath, `${JSON.stringify(bundle, null, 2)}\n`, "utf8");
 
-      await withEnvOverride({ ASTROCLAW_STATE_DIR: tempDir }, async () => {
+      await withEnvOverride({ OPENCLAW_STATE_DIR: tempDir }, async () => {
         await runGatewayCommand(["gateway", "stability", "--bundle", "latest"]);
       });
 
@@ -322,11 +332,11 @@ describe("gateway-cli coverage", () => {
 
   it("writes gateway diagnostics export with a best-effort health snapshot", async () => {
     callGateway.mockClear();
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-gateway-cli-support-"));
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-gateway-cli-support-"));
     try {
       const outputPath = path.join(tempDir, "diagnostics.zip");
       await withEnvOverride(
-        { ASTROCLAW_STATE_DIR: tempDir, ASTROCLAW_TEST_FILE_LOG: undefined },
+        { OPENCLAW_STATE_DIR: tempDir, OPENCLAW_TEST_FILE_LOG: undefined },
         async () => {
           await runGatewayCommand([
             "gateway",
@@ -353,14 +363,26 @@ describe("gateway-cli coverage", () => {
     }
   });
 
+  it.each([
+    ["--log-lines", "5000x"],
+    ["--log-bytes", "1mb"],
+  ])("rejects partial gateway diagnostics export %s", async (flag, value) => {
+    callGateway.mockClear();
+
+    await expectGatewayExit(["gateway", "diagnostics", "export", flag, value, "--json"]);
+
+    expect(runtimeErrors.join("\n")).toContain(`${flag} must be a positive integer`);
+    expect(callGateway).not.toHaveBeenCalled();
+  });
+
   it("registers gateway discover and prints json output", async () => {
     discoverGatewayBeacons.mockClear();
     discoverGatewayBeacons.mockResolvedValueOnce([
       {
-        instanceName: "Studio (Astroclaw)",
+        instanceName: "Studio (OpenClaw)",
         displayName: "Studio",
-        domain: "astroclaw.internal.",
-        host: "studio.astroclaw.internal",
+        domain: "openclaw.internal.",
+        host: "studio.openclaw.internal",
         port: 18789,
         lanHost: "studio.local",
         tailnetDns: "studio.tailnet.ts.net",
@@ -393,11 +415,19 @@ describe("gateway-cli coverage", () => {
     expect(runtimeErrors.join("\n")).toContain("Gateway call failed:");
   });
 
-  it("validates gateway ports and handles force/start errors", async () => {
-    // Invalid port
-    await expectGatewayExit(["gateway", "--port", "0", "--token", "test-token"]);
+  it("validates gateway call timeout before opening a transport", async () => {
+    callGateway.mockClear();
+    await expectGatewayExit(["gateway", "call", "health", "--timeout", "nope", "--json"]);
 
-    // Force free failure
+    expect(callGateway).not.toHaveBeenCalled();
+    expect(runtimeErrors.join("\n")).toContain("Invalid --timeout");
+  });
+
+  it("validates gateway ports before starting", async () => {
+    await expectGatewayExit(["gateway", "--port", "0", "--token", "test-token"]);
+  });
+
+  it("reports force-free port failures", async () => {
     forceFreePortAndWait.mockImplementationOnce(async () => {
       throw new Error("boom");
     });
@@ -410,8 +440,9 @@ describe("gateway-cli coverage", () => {
       "--force",
       "--allow-unconfigured",
     ]);
+  });
 
-    // Start failure (generic)
+  it("reports gateway start failures without leaking signal listeners", async () => {
     startGatewayServer.mockRejectedValueOnce(new Error("nope"));
     const beforeSigterm = new Set(process.listeners("SIGTERM"));
     const beforeSigint = new Set(process.listeners("SIGINT"));
@@ -441,14 +472,14 @@ describe("gateway-cli coverage", () => {
         LAUNCH_JOB_LABEL: undefined,
         LAUNCH_JOB_NAME: undefined,
         XPC_SERVICE_NAME: undefined,
-        ASTROCLAW_LAUNCHD_LABEL: undefined,
-        ASTROCLAW_SYSTEMD_UNIT: undefined,
+        OPENCLAW_LAUNCHD_LABEL: undefined,
+        OPENCLAW_SYSTEMD_UNIT: undefined,
         INVOCATION_ID: undefined,
         SYSTEMD_EXEC_PID: undefined,
         JOURNAL_STREAM: undefined,
-        ASTROCLAW_WINDOWS_TASK_NAME: undefined,
-        ASTROCLAW_SERVICE_MARKER: undefined,
-        ASTROCLAW_SERVICE_KIND: undefined,
+        OPENCLAW_WINDOWS_TASK_NAME: undefined,
+        OPENCLAW_SERVICE_MARKER: undefined,
+        OPENCLAW_SERVICE_KIND: undefined,
       },
       async () => {
         serviceIsLoaded.mockResolvedValue(true);
@@ -484,7 +515,7 @@ describe("gateway-cli coverage", () => {
     runtimeErrors.length = 0;
     serviceIsLoaded.mockResolvedValue(true);
     startGatewayServer.mockRejectedValueOnce(
-      new GatewayLockError("failed to acquire gateway lock at /tmp/astroclaw/gateway.lock"),
+      new GatewayLockError("failed to acquire gateway lock at /tmp/openclaw/gateway.lock"),
     );
 
     await expectGatewayExit(["gateway", "--token", "test-token", "--allow-unconfigured"]);
@@ -493,7 +524,7 @@ describe("gateway-cli coverage", () => {
   });
 
   it("uses env/config port when --port is omitted", async () => {
-    await withEnvOverride({ ASTROCLAW_GATEWAY_PORT: "19001" }, async () => {
+    await withEnvOverride({ OPENCLAW_GATEWAY_PORT: "19001" }, async () => {
       runtimeLogs.length = 0;
       runtimeErrors.length = 0;
       startGatewayServer.mockClear();
