@@ -1,11 +1,12 @@
+// Verifies synced-folder security audit findings.
 import { describe, expect, it } from "vitest";
 import { collectSyncedFolderFindings } from "./audit-extra.sync.js";
 
 describe("security audit synced folder findings", () => {
   it("warns when state/config look like a synced folder", () => {
     const findings = collectSyncedFolderFindings({
-      stateDir: "/Users/test/Dropbox/.astroclaw",
-      configPath: "/Users/test/Dropbox/.astroclaw/astroclaw.json",
+      stateDir: "/Users/test/Dropbox/.openclaw",
+      configPath: "/Users/test/Dropbox/.openclaw/openclaw.json",
     });
 
     expect(
