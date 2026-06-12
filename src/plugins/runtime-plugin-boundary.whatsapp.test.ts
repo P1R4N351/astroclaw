@@ -1,6 +1,7 @@
+// Verifies WhatsApp runtime imports respect plugin boundary rules.
 import fs from "node:fs";
 import path from "node:path";
-import { bundledDistPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it } from "vitest";
 import { stageBundledPluginRuntime } from "../../scripts/stage-bundled-plugin-runtime.mjs";
 import type { PluginModuleLoaderCache } from "./plugin-module-loader-cache.js";
@@ -26,14 +27,14 @@ function writeRuntimeFixtureText(rootDir: string, relativePath: string, value: s
 }
 
 function createBundledWhatsAppRuntimeFixture() {
-  const rootDir = makeTrackedTempDir("astroclaw-whatsapp-boundary", tempDirs);
+  const rootDir = makeTrackedTempDir("openclaw-whatsapp-boundary", tempDirs);
   for (const [relativePath, value] of Object.entries({
     "package.json": JSON.stringify(
       {
-        name: "astroclaw",
+        name: "openclaw",
         type: "module",
         bin: {
-          astroclaw: "astroclaw.mjs",
+          openclaw: "openclaw.mjs",
         },
         exports: {
           "./plugin-sdk": {
@@ -44,14 +45,14 @@ function createBundledWhatsAppRuntimeFixture() {
       null,
       2,
     ),
-    "astroclaw.mjs": "export {};\n",
+    "openclaw.mjs": "export {};\n",
     [bundledDistPluginFile("whatsapp", "index.js")]: "export default {};\n",
     [bundledDistPluginFile("whatsapp", "light-runtime-api.js")]:
       'export { getActiveWebListener } from "../../active-listener.js";\n',
     [bundledDistPluginFile("whatsapp", "runtime-api.js")]:
       'export { registerControllerForTest } from "../../connection-controller-registry.js";\n',
     "dist/connection-controller-registry.js": [
-      'const key = Symbol.for("astroclaw.whatsapp.connectionControllerRegistry");',
+      'const key = Symbol.for("openclaw.whatsapp.connectionControllerRegistry");',
       "const g = globalThis;",
       "if (!g[key]) {",
       "  g[key] = { controllers: new Map() };",
@@ -90,13 +91,13 @@ function createBundledWhatsAppRuntimeFixture() {
 }
 
 function createExternalTypeScriptRuntimePackageFixture() {
-  const rootDir = makeTrackedTempDir("astroclaw-external-boundary-ts", tempDirs);
+  const rootDir = makeTrackedTempDir("openclaw-external-boundary-ts", tempDirs);
   writeRuntimeFixtureText(
     rootDir,
     "package.json",
     JSON.stringify(
       {
-        name: "astroclaw-external-ts-runtime",
+        name: "openclaw-external-ts-runtime",
         type: "module",
       },
       null,
@@ -162,7 +163,7 @@ describe("runtime plugin boundary whatsapp seam", () => {
   });
 
   it("rejects bundled TypeScript runtime modules instead of using the source loader", () => {
-    const rootDir = makeTrackedTempDir("astroclaw-bundled-boundary-ts", tempDirs);
+    const rootDir = makeTrackedTempDir("openclaw-bundled-boundary-ts", tempDirs);
     const modulePath = path.join(rootDir, "runtime-api.ts");
     writeRuntimeFixtureText(rootDir, "runtime-api.ts", "export const ok = true;\n");
     const loaders: PluginModuleLoaderCache = new Map();
