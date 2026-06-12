@@ -1,3 +1,4 @@
+// Slack tests cover registry plugin behavior.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -108,7 +109,7 @@ describe("registerSlackHttpHandler", () => {
 
   it("recreates the shared registry if the global slot is corrupted", async () => {
     const globalStore = globalThis as Record<PropertyKey, unknown>;
-    globalStore[Symbol.for("astroclaw.slack.httpRoutes.v1")] = {};
+    globalStore[Symbol.for("openclaw.slack.httpRoutes.v1")] = {};
     const handler = vi.fn();
     unregisters.push(
       registerSlackHttpHandler({
