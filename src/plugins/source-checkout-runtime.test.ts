@@ -1,7 +1,8 @@
+/** Verifies source-checkout plugin runtime resolution and dependency diagnostics. */
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setBundledPluginsDirOverrideForTest } from "./bundled-dir.js";
-import { loadAstroclawPlugins } from "./loader.js";
+import { loadOpenClawPlugins } from "./loader.js";
 
 describe("source checkout bundled plugin runtime", () => {
   beforeEach(() => {
@@ -13,7 +14,7 @@ describe("source checkout bundled plugin runtime", () => {
   });
 
   it("loads enabled bundled plugins from source checkout", () => {
-    const registry = loadAstroclawPlugins({
+    const registry = loadOpenClawPlugins({
       cache: false,
       onlyPluginIds: ["tokenjuice"],
       config: {
