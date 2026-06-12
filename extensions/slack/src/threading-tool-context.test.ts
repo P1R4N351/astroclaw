@@ -1,8 +1,9 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Slack tests cover threading tool context plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { buildSlackThreadingToolContext } from "./threading-tool-context.js";
 
-const emptyCfg = {} as AstroclawConfig;
+const emptyCfg = {} as OpenClawConfig;
 
 function resolveReplyToModeWithConfig(params: {
   slackConfig: Record<string, unknown>;
@@ -12,7 +13,7 @@ function resolveReplyToModeWithConfig(params: {
     channels: {
       slack: params.slackConfig,
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
   const result = buildSlackThreadingToolContext({
     cfg,
     accountId: null,
@@ -27,7 +28,7 @@ describe("buildSlackThreadingToolContext", () => {
       channels: {
         slack: { replyToMode: "first" },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = buildSlackThreadingToolContext({
       cfg,
       accountId: null,
@@ -67,7 +68,7 @@ describe("buildSlackThreadingToolContext", () => {
           replyToMode: "first",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = buildSlackThreadingToolContext({
       cfg,
       accountId: null,
@@ -128,7 +129,7 @@ describe("buildSlackThreadingToolContext", () => {
             replyToModeByChatType: { direct: "off" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountId: null,
       context: {
         ChatType: "direct",
@@ -141,6 +142,7 @@ describe("buildSlackThreadingToolContext", () => {
 
     expect(result.currentThreadTs).toBe("1771999998.834199");
     expect(result.replyToMode).toBe("all");
+    expect(result.sameChannelThreadRequired).toBe(true);
   });
 
   it("uses TransportThreadId when ReplyToId matches the current message", () => {
@@ -152,7 +154,7 @@ describe("buildSlackThreadingToolContext", () => {
             replyToModeByChatType: { direct: "off" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountId: null,
       context: {
         ChatType: "direct",
@@ -164,6 +166,7 @@ describe("buildSlackThreadingToolContext", () => {
 
     expect(result.currentThreadTs).toBe("1771999998.834199");
     expect(result.replyToMode).toBe("all");
+    expect(result.sameChannelThreadRequired).toBe(true);
   });
 
   it("keeps top-level ReplyToId as an anchor without forcing configured off mode", () => {
@@ -175,7 +178,7 @@ describe("buildSlackThreadingToolContext", () => {
             replyToModeByChatType: { direct: "off" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountId: null,
       context: {
         ChatType: "direct",
@@ -186,6 +189,7 @@ describe("buildSlackThreadingToolContext", () => {
 
     expect(result.currentThreadTs).toBe("1771999998.834199");
     expect(result.replyToMode).toBe("off");
+    expect(result.sameChannelThreadRequired).toBe(false);
   });
 
   it("keeps top-level ReplyToId as the first-reply anchor for single-use modes", () => {
@@ -196,7 +200,7 @@ describe("buildSlackThreadingToolContext", () => {
             replyToMode: "first",
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountId: null,
       context: {
         ChatType: "direct",
@@ -217,7 +221,7 @@ describe("buildSlackThreadingToolContext", () => {
           replyToModeByChatType: { channel: "first" },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = buildSlackThreadingToolContext({
       cfg,
       accountId: null,
