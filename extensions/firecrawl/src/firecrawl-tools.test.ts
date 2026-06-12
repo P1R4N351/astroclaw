@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { mockPinnedHostnameResolution } from "astroclaw/plugin-sdk/test-env";
+// Firecrawl tests cover firecrawl tools plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { mockPinnedHostnameResolution } from "openclaw/plugin-sdk/test-env";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_FIRECRAWL_BASE_URL,
@@ -35,7 +36,7 @@ describe("firecrawl tools", () => {
   let createFirecrawlWebFetchProvider: typeof import("./firecrawl-fetch-provider.js").createFirecrawlWebFetchProvider;
   let createFirecrawlSearchTool: typeof import("./firecrawl-search-tool.js").createFirecrawlSearchTool;
   let createFirecrawlScrapeTool: typeof import("./firecrawl-scrape-tool.js").createFirecrawlScrapeTool;
-  let firecrawlClientTesting: typeof import("./firecrawl-client.js").__testing;
+  let firecrawlClientTesting: typeof import("./firecrawl-client.js").testing;
   let runActualFirecrawlSearch: typeof import("./firecrawl-client.js").runFirecrawlSearch;
   let runActualFirecrawlScrape: typeof import("./firecrawl-client.js").runFirecrawlScrape;
   let ssrfMock: { mockRestore: () => void } | undefined;
@@ -47,7 +48,7 @@ describe("firecrawl tools", () => {
     ({ createFirecrawlSearchTool } = await import("./firecrawl-search-tool.js"));
     ({ createFirecrawlScrapeTool } = await import("./firecrawl-scrape-tool.js"));
     ({
-      __testing: firecrawlClientTesting,
+      testing: firecrawlClientTesting,
       runFirecrawlSearch: runActualFirecrawlSearch,
       runFirecrawlScrape: runActualFirecrawlScrape,
     } = await vi.importActual<typeof import("./firecrawl-client.js")>("./firecrawl-client.js"));
@@ -86,6 +87,24 @@ describe("firecrawl tools", () => {
 
     expect(provider.id).toBe("firecrawl");
     expect(provider.credentialPath).toBe("plugins.entries.firecrawl.config.webSearch.apiKey");
+    expect(
+      provider.getConfiguredCredentialFallback?.({
+        plugins: {
+          entries: {
+            firecrawl: {
+              config: {
+                webFetch: {
+                  apiKey: { source: "env", provider: "default", id: "FIRECRAWL_API_KEY" },
+                },
+              },
+            },
+          },
+        },
+      } as never),
+    ).toEqual({
+      path: "plugins.entries.firecrawl.config.webFetch.apiKey",
+      value: { source: "env", provider: "default", id: "FIRECRAWL_API_KEY" },
+    });
     const pluginEntry = applied.plugins?.entries?.firecrawl;
     if (!pluginEntry) {
       throw new Error("expected Firecrawl plugin entry");
@@ -188,7 +207,7 @@ describe("firecrawl tools", () => {
           url: "https://api.firecrawl.dev/v2/search",
           timeoutSeconds: 5,
           apiKey: "firecrawl-key",
-          body: { query: "astroclaw" },
+          body: { query: "openclaw" },
           errorLabel: "Firecrawl search",
         },
         async () => "ok",
@@ -212,7 +231,7 @@ describe("firecrawl tools", () => {
         url: "https://api.firecrawl.dev/v2/search",
         timeoutSeconds: 5,
         apiKey: "firecrawl-test-\r\nkey",
-        body: { query: "astroclaw" },
+        body: { query: "openclaw" },
         errorLabel: "Firecrawl search",
       },
       async () => "ok",
@@ -268,7 +287,7 @@ describe("firecrawl tools", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         url: "http://169.254.169.254/latest/meta-data/",
         extractMode: "markdown",
       }),
@@ -287,25 +306,52 @@ describe("firecrawl tools", () => {
     }
 
     const result = await tool.execute({
-      query: "astroclaw docs",
+      query: "openclaw docs",
       count: 4,
     });
 
     expect(runFirecrawlSearch).toHaveBeenCalledWith({
       cfg: { test: true },
-      query: "astroclaw docs",
+      query: "openclaw docs",
       count: 4,
     });
     expect(result).toEqual({
       cfg: { test: true },
-      query: "astroclaw docs",
+      query: "openclaw docs",
       count: 4,
     });
   });
 
+  it("normalizes generic firecrawl search count before dispatch", async () => {
+    const provider = createFirecrawlWebSearchProvider();
+    const tool = provider.createTool({
+      config: { test: true },
+    } as never);
+    if (!tool) {
+      throw new Error("Expected tool definition");
+    }
+
+    await tool.execute({
+      query: "openclaw docs",
+      count: "4",
+    });
+
+    expect(runFirecrawlSearch).toHaveBeenCalledWith({
+      cfg: { test: true },
+      query: "openclaw docs",
+      count: 4,
+    });
+    await expect(
+      tool.execute({
+        query: "openclaw docs",
+        count: "4.5",
+      }),
+    ).rejects.toThrow("count must be an integer from 1 to 10");
+  });
+
   it("keeps the compare-helper fetch facade owned by the Firecrawl extension", async () => {
     await fetchFirecrawlContent({
-      url: "https://docs.astroclaw.ai",
+      url: "https://docs.openclaw.ai",
       extractMode: "markdown",
       apiKey: "firecrawl-key",
       baseUrl: "https://api.firecrawl.dev",
@@ -336,7 +382,7 @@ describe("firecrawl tools", () => {
           },
         },
       },
-      url: "https://docs.astroclaw.ai",
+      url: "https://docs.openclaw.ai",
       extractMode: "markdown",
       maxChars: 1500,
       proxy: "stealth",
@@ -373,7 +419,7 @@ describe("firecrawl tools", () => {
     }
 
     await tool.execute({
-      url: "https://docs.astroclaw.ai",
+      url: "https://docs.openclaw.ai",
       extractMode: "markdown",
       maxChars: 1500,
       proxy: "stealth",
@@ -382,12 +428,40 @@ describe("firecrawl tools", () => {
 
     expect(runFirecrawlScrape).toHaveBeenCalledWith({
       cfg: { test: true },
-      url: "https://docs.astroclaw.ai",
+      url: "https://docs.openclaw.ai",
       extractMode: "markdown",
       maxChars: 1500,
       proxy: "stealth",
       storeInCache: false,
     });
+  });
+
+  it("normalizes generic firecrawl fetch maxChars before dispatch", async () => {
+    const provider = createFirecrawlWebFetchProvider();
+    const tool = provider.createTool({
+      config: { test: true },
+    } as never);
+    if (!tool) {
+      throw new Error("Expected tool definition");
+    }
+
+    await tool.execute({
+      url: "https://docs.openclaw.ai",
+      maxChars: "1500",
+    });
+
+    expect(runFirecrawlScrape).toHaveBeenCalledWith({
+      cfg: { test: true },
+      url: "https://docs.openclaw.ai",
+      extractMode: "markdown",
+      maxChars: 1500,
+    });
+    await expect(
+      tool.execute({
+        url: "https://docs.openclaw.ai",
+        maxChars: "1500.5",
+      }),
+    ).rejects.toThrow("maxChars must be a positive integer");
   });
 
   it("normalizes optional search parameters before invoking Firecrawl", async () => {
@@ -436,7 +510,7 @@ describe("firecrawl tools", () => {
     } as never);
 
     const result = await tool.execute("call-1", {
-      url: "https://docs.astroclaw.ai",
+      url: "https://docs.openclaw.ai",
       maxChars: 1500,
       onlyMainContent: false,
       maxAgeMs: 5000,
@@ -447,7 +521,7 @@ describe("firecrawl tools", () => {
 
     expect(runFirecrawlScrape).toHaveBeenCalledWith({
       cfg: { env: "test" },
-      url: "https://docs.astroclaw.ai",
+      url: "https://docs.openclaw.ai",
       extractMode: "markdown",
       maxChars: 1500,
       onlyMainContent: false,
@@ -460,7 +534,7 @@ describe("firecrawl tools", () => {
     expect(details.ok).toBe(true);
     expect(details.params).toEqual({
       cfg: { env: "test" },
-      url: "https://docs.astroclaw.ai",
+      url: "https://docs.openclaw.ai",
       extractMode: "markdown",
       maxChars: 1500,
       onlyMainContent: false,
@@ -471,20 +545,68 @@ describe("firecrawl tools", () => {
     });
   });
 
+  it("rejects malformed numeric Firecrawl search options before dispatch", async () => {
+    const searchTool = createFirecrawlSearchTool({
+      config: { env: "test" },
+    } as never);
+
+    await expect(
+      searchTool.execute("call-search", {
+        query: "web search",
+        count: 6.5,
+      }),
+    ).rejects.toThrow("count must be an integer from 1 to 10");
+    await expect(
+      searchTool.execute("call-search-timeout", {
+        query: "web search",
+        timeoutSeconds: Number.POSITIVE_INFINITY,
+      }),
+    ).rejects.toThrow("timeoutSeconds must be a positive integer");
+
+    expect(runFirecrawlSearch).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed numeric Firecrawl scrape options before dispatch", async () => {
+    const scrapeTool = createFirecrawlScrapeTool({
+      config: { env: "test" },
+    } as never);
+
+    await expect(
+      scrapeTool.execute("call-scrape-max-chars", {
+        url: "https://docs.openclaw.ai",
+        maxChars: 1500.5,
+      }),
+    ).rejects.toThrow("maxChars must be a positive integer");
+    await expect(
+      scrapeTool.execute("call-scrape-max-age", {
+        url: "https://docs.openclaw.ai",
+        maxAgeMs: -1,
+      }),
+    ).rejects.toThrow("maxAgeMs must be a non-negative integer");
+    await expect(
+      scrapeTool.execute("call-scrape-timeout", {
+        url: "https://docs.openclaw.ai",
+        timeoutSeconds: 22.5,
+      }),
+    ).rejects.toThrow("timeoutSeconds must be a positive integer");
+
+    expect(runFirecrawlScrape).not.toHaveBeenCalled();
+  });
+
   it("passes text mode through and ignores invalid proxy values", async () => {
     const tool = createFirecrawlScrapeTool({
       config: { env: "test" },
     } as never);
 
     await tool.execute("call-2", {
-      url: "https://docs.astroclaw.ai",
+      url: "https://docs.openclaw.ai",
       extractMode: "text",
       proxy: "invalid",
     });
 
     expect(runFirecrawlScrape).toHaveBeenCalledWith({
       cfg: { env: "test" },
-      url: "https://docs.astroclaw.ai",
+      url: "https://docs.openclaw.ai",
       extractMode: "text",
       maxChars: undefined,
       onlyMainContent: undefined,
@@ -519,7 +641,7 @@ describe("firecrawl tools", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveFirecrawlSearchConfig(cfg)).toEqual({
       apiKey: "plugin-key",
@@ -539,7 +661,7 @@ describe("firecrawl tools", () => {
     expect(resolveFirecrawlMaxAgeMs()).toBe(DEFAULT_FIRECRAWL_MAX_AGE_MS);
     expect(resolveFirecrawlScrapeTimeoutSeconds()).toBe(DEFAULT_FIRECRAWL_SCRAPE_TIMEOUT_SECONDS);
     expect(resolveFirecrawlSearchTimeoutSeconds()).toBe(DEFAULT_FIRECRAWL_SEARCH_TIMEOUT_SECONDS);
-    expect(resolveFirecrawlBaseUrl({} as AstroclawConfig)).not.toBe(DEFAULT_FIRECRAWL_BASE_URL);
+    expect(resolveFirecrawlBaseUrl({} as OpenClawConfig)).not.toBe(DEFAULT_FIRECRAWL_BASE_URL);
   });
 
   it("resolves env SecretRefs for Firecrawl API key without requiring a runtime snapshot", () => {
@@ -560,7 +682,7 @@ describe("firecrawl tools", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveFirecrawlApiKey(cfg)).toBe("firecrawl-env-ref-key");
   });
@@ -583,7 +705,7 @@ describe("firecrawl tools", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveFirecrawlApiKey(cfg)).toBeUndefined();
   });
@@ -606,7 +728,7 @@ describe("firecrawl tools", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveFirecrawlApiKey(cfg)).toBeUndefined();
   });
@@ -637,7 +759,7 @@ describe("firecrawl tools", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveFirecrawlApiKey(cfg)).toBeUndefined();
   });
@@ -668,7 +790,7 @@ describe("firecrawl tools", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveFirecrawlApiKey(cfg)).toBeUndefined();
   });
@@ -723,7 +845,7 @@ describe("firecrawl tools", () => {
         url: "http://127.0.0.1:8787/v2/search",
         timeoutSeconds: 5,
         apiKey: "firecrawl-key",
-        body: { query: "astroclaw" },
+        body: { query: "openclaw" },
         errorLabel: "Firecrawl Search",
       },
       async (response) => (await response.json()) as Record<string, unknown>,
@@ -757,8 +879,8 @@ describe("firecrawl tools", () => {
               },
             },
           },
-        } as AstroclawConfig,
-        query: "astroclaw malformed search",
+        } as OpenClawConfig,
+        query: "openclaw malformed search",
       }),
     ).rejects.toThrow("Firecrawl Search API error: malformed JSON response");
   });
@@ -787,7 +909,7 @@ describe("firecrawl tools", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         url: "https://example.com/firecrawl-malformed-scrape",
         extractMode: "markdown",
       }),
@@ -807,7 +929,7 @@ describe("firecrawl tools", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveFirecrawlOnlyMainContent(cfg)).toBe(false);
     expect(resolveFirecrawlMaxAgeMs(cfg)).toBe(1234);
@@ -815,6 +937,9 @@ describe("firecrawl tools", () => {
     expect(resolveFirecrawlScrapeTimeoutSeconds(cfg)).toBe(42);
     expect(resolveFirecrawlScrapeTimeoutSeconds(cfg, 19.8)).toBe(19);
     expect(resolveFirecrawlSearchTimeoutSeconds(9.7)).toBe(9);
+    expect(resolveFirecrawlScrapeTimeoutSeconds(cfg, 0.5)).toBe(1);
+    expect(resolveFirecrawlScrapeTimeoutSeconds(cfg, 0)).toBe(42);
+    expect(resolveFirecrawlSearchTimeoutSeconds(0.5)).toBe(1);
   });
 
   it("normalizes mixed search payload shapes into search items", () => {
