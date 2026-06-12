@@ -1,7 +1,8 @@
+// Memory Core tests cover manager embedding cache plugin behavior.
 import {
   ensureMemoryIndexSchema,
   requireNodeSqlite,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
 import { describe, expect, it, vi } from "vitest";
 import {
   collectMemoryCachedEmbeddings,
