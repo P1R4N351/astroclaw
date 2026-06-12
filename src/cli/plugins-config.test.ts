@@ -1,5 +1,6 @@
+// Plugin config tests cover plugin config command parsing and output formatting.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { setPluginEnabledInConfig } from "./plugins-config.js";
 
 describe("setPluginEnabledInConfig", () => {
@@ -10,7 +11,7 @@ describe("setPluginEnabledInConfig", () => {
           alpha: { enabled: false, custom: "x" },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const next = setPluginEnabledInConfig(config, "alpha", true);
 
@@ -21,7 +22,7 @@ describe("setPluginEnabledInConfig", () => {
   });
 
   it("creates a plugin entry when it does not exist", () => {
-    const config = {} as AstroclawConfig;
+    const config = {} as OpenClawConfig;
 
     const next = setPluginEnabledInConfig(config, "beta", false);
 
@@ -45,7 +46,7 @@ describe("setPluginEnabledInConfig", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const disabled = setPluginEnabledInConfig(config, "telegram", false);
     expect(disabled.channels?.telegram).toEqual({
