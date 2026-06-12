@@ -1,3 +1,4 @@
+// Mantis Publish Pr Evidence tests cover mantis publish pr evidence script behavior.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -6,6 +7,7 @@ import {
   loadEvidenceManifest,
   publishArtifactFiles,
   renderEvidenceComment,
+  shouldPublishPrComment,
 } from "../../scripts/mantis/publish-pr-evidence.mjs";
 
 const tempDirs: string[] = [];
@@ -80,13 +82,13 @@ describe("scripts/mantis/publish-pr-evidence", () => {
   it("renders a manifest-driven PR comment with inline screenshots and video links", () => {
     const manifest = loadEvidenceManifest(writeFixtureManifest());
     const body = renderEvidenceComment({
-      artifactUrl: "https://github.com/astroclaw/astroclaw/actions/runs/1/artifacts/2",
+      artifactUrl: "https://github.com/openclaw/openclaw/actions/runs/1/artifacts/2",
       manifest,
       marker: "<!-- mantis-discord-status-reactions -->",
-      rawBase: "https://qa.astroclaw.ai/mantis/discord/pr-1/run-1",
+      rawBase: "https://qa.openclaw.ai/mantis/discord/pr-1/run-1",
       requestSource: "workflow_dispatch",
-      runUrl: "https://github.com/astroclaw/astroclaw/actions/runs/1",
-      treeUrl: "https://qa.astroclaw.ai/mantis/discord/pr-1/run-1",
+      runUrl: "https://github.com/openclaw/openclaw/actions/runs/1",
+      treeUrl: "https://qa.openclaw.ai/mantis/discord/pr-1/run-1",
     });
 
     expect(body).toContain("<!-- mantis-discord-status-reactions -->");
@@ -95,10 +97,10 @@ describe("scripts/mantis/publish-pr-evidence", () => {
     expect(body).toContain('<th width="50%">Baseline queued-only</th>');
     expect(body).toContain('<th width="50%">Candidate queued -> thinking -> done</th>');
     expect(body).toContain(
-      '<td width="50%" align="center"><img src="https://qa.astroclaw.ai/mantis/discord/pr-1/run-1/baseline.png" width="100%"',
+      '<td width="50%" align="center"><img src="https://qa.openclaw.ai/mantis/discord/pr-1/run-1/baseline.png" width="100%"',
     );
     expect(body).toContain(
-      "[Baseline change MP4](https://qa.astroclaw.ai/mantis/discord/pr-1/run-1/baseline-change.mp4)",
+      "[Baseline change MP4](https://qa.openclaw.ai/mantis/discord/pr-1/run-1/baseline-change.mp4)",
     );
     expect(body).not.toContain("raw.githubusercontent.com");
     expect(body).toContain("- Overall: `true`");
@@ -128,7 +130,7 @@ describe("scripts/mantis/publish-pr-evidence", () => {
         accessKeyId: "access",
         bucket: "qa-artifacts",
         endpoint: "https://example.r2.cloudflarestorage.com",
-        publicBaseUrl: "https://qa.astroclaw.ai",
+        publicBaseUrl: "https://qa.openclaw.ai",
         region: "auto",
         secretAccessKey: "secret",
       },
@@ -136,8 +138,8 @@ describe("scripts/mantis/publish-pr-evidence", () => {
 
     expect(published).toEqual({
       artifactRoot: "mantis/discord/pr-1/run-1",
-      rawBase: "https://qa.astroclaw.ai/mantis/discord/pr-1/run-1",
-      treeUrl: "https://qa.astroclaw.ai/mantis/discord/pr-1/run-1/index.json",
+      rawBase: "https://qa.openclaw.ai/mantis/discord/pr-1/run-1",
+      treeUrl: "https://qa.openclaw.ai/mantis/discord/pr-1/run-1/index.json",
     });
     expect(requests.map((request) => request.method)).toEqual(["PUT", "PUT", "PUT", "PUT", "PUT"]);
     expect(requests.map((request) => request.url)).toEqual([
@@ -151,11 +153,11 @@ describe("scripts/mantis/publish-pr-evidence", () => {
       "content-type": "image/png",
       "x-amz-date": expect.any(String),
     });
-    expect(String((requests[0]?.headers as Record<string, string>).authorization)).toContain(
+    expect((requests[0].headers as Record<string, string>).authorization).toContain(
       "Credential=access/",
     );
     expect(String(requests[4]?.body)).toContain(
-      '"url": "https://qa.astroclaw.ai/mantis/discord/pr-1/run-1/baseline.png"',
+      '"url": "https://qa.openclaw.ai/mantis/discord/pr-1/run-1/baseline.png"',
     );
   });
 
@@ -172,7 +174,7 @@ describe("scripts/mantis/publish-pr-evidence", () => {
         id: "slack-desktop-smoke",
         title: "Mantis Slack Desktop Smoke QA",
         summary: "Mantis could not finish VM setup.",
-        scenario: "slack-astroclaw-desktop-smoke",
+        scenario: "slack-openclaw-desktop-smoke",
         comparison: {
           candidate: {
             expected: "Slack QA and VM gateway setup pass",
@@ -217,13 +219,13 @@ describe("scripts/mantis/publish-pr-evidence", () => {
       "mantis-evidence.json",
     ]);
     const body = renderEvidenceComment({
-      artifactUrl: "https://github.com/astroclaw/astroclaw/actions/runs/1/artifacts/2",
+      artifactUrl: "https://github.com/openclaw/openclaw/actions/runs/1/artifacts/2",
       manifest,
       marker: "<!-- mantis-slack-desktop-smoke -->",
-      rawBase: "https://qa.astroclaw.ai/mantis/slack/pr-1/run-1",
+      rawBase: "https://qa.openclaw.ai/mantis/slack/pr-1/run-1",
       requestSource: "workflow_dispatch",
-      runUrl: "https://github.com/astroclaw/astroclaw/actions/runs/1",
-      treeUrl: "https://qa.astroclaw.ai/mantis/slack/pr-1/run-1",
+      runUrl: "https://github.com/openclaw/openclaw/actions/runs/1",
+      treeUrl: "https://qa.openclaw.ai/mantis/slack/pr-1/run-1",
     });
 
     expect(body).toContain("Summary: Mantis could not finish VM setup.");
@@ -265,11 +267,11 @@ describe("scripts/mantis/publish-pr-evidence", () => {
       manifest,
       marker: "<!-- mantis-telegram-desktop-proof -->",
       rawBase:
-        "https://raw.githubusercontent.com/astroclaw/astroclaw/qa-artifacts/mantis/telegram-desktop/pr-1/run-1",
+        "https://raw.githubusercontent.com/openclaw/openclaw/qa-artifacts/mantis/telegram-desktop/pr-1/run-1",
       requestSource: "issue_comment",
-      runUrl: "https://github.com/astroclaw/astroclaw/actions/runs/1",
+      runUrl: "https://github.com/openclaw/openclaw/actions/runs/1",
       treeUrl:
-        "https://github.com/astroclaw/astroclaw/tree/qa-artifacts/mantis/telegram-desktop/pr-1/run-1",
+        "https://github.com/openclaw/openclaw/tree/qa-artifacts/mantis/telegram-desktop/pr-1/run-1",
     });
 
     expect(manifest.artifacts.map((artifact) => artifact.targetPath)).toEqual([
@@ -281,6 +283,54 @@ describe("scripts/mantis/publish-pr-evidence", () => {
     expect(body).toContain("- Overall: `true`");
     expect(body).not.toContain("<table");
     expect(body).not.toContain("<img ");
+    expect(shouldPublishPrComment(manifest, { requestSource: "issue_comment" })).toBe(true);
+    expect(shouldPublishPrComment(manifest, { requestSource: "pull_request_target" })).toBe(false);
+  });
+
+  it("does not publish PR comments for Telegram capture infrastructure failures", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "mantis-evidence-test-"));
+    tempDirs.push(dir);
+    const manifestPath = path.join(dir, "mantis-evidence.json");
+    writeFileSync(
+      manifestPath,
+      JSON.stringify({
+        artifacts: [],
+        comparison: {
+          baseline: {
+            expected: "no acceptable native Telegram Desktop visual artifact",
+            status: "skipped",
+          },
+          candidate: {
+            expected: "no acceptable native Telegram Desktop visual artifact",
+            status: "skipped",
+          },
+          pass: false,
+        },
+        id: "telegram-desktop-proof",
+        scenario: "telegram-desktop-proof",
+        schemaVersion: 1,
+        summary:
+          "Mantis could not capture Telegram Desktop proof because native Telegram Desktop opened to the logged-out welcome screen.",
+        title: "Mantis Telegram Desktop Proof",
+      }),
+    );
+
+    const manifest = loadEvidenceManifest(manifestPath);
+    const body = renderEvidenceComment({
+      manifest,
+      marker: "<!-- mantis-telegram-desktop-proof -->",
+      rawBase: "https://artifacts.openclaw.ai/mantis/telegram-desktop/pr-1/run-1",
+      requestSource: "pull_request_target",
+      runUrl: "https://github.com/openclaw/openclaw/actions/runs/1",
+      treeUrl: "https://artifacts.openclaw.ai/mantis/telegram-desktop/pr-1/run-1/index.json",
+    });
+
+    expect(body).toContain(
+      "Summary: Mantis could not capture Telegram Desktop proof because native Telegram Desktop opened to the logged-out welcome screen.",
+    );
+    expect(body).toContain("- Overall: `false`");
+    expect(shouldPublishPrComment(manifest, { requestSource: "issue_comment" })).toBe(false);
+    expect(shouldPublishPrComment(manifest, { requestSource: "pull_request_target" })).toBe(false);
   });
 
   it("rejects artifact paths that escape the manifest directory", () => {
