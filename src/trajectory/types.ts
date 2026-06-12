@@ -1,13 +1,17 @@
+// Shared trajectory support-bundle schema. Runtime, transcript, and export code
+// all emit this versioned JSONL shape so external debugging tools can replay it.
 export type TrajectoryEventSource = "runtime" | "transcript" | "export";
 
+// Serialized tool definition captured with compiled context events.
 export type TrajectoryToolDefinition = {
   name: string;
   description?: string;
   parameters?: unknown;
 };
 
+// Versioned event envelope for runtime and transcript-derived trajectory rows.
 export type TrajectoryEvent = {
-  traceSchema: "astroclaw-trajectory";
+  traceSchema: "openclaw-trajectory";
   schemaVersion: 1;
   traceId: string;
   source: TrajectoryEventSource;
@@ -27,8 +31,9 @@ export type TrajectoryEvent = {
   data?: Record<string, unknown>;
 };
 
+// Bundle manifest written beside events.jsonl in trajectory exports.
 export type TrajectoryBundleManifest = {
-  traceSchema: "astroclaw-trajectory";
+  traceSchema: "openclaw-trajectory";
   schemaVersion: 1;
   generatedAt: string;
   traceId: string;
@@ -52,6 +57,7 @@ export type TrajectoryBundleManifest = {
   warnings?: TrajectoryBundleWarning[];
 };
 
+// Parse/export warnings are grouped in the manifest with sample row numbers.
 export type TrajectoryBundleWarning = {
   source: "session" | "runtime";
   code:
