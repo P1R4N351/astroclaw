@@ -1,7 +1,8 @@
+// Line tests cover accounts plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   resolveLineAccount,
@@ -14,7 +15,7 @@ describe("LINE accounts", () => {
   const tempDirs: string[] = [];
 
   const createSecretFile = (fileName: string, contents: string) => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-line-account-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-line-account-"));
     tempDirs.push(dir);
     const filePath = path.join(dir, fileName);
     fs.writeFileSync(filePath, contents, "utf8");
@@ -35,7 +36,7 @@ describe("LINE accounts", () => {
 
   describe("resolveLineAccount", () => {
     it("resolves account from config", () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         channels: {
           line: {
             enabled: true,
@@ -60,7 +61,7 @@ describe("LINE accounts", () => {
       vi.stubEnv("LINE_CHANNEL_ACCESS_TOKEN", "env-token");
       vi.stubEnv("LINE_CHANNEL_SECRET", "env-secret");
 
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         channels: {
           line: {
             enabled: true,
@@ -76,7 +77,7 @@ describe("LINE accounts", () => {
     });
 
     it("resolves named account", () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         channels: {
           line: {
             enabled: true,
@@ -102,7 +103,7 @@ describe("LINE accounts", () => {
     });
 
     it("uses configured defaultAccount when accountId is omitted", () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         channels: {
           line: {
             defaultAccount: "business",
@@ -128,7 +129,7 @@ describe("LINE accounts", () => {
     });
 
     it("returns empty token when not configured", () => {
-      const cfg: AstroclawConfig = {};
+      const cfg: OpenClawConfig = {};
 
       const account = resolveLineAccount({ cfg });
 
@@ -138,7 +139,7 @@ describe("LINE accounts", () => {
     });
 
     it("resolves default account credentials from files", () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         channels: {
           line: {
             tokenFile: createSecretFile("token.txt", "file-token\n"),
@@ -155,7 +156,7 @@ describe("LINE accounts", () => {
     });
 
     it("resolves named account credentials from account-level files", () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         channels: {
           line: {
             accounts: {
@@ -176,7 +177,7 @@ describe("LINE accounts", () => {
     });
 
     it.runIf(process.platform !== "win32")("rejects symlinked token and secret files", () => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-line-account-"));
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-line-account-"));
       tempDirs.push(dir);
       const tokenFile = path.join(dir, "token.txt");
       const tokenLink = path.join(dir, "token-link.txt");
@@ -187,7 +188,7 @@ describe("LINE accounts", () => {
       fs.symlinkSync(tokenFile, tokenLink);
       fs.symlinkSync(secretFile, secretLink);
 
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         channels: {
           line: {
             tokenFile: tokenLink,
@@ -196,10 +197,9 @@ describe("LINE accounts", () => {
         },
       };
 
-      const account = resolveLineAccount({ cfg });
-      expect(account.channelAccessToken).toBe("");
-      expect(account.channelSecret).toBe("");
-      expect(account.tokenSource).toBe("none");
+      expect(() => resolveLineAccount({ cfg })).toThrow(
+        /LINE credential file.*must not be a symlink/,
+      );
     });
   });
 
@@ -217,7 +217,7 @@ describe("LINE accounts", () => {
               },
             },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         expected: "business",
       },
       {
@@ -231,7 +231,7 @@ describe("LINE accounts", () => {
               },
             },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         expected: "business-ops",
       },
       {
@@ -244,7 +244,7 @@ describe("LINE accounts", () => {
               },
             },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         expected: "business",
       },
       {
@@ -258,7 +258,7 @@ describe("LINE accounts", () => {
               },
             },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         expected: "business",
       },
       {
@@ -272,7 +272,7 @@ describe("LINE accounts", () => {
               },
             },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         expected: DEFAULT_ACCOUNT_ID,
       },
     ])("$name", ({ cfg, expected }) => {
