@@ -1,3 +1,4 @@
+// Codex plugin module implements plan behavior.
 import path from "node:path";
 import {
   createMigrationItem,
@@ -6,13 +7,15 @@ import {
   MIGRATION_REASON_TARGET_EXISTS,
   readMigrationConfigPath,
   summarizeMigrationItems,
-} from "astroclaw/plugin-sdk/migration";
+} from "openclaw/plugin-sdk/migration";
 import type {
   MigrationItem,
   MigrationPlan,
   MigrationProviderContext,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
+import { asBoolean, isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { CODEX_PLUGINS_MARKETPLACE_NAME } from "../app-server/config.js";
+import { buildCodexAuthItems } from "./auth.js";
 import { exists, sanitizeName } from "./helpers.js";
 import {
   codexPluginMigrationSubscriptionWarning,
@@ -91,7 +94,7 @@ async function buildSkillItems(params: {
           : targetExists && !params.overwrite
             ? MIGRATION_REASON_TARGET_EXISTS
             : undefined,
-        message: `Copy ${item.skill.sourceLabel} into this Astroclaw agent workspace.`,
+        message: `Copy ${item.skill.sourceLabel} into this OpenClaw agent workspace.`,
         details: {
           skillName: item.name,
           sourceLabel: item.skill.sourceLabel,
@@ -175,7 +178,7 @@ function buildPluginItems(
           reason: conflict ? MIGRATION_REASON_PLUGIN_EXISTS : undefined,
           source: plugin.source,
           target: `plugins.entries.codex.config.codexPlugins.plugins.${configKey}`,
-          message: `Install Codex plugin "${plugin.pluginName}" in the Astroclaw-managed Codex app-server runtime.`,
+          message: `Install Codex plugin "${plugin.pluginName}" in the OpenClaw-managed Codex app-server runtime.`,
           details: {
             configKey,
             marketplaceName: CODEX_PLUGINS_MARKETPLACE_NAME,
@@ -223,7 +226,7 @@ function buildPluginItems(
           plugin.message ??
           `Codex native plugin "${plugin.name}" was found but not activated automatically.`,
         recommendation:
-          "Review the plugin bundle first, then install trusted compatible plugins with astroclaw plugins install <path>.",
+          "Review the plugin bundle first, then install trusted compatible plugins with openclaw plugins install <path>.",
       }),
     );
   }
@@ -260,11 +263,7 @@ function readExistingAllowDestructiveActions(
     ...CODEX_PLUGIN_NATIVE_CONFIG_PATH,
     "allow_destructive_actions",
   ]);
-  return typeof value === "boolean" ? value : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  return asBoolean(value);
 }
 
 export function buildCodexPluginsConfigValue(
@@ -373,7 +372,7 @@ function buildPluginConfigItem(
     status: conflict ? "conflict" : "planned",
     reason: conflict ? MIGRATION_REASON_TARGET_EXISTS : undefined,
     message:
-      "Enable Astroclaw's Codex plugin integration and record migrated source-installed curated plugins.",
+      "Enable OpenClaw's Codex plugin integration and record migrated source-installed curated plugins.",
     details: {
       path: [...CODEX_PLUGIN_CONFIG_PATH],
       value,
@@ -396,6 +395,7 @@ export async function buildCodexMigrationPlan(
     );
   }
   const items: MigrationItem[] = [];
+  items.push(...(await buildCodexAuthItems({ ctx, source, targets })));
   items.push(
     ...(await buildSkillItems({
       skills: source.skills,
@@ -424,6 +424,11 @@ export async function buildCodexMigrationPlan(
     );
   }
   const warnings = [
+    ...(!ctx.includeSecrets && items.some((item) => item.kind === "auth")
+      ? [
+          "Auth credentials were detected but skipped. Re-run interactively or pass --include-secrets to import supported credentials.",
+        ]
+      : []),
     ...(items.some((item) => item.status === "conflict")
       ? [
           "Conflicts were found. Re-run with --overwrite to replace conflicting migration targets after item-level backups.",
@@ -448,8 +453,8 @@ export async function buildCodexMigrationPlan(
     items,
     warnings,
     nextSteps: [
-      "Run astroclaw doctor after applying the migration.",
-      "Review skipped or auth-required Codex plugin/config/hook items before exposing them in Astroclaw sessions.",
+      "Run openclaw doctor after applying the migration.",
+      "Review skipped or auth-required Codex plugin/config/hook items before exposing them in OpenClaw sessions.",
     ],
     metadata: {
       agentDir: targets.agentDir,
