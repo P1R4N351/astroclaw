@@ -1,8 +1,9 @@
+// Opencode tests cover index plugin behavior.
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { expectPassthroughReplayPolicy } from "astroclaw/plugin-sdk/provider-test-contracts";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { expectPassthroughReplayPolicy } from "openclaw/plugin-sdk/provider-test-contracts";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
