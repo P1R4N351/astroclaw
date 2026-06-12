@@ -1,3 +1,4 @@
+// Qqbot tests cover inbound pipeline.self echo plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { QQBotInboundAccess } from "../adapter/index.js";
 import type { RefIndexEntry } from "../ref/types.js";
@@ -88,10 +89,10 @@ function makeRuntime(): GatewayPluginRuntime {
         resolveEnvelopeFormatOptions: vi.fn(() => ({})),
       },
       session: {
-        resolveStorePath: vi.fn(() => "/tmp/astroclaw/qqbot-sessions.json"),
+        resolveStorePath: vi.fn(() => "/tmp/openclaw/qqbot-sessions.json"),
         recordInboundSession: vi.fn(async () => undefined),
       },
-      turn: {
+      inbound: {
         run: vi.fn(async (rawParams: unknown) => {
           const params = rawParams as {
             raw: unknown;
