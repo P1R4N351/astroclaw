@@ -1,3 +1,5 @@
+// Covers gateway TLS loading, fingerprint reporting, generated certificate
+// paths, and error handling for missing or invalid material.
 import { X509Certificate } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -7,7 +9,7 @@ import { normalizeFingerprint } from "./fingerprint.js";
 import { loadGatewayTlsRuntime } from "./gateway.js";
 
 const tempDirs = createTrackedTempDirs();
-const createTempDir = () => tempDirs.make("astroclaw-gateway-tls-test-");
+const createTempDir = () => tempDirs.make("openclaw-gateway-tls-test-");
 
 const KEY_PEM = [
   "-----BEGIN PRIVATE KEY-----", // pragma: allowlist secret
