@@ -1,3 +1,4 @@
+// Browser tests cover profiles plugin behavior.
 import { describe, expect, it } from "vitest";
 import { resolveBrowserConfig } from "./config.js";
 import {
@@ -12,7 +13,7 @@ import {
 } from "./profiles.js";
 
 describe("profile name validation", () => {
-  it.each(["astroclaw", "work", "my-profile", "test123", "a", "a-b-c-1-2-3", "1test"])(
+  it.each(["openclaw", "work", "my-profile", "test123", "a", "a-b-c-1-2-3", "1test"])(
     "accepts valid lowercase name: %s",
     (name) => {
       expect(isValidProfileName(name)).toBe(true);
@@ -21,10 +22,8 @@ describe("profile name validation", () => {
 
   it("rejects empty or missing names", () => {
     expect(isValidProfileName("")).toBe(false);
-    // @ts-expect-error testing invalid input
-    expect(isValidProfileName(null)).toBe(false);
-    // @ts-expect-error testing invalid input
-    expect(isValidProfileName(undefined)).toBe(false);
+    expect(isValidProfileName(null as unknown as string)).toBe(false);
+    expect(isValidProfileName(undefined as unknown as string)).toBe(false);
   });
 
   it("rejects names that are too long", () => {
@@ -91,6 +90,11 @@ describe("port allocation", () => {
     }
     expect(allocateCdpPort(usedPorts)).toBeNull();
   });
+
+  it("rejects fractional or out-of-range allocation ranges", () => {
+    expect(allocateCdpPort(new Set(), { start: 20000.5, end: 20002 })).toBeNull();
+    expect(allocateCdpPort(new Set(), { start: 20000, end: 65536 })).toBeNull();
+  });
 });
 
 describe("getUsedPorts", () => {
@@ -100,7 +104,7 @@ describe("getUsedPorts", () => {
 
   it("extracts ports from profile configs", () => {
     const profiles = {
-      astroclaw: { cdpPort: 18792 },
+      openclaw: { cdpPort: 18792 },
       work: { cdpPort: 18793 },
       personal: { cdpPort: 18795 },
     };
@@ -120,9 +124,21 @@ describe("getUsedPorts", () => {
   it("ignores invalid cdpUrl values", () => {
     const profiles = {
       bad: { cdpUrl: "notaurl" },
+      portZero: { cdpUrl: "http://127.0.0.1:0" },
     };
     const used = getUsedPorts(profiles);
     expect(used.size).toBe(0);
+  });
+
+  it("ignores invalid numeric cdpPort values", () => {
+    const profiles = {
+      fractional: { cdpPort: 18800.5 },
+      zero: { cdpPort: 0 },
+      outOfRange: { cdpPort: 65536 },
+      valid: { cdpPort: 18801 },
+    };
+    const used = getUsedPorts(profiles);
+    expect(used).toEqual(new Set([18801]));
   });
 });
 
@@ -137,7 +153,7 @@ describe("port collision prevention", () => {
     // Raw config shows empty - no ports used
     expect(usedFromRaw.size).toBe(0);
 
-    // But resolved config has implicit astroclaw at 18800
+    // But resolved config has implicit openclaw at 18800
     const resolved = resolveBrowserConfig({});
     const usedFromResolved = getUsedPorts(resolved.profiles);
     expect(usedFromResolved.has(CDP_PORT_RANGE_START)).toBe(true);
@@ -156,7 +172,7 @@ describe("port collision prevention", () => {
     // Raw config: first allocation gets 18800
     expect(buggyAllocatedPort).toBe(CDP_PORT_RANGE_START);
 
-    // Resolved config: includes implicit astroclaw at 18800
+    // Resolved config: includes implicit openclaw at 18800
     const resolved = resolveBrowserConfig(
       rawConfig.browser as Parameters<typeof resolveBrowserConfig>[0],
     );
@@ -227,7 +243,7 @@ describe("getUsedColors", () => {
 
   it("extracts and uppercases colors from profile configs", () => {
     const profiles = {
-      astroclaw: { color: "#ff4500" },
+      openclaw: { color: "#ff4500" },
       work: { color: "#0066CC" },
     };
     const used = getUsedColors(profiles);
