@@ -1,5 +1,6 @@
-import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { resolveOAuthApiKeyMarker } from "astroclaw/plugin-sdk/provider-auth";
+// Chutes tests cover implicit provider plugin behavior.
+import { registerSingleProviderPlugin } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { resolveOAuthApiKeyMarker } from "openclaw/plugin-sdk/provider-auth";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import plugin from "./index.js";
 import { CHUTES_BASE_URL } from "./models.js";
@@ -100,8 +101,10 @@ describe("chutes implicit provider auth mode", () => {
 
       const chutesCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes("chutes.ai"));
       expect(chutesCalls.length).toBeGreaterThan(0);
-      const request = chutesCalls[0]?.[1] as { headers?: Record<string, string> } | undefined;
-      expect(request?.headers?.Authorization).toBe("Bearer my-chutes-access-token");
+      const request = chutesCalls[0]?.[1] as { headers?: HeadersInit } | undefined;
+      expect(new Headers(request?.headers).get("authorization")).toBe(
+        "Bearer my-chutes-access-token",
+      );
     });
   });
 });
