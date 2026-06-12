@@ -1,3 +1,4 @@
+// Tests core command dispatch, aliases, authorization, and handler outcomes.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HookRunner } from "../../plugins/hooks.js";
 import type { HandleCommandsParams } from "./commands-types.js";
@@ -66,7 +67,7 @@ describe("emitResetCommandHooks", () => {
       previousSessionEntry: {
         sessionId: "prev-session",
       } as HandleCommandsParams["previousSessionEntry"],
-      workspaceDir: "/tmp/astroclaw-workspace",
+      workspaceDir: "/tmp/openclaw-workspace",
     });
 
     expect(hookRunnerMocks.runBeforeReset).toHaveBeenCalledTimes(1);
@@ -94,7 +95,7 @@ describe("emitResetCommandHooks", () => {
     expect(ctx?.agentId).toBe("navi");
     expect(ctx?.sessionKey).toBe("agent:navi:main");
     expect(ctx?.sessionId).toBe("prev-session");
-    expect(ctx?.workspaceDir).toBe("/tmp/astroclaw-workspace");
+    expect(ctx?.workspaceDir).toBe("/tmp/openclaw-workspace");
   });
 
   it("falls back to main when the reset hook has no session key", async () => {
@@ -102,7 +103,7 @@ describe("emitResetCommandHooks", () => {
     expect(ctx?.agentId).toBe("main");
     expect(ctx?.sessionKey).toBeUndefined();
     expect(ctx?.sessionId).toBe("prev-session");
-    expect(ctx?.workspaceDir).toBe("/tmp/astroclaw-workspace");
+    expect(ctx?.workspaceDir).toBe("/tmp/openclaw-workspace");
   });
 
   it("keeps the main-agent path on the main agent workspace", async () => {
@@ -110,7 +111,7 @@ describe("emitResetCommandHooks", () => {
     expect(ctx?.agentId).toBe("main");
     expect(ctx?.sessionKey).toBe("agent:main:main");
     expect(ctx?.sessionId).toBe("prev-session");
-    expect(ctx?.workspaceDir).toBe("/tmp/astroclaw-workspace");
+    expect(ctx?.workspaceDir).toBe("/tmp/openclaw-workspace");
   });
 
   it("recovers the archived transcript when the original reset transcript path is gone", async () => {
@@ -142,7 +143,7 @@ describe("emitResetCommandHooks", () => {
         sessionId: "prev-session",
         sessionFile: "/tmp/prev-session.jsonl",
       } as HandleCommandsParams["previousSessionEntry"],
-      workspaceDir: "/tmp/astroclaw-workspace",
+      workspaceDir: "/tmp/openclaw-workspace",
     });
 
     await vi.waitFor(() => expect(hookRunnerMocks.runBeforeReset).toHaveBeenCalledTimes(1));
