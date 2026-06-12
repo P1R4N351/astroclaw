@@ -1,3 +1,4 @@
+// OpenAI-compatible speech provider tests cover speech request and file output.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createOpenAiCompatibleSpeechProvider } from "./openai-compatible-speech-provider.js";
 
@@ -28,7 +29,7 @@ const {
   })),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-http", () => ({
+vi.mock("openclaw/plugin-sdk/provider-http", () => ({
   assertOkOrThrowHttpError: assertOkOrThrowHttpErrorMock,
   postJsonRequest: postJsonRequestMock,
   readProviderBinaryResponse: readProviderBinaryResponseMock,
@@ -76,6 +77,7 @@ describe("createOpenAiCompatibleSpeechProvider", () => {
       },
     });
 
+    expect(provider.defaultModel).toBe("demo-tts");
     expect(
       provider.resolveConfig?.({
         cfg: {} as never,
