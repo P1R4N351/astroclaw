@@ -1,3 +1,4 @@
+// Wizard i18n tests cover locale lookup and fallback behavior.
 import { describe, expect, it } from "vitest";
 import {
   WIZARD_SUPPORTED_LOCALES,
@@ -18,10 +19,10 @@ describe("wizard i18n", () => {
     expect(resolveWizardLocale("de_DE.UTF-8")).toBe("en");
   });
 
-  it("uses ASTROCLAW_LOCALE before process locale variables", () => {
+  it("uses OPENCLAW_LOCALE before process locale variables", () => {
     expect(
       resolveWizardLocaleFromEnv({
-        ASTROCLAW_LOCALE: "zh-TW",
+        OPENCLAW_LOCALE: "zh-TW",
         LC_ALL: "zh-CN",
         LANG: "en-US",
       }),
