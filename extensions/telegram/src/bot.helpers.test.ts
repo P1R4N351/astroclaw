@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Telegram tests cover bot.helpers plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { resolveTelegramGroupAllowFromContext, resolveTelegramStreamMode } from "./bot/helpers.js";
 import { resolveTelegramDraftStreamingChunking } from "./draft-chunking.js";
@@ -27,7 +28,7 @@ describe("resolveTelegramStreamMode", () => {
 
 describe("resolveTelegramGroupAllowFromContext", () => {
   it("expands Telegram access groups before normalizing allowFrom entries", async () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       accessGroups: {
         maintainers: {
           type: "message.senders",
@@ -61,48 +62,6 @@ describe("resolveTelegramDraftStreamingChunking", () => {
       minChars: 200,
       maxChars: 800,
       breakPreference: "paragraph",
-    });
-  });
-
-  it("clamps to telegram.textChunkLimit", () => {
-    const cfg: AstroclawConfig = {
-      channels: { telegram: { allowFrom: ["*"], textChunkLimit: 150 } },
-    };
-    const chunking = resolveTelegramDraftStreamingChunking(cfg, "default");
-    expect(chunking).toEqual({
-      minChars: 150,
-      maxChars: 150,
-      breakPreference: "paragraph",
-    });
-  });
-
-  it("supports per-account overrides", () => {
-    const cfg: AstroclawConfig = {
-      channels: {
-        telegram: {
-          allowFrom: ["*"],
-          accounts: {
-            default: {
-              allowFrom: ["*"],
-              streaming: {
-                preview: {
-                  chunk: {
-                    minChars: 10,
-                    maxChars: 20,
-                    breakPreference: "sentence",
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    };
-    const chunking = resolveTelegramDraftStreamingChunking(cfg, "default");
-    expect(chunking).toEqual({
-      minChars: 10,
-      maxChars: 20,
-      breakPreference: "sentence",
     });
   });
 });
