@@ -1,3 +1,4 @@
+// Extension runtime dependency contract tests cover runtime dependency placement for extensions.
 import fs from "node:fs";
 import { builtinModules } from "node:module";
 import path from "node:path";
@@ -21,8 +22,7 @@ const OPTIONAL_UNDECLARED_RUNTIME_IMPORTS = new Map<string, Set<string>>([
   ],
   [
     "extensions/discord",
-    // Prefer the pure-JS opusscript decoder, but keep the optional native decoder
-    // fallback for users who install it themselves.
+    // @discordjs/voice still probes the native addon in its dependency report path.
     new Set(["@discordjs/opus"]),
   ],
 ]);
@@ -44,7 +44,7 @@ const INDIRECT_RUNTIME_DEPENDENCIES = new Map<string, Set<string>>([
   ],
   [
     "extensions/memory-core",
-    // Packaged memory tools run through generated Astroclaw runtime chunks that parse JSON5 config.
+    // Packaged memory tools run through generated OpenClaw runtime chunks that parse JSON5 config.
     new Set(["json5"]),
   ],
   [
@@ -158,7 +158,7 @@ function listRuntimeFiles(root: string): string[] {
 }
 
 function readManifestText(root: string): string {
-  const manifestPath = path.join(root, "astroclaw.plugin.json");
+  const manifestPath = path.join(root, "openclaw.plugin.json");
   const resolvedManifestPath = path.resolve(REPO_ROOT, manifestPath);
   return fs.existsSync(resolvedManifestPath) ? fs.readFileSync(resolvedManifestPath, "utf8") : "";
 }
@@ -237,7 +237,6 @@ function allDependencyNames(manifest: PackageManifest): string[] {
 function isDiscordPackageDependency(dependencyName: string): boolean {
   return (
     dependencyName === "discord-api-types" ||
-    dependencyName === "opusscript" ||
     dependencyName.startsWith("@discordjs/") ||
     dependencyName.startsWith("@snazzah/")
   );
@@ -298,8 +297,8 @@ describe("extension runtime dependency manifests", () => {
       for (const filePath of listRuntimeFiles(extensionDir)) {
         for (const packageName of collectRuntimeImports(filePath)) {
           if (
-            packageName === "astroclaw" ||
-            packageName.startsWith("@astroclaw/") ||
+            packageName === "openclaw" ||
+            packageName.startsWith("@openclaw/") ||
             BUILTIN_MODULES.has(packageName) ||
             declared.has(packageName) ||
             allowedOptional.has(packageName)
