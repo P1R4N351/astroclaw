@@ -1,14 +1,24 @@
+// Browser tests cover browser cli.lazy plugin behavior.
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const manageMocks = vi.hoisted(() => {
   const doctorAction = vi.fn();
   const openAction = vi.fn();
+  const startAction = vi.fn();
   const statusAction = vi.fn();
+  const tabNewAction = vi.fn();
   const tabsAction = vi.fn();
   const registerBrowserManageCommands = vi.fn((browser: Command) => {
+    browser.command("start").description("Start browser").action(startAction);
     browser.command("status").description("Show browser status").action(statusAction);
     browser.command("tabs").description("List tabs").action(tabsAction);
+    browser
+      .command("tab")
+      .description("Tab shortcuts")
+      .command("new")
+      .description("Open a new tab")
+      .action(tabNewAction);
     browser.command("open").description("Open URL").argument("<url>").action(openAction);
     browser
       .command("doctor")
@@ -16,7 +26,15 @@ const manageMocks = vi.hoisted(() => {
       .option("--deep", "Run a live snapshot probe")
       .action(doctorAction);
   });
-  return { doctorAction, openAction, registerBrowserManageCommands, statusAction, tabsAction };
+  return {
+    doctorAction,
+    openAction,
+    registerBrowserManageCommands,
+    startAction,
+    statusAction,
+    tabNewAction,
+    tabsAction,
+  };
 });
 const inspectMocks = vi.hoisted(() => ({
   registerBrowserInspectCommands: vi.fn(),
@@ -68,7 +86,9 @@ describe("registerBrowserCli lazy browser subcommands", () => {
     manageMocks.registerBrowserManageCommands.mockClear();
     manageMocks.doctorAction.mockClear();
     manageMocks.openAction.mockClear();
+    manageMocks.startAction.mockClear();
     manageMocks.statusAction.mockClear();
+    manageMocks.tabNewAction.mockClear();
     manageMocks.tabsAction.mockClear();
     inspectMocks.registerBrowserInspectCommands.mockClear();
     actionInputMocks.registerBrowserActionInputCommands.mockClear();
@@ -83,9 +103,9 @@ describe("registerBrowserCli lazy browser subcommands", () => {
 
   it("registers browser placeholders without loading handlers for help", () => {
     const program = new Command();
-    program.name("astroclaw");
+    program.name("openclaw");
 
-    registerBrowserCli(program, ["node", "astroclaw", "browser", "--help"]);
+    registerBrowserCli(program, ["node", "openclaw", "browser", "--help"]);
 
     const browser = program.commands.find((command) => command.name() === "browser");
     expect(browser?.commands.map((command) => command.name())).toContain("status");
@@ -102,9 +122,9 @@ describe("registerBrowserCli lazy browser subcommands", () => {
 
   it("registers only the requested browser group before dispatch", async () => {
     const program = new Command();
-    program.name("astroclaw");
+    program.name("openclaw");
 
-    registerBrowserCli(program, ["node", "astroclaw", "browser", "status"]);
+    registerBrowserCli(program, ["node", "openclaw", "browser", "status"]);
 
     const browser = program.commands.find((command) => command.name() === "browser");
     expect(browser?.commands.map((command) => command.name())).toEqual(["status"]);
@@ -118,9 +138,9 @@ describe("registerBrowserCli lazy browser subcommands", () => {
 
   it("loads browser doctor from the manage group so --deep is available", async () => {
     const program = new Command();
-    program.name("astroclaw");
+    program.name("openclaw");
 
-    registerBrowserCli(program, ["node", "astroclaw", "browser", "doctor", "--deep"]);
+    registerBrowserCli(program, ["node", "openclaw", "browser", "doctor", "--deep"]);
 
     await program.parseAsync(["browser", "doctor", "--deep"], { from: "user" });
 
@@ -133,9 +153,9 @@ describe("registerBrowserCli lazy browser subcommands", () => {
 
   it("preserves parent --json while reparsing lazy manage commands", async () => {
     const program = new Command();
-    program.name("astroclaw");
+    program.name("openclaw");
 
-    registerBrowserCli(program, ["node", "astroclaw", "browser", "--json", "open", "about:blank"]);
+    registerBrowserCli(program, ["node", "openclaw", "browser", "--json", "open", "about:blank"]);
 
     await program.parseAsync(["browser", "--json", "open", "about:blank"], { from: "user" });
 
@@ -147,8 +167,8 @@ describe("registerBrowserCli lazy browser subcommands", () => {
     expect(openCommand.parent?.opts().json).toBe(true);
 
     const tabsProgram = new Command();
-    tabsProgram.name("astroclaw");
-    registerBrowserCli(tabsProgram, ["node", "astroclaw", "browser", "--json", "tabs"]);
+    tabsProgram.name("openclaw");
+    registerBrowserCli(tabsProgram, ["node", "openclaw", "browser", "--json", "tabs"]);
 
     await tabsProgram.parseAsync(["browser", "--json", "tabs"], { from: "user" });
 
@@ -160,12 +180,63 @@ describe("registerBrowserCli lazy browser subcommands", () => {
     expect(tabsCommand.parent?.opts().json).toBe(true);
   });
 
-  it("can eagerly register all browser groups for compatibility", async () => {
-    vi.stubEnv("ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS", "1");
+  it("skips browser option values when selecting the lazy command group", async () => {
     const program = new Command();
-    program.name("astroclaw");
+    program.name("openclaw");
 
-    registerBrowserCli(program, ["node", "astroclaw", "browser", "--help"]);
+    registerBrowserCli(program, [
+      "node",
+      "openclaw",
+      "browser",
+      "--browser-profile",
+      "status",
+      "start",
+    ]);
+
+    const browser = program.commands.find((command) => command.name() === "browser");
+    expect(browser?.commands.map((command) => command.name())).toContain("start");
+
+    await program.parseAsync(["browser", "--browser-profile", "status", "start"], {
+      from: "user",
+    });
+
+    expect(manageMocks.registerBrowserManageCommands).toHaveBeenCalledTimes(1);
+    expect(manageMocks.startAction).toHaveBeenCalledTimes(1);
+    expect(manageMocks.statusAction).not.toHaveBeenCalled();
+  });
+
+  it("resolves browser parent options for nested commands", async () => {
+    const program = new Command();
+    program.name("openclaw");
+
+    registerBrowserCli(program, [
+      "node",
+      "openclaw",
+      "browser",
+      "--browser-profile",
+      "work",
+      "tab",
+      "new",
+    ]);
+
+    await program.parseAsync(["browser", "--browser-profile", "work", "--json", "tab", "new"], {
+      from: "user",
+    });
+
+    expect(manageMocks.tabNewAction).toHaveBeenCalledTimes(1);
+    const tabCommand = requireTrailingCommand(
+      requireFirstCall(manageMocks.tabNewAction, "tab new action call"),
+      "tab new action",
+    );
+    expect(tabCommand.parent?.parent?.opts()).toMatchObject({ browserProfile: "work", json: true });
+  });
+
+  it("can eagerly register all browser groups for compatibility", async () => {
+    vi.stubEnv("OPENCLAW_DISABLE_LAZY_SUBCOMMANDS", "1");
+    const program = new Command();
+    program.name("openclaw");
+
+    registerBrowserCli(program, ["node", "openclaw", "browser", "--help"]);
 
     await vi.waitFor(() =>
       expect(manageMocks.registerBrowserManageCommands).toHaveBeenCalledTimes(1),
