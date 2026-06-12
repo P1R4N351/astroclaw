@@ -1,3 +1,4 @@
+// Browser tests cover security audit plugin behavior.
 import { describe, expect, it } from "vitest";
 import { collectBrowserSecurityAuditFindings } from "./security-audit.js";
 
@@ -8,8 +9,8 @@ function collectFindings(
     config,
     sourceConfig: config,
     env: {} as NodeJS.ProcessEnv,
-    stateDir: "/tmp/astroclaw-state",
-    configPath: "/tmp/astroclaw.json",
+    stateDir: "/tmp/openclaw-state",
+    configPath: "/tmp/openclaw.json",
   });
 }
 
