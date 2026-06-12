@@ -1,9 +1,11 @@
+// Google Meet tests cover cli plugin behavior.
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Command } from "commander";
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
-import { registerGoogleMeetCli } from "./cli.js";
+import { registerGoogleMeetCli, testing } from "./cli.js";
 import { resolveGoogleMeetConfig } from "./config.js";
 import type { GoogleMeetRuntime } from "./runtime.js";
 
@@ -22,8 +24,8 @@ const fetchGuardMocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>();
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>();
   return {
     ...actual,
     fetchWithSsrFGuard: fetchGuardMocks.fetchWithSsrFGuard,
@@ -240,7 +242,7 @@ describe("google-meet CLI", () => {
   });
 
   afterAll(() => {
-    vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
+    vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
     vi.resetModules();
   });
 
@@ -500,9 +502,34 @@ describe("google-meet CLI", () => {
     }
   });
 
+  it.each(["0", "1.5", "9007199254740993"])(
+    "rejects invalid Meet API page sizes: %s",
+    async (pageSize) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(
+        setupCli({}).parseAsync(
+          [
+            "googlemeet",
+            "artifacts",
+            "--access-token",
+            "token",
+            "--conference-record",
+            "rec-1",
+            "--page-size",
+            pageSize,
+          ],
+          { from: "user" },
+        ),
+      ).rejects.toThrow("page-size must be a positive integer");
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
   it("prints markdown artifact and attendance output", async () => {
     stubMeetArtifactsApi();
-    const tempDir = mkdtempSync(path.join(tmpdir(), "astroclaw-google-meet-artifacts-"));
+    const tempDir = mkdtempSync(path.join(tmpdir(), "openclaw-google-meet-artifacts-"));
     const outputPath = path.join(tempDir, "artifacts.md");
     const artifactsStdout = captureStdout();
 
@@ -592,7 +619,7 @@ describe("google-meet CLI", () => {
   it("writes an export bundle", async () => {
     stubMeetArtifactsApi();
     const stdout = captureStdout();
-    const tempDir = mkdtempSync(path.join(tmpdir(), "astroclaw-google-meet-export-"));
+    const tempDir = mkdtempSync(path.join(tmpdir(), "openclaw-google-meet-export-"));
 
     try {
       await setupCli({}).parseAsync(
@@ -658,7 +685,7 @@ describe("google-meet CLI", () => {
   it("includes artifact warnings in export summaries and manifests", async () => {
     stubMeetArtifactsApi({ failSmartNoteDocumentBody: true });
     const stdout = captureStdout();
-    const tempDir = mkdtempSync(path.join(tmpdir(), "astroclaw-google-meet-export-warning-"));
+    const tempDir = mkdtempSync(path.join(tmpdir(), "openclaw-google-meet-export-warning-"));
 
     try {
       await setupCli({}).parseAsync(
@@ -954,10 +981,56 @@ describe("google-meet CLI", () => {
     }
   });
 
+  it.each(["0x10", "1e3"])("rejects non-decimal listen timeouts: %s", async (timeoutMs) => {
+    const testListen = vi.fn();
+
+    await expect(
+      setupCli({
+        runtime: { testListen },
+      }).parseAsync(
+        [
+          "googlemeet",
+          "test-listen",
+          "https://meet.google.com/abc-defg-hij",
+          "--timeout-ms",
+          timeoutMs,
+        ],
+        { from: "user" },
+      ),
+    ).rejects.toThrow("timeout-ms must be a positive number");
+
+    expect(testListen).not.toHaveBeenCalled();
+  });
+
+  it.each(["0", "-1", "1e3"])("rejects invalid auth callback timeouts: %s", async (timeoutSec) => {
+    await expect(
+      setupCli({}).parseAsync(
+        ["googlemeet", "auth", "login", "--client-id", "client-id", "--timeout-sec", timeoutSec],
+        { from: "user" },
+      ),
+    ).rejects.toThrow("timeout-sec must be a positive number");
+  });
+
+  it("caps auth callback timeout seconds", () => {
+    expect(testing.resolveGoogleMeetOAuthCallbackTimeoutMs(undefined)).toBe(300_000);
+    expect(testing.resolveGoogleMeetOAuthCallbackTimeoutMs("1.5")).toBe(1_500);
+    expect(testing.resolveGoogleMeetOAuthCallbackTimeoutMs(String(Number.MAX_SAFE_INTEGER))).toBe(
+      MAX_TIMER_TIMEOUT_MS,
+    );
+  });
+
+  it("caps gateway command timeout milliseconds", () => {
+    expect(testing.resolveGoogleMeetGatewayTimeoutMs(undefined)).toBe(5_000);
+    expect(testing.resolveGoogleMeetGatewayTimeoutMs(1.5)).toBe(2);
+    expect(testing.resolveGoogleMeetGatewayTimeoutMs(Number.MAX_SAFE_INTEGER)).toBe(
+      MAX_TIMER_TIMEOUT_MS,
+    );
+  });
+
   it("prints a dry-run export manifest without writing files", async () => {
     stubMeetArtifactsApi();
     const stdout = captureStdout();
-    const parentDir = mkdtempSync(path.join(tmpdir(), "astroclaw-google-meet-export-dry-run-"));
+    const parentDir = mkdtempSync(path.join(tmpdir(), "openclaw-google-meet-export-dry-run-"));
     const outputDir = path.join(parentDir, "bundle");
 
     try {
@@ -1035,7 +1108,7 @@ describe("google-meet CLI", () => {
                   transcriptLines: 2,
                   lastCaptionAt: "2026-04-25T00:00:03.000Z",
                   lastCaptionSpeaker: "Alice",
-                  lastCaptionText: "Can everyone hear Astroclaw?",
+                  lastCaptionText: "Can everyone hear OpenClaw?",
                   providerConnected: true,
                   realtimeReady: true,
                   audioInputActive: true,
@@ -1055,7 +1128,7 @@ describe("google-meet CLI", () => {
       expect(stdout.output()).toContain("provider connected: yes");
       expect(stdout.output()).toContain("captioning: yes");
       expect(stdout.output()).toContain("transcript lines: 2");
-      expect(stdout.output()).toContain("last caption text: Alice: Can everyone hear Astroclaw?");
+      expect(stdout.output()).toContain("last caption text: Alice: Can everyone hear OpenClaw?");
       expect(stdout.output()).toContain("audio input active: yes");
       expect(stdout.output()).toContain("audio output active: no");
     } finally {
@@ -1217,10 +1290,10 @@ describe("google-meet CLI", () => {
               inCall: false,
               manualActionRequired: true,
               manualActionReason: "meet-admission-required",
-              manualActionMessage: "Admit the Astroclaw browser participant in Google Meet.",
+              manualActionMessage: "Admit the OpenClaw browser participant in Google Meet.",
               browserUrl: "https://meet.google.com/abc-defg-hij",
             },
-            message: "Admit the Astroclaw browser participant in Google Meet.",
+            message: "Admit the OpenClaw browser participant in Google Meet.",
           }),
         },
       }).parseAsync(["googlemeet", "recover-tab"], { from: "user" });
