@@ -1,10 +1,11 @@
+// Covers plugin discovery from manifests, installs, and config.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { bundledDistPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
-import { discoverAstroclawPlugins } from "./discovery.js";
+import { discoverOpenClawPlugins } from "./discovery.js";
 import { listBuiltRuntimeEntryCandidates } from "./package-entrypoints.js";
 import {
   cleanupTrackedTempDirs,
@@ -17,14 +18,14 @@ vi.mock("./bundled-dir.js", async (importOriginal) => {
   return {
     ...actual,
     resolveBundledPluginsDir: (env: NodeJS.ProcessEnv = process.env) =>
-      env.ASTROCLAW_BUNDLED_PLUGINS_DIR ?? actual.resolveBundledPluginsDir(env),
+      env.OPENCLAW_BUNDLED_PLUGINS_DIR ?? actual.resolveBundledPluginsDir(env),
   };
 });
 
 const tempDirs: string[] = [];
 
 function makeTempDir() {
-  return makeTrackedTempDir("astroclaw-plugins", tempDirs);
+  return makeTrackedTempDir("openclaw-plugins", tempDirs);
 }
 
 const mkdirSafe = mkdirSafeDir;
@@ -39,11 +40,11 @@ function countMatching<T>(items: readonly T[], predicate: (item: T) => boolean):
   return count;
 }
 
-function withAstroclawPackageArgv<T>(packageRoot: string, fn: () => T): T {
+function withOpenClawPackageArgv<T>(packageRoot: string, fn: () => T): T {
   mkdirSafe(path.join(packageRoot, "bin"));
-  fs.writeFileSync(path.join(packageRoot, "package.json"), '{"name":"astroclaw"}\n', "utf-8");
+  fs.writeFileSync(path.join(packageRoot, "package.json"), '{"name":"openclaw"}\n', "utf-8");
   const originalArgv = process.argv;
-  process.argv = [originalArgv[0] ?? "node", path.join(packageRoot, "bin", "astroclaw")];
+  process.argv = [originalArgv[0] ?? "node", path.join(packageRoot, "bin", "openclaw")];
   try {
     return fn();
   } finally {
@@ -56,7 +57,7 @@ function symlinkDirectory(target: string, linkPath: string): void {
 }
 
 const canCreateDirectorySymlinks = (() => {
-  const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-symlink-probe-"));
+  const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-symlink-probe-"));
   const targetDir = path.join(probeDir, "target");
   const linkDir = path.join(probeDir, "link");
   try {
@@ -91,10 +92,10 @@ function buildDiscoveryEnv(stateDir: string): NodeJS.ProcessEnv {
   const bundledPluginsDir = path.join(stateDir, "empty-bundled-plugins");
   mkdirSafe(bundledPluginsDir);
   return {
-    ASTROCLAW_STATE_DIR: stateDir,
-    ASTROCLAW_HOME: undefined,
-    ASTROCLAW_DISABLE_BUNDLED_PLUGINS: "1",
-    ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledPluginsDir,
+    OPENCLAW_STATE_DIR: stateDir,
+    OPENCLAW_HOME: undefined,
+    OPENCLAW_DISABLE_BUNDLED_PLUGINS: "1",
+    OPENCLAW_BUNDLED_PLUGINS_DIR: bundledPluginsDir,
   };
 }
 
@@ -103,11 +104,11 @@ function buildDiscoveryEnvWithOverrides(
   overrides: Partial<NodeJS.ProcessEnv> = {},
 ): NodeJS.ProcessEnv {
   const enablesBundledOverride =
-    Object.prototype.hasOwnProperty.call(overrides, "ASTROCLAW_BUNDLED_PLUGINS_DIR") &&
-    overrides.ASTROCLAW_BUNDLED_PLUGINS_DIR !== undefined;
+    Object.hasOwn(overrides, "OPENCLAW_BUNDLED_PLUGINS_DIR") &&
+    overrides.OPENCLAW_BUNDLED_PLUGINS_DIR !== undefined;
   return {
     ...buildDiscoveryEnv(stateDir),
-    ...(enablesBundledOverride ? { ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined } : {}),
+    ...(enablesBundledOverride ? { OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined } : {}),
     ...overrides,
   };
 }
@@ -115,20 +116,20 @@ function buildDiscoveryEnvWithOverrides(
 function buildBundledDiscoveryEnv(stateDir: string): NodeJS.ProcessEnv {
   return {
     ...buildDiscoveryEnv(stateDir),
-    ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-    ASTROCLAW_BUNDLED_PLUGINS_DIR: undefined,
+    OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+    OPENCLAW_BUNDLED_PLUGINS_DIR: undefined,
   };
 }
 
 async function discoverWithStateDir(
   stateDir: string,
-  params: Parameters<typeof discoverAstroclawPlugins>[0],
+  params: Parameters<typeof discoverOpenClawPlugins>[0],
 ) {
-  return discoverAstroclawPlugins({ ...params, env: buildDiscoveryEnv(stateDir) });
+  return discoverOpenClawPlugins({ ...params, env: buildDiscoveryEnv(stateDir) });
 }
 
-function discoverWithEnv(params: Parameters<typeof discoverAstroclawPlugins>[0]) {
-  return discoverAstroclawPlugins(params);
+function discoverWithEnv(params: Parameters<typeof discoverOpenClawPlugins>[0]) {
+  return discoverOpenClawPlugins(params);
 }
 
 function writePluginPackageManifest(params: {
@@ -138,27 +139,34 @@ function writePluginPackageManifest(params: {
   runtimeExtensions?: string[];
   setupEntry?: string;
   runtimeSetupEntry?: string;
+  compatPluginApi?: string;
 }) {
   fs.writeFileSync(
     path.join(params.packageDir, "package.json"),
     JSON.stringify({
       name: params.packageName,
-      astroclaw: {
+      openclaw: {
         extensions: params.extensions,
         ...(params.runtimeExtensions ? { runtimeExtensions: params.runtimeExtensions } : {}),
         ...(params.setupEntry ? { setupEntry: params.setupEntry } : {}),
         ...(params.runtimeSetupEntry ? { runtimeSetupEntry: params.runtimeSetupEntry } : {}),
+        ...(params.compatPluginApi ? { compat: { pluginApi: params.compatPluginApi } } : {}),
       },
     }),
     "utf-8",
   );
 }
 
-function writePluginManifest(params: { pluginDir: string; id: string }) {
+function writePluginManifest(params: {
+  pluginDir: string;
+  id: string;
+  requiresPlugins?: string[];
+}) {
   fs.writeFileSync(
-    path.join(params.pluginDir, "astroclaw.plugin.json"),
+    path.join(params.pluginDir, "openclaw.plugin.json"),
     JSON.stringify({
       id: params.id,
+      ...(params.requiresPlugins ? { requiresPlugins: params.requiresPlugins } : {}),
       configSchema: { type: "object" },
     }),
     "utf-8",
@@ -193,12 +201,14 @@ function createPackagePlugin(params: {
   packageName: string;
   extensions: string[];
   pluginId?: string;
+  compatPluginApi?: string;
 }) {
   mkdirSafe(params.packageDir);
   writePluginPackageManifest({
     packageDir: params.packageDir,
     packageName: params.packageName,
     extensions: params.extensions,
+    ...(params.compatPluginApi ? { compatPluginApi: params.compatPluginApi } : {}),
   });
   if (params.pluginId) {
     writePluginManifest({ pluginDir: params.packageDir, id: params.pluginId });
@@ -211,6 +221,7 @@ function createPackagePluginWithEntry(params: {
   pluginId?: string;
   entryPath?: string;
   writeBuiltRuntime?: boolean;
+  compatPluginApi?: string;
 }) {
   const entryPath = params.entryPath ?? "src/index.ts";
   mkdirSafe(path.dirname(path.join(params.packageDir, entryPath)));
@@ -219,6 +230,7 @@ function createPackagePluginWithEntry(params: {
     packageName: params.packageName,
     extensions: [`./${entryPath}`],
     ...(params.pluginId ? { pluginId: params.pluginId } : {}),
+    ...(params.compatPluginApi ? { compatPluginApi: params.compatPluginApi } : {}),
   });
   writePluginEntry(path.join(params.packageDir, entryPath));
   if (params.writeBuiltRuntime ?? listBuiltRuntimeEntryCandidates(entryPath).length > 0) {
@@ -356,7 +368,7 @@ function expectCandidateFields(
 }
 
 function expectCandidatePresence(
-  result: Awaited<ReturnType<typeof discoverAstroclawPlugins>>,
+  result: Awaited<ReturnType<typeof discoverOpenClawPlugins>>,
   params: { present?: readonly string[]; absent?: readonly string[] },
 ) {
   const ids = result.candidates.map((candidate) => candidate.idHint);
@@ -454,21 +466,95 @@ afterEach(() => {
   cleanupTrackedTempDirs(tempDirs);
 });
 
-describe("discoverAstroclawPlugins", () => {
+describe("discoverOpenClawPlugins", () => {
   it("discovers global and workspace extensions", async () => {
     const stateDir = makeTempDir();
     const workspaceDir = path.join(stateDir, "workspace");
 
-    const globalExt = path.join(stateDir, "extensions");
-    mkdirSafe(globalExt);
-    fs.writeFileSync(path.join(globalExt, "alpha.ts"), "export default function () {}", "utf-8");
-
-    const workspaceExt = path.join(workspaceDir, ".astroclaw", "extensions");
-    mkdirSafe(workspaceExt);
-    fs.writeFileSync(path.join(workspaceExt, "beta.ts"), "export default function () {}", "utf-8");
+    createPackagePluginWithEntry({
+      packageDir: path.join(stateDir, "extensions", "alpha"),
+      packageName: "@openclaw/alpha",
+      pluginId: "alpha",
+    });
+    createPackagePluginWithEntry({
+      packageDir: path.join(workspaceDir, ".openclaw", "extensions", "beta"),
+      packageName: "@openclaw/beta",
+      pluginId: "beta",
+    });
 
     const { candidates } = await discoverWithStateDir(stateDir, { workspaceDir });
     expectCandidateIds(candidates, { includes: ["alpha", "beta"] });
+  });
+
+  it("ignores standalone helper scripts in auto-discovered extension roots", async () => {
+    const stateDir = makeTempDir();
+    const workspaceDir = path.join(stateDir, "workspace");
+    const globalExt = path.join(stateDir, "extensions");
+    const workspaceExt = path.join(workspaceDir, ".openclaw", "extensions");
+    mkdirSafe(globalExt);
+    mkdirSafe(workspaceExt);
+    fs.writeFileSync(path.join(globalExt, "my-helper.mjs"), "export default {}", "utf-8");
+    fs.writeFileSync(path.join(workspaceExt, "workspace-helper.js"), "export default {}", "utf-8");
+
+    const { candidates, diagnostics } = await discoverWithStateDir(stateDir, { workspaceDir });
+
+    expectCandidateIds(candidates, { excludes: ["my-helper", "workspace-helper"] });
+    expect(diagnostics).toStrictEqual([]);
+  });
+
+  it("warns without blocking when a plugin requires a missing plugin", async () => {
+    const stateDir = makeTempDir();
+    const pluginDir = path.join(stateDir, "extensions", "diffs-language-pack");
+    createPackagePluginWithEntry({
+      packageDir: pluginDir,
+      packageName: "@openclaw/diffs-language-pack",
+      pluginId: "diffs-language-pack",
+    });
+    writePluginManifest({
+      pluginDir,
+      id: "diffs-language-pack",
+      requiresPlugins: ["diffs"],
+    });
+
+    const result = await discoverWithStateDir(stateDir, {});
+
+    expectCandidatePresence(result, { present: ["diffs-language-pack"] });
+    expectDiagnostic({
+      diagnostics: result.diagnostics,
+      level: "warn",
+      pluginId: "diffs-language-pack",
+      messageIncludes: 'requires plugin "diffs"',
+    });
+  });
+
+  it("does not warn when a required plugin is discoverable", async () => {
+    const stateDir = makeTempDir();
+    const extensionsDir = path.join(stateDir, "extensions");
+    const languagePackDir = path.join(extensionsDir, "diffs-language-pack");
+    createPackagePluginWithEntry({
+      packageDir: languagePackDir,
+      packageName: "@openclaw/diffs-language-pack",
+      pluginId: "diffs-language-pack",
+    });
+    writePluginManifest({
+      pluginDir: languagePackDir,
+      id: "diffs-language-pack",
+      requiresPlugins: ["diffs"],
+    });
+    createPackagePluginWithEntry({
+      packageDir: path.join(extensionsDir, "diffs"),
+      packageName: "@openclaw/diffs",
+      pluginId: "diffs",
+    });
+
+    const result = await discoverWithStateDir(stateDir, {});
+
+    expectCandidatePresence(result, { present: ["diffs-language-pack", "diffs"] });
+    expectNoDiagnostic({
+      diagnostics: result.diagnostics,
+      pluginId: "diffs-language-pack",
+      messageIncludes: 'requires plugin "diffs"',
+    });
   });
 
   it.skipIf(!canCreateDirectorySymlinks)(
@@ -481,7 +567,7 @@ describe("discoverAstroclawPlugins", () => {
       const linkedPluginDir = path.join(stateDir, "linked-plugin-src");
       createPackagePluginWithEntry({
         packageDir: linkedPluginDir,
-        packageName: "@astroclaw/linked-plugin",
+        packageName: "@openclaw/linked-plugin",
         pluginId: "linked-plugin",
       });
 
@@ -501,13 +587,13 @@ describe("discoverAstroclawPlugins", () => {
     async () => {
       const stateDir = makeTempDir();
       const workspaceDir = path.join(stateDir, "workspace");
-      const workspaceExt = path.join(workspaceDir, ".astroclaw", "extensions");
+      const workspaceExt = path.join(workspaceDir, ".openclaw", "extensions");
       mkdirSafe(workspaceExt);
 
       const linkedPluginDir = path.join(stateDir, "workspace-linked-plugin-src");
       createPackagePluginWithEntry({
         packageDir: linkedPluginDir,
-        packageName: "@astroclaw/workspace-linked-plugin",
+        packageName: "@openclaw/workspace-linked-plugin",
         pluginId: "workspace-linked-plugin",
       });
 
@@ -540,22 +626,22 @@ describe("discoverAstroclawPlugins", () => {
   it("does not recurse arbitrary workspace directories for plugin auto-discovery", () => {
     const stateDir = makeTempDir();
     const workspaceDir = path.join(stateDir, "workspace");
-    const workspaceExt = path.join(workspaceDir, ".astroclaw", "extensions");
+    const workspaceExt = path.join(workspaceDir, ".openclaw", "extensions");
 
     const expectedWorkspacePluginDir = path.join(workspaceExt, "workspace-plugin");
     createPackagePluginWithEntry({
       packageDir: expectedWorkspacePluginDir,
-      packageName: "@astroclaw/workspace-plugin",
+      packageName: "@openclaw/workspace-plugin",
       pluginId: "workspace-plugin",
     });
 
     const unrelatedWorkspaceDir = path.join(workspaceDir, "lobster-integrations", "bin");
     createPackagePluginWithEntry({
       packageDir: unrelatedWorkspaceDir,
-      packageName: "@astroclaw/stray-workspace-plugin",
+      packageName: "@openclaw/stray-workspace-plugin",
     });
 
-    const result = discoverAstroclawPlugins({
+    const result = discoverOpenClawPlugins({
       workspaceDir,
       env: buildDiscoveryEnv(stateDir),
     });
@@ -571,11 +657,13 @@ describe("discoverAstroclawPlugins", () => {
     const stateDir = makeTempDir();
     const homeDir = makeTempDir();
     const workspaceRoot = path.join(homeDir, "workspace");
-    const workspaceExt = path.join(workspaceRoot, ".astroclaw", "extensions");
-    mkdirSafe(workspaceExt);
-    fs.writeFileSync(path.join(workspaceExt, "tilde-workspace.ts"), "export default {}", "utf-8");
+    createPackagePluginWithEntry({
+      packageDir: path.join(workspaceRoot, ".openclaw", "extensions", "tilde-workspace"),
+      packageName: "@openclaw/tilde-workspace",
+      pluginId: "tilde-workspace",
+    });
 
-    const result = discoverAstroclawPlugins({
+    const result = discoverOpenClawPlugins({
       workspaceDir: "~/workspace",
       env: {
         ...buildDiscoveryEnv(stateDir),
@@ -628,13 +716,13 @@ describe("discoverAstroclawPlugins", () => {
     );
     fs.writeFileSync(
       path.join(extensionDir, "package.json"),
-      '{"name":"@astroclaw/twitch"}\n',
+      '{"name":"@openclaw/twitch"}\n',
       "utf-8",
     );
-    fs.writeFileSync(path.join(extensionDir, "astroclaw.plugin.json"), '{"id":"twitch"}\n', "utf-8");
+    fs.writeFileSync(path.join(extensionDir, "openclaw.plugin.json"), '{"id":"twitch"}\n', "utf-8");
 
-    const result = withAstroclawPackageArgv(packageRoot, () =>
-      discoverAstroclawPlugins({ env: buildDiscoveryEnv(stateDir) }),
+    const result = withOpenClawPackageArgv(packageRoot, () =>
+      discoverOpenClawPlugins({ env: buildDiscoveryEnv(stateDir) }),
     );
 
     expect(result.diagnostics.map((entry) => entry.message).join("\n")).not.toContain(
@@ -644,7 +732,7 @@ describe("discoverAstroclawPlugins", () => {
 
   it("does not treat repo-level live or test files as plugin entrypoints", () => {
     const stateDir = makeTempDir();
-    const packageRoot = path.join(stateDir, "node_modules", "astroclaw");
+    const packageRoot = path.join(stateDir, "node_modules", "openclaw");
     const bundledDir = path.join(packageRoot, "dist", "extensions");
     mkdirSafe(bundledDir);
 
@@ -656,14 +744,18 @@ describe("discoverAstroclawPlugins", () => {
       path.join(bundledDir, "music-generation-providers.live.test.ts"),
       "export default {}",
     );
-    writeStandalonePlugin(path.join(bundledDir, "real-plugin.ts"), "export default {}");
+    createPackagePluginWithEntry({
+      packageDir: path.join(bundledDir, "real-plugin"),
+      packageName: "@openclaw/real-plugin",
+      pluginId: "real-plugin",
+    });
 
-    const { candidates, diagnostics } = withAstroclawPackageArgv(packageRoot, () =>
-      discoverAstroclawPlugins({
+    const { candidates, diagnostics } = withOpenClawPackageArgv(packageRoot, () =>
+      discoverOpenClawPlugins({
         env: {
           ...buildDiscoveryEnv(stateDir),
-          ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-          ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+          OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+          OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
         },
       }),
     );
@@ -674,20 +766,20 @@ describe("discoverAstroclawPlugins", () => {
 
   it("ignores packaged bundled plugin paths in configured load paths", () => {
     const stateDir = makeTempDir();
-    const packageRoot = path.join(stateDir, "node_modules", "astroclaw");
+    const packageRoot = path.join(stateDir, "node_modules", "openclaw");
     const bundledRoot = path.join(packageRoot, "dist", "extensions");
     const bundledPluginDir = path.join(bundledRoot, "feishu");
     mkdirSafe(bundledPluginDir);
     writePluginManifest({ pluginDir: bundledPluginDir, id: "feishu" });
     writePluginEntry(path.join(bundledPluginDir, "index.js"));
 
-    const { candidates, diagnostics } = withAstroclawPackageArgv(packageRoot, () =>
-      discoverAstroclawPlugins({
+    const { candidates, diagnostics } = withOpenClawPackageArgv(packageRoot, () =>
+      discoverOpenClawPlugins({
         extraPaths: [bundledPluginDir],
         env: {
           ...buildDiscoveryEnv(stateDir),
-          ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-          ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledRoot,
+          OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+          OPENCLAW_BUNDLED_PLUGINS_DIR: bundledRoot,
         },
       }),
     );
@@ -705,7 +797,7 @@ describe("discoverAstroclawPlugins", () => {
 
   it("ignores legacy bundled plugin load paths that would shadow packaged bundled plugins", () => {
     const stateDir = makeTempDir();
-    const packageRoot = path.join(stateDir, "node_modules", "astroclaw");
+    const packageRoot = path.join(stateDir, "node_modules", "openclaw");
     const bundledRoot = path.join(packageRoot, "dist-runtime", "extensions");
     const bundledPluginDir = path.join(bundledRoot, "telegram");
     const legacyPluginDir = path.join(packageRoot, "extensions", "telegram");
@@ -717,13 +809,13 @@ describe("discoverAstroclawPlugins", () => {
     writePluginEntry(path.join(bundledPluginDir, "index.js"));
     writePluginEntry(path.join(legacyPluginDir, "index.js"));
 
-    const { candidates, diagnostics } = withAstroclawPackageArgv(packageRoot, () =>
-      discoverAstroclawPlugins({
+    const { candidates, diagnostics } = withOpenClawPackageArgv(packageRoot, () =>
+      discoverOpenClawPlugins({
         extraPaths: [legacyPluginDir],
         env: {
           ...buildDiscoveryEnv(stateDir),
-          ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-          ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledRoot,
+          OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+          OPENCLAW_BUNDLED_PLUGINS_DIR: bundledRoot,
         },
       }),
     );
@@ -741,31 +833,31 @@ describe("discoverAstroclawPlugins", () => {
 
   it("discovers bind-mounted bundled source overlays before packaged dist bundles", () => {
     const stateDir = makeTempDir();
-    const packageRoot = path.join(stateDir, "node_modules", "astroclaw");
+    const packageRoot = path.join(stateDir, "node_modules", "openclaw");
     const bundledRoot = path.join(packageRoot, "dist", "extensions");
     const bundledPluginDir = path.join(bundledRoot, "synology-chat");
     const sourcePluginDir = path.join(packageRoot, "extensions", "synology-chat");
     createPackagePluginWithEntry({
       packageDir: bundledPluginDir,
-      packageName: "@astroclaw/synology-chat",
+      packageName: "@openclaw/synology-chat",
       pluginId: "synology-chat",
       entryPath: "index.js",
     });
     createPackagePluginWithEntry({
       packageDir: sourcePluginDir,
-      packageName: "@astroclaw/synology-chat",
+      packageName: "@openclaw/synology-chat",
       pluginId: "synology-chat",
     });
     mockLinuxMountInfo([sourcePluginDir]);
     const sourceEntryPath = path.join(sourcePluginDir, "src", "index.ts");
     const bundledEntryPath = path.join(bundledPluginDir, "index.js");
 
-    const { candidates, diagnostics } = withAstroclawPackageArgv(packageRoot, () =>
-      discoverAstroclawPlugins({
+    const { candidates, diagnostics } = withOpenClawPackageArgv(packageRoot, () =>
+      discoverOpenClawPlugins({
         env: {
           ...buildDiscoveryEnv(stateDir),
-          ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-          ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledRoot,
+          OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+          OPENCLAW_BUNDLED_PLUGINS_DIR: bundledRoot,
         },
       }),
     );
@@ -795,30 +887,30 @@ describe("discoverAstroclawPlugins", () => {
 
   it("keeps copied source plugin dirs inert when they are not mounted overlays", () => {
     const stateDir = makeTempDir();
-    const packageRoot = path.join(stateDir, "node_modules", "astroclaw");
+    const packageRoot = path.join(stateDir, "node_modules", "openclaw");
     const bundledRoot = path.join(packageRoot, "dist", "extensions");
     const bundledPluginDir = path.join(bundledRoot, "synology-chat");
     const sourcePluginDir = path.join(packageRoot, "extensions", "synology-chat");
     createPackagePluginWithEntry({
       packageDir: bundledPluginDir,
-      packageName: "@astroclaw/synology-chat",
+      packageName: "@openclaw/synology-chat",
       pluginId: "synology-chat",
       entryPath: "index.js",
     });
     createPackagePluginWithEntry({
       packageDir: sourcePluginDir,
-      packageName: "@astroclaw/synology-chat",
+      packageName: "@openclaw/synology-chat",
       pluginId: "synology-chat",
     });
     mockLinuxMountInfo([]);
     const bundledEntryPath = path.join(bundledPluginDir, "index.js");
 
-    const { candidates, diagnostics } = withAstroclawPackageArgv(packageRoot, () =>
-      discoverAstroclawPlugins({
+    const { candidates, diagnostics } = withOpenClawPackageArgv(packageRoot, () =>
+      discoverOpenClawPlugins({
         env: {
           ...buildDiscoveryEnv(stateDir),
-          ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-          ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledRoot,
+          OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+          OPENCLAW_BUNDLED_PLUGINS_DIR: bundledRoot,
         },
       }),
     );
@@ -859,7 +951,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/local-source-pack",
+      packageName: "@openclaw/local-source-pack",
       extensions: ["./index.ts"],
     });
     writePluginManifest({ pluginDir, id: "local-source-pack" });
@@ -879,6 +971,45 @@ describe("discoverAstroclawPlugins", () => {
     });
   });
 
+  it("allows linked local install records to point at TypeScript source entries", async () => {
+    const stateDir = makeTempDir();
+    const pluginDir = path.join(stateDir, "extensions", "linked-source-pack");
+    mkdirSafe(path.join(pluginDir, "src"));
+
+    writePluginPackageManifest({
+      packageDir: pluginDir,
+      packageName: "@openclaw/linked-source-pack",
+      extensions: ["./src/index.ts"],
+      setupEntry: "./src/setup-entry.ts",
+    });
+    writePluginManifest({ pluginDir, id: "linked-source-pack" });
+    writePluginEntry(path.join(pluginDir, "src", "index.ts"));
+    writePluginEntry(path.join(pluginDir, "src", "setup-entry.ts"));
+
+    const installRecords = {
+      "linked-source-pack": {
+        source: "path",
+        installPath: pluginDir,
+        sourcePath: pluginDir,
+      },
+    } satisfies Record<string, PluginInstallRecord>;
+    const result = await discoverWithStateDir(stateDir, { installRecords });
+
+    expectCandidateSource(
+      result.candidates,
+      "linked-source-pack",
+      fs.realpathSync(path.join(pluginDir, "src", "index.ts")),
+    );
+    expectCandidateFields(requireCandidateById(result.candidates, "linked-source-pack"), {
+      setupSource: fs.realpathSync(path.join(pluginDir, "src", "setup-entry.ts")),
+    });
+    expectNoDiagnostic({
+      diagnostics: result.diagnostics,
+      pluginId: "linked-source-pack",
+      messageIncludes: "requires compiled runtime output",
+    });
+  });
+
   it("still requires compiled runtime output for tracked installed package plugins", async () => {
     const stateDir = makeTempDir();
     const pluginDir = path.join(stateDir, "extensions", "source-only-pack");
@@ -886,7 +1017,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/source-only-pack",
+      packageName: "@openclaw/source-only-pack",
       extensions: ["./src/index.ts"],
     });
     writePluginEntry(path.join(pluginDir, "src", "index.ts"));
@@ -911,6 +1042,12 @@ describe("discoverAstroclawPlugins", () => {
           entry.message.includes("disable/uninstall the plugin"),
       ),
     ).toBe(true);
+    expect(
+      result.diagnostics.some(
+        (entry) =>
+          entry.pluginId === "source-only-pack" && entry.message.includes("openclaw doctor --fix"),
+      ),
+    ).toBe(false);
     expect(result.diagnostics).toHaveLength(1);
   });
 
@@ -923,7 +1060,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: sourceDir,
-      packageName: "@astroclaw/source-path-pack",
+      packageName: "@openclaw/source-path-pack",
       extensions: ["./src/index.ts"],
     });
     writePluginEntry(path.join(sourceDir, "src", "index.ts"));
@@ -962,7 +1099,7 @@ describe("discoverAstroclawPlugins", () => {
 
       writePluginPackageManifest({
         packageDir: actualSourceDir,
-        packageName: "@astroclaw/source-path-symlink-pack",
+        packageName: "@openclaw/source-path-symlink-pack",
         extensions: ["./src/index.ts"],
       });
       writePluginEntry(path.join(actualSourceDir, "src", "index.ts"));
@@ -995,7 +1132,7 @@ describe("discoverAstroclawPlugins", () => {
     mkdirSafe(pluginDir);
     fs.writeFileSync(
       path.join(pluginDir, "package.json"),
-      JSON.stringify({ name: "@astroclaw/metadata-only-pack", version: "0.0.1" }),
+      JSON.stringify({ name: "@openclaw/metadata-only-pack", version: "0.0.1" }),
       "utf-8",
     );
     writePluginManifest({ pluginDir, id: "metadata-only-pack" });
@@ -1015,7 +1152,7 @@ describe("discoverAstroclawPlugins", () => {
     const pluginDir = path.join(stateDir, "extensions", "guardrail-bridge");
     mkdirSafe(pluginDir);
     fs.writeFileSync(
-      path.join(pluginDir, "astroclaw.extension.json"),
+      path.join(pluginDir, "openclaw.extension.json"),
       JSON.stringify({
         name: "guardrail-bridge",
         type: "npm",
@@ -1031,8 +1168,8 @@ describe("discoverAstroclawPlugins", () => {
       diagnostics: result.diagnostics,
       level: "warn",
       pluginId: "guardrail-bridge",
-      source: path.join(pluginDir, "astroclaw.extension.json"),
-      messageIncludes: 'run "astroclaw doctor --fix"',
+      source: path.join(pluginDir, "openclaw.extension.json"),
+      messageIncludes: 'run "openclaw doctor --fix"',
     });
   });
 
@@ -1043,7 +1180,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/missing-runtime-pack",
+      packageName: "@openclaw/missing-runtime-pack",
       extensions: ["./index.ts"],
       runtimeExtensions: ["./dist/index.js"],
     });
@@ -1071,7 +1208,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: bundledPluginDir,
-      packageName: "@astroclaw/discord",
+      packageName: "@openclaw/discord",
       extensions: ["./index.js"],
     });
     writePluginManifest({ pluginDir: bundledPluginDir, id: "discord" });
@@ -1079,15 +1216,15 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: installedPluginDir,
-      packageName: "@astroclaw/discord",
+      packageName: "@openclaw/discord",
       extensions: ["./src/index.ts"],
     });
     writePluginManifest({ pluginDir: installedPluginDir, id: "discord" });
     writePluginEntry(path.join(installedPluginDir, "src", "index.ts"));
 
-    const result = discoverAstroclawPlugins({
+    const result = discoverOpenClawPlugins({
       env: buildDiscoveryEnvWithOverrides(stateDir, {
-        ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
       }),
       installRecords: {
         discord: {
@@ -1131,7 +1268,7 @@ describe("discoverAstroclawPlugins", () => {
     writePluginEntry(path.join(packageDir, "dist", "two.js"));
 
     const realpathSync = vi.spyOn(fs, "realpathSync");
-    const { candidates } = discoverAstroclawPlugins({
+    const { candidates } = discoverOpenClawPlugins({
       env: buildDiscoveryEnv(stateDir),
     });
 
@@ -1162,7 +1299,7 @@ describe("discoverAstroclawPlugins", () => {
       const canonicalPackageDir = fs.realpathSync(realPackageDir);
 
       const realpathSync = vi.spyOn(fs, "realpathSync");
-      const { candidates } = discoverAstroclawPlugins({
+      const { candidates } = discoverOpenClawPlugins({
         extraPaths: [linkedPackageDir, canonicalPackageDir],
         env: buildDiscoveryEnv(stateDir),
       });
@@ -1188,7 +1325,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/runtime-pack",
+      packageName: "@openclaw/runtime-pack",
       extensions: ["./src/index.ts"],
       runtimeExtensions: ["./dist/index.js"],
       setupEntry: "./src/setup-entry.ts",
@@ -1217,7 +1354,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/missing-runtime-setup-pack",
+      packageName: "@openclaw/missing-runtime-setup-pack",
       extensions: ["./dist/index.js"],
       setupEntry: "./src/setup-entry.ts",
       runtimeSetupEntry: "./dist/setup-entry.js",
@@ -1246,7 +1383,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/missing-setup-pack",
+      packageName: "@openclaw/missing-setup-pack",
       extensions: ["./dist/index.js"],
       setupEntry: "./src/setup-entry.ts",
     });
@@ -1272,7 +1409,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/runtime-mismatch-pack",
+      packageName: "@openclaw/runtime-mismatch-pack",
       extensions: ["./src/one.ts", "./src/two.ts"],
       runtimeExtensions: ["./dist/one.js"],
     });
@@ -1301,7 +1438,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/runtime-blank-pack",
+      packageName: "@openclaw/runtime-blank-pack",
       extensions: ["./src/index.ts"],
       runtimeExtensions: [" "],
     });
@@ -1315,7 +1452,7 @@ describe("discoverAstroclawPlugins", () => {
       result.diagnostics.some(
         (entry) =>
           entry.level === "error" &&
-          entry.message.includes("astroclaw.runtimeExtensions[0]") &&
+          entry.message.includes("openclaw.runtimeExtensions[0]") &&
           entry.message.includes("non-empty string"),
       ),
     ).toBe(true);
@@ -1328,7 +1465,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/extension-blank-pack",
+      packageName: "@openclaw/extension-blank-pack",
       extensions: ["./dist/index.js", " "],
     });
     writePluginEntry(path.join(pluginDir, "dist", "index.js"));
@@ -1340,7 +1477,7 @@ describe("discoverAstroclawPlugins", () => {
       result.diagnostics.some(
         (entry) =>
           entry.level === "error" &&
-          entry.message.includes("astroclaw.extensions[1]") &&
+          entry.message.includes("openclaw.extensions[1]") &&
           entry.message.includes("non-empty string"),
       ),
     ).toBe(true);
@@ -1354,7 +1491,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/built-peer-pack",
+      packageName: "@openclaw/built-peer-pack",
       extensions: ["src/index.ts"],
       setupEntry: "src/setup-entry.ts",
     });
@@ -1383,7 +1520,7 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/nested-pack",
+      packageName: "@openclaw/nested-pack",
       extensions: ["./plugin/index.ts"],
     });
     writePluginEntry(path.join(pluginDir, "plugin", "index.ts"));
@@ -1399,25 +1536,144 @@ describe("discoverAstroclawPlugins", () => {
   it("keeps workspace package TypeScript entries unless runtime entries are explicit", () => {
     const stateDir = makeTempDir();
     const workspaceDir = path.join(stateDir, "workspace");
-    const pluginDir = path.join(workspaceDir, ".astroclaw", "extensions", "workspace-pack");
+    const pluginDir = path.join(workspaceDir, ".openclaw", "extensions", "workspace-pack");
     mkdirSafe(path.join(pluginDir, "src"));
     mkdirSafe(path.join(pluginDir, "dist"));
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@astroclaw/workspace-pack",
+      packageName: "@openclaw/workspace-pack",
       extensions: ["./src/index.ts"],
     });
     writePluginEntry(path.join(pluginDir, "src", "index.ts"));
     writePluginEntry(path.join(pluginDir, "dist", "index.js"));
 
-    const { candidates } = discoverAstroclawPlugins({
+    const { candidates } = discoverOpenClawPlugins({
       workspaceDir,
       env: buildDiscoveryEnv(stateDir),
     });
     expect(fs.realpathSync(findCandidateById(candidates, "workspace-pack")?.source ?? "")).toBe(
       fs.realpathSync(path.join(pluginDir, "src", "index.ts")),
     );
+  });
+
+  it("skips incompatible non-bundled package plugin API candidates during discovery", () => {
+    const stateDir = makeTempDir();
+    const globalExt = path.join(stateDir, "extensions");
+    const pluginDir = path.join(globalExt, "future-channel");
+    createPackagePluginWithEntry({
+      packageDir: pluginDir,
+      packageName: "@openclaw/future-channel",
+      pluginId: "future-channel",
+      compatPluginApi: ">=2026.5.27-beta.2",
+    });
+
+    const { candidates, diagnostics } = discoverOpenClawPlugins({
+      env: buildDiscoveryEnvWithOverrides(stateDir, {
+        OPENCLAW_COMPATIBILITY_HOST_VERSION: "2026.5.27-beta.1",
+      }),
+    });
+
+    expectCandidateIds(candidates, { excludes: ["future-channel"] });
+    expectDiagnostic({
+      diagnostics,
+      level: "warn",
+      pluginId: "future-channel",
+      source: path.join(pluginDir, "package.json"),
+      messageIncludes:
+        "plugin requires plugin API >=2026.5.27-beta.2, but this host is 2026.5.27-beta.1; skipping discovery",
+    });
+  });
+
+  it("skips malformed non-bundled package plugin API candidates during discovery", () => {
+    const stateDir = makeTempDir();
+    const globalExt = path.join(stateDir, "extensions");
+    const pluginDir = path.join(globalExt, "malformed-channel");
+    mkdirSafe(pluginDir);
+    fs.writeFileSync(
+      path.join(pluginDir, "package.json"),
+      JSON.stringify({
+        name: "@openclaw/malformed-channel",
+        openclaw: {
+          extensions: ["./index.js"],
+          plugin: { id: "malformed-channel" },
+          compat: { pluginApi: 20260527 },
+        },
+      }),
+      "utf-8",
+    );
+    writePluginEntry(path.join(pluginDir, "index.js"));
+
+    const { candidates, diagnostics } = discoverOpenClawPlugins({
+      env: buildDiscoveryEnvWithOverrides(stateDir, {
+        OPENCLAW_COMPATIBILITY_HOST_VERSION: "2026.5.27",
+      }),
+    });
+
+    expectCandidateIds(candidates, { excludes: ["malformed-channel"] });
+    expectDiagnostic({
+      diagnostics,
+      level: "warn",
+      pluginId: "malformed-channel",
+      source: path.join(pluginDir, "package.json"),
+      messageIncludes:
+        "invalid package plugin API metadata: package.json openclaw.compat.pluginApi must be a string; skipping discovery",
+    });
+  });
+
+  it("checks non-bundled package plugin API before package entry validation", () => {
+    const stateDir = makeTempDir();
+    const globalExt = path.join(stateDir, "extensions");
+    const pluginDir = path.join(globalExt, "future-shape");
+    mkdirSafe(pluginDir);
+    fs.writeFileSync(
+      path.join(pluginDir, "package.json"),
+      JSON.stringify({
+        name: "@openclaw/future-shape",
+        openclaw: {
+          extensions: { runtime: "./src/index.ts" },
+          compat: { pluginApi: ">=2026.5.27-beta.2" },
+        },
+      }),
+      "utf-8",
+    );
+
+    const { candidates, diagnostics } = discoverOpenClawPlugins({
+      env: buildDiscoveryEnvWithOverrides(stateDir, {
+        OPENCLAW_COMPATIBILITY_HOST_VERSION: "2026.5.27-beta.1",
+      }),
+    });
+
+    expectCandidateIds(candidates, { excludes: ["future-shape"] });
+    expectDiagnostic({
+      diagnostics,
+      level: "warn",
+      pluginId: "future-shape",
+      source: path.join(pluginDir, "package.json"),
+      messageIncludes:
+        "plugin requires plugin API >=2026.5.27-beta.2, but this host is 2026.5.27-beta.1; skipping discovery",
+    });
+    expectNoDiagnostic({ diagnostics, messageIncludes: "openclaw.extensions" });
+  });
+
+  it("discovers same-floor beta non-bundled package plugin API candidates", () => {
+    const stateDir = makeTempDir();
+    const globalExt = path.join(stateDir, "extensions");
+    createPackagePluginWithEntry({
+      packageDir: path.join(globalExt, "current-channel"),
+      packageName: "@openclaw/current-channel",
+      pluginId: "current-channel",
+      compatPluginApi: ">=2026.5.27-beta.1",
+    });
+
+    const { candidates, diagnostics } = discoverOpenClawPlugins({
+      env: buildDiscoveryEnvWithOverrides(stateDir, {
+        OPENCLAW_COMPATIBILITY_HOST_VERSION: "2026.5.27-beta.1",
+      }),
+    });
+
+    expectCandidateIds(candidates, { includes: ["current-channel"] });
+    expect(diagnostics).toStrictEqual([]);
   });
 
   it("discovers present bundled package plugins without package metadata gates", () => {
@@ -1428,9 +1684,10 @@ describe("discoverAstroclawPlugins", () => {
     fs.writeFileSync(
       path.join(pluginDir, "package.json"),
       JSON.stringify({
-        name: "@astroclaw/downloadable",
-        astroclaw: {
+        name: "@openclaw/downloadable",
+        openclaw: {
           extensions: ["./index.ts"],
+          compat: { pluginApi: ">=2099.1.1" },
         },
       }),
       "utf-8",
@@ -1438,9 +1695,9 @@ describe("discoverAstroclawPlugins", () => {
     writePluginManifest({ pluginDir, id: "downloadable" });
     writePluginEntry(path.join(pluginDir, "index.ts"));
 
-    const { candidates } = discoverAstroclawPlugins({
+    const { candidates } = discoverOpenClawPlugins({
       env: buildDiscoveryEnvWithOverrides(stateDir, {
-        ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
       }),
     });
 
@@ -1455,8 +1712,8 @@ describe("discoverAstroclawPlugins", () => {
     fs.writeFileSync(
       path.join(pluginDir, "package.json"),
       JSON.stringify({
-        name: "@astroclaw/downloadable",
-        astroclaw: {
+        name: "@openclaw/downloadable",
+        openclaw: {
           extensions: ["./index.ts"],
         },
       }),
@@ -1465,9 +1722,9 @@ describe("discoverAstroclawPlugins", () => {
     writePluginManifest({ pluginDir, id: "downloadable" });
     writePluginEntry(path.join(pluginDir, "index.js"));
 
-    const { candidates, diagnostics } = discoverAstroclawPlugins({
+    const { candidates, diagnostics } = discoverOpenClawPlugins({
       env: buildDiscoveryEnvWithOverrides(stateDir, {
-        ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
       }),
     });
 
@@ -1481,7 +1738,7 @@ describe("discoverAstroclawPlugins", () => {
 
   it("discovers source-checkout-only bundled plugins alongside built bundled plugins", () => {
     const stateDir = makeTempDir();
-    const packageRoot = path.join(stateDir, "astroclaw");
+    const packageRoot = path.join(stateDir, "openclaw");
     const bundledDir = path.join(packageRoot, "dist", "extensions");
     const sourceDir = path.join(packageRoot, "extensions");
     const builtPluginDir = path.join(bundledDir, "shipped");
@@ -1496,14 +1753,14 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: builtPluginDir,
-      packageName: "@astroclaw/shipped",
+      packageName: "@openclaw/shipped",
       extensions: ["./index.js"],
     });
     writePluginManifest({ pluginDir: builtPluginDir, id: "shipped" });
     writePluginEntry(path.join(builtPluginDir, "index.js"));
     writePluginPackageManifest({
       packageDir: sourceBuiltPluginDir,
-      packageName: "@astroclaw/shipped",
+      packageName: "@openclaw/shipped",
       extensions: ["./index.ts"],
     });
     writePluginManifest({ pluginDir: sourceBuiltPluginDir, id: "shipped" });
@@ -1511,8 +1768,8 @@ describe("discoverAstroclawPlugins", () => {
     fs.writeFileSync(
       path.join(sourceOnlyPluginDir, "package.json"),
       JSON.stringify({
-        name: "@astroclaw/downloadable",
-        astroclaw: {
+        name: "@openclaw/downloadable",
+        openclaw: {
           extensions: ["./index.ts"],
         },
       }),
@@ -1521,9 +1778,9 @@ describe("discoverAstroclawPlugins", () => {
     writePluginManifest({ pluginDir: sourceOnlyPluginDir, id: "downloadable" });
     writePluginEntry(path.join(sourceOnlyPluginDir, "index.ts"));
 
-    const { candidates } = discoverAstroclawPlugins({
+    const { candidates } = discoverOpenClawPlugins({
       env: buildDiscoveryEnvWithOverrides(stateDir, {
-        ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
       }),
     });
 
@@ -1538,11 +1795,11 @@ describe("discoverAstroclawPlugins", () => {
 
   it("does not discover nested node_modules copies under installed plugins", async () => {
     const stateDir = makeTempDir();
-    const pluginDir = path.join(stateDir, "extensions", "opik-astroclaw");
+    const pluginDir = path.join(stateDir, "extensions", "opik-openclaw");
     const nestedDiffsDir = path.join(
       pluginDir,
       "node_modules",
-      "astroclaw",
+      "openclaw",
       "dist",
       "extensions",
       "diffs",
@@ -1553,10 +1810,10 @@ describe("discoverAstroclawPlugins", () => {
 
     writePluginPackageManifest({
       packageDir: pluginDir,
-      packageName: "@opik/opik-astroclaw",
+      packageName: "@opik/opik-openclaw",
       extensions: ["./src/index.ts"],
     });
-    writePluginManifest({ pluginDir, id: "opik-astroclaw" });
+    writePluginManifest({ pluginDir, id: "opik-openclaw" });
     fs.writeFileSync(
       path.join(pluginDir, "src", "index.ts"),
       "export default function () {}",
@@ -1569,8 +1826,8 @@ describe("discoverAstroclawPlugins", () => {
     );
 
     writePluginPackageManifest({
-      packageDir: path.join(pluginDir, "node_modules", "astroclaw"),
-      packageName: "astroclaw",
+      packageDir: path.join(pluginDir, "node_modules", "openclaw"),
+      packageName: "openclaw",
       extensions: [`./${bundledDistPluginFile("diffs", "index.js")}`],
     });
     writePluginManifest({ pluginDir: nestedDiffsDir, id: "diffs" });
@@ -1581,15 +1838,15 @@ describe("discoverAstroclawPlugins", () => {
     );
 
     const { candidates } = await discoverWithStateDir(stateDir, {});
-    expectCandidateOrder(candidates, ["opik-astroclaw"]);
+    expectCandidateOrder(candidates, ["opik-openclaw"]);
   });
 
   it("skips dependency and build directories while scanning workspace roots", () => {
     const stateDir = makeTempDir();
     const workspaceDir = path.join(stateDir, "workspace");
-    const workspaceRoot = path.join(workspaceDir, ".astroclaw", "extensions");
+    const workspaceRoot = path.join(workspaceDir, ".openclaw", "extensions");
     const workspacePluginDir = path.join(workspaceRoot, "workspace-plugin");
-    const nestedNodeModulesDir = path.join(workspaceRoot, "node_modules", "astroclaw");
+    const nestedNodeModulesDir = path.join(workspaceRoot, "node_modules", "openclaw");
     const nestedDistDir = path.join(workspaceRoot, "dist", "extensions", "diffs");
     mkdirSafe(path.join(workspacePluginDir, "src"));
     mkdirSafe(path.join(nestedNodeModulesDir, "src"));
@@ -1597,13 +1854,13 @@ describe("discoverAstroclawPlugins", () => {
 
     createPackagePluginWithEntry({
       packageDir: workspacePluginDir,
-      packageName: "@astroclaw/workspace-plugin",
+      packageName: "@openclaw/workspace-plugin",
       pluginId: "workspace-plugin",
     });
 
     createPackagePluginWithEntry({
       packageDir: nestedNodeModulesDir,
-      packageName: "astroclaw",
+      packageName: "openclaw",
       pluginId: "node-modules-copy",
     });
 
@@ -1614,7 +1871,7 @@ describe("discoverAstroclawPlugins", () => {
       "utf-8",
     );
 
-    const { candidates } = discoverAstroclawPlugins({
+    const { candidates } = discoverOpenClawPlugins({
       workspaceDir,
       env: buildDiscoveryEnv(stateDir),
     });
@@ -1629,7 +1886,7 @@ describe("discoverAstroclawPlugins", () => {
         const packageDir = path.join(stateDir, "extensions", "voice-call-pack");
         createPackagePluginWithEntry({
           packageDir,
-          packageName: "@astroclaw/voice-call",
+          packageName: "@openclaw/voice-call",
           entryPath: "src/index.ts",
         });
         return {};
@@ -1655,8 +1912,8 @@ describe("discoverAstroclawPlugins", () => {
       name: "normalizes bundled speech package ids to canonical plugin ids",
       setup: (stateDir: string) => {
         for (const [dirName, packageName, pluginId] of [
-          ["elevenlabs-speech-pack", "@astroclaw/elevenlabs-speech", "elevenlabs"],
-          ["microsoft-speech-pack", "@astroclaw/microsoft-speech", "microsoft"],
+          ["elevenlabs-speech-pack", "@openclaw/elevenlabs-speech", "elevenlabs"],
+          ["microsoft-speech-pack", "@openclaw/microsoft-speech", "microsoft"],
         ] as const) {
           const packageDir = path.join(stateDir, "extensions", dirName);
           createPackagePluginWithEntry({
@@ -1677,7 +1934,7 @@ describe("discoverAstroclawPlugins", () => {
         const packageDir = path.join(stateDir, "packs", "demo-plugin-dir");
         createPackagePluginWithEntry({
           packageDir,
-          packageName: "@astroclaw/demo-plugin-dir",
+          packageName: "@openclaw/demo-plugin-dir",
           entryPath: "index.js",
         });
         return { extraPaths: [packageDir] };
@@ -1777,7 +2034,7 @@ describe("discoverAstroclawPlugins", () => {
     const result = await discoverWithStateDir(stateDir, setup(stateDir));
     const legacy = findCandidateById(result.candidates, "legacy-with-bad-bundle");
 
-    expect(legacy?.format).toBe("astroclaw");
+    expect(legacy?.format).toBe("openclaw");
     expect(hasDiagnosticSourceSuffix(result.diagnostics, bundleMarker)).toBe(true);
   });
 
@@ -1791,7 +2048,7 @@ describe("discoverAstroclawPlugins", () => {
         mkdirSafe(globalExt);
         writePluginPackageManifest({
           packageDir: globalExt,
-          packageName: "@astroclaw/escape-pack",
+          packageName: "@openclaw/escape-pack",
           extensions: ["../../outside.js"],
         });
         fs.writeFileSync(outside, "export default function () {}", "utf-8");
@@ -1805,7 +2062,7 @@ describe("discoverAstroclawPlugins", () => {
         mkdirSafe(path.join(globalExt, "src"));
         writePluginPackageManifest({
           packageDir: globalExt,
-          packageName: "@astroclaw/escape-pack",
+          packageName: "@openclaw/escape-pack",
           extensions: ["../src/index.ts"],
         });
         fs.writeFileSync(path.join(globalExt, "src", "index.js"), "export default {}", "utf-8");
@@ -1819,7 +2076,7 @@ describe("discoverAstroclawPlugins", () => {
         mkdirSafe(path.join(globalExt, "dist"));
         writePluginPackageManifest({
           packageDir: globalExt,
-          packageName: "@astroclaw/escape-pack",
+          packageName: "@openclaw/escape-pack",
           extensions: ["../src/index.ts"],
           runtimeExtensions: ["./dist/index.js"],
         });
@@ -1834,7 +2091,7 @@ describe("discoverAstroclawPlugins", () => {
         mkdirSafe(globalExt);
         writePluginPackageManifest({
           packageDir: globalExt,
-          packageName: "@astroclaw/missing-entry-pack",
+          packageName: "@openclaw/missing-entry-pack",
           extensions: ["./missing.ts"],
         });
         return true;
@@ -1858,7 +2115,7 @@ describe("discoverAstroclawPlugins", () => {
         }
         writePluginPackageManifest({
           packageDir: globalExt,
-          packageName: "@astroclaw/pack",
+          packageName: "@openclaw/pack",
           extensions: ["./linked/escape.ts"],
         });
         return true;
@@ -1890,7 +2147,7 @@ describe("discoverAstroclawPlugins", () => {
         }
         writePluginPackageManifest({
           packageDir: globalExt,
-          packageName: "@astroclaw/pack",
+          packageName: "@openclaw/pack",
           extensions: ["./escape.ts"],
         });
         return true;
@@ -1922,7 +2179,7 @@ describe("discoverAstroclawPlugins", () => {
         }
         writePluginPackageManifest({
           packageDir: globalExt,
-          packageName: "@astroclaw/pack",
+          packageName: "@openclaw/pack",
           extensions: ["./escape.ts"],
         });
         return true;
@@ -1955,7 +2212,7 @@ describe("discoverAstroclawPlugins", () => {
         }
         writePluginPackageManifest({
           packageDir: globalExt,
-          packageName: "@astroclaw/pack",
+          packageName: "@openclaw/pack",
           extensions: ["./src/index.ts"],
         });
         return true;
@@ -1977,7 +2234,7 @@ describe("discoverAstroclawPlugins", () => {
     mkdirSafe(path.join(globalExt, "dist"));
     writePluginPackageManifest({
       packageDir: globalExt,
-      packageName: "@astroclaw/escape-pack",
+      packageName: "@openclaw/escape-pack",
       extensions: ["./dist/index.js"],
       setupEntry: "../src/setup-entry.ts",
       runtimeSetupEntry: "./dist/setup-entry.js",
@@ -2007,8 +2264,8 @@ describe("discoverAstroclawPlugins", () => {
     fs.writeFileSync(
       outsideManifest,
       JSON.stringify({
-        name: "@astroclaw/pack",
-        astroclaw: { extensions: ["./entry.ts"] },
+        name: "@openclaw/pack",
+        openclaw: { extensions: ["./entry.ts"] },
       }),
       "utf-8",
     );
@@ -2028,11 +2285,13 @@ describe("discoverAstroclawPlugins", () => {
 
   it.runIf(process.platform !== "win32")("blocks world-writable plugin paths", async () => {
     const stateDir = makeTempDir();
-    const globalExt = path.join(stateDir, "extensions");
-    mkdirSafe(globalExt);
-    const pluginPath = path.join(globalExt, "world-open.ts");
-    fs.writeFileSync(pluginPath, "export default function () {}", "utf-8");
-    fs.chmodSync(pluginPath, 0o777);
+    const pluginDir = path.join(stateDir, "extensions", "world-open");
+    createPackagePluginWithEntry({
+      packageDir: pluginDir,
+      packageName: "@openclaw/world-open",
+      pluginId: "world-open",
+    });
+    fs.chmodSync(pluginDir, 0o777);
 
     const result = await discoverWithStateDir(stateDir, {});
 
@@ -2047,15 +2306,15 @@ describe("discoverAstroclawPlugins", () => {
     "repairs world-writable bundled plugin dirs before loading them",
     async () => {
       const stateDir = makeTempDir();
-      const packageRoot = path.join(stateDir, "node_modules", "astroclaw");
+      const packageRoot = path.join(stateDir, "node_modules", "openclaw");
       const bundledDir = path.join(packageRoot, "dist", "extensions");
       const packDir = path.join(bundledDir, "demo-pack");
       mkdirSafe(packDir);
       fs.writeFileSync(path.join(packDir, "index.ts"), "export default function () {}", "utf-8");
       fs.chmodSync(packDir, 0o777);
 
-      const result = withAstroclawPackageArgv(packageRoot, () =>
-        discoverAstroclawPlugins({
+      const result = withOpenClawPackageArgv(packageRoot, () =>
+        discoverOpenClawPlugins({
           env: { ...process.env, ...buildBundledDiscoveryEnv(stateDir) },
         }),
       );
@@ -2074,13 +2333,11 @@ describe("discoverAstroclawPlugins", () => {
     "blocks suspicious ownership when uid mismatch is detected",
     async () => {
       const stateDir = makeTempDir();
-      const globalExt = path.join(stateDir, "extensions");
-      mkdirSafe(globalExt);
-      fs.writeFileSync(
-        path.join(globalExt, "owner-mismatch.ts"),
-        "export default function () {}",
-        "utf-8",
-      );
+      createPackagePluginWithEntry({
+        packageDir: path.join(stateDir, "extensions", "owner-mismatch"),
+        packageName: "@openclaw/owner-mismatch",
+        pluginId: "owner-mismatch",
+      });
 
       const actualUid = (process as NodeJS.Process & { getuid: () => number }).getuid();
       const result = await discoverWithStateDir(stateDir, { ownershipUid: actualUid + 1 });
@@ -2110,10 +2367,10 @@ describe("discoverAstroclawPlugins", () => {
     fs.chmodSync(blockedDir, 0o777);
 
     try {
-      const result = discoverAstroclawPlugins({
+      const result = discoverOpenClawPlugins({
         env: {
           ...buildDiscoveryEnv(stateDir),
-          ASTROCLAW_PLUGINS_PATHS: blockedDir,
+          OPENCLAW_PLUGINS_PATHS: blockedDir,
         },
       });
       const blockedDiagnostics = result.diagnostics.filter(
@@ -2138,7 +2395,7 @@ describe("discoverAstroclawPlugins", () => {
       fs.chmodSync(pluginDir, 0o777);
 
       try {
-        const result = discoverAstroclawPlugins({
+        const result = discoverOpenClawPlugins({
           extraPaths: [pluginDir],
           env: {
             ...buildDiscoveryEnv(stateDir),
@@ -2162,16 +2419,18 @@ describe("discoverAstroclawPlugins", () => {
 
   it("reflects plugin root changes on the next discovery call", () => {
     const stateDir = makeTempDir();
-    const globalExt = path.join(stateDir, "extensions");
-    mkdirSafe(globalExt);
-    const pluginPath = path.join(globalExt, "fresh.ts");
-    fs.writeFileSync(pluginPath, "export default function () {}", "utf-8");
+    const pluginDir = path.join(stateDir, "extensions", "fresh");
+    createPackagePluginWithEntry({
+      packageDir: pluginDir,
+      packageName: "@openclaw/fresh",
+      pluginId: "fresh",
+    });
 
     const env = buildDiscoveryEnvWithOverrides(stateDir);
     const first = discoverWithEnv({ env });
     expect(first.candidates.map((candidate) => candidate.idHint)).toContain("fresh");
 
-    fs.rmSync(pluginPath, { force: true });
+    fs.rmSync(pluginDir, { recursive: true, force: true });
 
     const second = discoverWithEnv({ env });
     expect(second.candidates.map((candidate) => candidate.idHint)).not.toContain("fresh");
@@ -2179,7 +2438,7 @@ describe("discoverAstroclawPlugins", () => {
 
   it("discovers bundled and global plugins for each workspace-specific scan", () => {
     const stateDir = makeTempDir();
-    const packageRoot = path.join(stateDir, "node_modules", "astroclaw");
+    const packageRoot = path.join(stateDir, "node_modules", "openclaw");
     const bundledDir = path.join(packageRoot, "dist", "extensions");
     const globalExt = path.join(stateDir, "extensions");
     const workspaceA = path.join(stateDir, "workspace-a");
@@ -2187,31 +2446,31 @@ describe("discoverAstroclawPlugins", () => {
 
     createPackagePluginWithEntry({
       packageDir: path.join(bundledDir, "bundled-plugin"),
-      packageName: "@astroclaw/bundled-plugin",
+      packageName: "@openclaw/bundled-plugin",
       pluginId: "bundled-plugin",
     });
     createPackagePluginWithEntry({
       packageDir: path.join(globalExt, "global-plugin"),
-      packageName: "@astroclaw/global-plugin",
+      packageName: "@openclaw/global-plugin",
       pluginId: "global-plugin",
     });
     createPackagePluginWithEntry({
-      packageDir: path.join(workspaceA, ".astroclaw", "extensions", "workspace-a-plugin"),
-      packageName: "@astroclaw/workspace-a-plugin",
+      packageDir: path.join(workspaceA, ".openclaw", "extensions", "workspace-a-plugin"),
+      packageName: "@openclaw/workspace-a-plugin",
       pluginId: "workspace-a-plugin",
     });
     createPackagePluginWithEntry({
-      packageDir: path.join(workspaceB, ".astroclaw", "extensions", "workspace-b-plugin"),
-      packageName: "@astroclaw/workspace-b-plugin",
+      packageDir: path.join(workspaceB, ".openclaw", "extensions", "workspace-b-plugin"),
+      packageName: "@openclaw/workspace-b-plugin",
       pluginId: "workspace-b-plugin",
     });
 
     const env = {
       ...buildDiscoveryEnv(stateDir),
-      ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-      ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+      OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+      OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
     };
-    const first = withAstroclawPackageArgv(packageRoot, () =>
+    const first = withOpenClawPackageArgv(packageRoot, () =>
       discoverWithEnv({ workspaceDir: workspaceA, env }),
     );
     expectCandidatePresence(first, {
@@ -2219,7 +2478,7 @@ describe("discoverAstroclawPlugins", () => {
       absent: ["workspace-b-plugin"],
     });
 
-    const second = withAstroclawPackageArgv(packageRoot, () =>
+    const second = withOpenClawPackageArgv(packageRoot, () =>
       discoverWithEnv({ workspaceDir: workspaceB, env }),
     );
     expectCandidatePresence(second, {
@@ -2234,8 +2493,16 @@ describe("discoverAstroclawPlugins", () => {
       setup: () => {
         const stateDirA = makeTempDir();
         const stateDirB = makeTempDir();
-        writeStandalonePlugin(path.join(stateDirA, "extensions", "alpha.ts"));
-        writeStandalonePlugin(path.join(stateDirB, "extensions", "beta.ts"));
+        createPackagePluginWithEntry({
+          packageDir: path.join(stateDirA, "extensions", "alpha"),
+          packageName: "@openclaw/alpha",
+          pluginId: "alpha",
+        });
+        createPackagePluginWithEntry({
+          packageDir: path.join(stateDirB, "extensions", "beta"),
+          packageName: "@openclaw/beta",
+          pluginId: "beta",
+        });
         return {
           first: discoverWithEnv({ env: buildDiscoveryEnvWithOverrides(stateDirA) }),
           second: discoverWithEnv({ env: buildDiscoveryEnvWithOverrides(stateDirB) }),
@@ -2281,6 +2548,20 @@ describe("discoverAstroclawPlugins", () => {
   ] as const)("$name", ({ setup }) => {
     const { first, second, assert } = setup();
     assert(first, second);
+  });
+
+  it("discovers standalone files from configured load-path directories", () => {
+    const stateDir = makeTempDir();
+    const pluginDir = path.join(stateDir, "plugins");
+    const pluginPath = path.join(pluginDir, "alpha.ts");
+    writeStandalonePlugin(pluginPath, "export default {}");
+
+    const result = discoverWithEnv({
+      extraPaths: [pluginDir],
+      env: buildDiscoveryEnvWithOverrides(stateDir),
+    });
+
+    expectCandidateSource(result.candidates, "alpha", pluginPath);
   });
 
   it("preserves configured load-path order", () => {
