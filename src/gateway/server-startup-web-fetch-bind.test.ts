@@ -1,7 +1,11 @@
+/**
+ * Gateway startup web fetch bind tests.
+ */
 import http from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { getFreePort, installGatewayTestHooks, startGatewayServer } from "./test-helpers.js";
+import { readClientResponseBody } from "./test-http-response.js";
 
 const webFetchProviderDiscovery = vi.hoisted(() => ({
   resolveBundledWebFetchProvidersFromPublicArtifactsMock: vi.fn(() => {
@@ -51,16 +55,7 @@ async function requestHealthz(port: number): Promise<{ status: number; body: str
         port,
         path: "/healthz",
       },
-      (res) => {
-        let body = "";
-        res.setEncoding("utf8");
-        res.on("data", (chunk) => {
-          body += chunk;
-        });
-        res.once("end", () => {
-          resolve({ status: res.statusCode ?? 0, body });
-        });
-      },
+      (res) => void readClientResponseBody(res).then(resolve, reject),
     );
     req.once("error", reject);
     req.setTimeout(5_000, () => {
@@ -70,15 +65,15 @@ async function requestHealthz(port: number): Promise<{ status: number; body: str
   });
 }
 
-async function writeConfig(config: AstroclawConfig): Promise<void> {
+async function writeConfig(config: OpenClawConfig): Promise<void> {
   const { writeConfigFile } = await import("../config/config.js");
   await writeConfigFile(config);
 }
 
 describe("gateway startup web fetch config", () => {
   it("binds HTTP with credential-free tools.web.fetch config without fetch provider discovery", async () => {
-    const previousMinimal = process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY;
-    process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = "0";
+    const previousMinimal = process.env.OPENCLAW_TEST_MINIMAL_GATEWAY;
+    process.env.OPENCLAW_TEST_MINIMAL_GATEWAY = "0";
     let server: Awaited<ReturnType<typeof startGatewayServer>> | undefined;
     try {
       await writeConfig({
@@ -101,7 +96,7 @@ describe("gateway startup web fetch config", () => {
             },
           },
         },
-      } as AstroclawConfig);
+      } as OpenClawConfig);
 
       const port = await getFreePort();
       server = await startGatewayServer(port, {
@@ -119,9 +114,9 @@ describe("gateway startup web fetch config", () => {
         await server.close();
       }
       if (previousMinimal === undefined) {
-        delete process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY;
+        delete process.env.OPENCLAW_TEST_MINIMAL_GATEWAY;
       } else {
-        process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = previousMinimal;
+        process.env.OPENCLAW_TEST_MINIMAL_GATEWAY = previousMinimal;
       }
     }
   });
