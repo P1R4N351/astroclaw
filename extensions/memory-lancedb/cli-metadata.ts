@@ -1,10 +1,19 @@
-import { definePluginEntry } from "astroclaw/plugin-sdk/core";
+// Memory Lancedb plugin module implements cli metadata behavior.
+import { definePluginEntry } from "openclaw/plugin-sdk/core";
 
 export default definePluginEntry({
   id: "memory-lancedb",
   name: "Memory LanceDB",
   description: "LanceDB-backed memory provider",
   register(api) {
-    api.registerCli(() => {}, { commands: ["ltm"] });
+    api.registerCli(() => {}, {
+      descriptors: [
+        {
+          name: "ltm",
+          description: "Inspect and query LanceDB-backed memory",
+          hasSubcommands: true,
+        },
+      ],
+    });
   },
 });
