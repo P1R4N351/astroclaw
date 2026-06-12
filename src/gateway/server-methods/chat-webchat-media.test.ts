@@ -1,3 +1,5 @@
+// Webchat media tests cover local audio embedding, voice-note metadata, data
+// image limits, reply directives, and safe local media root handling.
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import os from "node:os";
@@ -20,14 +22,19 @@ describe("buildWebchatAudioContentBlocksFromReplyPayloads", () => {
     tmpDir = undefined;
   });
 
-  it("exposes a local audio file as a media-ticketed attachment when it is under localRoots", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-webchat-audio-"));
+  function writeAudioFixture(bytes = [0xff, 0xfb, 0x90, 0x00]) {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-webchat-audio-"));
     const audioPath = path.join(tmpDir, "clip.mp3");
-    fs.writeFileSync(audioPath, Buffer.from([0xff, 0xfb, 0x90, 0x00]));
+    fs.writeFileSync(audioPath, Buffer.from(bytes));
+    return { audioPath, localRoot: tmpDir };
+  }
+
+  it("exposes a local audio file as a media-ticketed attachment when it is under localRoots", async () => {
+    const { audioPath, localRoot } = writeAudioFixture();
 
     const blocks = await buildWebchatAudioContentBlocksFromReplyPayloads(
       [{ mediaUrl: audioPath, trustedLocalMedia: true }],
-      { localRoots: [tmpDir] },
+      { localRoots: [localRoot] },
     );
 
     expect(blocks).toHaveLength(1);
@@ -45,13 +52,11 @@ describe("buildWebchatAudioContentBlocksFromReplyPayloads", () => {
   });
 
   it("preserves voice-note metadata on local audio attachments", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-webchat-audio-"));
-    const audioPath = path.join(tmpDir, "clip.mp3");
-    fs.writeFileSync(audioPath, Buffer.from([0xff, 0xfb, 0x90, 0x00]));
+    const { audioPath, localRoot } = writeAudioFixture();
 
     const blocks = await buildWebchatAudioContentBlocksFromReplyPayloads(
       [{ mediaUrl: audioPath, trustedLocalMedia: true, audioAsVoice: true }],
-      { localRoots: [tmpDir] },
+      { localRoots: [localRoot] },
     );
 
     expect(blocks).toHaveLength(1);
@@ -64,9 +69,7 @@ describe("buildWebchatAudioContentBlocksFromReplyPayloads", () => {
   });
 
   it("suppresses reasoning payload audio", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-webchat-audio-"));
-    const audioPath = path.join(tmpDir, "clip.mp3");
-    fs.writeFileSync(audioPath, Buffer.from([0xff, 0xfb, 0x90, 0x00]));
+    const { audioPath, localRoot } = writeAudioFixture();
 
     const blocks = await buildWebchatAudioContentBlocksFromReplyPayloads(
       [
@@ -77,7 +80,7 @@ describe("buildWebchatAudioContentBlocksFromReplyPayloads", () => {
           isReasoning: true,
         },
       ],
-      { localRoots: [tmpDir] },
+      { localRoots: [localRoot] },
     );
 
     expect(blocks).toHaveLength(0);
@@ -91,7 +94,7 @@ describe("buildWebchatAudioContentBlocksFromReplyPayloads", () => {
   });
 
   it("skips non-audio local files", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-webchat-audio-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-webchat-audio-"));
     const imagePath = path.join(tmpDir, "clip.png");
     fs.writeFileSync(imagePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
 
@@ -104,30 +107,26 @@ describe("buildWebchatAudioContentBlocksFromReplyPayloads", () => {
   });
 
   it("dedupes repeated paths", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-webchat-audio-"));
-    const audioPath = path.join(tmpDir, "clip.mp3");
-    fs.writeFileSync(audioPath, Buffer.from([0x00]));
+    const { audioPath, localRoot } = writeAudioFixture([0x00]);
 
     const blocks = await buildWebchatAudioContentBlocksFromReplyPayloads(
       [
         { mediaUrl: audioPath, trustedLocalMedia: true },
         { mediaUrl: audioPath, trustedLocalMedia: true },
       ],
-      { localRoots: [tmpDir] },
+      { localRoots: [localRoot] },
     );
     expect(blocks).toHaveLength(1);
   });
 
   it("embeds file:// URLs pointing at a local file within localRoots", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-webchat-audio-"));
-    const audioPath = path.join(tmpDir, "clip.mp3");
-    fs.writeFileSync(audioPath, Buffer.from([0x01]));
+    const { audioPath, localRoot } = writeAudioFixture([0x01]);
 
     const fileUrl = pathToFileURL(audioPath).href;
     const blocks = await buildWebchatAudioContentBlocksFromReplyPayloads(
       [{ mediaUrl: fileUrl, trustedLocalMedia: true }],
       {
-        localRoots: [tmpDir],
+        localRoots: [localRoot],
       },
     );
 
@@ -153,7 +152,7 @@ describe("buildWebchatAudioContentBlocksFromReplyPayloads", () => {
   });
 
   it("rejects a local audio file outside configured localRoots", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-webchat-audio-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-webchat-audio-"));
     const allowedRoot = path.join(tmpDir, "allowed");
     const outsideRoot = path.join(tmpDir, "outside");
     fs.mkdirSync(allowedRoot, { recursive: true });
@@ -181,7 +180,7 @@ describe("buildWebchatAudioContentBlocksFromReplyPayloads", () => {
     }
 
     fs.mkdirSync(defaultRoot, { recursive: true });
-    tmpDir = fs.mkdtempSync(path.join(defaultRoot, "astroclaw-webchat-audio-default-"));
+    tmpDir = fs.mkdtempSync(path.join(defaultRoot, "openclaw-webchat-audio-default-"));
     const audioPath = path.join(tmpDir, "clip.mp3");
     fs.writeFileSync(audioPath, Buffer.from([0x04]));
 
@@ -194,27 +193,23 @@ describe("buildWebchatAudioContentBlocksFromReplyPayloads", () => {
   });
 
   it("skips local audio when the opened file stat is over the cap", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-webchat-audio-"));
-    const audioPath = path.join(tmpDir, "huge.mp3");
-    fs.writeFileSync(audioPath, Buffer.from([0x02]));
+    const { audioPath, localRoot } = writeAudioFixture([0x02]);
     fs.truncateSync(audioPath, 16 * 1024 * 1024);
 
     const blocks = await buildWebchatAudioContentBlocksFromReplyPayloads(
       [{ mediaUrl: audioPath, trustedLocalMedia: true }],
-      { localRoots: [tmpDir] },
+      { localRoots: [localRoot] },
     );
 
     expect(blocks).toHaveLength(0);
   });
 
   it("rejects untrusted local audio paths", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-webchat-audio-"));
-    const audioPath = path.join(tmpDir, "clip.mp3");
-    fs.writeFileSync(audioPath, Buffer.from([0xff, 0xfb, 0x90, 0x00]));
+    const { audioPath, localRoot } = writeAudioFixture();
 
     const blocks = await buildWebchatAudioContentBlocksFromReplyPayloads(
       [{ mediaUrl: audioPath }],
-      { localRoots: [tmpDir] },
+      { localRoots: [localRoot] },
     );
 
     expect(blocks).toHaveLength(0);
@@ -225,15 +220,15 @@ describe("buildWebchatAssistantMessageFromReplyPayloads", () => {
   it("converts image data URLs into webchat image blocks", async () => {
     const message = await buildWebchatAssistantMessageFromReplyPayloads([
       {
-        text: "Scan this QR code with the Astroclaw iOS app:",
+        text: "Scan this QR code with the OpenClaw iOS app:",
         mediaUrl: "data:image/png;base64,cG5n",
       },
     ]);
 
     expect(message).toEqual({
-      transcriptText: "Scan this QR code with the Astroclaw iOS app:",
+      transcriptText: "Scan this QR code with the OpenClaw iOS app:",
       content: [
-        { type: "text", text: "Scan this QR code with the Astroclaw iOS app:" },
+        { type: "text", text: "Scan this QR code with the OpenClaw iOS app:" },
         { type: "input_image", image_url: "data:image/png;base64,cG5n" },
       ],
     });
@@ -291,6 +286,29 @@ describe("buildWebchatAssistantMessageFromReplyPayloads", () => {
       {
         text: "too large",
         mediaUrl: `data:image/png;base64,${hugeBase64}`,
+      },
+    ]);
+
+    expect(message).toBeNull();
+  });
+
+  it("keeps valid whitespace in data image payloads", async () => {
+    const imageUrl = "data:image/png;base64,cG 5n\n";
+    const message = await buildWebchatAssistantMessageFromReplyPayloads([
+      {
+        text: "whitespace image",
+        mediaUrl: imageUrl,
+      },
+    ]);
+
+    expect(message?.content).toContainEqual({ type: "input_image", image_url: imageUrl.trim() });
+  });
+
+  it("rejects invalid data image payload characters", async () => {
+    const message = await buildWebchatAssistantMessageFromReplyPayloads([
+      {
+        text: "invalid",
+        mediaUrl: "data:image/png;base64,cG5n!",
       },
     ]);
 
