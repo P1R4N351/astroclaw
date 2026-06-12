@@ -1,8 +1,10 @@
+// Subagent list tests cover active/recent formatting, usage summaries, and
+// stale-run filtering for the user-visible subagent status command.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { updateSessionStore } from "../config/sessions/store.js";
 import { buildSubagentList } from "./subagent-list.js";
 import {
@@ -15,7 +17,7 @@ import { STALE_UNENDED_SUBAGENT_RUN_MS } from "./subagent-run-liveness.js";
 let testWorkspaceDir = os.tmpdir();
 
 beforeAll(async () => {
-  testWorkspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-subagent-list-"));
+  testWorkspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-list-"));
 });
 
 afterAll(async () => {
@@ -36,7 +38,7 @@ describe("buildSubagentList", () => {
     const cfg = {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const list = buildSubagentList({
       cfg,
       runs: [],
@@ -64,7 +66,7 @@ describe("buildSubagentList", () => {
     const cfg = {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const list = buildSubagentList({
       cfg,
       runs: [run],
@@ -95,7 +97,7 @@ describe("buildSubagentList", () => {
     const cfg = {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const list = buildSubagentList({
       cfg,
@@ -108,6 +110,8 @@ describe("buildSubagentList", () => {
   });
 
   it("keeps ended orchestrators active while descendants remain pending", () => {
+    // Parent orchestrators can finish their own turn before child workers do;
+    // list output should keep them active until descendants settle.
     const now = Date.now();
     const orchestratorRun = {
       runId: "run-orchestrator-ended",
@@ -135,7 +139,7 @@ describe("buildSubagentList", () => {
     const cfg = {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const list = buildSubagentList({
       cfg,
       runs: [orchestratorRun],
@@ -178,7 +182,7 @@ describe("buildSubagentList", () => {
     const cfg = {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const list = buildSubagentList({
       cfg,
@@ -217,7 +221,9 @@ describe("buildSubagentList", () => {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
       session: { store: storePath },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
+    // Prompt/cache usage is separate from visible IO so operators can spot
+    // cache-heavy sessions without misreading it as assistant output.
     const list = buildSubagentList({
       cfg,
       runs: [run],
@@ -246,7 +252,7 @@ describe("buildSubagentList", () => {
     const cfg = {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const list = buildSubagentList({
       cfg,
@@ -289,7 +295,7 @@ describe("buildSubagentList", () => {
     const cfg = {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const list = buildSubagentList({
       cfg,
