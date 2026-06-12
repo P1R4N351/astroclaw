@@ -1,5 +1,6 @@
+// Official plugin setup helpers install and configure bundled onboarding plugins.
 import { ensureOnboardingPluginInstalled } from "../commands/onboarding-plugin-install.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginPackageInstall } from "../plugins/manifest.js";
 import {
   getOfficialExternalPluginCatalogManifest,
@@ -14,6 +15,8 @@ import type { WizardPrompter } from "./prompts.js";
 
 const SKIP_VALUE = "__skip__";
 
+// Official plugin onboarding lists generic official plugins not already
+// configured and installs the selected ones through the trusted install flow.
 export type OfficialPluginOnboardingInstallEntry = {
   pluginId: string;
   label: string;
@@ -22,7 +25,7 @@ export type OfficialPluginOnboardingInstallEntry = {
   trustedSourceLinkedOfficialInstall?: boolean;
 };
 
-function isInstalledOrConfigured(config: AstroclawConfig, pluginId: string): boolean {
+function isInstalledOrConfigured(config: OpenClawConfig, pluginId: string): boolean {
   return Boolean(config.plugins?.entries?.[pluginId] || config.plugins?.installs?.[pluginId]);
 }
 
@@ -56,12 +59,12 @@ function formatInstallHint(install: PluginPackageInstall): string {
   return "install source";
 }
 
-export const __testing = {
+export const testing = {
   formatInstallHint,
 };
 
 export function resolveOfficialPluginOnboardingInstallEntries(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
 }): OfficialPluginOnboardingInstallEntry[] {
   const entries: OfficialPluginOnboardingInstallEntry[] = [];
   for (const entry of listOfficialExternalPluginCatalogEntries()) {
@@ -84,12 +87,14 @@ export function resolveOfficialPluginOnboardingInstallEntries(params: {
   return entries.toSorted((left, right) => left.label.localeCompare(right.label));
 }
 
+// Prompt for optional official plugin installs during onboarding. The skip entry
+// is explicit so users can leave every plugin unselected without ambiguity.
 export async function setupOfficialPluginInstalls(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   prompter: WizardPrompter;
   runtime: RuntimeEnv;
   workspaceDir?: string;
-}): Promise<AstroclawConfig> {
+}): Promise<OpenClawConfig> {
   const installEntries = resolveOfficialPluginOnboardingInstallEntries({
     config: params.config,
   });
@@ -131,3 +136,4 @@ export async function setupOfficialPluginInstalls(params: {
   }
   return next;
 }
+export { testing as __testing };
