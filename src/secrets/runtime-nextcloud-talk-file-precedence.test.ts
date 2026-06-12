@@ -1,3 +1,4 @@
+/** Tests Nextcloud Talk secret file precedence in runtime resolution. */
 import { describe, expect, it } from "vitest";
 import "./runtime-nextcloud-talk.test-support.ts";
 import {
@@ -26,7 +27,7 @@ describe("secrets runtime snapshot nextcloud talk file precedence", () => {
         NEXTCLOUD_BOT_SECRET: "resolved-nextcloud-bot-secret",
         NEXTCLOUD_API_PASSWORD: "resolved-nextcloud-api-password",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
@@ -68,7 +69,7 @@ describe("secrets runtime snapshot nextcloud talk file precedence", () => {
         NEXTCLOUD_WORK_BOT_SECRET: "resolved-nextcloud-work-bot-secret",
         NEXTCLOUD_WORK_API_PASSWORD: "resolved-nextcloud-work-api-password",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadAuthStore: () => loadAuthStoreWithProfiles({}),
     });
 
