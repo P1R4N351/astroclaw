@@ -1,7 +1,8 @@
+// Tests plugin command install, listing, and config behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { handlePluginsCommand } from "./commands-plugins.js";
-import { buildPluginsCommandParams } from "./commands.test-harness.js";
+import { buildPluginsCommandParams, type ConfigSnapshotMock } from "./commands.test-harness.js";
 
 const readConfigFileSnapshotMock = vi.hoisted(() => vi.fn());
 const validateConfigObjectWithPluginsMock = vi.hoisted(() => vi.fn());
@@ -12,56 +13,6 @@ const buildPluginInspectReportMock = vi.hoisted(() => vi.fn());
 const buildAllPluginInspectReportsMock = vi.hoisted(() => vi.fn());
 const formatPluginCompatibilityNoticeMock = vi.hoisted(() => vi.fn(() => "ok"));
 const refreshPluginRegistryAfterConfigMutationMock = vi.hoisted(() => vi.fn(async () => undefined));
-
-type ConfigSnapshotMock = {
-  path?: string;
-  hash?: string | null;
-  parsed?: AstroclawConfig | null;
-  sourceConfig?: AstroclawConfig;
-  resolved?: AstroclawConfig;
-  runtimeConfig?: AstroclawConfig;
-};
-
-type TransformConfigFileWithRetryMockParams<T = unknown> = {
-  afterWrite?: unknown;
-  transform: (
-    currentConfig: AstroclawConfig,
-    context: { snapshot: ConfigSnapshotMock; previousHash: string | null; attempt: number },
-  ) =>
-    | Promise<{ nextConfig: AstroclawConfig; result?: T }>
-    | { nextConfig: AstroclawConfig; result?: T };
-};
-
-function configFromSnapshot(snapshot: ConfigSnapshotMock): AstroclawConfig {
-  return structuredClone(
-    snapshot.sourceConfig ?? snapshot.resolved ?? snapshot.runtimeConfig ?? snapshot.parsed ?? {},
-  );
-}
-
-async function transformConfigFileWithRetryMock<T = unknown>(
-  params: TransformConfigFileWithRetryMockParams<T>,
-) {
-  const snapshot = (await readConfigFileSnapshotMock()) as ConfigSnapshotMock;
-  const previousHash = snapshot.hash ?? null;
-  const transformed = await params.transform(configFromSnapshot(snapshot), {
-    snapshot,
-    previousHash,
-    attempt: 0,
-  });
-  const afterWrite = params.afterWrite ?? { mode: "auto" };
-  await replaceConfigFileMock({ nextConfig: transformed.nextConfig, afterWrite });
-  return {
-    path: snapshot.path ?? "/tmp/astroclaw.json",
-    previousHash,
-    persistedHash: "persisted-hash",
-    snapshot,
-    nextConfig: transformed.nextConfig,
-    result: transformed.result,
-    attempts: 1,
-    afterWrite,
-    followUp: { action: "none" },
-  };
-}
 
 vi.mock("../../cli/npm-resolution.js", () => ({
   buildNpmInstallRecordFields: vi.fn(),
@@ -84,7 +35,39 @@ vi.mock("../../config/config.js", () => ({
   readConfigFileSnapshot: readConfigFileSnapshotMock,
   validateConfigObjectWithPlugins: validateConfigObjectWithPluginsMock,
   replaceConfigFile: replaceConfigFileMock,
-  transformConfigFileWithRetry: transformConfigFileWithRetryMock,
+  transformConfigFileWithRetry: async (params: {
+    afterWrite?: unknown;
+    transform: (
+      currentConfig: OpenClawConfig,
+      context: { snapshot: ConfigSnapshotMock; previousHash: string | null; attempt: number },
+    ) =>
+      | Promise<{ nextConfig: OpenClawConfig; result?: unknown }>
+      | {
+          nextConfig: OpenClawConfig;
+          result?: unknown;
+        };
+  }) => {
+    const snapshot = (await readConfigFileSnapshotMock()) as ConfigSnapshotMock;
+    const previousHash = snapshot.hash ?? null;
+    const currentConfig = structuredClone(
+      snapshot.sourceConfig ?? snapshot.resolved ?? snapshot.runtimeConfig ?? snapshot.parsed ?? {},
+    );
+    const transformContext = { snapshot, previousHash, attempt: 0 };
+    const transformed = await params.transform(currentConfig, transformContext);
+    const afterWrite = params.afterWrite ?? { mode: "auto" };
+    await replaceConfigFileMock({ nextConfig: transformed.nextConfig, afterWrite });
+    return {
+      path: snapshot.path ?? "/tmp/openclaw.json",
+      previousHash,
+      persistedHash: "persisted-hash",
+      snapshot,
+      nextConfig: transformed.nextConfig,
+      result: transformed.result,
+      attempts: 1,
+      afterWrite,
+      followUp: { action: "none" },
+    };
+  },
 }));
 
 vi.mock("../../infra/archive.js", () => ({
@@ -119,7 +102,7 @@ vi.mock("../../plugins/status.js", () => ({
 }));
 
 vi.mock("../../plugins/toggle-config.js", () => ({
-  setPluginEnabledInConfig: vi.fn((config: AstroclawConfig, id: string, enabled: boolean) => ({
+  setPluginEnabledInConfig: vi.fn((config: OpenClawConfig, id: string, enabled: boolean) => ({
     ...config,
     plugins: {
       ...config.plugins,
@@ -139,7 +122,7 @@ vi.mock("../../utils.js", async () => {
   };
 });
 
-function buildCfg(): AstroclawConfig {
+function buildCfg(): OpenClawConfig {
   return {
     plugins: { enabled: true },
     commands: { text: true, plugins: true },
@@ -150,7 +133,7 @@ const WRITE_GATEWAY_SCOPES = ["operator.admin", "operator.write", "operator.pair
 
 function buildPluginsParams(
   commandBodyNormalized: string,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   options?: { gatewayClientScopes?: string[] },
 ) {
   return buildPluginsCommandParams({
@@ -208,7 +191,7 @@ describe("handlePluginsCommand", () => {
     vi.clearAllMocks();
     readConfigFileSnapshotMock.mockResolvedValue({
       valid: true,
-      path: "/tmp/astroclaw.json",
+      path: "/tmp/openclaw.json",
       sourceConfig: buildCfg(),
       resolved: buildCfg(),
       hash: "config-1",
@@ -225,7 +208,7 @@ describe("handlePluginsCommand", () => {
           id: "superpowers",
           name: "superpowers",
           status: "disabled",
-          format: "astroclaw",
+          format: "openclaw",
           bundleFormat: "claude",
         },
       ],
@@ -237,7 +220,7 @@ describe("handlePluginsCommand", () => {
           id: "superpowers",
           name: "superpowers",
           status: "disabled",
-          format: "astroclaw",
+          format: "openclaw",
           bundleFormat: "claude",
         },
       ],
@@ -324,8 +307,8 @@ describe("handlePluginsCommand", () => {
   });
 
   it("refuses plugin enablement in Nix mode before reading or replacing config", async () => {
-    const previousNixMode = process.env.ASTROCLAW_NIX_MODE;
-    process.env.ASTROCLAW_NIX_MODE = "1";
+    const previousNixMode = process.env.OPENCLAW_NIX_MODE;
+    process.env.OPENCLAW_NIX_MODE = "1";
     try {
       const params = buildPluginsParams("/plugins enable superpowers", buildCfg(), {
         gatewayClientScopes: WRITE_GATEWAY_SCOPES,
@@ -333,16 +316,16 @@ describe("handlePluginsCommand", () => {
       params.command.senderIsOwner = true;
 
       const result = await handlePluginsCommand(params, true);
-      expect(result?.reply?.text).toContain("ASTROCLAW_NIX_MODE=1");
-      expect(result?.reply?.text).toContain("nix-astroclaw#quick-start");
+      expect(result?.reply?.text).toContain("OPENCLAW_NIX_MODE=1");
+      expect(result?.reply?.text).toContain("nix-openclaw#quick-start");
       expect(readConfigFileSnapshotMock).not.toHaveBeenCalled();
       expect(replaceConfigFileMock).not.toHaveBeenCalled();
       expect(refreshPluginRegistryAfterConfigMutationMock).not.toHaveBeenCalled();
     } finally {
       if (previousNixMode === undefined) {
-        delete process.env.ASTROCLAW_NIX_MODE;
+        delete process.env.OPENCLAW_NIX_MODE;
       } else {
-        process.env.ASTROCLAW_NIX_MODE = previousNixMode;
+        process.env.OPENCLAW_NIX_MODE = previousNixMode;
       }
     }
   });
@@ -355,7 +338,7 @@ describe("handlePluginsCommand", () => {
           id: "superpowers",
           name: "Super Powers",
           status: "disabled",
-          format: "astroclaw",
+          format: "openclaw",
           bundleFormat: "claude",
         },
       ],
@@ -375,7 +358,7 @@ describe("handlePluginsCommand", () => {
 
   it("returns an explicit unauthorized reply for native /plugins list", async () => {
     const params = buildPluginsParams("/plugins list", buildCfg());
-    params.command.senderIsOwner = false;
+    params.command.isAuthorizedSender = false;
     params.ctx.Provider = "telegram";
     params.ctx.Surface = "telegram";
     params.ctx.CommandSource = "native";
