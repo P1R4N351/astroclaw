@@ -1,3 +1,4 @@
+/** Covers plugin compaction provider registration and lookup behavior. */
 import { afterEach, describe, expect, it } from "vitest";
 import {
   clearCompactionProviders,
@@ -10,7 +11,7 @@ import {
   type CompactionProvider,
 } from "./compaction-provider.js";
 
-const REGISTRY_KEY = Symbol.for("astroclaw.compactionProviderRegistryState");
+const REGISTRY_KEY = Symbol.for("openclaw.compactionProviderRegistryState");
 
 /** Reset the process-global registry between tests. */
 afterEach(() => {
