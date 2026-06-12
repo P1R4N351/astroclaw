@@ -1,5 +1,6 @@
+/** Tests plugin slot normalization and exclusive slot selection behavior. */
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   applyExclusiveSlotSelection,
   hasKind,
@@ -10,7 +11,7 @@ import {
 import type { PluginKind } from "./types.js";
 
 describe("applyExclusiveSlotSelection", () => {
-  const createMemoryConfig = (plugins?: AstroclawConfig["plugins"]): AstroclawConfig => ({
+  const createMemoryConfig = (plugins?: OpenClawConfig["plugins"]): OpenClawConfig => ({
     plugins: {
       ...plugins,
       entries: {
@@ -23,7 +24,7 @@ describe("applyExclusiveSlotSelection", () => {
     },
   });
 
-  const runMemorySelection = (config: AstroclawConfig, selectedId = "memory") =>
+  const runMemorySelection = (config: OpenClawConfig, selectedId = "memory") =>
     applyExclusiveSlotSelection({
       config,
       selectedId,
@@ -78,7 +79,7 @@ describe("applyExclusiveSlotSelection", () => {
   }
 
   function expectUnchangedSelectionCase(params: {
-    config: AstroclawConfig;
+    config: OpenClawConfig;
     selectedId: string;
     selectedKind?: PluginKind | PluginKind[];
     registry?: { plugins: ReadonlyArray<{ id: string; kind?: PluginKind | PluginKind[] }> };
@@ -99,7 +100,7 @@ describe("applyExclusiveSlotSelection", () => {
   }
 
   function expectChangedSelectionCase(params: {
-    config: AstroclawConfig;
+    config: OpenClawConfig;
     selectedId?: string;
     expectedDisabled?: boolean;
     warningChecks: {
@@ -175,7 +176,7 @@ describe("applyExclusiveSlotSelection", () => {
     },
     {
       name: "skips changes when no exclusive slot applies",
-      config: {} as AstroclawConfig,
+      config: {} as OpenClawConfig,
       selectedId: "custom",
     },
   ] as const)("$name", ({ config, selectedId, selectedKind, registry }) => {
@@ -188,7 +189,7 @@ describe("applyExclusiveSlotSelection", () => {
   });
 
   it("applies slot selection for each kind in a multi-kind array", () => {
-    const config: AstroclawConfig = {
+    const config: OpenClawConfig = {
       plugins: {
         slots: { memory: "memory-core", contextEngine: "legacy" },
         entries: {
@@ -215,7 +216,7 @@ describe("applyExclusiveSlotSelection", () => {
   });
 
   it("does not disable a dual-kind plugin that still owns another slot", () => {
-    const config: AstroclawConfig = {
+    const config: OpenClawConfig = {
       plugins: {
         slots: { memory: "dual-plugin", contextEngine: "dual-plugin" },
         entries: {
@@ -240,7 +241,7 @@ describe("applyExclusiveSlotSelection", () => {
 
   it("does not disable a dual-kind plugin that owns another slot via default", () => {
     // contextEngine is NOT explicitly set — defaults to "legacy"
-    const config: AstroclawConfig = {
+    const config: OpenClawConfig = {
       plugins: {
         slots: { memory: "legacy" },
         entries: {
