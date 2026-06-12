@@ -1,3 +1,4 @@
+// Backup atomicity tests cover temp-file writes, rollback behavior, and backup archive consistency.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -17,7 +18,7 @@ describe("backupCreateCommand atomic archive write", () => {
   let tempHome: TempHomeEnv;
 
   beforeAll(async () => {
-    tempHome = await createTempHomeEnv("astroclaw-backup-atomic-test-");
+    tempHome = await createTempHomeEnv("openclaw-backup-atomic-test-");
   });
 
   beforeEach(async () => {
@@ -38,9 +39,9 @@ describe("backupCreateCommand atomic archive write", () => {
     archivePrefix: string;
     outputName?: string;
   }) {
-    const stateDir = path.join(tempHome.home, ".astroclaw");
+    const stateDir = path.join(tempHome.home, ".openclaw");
     const archiveDir = await fs.mkdtemp(path.join(os.tmpdir(), params.archivePrefix));
-    await fs.writeFile(path.join(stateDir, "astroclaw.json"), JSON.stringify({}), "utf8");
+    await fs.writeFile(path.join(stateDir, "openclaw.json"), JSON.stringify({}), "utf8");
     await fs.writeFile(path.join(stateDir, "state.txt"), "state\n", "utf8");
 
     const runtime = createBackupTestRuntime();
@@ -66,7 +67,7 @@ describe("backupCreateCommand atomic archive write", () => {
 
   it("does not leave a partial final archive behind when tar creation fails", async () => {
     const { archiveDir, outputPath, runtime } = await prepareAtomicBackupScenario({
-      archivePrefix: "astroclaw-backup-failure-",
+      archivePrefix: "openclaw-backup-failure-",
     });
     try {
       tarCreateMock.mockRejectedValueOnce(new Error("disk full"));
@@ -87,7 +88,7 @@ describe("backupCreateCommand atomic archive write", () => {
 
   it("does not overwrite an archive created after readiness checks complete", async () => {
     const { archiveDir, outputPath, runtime } = await prepareAtomicBackupScenario({
-      archivePrefix: "astroclaw-backup-race-",
+      archivePrefix: "openclaw-backup-race-",
     });
     const realLink = fs.link.bind(fs);
     const linkSpy = vi.spyOn(fs, "link");
@@ -115,7 +116,7 @@ describe("backupCreateCommand atomic archive write", () => {
 
   it("falls back to exclusive copy when hard-link publication is unsupported", async () => {
     const { archiveDir, outputPath, runtime } = await prepareAtomicBackupScenario({
-      archivePrefix: "astroclaw-backup-copy-fallback-",
+      archivePrefix: "openclaw-backup-copy-fallback-",
     });
     const linkSpy = vi.spyOn(fs, "link");
     try {
