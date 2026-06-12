@@ -1,3 +1,4 @@
+// Covers config environment-variable substitution behavior.
 import { describe, expect, it } from "vitest";
 import {
   type EnvSubstitutionWarning,
@@ -371,8 +372,8 @@ describe("resolveConfigEnvVars", () => {
         },
         {
           name: "gateway auth token",
-          config: { gateway: { auth: { token: "${ASTROCLAW_GATEWAY_TOKEN}" } } },
-          env: { ASTROCLAW_GATEWAY_TOKEN: "secret-token" },
+          config: { gateway: { auth: { token: "${OPENCLAW_GATEWAY_TOKEN}" } } },
+          env: { OPENCLAW_GATEWAY_TOKEN: "secret-token" },
           expected: { gateway: { auth: { token: "secret-token" } } },
         },
         {
