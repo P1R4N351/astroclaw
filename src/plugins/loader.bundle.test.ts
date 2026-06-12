@@ -1,8 +1,9 @@
+/** Verifies bundle manifest loading and bundled plugin runtime resolution. */
 import fs from "node:fs";
 import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { withEnv } from "../test-utils/env.js";
-import { loadAstroclawPlugins } from "./loader.js";
+import { loadOpenClawPlugins } from "./loader.js";
 import {
   cleanupPluginLoaderFixturesForTest,
   loadBundleFixture,
@@ -13,7 +14,7 @@ import {
 } from "./loader.test-fixtures.js";
 
 function expectNoUnwiredBundleDiagnostic(
-  registry: ReturnType<typeof loadAstroclawPlugins>,
+  registry: ReturnType<typeof loadOpenClawPlugins>,
   pluginId: string,
 ) {
   expect(
@@ -38,7 +39,7 @@ describe("bundle plugins", () => {
     useNoBundledPlugins();
     const workspaceDir = makeTempDir();
     const stateDir = makeTempDir();
-    const bundleRoot = path.join(workspaceDir, ".astroclaw", "extensions", "sample-bundle");
+    const bundleRoot = path.join(workspaceDir, ".openclaw", "extensions", "sample-bundle");
     mkdirSafe(path.join(bundleRoot, ".codex-plugin"));
     mkdirSafe(path.join(bundleRoot, "skills"));
     fs.writeFileSync(
@@ -55,8 +56,8 @@ describe("bundle plugins", () => {
       "---\ndescription: fixture\n---\n",
     );
 
-    const registry = withEnv({ ASTROCLAW_STATE_DIR: stateDir }, () =>
-      loadAstroclawPlugins({
+    const registry = withEnv({ OPENCLAW_STATE_DIR: stateDir }, () =>
+      loadOpenClawPlugins({
         workspaceDir,
         onlyPluginIds: ["sample-bundle"],
         config: {
@@ -162,7 +163,7 @@ describe("bundle plugins", () => {
     const registry = loadBundleFixture({
       pluginId: "claude-mcp-url",
       env: {
-        ASTROCLAW_HOME: stateDir,
+        OPENCLAW_HOME: stateDir,
       },
       build: (bundleRoot) => {
         mkdirSafe(path.join(bundleRoot, ".claude-plugin"));
