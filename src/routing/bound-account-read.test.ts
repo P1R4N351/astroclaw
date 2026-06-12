@@ -1,10 +1,11 @@
+// Bound account read tests cover reading account bindings from channel metadata.
 import { describe, expect, it } from "vitest";
 import type { AgentRouteBinding } from "../config/types.agents.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveFirstBoundAccountId } from "./bound-account-read.js";
 
-function cfgWithBindings(bindings: AgentRouteBinding[]): AstroclawConfig {
-  return { bindings } as unknown as AstroclawConfig;
+function cfgWithBindings(bindings: AgentRouteBinding[]): OpenClawConfig {
+  return { bindings } as unknown as OpenClawConfig;
 }
 
 describe("resolveFirstBoundAccountId", () => {
