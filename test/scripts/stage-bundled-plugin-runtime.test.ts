@@ -1,3 +1,4 @@
+// Stage Bundled Plugin Runtime tests cover stage bundled plugin runtime script behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -5,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { stageBundledPluginRuntime } from "../../scripts/stage-bundled-plugin-runtime.mjs";
 
 async function withTempDir(run: (dir: string) => Promise<void>) {
-  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "astroclaw-stage-runtime-"));
+  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "openclaw-stage-runtime-"));
   try {
     await run(dir);
   } finally {
