@@ -1,95 +1,66 @@
+// Browser tests cover cdp.screenshot params plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { withCdpSocket } from "./cdp.helpers.js";
 import { captureScreenshot } from "./cdp.js";
 import type { ResolvedBrowserProfile } from "./config.js";
 import { shouldUsePlaywrightForScreenshot } from "./profile-capabilities.js";
 
-type CdpParams = Record<string, unknown>;
-type SentMessage = { method: string; params?: CdpParams };
-type MockViewport = { w: number; h: number; dpr: number; sw?: number; sh?: number };
-type MockNaturalViewport = Pick<MockViewport, "w" | "h" | "dpr">;
-type MockState = {
-  emulationCleared: boolean;
-  emulatedTab: boolean;
-  viewport: MockViewport;
-  naturalViewport: MockNaturalViewport;
-};
-type MockSend = (method: string, params?: CdpParams) => Promise<unknown>;
-
-const p10Limits = vi.hoisted(() =>
-  Object.freeze({
-    maxSentMessages: 32,
-    expectedFullPageSetCalls: 2,
-    expectedNoReapplySetCalls: 1,
-    expectedNoEmulationCalls: 0,
-  }),
-);
-
-const sentMessages = vi.hoisted((): SentMessage[] => []);
+const sentMessages = vi.hoisted(() => {
+  const msgs: Array<{ method: string; params?: Record<string, unknown> }> = [];
+  return msgs;
+});
 
 // Tracks whether emulation has been cleared so post-clear Runtime.evaluate
 // can return different values for the "emulated tab" vs "non-emulated tab" tests.
-const mockState = vi.hoisted(
-  (): MockState => ({
-    emulationCleared: false,
-    emulatedTab: true,
-    viewport: { w: 800, h: 600, dpr: 2, sw: 800, sh: 600 },
-    naturalViewport: { w: 1920, h: 1080, dpr: 1 },
-  }),
-);
+const mockState = vi.hoisted(() => ({
+  emulationCleared: false,
+  emulatedTab: true,
+  viewport: { w: 800, h: 600, dpr: 2, sw: 800, sh: 600 } as Record<string, unknown>,
+  naturalViewport: { w: 1920, h: 1080, dpr: 1 },
+}));
 
 vi.mock("./cdp.helpers.js", () => ({
   withCdpSocket: vi.fn(
     async (
       _wsUrl: string,
-      fn: (send: MockSend) => Promise<unknown>,
+      fn: (send: unknown) => Promise<unknown>,
       _opts?: { commandTimeoutMs?: number },
     ) => {
-      const send: MockSend = (method, params) => {
-        if (method.length === 0) {
-          return Promise.reject(new Error("expected non-empty CDP method"));
+      const send = (method: string, params?: Record<string, unknown>) => {
+        sentMessages.push({ method, params });
+        if (method === "Page.captureScreenshot") {
+          return Promise.resolve({ data: "AAAA" });
         }
-        if (sentMessages.length >= p10Limits.maxSentMessages) {
-          return Promise.reject(new Error("too many mocked CDP messages"));
+        if (method === "Page.getLayoutMetrics") {
+          return Promise.resolve({
+            cssContentSize: { width: 1200, height: 3000 },
+            contentSize: { width: 1200, height: 3000 },
+          });
         }
-
-        const nextLength = sentMessages.push({ method, params });
-        if (nextLength <= 0 || nextLength > p10Limits.maxSentMessages) {
-          return Promise.reject(new Error("mocked CDP message recording failed"));
+        if (method === "Emulation.clearDeviceMetricsOverride") {
+          mockState.emulationCleared = true;
+          return Promise.resolve({});
         }
-
-        switch (method) {
-          case "Page.captureScreenshot":
-            return Promise.resolve({ data: "AAAA" });
-          case "Page.getLayoutMetrics":
-            return Promise.resolve({
-              cssContentSize: { width: 1200, height: 3000 },
-              contentSize: { width: 1200, height: 3000 },
-            });
-          case "Emulation.clearDeviceMetricsOverride":
-            mockState.emulationCleared = true;
-            return Promise.resolve({});
-          case "Emulation.setDeviceMetricsOverride":
-            mockState.emulationCleared = false;
-            return Promise.resolve({});
-          case "Runtime.evaluate":
-            if (mockState.emulationCleared && mockState.emulatedTab) {
-              return Promise.resolve({
-                result: {
-                  value: mockState.naturalViewport,
-                },
-              });
-            }
+        if (method === "Emulation.setDeviceMetricsOverride") {
+          mockState.emulationCleared = false;
+          return Promise.resolve({});
+        }
+        if (method === "Runtime.evaluate") {
+          if (mockState.emulationCleared && mockState.emulatedTab) {
             return Promise.resolve({
               result: {
-                value: mockState.viewport,
+                value: mockState.naturalViewport,
               },
             });
-          default:
-            return Promise.resolve({});
+          }
+          return Promise.resolve({
+            result: {
+              value: mockState.viewport,
+            },
+          });
         }
+        return Promise.resolve({});
       };
-
       return fn(send);
     },
   ),
@@ -105,13 +76,13 @@ vi.mock("./navigation-guard.js", () => ({
 }));
 
 const localProfile: ResolvedBrowserProfile = {
-  name: "astroclaw",
+  name: "openclaw",
   cdpUrl: "http://127.0.0.1:18800",
   cdpPort: 18800,
   cdpHost: "127.0.0.1",
   cdpIsLoopback: true,
   color: "#FF4500",
-  driver: "astroclaw",
+  driver: "openclaw",
   headless: false,
   attachOnly: false,
 };
@@ -122,104 +93,14 @@ beforeEach(() => {
   mockState.emulatedTab = true;
   mockState.viewport = { w: 800, h: 600, dpr: 2, sw: 800, sh: 600 };
   mockState.naturalViewport = { w: 1920, h: 1080, dpr: 1 };
-
-  if (sentMessages.length !== 0) {
-    throw new Error("mocked CDP messages were not reset");
-  }
-  if (!mockState.emulatedTab) {
-    throw new Error("mocked tab emulation state was not reset");
-  }
 });
 
-function assertCdpMethod(method: string): void {
-  if (method.length === 0) {
-    throw new Error("expected non-empty CDP method");
+function requireSentMessage(method: string) {
+  const message = sentMessages.find((m) => m.method === method);
+  if (!message) {
+    throw new Error(`expected ${method} CDP message`);
   }
-  if (!method.includes(".")) {
-    throw new Error("expected CDP method to include a domain");
-  }
-}
-
-function assertSentMessageCapacity(): void {
-  if (!Number.isInteger(sentMessages.length)) {
-    throw new Error("mocked CDP message length must be integral");
-  }
-  if (sentMessages.length > p10Limits.maxSentMessages) {
-    throw new Error("mocked CDP message limit exceeded");
-  }
-}
-
-function requireSentMessage(method: string): SentMessage {
-  assertCdpMethod(method);
-  assertSentMessageCapacity();
-
-  for (let index = 0; index < p10Limits.maxSentMessages; index += 1) {
-    if (index >= sentMessages.length) {
-      break;
-    }
-
-    const message = sentMessages[index];
-    if (message === undefined) {
-      throw new Error("mocked CDP message slot missing");
-    }
-    if (message.method === method) {
-      return message;
-    }
-  }
-
-  throw new Error(`expected ${method} CDP message`);
-}
-
-function countSentMessages(method: string): number {
-  assertCdpMethod(method);
-  assertSentMessageCapacity();
-
-  let count = 0;
-  for (let index = 0; index < p10Limits.maxSentMessages; index += 1) {
-    if (index >= sentMessages.length) {
-      break;
-    }
-
-    const message = sentMessages[index];
-    if (message === undefined) {
-      throw new Error("mocked CDP message slot missing");
-    }
-    if (message.method === method) {
-      count += 1;
-    }
-  }
-
-  return count;
-}
-
-function requireNthSentMessage(method: string, occurrence: number): SentMessage {
-  assertCdpMethod(method);
-  if (!Number.isInteger(occurrence)) {
-    throw new Error("expected integral CDP message occurrence");
-  }
-  if (occurrence < 0 || occurrence >= p10Limits.maxSentMessages) {
-    throw new Error("expected bounded CDP message occurrence");
-  }
-
-  let seen = 0;
-  for (let index = 0; index < p10Limits.maxSentMessages; index += 1) {
-    if (index >= sentMessages.length) {
-      break;
-    }
-
-    const message = sentMessages[index];
-    if (message === undefined) {
-      throw new Error("mocked CDP message slot missing");
-    }
-    if (message.method === method) {
-      if (seen === occurrence) {
-        return message;
-      }
-      seen += 1;
-    }
-  }
-
-  throw new Error(`expected CDP message occurrence ${occurrence}`);
+  return message;
 }
 
 describe("CDP screenshot params", () => {
@@ -232,8 +113,10 @@ describe("CDP screenshot params", () => {
     expect(call.params).not.toHaveProperty("captureBeyondViewport");
     expect(call.params).not.toHaveProperty("clip");
 
-    const emulationCallCount = countSentMessages("Emulation.setDeviceMetricsOverride");
-    expect(emulationCallCount).toBe(p10Limits.expectedNoEmulationCalls);
+    const emulationCalls = sentMessages.filter(
+      (m) => m.method === "Emulation.setDeviceMetricsOverride",
+    );
+    expect(emulationCalls).toHaveLength(0);
   });
 
   it("uses the requested timeout as the raw CDP command timeout", async () => {
@@ -243,16 +126,9 @@ describe("CDP screenshot params", () => {
       timeoutMs: 12_345,
     });
 
-    const mockedSocket = vi.mocked(withCdpSocket);
-    const callCount = mockedSocket.mock.calls.length;
-    expect(callCount).toBeGreaterThan(0);
-
-    const lastCall = mockedSocket.mock.calls[callCount - 1];
-    if (lastCall === undefined || lastCall.length < 3) {
-      throw new Error("expected mocked CDP socket call");
-    }
-
-    const [wsUrl, sendCallback, options] = lastCall;
+    const [wsUrl, sendCallback, options] =
+      (withCdpSocket as unknown as { mock: { calls: Array<Array<unknown>> } }).mock.calls.at(-1) ??
+      [];
     expect(wsUrl).toBe("ws://localhost:9222/devtools/page/X");
     expect(typeof sendCallback).toBe("function");
     expect(options).toEqual({ commandTimeoutMs: 12_345 });
@@ -267,10 +143,12 @@ describe("CDP screenshot params", () => {
       fullPage: true,
     });
 
-    const setCallCount = countSentMessages("Emulation.setDeviceMetricsOverride");
-    expect(setCallCount).toBe(p10Limits.expectedFullPageSetCalls);
-    const firstSetCall = requireNthSentMessage("Emulation.setDeviceMetricsOverride", 0);
-    const secondSetCall = requireNthSentMessage("Emulation.setDeviceMetricsOverride", 1);
+    const setCalls = sentMessages.filter((m) => m.method === "Emulation.setDeviceMetricsOverride");
+    expect(setCalls.length).toBe(2);
+    const [firstSetCall, secondSetCall] = setCalls;
+    if (!firstSetCall || !secondSetCall) {
+      throw new Error("expected two viewport updates");
+    }
 
     // Expand: uses saved DPR, mobile defaults to false
     expect(firstSetCall.params?.width).toBe(1200);
@@ -303,9 +181,9 @@ describe("CDP screenshot params", () => {
       fullPage: true,
     });
 
-    const setCallCount = countSentMessages("Emulation.setDeviceMetricsOverride");
+    const setCalls = sentMessages.filter((m) => m.method === "Emulation.setDeviceMetricsOverride");
     // Only the expand call — no re-apply after clear
-    expect(setCallCount).toBe(p10Limits.expectedNoReapplySetCalls);
+    expect(setCalls).toHaveLength(1);
 
     requireSentMessage("Emulation.clearDeviceMetricsOverride");
   });
