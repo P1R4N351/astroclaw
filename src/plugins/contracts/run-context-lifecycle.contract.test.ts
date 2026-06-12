@@ -1,14 +1,15 @@
+// Run context lifecycle contract tests cover plugin run context setup and cleanup.
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
-} from "astroclaw/plugin-sdk/plugin-test-contracts";
+} from "openclaw/plugin-sdk/plugin-test-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadSessionStore, updateSessionStore } from "../../config/sessions.js";
 import { withTempConfig } from "../../gateway/test-temp-config.js";
 import { emitAgentEvent, resetAgentEventsForTest } from "../../infra/agent-events.js";
-import { resolvePreferredAstroclawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
 import { PLUGIN_HOST_CLEANUP_TIMEOUT_MS } from "../host-hook-cleanup-timeout.js";
 import { runPluginHostCleanup } from "../host-hook-cleanup.js";
 import {
@@ -23,10 +24,12 @@ import {
 import { createEmptyPluginRegistry } from "../registry-empty.js";
 import { setActivePluginRegistry } from "../runtime.js";
 import { createPluginRecord } from "../status.test-helpers.js";
-import type { AstroclawPluginApi } from "../types.js";
+import type { OpenClawPluginApi } from "../types.js";
 
 async function waitForPluginEventHandlers(): Promise<void> {
-  await new Promise<void>((resolve) => setImmediate(resolve));
+  await new Promise<void>((resolve) => {
+    setImmediate(resolve);
+  });
 }
 
 function expectNoCleanupFailures(result: Awaited<ReturnType<typeof runPluginHostCleanup>>): void {
@@ -54,7 +57,7 @@ describe("plugin run context lifecycle", () => {
 
   it("blocks stale plugin API run-context mutations after registry replacement", () => {
     const { config, registry } = createPluginRegistryFixture();
-    let capturedApi: AstroclawPluginApi | undefined;
+    let capturedApi: OpenClawPluginApi | undefined;
     registerTestPlugin({
       registry,
       config,
@@ -100,7 +103,7 @@ describe("plugin run context lifecycle", () => {
 
   it("allows run-context mutations after a previous registry is restored active", () => {
     const { config, registry } = createPluginRegistryFixture();
-    let capturedApi: AstroclawPluginApi | undefined;
+    let capturedApi: OpenClawPluginApi | undefined;
     registerTestPlugin({
       registry,
       config,
@@ -167,7 +170,7 @@ describe("plugin run context lifecycle", () => {
   it("keeps restored active registry state after stale async cleanup finishes", async () => {
     let releaseCleanup: (() => void) | undefined;
     let markCleanupStarted: (() => void) | undefined;
-    let capturedApi: AstroclawPluginApi | undefined;
+    let capturedApi: OpenClawPluginApi | undefined;
     const cleanupStarted = new Promise<void>((resolve) => {
       markCleanupStarted = resolve;
     });
@@ -249,7 +252,7 @@ describe("plugin run context lifecycle", () => {
         api.registerAgentEventSubscription({
           id: "delayed",
           streams: ["tool"],
-          async handle(_event, ctx) {
+          async handle(eventValue, ctx) {
             ctx.setRunContext("before-terminal", { visible: true });
             await new Promise<void>((resolve) => {
               releaseToolHandler = resolve;
@@ -681,15 +684,15 @@ describe("plugin run context lifecycle", () => {
     });
 
     const stateDir = await fs.mkdtemp(
-      path.join(resolvePreferredAstroclawTmpDir(), "astroclaw-run-context-restart-state-"),
+      path.join(resolvePreferredOpenClawTmpDir(), "openclaw-run-context-restart-state-"),
     );
     const storePath = path.join(stateDir, "sessions.json");
     const tempConfig = {
       session: { store: storePath },
     };
-    const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
     try {
-      process.env.ASTROCLAW_STATE_DIR = stateDir;
+      process.env.OPENCLAW_STATE_DIR = stateDir;
       await withTempConfig({
         cfg: tempConfig,
         run: async () => {
@@ -743,9 +746,9 @@ describe("plugin run context lifecycle", () => {
       });
     } finally {
       if (previousStateDir === undefined) {
-        delete process.env.ASTROCLAW_STATE_DIR;
+        delete process.env.OPENCLAW_STATE_DIR;
       } else {
-        process.env.ASTROCLAW_STATE_DIR = previousStateDir;
+        process.env.OPENCLAW_STATE_DIR = previousStateDir;
       }
       await fs.rm(stateDir, { recursive: true, force: true });
     }
@@ -754,7 +757,7 @@ describe("plugin run context lifecycle", () => {
   it("rejects hung cleanup hooks with a bounded timeout", async () => {
     vi.useFakeTimers();
     const cleanup = vi.fn(async () => {
-      await new Promise(() => undefined);
+      await new Promise(() => {});
     });
     registerPluginSessionSchedulerJob({
       pluginId: "hung-cleanup-plugin",
@@ -794,17 +797,17 @@ describe("plugin run context lifecycle", () => {
         api.registerSessionExtension({
           namespace: "state",
           description: "hangs during cleanup",
-          cleanup: () => new Promise(() => undefined),
+          cleanup: () => new Promise(() => {}),
         });
         api.registerRuntimeLifecycle({
           id: "runtime-cleanup",
-          cleanup: () => new Promise(() => undefined),
+          cleanup: () => new Promise(() => {}),
         });
         api.registerSessionSchedulerJob({
           id: "scheduler-cleanup",
           sessionKey: "agent:main:main",
           kind: "monitor",
-          cleanup: () => new Promise(() => undefined),
+          cleanup: () => new Promise(() => {}),
         });
       },
     });
