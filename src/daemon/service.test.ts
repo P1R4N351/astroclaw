@@ -1,9 +1,11 @@
+// Daemon service tests cover service install, start, stop, and status flows.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearConfigCache, clearRuntimeConfigSnapshot } from "../config/config.js";
 import { makeTempWorkspace } from "../test-helpers/workspace.js";
 import { captureEnv } from "../test-utils/env.js";
+import { mockProcessPlatform } from "../test-utils/vitest-spies.js";
 import type { GatewayService } from "./service.js";
 import {
   describeGatewayServiceRestart,
@@ -14,24 +16,12 @@ import {
 } from "./service.js";
 import { createMockGatewayService } from "./service.test-helpers.js";
 
-const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
-
-function setPlatform(value: NodeJS.Platform | "aix") {
-  if (!originalPlatformDescriptor) {
-    throw new Error("missing process.platform descriptor");
-  }
-  Object.defineProperty(process, "platform", {
-    configurable: true,
-    enumerable: originalPlatformDescriptor.enumerable ?? false,
-    value,
-  });
+function setPlatform(value: NodeJS.Platform) {
+  mockProcessPlatform(value);
 }
 
 afterEach(() => {
-  if (!originalPlatformDescriptor) {
-    return;
-  }
-  Object.defineProperty(process, "platform", originalPlatformDescriptor);
+  vi.restoreAllMocks();
 });
 
 function createService(overrides: Partial<GatewayService> = {}): GatewayService {
@@ -50,16 +40,28 @@ describe("resolveGatewayService", () => {
     expect(service.loadedText).toBe(loadedText);
   });
 
-  it("throws for unsupported platforms", () => {
+  it("returns a read-only unsupported-platform adapter", async () => {
     setPlatform("aix");
-    expect(() => resolveGatewayService()).toThrow("Gateway service install not supported on aix");
+    const service = resolveGatewayService();
+
+    await expect(service.readCommand(process.env)).resolves.toBeNull();
+    await expect(service.isLoaded({ env: process.env })).rejects.toThrow(
+      "Gateway service install not supported on aix",
+    );
+    await expect(service.readRuntime(process.env)).resolves.toEqual({
+      status: "unknown",
+      detail: "Gateway service install not supported on aix",
+    });
+    await expect(service.restart({ env: process.env, stdout: process.stdout })).rejects.toThrow(
+      "Gateway service install not supported on aix",
+    );
   });
 
-  it("guards mutating service adapters when config was written by a newer Astroclaw", async () => {
-    const tempHome = await makeTempWorkspace("astroclaw-service-future-config-");
-    const stateDir = path.join(tempHome, ".astroclaw");
-    const configPath = path.join(stateDir, "astroclaw.json");
-    const envSnapshot = captureEnv(["HOME", "ASTROCLAW_STATE_DIR", "ASTROCLAW_CONFIG_PATH"]);
+  it("guards mutating service adapters when config was written by a newer OpenClaw", async () => {
+    const tempHome = await makeTempWorkspace("openclaw-service-future-config-");
+    const stateDir = path.join(tempHome, ".openclaw");
+    const configPath = path.join(stateDir, "openclaw.json");
+    const envSnapshot = captureEnv(["HOME", "OPENCLAW_STATE_DIR", "OPENCLAW_CONFIG_PATH"]);
     try {
       await fs.mkdir(stateDir, { recursive: true });
       await fs.writeFile(
@@ -75,8 +77,8 @@ describe("resolveGatewayService", () => {
         ),
       );
       process.env.HOME = tempHome;
-      process.env.ASTROCLAW_STATE_DIR = stateDir;
-      process.env.ASTROCLAW_CONFIG_PATH = configPath;
+      process.env.OPENCLAW_STATE_DIR = stateDir;
+      process.env.OPENCLAW_CONFIG_PATH = configPath;
       clearConfigCache();
       clearRuntimeConfigSnapshot();
 
@@ -108,20 +110,46 @@ describe("readGatewayServiceState", () => {
     const service = createService({
       isLoaded: vi.fn(async () => true),
       readCommand: vi.fn(async () => ({
-        programArguments: ["astroclaw", "gateway", "run"],
-        environment: { ASTROCLAW_GATEWAY_PORT: "18789" },
+        programArguments: ["openclaw", "gateway", "run"],
+        environment: { OPENCLAW_GATEWAY_PORT: "18789" },
       })),
       readRuntime: vi.fn(async () => ({ status: "running" })),
     });
 
     const state = await readGatewayServiceState(service, {
-      env: { ASTROCLAW_GATEWAY_PORT: "1" },
+      env: { OPENCLAW_GATEWAY_PORT: "1" },
     });
 
     expect(state.installed).toBe(true);
     expect(state.loaded).toBe(true);
     expect(state.running).toBe(true);
-    expect(state.env.ASTROCLAW_GATEWAY_PORT).toBe("18789");
+    expect(state.env.OPENCLAW_GATEWAY_PORT).toBe("18789");
+  });
+
+  it("keeps the caller-selected service identity when merging persisted env", async () => {
+    const readRuntime = vi.fn(async () => ({ status: "running" }));
+    const service = createService({
+      isLoaded: vi.fn(async () => true),
+      readCommand: vi.fn(async () => ({
+        programArguments: ["openclaw", "gateway", "run"],
+        environment: {
+          OPENCLAW_GATEWAY_PORT: "18789",
+          OPENCLAW_SYSTEMD_UNIT: "openclaw-gateway.service",
+        },
+      })),
+      readRuntime,
+    });
+
+    const state = await readGatewayServiceState(service, {
+      env: { OPENCLAW_SYSTEMD_UNIT: "openclaw-gateway-maintenance.service" },
+    });
+
+    expect(state.env.OPENCLAW_SYSTEMD_UNIT).toBe("openclaw-gateway-maintenance.service");
+    expect(readRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        OPENCLAW_SYSTEMD_UNIT: "openclaw-gateway-maintenance.service",
+      }),
+    );
   });
 });
 
@@ -140,8 +168,8 @@ describe("startGatewayService", () => {
 
   it("restarts stopped installed services and returns post-start state", async () => {
     const readCommand = vi.fn(async () => ({
-      programArguments: ["astroclaw", "gateway", "run"],
-      environment: { ASTROCLAW_GATEWAY_PORT: "18789" },
+      programArguments: ["openclaw", "gateway", "run"],
+      environment: { OPENCLAW_GATEWAY_PORT: "18789" },
     }));
     const isLoaded = vi
       .fn<GatewayService["isLoaded"]>()
@@ -172,8 +200,8 @@ describe("startGatewayService", () => {
   it("requests repair before start when the loaded service version is stale", async () => {
     const service = createService({
       readCommand: vi.fn(async () => ({
-        programArguments: ["astroclaw", "gateway", "run"],
-        environment: { ASTROCLAW_SERVICE_VERSION: "2026.4.24" },
+        programArguments: ["openclaw", "gateway", "run"],
+        environment: { OPENCLAW_SERVICE_VERSION: "2026.4.24" },
       })),
       isLoaded: vi.fn(async () => true),
       readRuntime: vi.fn(async () => ({ status: "stopped" })),
@@ -187,7 +215,7 @@ describe("startGatewayService", () => {
     expect(result.outcome).toBe("repair-required");
     if (result.outcome === "repair-required") {
       expect(formatGatewayServiceStartRepairIssues(result.issues)).toContain(
-        "service was installed by Astroclaw 2026.4.24",
+        "service was installed by OpenClaw 2026.4.24",
       );
     }
     expect(service.restart).not.toHaveBeenCalled();
@@ -197,8 +225,8 @@ describe("startGatewayService", () => {
     const service = createService({
       readCommand: vi.fn(async () => ({
         programArguments: [
-          "/private/tmp/astroclaw-ai-install-cli-pr118/tools/node/bin/node",
-          "/tmp/astroclaw-ai-install-cli-pr118/lib/node_modules/astroclaw/dist/index.js",
+          "/private/tmp/openclaw-ai-install-cli-pr118/tools/node/bin/node",
+          "/tmp/openclaw-ai-install-cli-pr118/lib/node_modules/openclaw/dist/index.js",
           "gateway",
         ],
         environment: {},
@@ -222,7 +250,7 @@ describe("startGatewayService", () => {
     const readCommand = vi
       .fn<GatewayService["readCommand"]>()
       .mockResolvedValueOnce({
-        programArguments: ["astroclaw", "gateway", "run"],
+        programArguments: ["openclaw", "gateway", "run"],
       })
       .mockResolvedValueOnce(null);
     const service = createService({
