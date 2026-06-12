@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../config/types.js";
+// TTS provider registry core stores provider factories and defaults.
+import type { OpenClawConfig } from "../config/types.js";
 import {
   buildCapabilityProviderMaps,
   normalizeCapabilityProviderId,
@@ -6,28 +7,31 @@ import {
 import type { SpeechProviderPlugin } from "../plugins/types.js";
 import type { SpeechProviderId } from "./provider-types.js";
 
+/** Resolver contract used by default and loaded-only speech provider registries. */
 export type SpeechProviderRegistryResolver = {
-  getProvider: (providerId: string, cfg?: AstroclawConfig) => SpeechProviderPlugin | undefined;
-  listProviders: (cfg?: AstroclawConfig) => SpeechProviderPlugin[];
+  getProvider: (providerId: string, cfg?: OpenClawConfig) => SpeechProviderPlugin | undefined;
+  listProviders: (cfg?: OpenClawConfig) => SpeechProviderPlugin[];
 };
 
+/** Normalize user/provider IDs into the canonical speech provider ID shape. */
 export function normalizeSpeechProviderId(
   providerId: string | undefined,
 ): SpeechProviderId | undefined {
   return normalizeCapabilityProviderId(providerId);
 }
 
+/** Create a registry facade with canonical listing, alias lookup, and ID canonicalization. */
 export function createSpeechProviderRegistry(resolver: SpeechProviderRegistryResolver) {
-  const buildResolvedProviderMaps = (cfg?: AstroclawConfig) =>
+  const buildResolvedProviderMaps = (cfg?: OpenClawConfig) =>
     buildCapabilityProviderMaps(resolver.listProviders(cfg));
 
-  const listProviders = (cfg?: AstroclawConfig): SpeechProviderPlugin[] => [
+  const listProviders = (cfg?: OpenClawConfig): SpeechProviderPlugin[] => [
     ...buildResolvedProviderMaps(cfg).canonical.values(),
   ];
 
   const getProvider = (
     providerId: string | undefined,
-    cfg?: AstroclawConfig,
+    cfg?: OpenClawConfig,
   ): SpeechProviderPlugin | undefined => {
     const normalized = normalizeSpeechProviderId(providerId);
     if (!normalized) {
@@ -41,7 +45,7 @@ export function createSpeechProviderRegistry(resolver: SpeechProviderRegistryRes
 
   const canonicalizeProviderId = (
     providerId: string | undefined,
-    cfg?: AstroclawConfig,
+    cfg?: OpenClawConfig,
   ): SpeechProviderId | undefined => {
     const normalized = normalizeSpeechProviderId(providerId);
     if (!normalized) {
