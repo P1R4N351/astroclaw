@@ -1,4 +1,5 @@
-import { withServer } from "astroclaw/plugin-sdk/test-env";
+// Zalo tests cover monitor.pairing.lifecycle plugin behavior.
+import { withServer } from "openclaw/plugin-sdk/test-env";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createLifecycleMonitorSetup,
@@ -51,7 +52,9 @@ describe("Zalo pairing lifecycle", () => {
 
     try {
       await withServer(
-        (req, res) => monitor.route.handler(req, res),
+        (req, res) => {
+          void monitor.route.handler(req, res);
+        },
         async (baseUrl) => {
           const { first, replay } = await postWebhookReplay({
             baseUrl,
@@ -108,7 +111,9 @@ describe("Zalo pairing lifecycle", () => {
 
     try {
       await withServer(
-        (req, res) => monitor.route.handler(req, res),
+        (req, res) => {
+          void monitor.route.handler(req, res);
+        },
         async (baseUrl) => {
           const { first, replay } = await postWebhookReplay({
             baseUrl,
