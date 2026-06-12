@@ -1,9 +1,10 @@
+// Covers talk schema parsing and validation behavior.
 import { describe, expect, it } from "vitest";
-import { AstroclawSchema } from "./zod-schema.js";
+import { OpenClawSchema } from "./zod-schema.js";
 
-describe("AstroclawSchema talk validation", () => {
+describe("OpenClawSchema talk validation", () => {
   it("accepts a positive integer talk.silenceTimeoutMs", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       talk: {
         consultThinkingLevel: "low",
         consultFastMode: true,
@@ -16,7 +17,7 @@ describe("AstroclawSchema talk validation", () => {
 
   it("rejects invalid talk.consultThinkingLevel", () => {
     expect(() =>
-      AstroclawSchema.parse({
+      OpenClawSchema.parse({
         talk: {
           consultThinkingLevel: "turbo",
         },
@@ -26,21 +27,35 @@ describe("AstroclawSchema talk validation", () => {
 
   it("accepts additional realtime Talk instructions", () => {
     expect(() =>
-      AstroclawSchema.parse({
+      OpenClawSchema.parse({
         talk: {
           realtime: {
             provider: "openai",
             providers: {
               openai: {
                 model: "gpt-realtime",
-                voice: "alloy",
+                speakerVoice: "alloy",
+                speakerVoiceId: "voice-123",
               },
             },
             instructions: "Speak with crisp diction.",
+            consultRouting: "force-agent-consult",
           },
         },
       }),
     ).not.toThrow();
+  });
+
+  it("rejects invalid realtime Talk consult routing", () => {
+    expect(() =>
+      OpenClawSchema.parse({
+        talk: {
+          realtime: {
+            consultRouting: "always",
+          },
+        },
+      }),
+    ).toThrow(/consultRouting/i);
   });
 
   it.each([
@@ -49,7 +64,7 @@ describe("AstroclawSchema talk validation", () => {
     ["float", 1500.5],
   ])("rejects %s talk.silenceTimeoutMs", (_label, value) => {
     expect(() =>
-      AstroclawSchema.parse({
+      OpenClawSchema.parse({
         talk: {
           silenceTimeoutMs: value,
         },
@@ -59,7 +74,7 @@ describe("AstroclawSchema talk validation", () => {
 
   it("rejects talk.provider when it does not match talk.providers", () => {
     expect(() =>
-      AstroclawSchema.parse({
+      OpenClawSchema.parse({
         talk: {
           provider: "acme",
           providers: {
@@ -74,7 +89,7 @@ describe("AstroclawSchema talk validation", () => {
 
   it("rejects multi-provider talk config without talk.provider", () => {
     expect(() =>
-      AstroclawSchema.parse({
+      OpenClawSchema.parse({
         talk: {
           providers: {
             acme: {
