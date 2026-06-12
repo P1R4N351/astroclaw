@@ -1,6 +1,7 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { resolveEnvApiKey } from "astroclaw/plugin-sdk/provider-auth-runtime";
-import { resolveAgentModelPrimaryValue } from "astroclaw/plugin-sdk/provider-onboard";
+// Kilocode tests cover onboard plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { resolveEnvApiKey } from "openclaw/plugin-sdk/provider-auth-runtime";
+import { resolveAgentModelPrimaryValue } from "openclaw/plugin-sdk/provider-onboard";
 import { describe, expect, it, vi } from "vitest";
 import {
   buildKilocodeModelDefinition,
@@ -16,10 +17,10 @@ import {
   KILOCODE_DEFAULT_MODEL_REF,
 } from "./onboard.js";
 
-const emptyCfg: AstroclawConfig = {};
+const emptyCfg: OpenClawConfig = {};
 const KILOCODE_MODEL_IDS = ["kilo/auto"];
 
-function requireKilocodeProvider(cfg: AstroclawConfig) {
+function requireKilocodeProvider(cfg: OpenClawConfig) {
   const provider = cfg.models?.providers?.kilocode;
   if (!provider) {
     throw new Error("expected Kilocode provider config");
@@ -106,7 +107,7 @@ describe("Kilo Gateway provider config", () => {
     });
 
     it("preserves existing alias if already set", () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             models: {
@@ -121,7 +122,7 @@ describe("Kilo Gateway provider config", () => {
     });
 
     it("does not change the default model selection", () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             model: { primary: "openai/gpt-5" },
