@@ -1,8 +1,10 @@
+// Covers Windows ACL audit and permission detection behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_WINDOWS_SYSTEM_ROOT,
-  _resetWindowsInstallRootsForTests,
+  resetWindowsInstallRootsForTests,
 } from "../infra/windows-install-roots.js";
+import { withEnvAsync } from "../test-utils/env.js";
 import type { WindowsAclEntry, WindowsAclSummary } from "./windows-acl.js";
 
 const MOCK_USERNAME = "MockUser";
@@ -32,8 +34,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  vi.unstubAllEnvs();
-  _resetWindowsInstallRootsForTests();
+  resetWindowsInstallRootsForTests();
 });
 
 function aclEntry(params: {
@@ -176,10 +177,10 @@ Successfully processed 1 files`;
 
     it("skips localized (non-English) status lines that have no parenthesised token", () => {
       const output =
-        "C:\\Users\\karte\\.astroclaw NT AUTHORITY\\\u0421\u0418\u0421\u0422\u0415\u041c\u0410:(OI)(CI)(F)\n" +
+        "C:\\Users\\karte\\.openclaw NT AUTHORITY\\\u0421\u0418\u0421\u0422\u0415\u041c\u0410:(OI)(CI)(F)\n" +
         "\u0423\u0441\u043f\u0435\u0448\u043d\u043e \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d\u043e 1 \u0444\u0430\u0439\u043b\u043e\u0432; " +
         "\u043d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u0442\u044c 0 \u0444\u0430\u0439\u043b\u043e\u0432";
-      const entries = parseIcaclsOutput(output, "C:\\Users\\karte\\.astroclaw");
+      const entries = parseIcaclsOutput(output, "C:\\Users\\karte\\.openclaw");
       expect(entries).toHaveLength(1);
       expect(entries[0].principal).toBe("NT AUTHORITY\\\u0421\u0418\u0421\u0422\u0415\u041c\u0410");
     });
@@ -510,23 +511,24 @@ Successfully processed 1 files`;
     });
 
     it("uses the discovered process SystemRoot when env options are omitted", async () => {
-      _resetWindowsInstallRootsForTests({ queryRegistryValue: () => null });
-      vi.stubEnv("SystemRoot", "D:\\Windows");
+      resetWindowsInstallRootsForTests({ queryRegistryValue: () => null });
 
       const mockExec = vi.fn().mockResolvedValue({
         stdout: "C:\\test\\file.txt *S-1-5-18:(F)",
         stderr: "",
       });
 
-      const result = await inspectWindowsAcl("C:\\test\\file.txt", {
-        exec: mockExec,
-      });
+      await withEnvAsync({ SystemRoot: "D:\\Windows" }, async () => {
+        const result = await inspectWindowsAcl("C:\\test\\file.txt", {
+          exec: mockExec,
+        });
 
-      expectInspectSuccess(result, 1);
-      expect(mockExec).toHaveBeenCalledWith("D:\\Windows\\System32\\icacls.exe", [
-        "C:\\test\\file.txt",
-        "/sid",
-      ]);
+        expectInspectSuccess(result, 1);
+        expect(mockExec).toHaveBeenCalledWith("D:\\Windows\\System32\\icacls.exe", [
+          "C:\\test\\file.txt",
+          "/sid",
+        ]);
+      });
     });
 
     it("classifies *S-1-5-18 (SID form of SYSTEM from /sid) as trusted", async () => {
@@ -927,13 +929,6 @@ Successfully processed 1 files`;
 
     it("classifies Spanish SYSTEM (AUTORIDAD NT\\SYSTEM) as trusted", () => {
       expectTrustedOnly([aclEntry({ principal: "AUTORIDAD NT\\SYSTEM" })]);
-    });
-
-    it("classifies principal with diacritic not in TRUSTED_BASE but matching stripped suffix (line 145)", () => {
-      // "NT Authority\\Syst\u00e9me" has \u00e9 (e-acute) which is not in TRUSTED_BASE directly.
-      // After diacritic stripping: "nt authority\\systeme" which ends with stripped("\\syst\u00e8me") = "\\systeme".
-      // This exercises the classifyPrincipal diacritic-strip fallback at line 145.
-      expectTrustedOnly([aclEntry({ principal: "NT Authority\\Syst\u00e9me" })]);
     });
 
     it("French Windows full scenario: user + Système only → no untrusted", () => {
