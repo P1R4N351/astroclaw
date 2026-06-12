@@ -1,15 +1,16 @@
+// Memory Core tests cover manager sync ops.archive delta bypass plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import type {
-  AstroclawConfig,
+  OpenClawConfig,
   ResolvedMemorySearchConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
 import type {
   MemorySource,
   MemorySyncProgressUpdate,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+} from "openclaw/plugin-sdk/memory-core-host-engine-storage";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MemoryManagerSyncOps } from "./manager-sync-ops.js";
 
@@ -31,9 +32,9 @@ type SyncParams = {
 };
 
 class SessionDeltaHarness extends MemoryManagerSyncOps {
-  protected readonly cfg = {} as AstroclawConfig;
+  protected readonly cfg = {} as OpenClawConfig;
   protected readonly agentId = "main";
-  protected readonly workspaceDir = "/tmp/astroclaw-test-workspace";
+  protected readonly workspaceDir = "/tmp/openclaw-test-workspace";
   protected readonly settings = {
     sync: {
       sessions: {
@@ -52,6 +53,8 @@ class SessionDeltaHarness extends MemoryManagerSyncOps {
   };
   protected readonly vector = { enabled: false, available: false };
   protected readonly cache = { enabled: false };
+  protected providerUnavailableReason?: string;
+  protected providerLifecycle = { mode: "active" as const, providerId: "test" };
   protected db = null as unknown as DatabaseSync;
 
   readonly syncCalls: SyncParams[] = [];
@@ -98,6 +101,10 @@ class SessionDeltaHarness extends MemoryManagerSyncOps {
 
   protected pruneEmbeddingCacheIfNeeded(): void {}
 
+  protected resetProviderInitializationForRetry(): void {}
+
+  protected assertRequiredProviderAvailable(): void {}
+
   protected async indexFile(
     _entry: MemoryIndexEntry,
     _options: { source: MemorySource; content?: string },
@@ -108,7 +115,7 @@ describe("session archive delta bypass", () => {
   let tmpDir = "";
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-archive-delta-"));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-archive-delta-"));
   });
 
   afterEach(async () => {
