@@ -1,3 +1,4 @@
+// Crestodian tests cover main rescue and audit command behavior.
 import { describe, expect, it } from "vitest";
 import { runCrestodian } from "./crestodian.js";
 import { createCrestodianTestRuntime } from "./crestodian.test-helpers.js";
@@ -7,7 +8,7 @@ const overview: CrestodianOverview = {
   defaultAgentId: "main",
   defaultModel: "openai/gpt-5.5",
   agents: [{ id: "main", isDefault: true, model: "openai/gpt-5.5" }],
-  config: { path: "/tmp/astroclaw.json", exists: true, valid: true, issues: [], hash: null },
+  config: { path: "/tmp/openclaw.json", exists: true, valid: true, issues: [], hash: null },
   tools: {
     codex: { command: "codex", found: false, error: "not found" },
     claude: { command: "claude", found: false, error: "not found" },
@@ -20,8 +21,8 @@ const overview: CrestodianOverview = {
     error: "offline",
   },
   references: {
-    docsUrl: "https://docs.astroclaw.ai",
-    sourceUrl: "https://github.com/astroclaw/astroclaw",
+    docsUrl: "https://docs.openclaw.ai",
+    sourceUrl: "https://github.com/openclaw/openclaw",
   },
 };
 
