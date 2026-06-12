@@ -1,3 +1,4 @@
+// Telegram tests cover sequential key plugin behavior.
 import type { Chat, Message } from "grammy/types";
 import { describe, expect, it } from "vitest";
 import { getTelegramSequentialKey } from "./sequential-key.js";
@@ -91,7 +92,7 @@ describe("getTelegramSequentialKey", () => {
     ],
     [
       {
-        me: { username: "astroclaw_bot" } as never,
+        me: { username: "openclaw_bot" } as never,
         message: mockMessage({
           chat: mockChat({ id: -100, type: "supergroup", is_forum: true }),
           is_topic_message: true,
@@ -103,12 +104,12 @@ describe("getTelegramSequentialKey", () => {
     ],
     [
       {
-        me: { username: "astroclaw_bot" } as never,
+        me: { username: "openclaw_bot" } as never,
         message: mockMessage({
           chat: mockChat({ id: -100, type: "supergroup", is_forum: true }),
           is_topic_message: true,
           message_thread_id: 5907,
-          text: "/stop@astroclaw_bot!",
+          text: "/stop@openclaw_bot!",
         }),
       },
       "telegram:-100:control",
@@ -142,20 +143,41 @@ describe("getTelegramSequentialKey", () => {
       "telegram:123:control",
     ],
     [
+      { message: mockMessage({ chat: mockChat({ id: 123 }), text: "/diagnostics" }) },
+      "telegram:123",
+    ],
+    [
+      {
+        message: mockMessage({
+          chat: mockChat({ id: 123 }),
+          text: "/diagnostics confirm abc123def456",
+        }),
+      },
+      "telegram:123",
+    ],
+    [
       { message: mockMessage({ chat: mockChat({ id: 123 }), text: "/export-session" }) },
       "telegram:123",
     ],
     [{ message: mockMessage({ chat: mockChat({ id: 123 }), text: "/export" }) }, "telegram:123"],
+    [
+      { message: mockMessage({ chat: mockChat({ id: 123 }), text: "/export-trajectory" }) },
+      "telegram:123",
+    ],
+    [
+      { message: mockMessage({ chat: mockChat({ id: 123 }), text: "/trajectory" }) },
+      "telegram:123",
+    ],
     [
       { message: mockMessage({ chat: mockChat({ id: 123 }), text: "/btw what is the time?" }) },
       "telegram:123:btw:1",
     ],
     [
       {
-        me: { username: "astroclaw_bot" } as never,
+        me: { username: "openclaw_bot" } as never,
         message: mockMessage({
           chat: mockChat({ id: 123 }),
-          text: "/btw@astroclaw_bot what is the time?",
+          text: "/btw@openclaw_bot what is the time?",
         }),
       },
       "telegram:123:btw:1",
