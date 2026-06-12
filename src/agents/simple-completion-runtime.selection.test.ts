@@ -1,8 +1,10 @@
+// Verifies simple-completion model selection preserves provider, model, and profile refs.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveSimpleCompletionSelectionForAgent } from "./simple-completion-runtime.js";
 
 function requireSelection(selection: ReturnType<typeof resolveSimpleCompletionSelectionForAgent>) {
+  // Narrows absent selections so each case can assert parsed provider/model fields.
   if (!selection) {
     throw new Error("expected simple completion selection");
   }
@@ -15,7 +17,7 @@ describe("resolveSimpleCompletionSelectionForAgent", () => {
       agents: {
         defaults: { model: "openrouter/anthropic/claude-sonnet-4-6" },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const selection = requireSelection(
       resolveSimpleCompletionSelectionForAgent({ cfg, agentId: "main" }),
@@ -30,7 +32,7 @@ describe("resolveSimpleCompletionSelectionForAgent", () => {
         defaults: { model: "anthropic/claude-opus-4-6" },
         list: [{ id: "ops", model: "openrouter/aurora-alpha" }],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const selection = requireSelection(
       resolveSimpleCompletionSelectionForAgent({ cfg, agentId: "ops" }),
@@ -44,7 +46,7 @@ describe("resolveSimpleCompletionSelectionForAgent", () => {
       agents: {
         defaults: { model: "anthropic/claude-opus-4-6@work" },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const selection = requireSelection(
       resolveSimpleCompletionSelectionForAgent({ cfg, agentId: "main" }),
@@ -64,7 +66,7 @@ describe("resolveSimpleCompletionSelectionForAgent", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const selection = requireSelection(
       resolveSimpleCompletionSelectionForAgent({ cfg, agentId: "main" }),
@@ -74,7 +76,7 @@ describe("resolveSimpleCompletionSelectionForAgent", () => {
     expect(selection.profileId).toBe("work");
   });
 
-  it("uses Codex execution provider for OpenAI model refs with Codex runtime policy", () => {
+  it("keeps OpenAI as execution provider for OpenAI model refs with Codex runtime policy", () => {
     const cfg = {
       agents: {
         defaults: {
@@ -84,18 +86,18 @@ describe("resolveSimpleCompletionSelectionForAgent", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const selection = requireSelection(
       resolveSimpleCompletionSelectionForAgent({ cfg, agentId: "main" }),
     );
     expect(selection.provider).toBe("openai");
     expect(selection.modelId).toBe("gpt-5.4-mini");
-    expect(selection.runtimeProvider).toBe("openai-codex");
+    expect(selection.runtimeProvider).toBe("openai");
   });
 
   it("falls back to runtime default model when no explicit model is configured", () => {
-    const cfg = {} as AstroclawConfig;
+    const cfg = {} as OpenClawConfig;
 
     const selection = requireSelection(
       resolveSimpleCompletionSelectionForAgent({ cfg, agentId: "main" }),
@@ -129,7 +131,7 @@ describe("resolveSimpleCompletionSelectionForAgent", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const selection = requireSelection(
       resolveSimpleCompletionSelectionForAgent({ cfg, agentId: "main" }),
