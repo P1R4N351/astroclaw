@@ -1,7 +1,8 @@
+// Deepinfra tests cover provider policy api plugin behavior.
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "astroclaw/plugin-sdk/provider-model-types";
+} from "openclaw/plugin-sdk/provider-model-types";
 import { describe, expect, it } from "vitest";
 import { normalizeConfig } from "./provider-policy-api.js";
 
