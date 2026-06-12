@@ -1,5 +1,6 @@
+// Tests get-reply config override handling for a single inbound turn.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import {
   buildGetReplyCtx,
   createGetReplySessionState,
@@ -26,7 +27,7 @@ async function loadGetReplyRuntimeForTest() {
 describe("getReplyFromConfig configOverride", () => {
   beforeEach(async () => {
     await loadGetReplyRuntimeForTest();
-    vi.stubEnv("ASTROCLAW_ALLOW_SLOW_REPLY_TESTS", "1");
+    vi.stubEnv("OPENCLAW_ALLOW_SLOW_REPLY_TESTS", "1");
     mocks.resolveReplyDirectives.mockReset();
     mocks.initSessionState.mockReset();
     vi.mocked(loadConfigMock).mockReset();
@@ -52,7 +53,7 @@ describe("getReplyFromConfig configOverride", () => {
           userTimezone: "UTC",
         },
       },
-    } satisfies AstroclawConfig);
+    } satisfies OpenClawConfig);
 
     await getReplyFromConfig(buildGetReplyCtx(), undefined, {
       agents: {
@@ -60,7 +61,7 @@ describe("getReplyFromConfig configOverride", () => {
           userTimezone: "America/New_York",
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expectResolvedTelegramTimezone(mocks.resolveReplyDirectives);
   });
@@ -85,7 +86,7 @@ describe("getReplyFromConfig configOverride", () => {
             userTimezone: "America/New_York",
           },
         },
-      } satisfies AstroclawConfig),
+      } satisfies OpenClawConfig),
     );
 
     expect(loadConfigMock).not.toHaveBeenCalled();
