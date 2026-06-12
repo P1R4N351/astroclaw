@@ -1,3 +1,4 @@
+// E2E tests for Docker setup script behavior and generated commands.
 import { spawnSync } from "node:child_process";
 import { chmod, copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
@@ -77,26 +78,30 @@ async function createDockerSetupSandbox(): Promise<DockerSetupSandbox> {
     join(repoRoot, "scripts", "lib", "docker-e2e-logs.sh"),
     join(rootDir, "scripts", "lib", "docker-e2e-logs.sh"),
   );
+  await copyFile(
+    join(repoRoot, "scripts", "lib", "docker-e2e-container.sh"),
+    join(rootDir, "scripts", "lib", "docker-e2e-container.sh"),
+  );
   await chmod(scriptPath, 0o755);
   await writeFile(dockerfilePath, "FROM scratch\n");
   await writeFile(
     composePath,
-    "services:\n  astroclaw-gateway:\n    image: noop\n  astroclaw-cli:\n    image: noop\n",
+    "services:\n  openclaw-gateway:\n    image: noop\n  openclaw-cli:\n    image: noop\n",
   );
   await writeDockerStub(binDir, logPath);
 
   return { rootDir, scriptPath, logPath, binDir };
 }
 
-const sandboxRootTracker = createSuiteTempRootTracker({ prefix: "astroclaw-docker-setup-" });
+const sandboxRootTracker = createSuiteTempRootTracker({ prefix: "openclaw-docker-setup-" });
 
 const prestartContainerEnvFlags = [
   "-e HOME=/home/node",
-  "-e ASTROCLAW_HOME=/home/node",
-  "-e ASTROCLAW_STATE_DIR=/home/node/.astroclaw",
-  "-e ASTROCLAW_CONFIG_PATH=/home/node/.astroclaw/astroclaw.json",
-  "-e ASTROCLAW_CONFIG_DIR=/home/node/.astroclaw",
-  "-e ASTROCLAW_WORKSPACE_DIR=/home/node/.astroclaw/workspace",
+  "-e OPENCLAW_HOME=/home/node",
+  "-e OPENCLAW_STATE_DIR=/home/node/.openclaw",
+  "-e OPENCLAW_CONFIG_PATH=/home/node/.openclaw/openclaw.json",
+  "-e OPENCLAW_CONFIG_DIR=/home/node/.openclaw",
+  "-e OPENCLAW_WORKSPACE_DIR=/home/node/.openclaw/workspace",
 ].join(" ");
 
 function createEnv(
@@ -110,10 +115,10 @@ function createEnv(
     LC_ALL: process.env.LC_ALL,
     TMPDIR: process.env.TMPDIR,
     DOCKER_STUB_LOG: sandbox.logPath,
-    ASTROCLAW_GATEWAY_TOKEN: "test-token",
-    ASTROCLAW_CONFIG_DIR: join(sandbox.rootDir, "config"),
-    ASTROCLAW_WORKSPACE_DIR: join(sandbox.rootDir, "astroclaw"),
-    ASTROCLAW_AUTH_PROFILE_SECRET_DIR: join(sandbox.rootDir, "auth-profile-secrets"),
+    OPENCLAW_GATEWAY_TOKEN: "test-token",
+    OPENCLAW_CONFIG_DIR: join(sandbox.rootDir, "config"),
+    OPENCLAW_WORKSPACE_DIR: join(sandbox.rootDir, "openclaw"),
+    OPENCLAW_AUTH_PROFILE_SECRET_DIR: join(sandbox.rootDir, "auth-profile-secrets"),
   };
 
   for (const [key, value] of Object.entries(overrides)) {
@@ -141,7 +146,8 @@ function runDockerSetup(
     cwd: sandbox.rootDir,
     env: createEnv(sandbox, overrides),
     encoding: "utf8",
-    stdio: ["ignore", "ignore", "pipe"],
+    maxBuffer: 4 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "pipe"],
   });
 }
 
@@ -174,7 +180,7 @@ function collectMatchingLines(lines: string[], predicate: (line: string) => bool
 }
 
 function isGatewayStartLine(line: string) {
-  return line.includes("compose") && line.includes(" up -d") && line.includes("astroclaw-gateway");
+  return line.includes("compose") && line.includes(" up -d") && line.includes("openclaw-gateway");
 }
 
 function findGatewayStartLineIndex(lines: string[]) {
@@ -192,9 +198,9 @@ async function runDockerSetupWithUnsetGatewayToken(
   await prepare?.(configDir);
 
   const result = runDockerSetup(sandbox, {
-    ASTROCLAW_GATEWAY_TOKEN: undefined,
-    ASTROCLAW_CONFIG_DIR: configDir,
-    ASTROCLAW_WORKSPACE_DIR: workspaceDir,
+    OPENCLAW_GATEWAY_TOKEN: undefined,
+    OPENCLAW_CONFIG_DIR: configDir,
+    OPENCLAW_WORKSPACE_DIR: workspaceDir,
   });
   const envFile = await readFile(join(sandbox.rootDir, ".env"), "utf8");
 
@@ -203,14 +209,14 @@ async function runDockerSetupWithUnsetGatewayToken(
 
 async function withUnixSocket<T>(socketPath: string, run: () => Promise<T>): Promise<T> {
   const server = createServer();
-  await new Promise<void>((resolve, reject) => {
+  await new Promise<void>((resolveValue, reject) => {
     const onError = (error: Error) => {
       server.off("listening", onListening);
       reject(error);
     };
     const onListening = () => {
       server.off("error", onError);
-      resolve();
+      resolveValue();
     };
     server.once("error", onError);
     server.once("listening", onListening);
@@ -220,7 +226,9 @@ async function withUnixSocket<T>(socketPath: string, run: () => Promise<T>): Pro
   try {
     return await run();
   } finally {
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await new Promise<void>((resolveLocal) => {
+      server.close(() => resolveLocal());
+    });
     await rm(socketPath, { force: true });
   }
 }
@@ -258,53 +266,146 @@ describe("scripts/docker/setup.sh", () => {
     const activeSandbox = requireSandbox(sandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_DOCKER_APT_PACKAGES: "ffmpeg build-essential",
-      ASTROCLAW_EXTRA_MOUNTS: undefined,
-      ASTROCLAW_HOME_VOLUME: "astroclaw-home",
+      OPENCLAW_DOCKER_APT_PACKAGES: "curl wget",
+      OPENCLAW_EXTRA_MOUNTS: undefined,
+      OPENCLAW_HOME_VOLUME: "openclaw-home",
     });
     expect(result.status).toBe(0);
     const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
-    expect(envFile).toContain("ASTROCLAW_DOCKER_APT_PACKAGES=ffmpeg build-essential");
-    expect(envFile).toContain("ASTROCLAW_EXTRA_MOUNTS=");
-    expect(envFile).toContain("ASTROCLAW_HOME_VOLUME=astroclaw-home"); // pragma: allowlist secret
-    expect(envFile).toContain("ASTROCLAW_DISABLE_BONJOUR=");
+    expect(envFile).toContain("OPENCLAW_IMAGE_APT_PACKAGES=curl wget");
+    expect(envFile).toContain("OPENCLAW_EXTRA_MOUNTS=");
+    expect(envFile).toContain("OPENCLAW_HOME_VOLUME=openclaw-home"); // pragma: allowlist secret
+    expect(envFile).toContain("OPENCLAW_DISABLE_BONJOUR=");
     expect(envFile).toContain(
-      `ASTROCLAW_AUTH_PROFILE_SECRET_DIR=${join(activeSandbox.rootDir, "auth-profile-secrets")}`,
+      `OPENCLAW_AUTH_PROFILE_SECRET_DIR=${join(activeSandbox.rootDir, "auth-profile-secrets")}`,
     );
     const extraCompose = await readFile(
       join(activeSandbox.rootDir, "docker-compose.extra.yml"),
       "utf8",
     );
-    expect(extraCompose).toContain("astroclaw-home:/home/node");
+    expect(extraCompose).toContain("openclaw-home:/home/node");
     expect(extraCompose).toContain(
-      `${join(activeSandbox.rootDir, "auth-profile-secrets")}:/home/node/.config/astroclaw`,
+      `${join(activeSandbox.rootDir, "auth-profile-secrets")}:/home/node/.config/openclaw`,
     );
     expect(extraCompose).toContain("volumes:");
-    expect(extraCompose).toContain("astroclaw-home:");
+    expect(extraCompose).toContain("openclaw-home:");
     const log = await readDockerLog(activeSandbox);
-    expect(log).toContain("--build-arg ASTROCLAW_DOCKER_APT_PACKAGES=ffmpeg build-essential");
+    expect(log).toContain("--build-arg OPENCLAW_IMAGE_APT_PACKAGES=curl wget");
     expect(log).toContain(
-      `run --rm --no-deps ${prestartContainerEnvFlags} --entrypoint node astroclaw-gateway dist/index.js onboard --mode local --no-install-daemon`,
+      `run --rm --no-deps ${prestartContainerEnvFlags} --entrypoint node openclaw-gateway dist/index.js onboard --mode local --no-install-daemon --gateway-auth token --gateway-token-ref-env OPENCLAW_GATEWAY_TOKEN --skip-ui --suppress-gateway-token-output`,
     );
+    expect(result.stdout).toContain("Gateway token: stored in Docker environment/config");
+    expect(result.stdout).not.toContain("test-token");
+    expect(result.stdout).not.toContain("#token=");
     expect(log).toContain(
-      `run --rm --no-deps ${prestartContainerEnvFlags} --entrypoint node astroclaw-gateway dist/index.js config set --batch-json [{"path":"gateway.mode","value":"local"},{"path":"gateway.bind","value":"lan"},{"path":"gateway.controlUi.allowedOrigins","value":["http://localhost:18789","http://127.0.0.1:18789"]}]`,
+      `run --rm --no-deps ${prestartContainerEnvFlags} --entrypoint node openclaw-gateway dist/index.js config set --batch-json [{"path":"gateway.mode","value":"local"},{"path":"gateway.bind","value":"lan"},{"path":"gateway.controlUi.allowedOrigins","value":["http://localhost:18789","http://127.0.0.1:18789"]}]`,
     );
-    expect(log).not.toContain("run --rm astroclaw-cli onboard --mode local --no-install-daemon");
+    expect(log).not.toContain("run --rm openclaw-cli onboard --mode local --no-install-daemon");
+  });
+
+  it("allows ordinary spaces in host persistence paths and quotes generated mounts", async () => {
+    const activeSandbox = requireSandbox(sandbox);
+    await resetDockerLog(activeSandbox);
+    const configDir = join(activeSandbox.rootDir, "config with spaces");
+    const workspaceDir = join(activeSandbox.rootDir, "workspace with spaces");
+    const authProfileSecretDir = join(activeSandbox.rootDir, "auth secrets with spaces");
+    const homeVolumeDir = join(activeSandbox.rootDir, "home volume with spaces");
+    const extraMountSource = join(activeSandbox.rootDir, "extra data");
+
+    const result = runDockerSetup(activeSandbox, {
+      OPENCLAW_CONFIG_DIR: configDir,
+      OPENCLAW_WORKSPACE_DIR: workspaceDir,
+      OPENCLAW_AUTH_PROFILE_SECRET_DIR: authProfileSecretDir,
+      OPENCLAW_HOME_VOLUME: homeVolumeDir,
+      OPENCLAW_EXTRA_MOUNTS: `${extraMountSource}:/mnt/extra data:ro`,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain("cannot contain whitespace");
+    const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
+    expect(envFile).toContain(`OPENCLAW_CONFIG_DIR=${configDir}`);
+    expect(envFile).toContain(`OPENCLAW_WORKSPACE_DIR=${workspaceDir}`);
+    expect(envFile).toContain(`OPENCLAW_AUTH_PROFILE_SECRET_DIR=${authProfileSecretDir}`);
+
+    const extraCompose = await readFile(
+      join(activeSandbox.rootDir, "docker-compose.extra.yml"),
+      "utf8",
+    );
+    expect(extraCompose).toContain(`"${homeVolumeDir}:/home/node"`);
+    expect(extraCompose).toContain(`"${configDir}:/home/node/.openclaw"`);
+    expect(extraCompose).toContain(`"${workspaceDir}:/home/node/.openclaw/workspace"`);
+    expect(extraCompose).toContain(`"${authProfileSecretDir}:/home/node/.config/openclaw"`);
+    expect(extraCompose).toContain(`"${extraMountSource}:/mnt/extra data:ro"`);
   });
 
   it("persists explicit Docker Bonjour opt-in overrides", async () => {
     const activeSandbox = requireSandbox(sandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_DISABLE_BONJOUR: "0",
+      OPENCLAW_DISABLE_BONJOUR: "0",
     });
 
     expect(result.status).toBe(0);
     const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
-    expect(envFile).toContain("ASTROCLAW_DISABLE_BONJOUR=0");
+    expect(envFile).toContain("OPENCLAW_DISABLE_BONJOUR=0");
   });
 
-  it("avoids shared-network astroclaw-cli before the gateway is started", async () => {
+  it("normalizes legacy OPENCLAW_DOCKER_APT_PACKAGES into OPENCLAW_IMAGE_APT_PACKAGES", async () => {
+    const activeSandbox = requireSandbox(sandbox);
+    await resetDockerLog(activeSandbox);
+
+    const result = runDockerSetup(activeSandbox, {
+      OPENCLAW_DOCKER_APT_PACKAGES: "curl wget",
+    });
+    expect(result.status).toBe(0);
+
+    const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
+    expect(envFile).toContain("OPENCLAW_IMAGE_APT_PACKAGES=curl wget");
+    expect(envFile).not.toContain("OPENCLAW_DOCKER_APT_PACKAGES");
+
+    const log = await readDockerLog(activeSandbox);
+    expect(log).toContain("--build-arg OPENCLAW_IMAGE_APT_PACKAGES=curl wget");
+    expect(log).not.toContain("--build-arg OPENCLAW_DOCKER_APT_PACKAGES");
+  });
+
+  it("prefers OPENCLAW_IMAGE_APT_PACKAGES over legacy OPENCLAW_DOCKER_APT_PACKAGES", async () => {
+    const activeSandbox = requireSandbox(sandbox);
+    await resetDockerLog(activeSandbox);
+
+    const result = runDockerSetup(activeSandbox, {
+      OPENCLAW_IMAGE_APT_PACKAGES: "curl wget httpie",
+      OPENCLAW_DOCKER_APT_PACKAGES: "curl wget",
+    });
+    expect(result.status).toBe(0);
+
+    const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
+    expect(envFile).toContain("OPENCLAW_IMAGE_APT_PACKAGES=curl wget httpie");
+    expect(envFile).not.toContain("OPENCLAW_DOCKER_APT_PACKAGES");
+
+    const log = await readDockerLog(activeSandbox);
+    expect(log).toContain("--build-arg OPENCLAW_IMAGE_APT_PACKAGES=curl wget httpie");
+    expect(log).not.toMatch(/--build-arg OPENCLAW_IMAGE_APT_PACKAGES=curl wget(?! httpie)/);
+  });
+
+  it("explicitly empty OPENCLAW_IMAGE_APT_PACKAGES suppresses legacy fallback", async () => {
+    const activeSandbox = requireSandbox(sandbox);
+    await resetDockerLog(activeSandbox);
+
+    const result = runDockerSetup(activeSandbox, {
+      OPENCLAW_IMAGE_APT_PACKAGES: "",
+      OPENCLAW_DOCKER_APT_PACKAGES: "curl wget",
+    });
+    expect(result.status).toBe(0);
+
+    const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
+    expect(envFile).toContain("OPENCLAW_IMAGE_APT_PACKAGES=");
+    expect(envFile).not.toContain("curl wget");
+
+    const log = await readDockerLog(activeSandbox);
+    expect(log).not.toContain("--build-arg OPENCLAW_IMAGE_APT_PACKAGES=curl wget");
+  });
+
+  it("avoids shared-network openclaw-cli before the gateway is started", async () => {
     const activeSandbox = requireSandbox(sandbox);
 
     await resetDockerLog(activeSandbox);
@@ -317,7 +418,7 @@ describe("scripts/docker/setup.sh", () => {
 
     const prestartLines = lines.slice(0, gatewayStartIdx);
     const prestartCliRunLines = collectMatchingLines(prestartLines, (line) =>
-      /\bcompose\b.*\brun\b.*\bastroclaw-cli\b/.test(line),
+      /\bcompose\b.*\brun\b.*\bopenclaw-cli\b/.test(line),
     );
     expect(prestartCliRunLines).toStrictEqual([]);
   });
@@ -327,10 +428,10 @@ describe("scripts/docker/setup.sh", () => {
 
     await resetDockerLog(activeSandbox);
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_HOME: "/mnt/c/Users/Trevor",
-      ASTROCLAW_STATE_DIR: "/mnt/c/Users/Trevor/.astroclaw",
-      ASTROCLAW_CONFIG_PATH: "/mnt/c/Users/Trevor/.astroclaw/astroclaw.json",
-      ASTROCLAW_SKIP_ONBOARDING: "1",
+      OPENCLAW_HOME: "/mnt/c/Users/Trevor",
+      OPENCLAW_STATE_DIR: "/mnt/c/Users/Trevor/.openclaw",
+      OPENCLAW_CONFIG_PATH: "/mnt/c/Users/Trevor/.openclaw/openclaw.json",
+      OPENCLAW_SKIP_ONBOARDING: "1",
     });
     expect(result.status).toBe(0);
 
@@ -358,7 +459,7 @@ describe("scripts/docker/setup.sh", () => {
     await resetDockerLog(activeSandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_SANDBOX: "1",
+      OPENCLAW_SANDBOX: "1",
     });
 
     expect(result.status).toBe(0);
@@ -379,8 +480,8 @@ describe("scripts/docker/setup.sh", () => {
     const workspaceDir = join(activeSandbox.rootDir, "workspace-identity");
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_CONFIG_DIR: configDir,
-      ASTROCLAW_WORKSPACE_DIR: workspaceDir,
+      OPENCLAW_CONFIG_DIR: configDir,
+      OPENCLAW_WORKSPACE_DIR: workspaceDir,
     });
 
     expect(result.status).toBe(0);
@@ -388,16 +489,16 @@ describe("scripts/docker/setup.sh", () => {
     expect(identityDirStat.isDirectory()).toBe(true);
   });
 
-  it("writes ASTROCLAW_TZ into .env when given a real IANA timezone", async () => {
+  it("writes OPENCLAW_TZ into .env when given a real IANA timezone", async () => {
     const activeSandbox = requireSandbox(sandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_TZ: "Asia/Shanghai",
+      OPENCLAW_TZ: "Asia/Shanghai",
     });
 
     expect(result.status).toBe(0);
     const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
-    expect(envFile).toContain("ASTROCLAW_TZ=Asia/Shanghai");
+    expect(envFile).toContain("OPENCLAW_TZ=Asia/Shanghai");
   });
 
   it("precreates agent data dirs to avoid EACCES in container", async () => {
@@ -406,8 +507,8 @@ describe("scripts/docker/setup.sh", () => {
     const workspaceDir = join(activeSandbox.rootDir, "workspace-agent-dirs");
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_CONFIG_DIR: configDir,
-      ASTROCLAW_WORKSPACE_DIR: workspaceDir,
+      OPENCLAW_CONFIG_DIR: configDir,
+      OPENCLAW_WORKSPACE_DIR: workspaceDir,
     });
 
     expect(result.status).toBe(0);
@@ -422,7 +523,8 @@ describe("scripts/docker/setup.sh", () => {
     const onboardIdx = log.indexOf("onboard");
     expect(chownIdx).toBeGreaterThanOrEqual(0);
     expect(onboardIdx).toBeGreaterThan(chownIdx);
-    expect(log).toContain("run --rm --no-deps --user root --entrypoint sh astroclaw-gateway -c");
+    expect(log).toContain("run --rm --no-deps --user root --entrypoint sh openclaw-gateway -c");
+    expect(log).toContain("chown node:node /home/node/.config");
   });
 
   it("precreates auth profile secret key dir outside the mounted state dir", async () => {
@@ -432,9 +534,9 @@ describe("scripts/docker/setup.sh", () => {
     const secretDir = join(activeSandbox.rootDir, "auth-profile-secret-key");
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_CONFIG_DIR: configDir,
-      ASTROCLAW_WORKSPACE_DIR: workspaceDir,
-      ASTROCLAW_AUTH_PROFILE_SECRET_DIR: secretDir,
+      OPENCLAW_CONFIG_DIR: configDir,
+      OPENCLAW_WORKSPACE_DIR: workspaceDir,
+      OPENCLAW_AUTH_PROFILE_SECRET_DIR: secretDir,
     });
 
     expect(result.status).toBe(0);
@@ -443,31 +545,31 @@ describe("scripts/docker/setup.sh", () => {
     expect(secretDir.startsWith(`${configDir}/`)).toBe(false);
 
     const log = await readDockerLog(activeSandbox);
-    expect(log).toContain("find /home/node/.config/astroclaw -xdev");
+    expect(log).toContain("find /home/node/.config/openclaw -xdev");
   });
 
-  it("reuses existing config token when ASTROCLAW_GATEWAY_TOKEN is unset", async () => {
+  it("reuses existing config token when OPENCLAW_GATEWAY_TOKEN is unset", async () => {
     const activeSandbox = requireSandbox(sandbox);
     const { result, envFile } = await runDockerSetupWithUnsetGatewayToken(
       activeSandbox,
       "token-reuse",
       async (configDir) => {
         await writeFile(
-          join(configDir, "astroclaw.json"),
+          join(configDir, "openclaw.json"),
           JSON.stringify({ gateway: { auth: { mode: "token", token: "config-token-123" } } }),
         );
       },
     );
 
     expect(result.status).toBe(0);
-    expect(envFile).toContain("ASTROCLAW_GATEWAY_TOKEN=config-token-123"); // pragma: allowlist secret
+    expect(envFile).toContain("OPENCLAW_GATEWAY_TOKEN=config-token-123"); // pragma: allowlist secret
   });
 
-  it("reuses existing .env token when ASTROCLAW_GATEWAY_TOKEN and config token are unset", async () => {
+  it("reuses existing .env token when OPENCLAW_GATEWAY_TOKEN and config token are unset", async () => {
     const activeSandbox = requireSandbox(sandbox);
     await writeFile(
       join(activeSandbox.rootDir, ".env"),
-      "ASTROCLAW_GATEWAY_TOKEN=dotenv-token-123\nASTROCLAW_GATEWAY_PORT=18789\n", // pragma: allowlist secret
+      "OPENCLAW_GATEWAY_TOKEN=dotenv-token-123\nOPENCLAW_GATEWAY_PORT=18789\n", // pragma: allowlist secret
     );
     const { result, envFile } = await runDockerSetupWithUnsetGatewayToken(
       activeSandbox,
@@ -475,7 +577,7 @@ describe("scripts/docker/setup.sh", () => {
     );
 
     expect(result.status).toBe(0);
-    expect(envFile).toContain("ASTROCLAW_GATEWAY_TOKEN=dotenv-token-123"); // pragma: allowlist secret
+    expect(envFile).toContain("OPENCLAW_GATEWAY_TOKEN=dotenv-token-123"); // pragma: allowlist secret
     expect(result.stderr).toBe("");
   });
 
@@ -484,9 +586,9 @@ describe("scripts/docker/setup.sh", () => {
     await writeFile(
       join(activeSandbox.rootDir, ".env"),
       [
-        "ASTROCLAW_GATEWAY_TOKEN=",
-        "ASTROCLAW_GATEWAY_TOKEN=first-token",
-        "ASTROCLAW_GATEWAY_TOKEN=last=token=value\r", // pragma: allowlist secret
+        "OPENCLAW_GATEWAY_TOKEN=",
+        "OPENCLAW_GATEWAY_TOKEN=first-token",
+        "OPENCLAW_GATEWAY_TOKEN=last=token=value\r", // pragma: allowlist secret
       ].join("\n"),
     );
     const { result, envFile } = await runDockerSetupWithUnsetGatewayToken(
@@ -495,26 +597,26 @@ describe("scripts/docker/setup.sh", () => {
     );
 
     expect(result.status).toBe(0);
-    expect(envFile).toContain("ASTROCLAW_GATEWAY_TOKEN=last=token=value"); // pragma: allowlist secret
-    expect(envFile).not.toContain("ASTROCLAW_GATEWAY_TOKEN=first-token");
+    expect(envFile).toContain("OPENCLAW_GATEWAY_TOKEN=last=token=value"); // pragma: allowlist secret
+    expect(envFile).not.toContain("OPENCLAW_GATEWAY_TOKEN=first-token");
     expect(envFile).not.toContain("\r");
   });
 
-  it("treats ASTROCLAW_SANDBOX=0 as disabled", async () => {
+  it("treats OPENCLAW_SANDBOX=0 as disabled", async () => {
     const activeSandbox = requireSandbox(sandbox);
     await resetDockerLog(activeSandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_SANDBOX: "0",
+      OPENCLAW_SANDBOX: "0",
     });
 
     expect(result.status).toBe(0);
     const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
-    expect(envFile).toContain("ASTROCLAW_SANDBOX=");
+    expect(envFile).toContain("OPENCLAW_SANDBOX=");
 
     const log = await readDockerLog(activeSandbox);
-    expect(log).toContain("--build-arg ASTROCLAW_INSTALL_DOCKER_CLI=");
-    expect(log).not.toContain("--build-arg ASTROCLAW_INSTALL_DOCKER_CLI=1");
+    expect(log).toContain("--build-arg OPENCLAW_INSTALL_DOCKER_CLI=");
+    expect(log).not.toContain("--build-arg OPENCLAW_INSTALL_DOCKER_CLI=1");
     expect(log).toContain("config set agents.defaults.sandbox.mode off");
   });
 
@@ -523,12 +625,12 @@ describe("scripts/docker/setup.sh", () => {
     await resetDockerLog(activeSandbox);
     await writeFile(
       join(activeSandbox.rootDir, "docker-compose.sandbox.yml"),
-      "services:\n  astroclaw-gateway:\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock\n",
+      "services:\n  openclaw-gateway:\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock\n",
     );
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_SANDBOX: "1",
-      DOCKER_STUB_FAIL_MATCH: "--entrypoint docker astroclaw-gateway --version",
+      OPENCLAW_SANDBOX: "1",
+      DOCKER_STUB_FAIL_MATCH: "--entrypoint docker openclaw-gateway --version",
     });
 
     expect(result.status).toBe(0);
@@ -545,8 +647,8 @@ describe("scripts/docker/setup.sh", () => {
 
     await withUnixSocket(socketPath, async () => {
       const result = runDockerSetup(activeSandbox, {
-        ASTROCLAW_SANDBOX: "1",
-        ASTROCLAW_DOCKER_SOCKET: socketPath,
+        OPENCLAW_SANDBOX: "1",
+        OPENCLAW_DOCKER_SOCKET: socketPath,
         DOCKER_STUB_FAIL_MATCH: "config set agents.defaults.sandbox.scope",
       });
 
@@ -560,70 +662,70 @@ describe("scripts/docker/setup.sh", () => {
       );
       expect(gatewayStarts).toHaveLength(2);
       expect(log).toContain(
-        "run --rm --no-deps astroclaw-cli config set agents.defaults.sandbox.mode non-main",
+        "run --rm --no-deps openclaw-cli config set agents.defaults.sandbox.mode non-main",
       );
       expect(log).toContain("config set agents.defaults.sandbox.mode off");
       const forceRecreateLine = log
         .split("\n")
-        .find((line) => line.includes("up -d --force-recreate astroclaw-gateway"));
+        .find((line) => line.includes("up -d --force-recreate openclaw-gateway"));
       expect(forceRecreateLine).toBe(
-        `compose compose -f ${join(activeSandbox.rootDir, "docker-compose.yml")} up -d --force-recreate astroclaw-gateway`,
+        `compose compose -f ${join(activeSandbox.rootDir, "docker-compose.yml")} up -d --force-recreate openclaw-gateway`,
       );
       expect(forceRecreateLine).not.toContain("docker-compose.sandbox.yml");
       await expectMissingPath(join(activeSandbox.rootDir, "docker-compose.sandbox.yml"));
     });
   });
 
-  it("rejects injected multiline ASTROCLAW_EXTRA_MOUNTS values", () => {
+  it("rejects injected multiline OPENCLAW_EXTRA_MOUNTS values", () => {
     const activeSandbox = requireSandbox(sandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_EXTRA_MOUNTS: "/tmp:/tmp\n  evil-service:\n    image: alpine",
+      OPENCLAW_EXTRA_MOUNTS: "/tmp:/tmp\n  evil-service:\n    image: alpine",
     });
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain("ASTROCLAW_EXTRA_MOUNTS cannot contain control characters");
+    expect(result.stderr).toContain("OPENCLAW_EXTRA_MOUNTS cannot contain control characters");
   });
 
-  it("rejects invalid ASTROCLAW_EXTRA_MOUNTS mount format", () => {
+  it("rejects invalid OPENCLAW_EXTRA_MOUNTS mount format", () => {
     const activeSandbox = requireSandbox(sandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_EXTRA_MOUNTS: "bad mount spec",
+      OPENCLAW_EXTRA_MOUNTS: "bad mount spec",
     });
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("Invalid mount format");
   });
 
-  it("rejects invalid ASTROCLAW_HOME_VOLUME names", () => {
+  it("rejects invalid OPENCLAW_HOME_VOLUME names", () => {
     const activeSandbox = requireSandbox(sandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_HOME_VOLUME: "bad name",
+      OPENCLAW_HOME_VOLUME: "bad name",
     });
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain("ASTROCLAW_HOME_VOLUME must match");
+    expect(result.stderr).toContain("OPENCLAW_HOME_VOLUME must match");
   });
 
-  it("rejects ASTROCLAW_TZ values that are not present in zoneinfo", () => {
+  it("rejects OPENCLAW_TZ values that are not present in zoneinfo", () => {
     const activeSandbox = requireSandbox(sandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_TZ: "Nope/Bad",
+      OPENCLAW_TZ: "Nope/Bad",
     });
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain("ASTROCLAW_TZ must match a timezone in /usr/share/zoneinfo");
+    expect(result.stderr).toContain("OPENCLAW_TZ must match a timezone in /usr/share/zoneinfo");
   });
 
-  it("skips onboarding when ASTROCLAW_SKIP_ONBOARDING is set", async () => {
+  it("skips onboarding when OPENCLAW_SKIP_ONBOARDING is set", async () => {
     const activeSandbox = requireSandbox(sandbox);
     await resetDockerLog(activeSandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_SKIP_ONBOARDING: "1",
+      OPENCLAW_SKIP_ONBOARDING: "1",
     });
 
     expect(result.status).toBe(0);
@@ -634,22 +736,24 @@ describe("scripts/docker/setup.sh", () => {
     expect(log).toContain('"path":"gateway.mode","value":"local"');
     expect(log).toContain('"path":"gateway.bind","value":"lan"');
     const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
-    expect(envFile).toContain("ASTROCLAW_SKIP_ONBOARDING=1");
+    expect(envFile).toContain("OPENCLAW_SKIP_ONBOARDING=1");
   });
 
-  it("treats ASTROCLAW_SKIP_ONBOARDING=0 as disabled and runs onboarding", async () => {
+  it("treats OPENCLAW_SKIP_ONBOARDING=0 as disabled and runs onboarding", async () => {
     const activeSandbox = requireSandbox(sandbox);
     await resetDockerLog(activeSandbox);
 
     const result = runDockerSetup(activeSandbox, {
-      ASTROCLAW_SKIP_ONBOARDING: "0",
+      OPENCLAW_SKIP_ONBOARDING: "0",
     });
 
     expect(result.status).toBe(0);
     const log = await readDockerLog(activeSandbox);
-    expect(log).toContain("onboard --mode local --no-install-daemon");
+    expect(log).toContain(
+      "onboard --mode local --no-install-daemon --gateway-auth token --gateway-token-ref-env OPENCLAW_GATEWAY_TOKEN --skip-ui --suppress-gateway-token-output",
+    );
     const envFile = await readFile(join(activeSandbox.rootDir, ".env"), "utf8");
-    expect(envFile).toMatch(/ASTROCLAW_SKIP_ONBOARDING=\n/);
+    expect(envFile).toMatch(/OPENCLAW_SKIP_ONBOARDING=\n/);
   });
 
   it("avoids associative arrays so the script remains Bash 3.2-compatible", async () => {
@@ -691,19 +795,19 @@ describe("scripts/docker/setup.sh", () => {
   it("keeps docker-compose gateway Bonjour advertising in auto mode by default", async () => {
     const compose = await readFile(join(repoRoot, "docker-compose.yml"), "utf8");
     expect(
-      compose.match(/ASTROCLAW_DISABLE_BONJOUR: \$\{ASTROCLAW_DISABLE_BONJOUR:-\}/g),
+      compose.match(/OPENCLAW_DISABLE_BONJOUR: \$\{OPENCLAW_DISABLE_BONJOUR:-\}/g),
     ).toHaveLength(1);
   });
 
   it("keeps docker-compose CLI network namespace settings in sync", async () => {
     const compose = await readFile(join(repoRoot, "docker-compose.yml"), "utf8");
-    expect(compose).toContain('network_mode: "service:astroclaw-gateway"');
-    expect(compose).toContain("depends_on:\n      - astroclaw-gateway");
+    expect(compose).toContain('network_mode: "service:openclaw-gateway"');
+    expect(compose).toContain("depends_on:\n      - openclaw-gateway");
   });
 
   it("keeps docker-compose gateway token env defaults aligned across services", async () => {
     const compose = await readFile(join(repoRoot, "docker-compose.yml"), "utf8");
-    expect(compose.match(/ASTROCLAW_GATEWAY_TOKEN: \$\{ASTROCLAW_GATEWAY_TOKEN:-\}/g)).toHaveLength(
+    expect(compose.match(/OPENCLAW_GATEWAY_TOKEN: \$\{OPENCLAW_GATEWAY_TOKEN:-\}/g)).toHaveLength(
       2,
     );
   });
@@ -712,7 +816,7 @@ describe("scripts/docker/setup.sh", () => {
     const compose = await readFile(join(repoRoot, "docker-compose.yml"), "utf8");
     expect(
       compose.split(
-        "${ASTROCLAW_AUTH_PROFILE_SECRET_DIR:-${HOME:-/tmp}/.astroclaw-auth-profile-secrets}:/home/node/.config/astroclaw",
+        '"${OPENCLAW_AUTH_PROFILE_SECRET_DIR:-${HOME:-/tmp}/.openclaw-auth-profile-secrets}:/home/node/.config/openclaw"',
       ),
     ).toHaveLength(3);
   });
@@ -724,7 +828,7 @@ describe("scripts/docker/setup.sh", () => {
 
   it("keeps docker-compose timezone env defaults aligned across services", async () => {
     const compose = await readFile(join(repoRoot, "docker-compose.yml"), "utf8");
-    expect(compose.match(/TZ: \$\{ASTROCLAW_TZ:-UTC\}/g)).toHaveLength(2);
+    expect(compose.match(/TZ: \$\{OPENCLAW_TZ:-UTC\}/g)).toHaveLength(2);
   });
 
   it("pins container-side state, workspace, and config dirs on both services so host .env paths cannot leak (#77436)", async () => {
@@ -732,14 +836,29 @@ describe("scripts/docker/setup.sh", () => {
     // Both gateway and CLI services must override env_file values with the
     // canonical container paths so host-style paths written to `.env` cannot
     // reach runtime code inside Linux Docker.
-    expect(compose.match(/ASTROCLAW_HOME: \/home\/node$/gm)).toHaveLength(2);
-    expect(compose.match(/ASTROCLAW_STATE_DIR: \/home\/node\/\.astroclaw$/gm)).toHaveLength(2);
+    expect(compose.match(/OPENCLAW_HOME: \/home\/node$/gm)).toHaveLength(2);
+    expect(compose.match(/OPENCLAW_STATE_DIR: \/home\/node\/\.openclaw$/gm)).toHaveLength(2);
     expect(
-      compose.match(/ASTROCLAW_CONFIG_PATH: \/home\/node\/\.astroclaw\/astroclaw\.json$/gm),
+      compose.match(/OPENCLAW_CONFIG_PATH: \/home\/node\/\.openclaw\/openclaw\.json$/gm),
     ).toHaveLength(2);
-    expect(compose.match(/ASTROCLAW_CONFIG_DIR: \/home\/node\/\.astroclaw$/gm)).toHaveLength(2);
+    expect(compose.match(/OPENCLAW_CONFIG_DIR: \/home\/node\/\.openclaw$/gm)).toHaveLength(2);
     expect(
-      compose.match(/ASTROCLAW_WORKSPACE_DIR: \/home\/node\/\.astroclaw\/workspace$/gm),
+      compose.match(/OPENCLAW_WORKSPACE_DIR: \/home\/node\/\.openclaw\/workspace$/gm),
     ).toHaveLength(2);
+  });
+
+  it("Dockerfile ARG OPENCLAW_IMAGE_APT_PACKAGES must not have a default value", async () => {
+    // If the ARG has a default (e.g. ARG OPENCLAW_IMAGE_APT_PACKAGES=""), Docker treats it as
+    // "set" even when no --build-arg is passed. That breaks the RUN fallback expression
+    // ${OPENCLAW_IMAGE_APT_PACKAGES-$OPENCLAW_DOCKER_APT_PACKAGES} because the variable is
+    // never truly unset, so legacy-only callers using --build-arg OPENCLAW_DOCKER_APT_PACKAGES
+    // get nothing installed — a backward-compat regression.
+    const dockerfile = await readFile(join(repoRoot, "Dockerfile"), "utf8");
+    const argLine = dockerfile
+      .split("\n")
+      .find((line) => line.startsWith("ARG OPENCLAW_IMAGE_APT_PACKAGES"));
+    expect(argLine).toBeDefined();
+    // Must be bare `ARG OPENCLAW_IMAGE_APT_PACKAGES` with no default assignment
+    expect(argLine).toBe("ARG OPENCLAW_IMAGE_APT_PACKAGES");
   });
 });
