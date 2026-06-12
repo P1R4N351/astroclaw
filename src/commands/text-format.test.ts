@@ -1,13 +1,14 @@
+// Text format tests cover command-facing shortening helpers.
 import { describe, expect, it } from "vitest";
 import { shortenText } from "./text-format.js";
 
 describe("shortenText", () => {
   it("returns original text when it fits", () => {
-    expect(shortenText("astroclaw", 16)).toBe("astroclaw");
+    expect(shortenText("openclaw", 16)).toBe("openclaw");
   });
 
   it("truncates and appends ellipsis when over limit", () => {
-    expect(shortenText("astroclaw-status-output", 10)).toBe("astroclaw-…");
+    expect(shortenText("openclaw-status-output", 10)).toBe("openclaw-…");
   });
 
   it("counts multi-byte characters correctly", () => {
