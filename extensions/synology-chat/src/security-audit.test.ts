@@ -1,3 +1,4 @@
+// Synology Chat tests cover security audit plugin behavior.
 import { describe, expect, it } from "vitest";
 import { collectSynologyChatSecurityAuditFindings } from "./security-audit.js";
 import type { ResolvedSynologyChatAccount } from "./types.js";
@@ -19,7 +20,7 @@ function createAccount(params: {
     dmPolicy: "allowlist",
     allowedUserIds: [],
     rateLimitPerMinute: 30,
-    botName: "Astroclaw",
+    botName: "OpenClaw",
     allowInsecureSsl: false,
   };
 }
