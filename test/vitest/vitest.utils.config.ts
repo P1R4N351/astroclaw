@@ -1,3 +1,4 @@
+// Vitest utils config wires the utils test shard.
 import { createScopedVitestConfig } from "./vitest.scoped-config.ts";
 import { getUnitFastTestFiles } from "./vitest.unit-fast-paths.mjs";
 
@@ -6,7 +7,7 @@ export function createUtilsVitestConfig(env?: Record<string, string | undefined>
     dir: "src",
     env,
     exclude: getUnitFastTestFiles(),
-    includeAstroclawRuntimeSetup: false,
+    includeOpenClawRuntimeSetup: false,
     name: "utils",
     passWithNoTests: true,
   });
