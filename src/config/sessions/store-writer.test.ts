@@ -1,3 +1,4 @@
+// Session store writer tests cover serialized session writes and cleanup.
 import { afterEach, describe, expect, it } from "vitest";
 import {
   clearSessionStoreCacheForTest,
@@ -24,7 +25,7 @@ describe("session store writer", () => {
   });
 
   it("serializes runtime writes through one in-process writer", async () => {
-    const storePath = "/tmp/astroclaw-store.json";
+    const storePath = "/tmp/openclaw-store.json";
     const firstStarted = createDeferred<void>();
     const releaseFirst = createDeferred<void>();
     const order: string[] = [];
