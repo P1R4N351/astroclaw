@@ -1,8 +1,11 @@
+// Control UI tests cover navigation behavior.
 import { describe, expect, it } from "vitest";
 import {
   TAB_GROUPS,
+  SETTINGS_TABS,
   iconForTab,
   inferBasePathFromPathname,
+  isSettingsTab,
   normalizeBasePath,
   normalizePath,
   pathForTab,
@@ -12,8 +15,10 @@ import {
   type Tab,
 } from "./navigation.ts";
 
-/** All valid tab identifiers derived from TAB_GROUPS */
-const ALL_TABS: Tab[] = TAB_GROUPS.flatMap((group) => group.tabs) as Tab[];
+/** All valid tab identifiers derived from visible groups plus routed settings slices. */
+const ALL_TABS: Tab[] = Array.from(
+  new Set<Tab>([...(TAB_GROUPS.flatMap((group) => group.tabs) as Tab[]), ...SETTINGS_TABS]),
+);
 
 const leadingSlashNormalizerCases = [
   { name: "normalizeBasePath", normalize: normalizeBasePath, input: "ui", expected: "/ui" },
@@ -25,6 +30,8 @@ describe("iconForTab", () => {
     expect(Object.fromEntries(ALL_TABS.map((tab) => [tab, iconForTab(tab)]))).toEqual({
       chat: "messageSquare",
       overview: "barChart",
+      activity: "activity",
+      workboard: "folder",
       channels: "link",
       instances: "radio",
       sessions: "fileText",
@@ -32,12 +39,14 @@ describe("iconForTab", () => {
       cron: "loader",
       agents: "folder",
       skills: "zap",
+      skillWorkshop: "wrench",
       nodes: "monitor",
       dreams: "moon",
       config: "settings",
       communications: "send",
       appearance: "spark",
       automation: "terminal",
+      mcp: "wrench",
       infrastructure: "globe",
       aiAgents: "brain",
       debug: "bug",
@@ -57,6 +66,8 @@ describe("titleForTab", () => {
     expect(Object.fromEntries(ALL_TABS.map((tab) => [tab, titleForTab(tab)]))).toEqual({
       chat: "Chat",
       overview: "Overview",
+      activity: "Activity",
+      workboard: "Workboard",
       channels: "Channels",
       instances: "Instances",
       sessions: "Sessions",
@@ -64,12 +75,14 @@ describe("titleForTab", () => {
       cron: "Cron Jobs",
       agents: "Agents",
       skills: "Skills",
+      skillWorkshop: "Skill Workshop",
       nodes: "Nodes",
       dreams: "Dreaming",
-      config: "Config",
+      config: "Settings",
       communications: "Communications",
       appearance: "Appearance",
       automation: "Automation",
+      mcp: "MCP",
       infrastructure: "Infrastructure",
       aiAgents: "AI & Agents",
       debug: "Debug",
@@ -83,6 +96,8 @@ describe("subtitleForTab", () => {
     expect(Object.fromEntries(ALL_TABS.map((tab) => [tab, subtitleForTab(tab)]))).toEqual({
       chat: "Gateway chat for quick interventions.",
       overview: "Status, entry points, health.",
+      activity: "Browser-local tool activity summaries.",
+      workboard: "Agent work queue and session handoff.",
       channels: "Channels and settings.",
       instances: "Connected clients and nodes.",
       sessions: "Active sessions and defaults.",
@@ -90,12 +105,14 @@ describe("subtitleForTab", () => {
       cron: "Wakeups and recurring runs.",
       agents: "Workspaces, tools, identities.",
       skills: "Skills and API keys.",
+      skillWorkshop: "Review, refine, and apply proposals before they become live skills.",
       nodes: "Paired devices and commands.",
       dreams: "Memory dreaming, consolidation, and reflection.",
-      config: "Edit astroclaw.json.",
+      config: "Edit openclaw.json.",
       communications: "Channels, messages, and audio settings.",
       appearance: "Theme, UI, and setup wizard settings.",
       automation: "Commands, hooks, cron, and plugins.",
+      mcp: "MCP servers, auth, tools, and diagnostics.",
       infrastructure: "Gateway, web, browser, and media settings.",
       aiAgents: "Agents, models, skills, tools, memory, session.",
       debug: "Snapshots, events, RPC.",
@@ -127,7 +144,7 @@ describe("normalizeBasePath", () => {
   });
 
   it("handles nested paths", () => {
-    expect(normalizeBasePath("/apps/astroclaw")).toBe("/apps/astroclaw");
+    expect(normalizeBasePath("/apps/openclaw")).toBe("/apps/openclaw");
   });
 });
 
@@ -150,7 +167,7 @@ describe("pathForTab", () => {
 
   it("prepends base path", () => {
     expect(pathForTab("chat", "/ui")).toBe("/ui/chat");
-    expect(pathForTab("sessions", "/apps/astroclaw")).toBe("/apps/astroclaw/sessions");
+    expect(pathForTab("sessions", "/apps/openclaw")).toBe("/apps/openclaw/sessions");
   });
 });
 
@@ -158,6 +175,7 @@ describe("tabFromPath", () => {
   it("returns tab for valid path", () => {
     expect(tabFromPath("/chat")).toBe("chat");
     expect(tabFromPath("/overview")).toBe("overview");
+    expect(tabFromPath("/activity")).toBe("activity");
     expect(tabFromPath("/sessions")).toBe("sessions");
     expect(tabFromPath("/dreaming")).toBe("dreams");
     expect(tabFromPath("/dreams")).toBe("dreams");
@@ -169,7 +187,7 @@ describe("tabFromPath", () => {
 
   it("handles base paths", () => {
     expect(tabFromPath("/ui/chat", "/ui")).toBe("chat");
-    expect(tabFromPath("/apps/astroclaw/sessions", "/apps/astroclaw")).toBe("sessions");
+    expect(tabFromPath("/apps/openclaw/sessions", "/apps/openclaw")).toBe("sessions");
   });
 
   it("returns null for unknown path", () => {
@@ -196,7 +214,7 @@ describe("inferBasePathFromPathname", () => {
 
   it("infers base path from nested paths", () => {
     expect(inferBasePathFromPathname("/ui/chat")).toBe("/ui");
-    expect(inferBasePathFromPathname("/apps/astroclaw/sessions")).toBe("/apps/astroclaw");
+    expect(inferBasePathFromPathname("/apps/openclaw/sessions")).toBe("/apps/openclaw");
   });
 
   it("handles index.html suffix", () => {
@@ -214,5 +232,23 @@ describe("TAB_GROUPS", () => {
     const allTabs = TAB_GROUPS.flatMap((g) => g.tabs);
     const uniqueTabs = new Set(allTabs);
     expect(uniqueTabs.size).toBe(allTabs.length);
+  });
+
+  it("keeps detailed settings slices routed but out of the root sidebar", () => {
+    const settings = TAB_GROUPS.find((group) => group.label === "settings");
+    expect(settings?.tabs).toEqual(["config"]);
+    expect(SETTINGS_TABS).toEqual([
+      "config",
+      "channels",
+      "communications",
+      "appearance",
+      "automation",
+      "mcp",
+      "infrastructure",
+      "aiAgents",
+      "debug",
+      "logs",
+    ]);
+    expect(SETTINGS_TABS.every((tab) => isSettingsTab(tab))).toBe(true);
   });
 });
