@@ -1,10 +1,11 @@
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+// Guards config schema startup imports against loading heavy runtime modules.
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const providersWhatsappImportMock = vi.hoisted(() => vi.fn());
 const providersCoreImportMock = vi.hoisted(() => vi.fn());
 
-describe("AstroclawSchema startup imports", () => {
+describe("OpenClawSchema startup imports", () => {
   beforeEach(() => {
     providersWhatsappImportMock.mockClear();
     providersCoreImportMock.mockClear();
@@ -24,7 +25,7 @@ describe("AstroclawSchema startup imports", () => {
       "./zod-schema.js?scope=startup-generic-channels",
     );
 
-    const parsed = runtime.AstroclawSchema.safeParse({
+    const parsed = runtime.OpenClawSchema.safeParse({
       channels: {
         defaults: {
           groupPolicy: "open",
