@@ -1,13 +1,23 @@
+/**
+ * Integration tests for QA runner runtime public surface loading.
+ */
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { resetFacadeRuntimeStateForTest } from "./facade-runtime.js";
+import { setTestEnvValue } from "../test-utils/env.js";
+import * as activationCheckRuntime from "./facade-activation-check.runtime.js";
+import {
+  testing as facadeRuntimeTesting,
+  resetFacadeRuntimeStateForTest,
+} from "./facade-runtime.js";
+import { listQaRunnerCliContributions } from "./qa-runner-runtime.js";
 
 const ORIGINAL_ENV = {
-  ASTROCLAW_DISABLE_BUNDLED_PLUGINS: process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS,
-  ASTROCLAW_CONFIG_PATH: process.env.ASTROCLAW_CONFIG_PATH,
-  ASTROCLAW_TEST_FAST: process.env.ASTROCLAW_TEST_FAST,
+  OPENCLAW_DISABLE_BUNDLED_PLUGINS: process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS,
+  OPENCLAW_CONFIG_PATH: process.env.OPENCLAW_CONFIG_PATH,
+  OPENCLAW_STATE_DIR: process.env.OPENCLAW_STATE_DIR,
+  OPENCLAW_TEST_FAST: process.env.OPENCLAW_TEST_FAST,
 } as const;
 
 const tempDirs: string[] = [];
@@ -20,13 +30,14 @@ function makeTempDir(prefix: string): string {
 
 function resetQaRunnerRuntimeState() {
   resetFacadeRuntimeStateForTest();
+  facadeRuntimeTesting.setFacadeActivationCheckRuntimeForTest(activationCheckRuntime);
 }
 
 describe("plugin-sdk qa-runner-runtime linked plugin smoke", () => {
   beforeEach(() => {
     resetQaRunnerRuntimeState();
-    process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS = "1";
-    process.env.ASTROCLAW_TEST_FAST = "1";
+    process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS = "1";
+    process.env.OPENCLAW_TEST_FAST = "1";
   });
 
   afterEach(() => {
@@ -38,15 +49,15 @@ describe("plugin-sdk qa-runner-runtime linked plugin smoke", () => {
       if (value === undefined) {
         delete process.env[key];
       } else {
-        process.env[key] = value;
+        setTestEnvValue(key, value);
       }
     }
   });
 
   it("loads an activated qa runner from a linked plugin path without a bundled install fallback", async () => {
-    const stateDir = makeTempDir("astroclaw-qa-runner-state-");
+    const stateDir = makeTempDir("openclaw-qa-runner-state-");
     const pluginDir = path.join(stateDir, "extensions", "qa-linked");
-    const configPath = path.join(stateDir, "astroclaw.json");
+    const configPath = path.join(stateDir, "openclaw.json");
 
     fs.writeFileSync(
       configPath,
@@ -55,11 +66,12 @@ describe("plugin-sdk qa-runner-runtime linked plugin smoke", () => {
       }),
       "utf8",
     );
-    process.env.ASTROCLAW_CONFIG_PATH = configPath;
+    process.env.OPENCLAW_CONFIG_PATH = configPath;
+    process.env.OPENCLAW_STATE_DIR = stateDir;
 
     fs.mkdirSync(pluginDir, { recursive: true });
     fs.writeFileSync(
-      path.join(pluginDir, "astroclaw.plugin.json"),
+      path.join(pluginDir, "openclaw.plugin.json"),
       JSON.stringify({
         id: "qa-linked",
         qaRunners: [
@@ -79,12 +91,12 @@ describe("plugin-sdk qa-runner-runtime linked plugin smoke", () => {
     fs.writeFileSync(
       path.join(pluginDir, "package.json"),
       JSON.stringify({
-        name: "@astroclaw/qa-linked",
+        name: "@openclaw/qa-linked",
         type: "module",
-        astroclaw: {
+        openclaw: {
           extensions: ["./index.js"],
           install: {
-            npmSpec: "@astroclaw/qa-linked",
+            npmSpec: "@openclaw/qa-linked",
           },
         },
       }),
@@ -104,15 +116,13 @@ describe("plugin-sdk qa-runner-runtime linked plugin smoke", () => {
       "utf8",
     );
 
-    const module = await import("./qa-runner-runtime.js");
-
-    const contributions = module.listQaRunnerCliContributions();
+    const contributions = listQaRunnerCliContributions();
     const contribution = contributions[0];
     expect(contribution?.status).toBe("available");
     if (!contribution || contribution.status !== "available") {
       throw new Error("Expected linked QA runner contribution to be available");
     }
-    const register = contribution.registration.register;
+    const register = contribution.registration["register"];
     expect(typeof register).toBe("function");
     expect(contributions).toEqual([
       {
