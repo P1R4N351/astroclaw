@@ -1,4 +1,7 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Builds web-search install catalog entries from plugin metadata.
+import { normalizeOptionalString as normalizeString } from "@openclaw/normalization-core/string-coerce";
+import { normalizeTrimmedStringList } from "@openclaw/normalization-core/string-normalization";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isRecord } from "../utils.js";
 import { enablePluginInConfig } from "./enable.js";
 import type { PluginPackageInstall } from "./manifest.js";
@@ -9,8 +12,9 @@ import {
   resolveOfficialExternalPluginLabel,
   type OfficialExternalWebSearchProvider,
 } from "./official-external-plugin-catalog.js";
-import type { PluginWebSearchProviderEntry } from "./types.js";
+import type { PluginWebSearchProviderEntry } from "./web-provider-types.js";
 
+/** Install catalog entry for an official external web-search provider plugin. */
 export type WebSearchInstallCatalogEntry = {
   pluginId: string;
   label: string;
@@ -18,16 +22,6 @@ export type WebSearchInstallCatalogEntry = {
   provider: PluginWebSearchProviderEntry;
   trustedSourceLinkedOfficialInstall?: boolean;
 };
-
-function normalizeString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function normalizeStringList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.map(normalizeString).filter((entry): entry is string => Boolean(entry))
-    : [];
-}
 
 function normalizeOnboardingScopes(
   value: OfficialExternalWebSearchProvider["onboardingScopes"],
@@ -46,7 +40,7 @@ function pathSegments(path: string): string[] {
     .filter((segment) => segment.length > 0);
 }
 
-function getConfigPath(config: AstroclawConfig | undefined, path: string): unknown {
+function getConfigPath(config: OpenClawConfig | undefined, path: string): unknown {
   let current: unknown = config;
   for (const segment of pathSegments(path)) {
     if (!isRecord(current)) {
@@ -57,7 +51,7 @@ function getConfigPath(config: AstroclawConfig | undefined, path: string): unkno
   return current;
 }
 
-function setConfigPath(target: AstroclawConfig, path: string, value: unknown): void {
+function setConfigPath(target: OpenClawConfig, path: string, value: unknown): void {
   const segments = pathSegments(path);
   let current: Record<string, unknown> = target as Record<string, unknown>;
   for (const segment of segments.slice(0, -1)) {
@@ -83,7 +77,7 @@ function buildProviderEntry(params: {
   const credentialPath =
     normalizeString(params.provider.credentialPath) ??
     `plugins.entries.${params.pluginId}.config.webSearch.apiKey`;
-  const envVars = normalizeStringList(params.provider.envVars);
+  const envVars = normalizeTrimmedStringList(params.provider.envVars);
   const placeholder = normalizeString(params.provider.placeholder);
   const signupUrl = normalizeString(params.provider.signupUrl);
   if (!providerId || !label || !hint || envVars.length === 0 || !placeholder || !signupUrl) {
@@ -115,17 +109,18 @@ function buildProviderEntry(params: {
     setCredentialValue: (searchConfigTarget: Record<string, unknown>, value: unknown) => {
       searchConfigTarget.apiKey = value;
     },
-    getConfiguredCredentialValue: (config?: AstroclawConfig) =>
+    getConfiguredCredentialValue: (config?: OpenClawConfig) =>
       getConfigPath(config, credentialPath),
-    setConfiguredCredentialValue: (configTarget: AstroclawConfig, value: unknown) => {
+    setConfiguredCredentialValue: (configTarget: OpenClawConfig, value: unknown) => {
       setConfigPath(configTarget, credentialPath, value);
     },
-    applySelectionConfig: (config: AstroclawConfig) =>
+    applySelectionConfig: (config: OpenClawConfig) =>
       enablePluginInConfig(config, params.pluginId).config,
     createTool: () => null,
   };
 }
 
+/** Lists web-search provider install catalog entries from official external plugins. */
 export function resolveWebSearchInstallCatalogEntries(): WebSearchInstallCatalogEntry[] {
   const entries: WebSearchInstallCatalogEntry[] = [];
   for (const entry of listOfficialExternalPluginCatalogEntries()) {
@@ -156,6 +151,7 @@ export function resolveWebSearchInstallCatalogEntries(): WebSearchInstallCatalog
   );
 }
 
+/** Resolves one web-search install catalog entry by provider id or plugin id. */
 export function resolveWebSearchInstallCatalogEntry(params: {
   providerId?: string;
   pluginId?: string;
