@@ -1,8 +1,9 @@
+// Signal tests cover install signal cli plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import JSZip from "jszip";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import * as tar from "tar";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReleaseAsset } from "./install-signal-cli.js";
@@ -11,7 +12,7 @@ const { fetchWithSsrFGuardMock } = vi.hoisted(() => ({
   fetchWithSsrFGuardMock: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: fetchWithSsrFGuardMock,
 }));
 
@@ -63,7 +64,7 @@ function okDownloadResponse(body: BodyInit, init: ResponseInit = {}) {
 }
 
 async function withTempFile(run: (filePath: string) => Promise<void>) {
-  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-signal-download-"));
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-signal-download-"));
   try {
     await run(path.join(workDir, "signal-cli.tgz"));
   } finally {
@@ -219,6 +220,24 @@ describe("downloadToFile", () => {
     expect(fetchResult.release).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["1e3", "0x10", `1${"0".repeat(309)}`])(
+    "ignores malformed declared archive lengths: %s",
+    async (contentLength) => {
+      const fetchResult = okDownloadResponse("archive", {
+        headers: { "content-length": contentLength },
+      });
+      fetchWithSsrFGuardMock.mockResolvedValue(fetchResult);
+
+      await withTempFile(async (filePath) => {
+        await downloadToFile("https://example.com/signal-cli.tgz", filePath, 5, 8);
+
+        await expect(fs.readFile(filePath, "utf-8")).resolves.toBe("archive");
+      });
+
+      expect(fetchResult.release).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it("aborts streamed archives above the download cap and removes partial files", async () => {
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -277,7 +296,7 @@ describe("installSignalCliFromRelease", () => {
       auditContext: "signal-cli-release-info",
       init: {
         headers: {
-          "User-Agent": "astroclaw",
+          "User-Agent": "openclaw",
           Accept: "application/vnd.github+json",
         },
       },
@@ -288,7 +307,7 @@ describe("installSignalCliFromRelease", () => {
 
 describe("extractSignalCliArchive", () => {
   async function withArchiveWorkspace(run: (workDir: string) => Promise<void>) {
-    const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-signal-install-"));
+    const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-signal-install-"));
     try {
       await run(workDir);
     } finally {
