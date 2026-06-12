@@ -1,3 +1,5 @@
+// sessions_history tool tests cover recall redaction and input validation for
+// session transcript history returned to models.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -16,7 +18,7 @@ function useLoggingConfig(name: string, logging: Record<string, unknown>): void 
   }
   const configPath = path.join(tempDir, name);
   fs.writeFileSync(configPath, `${JSON.stringify({ logging })}\n`, "utf8");
-  process.env.ASTROCLAW_CONFIG_PATH = configPath;
+  process.env.OPENCLAW_CONFIG_PATH = configPath;
 }
 
 function createHistoryToolWithMessage(content: string) {
@@ -40,17 +42,17 @@ function createHistoryToolWithMessage(content: string) {
 
 describe("sessions_history redaction", () => {
   beforeAll(async () => {
-    previousConfigPath = process.env.ASTROCLAW_CONFIG_PATH;
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-sessions-history-redact-"));
+    previousConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-sessions-history-redact-"));
     useLoggingConfig("redaction-off.json", { redactSensitive: "off" });
     ({ createSessionsHistoryTool } = await import("./sessions-history-tool.js"));
   });
 
   afterAll(() => {
     if (previousConfigPath === undefined) {
-      delete process.env.ASTROCLAW_CONFIG_PATH;
+      delete process.env.OPENCLAW_CONFIG_PATH;
     } else {
-      process.env.ASTROCLAW_CONFIG_PATH = previousConfigPath;
+      process.env.OPENCLAW_CONFIG_PATH = previousConfigPath;
     }
     if (tempDir) {
       fs.rmSync(tempDir, { recursive: true, force: true });
@@ -58,6 +60,8 @@ describe("sessions_history redaction", () => {
   });
 
   it("redacts recalled session text even when log redaction is disabled", async () => {
+    // Recalled transcript content is model-visible, so it is always redacted
+    // even when normal logging redaction is configured off.
     useLoggingConfig("redaction-off.json", { redactSensitive: "off" });
     const tool = createHistoryToolWithMessage("OPENROUTER_API_KEY=sk-or-v1-abcdef0123456789");
 
@@ -82,5 +86,13 @@ describe("sessions_history redaction", () => {
     expect(serialized).not.toContain("internal-ticket-AbC12345");
     expect(serialized).toContain("intern");
     expect((result.details as { contentRedacted?: unknown }).contentRedacted).toBe(true);
+  });
+
+  it.each([0, 1.5])("rejects invalid limit value %s", async (limit) => {
+    const tool = createHistoryToolWithMessage("hello");
+
+    await expect(tool.execute("call-1", { sessionKey: "main", limit })).rejects.toThrow(
+      "limit must be a positive integer",
+    );
   });
 });
