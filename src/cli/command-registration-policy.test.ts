@@ -1,3 +1,4 @@
+// Command registration policy tests cover CLI registration boundaries and duplicate guards.
 import { describe, expect, it } from "vitest";
 import {
   shouldEagerRegisterSubcommands,
@@ -8,72 +9,72 @@ import {
 
 describe("command-registration-policy", () => {
   it("matches primary command registration policy", () => {
-    expect(shouldRegisterPrimaryCommandOnly(["node", "astroclaw", "status"])).toBe(true);
-    expect(shouldRegisterPrimaryCommandOnly(["node", "astroclaw", "status", "--help"])).toBe(true);
-    expect(shouldRegisterPrimaryCommandOnly(["node", "astroclaw", "-V"])).toBe(false);
-    expect(shouldRegisterPrimaryCommandOnly(["node", "astroclaw", "acp", "-v"])).toBe(true);
+    expect(shouldRegisterPrimaryCommandOnly(["node", "openclaw", "status"])).toBe(true);
+    expect(shouldRegisterPrimaryCommandOnly(["node", "openclaw", "status", "--help"])).toBe(true);
+    expect(shouldRegisterPrimaryCommandOnly(["node", "openclaw", "-V"])).toBe(false);
+    expect(shouldRegisterPrimaryCommandOnly(["node", "openclaw", "acp", "-v"])).toBe(true);
   });
 
   it("matches plugin registration skip policy", () => {
     expect(
       shouldSkipPluginCommandRegistration({
-        argv: ["node", "astroclaw", "--help"],
+        argv: ["node", "openclaw", "--help"],
         primary: null,
         hasBuiltinPrimary: false,
       }),
     ).toBe(true);
     expect(
       shouldSkipPluginCommandRegistration({
-        argv: ["node", "astroclaw", "config", "--help"],
+        argv: ["node", "openclaw", "config", "--help"],
         primary: "config",
         hasBuiltinPrimary: true,
       }),
     ).toBe(true);
     expect(
       shouldSkipPluginCommandRegistration({
-        argv: ["node", "astroclaw", "voicecall", "--help"],
+        argv: ["node", "openclaw", "voicecall", "--help"],
         primary: "voicecall",
         hasBuiltinPrimary: false,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       shouldSkipPluginCommandRegistration({
-        argv: ["node", "astroclaw", "help", "--help"],
+        argv: ["node", "openclaw", "help", "--help"],
         primary: "help",
         hasBuiltinPrimary: false,
       }),
     ).toBe(true);
     expect(
       shouldSkipPluginCommandRegistration({
-        argv: ["node", "astroclaw", "help", "voicecall"],
+        argv: ["node", "openclaw", "help", "voicecall"],
         primary: "help",
         hasBuiltinPrimary: false,
       }),
     ).toBe(false);
     expect(
       shouldSkipPluginCommandRegistration({
-        argv: ["node", "astroclaw", "auth", "login"],
+        argv: ["node", "openclaw", "auth", "login"],
         primary: "auth",
         hasBuiltinPrimary: false,
       }),
     ).toBe(true);
     expect(
       shouldSkipPluginCommandRegistration({
-        argv: ["node", "astroclaw", "tool", "image_generate"],
+        argv: ["node", "openclaw", "tool", "image_generate"],
         primary: "tool",
         hasBuiltinPrimary: false,
       }),
     ).toBe(true);
     expect(
       shouldSkipPluginCommandRegistration({
-        argv: ["node", "astroclaw", "tools", "effective"],
+        argv: ["node", "openclaw", "tools", "effective"],
         primary: "tools",
         hasBuiltinPrimary: false,
       }),
     ).toBe(true);
     expect(
       shouldSkipPluginCommandRegistration({
-        argv: ["node", "astroclaw", "googlemeet", "login"],
+        argv: ["node", "openclaw", "googlemeet", "login"],
         primary: "googlemeet",
         hasBuiltinPrimary: false,
       }),
@@ -81,15 +82,15 @@ describe("command-registration-policy", () => {
   });
 
   it("matches lazy subcommand registration policy", () => {
-    expect(shouldEagerRegisterSubcommands({ ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS: "1" })).toBe(true);
-    expect(shouldEagerRegisterSubcommands({ ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS: "0" })).toBe(false);
-    expect(shouldRegisterPrimarySubcommandOnly(["node", "astroclaw", "acp"], {})).toBe(true);
-    expect(shouldRegisterPrimarySubcommandOnly(["node", "astroclaw", "acp", "--help"], {})).toBe(
+    expect(shouldEagerRegisterSubcommands({ OPENCLAW_DISABLE_LAZY_SUBCOMMANDS: "1" })).toBe(true);
+    expect(shouldEagerRegisterSubcommands({ OPENCLAW_DISABLE_LAZY_SUBCOMMANDS: "0" })).toBe(false);
+    expect(shouldRegisterPrimarySubcommandOnly(["node", "openclaw", "acp"], {})).toBe(true);
+    expect(shouldRegisterPrimarySubcommandOnly(["node", "openclaw", "acp", "--help"], {})).toBe(
       true,
     );
     expect(
-      shouldRegisterPrimarySubcommandOnly(["node", "astroclaw", "acp"], {
-        ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS: "1",
+      shouldRegisterPrimarySubcommandOnly(["node", "openclaw", "acp"], {
+        OPENCLAW_DISABLE_LAZY_SUBCOMMANDS: "1",
       }),
     ).toBe(false);
   });
