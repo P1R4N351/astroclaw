@@ -1,16 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+// Channel setup prompt tests cover prompt choices and validation.
+import { describe, expect, it, vi } from "vitest";
 import type { ChannelSetupDmPolicy } from "../commands/channel-setup/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { withEnvAsync } from "../test-utils/env.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { maybeConfigureDmPolicies } from "./channel-setup.prompts.js";
 
-beforeEach(() => {
-  delete process.env.ASTROCLAW_LOCALE;
-});
-
 describe("maybeConfigureDmPolicies", () => {
   it("localizes DM policy guidance and options", async () => {
-    process.env.ASTROCLAW_LOCALE = "zh-CN";
     const note = vi.fn<WizardPrompter["note"]>(async () => {});
     const select = vi.fn(async () => "pairing") as unknown as WizardPrompter["select"];
     const prompter = {
@@ -24,14 +21,16 @@ describe("maybeConfigureDmPolicies", () => {
       policyKey: "channels.telegram.dmPolicy",
       allowFromKey: "channels.telegram.allowFrom",
       getCurrent: () => "pairing",
-      setPolicy: (cfg: AstroclawConfig) => cfg,
+      setPolicy: (cfg: OpenClawConfig) => cfg,
     };
 
-    await maybeConfigureDmPolicies({
-      cfg: {},
-      selection: ["telegram" as never],
-      prompter,
-      resolveAdapter: () => ({ dmPolicy: policy }) as never,
+    await withEnvAsync({ OPENCLAW_LOCALE: "zh-CN" }, async () => {
+      await maybeConfigureDmPolicies({
+        cfg: {},
+        selection: ["telegram" as never],
+        prompter,
+        resolveAdapter: () => ({ dmPolicy: policy }) as never,
+      });
     });
 
     expect(note.mock.calls[0]?.[0]).toContain("默认：配对");
