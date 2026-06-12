@@ -1,3 +1,5 @@
+// Config write flow helpers commit control-plane config edits, detect auth
+// changes, write restart sentinels, and schedule gateway restarts when required.
 import { isDeepStrictEqual } from "node:util";
 import {
   createConfigIO,
@@ -5,14 +7,14 @@ import {
   replaceConfigFile,
 } from "../../config/config.js";
 import { extractDeliveryInfo } from "../../config/sessions.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   formatDoctorNonInteractiveHint,
   type RestartSentinelPayload,
   writeRestartSentinel,
 } from "../../infra/restart-sentinel.js";
 import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";
-import { getActiveSecretsRuntimeSnapshot } from "../../secrets/runtime.js";
+import { getActiveSecretsRuntimeSnapshot } from "../../secrets/runtime-state.js";
 import { resolveEffectiveSharedGatewayAuth, resolveGatewayAuth } from "../auth.js";
 import { buildGatewayReloadPlan } from "../config-reload-plan.js";
 import { resolveGatewayReloadSettings } from "../config-reload-settings.js";
@@ -27,6 +29,7 @@ export type ConfigWriteOptions = Awaited<
   ReturnType<typeof readConfigFileSnapshotForWrite>
 >["writeOptions"];
 
+/** Resolves the on-disk config path used in config method responses. */
 export function resolveGatewayConfigPath(snapshot?: Pick<ConfigWriteSnapshot, "path">): string {
   return snapshot?.path ?? createConfigIO().configPath;
 }
@@ -49,7 +52,8 @@ function normalizeTrustedProxyAuthForCompare(auth: ReturnType<typeof resolveGate
   };
 }
 
-export function didSharedGatewayAuthChange(prev: AstroclawConfig, next: AstroclawConfig): boolean {
+/** Compares the effective shared Gateway auth surface that active clients use. */
+export function didSharedGatewayAuthChange(prev: OpenClawConfig, next: OpenClawConfig): boolean {
   const prevResolvedAuth = resolveGatewayAuth({
     authConfig: prev.gateway?.auth,
     env: process.env,
@@ -92,9 +96,10 @@ export function didSharedGatewayAuthChange(prev: AstroclawConfig, next: Astrocla
   return prevAuth.mode !== nextAuth.mode || !isDeepStrictEqual(prevAuth.secret, nextAuth.secret);
 }
 
+/** Compares against the active secrets-expanded config when one is available. */
 export function didActiveSharedGatewayAuthChange(params: {
-  fallbackPrev: AstroclawConfig;
-  next: AstroclawConfig;
+  fallbackPrev: OpenClawConfig;
+  next: OpenClawConfig;
 }): boolean {
   return didSharedGatewayAuthChange(
     getActiveSecretsRuntimeSnapshot()?.config ?? params.fallbackPrev,
@@ -116,7 +121,7 @@ function queueSharedGatewayAuthDisconnect(
 
 function queueSharedGatewayAuthGenerationRefresh(
   shouldRefresh: boolean,
-  nextConfig: AstroclawConfig,
+  nextConfig: OpenClawConfig,
   context?: GatewayRequestContext,
 ): void {
   if (!shouldRefresh) {
@@ -129,12 +134,14 @@ function queueSharedGatewayAuthGenerationRefresh(
 
 function shouldScheduleDirectConfigRestart(params: {
   changedPaths: string[];
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
 }): boolean {
   const reloadSettings = resolveGatewayReloadSettings(params.nextConfig);
   if (reloadSettings.mode === "off") {
     return true;
   }
+  // Hybrid mode lets hot-reload own non-gateway restarts; only paths the reload
+  // plan marks as gateway-owned get a direct process restart here.
   const plan = buildGatewayReloadPlan(params.changedPaths);
   if (reloadSettings.mode === "hot" && plan.restartGateway) {
     return true;
@@ -206,35 +213,45 @@ async function tryWriteRestartSentinelPayload(
   }
 }
 
+/** Persists a gateway config write and returns follow-up work that must run after response. */
 export async function commitGatewayConfigWrite(params: {
   snapshot: ConfigWriteSnapshot;
   writeOptions: ConfigWriteOptions;
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
   context?: GatewayRequestContext;
   disconnectSharedAuthClients?: boolean;
-}): Promise<{ path: string; config: AstroclawConfig; queueFollowUp: () => void }> {
+}): Promise<{ path: string; config: OpenClawConfig; queueFollowUp: () => void }> {
   const result = await replaceConfigFile({
     nextConfig: params.nextConfig,
-    writeOptions: params.writeOptions,
+    writeOptions: {
+      ...params.writeOptions,
+      runtimeRefresh: {
+        ...params.writeOptions.runtimeRefresh,
+        includeAuthStoreRefs: false,
+      },
+    },
     afterWrite: { mode: "auto" },
   });
   return {
     path: resolveGatewayConfigPath(params.snapshot),
     config: result.nextConfig,
     queueFollowUp: () => {
+      // Defer generation refresh/disconnect until after the RPC response so
+      // the writer receives the success payload before its connection is closed.
       queueSharedGatewayAuthGenerationRefresh(true, result.nextConfig, params.context);
       queueSharedGatewayAuthDisconnect(Boolean(params.disconnectSharedAuthClients), params.context);
     },
   };
 }
 
+/** Builds restart sentinel/queue state for config.patch and config.apply writes. */
 export async function resolveGatewayConfigRestartWriteResult(params: {
   requestParams: unknown;
   kind: RestartSentinelPayload["kind"];
   mode: "config.patch" | "config.apply";
   configPath: string;
   changedPaths: string[];
-  nextConfig: AstroclawConfig;
+  nextConfig: OpenClawConfig;
   actor: ControlPlaneActor;
   context?: GatewayRequestContext;
 }): Promise<{
