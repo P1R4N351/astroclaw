@@ -1,10 +1,11 @@
+// Covers plugin peer linking for development installs.
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  auditAstroclawPeerDependenciesInManagedNpmRoot,
-  linkAstroclawPeerDependencies,
-  relinkAstroclawPeerDependenciesInManagedNpmRoot,
+  auditOpenClawPeerDependenciesInManagedNpmRoot,
+  linkOpenClawPeerDependencies,
+  relinkOpenClawPeerDependenciesInManagedNpmRoot,
 } from "./plugin-peer-link.js";
 import { cleanupTrackedTempDirs, makeTrackedTempDir } from "./test-helpers/fs-fixtures.js";
 
@@ -15,11 +16,11 @@ afterEach(() => {
 });
 
 function makeTempDir() {
-  return makeTrackedTempDir("astroclaw-plugin-peer-link", tempDirs);
+  return makeTrackedTempDir("openclaw-plugin-peer-link", tempDirs);
 }
 
 describe("plugin peer links", () => {
-  it("relinks astroclaw peers in the managed npm root", async () => {
+  it("relinks openclaw peers in the managed npm root", async () => {
     const npmRoot = makeTempDir();
     const packageDir = path.join(npmRoot, "node_modules", "peer-plugin");
     fs.mkdirSync(packageDir, { recursive: true });
@@ -29,14 +30,14 @@ describe("plugin peer links", () => {
         name: "peer-plugin",
         version: "1.0.0",
         peerDependencies: {
-          astroclaw: ">=2026.0.0",
+          openclaw: ">=2026.0.0",
         },
       }),
       "utf8",
     );
 
     const messages: string[] = [];
-    const result = await relinkAstroclawPeerDependenciesInManagedNpmRoot({
+    const result = await relinkOpenClawPeerDependenciesInManagedNpmRoot({
       npmRoot,
       logger: {
         info: (message) => messages.push(message),
@@ -44,14 +45,14 @@ describe("plugin peer links", () => {
       },
     });
 
-    const linkPath = path.join(packageDir, "node_modules", "astroclaw");
+    const linkPath = path.join(packageDir, "node_modules", "openclaw");
     expect(result).toEqual({ checked: 1, attempted: 1, repaired: 1, skipped: 0 });
     expect(fs.lstatSync(linkPath).isSymbolicLink()).toBe(true);
     expect(fs.realpathSync(linkPath)).toBe(fs.realpathSync(process.cwd()));
-    expect(messages.join("\n")).toContain('Linked peerDependency "astroclaw"');
+    expect(messages.join("\n")).toContain('Linked peerDependency "openclaw"');
   });
 
-  it("audits missing managed npm astroclaw peer links without relinking", async () => {
+  it("audits missing managed npm openclaw peer links without relinking", async () => {
     const npmRoot = makeTempDir();
     const packageDir = path.join(npmRoot, "node_modules", "peer-plugin");
     fs.mkdirSync(packageDir, { recursive: true });
@@ -61,15 +62,15 @@ describe("plugin peer links", () => {
         name: "peer-plugin",
         version: "1.0.0",
         peerDependencies: {
-          astroclaw: ">=2026.0.0",
+          openclaw: ">=2026.0.0",
         },
       }),
       "utf8",
     );
 
-    const result = await auditAstroclawPeerDependenciesInManagedNpmRoot({ npmRoot });
+    const result = await auditOpenClawPeerDependenciesInManagedNpmRoot({ npmRoot });
 
-    const linkPath = path.join(packageDir, "node_modules", "astroclaw");
+    const linkPath = path.join(packageDir, "node_modules", "openclaw");
     expect(result.checked).toBe(1);
     expect(result.broken).toBe(1);
     expect(result.issues[0]?.packageName).toBe("peer-plugin");
@@ -78,7 +79,7 @@ describe("plugin peer links", () => {
   });
 
   it.runIf(process.platform !== "win32")(
-    "does not follow a package-local node_modules symlink while linking astroclaw peers",
+    "does not follow a package-local node_modules symlink while linking openclaw peers",
     async () => {
       const root = makeTempDir();
       const packageDir = path.join(root, "peer-plugin");
@@ -88,10 +89,10 @@ describe("plugin peer links", () => {
       fs.symlinkSync(outsideDir, path.join(packageDir, "node_modules"), "dir");
 
       const warnings: string[] = [];
-      const result = await linkAstroclawPeerDependencies({
+      const result = await linkOpenClawPeerDependencies({
         installedDir: packageDir,
         peerDependencies: {
-          astroclaw: ">=2026.0.0",
+          openclaw: ">=2026.0.0",
         },
         logger: {
           warn: (message) => warnings.push(message),
@@ -99,8 +100,59 @@ describe("plugin peer links", () => {
       });
 
       expect(result).toEqual({ repaired: 0, skipped: 1 });
-      expect(fs.existsSync(path.join(outsideDir, "astroclaw"))).toBe(false);
+      expect(fs.existsSync(path.join(outsideDir, "openclaw"))).toBe(false);
       expect(warnings.join("\n")).toContain("is not a real directory");
     },
   );
+
+  it("replaces an existing real openclaw package directory", async () => {
+    const root = makeTempDir();
+    const packageDir = path.join(root, "peer-plugin");
+    const existingOpenClawDir = path.join(packageDir, "node_modules", "openclaw");
+    fs.mkdirSync(existingOpenClawDir, { recursive: true });
+    fs.writeFileSync(path.join(existingOpenClawDir, "package.json"), '{"name":"openclaw"}', "utf8");
+
+    const messages: string[] = [];
+    const result = await linkOpenClawPeerDependencies({
+      installedDir: packageDir,
+      peerDependencies: {
+        openclaw: ">=2026.0.0",
+      },
+      logger: {
+        info: (message) => messages.push(message),
+      },
+    });
+
+    expect(result).toEqual({ repaired: 1, skipped: 0 });
+    expect(fs.lstatSync(existingOpenClawDir).isSymbolicLink()).toBe(true);
+    expect(fs.realpathSync(existingOpenClawDir)).toBe(fs.realpathSync(process.cwd()));
+    expect(messages.join("\n")).toContain('Linked peerDependency "openclaw"');
+  });
+
+  it("does not delete an unrelated existing package directory", async () => {
+    const root = makeTempDir();
+    const packageDir = path.join(root, "peer-plugin");
+    const existingOpenClawDir = path.join(packageDir, "node_modules", "openclaw");
+    fs.mkdirSync(existingOpenClawDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(existingOpenClawDir, "package.json"),
+      '{"name":"not-openclaw"}',
+      "utf8",
+    );
+
+    const warnings: string[] = [];
+    const result = await linkOpenClawPeerDependencies({
+      installedDir: packageDir,
+      peerDependencies: {
+        openclaw: ">=2026.0.0",
+      },
+      logger: {
+        warn: (message) => warnings.push(message),
+      },
+    });
+
+    expect(result).toEqual({ repaired: 0, skipped: 1 });
+    expect(fs.existsSync(path.join(existingOpenClawDir, "package.json"))).toBe(true);
+    expect(warnings.join("\n")).toContain("already exists and is not a symlink");
+  });
 });
