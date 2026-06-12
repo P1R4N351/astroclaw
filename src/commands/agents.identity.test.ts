@@ -1,3 +1,4 @@
+// Agent identity tests cover identity file creation, persistence, and command integration.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,7 +23,7 @@ vi.mock("../config/config.js", async () => ({
   replaceConfigFile: configMocks.replaceConfigFile,
 }));
 
-import { agentsSetIdentityCommand } from "./agents.js";
+import { agentsSetIdentityCommand } from "./agents.commands.identity.js";
 
 const runtime = createTestRuntime();
 type ConfigWritePayload = {
@@ -30,7 +31,7 @@ type ConfigWritePayload = {
 };
 
 async function createIdentityWorkspace(subdir = "work") {
-  const root = await makeTempWorkspace("astroclaw-identity-");
+  const root = await makeTempWorkspace("openclaw-identity-");
   const workspace = path.join(root, subdir);
   await fs.mkdir(workspace, { recursive: true });
   return { root, workspace };
@@ -72,10 +73,10 @@ describe("agents set-identity command", () => {
   it("sets identity from workspace IDENTITY.md", async () => {
     const { root, workspace } = await createIdentityWorkspace();
     await writeIdentityFile(workspace, [
-      "- Name: Astroclaw",
+      "- Name: OpenClaw",
       "- Creature: helpful sloth",
       "- Emoji: :)",
-      "- Avatar: avatars/astroclaw.png",
+      "- Avatar: avatars/openclaw.png",
       "",
     ]);
 
@@ -95,10 +96,10 @@ describe("agents set-identity command", () => {
 
     expect(configMocks.writeConfigFile).toHaveBeenCalledTimes(1);
     expect(getWrittenMainIdentity()).toEqual({
-      name: "Astroclaw",
+      name: "OpenClaw",
       theme: "helpful sloth",
       emoji: ":)",
-      avatar: "avatars/astroclaw.png",
+      avatar: "avatars/openclaw.png",
     });
   });
 
@@ -130,10 +131,10 @@ describe("agents set-identity command", () => {
   it("overrides identity file values with explicit flags", async () => {
     const { workspace } = await createIdentityWorkspace();
     await writeIdentityFile(workspace, [
-      "- Name: Astroclaw",
+      "- Name: OpenClaw",
       "- Theme: space lobster",
       "- Emoji: :)",
-      "- Avatar: avatars/astroclaw.png",
+      "- Avatar: avatars/openclaw.png",
       "",
     ]);
 
