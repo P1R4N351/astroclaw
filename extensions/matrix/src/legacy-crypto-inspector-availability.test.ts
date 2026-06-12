@@ -1,3 +1,4 @@
+// Matrix tests cover legacy crypto inspector availability plugin behavior.
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,7 +9,7 @@ const availabilityState = vi.hoisted(() => ({
 }));
 
 vi.mock("node:fs", async () => {
-  const { mockNodeBuiltinModule } = await import("astroclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
   return mockNodeBuiltinModule(
     () => vi.importActual<typeof import("node:fs")>("node:fs"),
     {
