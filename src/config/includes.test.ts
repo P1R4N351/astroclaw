@@ -1,3 +1,4 @@
+// Covers config include scanning and include-file merge behavior.
 import nodeFs from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -7,6 +8,7 @@ import {
   CircularIncludeError,
   ConfigIncludeError,
   MAX_INCLUDE_FILE_BYTES,
+  MAX_INCLUDE_PATH_LENGTH,
   deepMerge,
   type IncludeResolver,
   resolveConfigIncludes,
@@ -14,17 +16,17 @@ import {
 
 const ROOT_DIR = path.parse(process.cwd()).root;
 const CONFIG_DIR = path.join(ROOT_DIR, "config");
-const ETC_ASTROCLAW_DIR = path.join(ROOT_DIR, "etc", "astroclaw");
+const ETC_OPENCLAW_DIR = path.join(ROOT_DIR, "etc", "openclaw");
 const SHARED_DIR = path.join(ROOT_DIR, "shared");
 
-const DEFAULT_BASE_PATH = path.join(CONFIG_DIR, "astroclaw.json");
+const DEFAULT_BASE_PATH = path.join(CONFIG_DIR, "openclaw.json");
 
 function configPath(...parts: string[]) {
   return path.join(CONFIG_DIR, ...parts);
 }
 
-function etcAstroclawPath(...parts: string[]) {
-  return path.join(ETC_ASTROCLAW_DIR, ...parts);
+function etcOpenClawPath(...parts: string[]) {
+  return path.join(ETC_OPENCLAW_DIR, ...parts);
 }
 
 function sharedPath(...parts: string[]) {
@@ -81,7 +83,7 @@ describe("resolveConfigIncludes", () => {
   });
 
   it("rejects absolute path outside config directory (CWE-22)", () => {
-    const absolute = etcAstroclawPath("agents.json");
+    const absolute = etcOpenClawPath("agents.json");
     const files = { [absolute]: { list: [{ id: "main" }] } };
     const obj = { agents: { $include: absolute } };
     expectResolveIncludeError(() => resolve(obj, files), /escapes config directory/);
@@ -317,7 +319,7 @@ describe("resolveConfigIncludes", () => {
         resolve(
           { $include: "../../shared/common.json" },
           { [sharedPath("common.json")]: { shared: true } },
-          configPath("sub", "astroclaw.json"),
+          configPath("sub", "openclaw.json"),
         ),
       /escapes config directory/,
     );
@@ -576,17 +578,30 @@ describe("security: path traversal protection (CWE-22)", () => {
   });
 
   describe("edge cases", () => {
-    it.each([
-      { includePath: "./file\x00.json", expectedError: undefined },
-      { includePath: "//etc/passwd", expectedError: ConfigIncludeError },
-    ] as const)("rejects malformed include path $includePath", ({ includePath, expectedError }) => {
-      const obj = { $include: includePath };
-      if (expectedError) {
-        expectResolveIncludeError(() => resolve(obj, {}));
-        return;
+    it("rejects malformed include paths", () => {
+      const cases = [
+        { includePath: "./file\x00.json", pattern: /null bytes?/i },
+        { includePath: "./a\x00b.json", pattern: /null bytes?/i },
+        { includePath: "//etc/passwd", pattern: /escapes config directory/ },
+      ] as const;
+      for (const testCase of cases) {
+        const obj = { $include: testCase.includePath };
+        expectResolveIncludeError(() => resolve(obj, {}), testCase.pattern);
       }
-      // Path with null byte should be rejected or handled safely.
-      expectResolveIncludeError(() => resolve(obj, {}));
+    });
+
+    it("rejects include path at or over maximum length (>= MAX_INCLUDE_PATH_LENGTH)", () => {
+      const overLimit = "a".repeat(MAX_INCLUDE_PATH_LENGTH + 1);
+      expectResolveIncludeError(() => resolve({ $include: overLimit }, {}), /maximum length/);
+      // Boundary: length exactly 4096 must be rejected (Linux PATH_MAX includes NUL)
+      const atLimit = "b".repeat(MAX_INCLUDE_PATH_LENGTH);
+      expectResolveIncludeError(() => resolve({ $include: atLimit }, {}), /maximum length/);
+    });
+
+    it("accepts include path at or under maximum length when file exists", () => {
+      const shortPath = configPath("base.json");
+      const files = { [shortPath]: { ok: true } };
+      expect(resolve({ $include: shortPath }, files)).toEqual({ ok: true });
     });
 
     it("allows child include when config is at filesystem root", () => {
@@ -598,7 +613,7 @@ describe("security: path traversal protection (CWE-22)", () => {
     });
 
     it("allows include files when the config root path is a symlink", async () => {
-      await withTempDir({ prefix: "astroclaw-includes-symlink-" }, async (tempRoot) => {
+      await withTempDir({ prefix: "openclaw-includes-symlink-" }, async (tempRoot) => {
         const realRoot = path.join(tempRoot, "real");
         const linkRoot = path.join(tempRoot, "link");
         await fs.mkdir(path.join(realRoot, "includes"), { recursive: true });
@@ -611,7 +626,7 @@ describe("security: path traversal protection (CWE-22)", () => {
 
         const result = resolveConfigIncludes(
           { $include: "./includes/extra.json5" },
-          path.join(linkRoot, "astroclaw.json"),
+          path.join(linkRoot, "openclaw.json"),
         );
         expect(result).toEqual({ logging: { redactSensitive: "tools" } });
       });
@@ -648,7 +663,7 @@ describe("security: path traversal protection (CWE-22)", () => {
       if (process.platform === "win32") {
         return;
       }
-      await withTempDir({ prefix: "astroclaw-includes-hardlink-" }, async (tempRoot) => {
+      await withTempDir({ prefix: "openclaw-includes-hardlink-" }, async (tempRoot) => {
         const configDir = path.join(tempRoot, "config");
         const outsideDir = path.join(tempRoot, "outside");
         await fs.mkdir(configDir, { recursive: true });
@@ -668,14 +683,14 @@ describe("security: path traversal protection (CWE-22)", () => {
         expect(() =>
           resolveConfigIncludes(
             { $include: "./extra.json5" },
-            path.join(configDir, "astroclaw.json"),
+            path.join(configDir, "openclaw.json"),
           ),
         ).toThrow(/security checks|hardlink/i);
       });
     });
 
     it("rejects oversized include files", async () => {
-      await withTempDir({ prefix: "astroclaw-includes-big-" }, async (tempRoot) => {
+      await withTempDir({ prefix: "openclaw-includes-big-" }, async (tempRoot) => {
         const configDir = path.join(tempRoot, "config");
         await fs.mkdir(configDir, { recursive: true });
         const includePath = path.join(configDir, "big.json5");
@@ -683,14 +698,14 @@ describe("security: path traversal protection (CWE-22)", () => {
         await fs.writeFile(includePath, `{"blob":"${payload}"}`, "utf-8");
 
         expect(() =>
-          resolveConfigIncludes({ $include: "./big.json5" }, path.join(configDir, "astroclaw.json")),
+          resolveConfigIncludes({ $include: "./big.json5" }, path.join(configDir, "openclaw.json")),
         ).toThrow(/security checks|max/i);
       });
     });
   });
 });
 
-describe("ASTROCLAW_INCLUDE_ROOTS allowlist", () => {
+describe("OPENCLAW_INCLUDE_ROOTS allowlist", () => {
   it("permits an include outside the config directory when its root is allowed", () => {
     const sharedFile = sharedPath("common.json");
     const files = { [sharedFile]: { shared: true } };
@@ -705,7 +720,7 @@ describe("ASTROCLAW_INCLUDE_ROOTS allowlist", () => {
   });
 
   it("still rejects include paths that fall outside every allowed root", () => {
-    const obj = { $include: etcAstroclawPath("agents.json") };
+    const obj = { $include: etcOpenClawPath("agents.json") };
     expect(() =>
       resolveConfigIncludes(obj, DEFAULT_BASE_PATH, createMockResolver({}), {
         allowedRoots: [SHARED_DIR],
@@ -740,7 +755,7 @@ describe("ASTROCLAW_INCLUDE_ROOTS allowlist", () => {
   });
 
   it("resolves a symlinked include whose realpath lands inside an allowed root", async () => {
-    await withTempDir({ prefix: "astroclaw-includes-allowed-symlink-" }, async (tempRoot) => {
+    await withTempDir({ prefix: "openclaw-includes-allowed-symlink-" }, async (tempRoot) => {
       const configDir = path.join(tempRoot, "config");
       const sharedDir = path.join(tempRoot, "shared");
       await fs.mkdir(configDir, { recursive: true });
@@ -756,7 +771,7 @@ describe("ASTROCLAW_INCLUDE_ROOTS allowlist", () => {
 
       const result = resolveConfigIncludes(
         { $include: "./extra.json5" },
-        path.join(configDir, "astroclaw.json"),
+        path.join(configDir, "openclaw.json"),
         undefined,
         { allowedRoots: [sharedDir] },
       );
@@ -765,7 +780,7 @@ describe("ASTROCLAW_INCLUDE_ROOTS allowlist", () => {
   });
 
   it("rejects a symlinked include that escapes both the config directory and every allowed root", async () => {
-    await withTempDir({ prefix: "astroclaw-includes-allowed-escape-" }, async (tempRoot) => {
+    await withTempDir({ prefix: "openclaw-includes-allowed-escape-" }, async (tempRoot) => {
       const configDir = path.join(tempRoot, "config");
       const allowedDir = path.join(tempRoot, "allowed");
       const offRootDir = path.join(tempRoot, "off-limits");
@@ -791,7 +806,7 @@ describe("ASTROCLAW_INCLUDE_ROOTS allowlist", () => {
       expect(() =>
         resolveConfigIncludes(
           { $include: "./secret.json5" },
-          path.join(configDir, "astroclaw.json"),
+          path.join(configDir, "openclaw.json"),
           undefined,
           { allowedRoots: [allowedDir] },
         ),
