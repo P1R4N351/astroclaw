@@ -1,3 +1,4 @@
+// Matrix tests cover client plugin behavior.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createMockMatrixClient,
@@ -56,7 +57,7 @@ describe("matrix send client helpers", () => {
   });
 
   it("stops one-off shared clients when no active monitor client is registered", async () => {
-    vi.stubEnv("ASTROCLAW_GATEWAY_PORT", "18799");
+    vi.stubEnv("OPENCLAW_GATEWAY_PORT", "18799");
 
     const result = await withResolvedMatrixSendClient(
       { cfg: TEST_CFG, accountId: "default" },
@@ -85,9 +86,9 @@ describe("matrix send client helpers", () => {
 
     expect(result).toBe("ok");
     expect(acquireSharedMatrixClientMock).not.toHaveBeenCalled();
-    expect(activeClient.start).toHaveBeenCalledTimes(1);
-    expect(activeClient.stop).not.toHaveBeenCalled();
-    expect(activeClient.stopAndPersist).not.toHaveBeenCalled();
+    expect(activeClient["start"]).toHaveBeenCalledTimes(1);
+    expect(activeClient["stop"]).not.toHaveBeenCalled();
+    expect(activeClient["stopAndPersist"]).not.toHaveBeenCalled();
   });
 
   it("uses the effective account id when auth resolution is implicit", async () => {
@@ -143,8 +144,8 @@ describe("matrix send client helpers", () => {
 
     await withResolvedMatrixSendClient({ cfg: TEST_CFG, accountId: "default" }, async () => "ok");
 
-    expect(sharedClient.start).toHaveBeenCalledTimes(1);
-    expect(sharedClient.prepareForOneOff).not.toHaveBeenCalled();
+    expect(sharedClient["start"]).toHaveBeenCalledTimes(1);
+    expect(sharedClient["prepareForOneOff"]).not.toHaveBeenCalled();
   });
 
   it("keeps one-off control clients lightweight when no active monitor client is registered", async () => {
@@ -175,8 +176,8 @@ describe("matrix send client helpers", () => {
 
     expect(result).toBe("ok");
     expect(acquireSharedMatrixClientMock).not.toHaveBeenCalled();
-    expect(activeClient.start).not.toHaveBeenCalled();
-    expect(activeClient.stop).not.toHaveBeenCalled();
-    expect(activeClient.stopAndPersist).not.toHaveBeenCalled();
+    expect(activeClient["start"]).not.toHaveBeenCalled();
+    expect(activeClient["stop"]).not.toHaveBeenCalled();
+    expect(activeClient["stopAndPersist"]).not.toHaveBeenCalled();
   });
 });
