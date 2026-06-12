@@ -1,8 +1,9 @@
+// Startup WebSocket race tests ensure upgrade handlers are attached before the
+// gateway reports its listen step as ready.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
-import { createEmptyPluginRegistry } from "../plugins/registry.js";
-import { createGatewayRuntimeState } from "./server-runtime-state.js";
 import { getFreePort, installGatewayTestHooks, startGatewayServer } from "./test-helpers.js";
+import { createGatewayRuntimeStateForTest } from "./test-helpers.server-runtime-state.js";
 
 type StartGatewayServer = typeof import("./test-helpers.js").startGatewayServer;
 type GatewayServerForTest = Awaited<ReturnType<StartGatewayServer>>;
@@ -52,25 +53,7 @@ afterEach(() => {
 
 describe("gateway startup websocket readiness", () => {
   it("attaches websocket upgrade handlers before exposing the listen step", async () => {
-    const registry = createEmptyPluginRegistry();
-    const runtimeState = await createGatewayRuntimeState({
-      cfg: {},
-      bindHost: "127.0.0.1",
-      port: 0,
-      controlUiEnabled: false,
-      controlUiBasePath: "/",
-      openAiChatCompletionsEnabled: false,
-      openResponsesEnabled: false,
-      resolvedAuth: {} as never,
-      getResolvedAuth: () => ({}) as never,
-      hooksConfig: () => null,
-      getHookClientIpConfig: () => ({}) as never,
-      pluginRegistry: registry,
-      deps: {} as never,
-      log: { info: () => {}, warn: () => {} },
-      logHooks: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } as never,
-      logPlugins: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } as never,
-    });
+    const runtimeState = await createGatewayRuntimeStateForTest();
     try {
       expect(runtimeState.httpBindHosts).toEqual([]);
       expect(runtimeState.httpServer.listenerCount("upgrade")).toBeGreaterThan(0);
@@ -81,8 +64,8 @@ describe("gateway startup websocket readiness", () => {
   });
 
   it("accepts an immediate websocket connection once startup resolves", async () => {
-    const previousMinimal = process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY;
-    process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = "0";
+    const previousMinimal = process.env.OPENCLAW_TEST_MINIMAL_GATEWAY;
+    process.env.OPENCLAW_TEST_MINIMAL_GATEWAY = "0";
     let server: GatewayServerForTest | undefined;
     let client: WebSocket | undefined;
     try {
@@ -100,9 +83,9 @@ describe("gateway startup websocket readiness", () => {
         await server.close();
       }
       if (previousMinimal === undefined) {
-        delete process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY;
+        delete process.env.OPENCLAW_TEST_MINIMAL_GATEWAY;
       } else {
-        process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = previousMinimal;
+        process.env.OPENCLAW_TEST_MINIMAL_GATEWAY = previousMinimal;
       }
     }
   });
