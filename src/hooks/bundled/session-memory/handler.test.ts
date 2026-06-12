@@ -1,8 +1,9 @@
+// Session memory hook tests cover captured transcript summaries.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../../config/config.js";
+import type { OpenClawConfig } from "../../../config/config.js";
 import { writeWorkspaceFile } from "../../../test-helpers/workspace.js";
 import { withEnvAsync } from "../../../test-utils/env.js";
 import { createHookEvent } from "../../hooks.js";
@@ -13,7 +14,7 @@ import {
   getRecentSessionContentWithResetFallback,
 } from "./transcript.js";
 
-// Avoid calling the embedded Pi agent (global command lane); keep this unit test deterministic.
+// Avoid calling the embedded OpenClaw agent (global command lane); keep this unit test deterministic.
 vi.mock("../../llm-slug-generator.js", () => ({
   generateSlugViaLLM: vi.fn().mockResolvedValue("simple-math"),
 }));
@@ -32,7 +33,7 @@ async function createCaseWorkspace(prefix = "case"): Promise<string> {
 
 beforeAll(async () => {
   ({ default: handler, flushSessionMemoryWritesForTest } = await import("./handler.js"));
-  suiteWorkspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-session-memory-"));
+  suiteWorkspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-session-memory-"));
 });
 
 afterAll(async () => {
@@ -70,7 +71,7 @@ function createMockSessionContent(
 async function runNewWithPreviousSessionEntry(params: {
   tempDir: string;
   previousSessionEntry: { sessionId: string; sessionFile?: string };
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   action?: "new" | "reset";
   sessionKey?: string;
   workspaceDirOverride?: string;
@@ -85,7 +86,7 @@ async function runNewWithPreviousSessionEntry(params: {
         params.cfg ??
         ({
           agents: { defaults: { workspace: params.tempDir } },
-        } satisfies AstroclawConfig),
+        } satisfies OpenClawConfig),
       previousSessionEntry: params.previousSessionEntry,
       ...(params.workspaceDirOverride ? { workspaceDir: params.workspaceDirOverride } : {}),
     },
@@ -106,7 +107,7 @@ async function runNewWithPreviousSessionEntry(params: {
 
 async function runNewWithPreviousSession(params: {
   sessionContent: string;
-  cfg?: (tempDir: string) => AstroclawConfig;
+  cfg?: (tempDir: string) => OpenClawConfig;
   action?: "new" | "reset";
 }): Promise<{ tempDir: string; files: string[]; memoryContent: string }> {
   const tempDir = await createCaseWorkspace("workspace");
@@ -123,7 +124,7 @@ async function runNewWithPreviousSession(params: {
     params.cfg?.(tempDir) ??
     ({
       agents: { defaults: { workspace: tempDir } },
-    } satisfies AstroclawConfig);
+    } satisfies OpenClawConfig);
 
   const { files, memoryContent } = await runNewWithPreviousSessionEntry({
     tempDir,
@@ -282,7 +283,7 @@ describe("session-memory hook", () => {
     await withEnvAsync(
       {
         NODE_ENV: "production",
-        ASTROCLAW_TEST_FAST: undefined,
+        OPENCLAW_TEST_FAST: undefined,
         VITEST: undefined,
       },
       async () => {
@@ -307,7 +308,7 @@ describe("session-memory hook", () => {
     await withEnvAsync(
       {
         NODE_ENV: "production",
-        ASTROCLAW_TEST_FAST: undefined,
+        OPENCLAW_TEST_FAST: undefined,
         VITEST: undefined,
       },
       async () => {
@@ -326,7 +327,7 @@ describe("session-memory hook", () => {
                   },
                 },
               },
-            }) satisfies AstroclawConfig,
+            }) satisfies OpenClawConfig,
         });
         expectDatedMemoryFile(files, "simple-math");
       },
@@ -362,7 +363,7 @@ describe("session-memory hook", () => {
     await withEnvAsync(
       {
         NODE_ENV: "production",
-        ASTROCLAW_TEST_FAST: undefined,
+        OPENCLAW_TEST_FAST: undefined,
         VITEST: undefined,
       },
       async () => {
@@ -379,7 +380,7 @@ describe("session-memory hook", () => {
                 },
               },
             },
-          } satisfies AstroclawConfig,
+          } satisfies OpenClawConfig,
           previousSessionEntry: {
             sessionId: "test-123",
             sessionFile,
@@ -490,7 +491,7 @@ describe("session-memory hook", () => {
           defaults: { workspace: mainWorkspace },
           list: [{ id: "navi", workspace: naviWorkspace }],
         },
-      } satisfies AstroclawConfig,
+      } satisfies OpenClawConfig,
       sessionKey: "agent:main:main",
       workspaceDirOverride: naviWorkspace,
       previousSessionEntry: {
@@ -785,7 +786,7 @@ describe("session-memory hook", () => {
           defaults: { workspace: defaultWorkspace },
           list: [{ id: "custom-agent", workspace: customAgentWorkspace }],
         },
-      } satisfies AstroclawConfig,
+      } satisfies OpenClawConfig,
       sessionKey: "agent:main:main",
       workspaceDirOverride: customAgentWorkspace,
       previousSessionEntry: {
