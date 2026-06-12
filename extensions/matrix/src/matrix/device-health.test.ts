@@ -1,29 +1,30 @@
+// Matrix tests cover device health plugin behavior.
 import { describe, expect, it } from "vitest";
-import { isAstroclawManagedMatrixDevice, summarizeMatrixDeviceHealth } from "./device-health.js";
+import { isOpenClawManagedMatrixDevice, summarizeMatrixDeviceHealth } from "./device-health.js";
 
 describe("matrix device health", () => {
-  it("detects Astroclaw-managed device names", () => {
-    expect(isAstroclawManagedMatrixDevice("Astroclaw Gateway")).toBe(true);
-    expect(isAstroclawManagedMatrixDevice("Astroclaw Debug")).toBe(true);
-    expect(isAstroclawManagedMatrixDevice("Element iPhone")).toBe(false);
-    expect(isAstroclawManagedMatrixDevice(null)).toBe(false);
+  it("detects OpenClaw-managed device names", () => {
+    expect(isOpenClawManagedMatrixDevice("OpenClaw Gateway")).toBe(true);
+    expect(isOpenClawManagedMatrixDevice("OpenClaw Debug")).toBe(true);
+    expect(isOpenClawManagedMatrixDevice("Element iPhone")).toBe(false);
+    expect(isOpenClawManagedMatrixDevice(null)).toBe(false);
   });
 
-  it("summarizes stale Astroclaw-managed devices separately from the current device", () => {
+  it("summarizes stale OpenClaw-managed devices separately from the current device", () => {
     const summary = summarizeMatrixDeviceHealth([
       {
         deviceId: "du314Zpw3A",
-        displayName: "Astroclaw Gateway",
+        displayName: "OpenClaw Gateway",
         current: true,
       },
       {
         deviceId: "BritdXC6iL",
-        displayName: "Astroclaw Gateway",
+        displayName: "OpenClaw Gateway",
         current: false,
       },
       {
         deviceId: "G6NJU9cTgs",
-        displayName: "Astroclaw Debug",
+        displayName: "OpenClaw Debug",
         current: false,
       },
       {
@@ -35,22 +36,22 @@ describe("matrix device health", () => {
 
     expect(summary).toEqual({
       currentDeviceId: "du314Zpw3A",
-      currentAstroclawDevices: [
+      currentOpenClawDevices: [
         {
           deviceId: "du314Zpw3A",
-          displayName: "Astroclaw Gateway",
+          displayName: "OpenClaw Gateway",
           current: true,
         },
       ],
-      staleAstroclawDevices: [
+      staleOpenClawDevices: [
         {
           deviceId: "BritdXC6iL",
-          displayName: "Astroclaw Gateway",
+          displayName: "OpenClaw Gateway",
           current: false,
         },
         {
           deviceId: "G6NJU9cTgs",
-          displayName: "Astroclaw Debug",
+          displayName: "OpenClaw Debug",
           current: false,
         },
       ],
