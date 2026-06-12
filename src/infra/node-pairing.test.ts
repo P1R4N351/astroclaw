@@ -1,3 +1,4 @@
+// Tests node pairing identity persistence and validation.
 import fs from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createSuiteTempRootTracker } from "../test-helpers/temp-dir.js";
@@ -32,7 +33,7 @@ async function setupPairedNode(baseDir: string): Promise<string> {
   return paired!.token;
 }
 
-const tempDirs = createSuiteTempRootTracker({ prefix: "astroclaw-node-pairing-" });
+const tempDirs = createSuiteTempRootTracker({ prefix: "openclaw-node-pairing-" });
 
 async function withNodePairingDir<T>(run: (baseDir: string) => Promise<T>): Promise<T> {
   return await run(await tempDirs.make("case"));
