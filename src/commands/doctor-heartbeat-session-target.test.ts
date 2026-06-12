@@ -1,23 +1,24 @@
+// Doctor heartbeat session-target tests cover heartbeat target checks and repair output.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resolveStorePath } from "../config/sessions/paths.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { describeHeartbeatSessionTargetIssues } from "./doctor-heartbeat-session-target.js";
 
 describe("describeHeartbeatSessionTargetIssues", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-heartbeat-doctor-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-heartbeat-doctor-"));
   });
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function cfgWithSession(session: string, target: string | null = "slack"): AstroclawConfig {
+  function cfgWithSession(session: string, target: string | null = "slack"): OpenClawConfig {
     const heartbeat = target === null ? { session } : { session, target };
     return {
       session: {
@@ -32,13 +33,13 @@ describe("describeHeartbeatSessionTargetIssues", () => {
           },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
   function cfgWithDefaultHeartbeat(
     session: string,
     target: string | null = "slack",
-  ): AstroclawConfig {
+  ): OpenClawConfig {
     const heartbeat = target === null ? { session } : { session, target };
     return {
       session: {
@@ -55,10 +56,10 @@ describe("describeHeartbeatSessionTargetIssues", () => {
           },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
-  function writeStore(cfg: AstroclawConfig, entries: Record<string, unknown>) {
+  function writeStore(cfg: OpenClawConfig, entries: Record<string, unknown>) {
     const storePath = resolveStorePath(cfg.session?.store, { agentId: "ops" });
     fs.mkdirSync(path.dirname(storePath), { recursive: true });
     fs.writeFileSync(storePath, JSON.stringify(entries, null, 2));
