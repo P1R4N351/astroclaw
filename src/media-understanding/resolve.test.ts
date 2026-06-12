@@ -1,6 +1,14 @@
+// Media-understanding resolve tests cover timeout clamping, capability filtering,
+// and active-model fallback behavior.
+import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/types.js";
-import { resolveEntriesWithActiveFallback, resolveModelEntries } from "./resolve.js";
+import type { OpenClawConfig } from "../config/types.js";
+import {
+  resolveEntriesWithActiveFallback,
+  resolveMediaRuntimeTimeoutMs,
+  resolveModelEntries,
+  resolveTimeoutMs,
+} from "./resolve.js";
 import type { MediaUnderstandingCapability } from "./types.js";
 
 const providerRegistry = new Map<string, { capabilities: MediaUnderstandingCapability[] }>([
@@ -8,9 +16,21 @@ const providerRegistry = new Map<string, { capabilities: MediaUnderstandingCapab
   ["groq", { capabilities: ["audio"] }],
 ]);
 
+describe("media timeout resolution", () => {
+  it("caps configured media timeout seconds to timer-safe values", () => {
+    expect(resolveTimeoutMs(Number.MAX_VALUE, 60)).toBe(MAX_TIMER_TIMEOUT_MS);
+    expect(resolveTimeoutMs(undefined, Number.MAX_VALUE)).toBe(MAX_TIMER_TIMEOUT_MS);
+  });
+
+  it("caps explicit runtime timeout milliseconds to timer-safe values", () => {
+    expect(resolveMediaRuntimeTimeoutMs(Number.MAX_SAFE_INTEGER)).toBe(MAX_TIMER_TIMEOUT_MS);
+    expect(resolveMediaRuntimeTimeoutMs(undefined)).toBe(30_000);
+  });
+});
+
 describe("resolveModelEntries", () => {
   it("uses provider capabilities for shared entries without explicit caps", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           models: [{ provider: "openai", model: "gpt-5.4" }],
@@ -34,7 +54,7 @@ describe("resolveModelEntries", () => {
   });
 
   it("keeps per-capability entries even without explicit caps", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           image: {
@@ -54,7 +74,7 @@ describe("resolveModelEntries", () => {
   });
 
   it("skips shared CLI entries without capabilities", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           models: [{ type: "cli", command: "gemini", args: ["--file", "{{MediaPath}}"] }],
@@ -90,7 +110,7 @@ describe("resolveEntriesWithActiveFallback", () => {
   }
 
   function expectResolvedProviders(params: {
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     capability: ResolveWithFallbackInput["capability"];
     config: ResolveWithFallbackInput["config"];
     providers: string[];
@@ -105,7 +125,7 @@ describe("resolveEntriesWithActiveFallback", () => {
   }
 
   it("uses active model when enabled and no models are configured", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: { enabled: true },
@@ -122,7 +142,7 @@ describe("resolveEntriesWithActiveFallback", () => {
   });
 
   it("ignores active model when configured entries exist", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           audio: { enabled: true, models: [{ provider: "openai", model: "whisper-1" }] },
@@ -139,7 +159,7 @@ describe("resolveEntriesWithActiveFallback", () => {
   });
 
   it("skips active model when provider lacks capability", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         media: {
           video: { enabled: true },
