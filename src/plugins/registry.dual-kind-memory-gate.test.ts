@@ -1,19 +1,20 @@
+/** Verifies memory provider registration keeps text and binary embedding kinds isolated. */
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
   registerVirtualTestPlugin,
-} from "astroclaw/plugin-sdk/plugin-test-contracts";
+} from "openclaw/plugin-sdk/plugin-test-contracts";
 import { afterEach, describe, expect, it } from "vitest";
 import { clearMemoryEmbeddingProviders } from "./memory-embedding-providers.js";
 import {
-  _resetMemoryPluginState,
+  resetMemoryPluginState,
   getMemoryCapabilityRegistration,
   getMemoryRuntime,
 } from "./memory-state.js";
 import { createPluginRecord } from "./status.test-helpers.js";
 
 afterEach(() => {
-  _resetMemoryPluginState();
+  resetMemoryPluginState();
   clearMemoryEmbeddingProviders();
 });
 
