@@ -1,3 +1,5 @@
+// Browser tests cover invoke browser plugin behavior.
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const controlServiceMocks = vi.hoisted(() => ({
@@ -23,7 +25,7 @@ const configMocks = vi.hoisted(() => ({
 const browserConfigMocks = vi.hoisted(() => ({
   resolveBrowserConfig: vi.fn((browser?: { defaultProfile?: string }) => ({
     enabled: true,
-    defaultProfile: browser?.defaultProfile ?? "astroclaw",
+    defaultProfile: browser?.defaultProfile ?? "openclaw",
   })),
 }));
 
@@ -56,7 +58,10 @@ vi.mock("../sdk-node-runtime.js", () => ({
           new Promise<never>((_, reject) => {
             abortCtrl.signal.addEventListener(
               "abort",
-              () => reject(abortCtrl.signal.reason ?? timeoutError),
+              () =>
+                reject(
+                  toLintErrorObject(abortCtrl.signal.reason ?? timeoutError, "Non-Error rejection"),
+                ),
               { once: true },
             );
           }),
@@ -173,7 +178,7 @@ describe("runBrowserProxyCommand", () => {
     });
     browserConfigMocks.resolveBrowserConfig.mockReset().mockReturnValue({
       enabled: true,
-      defaultProfile: "astroclaw",
+      defaultProfile: "openclaw",
     });
     configMocks.loadConfig.mockReturnValue({
       browser: {},
@@ -181,7 +186,7 @@ describe("runBrowserProxyCommand", () => {
     });
     browserConfigMocks.resolveBrowserConfig.mockReturnValue({
       enabled: true,
-      defaultProfile: "astroclaw",
+      defaultProfile: "openclaw",
     });
     controlServiceMocks.startBrowserControlServiceFromConfig.mockResolvedValue(true);
   });
@@ -207,12 +212,12 @@ describe("runBrowserProxyCommand", () => {
         JSON.stringify({
           method: "GET",
           path: "/snapshot",
-          profile: "astroclaw",
+          profile: "openclaw",
           timeoutMs: 5,
         }),
       ),
     ).rejects.toThrow(
-      /browser proxy timed out for GET \/snapshot after 5ms; ws-backed browser action; profile=astroclaw; status\(running=true, cdpHttp=true, cdpReady=false, cdpUrl=http:\/\/127\.0\.0\.1:18792\)/,
+      /browser proxy timed out for GET \/snapshot after 5ms; ws-backed browser action; profile=openclaw; status\(running=true, cdpHttp=true, cdpReady=false, cdpUrl=http:\/\/127\.0\.0\.1:18792\)/,
     );
     await vi.advanceTimersByTimeAsync(10);
     await result;
@@ -295,7 +300,7 @@ describe("runBrowserProxyCommand", () => {
         JSON.stringify({
           method: "POST",
           path: "/act",
-          profile: "astroclaw",
+          profile: "openclaw",
           timeoutMs: 50,
         }),
       ),
@@ -305,7 +310,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects unauthorized query.profile when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
     });
 
     await expect(
@@ -323,7 +328,7 @@ describe("runBrowserProxyCommand", () => {
 
   it("uses the browser source snapshot for proxy default-profile decisions", async () => {
     configMocks.loadConfig.mockReturnValue({
-      browser: { defaultProfile: "astroclaw" },
+      browser: { defaultProfile: "openclaw" },
       nodeHost: { browserProxy: { enabled: true, allowProfiles: ["work"] } },
     });
     configMocks.sourceConfig = {
@@ -333,7 +338,7 @@ describe("runBrowserProxyCommand", () => {
     browserConfigMocks.resolveBrowserConfig.mockImplementation(
       (browser?: { defaultProfile?: string }) => ({
         enabled: true,
-        defaultProfile: browser?.defaultProfile ?? "astroclaw",
+        defaultProfile: browser?.defaultProfile ?? "openclaw",
       }),
     );
     dispatcherMocks.dispatch.mockResolvedValue({
@@ -356,7 +361,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects unauthorized body.profile when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
     });
 
     await expect(
@@ -375,7 +380,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects persistent profile creation when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
     });
 
     await expect(
@@ -394,7 +399,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects persistent profile deletion when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
     });
 
     await expect(
@@ -412,7 +417,7 @@ describe("runBrowserProxyCommand", () => {
   it("rejects persistent profile reset when allowProfiles is configured", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
     });
 
     await expect(
@@ -420,7 +425,7 @@ describe("runBrowserProxyCommand", () => {
         JSON.stringify({
           method: "POST",
           path: "/reset-profile",
-          body: { profile: "astroclaw", name: "astroclaw" },
+          body: { profile: "openclaw", name: "openclaw" },
           timeoutMs: 50,
         }),
       ),
@@ -431,7 +436,7 @@ describe("runBrowserProxyCommand", () => {
   it("canonicalizes an allowlisted body profile into the dispatched query", async () => {
     configMocks.loadConfig.mockReturnValue({
       browser: {},
-      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["astroclaw"] } },
+      nodeHost: { browserProxy: { enabled: true, allowProfiles: ["openclaw"] } },
     });
     dispatcherMocks.dispatch.mockResolvedValue({
       status: 200,
@@ -442,14 +447,37 @@ describe("runBrowserProxyCommand", () => {
       JSON.stringify({
         method: "POST",
         path: "/stop",
-        body: { profile: "astroclaw" },
+        body: { profile: "openclaw" },
         timeoutMs: 50,
       }),
     );
 
     const request = firstBrowserDispatchRequest();
     expect(request.path).toBe("/stop");
-    expect(request.query).toEqual({ profile: "astroclaw" });
+    expect(request.query).toEqual({ profile: "openclaw" });
+  });
+
+  it("caps browser proxy command timeout before dispatch", async () => {
+    dispatcherMocks.dispatch.mockResolvedValue({
+      status: 200,
+      body: { ok: true },
+    });
+    const timeoutSpy = vi
+      .spyOn(globalThis, "setTimeout")
+      .mockReturnValue(1 as unknown as ReturnType<typeof setTimeout>);
+
+    try {
+      await runBrowserProxyCommand(
+        JSON.stringify({
+          method: "GET",
+          path: "/snapshot",
+          timeoutMs: Number.MAX_SAFE_INTEGER,
+        }),
+      );
+      expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), MAX_TIMER_TIMEOUT_MS);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
   });
 
   it("rejects persistent profile creation when allowProfiles is empty", async () => {
@@ -466,3 +494,17 @@ describe("runBrowserProxyCommand", () => {
     expect(dispatcherMocks.dispatch).not.toHaveBeenCalled();
   });
 });
+
+function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
+  if (value instanceof Error) {
+    return value;
+  }
+  if (typeof value === "string") {
+    return new Error(value);
+  }
+  const error = new Error(fallbackMessage, { cause: value });
+  if ((typeof value === "object" && value !== null) || typeof value === "function") {
+    Object.assign(error, value);
+  }
+  return error;
+}
