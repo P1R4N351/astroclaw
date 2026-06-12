@@ -1,20 +1,28 @@
+// Exercises npm-managed root detection across package-manager markers.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import YAML from "yaml";
 import type { CommandOptions } from "../process/exec.js";
+import { createSuiteTempRootTracker } from "../test-helpers/temp-dir.js";
+import { captureEnv } from "../test-utils/env.js";
 import {
-  repairManagedNpmRootAstroclawPeer,
+  repairManagedNpmRootOpenClawPeer,
   removeManagedNpmRootDependency,
   readManagedNpmRootInstalledDependency,
-  readAstroclawManagedNpmRootOverrides,
+  readOpenClawManagedNpmRootOverrides,
   resolveManagedNpmRootDependencySpec,
   syncManagedNpmRootPeerDependencies,
   upsertManagedNpmRootDependency,
 } from "./npm-managed-root.js";
 
+const fixtureRootTracker = createSuiteTempRootTracker({
+  prefix: "openclaw-npm-managed-root-",
+});
 const tempDirs: string[] = [];
+let npmConfigEnvSnapshot: ReturnType<typeof captureEnv> | undefined;
 
 const successfulSpawn = {
   code: 0,
@@ -26,13 +34,27 @@ const successfulSpawn = {
 };
 
 async function makeTempRoot(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-npm-managed-root-"));
+  const dir = await fixtureRootTracker.make("case");
   tempDirs.push(dir);
   return dir;
 }
 
+beforeAll(async () => {
+  const fixtureRoot = await fixtureRootTracker.setup();
+  npmConfigEnvSnapshot = captureEnv(["NPM_CONFIG_GLOBALCONFIG"]);
+  const globalConfig = path.join(fixtureRoot, "global-npmrc");
+  await fs.writeFile(globalConfig, "", "utf8");
+  process.env.NPM_CONFIG_GLOBALCONFIG = globalConfig;
+});
+
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+});
+
+afterAll(async () => {
+  npmConfigEnvSnapshot?.restore();
+  npmConfigEnvSnapshot = undefined;
+  await fixtureRootTracker.cleanup();
 });
 
 async function expectPathMissing(targetPath: string): Promise<void> {
@@ -85,7 +107,7 @@ describe("managed npm root", () => {
         {
           private: true,
           dependencies: {
-            "@astroclaw/discord": "2026.5.2",
+            "@openclaw/discord": "2026.5.2",
           },
           devDependencies: {
             fixture: "1.0.0",
@@ -98,7 +120,7 @@ describe("managed npm root", () => {
 
     await upsertManagedNpmRootDependency({
       npmRoot,
-      packageName: "@astroclaw/feishu",
+      packageName: "@openclaw/feishu",
       dependencySpec: "2026.5.2",
     });
 
@@ -107,8 +129,8 @@ describe("managed npm root", () => {
     ).resolves.toEqual({
       private: true,
       dependencies: {
-        "@astroclaw/discord": "2026.5.2",
-        "@astroclaw/feishu": "2026.5.2",
+        "@openclaw/discord": "2026.5.2",
+        "@openclaw/feishu": "2026.5.2",
       },
       devDependencies: {
         fixture: "1.0.0",
@@ -116,7 +138,7 @@ describe("managed npm root", () => {
     });
   });
 
-  it("syncs Astroclaw-owned overrides without dropping unrelated local overrides", async () => {
+  it("syncs OpenClaw-owned overrides without dropping unrelated local overrides", async () => {
     const npmRoot = await makeTempRoot();
     await fs.writeFile(
       path.join(npmRoot, "package.json"),
@@ -124,14 +146,14 @@ describe("managed npm root", () => {
         {
           private: true,
           dependencies: {
-            "@astroclaw/discord": "2026.5.2",
+            "@openclaw/discord": "2026.5.2",
           },
           overrides: {
             axios: "1.13.6",
             "left-pad": "1.3.0",
             qs: "6.14.0",
           },
-          astroclaw: {
+          openclaw: {
             managedOverrides: ["axios", "qs"],
           },
         },
@@ -142,7 +164,7 @@ describe("managed npm root", () => {
 
     await upsertManagedNpmRootDependency({
       npmRoot,
-      packageName: "@astroclaw/feishu",
+      packageName: "@openclaw/feishu",
       dependencySpec: "2026.5.4",
       managedOverrides: {
         axios: "1.16.0",
@@ -159,8 +181,8 @@ describe("managed npm root", () => {
     ).resolves.toEqual({
       private: true,
       dependencies: {
-        "@astroclaw/discord": "2026.5.2",
-        "@astroclaw/feishu": "2026.5.4",
+        "@openclaw/discord": "2026.5.2",
+        "@openclaw/feishu": "2026.5.4",
       },
       overrides: {
         "left-pad": "1.3.0",
@@ -171,7 +193,7 @@ describe("managed npm root", () => {
           semver: "1.2.3",
         },
       },
-      astroclaw: {
+      openclaw: {
         managedOverrides: ["axios", "nested", "node-domexception"],
       },
     });
@@ -182,7 +204,7 @@ describe("managed npm root", () => {
 
     await upsertManagedNpmRootDependency({
       npmRoot,
-      packageName: "@astroclaw/feishu",
+      packageName: "@openclaw/feishu",
       dependencySpec: "2026.5.4",
       omitUnsupportedManagedOverrides: true,
       managedOverrides: {
@@ -204,42 +226,45 @@ describe("managed npm root", () => {
           semver: "1.2.3",
         },
       },
-      astroclaw: {
+      openclaw: {
         managedOverrides: ["axios", "nested"],
       },
     });
   });
 
-  it("reads package-level npm overrides for managed plugin installs", async () => {
-    await expect(readAstroclawManagedNpmRootOverrides()).resolves.toEqual({
+  it("reads workspace pnpm overrides for managed plugin installs", async () => {
+    const workspace = YAML.parse(
+      await fs.readFile(path.resolve(process.cwd(), "pnpm-workspace.yaml"), "utf8"),
+    ) as { overrides?: Record<string, unknown> };
+    const expectedOverrides = workspace.overrides ?? {};
+
+    expect(expectedOverrides).toMatchObject({
       axios: "1.16.0",
-      "fast-uri": "3.1.2",
-      "follow-redirects": "1.16.0",
-      "ip-address": "10.2.0",
       "node-domexception": "npm:@nolyfill/domexception@1.0.28",
-      uuid: "14.0.0",
     });
+    await expect(readOpenClawManagedNpmRootOverrides()).resolves.toEqual(expectedOverrides);
   });
 
-  it("resolves package-level npm overrides from packaged dist chunks", async () => {
+  it("resolves workspace pnpm overrides from packaged dist chunks", async () => {
     const packageRoot = await makeTempRoot();
     await fs.mkdir(path.join(packageRoot, "dist"), { recursive: true });
     await fs.writeFile(
       path.join(packageRoot, "package.json"),
       `${JSON.stringify(
         {
-          name: "astroclaw",
-          overrides: {
-            axios: "1.16.0",
-          },
+          name: "openclaw",
         },
         null,
         2,
       )}\n`,
     );
+    await fs.writeFile(
+      path.join(packageRoot, "pnpm-workspace.yaml"),
+      "overrides:\n  axios: 1.16.0\n",
+    );
 
     await expect(
-      readAstroclawManagedNpmRootOverrides({
+      readOpenClawManagedNpmRootOverrides({
         moduleUrl: pathToFileURL(path.join(packageRoot, "dist", "install-AbCdEf.js")).toString(),
         cwd: path.join(packageRoot, "dist"),
       }),
@@ -254,31 +279,35 @@ describe("managed npm root", () => {
       path.join(packageRoot, "package.json"),
       `${JSON.stringify(
         {
-          name: "astroclaw",
+          name: "openclaw",
           dependencies: {
-            "@aws-sdk/client-bedrock-runtime": "3.1024.0",
+            "managed-runtime": "3.1024.0",
             "node-domexception": "npm:@nolyfill/domexception@1.0.28",
           },
           optionalDependencies: {
             "optional-runtime": "2.0.0",
-          },
-          overrides: {
-            "@aws-sdk/client-bedrock-runtime": "$@aws-sdk/client-bedrock-runtime",
-            nested: {
-              "optional-runtime": "$optional-runtime",
-              alias: "$node-domexception",
-            },
-            axios: "1.16.0",
-            "node-domexception": "$node-domexception",
           },
         },
         null,
         2,
       )}\n`,
     );
+    await fs.writeFile(
+      path.join(packageRoot, "pnpm-workspace.yaml"),
+      [
+        "overrides:",
+        '  managed-runtime: "$managed-runtime"',
+        "  nested:",
+        '    optional-runtime: "$optional-runtime"',
+        '    alias: "$node-domexception"',
+        "  axios: 1.16.0",
+        '  node-domexception: "$node-domexception"',
+        "",
+      ].join("\n"),
+    );
 
-    await expect(readAstroclawManagedNpmRootOverrides({ packageRoot })).resolves.toEqual({
-      "@aws-sdk/client-bedrock-runtime": "3.1024.0",
+    await expect(readOpenClawManagedNpmRootOverrides({ packageRoot })).resolves.toEqual({
+      "managed-runtime": "3.1024.0",
       nested: {
         "optional-runtime": "2.0.0",
         alias: "npm:@nolyfill/domexception@1.0.28",
@@ -296,7 +325,7 @@ describe("managed npm root", () => {
     await expect(
       upsertManagedNpmRootDependency({
         npmRoot,
-        packageName: "@astroclaw/feishu",
+        packageName: "@openclaw/feishu",
         dependencySpec: "2026.5.2",
       }),
     ).rejects.toThrow(/JSON|package\.json|not-json/i);
@@ -308,16 +337,16 @@ describe("managed npm root", () => {
     expect(
       resolveManagedNpmRootDependencySpec({
         parsedSpec: {
-          name: "@astroclaw/discord",
-          raw: "@astroclaw/discord@stable",
+          name: "@openclaw/discord",
+          raw: "@openclaw/discord@stable",
           selector: "stable",
           selectorKind: "tag",
           selectorIsPrerelease: false,
         },
         resolution: {
-          name: "@astroclaw/discord",
+          name: "@openclaw/discord",
           version: "2026.5.2",
-          resolvedSpec: "@astroclaw/discord@2026.5.2",
+          resolvedSpec: "@openclaw/discord@2026.5.2",
           resolvedAt: "2026-05-03T00:00:00.000Z",
         },
       }),
@@ -326,15 +355,15 @@ describe("managed npm root", () => {
     expect(
       resolveManagedNpmRootDependencySpec({
         parsedSpec: {
-          name: "@astroclaw/discord",
-          raw: "@astroclaw/discord",
+          name: "@openclaw/discord",
+          raw: "@openclaw/discord",
           selectorKind: "none",
           selectorIsPrerelease: false,
         },
         resolution: {
-          name: "@astroclaw/discord",
+          name: "@openclaw/discord",
           version: "2026.5.2",
-          resolvedSpec: "@astroclaw/discord@2026.5.2",
+          resolvedSpec: "@openclaw/discord@2026.5.2",
           resolvedAt: "2026-05-03T00:00:00.000Z",
         },
       }),
@@ -349,9 +378,9 @@ describe("managed npm root", () => {
         {
           lockfileVersion: 3,
           packages: {
-            "node_modules/@astroclaw/discord": {
+            "node_modules/@openclaw/discord": {
               version: "2026.5.2",
-              resolved: "https://registry.npmjs.org/@astroclaw/discord/-/discord-2026.5.2.tgz",
+              resolved: "https://registry.npmjs.org/@openclaw/discord/-/discord-2026.5.2.tgz",
               integrity: "sha512-discord",
             },
           },
@@ -364,11 +393,11 @@ describe("managed npm root", () => {
     await expect(
       readManagedNpmRootInstalledDependency({
         npmRoot,
-        packageName: "@astroclaw/discord",
+        packageName: "@openclaw/discord",
       }),
     ).resolves.toEqual({
       version: "2026.5.2",
-      resolved: "https://registry.npmjs.org/@astroclaw/discord/-/discord-2026.5.2.tgz",
+      resolved: "https://registry.npmjs.org/@openclaw/discord/-/discord-2026.5.2.tgz",
       integrity: "sha512-discord",
     });
   });
@@ -388,7 +417,7 @@ describe("managed npm root", () => {
           devDependencies: {
             "dev-plugin": "1.0.0",
           },
-          astroclaw: {
+          openclaw: {
             managedPeerDependencies: ["old-peer"],
           },
         },
@@ -438,7 +467,7 @@ describe("managed npm root", () => {
                 peer: true,
                 version: "2.1.0",
               },
-              "node_modules/astroclaw": {
+              "node_modules/openclaw": {
                 peer: true,
                 version: "2026.5.12",
               },
@@ -446,7 +475,7 @@ describe("managed npm root", () => {
                 peerDependencies: {
                   "existing-root": "^1.0.0",
                   "new-peer": "^2.0.0",
-                  astroclaw: ">=2026.5.0",
+                  openclaw: ">=2026.5.0",
                 },
                 version: "1.0.0",
               },
@@ -499,7 +528,7 @@ describe("managed npm root", () => {
       devDependencies: {
         "dev-plugin": "1.0.0",
       },
-      astroclaw: {
+      openclaw: {
         managedPeerDependencies: ["new-peer"],
       },
     });
@@ -516,7 +545,7 @@ describe("managed npm root", () => {
             plugin: "1.0.0",
             "runtime-peer": "2.0.0",
           },
-          astroclaw: {
+          openclaw: {
             managedPeerDependencies: ["runtime-peer"],
           },
         },
@@ -544,7 +573,7 @@ describe("managed npm root", () => {
         plugin: "1.0.0",
         "runtime-peer": "2.0.0",
       },
-      astroclaw: {
+      openclaw: {
         managedPeerDependencies: ["runtime-peer"],
       },
     });
@@ -575,7 +604,7 @@ describe("managed npm root", () => {
         return {
           code: 1,
           stdout: "",
-          stderr: "npm ERR! notarget No matching version found for astroclaw@2026.5.99-beta.1",
+          stderr: "npm ERR! notarget No matching version found for openclaw@2026.5.99-beta.1",
           signal: null,
           killed: false,
           termination: "exit" as const,
@@ -594,7 +623,7 @@ describe("managed npm root", () => {
               },
               "node_modules/plugin": {
                 peerDependencies: {
-                  astroclaw: "2026.5.99-beta.1",
+                  openclaw: "2026.5.99-beta.1",
                   "runtime-peer": "^2.0.0",
                 },
                 version: "1.0.0",
@@ -626,7 +655,7 @@ describe("managed npm root", () => {
         plugin: "1.0.0",
         "runtime-peer": "^2.0.0",
       },
-      astroclaw: {
+      openclaw: {
         managedPeerDependencies: ["runtime-peer"],
       },
     });
@@ -695,8 +724,73 @@ describe("managed npm root", () => {
         plugin: "1.0.0",
         "runtime-peer": "^2.0.0",
       },
-      astroclaw: {
+      openclaw: {
         managedPeerDependencies: ["runtime-peer"],
+      },
+    });
+  });
+
+  it("does not promote nested bundled peer ranges without a root peer package", async () => {
+    const npmRoot = await makeTempRoot();
+    await fs.writeFile(
+      path.join(npmRoot, "package.json"),
+      `${JSON.stringify(
+        {
+          private: true,
+          dependencies: {
+            plugin: "file:./plugin.tgz",
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const runCommand = vi.fn(async (_args: string[], optionsOrTimeout: number | CommandOptions) => {
+      const options = requireCommandOptions(optionsOrTimeout, "npm peer plan");
+      if (!options.cwd) {
+        throw new Error("expected npm peer plan cwd");
+      }
+      await fs.writeFile(
+        path.join(options.cwd, "package-lock.json"),
+        `${JSON.stringify(
+          {
+            lockfileVersion: 3,
+            packages: {
+              "": {
+                dependencies: {
+                  plugin: "file:./plugin.tgz",
+                },
+              },
+              "node_modules/plugin": {
+                version: "1.0.0",
+              },
+              "node_modules/plugin/node_modules/runtime-lib": {
+                peerDependencies: {
+                  zod: "^4.0.0",
+                },
+                version: "1.0.0",
+              },
+              "node_modules/plugin/node_modules/zod": {
+                version: "4.4.3",
+              },
+            },
+          },
+          null,
+          2,
+        )}\n`,
+      );
+      return successfulSpawn;
+    });
+
+    await expect(syncManagedNpmRootPeerDependencies({ npmRoot, runCommand })).resolves.toBe(false);
+
+    await expect(
+      fs.readFile(path.join(npmRoot, "package.json"), "utf8").then((raw) => JSON.parse(raw)),
+    ).resolves.toEqual({
+      private: true,
+      dependencies: {
+        plugin: "file:./plugin.tgz",
       },
     });
   });
@@ -709,8 +803,8 @@ describe("managed npm root", () => {
         {
           private: true,
           dependencies: {
-            "@astroclaw/discord": "2026.5.2",
-            "@astroclaw/voice-call": "2026.5.2",
+            "@openclaw/discord": "2026.5.2",
+            "@openclaw/voice-call": "2026.5.2",
           },
           devDependencies: {
             fixture: "1.0.0",
@@ -723,7 +817,7 @@ describe("managed npm root", () => {
 
     await removeManagedNpmRootDependency({
       npmRoot,
-      packageName: "@astroclaw/voice-call",
+      packageName: "@openclaw/voice-call",
     });
 
     await expect(
@@ -731,7 +825,7 @@ describe("managed npm root", () => {
     ).resolves.toEqual({
       private: true,
       dependencies: {
-        "@astroclaw/discord": "2026.5.2",
+        "@openclaw/discord": "2026.5.2",
       },
       devDependencies: {
         fixture: "1.0.0",
@@ -739,17 +833,17 @@ describe("managed npm root", () => {
     });
   });
 
-  it("repairs stale managed astroclaw peer state without dropping plugin packages", async () => {
+  it("repairs stale managed openclaw peer state without dropping plugin packages", async () => {
     const npmRoot = await makeTempRoot();
-    await fs.mkdir(path.join(npmRoot, "node_modules", "astroclaw"), { recursive: true });
+    await fs.mkdir(path.join(npmRoot, "node_modules", "openclaw"), { recursive: true });
     await fs.writeFile(
       path.join(npmRoot, "package.json"),
       `${JSON.stringify(
         {
           private: true,
           dependencies: {
-            astroclaw: "2026.5.4",
-            "@astroclaw/discord": "2026.5.4",
+            openclaw: "2026.5.4",
+            "@openclaw/discord": "2026.5.4",
           },
         },
         null,
@@ -764,19 +858,19 @@ describe("managed npm root", () => {
           packages: {
             "": {
               dependencies: {
-                astroclaw: "2026.5.4",
-                "@astroclaw/discord": "2026.5.4",
+                openclaw: "2026.5.4",
+                "@openclaw/discord": "2026.5.4",
               },
             },
-            "node_modules/astroclaw": {
+            "node_modules/openclaw": {
               version: "2026.5.4",
             },
-            "node_modules/@astroclaw/discord": {
+            "node_modules/@openclaw/discord": {
               version: "2026.5.4",
             },
           },
           dependencies: {
-            astroclaw: {
+            openclaw: {
               version: "2026.5.4",
             },
           },
@@ -786,20 +880,20 @@ describe("managed npm root", () => {
       )}\n`,
     );
     await fs.writeFile(
-      path.join(npmRoot, "node_modules", "astroclaw", "package.json"),
-      `${JSON.stringify({ name: "astroclaw", version: "2026.5.4" })}\n`,
+      path.join(npmRoot, "node_modules", "openclaw", "package.json"),
+      `${JSON.stringify({ name: "openclaw", version: "2026.5.4" })}\n`,
     );
     await fs.mkdir(path.join(npmRoot, "node_modules", ".bin"), { recursive: true });
-    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "astroclaw"), "shim");
-    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "astroclaw.cmd"), "cmd shim");
-    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "astroclaw.ps1"), "ps1 shim");
+    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "openclaw"), "shim");
+    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "openclaw.cmd"), "cmd shim");
+    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "openclaw.ps1"), "ps1 shim");
     await fs.writeFile(
       path.join(npmRoot, "node_modules", ".package-lock.json"),
       `${JSON.stringify(
         {
           lockfileVersion: 3,
           packages: {
-            "node_modules/astroclaw": {
+            "node_modules/openclaw": {
               version: "2026.5.4",
             },
           },
@@ -810,7 +904,7 @@ describe("managed npm root", () => {
     );
 
     const runCommand = vi.fn().mockResolvedValue(successfulSpawn);
-    await expect(repairManagedNpmRootAstroclawPeer({ npmRoot, runCommand })).resolves.toBe(true);
+    await expect(repairManagedNpmRootOpenClawPeer({ npmRoot, runCommand })).resolves.toBe(true);
     expect(runCommand).toHaveBeenCalledTimes(1);
     const [repairArgs, rawRepairOptions] = requireFirstMockCall(runCommand, "repair command");
     const repairOptions = requireCommandOptions(rawRepairOptions, "repair");
@@ -822,7 +916,7 @@ describe("managed npm root", () => {
       "--ignore-scripts",
       "--no-audit",
       "--no-fund",
-      "astroclaw",
+      "openclaw",
     ]);
     expect(repairOptions?.cwd).toBe(npmRoot);
     expect(repairOptions?.timeoutMs).toBe(300_000);
@@ -832,7 +926,7 @@ describe("managed npm root", () => {
       dependencies?: Record<string, string>;
     };
     expect(manifest.dependencies).toEqual({
-      "@astroclaw/discord": "2026.5.4",
+      "@openclaw/discord": "2026.5.4",
     });
     const lockfile = JSON.parse(
       await fs.readFile(path.join(npmRoot, "package-lock.json"), "utf8"),
@@ -841,21 +935,21 @@ describe("managed npm root", () => {
       dependencies?: Record<string, unknown>;
     };
     expect(lockfile.packages?.[""]?.dependencies).toEqual({
-      "@astroclaw/discord": "2026.5.4",
+      "@openclaw/discord": "2026.5.4",
     });
-    expect(lockfile.packages?.["node_modules/astroclaw"]).toBeUndefined();
-    expect(lockfile.packages?.["node_modules/@astroclaw/discord"]?.version).toBe("2026.5.4");
-    expect(lockfile.dependencies?.astroclaw).toBeUndefined();
-    await expectPathMissing(path.join(npmRoot, "node_modules", "astroclaw"));
-    for (const binName of ["astroclaw", "astroclaw.cmd", "astroclaw.ps1"]) {
+    expect(lockfile.packages?.["node_modules/openclaw"]).toBeUndefined();
+    expect(lockfile.packages?.["node_modules/@openclaw/discord"]?.version).toBe("2026.5.4");
+    expect(lockfile.dependencies?.openclaw).toBeUndefined();
+    await expectPathMissing(path.join(npmRoot, "node_modules", "openclaw"));
+    for (const binName of ["openclaw", "openclaw.cmd", "openclaw.ps1"]) {
       await expectPathMissing(path.join(npmRoot, "node_modules", ".bin", binName));
     }
     await expectPathMissing(path.join(npmRoot, "node_modules", ".package-lock.json"));
   });
 
-  it("does not repair the active Astroclaw host package in a root-managed install", async () => {
+  it("does not repair the active OpenClaw host package in a root-managed install", async () => {
     const npmRoot = await makeTempRoot();
-    const hostPackageRoot = path.join(npmRoot, "node_modules", "astroclaw");
+    const hostPackageRoot = path.join(npmRoot, "node_modules", "openclaw");
     await fs.mkdir(path.join(hostPackageRoot, "dist"), { recursive: true });
     await fs.writeFile(
       path.join(npmRoot, "package.json"),
@@ -863,8 +957,8 @@ describe("managed npm root", () => {
         {
           private: true,
           dependencies: {
-            astroclaw: "2026.5.12-beta.6",
-            "@xdarkicex/astroclaw-memory-libravdb": "1.4.69",
+            openclaw: "2026.5.12-beta.6",
+            "@xdarkicex/openclaw-memory-libravdb": "1.4.69",
           },
         },
         null,
@@ -879,11 +973,11 @@ describe("managed npm root", () => {
           packages: {
             "": {
               dependencies: {
-                astroclaw: "2026.5.12-beta.6",
-                "@xdarkicex/astroclaw-memory-libravdb": "1.4.69",
+                openclaw: "2026.5.12-beta.6",
+                "@xdarkicex/openclaw-memory-libravdb": "1.4.69",
               },
             },
-            "node_modules/astroclaw": {
+            "node_modules/openclaw": {
               version: "2026.5.12-beta.6",
             },
           },
@@ -894,12 +988,12 @@ describe("managed npm root", () => {
     );
     await fs.writeFile(
       path.join(hostPackageRoot, "package.json"),
-      `${JSON.stringify({ name: "astroclaw", version: "2026.5.12-beta.6" })}\n`,
+      `${JSON.stringify({ name: "openclaw", version: "2026.5.12-beta.6" })}\n`,
     );
 
     const runCommand = vi.fn().mockResolvedValue(successfulSpawn);
     await expect(
-      repairManagedNpmRootAstroclawPeer({
+      repairManagedNpmRootOpenClawPeer({
         npmRoot,
         packageRoot: hostPackageRoot,
         runCommand,
@@ -911,8 +1005,8 @@ describe("managed npm root", () => {
       fs.readFile(path.join(npmRoot, "package.json"), "utf8").then((raw) => JSON.parse(raw)),
     ).resolves.toMatchObject({
       dependencies: {
-        astroclaw: "2026.5.12-beta.6",
-        "@xdarkicex/astroclaw-memory-libravdb": "1.4.69",
+        openclaw: "2026.5.12-beta.6",
+        "@xdarkicex/openclaw-memory-libravdb": "1.4.69",
       },
     });
     await expect(
@@ -922,24 +1016,24 @@ describe("managed npm root", () => {
 
   it("scrubs managed ownership metadata without deleting a linked active host package", async () => {
     const npmRoot = await makeTempRoot();
-    const hostPackageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-host-package-"));
+    const hostPackageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-host-package-"));
     tempDirs.push(hostPackageRoot);
     await fs.mkdir(path.join(npmRoot, "node_modules", ".bin"), { recursive: true });
     await fs.writeFile(
       path.join(hostPackageRoot, "package.json"),
-      `${JSON.stringify({ name: "astroclaw", version: "2026.5.12-beta.6" })}\n`,
+      `${JSON.stringify({ name: "openclaw", version: "2026.5.12-beta.6" })}\n`,
     );
-    await fs.symlink(hostPackageRoot, path.join(npmRoot, "node_modules", "astroclaw"), "dir");
-    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "astroclaw"), "shim");
-    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "astroclaw.cmd"), "cmd shim");
-    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "astroclaw.ps1"), "ps1 shim");
+    await fs.symlink(hostPackageRoot, path.join(npmRoot, "node_modules", "openclaw"), "dir");
+    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "openclaw"), "shim");
+    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "openclaw.cmd"), "cmd shim");
+    await fs.writeFile(path.join(npmRoot, "node_modules", ".bin", "openclaw.ps1"), "ps1 shim");
     await fs.writeFile(
       path.join(npmRoot, "node_modules", ".package-lock.json"),
       `${JSON.stringify(
         {
           lockfileVersion: 3,
           packages: {
-            "node_modules/astroclaw": {
+            "node_modules/openclaw": {
               version: "2026.5.12-beta.6",
             },
           },
@@ -954,8 +1048,8 @@ describe("managed npm root", () => {
         {
           private: true,
           dependencies: {
-            astroclaw: "2026.5.12-beta.6",
-            "@xdarkicex/astroclaw-memory-libravdb": "1.4.69",
+            openclaw: "2026.5.12-beta.6",
+            "@xdarkicex/openclaw-memory-libravdb": "1.4.69",
           },
         },
         null,
@@ -970,19 +1064,19 @@ describe("managed npm root", () => {
           packages: {
             "": {
               dependencies: {
-                astroclaw: "2026.5.12-beta.6",
-                "@xdarkicex/astroclaw-memory-libravdb": "1.4.69",
+                openclaw: "2026.5.12-beta.6",
+                "@xdarkicex/openclaw-memory-libravdb": "1.4.69",
               },
             },
-            "node_modules/astroclaw": {
+            "node_modules/openclaw": {
               version: "2026.5.12-beta.6",
             },
-            "node_modules/@xdarkicex/astroclaw-memory-libravdb": {
+            "node_modules/@xdarkicex/openclaw-memory-libravdb": {
               version: "1.4.69",
             },
           },
           dependencies: {
-            astroclaw: {
+            openclaw: {
               version: "2026.5.12-beta.6",
             },
           },
@@ -994,7 +1088,7 @@ describe("managed npm root", () => {
 
     const runCommand = vi.fn().mockResolvedValue(successfulSpawn);
     await expect(
-      repairManagedNpmRootAstroclawPeer({
+      repairManagedNpmRootOpenClawPeer({
         npmRoot,
         packageRoot: hostPackageRoot,
         runCommand,
@@ -1002,7 +1096,7 @@ describe("managed npm root", () => {
     ).resolves.toBe(true);
 
     expect(runCommand).not.toHaveBeenCalled();
-    await expect(fs.realpath(path.join(npmRoot, "node_modules", "astroclaw"))).resolves.toBe(
+    await expect(fs.realpath(path.join(npmRoot, "node_modules", "openclaw"))).resolves.toBe(
       await fs.realpath(hostPackageRoot),
     );
     await expect(
@@ -1013,7 +1107,7 @@ describe("managed npm root", () => {
       dependencies?: Record<string, string>;
     };
     expect(manifest.dependencies).toEqual({
-      "@xdarkicex/astroclaw-memory-libravdb": "1.4.69",
+      "@xdarkicex/openclaw-memory-libravdb": "1.4.69",
     });
 
     const lockfile = JSON.parse(
@@ -1023,14 +1117,14 @@ describe("managed npm root", () => {
       dependencies?: Record<string, unknown>;
     };
     expect(lockfile.packages?.[""]?.dependencies).toEqual({
-      "@xdarkicex/astroclaw-memory-libravdb": "1.4.69",
+      "@xdarkicex/openclaw-memory-libravdb": "1.4.69",
     });
-    expect(lockfile.packages?.["node_modules/astroclaw"]).toBeUndefined();
-    expect(lockfile.packages?.["node_modules/@xdarkicex/astroclaw-memory-libravdb"]?.version).toBe(
+    expect(lockfile.packages?.["node_modules/openclaw"]).toBeUndefined();
+    expect(lockfile.packages?.["node_modules/@xdarkicex/openclaw-memory-libravdb"]?.version).toBe(
       "1.4.69",
     );
-    expect(lockfile.dependencies?.astroclaw).toBeUndefined();
-    for (const binName of ["astroclaw", "astroclaw.cmd", "astroclaw.ps1"]) {
+    expect(lockfile.dependencies?.openclaw).toBeUndefined();
+    for (const binName of ["openclaw", "openclaw.cmd", "openclaw.ps1"]) {
       await expectPathMissing(path.join(npmRoot, "node_modules", ".bin", binName));
     }
     await expectPathMissing(path.join(npmRoot, "node_modules", ".package-lock.json"));
