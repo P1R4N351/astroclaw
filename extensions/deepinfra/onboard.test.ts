@@ -1,12 +1,13 @@
+// Deepinfra tests cover onboard plugin behavior.
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import * as providerAuth from "astroclaw/plugin-sdk/provider-auth-runtime";
+import * as providerAuth from "openclaw/plugin-sdk/provider-auth-runtime";
 import {
-  type AstroclawConfig,
+  type OpenClawConfig,
   resolveAgentModelPrimaryValue,
-} from "astroclaw/plugin-sdk/provider-onboard";
-import { captureEnv } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/provider-onboard";
+import { captureEnv } from "openclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   applyDeepInfraProviderConfig,
@@ -18,7 +19,7 @@ import { DEEPINFRA_DEFAULT_MODEL_ID } from "./provider-models.js";
 
 const { resolveEnvApiKey } = providerAuth;
 
-const emptyCfg: AstroclawConfig = {};
+const emptyCfg: OpenClawConfig = {};
 
 describe("DeepInfra provider config", () => {
   describe("constants", () => {
@@ -27,11 +28,11 @@ describe("DeepInfra provider config", () => {
     });
 
     it("DEEPINFRA_DEFAULT_MODEL_REF includes provider prefix", () => {
-      expect(DEEPINFRA_DEFAULT_MODEL_REF).toBe("deepinfra/deepseek-ai/DeepSeek-V3.2");
+      expect(DEEPINFRA_DEFAULT_MODEL_REF).toBe("deepinfra/deepseek-ai/DeepSeek-V4-Flash");
     });
 
-    it("DEEPINFRA_DEFAULT_MODEL_ID is deepseek-ai/DeepSeek-V3.2", () => {
-      expect(DEEPINFRA_DEFAULT_MODEL_ID).toBe("deepseek-ai/DeepSeek-V3.2");
+    it("DEEPINFRA_DEFAULT_MODEL_ID is deepseek-ai/DeepSeek-V4-Flash", () => {
+      expect(DEEPINFRA_DEFAULT_MODEL_ID).toBe("deepseek-ai/DeepSeek-V4-Flash");
     });
   });
 
@@ -55,7 +56,7 @@ describe("DeepInfra provider config", () => {
     });
 
     it("preserves existing alias if already set", () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             models: {
@@ -70,7 +71,7 @@ describe("DeepInfra provider config", () => {
     });
 
     it("does not change the default model selection", () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             model: { primary: "openai/gpt-5" },
@@ -135,7 +136,7 @@ describe("DeepInfra provider config", () => {
     });
 
     it("resolves the deepinfra api key via resolveApiKeyForProvider", async () => {
-      const agentDir = mkdtempSync(join(tmpdir(), "astroclaw-test-"));
+      const agentDir = mkdtempSync(join(tmpdir(), "openclaw-test-"));
       const envSnapshot = captureEnv(["DEEPINFRA_API_KEY"]);
       process.env.DEEPINFRA_API_KEY = "deepinfra-provider-test-key";
 
