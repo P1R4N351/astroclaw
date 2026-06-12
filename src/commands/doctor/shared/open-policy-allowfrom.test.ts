@@ -1,3 +1,4 @@
+// Open policy allow-from tests cover doctor handling of open allowlist policy.
 import { describe, expect, it, vi } from "vitest";
 import {
   collectOpenPolicyAllowFromWarnings,
@@ -132,12 +133,12 @@ describe("doctor open-policy allowFrom repair", () => {
   it("formats open-policy wildcard warnings", () => {
     const warnings = collectOpenPolicyAllowFromWarnings({
       changes: ['- channels.signal.allowFrom: set to ["*"] (required by dmPolicy="open")'],
-      doctorFixCommand: "astroclaw doctor --fix",
+      doctorFixCommand: "openclaw doctor --fix",
     });
 
     expect(warnings).toEqual([
       '- channels.signal.allowFrom: set to ["*"] (required by dmPolicy="open")',
-      '- Run "astroclaw doctor --fix" to add missing allowFrom wildcards.',
+      '- Run "openclaw doctor --fix" to add missing allowFrom wildcards.',
     ]);
   });
 });
