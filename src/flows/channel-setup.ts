@@ -1,3 +1,4 @@
+// Channel setup flow configures channels, auth, and workspace bindings.
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { getBundledChannelSetupPlugin } from "../channels/plugins/bundled.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
@@ -29,10 +30,10 @@ import type {
 } from "../commands/channel-setup/types.js";
 import type { ChannelChoice } from "../commands/onboard-types.js";
 import { isChannelConfigured } from "../config/channel-configured.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { resolveBundledPluginSources } from "../plugins/bundled-sources.js";
-import { enablePluginInConfig } from "../plugins/enable.js";
+import { enableExplicitlySelectedPluginInConfig } from "../plugins/enable.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { t } from "../wizard/i18n/index.js";
@@ -70,7 +71,7 @@ export function createChannelOnboardingPostWriteHookCollector() {
 
 export async function runCollectedChannelOnboardingPostWriteHooks(params: {
   hooks: ChannelOnboardingPostWriteHook[];
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   runtime: RuntimeEnv;
 }): Promise<void> {
   for (const hook of params.hooks) {
@@ -89,7 +90,7 @@ export function createChannelOnboardingPostWriteHook(params: {
   accountId?: string;
   adapter?: Pick<ChannelSetupWizardAdapter, "afterConfigWritten">;
   channel: ChannelChoice;
-  previousCfg: AstroclawConfig;
+  previousCfg: OpenClawConfig;
 }): ChannelOnboardingPostWriteHook | undefined {
   if (!params.accountId || !params.adapter?.afterConfigWritten) {
     return undefined;
@@ -110,11 +111,11 @@ export function createChannelOnboardingPostWriteHook(params: {
 // Channel-specific prompts moved into setup flow adapters.
 
 export async function setupChannels(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
   options?: SetupChannelsOptions,
-): Promise<AstroclawConfig> {
+): Promise<OpenClawConfig> {
   let next = cfg;
   const deferStatusUntilSelection = options?.deferStatusUntilSelection === true;
   const forceAllowFromChannels = new Set(options?.forceAllowFromChannels ?? []);
@@ -377,20 +378,20 @@ export async function setupChannels(
         t("wizard.channels.disabledDuringSetup", {
           channel,
           hint: disabledHint,
-          command: formatCliCommand("astroclaw channels add"),
+          command: formatCliCommand("openclaw channels add"),
         }),
         t("wizard.channels.setupTitle"),
       );
       return false;
     }
-    const result = enablePluginInConfig(next, channel);
+    const result = enableExplicitlySelectedPluginInConfig(next, channel);
     next = result.config;
     if (!result.enabled) {
       await prompter.note(
         t("wizard.channels.pluginEnableFailed", {
           channel,
           reason: result.reason ?? "plugin disabled",
-          command: formatCliCommand("astroclaw plugins list"),
+          command: formatCliCommand("openclaw plugins list"),
         }),
         t("wizard.channels.setupTitle"),
       );
@@ -403,8 +404,8 @@ export async function setupChannels(
         await prompter.note(
           t("wizard.channels.pluginMissingRecoverable", {
             channel,
-            listCommand: formatCliCommand("astroclaw plugins list"),
-            enableCommand: formatCliCommand("astroclaw plugins enable " + channel),
+            listCommand: formatCliCommand("openclaw plugins list"),
+            enableCommand: formatCliCommand("openclaw plugins enable " + channel),
           }),
           t("wizard.channels.setupTitle"),
         );
@@ -464,7 +465,7 @@ export async function setupChannels(
       await prompter.note(
         t("wizard.channels.noInteractiveSetup", {
           channel,
-          command: formatCliCommand(`astroclaw channels add --channel ${channel} --help`),
+          command: formatCliCommand(`openclaw channels add --channel ${channel} --help`),
         }),
         t("wizard.channels.setupTitle"),
       );
@@ -757,7 +758,7 @@ export async function setupChannels(
             value: "__skip__",
             label: t("common.skipForNow"),
             hint: t("wizard.channels.skipLaterHint", {
-              command: formatCliCommand("astroclaw channels add"),
+              command: formatCliCommand("openclaw channels add"),
             }),
           },
         ],
