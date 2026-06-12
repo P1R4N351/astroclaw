@@ -1,3 +1,4 @@
+// Check Plugin Sdk Wildcard Reexports tests cover check plugin sdk wildcard reexports script behavior.
 import { describe, expect, it } from "vitest";
 import { findPluginSdkWildcardReexports } from "../../scripts/check-plugin-sdk-wildcard-reexports.mjs";
 
@@ -6,14 +7,14 @@ describe("check-plugin-sdk-wildcard-reexports", () => {
     expect(
       findPluginSdkWildcardReexports(
         [
-          'export * from "astroclaw/plugin-sdk/foo";',
-          'export type * from "astroclaw/plugin-sdk/bar";',
-          'export { named } from "astroclaw/plugin-sdk/foo";',
+          'export * from "openclaw/plugin-sdk/foo";',
+          'export type * from "openclaw/plugin-sdk/bar";',
+          'export { named } from "openclaw/plugin-sdk/foo";',
         ].join("\n"),
       ),
     ).toEqual([
-      { line: 1, text: 'export * from "astroclaw/plugin-sdk/foo";' },
-      { line: 2, text: 'export type * from "astroclaw/plugin-sdk/bar";' },
+      { line: 1, text: 'export * from "openclaw/plugin-sdk/foo";' },
+      { line: 2, text: 'export type * from "openclaw/plugin-sdk/bar";' },
     ]);
   });
 
@@ -21,8 +22,8 @@ describe("check-plugin-sdk-wildcard-reexports", () => {
     expect(
       findPluginSdkWildcardReexports(
         [
-          'export { named } from "astroclaw/plugin-sdk/foo";',
-          'export type { Named } from "astroclaw/plugin-sdk/foo";',
+          'export { named } from "openclaw/plugin-sdk/foo";',
+          'export type { Named } from "openclaw/plugin-sdk/foo";',
           'export * from "./src/runtime-api.js";',
         ].join("\n"),
       ),
