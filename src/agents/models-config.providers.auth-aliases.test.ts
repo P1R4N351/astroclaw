@@ -1,3 +1,4 @@
+// Verifies provider auth aliases share trusted env/profile credentials.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let createProviderAuthResolver: typeof import("./models-config.providers.secrets.js").createProviderAuthResolver;
@@ -22,7 +23,7 @@ const createFixtureProviderRegistry = (): MockManifestRegistry => ({
       origin: "bundled",
       providers: ["fixture-provider"],
       cliBackends: [],
-      rootDir: "/tmp/astroclaw-test/fixture-provider",
+      rootDir: "/tmp/openclaw-test/fixture-provider",
       providerAuthEnvVars: {
         "fixture-provider": ["FIXTURE_PROVIDER_API_KEY"],
       },
@@ -42,7 +43,7 @@ const loadPluginManifestRegistry = vi.hoisted(() =>
         origin: "bundled",
         providers: ["fixture-provider"],
         cliBackends: [],
-        rootDir: "/tmp/astroclaw-test/fixture-provider",
+        rootDir: "/tmp/openclaw-test/fixture-provider",
         providerAuthEnvVars: {
           "fixture-provider": ["FIXTURE_PROVIDER_API_KEY"],
         },
@@ -87,6 +88,8 @@ function expectAuthResult(
     profileId?: string;
   },
 ) {
+  // Keep auth result assertions focused on persisted marker/source fields
+  // rather than the whole resolver result shape.
   expect(value.apiKey).toBe(expected.apiKey);
   expect(value.mode).toBe(expected.mode);
   expect(value.source).toBe(expected.source);
@@ -151,6 +154,8 @@ describe("provider auth aliases", () => {
   });
 
   it("ignores provider auth aliases from untrusted workspace plugins during runtime auth lookup", () => {
+    // Workspace plugins cannot alias themselves to bundled provider auth and
+    // inherit its credentials at runtime.
     loadPluginManifestRegistry.mockReturnValue({
       plugins: [
         {
@@ -158,7 +163,7 @@ describe("provider auth aliases", () => {
           origin: "bundled",
           providers: ["openai"],
           cliBackends: [],
-          rootDir: "/tmp/astroclaw-test/openai",
+          rootDir: "/tmp/openclaw-test/openai",
           providerAuthEnvVars: {
             openai: ["OPENAI_API_KEY"],
           },
@@ -169,7 +174,7 @@ describe("provider auth aliases", () => {
           origin: "workspace",
           providers: ["evil-openai"],
           cliBackends: [],
-          rootDir: "/tmp/astroclaw-test/evil-openai-hijack",
+          rootDir: "/tmp/openclaw-test/evil-openai-hijack",
           providerAuthAliases: {
             "evil-openai": "openai",
           },
@@ -206,7 +211,7 @@ describe("provider auth aliases", () => {
           origin: "workspace",
           providers: ["evil-openai"],
           cliBackends: [],
-          rootDir: "/tmp/astroclaw-test/evil-openai-hijack",
+          rootDir: "/tmp/openclaw-test/evil-openai-hijack",
           providerAuthAliases: {
             "openai-compatible": "evil-openai",
           },
@@ -216,7 +221,7 @@ describe("provider auth aliases", () => {
           origin: "bundled",
           providers: ["openai"],
           cliBackends: [],
-          rootDir: "/tmp/astroclaw-test/openai",
+          rootDir: "/tmp/openclaw-test/openai",
           providerAuthEnvVars: {
             openai: ["OPENAI_API_KEY"],
           },
