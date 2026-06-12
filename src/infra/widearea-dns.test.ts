@@ -1,3 +1,4 @@
+// Tests wide-area DNS discovery parsing and timeout behavior.
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -12,9 +13,9 @@ import {
 } from "./widearea-dns.js";
 
 const baseZoneOpts: WideAreaGatewayZoneOpts = {
-  domain: "astroclaw.internal.",
+  domain: "openclaw.internal.",
   gatewayPort: 18789,
-  displayName: "Mac Studio (Astroclaw)",
+  displayName: "Mac Studio (OpenClaw)",
   tailnetIPv4: "100.123.224.76",
   hostLabel: "studio-london",
   instanceLabel: "studio-london",
@@ -44,9 +45,9 @@ afterEach(() => {
 
 describe("wide-area DNS discovery domain helpers", () => {
   it.each([
-    { value: "astroclaw.internal", expected: "astroclaw.internal." },
-    { value: "astroclaw.internal.", expected: "astroclaw.internal." },
-    { value: "  astroclaw.internal  ", expected: "astroclaw.internal." },
+    { value: "openclaw.internal", expected: "openclaw.internal." },
+    { value: "openclaw.internal.", expected: "openclaw.internal." },
+    { value: "  openclaw.internal  ", expected: "openclaw.internal." },
     { value: "", expected: null },
     { value: "   ", expected: null },
     { value: null, expected: null },
@@ -55,11 +56,20 @@ describe("wide-area DNS discovery domain helpers", () => {
     expect(normalizeWideAreaDomain(value)).toBe(expected);
   });
 
+  it.each(["../../x", "foo/bar", "foo\\bar", "evil\nrecords", "openclaw..internal"])(
+    "rejects invalid domains for %j",
+    (value) => {
+      expect(() => normalizeWideAreaDomain(value)).toThrow(
+        "wide-area discovery domain must be a valid DNS name",
+      );
+    },
+  );
+
   it.each([
     {
       name: "prefers config domain over env",
       params: {
-        env: { ASTROCLAW_WIDE_AREA_DOMAIN: "env.internal" } as NodeJS.ProcessEnv,
+        env: { OPENCLAW_WIDE_AREA_DOMAIN: "env.internal" } as NodeJS.ProcessEnv,
         configDomain: "config.internal",
       },
       expected: "config.internal.",
@@ -67,15 +77,30 @@ describe("wide-area DNS discovery domain helpers", () => {
     {
       name: "falls back to env domain",
       params: {
-        env: { ASTROCLAW_WIDE_AREA_DOMAIN: "env.internal" } as NodeJS.ProcessEnv,
+        env: { OPENCLAW_WIDE_AREA_DOMAIN: "env.internal" } as NodeJS.ProcessEnv,
       },
       expected: "env.internal.",
     },
     {
       name: "returns null when both sources are blank",
       params: {
-        env: { ASTROCLAW_WIDE_AREA_DOMAIN: "   " } as NodeJS.ProcessEnv,
+        env: { OPENCLAW_WIDE_AREA_DOMAIN: "   " } as NodeJS.ProcessEnv,
         configDomain: " ",
+      },
+      expected: null,
+    },
+    {
+      name: "returns null for invalid config domains",
+      params: {
+        env: { OPENCLAW_WIDE_AREA_DOMAIN: "env.internal" } as NodeJS.ProcessEnv,
+        configDomain: "foo/bar",
+      },
+      expected: null,
+    },
+    {
+      name: "returns null for invalid env domains",
+      params: {
+        env: { OPENCLAW_WIDE_AREA_DOMAIN: "foo/bar" } as NodeJS.ProcessEnv,
       },
       expected: null,
     },
@@ -83,10 +108,12 @@ describe("wide-area DNS discovery domain helpers", () => {
     expect(resolveWideAreaDiscoveryDomain(params)).toBe(expected);
   });
 
-  it("builds the default zone path from the normalized domain", () => {
-    expect(getWideAreaZonePath("astroclaw.internal.")).toBe(
-      path.join(utils.CONFIG_DIR, "dns", "astroclaw.internal.db"),
-    );
+  it("builds valid zone paths under the DNS config directory", () => {
+    const dnsDir = path.resolve(utils.CONFIG_DIR, "dns");
+    const zonePath = getWideAreaZonePath("openclaw.internal.");
+
+    expect(zonePath).toBe(path.join(dnsDir, "openclaw.internal.db"));
+    expect(path.relative(dnsDir, zonePath)).toBe("openclaw.internal.db");
   });
 });
 
@@ -95,19 +122,19 @@ describe("wide-area DNS-SD zone rendering", () => {
     const txt = renderZoneText({
       tailnetIPv6: "fd7a:115c:a1e0::8801:e04c",
       sshPort: 22,
-      cliPath: "/opt/homebrew/bin/astroclaw",
+      cliPath: "/opt/homebrew/bin/openclaw",
     });
 
     expectZoneRecords(txt, [
-      `$ORIGIN astroclaw.internal.`,
+      `$ORIGIN openclaw.internal.`,
       `studio-london IN A 100.123.224.76`,
       `studio-london IN AAAA fd7a:115c:a1e0::8801:e04c`,
-      `_astroclaw-gw._tcp IN PTR studio-london._astroclaw-gw._tcp`,
-      `studio-london._astroclaw-gw._tcp IN SRV 0 0 18789 studio-london`,
-      `displayName=Mac Studio (Astroclaw)`,
+      `_openclaw-gw._tcp IN PTR studio-london._openclaw-gw._tcp`,
+      `studio-london._openclaw-gw._tcp IN SRV 0 0 18789 studio-london`,
+      `displayName=Mac Studio (OpenClaw)`,
       `gatewayPort=18789`,
       `sshPort=22`,
-      `cliPath=/opt/homebrew/bin/astroclaw`,
+      `cliPath=/opt/homebrew/bin/openclaw`,
     ]);
   });
 
@@ -120,24 +147,26 @@ describe("wide-area DNS-SD zone rendering", () => {
     {
       name: "includes gateway TLS TXT fields and trims display metadata",
       overrides: {
-        domain: "astroclaw.internal",
-        displayName: "  Mac Studio (Astroclaw)  ",
+        domain: "openclaw.internal",
+        displayName: "  Mac Studio (OpenClaw)  ",
         hostLabel: " Studio London ",
         instanceLabel: " Studio London ",
         gatewayTlsEnabled: true,
         gatewayTlsFingerprintSha256: "abc123",
+        gatewayDirectReachable: true,
         tailnetDns: " tailnet.ts.net ",
-        cliPath: " /opt/homebrew/bin/astroclaw ",
+        cliPath: " /opt/homebrew/bin/openclaw ",
       },
       records: [
-        `$ORIGIN astroclaw.internal.`,
+        `$ORIGIN openclaw.internal.`,
         `studio-london IN A 100.123.224.76`,
-        `studio-london._astroclaw-gw._tcp IN TXT`,
-        `displayName=Mac Studio (Astroclaw)`,
+        `studio-london._openclaw-gw._tcp IN TXT`,
+        `displayName=Mac Studio (OpenClaw)`,
         `gatewayTls=1`,
         `gatewayTlsSha256=abc123`,
+        `gatewayDirectReachable=1`,
         `tailnetDns=tailnet.ts.net`,
-        `cliPath=/opt/homebrew/bin/astroclaw`,
+        `cliPath=/opt/homebrew/bin/openclaw`,
       ],
     },
   ])("$name", ({ overrides, records }) => {
@@ -152,6 +181,21 @@ describe("wide-area DNS zone writes", () => {
     );
   });
 
+  it.each(["../../x", "foo/bar", "foo\\bar", "evil\nrecords", "openclaw..internal"])(
+    "rejects invalid domain %j before writing",
+    async (domain) => {
+      const ensureDirSpy = vi.spyOn(utils, "ensureDir").mockResolvedValue(undefined);
+      const writeSpy = vi.spyOn(fs, "writeFileSync").mockImplementation(() => undefined);
+
+      await expect(writeWideAreaGatewayZone(makeZoneOpts({ domain }))).rejects.toThrow(
+        "wide-area discovery domain must be a valid DNS name",
+      );
+
+      expect(ensureDirSpy).not.toHaveBeenCalled();
+      expect(writeSpy).not.toHaveBeenCalled();
+    },
+  );
+
   it("skips rewriting unchanged content", async () => {
     vi.spyOn(utils, "ensureDir").mockResolvedValue(undefined);
     const existing = renderWideAreaGatewayZoneText({ ...makeZoneOpts(), serial: 2026031301 });
@@ -161,7 +205,7 @@ describe("wide-area DNS zone writes", () => {
     const result = await writeWideAreaGatewayZone(makeZoneOpts());
 
     expect(result).toEqual({
-      zonePath: getWideAreaZonePath("astroclaw.internal."),
+      zonePath: getWideAreaZonePath("openclaw.internal."),
       changed: false,
     });
     expect(writeSpy).not.toHaveBeenCalled();
@@ -181,7 +225,7 @@ describe("wide-area DNS zone writes", () => {
     );
 
     expect(result).toEqual({
-      zonePath: getWideAreaZonePath("astroclaw.internal."),
+      zonePath: getWideAreaZonePath("openclaw.internal."),
       changed: true,
     });
     const expectedZoneText = renderWideAreaGatewayZoneText({
@@ -189,7 +233,7 @@ describe("wide-area DNS zone writes", () => {
       serial: 2026031305,
     });
     expect(writeSpy).toHaveBeenCalledWith(
-      getWideAreaZonePath("astroclaw.internal."),
+      getWideAreaZonePath("openclaw.internal."),
       expectedZoneText,
       "utf-8",
     );
