@@ -1,4 +1,5 @@
-import { isLiveTestEnabled } from "astroclaw/plugin-sdk/test-env";
+// Microsoft tests cover microsoft plugin behavior.
+import { isLiveTestEnabled } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import { listMicrosoftVoices } from "./speech-provider.js";
 
