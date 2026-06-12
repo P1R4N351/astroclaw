@@ -1,8 +1,9 @@
+// Status summary redaction tests cover sensitive field removal from summarized runtime state.
 import { describe, expect, it } from "vitest";
 import { redactSensitiveStatusSummary } from "./status.summary.js";
-import type { StatusSummary } from "./status.types.js";
+import type { SessionStatus, StatusSummary } from "./status.types.js";
 
-function createRecentSessionRow() {
+function createRecentSessionRow(): SessionStatus {
   return {
     key: "main",
     kind: "direct" as const,
@@ -14,6 +15,9 @@ function createRecentSessionRow() {
     remainingTokens: 4,
     percentUsed: 5,
     model: "gpt-5",
+    configuredModel: "openai/gpt-5",
+    selectedModel: "openai/gpt-5",
+    modelSelectionReason: null,
     contextTokens: 200_000,
     flags: ["id:sess-1"],
   };
@@ -64,14 +68,14 @@ describe("redactSensitiveStatusSummary", () => {
         },
       },
       sessions: {
-        paths: ["/tmp/astroclaw/sessions.json"],
+        paths: ["/tmp/openclaw/sessions.json"],
         count: 1,
         defaults: { model: "gpt-5", contextTokens: 200_000 },
         recent: [createRecentSessionRow()],
         byAgent: [
           {
             agentId: "main",
-            path: "/tmp/astroclaw/main-sessions.json",
+            path: "/tmp/openclaw/main-sessions.json",
             count: 1,
             recent: [createRecentSessionRow()],
           },
