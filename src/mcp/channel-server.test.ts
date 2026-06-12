@@ -1,9 +1,10 @@
+// Channel MCP server tests cover channel tool registration and requests.
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 import { shouldRetryInitialMcpGatewayConnect } from "./channel-bridge.js";
-import { createAstroclawChannelMcpServer, AstroclawChannelBridge } from "./channel-server.js";
+import { createOpenClawChannelMcpServer, OpenClawChannelBridge } from "./channel-server.js";
 import { extractAttachmentsFromMessage } from "./channel-shared.js";
 
 const ClaudeChannelNotificationSchema = z.object({
@@ -23,7 +24,7 @@ const ClaudePermissionNotificationSchema = z.object({
 });
 
 async function connectMcpWithoutGateway(params?: { claudeChannelMode?: "auto" | "on" | "off" }) {
-  const serverHarness = await createAstroclawChannelMcpServer({
+  const serverHarness = await createOpenClawChannelMcpServer({
     claudeChannelMode: params?.claudeChannelMode ?? "auto",
     config: {} as never,
     verbose: false,
@@ -43,7 +44,7 @@ async function connectMcpWithoutGateway(params?: { claudeChannelMode?: "auto" | 
 }
 
 function attachReadyGateway(
-  bridge: AstroclawChannelBridge,
+  bridge: OpenClawChannelBridge,
   gatewayRequest: ReturnType<typeof vi.fn>,
 ) {
   (
@@ -89,7 +90,7 @@ function gatewayRequestError(retryable: boolean): Error {
   });
 }
 
-describe("astroclaw channel mcp server", () => {
+describe("openclaw channel mcp server", () => {
   test("keeps initial MCP gateway connection alive through transient connect errors", () => {
     expect(
       shouldRetryInitialMcpGatewayConnect(new Error("gateway request timeout for connect")),
@@ -169,7 +170,7 @@ describe("astroclaw channel mcp server", () => {
                   content: [{ type: "text", text: "hello from transcript" }],
                 },
                 {
-                  __astroclaw: {
+                  __openclaw: {
                     id: "msg-attachment",
                   },
                   role: "assistant",
@@ -190,7 +191,7 @@ describe("astroclaw channel mcp server", () => {
           }
           throw new Error(`unexpected gateway method ${method}`);
         });
-        const bridge = new AstroclawChannelBridge({} as never, {
+        const bridge = new OpenClawChannelBridge({} as never, {
           claudeChannelMode: "off",
           verbose: false,
         });
@@ -207,7 +208,9 @@ describe("astroclaw channel mcp server", () => {
         const messages = await bridge.readMessages(sessionKey, 5);
         expect(messages[0]?.role).toBe("assistant");
         expect(messages[0]?.content).toEqual([{ type: "text", text: "hello from transcript" }]);
-        expect((messages[1]?.__astroclaw as { id?: string } | undefined)?.id).toBe("msg-attachment");
+        expect((messages[1]?.["__openclaw"] as { id?: string } | undefined)?.id).toBe(
+          "msg-attachment",
+        );
         expect(
           extractAttachmentsFromMessage(messages[1]).some(
             (entry) => (entry as { type?: unknown }).type === "image",
@@ -266,7 +269,7 @@ describe("astroclaw channel mcp server", () => {
 
       test("emits Claude channel and permission notifications", async () => {
         const sessionKey = "agent:main:main";
-        let mcp: Awaited<ReturnType<typeof connectMcpWithoutGateway>> | null = null;
+        let mcp: Awaited<ReturnType<typeof connectMcpWithoutGateway>> | null | undefined;
         try {
           const channelNotifications: Array<{ content: string; meta: Record<string, string> }> = [];
           const permissionNotifications: Array<{
@@ -369,7 +372,7 @@ describe("astroclaw channel mcp server", () => {
     });
 
     test("sendMessage normalizes route metadata for gateway send", async () => {
-      const bridge = new AstroclawChannelBridge({} as never, {
+      const bridge = new OpenClawChannelBridge({} as never, {
         claudeChannelMode: "off",
         verbose: false,
       });
@@ -403,7 +406,7 @@ describe("astroclaw channel mcp server", () => {
     });
 
     test("gets one conversation through sessions.describe without broad listing", async () => {
-      const bridge = new AstroclawChannelBridge({} as never, {
+      const bridge = new OpenClawChannelBridge({} as never, {
         claudeChannelMode: "off",
         verbose: false,
       });
@@ -440,7 +443,7 @@ describe("astroclaw channel mcp server", () => {
     });
 
     test("lists routed sessions from deliveryContext without mirrored route fields", async () => {
-      const bridge = new AstroclawChannelBridge({} as never, {
+      const bridge = new OpenClawChannelBridge({} as never, {
         claudeChannelMode: "off",
         verbose: false,
       });
@@ -480,21 +483,17 @@ describe("astroclaw channel mcp server", () => {
     });
 
     test("swallows notification send errors after channel replies are matched", async () => {
-      const bridge = new AstroclawChannelBridge({} as never, {
+      const bridge = new OpenClawChannelBridge({} as never, {
         claudeChannelMode: "on",
         verbose: false,
       });
 
       (
         bridge as unknown as {
-          pendingClaudePermissions: Map<string, Record<string, unknown>>;
+          pendingClaudePermissions: Map<string, number>;
           server: { server: { notification: ReturnType<typeof vi.fn> } };
         }
-      ).pendingClaudePermissions.set("abcde", {
-        toolName: "Bash",
-        description: "run npm test",
-        inputPreview: '{"cmd":"npm test"}',
-      });
+      ).pendingClaudePermissions.set("abcde", Date.now());
       (
         bridge as unknown as {
           server: { server: { notification: ReturnType<typeof vi.fn> } };
