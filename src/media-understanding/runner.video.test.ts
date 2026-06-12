@@ -1,5 +1,7 @@
+// Video runner tests cover provider request wiring, auth/config precedence, and
+// provider output handling for video attachments.
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { withTempDir } from "../test-helpers/temp-dir.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { runCapability } from "./runner.js";
@@ -22,6 +24,11 @@ vi.mock("../plugins/capability-provider-runtime.js", async () => {
   return createEmptyCapabilityProviderMockModule();
 });
 
+vi.mock("../agents/model-auth.js", async () => {
+  const { createAvailableModelAuthMockModule } = await import("./runner.test-mocks.js");
+  return createAvailableModelAuthMockModule();
+});
+
 type CapabilityResult = Awaited<ReturnType<typeof runCapability>>;
 
 function requireCapabilityOutput(result: CapabilityResult, index: number) {
@@ -37,8 +44,8 @@ describe("runCapability video provider wiring", () => {
     let seenBaseUrl: string | undefined;
     let seenHeaders: Record<string, string> | undefined;
 
-    await withTempDir({ prefix: "astroclaw-video-auth-" }, async (isolatedAgentDir) => {
-      await withVideoFixture("astroclaw-video-merge", async ({ ctx, media, cache }) => {
+    await withTempDir({ prefix: "openclaw-video-auth-" }, async (isolatedAgentDir) => {
+      await withVideoFixture("openclaw-video-merge", async ({ ctx, media, cache }) => {
         const cfg = {
           models: {
             providers: {
@@ -68,7 +75,7 @@ describe("runCapability video provider wiring", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig;
+        } as unknown as OpenClawConfig;
 
         const result = await runCapability({
           capability: "video",
@@ -107,17 +114,16 @@ describe("runCapability video provider wiring", () => {
   });
 
   it("auto-selects moonshot for video when google is unavailable", async () => {
-    await withTempDir({ prefix: "astroclaw-video-agent-" }, async (isolatedAgentDir) => {
+    await withTempDir({ prefix: "openclaw-video-agent-" }, async (isolatedAgentDir) => {
       await withEnvAsync(
         {
           GEMINI_API_KEY: undefined,
           GOOGLE_API_KEY: undefined,
           MOONSHOT_API_KEY: undefined,
-          ASTROCLAW_AGENT_DIR: isolatedAgentDir,
-          PI_CODING_AGENT_DIR: isolatedAgentDir,
+          OPENCLAW_AGENT_DIR: isolatedAgentDir,
         },
         async () => {
-          await withVideoFixture("astroclaw-video-auto-moonshot", async ({ ctx, media, cache }) => {
+          await withVideoFixture("openclaw-video-auto-moonshot", async ({ ctx, media, cache }) => {
             const cfg = {
               models: {
                 providers: {
@@ -135,7 +141,7 @@ describe("runCapability video provider wiring", () => {
                   },
                 },
               },
-            } as unknown as AstroclawConfig;
+            } as unknown as OpenClawConfig;
 
             const result = await runCapability({
               capability: "video",
@@ -172,5 +178,64 @@ describe("runCapability video provider wiring", () => {
         },
       );
     });
+  });
+
+  it("does not use provider api config as video auth modelApi", async () => {
+    const modelAuth = await import("../agents/model-auth.js");
+    const resolveApiKeyForProvider = vi.mocked(modelAuth.resolveApiKeyForProvider);
+    resolveApiKeyForProvider.mockClear();
+
+    await withTempDir({ prefix: "openclaw-video-provider-api-" }, async (isolatedAgentDir) => {
+      await withVideoFixture("openclaw-video-provider-api", async ({ ctx, media, cache }) => {
+        let seenApiKey: string | undefined;
+        const cfg = {
+          models: {
+            providers: {
+              openai: {
+                api: "openai-responses",
+                models: [],
+              },
+            },
+          },
+          tools: {
+            media: {
+              video: {
+                enabled: true,
+                models: [{ provider: "openai", model: "video-model" }],
+              },
+            },
+          },
+        } as unknown as OpenClawConfig;
+
+        const result = await runCapability({
+          capability: "video",
+          cfg,
+          ctx,
+          agentDir: isolatedAgentDir,
+          attachments: cache,
+          media,
+          providerRegistry: new Map([
+            [
+              "openai",
+              {
+                id: "openai",
+                capabilities: ["video"],
+                describeVideo: async (req) => {
+                  seenApiKey = req.apiKey;
+                  return { text: "video ok", model: req.model };
+                },
+              },
+            ],
+          ]),
+        });
+
+        expect(result.decision.outcome).toBe("success");
+        expect(seenApiKey).toBe("test-key");
+      });
+    });
+
+    const firstCall = resolveApiKeyForProvider.mock.calls[0]?.[0];
+    expect(firstCall?.provider).toBe("openai");
+    expect(firstCall?.modelApi).toBeUndefined();
   });
 });
