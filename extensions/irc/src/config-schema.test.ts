@@ -1,3 +1,4 @@
+// Irc tests cover config schema plugin behavior.
 import { describe, expect, it } from "vitest";
 import { IrcConfigSchema } from "./config-schema.js";
 
@@ -22,13 +23,13 @@ describe("irc config schema", () => {
     const config = expectValidConfig(
       IrcConfigSchema.safeParse({
         host: "irc.libera.chat",
-        nick: "astroclaw-bot",
-        channels: ["#astroclaw"],
+        nick: "openclaw-bot",
+        channels: ["#openclaw"],
       }),
     );
 
     expect(config.host).toBe("irc.libera.chat");
-    expect(config.nick).toBe("astroclaw-bot");
+    expect(config.nick).toBe("openclaw-bot");
   });
 
   it('rejects dmPolicy="open" without allowFrom "*"', () => {
