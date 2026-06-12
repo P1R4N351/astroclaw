@@ -1,5 +1,6 @@
+// Plugin install record commit tests cover install record persistence after CLI installs.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 
 const mocks = vi.hoisted(() => ({
@@ -26,14 +27,16 @@ vi.mock("../plugins/installed-plugin-index-records.js", async (importOriginal) =
 import {
   commitConfigWithPendingPluginInstalls,
   commitConfigWriteWithPendingPluginInstalls,
+  stripPendingPluginInstallRecords,
+  unchangedPendingPluginInstallRecordIds,
 } from "./plugins-install-record-commit.js";
 
 describe("commitConfigWithPendingPluginInstalls", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.loadInstalledPluginIndexInstallRecords.mockResolvedValue({});
-    mocks.replaceConfigFile.mockImplementation(async (params: { nextConfig: AstroclawConfig }) => ({
-      path: "/tmp/astroclaw.json",
+    mocks.replaceConfigFile.mockImplementation(async (params: { nextConfig: OpenClawConfig }) => ({
+      path: "/tmp/openclaw.json",
       previousHash: null,
       snapshot: {} as never,
       nextConfig: params.nextConfig,
@@ -58,7 +61,7 @@ describe("commitConfigWithPendingPluginInstalls", () => {
       },
     };
     mocks.loadInstalledPluginIndexInstallRecords.mockResolvedValue(existingRecords);
-    const nextConfig: AstroclawConfig = {
+    const nextConfig: OpenClawConfig = {
       plugins: {
         entries: {
           demo: { enabled: true },
@@ -105,6 +108,47 @@ describe("commitConfigWithPendingPluginInstalls", () => {
       movedInstallRecords: true,
       persistedHash: "test-config-hash",
     });
+  });
+
+  it("strips only selected pending plugin install records", () => {
+    const config: OpenClawConfig = {
+      plugins: {
+        installs: {
+          legacy: { source: "npm", spec: "legacy@1.0.0" },
+          fresh: { source: "npm", spec: "fresh@1.0.0" },
+        },
+      },
+    };
+
+    expect(stripPendingPluginInstallRecords(config, ["legacy"])).toEqual({
+      plugins: {
+        installs: {
+          fresh: { source: "npm", spec: "fresh@1.0.0" },
+        },
+      },
+    });
+  });
+
+  it("selects only unchanged pending plugin install records for migration stripping", () => {
+    const baseConfig: OpenClawConfig = {
+      plugins: {
+        installs: {
+          legacy: { source: "npm", spec: "legacy@1.0.0" },
+          repaired: { source: "npm", spec: "repaired@1.0.0" },
+        },
+      },
+    };
+    const nextConfig: OpenClawConfig = {
+      plugins: {
+        installs: {
+          legacy: { source: "npm", spec: "legacy@1.0.0" },
+          repaired: { source: "npm", spec: "repaired@2.0.0" },
+          fresh: { source: "npm", spec: "fresh@1.0.0" },
+        },
+      },
+    };
+
+    expect(unchangedPendingPluginInstallRecordIds(nextConfig, baseConfig)).toEqual(["legacy"]);
   });
 
   it("does not add restart intent when pending records match the plugin index", async () => {
@@ -176,7 +220,7 @@ describe("commitConfigWithPendingPluginInstalls", () => {
   });
 
   it("uses a plain config write when no pending plugin install records exist", async () => {
-    const nextConfig: AstroclawConfig = {
+    const nextConfig: OpenClawConfig = {
       gateway: {
         mode: "local",
       },
@@ -199,7 +243,7 @@ describe("commitConfigWithPendingPluginInstalls", () => {
 
   it("supports non-replace config writers without adding an undefined write options argument", async () => {
     const writeConfigFile = vi.fn(async () => undefined);
-    const nextConfig: AstroclawConfig = {
+    const nextConfig: OpenClawConfig = {
       gateway: {
         mode: "local",
       },
