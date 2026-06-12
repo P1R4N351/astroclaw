@@ -1,3 +1,4 @@
+// Launchd restart handoff tests cover restart coordination on macOS.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const spawnMock = vi.hoisted(() => vi.fn());
@@ -42,7 +43,7 @@ describe("scheduleDetachedLaunchdRestartHandoff", () => {
   it("waits for the caller pid before kickstarting launchd", () => {
     const env = {
       HOME: "/Users/test",
-      ASTROCLAW_PROFILE: "default",
+      OPENCLAW_PROFILE: "default",
     };
     spawnMock.mockReturnValue({ pid: 4242, unref: unrefMock });
 
@@ -56,12 +57,12 @@ describe("scheduleDetachedLaunchdRestartHandoff", () => {
     expect(spawnMock).toHaveBeenCalledTimes(1);
     const [, args] = requireSpawnCall();
     expect(args[0]).toBe("-c");
-    expect(args[2]).toBe("astroclaw-launchd-restart-handoff");
+    expect(args[2]).toBe("openclaw-launchd-restart-handoff");
     expect(args[6]).toBe("9876");
-    expect(args[7]).toBe("ai.astroclaw.gateway");
+    expect(args[7]).toBe("ai.openclaw.gateway");
     expect(args[1]).toContain('while kill -0 "$wait_pid" >/dev/null 2>&1; do');
-    expect(args[1]).toContain("exec >>'/Users/test/.astroclaw/logs/gateway-restart.log' 2>&1");
-    expect(args[1]).toContain("astroclaw restart attempt source=launchd-handoff mode=kickstart");
+    expect(args[1]).toContain("exec >>'/Users/test/.openclaw/logs/gateway-restart.log' 2>&1");
+    expect(args[1]).toContain("openclaw restart attempt source=launchd-handoff mode=kickstart");
     expect(args[1]).toContain('launchctl enable "$service_target"');
     expect(args[1]).toContain('if launchctl kickstart -k "$service_target"; then');
     expect(args[1]).toContain(
@@ -78,13 +79,13 @@ describe("scheduleDetachedLaunchdRestartHandoff", () => {
     scheduleDetachedLaunchdRestartHandoff({
       env: {
         HOME: "/Users/test",
-        ASTROCLAW_PROFILE: "default",
+        OPENCLAW_PROFILE: "default",
       },
       mode: "start-after-exit",
     });
 
     const [, args] = requireSpawnCall();
-    expect(args[7]).toBe("ai.astroclaw.gateway");
+    expect(args[7]).toBe("ai.openclaw.gateway");
     expect(args[1]).toContain('if launchctl print "$service_target" >/dev/null 2>&1; then');
     expect(args[1]).toContain("reason=launchd-auto-reload");
     expect(args[1]).toContain("print_retry_count=$((print_retry_count - 1))");
@@ -94,13 +95,37 @@ describe("scheduleDetachedLaunchdRestartHandoff", () => {
     expect(args[1]).not.toContain('basename "$service_target"');
   });
 
+  it("polls after bootout and falls back to kickstart on bootstrap failure for reload mode", () => {
+    spawnMock.mockReturnValue({ pid: 4242, unref: unrefMock });
+
+    scheduleDetachedLaunchdRestartHandoff({
+      env: {
+        HOME: "/Users/test",
+        OPENCLAW_PROFILE: "default",
+      },
+      mode: "reload",
+      waitForPid: 9876,
+    });
+
+    const [, args] = requireSpawnCall();
+    expect(args[1]).toContain("openclaw restart attempt source=launchd-handoff mode=reload");
+    expect(args[1]).toContain('launchctl enable "$service_target"');
+    expect(args[1]).toContain('launchctl bootout "$service_target"');
+    // polls until launchd finishes the async unload before re-bootstrapping
+    expect(args[1]).toContain("bootout_wait_count=");
+    expect(args[1]).toContain('if ! launchctl print "$service_target" >/dev/null 2>&1; then');
+    expect(args[1]).toContain('if launchctl bootstrap "$domain" "$plist_path"; then');
+    // fallback: kickstart -k on bootstrap failure so service isn't left deregistered
+    expect(args[1]).toContain('launchctl kickstart -k "$service_target"');
+  });
+
   it("sanitizes restart helper environment overrides before spawning", () => {
     spawnMock.mockReturnValue({ pid: 4242, unref: unrefMock });
 
     scheduleDetachedLaunchdRestartHandoff({
       env: {
         HOME: "/Users/test",
-        ASTROCLAW_PROFILE: "default",
+        OPENCLAW_PROFILE: "default",
         PATH: "/tmp/evil-bin",
         DYLD_INSERT_LIBRARIES: "/tmp/evil.dylib",
         NPM_CONFIG_GLOBALCONFIG: "/tmp/evil-npmrc",
@@ -109,11 +134,11 @@ describe("scheduleDetachedLaunchdRestartHandoff", () => {
     });
 
     const [, args, options] = requireSpawnCall();
-    expect(args[1]).toContain("exec >>'/Users/test/.astroclaw/logs/gateway-restart.log' 2>&1");
+    expect(args[1]).toContain("exec >>'/Users/test/.openclaw/logs/gateway-restart.log' 2>&1");
     expect(args[1]).not.toContain("/tmp/evil-bin");
     expect(args[1]).not.toContain("/tmp/evil.dylib");
     expect(args[1]).not.toContain("/tmp/evil-npmrc");
-    expect(options.env.ASTROCLAW_PROFILE).toBe("default");
+    expect(options.env.OPENCLAW_PROFILE).toBe("default");
     expect(options.env.PATH).not.toBe("/tmp/evil-bin");
     expect(options.env.DYLD_INSERT_LIBRARIES).toBeUndefined();
     expect(options.env.NPM_CONFIG_GLOBALCONFIG).toBeUndefined();
@@ -124,7 +149,7 @@ describe("scheduleDetachedLaunchdRestartHandoff", () => {
       scheduleDetachedLaunchdRestartHandoff({
         env: {
           HOME: "/Users/test",
-          ASTROCLAW_LAUNCHD_LABEL: "../evil/\n\u001b[31mlabel\u001b[0m",
+          OPENCLAW_LAUNCHD_LABEL: "../evil/\n\u001b[31mlabel\u001b[0m",
         },
         mode: "kickstart",
       });
