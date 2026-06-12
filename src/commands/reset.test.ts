@@ -1,7 +1,9 @@
+// Reset command tests cover cleanup runtime behavior, workspace attestations, and reset prompts.
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   cleanupCommandLogMessages,
   createCleanupCommandRuntime,
+  removeWorkspaceAttestationPaths,
   resetCleanupCommandMocks,
   silenceCleanupCommandRuntime,
 } from "./cleanup-command.test-support.js";
@@ -29,7 +31,7 @@ describe("resetCommand", () => {
 
     expect(
       cleanupCommandLogMessages(runtime).some((message) =>
-        message.includes("astroclaw backup create"),
+        message.includes("openclaw backup create"),
       ),
     ).toBe(true);
   });
@@ -44,8 +46,23 @@ describe("resetCommand", () => {
 
     expect(
       cleanupCommandLogMessages(runtime).some((message) =>
-        message.includes("astroclaw backup create"),
+        message.includes("openclaw backup create"),
       ),
     ).toBe(false);
+  });
+
+  it("removes workspace attestations during full reset", async () => {
+    await resetCommand(runtime, {
+      scope: "full",
+      yes: true,
+      nonInteractive: true,
+      dryRun: true,
+    });
+
+    expect(removeWorkspaceAttestationPaths).toHaveBeenCalledWith(
+      ["/tmp/.openclaw/workspace"],
+      runtime,
+      { dryRun: true },
+    );
   });
 });
