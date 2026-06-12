@@ -1,7 +1,9 @@
+// Verifies provider request transport config normalization and sanitization.
 import { describe, expect, it } from "vitest";
 import type { ConfiguredProviderRequest } from "../config/types.provider-request.js";
 import type { SecretRef } from "../config/types.secrets.js";
 import {
+  applyPreparedRuntimeAuthToModel,
   buildProviderRequestDispatcherPolicy,
   mergeModelProviderRequestOverrides,
   mergeProviderRequestOverrides,
@@ -14,7 +16,35 @@ import {
 } from "./provider-request-config.js";
 
 describe("provider request config", () => {
+  it("applies prepared runtime auth without retaining stale credential headers", () => {
+    const model = {
+      provider: "microsoft-foundry",
+      api: "anthropic-messages" as const,
+      baseUrl: "https://example.services.ai.azure.com/anthropic",
+      headers: { "X-Tenant": "tenant-a", "x-api-key": "old-key" },
+    };
+
+    const bearerModel = applyPreparedRuntimeAuthToModel(model, {
+      request: { auth: { mode: "authorization-bearer", token: "entra-token" } },
+    });
+    expect(bearerModel.headers).toEqual({
+      "X-Tenant": "tenant-a",
+      Authorization: "Bearer entra-token",
+    });
+
+    const apiKeyModel = applyPreparedRuntimeAuthToModel(bearerModel, {
+      request: {
+        auth: { mode: "header", headerName: "x-api-key", value: "profile-key" },
+      },
+    });
+    expect(apiKeyModel.headers).toEqual({
+      "X-Tenant": "tenant-a",
+      "x-api-key": "profile-key",
+    });
+  });
+
   it("merges discovered, provider, and model headers in precedence order", () => {
+    // Later scopes override earlier scopes: discovery < provider < model.
     const resolved = resolveProviderRequestConfig({
       provider: "custom-openai",
       api: "openai-responses",
@@ -143,6 +173,7 @@ describe("provider request config", () => {
   });
 
   it("drops legacy Authorization when a custom auth header override is configured", () => {
+    // Custom auth headers replace stale Authorization to avoid double auth.
     const resolved = resolveProviderRequestConfig({
       provider: "custom-openai",
       api: "openai-responses",
@@ -433,9 +464,9 @@ describe("provider request config", () => {
       precedence: "defaults-win",
     });
 
-    expect(resolved?.originator).toBe("astroclaw");
+    expect(resolved?.originator).toBe("openclaw");
     expect(typeof resolved?.version).toBe("string");
-    expect(resolved?.["User-Agent"]).toMatch(/^astroclaw\//);
+    expect(resolved?.["User-Agent"]).toMatch(/^openclaw\//);
     expect(resolved?.["X-Custom"]).toBe("1");
   });
 
@@ -453,11 +484,49 @@ describe("provider request config", () => {
     });
 
     expect(resolved).toEqual({
-      "HTTP-Referer": "https://astroclaw.ai",
-      "X-OpenRouter-Title": "Astroclaw",
+      "HTTP-Referer": "https://openclaw.ai",
+      "X-OpenRouter-Title": "OpenClaw",
       "X-OpenRouter-Categories":
         "cli-agent,cloud-agent,programming-app,creative-writing,writing-assistant,general-chat,personal-agent",
       "X-Custom": "1",
+    });
+  });
+
+  it("protects NVIDIA billing invoke origin on official NIM routes", () => {
+    const resolved = resolveProviderRequestHeaders({
+      provider: "custom-nim",
+      api: "openai-completions",
+      baseUrl: "https://integrate.api.nvidia.com/v1",
+      capability: "llm",
+      transport: "stream",
+      callerHeaders: {
+        "X-BILLING-INVOKE-ORIGIN": "spoofed",
+        "X-Custom": "1",
+      },
+      precedence: "caller-wins",
+    });
+
+    expect(resolved).toEqual({
+      "X-BILLING-INVOKE-ORIGIN": "OpenClaw",
+      "X-Custom": "1",
+    });
+  });
+
+  it("does not attach NVIDIA billing invoke origin to custom proxy routes", () => {
+    const resolved = resolveProviderRequestHeaders({
+      provider: "nvidia",
+      api: "openai-completions",
+      baseUrl: "https://proxy.example.com/v1",
+      capability: "llm",
+      transport: "stream",
+      callerHeaders: {
+        "X-BILLING-INVOKE-ORIGIN": "operator-value",
+      },
+      precedence: "caller-wins",
+    });
+
+    expect(resolved).toEqual({
+      "X-BILLING-INVOKE-ORIGIN": "operator-value",
     });
   });
 
@@ -477,7 +546,7 @@ describe("provider request config", () => {
     expect(
       Object.keys(resolved ?? {}).filter((key) => key.toLowerCase() === "user-agent"),
     ).toHaveLength(1);
-    expect(resolved?.["User-Agent"]).toMatch(/^astroclaw\//);
+    expect(resolved?.["User-Agent"]).toMatch(/^openclaw\//);
   });
 
   it("drops forbidden header keys while merging", () => {
@@ -526,9 +595,9 @@ describe("provider request config", () => {
     expect(resolved.policy.endpointClass).toBe("openai-public");
     expect(resolved.capabilities.allowsResponsesStore).toBe(true);
     expect(resolved.headers?.authorization).toBe("Bearer test-key");
-    expect(resolved.headers?.originator).toBe("astroclaw");
+    expect(resolved.headers?.originator).toBe("openclaw");
     expect(typeof resolved.headers?.version).toBe("string");
-    expect(resolved.headers?.["User-Agent"]).toMatch(/^astroclaw\//);
+    expect(resolved.headers?.["User-Agent"]).toMatch(/^openclaw\//);
     expect(resolved.headers?.["X-Custom"]).toBe("1");
   });
 
