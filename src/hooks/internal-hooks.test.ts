@@ -1,3 +1,4 @@
+// Internal hook tests cover dispatch for command, session, agent, and gateway hooks.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import {
@@ -18,7 +19,7 @@ import {
   type MessageSentHookContext,
 } from "./internal-hooks.js";
 
-const INTERNAL_HOOK_HANDLERS_KEY = Symbol.for("astroclaw.internalHookHandlers");
+const INTERNAL_HOOK_HANDLERS_KEY = Symbol.for("openclaw.internalHookHandlers");
 
 describe("hooks", () => {
   beforeEach(() => {
@@ -270,6 +271,23 @@ describe("hooks", () => {
         } satisfies MessageSentHookContext),
         expected: false,
       },
+      {
+        name: "returns false when content is missing",
+        event: createInternalHookEvent("message", "received", "test-session", {
+          from: "+1234567890",
+          channelId: "whatsapp",
+        }),
+        expected: false,
+      },
+      {
+        name: "returns false when content is not a string",
+        event: createInternalHookEvent("message", "received", "test-session", {
+          from: "+1234567890",
+          content: 123,
+          channelId: "whatsapp",
+        }),
+        expected: false,
+      },
     ] satisfies Array<{
       name: string;
       event: ReturnType<typeof createInternalHookEvent>;
@@ -311,6 +329,25 @@ describe("hooks", () => {
           content: "Hello world",
           channelId: "whatsapp",
         } satisfies MessageReceivedHookContext),
+        expected: false,
+      },
+      {
+        name: "returns false when content is missing",
+        event: createInternalHookEvent("message", "sent", "test-session", {
+          to: "+1234567890",
+          success: true,
+          channelId: "telegram",
+        }),
+        expected: false,
+      },
+      {
+        name: "returns false when content is not a string",
+        event: createInternalHookEvent("message", "sent", "test-session", {
+          to: "+1234567890",
+          content: false,
+          success: true,
+          channelId: "telegram",
+        }),
         expected: false,
       },
     ] satisfies Array<{
