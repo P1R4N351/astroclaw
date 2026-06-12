@@ -1,3 +1,4 @@
+// Configure gateway auth tests cover gateway auth config generation and token handling.
 import { describe, expect, it } from "vitest";
 import { buildGatewayAuthConfig } from "./configure.js";
 
@@ -111,7 +112,7 @@ describe("buildGatewayAuthConfig", () => {
     const tokenRef = {
       source: "env",
       provider: "default",
-      id: "ASTROCLAW_GATEWAY_TOKEN",
+      id: "OPENCLAW_GATEWAY_TOKEN",
     } as const;
     const result = buildGatewayAuthConfig({
       mode: "token",
