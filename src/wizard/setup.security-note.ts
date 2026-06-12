@@ -1,3 +1,4 @@
+// Setup security note helpers render security guidance during onboarding.
 import chalk from "chalk";
 import { formatCliCommand } from "../cli/command-format.js";
 import { t } from "./i18n/index.js";
@@ -34,10 +35,10 @@ export function getSecurityNoteMessage(): string {
     `- ${t("wizard.security.baselineStrongModel")}`,
     "",
     heading(t("wizard.security.runRegularly")),
-    formatCliCommand("astroclaw security audit --deep"),
-    formatCliCommand("astroclaw security audit --fix"),
+    formatCliCommand("openclaw security audit --deep"),
+    formatCliCommand("openclaw security audit --fix"),
     "",
     heading(t("wizard.security.learnMore")),
-    "- https://docs.astroclaw.ai/gateway/security",
+    "- https://docs.openclaw.ai/gateway/security",
   ].join("\n");
 }
