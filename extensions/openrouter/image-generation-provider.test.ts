@@ -1,3 +1,4 @@
+// Openrouter tests cover image generation provider plugin behavior.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildOpenRouterImageGenerationProvider,
@@ -23,11 +24,11 @@ const {
   })),
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-auth-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/provider-auth-runtime", () => ({
   resolveApiKeyForProvider: resolveApiKeyForProviderMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/provider-http", () => ({
+vi.mock("openclaw/plugin-sdk/provider-http", () => ({
   assertOkOrThrowHttpError: assertOkOrThrowHttpErrorMock,
   postJsonRequest: postJsonRequestMock,
   resolveProviderHttpRequestConfig: resolveProviderHttpRequestConfigMock,
@@ -172,8 +173,8 @@ describe("openrouter image generation provider", () => {
       allowPrivateNetwork: false,
       defaultHeaders: {
         Authorization: "Bearer openrouter-key",
-        "HTTP-Referer": "https://astroclaw.ai",
-        "X-OpenRouter-Title": "Astroclaw",
+        "HTTP-Referer": "https://openclaw.ai",
+        "X-OpenRouter-Title": "OpenClaw",
       },
       provider: "openrouter",
       capability: "image",
@@ -184,8 +185,8 @@ describe("openrouter image generation provider", () => {
     const headers = requireHeaders(request.headers);
     expect(Object.fromEntries(headers.entries())).toEqual({
       authorization: "Bearer openrouter-key",
-      "http-referer": "https://astroclaw.ai",
-      "x-openrouter-title": "Astroclaw",
+      "http-referer": "https://openclaw.ai",
+      "x-openrouter-title": "OpenClaw",
     });
     expect(request).toEqual({
       url: "https://custom.openrouter.test/api/v1/chat/completions",
