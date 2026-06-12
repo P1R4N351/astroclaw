@@ -1,7 +1,8 @@
+// Covers plugin service registration and lookup behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginOrigin } from "./plugin-origin.types.js";
 import { createEmptyPluginRegistry } from "./registry.js";
-import type { AstroclawPluginService, AstroclawPluginServiceContext } from "./types.js";
+import type { OpenClawPluginService, OpenClawPluginServiceContext } from "./types.js";
 
 const mockedLogger = vi.hoisted(() => ({
   info: vi.fn<(msg: string) => void>(),
@@ -16,10 +17,16 @@ vi.mock("../logging/subsystem.js", () => ({
 }));
 
 import { STATE_DIR } from "../config/paths.js";
+import { registerPluginHttpRoute } from "./http-registry.js";
+import {
+  pinActivePluginHttpRouteRegistry,
+  resetPluginRuntimeStateForTest,
+  setActivePluginRegistry,
+} from "./runtime.js";
 import { startPluginServices } from "./services.js";
 
 function createRegistry(
-  services: AstroclawPluginService[],
+  services: OpenClawPluginService[],
   pluginId = "plugin:test",
   origin: PluginOrigin = "workspace",
   trustedOfficialInstall = false,
@@ -41,7 +48,7 @@ function createServiceConfig() {
 }
 
 function expectServiceContext(
-  ctx: AstroclawPluginServiceContext,
+  ctx: OpenClawPluginServiceContext,
   config: Parameters<typeof startPluginServices>[0]["config"],
 ) {
   expect(ctx.config).toBe(config);
@@ -50,14 +57,14 @@ function expectServiceContext(
   expectServiceLogger(ctx);
 }
 
-function expectServiceLogger(ctx: AstroclawPluginServiceContext) {
+function expectServiceLogger(ctx: OpenClawPluginServiceContext) {
   expect(typeof ctx.logger.info).toBe("function");
   expect(typeof ctx.logger.warn).toBe("function");
   expect(typeof ctx.logger.error).toBe("function");
 }
 
 function expectServiceContexts(
-  contexts: AstroclawPluginServiceContext[],
+  contexts: OpenClawPluginServiceContext[],
   config: Parameters<typeof startPluginServices>[0]["config"],
 ) {
   expect(contexts).not.toHaveLength(0);
@@ -69,7 +76,7 @@ function expectServiceContexts(
 function expectServiceLifecycleState(params: {
   starts: string[];
   stops: string[];
-  contexts: AstroclawPluginServiceContext[];
+  contexts: OpenClawPluginServiceContext[];
   config: Parameters<typeof startPluginServices>[0]["config"];
 }) {
   expect(params.starts).toEqual(["a", "b", "c"]);
@@ -87,7 +94,7 @@ function requireLoggerErrorMessage(index = 0): string {
 }
 
 async function startTrackingServices(params: {
-  services: AstroclawPluginService[];
+  services: OpenClawPluginService[];
   config?: Parameters<typeof startPluginServices>[0]["config"];
   workspaceDir?: string;
   startupTrace?: Parameters<typeof startPluginServices>[0]["startupTrace"];
@@ -105,12 +112,12 @@ function createTrackingService(
   params: {
     starts?: string[];
     stops?: string[];
-    contexts?: AstroclawPluginServiceContext[];
+    contexts?: OpenClawPluginServiceContext[];
     failOnStart?: boolean;
     failOnStop?: boolean;
     stopSpy?: () => void;
   } = {},
-): AstroclawPluginService {
+): OpenClawPluginService {
   return {
     id,
     start: (ctx) => {
@@ -138,12 +145,13 @@ function createTrackingService(
 describe("startPluginServices", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetPluginRuntimeStateForTest();
   });
 
   it("starts services and stops them in reverse order", async () => {
     const starts: string[] = [];
     const stops: string[] = [];
-    const contexts: AstroclawPluginServiceContext[] = [];
+    const contexts: OpenClawPluginServiceContext[] = [];
 
     const config = createServiceConfig();
     const handle = await startTrackingServices({
@@ -158,6 +166,35 @@ describe("startPluginServices", () => {
     await handle.stop();
 
     expectServiceLifecycleState({ starts, stops, contexts, config });
+  });
+
+  it("registers dynamic HTTP routes into the service registry scope", async () => {
+    const serviceRegistry = createRegistry([
+      {
+        id: "route-service",
+        start: () => {
+          registerPluginHttpRoute({
+            path: "/service-route",
+            auth: "plugin",
+            handler: vi.fn(),
+          });
+        },
+      },
+    ]);
+    const pinnedRegistry = createEmptyPluginRegistry();
+
+    setActivePluginRegistry(pinnedRegistry);
+    pinActivePluginHttpRouteRegistry(pinnedRegistry);
+
+    const handle = await startPluginServices({
+      registry: serviceRegistry,
+      config: createServiceConfig(),
+    });
+
+    expect(serviceRegistry.httpRoutes.map((route) => route.path)).toEqual(["/service-route"]);
+    expect(pinnedRegistry.httpRoutes).toHaveLength(0);
+
+    await handle.stop();
   });
 
   it("logs start/stop failures and continues", async () => {
@@ -232,6 +269,58 @@ describe("startPluginServices", () => {
     ]);
   });
 
+  it("passes a scoped startup trace through service context for owned subspans", async () => {
+    const contexts: OpenClawPluginServiceContext[] = [];
+    const measured: string[] = [];
+    const details: Array<{
+      name: string;
+      metrics: ReadonlyArray<readonly [string, number | string]>;
+    }> = [];
+    const startupTrace: NonNullable<Parameters<typeof startPluginServices>[0]["startupTrace"]> = {
+      measure: async (name, run) => {
+        measured.push(name);
+        return await run();
+      },
+      detail: (name, metrics) => {
+        details.push({ name, metrics });
+      },
+    };
+
+    await startTrackingServices({
+      services: [
+        {
+          id: "service-a",
+          start: async (ctx) => {
+            contexts.push(ctx);
+            ctx.startupTrace?.detail?.("probe.result", [["healthyCount", 1]]);
+            await ctx.startupTrace?.measure("config:resolve", async () => {});
+          },
+        },
+      ],
+      startupTrace,
+    });
+
+    expect(contexts[0]?.startupTrace).not.toBe(startupTrace);
+    expect(measured).toEqual([
+      "sidecars.plugin-services.plugin~003Atest.service-a",
+      "sidecars.plugin-services.plugin~003Atest.service-a.config~003Aresolve",
+    ]);
+    expect(details).toEqual([
+      {
+        name: "sidecars.plugin-services.plugin~003Atest.service-a.probe.result",
+        metrics: [["healthyCount", 1]],
+      },
+      {
+        name: "sidecars.plugin-services.summary",
+        metrics: [
+          ["serviceCount", 1],
+          ["startedCount", 1],
+          ["failedCount", 0],
+        ],
+      },
+    ]);
+  });
+
   it("keeps distinct service trace ownership keys non-colliding", async () => {
     const measured: string[] = [];
     const startupTrace: NonNullable<Parameters<typeof startPluginServices>[0]["startupTrace"]> = {
@@ -258,7 +347,7 @@ describe("startPluginServices", () => {
   });
 
   it("grants internal diagnostics only to trusted diagnostics exporter services", async () => {
-    const contexts: AstroclawPluginServiceContext[] = [];
+    const contexts: OpenClawPluginServiceContext[] = [];
     const diagnosticsService = createTrackingService("diagnostics-otel", { contexts });
     await startPluginServices({
       registry: createRegistry([diagnosticsService], "diagnostics-otel", "bundled"),
@@ -268,7 +357,7 @@ describe("startPluginServices", () => {
     expect(contexts[0]?.internalDiagnostics?.onEvent).toBeTypeOf("function");
     expect(contexts[0]?.internalDiagnostics?.emit).toBeTypeOf("function");
 
-    const prometheusContexts: AstroclawPluginServiceContext[] = [];
+    const prometheusContexts: OpenClawPluginServiceContext[] = [];
     const prometheusService = createTrackingService("diagnostics-prometheus", {
       contexts: prometheusContexts,
     });
@@ -280,7 +369,7 @@ describe("startPluginServices", () => {
     expect(prometheusContexts[0]?.internalDiagnostics?.onEvent).toBeTypeOf("function");
     expect(prometheusContexts[0]?.internalDiagnostics?.emit).toBeTypeOf("function");
 
-    const officialInstallContexts: AstroclawPluginServiceContext[] = [];
+    const officialInstallContexts: OpenClawPluginServiceContext[] = [];
     const officialInstallService = createTrackingService("diagnostics-prometheus", {
       contexts: officialInstallContexts,
     });
@@ -292,7 +381,7 @@ describe("startPluginServices", () => {
     expect(officialInstallContexts[0]?.internalDiagnostics?.onEvent).toBeTypeOf("function");
     expect(officialInstallContexts[0]?.internalDiagnostics?.emit).toBeTypeOf("function");
 
-    const untrustedContexts: AstroclawPluginServiceContext[] = [];
+    const untrustedContexts: OpenClawPluginServiceContext[] = [];
     const untrustedService = createTrackingService("diagnostics-otel", {
       contexts: untrustedContexts,
     });
@@ -303,7 +392,7 @@ describe("startPluginServices", () => {
 
     expect(untrustedContexts[0]?.internalDiagnostics).toBeUndefined();
 
-    const spoofedContexts: AstroclawPluginServiceContext[] = [];
+    const spoofedContexts: OpenClawPluginServiceContext[] = [];
     const spoofedService = createTrackingService("diagnostics-prometheus", {
       contexts: spoofedContexts,
     });
