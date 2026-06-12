@@ -1,5 +1,6 @@
+// Isolated agent session tests cover session creation and metadata for cron runs.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 
 vi.mock("../../config/sessions/store-load.js", () => ({
   loadSessionStore: vi.fn(),
@@ -50,7 +51,7 @@ function resolveWithStoredEntry(params?: {
   vi.mocked(evaluateSessionFreshness).mockReturnValue({ fresh: params?.fresh ?? true });
 
   return resolveCronSession({
-    cfg: {} as AstroclawConfig,
+    cfg: {} as OpenClawConfig,
     sessionKey,
     agentId: "main",
     nowMs: NOW_MS,
