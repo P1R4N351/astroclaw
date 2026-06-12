@@ -1,3 +1,4 @@
+// Cron service delivery plan tests cover target selection for scheduled job output.
 import { describe, expect, it, vi } from "vitest";
 import type { ChannelId } from "../channels/plugins/types.js";
 import { CronService, type CronServiceDeps } from "./service.js";
@@ -8,7 +9,7 @@ import {
 } from "./service.test-harness.js";
 
 const noopLogger = createNoopLogger();
-const { makeStorePath } = createCronStoreHarness({ prefix: "astroclaw-cron-delivery-" });
+const { makeStorePath } = createCronStoreHarness({ prefix: "openclaw-cron-delivery-" });
 
 type DeliveryMode = "none" | "announce";
 
