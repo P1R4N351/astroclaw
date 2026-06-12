@@ -1,7 +1,8 @@
+// Memory Core tests cover manager.mistral provider plugin behavior.
 import type {
-  AstroclawConfig,
+  OpenClawConfig,
   ResolvedMemorySearchConfig,
-} from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
+} from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
 import { describe, expect, it, vi } from "vitest";
 import {
   applyMemoryFallbackProviderState,
@@ -80,6 +81,7 @@ describe("memory manager mistral provider wiring", () => {
 
     const state = resolveMemoryProviderState({
       provider: mistralProvider,
+      requestedProvider: "mistral",
       runtime: mistralRuntime,
       fallbackFrom: undefined,
       fallbackReason: undefined,
@@ -102,6 +104,7 @@ describe("memory manager mistral provider wiring", () => {
     const mistralProvider = createProvider("mistral");
     const current = resolveMemoryProviderState({
       provider: createProvider("openai"),
+      requestedProvider: "openai",
       runtime: openAiRuntime,
       fallbackFrom: undefined,
       fallbackReason: undefined,
@@ -124,9 +127,33 @@ describe("memory manager mistral provider wiring", () => {
     expect(fallbackState.providerRuntime).toBe(mistralRuntime);
   });
 
+  it("clears provider unavailable reason after fallback activation", () => {
+    const fallbackState = applyMemoryFallbackProviderState({
+      current: resolveMemoryProviderState({
+        provider: null,
+        requestedProvider: "local",
+        fallbackFrom: undefined,
+        fallbackReason: undefined,
+        providerUnavailableReason: "Local embeddings degraded: worker crashed",
+        runtime: undefined,
+      }),
+      fallbackFrom: "local",
+      reason: "worker crashed",
+      result: {
+        provider: createProvider("openai"),
+        runtime: {
+          id: "openai",
+          cacheKeyData: { provider: "openai", model: "text-embedding-3-small" },
+        },
+      },
+    });
+
+    expect(fallbackState.providerUnavailableReason).toBeUndefined();
+  });
+
   it("uses default ollama model when activating ollama fallback", () => {
     const request = resolveMemoryFallbackProviderRequest({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       settings: createSettings({ provider: "openai", fallback: "ollama" }),
       currentProviderId: "openai",
     });
@@ -169,7 +196,7 @@ describe("memory manager mistral provider wiring", () => {
 
   it("uses default lmstudio model when activating lmstudio fallback", () => {
     const request = resolveMemoryFallbackProviderRequest({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       settings: createSettings({ provider: "openai", fallback: "lmstudio" }),
       currentProviderId: "openai",
     });
