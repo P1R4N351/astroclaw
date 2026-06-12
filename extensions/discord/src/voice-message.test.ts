@@ -1,3 +1,4 @@
+// Discord tests cover voice message plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,13 +21,13 @@ const fetchWithSsrFGuardMock = vi.hoisted(() =>
   ),
 );
 
-vi.mock("astroclaw/plugin-sdk/temp-path", async () => {
+vi.mock("openclaw/plugin-sdk/temp-path", async () => {
   return {
-    resolvePreferredAstroclawTmpDir: () => "/tmp",
+    resolvePreferredOpenClawTmpDir: () => "/tmp",
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
+vi.mock("openclaw/plugin-sdk/media-runtime", async () => {
   return {
     runFfprobe: runFfprobeMock,
     runFfmpeg: runFfmpegMock,
@@ -42,7 +43,7 @@ vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async () => {
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async () => {
   return {
     fetchWithSsrFGuard: fetchWithSsrFGuardMock,
   };
