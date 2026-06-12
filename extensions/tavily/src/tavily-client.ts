@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Tavily plugin module implements tavily client behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   DEFAULT_CACHE_TTL_MINUTES,
   normalizeCacheKey,
@@ -6,8 +7,8 @@ import {
   readCache,
   resolveCacheTtlMs,
   writeCache,
-} from "astroclaw/plugin-sdk/provider-web-search";
-import { wrapExternalContent, wrapWebContent } from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/provider-web-search";
+import { wrapExternalContent, wrapWebContent } from "openclaw/plugin-sdk/security-runtime";
 import {
   DEFAULT_TAVILY_BASE_URL,
   resolveTavilyApiKey,
@@ -27,7 +28,7 @@ const EXTRACT_CACHE = new Map<
 const DEFAULT_SEARCH_COUNT = 5;
 
 export type TavilySearchParams = {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   query: string;
   searchDepth?: string;
   topic?: string;
@@ -40,7 +41,7 @@ export type TavilySearchParams = {
 };
 
 export type TavilyExtractParams = {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   urls: string[];
   query?: string;
   extractDepth?: string;
@@ -80,7 +81,7 @@ async function postTavilyJson(params: {
       apiKey: params.apiKey,
       body: params.body,
       errorLabel: params.errorLabel,
-      extraHeaders: { "X-Client-Source": "astroclaw" },
+      extraHeaders: { "X-Client-Source": "openclaw" },
     },
     async (response) => readTavilyJsonResponse(response, params.errorLabel),
   );
@@ -306,7 +307,8 @@ export async function runTavilyExtract(
   return result;
 }
 
-export const __testing = {
+export const testing = {
   readTavilyJsonResponse,
   resolveEndpoint,
 };
+export { testing as __testing };
