@@ -1,6 +1,8 @@
+// Credential precedence parity tests keep call, probe, status, and auth surfaces
+// aligned on local/remote gateway token and password resolution.
 import { describe, expect, it } from "vitest";
 import { resolveGatewayProbeAuth as resolveStatusGatewayProbeAuth } from "../commands/status.gateway-probe.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveGatewayAuth } from "./auth.js";
 import { resolveGatewayCredentialsFromConfig } from "./credentials.js";
 import { resolveGatewayProbeAuth } from "./probe-auth.js";
@@ -14,17 +16,17 @@ type ExpectedCredentialSet = {
 
 type TestCase = {
   name: string;
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
   expected: ExpectedCredentialSet;
 };
 
 const gatewayEnv = {
-  ASTROCLAW_GATEWAY_TOKEN: "env-token", // pragma: allowlist secret
-  ASTROCLAW_GATEWAY_PASSWORD: "env-password", // pragma: allowlist secret
+  OPENCLAW_GATEWAY_TOKEN: "env-token", // pragma: allowlist secret
+  OPENCLAW_GATEWAY_PASSWORD: "env-password", // pragma: allowlist secret
 } as NodeJS.ProcessEnv;
 
-function makeRemoteGatewayConfig(remote: { token?: string; password?: string }): AstroclawConfig {
+function makeRemoteGatewayConfig(remote: { token?: string; password?: string }): OpenClawConfig {
   return {
     gateway: {
       mode: "remote",
@@ -34,14 +36,14 @@ function makeRemoteGatewayConfig(remote: { token?: string; password?: string }):
         password: "local-password", // pragma: allowlist secret
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function withGatewayAuthEnv<T>(env: NodeJS.ProcessEnv, fn: () => T): T {
   const keys = [
-    "ASTROCLAW_GATEWAY_TOKEN",
-    "ASTROCLAW_GATEWAY_PASSWORD",
-    "ASTROCLAW_SERVICE_KIND",
+    "OPENCLAW_GATEWAY_TOKEN",
+    "OPENCLAW_GATEWAY_PASSWORD",
+    "OPENCLAW_SERVICE_KIND",
   ] as const;
   const previous = new Map<string, string | undefined>();
   for (const key of keys) {
@@ -79,10 +81,10 @@ describe("gateway credential precedence coverage", () => {
             password: "config-password", // pragma: allowlist secret
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {
-        ASTROCLAW_GATEWAY_TOKEN: "env-token", // pragma: allowlist secret
-        ASTROCLAW_GATEWAY_PASSWORD: "env-password", // pragma: allowlist secret
+        OPENCLAW_GATEWAY_TOKEN: "env-token", // pragma: allowlist secret
+        OPENCLAW_GATEWAY_PASSWORD: "env-password", // pragma: allowlist secret
       } as NodeJS.ProcessEnv,
       expected: {
         call: { token: "env-token", password: "env-password" }, // pragma: allowlist secret
@@ -128,11 +130,11 @@ describe("gateway credential precedence coverage", () => {
             password: "config-password", // pragma: allowlist secret
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       env: {
-        ASTROCLAW_GATEWAY_TOKEN: "env-token",
-        ASTROCLAW_GATEWAY_PASSWORD: "env-password", // pragma: allowlist secret
-        ASTROCLAW_SERVICE_KIND: "gateway",
+        OPENCLAW_GATEWAY_TOKEN: "env-token",
+        OPENCLAW_GATEWAY_PASSWORD: "env-password", // pragma: allowlist secret
+        OPENCLAW_SERVICE_KIND: "gateway",
       } as NodeJS.ProcessEnv,
       expected: {
         call: { token: "config-token", password: "env-password" }, // pragma: allowlist secret
