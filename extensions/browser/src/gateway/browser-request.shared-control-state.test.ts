@@ -1,10 +1,11 @@
+// Browser tests cover browser request.shared control state plugin behavior.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getFreePort } from "../browser/test-port.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 
 const mocks = vi.hoisted(() => ({
-  runtimeConfig: {} as AstroclawConfig,
-  runtimeSourceConfig: null as AstroclawConfig | null,
+  runtimeConfig: {} as OpenClawConfig,
+  runtimeSourceConfig: null as OpenClawConfig | null,
   ensureBrowserControlAuth: vi.fn(async () => ({ auth: {} })),
   resolveBrowserControlAuth: vi.fn(() => ({})),
   shouldAutoGenerateBrowserAuth: vi.fn(() => false),
@@ -40,11 +41,11 @@ vi.mock("../browser/chrome.js", () => ({
   formatChromeCdpDiagnostic: vi.fn(() => "not reachable"),
   isChromeCdpReady: mocks.isChromeCdpReady,
   isChromeReachable: mocks.isChromeReachable,
-  launchAstroclawChrome: vi.fn(async () => {
+  launchOpenClawChrome: vi.fn(async () => {
     throw new Error("launch should not be needed for status");
   }),
-  resolveAstroclawUserDataDir: vi.fn(() => "/tmp/astroclaw-browser"),
-  stopAstroclawChrome: vi.fn(async () => {}),
+  resolveOpenClawUserDataDir: vi.fn(() => "/tmp/openclaw-browser"),
+  stopOpenClawChrome: vi.fn(async () => {}),
 }));
 
 vi.mock("../browser/pw-ai-state.js", () => ({
@@ -61,19 +62,19 @@ function browserConfig(params: {
   executablePath?: string;
   headless?: boolean;
   noSandbox?: boolean;
-}): AstroclawConfig {
+}): OpenClawConfig {
   return {
     gateway: {
       port: params.gatewayPort,
     },
     browser: {
       enabled: true,
-      defaultProfile: "astroclaw",
+      defaultProfile: "openclaw",
       ...(params.executablePath ? { executablePath: params.executablePath } : {}),
       ...(typeof params.headless === "boolean" ? { headless: params.headless } : {}),
       ...(typeof params.noSandbox === "boolean" ? { noSandbox: params.noSandbox } : {}),
       profiles: {
-        astroclaw: {
+        openclaw: {
           cdpPort: params.gatewayPort + 11,
           color: "#FF4500",
         },
@@ -88,7 +89,7 @@ async function browserRequestStatus(): Promise<unknown> {
     params: {
       method: "GET",
       path: "/",
-      query: { profile: "astroclaw" },
+      query: { profile: "openclaw" },
     },
     respond: respond as never,
     context: {
