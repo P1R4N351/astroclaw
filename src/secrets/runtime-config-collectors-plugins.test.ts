@@ -1,5 +1,6 @@
+/** Tests plugin-specific runtime config secret collectors. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { PluginOrigin } from "../plugins/types.js";
 import { collectPluginConfigAssignments } from "./runtime-config-collectors-plugins.js";
 import {
@@ -21,11 +22,11 @@ vi.mock("../plugins/bundled-plugin-metadata.js", () => ({
   listBundledPluginMetadata: () => [],
 }));
 
-function asConfig(value: unknown): AstroclawConfig {
-  return value as AstroclawConfig;
+function asConfig(value: unknown): OpenClawConfig {
+  return value as OpenClawConfig;
 }
 
-function makeContext(sourceConfig: AstroclawConfig): ResolverContext {
+function makeContext(sourceConfig: OpenClawConfig): ResolverContext {
   return createResolverContext({
     sourceConfig,
     env: {},
@@ -53,7 +54,7 @@ function requireAssignment(context: ResolverContext, index: number): RuntimeConf
 function createAcpxMcpSecretConfig(params: {
   plugins?: Record<string, unknown>;
   entry?: Record<string, unknown>;
-}): AstroclawConfig {
+}): OpenClawConfig {
   return asConfig({
     plugins: {
       ...params.plugins,
@@ -71,7 +72,7 @@ function createAcpxMcpSecretConfig(params: {
   });
 }
 
-function collectAcpxConfigAssignments(config: AstroclawConfig): ResolverContext {
+function collectAcpxConfigAssignments(config: OpenClawConfig): ResolverContext {
   const context = makeContext(config);
   collectPluginConfigAssignments({
     config,
@@ -82,7 +83,7 @@ function collectAcpxConfigAssignments(config: AstroclawConfig): ResolverContext 
   return context;
 }
 
-function expectInactiveAcpxConfig(config: AstroclawConfig): void {
+function expectInactiveAcpxConfig(config: OpenClawConfig): void {
   const context = collectAcpxConfigAssignments(config);
   expect(context.assignments).toHaveLength(0);
   expect(context.warnings.map((warning) => warning.code)).toContain(
@@ -198,6 +199,64 @@ describe("collectPluginConfigAssignments", () => {
       throw new Error("expected acpx mcp env config");
     }
     expect(env.API_KEY).toBe("resolved-key-value");
+  });
+
+  it("resolves array SecretRef assignments via apply callback", () => {
+    loadPluginManifestRegistryForPluginRegistryMock.mockReturnValue({
+      plugins: [
+        {
+          id: "array-plugin",
+          origin: "config",
+          providers: [],
+          legacyPluginIds: [],
+          configContracts: {
+            secretInputs: {
+              paths: [{ path: "servers.*.env.API_KEY", expected: "string" }],
+            },
+          },
+        },
+      ],
+      diagnostics: [],
+    });
+    const config = asConfig({
+      plugins: {
+        entries: {
+          "array-plugin": {
+            enabled: true,
+            config: {
+              servers: [
+                { env: { API_KEY: envRef("FIRST") } },
+                { env: { API_KEY: envRef("SECOND") } },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const context = makeContext(config);
+
+    collectPluginConfigAssignments({
+      config,
+      defaults: undefined,
+      context,
+      loadablePluginOrigins: loadablePluginOrigins([["array-plugin", "config"]]),
+    });
+
+    const assignment = context.assignments.find((entry) =>
+      entry.path.endsWith("servers[1].env.API_KEY"),
+    );
+    if (!assignment) {
+      throw new Error("expected array plugin assignment");
+    }
+
+    assignment.apply("resolved-second");
+
+    const entries = config.plugins?.entries as Record<string, Record<string, unknown>>;
+    const pluginConfig = entries["array-plugin"]?.config as {
+      servers?: Array<{ env?: Record<string, unknown> }>;
+    };
+    expect(pluginConfig.servers?.[1]?.env?.API_KEY).toBe("resolved-second");
+    expect(pluginConfig.servers?.[0]?.env?.API_KEY).toEqual(envRef("FIRST"));
   });
 
   it("collects across multiple acpx servers only", () => {
