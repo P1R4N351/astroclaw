@@ -1,3 +1,4 @@
+// Sandbox explain tests cover command output for sandbox browser and container diagnostics.
 import { describe, expect, it, vi } from "vitest";
 import { sandboxExplainCommand } from "./sandbox-explain.js";
 
@@ -26,7 +27,7 @@ describe("sandbox explain command", () => {
         sandbox: { tools: { deny: ["browser"] } },
         elevated: { enabled: true, allowFrom: { quietchat: ["*"] } },
       },
-      session: { store: "/tmp/astroclaw-test-sessions-{agentId}.json" },
+      session: { store: "/tmp/openclaw-test-sessions-{agentId}.json" },
     };
 
     const logs: string[] = [];
@@ -38,7 +39,7 @@ describe("sandbox explain command", () => {
 
     const out = logs.join("");
     const parsed = JSON.parse(out);
-    expect(parsed).toHaveProperty("docsUrl", "https://docs.astroclaw.ai/sandbox");
+    expect(parsed).toHaveProperty("docsUrl", "https://docs.openclaw.ai/sandbox");
     expect(parsed).toHaveProperty("sandbox.mode", "all");
     expect(parsed).toHaveProperty("sandbox.tools.sources.allow.source");
     expect(parsed.fixIt).toEqual([
@@ -80,7 +81,7 @@ describe("sandbox explain command", () => {
           },
         },
       },
-      session: { store: "/tmp/astroclaw-test-sessions-{agentId}.json" },
+      session: { store: "/tmp/openclaw-test-sessions-{agentId}.json" },
     };
 
     const logs: string[] = [];
