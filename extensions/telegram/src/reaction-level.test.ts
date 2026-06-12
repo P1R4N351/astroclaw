@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Telegram tests cover reaction level plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { resolveTelegramReactionLevel } from "./reaction-level.js";
 
@@ -53,7 +54,7 @@ describe("resolveTelegramReactionLevel", () => {
   });
 
   it("defaults to minimal level when reactionLevel is not set", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { telegram: {} },
     };
 
@@ -62,7 +63,7 @@ describe("resolveTelegramReactionLevel", () => {
   });
 
   it("returns off level with no reactions enabled", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { telegram: { reactionLevel: "off" } },
     };
 
@@ -75,7 +76,7 @@ describe("resolveTelegramReactionLevel", () => {
   });
 
   it("returns ack level with only ackEnabled", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { telegram: { reactionLevel: "ack" } },
     };
 
@@ -88,7 +89,7 @@ describe("resolveTelegramReactionLevel", () => {
   });
 
   it("returns minimal level with agent reactions enabled and minimal guidance", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { telegram: { reactionLevel: "minimal" } },
     };
 
@@ -97,7 +98,7 @@ describe("resolveTelegramReactionLevel", () => {
   });
 
   it("returns extensive level with agent reactions enabled and extensive guidance", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { telegram: { reactionLevel: "extensive" } },
     };
 
@@ -106,7 +107,7 @@ describe("resolveTelegramReactionLevel", () => {
   });
 
   it("resolves reaction level from a specific account", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         telegram: {
           reactionLevel: "ack",
@@ -122,7 +123,7 @@ describe("resolveTelegramReactionLevel", () => {
   });
 
   it("falls back to global level when account has no reactionLevel", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         telegram: {
           reactionLevel: "minimal",
@@ -135,5 +136,50 @@ describe("resolveTelegramReactionLevel", () => {
 
     const result = resolveTelegramReactionLevel({ cfg, accountId: "work" });
     expectMinimalFlags(result);
+  });
+
+  // Regression for #75433: prompt-prep reaction guidance reads raw config
+  // before the active runtime snapshot has resolved channel credentials.
+  it("preserves configured reactionLevel when botToken is an unresolved SecretRef", () => {
+    const cfg = {
+      channels: {
+        telegram: {
+          botToken: { source: "exec", provider: "default", id: "telegram-token" },
+          reactionLevel: "off",
+        },
+      },
+    } as unknown as OpenClawConfig;
+
+    expect(() => resolveTelegramReactionLevel({ cfg })).not.toThrow();
+    const result = resolveTelegramReactionLevel({ cfg });
+    expectReactionFlags(result, {
+      level: "off",
+      ackEnabled: false,
+      agentReactionsEnabled: false,
+    });
+  });
+
+  it("preserves scoped account reactionLevel when token is an unresolved SecretRef", () => {
+    const cfg = {
+      channels: {
+        telegram: {
+          reactionLevel: "minimal",
+          accounts: {
+            ops: {
+              botToken: { source: "exec", provider: "default", id: "telegram-ops" },
+              reactionLevel: "ack",
+            },
+          },
+        },
+      },
+    } as unknown as OpenClawConfig;
+
+    expect(() => resolveTelegramReactionLevel({ cfg, accountId: "ops" })).not.toThrow();
+    const result = resolveTelegramReactionLevel({ cfg, accountId: "ops" });
+    expectReactionFlags(result, {
+      level: "ack",
+      ackEnabled: true,
+      agentReactionsEnabled: false,
+    });
   });
 });
