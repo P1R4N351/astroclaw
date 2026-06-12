@@ -1,9 +1,10 @@
+// Voice Call tests cover realtime handler plugin behavior.
 import http from "node:http";
 import type {
   RealtimeVoiceBridge,
   RealtimeVoiceProviderPlugin,
   RealtimeVoiceToolCallEvent,
-} from "astroclaw/plugin-sdk/realtime-voice";
+} from "openclaw/plugin-sdk/realtime-voice";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
 import type { VoiceCallRealtimeConfig } from "../config.js";
@@ -76,7 +77,6 @@ function makeHandler(
       enabled: false,
       maxChars: 6000,
       includeIdentity: true,
-      includeSystemPrompt: true,
       includeWorkspaceFiles: true,
       files: ["SOUL.md", "IDENTITY.md", "USER.md"],
     },
@@ -332,6 +332,37 @@ describe("RealtimeCallHandler path routing", () => {
           ws.close();
         }
       }
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("rejects stream sessions when token expiry would exceed the Date range", async () => {
+    const processEvent = vi.fn();
+    const createBridge = vi.fn(() => makeBridge());
+    const handler = makeHandler(undefined, {
+      manager: {
+        processEvent,
+      },
+      provider: {
+        name: "telnyx",
+      },
+      realtimeProvider: makeRealtimeProvider(createBridge),
+    });
+    handler.setPublicUrl("https://public.example/voice/webhook");
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(8_640_000_000_000_000);
+    const session = handler.issueStreamSession({
+      providerName: "telnyx",
+      callId: "call-overflow",
+      direction: "inbound",
+    });
+    nowSpy.mockRestore();
+    const server = await startStreamSessionServer(handler, session.streamUrl);
+
+    try {
+      await expect(connectWs(server.url)).rejects.toThrow("Unexpected server response: 401");
+      expect(createBridge).not.toHaveBeenCalled();
+      expect(processEvent).not.toHaveBeenCalled();
     } finally {
       await server.close();
     }
@@ -814,7 +845,7 @@ describe("RealtimeCallHandler path routing", () => {
       },
       realtimeProvider: makeRealtimeProvider(createBridge),
     });
-    handler.registerToolHandler("astroclaw_agent_consult", (_args, _callId, context) => {
+    handler.registerToolHandler("openclaw_agent_consult", (_args, _callId, context) => {
       receivedPartialTranscript = context.partialUserTranscript;
       return new Promise((resolve) => {
         resolveConsult = resolve;
@@ -841,7 +872,7 @@ describe("RealtimeCallHandler path routing", () => {
         callbacks?.onToolCall?.({
           itemId: "item-1",
           callId: "consult-call",
-          name: "astroclaw_agent_consult",
+          name: "openclaw_agent_consult",
           args: { question: "Are the basement lights on?" },
         });
         await vi.advanceTimersByTimeAsync(350);
@@ -858,7 +889,7 @@ describe("RealtimeCallHandler path routing", () => {
           }
           const payload = workingCall[1] as Record<string, unknown> | undefined;
           expect(payload?.status).toBe("working");
-          expect(payload?.tool).toBe("astroclaw_agent_consult");
+          expect(payload?.tool).toBe("openclaw_agent_consult");
           expect(typeof payload?.message).toBe("string");
           expect(workingCall[2]).toEqual({ willContinue: true });
         });
@@ -943,7 +974,7 @@ describe("RealtimeCallHandler path routing", () => {
     const consult = vi.fn<
       (args: unknown, callId: string, context: Record<string, unknown>) => Promise<{ text: string }>
     >(async () => ({ text: "I created the smoke test file." }));
-    handler.registerToolHandler("astroclaw_agent_consult", consult);
+    handler.registerToolHandler("openclaw_agent_consult", consult);
     const server = await startRealtimeServer(handler);
 
     try {
@@ -969,15 +1000,15 @@ describe("RealtimeCallHandler path routing", () => {
         const [args, callId, context] = requireFirstMockCall(consult.mock.calls, "consult");
         expect(args).toEqual({
           question: "Create a smoke test file for me.",
-          context:
-            "The realtime provider produced a final user transcript without invoking astroclaw_agent_consult, so Astroclaw is forcing the consult because consultPolicy is always.",
         });
+        expect(JSON.stringify(args)).not.toContain("consultPolicy");
+        expect(JSON.stringify(args)).not.toContain("openclaw_agent_consult");
         expect(callId).toBe("call-1");
         expect(context).toEqual({});
         await waitForRealtimeTest(() => {
           expect(sendUserMessage).toHaveBeenCalledTimes(1);
           expect(requireFirstMockCall(sendUserMessage.mock.calls, "user message")).toEqual([
-            "Internal Astroclaw consult result is ready.\nDo not call tools for this internal result.\nSpeak the following answer to the caller now, briefly and naturally:\nI created the smoke test file.",
+            "Internal OpenClaw consult result is ready.\nDo not call tools for this internal result.\nSpeak the following answer to the caller now, briefly and naturally:\nI created the smoke test file.",
           ]);
         });
       } finally {
@@ -1104,7 +1135,7 @@ describe("RealtimeCallHandler path routing", () => {
     const consult = vi.fn<
       (args: unknown, callId: string, context: Record<string, unknown>) => Promise<{ text: string }>
     >(async () => ({ text: "I sent it." }));
-    handler.registerToolHandler("astroclaw_agent_consult", consult);
+    handler.registerToolHandler("openclaw_agent_consult", consult);
     const server = await startRealtimeServer(handler);
 
     try {
@@ -1125,7 +1156,7 @@ describe("RealtimeCallHandler path routing", () => {
         callbacks?.onToolCall?.({
           itemId: "item-1",
           callId: "consult-call",
-          name: "astroclaw_agent_consult",
+          name: "openclaw_agent_consult",
           args: { question: "message" },
         });
         await vi.advanceTimersByTimeAsync(50);
@@ -1206,7 +1237,7 @@ describe("RealtimeCallHandler path routing", () => {
       },
     );
     const consult = vi.fn(async () => ({ text: "Native consult result." }));
-    handler.registerToolHandler("astroclaw_agent_consult", consult);
+    handler.registerToolHandler("openclaw_agent_consult", consult);
     const server = await startRealtimeServer(handler);
 
     try {
@@ -1227,7 +1258,7 @@ describe("RealtimeCallHandler path routing", () => {
         callbacks?.onToolCall?.({
           itemId: "item-1",
           callId: "consult-call",
-          name: "astroclaw_agent_consult",
+          name: "openclaw_agent_consult",
           args: { question: "Send me a Discord message." },
         });
 
@@ -1299,7 +1330,7 @@ describe("RealtimeCallHandler path routing", () => {
         realtimeProvider: makeRealtimeProvider(createBridge),
       },
     );
-    handler.registerToolHandler("astroclaw_agent_consult", async () => ({ text: "Fast context." }));
+    handler.registerToolHandler("openclaw_agent_consult", async () => ({ text: "Fast context." }));
     const server = await startRealtimeServer(handler);
 
     try {
@@ -1318,7 +1349,7 @@ describe("RealtimeCallHandler path routing", () => {
         callbacks?.onToolCall?.({
           itemId: "item-1",
           callId: "consult-call",
-          name: "astroclaw_agent_consult",
+          name: "openclaw_agent_consult",
           args: { question: "What do you remember?" },
         });
 
