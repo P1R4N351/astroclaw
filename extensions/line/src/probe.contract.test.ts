@@ -1,4 +1,5 @@
-import type { BaseProbeResult } from "astroclaw/plugin-sdk/channel-contract";
+// Line tests cover probe.contract plugin behavior.
+import type { BaseProbeResult } from "openclaw/plugin-sdk/channel-contract";
 import { describe, expectTypeOf, it } from "vitest";
 import type { LineProbeResult } from "./types.js";
 
