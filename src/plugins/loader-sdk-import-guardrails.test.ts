@@ -1,16 +1,17 @@
+// Verifies loader guardrails for plugin SDK import boundaries.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ALLOWED_PLUGIN_SDK_FIXTURE_IMPORTS = new Set([
   // Intentional legacy SDK-root compatibility smoke tests.
-  'src/plugins/loader.test.ts:configSchema: (require("astroclaw/plugin-sdk").emptyPluginConfigSchema)(),',
-  'src/plugins/loader.test.ts:const { onDiagnosticEvent } = require("astroclaw/plugin-sdk");',
+  'src/plugins/loader.test.ts:configSchema: (require("openclaw/plugin-sdk").emptyPluginConfigSchema)(),',
+  'src/plugins/loader.test.ts:const { onDiagnosticEvent } = require("openclaw/plugin-sdk");',
   // Intentional jiti alias regression test.
-  'src/plugins/loader.git-path-regression.test.ts:`import { resolveOutboundSendDep } from "astroclaw/plugin-sdk/outbound-send-deps";',
-  'src/plugins/loader.git-path-regression.test.ts:          "astroclaw/plugin-sdk/outbound-send-deps": ${JSON.stringify(copiedChannelRuntimeShim)},',
+  'src/plugins/loader.git-path-regression.test.ts:`import { resolveOutboundSendDep } from "openclaw/plugin-sdk/channel-outbound";',
+  'src/plugins/loader.git-path-regression.test.ts:          "openclaw/plugin-sdk/channel-outbound": ${JSON.stringify(copiedChannelRuntimeShim)},',
   // Intentional packaged bundled-plugin SDK alias regression tests.
-  'src/plugins/loader.test.ts:`import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";`,',
+  'src/plugins/loader.test.ts:`import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";`,',
 ]);
 
 const LOADER_FIXTURE_TEST_FILES = [
@@ -26,8 +27,8 @@ function findLoaderFixtureSdkImports(): string[] {
     const source = fs.readFileSync(path.join(repoRoot, file), "utf-8");
     for (const line of source.split("\n")) {
       if (
-        line.includes('require("astroclaw/plugin-sdk') ||
-        (line.includes("import ") && line.includes('"astroclaw/plugin-sdk'))
+        line.includes('require("openclaw/plugin-sdk') ||
+        (line.includes("import ") && line.includes('"openclaw/plugin-sdk'))
       ) {
         matches.push(`${file}:${line.trim()}`);
       }
