@@ -1,3 +1,4 @@
+// Control UI module implements device identity behavior.
 import { getPublicKeyAsync, signAsync, utils } from "@noble/ed25519";
 import { getSafeLocalStorage } from "../local-storage.ts";
 
@@ -15,7 +16,7 @@ export type DeviceIdentity = {
   privateKey: string;
 };
 
-const STORAGE_KEY = "astroclaw-device-identity-v1";
+const STORAGE_KEY = "openclaw-device-identity-v1";
 
 function base64UrlEncode(bytes: Uint8Array): string {
   let binary = "";
