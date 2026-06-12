@@ -1,3 +1,4 @@
+// Slack tests cover interactions plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const enqueueSystemEventMock = vi.hoisted(() => vi.fn());
@@ -23,23 +24,23 @@ const resolveApprovalOverGatewayMock = vi.hoisted(() =>
 
 let registerSlackInteractionEvents: typeof import("./interactions.js").registerSlackInteractionEvents;
 
-vi.mock("astroclaw/plugin-sdk/system-event-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/system-event-runtime")>();
+vi.mock("openclaw/plugin-sdk/system-event-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/system-event-runtime")>();
   return {
     ...actual,
     enqueueSystemEvent: (...args: unknown[]) => enqueueSystemEventMock(...args),
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/heartbeat-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/heartbeat-runtime")>();
+vi.mock("openclaw/plugin-sdk/heartbeat-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/heartbeat-runtime")>();
   return {
     ...actual,
     requestHeartbeat: (...args: unknown[]) => requestHeartbeatMock(...args),
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/approval-gateway-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/approval-gateway-runtime", () => ({
   resolveApprovalOverGateway: (arg: unknown) => resolveApprovalOverGatewayMock(arg),
 }));
 
@@ -422,14 +423,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "verify_block",
-              elements: [{ type: "button", action_id: "astroclaw:verify" }],
+              elements: [{ type: "button", action_id: "openclaw:verify" }],
             },
           ],
         },
       },
       action: {
         type: "button",
-        action_id: "astroclaw:verify",
+        action_id: "openclaw:verify",
         block_id: "verify_block",
         value: "approved",
         text: { type: "plain_text", text: "Approve" },
@@ -442,7 +443,7 @@ describe("registerSlackInteractionEvents", () => {
     expect(typeof eventText === "string" && eventText.startsWith("Slack interaction: ")).toBe(true);
     const payload = slackInteractionPayload();
     expectRecordFields(payload, {
-      actionId: "astroclaw:verify",
+      actionId: "openclaw:verify",
       actionType: "button",
       value: "approved",
       userId: "U123",
@@ -463,12 +464,12 @@ describe("registerSlackInteractionEvents", () => {
     expect(app.client.chat.update).toHaveBeenCalledTimes(1);
   });
 
-  it("registers a matcher that accepts plugin action ids beyond the Astroclaw prefix", () => {
+  it("registers a matcher that accepts plugin action ids beyond the OpenClaw prefix", () => {
     const { ctx, getActionMatcher } = createContext();
     registerSlackInteractionEvents({ ctx: ctx as never });
 
     const matcher = getActionMatcher();
-    expect(matcher.test("astroclaw:verify")).toBe(true);
+    expect(matcher.test("openclaw:verify")).toBe(true);
     expect(matcher.test("codex")).toBe(true);
   });
 
@@ -732,14 +733,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "reply_actions",
-              elements: [{ type: "button", action_id: "astroclaw:reply_button" }],
+              elements: [{ type: "button", action_id: "openclaw:reply_button" }],
             },
           ],
         },
       },
       action: {
         type: "button",
-        action_id: "astroclaw:reply_button",
+        action_id: "openclaw:reply_button",
         block_id: "reply_actions",
         value: "codex",
         text: { type: "plain_text", text: "codex" },
@@ -749,14 +750,14 @@ describe("registerSlackInteractionEvents", () => {
     expect(ack).toHaveBeenCalled();
     expect(dispatchPluginInteractiveHandlerMock).not.toHaveBeenCalled();
     const eventText = mockCallArg(enqueueSystemEventMock, 0, "enqueueSystemEvent");
-    expect(eventText).toContain('"actionId":"astroclaw:reply_button"');
+    expect(eventText).toContain('"actionId":"openclaw:reply_button"');
     expectRecordFields(
       requireRecord(
         mockCallArg(enqueueSystemEventMock, 0, "enqueueSystemEvent", 1),
         "event options",
       ),
       {
-        contextKey: "slack:interaction:C1:100.200:astroclaw:reply_button",
+        contextKey: "slack:interaction:C1:100.200:openclaw:reply_button",
         deliveryContext: {
           accountId: "default",
           channel: "slack",
@@ -764,8 +765,6 @@ describe("registerSlackInteractionEvents", () => {
           to: "channel:C1",
         },
         sessionKey: "agent:ops:slack:channel:C1",
-        forceSenderIsOwnerFalse: true,
-        trusted: false,
       },
     );
     expect(resolveSessionKey).toHaveBeenCalledWith({
@@ -899,14 +898,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "bind_actions",
-              elements: [{ type: "button", action_id: "astroclaw:reply_button" }],
+              elements: [{ type: "button", action_id: "openclaw:reply_button" }],
             },
           ],
         },
       },
       action: {
         type: "button",
-        action_id: "astroclaw:reply_button",
+        action_id: "openclaw:reply_button",
         block_id: "bind_actions",
         value: "pluginbind:approval-123:o",
         text: { type: "plain_text", text: "Allow once" },
@@ -934,7 +933,20 @@ describe("registerSlackInteractionEvents", () => {
   });
 
   it("resolves exec approvals from shared interactive Slack actions", async () => {
-    const { ctx, app, getHandler } = createContext({ allowFrom: ["U999"] });
+    const { ctx, app, getHandler } = createContext({
+      allowFrom: ["U999"],
+      cfg: {
+        channels: {
+          slack: {
+            execApprovals: {
+              enabled: true,
+              approvers: ["u123"],
+              target: "both",
+            },
+          },
+        },
+      },
+    });
     registerSlackInteractionEvents({ ctx: ctx as never });
 
     const handler = getHandler();
@@ -955,14 +967,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "exec_actions",
-              elements: [{ type: "button", action_id: "astroclaw:reply_button" }],
+              elements: [{ type: "button", action_id: "openclaw:reply_button" }],
             },
           ],
         },
       },
       action: {
         type: "button",
-        action_id: "astroclaw:reply_button",
+        action_id: "openclaw:reply_button",
         block_id: "exec_actions",
         value: "/approve req-123 allow-once",
         text: { type: "plain_text", text: "Allow once" },
@@ -997,7 +1009,7 @@ describe("registerSlackInteractionEvents", () => {
           slack: {
             accounts: {
               default: {
-                allowFrom: ["U123OWNER"],
+                allowFrom: ["u123owner"],
                 execApprovals: {
                   enabled: true,
                   approvers: ["U999EXEC"],
@@ -1029,14 +1041,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "plugin_actions",
-              elements: [{ type: "button", action_id: "astroclaw:reply_button" }],
+              elements: [{ type: "button", action_id: "openclaw:reply_button" }],
             },
           ],
         },
       },
       action: {
         type: "button",
-        action_id: "astroclaw:reply_button",
+        action_id: "openclaw:reply_button",
         block_id: "plugin_actions",
         value: "/approve plugin:req-123 allow-always",
         text: { type: "plain_text", text: "Always allow" },
@@ -1071,7 +1083,7 @@ describe("registerSlackInteractionEvents", () => {
           slack: {
             accounts: {
               default: {
-                allowFrom: ["U123OWNER"],
+                allowFrom: ["u123owner"],
                 execApprovals: {
                   enabled: true,
                   approvers: ["U999EXEC"],
@@ -1103,14 +1115,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "plugin_actions",
-              elements: [{ type: "button", action_id: "astroclaw:reply_button" }],
+              elements: [{ type: "button", action_id: "openclaw:reply_button" }],
             },
           ],
         },
       },
       action: {
         type: "button",
-        action_id: "astroclaw:reply_button",
+        action_id: "openclaw:reply_button",
         block_id: "plugin_actions",
         value: "/approve req-legacy allow-once",
         text: { type: "plain_text", text: "Allow once" },
@@ -1178,14 +1190,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "plugin_actions",
-              elements: [{ type: "button", action_id: "astroclaw:reply_button" }],
+              elements: [{ type: "button", action_id: "openclaw:reply_button" }],
             },
           ],
         },
       },
       action: {
         type: "button",
-        action_id: "astroclaw:reply_button",
+        action_id: "openclaw:reply_button",
         block_id: "plugin_actions",
         value: "/approve plugin:req-123 allow-always",
         text: { type: "plain_text", text: "Always allow" },
@@ -1226,14 +1238,14 @@ describe("registerSlackInteractionEvents", () => {
               {
                 type: "actions",
                 block_id: "exec_actions",
-                elements: [{ type: "button", action_id: "astroclaw:reply_button" }],
+                elements: [{ type: "button", action_id: "openclaw:reply_button" }],
               },
             ],
           },
         },
         action: {
           type: "button",
-          action_id: "astroclaw:reply_button",
+          action_id: "openclaw:reply_button",
           block_id: "exec_actions",
           value: "/approve req-123 allow-once",
           text: { type: "plain_text", text: "Allow once" },
@@ -1281,14 +1293,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "exec_actions",
-              elements: [{ type: "button", action_id: "astroclaw:reply_button" }],
+              elements: [{ type: "button", action_id: "openclaw:reply_button" }],
             },
           ],
         },
       },
       action: {
         type: "button",
-        action_id: "astroclaw:reply_button",
+        action_id: "openclaw:reply_button",
         block_id: "exec_actions",
         value: "/approve req-123 allow-once",
         text: { type: "plain_text", text: "Allow once" },
@@ -1331,7 +1343,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "button",
-        action_id: "astroclaw:verify",
+        action_id: "openclaw:verify",
       },
     });
 
@@ -1359,7 +1371,7 @@ describe("registerSlackInteractionEvents", () => {
         team: { id: "T9" },
         view: {
           id: "V123",
-          callback_id: "astroclaw:deploy_form",
+          callback_id: "openclaw:deploy_form",
           private_metadata: JSON.stringify({ userId: "U123" }),
         },
       },
@@ -1374,7 +1386,7 @@ describe("registerSlackInteractionEvents", () => {
         team: { id: "T9" },
         view: {
           id: "V123",
-          callback_id: "astroclaw:deploy_form",
+          callback_id: "openclaw:deploy_form",
           private_metadata: JSON.stringify({ userId: "U123" }),
         },
       },
@@ -1426,7 +1438,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "static_select",
-        action_id: "astroclaw:pick",
+        action_id: "openclaw:pick",
         block_id: "select_block",
         selected_option: {
           text: { type: "plain_text", text: "Canary" },
@@ -1484,7 +1496,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "button",
-        action_id: "astroclaw:verify",
+        action_id: "openclaw:verify",
         block_id: "verify_block",
       },
     });
@@ -1521,7 +1533,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "button",
-        action_id: "astroclaw:verify",
+        action_id: "openclaw:verify",
         block_id: "verify_block",
       },
     });
@@ -1561,7 +1573,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "button",
-        action_id: "astroclaw:verify",
+        action_id: "openclaw:verify",
         block_id: "verify_block",
       },
     });
@@ -1598,7 +1610,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "button",
-        action_id: "astroclaw:verify",
+        action_id: "openclaw:verify",
         block_id: "verify_block",
       },
     });
@@ -1633,7 +1645,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "button",
-        action_id: "astroclaw:verify",
+        action_id: "openclaw:verify",
         block_id: "verify_block",
       },
     });
@@ -1668,7 +1680,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "button",
-        action_id: "astroclaw:verify",
+        action_id: "openclaw:verify",
         block_id: "verify_block",
       },
     });
@@ -1701,7 +1713,7 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "verify_block",
-              elements: [{ type: "button", action_id: "astroclaw:verify" }],
+              elements: [{ type: "button", action_id: "openclaw:verify" }],
             },
           ],
         },
@@ -1736,7 +1748,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "static_select",
-        action_id: "astroclaw:pick",
+        action_id: "openclaw:pick",
         block_id: "select_block",
         selected_option: {
           text: { type: "plain_text", text: "Canary_*`~<&>" },
@@ -1779,7 +1791,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "button",
-        action_id: "astroclaw:container",
+        action_id: "openclaw:container",
         block_id: "container_block",
         value: "ok",
         text: { type: "plain_text", text: "Container" },
@@ -1829,14 +1841,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "multi_block",
-              elements: [{ type: "multi_static_select", action_id: "astroclaw:multi" }],
+              elements: [{ type: "multi_static_select", action_id: "openclaw:multi" }],
             },
           ],
         },
       },
       action: {
         type: "multi_static_select",
-        action_id: "astroclaw:multi",
+        action_id: "openclaw:multi",
         block_id: "multi_block",
         selected_options: [
           { text: { type: "plain_text", text: "Alpha" }, value: "alpha" },
@@ -1885,24 +1897,24 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "date_block",
-              elements: [{ type: "datepicker", action_id: "astroclaw:date" }],
+              elements: [{ type: "datepicker", action_id: "openclaw:date" }],
             },
             {
               type: "actions",
               block_id: "time_block",
-              elements: [{ type: "timepicker", action_id: "astroclaw:time" }],
+              elements: [{ type: "timepicker", action_id: "openclaw:time" }],
             },
             {
               type: "actions",
               block_id: "datetime_block",
-              elements: [{ type: "datetimepicker", action_id: "astroclaw:datetime" }],
+              elements: [{ type: "datetimepicker", action_id: "openclaw:datetime" }],
             },
           ],
         },
       },
       action: {
         type: "datepicker",
-        action_id: "astroclaw:date",
+        action_id: "openclaw:date",
         block_id: "date_block",
         selected_date: "2026-02-16",
       },
@@ -1920,14 +1932,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "time_block",
-              elements: [{ type: "timepicker", action_id: "astroclaw:time" }],
+              elements: [{ type: "timepicker", action_id: "openclaw:time" }],
             },
           ],
         },
       },
       action: {
         type: "timepicker",
-        action_id: "astroclaw:time",
+        action_id: "openclaw:time",
         block_id: "time_block",
         selected_time: "14:30",
       },
@@ -1945,14 +1957,14 @@ describe("registerSlackInteractionEvents", () => {
             {
               type: "actions",
               block_id: "datetime_block",
-              elements: [{ type: "datetimepicker", action_id: "astroclaw:datetime" }],
+              elements: [{ type: "datetimepicker", action_id: "openclaw:datetime" }],
             },
           ],
         },
       },
       action: {
         type: "datetimepicker",
-        action_id: "astroclaw:datetime",
+        action_id: "openclaw:datetime",
         block_id: "datetime_block",
         selected_date_time: selectedDateTimeEpoch,
       },
@@ -2012,7 +2024,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "multi_conversations_select",
-        action_id: "astroclaw:route",
+        action_id: "openclaw:route",
         selected_user: "U777",
         selected_users: ["U777", "U888"],
         selected_channel: "C777",
@@ -2064,6 +2076,54 @@ describe("registerSlackInteractionEvents", () => {
     expect(payload.selectedDateTime).toBe(1_771_700_200);
   });
 
+  it("falls back when Slack datetime selection is outside Date range", async () => {
+    const { ctx, app, getHandler } = createContext();
+    registerSlackInteractionEvents({ ctx: ctx as never });
+    const handler = getHandler();
+
+    const ack = vi.fn().mockResolvedValue(undefined);
+    await handler({
+      ack,
+      body: {
+        user: { id: "U333" },
+        channel: { id: "C3" },
+        message: {
+          ts: "555.669",
+          text: "fallback",
+          blocks: [
+            {
+              type: "actions",
+              block_id: "datetime_block",
+              elements: [{ type: "datetimepicker", action_id: "openclaw:datetime" }],
+            },
+          ],
+        },
+      },
+      action: {
+        type: "datetimepicker",
+        action_id: "openclaw:datetime",
+        block_id: "datetime_block",
+        selected_date_time: 9_000_000_000_000,
+      },
+    });
+
+    expectRecordFields(chatUpdateCall(app), {
+      channel: "C3",
+      ts: "555.669",
+      blocks: [
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: ":white_check_mark: *openclaw:datetime* selected by <@U333>",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it("captures workflow button trigger metadata", async () => {
     enqueueSystemEventMock.mockClear();
     const { ctx, getHandler } = createContext();
@@ -2081,7 +2141,7 @@ describe("registerSlackInteractionEvents", () => {
       },
       action: {
         type: "workflow_button",
-        action_id: "astroclaw:workflow",
+        action_id: "openclaw:workflow",
         block_id: "workflow_block",
         text: { type: "plain_text", text: "Launch workflow" },
         workflow: {
@@ -2125,7 +2185,7 @@ describe("registerSlackInteractionEvents", () => {
         team: { id: "T1" },
         view: {
           id: "V123",
-          callback_id: "astroclaw:deploy_form",
+          callback_id: "openclaw:deploy_form",
           root_view_id: "VROOT",
           previous_view_id: "VPREV",
           external_id: "deploy-ext-1",
@@ -2190,8 +2250,8 @@ describe("registerSlackInteractionEvents", () => {
     };
     expectRecordFields(payload as unknown as Record<string, unknown>, {
       interactionType: "view_submission",
-      actionId: "view:astroclaw:deploy_form",
-      callbackId: "astroclaw:deploy_form",
+      actionId: "view:openclaw:deploy_form",
+      callbackId: "openclaw:deploy_form",
       viewId: "V123",
       userId: "U777",
       routedChannelId: "D123",
@@ -2243,7 +2303,7 @@ describe("registerSlackInteractionEvents", () => {
         trigger_id: "trigger-777",
         view: {
           id: "V777",
-          callback_id: "astroclaw:contract_confirm_hearing",
+          callback_id: "openclaw:contract_confirm_hearing",
           private_metadata: JSON.stringify({
             channelId: "D777",
             channelType: "im",
@@ -2277,7 +2337,7 @@ describe("registerSlackInteractionEvents", () => {
     expectRecordFields(requireRecord(dispatchCall, "dispatch call"), {
       channel: "slack",
       data: "dean.contract:confirm_hearing",
-      dedupeId: "view_submission:astroclaw:contract_confirm_hearing:V777:U777",
+      dedupeId: "view_submission:openclaw:contract_confirm_hearing:V777:U777",
     });
 
     const registrationHandler = vi.fn();
@@ -2305,7 +2365,7 @@ describe("registerSlackInteractionEvents", () => {
       data: "dean.contract:confirm_hearing",
       namespace: "dean.contract",
       payload: "confirm_hearing",
-      callbackId: "astroclaw:contract_confirm_hearing",
+      callbackId: "openclaw:contract_confirm_hearing",
       viewId: "V777",
       triggerId: "trigger-777",
     });
@@ -2354,7 +2414,7 @@ describe("registerSlackInteractionEvents", () => {
         user: { id: "U777" },
         view: {
           id: "V778",
-          callback_id: "astroclaw:dean.contract:confirm_hearing",
+          callback_id: "openclaw:dean.contract:confirm_hearing",
           state: {
             values: {
               contract: {
@@ -2386,7 +2446,7 @@ describe("registerSlackInteractionEvents", () => {
     expectRecordFields(requireRecord(dispatchCall, "dispatch call"), {
       channel: "slack",
       data: "dean.contract:confirm_hearing",
-      dedupeId: "view_submission:astroclaw:dean.contract:confirm_hearing:V778:U777",
+      dedupeId: "view_submission:openclaw:dean.contract:confirm_hearing:V778:U777",
     });
 
     const registrationHandler = vi.fn();
@@ -2405,13 +2465,13 @@ describe("registerSlackInteractionEvents", () => {
       data: "dean.contract:confirm_hearing",
       namespace: "dean.contract",
       payload: "confirm_hearing",
-      callbackId: "astroclaw:dean.contract:confirm_hearing",
+      callbackId: "openclaw:dean.contract:confirm_hearing",
       viewId: "V778",
     });
     expect(enqueueSystemEventMock).not.toHaveBeenCalled();
   });
 
-  it("dispatches metadata-routed plugin modal submissions with non-astroclaw callback ids", async () => {
+  it("dispatches metadata-routed plugin modal submissions with non-openclaw callback ids", async () => {
     enqueueSystemEventMock.mockClear();
     dispatchPluginInteractiveHandlerMock.mockResolvedValueOnce({
       matched: true,
@@ -2466,7 +2526,7 @@ describe("registerSlackInteractionEvents", () => {
       body: {
         user: { id: "U222" },
         view: {
-          callback_id: "astroclaw:deploy_form",
+          callback_id: "openclaw:deploy_form",
           private_metadata: JSON.stringify({
             channelId: "D123",
             channelType: "im",
@@ -2492,7 +2552,7 @@ describe("registerSlackInteractionEvents", () => {
       body: {
         user: { id: "U222" },
         view: {
-          callback_id: "astroclaw:deploy_form",
+          callback_id: "openclaw:deploy_form",
           private_metadata: JSON.stringify({
             channelId: "D123",
             channelType: "im",
@@ -2518,7 +2578,7 @@ describe("registerSlackInteractionEvents", () => {
         user: { id: "U444" },
         view: {
           id: "V444",
-          callback_id: "astroclaw:routing_form",
+          callback_id: "openclaw:routing_form",
           private_metadata: JSON.stringify({ userId: "U444" }),
           state: {
             values: {},
@@ -2544,7 +2604,7 @@ describe("registerSlackInteractionEvents", () => {
         user: { id: "U444" },
         view: {
           id: "V400",
-          callback_id: "astroclaw:routing_form",
+          callback_id: "openclaw:routing_form",
           private_metadata: JSON.stringify({ userId: "U444" }),
           state: {
             values: {
@@ -2620,13 +2680,13 @@ describe("registerSlackInteractionEvents", () => {
               email_block: {
                 email_input: {
                   type: "email_text_input",
-                  value: "team@astroclaw.ai",
+                  value: "team@openclaw.ai",
                 },
               },
               url_block: {
                 url_input: {
                   type: "url_text_input",
-                  value: "https://docs.astroclaw.ai",
+                  value: "https://docs.openclaw.ai",
                 },
               },
               richtext_block: {
@@ -2708,11 +2768,11 @@ describe("registerSlackInteractionEvents", () => {
     });
     expectRecordFields(inputByActionId(inputs, "email_input"), {
       inputKind: "email",
-      inputEmail: "team@astroclaw.ai",
+      inputEmail: "team@openclaw.ai",
     });
     expectRecordFields(inputByActionId(inputs, "url_input"), {
       inputKind: "url",
-      inputUrl: "https://docs.astroclaw.ai/",
+      inputUrl: "https://docs.openclaw.ai/",
     });
     expectRecordFields(inputByActionId(inputs, "richtext_input"), {
       inputKind: "rich_text",
@@ -2746,7 +2806,7 @@ describe("registerSlackInteractionEvents", () => {
         user: { id: "U555" },
         view: {
           id: "V555",
-          callback_id: "astroclaw:long_richtext",
+          callback_id: "openclaw:long_richtext",
           private_metadata: JSON.stringify({ userId: "U555" }),
           state: {
             values: {
@@ -2798,7 +2858,7 @@ describe("registerSlackInteractionEvents", () => {
         is_cleared: true,
         view: {
           id: "V900",
-          callback_id: "astroclaw:deploy_form",
+          callback_id: "openclaw:deploy_form",
           root_view_id: "VROOT900",
           previous_view_id: "VPREV900",
           external_id: "deploy-ext-900",
@@ -2849,8 +2909,8 @@ describe("registerSlackInteractionEvents", () => {
     };
     expectRecordFields(payload as unknown as Record<string, unknown>, {
       interactionType: "view_closed",
-      actionId: "view:astroclaw:deploy_form",
-      callbackId: "astroclaw:deploy_form",
+      actionId: "view:openclaw:deploy_form",
+      callbackId: "openclaw:deploy_form",
       viewId: "V900",
       userId: "U900",
       isCleared: true,
@@ -2882,7 +2942,7 @@ describe("registerSlackInteractionEvents", () => {
         user: { id: "U901" },
         view: {
           id: "V901",
-          callback_id: "astroclaw:deploy_form",
+          callback_id: "openclaw:deploy_form",
           private_metadata: JSON.stringify({ userId: "U901" }),
         },
       },
@@ -2930,7 +2990,7 @@ describe("registerSlackInteractionEvents", () => {
         team: { id: "T1" },
         view: {
           id: "V915",
-          callback_id: "astroclaw:oversize",
+          callback_id: "openclaw:oversize",
           private_metadata: JSON.stringify({
             channelId: "D915",
             channelType: "im",
