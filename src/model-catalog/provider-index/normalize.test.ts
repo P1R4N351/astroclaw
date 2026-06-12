@@ -1,9 +1,10 @@
+// Provider-index normalization tests cover preview catalogs, install metadata, auth choices, and malformed input.
 import { describe, expect, it } from "vitest";
-import { loadAstroclawProviderIndex, normalizeAstroclawProviderIndex } from "./index.js";
+import { loadOpenClawProviderIndex, normalizeOpenClawProviderIndex } from "./index.js";
 
-describe("Astroclaw provider index", () => {
+describe("OpenClaw provider index", () => {
   it("normalizes provider preview catalog rows through model catalog validation", () => {
-    const index = normalizeAstroclawProviderIndex({
+    const index = normalizeOpenClawProviderIndex({
       version: 1,
       providers: {
         Moonshot: {
@@ -11,10 +12,10 @@ describe("Astroclaw provider index", () => {
           name: "Moonshot AI",
           plugin: {
             id: "moonshot",
-            package: " @astroclaw/plugin-moonshot ",
+            package: " @openclaw/plugin-moonshot ",
             install: {
-              clawhubSpec: " clawhub:astroclaw/moonshot@2026.5.2 ",
-              npmSpec: " @astroclaw/plugin-moonshot@1.2.3 ",
+              clawhubSpec: " clawhub:openclaw/moonshot@2026.5.2 ",
+              npmSpec: " @openclaw/plugin-moonshot@1.2.3 ",
               defaultChoice: "clawhub",
               expectedIntegrity: " sha512-moonshot ",
             },
@@ -62,10 +63,10 @@ describe("Astroclaw provider index", () => {
           name: "Moonshot AI",
           plugin: {
             id: "moonshot",
-            package: "@astroclaw/plugin-moonshot",
+            package: "@openclaw/plugin-moonshot",
             install: {
-              clawhubSpec: "clawhub:astroclaw/moonshot@2026.5.2",
-              npmSpec: "@astroclaw/plugin-moonshot@1.2.3",
+              clawhubSpec: "clawhub:openclaw/moonshot@2026.5.2",
+              npmSpec: "@openclaw/plugin-moonshot@1.2.3",
               defaultChoice: "clawhub",
               expectedIntegrity: "sha512-moonshot",
             },
@@ -103,7 +104,7 @@ describe("Astroclaw provider index", () => {
   });
 
   it("drops unsafe providers and malformed preview catalog rows", () => {
-    const index = normalizeAstroclawProviderIndex({
+    const index = normalizeOpenClawProviderIndex({
       version: 1,
       providers: {
         ["__proto__"]: {
@@ -140,7 +141,7 @@ describe("Astroclaw provider index", () => {
   });
 
   it("loads the bundled provider index without runtime plugin loading", () => {
-    const index = loadAstroclawProviderIndex();
+    const index = loadOpenClawProviderIndex();
 
     expect(index.providers.moonshot?.previewCatalog).not.toHaveProperty("api");
     expect(index.providers.moonshot?.previewCatalog).not.toHaveProperty("baseUrl");
