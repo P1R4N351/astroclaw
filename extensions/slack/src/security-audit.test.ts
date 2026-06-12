@@ -1,17 +1,18 @@
+// Slack tests cover security audit plugin behavior.
 import { describe, expect, it, vi } from "vitest";
 import type { ResolvedSlackAccount } from "./accounts.js";
-import type { AstroclawConfig } from "./runtime-api.js";
+import type { OpenClawConfig } from "./runtime-api.js";
 import { collectSlackSecurityAuditFindings } from "./security-audit.js";
 
 const { readChannelAllowFromStoreMock } = vi.hoisted(() => ({
   readChannelAllowFromStoreMock: vi.fn(async () => [] as string[]),
 }));
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/conversation-runtime", () => ({
   readChannelAllowFromStore: readChannelAllowFromStoreMock,
 }));
 
-function createSlackAccount(config: NonNullable<AstroclawConfig["channels"]>["slack"]) {
+function createSlackAccount(config: NonNullable<OpenClawConfig["channels"]>["slack"]) {
   return {
     accountId: "default",
     enabled: true,
@@ -24,7 +25,7 @@ function createSlackAccount(config: NonNullable<AstroclawConfig["channels"]>["sl
 
 function createSlashCommandSlackConfig(
   options: { useAccessGroups?: boolean } = {},
-): AstroclawConfig {
+): OpenClawConfig {
   return {
     ...(options.useAccessGroups === undefined
       ? {}
@@ -41,7 +42,7 @@ function createSlashCommandSlackConfig(
   };
 }
 
-async function collectSlackFindingsForConfig(cfg: AstroclawConfig) {
+async function collectSlackFindingsForConfig(cfg: OpenClawConfig) {
   readChannelAllowFromStoreMock.mockResolvedValue([]);
   return await collectSlackSecurityAuditFindings({
     cfg,
