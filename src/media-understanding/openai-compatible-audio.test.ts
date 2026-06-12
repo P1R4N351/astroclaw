@@ -1,4 +1,7 @@
+// OpenAI-compatible audio tests cover attribution headers, auth selection,
+// filename normalization, and stable malformed-response errors.
 import { describe, expect, it, vi } from "vitest";
+import { CUSTOM_LOCAL_AUTH_MARKER } from "../agents/model-auth-markers.js";
 import { VERSION } from "../version.js";
 import {
   createRequestCaptureJsonFetch,
@@ -24,9 +27,9 @@ describe("transcribeOpenAiCompatibleAudio", () => {
     });
 
     const headers = new Headers(getRequest().init?.headers);
-    expect(headers.get("originator")).toBe("astroclaw");
+    expect(headers.get("originator")).toBe("openclaw");
     expect(headers.get("version")).toBe(VERSION);
-    expect(headers.get("user-agent")).toBe(`astroclaw/${VERSION}`);
+    expect(headers.get("user-agent")).toBe(`openclaw/${VERSION}`);
   });
 
   it("does not add hidden attribution headers on custom OpenAI-compatible hosts", async () => {
@@ -70,6 +73,46 @@ describe("transcribeOpenAiCompatibleAudio", () => {
     const file = (form as FormData).get("file");
     expect(file).toBeInstanceOf(File);
     expect((file as File).name).toBe("voice-note.m4a");
+  });
+
+  it("omits bearer auth for explicit no-auth requests", async () => {
+    const { fetchFn, getRequest } = createRequestCaptureJsonFetch({ text: "ok" });
+
+    await transcribeOpenAiCompatibleAudio({
+      buffer: Buffer.from("audio"),
+      fileName: "note.mp3",
+      apiKey: CUSTOM_LOCAL_AUTH_MARKER,
+      auth: { kind: "none", source: "local provider" },
+      timeoutMs: 1000,
+      fetchFn,
+      provider: "local-audio",
+      baseUrl: "https://audio.example.com/v1",
+      defaultBaseUrl: "https://audio.example.com/v1",
+      defaultModel: "whisper-local",
+    });
+
+    const headers = new Headers(getRequest().init?.headers);
+    expect(headers.get("authorization")).toBeNull();
+  });
+
+  it("uses typed api-key auth for bearer headers", async () => {
+    const { fetchFn, getRequest } = createRequestCaptureJsonFetch({ text: "ok" });
+
+    await transcribeOpenAiCompatibleAudio({
+      buffer: Buffer.from("audio"),
+      fileName: "note.mp3",
+      apiKey: "legacy-key",
+      auth: { kind: "api-key", apiKey: "typed-key", source: "test" },
+      timeoutMs: 1000,
+      fetchFn,
+      provider: "local-audio",
+      baseUrl: "https://audio.example.com/v1",
+      defaultBaseUrl: "https://audio.example.com/v1",
+      defaultModel: "whisper-local",
+    });
+
+    const headers = new Headers(getRequest().init?.headers);
+    expect(headers.get("authorization")).toBe("Bearer typed-key");
   });
 
   it("wraps malformed transcription JSON with a stable provider error", async () => {
