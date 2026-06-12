@@ -1,7 +1,8 @@
+// Mattermost tests cover monitor slash plugin behavior.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const listSkillCommandsForAgents = vi.hoisted(() => vi.fn());
-const parseStrictPositiveInteger = vi.hoisted(() => vi.fn());
+const parseTcpPort = vi.hoisted(() => vi.fn());
 const fetchMattermostUserTeams = vi.hoisted(() => vi.fn());
 const normalizeMattermostBaseUrl = vi.hoisted(() => vi.fn((value: string | undefined) => value));
 const isSlashCommandsEnabled = vi.hoisted(() => vi.fn());
@@ -12,7 +13,7 @@ const activateSlashCommands = vi.hoisted(() => vi.fn());
 
 vi.mock("./runtime-api.js", () => ({
   listSkillCommandsForAgents,
-  parseStrictPositiveInteger,
+  parseTcpPort,
 }));
 
 vi.mock("./client.js", async () => {
@@ -59,7 +60,7 @@ describe("mattermost monitor slash", () => {
 
   beforeEach(() => {
     listSkillCommandsForAgents.mockReset();
-    parseStrictPositiveInteger.mockReset();
+    parseTcpPort.mockReset();
     fetchMattermostUserTeams.mockReset();
     normalizeMattermostBaseUrl.mockClear();
     isSlashCommandsEnabled.mockReset();
@@ -91,12 +92,12 @@ describe("mattermost monitor slash", () => {
   });
 
   it("registers deduped default and native skill commands across teams", async () => {
-    vi.stubEnv("ASTROCLAW_GATEWAY_PORT", "18888");
+    vi.stubEnv("OPENCLAW_GATEWAY_PORT", "18888");
     resolveSlashCommandConfig.mockReturnValue({ enabled: true, nativeSkills: true });
     isSlashCommandsEnabled.mockReturnValue(true);
-    parseStrictPositiveInteger.mockReturnValue(18888);
+    parseTcpPort.mockReturnValue(18888);
     fetchMattermostUserTeams.mockResolvedValue([{ id: "team-1" }, { id: "team-2" }]);
-    resolveCallbackUrl.mockReturnValue("https://astroclaw.test/slash");
+    resolveCallbackUrl.mockReturnValue("https://openclaw.test/slash");
     listSkillCommandsForAgents.mockReturnValue([
       { name: "skill", description: "Skill run" },
       { name: "oc_ping", description: "Already prefixed" },
@@ -129,7 +130,7 @@ describe("mattermost monitor slash", () => {
       client,
       teamId: "team-1",
       creatorUserId: "bot-user",
-      callbackUrl: "https://astroclaw.test/slash",
+      callbackUrl: "https://openclaw.test/slash",
       commands: [
         { trigger: "ping", description: "ping" },
         {
@@ -162,14 +163,38 @@ describe("mattermost monitor slash", () => {
       ]),
     );
     expect(runtime.log).toHaveBeenCalledWith(
-      "mattermost: slash commands registered (2 commands across 2 teams, callback=https://astroclaw.test/slash)",
+      "mattermost: slash commands registered (2 commands across 2 teams, callback=https://openclaw.test/slash)",
+    );
+  });
+
+  it("falls back to the configured gateway port when the env port is out of range", async () => {
+    vi.stubEnv("OPENCLAW_GATEWAY_PORT", "65536");
+    resolveSlashCommandConfig.mockReturnValue({ enabled: true, nativeSkills: false });
+    isSlashCommandsEnabled.mockReturnValue(true);
+    parseTcpPort.mockReturnValue(null);
+    fetchMattermostUserTeams.mockResolvedValue([{ id: "team-1" }]);
+    resolveCallbackUrl.mockReturnValue("https://openclaw.test/slash");
+    registerSlashCommands.mockResolvedValue([{ token: "token-1", trigger: "ping" }]);
+
+    await registerMattermostMonitorSlashCommands({
+      client: {} as never,
+      cfg: { gateway: { port: 18789 } } as never,
+      runtime: { log: vi.fn(), error: vi.fn() } as never,
+      account: { config: { commands: {} }, accountId: "default" } as never,
+      baseUrl: "https://chat.example.com",
+      botUserId: "bot-user",
+    });
+
+    expect(parseTcpPort).toHaveBeenCalledWith("65536");
+    expect(resolveCallbackUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ gatewayPort: 18789 }),
     );
   });
 
   it("warns on loopback callback urls and reports partial team failures", async () => {
     resolveSlashCommandConfig.mockReturnValue({ enabled: true, nativeSkills: false });
     isSlashCommandsEnabled.mockReturnValue(true);
-    parseStrictPositiveInteger.mockReturnValue(undefined);
+    parseTcpPort.mockReturnValue(null);
     fetchMattermostUserTeams.mockResolvedValue([{ id: "team-1" }, { id: "team-2" }]);
     resolveCallbackUrl.mockReturnValue("http://127.0.0.1:18789/slash");
     registerSlashCommands
