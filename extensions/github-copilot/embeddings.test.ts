@@ -1,3 +1,4 @@
+// Github Copilot tests cover embeddings plugin behavior.
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const resolveFirstGithubTokenMock = vi.hoisted(() => vi.fn());
@@ -9,7 +10,7 @@ vi.mock("./auth.js", () => ({
   resolveFirstGithubToken: resolveFirstGithubTokenMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/secret-input-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/secret-input-runtime", () => ({
   resolveConfiguredSecretInputString: resolveConfiguredSecretInputStringMock,
 }));
 
@@ -18,7 +19,7 @@ vi.mock("./token.js", () => ({
   resolveCopilotApiToken: resolveCopilotApiTokenMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", () => ({
   fetchWithSsrFGuard: fetchWithSsrFGuardMock,
 }));
 
@@ -26,9 +27,9 @@ import { githubCopilotMemoryEmbeddingProviderAdapter } from "./embeddings.js";
 
 afterAll(() => {
   vi.doUnmock("./auth.js");
-  vi.doUnmock("astroclaw/plugin-sdk/secret-input-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/secret-input-runtime");
   vi.doUnmock("./token.js");
-  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
   vi.resetModules();
 });
 
@@ -244,6 +245,7 @@ describe("githubCopilotMemoryEmbeddingProviderAdapter", () => {
 
     const discoveryCall = firstDiscoveryRequest();
     expect(discoveryCall.url).toBe("https://proxy.example/v1/models");
+    expect(discoveryCall.init.headers["Accept-Encoding"]).toBe("identity");
     expect(discoveryCall.init.headers["X-Proxy-Token"]).toBe("proxy");
   });
 
