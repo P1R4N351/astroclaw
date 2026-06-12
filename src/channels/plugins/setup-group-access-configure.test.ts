@@ -1,5 +1,6 @@
+// Setup group access configure tests cover channel setup writes for group access config.
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { configureChannelAccessWithAllowlist } from "./setup-group-access-configure.js";
 import type { ChannelAccessPolicy } from "./setup-group-access.js";
 
@@ -13,13 +14,13 @@ function createPrompter(params: { confirm: boolean; policy?: ChannelAccessPolicy
 }
 
 async function runConfigureChannelAccess<TResolved>(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompter: ReturnType<typeof createPrompter>;
   label?: string;
   placeholder?: string;
-  setPolicy: (cfg: AstroclawConfig, policy: ChannelAccessPolicy) => AstroclawConfig;
-  resolveAllowlist: (params: { cfg: AstroclawConfig; entries: string[] }) => Promise<TResolved>;
-  applyAllowlist: (params: { cfg: AstroclawConfig; resolved: TResolved }) => AstroclawConfig;
+  setPolicy: (cfg: OpenClawConfig, policy: ChannelAccessPolicy) => OpenClawConfig;
+  resolveAllowlist: (params: { cfg: OpenClawConfig; entries: string[] }) => Promise<TResolved>;
+  applyAllowlist: (params: { cfg: OpenClawConfig; resolved: TResolved }) => OpenClawConfig;
 }) {
   return await configureChannelAccessWithAllowlist({
     cfg: params.cfg,
@@ -37,11 +38,11 @@ async function runConfigureChannelAccess<TResolved>(params: {
 
 describe("configureChannelAccessWithAllowlist", () => {
   it("returns input config when user skips access configuration", async () => {
-    const cfg: AstroclawConfig = {};
+    const cfg: OpenClawConfig = {};
     const prompter = createPrompter({ confirm: false });
-    const setPolicy = vi.fn((next: AstroclawConfig) => next);
+    const setPolicy = vi.fn((next: OpenClawConfig) => next);
     const resolveAllowlist = vi.fn(async () => [] as string[]);
-    const applyAllowlist = vi.fn((params: { cfg: AstroclawConfig }) => params.cfg);
+    const applyAllowlist = vi.fn((params: { cfg: OpenClawConfig }) => params.cfg);
 
     const next = await runConfigureChannelAccess({
       cfg,
@@ -58,19 +59,19 @@ describe("configureChannelAccessWithAllowlist", () => {
   });
 
   it("applies non-allowlist policy directly", async () => {
-    const cfg: AstroclawConfig = {};
+    const cfg: OpenClawConfig = {};
     const prompter = createPrompter({
       confirm: true,
       policy: "open",
     });
     const setPolicy = vi.fn(
-      (next: AstroclawConfig, policy: ChannelAccessPolicy): AstroclawConfig => ({
+      (next: OpenClawConfig, policy: ChannelAccessPolicy): OpenClawConfig => ({
         ...next,
         channels: { discord: { groupPolicy: policy } },
       }),
     );
     const resolveAllowlist = vi.fn(async () => ["ignored"]);
-    const applyAllowlist = vi.fn((params: { cfg: AstroclawConfig }) => params.cfg);
+    const applyAllowlist = vi.fn((params: { cfg: OpenClawConfig }) => params.cfg);
 
     const next = await runConfigureChannelAccess({
       cfg,
@@ -89,19 +90,19 @@ describe("configureChannelAccessWithAllowlist", () => {
   });
 
   it("supports allowlist policies without prompting for entries", async () => {
-    const cfg: AstroclawConfig = {};
+    const cfg: OpenClawConfig = {};
     const prompter = createPrompter({
       confirm: true,
       policy: "allowlist",
     });
     const setPolicy = vi.fn(
-      (next: AstroclawConfig, policy: ChannelAccessPolicy): AstroclawConfig => ({
+      (next: OpenClawConfig, policy: ChannelAccessPolicy): OpenClawConfig => ({
         ...next,
         channels: { twitch: { groupPolicy: policy } },
       }),
     );
     const resolveAllowlist = vi.fn(async () => ["ignored"]);
-    const applyAllowlist = vi.fn((params: { cfg: AstroclawConfig }) => params.cfg);
+    const applyAllowlist = vi.fn((params: { cfg: OpenClawConfig }) => params.cfg);
 
     const next = await configureChannelAccessWithAllowlist({
       cfg,
@@ -123,27 +124,27 @@ describe("configureChannelAccessWithAllowlist", () => {
   });
 
   it("resolves allowlist entries and applies them after forcing allowlist policy", async () => {
-    const cfg: AstroclawConfig = {};
+    const cfg: OpenClawConfig = {};
     const prompter = createPrompter({
       confirm: true,
       policy: "allowlist",
       text: "#general, #support",
     });
     const calls: string[] = [];
-    const setPolicy = vi.fn((next: AstroclawConfig, policy: ChannelAccessPolicy): AstroclawConfig => {
+    const setPolicy = vi.fn((next: OpenClawConfig, policy: ChannelAccessPolicy): OpenClawConfig => {
       calls.push("setPolicy");
       return {
         ...next,
         channels: { slack: { groupPolicy: policy } },
       };
     });
-    const resolveAllowlist = vi.fn(async (params: { cfg: AstroclawConfig; entries: string[] }) => {
+    const resolveAllowlist = vi.fn(async (params: { cfg: OpenClawConfig; entries: string[] }) => {
       calls.push("resolve");
       expect(params.cfg).toBe(cfg);
       expect(params.entries).toEqual(["#general", "#support"]);
       return ["C1", "C2"];
     });
-    const applyAllowlist = vi.fn((params: { cfg: AstroclawConfig; resolved: string[] }) => {
+    const applyAllowlist = vi.fn((params: { cfg: OpenClawConfig; resolved: string[] }) => {
       calls.push("apply");
       expect(params.cfg.channels?.slack?.groupPolicy).toBe("allowlist");
       return {
