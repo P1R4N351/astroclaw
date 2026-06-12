@@ -1,3 +1,4 @@
+// Tests reply state persistence and recovery across process restarts.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -45,7 +46,7 @@ async function seedSessionStore(params: {
 }
 
 async function createCompactionSessionFixture(entry: SessionEntry) {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-compact-"));
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-compact-"));
   tempDirs.push(tmp);
   const storePath = path.join(tmp, "sessions.json");
   const sessionKey = "main";
@@ -529,6 +530,34 @@ describe("incrementCompactionCount", () => {
     expect(stored[sessionKey].outputTokens).toBeUndefined();
   });
 
+  it("accepts zero tokensAfter as a fresh post-compaction total", async () => {
+    const entry = {
+      sessionId: "s1",
+      updatedAt: Date.now(),
+      compactionCount: 0,
+      totalTokens: 180_000,
+      inputTokens: 170_000,
+      outputTokens: 10_000,
+      totalTokensFresh: true,
+    } as SessionEntry;
+    const { storePath, sessionKey, sessionStore } = await createCompactionSessionFixture(entry);
+
+    await incrementCompactionCount({
+      sessionEntry: entry,
+      sessionStore,
+      sessionKey,
+      storePath,
+      tokensAfter: 0,
+    });
+
+    const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored[sessionKey].compactionCount).toBe(1);
+    expect(stored[sessionKey].totalTokens).toBe(0);
+    expect(stored[sessionKey].totalTokensFresh).toBe(true);
+    expect(stored[sessionKey].inputTokens).toBeUndefined();
+    expect(stored[sessionKey].outputTokens).toBeUndefined();
+  });
+
   it("prefers explicit compactionTokensAfter over last-call usage for run accounting", async () => {
     const entry = {
       sessionId: "s1",
@@ -554,6 +583,34 @@ describe("incrementCompactionCount", () => {
 
     const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
     expect(stored[sessionKey].totalTokens).toBe(12_000);
+    expect(stored[sessionKey].totalTokensFresh).toBe(true);
+  });
+
+  it("preserves zero compactionTokensAfter for run accounting", async () => {
+    const entry = {
+      sessionId: "s1",
+      updatedAt: Date.now(),
+      compactionCount: 0,
+      totalTokens: 180_000,
+    } as SessionEntry;
+    const { storePath, sessionKey, sessionStore } = await createCompactionSessionFixture(entry);
+
+    await incrementRunCompactionCount({
+      sessionEntry: entry,
+      sessionStore,
+      sessionKey,
+      storePath,
+      compactionTokensAfter: 0,
+      lastCallUsage: {
+        input: 90_000,
+        output: 1_000,
+        total: 91_000,
+      },
+      contextTokensUsed: 200_000,
+    });
+
+    const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored[sessionKey].totalTokens).toBe(0);
     expect(stored[sessionKey].totalTokensFresh).toBe(true);
   });
 
@@ -611,7 +668,7 @@ describe("incrementCompactionCount", () => {
 
   it("updates sessionId and sessionFile when compaction rotated transcripts", async () => {
     const { stored, sessionKey, expectedDir } = await rotateCompactionSessionFile({
-      tempPrefix: "astroclaw-compact-rotate-",
+      tempPrefix: "openclaw-compact-rotate-",
       sessionFile: (tmp) => path.join(tmp, "s1-topic-456.jsonl"),
       newSessionId: "s2",
     });
@@ -621,7 +678,7 @@ describe("incrementCompactionCount", () => {
 
   it("preserves fork transcript filenames when compaction rotates transcripts", async () => {
     const { stored, sessionKey, expectedDir } = await rotateCompactionSessionFile({
-      tempPrefix: "astroclaw-compact-fork-",
+      tempPrefix: "openclaw-compact-fork-",
       sessionFile: (tmp) => path.join(tmp, "2026-03-23T12-34-56-789Z_s1.jsonl"),
       newSessionId: "s2",
     });
@@ -633,7 +690,7 @@ describe("incrementCompactionCount", () => {
 
   it("keeps rewritten absolute sessionFile paths that stay inside the sessions directory", async () => {
     const { stored, sessionKey, expectedDir } = await rotateCompactionSessionFile({
-      tempPrefix: "astroclaw-compact-unsafe-",
+      tempPrefix: "openclaw-compact-unsafe-",
       sessionFile: (tmp) => path.join(tmp, "outside", "s1.jsonl"),
       newSessionId: "s2",
     });
