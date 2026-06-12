@@ -1,12 +1,13 @@
+// Memory Core tests cover public artifacts plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
   appendMemoryHostEvent,
   resolveMemoryHostEventLogPath,
-} from "astroclaw/plugin-sdk/memory-host-events";
+} from "openclaw/plugin-sdk/memory-host-events";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../api.js";
+import type { OpenClawConfig } from "../api.js";
 import { listMemoryCorePublicArtifacts } from "./public-artifacts.js";
 
 describe("listMemoryCorePublicArtifacts", () => {
@@ -45,7 +46,7 @@ describe("listMemoryCorePublicArtifacts", () => {
       results: [],
     });
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true, workspace: workspaceDir }],
       },
@@ -92,7 +93,7 @@ describe("listMemoryCorePublicArtifacts", () => {
     await fs.mkdir(workspaceDir, { recursive: true });
     await fs.writeFile(path.join(workspaceDir, "memory.md"), "# Legacy Durable Memory\n", "utf8");
 
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true, workspace: workspaceDir }],
       },
