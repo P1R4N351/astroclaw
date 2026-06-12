@@ -1,15 +1,17 @@
+// Vitest unit fast config wires the unit fast test shard.
 import { defineConfig } from "vitest/config";
 import { loadPatternListFromEnv, narrowIncludePatternsForCli } from "./vitest.pattern-file.ts";
 import { sharedVitestConfig } from "./vitest.shared.config.ts";
-import { getUnitFastTestFiles } from "./vitest.unit-fast-paths.mjs";
+import { getUnitFastTestFiles, getUnitFastTimerTestFiles } from "./vitest.unit-fast-paths.mjs";
 
 export function createUnitFastVitestConfig(
   env: Record<string, string | undefined> = process.env,
   options: { argv?: string[] } = {},
 ) {
   const sharedTest = sharedVitestConfig.test ?? {};
-  const includeFromEnv = loadPatternListFromEnv("ASTROCLAW_VITEST_INCLUDE_FILE", env);
-  const unitFastTestFiles = getUnitFastTestFiles();
+  const includeFromEnv = loadPatternListFromEnv("OPENCLAW_VITEST_INCLUDE_FILE", env);
+  const timerTestFiles = new Set(getUnitFastTimerTestFiles());
+  const unitFastTestFiles = getUnitFastTestFiles().filter((file) => !timerTestFiles.has(file));
   const cliInclude = narrowIncludePatternsForCli(unitFastTestFiles, options.argv);
 
   return defineConfig({
