@@ -1,5 +1,6 @@
+// Tests queued reply runtime secret resolution for agent and channel scopes.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 
 const hoisted = vi.hoisted(() => ({
   resolveCommandSecretRefsViaGatewayMock: vi.fn(),
@@ -23,7 +24,7 @@ const { clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } =
   await import("../../config/config.js");
 
 type ResolveCommandSecretRefsCall = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   commandName: string;
   targetIds?: Set<string>;
   allowedPaths?: Set<string>;
@@ -61,9 +62,9 @@ describe("resolveQueuedReplyExecutionConfig channel scope", () => {
   });
 
   it("resolves base runtime targets, then active channel/account targets from originating context", async () => {
-    const sourceConfig = { source: true } as unknown as AstroclawConfig;
-    const baseResolved = { baseResolved: true } as unknown as AstroclawConfig;
-    const scopedResolved = { scopedResolved: true } as unknown as AstroclawConfig;
+    const sourceConfig = { source: true } as unknown as OpenClawConfig;
+    const baseResolved = { baseResolved: true } as unknown as OpenClawConfig;
+    const scopedResolved = { scopedResolved: true } as unknown as OpenClawConfig;
     hoisted.resolveCommandSecretRefsViaGatewayMock
       .mockResolvedValueOnce({
         resolvedConfig: baseResolved,
@@ -106,7 +107,7 @@ describe("resolveQueuedReplyExecutionConfig channel scope", () => {
   });
 
   it("falls back to messageProvider and agentAccountId when originating values are missing", async () => {
-    const sourceConfig = { source: true } as unknown as AstroclawConfig;
+    const sourceConfig = { source: true } as unknown as OpenClawConfig;
 
     await resolveQueuedReplyExecutionConfig(sourceConfig, {
       messageProvider: "discord",
@@ -121,7 +122,7 @@ describe("resolveQueuedReplyExecutionConfig channel scope", () => {
   });
 
   it("skips scoped channel resolution when no active channel can be resolved", async () => {
-    const sourceConfig = { source: true } as unknown as AstroclawConfig;
+    const sourceConfig = { source: true } as unknown as OpenClawConfig;
 
     const resolved = await resolveQueuedReplyExecutionConfig(sourceConfig);
 
@@ -131,8 +132,8 @@ describe("resolveQueuedReplyExecutionConfig channel scope", () => {
   });
 
   it("prefers the runtime snapshot as the base config for secret resolution", async () => {
-    const sourceConfig = { source: true } as unknown as AstroclawConfig;
-    const runtimeConfig = { runtime: true } as unknown as AstroclawConfig;
+    const sourceConfig = { source: true } as unknown as OpenClawConfig;
+    const runtimeConfig = { runtime: true } as unknown as OpenClawConfig;
     setRuntimeConfigSnapshot(runtimeConfig, sourceConfig);
     hoisted.getScopedChannelsCommandSecretTargetsMock.mockReturnValue({
       targetIds: new Set<string>(),
@@ -162,7 +163,7 @@ describe("resolveQueuedReplyExecutionConfig channel scope", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const staleRuntimeConfig = {
       models: {
         providers: {
@@ -172,7 +173,7 @@ describe("resolveQueuedReplyExecutionConfig channel scope", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const scopedResolvedConfig = {
       models: {
         providers: {
@@ -187,7 +188,7 @@ describe("resolveQueuedReplyExecutionConfig channel scope", () => {
           planTool: true,
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     setRuntimeConfigSnapshot(staleRuntimeConfig, sourceConfig);
 
     expect(resolveQueuedReplyRuntimeConfig(structuredClone(sourceConfig))).toBe(staleRuntimeConfig);
