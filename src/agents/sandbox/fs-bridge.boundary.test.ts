@@ -1,3 +1,5 @@
+// Sandbox filesystem bridge boundary tests cover host-side validation before
+// any Docker filesystem command can run.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -39,7 +41,7 @@ describe("sandbox fs bridge boundary validation", () => {
   });
 
   it("rejects mkdirp when target exists as a file", async () => {
-    await withTempDir("astroclaw-fs-bridge-mkdirp-file-", async (stateDir) => {
+    await withTempDir("openclaw-fs-bridge-mkdirp-file-", async (stateDir) => {
       const workspaceDir = path.join(stateDir, "workspace");
       const filePath = path.join(workspaceDir, "memory", "kemik");
       await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -60,7 +62,9 @@ describe("sandbox fs bridge boundary validation", () => {
   });
 
   it("rejects pre-existing host symlink escapes before docker exec", async () => {
-    await withTempDir("astroclaw-fs-bridge-", async (stateDir) => {
+    // Host-visible symlink escapes are rejected locally so Docker never follows
+    // them inside a privileged bridge command.
+    await withTempDir("openclaw-fs-bridge-", async (stateDir) => {
       const { workspaceDir, outsideFile } = await createHostEscapeFixture(stateDir);
       if (process.platform === "win32") {
         return;
@@ -80,10 +84,12 @@ describe("sandbox fs bridge boundary validation", () => {
   });
 
   it("rejects pre-existing host hardlink escapes before docker exec", async () => {
+    // Hardlinks can expose outside files without a symlink marker, so the bridge
+    // checks link metadata before reads enter the container.
     if (process.platform === "win32") {
       return;
     }
-    await withTempDir("astroclaw-fs-bridge-hardlink-", async (stateDir) => {
+    await withTempDir("openclaw-fs-bridge-hardlink-", async (stateDir) => {
       const { workspaceDir, outsideFile } = await createHostEscapeFixture(stateDir);
       const hardlinkPath = path.join(workspaceDir, "link.txt");
       try {
