@@ -1,4 +1,5 @@
-import { resolveAgentModelPrimaryValue } from "astroclaw/plugin-sdk/provider-onboard";
+// Kimi Coding tests cover onboard plugin behavior.
+import { resolveAgentModelPrimaryValue } from "openclaw/plugin-sdk/provider-onboard";
 import { describe, expect, it } from "vitest";
 import {
   applyKimiCodeConfig,
