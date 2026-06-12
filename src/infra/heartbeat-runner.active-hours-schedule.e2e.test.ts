@@ -1,5 +1,6 @@
+// Covers heartbeat scheduling within active hours.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { startHeartbeatRunner } from "./heartbeat-runner.js";
 import { computeNextHeartbeatPhaseDueMs, resolveHeartbeatPhaseMs } from "./heartbeat-schedule.js";
 import { resetHeartbeatWakeStateForTests } from "./heartbeat-wake.js";
@@ -18,7 +19,7 @@ describe("heartbeat scheduler: activeHours-aware scheduling (#75487)", () => {
     every?: string;
     activeHours?: { start: string; end: string; timezone?: string };
     userTimezone?: string;
-  }): AstroclawConfig {
+  }): OpenClawConfig {
     return {
       agents: {
         defaults: {
