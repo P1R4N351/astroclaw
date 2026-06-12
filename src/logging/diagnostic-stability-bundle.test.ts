@@ -1,3 +1,4 @@
+// Diagnostic stability bundle tests cover stable diagnostic bundle generation.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -31,7 +32,7 @@ describe("diagnostic stability bundles", () => {
   }
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-stability-bundle-"));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-stability-bundle-"));
     resetStabilityBundleTestState();
   });
 
