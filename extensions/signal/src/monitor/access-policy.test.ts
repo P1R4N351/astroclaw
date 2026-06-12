@@ -1,4 +1,5 @@
-import type { AccessGroupsConfig, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Signal tests cover access policy plugin behavior.
+import type { AccessGroupsConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { handleSignalDirectMessageAccess, resolveSignalAccessState } from "./access-policy.js";
 
@@ -37,7 +38,7 @@ async function resolveGroupAccess(params: {
 
 function accessGroupsConfig(
   accessGroups: AccessGroupsConfig | undefined,
-): Pick<AstroclawConfig, "accessGroups"> | undefined {
+): Pick<OpenClawConfig, "accessGroups"> | undefined {
   return accessGroups ? { accessGroups } : undefined;
 }
 
