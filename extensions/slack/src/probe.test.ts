@@ -1,3 +1,4 @@
+// Slack tests cover probe plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { probeSlack } from "./probe.js";
 
@@ -9,7 +10,7 @@ vi.mock("./client.js", () => ({
   createSlackWebClient: createSlackWebClientMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/text-utility-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/text-utility-runtime", () => ({
   withTimeout: withTimeoutMock,
 }));
 
@@ -40,17 +41,17 @@ describe("probeSlack", () => {
     authTestMock.mockResolvedValue({
       ok: true,
       user_id: "U123",
-      user: "astroclaw-bot",
+      user: "openclaw-bot",
       team_id: "T123",
-      team: "Astroclaw",
+      team: "OpenClaw",
     });
 
     await expect(probeSlack("xoxb-test", 2500)).resolves.toEqual({
       ok: true,
       status: 200,
       elapsedMs: 45,
-      bot: { id: "U123", name: "astroclaw-bot" },
-      team: { id: "T123", name: "Astroclaw" },
+      bot: { id: "U123", name: "openclaw-bot" },
+      team: { id: "T123", name: "OpenClaw" },
     });
     expect(createSlackWebClientMock).toHaveBeenCalledWith("xoxb-test");
     expect(withTimeoutMock).toHaveBeenCalledTimes(1);
