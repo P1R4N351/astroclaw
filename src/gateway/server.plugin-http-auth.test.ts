@@ -1,3 +1,5 @@
+// Plugin HTTP auth tests cover protected route canonicalization, operator scope
+// checks, hook/plugin route precedence, and unauthorized variant handling.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { describe, expect, test, vi } from "vitest";
 import { getPluginRuntimeGatewayRequestScope } from "../plugins/runtime/gateway-request-scope.js";
@@ -158,9 +160,19 @@ function createRuntimeScopeRecorderHandler(params: {
   });
 }
 
+async function expectPluginRequestOk(
+  server: Parameters<typeof dispatchRequest>[0],
+  request: Parameters<typeof createRequest>[0],
+): Promise<void> {
+  const response = createResponse();
+  await dispatchRequest(server, createRequest(request), response.res);
+  expect(response.res.statusCode).toBe(200);
+  expect(response.getBody()).toBe("ok");
+}
+
 describe("gateway plugin HTTP auth boundary", () => {
   test("applies default security headers and optional strict transport security", async () => {
-    await withGatewayTempConfig("astroclaw-plugin-http-security-headers-test-", async () => {
+    await withGatewayTempConfig("openclaw-plugin-http-security-headers-test-", async () => {
       const withoutHsts = createTestGatewayServer({ resolvedAuth: AUTH_NONE });
       const withoutHstsResponse = await sendRequest(withoutHsts, { path: "/missing" });
       expect(withoutHstsResponse.setHeader).toHaveBeenCalledWith(
@@ -190,7 +202,7 @@ describe("gateway plugin HTTP auth boundary", () => {
 
   test("serves unauthenticated liveness/readiness probe routes when no other route handles them", async () => {
     await withGatewayServer({
-      prefix: "astroclaw-plugin-http-probes-test-",
+      prefix: "openclaw-plugin-http-probes-test-",
       resolvedAuth: AUTH_TOKEN,
       run: async (server) => {
         await expectProbeRoutesHealthy(server);
@@ -202,7 +214,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     const handlePluginRequest = createHealthzPluginHandler();
 
     await withGatewayServer({
-      prefix: "astroclaw-plugin-http-probes-shadow-test-",
+      prefix: "openclaw-plugin-http-probes-shadow-test-",
       resolvedAuth: AUTH_NONE,
       overrides: { handlePluginRequest },
       run: async (server) => {
@@ -213,7 +225,7 @@ describe("gateway plugin HTTP auth boundary", () => {
 
   test("rejects non-GET/HEAD methods on probe routes", async () => {
     await withGatewayServer({
-      prefix: "astroclaw-plugin-http-probes-method-test-",
+      prefix: "openclaw-plugin-http-probes-method-test-",
       resolvedAuth: AUTH_NONE,
       run: async (server) => {
         const postResponse = await sendRequest(server, { path: "/healthz", method: "POST" });
@@ -253,7 +265,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withGatewayServer({
-      prefix: "astroclaw-plugin-http-auth-test-",
+      prefix: "openclaw-plugin-http-auth-test-",
       resolvedAuth: AUTH_TOKEN,
       overrides: {
         handlePluginRequest,
@@ -304,7 +316,7 @@ describe("gateway plugin HTTP auth boundary", () => {
           trustedProxies: ["203.0.113.10"],
         },
       },
-      prefix: "astroclaw-plugin-http-runtime-scope-trusted-proxy-test-",
+      prefix: "openclaw-plugin-http-runtime-scope-trusted-proxy-test-",
       run: async () => {
         const server = createTestGatewayServer({
           resolvedAuth: {
@@ -319,23 +331,15 @@ describe("gateway plugin HTTP auth boundary", () => {
           },
         });
 
-        const response = createResponse();
-        await dispatchRequest(
-          server,
-          createRequest({
-            path: "/secure-hook",
-            remoteAddress: "203.0.113.10",
-            headers: {
-              "x-forwarded-user": "operator",
-              "x-forwarded-for": "198.51.100.20",
-              "x-astroclaw-scopes": "operator.read",
-            },
-          }),
-          response.res,
-        );
-
-        expect(response.res.statusCode).toBe(200);
-        expect(response.getBody()).toBe("ok");
+        await expectPluginRequestOk(server, {
+          path: "/secure-hook",
+          remoteAddress: "203.0.113.10",
+          headers: {
+            "x-forwarded-user": "operator",
+            "x-forwarded-for": "198.51.100.20",
+            "x-openclaw-scopes": "operator.read",
+          },
+        });
       },
     });
 
@@ -355,28 +359,20 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withGatewayServer({
-      prefix: "astroclaw-plugin-http-runtime-scope-bearer-test-",
+      prefix: "openclaw-plugin-http-runtime-scope-bearer-test-",
       resolvedAuth: AUTH_TOKEN,
       overrides: {
         handlePluginRequest,
         shouldEnforcePluginGatewayAuth: (pathContext) => pathContext.pathname === "/secure-hook",
       },
       run: async (server) => {
-        const response = createResponse();
-        await dispatchRequest(
-          server,
-          createRequest({
-            path: "/secure-hook",
-            authorization: "Bearer test-token",
-            headers: {
-              "x-astroclaw-scopes": "operator.read",
-            },
-          }),
-          response.res,
-        );
-
-        expect(response.res.statusCode).toBe(200);
-        expect(response.getBody()).toBe("ok");
+        await expectPluginRequestOk(server, {
+          path: "/secure-hook",
+          authorization: "Bearer test-token",
+          headers: {
+            "x-openclaw-scopes": "operator.read",
+          },
+        });
       },
     });
 
@@ -397,7 +393,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withGatewayServer({
-      prefix: "astroclaw-plugin-http-runtime-scope-bearer-trusted-operator-test-",
+      prefix: "openclaw-plugin-http-runtime-scope-bearer-trusted-operator-test-",
       resolvedAuth: AUTH_TOKEN,
       overrides: {
         handlePluginRequest,
@@ -405,18 +401,10 @@ describe("gateway plugin HTTP auth boundary", () => {
           pathContext.pathname === "/secure-admin-hook",
       },
       run: async (server) => {
-        const response = createResponse();
-        await dispatchRequest(
-          server,
-          createRequest({
-            path: "/secure-admin-hook",
-            authorization: "Bearer test-token",
-          }),
-          response.res,
-        );
-
-        expect(response.res.statusCode).toBe(200);
-        expect(response.getBody()).toBe("ok");
+        await expectPluginRequestOk(server, {
+          path: "/secure-admin-hook",
+          authorization: "Bearer test-token",
+        });
       },
     });
 
@@ -445,7 +433,7 @@ describe("gateway plugin HTTP auth boundary", () => {
 
     await withTempConfig({
       cfg: createMattermostCallbackConfig("/api/channels/mattermost/command"),
-      prefix: "astroclaw-plugin-http-auth-mm-callback-",
+      prefix: "openclaw-plugin-http-auth-mm-callback-",
       run: async () => {
         const server = createTestGatewayServer({
           resolvedAuth: AUTH_TOKEN,
@@ -481,7 +469,7 @@ describe("gateway plugin HTTP auth boundary", () => {
 
     await withTempConfig({
       cfg: createMattermostCallbackConfig("/api/channels/nostr/default/profile"),
-      prefix: "astroclaw-plugin-http-auth-mm-misconfig-",
+      prefix: "openclaw-plugin-http-auth-mm-misconfig-",
       run: async () => {
         const server = createTestGatewayServer({
           resolvedAuth: AUTH_TOKEN,
@@ -513,7 +501,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withGatewayServer({
-      prefix: "astroclaw-plugin-http-auth-wildcard-handler-test-",
+      prefix: "openclaw-plugin-http-auth-wildcard-handler-test-",
       resolvedAuth: AUTH_TOKEN,
       overrides: {
         handlePluginRequest,
@@ -552,7 +540,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withGatewayServer({
-      prefix: "astroclaw-plugin-http-auth-wildcard-default-test-",
+      prefix: "openclaw-plugin-http-auth-wildcard-default-test-",
       resolvedAuth: AUTH_TOKEN,
       overrides: { handlePluginRequest },
       run: async (server) => {
@@ -607,7 +595,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withRootMountedControlUiServer({
-      prefix: "astroclaw-plugin-http-control-ui-precedence-test-",
+      prefix: "openclaw-plugin-http-control-ui-precedence-test-",
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, {
@@ -634,7 +622,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withRootMountedControlUiServer({
-      prefix: "astroclaw-plugin-http-control-ui-webhook-post-test-",
+      prefix: "openclaw-plugin-http-control-ui-webhook-post-test-",
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, {
@@ -662,7 +650,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withRootMountedControlUiServer({
-      prefix: "astroclaw-plugin-http-control-ui-shadow-test-",
+      prefix: "openclaw-plugin-http-control-ui-shadow-test-",
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, { path: "/my-plugin/inbound" });
@@ -678,7 +666,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     const handlePluginRequest = vi.fn(async () => false);
 
     await withRootMountedControlUiServer({
-      prefix: "astroclaw-plugin-http-control-ui-fallthrough-test-",
+      prefix: "openclaw-plugin-http-control-ui-fallthrough-test-",
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, { path: "/chat" });
@@ -694,7 +682,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     const handlePluginRequest = vi.fn(async () => false);
 
     await withRootMountedControlUiServer({
-      prefix: "astroclaw-plugin-http-control-ui-probes-test-",
+      prefix: "openclaw-plugin-http-control-ui-probes-test-",
       handlePluginRequest,
       run: async (server) => {
         await expectProbeRoutesHealthy(server);
@@ -707,7 +695,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     const handlePluginRequest = createHealthzPluginHandler();
 
     await withRootMountedControlUiServer({
-      prefix: "astroclaw-plugin-http-control-ui-probe-shadow-test-",
+      prefix: "openclaw-plugin-http-control-ui-probe-shadow-test-",
       handlePluginRequest,
       run: async (server) => {
         await expectHealthzProbeReserved({ server, handlePluginRequest });
@@ -719,7 +707,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     const handlePluginRequest = createCanonicalizedChannelPluginHandler();
 
     await withPluginGatewayServer({
-      prefix: "astroclaw-plugin-http-auth-canonicalized-test-",
+      prefix: "openclaw-plugin-http-auth-canonicalized-test-",
       resolvedAuth: AUTH_TOKEN,
       overrides: createProtectedPluginAuthOverrides(handlePluginRequest),
       run: async (server) => {
@@ -740,7 +728,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     const handlePluginRequest = createCanonicalizedChannelPluginHandler();
 
     await withPluginGatewayServer({
-      prefix: "astroclaw-plugin-http-auth-fuzz-corpus-test-",
+      prefix: "openclaw-plugin-http-auth-fuzz-corpus-test-",
       resolvedAuth: AUTH_TOKEN,
       overrides: createProtectedPluginAuthOverrides(handlePluginRequest),
       run: async (server) => {
@@ -765,7 +753,7 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
 
     await withGatewayServer({
-      prefix: "astroclaw-plugin-http-auth-encoded-order-test-",
+      prefix: "openclaw-plugin-http-auth-encoded-order-test-",
       resolvedAuth: AUTH_TOKEN,
       overrides: { handlePluginRequest },
       run: async (server) => {
@@ -778,7 +766,7 @@ describe("gateway plugin HTTP auth boundary", () => {
   test.each(["0.0.0.0", "::"])(
     "returns 404 (not 500) for non-hook routes with hooks enabled and bindHost=%s",
     async (bindHost) => {
-      await withGatewayTempConfig("astroclaw-plugin-http-hooks-bindhost-", async () => {
+      await withGatewayTempConfig("openclaw-plugin-http-hooks-bindhost-", async () => {
         const handleHooksRequest = createHooksHandler(bindHost);
         const server = createTestGatewayServer({
           resolvedAuth: AUTH_NONE,
@@ -794,7 +782,7 @@ describe("gateway plugin HTTP auth boundary", () => {
   );
 
   test("rejects query-token hooks requests with bindHost=::", async () => {
-    await withGatewayTempConfig("astroclaw-plugin-http-hooks-query-token-", async () => {
+    await withGatewayTempConfig("openclaw-plugin-http-hooks-query-token-", async () => {
       const handleHooksRequest = createHooksHandler("::");
       const server = createTestGatewayServer({
         resolvedAuth: AUTH_NONE,
