@@ -1,8 +1,9 @@
+// Comfy tests cover index plugin behavior.
 import fs from "node:fs";
 import {
   registerSingleProviderPlugin,
   resolveProviderPluginChoice,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
@@ -12,7 +13,7 @@ type ComfyManifest = {
 
 function readManifest(): ComfyManifest {
   return JSON.parse(
-    fs.readFileSync(new URL("./astroclaw.plugin.json", import.meta.url), "utf8"),
+    fs.readFileSync(new URL("./openclaw.plugin.json", import.meta.url), "utf8"),
   ) as ComfyManifest;
 }
 
