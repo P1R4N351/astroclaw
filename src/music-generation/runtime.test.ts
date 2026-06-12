@@ -1,5 +1,6 @@
+// Tests music generation runtime dispatch and provider fallback behavior.
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import {
   generateMusic,
   listRuntimeMusicGenerationProviders,
@@ -9,7 +10,7 @@ import {
 import type { MusicGenerationProvider } from "./types.js";
 
 let providers: MusicGenerationProvider[] = [];
-let listedConfigs: Array<AstroclawConfig | undefined> = [];
+let listedConfigs: Array<OpenClawConfig | undefined> = [];
 
 const runtimeDeps: MusicGenerationRuntimeDeps = {
   getProvider: (providerId) => providers.find((provider) => provider.id === providerId),
@@ -63,7 +64,7 @@ describe("music-generation runtime", () => {
             musicGenerationModel: { primary: "music-plugin/track-v1" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "play a synth line",
       agentDir: "/tmp/agent",
       authStore,
@@ -108,7 +109,7 @@ describe("music-generation runtime", () => {
             musicGenerationModel: { primary: "music-plugin/track-v1", timeoutMs: 300_000 },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "play a synth line",
     });
 
@@ -141,7 +142,7 @@ describe("music-generation runtime", () => {
             musicGenerationModel: { primary: "music-plugin/track-v1" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "play a synth line",
       autoProviderFallback: false,
     };
@@ -178,7 +179,7 @@ describe("music-generation runtime", () => {
     ];
 
     const result = await runGenerateMusic({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       prompt: "play a synth line",
     });
 
@@ -212,9 +213,9 @@ describe("music-generation runtime", () => {
     providers = registryProviders;
 
     expect(
-      listRuntimeMusicGenerationProviders({ config: {} as AstroclawConfig }, runtimeDeps),
+      listRuntimeMusicGenerationProviders({ config: {} as OpenClawConfig }, runtimeDeps),
     ).toEqual(registryProviders);
-    expect(listedConfigs).toEqual([{} as AstroclawConfig]);
+    expect(listedConfigs).toEqual([{} as OpenClawConfig]);
   });
 
   it("ignores unsupported optional overrides per provider and model", async () => {
@@ -261,7 +262,7 @@ describe("music-generation runtime", () => {
             musicGenerationModel: { primary: "google/lyria-3-clip-preview" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "energetic arcade anthem",
       lyrics: "Hero crab in the neon tide",
       instrumental: true,
@@ -278,6 +279,64 @@ describe("music-generation runtime", () => {
     expect(result.ignoredOverrides).toEqual([
       { key: "durationSeconds", value: 30 },
       { key: "format", value: "wav" },
+    ]);
+  });
+
+  it("ignores model-specific unsupported lyrics and instrumental overrides", async () => {
+    let seenRequest:
+      | {
+          lyrics?: string;
+          instrumental?: boolean;
+        }
+      | undefined;
+    providers = [
+      {
+        id: "fal",
+        capabilities: {
+          generate: {
+            supportsLyrics: true,
+            supportsLyricsByModel: {
+              "fal-ai/stable-audio-25/text-to-audio": false,
+            },
+            supportsInstrumental: true,
+            supportsInstrumentalByModel: {
+              "fal-ai/stable-audio-25/text-to-audio": false,
+            },
+          },
+        },
+        generateMusic: async (req) => {
+          seenRequest = {
+            lyrics: req.lyrics,
+            instrumental: req.instrumental,
+          };
+          return {
+            tracks: [{ buffer: Buffer.from("wav-bytes"), mimeType: "audio/wav" }],
+            model: "fal-ai/stable-audio-25/text-to-audio",
+          };
+        },
+      },
+    ];
+
+    const result = await runGenerateMusic({
+      cfg: {
+        agents: {
+          defaults: {
+            musicGenerationModel: { primary: "fal/fal-ai/stable-audio-25/text-to-audio" },
+          },
+        },
+      } as OpenClawConfig,
+      prompt: "orchestral hit",
+      lyrics: "rise up",
+      instrumental: true,
+    });
+
+    expect(seenRequest).toEqual({
+      lyrics: undefined,
+      instrumental: undefined,
+    });
+    expect(result.ignoredOverrides).toEqual([
+      { key: "lyrics", value: "rise up" },
+      { key: "instrumental", value: true },
     ]);
   });
 
@@ -331,7 +390,7 @@ describe("music-generation runtime", () => {
             musicGenerationModel: { primary: "google/lyria-3-pro-preview" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "turn this cover image into a trailer cue",
       lyrics: "rise up",
       instrumental: true,
@@ -386,7 +445,7 @@ describe("music-generation runtime", () => {
             musicGenerationModel: { primary: "minimax/music-2.6" },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompt: "energetic arcade anthem",
       durationSeconds: 45,
     });
