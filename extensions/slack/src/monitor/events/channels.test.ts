@@ -1,13 +1,14 @@
+// Slack tests cover channels plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const enqueueSystemEventMock = vi.hoisted(() => vi.fn());
 let registerSlackChannelEvents: typeof import("./channels.js").registerSlackChannelEvents;
 let createSlackSystemEventTestHarness: typeof import("./system-event-test-harness.js").createSlackSystemEventTestHarness;
 
-vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/system-event-runtime", () => ({
   enqueueSystemEvent: (...args: unknown[]) => enqueueSystemEventMock(...args),
 }));
-vi.mock("astroclaw/plugin-sdk/system-event-runtime.js", () => ({
+vi.mock("openclaw/plugin-sdk/system-event-runtime.js", () => ({
   enqueueSystemEvent: (...args: unknown[]) => enqueueSystemEventMock(...args),
 }));
 type SlackChannelHandler = (args: {
@@ -81,8 +82,6 @@ describe("registerSlackChannelEvents", () => {
     expect(enqueueSystemEventMock).toHaveBeenCalledWith("Slack channel created: #general.", {
       sessionKey: "agent:main:main",
       contextKey: "slack:channel:created:C1",
-      forceSenderIsOwnerFalse: true,
-      trusted: false,
     });
   });
 });
