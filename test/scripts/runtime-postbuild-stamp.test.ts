@@ -1,3 +1,4 @@
+// Runtime Postbuild Stamp tests cover runtime postbuild stamp script behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -7,7 +8,7 @@ import { writeRuntimePostBuildStamp } from "../../scripts/runtime-postbuild-stam
 
 describe("runtime-postbuild-stamp script", () => {
   it("writes dist/.runtime-postbuildstamp with the current git head", () => {
-    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-runtime-postbuild-stamp-"));
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-runtime-postbuild-stamp-"));
     try {
       const stampPath = writeRuntimePostBuildStamp({
         cwd: rootDir,
