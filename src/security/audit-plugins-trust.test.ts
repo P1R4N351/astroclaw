@@ -1,9 +1,11 @@
+// Covers plugin trust audit findings and remediation hints.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
+import { writePersistedInstalledPluginIndex } from "../plugins/installed-plugin-index-store.js";
 import type { InstalledPluginIndex } from "../plugins/installed-plugin-index.js";
 import { createPathResolutionEnv, withEnvAsync } from "../test-utils/env.js";
 
@@ -161,7 +163,7 @@ describe("security audit install metadata findings", () => {
     return dir;
   };
 
-  const runInstallMetadataAudit = async (cfg: AstroclawConfig, stateDir: string) => {
+  const runInstallMetadataAudit = async (cfg: OpenClawConfig, stateDir: string) => {
     return await collectPluginsTrustFindingsForTest({ cfg, stateDir });
   };
 
@@ -190,7 +192,7 @@ describe("security audit install metadata findings", () => {
       installRecords: records,
       plugins: Object.keys(records).map((pluginId) => ({
         pluginId,
-        manifestPath: path.join(stateDir, "extensions", pluginId, "astroclaw.plugin.json"),
+        manifestPath: path.join(stateDir, "extensions", pluginId, "openclaw.plugin.json"),
         manifestHash: "manifest",
         rootDir: path.join(stateDir, "extensions", pluginId),
         origin: "global" as const,
@@ -205,13 +207,11 @@ describe("security audit install metadata findings", () => {
       })),
       diagnostics: [],
     };
-    const filePath = path.join(stateDir, "plugins", "installs.json");
-    await fs.mkdir(path.dirname(filePath), { recursive: true, mode: 0o700 });
-    await fs.writeFile(filePath, `${JSON.stringify(index, null, 2)}\n`, { mode: 0o600 });
+    await writePersistedInstalledPluginIndex(index, { stateDir });
   };
 
   beforeAll(async () => {
-    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-security-install-"));
+    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-security-install-"));
   });
 
   afterAll(async () => {
@@ -234,7 +234,7 @@ describe("security audit install metadata findings", () => {
           await writePluginIndexInstallRecords(stateDir, {
             "voice-call": {
               source: "npm",
-              spec: "@astroclaw/voice-call",
+              spec: "@openclaw/voice-call",
             },
           });
           return runInstallMetadataAudit(
@@ -244,7 +244,7 @@ describe("security audit install metadata findings", () => {
                   installs: {
                     "test-hooks": {
                       source: "npm",
-                      spec: "@astroclaw/test-hooks",
+                      spec: "@openclaw/test-hooks",
                     },
                   },
                 },
@@ -267,7 +267,7 @@ describe("security audit install metadata findings", () => {
           await writePluginIndexInstallRecords(stateDir, {
             "voice-call": {
               source: "npm",
-              spec: "@astroclaw/voice-call@1.2.3",
+              spec: "@openclaw/voice-call@1.2.3",
               integrity: "sha512-plugin",
             },
           });
@@ -278,7 +278,7 @@ describe("security audit install metadata findings", () => {
                   installs: {
                     "test-hooks": {
                       source: "npm",
-                      spec: "@astroclaw/test-hooks@1.2.3",
+                      spec: "@openclaw/test-hooks@1.2.3",
                       integrity: "sha512-hook",
                     },
                   },
@@ -296,13 +296,49 @@ describe("security audit install metadata findings", () => {
         ],
       },
       {
+        name: "still warns when active npm specs are unpinned even with resolved metadata",
+        run: async () => {
+          const stateDir = await makeTmpDir("unpinned-active-spec-resolved-plugin-index");
+          await writePluginIndexInstallRecords(stateDir, {
+            "voice-call": {
+              source: "npm",
+              spec: "@openclaw/voice-call",
+              resolvedSpec: "@openclaw/voice-call@1.2.3",
+              integrity: "sha512-plugin",
+            },
+          });
+          return runInstallMetadataAudit(
+            {
+              hooks: {
+                internal: {
+                  installs: {
+                    "test-hooks": {
+                      source: "npm",
+                      spec: "@openclaw/test-hooks",
+                      resolvedSpec: "@openclaw/test-hooks@1.2.3",
+                      integrity: "sha512-hook",
+                    },
+                  },
+                },
+              },
+            },
+            stateDir,
+          );
+        },
+        expectedPresent: [
+          "plugins.installs_unpinned_npm_specs",
+          "hooks.installs_unpinned_npm_specs",
+        ],
+        expectedAbsent: ["plugins.installs_missing_integrity", "hooks.installs_missing_integrity"],
+      },
+      {
         name: "warns when install records drift from installed package versions",
         run: async () => {
           const stateDir = await makeTmpDir("drift-plugin-index");
           await writePluginIndexInstallRecords(stateDir, {
             "voice-call": {
               source: "npm",
-              spec: "@astroclaw/voice-call@1.2.3",
+              spec: "@openclaw/voice-call@1.2.3",
               integrity: "sha512-plugin",
               resolvedVersion: "1.2.3",
             },
@@ -314,7 +350,7 @@ describe("security audit install metadata findings", () => {
                   installs: {
                     "test-hooks": {
                       source: "npm",
-                      spec: "@astroclaw/test-hooks@1.2.3",
+                      spec: "@openclaw/test-hooks@1.2.3",
                       integrity: "sha512-hook",
                       resolvedVersion: "1.2.3",
                     },
@@ -383,7 +419,7 @@ describe("security audit install metadata findings", () => {
     const stateDir = await makeTmpDir("installed-plugin-debris");
     for (const name of [
       "live-plugin",
-      ".astroclaw-install-backups",
+      ".openclaw-install-backups",
       "node_modules",
       "old-plugin.backup-20260502",
       "old-plugin.disabled.20260502",
@@ -405,7 +441,7 @@ describe("security audit install metadata findings", () => {
     );
     expect(toolsReachable.detail).toContain("Enabled extension plugins: live-plugin.");
     expect(findings.map((finding) => finding.detail).join("\n")).not.toContain(
-      ".astroclaw-install-backups",
+      ".openclaw-install-backups",
     );
   });
 
@@ -449,14 +485,14 @@ describe("security audit extension tool reachability findings", () => {
     "USERPROFILE",
     "HOMEDRIVE",
     "HOMEPATH",
-    "ASTROCLAW_HOME",
-    "ASTROCLAW_STATE_DIR",
-    "ASTROCLAW_BUNDLED_PLUGINS_DIR",
+    "OPENCLAW_HOME",
+    "OPENCLAW_STATE_DIR",
+    "OPENCLAW_BUNDLED_PLUGINS_DIR",
   ] as const;
   const previousPathResolutionEnv: Partial<Record<(typeof pathResolutionEnvKeys)[number], string>> =
     {};
 
-  const runSharedExtensionsAudit = async (config: AstroclawConfig) => {
+  const runSharedExtensionsAudit = async (config: OpenClawConfig) => {
     return await collectPluginsTrustFindingsForTest({
       cfg: config,
       stateDir: sharedExtensionsStateDir,
@@ -466,9 +502,9 @@ describe("security audit extension tool reachability findings", () => {
   beforeAll(async () => {
     const osModule = await import("node:os");
     const vitestModule = await import("vitest");
-    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-security-extensions-"));
+    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-security-extensions-"));
     isolatedHome = path.join(fixtureRoot, "home");
-    const isolatedEnv = createPathResolutionEnv(isolatedHome, { ASTROCLAW_HOME: isolatedHome });
+    const isolatedEnv = createPathResolutionEnv(isolatedHome, { OPENCLAW_HOME: isolatedHome });
     for (const key of pathResolutionEnvKeys) {
       previousPathResolutionEnv[key] = process.env[key];
       const value = isolatedEnv[key];
@@ -508,7 +544,7 @@ describe("security audit extension tool reachability findings", () => {
     const cases = [
       {
         name: "flags extensions without plugins.allow",
-        cfg: {} satisfies AstroclawConfig,
+        cfg: {} satisfies OpenClawConfig,
         assert: (findings: Awaited<ReturnType<typeof runSharedExtensionsAudit>>) => {
           expect(
             findings.some(
@@ -523,7 +559,7 @@ describe("security audit extension tool reachability findings", () => {
         name: "flags enabled extensions when tool policy can expose plugin tools",
         cfg: {
           plugins: { allow: ["some-plugin"] },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: (findings: Awaited<ReturnType<typeof runSharedExtensionsAudit>>) => {
           expect(
             findings.some(
@@ -539,7 +575,7 @@ describe("security audit extension tool reachability findings", () => {
         cfg: {
           plugins: { allow: ["some-plugin"] },
           tools: { profile: "coding" },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: (findings: Awaited<ReturnType<typeof runSharedExtensionsAudit>>) => {
           expect(
             findings.some(
@@ -554,7 +590,7 @@ describe("security audit extension tool reachability findings", () => {
           channels: {
             discord: { enabled: true, token: "t" },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: (findings: Awaited<ReturnType<typeof runSharedExtensionsAudit>>) => {
           expect(
             findings.some(
@@ -578,7 +614,7 @@ describe("security audit extension tool reachability findings", () => {
               } as unknown as string,
             },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         assert: (findings: Awaited<ReturnType<typeof runSharedExtensionsAudit>>) => {
           expect(
             findings.some(
