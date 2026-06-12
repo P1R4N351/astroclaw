@@ -1,8 +1,9 @@
+// Google tests cover media understanding provider.video plugin behavior.
 import {
   createRequestCaptureJsonFetch,
   installPinnedHostnameTestHooks,
   withFetchPreconnect,
-} from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import { describeGeminiVideo, transcribeGeminiAudio } from "./media-understanding-provider.js";
 import { resolveGoogleGenerativeAiHttpRequestConfig } from "./runtime-api.js";
