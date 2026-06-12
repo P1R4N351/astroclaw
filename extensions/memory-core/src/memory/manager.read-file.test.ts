@@ -1,7 +1,8 @@
+// Memory Core tests cover manager.read file plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { readMemoryFile } from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import { readMemoryFile } from "openclaw/plugin-sdk/memory-core-host-engine-storage";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 describe("MemoryIndexManager.readFile", () => {
@@ -10,7 +11,7 @@ describe("MemoryIndexManager.readFile", () => {
   let extraDir: string;
 
   beforeAll(async () => {
-    workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-mem-read-"));
+    workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-mem-read-"));
     memoryDir = path.join(workspaceDir, "memory");
     extraDir = path.join(workspaceDir, "extra");
     await fs.mkdir(memoryDir, { recursive: true });
