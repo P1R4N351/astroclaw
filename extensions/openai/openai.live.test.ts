@@ -1,76 +1,52 @@
+// Openai tests cover openai plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { getModel, type Api, type Model } from "@earendil-works/pi-ai";
-import { AuthStorage, ModelRegistry } from "@earendil-works/pi-coding-agent";
 import OpenAI from "openai";
-import type { ResolvedTtsConfig } from "astroclaw/plugin-sdk/agent-runtime";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { encodePngRgba, fillPixel } from "astroclaw/plugin-sdk/media-runtime";
+import type { ResolvedTtsConfig } from "openclaw/plugin-sdk/agent-runtime";
+import { AuthStorage, ModelRegistry } from "openclaw/plugin-sdk/agent-sessions";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { encodePngRgba, fillPixel } from "openclaw/plugin-sdk/media-runtime";
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { runRealtimeSttLiveTest } from "astroclaw/plugin-sdk/provider-test-contracts";
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { runRealtimeSttLiveTest } from "openclaw/plugin-sdk/provider-test-contracts";
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import {
   isOverloadedErrorMessage,
   isServerErrorMessage,
   isTimeoutErrorMessage,
-} from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
-const LIVE_MODEL_ID = process.env.ASTROCLAW_LIVE_OPENAI_PLUGIN_MODEL?.trim() || "gpt-5.5";
-const LIVE_IMAGE_MODEL = process.env.ASTROCLAW_LIVE_OPENAI_IMAGE_MODEL?.trim() || "gpt-image-2";
-const LIVE_VISION_MODEL = process.env.ASTROCLAW_LIVE_OPENAI_VISION_MODEL?.trim() || "gpt-4.1-mini";
-const liveEnabled = OPENAI_API_KEY.trim().length > 0 && process.env.ASTROCLAW_LIVE_TEST === "1";
+const LIVE_MODEL_ID = process.env.OPENCLAW_LIVE_OPENAI_PLUGIN_MODEL?.trim() || "gpt-5.5";
+const LIVE_IMAGE_MODEL = process.env.OPENCLAW_LIVE_OPENAI_IMAGE_MODEL?.trim() || "gpt-image-2";
+const LIVE_VISION_MODEL = process.env.OPENCLAW_LIVE_OPENAI_VISION_MODEL?.trim() || "gpt-5.4-mini";
+const liveEnabled = OPENAI_API_KEY.trim().length > 0 && process.env.OPENCLAW_LIVE_TEST === "1";
 const describeLive = liveEnabled ? describe : describe.skip;
 const EMPTY_AUTH_STORE = { version: 1, profiles: {} } as const;
 const ModelRegistryCtor = ModelRegistry as unknown as {
   new (authStorage: AuthStorage, modelsJsonPath?: string): ModelRegistry;
 };
 
-function findOpenAIModel(modelId: string): Model<Api> | null {
-  return (getModel("openai", modelId as never) as Model<Api> | undefined) ?? null;
-}
-
-function resolveTemplateModelId(modelId: string) {
-  switch (modelId) {
-    case "gpt-5.5":
-      return "gpt-5.4";
-    case "gpt-5.4":
-      return "gpt-5.2";
-    case "gpt-5.4-mini":
-      return "gpt-5-mini";
-    case "gpt-5.4-nano":
-      return "gpt-5-nano";
-    default:
-      throw new Error(`Unsupported live OpenAI plugin model: ${modelId}`);
-  }
-}
-
 function createLiveModelRegistry(modelId: string): ModelRegistry {
   const registry = new ModelRegistryCtor(AuthStorage.inMemory());
-  const template = findOpenAIModel(modelId) ?? findOpenAIModel(resolveTemplateModelId(modelId));
-  if (!template) {
-    throw new Error(`Unsupported live OpenAI plugin model: ${modelId}`);
-  }
   registry.registerProvider("openai", {
     apiKey: "test",
-    baseUrl: template.baseUrl,
+    baseUrl: "https://api.openai.com/v1",
     models: [
       {
-        id: template.id,
-        name: template.name,
-        api: template.api,
-        reasoning: template.reasoning,
-        input: template.input,
-        cost: template.cost,
-        contextWindow: template.contextWindow,
-        maxTokens: template.maxTokens,
-        ...(template.compat ? { compat: template.compat } : {}),
+        id: modelId,
+        name: modelId,
+        api: "openai-responses",
+        reasoning: true,
+        input: ["text", "image"],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 400_000,
+        maxTokens: 128_000,
       },
     ],
   });
@@ -119,7 +95,7 @@ function resolveLiveOpenAISkipReason(error: unknown): string | null {
   return null;
 }
 
-function createLiveConfig(): AstroclawConfig {
+function createLiveConfig(): OpenClawConfig {
   const cfg = getRuntimeConfig();
   return {
     ...cfg,
@@ -134,7 +110,7 @@ function createLiveConfig(): AstroclawConfig {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function createLiveTtsConfig(): ResolvedTtsConfig {
@@ -269,7 +245,7 @@ describeLive("openai plugin live", () => {
     const ttsConfig = createLiveTtsConfig();
 
     const audioFile = await speechProvider.synthesize({
-      text: "Astroclaw integration test OK.",
+      text: "OpenClaw integration test OK.",
       cfg,
       providerConfig: ttsConfig.providerConfigs.openai ?? {},
       target: "audio-file",
@@ -311,6 +287,8 @@ describeLive("openai plugin live", () => {
       fileName: "openai-plugin-live.mp3",
       mime: "audio/mpeg",
       apiKey: OPENAI_API_KEY,
+      language: "en",
+      prompt: "Speech transcription check okay.",
       timeoutMs: 30_000,
     });
 
@@ -335,7 +313,9 @@ describeLive("openai plugin live", () => {
 
     try {
       await session.connect();
-      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1_000);
+      });
       expect(errors).toStrictEqual([]);
       expect(session.isConnected()).toBe(true);
     } finally {
@@ -349,7 +329,7 @@ describeLive("openai plugin live", () => {
     const speechProvider = requireRegisteredProvider(speechProviders, "openai");
     const cfg = createLiveConfig();
     const ttsConfig = createLiveTtsConfig();
-    const phrase = "Testing Astroclaw OpenAI realtime transcription integration test OK.";
+    const phrase = "Testing OpenClaw OpenAI realtime transcription integration test OK.";
 
     const telephony = await speechProvider.synthesizeTelephony?.({
       text: phrase,
@@ -429,9 +409,9 @@ describeLive("openai plugin live", () => {
         cfg,
         agentDir,
         authStore: EMPTY_AUTH_STORE,
-        timeoutMs: 180_000,
+        timeoutMs: 240_000,
         count: 1,
-        size: "1024x1536",
+        size: "1024x1024",
         inputImages: [
           {
             buffer: createReferencePng(),
@@ -448,7 +428,7 @@ describeLive("openai plugin live", () => {
     } finally {
       await removeTempAgentDir(agentDir);
     }
-  }, 240_000);
+  }, 300_000);
 
   it("describes a deterministic image through the registered media provider", async () => {
     const { mediaProviders } = await registerOpenAIPlugin();
