@@ -1,3 +1,4 @@
+// Session store pruning tests cover pruning decisions and retention ordering.
 import crypto from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createFixtureSuite } from "../../test-utils/fixture-suite.js";
@@ -15,7 +16,7 @@ import type { SessionEntry } from "./types.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const fixtureSuite = createFixtureSuite("astroclaw-pruning-suite-");
+const fixtureSuite = createFixtureSuite("openclaw-pruning-suite-");
 
 beforeAll(async () => {
   await fixtureSuite.setup();
@@ -43,7 +44,7 @@ describe("pruneStaleEntries", () => {
     const now = Date.now();
     const store = makeStore([
       ["old", makeEntry(now - 31 * DAY_MS)],
-      ["fresh", makeEntry(now - 1 * DAY_MS)],
+      ["fresh", makeEntry(now - DAY_MS)],
     ]);
 
     const pruned = pruneStaleEntries(store, 30 * DAY_MS);
@@ -83,7 +84,7 @@ describe("capEntryCount", () => {
       ["oldest", makeEntry(now - 4 * DAY_MS)],
       ["old", makeEntry(now - 3 * DAY_MS)],
       ["mid", makeEntry(now - 2 * DAY_MS)],
-      ["recent", makeEntry(now - 1 * DAY_MS)],
+      ["recent", makeEntry(now - DAY_MS)],
       ["newest", makeEntry(now)],
     ]);
 
@@ -105,7 +106,7 @@ describe("capEntryCount", () => {
       [threadKey, makeEntry(now - 5 * DAY_MS)],
       ["oldest", makeEntry(now - 4 * DAY_MS)],
       ["old", makeEntry(now - 3 * DAY_MS)],
-      ["recent", makeEntry(now - 1 * DAY_MS)],
+      ["recent", makeEntry(now - DAY_MS)],
       ["newest", makeEntry(now)],
     ]);
 
