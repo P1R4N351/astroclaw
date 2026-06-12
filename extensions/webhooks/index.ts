@@ -1,8 +1,9 @@
-import { definePluginEntry, type AstroclawPluginApi } from "./api.js";
+// Webhooks plugin entrypoint registers its OpenClaw integration.
+import { definePluginEntry, type OpenClawPluginApi } from "./api.js";
 import { resolveWebhooksPluginConfig } from "./src/config.js";
 import { createTaskFlowWebhookRequestHandler, type TaskFlowWebhookTarget } from "./src/http.js";
 
-function registerWebhookRoutes(api: AstroclawPluginApi): void {
+function registerWebhookRoutes(api: OpenClawPluginApi): void {
   const routes = resolveWebhooksPluginConfig({
     pluginConfig: api.pluginConfig,
   });
@@ -46,8 +47,8 @@ export default definePluginEntry({
   id: "webhooks",
   name: "Webhooks",
   description:
-    "Authenticated inbound webhooks that bind external automation to Astroclaw TaskFlows.",
-  register(api: AstroclawPluginApi) {
+    "Authenticated inbound webhooks that bind external automation to OpenClaw TaskFlows.",
+  register(api: OpenClawPluginApi) {
     registerWebhookRoutes(api);
   },
 });
