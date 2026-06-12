@@ -1,12 +1,13 @@
+// Discord tests cover channel plugin behavior.
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { ChannelType } from "discord-api-types/v10";
-import { createStartAccountContext } from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { PluginRuntime } from "astroclaw/plugin-sdk/core";
+import { createStartAccountContext } from "openclaw/plugin-sdk/channel-test-helpers";
+import type { PluginRuntime } from "openclaw/plugin-sdk/core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedDiscordAccount } from "./accounts.js";
 import * as directoryLive from "./directory-live.js";
-import type { AstroclawConfig } from "./runtime-api.js";
+import type { OpenClawConfig } from "./runtime-api.js";
 import * as sendModule from "./send.js";
 import { createDiscordSendReceipt } from "./send.receipt.js";
 import { EMPTY_DISCORD_TEST_CONFIG } from "./test-support/config.js";
@@ -29,9 +30,9 @@ function discordTestSendResult(messageId: string, channelId = "channel:thread-12
   };
 }
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/runtime-env")>(
-    "astroclaw/plugin-sdk/runtime-env",
+vi.mock("openclaw/plugin-sdk/runtime-env", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/runtime-env")>(
+    "openclaw/plugin-sdk/runtime-env",
   );
   return {
     ...actual,
@@ -58,7 +59,7 @@ vi.mock("./audit.js", () => {
   };
 });
 
-function createCfg(): AstroclawConfig {
+function createCfg(): OpenClawConfig {
   return {
     channels: {
       discord: {
@@ -66,14 +67,14 @@ function createCfg(): AstroclawConfig {
         token: "discord-token",
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
-function resolveAccount(cfg: AstroclawConfig, accountId = "default"): ResolvedDiscordAccount {
+function resolveAccount(cfg: OpenClawConfig, accountId = "default"): ResolvedDiscordAccount {
   return discordPlugin.config.resolveAccount(cfg, accountId);
 }
 
-function startDiscordAccount(cfg: AstroclawConfig, accountId = "default") {
+function startDiscordAccount(cfg: OpenClawConfig, accountId = "default") {
   return discordPlugin.gateway!.startAccount!(
     createStartAccountContext({
       account: resolveAccount(cfg, accountId),
@@ -91,6 +92,25 @@ function installDiscordRuntime(discord: Record<string, unknown>) {
       shouldLogVerbose: () => false,
     },
   } as unknown as PluginRuntime);
+}
+
+async function expectStaleProbeMetadataCleared(statusPatches: Array<Record<string, unknown>>) {
+  await vi.waitFor(() =>
+    expect(
+      statusPatches
+        .filter(
+          (patch) =>
+            "bot" in patch &&
+            "application" in patch &&
+            patch.bot === undefined &&
+            patch.application === undefined,
+        )
+        .map((patch) => ({
+          bot: patch.bot,
+          application: patch.application,
+        })),
+    ).toEqual([{ bot: undefined, application: undefined }]),
+  );
 }
 
 type MockWithCalls = {
@@ -161,7 +181,7 @@ describe("discordPlugin outbound", () => {
     expect(discordPlugin.outbound?.preferFinalAssistantVisibleText).toBe(true);
   });
 
-  it("routes read and search actions through the gateway", () => {
+  it("routes Discord message actions through the gateway", () => {
     expect(discordPlugin.actions?.resolveExecutionMode?.({ action: "read" as never })).toBe(
       "gateway",
     );
@@ -170,6 +190,15 @@ describe("discordPlugin outbound", () => {
     );
     expect(discordPlugin.actions?.resolveExecutionMode?.({ action: "send" as never })).toBe(
       "local",
+    );
+    expect(discordPlugin.actions?.resolveExecutionMode?.({ action: "upload-file" as never })).toBe(
+      "local",
+    );
+    expect(discordPlugin.actions?.resolveExecutionMode?.({ action: "thread-reply" as never })).toBe(
+      "local",
+    );
+    expect(discordPlugin.actions?.resolveExecutionMode?.({ action: "channel-info" as never })).toBe(
+      "gateway",
     );
   });
 
@@ -181,28 +210,20 @@ describe("discordPlugin outbound", () => {
     );
   });
 
-  it("preserves normalized explicit Discord targets for delivery routing", () => {
-    const parseExplicitTarget = discordPlugin.messaging?.parseExplicitTarget;
-    if (!parseExplicitTarget) {
-      throw new Error("Expected discordPlugin.messaging.parseExplicitTarget to be defined");
+  it("preserves normalized Discord targets for delivery routing", () => {
+    const messaging = discordPlugin.messaging;
+    if (!messaging?.normalizeTarget || !messaging.inferTargetChatType) {
+      throw new Error("Expected discordPlugin.messaging target helpers to be defined");
     }
 
-    expect(parseExplicitTarget({ raw: "user:123" })).toEqual({
-      to: "user:123",
-      chatType: "direct",
-    });
-    expect(parseExplicitTarget({ raw: "<@!456>" })).toEqual({
-      to: "user:456",
-      chatType: "direct",
-    });
-    expect(parseExplicitTarget({ raw: "channel:789" })).toEqual({
-      to: "channel:789",
-      chatType: "channel",
-    });
-    expect(parseExplicitTarget({ raw: "1470130713209602050" })).toEqual({
-      to: "channel:1470130713209602050",
-      chatType: "channel",
-    });
+    expect(messaging.normalizeTarget("user:123")).toBe("user:123");
+    expect(messaging.inferTargetChatType({ to: "user:123" })).toBe("direct");
+    expect(messaging.normalizeTarget("<@!456>")).toBe("user:456");
+    expect(messaging.inferTargetChatType({ to: "<@!456>" })).toBe("direct");
+    expect(messaging.normalizeTarget("channel:789")).toBe("channel:789");
+    expect(messaging.inferTargetChatType({ to: "channel:789" })).toBe("channel");
+    expect(messaging.normalizeTarget("1470130713209602050")).toBe("channel:1470130713209602050");
+    expect(messaging.inferTargetChatType({ to: "1470130713209602050" })).toBe("channel");
   });
 
   it("resolves Discord usernames through the messaging target resolver", async () => {
@@ -251,7 +272,7 @@ describe("discordPlugin outbound", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveReplyToMode({ cfg, accountId: "work" })).toBe("first");
     expect(resolveReplyToMode({ cfg, accountId: "default" })).toBe("all");
@@ -272,7 +293,7 @@ describe("discordPlugin outbound", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveAccount(cfg).config.gatewayReadyTimeoutMs).toBe(90_000);
     expect(resolveAccount(cfg).config.gatewayRuntimeReadyTimeoutMs).toBe(120_000);
@@ -509,7 +530,7 @@ describe("discordPlugin outbound", () => {
           token: { source: "env", provider: "default", id: "DISCORD_BOT_TOKEN" },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     await expect(startDiscordAccount(cfg)).rejects.toThrow(
       'Discord bot token configured for account "default" is unavailable',
@@ -528,8 +549,8 @@ describe("discordPlugin outbound", () => {
         }) => void)
       | undefined;
     probeDiscordMock.mockReturnValue(
-      new Promise((resolve) => {
-        resolveProbe = resolve;
+      new Promise((resolveLocal) => {
+        resolveProbe = resolveLocal;
       }),
     );
     monitorDiscordProviderMock.mockResolvedValue(undefined);
@@ -607,22 +628,7 @@ describe("discordPlugin outbound", () => {
 
     await discordPlugin.gateway!.startAccount!(ctx);
 
-    await vi.waitFor(() =>
-      expect(
-        statusPatches
-          .filter(
-            (patch) =>
-              "bot" in patch &&
-              "application" in patch &&
-              patch.bot === undefined &&
-              patch.application === undefined,
-          )
-          .map((patch) => ({
-            bot: patch.bot,
-            application: patch.application,
-          })),
-      ).toEqual([{ bot: undefined, application: undefined }]),
-    );
+    await expectStaleProbeMetadataCleared(statusPatches);
   });
 
   it("clears stale Discord probe metadata when the async startup probe throws", async () => {
@@ -644,22 +650,7 @@ describe("discordPlugin outbound", () => {
 
     await discordPlugin.gateway!.startAccount!(ctx);
 
-    await vi.waitFor(() =>
-      expect(
-        statusPatches
-          .filter(
-            (patch) =>
-              "bot" in patch &&
-              "application" in patch &&
-              patch.bot === undefined &&
-              patch.application === undefined,
-          )
-          .map((patch) => ({
-            bot: patch.bot,
-            application: patch.application,
-          })),
-      ).toEqual([{ bot: undefined, application: undefined }]),
-    );
+    await expectStaleProbeMetadataCleared(statusPatches);
   });
 
   it("stagger starts later accounts in multi-bot setups", async () => {
@@ -687,7 +678,7 @@ describe("discordPlugin outbound", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     // First account (index 0) — no delay
     await startDiscordAccount(cfg, "alpha");
@@ -769,7 +760,7 @@ describe("discordPlugin security", () => {
           dm: { policy: "allowlist", allowFrom: ["  discord:<@!123456789>  "] },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = resolveDmPolicy({
       cfg,
@@ -808,7 +799,7 @@ describe("discordPlugin groups", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(
       discordPlugin.groups?.resolveRequireMention?.({
