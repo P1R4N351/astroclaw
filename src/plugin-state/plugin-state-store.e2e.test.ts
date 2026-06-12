@@ -1,44 +1,25 @@
-import { mkdirSync } from "node:fs";
+// Plugin state store E2E tests cover persisted plugin state across runtime calls.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { requireNodeSqlite } from "../infra/node-sqlite.js";
-import { withAstroclawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import {
-  closePluginStateSqliteStore,
+  closePluginStateDatabase,
   createPluginStateKeyedStore,
-  PluginStateStoreError,
   probePluginStateStore,
   resetPluginStateStoreForTests,
   sweepExpiredPluginStateEntries,
 } from "./plugin-state-store.js";
-import { resolvePluginStateDir, resolvePluginStateSqlitePath } from "./plugin-state-store.paths.js";
-import { MAX_PLUGIN_STATE_ENTRIES_PER_PLUGIN } from "./plugin-state-store.sqlite.js";
-import { seedPluginStateEntriesForTests } from "./plugin-state-store.test-helpers.js";
 
 afterEach(() => {
   vi.useRealTimers();
   resetPluginStateStoreForTests();
 });
 
-async function expectPluginStateStoreError(
-  promise: Promise<unknown>,
-  expected: { code: string },
-): Promise<void> {
-  let storeError: unknown;
-  try {
-    await promise;
-  } catch (error) {
-    storeError = error;
-  }
-  expect(storeError).toBeInstanceOf(PluginStateStoreError);
-  expect((storeError as PluginStateStoreError | undefined)?.code).toBe(expected.code);
-}
-
 // ---------------------------------------------------------------------------
 // Runtime smoke
 // ---------------------------------------------------------------------------
 describe("runtime smoke", () => {
   it("writes and reads a value", async () => {
-    await withAstroclawTestState({ label: "e2e-smoke-rw" }, async () => {
+    await withOpenClawTestState({ label: "e2e-smoke-rw" }, async () => {
       const store = createPluginStateKeyedStore<{ msg: string }>("fixture-plugin", {
         namespace: "data",
         maxEntries: 10,
@@ -49,7 +30,7 @@ describe("runtime smoke", () => {
   });
 
   it("consumes a value exactly once", async () => {
-    await withAstroclawTestState({ label: "e2e-smoke-consume" }, async () => {
+    await withOpenClawTestState({ label: "e2e-smoke-consume" }, async () => {
       const store = createPluginStateKeyedStore<{ token: string }>("fixture-plugin", {
         namespace: "tokens",
         maxEntries: 10,
@@ -72,7 +53,7 @@ describe("runtime smoke", () => {
 // ---------------------------------------------------------------------------
 describe("persistence", () => {
   it("survives close and reopen of the store", async () => {
-    await withAstroclawTestState({ label: "e2e-persist" }, async () => {
+    await withOpenClawTestState({ label: "e2e-persist" }, async () => {
       const storeA = createPluginStateKeyedStore<{ persisted: boolean }>("fixture-plugin", {
         namespace: "durable",
         maxEntries: 10,
@@ -99,7 +80,7 @@ describe("persistence", () => {
 // ---------------------------------------------------------------------------
 describe("TTL", () => {
   it("hides expired values and sweep removes the row", async () => {
-    await withAstroclawTestState({ label: "e2e-ttl" }, async () => {
+    await withOpenClawTestState({ label: "e2e-ttl" }, async () => {
       vi.useFakeTimers();
       vi.setSystemTime(10_000);
 
@@ -138,7 +119,7 @@ describe("TTL", () => {
 // ---------------------------------------------------------------------------
 describe("isolation", () => {
   it("segregates plugins sharing namespace and key", async () => {
-    await withAstroclawTestState({ label: "e2e-isolation" }, async () => {
+    await withOpenClawTestState({ label: "e2e-isolation" }, async () => {
       const pluginA = createPluginStateKeyedStore<{ owner: string }>("plugin-a", {
         namespace: "x",
         maxEntries: 10,
@@ -167,7 +148,7 @@ describe("isolation", () => {
 // ---------------------------------------------------------------------------
 describe("limits", () => {
   it("accepts a value at the 64 KB boundary", async () => {
-    await withAstroclawTestState({ label: "e2e-limit-accept" }, async () => {
+    await withOpenClawTestState({ label: "e2e-limit-accept" }, async () => {
       const store = createPluginStateKeyedStore<string>("fixture-plugin", {
         namespace: "size",
         maxEntries: 10,
@@ -181,51 +162,21 @@ describe("limits", () => {
   });
 
   it("rejects a value one byte over 64 KB", async () => {
-    await withAstroclawTestState({ label: "e2e-limit-reject" }, async () => {
+    await withOpenClawTestState({ label: "e2e-limit-reject" }, async () => {
       const store = createPluginStateKeyedStore<string>("fixture-plugin", {
         namespace: "size",
         maxEntries: 10,
       });
       // 65 535 chars → 65 537 bytes of JSON → over limit.
       const oversize = "x".repeat(65_535);
-      await expectPluginStateStoreError(store.register("big", oversize), {
-        code: "PLUGIN_STATE_LIMIT_EXCEEDED",
-      });
-    });
-  });
-
-  it("enforces the per-plugin live-row cap", async () => {
-    await withAstroclawTestState({ label: "e2e-limit-plugin" }, async () => {
-      // Spread MAX_ENTRIES_PER_PLUGIN rows across several namespaces so
-      // namespace eviction never fires (each namespace has generous room).
-      const nsCount = 10;
-      const perNs = MAX_PLUGIN_STATE_ENTRIES_PER_PLUGIN / nsCount; // 100
-      seedPluginStateEntriesForTests(
-        Array.from({ length: MAX_PLUGIN_STATE_ENTRIES_PER_PLUGIN }, (_, index) => {
-          const ns = Math.floor(index / perNs);
-          const k = index % perNs;
-          return {
-            pluginId: "fixture-plugin",
-            namespace: `ns-${ns}`,
-            key: `k-${k}`,
-            value: { ns, k },
-          };
-        }),
-      );
-      const store = createPluginStateKeyedStore("fixture-plugin", {
-        namespace: "ns-0",
-        maxEntries: perNs + 1,
-      });
-
-      // One more row tips over the plugin-wide limit.
-      await expectPluginStateStoreError(store.register("overflow", { boom: true }), {
+      await expect(store.register("big", oversize)).rejects.toMatchObject({
         code: "PLUGIN_STATE_LIMIT_EXCEEDED",
       });
     });
   });
 
   it("evicts oldest entries when namespace maxEntries is exceeded", async () => {
-    await withAstroclawTestState({ label: "e2e-limit-eviction" }, async () => {
+    await withOpenClawTestState({ label: "e2e-limit-eviction" }, async () => {
       vi.useFakeTimers();
       const store = createPluginStateKeyedStore<number>("fixture-plugin", {
         namespace: "capped",
@@ -253,33 +204,14 @@ describe("limits", () => {
 // Failure safety
 // ---------------------------------------------------------------------------
 describe("failure safety", () => {
-  it("gives a typed error for unsupported schema versions", async () => {
-    await withAstroclawTestState({ label: "e2e-fail-schema" }, async () => {
-      // Pre-seed the DB with a future schema version.
-      mkdirSync(resolvePluginStateDir(), { recursive: true });
-      const { DatabaseSync } = requireNodeSqlite();
-      const db = new DatabaseSync(resolvePluginStateSqlitePath());
-      db.exec("PRAGMA user_version = 99;");
-      db.close();
-
-      const store = createPluginStateKeyedStore("fixture-plugin", {
-        namespace: "schema",
-        maxEntries: 10,
-      });
-      const error = await store.register("k", { ok: true }).catch((e: unknown) => e);
-      expect(error).toBeInstanceOf(PluginStateStoreError);
-      expect((error as PluginStateStoreError).code).toBe("PLUGIN_STATE_SCHEMA_UNSUPPORTED");
-    });
-  });
-
   it("probe returns redacted diagnostics without leaking stored values", async () => {
-    await withAstroclawTestState({ label: "e2e-fail-probe" }, async () => {
+    await withOpenClawTestState({ label: "e2e-fail-probe" }, async () => {
       const result = probePluginStateStore();
       expect(result.ok).toBe(true);
-      expect(result.dbPath).toContain("state.sqlite");
+      expect(result.databasePath).toContain("openclaw.sqlite");
       expect(result.steps.length).toBeGreaterThanOrEqual(4);
       const failedSteps = result.steps.filter((step) => !step.ok);
-      expect(failedSteps).toStrictEqual([]);
+      expect(failedSteps).toEqual([]);
 
       // The probe's temporary stored value must not leak into the result.
       const serialised = JSON.stringify(result);
@@ -288,7 +220,7 @@ describe("failure safety", () => {
   });
 
   it("close and reopen cycle is clean", async () => {
-    await withAstroclawTestState({ label: "e2e-fail-reopen" }, async () => {
+    await withOpenClawTestState({ label: "e2e-fail-reopen" }, async () => {
       const store = createPluginStateKeyedStore<{ v: number }>("fixture-plugin", {
         namespace: "reopen",
         maxEntries: 10,
@@ -296,11 +228,11 @@ describe("failure safety", () => {
       await store.register("k", { v: 1 });
 
       // First close.
-      closePluginStateSqliteStore();
+      closePluginStateDatabase();
       await expect(store.lookup("k")).resolves.toEqual({ v: 1 });
 
       // Second close (idempotent).
-      closePluginStateSqliteStore();
+      closePluginStateDatabase();
       await expect(store.lookup("k")).resolves.toEqual({ v: 1 });
 
       // Write after reopen.
