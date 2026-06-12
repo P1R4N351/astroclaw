@@ -1,10 +1,11 @@
+// Configured Crestodian assistant tests cover config-driven assistant behavior.
 import { describe, expect, it, vi } from "vitest";
 import { planCrestodianCommandWithConfiguredModel } from "./assistant.js";
 
 describe("Crestodian configured-model planner", () => {
   it("skips the configured model path when no config file exists", async () => {
     const readConfigFileSnapshot = vi.fn(async () => ({
-      path: "/tmp/astroclaw.json",
+      path: "/tmp/openclaw.json",
       exists: false,
       raw: null,
       parsed: {},
@@ -24,7 +25,7 @@ describe("Crestodian configured-model planner", () => {
         input: "please set up my model",
         overview: {
           config: {
-            path: "/tmp/astroclaw.json",
+            path: "/tmp/openclaw.json",
             exists: false,
             valid: true,
             issues: [],
@@ -43,8 +44,8 @@ describe("Crestodian configured-model planner", () => {
             reachable: false,
           },
           references: {
-            docsUrl: "https://docs.astroclaw.ai",
-            sourceUrl: "https://github.com/astroclaw/astroclaw",
+            docsUrl: "https://docs.openclaw.ai",
+            sourceUrl: "https://github.com/openclaw/openclaw",
           },
         },
         deps: {
