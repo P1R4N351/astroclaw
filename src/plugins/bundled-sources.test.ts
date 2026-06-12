@@ -1,4 +1,5 @@
-import { bundledPluginRootAt } from "astroclaw/plugin-sdk/test-fixtures";
+/** Covers bundled plugin source overlays and packaged load-path decisions. */
+import { bundledPluginRootAt } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   findBundledPluginSource,
@@ -12,11 +13,11 @@ function appBundledPluginRoot(pluginId: string): string {
   return bundledPluginRootAt(APP_ROOT, pluginId);
 }
 
-const discoverAstroclawPluginsMock = vi.fn();
+const discoverOpenClawPluginsMock = vi.fn();
 const loadPluginManifestMock = vi.fn();
 
 vi.mock("./discovery.js", () => ({
-  discoverAstroclawPlugins: (...args: unknown[]) => discoverAstroclawPluginsMock(...args),
+  discoverOpenClawPlugins: (...args: unknown[]) => discoverOpenClawPluginsMock(...args),
 }));
 
 vi.mock("./manifest.js", () => ({
@@ -42,7 +43,7 @@ function createBundledCandidate(params: {
 }
 
 function setBundledDiscoveryCandidates(candidates: unknown[]) {
-  discoverAstroclawPluginsMock.mockReturnValue({
+  discoverOpenClawPluginsMock.mockReturnValue({
     candidates,
     diagnostics: [],
   });
@@ -69,7 +70,7 @@ function setBundledManifestIdsByRoot(
       : {
           ok: false,
           error: "invalid manifest",
-          manifestPath: `${rootDir}/astroclaw.plugin.json`,
+          manifestPath: `${rootDir}/openclaw.plugin.json`,
         },
   );
 }
@@ -78,11 +79,11 @@ function setBundledLookupFixture() {
   setBundledDiscoveryCandidates([
     createBundledCandidate({
       rootDir: appBundledPluginRoot("feishu"),
-      packageName: "@astroclaw/feishu",
+      packageName: "@openclaw/feishu",
     }),
     createBundledCandidate({
       rootDir: appBundledPluginRoot("diffs"),
-      packageName: "@astroclaw/diffs",
+      packageName: "@openclaw/diffs",
     }),
   ]);
   setBundledManifestIdsByRoot({
@@ -101,7 +102,7 @@ function createResolvedBundledSource(params: {
   return {
     pluginId: params.pluginId,
     localPath: params.localPath,
-    npmSpec: params.npmSpec ?? `@astroclaw/${params.pluginId}`,
+    npmSpec: params.npmSpec ?? `@openclaw/${params.pluginId}`,
     ...(params.configSchema ? { configSchema: params.configSchema } : {}),
     requiresConfig: params.requiresConfig ?? false,
   };
@@ -140,7 +141,7 @@ function expectBundledSourceLookupCase(params: {
 
 describe("bundled plugin sources", () => {
   beforeEach(() => {
-    discoverAstroclawPluginsMock.mockReset();
+    discoverOpenClawPluginsMock.mockReset();
     loadPluginManifestMock.mockReset();
   });
 
@@ -149,19 +150,19 @@ describe("bundled plugin sources", () => {
       createBundledCandidate({
         origin: "global",
         rootDir: "/global/feishu",
-        packageName: "@astroclaw/feishu",
+        packageName: "@openclaw/feishu",
       }),
       createBundledCandidate({
         rootDir: appBundledPluginRoot("feishu"),
-        packageName: "@astroclaw/feishu",
+        packageName: "@openclaw/feishu",
       }),
       createBundledCandidate({
         rootDir: appBundledPluginRoot("feishu-dup"),
-        packageName: "@astroclaw/feishu",
+        packageName: "@openclaw/feishu",
       }),
       createBundledCandidate({
         rootDir: appBundledPluginRoot("msteams"),
-        packageName: "@astroclaw/msteams",
+        packageName: "@openclaw/msteams",
       }),
     ]);
     setBundledManifestIdsByRoot({
@@ -183,12 +184,12 @@ describe("bundled plugin sources", () => {
   it.each([
     [
       "finds bundled source by npm spec",
-      { kind: "npmSpec", value: "@astroclaw/feishu" } as const,
+      { kind: "npmSpec", value: "@openclaw/feishu" } as const,
       { pluginId: "feishu", localPath: appBundledPluginRoot("feishu") },
     ],
     [
       "returns undefined for missing npm spec",
-      { kind: "npmSpec", value: "@astroclaw/not-found" } as const,
+      { kind: "npmSpec", value: "@openclaw/not-found" } as const,
       undefined,
     ],
     [
@@ -208,7 +209,7 @@ describe("bundled plugin sources", () => {
   it("forwards an explicit env to bundled discovery helpers", () => {
     setBundledDiscoveryCandidates([]);
 
-    const env = { HOME: "/tmp/astroclaw-home" } as NodeJS.ProcessEnv;
+    const env = { HOME: "/tmp/openclaw-home" } as NodeJS.ProcessEnv;
 
     resolveBundledPluginSources({
       workspaceDir: "/workspace",
@@ -220,11 +221,11 @@ describe("bundled plugin sources", () => {
       env,
     });
 
-    expect(discoverAstroclawPluginsMock).toHaveBeenNthCalledWith(1, {
+    expect(discoverOpenClawPluginsMock).toHaveBeenNthCalledWith(1, {
       workspaceDir: "/workspace",
       env,
     });
-    expect(discoverAstroclawPluginsMock).toHaveBeenNthCalledWith(2, {
+    expect(discoverOpenClawPluginsMock).toHaveBeenNthCalledWith(2, {
       workspaceDir: "/workspace",
       env,
     });
@@ -234,7 +235,7 @@ describe("bundled plugin sources", () => {
     setBundledDiscoveryCandidates([
       createBundledCandidate({
         rootDir: appBundledPluginRoot("memory-lancedb"),
-        packageName: "@astroclaw/memory-lancedb",
+        packageName: "@openclaw/memory-lancedb",
       }),
     ]);
     setBundledManifestIdsByRoot({
@@ -282,7 +283,7 @@ describe("bundled plugin sources", () => {
     expect(
       findBundledPluginSourceInMap({
         bundled,
-        lookup: { kind: "npmSpec", value: "@astroclaw/feishu" },
+        lookup: { kind: "npmSpec", value: "@openclaw/feishu" },
       })?.pluginId,
     ).toBe("feishu");
   });
