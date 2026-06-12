@@ -1,3 +1,4 @@
+// Covers voice wake trigger defaults, sanitization, and persistence.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -10,7 +11,7 @@ import {
 
 describe("voicewake config", () => {
   it("returns defaults when missing", async () => {
-    await withTempDir("astroclaw-voicewake-", async (baseDir) => {
+    await withTempDir("openclaw-voicewake-", async (baseDir) => {
       await expect(loadVoiceWakeConfig(baseDir)).resolves.toEqual({
         triggers: defaultVoiceWakeTriggers(),
         updatedAtMs: 0,
@@ -19,7 +20,7 @@ describe("voicewake config", () => {
   });
 
   it("sanitizes and persists triggers", async () => {
-    await withTempDir("astroclaw-voicewake-", async (baseDir) => {
+    await withTempDir("openclaw-voicewake-", async (baseDir) => {
       const saved = await setVoiceWakeTriggers(["  hi  ", "", "  there "], baseDir);
       expect(saved.triggers).toEqual(["hi", "there"]);
       expect(saved.updatedAtMs).toBeGreaterThan(0);
@@ -32,7 +33,7 @@ describe("voicewake config", () => {
   });
 
   it("falls back to defaults for empty or malformed persisted values", async () => {
-    await withTempDir("astroclaw-voicewake-", async (baseDir) => {
+    await withTempDir("openclaw-voicewake-", async (baseDir) => {
       const emptySaved = await setVoiceWakeTriggers(["", "   "], baseDir);
       expect(emptySaved.triggers).toEqual(defaultVoiceWakeTriggers());
 
