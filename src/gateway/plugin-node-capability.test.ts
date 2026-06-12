@@ -1,3 +1,5 @@
+// Plugin node capability tests cover scoped host URLs, request rewriting, and
+// authorization state attached to gateway node clients.
 import { describe, expect, test } from "vitest";
 import {
   buildPluginNodeCapabilityScopedHostUrl,
@@ -36,19 +38,19 @@ describe("plugin node capability helpers", () => {
         "http://127.0.0.1:18789/root/?debug=1#hash",
         "token value",
       ),
-    ).toBe("http://127.0.0.1:18789/root/__astroclaw__/cap/token%20value");
+    ).toBe("http://127.0.0.1:18789/root/__openclaw__/cap/token%20value");
     expect(buildPluginNodeCapabilityScopedHostUrl("not a url", "token")).toBeUndefined();
     expect(buildPluginNodeCapabilityScopedHostUrl("http://127.0.0.1:18789", " ")).toBeUndefined();
   });
 
   test("normalizes scoped urls and moves capability into the query string", () => {
     const normalized = normalizePluginNodeCapabilityScopedUrl(
-      "/__astroclaw__/cap/token%20value/__astroclaw__/canvas/file.txt?download=1",
+      "/__openclaw__/cap/token%20value/__openclaw__/canvas/file.txt?download=1",
     );
     expect(normalized).toEqual({
-      pathname: "/__astroclaw__/canvas/file.txt",
+      pathname: "/__openclaw__/canvas/file.txt",
       capability: "token value",
-      rewrittenUrl: "/__astroclaw__/canvas/file.txt?download=1&oc_cap=token+value",
+      rewrittenUrl: "/__openclaw__/canvas/file.txt?download=1&oc_cap=token+value",
       scopedPath: true,
       malformedScopedPath: false,
     });
@@ -57,14 +59,14 @@ describe("plugin node capability helpers", () => {
   test("replaces scoped capability tokens without nesting capability prefixes", () => {
     expect(
       replacePluginNodeCapabilityInScopedHostUrl(
-        "http://127.0.0.1:18789/__astroclaw__/cap/old-token/__astroclaw__/a2ui/",
+        "http://127.0.0.1:18789/__openclaw__/cap/old-token/__openclaw__/a2ui/",
         "new token",
       ),
-    ).toBe("http://127.0.0.1:18789/__astroclaw__/cap/new%20token/__astroclaw__/a2ui");
+    ).toBe("http://127.0.0.1:18789/__openclaw__/cap/new%20token/__openclaw__/a2ui");
   });
 
   test("marks malformed scoped urls without authorizing a path capability", () => {
-    const normalized = normalizePluginNodeCapabilityScopedUrl("/__astroclaw__/cap/broken");
+    const normalized = normalizePluginNodeCapabilityScopedUrl("/__openclaw__/cap/broken");
     expect(normalized.scopedPath).toBe(true);
     expect(normalized.malformedScopedPath).toBe(true);
     expect(normalized.capability).toBeUndefined();
@@ -141,7 +143,7 @@ describe("plugin node capability helpers", () => {
   test("refreshes client plugin surface url and stored capability", () => {
     const client = makeClient({
       pluginSurfaceUrls: {
-        canvas: "http://127.0.0.1:18789/__astroclaw__/cap/old-token",
+        canvas: "http://127.0.0.1:18789/__openclaw__/cap/old-token",
       },
       pluginNodeCapabilitySurfaces: {
         canvas: { surface: "canvas", ttlMs: 100 },
@@ -156,13 +158,36 @@ describe("plugin node capability helpers", () => {
     expect(refreshed?.expiresAtMs).toBe(1_100);
     expect(refreshed?.capability).toBeTypeOf("string");
     expect(refreshed?.capability).not.toBe("");
-    expect(refreshed?.scopedUrl).toContain("/__astroclaw__/cap/");
-    expect(refreshed?.scopedUrl).not.toContain("old-token/__astroclaw__/cap/");
+    expect(refreshed?.scopedUrl).toContain("/__openclaw__/cap/");
+    expect(refreshed?.scopedUrl).not.toContain("old-token/__openclaw__/cap/");
     expect(client.pluginSurfaceUrls?.canvas).toBe(refreshed?.scopedUrl);
     expect(client.pluginNodeCapabilities?.canvas).toEqual({
       capability: refreshed?.capability,
       expiresAtMs: 1_100,
     });
+  });
+
+  test("does not refresh client plugin capabilities when the clock is invalid", () => {
+    const client = makeClient({
+      pluginSurfaceUrls: {
+        canvas: "http://127.0.0.1:18789/__openclaw__/cap/old-token",
+      },
+      pluginNodeCapabilitySurfaces: {
+        canvas: { surface: "canvas", ttlMs: 100 },
+      },
+    });
+
+    expect(
+      refreshClientPluginNodeCapability({
+        client,
+        surface: { surface: "canvas" },
+        nowMs: Number.NaN,
+      }),
+    ).toBeUndefined();
+    expect(client.pluginSurfaceUrls?.canvas).toBe(
+      "http://127.0.0.1:18789/__openclaw__/cap/old-token",
+    );
+    expect(client.pluginNodeCapabilities).toBeUndefined();
   });
 
   test("authorizes matching plugin surface capabilities and slides expiry", () => {
@@ -193,6 +218,39 @@ describe("plugin node capability helpers", () => {
       hasAuthorizedPluginNodeCapability({
         clients,
         surface: { surface: "files" },
+        capability: "canvas-token",
+        nowMs: 1_000,
+      }),
+    ).toBe(false);
+  });
+
+  test("rejects plugin surface capabilities when the clock is invalid", () => {
+    const client = makeClient({
+      pluginNodeCapabilities: {
+        canvas: { capability: "canvas-token", expiresAtMs: 1_500 },
+      },
+    });
+    expect(
+      hasAuthorizedPluginNodeCapability({
+        clients: new Set([client]),
+        surface: { surface: "canvas", ttlMs: 100 },
+        capability: "canvas-token",
+        nowMs: Number.NaN,
+      }),
+    ).toBe(false);
+    expect(client.pluginNodeCapabilities?.canvas?.expiresAtMs).toBe(1_500);
+  });
+
+  test("rejects plugin surface capabilities with invalid stored expiries", () => {
+    const client = makeClient({
+      pluginNodeCapabilities: {
+        canvas: { capability: "canvas-token", expiresAtMs: Number.POSITIVE_INFINITY },
+      },
+    });
+    expect(
+      hasAuthorizedPluginNodeCapability({
+        clients: new Set([client]),
+        surface: { surface: "canvas", ttlMs: 100 },
         capability: "canvas-token",
         nowMs: 1_000,
       }),
