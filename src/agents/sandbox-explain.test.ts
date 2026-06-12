@@ -1,12 +1,28 @@
-import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+// Verifies sandbox tool-policy resolution and blocked-tool explanation text.
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveSandboxConfigForAgent } from "./sandbox/config.js";
 import { formatSandboxToolPolicyBlockedMessage } from "./sandbox/runtime-status.js";
 import { resolveSandboxToolPolicyForAgent } from "./sandbox/tool-policy.js";
 
+const { toolPolicyAuditInfo } = vi.hoisted(() => ({
+  toolPolicyAuditInfo: vi.fn(),
+}));
+
+vi.mock("../logging/subsystem.js", () => ({
+  createSubsystemLogger: () => ({
+    // Audit logging is asserted without touching the real subsystem logger.
+    info: toolPolicyAuditInfo,
+  }),
+}));
+
 describe("sandbox explain helpers", () => {
+  beforeEach(() => {
+    toolPolicyAuditInfo.mockClear();
+  });
+
   it("prefers agent overrides > global > defaults (sandbox tool policy)", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -14,7 +30,7 @@ describe("sandbox explain helpers", () => {
         list: [
           {
             id: "work",
-            workspace: "~/astroclaw-work",
+            workspace: "~/openclaw-work",
             tools: { sandbox: { tools: { allow: ["write"] } } },
           },
         ],
@@ -34,7 +50,7 @@ describe("sandbox explain helpers", () => {
   });
 
   it("expands group tool shorthands inside sandbox tool policy", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -42,7 +58,7 @@ describe("sandbox explain helpers", () => {
         list: [
           {
             id: "work",
-            workspace: "~/astroclaw-work",
+            workspace: "~/openclaw-work",
             tools: {
               sandbox: { tools: { allow: ["group:memory", "group:fs"] } },
             },
@@ -64,7 +80,7 @@ describe("sandbox explain helpers", () => {
   });
 
   it("denies still win after group expansion", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "all", scope: "agent" },
@@ -87,7 +103,47 @@ describe("sandbox explain helpers", () => {
   });
 
   it("includes config key paths + main-session hint for non-main mode", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
+      agents: {
+        defaults: {
+          sandbox: { mode: "non-main", scope: "agent" },
+        },
+      },
+      tools: {
+        sandbox: {
+          tools: {
+            deny: ["browser"],
+          },
+        },
+      },
+    };
+
+    const msg = formatSandboxToolPolicyBlockedMessage({
+      cfg,
+      sessionKey: "agent:main:mobilechat:group:g1",
+      toolName: "browser",
+      audit: true,
+    });
+    expect(msg).toContain('Tool "browser" blocked by sandbox tool policy');
+    expect(msg).toContain("mode=non-main");
+    expect(msg).toContain("tools.sandbox.tools.deny");
+    expect(msg).toContain("agents.defaults.sandbox.mode=off");
+    expect(msg).toContain("Use the agent main session instead of a non-main session.");
+    expect(toolPolicyAuditInfo).toHaveBeenCalledWith(
+      "sandbox tool policy blocked browser via tools.sandbox.tools.deny; matched browser",
+      {
+        tool: "browser",
+        ruleKind: "deny",
+        ruleSource: "global",
+        configKey: "tools.sandbox.tools.deny",
+        matchedRule: "browser",
+        sandboxMode: "non-main",
+      },
+    );
+  });
+
+  it("does not audit sandbox tool-policy formatting unless requested", () => {
+    const cfg: OpenClawConfig = {
       agents: {
         defaults: {
           sandbox: { mode: "non-main", scope: "agent" },
@@ -107,10 +163,8 @@ describe("sandbox explain helpers", () => {
       sessionKey: "agent:main:mobilechat:group:g1",
       toolName: "browser",
     });
+
     expect(msg).toContain('Tool "browser" blocked by sandbox tool policy');
-    expect(msg).toContain("mode=non-main");
-    expect(msg).toContain("tools.sandbox.tools.deny");
-    expect(msg).toContain("agents.defaults.sandbox.mode=off");
-    expect(msg).toContain("Use the agent main session instead of a non-main session.");
+    expect(toolPolicyAuditInfo).not.toHaveBeenCalled();
   });
 });
