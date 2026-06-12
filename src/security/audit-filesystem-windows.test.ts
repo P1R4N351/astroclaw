@@ -1,3 +1,4 @@
+// Covers Windows filesystem security audit behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -10,7 +11,7 @@ const windowsAuditEnv = {
 };
 
 describe("security audit filesystem Windows findings", () => {
-  const tempCases = new AsyncTempCaseFactory("astroclaw-security-audit-win-");
+  const tempCases = new AsyncTempCaseFactory("openclaw-security-audit-win-");
 
   beforeAll(async () => {
     await tempCases.setup();
@@ -26,7 +27,7 @@ describe("security audit filesystem Windows findings", () => {
         const tmp = await tempCases.makeTmpDir("win");
         const stateDir = path.join(tmp, "state");
         await fs.mkdir(stateDir, { recursive: true });
-        const configPath = path.join(stateDir, "astroclaw.json");
+        const configPath = path.join(stateDir, "openclaw.json");
         await fs.writeFile(configPath, "{}\n", "utf-8");
         const findings = await collectFilesystemFindings({
           stateDir,
@@ -57,7 +58,7 @@ describe("security audit filesystem Windows findings", () => {
         const tmp = await tempCases.makeTmpDir("win-open");
         const stateDir = path.join(tmp, "state");
         await fs.mkdir(stateDir, { recursive: true });
-        const configPath = path.join(stateDir, "astroclaw.json");
+        const configPath = path.join(stateDir, "openclaw.json");
         await fs.writeFile(configPath, "{}\n", "utf-8");
         const findings = await collectFilesystemFindings({
           stateDir,
@@ -89,7 +90,7 @@ describe("security audit filesystem Windows findings", () => {
         const tmp = await tempCases.makeTmpDir("win-anon-world");
         const stateDir = path.join(tmp, "state");
         await fs.mkdir(stateDir, { recursive: true });
-        const configPath = path.join(stateDir, "astroclaw.json");
+        const configPath = path.join(stateDir, "openclaw.json");
         await fs.writeFile(configPath, "{}\n", "utf-8");
         const findings = await collectFilesystemFindings({
           stateDir,
