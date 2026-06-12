@@ -1,14 +1,21 @@
+// Discord tests cover thread bindings.lifecycle plugin behavior.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { ChannelType } from "discord-api-types/v10";
-import { getSessionBindingService } from "astroclaw/plugin-sdk/conversation-runtime";
+import { getSessionBindingService } from "openclaw/plugin-sdk/conversation-runtime";
+import type { OpenKeyedStoreOptions } from "openclaw/plugin-sdk/plugin-state-runtime";
+import {
+  createPluginStateSyncKeyedStoreForTests,
+  resetPluginStateStoreForTests,
+} from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
-  type AstroclawConfig,
-} from "astroclaw/plugin-sdk/runtime-config-snapshot";
+  type OpenClawConfig,
+} from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setDiscordRuntime, type DiscordRuntime } from "../runtime.js";
 import { EMPTY_DISCORD_TEST_CONFIG } from "../test-support/config.js";
 
 const hoisted = vi.hoisted(() => {
@@ -56,7 +63,7 @@ vi.mock("../send.messages.js", () => ({
   createThreadDiscord: hoisted.createThreadDiscord,
 }));
 
-const { __testing, createThreadBindingManager } = await import("./thread-bindings.manager.js");
+const { testing, createThreadBindingManager } = await import("./thread-bindings.manager.js");
 const {
   autoBindSpawnedDiscordSubagent,
   reconcileAcpThreadBindingsOnStartup,
@@ -69,11 +76,11 @@ const { resolveThreadBindingInactivityExpiresAt, resolveThreadBindingMaxAgeExpir
 const { resolveThreadBindingIntroText } = await import("./thread-bindings.messages.js");
 const discordClientModule = await import("../client.js");
 const discordThreadBindingApi = await import("./thread-bindings.discord-api.js");
-const acpRuntime = await import("astroclaw/plugin-sdk/acp-runtime");
+const acpRuntime = await import("openclaw/plugin-sdk/acp-runtime");
 
 function createTestThreadBindingManager(
   params: Omit<Parameters<typeof createThreadBindingManager>[0], "cfg"> & {
-    cfg?: AstroclawConfig;
+    cfg?: OpenClawConfig;
   },
 ) {
   return createThreadBindingManager({
@@ -115,7 +122,14 @@ function mockCallArg(mock: unknown, callIndex: number, argIndex: number, label: 
 
 describe("thread binding lifecycle", () => {
   beforeEach(() => {
-    __testing.resetThreadBindingsForTests();
+    resetPluginStateStoreForTests();
+    testing.resetThreadBindingsForTests();
+    setDiscordRuntime({
+      state: {
+        openSyncKeyedStore: (options: OpenKeyedStoreOptions) =>
+          createPluginStateSyncKeyedStoreForTests("discord", options),
+      },
+    } as unknown as DiscordRuntime);
     clearRuntimeConfigSnapshot();
     vi.restoreAllMocks();
     hoisted.sendMessageDiscord.mockReset().mockResolvedValue({});
@@ -327,7 +341,7 @@ describe("thread binding lifecycle", () => {
       hoisted.sendWebhookMessageDiscord.mockClear();
 
       await vi.advanceTimersByTimeAsync(120_000);
-      await __testing.runThreadBindingSweepForAccount("default");
+      await testing.runThreadBindingSweepForAccount("default");
 
       expect(manager.getByThreadId("thread-1")).toBeUndefined();
       expect(hoisted.restGet).not.toHaveBeenCalled();
@@ -370,7 +384,7 @@ describe("thread binding lifecycle", () => {
       hoisted.sendMessageDiscord.mockClear();
 
       await vi.advanceTimersByTimeAsync(120_000);
-      await __testing.runThreadBindingSweepForAccount("default");
+      await testing.runThreadBindingSweepForAccount("default");
 
       expect(manager.getByThreadId("thread-1")).toBeUndefined();
       expect(hoisted.sendMessageDiscord).toHaveBeenCalledTimes(1);
@@ -392,7 +406,7 @@ describe("thread binding lifecycle", () => {
       hoisted.restGet.mockRejectedValueOnce(new Error("ECONNRESET"));
 
       await vi.advanceTimersByTimeAsync(120_000);
-      await __testing.runThreadBindingSweepForAccount("default");
+      await testing.runThreadBindingSweepForAccount("default");
 
       expectFields(requireBinding(manager, "thread-1"), "thread binding", {
         threadId: "thread-1",
@@ -418,7 +432,7 @@ describe("thread binding lifecycle", () => {
       });
 
       await vi.advanceTimersByTimeAsync(120_000);
-      await __testing.runThreadBindingSweepForAccount("default");
+      await testing.runThreadBindingSweepForAccount("default");
 
       expect(manager.getByThreadId("thread-1")).toBeUndefined();
       expect(hoisted.sendWebhookMessageDiscord).not.toHaveBeenCalled();
@@ -599,7 +613,7 @@ describe("thread binding lifecycle", () => {
       expect(updated[0]?.idleTimeoutMs).toBe(0);
 
       await vi.advanceTimersByTimeAsync(240_000);
-      await __testing.runThreadBindingSweepForAccount("default");
+      await testing.runThreadBindingSweepForAccount("default");
 
       expectFields(requireBinding(manager, "thread-1"), "thread binding", {
         threadId: "thread-1",
@@ -663,7 +677,7 @@ describe("thread binding lifecycle", () => {
       hoisted.sendMessageDiscord.mockClear();
 
       await vi.advanceTimersByTimeAsync(120_000);
-      await __testing.runThreadBindingSweepForAccount("default");
+      await testing.runThreadBindingSweepForAccount("default");
 
       expectFields(requireBinding(manager, "thread-2"), "thread binding", {
         threadId: "thread-2",
@@ -717,11 +731,11 @@ describe("thread binding lifecycle", () => {
 
   it("persists touched activity timestamps across restart when persistence is enabled", async () => {
     vi.useFakeTimers();
-    const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-thread-bindings-"));
-    process.env.ASTROCLAW_STATE_DIR = stateDir;
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-thread-bindings-"));
+    process.env.OPENCLAW_STATE_DIR = stateDir;
     try {
-      __testing.resetThreadBindingsForTests();
+      testing.resetThreadBindingsForTests();
       vi.setSystemTime(new Date("2026-02-20T00:00:00.000Z"));
       const manager = createTestThreadBindingManager({
         accountId: "default",
@@ -745,7 +759,7 @@ describe("thread binding lifecycle", () => {
       vi.setSystemTime(touchedAt);
       manager.touchThread({ threadId: "thread-1" });
 
-      __testing.resetThreadBindingsForTests();
+      testing.resetThreadBindingsForTests();
       const reloaded = createTestThreadBindingManager({
         accountId: "default",
         persist: true,
@@ -763,15 +777,43 @@ describe("thread binding lifecycle", () => {
         }),
       ).toBe(new Date("2026-02-20T00:01:30.000Z").getTime());
     } finally {
-      __testing.resetThreadBindingsForTests();
+      testing.resetThreadBindingsForTests();
       if (previousStateDir === undefined) {
-        delete process.env.ASTROCLAW_STATE_DIR;
+        delete process.env.OPENCLAW_STATE_DIR;
       } else {
-        process.env.ASTROCLAW_STATE_DIR = previousStateDir;
+        process.env.OPENCLAW_STATE_DIR = previousStateDir;
       }
       fs.rmSync(stateDir, { recursive: true, force: true });
       vi.useRealTimers();
     }
+  });
+
+  it("keeps thread binding startup in memory when SQLite persistence is unavailable", async () => {
+    setDiscordRuntime({
+      state: {
+        openSyncKeyedStore: () => {
+          throw new Error("sqlite unavailable");
+        },
+      },
+    } as unknown as DiscordRuntime);
+
+    const manager = createTestThreadBindingManager({
+      accountId: "default",
+      persist: true,
+      enableSweeper: false,
+    });
+
+    await manager.bindTarget({
+      threadId: "thread-sqlite-down",
+      channelId: "parent-1",
+      targetKind: "subagent",
+      targetSessionKey: "agent:main:subagent:sqlite-down",
+      agentId: "main",
+    });
+
+    expect(manager.getByThreadId("thread-sqlite-down")).toMatchObject({
+      targetSessionKey: "agent:main:subagent:sqlite-down",
+    });
   });
 
   it("reuses webhook credentials after unbind when rebinding in the same channel", async () => {
@@ -919,7 +961,7 @@ describe("thread binding lifecycle", () => {
   it("passes manager token when resolving parent channels for auto-bind", async () => {
     const cfg = {
       channels: { discord: { token: "tok" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     createTestThreadBindingManager({
       accountId: "runtime",
       token: "runtime-token",
@@ -978,10 +1020,10 @@ describe("thread binding lifecycle", () => {
   it("uses the active runtime snapshot cfg for manager operations", async () => {
     const startupCfg = {
       channels: { discord: { token: "startup-token" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const refreshedCfg = {
       channels: { discord: { token: "refreshed-token" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const manager = createTestThreadBindingManager({
       accountId: "runtime",
       token: "runtime-token",
@@ -1223,7 +1265,7 @@ describe("thread binding lifecycle", () => {
     hoisted.restPost.mockClear();
 
     const bound = await getSessionBindingService().bind({
-      targetSessionKey: "plugin-binding:astroclaw-codex-app-server:dm",
+      targetSessionKey: "plugin-binding:openclaw-codex-app-server:dm",
       targetKind: "session",
       conversation: {
         channel: "discord",
@@ -1233,8 +1275,8 @@ describe("thread binding lifecycle", () => {
       placement: "current",
       metadata: {
         pluginBindingOwner: "plugin",
-        pluginId: "astroclaw-codex-app-server",
-        pluginRoot: "/Users/huntharo/github/astroclaw-app-server",
+        pluginId: "openclaw-codex-app-server",
+        pluginRoot: "/Users/huntharo/github/openclaw-app-server",
       },
     });
 
@@ -1273,7 +1315,7 @@ describe("thread binding lifecycle", () => {
     });
 
     await getSessionBindingService().bind({
-      targetSessionKey: "plugin-binding:astroclaw-codex-app-server:dm",
+      targetSessionKey: "plugin-binding:openclaw-codex-app-server:dm",
       targetKind: "session",
       conversation: {
         channel: "discord",
@@ -1283,15 +1325,15 @@ describe("thread binding lifecycle", () => {
       placement: "current",
       metadata: {
         pluginBindingOwner: "plugin",
-        pluginId: "astroclaw-codex-app-server",
-        pluginRoot: "/Users/huntharo/github/astroclaw-app-server",
+        pluginId: "openclaw-codex-app-server",
+        pluginRoot: "/Users/huntharo/github/openclaw-app-server",
         agentId: "codex",
         boundBy: "system",
       },
     });
 
     await getSessionBindingService().bind({
-      targetSessionKey: "plugin-binding:astroclaw-codex-app-server:dm",
+      targetSessionKey: "plugin-binding:openclaw-codex-app-server:dm",
       targetKind: "session",
       conversation: {
         channel: "discord",
@@ -1314,8 +1356,8 @@ describe("thread binding lifecycle", () => {
     );
     expectFields(requireRecord(resolved.metadata, "resolved metadata"), "resolved metadata", {
       pluginBindingOwner: "plugin",
-      pluginId: "astroclaw-codex-app-server",
-      pluginRoot: "/Users/huntharo/github/astroclaw-app-server",
+      pluginId: "openclaw-codex-app-server",
+      pluginRoot: "/Users/huntharo/github/openclaw-app-server",
       agentId: "codex",
       boundBy: "system",
       label: "codex-dm",
@@ -1509,12 +1551,12 @@ describe("thread binding lifecycle", () => {
       threadId: "user:1177378744822943744",
       channelId: "user:1177378744822943744",
       targetKind: "acp",
-      targetSessionKey: "plugin-binding:astroclaw-codex-app-server:dm",
+      targetSessionKey: "plugin-binding:openclaw-codex-app-server:dm",
       agentId: "codex",
       metadata: {
         pluginBindingOwner: "plugin",
-        pluginId: "astroclaw-codex-app-server",
-        pluginRoot: "/Users/huntharo/github/astroclaw-app-server",
+        pluginId: "openclaw-codex-app-server",
+        pluginRoot: "/Users/huntharo/github/openclaw-app-server",
       },
     });
 
@@ -1537,7 +1579,7 @@ describe("thread binding lifecycle", () => {
     );
     expectFields(requireRecord(binding.metadata, "binding metadata"), "binding metadata", {
       pluginBindingOwner: "plugin",
-      pluginId: "astroclaw-codex-app-server",
+      pluginId: "openclaw-codex-app-server",
     });
   });
 
@@ -1835,50 +1877,39 @@ describe("thread binding lifecycle", () => {
   });
 
   it("migrates legacy expiresAt bindings to idle/max-age semantics", () => {
-    const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-thread-bindings-"));
-    process.env.ASTROCLAW_STATE_DIR = stateDir;
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-thread-bindings-"));
+    process.env.OPENCLAW_STATE_DIR = stateDir;
     try {
-      __testing.resetThreadBindingsForTests();
-      const bindingsPath = __testing.resolveThreadBindingsPath();
-      fs.mkdirSync(path.dirname(bindingsPath), { recursive: true });
+      testing.resetThreadBindingsForTests();
       const boundAt = Date.now() - 10_000;
       const expiresAt = boundAt + 60_000;
-      fs.writeFileSync(
-        bindingsPath,
-        JSON.stringify(
-          {
-            version: 1,
-            bindings: {
-              "thread-legacy-active": {
-                accountId: "default",
-                channelId: "parent-1",
-                threadId: "thread-legacy-active",
-                targetKind: "subagent",
-                targetSessionKey: "agent:main:subagent:legacy-active",
-                agentId: "main",
-                boundBy: "system",
-                boundAt,
-                expiresAt,
-              },
-              "thread-legacy-disabled": {
-                accountId: "default",
-                channelId: "parent-1",
-                threadId: "thread-legacy-disabled",
-                targetKind: "subagent",
-                targetSessionKey: "agent:main:subagent:legacy-disabled",
-                agentId: "main",
-                boundBy: "system",
-                boundAt,
-                expiresAt: 0,
-              },
-            },
-          },
-          null,
-          2,
-        ),
-        "utf-8",
-      );
+      const store = createPluginStateSyncKeyedStoreForTests("discord", {
+        namespace: "thread-bindings",
+        maxEntries: 10_000,
+      });
+      store.register("default:thread-legacy-active", {
+        accountId: "default",
+        channelId: "parent-1",
+        threadId: "thread-legacy-active",
+        targetKind: "subagent",
+        targetSessionKey: "agent:main:subagent:legacy-active",
+        agentId: "main",
+        boundBy: "system",
+        boundAt,
+        expiresAt,
+      });
+      store.register("default:thread-legacy-disabled", {
+        accountId: "default",
+        channelId: "parent-1",
+        threadId: "thread-legacy-disabled",
+        targetKind: "subagent",
+        targetSessionKey: "agent:main:subagent:legacy-disabled",
+        agentId: "main",
+        boundBy: "system",
+        boundAt,
+        expiresAt: 0,
+      });
 
       const manager = createTestThreadBindingManager({
         accountId: "default",
@@ -1926,67 +1957,52 @@ describe("thread binding lifecycle", () => {
         }),
       ).toBeUndefined();
     } finally {
-      __testing.resetThreadBindingsForTests();
+      testing.resetThreadBindingsForTests();
       if (previousStateDir === undefined) {
-        delete process.env.ASTROCLAW_STATE_DIR;
+        delete process.env.OPENCLAW_STATE_DIR;
       } else {
-        process.env.ASTROCLAW_STATE_DIR = previousStateDir;
+        process.env.OPENCLAW_STATE_DIR = previousStateDir;
       }
       fs.rmSync(stateDir, { recursive: true, force: true });
     }
   });
 
   it("persists unbinds even when no manager is active", () => {
-    const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-thread-bindings-"));
-    process.env.ASTROCLAW_STATE_DIR = stateDir;
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-thread-bindings-"));
+    process.env.OPENCLAW_STATE_DIR = stateDir;
     try {
-      __testing.resetThreadBindingsForTests();
-      const bindingsPath = __testing.resolveThreadBindingsPath();
-      fs.mkdirSync(path.dirname(bindingsPath), { recursive: true });
+      testing.resetThreadBindingsForTests();
       const now = Date.now();
-      fs.writeFileSync(
-        bindingsPath,
-        JSON.stringify(
-          {
-            version: 1,
-            bindings: {
-              "thread-1": {
-                accountId: "default",
-                channelId: "parent-1",
-                threadId: "thread-1",
-                targetKind: "subagent",
-                targetSessionKey: "agent:main:subagent:child",
-                agentId: "main",
-                boundBy: "system",
-                boundAt: now,
-                lastActivityAt: now,
-                idleTimeoutMs: 60_000,
-                maxAgeMs: 0,
-              },
-            },
-          },
-          null,
-          2,
-        ),
-        "utf-8",
-      );
+      const store = createPluginStateSyncKeyedStoreForTests("discord", {
+        namespace: "thread-bindings",
+        maxEntries: 10_000,
+      });
+      store.register("default:thread-1", {
+        accountId: "default",
+        channelId: "parent-1",
+        threadId: "thread-1",
+        targetKind: "subagent",
+        targetSessionKey: "agent:main:subagent:child",
+        agentId: "main",
+        boundBy: "system",
+        boundAt: now,
+        lastActivityAt: now,
+        idleTimeoutMs: 60_000,
+        maxAgeMs: 0,
+      });
 
       const removed = unbindThreadBindingsBySessionKey({
         targetSessionKey: "agent:main:subagent:child",
       });
       expect(removed).toHaveLength(1);
-
-      const payload = JSON.parse(fs.readFileSync(bindingsPath, "utf-8")) as {
-        bindings?: Record<string, unknown>;
-      };
-      expect(Object.keys(payload.bindings ?? {})).toStrictEqual([]);
+      expect(store.entries()).toStrictEqual([]);
     } finally {
-      __testing.resetThreadBindingsForTests();
+      testing.resetThreadBindingsForTests();
       if (previousStateDir === undefined) {
-        delete process.env.ASTROCLAW_STATE_DIR;
+        delete process.env.OPENCLAW_STATE_DIR;
       } else {
-        process.env.ASTROCLAW_STATE_DIR = previousStateDir;
+        process.env.OPENCLAW_STATE_DIR = previousStateDir;
       }
       fs.rmSync(stateDir, { recursive: true, force: true });
     }
