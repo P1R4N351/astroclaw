@@ -1,8 +1,10 @@
+// TTS config tests cover text-to-speech config loading and overrides.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
+import { captureEnv } from "../test-utils/env.js";
 import {
   resolveConfiguredTtsMode,
   resolveEffectiveTtsConfig,
@@ -10,14 +12,14 @@ import {
 } from "./tts-config.js";
 
 describe("shouldAttemptTtsPayload", () => {
-  let originalPrefsPath: string | undefined;
+  let envSnapshot: ReturnType<typeof captureEnv> | undefined;
   let root = "";
   let dir: string;
   let prefsPath: string;
   let caseId = 0;
 
   beforeAll(() => {
-    root = mkdtempSync(path.join(tmpdir(), "astroclaw-tts-config-"));
+    root = mkdtempSync(path.join(tmpdir(), "openclaw-tts-config-"));
   });
 
   afterAll(() => {
@@ -27,29 +29,26 @@ describe("shouldAttemptTtsPayload", () => {
   });
 
   beforeEach(() => {
-    originalPrefsPath = process.env.ASTROCLAW_TTS_PREFS;
+    envSnapshot = captureEnv(["OPENCLAW_TTS_PREFS"]);
     dir = path.join(root, `case-${caseId++}`);
     mkdirSync(dir, { recursive: true });
     prefsPath = path.join(dir, "tts.json");
-    process.env.ASTROCLAW_TTS_PREFS = prefsPath;
+    process.env.OPENCLAW_TTS_PREFS = prefsPath;
   });
 
   afterEach(() => {
-    if (originalPrefsPath === undefined) {
-      delete process.env.ASTROCLAW_TTS_PREFS;
-    } else {
-      process.env.ASTROCLAW_TTS_PREFS = originalPrefsPath;
-    }
+    envSnapshot?.restore();
+    envSnapshot = undefined;
   });
 
   it("skips TTS when config, prefs, and session state leave auto mode off", () => {
-    expect(shouldAttemptTtsPayload({ cfg: {} as AstroclawConfig })).toBe(false);
+    expect(shouldAttemptTtsPayload({ cfg: {} as OpenClawConfig })).toBe(false);
   });
 
   it("does not infer automatic TTS from a dashboard text turn without opt-in state", () => {
     expect(
       shouldAttemptTtsPayload({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         agentId: "main",
         channelId: "webchat",
         accountId: "dashboard",
@@ -59,21 +58,21 @@ describe("shouldAttemptTtsPayload", () => {
 
   it("honors session auto state before prefs and config", () => {
     writeFileSync(prefsPath, JSON.stringify({ tts: { auto: "off" } }));
-    const cfg = { messages: { tts: { auto: "off" } } } as AstroclawConfig;
+    const cfg = { messages: { tts: { auto: "off" } } } as OpenClawConfig;
 
     expect(shouldAttemptTtsPayload({ cfg, ttsAuto: "always" })).toBe(true);
     expect(shouldAttemptTtsPayload({ cfg, ttsAuto: "off" })).toBe(false);
   });
 
   it("uses local prefs before config auto mode", () => {
-    const cfg = { messages: { tts: { auto: "off" } } } as AstroclawConfig;
+    const cfg = { messages: { tts: { auto: "off" } } } as OpenClawConfig;
 
     writeFileSync(prefsPath, JSON.stringify({ tts: { enabled: true } }));
     expect(shouldAttemptTtsPayload({ cfg })).toBe(true);
 
     writeFileSync(prefsPath, JSON.stringify({ tts: { auto: "off" } }));
     expect(
-      shouldAttemptTtsPayload({ cfg: { messages: { tts: { enabled: true } } } as AstroclawConfig }),
+      shouldAttemptTtsPayload({ cfg: { messages: { tts: { enabled: true } } } as OpenClawConfig }),
     ).toBe(false);
   });
 
@@ -96,7 +95,7 @@ describe("shouldAttemptTtsPayload", () => {
           },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(shouldAttemptTtsPayload({ cfg, agentId: "voice" })).toBe(true);
     expect(resolveConfiguredTtsMode(cfg, "voice")).toBe("all");
@@ -152,7 +151,7 @@ describe("shouldAttemptTtsPayload", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const resolved = resolveEffectiveTtsConfig(cfg, {
       agentId: "reader",
