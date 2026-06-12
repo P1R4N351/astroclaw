@@ -1,3 +1,6 @@
+/**
+ * Control UI gateway routing tests.
+ */
 import { describe, expect, it } from "vitest";
 import { classifyControlUiRequest } from "./control-ui-routing.js";
 
@@ -68,14 +71,14 @@ describe("classifyControlUiRequest", () => {
     it.each([
       {
         name: "redirects the basePath entrypoint",
-        pathname: "/astroclaw",
+        pathname: "/openclaw",
         search: "?foo=1",
         method: "GET",
-        expected: { kind: "redirect" as const, location: "/astroclaw/?foo=1" },
+        expected: { kind: "redirect" as const, location: "/openclaw/?foo=1" },
       },
       {
         name: "serves nested read-only routes",
-        pathname: "/astroclaw/chat",
+        pathname: "/openclaw/chat",
         search: "",
         method: "HEAD",
         expected: { kind: "serve" as const },
@@ -89,14 +92,14 @@ describe("classifyControlUiRequest", () => {
       },
       {
         name: "falls through write requests to the basePath entrypoint",
-        pathname: "/astroclaw",
+        pathname: "/openclaw",
         search: "",
         method: "POST",
         expected: { kind: "not-control-ui" as const },
       },
       ...["PUT", "DELETE", "PATCH", "OPTIONS"].map((method) => ({
         name: `falls through ${method} subroute requests`,
-        pathname: "/astroclaw/webhook",
+        pathname: "/openclaw/webhook",
         search: "",
         method,
         expected: { kind: "not-control-ui" as const },
@@ -104,7 +107,7 @@ describe("classifyControlUiRequest", () => {
     ])("$name", ({ pathname, search, method, expected }) => {
       expect(
         classifyControlUiRequest({
-          basePath: "/astroclaw",
+          basePath: "/openclaw",
           pathname,
           search,
           method,
