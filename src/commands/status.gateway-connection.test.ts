@@ -1,3 +1,4 @@
+// Status gateway connection tests cover connection detail resolution and terminal logging.
 import { describe, expect, it, vi } from "vitest";
 import {
   logGatewayConnectionDetails,
@@ -34,13 +35,13 @@ describe("status.gateway-connection", () => {
           message: "ignored",
         },
         bindMode: "loopback",
-        configPath: "/tmp/astroclaw.json",
+        configPath: "/tmp/openclaw.json",
       }),
     ).toBe(
       [
         "Gateway mode: remote",
         "Gateway target: (missing gateway.remote.url)",
-        "Config: /tmp/astroclaw.json",
+        "Config: /tmp/openclaw.json",
         "Bind: loopback",
         "Local fallback (used for probes): ws://127.0.0.1:18789",
         "Fix: set gateway.remote.url, or set gateway.mode=local.",
@@ -63,7 +64,7 @@ describe("status.gateway-connection", () => {
           message: "Gateway mode: local",
         },
         bindMode: "loopback",
-        configPath: "/tmp/astroclaw.json",
+        configPath: "/tmp/openclaw.json",
       }),
     ).toBe("Node-only mode detected");
   });
