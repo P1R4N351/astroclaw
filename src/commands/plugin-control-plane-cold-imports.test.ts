@@ -1,3 +1,4 @@
+// Plugin control-plane cold-import tests guard setup and plugin metadata paths against runtime-heavy imports.
 import { afterEach, describe, expect, it } from "vitest";
 import { refreshPluginRegistry } from "../plugins/plugin-registry.js";
 import {
@@ -14,7 +15,7 @@ import { resolveProviderCatalogPluginIdsForFilter } from "./models/list.provider
 const tempDirs: string[] = [];
 
 function makeTempDir() {
-  return makeTrackedTempDir("astroclaw-command-cold-imports", tempDirs);
+  return makeTrackedTempDir("openclaw-command-cold-imports", tempDirs);
 }
 
 afterEach(() => {
