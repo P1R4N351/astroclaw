@@ -1,3 +1,4 @@
+// Covers TUI launch argument and environment construction.
 import type { ChildProcess, SpawnOptions } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -37,7 +38,7 @@ function expectSpawned(expectedArgs: string[]): SpawnOptions {
 describe("launchTuiCli", () => {
   beforeEach(() => {
     process.argv = [...originalArgv];
-    process.argv[1] = "/repo/astroclaw.mjs";
+    process.argv[1] = "/repo/openclaw.mjs";
     process.execArgv.length = 0;
     spawnMock.mockReset();
     detachMock.mockReset();
@@ -83,7 +84,7 @@ describe("launchTuiCli", () => {
       "--import",
       "tsx",
       "--no-warnings",
-      "/repo/astroclaw.mjs",
+      "/repo/openclaw.mjs",
       "tui",
       "--url",
       "ws://127.0.0.1:18789",
@@ -104,7 +105,7 @@ describe("launchTuiCli", () => {
 
     await launchTuiCli({ local: true, deliver: false });
 
-    const options = expectSpawned(["/repo/astroclaw.mjs", "tui", "--local"]);
+    const options = expectSpawned(["/repo/openclaw.mjs", "tui", "--local"]);
     expect(options.stdio).toBe("inherit");
   });
 
@@ -123,7 +124,7 @@ describe("launchTuiCli", () => {
     });
 
     const options = expectSpawned([
-      "/repo/astroclaw.mjs",
+      "/repo/openclaw.mjs",
       "tui",
       "--local",
       "--message",
@@ -160,8 +161,8 @@ describe("launchTuiCli", () => {
       { authSource: "config", gatewayUrl: "ws://127.0.0.1:18789" },
     );
 
-    const options = expectSpawned(["/repo/astroclaw.mjs", "tui"]);
-    expect(options.env?.ASTROCLAW_GATEWAY_URL).toBe("ws://127.0.0.1:18789");
-    expect(options.env?.ASTROCLAW_TUI_SETUP_AUTH_SOURCE).toBe("config");
+    const options = expectSpawned(["/repo/openclaw.mjs", "tui"]);
+    expect(options.env?.OPENCLAW_GATEWAY_URL).toBe("ws://127.0.0.1:18789");
+    expect(options.env?.OPENCLAW_TUI_SETUP_AUTH_SOURCE).toBe("config");
   });
 });
