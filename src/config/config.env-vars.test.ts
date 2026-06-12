@@ -1,3 +1,4 @@
+// Covers environment-variable config metadata and parsing.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -11,26 +12,26 @@ import {
   readStateDirDotEnvVars,
 } from "./env-vars.js";
 import { withEnvOverride, withTempHome, writeStateDirDotEnv } from "./test-helpers.js";
-import type { AstroclawConfig } from "./types.js";
+import type { OpenClawConfig } from "./types.js";
 
 describe("config env vars", () => {
   it("applies env vars from env block when missing", async () => {
     await withEnvOverride({ OPENROUTER_API_KEY: undefined }, async () => {
-      applyConfigEnvVars({ env: { vars: { OPENROUTER_API_KEY: "config-key" } } } as AstroclawConfig);
+      applyConfigEnvVars({ env: { vars: { OPENROUTER_API_KEY: "config-key" } } } as OpenClawConfig);
       expect(process.env.OPENROUTER_API_KEY).toBe("config-key");
     });
   });
 
   it("does not override existing env vars", async () => {
     await withEnvOverride({ OPENROUTER_API_KEY: "existing-key" }, async () => {
-      applyConfigEnvVars({ env: { vars: { OPENROUTER_API_KEY: "config-key" } } } as AstroclawConfig);
+      applyConfigEnvVars({ env: { vars: { OPENROUTER_API_KEY: "config-key" } } } as OpenClawConfig);
       expect(process.env.OPENROUTER_API_KEY).toBe("existing-key");
     });
   });
 
   it("applies env vars from env.vars when missing", async () => {
     await withEnvOverride({ GROQ_API_KEY: undefined }, async () => {
-      applyConfigEnvVars({ env: { vars: { GROQ_API_KEY: "gsk-config" } } } as AstroclawConfig);
+      applyConfigEnvVars({ env: { vars: { GROQ_API_KEY: "gsk-config" } } } as OpenClawConfig);
       expect(process.env.GROQ_API_KEY).toBe("gsk-config");
     });
   });
@@ -58,7 +59,7 @@ describe("config env vars", () => {
     await withEnvOverride({ OPENROUTER_API_KEY: undefined }, async () => {
       const merged = createConfigRuntimeEnv({
         env: { vars: { OPENROUTER_API_KEY: "config-key" } },
-      } as AstroclawConfig);
+      } as OpenClawConfig);
       expect(merged.OPENROUTER_API_KEY).toBe("config-key");
       expect(process.env.OPENROUTER_API_KEY).toBeUndefined();
     });
@@ -85,14 +86,14 @@ describe("config env vars", () => {
             },
           },
         };
-        const entries = collectConfigRuntimeEnvVars(config as AstroclawConfig);
+        const entries = collectConfigRuntimeEnvVars(config as OpenClawConfig);
         expect(entries.BASH_ENV).toBeUndefined();
         expect(entries.SHELL).toBeUndefined();
         expect(entries.HOME).toBeUndefined();
         expect(entries.ZDOTDIR).toBeUndefined();
         expect(entries.OPENROUTER_API_KEY).toBe("config-key");
 
-        applyConfigEnvVars(config as AstroclawConfig);
+        applyConfigEnvVars(config as OpenClawConfig);
         expect(process.env.BASH_ENV).toBeUndefined();
         expect(process.env.SHELL).toBeUndefined();
         expect(process.env.HOME).toBeUndefined();
@@ -113,24 +114,69 @@ describe("config env vars", () => {
           "NOT-PORTABLE": "bad",
         },
       };
-      const entries = collectConfigRuntimeEnvVars(config as AstroclawConfig);
+      const entries = collectConfigRuntimeEnvVars(config as OpenClawConfig);
       expect(entries.OPENROUTER_API_KEY).toBe("config-key");
       expect(entries[" BAD KEY"]).toBeUndefined();
       expect(entries["NOT-PORTABLE"]).toBeUndefined();
     });
   });
 
-  it("loads ${VAR} substitutions from ~/.astroclaw/.env on repeated runtime loads", async () => {
+  it("drops unresolved env references from config env", async () => {
+    const entries = collectConfigRuntimeEnvVars({
+      env: {
+        vars: {
+          OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}",
+          BRAVE_API_KEY: "config-key",
+        },
+      },
+    } as OpenClawConfig);
+
+    expect(entries.OPENROUTER_API_KEY).toBeUndefined();
+    expect(entries.BRAVE_API_KEY).toBe("config-key");
+  });
+
+  it("drops unresolved env references from top-level config env", async () => {
+    const entries = collectConfigRuntimeEnvVars({
+      env: {
+        OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}",
+        BRAVE_API_KEY: "config-key",
+      },
+    } as OpenClawConfig);
+
+    expect(entries.OPENROUTER_API_KEY).toBeUndefined();
+    expect(entries.BRAVE_API_KEY).toBe("config-key");
+  });
+
+  it("keeps resolved env references from config env", async () => {
+    const resolvedConfig = resolveConfigEnvVars(
+      {
+        env: {
+          vars: {
+            OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}",
+            BRAVE_API_KEY: "config-key",
+          },
+        },
+      },
+      { OPENROUTER_API_KEY: "resolved-key" },
+    ) as OpenClawConfig;
+
+    const entries = collectConfigRuntimeEnvVars(resolvedConfig);
+
+    expect(entries.OPENROUTER_API_KEY).toBe("resolved-key");
+    expect(entries.BRAVE_API_KEY).toBe("config-key");
+  });
+
+  it("loads ${VAR} substitutions from ~/.openclaw/.env on repeated runtime loads", async () => {
     await withTempHome(async (_home) => {
       await withEnvOverride({ BRAVE_API_KEY: undefined }, async () => {
-        const stateDir = process.env.ASTROCLAW_STATE_DIR?.trim();
+        const stateDir = process.env.OPENCLAW_STATE_DIR?.trim();
         if (!stateDir) {
-          throw new Error("Expected ASTROCLAW_STATE_DIR to be set by withTempHome");
+          throw new Error("Expected OPENCLAW_STATE_DIR to be set by withTempHome");
         }
         await fs.mkdir(stateDir, { recursive: true });
         await fs.writeFile(path.join(stateDir, ".env"), "BRAVE_API_KEY=from-dotenv\n", "utf-8");
 
-        const config: AstroclawConfig = {
+        const config: OpenClawConfig = {
           tools: {
             web: {
               search: {
@@ -141,12 +187,12 @@ describe("config env vars", () => {
         };
 
         loadDotEnv({ quiet: true });
-        const first = resolveConfigEnvVars(config, process.env) as AstroclawConfig;
+        const first = resolveConfigEnvVars(config, process.env) as OpenClawConfig;
         expect(first.tools?.web?.search?.apiKey).toBe("from-dotenv");
 
         delete process.env.BRAVE_API_KEY;
         loadDotEnv({ quiet: true });
-        const second = resolveConfigEnvVars(config, process.env) as AstroclawConfig;
+        const second = resolveConfigEnvVars(config, process.env) as OpenClawConfig;
         expect(second.tools?.web?.search?.apiKey).toBe("from-dotenv");
       });
     });
@@ -181,15 +227,15 @@ describe("config env vars", () => {
     });
   });
 
-  it("respects ASTROCLAW_STATE_DIR when reading state-dir .env vars", async () => {
+  it("respects OPENCLAW_STATE_DIR when reading state-dir .env vars", async () => {
     await withTempHome(async (_home) => {
-      const customStateDir = path.join(process.env.ASTROCLAW_STATE_DIR ?? "", "custom-state");
+      const customStateDir = path.join(process.env.OPENCLAW_STATE_DIR ?? "", "custom-state");
       await writeStateDirDotEnv("CUSTOM_KEY=from-override\n", {
         stateDir: customStateDir,
       });
       expect(
         readStateDirDotEnvVars({
-          ASTROCLAW_STATE_DIR: customStateDir,
+          OPENCLAW_STATE_DIR: customStateDir,
         }).CUSTOM_KEY,
       ).toBe("from-override");
     });
@@ -209,7 +255,7 @@ describe("config env vars", () => {
                 MY_KEY: "from-config",
               },
             },
-          } as AstroclawConfig,
+          } as OpenClawConfig,
         }).MY_KEY,
       ).toBe("from-config");
     });
