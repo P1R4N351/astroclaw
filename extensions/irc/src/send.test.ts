@@ -1,5 +1,6 @@
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-message";
-import { createSendCfgThreadingRuntime } from "astroclaw/plugin-sdk/channel-test-helpers";
+// Irc tests cover send plugin behavior.
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
+import { createSendCfgThreadingRuntime } from "openclaw/plugin-sdk/channel-test-helpers";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IrcClient } from "./client.js";
 import { clearIrcRuntime, setIrcRuntime } from "./runtime.js";
@@ -41,8 +42,8 @@ vi.mock("./protocol.js", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", async () => {
-  const original = (await vi.importActual("astroclaw/plugin-sdk/plugin-config-runtime")) as Record<
+vi.mock("openclaw/plugin-sdk/plugin-config-runtime", async () => {
+  const original = (await vi.importActual("openclaw/plugin-sdk/plugin-config-runtime")) as Record<
     string,
     unknown
   >;
@@ -52,8 +53,8 @@ vi.mock("astroclaw/plugin-sdk/plugin-config-runtime", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/text-chunking", async () => {
-  const original = (await vi.importActual("astroclaw/plugin-sdk/text-chunking")) as Record<
+vi.mock("openclaw/plugin-sdk/text-chunking", async () => {
+  const original = (await vi.importActual("openclaw/plugin-sdk/text-chunking")) as Record<
     string,
     unknown
   >;
@@ -83,8 +84,8 @@ afterAll(() => {
   vi.doUnmock("./client.js");
   vi.doUnmock("./connect-options.js");
   vi.doUnmock("./protocol.js");
-  vi.doUnmock("astroclaw/plugin-sdk/plugin-config-runtime");
-  vi.doUnmock("astroclaw/plugin-sdk/text-chunking");
+  vi.doUnmock("openclaw/plugin-sdk/plugin-config-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/text-chunking");
   vi.resetModules();
 });
 
@@ -103,7 +104,7 @@ describe("sendMessageIrc cfg threading", () => {
       channels: {
         irc: {
           host: "irc.example.com",
-          nick: "astroclaw",
+          nick: "openclaw",
           accounts: {
             work: {
               host: "irc.example.com",
@@ -182,7 +183,7 @@ describe("sendMessageIrc cfg threading", () => {
       channels: {
         irc: {
           host: "irc.example.com",
-          nick: "astroclaw",
+          nick: "openclaw",
         },
       },
     } as unknown as CoreConfig;
@@ -211,7 +212,7 @@ describe("sendMessageIrc cfg threading", () => {
       channels: {
         irc: {
           host: "irc.example.com",
-          nick: "astroclaw",
+          nick: "openclaw",
         },
       },
     } as unknown as CoreConfig;
@@ -262,15 +263,19 @@ describe("sendMessageIrc cfg threading", () => {
       channels: {
         irc: {
           host: "irc.example.com",
-          nick: "astroclaw",
+          nick: "openclaw",
         },
       },
     } as unknown as CoreConfig;
     const client = {
       isReady: vi.fn(() => true),
+      join: vi.fn(),
       sendPrivmsg: vi.fn(),
       quit: vi.fn(),
-    } as unknown as IrcClient & { quit: ReturnType<typeof vi.fn> };
+    } as unknown as IrcClient & {
+      join: ReturnType<typeof vi.fn>;
+      quit: ReturnType<typeof vi.fn>;
+    };
     hoisted.connectIrcClient.mockResolvedValue(client);
 
     const proofResults = await verifyChannelMessageAdapterCapabilityProofs({
@@ -284,6 +289,7 @@ describe("sendMessageIrc cfg threading", () => {
             text: "hello",
           });
           expect(result?.receipt.platformMessageIds).toEqual(["irc-msg-1"]);
+          expect(client.join).toHaveBeenCalledWith("#room");
           expect(client.sendPrivmsg).toHaveBeenCalledWith("#room", "hello");
         },
         media: async () => {
@@ -294,6 +300,7 @@ describe("sendMessageIrc cfg threading", () => {
             mediaUrl: "https://example.com/image.png",
           });
           expect(result?.receipt.platformMessageIds).toEqual(["irc-msg-1"]);
+          expect(client.join).toHaveBeenCalledWith("#room");
           expect(client.sendPrivmsg).toHaveBeenCalledWith(
             "#room",
             "image\n\nAttachment: https://example.com/image.png",
@@ -307,6 +314,7 @@ describe("sendMessageIrc cfg threading", () => {
             replyToId: "parent-1",
           });
           expect(result?.receipt.replyToId).toBe("parent-1");
+          expect(client.join).toHaveBeenCalledWith("#room");
           expect(client.sendPrivmsg).toHaveBeenCalledWith("#room", "threaded\n\n[reply:parent-1]");
         },
       },
