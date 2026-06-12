@@ -1,6 +1,8 @@
+// Mattermost tests cover accounts plugin behavior.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../runtime-api.js";
+import type { OpenClawConfig } from "../../runtime-api.js";
 import {
+  listMattermostAccountIds,
   resolveDefaultMattermostAccountId,
   resolveMattermostAccount,
   resolveMattermostReplyToMode,
@@ -8,7 +10,7 @@ import {
 
 describe("resolveDefaultMattermostAccountId", () => {
   it("prefers channels.mattermost.defaultAccount when it matches a configured account", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         mattermost: {
           defaultAccount: "alerts",
@@ -24,7 +26,7 @@ describe("resolveDefaultMattermostAccountId", () => {
   });
 
   it("normalizes channels.mattermost.defaultAccount before lookup", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         mattermost: {
           defaultAccount: "Ops Team",
@@ -39,7 +41,7 @@ describe("resolveDefaultMattermostAccountId", () => {
   });
 
   it("falls back when channels.mattermost.defaultAccount is missing", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         mattermost: {
           defaultAccount: "missing",
@@ -53,11 +55,32 @@ describe("resolveDefaultMattermostAccountId", () => {
 
     expect(resolveDefaultMattermostAccountId(cfg)).toBe("default");
   });
+
+  it("keeps the implicit default account when named accounts are added to top-level credentials", () => {
+    const cfg: OpenClawConfig = {
+      channels: {
+        mattermost: {
+          botToken: "tok-default",
+          baseUrl: "https://chat.example.com",
+          accounts: {
+            work: {
+              enabled: false,
+              botToken: "tok-work",
+              baseUrl: "https://work.example.com",
+            },
+          },
+        },
+      },
+    };
+
+    expect(listMattermostAccountIds(cfg)).toEqual(["default", "work"]);
+    expect(resolveDefaultMattermostAccountId(cfg)).toBe("default");
+  });
 });
 
 describe("resolveMattermostReplyToMode", () => {
   it("uses configured defaultAccount when accountId is omitted", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         mattermost: {
           defaultAccount: "alerts",
@@ -78,7 +101,7 @@ describe("resolveMattermostReplyToMode", () => {
   });
 
   it("uses the configured mode for channel and group messages", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         mattermost: {
           replyToMode: "all",
@@ -92,7 +115,7 @@ describe("resolveMattermostReplyToMode", () => {
   });
 
   it("keeps direct messages off even when replyToMode is enabled", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         mattermost: {
           replyToMode: "all",
