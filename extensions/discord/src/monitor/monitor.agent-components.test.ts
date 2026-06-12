@@ -1,8 +1,9 @@
+// Discord tests cover monitor.agent components plugin behavior.
 import { ChannelType } from "discord-api-types/v10";
-import { expectPairingReplyText } from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { DiscordAccountConfig, AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { buildAgentSessionKey } from "astroclaw/plugin-sdk/routing";
-import { peekSystemEvents, resetSystemEventsForTest } from "astroclaw/plugin-sdk/test-fixtures";
+import { expectPairingReplyText } from "openclaw/plugin-sdk/channel-test-helpers";
+import type { DiscordAccountConfig, OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { buildAgentSessionKey } from "openclaw/plugin-sdk/routing";
+import { peekSystemEvents, resetSystemEventsForTest } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   ButtonInteraction,
@@ -36,7 +37,7 @@ describe("agent components", () => {
     peer: { kind: "group", id: "group-dm-channel" },
   });
 
-  const createCfg = (): AstroclawConfig => ({}) as AstroclawConfig;
+  const createCfg = (): OpenClawConfig => ({}) as OpenClawConfig;
   const createBaseDmInteraction = (overrides: Record<string, unknown> = {}) => {
     const reply = vi.fn().mockResolvedValue(undefined);
     const defer = vi.fn().mockResolvedValue(undefined);
@@ -140,8 +141,6 @@ describe("agent components", () => {
       {
         sessionKey: defaultDmSessionKey,
         contextKey: "discord:agent-button:dm-channel:hello:123456789",
-        forceSenderIsOwnerFalse: true,
-        trusted: false,
       },
     );
     if (params.expectPairingStoreRead) {
@@ -173,7 +172,7 @@ describe("agent components", () => {
       channel: "discord",
       idLine: "Your Discord user id: 123456789",
     });
-    expect(pairingText).toContain(`astroclaw pairing approve discord ${code}`);
+    expect(pairingText).toContain(`openclaw pairing approve discord ${code}`);
     expect(peekSystemEvents(defaultDmSessionKey)).toStrictEqual([]);
     expect(readAllowFromStoreMock).toHaveBeenCalledWith("discord", "default");
   });
@@ -269,8 +268,6 @@ describe("agent components", () => {
       {
         sessionKey: defaultGroupDmSessionKey,
         contextKey: "discord:agent-button:group-dm-channel:hello:123456789",
-        forceSenderIsOwnerFalse: true,
-        trusted: false,
       },
     );
     expect(peekSystemEvents(defaultDmSessionKey)).toStrictEqual([]);
@@ -351,8 +348,6 @@ describe("agent components", () => {
       {
         sessionKey: defaultDmSessionKey,
         contextKey: "discord:agent-select:dm-channel:hello:123456789",
-        forceSenderIsOwnerFalse: true,
-        trusted: false,
       },
     );
     expect(readAllowFromStoreMock).not.toHaveBeenCalled();
@@ -376,8 +371,6 @@ describe("agent components", () => {
       {
         sessionKey: defaultDmSessionKey,
         contextKey: "discord:agent-button:dm-channel:hello_cid:123456789",
-        forceSenderIsOwnerFalse: true,
-        trusted: false,
       },
     );
     expect(readAllowFromStoreMock).not.toHaveBeenCalled();
@@ -401,8 +394,6 @@ describe("agent components", () => {
       {
         sessionKey: defaultDmSessionKey,
         contextKey: "discord:agent-button:dm-channel:hello%2G:123456789",
-        forceSenderIsOwnerFalse: true,
-        trusted: false,
       },
     );
     expect(readAllowFromStoreMock).not.toHaveBeenCalled();
