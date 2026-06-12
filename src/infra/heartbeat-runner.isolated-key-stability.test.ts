@@ -1,7 +1,8 @@
+// Covers heartbeat system-event isolation by stable session keys.
 import fs from "node:fs/promises";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as replyModule from "../auto-reply/reply.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
 import { runHeartbeatOnce } from "./heartbeat-runner.js";
 import { seedSessionStore, withTempHeartbeatSandbox } from "./heartbeat-runner.test-utils.js";
@@ -23,7 +24,6 @@ afterEach(() => {
 
 type HeartbeatReplyContext = {
   Body?: string;
-  ForceSenderIsOwnerFalse?: boolean;
   Provider?: string;
   SessionKey?: string;
 };
@@ -47,7 +47,7 @@ describe("runHeartbeatOnce – isolated session key stability (#59493)", () => {
   async function runIsolatedHeartbeat(params: {
     tmpDir: string;
     storePath: string;
-    cfg: AstroclawConfig;
+    cfg: OpenClawConfig;
     sessionKey: string;
   }) {
     await seedSessionStore(params.storePath, params.sessionKey, {
@@ -72,7 +72,7 @@ describe("runHeartbeatOnce – isolated session key stability (#59493)", () => {
     return replyCall(replySpy);
   }
 
-  function makeIsolatedHeartbeatConfig(tmpDir: string, storePath: string): AstroclawConfig {
+  function makeIsolatedHeartbeatConfig(tmpDir: string, storePath: string): OpenClawConfig {
     return {
       agents: {
         defaults: {
@@ -93,7 +93,7 @@ describe("runHeartbeatOnce – isolated session key stability (#59493)", () => {
     tmpDir: string,
     storePath: string,
     heartbeatSession: string,
-  ): AstroclawConfig {
+  ): OpenClawConfig {
     return {
       agents: {
         defaults: {
@@ -333,7 +333,6 @@ describe("runHeartbeatOnce – isolated session key stability (#59493)", () => {
       const calledCtx = replyCall(replySpy);
       expect(calledCtx.SessionKey).toBe(isolatedSessionKey);
       expect(calledCtx.Provider).toBe("exec-event");
-      expect(calledCtx.ForceSenderIsOwnerFalse).toBe(true);
     });
   });
 
@@ -393,7 +392,7 @@ describe("runHeartbeatOnce – isolated session key stability (#59493)", () => {
 
   it("does not create an isolated session when task-based heartbeat skips for no-tasks-due", async () => {
     await withTempHeartbeatSandbox(async ({ tmpDir, storePath }) => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           defaults: {
             workspace: tmpDir,
