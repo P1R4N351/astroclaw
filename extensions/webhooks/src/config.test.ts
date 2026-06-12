@@ -1,3 +1,4 @@
+// Webhooks tests cover config plugin behavior.
 import { describe, expect, it } from "vitest";
 import { resolveWebhooksPluginConfig } from "./config.js";
 
@@ -11,7 +12,7 @@ describe("resolveWebhooksPluginConfig", () => {
             secret: {
               source: "env",
               provider: "default",
-              id: "ASTROCLAW_WEBHOOK_SECRET",
+              id: "OPENCLAW_WEBHOOK_SECRET",
             },
           },
         },
@@ -26,7 +27,7 @@ describe("resolveWebhooksPluginConfig", () => {
         secret: {
           source: "env",
           provider: "default",
-          id: "ASTROCLAW_WEBHOOK_SECRET",
+          id: "OPENCLAW_WEBHOOK_SECRET",
         },
         controllerId: "webhooks/zapier",
       },
