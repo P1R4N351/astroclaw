@@ -1,7 +1,9 @@
+// Attachment URL fallback tests cover blocked local paths falling back to
+// remote media fetches and temp-file materialization.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { withTempDir } from "../test-helpers/temp-dir.js";
 import { MediaAttachmentCache } from "./attachments.js";
 
@@ -17,7 +19,7 @@ vi.mock("../media/fetch.js", async () => {
 
 function requireReadRemoteMediaBufferInput(): {
   url?: unknown;
-  fetchImpl?: unknown;
+  timeoutMs?: unknown;
   maxBytes?: unknown;
   ssrfPolicy?: unknown;
   retry?: unknown;
@@ -70,7 +72,7 @@ describe("media understanding attachment URL fallback", () => {
 
   it("getPath falls back to URL fetch when local path is blocked", async () => {
     await withBlockedLocalAttachmentFallback(
-      "astroclaw-media-cache-getpath-url-fallback-",
+      "openclaw-media-cache-getpath-url-fallback-",
       async ({ cache, fallbackUrl }) => {
         const result = await cache.getPath({
           attachmentIndex: 0,
@@ -79,20 +81,18 @@ describe("media understanding attachment URL fallback", () => {
         });
         // getPath should fall through to getBuffer URL fetch, write a temp file,
         // and return a path to that temp file instead of throwing.
-        expect(path.dirname(result.path)).toBe(resolvePreferredAstroclawTmpDir());
-        expect(path.basename(result.path).startsWith("astroclaw-media-")).toBe(true);
+        expect(path.dirname(result.path)).toBe(resolvePreferredOpenClawTmpDir());
+        expect(path.basename(result.path).startsWith("openclaw-media-")).toBe(true);
         expect(path.extname(result.path)).toBe(".jpg");
         expect(readRemoteMediaBufferMock).toHaveBeenCalledTimes(1);
         const fetchInput = requireReadRemoteMediaBufferInput();
-        const fetchImpl = fetchInput.fetchImpl;
         expect(fetchInput).toStrictEqual({
           url: fallbackUrl,
-          fetchImpl,
+          timeoutMs: 1000,
           maxBytes: 1024,
           ssrfPolicy: undefined,
           retry: expect.objectContaining({ attempts: 3 }),
         });
-        expect(typeof fetchImpl).toBe("function");
         // Clean up the temp file
         if (result.cleanup) {
           await result.cleanup();
@@ -103,7 +103,7 @@ describe("media understanding attachment URL fallback", () => {
 
   it("falls back to URL fetch when local attachment canonicalization fails", async () => {
     await withBlockedLocalAttachmentFallback(
-      "astroclaw-media-cache-url-fallback-",
+      "openclaw-media-cache-url-fallback-",
       async ({ cache, fallbackUrl }) => {
         const result = await cache.getBuffer({
           attachmentIndex: 0,
@@ -113,15 +113,13 @@ describe("media understanding attachment URL fallback", () => {
         expect(result.buffer.toString()).toBe("fallback-buffer");
         expect(readRemoteMediaBufferMock).toHaveBeenCalledTimes(1);
         const fetchInput = requireReadRemoteMediaBufferInput();
-        const fetchImpl = fetchInput.fetchImpl;
         expect(fetchInput).toStrictEqual({
           url: fallbackUrl,
-          fetchImpl,
+          timeoutMs: 1000,
           maxBytes: 1024,
           ssrfPolicy: undefined,
           retry: expect.objectContaining({ attempts: 3 }),
         });
-        expect(typeof fetchImpl).toBe("function");
       },
     );
   });
