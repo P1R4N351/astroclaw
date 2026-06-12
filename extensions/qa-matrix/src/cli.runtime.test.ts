@@ -1,3 +1,4 @@
+// Qa Matrix tests cover cli plugin behavior.
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -9,11 +10,15 @@ const closeGlobalDispatcher = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("./runners/contract/runtime.js", () => ({
   runMatrixQaLive,
 }));
-vi.mock("undici", () => ({
-  getGlobalDispatcher: () => ({
-    close: closeGlobalDispatcher,
-  }),
-}));
+vi.mock("undici", async () => {
+  const actual = await vi.importActual<typeof import("undici")>("undici");
+  return {
+    ...actual,
+    getGlobalDispatcher: () => ({
+      close: closeGlobalDispatcher,
+    }),
+  };
+});
 
 import { runQaMatrixCommand } from "./cli.runtime.js";
 
@@ -31,14 +36,14 @@ async function expectPathMissing(targetPath: string): Promise<void> {
 }
 
 describe("matrix qa cli runtime", () => {
-  const originalRunNodeOutputLog = process.env.ASTROCLAW_RUN_NODE_OUTPUT_LOG;
+  const originalRunNodeOutputLog = process.env.OPENCLAW_RUN_NODE_OUTPUT_LOG;
 
   afterEach(async () => {
     vi.clearAllMocks();
     if (originalRunNodeOutputLog === undefined) {
-      delete process.env.ASTROCLAW_RUN_NODE_OUTPUT_LOG;
+      delete process.env.OPENCLAW_RUN_NODE_OUTPUT_LOG;
     } else {
-      process.env.ASTROCLAW_RUN_NODE_OUTPUT_LOG = originalRunNodeOutputLog;
+      process.env.OPENCLAW_RUN_NODE_OUTPUT_LOG = originalRunNodeOutputLog;
     }
     await Promise.all(tmpDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
@@ -59,7 +64,7 @@ describe("matrix qa cli runtime", () => {
       summaryPath: "/tmp/matrix-summary.json",
       observedEventsPath: "/tmp/matrix-events.json",
     });
-    const originalStdoutWrite = process.stdout.write;
+    const originalStdoutWrite = process.stdout["write"];
     process.stdout.write = (() => true) as typeof process.stdout.write;
 
     try {
@@ -94,13 +99,13 @@ describe("matrix qa cli runtime", () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "matrix-qa-cli-"));
     tmpDirs.push(repoRoot);
     const outputPath = path.join(repoRoot, "run-node-output.log");
-    process.env.ASTROCLAW_RUN_NODE_OUTPUT_LOG = outputPath;
+    process.env.OPENCLAW_RUN_NODE_OUTPUT_LOG = outputPath;
     runMatrixQaLive.mockResolvedValue({
       reportPath: "/tmp/matrix-report.md",
       summaryPath: "/tmp/matrix-summary.json",
       observedEventsPath: "/tmp/matrix-events.json",
     });
-    const originalStdoutWrite = process.stdout.write;
+    const originalStdoutWrite = process.stdout["write"];
     process.stdout.write = vi.fn(() => true) as unknown as typeof process.stdout.write;
 
     try {
@@ -125,8 +130,8 @@ describe("matrix qa cli runtime", () => {
     await mkdir(path.join(outputDir, "matrix-qa-output.log"), { recursive: true });
     runMatrixQaLive.mockRejectedValue(new Error("scenario failed"));
     const stderrChunks: string[] = [];
-    const originalStdoutWrite = process.stdout.write;
-    const originalStderrWrite = process.stderr.write;
+    const originalStdoutWrite = process.stdout["write"];
+    const originalStderrWrite = process.stderr["write"];
     process.stdout.write = (() => true) as typeof process.stdout.write;
     process.stderr.write = ((chunk: string | Buffer) => {
       stderrChunks.push(String(chunk));
