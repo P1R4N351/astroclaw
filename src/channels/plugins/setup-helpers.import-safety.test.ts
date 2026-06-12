@@ -1,4 +1,5 @@
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+// Setup helper import-safety tests cover lazy boundaries for channel plugin setup helpers.
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 afterEach(() => {
