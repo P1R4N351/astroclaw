@@ -1,5 +1,7 @@
+// Trajectory cleanup helpers remove old trajectory files by retention policy.
 import fs from "node:fs";
 import path from "node:path";
+import { isRecord } from "@openclaw/normalization-core/record-coerce";
 import { resolveSessionFilePath } from "../config/sessions/paths.js";
 import { isPathInside } from "../infra/path-guards.js";
 import {
@@ -16,10 +18,6 @@ export type RemovedTrajectoryArtifact = {
 type TrajectoryPointer = {
   runtimeFile: string;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
 
 function canonicalizePathForComparison(filePath: string): string {
   const resolved = path.resolve(filePath);
@@ -61,7 +59,7 @@ function readTrajectoryPointerFile(
       return null;
     }
     if (
-      parsed.traceSchema !== "astroclaw-trajectory-pointer" ||
+      parsed.traceSchema !== "openclaw-trajectory-pointer" ||
       parsed.schemaVersion !== 1 ||
       parsed.sessionId !== sessionId ||
       typeof parsed.runtimeFile !== "string" ||
@@ -116,7 +114,7 @@ function runtimeFileStartsWithSessionEvent(filePath: string, sessionId: string):
     const parsed: unknown = JSON.parse(firstLine);
     return (
       isRecord(parsed) &&
-      parsed.traceSchema === "astroclaw-trajectory" &&
+      parsed.traceSchema === "openclaw-trajectory" &&
       parsed.schemaVersion === 1 &&
       parsed.source === "runtime" &&
       parsed.sessionId === sessionId
