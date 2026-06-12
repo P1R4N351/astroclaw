@@ -1,6 +1,7 @@
+// Slack tests cover monitor plugin behavior.
 import type { App } from "@slack/bolt";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { RuntimeEnv } from "astroclaw/plugin-sdk/runtime-env";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import { describe, expect, it } from "vitest";
 import { resolveSlackChannelConfig } from "./channel-config.js";
 import { createSlackMonitorContext, normalizeSlackChannelType } from "./context.js";
@@ -189,7 +190,7 @@ describe("resolveSlackChannelConfig", () => {
 });
 
 const baseParams = () => ({
-  cfg: {} as AstroclawConfig,
+  cfg: {} as OpenClawConfig,
   accountId: "default",
   botToken: "token",
   app: { client: {} } as App,
@@ -215,7 +216,7 @@ const baseParams = () => ({
   replyToMode: "off" as const,
   slashCommand: {
     enabled: false,
-    name: "astroclaw",
+    name: "openclaw",
     sessionPrefix: "slack:slash",
     ephemeral: true,
   },
