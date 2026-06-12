@@ -1,3 +1,4 @@
+// Covers executable config safety classification.
 import { describe, expect, it } from "vitest";
 import { isSafeExecutableValue } from "./exec-safety.js";
 
@@ -5,8 +6,8 @@ describe("isSafeExecutableValue", () => {
   it.each([
     ["node", true],
     ["/usr/bin/node", true],
-    ["./bin/astroclaw", true],
-    ["C:\\Tools\\astroclaw.exe", true],
+    ["./bin/openclaw", true],
+    ["C:\\Tools\\openclaw.exe", true],
     [" tool ", true],
     [undefined, false],
     ["   ", false],
