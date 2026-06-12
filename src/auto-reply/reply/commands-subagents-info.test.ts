@@ -1,3 +1,4 @@
+/** Tests subagent info command output. */
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -6,7 +7,7 @@ import {
   resetSubagentRegistryForTests,
 } from "../../agents/subagent-registry.test-helpers.js";
 import type { SubagentRunRecord } from "../../agents/subagent-registry.types.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { failTaskRunByRunId } from "../../tasks/task-executor.js";
 import { createTaskRecord, resetTaskRegistryForTests } from "../../tasks/task-registry.js";
 import type { ReplyPayload } from "../types.js";
@@ -18,10 +19,10 @@ import {
 
 const TEST_SESSION_STORE_PATH = path.join(
   os.tmpdir(),
-  `astroclaw-commands-subagents-info-${process.pid}.json`,
+  `openclaw-commands-subagents-info-${process.pid}.json`,
 );
 
-function buildCommandTestConfig(): AstroclawConfig {
+function buildCommandTestConfig(): OpenClawConfig {
   return {
     ...baseCommandTestConfig,
     session: {
@@ -31,7 +32,7 @@ function buildCommandTestConfig(): AstroclawConfig {
   };
 }
 
-function buildInfoContext(params: { cfg: AstroclawConfig; runs: object[]; restTokens: string[] }) {
+function buildInfoContext(params: { cfg: OpenClawConfig; runs: object[]; restTokens: string[] }) {
   return {
     params: {
       cfg: params.cfg,
@@ -62,7 +63,7 @@ describe("subagents info", () => {
     const cfg = {
       commands: { text: true },
       channels: { quietchat: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = handleSubagentsInfoAction(buildInfoContext({ cfg, runs: [], restTokens: [] }));
     expect(result.shouldContinue).toBe(false);
     expect(result.reply?.text).toContain("/subagents info <id|#>");
@@ -108,6 +109,39 @@ describe("subagents info", () => {
     expect(text).toContain("Task summary: Completed the requested task");
   });
 
+  it("omits Date-invalid subagent timestamps", () => {
+    const runId = "commands-subagents-info-invalid-date-run";
+    const childSessionKey = "agent:main:subagent:commands-info-invalid-date";
+    const run = {
+      runId,
+      childSessionKey,
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "inspect invalid timestamps",
+      cleanup: "keep",
+      createdAt: 8_640_000_000_000_001,
+      startedAt: 8_640_000_000_000_001,
+      endedAt: 8_640_000_000_000_001,
+      archiveAtMs: 8_640_000_000_000_001,
+      outcome: { status: "ok" },
+    } satisfies SubagentRunRecord;
+    addSubagentRunForTests(run);
+    const cfg = buildCommandTestConfig();
+
+    const result = handleSubagentsInfoAction(
+      buildInfoContext({ cfg, runs: [run], restTokens: ["1"] }),
+    );
+
+    const text = requireReplyText(result.reply);
+    expect(result.shouldContinue).toBe(false);
+    expect(text).toContain(`Run: ${runId}`);
+    expect(text).toContain("Created: n/a");
+    expect(text).toContain("Started: n/a");
+    expect(text).toContain("Ended: n/a");
+    expect(text).toContain("Archive: n/a");
+    expect(text).not.toContain("Invalid Date");
+  });
+
   it("sanitizes leaked task details in /subagents info", () => {
     const now = Date.now();
     const runId = "commands-subagents-info-leak-run";
@@ -125,7 +159,7 @@ describe("subagents info", () => {
       outcome: {
         status: "error",
         error: [
-          "Astroclaw runtime context (internal):",
+          "OpenClaw runtime context (internal):",
           "This context is runtime-generated, not user-authored. Keep internal details private.",
           "",
           "[Internal task completion event]",
@@ -147,7 +181,7 @@ describe("subagents info", () => {
       runId,
       endedAt: now - 1_000,
       error: [
-        "Astroclaw runtime context (internal):",
+        "OpenClaw runtime context (internal):",
         "This context is runtime-generated, not user-authored. Keep internal details private.",
         "",
         "[Internal task completion event]",
@@ -165,7 +199,7 @@ describe("subagents info", () => {
     expect(text).toContain("Subagent info");
     expect(text).toContain("Outcome: error");
     expect(text).toContain("Task summary: Needs manual follow-up.");
-    expect(text).not.toContain("Astroclaw runtime context (internal):");
+    expect(text).not.toContain("OpenClaw runtime context (internal):");
     expect(text).not.toContain("Internal task completion event");
   });
 
@@ -200,7 +234,7 @@ describe("subagents info", () => {
       commands: { text: true },
       channels: { quietchat: { allowFrom: ["*"] } },
       session: { mainKey: "main", scope: "per-sender", store: TEST_SESSION_STORE_PATH },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = handleSubagentsInfoAction({
       params: {
         cfg,
