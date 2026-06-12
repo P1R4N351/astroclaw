@@ -1,9 +1,10 @@
+// Whatsapp plugin module implements setup core behavior.
 import {
   applyAccountNameToChannelSection,
   type ChannelSetupAdapter,
   migrateBaseNameToDefaultAccount,
   normalizeAccountId,
-} from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
 
 const channel = "whatsapp" as const;
 
