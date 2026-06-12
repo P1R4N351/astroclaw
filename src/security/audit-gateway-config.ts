@@ -1,20 +1,25 @@
+// Audits gateway config for bind, auth, and exposure risks.
 import { isIP } from "node:net";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
-import { hasConfiguredSecretInput } from "../config/types.secrets.js";
-import { resolveGatewayAuth } from "../gateway/auth-resolve.js";
-import { resolveGatewayAuthTokenSourceConflict } from "../gateway/auth-token-source-conflict.js";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
-} from "../shared/string-coerce.js";
+} from "@openclaw/normalization-core/string-coerce";
+import { normalizeStringEntries } from "@openclaw/normalization-core/string-normalization";
+import type { GatewayAuthConfig } from "../config/types.gateway.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { hasConfiguredSecretInput } from "../config/types.secrets.js";
+import { resolveGatewayAuth } from "../gateway/auth-resolve.js";
+import { resolveGatewayAuthTokenSourceConflict } from "../gateway/auth-token-source-conflict.js";
+import { parseStrictNonNegativeInteger } from "../infra/parse-finite-number.js";
 import type { SecurityAuditFinding } from "./audit.types.js";
 import { collectCoreInsecureOrDangerousFlags } from "./core-dangerous-config-flags.js";
 import { DEFAULT_GATEWAY_HTTP_TOOL_DENY } from "./dangerous-tools.js";
 
-type CollectDangerousConfigFlags = (cfg: AstroclawConfig) => string[];
+type CollectDangerousConfigFlags = (cfg: OpenClawConfig) => string[];
 
 export type CollectGatewayConfigFindingsOptions = {
   collectDangerousConfigFlags?: CollectDangerousConfigFlags;
+  gatewayAuthOverride?: Pick<GatewayAuthConfig, "mode" | "token" | "password">;
 };
 
 function hasNonEmptyString(value: unknown): value is string {
@@ -22,8 +27,8 @@ function hasNonEmptyString(value: unknown): value is string {
 }
 
 export function collectGatewayConfigFindings(
-  cfg: AstroclawConfig,
-  sourceConfig: AstroclawConfig,
+  cfg: OpenClawConfig,
+  sourceConfig: OpenClawConfig,
   env: NodeJS.ProcessEnv,
   options: CollectGatewayConfigFindingsOptions = {},
 ): SecurityAuditFinding[] {
@@ -31,11 +36,16 @@ export function collectGatewayConfigFindings(
 
   const bind = typeof cfg.gateway?.bind === "string" ? cfg.gateway.bind : "loopback";
   const tailscaleMode = cfg.gateway?.tailscale?.mode ?? "off";
-  const auth = resolveGatewayAuth({ authConfig: cfg.gateway?.auth, tailscaleMode, env });
+  const auth = resolveGatewayAuth({
+    authConfig: cfg.gateway?.auth,
+    authOverride: options.gatewayAuthOverride,
+    tailscaleMode,
+    env,
+  });
   const controlUiEnabled = cfg.gateway?.controlUi?.enabled !== false;
-  const controlUiAllowedOrigins = (cfg.gateway?.controlUi?.allowedOrigins ?? [])
-    .map((value) => value.trim())
-    .filter(Boolean);
+  const controlUiAllowedOrigins = normalizeStringEntries(
+    cfg.gateway?.controlUi?.allowedOrigins ?? [],
+  );
   const dangerouslyAllowHostHeaderOriginFallback =
     cfg.gateway?.controlUi?.dangerouslyAllowHostHeaderOriginFallback === true;
   const trustedProxies = Array.isArray(cfg.gateway?.trustedProxies)
@@ -43,8 +53,8 @@ export function collectGatewayConfigFindings(
     : [];
   const hasToken = typeof auth.token === "string" && auth.token.trim().length > 0;
   const hasPassword = typeof auth.password === "string" && auth.password.trim().length > 0;
-  const envTokenConfigured = hasNonEmptyString(env.ASTROCLAW_GATEWAY_TOKEN);
-  const envPasswordConfigured = hasNonEmptyString(env.ASTROCLAW_GATEWAY_PASSWORD);
+  const envTokenConfigured = hasNonEmptyString(env.OPENCLAW_GATEWAY_TOKEN);
+  const envPasswordConfigured = hasNonEmptyString(env.OPENCLAW_GATEWAY_PASSWORD);
   const tokenConfiguredFromConfig = hasConfiguredSecretInput(
     sourceConfig.gateway?.auth?.token,
     sourceConfig.secrets?.defaults,
@@ -57,7 +67,7 @@ export function collectGatewayConfigFindings(
     sourceConfig.gateway?.remote?.token,
     sourceConfig.secrets?.defaults,
   );
-  const explicitAuthMode = sourceConfig.gateway?.auth?.mode;
+  const explicitAuthMode = options.gatewayAuthOverride?.mode ?? sourceConfig.gateway?.auth?.mode;
   const tokenCanWin =
     hasToken || envTokenConfigured || tokenConfiguredFromConfig || remoteTokenConfigured;
   const passwordCanWin =
@@ -295,7 +305,7 @@ export function collectGatewayConfigFindings(
   }
 
   if (auth.mode === "trusted-proxy") {
-    const trustedProxies = cfg.gateway?.trustedProxies ?? [];
+    const trustedProxiesLocal = cfg.gateway?.trustedProxies ?? [];
     const trustedProxyConfig = cfg.gateway?.auth?.trustedProxy;
 
     findings.push({
@@ -313,7 +323,7 @@ export function collectGatewayConfigFindings(
         "See /gateway/trusted-proxy-auth for setup guidance.",
     });
 
-    if (trustedProxies.length === 0) {
+    if (trustedProxiesLocal.length === 0) {
       findings.push({
         checkId: "gateway.trusted_proxy_no_proxies",
         severity: "critical",
@@ -399,8 +409,8 @@ function isStrictLoopbackTrustedProxyEntry(entry: string): boolean {
     return false;
   }
   const ipVersion = isIP(rawIp.trim());
-  const prefix = Number.parseInt(rawPrefix.trim(), 10);
-  if (!Number.isInteger(prefix)) {
+  const prefix = parseStrictNonNegativeInteger(rawPrefix);
+  if (prefix === undefined) {
     return false;
   }
   if (ipVersion === 4) {
