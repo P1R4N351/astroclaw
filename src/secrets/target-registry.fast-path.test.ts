@@ -1,3 +1,4 @@
+/** Tests that explicit channel secret target lookup avoids broad manifest rediscovery. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { loadPluginManifestRegistryMock } = vi.hoisted(() => ({
@@ -15,7 +16,7 @@ const { loadBundledPluginPublicArtifactModuleSyncMock } = vi.hoisted(() => ({
             {
               id: "channels.googlechat.serviceAccount",
               targetType: "channels.googlechat.serviceAccount",
-              configFile: "astroclaw.json",
+              configFile: "openclaw.json",
               pathPattern: "channels.googlechat.serviceAccount",
               refPathPattern: "channels.googlechat.serviceAccountRef",
               secretShape: "sibling_ref",
