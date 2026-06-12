@@ -1,7 +1,8 @@
+// Setup finalize tests cover writing final onboarding config and artifacts.
 import fs from "node:fs/promises";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
 import type { RuntimeEnv } from "../runtime.js";
 
@@ -45,16 +46,26 @@ const resolveSetupSecretInputString = vi.hoisted(() =>
   vi.fn<() => Promise<string | undefined>>(async () => undefined),
 );
 const resolveExistingKey = vi.hoisted(() =>
-  vi.fn<(config: AstroclawConfig, provider: string) => string | undefined>(() => undefined),
+  vi.fn<(config: OpenClawConfig, provider: string) => string | undefined>(() => undefined),
 );
 const hasExistingKey = vi.hoisted(() =>
-  vi.fn<(config: AstroclawConfig, provider: string) => boolean>(() => false),
+  vi.fn<(config: OpenClawConfig, provider: string) => boolean>(() => false),
 );
 const hasKeyInEnv = vi.hoisted(() =>
   vi.fn<(entry: Pick<PluginWebSearchProviderEntry, "envVars">) => boolean>(() => false),
 );
 const listConfiguredWebSearchProviders = vi.hoisted(() =>
-  vi.fn<(params?: { config?: AstroclawConfig }) => PluginWebSearchProviderEntry[]>(() => []),
+  vi.fn<(params?: { config?: OpenClawConfig }) => PluginWebSearchProviderEntry[]>(() => []),
+);
+const hasAuthProfileForProvider = vi.hoisted(() =>
+  vi.fn<
+    (params: {
+      provider: string;
+      agentDir?: string;
+      includeExternalCli?: boolean;
+      type?: string;
+    }) => boolean
+  >(() => false),
 );
 
 vi.mock("../commands/onboard-helpers.js", () => ({
@@ -99,6 +110,10 @@ vi.mock("../commands/onboard-search.js", () => ({
   resolveExistingKey,
 }));
 
+vi.mock("../agents/tools/model-config.helpers.js", () => ({
+  hasAuthProfileForProvider,
+}));
+
 vi.mock("../web-search/runtime.js", () => ({
   listConfiguredWebSearchProviders,
 }));
@@ -136,7 +151,7 @@ vi.mock("../infra/control-ui-assets.js", () => ({
   ensureControlUiAssetsBuilt: vi.fn(async () => ({ ok: true })),
 }));
 
-vi.mock("../terminal/restore.js", () => ({
+vi.mock("../../packages/terminal-core/src/restore.js", () => ({
   restoreTerminalState,
 }));
 
@@ -165,7 +180,15 @@ function createRuntime(): RuntimeEnv {
 function createWebSearchProviderEntry(
   provider: Pick<
     PluginWebSearchProviderEntry,
-    "id" | "label" | "hint" | "envVars" | "placeholder" | "signupUrl" | "credentialPath"
+    | "id"
+    | "label"
+    | "hint"
+    | "envVars"
+    | "authProviderId"
+    | "placeholder"
+    | "signupUrl"
+    | "credentialPath"
+    | "requiresCredential"
   >,
 ): PluginWebSearchProviderEntry {
   return {
@@ -188,7 +211,7 @@ function expectFirstOnboardingInstallPlanCallOmitsToken() {
 }
 
 type AdvancedFinalizeArgs = {
-  nextConfig?: AstroclawConfig;
+  nextConfig?: OpenClawConfig;
   prompter?: ReturnType<typeof buildWizardPrompter>;
   runtime?: RuntimeEnv;
   installDaemon?: boolean;
@@ -201,7 +224,7 @@ function createLaterPrompter() {
   });
 }
 
-function createEnabledFirecrawlSearchConfig(): AstroclawConfig {
+function createEnabledFirecrawlSearchConfig(): OpenClawConfig {
   return {
     tools: {
       web: {
@@ -297,11 +320,13 @@ describe("finalizeSetupWizard", () => {
     hasKeyInEnv.mockReturnValue(false);
     listConfiguredWebSearchProviders.mockReset();
     listConfiguredWebSearchProviders.mockReturnValue([]);
+    hasAuthProfileForProvider.mockReset();
+    hasAuthProfileForProvider.mockReturnValue(false);
   });
 
   it("resolves gateway password SecretRef for probe but omits auth from TUI hatch", async () => {
-    const previous = process.env.ASTROCLAW_GATEWAY_PASSWORD;
-    process.env.ASTROCLAW_GATEWAY_PASSWORD = "resolved-gateway-password"; // pragma: allowlist secret
+    const previous = process.env.OPENCLAW_GATEWAY_PASSWORD;
+    process.env.OPENCLAW_GATEWAY_PASSWORD = "resolved-gateway-password"; // pragma: allowlist secret
     resolveSetupSecretInputString.mockResolvedValueOnce("resolved-gateway-password");
     const select = vi.fn(async (params: { message: string }) => {
       if (params.message === "How do you want to hatch your agent?") {
@@ -333,7 +358,7 @@ describe("finalizeSetupWizard", () => {
               password: {
                 source: "env",
                 provider: "default",
-                id: "ASTROCLAW_GATEWAY_PASSWORD",
+                id: "OPENCLAW_GATEWAY_PASSWORD",
               },
             },
           },
@@ -359,9 +384,9 @@ describe("finalizeSetupWizard", () => {
       });
     } finally {
       if (previous === undefined) {
-        delete process.env.ASTROCLAW_GATEWAY_PASSWORD;
+        delete process.env.OPENCLAW_GATEWAY_PASSWORD;
       } else {
-        process.env.ASTROCLAW_GATEWAY_PASSWORD = previous;
+        process.env.OPENCLAW_GATEWAY_PASSWORD = previous;
       }
     }
 
@@ -425,8 +450,8 @@ describe("finalizeSetupWizard", () => {
   });
 
   it("localizes the bootstrap hatch TUI seed message", async () => {
-    const previousLocale = process.env.ASTROCLAW_LOCALE;
-    process.env.ASTROCLAW_LOCALE = "zh-CN";
+    const previousLocale = process.env.OPENCLAW_LOCALE;
+    process.env.OPENCLAW_LOCALE = "zh-CN";
     vi.spyOn(fs, "access").mockResolvedValueOnce(undefined);
     const select = vi.fn(async (params: { message: string }) => {
       if (params.message === "你想如何启动 agent？") {
@@ -472,9 +497,9 @@ describe("finalizeSetupWizard", () => {
       });
     } finally {
       if (previousLocale === undefined) {
-        delete process.env.ASTROCLAW_LOCALE;
+        delete process.env.OPENCLAW_LOCALE;
       } else {
-        process.env.ASTROCLAW_LOCALE = previousLocale;
+        process.env.OPENCLAW_LOCALE = previousLocale;
       }
     }
   });
@@ -547,7 +572,7 @@ describe("finalizeSetupWizard", () => {
             token: {
               source: "env",
               provider: "default",
-              id: "ASTROCLAW_GATEWAY_TOKEN",
+              id: "OPENCLAW_GATEWAY_TOKEN",
             },
           },
         },
@@ -569,6 +594,43 @@ describe("finalizeSetupWizard", () => {
     expect(buildGatewayInstallPlan).toHaveBeenCalledTimes(1);
     expectFirstOnboardingInstallPlanCallOmitsToken();
     expect(gatewayServiceInstall).toHaveBeenCalledTimes(1);
+  });
+
+  it("suppresses token-bearing onboarding output when requested", async () => {
+    const prompter = createLaterPrompter();
+
+    await finalizeSetupWizard({
+      flow: "advanced",
+      opts: {
+        acceptRisk: true,
+        authChoice: "skip",
+        installDaemon: false,
+        skipHealth: true,
+        skipUi: true,
+        suppressGatewayTokenOutput: true,
+      },
+      baseConfig: {},
+      nextConfig: {},
+      workspaceDir: "/tmp",
+      settings: {
+        port: 18789,
+        bind: "loopback",
+        authMode: "token",
+        gatewayToken: "session-token",
+        tailscaleMode: "off",
+        tailscaleResetOnExit: false,
+      },
+      prompter,
+      runtime: createRuntime(),
+    });
+
+    const output = vi
+      .mocked(prompter.note)
+      .mock.calls.map((call) => call.join("\n"))
+      .join("\n");
+    expect(output).toContain("http://127.0.0.1:18789");
+    expect(output).not.toContain("session-token");
+    expect(output).not.toContain("#token=");
   });
 
   it("stops after a scheduled restart instead of reinstalling the service", async () => {
@@ -619,17 +681,17 @@ describe("finalizeSetupWizard", () => {
   });
 
   it("localizes finalize non-prompt notes", async () => {
-    const previousLocale = process.env.ASTROCLAW_LOCALE;
-    process.env.ASTROCLAW_LOCALE = "zh-CN";
+    const previousLocale = process.env.OPENCLAW_LOCALE;
+    process.env.OPENCLAW_LOCALE = "zh-CN";
     const prompter = createLaterPrompter();
 
     try {
       await finalizeSetupWizard(createAdvancedFinalizeArgs({ prompter }));
     } finally {
       if (previousLocale === undefined) {
-        delete process.env.ASTROCLAW_LOCALE;
+        delete process.env.OPENCLAW_LOCALE;
       } else {
-        process.env.ASTROCLAW_LOCALE = previousLocale;
+        process.env.OPENCLAW_LOCALE = previousLocale;
       }
     }
 
@@ -674,7 +736,7 @@ describe("finalizeSetupWizard", () => {
         credentialPath: "plugins.entries.perplexity.config.webSearch.apiKey",
       }),
     ]);
-    hasExistingKey.mockImplementation((_config, provider) => provider === "perplexity");
+    hasExistingKey.mockImplementation((configForTest, provider) => provider === "perplexity");
 
     const prompter = createLaterPrompter();
 
@@ -699,7 +761,7 @@ describe("finalizeSetupWizard", () => {
         credentialPath: "plugins.entries.firecrawl.config.webSearch.apiKey",
       }),
     ]);
-    hasExistingKey.mockImplementation((_config, provider) => provider === "firecrawl");
+    hasExistingKey.mockImplementation((configForTest, provider) => provider === "firecrawl");
 
     const prompter = createLaterPrompter();
 
@@ -717,8 +779,112 @@ describe("finalizeSetupWizard", () => {
     );
   });
 
+  it("reports OAuth-backed web search as enabled without an API key", async () => {
+    listConfiguredWebSearchProviders.mockReturnValue([
+      createWebSearchProviderEntry({
+        id: "grok",
+        label: "Grok (xAI)",
+        hint: "Uses xAI OAuth or API key",
+        envVars: ["XAI_API_KEY"],
+        authProviderId: "xai",
+        placeholder: "xai-...",
+        signupUrl: "https://console.x.ai/",
+        credentialPath: "plugins.entries.xai.config.webSearch.apiKey",
+      }),
+    ]);
+    hasAuthProfileForProvider.mockImplementation(
+      ({ provider, type }) => provider === "xai" && (!type || type === "oauth"),
+    );
+
+    const prompter = createLaterPrompter();
+
+    await finalizeSetupWizard(
+      createAdvancedFinalizeArgs({
+        nextConfig: {
+          tools: {
+            web: {
+              search: {
+                provider: "grok",
+                enabled: true,
+              },
+            },
+          },
+        },
+        prompter,
+      }),
+    );
+
+    expectNoteContains(
+      prompter,
+      "Web search is enabled, so your agent can look things up online when needed.",
+      "Web search",
+    );
+    expectNoteContains(prompter, "Credential: existing xAI OAuth sign-in.", "Web search");
+    expect(
+      vi
+        .mocked(prompter.note)
+        .mock.calls.some(
+          ([message, title]) => title === "Web search" && message.includes("no API key"),
+        ),
+    ).toBe(false);
+    expect(hasAuthProfileForProvider).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "xai",
+      }),
+    );
+    expect(hasAuthProfileForProvider).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "xai",
+        type: "oauth",
+      }),
+    );
+  });
+
+  it("reports a keyless provider as ready without prompting for an API key", async () => {
+    listConfiguredWebSearchProviders.mockReturnValue([
+      createWebSearchProviderEntry({
+        id: "parallel-free",
+        label: "Parallel Search (Free)",
+        hint: "Free web search via Parallel's hosted Search MCP",
+        envVars: [],
+        placeholder: "",
+        signupUrl: "https://parallel.ai",
+        credentialPath: "",
+        requiresCredential: false,
+      }),
+    ]);
+
+    const prompter = createLaterPrompter();
+
+    await finalizeSetupWizard(
+      createAdvancedFinalizeArgs({
+        nextConfig: {
+          tools: { web: { search: { provider: "parallel-free", enabled: true } } },
+        },
+        prompter,
+      }),
+    );
+
+    expectNoteContains(
+      prompter,
+      "Web search is ready — this provider works with no API key.",
+      "Web search",
+    );
+    // The credential-required warning must NOT appear for a keyless provider.
+    expect(
+      vi
+        .mocked(prompter.note)
+        .mock.calls.some(
+          ([message, title]) =>
+            title === "Web search" &&
+            (message.includes("no API key was found") ||
+              message.includes("will not work until a key is added")),
+        ),
+    ).toBe(false);
+  });
+
   it("uses the setup token for health checks to avoid local env token drift", async () => {
-    vi.stubEnv("ASTROCLAW_GATEWAY_TOKEN", "env-token");
+    vi.stubEnv("OPENCLAW_GATEWAY_TOKEN", "env-token");
     const prompter = createLaterPrompter();
 
     await finalizeSetupWizard({
@@ -756,7 +922,7 @@ describe("finalizeSetupWizard", () => {
       json?: boolean;
       timeoutMs?: number;
       token?: string;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
     };
     expect(healthArgs.json).toBe(false);
     expect(healthArgs.timeoutMs).toBe(10_000);
@@ -767,7 +933,7 @@ describe("finalizeSetupWizard", () => {
   });
 
   it("uses the resolved setup password for health checks", async () => {
-    vi.stubEnv("ASTROCLAW_GATEWAY_PASSWORD", "env-password");
+    vi.stubEnv("OPENCLAW_GATEWAY_PASSWORD", "env-password");
     resolveSetupSecretInputString.mockResolvedValueOnce("session-password");
     const prompter = createLaterPrompter();
 
@@ -788,7 +954,7 @@ describe("finalizeSetupWizard", () => {
             password: {
               source: "env",
               provider: "default",
-              id: "ASTROCLAW_GATEWAY_PASSWORD",
+              id: "OPENCLAW_GATEWAY_PASSWORD",
             },
           },
         },
@@ -819,7 +985,7 @@ describe("finalizeSetupWizard", () => {
       timeoutMs?: number;
       token?: string;
       password?: string;
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
     };
     expect(healthArgs.json).toBe(false);
     expect(healthArgs.timeoutMs).toBe(10_000);
