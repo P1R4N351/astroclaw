@@ -1,3 +1,4 @@
+// Canvas tests cover cli helpers plugin behavior.
 import { describe, expect, it } from "vitest";
 import {
   canvasSnapshotTempPath,
@@ -46,14 +47,14 @@ describe("canvas CLI helpers", () => {
   it("rejects unsafe snapshot temp path parts", () => {
     expect(() =>
       canvasSnapshotTempPath({
-        tmpDir: "/tmp/astroclaw-canvas-test",
+        tmpDir: "/tmp/openclaw-canvas-test",
         id: "snapshot",
         ext: "/../../target.sh",
       }),
     ).toThrow(/invalid canvas\.snapshot format/i);
     expect(() =>
       canvasSnapshotTempPath({
-        tmpDir: "/tmp/astroclaw-canvas-test",
+        tmpDir: "/tmp/openclaw-canvas-test",
         id: "../../snapshot",
         ext: "png",
       }),
