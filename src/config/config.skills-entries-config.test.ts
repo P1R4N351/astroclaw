@@ -1,9 +1,10 @@
+// Covers skills entry config parsing and defaults.
 import { describe, expect, it } from "vitest";
-import { AstroclawSchema } from "./zod-schema.js";
+import { OpenClawSchema } from "./zod-schema.js";
 
 describe("skills entries config schema", () => {
   it("accepts custom fields under config", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       skills: {
         entries: {
           "custom-skill": {
@@ -21,7 +22,7 @@ describe("skills entries config schema", () => {
   });
 
   it("rejects unknown top-level fields", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       skills: {
         entries: {
           "custom-skill": {
@@ -46,7 +47,7 @@ describe("skills entries config schema", () => {
   });
 
   it("accepts agents.defaults.skills", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       agents: {
         defaults: {
           skills: ["github", "weather"],
@@ -58,7 +59,7 @@ describe("skills entries config schema", () => {
   });
 
   it("accepts agents.list[].skills as explicit replacements", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       agents: {
         defaults: {
           skills: ["github", "weather"],
@@ -71,7 +72,7 @@ describe("skills entries config schema", () => {
   });
 
   it("accepts explicit empty skills arrays for defaults and agents", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       agents: {
         defaults: {
           skills: [],
@@ -84,7 +85,7 @@ describe("skills entries config schema", () => {
   });
 
   it("accepts uploaded skill archive install policy", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       skills: {
         install: {
           allowUploadedArchives: true,
@@ -96,7 +97,7 @@ describe("skills entries config schema", () => {
   });
 
   it("rejects legacy skills.policy config", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       skills: {
         policy: {
           globalEnabled: ["github"],
