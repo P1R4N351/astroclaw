@@ -1,12 +1,16 @@
+// Tests get-reply fast-path command handling before full agent dispatch.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { testing as cliBackendsTesting } from "../../agents/cli-backends.js";
+import type { OpenClawConfig } from "../../config/config.js";
+import { getSessionEntry } from "../../config/sessions.js";
 import {
-  INTERNAL_RUNTIME_CONTEXT_BEGIN,
-  INTERNAL_RUNTIME_CONTEXT_END,
-} from "../../agents/internal-runtime-context.js";
-import type { AstroclawConfig } from "../../config/config.js";
+  readSessionStoreForTest,
+  writeSessionStoreForTestAsync,
+} from "../../config/sessions/test-helpers.js";
+import { getReplyPayloadMetadata } from "../reply-payload.js";
 import {
   buildFastReplyCommandContext,
   initFastReplySessionState,
@@ -15,6 +19,7 @@ import {
 } from "./get-reply-fast-path.js";
 import {
   buildGetReplyCtx,
+  createGetReplyContinueDirectivesResult,
   createGetReplySessionState,
   expectResolvedTelegramTimezone,
   registerGetReplyRuntimeOverrides,
@@ -31,6 +36,7 @@ function emptyAliasIndex(): ModelAliasIndex {
 
 const mocks = vi.hoisted(() => ({
   ensureAgentWorkspace: vi.fn(),
+  handleInlineActions: vi.fn(),
   initSessionState: vi.fn(),
   loadModelCatalog: vi.fn<LoadModelCatalogFn>(async () => [
     {
@@ -54,7 +60,7 @@ vi.mock("../../agents/model-catalog.js", async () => {
 });
 
 vi.mock("../../agents/workspace.js", () => ({
-  DEFAULT_AGENT_WORKSPACE_DIR: "/tmp/astroclaw-workspace",
+  DEFAULT_AGENT_WORKSPACE_DIR: "/tmp/openclaw-workspace",
   ensureAgentWorkspace: (...args: unknown[]) => mocks.ensureAgentWorkspace(...args),
 }));
 registerGetReplyRuntimeOverrides(mocks);
@@ -90,7 +96,6 @@ function requireDirectiveParams() {
         workspaceDir?: string;
         provider?: string;
         model?: string;
-        hasOneTurnModelOverride?: boolean;
       }
     | undefined;
   if (!directiveParams) {
@@ -99,14 +104,37 @@ function requireDirectiveParams() {
   return directiveParams;
 }
 
+async function seedFastPathSessionStore(
+  storePath: string,
+  entries: Record<string, Record<string, unknown>>,
+): Promise<void> {
+  await writeSessionStoreForTestAsync(storePath, entries);
+}
+
+function readFastPathSessionEntry(storePath: string, sessionKey: string): Record<string, unknown> {
+  return readSessionStoreForTest<Record<string, unknown>>(storePath)[sessionKey] ?? {};
+}
+
 describe("getReplyFromConfig fast test bootstrap", () => {
   beforeAll(async () => {
     await loadGetReplyRuntimeForTest();
   });
 
   beforeEach(() => {
-    vi.stubEnv("ASTROCLAW_TEST_FAST", "1");
+    vi.stubEnv("OPENCLAW_TEST_FAST", "1");
+    cliBackendsTesting.setDepsForTest({
+      resolvePluginSetupRegistry: () => ({
+        providers: [],
+        cliBackends: [],
+        configMigrations: [],
+        autoEnableProbes: [],
+        diagnostics: [],
+      }),
+      resolveRuntimeCliBackends: () => [],
+    });
     mocks.ensureAgentWorkspace.mockReset();
+    mocks.handleInlineActions.mockReset();
+    mocks.handleInlineActions.mockResolvedValue({ kind: "reply", reply: { text: "ok" } });
     mocks.initSessionState.mockReset();
     mocks.loadModelCatalog.mockReset();
     mocks.loadModelCatalog.mockResolvedValue([
@@ -135,28 +163,29 @@ describe("getReplyFromConfig fast test bootstrap", () => {
   });
 
   afterEach(() => {
+    cliBackendsTesting.resetDepsForTest();
     vi.unstubAllEnvs();
   });
 
   it("fails fast on unmarked config overrides in strict fast-test mode", async () => {
     await expect(
-      getReplyFromConfig(buildGetReplyCtx(), undefined, {} as AstroclawConfig),
+      getReplyFromConfig(buildGetReplyCtx(), undefined, {} as OpenClawConfig),
     ).rejects.toThrow(/withFastReplyConfig\(\)\/markCompleteReplyConfig\(\)/);
     expect(vi.mocked(loadConfigMock)).not.toHaveBeenCalled();
   });
 
   it("skips getRuntimeConfig, workspace bootstrap, and session bootstrap for marked test configs", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-fast-reply-"));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-fast-reply-"));
     const cfg = markCompleteReplyConfig({
       agents: {
         defaults: {
           model: "anthropic/claude-opus-4-6",
-          workspace: path.join(home, "astroclaw"),
+          workspace: path.join(home, "openclaw"),
         },
       },
       channels: { telegram: { allowFrom: ["*"] } },
       session: { store: path.join(home, "sessions.json") },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     await expect(getReplyFromConfig(buildGetReplyCtx(), undefined, cfg)).resolves.toEqual({
       text: "ok",
@@ -171,14 +200,14 @@ describe("getReplyFromConfig fast test bootstrap", () => {
   });
 
   it("still merges partial config overrides against getRuntimeConfig()", async () => {
-    vi.stubEnv("ASTROCLAW_ALLOW_SLOW_REPLY_TESTS", "1");
+    vi.stubEnv("OPENCLAW_ALLOW_SLOW_REPLY_TESTS", "1");
     vi.mocked(loadConfigMock).mockReturnValue({
       channels: {
         telegram: {
           botToken: "resolved-telegram-token",
         },
       },
-    } satisfies AstroclawConfig);
+    } satisfies OpenClawConfig);
 
     await getReplyFromConfig(buildGetReplyCtx(), undefined, {
       agents: {
@@ -186,7 +215,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
           userTimezone: "America/New_York",
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     expect(vi.mocked(loadConfigMock)).toHaveBeenCalledOnce();
     expect(mocks.initSessionState).toHaveBeenCalledOnce();
@@ -194,7 +223,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
   });
 
   it("marks configs through withFastReplyConfig()", async () => {
-    const cfg = withFastReplyConfig({ session: { store: "/tmp/sessions.json" } } as AstroclawConfig);
+    const cfg = withFastReplyConfig({ session: { store: "/tmp/sessions.json" } } as OpenClawConfig);
 
     await expect(getReplyFromConfig(buildGetReplyCtx(), undefined, cfg)).resolves.toEqual({
       text: "ok",
@@ -204,59 +233,21 @@ describe("getReplyFromConfig fast test bootstrap", () => {
     expect(vi.mocked(runPreparedReplyMock)).toHaveBeenCalledOnce();
   });
 
-  it("passes image model overrides as one-turn selections to prepared replies", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-image-model-directives-"));
-    const cfg = markCompleteReplyConfig({
-      agents: {
-        defaults: {
-          model: "openai/gpt-4o",
-          models: {
-            "openai/gpt-4o": {},
-          },
-          workspace: home,
-        },
-      },
-      session: { store: path.join(home, "sessions.json") },
-    } as AstroclawConfig);
-    vi.mocked(resolveDefaultModelMock).mockReturnValueOnce({
-      defaultProvider: "openai",
-      defaultModel: "gpt-4o",
-      aliasIndex: emptyAliasIndex(),
-    });
-    vi.mocked(resolveModelRefFromStringMock).mockReturnValueOnce({
-      ref: { provider: "openai", model: "gpt-4o-mini" },
-    });
-
-    await expect(
-      getReplyFromConfig(buildGetReplyCtx(), { modelOverride: "openai/gpt-4o-mini" }, cfg),
-    ).resolves.toEqual({ text: "ok" });
-
-    expect(mocks.resolveReplyDirectives).not.toHaveBeenCalled();
-    const preparedReplyParams = requirePreparedReplyParams();
-    expect(preparedReplyParams.provider).toBe("openai");
-    expect(preparedReplyParams.model).toBe("gpt-4o-mini");
-    expect(preparedReplyParams.hasAppliedImageModelOverride).toBe(true);
-  });
-
-  it("clears stale ack-only heartbeat pending delivery before replay", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-heartbeat-pending-clear-"));
+  it("clears stale ack-only heartbeat pending delivery before running heartbeat", async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-heartbeat-pending-clear-"));
     const storePath = path.join(home, "sessions.json");
     const sessionKey = "agent:main:telegram:123";
-    await fs.writeFile(
-      storePath,
-      JSON.stringify({
-        [sessionKey]: {
-          sessionId: "pending-ack",
-          updatedAt: Date.now(),
-          pendingFinalDelivery: true,
-          pendingFinalDeliveryText: "HEARTBEAT_OK",
-          pendingFinalDeliveryCreatedAt: 1,
-          pendingFinalDeliveryAttemptCount: 4,
-          pendingFinalDeliveryLastError: null,
-        },
-      }),
-      "utf8",
-    );
+    await seedFastPathSessionStore(storePath, {
+      [sessionKey]: {
+        sessionId: "pending-ack",
+        updatedAt: Date.now(),
+        pendingFinalDelivery: true,
+        pendingFinalDeliveryText: "HEARTBEAT_OK",
+        pendingFinalDeliveryCreatedAt: 1,
+        pendingFinalDeliveryAttemptCount: 4,
+        pendingFinalDeliveryLastError: null,
+      },
+    });
     const cfg = withFastReplyConfig({
       agents: {
         defaults: {
@@ -266,34 +257,30 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         },
       },
       session: { store: storePath },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     await expect(
       getReplyFromConfig(buildGetReplyCtx(), { isHeartbeat: true }, cfg),
     ).resolves.toEqual({ text: "ok" });
 
-    const stored = JSON.parse(await fs.readFile(storePath, "utf8"))[sessionKey];
+    const stored = readFastPathSessionEntry(storePath, sessionKey);
     expect(stored.pendingFinalDelivery).toBeUndefined();
     expect(stored.pendingFinalDeliveryText).toBeUndefined();
     expect(stored.pendingFinalDeliveryAttemptCount).toBeUndefined();
   });
 
-  it("uses ackMaxChars when replaying stale heartbeat pending delivery", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-heartbeat-pending-replay-"));
+  it("keeps non-ack heartbeat pending delivery without direct replay", async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-heartbeat-pending-replay-"));
     const storePath = path.join(home, "sessions.json");
     const sessionKey = "agent:main:telegram:123";
-    await fs.writeFile(
-      storePath,
-      JSON.stringify({
-        [sessionKey]: {
-          sessionId: "pending-ack-with-remainder",
-          updatedAt: Date.now(),
-          pendingFinalDelivery: true,
-          pendingFinalDeliveryText: "HEARTBEAT_OK short",
-        },
-      }),
-      "utf8",
-    );
+    await seedFastPathSessionStore(storePath, {
+      [sessionKey]: {
+        sessionId: "pending-ack-with-remainder",
+        updatedAt: Date.now(),
+        pendingFinalDelivery: true,
+        pendingFinalDeliveryText: "HEARTBEAT_OK short",
+      },
+    });
     const cfg = withFastReplyConfig({
       agents: {
         defaults: {
@@ -303,62 +290,56 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         },
       },
       session: { store: storePath },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     await expect(
       getReplyFromConfig(buildGetReplyCtx(), { isHeartbeat: true }, cfg),
-    ).resolves.toEqual({ text: "short" });
+    ).resolves.toEqual({ text: "ok" });
 
-    const stored = JSON.parse(await fs.readFile(storePath, "utf8"))[sessionKey];
+    const stored = readFastPathSessionEntry(storePath, sessionKey);
     expect(stored.pendingFinalDelivery).toBe(true);
-    expect(stored.pendingFinalDeliveryText).toBe("short");
-    expect(stored.pendingFinalDeliveryAttemptCount).toBe(1);
+    expect(stored.pendingFinalDeliveryText).toBe("HEARTBEAT_OK short");
+    expect(stored.pendingFinalDeliveryAttemptCount).toBeUndefined();
   });
 
-  it("sanitizes stale heartbeat pending delivery before replay", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-heartbeat-pending-sanitize-"));
+  it("does not replay stale heartbeat pending delivery", async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-heartbeat-pending-suppress-"));
     const storePath = path.join(home, "sessions.json");
     const sessionKey = "agent:main:telegram:123";
-    await fs.writeFile(
-      storePath,
-      JSON.stringify({
-        [sessionKey]: {
-          sessionId: "pending-dirty-remainder",
-          updatedAt: Date.now(),
-          pendingFinalDelivery: true,
-          pendingFinalDeliveryText: [
-            "HEARTBEAT_OK",
-            INTERNAL_RUNTIME_CONTEXT_BEGIN,
-            "internal recovery detail",
-            INTERNAL_RUNTIME_CONTEXT_END,
-            "notify the user",
-          ].join("\n"),
-        },
-      }),
-      "utf8",
-    );
+    await seedFastPathSessionStore(storePath, {
+      [sessionKey]: {
+        sessionId: "pending-user-final",
+        updatedAt: Date.now() - 60_000,
+        pendingFinalDelivery: true,
+        pendingFinalDeliveryText: "private prior user answer",
+        pendingFinalDeliveryCreatedAt: 1,
+      },
+    });
     const cfg = withFastReplyConfig({
       agents: {
         defaults: {
           model: "openai/gpt-5.5",
           workspace: home,
-          heartbeat: { ackMaxChars: 0 },
+          heartbeat: { ackMaxChars: 300 },
         },
       },
       session: { store: storePath },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     await expect(
       getReplyFromConfig(buildGetReplyCtx(), { isHeartbeat: true }, cfg),
-    ).resolves.toEqual({ text: "notify the user" });
+    ).resolves.toEqual({
+      text: "ok",
+    });
 
-    const stored = JSON.parse(await fs.readFile(storePath, "utf8"))[sessionKey];
-    expect(stored.pendingFinalDeliveryText).toBe("notify the user");
-    expect(stored.pendingFinalDeliveryAttemptCount).toBe(1);
+    const stored = readFastPathSessionEntry(storePath, sessionKey);
+    expect(stored.pendingFinalDelivery).toBe(true);
+    expect(stored.pendingFinalDeliveryText).toBe("private prior user answer");
+    expect(stored.pendingFinalDeliveryAttemptCount).toBeUndefined();
   });
 
   it("handles native /status before workspace bootstrap", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-native-status-fast-"));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-native-status-fast-"));
     const targetSessionKey = "agent:main:telegram:123";
     const cfg = markCompleteReplyConfig({
       agents: {
@@ -368,7 +349,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         },
       },
       session: { store: path.join(home, "sessions.json") },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     vi.mocked(resolveDefaultModelMock).mockReturnValueOnce({
       defaultProvider: "openai",
       defaultModel: "gpt-5.5",
@@ -393,7 +374,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
     if (!reply || Array.isArray(reply) || typeof reply.text !== "string") {
       throw new Error("expected status reply text");
     }
-    expect(reply.text.includes("Astroclaw")).toBe(true);
+    expect(reply.text.includes("OpenClaw")).toBe(true);
     expect(reply.text.includes("Think: medium")).toBe(true);
     expect(mocks.loadModelCatalog).toHaveBeenCalledWith({ config: cfg });
     expect(mocks.ensureAgentWorkspace).not.toHaveBeenCalled();
@@ -403,7 +384,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
   });
 
   it("uses configured agent thinking defaults for native /status", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-native-status-agent-think-"));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-native-status-agent-think-"));
     const targetSessionKey = "agent:main:telegram:123";
     const cfg = markCompleteReplyConfig({
       agents: {
@@ -420,7 +401,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         ],
       },
       session: { store: path.join(home, "sessions.json") },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     vi.mocked(resolveDefaultModelMock).mockReturnValueOnce({
       defaultProvider: "openai",
       defaultModel: "gpt-5.5",
@@ -455,20 +436,16 @@ describe("getReplyFromConfig fast test bootstrap", () => {
   });
 
   it("uses the target session thinking override for native /status", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-native-status-think-"));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-native-status-think-"));
     const storePath = path.join(home, "sessions.json");
     const targetSessionKey = "agent:main:telegram:123";
-    await fs.writeFile(
-      storePath,
-      JSON.stringify({
-        [targetSessionKey]: {
-          sessionId: "existing-telegram-session",
-          thinkingLevel: "xhigh",
-          updatedAt: 1,
-        },
-      }),
-      "utf8",
-    );
+    await seedFastPathSessionStore(storePath, {
+      [targetSessionKey]: {
+        sessionId: "existing-telegram-session",
+        thinkingLevel: "xhigh",
+        updatedAt: 1,
+      },
+    });
     const cfg = markCompleteReplyConfig({
       agents: {
         defaults: {
@@ -477,7 +454,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         },
       },
       session: { store: storePath },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     vi.mocked(resolveDefaultModelMock).mockReturnValueOnce({
       defaultProvider: "openai",
       defaultModel: "gpt-5.5",
@@ -504,6 +481,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
       throw new Error("expected single reply payload");
     }
     expect(reply.text).toContain("Think: xhigh");
+    expect(getReplyPayloadMetadata(reply)?.deliverDespiteSourceReplySuppression).toBe(true);
     expect(mocks.loadModelCatalog).not.toHaveBeenCalled();
     expect(mocks.ensureAgentWorkspace).not.toHaveBeenCalled();
     expect(mocks.initSessionState).not.toHaveBeenCalled();
@@ -512,7 +490,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
   });
 
   it("handles native slash directives before workspace bootstrap", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-native-slash-fast-"));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-native-slash-fast-"));
     const targetSessionKey = "agent:main:telegram:123";
     const cfg = markCompleteReplyConfig({
       agents: {
@@ -522,28 +500,32 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         },
       },
       session: { store: path.join(home, "sessions.json") },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     mocks.resolveReplyDirectives.mockResolvedValueOnce({
       kind: "reply",
       reply: { text: "model status" },
     });
 
-    await expect(
-      getReplyFromConfig(
-        buildGetReplyCtx({
-          Body: "/model status",
-          BodyForAgent: "/model status",
-          RawBody: "/model status",
-          CommandBody: "/model status",
-          CommandSource: "native",
-          CommandAuthorized: true,
-          SessionKey: "telegram:slash:123",
-          CommandTargetSessionKey: targetSessionKey,
-        }),
-        undefined,
-        cfg,
-      ),
-    ).resolves.toEqual({ text: "model status" });
+    const reply = await getReplyFromConfig(
+      buildGetReplyCtx({
+        Body: "/model status",
+        BodyForAgent: "/model status",
+        RawBody: "/model status",
+        CommandBody: "/model status",
+        CommandSource: "native",
+        CommandAuthorized: true,
+        SessionKey: "telegram:slash:123",
+        CommandTargetSessionKey: targetSessionKey,
+      }),
+      undefined,
+      cfg,
+    );
+
+    expect(reply).toMatchObject({ text: "model status" });
+    if (!reply || Array.isArray(reply)) {
+      throw new Error("expected single reply payload");
+    }
+    expect(getReplyPayloadMetadata(reply)?.deliverDespiteSourceReplySuppression).toBe(true);
 
     expect(mocks.ensureAgentWorkspace).not.toHaveBeenCalled();
     expect(mocks.initSessionState).not.toHaveBeenCalled();
@@ -554,6 +536,88 @@ describe("getReplyFromConfig fast test bootstrap", () => {
     expect(directiveParams.workspaceDir).toBe("/tmp/workspace");
   });
 
+  it("continues native slash goal starts with the rewritten command-safe prompt", async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-native-goal-fast-"));
+    const targetSessionKey = "agent:main:telegram:123";
+    const storePath = path.join(home, "sessions.json");
+    const cfg = markCompleteReplyConfig({
+      agents: {
+        defaults: {
+          model: "anthropic/claude-opus-4-6",
+          workspace: path.join(home, "workspace"),
+        },
+      },
+      session: { store: storePath },
+    } as OpenClawConfig);
+    const continuationPrompt = `Pursue this goal exactly as written from this JSON string: "\\/status"`;
+    const continueDirectives = async (params: unknown) =>
+      createGetReplyContinueDirectivesResult({
+        body: (params as { triggerBodyNormalized: string }).triggerBodyNormalized,
+        abortKey: targetSessionKey,
+        from: "telegram:user:42",
+        to: "telegram:123",
+        senderId: "telegram:user:42",
+        commandSource: (params as { triggerBodyNormalized: string }).triggerBodyNormalized,
+        senderIsOwner: true,
+        resetHookTriggered: false,
+      });
+    mocks.resolveReplyDirectives
+      .mockImplementationOnce(continueDirectives)
+      .mockImplementationOnce(async (params: unknown) => {
+        expect((params as { triggerBodyNormalized: string }).triggerBodyNormalized).toBe(
+          continuationPrompt,
+        );
+        return continueDirectives(params);
+      });
+    mocks.handleInlineActions.mockImplementation(async (params: unknown) => {
+      expect(params).toMatchObject({
+        command: {
+          rawBodyNormalized: continuationPrompt,
+          commandBodyNormalized: continuationPrompt,
+        },
+        cleanedBody: continuationPrompt,
+      });
+      return {
+        kind: "continue",
+        directives: {},
+        abortedLastRun: false,
+        cleanedBody: continuationPrompt,
+      };
+    });
+    const onSessionMetadataChanges = vi.fn();
+
+    await expect(
+      getReplyFromConfig(
+        buildGetReplyCtx({
+          Body: "/goal start /status",
+          BodyForAgent: "/goal start /status",
+          RawBody: "/goal start /status",
+          CommandBody: "/goal start /status",
+          CommandSource: "native",
+          CommandAuthorized: true,
+          SessionKey: "telegram:slash:123",
+          CommandTargetSessionKey: targetSessionKey,
+        }),
+        { onSessionMetadataChanges } as never,
+        cfg,
+      ),
+    ).resolves.toEqual({ text: "ok" });
+
+    expect(onSessionMetadataChanges).toHaveBeenCalledWith([
+      { sessionKey: targetSessionKey, agentId: "main", reason: "command-metadata" },
+    ]);
+    expect(onSessionMetadataChanges.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(runPreparedReplyMock).mock.invocationCallOrder[0],
+    );
+    expect(getSessionEntry({ storePath, sessionKey: targetSessionKey })?.goal?.objective).toBe(
+      "/status",
+    );
+    const preparedReplyParams = requirePreparedReplyParams();
+    expect(preparedReplyParams.command.commandBodyNormalized).toBe(continuationPrompt);
+    expect(preparedReplyParams.sessionCtx.BodyForAgent).toBe(continuationPrompt);
+    expect(mocks.handleInlineActions).toHaveBeenCalledTimes(2);
+  });
+
   it("uses native command target session keys during fast bootstrap", () => {
     const result = initFastReplySessionState({
       ctx: buildGetReplyCtx({
@@ -561,7 +625,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         CommandSource: "native",
         CommandTargetSessionKey: "agent:main:main",
       }),
-      cfg: { session: { store: "/tmp/sessions.json" } } as AstroclawConfig,
+      cfg: { session: { store: "/tmp/sessions.json" } } as OpenClawConfig,
       agentId: "main",
       commandAuthorized: true,
       workspaceDir: "/tmp/workspace",
@@ -582,7 +646,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         To: undefined,
         SenderId: "gateway-client",
       }),
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       sessionKey: "main",
       isGroup: false,
       triggerBodyNormalized: "/codex bind",
@@ -596,19 +660,15 @@ describe("getReplyFromConfig fast test bootstrap", () => {
   });
 
   it("keeps the existing session for /reset newline soft during fast bootstrap", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-fast-reset-newline-soft-"));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-fast-reset-newline-soft-"));
     const storePath = path.join(home, "sessions.json");
     const sessionKey = "agent:main:telegram:123";
-    await fs.writeFile(
-      storePath,
-      JSON.stringify({
-        [sessionKey]: {
-          sessionId: "existing-fast-reset-newline-soft",
-          updatedAt: Date.now(),
-        },
-      }),
-      "utf8",
-    );
+    await seedFastPathSessionStore(storePath, {
+      [sessionKey]: {
+        sessionId: "existing-fast-reset-newline-soft",
+        updatedAt: Date.now(),
+      },
+    });
 
     const result = initFastReplySessionState({
       ctx: buildGetReplyCtx({
@@ -617,7 +677,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         CommandBody: "/reset \nsoft",
         SessionKey: sessionKey,
       }),
-      cfg: { session: { store: storePath } } as AstroclawConfig,
+      cfg: { session: { store: storePath } } as OpenClawConfig,
       agentId: "main",
       commandAuthorized: true,
       workspaceDir: home,
@@ -629,19 +689,15 @@ describe("getReplyFromConfig fast test bootstrap", () => {
   });
 
   it("keeps the existing session for /reset: soft during fast bootstrap", async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-fast-reset-colon-soft-"));
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-fast-reset-colon-soft-"));
     const storePath = path.join(home, "sessions.json");
     const sessionKey = "agent:main:telegram:123";
-    await fs.writeFile(
-      storePath,
-      JSON.stringify({
-        [sessionKey]: {
-          sessionId: "existing-fast-reset-colon-soft",
-          updatedAt: Date.now(),
-        },
-      }),
-      "utf8",
-    );
+    await seedFastPathSessionStore(storePath, {
+      [sessionKey]: {
+        sessionId: "existing-fast-reset-colon-soft",
+        updatedAt: Date.now(),
+      },
+    });
 
     const result = initFastReplySessionState({
       ctx: buildGetReplyCtx({
@@ -650,7 +706,7 @@ describe("getReplyFromConfig fast test bootstrap", () => {
         CommandBody: "/reset: soft",
         SessionKey: sessionKey,
       }),
-      cfg: { session: { store: storePath } } as AstroclawConfig,
+      cfg: { session: { store: storePath } } as OpenClawConfig,
       agentId: "main",
       commandAuthorized: true,
       workspaceDir: home,
