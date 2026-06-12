@@ -1,8 +1,9 @@
+// Vitest project config tests validate aggregate Vitest project wiring.
 import { afterEach, describe, expect, it } from "vitest";
 import { createPatternFileHelper } from "./helpers/pattern-file.js";
 import { normalizeConfigPath, normalizeConfigPaths } from "./helpers/vitest-config-paths.js";
 import { createAgentsCoreVitestConfig } from "./vitest/vitest.agents-core.config.ts";
-import { createAgentsPiEmbeddedVitestConfig } from "./vitest/vitest.agents-pi-embedded.config.ts";
+import { createAgentsEmbeddedVitestConfig } from "./vitest/vitest.agents-embedded-agent.config.ts";
 import { createAgentsSupportVitestConfig } from "./vitest/vitest.agents-support.config.ts";
 import { createAgentsToolsVitestConfig } from "./vitest/vitest.agents-tools.config.ts";
 import { createAgentsVitestConfig } from "./vitest/vitest.agents.config.ts";
@@ -26,12 +27,14 @@ import {
   sharedVitestConfig,
 } from "./vitest/vitest.shared.config.ts";
 import { fullSuiteVitestShards } from "./vitest/vitest.test-shards.mjs";
-import { createUiVitestConfig, unitUiIncludePatterns } from "./vitest/vitest.ui.config.ts";
+import { unitUiIncludePatterns } from "./vitest/vitest.ui-paths.mjs";
+import { createUiVitestConfig } from "./vitest/vitest.ui.config.ts";
+import { createUnitFastFakeTimersVitestConfig } from "./vitest/vitest.unit-fast-fake-timers.config.ts";
 import { createUnitFastVitestConfig } from "./vitest/vitest.unit-fast.config.ts";
 import unitUiConfig from "./vitest/vitest.unit-ui.config.ts";
 import { createUnitVitestConfig } from "./vitest/vitest.unit.config.ts";
 
-const patternFiles = createPatternFileHelper("astroclaw-vitest-projects-config-");
+const patternFiles = createPatternFileHelper("openclaw-vitest-projects-config-");
 
 function requireTestConfig<T extends { test?: unknown }>(config: T): NonNullable<T["test"]> {
   if (!config.test) {
@@ -82,6 +85,19 @@ describe("projects vitest config", () => {
     );
   });
 
+  it("keeps root watch projects aligned with dedicated tooling shard lanes", () => {
+    const toolingShard = fullSuiteVitestShards.find(
+      (shard) => shard.config === "test/vitest/vitest.full-core-tooling.config.ts",
+    );
+
+    expect(toolingShard?.projects).toEqual(
+      expect.arrayContaining(["test/vitest/vitest.tooling-docker.config.ts"]),
+    );
+    expect(rootVitestProjects).toEqual(
+      expect.arrayContaining(["test/vitest/vitest.tooling-docker.config.ts"]),
+    );
+  });
+
   it("disables vite env-file loading for vitest lanes", () => {
     expect(baseConfig.envFile).toBe(false);
     expect(sharedVitestConfig.envFile).toBe(false);
@@ -91,11 +107,11 @@ describe("projects vitest config", () => {
     expect(createGatewayVitestConfig().test.pool).toBe("threads");
     expect(createAgentsVitestConfig().test.pool).toBe("threads");
     expect(createAgentsCoreVitestConfig().test.pool).toBe("threads");
-    expect(createAgentsPiEmbeddedVitestConfig().test.pool).toBe("threads");
+    expect(createAgentsEmbeddedVitestConfig().test.pool).toBe("threads");
     expect(createAgentsSupportVitestConfig().test.pool).toBe("threads");
     expect(createAgentsToolsVitestConfig().test.pool).toBe("threads");
     expect(createCommandsLightVitestConfig().test.pool).toBe("threads");
-    expect(createCommandsVitestConfig().test.pool).toBe("threads");
+    expect(createCommandsVitestConfig().test.pool).toBe("forks");
     expect(createPluginSdkLightVitestConfig().test.pool).toBe("threads");
     expect(createUnitFastVitestConfig().test.pool).toBe("threads");
     expect(createContractsVitestConfig(pluginContractPatterns).test.pool).toBe("threads");
@@ -104,7 +120,7 @@ describe("projects vitest config", () => {
   it("honors explicit worker caps in CI vitest lanes", () => {
     expect(
       resolveSharedVitestWorkerConfig({
-        env: { CI: "true", ASTROCLAW_VITEST_MAX_WORKERS: "1" },
+        env: { CI: "true", OPENCLAW_VITEST_MAX_WORKERS: "1" },
         isCI: true,
         isWindows: false,
         localScheduling: {
@@ -180,7 +196,7 @@ describe("projects vitest config", () => {
     const config = createContractsVitestConfig(
       ["src/channels/plugins/contracts/*-shard-a.contract.test.ts"],
       {
-        ASTROCLAW_VITEST_INCLUDE_FILE: includeFile,
+        OPENCLAW_VITEST_INCLUDE_FILE: includeFile,
       },
     );
 
@@ -196,7 +212,7 @@ describe("projects vitest config", () => {
     expect(testConfig.isolate).toBe(false);
     expect(normalizeConfigPath(testConfig.runner)).toBe("test/non-isolated-runner.ts");
     const setupFiles = normalizeConfigPaths(testConfig.setupFiles);
-    expect(setupFiles).not.toContain("test/setup-astroclaw-runtime.ts");
+    expect(setupFiles).not.toContain("test/setup-openclaw-runtime.ts");
     expect(setupFiles).toContain("ui/src/test-helpers/lit-warnings.setup.ts");
     expect(requireWebOptimizer(testConfig).enabled).toBe(true);
   });
@@ -208,7 +224,7 @@ describe("projects vitest config", () => {
     expect(normalizeConfigPath(testConfig.runner)).toBe("test/non-isolated-runner.ts");
     expect(unitUiIncludePatterns).toContain("ui/src/ui/views/dreaming.test.ts");
     const setupFiles = normalizeConfigPaths(testConfig.setupFiles);
-    expect(setupFiles).not.toContain("test/setup-astroclaw-runtime.ts");
+    expect(setupFiles).not.toContain("test/setup-openclaw-runtime.ts");
     expect(setupFiles).toContain("ui/src/test-helpers/lit-warnings.setup.ts");
   });
 
@@ -222,6 +238,15 @@ describe("projects vitest config", () => {
     const config = createUnitFastVitestConfig();
     expect(config.test.isolate).toBe(false);
     expect(config.test.runner).toBeUndefined();
+  });
+
+  it("keeps fake-timer unit-fast files serial with the non-isolated runner", () => {
+    const config = createUnitFastFakeTimersVitestConfig();
+    expect(config.test.isolate).toBe(false);
+    expect(normalizeConfigPath(config.test.runner)).toBe("test/non-isolated-runner.ts");
+    expect(config.test.fileParallelism).toBe(false);
+    expect(config.test.maxWorkers).toBe(1);
+    expect(config.test.sequence).toMatchObject({ groupOrder: 1 });
   });
 
   it("keeps the bundled lane on thread workers with the non-isolated runner", () => {
