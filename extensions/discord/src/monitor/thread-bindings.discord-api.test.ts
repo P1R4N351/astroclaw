@@ -1,5 +1,6 @@
+// Discord tests cover thread bindingsiscord api plugin behavior.
 import { ChannelType } from "discord-api-types/v10";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as discordClientModule from "../client.js";
 import * as discordSendModule from "../send.js";
@@ -31,15 +32,16 @@ const createDiscordRestClient = vi.fn<typeof discordClientModule.createDiscordRe
 
 let maybeSendBindingMessage: typeof import("./thread-bindings.discord-api.js").maybeSendBindingMessage;
 let resolveChannelIdForBinding: typeof import("./thread-bindings.discord-api.js").resolveChannelIdForBinding;
+let isDiscordThreadGoneError: typeof import("./thread-bindings.discord-api.js").isDiscordThreadGoneError;
 
 beforeAll(async () => {
-  ({ maybeSendBindingMessage, resolveChannelIdForBinding } =
+  ({ isDiscordThreadGoneError, maybeSendBindingMessage, resolveChannelIdForBinding } =
     await import("./thread-bindings.discord-api.js"));
 });
 
 function resolveTestChannelIdForBinding(
   params: Omit<Parameters<typeof resolveChannelIdForBinding>[0], "cfg"> & {
-    cfg?: AstroclawConfig;
+    cfg?: OpenClawConfig;
   },
 ) {
   return resolveChannelIdForBinding({
@@ -143,7 +145,7 @@ describe("resolveChannelIdForBinding", () => {
   it("forwards cfg when resolving channel id through Discord client", async () => {
     const cfg = {
       channels: { discord: { token: "tok" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     restGet.mockResolvedValueOnce({
       id: "thread-1",
       type: ChannelType.PublicThread,
@@ -159,7 +161,7 @@ describe("resolveChannelIdForBinding", () => {
     expect(
       (
         firstMockCall(createDiscordRestClient, "createDiscordRestClient")[0] as
-          | { cfg?: AstroclawConfig }
+          | { cfg?: OpenClawConfig }
           | undefined
       )?.cfg,
     ).toBe(cfg);
@@ -196,6 +198,14 @@ describe("resolveChannelIdForBinding", () => {
   });
 });
 
+describe("isDiscordThreadGoneError", () => {
+  it("rejects malformed fractional Discord status values", () => {
+    expect(isDiscordThreadGoneError({ status: 403.5 })).toBe(false);
+    expect(isDiscordThreadGoneError({ statusCode: "404.5" })).toBe(false);
+    expect(isDiscordThreadGoneError({ statusCode: "+404" })).toBe(true);
+  });
+});
+
 describe("maybeSendBindingMessage", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -212,7 +222,7 @@ describe("maybeSendBindingMessage", () => {
   it("forwards cfg to webhook send path", async () => {
     const cfg = {
       channels: { discord: { token: "tok" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const record = {
       accountId: "default",
       channelId: "parent-1",
