@@ -1,16 +1,18 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import type { ChannelGroupPolicy } from "astroclaw/plugin-sdk/config-contracts";
-import type { TelegramAccountConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { describe, expect, it } from "vitest";
+// Telegram tests cover bot native commands.group auth plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { ChannelGroupPolicy } from "openclaw/plugin-sdk/config-contracts";
+import type { TelegramAccountConfig } from "openclaw/plugin-sdk/config-contracts";
+import { describe, expect, it, vi } from "vitest";
 import {
   createNativeCommandsHarness,
+  createTelegramDmCommandContext,
   createTelegramGroupCommandContext,
   findNotAuthorizedCalls,
 } from "./bot-native-commands.test-helpers.js";
 
 describe("native command auth in groups", () => {
   function setup(params: {
-    cfg?: AstroclawConfig;
+    cfg?: OpenClawConfig;
     telegramCfg?: TelegramAccountConfig;
     allowFrom?: string[];
     groupAllowFrom?: string[];
@@ -20,7 +22,7 @@ describe("native command auth in groups", () => {
     resolveGroupPolicy?: () => ChannelGroupPolicy;
   }) {
     return createNativeCommandsHarness({
-      cfg: params.cfg ?? ({} as AstroclawConfig),
+      cfg: params.cfg ?? ({} as OpenClawConfig),
       telegramCfg: params.telegramCfg ?? ({} as TelegramAccountConfig),
       allowFrom: params.allowFrom ?? [],
       groupAllowFrom: params.groupAllowFrom ?? [],
@@ -74,7 +76,7 @@ describe("native command auth in groups", () => {
             telegram: ["12345"],
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       allowFrom: ["99999"],
       groupAllowFrom: ["99999"],
       useAccessGroups: true,
@@ -96,7 +98,7 @@ describe("native command auth in groups", () => {
             telegram: ["99999"],
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       groupAllowFrom: ["12345"],
       useAccessGroups: true,
     });
@@ -125,7 +127,7 @@ describe("native command auth in groups", () => {
             telegram: ["12345"],
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       useAccessGroups: true,
       resolveGroupPolicy: () =>
         ({
@@ -151,7 +153,7 @@ describe("native command auth in groups", () => {
             telegram: ["12345"],
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       useAccessGroups: true,
       resolveGroupPolicy: () =>
         ({
@@ -184,6 +186,27 @@ describe("native command auth in groups", () => {
 
     const notAuthCalls = findNotAuthorizedCalls(sendMessage);
     expect(notAuthCalls.length).toBeGreaterThan(0);
+  });
+
+  it("authorizes a DM native command from commands.allowFrom.telegram when pairing-store read fails transiently", async () => {
+    const readChannelAllowFromStore = vi.fn(async () => {
+      throw new Error("store temporarily unavailable");
+    });
+    const { handlers, sendMessage } = createNativeCommandsHarness({
+      cfg: {
+        commands: { native: true, allowFrom: { telegram: ["12345"] } },
+        channels: { telegram: { dmPolicy: "pairing" } },
+      } as OpenClawConfig,
+      telegramCfg: { dmPolicy: "pairing" } as TelegramAccountConfig,
+      readChannelAllowFromStore,
+    });
+
+    const ctx = createTelegramDmCommandContext({ senderId: 12345 });
+
+    await handlers.status?.(ctx);
+
+    expect(readChannelAllowFromStore).not.toHaveBeenCalled();
+    expect(findNotAuthorizedCalls(sendMessage)).toHaveLength(0);
   });
 
   it("replies in the originating forum topic when auth is rejected", async () => {
