@@ -1,6 +1,7 @@
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
+// Zalouser tests cover accounts plugin behavior.
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 import {
   getZcaUserInfo,
   listEnabledZalouserAccounts,
@@ -21,8 +22,8 @@ const mockGetUserInfo = vi.mocked(getZaloUserInfo);
 const originalZalouserProfile = process.env.ZALOUSER_PROFILE;
 const originalZcaProfile = process.env.ZCA_PROFILE;
 
-function asConfig(value: unknown): AstroclawConfig {
-  return value as AstroclawConfig;
+function asConfig(value: unknown): OpenClawConfig {
+  return value as OpenClawConfig;
 }
 
 describe("zalouser account resolution", () => {
@@ -64,6 +65,23 @@ describe("zalouser account resolution", () => {
     });
 
     expect(listZalouserAccountIds(cfg)).toEqual(["default", "personal", "work"]);
+  });
+
+  it("preserves top-level default account when named accounts are configured", () => {
+    const cfg = asConfig({
+      channels: {
+        zalouser: {
+          profile: "personal",
+          accounts: {
+            work: { enabled: false },
+          },
+        },
+      },
+    });
+
+    expect(listZalouserAccountIds(cfg)).toEqual(["default", "work"]);
+    expect(resolveDefaultZalouserAccountId(cfg)).toBe("default");
+    expect(resolveZalouserAccountSync({ cfg }).profile).toBe("personal");
   });
 
   it("uses configured defaultAccount when present", () => {
