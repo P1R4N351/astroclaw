@@ -1,3 +1,4 @@
+// Channels account tests cover non-default Telegram account setup, status, removal, and binding behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPatchedAccountSetupAdapter } from "../channels/plugins/setup-helpers.js";
 import type { ChannelStatusIssue } from "../channels/plugins/types.core.js";
@@ -15,10 +16,15 @@ import { baseConfigSnapshot, createTestRuntime } from "./test-runtime-config-hel
 const runtime = createTestRuntime();
 let minimalChannelsCommandRegistry: ReturnType<typeof createTestRegistry>;
 const createClackPrompterMock = vi.hoisted(() => vi.fn());
+const catalogMocks = vi.hoisted(() => ({
+  listTrustedChannelPluginCatalogEntries: vi.fn(() => []),
+}));
 
 vi.mock("../wizard/clack-prompter.js", () => ({
   createClackPrompter: createClackPrompterMock,
 }));
+
+vi.mock("./channel-setup/trusted-catalog.js", () => catalogMocks);
 
 type ChannelSectionConfig = {
   enabled?: boolean;
@@ -682,7 +688,7 @@ describe("channels command", () => {
       patterns: [
         /Warnings:/,
         /Message Content Intent is disabled/i,
-        /Run: (?:astroclaw|astroclaw)( --profile isolated)? doctor/,
+        /Run: (?:openclaw|openclaw)( --profile isolated)? doctor/,
       ],
     },
     {
@@ -736,11 +742,11 @@ describe("channels command", () => {
           accountId: "default",
           enabled: true,
           configured: true,
-          probe: { ok: true, bot: { username: "astroclaw_bot" } },
+          probe: { ok: true, bot: { username: "openclaw_bot" } },
         },
       ],
     });
-    expect(joined).toMatch(/bot:@astroclaw_bot/);
+    expect(joined).toMatch(/bot:@openclaw_bot/);
   });
 
   it("surfaces Telegram group membership audit issues in channels status output", () => {
