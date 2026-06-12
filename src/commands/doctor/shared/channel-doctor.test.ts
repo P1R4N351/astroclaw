@@ -1,3 +1,4 @@
+// Channel doctor tests cover shared channel health checks and repair hints.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   collectChannelDoctorCompatibilityMutations,
@@ -238,7 +239,7 @@ describe("channel doctor compatibility mutations", () => {
 
   it("passes explicit env into read-only channel plugin discovery", () => {
     const cfg = createMatrixEnabledConfig();
-    const env = { ASTROCLAW_HOME: "/tmp/astroclaw-test-home" };
+    const env = { OPENCLAW_HOME: "/tmp/openclaw-test-home" };
 
     collectChannelDoctorCompatibilityMutations(cfg as never, { env });
 
@@ -328,7 +329,7 @@ describe("channel doctor compatibility mutations", () => {
         },
       },
     };
-    const env = { ASTROCLAW_HOME: "/tmp/astroclaw-test-home" };
+    const env = { OPENCLAW_HOME: "/tmp/openclaw-test-home" };
     mocks.resolveReadOnlyChannelPluginsForConfig.mockReturnValue({
       plugins: [
         {
