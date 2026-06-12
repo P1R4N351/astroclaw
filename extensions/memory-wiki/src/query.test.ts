@@ -1,8 +1,9 @@
+// Memory Wiki tests cover query plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../api.js";
+import type { OpenClawConfig } from "../api.js";
 import { compileMemoryWikiVault } from "./compile.js";
 import type { MemoryWikiPluginConfig } from "./config.js";
 import { renderWikiMarkdown } from "./markdown.js";
@@ -24,18 +25,18 @@ const {
   }),
 }));
 
-vi.mock("astroclaw/plugin-sdk/memory-host-search", () => ({
+vi.mock("openclaw/plugin-sdk/memory-host-search", () => ({
   getActiveMemorySearchManager: getActiveMemorySearchManagerMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/memory-host-core", () => ({
+vi.mock("openclaw/plugin-sdk/memory-host-core", () => ({
   resolveDefaultAgentId: resolveDefaultAgentIdMock,
   resolveSessionAgentId: resolveSessionAgentIdMock,
 }));
 
-vi.mock("astroclaw/plugin-sdk/session-transcript-hit", async (importOriginal) => {
+vi.mock("openclaw/plugin-sdk/session-transcript-hit", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("astroclaw/plugin-sdk/session-transcript-hit")>();
+    await importOriginal<typeof import("openclaw/plugin-sdk/session-transcript-hit")>();
   return {
     ...actual,
     loadCombinedSessionStoreForGateway: loadCombinedSessionStoreForGatewayMock,
@@ -98,15 +99,15 @@ async function createQueryVault(options?: {
   });
 }
 
-function createAppConfig(): AstroclawConfig {
+function createAppConfig(): OpenClawConfig {
   return {
     agents: {
       list: [{ id: "main", default: true }],
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
-function createSessionVisibilityAppConfig(): AstroclawConfig {
+function createSessionVisibilityAppConfig(): OpenClawConfig {
   return {
     agents: {
       defaults: { sandbox: { sessionToolsVisibility: "all" } },
@@ -115,7 +116,7 @@ function createSessionVisibilityAppConfig(): AstroclawConfig {
     tools: {
       sessions: { visibility: "self" },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function mockSessionTranscriptStore() {
@@ -125,12 +126,12 @@ function mockSessionTranscriptStore() {
       "agent:main:child-session": {
         sessionId: "child-session",
         updatedAt: 1,
-        sessionFile: "/tmp/astroclaw/child-session.jsonl",
+        sessionFile: "/tmp/openclaw/child-session.jsonl",
       },
       "agent:main:sibling-session": {
         sessionId: "sibling-session",
         updatedAt: 2,
-        sessionFile: "/tmp/astroclaw/sibling-session.jsonl",
+        sessionFile: "/tmp/openclaw/sibling-session.jsonl",
       },
     },
   });
@@ -208,6 +209,29 @@ describe("searchMemoryWiki", () => {
     expect(getActiveMemorySearchManagerMock).not.toHaveBeenCalled();
   });
 
+  it("uses the default search limit for non-finite maxResults", async () => {
+    const { rootDir, config } = await createQueryVault({
+      initialize: true,
+    });
+    await fs.writeFile(
+      path.join(rootDir, "sources", "alpha.md"),
+      renderWikiMarkdown({
+        frontmatter: { pageType: "source", id: "source.alpha", title: "Alpha Source" },
+        body: "# Alpha Source\n\nalpha body text\n",
+      }),
+      "utf8",
+    );
+
+    const results = await searchMemoryWiki({
+      config,
+      query: "alpha",
+      maxResults: Number.NaN,
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.path).toBe("sources/alpha.md");
+  });
+
   it("does not match generated related blocks during wiki search", async () => {
     const { rootDir, config } = await createQueryVault({
       initialize: true,
@@ -227,10 +251,10 @@ describe("searchMemoryWiki", () => {
           "Alpha body.",
           "",
           "## Related",
-          "<!-- astroclaw:wiki:related:start -->",
+          "<!-- openclaw:wiki:related:start -->",
           "### Related Pages",
           "- [Needle Person](entities/needle-person.md)",
-          "<!-- astroclaw:wiki:related:end -->",
+          "<!-- openclaw:wiki:related:end -->",
           "",
         ].join("\n"),
       }),
@@ -276,7 +300,7 @@ describe("searchMemoryWiki", () => {
           "# Maintainer: Brad Groux",
           "",
           "## Agent Card",
-          "- Maintainer lane: CEO; Microsoft-facing Astroclaw maintainer",
+          "- Maintainer lane: CEO; Microsoft-facing OpenClaw maintainer",
           "",
           "## AI Notes",
           "- Main sample theme is Microsoft ecosystem adoption: Teams, M365, Azure, Foundry, tenants, and pilots.",
@@ -820,6 +844,59 @@ describe("searchMemoryWiki", () => {
     ]);
   });
 
+  it("keeps QMD archived session search hits inside visibility policy", async () => {
+    const { config } = await createQueryVault({
+      initialize: true,
+      config: {
+        search: { backend: "shared", corpus: "memory" },
+      },
+    });
+    loadCombinedSessionStoreForGatewayMock.mockReturnValue({
+      storePath: "(test)",
+      store: {
+        "agent:main:abc-uuid": {
+          sessionId: "abc-uuid",
+          updatedAt: 1,
+          sessionFile: "/tmp/openclaw/abc-uuid.jsonl",
+        },
+      },
+    });
+    const manager = createMemoryManager({
+      searchResults: [
+        {
+          path: "qmd/sessions-main/abc-uuid-jsonl-reset-2026-02-16t22-26-33-000z.md",
+          startLine: 1,
+          endLine: 2,
+          score: 30,
+          snippet: "archived transcript",
+          source: "sessions",
+        },
+        {
+          path: "abc-uuid-jsonl-reset-2026-02-16t22-26-33-000z.md",
+          startLine: 3,
+          endLine: 4,
+          score: 20,
+          snippet: "normal markdown",
+          source: "sessions",
+        },
+      ],
+    });
+    getActiveMemorySearchManagerMock.mockResolvedValue({ manager });
+
+    const results = await searchMemoryWiki({
+      config,
+      appConfig: createSessionVisibilityAppConfig(),
+      agentSessionKey: "agent:main:abc-uuid",
+      sandboxed: true,
+      query: "transcript",
+      maxResults: 10,
+    });
+
+    expect(results.map((result) => result.path)).toEqual([
+      "qmd/sessions-main/abc-uuid-jsonl-reset-2026-02-16t22-26-33-000z.md",
+    ]);
+  });
+
   it("scopes gateway-style session memory search by agent", async () => {
     const { config } = await createQueryVault({
       initialize: true,
@@ -833,7 +910,7 @@ describe("searchMemoryWiki", () => {
         "agent:secondary:visible-session": {
           sessionId: "visible-session",
           updatedAt: 1,
-          sessionFile: "/tmp/astroclaw/visible-session.jsonl",
+          sessionFile: "/tmp/openclaw/visible-session.jsonl",
         },
       },
     });
@@ -896,14 +973,14 @@ describe("searchMemoryWiki", () => {
       agents: {
         list: [{ id: "main", default: true }, { id: "secondary" }],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     loadCombinedSessionStoreForGatewayMock.mockReturnValue({
       storePath: "(test)",
       store: {
         global: {
           sessionId: "visible-session",
           updatedAt: 1,
-          sessionFile: "/tmp/astroclaw/visible-session.jsonl",
+          sessionFile: "/tmp/openclaw/visible-session.jsonl",
         },
       },
     });
@@ -1003,7 +1080,7 @@ describe("searchMemoryWiki", () => {
         "agent:secondary:main": {
           sessionId: "main",
           updatedAt: 1,
-          sessionFile: "/tmp/astroclaw/main.jsonl",
+          sessionFile: "/tmp/openclaw/main.jsonl",
         },
       },
     });
@@ -1053,7 +1130,7 @@ describe("searchMemoryWiki", () => {
         "agent:other:visible-session": {
           sessionId: "visible-session",
           updatedAt: 1,
-          sessionFile: "/tmp/astroclaw/visible-session.jsonl",
+          sessionFile: "/tmp/openclaw/visible-session.jsonl",
         },
       },
     });
@@ -1258,6 +1335,32 @@ describe("getMemoryWikiPage", () => {
     expect(result?.truncated).toBe(true);
   });
 
+  it("defaults non-finite wiki line options before slicing", async () => {
+    const { rootDir, config } = await createQueryVault({
+      initialize: true,
+    });
+    await fs.writeFile(
+      path.join(rootDir, "sources", "alpha.md"),
+      renderWikiMarkdown({
+        frontmatter: { pageType: "source", id: "source.alpha", title: "Alpha Source" },
+        body: "# Alpha Source\n\nline one\nline two\n",
+      }),
+      "utf8",
+    );
+
+    const result = await getMemoryWikiPage({
+      config,
+      lookup: "sources/alpha.md",
+      fromLine: Number.NaN,
+      lineCount: Number.POSITIVE_INFINITY,
+    });
+
+    expect(result?.corpus).toBe("wiki");
+    expect(result?.content).toContain("line one");
+    expect(result?.fromLine).toBe(1);
+    expect(result?.lineCount).toBe(200);
+  });
+
   it("resolves compiled claim ids back to the owning page", async () => {
     const { rootDir, config } = await createQueryVault({
       initialize: true,
@@ -1376,6 +1479,38 @@ describe("getMemoryWikiPage", () => {
     });
   });
 
+  it("defaults non-finite memory line options before memory reads", async () => {
+    const { config } = await createQueryVault({
+      initialize: true,
+      config: {
+        search: { backend: "shared", corpus: "memory" },
+      },
+    });
+    const manager = createMemoryManager({
+      readResult: {
+        path: "MEMORY.md",
+        text: "durable alpha memory",
+      },
+    });
+    getActiveMemorySearchManagerMock.mockResolvedValue({ manager });
+
+    const result = await getMemoryWikiPage({
+      config,
+      appConfig: createAppConfig(),
+      lookup: "MEMORY.md",
+      fromLine: Number.NaN,
+      lineCount: Number.POSITIVE_INFINITY,
+    });
+
+    expect(result?.fromLine).toBe(1);
+    expect(result?.lineCount).toBe(200);
+    expect(manager.readFile).toHaveBeenCalledWith({
+      relPath: "MEMORY.md",
+      from: 1,
+      lines: 200,
+    });
+  });
+
   it("skips session memory reads outside the caller visibility policy", async () => {
     const { config } = await createQueryVault({
       initialize: true,
@@ -1436,6 +1571,42 @@ describe("getMemoryWikiPage", () => {
     expect(manager.readFile).toHaveBeenCalledTimes(1);
     expect(manager.readFile).toHaveBeenCalledWith({
       relPath: "qmd/sessions-main/child-session.md",
+      from: 1,
+      lines: 200,
+    });
+  });
+
+  it("permits QMD archived deleted session reads when the live store entry is gone", async () => {
+    const { config } = await createQueryVault({
+      initialize: true,
+      config: {
+        search: { backend: "shared", corpus: "memory" },
+      },
+    });
+    loadCombinedSessionStoreForGatewayMock.mockReturnValue({ storePath: "(test)", store: {} });
+    const manager = createMemoryManager({
+      readResult: {
+        path: "qmd/sessions-main/deleted-uuid-jsonl-deleted-2026-02-16t22-26-33-000z.md",
+        text: "deleted archive transcript",
+      },
+    });
+    getActiveMemorySearchManagerMock.mockResolvedValue({ manager });
+
+    const result = await getMemoryWikiPage({
+      config,
+      appConfig: createSessionVisibilityAppConfig(),
+      agentSessionKey: "agent:main:deleted-uuid",
+      sandboxed: true,
+      lookup: "qmd/sessions-main/deleted-uuid-jsonl-deleted-2026-02-16t22-26-33-000z.md",
+    });
+
+    expectFields(result, {
+      corpus: "memory",
+      path: "qmd/sessions-main/deleted-uuid-jsonl-deleted-2026-02-16t22-26-33-000z.md",
+      content: "deleted archive transcript",
+    });
+    expect(manager.readFile).toHaveBeenCalledWith({
+      relPath: "qmd/sessions-main/deleted-uuid-jsonl-deleted-2026-02-16t22-26-33-000z.md",
       from: 1,
       lines: 200,
     });
