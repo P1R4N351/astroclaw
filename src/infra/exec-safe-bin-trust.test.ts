@@ -1,3 +1,4 @@
+// Covers trusted safe-bin directory and path checks.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -72,7 +73,7 @@ describe("exec safe bin trust", () => {
   });
 
   it("matches trusted dirs through path-local case folding on case-insensitive filesystems", async () => {
-    await withTempDir({ prefix: "Astroclaw-Safe-Bin-" }, async (dir) => {
+    await withTempDir({ prefix: "OpenClaw-Safe-Bin-" }, async (dir) => {
       const swapped = swapAsciiCase(dir);
       if (swapped === dir) {
         return;
@@ -103,7 +104,7 @@ describe("exec safe bin trust", () => {
   });
 
   it("keeps case-distinct trusted dirs separate on case-sensitive filesystems", async () => {
-    await withTempDir({ prefix: "astroclaw-safe-bin-case-" }, async (parent) => {
+    await withTempDir({ prefix: "openclaw-safe-bin-case-" }, async (parent) => {
       const trustedDir = path.join(parent, "ToolBin");
       const untrustedDir = path.join(parent, "toolbin");
       await fs.mkdir(trustedDir);
@@ -128,7 +129,7 @@ describe("exec safe bin trust", () => {
   });
 
   it("does not trust PATH entries by default", () => {
-    const injected = `/tmp/astroclaw-path-injected-${Date.now()}`;
+    const injected = `/tmp/openclaw-path-injected-${Date.now()}`;
 
     withEnv({ PATH: `${injected}${path.delimiter}${process.env.PATH ?? ""}` }, () => {
       const refreshed = getTrustedSafeBinDirs({ refresh: true });
@@ -140,7 +141,7 @@ describe("exec safe bin trust", () => {
     if (process.platform === "win32") {
       return;
     }
-    await withTempDir({ prefix: "astroclaw-safe-bin-trust-" }, async (dir) => {
+    await withTempDir({ prefix: "openclaw-safe-bin-trust-" }, async (dir) => {
       try {
         await fs.chmod(dir, 0o777);
         const hits = listWritableExplicitTrustedSafeBinDirs([dir]);
