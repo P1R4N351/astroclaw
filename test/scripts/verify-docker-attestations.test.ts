@@ -1,7 +1,9 @@
+// Verify Docker Attestations tests cover verify docker attestations script behavior.
 import { describe, expect, it } from "vitest";
 import {
   collectDockerAttestationErrors,
   imageRefForDigest,
+  parseArgs,
   parsePlatform,
 } from "../../scripts/verify-docker-attestations.mjs";
 
@@ -52,18 +54,37 @@ function createAttestation(
 }
 
 describe("verify-docker-attestations", () => {
+  it("parses required platforms and image refs", () => {
+    expect(
+      parseArgs(["--platform", "linux/amd64", "--platform", "linux/arm64", "ghcr.io/openclaw/app"]),
+    ).toEqual({
+      help: false,
+      imageRefs: ["ghcr.io/openclaw/app"],
+      requiredPlatforms: [
+        { architecture: "amd64", os: "linux", variant: undefined },
+        { architecture: "arm64", os: "linux", variant: undefined },
+      ],
+    });
+  });
+
+  it("rejects missing platform option values", () => {
+    expect(() => parseArgs(["--platform"])).toThrow("--platform requires a value");
+    expect(() => parseArgs(["--platform", "--help"])).toThrow("--platform requires a value");
+    expect(() => parseArgs(["--platform", ""])).toThrow("--platform requires a value");
+  });
+
   it("resolves digest refs from tagged image refs", () => {
-    expect(imageRefForDigest("ghcr.io/astroclaw/astroclaw:2026.4.26", imageDigest)).toBe(
-      `ghcr.io/astroclaw/astroclaw@${imageDigest}`,
+    expect(imageRefForDigest("ghcr.io/openclaw/openclaw:2026.4.26", imageDigest)).toBe(
+      `ghcr.io/openclaw/openclaw@${imageDigest}`,
     );
-    expect(imageRefForDigest("localhost:5000/astroclaw:main", imageDigest)).toBe(
-      `localhost:5000/astroclaw@${imageDigest}`,
+    expect(imageRefForDigest("localhost:5000/openclaw:main", imageDigest)).toBe(
+      `localhost:5000/openclaw@${imageDigest}`,
     );
   });
 
   it("accepts an image index with SBOM and provenance predicates", () => {
     const errors = collectDockerAttestationErrors({
-      imageRef: "ghcr.io/astroclaw/astroclaw:test",
+      imageRef: "ghcr.io/openclaw/openclaw:test",
       index: createIndex(),
       requiredPlatforms: [parsePlatform("linux/amd64")],
       inspectAttestation: () => createAttestation(),
@@ -74,7 +95,7 @@ describe("verify-docker-attestations", () => {
 
   it("accepts attestation manifests with omitted artifactType", () => {
     const errors = collectDockerAttestationErrors({
-      imageRef: "ghcr.io/astroclaw/astroclaw:test",
+      imageRef: "ghcr.io/openclaw/openclaw:test",
       index: createIndex(),
       requiredPlatforms: [parsePlatform("linux/amd64")],
       inspectAttestation: () => {
@@ -89,7 +110,7 @@ describe("verify-docker-attestations", () => {
 
   it("reports unexpected attestation artifact types", () => {
     const errors = collectDockerAttestationErrors({
-      imageRef: "ghcr.io/astroclaw/astroclaw:test",
+      imageRef: "ghcr.io/openclaw/openclaw:test",
       index: createIndex(),
       requiredPlatforms: [parsePlatform("linux/amd64")],
       inspectAttestation: () => ({
@@ -99,7 +120,7 @@ describe("verify-docker-attestations", () => {
     });
 
     expect(errors).toEqual([
-      `ghcr.io/astroclaw/astroclaw:test: linux/amd64 attestation ${attestationDigest} has unexpected artifactType "application/vnd.unknown"`,
+      `ghcr.io/openclaw/openclaw:test: linux/amd64 attestation ${attestationDigest} has unexpected artifactType "application/vnd.unknown"`,
     ]);
   });
 
@@ -108,27 +129,27 @@ describe("verify-docker-attestations", () => {
     index.manifests = index.manifests.slice(0, 1);
 
     const errors = collectDockerAttestationErrors({
-      imageRef: "ghcr.io/astroclaw/astroclaw:test",
+      imageRef: "ghcr.io/openclaw/openclaw:test",
       index,
       requiredPlatforms: [parsePlatform("linux/amd64")],
       inspectAttestation: () => createAttestation(),
     });
 
     expect(errors).toEqual([
-      "ghcr.io/astroclaw/astroclaw:test: missing attestation manifest for linux/amd64",
+      "ghcr.io/openclaw/openclaw:test: missing attestation manifest for linux/amd64",
     ]);
   });
 
   it("reports missing SBOM or provenance predicates", () => {
     const errors = collectDockerAttestationErrors({
-      imageRef: "ghcr.io/astroclaw/astroclaw:test",
+      imageRef: "ghcr.io/openclaw/openclaw:test",
       index: createIndex(),
       requiredPlatforms: [parsePlatform("linux/amd64")],
       inspectAttestation: () => createAttestation(["https://spdx.dev/Document"]),
     });
 
     expect(errors).toEqual([
-      "ghcr.io/astroclaw/astroclaw:test: linux/amd64 missing predicate https://slsa.dev/provenance/v1",
+      "ghcr.io/openclaw/openclaw:test: linux/amd64 missing predicate https://slsa.dev/provenance/v1",
     ]);
   });
 });
