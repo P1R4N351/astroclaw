@@ -1,12 +1,14 @@
+// Memory Wiki plugin module implements vault behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
   replaceManagedMarkdownBlock,
   withTrailingNewline,
-} from "astroclaw/plugin-sdk/memory-host-markdown";
-import { FsSafeError, pathExists, root as fsRoot } from "astroclaw/plugin-sdk/security-runtime";
+} from "openclaw/plugin-sdk/memory-host-markdown";
+import { FsSafeError, pathExists, root as fsRoot } from "openclaw/plugin-sdk/security-runtime";
 import type { ResolvedMemoryWikiConfig } from "./config.js";
 import { appendMemoryWikiLog } from "./log.js";
+import { resolveMemoryWikiTimestamp } from "./time.js";
 
 export const WIKI_VAULT_DIRECTORIES = [
   "entities",
@@ -16,9 +18,9 @@ export const WIKI_VAULT_DIRECTORIES = [
   "reports",
   "_attachments",
   "_views",
-  ".astroclaw-wiki",
-  ".astroclaw-wiki/locks",
-  ".astroclaw-wiki/cache",
+  ".openclaw-wiki",
+  ".openclaw-wiki/locks",
+  ".openclaw-wiki/cache",
 ] as const;
 
 type InitializeMemoryWikiVaultResult = {
@@ -33,8 +35,8 @@ function buildIndexMarkdown(): string {
     replaceManagedMarkdownBlock({
       original: "# Wiki Index\n",
       heading: "## Generated",
-      startMarker: "<!-- astroclaw:wiki:index:start -->",
-      endMarker: "<!-- astroclaw:wiki:index:end -->",
+      startMarker: "<!-- openclaw:wiki:index:start -->",
+      endMarker: "<!-- openclaw:wiki:index:end -->",
       body: "- No compiled pages yet.",
     }),
   );
@@ -48,7 +50,7 @@ function buildAgentsMarkdown(): string {
 - Preserve human notes outside managed markers.
 - Prefer source-backed claims over wiki-to-wiki citation loops.
 - Prefer structured \`claims\` with evidence over burying key beliefs only in prose.
-- Use \`.astroclaw-wiki/cache/agent-digest.json\` and \`claims.jsonl\` for machine reads; markdown pages are the human view.
+- Use \`.openclaw-wiki/cache/agent-digest.json\` and \`claims.jsonl\` for machine reads; markdown pages are the human view.
 `);
 }
 
@@ -56,7 +58,7 @@ function buildWikiOverviewMarkdown(config: ResolvedMemoryWikiConfig): string {
   return withTrailingNewline(`\
 # Memory Wiki
 
-This vault is maintained by the Astroclaw memory-wiki plugin.
+This vault is maintained by the OpenClaw memory-wiki plugin.
 
 - Vault mode: \`${config.vaultMode}\`
 - Render mode: \`${config.vault.renderMode}\`
@@ -65,11 +67,11 @@ This vault is maintained by the Astroclaw memory-wiki plugin.
 ## Architecture
 - Raw sources remain the evidence layer.
 - Wiki pages are the human-readable synthesis layer.
-- \`.astroclaw-wiki/cache/agent-digest.json\` is the agent-facing compiled digest.
+- \`.openclaw-wiki/cache/agent-digest.json\` is the agent-facing compiled digest.
 
 ## Notes
-<!-- astroclaw:human:start -->
-<!-- astroclaw:human:end -->
+<!-- openclaw:human:start -->
+<!-- openclaw:human:end -->
 `);
 }
 
@@ -123,12 +125,12 @@ export async function initializeMemoryWikiVault(
   );
   await writeFileIfMissing(
     rootDir,
-    ".astroclaw-wiki/state.json",
+    ".openclaw-wiki/state.json",
     withTrailingNewline(
       JSON.stringify(
         {
           version: 1,
-          createdAt: new Date(options?.nowMs ?? Date.now()).toISOString(),
+          createdAt: resolveMemoryWikiTimestamp(options?.nowMs),
           renderMode: config.vault.renderMode,
         },
         null,
@@ -137,12 +139,12 @@ export async function initializeMemoryWikiVault(
     ),
     createdFiles,
   );
-  await writeFileIfMissing(rootDir, ".astroclaw-wiki/log.jsonl", "", createdFiles);
+  await writeFileIfMissing(rootDir, ".openclaw-wiki/log.jsonl", "", createdFiles);
 
   if (createdDirectories.length > 0 || createdFiles.length > 0) {
     await appendMemoryWikiLog(rootDir, {
       type: "init",
-      timestamp: new Date(options?.nowMs ?? Date.now()).toISOString(),
+      timestamp: resolveMemoryWikiTimestamp(options?.nowMs),
       details: {
         createdDirectories: createdDirectories.map((dir) => path.relative(rootDir, dir) || "."),
         createdFiles: createdFiles.map((file) => path.relative(rootDir, file)),
