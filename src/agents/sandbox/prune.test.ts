@@ -1,3 +1,5 @@
+// Sandbox prune tests cover runtime removal ordering and registry cleanup
+// behavior for stale sandbox entries.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SandboxConfig } from "./types.js";
 
@@ -59,10 +61,10 @@ function buildPruneConfig(): SandboxConfig {
     backend: "docker",
     scope: "session",
     workspaceAccess: "none",
-    workspaceRoot: "/tmp/astroclaw-sandboxes",
+    workspaceRoot: "/tmp/openclaw-sandboxes",
     docker: {
-      image: "astroclaw-sandbox:bookworm-slim",
-      containerPrefix: "astroclaw-sbx-",
+      image: "openclaw-sandbox:bookworm-slim",
+      containerPrefix: "openclaw-sbx-",
       workdir: "/workspace",
       readOnlyRoot: true,
       tmpfs: [],
@@ -72,14 +74,14 @@ function buildPruneConfig(): SandboxConfig {
     },
     ssh: {
       command: "ssh",
-      workspaceRoot: "/tmp/astroclaw-sandboxes",
+      workspaceRoot: "/tmp/openclaw-sandboxes",
       strictHostKeyChecking: true,
       updateHostKeys: true,
     },
     browser: {
       enabled: true,
-      image: "astroclaw-sandbox-browser:bookworm-slim",
-      containerPrefix: "astroclaw-sbx-browser-",
+      image: "openclaw-sandbox-browser:bookworm-slim",
+      containerPrefix: "openclaw-sbx-browser-",
       network: "none",
       cdpPort: 9222,
       vncPort: 5900,
@@ -121,7 +123,7 @@ describe("maybePruneSandboxes", () => {
           backendId: "docker",
           createdAtMs: Date.now() - 4 * 60 * 60 * 1000,
           lastUsedAtMs: Date.now() - 2 * 60 * 60 * 1000,
-          image: "astroclaw-sandbox:bookworm-slim",
+          image: "openclaw-sandbox:bookworm-slim",
         },
       ],
     });
@@ -137,6 +139,8 @@ describe("maybePruneSandboxes", () => {
   });
 
   it("keeps the registry entry when runtime removal fails", async () => {
+    // The registry is the retry source; keep it until the backend confirms the
+    // runtime was removed.
     backendMocks.removeRuntime.mockRejectedValueOnce(new Error("docker rm failed"));
 
     await maybePruneSandboxes(buildPruneConfig());
@@ -145,5 +149,24 @@ describe("maybePruneSandboxes", () => {
     expect(runtimeMocks.error).toHaveBeenCalledWith(
       "Sandbox prune failed to remove sandbox-1: docker rm failed",
     );
+  });
+
+  it("prunes entries with out-of-range registry timestamps", async () => {
+    registryMocks.readRegistry.mockResolvedValueOnce({
+      entries: [
+        {
+          containerName: "sandbox-out-of-range",
+          backendId: "docker",
+          createdAtMs: Date.now(),
+          lastUsedAtMs: Number.MAX_SAFE_INTEGER,
+          image: "openclaw-sandbox:bookworm-slim",
+        },
+      ],
+    });
+
+    await maybePruneSandboxes(buildPruneConfig());
+
+    expect(backendMocks.removeRuntime).toHaveBeenCalledTimes(1);
+    expect(registryMocks.removeRegistryEntry).toHaveBeenCalledWith("sandbox-out-of-range");
   });
 });
