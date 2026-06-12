@@ -1,5 +1,6 @@
+// Volcengine plugin module implements tts behavior.
 import * as crypto from "node:crypto";
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 
 export type VolcengineTtsEncoding = "ogg_opus" | "mp3" | "pcm" | "wav";
 
@@ -117,7 +118,7 @@ async function seedSpeechTTS(params: VolcengineTTSParams & { apiKey: string }): 
     resourceId = DEFAULT_SEED_TTS_RESOURCE_ID,
     appKey = DEFAULT_SEED_TTS_APP_KEY,
     baseUrl = BYTEPLUS_SEED_TTS_URL,
-    speedRatio = 1.0,
+    speedRatio = 1,
     emotion,
     encoding = "ogg_opus",
     timeoutMs = 30_000,
@@ -125,7 +126,7 @@ async function seedSpeechTTS(params: VolcengineTTSParams & { apiKey: string }): 
   const audioFormat = seedAudioFormat(encoding);
 
   const payload = JSON.stringify({
-    user: { uid: "astroclaw" },
+    user: { uid: "openclaw" },
     req_params: {
       text,
       speaker: voice,
@@ -133,7 +134,7 @@ async function seedSpeechTTS(params: VolcengineTTSParams & { apiKey: string }): 
         format: audioFormat,
         sample_rate: 24_000,
       },
-      ...(speedRatio !== 1.0 ? { speed_ratio: speedRatio } : {}),
+      ...(speedRatio !== 1 ? { speed_ratio: speedRatio } : {}),
       ...(emotion ? { emotion } : {}),
     },
   });
@@ -196,9 +197,9 @@ async function legacyVolcengineTTS(
     voice = DEFAULT_LEGACY_VOICE,
     cluster = DEFAULT_CLUSTER,
     baseUrl = VOLCENGINE_LEGACY_TTS_URL,
-    speedRatio = 1.0,
-    volumeRatio = 1.0,
-    pitchRatio = 1.0,
+    speedRatio = 1,
+    volumeRatio = 1,
+    pitchRatio = 1,
     emotion,
     encoding = "ogg_opus",
     timeoutMs = 30_000,
@@ -206,7 +207,7 @@ async function legacyVolcengineTTS(
 
   const payload = JSON.stringify({
     app: { appid: appId, token, cluster },
-    user: { uid: "astroclaw" },
+    user: { uid: "openclaw" },
     audio: {
       voice_type: voice,
       encoding,
