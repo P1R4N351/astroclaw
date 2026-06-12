@@ -1,4 +1,5 @@
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+// Tests inbound dedupe state for repeated message ids.
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it } from "vitest";
 import type { MsgContext } from "../templating.js";
 import {
