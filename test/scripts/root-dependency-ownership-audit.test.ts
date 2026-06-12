@@ -1,3 +1,4 @@
+// Root Dependency Ownership Audit tests cover root dependency ownership audit script behavior.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -18,7 +19,7 @@ afterEach(() => {
 });
 
 function makeTempRepo() {
-  const dir = mkdtempSync(path.join(tmpdir(), "astroclaw-root-deps-audit-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "openclaw-root-deps-audit-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -37,28 +38,24 @@ describe("collectModuleSpecifiers", () => {
         const runtimeRequire = createRequire(runtimePackagePath);
         require.resolve("gaxios");
         runtimeRequire.resolve("openshell/package.json");
+        resolvePackageFileForCommandExplanation("tree-sitter-bash", "tree-sitter-bash.wasm");
       `),
-    ]).toEqual(["gaxios", "openshell/package.json"]);
+    ]).toEqual(["gaxios", "openshell/package.json", "tree-sitter-bash"]);
   });
 
   it("resolves simple string constants used by lazy runtime imports", () => {
     expect([
       ...collectModuleSpecifiers(`
         const READABILITY_MODULE = "@mozilla/readability";
-        const PDFJS_MODULE = "pdfjs-dist/legacy/build/pdf.mjs";
+        const CLAWPDF_MODULE = "clawpdf";
         const CIAO_MODULE_ID = "@homebridge/ciao";
         let SQLITE_VEC_MODULE_ID = "sqlite-vec";
         import(READABILITY_MODULE);
-        import(PDFJS_MODULE);
+        import(CLAWPDF_MODULE);
         require(CIAO_MODULE_ID);
         require.resolve(SQLITE_VEC_MODULE_ID);
       `),
-    ]).toEqual([
-      "@mozilla/readability",
-      "pdfjs-dist/legacy/build/pdf.mjs",
-      "@homebridge/ciao",
-      "sqlite-vec",
-    ]);
+    ]).toEqual(["@mozilla/readability", "clawpdf", "@homebridge/ciao", "sqlite-vec"]);
   });
 });
 
@@ -154,15 +151,15 @@ describe("collectRootDependencyOwnershipCheckErrors", () => {
     writeRepoFile(
       repoRoot,
       "package.json",
-      JSON.stringify({ dependencies: { "pdfjs-dist": "^5.0.0", "sqlite-vec": "0.1.9" } }),
+      JSON.stringify({ dependencies: { clawpdf: "^0.2.0", "sqlite-vec": "0.1.9" } }),
     );
     writeRepoFile(
       repoRoot,
       "src/media/pdf-extract.ts",
       `
-        const PDFJS_MODULE = "pdfjs-dist/legacy/build/pdf.mjs";
+        const CLAWPDF_MODULE = "clawpdf";
         export async function loadPdf() {
-          return import(PDFJS_MODULE);
+          return import(CLAWPDF_MODULE);
         }
       `,
     );
@@ -186,13 +183,13 @@ describe("collectRootDependencyOwnershipCheckErrors", () => {
       {
         category: "core_runtime",
         declaredInExtensions: [],
-        depName: "pdfjs-dist",
+        depName: "clawpdf",
         fileCount: 1,
         internalizedBundledRuntimeOwners: [],
         recommendation: "keep at root",
         sampleFiles: ["src/media/pdf-extract.ts"],
         sections: ["src"],
-        spec: "^5.0.0",
+        spec: "^0.2.0",
       },
       {
         category: "core_runtime",
@@ -308,7 +305,7 @@ describe("collectRootDependencyOwnershipCheckErrors", () => {
       "extensions/internal/package.json",
       JSON.stringify({ dependencies: { "vendor-sdk": "^1.0.0" } }),
     );
-    writeRepoFile(repoRoot, "extensions/internal/astroclaw.plugin.json", JSON.stringify({}));
+    writeRepoFile(repoRoot, "extensions/internal/openclaw.plugin.json", JSON.stringify({}));
     writeRepoFile(
       repoRoot,
       "extensions/internal/src/setup.ts",
@@ -349,7 +346,7 @@ describe("collectRootDependencyOwnershipCheckErrors", () => {
       "extensions/externalized/package.json",
       JSON.stringify({ dependencies: { "vendor-sdk": "^1.0.0" } }),
     );
-    writeRepoFile(repoRoot, "extensions/externalized/astroclaw.plugin.json", JSON.stringify({}));
+    writeRepoFile(repoRoot, "extensions/externalized/openclaw.plugin.json", JSON.stringify({}));
     writeRepoFile(
       repoRoot,
       "extensions/externalized/src/setup.ts",
