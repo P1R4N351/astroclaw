@@ -1,6 +1,7 @@
+// Official channel catalog tests validate catalog metadata and entries.
 import fs from "node:fs";
 import path from "node:path";
-import { bundledPluginRoot } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledPluginRoot } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   buildOfficialChannelCatalog,
@@ -16,7 +17,7 @@ type OfficialChannelCatalogEntry = ReturnType<
   typeof buildOfficialChannelCatalog
 >["entries"][number];
 type OfficialChannelInstall = NonNullable<
-  NonNullable<OfficialChannelCatalogEntry["astroclaw"]>["install"]
+  NonNullable<OfficialChannelCatalogEntry["openclaw"]>["install"]
 >;
 
 function makeRepoRoot(prefix: string): string {
@@ -28,7 +29,7 @@ function writeJson(filePath: string, value: unknown): void {
 }
 
 function requireInstall(entry: OfficialChannelCatalogEntry | undefined): OfficialChannelInstall {
-  const install = entry?.astroclaw?.install;
+  const install = entry?.openclaw?.install;
   if (!install) {
     throw new Error("expected official channel install config");
   }
@@ -58,9 +59,9 @@ function summarizeCatalogEntry(entry: OfficialChannelCatalogEntry) {
     name: entry.name,
     description: entry.description,
     source: entry.source,
-    plugin: entry.astroclaw?.plugin,
-    channel: entry.astroclaw?.channel,
-    install: entry.astroclaw?.install,
+    plugin: entry.openclaw?.plugin,
+    channel: entry.openclaw?.channel,
+    install: entry.openclaw?.install,
   };
 }
 
@@ -70,12 +71,12 @@ afterEach(() => {
 
 describe("buildOfficialChannelCatalog", () => {
   it("includes publishable official channel plugins and skips non-publishable entries", () => {
-    const repoRoot = makeRepoRoot("astroclaw-official-channel-catalog-");
+    const repoRoot = makeRepoRoot("openclaw-official-channel-catalog-");
     writeJson(path.join(repoRoot, "extensions", "whatsapp", "package.json"), {
-      name: "@astroclaw/whatsapp",
+      name: "@openclaw/whatsapp",
       version: "2026.3.23",
-      description: "Astroclaw WhatsApp channel plugin",
-      astroclaw: {
+      description: "OpenClaw WhatsApp channel plugin",
+      openclaw: {
         channel: {
           id: "whatsapp",
           label: "WhatsApp",
@@ -85,8 +86,8 @@ describe("buildOfficialChannelCatalog", () => {
           blurb: "works with your own number; recommend a separate phone + eSIM.",
         },
         install: {
-          clawhubSpec: "clawhub:@astroclaw/whatsapp",
-          npmSpec: "@astroclaw/whatsapp",
+          clawhubSpec: "clawhub:@openclaw/whatsapp",
+          npmSpec: "@openclaw/whatsapp",
           localPath: bundledPluginRoot("whatsapp"),
           defaultChoice: "clawhub",
         },
@@ -96,8 +97,8 @@ describe("buildOfficialChannelCatalog", () => {
       },
     });
     writeJson(path.join(repoRoot, "extensions", "local-only", "package.json"), {
-      name: "@astroclaw/local-only",
-      astroclaw: {
+      name: "@openclaw/local-only",
+      openclaw: {
         channel: {
           id: "local-only",
           label: "Local Only",
@@ -118,14 +119,14 @@ describe("buildOfficialChannelCatalog", () => {
 
     expect(
       summarizeCatalogEntry(
-        findCatalogEntry(entries, (entry) => entry.name === "@wecom/wecom-astroclaw-plugin"),
+        findCatalogEntry(entries, (entry) => entry.name === "@wecom/wecom-openclaw-plugin"),
       ),
     ).toEqual({
-      name: "@wecom/wecom-astroclaw-plugin",
-      description: "Astroclaw WeCom channel plugin by the Tencent WeCom team.",
+      name: "@wecom/wecom-openclaw-plugin",
+      description: "OpenClaw WeCom channel plugin by the Tencent WeCom team.",
       source: "external",
       plugin: {
-        id: "wecom-astroclaw-plugin",
+        id: "wecom-openclaw-plugin",
         label: "WeCom",
       },
       channel: {
@@ -140,7 +141,7 @@ describe("buildOfficialChannelCatalog", () => {
         aliases: ["qywx", "wework", "enterprise-wechat"],
       },
       install: {
-        npmSpec: "@wecom/wecom-astroclaw-plugin@2026.5.7",
+        npmSpec: "@wecom/wecom-openclaw-plugin@2026.5.7",
         defaultChoice: "npm",
         expectedIntegrity:
           "sha512-TCkP9as00WfEhgFWG8YL/rcmaWGIshAki2HQh83nTRccGfVBCoGjrEboTTqq3yDmK9koWTV11zi8u8A4dNtvug==",
@@ -148,14 +149,14 @@ describe("buildOfficialChannelCatalog", () => {
     });
     expect(
       summarizeCatalogEntry(
-        findCatalogEntry(entries, (entry) => entry.name === "astroclaw-plugin-yuanbao"),
+        findCatalogEntry(entries, (entry) => entry.name === "openclaw-plugin-yuanbao"),
       ),
     ).toEqual({
-      name: "astroclaw-plugin-yuanbao",
-      description: "Astroclaw Yuanbao channel plugin by the Tencent Yuanbao team.",
+      name: "openclaw-plugin-yuanbao",
+      description: "OpenClaw Yuanbao channel plugin by the Tencent Yuanbao team.",
       source: "external",
       plugin: {
-        id: "astroclaw-plugin-yuanbao",
+        id: "openclaw-plugin-yuanbao",
         label: "Yuanbao",
       },
       channel: {
@@ -170,7 +171,7 @@ describe("buildOfficialChannelCatalog", () => {
         aliases: ["yuanbao", "yb", "tencent-yuanbao", "元宝"],
       },
       install: {
-        npmSpec: "astroclaw-plugin-yuanbao@2.13.1",
+        npmSpec: "openclaw-plugin-yuanbao@2.13.1",
         defaultChoice: "npm",
         expectedIntegrity:
           "sha512-lH2I9/nsmrg7l0YJJSQhOSpWMEFBAa6FwKbZcRLDFHDT2+mOZkHa44XE+8KYN4VmorlUdAxHzpZQmVr7C98IuA==",
@@ -178,11 +179,11 @@ describe("buildOfficialChannelCatalog", () => {
     });
     expect(
       summarizeCatalogEntry(
-        findCatalogEntry(entries, (entry) => entry.name === "@astroclaw/whatsapp"),
+        findCatalogEntry(entries, (entry) => entry.name === "@openclaw/whatsapp"),
       ),
     ).toEqual({
-      name: "@astroclaw/whatsapp",
-      description: "Astroclaw WhatsApp channel plugin",
+      name: "@openclaw/whatsapp",
+      description: "OpenClaw WhatsApp channel plugin",
       source: "official",
       plugin: undefined,
       channel: {
@@ -196,8 +197,8 @@ describe("buildOfficialChannelCatalog", () => {
         systemImage: "message",
       },
       install: {
-        clawhubSpec: "clawhub:@astroclaw/whatsapp",
-        npmSpec: "@astroclaw/whatsapp",
+        clawhubSpec: "clawhub:@openclaw/whatsapp",
+        npmSpec: "@openclaw/whatsapp",
         defaultChoice: "clawhub",
         minHostVersion: ">=2026.4.25",
       },
@@ -205,9 +206,9 @@ describe("buildOfficialChannelCatalog", () => {
   });
 
   it("keeps third-party official external catalog npm sources exactly pinned", () => {
-    const repoRoot = makeRepoRoot("astroclaw-official-channel-catalog-policy-");
+    const repoRoot = makeRepoRoot("openclaw-official-channel-catalog-policy-");
     const entries = buildOfficialChannelCatalog({ repoRoot }).entries.filter(
-      (entry) => entry.source === "external" && !entry.name?.startsWith("@astroclaw/"),
+      (entry) => entry.source === "external" && !entry.name?.startsWith("@openclaw/"),
     );
 
     expect(entries.length).toBeGreaterThan(0);
@@ -218,19 +219,19 @@ describe("buildOfficialChannelCatalog", () => {
     }
   });
 
-  it("allows official Astroclaw channel npm specs without integrity during launch", () => {
-    const repoRoot = makeRepoRoot("astroclaw-official-channel-catalog-astroclaw-policy-");
+  it("allows official OpenClaw channel npm specs without integrity during launch", () => {
+    const repoRoot = makeRepoRoot("openclaw-official-channel-catalog-openclaw-policy-");
     const twitch = buildOfficialChannelCatalog({ repoRoot }).entries.find(
-      (entry) => entry.astroclaw?.channel?.id === "twitch",
+      (entry) => entry.openclaw?.channel?.id === "twitch",
     );
 
     expect({
       name: twitch?.name,
-      install: twitch?.astroclaw?.install,
+      install: twitch?.openclaw?.install,
     }).toEqual({
-      name: "@astroclaw/twitch",
+      name: "@openclaw/twitch",
       install: {
-        npmSpec: "@astroclaw/twitch",
+        npmSpec: "@openclaw/twitch",
         defaultChoice: "npm",
         minHostVersion: ">=2026.4.10",
       },
@@ -241,10 +242,10 @@ describe("buildOfficialChannelCatalog", () => {
   });
 
   it("preserves ClawHub specs when generating publishable channel catalog entries", () => {
-    const repoRoot = makeRepoRoot("astroclaw-official-channel-catalog-clawhub-");
+    const repoRoot = makeRepoRoot("openclaw-official-channel-catalog-clawhub-");
     writeJson(path.join(repoRoot, "extensions", "storepack-chat", "package.json"), {
-      name: "@astroclaw/storepack-chat",
-      astroclaw: {
+      name: "@openclaw/storepack-chat",
+      openclaw: {
         channel: {
           id: "storepack-chat",
           label: "Storepack Chat",
@@ -253,8 +254,8 @@ describe("buildOfficialChannelCatalog", () => {
           blurb: "storepack-first channel",
         },
         install: {
-          clawhubSpec: "clawhub:@astroclaw/storepack-chat",
-          npmSpec: "@astroclaw/storepack-chat",
+          clawhubSpec: "clawhub:@openclaw/storepack-chat",
+          npmSpec: "@openclaw/storepack-chat",
           defaultChoice: "clawhub",
         },
         release: {
@@ -264,21 +265,21 @@ describe("buildOfficialChannelCatalog", () => {
     });
 
     const entry = buildOfficialChannelCatalog({ repoRoot }).entries.find(
-      (candidate) => candidate.astroclaw?.channel?.id === "storepack-chat",
+      (candidate) => candidate.openclaw?.channel?.id === "storepack-chat",
     );
 
     expect(requireInstall(entry)).toEqual({
-      clawhubSpec: "clawhub:@astroclaw/storepack-chat",
-      npmSpec: "@astroclaw/storepack-chat",
+      clawhubSpec: "clawhub:@openclaw/storepack-chat",
+      npmSpec: "@openclaw/storepack-chat",
       defaultChoice: "clawhub",
     });
   });
 
   it("writes the official catalog under dist", () => {
-    const repoRoot = makeRepoRoot("astroclaw-official-channel-catalog-write-");
+    const repoRoot = makeRepoRoot("openclaw-official-channel-catalog-write-");
     writeJson(path.join(repoRoot, "extensions", "whatsapp", "package.json"), {
-      name: "@astroclaw/whatsapp",
-      astroclaw: {
+      name: "@openclaw/whatsapp",
+      openclaw: {
         channel: {
           id: "whatsapp",
           label: "WhatsApp",
@@ -287,7 +288,7 @@ describe("buildOfficialChannelCatalog", () => {
           blurb: "wa",
         },
         install: {
-          npmSpec: "@astroclaw/whatsapp",
+          npmSpec: "@openclaw/whatsapp",
         },
         release: {
           publishToNpm: true,
@@ -301,19 +302,19 @@ describe("buildOfficialChannelCatalog", () => {
     expect(fs.existsSync(outputPath)).toBe(true);
     const entries = JSON.parse(fs.readFileSync(outputPath, "utf8")).entries;
     expect(entries.map((entry: { name?: string }) => entry.name)).toContain(
-      "@wecom/wecom-astroclaw-plugin",
+      "@wecom/wecom-openclaw-plugin",
     );
     expect(entries.map((entry: { name?: string }) => entry.name)).toContain(
-      "astroclaw-plugin-yuanbao",
+      "openclaw-plugin-yuanbao",
     );
     const whatsappEntry = findCatalogEntry(
       entries,
-      (entry: { astroclaw?: { channel?: { id?: string } } }) =>
-        entry.astroclaw?.channel?.id === "whatsapp",
+      (entry: { openclaw?: { channel?: { id?: string } } }) =>
+        entry.openclaw?.channel?.id === "whatsapp",
     );
     expect(summarizeCatalogEntry(whatsappEntry)).toEqual({
-      name: "@astroclaw/whatsapp",
-      description: "Astroclaw WhatsApp channel plugin",
+      name: "@openclaw/whatsapp",
+      description: "OpenClaw WhatsApp channel plugin",
       source: "official",
       plugin: undefined,
       channel: {
@@ -327,15 +328,15 @@ describe("buildOfficialChannelCatalog", () => {
         systemImage: "message",
       },
       install: {
-        clawhubSpec: "clawhub:@astroclaw/whatsapp",
-        npmSpec: "@astroclaw/whatsapp",
+        clawhubSpec: "clawhub:@openclaw/whatsapp",
+        npmSpec: "@openclaw/whatsapp",
         defaultChoice: "clawhub",
         minHostVersion: ">=2026.4.25",
       },
     });
     const whatsappEntries = entries.filter(
-      (entry: { astroclaw?: { channel?: { id?: string } } }) =>
-        entry.astroclaw?.channel?.id === "whatsapp",
+      (entry: { openclaw?: { channel?: { id?: string } } }) =>
+        entry.openclaw?.channel?.id === "whatsapp",
     );
     expect(whatsappEntries).toHaveLength(1);
   });
