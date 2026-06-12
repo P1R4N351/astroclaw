@@ -1,3 +1,4 @@
+// Tests persistent always-allow execution approval rules.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -185,7 +186,7 @@ describe("resolveAllowAlwaysPatterns", () => {
   }
 
   it("returns direct executable paths for non-shell segments", () => {
-    const exe = path.join("/tmp", "astroclaw-tool");
+    const exe = path.join("/tmp", "openclaw-tool");
     const patterns = resolveAllowAlwaysPatterns({
       segments: [
         {
@@ -195,7 +196,7 @@ describe("resolveAllowAlwaysPatterns", () => {
             execution: makeMockExecutableResolution({
               rawExecutable: exe,
               resolvedPath: exe,
-              executableName: "astroclaw-tool",
+              executableName: "openclaw-tool",
             }),
           }),
         },
@@ -222,6 +223,27 @@ describe("resolveAllowAlwaysPatterns", () => {
       ],
     });
     expect(patterns).toStrictEqual([]);
+  });
+
+  it("persists allow-always executable patterns with the trust realpath", () => {
+    const patterns = resolveAllowAlwaysPatterns({
+      segments: [
+        {
+          raw: "rg -n needle",
+          argv: ["rg", "-n", "needle"],
+          resolution: makeMockCommandResolution({
+            execution: makeMockExecutableResolution({
+              rawExecutable: "rg",
+              resolvedPath: "/opt/homebrew/bin/rg",
+              resolvedRealPath: "/opt/homebrew/Cellar/ripgrep/14.1.1/bin/rg",
+              executableName: "rg",
+            }),
+          }),
+        },
+      ],
+    });
+
+    expect(patterns).toEqual(["/opt/homebrew/Cellar/ripgrep/14.1.1/bin/rg"]);
   });
 
   it("persists benign awk interpreters when strict inline-eval is enabled", () => {
@@ -504,14 +526,14 @@ describe("resolveAllowAlwaysPatterns", () => {
       return;
     }
     const dir = makeTempDir();
-    const tool = makeExecutable(dir, "astroclaw-ok");
+    const tool = makeExecutable(dir, "openclaw-ok");
     const env = { PATH: `${dir}${path.delimiter}${process.env.PATH ?? ""}` };
     const safeBins = resolveSafeBins(undefined);
 
     for (const command of [
-      `bash --login -c "astroclaw-ok && astroclaw-ok"`,
-      `bash -i -c "astroclaw-ok && astroclaw-ok"`,
-      `bash -lc "astroclaw-ok && astroclaw-ok"`,
+      `bash --login -c "openclaw-ok && openclaw-ok"`,
+      `bash -i -c "openclaw-ok && openclaw-ok"`,
+      `bash -lc "openclaw-ok && openclaw-ok"`,
       `bash --login -c '$0 "$1"' ${tool} marker`,
       `bash -i -c '$0 "$1"' ${tool} marker`,
       `bash -lc '$0 "$1"' ${tool} marker`,
@@ -990,21 +1012,40 @@ $0 \\"$1\\"" touch {marker}`,
     expect(second.allowlistSatisfied).toBe(false);
   });
 
-  it("prevents allow-always bypass for script wrapper chains", () => {
+  it("keeps policy-blocked script wrapper chains out of allow-always", () => {
     if (process.platform !== "darwin" && process.platform !== "freebsd") {
       return;
     }
     const dir = makeTempDir();
-    const echo = makeExecutable(dir, "echo");
+    makeExecutable(dir, "echo");
     makeExecutable(dir, "id");
     const env = makePathEnv(dir);
-    expectAllowAlwaysBypassBlocked({
+    const safeBins = resolveSafeBins(undefined);
+    const { persisted } = resolvePersistedPatterns({
+      command: "/usr/bin/script -q /dev/null /bin/sh -c 'echo warmup-ok'",
       dir,
-      firstCommand: "/usr/bin/script -q /dev/null /bin/sh -c 'echo warmup-ok'",
-      secondCommand: "/usr/bin/script -q /dev/null /bin/sh -c 'id > marker'",
       env,
-      persistedPattern: echo,
+      safeBins,
     });
+    expect(persisted).toStrictEqual([]);
+
+    const second = evaluateShellAllowlist({
+      command: "/usr/bin/script -q /dev/null /bin/sh -c 'id > marker'",
+      allowlist: persisted.map((pattern) => ({ pattern })),
+      safeBins,
+      cwd: dir,
+      env,
+      platform: process.platform,
+    });
+    expect(second.allowlistSatisfied).toBe(false);
+    expect(
+      requiresExecApproval({
+        ask: "on-miss",
+        security: "allowlist",
+        analysisOk: second.analysisOk,
+        allowlistSatisfied: second.allowlistSatisfied,
+      }),
+    ).toBe(true);
   });
 
   it("does not persist comment-tailed payload paths that never execute", () => {
