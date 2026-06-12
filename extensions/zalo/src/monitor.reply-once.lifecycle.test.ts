@@ -1,4 +1,5 @@
-import { withServer } from "astroclaw/plugin-sdk/test-env";
+// Zalo tests cover monitor.reply once.lifecycle plugin behavior.
+import { withServer } from "openclaw/plugin-sdk/test-env";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginRuntime } from "../runtime-api.js";
 import {
@@ -83,7 +84,9 @@ describe("Zalo reply-once lifecycle", () => {
 
     try {
       await withServer(
-        (req, res) => monitor.route.handler(req, res),
+        (req, res) => {
+          void monitor.route.handler(req, res);
+        },
         async (baseUrl) => {
           const { first, replay } = await postWebhookReplay({
             baseUrl,
@@ -145,7 +148,9 @@ describe("Zalo reply-once lifecycle", () => {
 
     try {
       await withServer(
-        (req, res) => monitor.route.handler(req, res),
+        (req, res) => {
+          void monitor.route.handler(req, res);
+        },
         async (baseUrl) => {
           const { first, replay } = await postWebhookReplay({
             baseUrl,
