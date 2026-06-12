@@ -1,3 +1,4 @@
+/** Tests bundle-MCP resume hash stability across loopback endpoint changes. */
 import { describe, expect, it } from "vitest";
 import {
   prepareBundleProbeCliConfig,
@@ -7,15 +8,17 @@ import {
 setupCliBundleMcpTestHarness();
 
 describe("prepareCliBundleMcpConfig resume hash", () => {
-  it("stabilizes the resume hash when only the Astroclaw loopback port changes", async () => {
+  it("stabilizes the resume hash when only the OpenClaw loopback port changes", async () => {
+    // Loopback ports are volatile per gateway run and should not force CLI
+    // session abandonment when stable MCP semantics are unchanged.
     const first = await prepareBundleProbeCliConfig({
       additionalConfig: {
         mcpServers: {
-          astroclaw: {
+          openclaw: {
             type: "http",
             url: "http://127.0.0.1:23119/mcp",
             headers: {
-              Authorization: "Bearer ${ASTROCLAW_MCP_TOKEN}",
+              Authorization: "Bearer ${OPENCLAW_MCP_TOKEN}",
             },
           },
         },
@@ -24,11 +27,11 @@ describe("prepareCliBundleMcpConfig resume hash", () => {
     const second = await prepareBundleProbeCliConfig({
       additionalConfig: {
         mcpServers: {
-          astroclaw: {
+          openclaw: {
             type: "http",
             url: "http://127.0.0.1:24567/mcp",
             headers: {
-              Authorization: "Bearer ${ASTROCLAW_MCP_TOKEN}",
+              Authorization: "Bearer ${OPENCLAW_MCP_TOKEN}",
             },
           },
         },
@@ -46,11 +49,11 @@ describe("prepareCliBundleMcpConfig resume hash", () => {
     const first = await prepareBundleProbeCliConfig({
       additionalConfig: {
         mcpServers: {
-          astroclaw: {
+          openclaw: {
             type: "http",
             url: "http://127.0.0.1:23119/mcp",
             headers: {
-              Authorization: "Bearer ${ASTROCLAW_MCP_TOKEN}",
+              Authorization: "Bearer ${OPENCLAW_MCP_TOKEN}",
             },
           },
         },
@@ -59,11 +62,11 @@ describe("prepareCliBundleMcpConfig resume hash", () => {
     const second = await prepareBundleProbeCliConfig({
       additionalConfig: {
         mcpServers: {
-          astroclaw: {
+          openclaw: {
             type: "http",
             url: "http://127.0.0.1:23119/other",
             headers: {
-              Authorization: "Bearer ${ASTROCLAW_MCP_TOKEN}",
+              Authorization: "Bearer ${OPENCLAW_MCP_TOKEN}",
             },
           },
         },
