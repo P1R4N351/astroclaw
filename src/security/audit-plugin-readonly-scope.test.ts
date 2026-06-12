@@ -1,3 +1,4 @@
+// Verifies plugin readonly-scope audit findings.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const applyPluginAutoEnableMock = vi.hoisted(() => vi.fn());
@@ -38,8 +39,8 @@ function createAuditContext(params: {
     includeChannelSecurity: true,
     deep: false,
     deepTimeoutMs: 5000,
-    stateDir: "/tmp/astroclaw-test-state",
-    configPath: "/tmp/astroclaw-test-config.json",
+    stateDir: "/tmp/openclaw-test-state",
+    configPath: "/tmp/openclaw-test-config.json",
     plugins: params.plugins,
     loadPluginSecurityCollectors: true,
     configSnapshot: null,
@@ -187,8 +188,8 @@ describe("security audit read-only plugin scope", () => {
       env: {},
       includeFilesystem: false,
       includeChannelSecurity: false,
-      stateDir: "/tmp/astroclaw-test-state",
-      configPath: "/tmp/astroclaw-test-config.json",
+      stateDir: "/tmp/openclaw-test-state",
+      configPath: "/tmp/openclaw-test-config.json",
     });
 
     expect(getActivePluginRegistryMock).not.toHaveBeenCalled();
