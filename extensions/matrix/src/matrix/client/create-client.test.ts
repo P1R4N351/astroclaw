@@ -1,3 +1,4 @@
+// Matrix tests cover create client plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const ensureMatrixSdkLoggingConfiguredMock = vi.hoisted(() => vi.fn());
@@ -29,11 +30,11 @@ let createMatrixClient: typeof import("./create-client.js").createMatrixClient;
 
 describe("createMatrixClient", () => {
   const storagePaths = {
-    rootDir: "/tmp/astroclaw-matrix-create-client-test",
-    storagePath: "/tmp/astroclaw-matrix-create-client-test/storage.json",
-    recoveryKeyPath: "/tmp/astroclaw-matrix-create-client-test/recovery.key",
-    idbSnapshotPath: "/tmp/astroclaw-matrix-create-client-test/idb.snapshot",
-    metaPath: "/tmp/astroclaw-matrix-create-client-test/storage-meta.json",
+    rootDir: "/tmp/openclaw-matrix-create-client-test",
+    storagePath: "/tmp/openclaw-matrix-create-client-test/storage.json",
+    recoveryKeyPath: "/tmp/openclaw-matrix-create-client-test/recovery.key",
+    idbSnapshotPath: "/tmp/openclaw-matrix-create-client-test/idb.snapshot",
+    metaPath: "/tmp/openclaw-matrix-create-client-test/storage-meta.json",
     accountKey: "default",
     tokenHash: "token-hash",
   };
@@ -76,10 +77,10 @@ describe("createMatrixClient", () => {
       encryption: undefined,
       localTimeoutMs: undefined,
       initialSyncLimit: undefined,
-      storagePath: storagePaths.storagePath,
+      storageRootDir: storagePaths.rootDir,
       recoveryKeyPath: storagePaths.recoveryKeyPath,
       idbSnapshotPath: storagePaths.idbSnapshotPath,
-      cryptoDatabasePrefix: "astroclaw-matrix-default-token-hash",
+      cryptoDatabasePrefix: "openclaw-matrix-default-token-hash",
       autoBootstrapCrypto: undefined,
       ssrfPolicy: undefined,
       dispatcherPolicy: undefined,
@@ -102,7 +103,7 @@ describe("createMatrixClient", () => {
       encryption: undefined,
       localTimeoutMs: undefined,
       initialSyncLimit: undefined,
-      storagePath: undefined,
+      storageRootDir: undefined,
       recoveryKeyPath: undefined,
       idbSnapshotPath: undefined,
       cryptoDatabasePrefix: undefined,
@@ -130,7 +131,7 @@ describe("createMatrixClient", () => {
       encryption: undefined,
       localTimeoutMs: undefined,
       initialSyncLimit: undefined,
-      storagePath: undefined,
+      storageRootDir: undefined,
       recoveryKeyPath: undefined,
       idbSnapshotPath: undefined,
       cryptoDatabasePrefix: undefined,
@@ -155,7 +156,7 @@ describe("createMatrixClient", () => {
       encryption: undefined,
       localTimeoutMs: undefined,
       initialSyncLimit: undefined,
-      storagePath: undefined,
+      storageRootDir: undefined,
       recoveryKeyPath: undefined,
       idbSnapshotPath: undefined,
       cryptoDatabasePrefix: undefined,
@@ -182,7 +183,7 @@ describe("createMatrixClient", () => {
       encryption: undefined,
       localTimeoutMs: undefined,
       initialSyncLimit: undefined,
-      storagePath: undefined,
+      storageRootDir: undefined,
       recoveryKeyPath: undefined,
       idbSnapshotPath: undefined,
       cryptoDatabasePrefix: undefined,
