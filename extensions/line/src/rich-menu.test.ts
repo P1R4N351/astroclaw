@@ -1,7 +1,8 @@
+// Line tests cover rich menu plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createDefaultMenuConfig,
@@ -14,11 +15,14 @@ import {
 } from "./rich-menu.js";
 
 const { setRichMenuImageMock, MessagingApiBlobClientMock } = vi.hoisted(() => {
-  const setRichMenuImageMock = vi.fn();
-  const MessagingApiBlobClientMock = vi.fn(function () {
-    return { setRichMenuImage: setRichMenuImageMock };
+  const setRichMenuImageMockLocal = vi.fn();
+  const MessagingApiBlobClientMockLocal = vi.fn(function () {
+    return { setRichMenuImage: setRichMenuImageMockLocal };
   });
-  return { setRichMenuImageMock, MessagingApiBlobClientMock };
+  return {
+    setRichMenuImageMock: setRichMenuImageMockLocal,
+    MessagingApiBlobClientMock: MessagingApiBlobClientMockLocal,
+  };
 });
 
 vi.mock("@line/bot-sdk", () => ({
@@ -228,7 +232,7 @@ describe("createDefaultMenuConfig", () => {
   });
 });
 
-const richMenuUploadCfg: AstroclawConfig = {
+const richMenuUploadCfg: OpenClawConfig = {
   channels: {
     line: {
       channelAccessToken: "line-token",
@@ -241,7 +245,7 @@ describe("uploadRichMenuImage", () => {
   let tempRoot: string;
 
   beforeEach(async () => {
-    tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-line-rich-menu-"));
+    tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-line-rich-menu-"));
     setRichMenuImageMock.mockReset();
     MessagingApiBlobClientMock.mockClear();
   });
