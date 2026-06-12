@@ -1,3 +1,4 @@
+// Wizard i18n helpers resolve translated onboarding copy by locale.
 import { en } from "./locales/en.js";
 import { zh_CN } from "./locales/zh-CN.js";
 import { zh_TW } from "./locales/zh-TW.js";
@@ -10,6 +11,8 @@ import type {
 
 export type { WizardI18nParams, WizardLocale, WizardTranslationMap };
 
+// Wizard i18n uses dotted keys with English fallback. Locale selection is
+// intentionally small because setup copy is maintained in-tree.
 export type SetupTranslator = (key: string, params?: WizardI18nParams) => string;
 
 const LOCALES: Record<WizardLocale, WizardTranslationMap> = {
@@ -25,6 +28,8 @@ function normalizeLocaleToken(raw: string | undefined): string {
   return (raw ?? "").trim().split(".")[0]?.split("@")[0]?.replaceAll("_", "-") ?? "";
 }
 
+// Resolve shell/browser locale strings such as zh_Hant_TW.UTF-8 into supported
+// setup locales, falling back to English for unknown languages.
 export function resolveWizardLocale(value: string | undefined): WizardLocale {
   const normalized = normalizeLocaleToken(value);
   if (!normalized) {
@@ -45,7 +50,7 @@ export function resolveWizardLocale(value: string | undefined): WizardLocale {
 }
 
 export function resolveWizardLocaleFromEnv(env: NodeJS.ProcessEnv = process.env): WizardLocale {
-  return resolveWizardLocale(env.ASTROCLAW_LOCALE ?? env.LC_ALL ?? env.LC_MESSAGES ?? env.LANG);
+  return resolveWizardLocale(env.OPENCLAW_LOCALE ?? env.LC_ALL ?? env.LC_MESSAGES ?? env.LANG);
 }
 
 function readKey(map: WizardTranslationMap, key: string): string | undefined {
@@ -82,6 +87,8 @@ export function wizardT(
 
 export const t = wizardT;
 
+// Prefix-aware translator for setup subflows. Common and wizard keys remain
+// absolute so shared copy can be reused from any subflow.
 export function createSetupTranslator(options?: {
   locale?: WizardLocale;
   keyPrefix?: string;
