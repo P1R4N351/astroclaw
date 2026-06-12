@@ -1,5 +1,6 @@
-import { clearActiveProgressLine } from "./terminal/progress-line.js";
-import { restoreTerminalState } from "./terminal/restore.js";
+// Re-exports terminal runtime helpers used by CLI command implementations.
+import { clearActiveProgressLine } from "../packages/terminal-core/src/progress-line.js";
+import { restoreTerminalState } from "../packages/terminal-core/src/restore.js";
 
 export type RuntimeEnv = {
   log: (...args: unknown[]) => void;
@@ -16,7 +17,7 @@ function shouldEmitRuntimeLog(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.VITEST !== "true") {
     return true;
   }
-  if (env.ASTROCLAW_TEST_RUNTIME_LOG === "1") {
+  if (env.OPENCLAW_TEST_RUNTIME_LOG === "1") {
     return true;
   }
   const maybeMockedLog = console.log as unknown as { mock?: unknown };
@@ -27,7 +28,7 @@ function shouldEmitRuntimeStdout(env: NodeJS.ProcessEnv = process.env): boolean 
   if (env.VITEST !== "true") {
     return true;
   }
-  if (env.ASTROCLAW_TEST_RUNTIME_LOG === "1") {
+  if (env.OPENCLAW_TEST_RUNTIME_LOG === "1") {
     return true;
   }
   const stdout = process.stdout as NodeJS.WriteStream & {
