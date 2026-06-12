@@ -1,14 +1,17 @@
+/**
+ * Tests approval client helper filters and target recipient matching.
+ */
 import { describe, expect, it } from "vitest";
 import {
   createChannelExecApprovalProfile,
   isChannelExecApprovalClientEnabledFromConfig,
   isChannelExecApprovalTargetRecipient,
 } from "./approval-client-helpers.js";
-import type { AstroclawConfig } from "./config-runtime.js";
+import type { OpenClawConfig } from "./config-runtime.js";
 
 describe("isChannelExecApprovalTargetRecipient", () => {
   it("matches targets by channel and account", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       approvals: {
         exec: {
           enabled: true,
@@ -43,7 +46,7 @@ describe("isChannelExecApprovalTargetRecipient", () => {
   });
 
   it("normalizes the requested channel id before matching targets", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       approvals: {
         exec: {
           enabled: true,
