@@ -1,31 +1,29 @@
+// Whatsapp tests cover group gating.audio preflight plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./group-activation.js", () => ({
   resolveGroupActivationFor: vi.fn(async () => "mention"),
 }));
 
+import { createTestWebAudioInboundMessage } from "../../inbound/test-message.test-helper.js";
+import type { WebInboundMessage } from "../../inbound/types.js";
 import type { MentionConfig } from "../mentions.js";
-import type { WebInboundMsg } from "../types.js";
 import { applyGroupGating, type GroupHistoryEntry } from "./group-gating.js";
 
-function makeGroupAudioMsg(): WebInboundMsg {
-  return {
-    id: "msg-1",
+function makeGroupAudioMsg(): WebInboundMessage {
+  return createTestWebAudioInboundMessage({
+    platform: {
+      chatJid: "1203630@g.us",
+      sender: { e164: "+15550000002", name: "Alice" },
+    },
     from: "1203630@g.us",
-    to: "+15550000001",
-    body: "<media:audio>",
-    chatId: "1203630@g.us",
-    chatType: "group",
     conversationId: "1203630@g.us",
-    mediaType: "audio/ogg; codecs=opus",
-    mediaPath: "/tmp/voice.ogg",
-    timestamp: 1700000000,
-    accountId: "default",
-    sender: { e164: "+15550000002", name: "Alice" },
-  } as WebInboundMsg;
+    chatType: "group",
+    wasMentioned: false,
+  });
 }
 
-function makeParams(msg: WebInboundMsg, groupHistories: Map<string, GroupHistoryEntry[]>) {
+function makeParams(msg: WebInboundMessage, groupHistories: Map<string, GroupHistoryEntry[]>) {
   return {
     cfg: {
       channels: {
@@ -35,7 +33,7 @@ function makeParams(msg: WebInboundMsg, groupHistories: Map<string, GroupHistory
       },
       messages: {
         groupChat: {
-          mentionPatterns: ["\\bastroclaw\\b"],
+          mentionPatterns: ["\\bopenclaw\\b"],
         },
       },
     } as never,
@@ -44,12 +42,12 @@ function makeParams(msg: WebInboundMsg, groupHistories: Map<string, GroupHistory
     groupHistoryKey: "whatsapp:group:1203630",
     agentId: "main",
     sessionKey: "agent:main:whatsapp:group:1203630",
-    baseMentionConfig: { mentionRegexes: [/\bastroclaw\b/i] } satisfies MentionConfig,
+    baseMentionConfig: { mentionRegexes: [/\bopenclaw\b/i] } satisfies MentionConfig,
     groupHistories,
     groupHistoryLimit: 20,
     groupMemberNames: new Map<string, Map<string, string>>(),
     logVerbose: vi.fn(),
-    replyLogger: { debug: vi.fn() },
+    replyLogger: { debug: vi.fn(), warn: vi.fn() },
   };
 }
 
@@ -77,7 +75,7 @@ describe("applyGroupGating audio preflight mention text", () => {
 
     const result = await applyGroupGating({
       ...makeParams(msg, groupHistories),
-      mentionText: "astroclaw please summarize the thread",
+      mentionText: "openclaw please summarize the thread",
     });
 
     expect(result).toEqual({ shouldProcess: true });
