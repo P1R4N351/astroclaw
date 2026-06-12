@@ -1,10 +1,11 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Whatsapp tests cover reaction level plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import { resolveWhatsAppReactionLevel } from "./reaction-level.js";
 
 describe("resolveWhatsAppReactionLevel", () => {
   it("defaults to minimal level when reactionLevel is not set", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { whatsapp: {} },
     };
 
@@ -18,7 +19,7 @@ describe("resolveWhatsAppReactionLevel", () => {
   });
 
   it("returns off level with no reactions enabled", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { whatsapp: { reactionLevel: "off" } },
     };
 
@@ -31,7 +32,7 @@ describe("resolveWhatsAppReactionLevel", () => {
   });
 
   it("returns ack level with only ackEnabled", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { whatsapp: { reactionLevel: "ack" } },
     };
 
@@ -44,7 +45,7 @@ describe("resolveWhatsAppReactionLevel", () => {
   });
 
   it("returns minimal level with agent reactions enabled and minimal guidance", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { whatsapp: { reactionLevel: "minimal" } },
     };
 
@@ -58,7 +59,7 @@ describe("resolveWhatsAppReactionLevel", () => {
   });
 
   it("returns extensive level with agent reactions enabled and extensive guidance", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { whatsapp: { reactionLevel: "extensive" } },
     };
 
@@ -72,7 +73,7 @@ describe("resolveWhatsAppReactionLevel", () => {
   });
 
   it("resolves reaction level from a specific account", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         whatsapp: {
           reactionLevel: "minimal",
