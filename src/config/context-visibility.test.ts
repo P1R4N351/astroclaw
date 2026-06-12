@@ -1,5 +1,6 @@
+// Covers config-controlled context visibility decisions.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "./config.js";
+import type { OpenClawConfig } from "./config.js";
 import {
   resolveChannelContextVisibilityMode,
   resolveDefaultContextVisibility,
@@ -45,7 +46,7 @@ describe("resolveChannelContextVisibilityMode", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
     expect(
       resolveChannelContextVisibilityMode({
         cfg,
@@ -66,7 +67,7 @@ describe("resolveChannelContextVisibilityMode", () => {
           channels: {
             defaults: { contextVisibility: "allowlist_quote" },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         channel: "signal",
       }),
     ).toBe("allowlist_quote");
