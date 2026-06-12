@@ -1,5 +1,6 @@
+// Googlechat tests cover monitor.reply delivery plugin behavior.
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 import type { ResolvedGoogleChatAccount } from "./accounts.js";
 import type { GoogleChatCoreRuntime, GoogleChatRuntimeEnv } from "./monitor-types.js";
 
@@ -24,7 +25,7 @@ const account = {
   config: {},
 } as ResolvedGoogleChatAccount;
 
-const config = {} as AstroclawConfig;
+const config = {} as OpenClawConfig;
 
 function createCore(params?: {
   chunks?: readonly string[];
