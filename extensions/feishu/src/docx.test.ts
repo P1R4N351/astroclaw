@@ -1,3 +1,4 @@
+// Feishu tests cover docx plugin behavior.
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,6 +32,8 @@ vi.spyOn(toolAccountModule, "resolveAnyEnabledFeishuToolsConfig").mockReturnValu
   drive: false,
   perm: false,
   scopes: false,
+  bitable: false,
+  base: false,
 });
 vi.spyOn(toolAccountModule, "resolveFeishuToolAccount").mockImplementation((...args) =>
   resolveFeishuToolAccountMock(...args),
@@ -274,7 +277,7 @@ describe("feishu_doc image fetch hardening", () => {
 
     const call = blockDescendantCreateMock.mock.calls[0]?.[0];
     expect(call?.data.children_id).toEqual(["h1", "p1", "h2", "list1"]);
-    expect((call?.data.descendants as Array<{ block_id: string }>).map((b) => b.block_id)).toEqual([
+    expect((call!.data.descendants as Array<{ block_id: string }>).map((b) => b.block_id)).toEqual([
       "h1",
       "p1",
       "h2",
@@ -542,7 +545,7 @@ describe("feishu_doc image fetch hardening", () => {
     await executeFeishuDocTool(feishuDocTool, {
       action: "upload_file",
       doc_token: "doc_1",
-      file_path: "/tmp/astroclaw-1000/test-local.txt",
+      file_path: "/tmp/openclaw-1000/test-local.txt",
       filename: "test-local.txt",
     });
 
@@ -569,7 +572,7 @@ describe("feishu_doc image fetch hardening", () => {
     await executeFeishuDocTool(feishuDocTool, {
       action: "upload_file",
       doc_token: "doc_1",
-      file_path: "/tmp/astroclaw-1000/test-local.txt",
+      file_path: "/tmp/openclaw-1000/test-local.txt",
       filename: "test-local.txt",
     });
 
@@ -685,7 +688,7 @@ describe("feishu_doc image fetch hardening", () => {
 
     loadWebMediaMock.mockRejectedValueOnce(
       new Error(
-        "Local media path is not under an allowed directory: /home/admin/.astroclaw/astroclaw.json",
+        "Local media path is not under an allowed directory: /home/admin/.openclaw/openclaw.json",
       ),
     );
 
@@ -694,7 +697,7 @@ describe("feishu_doc image fetch hardening", () => {
     const result = await executeFeishuDocTool(feishuDocTool, {
       action: "upload_image",
       doc_token: "doc_1",
-      file_path: "/home/admin/.astroclaw/astroclaw.json",
+      file_path: "/home/admin/.openclaw/openclaw.json",
     });
 
     expect(result.details.error).toContain("not under an allowed directory");
