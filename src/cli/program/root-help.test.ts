@@ -1,8 +1,9 @@
+// Root help tests cover top-level help rendering and command visibility.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderRootHelpText } from "./root-help.js";
 
 const getPluginCliCommandDescriptorsMock = vi.fn(
-  async (_config?: unknown, _env?: unknown, _loaderOptions?: unknown) => [
+  async (_configForTest?: unknown, _env?: unknown, _loaderOptions?: unknown) => [
     {
       name: "matrix",
       description: "Matrix channel utilities",
@@ -61,11 +62,11 @@ describe("root help", () => {
     const config = {
       agents: {
         defaults: {
-          workspace: "/tmp/astroclaw-root-help-workspace",
+          workspace: "/tmp/openclaw-root-help-workspace",
         },
       },
     };
-    const env = { ASTROCLAW_STATE_DIR: "/tmp/astroclaw-root-help-state" } as NodeJS.ProcessEnv;
+    const env = { OPENCLAW_STATE_DIR: "/tmp/openclaw-root-help-state" } as NodeJS.ProcessEnv;
 
     await renderRootHelpText({ config, env, pluginSdkResolution: "src" });
 
@@ -80,6 +81,7 @@ describe("root help", () => {
     expect(text).toContain("status");
     expect(text).toContain("config");
     expect(text).toContain("matrix");
+    expect(text).toContain("matrix *");
     expect(text).toContain("Matrix channel utilities");
   });
 
