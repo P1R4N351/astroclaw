@@ -1,6 +1,10 @@
+// Qqbot tests cover config plugin behavior.
 import fs from "node:fs";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { type JsonSchemaObject, validateJsonSchemaValue } from "astroclaw/plugin-sdk/config-schema";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import {
+  type JsonSchemaObject,
+  validateJsonSchemaValue,
+} from "openclaw/plugin-sdk/json-schema-runtime";
 import { describe, expect, it } from "vitest";
 import { qqbotSetupAdapterShared } from "./bridge/config-shared.js";
 import {
@@ -22,7 +26,7 @@ function requireQQBotSetup() {
 describe("qqbot config", () => {
   it("accepts top-level speech overrides in the manifest schema", () => {
     const manifest = JSON.parse(
-      fs.readFileSync(new URL("../astroclaw.plugin.json", import.meta.url), "utf-8"),
+      fs.readFileSync(new URL("../openclaw.plugin.json", import.meta.url), "utf-8"),
     ) as { configSchema: JsonSchemaObject };
 
     const result = validateJsonSchemaValue({
@@ -43,7 +47,7 @@ describe("qqbot config", () => {
 
   it("accepts defaultAccount in the manifest schema", () => {
     const manifest = JSON.parse(
-      fs.readFileSync(new URL("../astroclaw.plugin.json", import.meta.url), "utf-8"),
+      fs.readFileSync(new URL("../openclaw.plugin.json", import.meta.url), "utf-8"),
     ) as { configSchema: JsonSchemaObject };
 
     const result = validateJsonSchemaValue({
@@ -74,7 +78,7 @@ describe("qqbot config", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(resolveDefaultQQBotAccountId(cfg)).toBe("bot2");
   });
@@ -95,7 +99,7 @@ describe("qqbot config", () => {
         transcodeEnabled: false,
       },
       urlDirectUpload: false,
-      upgradeUrl: "https://docs.astroclaw.ai/channels/qqbot",
+      upgradeUrl: "https://docs.openclaw.ai/channels/qqbot",
       upgradeMode: "doc",
       accounts: {
         bot2: {
@@ -128,6 +132,41 @@ describe("qqbot config", () => {
     expect(parsed.success).toBe(true);
   });
 
+  it("accepts canonical group tools config", () => {
+    const parsed = QQBotConfigSchema.safeParse({
+      groups: {
+        G1: {
+          requireMention: true,
+          tools: { deny: ["*"] },
+          toolsBySender: {
+            "id:alice": { allow: ["read"] },
+          },
+        },
+      },
+      accounts: {
+        bot2: {
+          groups: {
+            G1: { tools: { allow: [] } },
+          },
+        },
+      },
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects retired group toolPolicy config", () => {
+    const parsed = QQBotConfigSchema.safeParse({
+      groups: {
+        G1: {
+          toolPolicy: "none",
+        },
+      },
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
   it("preserves top-level media and upgrade config on the default account", () => {
     const cfg = {
       channels: {
@@ -140,11 +179,11 @@ describe("qqbot config", () => {
             transcodeEnabled: false,
           },
           urlDirectUpload: false,
-          upgradeUrl: "https://docs.astroclaw.ai/channels/qqbot",
+          upgradeUrl: "https://docs.openclaw.ai/channels/qqbot",
           upgradeMode: "hot-reload",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const resolved = resolveQQBotAccount(cfg, DEFAULT_ACCOUNT_ID);
 
@@ -155,7 +194,7 @@ describe("qqbot config", () => {
       transcodeEnabled: false,
     });
     expect(resolved.config.urlDirectUpload).toBe(false);
-    expect(resolved.config.upgradeUrl).toBe("https://docs.astroclaw.ai/channels/qqbot");
+    expect(resolved.config.upgradeUrl).toBe("https://docs.openclaw.ai/channels/qqbot");
     expect(resolved.config.upgradeMode).toBe("hot-reload");
   });
 
@@ -173,7 +212,7 @@ describe("qqbot config", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const resolved = resolveQQBotAccount(cfg);
 
@@ -214,7 +253,7 @@ describe("qqbot config", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(() => resolveQQBotAccount(cfg, DEFAULT_ACCOUNT_ID)).toThrow(
       'channels.qqbot.clientSecret: unresolved SecretRef "file:default:/qqbot/clientSecret"',
@@ -229,7 +268,7 @@ describe("qqbot config", () => {
           clientSecret: "secretref:/QQBOT_CLIENT_SECRET",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(() => resolveQQBotAccount(cfg, DEFAULT_ACCOUNT_ID)).toThrow(
       "channels.qqbot.clientSecret: legacy SecretRef marker strings are not valid QQ Bot clientSecret values; use a structured SecretRef object instead.",
@@ -264,7 +303,7 @@ describe("qqbot config", () => {
     const setup = requireQQBotSetup();
 
     const next = setup.applyAccountConfig?.({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       accountId: inputAccountId,
       input: {
         token: "102905186:Oi2Mg1Mh2Ni3:Pl7TpBXuHe1OmAYwKi7W",
@@ -295,28 +334,28 @@ describe("qqbot config", () => {
 
     expect(
       runtimeSetup.validateInput?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: DEFAULT_ACCOUNT_ID,
         input,
       } as never),
     ).toBe("QQBot --token must be in appId:clientSecret format");
     expect(
       lightweightSetup.validateInput?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: DEFAULT_ACCOUNT_ID,
         input,
       } as never),
     ).toBe("QQBot --token must be in appId:clientSecret format");
     expect(
       runtimeSetup.applyAccountConfig?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: DEFAULT_ACCOUNT_ID,
         input,
       } as never),
     ).toStrictEqual({});
     expect(
       lightweightSetup.applyAccountConfig?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: DEFAULT_ACCOUNT_ID,
         input,
       } as never),
@@ -331,7 +370,7 @@ describe("qqbot config", () => {
 
     expect(
       runtimeSetup.applyAccountConfig?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: DEFAULT_ACCOUNT_ID,
         input,
       } as never),
@@ -346,7 +385,7 @@ describe("qqbot config", () => {
     });
     expect(
       lightweightSetup.applyAccountConfig?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: DEFAULT_ACCOUNT_ID,
         input,
       } as never),
@@ -380,28 +419,28 @@ describe("qqbot config", () => {
 
     expect(
       runtimeSetup.validateInput?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: "bot2",
         input,
       } as never),
     ).toBe("QQBot --use-env only supports the default account");
     expect(
       lightweightSetup.validateInput?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: "bot2",
         input,
       } as never),
     ).toBe("QQBot --use-env only supports the default account");
     expect(
       runtimeSetup.applyAccountConfig?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: "bot2",
         input,
       } as never),
     ).toStrictEqual({});
     expect(
       lightweightSetup.applyAccountConfig?.({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         accountId: "bot2",
         input,
       } as never),
