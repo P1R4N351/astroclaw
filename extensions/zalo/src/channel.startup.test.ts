@@ -1,9 +1,10 @@
+// Zalo tests cover channel.startup plugin behavior.
 import {
   expectLifecyclePatch,
   expectPendingUntilAbort,
   startAccountAndTrackLifecycle,
   waitForStartedMocks,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
+} from "openclaw/plugin-sdk/channel-test-helpers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedZaloAccount } from "./accounts.js";
 
