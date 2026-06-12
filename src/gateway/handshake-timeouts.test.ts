@@ -1,4 +1,7 @@
+// Handshake timeout tests document env/config/default precedence and supported
+// clamping for pre-auth and connect-challenge timeouts.
 import { describe, expect, test } from "vitest";
+import { MAX_SAFE_TIMEOUT_DELAY_MS } from "../utils/timer-delay.js";
 import {
   clampConnectChallengeTimeoutMs,
   DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS,
@@ -22,26 +25,33 @@ describe("gateway handshake timeouts", () => {
     expect(clampConnectChallengeTimeoutMs(30_000, 30_000)).toBe(30_000);
   });
 
-  test("prefers ASTROCLAW_HANDSHAKE_TIMEOUT_MS and falls back on the test-only env", () => {
+  test("prefers OPENCLAW_HANDSHAKE_TIMEOUT_MS and falls back on the test-only env", () => {
     expect(
       getPreauthHandshakeTimeoutMsFromEnv({
-        ASTROCLAW_HANDSHAKE_TIMEOUT_MS: "75",
-        ASTROCLAW_TEST_HANDSHAKE_TIMEOUT_MS: "20",
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: "75",
+        OPENCLAW_TEST_HANDSHAKE_TIMEOUT_MS: "20",
       }),
     ).toBe(75);
     expect(
       getPreauthHandshakeTimeoutMsFromEnv({
-        ASTROCLAW_HANDSHAKE_TIMEOUT_MS: "",
-        ASTROCLAW_TEST_HANDSHAKE_TIMEOUT_MS: "20",
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: "",
+        OPENCLAW_TEST_HANDSHAKE_TIMEOUT_MS: "20",
         VITEST: "1",
       }),
     ).toBe(20);
+    expect(
+      getPreauthHandshakeTimeoutMsFromEnv({
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: " +75 ",
+        OPENCLAW_TEST_HANDSHAKE_TIMEOUT_MS: "20",
+        VITEST: "1",
+      }),
+    ).toBe(75);
   });
 
   test("resolves preauth handshake timeout with env over config over default", () => {
     expect(
       resolvePreauthHandshakeTimeoutMs({
-        env: { ASTROCLAW_HANDSHAKE_TIMEOUT_MS: "75000" },
+        env: { OPENCLAW_HANDSHAKE_TIMEOUT_MS: "75000" },
         configuredTimeoutMs: 30_000,
       }),
     ).toBe(75_000);
@@ -53,7 +63,7 @@ describe("gateway handshake timeouts", () => {
     ).toBe(30_000);
     expect(
       resolvePreauthHandshakeTimeoutMs({
-        env: { ASTROCLAW_HANDSHAKE_TIMEOUT_MS: "garbage" },
+        env: { OPENCLAW_HANDSHAKE_TIMEOUT_MS: "garbage" },
         configuredTimeoutMs: 30_000,
       }),
     ).toBe(30_000);
@@ -62,10 +72,24 @@ describe("gateway handshake timeouts", () => {
     );
   });
 
+  test("caps preauth handshake timeout env and config values to the safe timer range", () => {
+    expect(
+      getPreauthHandshakeTimeoutMsFromEnv({
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: "3000000000",
+      }),
+    ).toBe(MAX_SAFE_TIMEOUT_DELAY_MS);
+    expect(
+      resolvePreauthHandshakeTimeoutMs({
+        env: {},
+        configuredTimeoutMs: 3_000_000_000,
+      }),
+    ).toBe(MAX_SAFE_TIMEOUT_DELAY_MS);
+  });
+
   test("resolves preauth handshake timeout from the test-only env before config", () => {
     expect(
       resolvePreauthHandshakeTimeoutMs({
-        env: { VITEST: "1", ASTROCLAW_TEST_HANDSHAKE_TIMEOUT_MS: "50" },
+        env: { VITEST: "1", OPENCLAW_TEST_HANDSHAKE_TIMEOUT_MS: "50" },
         configuredTimeoutMs: 30_000,
       }),
     ).toBe(50);
@@ -74,59 +98,97 @@ describe("gateway handshake timeouts", () => {
   test("ignores invalid handshake timeout overrides and falls back safely", () => {
     expect(
       getPreauthHandshakeTimeoutMsFromEnv({
-        ASTROCLAW_HANDSHAKE_TIMEOUT_MS: "abc",
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: "abc",
       }),
     ).toBe(DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS);
     expect(
       getPreauthHandshakeTimeoutMsFromEnv({
-        ASTROCLAW_HANDSHAKE_TIMEOUT_MS: "-1",
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: "-1",
       }),
     ).toBe(DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS);
     expect(
       getPreauthHandshakeTimeoutMsFromEnv({
-        ASTROCLAW_HANDSHAKE_TIMEOUT_MS: "0",
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: "0",
       }),
     ).toBe(DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS);
     expect(
       getPreauthHandshakeTimeoutMsFromEnv({
-        ASTROCLAW_HANDSHAKE_TIMEOUT_MS: " ",
-        ASTROCLAW_TEST_HANDSHAKE_TIMEOUT_MS: "20",
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: " ",
+        OPENCLAW_TEST_HANDSHAKE_TIMEOUT_MS: "20",
         VITEST: "1",
       }),
     ).toBe(DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS);
+    expect(
+      getPreauthHandshakeTimeoutMsFromEnv({
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: "1e3",
+      }),
+    ).toBe(DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS);
+    expect(
+      getPreauthHandshakeTimeoutMsFromEnv({
+        OPENCLAW_HANDSHAKE_TIMEOUT_MS: "0x10",
+      }),
+    ).toBe(DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS);
   });
 
-  test("getConnectChallengeTimeoutMsFromEnv reads ASTROCLAW_CONNECT_CHALLENGE_TIMEOUT_MS", () => {
+  test("getConnectChallengeTimeoutMsFromEnv reads OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS", () => {
     expect(getConnectChallengeTimeoutMsFromEnv({})).toBeUndefined();
     expect(
-      getConnectChallengeTimeoutMsFromEnv({ ASTROCLAW_CONNECT_CHALLENGE_TIMEOUT_MS: "15000" }),
+      getConnectChallengeTimeoutMsFromEnv({ OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS: "15000" }),
     ).toBe(15_000);
     expect(
-      getConnectChallengeTimeoutMsFromEnv({ ASTROCLAW_CONNECT_CHALLENGE_TIMEOUT_MS: "garbage" }),
+      getConnectChallengeTimeoutMsFromEnv({ OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS: " 015000 " }),
+    ).toBe(15_000);
+    expect(
+      getConnectChallengeTimeoutMsFromEnv({ OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS: "garbage" }),
+    ).toBeUndefined();
+    expect(
+      getConnectChallengeTimeoutMsFromEnv({ OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS: "1e3" }),
+    ).toBeUndefined();
+    expect(
+      getConnectChallengeTimeoutMsFromEnv({ OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS: "0x10" }),
     ).toBeUndefined();
   });
 
+  test("caps connect challenge timeout env and explicit values to the safe timer range", () => {
+    expect(
+      getConnectChallengeTimeoutMsFromEnv({
+        OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS: "3000000000",
+      }),
+    ).toBe(MAX_SAFE_TIMEOUT_DELAY_MS);
+    expect(
+      resolveConnectChallengeTimeoutMs(3_000_000_000, {
+        env: {},
+        configuredTimeoutMs: 3_000_000_000,
+      }),
+    ).toBe(MAX_SAFE_TIMEOUT_DELAY_MS);
+    expect(
+      resolveConnectChallengeTimeoutMs(undefined, {
+        env: { OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS: "3000000000" },
+      }),
+    ).toBe(MAX_SAFE_TIMEOUT_DELAY_MS);
+  });
+
   test("resolveConnectChallengeTimeoutMs falls back to env override", () => {
-    const original = process.env.ASTROCLAW_CONNECT_CHALLENGE_TIMEOUT_MS;
-    const originalHandshake = process.env.ASTROCLAW_HANDSHAKE_TIMEOUT_MS;
+    const original = process.env.OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS;
+    const originalHandshake = process.env.OPENCLAW_HANDSHAKE_TIMEOUT_MS;
     try {
-      process.env.ASTROCLAW_CONNECT_CHALLENGE_TIMEOUT_MS = "5000";
+      process.env.OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS = "5000";
       expect(resolveConnectChallengeTimeoutMs()).toBe(5_000);
       // Explicit value still takes precedence over env
       expect(resolveConnectChallengeTimeoutMs(3_000)).toBe(3_000);
-      process.env.ASTROCLAW_CONNECT_CHALLENGE_TIMEOUT_MS = "";
-      process.env.ASTROCLAW_HANDSHAKE_TIMEOUT_MS = "30000";
+      process.env.OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS = "";
+      process.env.OPENCLAW_HANDSHAKE_TIMEOUT_MS = "30000";
       expect(resolveConnectChallengeTimeoutMs()).toBe(30_000);
     } finally {
       if (original === undefined) {
-        delete process.env.ASTROCLAW_CONNECT_CHALLENGE_TIMEOUT_MS;
+        delete process.env.OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS;
       } else {
-        process.env.ASTROCLAW_CONNECT_CHALLENGE_TIMEOUT_MS = original;
+        process.env.OPENCLAW_CONNECT_CHALLENGE_TIMEOUT_MS = original;
       }
       if (originalHandshake === undefined) {
-        delete process.env.ASTROCLAW_HANDSHAKE_TIMEOUT_MS;
+        delete process.env.OPENCLAW_HANDSHAKE_TIMEOUT_MS;
       } else {
-        process.env.ASTROCLAW_HANDSHAKE_TIMEOUT_MS = originalHandshake;
+        process.env.OPENCLAW_HANDSHAKE_TIMEOUT_MS = originalHandshake;
       }
     }
   });
