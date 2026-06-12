@@ -1,9 +1,12 @@
+// Media generation runtime mocks install mocked runtime modules for tests.
 import { vi } from "vitest";
-import type { AstroclawConfig } from "../../../src/config/config.js";
+import type { OpenClawConfig } from "../../../src/config/config.js";
 import type { ImageGenerationProvider } from "../../../src/image-generation/types.js";
 import type { MusicGenerationProvider } from "../../../src/music-generation/types.js";
 import type { VideoGenerationProvider } from "../../../src/video-generation/types.js";
 import { resetGenerationRuntimeMocks } from "./runtime-test-mocks.js";
+
+// Shared Vitest module mocks for image, music, and video generation runtimes.
 
 type ModelRef = { provider: string; model: string };
 
@@ -28,23 +31,23 @@ const mediaRuntimeMocks = vi.hoisted(() => {
     createSubsystemLogger: vi.fn(() => ({ debug, warn })),
     describeFailoverError: vi.fn(),
     getImageGenerationProvider: vi.fn<
-      (providerId: string, config?: AstroclawConfig) => ImageGenerationProvider | undefined
+      (providerId: string, config?: OpenClawConfig) => ImageGenerationProvider | undefined
     >(() => undefined),
     getMusicGenerationProvider: vi.fn<
-      (providerId: string, config?: AstroclawConfig) => MusicGenerationProvider | undefined
+      (providerId: string, config?: OpenClawConfig) => MusicGenerationProvider | undefined
     >(() => undefined),
     getProviderEnvVars: vi.fn<(providerId: string) => string[]>(() => []),
     getVideoGenerationProvider: vi.fn<
-      (providerId: string, config?: AstroclawConfig) => VideoGenerationProvider | undefined
+      (providerId: string, config?: OpenClawConfig) => VideoGenerationProvider | undefined
     >(() => undefined),
     isFailoverError: vi.fn<(err: unknown) => boolean>(() => false),
-    listImageGenerationProviders: vi.fn<(config?: AstroclawConfig) => ImageGenerationProvider[]>(
+    listImageGenerationProviders: vi.fn<(config?: OpenClawConfig) => ImageGenerationProvider[]>(
       () => [],
     ),
-    listMusicGenerationProviders: vi.fn<(config?: AstroclawConfig) => MusicGenerationProvider[]>(
+    listMusicGenerationProviders: vi.fn<(config?: OpenClawConfig) => MusicGenerationProvider[]>(
       () => [],
     ),
-    listVideoGenerationProviders: vi.fn<(config?: AstroclawConfig) => VideoGenerationProvider[]>(
+    listVideoGenerationProviders: vi.fn<(config?: OpenClawConfig) => VideoGenerationProvider[]>(
       () => [],
     ),
     parseImageGenerationModelRef:
@@ -68,6 +71,11 @@ const mediaRuntimeMocks = vi.hoisted(() => {
         : undefined;
     }),
     resolveProviderAuthEnvVarCandidates: vi.fn(() => ({})),
+    resolveProviderAuthLookupMaps: vi.fn(() => ({
+      aliasMap: {},
+      envCandidateMap: {},
+      authEvidenceMap: {},
+    })),
     debug,
     warn,
   };
@@ -98,6 +106,7 @@ vi.mock("../../../src/logging/subsystem.js", () => ({
 vi.mock("../../../src/secrets/provider-env-vars.js", () => ({
   getProviderEnvVars: mediaRuntimeMocks.getProviderEnvVars,
   resolveProviderAuthEnvVarCandidates: mediaRuntimeMocks.resolveProviderAuthEnvVarCandidates,
+  resolveProviderAuthLookupMaps: mediaRuntimeMocks.resolveProviderAuthLookupMaps,
 }));
 
 vi.mock("../../../src/image-generation/model-ref.js", () => ({
@@ -122,10 +131,12 @@ vi.mock("../../../src/video-generation/provider-registry.js", () => ({
   listVideoGenerationProviders: mediaRuntimeMocks.listVideoGenerationProviders,
 }));
 
+/** Return the hoisted shared media generation runtime mocks. */
 export function getMediaGenerationRuntimeMocks() {
   return mediaRuntimeMocks;
 }
 
+/** Reset image generation runtime mocks to default empty-provider behavior. */
 export function resetImageGenerationRuntimeMocks(): void {
   resetSharedRuntimeImportMocks();
   resetGenerationRuntimeMocks({
@@ -136,6 +147,7 @@ export function resetImageGenerationRuntimeMocks(): void {
   });
 }
 
+/** Reset music generation runtime mocks to default empty-provider behavior. */
 export function resetMusicGenerationRuntimeMocks(): void {
   resetSharedRuntimeImportMocks();
   resetGenerationRuntimeMocks({
@@ -146,6 +158,7 @@ export function resetMusicGenerationRuntimeMocks(): void {
   });
 }
 
+/** Reset video generation runtime mocks to default empty-provider behavior. */
 export function resetVideoGenerationRuntimeMocks(): void {
   resetSharedRuntimeImportMocks();
   resetGenerationRuntimeMocks({
@@ -156,6 +169,7 @@ export function resetVideoGenerationRuntimeMocks(): void {
   });
 }
 
+/** Reset shared auth/failover/logger mocks used by all media generation runtimes. */
 function resetSharedRuntimeImportMocks(): void {
   mediaRuntimeMocks.ensureAuthProfileStore.mockReset();
   mediaRuntimeMocks.ensureAuthProfileStore.mockReturnValue({ version: 1, profiles: {} });
