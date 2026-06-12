@@ -1,3 +1,4 @@
+// Control UI component implements the dashboard header element.
 import { LitElement, html, nothing } from "lit";
 import { property } from "lit/decorators.js";
 import { pathForTab, titleForTab, type Tab } from "../navigation.js";
@@ -10,11 +11,6 @@ export class DashboardHeader extends LitElement {
   @property() tab: Tab = "overview";
   @property() basePath = "";
   @property() agentLabel = "";
-
-  private get brandIconSrc(): string {
-    const base = this.basePath.trim().replace(/\/$/, "");
-    return base ? `${base}/favicon.svg` : "favicon.svg";
-  }
 
   private readonly handleOverviewClick = (event: MouseEvent) => {
     if (
@@ -44,17 +40,8 @@ export class DashboardHeader extends LitElement {
             class="dashboard-header__breadcrumb-link"
             href=${pathForTab("overview", this.basePath)}
             @click=${this.handleOverviewClick}
-            style="display:inline-flex;align-items:center;gap:6px;"
           >
-            <img
-              src=${this.brandIconSrc}
-              alt=""
-              aria-hidden="true"
-              width="20"
-              height="20"
-              style="display:inline-block;vertical-align:middle;border-radius:4px;"
-            />
-            Astroclaw
+            OpenClaw
           </a>
           ${agentLabel
             ? html`
