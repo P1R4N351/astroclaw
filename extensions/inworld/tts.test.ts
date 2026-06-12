@@ -1,11 +1,12 @@
+// Inworld tests cover tts plugin behavior.
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 const { fetchWithSsrFGuardMock } = vi.hoisted(() => ({
   fetchWithSsrFGuardMock: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/ssrf-runtime")>();
+vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/ssrf-runtime")>();
   return {
     ...actual,
     fetchWithSsrFGuard: fetchWithSsrFGuardMock,
@@ -72,7 +73,7 @@ const guardedSuccessReleaseCases = [
 ];
 
 afterAll(() => {
-  vi.doUnmock("astroclaw/plugin-sdk/ssrf-runtime");
+  vi.doUnmock("openclaw/plugin-sdk/ssrf-runtime");
   vi.resetModules();
 });
 
