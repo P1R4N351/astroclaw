@@ -1,3 +1,4 @@
+// Browser tests cover pw tools core.interactions.set input files plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let page: Record<string, unknown> | null = null;
@@ -11,6 +12,8 @@ const getPageForTargetId = vi.fn(async () => {
 });
 const ensurePageState = vi.fn(() => ({}));
 const restoreRoleRefsForTarget = vi.fn(() => {});
+const isBrowserObservedDialogBlockedError = vi.fn(() => false);
+const markObservedDialogsHandledRemotelyForPage = vi.fn(() => ({}));
 const refLocator = vi.fn(() => {
   if (!locator) {
     throw new Error("test: locator not set");
@@ -19,14 +22,16 @@ const refLocator = vi.fn(() => {
 });
 const forceDisconnectPlaywrightForTarget = vi.fn(async () => {});
 
-const resolveStrictExistingPathsWithinRoot =
-  vi.fn<typeof import("./paths.js").resolveStrictExistingPathsWithinRoot>();
+const resolveStrictExistingUploadPaths =
+  vi.fn<typeof import("./paths.js").resolveStrictExistingUploadPaths>();
 
 vi.mock("./pw-session.js", () => {
   return {
     ensurePageState,
     forceDisconnectPlaywrightForTarget,
     getPageForTargetId,
+    isBrowserObservedDialogBlockedError,
+    markObservedDialogsHandledRemotelyForPage,
     refLocator,
     restoreRoleRefsForTarget,
   };
@@ -34,8 +39,7 @@ vi.mock("./pw-session.js", () => {
 
 vi.mock("./paths.js", () => {
   return {
-    DEFAULT_UPLOAD_DIR: "/tmp/astroclaw/uploads",
-    resolveStrictExistingPathsWithinRoot,
+    resolveStrictExistingUploadPaths,
   };
 });
 
@@ -58,9 +62,9 @@ describe("setInputFilesViaPlaywright", () => {
     vi.clearAllMocks();
     page = null;
     locator = null;
-    resolveStrictExistingPathsWithinRoot.mockResolvedValue({
+    resolveStrictExistingUploadPaths.mockResolvedValue({
       ok: true,
-      paths: ["/private/tmp/astroclaw/uploads/ok.txt"],
+      paths: ["/private/tmp/openclaw/uploads/ok.txt"],
     });
   });
 
@@ -71,22 +75,20 @@ describe("setInputFilesViaPlaywright", () => {
       cdpUrl: "http://127.0.0.1:18792",
       targetId: "T1",
       inputRef: "e7",
-      paths: ["/tmp/astroclaw/uploads/ok.txt"],
+      paths: ["/tmp/openclaw/uploads/ok.txt"],
     });
 
-    expect(resolveStrictExistingPathsWithinRoot).toHaveBeenCalledWith({
-      rootDir: "/tmp/astroclaw/uploads",
-      requestedPaths: ["/tmp/astroclaw/uploads/ok.txt"],
-      scopeLabel: "uploads directory (/tmp/astroclaw/uploads)",
+    expect(resolveStrictExistingUploadPaths).toHaveBeenCalledWith({
+      requestedPaths: ["/tmp/openclaw/uploads/ok.txt"],
     });
     expect(refLocator).toHaveBeenCalledWith(page, "e7");
-    expect(setInputFiles).toHaveBeenCalledWith(["/private/tmp/astroclaw/uploads/ok.txt"]);
+    expect(setInputFiles).toHaveBeenCalledWith(["/private/tmp/openclaw/uploads/ok.txt"]);
   });
 
   it("throws and skips setInputFiles when use-time validation fails", async () => {
-    resolveStrictExistingPathsWithinRoot.mockResolvedValueOnce({
+    resolveStrictExistingUploadPaths.mockResolvedValueOnce({
       ok: false,
-      error: "Invalid path: must stay within uploads directory",
+      error: "Invalid path: must stay within inbound media directory",
     });
 
     const { setInputFiles } = seedSingleLocatorPage();
@@ -96,9 +98,9 @@ describe("setInputFilesViaPlaywright", () => {
         cdpUrl: "http://127.0.0.1:18792",
         targetId: "T1",
         element: "input[type=file]",
-        paths: ["/tmp/astroclaw/uploads/missing.txt"],
+        paths: ["/tmp/openclaw/uploads/missing.txt"],
       }),
-    ).rejects.toThrow("Invalid path: must stay within uploads directory");
+    ).rejects.toThrow("Invalid path: must stay within inbound media directory");
 
     expect(setInputFiles).not.toHaveBeenCalled();
   });
