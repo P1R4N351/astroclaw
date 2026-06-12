@@ -1,6 +1,7 @@
+/** Tests node-host runner credential routing and env handling. */
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
-import { ConnectErrorDetailCodes } from "../gateway/protocol/connect-error-details.js";
+import { ConnectErrorDetailCodes } from "../../packages/gateway-protocol/src/connect-error-details.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import {
   handleNodeHostReconnectPaused,
@@ -8,7 +9,7 @@ import {
   shouldExitNodeHostOnReconnectPaused,
 } from "./runner.js";
 
-function createRemoteGatewayTokenRefConfig(tokenId: string): AstroclawConfig {
+function createRemoteGatewayTokenRefConfig(tokenId: string): OpenClawConfig {
   return {
     secrets: {
       providers: {
@@ -21,11 +22,11 @@ function createRemoteGatewayTokenRefConfig(tokenId: string): AstroclawConfig {
         token: { source: "env", provider: "default", id: tokenId },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 async function expectNoGatewayCredentials(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   env: Record<string, string | undefined>,
 ) {
   await withEnvAsync(env, async () => {
@@ -42,11 +43,11 @@ describe("resolveNodeHostGatewayCredentials", () => {
         mode: "local",
         remote: { token: "remote-only-token" },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await expectNoGatewayCredentials(config, {
-      ASTROCLAW_GATEWAY_TOKEN: undefined,
-      ASTROCLAW_GATEWAY_PASSWORD: undefined,
+      OPENCLAW_GATEWAY_TOKEN: undefined,
+      OPENCLAW_GATEWAY_PASSWORD: undefined,
     });
   });
 
@@ -63,11 +64,11 @@ describe("resolveNodeHostGatewayCredentials", () => {
           token: { source: "env", provider: "default", id: "MISSING_REMOTE_GATEWAY_TOKEN" },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await expectNoGatewayCredentials(config, {
-      ASTROCLAW_GATEWAY_TOKEN: undefined,
-      ASTROCLAW_GATEWAY_PASSWORD: undefined,
+      OPENCLAW_GATEWAY_TOKEN: undefined,
+      OPENCLAW_GATEWAY_PASSWORD: undefined,
       MISSING_REMOTE_GATEWAY_TOKEN: undefined,
     });
   });
@@ -77,8 +78,8 @@ describe("resolveNodeHostGatewayCredentials", () => {
 
     await withEnvAsync(
       {
-        ASTROCLAW_GATEWAY_TOKEN: undefined,
-        ASTROCLAW_GATEWAY_PASSWORD: undefined,
+        OPENCLAW_GATEWAY_TOKEN: undefined,
+        OPENCLAW_GATEWAY_PASSWORD: undefined,
         REMOTE_GATEWAY_TOKEN: "token-from-ref",
       },
       async () => {
@@ -88,13 +89,13 @@ describe("resolveNodeHostGatewayCredentials", () => {
     );
   });
 
-  it("prefers ASTROCLAW_GATEWAY_TOKEN over configured refs", async () => {
+  it("prefers OPENCLAW_GATEWAY_TOKEN over configured refs", async () => {
     const config = createRemoteGatewayTokenRefConfig("REMOTE_GATEWAY_TOKEN");
 
     await withEnvAsync(
       {
-        ASTROCLAW_GATEWAY_TOKEN: "token-from-env",
-        ASTROCLAW_GATEWAY_PASSWORD: undefined,
+        OPENCLAW_GATEWAY_TOKEN: "token-from-env",
+        OPENCLAW_GATEWAY_PASSWORD: undefined,
         REMOTE_GATEWAY_TOKEN: "token-from-ref",
       },
       async () => {
@@ -109,8 +110,8 @@ describe("resolveNodeHostGatewayCredentials", () => {
 
     await withEnvAsync(
       {
-        ASTROCLAW_GATEWAY_TOKEN: undefined,
-        ASTROCLAW_GATEWAY_PASSWORD: undefined,
+        OPENCLAW_GATEWAY_TOKEN: undefined,
+        OPENCLAW_GATEWAY_PASSWORD: undefined,
         MISSING_REMOTE_GATEWAY_TOKEN: undefined,
       },
       async () => {
@@ -135,12 +136,12 @@ describe("resolveNodeHostGatewayCredentials", () => {
           password: { source: "env", provider: "default", id: "MISSING_REMOTE_GATEWAY_PASSWORD" },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await withEnvAsync(
       {
-        ASTROCLAW_GATEWAY_TOKEN: undefined,
-        ASTROCLAW_GATEWAY_PASSWORD: undefined,
+        OPENCLAW_GATEWAY_TOKEN: undefined,
+        OPENCLAW_GATEWAY_PASSWORD: undefined,
         REMOTE_GATEWAY_TOKEN: "token-from-ref",
         MISSING_REMOTE_GATEWAY_PASSWORD: undefined,
       },
@@ -198,6 +199,29 @@ describe("handleNodeHostReconnectPaused", () => {
     expect(exit).not.toHaveBeenCalled();
     expect(lines).toEqual([
       "node host gateway reconnect paused after close (1008): connect failed detail=PAIRING_REQUIRED; waiting for operator action",
+    ]);
+  });
+
+  it("exits for version mismatch so supervisor restarts with updated code", () => {
+    const lines: string[] = [];
+    const exit = vi.fn((code: number) => {
+      throw new Error(`exit ${code}`);
+    }) as (code: number) => never;
+
+    expect(() =>
+      handleNodeHostReconnectPaused(
+        {
+          code: 1008,
+          reason: "client version mismatch",
+          detailCode: ConnectErrorDetailCodes.CLIENT_VERSION_MISMATCH,
+        },
+        { writeLine: (line) => lines.push(line), exit },
+      ),
+    ).toThrow("exit 1");
+
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(lines).toEqual([
+      "node host gateway reconnect paused after close (1008): client version mismatch detail=CLIENT_VERSION_MISMATCH; exiting for supervisor restart",
     ]);
   });
 });
