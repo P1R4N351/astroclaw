@@ -1,10 +1,11 @@
+// Tests queue setting normalization and directive parsing.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import { resolveQueueSettings } from "./settings.js";
 
 describe("resolveQueueSettings", () => {
   it("defaults inbound channels to steering settings", () => {
-    expect(resolveQueueSettings({ cfg: {} as AstroclawConfig })).toEqual({
+    expect(resolveQueueSettings({ cfg: {} as OpenClawConfig })).toEqual({
       mode: "steer",
       debounceMs: 500,
       cap: 20,
@@ -21,7 +22,7 @@ describe("resolveQueueSettings", () => {
               mode: "collect",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
       }),
     ).toEqual({
       mode: "collect",
@@ -44,7 +45,7 @@ describe("resolveQueueSettings", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         channel: "discord",
       }),
     ).toEqual({
@@ -64,7 +65,7 @@ describe("resolveQueueSettings", () => {
               mode: "steer",
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
       }),
     ).toEqual({
       mode: "steer",
@@ -83,7 +84,7 @@ describe("resolveQueueSettings", () => {
               mode: "steer-backlog" as never,
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
       }),
     ).toEqual({
       mode: "steer",
@@ -96,13 +97,13 @@ describe("resolveQueueSettings", () => {
   it("maps retired persisted session queue modes to compatible modes", () => {
     expect(
       resolveQueueSettings({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         sessionEntry: { sessionId: "test-session", updatedAt: 0, queueMode: "queue" as never },
       }).mode,
     ).toBe("steer");
     expect(
       resolveQueueSettings({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         sessionEntry: {
           sessionId: "test-session",
           updatedAt: 0,
@@ -112,7 +113,7 @@ describe("resolveQueueSettings", () => {
     ).toBe("followup");
     expect(
       resolveQueueSettings({
-        cfg: {} as AstroclawConfig,
+        cfg: {} as OpenClawConfig,
         sessionEntry: {
           sessionId: "test-session",
           updatedAt: 0,
