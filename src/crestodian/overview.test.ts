@@ -1,5 +1,6 @@
+// Crestodian overview tests cover summary output for rescue diagnostics.
 import { describe, expect, it } from "vitest";
-import type { ConfigFileSnapshot, AstroclawConfig } from "../config/config.js";
+import type { ConfigFileSnapshot, OpenClawConfig } from "../config/config.js";
 import {
   formatCrestodianOverview,
   formatCrestodianStartupMessage,
@@ -8,7 +9,7 @@ import {
 
 describe("loadCrestodianOverview", () => {
   it("summarizes config, agents, model, tools, and gateway", async () => {
-    const runtimeConfig: AstroclawConfig = {
+    const runtimeConfig: OpenClawConfig = {
       agents: {
         defaults: { model: { primary: "openai/gpt-5.2" } },
         list: [
@@ -19,7 +20,7 @@ describe("loadCrestodianOverview", () => {
       gateway: { port: 19001 },
     };
     const snapshot: ConfigFileSnapshot = {
-      path: "/tmp/astroclaw.json",
+      path: "/tmp/openclaw.json",
       exists: true,
       raw: "{}",
       parsed: runtimeConfig,
@@ -34,10 +35,10 @@ describe("loadCrestodianOverview", () => {
       legacyIssues: [],
     };
     const overview = await loadCrestodianOverview({
-      env: { ASTROCLAW_TEST_FAST: "1" },
+      env: { OPENCLAW_TEST_FAST: "1" },
       deps: {
         readConfigFileSnapshot: async () => snapshot,
-        resolveConfigPath: () => "/tmp/astroclaw.json",
+        resolveConfigPath: () => "/tmp/openclaw.json",
         resolveGatewayPort: (cfg) => cfg?.gateway?.port ?? 8765,
         buildGatewayConnectionDetails: (input) => ({
           url: `ws://127.0.0.1:${input.config.gateway?.port ?? 8765}`,
@@ -62,7 +63,7 @@ describe("loadCrestodianOverview", () => {
     expect(overview.gateway.url).toBe("ws://127.0.0.1:19001");
     expect(overview.gateway.reachable).toBe(false);
     expect(overview.references.docsPath).toMatch(/docs$/);
-    expect(overview.references.sourceUrl).toBe("https://github.com/astroclaw/astroclaw");
+    expect(overview.references.sourceUrl).toBe("https://github.com/openclaw/openclaw");
     expect(formatCrestodianOverview(overview)).toContain(
       'Next: run "gateway status" or "restart gateway"',
     );
