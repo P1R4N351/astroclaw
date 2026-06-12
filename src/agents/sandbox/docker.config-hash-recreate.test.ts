@@ -1,6 +1,11 @@
+// Docker sandbox recreation tests cover config-hash labels, bind ordering, and
+// mount labels used to decide when shared containers must be rebuilt.
 import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { Readable } from "node:stream";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computeSandboxConfigHash,
   SANDBOX_DOCKER_EXPLICIT_ENV_POLICY_EPOCH,
@@ -32,6 +37,14 @@ const registryMocks = vi.hoisted(() => ({
   updateRegistry: vi.fn(),
 }));
 
+const tmpDirs: string[] = [];
+
+function makeTempDir(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-docker-mounts-"));
+  tmpDirs.push(dir);
+  return dir;
+}
+
 vi.mock("./registry.js", () => ({
   readRegistryEntry: registryMocks.readRegistryEntry,
   updateRegistry: registryMocks.updateRegistry,
@@ -47,6 +60,8 @@ function createMockDockerChild(): MockDockerChild {
 }
 
 function spawnDockerProcess(command: string, args: string[]) {
+  // The tests assert docker CLI arguments without requiring Docker; this mock
+  // implements only the inspect/create/start/rm calls used by ensureSandboxContainer.
   spawnState.calls.push({ command, args });
   const child = createMockDockerChild();
 
@@ -61,7 +76,7 @@ function spawnDockerProcess(command: string, args: string[]) {
   } else if (
     args[0] === "inspect" &&
     args[1] === "-f" &&
-    args[2]?.includes('index .Config.Labels "astroclaw.configHash"')
+    args[2]?.includes('index .Config.Labels "openclaw.configHash"')
   ) {
     stdout = `${spawnState.labelHash}\n`;
   } else if (
@@ -121,9 +136,9 @@ function createSandboxConfig(
     backend: "docker",
     scope: "shared",
     workspaceAccess,
-    workspaceRoot: "~/.astroclaw/sandboxes",
+    workspaceRoot: "~/.openclaw/sandboxes",
     docker: {
-      image: "astroclaw-sandbox:test",
+      image: "openclaw-sandbox:test",
       containerPrefix: "oc-test-",
       workdir: "/workspace",
       readOnlyRoot: true,
@@ -138,15 +153,15 @@ function createSandboxConfig(
     },
     ssh: {
       command: "ssh",
-      workspaceRoot: "/tmp/astroclaw-sandboxes",
+      workspaceRoot: "/tmp/openclaw-sandboxes",
       strictHostKeyChecking: true,
       updateHostKeys: true,
     },
     browser: {
       enabled: false,
-      image: "astroclaw-browser:test",
+      image: "openclaw-browser:test",
       containerPrefix: "oc-browser-",
-      network: "astroclaw-sandbox-browser",
+      network: "openclaw-sandbox-browser",
       cdpPort: 9222,
       vncPort: 5900,
       noVncPort: 6080,
@@ -184,6 +199,12 @@ async function ensureSandboxCreateCallForTest(params: {
 }
 
 describe("ensureSandboxContainer config-hash recreation", () => {
+  afterEach(() => {
+    for (const dir of tmpDirs.splice(0)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   beforeEach(async () => {
     spawnState.calls.length = 0;
     spawnState.inspectRunning = true;
@@ -195,9 +216,11 @@ describe("ensureSandboxContainer config-hash recreation", () => {
   });
 
   it("recreates shared container when array-order change alters hash", async () => {
-    const workspaceDir = "/tmp/workspace";
-    const oldCfg = createSandboxConfig(["1.1.1.1", "8.8.8.8"]);
-    const newCfg = createSandboxConfig(["8.8.8.8", "1.1.1.1"]);
+    // Docker flag order is part of the runtime contract, so order-sensitive
+    // config changes must invalidate a shared container.
+    const workspaceDir = makeTempDir();
+    const oldCfg = createSandboxConfig(["1.1.1.1", "8.8.8.8"], [`${workspaceDir}:/workspace:rw`]);
+    const newCfg = createSandboxConfig(["8.8.8.8", "1.1.1.1"], [`${workspaceDir}:/workspace:rw`]);
 
     const oldHash = computeSandboxConfigHash({
       docker: oldCfg.docker,
@@ -205,6 +228,7 @@ describe("ensureSandboxContainer config-hash recreation", () => {
       workspaceDir,
       agentWorkspaceDir: workspaceDir,
       mountFormatVersion: SANDBOX_MOUNT_FORMAT_VERSION,
+      readOnlyWorkspaceSkillMounts: [],
     });
     const newHash = computeSandboxConfigHash({
       docker: newCfg.docker,
@@ -212,6 +236,7 @@ describe("ensureSandboxContainer config-hash recreation", () => {
       workspaceDir,
       agentWorkspaceDir: workspaceDir,
       mountFormatVersion: SANDBOX_MOUNT_FORMAT_VERSION,
+      readOnlyWorkspaceSkillMounts: [],
     });
     expect(newHash).not.toBe(oldHash);
 
@@ -244,18 +269,19 @@ describe("ensureSandboxContainer config-hash recreation", () => {
     if (!createCall) {
       throw new Error("expected recreated docker create call");
     }
-    expect(createCall.args).toContain(`astroclaw.configHash=${newHash}`);
+    expect(createCall.args).toContain(`openclaw.configHash=${newHash}`);
     const registryUpdate = registryMocks.updateRegistry.mock.calls.at(-1)?.[0];
     expect(registryUpdate?.containerName).toBe("oc-test-shared");
     expect(registryUpdate?.configHash).toBe(newHash);
   });
 
   it("recreates shared container when previously filtered explicit env becomes allowed", async () => {
-    const workspaceDir = "/tmp/workspace";
+    const workspaceDir = makeTempDir();
     const cfg = createSandboxConfig(["1.1.1.1"], undefined, "rw", {
       LANG: "C.UTF-8",
       GEMINI_API_KEY: "dummy-gemini",
     });
+    cfg.docker.binds = [`${workspaceDir}:/workspace:rw`];
 
     const oldHash = computeSandboxConfigHash({
       docker: cfg.docker,
@@ -263,6 +289,7 @@ describe("ensureSandboxContainer config-hash recreation", () => {
       workspaceDir,
       agentWorkspaceDir: workspaceDir,
       mountFormatVersion: SANDBOX_MOUNT_FORMAT_VERSION,
+      readOnlyWorkspaceSkillMounts: [],
     });
     const newHash = computeSandboxConfigHash({
       docker: cfg.docker,
@@ -271,6 +298,7 @@ describe("ensureSandboxContainer config-hash recreation", () => {
       workspaceDir,
       agentWorkspaceDir: workspaceDir,
       mountFormatVersion: SANDBOX_MOUNT_FORMAT_VERSION,
+      readOnlyWorkspaceSkillMounts: [],
     });
     expect(newHash).not.toBe(oldHash);
 
@@ -285,7 +313,7 @@ describe("ensureSandboxContainer config-hash recreation", () => {
     });
 
     const createCall = await ensureSandboxCreateCallForTest({ cfg, workspaceDir });
-    expect(createCall.args).toContain(`astroclaw.configHash=${newHash}`);
+    expect(createCall.args).toContain(`openclaw.configHash=${newHash}`);
     expect(collectDockerFlagValues(createCall.args, "--env")).toEqual(
       expect.arrayContaining(["LANG=C.UTF-8", "GEMINI_API_KEY=dummy-gemini"]),
     );
@@ -295,11 +323,10 @@ describe("ensureSandboxContainer config-hash recreation", () => {
   });
 
   it("applies custom binds after workspace mounts so overlapping binds can override", async () => {
-    const workspaceDir = "/tmp/workspace";
-    const cfg = createSandboxConfig(
-      ["1.1.1.1"],
-      ["/tmp/workspace-shared/USER.md:/workspace/USER.md:ro"],
-    );
+    const workspaceDir = makeTempDir();
+    const customRoot = makeTempDir();
+    const customUserFile = path.join(customRoot, "USER.md");
+    const cfg = createSandboxConfig(["1.1.1.1"], [`${customUserFile}:/workspace/USER.md:ro`]);
     cfg.docker.dangerouslyAllowExternalBindSources = true;
     const expectedHash = computeSandboxConfigHash({
       docker: cfg.docker,
@@ -307,6 +334,7 @@ describe("ensureSandboxContainer config-hash recreation", () => {
       workspaceDir,
       agentWorkspaceDir: workspaceDir,
       mountFormatVersion: SANDBOX_MOUNT_FORMAT_VERSION,
+      readOnlyWorkspaceSkillMounts: [],
     });
 
     spawnState.inspectRunning = false;
@@ -321,13 +349,47 @@ describe("ensureSandboxContainer config-hash recreation", () => {
     });
 
     const createCall = await ensureSandboxCreateCallForTest({ cfg, workspaceDir });
-    expect(createCall.args).toContain(`astroclaw.configHash=${expectedHash}`);
+    expect(createCall.args).toContain(`openclaw.configHash=${expectedHash}`);
 
     const bindArgs = collectDockerFlagValues(createCall.args, "-v");
-    const workspaceMountIdx = bindArgs.indexOf("/tmp/workspace:/workspace:z");
-    const customMountIdx = bindArgs.indexOf("/tmp/workspace-shared/USER.md:/workspace/USER.md:ro");
+    const workspaceMountIdx = bindArgs.indexOf(`${workspaceDir}:/workspace:z`);
+    const customMountIdx = bindArgs.indexOf(`${customUserFile}:/workspace/USER.md:ro`);
     expect(workspaceMountIdx).toBeGreaterThanOrEqual(0);
     expect(customMountIdx).toBeGreaterThan(workspaceMountIdx);
+  });
+
+  it("applies read-only skill overlays after custom binds", async () => {
+    // Protected skill overlays must be appended last so even an overlapping
+    // custom bind cannot make checked-in skills writable.
+    const workspaceDir = makeTempDir();
+    const customRoot = makeTempDir();
+    fs.mkdirSync(path.join(workspaceDir, "skills", "demo"), { recursive: true });
+    fs.mkdirSync(customRoot, { recursive: true });
+    const cfg = createSandboxConfig([], [`${customRoot}:/workspace/skills:rw`]);
+    cfg.docker.dangerouslyAllowExternalBindSources = true;
+
+    spawnState.inspectRunning = false;
+    spawnState.labelHash = "stale-hash";
+    registryMocks.readRegistryEntry.mockResolvedValue({
+      containerName: "oc-test-shared",
+      sessionKey: "shared",
+      createdAtMs: 1,
+      lastUsedAtMs: 0,
+      image: cfg.docker.image,
+      configHash: "stale-hash",
+    });
+
+    const createCall = await ensureSandboxCreateCallForTest({ cfg, workspaceDir });
+    const bindArgs = collectDockerFlagValues(createCall.args, "-v");
+    const workspaceMountIdx = bindArgs.indexOf(`${workspaceDir}:/workspace:z`);
+    const customMountIdx = bindArgs.indexOf(`${customRoot}:/workspace/skills:rw`);
+    const protectedMountIdx = bindArgs.indexOf(
+      `${path.join(workspaceDir, "skills")}:/workspace/skills:ro,z`,
+    );
+
+    expect(workspaceMountIdx).toBeGreaterThanOrEqual(0);
+    expect(customMountIdx).toBeGreaterThan(workspaceMountIdx);
+    expect(protectedMountIdx).toBeGreaterThan(customMountIdx);
   });
 
   it.each([
@@ -362,7 +424,7 @@ describe("ensureSandboxContainer config-hash recreation", () => {
 
     const createCall = await ensureSandboxCreateCallForTest({ cfg, workspaceDir });
     expect(createCall.args).toContain(
-      `astroclaw.mountFormatVersion=${SANDBOX_MOUNT_FORMAT_VERSION}`,
+      `openclaw.mountFormatVersion=${SANDBOX_MOUNT_FORMAT_VERSION}`,
     );
   });
 });
