@@ -1,27 +1,28 @@
+// Browser tests cover profiles service plugin behavior.
 import fs from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getRuntimeConfig } from "../config/config.js";
-import type { AstroclawConfig } from "../config/config.js";
-import { resolveAstroclawUserDataDir } from "./chrome.js";
+import type { OpenClawConfig } from "../config/config.js";
+import { resolveOpenClawUserDataDir } from "./chrome.js";
 import type { BrowserRouteContext, BrowserServerState } from "./server-context.js";
 import { movePathToTrash } from "./trash.js";
 
 const configMocks = vi.hoisted(() => ({
-  getRuntimeConfig: vi.fn<() => AstroclawConfig>(),
-  writeConfigFile: vi.fn<(cfg: AstroclawConfig) => Promise<void>>(async (_cfg) => {}),
+  getRuntimeConfig: vi.fn<() => OpenClawConfig>(),
+  writeConfigFile: vi.fn<(cfg: OpenClawConfig) => Promise<void>>(async (_cfg) => {}),
   mutateConfigFile: vi.fn(
     async (params: {
-      mutate: (draft: AstroclawConfig, context: { snapshot: { path: string } }) => unknown;
+      mutate: (draft: OpenClawConfig, context: { snapshot: { path: string } }) => unknown;
     }) => {
       const draft = structuredClone(configMocks.getRuntimeConfig());
-      const result = await params.mutate(draft, { snapshot: { path: "/tmp/astroclaw.json" } });
+      const result = await params.mutate(draft, { snapshot: { path: "/tmp/openclaw.json" } });
       await configMocks.writeConfigFile(draft);
       return {
-        path: "/tmp/astroclaw.json",
+        path: "/tmp/openclaw.json",
         previousHash: "test-hash",
         persistedHash: "test-hash",
-        snapshot: { path: "/tmp/astroclaw.json" },
+        snapshot: { path: "/tmp/openclaw.json" },
         nextConfig: draft,
         result,
         attempts: 1,
@@ -37,7 +38,7 @@ vi.mock("../config/config.js", async () => {
   const actual = await vi.importActual<typeof import("../config/config.js")>("../config/config.js");
   return {
     ...actual,
-    replaceConfigFile: vi.fn(async ({ nextConfig }: { nextConfig: AstroclawConfig }) => {
+    replaceConfigFile: vi.fn(async ({ nextConfig }: { nextConfig: OpenClawConfig }) => {
       await configMocks.writeConfigFile(nextConfig);
     }),
     mutateConfigFile: configMocks.mutateConfigFile,
@@ -50,7 +51,7 @@ vi.mock("./trash.js", () => ({
 }));
 
 vi.mock("./chrome.js", () => ({
-  resolveAstroclawUserDataDir: vi.fn(() => "/tmp/astroclaw-test/astroclaw/user-data"),
+  resolveOpenClawUserDataDir: vi.fn(() => "/tmp/openclaw-test/openclaw/user-data"),
 }));
 
 const [{ resolveBrowserConfig }, { createBrowserProfilesService }] = await Promise.all([
@@ -184,13 +185,13 @@ describe("BrowserProfilesService", () => {
           cdpPortRangeStart: 19000,
           profiles: {},
         },
-      } as AstroclawConfig)
+      } as OpenClawConfig)
       .mockReturnValue({
         browser: {
           cdpPortRangeEnd: 18801,
           profiles: {},
         },
-      } as unknown as AstroclawConfig);
+      } as unknown as OpenClawConfig);
 
     const service = createBrowserProfilesService(ctx);
     const result = await service.createProfile({ name: "work" });
@@ -274,10 +275,46 @@ describe("BrowserProfilesService", () => {
     expect(profiles["chrome-live"]?.attachOnly).toBe(true);
   });
 
-  it("rejects driver=existing-session when cdpUrl is provided", async () => {
+  it("accepts driver=existing-session with cdpUrl", async () => {
     const resolved = resolveBrowserConfig({});
-    const { ctx } = createCtx(resolved);
+    const { ctx, state } = createCtx(resolved);
     vi.mocked(getRuntimeConfig).mockReturnValue({ browser: { profiles: {} } });
+
+    const service = createBrowserProfilesService(ctx);
+    const result = await service.createProfile({
+      name: "chrome-live",
+      driver: "existing-session",
+      cdpUrl: "http://127.0.0.1:9222/",
+    });
+
+    expect(result.transport).toBe("chrome-mcp");
+    expect(result.cdpPort).toBeNull();
+    expect(result.cdpUrl).toBe("http://127.0.0.1:9222");
+    expect(result.userDataDir).toBeNull();
+    const resolvedProfile = state.resolved.profiles["chrome-live"];
+    expect(resolvedProfile?.driver).toBe("existing-session");
+    expect(resolvedProfile?.attachOnly).toBe(true);
+    expect(resolvedProfile?.cdpUrl).toBe("http://127.0.0.1:9222");
+    const profiles = writtenBrowserConfig().profiles as Record<
+      string,
+      { cdpUrl?: string; driver?: string }
+    >;
+    expect(profiles["chrome-live"]?.driver).toBe("existing-session");
+    expect(profiles["chrome-live"]?.cdpUrl).toBe("http://127.0.0.1:9222");
+  });
+
+  it("rejects private-network cdpUrl for existing-session when strict SSRF mode is enabled", async () => {
+    const resolved = resolveBrowserConfig({
+      ssrfPolicy: { dangerouslyAllowPrivateNetwork: false },
+    });
+    const { ctx } = createCtx(resolved);
+
+    vi.mocked(getRuntimeConfig).mockReturnValue({
+      browser: {
+        ssrfPolicy: { dangerouslyAllowPrivateNetwork: false },
+        profiles: {},
+      },
+    });
 
     const service = createBrowserProfilesService(ctx);
 
@@ -285,9 +322,10 @@ describe("BrowserProfilesService", () => {
       service.createProfile({
         name: "chrome-live",
         driver: "existing-session",
-        cdpUrl: "http://127.0.0.1:9222",
+        cdpUrl: "http://10.0.0.42:9222",
       }),
-    ).rejects.toThrow(/does not accept cdpUrl/i);
+    ).rejects.toThrow(/private\/internal\/special-use ip address/i);
+    expect(writeConfigFile).not.toHaveBeenCalled();
   });
 
   it("creates existing-session profiles with an explicit userDataDir", async () => {
@@ -295,7 +333,7 @@ describe("BrowserProfilesService", () => {
     const { ctx, state } = createCtx(resolved);
     vi.mocked(getRuntimeConfig).mockReturnValue({ browser: { profiles: {} } });
 
-    const tempDir = fs.mkdtempSync(path.join("/tmp", "astroclaw-profile-"));
+    const tempDir = fs.mkdtempSync(path.join("/tmp", "openclaw-profile-"));
     const userDataDir = path.join(tempDir, "BraveSoftware", "Brave-Browser");
     fs.mkdirSync(userDataDir, { recursive: true });
 
@@ -320,7 +358,7 @@ describe("BrowserProfilesService", () => {
     const { ctx } = createCtx(resolved);
     vi.mocked(getRuntimeConfig).mockReturnValue({ browser: { profiles: {} } });
 
-    const tempDir = fs.mkdtempSync(path.join("/tmp", "astroclaw-profile-"));
+    const tempDir = fs.mkdtempSync(path.join("/tmp", "openclaw-profile-"));
     const userDataDir = path.join(tempDir, "BraveSoftware", "Brave-Browser");
     fs.mkdirSync(userDataDir, { recursive: true });
 
@@ -344,9 +382,9 @@ describe("BrowserProfilesService", () => {
 
     vi.mocked(getRuntimeConfig).mockReturnValue({
       browser: {
-        defaultProfile: "astroclaw",
+        defaultProfile: "openclaw",
         profiles: {
-          astroclaw: { cdpPort: 18800, color: "#FF4500" },
+          openclaw: { cdpPort: 18800, color: "#FF4500" },
           remote: { cdpUrl: "http://10.0.0.42:9222", color: "#0066CC" },
         },
       },
@@ -371,9 +409,9 @@ describe("BrowserProfilesService", () => {
     vi.mocked(getRuntimeConfig)
       .mockReturnValueOnce({
         browser: {
-          defaultProfile: "astroclaw",
+          defaultProfile: "openclaw",
           profiles: {
-            astroclaw: { cdpPort: 18800, color: "#FF4500" },
+            openclaw: { cdpPort: 18800, color: "#FF4500" },
             work: { cdpUrl: "http://10.0.0.42:9222", color: "#0066CC" },
           },
         },
@@ -382,7 +420,7 @@ describe("BrowserProfilesService", () => {
         browser: {
           defaultProfile: "work",
           profiles: {
-            astroclaw: { cdpPort: 18800, color: "#FF4500" },
+            openclaw: { cdpPort: 18800, color: "#FF4500" },
             work: { cdpUrl: "http://10.0.0.42:9222", color: "#0066CC" },
           },
         },
@@ -409,18 +447,18 @@ describe("BrowserProfilesService", () => {
 
     vi.mocked(getRuntimeConfig).mockReturnValue({
       browser: {
-        defaultProfile: "astroclaw",
+        defaultProfile: "openclaw",
         profiles: {
-          astroclaw: { cdpPort: 18800, color: "#FF4500" },
+          openclaw: { cdpPort: 18800, color: "#FF4500" },
           work: { cdpPort: 18801, color: "#0066CC" },
         },
       },
     });
 
-    const tempDir = fs.mkdtempSync(path.join("/tmp", "astroclaw-profile-"));
+    const tempDir = fs.mkdtempSync(path.join("/tmp", "openclaw-profile-"));
     const userDataDir = path.join(tempDir, "work", "user-data");
     fs.mkdirSync(path.dirname(userDataDir), { recursive: true });
-    vi.mocked(resolveAstroclawUserDataDir).mockReturnValue(userDataDir);
+    vi.mocked(resolveOpenClawUserDataDir).mockReturnValue(userDataDir);
 
     const service = createBrowserProfilesService(ctx);
     const result = await service.deleteProfile("work");
@@ -444,9 +482,9 @@ describe("BrowserProfilesService", () => {
 
     vi.mocked(getRuntimeConfig).mockReturnValue({
       browser: {
-        defaultProfile: "astroclaw",
+        defaultProfile: "openclaw",
         profiles: {
-          astroclaw: { cdpPort: 18800, color: "#FF4500" },
+          openclaw: { cdpPort: 18800, color: "#FF4500" },
           "chrome-live": {
             cdpPort: 18801,
             color: "#0066CC",
