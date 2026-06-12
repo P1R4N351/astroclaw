@@ -1,5 +1,6 @@
+// Tests stop command target resolution across active sessions and channel routes.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import {
   getActivePluginRegistry,
   resetPluginRuntimeStateForTest,
@@ -12,15 +13,15 @@ import { handleStopCommand } from "./commands-session-abort.js";
 import "./commands-session-abort.test-support.js";
 import type { HandleCommandsParams } from "./commands-types.js";
 
-const abortEmbeddedPiRunMock = vi.hoisted(() => vi.fn());
+const abortEmbeddedAgentRunMock = vi.hoisted(() => vi.fn());
 const createInternalHookEventMock = vi.hoisted(() => vi.fn(() => ({})));
 const persistAbortTargetEntryMock = vi.hoisted(() => vi.fn(async () => true));
 const resolveSessionIdMock = vi.hoisted(() => vi.fn(() => undefined));
 const stopSubagentsForRequesterMock = vi.hoisted(() => vi.fn(() => ({ stopped: 0 })));
 const abortSessionRunTargetMock = vi.hoisted(() => vi.fn());
 
-vi.mock("../../agents/pi-embedded.js", () => ({
-  abortEmbeddedPiRun: abortEmbeddedPiRunMock,
+vi.mock("../../agents/embedded-agent.js", () => ({
+  abortEmbeddedAgentRun: abortEmbeddedAgentRunMock,
 }));
 
 vi.mock("../../globals.js", () => ({
@@ -98,7 +99,7 @@ function buildStopParams(): HandleCommandsParams {
     cfg: {
       commands: { text: true },
       channels: { telegram: { allowFrom: ["*"] } },
-    } as AstroclawConfig,
+    } as OpenClawConfig,
     ctx: {
       Provider: "telegram",
       Surface: "telegram",
@@ -156,7 +157,7 @@ describe("handleStopCommand target fallback", () => {
       key: "agent:target:telegram:direct:123",
       sessionId: undefined,
     });
-    expect(abortEmbeddedPiRunMock).not.toHaveBeenCalledWith("wrapper-session-id");
+    expect(abortEmbeddedAgentRunMock).not.toHaveBeenCalledWith("wrapper-session-id");
     const [[persistAbortTargetParams]] = persistAbortTargetEntryMock.mock.calls as unknown as Array<
       [
         {
@@ -195,7 +196,7 @@ describe("handleStopCommand target fallback", () => {
     const cfg = {
       commands: { text: true, allowFrom: { "*": ["*"] } },
       channels: { telegram: { allowFrom: ["*"] } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const ctx = {
       Provider: "telegram",
       Surface: "telegram",
