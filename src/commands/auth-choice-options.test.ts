@@ -1,3 +1,4 @@
+// Auth-choice option tests cover provider wizard options, grouping, and onboarding scope filters.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthProfileStore } from "../agents/auth-profiles.js";
 import type { ProviderAuthChoiceMetadata } from "../plugins/provider-auth-choices.js";
@@ -22,15 +23,15 @@ vi.mock("./auth-choice-legacy.js", () => ({
 }));
 
 function includesOnboardingScope(
-  scopes: readonly ("text-inference" | "image-generation")[] | undefined,
-  scope: "text-inference" | "image-generation",
+  scopes: readonly ("text-inference" | "image-generation" | "music-generation")[] | undefined,
+  scope: "text-inference" | "image-generation" | "music-generation",
 ): boolean {
   return scopes ? scopes.includes(scope) : scope === "text-inference";
 }
 
 vi.mock("../flows/provider-flow.js", () => ({
   resolveProviderSetupFlowContributions: vi.fn(
-    (params?: { scope?: "text-inference" | "image-generation" }) => {
+    (params?: { scope?: "text-inference" | "image-generation" | "music-generation" }) => {
       const scope = params?.scope ?? "text-inference";
       return [
         ...resolveManifestProviderAuthChoices()
@@ -181,7 +182,34 @@ describe("buildAuthChoiceOptions", () => {
         providerId: "xiaomi",
         methodId: "api-key",
         choiceId: "xiaomi-api-key",
-        choiceLabel: "Xiaomi API key",
+        choiceLabel: "Xiaomi API key (Pay-as-you-go)",
+        groupId: "xiaomi",
+        groupLabel: "Xiaomi",
+      },
+      {
+        pluginId: "xiaomi",
+        providerId: "xiaomi-token-plan",
+        methodId: "token-plan-ams",
+        choiceId: "xiaomi-token-plan-ams",
+        choiceLabel: "Xiaomi Token Plan (Europe)",
+        groupId: "xiaomi",
+        groupLabel: "Xiaomi",
+      },
+      {
+        pluginId: "xiaomi",
+        providerId: "xiaomi-token-plan",
+        methodId: "token-plan-cn",
+        choiceId: "xiaomi-token-plan-cn",
+        choiceLabel: "Xiaomi Token Plan (China)",
+        groupId: "xiaomi",
+        groupLabel: "Xiaomi",
+      },
+      {
+        pluginId: "xiaomi",
+        providerId: "xiaomi-token-plan",
+        methodId: "token-plan-sgp",
+        choiceId: "xiaomi-token-plan-sgp",
+        choiceLabel: "Xiaomi Token Plan (Singapore)",
         groupId: "xiaomi",
         groupLabel: "Xiaomi",
       },
@@ -270,6 +298,9 @@ describe("buildAuthChoiceOptions", () => {
       "github-copilot",
       "zai-api-key",
       "xiaomi-api-key",
+      "xiaomi-token-plan-ams",
+      "xiaomi-token-plan-cn",
+      "xiaomi-token-plan-sgp",
       "minimax-global-api",
       "moonshot-api-key",
       "together-api-key",
@@ -479,6 +510,15 @@ describe("buildAuthChoiceOptions", () => {
         groupId: "byteplus",
         groupLabel: "BytePlus",
       },
+      {
+        pluginId: "openrouter",
+        providerId: "openrouter",
+        methodId: "oauth",
+        choiceId: "openrouter-oauth",
+        choiceLabel: "OpenRouter OAuth",
+        groupId: "openrouter",
+        groupLabel: "OpenRouter",
+      },
     ]);
 
     const { groups } = buildAuthChoiceGroups({
@@ -491,6 +531,7 @@ describe("buildAuthChoiceOptions", () => {
       "Anthropic",
       "xAI (Grok)",
       "Google",
+      "OpenRouter",
       "BytePlus",
       "Custom Provider",
       "LiteLLM",
@@ -557,7 +598,7 @@ describe("buildAuthChoiceOptions", () => {
         assistantPriority: 5,
       },
       {
-        value: "openai-codex",
+        value: "openai",
         label: "ChatGPT/Codex Browser Login",
         groupId: "openai",
         groupLabel: "OpenAI",
@@ -565,7 +606,7 @@ describe("buildAuthChoiceOptions", () => {
         onboardingFeatured: true,
       },
       {
-        value: "openai-codex-device-code",
+        value: "openai-chatgpt-device-code",
         label: "ChatGPT/Codex Device Pairing",
         groupId: "openai",
         groupLabel: "OpenAI",
@@ -580,8 +621,8 @@ describe("buildAuthChoiceOptions", () => {
     const openAIGroup = requireChoiceGroup(groups, "openai");
 
     expect(openAIGroup.options.map((option) => option.value)).toEqual([
-      "openai-codex",
-      "openai-codex-device-code",
+      "openai",
+      "openai-chatgpt-device-code",
       "openai-api-key",
     ]);
     expect(openAIGroup.options[0]?.onboardingFeatured).toBe(true);
@@ -619,7 +660,7 @@ describe("buildAuthChoiceOptions", () => {
     expect(openCodeValues).toContain("opencode-go");
   });
 
-  it("hides image-generation-only providers from the interactive auth picker", () => {
+  it("hides media-generation-only providers from the interactive auth picker", () => {
     resolveManifestProviderAuthChoices.mockReturnValue([
       {
         pluginId: "fal",
@@ -630,6 +671,16 @@ describe("buildAuthChoiceOptions", () => {
         groupId: "fal",
         groupLabel: "fal",
         onboardingScopes: ["image-generation"],
+      },
+      {
+        pluginId: "openrouter",
+        providerId: "openrouter",
+        methodId: "api-key",
+        choiceId: "openrouter-api-key",
+        choiceLabel: "OpenRouter API key",
+        groupId: "openrouter",
+        groupLabel: "OpenRouter",
+        onboardingScopes: ["music-generation"],
       },
       {
         pluginId: "openai",
@@ -650,6 +701,13 @@ describe("buildAuthChoiceOptions", () => {
         onboardingScopes: ["image-generation"],
       },
       {
+        value: "local-music-runtime",
+        label: "Local music runtime",
+        groupId: "local-music-runtime",
+        groupLabel: "Local music runtime",
+        onboardingScopes: ["music-generation"],
+      },
+      {
         value: "ollama",
         label: "Ollama",
         groupId: "ollama",
@@ -663,6 +721,8 @@ describe("buildAuthChoiceOptions", () => {
     expect(optionValues).toContain("openai-api-key");
     expect(optionValues).toContain("ollama");
     expect(optionValues).not.toContain("fal-api-key");
+    expect(optionValues).not.toContain("openrouter-api-key");
     expect(optionValues).not.toContain("local-image-runtime");
+    expect(optionValues).not.toContain("local-music-runtime");
   });
 });
