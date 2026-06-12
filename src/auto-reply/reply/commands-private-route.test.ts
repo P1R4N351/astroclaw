@@ -1,6 +1,8 @@
+// Tests private-route command persistence and timestamp bounds.
+import { MAX_DATE_TIMESTAMP_MS } from "@openclaw/normalization-core/number-coercion";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../../channels/plugins/types.public.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { ExecApprovalRequest } from "../../infra/exec-approvals.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../../plugins/runtime.js";
 import {
@@ -8,7 +10,10 @@ import {
   createTestRegistry,
 } from "../../test-utils/channel-plugins.js";
 import type { MsgContext } from "../templating.js";
-import { resolvePrivateCommandRouteTargets } from "./commands-private-route.js";
+import {
+  resolvePrivateCommandApprovalRouteExpiresAtMs,
+  resolvePrivateCommandRouteTargets,
+} from "./commands-private-route.js";
 import type { HandleCommandsParams } from "./commands-types.js";
 
 function createApprovalChannelPlugin(params: {
@@ -39,7 +44,7 @@ function createOwnerDerivedApprovalChannelPlugin(params: {
   id: "telegram";
   ownerPrefixes: string[];
 }): ChannelPlugin {
-  const resolveOwnerTargets = (cfg: AstroclawConfig) =>
+  const resolveOwnerTargets = (cfg: OpenClawConfig) =>
     (cfg.commands?.ownerAllowFrom ?? [])
       .map((owner) => String(owner))
       .flatMap((owner) => {
@@ -89,7 +94,7 @@ function registerApprovalChannelPlugins(plugins: ChannelPlugin[]) {
   );
 }
 
-function buildCommandParams(cfg: AstroclawConfig): HandleCommandsParams {
+function buildCommandParams(cfg: OpenClawConfig): HandleCommandsParams {
   return {
     cfg,
     ctx: {
@@ -129,7 +134,7 @@ function buildApprovalRequest(): ExecApprovalRequest {
   return {
     id: "diagnostics-private-route",
     request: {
-      command: "astroclaw gateway diagnostics export --json",
+      command: "openclaw gateway diagnostics export --json",
       sessionKey: "agent:main:discord:channel:1487138064806449297",
       turnSourceChannel: "discord",
       turnSourceTo: "channel:1487138064806449297",
@@ -142,6 +147,22 @@ function buildApprovalRequest(): ExecApprovalRequest {
 
 afterEach(() => {
   resetPluginRuntimeStateForTest();
+});
+
+describe("resolvePrivateCommandApprovalRouteExpiresAtMs", () => {
+  it("returns a bounded five-minute route expiry for valid clocks", () => {
+    expect(resolvePrivateCommandApprovalRouteExpiresAtMs(1_800_000_000_000)).toBe(
+      1_800_000_300_000,
+    );
+  });
+
+  it("expires private command routes immediately for invalid clocks", () => {
+    expect(resolvePrivateCommandApprovalRouteExpiresAtMs(Number.NaN)).toBe(0);
+  });
+
+  it("expires private command routes immediately when expiry would exceed Date bounds", () => {
+    expect(resolvePrivateCommandApprovalRouteExpiresAtMs(MAX_DATE_TIMESTAMP_MS)).toBe(0);
+  });
 });
 
 describe("resolvePrivateCommandRouteTargets", () => {
@@ -162,7 +183,7 @@ describe("resolvePrivateCommandRouteTargets", () => {
         commands: {
           ownerAllowFrom: ["telegram:849985193", "discord:493655423946194964"],
         },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
       request: buildApprovalRequest(),
     });
 
@@ -205,7 +226,7 @@ describe("resolvePrivateCommandRouteTargets", () => {
             "whatsapp:+15555550100",
           ],
         },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
       request: buildApprovalRequest(),
     });
 
@@ -232,7 +253,7 @@ describe("resolvePrivateCommandRouteTargets", () => {
         commands: {
           ownerAllowFrom: ["telegram:849985193"],
         },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
       request: buildApprovalRequest(),
     });
 
@@ -268,7 +289,7 @@ describe("resolvePrivateCommandRouteTargets", () => {
             botToken: "test-token",
           },
         },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
       request: buildApprovalRequest(),
     });
 
