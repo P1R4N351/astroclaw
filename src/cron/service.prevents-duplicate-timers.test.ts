@@ -1,3 +1,4 @@
+// Duplicate timer tests cover cron service guards against repeated timer arms.
 import { describe, expect, it, vi } from "vitest";
 import { CronService } from "./service.js";
 import {
@@ -7,7 +8,7 @@ import {
 } from "./service.test-harness.js";
 
 const noopLogger = createNoopLogger();
-const { makeStorePath } = createCronStoreHarness({ prefix: "astroclaw-cron-" });
+const { makeStorePath } = createCronStoreHarness({ prefix: "openclaw-cron-" });
 installCronTestHooks({
   logger: noopLogger,
   baseTimeIso: "2025-12-13T00:00:00.000Z",
