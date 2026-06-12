@@ -1,8 +1,24 @@
-import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+/** Verifies provider auth choice helper defaults, sorting, and config matching. */
+import { beforeAll, describe, expect, it } from "vitest";
+import type { OpenClawConfig } from "../config/config.js";
 import { applyDefaultModel, applyProviderAuthConfigPatch } from "./provider-auth-choice-helpers.js";
 
 describe("applyProviderAuthConfigPatch", () => {
+  beforeAll(() => {
+    applyProviderAuthConfigPatch(
+      {},
+      {
+        models: {
+          providers: {
+            google: {
+              models: [],
+            },
+          },
+        },
+      },
+    );
+  });
+
   const base = {
     agents: {
       defaults: {
@@ -62,13 +78,13 @@ describe("applyProviderAuthConfigPatch", () => {
         params: { maxTokens: 12000 },
       },
     });
-    expect(Object.prototype.hasOwnProperty.call(models, "__proto__")).toBe(false);
+    expect(Object.hasOwn(models ?? {}, "__proto__")).toBe(false);
     expect(Object.getPrototypeOf(Object.assign({}, models)).polluted).toBeUndefined();
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
   it("keeps normal recursive merges for unrelated provider auth patch fields", () => {
-    const base = {
+    const baseLocal = {
       agents: {
         defaults: {
           contextPruning: {
@@ -77,7 +93,7 @@ describe("applyProviderAuthConfigPatch", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
     const patch = {
       agents: {
         defaults: {
@@ -88,7 +104,7 @@ describe("applyProviderAuthConfigPatch", () => {
       },
     };
 
-    const next = applyProviderAuthConfigPatch(base, patch);
+    const next = applyProviderAuthConfigPatch(baseLocal, patch);
 
     expect(next).toEqual({
       agents: {
@@ -100,6 +116,43 @@ describe("applyProviderAuthConfigPatch", () => {
         },
       },
     });
+  });
+
+  it("deletes provider auth fields marked undefined by auth patches", () => {
+    const baseLocal = {
+      models: {
+        providers: {
+          "microsoft-foundry": {
+            baseUrl: "https://example.services.ai.azure.com/openai/v1",
+            api: "anthropic-messages",
+            authHeader: false,
+            apiKey: "FOUNDRY_API_KEY",
+            headers: { "api-key": "FOUNDRY_API_KEY" },
+            models: [],
+          },
+        },
+      },
+    } satisfies OpenClawConfig;
+    const patch = {
+      models: {
+        providers: {
+          "microsoft-foundry": {
+            authHeader: true,
+            apiKey: undefined,
+            headers: undefined,
+          },
+        },
+      },
+    };
+
+    const next = applyProviderAuthConfigPatch(baseLocal, patch);
+    const provider = next.models?.providers?.["microsoft-foundry"] as
+      | Record<string, unknown>
+      | undefined;
+
+    expect(provider).toMatchObject({ authHeader: true });
+    expect(provider).not.toHaveProperty("apiKey");
+    expect(provider).not.toHaveProperty("headers");
   });
 
   it("normalizes retired Google Gemini model refs from provider config patches", () => {
@@ -210,7 +263,7 @@ describe("applyProviderAuthConfigPatch", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const next = applyProviderAuthConfigPatch({}, patch);
 
@@ -240,7 +293,7 @@ describe("applyProviderAuthConfigPatch", () => {
           },
         },
       },
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const next = applyProviderAuthConfigPatch({}, patch);
 
@@ -252,7 +305,7 @@ describe("applyDefaultModel", () => {
   it("sets the primary when none exists", () => {
     const config = {
       agents: { defaults: {} },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const next = applyDefaultModel(config, "openrouter/auto");
     expect(next.agents?.defaults?.model).toEqual({ primary: "openrouter/auto" });
   });
@@ -264,7 +317,7 @@ describe("applyDefaultModel", () => {
           model: { primary: "anthropic/claude-opus-4-6" },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const next = applyDefaultModel(config, "openrouter/auto");
     expect(next.agents?.defaults?.model).toEqual({
       primary: "openrouter/auto",
@@ -278,7 +331,7 @@ describe("applyDefaultModel", () => {
           model: { primary: "anthropic/claude-opus-4-6" },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const next = applyDefaultModel(config, "openrouter/auto", {
       preserveExistingPrimary: true,
     });
@@ -294,7 +347,7 @@ describe("applyDefaultModel", () => {
           model: { primary: "google/gemini-3-pro-preview" },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const next = applyDefaultModel(config, "openrouter/auto", {
       preserveExistingPrimary: true,
     });
@@ -313,7 +366,7 @@ describe("applyDefaultModel", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const next = applyDefaultModel(config, "openrouter/auto", {
       preserveExistingPrimary: true,
     });
@@ -326,7 +379,7 @@ describe("applyDefaultModel", () => {
   it("adds the model to the allowlist", () => {
     const config = {
       agents: { defaults: { models: { "anthropic/claude-sonnet-4-6": {} } } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const next = applyDefaultModel(config, "openrouter/auto");
     expect(next.agents?.defaults?.models).toEqual({
       "anthropic/claude-sonnet-4-6": {},
@@ -337,7 +390,7 @@ describe("applyDefaultModel", () => {
   it("normalizes retired Google Gemini default models before writing config", () => {
     const config = {
       agents: { defaults: { models: { "anthropic/claude-sonnet-4-6": {} } } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const next = applyDefaultModel(config, "google/gemini-3-pro-preview");
     expect(next.agents?.defaults?.model).toEqual({
       primary: "google/gemini-3.1-pro-preview",
@@ -360,7 +413,7 @@ describe("applyDefaultModel", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const next = applyDefaultModel(config, "google/gemini-3.1-pro-preview");
 
@@ -382,7 +435,7 @@ describe("applyDefaultModel", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const next = applyDefaultModel(config, "openrouter/auto");
     expect(next.agents?.defaults?.model).toEqual({
       primary: "openrouter/auto",
