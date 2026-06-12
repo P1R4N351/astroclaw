@@ -1,4 +1,6 @@
+// Verifies lazy service module loading and disabled-state handling.
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { withMockedWindowsPlatform } from "../test-utils/vitest-spies.js";
 import { defaultLoadOverrideModule, startLazyPluginServiceModule } from "./lazy-service-module.js";
 
 type LazyPluginServiceHandle = NonNullable<
@@ -54,8 +56,8 @@ function expectLazyServiceHandle(
 
 describe("startLazyPluginServiceModule", () => {
   afterEach(() => {
-    delete process.env.ASTROCLAW_LAZY_SERVICE_SKIP;
-    delete process.env.ASTROCLAW_LAZY_SERVICE_OVERRIDE;
+    delete process.env.OPENCLAW_LAZY_SERVICE_SKIP;
+    delete process.env.OPENCLAW_LAZY_SERVICE_OVERRIDE;
   });
 
   it("starts the default module and returns its stop hook", async () => {
@@ -73,11 +75,11 @@ describe("startLazyPluginServiceModule", () => {
   });
 
   it("honors skip env before loading the module", async () => {
-    process.env.ASTROCLAW_LAZY_SERVICE_SKIP = "1";
+    process.env.OPENCLAW_LAZY_SERVICE_SKIP = "1";
     const loadDefaultModule = vi.fn(async () => createLazyModuleLifecycle().module);
 
     const handle = await startLazyPluginServiceModule({
-      skipEnvVar: "ASTROCLAW_LAZY_SERVICE_SKIP",
+      skipEnvVar: "OPENCLAW_LAZY_SERVICE_SKIP",
       loadDefaultModule,
       startExportNames: ["startDefault"],
     });
@@ -87,12 +89,12 @@ describe("startLazyPluginServiceModule", () => {
   });
 
   it("uses the override module when configured", async () => {
-    process.env.ASTROCLAW_LAZY_SERVICE_OVERRIDE = "virtual:service";
+    process.env.OPENCLAW_LAZY_SERVICE_OVERRIDE = "virtual:service";
     const start = createAsyncHookMock();
     const loadOverrideModule = vi.fn(async () => ({ startOverride: start }));
 
     await expectLifecycleStarted({
-      overrideEnvVar: "ASTROCLAW_LAZY_SERVICE_OVERRIDE",
+      overrideEnvVar: "OPENCLAW_LAZY_SERVICE_OVERRIDE",
       loadDefaultModule: async () => ({ startDefault: createAsyncHookMock() }),
       loadOverrideModule,
       startExportNames: ["startOverride", "startDefault"],
@@ -103,46 +105,40 @@ describe("startLazyPluginServiceModule", () => {
   });
 
   it("normalizes Windows absolute paths in the default override loader", async () => {
-    const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32");
     const start = createAsyncHookMock();
     const importModule = vi.fn(async () => ({ startOverride: start }));
 
-    try {
+    await withMockedWindowsPlatform(async () => {
       await defaultLoadOverrideModule("C:\\Users\\alice\\plugin folder\\x#y.mjs", importModule);
-    } finally {
-      platformSpy.mockRestore();
-    }
+    });
 
     expect(importModule).toHaveBeenCalledWith("file:///C:/Users/alice/plugin%20folder/x%23y.mjs");
   });
 
   it("leaves caller-supplied override loaders responsible for their own specifiers", async () => {
-    process.env.ASTROCLAW_LAZY_SERVICE_OVERRIDE = "C:\\Users\\alice\\browser-service.mjs";
-    const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    process.env.OPENCLAW_LAZY_SERVICE_OVERRIDE = "C:\\Users\\alice\\browser-service.mjs";
     const start = createAsyncHookMock();
     const loadOverrideModule = vi.fn(async () => ({ startOverride: start }));
 
-    try {
+    await withMockedWindowsPlatform(async () => {
       await expectLifecycleStarted({
-        overrideEnvVar: "ASTROCLAW_LAZY_SERVICE_OVERRIDE",
+        overrideEnvVar: "OPENCLAW_LAZY_SERVICE_OVERRIDE",
         loadOverrideModule,
         startExportNames: ["startOverride"],
       });
-    } finally {
-      platformSpy.mockRestore();
-    }
+    });
 
     expect(loadOverrideModule).toHaveBeenCalledWith("C:\\Users\\alice\\browser-service.mjs");
     expect(start).toHaveBeenCalledTimes(1);
   });
 
   it("validates the override specifier before loading it", async () => {
-    process.env.ASTROCLAW_LAZY_SERVICE_OVERRIDE = "virtual:service";
+    process.env.OPENCLAW_LAZY_SERVICE_OVERRIDE = "virtual:service";
     const loadOverrideModule = vi.fn(async () => ({ startOverride: createAsyncHookMock() }));
     const validateOverrideSpecifier = vi.fn((specifier: string) => `validated:${specifier}`);
 
     await expectLifecycleStarted({
-      overrideEnvVar: "ASTROCLAW_LAZY_SERVICE_OVERRIDE",
+      overrideEnvVar: "OPENCLAW_LAZY_SERVICE_OVERRIDE",
       validateOverrideSpecifier,
       loadOverrideModule,
       startExportNames: ["startOverride"],
@@ -153,11 +149,11 @@ describe("startLazyPluginServiceModule", () => {
   });
 
   it("surfaces override validation failures", async () => {
-    process.env.ASTROCLAW_LAZY_SERVICE_OVERRIDE = "data:text/javascript,boom";
+    process.env.OPENCLAW_LAZY_SERVICE_OVERRIDE = "data:text/javascript,boom";
 
     await expect(
       expectLifecycleStarted({
-        overrideEnvVar: "ASTROCLAW_LAZY_SERVICE_OVERRIDE",
+        overrideEnvVar: "OPENCLAW_LAZY_SERVICE_OVERRIDE",
         validateOverrideSpecifier: () => {
           throw new Error("blocked override");
         },
