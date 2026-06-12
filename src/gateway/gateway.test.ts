@@ -1,3 +1,5 @@
+// Gateway server integration tests cover startup, auth, device pairing, session
+// routing, OpenAI-compatible paths, and environment isolation for local servers.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -24,17 +26,17 @@ const GATEWAY_E2E_TIMEOUT_MS = 90_000;
 let gatewayTestSeq = 0;
 const GATEWAY_TEST_ENV_KEYS = [
   "HOME",
-  "ASTROCLAW_STATE_DIR",
-  "ASTROCLAW_CONFIG_PATH",
-  "ASTROCLAW_GATEWAY_TOKEN",
-  "ASTROCLAW_SKIP_CHANNELS",
-  "ASTROCLAW_SKIP_GMAIL_WATCHER",
-  "ASTROCLAW_SKIP_CRON",
-  "ASTROCLAW_SKIP_CANVAS_HOST",
-  "ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER",
-  "ASTROCLAW_SKIP_PROVIDERS",
-  "ASTROCLAW_BUNDLED_PLUGINS_DIR",
-  "ASTROCLAW_DISABLE_BUNDLED_PLUGINS",
+  "OPENCLAW_STATE_DIR",
+  "OPENCLAW_CONFIG_PATH",
+  "OPENCLAW_GATEWAY_TOKEN",
+  "OPENCLAW_SKIP_CHANNELS",
+  "OPENCLAW_SKIP_GMAIL_WATCHER",
+  "OPENCLAW_SKIP_CRON",
+  "OPENCLAW_SKIP_CANVAS_HOST",
+  "OPENCLAW_SKIP_BROWSER_CONTROL_SERVER",
+  "OPENCLAW_SKIP_PROVIDERS",
+  "OPENCLAW_BUNDLED_PLUGINS_DIR",
+  "OPENCLAW_DISABLE_BUNDLED_PLUGINS",
 ] as const;
 
 function nextGatewayId(prefix: string): string {
@@ -42,9 +44,35 @@ function nextGatewayId(prefix: string): string {
 }
 
 async function createEmptyBundledPluginsDir(tempHome: string): Promise<string> {
-  const bundledPluginsDir = path.join(tempHome, "astroclaw-test-empty-bundled-plugins");
+  const bundledPluginsDir = path.join(tempHome, "openclaw-test-empty-bundled-plugins");
   await fs.mkdir(bundledPluginsDir, { recursive: true });
   return bundledPluginsDir;
+}
+
+async function createGatewayConfigPath(tempHome: string): Promise<string> {
+  const configPath = path.join(tempHome, ".openclaw", "openclaw.json");
+  await fs.mkdir(path.dirname(configPath), { recursive: true });
+  return configPath;
+}
+
+async function removeGatewayTempHome(tempHome: string): Promise<void> {
+  await fs.rm(tempHome, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 50,
+  });
+}
+
+async function startLoopbackTokenGateway(token: string) {
+  const port = await getFreeGatewayPort();
+  const server = await startGatewayServer(port, {
+    bind: "loopback",
+    auth: { mode: "token", token },
+    controlUiEnabled: false,
+    deferStartupSidecars: true,
+  });
+  return { port, server };
 }
 
 async function writeWorkspacePlugin(params: {
@@ -53,10 +81,10 @@ async function writeWorkspacePlugin(params: {
   body: string;
   activation?: { onStartup?: boolean };
 }): Promise<void> {
-  const pluginDir = path.join(params.workspaceDir, ".astroclaw", "extensions", params.id);
+  const pluginDir = path.join(params.workspaceDir, ".openclaw", "extensions", params.id);
   await fs.mkdir(pluginDir, { recursive: true });
   await fs.writeFile(
-    path.join(pluginDir, "astroclaw.plugin.json"),
+    path.join(pluginDir, "openclaw.plugin.json"),
     `${JSON.stringify(
       {
         id: params.id,
@@ -104,50 +132,45 @@ async function readCounterWithRetry(filePath: string): Promise<number> {
 async function setupGatewayTempHome(params: { prefix: string; minimalGateway?: boolean }) {
   const envSnapshot = captureEnv([
     ...GATEWAY_TEST_ENV_KEYS,
-    ...(params.minimalGateway ? (["ASTROCLAW_TEST_MINIMAL_GATEWAY"] as const) : []),
+    ...(params.minimalGateway ? (["OPENCLAW_TEST_MINIMAL_GATEWAY"] as const) : []),
   ]);
 
   const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), params.prefix));
   process.env.HOME = tempHome;
-  process.env.ASTROCLAW_STATE_DIR = path.join(tempHome, ".astroclaw");
-  delete process.env.ASTROCLAW_CONFIG_PATH;
-  process.env.ASTROCLAW_SKIP_CHANNELS = "1";
-  process.env.ASTROCLAW_SKIP_GMAIL_WATCHER = "1";
-  process.env.ASTROCLAW_SKIP_CRON = "1";
-  process.env.ASTROCLAW_SKIP_CANVAS_HOST = "1";
-  process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
-  process.env.ASTROCLAW_SKIP_PROVIDERS = "1";
+  process.env.OPENCLAW_STATE_DIR = path.join(tempHome, ".openclaw");
+  delete process.env.OPENCLAW_CONFIG_PATH;
+  process.env.OPENCLAW_SKIP_CHANNELS = "1";
+  process.env.OPENCLAW_SKIP_GMAIL_WATCHER = "1";
+  process.env.OPENCLAW_SKIP_CRON = "1";
+  process.env.OPENCLAW_SKIP_CANVAS_HOST = "1";
+  process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
+  process.env.OPENCLAW_SKIP_PROVIDERS = "1";
   if (params.minimalGateway) {
-    process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = "1";
+    process.env.OPENCLAW_TEST_MINIMAL_GATEWAY = "1";
   } else {
-    delete process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY;
+    delete process.env.OPENCLAW_TEST_MINIMAL_GATEWAY;
   }
 
-  const workspaceDir = path.join(tempHome, "astroclaw");
+  const workspaceDir = path.join(tempHome, "openclaw");
   await fs.mkdir(workspaceDir, { recursive: true });
-  process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = await createEmptyBundledPluginsDir(tempHome);
-  process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS = "1";
+  process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = await createEmptyBundledPluginsDir(tempHome);
+  process.env.OPENCLAW_DISABLE_BUNDLED_PLUGINS = "1";
   return { envSnapshot, tempHome, workspaceDir };
 }
 
-describe("gateway e2e", () => {
-  beforeEach(() => {
-    clearRuntimeConfigSnapshot();
-    clearConfigCache();
-    clearSessionStoreCacheForTest();
-    resetAgentRunContextForTest();
-    clearAllBootstrapSnapshots();
-    clearGatewaySubagentRuntime();
-  });
+function resetGatewayTestState(): void {
+  clearRuntimeConfigSnapshot();
+  clearConfigCache();
+  clearSessionStoreCacheForTest();
+  resetAgentRunContextForTest();
+  clearAllBootstrapSnapshots();
+  clearGatewaySubagentRuntime();
+}
 
-  afterEach(() => {
-    clearRuntimeConfigSnapshot();
-    clearConfigCache();
-    clearSessionStoreCacheForTest();
-    resetAgentRunContextForTest();
-    clearAllBootstrapSnapshots();
-    clearGatewaySubagentRuntime();
-  });
+describe("gateway e2e", () => {
+  beforeEach(resetGatewayTestState);
+
+  afterEach(resetGatewayTestState);
 
   beforeAll(async () => {
     ({ createConfigIO } = await import("../config/config.js"));
@@ -159,16 +182,14 @@ describe("gateway e2e", () => {
     async () => {
       const { baseUrl: openaiBaseUrl, restore } = installOpenAiResponsesMock();
       const { envSnapshot, tempHome, workspaceDir } = await setupGatewayTempHome({
-        prefix: "astroclaw-gw-mock-home-",
+        prefix: "openclaw-gw-mock-home-",
         minimalGateway: true,
       });
 
       const token = nextGatewayId("test-token");
-      process.env.ASTROCLAW_GATEWAY_TOKEN = token;
+      process.env.OPENCLAW_GATEWAY_TOKEN = token;
 
-      const configDir = path.join(tempHome, ".astroclaw");
-      await fs.mkdir(configDir, { recursive: true });
-      const configPath = path.join(configDir, "astroclaw.json");
+      const configPath = await createGatewayConfigPath(tempHome);
       const mockProvider = buildMockOpenAiResponsesProvider(openaiBaseUrl);
 
       const cfg = {
@@ -219,15 +240,17 @@ describe("gateway e2e", () => {
 
         expect(payload?.status).toBe("accepted");
         expect(typeof payload?.runId).toBe("string");
+
+        const abortPayload = await client.request(
+          "sessions.abort",
+          { runId: payload.runId },
+          { timeoutMs: 5_000 },
+        );
+        expect(["aborted", "no-active-run"]).toContain(abortPayload?.status);
       } finally {
         await disconnectGatewayClient(client);
         await server.close({ reason: "mock openai test complete" });
-        await fs.rm(tempHome, {
-          recursive: true,
-          force: true,
-          maxRetries: 10,
-          retryDelay: 50,
-        });
+        await removeGatewayTempHome(tempHome);
         restore();
         envSnapshot.restore();
       }
@@ -239,11 +262,11 @@ describe("gateway e2e", () => {
     { timeout: GATEWAY_E2E_TIMEOUT_MS },
     async () => {
       const { envSnapshot, tempHome, workspaceDir } = await setupGatewayTempHome({
-        prefix: "astroclaw-gw-http-tools-home-",
+        prefix: "openclaw-gw-http-tools-home-",
       });
 
       const token = nextGatewayId("http-tools-token");
-      process.env.ASTROCLAW_GATEWAY_TOKEN = token;
+      process.env.OPENCLAW_GATEWAY_TOKEN = token;
       const registerCountPath = path.join(tempHome, "workspace-plugin-register-count.txt");
       await writeWorkspacePlugin({
         workspaceDir,
@@ -264,9 +287,7 @@ module.exports = {
 `.trimStart(),
       });
 
-      const configDir = path.join(tempHome, ".astroclaw");
-      await fs.mkdir(configDir, { recursive: true });
-      const configPath = path.join(configDir, "astroclaw.json");
+      const configPath = await createGatewayConfigPath(tempHome);
       const cfg = {
         agents: {
           defaults: { workspace: workspaceDir },
@@ -278,14 +299,9 @@ module.exports = {
         gateway: { auth: { token } },
       };
       await fs.writeFile(configPath, `${JSON.stringify(cfg, null, 2)}\n`);
-      process.env.ASTROCLAW_CONFIG_PATH = configPath;
+      process.env.OPENCLAW_CONFIG_PATH = configPath;
 
-      const port = await getFreeGatewayPort();
-      const server = await startGatewayServer(port, {
-        bind: "loopback",
-        auth: { mode: "token", token },
-        controlUiEnabled: false,
-      });
+      const { port, server } = await startLoopbackTokenGateway(token);
 
       try {
         const beforeCount = await readCounterWithRetry(registerCountPath);
@@ -314,12 +330,7 @@ module.exports = {
         expect(afterCount).toBe(beforeCount);
       } finally {
         await server.close({ reason: "http tools workspace test complete" });
-        await fs.rm(tempHome, {
-          recursive: true,
-          force: true,
-          maxRetries: 10,
-          retryDelay: 50,
-        });
+        await removeGatewayTempHome(tempHome);
         envSnapshot.restore();
       }
     },
@@ -329,38 +340,14 @@ module.exports = {
     "runs wizard over ws and writes auth token config",
     { timeout: GATEWAY_E2E_TIMEOUT_MS },
     async () => {
-      const envSnapshot = captureEnv([
-        "HOME",
-        "ASTROCLAW_STATE_DIR",
-        "ASTROCLAW_CONFIG_PATH",
-        "ASTROCLAW_GATEWAY_TOKEN",
-        "ASTROCLAW_SKIP_CHANNELS",
-        "ASTROCLAW_SKIP_GMAIL_WATCHER",
-        "ASTROCLAW_SKIP_CRON",
-        "ASTROCLAW_SKIP_CANVAS_HOST",
-        "ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER",
-        "ASTROCLAW_SKIP_PROVIDERS",
-        "ASTROCLAW_BUNDLED_PLUGINS_DIR",
-        "ASTROCLAW_DISABLE_BUNDLED_PLUGINS",
-        "ASTROCLAW_TEST_MINIMAL_GATEWAY",
-      ]);
+      const { envSnapshot, tempHome } = await setupGatewayTempHome({
+        prefix: "openclaw-wizard-home-",
+        minimalGateway: true,
+      });
+      delete process.env.OPENCLAW_GATEWAY_TOKEN;
 
-      process.env.ASTROCLAW_SKIP_CHANNELS = "1";
-      process.env.ASTROCLAW_SKIP_GMAIL_WATCHER = "1";
-      process.env.ASTROCLAW_SKIP_CRON = "1";
-      process.env.ASTROCLAW_SKIP_CANVAS_HOST = "1";
-      process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
-      process.env.ASTROCLAW_SKIP_PROVIDERS = "1";
-      process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = "1";
-      delete process.env.ASTROCLAW_GATEWAY_TOKEN;
-
-      const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-wizard-home-"));
-      const configPath = path.join(tempHome, ".astroclaw", "astroclaw.json");
-      process.env.HOME = tempHome;
-      process.env.ASTROCLAW_STATE_DIR = path.join(tempHome, ".astroclaw");
-      process.env.ASTROCLAW_CONFIG_PATH = configPath;
-      process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = await createEmptyBundledPluginsDir(tempHome);
-      process.env.ASTROCLAW_DISABLE_BUNDLED_PLUGINS = "1";
+      const configPath = await createGatewayConfigPath(tempHome);
+      process.env.OPENCLAW_CONFIG_PATH = configPath;
       clearRuntimeConfigSnapshot();
       clearConfigCache();
 
@@ -465,12 +452,7 @@ module.exports = {
         expect(resToken.ok).toBe(true);
       } finally {
         await server2.close({ reason: "wizard auth verify" });
-        await fs.rm(tempHome, {
-          recursive: true,
-          force: true,
-          maxRetries: 10,
-          retryDelay: 50,
-        });
+        await removeGatewayTempHome(tempHome);
         envSnapshot.restore();
       }
     },
@@ -482,51 +464,45 @@ module.exports = {
     async () => {
       const envSnapshot = captureEnv([
         "HOME",
-        "ASTROCLAW_STATE_DIR",
-        "ASTROCLAW_CONFIG_PATH",
-        "ASTROCLAW_GATEWAY_TOKEN",
-        "ASTROCLAW_SKIP_CHANNELS",
-        "ASTROCLAW_SKIP_GMAIL_WATCHER",
-        "ASTROCLAW_SKIP_CRON",
-        "ASTROCLAW_SKIP_CANVAS_HOST",
-        "ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER",
-        "ASTROCLAW_SKIP_PROVIDERS",
-        "ASTROCLAW_BUNDLED_PLUGINS_DIR",
-        "ASTROCLAW_TEST_MINIMAL_GATEWAY",
+        "OPENCLAW_STATE_DIR",
+        "OPENCLAW_CONFIG_PATH",
+        "OPENCLAW_GATEWAY_TOKEN",
+        "OPENCLAW_SKIP_CHANNELS",
+        "OPENCLAW_SKIP_GMAIL_WATCHER",
+        "OPENCLAW_SKIP_CRON",
+        "OPENCLAW_SKIP_CANVAS_HOST",
+        "OPENCLAW_SKIP_BROWSER_CONTROL_SERVER",
+        "OPENCLAW_SKIP_PROVIDERS",
+        "OPENCLAW_BUNDLED_PLUGINS_DIR",
+        "OPENCLAW_TEST_MINIMAL_GATEWAY",
         "DISCORD_BOT_TOKEN",
       ]);
 
-      const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-minimal-gateway-home-"));
-      const configPath = path.join(tempHome, ".astroclaw", "astroclaw.json");
-      const bundledPluginsDir = path.join(tempHome, "astroclaw-test-no-bundled-extensions");
+      const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-minimal-gateway-home-"));
+      const configPath = await createGatewayConfigPath(tempHome);
+      const bundledPluginsDir = path.join(tempHome, "openclaw-test-no-bundled-extensions");
       process.env.HOME = tempHome;
-      process.env.ASTROCLAW_STATE_DIR = path.join(tempHome, ".astroclaw");
-      process.env.ASTROCLAW_CONFIG_PATH = configPath;
-      process.env.ASTROCLAW_SKIP_CHANNELS = "1";
-      process.env.ASTROCLAW_SKIP_GMAIL_WATCHER = "1";
-      process.env.ASTROCLAW_SKIP_CRON = "1";
-      process.env.ASTROCLAW_SKIP_CANVAS_HOST = "1";
-      process.env.ASTROCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
-      process.env.ASTROCLAW_SKIP_PROVIDERS = "1";
-      process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = bundledPluginsDir;
-      process.env.ASTROCLAW_TEST_MINIMAL_GATEWAY = "1";
+      process.env.OPENCLAW_STATE_DIR = path.join(tempHome, ".openclaw");
+      process.env.OPENCLAW_CONFIG_PATH = configPath;
+      process.env.OPENCLAW_SKIP_CHANNELS = "1";
+      process.env.OPENCLAW_SKIP_GMAIL_WATCHER = "1";
+      process.env.OPENCLAW_SKIP_CRON = "1";
+      process.env.OPENCLAW_SKIP_CANVAS_HOST = "1";
+      process.env.OPENCLAW_SKIP_BROWSER_CONTROL_SERVER = "1";
+      process.env.OPENCLAW_SKIP_PROVIDERS = "1";
+      process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledPluginsDir;
+      process.env.OPENCLAW_TEST_MINIMAL_GATEWAY = "1";
       process.env.DISCORD_BOT_TOKEN = "discord-test-token";
 
       const token = nextGatewayId("minimal-token");
-      process.env.ASTROCLAW_GATEWAY_TOKEN = token;
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
+      process.env.OPENCLAW_GATEWAY_TOKEN = token;
       await fs.mkdir(bundledPluginsDir, { recursive: true });
       await fs.writeFile(
         configPath,
         `${JSON.stringify({ gateway: { auth: { mode: "token", token } } }, null, 2)}\n`,
       );
 
-      const port = await getFreeGatewayPort();
-      const server = await startGatewayServer(port, {
-        bind: "loopback",
-        auth: { mode: "token", token },
-        controlUiEnabled: false,
-      });
+      const { server } = await startLoopbackTokenGateway(token);
 
       try {
         const parsed = JSON.parse(await fs.readFile(configPath, "utf8")) as {
@@ -536,12 +512,7 @@ module.exports = {
         expect(parsed.plugins?.entries?.discord).toBeUndefined();
       } finally {
         await server.close({ reason: "minimal gateway auto-enable verify" });
-        await fs.rm(tempHome, {
-          recursive: true,
-          force: true,
-          maxRetries: 10,
-          retryDelay: 50,
-        });
+        await removeGatewayTempHome(tempHome);
         envSnapshot.restore();
       }
     },
