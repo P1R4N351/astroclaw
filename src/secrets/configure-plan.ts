@@ -1,11 +1,13 @@
+/** Builds the interactive `openclaw secrets configure` target list and apply plan. */
 import { isDeepStrictEqual } from "node:util";
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   resolveSecretInputRef,
   type SecretProviderConfig,
   type SecretRef,
 } from "../config/types.secrets.js";
+import { parseConfigPathArrayIndex } from "../shared/path-array-index.js";
 import type { SecretsApplyPlan } from "./plan.js";
 import { isRecord } from "./shared.js";
 import {
@@ -13,12 +15,13 @@ import {
   discoverConfigSecretTargets,
 } from "./target-registry.js";
 
+/** Credential target shown by `openclaw secrets configure` before a SecretRef is selected. */
 export type ConfigureCandidate = {
   type: string;
   path: string;
   pathSegments: string[];
   label: string;
-  configFile: "astroclaw.json" | "auth-profiles.json";
+  configFile: "openclaw.json" | "auth-profiles.json";
   expectedResolvedValue: "string" | "string-or-object";
   existingRef?: SecretRef;
   isDerived?: boolean;
@@ -28,23 +31,26 @@ export type ConfigureCandidate = {
   authProfileProvider?: string;
 };
 
+/** Configure candidate after the operator chooses the SecretRef to write. */
 export type ConfigureSelectedTarget = ConfigureCandidate & {
   ref: SecretRef;
 };
 
+/** Provider config mutations collected while building a secrets configure plan. */
 export type ConfigureProviderChanges = {
   upserts: Record<string, SecretProviderConfig>;
   deletes: string[];
 };
 
-function getSecretProviders(config: AstroclawConfig): Record<string, SecretProviderConfig> {
+function getSecretProviders(config: OpenClawConfig): Record<string, SecretProviderConfig> {
   if (!isRecord(config.secrets?.providers)) {
     return {};
   }
   return config.secrets.providers;
 }
 
-export function buildConfigureCandidates(config: AstroclawConfig): ConfigureCandidate[] {
+/** Builds configure candidates for the current OpenClaw config only. */
+export function buildConfigureCandidates(config: OpenClawConfig): ConfigureCandidate[] {
   return buildConfigureCandidatesForScope({ config });
 }
 
@@ -53,7 +59,7 @@ function configureCandidateSortKey(candidate: ConfigureCandidate): string {
     const agentId = candidate.agentId ?? "";
     return `auth-profiles:${agentId}:${candidate.path}`;
   }
-  return `astroclaw:${candidate.path}`;
+  return `openclaw:${candidate.path}`;
 }
 
 function resolveAuthProfileProvider(
@@ -72,20 +78,21 @@ function resolveAuthProfileProvider(
   return provider.length > 0 ? provider : undefined;
 }
 
+/** Builds configure candidates for OpenClaw config plus an optional auth-profile scope. */
 export function buildConfigureCandidatesForScope(params: {
-  config: AstroclawConfig;
-  authoredAstroclawConfig?: AstroclawConfig;
+  config: OpenClawConfig;
+  authoredOpenClawConfig?: OpenClawConfig;
   authProfiles?: {
     agentId: string;
     store: AuthProfileStore;
   };
 }): ConfigureCandidate[] {
-  const authoredConfig = params.authoredAstroclawConfig ?? params.config;
+  const authoredConfig = params.authoredOpenClawConfig ?? params.config;
 
   const hasPathInAuthoredConfig = (pathSegments: string[]): boolean =>
     hasPath(authoredConfig, pathSegments);
 
-  const astroclawCandidates = discoverConfigSecretTargets(params.config)
+  const openclawCandidates = discoverConfigSecretTargets(params.config)
     .filter((entry) => entry.entry.includeInConfigure)
     .map((entry) => {
       const resolved = resolveSecretInputRef({
@@ -97,13 +104,15 @@ export function buildConfigureCandidatesForScope(params: {
       const refPathExists = entry.refPathSegments
         ? hasPathInAuthoredConfig(entry.refPathSegments)
         : false;
+      // Generated/defaulted target paths are still configurable, but mark them derived so
+      // prompts can distinguish authored config from normalized aliases.
       return Object.assign(
         {
           type: entry.entry.targetType,
           path: entry.path,
           pathSegments: [...entry.pathSegments],
           label: entry.path,
-          configFile: `astroclaw.json` as const,
+          configFile: `openclaw.json` as const,
           expectedResolvedValue: entry.entry.expectedResolvedValue,
         },
         resolved.ref ? { existingRef: resolved.ref } : {},
@@ -127,6 +136,7 @@ export function buildConfigureCandidatesForScope(params: {
               authProfiles.store,
               entry.pathSegments,
             );
+            // Auth-profile apply can create missing profiles only when the provider is known.
             const resolved = resolveSecretInputRef({
               value: entry.value,
               refValue: entry.refValue,
@@ -147,7 +157,7 @@ export function buildConfigureCandidatesForScope(params: {
             );
           });
 
-  return [...astroclawCandidates, ...authCandidates].toSorted((a, b) =>
+  return [...openclawCandidates, ...authCandidates].toSorted((a, b) =>
     configureCandidateSortKey(a).localeCompare(configureCandidateSortKey(b)),
   );
 }
@@ -160,11 +170,8 @@ function hasPath(root: unknown, segments: string[]): boolean {
   for (let index = 0; index < segments.length; index += 1) {
     const segment = segments[index] ?? "";
     if (Array.isArray(cursor)) {
-      if (!/^\d+$/.test(segment)) {
-        return false;
-      }
-      const parsedIndex = Number.parseInt(segment, 10);
-      if (!Number.isFinite(parsedIndex) || parsedIndex < 0 || parsedIndex >= cursor.length) {
+      const parsedIndex = parseConfigPathArrayIndex(segment);
+      if (parsedIndex === undefined || parsedIndex >= cursor.length) {
         return false;
       }
       if (index === segments.length - 1) {
@@ -176,7 +183,7 @@ function hasPath(root: unknown, segments: string[]): boolean {
     if (!isRecord(cursor)) {
       return false;
     }
-    if (!Object.prototype.hasOwnProperty.call(cursor, segment)) {
+    if (!Object.hasOwn(cursor, segment)) {
       return false;
     }
     if (index === segments.length - 1) {
@@ -187,9 +194,10 @@ function hasPath(root: unknown, segments: string[]): boolean {
   return false;
 }
 
+/** Computes provider upserts/deletes between original and edited config. */
 export function collectConfigureProviderChanges(params: {
-  original: AstroclawConfig;
-  next: AstroclawConfig;
+  original: OpenClawConfig;
+  next: OpenClawConfig;
 }): ConfigureProviderChanges {
   const originalProviders = getSecretProviders(params.original);
   const nextProviders = getSecretProviders(params.next);
@@ -206,7 +214,7 @@ export function collectConfigureProviderChanges(params: {
   }
 
   for (const providerAlias of Object.keys(originalProviders)) {
-    if (!Object.prototype.hasOwnProperty.call(nextProviders, providerAlias)) {
+    if (!Object.hasOwn(nextProviders, providerAlias)) {
       deletes.push(providerAlias);
     }
   }
@@ -217,6 +225,7 @@ export function collectConfigureProviderChanges(params: {
   };
 }
 
+/** Returns true when selected targets or provider mutations would produce a plan. */
 export function hasConfigurePlanChanges(params: {
   selectedTargets: ReadonlyMap<string, ConfigureSelectedTarget>;
   providerChanges: ConfigureProviderChanges;
@@ -228,6 +237,7 @@ export function hasConfigurePlanChanges(params: {
   );
 }
 
+/** Builds the serializable secrets apply plan from configure selections. */
 export function buildSecretsConfigurePlan(params: {
   selectedTargets: ReadonlyMap<string, ConfigureSelectedTarget>;
   providerChanges: ConfigureProviderChanges;
@@ -237,7 +247,7 @@ export function buildSecretsConfigurePlan(params: {
     version: 1,
     protocolVersion: 1,
     generatedAt: params.generatedAt ?? new Date().toISOString(),
-    generatedBy: "astroclaw secrets configure",
+    generatedBy: "openclaw secrets configure",
     targets: [...params.selectedTargets.values()].map((entry) =>
       Object.assign(
         {
