@@ -1,3 +1,4 @@
+// Directory CLI tests cover directory command registration and plugin-backed lookups.
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerDirectoryCli } from "./directory-cli.js";
@@ -114,7 +115,7 @@ describe("registerDirectoryCli", () => {
       configChanged: true,
     });
 
-    const program = new Command().name("astroclaw");
+    const program = new Command().name("openclaw");
     registerDirectoryCli(program);
 
     await program.parseAsync(["directory", "self", "--channel", "demo-directory", "--json"], {
@@ -157,7 +158,7 @@ describe("registerDirectoryCli", () => {
       directory: { self },
     });
 
-    const program = new Command().name("astroclaw");
+    const program = new Command().name("openclaw");
     registerDirectoryCli(program);
 
     await program.parseAsync(["directory", "self", "--json"], { from: "user" });
@@ -191,7 +192,7 @@ describe("registerDirectoryCli", () => {
       configChanged: false,
     });
 
-    const program = new Command().name("astroclaw");
+    const program = new Command().name("openclaw");
     registerDirectoryCli(program);
 
     await program.parseAsync(
@@ -233,7 +234,7 @@ describe("registerDirectoryCli", () => {
       configChanged: false,
     });
 
-    const program = new Command().name("astroclaw");
+    const program = new Command().name("openclaw");
     registerDirectoryCli(program);
 
     await program.parseAsync(["directory", "groups", "list", "--channel", "slack", "--json"], {
@@ -249,33 +250,75 @@ describe("registerDirectoryCli", () => {
 
   it("reports unsupported directory capability instead of continuing setup for installed plugins", async () => {
     mocks.resolveInstallableChannelPlugin.mockResolvedValue({
-      cfg: { channels: { "astroclaw-weixin": {} } },
-      channelId: "astroclaw-weixin",
+      cfg: { channels: { "openclaw-weixin": {} } },
+      channelId: "openclaw-weixin",
       plugin: {
-        id: "astroclaw-weixin",
+        id: "openclaw-weixin",
       },
       configChanged: false,
       pluginInstalled: false,
     });
 
-    const program = new Command().name("astroclaw");
+    const program = new Command().name("openclaw");
     registerDirectoryCli(program);
 
     await expect(
-      program.parseAsync(["directory", "peers", "list", "--channel", "astroclaw-weixin"], {
+      program.parseAsync(["directory", "peers", "list", "--channel", "openclaw-weixin"], {
         from: "user",
       }),
     ).rejects.toThrow("exit:1");
 
     expect(mocks.resolveInstallableChannelPlugin).toHaveBeenCalledTimes(1);
     const installArgs = firstRecordArg(mocks.resolveInstallableChannelPlugin);
-    expect(installArgs.rawChannel).toBe("astroclaw-weixin");
+    expect(installArgs.rawChannel).toBe("openclaw-weixin");
     expect(installArgs.allowInstall).toBe(true);
     expect(mocks.replaceConfigFile).not.toHaveBeenCalled();
     expect(
       runtimeErrors().some((message) =>
-        message.includes("Channel astroclaw-weixin does not support directory peers"),
+        message.includes("Channel openclaw-weixin does not support directory peers"),
       ),
     ).toBe(true);
+  });
+
+  it.each([
+    ["peers list", ["directory", "peers", "list", "--channel", "slack", "--limit", "5x"]],
+    ["groups list", ["directory", "groups", "list", "--channel", "slack", "--limit", "5x"]],
+    [
+      "group members",
+      [
+        "directory",
+        "groups",
+        "members",
+        "--channel",
+        "slack",
+        "--group-id",
+        "group-1",
+        "--limit",
+        "5x",
+      ],
+    ],
+  ])("rejects partial directory limit for %s", async (_label, args) => {
+    mocks.resolveInstallableChannelPlugin.mockResolvedValue({
+      cfg: { channels: { slack: {} } },
+      channelId: "slack",
+      plugin: {
+        id: "slack",
+        directory: {
+          listPeers: vi.fn().mockResolvedValue([]),
+          listGroups: vi.fn().mockResolvedValue([]),
+          listGroupMembers: vi.fn().mockResolvedValue([]),
+        },
+      },
+      configChanged: false,
+    });
+
+    const program = new Command().name("openclaw");
+    registerDirectoryCli(program);
+
+    await expect(program.parseAsync(args, { from: "user" })).rejects.toThrow("exit:1");
+
+    expect(runtimeErrors().join("\n")).toContain("--limit must be a positive integer.");
+    expect(mocks.resolveInstallableChannelPlugin).not.toHaveBeenCalled();
+    expect(mocks.replaceConfigFile).not.toHaveBeenCalled();
   });
 });
