@@ -1,3 +1,4 @@
+// Discord tests cover provider.startup plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Client, Plugin } from "../internal/discord.js";
 
@@ -24,15 +25,15 @@ vi.mock("../internal/voice.js", () => ({
   },
 }));
 
-vi.mock("astroclaw/plugin-sdk/dangerous-name-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/dangerous-name-runtime", () => ({
   isDangerousNameMatchingEnabled: () => false,
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   danger: (value: string) => value,
 }));
 
-vi.mock("astroclaw/plugin-sdk/string-coerce-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/string-coerce-runtime", () => ({
   normalizeOptionalString: (value: string | null | undefined) => {
     if (typeof value !== "string") {
       return undefined;
