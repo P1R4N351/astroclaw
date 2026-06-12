@@ -1,3 +1,4 @@
+// Status overview row tests cover status-all overview values, update metadata, and display rows.
 import { describe, expect, it } from "vitest";
 import { VERSION } from "../version.js";
 import {
@@ -59,7 +60,7 @@ describe("status-overview-rows", () => {
         gatewayConnection: { url: "wss://gateway.example.com", urlSource: "config" },
       },
       osLabel: "macOS",
-      configPath: "/tmp/astroclaw.json",
+      configPath: "/tmp/openclaw.json",
       secretDiagnosticsCount: 2,
       updateRestartValue: "restart pending health verification",
       agentStatus: {
@@ -72,9 +73,9 @@ describe("status-overview-rows", () => {
 
     expect(findRowValue(rows, "Version")).toBe(VERSION);
     expect(findRowValue(rows, "OS")).toBe("macOS");
-    expect(findRowValue(rows, "Config")).toBe("/tmp/astroclaw.json");
+    expect(findRowValue(rows, "Config")).toBe("/tmp/openclaw.json");
     expect(findRowValue(rows, "Update restart")).toBe("restart pending health verification");
-    expect(findRowValue(rows, "Security")).toBe("Run: astroclaw security audit --deep");
+    expect(findRowValue(rows, "Security")).toBe("Run: openclaw security audit --deep");
     expect(findRowValue(rows, "Secrets")).toBe("2 diagnostics");
   });
 });
