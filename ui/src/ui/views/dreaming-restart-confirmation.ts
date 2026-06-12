@@ -1,3 +1,4 @@
+// Control UI view renders dreaming restart confirmation screen content.
 import { html, nothing } from "lit";
 import { t } from "../../i18n/index.ts";
 import "../components/modal-dialog.ts";
@@ -25,7 +26,7 @@ export function renderDreamingRestartConfirmation(props: DreamingRestartConfirma
   };
 
   return html`
-    <astroclaw-modal-dialog label=${title} description=${description} @modal-cancel=${handleCancel}>
+    <openclaw-modal-dialog label=${title} description=${description} @modal-cancel=${handleCancel}>
       <div class="exec-approval-card">
         <div class="exec-approval-header">
           <div>
@@ -50,6 +51,6 @@ export function renderDreamingRestartConfirmation(props: DreamingRestartConfirma
           </button>
         </div>
       </div>
-    </astroclaw-modal-dialog>
+    </openclaw-modal-dialog>
   `;
 }
