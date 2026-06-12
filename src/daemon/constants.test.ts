@@ -1,3 +1,4 @@
+// Daemon constant tests cover platform constants used by service installers.
 import { describe, expect, it } from "vitest";
 import {
   formatGatewayServiceDescription,
@@ -32,12 +33,12 @@ describe("resolveGatewayLaunchAgentLabel", () => {
   it("returns default label when no profile is set", () => {
     const result = resolveGatewayLaunchAgentLabel();
     expect(result).toBe(GATEWAY_LAUNCH_AGENT_LABEL);
-    expect(result).toBe("ai.astroclaw.gateway");
+    expect(result).toBe("ai.openclaw.gateway");
   });
 
   it("returns profile-specific label when profile is set", () => {
     const result = resolveGatewayLaunchAgentLabel("dev");
-    expect(result).toBe("ai.astroclaw.dev");
+    expect(result).toBe("ai.openclaw.dev");
   });
 });
 
@@ -45,12 +46,12 @@ describe("resolveGatewaySystemdServiceName", () => {
   it("returns default service name when no profile is set", () => {
     const result = resolveGatewaySystemdServiceName();
     expect(result).toBe(GATEWAY_SYSTEMD_SERVICE_NAME);
-    expect(result).toBe("astroclaw-gateway");
+    expect(result).toBe("openclaw-gateway");
   });
 
   it("returns profile-specific service name when profile is set", () => {
     const result = resolveGatewaySystemdServiceName("dev");
-    expect(result).toBe("astroclaw-gateway-dev");
+    expect(result).toBe("openclaw-gateway-dev");
   });
 });
 
@@ -58,12 +59,12 @@ describe("resolveGatewayWindowsTaskName", () => {
   it("returns default task name when no profile is set", () => {
     const result = resolveGatewayWindowsTaskName();
     expect(result).toBe(GATEWAY_WINDOWS_TASK_NAME);
-    expect(result).toBe("Astroclaw Gateway");
+    expect(result).toBe("OpenClaw Gateway");
   });
 
   it("returns profile-specific task name when profile is set", () => {
     const result = resolveGatewayWindowsTaskName("dev");
-    expect(result).toBe("Astroclaw Gateway (dev)");
+    expect(result).toBe("OpenClaw Gateway (dev)");
   });
 });
 
@@ -88,24 +89,24 @@ describe("resolveGatewayProfileSuffix", () => {
 
 describe("formatGatewayServiceDescription", () => {
   it("returns default description when no profile/version", () => {
-    expect(formatGatewayServiceDescription()).toBe("Astroclaw Gateway");
+    expect(formatGatewayServiceDescription()).toBe("OpenClaw Gateway");
   });
 
   it("includes profile when set", () => {
     expect(formatGatewayServiceDescription({ profile: "work" })).toBe(
-      "Astroclaw Gateway (profile: work)",
+      "OpenClaw Gateway (profile: work)",
     );
   });
 
   it("includes version when set", () => {
     expect(formatGatewayServiceDescription({ version: "2026.1.10" })).toBe(
-      "Astroclaw Gateway (v2026.1.10)",
+      "OpenClaw Gateway (v2026.1.10)",
     );
   });
 
   it("includes profile and version when set", () => {
     expect(formatGatewayServiceDescription({ profile: "dev", version: "1.2.3" })).toBe(
-      "Astroclaw Gateway (profile: dev, v1.2.3)",
+      "OpenClaw Gateway (profile: dev, v1.2.3)",
     );
   });
 });
@@ -114,7 +115,7 @@ describe("resolveGatewayServiceDescription", () => {
   it("prefers explicit description override", () => {
     expect(
       resolveGatewayServiceDescription({
-        env: { ASTROCLAW_PROFILE: "work", ASTROCLAW_SERVICE_VERSION: "1.0.0" },
+        env: { OPENCLAW_PROFILE: "work", OPENCLAW_SERVICE_VERSION: "1.0.0" },
         description: "Custom",
       }),
     ).toBe("Custom");
@@ -123,10 +124,10 @@ describe("resolveGatewayServiceDescription", () => {
   it("resolves version from explicit environment map", () => {
     expect(
       resolveGatewayServiceDescription({
-        env: { ASTROCLAW_PROFILE: "work", ASTROCLAW_SERVICE_VERSION: "local" },
-        environment: { ASTROCLAW_SERVICE_VERSION: "remote" },
+        env: { OPENCLAW_PROFILE: "work", OPENCLAW_SERVICE_VERSION: "local" },
+        environment: { OPENCLAW_SERVICE_VERSION: "remote" },
       }),
-    ).toBe("Astroclaw Gateway (profile: work, vremote)");
+    ).toBe("OpenClaw Gateway (profile: work, vremote)");
   });
 });
 
