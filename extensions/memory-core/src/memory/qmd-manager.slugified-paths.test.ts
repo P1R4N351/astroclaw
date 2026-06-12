@@ -1,3 +1,4 @@
+// Memory Core tests cover qmd manager.slugified paths plugin behavior.
 import { EventEmitter } from "node:events";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -36,22 +37,17 @@ function createMockChild(params?: { autoClose?: boolean }): MockChild {
   return child;
 }
 
-function emitAndClose(
-  child: MockChild,
-  stream: "stdout" | "stderr",
-  data: string,
-  code: number = 0,
-) {
+function emitAndClose(child: MockChild, stream: "stdout" | "stderr", data: string, code = 0) {
   queueMicrotask(() => {
     child[stream].emit("data", data);
     child.closeWith(code);
   });
 }
 
-vi.mock("astroclaw/plugin-sdk/memory-core-host-engine-foundation", async () => {
+vi.mock("openclaw/plugin-sdk/memory-core-host-engine-foundation", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/memory-core-host-engine-foundation")
-  >("astroclaw/plugin-sdk/memory-core-host-engine-foundation");
+    typeof import("openclaw/plugin-sdk/memory-core-host-engine-foundation")
+  >("openclaw/plugin-sdk/memory-core-host-engine-foundation");
   return {
     ...actual,
     createSubsystemLogger: () => {
@@ -75,8 +71,8 @@ vi.mock("node:child_process", async () => {
 });
 
 import { spawn as mockedSpawn } from "node:child_process";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/memory-core-host-engine-foundation";
-import { resolveMemoryBackendConfig } from "astroclaw/plugin-sdk/memory-core-host-engine-storage";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/memory-core-host-engine-foundation";
+import { resolveMemoryBackendConfig } from "openclaw/plugin-sdk/memory-core-host-engine-storage";
 import { QmdMemoryManager } from "./qmd-manager.js";
 
 const spawnMock = mockedSpawn as unknown as Mock;
@@ -85,7 +81,7 @@ describe("QmdMemoryManager slugified path resolution", () => {
   let tmpRoot: string;
   let workspaceDir: string;
   let stateDir: string;
-  let cfg: AstroclawConfig;
+  let cfg: OpenClawConfig;
   const agentId = "main";
   const openManagers = new Set<QmdMemoryManager>();
 
@@ -96,7 +92,7 @@ describe("QmdMemoryManager slugified path resolution", () => {
     return manager;
   }
 
-  async function createManager(params?: { cfg?: AstroclawConfig }) {
+  async function createManager(params?: { cfg?: OpenClawConfig }) {
     const cfgToUse = params?.cfg ?? cfg;
     const resolved = resolveMemoryBackendConfig({ cfg: cfgToUse, agentId });
     const manager = trackManager(
@@ -172,11 +168,11 @@ describe("QmdMemoryManager slugified path resolution", () => {
     logDebugMock.mockClear();
     logInfoMock.mockClear();
 
-    tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-qmd-slugified-"));
+    tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-qmd-slugified-"));
     workspaceDir = path.join(tmpRoot, "workspace");
     stateDir = path.join(tmpRoot, "state");
     await fs.mkdir(workspaceDir, { recursive: true });
-    process.env.ASTROCLAW_STATE_DIR = stateDir;
+    process.env.OPENCLAW_STATE_DIR = stateDir;
 
     cfg = {
       agents: {
@@ -190,7 +186,7 @@ describe("QmdMemoryManager slugified path resolution", () => {
           paths: [{ path: workspaceDir, pattern: "**/*.md", name: "workspace" }],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   });
 
   afterEach(async () => {
@@ -201,7 +197,7 @@ describe("QmdMemoryManager slugified path resolution", () => {
     );
     openManagers.clear();
     await fs.rm(tmpRoot, { recursive: true, force: true });
-    delete process.env.ASTROCLAW_STATE_DIR;
+    delete process.env.OPENCLAW_STATE_DIR;
   });
 
   it("maps slugified workspace qmd URIs back to the indexed filesystem path", async () => {
@@ -272,7 +268,7 @@ describe("QmdMemoryManager slugified path resolution", () => {
           paths: [{ path: extraRoot, pattern: "**/*.md", name: "vault" }],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const actualRelative = "Topics/Sub Category/Topic Name.md";
     const actualFile = path.join(extraRoot, actualRelative);
