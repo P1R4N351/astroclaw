@@ -1,3 +1,4 @@
+/** Integration coverage for plugin status compatibility output and installed-index state. */
 import fs from "node:fs";
 import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -12,7 +13,7 @@ import {
 import { buildPluginCompatibilitySnapshotNotices } from "./status.js";
 
 function addStartupActivation(pluginDir: string, onStartup: boolean): void {
-  const manifestPath = path.join(pluginDir, "astroclaw.plugin.json");
+  const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as Record<string, unknown>;
   fs.writeFileSync(
     manifestPath,
@@ -23,7 +24,7 @@ function addStartupActivation(pluginDir: string, onStartup: boolean): void {
 
 function buildSnapshotCompatibilityNoticeCodes(plugin: { dir: string; file: string; id: string }) {
   const stateDir = makeTempDir();
-  return withEnv({ ASTROCLAW_STATE_DIR: stateDir }, () => {
+  return withEnv({ OPENCLAW_STATE_DIR: stateDir }, () => {
     useNoBundledPlugins();
     return buildPluginCompatibilitySnapshotNotices({
       config: {
