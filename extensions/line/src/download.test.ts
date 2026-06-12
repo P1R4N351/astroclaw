@@ -1,3 +1,4 @@
+// Line tests cover download plugin behavior.
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getMessageContentMock = vi.hoisted(() => vi.fn());
@@ -13,7 +14,7 @@ vi.mock("@line/bot-sdk", () => ({
   },
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
   createSubsystemLogger: () => {
     const logger = {
       debug: () => {},
@@ -27,7 +28,7 @@ vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   logVerbose: () => {},
 }));
 
-vi.mock("astroclaw/plugin-sdk/media-store", () => ({
+vi.mock("openclaw/plugin-sdk/media-store", () => ({
   saveMediaStream: saveMediaStreamMock,
 }));
 
@@ -64,8 +65,8 @@ describe("downloadLineMedia", () => {
 
   afterAll(() => {
     vi.doUnmock("@line/bot-sdk");
-    vi.doUnmock("astroclaw/plugin-sdk/runtime-env");
-    vi.doUnmock("astroclaw/plugin-sdk/media-store");
+    vi.doUnmock("openclaw/plugin-sdk/runtime-env");
+    vi.doUnmock("openclaw/plugin-sdk/media-store");
     vi.resetModules();
   });
 
@@ -75,13 +76,13 @@ describe("downloadLineMedia", () => {
     saveMediaStreamMock.mockReset();
     saveMediaStreamMock.mockImplementation(
       async (stream: AsyncIterable<Buffer>, contentType?: string, subdir?: string) => {
-        const chunks: Buffer[] = [];
+        const chunksLocal: Buffer[] = [];
         for await (const chunk of stream) {
-          chunks.push(Buffer.from(chunk));
+          chunksLocal.push(Buffer.from(chunk));
         }
-        const buffer = Buffer.concat(chunks);
+        const buffer = Buffer.concat(chunksLocal);
         return {
-          path: `/home/user/.astroclaw/media/${subdir ?? "unknown"}/saved-media`,
+          path: `/home/user/.openclaw/media/${subdir ?? "unknown"}/saved-media`,
           contentType: detectMockContentType(buffer, contentType),
           size: buffer.length,
         };
@@ -101,7 +102,7 @@ describe("downloadLineMedia", () => {
     expect(call[2]).toBe("inbound");
     expect(call[3]).toBe(10 * 1024 * 1024);
     expect(result).toEqual({
-      path: "/home/user/.astroclaw/media/inbound/saved-media",
+      path: "/home/user/.openclaw/media/inbound/saved-media",
       contentType: "image/jpeg",
       size: jpeg.length,
     });
