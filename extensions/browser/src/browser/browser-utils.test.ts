@@ -1,10 +1,11 @@
+// Browser tests cover browser utils plugin behavior.
 import { describe, expect, it, vi } from "vitest";
 import {
   appendCdpPath,
   getHeadersWithAuth,
   normalizeCdpHttpBaseForJsonEndpoints,
 } from "./cdp.helpers.js";
-import { __test } from "./client-fetch.js";
+import { testApi } from "./client-fetch.js";
 import { resolveBrowserConfig, resolveProfile } from "./config.js";
 import { shouldRejectBrowserMutation } from "./csrf.js";
 import { toBoolean } from "./routes/utils.js";
@@ -216,7 +217,7 @@ describe("fetchBrowserJson loopback auth (bridge auth registry)", () => {
     const getBridgeAuthForPort = vi.fn((candidate: number) =>
       candidate === port ? { token: "registry-token" } : undefined,
     );
-    const init = __test.withLoopbackBrowserAuth(`http://127.0.0.1:${port}/`, undefined, {
+    const init = testApi.withLoopbackBrowserAuth(`http://127.0.0.1:${port}/`, undefined, {
       getRuntimeConfig: () => ({}),
       resolveBrowserControlAuth: () => ({}),
       getBridgeAuthForPort,
@@ -230,14 +231,14 @@ describe("fetchBrowserJson loopback auth (bridge auth registry)", () => {
 describe("browser server-context listKnownProfileNames", () => {
   it("includes configured and runtime-only profile names", () => {
     const resolved = resolveBrowserConfig({
-      defaultProfile: "astroclaw",
+      defaultProfile: "openclaw",
       profiles: {
-        astroclaw: { cdpPort: 18800, color: "#FF4500" },
+        openclaw: { cdpPort: 18800, color: "#FF4500" },
       },
     });
-    const astroclaw = resolveProfile(resolved, "astroclaw");
-    if (!astroclaw) {
-      throw new Error("expected astroclaw profile");
+    const openclaw = resolveProfile(resolved, "openclaw");
+    if (!openclaw) {
+      throw new Error("expected openclaw profile");
     }
 
     const state: BrowserServerState = {
@@ -248,13 +249,13 @@ describe("browser server-context listKnownProfileNames", () => {
         [
           "stale-removed",
           {
-            profile: { ...astroclaw, name: "stale-removed" },
+            profile: { ...openclaw, name: "stale-removed" },
             running: null,
           },
         ],
       ]),
     };
 
-    expect(listKnownProfileNames(state).toSorted()).toEqual(["astroclaw", "stale-removed", "user"]);
+    expect(listKnownProfileNames(state).toSorted()).toEqual(["openclaw", "stale-removed", "user"]);
   });
 });
