@@ -1,9 +1,10 @@
+// Verifies owner display secrets stay redacted in config IO paths.
 import { describe, expect, it } from "vitest";
 import {
   type OwnerDisplaySecretRuntimeState,
   retainGeneratedOwnerDisplaySecret,
 } from "./io.owner-display-secret.js";
-import type { AstroclawConfig } from "./types.astroclaw.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 function createState(): OwnerDisplaySecretRuntimeState {
   return {
@@ -14,13 +15,13 @@ function createState(): OwnerDisplaySecretRuntimeState {
 describe("retainGeneratedOwnerDisplaySecret", () => {
   it("keeps generated owner display secrets in runtime state without persisting config", () => {
     const state = createState();
-    const configPath = "/tmp/astroclaw.json";
+    const configPath = "/tmp/openclaw.json";
     const config = {
       commands: {
         ownerDisplay: "hash",
         ownerDisplaySecret: "generated-owner-secret",
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = retainGeneratedOwnerDisplaySecret({
       config,
@@ -35,14 +36,14 @@ describe("retainGeneratedOwnerDisplaySecret", () => {
 
   it("clears pending state when no generated secret is present", () => {
     const state = createState();
-    const configPath = "/tmp/astroclaw.json";
+    const configPath = "/tmp/openclaw.json";
     state.pendingByPath.set(configPath, "stale-secret");
     const config = {
       commands: {
         ownerDisplay: "hash",
         ownerDisplaySecret: "existing-secret",
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = retainGeneratedOwnerDisplaySecret({
       config,
