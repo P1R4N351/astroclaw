@@ -1,3 +1,4 @@
+// Update progress tests cover progress event formatting for update operations.
 import { describe, expect, it } from "vitest";
 import type { UpdateRunResult } from "../../infra/update-runner.js";
 import { inferUpdateFailureHints } from "./progress.js";
@@ -14,7 +15,7 @@ function makeResult(
     steps: [
       {
         name: stepName,
-        command: "npm i -g astroclaw@latest",
+        command: "npm i -g openclaw@latest",
         cwd: "/tmp",
         durationMs: 1,
         exitCode: 1,
@@ -64,16 +65,20 @@ describe("inferUpdateFailureHints", () => {
     const hints = inferUpdateFailureHints(result);
     expect(hints.join("\n")).toContain("EACCES");
     expect(hints.join("\n")).toContain("npm config set prefix ~/.local");
+    expect(hints.join("\n")).toContain("stop the Gateway first");
   });
 
   it("returns EACCES hint for staged package permission failures", () => {
     const result = makeResult(
       "global install stage",
-      "EACCES: permission denied, mkdtemp '/usr/local/lib/node_modules/.astroclaw-update-stage-'",
+      "EACCES: permission denied, mkdtemp '/usr/local/lib/node_modules/.openclaw-update-stage-'",
     );
     const hints = inferUpdateFailureHints(result);
     expect(hints.join("\n")).toContain("EACCES");
     expect(hints.join("\n")).toContain("npm config set prefix ~/.local");
+    expect(hints.join("\n")).toContain("<system-npm>");
+    expect(hints.join("\n")).toContain("gateway install --force");
+    expect(hints.join("\n")).toContain("gateway restart");
   });
 
   it("returns native optional dependency hint for node-gyp failures", () => {
