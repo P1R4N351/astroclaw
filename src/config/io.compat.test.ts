@@ -1,27 +1,19 @@
+// Verifies config IO compatibility loading and migration behavior.
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { normalizeCompatibilityConfigValues } from "../commands/doctor-legacy-config.js";
 import { VERSION } from "../version.js";
 import { createConfigIO } from "./io.js";
 import { normalizeExecSafeBinProfilesInConfig } from "./normalize-exec-safe-bin.js";
-import type { AstroclawConfig } from "./types.astroclaw.js";
-
-async function withTempHome(run: (home: string) => Promise<void>): Promise<void> {
-  const home = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-config-"));
-  try {
-    await run(home);
-  } finally {
-    await fs.rm(home, { recursive: true, force: true });
-  }
-}
+import { withTempHome } from "./test-helpers.js";
+import type { OpenClawConfig } from "./types.openclaw.js";
 
 async function writeConfig(
   home: string,
-  dirname: ".astroclaw",
+  dirname: ".openclaw",
   port: number,
-  filename: string = "astroclaw.json",
+  filename = "openclaw.json",
 ) {
   const dir = path.join(home, dirname);
   await fs.mkdir(dir, { recursive: true });
@@ -32,48 +24,71 @@ async function writeConfig(
 
 function createIoForHome(home: string, env: NodeJS.ProcessEnv = {} as NodeJS.ProcessEnv) {
   return createConfigIO({
-    env,
+    env: { HOME: home, ...env },
     homedir: () => home,
   });
 }
 
 describe("config io paths", () => {
-  it("uses ~/.astroclaw/astroclaw.json when config exists", async () => {
+  let whatsappSharedAccessDefaults: unknown;
+
+  beforeAll(() => {
+    const migrated = normalizeCompatibilityConfigValues({
+      channels: {
+        whatsapp: {
+          enabled: true,
+          dmPolicy: "allowlist",
+          allowFrom: ["+15550001111"],
+          groupPolicy: "open",
+          groupAllowFrom: [],
+          accounts: {
+            work: {
+              enabled: true,
+              authDir: "/tmp/wa-work",
+            },
+          },
+        },
+      },
+    } as OpenClawConfig);
+    whatsappSharedAccessDefaults = migrated.config.channels?.whatsapp?.accounts?.default;
+  });
+
+  it("uses ~/.openclaw/openclaw.json when config exists", async () => {
     await withTempHome(async (home) => {
-      const configPath = await writeConfig(home, ".astroclaw", 19001);
+      const configPath = await writeConfig(home, ".openclaw", 19001);
       const io = createIoForHome(home);
       expect(io.configPath).toBe(configPath);
     });
   });
 
-  it("defaults to ~/.astroclaw/astroclaw.json when config is missing", async () => {
+  it("defaults to ~/.openclaw/openclaw.json when config is missing", async () => {
     await withTempHome(async (home) => {
       const io = createIoForHome(home);
-      expect(io.configPath).toBe(path.join(home, ".astroclaw", "astroclaw.json"));
+      expect(io.configPath).toBe(path.join(home, ".openclaw", "openclaw.json"));
     });
   });
 
-  it("uses ASTROCLAW_HOME for default config path", async () => {
+  it("uses OPENCLAW_HOME for default config path", async () => {
     await withTempHome(async (home) => {
       const io = createConfigIO({
-        env: { ASTROCLAW_HOME: path.join(home, "svc-home") } as NodeJS.ProcessEnv,
+        env: { OPENCLAW_HOME: path.join(home, "svc-home") } as NodeJS.ProcessEnv,
         homedir: () => path.join(home, "ignored-home"),
       });
-      expect(io.configPath).toBe(path.join(home, "svc-home", ".astroclaw", "astroclaw.json"));
+      expect(io.configPath).toBe(path.join(home, "svc-home", ".openclaw", "openclaw.json"));
     });
   });
 
-  it("honors explicit ASTROCLAW_CONFIG_PATH override", async () => {
+  it("honors explicit OPENCLAW_CONFIG_PATH override", async () => {
     await withTempHome(async (home) => {
-      const customPath = await writeConfig(home, ".astroclaw", 20002, "custom.json");
-      const io = createIoForHome(home, { ASTROCLAW_CONFIG_PATH: customPath } as NodeJS.ProcessEnv);
+      const customPath = await writeConfig(home, ".openclaw", 20002, "custom.json");
+      const io = createIoForHome(home, { OPENCLAW_CONFIG_PATH: customPath } as NodeJS.ProcessEnv);
       expect(io.configPath).toBe(customPath);
     });
   });
 
   it("logs validation warnings with real line breaks", async () => {
     await withTempHome(async (home) => {
-      const configPath = path.join(home, ".astroclaw", "astroclaw.json");
+      const configPath = path.join(home, ".openclaw", "openclaw.json");
       await fs.mkdir(path.dirname(configPath), { recursive: true });
       await fs.writeFile(
         configPath,
@@ -99,7 +114,7 @@ describe("config io paths", () => {
 
       const io = createConfigIO({
         configPath,
-        env: {} as NodeJS.ProcessEnv,
+        env: { HOME: home } as NodeJS.ProcessEnv,
         homedir: () => home,
         logger,
       });
@@ -112,9 +127,9 @@ describe("config io paths", () => {
     });
   });
 
-  it("explains what to check when config was written by a newer Astroclaw", async () => {
+  it("explains what to check when config was written by a newer OpenClaw", async () => {
     await withTempHome(async (home) => {
-      const configPath = path.join(home, ".astroclaw", "astroclaw.json");
+      const configPath = path.join(home, ".openclaw", "openclaw.json");
       await fs.mkdir(path.dirname(configPath), { recursive: true });
       await fs.writeFile(
         configPath,
@@ -134,7 +149,7 @@ describe("config io paths", () => {
 
       const io = createConfigIO({
         configPath,
-        env: {} as NodeJS.ProcessEnv,
+        env: { HOME: home } as NodeJS.ProcessEnv,
         homedir: () => home,
         logger,
       });
@@ -142,11 +157,43 @@ describe("config io paths", () => {
 
       expect(logger.warn).toHaveBeenCalledWith(
         [
-          `Your Astroclaw config was written by version 9999.1.1, but this command is running ${VERSION}.`,
-          "Check: `astroclaw --version`, `which astroclaw`, and `astroclaw gateway status --deep`.",
-          "If unexpected, update PATH so `astroclaw` points to the version you want, or reinstall the Gateway service from that same Astroclaw install.",
+          `Your OpenClaw config was written by version 9999.1.1, but this command is running ${VERSION}.`,
+          "Check: `openclaw --version`, `which openclaw`, and `openclaw gateway status --deep`.",
+          "If unexpected, update PATH so `openclaw` points to the version you want, or reinstall the Gateway service from that same OpenClaw install.",
         ].join("\n"),
       );
+    });
+  });
+
+  it("does not warn about newer config during internal update handoff reads", async () => {
+    await withTempHome(async (home) => {
+      const configPath = path.join(home, ".openclaw", "openclaw.json");
+      await fs.mkdir(path.dirname(configPath), { recursive: true });
+      await fs.writeFile(
+        configPath,
+        JSON.stringify(
+          {
+            meta: { lastTouchedVersion: "9999.1.1" },
+            gateway: { mode: "local" },
+          },
+          null,
+          2,
+        ),
+      );
+      const logger = {
+        error: vi.fn(),
+        warn: vi.fn(),
+      };
+
+      const io = createConfigIO({
+        configPath,
+        env: { HOME: home, OPENCLAW_UPDATE_POST_CORE: "1" } as NodeJS.ProcessEnv,
+        homedir: () => home,
+        logger,
+      });
+      io.loadConfig();
+
+      expect(logger.warn).not.toHaveBeenCalled();
     });
   });
 
@@ -196,24 +243,7 @@ describe("config io paths", () => {
   });
 
   it("moves WhatsApp shared access defaults into accounts.default during runtime compat", () => {
-    const migrated = normalizeCompatibilityConfigValues({
-      channels: {
-        whatsapp: {
-          enabled: true,
-          dmPolicy: "allowlist",
-          allowFrom: ["+15550001111"],
-          groupPolicy: "open",
-          groupAllowFrom: [],
-          accounts: {
-            work: {
-              enabled: true,
-              authDir: "/tmp/wa-work",
-            },
-          },
-        },
-      },
-    } as AstroclawConfig);
-    expect(migrated.config.channels?.whatsapp?.accounts?.default).toEqual({
+    expect(whatsappSharedAccessDefaults).toEqual({
       dmPolicy: "allowlist",
       allowFrom: ["+15550001111"],
       groupPolicy: "open",
