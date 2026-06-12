@@ -1,7 +1,10 @@
+// Tests shared utility helpers used by CLI and runtime modules.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { MAX_TIMER_TIMEOUT_MS } from "./shared/number-coercion.js";
 import { withTempDir } from "./test-helpers/temp-dir.js";
+import { withEnv } from "./test-utils/env.js";
 import {
   ensureDir,
   resolveConfigDir,
@@ -14,7 +17,7 @@ import {
 
 describe("ensureDir", () => {
   it("creates nested directory", async () => {
-    await withTempDir({ prefix: "astroclaw-test-" }, async (tmp) => {
+    await withTempDir({ prefix: "openclaw-test-" }, async (tmp) => {
       const target = path.join(tmp, "nested", "dir");
       await ensureDir(target);
       expect(fs.existsSync(target)).toBe(true);
@@ -33,76 +36,80 @@ describe("sleep", () => {
       vi.useRealTimers();
     }
   });
+
+  it("clamps oversized sleep delays before scheduling", async () => {
+    vi.useFakeTimers();
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    try {
+      const promise = sleep(Number.MAX_SAFE_INTEGER);
+
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), MAX_TIMER_TIMEOUT_MS);
+
+      vi.advanceTimersByTime(MAX_TIMER_TIMEOUT_MS);
+      await expect(promise).resolves.toBeUndefined();
+    } finally {
+      setTimeoutSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("resolveConfigDir", () => {
-  it("prefers ~/.astroclaw when legacy dir is missing", async () => {
-    await withTempDir({ prefix: "astroclaw-config-dir-" }, async (root) => {
-      const newDir = path.join(root, ".astroclaw");
+  it("prefers ~/.openclaw when legacy dir is missing", async () => {
+    await withTempDir({ prefix: "openclaw-config-dir-" }, async (root) => {
+      const newDir = path.join(root, ".openclaw");
       await fs.promises.mkdir(newDir, { recursive: true });
       const resolved = resolveConfigDir({} as NodeJS.ProcessEnv, () => root);
       expect(resolved).toBe(newDir);
     });
   });
 
-  it("expands ASTROCLAW_STATE_DIR using the provided env", () => {
+  it("expands OPENCLAW_STATE_DIR using the provided env", () => {
     const env = {
-      HOME: "/tmp/astroclaw-home",
-      ASTROCLAW_STATE_DIR: "~/state",
+      HOME: "/tmp/openclaw-home",
+      OPENCLAW_STATE_DIR: "~/state",
     } as NodeJS.ProcessEnv;
 
-    expect(resolveConfigDir(env)).toBe(path.resolve("/tmp/astroclaw-home", "state"));
+    expect(resolveConfigDir(env)).toBe(path.resolve("/tmp/openclaw-home", "state"));
   });
 
-  it("falls back to the config file directory when only ASTROCLAW_CONFIG_PATH is set", () => {
+  it("falls back to the config file directory when only OPENCLAW_CONFIG_PATH is set", () => {
     const env = {
-      HOME: "/tmp/astroclaw-home",
-      ASTROCLAW_CONFIG_PATH: "~/profiles/dev/astroclaw.json",
+      HOME: "/tmp/openclaw-home",
+      OPENCLAW_CONFIG_PATH: "~/profiles/dev/openclaw.json",
     } as NodeJS.ProcessEnv;
 
-    expect(resolveConfigDir(env)).toBe(path.resolve("/tmp/astroclaw-home", "profiles", "dev"));
+    expect(resolveConfigDir(env)).toBe(path.resolve("/tmp/openclaw-home", "profiles", "dev"));
   });
 });
 
 describe("resolveHomeDir", () => {
-  it("prefers ASTROCLAW_HOME over HOME", () => {
-    vi.stubEnv("ASTROCLAW_HOME", "/srv/astroclaw-home");
-    vi.stubEnv("HOME", "/home/other");
-    try {
-      expect(resolveHomeDir()).toBe(path.resolve("/srv/astroclaw-home"));
-    } finally {
-      vi.unstubAllEnvs();
-    }
+  it("prefers OPENCLAW_HOME over HOME", () => {
+    withEnv({ OPENCLAW_HOME: "/srv/openclaw-home", HOME: "/home/other" }, () => {
+      expect(resolveHomeDir()).toBe(path.resolve("/srv/openclaw-home"));
+    });
   });
 });
 
 describe("shortenHomePath", () => {
-  it("uses $ASTROCLAW_HOME prefix when ASTROCLAW_HOME is set", () => {
-    vi.stubEnv("ASTROCLAW_HOME", "/srv/astroclaw-home");
-    vi.stubEnv("HOME", "/home/other");
-    try {
-      expect(shortenHomePath(`${path.resolve("/srv/astroclaw-home")}/.astroclaw/astroclaw.json`)).toBe(
-        "$ASTROCLAW_HOME/.astroclaw/astroclaw.json",
+  it("uses $OPENCLAW_HOME prefix when OPENCLAW_HOME is set", () => {
+    withEnv({ OPENCLAW_HOME: "/srv/openclaw-home", HOME: "/home/other" }, () => {
+      expect(shortenHomePath(`${path.resolve("/srv/openclaw-home")}/.openclaw/openclaw.json`)).toBe(
+        "$OPENCLAW_HOME/.openclaw/openclaw.json",
       );
-    } finally {
-      vi.unstubAllEnvs();
-    }
+    });
   });
 });
 
 describe("shortenHomeInString", () => {
-  it("uses $ASTROCLAW_HOME replacement when ASTROCLAW_HOME is set", () => {
-    vi.stubEnv("ASTROCLAW_HOME", "/srv/astroclaw-home");
-    vi.stubEnv("HOME", "/home/other");
-    try {
+  it("uses $OPENCLAW_HOME replacement when OPENCLAW_HOME is set", () => {
+    withEnv({ OPENCLAW_HOME: "/srv/openclaw-home", HOME: "/home/other" }, () => {
       expect(
         shortenHomeInString(
-          `config: ${path.resolve("/srv/astroclaw-home")}/.astroclaw/astroclaw.json`,
+          `config: ${path.resolve("/srv/openclaw-home")}/.openclaw/openclaw.json`,
         ),
-      ).toBe("config: $ASTROCLAW_HOME/.astroclaw/astroclaw.json");
-    } finally {
-      vi.unstubAllEnvs();
-    }
+      ).toBe("config: $OPENCLAW_HOME/.openclaw/openclaw.json");
+    });
   });
 });
 
@@ -112,8 +119,8 @@ describe("resolveUserPath", () => {
   });
 
   it("expands ~/ to home dir", () => {
-    expect(resolveUserPath("~/astroclaw", {}, () => "/Users/thoffman")).toBe(
-      path.resolve("/Users/thoffman", "astroclaw"),
+    expect(resolveUserPath("~/openclaw", {}, () => "/Users/thoffman")).toBe(
+      path.resolve("/Users/thoffman", "openclaw"),
     );
   });
 
@@ -121,23 +128,19 @@ describe("resolveUserPath", () => {
     expect(resolveUserPath("tmp/dir")).toBe(path.resolve("tmp/dir"));
   });
 
-  it("prefers ASTROCLAW_HOME for tilde expansion", () => {
-    vi.stubEnv("ASTROCLAW_HOME", "/srv/astroclaw-home");
-    vi.stubEnv("HOME", "/home/other");
-    try {
-      expect(resolveUserPath("~/astroclaw")).toBe(path.resolve("/srv/astroclaw-home", "astroclaw"));
-    } finally {
-      vi.unstubAllEnvs();
-    }
+  it("prefers OPENCLAW_HOME for tilde expansion", () => {
+    withEnv({ OPENCLAW_HOME: "/srv/openclaw-home", HOME: "/home/other" }, () => {
+      expect(resolveUserPath("~/openclaw")).toBe(path.resolve("/srv/openclaw-home", "openclaw"));
+    });
   });
 
   it("uses the provided env for tilde expansion", () => {
     const env = {
-      HOME: "/tmp/astroclaw-home",
-      ASTROCLAW_HOME: "/srv/astroclaw-home",
+      HOME: "/tmp/openclaw-home",
+      OPENCLAW_HOME: "/srv/openclaw-home",
     } as NodeJS.ProcessEnv;
 
-    expect(resolveUserPath("~/astroclaw", env)).toBe(path.resolve("/srv/astroclaw-home", "astroclaw"));
+    expect(resolveUserPath("~/openclaw", env)).toBe(path.resolve("/srv/openclaw-home", "openclaw"));
   });
 
   it("keeps blank paths blank", () => {
