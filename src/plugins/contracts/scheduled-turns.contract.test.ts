@@ -1,7 +1,9 @@
+// Scheduled turn contract tests cover plugin scheduled turn metadata and timestamp bounds.
+import { MAX_DATE_TIMESTAMP_MS } from "@openclaw/normalization-core/number-coercion";
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
-} from "astroclaw/plugin-sdk/plugin-test-contracts";
+} from "openclaw/plugin-sdk/plugin-test-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CronServiceContract } from "../../cron/service-contract.js";
 import type { CronJob, CronJobCreate } from "../../cron/types.js";
@@ -21,12 +23,12 @@ import {
   schedulePluginSessionTurn,
   unschedulePluginSessionTurnsByTag,
 } from "../host-hook-scheduled-turns.js";
-import { clearPluginLoaderCache, loadAstroclawPlugins } from "../loader.js";
+import { clearPluginLoaderCache, loadOpenClawPlugins } from "../loader.js";
 import { makeTempDir, writePlugin } from "../loader.test-fixtures.js";
 import { createEmptyPluginRegistry } from "../registry-empty.js";
 import { setActivePluginRegistry } from "../runtime.js";
 import { createPluginRecord } from "../status.test-helpers.js";
-import type { AstroclawPluginApi } from "../types.js";
+import type { OpenClawPluginApi } from "../types.js";
 
 const workflowMocks = vi.hoisted(() => ({
   cronAdd: vi.fn(),
@@ -89,7 +91,9 @@ function createMockCronService(): CronServiceContract {
     stop: vi.fn(),
     status: vi.fn(async () => ({
       enabled: true,
-      storePath: "/tmp/astroclaw-test-cron.json",
+      storePath: "/tmp/openclaw-test-cron.json",
+      storage: "sqlite" as const,
+      sqlitePath: "/tmp/openclaw-test-state/state/openclaw.sqlite",
       jobs: 0,
       nextWakeAtMs: null,
     })),
@@ -264,7 +268,8 @@ describe("plugin scheduled turns", () => {
   });
 
   it("builds payloads accepted by the real cron.add protocol validator", async () => {
-    const { validateCronAddParams } = await import("../../gateway/protocol/index.js");
+    const { validateCronAddParams } =
+      await import("../../../packages/gateway-protocol/src/index.js");
     workflowMocks.cronAdd.mockImplementation(async (body: unknown) => {
       expect(validateCronAddParams(body)).toBe(true);
       expect((body as { delivery?: unknown }).delivery).toEqual({
@@ -457,6 +462,14 @@ describe("plugin scheduled turns", () => {
     expect(workflowMocks.cronAdd).not.toHaveBeenCalled();
   });
 
+  it("rejects delayed schedules that cannot fit in the Date timestamp range", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(MAX_DATE_TIMESTAMP_MS));
+
+    await expect(scheduleWorkflowTurn({ schedule: { delayMs: 1 } })).resolves.toBeUndefined();
+    expect(workflowMocks.cronAdd).not.toHaveBeenCalled();
+  });
+
   it("falls back to a valid delay schedule when a malformed cron value is absent", async () => {
     mockCronAdd(makeCronJob({ id: "delay-job" }));
 
@@ -514,11 +527,11 @@ describe("plugin scheduled turns", () => {
 
     const registry = withEnv(
       {
-        ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
-        ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+        OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
       },
       () =>
-        loadAstroclawPlugins({
+        loadOpenClawPlugins({
           cache: false,
           hostServices: { cron },
           config: {
@@ -651,11 +664,11 @@ describe("plugin scheduled turns", () => {
 
     const registry = withEnv(
       {
-        ASTROCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
-        ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: bundledDir,
+        OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
       },
       () =>
-        loadAstroclawPlugins({
+        loadOpenClawPlugins({
           cache: false,
           hostServices: { cron },
           config: {
@@ -1040,7 +1053,7 @@ describe("plugin scheduled turns", () => {
   it("wires schedule and unschedule through the plugin API with stale-registry protection", async () => {
     workflowMocks.cronAdd.mockResolvedValue(makeCronJob({ id: "job-live" }));
     const { config, registry } = createPluginRegistryFixture({}, { hostServices: { cron } });
-    let capturedApi: AstroclawPluginApi | undefined;
+    let capturedApi: OpenClawPluginApi | undefined;
     registerTestPlugin({
       registry,
       config,
@@ -1123,7 +1136,7 @@ describe("plugin scheduled turns", () => {
       },
     };
     const { config, registry } = createPluginRegistryFixture({}, { hostServices });
-    let capturedApi: AstroclawPluginApi | undefined;
+    let capturedApi: OpenClawPluginApi | undefined;
     registerTestPlugin({
       registry,
       config,
