@@ -1,3 +1,4 @@
+// Qa Lab tests cover suite runtime transport plugin behavior.
 import { describe, expect, it } from "vitest";
 import { createQaBusState } from "./bus-state.js";
 import {
@@ -15,8 +16,8 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: "⚠️ Something went wrong while processing your request. Please try again, or use /new to start a fresh session.",
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
 
     const message = findFailureOutboundMessage(state);
@@ -36,8 +37,8 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: '⚠️ No API key found for provider "openai". You are authenticated with OpenAI Codex OAuth. Use openai/gpt-5.5 with the Codex OAuth profile, or set OPENAI_API_KEY for direct OpenAI API access.',
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
 
     await expect(pending).rejects.toThrow('No API key found for provider "openai".');
@@ -54,8 +55,8 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "channel:qa-room",
       text: "⚠️ ✉️ Message failed",
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
 
     await expect(pending).rejects.toThrow("Message failed");
@@ -72,8 +73,8 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: "checking thread context; then post a tight progress reply here.\nQA_LEAK_OK",
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
 
     await expect(pending).rejects.toThrow("checking thread context");
@@ -90,8 +91,8 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: "Read: AGENT.md\nEvidence snippet: Tool read not found\nStatus: blocked",
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
 
     await expect(pending).rejects.toThrow("Tool read not found");
@@ -118,8 +119,8 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: '⚠️ No API key found for provider "openai". You are authenticated with OpenAI Codex OAuth. Use openai/gpt-5.5 with the Codex OAuth profile, or set OPENAI_API_KEY for direct OpenAI API access.',
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
 
     await expect(pending).rejects.toThrow('No API key found for provider "openai".');
@@ -136,8 +137,8 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: "working on it",
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
     state.addInboundMessage({
       conversation: { id: "qa-operator", kind: "direct" },
@@ -165,8 +166,8 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: '⚠️ No API key found for provider "openai". You are authenticated with OpenAI Codex OAuth. Use openai/gpt-5.5 with the Codex OAuth profile, or set OPENAI_API_KEY for direct OpenAI API access.',
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
 
     await expect(pending).rejects.toThrow('No API key found for provider "openai".');
@@ -183,14 +184,14 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: "working on it",
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: "done",
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
 
     const messages = readTransportTranscript(state, {
@@ -206,7 +207,7 @@ describe("qa suite transport helpers", () => {
       "done",
     ]);
     expect(formatted).toContain("USER Alice: hello");
-    expect(formatted).toContain("ASSISTANT Astroclaw QA: working on it");
+    expect(formatted).toContain("ASSISTANT OpenClaw QA: working on it");
   });
 
   it("waits for outbound replies through the generic transport alias", async () => {
@@ -220,8 +221,8 @@ describe("qa suite transport helpers", () => {
     state.addOutboundMessage({
       to: "dm:qa-operator",
       text: "done",
-      senderId: "astroclaw",
-      senderName: "Astroclaw QA",
+      senderId: "openclaw",
+      senderName: "OpenClaw QA",
     });
 
     const message = await pending;
