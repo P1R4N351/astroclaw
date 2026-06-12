@@ -1,3 +1,4 @@
+// Covers plugin status snapshots built from registry state.
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -17,7 +18,7 @@ import { writeManagedNpmPlugin } from "./test-helpers/managed-npm-plugin.js";
 const tempDirs: string[] = [];
 
 function makeTempDir() {
-  return makeTrackedTempDir("astroclaw-plugin-status", tempDirs);
+  return makeTrackedTempDir("openclaw-plugin-status", tempDirs);
 }
 
 afterEach(() => {
@@ -73,8 +74,8 @@ describe("buildPluginRegistrySnapshotReport", () => {
         bundledPluginsDir: makeTempDir(),
         disablePersistedRegistry: false,
       }),
-      ASTROCLAW_DISABLE_BUNDLED_PLUGINS: "1",
-      ASTROCLAW_STATE_DIR: stateDir,
+      OPENCLAW_DISABLE_BUNDLED_PLUGINS: "1",
+      OPENCLAW_STATE_DIR: stateDir,
     };
     const config = {
       plugins: {
@@ -85,7 +86,7 @@ describe("buildPluginRegistrySnapshotReport", () => {
     };
     const whatsappDir = writeManagedNpmPlugin({
       stateDir,
-      packageName: "@astroclaw/whatsapp",
+      packageName: "@openclaw/whatsapp",
       pluginId: "whatsapp",
       version: "2026.5.2",
       name: "WhatsApp",
@@ -121,7 +122,7 @@ describe("buildPluginRegistrySnapshotReport", () => {
     const fixture = createColdPluginFixture({
       rootDir: makeTempDir(),
       pluginId: "indexed-demo",
-      packageName: "@example/astroclaw-indexed-demo",
+      packageName: "@example/openclaw-indexed-demo",
       packageVersion: "9.8.7",
       manifest: {
         id: "indexed-demo",
@@ -130,9 +131,11 @@ describe("buildPluginRegistrySnapshotReport", () => {
         version: "1.2.3",
         providers: ["indexed-provider"],
         contracts: {
+          agentToolResultMiddleware: ["openclaw", "codex"],
           speechProviders: ["indexed-speech-provider"],
           realtimeTranscriptionProviders: ["indexed-transcription-provider"],
           realtimeVoiceProviders: ["indexed-voice-provider"],
+          trustedToolPolicies: ["workflow-budget"],
         },
         commandAliases: [{ name: "indexed-demo" }],
         configSchema: {
@@ -156,11 +159,18 @@ describe("buildPluginRegistrySnapshotReport", () => {
       name: "Indexed Demo",
       description: "Manifest-backed list metadata",
       version: "9.8.7",
-      format: "astroclaw",
+      format: "openclaw",
       providerIds: ["indexed-provider"],
       speechProviderIds: ["indexed-speech-provider"],
       realtimeTranscriptionProviderIds: ["indexed-transcription-provider"],
       realtimeVoiceProviderIds: ["indexed-voice-provider"],
+      contracts: {
+        agentToolResultMiddleware: ["openclaw", "codex"],
+        speechProviders: ["indexed-speech-provider"],
+        realtimeTranscriptionProviders: ["indexed-transcription-provider"],
+        realtimeVoiceProviders: ["indexed-voice-provider"],
+        trustedToolPolicies: ["workflow-budget"],
+      },
       commands: ["indexed-demo"],
       source: fs.realpathSync(fixture.runtimeSource),
       status: "loaded",
@@ -236,7 +246,7 @@ describe("buildPluginRegistrySnapshotReport", () => {
     const fixture = createColdPluginFixture({
       rootDir: makeTempDir(),
       pluginId: "persisted-demo",
-      packageName: "@example/astroclaw-persisted-demo",
+      packageName: "@example/openclaw-persisted-demo",
       packageVersion: "2.0.0",
       manifest: {
         id: "persisted-demo",
