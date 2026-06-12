@@ -1,4 +1,6 @@
+// Channel setup tests cover setup flow prompts and config output.
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   makeCatalogEntry,
   makeChannelSetupEntries,
@@ -54,6 +56,7 @@ function makePluginRegistry(overrides: Partial<PluginRegistry> = {}): PluginRegi
     webSearchProviders: [],
     webFetchProviders: [],
     migrationProviders: [],
+    embeddingProviders: [],
     mediaUnderstandingProviders: [],
     imageGenerationProviders: [],
     videoGenerationProviders: [],
@@ -105,7 +108,7 @@ function expectExternalCatalogInstallCall(index = 0) {
 }
 
 const resolveAgentWorkspaceDir = vi.hoisted(() =>
-  vi.fn((_cfg?: unknown, _agentId?: unknown) => "/tmp/astroclaw-workspace"),
+  vi.fn((_cfg?: unknown, _agentId?: unknown) => "/tmp/openclaw-workspace"),
 );
 const resolveDefaultAgentId = vi.hoisted(() => vi.fn((_cfg?: unknown) => "default"));
 const listTrustedChannelPluginCatalogEntries = vi.hoisted(() =>
@@ -229,7 +232,7 @@ import { setupChannels } from "./channel-setup.js";
 describe("setupChannels workspace shadow exclusion", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    resolveAgentWorkspaceDir.mockReturnValue("/tmp/astroclaw-workspace");
+    resolveAgentWorkspaceDir.mockReturnValue("/tmp/openclaw-workspace");
     resolveDefaultAgentId.mockReturnValue("default");
     listTrustedChannelPluginCatalogEntries.mockReturnValue([
       {
@@ -273,7 +276,7 @@ describe("setupChannels workspace shadow exclusion", () => {
       listTrustedChannelPluginCatalogEntries,
     );
     expect(trustedInput.cfg).toEqual({});
-    expect(trustedInput.workspaceDir).toBe("/tmp/astroclaw-workspace");
+    expect(trustedInput.workspaceDir).toBe("/tmp/openclaw-workspace");
     const registryInput = callArg<{
       channel?: string;
       pluginId?: string;
@@ -281,7 +284,7 @@ describe("setupChannels workspace shadow exclusion", () => {
     }>(loadChannelSetupPluginRegistrySnapshotForChannel);
     expect(registryInput.channel).toBe("external-chat");
     expect(registryInput.pluginId).toBe("@vendor/external-chat-plugin");
-    expect(registryInput.workspaceDir).toBe("/tmp/astroclaw-workspace");
+    expect(registryInput.workspaceDir).toBe("/tmp/openclaw-workspace");
   });
 
   it("keeps trusted workspace overrides eligible during preload", async () => {
@@ -310,7 +313,7 @@ describe("setupChannels workspace shadow exclusion", () => {
     }>(loadChannelSetupPluginRegistrySnapshotForChannel);
     expect(registryInput.channel).toBe("external-chat");
     expect(registryInput.pluginId).toBe("trusted-external-chat-shadow");
-    expect(registryInput.workspaceDir).toBe("/tmp/astroclaw-workspace");
+    expect(registryInput.workspaceDir).toBe("/tmp/openclaw-workspace");
   });
 
   it("defers status and setup-plugin loads until a channel is selected", async () => {
@@ -437,6 +440,83 @@ describe("setupChannels workspace shadow exclusion", () => {
     });
   });
 
+  it("allowlists ClickClack when it is explicitly selected for setup", async () => {
+    const setupWizard = {
+      channel: "clickclack",
+      getStatus: vi.fn(async () => ({
+        channel: "clickclack",
+        configured: false,
+        statusLines: [],
+      })),
+      configure: vi.fn(async ({ cfg }: { cfg: OpenClawConfig }) => ({
+        cfg: {
+          ...cfg,
+          channels: {
+            ...cfg.channels,
+            clickclack: {
+              ...cfg.channels?.clickclack,
+              token: "secret",
+            },
+          },
+        },
+      })),
+    };
+    const clickClackPlugin = makeSetupPlugin({
+      id: "clickclack",
+      label: "ClickClack",
+      setupWizard,
+    });
+    resolveChannelSetupEntries.mockReturnValue(
+      makeChannelSetupEntries({
+        entries: [
+          {
+            id: "clickclack",
+            meta: makeMeta("clickclack", "ClickClack"),
+          },
+        ],
+      }),
+    );
+    loadChannelSetupPluginRegistrySnapshotForChannel.mockReturnValue(
+      makePluginRegistry({
+        channelSetups: [
+          {
+            pluginId: "clickclack",
+            source: "bundled",
+            enabled: true,
+            plugin: clickClackPlugin,
+          },
+        ],
+      }),
+    );
+    const select = vi.fn().mockResolvedValueOnce("clickclack").mockResolvedValueOnce("__done__");
+
+    const next = await setupChannels(
+      {
+        plugins: {
+          allow: ["memory-core"],
+        },
+      } as never,
+      {} as never,
+      {
+        confirm: vi.fn(async () => true),
+        note: vi.fn(async () => undefined),
+        select,
+      } as never,
+      {
+        deferStatusUntilSelection: true,
+        skipConfirm: true,
+        skipDmPolicyPrompt: true,
+      },
+    );
+
+    expect(next.plugins?.allow).toEqual(["memory-core", "clickclack"]);
+    expect(next.plugins?.entries?.clickclack?.enabled).toBe(true);
+    expect(next.channels?.clickclack).toEqual({
+      enabled: true,
+      token: "secret",
+    });
+  });
+
   it("loads the selected bundled catalog plugin without writing explicit plugin enablement", async () => {
     const configure = vi.fn(async ({ cfg }: { cfg: Record<string, unknown> }) => ({
       cfg: {
@@ -507,7 +587,7 @@ describe("setupChannels workspace shadow exclusion", () => {
     }>(loadChannelSetupPluginRegistrySnapshotForChannel, 0);
     expect(firstRegistryInput.channel).toBe("external-chat");
     expect(firstRegistryInput.pluginId).toBe("external-chat");
-    expect(firstRegistryInput.workspaceDir).toBe("/tmp/astroclaw-workspace");
+    expect(firstRegistryInput.workspaceDir).toBe("/tmp/openclaw-workspace");
     expect(firstRegistryInput.forceSetupOnlyChannelPlugins).toBe(true);
     const secondRegistryInput = callArg<{
       channel?: string;
@@ -515,7 +595,7 @@ describe("setupChannels workspace shadow exclusion", () => {
       forceSetupOnlyChannelPlugins?: boolean;
     }>(loadChannelSetupPluginRegistrySnapshotForChannel, 1);
     expect(secondRegistryInput.channel).toBe("external-chat");
-    expect(secondRegistryInput.workspaceDir).toBe("/tmp/astroclaw-workspace");
+    expect(secondRegistryInput.workspaceDir).toBe("/tmp/openclaw-workspace");
     expect(secondRegistryInput.forceSetupOnlyChannelPlugins).toBe(true);
     expect(getChannelSetupPlugin).not.toHaveBeenCalled();
     expect(collectChannelStatus).not.toHaveBeenCalled();
@@ -930,7 +1010,7 @@ describe("setupChannels workspace shadow exclusion", () => {
         { workspaceDir?: string } | undefined,
       ];
       expect(catalogLookupCall[0]).toBe("external-chat");
-      expect(catalogLookupCall[1]?.workspaceDir).toBe("/tmp/astroclaw-workspace");
+      expect(catalogLookupCall[1]?.workspaceDir).toBe("/tmp/openclaw-workspace");
       expect(ensureChannelSetupPluginInstalled).toHaveBeenCalledTimes(1);
       expectExternalCatalogInstallCall();
       expect(note).not.toHaveBeenCalledWith("external-chat plugin not available.", "Channel setup");
