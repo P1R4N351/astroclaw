@@ -1,6 +1,7 @@
+// Migrate Hermes tests cover provider plugin behavior.
 import os from "node:os";
 import path from "node:path";
-import { createCapturedPluginRegistration } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { createCapturedPluginRegistration } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 import { resolveHomePath } from "./helpers.js";
 import pluginEntry from "./index.js";
@@ -26,16 +27,16 @@ describe("Hermes migration provider", () => {
     expect(captured.migrationProviders.map((provider) => provider.id)).toEqual(["hermes"]);
   });
 
-  it("resolves tilde source paths against the OS home when ASTROCLAW_HOME is set", () => {
-    const previous = process.env.ASTROCLAW_HOME;
-    process.env.ASTROCLAW_HOME = path.join(path.sep, "tmp", "astroclaw-home");
+  it("resolves tilde source paths against the OS home when OPENCLAW_HOME is set", () => {
+    const previous = process.env.OPENCLAW_HOME;
+    process.env.OPENCLAW_HOME = path.join(path.sep, "tmp", "openclaw-home");
     try {
       expect(resolveHomePath("~/.hermes")).toBe(path.join(os.homedir(), ".hermes"));
     } finally {
       if (previous === undefined) {
-        delete process.env.ASTROCLAW_HOME;
+        delete process.env.OPENCLAW_HOME;
       } else {
-        process.env.ASTROCLAW_HOME = previous;
+        process.env.OPENCLAW_HOME = previous;
       }
     }
   });
@@ -137,7 +138,7 @@ describe("Hermes migration provider", () => {
     expect(secret?.status).toBe("skipped");
     expect(secret?.reason).toBe(HERMES_REASON_INCLUDE_SECRETS);
     expect(plan.warnings).toEqual([
-      "Secrets were detected but skipped. Re-run with --include-secrets to import supported API keys.",
+      "Auth credentials were detected but skipped. Re-run interactively or pass --include-secrets to import supported credentials.",
       "Conflicts were found. Re-run with --overwrite to replace conflicting targets after item-level backups.",
     ]);
   });
