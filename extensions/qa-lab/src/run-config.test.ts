@@ -1,3 +1,4 @@
+// Qa Lab tests cover run config plugin behavior.
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -131,7 +132,7 @@ describe("qa run config", () => {
   });
 
   it("anchors generated run output dirs under the provided repo root", () => {
-    const repoRoot = path.resolve("/tmp/astroclaw-repo");
+    const repoRoot = path.resolve("/tmp/openclaw-repo");
     const outputDir = createQaRunOutputDir(repoRoot);
     expect(outputDir.startsWith(path.join(repoRoot, ".artifacts", "qa-e2e", "lab-"))).toBe(true);
   });
