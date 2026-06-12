@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Whatsapp tests cover directory contract plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe, expect, it } from "vitest";
 import {
   listWhatsAppDirectoryGroupsFromConfig,
@@ -18,7 +19,7 @@ describe("WhatsApp directory contract", () => {
           groups: { "999@g.us": { requireMention: true }, "*": {} },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const peers = await listWhatsAppDirectoryPeersFromConfig({
       cfg,
@@ -43,7 +44,7 @@ describe("WhatsApp directory contract", () => {
           groups: { "111@g.us": {}, "222@g.us": {}, "333@s.whatsapp.net": {} },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const groups = await listWhatsAppDirectoryGroupsFromConfig({
       cfg,
