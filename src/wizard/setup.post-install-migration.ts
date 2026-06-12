@@ -1,5 +1,6 @@
+// Post-install migration helpers guide users through setup after package install.
 import { formatCliCommand } from "../cli/command-format.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import {
   readMigrationConfigPatchDetails,
@@ -10,7 +11,7 @@ import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "./prompts.js";
 
 export type PostInstallMigrationOptions = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   runtime: RuntimeEnv;
   // Required only on interactive paths; non-interactive callers can omit it
   // since the helper only emits hint lines in that mode.
@@ -25,7 +26,7 @@ export type PostInstallMigrationOptions = {
 };
 
 export type PostInstallMigrationResult = {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
 };
 
 type ResolvedProviderCandidate = {
@@ -33,8 +34,22 @@ type ResolvedProviderCandidate = {
   source?: string;
 };
 
+let migrationContextModulePromise: Promise<typeof import("../commands/migrate/context.js")> | null =
+  null;
+let configPathsModulePromise: Promise<typeof import("../config/paths.js")> | null = null;
+
+const loadMigrationContextModule = async () => {
+  migrationContextModulePromise ??= import("../commands/migrate/context.js");
+  return await migrationContextModulePromise;
+};
+
+const loadConfigPathsModule = async () => {
+  configPathsModulePromise ??= import("../config/paths.js");
+  return await configPathsModulePromise;
+};
+
 async function resolveCandidates(params: {
-  config: AstroclawConfig;
+  config: OpenClawConfig;
   runtime: RuntimeEnv;
   installedPluginIds: readonly string[];
 }): Promise<ResolvedProviderCandidate[]> {
@@ -49,8 +64,8 @@ async function resolveCandidates(params: {
   ] = await Promise.all([
     import("../plugins/migration-provider-runtime.js"),
     import("../plugins/manifest-contract-runtime.js"),
-    import("../commands/migrate/context.js"),
-    import("../config/paths.js"),
+    loadMigrationContextModule(),
+    loadConfigPathsModule(),
   ]);
   ensureStandaloneMigrationProviderRegistryLoaded({ cfg: params.config });
   const installedIds = new Set(params.installedPluginIds);
@@ -103,14 +118,14 @@ function describeCandidate(candidate: ResolvedProviderCandidate): string {
 }
 
 function logMigrationHint(runtime: RuntimeEnv, candidate: ResolvedProviderCandidate): void {
-  const command = formatCliCommand(`astroclaw migrate ${candidate.provider.id} --dry-run`);
+  const command = formatCliCommand(`openclaw migrate ${candidate.provider.id} --dry-run`);
   runtime.log(`Detected ${describeCandidate(candidate)}. Preview migration with ${command}.`);
 }
 
 function applyMigrationConfigPatches(
-  config: AstroclawConfig,
+  config: OpenClawConfig,
   result: { items?: readonly unknown[] } | undefined,
-): AstroclawConfig {
+): OpenClawConfig {
   const items = result?.items ?? [];
   const patches = items
     .filter((item): item is Parameters<typeof readMigrationConfigPatchDetails>[0] =>
@@ -145,7 +160,7 @@ function applyMigrationConfigPatches(
  * that was just installed during onboarding. In non-interactive mode this is
  * a no-op apart from a hint line so scripted setups never mutate state
  * unexpectedly. The actual migration UI (skill/plugin checkboxes, confirm
- * prompt) is owned by `astroclaw migrate <provider>`; this helper only owns
+ * prompt) is owned by `openclaw migrate <provider>`; this helper only owns
  * the gate prompt.
  */
 export async function offerPostInstallMigrations(
@@ -169,7 +184,7 @@ export async function offerPostInstallMigrations(
       continue;
     }
     const description = describeCandidate(candidate);
-    let accepted = false;
+    let accepted;
     try {
       accepted = await prompter.confirm({
         message: `Migrate ${description} into this agent now?`,
@@ -194,8 +209,8 @@ export async function offerPostInstallMigrations(
       const [{ migrateDefaultCommand }, { createMigrationLogger }, { resolveStateDir }] =
         await Promise.all([
           import("../commands/migrate.js"),
-          import("../commands/migrate/context.js"),
-          import("../config/paths.js"),
+          loadMigrationContextModule(),
+          loadConfigPathsModule(),
         ]);
       preparation = await candidate.provider.prepareApply?.({
         config: nextConfig,
@@ -214,7 +229,7 @@ export async function offerPostInstallMigrations(
     } catch (error) {
       params.runtime.log(
         `${candidate.provider.label} migration failed: ${formatErrorMessage(error)}. ` +
-          `Re-run with ${formatCliCommand(`astroclaw migrate ${candidate.provider.id} --dry-run`)} to inspect.`,
+          `Re-run with ${formatCliCommand(`openclaw migrate ${candidate.provider.id} --dry-run`)} to inspect.`,
       );
     } finally {
       await preparation?.dispose?.();
