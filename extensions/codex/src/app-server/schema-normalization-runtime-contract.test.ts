@@ -1,12 +1,13 @@
+// Codex tests cover schema normalization runtime contract plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { EmbeddedRunAttemptParams } from "astroclaw/plugin-sdk/agent-harness";
+import type { EmbeddedRunAttemptParams } from "openclaw/plugin-sdk/agent-harness";
 import {
   createParameterFreeTool,
   createPermissiveTool,
   normalizedParameterFreeSchema,
-} from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "openclaw/plugin-sdk/agent-runtime-test-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CodexThreadStartParams } from "./protocol.js";
 import { createCodexTestModel } from "./test-support.js";
@@ -42,6 +43,7 @@ function createAppServerOptions(): Parameters<typeof startOrResumeThread>[0]["ap
       args: ["app-server"],
       headers: {},
     },
+    codeModeOnly: false,
     requestTimeoutMs: 60_000,
     turnCompletionIdleTimeoutMs: 60_000,
     approvalPolicy: "never",
@@ -87,7 +89,7 @@ function threadStartResult(threadId = "thread-1", serviceTier: string | null = n
 
 describe("Codex app-server dynamic tool schema boundary contract", () => {
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-codex-schema-contract-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-schema-contract-"));
   });
 
   afterEach(async () => {
@@ -132,11 +134,11 @@ describe("Codex app-server dynamic tool schema boundary contract", () => {
     expect(startPayload?.approvalPolicy).toBe("never");
     expect(startPayload?.approvalsReviewer).toBe("user");
     expect(startPayload?.sandbox).toBe("workspace-write");
-    expect(startPayload?.serviceName).toBe("Astroclaw");
+    expect(startPayload?.serviceName).toBe("OpenClaw");
     expect(startPayload?.experimentalRawEvents).toBe(true);
     expect(startPayload?.persistExtendedHistory).toBe(true);
     expect(typeof startPayload?.developerInstructions).toBe("string");
-    expect(startPayload?.developerInstructions).toContain("Astroclaw");
+    expect(startPayload?.developerInstructions).toContain("OpenClaw");
   });
 
   it("accepts Codex app-server priority service tier responses", async () => {
