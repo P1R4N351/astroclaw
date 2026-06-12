@@ -1,9 +1,10 @@
+// Signal tests cover core plugin behavior.
 import {
   createMessageReceiptFromOutboundResults,
   verifyChannelMessageAdapterCapabilityProofs,
-} from "astroclaw/plugin-sdk/channel-message";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { createPluginSetupWizardStatus } from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/channel-outbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { createPluginSetupWizardStatus } from "openclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { signalPlugin } from "./channel.js";
 import * as clientModule from "./client-adapter.js";
@@ -202,7 +203,7 @@ describe("probeSignal", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       accountOverrides: {},
     });
 
@@ -219,6 +220,48 @@ describe("signal outbound", () => {
     }
 
     expect(chunker("alpha beta", 5)).toEqual(["alpha", "beta"]);
+  });
+
+  it("preserves the local approval prompt suppressor through attached-result composition", () => {
+    const suppressor = signalPlugin.outbound?.shouldSuppressLocalPayloadPrompt;
+    if (!suppressor) {
+      throw new Error("signal outbound approval suppressor unavailable");
+    }
+
+    expect(
+      suppressor({
+        cfg: {
+          channels: {
+            signal: {
+              enabled: true,
+              allowFrom: ["+15551230000"],
+            },
+          },
+          approvals: {
+            exec: {
+              enabled: true,
+            },
+          },
+        } as OpenClawConfig,
+        accountId: "default",
+        payload: {
+          text: "Approval required.",
+          channelData: {
+            execApproval: {
+              approvalId: "exec-1",
+              approvalSlug: "exec-1",
+              approvalKind: "exec",
+              sessionKey: "agent:main:signal:+15551230000",
+            },
+          },
+        },
+        hint: {
+          kind: "approval-pending",
+          approvalKind: "exec",
+          nativeRouteActive: true,
+        },
+      }),
+    ).toBe(true);
   });
 
   it("declares message adapter durable text and media with receipt proofs", async () => {
@@ -240,7 +283,7 @@ describe("signal outbound", () => {
       proofs: {
         text: async () => {
           const result = await signalPlugin.message?.send?.text?.({
-            cfg: {} as AstroclawConfig,
+            cfg: {} as OpenClawConfig,
             to: "signal:+15555550123",
             text: "hello",
             deps,
@@ -256,7 +299,7 @@ describe("signal outbound", () => {
         },
         media: async () => {
           const result = await signalPlugin.message?.send?.media?.({
-            cfg: {} as AstroclawConfig,
+            cfg: {} as OpenClawConfig,
             to: "signal:+15555550123",
             text: "image",
             mediaUrl: "https://example.com/image.png",
@@ -278,6 +321,7 @@ describe("signal outbound", () => {
     expect(proofResults).toEqual([
       { capability: "text", status: "verified" },
       { capability: "media", status: "verified" },
+      { capability: "poll", status: "not_declared" },
       { capability: "payload", status: "not_declared" },
       { capability: "silent", status: "not_declared" },
       { capability: "replyTo", status: "not_declared" },
@@ -298,9 +342,9 @@ describe("classifySignalCliLogLine", () => {
     expect(classifySignalCliLogLine("DEBUG Something")).toBe("log");
   });
 
-  it("treats WARN/ERROR as error", () => {
-    expect(classifySignalCliLogLine("WARN  Something")).toBe("error");
-    expect(classifySignalCliLogLine("WARNING Something")).toBe("error");
+  it("treats routine warnings as logs and errors as error state", () => {
+    expect(classifySignalCliLogLine("WARN  Something")).toBe("log");
+    expect(classifySignalCliLogLine("WARNING Something")).toBe("log");
     expect(classifySignalCliLogLine("ERROR Something")).toBe("error");
   });
 
@@ -397,7 +441,7 @@ describe("signal setup parsing", () => {
   });
 
   it("uses configured defaultAccount for omitted DM policy account context", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         signal: {
           defaultAccount: "work",
@@ -427,7 +471,7 @@ describe("signal setup parsing", () => {
   });
 
   it('writes open policy state to the named account and stores inherited allowFrom with "*"', () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: {
         signal: {
           allowFrom: ["+15555550123"],
