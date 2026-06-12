@@ -1,3 +1,4 @@
+// Zalouser tests cover send plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createZalouserSendReceipt } from "./send-receipt.js";
 import {
@@ -344,12 +345,12 @@ describe("zalouser send helpers", () => {
   it("delegates link helper to JS transport", async () => {
     mockSendLink.mockResolvedValueOnce(sendFailure("boom", "thread-3"));
 
-    const result = await sendLinkZalouser("thread-3", "https://astroclaw.ai", {
+    const result = await sendLinkZalouser("thread-3", "https://openclaw.ai", {
       profile: "p3",
       isGroup: true,
     });
 
-    expect(mockSendLink).toHaveBeenCalledWith("thread-3", "https://astroclaw.ai", {
+    expect(mockSendLink).toHaveBeenCalledWith("thread-3", "https://openclaw.ai", {
       profile: "p3",
       isGroup: true,
     });
