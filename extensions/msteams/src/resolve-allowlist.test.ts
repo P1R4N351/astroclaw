@@ -1,3 +1,4 @@
+// Msteams tests cover resolve allowlist plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -191,7 +192,7 @@ describe("resolveMSTeamsChannelAllowlist", () => {
 });
 
 describe("looksLikeMSTeamsTargetId", () => {
-  // Regression suite for https://github.com/astroclaw/astroclaw/issues/58001:
+  // Regression suite for https://github.com/openclaw/openclaw/issues/58001:
   // cron announce delivery rejected valid Teams conversation ids because the
   // validator only matched the `conversation:`-prefixed and `@thread`-suffixed
   // forms. It must now accept every documented Bot Framework + Graph format.
