@@ -1,4 +1,5 @@
-import * as providerAuth from "astroclaw/plugin-sdk/provider-auth-runtime";
+// Vydra tests cover provider test helpers plugin behavior.
+import * as providerAuth from "openclaw/plugin-sdk/provider-auth-runtime";
 import { vi } from "vitest";
 
 export function stubVydraApiKey(): void {
