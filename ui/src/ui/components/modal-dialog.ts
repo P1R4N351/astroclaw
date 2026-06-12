@@ -1,3 +1,4 @@
+// Control UI component implements the modal dialog element.
 import { LitElement, css, html, nothing } from "lit";
 import { property, query } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
@@ -12,7 +13,7 @@ const FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
-export class AstroclawModalDialog extends LitElement {
+export class OpenClawModalDialog extends LitElement {
   @property() label = "";
   @property() description = "";
 
@@ -97,8 +98,8 @@ export class AstroclawModalDialog extends LitElement {
   }
 
   override render() {
-    const labelId = this.label ? "astroclaw-modal-dialog-label" : "";
-    const descriptionId = this.description ? "astroclaw-modal-dialog-description" : "";
+    const labelId = this.label ? "openclaw-modal-dialog-label" : "";
+    const descriptionId = this.description ? "openclaw-modal-dialog-description" : "";
     return html`
       <dialog
         role="dialog"
@@ -268,12 +269,12 @@ export class AstroclawModalDialog extends LitElement {
   }
 }
 
-if (!customElements.get("astroclaw-modal-dialog")) {
-  customElements.define("astroclaw-modal-dialog", AstroclawModalDialog);
+if (!customElements.get("openclaw-modal-dialog")) {
+  customElements.define("openclaw-modal-dialog", OpenClawModalDialog);
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "astroclaw-modal-dialog": AstroclawModalDialog;
+    "openclaw-modal-dialog": OpenClawModalDialog;
   }
 }
