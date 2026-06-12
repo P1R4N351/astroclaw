@@ -1,3 +1,4 @@
+// Provider flow tests cover provider setup prompts and config mutations.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type ResolveProviderInstallCatalogEntries =
@@ -147,7 +148,7 @@ describe("provider flow install catalog contributions", () => {
         label: "OpenAI",
         origin: "bundled",
         install: {
-          npmSpec: "@astroclaw/openai",
+          npmSpec: "@openclaw/openai",
         },
       },
     ]);
@@ -188,7 +189,7 @@ describe("provider flow install catalog contributions", () => {
         label: "vLLM",
         origin: "bundled",
         install: {
-          npmSpec: "@astroclaw/vllm",
+          npmSpec: "@openclaw/vllm",
         },
       },
     ]);
@@ -336,7 +337,7 @@ describe("provider flow install catalog contributions", () => {
         label: "OpenAI",
         origin: "bundled",
         install: {
-          npmSpec: "@astroclaw/openai",
+          npmSpec: "@openclaw/openai",
         },
       },
     ]);
