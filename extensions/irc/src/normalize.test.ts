@@ -1,3 +1,4 @@
+// Irc tests cover normalize plugin behavior.
 import { describe, expect, it } from "vitest";
 import {
   buildIrcAllowlistCandidates,
@@ -8,7 +9,7 @@ import {
 
 describe("irc normalize", () => {
   it("normalizes targets", () => {
-    expect(normalizeIrcMessagingTarget("irc:channel:astroclaw")).toBe("#astroclaw");
+    expect(normalizeIrcMessagingTarget("irc:channel:openclaw")).toBe("#openclaw");
     expect(normalizeIrcMessagingTarget("user:alice")).toBe("alice");
     expect(normalizeIrcMessagingTarget("\n")).toBeUndefined();
   });
