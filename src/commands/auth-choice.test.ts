@@ -1,11 +1,12 @@
+// Auth choice tests cover auth choice application, provider config, and credential prompts.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { resolveAgentDir } from "../agents/agent-scope.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
 import type { ModelProviderConfig } from "../config/types.models.js";
-import { __testing as providerAuthChoiceTesting } from "../plugins/provider-auth-choice.js";
+import { testing as providerAuthChoiceTesting } from "../plugins/provider-auth-choice.js";
 import * as providerAuthChoices from "../plugins/provider-auth-choices.js";
 import type { ProviderAuthMethod, ProviderAuthResult, ProviderPlugin } from "../plugins/types.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
@@ -41,18 +42,18 @@ vi.mock("../plugins/provider-install-catalog.js", () => ({
 }));
 
 vi.mock("./auth-choice.apply.api-providers.js", () => {
-  const normalizeProviderId = (value: string) => value.trim().toLowerCase();
+  const normalizeProviderIdLocal = (value: string) => value.trim().toLowerCase();
   const resolveChoiceByKind = (params: {
     authChoice: string;
     kind: ProviderAuthMethod["kind"];
     tokenProvider?: string;
   }) => {
-    const providerId = normalizeProviderId(params.tokenProvider ?? "");
+    const providerId = normalizeProviderIdLocal(params.tokenProvider ?? "");
     if (!providerId) {
       return params.authChoice;
     }
     const provider = resolvePluginProviders().find(
-      (entry) => normalizeProviderId(entry.id) === providerId,
+      (entry) => normalizeProviderIdLocal(entry.id) === providerId,
     );
     return (
       provider?.auth.find((method) => method.kind === params.kind)?.wizard?.choiceId ??
@@ -80,14 +81,19 @@ const detectZaiEndpoint = vi.hoisted(() => vi.fn<DetectZaiEndpoint>(async () => 
 
 vi.mock("../agents/agent-scope.js", () => ({
   resolveDefaultAgentId: () => "main",
-  resolveAgentDir: (_config: unknown, agentId: string) =>
-    `${process.env.ASTROCLAW_STATE_DIR ?? "/tmp/astroclaw-state"}/agents/${agentId}/agent`,
-  resolveAgentWorkspaceDir: (_config: unknown, agentId: string) =>
-    `/tmp/astroclaw-workspaces/${agentId}`,
+  resolveAgentDir: (configForTest: unknown, agentId: string) =>
+    `${process.env.OPENCLAW_STATE_DIR ?? "/tmp/openclaw-state"}/agents/${agentId}/agent`,
+  resolveAgentWorkspaceDir: (configForTest: unknown, agentId: string) =>
+    `/tmp/openclaw-workspaces/${agentId}`,
+  // Required by src/agents/model-runtime-policy.ts, which is transitively
+  // imported through provider-auth-choice -> copilot-runtime-plugin-install ->
+  // copilot-routing -> model-runtime-policy.
+  resolveSessionAgentIds: () => ({ defaultAgentId: "main", sessionAgentId: "main" }),
+  listAgentEntries: () => [],
 }));
 
 vi.mock("../agents/workspace.js", () => ({
-  resolveDefaultAgentWorkspaceDir: () => "/tmp/astroclaw-workspace",
+  resolveDefaultAgentWorkspaceDir: () => "/tmp/openclaw-workspace",
 }));
 
 vi.mock("../plugins/setup-browser.js", () => ({
@@ -101,7 +107,7 @@ vi.mock("../plugins/provider-oauth-flow.js", () => ({
 
 vi.mock("../plugins/provider-auth-helpers.js", () => ({
   applyAuthProfileConfig: (
-    cfg: AstroclawConfig,
+    cfg: OpenClawConfig,
     params: {
       profileId: string;
       provider: string;
@@ -109,7 +115,7 @@ vi.mock("../plugins/provider-auth-helpers.js", () => ({
       email?: string;
       displayName?: string;
     },
-  ): AstroclawConfig => ({
+  ): OpenClawConfig => ({
     ...cfg,
     auth: {
       ...cfg.auth,
@@ -145,7 +151,7 @@ const testAuthProfileStores = vi.hoisted(
 
 // These tests verify profile payloads, not file locking; keep auth stores in memory.
 function resolveTestAuthStoreKey(agentDir?: string): string {
-  return agentDir?.trim() || process.env.ASTROCLAW_AGENT_DIR || "__main__";
+  return agentDir?.trim() || process.env.OPENCLAW_AGENT_DIR || "__main__";
 }
 
 function readTestAuthProfileStore(agentDir?: string): {
@@ -225,7 +231,7 @@ function resolveProviderPluginChoice(params: { providers: ProviderPlugin[]; choi
 function providerConfigPatch(
   providerId: string,
   patch: Record<string, unknown>,
-): Partial<AstroclawConfig> {
+): Partial<OpenClawConfig> {
   const providers: Record<string, ModelProviderConfig> = {
     [providerId]: patch as ModelProviderConfig,
   };
@@ -356,7 +362,7 @@ async function createApiKeyProvider(params: {
   expectedProviders?: string[];
   noteMessage?: string;
   noteTitle?: string;
-  applyConfig?: Partial<AstroclawConfig>;
+  applyConfig?: Partial<OpenClawConfig>;
 }): Promise<ProviderPlugin> {
   const profileIds =
     params.profileIds && params.profileIds.length > 0
@@ -395,7 +401,7 @@ async function createApiKeyProvider(params: {
                 input,
               ),
             })),
-            ...(params.applyConfig ? { configPatch: params.applyConfig as AstroclawConfig } : {}),
+            ...(params.applyConfig ? { configPatch: params.applyConfig as OpenClawConfig } : {}),
             ...(params.defaultModel ? { defaultModel: params.defaultModel } : {}),
           };
         },
@@ -471,7 +477,7 @@ async function createDefaultProviderPlugins(): Promise<ProviderPlugin[]> {
             credential: buildApiKeyCredential("zai", token),
           },
         ],
-        configPatch: providerConfigPatch("zai", { baseUrl }) as AstroclawConfig,
+        configPatch: providerConfigPatch("zai", { baseUrl }) as OpenClawConfig,
         defaultModel: `zai/${modelId}`,
       };
     },
@@ -506,6 +512,7 @@ async function createDefaultProviderPlugins(): Promise<ProviderPlugin[]> {
       flagName: "--openai-api-key",
       envVar: "OPENAI_API_KEY",
       promptMessage: "Enter OpenAI API key",
+      profileId: "openai:api-key",
       defaultModel: "openai/gpt-5.5",
     }),
     await createApiKeyProvider({
@@ -566,9 +573,8 @@ async function createDefaultProviderPlugins(): Promise<ProviderPlugin[]> {
 
 describe("applyAuthChoice", () => {
   const lifecycle = createAuthTestLifecycle([
-    "ASTROCLAW_STATE_DIR",
-    "ASTROCLAW_AGENT_DIR",
-    "PI_CODING_AGENT_DIR",
+    "OPENCLAW_STATE_DIR",
+    "OPENCLAW_AGENT_DIR",
     "ANTHROPIC_API_KEY",
     "OPENROUTER_API_KEY",
     "HF_TOKEN",
@@ -586,9 +592,8 @@ describe("applyAuthChoice", () => {
     testAuthProfileStores.clear();
     const stateDir = path.join(authTestRoot, `state-${++authStateCounter}`);
     const agentDir = path.join(stateDir, "agent");
-    process.env.ASTROCLAW_STATE_DIR = stateDir;
-    process.env.ASTROCLAW_AGENT_DIR = agentDir;
-    process.env.PI_CODING_AGENT_DIR = agentDir;
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    process.env.OPENCLAW_AGENT_DIR = agentDir;
   }
   function createPrompter(overrides: Partial<WizardPrompter>): WizardPrompter {
     return createWizardPrompter(overrides, { defaultSelect: "" });
@@ -617,7 +622,7 @@ describe("applyAuthChoice", () => {
     };
   }
   async function readAuthProfiles() {
-    return readTestAuthProfileStore(resolveAgentDir({} as AstroclawConfig, "main"));
+    return readTestAuthProfileStore(resolveAgentDir({} as OpenClawConfig, "main"));
   }
   async function readAuthProfilesForAgentDir(agentDir: string) {
     return readTestAuthProfileStore(agentDir);
@@ -626,7 +631,7 @@ describe("applyAuthChoice", () => {
     return (await readAuthProfiles()).profiles?.[profileId];
   }
   function expectAuthProfileConfig(
-    result: { config: AstroclawConfig },
+    result: { config: OpenClawConfig },
     profileId: string,
     expected: { provider: string; mode: string },
   ) {
@@ -657,7 +662,7 @@ describe("applyAuthChoice", () => {
   let defaultProviderPlugins: ProviderPlugin[] = [];
 
   beforeAll(async () => {
-    authTestRoot = (await setupAuthTestEnv("astroclaw-auth-")).stateDir;
+    authTestRoot = (await setupAuthTestEnv("openclaw-auth-")).stateDir;
     defaultProviderPlugins = await createDefaultProviderPlugins();
     resolvePluginProviders.mockReturnValue(defaultProviderPlugins);
     providerAuthChoiceTesting.setDepsForTest({
@@ -721,7 +726,7 @@ describe("applyAuthChoice", () => {
 
     const result = await applyAuthChoice({
       authChoice: "token",
-      config: {} as AstroclawConfig,
+      config: {} as OpenClawConfig,
       prompter: createPrompter({}),
       runtime: createExitThrowingRuntime(),
       setDefaultModel: true,
@@ -747,19 +752,19 @@ describe("applyAuthChoice", () => {
     const spy = vi
       .spyOn(providerAuthChoices, "resolveManifestDeprecatedProviderAuthChoice")
       .mockReturnValueOnce({
-        choiceId: "openai-codex",
+        choiceId: "openai",
       } as never);
     try {
       await expect(
         applyAuthChoice({
-          authChoice: "openai-codex-import",
+          authChoice: "openai-chatgpt-import",
           config: {},
           prompter: createPrompter({}),
           runtime: createExitThrowingRuntime(),
           setDefaultModel: true,
         }),
       ).rejects.toThrow(
-        'Auth choice "openai-codex-import" is no longer supported. Use "openai-codex" instead, or run astroclaw onboard to choose interactively.',
+        'Auth choice "openai-chatgpt-import" is no longer supported. Use "openai" instead, or run openclaw onboard to choose interactively.',
       );
     } finally {
       spy.mockRestore();
@@ -782,7 +787,7 @@ describe("applyAuthChoice", () => {
           setDefaultModel: true,
         }),
       ).rejects.toThrow(
-        'Auth choice "legacy\\u001b[31mchoice" is no longer supported. Use "modern\\nchoice" instead, or run astroclaw onboard to choose interactively.',
+        'Auth choice "legacy\\u001b[31mchoice" is no longer supported. Use "modern\\nchoice" instead, or run openclaw onboard to choose interactively.',
       );
     } finally {
       spy.mockRestore();
@@ -910,7 +915,7 @@ describe("applyAuthChoice", () => {
   it("uses provided tokens without prompting across alias and direct provider choices", async () => {
     const scenarios: Array<{
       authChoice: "apiKey" | "gemini-api-key";
-      config?: AstroclawConfig;
+      config?: OpenClawConfig;
       setDefaultModel: boolean;
       tokenProvider: string;
       token: string;
@@ -1178,11 +1183,11 @@ describe("applyAuthChoice", () => {
     expect(providerResolveInput.mode).toBe("setup");
     expectPromptMessageContaining(confirm, "OPENAI_API_KEY");
     expect(text).not.toHaveBeenCalled();
-    expectAuthProfileConfig(result, "openai:default", {
+    expectAuthProfileConfig(result, "openai:api-key", {
       provider: "openai",
       mode: "api_key",
     });
-    expect((await readAuthProfile("openai:default"))?.key).toBe("sk-openai-explicit");
+    expect((await readAuthProfile("openai:api-key"))?.key).toBe("sk-openai-explicit");
   });
 
   it("keeps existing default model for explicit provider keys when setDefaultModel=false", async () => {
