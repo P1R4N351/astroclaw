@@ -1,3 +1,4 @@
+// Status scan result tests cover cold-start summaries and gateway probe snapshot aggregation.
 import { describe, expect, it } from "vitest";
 import { buildStatusScanResult } from "./status.scan-result.ts";
 import { buildColdStartStatusSummary } from "./status.scan.bootstrap-shared.ts";
@@ -12,7 +13,7 @@ describe("buildStatusScanResult", () => {
       label: "linux 6.8.0 (x64)",
     };
     const update = {
-      root: "/tmp/astroclaw",
+      root: "/tmp/openclaw",
       installKind: "package" as const,
       packageManager: "npm" as const,
     };
