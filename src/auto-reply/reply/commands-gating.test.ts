@@ -1,11 +1,14 @@
+// Tests command gating rules for ownership, channel, and active session state.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { isCommandFlagEnabled } from "../../config/commands.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
+import { REDACTED_SENTINEL } from "../../config/redact-snapshot.js";
 import type { MsgContext } from "../templating.js";
 import { handleBashChatCommand } from "./bash-command.js";
 import { requireGatewayClientScope } from "./command-gates.js";
 import { handleConfigCommand, handleDebugCommand } from "./commands-config.js";
 import type { HandleCommandsParams } from "./commands-types.js";
+import type { ConfigSnapshotMock } from "./commands.test-harness.js";
 import { parseInlineDirectives } from "./directive-handling.parse.js";
 
 const readConfigFileSnapshotMock = vi.hoisted(() =>
@@ -28,56 +31,6 @@ const resolveConfigWriteDeniedTextMock = vi.hoisted(() =>
   vi.fn<(...args: never[]) => string | null>(() => null),
 );
 const isInternalMessageChannelMock = vi.hoisted(() => vi.fn(() => false));
-
-type ConfigSnapshotMock = {
-  path?: string;
-  hash?: string | null;
-  parsed?: AstroclawConfig | null;
-  sourceConfig?: AstroclawConfig;
-  resolved?: AstroclawConfig;
-  runtimeConfig?: AstroclawConfig;
-};
-
-type TransformConfigFileWithRetryMockParams<T = unknown> = {
-  afterWrite?: unknown;
-  transform: (
-    currentConfig: AstroclawConfig,
-    context: { snapshot: ConfigSnapshotMock; previousHash: string | null; attempt: number },
-  ) =>
-    | Promise<{ nextConfig: AstroclawConfig; result?: T }>
-    | { nextConfig: AstroclawConfig; result?: T };
-};
-
-function configFromSnapshot(snapshot: ConfigSnapshotMock): AstroclawConfig {
-  return structuredClone(
-    snapshot.sourceConfig ?? snapshot.resolved ?? snapshot.runtimeConfig ?? snapshot.parsed ?? {},
-  );
-}
-
-async function transformConfigFileWithRetryMock<T = unknown>(
-  params: TransformConfigFileWithRetryMockParams<T>,
-) {
-  const snapshot = (await readConfigFileSnapshotMock()) as ConfigSnapshotMock;
-  const previousHash = snapshot.hash ?? null;
-  const transformed = await params.transform(configFromSnapshot(snapshot), {
-    snapshot,
-    previousHash,
-    attempt: 0,
-  });
-  const afterWrite = params.afterWrite ?? { mode: "auto" };
-  await replaceConfigFileMock({ nextConfig: transformed.nextConfig, afterWrite });
-  return {
-    path: snapshot.path ?? "/tmp/astroclaw.json",
-    previousHash,
-    persistedHash: "persisted-hash",
-    snapshot,
-    nextConfig: transformed.nextConfig,
-    result: transformed.result,
-    attempts: 1,
-    afterWrite,
-    followUp: { action: "none" },
-  };
-}
 
 vi.mock("../../agents/agent-scope.js", () => ({
   resolveSessionAgentId: vi.fn(() => "agent:main"),
@@ -133,7 +86,42 @@ vi.mock("../../config/config.js", () => ({
   readConfigFileSnapshot: readConfigFileSnapshotMock,
   validateConfigObjectWithPlugins: validateConfigObjectWithPluginsMock,
   replaceConfigFile: replaceConfigFileMock,
-  transformConfigFileWithRetry: transformConfigFileWithRetryMock,
+  transformConfigFileWithRetry: async (params: {
+    afterWrite?: unknown;
+    transform: (
+      currentConfig: OpenClawConfig,
+      context: { snapshot: ConfigSnapshotMock; previousHash: string | null; attempt: number },
+    ) =>
+      | Promise<{ nextConfig: OpenClawConfig; result?: unknown }>
+      | {
+          nextConfig: OpenClawConfig;
+          result?: unknown;
+        };
+  }) => {
+    const snapshot = (await readConfigFileSnapshotMock()) as ConfigSnapshotMock;
+    const previousHash = snapshot.hash ?? null;
+    const currentConfig = structuredClone(
+      snapshot.sourceConfig ?? snapshot.resolved ?? snapshot.runtimeConfig ?? snapshot.parsed ?? {},
+    );
+    const transformed = await params.transform(currentConfig, {
+      snapshot,
+      previousHash,
+      attempt: 0,
+    });
+    const afterWrite = params.afterWrite ?? { mode: "auto" };
+    await replaceConfigFileMock({ nextConfig: transformed.nextConfig, afterWrite });
+    return {
+      path: snapshot.path ?? "/tmp/openclaw.json",
+      previousHash,
+      persistedHash: "persisted-hash",
+      snapshot,
+      nextConfig: transformed.nextConfig,
+      result: transformed.result,
+      attempts: 1,
+      afterWrite,
+      followUp: { action: "none" },
+    };
+  },
 }));
 
 vi.mock("../../config/runtime-overrides.js", () => ({
@@ -142,6 +130,14 @@ vi.mock("../../config/runtime-overrides.js", () => ({
   setConfigOverride: vi.fn(() => ({ ok: true })),
   unsetConfigOverride: vi.fn(() => ({ ok: true, removed: true })),
 }));
+
+vi.mock("../../config/runtime-schema.js", async () => {
+  const actual =
+    await vi.importActual<typeof import("../../config/schema.js")>("../../config/schema.js");
+  return {
+    loadGatewayRuntimeConfigSchema: () => actual.buildConfigSchema(),
+  };
+});
 
 vi.mock("../../utils/message-channel.js", () => ({
   isInternalMessageChannel: isInternalMessageChannelMock,
@@ -190,7 +186,7 @@ vi.mock("./debug-commands.js", () => ({
   }),
 }));
 
-function buildParams(commandBody: string, cfg: AstroclawConfig): HandleCommandsParams {
+function buildParams(commandBody: string, cfg: OpenClawConfig): HandleCommandsParams {
   const ctx = {
     Body: commandBody,
     CommandBody: commandBody,
@@ -282,7 +278,7 @@ describe("command gating", () => {
         CommandBody: "/bash echo hi",
         SessionKey: "agent:main:main",
       } as MsgContext,
-      cfg: { commands: { bash: false } } as AstroclawConfig,
+      cfg: { commands: { bash: false } } as OpenClawConfig,
       sessionKey: "agent:main:main",
       isGroup: false,
       elevated: { enabled: true, allowed: true, failures: [] },
@@ -297,7 +293,7 @@ describe("command gating", () => {
         CommandBody: "/bash echo hi",
         SessionKey: "agent:main:main",
       } as MsgContext,
-      cfg: { commands: { bash: true } } as AstroclawConfig,
+      cfg: { commands: { bash: true } } as OpenClawConfig,
       sessionKey: "agent:main:main",
       isGroup: false,
       elevated: {
@@ -313,7 +309,7 @@ describe("command gating", () => {
     const params = buildParams("/config show", {
       commands: { config: false, debug: false, text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     params.command.senderIsOwner = true;
     const result = await handleConfigCommand(params, true);
     expect(result?.reply?.text).toContain("/config is disabled");
@@ -323,7 +319,7 @@ describe("command gating", () => {
     const params = buildParams("/debug show", {
       commands: { config: false, debug: false, text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     params.command.senderIsOwner = true;
     const result = await handleDebugCommand(params, true);
     expect(result?.reply?.text).toContain("/debug is disabled");
@@ -333,14 +329,14 @@ describe("command gating", () => {
     const configParams = buildParams("/config show", {
       commands: { config: true, text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     const configResult = await handleConfigCommand(configParams, true);
     expect(configResult).toEqual({ shouldContinue: false });
 
     const debugParams = buildParams("/debug show", {
       commands: { debug: true, text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     const debugResult = await handleDebugCommand(debugParams, true);
     expect(debugResult).toEqual({ shouldContinue: false });
   });
@@ -353,7 +349,7 @@ describe("command gating", () => {
     const configParams = buildParams("/config show messages.ackReaction", {
       commands: { config: true, text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     configParams.command.senderIsOwner = true;
     const configResult = await handleConfigCommand(configParams, true);
     expect(configResult?.reply?.text).toContain("⚙️ Config");
@@ -362,17 +358,180 @@ describe("command gating", () => {
     const debugParams = buildParams("/debug show", {
       commands: { debug: true, text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     debugParams.command.senderIsOwner = true;
     const debugResult = await handleDebugCommand(debugParams, true);
     expect(debugResult?.reply?.text).toContain("Debug overrides");
+  });
+
+  it("redacts secret-shaped fields from full /config show replies", async () => {
+    readConfigFileSnapshotMock.mockResolvedValueOnce({
+      valid: true,
+      parsed: {
+        gateway: {
+          auth: {
+            mode: "token",
+            token: "OPENCLAW_CONFIG_SHOW_CANARY_TOKEN_65623",
+            password: "OPENCLAW_CONFIG_SHOW_CANARY_PASSWORD_65623",
+          },
+          bind: "127.0.0.1",
+          port: 3210,
+        },
+        models: {
+          providers: {
+            openai: {
+              apiKey: "OPENCLAW_CONFIG_SHOW_CANARY_API_KEY_65623",
+              baseUrl: "https://api.example.test",
+              models: [{ id: "gpt-test", name: "gpt-test" }],
+            },
+          },
+        },
+        browser: {
+          cdpUrl:
+            "wss://chrome.example.test/devtools?token=OPENCLAW_CONFIG_SHOW_CANARY_CDP_TOKEN_65623&apiKey=OPENCLAW_CONFIG_SHOW_CANARY_CDP_API_KEY_65623",
+          profiles: {
+            local: {
+              cdpUrl: "ws://localhost:9222",
+            },
+            remote: {
+              cdpUrl:
+                "wss://chrome.remote.example.test/devtools?apiKey=OPENCLAW_CONFIG_SHOW_CANARY_CDP_PROFILE_API_KEY_65623",
+            },
+          },
+        },
+        talk: {
+          providers: {
+            openai: {
+              apiKey: "OPENCLAW_CONFIG_SHOW_CANARY_API_KEY_65623",
+              baseUrl: "https://api.example.test",
+              model: "gpt-test",
+            },
+          },
+        },
+        channels: {
+          telegram: {
+            botToken: "1234567890TELEGRAM_BOT_TOKEN",
+            enabled: true,
+          },
+          slack: {
+            token: {
+              source: "env",
+              provider: "default",
+              id: "SLACK_BOT_TOKEN",
+            },
+          },
+        },
+      },
+    });
+    const params = buildParams("/config show", {
+      commands: { config: true, text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig);
+    params.command.senderIsOwner = true;
+
+    const result = await handleConfigCommand(params, true);
+    const output = result?.reply?.text ?? "";
+
+    expect(output).toContain("gateway");
+    expect(output).toContain("token");
+    expect(output).toContain("password");
+    expect(output).toContain("apiKey");
+    expect(output).toContain("browser");
+    expect(output).toContain("cdpUrl");
+    expect(output).toContain(REDACTED_SENTINEL);
+    expect(output).not.toContain("OPENCLAW_CONFIG_SHOW_CANARY_TOKEN_65623");
+    expect(output).not.toContain("OPENCLAW_CONFIG_SHOW_CANARY_PASSWORD_65623");
+    expect(output).not.toContain("OPENCLAW_CONFIG_SHOW_CANARY_API_KEY_65623");
+    expect(output).not.toContain("OPENCLAW_CONFIG_SHOW_CANARY_CDP_TOKEN_65623");
+    expect(output).not.toContain("OPENCLAW_CONFIG_SHOW_CANARY_CDP_API_KEY_65623");
+    expect(output).not.toContain("OPENCLAW_CONFIG_SHOW_CANARY_CDP_PROFILE_API_KEY_65623");
+    expect(output).toContain('"mode": "token"');
+    expect(output).toContain('"bind": "127.0.0.1"');
+    expect(output).toContain('"port": 3210');
+    expect(output).toContain('"enabled": true');
+    expect(output).toContain('"model": "gpt-test"');
+    expect(output).toContain('"baseUrl": "https://api.example.test"');
+    expect(output).toContain('"cdpUrl": "ws://localhost:9222"');
+  });
+
+  it("redacts secret-shaped values from path-specific /config show replies", async () => {
+    readConfigFileSnapshotMock.mockResolvedValueOnce({
+      valid: true,
+      parsed: {
+        gateway: {
+          auth: {
+            mode: "token",
+            token: "OPENCLAW_CONFIG_SHOW_CANARY_TOKEN_65623",
+          },
+        },
+      },
+    });
+    const params = buildParams("/config show gateway.auth.token", {
+      commands: { config: true, text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig);
+    params.command.senderIsOwner = true;
+
+    const result = await handleConfigCommand(params, true);
+    const output = result?.reply?.text ?? "";
+
+    expect(output).toContain("Config gateway.auth.token");
+    expect(output).toContain(REDACTED_SENTINEL);
+    expect(output).not.toContain("OPENCLAW_CONFIG_SHOW_CANARY_TOKEN_65623");
+  });
+
+  it("redacts browser cdpUrl query secrets from path-specific /config show replies", async () => {
+    readConfigFileSnapshotMock.mockResolvedValueOnce({
+      valid: true,
+      parsed: {
+        browser: {
+          cdpUrl:
+            "wss://chrome.example.test/devtools?token=OPENCLAW_CONFIG_SHOW_CANARY_CDP_TOKEN_65623&apiKey=OPENCLAW_CONFIG_SHOW_CANARY_CDP_API_KEY_65623",
+        },
+      },
+    });
+    const params = buildParams("/config show browser.cdpUrl", {
+      commands: { config: true, text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig);
+    params.command.senderIsOwner = true;
+
+    const result = await handleConfigCommand(params, true);
+    const output = result?.reply?.text ?? "";
+
+    expect(output).toContain("Config browser.cdpUrl");
+    expect(output).toContain(REDACTED_SENTINEL);
+    expect(output).not.toContain("OPENCLAW_CONFIG_SHOW_CANARY_CDP_TOKEN_65623");
+    expect(output).not.toContain("OPENCLAW_CONFIG_SHOW_CANARY_CDP_API_KEY_65623");
+  });
+
+  it("redacts secret-shaped values from /config set acknowledgements", async () => {
+    readConfigFileSnapshotMock.mockResolvedValue({
+      valid: true,
+      parsed: { gateway: { auth: { mode: "token" } } },
+    });
+    const params = buildParams(
+      '/config set gateway.auth.token="OPENCLAW_CONFIG_SET_CANARY_TOKEN_65623"',
+      {
+        commands: { config: true, text: true },
+        channels: { whatsapp: { allowFrom: ["*"] } },
+      } as OpenClawConfig,
+    );
+    params.command.senderIsOwner = true;
+
+    const result = await handleConfigCommand(params, true);
+    const output = result?.reply?.text ?? "";
+
+    expect(output).toContain("Config updated: gateway.auth.token=");
+    expect(output).toContain(REDACTED_SENTINEL);
+    expect(output).not.toContain("OPENCLAW_CONFIG_SET_CANARY_TOKEN_65623");
   });
 
   it("returns explicit unauthorized replies for native privileged commands", async () => {
     const configParams = buildParams("/config show", {
       commands: { config: true, text: true },
       channels: { telegram: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     configParams.ctx.CommandSource = "native";
     configParams.command.channel = "telegram";
     configParams.command.channelId = "telegram";
@@ -386,7 +545,7 @@ describe("command gating", () => {
     const debugParams = buildParams("/debug show", {
       commands: { debug: true, text: true },
       channels: { telegram: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     debugParams.ctx.CommandSource = "native";
     debugParams.command.channel = "telegram";
     debugParams.command.channelId = "telegram";
@@ -404,7 +563,7 @@ describe("command gating", () => {
       config: true,
       debug: true,
     }) as Record<string, unknown>;
-    const cfg = { commands: inheritedCommands as never } as AstroclawConfig;
+    const cfg = { commands: inheritedCommands as never } as OpenClawConfig;
     expect(isCommandFlagEnabled(cfg, "bash")).toBe(false);
     expect(isCommandFlagEnabled(cfg, "config")).toBe(false);
     expect(isCommandFlagEnabled(cfg, "debug")).toBe(false);
@@ -423,7 +582,7 @@ describe("command gating", () => {
           const params = buildParams('/config set messages.ackReaction=":)"', {
             commands: { config: true, text: true },
             channels: { whatsapp: { allowFrom: ["*"], configWrites: false } },
-          } as AstroclawConfig);
+          } as OpenClawConfig);
           params.command.senderIsOwner = true;
           return params;
         })(),
@@ -442,7 +601,7 @@ describe("command gating", () => {
                 },
               },
             },
-          } as AstroclawConfig);
+          } as OpenClawConfig);
           params.ctx.Provider = "telegram";
           params.ctx.Surface = "telegram";
           params.command.channel = "telegram";
@@ -459,7 +618,7 @@ describe("command gating", () => {
           const params = buildParams('/config set channels.telegram={"enabled":false}', {
             commands: { config: true, text: true },
             channels: { telegram: { configWrites: true } },
-          } as AstroclawConfig);
+          } as OpenClawConfig);
           params.ctx.Provider = "telegram";
           params.ctx.Surface = "telegram";
           params.command.channel = "telegram";
@@ -496,7 +655,7 @@ describe("command gating", () => {
           },
         },
       },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     params.ctx.Provider = "telegram";
     params.ctx.Surface = "telegram";
     params.command.channel = "telegram";
@@ -583,7 +742,7 @@ describe("command gating", () => {
   });
 
   it("enforces gateway client permissions for /config commands", async () => {
-    const baseCfg = { commands: { config: true, text: true } } as AstroclawConfig;
+    const baseCfg = { commands: { config: true, text: true } } as OpenClawConfig;
 
     const blockedParams = buildParams('/config set messages.ackReaction=":)"', baseCfg);
     blockedParams.ctx.Provider = "webchat";
@@ -643,7 +802,7 @@ describe("command gating", () => {
     });
     const params = buildParams("/config unset messages.missing", {
       commands: { config: true, text: true },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     params.ctx.GatewayClientScopes = ["operator.admin"];
     params.command.senderIsOwner = true;
 
