@@ -1,5 +1,6 @@
+// Configure wizard tests cover guided setup routing across gateway, auth, channels, skills, and search.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 
 const mocks = vi.hoisted(() => {
   const writeConfigFile = vi.fn();
@@ -26,14 +27,16 @@ const mocks = vi.hoisted(() => {
     waitForGatewayReachable: vi.fn(),
     resolveControlUiLinks: vi.fn(),
     summarizeExistingConfig: vi.fn(),
-    promptRemoteGatewayConfig: vi.fn(async (cfg: AstroclawConfig) => ({
+    promptAuthConfig: vi.fn(),
+    promptGatewayConfig: vi.fn(),
+    promptRemoteGatewayConfig: vi.fn(async (cfg: OpenClawConfig) => ({
       ...cfg,
       gateway: { mode: "remote", remote: { url: "wss://gateway.example.test" } },
     })),
-    isCodexNativeWebSearchRelevant: vi.fn(({ config }: { config: AstroclawConfig }) =>
-      Boolean(config.auth?.profiles?.["openai-codex:default"]),
+    isCodexNativeWebSearchRelevant: vi.fn(({ config }: { config: OpenClawConfig }) =>
+      Boolean(config.auth?.profiles?.["openai:default"]),
     ),
-    setupChannels: vi.fn(async (cfg: AstroclawConfig) => cfg),
+    setupChannels: vi.fn(async (cfg: OpenClawConfig) => cfg),
   };
 });
 
@@ -46,7 +49,7 @@ vi.mock("@clack/prompts", () => ({
 }));
 
 vi.mock("../config/config.js", () => ({
-  CONFIG_PATH: "~/.astroclaw/astroclaw.json",
+  CONFIG_PATH: "~/.openclaw/openclaw.json",
   readConfigFileSnapshot: mocks.readConfigFileSnapshot,
   writeConfigFile: mocks.writeConfigFile,
   replaceConfigFile: mocks.replaceConfigFile,
@@ -61,13 +64,13 @@ vi.mock("../wizard/clack-prompter.js", () => ({
   createClackPrompter: mocks.createClackPrompter,
 }));
 
-vi.mock("../terminal/note.js", () => ({
+vi.mock("../../packages/terminal-core/src/note.js", () => ({
   note: mocks.note,
 }));
 
 vi.mock("./onboard-helpers.js", () => ({
-  DEFAULT_WORKSPACE: "~/.astroclaw/workspace",
-  applyWizardMetadata: (cfg: AstroclawConfig) => cfg,
+  DEFAULT_WORKSPACE: "~/.openclaw/workspace",
+  applyWizardMetadata: (cfg: OpenClawConfig) => cfg,
   ensureWorkspaceAndSessions: vi.fn(),
   guardCancel: <T>(value: T) => value,
   printWizardHeader: mocks.printWizardHeader,
@@ -86,11 +89,11 @@ vi.mock("./health-format.js", () => ({
 }));
 
 vi.mock("./configure.gateway.js", () => ({
-  promptGatewayConfig: vi.fn(),
+  promptGatewayConfig: mocks.promptGatewayConfig,
 }));
 
 vi.mock("./configure.gateway-auth.js", () => ({
-  promptAuthConfig: vi.fn(),
+  promptAuthConfig: mocks.promptAuthConfig,
 }));
 
 vi.mock("./configure.channels.js", () => ({
@@ -158,7 +161,7 @@ function createSearchProviderOption(overrides: Record<string, unknown>) {
 }
 
 function createEnabledWebSearchConfig(provider: string, pluginEntry: Record<string, unknown>) {
-  return (cfg: AstroclawConfig) => ({
+  return (cfg: OpenClawConfig) => ({
     ...cfg,
     tools: {
       ...cfg.tools,
@@ -180,7 +183,7 @@ function createEnabledWebSearchConfig(provider: string, pluginEntry: Record<stri
   });
 }
 
-function setupBaseWizardState(config: AstroclawConfig = {}) {
+function setupBaseWizardState(config: OpenClawConfig = {}) {
   mocks.readConfigFileSnapshot.mockResolvedValue({
     ...EMPTY_CONFIG_SNAPSHOT,
     config,
@@ -275,7 +278,14 @@ describe("runConfigureWizard", () => {
       },
     ]);
     mocks.setupSearch.mockReset();
-    mocks.setupSearch.mockImplementation(async (cfg: AstroclawConfig) => cfg);
+    mocks.setupSearch.mockImplementation(async (cfg: OpenClawConfig) => cfg);
+    mocks.promptAuthConfig.mockReset();
+    mocks.promptAuthConfig.mockImplementation(async (cfg: OpenClawConfig) => cfg);
+    mocks.promptGatewayConfig.mockReset();
+    mocks.promptGatewayConfig.mockImplementation(async (cfg: OpenClawConfig) => ({
+      config: cfg,
+      port: 18789,
+    }));
   });
 
   it("persists gateway.mode=local when only the run mode is selected", async () => {
@@ -328,16 +338,56 @@ describe("runConfigureWizard", () => {
     expect(runtime.exit).toHaveBeenCalledWith(1);
   });
 
+  it("does not gate model-only configure behind Gateway run-mode selection", async () => {
+    setupBaseWizardState();
+
+    await runConfigureWizard({ command: "configure", sections: ["model"] }, createRuntime());
+
+    expect(mocks.promptAuthConfig).toHaveBeenCalledOnce();
+    expect(mocks.clackSelect).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Where will the Gateway run?" }),
+    );
+    expect(mocks.probeGatewayReachable).not.toHaveBeenCalledWith(
+      expect.objectContaining({ timeoutMs: 300 }),
+    );
+    expect(mocks.ensureControlUiAssetsBuilt).not.toHaveBeenCalled();
+    expect(mocks.resolveControlUiLinks).not.toHaveBeenCalled();
+    expect(requireWriteConfig().gateway).toBeUndefined();
+  });
+
+  it("runs model-only configure for existing remote Gateway configs", async () => {
+    setupBaseWizardState({
+      gateway: { mode: "remote", remote: { url: "wss://gateway.example.test" } },
+    });
+
+    await runConfigureWizard({ command: "configure", sections: ["model"] }, createRuntime());
+
+    expect(mocks.promptAuthConfig).toHaveBeenCalledOnce();
+    expect(mocks.promptRemoteGatewayConfig).not.toHaveBeenCalled();
+    expect(getGateway(requireWriteConfig()).mode).toBe("remote");
+    expect(mocks.ensureControlUiAssetsBuilt).not.toHaveBeenCalled();
+    expect(mocks.resolveControlUiLinks).not.toHaveBeenCalled();
+    expect(mocks.probeGatewayReachable).not.toHaveBeenCalled();
+    expect(mocks.note).toHaveBeenCalledWith(
+      [
+        "Remote Gateway:",
+        "wss://gateway.example.test",
+        "Docs: https://docs.openclaw.ai/gateway/remote",
+      ].join("\n"),
+      "Gateway",
+    );
+  });
+
   it("persists provider-owned web search config changes returned by setupSearch", async () => {
     setupBaseWizardState();
-    mocks.setupSearch.mockImplementation(async (cfg: AstroclawConfig) =>
+    mocks.setupSearch.mockImplementation(async (cfg: OpenClawConfig) =>
       createEnabledWebSearchConfig("firecrawl", {
         enabled: true,
         config: { webSearch: { apiKey: "fc-entered-key" } },
       })(cfg),
     );
     queueWizardPrompts({
-      select: ["local"],
+      select: [],
       confirm: [true, false],
     });
 
@@ -347,7 +397,7 @@ describe("runConfigureWizard", () => {
       mockCallArg(mocks.setupSearch, "setupSearch"),
       "setupSearch config",
     );
-    expect(getGateway(setupConfig).mode).toBe("local");
+    expect(setupConfig.gateway).toBeUndefined();
     const written = requireWriteConfig();
     const search = getWebSearch(written);
     expect(search.provider).toBe("firecrawl");
@@ -365,7 +415,7 @@ describe("runConfigureWizard", () => {
     setupBaseWizardState();
     mocks.resolveSearchProviderOptions.mockReturnValue([]);
     queueWizardPrompts({
-      select: ["local"],
+      select: [],
       confirm: [true, false],
     });
 
@@ -375,7 +425,7 @@ describe("runConfigureWizard", () => {
       [
         "No web search providers are currently available under this plugin policy.",
         "Enable plugins or remove deny rules, then rerun configure.",
-        "Docs: https://docs.astroclaw.ai/tools/web",
+        "Docs: https://docs.openclaw.ai/tools/web",
       ].join("\n"),
       "Web search",
     );
@@ -385,7 +435,7 @@ describe("runConfigureWizard", () => {
   it("does not load managed search provider options when web search is disabled", async () => {
     setupBaseWizardState();
     queueWizardPrompts({
-      select: ["local"],
+      select: [],
       confirm: [false, true],
     });
 
@@ -404,7 +454,7 @@ describe("runConfigureWizard", () => {
   it("defers channel status checks until a channel is selected", async () => {
     setupBaseWizardState();
     queueWizardPrompts({
-      select: ["local", "configure"],
+      select: ["configure"],
       confirm: [],
     });
 
@@ -412,7 +462,7 @@ describe("runConfigureWizard", () => {
 
     const setupChannelsCall = mocks.setupChannels.mock.calls[0] as Array<unknown> | undefined;
     const setupChannelsConfig = requireRecord(setupChannelsCall?.[0], "setupChannels config");
-    expect(getGateway(setupChannelsConfig).mode).toBe("local");
+    expect(setupChannelsConfig.gateway).toBeUndefined();
     const setupChannelsOptions = requireRecord(setupChannelsCall?.[3], "setupChannels options");
     expect(setupChannelsOptions.deferStatusUntilSelection).toBe(true);
     expect(setupChannelsOptions.skipStatusNote).toBe(true);
@@ -429,17 +479,17 @@ describe("runConfigureWizard", () => {
         envVars: [],
         placeholder: "(no key needed)",
         signupUrl: "https://duckduckgo.com/",
-        docsUrl: "https://docs.astroclaw.ai/tools/web",
+        docsUrl: "https://docs.openclaw.ai/tools/web",
         credentialPath: "",
       }),
     ]);
-    mocks.setupSearch.mockImplementation(async (cfg: AstroclawConfig) =>
+    mocks.setupSearch.mockImplementation(async (cfg: OpenClawConfig) =>
       createEnabledWebSearchConfig("duckduckgo", {
         enabled: true,
       })(cfg),
     );
     queueWizardPrompts({
-      select: ["local"],
+      select: [],
       confirm: [true, false],
     });
 
@@ -453,15 +503,15 @@ describe("runConfigureWizard", () => {
     setupBaseWizardState({
       auth: {
         profiles: {
-          "openai-codex:default": {
-            provider: "openai-codex",
+          "openai:default": {
+            provider: "openai",
             mode: "oauth",
           },
         },
       },
     });
     queueWizardPrompts({
-      select: ["local", "cached"],
+      select: ["cached"],
       confirm: [true, true, false, true],
     });
 
@@ -479,8 +529,8 @@ describe("runConfigureWizard", () => {
     setupBaseWizardState({
       auth: {
         profiles: {
-          "openai-codex:default": {
-            provider: "openai-codex",
+          "openai:default": {
+            provider: "openai",
             mode: "oauth",
           },
         },
@@ -513,7 +563,7 @@ describe("runConfigureWizard", () => {
   });
 
   it("retries without dropping nested plugin config written during wizard flow (issue #64188)", async () => {
-    const baseConfig: AstroclawConfig = {
+    const baseConfig: OpenClawConfig = {
       plugins: {
         entries: {
           "github-copilot": {
@@ -527,7 +577,7 @@ describe("runConfigureWizard", () => {
     };
     setupBaseWizardState(baseConfig);
     queueWizardPrompts({
-      select: ["local"],
+      select: [],
       confirm: [],
     });
 
@@ -613,7 +663,7 @@ describe("runConfigureWizard", () => {
     };
     const agents = requireRecord(retryCall.nextConfig.agents, "agents config");
     const defaults = requireRecord(agents.defaults, "agent defaults");
-    expect(String(defaults.workspace)).toContain("/.astroclaw/workspace");
+    expect(String(defaults.workspace)).toContain("/.openclaw/workspace");
     const githubCopilot = getPluginEntry(retryCall.nextConfig, "github-copilot");
     expect(githubCopilot.enabled).toBe(false);
     const pluginConfig = requireRecord(githubCopilot.config, "github-copilot config");
