@@ -1,7 +1,8 @@
+// Vercel Ai Gateway tests cover thinking plugin behavior.
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
