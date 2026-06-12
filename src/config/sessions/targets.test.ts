@@ -1,9 +1,10 @@
+// Session target tests cover persisted channel targets for sessions.
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { withTempHome } from "astroclaw/plugin-sdk/test-env";
+import { withTempHome } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config.js";
+import type { OpenClawConfig } from "../config.js";
 import { resolveStorePath } from "./paths.js";
 import {
   resolveAgentSessionStoreTargetsSync,
@@ -31,7 +32,7 @@ async function createAgentSessionStores(
   return storePaths;
 }
 
-function createCustomRootCfg(customRoot: string, defaultAgentId = "ops"): AstroclawConfig {
+function createCustomRootCfg(customRoot: string, defaultAgentId = "ops"): OpenClawConfig {
   return {
     session: {
       store: path.join(customRoot, "agents", "{agentId}", "sessions", "sessions.json"),
@@ -74,12 +75,12 @@ function expectTargetsToContainStores(
 const discoveryResolvers = [
   {
     label: "async",
-    resolve: async (cfg: AstroclawConfig, env: NodeJS.ProcessEnv) =>
+    resolve: async (cfg: OpenClawConfig, env: NodeJS.ProcessEnv) =>
       await resolveAllAgentSessionStoreTargets(cfg, { env }),
   },
   {
     label: "sync",
-    resolve: async (cfg: AstroclawConfig, env: NodeJS.ProcessEnv) =>
+    resolve: async (cfg: OpenClawConfig, env: NodeJS.ProcessEnv) =>
       resolveAllAgentSessionStoreTargetsSync(cfg, { env }),
   },
 ] as const;
@@ -87,9 +88,9 @@ const discoveryResolvers = [
 describe("resolveSessionStoreTargets", () => {
   it("resolves all configured agent stores", async () => {
     await withTempHome(async () => {
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         session: {
-          store: "~/.astroclaw/agents/{agentId}/sessions/sessions.json",
+          store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
         },
         agents: {
           list: [{ id: "main", default: true }, { id: "work" }],
@@ -111,8 +112,53 @@ describe("resolveSessionStoreTargets", () => {
     });
   });
 
+  it("includes configured ACP harness stores for all-agent session views", async () => {
+    await withTempHome(async () => {
+      const cfg: OpenClawConfig = {
+        session: {
+          store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
+        },
+        agents: {
+          list: [
+            { id: "ops", default: true },
+            { id: "review", runtime: { type: "acp", acp: { agent: "opencode" } } },
+          ],
+        },
+        acp: {
+          defaultAgent: "claude",
+          allowedAgents: ["gemini", "*"],
+        },
+      };
+
+      const env = { ...process.env };
+      const targets = resolveSessionStoreTargets(cfg, { allAgents: true }, { env });
+      expect(targets).toEqual([
+        {
+          agentId: "ops",
+          storePath: resolveStorePath(cfg.session?.store, { agentId: "ops", env }),
+        },
+        {
+          agentId: "review",
+          storePath: resolveStorePath(cfg.session?.store, { agentId: "review", env }),
+        },
+        {
+          agentId: "claude",
+          storePath: resolveStorePath(cfg.session?.store, { agentId: "claude", env }),
+        },
+        {
+          agentId: "gemini",
+          storePath: resolveStorePath(cfg.session?.store, { agentId: "gemini", env }),
+        },
+        {
+          agentId: "opencode",
+          storePath: resolveStorePath(cfg.session?.store, { agentId: "opencode", env }),
+        },
+      ]);
+    });
+  });
+
   it("dedupes shared store paths for --all-agents", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       session: {
         store: "/tmp/shared-sessions.json",
       },
@@ -127,7 +173,7 @@ describe("resolveSessionStoreTargets", () => {
   });
 
   it("rejects unknown agent ids", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       agents: {
         list: [{ id: "main", default: true }, { id: "work" }],
       },
@@ -183,10 +229,10 @@ describe("resolveAgentSessionStoreTargetsSync", () => {
 describe("resolveAllAgentSessionStoreTargets", () => {
   it("includes discovered on-disk agent stores alongside configured targets", async () => {
     await withTempHome(async (home) => {
-      const stateDir = path.join(home, ".astroclaw");
+      const stateDir = path.join(home, ".openclaw");
       const storePaths = await createAgentSessionStores(stateDir, ["ops", "retired"]);
 
-      const cfg: AstroclawConfig = {
+      const cfg: OpenClawConfig = {
         agents: {
           list: [{ id: "ops", default: true }],
         },
@@ -236,9 +282,9 @@ describe("resolveAllAgentSessionStoreTargets", () => {
 
       const env = {
         ...process.env,
-        ASTROCLAW_STATE_DIR: envStateDir,
+        OPENCLAW_STATE_DIR: envStateDir,
       };
-      const cfg: AstroclawConfig = {};
+      const cfg: OpenClawConfig = {};
       const mainStorePath = await resolveRealStorePath(mainSessionsDir);
       const retiredStorePath = await resolveRealStorePath(retiredSessionsDir);
 
@@ -267,7 +313,7 @@ describe("resolveAllAgentSessionStoreTargets", () => {
         const cfg = createCustomRootCfg(customRoot, "main");
         const env = {
           ...process.env,
-          ASTROCLAW_STATE_DIR: envStateDir,
+          OPENCLAW_STATE_DIR: envStateDir,
         };
 
         const targets = await resolver.resolve(cfg, env);
@@ -304,7 +350,7 @@ describe("resolveAllAgentSessionStoreTargets", () => {
 
   it("skips discovered directories that only normalize into the default main agent", async () => {
     await withTempHome(async (home) => {
-      const stateDir = path.join(home, ".astroclaw");
+      const stateDir = path.join(home, ".openclaw");
       const mainSessionsDir = path.join(stateDir, "agents", "main", "sessions");
       const junkSessionsDir = path.join(stateDir, "agents", "###", "sessions");
       await fs.mkdir(mainSessionsDir, { recursive: true });
@@ -312,7 +358,7 @@ describe("resolveAllAgentSessionStoreTargets", () => {
       await fs.writeFile(path.join(mainSessionsDir, "sessions.json"), "{}", "utf8");
       await fs.writeFile(path.join(junkSessionsDir, "sessions.json"), "{}", "utf8");
 
-      const cfg: AstroclawConfig = {};
+      const cfg: OpenClawConfig = {};
       const mainStorePath = await resolveRealStorePath(mainSessionsDir);
       const targets = await resolveAllAgentSessionStoreTargets(cfg, { env: process.env });
 
