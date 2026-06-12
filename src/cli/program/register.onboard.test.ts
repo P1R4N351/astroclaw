@@ -1,3 +1,4 @@
+// Register onboard tests cover onboarding command registration and option wiring.
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerOnboardCommand } from "./register.onboard.js";
@@ -102,6 +103,12 @@ describe("registerOnboardCommand", () => {
 
     await runCli(["onboard", "--gateway-port", "nope"]);
     expect(setupWizardOptions(1).gatewayPort).toBeUndefined();
+
+    await runCli(["onboard", "--gateway-port", "18789x"]);
+    expect(setupWizardOptions(2).gatewayPort).toBeUndefined();
+
+    await runCli(["onboard", "--gateway-port", "99999"]);
+    expect(setupWizardOptions(3).gatewayPort).toBeUndefined();
   });
 
   it("forwards --reset-scope to setup wizard options", async () => {
@@ -127,8 +134,8 @@ describe("registerOnboardCommand", () => {
   });
 
   it("forwards --gateway-token-ref-env", async () => {
-    await runCli(["onboard", "--gateway-token-ref-env", "ASTROCLAW_GATEWAY_TOKEN"]);
-    expect(setupWizardOptions().gatewayTokenRefEnv).toBe("ASTROCLAW_GATEWAY_TOKEN");
+    await runCli(["onboard", "--gateway-token-ref-env", "OPENCLAW_GATEWAY_TOKEN"]);
+    expect(setupWizardOptions().gatewayTokenRefEnv).toBe("OPENCLAW_GATEWAY_TOKEN");
   });
 
   it("forwards onboarding migration flags", async () => {
