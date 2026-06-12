@@ -1,7 +1,9 @@
+// Session filesystem utility tests cover transcript reading, usage extraction,
+// preview rows, message counts, title fields, and archive candidate resolution.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { estimateStringChars, estimateTokensFromChars } from "../utils/cjk-chars.js";
 import { createToolSummaryPreviewTranscriptLines } from "./session-preview.test-helpers.js";
@@ -9,7 +11,6 @@ import { clearSessionTranscriptIndexCache } from "./session-transcript-index.fs.
 import {
   archiveSessionTranscripts,
   readFirstUserMessageFromTranscript,
-  readLastMessagePreviewFromTranscript,
   readLatestSessionUsageFromTranscript,
   readLatestSessionUsageFromTranscriptAsync,
   readLatestRecentSessionUsageFromTranscriptAsync,
@@ -86,19 +87,31 @@ function appendBlockedUserMessageWithSessionManager(params: {
   idempotencyKey?: string;
 }): string {
   const sessionManager = SessionManager.open(params.sessionFile, path.dirname(params.sessionFile));
+  return appendBlockedUserMessage(sessionManager, params);
+}
+
+function appendBlockedUserMessage(
+  sessionManager: SessionManager,
+  params: {
+    originalText?: string;
+    redactedText: string;
+    pluginId: string;
+    idempotencyKey?: string;
+  },
+): string {
   const messageId = sessionManager.appendMessage({
     role: "user",
     content: [{ type: "text", text: params.redactedText }],
     timestamp: Date.now(),
     ...(params.idempotencyKey ? { idempotencyKey: params.idempotencyKey } : {}),
-    __astroclaw: {
+    __openclaw: {
       beforeAgentRunBlocked: {
         blockedBy: params.pluginId,
         blockedAt: Date.now(),
       },
     },
   } as Parameters<typeof sessionManager.appendMessage>[0]);
-  (sessionManager as unknown as { _rewriteFile?: () => void })._rewriteFile?.();
+  (sessionManager as unknown as { rewriteFile?: () => void }).rewriteFile?.();
   return messageId;
 }
 
@@ -123,7 +136,7 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
 
 function expectMessageFields(
   message: unknown,
-  fields: { role?: string; content?: unknown; astroclaw?: Record<string, unknown> },
+  fields: { role?: string; content?: unknown; openclaw?: Record<string, unknown> },
 ) {
   const record = requireRecord(message, "message");
   if ("role" in fields) {
@@ -132,9 +145,9 @@ function expectMessageFields(
   if ("content" in fields) {
     expect(record.content).toEqual(fields.content);
   }
-  if (fields.astroclaw) {
-    const metadata = requireRecord(record.__astroclaw, "message metadata");
-    for (const [key, value] of Object.entries(fields.astroclaw)) {
+  if (fields.openclaw) {
+    const metadata = requireRecord(record["__openclaw"], "message metadata");
+    for (const [key, value] of Object.entries(fields.openclaw)) {
       expect(metadata[key]).toEqual(value);
     }
   }
@@ -151,7 +164,7 @@ describe("readFirstUserMessageFromTranscript", () => {
   let tmpDir: string;
   let storePath: string;
 
-  registerTempSessionStore("astroclaw-session-fs-test-", (nextTmpDir, nextStorePath) => {
+  registerTempSessionStore("openclaw-session-fs-test-", (nextTmpDir, nextStorePath) => {
     tmpDir = nextTmpDir;
     storePath = nextStorePath;
   });
@@ -275,194 +288,22 @@ describe("readFirstUserMessageFromTranscript", () => {
   });
 });
 
-describe("readLastMessagePreviewFromTranscript", () => {
-  let tmpDir: string;
-  let storePath: string;
-
-  registerTempSessionStore("astroclaw-session-fs-test-", (nextTmpDir, nextStorePath) => {
-    tmpDir = nextTmpDir;
-    storePath = nextStorePath;
-  });
-
-  test("returns null for empty file", () => {
-    const sessionId = "test-last-empty";
-    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-    fs.writeFileSync(transcriptPath, "", "utf-8");
-
-    const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-    expect(result).toBeNull();
-  });
-
-  test.each([
-    {
-      sessionId: "test-last-user",
-      lines: [
-        JSON.stringify({ message: { role: "user", content: "First user" } }),
-        JSON.stringify({ message: { role: "assistant", content: "First assistant" } }),
-        JSON.stringify({ message: { role: "user", content: "Last user message" } }),
-      ],
-      expected: "Last user message",
-    },
-    {
-      sessionId: "test-last-assistant",
-      lines: [
-        JSON.stringify({ message: { role: "user", content: "User question" } }),
-        JSON.stringify({ message: { role: "assistant", content: "Final assistant reply" } }),
-      ],
-      expected: "Final assistant reply",
-    },
-  ] as const)(
-    "returns the last user or assistant message from transcript for $sessionId",
-    ({ sessionId, lines, expected }) => {
-      const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-      fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
-      const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-      expect(result).toBe(expected);
-    },
-  );
-
-  test("skips system messages to find last user/assistant", () => {
-    const sessionId = "test-last-skip-system";
-    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-    const lines = [
-      JSON.stringify({ message: { role: "user", content: "Real last" } }),
-      JSON.stringify({ message: { role: "system", content: "System at end" } }),
-    ];
-    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
-
-    const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-    expect(result).toBe("Real last");
-  });
-
-  test("returns null when no user/assistant messages exist", () => {
-    const sessionId = "test-last-no-match";
-    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-    const lines = [
-      JSON.stringify({ type: "session", version: 1, id: sessionId }),
-      JSON.stringify({ message: { role: "system", content: "Only system" } }),
-    ];
-    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
-
-    const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-    expect(result).toBeNull();
-  });
-
-  test("handles malformed JSON lines gracefully (last preview)", () => {
-    const sessionId = "test-last-malformed";
-    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-    const lines = [
-      JSON.stringify({ message: { role: "user", content: "Valid first" } }),
-      "not valid json at end",
-    ];
-    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
-
-    const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-    expect(result).toBe("Valid first");
-  });
-
-  test.each([
-    {
-      sessionId: "test-last-array",
-      message: {
-        role: "assistant",
-        content: [{ type: "text", text: "Array content response" }],
-      },
-      expected: "Array content response",
-    },
-    {
-      sessionId: "test-last-output-text",
-      message: {
-        role: "assistant",
-        content: [{ type: "output_text", text: "Output text response" }],
-      },
-      expected: "Output text response",
-    },
-  ] as const)(
-    "handles array/output_text content format for $sessionId",
-    ({ sessionId, message, expected }) => {
-      const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-      fs.writeFileSync(transcriptPath, JSON.stringify({ message }), "utf-8");
-      const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-      expect(result, sessionId).toBe(expected);
-    },
-  );
-
-  test("skips empty content to find previous message", () => {
-    const sessionId = "test-last-skip-empty";
-    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-    const lines = [
-      JSON.stringify({ message: { role: "assistant", content: "Has content" } }),
-      JSON.stringify({ message: { role: "user", content: "" } }),
-    ];
-    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
-
-    const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-    expect(result).toBe("Has content");
-  });
-
-  test("reads from end of large file (16KB window)", () => {
-    const sessionId = "test-last-large";
-    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-    const padding = JSON.stringify({ message: { role: "user", content: "x".repeat(500) } });
-    const lines: string[] = [];
-    for (let i = 0; i < 30; i++) {
-      lines.push(padding);
-    }
-    lines.push(JSON.stringify({ message: { role: "assistant", content: "Last in large file" } }));
-    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
-
-    const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-    expect(result).toBe("Last in large file");
-  });
-
-  test("handles valid UTF-8 content", () => {
-    const sessionId = "test-last-utf8";
-    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-    const validLine = JSON.stringify({
-      message: { role: "user", content: "Valid UTF-8: 你好世界 🌍" },
-    });
-    fs.writeFileSync(transcriptPath, validLine, "utf-8");
-
-    const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-    expect(result).toBe("Valid UTF-8: 你好世界 🌍");
-  });
-
-  test("strips inline directives from last preview text", () => {
-    const sessionId = "test-last-strip-inline-directives";
-    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
-    const lines = [
-      JSON.stringify({
-        message: {
-          role: "assistant",
-          content: "Hello [[reply_to_current]] world [[audio_as_voice]]",
-        },
-      }),
-    ];
-    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
-
-    const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
-    expect(result).toBe("Hello  world");
-  });
-});
-
 describe("shared transcript read behaviors", () => {
   let tmpDir: string;
   let storePath: string;
 
-  registerTempSessionStore("astroclaw-session-fs-test-", (nextTmpDir, nextStorePath) => {
+  registerTempSessionStore("openclaw-session-fs-test-", (nextTmpDir, nextStorePath) => {
     tmpDir = nextTmpDir;
     storePath = nextStorePath;
   });
 
   test("returns null for missing transcript files", () => {
     expect(readFirstUserMessageFromTranscript("missing-session", storePath)).toBeNull();
-    expect(readLastMessagePreviewFromTranscript("missing-session", storePath)).toBeNull();
   });
 
   test("uses sessionFile overrides when provided", () => {
     const sessionId = "test-shared-custom";
     const firstPath = path.join(tmpDir, "custom-first.jsonl");
-    const lastPath = path.join(tmpDir, "custom-last.jsonl");
 
     fs.writeFileSync(
       firstPath,
@@ -472,37 +313,22 @@ describe("shared transcript read behaviors", () => {
       ].join("\n"),
       "utf-8",
     );
-    fs.writeFileSync(
-      lastPath,
-      JSON.stringify({ message: { role: "assistant", content: "Custom file last" } }),
-      "utf-8",
-    );
 
     expect(readFirstUserMessageFromTranscript(sessionId, storePath, firstPath)).toBe(
       "Custom file message",
-    );
-    expect(readLastMessagePreviewFromTranscript(sessionId, storePath, lastPath)).toBe(
-      "Custom file last",
     );
   });
 
   test("trims whitespace in extracted previews", () => {
     const firstSessionId = "test-shared-first-trim";
-    const lastSessionId = "test-shared-last-trim";
 
     fs.writeFileSync(
       path.join(tmpDir, `${firstSessionId}.jsonl`),
       JSON.stringify({ message: { role: "user", content: "  Padded message  " } }),
       "utf-8",
     );
-    fs.writeFileSync(
-      path.join(tmpDir, `${lastSessionId}.jsonl`),
-      JSON.stringify({ message: { role: "assistant", content: "  Padded response  " } }),
-      "utf-8",
-    );
 
     expect(readFirstUserMessageFromTranscript(firstSessionId, storePath)).toBe("Padded message");
-    expect(readLastMessagePreviewFromTranscript(lastSessionId, storePath)).toBe("Padded response");
   });
 });
 
@@ -510,7 +336,7 @@ describe("readSessionTitleFieldsFromTranscript cache", () => {
   let tmpDir: string;
   let storePath: string;
 
-  registerTempSessionStore("astroclaw-session-fs-test-", (nextTmpDir, nextStorePath) => {
+  registerTempSessionStore("openclaw-session-fs-test-", (nextTmpDir, nextStorePath) => {
     tmpDir = nextTmpDir;
     storePath = nextStorePath;
   });
@@ -579,7 +405,7 @@ describe("readSessionMessages", () => {
   let tmpDir: string;
   let storePath: string;
 
-  registerTempSessionStore("astroclaw-session-fs-test-", (nextTmpDir, nextStorePath) => {
+  registerTempSessionStore("openclaw-session-fs-test-", (nextTmpDir, nextStorePath) => {
     tmpDir = nextTmpDir;
     storePath = nextStorePath;
   });
@@ -607,13 +433,13 @@ describe("readSessionMessages", () => {
     const marker = out[1] as {
       role: string;
       content?: Array<{ text?: string }>;
-      __astroclaw?: { kind?: string; id?: string };
+      __openclaw?: { kind?: string; id?: string };
       timestamp?: number;
     };
     expect(marker.role).toBe("system");
     expect(marker.content?.[0]?.text).toBe("Compaction");
-    expect(marker.__astroclaw?.kind).toBe("compaction");
-    expect(marker.__astroclaw?.id).toBe("comp-1");
+    expect(marker["__openclaw"]?.kind).toBe("compaction");
+    expect(marker["__openclaw"]?.id).toBe("comp-1");
     expect(typeof marker.timestamp).toBe("number");
   });
 
@@ -633,8 +459,53 @@ describe("readSessionMessages", () => {
     });
 
     expect(out).toHaveLength(2);
-    expectMessageFields(out[0], { role: "user", content: "recent", astroclaw: { seq: 3 } });
-    expectMessageFields(out[1], { role: "assistant", content: "latest", astroclaw: { seq: 4 } });
+    expectMessageFields(out[0], { role: "user", content: "recent", openclaw: { seq: 3 } });
+    expectMessageFields(out[1], { role: "assistant", content: "latest", openclaw: { seq: 4 } });
+  });
+
+  test("returns no recent messages for non-finite maxMessages", async () => {
+    const sessionId = "test-session-recent-non-finite-max-messages";
+    writeTranscript(tmpDir, sessionId, [
+      { type: "session", version: 1, id: sessionId },
+      { message: { role: "user", content: "old" } },
+      { message: { role: "assistant", content: "latest" } },
+    ]);
+
+    expect(
+      readRecentSessionMessages(sessionId, storePath, undefined, {
+        maxMessages: Number.NaN,
+        maxBytes: 1024,
+      }),
+    ).toEqual([]);
+    await expect(
+      readRecentSessionMessagesAsync(sessionId, storePath, undefined, {
+        maxMessages: Number.POSITIVE_INFINITY,
+        maxBytes: 1024,
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  test("uses the default recent byte cap for non-finite maxBytes", async () => {
+    const sessionId = "test-session-recent-non-finite-max-bytes";
+    writeTranscript(tmpDir, sessionId, [
+      { type: "session", version: 1, id: sessionId },
+      { message: { role: "user", content: "old" } },
+      { message: { role: "assistant", content: "latest" } },
+    ]);
+
+    const syncOut = readRecentSessionMessages(sessionId, storePath, undefined, {
+      maxMessages: 1,
+      maxBytes: Number.NaN,
+    });
+    const asyncOut = await readRecentSessionMessagesAsync(sessionId, storePath, undefined, {
+      maxMessages: 1,
+      maxBytes: Number.POSITIVE_INFINITY,
+    });
+
+    expect(syncOut).toHaveLength(1);
+    expectMessageFields(syncOut[0], { role: "assistant", content: "latest" });
+    expect(asyncOut).toHaveLength(1);
+    expectMessageFields(asyncOut[0], { role: "assistant", content: "latest" });
   });
 
   test("bounds recent-message reads for large append-only transcripts", () => {
@@ -685,8 +556,8 @@ describe("readSessionMessages", () => {
 
     expect(result.totalMessages).toBe(4);
     expect(result.messages).toHaveLength(2);
-    expectMessageFields(result.messages[0], { content: "recent", astroclaw: { seq: 3 } });
-    expectMessageFields(result.messages[1], { content: "latest", astroclaw: { seq: 4 } });
+    expectMessageFields(result.messages[0], { content: "recent", openclaw: { seq: 3 } });
+    expectMessageFields(result.messages[1], { content: "latest", openclaw: { seq: 4 } });
   });
 
   test("preserves real sequence metadata for async bounded recent-message reads", async () => {
@@ -713,12 +584,36 @@ describe("readSessionMessages", () => {
 
       expect(result.totalMessages).toBe(4);
       expect(result.messages).toHaveLength(2);
-      expectMessageFields(result.messages[0], { content: "recent", astroclaw: { seq: 3 } });
-      expectMessageFields(result.messages[1], { content: "latest", astroclaw: { seq: 4 } });
+      expectMessageFields(result.messages[0], { content: "recent", openclaw: { seq: 3 } });
+      expectMessageFields(result.messages[1], { content: "latest", openclaw: { seq: 4 } });
       expect(readFileSpy).not.toHaveBeenCalled();
     } finally {
       readFileSpy.mockRestore();
     }
+  });
+
+  test("forwards the outer JSONL record timestamp to __openclaw.recordTimestampMs (#85648)", async () => {
+    const sessionId = "test-session-record-timestamp";
+    const t1 = "2026-05-16T16:00:31.000Z";
+    const t2 = "2026-05-23T04:02:33.000Z";
+    writeTranscript(tmpDir, sessionId, [
+      { type: "session", version: 1, id: sessionId },
+      { timestamp: t1, message: { role: "user", content: "old turn" } },
+      { timestamp: t2, message: { role: "assistant", content: "fresh turn" } },
+    ]);
+    const result = await readRecentSessionMessagesAsync(sessionId, storePath, undefined, {
+      maxMessages: 5,
+      maxBytes: 2048,
+    });
+    expect(result).toHaveLength(2);
+    expectMessageFields(result[0], {
+      content: "old turn",
+      openclaw: { recordTimestampMs: Date.parse(t1) },
+    });
+    expectMessageFields(result[1], {
+      content: "fresh turn",
+      openclaw: { recordTimestampMs: Date.parse(t2) },
+    });
   });
 
   test("honors byte caps for async recent-message reads", async () => {
@@ -878,7 +773,7 @@ describe("readSessionMessages", () => {
         "active branch",
         "latest active",
       ]);
-      expectMessageFields(messages[2], { astroclaw: { id: "user-2", seq: 3 } });
+      expectMessageFields(messages[2], { openclaw: { id: "user-2", seq: 3 } });
       expect(sessionManagerOpenSpy).not.toHaveBeenCalled();
       expect(readFileSpy).not.toHaveBeenCalled();
     } finally {
@@ -919,7 +814,7 @@ describe("readSessionMessages", () => {
     expect(messages.map((message) => (message as { content?: unknown }).content)).toEqual([
       "reachable orphan tail",
     ]);
-    expectMessageFields(messages[0], { astroclaw: { id: "orphan-tail", seq: 1 } });
+    expectMessageFields(messages[0], { openclaw: { id: "orphan-tail", seq: 1 } });
   });
 
   test("keeps legacy async parents when tree transcripts reference pre-v3 rows", async () => {
@@ -949,8 +844,8 @@ describe("readSessionMessages", () => {
       "legacy hello",
       "tree hello",
     ]);
-    expectMessageFields(messages[0], { astroclaw: { id: "legacy-user", seq: 1 } });
-    expectMessageFields(messages[1], { astroclaw: { id: "tree-assistant", seq: 2 } });
+    expectMessageFields(messages[0], { openclaw: { id: "legacy-user", seq: 1 } });
+    expectMessageFields(messages[1], { openclaw: { id: "tree-assistant", seq: 2 } });
   });
 
   test("caches async transcript indexes by file stats", async () => {
@@ -1138,7 +1033,7 @@ describe("readSessionMessages", () => {
           role: "assistant",
           content: [{ type: "text", text: "clean answer" }],
           api: "chat",
-          provider: "astroclaw",
+          provider: "openclaw",
           model: "test",
           usage: {},
           stopReason: "stop",
@@ -1156,11 +1051,11 @@ describe("readSessionMessages", () => {
       const out = readSessionMessages(sessionId, storePath, sessionFile);
       expect(out).toHaveLength(2);
       expect(out).toHaveLength(2);
-      expectMessageFields(out[0], { role: "user", content: "clean prompt", astroclaw: { seq: 1 } });
+      expectMessageFields(out[0], { role: "user", content: "clean prompt", openclaw: { seq: 1 } });
       expectMessageFields(out[1], {
         role: "assistant",
         content: [{ type: "text", text: "clean answer" }],
-        astroclaw: { seq: 2 },
+        openclaw: { seq: 2 },
       });
       expect(JSON.stringify(out)).not.toContain("original wrapped prompt");
       expect(sessionManagerOpenSpy).not.toHaveBeenCalled();
@@ -1223,7 +1118,7 @@ describe("readSessionMessages", () => {
       const out = readSessionMessages(sessionId, wrongStorePath, sessionFile);
       expect(out).toHaveLength(1);
       expectMessageFields(out[0], message);
-      expect((out[0] as { __astroclaw?: { seq?: number } }).__astroclaw?.seq).toBe(1);
+      expect((out[0] as { __openclaw?: { seq?: number } })["__openclaw"]?.seq).toBe(1);
     },
   );
 
@@ -1321,7 +1216,7 @@ describe("readSessionMessages", () => {
       out.map((message) => ({
         role: (message as { role?: string }).role,
         content: (message as { content?: unknown }).content,
-        kind: (message as { __astroclaw?: { kind?: string } }).__astroclaw?.kind,
+        kind: (message as { __openclaw?: { kind?: string } })["__openclaw"]?.kind,
       })),
     ).toEqual([
       { role: "system", content: [{ type: "text", text: "Compaction" }], kind: "compaction" },
@@ -1411,14 +1306,12 @@ describe("readSessionMessages", () => {
       "utf-8",
     );
 
-    appendBlockedUserMessageWithSessionManager({
-      sessionFile,
+    appendBlockedUserMessage(sessionManager, {
       originalText: "[hitl:block] first",
       redactedText: "Blocked by HITL test hook.",
       pluginId: "hitl-test-hooks",
     });
-    appendBlockedUserMessageWithSessionManager({
-      sessionFile,
+    appendBlockedUserMessage(sessionManager, {
       originalText: "[hitl:block] second",
       redactedText: "Blocked again by HITL test hook.",
       pluginId: "hitl-test-hooks",
@@ -1444,7 +1337,7 @@ describe("readSessionPreviewItemsFromTranscript", () => {
   let tmpDir: string;
   let storePath: string;
 
-  registerTempSessionStore("astroclaw-session-preview-test-", (nextTmpDir, nextStorePath) => {
+  registerTempSessionStore("openclaw-session-preview-test-", (nextTmpDir, nextStorePath) => {
     tmpDir = nextTmpDir;
     storePath = nextStorePath;
   });
@@ -1587,7 +1480,7 @@ describe("readLatestSessionUsageFromTranscript", () => {
   let tmpDir: string;
   let storePath: string;
 
-  registerTempSessionStore("astroclaw-session-usage-test-", (nextTmpDir, nextStorePath) => {
+  registerTempSessionStore("openclaw-session-usage-test-", (nextTmpDir, nextStorePath) => {
     tmpDir = nextTmpDir;
     storePath = nextStorePath;
   });
@@ -1612,7 +1505,7 @@ describe("readLatestSessionUsageFromTranscript", () => {
       {
         message: {
           role: "assistant",
-          provider: "astroclaw",
+          provider: "openclaw",
           model: "delivery-mirror",
           usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         },
@@ -1868,14 +1761,14 @@ describe("resolveSessionTranscriptCandidates", () => {
     vi.unstubAllEnvs();
   });
 
-  test("fallback candidate uses ASTROCLAW_HOME instead of os.homedir()", () => {
-    vi.stubEnv("ASTROCLAW_HOME", "/srv/astroclaw-home");
+  test("fallback candidate uses OPENCLAW_HOME instead of os.homedir()", () => {
+    vi.stubEnv("OPENCLAW_HOME", "/srv/openclaw-home");
     vi.stubEnv("HOME", "/home/other");
 
     const candidates = resolveSessionTranscriptCandidates("sess-1", undefined);
     const fallback = candidates[candidates.length - 1];
     expect(fallback).toBe(
-      path.join(path.resolve("/srv/astroclaw-home"), ".astroclaw", "sessions", "sess-1.jsonl"),
+      path.join(path.resolve("/srv/openclaw-home"), ".openclaw", "sessions", "sess-1.jsonl"),
     );
   });
 });
@@ -1883,8 +1776,8 @@ describe("resolveSessionTranscriptCandidates", () => {
 describe("resolveSessionTranscriptCandidates safety", () => {
   test.each([
     {
-      storePath: "/tmp/astroclaw/agents/main/sessions/sessions.json",
-      sessionFile: "/tmp/astroclaw/agents/ops/sessions/sess-safe.jsonl",
+      storePath: "/tmp/openclaw/agents/main/sessions/sessions.json",
+      sessionFile: "/tmp/openclaw/agents/ops/sessions/sess-safe.jsonl",
     },
     {
       storePath: "/srv/custom/agents/main/sessions/sessions.json",
@@ -1901,14 +1794,14 @@ describe("resolveSessionTranscriptCandidates safety", () => {
   test("drops unsafe session IDs instead of producing traversal paths", () => {
     const candidates = resolveSessionTranscriptCandidates(
       "../etc/passwd",
-      "/tmp/astroclaw/agents/main/sessions/sessions.json",
+      "/tmp/openclaw/agents/main/sessions/sessions.json",
     );
 
     expect(candidates).toStrictEqual([]);
   });
 
   test("drops unsafe sessionFile candidates and keeps safe fallbacks", () => {
-    const storePath = "/tmp/astroclaw/agents/main/sessions/sessions.json";
+    const storePath = "/tmp/openclaw/agents/main/sessions/sessions.json";
     const candidates = resolveSessionTranscriptCandidates(
       "sess-safe",
       storePath,
@@ -1922,24 +1815,24 @@ describe("resolveSessionTranscriptCandidates safety", () => {
   });
 
   test("prefers the current sessionId transcript before a stale sessionFile candidate", () => {
-    const storePath = "/tmp/astroclaw/agents/main/sessions/sessions.json";
+    const storePath = "/tmp/openclaw/agents/main/sessions/sessions.json";
     const candidates = resolveSessionTranscriptCandidates(
       "11111111-1111-4111-8111-111111111111",
       storePath,
-      "/tmp/astroclaw/agents/main/sessions/22222222-2222-4222-8222-222222222222.jsonl",
+      "/tmp/openclaw/agents/main/sessions/22222222-2222-4222-8222-222222222222.jsonl",
     );
 
     expect(candidates[0]).toBe(
-      path.resolve("/tmp/astroclaw/agents/main/sessions/11111111-1111-4111-8111-111111111111.jsonl"),
+      path.resolve("/tmp/openclaw/agents/main/sessions/11111111-1111-4111-8111-111111111111.jsonl"),
     );
     expect(candidates).toContain(
-      path.resolve("/tmp/astroclaw/agents/main/sessions/22222222-2222-4222-8222-222222222222.jsonl"),
+      path.resolve("/tmp/openclaw/agents/main/sessions/22222222-2222-4222-8222-222222222222.jsonl"),
     );
   });
 
   test("keeps explicit custom sessionFile ahead of synthesized fallback", () => {
-    const storePath = "/tmp/astroclaw/agents/main/sessions/sessions.json";
-    const sessionFile = "/tmp/astroclaw/agents/main/sessions/custom-transcript.jsonl";
+    const storePath = "/tmp/openclaw/agents/main/sessions/sessions.json";
+    const sessionFile = "/tmp/openclaw/agents/main/sessions/custom-transcript.jsonl";
     const candidates = resolveSessionTranscriptCandidates(
       "11111111-1111-4111-8111-111111111111",
       storePath,
@@ -1950,8 +1843,8 @@ describe("resolveSessionTranscriptCandidates safety", () => {
   });
 
   test("keeps custom topic-like transcript paths ahead of synthesized fallback", () => {
-    const storePath = "/tmp/astroclaw/agents/main/sessions/sessions.json";
-    const sessionFile = "/tmp/astroclaw/agents/main/sessions/custom-topic-notes.jsonl";
+    const storePath = "/tmp/openclaw/agents/main/sessions/sessions.json";
+    const sessionFile = "/tmp/openclaw/agents/main/sessions/custom-topic-notes.jsonl";
     const candidates = resolveSessionTranscriptCandidates(
       "11111111-1111-4111-8111-111111111111",
       storePath,
@@ -1962,33 +1855,33 @@ describe("resolveSessionTranscriptCandidates safety", () => {
   });
 
   test("keeps forked transcript paths ahead of synthesized fallback", () => {
-    const storePath = "/tmp/astroclaw/agents/main/sessions/sessions.json";
+    const storePath = "/tmp/openclaw/agents/main/sessions/sessions.json";
     const sessionId = "11111111-1111-4111-8111-111111111111";
     const sessionFile =
-      "/tmp/astroclaw/agents/main/sessions/2026-03-23T16-30-00-000Z_11111111-1111-4111-8111-111111111111.jsonl";
+      "/tmp/openclaw/agents/main/sessions/2026-03-23T16-30-00-000Z_11111111-1111-4111-8111-111111111111.jsonl";
     const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile);
 
     expect(candidates[0]).toBe(path.resolve(sessionFile));
   });
 
   test("keeps timestamped custom transcript paths ahead of synthesized fallback", () => {
-    const storePath = "/tmp/astroclaw/agents/main/sessions/sessions.json";
+    const storePath = "/tmp/openclaw/agents/main/sessions/sessions.json";
     const sessionId = "11111111-1111-4111-8111-111111111111";
-    const sessionFile = "/tmp/astroclaw/agents/main/sessions/2026-03-23T16-30-00-000Z_notes.jsonl";
+    const sessionFile = "/tmp/openclaw/agents/main/sessions/2026-03-23T16-30-00-000Z_notes.jsonl";
     const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile);
 
     expect(candidates[0]).toBe(path.resolve(sessionFile));
   });
 
   test("still treats generated topic transcripts from another session as stale", () => {
-    const storePath = "/tmp/astroclaw/agents/main/sessions/sessions.json";
+    const storePath = "/tmp/openclaw/agents/main/sessions/sessions.json";
     const sessionId = "11111111-1111-4111-8111-111111111111";
     const staleSessionFile =
-      "/tmp/astroclaw/agents/main/sessions/22222222-2222-4222-8222-222222222222-topic-thread.jsonl";
+      "/tmp/openclaw/agents/main/sessions/22222222-2222-4222-8222-222222222222-topic-thread.jsonl";
     const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, staleSessionFile);
 
     expect(candidates[0]).toBe(
-      path.resolve("/tmp/astroclaw/agents/main/sessions/11111111-1111-4111-8111-111111111111.jsonl"),
+      path.resolve("/tmp/openclaw/agents/main/sessions/11111111-1111-4111-8111-111111111111.jsonl"),
     );
     expect(candidates).toContain(path.resolve(staleSessionFile));
   });
@@ -1998,13 +1891,13 @@ describe("archiveSessionTranscripts", () => {
   let tmpDir: string;
   let storePath: string;
 
-  registerTempSessionStore("astroclaw-archive-test-", (nextTmpDir, nextStorePath) => {
+  registerTempSessionStore("openclaw-archive-test-", (nextTmpDir, nextStorePath) => {
     tmpDir = nextTmpDir;
     storePath = nextStorePath;
   });
 
   beforeAll(() => {
-    vi.stubEnv("ASTROCLAW_HOME", tmpDir);
+    vi.stubEnv("OPENCLAW_HOME", tmpDir);
   });
 
   afterAll(() => {
@@ -2073,7 +1966,7 @@ describe("oversized transcript line guards", () => {
   let tmpDir: string;
   let storePath: string;
 
-  registerTempSessionStore("astroclaw-session-fs-oversized-", (nextTmpDir, nextStorePath) => {
+  registerTempSessionStore("openclaw-session-fs-oversized-", (nextTmpDir, nextStorePath) => {
     tmpDir = nextTmpDir;
     storePath = nextStorePath;
   });
@@ -2168,6 +2061,75 @@ describe("oversized transcript line guards", () => {
     );
 
     expectUsageFields(usage, { modelProvider: "test-provider" });
+  });
+
+  test("oversized line metadata extraction preserves id and parentId", async () => {
+    const sessionId = "test-oversized-metadata-extract";
+    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
+    const timestamp = "2026-05-16T16:00:33.000Z";
+    const oversizedContent = "w".repeat(300 * 1024);
+    const lines = [
+      JSON.stringify({ type: "session", version: 3, id: sessionId }),
+      JSON.stringify({
+        type: "message",
+        id: "root-msg",
+        parentId: null,
+        message: { role: "user", content: "root" },
+      }),
+      JSON.stringify({
+        type: "message",
+        timestamp,
+        id: "oversized-child",
+        parentId: "root-msg",
+        message: { role: "assistant", content: oversizedContent },
+      }),
+    ];
+    fs.writeFileSync(transcriptPath, `${lines.join("\n")}\n`, "utf-8");
+
+    const out = await readRecentSessionMessagesAsync(sessionId, storePath, undefined, {
+      maxMessages: 10,
+    });
+
+    // The oversized line's id and parentId are extracted by regex from the
+    // prefix bytes. parentId drives active-tree selection; id is attached
+    // to the __openclaw metadata. Both must be correct for the record to
+    // appear in the right position.
+    expect(out).toHaveLength(2); // root-msg + oversized-child
+    const oversized = out[1] as Record<string, unknown>;
+    expect(oversized.role).toBe("assistant");
+    // id is preserved in __openclaw transcript metadata
+    const meta = (oversized as Record<string, Record<string, unknown>>)["__openclaw"];
+    expect(meta?.id).toBe("oversized-child");
+    expect(meta?.recordTimestampMs).toBe(Date.parse(timestamp));
+    // parentId extraction is proven by the record being included:
+    // if parentId was not extracted, the tree would orphan this node.
+
+    // The oversized content must NOT appear in the output.
+    const serialized = JSON.stringify(out);
+    expect(serialized).not.toContain(oversizedContent);
+  });
+
+  test("readSessionMessagesAsync keeps id-less oversized message placeholders", async () => {
+    const sessionId = "test-oversized-idless-async";
+    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
+    const oversizedContent = "w".repeat(300 * 1024);
+    fs.writeFileSync(
+      transcriptPath,
+      `${JSON.stringify({
+        message: { role: "assistant", content: oversizedContent },
+      })}\n`,
+      "utf-8",
+    );
+
+    const out = await readSessionMessagesAsync(sessionId, storePath, undefined, {
+      mode: "full",
+      reason: "test",
+    });
+
+    expect(out).toHaveLength(1);
+    const serialized = JSON.stringify(out);
+    expect(serialized).toContain("[chat.history omitted: message too large]");
+    expect(serialized).not.toContain(oversizedContent);
   });
 
   test("readSessionTitleFieldsFromTranscriptAsync delegates to bounded sync reader", async () => {
