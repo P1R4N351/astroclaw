@@ -1,3 +1,4 @@
+// Telegram tests cover bot message contextm threads plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -10,7 +11,7 @@ type ResolveStorePathFn = SessionRuntimeModule["resolveStorePath"];
 
 const { recordInboundSessionMock, resolveStorePathMock } = vi.hoisted(() => ({
   recordInboundSessionMock: vi.fn<RecordInboundSessionFn>(async () => undefined),
-  resolveStorePathMock: vi.fn<ResolveStorePathFn>(() => "/tmp/astroclaw-session-store.json"),
+  resolveStorePathMock: vi.fn<ResolveStorePathFn>(() => "/tmp/openclaw-session-store.json"),
 }));
 
 vi.mock("./bot-message-context.session.runtime.js", async () => {
@@ -43,7 +44,7 @@ vi.mock("./bot-message-context.body.js", () => ({
 const { buildTelegramMessageContextForTest } =
   await import("./bot-message-context.test-harness.js");
 const { clearRuntimeConfigSnapshot, setRuntimeConfigSnapshot } =
-  await import("astroclaw/plugin-sdk/runtime-config-snapshot");
+  await import("openclaw/plugin-sdk/runtime-config-snapshot");
 
 beforeEach(() => {
   clearRuntimeConfigSnapshot();
@@ -55,7 +56,7 @@ afterEach(() => {
   resetTopicNameCacheForTest();
   recordInboundSessionMock.mockClear();
   resolveStorePathMock.mockReset();
-  resolveStorePathMock.mockReturnValue("/tmp/astroclaw-session-store.json");
+  resolveStorePathMock.mockReturnValue("/tmp/openclaw-session-store.json");
 });
 
 describe("buildTelegramMessageContext dm thread sessions", () => {
@@ -63,7 +64,7 @@ describe("buildTelegramMessageContext dm thread sessions", () => {
     message: Record<string, unknown>,
     params?: Pick<
       Parameters<typeof buildTelegramMessageContextForTest>[0],
-      "cfg" | "resolveTelegramGroupConfig"
+      "cfg" | "me" | "resolveTelegramGroupConfig"
     >,
   ) =>
     await buildTelegramMessageContextForTest({
@@ -71,114 +72,84 @@ describe("buildTelegramMessageContext dm thread sessions", () => {
       ...params,
     });
 
-  it("keeps incidental dm message_thread_id on the main session by default", async () => {
-    const ctx = await buildContext({
-      message_id: 1,
-      chat: { id: 1234, type: "private" },
-      date: 1700000000,
-      text: "hello",
-      message_thread_id: 42,
-      from: { id: 42, first_name: "Alice" },
+  const dmThreadMessage = {
+    message_id: 1,
+    chat: { id: 1234, type: "private" },
+    date: 1700000000,
+    text: "hello",
+    message_thread_id: 42,
+    from: { id: 42, first_name: "Alice" },
+  };
+
+  it("keeps DM message_thread_id on the main session when bot topics are absent", async () => {
+    const ctx = await buildContext(dmThreadMessage);
+
+    expect(ctx?.ctxPayload?.MessageThreadId).toBe(42);
+    expect(ctx?.ctxPayload?.SessionKey).toBe("agent:main:main");
+  });
+
+  it("keeps DM message_thread_id on the main session when bot topics are disabled", async () => {
+    const ctx = await buildContext(dmThreadMessage, {
+      me: { has_topics_enabled: false },
     });
 
     expect(ctx?.ctxPayload?.MessageThreadId).toBe(42);
     expect(ctx?.ctxPayload?.SessionKey).toBe("agent:main:main");
   });
 
-  it("uses thread session key for configured dm topics", async () => {
-    const ctx = await buildContext(
-      {
-        message_id: 3,
-        chat: { id: 1234, type: "private" },
-        date: 1700000002,
-        text: "hello",
-        message_thread_id: 42,
-        from: { id: 42, first_name: "Alice" },
-      },
-      {
-        resolveTelegramGroupConfig: () => ({
-          groupConfig: { requireTopic: true },
-          topicConfig: undefined,
-        }),
-      },
-    );
-
-    expect(ctx?.ctxPayload?.MessageThreadId).toBe(42);
-    expect(ctx?.ctxPayload?.SessionKey).toBe("agent:main:main:thread:1234:42");
-  });
-
-  it("uses thread session key for DM topics when dm.threadReplies is inbound", async () => {
-    const ctx = await buildContext(
-      {
-        message_id: 1,
-        chat: { id: 1234, type: "private" },
-        date: 1700000000,
-        text: "hello",
-        message_thread_id: 42,
-        from: { id: 42, first_name: "Alice" },
-      },
-      {
-        cfg: {
-          agents: {
-            defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/astroclaw" },
-          },
-          channels: {
-            telegram: {
-              dmPolicy: "open",
-              allowFrom: ["*"],
-              dm: { threadReplies: "inbound" },
-            },
-          },
-          messages: { groupChat: { mentionPatterns: [] } },
-        },
-      },
-    );
-
-    expect(ctx?.ctxPayload?.MessageThreadId).toBe(42);
-    expect(ctx?.ctxPayload?.SessionKey).toBe("agent:main:main:thread:1234:42");
-  });
-
-  it("lets direct chat config opt one DM back into thread session keys", async () => {
-    const cfg = {
-      agents: { defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/astroclaw" } },
-      channels: {
-        telegram: {
-          dmPolicy: "open",
-          allowFrom: ["*"],
-          direct: {
-            "1234": {
-              threadReplies: "inbound",
-            },
-          },
-        },
-      },
-      messages: { groupChat: { mentionPatterns: [] } },
-    };
-    const ctx = await buildTelegramMessageContextForTest({
-      cfg,
-      message: {
-        message_id: 1,
-        chat: { id: 1234, type: "private" },
-        date: 1700000000,
-        text: "hello",
-        message_thread_id: 42,
-        from: { id: 42, first_name: "Alice" },
-      },
-      resolveTelegramGroupConfig: () => ({
-        groupConfig: { threadReplies: "inbound" },
-        topicConfig: undefined,
-      }),
+  it("uses thread session key when Telegram reports bot topics enabled", async () => {
+    const ctx = await buildContext(dmThreadMessage, {
+      me: { has_topics_enabled: true },
     });
 
     expect(ctx?.ctxPayload?.MessageThreadId).toBe(42);
     expect(ctx?.ctxPayload?.SessionKey).toBe("agent:main:main:thread:1234:42");
   });
 
+  it("does not use configured DM topics without bot topic capability", async () => {
+    const ctx = await buildContext(
+      {
+        ...dmThreadMessage,
+        message_id: 3,
+        date: 1700000002,
+      },
+      {
+        resolveTelegramGroupConfig: () => ({
+          groupConfig: { requireTopic: true },
+          topicConfig: { agentId: "support" },
+        }),
+      },
+    );
+
+    expect(ctx?.ctxPayload?.MessageThreadId).toBe(42);
+    expect(ctx?.ctxPayload?.SessionKey).toBe("agent:support:main");
+  });
+
+  it("uses configured DM topic routing once bot topic capability is present", async () => {
+    const ctx = await buildContext(
+      {
+        ...dmThreadMessage,
+        message_id: 4,
+        date: 1700000003,
+      },
+      {
+        me: { has_topics_enabled: true },
+        resolveTelegramGroupConfig: () => ({
+          groupConfig: { requireTopic: true },
+          topicConfig: { agentId: "support" },
+        }),
+      },
+    );
+
+    expect(ctx?.ctxPayload?.MessageThreadId).toBe(42);
+    expect(ctx?.ctxPayload?.SessionKey).toBe("agent:support:main:thread:1234:42");
+  });
+
   it("uses the main session key when no thread id", async () => {
     const ctx = await buildContext({
-      message_id: 2,
+      message_id: 1,
       chat: { id: 1234, type: "private" },
-      date: 1700000001,
+      date: 1700000000,
       text: "hello",
       from: { id: 42, first_name: "Alice" },
     });
@@ -240,7 +211,7 @@ describe("buildTelegramMessageContext group sessions without forum", () => {
   });
 
   it("does not add a topic-cache store lookup for non-forum group reply threads", async () => {
-    const resolveStorePath = vi.fn(() => "/tmp/astroclaw/session-store.json");
+    const resolveStorePath = vi.fn(() => "/tmp/openclaw/session-store.json");
 
     const ctx = await buildTelegramMessageContextForTest({
       message: {
@@ -274,6 +245,7 @@ describe("buildTelegramMessageContext group sessions without forum", () => {
     // Session key SHOULD include :topic:99 for forums
     expect(ctx?.ctxPayload?.SessionKey).toBe("agent:main:telegram:group:-1001234567890:topic:99");
     expect(ctx?.ctxPayload?.MessageThreadId).toBe(99);
+    expect(ctx?.ctxPayload?.OriginatingTo).toBe("telegram:-1001234567890:topic:99");
   });
 
   it("surfaces topic name from reply_to_message forum metadata", async () => {
@@ -316,7 +288,7 @@ describe("buildTelegramMessageContext group sessions without forum", () => {
   });
 
   it("reloads topic name from disk after cache reset", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-topic-name-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-topic-name-"));
     const sessionStorePath = path.join(tempDir, "sessions.json");
     const buildPersistedContext = async (message: Record<string, unknown>) =>
       await buildTelegramMessageContextForTest({
@@ -361,7 +333,7 @@ describe("buildTelegramMessageContext group sessions without forum", () => {
   });
 
   it("persists topic names through the default session runtime path", async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-telegram-topic-name-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-telegram-topic-name-"));
     const sessionStorePath = path.join(tempDir, "sessions.json");
     resolveStorePathMock.mockReturnValue(sessionStorePath);
 
@@ -411,7 +383,7 @@ describe("buildTelegramMessageContext group sessions without forum", () => {
 describe("buildTelegramMessageContext direct peer routing", () => {
   it("isolates dm sessions by sender id when chat id differs", async () => {
     const runtimeCfg = {
-      agents: { defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/astroclaw" } },
+      agents: { defaults: { model: "anthropic/claude-opus-4-5", workspace: "/tmp/openclaw" } },
       channels: { telegram: {} },
       messages: { groupChat: { mentionPatterns: [] } },
       session: { dmScope: "per-channel-peer" as const },
