@@ -1,3 +1,4 @@
+// Browser tests cover chrome.internal plugin behavior.
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
@@ -19,14 +20,24 @@ vi.mock("node:child_process", async () => {
   };
 });
 
+const { registerManagedProxyBrowserCdpBypassMock } = vi.hoisted(() => ({
+  registerManagedProxyBrowserCdpBypassMock: vi.fn<(url: string) => (() => void) | undefined>(
+    () => undefined,
+  ),
+}));
+
+vi.mock("openclaw/plugin-sdk/ssrf-runtime-internal", () => ({
+  registerManagedProxyBrowserCdpBypass: registerManagedProxyBrowserCdpBypassMock,
+}));
+
 const ensurePortAvailableMock = vi.hoisted(() => vi.fn(async () => {}));
 
 vi.mock("../infra/ports.js", () => ({
   ensurePortAvailable: ensurePortAvailableMock,
 }));
 
-vi.mock("../infra/tmp-astroclaw-dir.js", () => ({
-  resolvePreferredAstroclawTmpDir: () => "/tmp/astroclaw-browser-test",
+vi.mock("../infra/tmp-openclaw-dir.js", () => ({
+  resolvePreferredOpenClawTmpDir: () => "/tmp/openclaw-browser-test",
 }));
 
 // Shrink long launch/bootstrap timeouts so tests don't wait 15s for
@@ -45,22 +56,22 @@ vi.mock("./cdp-timeouts.js", async () => {
 });
 
 import {
-  buildAstroclawChromeLaunchArgs,
+  buildOpenClawChromeLaunchArgs,
   getChromeWebSocketUrl,
   isChromeCdpReady,
   isChromeReachable,
-  launchAstroclawChrome,
-  resolveAstroclawUserDataDir,
-  stopAstroclawChrome,
+  launchOpenClawChrome,
+  resolveOpenClawUserDataDir,
+  stopOpenClawChrome,
 } from "./chrome.js";
 import type { ResolvedBrowserConfig, ResolvedBrowserProfile } from "./config.js";
 
 /**
  * Covers the parts of chrome.ts that the mainline chrome.test.ts does
- * not exercise: launchAstroclawChrome (with child_process.spawn mocked),
+ * not exercise: launchOpenClawChrome (with child_process.spawn mocked),
  * canRunCdpHealthCommand all branches, canOpenWebSocket failure,
- * stopAstroclawChrome SIGKILL fallback, fs.exists() catch, default
- * profile name, buildAstroclawChromeLaunchArgs branches, and friends.
+ * stopOpenClawChrome SIGKILL fallback, fs.exists() catch, default
+ * profile name, buildOpenClawChromeLaunchArgs branches, and friends.
  */
 
 type FakeProc = EventEmitter & {
@@ -153,7 +164,29 @@ async function withMockChromeCdpServer(params: {
       wss.emit("connection", ws, req);
     });
   });
-  params.onConnection?.(wss);
+  if (params.onConnection) {
+    params.onConnection(wss);
+  } else {
+    wss.on("connection", (ws) => {
+      ws.on("message", (raw) => {
+        const message = JSON.parse(rawDataToString(raw)) as {
+          id?: unknown;
+          method?: unknown;
+        };
+        if (message.method === "Browser.getVersion" && typeof message.id === "number") {
+          ws.send(
+            JSON.stringify({
+              id: message.id,
+              result: {
+                product: "Chrome/Mock",
+                userAgent: "OpenClawTest",
+              },
+            }),
+          );
+        }
+      });
+    });
+  }
   await new Promise<void>((resolve, reject) => {
     server.listen(0, "127.0.0.1", () => resolve());
     server.once("error", reject);
@@ -162,8 +195,12 @@ async function withMockChromeCdpServer(params: {
     const addr = server.address() as AddressInfo;
     await params.run(`http://127.0.0.1:${addr.port}`);
   } finally {
-    await new Promise<void>((resolve) => wss.close(() => resolve()));
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await new Promise<void>((resolve) => {
+      wss.close(() => resolve());
+    });
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
   }
 }
 
@@ -179,21 +216,23 @@ describe("chrome.ts internal", () => {
     spawnMock.mockReset();
     ensurePortAvailableMock.mockReset();
     ensurePortAvailableMock.mockImplementation(async () => {});
+    registerManagedProxyBrowserCdpBypassMock.mockReset();
+    registerManagedProxyBrowserCdpBypassMock.mockImplementation(() => undefined);
   });
 
-  describe("resolveAstroclawUserDataDir", () => {
+  describe("resolveOpenClawUserDataDir", () => {
     it("falls back to the default profile name when none is supplied", () => {
-      const dir = resolveAstroclawUserDataDir();
-      expect(dir.endsWith(path.join("astroclaw", "user-data"))).toBe(true);
+      const dir = resolveOpenClawUserDataDir();
+      expect(dir.endsWith(path.join("openclaw", "user-data"))).toBe(true);
     });
 
     it("respects an explicit profile name", () => {
-      const dir = resolveAstroclawUserDataDir("my-profile");
+      const dir = resolveOpenClawUserDataDir("my-profile");
       expect(dir.endsWith(path.join("my-profile", "user-data"))).toBe(true);
     });
   });
 
-  describe("buildAstroclawChromeLaunchArgs branches", () => {
+  describe("buildOpenClawChromeLaunchArgs branches", () => {
     const baseResolved = (overrides: Partial<ResolvedBrowserConfig> = {}): ResolvedBrowserConfig =>
       ({
         headless: false,
@@ -204,19 +243,19 @@ describe("chrome.ts internal", () => {
       }) as unknown as ResolvedBrowserConfig;
 
     const baseProfile: ResolvedBrowserProfile = {
-      name: "astroclaw",
+      name: "openclaw",
       color: "#FF4500",
       cdpPort: 19222,
       cdpUrl: "http://127.0.0.1:19222",
       cdpIsLoopback: true,
-      driver: "astroclaw",
+      driver: "openclaw",
       headless: false,
       headlessSource: "default",
       attachOnly: false,
     } as unknown as ResolvedBrowserProfile;
 
     it("toggles headless args", () => {
-      const args = buildAstroclawChromeLaunchArgs({
+      const args = buildOpenClawChromeLaunchArgs({
         resolved: baseResolved({ headless: false }),
         profile: { ...baseProfile, headless: true, headlessSource: "profile" },
         userDataDir: "/tmp/foo",
@@ -226,7 +265,7 @@ describe("chrome.ts internal", () => {
     });
 
     it("lets profile headless=false override global headless=true", () => {
-      const args = buildAstroclawChromeLaunchArgs({
+      const args = buildOpenClawChromeLaunchArgs({
         resolved: baseResolved({ headless: true, headlessSource: "config" }),
         profile: { ...baseProfile, headless: false, headlessSource: "profile" },
         userDataDir: "/tmp/foo",
@@ -236,19 +275,19 @@ describe("chrome.ts internal", () => {
     });
 
     it("lets a request headless override beat env and profile headed settings", () => {
-      const args = buildAstroclawChromeLaunchArgs({
+      const args = buildOpenClawChromeLaunchArgs({
         resolved: baseResolved({ headless: false, headlessSource: "config" }),
         profile: { ...baseProfile, headless: false, headlessSource: "profile" },
         userDataDir: "/tmp/foo",
         headlessOverride: true,
-        env: { ASTROCLAW_BROWSER_HEADLESS: "0" },
+        env: { OPENCLAW_BROWSER_HEADLESS: "0" },
       });
       expect(args).toContain("--headless=new");
       expect(args).toContain("--disable-gpu");
     });
 
     it("adds headless args for Linux local managed profiles without a display", () => {
-      const args = buildAstroclawChromeLaunchArgs({
+      const args = buildOpenClawChromeLaunchArgs({
         resolved: baseResolved(),
         profile: baseProfile,
         userDataDir: "/tmp/foo",
@@ -260,7 +299,7 @@ describe("chrome.ts internal", () => {
     });
 
     it("does not apply Linux no-display fallback to remote profiles", () => {
-      const args = buildAstroclawChromeLaunchArgs({
+      const args = buildOpenClawChromeLaunchArgs({
         resolved: baseResolved(),
         profile: {
           ...baseProfile,
@@ -277,7 +316,7 @@ describe("chrome.ts internal", () => {
     });
 
     it("toggles no-sandbox args", () => {
-      const args = buildAstroclawChromeLaunchArgs({
+      const args = buildOpenClawChromeLaunchArgs({
         resolved: baseResolved({ noSandbox: true }),
         profile: baseProfile,
         userDataDir: "/tmp/foo",
@@ -290,7 +329,7 @@ describe("chrome.ts internal", () => {
       const originalPlatform = process.platform;
       Object.defineProperty(process, "platform", { value: "linux" });
       try {
-        const args = buildAstroclawChromeLaunchArgs({
+        const args = buildOpenClawChromeLaunchArgs({
           resolved: baseResolved(),
           profile: baseProfile,
           userDataDir: "/tmp/foo",
@@ -302,7 +341,7 @@ describe("chrome.ts internal", () => {
     });
 
     it("propagates extraArgs", () => {
-      const args = buildAstroclawChromeLaunchArgs({
+      const args = buildOpenClawChromeLaunchArgs({
         resolved: baseResolved({
           extraArgs: ["--proxy-server=http://localhost:3128", "--mute-audio"],
         }),
@@ -315,7 +354,7 @@ describe("chrome.ts internal", () => {
     });
 
     it("launches managed Chrome direct by default", () => {
-      const args = buildAstroclawChromeLaunchArgs({
+      const args = buildOpenClawChromeLaunchArgs({
         resolved: baseResolved(),
         profile: baseProfile,
         userDataDir: "/tmp/foo",
@@ -329,7 +368,7 @@ describe("chrome.ts internal", () => {
       // Make existsSync throw ONLY for Local State / Preferences checks
       // — other candidate-executable probes still return true so
       // resolveBrowserExecutable succeeds and we actually reach the
-      // exists() invocation inside launchAstroclawChrome.
+      // exists() invocation inside launchOpenClawChrome.
       let prefsProbeCount = 0;
       const existsSpy = vi.spyOn(fs, "existsSync").mockImplementation((p) => {
         const s = String(p);
@@ -356,7 +395,7 @@ describe("chrome.ts internal", () => {
         run: async (baseUrl) => {
           const port = Number(new URL(baseUrl).port);
           const profile = {
-            name: "astroclaw",
+            name: "openclaw",
             color: "#FF4500",
             cdpPort: port,
             cdpUrl: baseUrl,
@@ -367,7 +406,7 @@ describe("chrome.ts internal", () => {
             noSandbox: true,
             extraArgs: [],
           } as unknown as ResolvedBrowserConfig;
-          const running = await launchAstroclawChrome(resolved, profile);
+          const running = await launchOpenClawChrome(resolved, profile);
           expect(running.pid).toBe(4242);
           running.proc.kill?.("SIGTERM");
         },
@@ -376,11 +415,11 @@ describe("chrome.ts internal", () => {
     });
   });
 
-  describe("launchAstroclawChrome", () => {
+  describe("launchOpenClawChrome", () => {
     let tmpDir = "";
 
     beforeEach(async () => {
-      tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), "astroclaw-launch-"));
+      tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), "openclaw-launch-"));
     });
 
     afterEach(async () => {
@@ -410,13 +449,13 @@ describe("chrome.ts internal", () => {
 
     it("rejects a remote profile before attempting to spawn", async () => {
       const profile = {
-        name: "astroclaw",
+        name: "openclaw",
         color: "#FF4500",
         cdpPort: 19222,
         cdpUrl: "http://example.com:19222",
         cdpIsLoopback: false,
       } as unknown as ResolvedBrowserProfile;
-      await expect(launchAstroclawChrome(makeResolved(), profile)).rejects.toThrow(
+      await expect(launchOpenClawChrome(makeResolved(), profile)).rejects.toThrow(
         /is remote; cannot launch local Chrome/,
       );
       expect(spawnMock).not.toHaveBeenCalled();
@@ -427,7 +466,7 @@ describe("chrome.ts internal", () => {
       // path is set, then mock existsSync to return false for everything.
       vi.spyOn(fs, "existsSync").mockReturnValue(false);
       const profile = makeProfile(51111);
-      await expect(launchAstroclawChrome(makeResolved(), profile)).rejects.toThrow(
+      await expect(launchOpenClawChrome(makeResolved(), profile)).rejects.toThrow(
         /No supported browser found/,
       );
     });
@@ -467,7 +506,7 @@ describe("chrome.ts internal", () => {
         run: async (baseUrl) => {
           const port = new URL(baseUrl).port;
           const profile = makeProfile(Number(port));
-          const running = await launchAstroclawChrome(makeResolved(), profile);
+          const running = await launchOpenClawChrome(makeResolved(), profile);
           expect(running.pid).toBe(4242);
           expect(spawnCalls).toBeGreaterThanOrEqual(1);
           const spawnOptions = requireSpawnOptions();
@@ -479,6 +518,119 @@ describe("chrome.ts internal", () => {
             expect(spawnOptions.env?.XDG_CACHE_HOME).toEqual(expect.any(String));
           }
           // Cleanup.
+          running.proc.kill?.("SIGTERM");
+        },
+      });
+    });
+
+    it("accepts a ready CDP diagnostic after the launch HTTP probe expires", async () => {
+      vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+        const s = String(p);
+        if (
+          s.includes("Google Chrome") ||
+          s.includes("google-chrome") ||
+          s.includes("/usr/bin/chromium")
+        ) {
+          return true;
+        }
+        if (s.endsWith("Local State") || s.endsWith("Preferences")) {
+          return true;
+        }
+        return false;
+      });
+      spawnMock.mockImplementation(() => makeFakeProc());
+
+      const originalFetch = globalThis.fetch;
+      let now = 1_000_000;
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+      let discoveryCalls = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+          const url =
+            typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+          if (url.includes("/json/version")) {
+            discoveryCalls += 1;
+            if (discoveryCalls === 1) {
+              now += 2;
+              throw new Error("ECONNREFUSED");
+            }
+          }
+          return await originalFetch(input, init);
+        }),
+      );
+
+      await withMockChromeCdpServer({
+        wsPath: "/devtools/browser/COLD_START",
+        run: async (baseUrl) => {
+          const port = new URL(baseUrl).port;
+          const profile = makeProfile(Number(port));
+          const running = await launchOpenClawChrome(
+            makeResolved({ localLaunchTimeoutMs: 1 }),
+            profile,
+          );
+          expect(running.pid).toBe(4242);
+          expect(discoveryCalls).toBeGreaterThan(1);
+          running.proc.kill?.("SIGTERM");
+        },
+      });
+    });
+
+    it("keeps the launched process when fallback diagnostic sees HTTP before WS readiness", async () => {
+      vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+        const s = String(p);
+        if (
+          s.includes("Google Chrome") ||
+          s.includes("google-chrome") ||
+          s.includes("/usr/bin/chromium")
+        ) {
+          return true;
+        }
+        if (s.endsWith("Local State") || s.endsWith("Preferences")) {
+          return true;
+        }
+        return false;
+      });
+      const fakeProc = makeFakeProc();
+      spawnMock.mockImplementation(() => fakeProc);
+
+      const originalFetch = globalThis.fetch;
+      let now = 1_000_000;
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+      let discoveryCalls = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+          const url =
+            typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+          if (url.includes("/json/version")) {
+            discoveryCalls += 1;
+            if (discoveryCalls === 1) {
+              now += 2;
+              throw new Error("ECONNREFUSED");
+            }
+          }
+          return await originalFetch(input, init);
+        }),
+      );
+
+      await withMockChromeCdpServer({
+        wsPath: "/devtools/browser/WS_WARMING",
+        onConnection: (wss) => {
+          wss.on("connection", () => {
+            // HTTP discovery is enough for launch; caller owns WS readiness.
+          });
+        },
+        run: async (baseUrl) => {
+          const port = new URL(baseUrl).port;
+          const profile = makeProfile(Number(port));
+          const running = await launchOpenClawChrome(
+            makeResolved({ localLaunchTimeoutMs: 1 }),
+            profile,
+          );
+          expect(running.pid).toBe(4242);
+          expect(discoveryCalls).toBeGreaterThan(1);
+          expect(fakeProc.kill).not.toHaveBeenCalledWith("SIGKILL");
           running.proc.kill?.("SIGTERM");
         },
       });
@@ -506,7 +658,7 @@ describe("chrome.ts internal", () => {
               ...makeResolved(),
               executablePath: "/tmp/global-chrome",
             } as ResolvedBrowserConfig;
-            const running = await launchAstroclawChrome(resolved, profile);
+            const running = await launchOpenClawChrome(resolved, profile);
             expect(effectiveSpawnCommand(requireSpawnCall())).toBe("/tmp/profile-chrome");
             running.proc.kill?.("SIGTERM");
           },
@@ -517,17 +669,25 @@ describe("chrome.ts internal", () => {
     });
 
     it("clears stale singleton locks and retries once after profile-in-use launch failure", async () => {
+      const configPath = path.join(tmpDir, "openclaw.json");
+      await fsp.writeFile(
+        configPath,
+        JSON.stringify({
+          logging: {
+            redactPatterns: ["profile appears to be in use by another Chromium process"],
+          },
+        }),
+      );
+      vi.stubEnv("OPENCLAW_CONFIG_PATH", configPath);
       let cdpReachable = false;
+      const originalFetch = globalThis.fetch;
       vi.stubGlobal(
         "fetch",
-        vi.fn(async () => {
+        vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
           if (!cdpReachable) {
             throw new Error("ECONNREFUSED");
           }
-          return {
-            ok: true,
-            json: async () => ({ webSocketDebuggerUrl: "ws://127.0.0.1/devtools" }),
-          } as unknown as Response;
+          return await originalFetch(input, init);
         }),
       );
       vi.spyOn(fs, "existsSync").mockImplementation((p) => {
@@ -557,27 +717,33 @@ describe("chrome.ts internal", () => {
         return secondProc;
       });
 
-      const profile = { ...makeProfile(18888), executablePath: "/tmp/profile-chrome" };
-      const userDataDir = resolveAstroclawUserDataDir(profile.name);
-      await fsp.mkdir(userDataDir, { recursive: true });
-      await fsp.writeFile(path.join(userDataDir, "SingletonCookie"), "cookie");
-      await fsp.writeFile(path.join(userDataDir, "SingletonSocket"), "socket");
-      await fsp.symlink("remote-host-535", path.join(userDataDir, "SingletonLock"));
+      await withMockChromeCdpServer({
+        wsPath: "/devtools/browser/SINGLETON_RETRY",
+        run: async (baseUrl) => {
+          const port = Number(new URL(baseUrl).port);
+          const profile = { ...makeProfile(port), executablePath: "/tmp/profile-chrome" };
+          const userDataDir = resolveOpenClawUserDataDir(profile.name);
+          await fsp.mkdir(userDataDir, { recursive: true });
+          await fsp.writeFile(path.join(userDataDir, "SingletonCookie"), "cookie");
+          await fsp.writeFile(path.join(userDataDir, "SingletonSocket"), "socket");
+          await fsp.symlink("remote-host-535", path.join(userDataDir, "SingletonLock"));
 
-      try {
-        const running = await launchAstroclawChrome(
-          makeResolved({ localLaunchTimeoutMs: 20 }),
-          profile,
-        );
-        expect(running.proc).toBe(secondProc);
-        expect(firstProc.kill).toHaveBeenCalledWith("SIGKILL");
-        expect(spawnCalls).toBe(2);
-        expect(fs.existsSync(path.join(userDataDir, "SingletonLock"))).toBe(false);
-        expect(fs.existsSync(path.join(userDataDir, "SingletonSocket"))).toBe(false);
-        running.proc.kill?.("SIGTERM");
-      } finally {
-        await fsp.rm(userDataDir, { recursive: true, force: true });
-      }
+          try {
+            const running = await launchOpenClawChrome(
+              makeResolved({ localLaunchTimeoutMs: 20 }),
+              profile,
+            );
+            expect(running.proc).toBe(secondProc);
+            expect(firstProc.kill).toHaveBeenCalledWith("SIGKILL");
+            expect(spawnCalls).toBe(2);
+            expect(fs.existsSync(path.join(userDataDir, "SingletonLock"))).toBe(false);
+            expect(fs.existsSync(path.join(userDataDir, "SingletonSocket"))).toBe(false);
+            running.proc.kill?.("SIGTERM");
+          } finally {
+            await fsp.rm(userDataDir, { recursive: true, force: true });
+          }
+        },
+      });
     });
 
     it("throws with stderr hint + sandbox hint when CDP never becomes reachable", async () => {
@@ -615,7 +781,7 @@ describe("chrome.ts internal", () => {
           extraArgs: [],
         } as unknown as ResolvedBrowserConfig;
         const profile = makeProfile(55555);
-        await expect(launchAstroclawChrome(resolved, profile)).rejects.toThrow(
+        await expect(launchOpenClawChrome(resolved, profile)).rejects.toThrow(
           /Failed to start Chrome CDP/,
         );
         expect(fakeProc.kill).toHaveBeenCalledWith("SIGKILL");
@@ -647,14 +813,14 @@ describe("chrome.ts internal", () => {
       };
       const profile = makeProfile(55556);
 
-      await expect(launchAstroclawChrome(resolved, profile)).rejects.toThrow(
+      await expect(launchOpenClawChrome(resolved, profile)).rejects.toThrow(
         /Failed to start Chrome CDP/,
       );
       expect(fakeProc.kill).toHaveBeenCalledWith("SIGKILL");
     });
   });
 
-  describe("stopAstroclawChrome SIGKILL fallback", () => {
+  describe("stopOpenClawChrome SIGKILL fallback", () => {
     it("escalates to SIGKILL when CDP keeps reporting reachable past the deadline", async () => {
       vi.stubGlobal(
         "fetch",
@@ -664,8 +830,8 @@ describe("chrome.ts internal", () => {
         } as unknown as Response),
       );
       const proc = makeFakeProc();
-      await stopAstroclawChrome(
-        { proc, cdpPort: 12345 } as unknown as Parameters<typeof stopAstroclawChrome>[0],
+      await stopOpenClawChrome(
+        { proc, cdpPort: 12345 } as unknown as Parameters<typeof stopOpenClawChrome>[0],
         1,
       );
       expect(proc.kill).toHaveBeenNthCalledWith(1, "SIGTERM");
@@ -791,9 +957,13 @@ describe("chrome.ts internal", () => {
     it("resolves false when the direct-ws probe cannot connect", async () => {
       // Bind a ws server and then close it, so connecting to it fails.
       const wss = new WebSocketServer({ port: 0, host: "127.0.0.1" });
-      await new Promise<void>((resolve) => wss.once("listening", () => resolve()));
+      await new Promise<void>((resolve) => {
+        wss.once("listening", () => resolve());
+      });
       const port = (wss.address() as { port: number }).port;
-      await new Promise<void>((resolve) => wss.close(() => resolve()));
+      await new Promise<void>((resolve) => {
+        wss.close(() => resolve());
+      });
       await expect(
         isChromeReachable(`ws://127.0.0.1:${port}/devtools/browser/GONE`, 50),
       ).resolves.toBe(false);
@@ -801,7 +971,9 @@ describe("chrome.ts internal", () => {
 
     it("resolves true when the direct-ws handshake succeeds", async () => {
       const wss = new WebSocketServer({ port: 0, host: "127.0.0.1" });
-      await new Promise<void>((resolve) => wss.once("listening", () => resolve()));
+      await new Promise<void>((resolve) => {
+        wss.once("listening", () => resolve());
+      });
       const port = (wss.address() as { port: number }).port;
       try {
         // Direct /devtools/ WS URL — isChromeReachable goes through
@@ -811,7 +983,9 @@ describe("chrome.ts internal", () => {
           isChromeReachable(`ws://127.0.0.1:${port}/devtools/browser/OK`, 500),
         ).resolves.toBe(true);
       } finally {
-        await new Promise<void>((resolve) => wss.close(() => resolve()));
+        await new Promise<void>((resolve) => {
+          wss.close(() => resolve());
+        });
       }
     });
   });
@@ -833,9 +1007,13 @@ describe("chrome.ts internal", () => {
       // accepting ws upgrades — the canRunCdpHealthCommand probe will
       // fire its 'error' handler during handshake.
       const dead = new WebSocketServer({ port: 0, host: "127.0.0.1" });
-      await new Promise<void>((resolve) => dead.once("listening", () => resolve()));
+      await new Promise<void>((resolve) => {
+        dead.once("listening", () => resolve());
+      });
       const deadPort = (dead.address() as { port: number }).port;
-      await new Promise<void>((resolve) => dead.close(() => resolve()));
+      await new Promise<void>((resolve) => {
+        dead.close(() => resolve());
+      });
       const server = createServer((req, res) => {
         if (req.url === "/json/version") {
           res.writeHead(200, { "Content-Type": "application/json" });
@@ -848,14 +1026,18 @@ describe("chrome.ts internal", () => {
         }
         res.writeHead(404).end();
       });
-      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+      await new Promise<void>((resolve) => {
+        server.listen(0, "127.0.0.1", () => resolve());
+      });
       try {
         const addr = server.address() as AddressInfo;
         await expect(isChromeCdpReady(`http://127.0.0.1:${addr.port}`, 50, 10)).resolves.toBe(
           false,
         );
       } finally {
-        await new Promise<void>((resolve) => server.close(() => resolve()));
+        await new Promise<void>((resolve) => {
+          server.close(() => resolve());
+        });
       }
     });
 
@@ -895,18 +1077,18 @@ describe("chrome.ts internal", () => {
     });
   });
 
-  describe("launchAstroclawChrome remaining branches", () => {
+  describe("launchOpenClawChrome remaining branches", () => {
     it("skips decoration entirely when the profile is already decorated", async () => {
       // Covers the `needsDecorate` false branch by writing a real,
       // properly-shaped Local State + Preferences pair that matches
       // the desired name and color seed so isProfileDecorated returns
       // true on the first check.
-      const stageDir = await fsp.mkdtemp(path.join(os.tmpdir(), "astroclaw-decorated-"));
+      const stageDir = await fsp.mkdtemp(path.join(os.tmpdir(), "openclaw-decorated-"));
       try {
         const profileName = path.basename(stageDir);
         const colorHex = "#FF4500";
         const colorInt = ((0xff << 24) | 0xff4500) >> 0;
-        const userDataDir = path.join(resolveAstroclawUserDataDir(profileName));
+        const userDataDir = path.join(resolveOpenClawUserDataDir(profileName));
         await fsp.mkdir(path.join(userDataDir, "Default"), { recursive: true });
         await fsp.writeFile(
           path.join(userDataDir, "Local State"),
@@ -957,20 +1139,20 @@ describe("chrome.ts internal", () => {
               noSandbox: true,
               extraArgs: [],
             } as unknown as ResolvedBrowserConfig;
-            const running = await launchAstroclawChrome(resolved, profile);
+            const running = await launchOpenClawChrome(resolved, profile);
             expect(running.pid).toBe(4242);
             running.proc.kill?.("SIGTERM");
           },
         });
       } finally {
         await fsp.rm(stageDir, { recursive: true, force: true });
-        const staged = resolveAstroclawUserDataDir(path.basename(stageDir));
+        const staged = resolveOpenClawUserDataDir(path.basename(stageDir));
         await fsp.rm(staged, { recursive: true, force: true }).catch(() => {});
       }
     });
 
     it("falls back to the default color when profile.color is undefined", async () => {
-      // Covers the `profile.color ?? DEFAULT_ASTROCLAW_BROWSER_COLOR` coalescing.
+      // Covers the `profile.color ?? DEFAULT_OPENCLAW_BROWSER_COLOR` coalescing.
       vi.spyOn(fs, "existsSync").mockImplementation((p) => {
         const s = String(p);
         if (
@@ -991,7 +1173,7 @@ describe("chrome.ts internal", () => {
         run: async (baseUrl) => {
           const port = Number(new URL(baseUrl).port);
           const profile = {
-            name: "astroclaw",
+            name: "openclaw",
             color: undefined,
             cdpPort: port,
             cdpUrl: baseUrl,
@@ -1002,7 +1184,7 @@ describe("chrome.ts internal", () => {
             noSandbox: true,
             extraArgs: [],
           } as unknown as ResolvedBrowserConfig;
-          const running = await launchAstroclawChrome(resolved, profile);
+          const running = await launchOpenClawChrome(resolved, profile);
           expect(running.pid).toBe(4242);
           running.proc.kill?.("SIGTERM");
         },
@@ -1012,6 +1194,10 @@ describe("chrome.ts internal", () => {
     it("buffers stderr chunks when Chrome emits diagnostics while CDP comes up", async () => {
       // Covers onStderr (pushing chunks to stderrChunks) plus the
       // stderrHint truthy branch on failure.
+      const configDir = await fsp.mkdtemp(path.join(os.tmpdir(), "openclaw-redact-off-"));
+      const configPath = path.join(configDir, "openclaw.json");
+      await fsp.writeFile(configPath, JSON.stringify({ logging: { redactSensitive: "off" } }));
+      vi.stubEnv("OPENCLAW_CONFIG_PATH", configPath);
       vi.spyOn(fs, "existsSync").mockImplementation((p) => {
         const s = String(p);
         if (
@@ -1027,17 +1213,18 @@ describe("chrome.ts internal", () => {
         return false;
       });
       const fakeProc = makeFakeProc();
+      const secretToken = "chrome-stderr-secret-1234567890"; // pragma: allowlist secret
       spawnMock.mockImplementation(() => {
         // Synthesize stderr data shortly after spawn.
         void Promise.resolve().then(() =>
-          fakeProc.stderr.emit("data", Buffer.from("chrome crash log\n")),
+          fakeProc.stderr.emit("data", Buffer.from(`chrome crash log token=${secretToken}\n`)),
         );
         return fakeProc;
       });
       mockExpiredLaunchPollingClock();
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
       const profile = {
-        name: "astroclaw-stderr",
+        name: "openclaw-stderr",
         color: "#FF4500",
         cdpPort: 54321,
         cdpUrl: "http://127.0.0.1:54321",
@@ -1048,7 +1235,16 @@ describe("chrome.ts internal", () => {
         noSandbox: true,
         extraArgs: [],
       } as unknown as ResolvedBrowserConfig;
-      await expect(launchAstroclawChrome(resolved, profile)).rejects.toThrow(/Chrome stderr:/);
+      let message = "";
+      try {
+        await launchOpenClawChrome(resolved, profile);
+      } catch (err) {
+        message = err instanceof Error ? err.message : String(err);
+      }
+      expect(message).toContain("Chrome stderr:");
+      expect(message).toContain("chrome crash log");
+      expect(message).not.toContain(secretToken);
+      await fsp.rm(configDir, { recursive: true, force: true });
     });
 
     it("omits the sandbox hint on non-linux platforms", async () => {
@@ -1074,7 +1270,7 @@ describe("chrome.ts internal", () => {
         mockExpiredLaunchPollingClock();
         vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
         const profile = {
-          name: "astroclaw-mac",
+          name: "openclaw-mac",
           color: "#FF4500",
           cdpPort: 54322,
           cdpUrl: "http://127.0.0.1:54322",
@@ -1087,7 +1283,7 @@ describe("chrome.ts internal", () => {
         } as unknown as ResolvedBrowserConfig;
         let caught: unknown;
         try {
-          await launchAstroclawChrome(resolved, profile);
+          await launchOpenClawChrome(resolved, profile);
         } catch (e) {
           caught = e;
         }
@@ -1130,7 +1326,7 @@ describe("chrome.ts internal", () => {
         run: async (baseUrl) => {
           const port = Number(new URL(baseUrl).port);
           const profile = {
-            name: "astroclaw",
+            name: "openclaw",
             color: "#FF4500",
             cdpPort: port,
             cdpUrl: baseUrl,
@@ -1141,7 +1337,7 @@ describe("chrome.ts internal", () => {
             noSandbox: true,
             extraArgs: [],
           } as unknown as ResolvedBrowserConfig;
-          const running = await launchAstroclawChrome(resolved, profile);
+          const running = await launchOpenClawChrome(resolved, profile);
           expect(spawnCount).toBe(2);
           expect(running.proc).toBe(runtimeProc);
           running.proc.kill?.("SIGTERM");
@@ -1184,7 +1380,7 @@ describe("chrome.ts internal", () => {
         run: async (baseUrl) => {
           const port = Number(new URL(baseUrl).port);
           const profile = {
-            name: "astroclaw",
+            name: "openclaw",
             color: "#FF4500",
             cdpPort: port,
             cdpUrl: baseUrl,
@@ -1195,7 +1391,7 @@ describe("chrome.ts internal", () => {
             noSandbox: true,
             extraArgs: [],
           } as unknown as ResolvedBrowserConfig;
-          const running = await launchAstroclawChrome(resolved, profile);
+          const running = await launchOpenClawChrome(resolved, profile);
           expect(callCount).toBe(2);
           expect(running.proc).toBe(runtimeProc);
           running.proc.kill?.("SIGTERM");
@@ -1203,9 +1399,9 @@ describe("chrome.ts internal", () => {
       });
     });
 
-    it("logs a warning when decorateAstroclawProfile throws and still returns a running Chrome", async () => {
+    it("logs a warning when decorateOpenClawProfile throws and still returns a running Chrome", async () => {
       // Covers the decoration catch branch (log.warn).
-      const { decorateAstroclawProfile } = await import("./chrome.profile-decoration.js");
+      const { decorateOpenClawProfile } = await import("./chrome.profile-decoration.js");
       vi.spyOn(fs, "existsSync").mockImplementation((p) => {
         const s = String(p);
         if (
@@ -1221,7 +1417,7 @@ describe("chrome.ts internal", () => {
         return false;
       });
       const decorationSpy = vi
-        .spyOn({ decorateAstroclawProfile }, "decorateAstroclawProfile")
+        .spyOn({ decorateOpenClawProfile }, "decorateOpenClawProfile")
         .mockImplementation(() => {
           throw new Error("decoration blew up");
         });
@@ -1229,7 +1425,7 @@ describe("chrome.ts internal", () => {
       // fs.writeFileSync to throw for the marker file.
       const writeSpy = vi.spyOn(fs, "writeFileSync").mockImplementation((p) => {
         const s = String(p);
-        if (s.endsWith(".astroclaw-profile-decorated") || s.endsWith("Preferences")) {
+        if (s.endsWith(".openclaw-profile-decorated") || s.endsWith("Preferences")) {
           throw new Error("write blew up");
         }
       });
@@ -1239,7 +1435,7 @@ describe("chrome.ts internal", () => {
         run: async (baseUrl) => {
           const port = Number(new URL(baseUrl).port);
           const profile = {
-            name: "astroclaw-warn",
+            name: "openclaw-warn",
             color: "#FF4500",
             cdpPort: port,
             cdpUrl: baseUrl,
@@ -1250,7 +1446,7 @@ describe("chrome.ts internal", () => {
             noSandbox: true,
             extraArgs: [],
           } as unknown as ResolvedBrowserConfig;
-          const running = await launchAstroclawChrome(resolved, profile);
+          const running = await launchOpenClawChrome(resolved, profile);
           expect(running.pid).toBe(4242);
           running.proc.kill?.("SIGTERM");
         },
@@ -1285,7 +1481,7 @@ describe("chrome.ts internal", () => {
         run: async (baseUrl) => {
           const port = Number(new URL(baseUrl).port);
           const profile = {
-            name: "astroclaw-nopid",
+            name: "openclaw-nopid",
             color: "#FF4500",
             cdpPort: port,
             cdpUrl: baseUrl,
@@ -1296,11 +1492,129 @@ describe("chrome.ts internal", () => {
             noSandbox: true,
             extraArgs: [],
           } as unknown as ResolvedBrowserConfig;
-          const running = await launchAstroclawChrome(resolved, profile);
+          const running = await launchOpenClawChrome(resolved, profile);
           expect(running.pid).toBe(-1);
           running.proc.kill?.("SIGTERM");
         },
       });
+    });
+  });
+
+  describe("launchOpenClawChrome managed-proxy CDP bypass", () => {
+    const makeLoopbackProfile = (cdpPort: number): ResolvedBrowserProfile =>
+      ({
+        name: "openclaw-bypass",
+        color: "#FF4500",
+        cdpPort,
+        cdpUrl: `http://127.0.0.1:${cdpPort}`,
+        cdpIsLoopback: true,
+      }) as unknown as ResolvedBrowserProfile;
+
+    const makeResolved = (): ResolvedBrowserConfig =>
+      ({
+        headless: true,
+        noSandbox: true,
+        extraArgs: [],
+        localLaunchTimeoutMs: 15_000,
+      }) as unknown as ResolvedBrowserConfig;
+
+    const stubExecutableAndPrefsExist = () => {
+      vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+        const s = String(p);
+        if (
+          s.includes("Google Chrome") ||
+          s.includes("google-chrome") ||
+          s.includes("/usr/bin/chromium")
+        ) {
+          return true;
+        }
+        if (s.endsWith("Local State") || s.endsWith("Preferences")) {
+          return true;
+        }
+        return false;
+      });
+    };
+
+    it("preflights managed-proxy policy and registers exact CDP probe URLs", async () => {
+      stubExecutableAndPrefsExist();
+      const release = vi.fn();
+      registerManagedProxyBrowserCdpBypassMock.mockImplementation(() => release);
+      spawnMock.mockImplementation(() => makeFakeProc());
+
+      await withMockChromeCdpServer({
+        wsPath: "/devtools/browser/BYPASS_OK",
+        run: async (baseUrl) => {
+          const port = Number(new URL(baseUrl).port);
+          const profile = { ...makeLoopbackProfile(port), cdpUrl: baseUrl };
+          const running = await launchOpenClawChrome(makeResolved(), profile);
+          expect(registerManagedProxyBrowserCdpBypassMock).toHaveBeenCalledWith(baseUrl);
+          expect(registerManagedProxyBrowserCdpBypassMock).toHaveBeenCalledWith(
+            `${baseUrl}/json/version`,
+          );
+          expect(release).toHaveBeenCalled();
+          expect(running.releaseCdpProxyBypass).toBeUndefined();
+          running.proc.kill?.("SIGTERM");
+        },
+      });
+    });
+
+    it("releases scoped bypass registrations when the CDP probe never succeeds", async () => {
+      stubExecutableAndPrefsExist();
+      const release = vi.fn();
+      registerManagedProxyBrowserCdpBypassMock.mockImplementation(() => release);
+      const fakeProc = makeFakeProc();
+      spawnMock.mockImplementation(() => fakeProc);
+      mockExpiredLaunchPollingClock();
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
+
+      const profile = makeLoopbackProfile(54323);
+      await expect(launchOpenClawChrome(makeResolved(), profile)).rejects.toThrow(
+        /Failed to start Chrome CDP/,
+      );
+      expect(registerManagedProxyBrowserCdpBypassMock).toHaveBeenCalledWith(profile.cdpUrl);
+      expect(registerManagedProxyBrowserCdpBypassMock).toHaveBeenCalledWith(
+        `${profile.cdpUrl}/json/version`,
+      );
+      expect(release).toHaveBeenCalledTimes(
+        registerManagedProxyBrowserCdpBypassMock.mock.calls.length,
+      );
+    });
+
+    it("surfaces loopbackMode=block as BrowserProfileUnavailableError without spawning Chrome", async () => {
+      registerManagedProxyBrowserCdpBypassMock.mockImplementation(() => {
+        throw new Error(
+          "proxy: Browser loopback CDP connections are blocked by proxy.loopbackMode",
+        );
+      });
+      const profile = makeLoopbackProfile(54324);
+      const { BrowserProfileUnavailableError } = await import("./errors.js");
+      await expect(launchOpenClawChrome(makeResolved(), profile)).rejects.toBeInstanceOf(
+        BrowserProfileUnavailableError,
+      );
+      await expect(launchOpenClawChrome(makeResolved(), profile)).rejects.toThrow(
+        /blocked by proxy\.loopbackMode/,
+      );
+      expect(spawnMock).not.toHaveBeenCalled();
+    });
+
+    it("does not register a bypass for a remote attachOnly CDP URL (loopback gate)", async () => {
+      stubExecutableAndPrefsExist();
+      // For this test we want launchOpenClawChrome to reject before any
+      // spawn — but the rejection should come from the cdpIsLoopback guard,
+      // which fires before the bypass registration. Verify that the guard
+      // path never reaches registerManagedProxyBrowserCdpBypass.
+      const remoteProfile = {
+        name: "openclaw-remote",
+        color: "#FF4500",
+        cdpPort: 19222,
+        cdpUrl: "http://browserless.example.com:19222",
+        cdpIsLoopback: false,
+      } as unknown as ResolvedBrowserProfile;
+      await expect(launchOpenClawChrome(makeResolved(), remoteProfile)).rejects.toThrow(
+        /is remote; cannot launch local Chrome/,
+      );
+      expect(registerManagedProxyBrowserCdpBypassMock).not.toHaveBeenCalled();
+      expect(spawnMock).not.toHaveBeenCalled();
     });
   });
 });
