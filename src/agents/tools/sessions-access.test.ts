@@ -1,5 +1,7 @@
+// Sessions access tests cover session-tool visibility policy, sandbox clamps,
+// and agent-to-agent allow rules.
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import {
   createAgentToAgentPolicy,
   createSessionVisibilityGuard,
@@ -9,15 +11,15 @@ import {
   resolveSessionToolsVisibility,
 } from "../../plugin-sdk/session-visibility.js";
 import { resolveSandboxedSessionToolContext } from "./sessions-access.js";
-import { __testing as sessionsResolutionTesting } from "./sessions-resolution.js";
+import { testing as sessionsResolutionTesting } from "./sessions-resolution.js";
 
 describe("resolveSessionToolsVisibility", () => {
   it("defaults to tree when unset or invalid", () => {
-    expect(resolveSessionToolsVisibility({} as unknown as AstroclawConfig)).toBe("tree");
+    expect(resolveSessionToolsVisibility({} as unknown as OpenClawConfig)).toBe("tree");
     expect(
       resolveSessionToolsVisibility({
         tools: { sessions: { visibility: "invalid" } },
-      } as unknown as AstroclawConfig),
+      } as unknown as OpenClawConfig),
     ).toBe("tree");
   });
 
@@ -25,7 +27,7 @@ describe("resolveSessionToolsVisibility", () => {
     expect(
       resolveSessionToolsVisibility({
         tools: { sessions: { visibility: "ALL" } },
-      } as unknown as AstroclawConfig),
+      } as unknown as OpenClawConfig),
     ).toBe("all");
   });
 });
@@ -35,7 +37,7 @@ describe("resolveEffectiveSessionToolsVisibility", () => {
     const cfg = {
       tools: { sessions: { visibility: "all" } },
       agents: { defaults: { sandbox: { sessionToolsVisibility: "spawned" } } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     expect(resolveEffectiveSessionToolsVisibility({ cfg, sandboxed: true })).toBe("tree");
   });
 
@@ -43,21 +45,21 @@ describe("resolveEffectiveSessionToolsVisibility", () => {
     const cfg = {
       tools: { sessions: { visibility: "all" } },
       agents: { defaults: { sandbox: { sessionToolsVisibility: "all" } } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     expect(resolveEffectiveSessionToolsVisibility({ cfg, sandboxed: true })).toBe("all");
   });
 });
 
 describe("sandbox session-tools context", () => {
   it("defaults sandbox visibility clamp to spawned", () => {
-    expect(resolveSandboxSessionToolsVisibility({} as unknown as AstroclawConfig)).toBe("spawned");
+    expect(resolveSandboxSessionToolsVisibility({} as unknown as OpenClawConfig)).toBe("spawned");
   });
 
   it("restricts non-subagent sandboxed sessions to spawned visibility", () => {
     const cfg = {
       tools: { sessions: { visibility: "all" } },
       agents: { defaults: { sandbox: { sessionToolsVisibility: "spawned" } } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const context = resolveSandboxedSessionToolContext({
       cfg,
       agentSessionKey: "agent:main:main",
@@ -73,7 +75,7 @@ describe("sandbox session-tools context", () => {
     const cfg = {
       tools: { sessions: { visibility: "all" } },
       agents: { defaults: { sandbox: { sessionToolsVisibility: "spawned" } } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     const context = resolveSandboxedSessionToolContext({
       cfg,
       agentSessionKey: "agent:main:subagent:abc",
@@ -87,7 +89,7 @@ describe("sandbox session-tools context", () => {
 
 describe("createAgentToAgentPolicy", () => {
   it("denies cross-agent access when disabled", () => {
-    const policy = createAgentToAgentPolicy({} as unknown as AstroclawConfig);
+    const policy = createAgentToAgentPolicy({} as unknown as OpenClawConfig);
     expect(policy.enabled).toBe(false);
     expect(policy.isAllowed("main", "main")).toBe(true);
     expect(policy.isAllowed("main", "ops")).toBe(false);
@@ -101,11 +103,124 @@ describe("createAgentToAgentPolicy", () => {
           allow: ["ops-*", "main"],
         },
       },
-    } as unknown as AstroclawConfig);
+    } as unknown as OpenClawConfig);
 
     expect(policy.isAllowed("ops-a", "ops-b")).toBe(true);
     expect(policy.isAllowed("main", "ops-a")).toBe(true);
     expect(policy.isAllowed("guest", "ops-a")).toBe(false);
+  });
+
+  it("matches wildcard patterns case-insensitively", () => {
+    const policy = createAgentToAgentPolicy({
+      tools: {
+        agentToAgent: {
+          enabled: true,
+          allow: ["Ops-*"],
+        },
+      },
+    } as unknown as OpenClawConfig);
+
+    expect(policy.matchesAllow("ops-worker")).toBe(true);
+    expect(policy.matchesAllow("OPS-WORKER")).toBe(true);
+    expect(policy.matchesAllow("guest")).toBe(false);
+  });
+
+  it("keeps exact allow patterns case-sensitive", () => {
+    const policy = createAgentToAgentPolicy({
+      tools: {
+        agentToAgent: {
+          enabled: true,
+          allow: ["Ops"],
+        },
+      },
+    } as unknown as OpenClawConfig);
+
+    expect(policy.matchesAllow("Ops")).toBe(true);
+    expect(policy.matchesAllow("ops")).toBe(false);
+  });
+
+  it("keeps blank configured allow patterns fail-closed", () => {
+    const policy = createAgentToAgentPolicy({
+      tools: {
+        agentToAgent: {
+          enabled: true,
+          allow: [" "],
+        },
+      },
+    } as unknown as OpenClawConfig);
+
+    expect(policy.matchesAllow("ops")).toBe(false);
+    expect(policy.isAllowed("main", "ops")).toBe(false);
+  });
+
+  it("handles interior wildcards", () => {
+    const policy = createAgentToAgentPolicy({
+      tools: {
+        agentToAgent: {
+          enabled: true,
+          allow: ["team-*-prod"],
+        },
+      },
+    } as unknown as OpenClawConfig);
+
+    expect(policy.matchesAllow("team-ops-prod")).toBe(true);
+    expect(policy.matchesAllow("team-dev-prod")).toBe(true);
+    expect(policy.matchesAllow("team-ops-staging")).toBe(false);
+    expect(policy.matchesAllow("team-prod")).toBe(false);
+  });
+
+  it("handles multiple wildcards without polynomial backtracking", () => {
+    // Allow patterns use segment matching rather than a greedy regex so
+    // adversarial agent ids cannot cause slow policy checks.
+    const policy = createAgentToAgentPolicy({
+      tools: {
+        agentToAgent: {
+          enabled: true,
+          allow: ["*a*b*c*d*e*"],
+        },
+      },
+    } as unknown as OpenClawConfig);
+
+    // Positive match
+    expect(policy.matchesAllow("xaxbxcxdxe")).toBe(true);
+
+    // Negative match with adversarial input that would cause O(n^k)
+    // backtracking with the old `^.*a.*b.*c.*d.*e.*$` regex.
+    const adversarial = "a".repeat(200) + "b".repeat(200) + "c".repeat(200) + "d".repeat(200);
+    const start = performance.now();
+    expect(policy.matchesAllow(adversarial)).toBe(false);
+    const elapsed = performance.now() - start;
+    // The old regex could take seconds; the segment matcher finishes sub-ms.
+    expect(elapsed).toBeLessThan(50);
+  });
+
+  it("rejects when suffix overlaps prefix", () => {
+    const policy = createAgentToAgentPolicy({
+      tools: {
+        agentToAgent: {
+          enabled: true,
+          allow: ["abc*xyz"],
+        },
+      },
+    } as unknown as OpenClawConfig);
+
+    expect(policy.matchesAllow("abcxyz")).toBe(true);
+    expect(policy.matchesAllow("abc-middle-xyz")).toBe(true);
+    expect(policy.matchesAllow("ab")).toBe(false);
+  });
+
+  it("treats regex syntax as literal text in wildcard patterns", () => {
+    const policy = createAgentToAgentPolicy({
+      tools: {
+        agentToAgent: {
+          enabled: true,
+          allow: ["ops.[prod]*"],
+        },
+      },
+    } as unknown as OpenClawConfig);
+
+    expect(policy.matchesAllow("OPS.[PROD]-worker")).toBe(true);
+    expect(policy.matchesAllow("opsXprod-worker")).toBe(false);
   });
 });
 
@@ -115,7 +230,7 @@ describe("createSessionVisibilityGuard", () => {
       action: "list",
       requesterSessionKey: "agent:main:main",
       visibility: "tree",
-      a2aPolicy: createAgentToAgentPolicy({} as unknown as AstroclawConfig),
+      a2aPolicy: createAgentToAgentPolicy({} as unknown as OpenClawConfig),
     });
 
     expect(
@@ -133,7 +248,7 @@ describe("createSessionVisibilityGuard", () => {
       visibility: "all",
       a2aPolicy: createAgentToAgentPolicy({
         tools: { agentToAgent: { enabled: false } },
-      } as unknown as AstroclawConfig),
+      } as unknown as OpenClawConfig),
     });
 
     expect(
@@ -151,7 +266,7 @@ describe("createSessionVisibilityGuard", () => {
       visibility: "agent",
       a2aPolicy: createAgentToAgentPolicy({
         tools: { agentToAgent: { enabled: true, allow: ["main", "codex"] } },
-      } as unknown as AstroclawConfig),
+      } as unknown as OpenClawConfig),
     });
 
     expect(
@@ -179,7 +294,7 @@ describe("createSessionVisibilityGuard", () => {
       action: "list",
       requesterSessionKey: "agent:main:main",
       visibility: "tree",
-      a2aPolicy: createAgentToAgentPolicy({} as unknown as AstroclawConfig),
+      a2aPolicy: createAgentToAgentPolicy({} as unknown as OpenClawConfig),
     });
 
     expect(guard.check("agent:codex:acp:child-1").allowed).toBe(false);
@@ -205,7 +320,7 @@ describe("createSessionVisibilityGuard", () => {
       action: "history",
       requesterSessionKey: "agent:main:main",
       visibility: "tree",
-      a2aPolicy: createAgentToAgentPolicy({} as unknown as AstroclawConfig),
+      a2aPolicy: createAgentToAgentPolicy({} as unknown as OpenClawConfig),
     });
 
     expect(guard.check("agent:codex:acp:child-1")).toEqual({ allowed: true });
@@ -218,7 +333,7 @@ describe("createSessionVisibilityGuard", () => {
       action: "history",
       requesterSessionKey: "agent:main:main",
       visibility: "self",
-      a2aPolicy: createAgentToAgentPolicy({} as unknown as AstroclawConfig),
+      a2aPolicy: createAgentToAgentPolicy({} as unknown as OpenClawConfig),
     });
 
     expect(guard.check("agent:codex:acp:child-1")).toEqual({
@@ -246,7 +361,7 @@ describe("createSessionVisibilityGuard", () => {
       action: "send",
       requesterSessionKey: "agent:main:main",
       visibility: "all",
-      a2aPolicy: createAgentToAgentPolicy({} as unknown as AstroclawConfig),
+      a2aPolicy: createAgentToAgentPolicy({} as unknown as OpenClawConfig),
     });
 
     expect(guard.check("agent:codex:acp:child-1")).toEqual({ allowed: true });
@@ -271,7 +386,7 @@ describe("createSessionVisibilityGuard", () => {
       action: "status",
       requesterSessionKey: "agent:main:main",
       visibility: "all",
-      a2aPolicy: createAgentToAgentPolicy({} as unknown as AstroclawConfig),
+      a2aPolicy: createAgentToAgentPolicy({} as unknown as OpenClawConfig),
     });
 
     expect(guard.check("agent:codex:acp:child-1")).toEqual({ allowed: true });
@@ -303,7 +418,7 @@ describe("createSessionVisibilityGuard", () => {
       action: "history",
       requesterSessionKey: "agent:main:main",
       visibility: "tree",
-      a2aPolicy: createAgentToAgentPolicy({} as unknown as AstroclawConfig),
+      a2aPolicy: createAgentToAgentPolicy({} as unknown as OpenClawConfig),
     });
 
     expect(guard.check("agent:main:subagent:worker-999")).toEqual({ allowed: true });
@@ -316,7 +431,7 @@ describe("createSessionVisibilityGuard", () => {
       action: "send",
       requesterSessionKey: "agent:main:main",
       visibility: "all",
-      a2aPolicy: createAgentToAgentPolicy({} as unknown as AstroclawConfig),
+      a2aPolicy: createAgentToAgentPolicy({} as unknown as OpenClawConfig),
     });
 
     expect(guard.check("agent:ops:main")).toEqual({
@@ -332,7 +447,7 @@ describe("createSessionVisibilityGuard", () => {
       action: "history",
       requesterSessionKey: "agent:main:main",
       visibility: "self",
-      a2aPolicy: createAgentToAgentPolicy({} as unknown as AstroclawConfig),
+      a2aPolicy: createAgentToAgentPolicy({} as unknown as OpenClawConfig),
     });
 
     expect(guard.check("agent:main:main")).toEqual({ allowed: true });
