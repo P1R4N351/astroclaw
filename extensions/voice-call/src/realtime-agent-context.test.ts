@@ -1,3 +1,4 @@
+// Voice Call tests cover realtime agent context plugin behavior.
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -14,7 +15,7 @@ afterEach(async () => {
 });
 
 async function createWorkspace(): Promise<string> {
-  const workspaceDir = await mkdtemp(path.join(tmpdir(), "astroclaw-voice-context-"));
+  const workspaceDir = await mkdtemp(path.join(tmpdir(), "openclaw-voice-context-"));
   tempDirs.push(workspaceDir);
   return workspaceDir;
 }
@@ -57,17 +58,13 @@ function createAgentRuntime(workspaceDir: string): CoreAgentDeps {
 }
 
 describe("buildRealtimeVoiceInstructions", () => {
-  it("injects bounded identity, system prompt, and workspace context", async () => {
+  it("injects bounded identity and workspace context", async () => {
     const workspaceDir = await createWorkspace();
     await writeFile(path.join(workspaceDir, "SOUL.md"), "Stay quick, direct, and warm.\n");
     await writeFile(path.join(workspaceDir, "IDENTITY.md"), "Name: Claw Voice\nVibe: snappy\n");
     await writeFile(path.join(workspaceDir, "SECRET.md"), "do not include\n");
 
-    const coreConfig = {
-      agents: {
-        list: [{ id: "voice", systemPromptOverride: "Keep spoken answers short." }],
-      },
-    } as CoreConfig;
+    const coreConfig = { agents: { list: [{ id: "voice" }] } } as CoreConfig;
 
     const instructions = await buildRealtimeVoiceInstructions({
       baseInstructions: "Base voice instructions.",
@@ -77,7 +74,6 @@ describe("buildRealtimeVoiceInstructions", () => {
           enabled: true,
           maxChars: 2000,
           includeIdentity: true,
-          includeSystemPrompt: true,
           includeWorkspaceFiles: true,
           files: ["SOUL.md", "IDENTITY.md", "../SECRET.md"],
         },
@@ -86,13 +82,12 @@ describe("buildRealtimeVoiceInstructions", () => {
       agentRuntime: createAgentRuntime(workspaceDir),
     });
 
-    expect(instructions).toContain("Astroclaw agent voice context:");
+    expect(instructions).toContain("OpenClaw agent voice context:");
     expect(instructions).toContain("Consult behavior:");
-    expect(instructions).toContain("Call astroclaw_agent_consult before answering requests");
+    expect(instructions).toContain("Call openclaw_agent_consult before answering requests");
     expect(instructions).toContain("- Agent id: voice");
     expect(instructions).toContain("- Name: Claw Voice");
     expect(instructions).toContain("- Vibe: snappy");
-    expect(instructions).toContain("Keep spoken answers short.");
     expect(instructions).toContain("### SOUL.md");
     expect(instructions).toContain("Stay quick, direct, and warm.");
     expect(instructions).toContain("### IDENTITY.md");
