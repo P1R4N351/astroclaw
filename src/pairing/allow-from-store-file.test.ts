@@ -1,3 +1,4 @@
+// Tests allow-from store file parsing and persistence.
 import fs from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -86,7 +87,7 @@ describe("allow-from store file reads", () => {
       await expect(
         readAllowFromFileWithExists({
           cacheNamespace: "test-async-read-error",
-          filePath: "/tmp/astroclaw-allowFrom.json",
+          filePath: "/tmp/openclaw-allowFrom.json",
           normalizeStore: () => [],
         }),
       ).rejects.toBe(error);
@@ -110,7 +111,7 @@ describe("allow-from store file reads", () => {
       expect(() =>
         readAllowFromFileSyncWithExists({
           cacheNamespace: "test-sync-read-error",
-          filePath: "/tmp/astroclaw-allowFrom.json",
+          filePath: "/tmp/openclaw-allowFrom.json",
           normalizeStore: () => [],
         }),
       ).toThrow(error);
@@ -130,7 +131,7 @@ describe("allow-from store file reads", () => {
       expect(() =>
         readAllowFromFileSyncWithExists({
           cacheNamespace: "test",
-          filePath: "/tmp/astroclaw-allowFrom.json",
+          filePath: "/tmp/openclaw-allowFrom.json",
           normalizeStore: () => [],
         }),
       ).toThrow(error);
