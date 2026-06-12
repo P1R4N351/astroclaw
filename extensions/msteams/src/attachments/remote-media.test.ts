@@ -1,3 +1,4 @@
+// Msteams tests cover remote media plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the runtime so we can assert whether the strict-dispatcher path
@@ -45,7 +46,7 @@ const saveResponseMediaMock = vi.hoisted(() =>
   }),
 );
 
-vi.mock("astroclaw/plugin-sdk/media-runtime", async () => ({
+vi.mock("openclaw/plugin-sdk/media-runtime", async () => ({
   saveResponseMedia: saveResponseMediaMock,
 }));
 
