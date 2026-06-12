@@ -1,10 +1,11 @@
+// Argv invocation tests cover CLI argv normalization before command dispatch.
 import { describe, expect, it } from "vitest";
 import { resolveCliArgvInvocation } from "./argv-invocation.js";
 
 describe("argv-invocation", () => {
   it("resolves root help and empty command path", () => {
-    expect(resolveCliArgvInvocation(["node", "astroclaw", "--help"])).toEqual({
-      argv: ["node", "astroclaw", "--help"],
+    expect(resolveCliArgvInvocation(["node", "openclaw", "--help"])).toEqual({
+      argv: ["node", "openclaw", "--help"],
       commandPath: [],
       primary: null,
       hasHelpOrVersion: true,
@@ -14,9 +15,9 @@ describe("argv-invocation", () => {
 
   it("resolves command path and primary with root options", () => {
     expect(
-      resolveCliArgvInvocation(["node", "astroclaw", "--profile", "work", "gateway", "status"]),
+      resolveCliArgvInvocation(["node", "openclaw", "--profile", "work", "gateway", "status"]),
     ).toEqual({
-      argv: ["node", "astroclaw", "--profile", "work", "gateway", "status"],
+      argv: ["node", "openclaw", "--profile", "work", "gateway", "status"],
       commandPath: ["gateway", "status"],
       primary: "gateway",
       hasHelpOrVersion: false,
