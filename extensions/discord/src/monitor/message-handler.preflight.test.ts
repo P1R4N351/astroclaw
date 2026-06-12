@@ -1,3 +1,4 @@
+// Discord tests cover message handler.preflight plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChannelType, MessageType } from "../internal/discord.js";
 import { createPartialDiscordChannelWithThrowingGetters } from "../test-support/partial-channel.js";
@@ -21,9 +22,9 @@ vi.mock("./dm-command-auth.js", async (importOriginal) => ({
 vi.mock("./dm-command-decision.js", () => ({
   handleDiscordDmCommandDecision: handleDiscordDmCommandDecisionMock,
 }));
-vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-runtime")>(
-    "astroclaw/plugin-sdk/media-runtime",
+vi.mock("openclaw/plugin-sdk/media-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-runtime")>(
+    "openclaw/plugin-sdk/media-runtime",
   );
   return {
     ...actual,
@@ -31,9 +32,9 @@ vi.mock("astroclaw/plugin-sdk/media-runtime", async () => {
   };
 });
 import {
-  __testing as sessionBindingTesting,
+  testing as sessionBindingTesting,
   registerSessionBindingAdapter,
-} from "astroclaw/plugin-sdk/conversation-runtime";
+} from "openclaw/plugin-sdk/conversation-runtime";
 import {
   createDiscordMessage,
   createDiscordPreflightArgs,
@@ -47,7 +48,7 @@ import {
 let preflightDiscordMessage: typeof import("./message-handler.preflight.js").preflightDiscordMessage;
 let resolvePreflightMentionRequirement: typeof import("./message-handler.preflight.js").resolvePreflightMentionRequirement;
 let shouldIgnoreBoundThreadWebhookMessage: typeof import("./message-handler.preflight.js").shouldIgnoreBoundThreadWebhookMessage;
-let threadBindingTesting: typeof import("./thread-bindings.js").__testing;
+let threadBindingTesting: typeof import("./thread-bindings.js").testing;
 let createThreadBindingManager: typeof import("./thread-bindings.js").createThreadBindingManager;
 
 beforeAll(async () => {
@@ -56,7 +57,7 @@ beforeAll(async () => {
     resolvePreflightMentionRequirement,
     shouldIgnoreBoundThreadWebhookMessage,
   } = await import("./message-handler.preflight.js"));
-  ({ __testing: threadBindingTesting, createThreadBindingManager } =
+  ({ testing: threadBindingTesting, createThreadBindingManager } =
     await import("./thread-bindings.js"));
 });
 
@@ -66,7 +67,7 @@ beforeEach(() => {
   saveRemoteMediaMock.mockImplementation(
     async (options: { fallbackContentType?: string; filePathHint?: string }) => ({
       id: "test-media",
-      path: `/tmp/astroclaw-discord-test/${options.filePathHint ?? "media"}`,
+      path: `/tmp/openclaw-discord-test/${options.filePathHint ?? "media"}`,
       size: 5,
       contentType: options.fallbackContentType,
     }),
@@ -74,7 +75,7 @@ beforeEach(() => {
 });
 
 function createThreadBinding(
-  overrides?: Partial<import("astroclaw/plugin-sdk/conversation-runtime").SessionBindingRecord>,
+  overrides?: Partial<import("openclaw/plugin-sdk/conversation-runtime").SessionBindingRecord>,
 ) {
   return {
     bindingId: "default:thread-1",
@@ -95,11 +96,11 @@ function createThreadBinding(
       webhookToken: "tok-1",
     },
     ...overrides,
-  } satisfies import("astroclaw/plugin-sdk/conversation-runtime").SessionBindingRecord;
+  } satisfies import("openclaw/plugin-sdk/conversation-runtime").SessionBindingRecord;
 }
 
 function createPreflightArgs(params: {
-  cfg: import("astroclaw/plugin-sdk/config-contracts").AstroclawConfig;
+  cfg: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
   discordConfig: DiscordConfig;
   data: DiscordMessageEvent;
   client: DiscordClient;
@@ -176,7 +177,7 @@ async function runThreadBoundPreflight(params: {
   threadId: string;
   parentId: string;
   message: import("../internal/discord.js").Message;
-  threadBinding: import("astroclaw/plugin-sdk/conversation-runtime").SessionBindingRecord;
+  threadBinding: import("openclaw/plugin-sdk/conversation-runtime").SessionBindingRecord;
   discordConfig: DiscordConfig;
   registerBindingAdapter?: boolean;
 }) {
@@ -218,7 +219,7 @@ async function runGuildPreflight(params: {
   guildId: string;
   message: import("../internal/discord.js").Message;
   discordConfig: DiscordConfig;
-  cfg?: import("astroclaw/plugin-sdk/config-contracts").AstroclawConfig;
+  cfg?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
   guildEntries?: Parameters<typeof preflightDiscordMessage>[0]["guildEntries"];
   includeGuildObject?: boolean;
 }) {
@@ -259,7 +260,7 @@ async function runDmPreflight(params: {
 }
 
 async function runUnresolvedDmPreflight(params: {
-  cfg?: import("astroclaw/plugin-sdk/config-contracts").AstroclawConfig;
+  cfg?: import("openclaw/plugin-sdk/config-contracts").OpenClawConfig;
   channelId: string;
   message: import("../internal/discord.js").Message;
   discordConfig: DiscordConfig;
@@ -375,7 +376,7 @@ describe("preflightDiscordMessage", () => {
       author: {
         id: "relay-bot-1",
         bot: true,
-        username: "Astroclaw",
+        username: "OpenClaw",
       },
     });
 
@@ -407,8 +408,8 @@ describe("preflightDiscordMessage", () => {
               },
               metadata: {
                 pluginBindingOwner: "plugin",
-                pluginId: "astroclaw-codex-app-server",
-                pluginRoot: "/Users/huntharo/github/astroclaw-app-server",
+                pluginId: "openclaw-codex-app-server",
+                pluginRoot: "/Users/huntharo/github/openclaw-app-server",
               },
             })
           : null,
@@ -446,8 +447,8 @@ describe("preflightDiscordMessage", () => {
       boundAt: 1,
       metadata: {
         pluginBindingOwner: "plugin",
-        pluginId: "astroclaw-codex-app-server",
-        pluginRoot: "/Users/huntharo/github/astroclaw-app-server",
+        pluginId: "openclaw-codex-app-server",
+        pluginRoot: "/Users/huntharo/github/openclaw-app-server",
       },
     });
   });
@@ -528,7 +529,7 @@ describe("preflightDiscordMessage", () => {
   });
 
   it("preflights direct-message voice notes without mention gating", async () => {
-    transcribeFirstAudioMock.mockResolvedValue("hello astroclaw from dm audio");
+    transcribeFirstAudioMock.mockResolvedValue("hello openclaw from dm audio");
 
     const result = await runDmPreflight({
       channelId: "dm-channel-audio-1",
@@ -565,7 +566,7 @@ describe("preflightDiscordMessage", () => {
     expect(dmAudioCall?.ctx?.MediaTypes).toEqual(["audio/ogg"]);
     const preflight = expectPreflightResult(result);
     expect(preflight.isDirectMessage).toBe(true);
-    expect(preflight.preflightAudioTranscript).toBe("hello astroclaw from dm audio");
+    expect(preflight.preflightAudioTranscript).toBe("hello openclaw from dm audio");
   });
 
   it("keeps no-guild messages direct when channel lookup is unavailable", async () => {
@@ -662,8 +663,8 @@ describe("preflightDiscordMessage", () => {
     const message = createDiscordMessage({
       id: "m-loop-1",
       channelId,
-      content: "chatter <@astroclaw-bot>",
-      mentionedUsers: [{ id: "astroclaw-bot" }],
+      content: "chatter <@openclaw-bot>",
+      mentionedUsers: [{ id: "openclaw-bot" }],
       author: { id: senderBotId, bot: true, username: "Relay" },
       timestamp: messageTimestamp,
     });
@@ -692,7 +693,7 @@ describe("preflightDiscordMessage", () => {
       scopeId: "default",
       conversationId: channelId,
       senderId: senderBotId,
-      receiverId: "astroclaw-bot",
+      receiverId: "openclaw-bot",
       config: {
         enabled: true,
         maxEventsPerWindow: 3,
@@ -711,8 +712,8 @@ describe("preflightDiscordMessage", () => {
     const message = createDiscordMessage({
       id: "m-loop-default-1",
       channelId,
-      content: "relay <@astroclaw-bot>",
-      mentionedUsers: [{ id: "astroclaw-bot" }],
+      content: "relay <@openclaw-bot>",
+      mentionedUsers: [{ id: "openclaw-bot" }],
       author: { id: "relay-bot-defaults", bot: true, username: "Relay" },
     });
     const result = await runGuildPreflight({
@@ -935,14 +936,14 @@ describe("preflightDiscordMessage", () => {
       message: createDiscordMessage({
         id: "proxy-456",
         channelId: "c1",
-        content: "<@astroclaw-bot> hello",
+        content: "<@openclaw-bot> hello",
         webhookId: "pluralkit-webhook-1",
         author: {
           id: "webhook-author",
           bot: true,
           username: "PluralKit",
         },
-        mentionedUsers: [{ id: "astroclaw-bot" }],
+        mentionedUsers: [{ id: "openclaw-bot" }],
       }),
       discordConfig: {
         pluralkit: { enabled: true },
@@ -959,6 +960,65 @@ describe("preflightDiscordMessage", () => {
     const preflight = expectPreflightResult(result);
     expect(preflight.sender.isPluralKit).toBe(true);
     expect(preflight.canonicalMessageId).toBe("orig-123");
+  });
+
+  it("uses the resolved PluralKit member id when creating DM pairing requests", async () => {
+    fetchPluralKitMessageInfoMock.mockResolvedValue({
+      id: "proxy-dm-1",
+      original: "orig-dm-1",
+      member: { id: "pk-member-1", name: "Echo" },
+      system: { id: "system-1", name: "System" },
+    });
+    resolveDiscordDmCommandAccessMock.mockResolvedValue({
+      senderAccess: {
+        allowed: false,
+        decision: "pairing",
+        reasonCode: "dm_policy_pairing_required",
+      },
+      commandAccess: {
+        authorized: false,
+      },
+    });
+
+    const result = await runDmPreflight({
+      channelId: "dm-channel-pk-1",
+      message: createDiscordMessage({
+        id: "proxy-dm-1",
+        channelId: "dm-channel-pk-1",
+        content: "hello",
+        webhookId: "pluralkit-webhook-1",
+        author: {
+          id: "webhook-author",
+          bot: true,
+          username: "PluralKit",
+        },
+      }),
+      discordConfig: {
+        allowBots: true,
+        dmPolicy: "pairing",
+        pluralkit: { enabled: true },
+      } as DiscordConfig,
+    });
+
+    expect(result).toBeNull();
+    expect(resolveDiscordDmCommandAccessMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sender: {
+          id: "pk-member-1",
+          name: "Echo",
+          tag: "Echo",
+        },
+      }),
+    );
+    expect(handleDiscordDmCommandDecisionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sender: {
+          id: "pk:pk-member-1",
+          tag: "Echo",
+          name: "Echo",
+        },
+      }),
+    );
   });
 
   it("skips PluralKit lookup for bound-thread webhook echoes", async () => {
@@ -1020,7 +1080,7 @@ describe("preflightDiscordMessage", () => {
       createPreflightArgs({
         cfg: {
           ...DEFAULT_PREFLIGHT_CFG,
-        } as import("astroclaw/plugin-sdk/config-contracts").AstroclawConfig,
+        } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
         discordConfig: {
           allowBots: true,
         } as DiscordConfig,
@@ -1064,8 +1124,8 @@ describe("preflightDiscordMessage", () => {
     const message = createDiscordMessage({
       id: "m-bot-mentions-on",
       channelId,
-      content: "hi <@astroclaw-bot>",
-      mentionedUsers: [{ id: "astroclaw-bot" }],
+      content: "hi <@openclaw-bot>",
+      mentionedUsers: [{ id: "openclaw-bot" }],
       author: {
         id: "relay-bot-1",
         bot: true,
@@ -1098,7 +1158,7 @@ describe("preflightDiscordMessage", () => {
       get: vi.fn(async () => ({
         id: message.id,
         content: message.content,
-        mentions: [{ id: botId, username: "Astroclaw", bot: true }],
+        mentions: [{ id: botId, username: "OpenClaw", bot: true }],
         mention_roles: [],
         mention_everyone: false,
       })),
@@ -1149,8 +1209,8 @@ describe("preflightDiscordMessage", () => {
     const message = createDiscordMessage({
       id: "m-bot-command-with-mention",
       channelId,
-      content: "<@astroclaw-bot> /new incident room",
-      mentionedUsers: [{ id: "astroclaw-bot" }],
+      content: "<@openclaw-bot> /new incident room",
+      mentionedUsers: [{ id: "openclaw-bot" }],
       author: {
         id: "relay-bot-1",
         bot: true,
@@ -1235,7 +1295,7 @@ describe("preflightDiscordMessage", () => {
             unmentionedInbound: "room_event",
           },
         },
-      } as import("astroclaw/plugin-sdk/config-contracts").AstroclawConfig,
+      } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
       guildEntries: {
         [guildId]: {
           channels: {
@@ -1316,10 +1376,10 @@ describe("preflightDiscordMessage", () => {
           ...DEFAULT_PREFLIGHT_CFG,
           messages: {
             groupChat: {
-              mentionPatterns: ["astroclaw"],
+              mentionPatterns: ["openclaw"],
             },
           },
-        } as import("astroclaw/plugin-sdk/config-contracts").AstroclawConfig,
+        } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
         discordConfig: {} as DiscordConfig,
         data: createGuildEvent({
           channelId,
@@ -1365,7 +1425,7 @@ describe("preflightDiscordMessage", () => {
       guildId,
       message,
       discordConfig: {
-        botId: "astroclaw-bot",
+        botId: "openclaw-bot",
       } as DiscordConfig,
       guildEntries: {
         [guildId]: {
@@ -1556,7 +1616,7 @@ describe("preflightDiscordMessage", () => {
     const guildHistories = new Map();
     saveRemoteMediaMock.mockResolvedValueOnce({
       id: "test-media",
-      path: "C:\\astroclaw\\media\\history.png",
+      path: "C:\\openclaw\\media\\history.png",
       size: 5,
       contentType: "image/png",
     });
@@ -1631,7 +1691,7 @@ describe("preflightDiscordMessage", () => {
     });
     expect(entries?.[0]?.media?.[0]?.path).toContain("history");
     expect(entries?.[0]?.media?.[0]?.path).not.toMatch(/^https?:/);
-    expect(entries?.[0]?.media?.[0]?.path).toBe("C:\\astroclaw\\media\\history.png");
+    expect(entries?.[0]?.media?.[0]?.path).toBe("C:\\openclaw\\media\\history.png");
     expect(saveRemoteMediaMock).toHaveBeenCalledTimes(1);
   });
 
@@ -1702,7 +1762,7 @@ describe("preflightDiscordMessage", () => {
     const guildHistories = new Map();
     saveRemoteMediaMock.mockResolvedValueOnce({
       id: "test-sticker",
-      path: "/tmp/astroclaw-discord-test/sticker.png",
+      path: "/tmp/openclaw-discord-test/sticker.png",
       size: 5,
       contentType: "image/png",
     });
@@ -1762,7 +1822,7 @@ describe("preflightDiscordMessage", () => {
         messageId: "m-history-sticker",
         media: [
           {
-            path: "/tmp/astroclaw-discord-test/sticker.png",
+            path: "/tmp/openclaw-discord-test/sticker.png",
             contentType: "image/png",
             kind: "image",
             messageId: "m-history-sticker",
@@ -1939,7 +1999,7 @@ describe("preflightDiscordMessage", () => {
   });
 
   it("uses attachment content_type for guild audio preflight mention detection", async () => {
-    transcribeFirstAudioMock.mockResolvedValue("hey astroclaw");
+    transcribeFirstAudioMock.mockResolvedValue("hey openclaw");
 
     const channelId = "channel-audio-1";
     const client = createGuildTextClient(channelId);
@@ -1969,10 +2029,10 @@ describe("preflightDiscordMessage", () => {
           ...DEFAULT_PREFLIGHT_CFG,
           messages: {
             groupChat: {
-              mentionPatterns: ["astroclaw"],
+              mentionPatterns: ["openclaw"],
             },
           },
-        } as import("astroclaw/plugin-sdk/config-contracts").AstroclawConfig,
+        } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
         discordConfig: {} as DiscordConfig,
         data: createGuildEvent({
           channelId,
@@ -2004,7 +2064,7 @@ describe("preflightDiscordMessage", () => {
     expect(guildAudioCall?.ctx?.MediaTypes).toEqual(["audio/ogg"]);
     const preflight = expectPreflightResult(result);
     expect(preflight.wasMentioned).toBe(true);
-    expect(preflight.preflightAudioTranscript).toBe("hey astroclaw");
+    expect(preflight.preflightAudioTranscript).toBe("hey openclaw");
   });
 
   it("does not transcribe guild audio from unauthorized members", async () => {
@@ -2037,10 +2097,10 @@ describe("preflightDiscordMessage", () => {
           ...DEFAULT_PREFLIGHT_CFG,
           messages: {
             groupChat: {
-              mentionPatterns: ["astroclaw"],
+              mentionPatterns: ["openclaw"],
             },
           },
-        } as import("astroclaw/plugin-sdk/config-contracts").AstroclawConfig,
+        } as import("openclaw/plugin-sdk/config-contracts").OpenClawConfig,
         discordConfig: {} as DiscordConfig,
         data: createGuildEvent({
           channelId,
@@ -2068,7 +2128,7 @@ describe("preflightDiscordMessage", () => {
   });
 
   it("drops guild message without mention when channel has configuredBinding and requireMention: true", async () => {
-    const conversationRuntime = await import("astroclaw/plugin-sdk/conversation-runtime");
+    const conversationRuntime = await import("openclaw/plugin-sdk/conversation-runtime");
     const channelId = "ch-binding-1";
     const bindingRoute = {
       bindingResolution: {
@@ -2111,7 +2171,7 @@ describe("preflightDiscordMessage", () => {
   });
 
   it("allows guild message with mention when channel has configuredBinding and requireMention: true", async () => {
-    const conversationRuntime = await import("astroclaw/plugin-sdk/conversation-runtime");
+    const conversationRuntime = await import("openclaw/plugin-sdk/conversation-runtime");
     const channelId = "ch-binding-2";
     const bindingRoute = {
       bindingResolution: {
@@ -2138,9 +2198,9 @@ describe("preflightDiscordMessage", () => {
         message: createDiscordMessage({
           id: "m-binding-2",
           channelId,
-          content: "hello <@astroclaw-bot>",
+          content: "hello <@openclaw-bot>",
           author: { id: "user-1", bot: false, username: "alice" },
-          mentionedUsers: [{ id: "astroclaw-bot" }],
+          mentionedUsers: [{ id: "openclaw-bot" }],
         }),
         discordConfig: {} as DiscordConfig,
         guildEntries: {
@@ -2251,5 +2311,41 @@ describe("shouldIgnoreBoundThreadWebhookMessage", () => {
         webhookId: "wh-1",
       }),
     ).toBe(true);
+  });
+
+  it("does not suppress unbound thread webhook echoes when echo expiry overflows", async () => {
+    const manager = createThreadBindingManager({
+      cfg: DEFAULT_PREFLIGHT_CFG,
+      accountId: "default",
+      persist: false,
+      enableSweeper: false,
+    });
+    const binding = await manager.bindTarget({
+      threadId: "thread-overflow",
+      channelId: "parent-1",
+      targetKind: "subagent",
+      targetSessionKey: "agent:main:subagent:child-1",
+      agentId: "main",
+      webhookId: "wh-overflow",
+      webhookToken: "tok-1",
+    });
+    expect(binding).not.toBeNull();
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(8_640_000_000_000_000);
+    try {
+      manager.unbindThread({
+        threadId: "thread-overflow",
+        sendFarewell: false,
+      });
+    } finally {
+      nowSpy.mockRestore();
+    }
+
+    expect(
+      shouldIgnoreBoundThreadWebhookMessage({
+        accountId: "default",
+        threadId: "thread-overflow",
+        webhookId: "wh-overflow",
+      }),
+    ).toBe(false);
   });
 });
