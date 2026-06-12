@@ -1,3 +1,4 @@
+/** Tests core secrets runtime snapshot preparation and activation behavior. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
 import {
@@ -44,12 +45,12 @@ type SecretsRuntimeEnvSnapshot = ReturnType<typeof captureEnv>;
 
 function beginSecretsRuntimeIsolationForTest(): SecretsRuntimeEnvSnapshot {
   const envSnapshot = captureEnv([
-    "ASTROCLAW_BUNDLED_PLUGINS_DIR",
-    "ASTROCLAW_DISABLE_BUNDLED_PLUGINS",
-    "ASTROCLAW_VERSION",
+    "OPENCLAW_BUNDLED_PLUGINS_DIR",
+    "OPENCLAW_DISABLE_BUNDLED_PLUGINS",
+    "OPENCLAW_VERSION",
   ]);
-  delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
-  delete process.env.ASTROCLAW_VERSION;
+  delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+  delete process.env.OPENCLAW_VERSION;
   return envSnapshot;
 }
 
@@ -79,8 +80,8 @@ describe("secrets runtime snapshot core lanes", () => {
   async function prepareOpenAiRuntimeSnapshot(params?: { includeAuthStoreRefs?: boolean }) {
     return withEnvAsync(
       {
-        ASTROCLAW_BUNDLED_PLUGINS_DIR: undefined,
-        ASTROCLAW_VERSION: undefined,
+        OPENCLAW_BUNDLED_PLUGINS_DIR: undefined,
+        OPENCLAW_VERSION: undefined,
       },
       async () =>
         prepareSecretsRuntimeSnapshot({
@@ -96,7 +97,7 @@ describe("secrets runtime snapshot core lanes", () => {
             },
           }),
           env: { OPENAI_API_KEY: "sk-runtime" },
-          agentDirs: ["/tmp/astroclaw-agent-main"],
+          agentDirs: ["/tmp/openclaw-agent-main"],
           includeAuthStoreRefs: params?.includeAuthStoreRefs,
           loadablePluginOrigins: new Map(),
           loadAuthStore: () =>
@@ -207,7 +208,7 @@ describe("secrets runtime snapshot core lanes", () => {
         OPENAI_API_KEY: "sk-env-openai",
         GITHUB_TOKEN: "ghp-env-token",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadablePluginOrigins: new Map(),
       loadAuthStore: () =>
         loadAuthStoreWithProfiles({
@@ -227,9 +228,9 @@ describe("secrets runtime snapshot core lanes", () => {
     });
 
     const warningPaths = snapshot.warnings.map((warning) => warning.path);
-    expect(warningPaths).toContain("/tmp/astroclaw-agent-main.auth-profiles.openai:default.key");
+    expect(warningPaths).toContain("/tmp/openclaw-agent-main.auth-profiles.openai:default.key");
     expect(warningPaths).toContain(
-      "/tmp/astroclaw-agent-main.auth-profiles.github-copilot:default.token",
+      "/tmp/openclaw-agent-main.auth-profiles.github-copilot:default.token",
     );
     const openAiProfile = snapshot.authStores[0]?.store.profiles["openai:default"] as
       | Record<string, unknown>
@@ -249,7 +250,7 @@ describe("secrets runtime snapshot core lanes", () => {
       env: {
         OPENAI_API_KEY: "sk-env-openai",
       },
-      agentDirs: ["/tmp/astroclaw-agent-main"],
+      agentDirs: ["/tmp/openclaw-agent-main"],
       loadablePluginOrigins: new Map(),
       loadAuthStore: () =>
         loadAuthStoreWithProfiles({
@@ -284,7 +285,7 @@ describe("secrets runtime snapshot core lanes", () => {
     const prepared = await prepareOpenAiRuntimeSnapshot();
     activateSecretsRuntimeSnapshot(prepared);
 
-    const runtimeProfile = ensureAuthProfileStore("/tmp/astroclaw-agent-main").profiles[
+    const runtimeProfile = ensureAuthProfileStore("/tmp/openclaw-agent-main").profiles[
       "openai:default"
     ] as Record<string, unknown> | undefined;
     expect(runtimeProfile?.type).toBe("api_key");
