@@ -1,3 +1,4 @@
+// Status update restart tests cover restart sentinel messages and update restart action lines.
 import { describe, expect, it } from "vitest";
 import type { RestartSentinelPayload } from "../infra/restart-sentinel.js";
 import {
@@ -24,7 +25,7 @@ describe("status update restart formatting", () => {
     );
 
     expect(value).toBe(
-      "warn(failed · managed-service-handoff-failed · run astroclaw gateway status --deep · 60000ms)",
+      "warn(failed · managed-service-handoff-failed · run openclaw gateway status --deep · 60000ms)",
     );
   });
 
@@ -34,13 +35,13 @@ describe("status update restart formatting", () => {
         ...basePayload,
         stats: { ...basePayload.stats, reason: "managed-service-handoff-started" },
       }),
-    ).toBe("handoff running · gateway restart pending · run astroclaw update status");
+    ).toBe("handoff running · gateway restart pending · run openclaw update status");
     expect(
       formatUpdateRestartStatusValue({
         ...basePayload,
         stats: { ...basePayload.stats, reason: "restart-health-pending" },
       }),
-    ).toBe("restart pending health verification · run astroclaw gateway status --deep");
+    ).toBe("restart pending health verification · run openclaw gateway status --deep");
   });
 
   it("formats verified update restarts with the running gateway version", () => {
@@ -63,14 +64,14 @@ describe("status update restart formatting", () => {
         status: "error",
         stats: { ...basePayload.stats, reason: "managed-service-handoff-failed" },
       }),
-    ).toContain("Update restart failed; run astroclaw gateway status --deep.");
+    ).toContain("Update restart failed; run openclaw gateway status --deep.");
     expect(
       formatUpdateRestartActionLines({
         ...basePayload,
         stats: { ...basePayload.stats, reason: "restart-health-pending" },
       }),
     ).toContain(
-      "Update restart is still pending; run astroclaw update status --json for handoff state.",
+      "Update restart is still pending; run openclaw update status --json for handoff state.",
     );
     expect(
       formatUpdateRestartActionLines({
