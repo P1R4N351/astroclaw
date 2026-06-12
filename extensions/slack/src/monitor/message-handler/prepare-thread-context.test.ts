@@ -1,6 +1,7 @@
+// Slack tests cover prepare thread context plugin behavior.
 import type { App } from "@slack/bolt";
-import { resolveEnvelopeFormatOptions } from "astroclaw/plugin-sdk/channel-inbound";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolveEnvelopeFormatOptions } from "openclaw/plugin-sdk/channel-inbound";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { SlackMessageEvent } from "../../types.js";
 import { resolveSlackThreadContextData } from "./prepare-thread-context.js";
@@ -11,7 +12,7 @@ import {
 } from "./prepare.test-helpers.js";
 
 describe("resolveSlackThreadContextData", () => {
-  const storeFixture = createSlackSessionStoreFixture("astroclaw-slack-thread-context-");
+  const storeFixture = createSlackSessionStoreFixture("openclaw-slack-thread-context-");
 
   beforeAll(() => {
     storeFixture.setup();
@@ -25,7 +26,7 @@ describe("resolveSlackThreadContextData", () => {
     return createInboundSlackTestContext({
       cfg: {
         channels: { slack: { enabled: true, replyToMode: "all", groupPolicy: "open" } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       appClient: { conversations: { replies: params.replies } } as App["client"],
       defaultRequireMention: false,
       replyToMode: "all",
@@ -75,7 +76,7 @@ describe("resolveSlackThreadContextData", () => {
       allowFromLower: params.allowFromLower,
       allowNameMatching: params.allowNameMatching,
       contextVisibilityMode: "allowlist",
-      envelopeOptions: resolveEnvelopeFormatOptions({} as AstroclawConfig),
+      envelopeOptions: resolveEnvelopeFormatOptions({} as OpenClawConfig),
       effectiveDirectMedia: null,
     });
 
@@ -213,7 +214,7 @@ describe("resolveSlackThreadContextData", () => {
       allowFromLower: ["u1"],
       allowNameMatching: false,
       contextVisibilityMode: "allowlist",
-      envelopeOptions: resolveEnvelopeFormatOptions({} as AstroclawConfig),
+      envelopeOptions: resolveEnvelopeFormatOptions({} as OpenClawConfig),
       effectiveDirectMedia: null,
     });
 
@@ -259,7 +260,7 @@ describe("resolveSlackThreadContextData", () => {
       allowFromLower: ["u1"],
       allowNameMatching: false,
       contextVisibilityMode: "allowlist",
-      envelopeOptions: resolveEnvelopeFormatOptions({} as AstroclawConfig),
+      envelopeOptions: resolveEnvelopeFormatOptions({} as OpenClawConfig),
       effectiveDirectMedia: null,
     });
 
@@ -291,6 +292,29 @@ describe("resolveSlackThreadContextData", () => {
     expect(result.threadHistoryBody).toContain("Bot (B2) (assistant)");
     expect(result.threadHistoryBody).toContain("allowed follow-up");
     expect(result.threadHistoryBody).not.toContain("Unknown (user)");
+  });
+
+  it("does not coerce malformed thread history timestamps into event times", async () => {
+    const { result } = await resolveAllowlistedThreadContext({
+      repliesMessages: [
+        { text: "starter from Alice", user: "U1", ts: "100.000" },
+        { text: "malformed timestamp follow-up", user: "U1", ts: "0x65" },
+        { text: "current message", user: "U1", ts: "101.000" },
+      ],
+      threadStarter: {
+        text: "starter from Alice",
+        userId: "U1",
+        ts: "100.000",
+      },
+      allowFromLower: ["u1"],
+      allowNameMatching: false,
+    });
+
+    const malformedHistoryEntry = result.threadHistoryBody
+      ?.split("\n\n")
+      .find((entry) => entry.includes("malformed timestamp follow-up"));
+    expect(malformedHistoryEntry).toContain("[slack message id: 0x65 channel: C123]");
+    expect(malformedHistoryEntry).not.toContain("1970-01-01");
   });
 
   it("includes self-authored starter (identified by bot user id) for a new thread session (default)", async () => {
@@ -360,7 +384,7 @@ describe("resolveSlackThreadContextData", () => {
       allowFromLower: [],
       allowNameMatching: false,
       contextVisibilityMode: "all",
-      envelopeOptions: resolveEnvelopeFormatOptions({} as AstroclawConfig),
+      envelopeOptions: resolveEnvelopeFormatOptions({} as OpenClawConfig),
       effectiveDirectMedia: null,
     });
 
