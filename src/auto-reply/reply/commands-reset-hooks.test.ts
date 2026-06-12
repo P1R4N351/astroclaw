@@ -1,6 +1,7 @@
+// Tests reset hook emission and cleanup around reset commands.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as bootstrapCache from "../../agents/bootstrap-cache.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { MsgContext } from "../templating.js";
 import { maybeHandleResetCommand } from "./commands-reset.js";
 import type { HandleCommandsParams } from "./commands-types.js";
@@ -59,7 +60,7 @@ vi.mock("./route-reply.runtime.js", () => ({
 
 function buildResetParams(
   commandBody: string,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   ctxOverrides?: Partial<MsgContext>,
 ): HandleCommandsParams {
   const ctx = {
@@ -93,7 +94,7 @@ function buildResetParams(
     directives: parseInlineDirectives(""),
     elevated: { enabled: true, allowed: true, failures: [] },
     sessionKey: "agent:main:main",
-    workspaceDir: "/tmp/astroclaw-commands",
+    workspaceDir: "/tmp/openclaw-commands",
     defaultGroupActivation: () => "mention",
     resolvedVerboseLevel: "off",
     resolvedReasoningLevel: "off",
@@ -158,7 +159,7 @@ describe("handleCommands reset hooks", () => {
         params: buildResetParams("/new take notes", {
           commands: { text: true },
           channels: { whatsapp: { allowFrom: ["*"] } },
-        } as AstroclawConfig),
+        } as OpenClawConfig),
         expectedEvent: { type: "command", action: "new" },
       },
       {
@@ -169,7 +170,7 @@ describe("handleCommands reset hooks", () => {
             {
               commands: { text: true },
               channels: { telegram: { allowFrom: ["*"] } },
-            } as AstroclawConfig,
+            } as OpenClawConfig,
             {
               Provider: "telegram",
               Surface: "telegram",
@@ -191,7 +192,7 @@ describe("handleCommands reset hooks", () => {
           sessionKey: "agent:main:telegram:direct:123",
         },
         expectedContext: {
-          workspaceDir: "/tmp/astroclaw-commands",
+          workspaceDir: "/tmp/openclaw-commands",
         },
       },
     ] as const;
@@ -216,7 +217,7 @@ describe("handleCommands reset hooks", () => {
       {
         commands: { text: true },
         channels: { discord: { allowFrom: ["*"] } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       {
         Provider: "discord",
         Surface: "discord",
@@ -255,7 +256,7 @@ describe("handleCommands reset hooks", () => {
       {
         commands: { text: true },
         channels: { discord: { allowFrom: ["*"] } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       {
         Provider: "discord",
         Surface: "discord",
@@ -280,7 +281,7 @@ describe("handleCommands reset hooks", () => {
       {
         commands: { text: true },
         channels: { whatsapp: { allowFrom: ["*"] } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       {
         SenderId: "id:whatsapp:123",
         SenderName: "Alice",
@@ -308,7 +309,7 @@ describe("handleCommands reset hooks", () => {
     const params = buildResetParams("/reset", {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     params.sessionEntry = {
       sessionId: "wrapper-session",
       updatedAt: Date.now(),
@@ -331,7 +332,7 @@ describe("handleCommands reset hooks", () => {
     const params = buildResetParams("/reset soft", {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     params.sessionEntry = {
       sessionId: "session-1",
       updatedAt: Date.now(),
@@ -367,7 +368,7 @@ describe("handleCommands reset hooks", () => {
       {
         commands: { text: true },
         channels: { webchat: { allowFrom: ["*"] } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       {
         Provider: "webchat",
         Surface: "webchat",
@@ -392,7 +393,7 @@ describe("handleCommands reset hooks", () => {
     const params = buildResetParams("/reset soft", {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     params.sessionEntry = {
       sessionId: "session-direct",
       updatedAt: 1,
@@ -440,7 +441,7 @@ describe("handleCommands reset hooks", () => {
       {
         commands: { text: true },
         channels: { discord: { allowFrom: ["*"] } },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       {
         Provider: "discord",
         Surface: "discord",
@@ -459,10 +460,10 @@ describe("handleCommands reset hooks", () => {
   });
 
   it("acknowledges bare /reset without falling through to model execution", async () => {
-    const params = buildResetParams("/reset", {
+    const params = buildResetParams("/RESET", {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     const result = await maybeHandleResetCommand(params);
 
@@ -474,10 +475,10 @@ describe("handleCommands reset hooks", () => {
   });
 
   it("acknowledges bare /new without falling through to model execution", async () => {
-    const params = buildResetParams("/new", {
+    const params = buildResetParams("/NEW", {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     const result = await maybeHandleResetCommand(params);
 
@@ -489,14 +490,14 @@ describe("handleCommands reset hooks", () => {
   });
 
   it("keeps reset tails falling through so the model receives the user input", async () => {
-    const params = buildResetParams("/new take notes", {
+    const params = buildResetParams("/Reset take notes", {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
 
     const result = await maybeHandleResetCommand(params);
 
     expect(result).toBeNull();
-    expectObjectFields(firstHookEvent(), { type: "command", action: "new" }, "hook event");
+    expectObjectFields(firstHookEvent(), { type: "command", action: "reset" }, "hook event");
   });
 });
