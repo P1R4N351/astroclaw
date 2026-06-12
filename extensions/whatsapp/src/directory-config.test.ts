@@ -1,10 +1,11 @@
-import { createDirectoryTestRuntime } from "astroclaw/plugin-sdk/channel-test-helpers";
+// Whatsapp tests cover directory config plugin behavior.
+import { createDirectoryTestRuntime } from "openclaw/plugin-sdk/channel-test-helpers";
 import { describe, expect, it } from "vitest";
 import {
   listWhatsAppDirectoryGroupsFromConfig,
   listWhatsAppDirectoryPeersFromConfig,
 } from "./directory-config.js";
-import type { AstroclawConfig } from "./runtime-api.js";
+import type { OpenClawConfig } from "./runtime-api.js";
 
 describe("whatsapp directory", () => {
   const runtimeEnv = createDirectoryTestRuntime() as never;
@@ -25,7 +26,7 @@ describe("whatsapp directory", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     await expect(
       listWhatsAppDirectoryPeersFromConfig({
