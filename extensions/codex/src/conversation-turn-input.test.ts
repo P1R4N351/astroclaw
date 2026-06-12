@@ -1,3 +1,4 @@
+// Codex tests cover conversation turn input plugin behavior.
 import { describe, expect, it } from "vitest";
 import { buildCodexConversationTurnInput } from "./conversation-turn-input.js";
 
@@ -70,14 +71,14 @@ describe("codex conversation turn input", () => {
           channel: "webchat",
           isGroup: false,
           metadata: {
-            mediaPath: "file:///tmp/Astroclaw%20QA/photo.png",
+            mediaPath: "file:///tmp/OpenClaw%20QA/photo.png",
             mediaType: "image/png",
           },
         },
       }),
     ).toEqual([
       { type: "text", text: "look", text_elements: [] },
-      { type: "localImage", path: "/tmp/Astroclaw QA/photo.png" },
+      { type: "localImage", path: "/tmp/OpenClaw QA/photo.png" },
     ]);
   });
 
@@ -107,7 +108,7 @@ describe("codex conversation turn input", () => {
           channel: "webchat",
           isGroup: false,
           metadata: {
-            mediaUrls: ["/tmp/staged-photo.png", "file:///tmp/Astroclaw%20QA/second.jpg"],
+            mediaUrls: ["/tmp/staged-photo.png", "file:///tmp/OpenClaw%20QA/second.jpg"],
             mediaTypes: ["image/png", "image/jpeg"],
           },
         },
@@ -115,7 +116,7 @@ describe("codex conversation turn input", () => {
     ).toEqual([
       { type: "text", text: "look", text_elements: [] },
       { type: "localImage", path: "/tmp/staged-photo.png" },
-      { type: "localImage", path: "/tmp/Astroclaw QA/second.jpg" },
+      { type: "localImage", path: "/tmp/OpenClaw QA/second.jpg" },
     ]);
   });
 
@@ -128,14 +129,14 @@ describe("codex conversation turn input", () => {
           channel: "webchat",
           isGroup: false,
           metadata: {
-            mediaUrl: "C:\\Astroclaw QA\\photo.png",
+            mediaUrl: "C:\\OpenClaw QA\\photo.png",
             mediaType: "image/png",
           },
         },
       }),
     ).toEqual([
       { type: "text", text: "look", text_elements: [] },
-      { type: "localImage", path: "C:\\Astroclaw QA\\photo.png" },
+      { type: "localImage", path: "C:\\OpenClaw QA\\photo.png" },
     ]);
   });
 });
