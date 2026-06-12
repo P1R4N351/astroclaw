@@ -1,3 +1,4 @@
+// Covers repair hints for official external plugin installs.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveMissingOfficialExternalChannelPluginRepairHint } from "./official-external-plugin-repair-hints.js";
 
@@ -35,11 +36,11 @@ describe("resolveMissingOfficialExternalChannelPluginRepairHint", () => {
       pluginId: "feishu",
       channelId: "feishu",
       label: "Feishu",
-      installSpec: "@astroclaw/feishu",
-      installCommand: "astroclaw plugins install @astroclaw/feishu",
-      doctorFixCommand: "astroclaw doctor --fix",
+      installSpec: "@openclaw/feishu",
+      installCommand: "openclaw plugins install @openclaw/feishu",
+      doctorFixCommand: "openclaw doctor --fix",
       repairHint:
-        "Install the official external plugin with: astroclaw plugins install @astroclaw/feishu, or run: astroclaw doctor --fix.",
+        "Install the official external plugin with: openclaw plugins install @openclaw/feishu, or run: openclaw doctor --fix.",
     });
   });
 
@@ -63,8 +64,8 @@ describe("resolveMissingOfficialExternalChannelPluginRepairHint", () => {
       pluginId: "whatsapp",
       channelId: "whatsapp",
       label: "WhatsApp",
-      installSpec: "clawhub:@astroclaw/whatsapp",
-      installCommand: "astroclaw plugins install clawhub:@astroclaw/whatsapp",
+      installSpec: "clawhub:@openclaw/whatsapp",
+      installCommand: "openclaw plugins install clawhub:@openclaw/whatsapp",
     });
   });
 
