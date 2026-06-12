@@ -1,3 +1,4 @@
+// Covers Windows scheduled-task gateway restart script generation.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -5,16 +6,16 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { captureFullEnv } from "../test-utils/env.js";
 
 const spawnMock = vi.hoisted(() => vi.fn());
-const resolvePreferredAstroclawTmpDirMock = vi.hoisted(() => vi.fn(() => os.tmpdir()));
+const resolvePreferredOpenClawTmpDirMock = vi.hoisted(() => vi.fn(() => os.tmpdir()));
 const resolveTaskScriptPathMock = vi.hoisted(() =>
   vi.fn((env: Record<string, string | undefined>) => {
     const home = env.USERPROFILE || env.HOME || os.homedir();
-    return path.join(home, ".astroclaw", "gateway.cmd");
+    return path.join(home, ".openclaw", "gateway.cmd");
   }),
 );
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeBuiltinModule } = await import("astroclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
   return mockNodeBuiltinModule(
     () => vi.importActual<typeof import("node:child_process")>("node:child_process"),
     {
@@ -22,8 +23,8 @@ vi.mock("node:child_process", async () => {
     },
   );
 });
-vi.mock("./tmp-astroclaw-dir.js", () => ({
-  resolvePreferredAstroclawTmpDir: () => resolvePreferredAstroclawTmpDirMock(),
+vi.mock("./tmp-openclaw-dir.js", () => ({
+  resolvePreferredOpenClawTmpDir: () => resolvePreferredOpenClawTmpDirMock(),
 }));
 vi.mock("../daemon/schtasks.js", () => ({
   resolveTaskScriptPath: (env: Record<string, string | undefined>) =>
@@ -80,12 +81,12 @@ describe("relaunchGatewayScheduledTask", () => {
 
   beforeEach(() => {
     spawnMock.mockReset();
-    resolvePreferredAstroclawTmpDirMock.mockReset();
-    resolvePreferredAstroclawTmpDirMock.mockReturnValue(os.tmpdir());
+    resolvePreferredOpenClawTmpDirMock.mockReset();
+    resolvePreferredOpenClawTmpDirMock.mockReturnValue(os.tmpdir());
     resolveTaskScriptPathMock.mockReset();
     resolveTaskScriptPathMock.mockImplementation((env: Record<string, string | undefined>) => {
       const home = env.USERPROFILE || env.HOME || os.homedir();
-      return path.join(home, ".astroclaw", "gateway.cmd");
+      return path.join(home, ".openclaw", "gateway.cmd");
     });
   });
 
@@ -98,11 +99,11 @@ describe("relaunchGatewayScheduledTask", () => {
       return { unref };
     });
 
-    const result = relaunchGatewayScheduledTask({ ASTROCLAW_PROFILE: "work" });
+    const result = relaunchGatewayScheduledTask({ OPENCLAW_PROFILE: "work" });
 
     expect(result.ok).toBe(true);
     expect(result.method).toBe("schtasks");
-    expect(result.tried).toContain('schtasks /Run /TN "Astroclaw Gateway (work)"');
+    expect(result.tried).toContain('schtasks /Run /TN "OpenClaw Gateway (work)"');
     expect(result.tried).toContain(`cmd.exe /d /s /c ${seenCommandArg}`);
     const spawnCall = requireFirstMockCall(spawnMock, "restart helper spawn");
     expect(spawnCall[0]).toBe("cmd.exe");
@@ -123,32 +124,32 @@ describe("relaunchGatewayScheduledTask", () => {
     expect(script).toContain("timeout /t 1 /nobreak >nul");
     expect(script).toContain("gateway-restart.log");
     expect(script).toContain(
-      'astroclaw restart attempt source=windows-task-handoff target="Astroclaw Gateway (work)"',
+      'openclaw restart attempt source=windows-task-handoff target="OpenClaw Gateway (work)"',
     );
     expect(script).toContain(
-      `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "(Get-ScheduledTask -TaskName 'Astroclaw Gateway (work)' -ErrorAction SilentlyContinue).State" 2>nul | findstr /I /C:"Running" >nul 2>&1`,
+      `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "(Get-ScheduledTask -TaskName 'OpenClaw Gateway (work)' -ErrorAction SilentlyContinue).State" 2>nul | findstr /I /C:"Running" >nul 2>&1`,
     );
-    expect(script).toContain('schtasks /Run /TN "Astroclaw Gateway (work)" >>');
+    expect(script).toContain('schtasks /Run /TN "OpenClaw Gateway (work)" >>');
     expect(script.indexOf("powershell.exe -NoProfile")).toBeLessThan(
-      script.indexOf('schtasks /Run /TN "Astroclaw Gateway (work)"'),
+      script.indexOf('schtasks /Run /TN "OpenClaw Gateway (work)"'),
     );
     expect(script).toContain('del "%~f0" >nul 2>&1');
   });
 
-  it("prefers ASTROCLAW_WINDOWS_TASK_NAME overrides", () => {
+  it("prefers OPENCLAW_WINDOWS_TASK_NAME overrides", () => {
     spawnMock.mockImplementation((_file: string, args: string[]) => {
       createdScriptPaths.add(decodeCmdPathArg(args[3]));
       return { unref: vi.fn() };
     });
 
     relaunchGatewayScheduledTask({
-      ASTROCLAW_PROFILE: "work",
-      ASTROCLAW_WINDOWS_TASK_NAME: "Astroclaw Gateway (custom)",
+      OPENCLAW_PROFILE: "work",
+      OPENCLAW_WINDOWS_TASK_NAME: "OpenClaw Gateway (custom)",
     });
 
     const scriptPath = [...createdScriptPaths][0];
     const script = fs.readFileSync(scriptPath, "utf8");
-    expect(script).toContain('schtasks /Run /TN "Astroclaw Gateway (custom)" >>');
+    expect(script).toContain('schtasks /Run /TN "OpenClaw Gateway (custom)" >>');
   });
 
   it("escapes custom task names in the PowerShell running-task probe", () => {
@@ -158,13 +159,13 @@ describe("relaunchGatewayScheduledTask", () => {
     });
 
     relaunchGatewayScheduledTask({
-      ASTROCLAW_WINDOWS_TASK_NAME: "Astroclaw Gateway (Bob's work)",
+      OPENCLAW_WINDOWS_TASK_NAME: "OpenClaw Gateway (Bob's work)",
     });
 
     const scriptPath = [...createdScriptPaths][0];
     const script = fs.readFileSync(scriptPath, "utf8");
     expect(script).toContain(
-      "-Command \"(Get-ScheduledTask -TaskName 'Astroclaw Gateway (Bob''s work)' -ErrorAction SilentlyContinue).State\"",
+      "-Command \"(Get-ScheduledTask -TaskName 'OpenClaw Gateway (Bob''s work)' -ErrorAction SilentlyContinue).State\"",
     );
   });
 
@@ -173,7 +174,7 @@ describe("relaunchGatewayScheduledTask", () => {
       throw new Error("spawn failed");
     });
 
-    const result = relaunchGatewayScheduledTask({ ASTROCLAW_PROFILE: "work" });
+    const result = relaunchGatewayScheduledTask({ OPENCLAW_PROFILE: "work" });
 
     expect(result.ok).toBe(false);
     expect(result.method).toBe("schtasks");
@@ -182,12 +183,12 @@ describe("relaunchGatewayScheduledTask", () => {
 
   it("quotes the cmd /c script path when temp paths contain metacharacters", () => {
     const unref = vi.fn();
-    const metacharTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw&(restart)-"));
+    const metacharTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw&(restart)-"));
     createdTmpDirs.add(metacharTmpDir);
-    resolvePreferredAstroclawTmpDirMock.mockReturnValue(metacharTmpDir);
+    resolvePreferredOpenClawTmpDirMock.mockReturnValue(metacharTmpDir);
     spawnMock.mockReturnValue({ unref });
 
-    relaunchGatewayScheduledTask({ ASTROCLAW_PROFILE: "work" });
+    relaunchGatewayScheduledTask({ OPENCLAW_PROFILE: "work" });
 
     expect(spawnMock).toHaveBeenCalledOnce();
     const spawnCall = requireFirstMockCall(spawnMock, "restart helper spawn");
@@ -212,7 +213,7 @@ describe("relaunchGatewayScheduledTask", () => {
   });
 
   it("includes startup fallback", () => {
-    const taskScriptDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-state-"));
+    const taskScriptDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-state-"));
     createdTmpDirs.add(taskScriptDir);
     const taskScriptPath = path.join(taskScriptDir, "gateway.cmd");
     fs.writeFileSync(taskScriptPath, "@echo off\r\nrem placeholder\r\n", "utf8");
@@ -223,7 +224,7 @@ describe("relaunchGatewayScheduledTask", () => {
       return { unref: vi.fn() };
     });
 
-    const result = relaunchGatewayScheduledTask({ ASTROCLAW_PROFILE: "work" });
+    const result = relaunchGatewayScheduledTask({ OPENCLAW_PROFILE: "work" });
 
     expect(result.ok).toBe(true);
     const scriptPath = [...createdScriptPaths][0];
