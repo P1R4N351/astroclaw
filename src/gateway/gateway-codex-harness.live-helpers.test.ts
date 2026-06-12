@@ -1,15 +1,49 @@
+/**
+ * Tests live helper utilities used by the Codex gateway harness.
+ */
 import { describe, expect, it } from "vitest";
 import {
   EXPECTED_CODEX_MODELS_COMMAND_TEXT,
   EXPECTED_CODEX_STATUS_COMMAND_TEXT,
   isExpectedCodexModelsCommandText,
   isExpectedCodexStatusCommandText,
+  isRetryableCodexHarnessLiveError,
+  isStrictExpectedCodexModelsCommandText,
 } from "./gateway-codex-harness.live-helpers.js";
 
+const includesExpectedCodexModelsCommandText = (text: string) =>
+  EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText));
+
+function expectExpectedCodexModelsCommandText(text: string): void {
+  expect(includesExpectedCodexModelsCommandText(text)).toBe(true);
+}
+
+function expectRecognizedCodexModelsCommandText(text: string): void {
+  expectExpectedCodexModelsCommandText(text);
+  expect(isExpectedCodexModelsCommandText(text)).toBe(true);
+}
+
+function expectStrictCodexModelsCommandText(text: string): void {
+  expectRecognizedCodexModelsCommandText(text);
+  expect(isStrictExpectedCodexModelsCommandText(text)).toBe(true);
+}
+
 describe("gateway codex harness live helpers", () => {
+  it("classifies sessions.list timeouts as retryable live Codex errors", () => {
+    const error = new Error("gateway request timeout for sessions.list");
+
+    expect(isRetryableCodexHarnessLiveError(error)).toBe(true);
+  });
+
+  it("does not classify unrelated live Codex errors as retryable gateway timeouts", () => {
+    const error = new Error("subagent child did not emit lifecycle event");
+
+    expect(isRetryableCodexHarnessLiveError(error)).toBe(false);
+  });
+
   it("accepts the current codex status prose from the live harness", () => {
     const text =
-      "Astroclaw is running on `openai/gpt-5.5` with low reasoning/text settings. Context is at `22k/272k` tokens, no compactions, and the current session is `agent:dev:live-codex-harness`.";
+      "OpenClaw is running on `openai/gpt-5.5` with low reasoning/text settings. Context is at `22k/272k` tokens, no compactions, and the current session is `agent:dev:live-codex-harness`.";
 
     expect(
       EXPECTED_CODEX_STATUS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
@@ -19,7 +53,7 @@ describe("gateway codex harness live helpers", () => {
 
   it("accepts current status prose that reports session context without the session id", () => {
     const text = [
-      "Astroclaw is running on `openai/gpt-5.5` with low reasoning/text settings.",
+      "OpenClaw is running on `openai/gpt-5.5` with low reasoning/text settings.",
       "",
       "Session context is light: `22k/272k` tokens used, `8%`, no compactions. There is 1 active task: `/codex status`.",
     ].join("\n");
@@ -31,15 +65,15 @@ describe("gateway codex harness live helpers", () => {
     const text = [
       "Status: running on `openai/gpt-5.5` with low reasoning/text settings.",
       "",
-      "Session context is healthy: `22k/272k` tokens used, `0` compactions, `53%` cache hit. Current workspace is `/tmp/astroclaw-live-codex-harness/workspace/dev`.",
+      "Session context is healthy: `22k/272k` tokens used, `0` compactions, `53%` cache hit. Current workspace is `/tmp/openclaw-live-codex-harness/workspace/dev`.",
     ].join("\n");
 
     expect(isExpectedCodexStatusCommandText(text)).toBe(true);
   });
 
-  it("accepts current app-server status prose without the Astroclaw prefix", () => {
+  it("accepts current app-server status prose without the OpenClaw prefix", () => {
     const text = [
-      "Status: running on `openai/gpt-5.5` in `/tmp/astroclaw-live-codex-harness/workspace/dev`.",
+      "Status: running on `openai/gpt-5.5` in `/tmp/openclaw-live-codex-harness/workspace/dev`.",
       "",
       "Context is at 22k / 272k tokens, with no compactions. There’s 1 active task: `/codex status`.",
     ].join("\n");
@@ -63,7 +97,7 @@ describe("gateway codex harness live helpers", () => {
 
   it("accepts workspace-only healthy status prose emitted by current codex", () => {
     const text =
-      "Working normally. Current workspace: `/tmp/astroclaw-live-codex-harness/workspace/dev`.";
+      "Working normally. Current workspace: `/tmp/openclaw-live-codex-harness/workspace/dev`.";
 
     expect(
       EXPECTED_CODEX_STATUS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
@@ -122,7 +156,7 @@ describe("gateway codex harness live helpers", () => {
 
   it("accepts the OpenAI Codex status card emitted by the GPT-5.5 Docker harness", () => {
     const text = [
-      "Astroclaw 2026.4.30-beta.1 is running on `openai/gpt-5.5`.",
+      "OpenClaw 2026.4.30-beta.1 is running on `openai/gpt-5.5`.",
       "",
       "Session is healthy:",
       "- Context: `21k/272k` used, `8%`",
@@ -137,7 +171,7 @@ describe("gateway codex harness live helpers", () => {
   });
 
   it("accepts the compact status-card pointer emitted by current codex", () => {
-    const text = "Astroclaw status shown above.";
+    const text = "OpenClaw status shown above.";
 
     expect(
       EXPECTED_CODEX_STATUS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
@@ -154,7 +188,7 @@ describe("gateway codex harness live helpers", () => {
 
   it("accepts the online idle status emitted by current codex", () => {
     const text =
-      "I'm online in `/tmp/astroclaw-live-codex-harness-KiaUQ4/workspace/dev`, with workspace-write access. No active task is running right now.";
+      "I'm online in `/tmp/openclaw-live-codex-harness-KiaUQ4/workspace/dev`, with workspace-write access. No active task is running right now.";
 
     expect(isExpectedCodexStatusCommandText(text)).toBe(true);
   });
@@ -169,7 +203,7 @@ describe("gateway codex harness live helpers", () => {
 
   it("accepts the normal-work status emitted by current codex", () => {
     const text =
-      "Working normally. Current cwd is `/tmp/astroclaw-live-codex-harness/workspace/dev`, sandbox is workspace-write, network is restricted, and the current date is 2026-05-09 UTC.";
+      "Working normally. Current cwd is `/tmp/openclaw-live-codex-harness/workspace/dev`, sandbox is workspace-write, network is restricted, and the current date is 2026-05-09 UTC.";
 
     expect(
       EXPECTED_CODEX_STATUS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
@@ -195,7 +229,7 @@ describe("gateway codex harness live helpers", () => {
 
   it("rejects status prose for a different codex session", () => {
     const text =
-      "Astroclaw is running on `openai/gpt-5.5` with low reasoning/text settings. Context is at `22k/272k` tokens, no compactions, and the current session is `agent:dev:other`.";
+      "OpenClaw is running on `openai/gpt-5.5` with low reasoning/text settings. Context is at `22k/272k` tokens, no compactions, and the current session is `agent:dev:other`.";
 
     expect(isExpectedCodexStatusCommandText(text)).toBe(false);
   });
@@ -211,10 +245,7 @@ describe("gateway codex harness live helpers", () => {
       "Current active model is `codex/gpt-5.4`.",
     ].join("\n");
 
-    expect(
-      EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-    ).toBe(true);
-    expect(isExpectedCodexModelsCommandText(text)).toBe(true);
+    expectStrictCodexModelsCommandText(text);
   });
 
   it("accepts the configured-model fallback summary", () => {
@@ -239,10 +270,8 @@ describe("gateway codex harness live helpers", () => {
       "I couldn’t get a fuller model catalog from the local `codex` CLI here.",
     ].join("\n");
 
-    expect(
-      EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-    ).toBe(true);
-    expect(isExpectedCodexModelsCommandText(text)).toBe(true);
+    expectRecognizedCodexModelsCommandText(text);
+    expect(isStrictExpectedCodexModelsCommandText(text)).toBe(false);
   });
 
   it("accepts the current Codex agent model list from the live harness", () => {
@@ -256,10 +285,31 @@ describe("gateway codex harness live helpers", () => {
       "No other agent models are currently exposed for this session.",
     ].join("\n");
 
-    expect(
-      EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-    ).toBe(true);
-    expect(isExpectedCodexModelsCommandText(text)).toBe(true);
+    expectStrictCodexModelsCommandText(text);
+  });
+
+  it("accepts healthy literal codex model lists for strict live proof", () => {
+    const texts = [
+      ["Codex models:", "", "- `openai/gpt-5.5`", "- `codex/gpt-5.4`"].join("\n"),
+      ["Available Codex models", "", "- `GPT-5.5`", "- `GPT-5.4-Codex`"].join("\n"),
+      ["Available models:", "", "- `gpt-5.4`", "- `gpt-5.4-mini`"].join("\n"),
+      ["Available model overrides:", "", "- `gpt-5.4`"].join("\n"),
+      ["Available model overrides in this session:", "", "- `codex/gpt-5.4`"].join("\n"),
+      ["Available models in this Codex install", "", "- `gpt-5.4`"].join("\n"),
+      ["Available agent models:", "", "- `codex/gpt-5.4`"].join("\n"),
+    ];
+
+    for (const text of texts) {
+      expectExpectedCodexModelsCommandText(text);
+      expect(isStrictExpectedCodexModelsCommandText(text)).toBe(true);
+    }
+  });
+
+  it("rejects model-list headings without model evidence", () => {
+    const text = "Available models:";
+
+    expectExpectedCodexModelsCommandText(text);
+    expect(isStrictExpectedCodexModelsCommandText(text)).toBe(false);
   });
 
   it("accepts the singular Codex agent model list from the live harness", () => {
@@ -272,10 +322,7 @@ describe("gateway codex harness live helpers", () => {
       "- Configured override: `false`",
     ].join("\n");
 
-    expect(
-      EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-    ).toBe(true);
-    expect(isExpectedCodexModelsCommandText(text)).toBe(true);
+    expectStrictCodexModelsCommandText(text);
   });
 
   it("accepts sandbox namespace failures with current-session model fallback", () => {
@@ -296,13 +343,10 @@ describe("gateway codex harness live helpers", () => {
       "- In the sandbox, `codex models` failed because the kernel disallows unprivileged user namespaces.",
       "- Outside the sandbox, `codex` is not on `PATH`.",
       "",
-      "Current session model from Astroclaw status is `openai/gpt-5.5`.",
+      "Current session model from OpenClaw status is `openai/gpt-5.5`.",
     ].join("\n");
 
-    expect(
-      EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-    ).toBe(true);
-    expect(isExpectedCodexModelsCommandText(text)).toBe(true);
+    expectRecognizedCodexModelsCommandText(text);
   });
 
   it("accepts missing codex CLI fallback output", () => {
@@ -331,12 +375,26 @@ describe("gateway codex harness live helpers", () => {
     ];
 
     for (const text of texts) {
-      expect(
-        EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-      ).toBe(true);
+      expectExpectedCodexModelsCommandText(text);
+      expect(isStrictExpectedCodexModelsCommandText(text)).toBe(false);
     }
     expect(isExpectedCodexModelsCommandText(texts[1] ?? "")).toBe(true);
     expect(isExpectedCodexModelsCommandText(texts[2] ?? "")).toBe(true);
+  });
+
+  it("rejects command-unavailable prose for strict live codex models proof", () => {
+    const texts = [
+      "`codex` is not installed on the shell PATH in this environment.",
+      "I couldn’t list them because `codex models` requires running outside the sandbox here, and that approval was rejected.",
+      "`codex models` didn’t return a plain list in this environment; it dropped into the interactive TUI instead.",
+    ];
+
+    for (const text of texts) {
+      expect(
+        includesExpectedCodexModelsCommandText(text) || isExpectedCodexModelsCommandText(text),
+      ).toBe(true);
+      expect(isStrictExpectedCodexModelsCommandText(text)).toBe(false);
+    }
   });
 
   it("accepts current session model summaries from codex models fallback", () => {
@@ -374,9 +432,7 @@ describe("gateway codex harness live helpers", () => {
     ];
 
     for (const text of texts) {
-      expect(
-        EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-      ).toBe(true);
+      expectExpectedCodexModelsCommandText(text);
     }
   });
 
@@ -396,6 +452,7 @@ describe("gateway codex harness live helpers", () => {
 
     for (const text of texts) {
       expect(isExpectedCodexModelsCommandText(text)).toBe(true);
+      expect(isStrictExpectedCodexModelsCommandText(text)).toBe(false);
     }
   });
 
@@ -415,6 +472,7 @@ describe("gateway codex harness live helpers", () => {
 
     for (const text of texts) {
       expect(isExpectedCodexModelsCommandText(text)).toBe(true);
+      expect(isStrictExpectedCodexModelsCommandText(text)).toBe(false);
     }
   });
 
@@ -428,10 +486,8 @@ describe("gateway codex harness live helpers", () => {
       "- The UI indicates `/model` is the command to change models",
     ].join("\n");
 
-    expect(
-      EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-    ).toBe(true);
-    expect(isExpectedCodexModelsCommandText(text)).toBe(true);
+    expectRecognizedCodexModelsCommandText(text);
+    expect(isStrictExpectedCodexModelsCommandText(text)).toBe(false);
   });
 
   it("accepts the local Codex model-cache summary", () => {
@@ -445,10 +501,7 @@ describe("gateway codex harness live helpers", () => {
       "This session is currently running `codex/gpt-5.4` with `low` reasoning according to `/codex status`.",
     ].join("\n");
 
-    expect(
-      EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-    ).toBe(true);
-    expect(isExpectedCodexModelsCommandText(text)).toBe(false);
+    expectStrictCodexModelsCommandText(text);
   });
 
   it("accepts the sandboxed CLI failure active-model summary", () => {
@@ -459,9 +512,7 @@ describe("gateway codex harness live helpers", () => {
       "- Active model: `codex/gpt-5.4`",
     ].join("\n");
 
-    expect(
-      EXPECTED_CODEX_MODELS_COMMAND_TEXT.some((expectedText) => text.includes(expectedText)),
-    ).toBe(true);
+    expectExpectedCodexModelsCommandText(text);
   });
 
   it("rejects unrelated codex command output", () => {
