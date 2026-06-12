@@ -1,21 +1,29 @@
+// Runs heartbeat checks and emits status updates for configured agents.
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { timestampMsToIsoString } from "@openclaw/normalization-core/number-coercion";
+import {
+  normalizeLowercaseStringOrEmpty,
+  normalizeOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
 import {
   hasOutboundReplyContent,
   resolveSendableOutboundReplyParts,
-} from "astroclaw/plugin-sdk/reply-payload";
+} from "openclaw/plugin-sdk/reply-payload";
+import { normalizeOptionalAgentRuntimeId } from "../agents/agent-runtime-id.js";
 import {
-  listAgentEntries,
   listAgentIds,
   resolveAgentConfig,
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../agents/agent-scope.js";
 import { appendCronStyleCurrentTimeLine } from "../agents/current-time.js";
+import { resolveEmbeddedSessionLane } from "../agents/embedded-agent-runner/lanes.js";
+import { formatReasoningMessage } from "../agents/embedded-agent-utils.js";
+import { resolveAgentHarnessPolicy } from "../agents/harness/policy.js";
 import { resolveModelRefFromString, type ModelRef } from "../agents/model-selection.js";
-import { resolveEmbeddedSessionLane } from "../agents/pi-embedded-runner/lanes.js";
-import { formatReasoningMessage } from "../agents/pi-embedded-utils.js";
+import { resolvePersistedSessionRuntimeId } from "../agents/session-runtime-compat.js";
 import { DEFAULT_HEARTBEAT_FILENAME } from "../agents/workspace.js";
 import { resolveHeartbeatReplyPayload } from "../auto-reply/heartbeat-reply-payload.js";
 import {
@@ -33,11 +41,16 @@ import {
   stripHeartbeatToken,
   type HeartbeatTask,
 } from "../auto-reply/heartbeat.js";
+import { replaceGenericExternalRunFailureText } from "../auto-reply/reply/agent-runner-failure-copy.js";
 import { resolveDefaultModel } from "../auto-reply/reply/directive-handling.defaults.js";
-import { replyRunRegistry } from "../auto-reply/reply/reply-run-registry.js";
+import {
+  listActiveReplyRunSessionKeys,
+  replyRunRegistry,
+} from "../auto-reply/reply/reply-run-registry.js";
 import { resolveResponsePrefixTemplate } from "../auto-reply/reply/response-prefix-template.js";
 import { HEARTBEAT_TOKEN } from "../auto-reply/tokens.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
+import { normalizeChatType, type ChatType } from "../channels/chat-type.js";
 import { sendDurableMessageBatch } from "../channels/message/runtime.js";
 import { getChannelPlugin } from "../channels/plugins/index.js";
 import type {
@@ -63,7 +76,7 @@ import { loadSessionStore } from "../config/sessions/store-load.js";
 import { archiveRemovedSessionTranscripts, updateSessionStore } from "../config/sessions/store.js";
 import type { SessionEntry } from "../config/sessions/types.js";
 import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { hasActiveCronJobs } from "../cron/active-jobs.js";
 import { resolveCronSession } from "../cron/isolated-agent/session.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
@@ -82,14 +95,11 @@ import {
   toAgentStoreSessionKey,
 } from "../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
-import {
-  normalizeLowercaseStringOrEmpty,
-  normalizeOptionalString,
-} from "../shared/string-coerce.js";
 import { escapeRegExp } from "../utils.js";
 import { MAX_SAFE_TIMEOUT_DELAY_MS, resolveSafeTimeoutDelayMs } from "../utils/timer-delay.js";
 import { loadOrCreateDeviceIdentity } from "./device-identity.js";
 import { formatErrorMessage, hasErrnoCode } from "./errors.js";
+import { resolveMainScopedEventSessionKey } from "./event-session-routing.js";
 import { isWithinActiveHours, resolveActiveHoursTimezone } from "./heartbeat-active-hours.js";
 import { recordRunStart, shouldDeferWake, type DeferDecision } from "./heartbeat-cooldown.js";
 import {
@@ -127,7 +137,7 @@ import {
 import type { OutboundSendDeps } from "./outbound/deliver.js";
 import { buildOutboundSessionContext } from "./outbound/session-context.js";
 import {
-  resolveHeartbeatDeliveryTarget,
+  resolveHeartbeatDeliveryTargetWithSessionRoute,
   resolveHeartbeatSenderContext,
 } from "./outbound/targets.js";
 import {
@@ -144,6 +154,7 @@ export type HeartbeatDeps = OutboundSendDeps &
     getQueueSize?: (lane?: string) => number;
     getCommandLaneSnapshots?: () => readonly CommandLaneSnapshot[];
     isReplyRunActive?: (sessionKey: string) => boolean;
+    listActiveReplyRunSessionKeys?: () => readonly string[];
     nowMs?: () => number;
   };
 
@@ -157,6 +168,7 @@ function loadHeartbeatRunnerRuntime() {
 }
 
 const HEARTBEAT_ALWAYS_BUSY_LANES = [CommandLane.Cron, CommandLane.CronNested] as const;
+const DEFAULT_HEARTBEAT_TIMEOUT_SECONDS = 10 * 60;
 
 function hasQueuedWorkInLanes(
   lanes: readonly string[],
@@ -217,11 +229,42 @@ function hasAgentOptInBusyLaneWork(
   return hasQueuedWorkInLaneSnapshots(getSnapshots(), (lane) => laneBelongsToAgent(lane, agentId));
 }
 
+function hasActiveReplyRunForAgent(
+  agentId: string,
+  listSessionKeys: () => readonly string[],
+): boolean {
+  const normalizedAgentId = normalizeAgentId(agentId);
+  return listSessionKeys().some((sessionKey) => {
+    const parsed = parseAgentSessionKey(sessionKey);
+    return parsed ? normalizeAgentId(parsed.agentId) === normalizedAgentId : false;
+  });
+}
+
 function resolveHeartbeatChannelPlugin(channel: string): ChannelPlugin | undefined {
   const activePlugin = getActivePluginChannelRegistry()?.channels.find(
     (entry) => entry.plugin.id === channel,
   )?.plugin;
   return activePlugin ?? getChannelPlugin(channel as ChannelId);
+}
+
+function resolveHeartbeatTimeoutOverrideSeconds(cfg: OpenClawConfig, heartbeat?: HeartbeatConfig) {
+  if (typeof heartbeat?.timeoutSeconds === "number") {
+    return heartbeat.timeoutSeconds;
+  }
+  const agentDefaultTimeoutSeconds = cfg.agents?.defaults?.timeoutSeconds;
+  if (
+    typeof agentDefaultTimeoutSeconds === "number" &&
+    Number.isFinite(agentDefaultTimeoutSeconds)
+  ) {
+    return Math.max(1, Math.floor(agentDefaultTimeoutSeconds));
+  }
+  // The wake dispatcher awaits heartbeat turns serially. Keep unset heartbeat
+  // timeouts tied to the cadence instead of the 48h built-in agent default.
+  const intervalMs = resolveHeartbeatIntervalMs(cfg, undefined, heartbeat);
+  if (!intervalMs) {
+    return DEFAULT_HEARTBEAT_TIMEOUT_SECONDS;
+  }
+  return Math.max(1, Math.min(DEFAULT_HEARTBEAT_TIMEOUT_SECONDS, Math.ceil(intervalMs / 1000)));
 }
 
 export { areHeartbeatsEnabled, setHeartbeatsEnabled };
@@ -266,7 +309,7 @@ type ActiveHoursSchedule = {
 };
 
 function resolveActiveHoursSchedule(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   heartbeat?: HeartbeatConfig,
 ): ActiveHoursSchedule | undefined {
   const activeHours = heartbeat?.activeHours;
@@ -292,7 +335,7 @@ function activeHoursConfigMatch(a?: ActiveHoursSchedule, b?: ActiveHoursSchedule
 
 export type HeartbeatRunner = {
   stop: () => void;
-  updateConfig: (cfg: AstroclawConfig) => void;
+  updateConfig: (cfg: OpenClawConfig) => void;
 };
 
 function resolveHeartbeatSchedulerSeed(explicitSeed?: string) {
@@ -311,13 +354,13 @@ function resolveHeartbeatSchedulerSeed(explicitSeed?: string) {
   }
 }
 
-function hasExplicitHeartbeatAgents(cfg: AstroclawConfig) {
+function hasExplicitHeartbeatAgents(cfg: OpenClawConfig) {
   const list = cfg.agents?.list ?? [];
   return list.some((entry) => Boolean(entry?.heartbeat));
 }
 
 function resolveHeartbeatConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId?: string,
 ): HeartbeatConfig | undefined {
   const defaults = cfg.agents?.defaults?.heartbeat;
@@ -342,7 +385,7 @@ function omitExplicitHeartbeatDestination(heartbeat: HeartbeatConfig | undefined
 }
 
 function resolveHeartbeatForWake(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   configuredHeartbeat?: HeartbeatConfig;
   requestedHeartbeat?: HeartbeatConfig;
@@ -359,7 +402,7 @@ function resolveHeartbeatForWake(params: {
     : heartbeat;
 }
 
-function resolveHeartbeatAgents(cfg: AstroclawConfig): HeartbeatAgent[] {
+function resolveHeartbeatAgents(cfg: OpenClawConfig): HeartbeatAgent[] {
   const list = cfg.agents?.list ?? [];
   if (hasExplicitHeartbeatAgents(cfg)) {
     return list
@@ -380,20 +423,20 @@ function resolveHeartbeatAgents(cfg: AstroclawConfig): HeartbeatAgent[] {
   return [{ agentId: fallbackId, heartbeat: resolveHeartbeatConfig(cfg, fallbackId) }];
 }
 
-function resolveHeartbeatPromptRaw(cfg: AstroclawConfig, heartbeat?: HeartbeatConfig) {
+function resolveHeartbeatPromptRaw(cfg: OpenClawConfig, heartbeat?: HeartbeatConfig) {
   return heartbeat?.prompt ?? cfg.agents?.defaults?.heartbeat?.prompt;
 }
 
-export function resolveHeartbeatPrompt(cfg: AstroclawConfig, heartbeat?: HeartbeatConfig) {
+export function resolveHeartbeatPrompt(cfg: OpenClawConfig, heartbeat?: HeartbeatConfig) {
   return resolveHeartbeatPromptText(resolveHeartbeatPromptRaw(cfg, heartbeat));
 }
 
-function resolveHeartbeatResponseToolPrompt(cfg: AstroclawConfig, heartbeat?: HeartbeatConfig) {
+function resolveHeartbeatResponseToolPrompt(cfg: OpenClawConfig, heartbeat?: HeartbeatConfig) {
   return resolveHeartbeatPromptForResponseTool(resolveHeartbeatPromptRaw(cfg, heartbeat));
 }
 
 function resolveHeartbeatModelRef(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   heartbeat?: HeartbeatConfig;
   entry?: SessionEntry;
@@ -422,51 +465,48 @@ function resolveHeartbeatModelRef(params: {
   };
 }
 
-function normalizeHeartbeatRuntimeId(raw: string | undefined): string {
-  const normalized = normalizeLowercaseStringOrEmpty(raw);
-  return normalized === "codex-app-server" ? "codex" : normalized;
-}
-
-function resolvePinnedHeartbeatRuntimeId(entry: SessionEntry | undefined): string {
-  const runtimeId =
-    normalizeHeartbeatRuntimeId(entry?.agentHarnessId) ||
-    normalizeHeartbeatRuntimeId(entry?.agentRuntimeOverride);
-  return runtimeId === "auto" ? "" : runtimeId;
-}
-
 function usesCodexHarness(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   heartbeat?: HeartbeatConfig;
   entry?: SessionEntry;
 }): boolean {
-  const normalizedAgentId = normalizeAgentId(params.agentId);
-  const agentEntry = listAgentEntries(params.cfg).find(
-    (candidate) => normalizeAgentId(candidate.id) === normalizedAgentId,
-  );
-  const runtimeId =
-    resolvePinnedHeartbeatRuntimeId(params.entry) ||
-    normalizeHeartbeatRuntimeId(process.env.ASTROCLAW_AGENT_RUNTIME) ||
-    normalizeHeartbeatRuntimeId(agentEntry?.agentRuntime?.id) ||
-    normalizeHeartbeatRuntimeId(agentEntry?.embeddedHarness?.runtime) ||
-    normalizeHeartbeatRuntimeId(params.cfg.agents?.defaults?.agentRuntime?.id) ||
-    normalizeHeartbeatRuntimeId(params.cfg.agents?.defaults?.embeddedHarness?.runtime);
+  const persistedRuntimeId = resolvePersistedSessionRuntimeId(params.entry);
+  if (persistedRuntimeId === "codex") {
+    return true;
+  }
+  if (persistedRuntimeId && persistedRuntimeId !== "auto") {
+    return false;
+  }
+  const modelRef = resolveHeartbeatModelRef(params);
+  const policy = resolveAgentHarnessPolicy({
+    config: params.cfg,
+    provider: modelRef.provider,
+    modelId: modelRef.model,
+    agentId: params.agentId,
+  });
+  const runtimeId = normalizeOptionalAgentRuntimeId(policy.runtime);
   if (runtimeId === "codex") {
     return true;
   }
   if (runtimeId && runtimeId !== "auto") {
     return false;
   }
-  return normalizeLowercaseStringOrEmpty(resolveHeartbeatModelRef(params).provider) === "codex";
+  return normalizeLowercaseStringOrEmpty(modelRef.provider) === "codex";
 }
 
 function shouldUseHeartbeatResponseToolPrompt(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   heartbeat?: HeartbeatConfig;
   entry?: SessionEntry;
+  chatType?: ChatType;
 }): boolean {
-  const visibleReplies = params.cfg.messages?.visibleReplies;
+  const chatType = normalizeChatType(params.chatType);
+  const visibleReplies =
+    chatType === "group" || chatType === "channel"
+      ? (params.cfg.messages?.groupChat?.visibleReplies ?? params.cfg.messages?.visibleReplies)
+      : params.cfg.messages?.visibleReplies;
   if (visibleReplies === "message_tool") {
     return true;
   }
@@ -476,7 +516,7 @@ function shouldUseHeartbeatResponseToolPrompt(params: {
   return usesCodexHarness(params);
 }
 
-function resolveHeartbeatAckMaxChars(cfg: AstroclawConfig, heartbeat?: HeartbeatConfig) {
+function resolveHeartbeatAckMaxChars(cfg: OpenClawConfig, heartbeat?: HeartbeatConfig) {
   return Math.max(
     0,
     heartbeat?.ackMaxChars ??
@@ -485,7 +525,7 @@ function resolveHeartbeatAckMaxChars(cfg: AstroclawConfig, heartbeat?: Heartbeat
   );
 }
 
-function isHeartbeatTypingEnabled(params: { cfg: AstroclawConfig; hasChatDelivery: boolean }) {
+function isHeartbeatTypingEnabled(params: { cfg: OpenClawConfig; hasChatDelivery: boolean }) {
   if (!params.hasChatDelivery) {
     return false;
   }
@@ -494,14 +534,14 @@ function isHeartbeatTypingEnabled(params: { cfg: AstroclawConfig; hasChatDeliver
   return typingMode !== "never";
 }
 
-function resolveHeartbeatTypingIntervalSeconds(cfg: AstroclawConfig) {
+function resolveHeartbeatTypingIntervalSeconds(cfg: OpenClawConfig) {
   const agentCfg = cfg.agents?.defaults;
   const configured = agentCfg?.typingIntervalSeconds ?? cfg.session?.typingIntervalSeconds;
   return typeof configured === "number" && configured > 0 ? configured : undefined;
 }
 
 function resolveHeartbeatSession(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   agentId?: string,
   heartbeat?: HeartbeatConfig,
   forcedSessionKey?: string,
@@ -555,11 +595,17 @@ function resolveHeartbeatSession(
       if (forcedCanonical !== "global" && !isSubagentSessionKey(forcedCanonical)) {
         const sessionAgentId = resolveAgentIdFromSessionKey(forcedCanonical);
         if (sessionAgentId === normalizeAgentId(resolvedAgentId)) {
+          const routedSessionKey =
+            resolveMainScopedEventSessionKey({
+              cfg,
+              sessionKey: forcedCanonical,
+              agentId: resolvedAgentId,
+            }) ?? forcedCanonical;
           return {
-            sessionKey: forcedCanonical,
+            sessionKey: routedSessionKey,
             storePath,
             store,
-            entry: store[forcedCanonical],
+            entry: store[routedSessionKey],
             suppressOriginatingContext: false,
           };
         }
@@ -699,12 +745,14 @@ function resolveHeartbeatReasoningPayloads(
   const reasoningPayloads: ReplyPayload[] = [];
   for (const payload of payloads) {
     const text = typeof payload.text === "string" ? payload.text : "";
-    const hasLegacyReasoningPrefix = text.trimStart().startsWith("Reasoning:");
-    if (payload.isReasoning !== true && !hasLegacyReasoningPrefix) {
+    const hasFormattedReasoningPrefix = /^(?:Reasoning:|Thinking\.{0,3}(?=\s*_))/u.test(
+      text.trimStart(),
+    );
+    if (payload.isReasoning !== true && !hasFormattedReasoningPrefix) {
       continue;
     }
 
-    const formattedText = hasLegacyReasoningPrefix ? text : formatReasoningMessage(text);
+    const formattedText = hasFormattedReasoningPrefix ? text : formatReasoningMessage(text);
     if (!formattedText.trim()) {
       continue;
     }
@@ -848,8 +896,8 @@ function buildCommitmentHeartbeatPrompt(params: {
     reason: commitment.reason,
     suggestedText: commitment.suggestedText,
     due: {
-      earliest: new Date(commitment.dueWindow.earliestMs).toISOString(),
-      latest: new Date(commitment.dueWindow.latestMs).toISOString(),
+      earliest: timestampMsToIsoString(commitment.dueWindow.earliestMs) ?? "n/a",
+      latest: timestampMsToIsoString(commitment.dueWindow.latestMs) ?? "n/a",
       timezone: commitment.dueWindow.timezone,
     },
     sourceMessageId: commitment.sourceMessageId,
@@ -913,7 +961,7 @@ function resolveHeartbeatWakePayloadFlags(params: {
 }
 
 async function resolveHeartbeatPreflight(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentId: string;
   heartbeat?: HeartbeatConfig;
   forcedSessionKey?: string;
@@ -1113,7 +1161,7 @@ function appendHeartbeatFileDirectives(prompt: string, heartbeatFileContent?: st
 }
 
 function resolveHeartbeatRunPrompt(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   heartbeat?: HeartbeatConfig;
   preflight: HeartbeatPreflight;
   canRelayToUser: boolean;
@@ -1245,7 +1293,7 @@ function selectSystemEventsConsumedByHeartbeat(params: {
 }
 
 export async function runHeartbeatOnce(opts: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   agentId?: string;
   sessionKey?: string;
   heartbeat?: HeartbeatConfig;
@@ -1305,6 +1353,21 @@ export async function runHeartbeatOnce(opts: {
       durationMs: Date.now() - startedAt,
     });
     return { status: "skipped", reason: HEARTBEAT_SKIP_LANES_BUSY };
+  }
+
+  const shouldHonorActiveReplyRuns = opts.intent !== "immediate" && opts.intent !== "manual";
+  const listActiveReplyRuns =
+    opts.deps?.listActiveReplyRunSessionKeys ?? listActiveReplyRunSessionKeys;
+  // Scheduled heartbeats are background work, so defer them when any session on
+  // the same agent is already replying; immediate/manual wakes keep their
+  // existing semantics for explicit user/system actions.
+  if (shouldHonorActiveReplyRuns && hasActiveReplyRunForAgent(agentId, listActiveReplyRuns)) {
+    emitHeartbeatEvent({
+      status: "skipped",
+      reason: HEARTBEAT_SKIP_REQUESTS_IN_FLIGHT,
+      durationMs: Date.now() - startedAt,
+    });
+    return { status: "skipped", reason: HEARTBEAT_SKIP_REQUESTS_IN_FLIGHT };
   }
 
   // Phase 2: Stronger heartbeat deferral while a final delivery replay is pending.
@@ -1400,10 +1463,12 @@ export async function runHeartbeatOnce(opts: {
   const heartbeatForDelivery = commitmentDeliveryContext
     ? { ...heartbeat, target: "last", to: undefined, accountId: undefined }
     : heartbeat;
-  const delivery = resolveHeartbeatDeliveryTarget({
+  const delivery = await resolveHeartbeatDeliveryTargetWithSessionRoute({
     cfg,
+    agentId,
     entry,
     heartbeat: heartbeatForDelivery,
+    currentSessionKey: sessionKey,
     // Isolated heartbeat runs drain system events from their dedicated
     // `:heartbeat` session, not from the base session we peek during preflight.
     // Reusing base-session turnSource routing here can pin later isolated runs
@@ -1452,6 +1517,7 @@ export async function runHeartbeatOnce(opts: {
     agentId,
     heartbeat,
     entry,
+    chatType: delivery.chatType,
   });
   const {
     prompt,
@@ -1509,6 +1575,14 @@ export async function runHeartbeatOnce(opts: {
       isolatedSessionKey,
       isolatedBaseSessionKey,
     });
+    if (isReplyRunActive(isolatedSessionKey)) {
+      emitHeartbeatEvent({
+        status: "skipped",
+        reason: HEARTBEAT_SKIP_REQUESTS_IN_FLIGHT,
+        durationMs: Date.now() - startedAt,
+      });
+      return { status: "skipped", reason: HEARTBEAT_SKIP_REQUESTS_IN_FLIGHT };
+    }
     const removedSessionFiles = new Map<string, string | undefined>();
     let referencedSessionIds = new Set<string>();
     await updateSessionStore(isolatedStorePath, (store) => {
@@ -1555,19 +1629,6 @@ export async function runHeartbeatOnce(opts: {
     }
     runSessionKey = isolatedSessionKey;
   }
-  const activeSessionPendingEventEntries =
-    runSessionKey === sessionKey
-      ? preflight.pendingEventEntries
-      : peekSystemEventEntries(runSessionKey);
-  const hasInspectedOwnerDowngradeEvents =
-    preflight.shouldInspectPendingEvents &&
-    preflight.pendingEventEntries.some((event) => event.forceSenderIsOwnerFalse === true);
-  const hasActiveSessionOwnerDowngradeEvents = activeSessionPendingEventEntries.some(
-    (event) => event.forceSenderIsOwnerFalse === true,
-  );
-  const hasOwnerDowngradeSystemEvents =
-    hasInspectedOwnerDowngradeEvents || hasActiveSessionOwnerDowngradeEvents;
-
   // Update task last run times AFTER successful heartbeat completion
   const updateTaskTimestamps = async () => {
     if (!preflight.tasks || preflight.tasks.length === 0) {
@@ -1617,7 +1678,6 @@ export async function runHeartbeatOnce(opts: {
     MessageThreadId: delivery.threadId,
     Provider: hasExecCompletion ? "exec-event" : hasCronEvents ? "cron-event" : "heartbeat",
     SessionKey: runSessionKey,
-    ForceSenderIsOwnerFalse: hasExecCompletion || hasOwnerDowngradeSystemEvents,
   };
   if (!visibility.showAlerts && !visibility.showOk && !visibility.useIndicator) {
     emitHeartbeatEvent({
@@ -1715,8 +1775,7 @@ export async function runHeartbeatOnce(opts: {
     await heartbeatTyping?.onReplyStart();
     const heartbeatModelOverride = normalizeOptionalString(heartbeat?.model);
     const suppressToolErrorWarnings = heartbeat?.suppressToolErrorWarnings === true;
-    const timeoutOverrideSeconds =
-      typeof heartbeat?.timeoutSeconds === "number" ? heartbeat.timeoutSeconds : undefined;
+    const timeoutOverrideSeconds = resolveHeartbeatTimeoutOverrideSeconds(cfg, heartbeat);
     const bootstrapContextMode: "lightweight" | undefined =
       heartbeat?.lightContext === true ? "lightweight" : undefined;
     const replyOpts = {
@@ -1727,19 +1786,7 @@ export async function runHeartbeatOnce(opts: {
       ...(usesHeartbeatResponseTool
         ? { sourceReplyDeliveryMode: "message_tool_only" as const }
         : {}),
-      // D1 2026-05-03: when lightContext=true (heartbeat already gated to
-      // HEARTBEAT.md bootstrap-files only), ALSO propagate disableTools +
-      // empty skillFilter so the gateway doesn't bundle ~25-50k tokens of
-      // tool/skill definitions into the system prompt. Without this, the
-      // tools layer forces small-context models (e.g. granite-8b 16k) to
-      // truncate, slow-roll, and time out. Trade-off: lightContext
-      // heartbeats lose tool access — their prompts already specify text-
-      // only "log heartbeat OK and return" behavior. Heartbeats that
-      // genuinely need tools should set lightContext=false explicitly.
-      // Migrated from patch-lightcontext-disables-tools.js 2026-05-25.
-      ...(hasDueCommitments || heartbeat?.lightContext === true
-        ? { disableTools: true, skillFilter: [] }
-        : {}),
+      ...(hasDueCommitments ? { disableTools: true, skillFilter: [] } : {}),
       // Heartbeat timeout is a per-run override so user turns keep the global default.
       timeoutOverrideSeconds,
       bootstrapContextMode,
@@ -1832,6 +1879,14 @@ export async function runHeartbeatOnce(opts: {
         : null;
     if (execFallbackText) {
       normalized.text = execFallbackText;
+      normalized.shouldSkip = false;
+    }
+    const replacement = !heartbeatToolResponse
+      ? replaceGenericExternalRunFailureText(normalized.text)
+      : { text: normalized.text, replaced: false };
+    const deliveredAgentRunFailure = replacement.replaced;
+    if (deliveredAgentRunFailure) {
+      normalized.text = replacement.text;
       normalized.shouldSkip = false;
     }
     const shouldSkipMain =
@@ -2024,15 +2079,17 @@ export async function runHeartbeatOnce(opts: {
       });
     }
 
+    const sentStatus = deliveredAgentRunFailure ? "failed" : "sent";
     emitHeartbeatEvent({
-      status: "sent",
+      status: sentStatus,
       to: delivery.to,
+      ...(deliveredAgentRunFailure ? { reason: "agent-runner-failure" } : {}),
       preview: previewText?.slice(0, 200),
       durationMs: Date.now() - startedAt,
       hasMedia: mediaUrls.length > 0,
       channel: delivery.channel,
       accountId: delivery.accountId,
-      indicatorType: visibility.useIndicator ? resolveIndicatorType("sent") : undefined,
+      indicatorType: visibility.useIndicator ? resolveIndicatorType(sentStatus) : undefined,
     });
     await updateTaskTimestamps();
     consumeInspectedSystemEvents();
@@ -2055,7 +2112,7 @@ export async function runHeartbeatOnce(opts: {
 }
 
 export function startHeartbeatRunner(opts: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   runtime?: RuntimeEnv;
   abortSignal?: AbortSignal;
   runOnce?: typeof runHeartbeatOnce;
@@ -2113,6 +2170,20 @@ export function startHeartbeatRunner(opts: {
           // for cooldown purposes, so keep the existing now + interval behavior.
           now + agent.intervalMs;
     agent.nextDueMs = seekActiveSlotForAgent(agent, rawDueMs);
+  };
+
+  const advanceStaleScheduleAfterDeferral = (
+    agent: HeartbeatAgentState,
+    now: number,
+    reason?: string,
+    decision?: DeferDecision,
+  ) => {
+    if (!decision?.defer || decision.reason === "not-due" || agent.nextDueMs > now) {
+      return;
+    }
+    // Deferrals that do not have wake-layer retry ownership still need to move
+    // the due slot forward; otherwise scheduleNext() will keep rearming at 0ms.
+    advanceAgentSchedule(agent, now, reason);
   };
 
   // Centralized cooldown gate. Both targeted and broadcast dispatch branches
@@ -2196,7 +2267,7 @@ export function startHeartbeatRunner(opts: {
     state.timer.unref?.();
   };
 
-  const updateConfig = (cfg: AstroclawConfig) => {
+  const updateConfig = (cfg: OpenClawConfig) => {
     if (state.stopped) {
       return;
     }
@@ -2210,27 +2281,11 @@ export function startHeartbeatRunner(opts: {
       if (!intervalMs) {
         continue;
       }
-      const basePhaseMs = resolveHeartbeatPhaseMs({
+      const phaseMs = resolveHeartbeatPhaseMs({
         schedulerSeed: state.schedulerSeed,
         agentId: agent.agentId,
         intervalMs,
       });
-      // B70-sibling: random first-fire jitter on top of the deterministic
-      // per-agent SHA256 phase. Bounded to half the interval to avoid
-      // crossing the next slot, and ignored if jitterSeconds is missing,
-      // zero, or non-finite. Migrated to source from patch-heartbeat-jitter.js
-      // 2026-05-25.
-      const phaseMs = (() => {
-        const jitterSec = Number(agent.heartbeat?.jitterSeconds) || 0;
-        if (jitterSec <= 0 || !Number.isFinite(jitterSec)) {
-          return basePhaseMs;
-        }
-        const jitterRangeMs = Math.min(Math.floor(intervalMs / 2), Math.floor(jitterSec) * 1000);
-        if (jitterRangeMs <= 0) {
-          return basePhaseMs;
-        }
-        return (basePhaseMs + Math.floor(Math.random() * jitterRangeMs)) % intervalMs;
-      })();
       intervals.push(intervalMs);
       const prevState = prevAgents.get(agent.agentId);
       const activeHoursSchedule = resolveActiveHoursSchedule(cfg, agent.heartbeat);
@@ -2326,6 +2381,7 @@ export function startHeartbeatRunner(opts: {
         }
         const deferral = evaluateWakeDeferral(targetAgent, now, reason, intent);
         if (deferral.defer) {
+          advanceStaleScheduleAfterDeferral(targetAgent, now, reason, deferral);
           return { status: "skipped", reason: deferral.reason };
         }
         try {
@@ -2355,11 +2411,10 @@ export function startHeartbeatRunner(opts: {
             return res;
           }
           // Non-retryable outcome (ran, disabled, failed-but-not-busy). Record
-          // bookkeeping so subsequent wakes within the cooldown window defer.
+          // bookkeeping and move the due slot so scheduleNext() cannot hot-loop
+          // on a stale past-due agent.
           recordRunBookkeeping(targetAgent, now);
-          if (res.status !== "skipped" || res.reason !== "disabled") {
-            advanceAgentSchedule(targetAgent, now, reason);
-          }
+          advanceAgentSchedule(targetAgent, now, reason);
           return res.status === "ran" ? { status: "ran", durationMs: Date.now() - startedAt } : res;
         } catch (err) {
           const errMsg = formatErrorMessage(err);
@@ -2388,6 +2443,7 @@ export function startHeartbeatRunner(opts: {
       const runOneAgent = async (agent: HeartbeatAgentState): Promise<AgentWakeOutcome> => {
         const deferral = evaluateWakeDeferral(agent, now, reason, intent);
         if (deferral.defer) {
+          advanceStaleScheduleAfterDeferral(agent, now, reason, deferral);
           return { ran: false };
         }
 
@@ -2422,9 +2478,7 @@ export function startHeartbeatRunner(opts: {
         }
         // Non-retryable outcome — record bookkeeping for cooldown gates.
         recordRunBookkeeping(agent, now);
-        if (res.status !== "skipped" || res.reason !== "disabled") {
-          advanceAgentSchedule(agent, now, reason);
-        }
+        advanceAgentSchedule(agent, now, reason);
         let agentRan = res.status === "ran";
 
         const defaultSessionKey = resolveHeartbeatSession(
