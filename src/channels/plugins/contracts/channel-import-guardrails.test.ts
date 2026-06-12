@@ -1,3 +1,5 @@
+// Channel import guardrail tests cover forbidden imports across channel plugin boundaries.
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -73,27 +75,27 @@ type GuardedSource = {
 const SAME_CHANNEL_SDK_GUARDS: GuardedSource[] = [
   {
     path: bundledPluginFile("discord", "src/shared.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/discord["']/, /plugin-sdk-internal\/discord/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/discord["']/, /plugin-sdk-internal\/discord/],
   },
   {
     path: bundledPluginFile("slack", "src/shared.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/slack["']/, /plugin-sdk-internal\/slack/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/slack["']/, /plugin-sdk-internal\/slack/],
   },
   {
     path: bundledPluginFile("telegram", "src/shared.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/telegram["']/, /plugin-sdk-internal\/telegram/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/telegram["']/, /plugin-sdk-internal\/telegram/],
   },
   {
     path: bundledPluginFile("telegram", "src/account-inspect.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/account-resolution["']/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/account-resolution["']/],
   },
   {
     path: bundledPluginFile("telegram", "src/accounts.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/account-resolution["']/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/account-resolution["']/],
   },
   {
     path: bundledPluginFile("telegram", "src/token.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/account-resolution["']/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/account-resolution["']/],
   },
   {
     path: bundledPluginFile("telegram", "src/channel.ts"),
@@ -133,19 +135,19 @@ const SAME_CHANNEL_SDK_GUARDS: GuardedSource[] = [
   },
   {
     path: bundledPluginFile("imessage", "src/shared.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/imessage["']/, /plugin-sdk-internal\/imessage/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/imessage["']/, /plugin-sdk-internal\/imessage/],
   },
   {
     path: bundledPluginFile("whatsapp", "src/shared.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/whatsapp["']/, /plugin-sdk-internal\/whatsapp/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/whatsapp["']/, /plugin-sdk-internal\/whatsapp/],
   },
   {
     path: bundledPluginFile("signal", "src/shared.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/signal["']/, /plugin-sdk-internal\/signal/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/signal["']/, /plugin-sdk-internal\/signal/],
   },
   {
     path: bundledPluginFile("signal", "src/runtime-api.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/signal["']/, /plugin-sdk-internal\/signal/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/signal["']/, /plugin-sdk-internal\/signal/],
   },
 ];
 
@@ -195,7 +197,7 @@ const SETUP_BARREL_GUARDS: GuardedSource[] = [
 const CHANNEL_CONFIG_SCHEMA_GUARDS: GuardedSource[] = [
   {
     path: bundledPluginFile("tlon", "src/config-schema.ts"),
-    forbiddenPatterns: [/["']astroclaw\/plugin-sdk\/core["']/],
+    forbiddenPatterns: [/["']openclaw\/plugin-sdk\/core["']/],
   },
 ];
 
@@ -416,6 +418,55 @@ function collectExtensionSourceFiles(): string[] {
   return extensionSourceFilesCache;
 }
 
+function isGuardedExtensionSourceFile(relativePath: string): boolean {
+  if (!/\.(?:[cm]?ts|[cm]?js|tsx|jsx)$/u.test(relativePath) || relativePath.endsWith(".d.ts")) {
+    return false;
+  }
+  if (relativePath.split("/").some((part) => part === "node_modules" || part === "dist")) {
+    return false;
+  }
+  const entryName = basename(relativePath);
+  return !(
+    classifyBundledExtensionSourcePath(resolve(REPO_ROOT, relativePath)).isTestLike ||
+    entryName === "api.ts" ||
+    entryName === "runtime-api.ts"
+  );
+}
+
+function collectExtensionForbiddenImportMatches(literals: readonly string[]): string[] {
+  const result = spawnSync(
+    "git",
+    [
+      "grep",
+      "-n",
+      "-F",
+      ...literals.flatMap((literal) => ["-e", literal]),
+      "--",
+      BUNDLED_PLUGIN_ROOT_DIR,
+    ],
+    {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      maxBuffer: 8 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    },
+  );
+  if (result.status === 1) {
+    return [];
+  }
+  if (result.status !== 0) {
+    throw new Error("git grep failed while checking extension import guardrails");
+  }
+  return result.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => {
+      const file = line.split(":", 1)[0];
+      return file ? isGuardedExtensionSourceFile(file) : false;
+    })
+    .toSorted();
+}
+
 function collectCoreSourceFiles(): string[] {
   const srcDir = resolve(ROOT_DIR, "..", "src");
   const normalizedPluginSdkDir = normalizePath(resolve(ROOT_DIR, "plugin-sdk"));
@@ -511,9 +562,9 @@ function expectOnlyApprovedExtensionSeams(file: string, imports: string[]): void
     if (!extensionId || !GUARDED_CHANNEL_EXTENSIONS.has(extensionId)) {
       continue;
     }
-    const basename = resolved.split("/").at(-1) ?? "";
+    const basenameLocal = resolved.split("/").at(-1) ?? "";
     expect(
-      ALLOWED_EXTENSION_PUBLIC_SURFACES.has(basename),
+      ALLOWED_EXTENSION_PUBLIC_SURFACES.has(basenameLocal),
       `${file} should only import approved extension surfaces, got ${specifier}`,
     ).toBe(true);
   }
@@ -547,10 +598,10 @@ function expectNoCrossPluginSdkFacadeImports(file: string, imports: string[]): v
     return;
   }
   for (const specifier of imports) {
-    if (!specifier.startsWith("astroclaw/plugin-sdk/")) {
+    if (!specifier.startsWith("openclaw/plugin-sdk/")) {
       continue;
     }
-    const targetSubpath = specifier.slice("astroclaw/plugin-sdk/".length);
+    const targetSubpath = specifier.slice("openclaw/plugin-sdk/".length);
     const targetExtensionId =
       BUNDLED_EXTENSION_IDS.find(
         (extensionId) =>
@@ -588,11 +639,9 @@ function expectCoreSourceStaysOffPluginSpecificSdkFacades(file: string, imports:
 describe("channel import guardrails", () => {
   it("lists channel import guardrail sources from git without walking roots", () => {
     expectNoReaddirSyncDuring(() => {
-      const extensionSources = collectExtensionSourceFiles();
       const coreSources = collectCoreSourceFiles();
       const telegramSources = collectExtensionFiles("telegram");
 
-      expect(extensionSources.length).toBeGreaterThan(0);
       expect(coreSources.length).toBeGreaterThan(0);
       expect(telegramSources.length).toBeGreaterThan(0);
     });
@@ -628,25 +677,18 @@ describe("channel import guardrails", () => {
   });
 
   it("keeps bundled extension source files off root and compat plugin-sdk imports", () => {
-    for (const file of collectExtensionSourceFiles()) {
-      const text = readSource(file);
-      expect(text, `${file} should not import astroclaw/plugin-sdk root`).not.toMatch(
-        /["']astroclaw\/plugin-sdk["']/,
-      );
-      expect(text, `${file} should not import astroclaw/plugin-sdk/compat`).not.toMatch(
-        /["']astroclaw\/plugin-sdk\/compat["']/,
-      );
-    }
+    expect(
+      collectExtensionForbiddenImportMatches([
+        `"openclaw/plugin-sdk"`,
+        `'openclaw/plugin-sdk'`,
+        `"openclaw/plugin-sdk/compat"`,
+        `'openclaw/plugin-sdk/compat'`,
+      ]),
+    ).toEqual([]);
   });
 
   it("keeps bundled extension source files off legacy core send-deps src imports", () => {
-    const legacyCoreSendDepsImport = /["'][^"']*src\/infra\/outbound\/send-deps\.[cm]?[jt]s["']/;
-    for (const file of collectExtensionSourceFiles()) {
-      const text = readSource(file);
-      expect(text, `${file} should not import src/infra/outbound/send-deps.*`).not.toMatch(
-        legacyCoreSendDepsImport,
-      );
-    }
+    expect(collectExtensionForbiddenImportMatches(["src/infra/outbound/send-deps"])).toEqual([]);
   });
 
   it("keeps core production files off plugin-private src imports", () => {
@@ -658,9 +700,18 @@ describe("channel import guardrails", () => {
     }
   });
 
-  it("keeps extension production files off other extensions' private src imports", () => {
-    for (const file of collectExtensionSourceFiles()) {
-      expectNoSiblingExtensionPrivateSrcImports(file, getSourceAnalysis(file).importSpecifiers);
+  describe("extension private src import guardrails", () => {
+    for (const extensionId of BUNDLED_EXTENSION_IDS.toSorted((left, right) =>
+      left.localeCompare(right),
+    )) {
+      it(`${extensionId} stays off other extensions' private src imports`, () => {
+        for (const file of collectExtensionFiles(extensionId)) {
+          if (basename(file) === "api.ts") {
+            continue;
+          }
+          expectNoSiblingExtensionPrivateSrcImports(file, getSourceAnalysis(file).importSpecifiers);
+        }
+      });
     }
   });
 
@@ -710,7 +761,7 @@ describe("channel import guardrails", () => {
         expect(
           text,
           `${normalized} should import ${extensionId} helpers via the local api barrel`,
-        ).not.toMatch(new RegExp(`["']astroclaw/plugin-sdk/${extensionId}(?:["'/])`, "u"));
+        ).not.toMatch(new RegExp(`["']openclaw/plugin-sdk/${extensionId}(?:["'/])`, "u"));
       }
     }
   });
