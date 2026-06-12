@@ -1,3 +1,4 @@
+// Tests gateway lock file ownership and stale-lock behavior.
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import fsSync from "node:fs";
@@ -12,7 +13,7 @@ import { acquireGatewayLock, GatewayLockError, type GatewayLockOptions } from ".
 
 type GatewayLock = NonNullable<Awaited<ReturnType<typeof acquireGatewayLock>>>;
 
-const fixtureRootTracker = createSuiteTempRootTracker({ prefix: "astroclaw-gateway-lock-" });
+const fixtureRootTracker = createSuiteTempRootTracker({ prefix: "openclaw-gateway-lock-" });
 let fixtureRoot = "";
 const realNow = Date.now.bind(Date);
 
@@ -22,12 +23,12 @@ function resolveTestLockDir() {
 
 async function makeEnv() {
   const dir = await fixtureRootTracker.make("case");
-  const configPath = path.join(dir, "astroclaw.json");
+  const configPath = path.join(dir, "openclaw.json");
   await fs.writeFile(configPath, "{}", "utf8");
   return {
     ...process.env,
-    ASTROCLAW_STATE_DIR: dir,
-    ASTROCLAW_CONFIG_PATH: configPath,
+    OPENCLAW_STATE_DIR: dir,
+    OPENCLAW_CONFIG_PATH: configPath,
   };
 }
 
@@ -189,7 +190,7 @@ describe("gateway lock", () => {
 
     const pending = acquireForTest(env, {
       timeoutMs: 15,
-      readProcessCmdline: () => ["astroclaw", "gateway", "run"],
+      readProcessCmdline: () => ["openclaw", "gateway", "run"],
     });
     await expect(pending).rejects.toBeInstanceOf(GatewayLockError);
 
@@ -285,7 +286,7 @@ describe("gateway lock", () => {
         staleMs: 10_000,
         platform: "darwin",
         port: 18789,
-        readProcessCmdline: () => ["/usr/local/bin/astroclaw", "gateway", "run"],
+        readProcessCmdline: () => ["/usr/local/bin/openclaw", "gateway", "run"],
       });
       await expect(pending).rejects.toBeInstanceOf(GatewayLockError);
     } finally {
@@ -293,10 +294,37 @@ describe("gateway lock", () => {
     }
   });
 
+  it("bounds oversized lock polling intervals by the acquire timeout", async () => {
+    const env = await makeEnv();
+    await writeRecentLockFile(env);
+    const sleepDelays: number[] = [];
+    let now = 0;
+
+    await expect(
+      acquireGatewayLock({
+        env,
+        allowInTests: true,
+        timeoutMs: 5,
+        pollIntervalMs: Number.MAX_SAFE_INTEGER,
+        staleMs: 10_000,
+        platform: "darwin",
+        now: () => now,
+        sleep: async (ms) => {
+          sleepDelays.push(ms);
+          now = 10;
+        },
+        lockDir: resolveTestLockDir(),
+        readProcessCmdline: () => ["/usr/local/bin/openclaw", "gateway", "run"],
+      }),
+    ).rejects.toBeInstanceOf(GatewayLockError);
+
+    expect(sleepDelays).toEqual([5]);
+  });
+
   it("returns null when multi-gateway override is enabled", async () => {
     const env = await makeEnv();
     const lock = await acquireGatewayLock({
-      env: { ...env, ASTROCLAW_ALLOW_MULTI_GATEWAY: "1", VITEST: "" },
+      env: { ...env, OPENCLAW_ALLOW_MULTI_GATEWAY: "1", VITEST: "" },
       lockDir: resolveTestLockDir(),
     });
     expect(lock).toBeNull();
@@ -309,6 +337,32 @@ describe("gateway lock", () => {
       lockDir: resolveTestLockDir(),
     });
     expect(lock).toBeNull();
+  });
+
+  it("falls back instead of throwing when lock payload clock is outside Date range", async () => {
+    const env = await makeEnv();
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-05-30T12:00:00Z"));
+    const lock = expectGatewayLock(
+      await acquireGatewayLock({
+        env,
+        allowInTests: true,
+        timeoutMs: 30,
+        pollIntervalMs: 2,
+        now: () => 8_640_000_000_000_001,
+        sleep: async () => {},
+        lockDir: resolveTestLockDir(),
+      }),
+    );
+
+    try {
+      const payload = JSON.parse(await fs.readFile(lock.lockPath, "utf8")) as {
+        createdAt?: string;
+      };
+      expect(payload.createdAt).toBe("2026-05-30T12:00:00.000Z");
+    } finally {
+      dateNowSpy.mockRestore();
+      await lock.release();
+    }
   });
 
   it("wraps unexpected fs errors as GatewayLockError", async () => {
@@ -357,7 +411,7 @@ describe("gateway lock", () => {
       platform: "win32",
       port: 18789,
       readProcessCmdline: () => [
-        "C:\\Users\\me\\AppData\\Roaming\\npm\\astroclaw.cmd",
+        "C:\\Users\\me\\AppData\\Roaming\\npm\\openclaw.cmd",
         "gateway",
         "run",
       ],
@@ -420,7 +474,7 @@ describe("gateway lock", () => {
       staleMs: 10_000,
       platform: "darwin",
       port: 18789,
-      readProcessCmdline: () => ["/usr/local/bin/astroclaw", "gateway", "run", "--port", "18789"],
+      readProcessCmdline: () => ["/usr/local/bin/openclaw", "gateway", "run", "--port", "18789"],
     });
     await expect(pending).rejects.toBeInstanceOf(GatewayLockError);
 
