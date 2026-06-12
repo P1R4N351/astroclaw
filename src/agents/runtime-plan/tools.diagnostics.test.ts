@@ -1,3 +1,5 @@
+// Runtime plan tool-diagnostics tests cover the legacy provider diagnostic path
+// used when no runtime plan owns tool schema diagnostics.
 import { describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -5,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   normalizeProviderToolSchemas: vi.fn((params: { tools: unknown[] }) => params.tools),
 }));
 
-vi.mock("../pi-embedded-runner/tool-schema-runtime.js", () => ({
+vi.mock("../embedded-agent-runner/tool-schema-runtime.js", () => ({
   logProviderToolSchemaDiagnostics: mocks.logProviderToolSchemaDiagnostics,
   normalizeProviderToolSchemas: mocks.normalizeProviderToolSchemas,
 }));
@@ -21,7 +23,7 @@ describe("AgentRuntimePlan tool diagnostics legacy fallback", () => {
       provider: "openai",
       modelId: "gpt-5.4",
       modelApi: "openai-responses",
-      workspaceDir: "/tmp/astroclaw-runtime-plan-tools",
+      workspaceDir: "/tmp/openclaw-runtime-plan-tools",
     });
 
     expect(mocks.logProviderToolSchemaDiagnostics).toHaveBeenCalledTimes(1);
@@ -29,7 +31,7 @@ describe("AgentRuntimePlan tool diagnostics legacy fallback", () => {
       tools,
       provider: "openai",
       config: undefined,
-      workspaceDir: "/tmp/astroclaw-runtime-plan-tools",
+      workspaceDir: "/tmp/openclaw-runtime-plan-tools",
       env: process.env,
       modelId: "gpt-5.4",
       modelApi: "openai-responses",
