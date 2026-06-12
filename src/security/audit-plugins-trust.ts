@@ -1,10 +1,12 @@
+// Audits installed plugins for trust, provenance, and filesystem risks.
 import fs from "node:fs/promises";
 import path from "node:path";
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
 import { listReadOnlyChannelPluginsForConfig } from "../channels/plugins/read-only.js";
 import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import { inspectReadOnlyChannelAccount } from "../channels/read-only-account-inspect.js";
 import { resolveNativeSkillsEnabled } from "../config/commands.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { AgentToolsConfig } from "../config/types.tools.js";
 import { readInstalledPackageVersion } from "../infra/package-update-utils.js";
 import { normalizePluginsConfig } from "../plugins/config-state.js";
@@ -13,7 +15,6 @@ import {
   createPluginRegistryIdNormalizer,
   loadPluginRegistrySnapshot,
 } from "../plugins/plugin-registry.js";
-import { normalizeOptionalLowercaseString } from "../shared/string-coerce.js";
 import type { SecurityAuditFinding } from "./audit.types.js";
 import { shouldIgnoreInstalledPluginDirName } from "./installed-plugin-dirs.js";
 
@@ -29,6 +30,7 @@ type PluginTrustPolicyDeps = {
 
 let pluginTrustPolicyDepsPromise: Promise<PluginTrustPolicyDeps> | undefined;
 
+/** Lazily load tool-policy helpers so basic security imports avoid agent policy modules. */
 async function loadPluginTrustPolicyDeps(): Promise<PluginTrustPolicyDeps> {
   pluginTrustPolicyDepsPromise ??= Promise.all([
     import("../agents/sandbox/config.js"),
@@ -47,11 +49,11 @@ async function loadPluginTrustPolicyDeps(): Promise<PluginTrustPolicyDeps> {
 }
 
 function readChannelCommandSetting(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   channelId: string,
   key: "native" | "nativeSkills",
 ): unknown {
-  const channelCfg = cfg.channels?.[channelId as keyof NonNullable<AstroclawConfig["channels"]>];
+  const channelCfg = cfg.channels?.[channelId as keyof NonNullable<OpenClawConfig["channels"]>];
   if (!channelCfg || typeof channelCfg !== "object" || Array.isArray(channelCfg)) {
     return undefined;
   }
@@ -63,7 +65,7 @@ function readChannelCommandSetting(
 }
 
 async function isChannelPluginConfigured(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   plugin: ChannelPlugin,
 ): Promise<boolean> {
   const accountIds = plugin.config.listAccountIds(cfg);
@@ -137,7 +139,7 @@ async function listInstalledPluginDirs(params: {
   if (!st?.isDirectory()) {
     return { extensionsDir, pluginDirs: [] };
   }
-  const entries = await fs.readdir(extensionsDir, { withFileTypes: true }).catch((err) => {
+  const entries = await fs.readdir(extensionsDir, { withFileTypes: true }).catch((err: unknown) => {
     params.onReadError?.(err);
     return [];
   });
@@ -150,7 +152,7 @@ async function listInstalledPluginDirs(params: {
 }
 
 function resolveToolPolicies(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   deps: PluginTrustPolicyDeps;
   agentTools?: AgentToolsConfig;
   sandboxMode?: "off" | "non-main" | "all";
@@ -180,7 +182,7 @@ function normalizePluginIdSet(entries: string[]): Set<string> {
 }
 
 function resolveEnabledExtensionPluginIds(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   pluginDirs: string[];
 }): string[] {
   const normalized = normalizePluginsConfig(params.cfg.plugins);
@@ -274,8 +276,9 @@ function isPinnedRegistrySpec(spec: string): boolean {
   return /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version);
 }
 
+/** Collect supply-chain and reachable-tool findings for installed plugins and hook packs. */
 export async function collectPluginsTrustFindings(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   stateDir: string;
 }): Promise<SecurityAuditFinding[]> {
   const findings: SecurityAuditFinding[] = [];
@@ -292,6 +295,8 @@ export async function collectPluginsTrustFindings(params: {
         config: params.cfg,
         stateDir: params.stateDir,
       });
+      // Allowlist entries may use aliases/canonical ids. Normalize against the
+      // current registry before treating an entry as phantom.
       const normalizePluginId = createPluginRegistryIdNormalizer(pluginIndex);
       const indexedPluginIds = new Set(
         pluginIndex.plugins.map((plugin) => plugin.pluginId.toLowerCase()),
@@ -392,6 +397,8 @@ export async function collectPluginsTrustFindings(params: {
         const profile = context.tools?.profile ?? params.cfg.tools?.profile;
         const restrictiveProfile = Boolean(deps.resolveToolProfilePolicy(profile));
         const sandboxMode = deps.resolveSandboxConfigForAgent(params.cfg, context.agentId).mode;
+        // Probe with a synthetic plugin tool id: broad allow policies will allow
+        // it, while restrictive profiles or explicit allowlists should not.
         const policies = resolveToolPolicies({
           cfg: params.cfg,
           deps,
@@ -399,7 +406,7 @@ export async function collectPluginsTrustFindings(params: {
           sandboxMode,
           agentId: context.agentId,
         });
-        const broadPolicy = deps.isToolAllowedByPolicies("__astroclaw_plugin_probe__", policies);
+        const broadPolicy = deps.isToolAllowedByPolicies("__openclaw_plugin_probe__", policies);
         const explicitPluginAllow =
           !restrictiveProfile &&
           (hasExplicitPluginAllow({
@@ -482,6 +489,8 @@ export async function collectPluginsTrustFindings(params: {
       if (!recordedVersion) {
         continue;
       }
+      // Installed package.json is the local truth; registry metadata drift means
+      // update/reinstall should refresh the recorded supply-chain evidence.
       const installPath = record.installPath ?? path.join(params.stateDir, "extensions", pluginId);
       const installedVersion = await readInstalledPackageVersion(installPath);
       if (!installedVersion || installedVersion === recordedVersion) {
@@ -498,7 +507,7 @@ export async function collectPluginsTrustFindings(params: {
         title: "Plugin index records drift from installed package versions",
         detail: `Detected plugin install metadata drift:\n${pluginVersionDrift.map((entry) => `- ${entry}`).join("\n")}`,
         remediation:
-          "Run `astroclaw plugins update --all` (or reinstall affected plugins) to refresh install metadata.",
+          "Run `openclaw plugins update --all` (or reinstall affected plugins) to refresh install metadata.",
       });
     }
   }
@@ -560,7 +569,7 @@ export async function collectPluginsTrustFindings(params: {
         title: "Hook install records drift from installed package versions",
         detail: `Detected hook install metadata drift:\n${hookVersionDrift.map((entry) => `- ${entry}`).join("\n")}`,
         remediation:
-          "Run `astroclaw hooks update --all` (or reinstall affected hooks) to refresh install metadata.",
+          "Run `openclaw hooks update --all` (or reinstall affected hooks) to refresh install metadata.",
       });
     }
   }
