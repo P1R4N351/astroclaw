@@ -1,18 +1,21 @@
+// Routing binding helpers resolve configured channel and agent route bindings.
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { listRouteBindings } from "../config/bindings.js";
 import type { AgentRouteBinding } from "../config/types.agents.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   normalizeRouteBindingChannelId,
   resolveNormalizedRouteBindingMatch,
 } from "./binding-scope.js";
 import { normalizeAgentId } from "./session-key.js";
 
-export function listBindings(cfg: AstroclawConfig): AgentRouteBinding[] {
+// Public binding helpers used by routing UI/diagnostics. They expose concrete
+// account ids derived from configured agent route bindings.
+export function listBindings(cfg: OpenClawConfig): AgentRouteBinding[] {
   return listRouteBindings(cfg);
 }
 
-export function listBoundAccountIds(cfg: AstroclawConfig, channelId: string): string[] {
+export function listBoundAccountIds(cfg: OpenClawConfig, channelId: string): string[] {
   const normalizedChannel = normalizeRouteBindingChannelId(channelId);
   if (!normalizedChannel) {
     return [];
@@ -29,7 +32,7 @@ export function listBoundAccountIds(cfg: AstroclawConfig, channelId: string): st
 }
 
 export function resolveDefaultAgentBoundAccountId(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   channelId: string,
 ): string | null {
   const normalizedChannel = normalizeRouteBindingChannelId(channelId);
@@ -51,13 +54,15 @@ export function resolveDefaultAgentBoundAccountId(
   return null;
 }
 
-export function buildChannelAccountBindings(cfg: AstroclawConfig) {
+export function buildChannelAccountBindings(cfg: OpenClawConfig) {
   const map = new Map<string, Map<string, string[]>>();
   for (const binding of listBindings(cfg)) {
     const resolved = resolveNormalizedRouteBindingMatch(binding);
     if (!resolved) {
       continue;
     }
+    // Map shape is channel -> agent -> accounts so callers can answer both
+    // "what accounts exist here" and "which accounts are bound to this agent".
     const byAgent = map.get(resolved.channelId) ?? new Map<string, string[]>();
     const list = byAgent.get(resolved.agentId) ?? [];
     if (!list.includes(resolved.accountId)) {
