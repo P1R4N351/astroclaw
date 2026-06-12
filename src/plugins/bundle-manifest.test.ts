@@ -1,3 +1,4 @@
+/** Tests bundle manifest parsing for Codex, Claude, Cursor, and OpenClaw formats. */
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -28,7 +29,7 @@ type ReadonlyBundleManifestExpectation = Omit<
 const tempDirs: string[] = [];
 
 function makeTempDir() {
-  return makeTrackedTempDir("astroclaw-bundle-manifest", tempDirs);
+  return makeTrackedTempDir("openclaw-bundle-manifest", tempDirs);
 }
 
 const mkdirSafe = mkdirSafeDir;
@@ -120,7 +121,7 @@ function setupClaudeHookFixture(
   });
 }
 
-type ExpectedBundlePluginManifest = Omit<
+type _ExpectedBundlePluginManifest = Omit<
   BundlePluginManifest,
   "bundleFormat" | "skills" | "settingsFiles" | "hooks" | "capabilities"
 > & {
@@ -155,9 +156,9 @@ afterEach(() => {
 });
 
 describe("bundle manifest parsing", () => {
-  it("does not treat astroclaw.bundle.json as a bundle manifest", () => {
+  it("does not treat openclaw.bundle.json as a bundle manifest", () => {
     const rootDir = makeTempDir();
-    writeBundleManifest(rootDir, "astroclaw.bundle.json", {
+    writeBundleManifest(rootDir, "openclaw.bundle.json", {
       name: "Not Real",
       skills: ["skills"],
     });
@@ -324,6 +325,54 @@ describe("bundle manifest parsing", () => {
       rootDir,
       bundleFormat,
       expected: typeof expected === "function" ? expected(rootDir) : expected,
+    });
+  });
+
+  it("detects Link-style Codex bundles with skills and MCP servers", () => {
+    const rootDir = makeTempDir();
+    setupBundleFixture({
+      rootDir,
+      dirs: [".codex-plugin", "skills/create-payment-credential"],
+      textFiles: {
+        ".mcp.json": JSON.stringify({
+          mcpServers: {
+            link: {
+              command: "pnpx",
+              args: ["@stripe/link-cli", "--mcp"],
+            },
+          },
+        }),
+      },
+      manifestRelativePath: CODEX_BUNDLE_MANIFEST_RELATIVE_PATH,
+      manifest: {
+        name: "link",
+        version: "0.2.1",
+        description: "Secure, one-time-use payment credentials from Link",
+        homepage: "https://link.com/agents",
+        repository: "https://github.com/stripe/link-cli",
+        skills: "./skills/",
+        mcpServers: "./.mcp.json",
+        interface: {
+          displayName: "Link",
+          category: "Finance",
+        },
+      },
+    });
+
+    expectBundleManifest({
+      rootDir,
+      bundleFormat: "codex",
+      expected: {
+        id: "link",
+        name: "link",
+        version: "0.2.1",
+        description: "Secure, one-time-use payment credentials from Link",
+        bundleFormat: "codex",
+        skills: ["./skills/"],
+        settingsFiles: [],
+        hooks: [],
+        capabilities: expect.arrayContaining(["skills", "mcpServers"]),
+      },
     });
   });
 
