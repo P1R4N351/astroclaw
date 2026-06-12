@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+// Qa Lab tests cover browser runtime plugin behavior.
+import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   callQaBrowserRequest,
   qaBrowserAct,
@@ -16,6 +18,10 @@ function createEnv() {
 }
 
 describe("browser-runtime", () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+  });
+
   it("sends normalized browser.request payloads through the gateway", async () => {
     const env = createEnv();
 
@@ -54,7 +60,7 @@ describe("browser-runtime", () => {
 
     await qaBrowserOpenTab(env, {
       url: "http://127.0.0.1:43124/control-ui/chat?session=test",
-      profile: "astroclaw",
+      profile: "openclaw",
     });
 
     expect(env.gateway.call).toHaveBeenCalledWith(
@@ -63,7 +69,7 @@ describe("browser-runtime", () => {
         method: "POST",
         path: "/tabs/open",
         query: {
-          profile: "astroclaw",
+          profile: "openclaw",
         },
         body: {
           url: "http://127.0.0.1:43124/control-ui/chat?session=test",
@@ -107,7 +113,7 @@ describe("browser-runtime", () => {
     const env = createEnv();
 
     await qaBrowserAct(env, {
-      profile: "astroclaw",
+      profile: "openclaw",
       request: {
         kind: "type",
         ref: "12",
@@ -123,7 +129,7 @@ describe("browser-runtime", () => {
         method: "POST",
         path: "/act",
         query: {
-          profile: "astroclaw",
+          profile: "openclaw",
         },
         body: {
           kind: "type",
@@ -134,6 +140,28 @@ describe("browser-runtime", () => {
         timeoutMs: 9_000,
       },
       { timeoutMs: 9_000 },
+    );
+  });
+
+  it("caps oversized browser request timeouts", async () => {
+    const env = createEnv();
+
+    await callQaBrowserRequest(env, {
+      method: "GET",
+      path: "/snapshot",
+      timeoutMs: Number.MAX_SAFE_INTEGER,
+    });
+
+    expect(env.gateway.call).toHaveBeenCalledWith(
+      "browser.request",
+      {
+        method: "GET",
+        path: "/snapshot",
+        query: undefined,
+        body: undefined,
+        timeoutMs: MAX_TIMER_TIMEOUT_MS,
+      },
+      { timeoutMs: MAX_TIMER_TIMEOUT_MS },
     );
   });
 
@@ -148,6 +176,7 @@ describe("browser-runtime", () => {
       profile: "user",
       timeoutMs: 5_000,
       intervalMs: 1,
+      sleepImpl: async () => {},
     });
 
     expect(status).toEqual({ enabled: true, running: true, cdpReady: true });
