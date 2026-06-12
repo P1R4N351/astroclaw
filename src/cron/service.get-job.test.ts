@@ -1,3 +1,4 @@
+// Cron get-job tests cover lookup behavior for scheduled jobs.
 import { describe, expect, it, vi } from "vitest";
 import { CronService } from "./service.js";
 import {
@@ -7,7 +8,7 @@ import {
 } from "./service.test-harness.js";
 
 const logger = createNoopLogger();
-const { makeStorePath } = createCronStoreHarness({ prefix: "astroclaw-cron-get-job-" });
+const { makeStorePath } = createCronStoreHarness({ prefix: "openclaw-cron-get-job-" });
 installCronTestHooks({ logger });
 
 function createCronService(storePath: string, cronEnabled = true) {
