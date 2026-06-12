@@ -1,3 +1,4 @@
+// Bonjour tests cover ciao plugin behavior.
 import { describe, expect, it } from "vitest";
 
 const { classifyCiaoUnhandledRejection, ignoreCiaoUnhandledRejection } = await import("./ciao.js");
@@ -53,13 +54,13 @@ describe("bonjour-ciao", () => {
     expect(
       classifyCiaoUnhandledRejection(
         new Error(
-          "Can't probe for a service which is announced already. Received announcing for service Astroclaw Gateway._astroclaw._tcp.local.",
+          "Can't probe for a service which is announced already. Received announcing for service OpenClaw Gateway._openclaw._tcp.local.",
         ),
       ),
     ).toEqual({
       kind: "self-probe",
       formatted:
-        "Can't probe for a service which is announced already. Received announcing for service Astroclaw Gateway._astroclaw._tcp.local.",
+        "Can't probe for a service which is announced already. Received announcing for service OpenClaw Gateway._openclaw._tcp.local.",
     });
   });
 
