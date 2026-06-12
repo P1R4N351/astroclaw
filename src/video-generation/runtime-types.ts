@@ -1,6 +1,7 @@
+// Video runtime types describe auth and provider execution dependencies.
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
 import type { FallbackAttempt } from "../agents/model-fallback.types.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   GeneratedVideoAsset,
   VideoGenerationIgnoredOverride,
@@ -11,7 +12,7 @@ import type {
 } from "./types.js";
 
 export type GenerateVideoParams = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   prompt: string;
   agentDir?: string;
   authStore?: AuthProfileStore;
@@ -43,7 +44,7 @@ export type GenerateVideoRuntimeResult = {
 };
 
 export type ListRuntimeVideoGenerationProvidersParams = {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
 };
 
 export type RuntimeVideoGenerationProvider = VideoGenerationProvider;
