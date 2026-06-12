@@ -1,11 +1,12 @@
+// Diffs tests cover browser plugin behavior.
 import fs from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
-import { createTestPluginApi } from "astroclaw/plugin-sdk/plugin-test-api";
-import { createMockServerResponse } from "astroclaw/plugin-sdk/test-env";
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
+import { createMockServerResponse } from "openclaw/plugin-sdk/test-env";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../api.js";
-import type { AstroclawPluginApi, AstroclawPluginToolContext } from "../api.js";
+import type { OpenClawConfig } from "../api.js";
+import type { OpenClawPluginApi, OpenClawPluginToolContext } from "../api.js";
 import { registerDiffsPlugin } from "./plugin.js";
 import { createTempDiffRoot } from "./test-helpers.js";
 
@@ -50,7 +51,7 @@ describe("PlaywrightDiffScreenshotter", () => {
 
   beforeEach(async () => {
     vi.useFakeTimers();
-    ({ rootDir, cleanup: cleanupRootDir } = await createTempDiffRoot("astroclaw-diffs-browser-"));
+    ({ rootDir, cleanup: cleanupRootDir } = await createTempDiffRoot("openclaw-diffs-browser-"));
     outputPath = path.join(rootDir, "preview.png");
     launchMock.mockReset();
     await resetSharedBrowserStateForTests();
@@ -218,13 +219,13 @@ describe("diffs plugin registration", () => {
       req: IncomingMessage,
       res: ServerResponse,
     ) => boolean | Promise<boolean>;
-    type RegisteredHttpRouteParams = Parameters<AstroclawPluginApi["registerHttpRoute"]>[0];
+    type RegisteredHttpRouteParams = Parameters<OpenClawPluginApi["registerHttpRoute"]>[0];
 
     let registeredToolFactory:
-      | ((ctx: AstroclawPluginToolContext) => RegisteredTool | RegisteredTool[] | null | undefined)
+      | ((ctx: OpenClawPluginToolContext) => RegisteredTool | RegisteredTool[] | null | undefined)
       | undefined;
     let registeredHttpRouteHandler: HttpRouteHandler | undefined;
-    let configFile: AstroclawConfig = {
+    let configFile: OpenClawConfig = {
       gateway: {
         port: 18789,
         bind: "loopback",
@@ -233,7 +234,7 @@ describe("diffs plugin registration", () => {
         entries: {
           diffs: {
             config: {
-              viewerBaseUrl: "https://startup.example.com/astroclaw",
+              viewerBaseUrl: "https://startup.example.com/openclaw",
               defaults: {
                 mode: "view",
                 theme: "light",
@@ -247,7 +248,7 @@ describe("diffs plugin registration", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const api = createTestPluginApi({
       id: "diffs",
@@ -261,7 +262,7 @@ describe("diffs plugin registration", () => {
         },
       },
       pluginConfig: {
-        viewerBaseUrl: "https://startup.example.com/astroclaw",
+        viewerBaseUrl: "https://startup.example.com/openclaw",
         defaults: {
           mode: "view",
           theme: "light",
@@ -277,7 +278,7 @@ describe("diffs plugin registration", () => {
           current: () => configFile,
         },
       } as never,
-      registerTool(tool: Parameters<AstroclawPluginApi["registerTool"]>[0]) {
+      registerTool(tool: Parameters<OpenClawPluginApi["registerTool"]>[0]) {
         registeredToolFactory = typeof tool === "function" ? tool : () => tool;
       },
       registerHttpRoute(params: RegisteredHttpRouteParams) {
@@ -286,7 +287,7 @@ describe("diffs plugin registration", () => {
       on: vi.fn(),
     });
 
-    registerDiffsPlugin(api as unknown as AstroclawPluginApi);
+    registerDiffsPlugin(api as unknown as OpenClawPluginApi);
 
     configFile = {
       ...configFile,
@@ -308,7 +309,7 @@ describe("diffs plugin registration", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const registeredTool = registeredToolFactory?.({
       agentId: "main",
@@ -350,14 +351,14 @@ describe("diffs plugin registration", () => {
       req: IncomingMessage,
       res: ServerResponse,
     ) => boolean | Promise<boolean>;
-    type RegisteredHttpRouteParams = Parameters<AstroclawPluginApi["registerHttpRoute"]>[0];
+    type RegisteredHttpRouteParams = Parameters<OpenClawPluginApi["registerHttpRoute"]>[0];
 
     let registeredToolFactory:
-      | ((ctx: AstroclawPluginToolContext) => RegisteredTool | RegisteredTool[] | null | undefined)
+      | ((ctx: OpenClawPluginToolContext) => RegisteredTool | RegisteredTool[] | null | undefined)
       | undefined;
     let registeredHttpRouteHandler: HttpRouteHandler | undefined;
     const on = vi.fn();
-    let configFile: AstroclawConfig = {
+    let configFile: OpenClawConfig = {
       gateway: {
         port: 18789,
         bind: "loopback",
@@ -373,7 +374,7 @@ describe("diffs plugin registration", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const api = createTestPluginApi({
       id: "diffs",
@@ -405,7 +406,7 @@ describe("diffs plugin registration", () => {
           current: () => configFile,
         },
       } as never,
-      registerTool(tool: Parameters<AstroclawPluginApi["registerTool"]>[0]) {
+      registerTool(tool: Parameters<OpenClawPluginApi["registerTool"]>[0]) {
         registeredToolFactory = typeof tool === "function" ? tool : () => tool;
       },
       registerHttpRoute(params: RegisteredHttpRouteParams) {
@@ -414,7 +415,7 @@ describe("diffs plugin registration", () => {
       on,
     });
 
-    registerDiffsPlugin(api as unknown as AstroclawPluginApi);
+    registerDiffsPlugin(api as unknown as OpenClawPluginApi);
 
     expect(on).toHaveBeenCalledTimes(1);
     const [hookName, beforePromptBuild] = firstMockCall(on, "plugin hook registration");
@@ -480,7 +481,7 @@ describe("diffs plugin registration", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const proxiedRes = createMockServerResponse();
     const proxiedHandled = await registeredHttpRouteHandler?.(
@@ -506,13 +507,13 @@ describe("diffs plugin registration", () => {
       req: IncomingMessage,
       res: ServerResponse,
     ) => boolean | Promise<boolean>;
-    type RegisteredHttpRouteParams = Parameters<AstroclawPluginApi["registerHttpRoute"]>[0];
+    type RegisteredHttpRouteParams = Parameters<OpenClawPluginApi["registerHttpRoute"]>[0];
 
     let registeredToolFactory:
-      | ((ctx: AstroclawPluginToolContext) => RegisteredTool | RegisteredTool[] | null | undefined)
+      | ((ctx: OpenClawPluginToolContext) => RegisteredTool | RegisteredTool[] | null | undefined)
       | undefined;
     let registeredHttpRouteHandler: HttpRouteHandler | undefined;
-    let configFile: AstroclawConfig = {
+    let configFile: OpenClawConfig = {
       gateway: {
         port: 18789,
         bind: "loopback",
@@ -528,7 +529,7 @@ describe("diffs plugin registration", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const api = createTestPluginApi({
       id: "diffs",
@@ -551,7 +552,7 @@ describe("diffs plugin registration", () => {
           current: () => configFile,
         },
       } as never,
-      registerTool(tool: Parameters<AstroclawPluginApi["registerTool"]>[0]) {
+      registerTool(tool: Parameters<OpenClawPluginApi["registerTool"]>[0]) {
         registeredToolFactory = typeof tool === "function" ? tool : () => tool;
       },
       registerHttpRoute(params: RegisteredHttpRouteParams) {
@@ -560,7 +561,7 @@ describe("diffs plugin registration", () => {
       on: vi.fn(),
     });
 
-    registerDiffsPlugin(api as unknown as AstroclawPluginApi);
+    registerDiffsPlugin(api as unknown as OpenClawPluginApi);
 
     const registeredTool = registeredToolFactory?.({
       agentId: "main",
@@ -581,7 +582,7 @@ describe("diffs plugin registration", () => {
       plugins: {
         entries: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const proxiedRes = createMockServerResponse();
     const proxiedHandled = await registeredHttpRouteHandler?.(
@@ -600,12 +601,12 @@ describe("diffs plugin registration", () => {
   });
 });
 
-function createConfig(): AstroclawConfig {
+function createConfig(): OpenClawConfig {
   return {
     browser: {
       executablePath: process.execPath,
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function localReq(input: {
