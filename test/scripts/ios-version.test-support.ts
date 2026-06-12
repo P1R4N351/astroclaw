@@ -1,3 +1,4 @@
+// iOS version test support provides shared fixtures for iOS script tests.
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach } from "vitest";
@@ -19,7 +20,7 @@ export function writeIosFixture(params: {
   versionXcconfig?: string;
   prefix?: string;
 }): string {
-  const rootDir = makeTempDir(tempDirs, params.prefix ?? "astroclaw-ios-version-");
+  const rootDir = makeTempDir(tempDirs, params.prefix ?? "openclaw-ios-version-");
   fs.mkdirSync(path.join(rootDir, "apps", "ios", "Config"), { recursive: true });
   fs.mkdirSync(path.join(rootDir, "apps", "ios", "fastlane", "metadata", "en-US"), {
     recursive: true,
