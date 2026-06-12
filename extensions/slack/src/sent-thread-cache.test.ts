@@ -1,4 +1,5 @@
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+// Slack tests cover sent thread cache plugin behavior.
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearSlackRuntime, setSlackRuntime } from "./runtime.js";
 import {
