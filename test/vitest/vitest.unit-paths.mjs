@@ -1,3 +1,4 @@
+// Unit test routing globs and boundary/bundled-plugin exclusions.
 import path from "node:path";
 import { BUNDLED_PLUGIN_ROOT_DIR } from "../../scripts/lib/bundled-plugin-paths.mjs";
 
@@ -11,8 +12,8 @@ export const boundaryTestFiles = [
   "src/infra/boundary-path.test.ts",
   "src/infra/git-root.test.ts",
   "src/infra/home-dir.test.ts",
-  "src/infra/astroclaw-exec-env.test.ts",
-  "src/infra/astroclaw-root.test.ts",
+  "src/infra/openclaw-exec-env.test.ts",
+  "src/infra/openclaw-root.test.ts",
   "src/infra/package-json.test.ts",
   "src/infra/path-env.test.ts",
   "src/infra/stable-node-path.test.ts",
@@ -60,8 +61,8 @@ export const unitTestAdditionalExcludePatterns = [
   "src/infra/boundary-path.test.ts",
   "src/infra/git-root.test.ts",
   "src/infra/home-dir.test.ts",
-  "src/infra/astroclaw-exec-env.test.ts",
-  "src/infra/astroclaw-root.test.ts",
+  "src/infra/openclaw-exec-env.test.ts",
+  "src/infra/openclaw-root.test.ts",
   "src/infra/package-json.test.ts",
   "src/infra/path-env.test.ts",
   "src/infra/stable-node-path.test.ts",
@@ -78,7 +79,7 @@ const sharedBaseExcludePatterns = [
   "apps/macos/.build/**",
   "**/node_modules/**",
   "**/vendor/**",
-  "dist/Astroclaw.app/**",
+  "dist/OpenClaw.app/**",
   "**/*.live.test.ts",
   "**/*.e2e.test.ts",
 ];
