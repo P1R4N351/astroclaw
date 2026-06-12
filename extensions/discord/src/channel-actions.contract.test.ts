@@ -1,5 +1,6 @@
-import { installChannelActionsContractSuite } from "astroclaw/plugin-sdk/channel-test-helpers";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Discord tests cover channel actions.contract plugin behavior.
+import { installChannelActionsContractSuite } from "openclaw/plugin-sdk/channel-test-helpers";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { describe } from "vitest";
 import { discordPlugin } from "../api.js";
 
@@ -36,7 +37,7 @@ describe("discord actions contract", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         expectedActions: ["send", "poll", "react", "reactions", "emoji-list"],
         expectedCapabilities: ["presentation"],
       },
