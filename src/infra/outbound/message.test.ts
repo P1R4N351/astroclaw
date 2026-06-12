@@ -1,3 +1,5 @@
+// Covers outbound message send/poll orchestration, target resolution, durable
+// capability checks, gateway fallback, dry runs, and payload planning.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -27,7 +29,7 @@ vi.mock("../../agents/agent-scope.js", () => ({
     const match = sessionKey?.match(/^agent:([^:]+)/i);
     return match?.[1] ?? "main";
   },
-  resolveAgentWorkspaceDir: () => "/tmp/astroclaw-test-workspace",
+  resolveAgentWorkspaceDir: () => "/tmp/openclaw-test-workspace",
 }));
 
 vi.mock("../../config/plugin-auto-enable.js", () => ({
@@ -271,7 +273,7 @@ describe("sendMessage", () => {
       channel: "forum",
       to: "123456",
       content: "voice note",
-      mediaUrl: "file:///tmp/astroclaw-voice.ogg",
+      mediaUrl: "file:///tmp/openclaw-voice.ogg",
       asVoice: true,
     });
 
@@ -279,7 +281,7 @@ describe("sendMessage", () => {
       (expectDeliveryCallFields({}).payloads as unknown[] | undefined)?.[0],
       {
         text: "voice note",
-        mediaUrl: "file:///tmp/astroclaw-voice.ogg",
+        mediaUrl: "file:///tmp/openclaw-voice.ogg",
         audioAsVoice: true,
       },
       "voice payload",
@@ -341,16 +343,18 @@ describe("sendMessage", () => {
       capability: "reconcileUnknownSend",
     });
 
-    await expect(
-      sendMessage({
-        cfg: {},
-        channel: "forum",
-        to: "123456",
-        content: "fallback text",
-        payloads: [{ text: "prepared", channelData: { forum: { card: true } } }],
-        queuePolicy: "required",
-      }),
-    ).rejects.toThrow("missing reconcileUnknownSend");
+    const send = sendMessage({
+      cfg: {},
+      channel: "forum",
+      to: "123456",
+      content: "fallback text",
+      payloads: [{ text: "prepared", channelData: { forum: { card: true } } }],
+      queuePolicy: "required",
+    });
+
+    await expect(send).rejects.toThrow(
+      /missing reconcileUnknownSend[\s\S]*queuePolicy:"best_effort"[\s\S]*omit bestEffort:false/,
+    );
 
     expect(mocks.deliverOutboundPayloads).not.toHaveBeenCalled();
   });
