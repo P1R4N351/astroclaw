@@ -1,3 +1,4 @@
+// Covers in-memory system presence merging and expiry behavior.
 import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { listSystemPresence, updateSystemPresence, upsertPresence } from "./system-presence.js";
@@ -12,7 +13,7 @@ describe("system-presence", () => {
     const instanceIdLower = instanceIdUpper.toLowerCase();
 
     upsertPresence(instanceIdUpper, {
-      host: "astroclaw",
+      host: "openclaw",
       mode: "ui",
       instanceId: instanceIdUpper,
       reason: "connect",
@@ -43,7 +44,7 @@ describe("system-presence", () => {
 
     upsertPresence(deviceId, {
       deviceId,
-      host: "astroclaw",
+      host: "openclaw",
       roles: ["operator"],
       scopes: ["operator.admin"],
       reason: "connect",
