@@ -1,8 +1,10 @@
+import { resolveFfmpegBin } from "openclaw/plugin-sdk/media-runtime";
+// Minimax tests cover minimax plugin behavior.
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
-import { isLiveTestEnabled } from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
+import { isLiveTestEnabled } from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 import { buildMinimaxSpeechProvider } from "./speech-provider.js";
@@ -34,6 +36,20 @@ const registerMinimaxPlugin = () =>
     name: "MiniMax Provider",
   });
 
+function hasTrustedFfmpegForLiveVoiceNote(): boolean {
+  try {
+    resolveFfmpegBin();
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("ffmpeg not found in trusted system directories")) {
+      console.warn("[minimax:live] skip voice-note transcode: ffmpeg unavailable");
+      return false;
+    }
+    throw error;
+  }
+}
+
 describeLive("minimax plugin live", () => {
   it("runs MiniMax web search through the provider tool", async () => {
     const provider = createMiniMaxWebSearchProvider();
@@ -42,7 +58,7 @@ describeLive("minimax plugin live", () => {
       searchConfig: { apiKey: MINIMAX_SEARCH_KEY, cacheTtlMinutes: 0 },
     } as never);
 
-    const result = await tool?.execute({ query: "Astroclaw GitHub", count: 1 });
+    const result = await tool?.execute({ query: "OpenClaw GitHub", count: 1 });
 
     expect(result?.provider).toBe("minimax");
     expect(result?.count).toBeGreaterThan(0);
@@ -56,7 +72,7 @@ describeTtsLive("minimax tts live", () => {
     const provider = requireRegisteredProvider(speechProviders, "minimax");
 
     const audioFile = await provider.synthesize({
-      text: "Astroclaw MiniMax text to speech integration test OK.",
+      text: "OpenClaw MiniMax text to speech integration test OK.",
       cfg: { plugins: { enabled: true } } as never,
       providerConfig: { apiKey: MINIMAX_API_KEY },
       target: "audio-file",
@@ -69,10 +85,14 @@ describeTtsLive("minimax tts live", () => {
   }, 120_000);
 
   it("synthesizes MiniMax TTS as an Opus voice note", async () => {
+    if (!hasTrustedFfmpegForLiveVoiceNote()) {
+      return;
+    }
+
     const provider = buildMinimaxSpeechProvider();
 
     const voiceNote = await provider.synthesize({
-      text: "Astroclaw MiniMax voice note test OK.",
+      text: "OpenClaw MiniMax voice note test OK.",
       cfg: { plugins: { enabled: true } } as never,
       providerConfig: { apiKey: MINIMAX_API_KEY },
       target: "voice-note",
@@ -94,7 +114,7 @@ describeTokenPlanTtsLive("minimax token plan tts live", () => {
       const provider = buildMinimaxSpeechProvider();
 
       const audioFile = await provider.synthesize({
-        text: "Astroclaw MiniMax Token Plan text to speech integration test OK.",
+        text: "OpenClaw MiniMax Token Plan text to speech integration test OK.",
         cfg: { plugins: { enabled: true } } as never,
         providerConfig: {},
         target: "audio-file",
