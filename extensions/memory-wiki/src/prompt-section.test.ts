@@ -1,3 +1,4 @@
+// Memory Wiki tests cover prompt section plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -34,9 +35,9 @@ describe("buildWikiPromptSection", () => {
 
   it("can append a compact compiled digest snapshot when enabled", async () => {
     const rootDir = path.join(suiteRoot, "digest-enabled");
-    await fs.mkdir(path.join(rootDir, ".astroclaw-wiki", "cache"), { recursive: true });
+    await fs.mkdir(path.join(rootDir, ".openclaw-wiki", "cache"), { recursive: true });
     await fs.writeFile(
-      path.join(rootDir, ".astroclaw-wiki", "cache", "agent-digest.json"),
+      path.join(rootDir, ".openclaw-wiki", "cache", "agent-digest.json"),
       JSON.stringify(
         {
           claimCount: 8,
@@ -82,9 +83,9 @@ describe("buildWikiPromptSection", () => {
 
   it("keeps the digest snapshot disabled by default", async () => {
     const rootDir = path.join(suiteRoot, "digest-disabled");
-    await fs.mkdir(path.join(rootDir, ".astroclaw-wiki", "cache"), { recursive: true });
+    await fs.mkdir(path.join(rootDir, ".openclaw-wiki", "cache"), { recursive: true });
     await fs.writeFile(
-      path.join(rootDir, ".astroclaw-wiki", "cache", "agent-digest.json"),
+      path.join(rootDir, ".openclaw-wiki", "cache", "agent-digest.json"),
       JSON.stringify({
         claimCount: 1,
         pages: [{ title: "Alpha", kind: "entity", claimCount: 1, topClaims: [] }],
@@ -102,7 +103,7 @@ describe("buildWikiPromptSection", () => {
 
   it("stabilizes digest prompt ordering for prompt-cache-friendly output", async () => {
     const rootDir = path.join(suiteRoot, "digest-stable");
-    const digestPath = path.join(rootDir, ".astroclaw-wiki", "cache", "agent-digest.json");
+    const digestPath = path.join(rootDir, ".openclaw-wiki", "cache", "agent-digest.json");
     await fs.mkdir(path.dirname(digestPath), { recursive: true });
 
     const builder = createWikiPromptSectionBuilder(
