@@ -1,3 +1,4 @@
+// Vitest unit config tests validate unit test project configuration.
 import { afterEach, describe, expect, it } from "vitest";
 import { createPatternFileHelper } from "./helpers/pattern-file.js";
 import { normalizeConfigPath, normalizeConfigPaths } from "./helpers/vitest-config-paths.js";
@@ -5,11 +6,10 @@ import {
   createUnitVitestConfig,
   createUnitVitestConfigWithOptions,
   loadExtraExcludePatternsFromEnv,
-  loadIncludePatternsFromEnv,
   resolveDefaultUnitCoverageIncludePatterns,
 } from "./vitest/vitest.unit.config.ts";
 
-const patternFiles = createPatternFileHelper("astroclaw-vitest-unit-config-");
+const patternFiles = createPatternFileHelper("openclaw-vitest-unit-config-");
 
 function requireTestConfig<T extends { test?: unknown }>(config: T): NonNullable<T["test"]> {
   if (!config.test) {
@@ -20,27 +20,6 @@ function requireTestConfig<T extends { test?: unknown }>(config: T): NonNullable
 
 afterEach(() => {
   patternFiles.cleanup();
-});
-
-describe("loadIncludePatternsFromEnv", () => {
-  it("returns null when no include file is configured", () => {
-    expect(loadIncludePatternsFromEnv({})).toBeNull();
-  });
-
-  it("loads include patterns from a JSON file", () => {
-    const filePath = patternFiles.writePatternFile("include.json", [
-      "src/infra/update-runner.test.ts",
-      42,
-      "",
-      "ui/src/ui/views/chat.test.ts",
-    ]);
-
-    expect(
-      loadIncludePatternsFromEnv({
-        ASTROCLAW_VITEST_INCLUDE_FILE: filePath,
-      }),
-    ).toEqual(["src/infra/update-runner.test.ts", "ui/src/ui/views/chat.test.ts"]);
-  });
 });
 
 describe("loadExtraExcludePatternsFromEnv", () => {
@@ -58,7 +37,7 @@ describe("loadExtraExcludePatternsFromEnv", () => {
 
     expect(
       loadExtraExcludePatternsFromEnv({
-        ASTROCLAW_VITEST_EXTRA_EXCLUDE_FILE: filePath,
+        OPENCLAW_VITEST_EXTRA_EXCLUDE_FILE: filePath,
       }),
     ).toEqual(["src/infra/update-runner.test.ts", "ui/src/ui/views/chat.test.ts"]);
   });
@@ -70,7 +49,7 @@ describe("loadExtraExcludePatternsFromEnv", () => {
 
     expect(() =>
       loadExtraExcludePatternsFromEnv({
-        ASTROCLAW_VITEST_EXTRA_EXCLUDE_FILE: filePath,
+        OPENCLAW_VITEST_EXTRA_EXCLUDE_FILE: filePath,
       }),
     ).toThrow(/JSON array/u);
   });
@@ -102,6 +81,18 @@ describe("unit vitest config", () => {
     const unitConfig = createUnitVitestConfigWithOptions(
       {},
       {
+        argv: ["node", "vitest", "run", "src/commitments/store.test.ts"],
+      },
+    );
+    const testConfig = requireTestConfig(unitConfig);
+    expect(testConfig.include).toEqual(["src/commitments/store.test.ts"]);
+    expect(testConfig.passWithNoTests).toBeUndefined();
+  });
+
+  it("lets root Vitest project runs skip unit files owned by excluded projects", () => {
+    const unitConfig = createUnitVitestConfigWithOptions(
+      {},
+      {
         argv: ["node", "vitest", "run", "src/config/channel-configured.test.ts"],
       },
     );
@@ -110,12 +101,24 @@ describe("unit vitest config", () => {
     expect(testConfig.passWithNoTests).toBe(true);
   });
 
-  it("adds the Astroclaw runtime setup hooks on top of the base setup", () => {
+  it("lets unrelated root Vitest projects skip when CLI filters match no unit files", () => {
+    const unitConfig = createUnitVitestConfigWithOptions(
+      {},
+      {
+        argv: ["node", "vitest", "run", "extensions/browser/index.test.ts"],
+      },
+    );
+    const testConfig = requireTestConfig(unitConfig);
+    expect(testConfig.include).toEqual([]);
+    expect(testConfig.passWithNoTests).toBe(true);
+  });
+
+  it("adds the OpenClaw runtime setup hooks on top of the base setup", () => {
     const unitConfig = createUnitVitestConfig({});
     const testConfig = requireTestConfig(unitConfig);
     expect(normalizeConfigPaths(testConfig.setupFiles)).toEqual([
       "test/setup.ts",
-      "test/setup-astroclaw-runtime.ts",
+      "test/setup-openclaw-runtime.ts",
     ]);
   });
 
@@ -151,7 +154,7 @@ describe("unit vitest config", () => {
     expect(coverageInclude).toContain("src/commitments/runtime.ts");
     expect(coverageInclude).toContain("src/media-generation/runtime-shared.ts");
     expect(coverageInclude).toContain("src/web-search/runtime.ts");
-    expect(coverageInclude).not.toContain("src/markdown/render.ts");
+    expect(coverageInclude).not.toContain("packages/markdown-core/src/render.ts");
     expect(coverageInclude).not.toContain("src/security/audit-workspace-skills.ts");
   });
 
