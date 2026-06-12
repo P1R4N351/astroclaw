@@ -1,3 +1,4 @@
+// Doctor finalize config-flow tests cover final repair summaries and config mutation completion.
 import { describe, expect, it, vi } from "vitest";
 import { finalizeDoctorConfigFlow } from "./finalize-config-flow.js";
 
@@ -9,7 +10,7 @@ describe("doctor finalize config flow", () => {
       candidate: { channels: { signal: { enabled: true } } },
       pendingChanges: true,
       shouldRepair: false,
-      fixHints: ['Run "astroclaw doctor --fix" to apply these changes.'],
+      fixHints: ['Run "openclaw doctor --fix" to apply these changes.'],
       confirm: async () => true,
       note,
     });
@@ -28,7 +29,7 @@ describe("doctor finalize config flow", () => {
       candidate: { channels: { signal: { enabled: true } } },
       pendingChanges: true,
       shouldRepair: false,
-      fixHints: ['Run "astroclaw doctor --fix" to apply these changes.'],
+      fixHints: ['Run "openclaw doctor --fix" to apply these changes.'],
       confirm: async () => false,
       note,
     });
@@ -38,7 +39,7 @@ describe("doctor finalize config flow", () => {
       shouldWriteConfig: false,
     });
     expect(note).toHaveBeenCalledWith(
-      'Run "astroclaw doctor --fix" to apply these changes.',
+      'Run "openclaw doctor --fix" to apply these changes.',
       "Doctor",
     );
   });
