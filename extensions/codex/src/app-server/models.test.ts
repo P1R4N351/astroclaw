@@ -1,3 +1,4 @@
+// Codex tests cover models plugin behavior.
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { CodexAppServerClient } from "./client.js";
 import { createClientHarness } from "./test-support.js";
@@ -6,13 +7,14 @@ const mocks = vi.hoisted(() => {
   const authBridge = {
     applyAuthProfile: vi.fn(async () => undefined),
     authProfileId: vi.fn((params?: { authProfileId?: string }) => params?.authProfileId),
+    fallbackApiKeyCacheKey: vi.fn(() => undefined),
     startOptions: vi.fn(async ({ startOptions }) => startOptions),
   };
   const managedBinary = {
     startOptions: vi.fn(async (startOptions) => startOptions),
   };
   const providerAuth = {
-    agentDir: vi.fn(() => "/tmp/astroclaw-agent"),
+    agentDir: vi.fn(() => "/tmp/openclaw-agent"),
   };
   return { authBridge, managedBinary, providerAuth };
 });
@@ -20,6 +22,7 @@ const mocks = vi.hoisted(() => {
 vi.mock("./auth-bridge.js", () => ({
   applyCodexAppServerAuthProfile: mocks.authBridge.applyAuthProfile,
   bridgeCodexAppServerStartOptions: mocks.authBridge.startOptions,
+  resolveCodexAppServerFallbackApiKeyCacheKey: mocks.authBridge.fallbackApiKeyCacheKey,
   resolveCodexAppServerAuthProfileIdForAgent: mocks.authBridge.authProfileId,
 }));
 
@@ -27,7 +30,7 @@ vi.mock("./managed-binary.js", () => ({
   resolveManagedCodexAppServerStartOptions: mocks.managedBinary.startOptions,
 }));
 
-vi.mock("astroclaw/plugin-sdk/agent-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/agent-runtime", () => ({
   resolveDefaultAgentDir: mocks.providerAuth.agentDir,
 }));
 
@@ -50,6 +53,8 @@ describe("listCodexAppServerModels", () => {
     mocks.authBridge.authProfileId.mockImplementation(
       (params?: { authProfileId?: string }) => params?.authProfileId,
     );
+    mocks.authBridge.fallbackApiKeyCacheKey.mockClear();
+    mocks.authBridge.fallbackApiKeyCacheKey.mockReturnValue(undefined);
     mocks.authBridge.startOptions.mockClear();
     mocks.managedBinary.startOptions.mockClear();
     mocks.managedBinary.startOptions.mockImplementation(async (startOptions) => startOptions);
@@ -65,7 +70,7 @@ describe("listCodexAppServerModels", () => {
     const initialize = JSON.parse(harness.writes[0] ?? "{}") as { id?: number };
     harness.send({
       id: initialize.id,
-      result: { userAgent: "astroclaw/0.125.0 (macOS; test)" },
+      result: { userAgent: "openclaw/0.125.0 (macOS; test)" },
     });
     await vi.waitFor(() => expect(harness.writes.length).toBeGreaterThanOrEqual(3));
     const list = JSON.parse(harness.writes[2] ?? "{}") as { id?: number; method?: string };
@@ -127,7 +132,7 @@ describe("listCodexAppServerModels", () => {
     const initialize = JSON.parse(harness.writes[0] ?? "{}") as { id?: number };
     harness.send({
       id: initialize.id,
-      result: { userAgent: "astroclaw/0.125.0 (macOS; test)" },
+      result: { userAgent: "openclaw/0.125.0 (macOS; test)" },
     });
     await vi.waitFor(() => expect(harness.writes.length).toBeGreaterThanOrEqual(3));
     const firstList = JSON.parse(harness.writes[2] ?? "{}") as {
@@ -172,13 +177,13 @@ describe("listCodexAppServerModels", () => {
       result: {
         data: [
           {
-            id: "gpt-5.2",
-            model: "gpt-5.2",
+            id: "gpt-5.5",
+            model: "gpt-5.5",
             upgrade: null,
             upgradeInfo: null,
             availabilityNux: null,
-            displayName: "gpt-5.2",
-            description: "GPT-5.2",
+            displayName: "gpt-5.5",
+            description: "GPT-5.5",
             hidden: false,
             inputModalities: ["text", "image"],
             supportedReasoningEfforts: [],
@@ -193,7 +198,7 @@ describe("listCodexAppServerModels", () => {
     });
 
     const list = await listPromise;
-    expect(list.models.map((model) => model.id)).toEqual(["gpt-5.4", "gpt-5.2"]);
+    expect(list.models.map((model) => model.id)).toEqual(["gpt-5.4", "gpt-5.5"]);
     harness.client.close();
     startSpy.mockRestore();
   });
@@ -207,7 +212,7 @@ describe("listCodexAppServerModels", () => {
     const initialize = JSON.parse(harness.writes[0] ?? "{}") as { id?: number };
     harness.send({
       id: initialize.id,
-      result: { userAgent: "astroclaw/0.125.0 (macOS; test)" },
+      result: { userAgent: "openclaw/0.125.0 (macOS; test)" },
     });
     await vi.waitFor(() => expect(harness.writes.length).toBeGreaterThanOrEqual(3));
     const firstList = JSON.parse(harness.writes[2] ?? "{}") as { id?: number };
