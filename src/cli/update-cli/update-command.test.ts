@@ -1,3 +1,4 @@
+// Update command tests cover update command orchestration and filesystem effects.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -6,12 +7,15 @@ import {
   buildGatewayInstallEntrypointCandidates as resolveGatewayInstallEntrypointCandidates,
   resolveGatewayInstallEntrypoint,
 } from "../../daemon/gateway-entrypoint.js";
+import type { UpdateRunResult } from "../../infra/update-runner.js";
 import {
   buildInvalidConfigPostCoreUpdateResult,
   collectMissingPluginInstallPayloads,
+  formatPostUpdateGatewayRecoveryInstructions,
   recoverInstalledLaunchAgentAfterUpdate,
   recoverLaunchAgentAndRecheckGatewayHealth,
   resolvePostCoreUpdateChildStdio,
+  resolvePostUpdateServiceStateReadEnv,
   resolvePostInstallDoctorEnv,
   shouldPrepareUpdatedInstallRestart,
   resolveUpdatedGatewayRestartPort,
@@ -21,18 +25,18 @@ import {
 
 describe("resolveGatewayInstallEntrypointCandidates", () => {
   it("prefers index.js before legacy entry.js", () => {
-    expect(resolveGatewayInstallEntrypointCandidates("/tmp/astroclaw-root")).toEqual([
-      path.join("/tmp/astroclaw-root", "dist", "index.js"),
-      path.join("/tmp/astroclaw-root", "dist", "index.mjs"),
-      path.join("/tmp/astroclaw-root", "dist", "entry.js"),
-      path.join("/tmp/astroclaw-root", "dist", "entry.mjs"),
+    expect(resolveGatewayInstallEntrypointCandidates("/tmp/openclaw-root")).toEqual([
+      path.join("/tmp/openclaw-root", "dist", "index.js"),
+      path.join("/tmp/openclaw-root", "dist", "index.mjs"),
+      path.join("/tmp/openclaw-root", "dist", "entry.js"),
+      path.join("/tmp/openclaw-root", "dist", "entry.mjs"),
     ]);
   });
 });
 
 describe("resolveGatewayInstallEntrypoint", () => {
   it("prefers dist/index.js over dist/entry.js when both exist", async () => {
-    const root = "/tmp/astroclaw-root";
+    const root = "/tmp/openclaw-root";
     const indexPath = path.join(root, "dist", "index.js");
     const entryPath = path.join(root, "dist", "entry.js");
 
@@ -45,7 +49,7 @@ describe("resolveGatewayInstallEntrypoint", () => {
   });
 
   it("falls back to dist/entry.js when index.js is missing", async () => {
-    const root = "/tmp/astroclaw-root";
+    const root = "/tmp/openclaw-root";
     const entryPath = path.join(root, "dist", "entry.js");
 
     await expect(
@@ -75,7 +79,7 @@ describe("shouldPrepareUpdatedInstallRestart", () => {
     ).toBe(false);
   });
 
-  it("keeps non-package updates tied to the loaded service state", () => {
+  it("keeps non-package updates tied to the matching loaded service state", () => {
     expect(
       shouldPrepareUpdatedInstallRestart({
         updateMode: "git",
@@ -88,6 +92,26 @@ describe("shouldPrepareUpdatedInstallRestart", () => {
         updateMode: "git",
         serviceInstalled: true,
         serviceLoaded: true,
+        serviceMatchesUpdateRoot: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldPrepareUpdatedInstallRestart({
+        updateMode: "git",
+        serviceInstalled: true,
+        serviceLoaded: true,
+        serviceMatchesUpdateRoot: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("prepares git restart when this update stopped the managed service", () => {
+    expect(
+      shouldPrepareUpdatedInstallRestart({
+        updateMode: "git",
+        serviceInstalled: true,
+        serviceLoaded: false,
+        serviceStoppedForUpdate: true,
       }),
     ).toBe(true);
   });
@@ -98,8 +122,8 @@ describe("resolveUpdatedGatewayRestartPort", () => {
     expect(
       resolveUpdatedGatewayRestartPort({
         config: { gateway: { port: 19000 } } as never,
-        processEnv: { ASTROCLAW_GATEWAY_PORT: "19001" },
-        serviceEnv: { ASTROCLAW_GATEWAY_PORT: "19002" },
+        processEnv: { OPENCLAW_GATEWAY_PORT: "19001" },
+        serviceEnv: { OPENCLAW_GATEWAY_PORT: "19002" },
       }),
     ).toBe(19002);
   });
@@ -115,64 +139,111 @@ describe("resolveUpdatedGatewayRestartPort", () => {
   });
 });
 
+describe("resolvePostUpdateServiceStateReadEnv", () => {
+  it("keeps package restart preparation anchored to the pre-update service env", () => {
+    const processEnv = {
+      OPENCLAW_STATE_DIR: "/source/state",
+      OPENCLAW_CONFIG_PATH: "/source/openclaw.json",
+    } as NodeJS.ProcessEnv;
+    const prePackageServiceEnv = {
+      OPENCLAW_STATE_DIR: "/managed/state",
+      OPENCLAW_CONFIG_PATH: "/managed/openclaw.json",
+    } as NodeJS.ProcessEnv;
+
+    expect(
+      resolvePostUpdateServiceStateReadEnv({
+        updateMode: "npm",
+        processEnv,
+        prePackageServiceEnv,
+      }),
+    ).toBe(prePackageServiceEnv);
+  });
+
+  it("keeps git updates tied to the caller environment", () => {
+    const processEnv = { OPENCLAW_STATE_DIR: "/source/state" } as NodeJS.ProcessEnv;
+    const prePackageServiceEnv = { OPENCLAW_STATE_DIR: "/managed/state" } as NodeJS.ProcessEnv;
+
+    expect(
+      resolvePostUpdateServiceStateReadEnv({
+        updateMode: "git",
+        processEnv,
+        prePackageServiceEnv,
+      }),
+    ).toBe(processEnv);
+  });
+
+  it("uses the managed service environment for git updates stopped by this updater", () => {
+    const processEnv = { OPENCLAW_STATE_DIR: "/source/state" } as NodeJS.ProcessEnv;
+    const preManagedServiceEnv = { OPENCLAW_STATE_DIR: "/managed/state" } as NodeJS.ProcessEnv;
+
+    expect(
+      resolvePostUpdateServiceStateReadEnv({
+        updateMode: "git",
+        processEnv,
+        preManagedServiceEnv,
+      }),
+    ).toBe(preManagedServiceEnv);
+  });
+});
+
 describe("resolvePostInstallDoctorEnv", () => {
   it("uses the managed service profile paths for post-install doctor", () => {
     const env = resolvePostInstallDoctorEnv({
-      invocationCwd: "/srv/astroclaw",
+      invocationCwd: "/srv/openclaw",
       baseEnv: {
         PATH: "/bin",
-        ASTROCLAW_STATE_DIR: "/wrong/state",
-        ASTROCLAW_CONFIG_PATH: "/wrong/astroclaw.json",
-        ASTROCLAW_PROFILE: "wrong",
+        OPENCLAW_STATE_DIR: "/wrong/state",
+        OPENCLAW_CONFIG_PATH: "/wrong/openclaw.json",
+        OPENCLAW_PROFILE: "wrong",
       },
       serviceEnv: {
-        ASTROCLAW_STATE_DIR: "daemon-state",
-        ASTROCLAW_CONFIG_PATH: "daemon-state/astroclaw.json",
-        ASTROCLAW_PROFILE: "work",
+        OPENCLAW_STATE_DIR: "daemon-state",
+        OPENCLAW_CONFIG_PATH: "daemon-state/openclaw.json",
+        OPENCLAW_PROFILE: "work",
       },
     });
 
     expect(env.PATH).toBe("/bin");
     expect(env.NODE_DISABLE_COMPILE_CACHE).toBe("1");
-    expect(env.ASTROCLAW_STATE_DIR).toBe(path.join("/srv/astroclaw", "daemon-state"));
-    expect(env.ASTROCLAW_CONFIG_PATH).toBe(
-      path.join("/srv/astroclaw", "daemon-state", "astroclaw.json"),
+    expect(env.OPENCLAW_STATE_DIR).toBe(path.join("/srv/openclaw", "daemon-state"));
+    expect(env.OPENCLAW_CONFIG_PATH).toBe(
+      path.join("/srv/openclaw", "daemon-state", "openclaw.json"),
     );
-    expect(env.ASTROCLAW_PROFILE).toBe("work");
+    expect(env.OPENCLAW_PROFILE).toBe("work");
   });
 
   it("keeps the caller env when no managed service env is available", () => {
     const env = resolvePostInstallDoctorEnv({
       baseEnv: {
         PATH: "/bin",
-        ASTROCLAW_STATE_DIR: "/caller/state",
-        ASTROCLAW_PROFILE: "caller",
+        OPENCLAW_STATE_DIR: "/caller/state",
+        OPENCLAW_PROFILE: "caller",
       },
     });
 
     expect(env.PATH).toBe("/bin");
     expect(env.NODE_DISABLE_COMPILE_CACHE).toBe("1");
-    expect(env.ASTROCLAW_STATE_DIR).toBe("/caller/state");
-    expect(env.ASTROCLAW_PROFILE).toBe("caller");
+    expect(env.OPENCLAW_STATE_DIR).toBe("/caller/state");
+    expect(env.OPENCLAW_PROFILE).toBe("caller");
   });
 });
 
 describe("collectMissingPluginInstallPayloads", () => {
   it("reports tracked npm install records whose package payload is absent", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-update-plugin-payload-"));
-    const presentDir = path.join(tmpDir, "state", "npm", "node_modules", "@astroclaw", "present");
-    const missingDir = path.join(tmpDir, "state", "npm", "node_modules", "@astroclaw", "missing");
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-update-plugin-payload-"));
+    const presentDir = path.join(tmpDir, "state", "npm", "node_modules", "@openclaw", "present");
+    const missingDir = path.join(tmpDir, "state", "npm", "node_modules", "@openclaw", "missing");
     const noPackageJsonDir = path.join(
       tmpDir,
       "state",
       "npm",
       "node_modules",
-      "@astroclaw",
+      "@openclaw",
       "no-package-json",
     );
     try {
       await fs.mkdir(presentDir, { recursive: true });
-      await fs.writeFile(path.join(presentDir, "package.json"), '{"name":"@astroclaw/present"}\n');
+      await fs.writeFile(path.join(presentDir, "package.json"), '{"name":"@openclaw/present"}\n');
       await fs.mkdir(noPackageJsonDir, { recursive: true });
 
       await expect(
@@ -181,22 +252,22 @@ describe("collectMissingPluginInstallPayloads", () => {
           records: {
             present: {
               source: "npm",
-              spec: "@astroclaw/present@beta",
+              spec: "@openclaw/present@beta",
               installPath: presentDir,
             },
             missing: {
               source: "npm",
-              spec: "@astroclaw/missing@beta",
+              spec: "@openclaw/missing@beta",
               installPath: missingDir,
             },
             "no-package-json": {
               source: "npm",
-              spec: "@astroclaw/no-package-json@beta",
+              spec: "@openclaw/no-package-json@beta",
               installPath: noPackageJsonDir,
             },
             "missing-install-path": {
               source: "npm",
-              spec: "@astroclaw/missing-install-path@beta",
+              spec: "@openclaw/missing-install-path@beta",
             },
             local: {
               source: "path",
@@ -227,8 +298,8 @@ describe("collectMissingPluginInstallPayloads", () => {
   });
 
   it("skips disabled tracked records when requested", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-update-plugin-payload-"));
-    const missingDir = path.join(tmpDir, "state", "npm", "node_modules", "@astroclaw", "missing");
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-update-plugin-payload-"));
+    const missingDir = path.join(tmpDir, "state", "npm", "node_modules", "@openclaw", "missing");
     try {
       await expect(
         collectMissingPluginInstallPayloads({
@@ -246,7 +317,7 @@ describe("collectMissingPluginInstallPayloads", () => {
           records: {
             missing: {
               source: "npm",
-              spec: "@astroclaw/missing@beta",
+              spec: "@openclaw/missing@beta",
               installPath: missingDir,
             },
           },
@@ -258,8 +329,8 @@ describe("collectMissingPluginInstallPayloads", () => {
   });
 
   it("keeps disabled trusted official npm records eligible for payload repair when requested", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-update-plugin-payload-"));
-    const missingDir = path.join(tmpDir, "state", "npm", "node_modules", "@astroclaw", "codex");
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-update-plugin-payload-"));
+    const missingDir = path.join(tmpDir, "state", "npm", "node_modules", "@openclaw", "codex");
     try {
       await expect(
         collectMissingPluginInstallPayloads({
@@ -278,9 +349,9 @@ describe("collectMissingPluginInstallPayloads", () => {
           records: {
             codex: {
               source: "npm",
-              spec: "@astroclaw/codex@2026.5.3",
-              resolvedName: "@astroclaw/codex",
-              resolvedSpec: "@astroclaw/codex@2026.5.3",
+              spec: "@openclaw/codex@2026.5.3",
+              resolvedName: "@openclaw/codex",
+              resolvedSpec: "@openclaw/codex@2026.5.3",
               installPath: missingDir,
             },
           },
@@ -298,7 +369,7 @@ describe("collectMissingPluginInstallPayloads", () => {
   });
 
   it("keeps disabled trusted official ClawHub records eligible for payload repair when requested", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-update-plugin-payload-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-update-plugin-payload-"));
     const missingDir = path.join(tmpDir, "state", "clawhub", "diagnostics-otel");
     try {
       await expect(
@@ -318,7 +389,7 @@ describe("collectMissingPluginInstallPayloads", () => {
           records: {
             "diagnostics-otel": {
               source: "clawhub",
-              spec: "clawhub:@astroclaw/diagnostics-otel@2026.5.3",
+              spec: "clawhub:@openclaw/diagnostics-otel@2026.5.3",
               installPath: missingDir,
             },
           },
@@ -348,11 +419,57 @@ describe("shouldUseLegacyProcessRestartAfterUpdate", () => {
     expect(shouldUseLegacyProcessRestartAfterUpdate({ updateMode: "unknown" })).toBe(true);
   });
 });
+
+describe("formatPostUpdateGatewayRecoveryInstructions", () => {
+  const result: UpdateRunResult = {
+    status: "error",
+    mode: "git",
+    steps: [],
+    durationMs: 0,
+  };
+
+  it("uses systemd wording on Linux instead of macOS LaunchAgent instructions", () => {
+    const [line] = formatPostUpdateGatewayRecoveryInstructions(result, "linux");
+
+    expect(line).toContain("the systemd user service");
+    expect(line).toContain("openclaw gateway restart");
+    expect(line).toContain("openclaw gateway install --force");
+    expect(line).toContain("openclaw gateway status --deep");
+    expect(line).not.toContain("Linux reports");
+    expect(line).not.toContain("macOS");
+    expect(line).not.toContain("LaunchAgent");
+  });
+
+  it("keeps LaunchAgent recovery wording on macOS", () => {
+    const [line] = formatPostUpdateGatewayRecoveryInstructions(result, "darwin");
+
+    expect(line).toContain("the LaunchAgent is installed but not loaded");
+    expect(line).toContain("logged-in macOS user session");
+  });
+
+  it("uses Windows service-manager wording on Windows", () => {
+    const [line] = formatPostUpdateGatewayRecoveryInstructions(result, "win32");
+
+    expect(line).toContain("the gateway Scheduled Task or Windows login item");
+    expect(line).not.toContain("LaunchAgent");
+    expect(line).not.toContain("Startup-folder");
+  });
+
+  it("uses generic service-manager wording for unsupported Node platforms", () => {
+    const [line] = formatPostUpdateGatewayRecoveryInstructions(result, "freebsd");
+
+    expect(line).toContain("local service manager");
+    expect(line).not.toContain("systemd");
+    expect(line).not.toContain("LaunchAgent");
+    expect(line).not.toContain("Scheduled Task");
+  });
+});
+
 describe("recoverInstalledLaunchAgentAfterUpdate", () => {
   it("re-bootstraps an installed-but-not-loaded macOS LaunchAgent after update", async () => {
     const service = {} as never;
-    const serviceEnv = { ASTROCLAW_PROFILE: "stomme" } as NodeJS.ProcessEnv;
-    const recoveredEnv = { ...serviceEnv, ASTROCLAW_PORT: "18790" } as NodeJS.ProcessEnv;
+    const serviceEnv = { OPENCLAW_PROFILE: "stomme" } as NodeJS.ProcessEnv;
+    const recoveredEnv = { ...serviceEnv, OPENCLAW_PORT: "18790" } as NodeJS.ProcessEnv;
     const readState = vi.fn(async () => ({
       installed: true,
       loaded: false,
@@ -411,7 +528,7 @@ describe("recoverInstalledLaunchAgentAfterUpdate", () => {
       installed: true,
       loaded: true,
       running: true,
-      env: { ASTROCLAW_PROFILE: "stomme" } as NodeJS.ProcessEnv,
+      env: { OPENCLAW_PROFILE: "stomme" } as NodeJS.ProcessEnv,
       command: null,
       runtime: { status: "running" },
     }));
@@ -436,7 +553,7 @@ describe("recoverInstalledLaunchAgentAfterUpdate", () => {
       installed: true,
       loaded: false,
       running: false,
-      env: { ASTROCLAW_PROFILE: "stomme" } as NodeJS.ProcessEnv,
+      env: { OPENCLAW_PROFILE: "stomme" } as NodeJS.ProcessEnv,
       command: null,
       runtime: { status: "unknown", missingSupervision: true },
     }));
@@ -491,7 +608,7 @@ describe("recoverLaunchAgentAndRecheckGatewayHealth", () => {
         service,
         port: 18790,
         expectedVersion: "2026.5.3",
-        env: { ASTROCLAW_PROFILE: "stomme", ASTROCLAW_PORT: "18790" },
+        env: { OPENCLAW_PROFILE: "stomme", OPENCLAW_PORT: "18790" },
         deps: { recoverLaunchAgent, waitForHealthy },
       }),
     ).resolves.toEqual({
@@ -508,7 +625,7 @@ describe("recoverLaunchAgentAndRecheckGatewayHealth", () => {
       service,
       port: 18790,
       expectedVersion: "2026.5.3",
-      env: { ASTROCLAW_PROFILE: "stomme", ASTROCLAW_PORT: "18790" },
+      env: { OPENCLAW_PROFILE: "stomme", OPENCLAW_PORT: "18790" },
     });
   });
 
@@ -551,7 +668,7 @@ describe("resolvePostCoreUpdateChildStdio", () => {
   it('returns "pipe" on Windows so the child never inherits the parent console handles', () => {
     // On Windows, stdio:"inherit" passes the parent's console HANDLE to the child process.
     // PowerShell/CMD will not return the prompt until every holder of those handles exits,
-    // causing the terminal to hang after `astroclaw update` completes (#78445).
+    // causing the terminal to hang after `openclaw update` completes (#78445).
     expect(resolvePostCoreUpdateChildStdio("win32")).toBe("pipe");
   });
 
@@ -569,7 +686,7 @@ describe("updatePluginsAfterCoreUpdate (invalid config end-to-end)", () => {
     // config is sufficient to prove the gate fires end-to-end. We pass
     // `json: true` to suppress logging side-effects without mocking.
     const result = await updatePluginsAfterCoreUpdate({
-      root: "/tmp/astroclaw-test",
+      root: "/tmp/openclaw-test",
       channel: "stable",
       configSnapshot: {
         valid: false,
@@ -590,8 +707,8 @@ describe("updatePluginsAfterCoreUpdate (invalid config end-to-end)", () => {
         message:
           "Plugin post-update convergence skipped because the config is invalid; refusing to restart the gateway with an unverified plugin set.",
         guidance: [
-          "Run `astroclaw doctor` to inspect the config validation errors.",
-          "Once the config parses, rerun `astroclaw update`.",
+          "Run `openclaw doctor` to inspect the config validation errors.",
+          "Once the config parses, rerun `openclaw update repair`.",
         ],
       },
     ]);
@@ -609,8 +726,8 @@ describe("buildInvalidConfigPostCoreUpdateResult", () => {
   it("surfaces actionable repair guidance in both the structural warnings and the message string", () => {
     const built = buildInvalidConfigPostCoreUpdateResult();
     expect(built.guidance).toStrictEqual([
-      "Run `astroclaw doctor` to inspect the config validation errors.",
-      "Once the config parses, rerun `astroclaw update`.",
+      "Run `openclaw doctor` to inspect the config validation errors.",
+      "Once the config parses, rerun `openclaw update repair`.",
     ]);
     expect(built.result.warnings).toStrictEqual([
       {
