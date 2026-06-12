@@ -1,6 +1,8 @@
+// Test helper for asserting bundled plugin public surface files.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
 import {
   loadBundledPluginPublicSurfaceModule,
   loadBundledPluginPublicSurfaceModuleSync,
@@ -10,16 +12,21 @@ import {
   findBundledPluginMetadataById,
   type BundledPluginMetadata,
 } from "../plugins/bundled-plugin-metadata.js";
+import {
+  getCachedPluginSourceModuleLoader,
+  type PluginModuleLoaderCache,
+} from "../plugins/plugin-module-loader-cache.js";
 import { normalizeBundledPluginArtifactSubpath } from "../plugins/public-surface-runtime.js";
 import { resolveLoaderPackageRoot } from "../plugins/sdk-alias.js";
 
-const ASTROCLAW_PACKAGE_ROOT =
+const OPENCLAW_PACKAGE_ROOT =
   resolveLoaderPackageRoot({
     modulePath: fileURLToPath(import.meta.url),
     moduleUrl: import.meta.url,
   }) ?? fileURLToPath(new URL("../..", import.meta.url));
 
 type BundledPluginPublicSurfaceMetadata = Pick<BundledPluginMetadata, "dirName">;
+const sourceModuleLoaders: PluginModuleLoaderCache = new Map();
 
 function isSafeBundledPluginDirName(pluginId: string): boolean {
   return /^[a-z0-9][a-z0-9._-]*$/u.test(pluginId);
@@ -27,7 +34,7 @@ function isSafeBundledPluginDirName(pluginId: string): boolean {
 
 function readPluginManifestId(pluginDir: string): string | undefined {
   try {
-    const manifestPath = path.join(pluginDir, "astroclaw.plugin.json");
+    const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
     const parsed = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as { id?: unknown };
     return typeof parsed.id === "string" ? parsed.id : undefined;
   } catch {
@@ -41,14 +48,13 @@ function findBundledPluginMetadataFast(
   if (!isSafeBundledPluginDirName(pluginId)) {
     return undefined;
   }
-  const roots = [
+  const rawRoots = [
     resolveBundledPluginsDir(),
-    path.resolve(ASTROCLAW_PACKAGE_ROOT, "extensions"),
-    path.resolve(ASTROCLAW_PACKAGE_ROOT, "dist-runtime", "extensions"),
-    path.resolve(ASTROCLAW_PACKAGE_ROOT, "dist", "extensions"),
-  ].filter(
-    (entry, index, values): entry is string => Boolean(entry) && values.indexOf(entry) === index,
-  );
+    path.resolve(OPENCLAW_PACKAGE_ROOT, "extensions"),
+    path.resolve(OPENCLAW_PACKAGE_ROOT, "dist-runtime", "extensions"),
+    path.resolve(OPENCLAW_PACKAGE_ROOT, "dist", "extensions"),
+  ].filter((entry): entry is string => Boolean(entry));
+  const roots = uniqueStrings(rawRoots);
 
   for (const root of roots) {
     const pluginDir = path.join(root, pluginId);
@@ -79,14 +85,13 @@ function readPackageName(packageDir: string): string | undefined {
 }
 
 function resolveWorkspacePackageDir(packageName: string): string {
-  const roots = [
+  const rawRoots = [
     resolveBundledPluginsDir(),
-    path.resolve(ASTROCLAW_PACKAGE_ROOT, "extensions"),
-    path.resolve(ASTROCLAW_PACKAGE_ROOT, "dist-runtime", "extensions"),
-    path.resolve(ASTROCLAW_PACKAGE_ROOT, "dist", "extensions"),
-  ].filter(
-    (entry, index, values): entry is string => Boolean(entry) && values.indexOf(entry) === index,
-  );
+    path.resolve(OPENCLAW_PACKAGE_ROOT, "extensions"),
+    path.resolve(OPENCLAW_PACKAGE_ROOT, "dist-runtime", "extensions"),
+    path.resolve(OPENCLAW_PACKAGE_ROOT, "dist", "extensions"),
+  ].filter((entry): entry is string => Boolean(entry));
+  const roots = uniqueStrings(rawRoots);
 
   for (const root of roots) {
     let entries: string[];
@@ -126,6 +131,26 @@ export const loadBundledPluginPublicSurfaceSync: BundledPluginPublicSurfaceLoade
     artifactBasename: normalizeBundledPluginArtifactSubpath(params.artifactBasename),
   });
 };
+
+export function loadBundledPluginPublicSurfaceSourceSync(params: {
+  pluginId: string;
+  artifactBasename: string;
+}): object {
+  const modulePath = resolveVitestSourceModulePath(
+    resolveBundledPluginPublicModulePath({
+      pluginId: params.pluginId,
+      artifactBasename: params.artifactBasename,
+    }),
+  );
+  const loader = getCachedPluginSourceModuleLoader({
+    cache: sourceModuleLoaders,
+    modulePath,
+    importerUrl: import.meta.url,
+    loaderFilename: import.meta.url,
+    pluginSdkResolution: "src",
+  });
+  return loader(modulePath) as object;
+}
 
 export const loadBundledPluginPublicSurface: AsyncBundledPluginPublicSurfaceLoader = (params) => {
   const metadata = findBundledPluginMetadata(params.pluginId);
@@ -169,7 +194,7 @@ export function resolveBundledPluginPublicModulePath(params: {
 }): string {
   const metadata = findBundledPluginMetadata(params.pluginId);
   return path.resolve(
-    ASTROCLAW_PACKAGE_ROOT,
+    OPENCLAW_PACKAGE_ROOT,
     "extensions",
     metadata.dirName,
     normalizeBundledPluginArtifactSubpath(params.artifactBasename),
@@ -217,7 +242,7 @@ export function resolveRelativeExtensionPublicModuleId(params: {
 }): string {
   const fromFilePath = fileURLToPath(params.fromModuleUrl);
   const targetPath = resolveVitestSourceModulePath(
-    path.resolve(ASTROCLAW_PACKAGE_ROOT, "extensions", params.dirName, params.artifactBasename),
+    path.resolve(OPENCLAW_PACKAGE_ROOT, "extensions", params.dirName, params.artifactBasename),
   );
   const relativePath = path
     .relative(path.dirname(fromFilePath), targetPath)
