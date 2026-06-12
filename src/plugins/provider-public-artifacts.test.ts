@@ -1,27 +1,29 @@
+// Verifies provider public artifacts extracted from plugin metadata.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ModelProviderConfig } from "../config/types.models.js";
 import { resolveBundledProviderPolicySurface } from "./provider-public-artifacts.js";
 
 describe("provider public artifacts", () => {
-  const originalBundledPluginsDir = process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
-  const originalTrustBundledPluginsDir = process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
+  const originalBundledPluginsDir = process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+  const originalTrustBundledPluginsDir = process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
 
   afterEach(() => {
     if (originalBundledPluginsDir === undefined) {
-      delete process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR;
+      delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
     } else {
-      process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = originalBundledPluginsDir;
+      process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = originalBundledPluginsDir;
     }
     if (originalTrustBundledPluginsDir === undefined) {
-      delete process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
+      delete process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR;
     } else {
-      process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = originalTrustBundledPluginsDir;
+      process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = originalTrustBundledPluginsDir;
     }
     vi.doUnmock("./bundled-dir.js");
+    vi.doUnmock("./manifest-registry.js");
     vi.doUnmock("./public-surface-loader.js");
     vi.resetModules();
   });
@@ -43,16 +45,29 @@ describe("provider public artifacts", () => {
     ).toBe(providerConfig);
   });
 
+  it("loads MiniMax thinking policy before runtime registration", () => {
+    const surface = resolveBundledProviderPolicySurface("minimax");
+
+    expect(
+      surface?.resolveThinkingProfile?.({ provider: "minimax", modelId: "MiniMax-M2.7" })
+        ?.defaultLevel,
+    ).toBe("off");
+    expect(
+      surface?.resolveThinkingProfile?.({ provider: "minimax", modelId: "MiniMax-M3" })
+        ?.defaultLevel,
+    ).toBe("adaptive");
+  });
+
   it("resolves multi-provider policy artifacts by manifest-owned provider id", async () => {
-    const bundledPluginsDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-provider-policy-"));
+    const bundledPluginsDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-provider-policy-"));
     const pluginDir = path.join(bundledPluginsDir, "openai");
     fs.mkdirSync(pluginDir, { recursive: true });
     fs.writeFileSync(
-      path.join(pluginDir, "astroclaw.plugin.json"),
+      path.join(pluginDir, "openclaw.plugin.json"),
       JSON.stringify({
         id: "openai",
         configSchema: { type: "object" },
-        providers: ["openai", "openai-codex"],
+        providers: ["openai", "openai"],
       }),
     );
     fs.writeFileSync(
@@ -78,8 +93,8 @@ describe("provider public artifacts", () => {
         resolveBundledPluginsDir: () => bundledPluginsDir,
       };
     });
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = bundledPluginsDir;
-    process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = "1";
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledPluginsDir;
+    process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = "1";
     vi.doMock("./public-surface-loader.js", () => ({
       loadBundledPluginPublicArtifactModuleSync,
     }));
@@ -89,7 +104,7 @@ describe("provider public artifacts", () => {
         typeof import("./provider-public-artifacts.js")
       >(import.meta.url, "./provider-public-artifacts.js?scope=provider-alias");
 
-      const surface = resolvePolicySurface("openai-codex");
+      const surface = resolvePolicySurface("openai");
 
       expect(surface?.resolveThinkingProfile).toBeTypeOf("function");
       expect(loadBundledPluginPublicArtifactModuleSync).toHaveBeenCalledWith({
@@ -99,7 +114,7 @@ describe("provider public artifacts", () => {
       expect(
         surface
           ?.resolveThinkingProfile?.({
-            provider: "openai-codex",
+            provider: "openai",
             modelId: "gpt-5.5",
           })
           ?.levels.map((level) => level.id),
@@ -107,7 +122,7 @@ describe("provider public artifacts", () => {
       expect(
         surface
           ?.resolveThinkingProfile?.({
-            provider: "openai-codex",
+            provider: "openai",
             modelId: "gpt-4.1",
           })
           ?.levels.map((level) => level.id),
@@ -117,15 +132,75 @@ describe("provider public artifacts", () => {
     }
   });
 
+  it("resolves bundled policy artifacts through provider auth aliases", async () => {
+    const loadPluginManifestRegistry = vi.fn(() => {
+      throw new Error("unexpected manifest registry scan");
+    });
+    const loadBundledPluginPublicArtifactModuleSync = vi.fn(({ dirName }: { dirName: string }) => {
+      if (dirName !== "openai") {
+        throw new Error(`Unable to resolve bundled plugin public surface ${dirName}`);
+      }
+      return {
+        resolveThinkingProfile: ({ provider }: { provider: string }) => ({
+          levels: [{ id: provider }],
+        }),
+      };
+    });
+
+    vi.doMock("./manifest-registry.js", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("./manifest-registry.js")>();
+      return {
+        ...actual,
+        loadPluginManifestRegistry,
+      };
+    });
+    vi.doMock("./public-surface-loader.js", () => ({
+      loadBundledPluginPublicArtifactModuleSync,
+    }));
+
+    const { resolveBundledProviderPolicySurface: resolvePolicySurface } = await importFreshModule<
+      typeof import("./provider-public-artifacts.js")
+    >(import.meta.url, "./provider-public-artifacts.js?scope=provider-auth-alias");
+
+    const surface = resolvePolicySurface("openai", {
+      manifestRegistry: {
+        plugins: [
+          {
+            id: "openai",
+            channels: [],
+            cliBackends: [],
+            hooks: [],
+            origin: "bundled",
+            manifestPath: "/tmp/openai/openclaw.plugin.json",
+            providers: ["openai"],
+            providerAuthAliases: { openai: "openai" },
+            rootDir: "/tmp/openai",
+            skills: [],
+            source: "/tmp/openai/index.js",
+          },
+        ],
+      },
+    });
+
+    expect(surface?.resolveThinkingProfile?.({ provider: "openai", modelId: "gpt-5.5" })).toEqual({
+      levels: [{ id: "openai" }],
+    });
+    expect(loadBundledPluginPublicArtifactModuleSync).toHaveBeenCalledWith({
+      dirName: "openai",
+      artifactBasename: "provider-policy-api.js",
+    });
+    expect(loadPluginManifestRegistry).not.toHaveBeenCalled();
+  });
+
   it("does not cache manifest-owned provider policy aliases across bundled metadata changes", async () => {
     const bundledPluginsDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "astroclaw-provider-policy-refresh-"),
+      path.join(os.tmpdir(), "openclaw-provider-policy-refresh-"),
     );
     const writePlugin = (pluginId: string, providers: string[], version: number) => {
       const pluginDir = path.join(bundledPluginsDir, pluginId);
       fs.mkdirSync(pluginDir, { recursive: true });
       fs.writeFileSync(
-        path.join(pluginDir, "astroclaw.plugin.json"),
+        path.join(pluginDir, "openclaw.plugin.json"),
         JSON.stringify({
           id: pluginId,
           name: `${pluginId} ${version}`,
@@ -152,8 +227,8 @@ describe("provider public artifacts", () => {
     vi.doMock("./public-surface-loader.js", () => ({
       loadBundledPluginPublicArtifactModuleSync,
     }));
-    process.env.ASTROCLAW_BUNDLED_PLUGINS_DIR = bundledPluginsDir;
-    process.env.ASTROCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = "1";
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledPluginsDir;
+    process.env.OPENCLAW_TEST_TRUST_BUNDLED_PLUGINS_DIR = "1";
 
     try {
       writePlugin("first", ["fixture-provider"], 1);
@@ -218,7 +293,7 @@ describe("provider public artifacts", () => {
             cliBackends: [],
             hooks: [],
             origin: "bundled",
-            manifestPath: "/tmp/owner/astroclaw.plugin.json",
+            manifestPath: "/tmp/owner/openclaw.plugin.json",
             providers: ["alias"],
             rootDir: "/tmp/owner",
             skills: [],
