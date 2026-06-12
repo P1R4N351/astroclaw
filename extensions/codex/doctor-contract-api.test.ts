@@ -1,3 +1,4 @@
+// Codex tests cover doctor contract api plugin behavior.
 import { describe, expect, it } from "vitest";
 import { legacyConfigRules, normalizeCompatibilityConfig } from "./doctor-contract-api.js";
 
@@ -5,7 +6,7 @@ describe("codex doctor contract", () => {
   it("reports the retired dynamic tools profile config key", () => {
     expect(
       legacyConfigRules[0]?.match({
-        codexDynamicToolsProfile: "astroclaw-compat",
+        codexDynamicToolsProfile: "openclaw-compat",
         codexDynamicToolsLoading: "direct",
       }),
     ).toBe(true);
@@ -19,7 +20,7 @@ describe("codex doctor contract", () => {
           codex: {
             enabled: true,
             config: {
-              codexDynamicToolsProfile: "astroclaw-compat",
+              codexDynamicToolsProfile: "openclaw-compat",
               codexDynamicToolsLoading: "direct",
               codexDynamicToolsExclude: ["custom_tool"],
               appServer: { mode: "guardian" },
