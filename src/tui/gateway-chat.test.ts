@@ -1,3 +1,4 @@
+// Covers gateway-backed chat behavior used by the TUI backend.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -65,7 +66,7 @@ async function withModeExecProviderFixture(
   label: string,
   run: (fixture: ModeExecProviderFixture) => Promise<void>,
 ) {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), `astroclaw-tui-mode-${label}-`));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), `openclaw-tui-mode-${label}-`));
   const tokenMarker = path.join(tempDir, "token-provider-ran");
   const passwordMarker = path.join(tempDir, "password-provider-ran");
   const tokenExecProgram = [
@@ -108,10 +109,10 @@ describe("resolveGatewayConnection", () => {
 
   beforeEach(() => {
     envSnapshot = captureEnv([
-      "ASTROCLAW_GATEWAY_URL",
-      "ASTROCLAW_GATEWAY_TOKEN",
-      "ASTROCLAW_GATEWAY_PASSWORD",
-      "ASTROCLAW_TUI_SETUP_AUTH_SOURCE",
+      "OPENCLAW_GATEWAY_URL",
+      "OPENCLAW_GATEWAY_TOKEN",
+      "OPENCLAW_GATEWAY_PASSWORD",
+      "OPENCLAW_TUI_SETUP_AUTH_SOURCE",
     ]);
     loadConfig.mockReset();
     resolveGatewayPort.mockReset();
@@ -119,16 +120,16 @@ describe("resolveGatewayConnection", () => {
     resolveConfigPath.mockReset();
     resolveGatewayPort.mockReturnValue(18789);
     resolveStateDir.mockImplementation(
-      (env: NodeJS.ProcessEnv) => env.ASTROCLAW_STATE_DIR ?? "/tmp/astroclaw",
+      (env: NodeJS.ProcessEnv) => env.OPENCLAW_STATE_DIR ?? "/tmp/openclaw",
     );
     resolveConfigPath.mockImplementation(
       (env: NodeJS.ProcessEnv, stateDir: string) =>
-        env.ASTROCLAW_CONFIG_PATH ?? `${stateDir}/astroclaw.json`,
+        env.OPENCLAW_CONFIG_PATH ?? `${stateDir}/openclaw.json`,
     );
-    delete process.env.ASTROCLAW_GATEWAY_URL;
-    delete process.env.ASTROCLAW_GATEWAY_TOKEN;
-    delete process.env.ASTROCLAW_GATEWAY_PASSWORD;
-    delete process.env.ASTROCLAW_TUI_SETUP_AUTH_SOURCE;
+    delete process.env.OPENCLAW_GATEWAY_URL;
+    delete process.env.OPENCLAW_GATEWAY_TOKEN;
+    delete process.env.OPENCLAW_GATEWAY_PASSWORD;
+    delete process.env.OPENCLAW_TUI_SETUP_AUTH_SOURCE;
   });
 
   afterEach(() => {
@@ -187,16 +188,16 @@ describe("resolveGatewayConnection", () => {
   it("uses config auth token for local mode when both config and env tokens are set", async () => {
     loadConfig.mockReturnValue({ gateway: { mode: "local", auth: { token: "config-token" } } });
 
-    await withEnvAsync({ ASTROCLAW_GATEWAY_TOKEN: "env-token" }, async () => {
+    await withEnvAsync({ OPENCLAW_GATEWAY_TOKEN: "env-token" }, async () => {
       const result = await resolveGatewayConnection({});
       expect(result.token).toBe("config-token");
     });
   });
 
-  it("falls back to ASTROCLAW_GATEWAY_TOKEN when config token is missing", async () => {
+  it("falls back to OPENCLAW_GATEWAY_TOKEN when config token is missing", async () => {
     loadConfig.mockReturnValue({ gateway: { mode: "local" } });
 
-    await withEnvAsync({ ASTROCLAW_GATEWAY_TOKEN: "env-token" }, async () => {
+    await withEnvAsync({ OPENCLAW_GATEWAY_TOKEN: "env-token" }, async () => {
       const result = await resolveGatewayConnection({});
       expect(result.token).toBe("env-token");
     });
@@ -228,7 +229,7 @@ describe("resolveGatewayConnection", () => {
       },
     });
 
-    await withEnvAsync({ ASTROCLAW_GATEWAY_PASSWORD: "env-password" }, async () => {
+    await withEnvAsync({ OPENCLAW_GATEWAY_PASSWORD: "env-password" }, async () => {
       const result = await resolveGatewayConnection({});
       expect(result.password).toBe("env-password");
     });
@@ -247,8 +248,8 @@ describe("resolveGatewayConnection", () => {
 
     await withEnvAsync(
       {
-        ASTROCLAW_GATEWAY_PASSWORD: "stale-env-password", // pragma: allowlist secret
-        ASTROCLAW_TUI_SETUP_AUTH_SOURCE: "config",
+        OPENCLAW_GATEWAY_PASSWORD: "stale-env-password", // pragma: allowlist secret
+        OPENCLAW_TUI_SETUP_AUTH_SOURCE: "config",
       },
       async () => {
         const result = await resolveGatewayConnection({});
@@ -268,15 +269,15 @@ describe("resolveGatewayConnection", () => {
         mode: "local",
         auth: {
           mode: "password",
-          password: { source: "env", provider: "default", id: "ASTROCLAW_GATEWAY_PASSWORD" },
+          password: { source: "env", provider: "default", id: "OPENCLAW_GATEWAY_PASSWORD" },
         },
       },
     });
 
     await withEnvAsync(
       {
-        ASTROCLAW_GATEWAY_PASSWORD: "resolved-ref-password", // pragma: allowlist secret
-        ASTROCLAW_TUI_SETUP_AUTH_SOURCE: "config",
+        OPENCLAW_GATEWAY_PASSWORD: "resolved-ref-password", // pragma: allowlist secret
+        OPENCLAW_TUI_SETUP_AUTH_SOURCE: "config",
       },
       async () => {
         const result = await resolveGatewayConnection({});
@@ -333,7 +334,7 @@ describe("resolveGatewayConnection", () => {
     );
   });
 
-  it("prefers ASTROCLAW_GATEWAY_PASSWORD over remote password fallback", async () => {
+  it("prefers OPENCLAW_GATEWAY_PASSWORD over remote password fallback", async () => {
     loadConfig.mockReturnValue({
       gateway: {
         mode: "remote",
@@ -341,7 +342,7 @@ describe("resolveGatewayConnection", () => {
       },
     });
 
-    const gatewayPasswordEnv = "ASTROCLAW_GATEWAY_PASSWORD"; // pragma: allowlist secret
+    const gatewayPasswordEnv = "OPENCLAW_GATEWAY_PASSWORD"; // pragma: allowlist secret
     const gatewayPassword = "env-pass"; // pragma: allowlist secret
     await withEnvAsync({ [gatewayPasswordEnv]: gatewayPassword }, async () => {
       const result = await resolveGatewayConnection({});
@@ -352,7 +353,7 @@ describe("resolveGatewayConnection", () => {
   it.runIf(process.platform !== "win32")(
     "resolves file-backed SecretRef token for local mode",
     async () => {
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-tui-file-secret-"));
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-tui-file-secret-"));
       const secretFile = path.join(tempDir, "secrets.json");
       await fs.writeFile(secretFile, JSON.stringify({ gatewayToken: "file-secret-token" }), "utf8");
       await fs.chmod(secretFile, 0o600);
@@ -515,30 +516,46 @@ describe("GatewayChatClient", () => {
     vi.useRealTimers();
   });
 
-  it("identifies the TUI as a tui client and skips device identity on insecure local ui paths", () => {
-    const client = new GatewayChatClient({
-      url: "ws://127.0.0.1:18789",
-      token: "test-token",
-      preauthHandshakeTimeoutMs: 30_000,
-      allowInsecureLocalOperatorUi: true,
+  it("identifies the TUI as a tui client and skips device identity on insecure local ui paths", async () => {
+    const constructedOptions: Array<Record<string, unknown>> = [];
+
+    vi.resetModules();
+    vi.doMock("../gateway/client.js", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("../gateway/client.js")>();
+      class CapturingGatewayClient {
+        constructor(opts: Record<string, unknown>) {
+          constructedOptions.push(opts);
+        }
+        start() {}
+        stop() {}
+        request() {
+          throw new Error("unexpected request");
+        }
+      }
+      return { ...actual, GatewayClient: CapturingGatewayClient };
     });
 
-    expect(
-      (client as unknown as { client: { opts: { clientName?: string; mode?: string } } }).client
-        .opts.clientName,
-    ).toBe("astroclaw-tui");
-    expect(
-      (client as unknown as { client: { opts: { clientName?: string; mode?: string } } }).client
-        .opts.mode,
-    ).toBe("ui");
-    expect(
-      (client as unknown as { client: { opts: { deviceIdentity?: unknown } } }).client.opts
-        .deviceIdentity,
-    ).toBeUndefined();
-    expect(
-      (client as unknown as { client: { opts: { preauthHandshakeTimeoutMs?: number } } }).client
-        .opts.preauthHandshakeTimeoutMs,
-    ).toBe(30_000);
+    try {
+      const { GatewayChatClient: CapturingGatewayChatClient } = await import("./gateway-chat.js");
+      const client = new CapturingGatewayChatClient({
+        url: "ws://127.0.0.1:18789",
+        token: "test-token",
+        preauthHandshakeTimeoutMs: 30_000,
+        allowInsecureLocalOperatorUi: true,
+      });
+
+      expect(client.connection.allowInsecureLocalOperatorUi).toBe(true);
+      expect(constructedOptions).toHaveLength(1);
+      expect(constructedOptions[0]).toMatchObject({
+        clientName: "openclaw-tui",
+        mode: "ui",
+        preauthHandshakeTimeoutMs: 30_000,
+        deviceIdentity: null,
+      });
+    } finally {
+      vi.doUnmock("../gateway/client.js");
+      vi.resetModules();
+    }
   });
 
   it("surfaces loopback block-mode start failures through disconnect handler", async () => {
@@ -597,5 +614,71 @@ describe("GatewayChatClient", () => {
 
     await expect(historyPromise).resolves.toEqual({ messages: [] });
     expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it("passes selected-agent global scope through chat methods", async () => {
+    const client = new GatewayChatClient({
+      url: "ws://127.0.0.1:18789",
+      token: "test-token",
+      allowInsecureLocalOperatorUi: true,
+    });
+    const request = vi.fn().mockResolvedValue({ messages: [] });
+    (client as unknown as { client: { request: typeof request } }).client.request = request;
+
+    await client.sendChat({
+      sessionKey: "global",
+      agentId: "work",
+      message: "hello",
+      runId: "run-global-work",
+    });
+    await client.loadHistory({ sessionKey: "global", agentId: "work", limit: 50 });
+    await client.abortChat({ sessionKey: "global", agentId: "work", runId: "run-global-work" });
+
+    expect(request).toHaveBeenNthCalledWith(1, "chat.send", {
+      sessionKey: "global",
+      agentId: "work",
+      message: "hello",
+      thinking: undefined,
+      deliver: undefined,
+      timeoutMs: undefined,
+      idempotencyKey: "run-global-work",
+    });
+    expect(request).toHaveBeenNthCalledWith(2, "chat.history", {
+      sessionKey: "global",
+      agentId: "work",
+      limit: 50,
+    });
+    expect(request).toHaveBeenNthCalledWith(3, "chat.abort", {
+      sessionKey: "global",
+      agentId: "work",
+      runId: "run-global-work",
+    });
+  });
+
+  it("lists gateway commands through commands.list", async () => {
+    const client = new GatewayChatClient({
+      url: "ws://127.0.0.1:18789",
+      token: "test-token",
+      allowInsecureLocalOperatorUi: true,
+    });
+    const command = {
+      name: "tts",
+      textAliases: ["/tts"],
+      description: "Text to speech",
+      source: "plugin",
+      scope: "both",
+      acceptsArgs: false,
+    };
+    const request = vi.fn().mockResolvedValue({ commands: [command] });
+    (client as unknown as { client: { request: typeof request } }).client.request = request;
+
+    await expect(
+      client.listCommands({ agentId: "main", provider: "discord", scope: "text" }),
+    ).resolves.toEqual([command]);
+    expect(request).toHaveBeenCalledWith("commands.list", {
+      agentId: "main",
+      provider: "discord",
+      scope: "text",
+    });
   });
 });
