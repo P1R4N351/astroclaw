@@ -1,5 +1,6 @@
+// Tests ACP command bypass detection before normal dispatch.
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import {
   createChannelTestPluginBase,
@@ -21,7 +22,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       BodyForAgent: "write a test",
     });
 
-    expect(shouldBypassAcpDispatchForCommand(ctx, {} as AstroclawConfig)).toBe(false);
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(false);
   });
 
   it("returns true for ACP slash commands", () => {
@@ -33,7 +34,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       BodyForAgent: "/acp cancel",
     });
 
-    expect(shouldBypassAcpDispatchForCommand(ctx, {} as AstroclawConfig)).toBe(true);
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
   });
 
   it("returns true for native ACP slash commands", () => {
@@ -46,7 +47,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       BodyForAgent: "/acp close",
     });
 
-    expect(shouldBypassAcpDispatchForCommand(ctx, {} as AstroclawConfig)).toBe(true);
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
   });
 
   it("returns false for ACP slash commands addressed to another bot", () => {
@@ -58,7 +59,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       BodyForAgent: "/acp@otherbot cancel",
     });
 
-    expect(shouldBypassAcpDispatchForCommand(ctx, {} as AstroclawConfig)).toBe(false);
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(false);
   });
 
   it("returns true for local status commands", () => {
@@ -70,7 +71,31 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       BodyForAgent: "/status",
     });
 
-    expect(shouldBypassAcpDispatchForCommand(ctx, {} as AstroclawConfig)).toBe(true);
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
+  });
+
+  it("returns true for registry-backed local help commands", () => {
+    const ctx = buildTestCtx({
+      Provider: "whatsapp",
+      Surface: "whatsapp",
+      CommandBody: "/help",
+      BodyForCommands: "/help",
+      BodyForAgent: "/help",
+    });
+
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
+  });
+
+  it("prefers clean command text over channel envelopes", () => {
+    const ctx = buildTestCtx({
+      Provider: "whatsapp",
+      Surface: "whatsapp",
+      CommandBody: "[WhatsApp +15551234567 +1m Fri 2026-05-08 16:12 UTC] /status",
+      BodyForCommands: "/status",
+      BodyForAgent: "/status",
+    });
+
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
   });
 
   it("returns true for local unfocus commands", () => {
@@ -82,8 +107,47 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       BodyForAgent: "/unfocus",
     });
 
-    expect(shouldBypassAcpDispatchForCommand(ctx, {} as AstroclawConfig)).toBe(true);
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
   });
+
+  it("returns true for local verbose commands", () => {
+    const ctx = buildTestCtx({
+      Provider: "discord",
+      Surface: "discord",
+      CommandBody: "/verbose on",
+      BodyForCommands: "/verbose on",
+      BodyForAgent: "/verbose on",
+    });
+
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
+  });
+
+  it("returns true for local verbose alias commands", () => {
+    const ctx = buildTestCtx({
+      Provider: "discord",
+      Surface: "discord",
+      CommandBody: "/v off",
+      BodyForCommands: "/v off",
+      BodyForAgent: "/v off",
+    });
+
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
+  });
+
+  it.each(["/verbose:on", "/v:off", "/verbose:"])(
+    "returns true for colon-form local verbose command %s",
+    (command) => {
+      const ctx = buildTestCtx({
+        Provider: "discord",
+        Surface: "discord",
+        CommandBody: command,
+        BodyForCommands: command,
+        BodyForAgent: command,
+      });
+
+      expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
+    },
+  );
 
   it("returns true for ACP reset-tail slash commands", () => {
     const ctx = buildTestCtx({
@@ -95,7 +159,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       BodyForAgent: "/new continue with deployment",
     });
 
-    expect(shouldBypassAcpDispatchForCommand(ctx, {} as AstroclawConfig)).toBe(true);
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
   });
 
   it("returns true for bare ACP reset slash commands", () => {
@@ -107,7 +171,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       BodyForAgent: "/reset",
     });
 
-    expect(shouldBypassAcpDispatchForCommand(ctx, {} as AstroclawConfig)).toBe(true);
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(true);
   });
 
   it("returns false for unrelated slash commands when text commands are disabled", () => {
@@ -123,7 +187,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       commands: {
         text: false,
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(shouldBypassAcpDispatchForCommand(ctx, cfg)).toBe(false);
   });
@@ -141,7 +205,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       commands: {
         text: false,
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(shouldBypassAcpDispatchForCommand(ctx, cfg)).toBe(true);
   });
@@ -172,7 +236,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       commands: {
         text: false,
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(shouldBypassAcpDispatchForCommand(ctx, cfg)).toBe(false);
   });
@@ -190,7 +254,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       commands: {
         text: false,
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(shouldBypassAcpDispatchForCommand(ctx, cfg)).toBe(true);
   });
@@ -205,7 +269,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       CommandAuthorized: false,
     });
 
-    expect(shouldBypassAcpDispatchForCommand(ctx, {} as AstroclawConfig)).toBe(false);
+    expect(shouldBypassAcpDispatchForCommand(ctx, {} as OpenClawConfig)).toBe(false);
   });
 
   it("returns false for bang-prefixed commands when text commands are disabled", () => {
@@ -222,7 +286,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       commands: {
         text: false,
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(shouldBypassAcpDispatchForCommand(ctx, cfg)).toBe(false);
   });
@@ -241,7 +305,7 @@ describe("shouldBypassAcpDispatchForCommand", () => {
       commands: {
         bash: true,
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(shouldBypassAcpDispatchForCommand(ctx, cfg)).toBe(true);
   });
