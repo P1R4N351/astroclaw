@@ -1,10 +1,11 @@
+// Zalouser tests cover setup surface plugin behavior.
 import {
   createPluginSetupWizardConfigure,
   createTestWizardPrompter,
   runSetupWizardConfigure,
-} from "astroclaw/plugin-sdk/plugin-test-runtime";
+} from "openclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 import "./zalo-js.test-mocks.js";
 import { zalouserSetupWizard } from "./setup-surface.js";
 import { zalouserSetupPlugin } from "./setup-test-helpers.js";
@@ -12,7 +13,7 @@ import { zalouserSetupPlugin } from "./setup-test-helpers.js";
 const zalouserConfigure = createPluginSetupWizardConfigure(zalouserSetupPlugin);
 
 async function runSetup(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   prompter: ReturnType<typeof createTestWizardPrompter>;
   options?: Record<string, unknown>;
   forceAllowFrom?: boolean;
@@ -240,7 +241,7 @@ describe("zalouser setup wizard", () => {
         plugins: {
           allow: ["telegram"],
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompter,
     });
 
@@ -263,14 +264,14 @@ describe("zalouser setup wizard", () => {
               },
             },
           },
-        } as AstroclawConfig,
+        } as OpenClawConfig,
         "work",
       ),
     ).toBe("allowlist");
   });
 
   it("reports account-scoped config keys for named accounts", () => {
-    expect(zalouserSetupWizard.dmPolicy?.resolveConfigKeys?.({} as AstroclawConfig, "work")).toEqual(
+    expect(zalouserSetupWizard.dmPolicy?.resolveConfigKeys?.({} as OpenClawConfig, "work")).toEqual(
       {
         policyKey: "channels.zalouser.accounts.work.dmPolicy",
         allowFromKey: "channels.zalouser.accounts.work.allowFrom",
@@ -293,7 +294,7 @@ describe("zalouser setup wizard", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(zalouserSetupWizard.dmPolicy?.getCurrent(cfg)).toBe("allowlist");
     expect(zalouserSetupWizard.dmPolicy?.resolveConfigKeys?.(cfg)).toEqual({
@@ -322,7 +323,7 @@ describe("zalouser setup wizard", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       "open",
       "work",
     );
@@ -354,7 +355,7 @@ describe("zalouser setup wizard", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       prompter,
       options: { quickstartDefaults: true },
       accountOverrides: { zalouser: "work" },
