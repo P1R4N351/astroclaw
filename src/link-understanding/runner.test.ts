@@ -1,6 +1,7 @@
+// Link-understanding runner tests cover guarded fetches, command execution, scoping, and template behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MsgContext } from "../auto-reply/templating.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { LinkModelConfig } from "../config/types.tools.js";
 import { fetchWithSsrFGuard } from "../infra/net/fetch-guard.js";
 import { runCommandWithTimeout } from "../process/exec.js";
@@ -37,7 +38,7 @@ function cfg(entry: LinkModelConfig) {
         models: [entry],
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function ctx(body: string): MsgContext {
@@ -90,8 +91,8 @@ describe("runLinkUnderstanding", () => {
     );
     expect(runCommandWithTimeout).toHaveBeenCalledWith(["summarize", "--source"], {
       env: {
-        ASTROCLAW_LINK_FINAL_URL: "https://example.com/final",
-        ASTROCLAW_LINK_URL: "https://example.com/page",
+        OPENCLAW_LINK_FINAL_URL: "https://example.com/final",
+        OPENCLAW_LINK_URL: "https://example.com/page",
       },
       input: "page body",
       timeoutMs: 30000,
