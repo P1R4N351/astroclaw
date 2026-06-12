@@ -1,7 +1,8 @@
+// Mistral tests cover media understanding provider plugin behavior.
 import {
   createRequestCaptureJsonFetch,
   installPinnedHostnameTestHooks,
-} from "astroclaw/plugin-sdk/test-env";
+} from "openclaw/plugin-sdk/test-env";
 import { describe, expect, it } from "vitest";
 import { mistralMediaUnderstandingProvider } from "./media-understanding-provider.js";
 
