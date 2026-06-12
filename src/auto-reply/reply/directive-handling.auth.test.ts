@@ -1,6 +1,8 @@
+// Tests auth profile directive handling and provider override selection.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthProfileStore } from "../../agents/auth-profiles.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
+import { MAX_DATE_TIMESTAMP_MS } from "../../shared/number-coercion.js";
 
 let mockStore: AuthProfileStore;
 let mockOrder: string[];
@@ -9,7 +11,7 @@ const resolveEnvApiKeyMock = vi.hoisted(() =>
     (
       _provider?: string,
       _env?: NodeJS.ProcessEnv,
-      _options?: { config?: AstroclawConfig; workspaceDir?: string },
+      _options?: { config?: OpenClawConfig; workspaceDir?: string },
     ) => null as { apiKey: string; source: string } | null,
   ),
 );
@@ -29,7 +31,7 @@ vi.mock("../../agents/auth-profiles.js", () => ({
     provider,
     profileId,
   }: {
-    cfg?: AstroclawConfig;
+    cfg?: OpenClawConfig;
     provider: string;
     profileId: string;
   }) => {
@@ -66,7 +68,7 @@ vi.mock("../../agents/model-auth.js", () => ({
   resolveEnvApiKey: (
     provider?: string,
     env?: NodeJS.ProcessEnv,
-    options?: { config?: AstroclawConfig; workspaceDir?: string },
+    options?: { config?: OpenClawConfig; workspaceDir?: string },
   ) => resolveEnvApiKeyMock(provider, env, options),
 }));
 
@@ -87,7 +89,7 @@ async function resolveRefOnlyAuthLabel(params: {
 
   return resolveAuthLabel(
     params.provider,
-    {} as AstroclawConfig,
+    {} as OpenClawConfig,
     "/tmp/models.json",
     undefined,
     params.mode,
@@ -143,6 +145,23 @@ describe("resolveAuthLabel ref-aware labels", () => {
     expect(result.label).not.toContain("token:missing");
   });
 
+  it("omits out-of-range token expiry labels", async () => {
+    const result = await resolveRefOnlyAuthLabel({
+      provider: "github-copilot",
+      profileId: "github-copilot:default",
+      profile: {
+        type: "token",
+        provider: "github-copilot",
+        token: "gho-test",
+        expires: MAX_DATE_TIMESTAMP_MS + 1,
+      },
+      mode: "compact",
+    });
+
+    expect(result.label).toBe("github-copilot:default token gh...st");
+    expect(result.label).not.toContain(" exp ");
+  });
+
   it("labels config-only aws-sdk profiles as valid in compact mode", async () => {
     mockOrder = ["amazon-bedrock:default"];
     const result = await resolveAuthLabel(
@@ -166,7 +185,7 @@ describe("resolveAuthLabel ref-aware labels", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       "/tmp/models.json",
       undefined,
       "compact",
@@ -199,7 +218,7 @@ describe("resolveAuthLabel ref-aware labels", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       "/tmp/models.json",
       undefined,
       "verbose",
@@ -210,7 +229,7 @@ describe("resolveAuthLabel ref-aware labels", () => {
   });
 
   it("passes workspace scope to env auth labels", async () => {
-    const cfg = { plugins: { allow: ["workspace-auth-label"] } } as AstroclawConfig;
+    const cfg = { plugins: { allow: ["workspace-auth-label"] } } as OpenClawConfig;
     resolveEnvApiKeyMock.mockReturnValue({
       apiKey: "workspace-local-credentials",
       source: "workspace credentials",
