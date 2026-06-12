@@ -1,3 +1,4 @@
+// Covers plugin marketplace catalog loading and validation.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -56,7 +57,7 @@ async function listMarketplaceDownloadTempDirs(): Promise<string[]> {
   const entries = await fs.readdir(os.tmpdir(), { withFileTypes: true });
   return entries
     .filter(
-      (entry) => entry.isDirectory() && entry.name.startsWith("astroclaw-marketplace-download-"),
+      (entry) => entry.isDirectory() && entry.name.startsWith("openclaw-marketplace-download-"),
     )
     .map((entry) => entry.name)
     .toSorted();
@@ -131,7 +132,7 @@ function mockRemoteMarketplaceCloneWithOutsideSymlink(params: {
       manifest: params.manifest,
     });
     const outsideDir = await makeTrackedTempDirAsync(
-      "astroclaw-marketplace-outside",
+      "openclaw-marketplace-outside",
       tempOutsideDirs,
     );
     await fs.mkdir(path.dirname(path.join(repoDir as string, params.symlinkPath)), {
@@ -267,7 +268,7 @@ describe("marketplace plugins", () => {
   });
 
   it("lists plugins from a local marketplace root", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       await writeMarketplaceManifest(rootDir, {
         name: "Example Marketplace",
         version: "1.0.0",
@@ -286,7 +287,7 @@ describe("marketplace plugins", () => {
   });
 
   it("resolves relative plugin paths against the marketplace root", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       const pluginDir = path.join(rootDir, "plugins", "frontend-design");
       const manifestPath = await writeLocalMarketplaceFixture({
         rootDir,
@@ -318,11 +319,21 @@ describe("marketplace plugins", () => {
         pluginDir,
         marketplaceSource: path.join(rootDir, ".claude-plugin", "marketplace.json"),
       });
+      expect(installPluginInput().installPolicyRequest).toMatchObject({
+        kind: "plugin-dir",
+        requestedSpecifier: `frontend-design@${manifestPath}`,
+        source: {
+          kind: "local-path",
+          authority: "user",
+          mutable: true,
+          network: false,
+        },
+      });
     });
   });
 
   it("preserves the logical local install path instead of canonicalizing it", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       const canonicalRootDir = await fs.realpath(rootDir);
       const pluginDir = path.join(rootDir, "plugins", "frontend-design");
       const canonicalPluginDir = path.join(canonicalRootDir, "plugins", "frontend-design");
@@ -356,6 +367,16 @@ describe("marketplace plugins", () => {
         pluginDir,
         marketplaceSource: manifestPath,
       });
+      expect(installPluginInput().installPolicyRequest).toMatchObject({
+        kind: "plugin-dir",
+        requestedSpecifier: `frontend-design@${manifestPath}`,
+        source: {
+          kind: "local-path",
+          authority: "user",
+          mutable: true,
+          network: false,
+        },
+      });
       if (canonicalPluginDir !== pluginDir) {
         expect(
           installPluginFromPathMock.mock.calls.some(
@@ -367,7 +388,7 @@ describe("marketplace plugins", () => {
   });
 
   it("passes dangerous force unsafe install through to marketplace path installs", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       const pluginDir = path.join(rootDir, "plugins", "frontend-design");
       const manifestPath = await writeLocalMarketplaceFixture({
         rootDir,
@@ -401,10 +422,10 @@ describe("marketplace plugins", () => {
   });
 
   it("resolves Claude-style plugin@marketplace shortcuts from known_marketplaces.json", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (homeDir) => {
-      const astroClawHome = path.join(homeDir, "astroclaw-home");
+    await withTempDir("openclaw-marketplace-test-", async (homeDir) => {
+      const openClawHome = path.join(homeDir, "openclaw-home");
       await fs.mkdir(path.join(homeDir, ".claude", "plugins"), { recursive: true });
-      await fs.mkdir(astroClawHome, { recursive: true });
+      await fs.mkdir(openClawHome, { recursive: true });
       await fs.writeFile(
         path.join(homeDir, ".claude", "plugins", "known_marketplaces.json"),
         JSON.stringify({
@@ -419,7 +440,7 @@ describe("marketplace plugins", () => {
       );
 
       const shortcut = await withEnvAsync(
-        { HOME: homeDir, ASTROCLAW_HOME: astroClawHome },
+        { HOME: homeDir, OPENCLAW_HOME: openClawHome },
         async () => await resolveMarketplaceInstallShortcut("superpowers@claude-plugins-official"),
       );
 
@@ -458,6 +479,16 @@ describe("marketplace plugins", () => {
     });
 
     expectRemoteMarketplaceInstallResult(result);
+    expect(installPluginInput().installPolicyRequest).toMatchObject({
+      kind: "plugin-git",
+      requestedSpecifier: "frontend-design@owner/repo",
+      source: {
+        kind: "git",
+        authority: "third-party",
+        mutable: true,
+        network: true,
+      },
+    });
   });
 
   it("preserves remote marketplace file path sources inside the cloned repo", async () => {
@@ -492,6 +523,78 @@ describe("marketplace plugins", () => {
     expectMarketplaceInstallSuccess(result, {
       marketplacePlugin: "frontend-design",
       marketplaceSource: "owner/repo",
+    });
+    expect(installPluginInput().installPolicyRequest).toMatchObject({
+      kind: "plugin-archive",
+      requestedSpecifier: "frontend-design@owner/repo",
+      source: {
+        kind: "archive",
+        authority: "third-party",
+        mutable: true,
+        network: true,
+      },
+    });
+  });
+
+  it("reports full commit remote marketplace archives as immutable to install policy", async () => {
+    const commit = "0123456789abcdef0123456789abcdef01234567";
+    mockRemoteMarketplaceClone({
+      pluginFile: path.join("plugins", "frontend-design.tgz"),
+      manifest: {
+        plugins: [
+          {
+            name: "frontend-design",
+            source: "./plugins/frontend-design.tgz",
+          },
+        ],
+      },
+    });
+    runCommandWithTimeoutMock.mockResolvedValueOnce({
+      code: 0,
+      stdout: "",
+      stderr: "",
+      killed: false,
+    });
+    installPluginFromPathMock.mockResolvedValue({
+      ok: true,
+      pluginId: "frontend-design",
+      targetDir: "/tmp/frontend-design",
+      version: "0.1.0",
+      extensions: ["index.ts"],
+    });
+
+    const result = await installPluginFromMarketplace({
+      marketplace: `owner/repo#${commit}`,
+      plugin: "frontend-design",
+    });
+
+    expectMarketplaceInstallSuccess(result, {
+      marketplacePlugin: "frontend-design",
+      marketplaceSource: `owner/repo#${commit}`,
+    });
+    expect(runCommandWithTimeoutMock).toHaveBeenCalledTimes(2);
+    expect(runCommandWithTimeoutMock.mock.calls[0]?.[0]).toEqual([
+      "git",
+      "clone",
+      "https://github.com/owner/repo.git",
+      expect.any(String),
+    ]);
+    expect(runCommandWithTimeoutMock.mock.calls[1]?.[0]).toEqual([
+      "git",
+      "switch",
+      "--detach",
+      "--",
+      commit,
+    ]);
+    expect(installPluginInput().installPolicyRequest).toMatchObject({
+      kind: "plugin-archive",
+      requestedSpecifier: `frontend-design@owner/repo#${commit}`,
+      source: {
+        kind: "archive",
+        authority: "third-party",
+        mutable: false,
+        network: true,
+      },
     });
   });
 
@@ -562,7 +665,7 @@ describe("marketplace plugins", () => {
   );
 
   it("returns a structured error for archive downloads with an empty response body", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       const release = vi.fn(async () => undefined);
       fetchWithSsrFGuardMock.mockResolvedValueOnce({
         response: new Response(null, { status: 200 }),
@@ -594,7 +697,7 @@ describe("marketplace plugins", () => {
   });
 
   it("returns a structured error for invalid archive URLs", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       const manifestPath = await writeMarketplaceManifest(rootDir, {
         plugins: [
           {
@@ -619,7 +722,7 @@ describe("marketplace plugins", () => {
   });
 
   it("rejects Windows drive-relative archive filenames from redirects", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       fetchWithSsrFGuardMock.mockResolvedValueOnce({
         response: new Response(new Blob([Buffer.from("tgz-bytes")]), {
           status: 200,
@@ -651,7 +754,7 @@ describe("marketplace plugins", () => {
   });
 
   it("falls back to the default archive timeout when the caller passes NaN", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       fetchWithSsrFGuardMock.mockResolvedValueOnce({
         response: new Response(new Blob([Buffer.from("tgz-bytes")]), {
           status: 200,
@@ -689,7 +792,7 @@ describe("marketplace plugins", () => {
   });
 
   it("downloads archive plugin sources through the SSRF guard", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       const release = vi.fn(async () => {
         throw new Error("dispatcher close failed");
       });
@@ -727,12 +830,22 @@ describe("marketplace plugins", () => {
       });
       expectFetchDownloadCall();
       expect(String(installPluginInput().path)).toMatch(/[\\/]frontend-design\.tgz$/);
+      expect(installPluginInput().installPolicyRequest).toMatchObject({
+        kind: "plugin-archive",
+        requestedSpecifier: `frontend-design@${manifestPath}`,
+        source: {
+          kind: "archive",
+          authority: "third-party",
+          mutable: true,
+          network: true,
+        },
+      });
       expect(release).toHaveBeenCalledTimes(1);
     });
   });
 
   it("rejects non-streaming archive responses before buffering them", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       const arrayBuffer = vi.fn(async () => new Uint8Array([1, 2, 3]).buffer);
       fetchWithSsrFGuardMock.mockResolvedValueOnce({
         response: {
@@ -771,7 +884,7 @@ describe("marketplace plugins", () => {
   });
 
   it("rejects oversized streamed archive responses without falling back to arrayBuffer", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       const arrayBuffer = vi.fn(async () => new Uint8Array([1, 2, 3]).buffer);
       const reader = {
         read: vi
@@ -824,16 +937,22 @@ describe("marketplace plugins", () => {
     });
   });
 
-  it("cleans up a partial download temp dir when streaming the archive fails", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
-      const beforeTempDirs = await listMarketplaceDownloadTempDirs();
+  it("rejects malformed archive content-length headers before streaming", async () => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
+      const reader = {
+        read: vi.fn(),
+        cancel: vi.fn(async () => undefined),
+        releaseLock: vi.fn(),
+      };
       fetchWithSsrFGuardMock.mockResolvedValueOnce({
-        response: new Response("x".repeat(1024), {
+        response: {
+          ok: true,
           status: 200,
-          headers: {
-            "content-length": String(300 * 1024 * 1024),
-          },
-        }),
+          body: {
+            getReader: () => reader,
+          } as unknown as Response["body"],
+          headers: new Headers({ "content-length": "1e9" }),
+        } as unknown as Response,
         finalUrl: "https://cdn.example.com/releases/frontend-design.tgz",
         release: vi.fn(async () => undefined),
       });
@@ -855,15 +974,64 @@ describe("marketplace plugins", () => {
         ok: false,
         error:
           "failed to download https://example.com/frontend-design.tgz: " +
-          "download too large: 314572800 bytes (limit: 268435456 bytes)",
+          "invalid content-length header: 1e9",
       });
+      expect(reader.read).not.toHaveBeenCalled();
+      expect(installPluginFromPathMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it("cleans up a partial download temp dir when streaming the archive fails", async () => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
+      const beforeTempDirs = await listMarketplaceDownloadTempDirs();
+      const reader = {
+        read: vi.fn(async () => ({
+          done: false,
+          value: { length: 268_435_457 },
+        })),
+        releaseLock: vi.fn(),
+      };
+      fetchWithSsrFGuardMock.mockResolvedValueOnce({
+        response: {
+          ok: true,
+          status: 200,
+          body: {
+            getReader: () => reader,
+          } as unknown as Response["body"],
+          headers: new Headers(),
+        } as unknown as Response,
+        finalUrl: "https://cdn.example.com/releases/frontend-design.tgz",
+        release: vi.fn(async () => undefined),
+      });
+      const manifestPath = await writeMarketplaceManifest(rootDir, {
+        plugins: [
+          {
+            name: "frontend-design",
+            source: "https://example.com/frontend-design.tgz",
+          },
+        ],
+      });
+
+      const result = await installPluginFromMarketplace({
+        marketplace: manifestPath,
+        plugin: "frontend-design",
+      });
+
+      expect(result).toEqual({
+        ok: false,
+        error:
+          "failed to download https://example.com/frontend-design.tgz: " +
+          "download too large: 268435457 bytes (limit: 268435456 bytes)",
+      });
+      expect(reader.read).toHaveBeenCalledTimes(1);
+      expect(reader.releaseLock).toHaveBeenCalledTimes(1);
       expect(await listMarketplaceDownloadTempDirs()).toEqual(beforeTempDirs);
       expect(installPluginFromPathMock).not.toHaveBeenCalled();
     });
   });
 
   it("sanitizes archive download errors before returning them", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       fetchWithSsrFGuardMock.mockRejectedValueOnce(
         new Error(
           "blocked\n\u001b[31mAuthorization: Bearer sk-1234567890abcdefghijklmnop\u001b[0m",
@@ -906,7 +1074,7 @@ describe("marketplace plugins", () => {
   });
 
   it("returns a structured error when the SSRF guard rejects an archive URL", async () => {
-    await withTempDir("astroclaw-marketplace-test-", async (rootDir) => {
+    await withTempDir("openclaw-marketplace-test-", async (rootDir) => {
       fetchWithSsrFGuardMock.mockRejectedValueOnce(
         new Error("Blocked hostname (not in allowlist): 169.254.169.254"),
       );
