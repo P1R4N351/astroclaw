@@ -1,12 +1,12 @@
-import type { AgentMessage } from "@earendil-works/pi-agent-core";
+// Transcript redaction tests cover structured and text transcript fields so
+// secrets do not persist in logs or replay artifacts.
+import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { redactTranscriptMessage } from "./transcript-redact.js";
 
-/** Typed accessor for `content` on AgentMessage.
- * AgentMessage is a union that includes custom message types (e.g. BashExecutionMessage)
- * which have no `content` field. Direct `.content` access fails tsgo's strict union check.
- */
+// AgentMessage includes custom message types without content; this accessor
+// keeps strict union checks local to the redaction fixtures.
 function msgContent(msg: AgentMessage): unknown {
   return (msg as unknown as { content: unknown }).content;
 }
@@ -18,16 +18,22 @@ function textMessage(text: string): AgentMessage {
   } as unknown as AgentMessage;
 }
 
-function cfg(mode: "tools" | "off", patterns?: string[]): AstroclawConfig {
+function cfg(mode: "tools" | "off", patterns?: string[]): OpenClawConfig {
   return {
     logging: {
       redactSensitive: mode,
       ...(patterns ? { redactPatterns: patterns } : {}),
     },
-  } satisfies AstroclawConfig;
+  } satisfies OpenClawConfig;
 }
 
 const EMAIL_PATTERN = String.raw`([\w]|[-.])+@([\w]|[-.])+\.\w+`;
+const IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAARcnVOZAAAAKIDABCDEFGHIJKLMNOP8JJRuAAAAABJRU5ErkJggg==";
+const BMP_BASE64_WITH_SECRET_TOKEN_SUBSTRING = Buffer.from(
+  "BMsk-abcdef1234567890xyz",
+  "ascii",
+).toString("base64");
 
 describe("redactTranscriptMessage", () => {
   it("redacts text block matching default patterns (sk- token)", () => {
@@ -69,7 +75,7 @@ describe("redactTranscriptMessage", () => {
           id: "call_1",
           name: "shell",
           arguments: {
-            command: "OPENAI_API_KEY=sk-abcdef1234567890xyz astroclaw health",
+            command: "OPENAI_API_KEY=sk-abcdef1234567890xyz openclaw health",
             env: { nested: ["token sk-abcdef1234567890xyz"] },
             count: 1,
           },
@@ -86,10 +92,10 @@ describe("redactTranscriptMessage", () => {
     };
     const serializedArguments = JSON.stringify(block.arguments);
     expect(serializedArguments).not.toContain("sk-abcdef1234567890xyz");
-    expect(argumentsValue.command).toBe("OPENAI_API_KEY=sk-abc…0xyz astroclaw health");
+    expect(argumentsValue.command).toBe("OPENAI_API_KEY=sk-abc…0xyz openclaw health");
     expect(argumentsValue.env.nested[0]).toBe("token sk-abc…0xyz");
     expect(argumentsValue.count).toBe(1);
-    expect(serializedArguments).toContain("astroclaw health");
+    expect(serializedArguments).toContain("openclaw health");
     expect(block.arguments).not.toBe(
       (msgContent(msg) as Array<{ arguments: unknown }>)[0].arguments,
     );
@@ -142,7 +148,7 @@ describe("redactTranscriptMessage", () => {
           input: {
             apiKey: "plainsecretvalue123",
             nested: { accessToken: ["nestedplainsecret123"] },
-            command: "OPENAI_API_KEY=sk-abcdef1234567890xyz astroclaw health",
+            command: "OPENAI_API_KEY=sk-abcdef1234567890xyz openclaw health",
             safe: "visible",
           },
         },
@@ -163,7 +169,7 @@ describe("redactTranscriptMessage", () => {
     expect(serializedInput).not.toContain("sk-abcdef1234567890xyz");
     expect(inputValue.apiKey).toBe("plains…e123");
     expect(inputValue.nested.accessToken[0]).toBe("nested…t123");
-    expect(inputValue.command).toBe("OPENAI_API_KEY=sk-abc…0xyz astroclaw health");
+    expect(inputValue.command).toBe("OPENAI_API_KEY=sk-abc…0xyz openclaw health");
     expect(serializedInput).toContain("visible");
   });
 
@@ -226,6 +232,8 @@ describe("redactTranscriptMessage", () => {
   });
 
   it("redacts circular structured payloads without throwing", () => {
+    // Redaction walks arbitrary tool payloads, so circular structures must be
+    // replaced instead of recursing forever or throwing.
     const details: Record<string, unknown> = {
       apiKey: "plainsecretvalue123",
     };
@@ -293,10 +301,182 @@ describe("redactTranscriptMessage", () => {
     expect(msgContent(result) as string).not.toContain("sk-abcdef1234567890xyz");
   });
 
+  it("preserves image data while redacting adjacent transcript text", () => {
+    const msg = {
+      role: "user",
+      content: [
+        { type: "text", text: "my key is sk-abcdef1234567890xyz" },
+        {
+          type: "image",
+          data: IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING,
+          mimeType: "image/png",
+        },
+      ],
+    } as unknown as AgentMessage;
+
+    const result = redactTranscriptMessage(msg, cfg("tools"));
+    const content = msgContent(result) as Array<{ type: string; text?: string; data?: string }>;
+    expect(content[0].text).not.toContain("sk-abcdef1234567890xyz");
+    expect(content[1].data).toBe(IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING);
+    expect(JSON.stringify(result)).not.toContain("sk-abcdef1234567890xyz");
+  });
+
+  it("redacts fake image payloads that are not valid image base64", () => {
+    const msg = {
+      role: "user",
+      content: [
+        {
+          type: "image",
+          data: "sk-abcdef1234567890xyz",
+          mimeType: "image/png",
+        },
+      ],
+    } as unknown as AgentMessage;
+
+    const result = redactTranscriptMessage(msg, cfg("tools"));
+    const content = msgContent(result) as Array<{ data: string }>;
+    expect(content[0].data).toBe("sk-abc…0xyz");
+  });
+
+  it("preserves valid BMP image base64 while redacting adjacent text", () => {
+    const msg = {
+      role: "user",
+      content: [
+        { type: "text", text: "my key is sk-abcdef1234567890xyz" },
+        {
+          type: "image",
+          data: BMP_BASE64_WITH_SECRET_TOKEN_SUBSTRING,
+          mimeType: "image/bmp",
+        },
+      ],
+    } as unknown as AgentMessage;
+
+    const result = redactTranscriptMessage(msg, cfg("tools"));
+    const content = msgContent(result) as Array<{ type: string; text?: string; data?: string }>;
+    expect(content[0].text).not.toContain("sk-abcdef1234567890xyz");
+    expect(content[1].data).toBe(BMP_BASE64_WITH_SECRET_TOKEN_SUBSTRING);
+  });
+
+  it("preserves provider-style image base64 source data", () => {
+    const msg = {
+      role: "assistant",
+      content: [
+        {
+          type: "gatewayCustom",
+          source: {
+            type: "base64",
+            media_type: "image/png",
+            data: IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING,
+          },
+          apiKey: "plainsecretvalue123",
+        },
+      ],
+    } as unknown as AgentMessage;
+
+    const result = redactTranscriptMessage(msg, cfg("tools"));
+    const block = (msgContent(result) as Array<{ source: { data: string }; apiKey: string }>)[0];
+    expect(block.source.data).toBe(IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING);
+    expect(block.apiKey).toBe("plains…e123");
+  });
+
+  it("canonicalizes preserved image MIME from sniffed base64 bytes", () => {
+    const msg = {
+      role: "assistant",
+      content: [
+        {
+          type: "gatewayCustom",
+          source: {
+            type: "base64",
+            media_type: "image/jpeg",
+            data: IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING,
+          },
+        },
+      ],
+    } as unknown as AgentMessage;
+
+    const result = redactTranscriptMessage(msg, cfg("tools"));
+    const block = (
+      msgContent(result) as Array<{ source: { data: string; media_type: string } }>
+    )[0];
+    expect(block.source.data).toBe(IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING);
+    expect(block.source.media_type).toBe("image/png");
+  });
+
+  it("preserves image data URLs without exempting non-image data fields", () => {
+    const dataUrl = `data:image/png;base64,${IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING}`;
+    const msg = {
+      role: "assistant",
+      content: [
+        {
+          type: "input_image",
+          image_url: dataUrl,
+          data: "AKIDABCDEFGHIJKLMNOP",
+        },
+      ],
+    } as unknown as AgentMessage;
+
+    const result = redactTranscriptMessage(msg, cfg("tools"));
+    const block = (msgContent(result) as Array<{ image_url: string; data: string }>)[0];
+    expect(block.image_url).toBe(dataUrl);
+    expect(block.data).toBe("AKIDAB…MNOP");
+  });
+
+  it("preserves valid non-browser image data URLs in transcripts", () => {
+    const dataUrl = `data:image/bmp;base64,${BMP_BASE64_WITH_SECRET_TOKEN_SUBSTRING}`;
+    const msg = {
+      role: "assistant",
+      content: [
+        {
+          type: "input_image",
+          image_url: dataUrl,
+        },
+      ],
+    } as unknown as AgentMessage;
+
+    const result = redactTranscriptMessage(msg, cfg("tools"));
+    const block = (msgContent(result) as Array<{ image_url: string }>)[0];
+    expect(block.image_url).toBe(dataUrl);
+  });
+
+  it("preserves image data URLs with metadata parameters before base64", () => {
+    const dataUrl = `data:image/png;charset=utf-8;base64,${IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING}`;
+    const canonicalDataUrl = `data:image/png;base64,${IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING}`;
+    const msg = {
+      role: "assistant",
+      content: [
+        {
+          type: "input_image",
+          image_url: dataUrl,
+        },
+      ],
+    } as unknown as AgentMessage;
+
+    const result = redactTranscriptMessage(msg, cfg("tools"));
+    const block = (msgContent(result) as Array<{ image_url: string }>)[0];
+    expect(block.image_url).toBe(canonicalDataUrl);
+  });
+
+  it("preserves nested image_url data URL payloads", () => {
+    const dataUrl = `data:image/png;base64,${IMAGE_BASE64_WITH_SECRET_TOKEN_SUBSTRING}`;
+    const msg = {
+      role: "assistant",
+      content: [
+        {
+          type: "image_url",
+          image_url: { url: dataUrl },
+        },
+      ],
+    } as unknown as AgentMessage;
+
+    const result = redactTranscriptMessage(msg, cfg("tools"));
+    const block = (msgContent(result) as Array<{ image_url: { url: string } }>)[0];
+    expect(block.image_url.url).toBe(dataUrl);
+  });
+
   it("redacts documented transcript text fields on content-less message types", () => {
     const msg = {
       role: "bashExecution",
-      command: "OPENAI_API_KEY=sk-abcdef1234567890xyz astroclaw health",
+      command: "OPENAI_API_KEY=sk-abcdef1234567890xyz openclaw health",
       output: "failed with sk-abcdef1234567890xyz",
       exitCode: 1,
       cancelled: false,
