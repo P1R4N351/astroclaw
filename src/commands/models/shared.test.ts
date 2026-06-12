@@ -1,5 +1,6 @@
+// Model command shared tests cover shared config and provider helper behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { loadValidConfigOrThrow, updateConfig } from "./shared.js";
 
 const mocks = vi.hoisted(() => ({
@@ -19,7 +20,7 @@ describe("models/shared", () => {
   });
 
   it("returns config when snapshot is valid", async () => {
-    const cfg = { providers: {} } as unknown as AstroclawConfig;
+    const cfg = { providers: {} } as unknown as OpenClawConfig;
     mocks.readConfigFileSnapshot.mockResolvedValue({
       valid: true,
       runtimeConfig: cfg,
@@ -32,17 +33,17 @@ describe("models/shared", () => {
   it("throws formatted issues when snapshot is invalid", async () => {
     mocks.readConfigFileSnapshot.mockResolvedValue({
       valid: false,
-      path: "/tmp/astroclaw.json",
+      path: "/tmp/openclaw.json",
       issues: [{ path: "providers.openai.apiKey", message: "Required" }],
     });
 
     await expect(loadValidConfigOrThrow()).rejects.toThrowError(
-      "Invalid config at /tmp/astroclaw.json\n- providers.openai.apiKey: Required",
+      "Invalid config at /tmp/openclaw.json\n- providers.openai.apiKey: Required",
     );
   });
 
   it("updateConfig writes mutated config", async () => {
-    const cfg = { update: { channel: "stable" } } as unknown as AstroclawConfig;
+    const cfg = { update: { channel: "stable" } } as unknown as OpenClawConfig;
     mocks.readConfigFileSnapshot.mockResolvedValue({
       valid: true,
       hash: "config-1",
@@ -60,5 +61,37 @@ describe("models/shared", () => {
     const [replaceParams] = mocks.replaceConfigFile.mock.calls[0] ?? [];
     expect(replaceParams?.nextConfig.update).toEqual({ channel: "beta" });
     expect(replaceParams?.baseHash).toBe("config-1");
+  });
+
+  it("updateConfig exposes runtime config without writing runtime defaults", async () => {
+    const sourceConfig = {
+      agents: { defaults: { models: { "anthropic/claude-sonnet-4-6": {} } } },
+    } as unknown as OpenClawConfig;
+    const runtimeConfig = {
+      agents: {
+        defaults: {
+          models: { "anthropic/claude-sonnet-4-6": { alias: "sonnet" } },
+        },
+      },
+    } as unknown as OpenClawConfig;
+    mocks.readConfigFileSnapshot.mockResolvedValue({
+      valid: true,
+      hash: "config-2",
+      sourceConfig,
+      runtimeConfig,
+      config: runtimeConfig,
+    });
+    mocks.replaceConfigFile.mockResolvedValue(undefined);
+
+    await updateConfig((current, context) => {
+      expect(current).toEqual(sourceConfig);
+      expect(context.runtimeConfig).toEqual(runtimeConfig);
+      return current;
+    });
+
+    expect(mocks.replaceConfigFile).toHaveBeenCalledOnce();
+    const [replaceParams] = mocks.replaceConfigFile.mock.calls[0] ?? [];
+    expect(replaceParams?.nextConfig).toEqual(sourceConfig);
+    expect(replaceParams?.baseHash).toBe("config-2");
   });
 });
