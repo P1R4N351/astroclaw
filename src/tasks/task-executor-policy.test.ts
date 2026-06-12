@@ -1,3 +1,4 @@
+// Verifies task executor delivery policy and terminal message formatting.
 import { describe, expect, it } from "vitest";
 import {
   formatTaskBlockedFollowupMessage,
@@ -77,7 +78,7 @@ describe("task-executor-policy", () => {
 
   it("sanitizes leaked internal runtime context from terminal and progress copy", () => {
     const leaked = [
-      "Astroclaw runtime context (internal):",
+      "OpenClaw runtime context (internal):",
       "This context is runtime-generated, not user-authored. Keep internal details private.",
       "",
       "[Internal task completion event]",
