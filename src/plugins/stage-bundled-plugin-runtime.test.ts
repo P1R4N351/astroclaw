@@ -1,10 +1,12 @@
+// Covers staging bundled plugin runtime files for package output.
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { bundledDistPluginFile } from "astroclaw/plugin-sdk/test-fixtures";
+import { bundledDistPluginFile } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { stageBundledPluginRuntime } from "../../scripts/stage-bundled-plugin-runtime.mjs";
-import { discoverAstroclawPlugins } from "./discovery.js";
+import { withMockedWindowsPlatform, withRestoredMocks } from "../test-utils/vitest-spies.js";
+import { discoverOpenClawPlugins } from "./discovery.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { cleanupTrackedTempDirs, makeTrackedTempDir } from "./test-helpers/fs-fixtures.js";
 
@@ -94,7 +96,7 @@ afterEach(() => {
 
 describe("stageBundledPluginRuntime", () => {
   it("stages bundled dist plugins as runtime wrappers without linking plugin node_modules", () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-");
     const distPluginDir = createDistPluginDir(repoRoot, "diffs");
     fs.mkdirSync(path.join(repoRoot, "dist"), { recursive: true });
     fs.mkdirSync(path.join(repoRoot, "dist", "plugin-sdk"), { recursive: true });
@@ -105,6 +107,7 @@ describe("stageBundledPluginRuntime", () => {
       "dist/plugin-sdk/index.js": "export const sdk = true;\n",
       "dist/plugin-sdk/channel-entry-contract.js":
         "export { contract } from '../channel-entry-contract-abc.js';\n",
+      "dist/plugin-sdk/ssrf-runtime-internal.js": "export const internal = true;\n",
       "dist/channel-entry-contract-abc.js": "export const contract = true;\n",
       [bundledDistPluginFile("diffs", "index.js")]: "export default {}\n",
       [bundledDistPluginFile("diffs", "node_modules/@pierre/diffs/index.js")]:
@@ -129,22 +132,27 @@ describe("stageBundledPluginRuntime", () => {
     expect(
       fs
         .lstatSync(
-          path.join(repoRoot, "dist", "extensions", "node_modules", "astroclaw", "plugin-sdk"),
+          path.join(repoRoot, "dist", "extensions", "node_modules", "openclaw", "plugin-sdk"),
         )
         .isSymbolicLink(),
     ).toBe(false);
     expect(
-      fs.readFileSync(
-        path.join(repoRoot, "dist", "extensions", "node_modules", "astroclaw", "package.json"),
-        "utf8",
-      ),
-    ).toContain('"./plugin-sdk": "./plugin-sdk/index.js"');
+      JSON.parse(
+        fs.readFileSync(
+          path.join(repoRoot, "dist", "extensions", "node_modules", "openclaw", "package.json"),
+          "utf8",
+        ),
+      ).exports,
+    ).toMatchObject({
+      "./plugin-sdk": "./plugin-sdk/index.js",
+      "./plugin-sdk/channel-entry-contract": "./plugin-sdk/channel-entry-contract.js",
+    });
     expect(
       fs.readFileSync(
-        path.join(repoRoot, "dist", "extensions", "node_modules", "astroclaw", "package.json"),
+        path.join(repoRoot, "dist", "extensions", "node_modules", "openclaw", "package.json"),
         "utf8",
       ),
-    ).toContain('"./plugin-sdk/*": "./plugin-sdk/*.js"');
+    ).not.toContain('"./plugin-sdk/*"');
     expect(
       fs.readFileSync(
         path.join(
@@ -152,18 +160,74 @@ describe("stageBundledPluginRuntime", () => {
           "dist",
           "extensions",
           "node_modules",
-          "astroclaw",
+          "openclaw",
           "plugin-sdk",
           "channel-entry-contract.js",
         ),
         "utf8",
       ),
     ).toContain("../../../../plugin-sdk/channel-entry-contract.js");
-    expect(fs.existsSync(path.join(runtimePluginDir, "node_modules", "astroclaw"))).toBe(false);
+    expect(
+      fs.existsSync(
+        path.join(
+          repoRoot,
+          "dist",
+          "extensions",
+          "node_modules",
+          "openclaw",
+          "plugin-sdk",
+          "ssrf-runtime-internal.js",
+        ),
+      ),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(runtimePluginDir, "node_modules", "openclaw"))).toBe(false);
+  });
+
+  it("stages only public plugin-sdk package exports for bundled runtime aliases", () => {
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-sdk-public-");
+    createDistPluginDir(repoRoot, "ollama");
+    setupRepoFiles(repoRoot, {
+      "package.json": JSON.stringify(
+        {
+          name: "openclaw",
+          type: "module",
+          exports: {
+            "./plugin-sdk": "./dist/plugin-sdk/index.js",
+            "./plugin-sdk/channel-entry-contract": "./dist/plugin-sdk/channel-entry-contract.js",
+          },
+        },
+        null,
+        2,
+      ),
+      "dist/plugin-sdk/index.js": "export const sdk = true;\n",
+      "dist/plugin-sdk/channel-entry-contract.js": "export const contract = true;\n",
+      "dist/plugin-sdk/source-only.js": "export const sourceOnly = true;\n",
+      "dist/plugin-sdk/ssrf-runtime-internal.js": "export const internal = true;\n",
+      [bundledDistPluginFile("ollama", "index.js")]: "export default {}\n",
+    });
+
+    stageBundledPluginRuntime({ repoRoot });
+
+    const aliasRoot = path.join(repoRoot, "dist", "extensions", "node_modules", "openclaw");
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(aliasRoot, "package.json"), "utf8"),
+    ) as { exports: Record<string, string> };
+    expect(packageJson.exports).toEqual({
+      "./plugin-sdk": "./plugin-sdk/index.js",
+      "./plugin-sdk/channel-entry-contract": "./plugin-sdk/channel-entry-contract.js",
+    });
+    expect(fs.existsSync(path.join(aliasRoot, "plugin-sdk", "index.js"))).toBe(true);
+    expect(fs.existsSync(path.join(aliasRoot, "plugin-sdk", "channel-entry-contract.js"))).toBe(
+      true,
+    );
+    expect(fs.existsSync(path.join(aliasRoot, "plugin-sdk", "source-only.js"))).toBe(false);
+    expect(fs.existsSync(path.join(aliasRoot, "plugin-sdk", "ssrf-runtime-internal.js"))).toBe(
+      false,
+    );
   });
 
   it("keeps extension-local plugin-sdk wrappers resolving canonical dist chunks", async () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-sdk-wrapper-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-sdk-wrapper-");
     createDistPluginDir(repoRoot, "diffs");
     setupRepoFiles(repoRoot, {
       "dist/plugin-sdk/channel-entry-contract.js":
@@ -179,7 +243,7 @@ describe("stageBundledPluginRuntime", () => {
       "dist",
       "extensions",
       "node_modules",
-      "astroclaw",
+      "openclaw",
       "plugin-sdk",
       "channel-entry-contract.js",
     );
@@ -188,7 +252,7 @@ describe("stageBundledPluginRuntime", () => {
   });
 
   it("writes wrappers that forward plugin entry imports into canonical dist files", async () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-chunks-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-chunks-");
     createDistPluginDir(repoRoot, "diffs");
     setupRepoFiles(repoRoot, {
       "dist/chunk-abc.js": "export const value = 1;\n",
@@ -210,7 +274,7 @@ describe("stageBundledPluginRuntime", () => {
   });
 
   it("stages root runtime sidecars that bundled plugin boundaries resolve directly", () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-sidecars-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-sidecars-");
     createDistPluginDir(repoRoot, "whatsapp");
     setupRepoFiles(repoRoot, {
       [bundledDistPluginFile("whatsapp", "index.js")]: "export default {};\n",
@@ -235,7 +299,7 @@ describe("stageBundledPluginRuntime", () => {
   });
 
   it("keeps plugin command registration on the canonical dist graph when loaded from dist-runtime", async () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-commands-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-commands-");
     const distPluginDir = path.join(repoRoot, "dist", "extensions", "demo");
     const distCommandsDir = path.join(repoRoot, "dist", "plugins");
     fs.mkdirSync(distPluginDir, { recursive: true });
@@ -244,7 +308,7 @@ describe("stageBundledPluginRuntime", () => {
     fs.writeFileSync(
       path.join(distCommandsDir, "commands.js"),
       [
-        "const registry = globalThis.__astroclawTestPluginCommands ??= new Map();",
+        "const registry = globalThis.__openclawTestPluginCommands ??= new Map();",
         "export function registerPluginCommand(pluginId, command) {",
         "  registry.set(`/${command.name.toLowerCase()}`, { ...command, pluginId });",
         "}",
@@ -345,15 +409,15 @@ describe("stageBundledPluginRuntime", () => {
   });
 
   it("copies package metadata files but symlinks other non-js plugin artifacts into the runtime overlay", () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-assets-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-assets-");
     createDistPluginDir(repoRoot, "diffs");
     setupRepoFiles(repoRoot, {
       [bundledDistPluginFile("diffs", "package.json")]: JSON.stringify(
-        { name: "@astroclaw/diffs", astroclaw: { extensions: ["./index.js"] } },
+        { name: "@openclaw/diffs", openclaw: { extensions: ["./index.js"] } },
         null,
         2,
       ),
-      [bundledDistPluginFile("diffs", "astroclaw.plugin.json")]: "{}\n",
+      [bundledDistPluginFile("diffs", "openclaw.plugin.json")]: "{}\n",
       [bundledDistPluginFile("diffs", "assets/info.txt")]: "ok\n",
     });
 
@@ -362,7 +426,7 @@ describe("stageBundledPluginRuntime", () => {
     expectRuntimeArtifactText({
       repoRoot,
       pluginId: "diffs",
-      relativePath: "astroclaw.plugin.json",
+      relativePath: "openclaw.plugin.json",
       expectedText: "{}\n",
       symbolicLink: false,
     });
@@ -385,7 +449,7 @@ describe("stageBundledPluginRuntime", () => {
   });
 
   it("copies bundled plugin skill trees into the runtime overlay", () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-skills-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-skills-");
     createDistPluginDir(repoRoot, "feishu");
     setupRepoFiles(repoRoot, {
       [bundledDistPluginFile("feishu", "index.js")]: "export default {}\n",
@@ -414,14 +478,14 @@ describe("stageBundledPluginRuntime", () => {
   });
 
   it("preserves package metadata needed for bundled plugin discovery from dist-runtime", () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-discovery-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-discovery-");
     const runtimeExtensionsDir = path.join(repoRoot, "dist-runtime", "extensions");
     createDistPluginDir(repoRoot, "demo");
     setupRepoFiles(repoRoot, {
       [bundledDistPluginFile("demo", "package.json")]: JSON.stringify(
         {
-          name: "@astroclaw/demo",
-          astroclaw: {
+          name: "@openclaw/demo",
+          openclaw: {
             extensions: ["./main.js"],
             setupEntry: "./setup.js",
             startup: {
@@ -432,7 +496,7 @@ describe("stageBundledPluginRuntime", () => {
         null,
         2,
       ),
-      [bundledDistPluginFile("demo", "astroclaw.plugin.json")]: JSON.stringify(
+      [bundledDistPluginFile("demo", "openclaw.plugin.json")]: JSON.stringify(
         {
           id: "demo",
           channels: ["demo"],
@@ -449,10 +513,10 @@ describe("stageBundledPluginRuntime", () => {
 
     const env = {
       ...process.env,
-      ASTROCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
-      ASTROCLAW_BUNDLED_PLUGINS_DIR: runtimeExtensionsDir,
+      OPENCLAW_DISABLE_BUNDLED_PLUGINS: undefined,
+      OPENCLAW_BUNDLED_PLUGINS_DIR: runtimeExtensionsDir,
     };
-    const discovery = discoverAstroclawPlugins({
+    const discovery = discoverOpenClawPlugins({
       env,
     });
     const manifestRegistry = loadPluginManifestRegistry({
@@ -481,7 +545,7 @@ describe("stageBundledPluginRuntime", () => {
   });
 
   it("removes stale runtime plugin directories that are no longer in dist", () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-stale-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-stale-");
     const staleRuntimeDir = path.join(repoRoot, "dist-runtime", "extensions", "stale");
     fs.mkdirSync(staleRuntimeDir, { recursive: true });
     fs.writeFileSync(path.join(staleRuntimeDir, "index.js"), "stale\n", "utf8");
@@ -493,7 +557,7 @@ describe("stageBundledPluginRuntime", () => {
   });
 
   it("removes dist-runtime when the built bundled plugin tree is absent", () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-missing-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-missing-");
     const runtimeRoot = path.join(repoRoot, "dist-runtime", "extensions", "diffs");
     fs.mkdirSync(runtimeRoot, { recursive: true });
 
@@ -503,7 +567,7 @@ describe("stageBundledPluginRuntime", () => {
   });
 
   it("tolerates EEXIST when an identical runtime symlink is materialized concurrently", () => {
-    const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-eexist-");
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-eexist-");
     createDistPluginDir(repoRoot, "feishu");
     setupRepoFiles(repoRoot, {
       [bundledDistPluginFile("feishu", "index.js")]: "export default {}\n",
@@ -540,14 +604,13 @@ describe("stageBundledPluginRuntime", () => {
   it.each(["EACCES", "ENOSYS"] as const)(
     "falls back to copying runtime assets when Windows symlink creation fails with %s",
     (code) => {
-      const repoRoot = makeRepoRoot("astroclaw-stage-bundled-runtime-win-copy-");
+      const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-win-copy-");
       createDistPluginDir(repoRoot, "feishu");
       setupRepoFiles(repoRoot, {
         [bundledDistPluginFile("feishu", "index.js")]: "export default {}\n",
         [bundledDistPluginFile("feishu", "assets/fixture.txt")]: "# Feishu Doc\n",
       });
 
-      const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32");
       const realSymlinkSync = fs.symlinkSync.bind(fs);
       const symlinkSpy = vi.spyOn(fs, "symlinkSync").mockImplementation(((target, link, type) => {
         const linkPath = String(link);
@@ -557,7 +620,11 @@ describe("stageBundledPluginRuntime", () => {
         return realSymlinkSync(String(target), linkPath, type);
       }) as typeof fs.symlinkSync);
 
-      stageBundledPluginRuntime({ repoRoot });
+      withRestoredMocks([symlinkSpy], () => {
+        withMockedWindowsPlatform(() => {
+          stageBundledPluginRuntime({ repoRoot });
+        });
+      });
 
       const runtimeAssetPath = path.join(
         repoRoot,
@@ -569,9 +636,6 @@ describe("stageBundledPluginRuntime", () => {
       );
       expect(fs.lstatSync(runtimeAssetPath).isSymbolicLink()).toBe(false);
       expect(fs.readFileSync(runtimeAssetPath, "utf8")).toBe("# Feishu Doc\n");
-
-      symlinkSpy.mockRestore();
-      platformSpy.mockRestore();
     },
   );
 });
