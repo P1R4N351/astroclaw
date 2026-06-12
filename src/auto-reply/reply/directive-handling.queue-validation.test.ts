@@ -1,5 +1,6 @@
+// Tests queue directive validation and error copy for invalid queue settings.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { parseInlineDirectives } from "./directive-handling.parse.js";
 import { maybeHandleQueueDirective } from "./directive-handling.queue-validation.js";
 
@@ -7,7 +8,7 @@ describe("maybeHandleQueueDirective", () => {
   it("reports invalid queue options and current queue settings", () => {
     const invalid = maybeHandleQueueDirective({
       directives: parseInlineDirectives("/queue collect debounce:bogus cap:zero drop:maybe"),
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       channel: "quietchat",
     });
     expect(invalid?.text).toContain("Invalid debounce");
@@ -16,7 +17,7 @@ describe("maybeHandleQueueDirective", () => {
 
     const invalidMode = maybeHandleQueueDirective({
       directives: parseInlineDirectives("/queue backlog"),
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       channel: "quietchat",
     });
     expect(invalidMode?.text).toContain(
@@ -34,7 +35,7 @@ describe("maybeHandleQueueDirective", () => {
             drop: "summarize",
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       channel: "quietchat",
     });
     expect(current?.text).toContain(
@@ -43,5 +44,15 @@ describe("maybeHandleQueueDirective", () => {
     expect(current?.text).toContain(
       "Options: modes steer, followup, collect, interrupt; debounce:<ms|s|m>, cap:<n>, drop:old|new|summarize.",
     );
+  });
+
+  it.each(["cap:1e3", "cap:0x10", "cap:4.9"])("rejects non-decimal-integer caps: %s", (cap) => {
+    const invalid = maybeHandleQueueDirective({
+      directives: parseInlineDirectives(`/queue collect ${cap}`),
+      cfg: {} as OpenClawConfig,
+      channel: "quietchat",
+    });
+
+    expect(invalid?.text).toContain("Invalid cap");
   });
 });
