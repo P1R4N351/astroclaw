@@ -31,6 +31,7 @@ const getChannelPluginCatalogEntry = vi.hoisted(() => vi.fn());
 
 vi.mock("../../channels/plugins/catalog.js", () => ({
   listChannelPluginCatalogEntries: (opts?: unknown) => listChannelPluginCatalogEntries(opts),
+  listRawChannelPluginCatalogEntries: (opts?: unknown) => listChannelPluginCatalogEntries(opts),
   getChannelPluginCatalogEntry: (...args: unknown[]) =>
     getChannelPluginCatalogEntry(...(args as [string, Record<string, unknown>])),
 }));
@@ -53,7 +54,7 @@ vi.mock("../../config/plugin-auto-enable.js", () => ({
   applyPluginAutoEnable: (a: unknown) => applyPluginAutoEnable(a as { config: unknown }),
 }));
 vi.mock("../../plugins/loader.js", () => ({
-  loadAstroclawPlugins: vi.fn(),
+  loadOpenClawPlugins: vi.fn(),
 }));
 
 import { resolveChannelSetupEntries } from "./discovery.js";
@@ -111,9 +112,9 @@ function createManifestChannelPlugin(id: string, channels: string[]): PluginMani
     skills: [],
     hooks: [],
     origin: "workspace",
-    rootDir: `/tmp/astroclaw-test/${id}`,
-    source: `/tmp/astroclaw-test/${id}/index.ts`,
-    manifestPath: `/tmp/astroclaw-test/${id}/astroclaw.plugin.json`,
+    rootDir: `/tmp/openclaw-test/${id}`,
+    source: `/tmp/openclaw-test/${id}/index.ts`,
+    manifestPath: `/tmp/openclaw-test/${id}/openclaw.plugin.json`,
   };
 }
 
@@ -145,15 +146,17 @@ describe("resolveChannelSetupEntries workspace shadow exclusion (GHSA-2qrv-rc5x-
     };
     const bundledEntry = {
       id: "telegram",
-      pluginId: "@astroclaw/telegram",
+      pluginId: "@openclaw/telegram",
       origin: "bundled",
       meta: workspaceEntry.meta,
-      install: { npmSpec: "@astroclaw/telegram" },
+      install: { npmSpec: "@openclaw/telegram" },
     };
-    listChannelPluginCatalogEntries.mockImplementation((opts?: unknown) =>
-      (opts as { excludeWorkspace?: boolean } | undefined)?.excludeWorkspace
-        ? [bundledEntry]
-        : [workspaceEntry],
+    listChannelPluginCatalogEntries.mockReturnValue([workspaceEntry]);
+    getChannelPluginCatalogEntry.mockImplementation(
+      (_channel: string, opts?: { excludePluginRefs?: Array<{ pluginId: string }> }) =>
+        opts?.excludePluginRefs?.some((entry) => entry.pluginId === "evil-telegram-shadow")
+          ? bundledEntry
+          : undefined,
     );
 
     resolveChannelSetupEntries({
@@ -162,18 +165,21 @@ describe("resolveChannelSetupEntries workspace shadow exclusion (GHSA-2qrv-rc5x-
       installedPlugins: [],
     });
 
-    const fallbackCall = listChannelPluginCatalogEntries.mock.calls.find(
-      ([opts]) => (opts as { excludeWorkspace?: boolean } | undefined)?.excludeWorkspace === true,
+    const fallbackCall = getChannelPluginCatalogEntry.mock.calls.find(
+      ([, opts]) =>
+        (
+          opts as { excludePluginRefs?: Array<{ pluginId: string; origin?: string }> } | undefined
+        )?.excludePluginRefs?.some(
+          (entry) => entry.pluginId === "evil-telegram-shadow" && entry.origin === "workspace",
+        ) === true,
     );
-    expect(
-      (fallbackCall?.[0] as { excludeWorkspace?: boolean } | undefined)?.excludeWorkspace,
-    ).toBe(true);
+    expect(fallbackCall).toBeTruthy();
   });
 
   it("still returns bundled-origin entries", () => {
     const bundledEntry = {
       id: "telegram",
-      pluginId: "@astroclaw/telegram",
+      pluginId: "@openclaw/telegram",
       origin: "bundled",
       meta: {
         id: "telegram",
@@ -183,7 +189,7 @@ describe("resolveChannelSetupEntries workspace shadow exclusion (GHSA-2qrv-rc5x-
         blurb: "t",
         order: 1,
       },
-      install: { npmSpec: "@astroclaw/telegram" },
+      install: { npmSpec: "@openclaw/telegram" },
     };
     listChannelPluginCatalogEntries.mockReturnValue([bundledEntry]);
 
