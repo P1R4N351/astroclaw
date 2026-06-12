@@ -1,3 +1,4 @@
+// Channel MCP shutdown tests cover unhandled rejection behavior during shutdown.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const transportState = vi.hoisted(() => ({
@@ -46,12 +47,13 @@ vi.mock("../config/config.js", () => ({
   getRuntimeConfig: vi.fn(() => ({})),
 }));
 
-vi.mock("../version.js", () => ({
+vi.mock("../version.js", async () => ({
+  ...(await vi.importActual<typeof import("../version.js")>("../version.js")),
   VERSION: "test",
 }));
 
 vi.mock("./channel-bridge.js", () => ({
-  AstroclawChannelBridge: class MockAstroclawChannelBridge {
+  OpenClawChannelBridge: class MockOpenClawChannelBridge {
     setServer(server: unknown) {
       bridgeState.setServer(server);
     }
@@ -91,7 +93,7 @@ async function waitForTransport(): Promise<{ onclose?: (() => void) | undefined 
   return transportState.lastTransport;
 }
 
-describe("serveAstroclawChannelMcp shutdown", () => {
+describe("serveOpenClawChannelMcp shutdown", () => {
   const unhandledRejections: unknown[] = [];
   const onUnhandledRejection = (reason: unknown) => {
     unhandledRejections.push(reason);
@@ -111,14 +113,16 @@ describe("serveAstroclawChannelMcp shutdown", () => {
 
   it("does not leak unhandled rejections when shutdown close fails", async () => {
     process.on("unhandledRejection", onUnhandledRejection);
-    const { serveAstroclawChannelMcp } = await import("./channel-server.js");
+    const { serveOpenClawChannelMcp } = await import("./channel-server.js");
 
-    const servePromise = serveAstroclawChannelMcp({ verbose: false });
+    const servePromise = serveOpenClawChannelMcp({ verbose: false });
     const transport = await waitForTransport();
 
     transport.onclose?.();
     await servePromise;
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
 
     expect(unhandledRejections).toStrictEqual([]);
     expect(bridgeState.close).toHaveBeenCalledTimes(1);
