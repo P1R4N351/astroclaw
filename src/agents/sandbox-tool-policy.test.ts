@@ -1,6 +1,7 @@
+// Verifies sandbox tool allow/deny policy extraction and additive alsoAllow behavior.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
-import { resolveEffectiveToolPolicy } from "./pi-tools.policy.js";
+import type { OpenClawConfig } from "../config/config.js";
+import { resolveEffectiveToolPolicy } from "./agent-tools.policy.js";
 import { pickSandboxToolPolicy } from "./sandbox-tool-policy.js";
 import { resolveEffectiveToolFsRootExpansionAllowed } from "./tool-fs-policy.js";
 
@@ -33,6 +34,7 @@ describe("pickSandboxToolPolicy", () => {
   });
 
   it("preserves allow-all semantics for allow: [] plus alsoAllow", () => {
+    // Empty allow means allow-all; alsoAllow remains additive, not restrictive.
     expect(
       pickSandboxToolPolicy({
         allow: [],
@@ -56,7 +58,7 @@ describe("pickSandboxToolPolicy", () => {
   });
 
   it("keeps global alsoAllow additive in effective tool policy resolution", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         profile: "coding",
         alsoAllow: ["lobster"],
@@ -69,7 +71,7 @@ describe("pickSandboxToolPolicy", () => {
   });
 
   it("does not block fs root expansion when only global alsoAllow is configured", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       tools: {
         alsoAllow: ["lobster"],
       },
