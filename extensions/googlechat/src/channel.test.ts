@@ -1,10 +1,11 @@
-import { verifyChannelMessageAdapterCapabilityProofs } from "astroclaw/plugin-sdk/channel-message";
+// Googlechat tests cover channel plugin behavior.
+import { verifyChannelMessageAdapterCapabilityProofs } from "openclaw/plugin-sdk/channel-outbound";
 import {
   createDirectoryTestRuntime,
   expectDirectorySurface,
-} from "astroclaw/plugin-sdk/channel-test-helpers";
+} from "openclaw/plugin-sdk/channel-test-helpers";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../runtime-api.js";
+import type { OpenClawConfig } from "../runtime-api.js";
 import {
   googlechatDirectoryAdapter,
   googlechatMessageAdapter,
@@ -47,7 +48,7 @@ function normalizeGoogleChatTarget(raw?: string | null): string | undefined {
   return normalized;
 }
 
-function resolveGoogleChatAccountImpl(params: { cfg: AstroclawConfig; accountId?: string | null }) {
+function resolveGoogleChatAccountImpl(params: { cfg: OpenClawConfig; accountId?: string | null }) {
   const accountId = params.accountId?.trim() || DEFAULT_ACCOUNT_ID;
   const channelConfig = (params.cfg.channels?.googlechat ?? {}) as Record<string, unknown>;
   const accounts =
@@ -131,7 +132,7 @@ vi.mock("./channel.deps.runtime.js", () => {
     getChatChannelMeta: (id: string) => ({ id, name: id }),
     isGoogleChatSpaceTarget: (value: string) => value.toLowerCase().startsWith("spaces/"),
     isGoogleChatUserTarget: (value: string) => value.toLowerCase().startsWith("users/"),
-    listGoogleChatAccountIds: (cfg: AstroclawConfig) => {
+    listGoogleChatAccountIds: (cfg: OpenClawConfig) => {
       const ids = Object.keys(cfg.channels?.googlechat?.accounts ?? {});
       return ids.length > 0 ? ids : ["default"];
     },
@@ -141,9 +142,9 @@ vi.mock("./channel.deps.runtime.js", () => {
     normalizeGoogleChatTarget,
     PAIRING_APPROVED_MESSAGE: "approved",
     resolveChannelMediaMaxBytes: (params: {
-      cfg: AstroclawConfig;
+      cfg: OpenClawConfig;
       resolveChannelLimitMb: (args: {
-        cfg: AstroclawConfig;
+        cfg: OpenClawConfig;
         accountId?: string;
       }) => number | undefined;
       accountId?: string;
@@ -181,7 +182,7 @@ afterAll(() => {
   vi.resetModules();
 });
 
-function createGoogleChatCfg(): AstroclawConfig {
+function createGoogleChatCfg(): OpenClawConfig {
   return {
     channels: {
       googlechat: {
@@ -288,6 +289,7 @@ describe("googlechatPlugin outbound sendMedia", () => {
     expect(proofs).toStrictEqual([
       { capability: "text", status: "verified" },
       { capability: "media", status: "verified" },
+      { capability: "poll", status: "not_declared" },
       { capability: "payload", status: "not_declared" },
       { capability: "silent", status: "not_declared" },
       { capability: "replyTo", status: "not_declared" },
@@ -420,7 +422,7 @@ describe("googlechatPlugin threading", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const workAccount = googlechatThreadingAdapter.scopedAccountReplyToMode.resolveAccount(
       cfg,
@@ -437,6 +439,62 @@ describe("googlechatPlugin threading", () => {
     expect(
       googlechatThreadingAdapter.scopedAccountReplyToMode.resolveReplyToMode(defaultAccount),
     ).toBe("all");
+  });
+
+  it("uses the inbound thread resource as the current tool reply target", () => {
+    const cfg = {
+      channels: {
+        googlechat: {
+          replyToMode: "all",
+        },
+      },
+    } as OpenClawConfig;
+    const hasRepliedRef = { value: false };
+
+    const context = googlechatThreadingAdapter.buildToolContext({
+      cfg,
+      accountId: "default",
+      context: {
+        To: "googlechat:spaces/AAA",
+        CurrentMessageId: "spaces/AAA/messages/msg-1",
+        ReplyToId: "spaces/AAA/threads/thread-1",
+      },
+      hasRepliedRef,
+    });
+
+    expect(context).toMatchObject({
+      currentChannelId: "spaces/AAA",
+      currentMessageId: "spaces/AAA/threads/thread-1",
+      currentThreadTs: "spaces/AAA/threads/thread-1",
+      replyToMode: "all",
+      hasRepliedRef,
+    });
+  });
+
+  it("does not use message resources as implicit Google Chat reply targets", () => {
+    const cfg = {
+      channels: {
+        googlechat: {
+          replyToMode: "all",
+        },
+      },
+    } as OpenClawConfig;
+
+    const context = googlechatThreadingAdapter.buildToolContext({
+      cfg,
+      accountId: "default",
+      context: {
+        To: "googlechat:spaces/AAA",
+        CurrentMessageId: "spaces/AAA/messages/msg-1",
+      },
+    });
+
+    expect(context).toMatchObject({
+      currentChannelId: "spaces/AAA",
+      replyToMode: "all",
+    });
+    expect(context.currentMessageId).toBeUndefined();
+    expect(context.currentThreadTs).toBeUndefined();
   });
 });
 
@@ -702,7 +760,7 @@ describe("googlechat directory", () => {
           },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const directory = expectDirectorySurface(googlechatDirectoryAdapter);
 
@@ -739,7 +797,7 @@ describe("googlechat directory", () => {
           dm: { allowFrom: [" users/alice ", " googlechat:user:Bob@Example.com "] },
         },
       },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
 
     const directory = expectDirectorySurface(googlechatDirectoryAdapter);
 
@@ -769,7 +827,7 @@ describe("googlechatPlugin security", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const account = resolveGoogleChatAccountImpl({ cfg, accountId: "default" });
 
