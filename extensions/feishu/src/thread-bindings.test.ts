@@ -1,15 +1,16 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { getSessionBindingService } from "astroclaw/plugin-sdk/conversation-runtime";
+// Feishu tests cover thread bindings plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { getSessionBindingService } from "openclaw/plugin-sdk/conversation-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { __testing, createFeishuThreadBindingManager } from "./thread-bindings.js";
+import { testing, createFeishuThreadBindingManager } from "./thread-bindings.js";
 
 const baseCfg = {
   session: { mainKey: "main", scope: "per-sender" },
-} satisfies AstroclawConfig;
+} satisfies OpenClawConfig;
 
 describe("Feishu thread bindings", () => {
   beforeEach(() => {
-    __testing.resetFeishuThreadBindingsForTests();
+    testing.resetFeishuThreadBindingsForTests();
   });
 
   afterEach(() => {
