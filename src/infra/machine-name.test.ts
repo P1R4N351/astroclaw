@@ -1,15 +1,18 @@
+// Covers machine name resolution fallback behavior.
 import os from "node:os";
-import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const execFileMock = vi.hoisted(() => vi.fn());
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeChildProcessExecFile } = await import("astroclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeChildProcessExecFile } = await import("openclaw/plugin-sdk/test-node-mocks");
   return mockNodeChildProcessExecFile(
     Object.assign(execFileMock, {
+      [Symbol.for("nodejs.util.promisify.custom")]: vi.fn(),
       __promisify__: vi.fn(),
     }) as typeof import("node:child_process").execFile,
+    () => vi.importActual<typeof import("node:child_process")>("node:child_process"),
   );
 });
 
@@ -52,7 +55,7 @@ describe("getMachineDisplayName", () => {
       name: "falls back to the default product name when hostname is blank",
       scope: "blank-hostname",
       hostname: "   ",
-      expected: "astroclaw",
+      expected: "openclaw",
       expectedCalls: 1,
       repeatLookup: false,
     },
