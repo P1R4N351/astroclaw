@@ -1,7 +1,8 @@
-import { bundledPluginRootAt, repoInstallSpec } from "astroclaw/plugin-sdk/test-fixtures";
+// Plugin install config tests cover install specs and generated plugin config.
+import { bundledPluginRootAt, repoInstallSpec } from "openclaw/plugin-sdk/test-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
-import type { ConfigFileSnapshot } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/config.js";
+import type { ConfigFileSnapshot } from "../config/types.openclaw.js";
 import {
   resolvePluginInstallRequestContext,
   type PluginInstallRequestContext,
@@ -22,7 +23,7 @@ vi.mock("../config/config.js", () => ({
 }));
 
 vi.mock("../commands/doctor/shared/channel-doctor.js", () => ({
-  collectChannelDoctorStaleConfigMutations: (cfg: AstroclawConfig) =>
+  collectChannelDoctorStaleConfigMutations: (cfg: OpenClawConfig) =>
     collectChannelDoctorStaleConfigMutationsMock(cfg),
 }));
 
@@ -35,10 +36,10 @@ function makeSnapshot(overrides: Partial<ConfigFileSnapshot> = {}): ConfigFileSn
     raw: '{ "plugins": {} }',
     parsed: { plugins: {} },
     sourceConfig: { plugins: {} } as ConfigFileSnapshot["sourceConfig"],
-    resolved: { plugins: {} } as AstroclawConfig,
+    resolved: { plugins: {} } as OpenClawConfig,
     valid: false,
     runtimeConfig: { plugins: {} } as ConfigFileSnapshot["runtimeConfig"],
-    config: { plugins: {} } as AstroclawConfig,
+    config: { plugins: {} } as OpenClawConfig,
     hash: "abc",
     issues: [{ path: "plugins.installs.discord", message: "stale path" }],
     warnings: [],
@@ -49,8 +50,8 @@ function makeSnapshot(overrides: Partial<ConfigFileSnapshot> = {}): ConfigFileSn
 
 describe("loadConfigForInstall", () => {
   const discordNpmRequest = {
-    rawSpec: "@astroclaw/discord",
-    normalizedSpec: "@astroclaw/discord",
+    rawSpec: "@openclaw/discord",
+    normalizedSpec: "@openclaw/discord",
     bundledPluginId: "discord",
     allowInvalidConfigRecovery: true,
   } satisfies PluginInstallRequestContext;
@@ -59,7 +60,7 @@ describe("loadConfigForInstall", () => {
     readConfigFileSnapshotMock.mockReset();
     collectChannelDoctorStaleConfigMutationsMock.mockReset();
 
-    collectChannelDoctorStaleConfigMutationsMock.mockImplementation(async (cfg: AstroclawConfig) => [
+    collectChannelDoctorStaleConfigMutationsMock.mockImplementation(async (cfg: OpenClawConfig) => [
       {
         config: cfg,
         changes: [],
@@ -68,7 +69,7 @@ describe("loadConfigForInstall", () => {
   });
 
   it("returns the source config and base hash when the snapshot is valid", async () => {
-    const cfg = { plugins: { entries: { discord: { enabled: true } } } } as AstroclawConfig;
+    const cfg = { plugins: { entries: { discord: { enabled: true } } } } as OpenClawConfig;
     readConfigFileSnapshotMock.mockResolvedValue(
       makeSnapshot({
         valid: true,
@@ -84,7 +85,7 @@ describe("loadConfigForInstall", () => {
   });
 
   it("does not run stale Discord cleanup on the happy path", async () => {
-    const cfg = { plugins: {} } as AstroclawConfig;
+    const cfg = { plugins: {} } as OpenClawConfig;
     readConfigFileSnapshotMock.mockResolvedValue(
       makeSnapshot({
         valid: true,
@@ -102,7 +103,7 @@ describe("loadConfigForInstall", () => {
   it("falls back to snapshot config for explicit bundled-plugin reinstall when issues match the known upgrade failure", async () => {
     const snapshotCfg = {
       plugins: { installs: { discord: { source: "path", installPath: "/gone" } } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     readConfigFileSnapshotMock.mockResolvedValue(
       makeSnapshot({
         parsed: { plugins: { installs: { discord: {} } } },
@@ -123,7 +124,7 @@ describe("loadConfigForInstall", () => {
   it("allows npm:-prefixed bundled-plugin reinstall recovery", async () => {
     const snapshotCfg = {
       plugins: { installs: { discord: { source: "path", installPath: "/gone" } } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     readConfigFileSnapshotMock.mockResolvedValue(
       makeSnapshot({
         parsed: { plugins: { installs: { discord: {} } } },
@@ -136,7 +137,7 @@ describe("loadConfigForInstall", () => {
     );
 
     const request = resolvePluginInstallRequestContext({
-      rawSpec: "npm:@astroclaw/discord",
+      rawSpec: "npm:@openclaw/discord",
     });
     if (!request.ok) {
       throw new Error(request.error);
@@ -152,7 +153,7 @@ describe("loadConfigForInstall", () => {
   it("allows official plugin reinstall recovery from source-only runtime shadows", async () => {
     const snapshotCfg = {
       plugins: { installs: { discord: { source: "npm", installPath: "/bad/discord" } } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     readConfigFileSnapshotMock.mockResolvedValue(
       makeSnapshot({
         parsed: { plugins: { installs: { discord: {} } } },
@@ -168,7 +169,7 @@ describe("loadConfigForInstall", () => {
     );
 
     const request = resolvePluginInstallRequestContext({
-      rawSpec: "npm:@astroclaw/discord",
+      rawSpec: "npm:@openclaw/discord",
     });
     if (!request.ok) {
       throw new Error(request.error);
@@ -182,7 +183,7 @@ describe("loadConfigForInstall", () => {
   it("allows Brave official plugin reinstall recovery from source-only runtime shadows", async () => {
     const snapshotCfg = {
       plugins: { installs: { brave: { source: "clawhub", installPath: "/bad/brave" } } },
-    } as unknown as AstroclawConfig;
+    } as unknown as OpenClawConfig;
     readConfigFileSnapshotMock.mockResolvedValue(
       makeSnapshot({
         parsed: { plugins: { installs: { brave: {} } } },
@@ -196,14 +197,14 @@ describe("loadConfigForInstall", () => {
           {
             path: "tools.web.search.provider",
             message:
-              'web_search provider is not available: brave (install or enable plugin "brave", then run astroclaw doctor --fix)',
+              'web_search provider is not available: brave (install or enable plugin "brave", then run openclaw doctor --fix)',
           },
         ],
       }),
     );
 
     const request = resolvePluginInstallRequestContext({
-      rawSpec: "@astroclaw/brave-plugin",
+      rawSpec: "@openclaw/brave-plugin",
     });
     if (!request.ok) {
       throw new Error(request.error);
@@ -216,7 +217,7 @@ describe("loadConfigForInstall", () => {
   });
 
   it("allows explicit repo-checkout bundled-plugin reinstall recovery", async () => {
-    const snapshotCfg = { plugins: {} } as AstroclawConfig;
+    const snapshotCfg = { plugins: {} } as OpenClawConfig;
     readConfigFileSnapshotMock.mockResolvedValue(
       makeSnapshot({
         config: snapshotCfg,
@@ -258,19 +259,19 @@ describe("loadConfigForInstall", () => {
         rawSpec: "alpha",
         normalizedSpec: "alpha",
       }),
-    ).rejects.toThrow("Config invalid; run `astroclaw doctor --fix` before installing plugins.");
+    ).rejects.toThrow("Config invalid; run `openclaw doctor --fix` before installing plugins.");
   });
 
   it("throws when invalid snapshot parsed is empty", async () => {
     readConfigFileSnapshotMock.mockResolvedValue(
       makeSnapshot({
         parsed: {},
-        config: {} as AstroclawConfig,
+        config: {} as OpenClawConfig,
       }),
     );
 
     await expect(loadConfigForInstall(discordNpmRequest)).rejects.toThrow(
-      "Config file could not be parsed; run `astroclaw doctor` to repair it.",
+      "Config file could not be parsed; run `openclaw doctor` to repair it.",
     );
   });
 
@@ -278,7 +279,7 @@ describe("loadConfigForInstall", () => {
     readConfigFileSnapshotMock.mockResolvedValue(makeSnapshot({ exists: false, parsed: {} }));
 
     await expect(loadConfigForInstall(discordNpmRequest)).rejects.toThrow(
-      "Config file could not be parsed; run `astroclaw doctor` to repair it.",
+      "Config file could not be parsed; run `openclaw doctor` to repair it.",
     );
   });
 });
