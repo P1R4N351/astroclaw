@@ -1,10 +1,11 @@
+// Vitest runtime config config wires the runtime config test shard.
 import { createScopedVitestConfig } from "./vitest.scoped-config.ts";
 
 export function createRuntimeConfigVitestConfig(env?: Record<string, string | undefined>) {
   const config = createScopedVitestConfig(["src/config/**/*.test.ts"], {
     dir: "src",
     env,
-    includeAstroclawRuntimeSetup: false,
+    includeOpenClawRuntimeSetup: false,
     name: "runtime-config",
     passWithNoTests: true,
   });
