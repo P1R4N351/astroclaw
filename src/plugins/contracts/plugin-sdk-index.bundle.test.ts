@@ -1,3 +1,4 @@
+// Plugin SDK bundle index tests cover bundled SDK export inventory and packaging.
 import fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -11,7 +12,7 @@ const require = createRequire(import.meta.url);
 const tsdownModuleUrl = pathToFileURL(require.resolve("tsdown")).href;
 const bundledRepresentativeEntrypoints = ["browser-config"] as const;
 const bundleTempRootTracker = createSuiteTempRootTracker(
-  "astroclaw-plugin-sdk-build",
+  "openclaw-plugin-sdk-build",
   path.join(process.cwd(), "node_modules", ".cache"),
 );
 const matrixRuntimeCoverageEntries = {
