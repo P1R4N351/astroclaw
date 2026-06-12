@@ -1,3 +1,4 @@
+// Anthropic tests cover cli shared plugin behavior.
 import { describe, expect, it } from "vitest";
 import { buildAnthropicCliBackend } from "./cli-backend.js";
 import {
@@ -76,6 +77,20 @@ describe("normalizeClaudeSettingSourcesArgs", () => {
   });
 });
 
+describe("Claude CLI model aliases", () => {
+  it("keeps pinned Claude CLI model refs on exact selectors", () => {
+    const aliases = buildAnthropicCliBackend().config.modelAliases;
+
+    expect(aliases?.["opus"]).toBe("opus");
+    expect(aliases?.["opus-4.8"]).toBe("claude-opus-4-8");
+    expect(aliases?.["opus-4.7"]).toBe("claude-opus-4-7");
+    expect(aliases?.["opus-4.6"]).toBe("claude-opus-4-6");
+    expect(aliases?.["claude-opus-4-8"]).toBe("claude-opus-4-8");
+    expect(aliases?.["claude-opus-4-7"]).toBe("claude-opus-4-7");
+    expect(aliases?.["claude-opus-4-6"]).toBe("claude-opus-4-6");
+  });
+});
+
 describe("resolveClaudeCliExecutionArgs", () => {
   it("omits effort args when thinking is off", () => {
     expect(
@@ -90,7 +105,7 @@ describe("resolveClaudeCliExecutionArgs", () => {
     ).toEqual(["-p", "--output-format", "stream-json"]);
   });
 
-  it("maps Astroclaw thinking levels to Claude effort args", () => {
+  it("maps OpenClaw thinking levels to Claude effort args", () => {
     expect(
       resolveClaudeCliExecutionArgs({
         workspaceDir: "/tmp",
@@ -172,7 +187,7 @@ describe("normalizeClaudeBackendConfig", () => {
     expect(normalized.input).toBe("stdin");
   });
 
-  it("derives Claude bypass from Astroclaw YOLO policy and disables it for safer policy", () => {
+  it("derives Claude bypass from OpenClaw YOLO policy and disables it for safer policy", () => {
     expect(resolveClaudePermissionMode({ backendId: "claude-cli" })).toEqual({
       mode: "bypassPermissions",
       overrideExisting: false,
@@ -185,7 +200,7 @@ describe("normalizeClaudeBackendConfig", () => {
     ).toEqual({ overrideExisting: false });
   });
 
-  it("derives Claude bypass from per-agent Astroclaw exec policy", () => {
+  it("derives Claude bypass from per-agent OpenClaw exec policy", () => {
     expect(
       resolveClaudePermissionMode({
         backendId: "claude-cli",
@@ -268,6 +283,13 @@ describe("normalizeClaudeBackendConfig", () => {
     expect(backend.config.sessionMode).toBe("always");
     expect(backend.config.resumeArgs).toContain("--resume");
     expect(backend.config.resumeArgs).toContain("{sessionId}");
+  });
+
+  it("passes system prompt on every turn (issue #80374 — systemPromptWhen must be 'always')", () => {
+    // Before fix this was hardcoded to "first", which silently dropped updated
+    // OpenClaw system prompt context on resumed / compacted claude-cli sessions.
+    const backend = buildAnthropicCliBackend();
+    expect(backend.config.systemPromptWhen).toBe("always");
   });
 
   it("leaves claude cli subscription-managed, restricts setting sources, and clears inherited env overrides", () => {
