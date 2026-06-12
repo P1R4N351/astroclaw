@@ -1,3 +1,4 @@
+// Msteams tests cover welcome card plugin behavior.
 import { describe, expect, it } from "vitest";
 import { buildMSTeamsPresentationCard } from "./presentation.js";
 import { buildGroupWelcomeText, buildWelcomeCard } from "./welcome-card.js";
@@ -23,6 +24,51 @@ describe("buildMSTeamsPresentationCard", () => {
       actions: [{ type: "Action.Submit", title: "Open", data: { value: "open", label: "Open" } }],
     });
   });
+
+  it("submits command actions as command text", () => {
+    expect(
+      buildMSTeamsPresentationCard({
+        presentation: {
+          blocks: [
+            {
+              type: "buttons",
+              buttons: [
+                {
+                  label: "Plugins",
+                  action: { type: "command", command: "/codex plugins menu" },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toMatchObject({
+      actions: [{ type: "Action.Submit", title: "Plugins", data: "/codex plugins menu" }],
+    });
+  });
+
+  it("renders web app button links as open-url actions", () => {
+    expect(
+      buildMSTeamsPresentationCard({
+        presentation: {
+          blocks: [
+            {
+              type: "buttons",
+              buttons: [
+                { label: "Open app", webApp: { url: "https://example.com/app" } },
+                { label: "Legacy app", web_app: { url: "https://example.com/legacy" } },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toMatchObject({
+      actions: [
+        { type: "Action.OpenUrl", title: "Open app", url: "https://example.com/app" },
+        { type: "Action.OpenUrl", title: "Legacy app", url: "https://example.com/legacy" },
+      ],
+    });
+  });
 });
 
 describe("buildWelcomeCard", () => {
@@ -32,7 +78,7 @@ describe("buildWelcomeCard", () => {
     expect(card.version).toBe("1.5");
 
     const body = card.body as Array<{ text: string }>;
-    expect(body[0]?.text).toContain("Astroclaw");
+    expect(body[0]?.text).toContain("OpenClaw");
 
     const actions = card.actions as Array<{ title: string; data: unknown }>;
     expect(actions.length).toBe(3);
@@ -74,8 +120,8 @@ describe("buildGroupWelcomeText", () => {
     expect(text).toContain("@MyBot");
   });
 
-  it("defaults to Astroclaw", () => {
+  it("defaults to OpenClaw", () => {
     const text = buildGroupWelcomeText();
-    expect(text).toContain("Astroclaw");
+    expect(text).toContain("OpenClaw");
   });
 });
