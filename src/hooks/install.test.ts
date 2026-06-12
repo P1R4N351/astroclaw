@@ -1,3 +1,4 @@
+// Hook install tests cover archive extraction, validation, and install records.
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -28,14 +29,14 @@ const { installHooksFromArchive, installHooksFromNpmSpec, installHooksFromPath }
   await import("./install.js");
 const hookInstallRuntime = await import("./install.runtime.js");
 
-const fixtureRoot = path.join(process.cwd(), ".tmp", `astroclaw-hook-install-${randomUUID()}`);
+const fixtureRoot = path.join(process.cwd(), ".tmp", `openclaw-hook-install-${randomUUID()}`);
 const sharedArchiveDir = path.join(fixtureRoot, "_archives");
 let tempDirIndex = 0;
 const sharedArchivePathByName = new Map<string, string>();
 
 const fixturesDir = path.resolve(process.cwd(), "test", "fixtures", "hooks-install");
 const zipHooksBuffer = await createZipHookPackBuffer({
-  packageName: "@astroclaw/zip-hooks",
+  packageName: "@openclaw/zip-hooks",
   hookName: "zip-hook",
   hookDescription: "Zip hook",
   heading: "Zip Hook",
@@ -46,7 +47,7 @@ const tarTraversalBuffer = fs.readFileSync(path.join(fixturesDir, "tar-traversal
 const tarEvilIdBuffer = fs.readFileSync(path.join(fixturesDir, "tar-evil-id.tar"));
 const tarReservedIdBuffer = fs.readFileSync(path.join(fixturesDir, "tar-reserved-id.tar"));
 const npmPackHooksBuffer = await createTarGzHookPackBuffer({
-  packageName: "@astroclaw/test-hooks",
+  packageName: "@openclaw/test-hooks",
   hookName: "one-hook",
   hookDescription: "One hook",
   heading: "One Hook",
@@ -113,9 +114,9 @@ function writeHookPackManifest(params: {
   fs.writeFileSync(
     path.join(params.pkgDir, "package.json"),
     JSON.stringify({
-      name: "@astroclaw/test-hooks",
+      name: "@openclaw/test-hooks",
       version: "0.0.1",
-      astroclaw: { hooks: params.hooks },
+      openclaw: { hooks: params.hooks },
       ...(params.dependencies ? { dependencies: params.dependencies } : {}),
     }),
     "utf-8",
@@ -149,7 +150,7 @@ function writeHookPackFiles(params: {
       "---",
       `name: ${params.hookName}`,
       `description: ${params.hookDescription}`,
-      'metadata: {"astroclaw":{"events":["command:new"]}}',
+      'metadata: {"openclaw":{"events":["command:new"]}}',
       "---",
       "",
       `# ${params.heading}`,
@@ -173,7 +174,7 @@ async function createZipHookPackBuffer(params: {
   const packageJson = JSON.stringify({
     name: params.packageName,
     version: "0.0.1",
-    astroclaw: { hooks: [`./hooks/${params.hookName}`] },
+    openclaw: { hooks: [`./hooks/${params.hookName}`] },
   });
   return createZipBuffer([
     { path: "package/package.json", contents: packageJson },
@@ -183,7 +184,7 @@ async function createZipHookPackBuffer(params: {
         "---",
         `name: ${params.hookName}`,
         `description: ${params.hookDescription}`,
-        'metadata: {"astroclaw":{"events":["command:new"]}}',
+        'metadata: {"openclaw":{"events":["command:new"]}}',
         "---",
         "",
         `# ${params.heading}`,
@@ -321,7 +322,7 @@ describe("installHooksFromPath", () => {
         "---",
         "name: one-hook",
         "description: One hook",
-        'metadata: {"astroclaw":{"events":["command:new"]}}',
+        'metadata: {"openclaw":{"events":["command:new"]}}',
         "---",
         "",
         "# One Hook",
@@ -356,7 +357,7 @@ describe("installHooksFromPath", () => {
         "---",
         "name: my-hook",
         "description: My hook",
-        'metadata: {"astroclaw":{"events":["command:new"]}}',
+        'metadata: {"openclaw":{"events":["command:new"]}}',
         "---",
         "",
         "# My Hook",
@@ -383,12 +384,12 @@ describe("installHooksFromPath", () => {
       {
         hooks: ["../outside"],
         setupLink: false,
-        expected: "astroclaw.hooks entry escapes package directory",
+        expected: "openclaw.hooks entry escapes package directory",
       },
       {
         hooks: ["./linked"],
         setupLink: true,
-        expected: "astroclaw.hooks entry resolves outside package directory",
+        expected: "openclaw.hooks entry resolves outside package directory",
       },
     ] as const;
 
@@ -455,7 +456,7 @@ describe("installHooksFromNpmSpec", () => {
 
     try {
       const result = await installHooksFromNpmSpec({
-        spec: "@astroclaw/test-hooks@0.0.1",
+        spec: "@openclaw/test-hooks@0.0.1",
       });
 
       expect(result.ok).toBe(true);
@@ -482,8 +483,8 @@ describe("installHooksFromNpmSpec", () => {
           code: 0,
           stdout: JSON.stringify([
             {
-              id: "@astroclaw/test-hooks@0.0.1",
-              name: "@astroclaw/test-hooks",
+              id: "@openclaw/test-hooks@0.0.1",
+              name: "@openclaw/test-hooks",
               version: "0.0.1",
               filename: packedName,
               integrity: "sha512-hook-test",
@@ -501,7 +502,7 @@ describe("installHooksFromNpmSpec", () => {
 
     const hooksDir = path.join(stateDir, "hooks");
     const result = await installHooksFromNpmSpec({
-      spec: "@astroclaw/test-hooks@0.0.1",
+      spec: "@openclaw/test-hooks@0.0.1",
       hooksDir,
       logger: { info: () => {}, warn: () => {} },
     });
@@ -510,13 +511,13 @@ describe("installHooksFromNpmSpec", () => {
       return;
     }
     expect(result.hookPackId).toBe("test-hooks");
-    expect(result.npmResolution?.resolvedSpec).toBe("@astroclaw/test-hooks@0.0.1");
+    expect(result.npmResolution?.resolvedSpec).toBe("@openclaw/test-hooks@0.0.1");
     expect(result.npmResolution?.integrity).toBe("sha512-hook-test");
     expect(fs.existsSync(path.join(result.targetDir, "hooks", "one-hook", "HOOK.md"))).toBe(true);
 
     expectSingleNpmPackIgnoreScriptsCall({
       calls: run.mock.calls as Array<[unknown, unknown]>,
-      expectedSpec: "@astroclaw/test-hooks@0.0.1",
+      expectedSpec: "@openclaw/test-hooks@0.0.1",
     });
 
     expect(packTmpDir).not.toBe("");
@@ -526,8 +527,8 @@ describe("installHooksFromNpmSpec", () => {
   it("aborts when integrity drift callback rejects the fetched artifact", async () => {
     const run = runCommandWithTimeoutMock;
     mockNpmPackMetadataResult(run, {
-      id: "@astroclaw/test-hooks@0.0.1",
-      name: "@astroclaw/test-hooks",
+      id: "@openclaw/test-hooks@0.0.1",
+      name: "@openclaw/test-hooks",
       version: "0.0.1",
       filename: "test-hooks-0.0.1.tgz",
       integrity: "sha512-new",
@@ -536,7 +537,7 @@ describe("installHooksFromNpmSpec", () => {
 
     const onIntegrityDrift = vi.fn(async () => false);
     const result = await installHooksFromNpmSpec({
-      spec: "@astroclaw/test-hooks@0.0.1",
+      spec: "@openclaw/test-hooks@0.0.1",
       expectedIntegrity: "sha512-old",
       onIntegrityDrift,
     });
@@ -553,8 +554,8 @@ describe("installHooksFromNpmSpec", () => {
 
     const run = runCommandWithTimeoutMock;
     mockNpmPackMetadataResult(run, {
-      id: "@astroclaw/test-hooks@0.0.2-beta.1",
-      name: "@astroclaw/test-hooks",
+      id: "@openclaw/test-hooks@0.0.2-beta.1",
+      name: "@openclaw/test-hooks",
       version: "0.0.2-beta.1",
       filename: "test-hooks-0.0.2-beta.1.tgz",
       integrity: "sha512-beta",
@@ -562,13 +563,13 @@ describe("installHooksFromNpmSpec", () => {
     });
 
     const result = await installHooksFromNpmSpec({
-      spec: "@astroclaw/test-hooks",
+      spec: "@openclaw/test-hooks",
       logger: { info: () => {}, warn: () => {} },
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toContain("prerelease version 0.0.2-beta.1");
-      expect(result.error).toContain('"@astroclaw/test-hooks@beta"');
+      expect(result.error).toContain('"@openclaw/test-hooks@beta"');
     }
   });
 });
