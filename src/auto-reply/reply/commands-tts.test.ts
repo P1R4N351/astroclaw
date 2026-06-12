@@ -1,8 +1,9 @@
+// Tests text-to-speech command configuration, preference persistence, and summaries.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 
 const ttsMocks = vi.hoisted(() => ({
@@ -45,7 +46,7 @@ type TtsCommandResult = Awaited<ReturnType<typeof handleTtsCommands>>;
 
 function buildTtsParams(
   commandBodyNormalized: string,
-  cfg: AstroclawConfig = {},
+  cfg: OpenClawConfig = {},
   agentId?: string,
   overrides: Partial<Parameters<typeof handleTtsCommands>[0]> = {},
 ): Parameters<typeof handleTtsCommands>[0] {
@@ -138,6 +139,13 @@ describe("handleTtsCommands status fallback reporting", () => {
     expect(reply.text).toContain(
       `Attempt details: ${PRIMARY_TTS_PROVIDER}:failed(provider_error) 73ms, ${FALLBACK_TTS_PROVIDER}:success(ok) 420ms`,
     );
+  });
+
+  it("does not coerce partial TTS limit values", async () => {
+    const result = await handleTtsCommands(buildTtsParams("/tts limit 2000chars"), true);
+
+    expect(expectReply(result).text).toBe("❌ Limit must be between 100 and 4096 characters.");
+    expect(ttsMocks.setTtsMaxLength).not.toHaveBeenCalled();
   });
 
   it("shows attempted provider chain for failed attempts", async () => {
@@ -234,7 +242,7 @@ describe("handleTtsCommands status fallback reporting", () => {
     const result = await handleTtsCommands(
       buildTtsParams("/tts", {
         messages: { tts: { prefsPath: "/tmp/tts.json" } },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
       true,
     );
     const reply = expectReply(result);
@@ -244,7 +252,7 @@ describe("handleTtsCommands status fallback reporting", () => {
   it("resolves status config for the active agent", async () => {
     const cfg = {
       agents: { list: [{ id: "reader", tts: { provider: "elevenlabs" } }] },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await handleTtsCommands(buildTtsParams("/tts status", cfg, "reader"), true);
 
@@ -265,7 +273,7 @@ describe("handleTtsCommands status fallback reporting", () => {
     });
     const cfg = {
       agents: { list: [{ id: "reader", tts: { provider: PRIMARY_TTS_PROVIDER } }] },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = await handleTtsCommands(
       buildTtsParams("/tts audio hello", cfg, "reader", {
@@ -278,7 +286,7 @@ describe("handleTtsCommands status fallback reporting", () => {
     const speechCall = lastMockCall(ttsMocks.textToSpeech, "textToSpeech")[0] as {
       accountId?: string;
       agentId?: string;
-      cfg?: AstroclawConfig;
+      cfg?: OpenClawConfig;
       text?: string;
     };
     expect(speechCall.text).toBe("hello");
@@ -306,7 +314,7 @@ describe("handleTtsCommands status fallback reporting", () => {
   });
 
   it("reads the latest assistant transcript reply once", async () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-tts-latest-"));
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-tts-latest-"));
     const sessionFile = path.join(tempDir, "session.jsonl");
     fs.writeFileSync(
       sessionFile,
@@ -373,7 +381,7 @@ describe("handleTtsCommands status fallback reporting", () => {
   });
 
   it("does not resend /tts latest for the same assistant reply", async () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "astroclaw-tts-latest-"));
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-tts-latest-"));
     const sessionFile = path.join(tempDir, "session.jsonl");
     fs.writeFileSync(
       sessionFile,
