@@ -1,3 +1,4 @@
+// Implements `openclaw agents list` text and JSON summaries.
 import { formatCliCommand } from "../cli/command-format.js";
 import { listRouteBindings } from "../config/bindings.js";
 import type { AgentRouteBinding } from "../config/types.js";
@@ -73,6 +74,7 @@ function formatSummary(summary: AgentSummary) {
   return lines.join("\n");
 }
 
+/** Print configured agent summaries with optional binding/provider detail enrichment. */
 export async function agentsListCommand(
   opts: AgentsListOptions,
   runtime: RuntimeEnv = defaultRuntime,
@@ -141,7 +143,7 @@ export async function agentsListCommand(
   const lines = ["Agents:", ...summaries.map(formatSummary)];
   lines.push("Routing rules map channel/account/peer to an agent. Use --bindings for full rules.");
   lines.push(
-    `Channel status reflects local config/creds. For live health: ${formatCliCommand("astroclaw channels status --probe")}.`,
+    `Channel status reflects local config/creds. For live health: ${formatCliCommand("openclaw channels status --probe")}.`,
   );
   runtime.log(lines.join("\n"));
 }
