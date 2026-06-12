@@ -1,3 +1,7 @@
+/**
+ * Integration coverage for workspace bootstrap cache reads.
+ * Uses temp workspaces to verify real file loading through the cache layer.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -10,7 +14,7 @@ describe("workspace bootstrap file caching", () => {
 
   beforeEach(async () => {
     clearAllBootstrapSnapshots();
-    workspaceDir = await makeTempWorkspace("astroclaw-bootstrap-cache-test-");
+    workspaceDir = await makeTempWorkspace("openclaw-bootstrap-cache-test-");
   });
 
   afterEach(() => {
@@ -180,8 +184,8 @@ describe("workspace bootstrap file caching", () => {
     const content2 = "# File 2 content";
 
     // Create two different workspace directories
-    const workspace1 = await makeTempWorkspace("astroclaw-cache-test1-");
-    const workspace2 = await makeTempWorkspace("astroclaw-cache-test2-");
+    const workspace1 = await makeTempWorkspace("openclaw-cache-test1-");
+    const workspace2 = await makeTempWorkspace("openclaw-cache-test2-");
 
     await writeWorkspaceFile({ dir: workspace1, name: DEFAULT_AGENTS_FILENAME, content: content1 });
     await writeWorkspaceFile({ dir: workspace2, name: DEFAULT_AGENTS_FILENAME, content: content2 });
