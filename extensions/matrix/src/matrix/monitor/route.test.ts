@@ -1,12 +1,13 @@
+// Matrix tests cover route plugin behavior.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { matrixPlugin } from "../../channel.js";
 import {
-  __testing as sessionBindingTesting,
+  testing as sessionBindingTesting,
   createTestRegistry,
   registerSessionBindingAdapter,
   resolveAgentRoute,
   setActivePluginRegistry,
-  type AstroclawConfig,
+  type OpenClawConfig,
 } from "../../test-support/monitor-route-test-support.js";
 import { resolveMatrixInboundRoute } from "./route.js";
 
@@ -15,9 +16,9 @@ const baseCfg = {
   agents: {
     list: [{ id: "main" }, { id: "sender-agent" }, { id: "room-agent" }, { id: "acp-agent" }],
   },
-} satisfies AstroclawConfig;
+} satisfies OpenClawConfig;
 
-type RouteBinding = NonNullable<AstroclawConfig["bindings"]>[number];
+type RouteBinding = NonNullable<OpenClawConfig["bindings"]>[number];
 type RoutePeer = NonNullable<RouteBinding["match"]["peer"]>;
 
 function matrixBinding(
@@ -45,7 +46,7 @@ function dmRoomPeer(id = "!dm:example.org"): RoutePeer {
 }
 
 function resolveDmRoute(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   opts: {
     dmSessionScope?: "per-user" | "per-room";
   } = {},
@@ -76,7 +77,7 @@ describe("resolveMatrixInboundRoute", () => {
         matrixBinding("room-agent", dmRoomPeer()),
         matrixBinding("sender-agent", senderPeer()),
       ],
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const { route, configuredBinding } = resolveDmRoute(cfg);
 
@@ -90,7 +91,7 @@ describe("resolveMatrixInboundRoute", () => {
     const cfg = {
       ...baseCfg,
       bindings: [matrixBinding("acp-agent"), matrixBinding("room-agent", dmRoomPeer())],
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const { route, configuredBinding } = resolveDmRoute(cfg);
 
@@ -104,7 +105,7 @@ describe("resolveMatrixInboundRoute", () => {
     const cfg = {
       ...baseCfg,
       bindings: [matrixBinding("sender-agent", senderPeer())],
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const { route, configuredBinding } = resolveDmRoute(cfg, {
       dmSessionScope: "per-room",
@@ -125,7 +126,7 @@ describe("resolveMatrixInboundRoute", () => {
         matrixBinding("room-agent", dmRoomPeer()),
         matrixBinding("acp-agent", dmRoomPeer(), "acp"),
       ],
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const { route, configuredBinding } = resolveDmRoute(cfg);
 
@@ -143,7 +144,7 @@ describe("resolveMatrixInboundRoute", () => {
         matrixBinding("room-agent", dmRoomPeer()),
         matrixBinding("acp-agent", dmRoomPeer(), "acp"),
       ],
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const { route, configuredBinding } = resolveDmRoute(cfg, {
       dmSessionScope: "per-room",
@@ -188,7 +189,7 @@ describe("resolveMatrixInboundRoute", () => {
         matrixBinding("sender-agent", senderPeer()),
         matrixBinding("room-agent", dmRoomPeer()),
       ],
-    } satisfies AstroclawConfig;
+    } satisfies OpenClawConfig;
 
     const { route, configuredBinding, runtimeBindingId } = resolveDmRoute(cfg);
 
