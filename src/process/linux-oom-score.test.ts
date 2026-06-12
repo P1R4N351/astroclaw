@@ -1,3 +1,4 @@
+// Linux OOM score tests cover best-effort process OOM score adjustment.
 import { describe, expect, it } from "vitest";
 import {
   hardenedEnvForChildOomWrap,
@@ -25,12 +26,12 @@ describe("wrapArgvForChildOomScoreRaise", () => {
     }
   });
 
-  it("respects the ASTROCLAW_CHILD_OOM_SCORE_ADJ opt-out", () => {
+  it("respects the OPENCLAW_CHILD_OOM_SCORE_ADJ opt-out", () => {
     for (const value of ["0", "false", "FALSE", "no", "off"]) {
       expect(
         wrapArgvForChildOomScoreRaise(argv, {
           ...linux,
-          env: { ASTROCLAW_CHILD_OOM_SCORE_ADJ: value },
+          env: { OPENCLAW_CHILD_OOM_SCORE_ADJ: value },
         }),
       ).toEqual(argv);
     }
@@ -99,7 +100,7 @@ describe("hardenedEnvForChildOomWrap", () => {
       hardenedEnvForChildOomWrap(undefined, { platform: "darwin", shellAvailable: () => true }),
     ).toBeUndefined();
     expect(
-      hardenedEnvForChildOomWrap(tainted, { ...linux, env: { ASTROCLAW_CHILD_OOM_SCORE_ADJ: "0" } }),
+      hardenedEnvForChildOomWrap(tainted, { ...linux, env: { OPENCLAW_CHILD_OOM_SCORE_ADJ: "0" } }),
     ).toBe(tainted);
   });
 });
