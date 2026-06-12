@@ -1,3 +1,4 @@
+// OC Path tests cover sentinel cross kind plugin behavior.
 import { describe, expect, it } from "vitest";
 import { emitMd } from "../../emit.js";
 import { setJsoncOcPath } from "../../jsonc/edit.js";
@@ -125,7 +126,7 @@ describe("sentinel guard cross-kind", () => {
   });
 
   it("partial sentinel substring does NOT trigger guard", () => {
-    const raw = '{ "x": "ASTROCLAW_REDACTED" }';
+    const raw = '{ "x": "OPENCLAW_REDACTED" }';
     const ast = parseJsonc(raw).ast;
     expect(() => emitJsonc(ast)).not.toThrow();
   });
