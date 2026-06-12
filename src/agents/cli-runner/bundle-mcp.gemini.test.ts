@@ -1,3 +1,4 @@
+/** Tests Gemini CLI bundle-MCP system settings generation. */
 import fs from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { prepareCliBundleMcpConfig } from "./bundle-mcp.js";
@@ -11,36 +12,37 @@ describe("prepareCliBundleMcpConfig gemini", () => {
         command: "gemini",
         args: ["--prompt", "{prompt}"],
       },
-      workspaceDir: "/tmp/astroclaw-bundle-mcp-gemini",
+      workspaceDir: "/tmp/openclaw-bundle-mcp-gemini",
       config: { plugins: { enabled: false } },
       additionalConfig: {
         mcpServers: {
-          astroclaw: {
+          openclaw: {
             type: "http",
             url: "http://127.0.0.1:23119/mcp",
             headers: {
-              Authorization: "Bearer ${ASTROCLAW_MCP_TOKEN}",
+              Authorization: "Bearer ${OPENCLAW_MCP_TOKEN}",
             },
           },
         },
       },
       env: {
-        ASTROCLAW_MCP_TOKEN: "loopback-token-123",
+        OPENCLAW_MCP_TOKEN: "loopback-token-123",
       },
     });
 
     expect(prepared.backend.args).toEqual(["--prompt", "{prompt}"]);
-    expect(prepared.env?.ASTROCLAW_MCP_TOKEN).toBe("loopback-token-123");
+    expect(prepared.env?.OPENCLAW_MCP_TOKEN).toBe("loopback-token-123");
     expect(typeof prepared.env?.GEMINI_CLI_SYSTEM_SETTINGS_PATH).toBe("string");
+    // Gemini reads MCP servers from a generated system settings JSON file.
     const raw = JSON.parse(
       await fs.readFile(prepared.env?.GEMINI_CLI_SYSTEM_SETTINGS_PATH as string, "utf-8"),
     ) as {
       mcp?: { allowed?: string[] };
       mcpServers?: Record<string, { url?: string; headers?: Record<string, string> }>;
     };
-    expect(raw.mcp?.allowed).toEqual(["astroclaw"]);
-    expect(raw.mcpServers?.astroclaw?.url).toBe("http://127.0.0.1:23119/mcp");
-    expect(raw.mcpServers?.astroclaw?.headers?.Authorization).toBe("Bearer loopback-token-123");
+    expect(raw.mcp?.allowed).toEqual(["openclaw"]);
+    expect(raw.mcpServers?.openclaw?.url).toBe("http://127.0.0.1:23119/mcp");
+    expect(raw.mcpServers?.openclaw?.headers?.Authorization).toBe("Bearer loopback-token-123");
 
     await prepared.cleanup?.();
   });
@@ -53,7 +55,7 @@ describe("prepareCliBundleMcpConfig gemini", () => {
         command: "gemini",
         args: ["--prompt", "{prompt}"],
       },
-      workspaceDir: "/tmp/astroclaw-bundle-mcp-gemini",
+      workspaceDir: "/tmp/openclaw-bundle-mcp-gemini",
       config: {
         plugins: { enabled: false },
         mcp: {
@@ -75,6 +77,7 @@ describe("prepareCliBundleMcpConfig gemini", () => {
 
     expect(prepared.env?.CONTEXT7_API_KEY).toBe("ctx7-test");
     expect(typeof prepared.env?.GEMINI_CLI_SYSTEM_SETTINGS_PATH).toBe("string");
+    // User OpenClaw transport names are normalized to Gemini's expected schema.
     const raw = JSON.parse(
       await fs.readFile(prepared.env?.GEMINI_CLI_SYSTEM_SETTINGS_PATH as string, "utf-8"),
     ) as {
