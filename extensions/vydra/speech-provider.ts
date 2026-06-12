@@ -1,15 +1,16 @@
+// Vydra provider module implements model/runtime integration.
 import {
   assertOkOrThrowHttpError,
   postJsonRequest,
   resolveProviderHttpRequestConfig,
-} from "astroclaw/plugin-sdk/provider-http";
-import { normalizeResolvedSecretInputString } from "astroclaw/plugin-sdk/secret-input";
+} from "openclaw/plugin-sdk/provider-http";
+import { normalizeResolvedSecretInputString } from "openclaw/plugin-sdk/secret-input";
 import type {
   SpeechProviderConfig,
   SpeechProviderOverrides,
   SpeechProviderPlugin,
-} from "astroclaw/plugin-sdk/speech-core";
-import { asObject } from "astroclaw/plugin-sdk/speech-core";
+} from "openclaw/plugin-sdk/speech-core";
+import { asObject } from "openclaw/plugin-sdk/speech-core";
 import {
   DEFAULT_VYDRA_BASE_URL,
   DEFAULT_VYDRA_SPEECH_MODEL,
@@ -17,6 +18,7 @@ import {
   downloadVydraAsset,
   extractVydraResultUrls,
   normalizeVydraBaseUrl,
+  resolveVydraGeneratedMediaMaxBytes,
   trimToUndefined,
 } from "./shared.js";
 
@@ -137,6 +139,7 @@ export function buildVydraSpeechProvider(): SpeechProviderPlugin {
           kind: "audio",
           timeoutMs: req.timeoutMs,
           fetchFn,
+          maxBytes: resolveVydraGeneratedMediaMaxBytes({ cfg: req.cfg, kind: "audio" }),
         });
         return {
           audioBuffer: audio.buffer,
