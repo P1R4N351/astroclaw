@@ -1,10 +1,11 @@
+// OpenClaw SDK tests cover index behavior.
 import { describe, expect, it } from "vitest";
-import { EventHub, Astroclaw, normalizeGatewayEvent } from "./index.js";
+import { EventHub, OpenClaw, normalizeGatewayEvent } from "./index.js";
 import type {
   GatewayEvent,
   GatewayRequestOptions,
-  AstroclawEvent,
-  AstroclawTransport,
+  OpenClawEvent,
+  OpenClawTransport,
 } from "./types.js";
 
 type RequestCall = {
@@ -21,7 +22,7 @@ type FakeResponseHandler = (
 ) => Promise<FakeResponseValue> | FakeResponseValue;
 type FakeResponse = FakeResponseValue | FakeResponseHandler;
 
-class FakeTransport implements AstroclawTransport {
+class FakeTransport implements OpenClawTransport {
   readonly calls: RequestCall[] = [];
   private readonly eventHub = new EventHub<GatewayEvent>({ replayLimit: 100 });
 
@@ -53,6 +54,18 @@ class FakeTransport implements AstroclawTransport {
   }
 }
 
+class EventsOnlyTransport implements OpenClawTransport {
+  constructor(private readonly eventSource: AsyncIterable<GatewayEvent>) {}
+
+  async request<T = unknown>(): Promise<T> {
+    return {} as T;
+  }
+
+  events(): AsyncIterable<GatewayEvent> {
+    return this.eventSource;
+  }
+}
+
 function requireTransportCall(calls: readonly RequestCall[], index: number): RequestCall {
   const call = calls[index];
   if (!call) {
@@ -61,13 +74,13 @@ function requireTransportCall(calls: readonly RequestCall[], index: number): Req
   return call;
 }
 
-describe("Astroclaw SDK", () => {
+describe("OpenClaw SDK", () => {
   it("runs an agent through the Gateway agent method", async () => {
     const transport = new FakeTransport({
       agent: { status: "accepted", runId: "run_123" },
       "agent.wait": { status: "ok", runId: "run_123", sessionKey: "main" },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
     const agent = await oc.agents.get("main");
 
     const run = await agent.run({
@@ -108,7 +121,7 @@ describe("Astroclaw SDK", () => {
     const transport = new FakeTransport({
       "agent.wait": { status: "ok", runId: "run_numeric", startedAt: 123, endedAt: 456 },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const result = await oc.runs.wait("run_numeric");
 
@@ -134,13 +147,86 @@ describe("Astroclaw SDK", () => {
         error: "aborted by operator",
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const result = await oc.runs.wait("run_cancelled");
 
     expect(result.runId).toBe("run_cancelled");
     expect(result.status).toBe("cancelled");
     expect(result.error?.message).toBe("aborted by operator");
+  });
+
+  it("maps provider-started rpc timeout wait snapshots to timed_out", async () => {
+    const transport = new FakeTransport({
+      "agent.wait": {
+        status: "timeout",
+        runId: "run_hard_timeout",
+        stopReason: "rpc",
+        timeoutPhase: "provider",
+        providerStarted: true,
+        error: "provider request timed out",
+      },
+    });
+    const oc = new OpenClaw({ transport });
+
+    const result = await oc.runs.wait("run_hard_timeout");
+
+    expect(result.runId).toBe("run_hard_timeout");
+    expect(result.status).toBe("timed_out");
+    expect(result.error?.message).toBe("provider request timed out");
+  });
+
+  it("maps provider timeout wait errors to timed_out", async () => {
+    const transport = new FakeTransport({
+      "agent.wait": {
+        status: "error",
+        runId: "run_timeout_error",
+        timeoutPhase: "provider",
+        providerStarted: true,
+        error: "provider request timed out",
+      },
+    });
+    const oc = new OpenClaw({ transport });
+
+    const result = await oc.runs.wait("run_timeout_error");
+
+    expect(result.runId).toBe("run_timeout_error");
+    expect(result.status).toBe("timed_out");
+    expect(result.error?.message).toBe("provider request timed out");
+  });
+
+  it("does not map provider-started wait errors to timed_out without timeout attribution", async () => {
+    const transport = new FakeTransport({
+      "agent.wait": {
+        status: "error",
+        runId: "run_provider_error",
+        providerStarted: true,
+        error: "provider authentication failed",
+      },
+    });
+    const oc = new OpenClaw({ transport });
+
+    const result = await oc.runs.wait("run_provider_error");
+
+    expect(result.runId).toBe("run_provider_error");
+    expect(result.status).toBe("failed");
+    expect(result.error?.message).toBe("provider authentication failed");
+  });
+
+  it("does not treat successful provider-started wait snapshots as timed_out", async () => {
+    const transport = new FakeTransport({
+      "agent.wait": {
+        status: "ok",
+        runId: "run_provider_started_ok",
+        providerStarted: true,
+      },
+    });
+    const oc = new OpenClaw({ transport });
+
+    const result = await oc.runs.wait("run_provider_started_ok");
+
+    expect(result.runId).toBe("run_provider_started_ok");
+    expect(result.status).toBe("completed");
   });
 
   it("maps auth-revoked wait snapshots to cancelled", async () => {
@@ -152,7 +238,7 @@ describe("Astroclaw SDK", () => {
         error: "provider auth was removed",
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const result = await oc.runs.wait("run_auth_revoked");
 
@@ -165,13 +251,51 @@ describe("Astroclaw SDK", () => {
     const transport = new FakeTransport({
       "agent.wait": { status: "timeout", runId: "run_still_active" },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const result = await oc.runs.wait("run_still_active");
 
     expect(result.runId).toBe("run_still_active");
     expect(result.status).toBe("accepted");
     expect(result.error).toBeUndefined();
+  });
+
+  it("keeps pending-error wait deadlines non-terminal", async () => {
+    const transport = new FakeTransport({
+      "agent.wait": {
+        status: "timeout",
+        runId: "run_pending_error",
+        error: "429 RESOURCE_EXHAUSTED",
+        pendingError: true,
+      },
+    });
+    const oc = new OpenClaw({ transport });
+
+    const result = await oc.runs.wait("run_pending_error");
+
+    expect(result.runId).toBe("run_pending_error");
+    expect(result.status).toBe("accepted");
+    expect(result.error?.message).toBe("429 RESOURCE_EXHAUSTED");
+  });
+
+  it("keeps provider-attributed pending-error wait deadlines non-terminal", async () => {
+    const transport = new FakeTransport({
+      "agent.wait": {
+        status: "timeout",
+        runId: "run_pending_provider_error",
+        error: "provider request timed out",
+        pendingError: true,
+        timeoutPhase: "provider",
+        providerStarted: true,
+      },
+    });
+    const oc = new OpenClaw({ transport });
+
+    const result = await oc.runs.wait("run_pending_provider_error");
+
+    expect(result.runId).toBe("run_pending_provider_error");
+    expect(result.status).toBe("accepted");
+    expect(result.error?.message).toBe("provider request timed out");
   });
 
   it("maps terminal runtime timeout snapshots to timed_out", async () => {
@@ -183,7 +307,7 @@ describe("Astroclaw SDK", () => {
         error: "agent runtime timeout",
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const result = await oc.runs.wait("run_timed_out");
 
@@ -201,7 +325,7 @@ describe("Astroclaw SDK", () => {
         endedAt: 456,
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const result = await oc.runs.wait("run_timed_out");
 
@@ -216,7 +340,7 @@ describe("Astroclaw SDK", () => {
     const transport = new FakeTransport({
       agent: { status: "accepted", runId: "run_openrouter" },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     await oc.runs.create({
       input: "use a routed model",
@@ -244,7 +368,7 @@ describe("Astroclaw SDK", () => {
         approvals: "ask",
       }),
     ).rejects.toThrow(
-      "Astroclaw Gateway does not support per-run SDK options yet: workspace, runtime, environment, approvals",
+      "OpenClaw Gateway does not support per-run SDK options yet: workspace, runtime, environment, approvals",
     );
   });
 
@@ -252,7 +376,7 @@ describe("Astroclaw SDK", () => {
     const transport = new FakeTransport({
       agent: { status: "accepted", runId: "run_timeout" },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     await oc.runs.create({
       input: "short run",
@@ -288,7 +412,7 @@ describe("Astroclaw SDK", () => {
         data: "aGVsbG8=",
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const artifactList = await oc.artifacts.list({ sessionKey: "agent:main:main" });
     expect(artifactList.artifacts).toEqual([
@@ -328,7 +452,7 @@ describe("Astroclaw SDK", () => {
 
   it("requires artifact query scope before calling Gateway", async () => {
     const transport = new FakeTransport({});
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     await expect(oc.artifacts.list(undefined as never)).rejects.toThrow(
       "oc.artifacts.list requires one of sessionKey, runId, or taskId",
@@ -344,13 +468,13 @@ describe("Astroclaw SDK", () => {
 
   it("throws explicit unsupported errors for SDK namespaces without Gateway RPCs", async () => {
     const transport = new FakeTransport({});
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     await expect(oc.environments.create({ provider: "testbox" })).rejects.toThrow(
-      "oc.environments.create is not supported by the current Astroclaw Gateway yet",
+      "oc.environments.create is not supported by the current OpenClaw Gateway yet",
     );
     await expect(oc.environments.delete("environment_123")).rejects.toThrow(
-      "oc.environments.delete is not supported by the current Astroclaw Gateway yet",
+      "oc.environments.delete is not supported by the current OpenClaw Gateway yet",
     );
     expect(transport.calls).toStrictEqual([]);
   });
@@ -359,7 +483,7 @@ describe("Astroclaw SDK", () => {
     const transport = new FakeTransport({
       "tools.invoke": { ok: true, toolName: "demo", output: { value: 1 }, source: "core" },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const result = await oc.tools.invoke("demo", {
       args: { mode: "test" },
@@ -414,7 +538,7 @@ describe("Astroclaw SDK", () => {
         },
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const taskList = await oc.tasks.list({
       status: "running",
@@ -472,17 +596,17 @@ describe("Astroclaw SDK", () => {
       "environments.list": { environments: [gatewayEnvironment] },
       "environments.status": gatewayEnvironment,
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     await expect(oc.environments.list()).resolves.toEqual({
       environments: [gatewayEnvironment],
     });
     await expect(oc.environments.status("gateway")).resolves.toEqual(gatewayEnvironment);
     await expect(oc.environments.create({ provider: "testbox" })).rejects.toThrow(
-      "oc.environments.create is not supported by the current Astroclaw Gateway yet",
+      "oc.environments.create is not supported by the current OpenClaw Gateway yet",
     );
     await expect(oc.environments.delete("gateway")).rejects.toThrow(
-      "oc.environments.delete is not supported by the current Astroclaw Gateway yet",
+      "oc.environments.delete is not supported by the current OpenClaw Gateway yet",
     );
     expect(transport.calls).toEqual([
       { method: "environments.list", params: {}, options: undefined },
@@ -496,7 +620,7 @@ describe("Astroclaw SDK", () => {
       "sessions.abort": { ok: true, status: "aborted", abortedRunId: "run_without_session" },
       "models.authStatus": { providers: [] },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const run = await oc.runs.create({
       input: "start",
@@ -552,7 +676,7 @@ describe("Astroclaw SDK", () => {
         return { status: "accepted", runId: "run_fast", sessionKey: "fast" };
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const run = await oc.runs.create({
       input: "finish immediately",
@@ -569,6 +693,84 @@ describe("Astroclaw SDK", () => {
     }
 
     expect(seen).toEqual(["run.started", "assistant.delta", "run.completed"]);
+  });
+
+  it("rejects normalized event streams when the event pump fails before yielding", async () => {
+    const failure = new Error("synthetic transport event failure");
+    const transport = new EventsOnlyTransport({
+      [Symbol.asyncIterator](): AsyncIterator<GatewayEvent> {
+        return {
+          next: async () => {
+            throw failure;
+          },
+        };
+      },
+    });
+    const oc = new OpenClaw({ transport });
+    const iterator = oc.events()[Symbol.asyncIterator]();
+    let futureIterator: AsyncIterator<OpenClawEvent> | undefined;
+
+    try {
+      await expect(iterator.next()).rejects.toThrow("synthetic transport event failure");
+
+      futureIterator = oc.events()[Symbol.asyncIterator]();
+      await expect(futureIterator.next()).rejects.toThrow("synthetic transport event failure");
+    } finally {
+      await futureIterator?.return?.();
+      await iterator.return?.();
+      await oc.close();
+    }
+  });
+
+  it("rejects run event streams after replaying events when the event pump fails", async () => {
+    const failure = new Error("synthetic post-yield transport event failure");
+    const rawEvent: GatewayEvent = {
+      event: "agent",
+      seq: 1,
+      payload: {
+        runId: "run_pump_failure",
+        stream: "lifecycle",
+        ts: 1_777_000_000_050,
+        data: { phase: "start" },
+      },
+    };
+    const transport = new EventsOnlyTransport({
+      async *[Symbol.asyncIterator]() {
+        yield rawEvent;
+        throw failure;
+      },
+    });
+    const oc = new OpenClaw({ transport });
+    const run = await oc.runs.get("run_pump_failure");
+    const iterator = run.events()[Symbol.asyncIterator]();
+    let futureIterator: AsyncIterator<OpenClawEvent> | undefined;
+
+    try {
+      const first = await iterator.next();
+      expect(first.done).toBe(false);
+      if (first.done !== false) {
+        throw new Error("expected first run event");
+      }
+      expect(first.value.type).toBe("run.started");
+      expect(first.value.runId).toBe("run_pump_failure");
+
+      await expect(iterator.next()).rejects.toThrow("synthetic post-yield transport event failure");
+
+      futureIterator = run.events()[Symbol.asyncIterator]();
+      const replayed = await futureIterator.next();
+      expect(replayed.done).toBe(false);
+      if (replayed.done !== false) {
+        throw new Error("expected replayed run event");
+      }
+      expect(replayed.value.type).toBe("run.started");
+      await expect(futureIterator.next()).rejects.toThrow(
+        "synthetic post-yield transport event failure",
+      );
+    } finally {
+      await futureIterator?.return?.();
+      await iterator.return?.();
+      await oc.close();
+    }
   });
 
   it("does not surface raw chat projection events in per-run streams", async () => {
@@ -645,14 +847,14 @@ describe("Astroclaw SDK", () => {
         };
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const run = await oc.runs.create({
       input: "stream with chat projection",
       idempotencyKey: "chat-projection-events",
       sessionKey: "chat-projection",
     });
-    const seen: AstroclawEvent[] = [];
+    const seen: OpenClawEvent[] = [];
 
     for await (const event of run.events()) {
       seen.push(event);
@@ -749,7 +951,7 @@ describe("Astroclaw SDK", () => {
         return { status: "accepted", runId: "run_chat_only", sessionKey: "chat-only" };
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const run = await oc.runs.create({
       input: "stream with chat-only projection",
@@ -840,7 +1042,7 @@ describe("Astroclaw SDK", () => {
         return { status: "accepted", runId: "run_chat_delta_text", sessionKey: "chat-delta-text" };
       },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const run = await oc.runs.create({
       input: "stream with chat deltaText",
@@ -872,16 +1074,16 @@ describe("Astroclaw SDK", () => {
 
   it("uses cumulative text for the first replayed chat projection", async () => {
     const transport = new FakeTransport({});
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
     const runId = "run_chat_delta_text_replay";
     let text = "";
-    let iterator: AsyncIterator<AstroclawEvent> | undefined;
+    let iterator: AsyncIterator<OpenClawEvent> | undefined;
 
     try {
       await oc.connect();
       const observedLast = (async () => {
         for await (const event of oc.events(
-          (event) => event.raw?.event === "chat" && event.raw.seq === 501,
+          (eventLocal) => eventLocal.raw?.event === "chat" && eventLocal.raw.seq === 501,
         )) {
           return event;
         }
@@ -929,7 +1131,7 @@ describe("Astroclaw SDK", () => {
       "sessions.create": { key: "session-main", label: "Main" },
       "sessions.send": { status: "accepted", runId: "run_session" },
     });
-    const oc = new Astroclaw({ transport });
+    const oc = new OpenClaw({ transport });
 
     const session = await oc.sessions.create({ key: "session-main" });
     const run = await session.send({ message: "continue", thinking: "medium" });
@@ -1007,9 +1209,123 @@ describe("Astroclaw SDK", () => {
     expect(cancelled.runId).toBe("run_1");
     expect(cancelled.data).toEqual({ phase: "end", aborted: true, stopReason: "rpc" });
 
-    const authRevoked = normalizeGatewayEvent({
+    const hardTimeout = normalizeGatewayEvent({
       event: "agent",
       seq: 6,
+      payload: {
+        runId: "run_1",
+        stream: "lifecycle",
+        ts,
+        data: {
+          phase: "end",
+          aborted: true,
+          stopReason: "rpc",
+          timeoutPhase: "provider",
+          providerStarted: true,
+        },
+      },
+    });
+    expect(hardTimeout.type).toBe("run.timed_out");
+    expect(hardTimeout.runId).toBe("run_1");
+    expect(hardTimeout.data).toEqual({
+      phase: "end",
+      aborted: true,
+      stopReason: "rpc",
+      timeoutPhase: "provider",
+      providerStarted: true,
+    });
+
+    const hardTimeoutError = normalizeGatewayEvent({
+      event: "agent",
+      seq: 7,
+      payload: {
+        runId: "run_1",
+        stream: "lifecycle",
+        ts,
+        data: {
+          phase: "error",
+          error: "provider request timed out",
+          timeoutPhase: "provider",
+          providerStarted: true,
+        },
+      },
+    });
+    expect(hardTimeoutError.type).toBe("run.timed_out");
+    expect(hardTimeoutError.runId).toBe("run_1");
+    expect(hardTimeoutError.data).toEqual({
+      phase: "error",
+      error: "provider request timed out",
+      timeoutPhase: "provider",
+      providerStarted: true,
+    });
+
+    const providerStartedError = normalizeGatewayEvent({
+      event: "agent",
+      seq: 8,
+      payload: {
+        runId: "run_1",
+        stream: "lifecycle",
+        ts,
+        data: {
+          phase: "error",
+          error: "provider authentication failed",
+          providerStarted: true,
+        },
+      },
+    });
+    expect(providerStartedError.type).toBe("run.failed");
+    expect(providerStartedError.runId).toBe("run_1");
+    expect(providerStartedError.data).toEqual({
+      phase: "error",
+      error: "provider authentication failed",
+      providerStarted: true,
+    });
+
+    const hardTimeoutEnd = normalizeGatewayEvent({
+      event: "agent",
+      seq: 9,
+      payload: {
+        runId: "run_1",
+        stream: "lifecycle",
+        ts,
+        data: {
+          phase: "end",
+          timeoutPhase: "provider",
+          providerStarted: true,
+        },
+      },
+    });
+    expect(hardTimeoutEnd.type).toBe("run.timed_out");
+    expect(hardTimeoutEnd.runId).toBe("run_1");
+    expect(hardTimeoutEnd.data).toEqual({
+      phase: "end",
+      timeoutPhase: "provider",
+      providerStarted: true,
+    });
+
+    const providerStartedEnd = normalizeGatewayEvent({
+      event: "agent",
+      seq: 10,
+      payload: {
+        runId: "run_1",
+        stream: "lifecycle",
+        ts,
+        data: {
+          phase: "end",
+          providerStarted: true,
+        },
+      },
+    });
+    expect(providerStartedEnd.type).toBe("run.completed");
+    expect(providerStartedEnd.runId).toBe("run_1");
+    expect(providerStartedEnd.data).toEqual({
+      phase: "end",
+      providerStarted: true,
+    });
+
+    const authRevoked = normalizeGatewayEvent({
+      event: "agent",
+      seq: 10,
       payload: {
         runId: "run_1",
         stream: "lifecycle",
@@ -1027,7 +1343,7 @@ describe("Astroclaw SDK", () => {
 
     const timedOut = normalizeGatewayEvent({
       event: "agent",
-      seq: 7,
+      seq: 11,
       payload: {
         runId: "run_1",
         stream: "lifecycle",
