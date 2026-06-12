@@ -1,22 +1,23 @@
+// Openshell tests cover backend plugin behavior.
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { createSandboxTestContext } from "astroclaw/plugin-sdk/test-fixtures";
+import { createSandboxTestContext } from "openclaw/plugin-sdk/test-fixtures";
 import {
   createSandboxBrowserConfig,
   createSandboxPruneConfig,
   createSandboxSshConfig,
-} from "astroclaw/plugin-sdk/test-fixtures";
+} from "openclaw/plugin-sdk/test-fixtures";
 import { describe, expect, it } from "vitest";
 import { createOpenShellSandboxBackendFactory } from "./backend.js";
 import { resolveOpenShellPluginConfig } from "./config.js";
 
-const ASTROCLAW_OPENSHELL_E2E = process.env.ASTROCLAW_E2E_OPENSHELL === "1";
-const ASTROCLAW_OPENSHELL_E2E_TIMEOUT_MS = 12 * 60_000;
-const ASTROCLAW_OPENSHELL_COMMAND =
-  process.env.ASTROCLAW_E2E_OPENSHELL_COMMAND?.trim() || "openshell";
+const OPENCLAW_OPENSHELL_E2E = process.env.OPENCLAW_E2E_OPENSHELL === "1";
+const OPENCLAW_OPENSHELL_E2E_TIMEOUT_MS = 12 * 60_000;
+const OPENCLAW_OPENSHELL_COMMAND =
+  process.env.OPENCLAW_E2E_OPENSHELL_COMMAND?.trim() || "openshell";
 
 const CUSTOM_IMAGE_DOCKERFILE = `FROM python:3.13-slim
 
@@ -30,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \\
 RUN groupadd -g 1000 sandbox && \\
     useradd -m -u 1000 -g sandbox sandbox
 
-RUN echo "astroclaw-openshell-e2e" > /opt/openshell-e2e-marker.txt
+RUN echo "openclaw-openshell-e2e" > /opt/openshell-e2e-marker.txt
 
 WORKDIR /sandbox
 CMD ["sleep", "infinity"]
@@ -270,7 +271,9 @@ HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
         },
       };
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 500);
+    });
   }
 
   await runCommand({
@@ -322,7 +325,7 @@ async function runBackendExec(params: {
     env: {},
     usePty: false,
   });
-  let result: ExecResult | null = null;
+  let result: ExecResult | null | undefined;
   try {
     result = await runCommand({
       command: execSpec.argv[0] ?? "ssh",
@@ -343,21 +346,21 @@ async function runBackendExec(params: {
 }
 
 describe("openshell sandbox backend e2e", () => {
-  it.runIf(process.platform !== "win32" && ASTROCLAW_OPENSHELL_E2E)(
+  it.runIf(process.platform !== "win32" && OPENCLAW_OPENSHELL_E2E)(
     "creates a remote-canonical sandbox through OpenShell and executes over SSH",
-    { timeout: ASTROCLAW_OPENSHELL_E2E_TIMEOUT_MS },
+    { timeout: OPENCLAW_OPENSHELL_E2E_TIMEOUT_MS },
     async () => {
       if (!(await dockerReady())) {
         return;
       }
-      if (!(await commandAvailable(ASTROCLAW_OPENSHELL_COMMAND))) {
+      if (!(await commandAvailable(OPENCLAW_OPENSHELL_COMMAND))) {
         return;
       }
-      if (!(await openshellGatewayAvailable(ASTROCLAW_OPENSHELL_COMMAND))) {
+      if (!(await openshellGatewayAvailable(OPENCLAW_OPENSHELL_COMMAND))) {
         return;
       }
 
-      const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-openshell-e2e-"));
+      const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-openshell-e2e-"));
       const env = openshellEnv(rootDir);
       const previousHome = process.env.HOME;
       const previousXdgConfigHome = process.env.XDG_CONFIG_HOME;
@@ -368,11 +371,11 @@ describe("openshell sandbox backend e2e", () => {
       const denyPolicyPath = path.join(rootDir, "deny-policy.yaml");
       const allowPolicyPath = path.join(rootDir, "allow-policy.yaml");
       const scopeSuffix = `${process.pid}-${Date.now()}`;
-      const gatewayName = `astroclaw-e2e-${scopeSuffix}`;
+      const gatewayName = `openclaw-e2e-${scopeSuffix}`;
       const scopeKey = `session:openshell-e2e-deny:${scopeSuffix}`;
-      const allowSandboxName = `astroclaw-policy-allow-${scopeSuffix}`;
+      const allowSandboxName = `openclaw-policy-allow-${scopeSuffix}`;
       const gatewayPort = await allocatePort();
-      let hostPolicyServer: HostPolicyServer | null = null;
+      let hostPolicyServer: HostPolicyServer | null | undefined;
       const sandboxCfg = {
         mode: "all" as const,
         backend: "openshell" as const,
@@ -380,8 +383,8 @@ describe("openshell sandbox backend e2e", () => {
         workspaceAccess: "rw" as const,
         workspaceRoot: path.join(rootDir, "sandboxes"),
         docker: {
-          image: "astroclaw-sandbox:bookworm-slim",
-          containerPrefix: "astroclaw-sbx-",
+          image: "openclaw-sandbox:bookworm-slim",
+          containerPrefix: "openclaw-sbx-",
           workdir: "/workspace",
           readOnlyRoot: true,
           tmpfs: ["/tmp"],
@@ -389,14 +392,14 @@ describe("openshell sandbox backend e2e", () => {
           capDrop: ["ALL"],
           env: {},
         },
-        ssh: createSandboxSshConfig("/tmp/astroclaw-sandboxes"),
+        ssh: createSandboxSshConfig("/tmp/openclaw-sandboxes"),
         browser: createSandboxBrowserConfig(),
         tools: { allow: [], deny: [] },
         prune: createSandboxPruneConfig(),
       };
 
       const pluginConfig = resolveOpenShellPluginConfig({
-        command: ASTROCLAW_OPENSHELL_COMMAND,
+        command: OPENCLAW_OPENSHELL_COMMAND,
         gateway: gatewayName,
         from: dockerfilePath,
         mode: "remote",
@@ -442,7 +445,7 @@ describe("openshell sandbox backend e2e", () => {
         );
 
         await runCommand({
-          command: ASTROCLAW_OPENSHELL_COMMAND,
+          command: OPENCLAW_OPENSHELL_COMMAND,
           args: [
             "gateway",
             "start",
@@ -465,7 +468,7 @@ describe("openshell sandbox backend e2e", () => {
         expect(execResult.code).toBe(0);
         const stdout = execResult.stdout.trim();
         expect(stdout).toContain("/sandbox");
-        expect(stdout).toContain("astroclaw-openshell-e2e");
+        expect(stdout).toContain("openclaw-openshell-e2e");
         expect(stdout).toContain("seed-from-local");
 
         const curlPathResult = await runBackendExec({
@@ -506,7 +509,7 @@ describe("openshell sandbox backend e2e", () => {
         );
 
         const verifyResult = await runCommand({
-          command: ASTROCLAW_OPENSHELL_COMMAND,
+          command: OPENCLAW_OPENSHELL_COMMAND,
           args: ["sandbox", "ssh-config", backend.runtimeId],
           env,
           timeoutMs: 60_000,
@@ -524,7 +527,7 @@ describe("openshell sandbox backend e2e", () => {
         expect(`${blockedGetResult.stdout}\n${blockedGetResult.stderr}`).toMatch(/403|deny/i);
 
         const allowedGetResult = await runCommand({
-          command: ASTROCLAW_OPENSHELL_COMMAND,
+          command: OPENCLAW_OPENSHELL_COMMAND,
           args: [
             "sandbox",
             "create",
@@ -552,21 +555,21 @@ describe("openshell sandbox backend e2e", () => {
         expect(allowedGetResult.stdout).toContain('"message":"hello-from-host"');
       } finally {
         await runCommand({
-          command: ASTROCLAW_OPENSHELL_COMMAND,
+          command: OPENCLAW_OPENSHELL_COMMAND,
           args: ["sandbox", "delete", backend.runtimeId],
           env,
           allowFailure: true,
           timeoutMs: 2 * 60_000,
         });
         await runCommand({
-          command: ASTROCLAW_OPENSHELL_COMMAND,
+          command: OPENCLAW_OPENSHELL_COMMAND,
           args: ["sandbox", "delete", allowSandboxName],
           env,
           allowFailure: true,
           timeoutMs: 2 * 60_000,
         });
         await runCommand({
-          command: ASTROCLAW_OPENSHELL_COMMAND,
+          command: OPENCLAW_OPENSHELL_COMMAND,
           args: ["gateway", "destroy", "--name", gatewayName],
           env,
           allowFailure: true,
