@@ -1,3 +1,4 @@
+// Tests atomic file replacement helpers and permission handling.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -8,7 +9,7 @@ describe("movePathWithCopyFallback", () => {
   it.runIf(process.platform !== "win32")(
     "rejects hardlinked source files when requested",
     async () => {
-      await withTempDir({ prefix: "astroclaw-replace-file-" }, async (root) => {
+      await withTempDir({ prefix: "openclaw-replace-file-" }, async (root) => {
         const sourceDir = path.join(root, "source");
         const targetDir = path.join(root, "target");
         const sourceFile = path.join(sourceDir, "file.txt");
