@@ -1,3 +1,4 @@
+// Check No Raw Window Open tests cover check no raw window open script behavior.
 import { describe, expect, it } from "vitest";
 import { findRawWindowOpenLines } from "../../scripts/check-no-raw-window-open.mjs";
 
@@ -5,7 +6,7 @@ describe("check-no-raw-window-open", () => {
   it("finds direct window.open calls", () => {
     const source = `
       function openDocs() {
-        window.open("https://docs.astroclaw.ai");
+        window.open("https://docs.openclaw.ai");
       }
     `;
     expect(findRawWindowOpenLines(source)).toEqual([3]);
@@ -14,7 +15,7 @@ describe("check-no-raw-window-open", () => {
   it("finds globalThis.open calls", () => {
     const source = `
       function openDocs() {
-        globalThis.open("https://docs.astroclaw.ai");
+        globalThis.open("https://docs.openclaw.ai");
       }
     `;
     expect(findRawWindowOpenLines(source)).toEqual([3]);
