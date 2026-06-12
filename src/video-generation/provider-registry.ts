@@ -1,9 +1,12 @@
+// Video provider registry stores video generation provider factories by id.
 import { normalizeProviderId } from "../agents/model-selection.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import { isBlockedObjectKey } from "../infra/prototype-keys.js";
 import * as capabilityProviderRuntime from "../plugins/capability-provider-runtime.js";
 import type { VideoGenerationProviderPlugin } from "../plugins/types.js";
 
+// Video-generation providers come from plugin capability registration. Canonical
+// ids drive listing; aliases only affect lookup.
 const BUILTIN_VIDEO_GENERATION_PROVIDERS: readonly VideoGenerationProviderPlugin[] = [];
 const UNSAFE_PROVIDER_IDS = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -20,7 +23,7 @@ function isSafeVideoGenerationProviderId(id: string | undefined): id is string {
 }
 
 function resolvePluginVideoGenerationProviders(
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
 ): VideoGenerationProviderPlugin[] {
   return capabilityProviderRuntime.resolvePluginCapabilityProviders({
     key: "videoGenerationProviders",
@@ -28,7 +31,7 @@ function resolvePluginVideoGenerationProviders(
   });
 }
 
-function buildProviderMaps(cfg?: AstroclawConfig): {
+function buildProviderMaps(cfg?: OpenClawConfig): {
   canonical: Map<string, VideoGenerationProviderPlugin>;
   aliases: Map<string, VideoGenerationProviderPlugin>;
 } {
@@ -39,6 +42,8 @@ function buildProviderMaps(cfg?: AstroclawConfig): {
     if (!isSafeVideoGenerationProviderId(id)) {
       return;
     }
+    // Keep canonical provider listing de-duplicated even when multiple aliases
+    // point at the same provider.
     canonical.set(id, provider);
     aliases.set(id, provider);
     for (const alias of provider.aliases ?? []) {
@@ -60,14 +65,14 @@ function buildProviderMaps(cfg?: AstroclawConfig): {
 }
 
 export function listVideoGenerationProviders(
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
 ): VideoGenerationProviderPlugin[] {
   return [...buildProviderMaps(cfg).canonical.values()];
 }
 
 export function getVideoGenerationProvider(
   providerId: string | undefined,
-  cfg?: AstroclawConfig,
+  cfg?: OpenClawConfig,
 ): VideoGenerationProviderPlugin | undefined {
   const normalized = normalizeVideoGenerationProviderId(providerId);
   if (!normalized) {
