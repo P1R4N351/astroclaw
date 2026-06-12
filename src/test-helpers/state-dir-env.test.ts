@@ -1,3 +1,4 @@
+// State dir environment tests cover isolated state directory env helpers.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -9,17 +10,17 @@ import {
 } from "./state-dir-env.js";
 
 type EnvSnapshot = {
-  astroclaw?: string;
+  openclaw?: string;
 };
 
 function snapshotCurrentStateDirVars(): EnvSnapshot {
   return {
-    astroclaw: process.env.ASTROCLAW_STATE_DIR,
+    openclaw: process.env.OPENCLAW_STATE_DIR,
   };
 }
 
 function expectStateDirVars(snapshot: EnvSnapshot) {
-  expect(process.env.ASTROCLAW_STATE_DIR).toBe(snapshot.astroclaw);
+  expect(process.env.OPENCLAW_STATE_DIR).toBe(snapshot.openclaw);
 }
 
 async function expectPathMissing(filePath: string) {
@@ -42,12 +43,12 @@ async function expectStateDirEnvRestored(params: {
 }
 
 describe("state-dir-env helpers", () => {
-  it("set/snapshot/restore round-trips ASTROCLAW_STATE_DIR", () => {
+  it("set/snapshot/restore round-trips OPENCLAW_STATE_DIR", () => {
     const prev = snapshotCurrentStateDirVars();
     const snapshot = snapshotStateDirEnv();
 
-    setStateDirEnv("/tmp/astroclaw-state-dir-test");
-    expect(process.env.ASTROCLAW_STATE_DIR).toBe("/tmp/astroclaw-state-dir-test");
+    setStateDirEnv("/tmp/openclaw-state-dir-test");
+    expect(process.env.OPENCLAW_STATE_DIR).toBe("/tmp/openclaw-state-dir-test");
 
     restoreStateDirEnv(snapshot);
     expectStateDirVars(prev);
@@ -58,10 +59,10 @@ describe("state-dir-env helpers", () => {
 
     let capturedTempRoot = "";
     let capturedStateDir = "";
-    await withStateDirEnv("astroclaw-state-dir-env-", async ({ tempRoot, stateDir }) => {
+    await withStateDirEnv("openclaw-state-dir-env-", async ({ tempRoot, stateDir }) => {
       capturedTempRoot = tempRoot;
       capturedStateDir = stateDir;
-      expect(process.env.ASTROCLAW_STATE_DIR).toBe(stateDir);
+      expect(process.env.OPENCLAW_STATE_DIR).toBe(stateDir);
       await fs.writeFile(path.join(stateDir, "probe.txt"), "ok", "utf8");
     });
 
@@ -74,7 +75,7 @@ describe("state-dir-env helpers", () => {
     let capturedTempRoot = "";
     let capturedStateDir = "";
     await expect(
-      withStateDirEnv("astroclaw-state-dir-env-", async ({ tempRoot, stateDir }) => {
+      withStateDirEnv("openclaw-state-dir-env-", async ({ tempRoot, stateDir }) => {
         capturedTempRoot = tempRoot;
         capturedStateDir = stateDir;
         throw new Error("boom");
