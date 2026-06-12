@@ -1,8 +1,14 @@
+// Secrets CLI tests cover secret command registration, reads, writes, and redaction.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  expectObjectFields,
+  mockCall,
+  mockFirstObjectArg,
+} from "../test-utils/mock-call-assertions.js";
 import { registerSecretsCli } from "./secrets-cli.js";
 
 const mocks = await vi.hoisted(async () => {
@@ -80,13 +86,13 @@ function createConfigureInteractiveResult(options?: {
       version: 1,
       protocolVersion: 1,
       generatedAt: "2026-02-26T00:00:00.000Z",
-      generatedBy: "astroclaw secrets configure",
+      generatedBy: "openclaw secrets configure",
       targets: options?.targets ?? [],
     },
     preflight: {
       mode: "dry-run" as const,
       changed: options?.changed ?? false,
-      changedFiles: options?.changed ? ["/tmp/astroclaw.json"] : [],
+      changedFiles: options?.changed ? ["/tmp/openclaw.json"] : [],
       checks: {
         resolvability: true,
         resolvabilityComplete: options?.resolvabilityComplete ?? true,
@@ -107,7 +113,7 @@ function createSecretsApplyResult(options?: {
   return {
     mode: options?.mode ?? "dry-run",
     changed: options?.changed ?? false,
-    changedFiles: options?.changed ? ["/tmp/astroclaw.json"] : [],
+    changedFiles: options?.changed ? ["/tmp/openclaw.json"] : [],
     checks: {
       resolvability: true,
       resolvabilityComplete: options?.resolvabilityComplete ?? true,
@@ -119,37 +125,10 @@ function createSecretsApplyResult(options?: {
   };
 }
 
-function mockCall(mock: unknown, index = 0): Array<unknown> {
-  const calls = (mock as { mock?: { calls?: Array<Array<unknown>> } }).mock?.calls ?? [];
-  const call = calls.at(index);
-  if (!call) {
-    throw new Error(`Expected mock call ${index + 1}`);
-  }
-  return call;
-}
-
-function mockFirstObjectArg(mock: unknown): Record<string, unknown> {
-  const [arg] = mockCall(mock);
-  if (!arg || typeof arg !== "object") {
-    throw new Error("expected first mock argument object");
-  }
-  return arg as Record<string, unknown>;
-}
-
-function expectObjectFields(value: unknown, expected: Record<string, unknown>): void {
-  if (!value || typeof value !== "object") {
-    throw new Error("expected object fields");
-  }
-  const record = value as Record<string, unknown>;
-  for (const [key, expectedValue] of Object.entries(expected)) {
-    expect(record[key], key).toEqual(expectedValue);
-  }
-}
-
 async function withPlanFile(run: (planPath: string) => Promise<void>) {
   const planPath = path.join(
     os.tmpdir(),
-    `astroclaw-secrets-cli-test-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
+    `openclaw-secrets-cli-test-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
   );
   await fs.writeFile(planPath, `${JSON.stringify(createManualSecretsPlan())}\n`, "utf8");
   try {
@@ -206,7 +185,7 @@ describe("secrets CLI", () => {
   it("explains Gateway reload failures without duplicate doctor noise", async () => {
     callGatewayFromCli.mockRejectedValue(
       new Error(
-        "gateway closed (1006 abnormal closure). Gateway target: ws://127.0.0.1:18789 Source: local loopback Config: /tmp/astroclaw.json Bind: loopback Possible causes: - Gateway not yet ready. Run `astroclaw doctor` for diagnostics.",
+        "gateway closed (1006 abnormal closure). Gateway target: ws://127.0.0.1:18789 Source: local loopback Config: /tmp/openclaw.json Bind: loopback Possible causes: - Gateway not yet ready. Run `openclaw doctor` for diagnostics.",
       ),
     );
 
@@ -217,7 +196,7 @@ describe("secrets CLI", () => {
     expect(runtimeErrors.at(-1)).toContain(
       "Could not reload secrets because the Gateway did not respond: gateway closed (1006 abnormal closure).",
     );
-    expect(runtimeErrors.at(-1)).toContain("astroclaw gateway status --deep");
+    expect(runtimeErrors.at(-1)).toContain("openclaw gateway status --deep");
     expect(runtimeErrors.at(-1)).not.toContain("Gateway target:");
     expect(runtimeErrors.at(-1)).not.toContain("diagnostics..");
   });
@@ -313,6 +292,55 @@ describe("secrets CLI", () => {
       path: "skills.entries.qa-secret-test.apiKey",
     });
     expect(runtimeLogs.at(-1)).toContain("Secrets applied");
+  });
+
+  it("emits one JSON document when --yes applies configure output", async () => {
+    runSecretsConfigureInteractive.mockResolvedValue(createConfigureInteractiveResult());
+    runSecretsApply.mockResolvedValue(createSecretsApplyResult({ mode: "write", changed: true }));
+
+    await createProgram().parseAsync(["secrets", "configure", "--json", "--yes"], {
+      from: "user",
+    });
+
+    expect(runSecretsApply).toHaveBeenCalledTimes(1);
+    expect(defaultRuntime.writeJson).toHaveBeenCalledTimes(1);
+    expect(mockFirstObjectArg(defaultRuntime.writeJson)).toEqual(
+      createSecretsApplyResult({ mode: "write", changed: true }),
+    );
+  });
+
+  it("shows the irreversibility warning on the interactive apply path (#83883)", async () => {
+    runSecretsConfigureInteractive.mockResolvedValue(
+      createConfigureInteractiveResult({ changed: true }),
+    );
+    // Interactive path: no --apply flag. First confirm is "Apply this plan
+    // now?", second must be the one-way-migration irreversibility warning.
+    confirm.mockResolvedValueOnce(true); // Apply this plan now?
+    confirm.mockResolvedValueOnce(true); // one-way migration warning
+    runSecretsApply.mockResolvedValue(createSecretsApplyResult({ mode: "write", changed: true }));
+
+    await createProgram().parseAsync(["secrets", "configure"], { from: "user" });
+
+    // Before the fix the interactive path skipped the irreversibility prompt
+    // (it checked opts.apply), so confirm was called only once.
+    expect(confirm).toHaveBeenCalledTimes(2);
+    const secondPrompt = confirm.mock.calls[1]?.[0] as { message?: string } | undefined;
+    expect(secondPrompt?.message ?? "").toContain("one-way");
+    expect(runSecretsApply).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels apply when the interactive irreversibility warning is declined (#83883)", async () => {
+    runSecretsConfigureInteractive.mockResolvedValue(
+      createConfigureInteractiveResult({ changed: true }),
+    );
+    confirm.mockResolvedValueOnce(true); // Apply this plan now?
+    confirm.mockResolvedValueOnce(false); // decline the irreversibility warning
+
+    await createProgram().parseAsync(["secrets", "configure"], { from: "user" });
+
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(runSecretsApply).not.toHaveBeenCalled();
+    expect(runtimeLogs.at(-1)).toContain("Apply cancelled");
   });
 
   it("forwards --agent to secrets configure", async () => {
