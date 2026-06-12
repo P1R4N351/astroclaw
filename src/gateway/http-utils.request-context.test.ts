@@ -1,3 +1,6 @@
+/**
+ * Tests HTTP request context extraction for gateway auth and routing.
+ */
 import type { IncomingMessage } from "node:http";
 import { describe, expect, it } from "vitest";
 import {
@@ -16,10 +19,10 @@ const tokenAuth = { mode: "token" as const };
 const noneAuth = { mode: "none" as const };
 
 describe("resolveGatewayRequestContext", () => {
-  it("uses normalized x-astroclaw-message-channel when enabled", () => {
+  it("uses normalized x-openclaw-message-channel when enabled", () => {
     const result = resolveGatewayRequestContext({
-      req: createReq({ "x-astroclaw-message-channel": " Custom-Channel " }),
-      model: "astroclaw",
+      req: createReq({ "x-openclaw-message-channel": " Custom-Channel " }),
+      model: "openclaw",
       sessionPrefix: "openai",
       defaultMessageChannel: "webchat",
       useMessageChannelHeader: true,
@@ -30,8 +33,8 @@ describe("resolveGatewayRequestContext", () => {
 
   it("uses default messageChannel when header support is disabled", () => {
     const result = resolveGatewayRequestContext({
-      req: createReq({ "x-astroclaw-message-channel": "custom-channel" }),
-      model: "astroclaw",
+      req: createReq({ "x-openclaw-message-channel": "custom-channel" }),
+      model: "openclaw",
       sessionPrefix: "openresponses",
       defaultMessageChannel: "webchat",
       useMessageChannelHeader: false,
@@ -43,7 +46,7 @@ describe("resolveGatewayRequestContext", () => {
   it("includes session prefix and user in generated session key", () => {
     const result = resolveGatewayRequestContext({
       req: createReq(),
-      model: "astroclaw",
+      model: "openclaw",
       user: "alice",
       sessionPrefix: "openresponses",
       defaultMessageChannel: "webchat",
@@ -58,7 +61,7 @@ describe("resolveTrustedHttpOperatorScopes", () => {
     const scopes = resolveTrustedHttpOperatorScopes(
       createReq({
         authorization: "Bearer secret",
-        "x-astroclaw-scopes": "operator.admin, operator.write",
+        "x-openclaw-scopes": "operator.admin, operator.write",
       }),
       tokenAuth,
     );
@@ -69,7 +72,7 @@ describe("resolveTrustedHttpOperatorScopes", () => {
   it("keeps declared scopes for non-bearer HTTP requests", () => {
     const scopes = resolveTrustedHttpOperatorScopes(
       createReq({
-        "x-astroclaw-scopes": "operator.admin, operator.write",
+        "x-openclaw-scopes": "operator.admin, operator.write",
       }),
       noneAuth,
     );
@@ -81,7 +84,7 @@ describe("resolveTrustedHttpOperatorScopes", () => {
     const scopes = resolveTrustedHttpOperatorScopes(
       createReq({
         authorization: "Bearer upstream-idp-token",
-        "x-astroclaw-scopes": "operator.admin, operator.write",
+        "x-openclaw-scopes": "operator.admin, operator.write",
       }),
       noneAuth,
     );
@@ -93,7 +96,7 @@ describe("resolveTrustedHttpOperatorScopes", () => {
     const scopes = resolveTrustedHttpOperatorScopes(
       createReq({
         authorization: "Bearer upstream-idp-token",
-        "x-astroclaw-scopes": "operator.admin, operator.write",
+        "x-openclaw-scopes": "operator.admin, operator.write",
       }),
       { trustDeclaredOperatorScopes: false },
     );
@@ -105,10 +108,10 @@ describe("resolveTrustedHttpOperatorScopes", () => {
 describe("resolveHttpSenderIsOwner", () => {
   it("requires operator.admin on a trusted HTTP scope-bearing request", () => {
     expect(
-      resolveHttpSenderIsOwner(createReq({ "x-astroclaw-scopes": "operator.admin" }), noneAuth),
+      resolveHttpSenderIsOwner(createReq({ "x-openclaw-scopes": "operator.admin" }), noneAuth),
     ).toBe(true);
     expect(
-      resolveHttpSenderIsOwner(createReq({ "x-astroclaw-scopes": "operator.write" }), noneAuth),
+      resolveHttpSenderIsOwner(createReq({ "x-openclaw-scopes": "operator.write" }), noneAuth),
     ).toBe(false);
   });
 
@@ -117,7 +120,7 @@ describe("resolveHttpSenderIsOwner", () => {
       resolveHttpSenderIsOwner(
         createReq({
           authorization: "Bearer secret",
-          "x-astroclaw-scopes": "operator.admin",
+          "x-openclaw-scopes": "operator.admin",
         }),
         tokenAuth,
       ),
@@ -130,7 +133,7 @@ describe("resolveOpenAiCompatibleHttpOperatorScopes", () => {
     const scopes = resolveOpenAiCompatibleHttpOperatorScopes(
       createReq({
         authorization: "Bearer secret",
-        "x-astroclaw-scopes": "operator.approvals",
+        "x-openclaw-scopes": "operator.approvals",
       }),
       { authMethod: "token", trustDeclaredOperatorScopes: false },
     );
@@ -148,7 +151,7 @@ describe("resolveOpenAiCompatibleHttpOperatorScopes", () => {
   it("keeps declared scopes for trusted HTTP identity-bearing requests", () => {
     const scopes = resolveOpenAiCompatibleHttpOperatorScopes(
       createReq({
-        "x-astroclaw-scopes": "operator.write",
+        "x-openclaw-scopes": "operator.write",
       }),
       { authMethod: "trusted-proxy", trustDeclaredOperatorScopes: true },
     );
@@ -163,7 +166,7 @@ describe("resolveOpenAiCompatibleHttpSenderIsOwner", () => {
       resolveOpenAiCompatibleHttpSenderIsOwner(
         createReq({
           authorization: "Bearer secret",
-          "x-astroclaw-scopes": "operator.approvals",
+          "x-openclaw-scopes": "operator.approvals",
         }),
         { authMethod: "token", trustDeclaredOperatorScopes: false },
       ),
@@ -173,13 +176,13 @@ describe("resolveOpenAiCompatibleHttpSenderIsOwner", () => {
   it("still requires operator.admin for trusted scope-bearing requests", () => {
     expect(
       resolveOpenAiCompatibleHttpSenderIsOwner(
-        createReq({ "x-astroclaw-scopes": "operator.write" }),
+        createReq({ "x-openclaw-scopes": "operator.write" }),
         { authMethod: "trusted-proxy", trustDeclaredOperatorScopes: true },
       ),
     ).toBe(false);
     expect(
       resolveOpenAiCompatibleHttpSenderIsOwner(
-        createReq({ "x-astroclaw-scopes": "operator.admin" }),
+        createReq({ "x-openclaw-scopes": "operator.admin" }),
         { authMethod: "trusted-proxy", trustDeclaredOperatorScopes: true },
       ),
     ).toBe(true);
