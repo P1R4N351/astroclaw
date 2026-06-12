@@ -1,5 +1,7 @@
+// Verifies loaded-target resolution uses already-loaded plugins and does not
+// trigger channel bootstrap discovery.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { tryResolveLoadedOutboundTarget } from "./targets-loaded.js";
 
 const mocks = vi.hoisted(() => ({
@@ -22,7 +24,7 @@ describe("tryResolveLoadedOutboundTarget", () => {
   });
 
   it("uses loaded plugin config defaultTo fallback", () => {
-    const cfg: AstroclawConfig = {
+    const cfg: OpenClawConfig = {
       channels: { alpha: { defaultTo: "room-one" } },
     };
     mocks.getLoadedChannelPlugin.mockReturnValue({
@@ -30,8 +32,8 @@ describe("tryResolveLoadedOutboundTarget", () => {
       meta: { label: "Alpha" },
       capabilities: {},
       config: {
-        resolveDefaultTo: ({ cfg }: { cfg: AstroclawConfig }) =>
-          (cfg.channels?.alpha as { defaultTo?: string } | undefined)?.defaultTo,
+        resolveDefaultTo: ({ cfg: cfgLocal }: { cfg: OpenClawConfig }) =>
+          (cfgLocal.channels?.alpha as { defaultTo?: string } | undefined)?.defaultTo,
       },
       outbound: {},
       messaging: {},
