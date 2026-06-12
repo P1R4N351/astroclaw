@@ -1,4 +1,5 @@
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+// Telegram tests cover bot message context.require mention plugin behavior.
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { defaultRouteConfig } = vi.hoisted(() => ({
@@ -11,10 +12,10 @@ const { defaultRouteConfig } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
+vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/runtime-config-snapshot")
-  >("astroclaw/plugin-sdk/runtime-config-snapshot");
+    typeof import("openclaw/plugin-sdk/runtime-config-snapshot")
+  >("openclaw/plugin-sdk/runtime-config-snapshot");
   return {
     ...actual,
     getRuntimeConfig: vi.fn(() => defaultRouteConfig),
