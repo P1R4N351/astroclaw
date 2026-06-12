@@ -1,9 +1,10 @@
+// Covers doctor contract registry load paths for plugins.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { findLegacyConfigIssues } from "../config/legacy.js";
-import type { AstroclawConfig } from "../config/types.js";
+import type { OpenClawConfig } from "../config/types.js";
 import {
   applyPluginDoctorCompatibilityMigrations,
   clearPluginDoctorContractRegistryCache,
@@ -15,7 +16,7 @@ const tempDirs: string[] = [];
 
 function makeTempDir(): string {
   const dir = fs.mkdtempSync(
-    path.join(fs.realpathSync(os.tmpdir()), "astroclaw-doctor-contract-load-paths-"),
+    path.join(fs.realpathSync(os.tmpdir()), "openclaw-doctor-contract-load-paths-"),
   );
   tempDirs.push(dir);
   return dir;
@@ -25,17 +26,17 @@ function makeHermeticDoctorEnv(stateDir: string): NodeJS.ProcessEnv {
   return {
     ...process.env,
     HOME: stateDir,
-    ASTROCLAW_HOME: stateDir,
-    ASTROCLAW_STATE_DIR: stateDir,
-    ASTROCLAW_CONFIG_PATH: path.join(stateDir, "astroclaw.json"),
-    ASTROCLAW_DISABLE_BUNDLED_PLUGINS: "1",
+    OPENCLAW_HOME: stateDir,
+    OPENCLAW_STATE_DIR: stateDir,
+    OPENCLAW_CONFIG_PATH: path.join(stateDir, "openclaw.json"),
+    OPENCLAW_DISABLE_BUNDLED_PLUGINS: "1",
   };
 }
 
 function writeDoctorPlugin(pluginRoot: string, pluginId: string): void {
   fs.mkdirSync(pluginRoot, { recursive: true });
   fs.writeFileSync(
-    path.join(pluginRoot, "astroclaw.plugin.json"),
+    path.join(pluginRoot, "openclaw.plugin.json"),
     JSON.stringify(
       {
         id: pluginId,
@@ -72,8 +73,8 @@ module.exports = {
     const entry = isRecord(entries[pluginId]) ? { ...entries[pluginId] } : {};
     const llm = isRecord(entry.llm) ? { ...entry.llm } : {};
     const allowedModels = Array.isArray(llm.allowedModels) ? [...llm.allowedModels] : [];
-    if (!allowedModels.includes("openai-codex/gpt-5.4-mini")) {
-      allowedModels.push("openai-codex/gpt-5.4-mini");
+    if (!allowedModels.includes("openai/gpt-5.4-mini")) {
+      allowedModels.push("openai/gpt-5.4-mini");
     }
     root.plugins = plugins;
     plugins.entries = entries;
@@ -94,10 +95,59 @@ module.exports = {
   );
 }
 
+function writeDistDoctorPlugin(pluginRoot: string, pluginId: string): void {
+  fs.mkdirSync(path.join(pluginRoot, "dist"), { recursive: true });
+  fs.writeFileSync(
+    path.join(pluginRoot, "openclaw.plugin.json"),
+    JSON.stringify(
+      {
+        id: pluginId,
+        name: "Dist Doctor",
+        version: "0.0.0-test",
+        configSchema: {},
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(pluginRoot, "package.json"),
+    JSON.stringify(
+      {
+        name: `@openclaw/${pluginId}`,
+        version: "0.0.0-test",
+        type: "module",
+        openclaw: {
+          extensions: ["./dist/index.js"],
+        },
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+  fs.writeFileSync(path.join(pluginRoot, "dist", "index.js"), "export {};\n", "utf8");
+  fs.writeFileSync(
+    path.join(pluginRoot, "dist", "doctor-contract-api.cjs"),
+    `
+module.exports = {
+  legacyConfigRules: [
+    {
+      path: ["plugins", "entries", ${JSON.stringify(pluginId)}, "config", "distOnly"],
+      message: "dist doctor contract warning",
+    },
+  ],
+};
+`,
+    "utf8",
+  );
+}
+
 function writeDoctorSessionOwnerPlugin(pluginRoot: string, pluginId: string): void {
   fs.mkdirSync(pluginRoot, { recursive: true });
   fs.writeFileSync(
-    path.join(pluginRoot, "astroclaw.plugin.json"),
+    path.join(pluginRoot, "openclaw.plugin.json"),
     JSON.stringify(
       {
         id: pluginId,
@@ -131,7 +181,7 @@ module.exports = {
   );
 }
 
-function createDoctorPluginConfig(pluginRoot: string, pluginId: string): AstroclawConfig {
+function createDoctorPluginConfig(pluginRoot: string, pluginId: string): OpenClawConfig {
   return {
     plugins: {
       load: { paths: [pluginRoot] },
@@ -147,7 +197,7 @@ function createDoctorPluginConfig(pluginRoot: string, pluginId: string): Astrocl
   };
 }
 
-function readPluginLlmPolicy(config: AstroclawConfig, pluginId: string): Record<string, unknown> {
+function readPluginLlmPolicy(config: OpenClawConfig, pluginId: string): Record<string, unknown> {
   const entry = config.plugins?.entries?.[pluginId] as { llm?: unknown } | undefined;
   return entry?.llm && typeof entry.llm === "object" && !Array.isArray(entry.llm)
     ? (entry.llm as Record<string, unknown>)
@@ -192,6 +242,26 @@ describe("doctor contract registry load-path plugins", () => {
     ]);
   });
 
+  it("discovers doctor warning rules from package dist contracts", () => {
+    const stateDir = makeTempDir();
+    const pluginRoot = makeTempDir();
+    const pluginId = "dist-doctor";
+    writeDistDoctorPlugin(pluginRoot, pluginId);
+    const config = createDoctorPluginConfig(pluginRoot, pluginId);
+
+    const rules = listPluginDoctorLegacyConfigRules({
+      config,
+      env: makeHermeticDoctorEnv(stateDir),
+      pluginIds: [pluginId],
+    });
+    expect(rules).toEqual([
+      {
+        path: ["plugins", "entries", pluginId, "config", "distOnly"],
+        message: "dist doctor contract warning",
+      },
+    ]);
+  });
+
   it("applies compatibility normalizers from plugins.load.paths", () => {
     const stateDir = makeTempDir();
     const pluginRoot = makeTempDir();
@@ -209,7 +279,7 @@ describe("doctor contract registry load-path plugins", () => {
     expect(result.changes).toEqual(["configured load-path doctor contract LLM policy"]);
     expect(llm).toEqual({
       allowModelOverride: true,
-      allowedModels: ["openai-codex/gpt-5.4-mini"],
+      allowedModels: ["openai/gpt-5.4-mini"],
     });
   });
 
