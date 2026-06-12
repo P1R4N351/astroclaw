@@ -1,10 +1,11 @@
+// Covers plugin config contract validation and ownership boundaries.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginManifestRegistry } from "./manifest-registry.js";
 
 const mocks = vi.hoisted(() => {
   const loadManifestRegistry = vi.fn();
   return {
-    discoverAstroclawPlugins: vi.fn(() => ({ candidates: [], diagnostics: [] })),
+    discoverOpenClawPlugins: vi.fn(() => ({ candidates: [], diagnostics: [] })),
     loadBundledManifestRegistry: vi.fn(),
     loadPluginManifestRegistryForInstalledIndex: loadManifestRegistry,
     loadPluginManifestRegistryForPluginRegistry: loadManifestRegistry,
@@ -13,7 +14,7 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("./discovery.js", () => ({
-  discoverAstroclawPlugins: mocks.discoverAstroclawPlugins,
+  discoverOpenClawPlugins: mocks.discoverOpenClawPlugins,
 }));
 
 vi.mock("./manifest-registry.js", () => ({
@@ -29,7 +30,10 @@ vi.mock("./plugin-registry.js", () => ({
   loadPluginRegistrySnapshot: mocks.loadPluginRegistrySnapshot,
 }));
 
-import { resolvePluginConfigContractsById } from "./config-contracts.js";
+import {
+  collectPluginConfigContractMatches,
+  resolvePluginConfigContractsById,
+} from "./config-contracts.js";
 
 type PluginManifestRecord = PluginManifestRegistry["plugins"][number];
 
@@ -45,7 +49,7 @@ function createPluginRecord(
 ): PluginManifestRecord {
   return {
     rootDir: `/tmp/${overrides.id}`,
-    manifestPath: `/tmp/${overrides.id}/astroclaw.plugin.json`,
+    manifestPath: `/tmp/${overrides.id}/openclaw.plugin.json`,
     channelConfigs: undefined,
     providerAuthEnvVars: undefined,
     configUiHints: undefined,
@@ -72,7 +76,7 @@ function createPluginRecord(
     skills: [],
     settingsFiles: undefined,
     hooks: [],
-    source: `/tmp/${overrides.id}/astroclaw.plugin.json`,
+    source: `/tmp/${overrides.id}/openclaw.plugin.json`,
     setupSource: undefined,
     startupDeferConfiguredChannelFullLoadUntilAfterListen: undefined,
     channelCatalogMeta: undefined,
@@ -82,8 +86,8 @@ function createPluginRecord(
 
 describe("resolvePluginConfigContractsById", () => {
   beforeEach(() => {
-    mocks.discoverAstroclawPlugins.mockReset();
-    mocks.discoverAstroclawPlugins.mockReturnValue({ candidates: [], diagnostics: [] });
+    mocks.discoverOpenClawPlugins.mockReset();
+    mocks.discoverOpenClawPlugins.mockReturnValue({ candidates: [], diagnostics: [] });
     mocks.loadBundledManifestRegistry.mockReset();
     mocks.loadBundledManifestRegistry.mockReturnValue(createRegistry([]));
     mocks.loadPluginManifestRegistryForInstalledIndex.mockReset();
@@ -270,5 +274,42 @@ describe("resolvePluginConfigContractsById", () => {
       }),
     ).toEqual(new Map());
     expect(mocks.loadBundledManifestRegistry).not.toHaveBeenCalled();
+  });
+});
+
+describe("collectPluginConfigContractMatches", () => {
+  it("only accepts canonical array index path segments", () => {
+    const root = { items: ["first", "second"] };
+
+    expect(
+      collectPluginConfigContractMatches({
+        root,
+        pathPattern: "items.1",
+      }),
+    ).toEqual([{ path: "items[1]", value: "second" }]);
+    expect(
+      collectPluginConfigContractMatches({
+        root,
+        pathPattern: "items.1.5",
+      }),
+    ).toEqual([]);
+    expect(
+      collectPluginConfigContractMatches({
+        root,
+        pathPattern: "items.01",
+      }),
+    ).toEqual([]);
+  });
+
+  it("rejects array indexes outside canonical config path bounds", () => {
+    const items = Array<string>(100_002);
+    items[100_001] = "too far";
+
+    expect(
+      collectPluginConfigContractMatches({
+        root: { items },
+        pathPattern: "items.100001",
+      }),
+    ).toEqual([]);
   });
 });
