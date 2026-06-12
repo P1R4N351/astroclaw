@@ -1,7 +1,8 @@
+// Session action contract tests cover plugin session action metadata and execution contracts.
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
-} from "astroclaw/plugin-sdk/plugin-test-contracts";
+} from "openclaw/plugin-sdk/plugin-test-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { APPROVALS_SCOPE, READ_SCOPE, WRITE_SCOPE } from "../../gateway/operator-scopes.js";
 import { handleGatewayRequest } from "../../gateway/server-methods.js";
@@ -12,7 +13,7 @@ import { createEmptyPluginRegistry } from "../registry-empty.js";
 import { createPluginRegistry } from "../registry.js";
 import { setActivePluginRegistry } from "../runtime.js";
 import { createPluginRecord } from "../status.test-helpers.js";
-import type { AstroclawPluginApi } from "../types.js";
+import type { OpenClawPluginApi } from "../types.js";
 
 const MAIN_SESSION_KEY = "agent:main:main";
 
@@ -129,7 +130,7 @@ function requireObservedEvent(
 function registerActionFixture(params: {
   id: string;
   name?: string;
-  register: (api: AstroclawPluginApi) => void;
+  register: (api: OpenClawPluginApi) => void;
 }) {
   const { config, registry } = createPluginRegistryFixture();
   registerTestPlugin({
@@ -186,6 +187,18 @@ describe("plugin session actions", () => {
           { id: "bad-scope", requiredScopes: ["not-a-scope"] as never },
           { id: "bad-schema-shape", schema: "not-an-object" as never },
           { id: "bad-schema-compile", schema: { type: "not-a-json-schema-type" } as never },
+          {
+            id: "bad-schema-keyword",
+            schema: {
+              type: "object",
+              properties: { id: { type: "string" } },
+              required: "id",
+            } as never,
+          },
+          {
+            id: "bad-schema-ref",
+            schema: { $ref: "#/$defs/Missing" } as never,
+          },
           { id: "" },
         ]) {
           api.registerSessionAction({
@@ -201,7 +214,7 @@ describe("plugin session actions", () => {
       expect(diagnostic.pluginId).toBe("invalid-session-actions");
       return diagnostic.message;
     });
-    expect(diagnosticMessages).toHaveLength(5);
+    expect(diagnosticMessages).toHaveLength(7);
     expect(diagnosticMessages).toContain("session action already registered: dup");
     expect(diagnosticMessages).toContain(
       "session action requiredScopes contains unknown operator scope: not-a-scope",
@@ -212,6 +225,16 @@ describe("plugin session actions", () => {
     expect(
       diagnosticMessages?.some((message) =>
         message.includes("session action schema is not valid JSON Schema: bad-schema-compile"),
+      ),
+    ).toBe(true);
+    expect(
+      diagnosticMessages?.some((message) =>
+        message.includes("session action schema is not valid JSON Schema: bad-schema-keyword"),
+      ),
+    ).toBe(true);
+    expect(
+      diagnosticMessages?.some((message) =>
+        message.includes("session action schema is not valid JSON Schema: bad-schema-ref"),
       ),
     ).toBe(true);
     expect(diagnosticMessages).toContain(
@@ -672,8 +695,8 @@ describe("plugin session actions", () => {
     const observed: unknown[] = [];
     const unsubscribe = onAgentEvent((event) => observed.push(event));
     const { config, registry } = createPluginRegistryFixture();
-    let bundledApi: AstroclawPluginApi | undefined;
-    let workspaceApi: AstroclawPluginApi | undefined;
+    let bundledApi: OpenClawPluginApi | undefined;
+    let workspaceApi: OpenClawPluginApi | undefined;
     registerTestPlugin({
       registry,
       config,
@@ -776,7 +799,7 @@ describe("plugin session actions", () => {
     const observed: unknown[] = [];
     const unsubscribe = onAgentEvent((event) => observed.push(event));
     const { config, registry } = createPluginRegistryFixture();
-    let capturedApi: AstroclawPluginApi | undefined;
+    let capturedApi: OpenClawPluginApi | undefined;
     registerTestPlugin({
       registry,
       config,
@@ -810,7 +833,7 @@ describe("plugin session actions", () => {
         },
         runtime: {} as never,
       });
-      let neverActiveApi: AstroclawPluginApi | undefined;
+      let neverActiveApi: OpenClawPluginApi | undefined;
       registerTestPlugin({
         registry: neverActiveRegistry,
         config,
@@ -841,7 +864,7 @@ describe("plugin session actions", () => {
         runtime: {} as never,
         activateGlobalSideEffects: false,
       });
-      let inactiveApi: AstroclawPluginApi | undefined;
+      let inactiveApi: OpenClawPluginApi | undefined;
       registerTestPlugin({
         registry: inactiveRegistry,
         config,
@@ -872,7 +895,7 @@ describe("plugin session actions", () => {
     const observed: unknown[] = [];
     const unsubscribe = onAgentEvent((event) => observed.push(event));
     const { config, registry } = createPluginRegistryFixture();
-    let capturedApi: AstroclawPluginApi | undefined;
+    let capturedApi: OpenClawPluginApi | undefined;
     registerTestPlugin({
       registry,
       config,
