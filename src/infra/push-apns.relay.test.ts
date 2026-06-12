@@ -1,11 +1,17 @@
+// Covers APNs relay request signing, config, and response handling.
 import { generateKeyPairSync } from "node:crypto";
+import { MAX_TIMER_TIMEOUT_MS } from "@openclaw/normalization-core/number-coercion";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   deriveDeviceIdFromPublicKey,
   publicKeyRawBase64UrlFromPem,
   verifyDeviceSignature,
 } from "./device-identity.js";
-import { resolveApnsRelayConfigFromEnv, sendApnsRelayPush } from "./push-apns.relay.js";
+import {
+  DEFAULT_APNS_RELAY_BASE_URL,
+  resolveApnsRelayConfigFromEnv,
+  sendApnsRelayPush,
+} from "./push-apns.relay.js";
 
 const relayGatewayIdentity = (() => {
   const { publicKey, privateKey } = generateKeyPairSync("ed25519");
@@ -60,19 +66,45 @@ function firstMockCall<T extends unknown[]>(mock: { mock: { calls: T[] } }): T |
 
 describe("push-apns.relay", () => {
   describe("resolveApnsRelayConfigFromEnv", () => {
-    it("returns a missing-config error when no relay base URL is configured", () => {
-      expect(resolveApnsRelayConfigFromEnv({} as NodeJS.ProcessEnv)).toEqual({
-        ok: false,
-        error:
-          "APNs relay config missing: set gateway.push.apns.relay.baseUrl or ASTROCLAW_APNS_RELAY_BASE_URL",
-      });
+    it("defaults to the hosted relay when the registration was minted by the hosted relay", () => {
+      expectRelayConfig(
+        resolveApnsRelayConfigFromEnv({} as NodeJS.ProcessEnv, undefined, {
+          registrationRelayOrigin: `${DEFAULT_APNS_RELAY_BASE_URL}/`,
+        }),
+        {
+          baseUrl: DEFAULT_APNS_RELAY_BASE_URL,
+          timeoutMs: 10_000,
+        },
+      );
+    });
+
+    it("fails closed when relay registration origin is unknown and no relay URL is configured", () => {
+      const resolved = resolveApnsRelayConfigFromEnv({} as NodeJS.ProcessEnv);
+
+      expect(resolved.ok).toBe(false);
+      if (!resolved.ok) {
+        expect(resolved.error).toContain("relay registrations without the hosted relay origin");
+      }
+    });
+
+    it("rejects config that does not match the registration relay origin", () => {
+      const resolved = resolveApnsRelayConfigFromEnv(
+        {} as NodeJS.ProcessEnv,
+        { push: { apns: { relay: { baseUrl: DEFAULT_APNS_RELAY_BASE_URL } } } },
+        { registrationRelayOrigin: "https://relay.example.com" },
+      );
+
+      expect(resolved.ok).toBe(false);
+      if (!resolved.ok) {
+        expect(resolved.error).toContain("origin mismatch");
+      }
     });
 
     it("lets env overrides win and clamps tiny timeout values", () => {
       const resolved = resolveApnsRelayConfigFromEnv(
         {
-          ASTROCLAW_APNS_RELAY_BASE_URL: " https://relay-override.example.com/base/ ",
-          ASTROCLAW_APNS_RELAY_TIMEOUT_MS: "999",
+          OPENCLAW_APNS_RELAY_BASE_URL: " https://relay-override.example.com/base/ ",
+          OPENCLAW_APNS_RELAY_TIMEOUT_MS: "999",
         } as NodeJS.ProcessEnv,
         {
           push: {
@@ -92,11 +124,23 @@ describe("push-apns.relay", () => {
       });
     });
 
+    it("caps oversized timeout values before they reach AbortSignal.timeout", () => {
+      const resolved = resolveApnsRelayConfigFromEnv({
+        OPENCLAW_APNS_RELAY_BASE_URL: "https://relay.example.com",
+        OPENCLAW_APNS_RELAY_TIMEOUT_MS: String(Number.MAX_SAFE_INTEGER),
+      } as NodeJS.ProcessEnv);
+
+      expectRelayConfig(resolved, {
+        baseUrl: "https://relay.example.com",
+        timeoutMs: MAX_TIMER_TIMEOUT_MS,
+      });
+    });
+
     it("allows loopback http URLs for alternate truthy env values", () => {
       const resolved = resolveApnsRelayConfigFromEnv({
-        ASTROCLAW_APNS_RELAY_BASE_URL: "http://[::1]:8787",
-        ASTROCLAW_APNS_RELAY_ALLOW_HTTP: "yes",
-        ASTROCLAW_APNS_RELAY_TIMEOUT_MS: "nope",
+        OPENCLAW_APNS_RELAY_BASE_URL: "http://[::1]:8787",
+        OPENCLAW_APNS_RELAY_ALLOW_HTTP: "yes",
+        OPENCLAW_APNS_RELAY_TIMEOUT_MS: "nope",
       } as NodeJS.ProcessEnv);
 
       expectRelayConfig(resolved, {
@@ -108,25 +152,25 @@ describe("push-apns.relay", () => {
     it.each([
       {
         name: "unsupported protocol",
-        env: { ASTROCLAW_APNS_RELAY_BASE_URL: "ftp://relay.example.com" },
+        env: { OPENCLAW_APNS_RELAY_BASE_URL: "ftp://relay.example.com" },
         expected: "unsupported protocol",
       },
       {
         name: "http non-loopback host",
         env: {
-          ASTROCLAW_APNS_RELAY_BASE_URL: "http://relay.example.com",
-          ASTROCLAW_APNS_RELAY_ALLOW_HTTP: "true",
+          OPENCLAW_APNS_RELAY_BASE_URL: "http://relay.example.com",
+          OPENCLAW_APNS_RELAY_ALLOW_HTTP: "true",
         },
         expected: "loopback hosts",
       },
       {
         name: "query string",
-        env: { ASTROCLAW_APNS_RELAY_BASE_URL: "https://relay.example.com/path?debug=1" },
+        env: { OPENCLAW_APNS_RELAY_BASE_URL: "https://relay.example.com/path?debug=1" },
         expected: "query and fragment are not allowed",
       },
       {
         name: "userinfo",
-        env: { ASTROCLAW_APNS_RELAY_BASE_URL: "https://user:pass@relay.example.com/path" },
+        env: { OPENCLAW_APNS_RELAY_BASE_URL: "https://user:pass@relay.example.com/path" },
         expected: "userinfo is not allowed",
       },
     ])("rejects invalid relay URL: $name", ({ env, expected }) => {
@@ -199,7 +243,7 @@ describe("push-apns.relay", () => {
         verifyDeviceSignature(
           relayGatewayIdentity.publicKey,
           [
-            "astroclaw-relay-send-v1",
+            "openclaw-relay-send-v1",
             sent?.gatewayDeviceId,
             String(sent?.signedAtMs),
             sent?.bodyJson,
