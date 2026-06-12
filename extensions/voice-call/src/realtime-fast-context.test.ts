@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Voice Call tests cover realtime fast context plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VoiceCallRealtimeFastContextConfig } from "./config.js";
 
@@ -6,13 +7,13 @@ const mocks = vi.hoisted(() => ({
   resolveRealtimeVoiceFastContextConsult: vi.fn(),
 }));
 
-vi.mock("astroclaw/plugin-sdk/realtime-voice", () => ({
+vi.mock("openclaw/plugin-sdk/realtime-voice", () => ({
   resolveRealtimeVoiceFastContextConsult: mocks.resolveRealtimeVoiceFastContextConsult,
 }));
 
 import { resolveRealtimeFastContextConsult } from "./realtime-fast-context.js";
 
-const cfg = {} as AstroclawConfig;
+const cfg = {} as OpenClawConfig;
 
 function createFastContextConfig(
   overrides: Partial<VoiceCallRealtimeFastContextConfig> = {},
@@ -67,7 +68,7 @@ describe("resolveRealtimeFastContextConsult", () => {
       logger,
       labels: {
         audienceLabel: "caller",
-        contextName: "Astroclaw memory or session context",
+        contextName: "OpenClaw memory or session context",
       },
     });
   });
