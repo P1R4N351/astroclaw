@@ -1,3 +1,5 @@
+// Android node policy-source tests document when clients fetch remote capability
+// policy versus trusting local loopback gateway configuration.
 import { describe, expect, it } from "vitest";
 import { shouldFetchRemotePolicyConfig } from "../../test/helpers/gateway/android-node-capabilities-policy-source.js";
 import type { GatewayConnectionDetails } from "./call.js";
@@ -25,7 +27,7 @@ describe("shouldFetchRemotePolicyConfig", () => {
   });
 
   it("returns true for env and cli overrides", () => {
-    expect(shouldFetchRemotePolicyConfig(details({ urlSource: "env ASTROCLAW_GATEWAY_URL" }))).toBe(
+    expect(shouldFetchRemotePolicyConfig(details({ urlSource: "env OPENCLAW_GATEWAY_URL" }))).toBe(
       true,
     );
     expect(shouldFetchRemotePolicyConfig(details({ urlSource: "cli --url" }))).toBe(true);
