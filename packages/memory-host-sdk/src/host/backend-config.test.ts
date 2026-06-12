@@ -1,3 +1,4 @@
+// Memory Host SDK tests cover backend config behavior.
 import syncFs from "node:fs";
 import type { Dirent } from "node:fs";
 import fs from "node:fs/promises";
@@ -5,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { resolveMemoryBackendConfig } from "./backend-config.js";
-import type { AstroclawConfig } from "./config-utils.js";
+import type { OpenClawConfig } from "./config-utils.js";
 
 type ResolvedMemoryBackendConfig = ReturnType<typeof resolveMemoryBackendConfig>;
 
@@ -30,7 +31,7 @@ const withMemoryRootEntries = <T>(entries: Dirent[], test: () => T): T => {
   }
 };
 
-const rootMemoryConfig = (workspaceDir: string): AstroclawConfig =>
+const rootMemoryConfig = (workspaceDir: string): OpenClawConfig =>
   ({
     agents: {
       defaults: { workspace: workspaceDir },
@@ -40,7 +41,7 @@ const rootMemoryConfig = (workspaceDir: string): AstroclawConfig =>
       backend: "qmd",
       qmd: {},
     },
-  }) as AstroclawConfig;
+  }) as OpenClawConfig;
 
 const collectionNames = (resolved: ResolvedMemoryBackendConfig): string[] =>
   (resolved.qmd?.collections ?? []).map((collection) => collection.name).toSorted();
@@ -96,7 +97,7 @@ async function createFixtureDir(name: string): Promise<string> {
 
 describe("resolveMemoryBackendConfig", () => {
   it("defaults to builtin backend when config missing", () => {
-    const cfg = { agents: { defaults: { workspace: "/tmp/memory-test" } } } as AstroclawConfig;
+    const cfg = { agents: { defaults: { workspace: "/tmp/memory-test" } } } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     expect(resolved.backend).toBe("builtin");
     expect(resolved.citations).toBe("auto");
@@ -110,7 +111,7 @@ describe("resolveMemoryBackendConfig", () => {
         backend: "qmd",
         qmd: {},
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     expect(resolved.backend).toBe("qmd");
     const qmd = requireQmdConfig(resolved);
@@ -160,7 +161,7 @@ describe("resolveMemoryBackendConfig", () => {
           command: '"/Applications/QMD Tools/qmd" --flag',
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     expect(requireQmdConfig(resolved).command).toBe("/Applications/QMD Tools/qmd");
   });
@@ -183,7 +184,7 @@ describe("resolveMemoryBackendConfig", () => {
           ],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const custom = requireQmdConfig(resolved).collections.find((c) =>
       c.name.startsWith("custom-notes"),
@@ -192,6 +193,32 @@ describe("resolveMemoryBackendConfig", () => {
       throw new Error("expected custom-notes qmd collection");
     }
     expect(custom.path).toBe(path.resolve("/workspace/root", "notes"));
+  });
+
+  it("normalizes direct file qmd paths to escaped exact-file patterns", async () => {
+    const workspaceDir = await createFixtureDir("direct-file-path");
+    const notesPath = path.join(workspaceDir, "notes{a,b}[1].md");
+    await fs.writeFile(notesPath, "# Notes\n", "utf8");
+
+    const cfg = {
+      agents: {
+        defaults: { workspace: workspaceDir },
+        list: [{ id: "main", workspace: workspaceDir }],
+      },
+      memory: {
+        backend: "qmd",
+        qmd: {
+          paths: [{ path: "notes{a,b}[1].md", name: "direct-note", pattern: "**/*.md" }],
+        },
+      },
+    } as OpenClawConfig;
+
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
+    const custom = resolved.qmd?.collections.find((c) => c.name.startsWith("direct-note"));
+    expect(custom).toMatchObject({
+      path: workspaceDir,
+      pattern: String.raw`notes\{a,b\}\[1\].md`,
+    });
   });
 
   it("scopes qmd collection names per agent", () => {
@@ -210,7 +237,7 @@ describe("resolveMemoryBackendConfig", () => {
           paths: [{ path: "notes", name: "workspace", pattern: "**/*.md" }],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const mainResolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const devResolved = resolveMemoryBackendConfig({ cfg, agentId: "dev" });
     const mainNames = collectionNames(mainResolved);
@@ -261,7 +288,7 @@ describe("resolveMemoryBackendConfig", () => {
           includeDefaultMemory: false,
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const names = collectionNames(resolved);
     expect(names).toStrictEqual(["notes-main", "team-notes"]);
@@ -283,7 +310,7 @@ describe("resolveMemoryBackendConfig", () => {
           paths: [{ path: "/shared/notion-mirror", name: "notion-mirror", pattern: "**/*.md" }],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const mainResolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const devResolved = resolveMemoryBackendConfig({ cfg, agentId: "dev" });
     const mainNames = collectionNames(mainResolved);
@@ -310,7 +337,7 @@ describe("resolveMemoryBackendConfig", () => {
           paths: [{ path: workspaceAliasDir, name: "workspace", pattern: "**/*.md" }],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const names = collectionNames(resolved);
     expect(names).toStrictEqual(["workspace-main"]);
@@ -338,7 +365,7 @@ describe("resolveMemoryBackendConfig", () => {
           ],
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const names = collectionNames(resolved);
     expect(names).toStrictEqual(["notes-main"]);
@@ -358,13 +385,93 @@ describe("resolveMemoryBackendConfig", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const update = requireQmdConfig(resolved).update;
     expect(update.waitForBootSync).toBe(true);
     expect(update.commandTimeoutMs).toBe(12_000);
     expect(update.updateTimeoutMs).toBe(480_000);
     expect(update.embedTimeoutMs).toBe(360_000);
+  });
+
+  it("keeps sub-unit positive qmd numeric overrides usable", () => {
+    const cfg = {
+      agents: { defaults: { workspace: "/tmp/memory-test" } },
+      memory: {
+        backend: "qmd",
+        qmd: {
+          sessions: {
+            enabled: true,
+            retentionDays: 0.5,
+          },
+          update: {
+            commandTimeoutMs: 0.5,
+            updateTimeoutMs: 0.5,
+            embedTimeoutMs: 0.5,
+          },
+          limits: {
+            maxResults: 0.5,
+            maxSnippetChars: 0.5,
+            maxInjectedChars: 0.5,
+            timeoutMs: 0.5,
+          },
+        },
+      },
+    } as OpenClawConfig;
+
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
+    const qmd = requireQmdConfig(resolved);
+
+    expect(qmd.sessions.retentionDays).toBe(1);
+    expect(qmd.update.commandTimeoutMs).toBe(1);
+    expect(qmd.update.updateTimeoutMs).toBe(1);
+    expect(qmd.update.embedTimeoutMs).toBe(1);
+    expect(qmd.limits).toMatchObject({
+      maxResults: 1,
+      maxSnippetChars: 1,
+      maxInjectedChars: 1,
+      timeoutMs: 1,
+    });
+  });
+
+  it("falls back for non-finite qmd numeric overrides", () => {
+    const cfg = {
+      agents: { defaults: { workspace: "/tmp/memory-test" } },
+      memory: {
+        backend: "qmd",
+        qmd: {
+          sessions: {
+            enabled: true,
+            retentionDays: Number.NaN,
+          },
+          update: {
+            commandTimeoutMs: Number.POSITIVE_INFINITY,
+            updateTimeoutMs: Number.NaN,
+            embedTimeoutMs: Number.NEGATIVE_INFINITY,
+          },
+          limits: {
+            maxResults: Number.NaN,
+            maxSnippetChars: Number.POSITIVE_INFINITY,
+            maxInjectedChars: Number.NEGATIVE_INFINITY,
+            timeoutMs: Number.NaN,
+          },
+        },
+      },
+    } as OpenClawConfig;
+
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
+    const qmd = requireQmdConfig(resolved);
+
+    expect(qmd.sessions.retentionDays).toBeUndefined();
+    expect(qmd.update.commandTimeoutMs).toBe(30_000);
+    expect(qmd.update.updateTimeoutMs).toBe(120_000);
+    expect(qmd.update.embedTimeoutMs).toBe(120_000);
+    expect(qmd.limits).toMatchObject({
+      maxResults: 4,
+      maxSnippetChars: 450,
+      maxInjectedChars: 2_200,
+      timeoutMs: 4_000,
+    });
   });
 
   it("resolves qmd startup refresh overrides", () => {
@@ -379,7 +486,7 @@ describe("resolveMemoryBackendConfig", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const update = requireQmdConfig(resolved).update;
     expect(update.startup).toBe("idle");
@@ -396,9 +503,26 @@ describe("resolveMemoryBackendConfig", () => {
           searchMode: "vsearch",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     expect(requireQmdConfig(resolved).searchMode).toBe("vsearch");
+  });
+
+  it("resolves qmd rerank override", () => {
+    const cfg = {
+      agents: { defaults: { workspace: "/tmp/memory-test" } },
+      memory: {
+        backend: "qmd",
+        qmd: {
+          searchMode: "query",
+          rerank: false,
+        },
+      },
+    } as OpenClawConfig;
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
+    const qmd = requireQmdConfig(resolved);
+    expect(qmd.searchMode).toBe("query");
+    expect(qmd.rerank).toBe(false);
   });
 
   it("resolves qmd mcporter search tool override", () => {
@@ -411,7 +535,7 @@ describe("resolveMemoryBackendConfig", () => {
           searchTool: " hybrid_search ",
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const qmd = requireQmdConfig(resolved);
     expect(qmd.searchMode).toBe("query");
@@ -431,7 +555,7 @@ describe("memorySearch.extraPaths integration", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = resolveMemoryBackendConfig({ cfg, agentId: "test-agent" });
     expect(result.backend).toBe("qmd");
     const paths = customCollectionPaths(result);
@@ -460,7 +584,7 @@ describe("memorySearch.extraPaths integration", () => {
           },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = resolveMemoryBackendConfig({ cfg, agentId: "my-agent" });
     expect(result.backend).toBe("qmd");
     const paths = customCollectionPaths(result);
@@ -489,7 +613,7 @@ describe("memorySearch.extraPaths integration", () => {
           },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = resolveMemoryBackendConfig({ cfg, agentId: "my-agent" });
     expect(result.backend).toBe("qmd");
     const paths = customCollectionPaths(result);
@@ -515,7 +639,7 @@ describe("memorySearch.extraPaths integration", () => {
           },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = resolveMemoryBackendConfig({ cfg, agentId: "my-agent" });
     const paths = customCollectionPaths(result);
@@ -537,7 +661,7 @@ describe("memorySearch.extraPaths integration", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     const result = resolveMemoryBackendConfig({ cfg, agentId: "my-agent" });
     expect(customQmdCollections(result).map((collection) => collection.name)).toStrictEqual([
       "custom-1-my-agent",
@@ -560,7 +684,7 @@ describe("memorySearch.extraPaths integration", () => {
           },
         ],
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = resolveMemoryBackendConfig({ cfg, agentId: "my-agent" });
 
@@ -585,7 +709,7 @@ describe("memorySearch.extraPaths integration", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = resolveMemoryBackendConfig({ cfg, agentId: "main" });
     const docsCollections = customQmdCollections(result).filter(
