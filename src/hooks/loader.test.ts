@@ -1,11 +1,12 @@
+// Hook loader tests cover loading bundled, workspace, and plugin hooks.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import { stripAnsi } from "../../packages/terminal-core/src/ansi.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { setLoggerOverride } from "../logging/logger.js";
 import { loggingState } from "../logging/state.js";
-import { stripAnsi } from "../terminal/ansi.js";
 import { captureEnv } from "../test-utils/env.js";
 import { hasConfiguredInternalHooks, resolveConfiguredInternalHookNames } from "./configured.js";
 import {
@@ -25,7 +26,7 @@ describe("loader", () => {
   let envSnapshot: ReturnType<typeof captureEnv>;
 
   beforeAll(async () => {
-    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-hooks-loader-"));
+    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-hooks-loader-"));
   });
 
   beforeEach(async () => {
@@ -36,8 +37,8 @@ describe("loader", () => {
     await fs.mkdir(tmpDir, { recursive: true });
 
     // Disable bundled hooks during tests by setting env var to non-existent directory
-    envSnapshot = captureEnv(["ASTROCLAW_BUNDLED_HOOKS_DIR"]);
-    process.env.ASTROCLAW_BUNDLED_HOOKS_DIR = "/nonexistent/bundled/hooks";
+    envSnapshot = captureEnv(["OPENCLAW_BUNDLED_HOOKS_DIR"]);
+    process.env.OPENCLAW_BUNDLED_HOOKS_DIR = "/nonexistent/bundled/hooks";
     setLoggerOverride({ level: "silent", consoleLevel: "error" });
     loggingState.rawConsole = {
       log: vi.fn(),
@@ -61,7 +62,7 @@ describe("loader", () => {
         "---",
         `name: ${params.hookName}`,
         `description: ${params.hookName} test hook`,
-        'metadata: {"astroclaw":{"events":["command:new"]}}',
+        'metadata: {"openclaw":{"events":["command:new"]}}',
         "---",
         "",
         `# ${params.hookName}`,
@@ -87,9 +88,9 @@ describe("loader", () => {
   }
 
   function withLegacyInternalHookHandlers(
-    config: AstroclawConfig,
+    config: OpenClawConfig,
     handlers?: Array<{ event: string; module: string; export?: string }>,
-  ): AstroclawConfig {
+  ): OpenClawConfig {
     if (!handlers) {
       return config;
     }
@@ -102,12 +103,12 @@ describe("loader", () => {
           handlers,
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
   function createEnabledHooksConfig(
     handlers?: Array<{ event: string; module: string; export?: string }>,
-  ): AstroclawConfig {
+  ): OpenClawConfig {
     return withLegacyInternalHookHandlers(
       {
         hooks: {
@@ -135,36 +136,36 @@ describe("loader", () => {
 
   describe("loadInternalHooks", () => {
     it("detects configured internal hook surfaces", () => {
-      expect(hasConfiguredInternalHooks({} satisfies AstroclawConfig)).toBe(false);
+      expect(hasConfiguredInternalHooks({} satisfies OpenClawConfig)).toBe(false);
       expect(
         hasConfiguredInternalHooks({
           hooks: { internal: { entries: { "session-memory": { enabled: true } } } },
-        } satisfies AstroclawConfig),
+        } satisfies OpenClawConfig),
       ).toBe(true);
       expect(
         hasConfiguredInternalHooks({
           hooks: { internal: { entries: { "session-memory": { enabled: false } } } },
-        } satisfies AstroclawConfig),
+        } satisfies OpenClawConfig),
       ).toBe(false);
       expect(
         hasConfiguredInternalHooks({
           hooks: { internal: { load: { extraDirs: ["/tmp/hooks"] } } },
-        } satisfies AstroclawConfig),
+        } satisfies OpenClawConfig),
       ).toBe(true);
       expect(
         resolveConfiguredInternalHookNames({
           hooks: { internal: { entries: { "session-memory": { enabled: true } } } },
-        } satisfies AstroclawConfig),
+        } satisfies OpenClawConfig),
       ).toEqual(new Set(["session-memory"]));
       expect(
         resolveConfiguredInternalHookNames({
           hooks: { internal: { enabled: true } },
-        } satisfies AstroclawConfig),
+        } satisfies OpenClawConfig),
       ).toBeNull();
       expect(
         resolveConfiguredInternalHookNames({
           hooks: { internal: { installs: { pack: { source: "path" } } } },
-        } satisfies AstroclawConfig),
+        } satisfies OpenClawConfig),
       ).toBeNull();
     });
 
@@ -176,7 +177,7 @@ describe("loader", () => {
         },
       ]);
 
-    const expectNoCommandHookRegistration = async (cfg: AstroclawConfig) => {
+    const expectNoCommandHookRegistration = async (cfg: OpenClawConfig) => {
       const count = await loadInternalHooks(cfg, tmpDir);
       expect(count).toBe(0);
       expect(getRegisteredEventKeys()).not.toContain("command:new");
@@ -190,7 +191,7 @@ describe("loader", () => {
               enabled: false,
             },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         withLegacyInternalHookHandlers(
           {
             hooks: {
@@ -198,7 +199,7 @@ describe("loader", () => {
                 enabled: false,
               },
             },
-          } satisfies AstroclawConfig,
+          } satisfies OpenClawConfig,
           [],
         ),
       ]) {
@@ -209,9 +210,9 @@ describe("loader", () => {
 
     it("skips hook discovery until internal hooks are configured", async () => {
       for (const cfg of [
-        {} satisfies AstroclawConfig,
-        { hooks: {} } satisfies AstroclawConfig,
-        { hooks: { internal: {} } } satisfies AstroclawConfig,
+        {} satisfies OpenClawConfig,
+        { hooks: {} } satisfies OpenClawConfig,
+        { hooks: { internal: {} } } satisfies OpenClawConfig,
       ]) {
         const count = await loadInternalHooks(cfg, tmpDir);
         expect(count).toBe(0);
@@ -232,7 +233,7 @@ describe("loader", () => {
               },
             },
           },
-        } satisfies AstroclawConfig,
+        } satisfies OpenClawConfig,
         tmpDir,
         { managedHooksDir: hooksDir, bundledHooksDir: "/nonexistent/bundled/hooks" },
       );
@@ -409,7 +410,7 @@ describe("loader", () => {
           "---",
           "name: symlink-hook",
           "description: symlink test",
-          'metadata: {"astroclaw":{"events":["command:new"]}}',
+          'metadata: {"openclaw":{"events":["command:new"]}}',
           "---",
           "",
           "# Symlink Hook",
@@ -454,7 +455,7 @@ describe("loader", () => {
           "---",
           "name: hardlink-hook",
           "description: hardlink test",
-          'metadata: {"astroclaw":{"events":["command:new"]}}',
+          'metadata: {"openclaw":{"events":["command:new"]}}',
           "---",
           "",
           "# Hardlink Hook",
