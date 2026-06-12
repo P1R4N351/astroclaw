@@ -1,21 +1,25 @@
+/**
+ * Session resolve store tests.
+ */
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { ErrorCodes } from "../../packages/gateway-protocol/src/index.js";
+import { writeAcpSessionMetaForMigration } from "../acp/runtime/session-meta.js";
 import { resolveStorePath, saveSessionStore } from "../config/sessions.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { withStateDirEnv } from "../test-helpers/state-dir-env.js";
-import { ErrorCodes } from "./protocol/index.js";
 import { resolveSessionKeyFromResolveParams } from "./sessions-resolve.js";
 
 describe("resolveSessionKeyFromResolveParams store canonicalization", () => {
   const freshUpdatedAt = () => Date.now();
 
   it("resolves legacy main-alias matches by sessionId and label for the configured default agent", async () => {
-    await withStateDirEnv("astroclaw-sessions-resolve-alias-", async ({ stateDir }) => {
+    await withStateDirEnv("openclaw-sessions-resolve-alias-", async ({ stateDir }) => {
       const storePath = path.join(stateDir, "sessions.json");
       const cfg = {
         session: { store: storePath, mainKey: "main" },
         agents: { list: [{ id: "ops", default: true }] },
-      } satisfies AstroclawConfig;
+      } satisfies OpenClawConfig;
       await saveSessionStore(storePath, {
         "agent:main:main": {
           sessionId: "sess-default-alias",
@@ -41,8 +45,8 @@ describe("resolveSessionKeyFromResolveParams store canonicalization", () => {
   });
 
   it("does not resolve another agent store when agentId is scoped", async () => {
-    await withStateDirEnv("astroclaw-sessions-resolve-agent-scope-", async () => {
-      const cfg: AstroclawConfig = {
+    await withStateDirEnv("openclaw-sessions-resolve-agent-scope-", async () => {
+      const cfg: OpenClawConfig = {
         agents: { list: [{ id: "main", default: true }, { id: "work" }] },
       };
       const workStorePath = resolveStorePath(cfg.session?.store, { agentId: "work" });
@@ -83,8 +87,8 @@ describe("resolveSessionKeyFromResolveParams store canonicalization", () => {
   });
 
   it("preserves cross-agent ambiguity when agentId is absent", async () => {
-    await withStateDirEnv("astroclaw-sessions-resolve-cross-agent-", async () => {
-      const cfg: AstroclawConfig = {
+    await withStateDirEnv("openclaw-sessions-resolve-cross-agent-", async () => {
+      const cfg: OpenClawConfig = {
         agents: { list: [{ id: "main", default: true }, { id: "work" }] },
       };
       const updatedAt = freshUpdatedAt();
@@ -136,12 +140,12 @@ describe("resolveSessionKeyFromResolveParams store canonicalization", () => {
   });
 
   it("still rejects non-alias agent:main matches when main is no longer configured", async () => {
-    await withStateDirEnv("astroclaw-sessions-resolve-stale-main-", async ({ stateDir }) => {
+    await withStateDirEnv("openclaw-sessions-resolve-stale-main-", async ({ stateDir }) => {
       const storePath = path.join(stateDir, "sessions.json");
       const cfg = {
         session: { store: storePath, mainKey: "main" },
         agents: { list: [{ id: "ops", default: true }] },
-      } satisfies AstroclawConfig;
+      } satisfies OpenClawConfig;
       await saveSessionStore(storePath, {
         "agent:main:guildchat:direct:u1": {
           sessionId: "sess-stale-main",
@@ -166,8 +170,8 @@ describe("resolveSessionKeyFromResolveParams store canonicalization", () => {
   });
 
   it("does not adopt legacy main aliases from discovered deleted-agent stores", async () => {
-    await withStateDirEnv("astroclaw-sessions-resolve-discovered-main-", async () => {
-      const cfg: AstroclawConfig = {
+    await withStateDirEnv("openclaw-sessions-resolve-discovered-main-", async () => {
+      const cfg: OpenClawConfig = {
         agents: { list: [{ id: "ops", default: true }] },
       };
       const staleMainStorePath = resolveStorePath(cfg.session?.store, { agentId: "main" });
@@ -207,9 +211,237 @@ describe("resolveSessionKeyFromResolveParams store canonicalization", () => {
     });
   });
 
+  it("resolves ACP harness session keys from real stores when harness id is not in agents.list", async () => {
+    await withStateDirEnv("openclaw-sessions-resolve-acp-harness-", async () => {
+      const cfg: OpenClawConfig = {
+        agents: { list: [{ id: "main", default: true }] },
+      };
+      const acpKey = "agent:claude:acp:11111111-1111-4111-8111-111111111111";
+      const claudeStorePath = resolveStorePath(cfg.session?.store, { agentId: "claude" });
+      await saveSessionStore(claudeStorePath, {
+        [acpKey]: {
+          sessionId: "sess-acp-harness",
+          label: "claude-delegate",
+          updatedAt: freshUpdatedAt(),
+        },
+      });
+      writeAcpSessionMetaForMigration({
+        sessionKey: acpKey,
+        sessionId: "sess-acp-harness",
+        meta: {
+          backend: "acpx",
+          agent: "claude",
+          runtimeSessionName: acpKey,
+          mode: "oneshot",
+          state: "idle",
+          lastActivityAt: freshUpdatedAt(),
+        },
+      });
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { key: acpKey },
+        }),
+      ).resolves.toEqual({ ok: true, key: acpKey });
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { sessionId: "sess-acp-harness" },
+        }),
+      ).resolves.toEqual({ ok: true, key: acpKey });
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { label: "claude-delegate" },
+        }),
+      ).resolves.toEqual({ ok: true, key: acpKey });
+    });
+  });
+
+  it("resolves migrated ACP harness keys when metadata remains under the matched store key", async () => {
+    await withStateDirEnv("openclaw-sessions-resolve-acp-harness-legacy-", async () => {
+      const cfg: OpenClawConfig = {
+        agents: { list: [{ id: "main", default: true }] },
+      };
+      const acpKey = "agent:claude:acp:33333333-3333-4333-8333-333333333333";
+      const legacyAcpKey = "agent:CLAUDE:acp:33333333-3333-4333-8333-333333333333";
+      const claudeStorePath = resolveStorePath(cfg.session?.store, { agentId: "claude" });
+      await saveSessionStore(claudeStorePath, {
+        [legacyAcpKey]: {
+          sessionId: "sess-acp-harness-legacy",
+          label: "claude-delegate-legacy",
+          updatedAt: freshUpdatedAt(),
+        },
+      });
+      writeAcpSessionMetaForMigration({
+        sessionKey: legacyAcpKey,
+        sessionId: "sess-acp-harness-legacy",
+        meta: {
+          backend: "acpx",
+          agent: "claude",
+          runtimeSessionName: legacyAcpKey,
+          mode: "oneshot",
+          state: "idle",
+          lastActivityAt: freshUpdatedAt(),
+        },
+      });
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { key: acpKey },
+        }),
+      ).resolves.toEqual({ ok: true, key: acpKey });
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { key: acpKey },
+        }),
+      ).resolves.toEqual({ ok: true, key: acpKey });
+    });
+  });
+
+  it("repairs ACP metadata when the session store key was already canonicalized", async () => {
+    await withStateDirEnv("openclaw-sessions-resolve-acp-harness-partial-", async () => {
+      const cfg: OpenClawConfig = {
+        agents: { list: [{ id: "main", default: true }] },
+      };
+      const acpKey = "agent:claude:acp:44444444-4444-4444-8444-444444444444";
+      const legacyAcpKey = "agent:CLAUDE:acp:44444444-4444-4444-8444-444444444444";
+      const claudeStorePath = resolveStorePath(cfg.session?.store, { agentId: "claude" });
+      await saveSessionStore(claudeStorePath, {
+        [acpKey]: {
+          sessionId: "sess-acp-harness-partial",
+          label: "claude-delegate-partial",
+          updatedAt: freshUpdatedAt(),
+        },
+      });
+      writeAcpSessionMetaForMigration({
+        sessionKey: legacyAcpKey,
+        sessionId: "sess-acp-harness-partial",
+        meta: {
+          backend: "acpx",
+          agent: "claude",
+          runtimeSessionName: legacyAcpKey,
+          mode: "oneshot",
+          state: "idle",
+          lastActivityAt: freshUpdatedAt(),
+        },
+      });
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { key: acpKey },
+        }),
+      ).resolves.toEqual({ ok: true, key: acpKey });
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { key: acpKey },
+        }),
+      ).resolves.toEqual({ ok: true, key: acpKey });
+    });
+  });
+
+  it("rejects ACP-shaped bridge sessions without ACP runtime metadata under deleted agents", async () => {
+    await withStateDirEnv("openclaw-sessions-resolve-acp-bridge-deleted-", async () => {
+      const cfg: OpenClawConfig = {
+        agents: { list: [{ id: "main", default: true }] },
+      };
+      const acpBridgeKey = "agent:deleted-agent:acp:bridge-session-without-runtime-meta";
+      const deletedStorePath = resolveStorePath(cfg.session?.store, { agentId: "deleted-agent" });
+      await saveSessionStore(deletedStorePath, {
+        [acpBridgeKey]: {
+          sessionId: "sess-acp-bridge-deleted",
+          label: "deleted-bridge",
+          updatedAt: freshUpdatedAt(),
+        },
+      });
+      const expected = {
+        ok: false,
+        error: {
+          code: ErrorCodes.INVALID_REQUEST,
+          message: 'Agent "deleted-agent" no longer exists in configuration',
+        },
+      };
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { key: acpBridgeKey },
+        }),
+      ).resolves.toEqual(expected);
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { sessionId: "sess-acp-bridge-deleted" },
+        }),
+      ).resolves.toEqual(expected);
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { label: "deleted-bridge" },
+        }),
+      ).resolves.toEqual(expected);
+    });
+  });
+
+  it("rejects configured ACP binding sessions when their owning agent is deleted", async () => {
+    await withStateDirEnv("openclaw-sessions-resolve-acp-binding-deleted-", async () => {
+      const cfg: OpenClawConfig = {
+        agents: { list: [{ id: "main", default: true }] },
+      };
+      const acpBindingKey = "agent:deleted-agent:acp:binding:discord:default:feedface";
+      const deletedStorePath = resolveStorePath(cfg.session?.store, { agentId: "deleted-agent" });
+      await saveSessionStore(deletedStorePath, {
+        [acpBindingKey]: {
+          sessionId: "sess-acp-binding-deleted",
+          label: "deleted-binding",
+          updatedAt: freshUpdatedAt(),
+        },
+      });
+      const expected = {
+        ok: false,
+        error: {
+          code: ErrorCodes.INVALID_REQUEST,
+          message: 'Agent "deleted-agent" no longer exists in configuration',
+        },
+      };
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { key: acpBindingKey },
+        }),
+      ).resolves.toEqual(expected);
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { sessionId: "sess-acp-binding-deleted" },
+        }),
+      ).resolves.toEqual(expected);
+
+      await expect(
+        resolveSessionKeyFromResolveParams({
+          cfg,
+          p: { label: "deleted-binding" },
+        }),
+      ).resolves.toEqual(expected);
+    });
+  });
+
   it("rejects an explicit listed deleted main key instead of remapping to the live default main", async () => {
-    await withStateDirEnv("astroclaw-sessions-resolve-key-deleted-main-", async () => {
-      const cfg: AstroclawConfig = {
+    await withStateDirEnv("openclaw-sessions-resolve-key-deleted-main-", async () => {
+      const cfg: OpenClawConfig = {
         agents: { list: [{ id: "ops", default: true }] },
       };
       const liveDefaultStorePath = resolveStorePath(cfg.session?.store, { agentId: "ops" });
