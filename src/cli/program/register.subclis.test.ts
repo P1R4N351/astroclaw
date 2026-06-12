@@ -1,3 +1,4 @@
+// Register subCLI tests cover nested CLI command registration boundaries.
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerSubCliByName, registerSubCliCommands } from "./register.subclis.js";
@@ -68,7 +69,7 @@ const { addGatewayRunCommand, gatewayRunAction, registerGatewayCli } = vi.hoiste
 
 vi.mock("../acp-cli.js", () => ({ registerAcpCli }));
 vi.mock("../gateway-cli.js", () => ({ registerGatewayCli }));
-vi.mock("../gateway-cli/run.js", () => ({ addGatewayRunCommand }));
+vi.mock("../gateway-cli/run-command.js", () => ({ addGatewayRunCommand }));
 vi.mock("../nodes-cli.js", () => ({ registerNodesCli }));
 vi.mock("../capability-cli.js", () => ({ registerCapabilityCli }));
 vi.mock("../plugins-cli.js", () => ({ registerPluginsCli }));
@@ -84,8 +85,8 @@ vi.mock("./private-qa-cli.js", async () => {
 
 describe("registerSubCliCommands", () => {
   const originalArgv = process.argv;
-  const originalDisableLazySubcommands = process.env.ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS;
-  const originalEnablePrivateQaCli = process.env.ASTROCLAW_ENABLE_PRIVATE_QA_CLI;
+  const originalDisableLazySubcommands = process.env.OPENCLAW_DISABLE_LAZY_SUBCOMMANDS;
+  const originalEnablePrivateQaCli = process.env.OPENCLAW_ENABLE_PRIVATE_QA_CLI;
 
   const createRegisteredProgram = (argv: string[], name?: string) => {
     process.argv = argv;
@@ -99,11 +100,11 @@ describe("registerSubCliCommands", () => {
 
   beforeEach(() => {
     if (originalDisableLazySubcommands === undefined) {
-      delete process.env.ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS;
+      delete process.env.OPENCLAW_DISABLE_LAZY_SUBCOMMANDS;
     } else {
-      process.env.ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS = originalDisableLazySubcommands;
+      process.env.OPENCLAW_DISABLE_LAZY_SUBCOMMANDS = originalDisableLazySubcommands;
     }
-    process.env.ASTROCLAW_ENABLE_PRIVATE_QA_CLI = "1";
+    process.env.OPENCLAW_ENABLE_PRIVATE_QA_CLI = "1";
     registerAcpCli.mockClear();
     acpAction.mockClear();
     registerNodesCli.mockClear();
@@ -123,19 +124,19 @@ describe("registerSubCliCommands", () => {
   afterEach(() => {
     process.argv = originalArgv;
     if (originalDisableLazySubcommands === undefined) {
-      delete process.env.ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS;
+      delete process.env.OPENCLAW_DISABLE_LAZY_SUBCOMMANDS;
     } else {
-      process.env.ASTROCLAW_DISABLE_LAZY_SUBCOMMANDS = originalDisableLazySubcommands;
+      process.env.OPENCLAW_DISABLE_LAZY_SUBCOMMANDS = originalDisableLazySubcommands;
     }
     if (originalEnablePrivateQaCli === undefined) {
-      delete process.env.ASTROCLAW_ENABLE_PRIVATE_QA_CLI;
+      delete process.env.OPENCLAW_ENABLE_PRIVATE_QA_CLI;
     } else {
-      process.env.ASTROCLAW_ENABLE_PRIVATE_QA_CLI = originalEnablePrivateQaCli;
+      process.env.OPENCLAW_ENABLE_PRIVATE_QA_CLI = originalEnablePrivateQaCli;
     }
   });
 
   it("registers the primary placeholder plus completion and dispatches", async () => {
-    const program = createRegisteredProgram(["node", "astroclaw", "acp"]);
+    const program = createRegisteredProgram(["node", "openclaw", "acp"]);
 
     expect(program.commands.map((cmd) => cmd.name())).toEqual(["acp", "completion"]);
 
@@ -146,7 +147,7 @@ describe("registerSubCliCommands", () => {
   });
 
   it("registers placeholders for all subcommands when no primary", () => {
-    const program = createRegisteredProgram(["node", "astroclaw"]);
+    const program = createRegisteredProgram(["node", "openclaw"]);
 
     const names = program.commands.map((cmd) => cmd.name());
     expect(names).toContain("acp");
@@ -157,26 +158,32 @@ describe("registerSubCliCommands", () => {
   });
 
   it("omits the qa placeholder when the private qa cli is disabled", () => {
-    delete process.env.ASTROCLAW_ENABLE_PRIVATE_QA_CLI;
+    delete process.env.OPENCLAW_ENABLE_PRIVATE_QA_CLI;
 
-    const program = createRegisteredProgram(["node", "astroclaw"]);
+    const program = createRegisteredProgram(["node", "openclaw"]);
 
     expect(program.commands.map((cmd) => cmd.name())).not.toContain("qa");
   });
 
   it("re-parses argv for lazy subcommands", async () => {
-    const program = createRegisteredProgram(["node", "astroclaw", "nodes", "list"], "astroclaw");
+    const program = createRegisteredProgram(["node", "openclaw", "nodes", "list"], "openclaw");
 
     expect(program.commands.map((cmd) => cmd.name())).toEqual(["nodes", "completion"]);
 
     await program.parseAsync(["nodes", "list"], { from: "user" });
 
     expect(registerNodesCli).toHaveBeenCalledTimes(1);
+    expect(registerNodesCli).toHaveBeenCalledWith(expect.any(Command), [
+      "node",
+      "openclaw",
+      "nodes",
+      "list",
+    ]);
     expect(nodesAction).toHaveBeenCalledTimes(1);
   });
 
   it("registers the infer placeholder and dispatches through the capability registrar", async () => {
-    const program = createRegisteredProgram(["node", "astroclaw", "infer"], "astroclaw");
+    const program = createRegisteredProgram(["node", "openclaw", "infer"], "openclaw");
 
     expect(program.commands.map((cmd) => cmd.name())).toEqual(["infer", "completion"]);
 
@@ -187,7 +194,7 @@ describe("registerSubCliCommands", () => {
   });
 
   it("replaces placeholder when registering a subcommand by name", async () => {
-    const program = createRegisteredProgram(["node", "astroclaw", "acp", "--help"], "astroclaw");
+    const program = createRegisteredProgram(["node", "openclaw", "acp", "--help"], "openclaw");
 
     await registerSubCliByName(program, "acp");
 
@@ -200,9 +207,9 @@ describe("registerSubCliCommands", () => {
   });
 
   it("registers only the gateway run surface for gateway startup", async () => {
-    const argv = ["node", "astroclaw", "gateway", "--force"];
+    const argv = ["node", "openclaw", "gateway", "--force"];
     process.argv = argv;
-    const program = new Command().name("astroclaw");
+    const program = new Command().name("openclaw");
 
     await registerSubCliByName(program, "gateway", argv);
 
@@ -213,9 +220,9 @@ describe("registerSubCliCommands", () => {
   });
 
   it("keeps the full gateway CLI for non-run gateway subcommands", async () => {
-    const argv = ["node", "astroclaw", "gateway", "call", "health"];
+    const argv = ["node", "openclaw", "gateway", "call", "health"];
     process.argv = argv;
-    const program = new Command().name("astroclaw");
+    const program = new Command().name("openclaw");
 
     await registerSubCliByName(program, "gateway", argv);
 
@@ -224,8 +231,8 @@ describe("registerSubCliCommands", () => {
   });
 
   it("passes completion context to channel registration", async () => {
-    const argv = ["node", "astroclaw", "completion", "--write-state"];
-    const program = new Command().name("astroclaw");
+    const argv = ["node", "openclaw", "completion", "--write-state"];
+    const program = new Command().name("openclaw");
 
     await registerSubCliByName(program, "channels", argv, { purpose: "completion" });
 
@@ -244,8 +251,8 @@ describe("registerSubCliCommands", () => {
     ["plugins doctor", ["plugins", "doctor"]],
     ["plugins --help", ["plugins", "--help"]],
   ])("does not preload plugin CLI registrations for builtin %s", async (_label, args) => {
-    process.argv = ["node", "astroclaw", ...args];
-    const program = new Command().name("astroclaw");
+    process.argv = ["node", "openclaw", ...args];
+    const program = new Command().name("openclaw");
 
     await registerSubCliByName(program, "plugins");
 
@@ -254,8 +261,8 @@ describe("registerSubCliCommands", () => {
   });
 
   it("does not preload plugin CLI registrations for bare plugin parent help", async () => {
-    process.argv = ["node", "astroclaw", "plugins"];
-    const program = new Command().name("astroclaw");
+    process.argv = ["node", "openclaw", "plugins"];
+    const program = new Command().name("openclaw");
 
     await registerSubCliByName(program, "plugins");
 
