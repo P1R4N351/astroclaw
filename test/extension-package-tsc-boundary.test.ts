@@ -1,3 +1,4 @@
+// Extension package TypeScript boundary tests cover package compile isolation.
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -8,7 +9,7 @@ const CHECK_EXTENSION_PACKAGE_BOUNDARY_BIN = resolve(
   "scripts/check-extension-package-tsc-boundary.mjs",
 );
 const SHOULD_RUN_BOUNDARY_SCRIPT_WRAPPER =
-  process.env.ASTROCLAW_RUN_EXTENSION_PACKAGE_BOUNDARY_TEST === "1";
+  process.env.OPENCLAW_RUN_EXTENSION_PACKAGE_BOUNDARY_TEST === "1";
 
 function runNode(args: string[], timeout: number) {
   return spawnSync(process.execPath, args, {
@@ -24,7 +25,7 @@ function runNode(args: string[], timeout: number) {
 describe.skipIf(!SHOULD_RUN_BOUNDARY_SCRIPT_WRAPPER)(
   "opt-in extension package TypeScript boundaries",
   () => {
-    it("typechecks each opt-in extension cleanly through @astroclaw/plugin-sdk", () => {
+    it("typechecks each opt-in extension cleanly through @openclaw/plugin-sdk", () => {
       const result = runNode([CHECK_EXTENSION_PACKAGE_BOUNDARY_BIN, "--mode=compile"], 420_000);
       expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     }, 300_000);
