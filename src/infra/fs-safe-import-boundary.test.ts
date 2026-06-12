@@ -1,3 +1,4 @@
+// Covers fs-safe import boundary rules in source files.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -86,7 +87,7 @@ describe("fs-safe import boundary", () => {
     });
   });
 
-  it("keeps direct fs-safe imports behind Astroclaw policy wrappers", () => {
+  it("keeps direct fs-safe imports behind OpenClaw policy wrappers", () => {
     const violations = SCAN_ROOTS.flatMap((root) => listSourceFiles(path.join(REPO_ROOT, root)))
       .map((filePath) => toRepoRelativePath(REPO_ROOT, filePath))
       .filter((filePath) => {
