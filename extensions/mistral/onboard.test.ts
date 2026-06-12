@@ -1,7 +1,8 @@
+// Mistral tests cover onboard plugin behavior.
 import {
   expectProviderOnboardMergedLegacyConfig,
   expectProviderOnboardPrimaryAndFallbacks,
-} from "astroclaw/plugin-sdk/provider-test-contracts";
+} from "openclaw/plugin-sdk/provider-test-contracts";
 import { describe, expect, it } from "vitest";
 import { buildMistralModelDefinition as buildBundledMistralModelDefinition } from "./model-definitions.js";
 import {
