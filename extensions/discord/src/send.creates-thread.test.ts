@@ -1,10 +1,11 @@
+// Discord tests cover send.creates thread plugin behavior.
 import { ChannelType, MessageFlags, Routes } from "discord-api-types/v10";
-import { loadWebMediaRaw } from "astroclaw/plugin-sdk/web-media";
+import { loadWebMediaRaw } from "openclaw/plugin-sdk/web-media";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { RateLimitError } from "./internal/discord.js";
 import { makeDiscordRest } from "./send.test-harness.js";
 
-vi.mock("astroclaw/plugin-sdk/web-media", async () => {
+vi.mock("openclaw/plugin-sdk/web-media", async () => {
   const { discordWebMediaMockFactory } = await import("./send.test-harness.js");
   return discordWebMediaMockFactory();
 });
@@ -121,10 +122,11 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 afterAll(() => {
-  vi.doUnmock("astroclaw/plugin-sdk/web-media");
+  vi.doUnmock("openclaw/plugin-sdk/web-media");
 });
 
 describe("sendMessageDiscord", () => {
@@ -322,6 +324,32 @@ describe("sendMessageDiscord", () => {
     ).toBeTypeOf("string");
   });
 
+  it("rejects timeout durations outside Date range", async () => {
+    const { rest, patchMock } = makeDiscordRest();
+
+    await expect(
+      timeoutMemberDiscord(
+        { guildId: "g1", userId: "u1", durationMinutes: 8_640_000_000_000_001 },
+        discordClientOpts(rest),
+      ),
+    ).rejects.toThrow("Discord timeout duration is outside the supported Date range");
+    expect(patchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects timeout durations that overflow from the current clock", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(8_640_000_000_000_000));
+    const { rest, patchMock } = makeDiscordRest();
+
+    await expect(
+      timeoutMemberDiscord(
+        { guildId: "g1", userId: "u1", durationMinutes: 1 },
+        discordClientOpts(rest),
+      ),
+    ).rejects.toThrow("Discord timeout duration is outside the supported Date range");
+    expect(patchMock).not.toHaveBeenCalled();
+  });
+
   it("adds and removes roles", async () => {
     const { rest, putMock, deleteMock } = makeDiscordRest();
     putMock.mockResolvedValue({});
@@ -395,8 +423,8 @@ describe("uploadStickerDiscord", () => {
     await uploadStickerDiscord(
       {
         guildId: "g1",
-        name: "astroclaw_wave",
-        description: "Astroclaw waving",
+        name: "openclaw_wave",
+        description: "OpenClaw waving",
         tags: "👋",
         mediaUrl: "file:///tmp/wave.png",
       },
@@ -404,8 +432,8 @@ describe("uploadStickerDiscord", () => {
     );
     expect(requestPath(postMock as unknown as MockCallSource)).toBe(Routes.guildStickers("g1"));
     const stickerBody = requestBody(postMock as unknown as MockCallSource);
-    expect(stickerBody.name).toBe("astroclaw_wave");
-    expect(stickerBody.description).toBe("Astroclaw waving");
+    expect(stickerBody.name).toBe("openclaw_wave");
+    expect(stickerBody.description).toBe("OpenClaw waving");
     expect(stickerBody.tags).toBe("👋");
     const files = stickerBody.files as Array<{ name?: string; contentType?: string }>;
     expect(files).toHaveLength(1);
