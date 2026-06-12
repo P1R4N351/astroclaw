@@ -1,5 +1,6 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/routing";
+// Whatsapp tests cover action runtime plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/routing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleWhatsAppAction, whatsAppActionRuntime } from "./action-runtime.js";
 
@@ -8,13 +9,13 @@ const sendReactionWhatsApp = vi.fn(async () => undefined);
 
 const enabledConfig = {
   channels: { whatsapp: { actions: { reactions: true } } },
-} as AstroclawConfig;
+} as OpenClawConfig;
 
 describe("handleWhatsAppAction", () => {
-  function reactionConfig(reactionLevel: "minimal" | "extensive" | "off" | "ack"): AstroclawConfig {
+  function reactionConfig(reactionLevel: "minimal" | "extensive" | "off" | "ack"): OpenClawConfig {
     return {
       channels: { whatsapp: { actions: { reactions: true }, reactionLevel } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
   }
 
   function expectLastReactionSend(expected: {
@@ -189,7 +190,7 @@ describe("handleWhatsAppAction", () => {
   it("respects reaction gating", async () => {
     const cfg = {
       channels: { whatsapp: { actions: { reactions: false } } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     await expect(
       handleWhatsAppAction(
         {
@@ -212,7 +213,7 @@ describe("handleWhatsAppAction", () => {
           messageId: "msg1",
           emoji: "✅",
         },
-        {} as AstroclawConfig,
+        {} as OpenClawConfig,
       ),
     ).rejects.toThrow(/WhatsApp reactions are disabled/);
   });
@@ -220,7 +221,7 @@ describe("handleWhatsAppAction", () => {
   it("prefers the action gate error when both actions.reactions and reactionLevel disable reactions", async () => {
     const cfg = {
       channels: { whatsapp: { actions: { reactions: false }, reactionLevel: "ack" } },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await expect(
       handleWhatsAppAction(
@@ -269,7 +270,7 @@ describe("handleWhatsAppAction", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     try {
       await handleWhatsAppAction(
@@ -300,7 +301,7 @@ describe("handleWhatsAppAction", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     await handleWhatsAppAction(
       {
