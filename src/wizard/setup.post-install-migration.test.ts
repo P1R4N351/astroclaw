@@ -1,6 +1,7 @@
+// Post-install migration tests cover migration prompts and command guidance.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter } from "../../test/helpers/wizard-prompter.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createNonExitingRuntime } from "../runtime.js";
 import type { WizardPrompter } from "./prompts.js";
 
@@ -74,13 +75,13 @@ function setTTY(isTTY: boolean): void {
 }
 
 function buildBaseArgs(overrides: {
-  config?: AstroclawConfig;
+  config?: OpenClawConfig;
   prompter?: WizardPrompter;
   installedPluginIds?: readonly string[];
   nonInteractive?: boolean;
 }) {
   return {
-    config: overrides.config ?? ({} as AstroclawConfig),
+    config: overrides.config ?? ({} as OpenClawConfig),
     runtime: createNonExitingRuntime(),
     prompter: overrides.prompter ?? createWizardPrompter(),
     installedPluginIds: overrides.installedPluginIds ?? ["codex"],
@@ -110,7 +111,7 @@ describe("offerPostInstallMigrations", () => {
   });
 
   it("returns early when no plugins were installed in this onboarding step", async () => {
-    const config = { plugins: { entries: { codex: { enabled: true } } } } as AstroclawConfig;
+    const config = { plugins: { entries: { codex: { enabled: true } } } } as OpenClawConfig;
     const result = await offerPostInstallMigrations(
       buildBaseArgs({ config, installedPluginIds: [] }),
     );
@@ -201,7 +202,7 @@ describe("offerPostInstallMigrations", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
     migrateDefaultCommand.mockResolvedValueOnce({
       providerId: "codex",
       source: "/home/user/.codex",
