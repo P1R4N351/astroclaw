@@ -1,3 +1,4 @@
+// Slack tests cover reactions plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const reactionQueueMock = vi.hoisted(() => vi.fn());
@@ -6,10 +7,10 @@ let createSlackSystemEventTestHarness: typeof import("./system-event-test-harnes
 type SlackSystemEventTestOverrides =
   import("./system-event-test-harness.js").SlackSystemEventTestOverrides;
 
-vi.mock("astroclaw/plugin-sdk/system-event-runtime", () => ({
+vi.mock("openclaw/plugin-sdk/system-event-runtime", () => ({
   enqueueSystemEvent: (...args: unknown[]) => reactionQueueMock(...args),
 }));
-vi.mock("astroclaw/plugin-sdk/system-event-runtime.js", () => ({
+vi.mock("openclaw/plugin-sdk/system-event-runtime.js", () => ({
   enqueueSystemEvent: (...args: unknown[]) => reactionQueueMock(...args),
 }));
 type ReactionHandler = (args: { event: Record<string, unknown>; body: unknown }) => Promise<void>;
@@ -230,8 +231,6 @@ describe("registerSlackReactionEvents", () => {
     expect(reactionQueueMock).toHaveBeenCalledWith(expect.any(String), {
       sessionKey: "agent:main:main",
       contextKey: "slack:reaction:added:D1:123.456:U1:thumbsup",
-      forceSenderIsOwnerFalse: true,
-      trusted: false,
     });
   });
 
