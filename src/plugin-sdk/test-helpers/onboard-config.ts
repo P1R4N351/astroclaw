@@ -1,5 +1,6 @@
+// Onboard config test helpers build model/provider config fixtures for plugin tests.
 import type { ModelApi } from "../provider-model-shared.js";
-import type { AstroclawConfig } from "../testing.js";
+import type { OpenClawConfig } from "../testing.js";
 
 export const EXPECTED_FALLBACKS = ["anthropic/claude-opus-4-5"] as const;
 
@@ -10,7 +11,7 @@ export function createLegacyProviderConfig(params: {
   modelName?: string;
   baseUrl?: string;
   apiKey?: string;
-}): AstroclawConfig {
+}): OpenClawConfig {
   return {
     models: {
       providers: {
@@ -32,10 +33,10 @@ export function createLegacyProviderConfig(params: {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
-export function createConfigWithFallbacks(): AstroclawConfig {
+export function createConfigWithFallbacks(): OpenClawConfig {
   return {
     agents: {
       defaults: {
