@@ -1,13 +1,69 @@
+// Memory Wiki tests cover apply plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { applyMemoryWikiMutation } from "./apply.js";
+import { applyMemoryWikiMutation, normalizeMemoryWikiMutationInput } from "./apply.js";
 import { parseWikiMarkdown, renderWikiMarkdown } from "./markdown.js";
 import { createMemoryWikiTestHarness } from "./test-helpers.js";
 
 const { createVault } = createMemoryWikiTestHarness();
 
 describe("applyMemoryWikiMutation", () => {
+  it("normalizes string confidence in wiki mutations", () => {
+    expect(
+      normalizeMemoryWikiMutationInput({
+        op: "create_synthesis",
+        title: "Alpha Synthesis",
+        body: "Alpha summary body.",
+        sourceIds: ["source.alpha"],
+        confidence: "0.7",
+      }),
+    ).toMatchObject({ confidence: 0.7 });
+
+    expect(
+      normalizeMemoryWikiMutationInput({
+        op: "update_metadata",
+        lookup: "entity.alpha",
+        confidence: "0.4",
+      }),
+    ).toMatchObject({ confidence: 0.4 });
+  });
+
+  it("normalizes CLI-style wiki mutation operation aliases", () => {
+    expect(
+      normalizeMemoryWikiMutationInput({
+        op: "synthesis",
+        title: "Alpha Synthesis",
+        body: "Alpha summary body.",
+        sourceIds: ["source.alpha"],
+      }),
+    ).toMatchObject({
+      op: "create_synthesis",
+      title: "Alpha Synthesis",
+    });
+
+    expect(
+      normalizeMemoryWikiMutationInput({
+        op: "metadata",
+        lookup: "entity.alpha",
+        sourceIds: ["source.alpha"],
+      }),
+    ).toMatchObject({
+      op: "update_metadata",
+      lookup: "entity.alpha",
+    });
+  });
+
+  it("rejects out-of-range string confidence in wiki mutations", () => {
+    expect(() =>
+      normalizeMemoryWikiMutationInput({
+        op: "update_metadata",
+        lookup: "entity.alpha",
+        confidence: "1.5",
+      }),
+    ).toThrow("confidence must be a finite number");
+  });
+
   it("creates synthesis pages with managed summary blocks and refreshed indexes", async () => {
     const { rootDir, config } = await createVault({ prefix: "memory-wiki-apply-" });
 
@@ -78,10 +134,10 @@ describe("applyMemoryWikiMutation", () => {
     expect(parsed.frontmatter.confidence).toBe(0.7);
     expect(parsed.frontmatter.status).toBe("active");
     expect(parsed.body).toContain("## Summary");
-    expect(parsed.body).toContain("<!-- astroclaw:wiki:generated:start -->");
+    expect(parsed.body).toContain("<!-- openclaw:wiki:generated:start -->");
     expect(parsed.body).toContain("Alpha summary body.");
     expect(parsed.body).toContain("## Notes");
-    expect(parsed.body).toContain("<!-- astroclaw:human:start -->");
+    expect(parsed.body).toContain("<!-- openclaw:human:start -->");
     await expect(fs.readFile(path.join(rootDir, "index.md"), "utf8")).resolves.toContain(
       "[Alpha Synthesis](syntheses/alpha-synthesis.md)",
     );
@@ -107,9 +163,9 @@ describe("applyMemoryWikiMutation", () => {
         body: `# Alpha
 
 ## Notes
-<!-- astroclaw:human:start -->
+<!-- openclaw:human:start -->
 keep this note
-<!-- astroclaw:human:end -->
+<!-- openclaw:human:end -->
 `,
       }),
       "utf8",
@@ -166,9 +222,9 @@ keep this note
     expect(parsed.frontmatter.status).toBe("review");
     expect(parsed.frontmatter).not.toHaveProperty("confidence");
     expect(parsed.body).toContain("keep this note");
-    expect(parsed.body).toContain("<!-- astroclaw:human:start -->");
+    expect(parsed.body).toContain("<!-- openclaw:human:start -->");
     await expect(
       fs.readFile(path.join(rootDir, "entities", "index.md"), "utf8"),
-    ).resolves.toContain("[Alpha](entities/alpha.md)");
+    ).resolves.toContain("[Alpha](alpha.md)");
   });
 });
