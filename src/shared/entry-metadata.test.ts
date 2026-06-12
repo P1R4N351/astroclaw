@@ -1,3 +1,4 @@
+// Entry metadata tests cover display metadata resolution for agents and jobs.
 import { describe, expect, it } from "vitest";
 import { resolveEmojiAndHomepage } from "./entry-metadata.js";
 
@@ -5,12 +6,12 @@ describe("shared/entry-metadata", () => {
   it("prefers metadata emoji and homepage when present", () => {
     expect(
       resolveEmojiAndHomepage({
-        metadata: { emoji: "🦀", homepage: " https://astroclaw.ai " },
+        metadata: { emoji: "🦀", homepage: " https://openclaw.ai " },
         frontmatter: { emoji: "🙂", homepage: "https://example.com" },
       }),
     ).toEqual({
       emoji: "🦀",
-      homepage: "https://astroclaw.ai",
+      homepage: "https://openclaw.ai",
     });
   });
 
@@ -26,11 +27,11 @@ describe("shared/entry-metadata", () => {
   it("falls back through frontmatter homepage aliases and drops blanks", () => {
     expect(
       resolveEmojiAndHomepage({
-        frontmatter: { emoji: "🙂", website: " https://docs.astroclaw.ai " },
+        frontmatter: { emoji: "🙂", website: " https://docs.openclaw.ai " },
       }),
     ).toEqual({
       emoji: "🙂",
-      homepage: "https://docs.astroclaw.ai",
+      homepage: "https://docs.openclaw.ai",
     });
     expect(
       resolveEmojiAndHomepage({
@@ -40,10 +41,10 @@ describe("shared/entry-metadata", () => {
     ).toStrictEqual({});
     expect(
       resolveEmojiAndHomepage({
-        frontmatter: { url: " https://astroclaw.ai/install " },
+        frontmatter: { url: " https://openclaw.ai/install " },
       }),
     ).toEqual({
-      homepage: "https://astroclaw.ai/install",
+      homepage: "https://openclaw.ai/install",
     });
   });
 
@@ -52,8 +53,8 @@ describe("shared/entry-metadata", () => {
       resolveEmojiAndHomepage({
         frontmatter: {
           homepage: " ",
-          website: "https://docs.astroclaw.ai",
-          url: "https://astroclaw.ai/install",
+          website: "https://docs.openclaw.ai",
+          url: "https://openclaw.ai/install",
         },
       }),
     ).toStrictEqual({});
