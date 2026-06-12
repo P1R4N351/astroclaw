@@ -1,5 +1,10 @@
+/**
+ * Threading and directory channel contract assertions.
+ *
+ * Verifies optional directory/threading hooks return normalized public shapes.
+ */
 import { expect } from "vitest";
-import type { AstroclawConfig } from "../../../../config/config.js";
+import type { OpenClawConfig } from "../../../../config/config.js";
 import type { RuntimeEnv } from "../../../../runtime.js";
 import type {
   ChannelDirectoryEntry,
@@ -77,12 +82,14 @@ function expectFocusedBindingShape(binding: ChannelFocusedBindingContext) {
   expect(binding.labelNoun.trim()).not.toBe("");
 }
 
+/** Asserts that a plugin declares the threading adapter under test. */
 export function expectChannelThreadingBaseContract(
   plugin: Pick<ChannelPlugin, "id" | "threading">,
 ) {
   expect(plugin.threading).toBeDefined();
 }
 
+/** Exercises optional threading hooks and checks normalized return shapes. */
 export function expectChannelThreadingReturnValuesNormalized(
   plugin: Pick<ChannelPlugin, "id" | "threading">,
 ) {
@@ -93,7 +100,7 @@ export function expectChannelThreadingReturnValuesNormalized(
     expect(
       ["off", "first", "all"].includes(
         threading.resolveReplyToMode({
-          cfg: {} as AstroclawConfig,
+          cfg: {} as OpenClawConfig,
           accountId: "default",
           chatType: "group",
         }),
@@ -103,7 +110,7 @@ export function expectChannelThreadingReturnValuesNormalized(
 
   const repliedRef = { value: false };
   const toolContext = threading?.buildToolContext?.({
-    cfg: {} as AstroclawConfig,
+    cfg: {} as OpenClawConfig,
     accountId: "default",
     context: {
       Channel: "group:test",
@@ -127,7 +134,7 @@ export function expectChannelThreadingReturnValuesNormalized(
   }
 
   const autoThreadId = threading?.resolveAutoThreadId?.({
-    cfg: {} as AstroclawConfig,
+    cfg: {} as OpenClawConfig,
     accountId: "default",
     to: "group:test",
     toolContext,
@@ -139,7 +146,7 @@ export function expectChannelThreadingReturnValuesNormalized(
   }
 
   const replyTransport = threading?.resolveReplyTransport?.({
-    cfg: {} as AstroclawConfig,
+    cfg: {} as OpenClawConfig,
     accountId: "default",
     threadId: "thread-0",
     replyToId: "msg-0",
@@ -149,7 +156,7 @@ export function expectChannelThreadingReturnValuesNormalized(
   }
 
   const focusedBinding = threading?.resolveFocusedBinding?.({
-    cfg: {} as AstroclawConfig,
+    cfg: {} as OpenClawConfig,
     accountId: "default",
     context: {
       Channel: "group:test",
@@ -168,10 +175,11 @@ export function expectChannelThreadingReturnValuesNormalized(
   }
 }
 
+/** Exercises directory lookups and checks normalized entry shapes when possible. */
 export async function expectChannelDirectoryBaseContract(params: {
   plugin: Pick<ChannelPlugin, "id" | "directory">;
   coverage?: "lookups" | "presence";
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   accountId?: string;
 }) {
   const directory = params.plugin.directory;
@@ -182,10 +190,12 @@ export async function expectChannelDirectoryBaseContract(params: {
       channels: {
         [params.plugin.id]: { enabled: false },
       },
-    } as unknown as AstroclawConfig);
+    } as unknown as OpenClawConfig);
   const accountId = params.accountId ?? "default";
 
   if (params.coverage === "presence") {
+    // Presence-only channels advertise a directory surface but cannot perform
+    // deterministic offline lookup calls in shared contract fixtures.
     return;
   }
   const self = await directory?.self?.({
