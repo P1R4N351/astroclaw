@@ -1,5 +1,6 @@
+// Tests plugin command dispatch and plugin-scoped command aliases.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { handlePluginCommand } from "./commands-plugin.js";
 import type { HandleCommandsParams } from "./commands-types.js";
 
@@ -13,7 +14,7 @@ vi.mock("../../plugins/commands.js", () => ({
 
 function buildPluginParams(
   commandBodyNormalized: string,
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): HandleCommandsParams {
   return {
     cfg,
@@ -57,7 +58,7 @@ describe("handlePluginCommand", () => {
       buildPluginParams("/card", {
         commands: { text: true },
         channels: { whatsapp: { allowFrom: ["*"] } },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
       true,
     );
 
@@ -90,7 +91,7 @@ describe("handlePluginCommand", () => {
     const params = buildPluginParams("/card", {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     params.sessionEntry = {
       sessionId: "wrapper-session",
       sessionFile: "/tmp/wrapper-session.jsonl",
@@ -100,6 +101,7 @@ describe("handlePluginCommand", () => {
       [params.sessionKey]: {
         sessionId: "target-session",
         sessionFile: "/tmp/target-session.jsonl",
+        authProfileOverride: "openai:owner@example.com",
         updatedAt: Date.now(),
       },
     };
@@ -108,10 +110,11 @@ describe("handlePluginCommand", () => {
 
     expect(executePluginCommandMock).toHaveBeenCalledTimes(1);
     const [[commandParams]] = executePluginCommandMock.mock.calls as unknown as Array<
-      [{ sessionId?: string; sessionFile?: string }]
+      [{ authProfileId?: string; sessionId?: string; sessionFile?: string }]
     >;
     expect(commandParams.sessionId).toBe("target-session");
     expect(commandParams.sessionFile).toBe("/tmp/target-session.jsonl");
+    expect(commandParams.authProfileId).toBe("openai:owner@example.com");
   });
 
   it("continues the agent without leaking continueAgent into the reply payload", async () => {
@@ -128,7 +131,7 @@ describe("handlePluginCommand", () => {
       buildPluginParams("/card", {
         commands: { text: true },
         channels: { whatsapp: { allowFrom: ["*"] } },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
       true,
     );
 
@@ -165,7 +168,7 @@ describe("handlePluginCommand", () => {
       buildPluginParams("/approve-deploy", {
         commands: { text: true },
         channels: { whatsapp: { allowFrom: ["*"] } },
-      } as AstroclawConfig),
+      } as OpenClawConfig),
       true,
     );
 
@@ -178,7 +181,7 @@ describe("handlePluginCommand", () => {
     const allowedParams = buildPluginParams("/approve-deploy", {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig);
+    } as OpenClawConfig);
     allowedParams.ctx.GatewayClientScopes = ["operator.approvals"];
 
     const allowed = await handlePluginCommand(allowedParams, true);
