@@ -1,3 +1,4 @@
+// Proxy capture runtime tests cover session creation and capture lifecycle.
 import { beforeEach, describe, expect, it } from "vitest";
 import type { DebugProxySettings } from "./env.js";
 import {
@@ -12,9 +13,9 @@ type StoreCall = { name: string; args: unknown[] };
 const settings: DebugProxySettings = {
   enabled: true,
   required: false,
-  dbPath: "/tmp/astroclaw-proxy-runtime-test.sqlite",
-  blobDir: "/tmp/astroclaw-proxy-runtime-test-blobs",
-  certDir: "/tmp/astroclaw-proxy-runtime-test-certs",
+  dbPath: "/tmp/openclaw-proxy-runtime-test.sqlite",
+  blobDir: "/tmp/openclaw-proxy-runtime-test-blobs",
+  certDir: "/tmp/openclaw-proxy-runtime-test-certs",
   sessionId: "runtime-test-session",
   sourceProcess: "runtime-test",
 };
@@ -69,7 +70,9 @@ describe("debug proxy runtime", () => {
       headers: { "content-type": "application/json" },
       body: '{"input":"hello"}',
     });
-    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => {
+      setImmediate(resolve);
+    });
     finalizeDebugProxyCapture(settings, deps);
 
     const sessionEvents = events.filter((event) => event.sessionId === "runtime-test-session");
@@ -102,7 +105,9 @@ describe("debug proxy runtime", () => {
       headers,
       body: "{}",
     });
-    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => {
+      setImmediate(resolve);
+    });
     finalizeDebugProxyCapture(settings, deps);
 
     const request = events.find((event) => event.kind === "request");
@@ -137,7 +142,9 @@ describe("debug proxy runtime", () => {
       settings,
       deps,
     );
-    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => {
+      setImmediate(resolve);
+    });
     finalizeDebugProxyCapture(settings, deps);
 
     const request = events.find((event) => event.kind === "request");
