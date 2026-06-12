@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Discord tests cover client plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDiscordRestClient } from "./client.js";
 import type { RequestClient } from "./internal/discord.js";
@@ -21,7 +22,7 @@ describe("createDiscordRestClient", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = createDiscordRestClient({ cfg, token: "Bot explicit-token", rest: fakeRest });
 
@@ -48,7 +49,7 @@ describe("createDiscordRestClient", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     const result = createDiscordRestClient({
       cfg,
@@ -74,7 +75,7 @@ describe("createDiscordRestClient", () => {
           },
         },
       },
-    } as AstroclawConfig;
+    } as OpenClawConfig;
 
     expect(() => createDiscordRestClient({ cfg, rest: fakeRest })).toThrow(
       /configured for account "default" is unavailable/i,
