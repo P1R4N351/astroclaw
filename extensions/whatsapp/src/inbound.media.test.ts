@@ -1,3 +1,4 @@
+// Whatsapp tests cover inbound.media plugin behavior.
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -11,6 +12,57 @@ import {
 } from "../../../test/mocks/baileys.js";
 
 type MockMessageInput = Parameters<typeof mockNormalizeMessageContent>[0];
+type InMemoryKeyedStoreEntry<T> = {
+  key: string;
+  value: T;
+  createdAt: number;
+  expiresAt?: number;
+};
+
+function createInMemoryKeyedStore<T>() {
+  const entries = new Map<string, InMemoryKeyedStoreEntry<T>>();
+  return {
+    async register(key: string, value: T, opts?: { ttlMs?: number }) {
+      const createdAt = Date.now();
+      entries.set(key, {
+        key,
+        value,
+        createdAt,
+        ...(opts?.ttlMs ? { expiresAt: createdAt + opts.ttlMs } : {}),
+      });
+    },
+    async registerIfAbsent(key: string, value: T, opts?: { ttlMs?: number }) {
+      if (entries.has(key)) {
+        return false;
+      }
+      const createdAt = Date.now();
+      entries.set(key, {
+        key,
+        value,
+        createdAt,
+        ...(opts?.ttlMs ? { expiresAt: createdAt + opts.ttlMs } : {}),
+      });
+      return true;
+    },
+    async lookup(key: string) {
+      return entries.get(key)?.value;
+    },
+    async consume(key: string) {
+      const value = entries.get(key)?.value;
+      entries.delete(key);
+      return value;
+    },
+    async delete(key: string) {
+      return entries.delete(key);
+    },
+    async entries() {
+      return Array.from(entries.values());
+    },
+    async clear() {
+      entries.clear();
+    },
+  };
+}
 
 const readAllowFromStoreMock = vi.fn().mockResolvedValue([]);
 const upsertPairingRequestMock = vi.fn().mockResolvedValue({ code: "PAIRCODE", created: true });
@@ -29,10 +81,10 @@ let currentMockSocket:
     }
   | undefined;
 
-vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
+vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", async () => {
   const actual = await vi.importActual<
-    typeof import("astroclaw/plugin-sdk/runtime-config-snapshot")
-  >("astroclaw/plugin-sdk/runtime-config-snapshot");
+    typeof import("openclaw/plugin-sdk/runtime-config-snapshot")
+  >("openclaw/plugin-sdk/runtime-config-snapshot");
   return {
     ...actual,
     getRuntimeConfig: vi.fn().mockReturnValue({
@@ -49,9 +101,9 @@ vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-runtime")>(
-    "astroclaw/plugin-sdk/conversation-runtime",
+vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/conversation-runtime")>(
+    "openclaw/plugin-sdk/conversation-runtime",
   );
   return {
     ...actual,
@@ -64,9 +116,9 @@ vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/channel-pairing", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-pairing")>(
-    "astroclaw/plugin-sdk/channel-pairing",
+vi.mock("openclaw/plugin-sdk/channel-pairing", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-pairing")>(
+    "openclaw/plugin-sdk/channel-pairing",
   );
   return {
     ...actual,
@@ -76,9 +128,9 @@ vi.mock("astroclaw/plugin-sdk/channel-pairing", async () => {
   };
 });
 
-vi.mock("astroclaw/plugin-sdk/media-store", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-store")>(
-    "astroclaw/plugin-sdk/media-store",
+vi.mock("openclaw/plugin-sdk/media-store", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-store")>(
+    "openclaw/plugin-sdk/media-store",
   );
   return {
     ...actual,
@@ -89,7 +141,29 @@ vi.mock("astroclaw/plugin-sdk/media-store", async () => {
   };
 });
 
-const HOME = path.join(os.tmpdir(), `astroclaw-inbound-media-${crypto.randomUUID()}`);
+vi.mock("./runtime.js", async () => {
+  const { createChannelIngressQueueForTests: createChannelIngressQueue } = await Promise.resolve(
+    vi.importActual<typeof import("openclaw/plugin-sdk/plugin-state-test-runtime")>(
+      "openclaw/plugin-sdk/plugin-state-test-runtime",
+    ),
+  );
+  const stateDir = `/tmp/openclaw-whatsapp-inbound-media-${Date.now()}-${Math.random()}`;
+  return {
+    getOptionalWhatsAppRuntime: () => undefined,
+    getWhatsAppRuntime: () => ({
+      state: {
+        resolveStateDir: () => stateDir,
+        openKeyedStore: () => createInMemoryKeyedStore(),
+        openChannelIngressQueue: (
+          options?: Omit<Parameters<typeof createChannelIngressQueue>[0], "channelId">,
+        ) => createChannelIngressQueue({ ...options, channelId: "whatsapp" }),
+      },
+    }),
+    setWhatsAppRuntime: vi.fn(),
+  };
+});
+
+const HOME = path.join(os.tmpdir(), `openclaw-inbound-media-${crypto.randomUUID()}`);
 const ORIGINAL_HOME = process.env.HOME;
 process.env.HOME = HOME;
 
@@ -148,6 +222,7 @@ vi.mock("./session.js", async () => {
 let monitorWebInbox: typeof import("./inbound.js").monitorWebInbox;
 let resetWebInboundDedupe: typeof import("./inbound.js").resetWebInboundDedupe;
 let createWaSocket: typeof import("./session.js").createWaSocket;
+let waitForWaConnection: typeof import("./session.js").waitForWaConnection;
 
 async function waitForMessage(onMessage: ReturnType<typeof vi.fn>) {
   await vi.waitFor(() => expect(onMessage).toHaveBeenCalledTimes(1), {
@@ -189,7 +264,7 @@ describe("web inbound media saves with extension", () => {
   beforeAll(async () => {
     await fs.rm(HOME, { recursive: true, force: true });
     ({ monitorWebInbox, resetWebInboundDedupe } = await import("./inbound.js"));
-    ({ createWaSocket } = await import("./session.js"));
+    ({ createWaSocket, waitForWaConnection } = await import("./session.js"));
   });
 
   afterAll(async () => {
@@ -199,6 +274,30 @@ describe("web inbound media saves with extension", () => {
     } else {
       process.env.HOME = ORIGINAL_HOME;
     }
+  });
+
+  it("closes the socket when connection wait fails before inbox attach", async () => {
+    const error = new Error("connection timeout");
+    vi.mocked(waitForWaConnection).mockRejectedValueOnce(error);
+
+    await expect(
+      monitorWebInbox({
+        cfg: {
+          channels: { whatsapp: { allowFrom: ["*"] } },
+          messages: { messagePrefix: undefined, responsePrefix: undefined },
+          web: { whatsapp: { connectTimeoutMs: 12_345 } },
+        } as never,
+        verbose: false,
+        onMessage: vi.fn(),
+        accountId: "default",
+        authDir: path.join(HOME, "wa-auth"),
+      }),
+    ).rejects.toThrow("connection timeout");
+
+    expect(vi.mocked(waitForWaConnection)).toHaveBeenCalledWith(currentMockSocket, {
+      timeoutMs: 12_345,
+    });
+    expect(currentMockSocket?.ws.close).toHaveBeenCalledOnce();
   });
 
   it("stores image extension and keeps document filename", async () => {
@@ -227,7 +326,7 @@ describe("web inbound media saves with extension", () => {
     });
 
     const first = await waitForMessage(onMessage);
-    const mediaPath = requireMediaPath(first.mediaPath);
+    const mediaPath = requireMediaPath(first.payload.media?.path);
     expect(path.extname(mediaPath)).toBe(".jpg");
     const stat = await fs.stat(mediaPath);
     expect(stat.size).toBeGreaterThan(0);
@@ -246,7 +345,7 @@ describe("web inbound media saves with extension", () => {
     });
 
     const second = await waitForMessage(onMessage);
-    expect(second.mediaFileName).toBe(fileName);
+    expect(second.payload.media?.fileName).toBe(fileName);
     expect(saveMediaStreamSpy).toHaveBeenCalled();
     const lastCall = latestSaveMediaStreamCall();
     expect(lastCall[4]).toBe(fileName);
@@ -292,8 +391,8 @@ describe("web inbound media saves with extension", () => {
     });
 
     const inbound = await waitForMessage(onMessage);
-    expect(inbound.replyToBody).toBe("<media:image>");
-    const mediaPath = requireMediaPath(inbound.mediaPath);
+    expect(inbound.quote?.body).toBe("<media:image>");
+    const mediaPath = requireMediaPath(inbound.payload.media?.path);
     expect(path.extname(mediaPath)).toBe(".jpg");
     expect(saveMediaStreamSpy).toHaveBeenCalled();
     const lastCall = latestSaveMediaStreamCall();
