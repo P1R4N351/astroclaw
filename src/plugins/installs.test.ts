@@ -1,5 +1,10 @@
+// Covers plugin install record normalization and config interactions.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildNpmResolutionInstallFields, recordPluginInstall } from "./installs.js";
+import {
+  buildNpmResolutionInstallFields,
+  recordPluginInstall,
+  resolveNpmInstallRecordSpec,
+} from "./installs.js";
 
 function expectRecordedInstall(pluginId: string, next: ReturnType<typeof recordPluginInstall>) {
   expect(next).toEqual({
@@ -45,17 +50,17 @@ describe("buildNpmResolutionInstallFields", () => {
     {
       name: "maps npm resolution metadata into install record fields",
       input: {
-        name: "@astroclaw/demo",
+        name: "@openclaw/demo",
         version: "1.2.3",
-        resolvedSpec: "@astroclaw/demo@1.2.3",
+        resolvedSpec: "@openclaw/demo@1.2.3",
         integrity: "sha512-abc",
         shasum: "deadbeef",
         resolvedAt: "2026-02-22T00:00:00.000Z",
       },
       expected: createExpectedResolutionFields({
-        resolvedName: "@astroclaw/demo",
+        resolvedName: "@openclaw/demo",
         resolvedVersion: "1.2.3",
-        resolvedSpec: "@astroclaw/demo@1.2.3",
+        resolvedSpec: "@openclaw/demo@1.2.3",
         integrity: "sha512-abc",
         shasum: "deadbeef",
         resolvedAt: "2026-02-22T00:00:00.000Z",
@@ -69,13 +74,67 @@ describe("buildNpmResolutionInstallFields", () => {
     {
       name: "keeps missing partial resolution fields undefined",
       input: {
-        name: "@astroclaw/demo",
+        name: "@openclaw/demo",
       },
       expected: createExpectedResolutionFields({
-        resolvedName: "@astroclaw/demo",
+        resolvedName: "@openclaw/demo",
       }),
     },
   ] as const)("$name", expectResolutionFieldsCase);
+});
+
+describe("resolveNpmInstallRecordSpec", () => {
+  it("uses an exact resolved registry spec when managed installs request pinning", () => {
+    expect(
+      resolveNpmInstallRecordSpec({
+        requestedSpec: "@openclaw/codex",
+        resolution: {
+          name: "@openclaw/codex",
+          version: "2026.5.30-beta.1",
+          resolvedSpec: "@openclaw/codex@2026.5.30-beta.1",
+        },
+        pinResolvedRegistrySpec: true,
+      }),
+    ).toBe("@openclaw/codex@2026.5.30-beta.1");
+  });
+
+  it("keeps moving specs unless the caller owns managed pinning", () => {
+    expect(
+      resolveNpmInstallRecordSpec({
+        requestedSpec: "@openclaw/codex",
+        resolution: {
+          name: "@openclaw/codex",
+          version: "2026.5.30-beta.1",
+          resolvedSpec: "@openclaw/codex@2026.5.30-beta.1",
+        },
+      }),
+    ).toBe("@openclaw/codex");
+  });
+
+  it("does not replace the requested spec with tags or non-registry resolutions", () => {
+    expect(
+      resolveNpmInstallRecordSpec({
+        requestedSpec: "@openclaw/codex",
+        resolution: {
+          name: "@openclaw/codex",
+          version: "2026.5.30-beta.1",
+          resolvedSpec: "@openclaw/codex@beta",
+        },
+        pinResolvedRegistrySpec: true,
+      }),
+    ).toBe("@openclaw/codex");
+    expect(
+      resolveNpmInstallRecordSpec({
+        requestedSpec: "file:codex.tgz",
+        resolution: {
+          name: "@openclaw/codex",
+          version: "2026.5.30-beta.1",
+          resolvedSpec: "file:codex.tgz",
+        },
+        pinResolvedRegistrySpec: true,
+      }),
+    ).toBe("file:codex.tgz");
+  });
 });
 
 describe("recordPluginInstall", () => {
