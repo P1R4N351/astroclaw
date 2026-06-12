@@ -1,10 +1,11 @@
+// Guards post-compaction config schema behavior against regressions.
 import { describe, expect, it } from "vitest";
 import { ToolsSchema } from "./zod-schema.agent-runtime.js";
-import { AstroclawSchema } from "./zod-schema.js";
+import { OpenClawSchema } from "./zod-schema.js";
 
-describe("AstroclawSchema tools.loopDetection.postCompactionGuard validation", () => {
+describe("OpenClawSchema tools.loopDetection.postCompactionGuard validation", () => {
   it("accepts tools.loopDetection.postCompactionGuard configuration", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       tools: {
         loopDetection: {
           enabled: true,
@@ -18,7 +19,7 @@ describe("AstroclawSchema tools.loopDetection.postCompactionGuard validation", (
   });
 
   it("accepts an empty postCompactionGuard object", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       tools: {
         loopDetection: {
           postCompactionGuard: {},
@@ -29,7 +30,7 @@ describe("AstroclawSchema tools.loopDetection.postCompactionGuard validation", (
   });
 
   it("rejects unknown keys under tools.loopDetection.postCompactionGuard", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       tools: {
         loopDetection: {
           postCompactionGuard: {
@@ -43,7 +44,7 @@ describe("AstroclawSchema tools.loopDetection.postCompactionGuard validation", (
   });
 
   it("rejects non-positive windowSize", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       tools: {
         loopDetection: {
           postCompactionGuard: {
@@ -56,7 +57,7 @@ describe("AstroclawSchema tools.loopDetection.postCompactionGuard validation", (
   });
 
   it("rejects non-integer windowSize", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       tools: {
         loopDetection: {
           postCompactionGuard: {
