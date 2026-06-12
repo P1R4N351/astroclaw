@@ -1,4 +1,5 @@
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+// Talk provider types describe realtime voice provider configuration and APIs.
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { TalkTransport } from "./talk-events.js";
 
 export type RealtimeVoiceProviderId = string;
@@ -62,6 +63,8 @@ export type RealtimeVoiceBridgeEvent = {
   direction: "client" | "server";
   type: string;
   detail?: string;
+  itemId?: string;
+  responseId?: string;
 };
 
 export type RealtimeVoiceBridgeCallbacks = {
@@ -90,17 +93,17 @@ export type RealtimeVoiceProviderCapabilities = {
 };
 
 export type RealtimeVoiceProviderResolveConfigContext = {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   rawConfig: RealtimeVoiceProviderConfig;
 };
 
 export type RealtimeVoiceProviderConfiguredContext = {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   providerConfig: RealtimeVoiceProviderConfig;
 };
 
 export type RealtimeVoiceBridgeCreateRequest = RealtimeVoiceBridgeCallbacks & {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   providerConfig: RealtimeVoiceProviderConfig;
   audioFormat?: RealtimeVoiceAudioFormat;
   instructions?: string;
@@ -110,7 +113,7 @@ export type RealtimeVoiceBridgeCreateRequest = RealtimeVoiceBridgeCallbacks & {
 };
 
 export type RealtimeVoiceBrowserSessionCreateRequest = {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   providerConfig: RealtimeVoiceProviderConfig;
   instructions?: string;
   tools?: RealtimeVoiceTool[];
