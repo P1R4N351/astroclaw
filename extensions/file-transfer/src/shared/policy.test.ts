@@ -1,3 +1,4 @@
+// File Transfer tests cover policy plugin behavior.
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -5,14 +6,14 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 // Mock the plugin-sdk runtime-config surface so we can drive the policy
 // reader from the test without booting a gateway. mutateConfigFile is also
 // mocked so persistAllowAlways tests can assert what would have been written
-// without touching ~/.astroclaw/astroclaw.json.
+// without touching ~/.openclaw/openclaw.json.
 const getRuntimeConfigMock = vi.fn();
 const mutateConfigFileMock = vi.fn();
 
-vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", () => ({
+vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", () => ({
   getRuntimeConfig: () => getRuntimeConfigMock(),
 }));
-vi.mock("astroclaw/plugin-sdk/config-mutation", () => ({
+vi.mock("openclaw/plugin-sdk/config-mutation", () => ({
   mutateConfigFile: (input: unknown) => mutateConfigFileMock(input),
 }));
 
@@ -29,8 +30,8 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  vi.doUnmock("astroclaw/plugin-sdk/runtime-config-snapshot");
-  vi.doUnmock("astroclaw/plugin-sdk/config-mutation");
+  vi.doUnmock("openclaw/plugin-sdk/runtime-config-snapshot");
+  vi.doUnmock("openclaw/plugin-sdk/config-mutation");
   vi.resetModules();
 });
 
