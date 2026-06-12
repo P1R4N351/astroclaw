@@ -1,3 +1,4 @@
+// Control UI tests cover service worker cache behavior.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,13 +15,13 @@ describe("Control UI service worker cache versioning", () => {
     expect(mainSource).toContain('swUrl.searchParams.set("v"');
     expect(mainSource).toContain('updateViaCache: "none"');
     expect(serviceWorkerSource).toContain(
-      'const EMBEDDED_CACHE_VERSION = "__ASTROCLAW_CONTROL_UI_BUILD_ID__"',
+      'const EMBEDDED_CACHE_VERSION = "__OPENCLAW_CONTROL_UI_BUILD_ID__"',
     );
     expect(serviceWorkerSource).toContain("URL_CACHE_VERSION");
     expect(serviceWorkerSource).toContain("CONTROL_CACHE_LIMIT = 3");
     expect(serviceWorkerSource).toContain("slice(-priorCacheLimit)");
     expect(serviceWorkerSource).toContain("caches.delete");
     expect(viteConfigSource).toContain("source.replace(placeholder, JSON.stringify(buildId))");
-    expect(serviceWorkerSource).not.toContain('const CACHE_NAME = "astroclaw-control-v1"');
+    expect(serviceWorkerSource).not.toContain('const CACHE_NAME = "openclaw-control-v1"');
   });
 });
