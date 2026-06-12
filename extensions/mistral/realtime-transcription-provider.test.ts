@@ -1,7 +1,8 @@
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+// Mistral tests cover realtime transcription provider plugin behavior.
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  __testing,
+  testing,
   buildMistralRealtimeTranscriptionProvider,
 } from "./realtime-transcription-provider.js";
 
@@ -13,7 +14,7 @@ describe("buildMistralRealtimeTranscriptionProvider", () => {
   it("normalizes nested provider config", () => {
     const provider = buildMistralRealtimeTranscriptionProvider();
     const resolved = provider.resolveConfig?.({
-      cfg: {} as AstroclawConfig,
+      cfg: {} as OpenClawConfig,
       rawConfig: {
         providers: {
           mistral: {
@@ -38,7 +39,7 @@ describe("buildMistralRealtimeTranscriptionProvider", () => {
   });
 
   it("builds a Mistral realtime websocket URL", () => {
-    const url = __testing.toMistralRealtimeWsUrl({
+    const url = testing.toMistralRealtimeWsUrl({
       apiKey: "mistral-key",
       baseUrl: "https://api.mistral.ai/v1",
       model: "voxtral-mini-transcribe-realtime-2602",
