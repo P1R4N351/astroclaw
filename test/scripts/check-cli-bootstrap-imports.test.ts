@@ -1,3 +1,4 @@
+// Check Cli Bootstrap Imports tests cover check cli bootstrap imports script behavior.
 import { mkdtempSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -11,7 +12,7 @@ import {
 const tempRoots: string[] = [];
 
 function makeTempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "astroclaw-cli-bootstrap-imports-"));
+  const root = mkdtempSync(join(tmpdir(), "openclaw-cli-bootstrap-imports-"));
   tempRoots.push(root);
   mkdirSync(join(root, "dist", "cli"), { recursive: true });
   return root;
@@ -30,7 +31,7 @@ function writeGatewayRunChunk(root: string, source = ""): void {
     "dist/run-gateway.js",
     [
       'import "./string-coerce.js";',
-      "const GATEWAY_RUN_VALUE_KEYS = [];",
+      "const GATEWAY_AUTH_MODES = [];",
       "function addGatewayRunCommand(cmd) { return cmd; }",
       source,
     ].join("\n"),
