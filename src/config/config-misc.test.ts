@@ -1,3 +1,4 @@
+// Covers miscellaneous config schema defaults and validation cases.
 import { describe, expect, it } from "vitest";
 import {
   getConfigValueAtPath,
@@ -7,9 +8,9 @@ import {
 } from "./config-paths.js";
 import { readConfigFileSnapshot } from "./config.js";
 import { findLegacyConfigIssues } from "./legacy.js";
-import { buildWebSearchProviderConfig, withTempHome, writeAstroclawConfig } from "./test-helpers.js";
+import { buildWebSearchProviderConfig, withTempHome, writeOpenClawConfig } from "./test-helpers.js";
 import { validateConfigObject, validateConfigObjectRaw } from "./validation.js";
-import { AstroclawSchema } from "./zod-schema.js";
+import { OpenClawSchema } from "./zod-schema.js";
 
 const nonBooleanConfigCases = [
   {
@@ -53,14 +54,109 @@ function expectSomeIssueMessageContains(issues: Array<{ message: string }>, text
 
 describe("boolean config validation", () => {
   it.each(nonBooleanConfigCases)("rejects non-boolean values for $name", ({ config }) => {
-    const result = AstroclawSchema.safeParse(config);
+    const result = OpenClawSchema.safeParse(config);
     expect(result.success).toBe(false);
   });
 });
 
 describe("model provider localService config", () => {
+  it("accepts standalone timeout overlays for bundled model providers", () => {
+    const result = OpenClawSchema.safeParse({
+      models: {
+        providers: {
+          openai: {
+            timeoutSeconds: 600,
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.models?.providers?.openai?.timeoutSeconds).toBe(600);
+    }
+  });
+
+  it("accepts standalone timeout overlays for Xiaomi Token Plan", () => {
+    const result = validateConfigObjectRaw({
+      models: {
+        providers: {
+          "xiaomi-token-plan": {
+            timeoutSeconds: 600,
+          },
+        },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.models?.providers?.["xiaomi-token-plan"]?.timeoutSeconds).toBe(600);
+      expect(result.config.models?.providers?.["xiaomi-token-plan"]?.models).toEqual([]);
+      expect(result.config.models?.providers?.["xiaomi-token-plan"]?.baseUrl).toBe("");
+    }
+  });
+
+  it("rejects standalone timeout overlays for unknown model providers", () => {
+    const result = OpenClawSchema.safeParse({
+      models: {
+        providers: {
+          anyManifestProvider: {
+            timeoutSeconds: 600,
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((issue) => issue.path.join("."));
+      expect(paths).toEqual(
+        expect.arrayContaining([
+          "models.providers.anyManifestProvider.baseUrl",
+          "models.providers.anyManifestProvider.models",
+        ]),
+      );
+    }
+  });
+
+  it("requires models when a model provider declaration sets baseUrl", () => {
+    const result = OpenClawSchema.safeParse({
+      models: {
+        providers: {
+          custom: {
+            baseUrl: "https://example.test/v1",
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((issue) => issue.path.join("."));
+      expect(paths).toContain("models.providers.custom.models");
+    }
+  });
+
+  it("requires baseUrl when a model provider declaration sets models", () => {
+    const result = OpenClawSchema.safeParse({
+      models: {
+        providers: {
+          custom: {
+            models: [{ id: "custom-model", name: "Custom model", api: "openai-completions" }],
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((issue) => issue.path.join("."));
+      expect(paths).toContain("models.providers.custom.baseUrl");
+    }
+  });
+
   it("accepts on-demand local provider service settings", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       models: {
         providers: {
           ds4: {
@@ -83,26 +179,68 @@ describe("model provider localService config", () => {
 
     expect(result.success).toBe(true);
   });
+
+  it("accepts bundled provider timeout overlays without custom provider fields", () => {
+    for (const provider of ["openai", "zai"] as const) {
+      const result = validateConfigObjectRaw({
+        models: {
+          providers: {
+            [provider]: {
+              timeoutSeconds: 600,
+            },
+          },
+        },
+      });
+
+      expect(result.ok).toBe(true);
+      if (provider === "zai" && result.ok) {
+        expect(result.config.models?.providers?.zai?.models).toEqual([]);
+        expect(result.config.models?.providers?.zai?.baseUrl).toBe("");
+      }
+    }
+  });
+
+  it("still requires baseUrl and models for custom provider declarations", () => {
+    const result = validateConfigObjectRaw({
+      models: {
+        providers: {
+          custom: {
+            timeoutSeconds: 600,
+          },
+        },
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(issuePaths(result.issues)).toEqual(
+        expect.arrayContaining([
+          "models.providers.custom.baseUrl",
+          "models.providers.custom.models",
+        ]),
+      );
+    }
+  });
 });
 
 describe("$schema key in config (#14998)", () => {
   it("accepts config with $schema string", () => {
-    const result = AstroclawSchema.safeParse({
-      $schema: "https://astroclaw.ai/config.json",
+    const result = OpenClawSchema.safeParse({
+      $schema: "https://openclaw.ai/config.json",
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.$schema).toBe("https://astroclaw.ai/config.json");
+      expect(result.data.$schema).toBe("https://openclaw.ai/config.json");
     }
   });
 
   it("accepts config without $schema", () => {
-    const result = AstroclawSchema.safeParse({});
+    const result = OpenClawSchema.safeParse({});
     expect(result.success).toBe(true);
   });
 
   it("rejects non-string $schema", () => {
-    const result = AstroclawSchema.safeParse({ $schema: 123 });
+    const result = OpenClawSchema.safeParse({ $schema: 123 });
     expect(result.success).toBe(false);
   });
 
@@ -116,11 +254,11 @@ describe("$schema key in config (#14998)", () => {
 
   it("preserves $schema through validateConfigObject round-trip", () => {
     const res = validateConfigObject({
-      $schema: "https://astroclaw.ai/config.json",
+      $schema: "https://openclaw.ai/config.json",
     });
     expect(res.ok).toBe(true);
     if (res.ok) {
-      expect(res.config.$schema).toBe("https://astroclaw.ai/config.json");
+      expect(res.config.$schema).toBe("https://openclaw.ai/config.json");
     }
   });
 });
@@ -150,7 +288,7 @@ describe("legacy Canvas host config", () => {
 
 describe("accessGroups config", () => {
   it("accepts Discord channel audience access groups", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       accessGroups: {
         maintainers: {
           type: "discord.channelAudience",
@@ -171,7 +309,7 @@ describe("accessGroups config", () => {
   });
 
   it("rejects unknown access group membership modes", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       accessGroups: {
         maintainers: {
           type: "discord.channelAudience",
@@ -186,7 +324,7 @@ describe("accessGroups config", () => {
   });
 
   it("accepts message sender access groups for any channel", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       accessGroups: {
         owners: {
           type: "message.senders",
@@ -211,7 +349,7 @@ describe("accessGroups config", () => {
 
 describe("plugins.slots.contextEngine", () => {
   it("accepts a contextEngine slot id", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         slots: {
           contextEngine: "my-context-engine",
@@ -225,7 +363,7 @@ describe("plugins.slots.contextEngine", () => {
 describe("models.pricing", () => {
   it("accepts the model pricing bootstrap toggle", () => {
     for (const enabled of [true, false]) {
-      const result = AstroclawSchema.safeParse({
+      const result = OpenClawSchema.safeParse({
         models: {
           pricing: { enabled },
         },
@@ -235,7 +373,7 @@ describe("models.pricing", () => {
   });
 
   it("rejects non-boolean model pricing bootstrap values", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       models: {
         pricing: { enabled: "false" },
       },
@@ -246,7 +384,7 @@ describe("models.pricing", () => {
 
 describe("crestodian.rescue", () => {
   it("accepts documented rescue config", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       crestodian: {
         rescue: {
           enabled: "auto",
@@ -259,7 +397,7 @@ describe("crestodian.rescue", () => {
   });
 
   it("accepts boolean rescue enablement", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       crestodian: {
         rescue: {
           enabled: true,
@@ -271,7 +409,7 @@ describe("crestodian.rescue", () => {
   });
 
   it("rejects unknown rescue keys", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       crestodian: {
         rescue: {
           enabled: true,
@@ -295,9 +433,10 @@ describe("diagnostics.otel.captureContent", () => {
         toolInputs: true,
         toolOutputs: true,
         systemPrompt: false,
+        toolDefinitions: true,
       },
     ]) {
-      const result = AstroclawSchema.safeParse({
+      const result = OpenClawSchema.safeParse({
         diagnostics: {
           otel: {
             captureContent,
@@ -311,7 +450,7 @@ describe("diagnostics.otel.captureContent", () => {
 
 describe("auth.cooldowns auth_permanent backoff config", () => {
   it("accepts auth_permanent backoff knobs", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       auth: {
         cooldowns: {
           authPermanentBackoffMinutes: 10,
@@ -340,10 +479,36 @@ describe("ui.seamColor", () => {
   });
 });
 
+describe("tui.footer.showRemoteHost", () => {
+  it("accepts the TUI remote-host footer toggle", () => {
+    const result = OpenClawSchema.safeParse({
+      tui: {
+        footer: {
+          showRemoteHost: true,
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects unknown TUI footer keys", () => {
+    const result = OpenClawSchema.safeParse({
+      tui: {
+        footer: {
+          showLocalHost: true,
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("gateway.controlUi.embedSandbox", () => {
   it("accepts strict, scripts, and trusted modes", () => {
     for (const mode of ["strict", "scripts", "trusted"] as const) {
-      const result = AstroclawSchema.safeParse({
+      const result = OpenClawSchema.safeParse({
         gateway: {
           controlUi: {
             embedSandbox: mode,
@@ -355,7 +520,7 @@ describe("gateway.controlUi.embedSandbox", () => {
   });
 
   it("rejects unsupported values", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       gateway: {
         controlUi: {
           embedSandbox: "yolo",
@@ -369,7 +534,7 @@ describe("gateway.controlUi.embedSandbox", () => {
 describe("gateway.controlUi.allowExternalEmbedUrls", () => {
   it("accepts boolean values", () => {
     for (const value of [true, false]) {
-      const result = AstroclawSchema.safeParse({
+      const result = OpenClawSchema.safeParse({
         gateway: {
           controlUi: {
             allowExternalEmbedUrls: value,
@@ -384,7 +549,7 @@ describe("gateway.controlUi.allowExternalEmbedUrls", () => {
 describe("gateway.controlUi.chatMessageMaxWidth", () => {
   it("accepts constrained CSS width values", () => {
     for (const value of ["960px", "82%", "min(1280px, 82%)", "calc(100% - 2rem)"]) {
-      const result = AstroclawSchema.safeParse({
+      const result = OpenClawSchema.safeParse({
         gateway: {
           controlUi: {
             chatMessageMaxWidth: value,
@@ -399,7 +564,7 @@ describe("gateway.controlUi.chatMessageMaxWidth", () => {
   });
 
   it("normalizes whitespace around the width value", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       gateway: {
         controlUi: {
           chatMessageMaxWidth: "  min(1280px,   82%)  ",
@@ -415,7 +580,7 @@ describe("gateway.controlUi.chatMessageMaxWidth", () => {
 
   it("rejects arbitrary CSS injection", () => {
     for (const value of ["url(https://example.com/x)", "960px; color: red", "var(--x)"]) {
-      const result = AstroclawSchema.safeParse({
+      const result = OpenClawSchema.safeParse({
         gateway: {
           controlUi: {
             chatMessageMaxWidth: value,
@@ -429,7 +594,7 @@ describe("gateway.controlUi.chatMessageMaxWidth", () => {
 
 describe("plugins.entries.*.hooks", () => {
   it.each([true, false])("accepts allowConversationAccess=%s", (allowConversationAccess) => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         entries: {
           "voice-call": {
@@ -445,7 +610,7 @@ describe("plugins.entries.*.hooks", () => {
   });
 
   it("accepts allowPromptInjection=false alongside allowConversationAccess=true", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         entries: {
           "voice-call": {
@@ -461,7 +626,7 @@ describe("plugins.entries.*.hooks", () => {
   });
 
   it("accepts bounded typed hook timeout overrides", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         entries: {
           "memory-recall": {
@@ -480,7 +645,7 @@ describe("plugins.entries.*.hooks", () => {
   });
 
   it("rejects non-boolean conversation access values", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         entries: {
           "voice-call": {
@@ -502,7 +667,7 @@ describe("plugins.entries.*.hooks", () => {
       { timeouts: { before_prompt_build: -1 } },
       { timeouts: { before_prompt_build: 1.5 } },
     ]) {
-      const result = AstroclawSchema.safeParse({
+      const result = OpenClawSchema.safeParse({
         plugins: {
           entries: {
             "memory-recall": { hooks },
@@ -516,7 +681,7 @@ describe("plugins.entries.*.hooks", () => {
 
 describe("plugins.entries.*.subagent", () => {
   it("accepts trusted subagent override settings", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         entries: {
           "voice-call": {
@@ -532,7 +697,7 @@ describe("plugins.entries.*.subagent", () => {
   });
 
   it("rejects invalid trusted subagent override settings", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         entries: {
           "voice-call": {
@@ -550,7 +715,7 @@ describe("plugins.entries.*.subagent", () => {
 
 describe("plugins.entries.*.llm", () => {
   it("accepts trusted llm override settings", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         entries: {
           "voice-call": {
@@ -567,7 +732,7 @@ describe("plugins.entries.*.llm", () => {
   });
 
   it("rejects invalid trusted llm override settings", () => {
-    const result = AstroclawSchema.safeParse({
+    const result = OpenClawSchema.safeParse({
       plugins: {
         entries: {
           "voice-call": {
@@ -606,6 +771,7 @@ describe("gateway.remote.transport", () => {
     const res = validateConfigObject({
       gateway: {
         remote: {
+          enabled: true,
           transport: "direct",
           url: "wss://gateway.example.ts.net",
         },
@@ -625,6 +791,35 @@ describe("gateway.remote.transport", () => {
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.issues[0]?.path).toBe("gateway.remote.transport");
+    }
+  });
+
+  it("accepts macOS SSH remote port", () => {
+    const res = validateConfigObject({
+      gateway: {
+        remote: {
+          remotePort: 18789,
+          sshTarget: "user@example.test",
+          transport: "ssh",
+          url: "ws://127.0.0.1:18789",
+        },
+      },
+    });
+    expect(res.ok).toBe(true);
+  });
+
+  it("rejects invalid macOS SSH remote port", () => {
+    const res = validateConfigObject({
+      gateway: {
+        remote: {
+          remotePort: 0,
+          transport: "ssh",
+        },
+      },
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.issues[0]?.path).toBe("gateway.remote.remotePort");
     }
   });
 });
@@ -756,7 +951,7 @@ describe("config identity/materialization regressions", () => {
               theme: "space lobster",
               emoji: "🦞",
             },
-            groupChat: { mentionPatterns: ["@astroclaw"] },
+            groupChat: { mentionPatterns: ["@openclaw"] },
           },
         ],
       },
@@ -768,7 +963,7 @@ describe("config identity/materialization regressions", () => {
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.config.messages?.responsePrefix).toBe("✅");
-      expect(res.config.agents?.list?.[0]?.groupChat?.mentionPatterns).toEqual(["@astroclaw"]);
+      expect(res.config.agents?.list?.[0]?.groupChat?.mentionPatterns).toEqual(["@openclaw"]);
     }
   });
 
@@ -839,7 +1034,7 @@ describe("config identity/materialization regressions", () => {
 
 describe("cron webhook schema", () => {
   it("accepts cron.webhookToken and legacy cron.webhook", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       cron: {
         enabled: true,
         webhook: "https://example.invalid/legacy-cron-webhook",
@@ -851,7 +1046,7 @@ describe("cron webhook schema", () => {
   });
 
   it("accepts cron.webhookToken SecretRef values", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       cron: {
         webhook: "https://example.invalid/legacy-cron-webhook",
         webhookToken: {
@@ -866,7 +1061,7 @@ describe("cron webhook schema", () => {
   });
 
   it("rejects non-http cron.webhook URLs", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       cron: {
         webhook: "ftp://example.invalid/legacy-cron-webhook",
       },
@@ -876,7 +1071,7 @@ describe("cron webhook schema", () => {
   });
 
   it("accepts cron.retry config", () => {
-    const res = AstroclawSchema.safeParse({
+    const res = OpenClawSchema.safeParse({
       cron: {
         retry: {
           maxAttempts: 5,
@@ -919,10 +1114,10 @@ describe("broadcast", () => {
 });
 
 describe("model compat config schema", () => {
-  it.each(["zai", "qwen", "qwen-chat-template"] as const)(
+  it.each(["together", "zai", "qwen", "qwen-chat-template"] as const)(
     "accepts full openai-completions compat fields with %s thinking format",
     (thinkingFormat) => {
-      const res = AstroclawSchema.safeParse({
+      const res = OpenClawSchema.safeParse({
         models: {
           providers: {
             local: {
@@ -982,7 +1177,7 @@ describe("config paths", () => {
 describe("config strict validation", () => {
   it("rejects unknown fields", () => {
     const res = validateConfigObject({
-      agents: { list: [{ id: "pi" }] },
+      agents: { list: [{ id: "openclaw" }] },
       customUnknownField: { nested: "value" },
     });
     expect(res.ok).toBe(false);
@@ -1017,7 +1212,7 @@ describe("config strict validation", () => {
 
   it("rejects top-level memorySearch without read-time auto-migration", async () => {
     await withTempHome(async (home) => {
-      await writeAstroclawConfig(home, {
+      await writeOpenClawConfig(home, {
         memorySearch: {
           provider: "local",
           fallback: "none",
@@ -1041,7 +1236,7 @@ describe("config strict validation", () => {
 
   it("rejects top-level heartbeat agent settings without read-time auto-migration", async () => {
     await withTempHome(async (home) => {
-      await writeAstroclawConfig(home, {
+      await writeOpenClawConfig(home, {
         heartbeat: {
           every: "30m",
           model: "anthropic/claude-3-5-haiku-20241022",
@@ -1063,7 +1258,7 @@ describe("config strict validation", () => {
 
   it("rejects top-level heartbeat visibility without read-time auto-migration", async () => {
     await withTempHome(async (home) => {
-      await writeAstroclawConfig(home, {
+      await writeOpenClawConfig(home, {
         heartbeat: {
           showOk: true,
           showAlerts: false,
@@ -1107,6 +1302,24 @@ describe("config strict validation", () => {
     expect(raw.messages.tts).not.toHaveProperty("providers");
   });
 
+  it("reports retired plugin model refs without an agents section", () => {
+    const raw = {
+      plugins: {
+        entries: {
+          "lossless-claw": {
+            config: {
+              summaryModel: "anthropic/claude-opus-4-5",
+            },
+          },
+        },
+      },
+    };
+    const issues = findLegacyConfigIssues(raw);
+
+    expect(issuePaths(issues)).toContain("plugins");
+    expect(issuePaths(issues)).not.toContain("agents");
+  });
+
   it("reports retired queue steering modes without read-time auto-migration", async () => {
     const raw = {
       messages: {
@@ -1129,7 +1342,7 @@ describe("config strict validation", () => {
 
   it("rejects legacy sandbox perSession without read-time auto-migration", async () => {
     await withTempHome(async (home) => {
-      await writeAstroclawConfig(home, {
+      await writeOpenClawConfig(home, {
         agents: {
           defaults: {
             sandbox: {
@@ -1138,7 +1351,7 @@ describe("config strict validation", () => {
           },
           list: [
             {
-              id: "pi",
+              id: "openclaw",
               sandbox: {
                 perSession: false,
               },
@@ -1161,12 +1374,12 @@ describe("config strict validation", () => {
 
   it("rejects resolved-only gateway.bind aliases as invalid schema values, not legacy", async () => {
     await withTempHome(async (home) => {
-      await writeAstroclawConfig(home, {
-        gateway: { bind: "${ASTROCLAW_BIND}" },
+      await writeOpenClawConfig(home, {
+        gateway: { bind: "${OPENCLAW_BIND}" },
       });
 
-      const prev = process.env.ASTROCLAW_BIND;
-      process.env.ASTROCLAW_BIND = "0.0.0.0";
+      const prev = process.env.OPENCLAW_BIND;
+      process.env.OPENCLAW_BIND = "0.0.0.0";
       try {
         const snap = await readConfigFileSnapshot();
         expect(snap.valid).toBe(false);
@@ -1174,9 +1387,9 @@ describe("config strict validation", () => {
         expect(issuePaths(snap.issues)).toContain("gateway.bind");
       } finally {
         if (prev === undefined) {
-          delete process.env.ASTROCLAW_BIND;
+          delete process.env.OPENCLAW_BIND;
         } else {
-          process.env.ASTROCLAW_BIND = prev;
+          process.env.OPENCLAW_BIND = prev;
         }
       }
     });
@@ -1184,7 +1397,7 @@ describe("config strict validation", () => {
 
   it("rejects literal gateway.bind host aliases as legacy", async () => {
     await withTempHome(async (home) => {
-      await writeAstroclawConfig(home, {
+      await writeOpenClawConfig(home, {
         gateway: { bind: "0.0.0.0" },
       });
 
