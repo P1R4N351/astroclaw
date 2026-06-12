@@ -1,3 +1,7 @@
+/**
+ * Runtime config refresh helpers for Browser profiles that can be hot-reloaded
+ * without restarting the whole Browser plugin server.
+ */
 import { loadBrowserConfigForRuntimeRefresh } from "./config-refresh-source.js";
 import { resolveBrowserConfig, resolveProfile, type ResolvedBrowserProfile } from "./config.js";
 import type { BrowserServerState } from "./server-context.types.js";
@@ -8,9 +12,9 @@ function changedProfileInvariants(
 ): string[] {
   const changed: string[] = [];
   const currentUsesLocalManagedLaunch =
-    current.driver === "astroclaw" && !current.attachOnly && current.cdpIsLoopback;
+    current.driver === "openclaw" && !current.attachOnly && current.cdpIsLoopback;
   const nextUsesLocalManagedLaunch =
-    next.driver === "astroclaw" && !next.attachOnly && next.cdpIsLoopback;
+    next.driver === "openclaw" && !next.attachOnly && next.cdpIsLoopback;
   if (current.cdpUrl !== next.cdpUrl) {
     changed.push("cdpUrl");
   }
@@ -82,6 +86,7 @@ function applyResolvedConfig(
   }
 }
 
+/** Refreshes the Browser runtime's resolved config from disk when hot reload is enabled. */
 export function refreshResolvedBrowserConfigFromDisk(params: {
   current: BrowserServerState;
   refreshConfigFromDisk: boolean;
@@ -98,6 +103,7 @@ export function refreshResolvedBrowserConfigFromDisk(params: {
   applyResolvedConfig(params.current, freshResolved);
 }
 
+/** Resolves a profile after an optional cached/fresh config reload. */
 export function resolveBrowserProfileWithHotReload(params: {
   current: BrowserServerState;
   refreshConfigFromDisk: boolean;
