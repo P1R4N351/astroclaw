@@ -1,7 +1,8 @@
+// Verifies bundled plugin metadata generation and import boundaries.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { expectNoReaddirSyncDuring } from "../test-utils/fs-scan-assertions.js";
 import { listGitTrackedFiles, toRepoRelativePath } from "../test-utils/repo-files.js";
 import { collectBundledChannelConfigs } from "./bundled-channel-config-metadata.js";
@@ -39,6 +40,7 @@ const EXPECTED_BUNDLED_STARTUP_PLUGIN_IDS = [
   "diagnostics-otel",
   "diagnostics-prometheus",
   "diffs",
+  "diffs-language-pack",
   "file-transfer",
   "google-meet",
   "llm-task",
@@ -46,11 +48,12 @@ const EXPECTED_BUNDLED_STARTUP_PLUGIN_IDS = [
   "memory-wiki",
   "openshell",
   "phone-control",
-  "skill-workshop",
+  "policy",
   "talk-voice",
   "thread-ownership",
   "voice-call",
   "webhooks",
+  "workboard",
 ] as const;
 const EXPECTED_EMPTY_CONFIG_GATEWAY_STARTUP_PLUGIN_IDS = [
   "acpx",
@@ -123,6 +126,10 @@ let repoBundledPluginMetadataCache: readonly BundledPluginMetadata[] | undefined
 let repoBundledPluginManifestsCache:
   | ReturnType<typeof listRepoBundledPluginManifestsUncached>
   | undefined;
+const repoBundledChannelConfigsCache = new Map<
+  string,
+  ReturnType<typeof collectBundledChannelConfigs>
+>();
 
 function listRepoBundledPluginMetadata(): readonly BundledPluginMetadata[] {
   repoBundledPluginMetadataCache ??= listBundledPluginMetadata({
@@ -161,14 +168,14 @@ function listExternalRepoBundledPluginManifestDirs(): string[] | null {
   }
   return manifestFiles
     .flatMap((file) => {
-      const match = /^extensions\/([^/]+)\/astroclaw\.plugin\.json$/u.exec(file);
+      const match = /^extensions\/([^/]+)\/openclaw\.plugin\.json$/u.exec(file);
       return match?.[1] ? [match[1]] : [];
     })
     .toSorted();
 }
 
 function listGitRepoBundledPluginManifestFiles(): string[] | null {
-  return listGitTrackedFiles({ repoRoot, pathspecs: "extensions/*/astroclaw.plugin.json" });
+  return listGitTrackedFiles({ repoRoot, pathspecs: "extensions/*/openclaw.plugin.json" });
 }
 
 function listFindRepoBundledPluginManifestFiles(): string[] | null {
@@ -181,7 +188,7 @@ function listFindRepoBundledPluginManifestFiles(): string[] | null {
       "-type",
       "f",
       "-name",
-      "astroclaw.plugin.json",
+      "openclaw.plugin.json",
     ],
     {
       cwd: repoRoot,
@@ -225,7 +232,7 @@ function createRepoBundledManifestRegistry(): PluginManifestRegistry {
       origin: "bundled",
       rootDir: path.join(repoRoot, "extensions", dirName),
       source: path.join(repoRoot, "extensions", dirName, "index.ts"),
-      manifestPath: path.join(repoRoot, "extensions", dirName, "astroclaw.plugin.json"),
+      manifestPath: path.join(repoRoot, "extensions", dirName, "openclaw.plugin.json"),
       activation: manifest.activation,
       setup: manifest.setup,
       hooks: [],
@@ -261,16 +268,22 @@ function collectRootPackageExcludedExtensionDirsForTest(): readonly string[] {
 }
 
 function collectRepoBundledChannelConfigsForTest(dirName: string) {
+  const cached = repoBundledChannelConfigsCache.get(dirName);
+  if (cached) {
+    return cached;
+  }
   const pluginDir = path.join(repoRoot, "extensions", dirName);
   const manifest = loadPluginManifest(pluginDir, false);
   if (!manifest.ok) {
-    throw manifest.error;
+    throw toLintErrorObject(manifest.error, "Non-Error thrown");
   }
-  return collectBundledChannelConfigs({
+  const configs = collectBundledChannelConfigs({
     pluginDir,
     manifest: manifest.manifest,
     packageManifest: getPackageManifestMetadata(readPackageManifest(pluginDir)),
   });
+  repoBundledChannelConfigsCache.set(dirName, configs);
+  return configs;
 }
 
 function hasPluginKind(record: PluginManifestRecord, kind: string): boolean {
@@ -322,6 +335,12 @@ function createInstalledPluginIndexForManifests(
 }
 
 describe("bundled plugin metadata", () => {
+  beforeAll(() => {
+    listRepoBundledPluginMetadata();
+    collectRepoBundledChannelConfigsForTest("discord");
+    collectRepoBundledChannelConfigsForTest("tlon");
+  });
+
   it("lists bundled plugin manifests without scanning extension directories in-process", () => {
     expectNoReaddirSyncDuring(() => {
       const manifests = listRepoBundledPluginManifestsUncached();
@@ -602,7 +621,7 @@ describe("bundled plugin metadata", () => {
   });
 
   it("prefers built generated paths when present and falls back to source paths", () => {
-    const tempRoot = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-metadata-");
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-metadata-");
     const pluginRoot = path.join(tempRoot, "extensions", "plugin");
     const distPluginRoot = path.join(tempRoot, "dist", "extensions", "plugin");
 
@@ -615,8 +634,24 @@ describe("bundled plugin metadata", () => {
     expectGeneratedPathResolution(tempRoot, path.join("dist", "extensions", "plugin", "index.js"));
   });
 
+  it("uses dist-runtime generated paths before source fallback when packaged dist is absent", () => {
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-runtime-metadata-");
+    const pluginRoot = path.join(tempRoot, "extensions", "plugin");
+    const runtimePluginRoot = path.join(tempRoot, "dist-runtime", "extensions", "plugin");
+
+    fs.mkdirSync(pluginRoot, { recursive: true });
+    fs.mkdirSync(runtimePluginRoot, { recursive: true });
+    fs.writeFileSync(path.join(pluginRoot, "index.ts"), "export {};\n", "utf8");
+    fs.writeFileSync(path.join(runtimePluginRoot, "index.js"), "export {};\n", "utf8");
+
+    expectGeneratedPathResolution(
+      tempRoot,
+      path.join("dist-runtime", "extensions", "plugin", "index.js"),
+    );
+  });
+
   it("resolves plugin-local generated entry paths when the plugin dir is provided", () => {
-    const tempRoot = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-metadata-local-");
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-metadata-local-");
     const pluginRoot = path.join(tempRoot, "extensions", "alpha");
     const distPluginRoot = path.join(tempRoot, "dist", "extensions", "alpha");
 
@@ -637,19 +672,69 @@ describe("bundled plugin metadata", () => {
     );
   });
 
+  it("keeps generated entry path resolution inside bundled plugin roots", () => {
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-path-contained-");
+    const sourcePluginRoot = path.join(tempRoot, "extensions", "alpha");
+    const distPluginRoot = path.join(tempRoot, "dist", "extensions", "alpha");
+    const absoluteEscape = path.join(tempRoot, "absolute.js");
+    const absolutePluginEntry = path.join(sourcePluginRoot, "index.ts");
+
+    fs.mkdirSync(sourcePluginRoot, { recursive: true });
+    fs.mkdirSync(distPluginRoot, { recursive: true });
+    fs.writeFileSync(absolutePluginEntry, "export {};\n", "utf8");
+    fs.writeFileSync(path.join(tempRoot, "extensions", "escape.ts"), "export {};\n", "utf8");
+    fs.writeFileSync(
+      path.join(tempRoot, "dist", "extensions", "escape.js"),
+      "export {};\n",
+      "utf8",
+    );
+    fs.writeFileSync(absoluteEscape, "export {};\n", "utf8");
+
+    expect(
+      resolveBundledPluginGeneratedPath(
+        tempRoot,
+        {
+          source: absolutePluginEntry,
+          built: absolutePluginEntry,
+        },
+        "alpha",
+      ),
+    ).toBe(absolutePluginEntry);
+    expect(
+      resolveBundledPluginGeneratedPath(
+        tempRoot,
+        {
+          source: "../escape.ts",
+          built: "../escape.js",
+        },
+        "alpha",
+      ),
+    ).toBeNull();
+    expect(
+      resolveBundledPluginGeneratedPath(
+        tempRoot,
+        {
+          source: absoluteEscape,
+          built: absoluteEscape,
+        },
+        "alpha",
+      ),
+    ).toBeNull();
+  });
+
   it("scans direct plugin-tree overrides and resolves generated paths from that scan dir", () => {
-    const tempRoot = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-direct-tree-");
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-direct-tree-");
     const pluginsDir = path.join(tempRoot, "bundled-plugins");
     const pluginRoot = path.join(pluginsDir, "alpha");
 
     writeJson(path.join(pluginRoot, "package.json"), {
-      name: "@astroclaw/alpha",
+      name: "@openclaw/alpha",
       version: "0.0.1",
-      astroclaw: {
+      openclaw: {
         extensions: ["./index.ts"],
       },
     });
-    writeJson(path.join(pluginRoot, "astroclaw.plugin.json"), {
+    writeJson(path.join(pluginRoot, "openclaw.plugin.json"), {
       id: "alpha",
       channels: ["alpha"],
       configSchema: { type: "object" },
@@ -675,18 +760,18 @@ describe("bundled plugin metadata", () => {
   });
 
   it("reflects bundled manifest edits on the next metadata read", () => {
-    const tempRoot = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-fresh-");
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-fresh-");
     const pluginRoot = path.join(tempRoot, "extensions", "alpha");
 
     writeJson(path.join(pluginRoot, "package.json"), {
-      name: "@astroclaw/alpha",
+      name: "@openclaw/alpha",
       version: "0.0.1",
-      astroclaw: {
+      openclaw: {
         extensions: ["./index.ts"],
       },
     });
     fs.writeFileSync(path.join(pluginRoot, "index.ts"), "export const source = true;\n", "utf8");
-    writeJson(path.join(pluginRoot, "astroclaw.plugin.json"), {
+    writeJson(path.join(pluginRoot, "openclaw.plugin.json"), {
       id: "alpha",
       name: "Before",
       configSchema: { type: "object" },
@@ -694,7 +779,7 @@ describe("bundled plugin metadata", () => {
 
     expect(listBundledPluginMetadata({ rootDir: tempRoot })[0]?.manifest.name).toBe("Before");
 
-    writeJson(path.join(pluginRoot, "astroclaw.plugin.json"), {
+    writeJson(path.join(pluginRoot, "openclaw.plugin.json"), {
       id: "alpha",
       name: "After",
       configSchema: { type: "object" },
@@ -704,7 +789,7 @@ describe("bundled plugin metadata", () => {
   });
 
   it("prefers direct scan-dir overrides over nested dist artifacts within the same override root", () => {
-    const pluginsDir = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-direct-priority-");
+    const pluginsDir = createGeneratedPluginTempRoot("openclaw-bundled-plugin-direct-priority-");
     const pluginRoot = path.join(pluginsDir, "alpha");
     const nestedDistPluginRoot = path.join(pluginsDir, "dist", "extensions", "alpha");
 
@@ -731,18 +816,18 @@ describe("bundled plugin metadata", () => {
   });
 
   it("resolves bundled repo entry paths from dist before workspace source", () => {
-    const tempRoot = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-repo-entry-");
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-repo-entry-");
     const pluginRoot = path.join(tempRoot, "extensions", "alpha");
     const distPluginRoot = path.join(tempRoot, "dist", "extensions", "alpha");
 
     writeJson(path.join(pluginRoot, "package.json"), {
-      name: "@astroclaw/alpha",
+      name: "@openclaw/alpha",
       version: "0.0.1",
-      astroclaw: {
+      openclaw: {
         extensions: ["./index.ts"],
       },
     });
-    writeJson(path.join(pluginRoot, "astroclaw.plugin.json"), {
+    writeJson(path.join(pluginRoot, "openclaw.plugin.json"), {
       id: "alpha",
       configSchema: { type: "object" },
     });
@@ -767,13 +852,45 @@ describe("bundled plugin metadata", () => {
     ).toBe(path.join(distPluginRoot, "index.js"));
   });
 
+  it("keeps bundled repo entry path resolution inside the plugin directory", () => {
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-repo-contained-");
+    const pluginRoot = path.join(tempRoot, "extensions", "alpha");
+
+    writeJson(path.join(pluginRoot, "package.json"), {
+      name: "@openclaw/alpha",
+      version: "0.0.1",
+      openclaw: {
+        extensions: ["../escape.ts"],
+      },
+    });
+    writeJson(path.join(pluginRoot, "openclaw.plugin.json"), {
+      id: "alpha",
+      configSchema: { type: "object" },
+    });
+    fs.writeFileSync(path.join(tempRoot, "extensions", "escape.ts"), "export {};\n", "utf8");
+    fs.mkdirSync(path.join(tempRoot, "dist", "extensions"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tempRoot, "dist", "extensions", "escape.js"),
+      "export {};\n",
+      "utf8",
+    );
+
+    expect(
+      resolveBundledPluginRepoEntryPath({
+        rootDir: tempRoot,
+        pluginId: "alpha",
+        preferBuilt: true,
+      }),
+    ).toBeNull();
+  });
+
   it("merges runtime channel schema metadata with manifest-owned channel config fields", () => {
-    const tempRoot = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-channel-configs-");
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-channel-configs-");
 
     writeJson(path.join(tempRoot, "extensions", "alpha", "package.json"), {
-      name: "@astroclaw/alpha",
+      name: "@openclaw/alpha",
       version: "0.0.1",
-      astroclaw: {
+      openclaw: {
         extensions: ["./index.ts"],
         channel: {
           id: "alpha",
@@ -783,7 +900,7 @@ describe("bundled plugin metadata", () => {
         },
       },
     });
-    writeJson(path.join(tempRoot, "extensions", "alpha", "astroclaw.plugin.json"), {
+    writeJson(path.join(tempRoot, "extensions", "alpha", "openclaw.plugin.json"), {
       id: "alpha",
       channels: ["alpha"],
       configSchema: { type: "object" },
@@ -843,17 +960,17 @@ describe("bundled plugin metadata", () => {
   });
 
   it("captures top-level public surface artifacts without duplicating the primary entrypoints", () => {
-    const tempRoot = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-public-artifacts-");
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-public-artifacts-");
 
     writeJson(path.join(tempRoot, "extensions", "alpha", "package.json"), {
-      name: "@astroclaw/alpha",
+      name: "@openclaw/alpha",
       version: "0.0.1",
-      astroclaw: {
+      openclaw: {
         extensions: ["./index.ts"],
         setupEntry: "./setup-entry.ts",
       },
     });
-    writeJson(path.join(tempRoot, "extensions", "alpha", "astroclaw.plugin.json"), {
+    writeJson(path.join(tempRoot, "extensions", "alpha", "openclaw.plugin.json"), {
       id: "alpha",
       configSchema: { type: "object" },
     });
@@ -885,13 +1002,13 @@ describe("bundled plugin metadata", () => {
   });
 
   it("loads channel config metadata from built public surfaces in dist-only roots", () => {
-    const tempRoot = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-dist-config-");
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-dist-config-");
     const distRoot = path.join(tempRoot, "dist");
 
     writeJson(path.join(distRoot, "extensions", "alpha", "package.json"), {
-      name: "@astroclaw/alpha",
+      name: "@openclaw/alpha",
       version: "0.0.1",
-      astroclaw: {
+      openclaw: {
         extensions: ["./index.ts"],
         channel: {
           id: "alpha",
@@ -900,7 +1017,7 @@ describe("bundled plugin metadata", () => {
         },
       },
     });
-    writeJson(path.join(distRoot, "extensions", "alpha", "astroclaw.plugin.json"), {
+    writeJson(path.join(distRoot, "extensions", "alpha", "openclaw.plugin.json"), {
       id: "alpha",
       configSchema: {
         type: "object",
@@ -960,14 +1077,14 @@ describe("bundled plugin metadata", () => {
   });
 
   it("does not probe broad runtime public surfaces for channel config metadata", () => {
-    const tempRoot = createGeneratedPluginTempRoot("astroclaw-bundled-plugin-dist-config-runtime-");
+    const tempRoot = createGeneratedPluginTempRoot("openclaw-bundled-plugin-dist-config-runtime-");
     const distRoot = path.join(tempRoot, "dist");
     const markerPath = path.join(tempRoot, "runtime-api-loaded");
 
     writeJson(path.join(distRoot, "extensions", "alpha", "package.json"), {
-      name: "@astroclaw/alpha",
+      name: "@openclaw/alpha",
       version: "0.0.1",
-      astroclaw: {
+      openclaw: {
         extensions: ["./index.ts"],
         channel: {
           id: "alpha",
@@ -976,7 +1093,7 @@ describe("bundled plugin metadata", () => {
         },
       },
     });
-    writeJson(path.join(distRoot, "extensions", "alpha", "astroclaw.plugin.json"), {
+    writeJson(path.join(distRoot, "extensions", "alpha", "openclaw.plugin.json"), {
       id: "alpha",
       configSchema: {
         type: "object",
@@ -1035,3 +1152,17 @@ describe("bundled plugin metadata", () => {
     expect(fs.existsSync(markerPath)).toBe(false);
   });
 });
+
+function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
+  if (value instanceof Error) {
+    return value;
+  }
+  if (typeof value === "string") {
+    return new Error(value);
+  }
+  const error = new Error(fallbackMessage, { cause: value });
+  if ((typeof value === "object" && value !== null) || typeof value === "function") {
+    Object.assign(error, value);
+  }
+  return error;
+}
