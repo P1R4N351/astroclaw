@@ -1,3 +1,8 @@
+/**
+ * Exec PTY integration tests.
+ * Starts PTY sessions, polls them through the process tool, and verifies
+ * terminal input/output handling.
+ */
 import { afterEach, expect, test } from "vitest";
 import { markBackgrounded, resetProcessRegistryForTests } from "./bash-process-registry.js";
 import { runExecProcess } from "./bash-tools.exec-runtime.js";
@@ -73,11 +78,11 @@ async function expectSessionCompletion(params: {
     .toBe(true);
 }
 
-test("exec supports pty output, ASTROCLAW_SHELL, send-keys, and submit", async () => {
+test("exec supports pty output, OPENCLAW_SHELL, send-keys, and submit", async () => {
   const { processTool, sessionId } = await startPtySession(
     currentNodeEvalCommand(
       [
-        "process.stdout.write(`ok:${process.env.ASTROCLAW_SHELL || ''}`);",
+        "process.stdout.write(`ok:${process.env.OPENCLAW_SHELL || ''}`);",
         "const dataEvent=String.fromCharCode(100,97,116,97);",
         "const submitted=String.fromCharCode(115,117,98,109,105,116,116,101,100);",
         "let first=false;",
