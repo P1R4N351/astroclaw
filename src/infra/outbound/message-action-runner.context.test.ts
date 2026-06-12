@@ -1,6 +1,8 @@
+// Covers message-action cross-context policy, markers, and presentation
+// decoration behavior.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ChannelPlugin } from "../../channels/plugins/types.js";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import {
   createChannelTestPluginBase,
@@ -230,7 +232,7 @@ describe("runMessageAction context isolation", () => {
             token: "forum-test",
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       action: "send" as const,
       actionParams: {
         message: "hi",
@@ -302,7 +304,7 @@ describe("runMessageAction context isolation", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       actionParams: {
         channel: "workspace",
         target: "channel:C99999999",
@@ -323,7 +325,7 @@ describe("runMessageAction context isolation", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       actionParams: {
         channel: "workspace",
         target: "channel:C99999999",
@@ -361,7 +363,7 @@ describe("runMessageAction context isolation", () => {
             },
           ],
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       agentId: "sandbox",
       actionParams: {
         channel: "workspace",
