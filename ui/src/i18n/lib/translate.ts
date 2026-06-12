@@ -1,3 +1,4 @@
+// Control UI i18n module implements translate behavior.
 import { getSafeLocalStorage } from "../../local-storage.ts";
 import { en } from "../locales/en.ts";
 import {
@@ -28,7 +29,7 @@ class I18nManager {
       return null;
     }
     try {
-      return storage.getItem("astroclaw.i18n.locale");
+      return storage.getItem("openclaw.i18n.locale");
     } catch {
       return null;
     }
@@ -40,7 +41,7 @@ class I18nManager {
       return;
     }
     try {
-      storage.setItem("astroclaw.i18n.locale", locale);
+      storage.setItem("openclaw.i18n.locale", locale);
     } catch {
       // Ignore storage write failures in private/blocked contexts.
     }
