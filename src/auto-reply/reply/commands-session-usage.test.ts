@@ -1,5 +1,6 @@
+// Tests session usage command output and token accounting summaries.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import type {
   CostUsageSummary,
   CostUsageTotals,
@@ -60,7 +61,7 @@ function buildUsageParams(): HandleCommandsParams {
     cfg: {
       commands: { text: true },
       channels: { whatsapp: { allowFrom: ["*"] } },
-    } as AstroclawConfig,
+    } as OpenClawConfig,
     ctx: {
       Provider: "whatsapp",
       Surface: "whatsapp",
