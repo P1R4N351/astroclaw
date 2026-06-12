@@ -1,3 +1,4 @@
+// Archive fixture tests cover plugin archive fixture creation and cleanup helpers.
 import fs from "node:fs";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -5,7 +6,7 @@ import { expectNoReaddirSyncDuring } from "../../test-utils/fs-scan-assertions.j
 import { listFlatRootArchiveEntries } from "./archive-fixtures.js";
 import { createSuiteTempRootTracker } from "./fs-fixtures.js";
 
-const suiteTempRootTracker = createSuiteTempRootTracker("astroclaw-plugin-archive-fixtures");
+const suiteTempRootTracker = createSuiteTempRootTracker("openclaw-plugin-archive-fixtures");
 
 afterAll(() => {
   suiteTempRootTracker.cleanup();
