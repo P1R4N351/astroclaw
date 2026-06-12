@@ -1,6 +1,7 @@
+// Channel account context tests cover default account resolution and read-only account inspection fallback.
 import { describe, expect, it, vi } from "vitest";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolveDefaultChannelAccountContext } from "./channel-account-context.js";
 
 vi.mock("../channels/read-only-account-inspect.js", () => ({
@@ -18,7 +19,7 @@ describe("resolveDefaultChannelAccountContext", () => {
       },
     } as unknown as ChannelPlugin;
 
-    const result = await resolveDefaultChannelAccountContext(plugin, {} as AstroclawConfig);
+    const result = await resolveDefaultChannelAccountContext(plugin, {} as OpenClawConfig);
 
     expect(result.accountIds).toEqual(["acc-1"]);
     expect(result.defaultAccountId).toBe("acc-1");
@@ -43,7 +44,7 @@ describe("resolveDefaultChannelAccountContext", () => {
       },
     } as unknown as ChannelPlugin;
 
-    const result = await resolveDefaultChannelAccountContext(plugin, {} as AstroclawConfig);
+    const result = await resolveDefaultChannelAccountContext(plugin, {} as OpenClawConfig);
 
     expect(isEnabled).toHaveBeenCalledWith(account, {});
     expect(isConfigured).toHaveBeenCalledWith(account, {});
@@ -64,11 +65,11 @@ describe("resolveDefaultChannelAccountContext", () => {
       },
     } as unknown as ChannelPlugin;
 
-    await expect(resolveDefaultChannelAccountContext(plugin, {} as AstroclawConfig)).rejects.toThrow(
+    await expect(resolveDefaultChannelAccountContext(plugin, {} as OpenClawConfig)).rejects.toThrow(
       /missing secret/i,
     );
 
-    const result = await resolveDefaultChannelAccountContext(plugin, {} as AstroclawConfig, {
+    const result = await resolveDefaultChannelAccountContext(plugin, {} as OpenClawConfig, {
       mode: "read_only",
       commandName: "status",
     });
@@ -93,7 +94,7 @@ describe("resolveDefaultChannelAccountContext", () => {
       },
     } as unknown as ChannelPlugin;
 
-    const result = await resolveDefaultChannelAccountContext(plugin, {} as AstroclawConfig, {
+    const result = await resolveDefaultChannelAccountContext(plugin, {} as OpenClawConfig, {
       mode: "read_only",
     });
 
