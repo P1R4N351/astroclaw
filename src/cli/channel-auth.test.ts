@@ -1,3 +1,4 @@
+// Channel auth CLI tests cover channel auth command routing and credential prompts.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { runChannelLogin, runChannelLogout } from "./channel-auth.js";
 
@@ -33,6 +34,7 @@ vi.mock("../agents/agent-scope.js", () => ({
 vi.mock("../channels/plugins/catalog.js", () => ({
   getChannelPluginCatalogEntry: mocks.getChannelPluginCatalogEntry,
   listChannelPluginCatalogEntries: mocks.listChannelPluginCatalogEntries,
+  listRawChannelPluginCatalogEntries: mocks.listChannelPluginCatalogEntries,
 }));
 
 vi.mock("../channels/plugins/helpers.js", () => ({
@@ -378,14 +380,14 @@ describe("channel-auth", () => {
     });
 
     await expect(runChannelLogin({ channel: "whatsapp" }, runtime)).rejects.toThrow(
-      'Channel "whatsapp" does not support login. Run `astroclaw channels status --channel whatsapp` to inspect supported actions.',
+      'Channel "whatsapp" does not support login. Run `openclaw channels status --channel whatsapp` to inspect supported actions.',
     );
   });
 
   it("installs a catalog-backed channel plugin on demand for login", async () => {
     const catalogEntry = {
       id: "whatsapp",
-      pluginId: "@astroclaw/whatsapp",
+      pluginId: "@openclaw/whatsapp",
       meta: {
         id: "whatsapp",
         label: "WhatsApp",
@@ -394,7 +396,7 @@ describe("channel-auth", () => {
         blurb: "wa",
       },
       install: {
-        npmSpec: "@astroclaw/whatsapp",
+        npmSpec: "@openclaw/whatsapp",
       },
     };
     mocks.getChannelPlugin.mockReturnValueOnce(undefined);
@@ -437,7 +439,7 @@ describe("channel-auth", () => {
   it("strips pending install records before persisting install-on-demand login config", async () => {
     const catalogEntry = {
       id: "whatsapp",
-      pluginId: "@astroclaw/whatsapp",
+      pluginId: "@openclaw/whatsapp",
       meta: {
         id: "whatsapp",
         label: "WhatsApp",
@@ -446,7 +448,7 @@ describe("channel-auth", () => {
         blurb: "wa",
       },
       install: {
-        npmSpec: "@astroclaw/whatsapp",
+        npmSpec: "@openclaw/whatsapp",
       },
     };
     mocks.getChannelPlugin.mockReturnValueOnce(undefined);
@@ -459,7 +461,7 @@ describe("channel-auth", () => {
           installs: {
             whatsapp: {
               source: "npm",
-              spec: "@astroclaw/whatsapp",
+              spec: "@openclaw/whatsapp",
             },
           },
         },
@@ -505,7 +507,7 @@ describe("channel-auth", () => {
     mocks.listChannelPluginCatalogEntries.mockReturnValueOnce([
       {
         id: "whatsapp",
-        pluginId: "@astroclaw/whatsapp",
+        pluginId: "@openclaw/whatsapp",
         meta: {
           id: "whatsapp",
           label: "WhatsApp",
@@ -514,7 +516,7 @@ describe("channel-auth", () => {
           blurb: "wa",
         },
         install: {
-          npmSpec: "@astroclaw/whatsapp",
+          npmSpec: "@openclaw/whatsapp",
         },
       },
     ]);
@@ -584,7 +586,7 @@ describe("channel-auth", () => {
     });
 
     await expect(runChannelLogout({ channel: "whatsapp" }, runtime)).rejects.toThrow(
-      'Channel "whatsapp" does not support logout. Run `astroclaw channels status --channel whatsapp` to inspect supported actions.',
+      'Channel "whatsapp" does not support logout. Run `openclaw channels status --channel whatsapp` to inspect supported actions.',
     );
   });
 });
