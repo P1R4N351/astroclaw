@@ -1,5 +1,6 @@
+// Verifies Docker create arguments for sandbox hardening and configured passthrough.
 import { describe, expect, it } from "vitest";
-import { ASTROCLAW_CLI_ENV_VALUE } from "../infra/astroclaw-exec-env.js";
+import { OPENCLAW_CLI_ENV_VALUE } from "../infra/openclaw-exec-env.js";
 import { buildSandboxCreateArgs } from "./sandbox/docker.js";
 import type { SandboxDockerConfig } from "./sandbox/types.js";
 
@@ -8,9 +9,10 @@ describe("buildSandboxCreateArgs", () => {
     overrides: Partial<SandboxDockerConfig> = {},
     binds?: string[],
   ): SandboxDockerConfig {
+    // Baseline config keeps each Docker argument case focused on one override.
     return {
-      image: "astroclaw-sandbox:bookworm-slim",
-      containerPrefix: "astroclaw-sbx-",
+      image: "openclaw-sandbox:bookworm-slim",
+      containerPrefix: "openclaw-sbx-",
       workdir: "/workspace",
       readOnlyRoot: false,
       tmpfs: [],
@@ -39,6 +41,7 @@ describe("buildSandboxCreateArgs", () => {
   }
 
   function valuesForFlag(args: string[], flag: string): string[] {
+    // Docker flags are positional, so collect repeated flag values for assertions.
     const values: string[] = [];
     for (let i = 0; i < args.length; i += 1) {
       if (args[i] === flag) {
@@ -60,8 +63,8 @@ describe("buildSandboxCreateArgs", () => {
 
   it("includes hardening and resource flags", () => {
     const cfg: SandboxDockerConfig = {
-      image: "astroclaw-sandbox:bookworm-slim",
-      containerPrefix: "astroclaw-sbx-",
+      image: "openclaw-sandbox:bookworm-slim",
+      containerPrefix: "openclaw-sbx-",
       workdir: "/workspace",
       readOnlyRoot: true,
       tmpfs: ["/tmp"],
@@ -79,26 +82,26 @@ describe("buildSandboxCreateArgs", () => {
         core: "0",
       },
       seccompProfile: "/tmp/seccomp.json",
-      apparmorProfile: "astroclaw-sandbox",
+      apparmorProfile: "openclaw-sandbox",
       dns: ["1.1.1.1"],
       extraHosts: ["internal.service:10.0.0.5"],
     };
 
     const args = buildSandboxCreateArgs({
-      name: "astroclaw-sbx-test",
+      name: "openclaw-sbx-test",
       cfg,
       scopeKey: "main",
       createdAtMs: 1700000000000,
-      labels: { "astroclaw.sandboxBrowser": "1" },
+      labels: { "openclaw.sandboxBrowser": "1" },
     });
 
     expect(args[0]).toBe("create");
-    expectFlagValues(args, "--name", ["astroclaw-sbx-test"]);
+    expectFlagValues(args, "--name", ["openclaw-sbx-test"]);
     expectFlagValues(args, "--label", [
-      "astroclaw.sandbox=1",
-      "astroclaw.sessionKey=main",
-      "astroclaw.createdAtMs=1700000000000",
-      "astroclaw.sandboxBrowser=1",
+      "openclaw.sandbox=1",
+      "openclaw.sessionKey=main",
+      "openclaw.createdAtMs=1700000000000",
+      "openclaw.sandboxBrowser=1",
     ]);
     expect(args).toContain("--read-only");
     expectFlagValues(args, "--tmpfs", ["/tmp"]);
@@ -108,7 +111,7 @@ describe("buildSandboxCreateArgs", () => {
     expectFlagValues(args, "--security-opt", [
       "no-new-privileges",
       "seccomp=/tmp/seccomp.json",
-      "apparmor=astroclaw-sandbox",
+      "apparmor=openclaw-sandbox",
     ]);
     expectFlagValues(args, "--dns", ["1.1.1.1"]);
     expectFlagValues(args, "--add-host", ["internal.service:10.0.0.5"]);
@@ -116,8 +119,41 @@ describe("buildSandboxCreateArgs", () => {
     expectFlagValues(args, "--memory", ["512m"]);
     expectFlagValues(args, "--memory-swap", ["1024"]);
     expectFlagValues(args, "--cpus", ["1.5"]);
-    expectFlagValues(args, "--env", ["LANG=C.UTF-8", `ASTROCLAW_CLI=${ASTROCLAW_CLI_ENV_VALUE}`]);
+    expectFlagValues(args, "--env", ["LANG=C.UTF-8", `OPENCLAW_CLI=${OPENCLAW_CLI_ENV_VALUE}`]);
     expectFlagValues(args, "--ulimit", ["nofile=1024:2048", "nproc=128", "core=0"]);
+  });
+
+  it("omits non-finite numeric Docker resource flags", () => {
+    const cfg = createSandboxConfig({
+      pidsLimit: Number.POSITIVE_INFINITY,
+      cpus: Number.NaN,
+      ulimits: {
+        nofile: {
+          soft: Number.NaN,
+          hard: Number.POSITIVE_INFINITY,
+        },
+        fsize: Number.NaN,
+        core: Number.POSITIVE_INFINITY,
+        nproc: {
+          soft: Number.NEGATIVE_INFINITY,
+          hard: 1024,
+        },
+      },
+    });
+
+    const args = buildSandboxCreateArgs({
+      name: "openclaw-sbx-non-finite-limits",
+      cfg,
+      scopeKey: "main",
+      createdAtMs: 1700000000000,
+    });
+
+    expect(args).not.toContain("--pids-limit");
+    expect(args).not.toContain("--cpus");
+    expectFlagValues(args, "--ulimit", ["nproc=1024"]);
+    expect(valuesForFlag(args, "--ulimit")).not.toContain("nofile=NaN:Infinity");
+    expect(valuesForFlag(args, "--ulimit")).not.toContain("fsize=NaN");
+    expect(valuesForFlag(args, "--ulimit")).not.toContain("core=Infinity");
   });
 
   it("passes explicit configured sandbox env through even when names look sensitive", () => {
@@ -136,7 +172,7 @@ describe("buildSandboxCreateArgs", () => {
     });
 
     const args = buildSandboxCreateArgs({
-      name: "astroclaw-sbx-marker",
+      name: "openclaw-sbx-marker",
       cfg,
       scopeKey: "main",
       createdAtMs: 1700000000000,
@@ -152,7 +188,7 @@ describe("buildSandboxCreateArgs", () => {
       "OURA_CLIENT_ID=dummy-oura-client-id",
       "OURA_CLIENT_SECRET=dummy-oura-client-secret",
       "RESEND_API_KEY=dummy-resend-api-key",
-      `ASTROCLAW_CLI=${ASTROCLAW_CLI_ENV_VALUE}`,
+      `OPENCLAW_CLI=${OPENCLAW_CLI_ENV_VALUE}`,
     ]);
   });
 
@@ -162,7 +198,7 @@ describe("buildSandboxCreateArgs", () => {
     });
 
     const args = buildSandboxCreateArgs({
-      name: "astroclaw-sbx-gpu",
+      name: "openclaw-sbx-gpu",
       cfg,
       scopeKey: "main",
       createdAtMs: 1700000000000,
@@ -173,8 +209,8 @@ describe("buildSandboxCreateArgs", () => {
 
   it("emits -v flags for safe custom binds", () => {
     const cfg: SandboxDockerConfig = {
-      image: "astroclaw-sandbox:bookworm-slim",
-      containerPrefix: "astroclaw-sbx-",
+      image: "openclaw-sandbox:bookworm-slim",
+      containerPrefix: "openclaw-sbx-",
       workdir: "/workspace",
       readOnlyRoot: false,
       tmpfs: [],
@@ -184,7 +220,7 @@ describe("buildSandboxCreateArgs", () => {
     };
 
     const args = buildSandboxCreateArgs({
-      name: "astroclaw-sbx-binds",
+      name: "openclaw-sbx-binds",
       cfg,
       scopeKey: "main",
       createdAtMs: 1700000000000,
@@ -207,37 +243,43 @@ describe("buildSandboxCreateArgs", () => {
   it.each([
     {
       name: "dangerous Docker socket bind mounts",
-      containerName: "astroclaw-sbx-dangerous",
+      containerName: "openclaw-sbx-dangerous",
       cfg: createSandboxConfig({}, ["/var/run/docker.sock:/var/run/docker.sock"]),
       expected: /blocked path/,
     },
     {
       name: "dangerous parent bind mounts",
-      containerName: "astroclaw-sbx-dangerous-parent",
+      containerName: "openclaw-sbx-dangerous-parent",
       cfg: createSandboxConfig({}, ["/run:/run"]),
       expected: /blocked path/,
     },
     {
+      name: "bind source covering Docker socket directory",
+      containerName: "openclaw-sbx-covers-docker-socket-dir",
+      cfg: createSandboxConfig({}, ["/var:/var"]),
+      expected: /covers blocked path/,
+    },
+    {
       name: "network host mode",
-      containerName: "astroclaw-sbx-host",
+      containerName: "openclaw-sbx-host",
       cfg: createSandboxConfig({ network: "host" }),
       expected: /network mode "host" is blocked/,
     },
     {
       name: "network container namespace join",
-      containerName: "astroclaw-sbx-container-network",
+      containerName: "openclaw-sbx-container-network",
       cfg: createSandboxConfig({ network: "container:peer" }),
       expected: /network mode "container:peer" is blocked by default/,
     },
     {
       name: "seccomp unconfined",
-      containerName: "astroclaw-sbx-seccomp",
+      containerName: "openclaw-sbx-seccomp",
       cfg: createSandboxConfig({ seccompProfile: "unconfined" }),
       expected: /seccomp profile "unconfined" is blocked/,
     },
     {
       name: "apparmor unconfined",
-      containerName: "astroclaw-sbx-apparmor",
+      containerName: "openclaw-sbx-apparmor",
       cfg: createSandboxConfig({ apparmorProfile: "unconfined" }),
       expected: /apparmor profile "unconfined" is blocked/,
     },
@@ -247,8 +289,8 @@ describe("buildSandboxCreateArgs", () => {
 
   it("omits -v flags when binds is empty or undefined", () => {
     const cfg: SandboxDockerConfig = {
-      image: "astroclaw-sandbox:bookworm-slim",
-      containerPrefix: "astroclaw-sbx-",
+      image: "openclaw-sandbox:bookworm-slim",
+      containerPrefix: "openclaw-sbx-",
       workdir: "/workspace",
       readOnlyRoot: false,
       tmpfs: [],
@@ -258,7 +300,7 @@ describe("buildSandboxCreateArgs", () => {
     };
 
     const args = buildSandboxCreateArgs({
-      name: "astroclaw-sbx-no-binds",
+      name: "openclaw-sbx-no-binds",
       cfg,
       scopeKey: "main",
       createdAtMs: 1700000000000,
@@ -281,7 +323,7 @@ describe("buildSandboxCreateArgs", () => {
     const cfg = createSandboxConfig({}, ["/opt/external:/data:rw"]);
     expect(() =>
       buildSandboxCreateArgs({
-        name: "astroclaw-sbx-outside-roots",
+        name: "openclaw-sbx-outside-roots",
         cfg,
         scopeKey: "main",
         createdAtMs: 1700000000000,
@@ -293,7 +335,7 @@ describe("buildSandboxCreateArgs", () => {
   it("allows bind sources outside runtime allowlist with explicit override", () => {
     const cfg = createSandboxConfig({}, ["/opt/external:/data:rw"]);
     const args = buildSandboxCreateArgs({
-      name: "astroclaw-sbx-outside-roots-override",
+      name: "openclaw-sbx-outside-roots-override",
       cfg,
       scopeKey: "main",
       createdAtMs: 1700000000000,
@@ -305,13 +347,13 @@ describe("buildSandboxCreateArgs", () => {
 
   it("blocks reserved /workspace target bind mounts by default", () => {
     const cfg = createSandboxConfig({}, ["/tmp/override:/workspace:rw"]);
-    expectBuildToThrow("astroclaw-sbx-reserved-target", cfg, /reserved container path/);
+    expectBuildToThrow("openclaw-sbx-reserved-target", cfg, /reserved container path/);
   });
 
   it("allows reserved /workspace target bind mounts with explicit dangerous override", () => {
     const cfg = createSandboxConfig({}, ["/tmp/override:/workspace:rw"]);
     const args = buildSandboxCreateArgs({
-      name: "astroclaw-sbx-reserved-target-override",
+      name: "openclaw-sbx-reserved-target-override",
       cfg,
       scopeKey: "main",
       createdAtMs: 1700000000000,
@@ -326,7 +368,7 @@ describe("buildSandboxCreateArgs", () => {
       dangerouslyAllowContainerNamespaceJoin: true,
     });
     const args = buildSandboxCreateArgs({
-      name: "astroclaw-sbx-container-network-override",
+      name: "openclaw-sbx-container-network-override",
       cfg,
       scopeKey: "main",
       createdAtMs: 1700000000000,
