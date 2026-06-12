@@ -1,9 +1,10 @@
+// Mattermost tests cover reply delivery plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { ChunkMode } from "astroclaw/plugin-sdk/reply-runtime";
+import type { ChunkMode } from "openclaw/plugin-sdk/reply-runtime";
 import { describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig, PluginRuntime } from "../../runtime-api.js";
+import type { OpenClawConfig, PluginRuntime } from "../../runtime-api.js";
 import { deliverMattermostReplyPayload } from "./reply-delivery.js";
 
 type DeliverMattermostReplyPayloadParams = Parameters<typeof deliverMattermostReplyPayload>[0];
@@ -24,7 +25,7 @@ function createReplyDeliveryCore(): DeliverMattermostReplyPayloadParams["core"] 
         resolveChunkMode: vi.fn<() => ChunkMode>(() => "length"),
         resolveTextChunkLimit: vi.fn(
           (
-            _cfg?: AstroclawConfig,
+            _cfg?: OpenClawConfig,
             _provider?: string,
             _accountId?: string | null,
             opts?: { fallbackLimit?: number },
@@ -40,7 +41,7 @@ function createReplyDeliveryCore(): DeliverMattermostReplyPayloadParams["core"] 
 describe("deliverMattermostReplyPayload", () => {
   it("suppresses payloads flagged as reasoning", async () => {
     const sendMessage = vi.fn(async () => undefined);
-    const cfg = {} satisfies AstroclawConfig;
+    const cfg = {} satisfies OpenClawConfig;
     const core = createReplyDeliveryCore();
 
     const outcome = await deliverMattermostReplyPayload({
@@ -62,7 +63,7 @@ describe("deliverMattermostReplyPayload", () => {
 
   it("returns 'empty' for substantive text that produced no send (regression: #80501)", async () => {
     const sendMessage = vi.fn(async () => undefined);
-    const cfg = {} satisfies AstroclawConfig;
+    const cfg = {} satisfies OpenClawConfig;
     const core = createReplyDeliveryCore();
     // Make the markdown table converter strip the text to empty so
     // deliverTextOrMediaReply sees an empty chunked text and returns "empty".
@@ -88,7 +89,7 @@ describe("deliverMattermostReplyPayload", () => {
 
   it("suppresses reasoning-prefixed payloads even without an explicit flag", async () => {
     const sendMessage = vi.fn(async () => undefined);
-    const cfg = {} satisfies AstroclawConfig;
+    const cfg = {} satisfies OpenClawConfig;
     const core = createReplyDeliveryCore();
 
     await deliverMattermostReplyPayload({
@@ -109,7 +110,7 @@ describe("deliverMattermostReplyPayload", () => {
 
   it("suppresses reasoning payloads formatted as a Mattermost blockquote", async () => {
     const sendMessage = vi.fn(async () => undefined);
-    const cfg = {} satisfies AstroclawConfig;
+    const cfg = {} satisfies OpenClawConfig;
     const core = createReplyDeliveryCore();
 
     await deliverMattermostReplyPayload({
@@ -130,7 +131,7 @@ describe("deliverMattermostReplyPayload", () => {
 
   it("does not suppress messages that mention Reasoning: mid-text", async () => {
     const sendMessage = vi.fn(async () => undefined);
-    const cfg = {} satisfies AstroclawConfig;
+    const cfg = {} satisfies OpenClawConfig;
     const core = createReplyDeliveryCore();
 
     await deliverMattermostReplyPayload({
@@ -159,9 +160,9 @@ describe("deliverMattermostReplyPayload", () => {
   });
 
   it("passes agent-scoped mediaLocalRoots when sending media paths", async () => {
-    const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
-    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-mm-state-"));
-    process.env.ASTROCLAW_STATE_DIR = stateDir;
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-mm-state-"));
+    process.env.OPENCLAW_STATE_DIR = stateDir;
 
     try {
       const sendMessage = vi.fn(async () => undefined);
@@ -169,7 +170,7 @@ describe("deliverMattermostReplyPayload", () => {
 
       const agentId = "agent-1";
       const mediaUrl = `file://${path.join(stateDir, `workspace-${agentId}`, "photo.png")}`;
-      const cfg = {} satisfies AstroclawConfig;
+      const cfg = {} satisfies OpenClawConfig;
 
       await deliverMattermostReplyPayload({
         core,
@@ -200,9 +201,9 @@ describe("deliverMattermostReplyPayload", () => {
       });
     } finally {
       if (previousStateDir === undefined) {
-        delete process.env.ASTROCLAW_STATE_DIR;
+        delete process.env.OPENCLAW_STATE_DIR;
       } else {
-        process.env.ASTROCLAW_STATE_DIR = previousStateDir;
+        process.env.OPENCLAW_STATE_DIR = previousStateDir;
       }
       await fs.rm(stateDir, { recursive: true, force: true });
     }
@@ -210,7 +211,7 @@ describe("deliverMattermostReplyPayload", () => {
 
   it("forwards replyToId for text-only chunked replies", async () => {
     const sendMessage = vi.fn(async () => undefined);
-    const cfg = {} satisfies AstroclawConfig;
+    const cfg = {} satisfies OpenClawConfig;
     const core = createReplyDeliveryCore();
     core.channel.text.chunkMarkdownTextWithMode = vi.fn(() => ["hello"]);
 
