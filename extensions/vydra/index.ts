@@ -1,5 +1,6 @@
-import { definePluginEntry } from "astroclaw/plugin-sdk/plugin-entry";
-import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-auth-api-key";
+// Vydra plugin entrypoint registers its OpenClaw integration.
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-auth-api-key";
 import { buildVydraImageGenerationProvider } from "./image-generation-provider.js";
 import { applyVydraConfig, VYDRA_DEFAULT_IMAGE_MODEL_REF } from "./onboard.js";
 import { buildVydraSpeechProvider } from "./speech-provider.js";
