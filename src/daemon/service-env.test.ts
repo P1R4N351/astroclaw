@@ -1,3 +1,4 @@
+// Daemon service env tests cover environment variable assembly for services.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -594,28 +595,38 @@ describe("buildServiceEnvironment", () => {
     } else {
       expect(env.PATH).toContain("/usr/bin");
     }
-    expect(env.ASTROCLAW_GATEWAY_PORT).toBe("18789");
-    expect(env.ASTROCLAW_GATEWAY_TOKEN).toBeUndefined();
-    expect(env.ASTROCLAW_SERVICE_MARKER).toBe("astroclaw");
-    expect(env.ASTROCLAW_SERVICE_KIND).toBe("gateway");
-    expect(typeof env.ASTROCLAW_SERVICE_VERSION).toBe("string");
-    expect(env.ASTROCLAW_SYSTEMD_UNIT).toBe("astroclaw-gateway.service");
-    expect(env.ASTROCLAW_WINDOWS_TASK_NAME).toBe("Astroclaw Gateway");
+    expect(env.OPENCLAW_GATEWAY_PORT).toBe("18789");
+    expect(env.OPENCLAW_GATEWAY_TOKEN).toBeUndefined();
+    expect(env.OPENCLAW_SERVICE_MARKER).toBe("openclaw");
+    expect(env.OPENCLAW_SERVICE_KIND).toBe("gateway");
+    expect(typeof env.OPENCLAW_SERVICE_VERSION).toBe("string");
+    expect(env.OPENCLAW_SYSTEMD_UNIT).toBe("openclaw-gateway.service");
+    expect(env.OPENCLAW_WINDOWS_TASK_NAME).toBe("OpenClaw Gateway");
     if (process.platform === "darwin") {
-      expect(env.ASTROCLAW_LAUNCHD_LABEL).toBe("ai.astroclaw.gateway");
+      expect(env.OPENCLAW_LAUNCHD_LABEL).toBe("ai.openclaw.gateway");
     }
   });
 
-  it("passes through ASTROCLAW_WRAPPER for gateway services", () => {
+  it("sets the OpenClaw-owned launchd marker for macOS gateway services", () => {
+    const env = buildServiceEnvironment({
+      env: { HOME: "/Users/user" },
+      port: 18789,
+      platform: "darwin",
+    });
+
+    expect(env.OPENCLAW_LAUNCHD_LABEL).toBe("ai.openclaw.gateway");
+  });
+
+  it("passes through OPENCLAW_WRAPPER for gateway services", () => {
     const env = buildServiceEnvironment({
       env: {
         HOME: "/home/user",
-        ASTROCLAW_WRAPPER: " /usr/local/bin/astroclaw-doppler ",
+        OPENCLAW_WRAPPER: " /usr/local/bin/openclaw-doppler ",
       },
       port: 18789,
     });
 
-    expect(env.ASTROCLAW_WRAPPER).toBe("/usr/local/bin/astroclaw-doppler");
+    expect(env.OPENCLAW_WRAPPER).toBe("/usr/local/bin/openclaw-doppler");
   });
 
   it("forwards TMPDIR from the host environment on Linux", () => {
@@ -633,7 +644,7 @@ describe("buildServiceEnvironment", () => {
       port: 18789,
       platform: "darwin",
     });
-    expect(env.TMPDIR).toBe(path.join("/Users/user", ".astroclaw", "tmp"));
+    expect(env.TMPDIR).toBe(path.join("/Users/user", ".openclaw", "tmp"));
   });
 
   it("uses a canonical system PATH for macOS LaunchAgents", () => {
@@ -665,14 +676,51 @@ describe("buildServiceEnvironment", () => {
 
   it("uses profile-specific unit and label", () => {
     const env = buildServiceEnvironment({
-      env: { HOME: "/home/user", ASTROCLAW_PROFILE: "work" },
+      env: { HOME: "/home/user", OPENCLAW_PROFILE: "work" },
       port: 18789,
     });
-    expect(env.ASTROCLAW_SYSTEMD_UNIT).toBe("astroclaw-gateway-work.service");
-    expect(env.ASTROCLAW_WINDOWS_TASK_NAME).toBe("Astroclaw Gateway (work)");
+    expect(env.OPENCLAW_SYSTEMD_UNIT).toBe("openclaw-gateway-work.service");
+    expect(env.OPENCLAW_WINDOWS_TASK_NAME).toBe("OpenClaw Gateway (work)");
     if (process.platform === "darwin") {
-      expect(env.ASTROCLAW_LAUNCHD_LABEL).toBe("ai.astroclaw.work");
+      expect(env.OPENCLAW_LAUNCHD_LABEL).toBe("ai.openclaw.work");
     }
+  });
+
+  it("preserves explicit systemd unit overrides", () => {
+    const env = buildServiceEnvironment({
+      env: {
+        HOME: "/home/user",
+        OPENCLAW_PROFILE: "work",
+        OPENCLAW_SYSTEMD_UNIT: "openclaw-gateway-maintenance",
+      },
+      port: 18789,
+      platform: "linux",
+    });
+
+    expect(env.OPENCLAW_SYSTEMD_UNIT).toBe("openclaw-gateway-maintenance.service");
+  });
+
+  it("preserves explicit systemd unit overrides with service suffix", () => {
+    const env = buildServiceEnvironment({
+      env: {
+        HOME: "/home/user",
+        OPENCLAW_SYSTEMD_UNIT: "openclaw-gateway-maintenance.service",
+      },
+      port: 18789,
+      platform: "linux",
+    });
+
+    expect(env.OPENCLAW_SYSTEMD_UNIT).toBe("openclaw-gateway-maintenance.service");
+  });
+
+  it("sets a profile-specific launchd marker for macOS gateway services", () => {
+    const env = buildServiceEnvironment({
+      env: { HOME: "/Users/user", OPENCLAW_PROFILE: "work" },
+      port: 18789,
+      platform: "darwin",
+    });
+
+    expect(env.OPENCLAW_LAUNCHD_LABEL).toBe("ai.openclaw.work");
   });
 
   it("does not persist ambient proxy environment variables for launchd/systemd runtime", () => {
@@ -699,12 +747,12 @@ describe("buildServiceEnvironment", () => {
     const env = buildServiceEnvironment({
       env: {
         HOME: "/home/user",
-        ASTROCLAW_PROXY_URL: " http://127.0.0.1:3128 ",
+        OPENCLAW_PROXY_URL: " http://127.0.0.1:3128 ",
       },
       port: 18789,
     });
 
-    expect(env.ASTROCLAW_PROXY_URL).toBe("http://127.0.0.1:3128");
+    expect(env.OPENCLAW_PROXY_URL).toBe("http://127.0.0.1:3128");
   });
 
   it("omits PATH on Windows so Scheduled Tasks can inherit the current shell path", () => {
@@ -718,7 +766,7 @@ describe("buildServiceEnvironment", () => {
     });
 
     expect(env).not.toHaveProperty("PATH");
-    expect(env.ASTROCLAW_WINDOWS_TASK_NAME).toBe("Astroclaw Gateway");
+    expect(env.OPENCLAW_WINDOWS_TASK_NAME).toBe("OpenClaw Gateway");
   });
 
   it("prepends extra runtime directories to the gateway service PATH", () => {
@@ -739,11 +787,11 @@ describe("buildServiceEnvironment", () => {
       env: { HOME: "/Users/user", VOLTA_HOME: "/Users/user/.volta" },
       port: 18789,
       platform: "darwin",
-      extraPathDirs: ["/opt/homebrew/Cellar/node/22.16.0/bin"],
+      extraPathDirs: ["/opt/homebrew/Cellar/node/22.19.0/bin"],
     });
 
     expect(env.PATH).toBe(
-      "/opt/homebrew/Cellar/node/22.16.0/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      "/opt/homebrew/Cellar/node/22.19.0/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
     );
   });
 });
@@ -756,28 +804,37 @@ describe("buildNodeServiceEnvironment", () => {
     expect(env.HOME).toBe("/home/user");
   });
 
-  it("passes through ASTROCLAW_GATEWAY_TOKEN for node services", () => {
+  it("sets the OpenClaw-owned launchd marker for macOS node services", () => {
     const env = buildNodeServiceEnvironment({
-      env: { HOME: "/home/user", ASTROCLAW_GATEWAY_TOKEN: " node-token " },
+      env: { HOME: "/Users/user" },
+      platform: "darwin",
     });
-    expect(env.ASTROCLAW_GATEWAY_TOKEN).toBe("node-token");
+
+    expect(env.OPENCLAW_LAUNCHD_LABEL).toBe("ai.openclaw.node");
   });
 
-  it("passes through ASTROCLAW_ALLOW_INSECURE_PRIVATE_WS for node services", () => {
+  it("passes through OPENCLAW_GATEWAY_TOKEN for node services", () => {
     const env = buildNodeServiceEnvironment({
-      env: { HOME: "/home/user", ASTROCLAW_ALLOW_INSECURE_PRIVATE_WS: " 1 " },
+      env: { HOME: "/home/user", OPENCLAW_GATEWAY_TOKEN: " node-token " },
     });
-    expect(env.ASTROCLAW_ALLOW_INSECURE_PRIVATE_WS).toBe("1");
+    expect(env.OPENCLAW_GATEWAY_TOKEN).toBe("node-token");
   });
 
-  it("omits ASTROCLAW_GATEWAY_TOKEN when the env var is empty", () => {
+  it("passes through OPENCLAW_ALLOW_INSECURE_PRIVATE_WS for node services", () => {
+    const env = buildNodeServiceEnvironment({
+      env: { HOME: "/home/user", OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: " 1 " },
+    });
+    expect(env.OPENCLAW_ALLOW_INSECURE_PRIVATE_WS).toBe("1");
+  });
+
+  it("omits OPENCLAW_GATEWAY_TOKEN when the env var is empty", () => {
     const env = buildNodeServiceEnvironment({
       env: {
         HOME: "/home/user",
-        ASTROCLAW_GATEWAY_TOKEN: "   ",
+        OPENCLAW_GATEWAY_TOKEN: "   ",
       },
     });
-    expect(env.ASTROCLAW_GATEWAY_TOKEN).toBeUndefined();
+    expect(env.OPENCLAW_GATEWAY_TOKEN).toBeUndefined();
   });
 
   it("does not persist ambient proxy environment variables for node services", () => {
@@ -797,11 +854,11 @@ describe("buildNodeServiceEnvironment", () => {
     const env = buildNodeServiceEnvironment({
       env: {
         HOME: "/home/user",
-        ASTROCLAW_PROXY_URL: " http://127.0.0.1:3128 ",
+        OPENCLAW_PROXY_URL: " http://127.0.0.1:3128 ",
       },
     });
 
-    expect(env.ASTROCLAW_PROXY_URL).toBe("http://127.0.0.1:3128");
+    expect(env.OPENCLAW_PROXY_URL).toBe("http://127.0.0.1:3128");
   });
 
   it("forwards TMPDIR for node services on Linux", () => {
@@ -817,7 +874,7 @@ describe("buildNodeServiceEnvironment", () => {
       env: { HOME: "/Users/user", TMPDIR: "/var/folders/xw/abc123/T/" },
       platform: "darwin",
     });
-    expect(env.TMPDIR).toBe(path.join("/Users/user", ".astroclaw", "tmp"));
+    expect(env.TMPDIR).toBe(path.join("/Users/user", ".openclaw", "tmp"));
   });
 
   it("falls back to os.tmpdir for node services when TMPDIR is not set on Linux", () => {
@@ -838,6 +895,17 @@ describe("buildNodeServiceEnvironment", () => {
     expect(env.PATH?.split(path.posix.delimiter)[0]).toBe(
       "/home/user/.nvm/versions/node/v22.22.0/bin",
     );
+  });
+
+  it("marks Windows node tasks for hidden launcher startup", () => {
+    const env = buildNodeServiceEnvironment({
+      env: { HOME: "C:\\Users\\alice" },
+      platform: "win32",
+    });
+
+    expect(env.OPENCLAW_WINDOWS_TASK_NAME).toBe("OpenClaw Node");
+    expect(env.OPENCLAW_WINDOWS_TASK_HIDDEN_LAUNCHER).toBe("1");
+    expect(env.OPENCLAW_TASK_SCRIPT_NAME).toBe("node.cmd");
   });
 });
 
@@ -889,32 +957,32 @@ describe("shared Node TLS env defaults matrix", () => {
 describe("resolveGatewayStateDir", () => {
   it("uses the default state dir when no overrides are set", () => {
     const env = { HOME: "/Users/test" };
-    expect(resolveGatewayStateDir(env)).toBe(path.join("/Users/test", ".astroclaw"));
+    expect(resolveGatewayStateDir(env)).toBe(path.join("/Users/test", ".openclaw"));
   });
 
   it("appends the profile suffix when set", () => {
-    const env = { HOME: "/Users/test", ASTROCLAW_PROFILE: "rescue" };
-    expect(resolveGatewayStateDir(env)).toBe(path.join("/Users/test", ".astroclaw-rescue"));
+    const env = { HOME: "/Users/test", OPENCLAW_PROFILE: "rescue" };
+    expect(resolveGatewayStateDir(env)).toBe(path.join("/Users/test", ".openclaw-rescue"));
   });
 
   it("treats default profiles as the base state dir", () => {
-    const env = { HOME: "/Users/test", ASTROCLAW_PROFILE: "Default" };
-    expect(resolveGatewayStateDir(env)).toBe(path.join("/Users/test", ".astroclaw"));
+    const env = { HOME: "/Users/test", OPENCLAW_PROFILE: "Default" };
+    expect(resolveGatewayStateDir(env)).toBe(path.join("/Users/test", ".openclaw"));
   });
 
-  it("uses ASTROCLAW_STATE_DIR when provided", () => {
-    const env = { HOME: "/Users/test", ASTROCLAW_STATE_DIR: "/var/lib/astroclaw" };
-    expect(resolveGatewayStateDir(env)).toBe(path.resolve("/var/lib/astroclaw"));
+  it("uses OPENCLAW_STATE_DIR when provided", () => {
+    const env = { HOME: "/Users/test", OPENCLAW_STATE_DIR: "/var/lib/openclaw" };
+    expect(resolveGatewayStateDir(env)).toBe(path.resolve("/var/lib/openclaw"));
   });
 
-  it("expands ~ in ASTROCLAW_STATE_DIR", () => {
-    const env = { HOME: "/Users/test", ASTROCLAW_STATE_DIR: "~/astroclaw-state" };
-    expect(resolveGatewayStateDir(env)).toBe(path.resolve("/Users/test/astroclaw-state"));
+  it("expands ~ in OPENCLAW_STATE_DIR", () => {
+    const env = { HOME: "/Users/test", OPENCLAW_STATE_DIR: "~/openclaw-state" };
+    expect(resolveGatewayStateDir(env)).toBe(path.resolve("/Users/test/openclaw-state"));
   });
 
   it("preserves Windows absolute paths without HOME", () => {
-    const env = { ASTROCLAW_STATE_DIR: "C:\\State\\astroclaw" };
-    expect(resolveGatewayStateDir(env)).toBe("C:\\State\\astroclaw");
+    const env = { OPENCLAW_STATE_DIR: "C:\\State\\openclaw" };
+    expect(resolveGatewayStateDir(env)).toBe("C:\\State\\openclaw");
   });
 });
 
