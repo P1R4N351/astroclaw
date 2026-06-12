@@ -1,5 +1,7 @@
+// Shared Vitest spy helpers for repeated mock assertions.
 import { vi } from "vitest";
 
+/** Minimal mock contract for helpers that restore spies after a scoped run. */
 export type RestorableMock = {
   mockRestore(): void;
 };
@@ -40,11 +42,21 @@ export function withRestoredMocks<T>(
   }
 }
 
+export function mockProcessPlatform(platform: NodeJS.Platform): RestorableMock {
+  return vi.spyOn(process, "platform", "get").mockReturnValue(platform);
+}
+
 export function withMockedPlatform<T>(platform: NodeJS.Platform, run: () => Promise<T>): Promise<T>;
 export function withMockedPlatform<T>(platform: NodeJS.Platform, run: () => T): T;
 export function withMockedPlatform<T>(
   platform: NodeJS.Platform,
   run: () => T | Promise<T>,
 ): T | Promise<T> {
-  return withRestoredMocks([vi.spyOn(process, "platform", "get").mockReturnValue(platform)], run);
+  return withRestoredMocks([mockProcessPlatform(platform)], run);
+}
+
+export function withMockedWindowsPlatform<T>(run: () => Promise<T>): Promise<T>;
+export function withMockedWindowsPlatform<T>(run: () => T): T;
+export function withMockedWindowsPlatform<T>(run: () => T | Promise<T>): T | Promise<T> {
+  return withMockedPlatform("win32", run);
 }
