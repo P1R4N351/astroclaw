@@ -1,11 +1,12 @@
+// Codex tests cover auth profile runtime contract plugin behavior.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
   abortAgentHarnessRun,
   type EmbeddedRunAttemptParams,
-} from "astroclaw/plugin-sdk/agent-harness";
-import { AUTH_PROFILE_RUNTIME_CONTRACT } from "astroclaw/plugin-sdk/agent-runtime-test-contracts";
+} from "openclaw/plugin-sdk/agent-harness";
+import { AUTH_PROFILE_RUNTIME_CONTRACT } from "openclaw/plugin-sdk/agent-runtime-test-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CodexAppServerClientFactory } from "./client-factory.js";
 import { runCodexAppServerAttempt as runCodexAppServerAttemptImpl } from "./run-attempt.js";
@@ -157,10 +158,12 @@ describe("Auth profile runtime contract - Codex app-server adapter", () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "astroclaw-codex-auth-contract-"));
+    vi.useRealTimers();
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-auth-contract-"));
   });
 
   afterEach(async () => {
+    vi.useRealTimers();
     abortAgentHarnessRun(AUTH_PROFILE_RUNTIME_CONTRACT.sessionId);
     resetCodexAppServerClientFactoryForTest();
     await fs.rm(tmpDir, { recursive: true, force: true });
@@ -218,7 +221,7 @@ describe("Auth profile runtime contract - Codex app-server adapter", () => {
     await writeCodexAppServerBinding(sessionFile, {
       threadId: "thread-auth-contract",
       cwd: tmpDir,
-      authProfileId: "openai-codex:stale",
+      authProfileId: "openai:stale",
       dynamicToolsFingerprint: "[]",
     });
     const params = createParams(sessionFile, tmpDir);
