@@ -1,14 +1,15 @@
+// Discord tests cover thread session close plugin behavior.
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => {
   const updateSessionStore = vi.fn();
-  const resolveStorePath = vi.fn(() => "/tmp/astroclaw-sessions.json");
+  const resolveStorePath = vi.fn(() => "/tmp/openclaw-sessions.json");
   return { updateSessionStore, resolveStorePath };
 });
 
-vi.mock("astroclaw/plugin-sdk/session-store-runtime", async () => {
-  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/session-store-runtime")>(
-    "astroclaw/plugin-sdk/session-store-runtime",
+vi.mock("openclaw/plugin-sdk/session-store-runtime", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/session-store-runtime")>(
+    "openclaw/plugin-sdk/session-store-runtime",
   );
   return {
     ...actual,
@@ -39,7 +40,7 @@ describe("closeDiscordThreadSessions", () => {
   beforeEach(() => {
     hoisted.updateSessionStore.mockClear();
     hoisted.resolveStorePath.mockClear();
-    hoisted.resolveStorePath.mockReturnValue("/tmp/astroclaw-sessions.json");
+    hoisted.resolveStorePath.mockReturnValue("/tmp/openclaw-sessions.json");
   });
 
   it("resets updatedAt to 0 for sessions whose key contains the threadId", async () => {
