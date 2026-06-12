@@ -1,5 +1,6 @@
+// Plugin uninstall selection tests cover CLI uninstall target matching.
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { resolvePluginUninstallId } from "./plugins-uninstall-selection.js";
 
 describe("resolvePluginUninstallId", () => {
@@ -19,7 +20,7 @@ describe("resolvePluginUninstallId", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       plugins: [{ id: "linkmind-context", name: "linkmind-context" }],
     });
 
@@ -41,7 +42,7 @@ describe("resolvePluginUninstallId", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       plugins: [{ id: "linkmind-context", name: "linkmind-context" }],
     });
 
