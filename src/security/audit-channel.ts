@@ -1,3 +1,5 @@
+// Audits channel configuration for exposure, auth, and trust risks.
+import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
 import {
   hasConfiguredUnavailableCredentialStatus,
   hasResolvedCredentialValue,
@@ -9,10 +11,11 @@ import type { ChannelId } from "../channels/plugins/types.public.js";
 import { inspectReadOnlyChannelAccount } from "../channels/read-only-account-inspect.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { isDangerousNameMatchingEnabled } from "../config/dangerous-name-matching.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import type { SecurityAuditFinding, SecurityAuditSeverity } from "./audit.types.js";
 
+/** Classify free-form channel warnings into audit severities. */
 function classifyChannelWarningSeverity(message: string): SecurityAuditSeverity {
   const s = message.toLowerCase();
   if (
@@ -52,7 +55,7 @@ function dedupeFindings(findings: SecurityAuditFinding[]): SecurityAuditFinding[
 }
 
 function hasExplicitProviderAccountConfig(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   provider: string,
   accountId: string,
 ): boolean {
@@ -77,9 +80,10 @@ function formatChannelAccountNote(params: {
     : "";
 }
 
+/** Collect channel-specific security findings across active channel plugins/accounts. */
 export async function collectChannelSecurityFindings(params: {
-  cfg: AstroclawConfig;
-  sourceConfig?: AstroclawConfig;
+  cfg: OpenClawConfig;
+  sourceConfig?: OpenClawConfig;
   plugins: ChannelPlugin[];
 }): Promise<SecurityAuditFinding[]> {
   const findings: SecurityAuditFinding[] = [];
@@ -87,7 +91,7 @@ export async function collectChannelSecurityFindings(params: {
 
   const inspectChannelAccount = async (
     plugin: (typeof params.plugins)[number],
-    cfg: AstroclawConfig,
+    cfg: OpenClawConfig,
     accountId: string,
   ) => {
     if (plugin.config.inspectAccount) {
@@ -142,6 +146,9 @@ export async function collectChannelSecurityFindings(params: {
       };
     }
     const useSourceUnavailableAccount = Boolean(
+      // Secret resolution can replace a configured account with an unresolved
+      // placeholder. Use source config when needed so audits still explain the
+      // originally configured credential surface.
       sourceInspectedAccount &&
       hasConfiguredUnavailableCredentialStatus(sourceInspectedAccount) &&
       (!hasResolvedCredentialValue(resolvedAccount) ||
@@ -206,6 +213,8 @@ export async function collectChannelSecurityFindings(params: {
     normalizeEntry?: (raw: string) => string;
   }) => {
     const policyPath = input.policyPath ?? `${input.allowFromPath}policy`;
+    // DM allowlist audit may need channel-specific normalization and async
+    // account ownership checks before classifying open/multi-user exposure.
     const { hasWildcard, isMultiUserDm } = await resolveDmAllowAuditState({
       provider: input.provider,
       accountId: input.accountId,
@@ -253,7 +262,7 @@ export async function collectChannelSecurityFindings(params: {
           "Multiple DM senders currently share the main session, which can leak context across users.",
         remediation:
           "Run: " +
-          formatCliCommand('astroclaw config set session.dmScope "per-channel-peer"') +
+          formatCliCommand('openclaw config set session.dmScope "per-channel-peer"') +
           ' (or "per-account-channel-peer" for multi-account channels) to isolate DM sessions per sender.',
       });
     }
@@ -269,7 +278,7 @@ export async function collectChannelSecurityFindings(params: {
       cfg: sourceConfig,
       accountIds,
     });
-    const orderedAccountIds = Array.from(new Set([defaultAccountId, ...accountIds]));
+    const orderedAccountIds = uniqueStrings([defaultAccountId, ...accountIds]);
 
     for (const accountId of orderedAccountIds) {
       const hasExplicitAccountPath = hasExplicitProviderAccountConfig(
