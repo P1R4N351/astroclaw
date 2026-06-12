@@ -1,6 +1,7 @@
+// Onboard custom config tests cover provider-specific config merging and context-window bounds.
 import { describe, expect, it } from "vitest";
 import { CONTEXT_WINDOW_HARD_MIN_TOKENS } from "../agents/context-window-guard.js";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   applyCustomApiConfig,
   buildAnthropicVerificationProbeRequest,
@@ -13,7 +14,7 @@ import {
 
 function buildCustomProviderConfig(contextWindow?: number) {
   if (contextWindow === undefined) {
-    return {} as AstroclawConfig;
+    return {} as OpenClawConfig;
   }
   return {
     models: {
@@ -35,7 +36,7 @@ function buildCustomProviderConfig(contextWindow?: number) {
         },
       },
     },
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 function applyCustomModelConfigWithContextWindow(contextWindow?: number) {
@@ -57,6 +58,25 @@ it("uses expanded max_tokens for openai verification probes", () => {
 
   expect(request.body.max_tokens).toBe(16);
 });
+
+it("uses responses probes for custom OpenAI Responses endpoints", () => {
+  const request = buildOpenAiVerificationProbeRequest({
+    baseUrl: "https://example.com/v1",
+    apiKey: "test-key",
+    modelId: "gpt-5.4",
+    responsesApi: true,
+  });
+
+  expect(request.endpoint).toBe("https://example.com/v1/responses");
+  expect(request.headers.Authorization).toBe("Bearer test-key");
+  expect(request.body).toEqual({
+    model: "gpt-5.4",
+    input: "Hi",
+    max_output_tokens: 16,
+    stream: false,
+  });
+});
+
 it("uses azure responses-specific headers and body for openai verification probes", () => {
   const request = buildOpenAiVerificationProbeRequest({
     baseUrl: "https://my-resource.openai.azure.com",
@@ -148,7 +168,8 @@ describe("applyCustomApiConfig", () => {
         modelId: "foo-large",
         compatibility: "invalid" as unknown as "openai",
       },
-      expectedMessage: 'Custom provider compatibility must be "openai" or "anthropic".',
+      expectedMessage:
+        'Custom provider compatibility must be "openai", "openai-responses", or "anthropic".',
     },
     {
       name: "explicit provider ids that normalize to empty",
@@ -188,6 +209,20 @@ describe("applyCustomApiConfig", () => {
 
     const modelRef = `${providerId}/${result.modelId}`;
     expect(result.config.agents?.defaults?.models?.[modelRef]?.params?.thinking).toBe("medium");
+  });
+
+  it("saves explicit custom OpenAI Responses compatibility", () => {
+    const result = applyCustomApiConfig({
+      config: {},
+      baseUrl: "https://responses.example.com/v1",
+      modelId: "gpt-5.4",
+      compatibility: "openai-responses",
+      apiKey: "abcd1234",
+    });
+
+    const provider = result.config.models?.providers?.[result.providerId!];
+    expect(provider?.baseUrl).toBe("https://responses.example.com/v1");
+    expect(provider?.api).toBe("openai-responses");
   });
 
   it("keeps selected compatibility for Azure AI Foundry URLs", () => {
@@ -405,7 +440,7 @@ describe("applyCustomApiConfig", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       baseUrl: "https://llm.example.com/v1",
       modelId: "foo-large",
       compatibility: "openai",
@@ -435,7 +470,7 @@ describe("applyCustomApiConfig", () => {
             },
           },
         },
-      } as AstroclawConfig,
+      } as OpenClawConfig,
       baseUrl: "https://my-resource.openai.azure.com",
       modelId: "o3-mini",
       compatibility: "openai",
@@ -473,6 +508,16 @@ describe("parseNonInteractiveCustomApiFlags", () => {
     expect(result.supportsImageInput).toBe(true);
   });
 
+  it("parses OpenAI Responses compatibility", () => {
+    const result = parseNonInteractiveCustomApiFlags({
+      baseUrl: "https://llm.example.com/v1",
+      modelId: "gpt-5.4",
+      compatibility: "openai-responses",
+    });
+
+    expect(result.compatibility).toBe("openai-responses");
+  });
+
   it.each([
     {
       name: "missing required flags",
@@ -486,7 +531,8 @@ describe("parseNonInteractiveCustomApiFlags", () => {
         modelId: "foo-large",
         compatibility: "xmlrpc",
       },
-      expectedMessage: 'Invalid --custom-compatibility (use "openai" or "anthropic").',
+      expectedMessage:
+        'Invalid --custom-compatibility (use "openai", "openai-responses", or "anthropic").',
     },
     {
       name: "invalid explicit provider ids",
