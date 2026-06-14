@@ -1,3 +1,4 @@
+// Release configured plugin install tests cover doctor checks for release-time plugin installs.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -202,6 +203,60 @@ describe("configured plugin install release step", () => {
     expect(result.channelIds).toStrictEqual([]);
   });
 
+  it("collects provider plugins from channel-only model overrides", async () => {
+    mocks.resolveProviderInstallCatalogEntries.mockReturnValue([
+      {
+        pluginId: "anthropic-provider",
+        providerId: "anthropic",
+      },
+    ]);
+
+    const { collectReleaseConfiguredPluginIds } =
+      await import("./release-configured-plugin-installs.js");
+    const result = collectReleaseConfiguredPluginIds({
+      cfg: {
+        channels: {
+          modelByChannel: {
+            discord: {
+              default: "anthropic/claude-opus-4-7",
+            },
+          },
+        },
+      },
+      env: {},
+    });
+
+    expect(result.pluginIds).toEqual(["anthropic-provider"]);
+    expect(result.channelIds).toStrictEqual([]);
+  });
+
+  it("collects provider plugins from provider-keyed channel model aliases", async () => {
+    mocks.resolveProviderInstallCatalogEntries.mockReturnValue([
+      {
+        pluginId: "anthropic-provider",
+        providerId: "anthropic",
+      },
+    ]);
+
+    const { collectReleaseConfiguredPluginIds } =
+      await import("./release-configured-plugin-installs.js");
+    const result = collectReleaseConfiguredPluginIds({
+      cfg: {
+        channels: {
+          modelByChannel: {
+            anthropic: {
+              discord: "claude-opus-4-7",
+            },
+          },
+        },
+      },
+      env: {},
+    });
+
+    expect(result.pluginIds).toEqual(["anthropic-provider"]);
+    expect(result.channelIds).toStrictEqual([]);
+  });
+
   it("collects Codex from selectable OpenAI agent models even without integration discovery", async () => {
     const { collectReleaseConfiguredPluginIds } =
       await import("./release-configured-plugin-installs.js");
@@ -334,9 +389,12 @@ describe("configured plugin install release step", () => {
   it("does not stamp config during update-time deferred install repair", async () => {
     mocks.repairMissingPluginInstallsForIds.mockResolvedValue({
       changes: [
-        'Skipped package-manager repair for configured plugin "codex" during package update; rerun "astroclaw doctor --fix" after the update completes.',
+        'Skipped package-manager repair for configured plugin "codex" during package update; rerun "openclaw doctor --fix" after the update completes.',
       ],
       warnings: [],
+      deferredRepairDetails: [
+        'Skipped package-manager repair for configured plugin "codex" during package update; rerun "openclaw doctor --fix" after the update completes.',
+      ],
     });
 
     const { maybeRunConfiguredPluginInstallReleaseStep } =
@@ -352,19 +410,120 @@ describe("configured plugin install release step", () => {
       },
       currentVersion: "2026.5.2-beta.1",
       touchedVersion: "2026.5.1",
-      env: { ASTROCLAW_UPDATE_IN_PROGRESS: "1" },
+      env: {
+        OPENCLAW_UPDATE_IN_PROGRESS: "1",
+        OPENCLAW_UPDATE_DEFER_CONFIGURED_PLUGIN_INSTALL_REPAIR: "1",
+      },
     });
 
     const repairCall = readOnlyMissingPluginInstallRepairCall();
     expect(repairCall.pluginIds).toEqual(["codex"]);
-    expect(repairCall.env).toEqual({ ASTROCLAW_UPDATE_IN_PROGRESS: "1" });
+    expect(repairCall.env).toEqual({
+      OPENCLAW_UPDATE_IN_PROGRESS: "1",
+      OPENCLAW_UPDATE_DEFER_CONFIGURED_PLUGIN_INSTALL_REPAIR: "1",
+    });
     expect(result).toEqual({
       changes: [
-        'Skipped package-manager repair for configured plugin "codex" during package update; rerun "astroclaw doctor --fix" after the update completes.',
+        'Skipped package-manager repair for configured plugin "codex" during package update; rerun "openclaw doctor --fix" after the update completes.',
       ],
       warnings: [],
       completed: false,
       touchedConfig: false,
+      postInstallDoctorResult: {
+        status: "advisory",
+        advisory: expect.objectContaining({
+          kind: "package-post-install-doctor",
+          reason: "deferred-configured-plugin-repair",
+          details: [
+            'Skipped package-manager repair for configured plugin "codex" during package update; rerun "openclaw doctor --fix" after the update completes.',
+          ],
+        }),
+      },
+    });
+  });
+
+  it("does not report an advisory for update-time repair changes that were not deferred", async () => {
+    mocks.repairMissingPluginInstallsForIds.mockResolvedValue({
+      changes: ['Removed stale managed install record for bundled plugin "matrix".'],
+      warnings: [],
+    });
+
+    const { maybeRunConfiguredPluginInstallReleaseStep } =
+      await import("./release-configured-plugin-installs.js");
+    const result = await maybeRunConfiguredPluginInstallReleaseStep({
+      cfg: {
+        plugins: {
+          entries: {
+            matrix: { enabled: true },
+          },
+        },
+      },
+      currentVersion: "2026.5.2-beta.1",
+      touchedVersion: "2026.5.1",
+      env: {
+        OPENCLAW_UPDATE_IN_PROGRESS: "1",
+        OPENCLAW_UPDATE_DEFER_CONFIGURED_PLUGIN_INSTALL_REPAIR: "1",
+      },
+    });
+
+    expect(result).toEqual({
+      changes: ['Removed stale managed install record for bundled plugin "matrix".'],
+      warnings: [],
+      completed: false,
+      touchedConfig: false,
+    });
+  });
+
+  it("defers package-manager plugin release completion for writable legacy parents", async () => {
+    mocks.repairMissingPluginInstallsForIds.mockResolvedValue({
+      changes: [
+        'Skipped package-manager repair for configured plugin "discord" during package update; rerun "openclaw doctor --fix" after the update completes.',
+      ],
+      warnings: [],
+      deferredRepairDetails: [
+        'Skipped package-manager repair for configured plugin "discord" during package update; rerun "openclaw doctor --fix" after the update completes.',
+      ],
+    });
+
+    const { maybeRunConfiguredPluginInstallReleaseStep } =
+      await import("./release-configured-plugin-installs.js");
+    const result = await maybeRunConfiguredPluginInstallReleaseStep({
+      cfg: {
+        plugins: {
+          entries: {
+            discord: { enabled: true },
+          },
+        },
+      },
+      currentVersion: "2026.5.2-beta.1",
+      touchedVersion: "2026.5.1",
+      env: {
+        OPENCLAW_UPDATE_IN_PROGRESS: "1",
+        OPENCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
+      },
+    });
+
+    expect(readOnlyMissingPluginInstallRepairCall().env).toEqual({
+      OPENCLAW_UPDATE_IN_PROGRESS: "1",
+      OPENCLAW_UPDATE_PARENT_SUPPORTS_DOCTOR_CONFIG_WRITE: "1",
+    });
+    expect(result).toEqual({
+      changes: [
+        'Skipped package-manager repair for configured plugin "discord" during package update; rerun "openclaw doctor --fix" after the update completes.',
+      ],
+      warnings: [],
+      completed: false,
+      touchedConfig: false,
+      postInstallDoctorResult: {
+        status: "advisory",
+        advisory: expect.objectContaining({
+          kind: "package-post-install-doctor",
+          reason: "deferred-configured-plugin-repair",
+          details: [
+            'Skipped package-manager repair for configured plugin "discord" during package update; rerun "openclaw doctor --fix" after the update completes.',
+          ],
+        }),
+      },
     });
   });
 
@@ -462,7 +621,7 @@ describe("configured plugin install release step", () => {
   it("includes allow-only official plugin ids in the repair set", async () => {
     mocks.getOfficialExternalPluginCatalogEntry.mockImplementation((pluginId: string) => {
       if (pluginId === "lobster") {
-        return { name: "@astroclaw/lobster" };
+        return { name: "@openclaw/lobster" };
       }
       return undefined;
     });
@@ -485,7 +644,7 @@ describe("configured plugin install release step", () => {
   it("skips allow-only plugin ids that already have material plugin entries", async () => {
     mocks.getOfficialExternalPluginCatalogEntry.mockImplementation((pluginId: string) => {
       if (pluginId === "lobster") {
-        return { name: "@astroclaw/lobster" };
+        return { name: "@openclaw/lobster" };
       }
       return undefined;
     });
