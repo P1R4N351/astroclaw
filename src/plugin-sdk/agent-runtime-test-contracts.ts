@@ -7,12 +7,13 @@ export {
 } from "./test-helpers/agents/auth-profile-runtime-contract.js";
 export { DELIVERY_NO_REPLY_RUNTIME_CONTRACT } from "./test-helpers/agents/delivery-no-reply-runtime-contract.js";
 export {
+  createTerminalPresentationContractTool,
   installCodexToolResultMiddleware,
-  installAstroclawOwnedToolHooks,
+  installOpenClawOwnedToolHooks,
   mediaToolResult,
-  resetAstroclawOwnedToolHooks,
+  resetOpenClawOwnedToolHooks,
   textToolResult,
-} from "./test-helpers/agents/astroclaw-owned-tool-runtime-contract.js";
+} from "./test-helpers/agents/openclaw-owned-tool-runtime-contract.js";
 export {
   createContractFallbackConfig,
   createContractRunResult,
