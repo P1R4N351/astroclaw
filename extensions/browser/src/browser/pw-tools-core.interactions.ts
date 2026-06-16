@@ -56,7 +56,7 @@ type TargetOpts = {
   targetId?: string;
 };
 
-const INTERACTION_NAVIGATION_GRACE_MS = 250;
+const INTERACTION_NAVIGATION_GRACE_MS = 500;
 
 type NavigationObservablePage = Pick<Page, "url"> & {
   mainFrame?: () => Frame;
