@@ -1,0 +1,11 @@
+{
+  "name": "@astroclaw/llm-runtime",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./api-registry": "./src/api-registry.ts",
+    ".": "./src/index.ts",
+    "./stream": "./src/stream.ts"
+  }
+}

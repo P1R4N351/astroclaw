@@ -1,0 +1,19 @@
+{
+  "name": "@astroclaw/media-understanding-common",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./active-model": "./src/active-model.ts",
+    "./defaults": "./src/defaults.ts",
+    "./errors": "./src/errors.ts",
+    "./format": "./src/format.ts",
+    ".": "./src/index.ts",
+    "./openai-compatible-video": "./src/openai-compatible-video.ts",
+    "./output-extract": "./src/output-extract.ts",
+    "./provider-id": "./src/provider-id.ts",
+    "./provider-supports": "./src/provider-supports.ts",
+    "./types": "./src/types.ts",
+    "./video": "./src/video.ts"
+  }
+}

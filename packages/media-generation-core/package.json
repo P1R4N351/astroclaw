@@ -1,0 +1,14 @@
+{
+  "name": "@astroclaw/media-generation-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./capability-model-ref": "./src/capability-model-ref.ts",
+    "./catalog": "./src/catalog.ts",
+    ".": "./src/index.ts",
+    "./model-ref": "./src/model-ref.ts",
+    "./normalization": "./src/normalization.ts",
+    "./string": "./src/string.ts"
+  }
+}

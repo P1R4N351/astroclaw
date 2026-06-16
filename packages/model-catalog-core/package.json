@@ -1,0 +1,16 @@
+{
+  "name": "@astroclaw/model-catalog-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./configured-model-refs": "./src/configured-model-refs.ts",
+    ".": "./src/index.ts",
+    "./model-catalog-normalize": "./src/model-catalog-normalize.ts",
+    "./model-catalog-refs": "./src/model-catalog-refs.ts",
+    "./model-catalog-types": "./src/model-catalog-types.ts",
+    "./provider-id": "./src/provider-id.ts",
+    "./provider-model-id-normalization": "./src/provider-model-id-normalization.ts",
+    "./provider-model-id-normalize": "./src/provider-model-id-normalize.ts"
+  }
+}

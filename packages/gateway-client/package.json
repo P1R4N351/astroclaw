@@ -1,0 +1,14 @@
+{
+  "name": "@astroclaw/gateway-client",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./client": "./src/client.ts",
+    "./device-auth": "./src/device-auth.ts",
+    "./event-loop-ready": "./src/event-loop-ready.ts",
+    ".": "./src/index.ts",
+    "./readiness": "./src/readiness.ts",
+    "./timeouts": "./src/timeouts.ts"
+  }
+}

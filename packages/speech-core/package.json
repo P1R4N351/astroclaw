@@ -1,0 +1,9 @@
+{
+  "name": "@astroclaw/speech-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tts": "./src/tts.ts"
+  }
+}

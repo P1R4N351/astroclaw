@@ -1,0 +1,28 @@
+{
+  "name": "@astroclaw/terminal-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./ansi": "./src/ansi.ts",
+    "./decorative-emoji": "./src/decorative-emoji.ts",
+    "./display-string": "./src/display-string.ts",
+    "./health-style": "./src/health-style.ts",
+    ".": "./src/index.ts",
+    "./links": "./src/links.ts",
+    "./note": "./src/note.ts",
+    "./osc-progress": "./src/osc-progress.ts",
+    "./palette": "./src/palette.ts",
+    "./progress-line": "./src/progress-line.ts",
+    "./prompt-select-styled-params": "./src/prompt-select-styled-params.ts",
+    "./prompt-select-styled": "./src/prompt-select-styled.ts",
+    "./prompt-style": "./src/prompt-style.ts",
+    "./restore": "./src/restore.ts",
+    "./safe-text": "./src/safe-text.ts",
+    "./stream-writer": "./src/stream-writer.ts",
+    "./string": "./src/string.ts",
+    "./table": "./src/table.ts",
+    "./terminal-link": "./src/terminal-link.ts",
+    "./theme": "./src/theme.ts"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@astroclaw/tool-call-repair",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./grammar": "./src/grammar.ts",
+    ".": "./src/index.ts",
+    "./payload": "./src/payload.ts",
+    "./promote": "./src/promote.ts",
+    "./stream-normalizer": "./src/stream-normalizer.ts"
+  }
+}

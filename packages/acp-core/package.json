@@ -1,0 +1,23 @@
+{
+  "name": "@astroclaw/acp-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./error-format": "./src/error-format.ts",
+    ".": "./src/index.ts",
+    "./meta": "./src/meta.ts",
+    "./normalize-text": "./src/normalize-text.ts",
+    "./numeric-options": "./src/numeric-options.ts",
+    "./record-shared": "./src/record-shared.ts",
+    "./session-interaction-mode": "./src/session-interaction-mode.ts",
+    "./session-lineage-meta": "./src/session-lineage-meta.ts",
+    "./session": "./src/session.ts",
+    "./types": "./src/types.ts",
+    "./runtime/error-text": "./src/runtime/error-text.ts",
+    "./runtime/errors": "./src/runtime/errors.ts",
+    "./runtime/session-identifiers": "./src/runtime/session-identifiers.ts",
+    "./runtime/session-identity": "./src/runtime/session-identity.ts",
+    "./runtime/types": "./src/runtime/types.ts"
+  }
+}

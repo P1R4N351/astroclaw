@@ -1,0 +1,10 @@
+{
+  "name": "@astroclaw/web-content-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./provider-runtime-shared": "./src/provider-runtime-shared.ts"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@astroclaw/net-policy",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ip-test-fixtures": "./src/ip-test-fixtures.ts",
+    "./ip": "./src/ip.ts",
+    "./ipv4": "./src/ipv4.ts",
+    "./redact-sensitive-url": "./src/redact-sensitive-url.ts",
+    "./url-userinfo": "./src/url-userinfo.ts"
+  }
+}

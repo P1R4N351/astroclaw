@@ -1,0 +1,14 @@
+{
+  "name": "@astroclaw/llm-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./validation": "./src/validation.ts",
+    "./model-contracts/anthropic": "./src/model-contracts/anthropic.ts",
+    "./utils/diagnostics": "./src/utils/diagnostics.ts",
+    "./utils/event-stream": "./src/utils/event-stream.ts"
+  }
+}

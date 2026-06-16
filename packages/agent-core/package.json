@@ -1,0 +1,25 @@
+{
+  "name": "@astroclaw/agent-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./agent-loop": "./src/agent-loop.ts",
+    "./agent": "./src/agent.ts",
+    ".": "./src/index.ts",
+    "./llm": "./src/llm.ts",
+    "./node": "./src/node.ts",
+    "./reasoning": "./src/reasoning.ts",
+    "./runtime-deps": "./src/runtime-deps.ts",
+    "./types": "./src/types.ts",
+    "./validation": "./src/validation.ts",
+    "./harness/agent-harness": "./src/harness/agent-harness.ts",
+    "./harness/file-loader-utils": "./src/harness/file-loader-utils.ts",
+    "./harness/messages": "./src/harness/messages.ts",
+    "./harness/prompt-template-arguments": "./src/harness/prompt-template-arguments.ts",
+    "./harness/prompt-templates": "./src/harness/prompt-templates.ts",
+    "./harness/skills": "./src/harness/skills.ts",
+    "./harness/system-prompt": "./src/harness/system-prompt.ts",
+    "./harness/types": "./src/harness/types.ts"
+  }
+}
