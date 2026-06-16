@@ -1,3 +1,10 @@
+// Runs synchronous extra security audit checks.
+import {
+  normalizeOptionalLowercaseString,
+  normalizeOptionalString,
+  normalizeStringifiedOptionalString,
+} from "@openclaw/normalization-core/string-coerce";
+import { normalizeUniqueStringEntries } from "@openclaw/normalization-core/string-normalization";
 import { resolveSandboxConfigForAgent } from "../agents/sandbox/config.js";
 import { isDangerousNetworkMode, normalizeNetworkMode } from "../agents/sandbox/network-mode.js";
 import { resolveSandboxToolPolicyForAgent } from "../agents/sandbox/tool-policy.js";
@@ -6,20 +13,16 @@ import { getBlockedBindReason } from "../agents/sandbox/validate-sandbox-securit
 import { isToolAllowedByPolicies } from "../agents/tool-policy-match.js";
 import { resolveToolProfilePolicy } from "../agents/tool-policy.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { GatewayAuthConfig } from "../config/types.gateway.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { AgentToolsConfig } from "../config/types.tools.js";
-import { resolveGatewayAuth } from "../gateway/auth.js";
+import { resolveGatewayAuth, type ResolvedGatewayAuth } from "../gateway/auth.js";
 import { resolveAllowedAgentIds } from "../gateway/hooks-policy.js";
 import {
   DEFAULT_DANGEROUS_NODE_COMMANDS,
   listDangerousPluginNodeCommands,
   resolveNodeCommandAllowlist,
 } from "../gateway/node-command-policy.js";
-import {
-  normalizeOptionalLowercaseString,
-  normalizeOptionalString,
-  normalizeStringifiedOptionalString,
-} from "../shared/string-coerce.js";
 import { collectAuditModelRefs } from "./audit-model-refs.js";
 import { pickSandboxToolPolicy } from "./audit-tool-policy.js";
 
@@ -35,6 +38,24 @@ export type SecurityAuditFinding = {
   title: string;
   detail: string;
   remediation?: string;
+};
+
+export type HooksHardeningAuditOptions = {
+  gatewayAuthOverride?: Pick<GatewayAuthConfig, "mode" | "token" | "password">;
+};
+
+export type GatewayHttpNoAuthAuditOptions = {
+  gatewayAuthOverride?: Pick<GatewayAuthConfig, "mode" | "token" | "password">;
+};
+
+type GatewayAuthSharedSecretLabel = "gateway auth token" | "gateway auth password";
+type GatewayAuthSharedSecretReuse = {
+  label: GatewayAuthSharedSecretLabel;
+  source: "config" | "override";
+};
+type ActiveGatewaySharedSecret = {
+  label: GatewayAuthSharedSecretLabel;
+  value?: string;
 };
 
 // --------------------------------------------------------------------------
@@ -57,13 +78,91 @@ function looksLikeEnvRef(value: string): boolean {
   return v.startsWith("${") && v.endsWith("}");
 }
 
-function isGatewayRemotelyExposed(cfg: AstroclawConfig): boolean {
+function isGatewayRemotelyExposed(cfg: OpenClawConfig): boolean {
   const bind = typeof cfg.gateway?.bind === "string" ? cfg.gateway.bind : "loopback";
   if (bind !== "loopback") {
     return true;
   }
   const tailscaleMode = cfg.gateway?.tailscale?.mode ?? "off";
   return tailscaleMode === "serve" || tailscaleMode === "funnel";
+}
+
+function formatGatewayAuthDisplayLabel(label: GatewayAuthSharedSecretLabel): string {
+  if (label === "gateway auth password") {
+    return "Gateway password";
+  }
+  return "Gateway token";
+}
+
+function formatHooksTokenReuseDetail(reusedGatewayAuthLabel: GatewayAuthSharedSecretLabel): string {
+  if (reusedGatewayAuthLabel === "gateway auth password") {
+    return "hooks.token matches gateway.auth password; compromise of hooks expands blast radius to Gateway password auth.";
+  }
+  return "hooks.token matches gateway.auth token; compromise of hooks expands blast radius to the Gateway API.";
+}
+
+function listActiveGatewaySharedSecrets(auth: ResolvedGatewayAuth): ActiveGatewaySharedSecret[] {
+  if (auth.mode === "token") {
+    return [{ label: "gateway auth token", value: auth.token }];
+  }
+  if (auth.mode === "password" || auth.mode === "trusted-proxy") {
+    return [{ label: "gateway auth password", value: auth.password }];
+  }
+  return [];
+}
+
+function findGatewayAuthLabelMatchingHooksToken(params: {
+  hooksToken: string;
+  auth: ResolvedGatewayAuth;
+}): GatewayAuthSharedSecretLabel | undefined {
+  return listActiveGatewaySharedSecrets(params.auth).find(
+    (candidate) => normalizeOptionalString(candidate.value) === params.hooksToken,
+  )?.label;
+}
+
+function findHooksTokenGatewayAuthReuse(params: {
+  hooksToken: string;
+  configGatewayAuth: ResolvedGatewayAuth;
+  overrideGatewayAuth?: ResolvedGatewayAuth;
+}): GatewayAuthSharedSecretReuse | undefined {
+  const configReuseLabel = findGatewayAuthLabelMatchingHooksToken({
+    hooksToken: params.hooksToken,
+    auth: params.configGatewayAuth,
+  });
+  if (configReuseLabel) {
+    return { label: configReuseLabel, source: "config" };
+  }
+
+  const overrideReuseLabel = params.overrideGatewayAuth
+    ? findGatewayAuthLabelMatchingHooksToken({
+        hooksToken: params.hooksToken,
+        auth: params.overrideGatewayAuth,
+      })
+    : undefined;
+  if (!overrideReuseLabel) {
+    return undefined;
+  }
+  return { label: overrideReuseLabel, source: "override" };
+}
+
+function formatHooksTokenReuseRemediation(reuse: GatewayAuthSharedSecretReuse): string {
+  if (reuse.source === "override") {
+    return "Rotate hooks.token or the runtime Gateway shared-secret auth value used for this audit; doctor can only repair reuse that is present in persisted config or process env.";
+  }
+  return `Run ${formatCliCommand("openclaw doctor --fix")} to rotate a persisted hooks.token, then update external hook senders to use the new hook token.`;
+}
+
+function hasResolvedGatewayHttpAuth(auth: ResolvedGatewayAuth): boolean {
+  if (auth.mode === "token") {
+    return Boolean(normalizeOptionalString(auth.token));
+  }
+  if (auth.mode === "password") {
+    return Boolean(normalizeOptionalString(auth.password));
+  }
+  if (auth.mode === "trusted-proxy") {
+    return true;
+  }
+  return false;
 }
 
 const LEGACY_MODEL_PATTERNS: Array<{ id: string; re: RegExp; label: string }> = [
@@ -112,8 +211,8 @@ function isWildcardEntry(value: unknown): boolean {
   return normalizeStringifiedOptionalString(value) === "*";
 }
 
-function listKnownNodeCommands(cfg: AstroclawConfig): Set<string> {
-  const baseCfg: AstroclawConfig = {
+function listKnownNodeCommands(cfg: OpenClawConfig): Set<string> {
+  const baseCfg: OpenClawConfig = {
     ...cfg,
     gateway: {
       ...cfg.gateway,
@@ -181,7 +280,7 @@ function listKnownNodeCommands(cfg: AstroclawConfig): Set<string> {
 }
 
 function resolveToolPolicies(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   agentTools?: AgentToolsConfig;
   sandboxMode?: "off" | "non-main" | "all";
   agentId?: string | null;
@@ -283,20 +382,34 @@ function suggestKnownNodeCommands(unknown: string, known: Set<string>): string[]
     .map((r) => r.cmd);
 }
 
-function listGroupPolicyOpen(cfg: AstroclawConfig): string[] {
+function listOpenInboundPolicies(cfg: OpenClawConfig): string[] {
   const out: string[] = [];
   const channels = cfg.channels as Record<string, unknown> | undefined;
   if (!channels || typeof channels !== "object") {
     return out;
   }
+
+  const inspectSection = (section: Record<string, unknown>, basePath: string) => {
+    if (section.groupPolicy === "open") {
+      out.push(`${basePath}.groupPolicy`);
+    }
+    const dm = section.dm;
+    const legacyDmPolicy =
+      dm && typeof dm === "object" ? (dm as Record<string, unknown>).policy : undefined;
+    const dmPolicy = section.dmPolicy ?? legacyDmPolicy;
+    if (dmPolicy === "open") {
+      out.push(`${basePath}.${section.dmPolicy == null ? "dm.policy" : "dmPolicy"}`);
+    }
+  };
+
   for (const [channelId, value] of Object.entries(channels)) {
     if (!value || typeof value !== "object") {
       continue;
     }
     const section = value as Record<string, unknown>;
-    if (section.groupPolicy === "open") {
-      out.push(`channels.${channelId}.groupPolicy`);
-    }
+    // Root policy can govern an implicit/default env-backed account. Named account overrides
+    // do not prove this scope is inactive, so audit it independently.
+    inspectSection(section, `channels.${channelId}`);
     const accounts = section.accounts;
     if (accounts && typeof accounts === "object") {
       for (const [accountId, accountVal] of Object.entries(accounts)) {
@@ -304,9 +417,7 @@ function listGroupPolicyOpen(cfg: AstroclawConfig): string[] {
           continue;
         }
         const acc = accountVal as Record<string, unknown>;
-        if (acc.groupPolicy === "open") {
-          out.push(`channels.${channelId}.accounts.${accountId}.groupPolicy`);
-        }
+        inspectSection(acc, `channels.${channelId}.accounts.${accountId}`);
       }
     }
   }
@@ -321,7 +432,7 @@ function hasConfiguredGroupTargets(section: Record<string, unknown>): boolean {
   });
 }
 
-function listPotentialMultiUserSignals(cfg: AstroclawConfig): string[] {
+function listPotentialMultiUserSignals(cfg: OpenClawConfig): string[] {
   const out = new Set<string>();
   const channels = cfg.channels as Record<string, unknown> | undefined;
   if (!channels || typeof channels !== "object") {
@@ -389,7 +500,7 @@ function listPotentialMultiUserSignals(cfg: AstroclawConfig): string[] {
   return Array.from(out);
 }
 
-function collectRiskyToolExposureContexts(cfg: AstroclawConfig): {
+function collectRiskyToolExposureContexts(cfg: OpenClawConfig): {
   riskyContexts: string[];
   hasRuntimeRisk: boolean;
 } {
@@ -459,13 +570,13 @@ export function collectSyncedFolderFindings(params: {
       severity: "warn",
       title: "State/config path looks like a synced folder",
       detail: `stateDir=${params.stateDir}, configPath=${params.configPath}. Synced folders (iCloud/Dropbox/OneDrive/Google Drive) can leak tokens and transcripts onto other devices.`,
-      remediation: `Keep ASTROCLAW_STATE_DIR on a local-only volume and re-run "${formatCliCommand("astroclaw security audit --fix")}".`,
+      remediation: `Keep OPENCLAW_STATE_DIR on a local-only volume and re-run "${formatCliCommand("openclaw security audit --fix")}".`,
     });
   }
   return findings;
 }
 
-export function collectSecretsInConfigFindings(cfg: AstroclawConfig): SecurityAuditFinding[] {
+export function collectSecretsInConfigFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const password = normalizeOptionalString(cfg.gateway?.auth?.password) ?? "";
   if (password && !looksLikeEnvRef(password)) {
@@ -476,7 +587,7 @@ export function collectSecretsInConfigFindings(cfg: AstroclawConfig): SecurityAu
       detail:
         "gateway.auth.password is set in the config file; prefer environment variables for secrets when possible.",
       remediation:
-        "Prefer ASTROCLAW_GATEWAY_PASSWORD (env) and remove gateway.auth.password from disk.",
+        "Prefer OPENCLAW_GATEWAY_PASSWORD (env) and remove gateway.auth.password from disk.",
     });
   }
 
@@ -495,8 +606,9 @@ export function collectSecretsInConfigFindings(cfg: AstroclawConfig): SecurityAu
 }
 
 export function collectHooksHardeningFindings(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv = process.env,
+  options: HooksHardeningAuditOptions = {},
 ): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   if (cfg.hooks?.enabled !== true) {
@@ -513,31 +625,31 @@ export function collectHooksHardeningFindings(
     });
   }
 
-  const gatewayAuth = resolveGatewayAuth({
+  const configGatewayAuth = resolveGatewayAuth({
     authConfig: cfg.gateway?.auth,
     tailscaleMode: cfg.gateway?.tailscale?.mode ?? "off",
     env,
   });
-  const astroclawGatewayToken =
-    typeof env.ASTROCLAW_GATEWAY_TOKEN === "string" && env.ASTROCLAW_GATEWAY_TOKEN.trim()
-      ? env.ASTROCLAW_GATEWAY_TOKEN.trim()
-      : null;
-  const gatewayToken =
-    gatewayAuth.mode === "token" &&
-    typeof gatewayAuth.token === "string" &&
-    gatewayAuth.token.trim()
-      ? gatewayAuth.token.trim()
-      : astroclawGatewayToken
-        ? astroclawGatewayToken
-        : null;
-  if (token && gatewayToken && token === gatewayToken) {
+  const overrideGatewayAuth = options.gatewayAuthOverride
+    ? resolveGatewayAuth({
+        authConfig: cfg.gateway?.auth,
+        authOverride: options.gatewayAuthOverride,
+        tailscaleMode: cfg.gateway?.tailscale?.mode ?? "off",
+        env,
+      })
+    : undefined;
+  const reusedGatewayAuth = findHooksTokenGatewayAuthReuse({
+    hooksToken: token,
+    configGatewayAuth,
+    overrideGatewayAuth,
+  });
+  if (reusedGatewayAuth) {
     findings.push({
       checkId: "hooks.token_reuse_gateway_token",
       severity: "critical",
-      title: "Hooks token reuses the Gateway token",
-      detail:
-        "hooks.token matches gateway.auth token; compromise of hooks expands blast radius to the Gateway API.",
-      remediation: "Use a separate hooks.token dedicated to hook ingress.",
+      title: `Hooks token reuses the ${formatGatewayAuthDisplayLabel(reusedGatewayAuth.label)}`,
+      detail: formatHooksTokenReuseDetail(reusedGatewayAuth.label),
+      remediation: formatHooksTokenReuseRemediation(reusedGatewayAuth),
     });
   }
 
@@ -579,9 +691,9 @@ export function collectHooksHardeningFindings(
       severity: remoteExposure ? "critical" : "warn",
       title: "Hook agent routing allows any configured agent",
       detail:
-        "hooks.allowedAgentIds is unset or includes '*', so authenticated hook callers may route to any configured agent id.",
+        "hooks.allowedAgentIds is unset or includes '*', so authenticated hook callers may route to any configured agent id, including the default agent when agentId is omitted.",
       remediation:
-        'Set hooks.allowedAgentIds to an explicit allowlist (for example, ["hooks", "main"]) or [] to deny explicit agent routing.',
+        'Set hooks.allowedAgentIds to an explicit allowlist (for example, ["hooks", "main"]) or [] to deny hook agent routing.',
     });
   }
 
@@ -613,7 +725,7 @@ export function collectHooksHardeningFindings(
 }
 
 export function collectGatewayHttpSessionKeyOverrideFindings(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const chatCompletionsEnabled = cfg.gateway?.http?.endpoints?.chatCompletions?.enabled === true;
@@ -632,7 +744,7 @@ export function collectGatewayHttpSessionKeyOverrideFindings(
     severity: "info",
     title: "HTTP API session-key override is enabled",
     detail:
-      `${enabledEndpoints.join(", ")} accept x-astroclaw-session-key for per-request session routing. ` +
+      `${enabledEndpoints.join(", ")} accept x-openclaw-session-key for per-request session routing. ` +
       "Treat API credential holders as trusted principals.",
   });
 
@@ -640,13 +752,19 @@ export function collectGatewayHttpSessionKeyOverrideFindings(
 }
 
 export function collectGatewayHttpNoAuthFindings(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv,
+  options: GatewayHttpNoAuthAuditOptions = {},
 ): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const tailscaleMode = cfg.gateway?.tailscale?.mode ?? "off";
-  const auth = resolveGatewayAuth({ authConfig: cfg.gateway?.auth, tailscaleMode, env });
-  if (auth.mode !== "none") {
+  const auth = resolveGatewayAuth({
+    authConfig: cfg.gateway?.auth,
+    authOverride: options.gatewayAuthOverride,
+    tailscaleMode,
+    env,
+  });
+  if (hasResolvedGatewayHttpAuth(auth)) {
     return findings;
   }
 
@@ -675,7 +793,7 @@ export function collectGatewayHttpNoAuthFindings(
   return findings;
 }
 
-export function collectSandboxDockerNoopFindings(cfg: AstroclawConfig): SecurityAuditFinding[] {
+export function collectSandboxDockerNoopFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const configuredPaths: string[] = [];
   const agents = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
@@ -725,7 +843,7 @@ export function collectSandboxDockerNoopFindings(cfg: AstroclawConfig): Security
   return findings;
 }
 
-export function collectSandboxDangerousConfigFindings(cfg: AstroclawConfig): SecurityAuditFinding[] {
+export function collectSandboxDangerousConfigFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const agents = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
 
@@ -837,7 +955,7 @@ export function collectSandboxDangerousConfigFindings(cfg: AstroclawConfig): Sec
   return findings;
 }
 
-export function collectNodeDenyCommandPatternFindings(cfg: AstroclawConfig): SecurityAuditFinding[] {
+export function collectNodeDenyCommandPatternFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const denyListRaw = cfg.gateway?.nodes?.denyCommands;
   if (!Array.isArray(denyListRaw) || denyListRaw.length === 0) {
@@ -895,7 +1013,7 @@ export function collectNodeDenyCommandPatternFindings(cfg: AstroclawConfig): Sec
 }
 
 export function collectNodeDangerousAllowCommandFindings(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
 ): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const allowRaw = cfg.gateway?.nodes?.allowCommands;
@@ -903,7 +1021,7 @@ export function collectNodeDangerousAllowCommandFindings(
     return findings;
   }
 
-  const allow = new Set(allowRaw.map(normalizeNodeCommand).filter(Boolean));
+  const allow = new Set(normalizeUniqueStringEntries(allowRaw.map(normalizeNodeCommand)));
   if (allow.size === 0) {
     return findings;
   }
@@ -932,7 +1050,7 @@ export function collectNodeDangerousAllowCommandFindings(
   return findings;
 }
 
-export function collectMinimalProfileOverrideFindings(cfg: AstroclawConfig): SecurityAuditFinding[] {
+export function collectMinimalProfileOverrideFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   if (cfg.tools?.profile !== "minimal") {
     return findings;
@@ -968,7 +1086,7 @@ export function collectMinimalProfileOverrideFindings(cfg: AstroclawConfig): Sec
   return findings;
 }
 
-export function collectModelHygieneFindings(cfg: AstroclawConfig): SecurityAuditFinding[] {
+export function collectModelHygieneFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const models = collectAuditModelRefs(cfg);
   if (models.length === 0) {
@@ -1053,10 +1171,10 @@ export function collectModelHygieneFindings(cfg: AstroclawConfig): SecurityAudit
   return findings;
 }
 
-export function collectExposureMatrixFindings(cfg: AstroclawConfig): SecurityAuditFinding[] {
+export function collectExposureMatrixFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
-  const openGroups = listGroupPolicyOpen(cfg);
-  if (openGroups.length === 0) {
+  const openInboundPolicies = listOpenInboundPolicies(cfg);
+  if (openInboundPolicies.length === 0) {
     return findings;
   }
 
@@ -1065,11 +1183,12 @@ export function collectExposureMatrixFindings(cfg: AstroclawConfig): SecurityAud
     findings.push({
       checkId: "security.exposure.open_groups_with_elevated",
       severity: "critical",
-      title: "Open groupPolicy with elevated tools enabled",
+      title: "Open group/DM policy with elevated tools enabled",
       detail:
-        `Found groupPolicy="open" at:\n${openGroups.map((p) => `- ${p}`).join("\n")}\n` +
-        "With tools.elevated enabled, a prompt injection in those rooms can become a high-impact incident.",
-      remediation: `Set groupPolicy="allowlist" and keep elevated allowlists extremely tight.`,
+        `Found inbound policy="open" at:\n${openInboundPolicies.map((p) => `- ${p}`).join("\n")}\n` +
+        "With tools.elevated enabled, a prompt injection in those conversations can become a high-impact incident.",
+      remediation:
+        'Set each listed group/DM policy to "allowlist" and keep elevated allowlists extremely tight.',
     });
   }
 
@@ -1079,20 +1198,20 @@ export function collectExposureMatrixFindings(cfg: AstroclawConfig): SecurityAud
     findings.push({
       checkId: "security.exposure.open_groups_with_runtime_or_fs",
       severity: hasRuntimeRisk ? "critical" : "warn",
-      title: "Open groupPolicy with runtime/filesystem tools exposed",
+      title: "Open group/DM policy with runtime/filesystem tools exposed",
       detail:
-        `Found groupPolicy="open" at:\n${openGroups.map((p) => `- ${p}`).join("\n")}\n` +
+        `Found inbound policy="open" at:\n${openInboundPolicies.map((p) => `- ${p}`).join("\n")}\n` +
         `Risky tool exposure contexts:\n${riskyContexts.map((line) => `- ${line}`).join("\n")}\n` +
-        "Prompt injection in open groups can trigger command/file actions in these contexts.",
+        "Prompt injection in open conversations can trigger command/file actions in these contexts.",
       remediation:
-        'For open groups, prefer tools.profile="messaging" (or deny group:runtime/group:fs), set tools.fs.workspaceOnly=true, and use agents.defaults.sandbox.mode="all" for exposed agents.',
+        'For open groups or DMs, prefer tools.profile="messaging" (or deny group:runtime/group:fs), set tools.fs.workspaceOnly=true, and use agents.defaults.sandbox.mode="all" for exposed agents.',
     });
   }
 
   return findings;
 }
 
-export function collectLikelyMultiUserSetupFindings(cfg: AstroclawConfig): SecurityAuditFinding[] {
+export function collectLikelyMultiUserSetupFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const signals = listPotentialMultiUserSignals(cfg);
   if (signals.length === 0) {
@@ -1116,7 +1235,7 @@ export function collectLikelyMultiUserSetupFindings(cfg: AstroclawConfig): Secur
       "Heuristic signals indicate this gateway may be reachable by multiple users:\n" +
       signals.map((signal) => `- ${signal}`).join("\n") +
       `\n${impactLine}\n${riskyContextsDetail}\n` +
-      "Astroclaw's default security model is personal-assistant (one trusted operator boundary), not hostile multi-tenant isolation on one shared gateway.",
+      "OpenClaw's default security model is personal-assistant (one trusted operator boundary), not hostile multi-tenant isolation on one shared gateway.",
     remediation:
       'If users may be mutually untrusted, split trust boundaries (separate gateways + credentials, ideally separate OS users/hosts). If you intentionally run shared-user access, set agents.defaults.sandbox.mode="all", keep tools.fs.workspaceOnly=true, deny runtime/fs/web tools unless required, and keep personal/private identities + credentials off that runtime.',
   });
