@@ -3787,6 +3787,7 @@ export function renderApp(state: AppViewState) {
                   realtimeTalkConversation: state.realtimeTalkConversation,
                   realtimeTalkOptionsOpen: state.realtimeTalkOptionsOpen,
                   realtimeTalkOptions: state.realtimeTalkOptions,
+                  realtimeTalkCatalogProviders: state.realtimeTalkCatalogProviders,
                   connected: state.connected,
                   canSend: state.connected,
                   disabledReason: chatDisabledReason,
@@ -3841,6 +3842,9 @@ export function renderApp(state: AppViewState) {
                   onToggleRealtimeTalk: () => void state.toggleRealtimeTalk(),
                   onToggleRealtimeTalkOptions: () => {
                     state.realtimeTalkOptionsOpen = !state.realtimeTalkOptionsOpen;
+                    if (state.realtimeTalkOptionsOpen) {
+                      void state.fetchRealtimeTalkCatalog();
+                    }
                   },
                   onRealtimeTalkOptionsChange: (next) => state.updateRealtimeTalkOptions(next),
                   canAbort: hasAbortableSessionRun(state),
