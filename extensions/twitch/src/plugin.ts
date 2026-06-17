@@ -1,26 +1,26 @@
 /**
- * Twitch channel plugin for Astroclaw.
+ * Twitch channel plugin for OpenClaw.
  *
  * Main plugin export combining all adapters (outbound, actions, status, gateway).
  * This is the primary entry point for the Twitch channel integration.
  */
 
-import { describeAccountSnapshot } from "astroclaw/plugin-sdk/account-helpers";
-import { buildChannelConfigSchema } from "astroclaw/plugin-sdk/channel-config-schema";
-import { createChatChannelPlugin } from "astroclaw/plugin-sdk/channel-core";
+import { describeAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
+import { buildChannelConfigSchema } from "openclaw/plugin-sdk/channel-config-schema";
+import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
 import {
   createLoggedPairingApprovalNotifier,
   createPairingPrefixStripper,
-} from "astroclaw/plugin-sdk/channel-pairing";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
+} from "openclaw/plugin-sdk/channel-pairing";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   buildPassiveProbedChannelStatusSummary,
   runStoppablePassiveMonitor,
-} from "astroclaw/plugin-sdk/extension-shared";
+} from "openclaw/plugin-sdk/extension-shared";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 import { twitchMessageActions } from "./actions.js";
 import { removeClientManager } from "./client-manager-registry.js";
 import { TwitchConfigSchema } from "./config-schema.js";
@@ -52,7 +52,7 @@ type ResolvedTwitchAccount = TwitchAccountConfig & { accountId?: string | null }
  * Twitch channel plugin.
  *
  * Implements the ChannelPlugin interface to provide Twitch chat integration
- * for Astroclaw. Supports message sending, receiving, access control, and
+ * for OpenClaw. Supports message sending, receiving, access control, and
  * status monitoring.
  */
 export const twitchPlugin: ChannelPlugin<ResolvedTwitchAccount> =
@@ -84,8 +84,8 @@ export const twitchPlugin: ChannelPlugin<ResolvedTwitchAccount> =
       message: twitchMessageAdapter,
       configSchema: buildChannelConfigSchema(TwitchConfigSchema),
       config: {
-        listAccountIds: (cfg: AstroclawConfig): string[] => listAccountIds(cfg),
-        resolveAccount: (cfg: AstroclawConfig, accountId?: string | null): ResolvedTwitchAccount => {
+        listAccountIds: (cfg: OpenClawConfig): string[] => listAccountIds(cfg),
+        resolveAccount: (cfg: OpenClawConfig, accountId?: string | null): ResolvedTwitchAccount => {
           const resolvedAccountId = accountId ?? resolveDefaultTwitchAccountId(cfg);
           const account = getAccountConfig(cfg, resolvedAccountId);
           if (!account) {
@@ -103,8 +103,8 @@ export const twitchPlugin: ChannelPlugin<ResolvedTwitchAccount> =
             ...account,
           };
         },
-        defaultAccountId: (cfg: AstroclawConfig): string => resolveDefaultTwitchAccountId(cfg),
-        isConfigured: (_account: unknown, cfg: AstroclawConfig): boolean =>
+        defaultAccountId: (cfg: OpenClawConfig): string => resolveDefaultTwitchAccountId(cfg),
+        isConfigured: (_account: unknown, cfg: OpenClawConfig): boolean =>
           resolveTwitchAccountContext(cfg).configured,
         isEnabled: (account: ResolvedTwitchAccount | undefined): boolean =>
           account?.enabled !== false,
@@ -129,11 +129,11 @@ export const twitchPlugin: ChannelPlugin<ResolvedTwitchAccount> =
           kind,
           runtime,
         }: {
-          cfg: AstroclawConfig;
+          cfg: OpenClawConfig;
           accountId?: string | null;
           inputs: string[];
           kind: ChannelResolveKind;
-          runtime: import("astroclaw/plugin-sdk/runtime-env").RuntimeEnv;
+          runtime: import("openclaw/plugin-sdk/runtime-env").RuntimeEnv;
         }): Promise<ChannelResolveResult[]> => {
           const account = getAccountConfig(cfg, accountId ?? resolveDefaultTwitchAccountId(cfg));
           if (!account) {
@@ -186,20 +186,29 @@ export const twitchPlugin: ChannelPlugin<ResolvedTwitchAccount> =
           // Keep startAccount pending until abort fires; otherwise the channel
           // supervisor reads the settled task as `channel exited without an
           // error` and triggers a restart loop. See #60071.
-          await runStoppablePassiveMonitor({
-            abortSignal: ctx.abortSignal,
-            start: async () => {
-              // Lazy import: the monitor pulls the reply pipeline; avoid ESM init cycles.
-              const { monitorTwitchProvider } = await import("./monitor.js");
-              return monitorTwitchProvider({
-                account,
-                accountId,
-                config: ctx.cfg,
-                runtime: ctx.runtime,
-                abortSignal: ctx.abortSignal,
-              });
-            },
-          });
+          try {
+            await runStoppablePassiveMonitor({
+              abortSignal: ctx.abortSignal,
+              start: async () => {
+                // Lazy import: the monitor pulls the reply pipeline; avoid ESM init cycles.
+                const { monitorTwitchProvider } = await import("./monitor.js");
+                return monitorTwitchProvider({
+                  account,
+                  accountId,
+                  config: ctx.cfg,
+                  runtime: ctx.runtime,
+                  abortSignal: ctx.abortSignal,
+                });
+              },
+            });
+          } catch (error) {
+            ctx.setStatus?.({
+              accountId,
+              running: false,
+              lastStopAt: Date.now(),
+            });
+            throw error;
+          }
         },
         stopAccount: async (ctx): Promise<void> => {
           const account = ctx.account;
