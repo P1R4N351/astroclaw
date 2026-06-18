@@ -411,6 +411,10 @@ describe("scripts/test-projects changed-target routing", () => {
   it("routes nested e2e shell helpers through their sourced owner tests", () => {
     const expectedTargets = new Map([
       [
+        "scripts/e2e/lib/bun-global-install/assertions.mjs",
+        ["test/scripts/test-install-sh-docker.test.ts"],
+      ],
+      [
         "scripts/e2e/lib/bundled-plugin-install-uninstall/runtime-smoke.mjs",
         ["test/scripts/bundled-plugin-install-uninstall-probe.test.ts"],
       ],
@@ -419,9 +423,40 @@ describe("scripts/test-projects changed-target routing", () => {
         ["test/scripts/bundled-plugin-install-uninstall-probe.test.ts"],
       ],
       [
+        "scripts/e2e/lib/codex-npm-plugin-live/assertions.mjs",
+        ["test/scripts/docker-build-helper.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/config-reload/assert-log.mjs",
+        ["test/scripts/e2e-mock-config-limits.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/docker-stats/assert-resource-ceiling.mjs",
+        ["test/scripts/docker-stats-resource-ceiling.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/doctor-install-switch/scenario.sh",
+        ["test/scripts/docker-build-helper.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/fixture.mjs",
+        ["test/scripts/fixture-config.test.ts", "test/scripts/fixtures-workspace.test.ts"],
+      ],
+      [
         "scripts/e2e/lib/kitchen-sink-plugin/sweep.sh",
         ["test/scripts/kitchen-sink-plugin-assertions.test.ts"],
       ],
+      [
+        "scripts/e2e/lib/mcp-code-mode-validation.ts",
+        ["test/scripts/mcp-code-mode-gateway-client.test.ts"],
+      ],
+      ["scripts/e2e/mcp-code-mode-gateway-seed.ts", ["test/scripts/docker-e2e-seeds.test.ts"]],
+      ["scripts/e2e/cron-mcp-cleanup-seed.ts", ["test/scripts/docker-e2e-seeds.test.ts"]],
+      [
+        "scripts/e2e/lib/onboard/scenario.sh",
+        ["test/scripts/e2e-shell-tempfiles.test.ts", "test/scripts/openclaw-test-state.test.ts"],
+      ],
+      ["scripts/e2e/lib/package-compat.mjs", ["test/scripts/docker-build-helper.test.ts"]],
       [
         "scripts/e2e/lib/plugin-update/corrupt-update-scenario.sh",
         ["test/scripts/plugin-update-unchanged-docker.test.ts"],
@@ -438,6 +473,26 @@ describe("scripts/test-projects changed-target routing", () => {
       ["scripts/e2e/lib/plugins/fixtures.sh", ["test/scripts/plugins-assertions.test.ts"]],
       ["scripts/e2e/lib/plugins/marketplace.sh", ["test/scripts/plugins-assertions.test.ts"]],
       ["scripts/e2e/lib/plugins/sweep.sh", ["test/scripts/plugins-assertions.test.ts"]],
+      [
+        "scripts/e2e/lib/release-plugin-marketplace/scenario.sh",
+        ["test/scripts/docker-build-helper.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/release-typed-onboarding/scenario.sh",
+        ["test/scripts/docker-build-helper.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/release-upgrade-user-journey/scenario.sh",
+        ["test/scripts/docker-build-helper.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/skills/clawhub-install-proof.sh",
+        ["test/scripts/e2e-shell-tempfiles.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/update-channel-switch/assertions.mjs",
+        ["test/scripts/docker-build-helper.test.ts"],
+      ],
     ]);
 
     for (const [source, targets] of expectedTargets) {
@@ -1074,6 +1129,7 @@ describe("scripts/test-projects changed-target routing", () => {
       "scripts/e2e/mcp-channels-docker-client.ts",
       "scripts/e2e/mcp-code-mode-gateway-docker.sh",
       "scripts/e2e/mcp-code-mode-gateway-live-docker.sh",
+      "scripts/e2e/mcp-code-mode-gateway-seed.ts",
       "scripts/e2e/agent-bundle-mcp-tools-docker.sh",
       "scripts/e2e/agent-bundle-mcp-tools-docker-client.ts",
       "scripts/mcp-code-mode-gateway-e2e.ts",
@@ -1089,6 +1145,7 @@ describe("scripts/test-projects changed-target routing", () => {
         "test/scripts/plugin-prerelease-test-plan.test.ts",
         "test/scripts/mcp-code-mode-gateway-client.test.ts",
         "test/scripts/session-log-mentions.test.ts",
+        "test/scripts/docker-e2e-seeds.test.ts",
         "src/agents/agent-bundle-mcp-runtime.test.ts",
         "src/agents/agent-bundle-mcp-tools.materialize.test.ts",
       ],
