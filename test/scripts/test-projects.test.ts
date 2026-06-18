@@ -306,6 +306,148 @@ describe("scripts/test-projects changed-target routing", () => {
     });
   });
 
+  it("routes nested e2e library helpers through owner tests", () => {
+    const expectedTargets = new Map([
+      [
+        "scripts/e2e/lib/bundled-plugin-install-uninstall/probe.mjs",
+        ["test/scripts/bundled-plugin-install-uninstall-probe.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/browser-cdp-snapshot/assert-snapshot.mjs",
+        ["test/scripts/browser-cdp-snapshot.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/browser-cdp-snapshot/fixture-server.mjs",
+        ["test/scripts/browser-cdp-snapshot.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/codex-media-path/fake-codex-app-server.mjs",
+        ["test/scripts/codex-media-path-client.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/codex-media-path/scenario.sh",
+        ["test/scripts/codex-media-path-client.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/codex-media-path/jsonl-request-tail.mjs",
+        ["test/scripts/codex-media-path-client.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/codex-media-path/limits.mjs",
+        ["test/scripts/codex-media-path-client.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/codex-media-path/write-config.mjs",
+        ["test/scripts/codex-media-path-client.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/gateway-network/limits.mjs",
+        ["test/scripts/gateway-network-client.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/gateway-network/ws-frames.mjs",
+        ["test/scripts/gateway-network-client.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/npm-telegram-live/prepare-package.mjs",
+        ["test/scripts/npm-telegram-live.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/kitchen-sink-plugin/assertions.mjs",
+        ["test/scripts/kitchen-sink-plugin-assertions.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/live-plugin-tool/assertions.mjs",
+        ["test/scripts/live-plugin-tool-assertions.test.ts"],
+      ],
+      ["scripts/e2e/lib/plugins/assertions.mjs", ["test/scripts/plugins-assertions.test.ts"]],
+      [
+        "scripts/e2e/lib/release-user-journey/assertions.mjs",
+        ["test/scripts/release-user-journey-assertions.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/openai-chat-tools/write-config.mjs",
+        ["test/scripts/openai-chat-tools-client.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/openai-chat-tools/scenario.sh",
+        ["test/scripts/openai-chat-tools-client.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/openai-web-search-minimal/mock-server.mjs",
+        [
+          "test/scripts/openai-web-search-minimal-client.test.ts",
+          "test/scripts/openai-web-search-minimal-assertions.test.ts",
+        ],
+      ],
+      ["scripts/e2e/lib/openwebui/http-probe.mjs", ["test/scripts/openwebui-probe.test.ts"]],
+      [
+        "scripts/e2e/lib/plugins/npm-registry-server.mjs",
+        ["test/scripts/plugins-assertions.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/release-scenarios/write-cli-plugin.mjs",
+        ["test/scripts/release-scenarios-assertions.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/release-user-journey/clickclack-fixture.mjs",
+        ["test/scripts/release-user-journey-assertions.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/upgrade-survivor/run.sh",
+        ["test/scripts/upgrade-survivor-assertions.test.ts"],
+      ],
+      ["scripts/e2e/lib/run-with-pty.mjs", ["test/scripts/e2e-run-with-pty.test.ts"]],
+    ]);
+
+    for (const [source, targets] of expectedTargets) {
+      expect(resolveChangedTestTargetPlan([source]), source).toEqual({
+        mode: "targets",
+        targets,
+      });
+    }
+  });
+
+  it("routes nested e2e shell helpers through their sourced owner tests", () => {
+    const expectedTargets = new Map([
+      [
+        "scripts/e2e/lib/bundled-plugin-install-uninstall/runtime-smoke.mjs",
+        ["test/scripts/bundled-plugin-install-uninstall-probe.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/bundled-plugin-install-uninstall/sweep.sh",
+        ["test/scripts/bundled-plugin-install-uninstall-probe.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/kitchen-sink-plugin/sweep.sh",
+        ["test/scripts/kitchen-sink-plugin-assertions.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/plugin-update/corrupt-update-scenario.sh",
+        ["test/scripts/plugin-update-unchanged-docker.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/plugin-update/probe.mjs",
+        ["test/scripts/plugin-update-unchanged-docker.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/plugin-update/unchanged-scenario.sh",
+        ["test/scripts/plugin-update-unchanged-docker.test.ts"],
+      ],
+      ["scripts/e2e/lib/plugins/clawhub.sh", ["test/scripts/plugins-assertions.test.ts"]],
+      ["scripts/e2e/lib/plugins/fixtures.sh", ["test/scripts/plugins-assertions.test.ts"]],
+      ["scripts/e2e/lib/plugins/marketplace.sh", ["test/scripts/plugins-assertions.test.ts"]],
+      ["scripts/e2e/lib/plugins/sweep.sh", ["test/scripts/plugins-assertions.test.ts"]],
+    ]);
+
+    for (const [source, targets] of expectedTargets) {
+      expect(resolveChangedTestTargetPlan([source]), source).toEqual({
+        mode: "targets",
+        targets,
+      });
+    }
+  });
+
   it("routes unmatched script changes to the tooling suite instead of skipping tests", () => {
     const targets = [
       "scripts/check-no-raw-http2-imports.mjs",
