@@ -5,6 +5,7 @@ import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 
 const SCRIPT_PATH = "scripts/test-install-sh-docker.sh";
+const INSTALL_E2E_RUNNER_PATH = "scripts/docker/install-sh-e2e/run.sh";
 const DOCKER_SETUP_PATH = "scripts/docker/setup.sh";
 const PODMAN_SETUP_PATH = "scripts/podman/setup.sh";
 const PODMAN_RUN_PATH = "scripts/run-openclaw-podman.sh";
@@ -468,6 +469,46 @@ describe("test-install-sh-docker", () => {
   });
 });
 
+describe("install-sh E2E runner", () => {
+  it("validates agent timing and toggle knobs before running provider setup", () => {
+    const script = readFileSync(INSTALL_E2E_RUNNER_PATH, "utf8");
+
+    expect(script).toContain(
+      'AGENT_TURN_TIMEOUT_SECONDS="$(read_positive_int_env OPENCLAW_INSTALL_E2E_AGENT_TURN_TIMEOUT_SECONDS 300)"',
+    );
+    expect(script).toContain(
+      'AGENT_TURNS_PARALLEL="$(read_boolean_env OPENCLAW_INSTALL_E2E_AGENT_TURNS_PARALLEL 1)"',
+    );
+    expect(script).toContain(
+      'AGENT_TOOL_SMOKE="$(read_boolean_env OPENCLAW_INSTALL_E2E_AGENT_TOOL_SMOKE 1)"',
+    );
+    expect(script).toContain(
+      'OPENAI_PROVIDER_TIMEOUT_SECONDS="$(read_positive_int_env OPENCLAW_INSTALL_E2E_OPENAI_PROVIDER_TIMEOUT_SECONDS "$AGENT_TURN_TIMEOUT_SECONDS")"',
+    );
+    expect(script).toContain('timeout --kill-after=15s "${AGENT_TURN_TIMEOUT_SECONDS}s"');
+    expect(script).toContain('\\"timeoutSeconds\\":${OPENAI_PROVIDER_TIMEOUT_SECONDS}');
+  });
+
+  it.each([
+    ["turn timeout", "OPENCLAW_INSTALL_E2E_AGENT_TURN_TIMEOUT_SECONDS", "300s"],
+    ["provider timeout", "OPENCLAW_INSTALL_E2E_OPENAI_PROVIDER_TIMEOUT_SECONDS", "1e3"],
+    ["parallel toggle", "OPENCLAW_INSTALL_E2E_AGENT_TURNS_PARALLEL", "2"],
+    ["tool smoke toggle", "OPENCLAW_INSTALL_E2E_AGENT_TOOL_SMOKE", "false"],
+  ])("rejects invalid install E2E %s before credential preflight", (_label, envName, value) => {
+    const result = spawnSync("bash", [INSTALL_E2E_RUNNER_PATH], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        [envName]: value,
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain(`invalid ${envName}: ${value}`);
+    expect(result.stderr).not.toContain("OPENCLAW_E2E_MODELS=both requires");
+  });
+});
+
 describe("install-sh smoke runner", () => {
   it("wraps long npm/update operations with heartbeat and install-size audits", () => {
     const script = readFileSync(SMOKE_RUNNER_PATH, "utf8");
@@ -574,6 +615,9 @@ describe("bun global install smoke", () => {
     expect(script).toContain("OPENCLAW_BUN_GLOBAL_SMOKE_DIST_IMAGE");
     expect(script).toContain('source "$ROOT_DIR/scripts/lib/docker-e2e-container.sh"');
     expect(script).toContain(
+      'COMMAND_TIMEOUT_MS="$(read_positive_int_env OPENCLAW_BUN_GLOBAL_SMOKE_TIMEOUT_MS 180000)"',
+    );
+    expect(script).toContain(
       'DOCKER_COMMAND_TIMEOUT="${DOCKER_COMMAND_TIMEOUT:-${OPENCLAW_BUN_GLOBAL_SMOKE_DOCKER_COMMAND_TIMEOUT:-600s}}"',
     );
     expect(script).toContain('container_id="$(docker_e2e_docker_cmd create "$image")"');
@@ -592,6 +636,20 @@ describe("bun global install smoke", () => {
     expect(script).not.toContain('container_id="$(docker create "$image")"');
     expect(script).not.toContain('docker cp "${container_id}:/app/dist" "$ROOT_DIR/dist"');
     expect(script).not.toContain('\n  rm -rf "$ROOT_DIR/dist"\n');
+  });
+
+  it("rejects invalid Bun global install command timeouts before Bun setup", () => {
+    const result = spawnSync("bash", [BUN_GLOBAL_SMOKE_PATH], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        OPENCLAW_BUN_GLOBAL_SMOKE_TIMEOUT_MS: "180000ms",
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("invalid OPENCLAW_BUN_GLOBAL_SMOKE_TIMEOUT_MS: 180000ms");
+    expect(result.stderr).not.toContain("Bun is required");
   });
 
   it("keeps npm pack tarball paths inside the Bun smoke pack directory", () => {
