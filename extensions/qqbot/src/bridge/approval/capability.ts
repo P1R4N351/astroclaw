@@ -10,13 +10,13 @@
  * QQBot falls back to "always handle, anyone can approve".
  */
 
-import { createChannelApprovalCapability } from "astroclaw/plugin-sdk/approval-delivery-runtime";
-import { createLazyChannelApprovalNativeRuntimeAdapter } from "astroclaw/plugin-sdk/approval-handler-adapter-runtime";
-import type { ChannelApprovalNativeRuntimeAdapter } from "astroclaw/plugin-sdk/approval-handler-runtime";
-import { resolveApprovalRequestSessionConversation } from "astroclaw/plugin-sdk/approval-native-runtime";
-import type { ChannelApprovalCapability } from "astroclaw/plugin-sdk/channel-contract";
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/config-contracts";
-import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { createChannelApprovalCapability } from "openclaw/plugin-sdk/approval-delivery-runtime";
+import { createLazyChannelApprovalNativeRuntimeAdapter } from "openclaw/plugin-sdk/approval-handler-adapter-runtime";
+import type { ChannelApprovalNativeRuntimeAdapter } from "openclaw/plugin-sdk/approval-handler-runtime";
+import { resolveApprovalRequestSessionConversation } from "openclaw/plugin-sdk/approval-native-runtime";
+import type { ChannelApprovalCapability } from "openclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolveApprovalTarget } from "../../engine/approval/index.js";
 import {
   isQQBotExecApprovalClientEnabled,
@@ -38,7 +38,7 @@ import { getBridgeLogger } from "../logger.js";
  * delivery fails with 500 on the QQ Bot API).
  */
 function shouldHandleRequest(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
   request: {
     request: {
@@ -63,14 +63,14 @@ function shouldHandleRequest(params: {
 }
 
 function hasExecApprovalConfig(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): boolean {
   return resolveQQBotExecApprovalConfig(params) !== undefined;
 }
 
 function isNativeDeliveryEnabled(params: {
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   accountId?: string | null;
 }): boolean {
   if (hasExecApprovalConfig(params)) {
@@ -99,34 +99,22 @@ function canResolveTarget(request: {
   return sessionConversation?.id != null;
 }
 
+function resolveNativeDeliveryState(params: {
+  cfg: OpenClawConfig;
+  accountId?: string | null;
+}): { kind: "enabled" } | { kind: "disabled" } {
+  const enabled = isNativeDeliveryEnabled(params);
+  return enabled ? { kind: "enabled" } : { kind: "disabled" };
+}
+
 function createQQBotApprovalCapability(): ChannelApprovalCapability {
   return createChannelApprovalCapability({
     authorizeActorAction: ({ cfg, accountId, senderId, approvalKind }) =>
       authorizeQQBotApprovalAction({ cfg, accountId, senderId, approvalKind }),
 
-    getActionAvailabilityState: ({
-      cfg,
-      accountId,
-    }: {
-      cfg: AstroclawConfig;
-      accountId?: string | null;
-      action: "approve";
-    }) => {
-      const enabled = isNativeDeliveryEnabled({ cfg, accountId });
-      return enabled ? { kind: "enabled" } : { kind: "disabled" };
-    },
+    getActionAvailabilityState: resolveNativeDeliveryState,
 
-    getExecInitiatingSurfaceState: ({
-      cfg,
-      accountId,
-    }: {
-      cfg: AstroclawConfig;
-      accountId?: string | null;
-      action: "approve";
-    }) => {
-      const enabled = isNativeDeliveryEnabled({ cfg, accountId });
-      return enabled ? { kind: "enabled" } : { kind: "disabled" };
-    },
+    getExecInitiatingSurfaceState: resolveNativeDeliveryState,
 
     describeExecApprovalSetup: ({ accountId }: { accountId?: string | null }) => {
       const prefix =
@@ -217,9 +205,9 @@ function createQQBotApprovalCapability(): ChannelApprovalCapability {
 
 const qqbotApprovalCapability = createQQBotApprovalCapability();
 
-let _cachedCapability: ChannelApprovalCapability | undefined;
+let cachedCapability: ChannelApprovalCapability | undefined;
 
 export function getQQBotApprovalCapability(): ChannelApprovalCapability {
-  _cachedCapability ??= qqbotApprovalCapability;
-  return _cachedCapability;
+  cachedCapability ??= qqbotApprovalCapability;
+  return cachedCapability;
 }
