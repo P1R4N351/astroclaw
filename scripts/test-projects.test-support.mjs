@@ -630,6 +630,10 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ],
   ["scripts/e2e/mcp-code-mode-gateway-seed.ts", ["test/scripts/docker-e2e-seeds.test.ts"]],
   [
+    "scripts/e2e/lib/mcp-code-mode-probe-server.ts",
+    ["test/scripts/docker-e2e-seeds.test.ts", "test/scripts/mcp-code-mode-gateway-client.test.ts"],
+  ],
+  [
     "scripts/e2e/cron-mcp-cleanup-docker.sh",
     [
       "test/scripts/docker-build-helper.test.ts",
@@ -1023,6 +1027,13 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
       "test/scripts/docker-build-helper.test.ts",
       "test/scripts/docker-e2e-plan.test.ts",
       "test/scripts/package-acceptance-workflow.test.ts",
+      "test/scripts/release-user-journey-assertions.test.ts",
+    ],
+  ],
+  [
+    "scripts/e2e/lib/release-assertion-files.mjs",
+    [
+      "test/scripts/release-scenarios-assertions.test.ts",
       "test/scripts/release-user-journey-assertions.test.ts",
     ],
   ],
