@@ -366,6 +366,13 @@ describe("scripts/test-projects changed-target routing", () => {
         ["test/scripts/release-user-journey-assertions.test.ts"],
       ],
       [
+        "scripts/e2e/lib/release-assertion-files.mjs",
+        [
+          "test/scripts/release-scenarios-assertions.test.ts",
+          "test/scripts/release-user-journey-assertions.test.ts",
+        ],
+      ],
+      [
         "scripts/e2e/lib/openai-chat-tools/write-config.mjs",
         ["test/scripts/openai-chat-tools-client.test.ts"],
       ],
