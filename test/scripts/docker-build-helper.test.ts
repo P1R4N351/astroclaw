@@ -614,6 +614,82 @@ source "$ROOT_DIR/scripts/lib/docker-build.sh"
     execFileSync("bash", ["-lc", script], { encoding: "utf8" });
   });
 
+  it("normalizes zero-padded centralized Docker build retry counts", () => {
+    const rootDir = process.cwd();
+    const script = `
+set -euo pipefail
+ROOT_DIR=${shellQuote(rootDir)}
+export ROOT_DIR
+export OPENCLAW_DOCKER_BUILD_RETRIES=08
+
+source "$ROOT_DIR/scripts/lib/docker-build.sh"
+
+[[ "$(docker_build_retry_count)" = "8" ]]
+`;
+
+    execFileSync("bash", ["-lc", script], { encoding: "utf8" });
+  });
+
+  it.each([
+    [
+      "retry count",
+      "OPENCLAW_DOCKER_BUILD_RETRIES",
+      "2x",
+      "invalid OPENCLAW_DOCKER_BUILD_RETRIES: 2x",
+    ],
+    [
+      "heartbeat interval",
+      "OPENCLAW_DOCKER_BUILD_HEARTBEAT_SECONDS",
+      "soon",
+      "invalid OPENCLAW_DOCKER_BUILD_HEARTBEAT_SECONDS: soon",
+    ],
+  ])(
+    "rejects invalid centralized Docker build %s before invoking docker",
+    (_label, envName, value, expectedError) => {
+      const workDir = mkdtempSync(join(tmpdir(), "openclaw-docker-build-config-"));
+
+      try {
+        const binDir = join(workDir, "bin");
+        const markerPath = join(workDir, "docker-invoked");
+        mkdirSync(binDir);
+        writeFileSync(
+          join(binDir, "docker"),
+          `#!/bin/bash
+printf invoked >${shellQuote(markerPath)}
+exit 0
+`,
+        );
+        chmodSync(join(binDir, "docker"), 0o755);
+        const rootDir = process.cwd();
+        const script = `
+set -euo pipefail
+ROOT_DIR=${shellQuote(rootDir)}
+TMPDIR=${shellQuote(workDir)}
+export ROOT_DIR TMPDIR
+export PATH="$TMPDIR/bin:$PATH"
+
+source "$ROOT_DIR/scripts/lib/docker-build.sh"
+
+docker_build_run e2e-build -t demo-image .
+`;
+
+        const result = spawnSync("bash", ["-lc", script], {
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            [envName]: value,
+          },
+        });
+
+        expect(result.status).toBe(2);
+        expect(result.stderr).toContain(expectedError);
+        expect(existsSync(markerPath)).toBe(false);
+      } finally {
+        rmSync(workDir, { recursive: true, force: true });
+      }
+    },
+  );
+
   it("fails centralized Docker builds fast when timeout is unavailable", () => {
     const workDir = mkdtempSync(join(tmpdir(), "openclaw-docker-build-timeout-required-"));
 
@@ -1038,6 +1114,40 @@ OPENCLAW_DOCKER_E2E_DISABLE_RESOURCE_LIMITS=1 docker_e2e_docker_cmd run demo
     }
   });
 
+  it("rejects invalid Docker run pids limits before invoking docker", () => {
+    const workDir = mkdtempSync(join(tmpdir(), "openclaw-docker-resource-pids-"));
+
+    try {
+      const rootDir = process.cwd();
+      const script = `
+set -euo pipefail
+ROOT_DIR=${shellQuote(rootDir)}
+TMPDIR=${shellQuote(workDir)}
+export ROOT_DIR TMPDIR
+
+docker() {
+  printf invoked >"$TMPDIR/docker-seen"
+}
+export -f docker
+
+source "$ROOT_DIR/scripts/lib/docker-e2e-container.sh"
+
+set +e
+OPENCLAW_DOCKER_E2E_PIDS_LIMIT=many docker_e2e_docker_cmd run demo 2>"$TMPDIR/stderr"
+status="$?"
+set -e
+
+[[ "$status" = "2" ]]
+[[ "$(<"$TMPDIR/stderr")" = *"invalid OPENCLAW_DOCKER_E2E_PIDS_LIMIT: many"* ]]
+[[ ! -e "$TMPDIR/docker-seen" ]]
+`;
+
+      execFileSync("bash", ["-lc", script], { encoding: "utf8" });
+    } finally {
+      rmSync(workDir, { recursive: true, force: true });
+    }
+  });
+
   for (const [shellSignal, expectedStatus] of [
     ["TERM", "143"],
     ["HUP", "129"],
@@ -1239,6 +1349,48 @@ set -e
 stderr="$(<"$TMPDIR/stderr")"
 [[ "$status" = "127" ]]
 [[ "$stderr" = *"timeout command not found; cannot bound Docker run after 11s"* ]]
+[[ ! -e "$TMPDIR/docker-seen" ]]
+`;
+
+      execFileSync("bash", ["-lc", script], { encoding: "utf8" });
+    } finally {
+      rmSync(workDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects invalid package-backed Docker run pids limits before invoking docker", () => {
+    const workDir = mkdtempSync(join(tmpdir(), "openclaw-docker-package-pids-"));
+
+    try {
+      const rootDir = process.cwd();
+      const script = `
+set -euo pipefail
+ROOT_DIR=${shellQuote(rootDir)}
+TMPDIR=${shellQuote(workDir)}
+export ROOT_DIR TMPDIR
+
+dirname() {
+  /usr/bin/dirname "$@"
+}
+
+docker_e2e_docker_cmd() {
+  return 0
+}
+
+docker() {
+  printf invoked >"$TMPDIR/docker-seen"
+}
+export -f docker_e2e_docker_cmd docker
+
+source "$ROOT_DIR/scripts/lib/docker-e2e-package.sh"
+
+set +e
+OPENCLAW_DOCKER_E2E_PIDS_LIMIT=many docker_e2e_docker_run_cmd run demo 2>"$TMPDIR/stderr"
+status="$?"
+set -e
+
+[[ "$status" = "2" ]]
+[[ "$(<"$TMPDIR/stderr")" = *"invalid OPENCLAW_DOCKER_E2E_PIDS_LIMIT: many"* ]]
 [[ ! -e "$TMPDIR/docker-seen" ]]
 `;
 
