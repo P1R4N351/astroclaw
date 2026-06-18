@@ -450,6 +450,24 @@ describe("scripts/test-projects changed-target routing", () => {
         "scripts/e2e/lib/mcp-code-mode-validation.ts",
         ["test/scripts/mcp-code-mode-gateway-client.test.ts"],
       ],
+      [
+        "scripts/e2e/commitments-safety-docker-client.ts",
+        [
+          "test/scripts/docker-e2e-clients.test.ts",
+          "src/commitments/runtime.test.ts",
+          "src/commitments/store.test.ts",
+        ],
+      ],
+      [
+        "scripts/e2e/session-runtime-context-docker-client.ts",
+        [
+          "test/scripts/docker-e2e-clients.test.ts",
+          "src/agents/embedded-agent-runner/run/runtime-context-prompt.test.ts",
+          "src/agents/embedded-agent-runner/transcript-rewrite.test.ts",
+        ],
+      ],
+      ["scripts/e2e/mcp-channels-seed.ts", ["test/scripts/docker-e2e-seeds.test.ts"]],
+      ["scripts/e2e/docker-openai-seed.ts", ["test/scripts/docker-e2e-seeds.test.ts"]],
       ["scripts/e2e/mcp-code-mode-gateway-seed.ts", ["test/scripts/docker-e2e-seeds.test.ts"]],
       ["scripts/e2e/cron-mcp-cleanup-seed.ts", ["test/scripts/docker-e2e-seeds.test.ts"]],
       [
@@ -1127,6 +1145,8 @@ describe("scripts/test-projects changed-target routing", () => {
     const targets = [
       "scripts/e2e/mcp-channels-docker.sh",
       "scripts/e2e/mcp-channels-docker-client.ts",
+      "scripts/e2e/mcp-channels-seed.ts",
+      "scripts/e2e/docker-openai-seed.ts",
       "scripts/e2e/mcp-code-mode-gateway-docker.sh",
       "scripts/e2e/mcp-code-mode-gateway-live-docker.sh",
       "scripts/e2e/mcp-code-mode-gateway-seed.ts",
@@ -1143,9 +1163,9 @@ describe("scripts/test-projects changed-target routing", () => {
         "test/scripts/docker-e2e-observability.test.ts",
         "test/scripts/docker-e2e-plan.test.ts",
         "test/scripts/plugin-prerelease-test-plan.test.ts",
+        "test/scripts/docker-e2e-seeds.test.ts",
         "test/scripts/mcp-code-mode-gateway-client.test.ts",
         "test/scripts/session-log-mentions.test.ts",
-        "test/scripts/docker-e2e-seeds.test.ts",
         "src/agents/agent-bundle-mcp-runtime.test.ts",
         "src/agents/agent-bundle-mcp-tools.materialize.test.ts",
       ],
