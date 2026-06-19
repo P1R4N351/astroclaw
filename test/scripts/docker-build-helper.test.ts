@@ -1889,6 +1889,7 @@ grep -qx -- "OPENCLAW_E2E_COMMAND_TIMEOUT=23s" "$TMPDIR/package-args"
     expect(runner).toContain(
       "append_positive_int_env OPENCLAW_PLUGIN_LIFECYCLE_TIMEOUT_KILL_GRACE_MS",
     );
+    expect(runner).toContain("append_positive_int_env OPENCLAW_PLUGIN_LIFECYCLE_METRIC_POLL_MS");
     expect(runner).toContain("append_positive_int_env OPENCLAW_PLUGIN_LIFECYCLE_MAX_RSS_KB");
     expect(runner).toContain("append_positive_int_env OPENCLAW_PLUGIN_LIFECYCLE_MAX_WALL_MS");
     expect(runner).toContain(
@@ -2616,6 +2617,12 @@ grep -Fxq preserved "$TMPDIR/caller-fd"
     expect(assertions).toContain("OPENCLAW_CODEX_NPM_PLUGIN_ASSERT_MAX_TRANSCRIPT_FILES");
     expect(assertions).toContain("OPENCLAW_CODEX_NPM_PLUGIN_ASSERT_MAX_TRANSCRIPT_WALK_ENTRIES");
     expect(assertions).toContain("OPENCLAW_CODEX_NPM_PLUGIN_ASSERT_MAX_TRANSCRIPT_SCAN_BYTES");
+    expect(assertions).toContain("const AGENT_TURN_TIMEOUT_SECONDS = readPositiveIntEnv(");
+    expect(assertions).toContain('"OPENCLAW_CODEX_NPM_PLUGIN_AGENT_TIMEOUT_SECONDS"');
+    expect(assertions).toContain("requestTimeoutMs: AGENT_TURN_TIMEOUT_SECONDS * 1000");
+    expect(assertions).toContain("timeoutSeconds: AGENT_TURN_TIMEOUT_SECONDS");
+    expect(assertions).not.toContain("requestTimeoutMs: 420_000");
+    expect(assertions).not.toContain("timeoutSeconds: 420");
     expect(assertions).toContain("readTextFileBounded");
     expect(assertions).toContain("readTextFileTail");
     expect(assertions).toContain(
@@ -2628,6 +2635,29 @@ grep -Fxq preserved "$TMPDIR/caller-fd"
     expect(runner).not.toContain("cat /tmp/openclaw-codex-plugin-pack.log");
     expect(runner).toContain("tail -n 120 /tmp/openclaw-codex-agent-after-uninstall.err");
     expect(runner).not.toContain("cat /tmp/openclaw-codex-agent-after-uninstall.err");
+    const profileSourceIndex = runner.indexOf('source "$PROFILE_FILE"');
+    const agentTimeoutEnvIndex = runner.indexOf(
+      "docker_e2e_read_positive_int_env OPENCLAW_CODEX_NPM_PLUGIN_AGENT_TIMEOUT_SECONDS 420",
+    );
+    const dockerBuildIndex = runner.indexOf("docker_e2e_build_or_reuse");
+    expect(profileSourceIndex).toBeGreaterThanOrEqual(0);
+    expect(agentTimeoutEnvIndex).toBeGreaterThan(profileSourceIndex);
+    expect(dockerBuildIndex).toBeGreaterThan(agentTimeoutEnvIndex);
+    expect(runner).toContain(
+      "docker_e2e_read_positive_int_env OPENCLAW_CODEX_NPM_PLUGIN_AGENT_TIMEOUT_SECONDS 420",
+    );
+    expect(runner).toContain(
+      'COMMAND_TIMEOUT="${OPENCLAW_E2E_COMMAND_TIMEOUT:-$((10#$AGENT_TURN_TIMEOUT_SECONDS + 60))s}"',
+    );
+    expect(runner).toContain(
+      '-e "OPENCLAW_CODEX_NPM_PLUGIN_AGENT_TIMEOUT_SECONDS=$AGENT_TURN_TIMEOUT_SECONDS"',
+    );
+    expect(runner).toContain('-e "OPENCLAW_E2E_COMMAND_TIMEOUT=$COMMAND_TIMEOUT"');
+    expect(runner).toContain(
+      'AGENT_TURN_TIMEOUT_SECONDS="${OPENCLAW_CODEX_NPM_PLUGIN_AGENT_TIMEOUT_SECONDS:-420}"',
+    );
+    expect(runner).toContain('--timeout "$AGENT_TURN_TIMEOUT_SECONDS"');
+    expect(runner).not.toContain("--timeout 420");
   });
 
   it.each([
@@ -2636,6 +2666,12 @@ grep -Fxq preserved "$TMPDIR/caller-fd"
       CODEX_NPM_PLUGIN_LIVE_DOCKER_E2E_PATH,
       "OPENCLAW_CODEX_NPM_PLUGIN_ASSERT_MAX_TEXT_FILE_BYTES",
       "64kb",
+    ],
+    [
+      "Codex npm plugin live agent timeout",
+      CODEX_NPM_PLUGIN_LIVE_DOCKER_E2E_PATH,
+      "OPENCLAW_CODEX_NPM_PLUGIN_AGENT_TIMEOUT_SECONDS",
+      "420s",
     ],
     [
       "npm onboard channel-agent",
@@ -2683,6 +2719,7 @@ grep -Fxq preserved "$TMPDIR/caller-fd"
           ["OPENCLAW_CODEX_NPM_PLUGIN_ASSERT_MAX_TRANSCRIPT_FILES", "64"],
           ["OPENCLAW_CODEX_NPM_PLUGIN_ASSERT_MAX_TRANSCRIPT_WALK_ENTRIES", "4096"],
           ["OPENCLAW_CODEX_NPM_PLUGIN_ASSERT_MAX_TRANSCRIPT_SCAN_BYTES", "2097152"],
+          ["OPENCLAW_CODEX_NPM_PLUGIN_AGENT_TIMEOUT_SECONDS", "420"],
         ],
       ],
       [
@@ -2740,8 +2777,27 @@ grep -Fxq preserved "$TMPDIR/caller-fd"
     const runner = readFileSync(LIVE_PLUGIN_TOOL_DOCKER_E2E_PATH, "utf8");
 
     expect(runner).toContain('source "$ROOT_DIR/scripts/lib/openclaw-e2e-instance.sh"');
+    const earlyTimeoutEnvIndex = runner.indexOf(
+      "openclaw_e2e_read_positive_int_env OPENCLAW_LIVE_PLUGIN_TOOL_TIMEOUT_SECONDS 300",
+    );
+    const profileSourceIndex = runner.indexOf('source "$PROFILE_FILE"');
+    const finalTimeoutEnvIndex = runner.lastIndexOf(
+      "openclaw_e2e_read_positive_int_env OPENCLAW_LIVE_PLUGIN_TOOL_TIMEOUT_SECONDS",
+    );
+    const dockerBuildIndex = runner.indexOf("docker_e2e_build_or_reuse");
+    expect(earlyTimeoutEnvIndex).toBeGreaterThanOrEqual(0);
+    expect(dockerBuildIndex).toBeGreaterThan(earlyTimeoutEnvIndex);
+    expect(profileSourceIndex).toBeGreaterThanOrEqual(0);
+    expect(profileSourceIndex).toBeGreaterThan(dockerBuildIndex);
+    expect(finalTimeoutEnvIndex).toBeGreaterThan(profileSourceIndex);
     expect(runner).toContain(
       'AGENT_TURN_TIMEOUT_SECONDS="$(openclaw_e2e_read_positive_int_env OPENCLAW_LIVE_PLUGIN_TOOL_TIMEOUT_SECONDS 300)"',
+    );
+    expect(runner).toContain(
+      'AGENT_TURN_TIMEOUT_SECONDS="$(openclaw_e2e_read_positive_int_env OPENCLAW_LIVE_PLUGIN_TOOL_TIMEOUT_SECONDS "$AGENT_TURN_TIMEOUT_SECONDS")"',
+    );
+    expect(runner).toContain(
+      'COMMAND_TIMEOUT="${OPENCLAW_E2E_COMMAND_TIMEOUT:-$((10#$AGENT_TURN_TIMEOUT_SECONDS + 60))s}"',
     );
     expect(runner).toContain(
       'AGENT_OUTPUT_MAX_BYTES="$(openclaw_e2e_read_positive_int_env OPENCLAW_LIVE_PLUGIN_TOOL_AGENT_OUTPUT_MAX_BYTES 1048576)"',
@@ -2761,6 +2817,7 @@ grep -Fxq preserved "$TMPDIR/caller-fd"
     expect(runner).toContain(
       '-e "OPENCLAW_LIVE_PLUGIN_TOOL_SESSION_SCAN_MAX_ENTRIES=$SESSION_SCAN_MAX_ENTRIES"',
     );
+    expect(runner).toContain('-e "OPENCLAW_E2E_COMMAND_TIMEOUT=$COMMAND_TIMEOUT"');
     expect(runner).not.toContain(
       'AGENT_OUTPUT_MAX_BYTES="${OPENCLAW_LIVE_PLUGIN_TOOL_AGENT_OUTPUT_MAX_BYTES:-1048576}"',
     );
@@ -3524,6 +3581,12 @@ output="$(cat "$sampler_log")"
       "docker_e2e_read_positive_int_env OPENCLAW_DOCKER_E2E_LOG_PRINT_BYTES 65536",
     );
     expect(runner).toContain(
+      "docker_e2e_read_positive_int_env OPENCLAW_CLAWHUB_FIXTURE_WAIT_ATTEMPTS 600",
+    );
+    expect(runner).toContain(
+      '-e "OPENCLAW_CLAWHUB_FIXTURE_WAIT_ATTEMPTS=$CLAW_HUB_FIXTURE_WAIT_ATTEMPTS"',
+    );
+    expect(runner).toContain(
       '-e "OPENCLAW_DOCKER_E2E_LOG_PRINT_BYTES=$OPENCLAW_DOCKER_E2E_LOG_PRINT_BYTES"',
     );
     expect(runner).toContain('-e "KITCHEN_SINK_CLI_TIMEOUT=$KITCHEN_SINK_CLI_TIMEOUT"');
@@ -4103,6 +4166,7 @@ output="$(cat "$sampler_log")"
     expect(clawhub).toContain('OPENCLAW_CLAWHUB_URL="http://127.0.0.1:');
     expect(clawhub).toContain("OPENCLAW_PLUGINS_E2E_LIVE_CLAWHUB");
     expect(clawhub).toContain("OPENCLAW_PLUGINS_E2E_LIVE_NPM_REGISTRY");
+    expect(runner).toContain("OPENCLAW_PLUGINS_E2E_LIVE_NPM_REGISTRY");
     expect(clawhub).toContain("live ClawHub can rate-limit CI");
     expect(clawhub).toContain('[[ -n "${OPENCLAW_CLAWHUB_URL:-}" || -n "${CLAWHUB_URL:-}" ]]');
     expect(clawhub).toContain("Ignoring ambient ClawHub URL for fixture-mode plugin E2E");
@@ -4145,6 +4209,7 @@ output="$(cat "$sampler_log")"
   });
 
   it("covers plugin CLI sources in the Docker plugin sweep", () => {
+    const runner = readFileSync(PLUGINS_DOCKER_E2E_PATH, "utf8");
     const sweep = readFileSync(PLUGINS_DOCKER_SWEEP_PATH, "utf8");
     const marketplace = readFileSync(PLUGINS_DOCKER_MARKETPLACE_PATH, "utf8");
     const clawhub = readFileSync(PLUGINS_DOCKER_CLAWHUB_PATH, "utf8");
@@ -4152,6 +4217,8 @@ output="$(cat "$sampler_log")"
     const npmRegistry = readFileSync(PLUGINS_DOCKER_NPM_REGISTRY_PATH, "utf8");
 
     expect(sweep).toContain('OPENCLAW_PLUGINS_CLI_TIMEOUT="${OPENCLAW_PLUGINS_CLI_TIMEOUT:-180s}"');
+    expect(runner).toContain('PLUGINS_CLI_TIMEOUT="${OPENCLAW_PLUGINS_CLI_TIMEOUT:-180s}"');
+    expect(runner).toContain('-e "OPENCLAW_PLUGINS_CLI_TIMEOUT=$PLUGINS_CLI_TIMEOUT"');
     expect(sweep).toContain(
       'run_logged "$label" openclaw_e2e_maybe_timeout "$OPENCLAW_PLUGINS_CLI_TIMEOUT" node "$OPENCLAW_ENTRY" "$@"',
     );
