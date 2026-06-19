@@ -7,14 +7,17 @@
 
 import * as fs from "node:fs";
 import path from "node:path";
-import { mimeTypeFromFilePath } from "astroclaw/plugin-sdk/media-mime";
-import { fetchWithSsrFGuard } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { mimeTypeFromFilePath } from "openclaw/plugin-sdk/media-mime";
+import { readResponseTextLimited } from "openclaw/plugin-sdk/provider-http";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 import {
   normalizeOptionalString,
   asOptionalObjectRecord as asRecord,
   readStringField as readString,
   sanitizeFileName,
 } from "./string-normalize.js";
+
+const STT_ERROR_BODY_LIMIT_BYTES = 8 * 1024;
 
 interface STTConfig {
   baseUrl: string;
@@ -91,7 +94,9 @@ export async function transcribeAudio(
   });
   try {
     if (!resp.ok) {
-      const detail = await resp.text().catch(() => "");
+      const detail = await readResponseTextLimited(resp, STT_ERROR_BODY_LIMIT_BYTES).catch(
+        () => "",
+      );
       throw new Error(`STT failed (HTTP ${resp.status}): ${detail.slice(0, 300)}`);
     }
 
