@@ -1,19 +1,17 @@
 // Barnacle owns deterministic GitHub triage and auto-response behavior.
 
 import {
-  MOCK_ONLY_PROOF_LABEL,
-  NEEDS_REAL_BEHAVIOR_PROOF_LABEL,
-  PROOF_OVERRIDE_LABEL,
+  NEEDS_PR_CONTEXT_LABEL,
   PROOF_SUFFICIENT_LABEL,
-  PROOF_SUPPLIED_LABEL,
-  evaluateRealBehaviorProof,
-  labelsForRealBehaviorProof,
+  evaluatePullRequestContext,
+  hasAuthoredPullRequestSection,
+  labelsForPullRequestContext,
 } from "./real-behavior-proof-policy.mjs";
 
 const activePrLimit = 20;
 
 const thirdPartyExtensionMessage =
-  "Please publish this as a third-party plugin on [ClawHub](https://clawhub.ai) instead of adding it to the core repo. Docs: https://docs.astroclaw.ai/plugin and https://docs.astroclaw.ai/clawhub";
+  "Please publish this as a third-party plugin on [ClawHub](https://clawhub.ai) instead of adding it to the core repo. Docs: https://docs.openclaw.ai/plugin and https://docs.openclaw.ai/clawhub";
 
 const rules = [
   {
@@ -26,13 +24,13 @@ const rules = [
     label: "r: support",
     close: true,
     message:
-      "Please use [our support server](https://discord.gg/clawd) and ask in #help or #users-helping-users to resolve this, or follow the stuck FAQ at https://docs.astroclaw.ai/help/faq#im-stuck-whats-the-fastest-way-to-get-unstuck.",
+      "Please use [our support server](https://discord.gg/clawd) and ask in #help or #users-helping-users to resolve this, or follow the stuck FAQ at https://docs.openclaw.ai/help/faq#im-stuck-whats-the-fastest-way-to-get-unstuck.",
   },
   {
     label: "r: false-positive",
     close: true,
     message:
-      "Closing this because it looks like a false positive or reclassification-only report rather than an actionable Astroclaw bug. If this is still a real issue, please open a fresh report with concrete reproduction steps and current-version details.",
+      "Closing this because it looks like a false positive or reclassification-only report rather than an actionable OpenClaw bug. If this is still a real issue, please open a fresh report with concrete reproduction steps and current-version details.",
   },
   {
     label: "r: no-ci-pr",
@@ -65,7 +63,7 @@ const rules = [
     close: true,
     commentTriggers: ["bluebubbles", "blue bubbles"],
     message:
-      "BlueBubbles is deprecated and no longer ships as a bundled Astroclaw channel. Use iMessage via `imsg` instead: https://docs.astroclaw.ai/channels/imessage. If this needs to stay BlueBubbles-backed, publish it as a third-party plugin on ClawHub instead of adding it back to core.",
+      "BlueBubbles is deprecated and no longer ships as a bundled OpenClaw channel. Use iMessage via `imsg` instead: https://docs.openclaw.ai/channels/imessage. If this needs to stay BlueBubbles-backed, publish it as a third-party plugin on ClawHub instead of adding it back to core.",
   },
   {
     label: "r: moltbook",
@@ -74,7 +72,7 @@ const rules = [
     lockReason: "off-topic",
     commentTriggers: ["moltbook"],
     message:
-      "Astroclaw is not affiliated with Moltbook, and issues related to Moltbook should not be submitted here.",
+      "OpenClaw is not affiliated with Moltbook, and issues related to Moltbook should not be submitted here.",
   },
 ];
 
@@ -117,7 +115,7 @@ export const managedLabelSpecs = {
   },
   "r: moltbook": {
     color: "B60205",
-    description: "Auto-close and lock: Moltbook is off-topic for Astroclaw.",
+    description: "Auto-close and lock: Moltbook is off-topic for OpenClaw.",
   },
   "r: spam": {
     color: "B60205",
@@ -155,25 +153,9 @@ export const managedLabelSpecs = {
     color: "C5DEF5",
     description: "Candidate: PR template appears mostly untouched.",
   },
-  [NEEDS_REAL_BEHAVIOR_PROOF_LABEL]: {
+  [NEEDS_PR_CONTEXT_LABEL]: {
     color: "C5DEF5",
-    description: "Candidate: external PR needs after-fix proof from a real setup.",
-  },
-  [MOCK_ONLY_PROOF_LABEL]: {
-    color: "C5DEF5",
-    description: "Candidate: PR proof only shows tests, mocks, snapshots, lint, typecheck, or CI.",
-  },
-  [PROOF_SUPPLIED_LABEL]: {
-    color: "C2E0C6",
-    description: "External PR includes structured after-fix real behavior proof.",
-  },
-  [PROOF_SUFFICIENT_LABEL]: {
-    color: "0E8A16",
-    description: "ClawSweeper judged the real behavior proof convincing.",
-  },
-  [PROOF_OVERRIDE_LABEL]: {
-    color: "C2E0C6",
-    description: "Maintainer override for the external PR real behavior proof gate.",
+    description: "Candidate: external PR body lacks required problem context or evidence.",
   },
   "triage: dirty-candidate": {
     color: "C5DEF5",
@@ -195,8 +177,7 @@ export const candidateLabels = {
   docsDiscoverability: "triage: docs-discoverability",
   testOnlyNoBug: "triage: test-only-no-bug",
   refactorOnly: "triage: refactor-only",
-  needsRealBehaviorProof: NEEDS_REAL_BEHAVIOR_PROOF_LABEL,
-  mockOnlyProof: MOCK_ONLY_PROOF_LABEL,
+  needsPrContext: NEEDS_PR_CONTEXT_LABEL,
   dirtyCandidate: "triage: dirty-candidate",
   riskyInfra: "triage: risky-infra",
   externalPluginCandidate: "triage: external-plugin-candidate",
@@ -239,26 +220,16 @@ const maintainerAuthorLabel = "maintainer";
 const privilegedAuthorAssociations = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 const privilegedRepositoryRoles = new Set(["admin", "maintain", "write"]);
 const candidateLabelValues = Object.values(candidateLabels);
-const structuralProofLabelValues = [
-  NEEDS_REAL_BEHAVIOR_PROOF_LABEL,
-  MOCK_ONLY_PROOF_LABEL,
-  PROOF_SUPPLIED_LABEL,
-];
+const structuralContextLabelValues = [NEEDS_PR_CONTEXT_LABEL];
 const noisyPrMessage =
   "Closing this PR because it looks dirty (too many unrelated or unexpected changes). This usually happens when a branch picks up unrelated commits or a merge went sideways. Please recreate the PR from a clean branch.";
 
 const candidateActionRules = [
   {
-    label: candidateLabels.needsRealBehaviorProof,
+    label: candidateLabels.needsPrContext,
     close: true,
     message:
-      "Closing this PR because it does not include real behavior proof. Please reopen or resubmit with after-fix evidence from a real Astroclaw setup; terminal screenshots, console output, redacted logs, recordings, linked artifacts, and copied live output count. Unit tests, mocks, snapshots, lint, typechecks, and CI are supplemental only.",
-  },
-  {
-    label: candidateLabels.mockOnlyProof,
-    close: true,
-    message:
-      "Closing this PR because the proof only shows tests, mocks, snapshots, lint, typechecks, or CI. Please reopen or resubmit with after-fix evidence from a real Astroclaw setup; terminal screenshots, console output, redacted logs, recordings, linked artifacts, and copied live output count.",
+      "Closing this PR because its body lacks a clear problem statement or evidence. Please reopen or resubmit with the user, product, or operational problem and the most useful validation evidence, such as a focused test, CI result, screenshot, recording, terminal output, log, or artifact.",
   },
   {
     label: candidateLabels.dirtyCandidate,
@@ -286,7 +257,7 @@ const candidateActionRules = [
     label: candidateLabels.lowSignalDocs,
     close: true,
     message:
-      "Closing this PR because the docs-only change is too low-signal for the core repo. Please reopen or resubmit with a concrete Astroclaw docs gap and linked context.",
+      "Closing this PR because the docs-only change is too low-signal for the core repo. Please reopen or resubmit with a concrete OpenClaw docs gap and linked context.",
   },
   {
     label: candidateLabels.testOnlyNoBug,
@@ -304,7 +275,7 @@ const candidateActionRules = [
     label: candidateLabels.blankTemplate,
     close: true,
     message:
-      "Closing this PR because the template is mostly blank and does not describe a concrete Astroclaw problem, fix, or test plan. Please reopen or resubmit with the missing context filled in.",
+      "Closing this PR because the template is mostly blank and does not describe a concrete OpenClaw problem, fix, or test plan. Please reopen or resubmit with the missing context filled in.",
   },
 ];
 
@@ -342,7 +313,7 @@ function extractIssueFormValue(body, field) {
 }
 
 function hasLinkedReference(text) {
-  return /(?:#\d+|github\.com\/astroclaw\/astroclaw\/(?:issues|pull)\/\d+)/i.test(text);
+  return /(?:#\d+|github\.com\/openclaw\/openclaw\/(?:issues|pull)\/\d+)/i.test(text);
 }
 
 function hasFilledTemplateLine(body, field) {
@@ -355,7 +326,7 @@ function hasMostlyBlankTemplate(body) {
   if (!body) {
     return true;
   }
-  const emptyFields = [
+  const legacyEmptyFields = [
     "Problem",
     "Why it matters",
     "What changed",
@@ -367,13 +338,22 @@ function hasMostlyBlankTemplate(body) {
     const regex = new RegExp(`^\\s*-\\s*${escapedField}(?: \\([^)]*\\))?:\\s*$`, "im");
     return regex.test(body);
   }).length;
-  const hasTemplateIntro = body.includes("Describe the problem and fix in 2–5 bullets");
+  const hasLegacyTemplateIntro = body.includes("Describe the problem and fix in 2–5 bullets");
   const emptyClosingRef = /^\s*-\s*(?:Closes|Related)\s+#\s*$/im.test(body);
-  return hasTemplateIntro && emptyFields >= 3 && emptyClosingRef;
+  const hasNewTemplateIntro = body.includes(
+    "Describe the concrete user, product, or operational problem.",
+  );
+  return (
+    (hasLegacyTemplateIntro && legacyEmptyFields >= 3 && emptyClosingRef) ||
+    (hasNewTemplateIntro &&
+      !hasAuthoredPullRequestSection("What Problem This Solves", body) &&
+      !hasAuthoredPullRequestSection("Evidence", body))
+  );
 }
 
 function stripPullRequestTemplateBoilerplate(text) {
   return text
+    .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/^#{2,3}\s+.*$/gm, "")
     .replace(/^-\s*\[[ xX]\]\s+.*$/gm, "")
     .replace(/^-\s*(?:Closes|Related)\s+#\s*$/gim, "")
@@ -394,6 +374,9 @@ function stripPullRequestTemplateBoilerplate(text) {
 
 function hasConcreteBehaviorContext(body, text) {
   if (hasLinkedReference(text)) {
+    return true;
+  }
+  if (hasAuthoredPullRequestSection("What Problem This Solves", body)) {
     return true;
   }
   if (
@@ -485,6 +468,7 @@ export function classifyPullRequestCandidateLabels(pullRequest, files) {
   const filenames = files.map((file) => file.filename);
   const body = pullRequest.body ?? "";
   const text = `${pullRequest.title ?? ""}\n${body}`;
+  const contentText = stripPullRequestTemplateBoilerplate(text);
   const lowerText = text.toLowerCase();
   const linkedReference = hasLinkedReference(text);
   const blankTemplate = hasMostlyBlankTemplate(body);
@@ -499,8 +483,8 @@ export function classifyPullRequestCandidateLabels(pullRequest, files) {
   }
 
   labelsToAdd.push(
-    ...labelsForRealBehaviorProof(
-      evaluateRealBehaviorProof({
+    ...labelsForPullRequestContext(
+      evaluatePullRequestContext({
         pullRequest,
       }),
     ),
@@ -543,7 +527,7 @@ export function classifyPullRequestCandidateLabels(pullRequest, files) {
   if (
     !linkedReference &&
     !concreteBehaviorContext &&
-    /\b(refactor|cleanup|clean up|rename|formatting|style-only|style only)\b/i.test(text)
+    /\b(refactor|cleanup|clean up|rename|formatting|style-only|style only)\b/i.test(contentText)
   ) {
     labelsToAdd.push(candidateLabels.refactorOnly);
   }
@@ -554,7 +538,7 @@ export function classifyPullRequestCandidateLabels(pullRequest, files) {
 
   const addsPluginManifest = files.some(
     (file) =>
-      file.status === "added" && /^extensions\/[^/]+\/astroclaw\.plugin\.json$/i.test(file.filename),
+      file.status === "added" && /^extensions\/[^/]+\/openclaw\.plugin\.json$/i.test(file.filename),
   );
   if (
     !clearDesignContext &&
@@ -784,39 +768,31 @@ async function addMissingLabels(github, context, core, issueNumber, labels, labe
   core.info(`Added candidate labels to #${issueNumber}: ${missingLabels.join(", ")}`);
 }
 
-function shouldRemoveProofSufficientLabel(context, proofEvaluation) {
-  if (proofEvaluation.status !== "passed") {
-    return true;
-  }
-  return ["edited", "synchronize"].includes(context.payload.action);
+function isClawSweeperOwnedLabel(label) {
+  return label === "clawsweeper" || label.startsWith("clawsweeper:");
 }
 
 async function applyPullRequestCandidateLabels(github, context, core, pullRequest, labelSet) {
   const files = await listPullRequestFiles(github, context, pullRequest);
-  const proofEvaluation = evaluateRealBehaviorProof({
-    pullRequest: {
-      ...pullRequest,
-      labels: [...labelSet].map((name) => ({ name })),
-    },
-  });
-  const classifiedLabels = classifyPullRequestCandidateLabels(
+  const candidateLabelsToApply = classifyPullRequestCandidateLabels(
     {
       ...pullRequest,
       labels: [...labelSet].map((name) => ({ name })),
     },
     files,
   );
-  const staleProofLabels = structuralProofLabelValues.filter(
-    (label) => labelSet.has(label) && !classifiedLabels.includes(label),
+  const staleContextLabels = structuralContextLabelValues.filter(
+    (label) => labelSet.has(label) && !candidateLabelsToApply.includes(label),
   );
-  if (
-    labelSet.has(PROOF_SUFFICIENT_LABEL) &&
-    shouldRemoveProofSufficientLabel(context, proofEvaluation)
-  ) {
-    staleProofLabels.push(PROOF_SUFFICIENT_LABEL);
-  }
-  await removeLabels(github, context, pullRequest.number, staleProofLabels, labelSet);
-  await addMissingLabels(github, context, core, pullRequest.number, classifiedLabels, labelSet);
+  await removeLabels(github, context, pullRequest.number, staleContextLabels, labelSet);
+  await addMissingLabels(
+    github,
+    context,
+    core,
+    pullRequest.number,
+    candidateLabelsToApply,
+    labelSet,
+  );
 }
 
 function isAutomationUser(user, fallbackLogin = "") {
@@ -900,6 +876,9 @@ async function applyPullRequestCandidateAction({
 async function removeLabels(github, context, issueNumber, labels, labelSet) {
   for (const label of labels) {
     if (!labelSet.has(label)) {
+      continue;
+    }
+    if (isClawSweeperOwnedLabel(label)) {
       continue;
     }
     try {
