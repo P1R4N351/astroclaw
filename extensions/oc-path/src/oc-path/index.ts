@@ -1,5 +1,5 @@
 /**
- * `@astroclaw/oc-path` — substrate package public surface.
+ * `@openclaw/oc-path` — substrate package public surface.
  *
  * **Strategic frame**: workspace files are byte-stable and addressable
  * via the `oc://` scheme — the addressing scheme is universal across
@@ -21,11 +21,11 @@
  * the AST carries its `kind` discriminator and the universal verbs
  * dispatch internally.
  *
- * @module @astroclaw/oc-path
+ * @module @openclaw/oc-path
  */
 
 /**
- * SDK version this build of `@astroclaw/oc-path` exposes. Bumped on
+ * SDK version this build of `@openclaw/oc-path` exposes. Bumped on
  * every breaking change to AST shape, OcPath syntax, or universal
  * verbs (`resolveOcPath`, `setOcPath`, `findOcPaths`, `parseXxx`,
  * `emitXxx`). Plugin packs that depend on the substrate declare the
@@ -65,7 +65,7 @@ export {
 
 // `evaluatePredicate`, `getPathLayout`, `parseOrdinalSeg`,
 // `parsePredicateSeg`, `parseUnionSeg`, `quoteSeg`, `unquoteSeg`,
-// `repackPath`, `resolvePositionalSeg`, `splitRespectingBrackets`
+// `resolvePositionalSeg`, `splitRespectingBrackets`
 // were exported from earlier prototypes. They're substrate-internal
 // helpers — used by `find.ts`, the per-kind resolvers, and the parser
 // itself, but not part of the upstream-portable public surface.
