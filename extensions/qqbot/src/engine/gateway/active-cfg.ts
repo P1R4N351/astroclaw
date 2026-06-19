@@ -10,19 +10,17 @@
  * Issue #69546.
  */
 
-import type { AstroclawConfig } from "astroclaw/plugin-sdk/core";
-import { getRuntimeConfig } from "astroclaw/plugin-sdk/runtime-config-snapshot";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
+import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
 
-export type GatewayCfg = AstroclawConfig;
-
-export type GatewayCfgLoader = () => AstroclawConfig;
+export type GatewayCfgLoader = () => OpenClawConfig;
 
 export interface ActiveCfgProvider {
-  getActiveCfg(): AstroclawConfig;
+  getActiveCfg(): OpenClawConfig;
 }
 
 export interface ActiveCfgProviderOptions {
-  fallback: AstroclawConfig;
+  fallback: OpenClawConfig;
   load?: GatewayCfgLoader;
 }
 
@@ -30,7 +28,7 @@ export function createActiveCfgProvider(options: ActiveCfgProviderOptions): Acti
   const loader = options.load ?? defaultGatewayCfgLoader;
   const fallback = options.fallback;
   return {
-    getActiveCfg(): AstroclawConfig {
+    getActiveCfg(): OpenClawConfig {
       return resolveActiveCfg(loader, fallback);
     },
   };
@@ -38,8 +36,8 @@ export function createActiveCfgProvider(options: ActiveCfgProviderOptions): Acti
 
 export function resolveActiveCfg(
   loader: GatewayCfgLoader,
-  fallback: AstroclawConfig,
-): AstroclawConfig {
+  fallback: OpenClawConfig,
+): OpenClawConfig {
   try {
     return loader();
   } catch {
@@ -47,6 +45,6 @@ export function resolveActiveCfg(
   }
 }
 
-function defaultGatewayCfgLoader(): AstroclawConfig {
+function defaultGatewayCfgLoader(): OpenClawConfig {
   return getRuntimeConfig();
 }
