@@ -3232,19 +3232,88 @@ output="$(cat "$sampler_log")"
     expect(result.stderr).not.toContain("Docker image not found");
   });
 
-  it("rejects invalid OpenAI chat tools Docker timeouts before auth setup", () => {
+  it.each([
+    [MCP_CODE_MODE_GATEWAY_DOCKER_E2E_PATH, "OPENCLAW_MCP_CODE_MODE_CLIENT_TIMEOUT_MS", "1e3"],
+    [
+      MCP_CODE_MODE_GATEWAY_DOCKER_E2E_PATH,
+      "OPENCLAW_MCP_CODE_MODE_CLIENT_BODY_MAX_BYTES",
+      "64bytes",
+    ],
+    [MCP_CODE_MODE_GATEWAY_LIVE_DOCKER_E2E_PATH, "OPENCLAW_MCP_CODE_MODE_CLIENT_TIMEOUT_MS", "1e3"],
+    [
+      MCP_CODE_MODE_GATEWAY_LIVE_DOCKER_E2E_PATH,
+      "OPENCLAW_MCP_CODE_MODE_CLIENT_BODY_MAX_BYTES",
+      "64bytes",
+    ],
+  ])("rejects invalid MCP code-mode client env before setup", (scriptPath, envName, value) => {
+    const result = spawnSync("bash", [scriptPath], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        [envName]: value,
+        OPENCLAW_SKIP_DOCKER_BUILD: "1",
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain(`invalid ${envName}: ${value}`);
+    expect(result.stderr).not.toContain("Docker image not found");
+    expect(result.stderr).not.toContain("OPENAI_API_KEY was not available");
+  });
+
+  it.each([MCP_CODE_MODE_GATEWAY_DOCKER_E2E_PATH, MCP_CODE_MODE_GATEWAY_LIVE_DOCKER_E2E_PATH])(
+    "forwards MCP code-mode client fetch limits into Docker",
+    (scriptPath) => {
+      const runner = readFileSync(scriptPath, "utf8");
+
+      expect(runner).toContain(
+        'CLIENT_TIMEOUT_MS="$(docker_e2e_read_positive_int_env OPENCLAW_MCP_CODE_MODE_CLIENT_TIMEOUT_MS 300000)"',
+      );
+      expect(runner).toContain(
+        'CLIENT_BODY_MAX_BYTES="$(docker_e2e_read_positive_int_env OPENCLAW_MCP_CODE_MODE_CLIENT_BODY_MAX_BYTES 1048576)"',
+      );
+      expect(runner).toContain('-e "OPENCLAW_MCP_CODE_MODE_CLIENT_TIMEOUT_MS=$CLIENT_TIMEOUT_MS"');
+      expect(runner).toContain(
+        '-e "OPENCLAW_MCP_CODE_MODE_CLIENT_BODY_MAX_BYTES=$CLIENT_BODY_MAX_BYTES"',
+      );
+    },
+  );
+
+  it.each([
+    ["timeout", "OPENCLAW_OPENAI_CHAT_TOOLS_TIMEOUT_SECONDS", "180s"],
+    ["body cap", "OPENCLAW_OPENAI_CHAT_TOOLS_MAX_BODY_BYTES", "64kb"],
+  ])("rejects invalid OpenAI chat tools Docker %s before auth setup", (_label, envName, value) => {
     const result = spawnSync("bash", [OPENAI_CHAT_TOOLS_DOCKER_E2E_PATH], {
       encoding: "utf8",
       env: {
         ...process.env,
         OPENAI_API_KEY: "",
-        OPENCLAW_OPENAI_CHAT_TOOLS_TIMEOUT_SECONDS: "180s",
+        [envName]: value,
       },
     });
 
     expect(result.status).toBe(2);
-    expect(result.stderr).toContain("invalid OPENCLAW_OPENAI_CHAT_TOOLS_TIMEOUT_SECONDS: 180s");
+    expect(result.stderr).toContain(`invalid ${envName}: ${value}`);
     expect(result.stderr).not.toContain("OPENAI_API_KEY was not available");
+  });
+
+  it("forwards every OpenAI chat tools runtime env knob into Docker", () => {
+    const runner = readFileSync(OPENAI_CHAT_TOOLS_DOCKER_E2E_PATH, "utf8");
+    const client = readFileSync("scripts/e2e/lib/openai-chat-tools/client.mjs", "utf8");
+    const writer = readFileSync("scripts/e2e/lib/openai-chat-tools/write-config.mjs", "utf8");
+    const consumed = new Set(
+      [...`${client}\n${writer}`.matchAll(/["`](OPENCLAW_OPENAI_CHAT_TOOLS_[A-Z0-9_]+)["`]/gu)].map(
+        (match) => match[1],
+      ),
+    );
+    const forwarded = new Set(
+      [...runner.matchAll(/-e\s+"(OPENCLAW_OPENAI_CHAT_TOOLS_[A-Z0-9_]+)=/gu)].map(
+        (match) => match[1],
+      ),
+    );
+    const missing = [...consumed].filter((envName) => !forwarded.has(envName)).toSorted();
+
+    expect(missing).toEqual([]);
   });
 
   it("forwards every kitchen-sink RPC runtime env knob into Docker", () => {
@@ -3316,6 +3385,45 @@ output="$(cat "$sampler_log")"
     expect(runner).not.toContain(
       'run_logged gateway-network-client timeout "$CLIENT_TIMEOUT" docker run --rm',
     );
+  });
+
+  it.each([
+    ["connect", "OPENCLAW_GATEWAY_NETWORK_CLIENT_CONNECT_TIMEOUT_MS", "100ms"],
+    ["ready", "OPENCLAW_GATEWAY_NETWORK_CONNECT_READY_TIMEOUT_MS", "1e3"],
+  ])(
+    "rejects invalid gateway network client %s timeout before Docker setup",
+    (_label, envName, value) => {
+      const result = spawnSync("bash", [GATEWAY_NETWORK_DOCKER_E2E_PATH], {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          [envName]: value,
+          OPENCLAW_SKIP_DOCKER_BUILD: "1",
+        },
+      });
+
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain(`invalid ${envName}: ${value}`);
+      expect(result.stderr).not.toContain("Docker image not found");
+    },
+  );
+
+  it("forwards gateway network client timeout env into the Docker client", () => {
+    const runner = readFileSync(GATEWAY_NETWORK_DOCKER_E2E_PATH, "utf8");
+
+    expect(runner).toContain(
+      "docker_e2e_read_positive_int_env OPENCLAW_GATEWAY_NETWORK_CLIENT_CONNECT_TIMEOUT_MS 80000",
+    );
+    expect(runner).toContain(
+      "docker_e2e_read_positive_int_env OPENCLAW_GATEWAY_NETWORK_CONNECT_READY_TIMEOUT_MS 80000",
+    );
+    expect(runner).toContain(
+      '-e "OPENCLAW_GATEWAY_NETWORK_CLIENT_CONNECT_TIMEOUT_MS=$CLIENT_CONNECT_TIMEOUT_MS"',
+    );
+    expect(runner).toContain(
+      '-e "OPENCLAW_GATEWAY_NETWORK_CONNECT_READY_TIMEOUT_MS=$CONNECT_READY_TIMEOUT_MS"',
+    );
+    expect(runner).toContain('"${CLIENT_LIMIT_ENV_ARGS[@]}"');
   });
 
   it("requires TCP readiness for the gateway network runner", () => {
@@ -3405,7 +3513,12 @@ output="$(cat "$sampler_log")"
     expect(wrapper).toContain("OPENCLAW_INSTALL_E2E_AGENT_TOOL_SMOKE");
     expect(wrapper).toContain("OPENCLAW_INSTALL_E2E_OPENAI_MODEL");
     expect(wrapper).toContain("OPENCLAW_INSTALL_E2E_OPENAI_PROVIDER_TIMEOUT_SECONDS");
-    expect(wrapper).toContain("OPENCLAW_INSTALL_E2E_AGENT_TURN_TIMEOUT_SECONDS:-300");
+    expect(wrapper).toContain(
+      "docker_e2e_read_positive_int_env OPENCLAW_INSTALL_E2E_AGENT_TURN_TIMEOUT_SECONDS 300",
+    );
+    expect(wrapper).toContain(
+      '-e OPENCLAW_INSTALL_E2E_AGENT_TURN_TIMEOUT_SECONDS="$AGENT_TURN_TIMEOUT_SECONDS"',
+    );
     expect(wrapper).toContain("OPENCLAW_INSTALL_E2E_PROFILE_FILE");
     expect(wrapper).toContain("OPENCLAW_PROFILE_FILE");
     expect(wrapper).toContain("OPENCLAW_TESTBOX_PROFILE_FILE");
