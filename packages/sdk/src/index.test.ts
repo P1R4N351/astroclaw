@@ -739,6 +739,23 @@ describe("OpenClaw SDK", () => {
     ]);
   });
 
+  it("rejects tools.effective without a session key before RPC", async () => {
+    type EffectiveMethod = (this: unknown, params?: unknown) => Promise<unknown>;
+    const transport = new FakeTransport({
+      "tools.effective": { tools: [] },
+    });
+    const oc = new OpenClaw({ transport });
+
+    await expect((oc.tools.effective as unknown as EffectiveMethod).call(oc.tools)).rejects.toThrow(
+      "oc.tools.effective requires sessionKey",
+    );
+    await expect(
+      (oc.tools.effective as unknown as EffectiveMethod).call(oc.tools, {}),
+    ).rejects.toThrow("oc.tools.effective requires sessionKey");
+
+    expect(transport.calls).toEqual([]);
+  });
+
   it("keeps close terminal when it races a pending connect", async () => {
     const transport = new DelayedConnectTransport({
       "agents.list": { agents: [] },
@@ -768,9 +785,10 @@ describe("OpenClaw SDK", () => {
     const oc = new OpenClaw({ transport });
 
     await expect(oc.approvals.list()).resolves.toEqual({ approvals: [] });
-    await expect(
-      oc.approvals.respond("approval-123", { id: "stale-approval", decision: "allow-once" }),
-    ).resolves.toEqual({ ok: true });
+    const staleDecision = { id: "stale-approval", decision: "allow-once" as const };
+    await expect(oc.approvals.respond("approval-123", staleDecision)).resolves.toEqual({
+      ok: true,
+    });
 
     expect(transport.calls).toEqual([
       {
