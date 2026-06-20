@@ -1337,6 +1337,7 @@ describe("scripts/test-projects changed-target routing", () => {
         "scripts/lib/deprecated-plugin-sdk-usage.mjs",
         ["test/scripts/check-deprecated-api-usage.test.ts"],
       ],
+      ["scripts/lib/direct-run.mjs", ["test/scripts/changed-lanes.test.ts"]],
       ["scripts/lib/npm-verify-exec.ts", ["test/scripts/npm-verify-exec.test.ts"]],
       [
         "scripts/lib/plugin-npm-runtime-build.mjs",
@@ -1353,6 +1354,14 @@ describe("scripts/test-projects changed-target routing", () => {
         ],
       ],
       ["scripts/lib/arg-utils.mjs", ["test/scripts/arg-utils.test.ts"]],
+      [
+        "scripts/lib/android-version.ts",
+        ["test/scripts/android-version.test.ts", "test/scripts/android-pin-version.test.ts"],
+      ],
+      [
+        "scripts/lib/ios-version.ts",
+        ["test/scripts/ios-version.test.ts", "test/scripts/ios-pin-version.test.ts"],
+      ],
       ["scripts/docker/cleanup-smoke/run.sh", ["test/scripts/docker-build-helper.test.ts"]],
       [
         "scripts/docker/install-sh-e2e/run.sh",
@@ -1432,8 +1441,10 @@ describe("scripts/test-projects changed-target routing", () => {
       ],
       [
         "scripts/lib/bundled-plugin-build-entries.mjs",
-        ["test/scripts/bundled-plugin-build-entries.test.ts"],
+        ["test/scripts/bundled-plugin-build-entries.test.ts", "test/release-check.test.ts"],
       ],
+      ["scripts/lib/changed-extensions.mjs", ["test/scripts/test-extension.test.ts"]],
+      ["scripts/lib/extension-vitest-paths.mjs", ["test/scripts/test-extension.test.ts"]],
     ]);
 
     for (const [source, targets] of expectedTargets) {
