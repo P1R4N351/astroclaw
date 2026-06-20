@@ -47,7 +47,7 @@ export type RegisteredCompactionProvider = {
 // Registry (process-global singleton)
 // ---------------------------------------------------------------------------
 
-const COMPACTION_PROVIDER_REGISTRY_STATE = Symbol.for("astroclaw.compactionProviderRegistryState");
+const COMPACTION_PROVIDER_REGISTRY_STATE = Symbol.for("openclaw.compactionProviderRegistryState");
 
 type CompactionProviderRegistryState = {
   providers: Map<string, RegisteredCompactionProvider>;
@@ -99,11 +99,6 @@ export function getRegisteredCompactionProvider(
   id: string,
 ): RegisteredCompactionProvider | undefined {
   return getCompactionProviderRegistryState().providers.get(id);
-}
-
-/** List all registered compaction provider ids. */
-export function listCompactionProviderIds(): string[] {
-  return [...getCompactionProviderRegistryState().providers.keys()];
 }
 
 /** List all registered entries with owner metadata (for snapshot/restore). */
