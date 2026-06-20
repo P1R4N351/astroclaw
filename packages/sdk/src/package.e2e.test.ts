@@ -123,8 +123,9 @@ function runPnpmCommand(
     pnpmArgs: args,
     stdio: ["ignore", "pipe", "pipe"],
   });
+  const cwd = typeof spec.options.cwd === "string" ? spec.options.cwd : options.cwd;
   return runCommand(spec.command, spec.args, {
-    cwd: spec.options.cwd ?? options.cwd,
+    cwd,
     env: spec.options.env,
     shell: spec.options.shell,
     timeoutMs: options.timeoutMs,
