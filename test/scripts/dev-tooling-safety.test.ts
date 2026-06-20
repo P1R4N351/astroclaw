@@ -79,6 +79,50 @@ describe("script-specific dev tooling hardening", () => {
     expect(() => discordSmokeTesting.parseDriverMode("curl")).toThrow(/Invalid --driver/u);
   });
 
+  it("rejects unknown Discord smoke args before live Discord/OpenClaw work", () => {
+    expect(() => discordSmokeTesting.parseArgs(["--wat"])).toThrow("Unknown argument: --wat");
+
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", "scripts/dev/discord-acp-plain-language-smoke.ts", "--wat"],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+      },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr.trim()).toBe("Unknown argument: --wat");
+  });
+
+  it("prints Discord smoke usage without starting live validation", () => {
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", "scripts/dev/discord-acp-plain-language-smoke.ts", "--help"],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+      },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Usage: bun scripts/dev/discord-acp-plain-language-smoke.ts");
+    expect(result.stderr).toBe("");
+  });
+
+  it("rejects missing Discord smoke option values before env fallbacks", () => {
+    expect(() => discordSmokeTesting.parseArgs(["--channel"])).toThrow(
+      "--channel requires a value",
+    );
+    expect(() => discordSmokeTesting.parseArgs(["--channel="])).toThrow(
+      "--channel requires a value",
+    );
+    expect(() => discordSmokeTesting.parseArgs(["--channel", "--json"])).toThrow(
+      "--channel requires a value",
+    );
+  });
+
   it("redacts Discord webhook tokens from API paths", () => {
     const token = "webhook-secret-token-abcdef123456"; // pragma: allowlist secret
     const apiPath = `/webhooks/123/${token}?wait=true`;
@@ -397,6 +441,44 @@ describe("script-specific dev tooling hardening", () => {
     expect(() => realtimeSmokeTesting.resolveOpenAIHttpTimeoutMs("2s")).toThrow(
       /OPENCLAW_REALTIME_OPENAI_HTTP_TIMEOUT_MS must be an integer/u,
     );
+  });
+
+  it("prints OpenAI realtime smoke help without launching live checks", () => {
+    expect(realtimeSmokeTesting.parseRealtimeSmokeArgs(["--help"])).toEqual({ help: true });
+
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", "scripts/dev/realtime-talk-live-smoke.ts", "--help"],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+      },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      "Usage: node --import tsx scripts/dev/realtime-talk-live-smoke.ts",
+    );
+    expect(result.stderr).toBe("");
+  });
+
+  it("rejects unknown OpenAI realtime smoke args before launching live checks", () => {
+    expect(() => realtimeSmokeTesting.parseRealtimeSmokeArgs(["--wat"])).toThrow(
+      "Unknown argument: --wat",
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", "scripts/dev/realtime-talk-live-smoke.ts", "--wat"],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+      },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr.trim()).toBe("Unknown argument: --wat");
   });
 
   it("bounds OpenAI realtime smoke response body reads by content-length", async () => {
