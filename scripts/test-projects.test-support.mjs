@@ -754,6 +754,34 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ["scripts/lib/local-heavy-check-runtime.mjs", ["test/scripts/local-heavy-check-runtime.test.ts"]],
   ["scripts/lib/kova-report-gate.mjs", ["test/scripts/kova-report-gate.test.ts"]],
   ["scripts/lib/managed-child-process.mjs", ["test/scripts/managed-child-process.test.ts"]],
+  [
+    "scripts/lib/local-build-metadata.mjs",
+    [
+      "src/infra/build-stamp.test.ts",
+      "test/scripts/runtime-postbuild-stamp.test.ts",
+      "src/infra/run-node.test.ts",
+      "src/infra/package-dist-inventory.test.ts",
+      "test/release-check.test.ts",
+      "test/openclaw-npm-release-check.test.ts",
+      "test/scripts/check-gateway-watch-regression.test.ts",
+      "test/scripts/check-openclaw-package-tarball.test.ts",
+      "test/scripts/openclaw-cross-os-release-checks.test.ts",
+    ],
+  ],
+  [
+    "scripts/lib/local-build-metadata-paths.mjs",
+    [
+      "src/infra/build-stamp.test.ts",
+      "test/scripts/runtime-postbuild-stamp.test.ts",
+      "src/infra/run-node.test.ts",
+      "src/infra/package-dist-inventory.test.ts",
+      "test/release-check.test.ts",
+      "test/openclaw-npm-release-check.test.ts",
+      "test/scripts/check-gateway-watch-regression.test.ts",
+      "test/scripts/check-openclaw-package-tarball.test.ts",
+      "test/scripts/openclaw-cross-os-release-checks.test.ts",
+    ],
+  ],
   ["scripts/lib/npm-verify-exec.ts", ["test/scripts/npm-verify-exec.test.ts"]],
   ["scripts/lib/openclaw-test-state.mjs", ["test/scripts/openclaw-test-state.test.ts"]],
   [
@@ -775,7 +803,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ],
   [
     "scripts/lib/plugin-npm-runtime-build.mjs",
-    ["test/scripts/plugin-npm-runtime-build-args.test.ts"],
+    ["test/scripts/plugin-npm-runtime-build-args.test.ts", "test/plugin-npm-runtime-build.test.ts"],
   ],
   [
     "scripts/lib/npm-publish-plan.mjs",
@@ -807,7 +835,22 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ],
   [
     "scripts/lib/plugin-npm-package-manifest.mjs",
-    ["test/scripts/plugin-npm-package-manifest-args.test.ts"],
+    [
+      "test/scripts/plugin-npm-package-manifest-args.test.ts",
+      "test/plugin-npm-package-manifest.test.ts",
+    ],
+  ],
+  [
+    "scripts/lib/plugin-npm-runtime-assets.mjs",
+    ["test/scripts/plugin-npm-runtime-build-args.test.ts"],
+  ],
+  [
+    "scripts/lib/static-extension-assets.mjs",
+    [
+      "test/scripts/runtime-postbuild.test.ts",
+      "src/infra/run-node.test.ts",
+      "test/scripts/plugin-npm-runtime-build-args.test.ts",
+    ],
   ],
   ["scripts/lib/stable-release-closeout.mjs", ["test/stable-release-closeout.test.ts"]],
   ["scripts/lib/source-file-scan-cache.mjs", ["test/scripts/source-file-scan-cache.test.ts"]],
