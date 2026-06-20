@@ -176,6 +176,55 @@ describe("evidence gallery", () => {
     expect(JSON.stringify(model)).not.toContain(repoRoot);
   });
 
+  it("normalizes absolute source and declared artifact paths for gallery links", async () => {
+    const repoRoot = await createTempRepo();
+    const outputDir = path.join(repoRoot, ".artifacts", "qa-e2e", "vitest");
+    const artifactPath = path.join(outputDir, "absolute.log");
+    await fs.mkdir(outputDir, { recursive: true });
+    await fs.writeFile(
+      artifactPath,
+      `absolute artifact ${repoRoot}\nfile://${repoRoot}/trace.log\n`,
+      "utf8",
+    );
+    const evidence: QaEvidenceSummaryJson = vitestArtifactEvidence({
+      id: "qa-lab.absolute-artifact-path",
+      title: "Absolute artifact path",
+      artifact: { kind: "log", path: artifactPath },
+    });
+    evidence.entries[0] = {
+      ...evidence.entries[0],
+      test: {
+        ...evidence.entries[0].test,
+        source: { path: path.join(repoRoot, "extensions/qa-lab/src/absolute.test.ts") },
+      },
+    };
+    await writeJson(path.join(outputDir, QA_EVIDENCE_FILENAME), evidence);
+
+    const model = await buildQaEvidenceGalleryModel({
+      evidencePath: outputDir,
+      repoRoot,
+    });
+
+    const artifact = model.entries[0]?.artifacts[0];
+    expect(artifact).toMatchObject({
+      exists: true,
+      path: ".artifacts/qa-e2e/vitest/absolute.log",
+      preview: "absolute artifact <repo-root>\nfile://<repo-root>/trace.log\n",
+    });
+    expect(artifact?.href).toContain(
+      "artifactPath=%3Crepo-root%3E%2F.artifacts%2Fqa-e2e%2Fvitest%2Fabsolute.log",
+    );
+    expect(model.entries[0]?.sourcePath).toBe("extensions/qa-lab/src/absolute.test.ts");
+    expect(JSON.stringify(model)).not.toContain(repoRoot);
+    await expect(
+      resolveQaEvidenceArtifactFile({
+        artifactPath: "<repo-root>/.artifacts/qa-e2e/vitest/absolute.log",
+        evidencePath: outputDir,
+        repoRoot,
+      }),
+    ).resolves.toBe(await fs.realpath(artifactPath));
+  });
+
   it("detects UX Matrix producer context from suite-level evidence artifacts", async () => {
     const repoRoot = await createTempRepo();
     const suiteDir = path.join(repoRoot, ".artifacts", "qa-e2e", "suite");
@@ -221,9 +270,9 @@ describe("evidence gallery", () => {
           coverageIds: ["ui.control"],
           runner: {
             availability: "local",
-            command: "pnpm openclaw qa suite --scenario ux-matrix-evidence-dashboard",
+            command: `${repoRoot}/openclaw.mjs qa suite --scenario ux-matrix-evidence-dashboard`,
             lane: "web-ui-playwright",
-            workflow: ".github/workflows/ux-matrix-qa.yml#ux-matrix-local",
+            workflow: `${repoRoot}/.github/workflows/ux-matrix-qa.yml#ux-matrix-local`,
           },
           stage: "first-run",
           status: "pass",
@@ -292,7 +341,14 @@ describe("evidence gallery", () => {
             artifacts: [
               {
                 kind: "screenshot",
-                path: ".artifacts/qa-e2e/suite/script/ux-matrix-evidence-dashboard/run-1/surfaces/web-ui/stages/first-run/screenshot.png",
+                path: path.join(
+                  runDir,
+                  "surfaces",
+                  "web-ui",
+                  "stages",
+                  "first-run",
+                  "screenshot.png",
+                ),
                 source: "ux-matrix:web-ui:first-run",
               },
             ],
@@ -378,9 +434,9 @@ describe("evidence gallery", () => {
         coverageIds: ["ui.control"],
         runner: {
           availability: "local",
-          command: "pnpm openclaw qa suite --scenario ux-matrix-evidence-dashboard",
+          command: "<repo-root>/openclaw.mjs qa suite --scenario ux-matrix-evidence-dashboard",
           lane: "web-ui-playwright",
-          workflow: ".github/workflows/ux-matrix-qa.yml#ux-matrix-local",
+          workflow: "<repo-root>/.github/workflows/ux-matrix-qa.yml#ux-matrix-local",
         },
         stage: "first-run",
         status: "pass",
