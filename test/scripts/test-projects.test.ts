@@ -1824,6 +1824,14 @@ describe("scripts/test-projects changed-target routing", () => {
         ["test/scripts/docker-build-helper.test.ts", "test/scripts/test-install-sh-docker.test.ts"],
       ],
       [
+        "scripts/docker/install-sh-common/cli-verify.sh",
+        ["test/scripts/test-install-sh-docker.test.ts"],
+      ],
+      [
+        "scripts/docker/install-sh-common/version-parse.sh",
+        ["test/scripts/test-install-sh-docker.test.ts"],
+      ],
+      [
         "scripts/docker/install-sh-nonroot/Dockerfile",
         [
           "src/docker-build-cache.test.ts",
@@ -1931,6 +1939,10 @@ describe("scripts/test-projects changed-target routing", () => {
         "scripts/openclaw-release-clawhub-runtime-state.ts",
         ["test/scripts/openclaw-release-clawhub-runtime-state.test.ts"],
       ],
+      [
+        "scripts/openclaw-release-clawhub-plan.ts",
+        ["test/scripts/release-wrapper-scripts.test.ts"],
+      ],
       ["scripts/lib/openclaw-release-clawhub-plan.ts", ["test/plugin-clawhub-release.test.ts"]],
       [
         "scripts/lib/plugin-clawhub-release.ts",
@@ -1940,6 +1952,10 @@ describe("scripts/test-projects changed-target routing", () => {
         "scripts/lib/plugin-npm-release.ts",
         ["test/plugin-npm-release.test.ts", "test/plugin-clawhub-release.test.ts"],
       ],
+      ["scripts/plugin-clawhub-release-check.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
+      ["scripts/plugin-clawhub-release-plan.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
+      ["scripts/plugin-npm-release-check.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
+      ["scripts/plugin-npm-release-plan.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
       [
         "scripts/plugin-release-pretag-pack-check.ts",
         ["test/scripts/plugin-release-pretag-pack-check.test.ts"],
@@ -1947,6 +1963,11 @@ describe("scripts/test-projects changed-target routing", () => {
       [
         "scripts/plan-release-workflow-matrix.mjs",
         ["test/scripts/release-workflow-matrix-plan.test.ts"],
+      ],
+      ["scripts/release-verify-beta.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
+      [
+        "scripts/validate-release-publish-approval.mjs",
+        ["test/scripts/validate-release-publish-approval.test.ts"],
       ],
       [
         "scripts/lib/plugin-npm-runtime-assets.mjs",
