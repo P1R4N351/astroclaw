@@ -1164,6 +1164,10 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     "scripts/lib/npm-pack-budget.mjs",
     ["test/release-check.test.ts", "test/scripts/test-install-sh-docker.test.ts"],
   ],
+  [
+    "scripts/lib/npm-pack-budget.d.mts",
+    ["test/release-check.test.ts", "test/scripts/test-install-sh-docker.test.ts"],
+  ],
   ["scripts/lib/openclaw-release-clawhub-plan.ts", ["test/plugin-clawhub-release.test.ts"]],
   [
     "scripts/lib/plugin-clawhub-release.ts",
@@ -1263,6 +1267,8 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ["scripts/docker-e2e-timings.mjs", ["test/scripts/docker-e2e-helper-cli.test.ts"]],
   ["scripts/e2e/bun-global-install-smoke.sh", ["test/scripts/test-install-sh-docker.test.ts"]],
   ["scripts/generate-npm-shrinkwrap.mjs", ["test/scripts/generate-npm-shrinkwrap.test.ts"]],
+  ["scripts/npm-runner.d.mts", ["test/scripts/npm-runner.test.ts"]],
+  ["scripts/pnpm-runner.d.mts", ["test/scripts/pnpm-runner.test.ts"]],
   [
     "scripts/install.sh",
     [
@@ -1852,6 +1858,7 @@ const TEST_HELPER_NORMALIZE_TEXT_TARGETS = [
   "src/tui/components/chat-log.test.ts",
 ];
 const HAPPY_PATH_PROMPT_SNAPSHOT_HELPER_TEST_TARGETS = ["test/scripts/prompt-snapshots.test.ts"];
+const APPCAST_TEST_TARGETS = ["test/appcast.test.ts", "test/scripts/make-appcast.test.ts"];
 const SOURCE_TEST_TARGETS = new Map([
   ...PRECISE_SOURCE_TEST_TARGETS,
   ["src/test-utils/openclaw-test-state.ts", ["src/test-utils/openclaw-test-state.test.ts"]],
@@ -3106,11 +3113,16 @@ function resolvePromptSnapshotFixtureTargets(changedPath) {
   return ["test/scripts/prompt-snapshots.test.ts"];
 }
 
+function resolveAppcastTargets(changedPath) {
+  return changedPath === "appcast.xml" ? APPCAST_TEST_TARGETS : null;
+}
+
 function resolvePreciseChangedTestTargets(changedPath, options) {
   const cwd = options.cwd ?? process.cwd();
   const mappedTargets =
     resolveToolingTestTargets(changedPath) ??
     SOURCE_TEST_TARGETS.get(changedPath) ??
+    resolveAppcastTargets(changedPath) ??
     resolvePromptSnapshotFixtureTargets(changedPath);
   if (mappedTargets) {
     return mappedTargets;
