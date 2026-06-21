@@ -423,6 +423,13 @@ const PLUGIN_SDK_ENTRY_METADATA_TEST_TARGETS = [
   "test/scripts/ts-topology.test.ts",
   TOOLING_VITEST_CONFIG,
 ];
+const RUNTIME_SIDECAR_BASELINE_OWNER_TEST_TARGETS = ["src/plugins/bundled-plugin-metadata.test.ts"];
+const RUNTIME_SIDECAR_PATH_CONSUMER_TEST_TARGETS = [
+  ...RUNTIME_SIDECAR_BASELINE_OWNER_TEST_TARGETS,
+  "src/infra/update-global.test.ts",
+  "src/infra/update-runner.test.ts",
+  "test/openclaw-npm-postpublish-verify.test.ts",
+];
 const OFFICIAL_EXTERNAL_CATALOG_TEST_TARGETS = [
   "src/plugins/official-external-plugin-catalog.test.ts",
   "test/release-check.test.ts",
@@ -662,6 +669,11 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ["scripts/check-dependency-pins.mjs", ["test/scripts/check-dependency-pins.test.ts"]],
   ["scripts/check-deadcode-unused-files.mjs", ["test/scripts/check-deadcode-unused-files.test.ts"]],
   ["scripts/check-dynamic-import-warts.mjs", ["test/scripts/check-dynamic-import-warts.test.ts"]],
+  ["scripts/generate-prompt-snapshots.ts", ["test/scripts/prompt-snapshots.test.ts"]],
+  [
+    "scripts/generate-runtime-sidecar-paths-baseline.ts",
+    RUNTIME_SIDECAR_BASELINE_OWNER_TEST_TARGETS,
+  ],
   [
     "scripts/lib/config-boundary-guard.mjs",
     [
@@ -977,15 +989,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     "scripts/lib/bundled-plugin-source-utils.mjs",
     ["test/scripts/bundled-plugin-source-utils.test.ts"],
   ],
-  [
-    "scripts/lib/bundled-runtime-sidecar-paths.json",
-    [
-      "src/plugins/bundled-plugin-metadata.test.ts",
-      "src/infra/update-global.test.ts",
-      "src/infra/update-runner.test.ts",
-      "test/openclaw-npm-postpublish-verify.test.ts",
-    ],
-  ],
+  ["scripts/lib/bundled-runtime-sidecar-paths.json", RUNTIME_SIDECAR_PATH_CONSUMER_TEST_TARGETS],
   ["scripts/lib/changed-extensions.mjs", ["test/scripts/test-extension.test.ts"]],
   ["scripts/lib/dev-tooling-safety.ts", ["test/scripts/dev-tooling-safety.test.ts"]],
   [
@@ -1022,6 +1026,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ["scripts/lib/official-external-plugin-catalog.json", OFFICIAL_EXTERNAL_CATALOG_TEST_TARGETS],
   ["scripts/lib/official-external-provider-catalog.json", OFFICIAL_EXTERNAL_CATALOG_TEST_TARGETS],
   ["scripts/lib/direct-run.mjs", ["test/scripts/changed-lanes.test.ts"]],
+  ["scripts/prompt-snapshot-files.ts", ["test/scripts/prompt-snapshots.test.ts"]],
   [
     "scripts/docker/cleanup-smoke/Dockerfile",
     [...DOCKERFILE_CACHE_AND_DIGEST_TEST_TARGETS, "test/scripts/docker-build-helper.test.ts"],
@@ -1154,6 +1159,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
       "test/scripts/upgrade-survivor-config-recipe.test.ts",
     ],
   ],
+  ["scripts/sync-codex-model-prompt-fixture.ts", ["test/scripts/prompt-snapshots.test.ts"]],
   [
     "scripts/lib/npm-pack-budget.mjs",
     ["test/release-check.test.ts", "test/scripts/test-install-sh-docker.test.ts"],
@@ -1668,27 +1674,69 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     ],
   ],
   [
+    "scripts/e2e/lib/openai-chat-tools/client.mjs",
+    ["test/e2e/qa-lab/runtime/openai-compatible-chat-tools.e2e.test.ts"],
+  ],
+  [
+    "scripts/e2e/lib/openai-chat-tools/scenario.sh",
+    ["test/e2e/qa-lab/runtime/openai-compatible-chat-tools.e2e.test.ts"],
+  ],
+  [
+    "scripts/e2e/lib/openai-chat-tools/write-config.mjs",
+    ["test/e2e/qa-lab/runtime/openai-compatible-chat-tools.e2e.test.ts"],
+  ],
+  [
     "scripts/e2e/openai-chat-tools-docker.sh",
-    ["test/scripts/openai-chat-tools-client.test.ts", "test/scripts/docker-e2e-plan.test.ts"],
+    [
+      "test/e2e/qa-lab/runtime/openai-compatible-chat-tools.e2e.test.ts",
+      "test/scripts/docker-e2e-plan.test.ts",
+    ],
+  ],
+  [
+    "scripts/e2e/lib/openai-web-search-minimal/assertions.mjs",
+    ["test/e2e/qa-lab/runtime/openai-web-search-minimal-assertions.e2e.test.ts"],
+  ],
+  [
+    "scripts/e2e/lib/openai-web-search-minimal/client.mjs",
+    ["test/e2e/qa-lab/runtime/openai-web-search-minimal.e2e.test.ts"],
+  ],
+  [
+    "scripts/e2e/lib/openai-web-search-minimal/mock-server.mjs",
+    [
+      "test/e2e/qa-lab/runtime/openai-web-search-minimal.e2e.test.ts",
+      "test/e2e/qa-lab/runtime/openai-web-search-minimal-assertions.e2e.test.ts",
+    ],
+  ],
+  [
+    "scripts/e2e/lib/openai-web-search-minimal/scenario.sh",
+    [
+      "test/e2e/qa-lab/runtime/openai-web-search-minimal.e2e.test.ts",
+      "test/e2e/qa-lab/runtime/openai-web-search-minimal-assertions.e2e.test.ts",
+    ],
   ],
   [
     "scripts/e2e/openai-web-search-minimal-docker.sh",
     [
       "test/scripts/docker-build-helper.test.ts",
       "test/scripts/docker-e2e-plan.test.ts",
-      "test/scripts/openai-web-search-minimal-client.test.ts",
-      "test/scripts/openai-web-search-minimal-assertions.test.ts",
+      "test/e2e/qa-lab/runtime/openai-web-search-minimal.e2e.test.ts",
+      "test/e2e/qa-lab/runtime/openai-web-search-minimal-assertions.e2e.test.ts",
     ],
+  ],
+  [
+    "scripts/e2e/lib/openwebui/http-probe.mjs",
+    ["test/e2e/qa-lab/runtime/openwebui-probe.e2e.test.ts"],
   ],
   [
     "scripts/e2e/openwebui-docker.sh",
     [
       "test/scripts/docker-build-helper.test.ts",
       "test/scripts/docker-e2e-plan.test.ts",
-      "test/scripts/openwebui-probe.test.ts",
+      "test/e2e/qa-lab/runtime/openwebui-probe.e2e.test.ts",
       "test/scripts/fixture-config.test.ts",
     ],
   ],
+  ["scripts/e2e/openwebui-probe.mjs", ["test/e2e/qa-lab/runtime/openwebui-probe.e2e.test.ts"]],
   [
     "scripts/e2e/plugin-binding-command-escape-docker.sh",
     [
@@ -1803,6 +1851,7 @@ const TEST_HELPER_NORMALIZE_TEXT_TARGETS = [
   "src/auto-reply/status.test.ts",
   "src/tui/components/chat-log.test.ts",
 ];
+const HAPPY_PATH_PROMPT_SNAPSHOT_HELPER_TEST_TARGETS = ["test/scripts/prompt-snapshots.test.ts"];
 const SOURCE_TEST_TARGETS = new Map([
   ...PRECISE_SOURCE_TEST_TARGETS,
   ["src/test-utils/openclaw-test-state.ts", ["src/test-utils/openclaw-test-state.test.ts"]],
@@ -1819,6 +1868,12 @@ const SOURCE_TEST_TARGETS = new Map([
     CHANNEL_CONTRACT_REGISTRY_BACKED_TARGETS,
   ],
   ["test/helpers/normalize-text.ts", TEST_HELPER_NORMALIZE_TEXT_TARGETS],
+  [
+    "test/helpers/agents/happy-path-prompt-snapshots.ts",
+    HAPPY_PATH_PROMPT_SNAPSHOT_HELPER_TEST_TARGETS,
+  ],
+  ["src/plugins/runtime-sidecar-paths-baseline.ts", RUNTIME_SIDECAR_BASELINE_OWNER_TEST_TARGETS],
+  ["src/plugins/runtime-sidecar-paths.ts", RUNTIME_SIDECAR_PATH_CONSUMER_TEST_TARGETS],
   ["ui/config/control-ui-chunking.ts", ["ui/src/ui/control-ui-chunking.test.ts"]],
   [
     "src/plugin-sdk/test-helpers/directory-ids.ts",
@@ -3044,10 +3099,19 @@ function shouldRouteChangedTargetWithoutImportGraph(changedPath) {
   );
 }
 
+function resolvePromptSnapshotFixtureTargets(changedPath) {
+  if (!/^test\/fixtures\/agents\/prompt-snapshots\/.+\.(?:json|md)$/u.test(changedPath)) {
+    return null;
+  }
+  return ["test/scripts/prompt-snapshots.test.ts"];
+}
+
 function resolvePreciseChangedTestTargets(changedPath, options) {
   const cwd = options.cwd ?? process.cwd();
   const mappedTargets =
-    resolveToolingTestTargets(changedPath) ?? SOURCE_TEST_TARGETS.get(changedPath);
+    resolveToolingTestTargets(changedPath) ??
+    SOURCE_TEST_TARGETS.get(changedPath) ??
+    resolvePromptSnapshotFixtureTargets(changedPath);
   if (mappedTargets) {
     return mappedTargets;
   }
