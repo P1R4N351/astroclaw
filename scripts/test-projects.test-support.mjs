@@ -1439,6 +1439,8 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
       "src/gateway/config-reload.test.ts",
     ],
   ],
+  ["scripts/e2e/lib/env-limits.mjs", ["test/scripts/e2e-helper-env-limits.test.ts"]],
+  ["scripts/e2e/mock-openai-server.mjs", ["test/scripts/e2e-mock-config-limits.test.ts"]],
   [
     "scripts/e2e/gateway-network-docker.sh",
     [
@@ -1460,6 +1462,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     ],
   ],
   ["scripts/e2e/npm-telegram-live-docker.sh", ["test/scripts/npm-telegram-live.test.ts"]],
+  ["scripts/e2e/npm-telegram-live-runner.ts", ["test/scripts/npm-telegram-live.test.ts"]],
   [
     "scripts/e2e/multi-node-update-docker.sh",
     ["test/scripts/docker-build-helper.test.ts", "test/scripts/docker-e2e-plan.test.ts"],
@@ -1570,6 +1573,10 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ],
   [
     "scripts/e2e/lib/plugin-update/probe.mjs",
+    ["test/scripts/plugin-update-unchanged-docker.test.ts"],
+  ],
+  [
+    "scripts/e2e/lib/plugin-update/registry-server.mjs",
     ["test/scripts/plugin-update-unchanged-docker.test.ts"],
   ],
   [
