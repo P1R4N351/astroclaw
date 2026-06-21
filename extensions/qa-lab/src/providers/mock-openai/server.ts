@@ -228,9 +228,12 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
-function parseOpenAiJsonBody(raw: string): Record<string, unknown> | null {
+function parseJsonObjectBody(raw: string): Record<string, unknown> | null {
   try {
-    return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    const parsed = raw ? (JSON.parse(raw) as unknown) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
@@ -3435,7 +3438,7 @@ export async function startQaMockOpenAiServer(params?: { host?: string; port?: n
       }
       if (req.method === "POST" && url.pathname === "/v1/images/generations") {
         const raw = await readBody(req);
-        const body = parseOpenAiJsonBody(raw);
+        const body = parseJsonObjectBody(raw);
         if (!body) {
           writeOpenAiMalformedJsonError(res, "OpenAI Images");
           return;
@@ -3463,7 +3466,7 @@ export async function startQaMockOpenAiServer(params?: { host?: string; port?: n
       }
       if (req.method === "POST" && url.pathname === "/v1/embeddings") {
         const raw = await readBody(req);
-        const body = parseOpenAiJsonBody(raw);
+        const body = parseJsonObjectBody(raw);
         if (!body) {
           writeOpenAiMalformedJsonError(res, "OpenAI Embeddings");
           return;
@@ -3489,7 +3492,7 @@ export async function startQaMockOpenAiServer(params?: { host?: string; port?: n
       }
       if (req.method === "POST" && url.pathname === "/v1/responses") {
         const raw = await readBody(req);
-        const body = parseOpenAiJsonBody(raw);
+        const body = parseJsonObjectBody(raw);
         if (!body) {
           writeOpenAiMalformedJsonError(res, "OpenAI Responses");
           return;
@@ -3531,10 +3534,8 @@ export async function startQaMockOpenAiServer(params?: { host?: string; port?: n
       }
       if (req.method === "POST" && url.pathname === "/v1/messages") {
         const raw = await readBody(req);
-        let body: AnthropicMessagesRequest;
-        try {
-          body = raw ? (JSON.parse(raw) as AnthropicMessagesRequest) : {};
-        } catch {
+        const body = parseJsonObjectBody(raw) as AnthropicMessagesRequest | null;
+        if (!body) {
           writeJson(res, 400, {
             type: "error",
             error: {
