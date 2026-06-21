@@ -294,7 +294,7 @@ describe("scripts/test-projects changed-target routing", () => {
   it("routes nested scripts through conventional owner tests", () => {
     expect(resolveChangedTestTargetPlan(["scripts/e2e/openwebui-probe.mjs"])).toEqual({
       mode: "targets",
-      targets: ["test/scripts/openwebui-probe.test.ts"],
+      targets: ["test/e2e/qa-lab/runtime/openwebui-probe.e2e.test.ts"],
     });
     expect(resolveChangedTestTargetPlan(["scripts/lib/docker-e2e-plan.mjs"])).toEqual({
       mode: "targets",
@@ -378,21 +378,24 @@ describe("scripts/test-projects changed-target routing", () => {
       ],
       [
         "scripts/e2e/lib/openai-chat-tools/write-config.mjs",
-        ["test/scripts/openai-chat-tools-client.test.ts"],
+        ["test/e2e/qa-lab/runtime/openai-compatible-chat-tools.e2e.test.ts"],
       ],
       [
         "scripts/e2e/lib/openai-chat-tools/scenario.sh",
-        ["test/scripts/openai-chat-tools-client.test.ts"],
+        ["test/e2e/qa-lab/runtime/openai-compatible-chat-tools.e2e.test.ts"],
       ],
       [
         "scripts/e2e/openai-chat-tools-docker.sh",
-        ["test/scripts/openai-chat-tools-client.test.ts", "test/scripts/docker-e2e-plan.test.ts"],
+        [
+          "test/e2e/qa-lab/runtime/openai-compatible-chat-tools.e2e.test.ts",
+          "test/scripts/docker-e2e-plan.test.ts",
+        ],
       ],
       [
         "scripts/e2e/lib/openai-web-search-minimal/mock-server.mjs",
         [
-          "test/scripts/openai-web-search-minimal-client.test.ts",
-          "test/scripts/openai-web-search-minimal-assertions.test.ts",
+          "test/e2e/qa-lab/runtime/openai-web-search-minimal.e2e.test.ts",
+          "test/e2e/qa-lab/runtime/openai-web-search-minimal-assertions.e2e.test.ts",
         ],
       ],
       [
@@ -400,8 +403,8 @@ describe("scripts/test-projects changed-target routing", () => {
         [
           "test/scripts/docker-build-helper.test.ts",
           "test/scripts/docker-e2e-plan.test.ts",
-          "test/scripts/openai-web-search-minimal-client.test.ts",
-          "test/scripts/openai-web-search-minimal-assertions.test.ts",
+          "test/e2e/qa-lab/runtime/openai-web-search-minimal.e2e.test.ts",
+          "test/e2e/qa-lab/runtime/openai-web-search-minimal-assertions.e2e.test.ts",
         ],
       ],
       [
@@ -409,11 +412,14 @@ describe("scripts/test-projects changed-target routing", () => {
         [
           "test/scripts/docker-build-helper.test.ts",
           "test/scripts/docker-e2e-plan.test.ts",
-          "test/scripts/openwebui-probe.test.ts",
+          "test/e2e/qa-lab/runtime/openwebui-probe.e2e.test.ts",
           "test/scripts/fixture-config.test.ts",
         ],
       ],
-      ["scripts/e2e/lib/openwebui/http-probe.mjs", ["test/scripts/openwebui-probe.test.ts"]],
+      [
+        "scripts/e2e/lib/openwebui/http-probe.mjs",
+        ["test/e2e/qa-lab/runtime/openwebui-probe.e2e.test.ts"],
+      ],
       [
         "scripts/e2e/lib/plugins/npm-registry-server.mjs",
         ["test/scripts/plugins-assertions.test.ts"],
@@ -3399,6 +3405,49 @@ describe("scripts/test-projects changed-target routing", () => {
 
     expect(targets).toContain("src/auto-reply/status.test.ts");
     expect(repoSourceReads.length).toBeLessThan(100);
+  });
+
+  it("routes prompt snapshot generator helper edits to the owner test", () => {
+    for (const target of [
+      "scripts/generate-prompt-snapshots.ts",
+      "scripts/prompt-snapshot-files.ts",
+      "scripts/sync-codex-model-prompt-fixture.ts",
+      "test/helpers/agents/happy-path-prompt-snapshots.ts",
+      "test/fixtures/agents/prompt-snapshots/codex-model-catalog/gpt-5.5.pragmatic.source.json",
+      "test/fixtures/agents/prompt-snapshots/codex-runtime-happy-path/telegram-direct-codex-message-tool.md",
+    ]) {
+      expect(resolveChangedTestTargetPlan([target])).toEqual({
+        mode: "targets",
+        targets: ["test/scripts/prompt-snapshots.test.ts"],
+      });
+    }
+  });
+
+  it("routes runtime sidecar baseline edits to baseline owner tests", () => {
+    for (const target of [
+      "scripts/generate-runtime-sidecar-paths-baseline.ts",
+      "src/plugins/runtime-sidecar-paths-baseline.ts",
+    ]) {
+      expect(resolveChangedTestTargetPlan([target])).toEqual({
+        mode: "targets",
+        targets: ["src/plugins/bundled-plugin-metadata.test.ts"],
+      });
+    }
+
+    for (const target of [
+      "scripts/lib/bundled-runtime-sidecar-paths.json",
+      "src/plugins/runtime-sidecar-paths.ts",
+    ]) {
+      expect(resolveChangedTestTargetPlan([target])).toEqual({
+        mode: "targets",
+        targets: [
+          "src/plugins/bundled-plugin-metadata.test.ts",
+          "src/infra/update-global.test.ts",
+          "src/infra/update-runner.test.ts",
+          "test/openclaw-npm-postpublish-verify.test.ts",
+        ],
+      });
+    }
   });
 
   it.each([
