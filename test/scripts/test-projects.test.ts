@@ -298,7 +298,11 @@ describe("scripts/test-projects changed-target routing", () => {
     });
     expect(resolveChangedTestTargetPlan(["scripts/lib/docker-e2e-plan.mjs"])).toEqual({
       mode: "targets",
-      targets: ["test/scripts/docker-e2e-plan.test.ts"],
+      targets: [
+        "test/scripts/docker-e2e-plan.test.ts",
+        "test/scripts/docker-all-scheduler.test.ts",
+        "test/scripts/plugin-prerelease-test-plan.test.ts",
+      ],
     });
     expect(resolveChangedTestTargetPlan(["scripts/github/real-behavior-proof-check.mjs"])).toEqual({
       mode: "targets",
@@ -1404,6 +1408,10 @@ describe("scripts/test-projects changed-target routing", () => {
       [
         "scripts/lib/npm-pack-budget.mjs",
         ["test/release-check.test.ts", "test/scripts/test-install-sh-docker.test.ts"],
+      ],
+      [
+        "scripts/lib/workspace-bootstrap-smoke.mjs",
+        ["test/release-check.test.ts", "test/openclaw-npm-release-check.test.ts"],
       ],
       ["scripts/lib/openclaw-release-clawhub-plan.ts", ["test/plugin-clawhub-release.test.ts"]],
       [
