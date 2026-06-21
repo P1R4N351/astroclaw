@@ -15,11 +15,11 @@
  *      `raw` directly instead of mutating the AST.
  *
  * In both modes, every emitted leaf flows through `guardSentinel` so a
- * `__ASTROCLAW_REDACTED__` literal anywhere in the output throws
+ * `__OPENCLAW_REDACTED__` literal anywhere in the output throws
  * `OcEmitSentinelError`. This is the substrate guard: callers can't
  * accidentally write a redacted view to disk through this emitter.
  *
- * @module @astroclaw/oc-path/emit
+ * @module @openclaw/oc-path/emit
  */
 
 import type { FrontmatterEntry, MdAst } from "./ast.js";
@@ -64,8 +64,8 @@ export function emitMd(ast: MdAst, opts: EmitOptions = {}): string {
     // jsonc/emit.ts. A markdown file legitimately containing the
     // sentinel literal (in a code block, in a pasted error log) would
     // otherwise become a workspace-wide emit DoS.
-    if (!acceptPreExisting && ast.raw.includes("__ASTROCLAW_REDACTED__")) {
-      guardSentinel("__ASTROCLAW_REDACTED__", `${guardPath}/[raw]`);
+    if (!acceptPreExisting && ast.raw.includes("__OPENCLAW_REDACTED__")) {
+      guardSentinel("__OPENCLAW_REDACTED__", `${guardPath}/[raw]`);
     }
     return ast.raw;
   }
@@ -123,18 +123,6 @@ function formatFrontmatterValue(value: string): string {
     return JSON.stringify(value);
   }
   return value;
-}
-
-/**
- * Mark an AST as "dirty" — useful for callers that mutate the AST
- * structurally and want emitMd() to re-render rather than round-trip.
- *
- * Currently a no-op flag — emitMd() decides based on `opts.mode`. Kept
- * as an extension point for a future invariant where the AST tracks
- * its own dirty state.
- */
-export function markDirty(_ast: MdAst): void {
-  // intentionally empty
 }
 
 // Re-export the frontmatter type for convenience so tests don't need
