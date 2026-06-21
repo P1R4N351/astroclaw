@@ -6,11 +6,12 @@ import process from "node:process";
 import { promisify } from "node:util";
 import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
 import { danger, shouldLogVerbose } from "../globals.js";
-import { markAstroclawExecEnv } from "../infra/astroclaw-exec-env.js";
+import { markOpenClawExecEnv } from "../infra/openclaw-exec-env.js";
 import {
   decodeWindowsOutputBuffer,
   resolveWindowsConsoleEncoding,
 } from "../infra/windows-encoding.js";
+import { getWindowsSystem32ExePath } from "../infra/windows-install-roots.js";
 import { logDebug, logError } from "../logger.js";
 import { killProcessTree as terminateProcessTree } from "./kill-tree.js";
 import { resolveCommandStdio } from "./spawn-utils.js";
@@ -330,7 +331,7 @@ export function resolveCommandEnv(params: {
       resolvedEnv.npm_config_fund = "false";
     }
   }
-  return markAstroclawExecEnv(resolvedEnv);
+  return markOpenClawExecEnv(resolvedEnv);
 }
 
 export async function runCommandWithTimeout(
@@ -430,8 +431,9 @@ export async function runCommandWithTimeout(
       }
       if (killProcessTree && typeof child.pid === "number" && child.pid > 0) {
         if (process.platform === "win32") {
+          const taskkillPath = getWindowsSystem32ExePath("taskkill.exe");
           try {
-            spawn("taskkill", ["/PID", String(child.pid), "/T"], {
+            spawn(taskkillPath, ["/PID", String(child.pid), "/T"], {
               stdio: "ignore",
               windowsHide: true,
             });
@@ -447,7 +449,7 @@ export async function runCommandWithTimeout(
                   return;
                 }
                 try {
-                  spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+                  spawn(taskkillPath, ["/PID", String(child.pid), "/T", "/F"], {
                     stdio: "ignore",
                     windowsHide: true,
                   });
@@ -467,10 +469,14 @@ export async function runCommandWithTimeout(
       }
       if (process.platform === "win32" && typeof child.pid === "number" && child.pid > 0) {
         try {
-          spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
-            stdio: "ignore",
-            windowsHide: true,
-          });
+          spawn(
+            getWindowsSystem32ExePath("taskkill.exe"),
+            ["/PID", String(child.pid), "/T", "/F"],
+            {
+              stdio: "ignore",
+              windowsHide: true,
+            },
+          );
           return;
         } catch {
           // Fall through to Node's direct child kill as a last resort.
