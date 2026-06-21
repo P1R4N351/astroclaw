@@ -12,7 +12,7 @@ import { readConfigFileSnapshot } from "../../config/config.js";
 import { extractDeliveryInfo } from "../../config/sessions.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { GATEWAY_SERVICE_KIND, GATEWAY_SERVICE_MARKER } from "../../daemon/constants.js";
-import { resolveOpenClawPackageRoot } from "../../infra/astroclaw-root.js";
+import { resolveOpenClawPackageRoot } from "../../infra/openclaw-root.js";
 import { readPackageVersion } from "../../infra/package-json.js";
 import { type RestartSentinelPayload, writeRestartSentinel } from "../../infra/restart-sentinel.js";
 import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";
@@ -340,12 +340,13 @@ export const updateHandlers: GatewayRequestHandlers = {
       meta: sentinelMeta,
     });
 
-    let sentinelPath: string | null;
+    let sentinelPersisted: boolean;
     try {
-      sentinelPath = await writeRestartSentinel(payload);
+      await writeRestartSentinel(payload);
+      sentinelPersisted = true;
       recordLatestUpdateRestartSentinel(payload);
     } catch {
-      sentinelPath = null;
+      sentinelPersisted = false;
     }
 
     // Only restart the gateway when the update actually succeeded.
@@ -391,7 +392,7 @@ export const updateHandlers: GatewayRequestHandlers = {
         ...(handoff ? { handoff } : {}),
         restart,
         sentinel: {
-          path: sentinelPath,
+          persisted: sentinelPersisted,
           payload,
         },
       },
