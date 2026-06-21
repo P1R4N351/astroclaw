@@ -952,6 +952,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
       "test/scripts/security-sensitive-guard-workflow.test.ts",
     ],
   ],
+  ["scripts/github/resolve-openclaw-ref.sh", ["test/scripts/resolve-openclaw-ref.test.ts"]],
   [
     "scripts/github/run-openclaw-cross-os-release-checks.sh",
     ["test/scripts/openclaw-cross-os-release-workflow.test.ts"],
@@ -1223,6 +1224,12 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
       "test/plugin-npm-package-manifest.test.ts",
     ],
   ],
+  [
+    "scripts/lib/plugin-package-dependencies.mjs",
+    ["test/scripts/plugin-package-dependencies.test.ts"],
+  ],
+  ["scripts/proxy-install-ca.mjs", ["test/scripts/proxy-install-ca.test.ts"]],
+  ["scripts/release-preflight.mjs", ["test/scripts/release-preflight.test.ts"]],
   [
     "scripts/lib/plugin-npm-runtime-assets.mjs",
     ["test/scripts/plugin-npm-runtime-build-args.test.ts"],
