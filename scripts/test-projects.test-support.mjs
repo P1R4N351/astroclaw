@@ -1554,6 +1554,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     "scripts/e2e/lib/fixture.mjs",
     ["test/scripts/fixture-config.test.ts", "test/scripts/fixtures-workspace.test.ts"],
   ],
+  ["scripts/e2e/lib/fixtures/config.mjs", ["test/scripts/fixture-config.test.ts"]],
   [
     "scripts/e2e/lib/kitchen-sink-plugin/sweep.sh",
     ["test/scripts/kitchen-sink-plugin-assertions.test.ts"],
@@ -1749,6 +1750,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     "scripts/e2e/lib/openwebui/http-probe.mjs",
     ["test/e2e/qa-lab/runtime/openwebui-probe.e2e.test.ts"],
   ],
+  ["scripts/e2e/lib/text-file-utils.mjs", ["test/scripts/e2e-text-file-utils.test.ts"]],
   [
     "scripts/e2e/openwebui-docker.sh",
     [
