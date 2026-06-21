@@ -1908,6 +1908,18 @@ setInterval(() => {}, 1000);
     });
   });
 
+  it("ignores ambient ComSpec for Windows host batch commands", () => {
+    expect(
+      resolveHostCommandInvocation("C:\\Tools\\helper.cmd", ["build"], {
+        env: {
+          ComSpec: "C:\\Users\\test\\bin\\cmd.exe",
+          SystemRoot: "D:\\Windows",
+        },
+        platform: "win32",
+      }).command,
+    ).toBe("D:\\Windows\\System32\\cmd.exe");
+  });
+
   it("runs the Windows agent turn through the detached done-file runner", () => {
     const script = readFileSync(TS_PATHS.windows, "utf8");
 
