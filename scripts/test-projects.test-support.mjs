@@ -410,6 +410,23 @@ const PRECISE_SOURCE_TEST_TARGETS = new Map([
     ],
   ],
 ]);
+const PLUGIN_SDK_ENTRY_METADATA_TEST_TARGETS = [
+  "src/plugins/contracts/plugin-sdk-index.bundle.test.ts",
+  "src/plugins/contracts/plugin-sdk-index.test.ts",
+  "src/plugins/contracts/plugin-sdk-package-contract-guardrails.test.ts",
+  "src/plugins/contracts/plugin-sdk-subpaths.test.ts",
+  "src/plugins/contracts/extension-package-project-boundaries.test.ts",
+  "test/scripts/plugin-sdk-surface-report.test.ts",
+  "test/scripts/build-all.test.ts",
+  "test/release-check.test.ts",
+  "test/scripts/prepare-extension-package-boundary-artifacts.test.ts",
+  "test/scripts/ts-topology.test.ts",
+  TOOLING_VITEST_CONFIG,
+];
+const OFFICIAL_EXTERNAL_CATALOG_TEST_TARGETS = [
+  "src/plugins/official-external-plugin-catalog.test.ts",
+  "test/release-check.test.ts",
+];
 const TOOLING_SOURCE_TEST_TARGETS = new Map([
   [".crabbox.yaml", ["test/scripts/package-acceptance-workflow.test.ts"]],
   [".github/workflows/ci.yml", ["test/scripts/ci-workflow-guards.test.ts"]],
@@ -433,6 +450,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     ".github/workflows/openclaw-release-checks.yml",
     ["test/scripts/package-acceptance-workflow.test.ts"],
   ],
+  ["scripts/clawtributors-map.json", ["test/scripts/update-clawtributors.test.ts"]],
   ["scripts/build-all.mjs", ["test/scripts/build-all.test.ts"]],
   ["scripts/build-stamp.mjs", ["src/infra/build-stamp.test.ts"]],
   ["scripts/crabbox-wrapper.mjs", ["test/scripts/crabbox-wrapper.test.ts"]],
@@ -766,11 +784,28 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     "scripts/lib/bundled-plugin-source-utils.mjs",
     ["test/scripts/bundled-plugin-source-utils.test.ts"],
   ],
+  [
+    "scripts/lib/bundled-runtime-sidecar-paths.json",
+    [
+      "src/plugins/bundled-plugin-metadata.test.ts",
+      "src/infra/update-global.test.ts",
+      "src/infra/update-runner.test.ts",
+      "test/openclaw-npm-postpublish-verify.test.ts",
+    ],
+  ],
   ["scripts/lib/changed-extensions.mjs", ["test/scripts/test-extension.test.ts"]],
   ["scripts/lib/dev-tooling-safety.ts", ["test/scripts/dev-tooling-safety.test.ts"]],
   [
+    "scripts/lib/dependency-ownership.json",
+    ["test/scripts/dependency-ownership-surface-report.test.ts"],
+  ],
+  [
     "scripts/lib/deprecated-plugin-sdk-usage.mjs",
     ["test/scripts/check-deprecated-api-usage.test.ts"],
+  ],
+  [
+    "scripts/lib/plugin-sdk-deprecated-barrel-subpaths.json",
+    PLUGIN_SDK_ENTRY_METADATA_TEST_TARGETS,
   ],
   [
     "scripts/lib/plugin-sdk-deprecated-public-subpaths.json",
@@ -781,19 +816,18 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
       "test/scripts/build-all.test.ts",
     ],
   ],
+  ["scripts/lib/plugin-sdk-entrypoints.json", PLUGIN_SDK_ENTRY_METADATA_TEST_TARGETS],
+  ["scripts/lib/plugin-sdk-entries.mjs", PLUGIN_SDK_ENTRY_METADATA_TEST_TARGETS],
   [
-    "scripts/lib/plugin-sdk-entries.mjs",
-    [
-      "src/plugins/contracts/plugin-sdk-package-contract-guardrails.test.ts",
-      "src/plugins/contracts/extension-package-project-boundaries.test.ts",
-      "test/scripts/plugin-sdk-surface-report.test.ts",
-      "test/scripts/build-all.test.ts",
-      "test/release-check.test.ts",
-      "test/scripts/prepare-extension-package-boundary-artifacts.test.ts",
-      "test/scripts/ts-topology.test.ts",
-      TOOLING_VITEST_CONFIG,
-    ],
+    "scripts/lib/plugin-sdk-private-local-only-subpaths.json",
+    PLUGIN_SDK_ENTRY_METADATA_TEST_TARGETS,
   ],
+  [
+    "scripts/lib/official-external-channel-catalog.json",
+    [...OFFICIAL_EXTERNAL_CATALOG_TEST_TARGETS, "test/official-channel-catalog.test.ts"],
+  ],
+  ["scripts/lib/official-external-plugin-catalog.json", OFFICIAL_EXTERNAL_CATALOG_TEST_TARGETS],
+  ["scripts/lib/official-external-provider-catalog.json", OFFICIAL_EXTERNAL_CATALOG_TEST_TARGETS],
   ["scripts/lib/direct-run.mjs", ["test/scripts/changed-lanes.test.ts"]],
   ["scripts/docker/cleanup-smoke/run.sh", ["test/scripts/docker-build-helper.test.ts"]],
   [
@@ -2628,6 +2662,13 @@ function isToolingScriptPath(changedPath) {
   return TOOLING_SCRIPT_PATH_PATTERN.test(changedPath);
 }
 
+function resolveUpgradeSurvivorConfigRecipeTargets(changedPath) {
+  if (!/^scripts\/e2e\/lib\/upgrade-survivor\/config-recipe\/[^/]+\.json$/u.test(changedPath)) {
+    return null;
+  }
+  return ["test/scripts/upgrade-survivor-config-recipe.test.ts"];
+}
+
 function resolveParallelsToolingTestTargets(changedPath) {
   if (
     !/^scripts\/e2e\/parallels\/[^/]+\.ts$/u.test(changedPath) &&
@@ -2656,6 +2697,7 @@ function resolveToolingTestTargets(changedPath, cwd = process.cwd()) {
   const explicitTargets =
     TOOLING_SOURCE_TEST_TARGETS.get(changedPath) ??
     TOOLING_TEST_TARGETS.get(changedPath) ??
+    resolveUpgradeSurvivorConfigRecipeTargets(changedPath) ??
     resolveParallelsToolingTestTargets(changedPath);
   const conventionalTargets = resolveConventionalToolingTestTargets(changedPath, cwd);
   if (explicitTargets && conventionalTargets) {
