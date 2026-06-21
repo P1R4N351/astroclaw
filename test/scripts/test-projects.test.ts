@@ -497,6 +497,18 @@ describe("scripts/test-projects changed-target routing", () => {
       ],
       ["scripts/e2e/lib/fixtures/config.mjs", ["test/scripts/fixture-config.test.ts"]],
       [
+        "scripts/e2e/lib/fixtures/mock-openai-config.mjs",
+        ["test/scripts/mock-openai-config.test.ts"],
+      ],
+      [
+        "scripts/e2e/lib/incremental-line-reader.mjs",
+        [
+          "test/scripts/incremental-line-reader.test.ts",
+          "test/scripts/config-reload-log-scanner.test.ts",
+          "test/scripts/codex-media-path-client.test.ts",
+        ],
+      ],
+      [
         "scripts/e2e/lib/kitchen-sink-plugin/sweep.sh",
         ["test/scripts/kitchen-sink-plugin-assertions.test.ts"],
       ],
