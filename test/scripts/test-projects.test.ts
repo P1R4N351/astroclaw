@@ -308,6 +308,10 @@ describe("scripts/test-projects changed-target routing", () => {
       mode: "targets",
       targets: ["test/vitest/vitest.tooling.config.ts"],
     });
+    expect(resolveChangedTestTargetPlan(["scripts/github/resolve-openclaw-ref.sh"])).toEqual({
+      mode: "targets",
+      targets: ["test/scripts/resolve-openclaw-ref.test.ts"],
+    });
   });
 
   it("routes nested e2e library helpers through owner tests", () => {
@@ -1968,6 +1972,10 @@ describe("scripts/test-projects changed-target routing", () => {
       [
         "scripts/validate-release-publish-approval.mjs",
         ["test/scripts/validate-release-publish-approval.test.ts"],
+      ],
+      [
+        "scripts/lib/plugin-package-dependencies.mjs",
+        ["test/scripts/plugin-package-dependencies.test.ts"],
       ],
       [
         "scripts/lib/plugin-npm-runtime-assets.mjs",
