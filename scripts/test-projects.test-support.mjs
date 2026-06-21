@@ -961,13 +961,23 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     "scripts/openclaw-release-clawhub-runtime-state.ts",
     ["test/scripts/openclaw-release-clawhub-runtime-state.test.ts"],
   ],
+  ["scripts/openclaw-release-clawhub-plan.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
   [
     "scripts/plan-release-workflow-matrix.mjs",
     ["test/scripts/release-workflow-matrix-plan.test.ts"],
   ],
+  ["scripts/plugin-clawhub-release-check.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
+  ["scripts/plugin-clawhub-release-plan.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
+  ["scripts/plugin-npm-release-check.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
+  ["scripts/plugin-npm-release-plan.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
   [
     "scripts/plugin-release-pretag-pack-check.ts",
     ["test/scripts/plugin-release-pretag-pack-check.test.ts"],
+  ],
+  ["scripts/release-verify-beta.ts", ["test/scripts/release-wrapper-scripts.test.ts"]],
+  [
+    "scripts/validate-release-publish-approval.mjs",
+    ["test/scripts/validate-release-publish-approval.test.ts"],
   ],
   [
     "scripts/github/security-sensitive-guard.mjs",
@@ -1049,6 +1059,14 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   [
     "scripts/docker/install-sh-e2e/run.sh",
     ["test/scripts/docker-build-helper.test.ts", "test/scripts/test-install-sh-docker.test.ts"],
+  ],
+  [
+    "scripts/docker/install-sh-common/cli-verify.sh",
+    ["test/scripts/test-install-sh-docker.test.ts"],
+  ],
+  [
+    "scripts/docker/install-sh-common/version-parse.sh",
+    ["test/scripts/test-install-sh-docker.test.ts"],
   ],
   ["scripts/docker/install-sh-nonroot/Dockerfile", INSTALL_DOCKERFILE_TEST_TARGETS],
   ["scripts/docker/install-sh-nonroot/run.sh", ["test/scripts/test-install-sh-docker.test.ts"]],
