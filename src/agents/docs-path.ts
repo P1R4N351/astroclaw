@@ -3,7 +3,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
+import { resolveAstroclawPackageRoot } from "../infra/astroclaw-root.js";
 
 export const OPENCLAW_DOCS_URL = "https://docs.openclaw.ai";
 export const OPENCLAW_SOURCE_URL = "https://github.com/openclaw/openclaw";
@@ -38,7 +38,7 @@ async function resolveOpenClawDocsPath(params: {
     }
   }
 
-  const packageRoot = await resolveOpenClawPackageRoot({
+  const packageRoot = await resolveAstroclawPackageRoot({
     cwd: params.cwd,
     argv1: params.argv1,
     moduleUrl: params.moduleUrl,
@@ -55,7 +55,7 @@ async function resolveOpenClawDocsPath(params: {
 async function resolveOpenClawSourcePath(
   params: ResolveOpenClawReferencePathParams,
 ): Promise<string | null> {
-  const packageRoot = await resolveOpenClawPackageRoot({
+  const packageRoot = await resolveAstroclawPackageRoot({
     cwd: params.cwd,
     argv1: params.argv1,
     moduleUrl: params.moduleUrl,

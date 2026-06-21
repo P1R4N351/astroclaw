@@ -19,12 +19,12 @@ import {
 import { createMockPluginRegistry } from "../plugins/hooks.test-helpers.js";
 import "./test-helpers/fast-bash-tools.js";
 import "./test-helpers/fast-coding-tools.js";
-import "./test-helpers/fast-openclaw-tools.js";
+import "./test-helpers/fast-astroclaw-tools.js";
 import { wrapToolWithBeforeToolCallHook } from "./agent-tools.before-tool-call.js";
 import { createOpenClawCodingTools } from "./agent-tools.js";
 import type { AuthProfileStore } from "./auth-profiles/types.js";
-import * as openClawPluginTools from "./openclaw-plugin-tools.js";
-import { createOpenClawTools } from "./openclaw-tools.js";
+import * as openClawPluginTools from "./astroclaw-plugin-tools.js";
+import { createOpenClawTools } from "./astroclaw-tools.js";
 import { expectReadWriteEditTools } from "./test-helpers/agent-tools-fs-helpers.js";
 import { createAgentToolsSandboxContext } from "./test-helpers/agent-tools-sandbox-context.js";
 import { stubTool } from "./test-helpers/fast-tool-stubs.js";

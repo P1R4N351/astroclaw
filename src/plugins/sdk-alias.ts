@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
 import { tryReadJsonSync } from "../infra/json-files.js";
-import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
+import { resolveAstroclawPackageRootSync } from "../infra/astroclaw-root.js";
 import { resolveOpenClawDevSourceRoot } from "./dev-source-root.js";
 import { PluginLruCache } from "./plugin-cache-primitives.js";
 
@@ -194,7 +194,7 @@ function resolveTrustedOpenClawRootFromArgvHint(params: {
   if (!params.argv1) {
     return null;
   }
-  const packageRoot = resolveOpenClawPackageRootSync({
+  const packageRoot = resolveAstroclawPackageRootSync({
     cwd: params.cwd,
     argv1: params.argv1,
   });
@@ -228,13 +228,13 @@ export function resolveLoaderPackageRoot(
   params: LoaderModuleResolveParams & { modulePath: string },
 ): string | null {
   const cwd = params.cwd ?? path.dirname(params.modulePath);
-  const fromModulePath = resolveOpenClawPackageRootSync({ cwd });
+  const fromModulePath = resolveAstroclawPackageRootSync({ cwd });
   if (fromModulePath) {
     return fromModulePath;
   }
   const argv1 = params.argv1 ?? process.argv[1];
   const moduleUrl = params.moduleUrl ?? (params.modulePath ? undefined : import.meta.url);
-  return resolveOpenClawPackageRootSync({
+  return resolveAstroclawPackageRootSync({
     cwd,
     ...(argv1 ? { argv1 } : {}),
     ...(moduleUrl ? { moduleUrl } : {}),
@@ -354,11 +354,11 @@ function resolveLoaderPluginSdkPackageRoot(
     return devSourceRoot;
   }
   const cwd = params.cwd ?? path.dirname(params.modulePath);
-  const fromCwd = resolveOpenClawPackageRootSync({ cwd });
+  const fromCwd = resolveAstroclawPackageRootSync({ cwd });
   const fromExplicitHints =
     resolveTrustedOpenClawRootFromArgvHint({ cwd, argv1: params.argv1 }) ??
     (params.moduleUrl
-      ? resolveOpenClawPackageRootSync({
+      ? resolveAstroclawPackageRootSync({
           cwd,
           moduleUrl: params.moduleUrl,
         })
@@ -1093,7 +1093,7 @@ export function listWorkspacePackageExportAliasEntries(params: {
     params.packageDir,
     "package.json",
   );
-  const fallbackPackageRoot = resolveOpenClawPackageRootSync({ cwd: process.cwd() });
+  const fallbackPackageRoot = resolveAstroclawPackageRootSync({ cwd: process.cwd() });
   const packageJson =
     tryReadJsonSync<PluginSdkPackageJson>(packageJsonPath) ??
     (fallbackPackageRoot

@@ -6,7 +6,7 @@ import path from "node:path";
 import { normalizeLowercaseStringOrEmpty } from "@openclaw/normalization-core/string-coerce";
 import { theme } from "../../../packages/terminal-core/src/theme.js";
 import { resolveRequiredHomeDir } from "../../infra/home-dir.js";
-import { resolveOpenClawPackageRoot } from "../../infra/openclaw-root.js";
+import { resolveOpenClawPackageRoot } from "../../infra/astroclaw-root.js";
 import { readPackageName, readPackageVersion } from "../../infra/package-json.js";
 import { normalizePackageTagInput } from "../../infra/package-tag.js";
 import { parseStrictPositiveInteger } from "../../infra/parse-finite-number.js";

@@ -9,7 +9,7 @@ import {
 } from "../config/sessions/store.js";
 import type { SessionEntry } from "../config/sessions/types.js";
 import * as jsonFiles from "../infra/json-files.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { runPluginHostCleanup } from "./host-hook-cleanup.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
 

@@ -4,7 +4,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import zlib from "node:zlib";
 import type { SessionSystemPromptReport } from "../../config/sessions/types.js";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
 import { estimateTokensFromChars } from "../../utils/cjk-chars.js";
 
 /** PNG treemap renderer for visualizing prompt context size by section. */

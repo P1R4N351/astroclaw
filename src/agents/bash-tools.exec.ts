@@ -35,7 +35,7 @@ import {
   normalizeHostOverrideEnvVarKey,
   sanitizeHostExecEnvWithDiagnostics,
 } from "../infra/host-env-security.js";
-import { OPENCLAW_CLI_ENV_VAR } from "../infra/openclaw-exec-env.js";
+import { OPENCLAW_CLI_ENV_VAR } from "../infra/astroclaw-exec-env.js";
 import {
   getShellPathFromLoginShell,
   resolveShellEnvFallbackTimeoutMs,

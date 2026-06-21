@@ -15,7 +15,7 @@ import { runCommandWithTimeout } from "../process/exec.js";
 import { VERSION } from "../version.js";
 import { isTruthyEnvValue } from "./env.js";
 import { writeJson } from "./json-files.js";
-import { resolveOpenClawPackageRoot } from "./openclaw-root.js";
+import { resolveOpenClawPackageRoot } from "./astroclaw-root.js";
 import { scheduleGatewaySigusr1Restart } from "./restart.js";
 import { detectRespawnSupervisor, type RespawnSupervisor } from "./supervisor-markers.js";
 import { normalizeUpdateChannel, DEFAULT_PACKAGE_CHANNEL } from "./update-channels.js";

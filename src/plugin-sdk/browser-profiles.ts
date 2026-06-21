@@ -4,7 +4,7 @@
 import path from "node:path";
 import type { BrowserConfig } from "../config/types.browser.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import type { ResolvedBrowserConfig, ResolvedBrowserProfile } from "./browser-types.js";
 import { loadBundledPluginPublicSurfaceModuleSync } from "./facade-loader.js";
 export type {

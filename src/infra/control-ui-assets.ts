@@ -5,7 +5,7 @@ import { normalizeStringEntries } from "@openclaw/normalization-core/string-norm
 import { runCommandWithTimeout } from "../process/exec.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import * as controlUiFsRuntime from "./control-ui-assets.fs.runtime.js";
-import { resolveOpenClawPackageRoot, resolveOpenClawPackageRootSync } from "./openclaw-root.js";
+import { resolveOpenClawPackageRoot, resolveOpenClawPackageRootSync } from "./astroclaw-root.js";
 
 const CONTROL_UI_DIST_PATH_SEGMENTS = ["dist", "control-ui", "index.html"] as const;
 

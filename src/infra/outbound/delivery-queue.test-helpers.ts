@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, vi } from "vitest";
 import { openOpenClawStateDatabase } from "../../state/openclaw-state-db.js";
-import { resolvePreferredOpenClawTmpDir } from "../tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../tmp-astroclaw-dir.js";
 import type { DeliverFn, RecoveryLogger } from "./delivery-queue.js";
 
 /** Installs Vitest hooks that provide a fresh delivery-queue state dir per case. */

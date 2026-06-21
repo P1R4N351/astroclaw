@@ -15,7 +15,7 @@ import { resolvePairingPaths } from "../../infra/pairing-files.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+} from "../../test-utils/astroclaw-test-state.js";
 import { nodeHandlers } from "./nodes.js";
 import type { GatewayRequestHandlerOptions } from "./types.js";
 

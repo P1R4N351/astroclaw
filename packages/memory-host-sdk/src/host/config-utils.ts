@@ -8,7 +8,7 @@ import {
   normalizeStringEntries,
   uniqueStrings,
 } from "./string-utils.js";
-export { splitShellArgs } from "./openclaw-runtime-io.js";
+export { splitShellArgs } from "./astroclaw-runtime-io.js";
 
 // Shared OpenClaw config helpers used by memory host, QMD, and agent context code.
 

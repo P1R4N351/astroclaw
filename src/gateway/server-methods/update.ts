@@ -12,7 +12,7 @@ import { readConfigFileSnapshot } from "../../config/config.js";
 import { extractDeliveryInfo } from "../../config/sessions.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { GATEWAY_SERVICE_KIND, GATEWAY_SERVICE_MARKER } from "../../daemon/constants.js";
-import { resolveOpenClawPackageRoot } from "../../infra/openclaw-root.js";
+import { resolveOpenClawPackageRoot } from "../../infra/astroclaw-root.js";
 import { readPackageVersion } from "../../infra/package-json.js";
 import { type RestartSentinelPayload, writeRestartSentinel } from "../../infra/restart-sentinel.js";
 import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";

@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawTestState } from "../../test-utils/openclaw-test-state.js";
+import type { OpenClawTestState } from "../../test-utils/astroclaw-test-state.js";
 import { resolveSkillToolsRootDir } from "../runtime/tools-dir.js";
 import { createInstallDownloadTestState } from "../test-support/install-download-test-utils.js";
 import {

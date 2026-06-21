@@ -17,7 +17,7 @@ import { pluginHostHookHandlers } from "../../gateway/server-methods/plugin-host
 import { buildGatewaySessionRow } from "../../gateway/session-utils.js";
 import { withTempConfig } from "../../gateway/test-temp-config.js";
 import { emitAgentEvent, resetAgentEventsForTest } from "../../infra/agent-events.js";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
 import { withEnvAsync } from "../../test-utils/env.js";
 import { executePluginCommand, validatePluginCommandDefinition } from "../commands.js";
 import { createHookRunner } from "../hooks.js";

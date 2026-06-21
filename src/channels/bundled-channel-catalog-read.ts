@@ -8,7 +8,7 @@ import path from "node:path";
 import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
 import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
 import { tryReadJsonSync } from "../infra/json-files.js";
-import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
+import { resolveAstroclawPackageRootSync } from "../infra/astroclaw-root.js";
 import { resolveBundledPluginsDir } from "../plugins/bundled-dir.js";
 import type { PluginPackageChannel } from "../plugins/manifest.js";
 
@@ -34,8 +34,8 @@ function listPackageRoots(): string[] {
   // once so channel metadata works in dev, linked packages, and published CLI layouts.
   return uniqueStrings(
     [
-      resolveOpenClawPackageRootSync({ cwd: process.cwd() }),
-      resolveOpenClawPackageRootSync({ moduleUrl: import.meta.url }),
+      resolveAstroclawPackageRootSync({ cwd: process.cwd() }),
+      resolveAstroclawPackageRootSync({ moduleUrl: import.meta.url }),
     ].filter((entry): entry is string => Boolean(entry)),
   );
 }

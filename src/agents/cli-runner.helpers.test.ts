@@ -5,7 +5,7 @@ import { MAX_IMAGE_BYTES } from "@openclaw/media-core/constants";
 import type { ImageContent } from "openclaw/plugin-sdk/llm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer } from "../../test/helpers/image-fixtures.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { escapeRegExp } from "../shared/regexp.js";
 import {
   buildCliArgs,

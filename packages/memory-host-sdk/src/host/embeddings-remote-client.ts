@@ -1,6 +1,6 @@
 // Memory Host SDK module implements embeddings remote client behavior.
 import type { EmbeddingProviderOptions } from "./embeddings.types.js";
-import { requireApiKey, resolveApiKeyForProvider } from "./openclaw-runtime-auth.js";
+import { requireApiKey, resolveApiKeyForProvider } from "./astroclaw-runtime-auth.js";
 import { buildRemoteBaseUrlPolicy } from "./remote-http.js";
 import { resolveMemorySecretInputString } from "./secret-input.js";
 import type { SsrFPolicy } from "./ssrf-policy.js";

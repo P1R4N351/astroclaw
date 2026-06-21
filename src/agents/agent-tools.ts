@@ -75,8 +75,8 @@ import {
   resolveLocalModelLeanPreserveToolNames,
 } from "./local-model-lean.js";
 import type { ModelAuthMode } from "./model-auth.js";
-import { resolveOpenClawPluginToolsForOptions } from "./openclaw-plugin-tools.js";
-import { createOpenClawTools } from "./openclaw-tools.js";
+import { resolveOpenClawPluginToolsForOptions } from "./astroclaw-plugin-tools.js";
+import { createOpenClawTools } from "./astroclaw-tools.js";
 import type { SandboxContext } from "./sandbox.js";
 import { SANDBOX_AGENT_WORKSPACE_MOUNT } from "./sandbox/constants.js";
 import { resolveReadOnlyWorkspaceSkillMounts } from "./sandbox/workspace-mounts.js";

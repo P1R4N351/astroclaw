@@ -11,7 +11,7 @@ import {
 import { resolveStateDir } from "../config/paths.js";
 import type { OpenClawConfig } from "../config/types.js";
 import { safeFileURLToPath } from "../infra/local-file-access.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { resolveConfigDir, resolveUserPath } from "../utils.js";
 
 type BuildMediaLocalRootsOptions = {

@@ -9,7 +9,7 @@ import { renderCmdRestartLogSetup } from "../daemon/restart-logs.js";
 import { resolveTaskScriptPath } from "../daemon/schtasks.js";
 import { formatErrorMessage } from "./errors.js";
 import type { RestartAttempt } from "./restart.types.js";
-import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "./tmp-astroclaw-dir.js";
 
 const TASK_RESTART_RETRY_LIMIT = 12;
 const TASK_RESTART_RETRY_DELAY_SEC = 1;

@@ -10,7 +10,7 @@ import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import {
   type OpenClawTestState,
   withOpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+} from "../../test-utils/astroclaw-test-state.js";
 import { resolveSessionAuthProfileOverride } from "./session-override.js";
 import type { AuthProfileStore } from "./types.js";
 

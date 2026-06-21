@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "./tmp-astroclaw-dir.js";
 import {
   consumeUpdatePostInstallDoctorResult,
   createDeferredConfiguredPluginRepairDoctorResult,

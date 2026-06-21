@@ -9,7 +9,7 @@ import { makeTempWorkspace, writeWorkspaceFile } from "../test-helpers/workspace
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import {
   DEFAULT_AGENTS_FILENAME,
   DEFAULT_BOOTSTRAP_FILENAME,

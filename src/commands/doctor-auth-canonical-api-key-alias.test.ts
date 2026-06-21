@@ -6,7 +6,7 @@ import { clearRuntimeAuthProfileStoreSnapshots } from "../agents/auth-profiles/s
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import { maybeRepairCanonicalApiKeyFieldAlias } from "./doctor-auth-flat-profiles.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
 

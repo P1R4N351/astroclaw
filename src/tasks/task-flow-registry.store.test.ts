@@ -7,7 +7,7 @@ import type { DB as OpenClawStateKyselyDatabase } from "../state/openclaw-state-
 import { openOpenClawStateDatabase } from "../state/openclaw-state-db.js";
 import { resolveOpenClawStateSqlitePath } from "../state/openclaw-state-db.paths.js";
 import { withEnvAsync } from "../test-utils/env.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import {
   createManagedTaskFlow as createManagedTaskFlowOrNull,
   getTaskFlowById,

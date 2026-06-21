@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it, vi } from "vitest";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { resolveAllowedManagedMediaPath, resolveSandboxedMediaSource } from "./sandbox-paths.js";
 

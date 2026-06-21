@@ -21,7 +21,7 @@ import type { CliBackendConfig } from "../../config/types.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { privateFileStore } from "../../infra/private-file-store.js";
 import { tempWorkspace } from "../../infra/private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
 import type { ImageContent } from "../../llm/types.js";
 import { listRegisteredPluginAgentPromptGuidance } from "../../plugins/command-registry-state.js";
 import type { EmbeddedContextFile } from "../embedded-agent-helpers.js";

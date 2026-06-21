@@ -6,7 +6,7 @@ import { formatCliCommand } from "../cli/command-format.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import type { UpdateCheckResult } from "./update-check.js";
 
 const {

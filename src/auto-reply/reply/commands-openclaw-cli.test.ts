@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   buildCurrentOpenClawCliArgv,
   buildCurrentOpenClawCliExecEnv,
-} from "./commands-openclaw-cli.js";
+} from "./commands-astroclaw-cli.js";
 
 const requireFromHere = createRequire(import.meta.url);
 const originalArgv = [...process.argv];

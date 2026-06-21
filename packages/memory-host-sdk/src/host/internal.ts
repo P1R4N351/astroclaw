@@ -25,11 +25,11 @@ import {
   detectMime,
   estimateStringChars,
   runTasksWithConcurrency,
-} from "./openclaw-runtime-io.js";
+} from "./astroclaw-runtime-io.js";
 import {
   resolveCanonicalRootMemoryFile,
   shouldSkipRootMemoryAuxiliaryPath,
-} from "./openclaw-runtime-memory.js";
+} from "./astroclaw-runtime-memory.js";
 import { retryTransientMemoryRead } from "./read-retry.js";
 import { normalizeStringEntries, uniqueStrings } from "./string-utils.js";
 

@@ -4,7 +4,7 @@ import type { OpenClawConfig } from "../config/types.js";
 import {
   POSIX_OPENCLAW_TMP_DIR,
   resolvePreferredOpenClawTmpDir,
-} from "../infra/tmp-openclaw-dir.js";
+} from "../infra/tmp-astroclaw-dir.js";
 
 // Default logger path uses the preferred tmp directory when Node fs is available.
 const LOG_PREFIX = "openclaw";

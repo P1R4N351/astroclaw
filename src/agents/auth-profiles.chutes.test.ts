@@ -4,7 +4,7 @@
  * while preserving the shared auth-profile store contracts.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import type { AuthProfileStore } from "./auth-profiles.js";
 import { CHUTES_TOKEN_ENDPOINT } from "./chutes-oauth.js";
 

@@ -10,7 +10,7 @@ import {
   type ImageMetadata,
 } from "rastermill";
 import { resolveSystemBin } from "../infra/resolve-system-bin.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 
 export type { ImageMetadata, ImageProbe };
 

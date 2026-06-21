@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { readRegularFile, statRegularFile } from "./fs-utils.js";
 import { hashText } from "./hash.js";
-import { createSubsystemLogger, redactSensitiveText } from "./openclaw-runtime-io.js";
+import { createSubsystemLogger, redactSensitiveText } from "./astroclaw-runtime-io.js";
 import {
   HEARTBEAT_PROMPT,
   HEARTBEAT_TOKEN,
@@ -20,7 +20,7 @@ import {
   resolveSessionTranscriptsDirForAgent,
   stripInboundMetadata,
   stripInternalRuntimeContext,
-} from "./openclaw-runtime-session.js";
+} from "./astroclaw-runtime-session.js";
 import { retryTransientMemoryRead } from "./read-retry.js";
 
 const DREAMING_NARRATIVE_RUN_PREFIX = "dreaming-narrative-";

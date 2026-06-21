@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { hasErrnoCode } from "../infra/errors.js";
-import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
 
 type PluginPeerLinkLogger = {
   info?: (message: string) => void;

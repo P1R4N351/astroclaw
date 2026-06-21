@@ -10,7 +10,7 @@ import {
   type DiagnosticSecurityEvent,
 } from "../infra/diagnostic-events.js";
 import { safePathSegmentHashed } from "../infra/install-safe-path.js";
-import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { initializeGlobalHookRunner, resetGlobalHookRunner } from "./hook-runner-global.js";
 import { createMockPluginRegistry } from "./hooks.test-helpers.js";

@@ -14,7 +14,7 @@ import type { ReplyPayload } from "../types.js";
 import {
   buildCurrentOpenClawCliCommand,
   buildCurrentOpenClawCliExecEnv,
-} from "./commands-openclaw-cli.js";
+} from "./commands-astroclaw-cli.js";
 import {
   deliverPrivateCommandReply,
   readCommandDeliveryTarget,

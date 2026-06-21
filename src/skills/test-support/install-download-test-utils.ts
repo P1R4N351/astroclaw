@@ -2,7 +2,7 @@
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/openclaw-test-state.js";
+} from "../../test-utils/astroclaw-test-state.js";
 
 /** Creates isolated OpenClaw state for install download tests. */
 export async function createInstallDownloadTestState(): Promise<OpenClawTestState> {

@@ -4,7 +4,7 @@ import path from "node:path";
 import { basenameFromAnyPath } from "@openclaw/media-core/file-name";
 import { writeExternalFileWithinRoot } from "../infra/fs-safe.js";
 import { tempWorkspaceSync, withTempWorkspace } from "../infra/private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { runFfmpeg } from "./ffmpeg-exec.js";
 
 const DEFAULT_OPUS_SAMPLE_RATE_HZ = 48_000;

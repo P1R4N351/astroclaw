@@ -2,7 +2,7 @@
 // Wraps registry/git update checks and formats compact update rows/hints.
 
 import { formatCliCommand } from "../cli/command-format.js";
-import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
+import { resolveAstroclawPackageRoot } from "../infra/astroclaw-root.js";
 import { normalizeUpdateChannel, resolveRegistryUpdateChannel } from "../infra/update-channels.js";
 import {
   checkUpdateStatus,
@@ -19,7 +19,7 @@ export async function getUpdateCheckResult(params: {
   updateConfigChannel?: string | null;
 }): Promise<UpdateCheckResult> {
   const configChannel = normalizeUpdateChannel(params.updateConfigChannel);
-  const root = await resolveOpenClawPackageRoot({
+  const root = await resolveAstroclawPackageRoot({
     moduleUrl: import.meta.url,
     argv1: process.argv[1],
     cwd: process.cwd(),

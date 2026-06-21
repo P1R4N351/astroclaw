@@ -19,8 +19,8 @@ import {
 } from "../tasks/task-registry.js";
 import * as taskRegistryMaintenance from "../tasks/task-registry.maintenance.js";
 import type { TaskRecord } from "../tasks/task-registry.types.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
-import type { OpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import type { OpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import {
   tasksAuditCommand,
   tasksCancelCommand,

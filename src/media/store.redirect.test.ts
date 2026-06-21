@@ -7,7 +7,7 @@ import { createPinnedLookup } from "../infra/net/ssrf.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/openclaw-test-state.js";
+} from "../test-utils/astroclaw-test-state.js";
 import { saveMediaSource, setMediaStoreNetworkDepsForTest } from "./store.js";
 
 const mockRequest = vi.fn();

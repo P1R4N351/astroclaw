@@ -12,7 +12,7 @@ import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { logVerbose } from "../../globals.js";
 import { root as fsRoot, FsSafeError } from "../../infra/fs-safe.js";
 import { normalizeScpRemoteHost, normalizeScpRemotePath } from "../../infra/scp-host.js";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
 import { resolveChannelRemoteInboundAttachmentRoots } from "../../media/channel-inbound-roots.js";
 import { resolveInboundMediaReference } from "../../media/media-reference.js";
 import { getMediaDir, MEDIA_MAX_BYTES } from "../../media/store.js";

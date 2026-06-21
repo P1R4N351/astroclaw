@@ -13,7 +13,7 @@ import {
 } from "../tasks/task-registry.js";
 import type { TaskRecord } from "../tasks/task-registry.types.js";
 import { captureEnv } from "../test-utils/env.js";
-import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
 import { flowsCancelCommand, flowsListCommand, flowsShowCommand } from "./flows.js";
 
 vi.mock("../config/config.js", () => ({

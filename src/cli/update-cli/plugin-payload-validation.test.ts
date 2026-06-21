@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { resolveOpenClawPackageRootSync } from "../../infra/openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../../infra/astroclaw-root.js";
 import { runPluginPayloadSmokeCheck } from "./plugin-payload-validation.js";
 
 describe("runPluginPayloadSmokeCheck", () => {

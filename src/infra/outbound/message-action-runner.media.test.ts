@@ -15,7 +15,7 @@ import {
   createChannelTestPluginBase,
   createTestRegistry,
 } from "../../test-utils/channel-plugins.js";
-import { resolvePreferredOpenClawTmpDir } from "../tmp-openclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../tmp-astroclaw-dir.js";
 import { runMessageAction } from "./message-action-runner.js";
 
 const onePixelPng = Buffer.from(

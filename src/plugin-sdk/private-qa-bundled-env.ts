@@ -3,7 +3,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { resolveOpenClawPackageRootSync } from "../infra/openclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../infra/astroclaw-root.js";
 
 /** Returns an env override that points bundled plugin loading at source extensions. */
 export function resolvePrivateQaBundledPluginsEnv(
