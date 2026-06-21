@@ -1436,6 +1436,16 @@ describe("scripts/test-projects changed-target routing", () => {
       ],
       ["scripts/lib/test-group-report.mjs", ["test/scripts/test-group-report.test.ts"]],
       ["scripts/lib/stable-release-closeout.mjs", ["test/stable-release-closeout.test.ts"]],
+      [
+        "scripts/lib/extension-source-classifier.mjs",
+        [
+          "test/scripts/extension-source-classifier.test.ts",
+          "src/channels/plugins/contracts/channel-import-guardrails.test.ts",
+        ],
+      ],
+      ["scripts/lib/ts-topology/analyze.ts", ["test/scripts/ts-topology.test.ts"]],
+      ["scripts/lib/ts-topology/reports.ts", ["test/scripts/ts-topology.test.ts"]],
+      ["scripts/lib/ts-topology/scope.ts", ["test/scripts/ts-topology.test.ts"]],
       ["scripts/lib/ts-guard-utils.mjs", ["test/scripts/ts-guard-utils.test.ts"]],
       [
         "scripts/lib/tsgo-sparse-guard.mjs",
@@ -1480,6 +1490,18 @@ describe("scripts/test-projects changed-target routing", () => {
       [
         "scripts/check-src-extension-import-boundary.mjs",
         ["test/extension-import-boundaries.test.ts"],
+      ],
+      [
+        "scripts/lib/guard-inventory-utils.mjs",
+        [
+          "test/extension-import-boundaries.test.ts",
+          "test/plugin-extension-import-boundary.test.ts",
+          "test/architecture-smells.test.ts",
+          "test/web-provider-boundary.test.ts",
+          "test/test-helper-extension-import-boundary.test.ts",
+          "test/scripts/extension-import-boundary-checker.test.ts",
+          "src/plugins/contracts/plugin-sdk-subpaths.test.ts",
+        ],
       ],
       [
         "scripts/check-test-helper-extension-import-boundary.mjs",
