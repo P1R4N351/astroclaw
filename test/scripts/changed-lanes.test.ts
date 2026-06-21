@@ -19,6 +19,9 @@ import {
   createPnpmManagedCommand,
   createTargetedCoreLintCommand,
   shouldDelegateChangedCheckToCrabbox,
+  shouldRunPromptSnapshotCheck,
+  shouldRunPromptSnapshotOwnerTest,
+  shouldRunRuntimeSidecarBaselineCheck,
   shouldRunShrinkwrapGuard,
   shouldRunTestTempCreationReport,
   createShrinkwrapGuardCommand,
@@ -1293,6 +1296,68 @@ describe("scripts/changed-lanes", () => {
     ).toBe(true);
     expect(plan.commands.map((command) => command.name)).toContain("npm shrinkwrap guard");
     expect(plan.commands.map((command) => command.args[0])).not.toContain("deps:shrinkwrap:check");
+  });
+
+  it("runs prompt snapshot drift checks for prompt snapshot generator surfaces", () => {
+    expect(
+      shouldRunPromptSnapshotCheck([
+        "scripts/generate-prompt-snapshots.ts",
+        "test/helpers/agents/happy-path-prompt-snapshots.ts",
+        "test/fixtures/agents/prompt-snapshots/runtime-happy-path/telegram-direct-codex-message-tool.md",
+      ]),
+    ).toBe(true);
+
+    const result = detectChangedLanes(["test/helpers/agents/happy-path-prompt-snapshots.ts"]);
+    const plan = createChangedCheckPlan(result);
+
+    expect(plan.commands).toContainEqual({
+      name: "prompt snapshot drift",
+      args: ["prompt:snapshots:check"],
+    });
+    expect(plan.commands).toContainEqual({
+      name: "prompt snapshot owner test",
+      args: ["test:serial", "test/scripts/prompt-snapshots.test.ts"],
+    });
+  });
+
+  it("runs the prompt snapshot owner test for model fixture generator surfaces", () => {
+    expect(
+      shouldRunPromptSnapshotOwnerTest([
+        "scripts/sync-codex-model-prompt-fixture.ts",
+        "test/fixtures/agents/prompt-snapshots/codex-model-catalog/gpt-5.5.pragmatic.source.json",
+      ]),
+    ).toBe(true);
+
+    const result = detectChangedLanes(["scripts/sync-codex-model-prompt-fixture.ts"]);
+    const plan = createChangedCheckPlan(result);
+
+    expect(plan.commands).toContainEqual({
+      name: "prompt snapshot owner test",
+      args: ["test:serial", "test/scripts/prompt-snapshots.test.ts"],
+    });
+  });
+
+  it("runs runtime sidecar baseline checks for baseline owner surfaces", () => {
+    expect(
+      shouldRunRuntimeSidecarBaselineCheck([
+        "scripts/generate-runtime-sidecar-paths-baseline.ts",
+        "scripts/lib/bundled-runtime-sidecar-paths.json",
+        "src/plugins/runtime-sidecar-paths-baseline.ts",
+        "src/plugins/runtime-sidecar-paths.ts",
+      ]),
+    ).toBe(true);
+
+    const result = detectChangedLanes(["scripts/lib/bundled-runtime-sidecar-paths.json"]);
+    const plan = createChangedCheckPlan(result);
+
+    expect(plan.commands).toContainEqual({
+      name: "runtime sidecar baseline",
+      args: ["runtime-sidecars:check"],
+    });
+    expect(plan.commands).toContainEqual({
+      name: "runtime sidecar owner test",
+      args: ["test:serial", "src/plugins/bundled-plugin-metadata.test.ts"],
+    });
   });
 
   it("guards release metadata package changes to the top-level version field", () => {
