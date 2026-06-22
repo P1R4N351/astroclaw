@@ -13,7 +13,7 @@ import {
   ensureDeviceToken,
   requestDevicePairing,
 } from "../infra/device-pairing.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import type { ResolvedGatewayAuth } from "./auth.js";
 import { CONTROL_UI_BOOTSTRAP_CONFIG_PATH } from "./control-ui-contract.js";
@@ -783,6 +783,30 @@ describe("handleControlUiHttpRequest", () => {
         );
         expect(handled).toBe(true);
         expect(end).toHaveBeenCalledWith(html);
+      },
+    });
+  });
+
+  it("rewrites public asset hrefs in index.html when Control UI uses a configured base path (#94157)", async () => {
+    const html =
+      '<html><head><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" /></head><body></body></html>\n';
+    await withControlUiRoot({
+      indexHtml: html,
+      fn: async (tmp) => {
+        const { res, end } = makeMockHttpResponse();
+        const handled = await handleControlUiHttpRequest(
+          { url: "/openclaw/chat", method: "GET" } as IncomingMessage,
+          res,
+          {
+            basePath: "/openclaw",
+            root: { kind: "resolved", path: tmp },
+          },
+        );
+        expect(handled).toBe(true);
+        const body = String(end.mock.calls[0]?.[0] ?? "");
+        expect(body).toContain('href="/openclaw/manifest.webmanifest"');
+        expect(body).toContain('href="/openclaw/favicon.svg"');
+        expect(body).not.toContain('href="/manifest.webmanifest"');
       },
     });
   });
