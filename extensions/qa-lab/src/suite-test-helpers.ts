@@ -6,10 +6,11 @@ type QaSuiteTestScenario = ReturnType<typeof readQaBootstrapScenarioCatalog>["sc
 export function makeQaSuiteTestScenario(
   id: string,
   params: {
+    channel?: string;
     config?: Record<string, unknown>;
     plugins?: string[];
     gatewayConfigPatch?: Record<string, unknown>;
-    gatewayRuntime?: { forwardHostHome?: boolean };
+    gatewayRuntime?: { forwardHostHome?: boolean; preserveDebugArtifacts?: boolean };
     runtimeParityTier?: QaSuiteTestScenario["runtimeParityTier"];
     surface?: string;
   } = {},
@@ -27,6 +28,7 @@ export function makeQaSuiteTestScenario(
     sourcePath: `qa/scenarios/${id}.yaml`,
     execution: {
       kind: "flow",
+      ...(params.channel ? { channel: params.channel } : {}),
       ...(params.config ? { config: params.config } : {}),
       flow: { steps: [{ name: "noop", actions: [{ assert: "true" }] }] },
     },
