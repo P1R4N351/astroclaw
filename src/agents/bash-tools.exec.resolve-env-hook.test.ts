@@ -4,7 +4,7 @@
  * exec host without leaking unsafe overrides.
  */
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { OPENCLAW_CLI_ENV_VALUE } from "../infra/astroclaw-exec-env.js";
+import { OPENCLAW_CLI_ENV_VALUE } from "../infra/openclaw-exec-env.js";
 import type { ExtensionContext } from "./sessions/index.js";
 
 const mocks = vi.hoisted(() => ({
@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../plugins/hook-runner-global.js", () => ({
   getGlobalHookRunner: () => mocks.hookRunner,
+  getGlobalHookRunnerRegistry: () => null,
 }));
 
 vi.mock("../infra/shell-env.js", () => ({
