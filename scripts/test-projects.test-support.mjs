@@ -983,7 +983,15 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ["scripts/ios-release-archive.sh", ["test/scripts/ios-release-wrapper-args.test.ts"]],
   ["scripts/ios-release-prepare.sh", ["test/scripts/ios-release-wrapper-args.test.ts"]],
   ["scripts/ios-release-signing.mjs", ["test/scripts/ios-release-signing.test.ts"]],
-  ["scripts/ios-release-upload.sh", ["test/scripts/ios-release-wrapper-args.test.ts"]],
+  ["apps/ios/fastlane/Fastfile", ["test/scripts/ios-release-fastlane-gates.test.ts"]],
+  [
+    "scripts/ios-release-upload.sh",
+    [
+      "test/scripts/ios-release-wrapper-args.test.ts",
+      "test/scripts/ios-release-fastlane-gates.test.ts",
+    ],
+  ],
+  ["scripts/ios-validate-app-store-ipa.sh", ["test/scripts/ios-validate-app-store-ipa.test.ts"]],
   ["scripts/lib/restart-mac-gateway.sh", ["test/scripts/restart-mac.test.ts"]],
   [
     "scripts/openclaw-release-clawhub-runtime-state.ts",
@@ -1303,6 +1311,7 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ["scripts/qa-lab-up.ts", ["test/scripts/qa-lab-up.test.ts"]],
   ["scripts/qa-coverage-report.ts", ["test/scripts/qa-report-cli.test.ts"]],
   ["scripts/qa-parity-report.ts", ["test/scripts/qa-report-cli.test.ts"]],
+  ["scripts/qa/render-maturity-docs.ts", ["test/scripts/render-maturity-docs.test.ts"]],
   [
     "scripts/qa/ux-matrix-evidence-producer.ts",
     ["test/scripts/qa-ux-matrix-evidence-producer.test.ts"],
