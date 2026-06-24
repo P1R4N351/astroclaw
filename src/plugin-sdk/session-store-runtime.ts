@@ -19,6 +19,7 @@ type SessionStoreReadParams = {
   agentId?: string;
   env?: NodeJS.ProcessEnv;
   hydrateSkillPromptRefs?: boolean;
+  readConsistency?: "latest";
   sessionKey: string;
   storePath?: string;
 };
@@ -89,6 +90,7 @@ function toSessionAccessScope(params: SessionStoreReadParams): SessionAccessScop
     ...(params.hydrateSkillPromptRefs !== undefined
       ? { hydrateSkillPromptRefs: params.hydrateSkillPromptRefs }
       : {}),
+    ...(params.readConsistency !== undefined ? { readConsistency: params.readConsistency } : {}),
     ...(params.storePath !== undefined ? { storePath: params.storePath } : {}),
   };
 }
