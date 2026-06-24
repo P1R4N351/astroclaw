@@ -24,18 +24,26 @@ function assert(condition: unknown, message: string): asserts condition {
   }
 }
 
+function setEnvValue(key: string, value: string): void {
+  Reflect.set(process.env, key, value);
+}
+
+function deleteEnvValue(key: string): void {
+  Reflect.deleteProperty(process.env, key);
+}
+
 async function withStateDir<T>(name: string, fn: (stateDir: string) => Promise<T>): Promise<T> {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), `astroclaw-${name}-`));
-  const previousStateDir = process.env.ASTROCLAW_STATE_DIR;
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), `openclaw-${name}-`));
+  const previousStateDir = process.env.OPENCLAW_STATE_DIR;
   try {
-    process.env.ASTROCLAW_STATE_DIR = root;
+    setEnvValue("OPENCLAW_STATE_DIR", root);
     return await fn(root);
   } finally {
     resetCommitmentExtractionRuntimeForTests();
     if (previousStateDir === undefined) {
-      delete process.env.ASTROCLAW_STATE_DIR;
+      deleteEnvValue("OPENCLAW_STATE_DIR");
     } else {
-      process.env.ASTROCLAW_STATE_DIR = previousStateDir;
+      setEnvValue("OPENCLAW_STATE_DIR", previousStateDir);
     }
     await fs.rm(root, { recursive: true, force: true });
   }
