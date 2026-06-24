@@ -732,8 +732,49 @@ describe.concurrent("scripts/crabbox-wrapper", () => {
       "check:changed",
     ]);
 
+    const output = parseFakeCrabboxOutput(result);
+    const remoteCommand = normalizeShellLineEndings(output.scriptContent);
     expect(result.status).toBe(0);
-    expect(parseFakeCrabboxOutput(result).args).toEqual([
+    expect(output.args.slice(0, 7)).toEqual([
+      "run",
+      "--target",
+      "windows",
+      "--windows-mode",
+      "wsl2",
+      "--provider",
+      "azure",
+    ]);
+    expect(output.args).toContain("--no-hydrate");
+    expect(output.args).toContain("--script");
+    expect(output.args).not.toContain("--shell");
+    expect(output.args.join(" ")).not.toContain("openclaw_crabbox_bootstrap_wsl2_js");
+    expect(remoteCommand).toContain("openclaw_crabbox_bootstrap_wsl2_js");
+    expect(remoteCommand).toContain("node-v${node_version}-linux-${node_arch}.tar.gz");
+    expect(remoteCommand).toContain("sha256sum -c -");
+    expect(remoteCommand).toContain("corepack enable --install-directory");
+    expect(remoteCommand).toContain("pnpm install --frozen-lockfile");
+    expect(remoteCommand).toContain("openclaw_crabbox_bootstrap_wsl2_js || exit $?");
+    expect(remoteCommand).toContain(
+      `{ openclaw_crabbox_env ${remoteChangedGateEnvPrefix} corepack pnpm check:changed\n}`,
+    );
+    expect(result.stderr).toContain("provider=azure");
+  });
+
+  it("keeps WSL2 non-JavaScript commands on the default hydrate path", () => {
+    const result = runWrapper(azureProviderHelp, [
+      "run",
+      "--target",
+      "windows",
+      "--windows-mode",
+      "wsl2",
+      "--",
+      "echo",
+      "ok",
+    ]);
+
+    const output = parseFakeCrabboxOutput(result);
+    expect(result.status).toBe(0);
+    expect(output.args).toEqual([
       "run",
       "--target",
       "windows",
@@ -742,11 +783,11 @@ describe.concurrent("scripts/crabbox-wrapper", () => {
       "--provider",
       "azure",
       "--",
-      "corepack",
-      "pnpm",
-      "check:changed",
+      "echo",
+      "ok",
     ]);
-    expect(result.stderr).toContain("provider=azure");
+    expect(output.args).not.toContain("--no-hydrate");
+    expect(output.args).not.toContain("--shell");
   });
 
   it("keeps explicit provider env overrides for Windows runs", () => {
