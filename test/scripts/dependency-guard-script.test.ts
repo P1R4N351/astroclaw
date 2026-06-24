@@ -13,6 +13,7 @@ import {
   findDependencyOverrideCommandAsync,
   findTrustedDependencyGuardActor,
   githubApi,
+  hasGuardBlockingDependencyChange,
   isAutoscrubbedDependencyComment,
   isDependencyGuardAuthorizedForHead,
   isDependencyFile,
@@ -53,6 +54,28 @@ describe("dependency guard script", () => {
     expect(isPackageLockfile("pnpm-lock.yaml")).toBe(true);
     expect(isPackageLockfile("package-lock.json")).toBe(true);
     expect(isPackageLockfile("package.json")).toBe(false);
+  });
+
+  it("blocks patches/-only and pnpm-workspace.yaml-only dependency changes", () => {
+    // Regression: a PR touching ONLY a patch file or pnpm-workspace.yaml has no
+    // lockfile change and no manifest change, yet isDependencyFile flags it and
+    // the autoscrub path treats it as guard-blocked. It must reach the approval
+    // gate, not the !hasDependencyGraphChange early-return.
+    expect(hasGuardBlockingDependencyChange(["patches/foo@1.0.0.patch"], [])).toBe(true);
+    expect(hasGuardBlockingDependencyChange(["pnpm-workspace.yaml"], [])).toBe(true);
+    expect(
+      hasGuardBlockingDependencyChange(["pnpm-workspace.yaml", "patches/foo@1.0.0.patch"], []),
+    ).toBe(true);
+    // Still guard-relevant on the original lockfile / manifest paths.
+    expect(hasGuardBlockingDependencyChange(["pnpm-lock.yaml"], [])).toBe(true);
+    expect(
+      hasGuardBlockingDependencyChange(
+        [],
+        [{ path: "package.json", changedFields: ["dependencies"] }],
+      ),
+    ).toBe(true);
+    // No dependency surface at all → not guard-blocking.
+    expect(hasGuardBlockingDependencyChange([], [])).toBe(false);
   });
 
   it("compares package manifest fields that can affect dependency resolution", () => {
