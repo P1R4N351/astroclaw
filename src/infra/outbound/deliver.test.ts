@@ -28,7 +28,7 @@ import {
   resetDiagnosticEventsForTest,
   type DiagnosticEventPayload,
 } from "../diagnostic-events.js";
-import { resolvePreferredOpenClawTmpDir } from "../tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../tmp-openclaw-dir.js";
 
 const mocks = vi.hoisted(() => ({
   appendAssistantMessageToSessionTranscript: vi.fn<() => Promise<SessionTranscriptAppendResult>>(
@@ -1042,6 +1042,51 @@ describe("deliverOutboundPayloads", () => {
     const failDeliveryCall = requireMockCall(queueMocks.failDelivery, "failDelivery");
     expect(failDeliveryCall[0]).toBe("mock-queue-id");
     expect(String(failDeliveryCall[1])).toContain("marker offline");
+    expect(queueMocks.ackDelivery).not.toHaveBeenCalled();
+  });
+
+  it("marks queued delivery as unknown-after-send (not failed) when a later payload fails after an earlier one succeeded", async () => {
+    const sendMatrix = vi
+      .fn()
+      .mockResolvedValueOnce({ messageId: "m1" })
+      .mockRejectedValueOnce(new Error("second payload send failed"));
+
+    await expect(
+      deliverOutboundPayloads({
+        cfg: {},
+        channel: "matrix",
+        to: "!room:example",
+        payloads: [{ text: "first" }, { text: "second" }],
+        deps: { matrix: sendMatrix },
+        queuePolicy: "required",
+      }),
+    ).rejects.toThrow("second payload send failed");
+
+    expect(sendMatrix).toHaveBeenCalledTimes(2);
+    expect(queueMocks.markDeliveryPlatformOutcomeUnknown).toHaveBeenCalledWith("mock-queue-id");
+    expect(queueMocks.failDelivery).not.toHaveBeenCalled();
+    expect(queueMocks.ackDelivery).not.toHaveBeenCalled();
+  });
+
+  it("still calls failDelivery when a payload fails before any send succeeded", async () => {
+    const sendMatrix = vi.fn().mockRejectedValueOnce(new Error("first payload send failed"));
+
+    await expect(
+      deliverOutboundPayloads({
+        cfg: {},
+        channel: "matrix",
+        to: "!room:example",
+        payloads: [{ text: "first" }],
+        deps: { matrix: sendMatrix },
+        queuePolicy: "required",
+      }),
+    ).rejects.toThrow("first payload send failed");
+
+    expect(queueMocks.failDelivery).toHaveBeenCalledWith(
+      "mock-queue-id",
+      expect.stringContaining("first payload send failed"),
+    );
+    expect(queueMocks.markDeliveryPlatformOutcomeUnknown).not.toHaveBeenCalled();
     expect(queueMocks.ackDelivery).not.toHaveBeenCalled();
   });
 
