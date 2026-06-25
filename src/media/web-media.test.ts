@@ -7,7 +7,7 @@ import JSZip from "jszip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer } from "../../test/helpers/image-fixtures.js";
 import { resolveStateDir } from "../config/paths.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../plugins/runtime.js";
 import { withEnvAsync } from "../test-utils/env.js";
@@ -571,6 +571,31 @@ describe("loadWebMedia", () => {
     expect(result.kind).toBe("document");
     expect(result.contentType).toBe("application/zip");
     expect(result.fileName).toBe("fake.png");
+  });
+
+  it("strips internal media-store UUID suffix from outbound fileName", async () => {
+    const stagedName = "report---a1b2c3d4-5678-90ab-cdef-1234567890ab.png";
+    const mediaDir = path.join(stateDir, "media", "outbound");
+    const stagedFile = path.join(mediaDir, stagedName);
+    await fs.mkdir(mediaDir, { recursive: true });
+    await fs.writeFile(stagedFile, Buffer.from(TINY_PNG_BASE64, "base64"));
+
+    const result = await loadWebMedia(stagedFile, {
+      maxBytes: 1024 * 1024,
+      localRoots: [mediaDir],
+    });
+
+    expect(result.fileName).toBe("report.png");
+  });
+
+  it("preserves non-media-store filenames that match the UUID suffix shape", async () => {
+    const fileName = "report---a1b2c3d4-5678-90ab-cdef-1234567890ab.png";
+    const filePath = path.join(fixtureRoot, fileName);
+    await fs.writeFile(filePath, Buffer.from(TINY_PNG_BASE64, "base64"));
+
+    const result = await loadWebMedia(filePath, createLocalWebMediaOptions());
+
+    expect(result.fileName).toBe(fileName);
   });
 
   it("uses only the leaf filename from Windows-style sandbox-validated media paths", async () => {
