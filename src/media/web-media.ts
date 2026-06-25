@@ -17,7 +17,7 @@ import { formatErrorMessage } from "../infra/errors.js";
 import { FsSafeError, readLocalFileSafely } from "../infra/fs-safe.js";
 import { assertNoWindowsNetworkPath, safeFileURLToPath } from "../infra/local-file-access.js";
 import type { PinnedDispatcherPolicy, SsrFPolicy } from "../infra/net/ssrf.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { getActivePluginRegistry } from "../plugins/runtime.js";
 import { resolveUserPath } from "../utils.js";
 import { readRemoteMediaBuffer } from "./fetch.js";
@@ -33,6 +33,7 @@ import {
   readImageMetadataFromHeader,
   readImageProbeFromHeader,
 } from "./media-services.js";
+import { extractOriginalFilename, getMediaDir } from "./store.js";
 
 export { getDefaultLocalRoots, LocalMediaAccessError };
 export type { LocalMediaAccessErrorCode };
@@ -284,6 +285,13 @@ function isPathInsideRoot(filePath: string | undefined, root: string): boolean {
   );
 }
 
+function resolveLocalMediaFileName(filePath: string): string | undefined {
+  const fileName = basenameFromAnyPath(filePath) || undefined;
+  return fileName && isPathInsideRoot(filePath, getMediaDir())
+    ? extractOriginalFilename(fileName)
+    : fileName;
+}
+
 function hasHtmlDocumentShape(text: string): boolean {
   const sample = text.trimStart().slice(0, 8192);
   return /^(?:<!doctype\s+html\b|<html\b)/iu.test(sample) || /<\/(?:html|body)>/iu.test(sample);
@@ -299,7 +307,7 @@ async function isTrustedGeneratedHostReadHtmlPath(filePath: string | undefined):
   }
   const [resolvedFilePath, resolvedTmpRoot] = await Promise.all([
     realpath(filePath).catch(() => undefined),
-    realpath(resolvePreferredAstroclawTmpDir()).catch(() => undefined),
+    realpath(resolvePreferredOpenClawTmpDir()).catch(() => undefined),
   ]);
   return Boolean(
     resolvedFilePath && resolvedTmpRoot && isPathInsideRoot(resolvedFilePath, resolvedTmpRoot),
@@ -1074,7 +1082,7 @@ async function loadWebMediaInternal(
       trustedGeneratedHtmlPath,
     });
   }
-  let fileName = basenameFromAnyPath(mediaUrl) || undefined;
+  let fileName = resolveLocalMediaFileName(mediaUrl);
   if (fileName && !extnameFromAnyPath(fileName) && mime) {
     const ext = extensionForMime(mime);
     if (ext) {
