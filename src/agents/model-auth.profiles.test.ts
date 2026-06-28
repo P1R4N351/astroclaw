@@ -6,7 +6,7 @@ import type { Model } from "openclaw/plugin-sdk/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { withEnvAsync } from "../test-utils/env.js";
-import { withOpenClawTestState } from "../test-utils/astroclaw-test-state.js";
+import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import {
   clearRuntimeAuthProfileStoreSnapshots,
   ensureAuthProfileStore,
@@ -729,6 +729,33 @@ describe("getApiKeyForModel", () => {
         });
         expect(resolved.apiKey).toBe("zai-test-key");
         expect(resolved.source).toContain("Z_AI_API_KEY");
+      },
+    );
+  });
+
+  it("skips malformed stored ZAI command profiles and uses current env auth", async () => {
+    await withEnvAsync(
+      {
+        ZAI_API_KEY: "zai-current-key", // pragma: allowlist secret
+        Z_AI_API_KEY: undefined,
+      },
+      async () => {
+        const resolved = await resolveApiKeyForProvider({
+          provider: "zai",
+          store: {
+            version: 1,
+            profiles: {
+              "zai:default": {
+                type: "api_key",
+                provider: "zai",
+                key: "openclaw onboard --auth-choice zai-coding-global",
+              },
+            },
+          },
+        });
+        expect(resolved.apiKey).toBe("zai-current-key");
+        expect(resolved.source).toContain("ZAI_API_KEY");
+        expect(resolved.profileId).toBeUndefined();
       },
     );
   });
