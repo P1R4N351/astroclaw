@@ -12,7 +12,7 @@ import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { logVerbose } from "../../globals.js";
 import { root as fsRoot, FsSafeError } from "../../infra/fs-safe.js";
 import { normalizeScpRemoteHost, normalizeScpRemotePath } from "../../infra/scp-host.js";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
 import { resolveChannelRemoteInboundAttachmentRoots } from "../../media/channel-inbound-roots.js";
 import { resolveInboundMediaReference } from "../../media/media-reference.js";
 import { getMediaDir, MEDIA_MAX_BYTES } from "../../media/store.js";
@@ -41,6 +41,7 @@ export async function stageSandboxMedia(params: {
   cfg: OpenClawConfig;
   sessionKey?: string;
   workspaceDir: string;
+  remoteMediaMode?: "sandbox-or-cache" | "cache";
 }): Promise<StageSandboxMediaResult> {
   const { ctx, sessionCtx, cfg, sessionKey, workspaceDir } = params;
   const hasPathsArray = Array.isArray(ctx.MediaPaths) && ctx.MediaPaths.length > 0;
@@ -49,11 +50,14 @@ export async function stageSandboxMedia(params: {
     return EMPTY_STAGE_RESULT;
   }
 
-  const sandbox = await ensureSandboxWorkspaceForSession({
-    config: cfg,
-    sessionKey,
-    workspaceDir,
-  });
+  const forceRemoteCache = ctx.MediaRemoteHost && params.remoteMediaMode === "cache";
+  const sandbox = forceRemoteCache
+    ? null
+    : await ensureSandboxWorkspaceForSession({
+        config: cfg,
+        sessionKey,
+        workspaceDir,
+      });
 
   // For remote attachments without sandbox, use ~/.openclaw/media (not agent workspace for privacy)
   const remoteMediaCacheDir = ctx.MediaRemoteHost
