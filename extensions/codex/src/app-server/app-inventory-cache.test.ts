@@ -18,7 +18,11 @@ describe("Codex app inventory cache", () => {
       } satisfies v2.AppsListResponse;
     });
 
-    const key = buildCodexAppInventoryCacheKey({ codexHome: "/codex", authProfileId: "work" });
+    const key = buildCodexAppInventoryCacheKey(
+      { codexHome: "/codex", authProfileId: "work" },
+      "2026.6.27",
+      "2026.6.27",
+    );
     const read = cache.read({ key, request, nowMs: 0 });
     expect(read.state).toBe("missing");
     expect(read.refreshScheduled).toBe(true);
@@ -31,6 +35,14 @@ describe("Codex app inventory cache", () => {
     expect(fresh.state).toBe("fresh");
     expect(fresh.refreshScheduled).toBe(false);
     expect(fresh.snapshot?.apps.map((item) => item.id)).toEqual(["app-1", "app-2"]);
+  });
+
+  it("changes the cache key when either build version changes", () => {
+    const input = { codexHome: "/codex", authProfileId: "work" };
+    const baseline = buildCodexAppInventoryCacheKey(input, "2026.6.27", "2026.6.27");
+
+    expect(buildCodexAppInventoryCacheKey(input, "2026.6.28", "2026.6.27")).not.toBe(baseline);
+    expect(buildCodexAppInventoryCacheKey(input, "2026.6.27", "2026.6.28")).not.toBe(baseline);
   });
 
   it("can read missing inventory without scheduling app/list", async () => {
