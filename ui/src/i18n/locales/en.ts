@@ -20,6 +20,7 @@ export const en: TranslationMap = {
     probe: "Probe",
     call: "Call",
     confirm: "Confirm",
+    submit: "Submit",
     cancel: "Cancel",
     next: "Next",
     back: "Back",
@@ -408,6 +409,7 @@ export const en: TranslationMap = {
     sessions: "Sessions",
     usage: "Usage",
     cron: "Cron Jobs",
+    askSat: "Ask Sat",
     skills: "Skills",
     skillWorkshop: "Skill Workshop",
     nodes: "Nodes",
@@ -433,6 +435,7 @@ export const en: TranslationMap = {
     sessions: "Active sessions and defaults.",
     usage: "API usage and costs.",
     cron: "Wakeups and recurring runs.",
+    askSat: "Corporeal questions Piranesi needs Sat to answer.",
     skills: "Skills and API keys.",
     skillWorkshop: "Review, refine, and apply proposals before they become live skills.",
     nodes: "Paired devices and commands.",
@@ -447,6 +450,14 @@ export const en: TranslationMap = {
     debug: "Snapshots, events, RPC.",
     logs: "Live gateway logs.",
     dreams: "Memory dreaming, consolidation, and reflection.",
+  },
+  askSat: {
+    empty: "The Halls are quiet. Nothing waits on your hands.",
+    recentlySettled: "Settled recently",
+    notePlaceholder: "Add a note (optional)",
+    textPlaceholder: "Type your answer…",
+    ackDone: "Mark done",
+    ackGate: "Yes — it's done",
   },
   skillWorkshop: {
     header: {

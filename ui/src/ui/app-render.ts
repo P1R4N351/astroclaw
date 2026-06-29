@@ -121,6 +121,7 @@ import {
 } from "./controllers/exec-approvals.ts";
 import { loadLogs } from "./controllers/logs.ts";
 import { loadNodes } from "./controllers/nodes.ts";
+import { loadAskSatQuestions, submitAskSatAnswer } from "./controllers/ask-sat.ts";
 import { loadPresence } from "./controllers/presence.ts";
 import {
   branchSessionFromCheckpoint,
@@ -678,6 +679,7 @@ const lazyDebug = createLazyView(() => import("./views/debug.ts"), notifyLazyVie
 const lazyInstances = createLazyView(() => import("./views/instances.ts"), notifyLazyViewChanged);
 const lazyLogs = createLazyView(() => import("./views/logs.ts"), notifyLazyViewChanged);
 const lazyNodes = createLazyView(() => import("./views/nodes.ts"), notifyLazyViewChanged);
+const lazyAskSat = createLazyView(() => import("./views/ask-sat.ts"), notifyLazyViewChanged);
 const lazySessions = createLazyView(() => import("./views/sessions.ts"), notifyLazyViewChanged);
 const lazySkillWorkshop = createLazyView(
   () => import("./views/skill-workshop.ts"),
@@ -3664,6 +3666,19 @@ export function renderApp(state: AppViewState) {
                 },
               });
             })
+          : nothing}
+        ${state.tab === "askSat"
+          ? renderLazyView(lazyAskSat, (m) =>
+              m.renderAskSat({
+                loading: state.askSatLoading,
+                error: state.askSatError,
+                pending: state.askSatPending,
+                answered: state.askSatAnswered,
+                onRefresh: () => void loadAskSatQuestions(state),
+                onAnswer: (id, value, text) =>
+                  void submitAskSatAnswer(state, { id, value, text }),
+              }),
+            )
           : nothing}
         ${state.tab === "nodes"
           ? renderLazyView(lazyNodes, (m) =>

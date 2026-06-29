@@ -66,6 +66,10 @@ const loadAgentHandlers = lazyHandlerModule(
   () => import("./server-methods/agent.js"),
   (module) => module.agentHandlers,
 );
+const loadAskSatHandlers = lazyHandlerModule(
+  () => import("./server-methods/ask-sat.js"),
+  (module) => module.askSatHandlers,
+);
 const loadAgentsHandlers = lazyHandlerModule(
   () => import("./server-methods/agents.js"),
   (module) => module.agentsHandlers,
@@ -270,6 +274,10 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...createLazyCoreHandlers({
     methods: ["connect"],
     loadHandlers: loadConnectHandlers,
+  }),
+  ...createLazyCoreHandlers({
+    methods: ["askSat.questions", "askSat.answer"],
+    loadHandlers: loadAskSatHandlers,
   }),
   ...createLazyCoreHandlers({
     methods: ["logs.tail"],

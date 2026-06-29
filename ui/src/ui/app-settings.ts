@@ -51,6 +51,7 @@ import {
   type ModelAuthStatusState,
 } from "./controllers/model-auth-status.ts";
 import { loadNodes, type NodesState } from "./controllers/nodes.ts";
+import { loadAskSatQuestions, type AskSatState } from "./controllers/ask-sat.ts";
 import { loadPresence, type PresenceState } from "./controllers/presence.ts";
 import { loadSessions, type SessionsState } from "./controllers/sessions.ts";
 import {
@@ -149,6 +150,7 @@ type SettingsAppHost = SettingsHost &
   AgentIdentityState &
   AgentSkillsState &
   AgentsState &
+  AskSatState &
   ChannelsState &
   ConfigState &
   CronState &
@@ -472,6 +474,9 @@ export async function refreshActiveTab(host: SettingsHost, opts?: { chatStartup?
         break;
       case "cron":
         await loadCron(host);
+        break;
+      case "askSat":
+        await loadAskSatQuestions(app);
         break;
       case "skills":
         await loadAgents(app);

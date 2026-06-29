@@ -367,6 +367,10 @@ export class OpenClawApp extends LitElement {
 
   @state() nodesLoading = false;
   @state() nodes: Array<Record<string, unknown>> = [];
+  @state() askSatLoading = false;
+  @state() askSatError: string | null = null;
+  @state() askSatPending: import("./controllers/ask-sat.ts").AskSatQuestion[] = [];
+  @state() askSatAnswered: import("./controllers/ask-sat.ts").AskSatQuestion[] = [];
   @state() devicesLoading = false;
   @state() devicesError: string | null = null;
   @state() devicesList: DevicePairingList | null = null;

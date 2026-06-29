@@ -30,6 +30,8 @@ export const CORE_GATEWAY_METHOD_SPECS: readonly CoreGatewayMethodSpec[] = [
   { name: "doctor.memory.dedupeDreamDiary", scope: "operator.write" },
   { name: "doctor.memory.remHarness", scope: "operator.read" },
   { name: "logs.tail", scope: "operator.read" },
+  { name: "askSat.questions", scope: "operator.read" },
+  { name: "askSat.answer", scope: "operator.write" },
   { name: "channels.status", scope: "operator.read" },
   { name: "channels.start", scope: "operator.admin" },
   { name: "channels.stop", scope: "operator.admin" },
