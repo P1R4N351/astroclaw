@@ -176,6 +176,10 @@ export type AppViewState = {
   chatMobileControlsOpen: boolean;
   nodesLoading: boolean;
   nodes: Array<Record<string, unknown>>;
+  askSatLoading: boolean;
+  askSatError: string | null;
+  askSatPending: import("./controllers/ask-sat.ts").AskSatQuestion[];
+  askSatAnswered: import("./controllers/ask-sat.ts").AskSatQuestion[];
   chatNewMessagesBelow: boolean;
   navDrawerOpen: boolean;
   sidebarOpen: boolean;
