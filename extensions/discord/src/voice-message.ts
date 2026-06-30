@@ -31,6 +31,7 @@ import { writeExternalFileWithinRoot } from "openclaw/plugin-sdk/security-runtim
 import { fetchWithSsrFGuard, type SsrFPolicy } from "openclaw/plugin-sdk/ssrf-runtime";
 import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { DiscordError, RateLimitError, type RequestClient } from "./internal/discord.js";
 import { readDiscordMessage, readRetryAfter } from "./internal/rest-errors.js";
 
@@ -296,7 +297,7 @@ function coerceDiscordErrorBody(raw: string): unknown {
   try {
     return JSON.parse(raw);
   } catch {
-    return { message: raw.slice(0, 200) };
+    return { message: truncateUtf16Safe(raw, 200) };
   }
 }
 
