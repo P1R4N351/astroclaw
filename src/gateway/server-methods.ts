@@ -66,10 +66,6 @@ const loadAgentHandlers = lazyHandlerModule(
   () => import("./server-methods/agent.js"),
   (module) => module.agentHandlers,
 );
-const loadAskSatHandlers = lazyHandlerModule(
-  () => import("./server-methods/ask-sat.js"),
-  (module) => module.askSatHandlers,
-);
 const loadAgentsHandlers = lazyHandlerModule(
   () => import("./server-methods/agents.js"),
   (module) => module.agentsHandlers,
@@ -77,6 +73,10 @@ const loadAgentsHandlers = lazyHandlerModule(
 const loadArtifactsHandlers = lazyHandlerModule(
   () => import("./server-methods/artifacts.js"),
   (module) => module.artifactsHandlers,
+);
+const loadAttachHandlers = lazyHandlerModule(
+  () => import("./server-methods/attach.js"),
+  (module) => module.attachHandlers,
 );
 const loadChannelsHandlers = lazyHandlerModule(
   () => import("./server-methods/channels.js"),
@@ -276,8 +276,8 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
     loadHandlers: loadConnectHandlers,
   }),
   ...createLazyCoreHandlers({
-    methods: ["askSat.questions", "askSat.answer"],
-    loadHandlers: loadAskSatHandlers,
+    methods: ["attach.grant", "attach.revoke"],
+    loadHandlers: loadAttachHandlers,
   }),
   ...createLazyCoreHandlers({
     methods: ["logs.tail"],
