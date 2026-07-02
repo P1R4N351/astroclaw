@@ -927,6 +927,7 @@ async function initSessionStateAttemptLocked(
     retiredEntry: retiredLegacyMainDelivery,
     sessionEntry,
     sessionKey,
+    snapshotEntry: initializationSnapshot.currentEntry,
     storePath,
   });
   if (!committed.ok) {
