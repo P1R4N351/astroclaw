@@ -5,7 +5,7 @@ import { MAX_IMAGE_BYTES } from "@openclaw/media-core/constants";
 import type { ImageContent } from "openclaw/plugin-sdk/llm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer } from "../../test/helpers/image-fixtures.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { escapeRegExp } from "../shared/regexp.js";
 import {
   buildCliArgs,
@@ -283,6 +283,42 @@ describe("writeCliImages", () => {
       expect(written.paths[0]).toMatch(/\.heic$/);
     } finally {
       await fs.rm(written.paths[0], { force: true });
+      await fs.rm(workspaceDir, { recursive: true, force: true });
+    }
+  });
+
+  it("sweeps stale workspace-scoped CLI image files", async () => {
+    const workspaceDir = await fs.mkdtemp(
+      path.join(resolvePreferredOpenClawTmpDir(), "openclaw-cli-write-sweep-"),
+    );
+    const imageRoot = path.join(workspaceDir, ".openclaw-cli-images");
+    const stalePath = path.join(imageRoot, "stale.png");
+    const freshPath = path.join(imageRoot, "fresh.png");
+    const image: ImageContent = {
+      type: "image",
+      data: "bmV3LWltYWdl",
+      mimeType: "image/png",
+    };
+
+    await fs.mkdir(imageRoot, { recursive: true });
+    await fs.writeFile(stalePath, "stale");
+    await fs.writeFile(freshPath, "fresh");
+    const staleTime = new Date(Date.now() - 8 * 24 * 60 * 60 * 1_000);
+    await fs.utimes(stalePath, staleTime, staleTime);
+
+    const written = await writeCliImages({
+      backend: { command: "gemini", imagePathScope: "workspace" },
+      workspaceDir,
+      images: [image],
+    });
+
+    try {
+      await expect(fs.access(stalePath)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(fs.readFile(freshPath, "utf-8")).resolves.toBe("fresh");
+      await expect(fs.readFile(written.paths[0])).resolves.toEqual(
+        Buffer.from(image.data, "base64"),
+      );
+    } finally {
       await fs.rm(workspaceDir, { recursive: true, force: true });
     }
   });
