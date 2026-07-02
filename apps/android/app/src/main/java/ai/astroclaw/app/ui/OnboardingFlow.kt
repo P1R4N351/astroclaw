@@ -164,6 +164,9 @@ private val onboardingAccentSoft: Color
 private val onboardingAccentBorderStrong: Color
   @Composable get() = mobileAccentBorderStrong
 
+private val onboardingFeatureViolet: Color
+  @Composable get() = mobileFeatureViolet
+
 private val onboardingSuccess: Color
   @Composable get() = mobileSuccess
 
@@ -1034,7 +1037,7 @@ private fun WelcomeStep() {
       icon = Icons.Default.Tune,
       title = "Choose your permissions",
       subtitle = "Enable only what you need, change anytime",
-      accentColor = Color(0xFF7C5AC7),
+      accentColor = onboardingFeatureViolet,
     )
     FeatureCard(
       icon = Icons.Default.ChatBubble,
@@ -1046,7 +1049,7 @@ private fun WelcomeStep() {
       icon = Icons.Default.CheckCircle,
       title = "Verify your connection",
       subtitle = "Live check before you enter the app",
-      accentColor = Color(0xFFC8841A),
+      accentColor = onboardingWarning,
     )
   }
 }
@@ -1651,7 +1654,7 @@ private fun FinalStep(
       icon = Icons.Default.Cloud,
       label = "Gateway",
       value = gatewayAddress,
-      accentColor = Color(0xFF7C5AC7),
+      accentColor = onboardingFeatureViolet,
     )
     SummaryCard(
       icon = Icons.Default.Security,

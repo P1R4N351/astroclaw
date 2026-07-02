@@ -27,6 +27,7 @@ internal data class MobileColors(
   val accent: Color,
   val accentSoft: Color,
   val accentBorderStrong: Color,
+  val featureViolet: Color,
   val success: Color,
   val successSoft: Color,
   val warning: Color,
@@ -56,6 +57,7 @@ internal fun lightMobileColors() =
     accent = Color(0xFF1D5DD8),
     accentSoft = Color(0xFFECF3FF),
     accentBorderStrong = Color(0xFF184DAF),
+    featureViolet = Color(0xFF7C5AC7),
     success = Color(0xFF2F8C5A),
     successSoft = Color(0xFFEEF9F3),
     warning = Color(0xFFC8841A),
@@ -85,6 +87,7 @@ internal fun darkMobileColors() =
     accent = Color(0xFF6EA8FF),
     accentSoft = Color(0xFF1A2A44),
     accentBorderStrong = Color(0xFF5B93E8),
+    featureViolet = Color(0xFF9B7FE0),
     success = Color(0xFF5FBB85),
     successSoft = Color(0xFF152E22),
     warning = Color(0xFFE8A844),
@@ -125,6 +128,7 @@ internal val mobileTextTertiary: Color @Composable get() = LocalMobileColors.cur
 internal val mobileAccent: Color @Composable get() = LocalMobileColors.current.accent
 internal val mobileAccentSoft: Color @Composable get() = LocalMobileColors.current.accentSoft
 internal val mobileAccentBorderStrong: Color @Composable get() = LocalMobileColors.current.accentBorderStrong
+internal val mobileFeatureViolet: Color @Composable get() = LocalMobileColors.current.featureViolet
 internal val mobileSuccess: Color @Composable get() = LocalMobileColors.current.success
 internal val mobileSuccessSoft: Color @Composable get() = LocalMobileColors.current.successSoft
 internal val mobileWarning: Color @Composable get() = LocalMobileColors.current.warning

@@ -26,21 +26,28 @@ Baseline traits:
 
 ## 3. Core Tokens
 
-Use these as shared design tokens for new Compose UI.
+Use these as shared design tokens for new Compose UI. The implementation
+lives in `MobileUiTokens.kt` (`MobileColors`, light + dark variants); values
+below are the light palette. Always consume tokens via the `mobile*`
+accessors so dark mode resolves correctly — never re-hardcode a hex.
 
-- Background gradient: `#FFFFFF`, `#F7F8FA`, `#EFF1F5`
-- Surface: `#F6F7FA`
+- Background gradient: `#F6F7FA` → `#ECEEF3` (surface → surface strong)
+- Surface: `#F6F7FA` (card surface: `#FFFFFF`)
 - Border: `#E5E7EC`
 - Border strong: `#D6DAE2`
 - Text primary: `#17181C`
-- Text secondary: `#4D5563`
-- Text tertiary: `#8A92A2`
+- Text secondary: `#5D6472`
+- Text tertiary: `#99A0AE`
 - Accent primary: `#1D5DD8`
 - Accent soft: `#ECF3FF`
+- Feature violet: `#7C5AC7` (feature/summary card accents)
 - Success: `#2F8C5A`
 - Warning: `#C8841A`
+- Danger: `#D04B4B`
 
 Rule: do not introduce random per-screen colors when an existing token fits.
+If a new color is genuinely needed, add it to `MobileColors` (both light and
+dark values) before using it.
 
 ## 4. Typography
 
@@ -104,10 +111,11 @@ Hard rule: avoid ultra-thin weights on light backgrounds.
 
 ## 11. Source Of Truth
 
-- `app/src/main/java/ai/astroclaw/android/ui/AstroclawTheme.kt`
-- `app/src/main/java/ai/astroclaw/android/ui/OnboardingFlow.kt`
-- `app/src/main/java/ai/astroclaw/android/ui/RootScreen.kt`
-- `app/src/main/java/ai/astroclaw/android/ui/SettingsSheet.kt`
-- `app/src/main/java/ai/astroclaw/android/MainViewModel.kt`
+- `app/src/main/java/ai/astroclaw/app/ui/MobileUiTokens.kt` (color + type tokens)
+- `app/src/main/java/ai/astroclaw/app/ui/AstroclawTheme.kt`
+- `app/src/main/java/ai/astroclaw/app/ui/OnboardingFlow.kt`
+- `app/src/main/java/ai/astroclaw/app/ui/RootScreen.kt`
+- `app/src/main/java/ai/astroclaw/app/ui/SettingsSheet.kt`
+- `app/src/main/java/ai/astroclaw/app/MainViewModel.kt`
 
 If style and implementation diverge, update both in the same change.
