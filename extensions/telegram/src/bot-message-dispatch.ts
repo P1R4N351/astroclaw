@@ -2949,9 +2949,8 @@ export const dispatchTelegramMessage = async ({
   const shouldSendFailureFallback =
     !isRoomEvent &&
     !suppressFailureFallback &&
-    (dispatchError ||
-      (!deliverySummary.delivered &&
-        (deliverySummary.skippedNonSilent > 0 || deliverySummary.failedNonSilent > 0)));
+    !finalAnswerDelivered &&
+    (dispatchError || deliverySummary.skippedNonSilent > 0 || deliverySummary.failedNonSilent > 0);
   if (shouldSendFailureFallback) {
     const fallbackText = dispatchError
       ? "Something went wrong while processing your request. Please try again."
@@ -3002,9 +3001,11 @@ export const dispatchTelegramMessage = async ({
   }
 
   const hasFinalResponse =
+    finalAnswerDelivered || sentFallback || suppressSilentReplyFallback || queuedFinal;
+  const hasVisibleResponse =
     deliverySummary.delivered || sentFallback || suppressSilentReplyFallback || queuedFinal;
   const deliveryFailureWithoutFinalResponse =
-    !deliverySummary.delivered &&
+    !finalAnswerDelivered &&
     (deliverySummary.skippedNonSilent > 0 || deliverySummary.failedNonSilent > 0);
   const retryableDispatchFailure =
     dispatchError ??
@@ -3014,7 +3015,7 @@ export const dispatchTelegramMessage = async ({
         )
       : null);
 
-  if (statusReactionController && !hasFinalResponse) {
+  if (statusReactionController && !hasVisibleResponse) {
     void finalizeTelegramStatusReaction({ outcome: "error", hasFinalResponse: false }).catch(
       (err: unknown) => {
         logVerbose(`telegram: status reaction error finalize failed: ${String(err)}`);
@@ -3022,11 +3023,16 @@ export const dispatchTelegramMessage = async ({
     );
   }
 
-  if (retryableDispatchFailure && retryDispatchErrors && !hasFinalResponse) {
+  const shouldReturnRetryableDispatchFailure =
+    retryDispatchErrors &&
+    ((dispatchError != null && !hasFinalResponse) ||
+      (dispatchError == null && deliveryFailureWithoutFinalResponse && !hasVisibleResponse));
+
+  if (retryableDispatchFailure && shouldReturnRetryableDispatchFailure) {
     return { kind: "failed-retryable", error: retryableDispatchFailure };
   }
 
-  if (!hasFinalResponse) {
+  if (!hasVisibleResponse) {
     return { kind: "completed" };
   }
 
@@ -3071,7 +3077,8 @@ export const dispatchTelegramMessage = async ({
   }
 
   if (statusReactionController) {
-    const statusReactionOutcome = dispatchError || sentFallback ? "error" : "done";
+    const statusReactionOutcome =
+      !finalAnswerDelivered && (dispatchError != null || sentFallback) ? "error" : "done";
     void finalizeTelegramStatusReaction({
       outcome: statusReactionOutcome,
       hasFinalResponse: true,
