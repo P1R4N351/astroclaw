@@ -3,6 +3,7 @@
  *
  * Fetches HTTP(S) content through SSRF guards, provider config, caching, and bounded extraction.
  */
+import { resolveIntegerOption } from "@openclaw/normalization-core/number-coercion";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
@@ -140,10 +141,7 @@ function resolveFetchMaxCharsCap(fetch?: WebFetchConfig): number {
     fetch && "maxCharsCap" in fetch && typeof fetch.maxCharsCap === "number"
       ? fetch.maxCharsCap
       : undefined;
-  if (typeof raw !== "number" || !Number.isFinite(raw)) {
-    return DEFAULT_FETCH_MAX_CHARS;
-  }
-  return Math.max(100, Math.floor(raw));
+  return resolveIntegerOption(raw, DEFAULT_FETCH_MAX_CHARS, { min: 100 });
 }
 
 function resolveFetchMaxResponseBytes(fetch?: WebFetchConfig): number {
