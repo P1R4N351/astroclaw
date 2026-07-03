@@ -1,7 +1,11 @@
 // Control UI module implements app settings behavior.
 import { roleScopesAllow } from "../../../src/shared/operator-scope-compat.js";
 import { t } from "../i18n/index.ts";
-import { refreshChat } from "./app-chat.ts";
+import {
+  createChatSessionsLoadOverrides,
+  refreshChat,
+  scopedAgentListParamsForSession,
+} from "./app-chat.ts";
 import {
   startLogsPolling,
   startNodesPolling,
@@ -51,7 +55,6 @@ import {
   type ModelAuthStatusState,
 } from "./controllers/model-auth-status.ts";
 import { loadNodes, type NodesState } from "./controllers/nodes.ts";
-import { loadAskSatQuestions, type AskSatState } from "./controllers/ask-sat.ts";
 import { loadPresence, type PresenceState } from "./controllers/presence.ts";
 import { loadSessions, type SessionsState } from "./controllers/sessions.ts";
 import {
@@ -150,7 +153,6 @@ type SettingsAppHost = SettingsHost &
   AgentIdentityState &
   AgentSkillsState &
   AgentsState &
-  AskSatState &
   ChannelsState &
   ConfigState &
   CronState &
@@ -475,9 +477,6 @@ export async function refreshActiveTab(host: SettingsHost, opts?: { chatStartup?
       case "cron":
         await loadCron(host);
         break;
-      case "askSat":
-        await loadAskSatQuestions(app);
-        break;
       case "skills":
         await loadAgents(app);
         reconcileSkillsAgentId(app, app.agentsList);
@@ -504,6 +503,9 @@ export async function refreshActiveTab(host: SettingsHost, opts?: { chatStartup?
         ]);
         break;
       case "chat": {
+        // Captured before refreshChat, which seeds a one-row sessionsResult
+        // via applyChatHistorySessionInfo and would mask the missing list.
+        const hadSessionsResult = Boolean(app.sessionsResult);
         try {
           await refreshChat(host as unknown as Parameters<typeof refreshChat>[0], {
             awaitHistory: opts?.chatStartup === true,
@@ -515,6 +517,18 @@ export async function refreshActiveTab(host: SettingsHost, opts?: { chatStartup?
           );
         } finally {
           void loadModelAuthStatusState(app).catch(() => undefined);
+          // The sidebar session list is the chat entry point; hydrate the full
+          // list on chat startup and on first entry from tabs that never load
+          // sessions. Uses the chat picker's recency-free overrides so an old
+          // open session is not filtered out of its own list; backgroundHydrate
+          // keeps New Session enabled and the live run state untouched.
+          if (opts?.chatStartup === true || !hadSessionsResult) {
+            void loadSessions(app, {
+              ...createChatSessionsLoadOverrides(app),
+              ...scopedAgentListParamsForSession(app, app.sessionKey),
+              backgroundHydrate: true,
+            }).catch(() => undefined);
+          }
         }
         break;
       }
