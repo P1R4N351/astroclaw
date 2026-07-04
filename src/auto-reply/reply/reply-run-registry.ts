@@ -4,6 +4,7 @@ import {
   createAgentRunRestartAbortError,
   isAgentRunRestartAbortReason,
 } from "../../agents/run-termination.js";
+import { createAbortError } from "../../infra/abort-signal.js";
 import {
   markDiagnosticEmbeddedRunEnded,
   markDiagnosticEmbeddedRunStarted,
@@ -170,9 +171,7 @@ export class ReplyRunFollowupAdmissionBlockedError extends Error {
 }
 
 function createUserAbortError(): Error {
-  const err = new Error("Reply operation aborted by user");
-  err.name = "AbortError";
-  return err;
+  return createAbortError("Reply operation aborted by user");
 }
 
 function registerWaitSessionId(sessionKey: string, sessionId: string): void {
