@@ -1,11 +1,17 @@
+/**
+ * Sandbox runtime status and tool-policy diagnostics.
+ *
+ * Resolves whether a session is sandboxed and explains policy blocks before tool execution.
+ */
+import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
 import { formatCliCommand } from "../../cli/command-format.js";
 import {
   canonicalizeMainSessionAlias,
   resolveAgentMainSessionKey,
 } from "../../config/sessions/main-session.js";
-import type { AstroclawConfig } from "../../config/types.astroclaw.js";
-import { normalizeOptionalLowercaseString } from "../../shared/string-coerce.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
+import { auditSandboxToolPolicyBlock, escapeControlCharsVisible } from "../tool-policy-audit.js";
 import { resolveSandboxConfigForAgent } from "./config.js";
 import {
   classifyToolAgainstSandboxToolPolicy,
@@ -24,7 +30,7 @@ function shouldSandboxSession(cfg: SandboxConfig, sessionKey: string, mainSessio
 }
 
 function resolveMainSessionKeyForSandbox(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   agentId: string;
 }): string {
   if (params.cfg?.session?.scope === "global") {
@@ -37,7 +43,7 @@ function resolveMainSessionKeyForSandbox(params: {
 }
 
 function resolveComparableSessionKeyForSandbox(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   agentId: string;
   sessionKey: string;
 }): string {
@@ -48,8 +54,9 @@ function resolveComparableSessionKeyForSandbox(params: {
   });
 }
 
+/** Resolves sandbox mode, effective session scope, and tool policy for a session. */
 export function resolveSandboxRuntimeStatus(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   sessionKey?: string;
 }): {
   agentId: string;
@@ -85,22 +92,7 @@ export function resolveSandboxRuntimeStatus(params: {
 }
 
 function sanitizeForSingleLineDisplay(value: string): string {
-  return Array.from(value, (char) => {
-    if (char === "\n") {
-      return "\\n";
-    }
-    if (char === "\r") {
-      return "\\r";
-    }
-    if (char === "\t") {
-      return "\\t";
-    }
-    const codePoint = char.codePointAt(0) ?? 0;
-    if (codePoint < 0x20 || codePoint === 0x7f) {
-      return `\\x${codePoint.toString(16).padStart(2, "0")}`;
-    }
-    return char;
-  }).join("");
+  return escapeControlCharsVisible(value);
 }
 
 function hasUnsafeControlChars(value: string): boolean {
@@ -125,10 +117,12 @@ function shellEscapeSingleArg(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
+/** Formats the user-facing denial message when sandbox tool policy blocks a tool. */
 export function formatSandboxToolPolicyBlockedMessage(params: {
-  cfg?: AstroclawConfig;
+  cfg?: OpenClawConfig;
   sessionKey?: string;
   toolName: string;
+  audit?: boolean;
 }): string | undefined {
   const tool = normalizeOptionalLowercaseString(params.toolName);
   if (!tool) {
@@ -149,6 +143,21 @@ export function formatSandboxToolPolicyBlockedMessage(params: {
   );
   if (!blockedByDeny && !blockedByAllow) {
     return undefined;
+  }
+
+  const blockingSource = blockedByDeny
+    ? runtime.toolPolicy.sources.deny
+    : runtime.toolPolicy.sources.allow;
+  if (params.audit === true) {
+    // Audit only on actual enforcement paths; explain/status calls can format without side effects.
+    auditSandboxToolPolicyBlock({
+      toolName: tool,
+      ruleType: blockedByDeny ? "deny" : "allow",
+      ruleSource: blockingSource.source,
+      configKey: blockingSource.key,
+      policy: runtime.toolPolicy,
+      mode: runtime.mode,
+    });
   }
 
   const reasons: string[] = [];
@@ -178,9 +187,9 @@ export function formatSandboxToolPolicyBlockedMessage(params: {
   }
   const explainCommand = runtime.sessionKey
     ? hasUnsafeControlChars(runtime.sessionKey)
-      ? `astroclaw sandbox explain --agent ${runtime.agentId}`
-      : `astroclaw sandbox explain --session ${shellEscapeSingleArg(runtime.sessionKey)}`
-    : "astroclaw sandbox explain";
+      ? `openclaw sandbox explain --agent ${runtime.agentId}`
+      : `openclaw sandbox explain --session ${shellEscapeSingleArg(runtime.sessionKey)}`
+    : "openclaw sandbox explain";
   lines.push(`- See: ${formatCliCommand(explainCommand)}`);
 
   return lines.join("\n");
