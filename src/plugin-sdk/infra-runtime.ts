@@ -1,7 +1,7 @@
 /**
  * @deprecated Compatibility shim only. Keep old plugins working, but do not
  * add new imports here and do not use this subpath from repo code.
- * Prefer focused astroclaw/plugin-sdk/<domain> runtime subpaths instead.
+ * Prefer focused openclaw/plugin-sdk/<domain> runtime subpaths instead.
  */
 
 export * from "./delivery-queue-runtime.js";
@@ -36,12 +36,42 @@ export * from "../infra/heartbeat-events.ts";
 export * from "../infra/heartbeat-summary.ts";
 export * from "../infra/heartbeat-visibility.ts";
 export * from "../infra/home-dir.js";
-export * from "../infra/http-body.js";
+// Keep this deprecated barrel pinned to its shipped request-body surface; new
+// response readers belong only to the focused response-limit/media entrypoints.
+export {
+  __test__,
+  DEFAULT_WEBHOOK_BODY_TIMEOUT_MS,
+  DEFAULT_WEBHOOK_MAX_BODY_BYTES,
+  installRequestBodyLimitGuard,
+  isRequestBodyLimitError,
+  readJsonBodyWithLimit,
+  readRequestBodyWithLimit,
+  requestBodyErrorToText,
+  RequestBodyLimitError,
+  testApi,
+  type ReadJsonBodyOptions,
+  type ReadJsonBodyResult,
+  type ReadRequestBodyOptions,
+  type RequestBodyLimitErrorCode,
+  type RequestBodyLimitGuard,
+  type RequestBodyLimitGuardOptions,
+} from "../infra/http-body.js";
 export * from "../infra/json-files.js";
 export * from "../infra/local-file-access.js";
 export * from "../infra/map-size.js";
 export * from "../infra/net/hostname.ts";
-export * from "../infra/net/fetch-guard.js";
+export {
+  fetchWithRuntimeDispatcher,
+  fetchWithSsrFGuard,
+  GUARDED_FETCH_MODE,
+  retainSafeHeadersForCrossOriginRedirectHeaders,
+  withStrictGuardedFetchMode,
+  withTrustedEnvProxyGuardedFetchMode,
+  withTrustedExplicitProxyGuardedFetchMode,
+  type GuardedFetchMode,
+  type GuardedFetchOptions,
+  type GuardedFetchResult,
+} from "../infra/net/fetch-guard.js";
 export * from "../infra/net/proxy-env.js";
 export * from "../infra/net/proxy-fetch.js";
 export * from "../infra/net/undici-global-dispatcher.js";
@@ -57,7 +87,7 @@ export * from "../infra/secret-file.js";
 export * from "../infra/secure-random.js";
 export * from "../infra/system-events.js";
 export * from "../infra/system-message.ts";
-export * from "../infra/tmp-astroclaw-dir.js";
+export * from "../infra/tmp-openclaw-dir.js";
 export * from "../infra/transport-ready.js";
 export * from "../infra/wsl.ts";
 export * from "../utils/fetch-timeout.js";
