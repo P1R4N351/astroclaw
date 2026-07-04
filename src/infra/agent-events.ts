@@ -51,6 +51,8 @@ export type AgentItemEventData = {
   progressText?: string;
   /** Preserve item telemetry while letting channel progress render a sibling tool event instead. */
   suppressChannelProgress?: boolean;
+  /** Preserve activity telemetry without rendering this internal item in channel progress. */
+  hideFromChannelProgress?: boolean;
   approvalId?: string;
   approvalSlug?: string;
 };
