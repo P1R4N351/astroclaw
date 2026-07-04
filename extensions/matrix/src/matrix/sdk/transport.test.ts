@@ -576,7 +576,14 @@ describe("matrix transport streaming OOM guard — real HTTP server without Cont
       // Deliberately omit Content-Length so enforceDeclaredResponseSize is a no-op.
       res.writeHead(200, { "content-type": "application/octet-stream" });
       let sent = 0;
+      let closed = false;
+      res.on("close", () => {
+        closed = true;
+      });
       const sendChunk = () => {
+        if (closed) {
+          return;
+        }
         if (sent >= TOTAL_CHUNKS) {
           res.end();
           return;
@@ -584,10 +591,13 @@ describe("matrix transport streaming OOM guard — real HTTP server without Cont
         sent++;
         chunksWritten++;
         const ok = res.write(CHUNK);
+        const scheduleNextChunk = () => {
+          setTimeout(sendChunk, 5);
+        };
         if (ok) {
-          setImmediate(sendChunk);
+          scheduleNextChunk();
         } else {
-          res.once("drain", sendChunk);
+          res.once("drain", scheduleNextChunk);
         }
       };
       sendChunk();
