@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { VerboseLevel } from "../auto-reply/thinking.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import { notifyListeners, registerListener } from "../shared/listeners.js";
+import { createAbortError } from "./abort-signal.js";
 
 /** Stream name for agent events delivered to gateway listeners and plugin host hooks. */
 export type AgentEventStream =
@@ -194,9 +195,7 @@ export function assertAgentRunLifecycleGenerationCurrent(lifecycleGeneration: st
   if (lifecycleGeneration === getAgentEventState().lifecycleGeneration) {
     return;
   }
-  const error = new Error("Agent run belongs to a stale gateway lifecycle");
-  error.name = "AbortError";
-  throw error;
+  throw createAbortError("Agent run belongs to a stale gateway lifecycle");
 }
 
 /** Captures immutable lifecycle ownership for one admitted execution. */
