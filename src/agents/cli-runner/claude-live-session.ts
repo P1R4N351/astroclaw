@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { isRecord } from "@openclaw/normalization-core/record-coerce";
 import type { ReplyBackendHandle } from "../../auto-reply/reply/reply-run-registry.js";
 import type { CliBackendConfig } from "../../config/types.js";
+import { createAbortError as createNamedAbortError } from "../../infra/abort-signal.js";
 import {
   emitTrustedDiagnosticEvent,
   type DiagnosticToolParamsSummary,
@@ -354,9 +355,7 @@ function buildClaudeLiveFingerprint(params: {
 }
 
 function createAbortError(): Error {
-  const error = new Error("CLI run aborted");
-  error.name = "AbortError";
-  return error;
+  return createNamedAbortError("CLI run aborted");
 }
 
 function clearTurnTimers(turn: ClaudeLiveTurn): void {
