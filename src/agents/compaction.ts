@@ -2,9 +2,9 @@
  * Summarization and fallback helpers for transcript compaction.
  */
 import type { AgentCompactionIdentifierPolicy } from "../config/types.agent-defaults.js";
+import { isAbortError } from "../infra/abort-signal.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { retryAsync } from "../infra/retry.js";
-import { isAbortError } from "../infra/unhandled-rejections.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   buildOversizedFallbackPlanWithWorker,
