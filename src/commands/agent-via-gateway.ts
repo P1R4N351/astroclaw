@@ -27,6 +27,7 @@ import {
 } from "../gateway/call.js";
 import { isGatewaySecretRefUnavailableError } from "../gateway/credentials.js";
 import { ADMIN_SCOPE } from "../gateway/operator-scopes.js";
+import { createAbortError } from "../infra/abort-signal.js";
 import { parseStrictNonNegativeInteger } from "../infra/parse-finite-number.js";
 import { routeLogsToStderr } from "../logging/console.js";
 import {
@@ -454,9 +455,7 @@ function resolveAgentCliProcessLike(deps: AgentCliDeps | undefined): AgentCliPro
 }
 
 function createAbortDelayError(): Error {
-  const err = new Error("gateway agent retry aborted");
-  err.name = "AbortError";
-  return err;
+  return createAbortError("gateway agent retry aborted");
 }
 
 function delayMs(ms: number, signal?: AbortSignal): Promise<void> {
