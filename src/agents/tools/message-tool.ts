@@ -44,6 +44,7 @@ import {
   getBootEchoContextForSession,
   stripBootEchoFromOutboundText,
 } from "../../gateway/boot-echo-guard.js";
+import { createAbortError } from "../../infra/abort-signal.js";
 import {
   parseInteractiveParam,
   parseJsonMessageParam,
@@ -1268,9 +1269,7 @@ export function createMessageTool(options?: MessageToolOptions): AnyAgentTool {
     parameters: schema,
     execute: async (toolCallId, args, signal) => {
       if (signal?.aborted) {
-        const err = new Error("Message send aborted");
-        err.name = "AbortError";
-        throw err;
+        throw createAbortError("Message send aborted");
       }
       // Shallow-copy so we don't mutate the original event args (used for logging/dedup).
       const params = { ...(args as Record<string, unknown>) };
