@@ -18,7 +18,7 @@ import { resolveContextConfigProviderForRuntime } from "../../agents/openai-rout
 import type { AgentMessage } from "../../agents/runtime/index.js";
 import { resolveSandboxConfigForAgent, resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import {
-  derivePromptTokens,
+  deriveContextPromptTokens,
   hasNonzeroUsage,
   normalizeUsage,
   type UsageLike,
@@ -447,7 +447,7 @@ function deriveTranscriptUsageSnapshot(
   if (!usage) {
     return undefined;
   }
-  const promptTokens = derivePromptTokens(usage);
+  const promptTokens = deriveContextPromptTokens({ lastCallUsage: usage });
   const outputRaw = usage.output;
   const outputTokens =
     typeof outputRaw === "number" && Number.isFinite(outputRaw) && outputRaw > 0
