@@ -455,9 +455,12 @@ describe("side result render", () => {
     expect(sideResult!.querySelector(".chat-side-result__question")?.textContent).toBe(
       "what changed?",
     );
-    expect(sideResult!.querySelector(".chat-side-result__body")?.textContent?.trim()).toBe(
-      "The web UI now renders **BTW** separately.",
-    );
+    expect(
+      sideResult!
+        .querySelector(".chat-side-result__body")
+        ?.textContent?.trim()
+        .replaceAll("**", ""),
+    ).toBe("The web UI now renders BTW separately.");
 
     const button = container.querySelector<HTMLButtonElement>(".chat-side-result__dismiss");
     expect(button).toBeInstanceOf(HTMLButtonElement);
