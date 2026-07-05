@@ -36,6 +36,7 @@ import {
   type CliOutput,
   type CliStreamingDelta,
   type CliThinkingDelta,
+  type CliThinkingProgress,
 } from "../cli-output.js";
 import { classifyFailoverReason } from "../embedded-agent-helpers.js";
 import {
@@ -1048,6 +1049,17 @@ export async function executePreparedCliRun(
             data: { text, delta, ...(isReasoningSnapshot ? { isReasoningSnapshot } : {}) },
           });
         };
+        const emitCliThinkingProgress = ({ progressTokens }: CliThinkingProgress) => {
+          observedCliActivity = true;
+          if (!emitLiveEvents) {
+            return;
+          }
+          emitAgentEvent({
+            runId: params.runId,
+            stream: "thinking",
+            data: { progressTokens },
+          });
+        };
         if (shouldUseClaudeLiveSession(context)) {
           if (!hasJsonlOutput) {
             throw new Error("Claude live session requires JSONL streaming parser");
@@ -1069,6 +1081,7 @@ export async function executePreparedCliRun(
             getProcessSupervisor: executeDeps.getProcessSupervisor,
             onAssistantDelta: emitCliAssistantDelta,
             onThinkingDelta: emitCliThinkingDelta,
+            onThinkingProgress: emitCliThinkingProgress,
             onToolUseStart: emitCliToolUseStart,
             onToolResult: emitCliToolResult,
             onCommentaryText:
@@ -1097,6 +1110,7 @@ export async function executePreparedCliRun(
                 providerId: context.backendResolved.id,
                 onAssistantDelta: emitCliAssistantDelta,
                 onThinkingDelta: emitCliThinkingDelta,
+                onThinkingProgress: emitCliThinkingProgress,
                 onToolUseStart: emitCliToolUseStart,
                 onToolResult: emitCliToolResult,
                 onCommentaryText:
