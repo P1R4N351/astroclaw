@@ -60,6 +60,18 @@ function requireFirstMockArg(
   return arg;
 }
 
+function selectText(element: Element) {
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
+function pointerClick(element: Element) {
+  element.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+}
+
 vi.mock("../../../lib/agents/display.ts", () => {
   const isRenderableControlUiAvatarUrl = (value: string) =>
     /^data:image\//i.test(value) || (value.startsWith("/") && !value.startsWith("//"));
@@ -1099,6 +1111,7 @@ describe("grouped chat rendering", () => {
 
   it("passes the effective default-expanded activity state to the toggle handler", () => {
     const container = document.createElement("div");
+    document.body.append(container);
     const onToggleToolMessageExpanded = vi.fn();
     const group: MessageGroup = {
       kind: "group",
@@ -1134,9 +1147,32 @@ describe("grouped chat rendering", () => {
     renderMessageGroups(container, [group], { onToggleToolMessageExpanded });
 
     expect(container.querySelector(".chat-activity-group.is-open")).toBeInstanceOf(HTMLElement);
-    expectElement(container, ".chat-activity-group__summary", HTMLButtonElement).click();
+    const activitySummary = expectElement(
+      container,
+      ".chat-activity-group__summary",
+      HTMLButtonElement,
+    );
+    expect(activitySummary.classList.contains("chat-activity-group__summary--error")).toBe(true);
+    expect(activitySummary.getAttribute("aria-label")).toContain("includes errors");
+    expect(activitySummary.querySelector(".chat-activity-group__badge")).toBeNull();
+    const errorSummary = expectElement(
+      container,
+      ".chat-tool-msg-summary--error",
+      HTMLButtonElement,
+    );
+    expect(errorSummary.querySelector(".chat-tool-msg-summary__label")?.textContent).toBe(
+      "Tool error",
+    );
+    expect(errorSummary.querySelector(".chat-tool-msg-summary__error-badge")).toBeNull();
+    selectText(expectElement(activitySummary, ".chat-activity-group__label", HTMLElement));
+    pointerClick(activitySummary);
+    expect(onToggleToolMessageExpanded).not.toHaveBeenCalled();
+
+    window.getSelection()?.removeAllRanges();
+    activitySummary.click();
 
     expect(onToggleToolMessageExpanded).toHaveBeenCalledWith("activity:tool-group", true);
+    container.remove();
   });
 
   it("keeps succeeded grouped tool activity collapsed without error styling", () => {
@@ -1463,6 +1499,8 @@ describe("grouped chat rendering", () => {
 
   it("marks status-only standalone tool-result summaries as errors", () => {
     const container = document.createElement("div");
+    document.body.append(container);
+    const onToggleToolMessageExpanded = vi.fn();
     const groups = [
       createMessageGroup(
         {
@@ -1479,13 +1517,21 @@ describe("grouped chat rendering", () => {
 
     renderMessageGroups(container, groups, {
       isToolMessageExpanded: () => false,
+      onToggleToolMessageExpanded,
     });
 
     let summary = expectElement(container, ".chat-tool-msg-summary", HTMLButtonElement);
     expect(summary.classList.contains("chat-tool-msg-summary--error")).toBe(true);
     expect(summary.querySelector(".chat-tool-msg-summary__label")?.textContent).toBe("Tool error");
     expect(summary.querySelector(".chat-tool-msg-summary__names")?.textContent).toBe("Sub-agent");
-    expect(summary.querySelector(".chat-tool-msg-summary__error-badge")).not.toBeNull();
+    expect(summary.querySelector(".chat-tool-msg-summary__error-badge")).toBeNull();
+    selectText(expectElement(summary, ".chat-tool-msg-summary__label", HTMLElement));
+    pointerClick(summary);
+    expect(onToggleToolMessageExpanded).not.toHaveBeenCalled();
+
+    window.getSelection()?.removeAllRanges();
+    summary.click();
+    expect(onToggleToolMessageExpanded).toHaveBeenCalledOnce();
 
     renderMessageGroups(container, groups, {
       isToolMessageExpanded: () => true,
@@ -1497,6 +1543,7 @@ describe("grouped chat rendering", () => {
     expect(
       JSON.parse(container.querySelector(".chat-json-content code")?.textContent ?? "{}"),
     ).toEqual({ status: "error" });
+    container.remove();
   });
 
   it("keeps succeeded standalone tool-result summaries collapsed without error styling", () => {
