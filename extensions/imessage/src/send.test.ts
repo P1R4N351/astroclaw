@@ -121,6 +121,30 @@ describe("sendMessageIMessage receipts", () => {
     expect(result.receipt.sentAt).toBeGreaterThan(0);
   });
 
+  it("drops reply metadata from text sends when reply actions are disabled", async () => {
+    const client = createClient({ guid: "p:0/imsg-plain" });
+
+    const result = await sendMessageIMessage("chat_id:42", "hello", {
+      config: {
+        channels: {
+          imessage: {
+            actions: { reply: false },
+            accounts: { default: {} },
+          },
+        },
+      },
+      client,
+      replyToId: "reply-1",
+    });
+
+    const sendParams = getClientMocks(client).request.mock.calls[0]?.[1] as
+      | Record<string, unknown>
+      | undefined;
+    expect(sendParams).not.toHaveProperty("reply_to");
+    expect(result.receipt.replyToId).toBeUndefined();
+    expect(result.receipt.parts[0]?.replyToId).toBeUndefined();
+  });
+
   it("passes the default RPC send transport", async () => {
     const client = createClient({ guid: "p:0/imsg-transport-default" });
 
@@ -296,6 +320,35 @@ describe("sendMessageIMessage receipts", () => {
     ]);
     expect(result.receipt.replyToId).toBe("p:0/reply-guid");
     expect(result.receipt.parts.map((part) => part.kind)).toEqual(["voice"]);
+    expect(client["request"]).not.toHaveBeenCalled();
+  });
+
+  it("drops reply metadata from media sends when reply actions are disabled", async () => {
+    const client = createClient({ message_id: 12345 });
+    const runCliJson = vi.fn().mockResolvedValueOnce({ messageId: "p:0/plain-media-guid" });
+
+    const result = await sendMessageIMessage("chat_guid:chat-1", "", {
+      config: {
+        channels: {
+          imessage: {
+            actions: { reply: false },
+            accounts: { default: {} },
+          },
+        },
+      },
+      client,
+      mediaUrl: "/tmp/image.png",
+      replyToId: "p:0/reply-guid",
+      resolveAttachmentImpl: async () => ({ path: "/tmp/image.png", contentType: "image/png" }),
+      runCliJson,
+    });
+
+    expect(result.messageId).toBe("p:0/plain-media-guid");
+    expect(runCliJson.mock.calls).toEqual([
+      [["send-attachment", "--chat", "chat-1", "--file", "/tmp/image.png", "--transport", "auto"]],
+    ]);
+    expect(result.receipt.replyToId).toBeUndefined();
+    expect(result.receipt.parts[0]?.replyToId).toBeUndefined();
     expect(client["request"]).not.toHaveBeenCalled();
   });
 
@@ -910,19 +963,13 @@ describe("sendMessageIMessage receipts", () => {
   });
 
   it("does not use the local default chat.db path for custom cliPath wrappers", async () => {
+    vi.useFakeTimers({ now: 1_000 });
     vi.stubEnv("HOME", "/Users/me");
     const client = createRejectingClient(new Error("imsg rpc timeout (send)"));
     const runCliJson = vi.fn();
     const resolveSentMessageGuidImpl = vi.fn(async () => null);
     const approvalText = createApprovalText("approval-remote");
-    const nowSpy = vi.spyOn(Date, "now");
-    nowSpy
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(6_001);
-
-    await expect(
+    const rejection = expect(
       sendMessageIMessage("chat_id:42", approvalText, {
         config: {
           channels: {
@@ -941,6 +988,8 @@ describe("sendMessageIMessage receipts", () => {
         resolveSentMessageGuidImpl,
       }),
     ).rejects.toThrow("imsg rpc timeout (send)");
+    await vi.runAllTimersAsync();
+    await rejection;
 
     expect(runCliJson).not.toHaveBeenCalled();
     expect(resolveSentMessageGuidImpl).toHaveBeenCalledWith({
@@ -952,6 +1001,7 @@ describe("sendMessageIMessage receipts", () => {
   });
 
   it("does not use the local default chat.db path for auto-detected ssh wrappers", async () => {
+    vi.useFakeTimers({ now: 1_000 });
     vi.stubEnv("HOME", "/Users/me");
     const wrapperDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-imsg-wrapper-"));
     const wrapperPath = path.join(wrapperDir, "imsg");
@@ -960,15 +1010,8 @@ describe("sendMessageIMessage receipts", () => {
     const runCliJson = vi.fn();
     const resolveSentMessageGuidImpl = vi.fn(async () => null);
     const approvalText = createApprovalText("approval-ssh-wrapper");
-    const nowSpy = vi.spyOn(Date, "now");
-    nowSpy
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(6_001);
-
     try {
-      await expect(
+      const rejection = expect(
         sendMessageIMessage("chat_id:42", approvalText, {
           config: IMESSAGE_TEST_CFG,
           client,
@@ -977,6 +1020,8 @@ describe("sendMessageIMessage receipts", () => {
           resolveSentMessageGuidImpl,
         }),
       ).rejects.toThrow("imsg rpc timeout (send)");
+      await vi.runAllTimersAsync();
+      await rejection;
     } finally {
       fs.rmSync(wrapperDir, { recursive: true, force: true });
     }
@@ -1010,17 +1055,11 @@ describe("sendMessageIMessage receipts", () => {
   });
 
   it("throws the rpc timeout without resending when sent-row recovery misses", async () => {
+    vi.useFakeTimers({ now: 1_000 });
     const client = createRejectingClient(new Error("imsg rpc timeout (send)"));
     const runCliJson = vi.fn();
     const resolveSentMessageGuidImpl = vi.fn(async () => null);
-    const nowSpy = vi.spyOn(Date, "now");
-    nowSpy
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(6_001);
-
-    await expect(
+    const rejection = expect(
       sendMessageIMessage("chat_id:42", "hello", {
         config: IMESSAGE_TEST_CFG,
         createClient: async () => client,
@@ -1029,23 +1068,19 @@ describe("sendMessageIMessage receipts", () => {
         resolveSentMessageGuidImpl,
       }),
     ).rejects.toThrow("imsg rpc timeout (send)");
+    await vi.runAllTimersAsync();
+    await rejection;
 
     expect(getClientMocks(client).stop).toHaveBeenCalledTimes(1);
     expect(runCliJson).not.toHaveBeenCalled();
   });
 
   it("does not stop caller-owned rpc clients after sent-row recovery misses", async () => {
+    vi.useFakeTimers({ now: 1_000 });
     const client = createRejectingClient(new Error("imsg rpc timeout (send)"));
     const runCliJson = vi.fn();
     const resolveSentMessageGuidImpl = vi.fn(async () => null);
-    const nowSpy = vi.spyOn(Date, "now");
-    nowSpy
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(6_001);
-
-    await expect(
+    const rejection = expect(
       sendMessageIMessage("chat_id:42", "hello", {
         config: IMESSAGE_TEST_CFG,
         client,
@@ -1054,6 +1089,8 @@ describe("sendMessageIMessage receipts", () => {
         resolveSentMessageGuidImpl,
       }),
     ).rejects.toThrow("imsg rpc timeout (send)");
+    await vi.runAllTimersAsync();
+    await rejection;
 
     expect(runCliJson).not.toHaveBeenCalled();
     expect(getClientMocks(client).stop).not.toHaveBeenCalled();
@@ -1077,18 +1114,12 @@ describe("sendMessageIMessage receipts", () => {
   });
 
   it("throws the rpc timeout without resending when approval GUID recovery misses", async () => {
+    vi.useFakeTimers({ now: 1_000 });
     const client = createRejectingClient(new Error("imsg rpc timeout (send)"));
     const runCliJson = vi.fn();
     const resolveSentMessageGuidImpl = vi.fn(async () => null);
     const approvalText = createApprovalText();
-    const nowSpy = vi.spyOn(Date, "now");
-    nowSpy
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(1_000)
-      .mockReturnValueOnce(6_001);
-
-    await expect(
+    const rejection = expect(
       sendMessageIMessage("chat_id:42", approvalText, {
         config: IMESSAGE_TEST_CFG,
         client,
@@ -1097,6 +1128,8 @@ describe("sendMessageIMessage receipts", () => {
         resolveSentMessageGuidImpl,
       }),
     ).rejects.toThrow("imsg rpc timeout (send)");
+    await vi.runAllTimersAsync();
+    await rejection;
 
     expect(runCliJson).not.toHaveBeenCalled();
     expect(resolveSentMessageGuidImpl).toHaveBeenCalled();
