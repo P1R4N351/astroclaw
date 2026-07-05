@@ -8,4 +8,4 @@ export {
   type OpenClawPluginToolContext,
   type PluginLogger,
 } from "openclaw/plugin-sdk/plugin-entry";
-export { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+export { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";

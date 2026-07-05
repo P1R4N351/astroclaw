@@ -2,7 +2,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { describe, expect, it, vi } from "vitest";
 import {
   formatMatrixQaCliCommand,
@@ -109,7 +109,7 @@ describe("Matrix QA CLI runtime", () => {
   });
 
   it("prefers the ESM OpenClaw CLI entrypoint when present", async () => {
-    const root = await mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-entry-"));
+    const root = await mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-entry-"));
     try {
       await mkdir(path.join(root, "dist"));
       await writeFile(path.join(root, "dist", "index.mjs"), "");
@@ -121,7 +121,7 @@ describe("Matrix QA CLI runtime", () => {
 
   it("can preserve expected non-zero CLI output for negative scenarios", async () => {
     const root = await mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-nonzero-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-nonzero-"),
     );
     try {
       await mkdir(path.join(root, "dist"));
@@ -147,7 +147,7 @@ describe("Matrix QA CLI runtime", () => {
   });
 
   it("can pass stdin to CLI commands", async () => {
-    const root = await mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-stdin-"));
+    const root = await mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-stdin-"));
     try {
       await mkdir(path.join(root, "dist"));
       await writeFile(
@@ -176,7 +176,7 @@ describe("Matrix QA CLI runtime", () => {
 
   it("can close stdin after interactive CLI prompts", async () => {
     const root = await mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-interactive-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-interactive-"),
     );
     try {
       await mkdir(path.join(root, "dist"));
@@ -215,7 +215,7 @@ describe("Matrix QA CLI runtime", () => {
 
   it("includes timed-out CLI output in diagnostics", async () => {
     const root = await mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-timeout-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-timeout-"),
     );
     try {
       await mkdir(path.join(root, "dist"));
@@ -251,7 +251,7 @@ describe("Matrix QA CLI runtime", () => {
 
   it("kills CLI commands that ignore graceful timeout termination", async () => {
     const root = await mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-timeout-kill-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-timeout-kill-"),
     );
     const pidPath = path.join(root, "cli.pid");
     let childPid: number | undefined;
@@ -289,7 +289,7 @@ describe("Matrix QA CLI runtime", () => {
 
   it("preserves timeout diagnostics when wait attaches after timeout", async () => {
     const root = await mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-late-wait-timeout-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-late-wait-timeout-"),
     );
     const pidPath = path.join(root, "cli.pid");
     let childPid: number | undefined;
@@ -329,7 +329,7 @@ describe("Matrix QA CLI runtime", () => {
 
   it("settles and kills descendants that keep timed-out CLI stdio open", async () => {
     const root = await mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-timeout-tree-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-timeout-tree-"),
     );
     const childPidPath = path.join(root, "child.pid");
     const grandchildPidPath = path.join(root, "grandchild.pid");
@@ -381,7 +381,7 @@ describe("Matrix QA CLI runtime", () => {
       return;
     }
     const root = await mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-timeout-ignored-stdio-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-timeout-ignored-stdio-"),
     );
     const childPidPath = path.join(root, "child.pid");
     const grandchildPidPath = path.join(root, "grandchild.pid");
@@ -432,7 +432,7 @@ describe("Matrix QA CLI runtime", () => {
       return;
     }
     const root = await mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "matrix-qa-cli-session-kill-ignored-stdio-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "matrix-qa-cli-session-kill-ignored-stdio-"),
     );
     const childPidPath = path.join(root, "child.pid");
     const grandchildPidPath = path.join(root, "grandchild.pid");

@@ -14,7 +14,7 @@ import { saveMediaBuffer, saveMediaStream, type SavedMedia } from "openclaw/plug
 import { readRegularFile, writeExternalFileWithinRoot } from "openclaw/plugin-sdk/security-runtime";
 import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
-  resolvePreferredOpenClawTmpDir,
+  resolvePreferredAstroclawTmpDir,
   withTempWorkspace,
   withTempDownloadPath,
 } from "openclaw/plugin-sdk/temp-path";
@@ -755,7 +755,7 @@ async function transcodeToFeishuVoiceOpus(params: {
   contentType?: string;
 }): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
   return await withTempWorkspace(
-    { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "feishu-voice-" },
+    { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "feishu-voice-" },
     async (workspace) => {
       const ext = normalizeLowercaseStringOrEmpty(path.extname(params.fileName));
       const inputExt = ext && ext.length <= 12 ? ext : ".audio";
@@ -829,7 +829,7 @@ async function probeMediaDurationMs(params: {
 }): Promise<number | undefined> {
   try {
     return await withTempWorkspace(
-      { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "feishu-media-probe-" },
+      { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "feishu-media-probe-" },
       async (workspace) => {
         const ext = normalizeLowercaseStringOrEmpty(path.extname(params.fileName));
         const inferredExt =

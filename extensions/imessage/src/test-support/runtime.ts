@@ -11,12 +11,12 @@ import {
   resetPluginStateStoreForTests,
 } from "openclaw/plugin-sdk/plugin-state-test-runtime";
 import type { PluginRuntime } from "openclaw/plugin-sdk/runtime-store";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { setIMessageRuntime } from "../runtime.js";
 
 function createIMessageTestEnv(): NodeJS.ProcessEnv {
   const stateDir = fs.mkdtempSync(
-    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-imessage-state-"),
+    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-imessage-state-"),
   );
   return { ...process.env, OPENCLAW_STATE_DIR: stateDir };
 }

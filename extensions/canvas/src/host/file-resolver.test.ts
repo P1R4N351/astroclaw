@@ -1,7 +1,7 @@
 // Canvas tests cover file resolver plugin behavior.
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "openclaw/plugin-sdk/temp-path";
 import { describe, expect, it } from "vitest";
 import { normalizeUrlPath, resolveFileWithinRoot } from "./file-resolver.js";
 
@@ -9,7 +9,7 @@ type ResolvedFile = NonNullable<Awaited<ReturnType<typeof resolveFileWithinRoot>
 
 async function withCanvasTemp<T>(prefix: string, run: (dir: string) => Promise<T>): Promise<T> {
   return await withTempWorkspace(
-    { rootDir: resolvePreferredOpenClawTmpDir(), prefix },
+    { rootDir: resolvePreferredAstroclawTmpDir(), prefix },
     async ({ dir }) => await run(dir),
   );
 }
