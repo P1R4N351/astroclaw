@@ -1452,6 +1452,16 @@ export async function dispatchReplyFromConfig(
       crypto.randomUUID();
     const replyTurnKind = resolveReplyTurnKind(params.replyOptions);
     const allowActivePreDispatch = phase === "pre_dispatch" && replyTurnKind === "visible";
+    const allowGatewayQueueResolution =
+      phase === "dispatch" &&
+      replyTurnKind === "visible" &&
+      params.replyOptions?.queuedFollowupLifecycle !== undefined &&
+      replyRunRegistry.get(dispatchOperationSessionKey) !== undefined;
+    if (allowGatewayQueueResolution) {
+      // Gateway turns need to reach getReplyFromConfig while the owner is active;
+      // that layer applies the session's steer/followup/collect/drop policy.
+      return { status: "ready" };
+    }
     const allowSlackRoutedThreadBypass =
       phase === "dispatch" &&
       shouldLetSlackRoutedThreadBypassBusyReplyOperation({
