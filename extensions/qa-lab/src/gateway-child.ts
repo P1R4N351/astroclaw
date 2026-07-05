@@ -17,7 +17,7 @@ import {
   normalizeStringEntries,
   uniqueStrings,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import {
   createQaBundledPluginsDir,
   resolveQaBundledPluginSourceDir,
@@ -413,11 +413,11 @@ function isQaGatewayChildProcessTreeAlive(child: ChildProcess) {
     process.kill(-child.pid, 0);
     return true;
   } catch (error) {
-    if (isProcessAlreadyExitedError(error)) {
-      return false;
+    if (!isProcessAlreadyExitedError(error) && !hasChildExited(child)) {
+      return true;
     }
-    return !hasChildExited(child);
   }
+  return false;
 }
 
 type QaGatewayTaskkillRunner = typeof spawnSync;
@@ -498,7 +498,10 @@ async function stopQaGatewayChildProcessTree(
     return;
   }
   signalQaGatewayChildProcessTree(child, "SIGKILL");
-  await waitForQaGatewayChildExit(child, opts?.forceTimeoutMs ?? 2_000);
+  const stopped = await waitForQaGatewayChildExit(child, opts?.forceTimeoutMs ?? 2_000);
+  if (!stopped) {
+    throw new Error("qa gateway process tree remained alive after forced shutdown");
+  }
 }
 
 function isQaModelProviderConfig(value: unknown): value is ModelProviderConfig {
@@ -688,7 +691,7 @@ export async function startQaGatewayChild(params: {
   runtimeEnvPatch?: NodeJS.ProcessEnv;
 }) {
   const tempRoot = await fs.mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-qa-suite-"),
+    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-qa-suite-"),
   );
   const runtimeCwd = tempRoot;
   const distEntryPath = path.join(params.repoRoot, "dist", "index.js");
