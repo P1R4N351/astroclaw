@@ -38,20 +38,32 @@ export function isCommentNewerThan(comment, newerThan) {
   return Number.isFinite(commentTime) && Number.isFinite(barrierTime) && commentTime > barrierTime;
 }
 
+// Each guard sticky-comment body emits exactly one canonical head-SHA line,
+// always at the start of its own line:
+//   - `- Approved SHA: ` + backtick-fenced SHA (authorized override body)
+//   - `- Current SHA: `  + backtick-fenced SHA (trusted/cleared/awaiting body)
+//   - prose `The action will approve the current head SHA (`...`)` (blocked body)
+// Anchor every pattern to the line start (multiline `^\s*`) so an arbitrary
+// 40-hex token appearing mid-line elsewhere in the body — a quoted SHA in a
+// prior section, a pasted SHA, or a `/allow` `Reason:` value — cannot latch.
+// Scan in BODY order (first matching canonical line wins), not pattern-priority
+// order, so the result never depends on the relative ordering of the patterns.
+const GUARD_HEAD_SHA_PATTERNS = [
+  /^\s*-\s+Approved SHA:\s+`([a-f0-9]{40})`/imu,
+  /^\s*The action will approve the current head SHA\s+\(`([a-f0-9]{40})`\)/imu,
+  /^\s*-\s+Current SHA:\s+`([a-f0-9]{40})`/imu,
+];
+
 export function guardCommentHeadSha(comment) {
   const body = comment?.body ?? "";
-  const patterns = [
-    /Approved SHA:\s+`([a-f0-9]{40})`/iu,
-    /current head SHA\s+\(`([a-f0-9]{40})`\)/iu,
-    /Current SHA:\s+`([a-f0-9]{40})`/iu,
-  ];
-  for (const pattern of patterns) {
+  let best = null;
+  for (const pattern of GUARD_HEAD_SHA_PATTERNS) {
     const match = body.match(pattern);
-    if (match?.[1]) {
-      return match[1];
+    if (match?.[1] && (best === null || match.index < best.index)) {
+      best = { sha: match[1], index: match.index };
     }
   }
-  return null;
+  return best?.sha ?? null;
 }
 
 export function createIssueMutationHelpers({
