@@ -7,7 +7,7 @@ import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import { redactSensitiveText } from "openclaw/plugin-sdk/logging-core";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { resolveMatrixQaWindowsSystem32ExePath } from "../../windows-system-tools.js";
 
 export type MatrixQaCliRunResult = {
@@ -396,7 +396,7 @@ export async function createMatrixQaOpenClawCliRuntime(params: {
   userId: string;
 }) {
   const rootDir = await mkdtemp(
-    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-matrix-cli-qa-"),
+    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-matrix-cli-qa-"),
   );
   const artifactDir = path.join(
     params.outputDir,

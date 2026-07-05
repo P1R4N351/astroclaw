@@ -6,7 +6,7 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import {
   resolveExistingPathsWithinRoot,
   resolveStrictExistingPathsWithinRoot,
@@ -39,7 +39,7 @@ function canUseNodeFs(): boolean {
 }
 
 const DEFAULT_BROWSER_TMP_DIR = canUseNodeFs()
-  ? resolvePreferredOpenClawTmpDir()
+  ? resolvePreferredAstroclawTmpDir()
   : DEFAULT_FALLBACK_BROWSER_TMP_DIR;
 /** Default root directory for browser trace files. */
 export const DEFAULT_TRACE_DIR = DEFAULT_BROWSER_TMP_DIR;

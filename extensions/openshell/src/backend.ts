@@ -13,7 +13,7 @@ import type {
 import {
   createRemoteShellSandboxFsBridge,
   disposeSshSandboxSession,
-  resolvePreferredOpenClawTmpDir,
+  resolvePreferredAstroclawTmpDir,
   runSshSandboxCommand,
   sanitizeEnvVars,
   withTempWorkspace,
@@ -985,7 +985,7 @@ async function restoreMaterializedSkillsShadow(params: {
 }
 
 function resolveOpenShellTmpRoot(): string {
-  return path.resolve(resolvePreferredOpenClawTmpDir());
+  return path.resolve(resolvePreferredAstroclawTmpDir());
 }
 
 function normalizeRemotePath(remotePath: string): string {

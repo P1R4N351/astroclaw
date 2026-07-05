@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, vi } from "vitest";
 import { openOpenClawStateDatabase } from "../../state/openclaw-state-db.js";
-import { resolvePreferredOpenClawTmpDir } from "../tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
 import type { DeliverFn, RecoveryLogger } from "./delivery-queue.js";
 
 /** Installs Vitest hooks that provide a fresh delivery-queue state dir per case. */
@@ -14,7 +14,7 @@ export function installDeliveryQueueTmpDirHooks(): { readonly tmpDir: () => stri
   let fixtureCount = 0;
 
   beforeAll(() => {
-    fixtureRoot = fs.mkdtempSync(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-dq-suite-"));
+    fixtureRoot = fs.mkdtempSync(path.join(resolvePreferredAstroclawTmpDir(), "openclaw-dq-suite-"));
   });
 
   beforeEach(() => {

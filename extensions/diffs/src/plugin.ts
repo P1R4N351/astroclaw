@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { resolveLivePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
 import {
-  resolvePreferredOpenClawTmpDir,
+  resolvePreferredAstroclawTmpDir,
   type OpenClawConfig,
   type OpenClawPluginApi,
 } from "../api.js";
@@ -21,7 +21,7 @@ const DIFFS_LANGUAGE_PACK_PLUGIN_ID = "diffs-language-pack";
 
 export function registerDiffsPlugin(api: OpenClawPluginApi): void {
   const store = new DiffArtifactStore({
-    rootDir: path.join(resolvePreferredOpenClawTmpDir(), "openclaw-diffs"),
+    rootDir: path.join(resolvePreferredAstroclawTmpDir(), "openclaw-diffs"),
     logger: api.logger,
   });
   const resolveCurrentPluginConfig = () =>

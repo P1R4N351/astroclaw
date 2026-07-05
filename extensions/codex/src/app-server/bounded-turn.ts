@@ -3,7 +3,7 @@ import path from "node:path";
 import type { AuthProfileStore } from "openclaw/plugin-sdk/agent-runtime";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { resolveTimerTimeoutMs } from "openclaw/plugin-sdk/number-runtime";
-import { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "openclaw/plugin-sdk/temp-path";
 import { readCodexNotificationItem } from "./attempt-notifications.js";
 import type { CodexAppServerClientFactory } from "./client-factory.js";
 import type { CodexAppServerClient } from "./client.js";
@@ -90,7 +90,7 @@ export async function runBoundedCodexAppServerTurn(
   }
   return await withTempWorkspace(
     {
-      rootDir: resolvePreferredOpenClawTmpDir(),
+      rootDir: resolvePreferredAstroclawTmpDir(),
       prefix: "codex-bounded-turn-",
     },
     async (workspace) => {

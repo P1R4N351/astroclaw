@@ -9,7 +9,7 @@ import { renderCmdRestartLogSetup } from "../daemon/restart-logs.js";
 import { resolveTaskScriptPath } from "../daemon/schtasks.js";
 import { formatErrorMessage } from "./errors.js";
 import type { RestartAttempt } from "./restart.types.js";
-import { resolvePreferredOpenClawTmpDir } from "./tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "./tmp-astroclaw-dir.js";
 import { getWindowsCmdExePath } from "./windows-install-roots.js";
 
 const TASK_RESTART_RETRY_LIMIT = 12;
@@ -81,7 +81,7 @@ export function relaunchGatewayScheduledTask(env: NodeJS.ProcessEnv = process.en
   const taskName = resolveWindowsTaskName(env);
   const taskScriptPath = resolveTaskScriptPath(env);
   const scriptPath = path.join(
-    resolvePreferredOpenClawTmpDir(),
+    resolvePreferredAstroclawTmpDir(),
     `openclaw-schtasks-restart-${randomUUID()}.cmd`,
   );
   const quotedScriptPath = quoteCmdScriptArg(scriptPath);

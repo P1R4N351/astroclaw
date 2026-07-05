@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/sandbox";
+import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/sandbox";
 import { afterEach, describe, expect, it } from "vitest";
 import { resolveOutboundMediaPath } from "./outbound-media-send.js";
 import { resolveTrustedOutboundMediaPath } from "./trusted-media-path.js";
@@ -22,7 +22,7 @@ afterEach(() => {
 function makeTtsStyleVoiceFile(): string {
   // Mirrors cron auto-TTS: speech-core writes the voice file under the preferred
   // OpenClaw temp root, which is outside the QQ Bot media storage tree.
-  const tmpRoot = resolvePreferredOpenClawTmpDir();
+  const tmpRoot = resolvePreferredAstroclawTmpDir();
   const ttsDir = makeTrackedDir(tmpRoot, "tts-");
   const voicePath = path.join(ttsDir, "voice-123.mp3");
   fs.writeFileSync(voicePath, "audio");
@@ -51,7 +51,7 @@ describe("resolveTrustedOutboundMediaPath", () => {
   });
 
   it("accepts a not-yet-flushed temp file only when allowMissing is set", () => {
-    const tmpRoot = resolvePreferredOpenClawTmpDir();
+    const tmpRoot = resolvePreferredAstroclawTmpDir();
     const ttsDir = makeTrackedDir(tmpRoot, "tts-pending-");
     const pendingPath = path.join(ttsDir, "voice-pending.mp3");
 

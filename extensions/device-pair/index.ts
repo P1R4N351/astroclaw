@@ -797,11 +797,11 @@ export default definePluginEntry({
           if (target && canSendQrPngToChannel(channel)) {
             let qrFilePath: string | undefined;
             try {
-              const { resolvePreferredOpenClawTmpDir, writeQrPngTempFile } =
+              const { resolvePreferredAstroclawTmpDir, writeQrPngTempFile } =
                 await loadDevicePairApiModule();
               qrFilePath = (
                 await writeQrPngTempFile(setupCode, {
-                  tmpRoot: resolvePreferredOpenClawTmpDir(),
+                  tmpRoot: resolvePreferredAstroclawTmpDir(),
                   dirPrefix: "device-pair-qr-",
                   fileName: "pair-qr.png",
                 })

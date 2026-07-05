@@ -36,7 +36,7 @@ import {
   normalizeStringEntries,
   uniqueStrings,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { tempWorkspace, resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { tempWorkspace, resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -2953,7 +2953,7 @@ async function runRecallSubagent(params: {
   const transientWorkspace = params.config.persistTranscripts
     ? undefined
     : await tempWorkspace({
-        rootDir: resolvePreferredOpenClawTmpDir(),
+        rootDir: resolvePreferredAstroclawTmpDir(),
         prefix: "openclaw-active-memory-",
       });
   const tempDir = transientWorkspace?.dir;

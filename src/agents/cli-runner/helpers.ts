@@ -23,7 +23,7 @@ import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { resolveRuntimeOsLabel } from "../../infra/os-summary.js";
 import { privateFileStore } from "../../infra/private-file-store.js";
 import { tempWorkspace } from "../../infra/private-temp-workspace.js";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
 import type { ImageContent } from "../../llm/types.js";
 import type { PromptImageOrderEntry } from "../../media/prompt-image-order.js";
 import { listRegisteredPluginAgentPromptGuidance } from "../../plugins/command-registry-state.js";
@@ -293,14 +293,14 @@ function resolveCliImagePath(image: ImageContent): string {
     .update("\0")
     .update(image.data)
     .digest("hex");
-  return path.join(resolvePreferredOpenClawTmpDir(), "openclaw-cli-images", `${digest}${ext}`);
+  return path.join(resolvePreferredAstroclawTmpDir(), "openclaw-cli-images", `${digest}${ext}`);
 }
 
 function resolveCliImageRoot(params: { backend: CliBackendConfig; workspaceDir: string }): string {
   if (params.backend.imagePathScope === "workspace") {
     return path.join(params.workspaceDir, ".openclaw-cli-images");
   }
-  return path.join(resolvePreferredOpenClawTmpDir(), "openclaw-cli-images");
+  return path.join(resolvePreferredAstroclawTmpDir(), "openclaw-cli-images");
 }
 
 function isFileNotFoundError(error: unknown): boolean {
@@ -435,7 +435,7 @@ export async function writeCliSystemPromptFile(params: {
     return { cleanup: async () => {} };
   }
   const workspace = await tempWorkspace({
-    rootDir: resolvePreferredOpenClawTmpDir(),
+    rootDir: resolvePreferredAstroclawTmpDir(),
     prefix: "openclaw-cli-system-prompt-",
   });
   const filePath = await workspace.write(

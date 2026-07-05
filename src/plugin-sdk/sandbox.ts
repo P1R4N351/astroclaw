@@ -59,7 +59,7 @@ export {
   type PluginCommandRunOptions,
   type PluginCommandRunResult,
 } from "./run-command.js";
-export { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+export { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 export {
   tempWorkspace,
   tempWorkspaceSync,

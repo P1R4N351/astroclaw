@@ -8,7 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadSessionStore, updateSessionStore, type SessionEntry } from "../../config/sessions.js";
 import { withTempConfig } from "../../gateway/test-temp-config.js";
-import { resolvePreferredOpenClawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../../infra/tmp-astroclaw-dir.js";
 import { withEnvAsync } from "../../test-utils/env.js";
 import { cleanupReplacedPluginHostRegistry, runPluginHostCleanup } from "../host-hook-cleanup.js";
 import { clearPluginHostRuntimeState } from "../host-hook-runtime.js";
@@ -51,7 +51,7 @@ async function withProjectionSessionStore(
     tempConfig: { session: { store: string } };
   }) => Promise<void>,
 ): Promise<void> {
-  const stateDir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), prefix));
+  const stateDir = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), prefix));
   const storePath = path.join(stateDir, "sessions.json");
   const tempConfig = { session: { store: storePath } };
   try {

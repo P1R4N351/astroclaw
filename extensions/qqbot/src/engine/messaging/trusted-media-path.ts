@@ -1,4 +1,4 @@
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/sandbox";
+import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/sandbox";
 import { resolveLocalPathFromRootsSync } from "openclaw/plugin-sdk/security-runtime";
 import { resolveQQBotPayloadLocalFilePath } from "../utils/platform.js";
 
@@ -9,7 +9,7 @@ let cachedTrustedTmpRoot: string | undefined;
 function trustedOpenClawTmpRoot(): string | null {
   if (cachedTrustedTmpRoot === undefined) {
     try {
-      cachedTrustedTmpRoot = resolvePreferredOpenClawTmpDir();
+      cachedTrustedTmpRoot = resolvePreferredAstroclawTmpDir();
     } catch {
       return null;
     }

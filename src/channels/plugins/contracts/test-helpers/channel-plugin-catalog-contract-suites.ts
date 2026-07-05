@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolvePreferredOpenClawTmpDir } from "../../../../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../../../../infra/tmp-astroclaw-dir.js";
 import { listChannelPluginCatalogEntries } from "../../catalog.js";
 
 function createCatalogEntry(params: {
@@ -129,7 +129,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "includes external catalog entries",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-"),
+            path.join(resolvePreferredAstroclawTmpDir(), "openclaw-catalog-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           writeCatalogFile(
@@ -153,7 +153,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "preserves plugin ids when they differ from channel ids",
         setup: () => {
           const stateDir = fs.mkdtempSync(
-            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-channel-catalog-state-"),
+            path.join(resolvePreferredAstroclawTmpDir(), "openclaw-channel-catalog-state-"),
           );
           writeDiscoveredChannelPlugin({
             stateDir,
@@ -177,7 +177,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "keeps discovered plugins ahead of external catalog overrides",
         setup: () => {
           const stateDir = fs.mkdtempSync(
-            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-state-"),
+            path.join(resolvePreferredAstroclawTmpDir(), "openclaw-catalog-state-"),
           );
           const catalogPath = path.join(stateDir, "catalog.json");
           writeDiscoveredChannelPlugin({
@@ -217,7 +217,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "accepts rich external manifest entries with pinned npm metadata",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-rich-"),
+            path.join(resolvePreferredAstroclawTmpDir(), "openclaw-catalog-rich-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           fs.writeFileSync(
@@ -297,7 +297,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "pins bare external prerelease package specs to the entry version",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-prerelease-"),
+            path.join(resolvePreferredAstroclawTmpDir(), "openclaw-catalog-prerelease-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           writeCatalogFile(catalogPath, {
@@ -331,7 +331,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "accepts external manifest entries with ClawHub-only install metadata",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-clawhub-"),
+            path.join(resolvePreferredAstroclawTmpDir(), "openclaw-catalog-clawhub-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           fs.writeFileSync(
@@ -403,7 +403,7 @@ export function describeChannelPluginCatalogEntriesContract() {
         name: "accepts rich external manifest entries for yuanbao with pinned npm metadata",
         setup: () => {
           const dir = fs.mkdtempSync(
-            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-yuanbao-"),
+            path.join(resolvePreferredAstroclawTmpDir(), "openclaw-catalog-yuanbao-"),
           );
           const catalogPath = path.join(dir, "catalog.json");
           fs.writeFileSync(
@@ -487,7 +487,7 @@ export function describeChannelPluginCatalogPathResolutionContract() {
         name: "uses the provided env for external catalog path resolution",
         setup: () => {
           const home = fs.mkdtempSync(
-            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-home-"),
+            path.join(resolvePreferredAstroclawTmpDir(), "openclaw-catalog-home-"),
           );
           const catalogPath = path.join(home, "catalog.json");
           writeCatalogFile(
@@ -515,7 +515,7 @@ export function describeChannelPluginCatalogPathResolutionContract() {
         name: "uses the provided env for default catalog paths",
         setup: () => {
           const stateDir = fs.mkdtempSync(
-            path.join(resolvePreferredOpenClawTmpDir(), "openclaw-catalog-state-"),
+            path.join(resolvePreferredAstroclawTmpDir(), "openclaw-catalog-state-"),
           );
           const catalogPath = path.join(stateDir, "plugins", "catalog.json");
           fs.mkdirSync(path.dirname(catalogPath), { recursive: true });

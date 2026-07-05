@@ -9,7 +9,7 @@ import {
 } from "../config/sessions/store.js";
 import type { SessionEntry } from "../config/sessions/types.js";
 import * as jsonFiles from "../infra/json-files.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { captureEnv, setTestEnvValue } from "../test-utils/env.js";
 import { runPluginHostCleanup } from "./host-hook-cleanup.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
@@ -29,7 +29,7 @@ describe("plugin host cleanup session stores", () => {
 
   it("does not rewrite session stores when cleanup scans find no plugin-owned state", async () => {
     stateDir = await fs.mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "openclaw-host-cleanup-noop-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "openclaw-host-cleanup-noop-"),
     );
     setTestEnvValue("OPENCLAW_STATE_DIR", stateDir);
     const storePath = path.join(stateDir, "sessions.json");
@@ -58,7 +58,7 @@ describe("plugin host cleanup session stores", () => {
 
   it("can defer persistent session-state cleanup to an atomic owner", async () => {
     stateDir = await fs.mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "openclaw-host-cleanup-deferred-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "openclaw-host-cleanup-deferred-"),
     );
     setTestEnvValue("OPENCLAW_STATE_DIR", stateDir);
     const storePath = path.join(stateDir, "sessions.json");
@@ -98,7 +98,7 @@ describe("plugin host cleanup session stores", () => {
 
   it("clears plugin-owned session state across resolved stores without touching unrelated rows", async () => {
     stateDir = await fs.mkdtemp(
-      path.join(resolvePreferredOpenClawTmpDir(), "openclaw-host-cleanup-multistore-"),
+      path.join(resolvePreferredAstroclawTmpDir(), "openclaw-host-cleanup-multistore-"),
     );
     setTestEnvValue("OPENCLAW_STATE_DIR", stateDir);
     const firstStorePath = path.join(stateDir, "agent-a", "sessions.json");
