@@ -4616,6 +4616,42 @@ describe("persistSessionUsageUpdate", () => {
     expect(stored[sessionKey].outputTokens).toBe(10_000);
   });
 
+  it("keeps the prior total stale when last-call context is unavailable", async () => {
+    const storePath = await createStorePath("openclaw-usage-unavailable-context-");
+    const sessionKey = "main";
+    await seedSessionStore({
+      storePath,
+      sessionKey,
+      entry: {
+        sessionId: "s1",
+        updatedAt: Date.now(),
+        totalTokens: 148_874,
+        totalTokensFresh: true,
+      },
+    });
+
+    await persistSessionUsageUpdate({
+      storePath,
+      sessionKey,
+      usage: { input: 12, output: 15_104, cacheRead: 819_661, cacheWrite: 93_130 },
+      lastCallUsage: {
+        input: 12,
+        output: 15_104,
+        cacheRead: 819_661,
+        cacheWrite: 93_130,
+        contextUsage: { state: "unavailable" },
+        total: 927_907,
+      },
+      contextTokensUsed: 200_000,
+    });
+
+    const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
+    expect(stored[sessionKey].totalTokens).toBe(148_874);
+    expect(stored[sessionKey].totalTokensFresh).toBe(false);
+    expect(stored[sessionKey].inputTokens).toBe(12);
+    expect(stored[sessionKey].cacheRead).toBe(819_661);
+  });
+
   it("marks a fresh zero stale when a completed run has no context snapshot", async () => {
     const storePath = await createStorePath("openclaw-usage-no-snapshot-");
     const sessionKey = "main";
