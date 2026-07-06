@@ -6,7 +6,7 @@ import {
   resolveInheritedToolPolicyForSession,
   resolveSubagentToolPolicyForSession,
 } from "../agents/agent-tools.policy.js";
-import { createOpenClawTools } from "../agents/astroclaw-tools.js";
+import { createOpenClawTools } from "../agents/openclaw-tools.js";
 import {
   isSubagentEnvelopeSession,
   resolveSubagentCapabilityStore,
@@ -259,5 +259,6 @@ export function resolveGatewayScopedTools(params: {
   return {
     agentId,
     tools,
+    workspaceDir,
   };
 }
