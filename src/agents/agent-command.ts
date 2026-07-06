@@ -2280,6 +2280,9 @@ async function agentCommandInternal(
               opts.bootstrapContextRunKind !== "cron" &&
               !isHeartbeatLifecycleRun &&
               !opts.internalEvents?.length,
+            // Cron output counts as unread-worthy activity; heartbeat and
+            // internal-event turns must not re-flag the session unread.
+            touchActivity: !isHeartbeatLifecycleRun && !opts.internalEvents?.length,
             preserveRuntimeModel:
               fallbackExhausted || isHeartbeatLifecycleRun || preserveUserFacingSessionModelState,
             preserveUserFacingSessionModelState,
