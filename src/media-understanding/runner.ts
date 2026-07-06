@@ -36,7 +36,7 @@ import type {
   MediaUnderstandingModelConfig,
 } from "../config/types.tools.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { logWarn } from "../logger.js";
 import { resolveChannelInboundAttachmentRoots } from "../media/channel-inbound-roots.js";
 import { getDefaultMediaLocalRoots } from "../media/local-roots.js";
@@ -435,7 +435,7 @@ async function probeAntigravityCliCandidate(command: string): Promise<string | n
     return null;
   }
   const probeDir = await fs.mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-antigravity-probe-"),
+    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-antigravity-probe-"),
   );
   try {
     const { stdout } = await runExec(resolved, ["--help"], {
@@ -632,7 +632,14 @@ async function resolveKeyEntry(params: {
             explicitModel: model,
             workspaceDir,
           })
-        : model;
+        : capability === "video"
+          ? (model ??
+            resolveDefaultMediaModelFromRegistry({
+              providerId,
+              capability: "video",
+              providerRegistry,
+            }))
+          : model;
     if (capability === "image" && !resolvedModel) {
       return null;
     }
@@ -907,7 +914,13 @@ async function resolveActiveModelEntry(params: {
       providerRegistry: params.providerRegistry,
     });
   } else {
-    model = params.activeModel?.model;
+    model =
+      params.activeModel?.model ??
+      resolveDefaultMediaModelFromRegistry({
+        providerId,
+        capability: "video",
+        providerRegistry: params.providerRegistry,
+      });
   }
   if ((params.capability === "image" || params.capability === "audio") && !model) {
     return null;
