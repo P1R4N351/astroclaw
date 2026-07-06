@@ -4,7 +4,12 @@ import {
   abortAgentHarnessRun,
   invokeNativeHookRelay,
   nativeHookRelayTesting,
+  type NativeHookRelayRegistrationHandle,
 } from "openclaw/plugin-sdk/agent-harness-runtime";
+import {
+  onInternalDiagnosticEvent,
+  type DiagnosticEventPayload,
+} from "openclaw/plugin-sdk/diagnostic-runtime";
 import { describe, expect, it, vi } from "vitest";
 import * as approvalBridge from "./approval-bridge.js";
 import {
@@ -719,22 +724,53 @@ describe("runCodexAppServerAttempt native hook relay", () => {
   it("cleans up native hook relay state when turn/start fails", async () => {
     const sessionFile = path.join(tempDir, "session.jsonl");
     const workspaceDir = path.join(tempDir, "workspace");
+    const diagnosticEvents: DiagnosticEventPayload[] = [];
+    const unsubscribeDiagnostics = onInternalDiagnosticEvent((event) =>
+      diagnosticEvents.push(event),
+    );
+    let reportPreToolUseFailure:
+      | NonNullable<NativeHookRelayRegistrationHandle["onPreToolUseFailure"]>
+      | undefined;
     const harness = createStartedThreadHarness(async (method) => {
       if (method === "turn/start") {
+        const startRequest = harness.requests.find((request) => request.method === "thread/start");
+        const relayId = extractRelayIdFromThreadRequest(startRequest?.params);
+        const registration = nativeHookRelayTesting.getNativeHookRelayRegistrationForTests(relayId);
+        reportPreToolUseFailure = registration?.onPreToolUseFailure;
         throw new Error("turn start exploded");
       }
       return undefined;
     });
 
-    await expect(
-      runCodexAppServerAttempt(createParams(sessionFile, workspaceDir), {
-        nativeHookRelay: { enabled: true },
-      }),
-    ).rejects.toThrow("turn start exploded");
+    try {
+      await expect(
+        runCodexAppServerAttempt(createParams(sessionFile, workspaceDir), {
+          nativeHookRelay: { enabled: true },
+        }),
+      ).rejects.toThrow("turn start exploded");
+      await reportPreToolUseFailure?.({
+        toolName: "exec",
+        toolCallId: "turn-start-failure-tool",
+        disposition: "failed",
+        durationMs: 5,
+      });
+      await new Promise<void>((resolve) => {
+        setImmediate(resolve);
+      });
+    } finally {
+      unsubscribeDiagnostics();
+    }
 
     const startRequest = harness.requests.find((request) => request.method === "thread/start");
     const relayId = extractRelayIdFromThreadRequest(startRequest?.params);
     expect(nativeHookRelayTesting.getNativeHookRelayRegistrationForTests(relayId)).toBeUndefined();
+    expect(diagnosticEvents).toContainEqual(
+      expect.objectContaining({
+        type: "tool.execution.error",
+        toolCallId: "turn-start-failure-tool",
+        terminalReason: "failed",
+      }),
+    );
   });
 
   it("cleans up native hook relay state when the Codex turn aborts", async () => {
