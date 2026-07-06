@@ -4,7 +4,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
-import { detectMime } from "@openclaw/media-core/mime";
+import { detectMime, kindFromMime } from "@openclaw/media-core/mime";
 import {
   asDateTimestampMs,
   resolveTimestampMsToIsoString,
@@ -36,6 +36,7 @@ import {
 import { authorizeHttpGatewayConnect, type ResolvedGatewayAuth } from "./auth.js";
 import {
   CONTROL_UI_BOOTSTRAP_CONFIG_PATH,
+  CONTROL_UI_TERMINAL_ENABLED_ATTRIBUTE,
   type ControlUiBootstrapConfig,
 } from "./control-ui-contract.js";
 import { buildControlUiCspHeader, computeInlineScriptHashes } from "./control-ui-csp.js";
@@ -71,9 +72,22 @@ const CONTROL_UI_OPERATOR_READ_SCOPE = "operator.read";
 const CONTROL_UI_OPERATOR_ROLE = "operator";
 const controlUiAssistantMediaTicketSecret = randomBytes(32);
 
+function buildAssistantMediaContentDisposition(filename: string, mime?: string): string {
+  // Keep the RFC 6266 fallback ASCII; filename* carries the exact UTF-8 name.
+  const fallback = filename.replace(/[^\x20-\x7e]|[%"\\]/g, "_") || "download";
+  const extended = encodeURIComponent(filename).replace(
+    /[\x27()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  const kind = kindFromMime(mime);
+  const inline = kind === "image" || kind === "audio" || kind === "video";
+  return `${inline ? "inline" : "attachment"}; filename="${fallback}"; filename*=UTF-8''${extended}`;
+}
+
 type ControlUiRequestOptions = {
   basePath?: string;
   config?: OpenClawConfig;
+  terminalEnabled?: boolean;
   agentId?: string;
   root?: ControlUiRootState;
   auth?: ResolvedGatewayAuth;
@@ -628,11 +642,12 @@ export async function handleControlUiAssistantMediaRequest(
       buffer: sniffBuffer?.subarray(0, bytesRead),
       filePath: localPath,
     });
-    if (mime) {
-      res.setHeader("Content-Type", mime);
-    } else {
-      res.setHeader("Content-Type", "application/octet-stream");
-    }
+    const contentType = mime ?? "application/octet-stream";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader(
+      "Content-Disposition",
+      buildAssistantMediaContentDisposition(path.basename(localPath), contentType),
+    );
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Content-Length", String(opened.stat.size));
     const stream = opened.handle.createReadStream({ start: 0, autoClose: false });
@@ -764,7 +779,13 @@ function serveResolvedIndexHtml(
   basePath?: string,
   allowWasm?: boolean,
 ) {
-  const prepared = rewriteControlUiIndexHtmlPublicAssetHrefs(body, basePath ?? "");
+  const withBasePath = rewriteControlUiIndexHtmlPublicAssetHrefs(body, basePath ?? "");
+  // Let the app initialize fail-closed without guessing whether this document
+  // was served with the terminal's WASM CSP allowance.
+  const prepared = withBasePath.replace(
+    /<html\b/i,
+    `<html ${CONTROL_UI_TERMINAL_ENABLED_ATTRIBUTE}="${allowWasm === true}"`,
+  );
   const hashes = computeInlineScriptHashes(prepared);
   // Always set the document CSP here (the index carries inline scripts) so the
   // terminal's WASM relaxation is applied to the page that loads ghostty-web.
@@ -927,8 +948,9 @@ export async function handleControlUiHttpRequest(
   const basePath = normalizeControlUiBasePath(opts?.basePath);
   const pathname = url.pathname;
   // The embedded terminal ships ghostty-web (WASM); relax the index CSP only
-  // when the terminal is enabled (default true).
-  const terminalEnabled = opts?.config?.gateway?.terminal?.enabled ?? true;
+  // for an explicitly enabled terminal so the default policy stays strict.
+  const terminalEnabled =
+    opts?.terminalEnabled ?? opts?.config?.gateway?.terminal?.enabled === true;
   const route = classifyControlUiRequest({
     basePath,
     pathname,
@@ -1005,7 +1027,7 @@ export async function handleControlUiHttpRequest(
       chatMessageMaxWidth: config?.gateway?.controlUi?.chatMessageMaxWidth,
       seamColor: config?.ui?.seamColor,
       timeFormat: config?.agents?.defaults?.timeFormat,
-      terminalEnabled: config?.gateway?.terminal?.enabled ?? true,
+      terminalEnabled,
     } satisfies ControlUiBootstrapConfig);
     return true;
   }
