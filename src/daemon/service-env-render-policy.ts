@@ -40,6 +40,7 @@ export function applyManagedServiceEnvRenderPolicy(params: {
   managedServiceEnvKeys: string | undefined;
   serviceEnvironment: Record<string, string | undefined>;
   platform: NodeJS.Platform;
+  existingEnvironmentFileEnvironment: Record<string, string | undefined>;
   stateDirDotEnvEnvironment: Record<string, string | undefined>;
   configSecretRefEnvironment: Record<string, string | undefined>;
 }): void {
@@ -55,6 +56,12 @@ export function applyManagedServiceEnvRenderPolicy(params: {
     return;
   }
   if (launchAgent) {
+    addManagedServiceEnvEntries({
+      plan: params.plan,
+      entries: params.existingEnvironmentFileEnvironment,
+      managedKeys,
+      valueSource: "file",
+    });
     addManagedServiceEnvEntries({
       plan: params.plan,
       entries: params.stateDirDotEnvEnvironment,
