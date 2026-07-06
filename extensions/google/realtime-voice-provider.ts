@@ -752,7 +752,7 @@ class GoogleRealtimeVoiceBridge implements RealtimeVoiceBridge {
 
   private handleServerContent(content: LiveServerContent): void {
     if (content.interrupted) {
-      this.config.onClearAudio();
+      this.config.onClearAudio("barge-in");
     }
 
     if (content.inputTranscription?.text) {
@@ -960,6 +960,7 @@ export function buildGoogleRealtimeVoiceProvider(): RealtimeVoiceProviderPlugin 
       ],
       supportsBrowserSession: true,
       supportsBargeIn: true,
+      handlesInputAudioBargeIn: true,
       supportsToolCalls: true,
       supportsVideoFrames: true,
       supportsSessionResumption: true,
