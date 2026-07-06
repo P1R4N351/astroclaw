@@ -65,7 +65,7 @@ function captureTencentPayload(params: {
     const payload = buildOpenAICompletionsParams(
       _model as OpenAICompletionsModel,
       context,
-      options,
+      options as Parameters<typeof buildOpenAICompletionsParams>[2],
     );
     options?.onPayload?.(payload, _model);
     captured = payload;
