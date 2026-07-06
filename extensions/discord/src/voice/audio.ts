@@ -13,7 +13,7 @@ import { resolveFfmpegBin } from "openclaw/plugin-sdk/media-runtime";
 import { resamplePcm } from "openclaw/plugin-sdk/realtime-voice";
 import { logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { formatErrorMessage } from "openclaw/plugin-sdk/ssrf-runtime";
-import { tempWorkspace, resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { tempWorkspace, resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 
 const SAMPLE_RATE = 48_000;
 const CHANNELS = 2;
@@ -133,7 +133,10 @@ export function createDiscordOpusPlaybackStream(input: Readable | string): Reada
     }
   });
 
-  ffmpeg.stdout.on("error", (err) => opusStream.destroy(err));
+  // Both readable child pipes need listeners; an unhandled stream error terminates Node.
+  for (const readable of [ffmpeg.stdout, ffmpeg.stderr]) {
+    readable.on("error", (err) => opusStream.destroy(err));
+  }
   ffmpeg.stdin.on("error", (err) => {
     if ((err as NodeJS.ErrnoException).code !== "EPIPE") {
       opusStream.destroy(err);
@@ -355,7 +358,7 @@ export async function writeVoiceWavFile(
   pcm: Buffer,
 ): Promise<{ path: string; durationSeconds: number }> {
   const workspace = await tempWorkspace({
-    rootDir: resolvePreferredAstroclawTmpDir(),
+    rootDir: resolvePreferredOpenClawTmpDir(),
     prefix: "discord-voice-",
   });
   const wav = buildWavBuffer(pcm);
