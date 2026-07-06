@@ -281,6 +281,19 @@ function resolvePositiveNumber(value: number | null | undefined): number | undef
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
+export function deriveSessionUnread(
+  entry?: Pick<
+    SessionEntry,
+    "lastReadAt" | "markedUnreadAt" | "lastInteractionAt" | "lastActivityAt"
+  >,
+): boolean {
+  return (
+    entry?.markedUnreadAt !== undefined ||
+    (entry?.lastReadAt !== undefined &&
+      Math.max(entry.lastInteractionAt ?? 0, entry.lastActivityAt ?? 0) > entry.lastReadAt)
+  );
+}
+
 type SessionCompactionCheckpointEntry = NonNullable<SessionEntry["compactionCheckpoints"]>[number];
 
 function isProjectableCompactionCheckpoint(
@@ -2178,6 +2191,9 @@ export function buildGatewaySessionRow(params: {
     archivedAt: entry?.archivedAt,
     pinned: entry?.pinnedAt !== undefined,
     pinnedAt: entry?.pinnedAt,
+    unread: deriveSessionUnread(entry),
+    lastReadAt: entry?.lastReadAt,
+    lastActivityAt: entry?.lastActivityAt,
     sessionId: entry?.sessionId,
     systemSent: entry?.systemSent,
     abortedLastRun: entry?.abortedLastRun,
