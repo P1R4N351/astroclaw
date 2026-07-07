@@ -9,7 +9,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import "./test-helpers/fast-bash-tools.js";
 import "./test-helpers/fast-coding-tools.js";
-import "./test-helpers/fast-astroclaw-tools.js";
+import "./test-helpers/fast-openclaw-tools.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { resolveChannelGroupToolsPolicy } from "../config/group-policy.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
@@ -477,6 +477,32 @@ describe("Agent-specific tool filtering", () => {
     expect(names).toContain("read");
     expect(names).not.toContain("exec");
     expect(names).not.toContain("process");
+  });
+
+  it("keeps core tools for owner WebChat while restricting non-owners", () => {
+    const cfg: OpenClawConfig = {
+      tools: {
+        toolsBySender: {
+          "*": { deny: ["exec", "process"] },
+        },
+      },
+    };
+    const createWebChatTools = (senderIsOwner: boolean) =>
+      createOpenClawCodingTools({
+        config: cfg,
+        messageProvider: "webchat",
+        senderIsOwner,
+        workspaceDir: "/tmp/test-webchat-owner-policy",
+        agentDir: "/tmp/agent-webchat-owner-policy",
+      }).map((tool) => tool.name);
+
+    const ownerTools = createWebChatTools(true);
+    const nonOwnerTools = createWebChatTools(false);
+
+    expect(ownerTools).toContain("exec");
+    expect(ownerTools).toContain("process");
+    expect(nonOwnerTools).not.toContain("exec");
+    expect(nonOwnerTools).not.toContain("process");
   });
 
   it("should let agent per-sender policy override global sender wildcard", () => {
