@@ -483,5 +483,10 @@ export async function executeNodeHostCommand(
           scopes: APPROVED_NODE_INVOKE_SCOPES,
         })
       : await callGatewayTool("node.invoke", { timeoutMs: target.invokeTimeoutMs }, invoke);
-  return formatNodeRunToolResult({ raw, startedAt, cwd: params.workdir });
+  return formatNodeRunToolResult({
+    raw,
+    startedAt,
+    cwd: params.workdir,
+    warnings: [...params.warnings, ...(params.foregroundWarnings ?? [])],
+  });
 }
