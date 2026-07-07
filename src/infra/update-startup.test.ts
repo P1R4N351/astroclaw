@@ -530,6 +530,9 @@ describe("update-startup", () => {
         lastAvailableVersion: "2.0.0",
         lastAvailableTag: persistedTag,
       });
+      if (preflightsInstallKind) {
+        mockPackageInstallStatus();
+      }
       const onUpdateAvailableChange = vi.fn();
 
       await runGatewayUpdateCheck({
