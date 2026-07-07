@@ -12,7 +12,7 @@ import { resetDiagnosticEventsForTest } from "openclaw/plugin-sdk/diagnostic-run
 import { clearInternalHooks, resetGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
 import { clearMemoryPluginState } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
 import { clearPluginCommands } from "openclaw/plugin-sdk/plugin-runtime";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { defaultCodexAppInventoryCache } from "./app-inventory-cache.js";
 import type { CodexAppServerClientFactory } from "./client-factory.js";
@@ -24,6 +24,11 @@ import {
   testing,
 } from "./run-attempt.js";
 import { closeCodexSandboxExecServersForTests } from "./sandbox-exec-server.js";
+import {
+  registerCodexTestSessionIdentity,
+  resetCodexTestBindingStore,
+  testCodexAppServerBindingStore,
+} from "./session-binding.test-helpers.js";
 import { createCodexTestModel } from "./test-support.js";
 
 export let tempDir: string;
@@ -37,9 +42,12 @@ const activeAppServerAttemptsForTest = new Set<{
   sessionKey?: string;
 }>();
 
-type RunCodexAppServerAttemptOptions = NonNullable<
-  Parameters<typeof runCodexAppServerAttemptImpl>[1]
->;
+type RunCodexAppServerAttemptOptions = Omit<
+  NonNullable<Parameters<typeof runCodexAppServerAttemptImpl>[1]>,
+  "bindingStore"
+> & {
+  bindingStore?: NonNullable<Parameters<typeof runCodexAppServerAttemptImpl>[1]>["bindingStore"];
+};
 
 export function queueActiveRunMessageForTest(
   ...args: Parameters<typeof queueAgentHarnessMessage>
@@ -59,6 +67,7 @@ export function runCodexAppServerAttempt(
   params: EmbeddedRunAttemptParams,
   options: RunCodexAppServerAttemptOptions = {},
 ) {
+  registerCodexTestSessionIdentity(params.sessionFile, params.sessionId, params.sessionKey);
   const clientFactory = options.clientFactory ?? codexAppServerClientFactoryForTest;
   const abortController = params.abortSignal ? undefined : new AbortController();
   const trackedParams = abortController
@@ -70,10 +79,11 @@ export function runCodexAppServerAttempt(
     sessionId: params.sessionId,
     sessionKey: params.sessionKey,
   };
-  const promise = runCodexAppServerAttemptImpl(
-    trackedParams,
-    clientFactory ? { ...options, clientFactory } : options,
-  ).finally(() => {
+  const promise = runCodexAppServerAttemptImpl(trackedParams, {
+    ...options,
+    bindingStore: options.bindingStore ?? testCodexAppServerBindingStore,
+    ...(clientFactory ? { clientFactory } : {}),
+  }).finally(() => {
     activeAppServerAttemptsForTest.delete(entry);
   });
   entry.promise = promise;
@@ -509,6 +519,7 @@ export function createRuntimeDynamicTool(name: string): RuntimeDynamicToolForTes
 
 export function setupRunAttemptTestHooks(): void {
   beforeEach(async () => {
+    resetCodexTestBindingStore();
     vi.useRealTimers();
     clearInternalHooks();
     clearMemoryPluginState();
@@ -517,7 +528,7 @@ export function setupRunAttemptTestHooks(): void {
     vi.stubEnv("OPENCLAW_TRAJECTORY", "0");
     vi.stubEnv("CODEX_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
-    tempDir = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "openclaw-codex-run-"));
+    tempDir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-codex-run-"));
   });
 
   afterEach(async () => {
