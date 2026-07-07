@@ -25,7 +25,7 @@ import {
   selectApplicableRuntimeConfig,
 } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { isVerbose, logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { tempWorkspaceSync, resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/sandbox";
+import { tempWorkspaceSync, resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/sandbox";
 import { privateFileStoreSync } from "openclaw/plugin-sdk/security-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
@@ -33,7 +33,11 @@ import {
   normalizeOptionalString,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { stripMarkdown } from "openclaw/plugin-sdk/text-chunking";
-import { resolveConfigDir, resolveUserPath } from "openclaw/plugin-sdk/text-utility-runtime";
+import {
+  resolveConfigDir,
+  resolveUserPath,
+  truncateUtf16Safe,
+} from "openclaw/plugin-sdk/text-utility-runtime";
 import {
   canonicalizeSpeechProviderId,
   getSpeechProvider,
@@ -1344,7 +1348,7 @@ export async function textToSpeech(params: {
   }
 
   const temp = tempWorkspaceSync({
-    rootDir: resolvePreferredAstroclawTmpDir(),
+    rootDir: resolvePreferredOpenClawTmpDir(),
     prefix: "tts-",
   });
   const audioPath = temp.write(`voice-${Date.now()}${fileExtension}`, audioBuffer);
@@ -2028,7 +2032,7 @@ export async function maybeApplyTtsToPayload(params: {
       logVerbose(
         `TTS: truncating long text (${textForAudio.length} > ${maxLength}), summarization disabled.`,
       );
-      textForAudio = `${textForAudio.slice(0, maxLength - 3)}...`;
+      textForAudio = `${truncateUtf16Safe(textForAudio, maxLength - 3)}...`;
     } else {
       try {
         const summary = await summarizeText({
@@ -2044,12 +2048,12 @@ export async function maybeApplyTtsToPayload(params: {
           logVerbose(
             `TTS: summary exceeded hard limit (${textForAudio.length} > ${config.maxTextLength}); truncating.`,
           );
-          textForAudio = `${textForAudio.slice(0, config.maxTextLength - 3)}...`;
+          textForAudio = `${truncateUtf16Safe(textForAudio, config.maxTextLength - 3)}...`;
         }
       } catch (err) {
         const error = err as Error;
         logVerbose(`TTS: summarization failed, truncating instead: ${error.message}`);
-        textForAudio = `${textForAudio.slice(0, maxLength - 3)}...`;
+        textForAudio = `${truncateUtf16Safe(textForAudio, maxLength - 3)}...`;
       }
     }
   }
