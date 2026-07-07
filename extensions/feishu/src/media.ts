@@ -14,7 +14,7 @@ import { saveMediaBuffer, saveMediaStream, type SavedMedia } from "openclaw/plug
 import { readRegularFile, writeExternalFileWithinRoot } from "openclaw/plugin-sdk/security-runtime";
 import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   withTempWorkspace,
   withTempDownloadPath,
 } from "openclaw/plugin-sdk/temp-path";
@@ -417,7 +417,7 @@ export type SendMediaResult = {
  * Upload an image to Feishu and get an image_key for sending.
  * Supports: JPEG, PNG, WEBP, GIF, TIFF, BMP, ICO
  */
-export async function uploadImageFeishu(params: {
+async function uploadImageFeishu(params: {
   cfg: ClawdbotConfig;
   image: Buffer | string; // Buffer or file path
   imageType?: "message" | "avatar";
@@ -470,7 +470,7 @@ export function sanitizeFileNameForUpload(fileName: string): string {
  * Upload a file to Feishu and get a file_key for sending.
  * Max file size: 30MB
  */
-export async function uploadFileFeishu(params: {
+async function uploadFileFeishu(params: {
   cfg: ClawdbotConfig;
   file: Buffer | string; // Buffer or file path
   fileName: string;
@@ -514,7 +514,7 @@ export async function uploadFileFeishu(params: {
 /**
  * Send an image message using an image_key
  */
-export async function sendImageFeishu(params: {
+async function sendImageFeishu(params: {
   cfg: ClawdbotConfig;
   to: string;
   imageKey: string;
@@ -568,7 +568,7 @@ export async function sendImageFeishu(params: {
 /**
  * Send a file message using a file_key
  */
-export async function sendFileFeishu(params: {
+async function sendFileFeishu(params: {
   cfg: ClawdbotConfig;
   to: string;
   fileKey: string;
@@ -625,7 +625,7 @@ export async function sendFileFeishu(params: {
 /**
  * Helper to detect file type from extension
  */
-export function detectFileType(
+function detectFileType(
   fileName: string,
 ): "opus" | "mp4" | "pdf" | "doc" | "xls" | "ppt" | "stream" {
   const ext = normalizeLowercaseStringOrEmpty(path.extname(fileName));
@@ -755,7 +755,7 @@ async function transcodeToFeishuVoiceOpus(params: {
   contentType?: string;
 }): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
   return await withTempWorkspace(
-    { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "feishu-voice-" },
+    { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "feishu-voice-" },
     async (workspace) => {
       const ext = normalizeLowercaseStringOrEmpty(path.extname(params.fileName));
       const inputExt = ext && ext.length <= 12 ? ext : ".audio";
@@ -829,7 +829,7 @@ async function probeMediaDurationMs(params: {
 }): Promise<number | undefined> {
   try {
     return await withTempWorkspace(
-      { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "feishu-media-probe-" },
+      { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "feishu-media-probe-" },
       async (workspace) => {
         const ext = normalizeLowercaseStringOrEmpty(path.extname(params.fileName));
         const inferredExt =
