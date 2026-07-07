@@ -25,11 +25,11 @@ import {
   detectMime,
   estimateStringChars,
   runTasksWithConcurrency,
-} from "./astroclaw-runtime-io.js";
+} from "./openclaw-runtime-io.js";
 import {
   resolveCanonicalRootMemoryFile,
   shouldSkipRootMemoryAuxiliaryPath,
-} from "./astroclaw-runtime-memory.js";
+} from "./openclaw-runtime-memory.js";
 import { retryTransientMemoryRead } from "./read-retry.js";
 import { normalizeStringEntries, uniqueStrings } from "./string-utils.js";
 
@@ -57,7 +57,7 @@ export type MemoryChunk = {
   embeddingInput?: EmbeddingInput;
 };
 
-export type MultimodalMemoryChunk = {
+type MultimodalMemoryChunk = {
   chunk: MemoryChunk;
   structuredInputBytes: number;
 };
@@ -73,7 +73,7 @@ export function ensureDir(dir: string): string {
   return dir;
 }
 
-export function normalizeRelPath(value: string): string {
+function normalizeRelPath(value: string): string {
   const trimmed = value.trim().replace(/^[./]+/, "");
   return trimmed.replace(/\\/g, "/");
 }
