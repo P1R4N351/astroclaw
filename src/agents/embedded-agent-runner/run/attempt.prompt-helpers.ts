@@ -18,6 +18,7 @@ import type {
 } from "../../../plugins/types.js";
 import { isCronSessionKey, isSubagentSessionKey } from "../../../routing/session-key.js";
 import { joinPresentTextSegments } from "../../../shared/text/join-segments.js";
+import { truncateUtf16Safe } from "../../../utils.js";
 import { resolveProcessToolScopeKey } from "../../agent-tools.js";
 import { listActiveProcessSessionReferences } from "../../bash-process-references.js";
 import { resolveHeartbeatPromptForSystemPrompt } from "../../heartbeat-system-prompt.js";
@@ -25,7 +26,7 @@ import { wrapPluginSystemContextSection } from "../../hook-system-context-bounda
 import { buildActiveImageGenerationTaskPromptContextForSession } from "../../image-generation-task-status.js";
 import { buildActiveMusicGenerationTaskPromptContextForSession } from "../../music-generation-task-status.js";
 import { resolveEffectiveToolFsWorkspaceOnly } from "../../tool-fs-policy.js";
-import { derivePromptTokens, type NormalizedUsage } from "../../usage.js";
+import { deriveContextPromptTokens, type NormalizedUsage } from "../../usage.js";
 import { buildActiveVideoGenerationTaskPromptContextForSession } from "../../video-generation-task-status.js";
 import { buildEmbeddedCompactionRuntimeContext } from "../compaction-runtime-context.js";
 import { resolveContextEngineCapabilities } from "../context-engine-capabilities.js";
@@ -337,7 +338,7 @@ function summarizeStructuredMediaRef(label: string, value: unknown): string | un
     return `[${label}] inline data URI (${mimeType}, ${trimmed.length} chars)`;
   }
   if (trimmed.length > MAX_STRUCTURED_MEDIA_REF_CHARS) {
-    return `[${label}] ${trimmed.slice(0, MAX_STRUCTURED_MEDIA_REF_CHARS)}... (${trimmed.length} chars)`;
+    return `[${label}] ${truncateUtf16Safe(trimmed, MAX_STRUCTURED_MEDIA_REF_CHARS)}... (${trimmed.length} chars)`;
   }
   return `[${label}] ${trimmed}`;
 }
@@ -349,7 +350,7 @@ function summarizeStructuredJsonString(value: string): string {
   }
   const trimmed = value.trim();
   if (trimmed.length > MAX_STRUCTURED_JSON_STRING_CHARS) {
-    return `${trimmed.slice(0, MAX_STRUCTURED_JSON_STRING_CHARS)}... (${trimmed.length} chars)`;
+    return `${truncateUtf16Safe(trimmed, MAX_STRUCTURED_JSON_STRING_CHARS)}... (${trimmed.length} chars)`;
   }
   return value;
 }
@@ -418,7 +419,7 @@ function stringifyStructuredJsonFallback(part: unknown): string | undefined {
       (match) => `[inline data URI: ${match.length} chars]`,
     );
     return withoutInlineData.length > 1_000
-      ? `${withoutInlineData.slice(0, 1_000)}... (${withoutInlineData.length} chars)`
+      ? `${truncateUtf16Safe(withoutInlineData, 1_000)}... (${withoutInlineData.length} chars)`
       : withoutInlineData;
   } catch {
     return undefined;
@@ -655,6 +656,6 @@ export function buildAfterTurnRuntimeContextFromUsage(
 ): ContextEngineRuntimeContext {
   return buildAfterTurnRuntimeContext({
     ...params,
-    currentTokenCount: derivePromptTokens(params.lastCallUsage),
+    currentTokenCount: deriveContextPromptTokens({ lastCallUsage: params.lastCallUsage }),
   });
 }
