@@ -46,7 +46,7 @@ export type FeishuReactionCreatedEvent = {
   action_time?: string;
 };
 
-export type FeishuReactionDeletedEvent = FeishuReactionCreatedEvent & {
+type FeishuReactionDeletedEvent = FeishuReactionCreatedEvent & {
   reaction_id?: string;
 };
 
