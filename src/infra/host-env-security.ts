@@ -1,7 +1,7 @@
 // Filters host environment variables before passing them to runtimes.
 import { sortUniqueStrings } from "@openclaw/normalization-core/string-normalization";
 import { HOST_ENV_SECURITY_POLICY } from "./host-env-security-policy.js";
-import { markOpenClawExecEnv } from "./astroclaw-exec-env.js";
+import { markOpenClawExecEnv } from "./openclaw-exec-env.js";
 
 const PORTABLE_ENV_VAR_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const WINDOWS_COMPAT_OVERRIDE_ENV_VAR_KEY = /^[A-Za-z_][A-Za-z0-9_()]*$/;
@@ -178,10 +178,7 @@ function sanitizeInheritedGitAllowProtocolValue(value: string): string {
   return safeProtocols.join(":");
 }
 
-export function sanitizeHostInheritedEnvEntry(
-  rawKey: string,
-  value: string,
-): [string, string] | null {
+function sanitizeHostInheritedEnvEntry(rawKey: string, value: string): [string, string] | null {
   const key = normalizeEnvVarKey(rawKey);
   if (!key) {
     return null;
