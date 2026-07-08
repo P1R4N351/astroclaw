@@ -13,6 +13,9 @@ import {
 import { CREATE_MEET_FROM_BROWSER_SCRIPT } from "./src/transports/chrome-create.js";
 
 const voiceCallMocks = vi.hoisted(() => ({
+  createVoiceCallGateway: vi.fn(
+    ({ runtime }: { runtime: { gateway: unknown } }) => runtime.gateway,
+  ),
   joinMeetViaVoiceCallGateway: vi.fn(async () => ({
     callId: "call-1",
     dtmfSent: true,
@@ -46,6 +49,7 @@ vi.mock("openclaw/plugin-sdk/ssrf-runtime", async (importOriginal) => {
 });
 
 vi.mock("./src/voice-call-gateway.js", () => ({
+  createVoiceCallGateway: voiceCallMocks.createVoiceCallGateway,
   joinMeetViaVoiceCallGateway: voiceCallMocks.joinMeetViaVoiceCallGateway,
   endMeetVoiceCallGatewayCall: voiceCallMocks.endMeetVoiceCallGatewayCall,
   speakMeetViaVoiceCallGateway: voiceCallMocks.speakMeetViaVoiceCallGateway,
