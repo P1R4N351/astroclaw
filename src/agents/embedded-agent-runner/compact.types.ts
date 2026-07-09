@@ -25,6 +25,8 @@ export type CompactEmbeddedAgentSessionParams = {
   sandboxSessionKey?: string;
   messageChannel?: string;
   messageProvider?: string;
+  /** Capabilities declared by the gateway client that originated this run. */
+  clientCaps?: string[];
   chatType?: ChatType;
   agentAccountId?: string;
   currentChannelId?: string;
