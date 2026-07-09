@@ -6,7 +6,7 @@ import { saveCronStore } from "../cron/store.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/astroclaw-test-state.js";
+} from "../test-utils/openclaw-test-state.js";
 import {
   formatCronSessionDiagnosticFields,
   formatStoppedCronSessionDiagnosticFields,
@@ -101,6 +101,14 @@ describe("diagnostic session context", () => {
     ]);
 
     expect(readLastAssistantFromSessionFile(filePath)).toBe("newer");
+  });
+
+  it("keeps bounded quoted fields UTF-16 safe", () => {
+    const prefix = "a".repeat(136);
+
+    expect(
+      formatCronSessionDiagnosticFields({ cronJobName: `${prefix}😀${"b".repeat(140)}` }),
+    ).toBe(`cronJob="${prefix}..."`);
   });
 
   it("ignores missing transcript tail files", () => {
