@@ -9,10 +9,10 @@
  * heavy dependencies on the critical startup path.
  */
 
-import type { ChannelApprovalNativeRuntimeSpec } from "astroclaw/plugin-sdk/approval-handler-runtime";
-import { createChannelApprovalNativeRuntimeAdapter } from "astroclaw/plugin-sdk/approval-handler-runtime";
-import type { ChannelApprovalNativeRuntimeAdapter } from "astroclaw/plugin-sdk/approval-handler-runtime";
-import { resolveApprovalRequestSessionConversation } from "astroclaw/plugin-sdk/approval-native-runtime";
+import type { ChannelApprovalNativeRuntimeSpec } from "openclaw/plugin-sdk/approval-handler-runtime";
+import { createChannelApprovalNativeRuntimeAdapter } from "openclaw/plugin-sdk/approval-handler-runtime";
+import type { ChannelApprovalNativeRuntimeAdapter } from "openclaw/plugin-sdk/approval-handler-runtime";
+import { resolveApprovalRequestSessionConversation } from "openclaw/plugin-sdk/approval-native-runtime";
 import {
   buildExecApprovalText,
   buildPluginApprovalText,
@@ -45,10 +45,6 @@ type QQBotPendingPayload = {
   text: string;
   keyboard: InlineKeyboard;
 };
-
-function isExecRequest(request: ApprovalRequest): request is ExecApprovalRequest {
-  return "expiresAtMs" in request;
-}
 
 function resolveQQTarget(request: ApprovalRequest): { type: ChatScope; id: string } | null {
   const sessionConversation = resolveApprovalRequestSessionConversation({
@@ -129,17 +125,17 @@ const qqbotApprovalRuntimeSpec: ChannelApprovalNativeRuntimeSpec<
   },
 
   presentation: {
-    buildPendingPayload: ({ request, view }) => {
-      const req = request as ApprovalRequest;
-      const text = isExecRequest(req) ? buildExecApprovalText(req) : buildPluginApprovalText(req);
+    buildPendingPayload: ({ view, nowMs }) => {
+      const text =
+        view.approvalKind === "exec"
+          ? buildExecApprovalText(view, nowMs)
+          : buildPluginApprovalText(view, nowMs);
       const keyboard = buildApprovalKeyboard(
-        req.id,
+        view.approvalId,
         view.actions.map((action) => action.decision),
       );
       getBridgeLogger().debug?.(
-        `[qqbot:approval-runtime] buildPendingPayload requestId=${req.id} kind=${
-          isExecRequest(req) ? "exec" : "plugin"
-        }`,
+        `[qqbot:approval-runtime] buildPendingPayload requestId=${view.approvalId} kind=${view.approvalKind}`,
       );
       return { text, keyboard };
     },
