@@ -442,6 +442,11 @@ export const uk: TranslationMap = {
     noEvents: "No events yet.",
   },
   quickSettings: {
+    appearance: {
+      lobsterVisits: "Візити омара",
+      lobsterVisitsOn: "Час від часу заходить",
+      lobsterVisitsOff: "Ніколи не заходить",
+    },
     security: {
       browserEnabled: "Browser enabled",
       toolProfile: "Tool profile",
@@ -604,7 +609,9 @@ export const uk: TranslationMap = {
   },
   tasksPage: {
     active: "Активні",
+    activeSub: "Фонові завдання в черзі та в процесі виконання.",
     recent: "Нещодавні",
+    recentSub: "Останні виконані, невдалі та скасовані завдання.",
     loading: "Завантаження завдань…",
     empty: "Фонових завдань ще немає.",
     emptyActive: "Немає завдань у черзі або виконанні.",
@@ -1703,7 +1710,6 @@ export const uk: TranslationMap = {
       splitRight: "Розділити праворуч",
       splitDown: "Розділити вниз",
       closePane: "Закрити панель",
-      sessionSelect: "Сеанс панелі",
       dropSplit: "Розділити",
       dropOpenHere: "Відкрити тут",
     },
@@ -1743,10 +1749,6 @@ export const uk: TranslationMap = {
       retry: "Повторити",
       retrySend: "Повторити надсилання",
       retryQueuedMessage: "Повторити повідомлення в черзі",
-    },
-    modelPicker: {
-      faster: "Швидше",
-      smarter: "Розумніше",
     },
     pairingQrExpired: {
       title: "QR-код для пар'ювання застарів",
@@ -1943,8 +1945,7 @@ export const uk: TranslationMap = {
     },
     summary: {
       enabled: "Увімкнено",
-      yes: "Так",
-      no: "Ні",
+      scheduler: "Планувальник",
       jobs: "Завдання",
       nextWake: "Наступне пробудження",
       refreshing: "Оновлення...",
