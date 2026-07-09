@@ -441,6 +441,11 @@ export const vi: TranslationMap = {
     noEvents: "Chưa có sự kiện nào.",
   },
   quickSettings: {
+    appearance: {
+      lobsterVisits: "Lượt ghé thăm của tôm hùm",
+      lobsterVisitsOn: "Thỉnh thoảng ghé qua",
+      lobsterVisitsOff: "Không bao giờ ghé thăm",
+    },
     security: {
       browserEnabled: "Browser enabled",
       toolProfile: "Tool profile",
@@ -603,7 +608,9 @@ export const vi: TranslationMap = {
   },
   tasksPage: {
     active: "Đang hoạt động",
+    activeSub: "Công việc nền đang xếp hàng và đang chạy.",
     recent: "Gần đây",
+    recentSub: "Các tác vụ mới nhất đã hoàn tất, thất bại và bị hủy.",
     loading: "Đang tải tác vụ…",
     empty: "Chưa có tác vụ nền.",
     emptyActive: "Không có tác vụ nào đang xếp hàng hoặc đang chạy.",
@@ -1691,7 +1698,6 @@ export const vi: TranslationMap = {
       splitRight: "Chia sang phải",
       splitDown: "Chia xuống dưới",
       closePane: "Đóng khung",
-      sessionSelect: "Phiên trong khung",
       dropSplit: "Chia đôi",
       dropOpenHere: "Mở tại đây",
     },
@@ -1731,10 +1737,6 @@ export const vi: TranslationMap = {
       retry: "Thử lại",
       retrySend: "Thử gửi lại",
       retryQueuedMessage: "Thử lại tin nhắn trong hàng đợi",
-    },
-    modelPicker: {
-      faster: "Nhanh hơn",
-      smarter: "Thông minh hơn",
     },
     pairingQrExpired: {
       title: "Mã QR ghép nối đã hết hạn",
@@ -1931,8 +1933,7 @@ export const vi: TranslationMap = {
     },
     summary: {
       enabled: "Đã bật",
-      yes: "Có",
-      no: "Không",
+      scheduler: "Bộ lập lịch",
       jobs: "Tác vụ",
       nextWake: "Lần đánh thức tiếp theo",
       refreshing: "Đang làm mới...",
