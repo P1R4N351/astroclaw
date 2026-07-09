@@ -494,9 +494,9 @@ describe("Twilio SMS helpers", () => {
     expect(release).toHaveBeenCalledTimes(1);
   });
 
-  it("bounds and cancels oversized guarded Twilio error bodies", async () => {
+  it("bounds guarded Twilio errors on complete UTF-8 characters and cancels overflow", async () => {
     const release = vi.fn(async () => {});
-    const tracked = cancelTrackedTextResponse(`${"upstream unavailable ".repeat(512)}tail`, {
+    const tracked = cancelTrackedTextResponse(`${"x".repeat(8 * 1024 - 2)}😀tail`, {
       status: 503,
     });
     fetchWithSsrFGuardMock.mockResolvedValue({
@@ -515,8 +515,9 @@ describe("Twilio SMS helpers", () => {
       caught = error as Error;
     }
 
-    expect(caught?.message).toContain("Twilio SMS send failed (503): upstream unavailable");
+    expect(caught?.message).toContain("Twilio SMS send failed (503): ");
     expect(caught?.message).toContain("... [truncated]");
+    expect(caught?.message).not.toContain("�");
     expect(caught?.message).not.toContain("tail");
     expect(caught?.message.length).toBeLessThan(8_300);
     expect(tracked.wasCanceled()).toBe(true);
