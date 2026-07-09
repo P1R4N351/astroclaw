@@ -25,10 +25,11 @@ import {
   uniqueStrings,
   uniqueValues,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { redactToolPayloadText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { asRecord } from "../record-shared.js";
+import { createBoundedUtf8Tail, decodeBoundedUtf8Tail } from "./bounded-utf8-tail.js";
 import { redactCdpUrl } from "./cdp.helpers.js";
 import type { ChromeMcpSnapshotNode } from "./chrome-mcp.snapshot.js";
 import type { BrowserTab } from "./client.types.js";
@@ -170,15 +171,7 @@ let chromeMcpProcessCleanupDepsForTest: ChromeMcpProcessCleanupDeps | null = nul
 
 /** Decode a bounded UTF-8-safe stderr tail for Chrome MCP diagnostics. */
 export function decodeChromeMcpStderrTail(buffer: Buffer): string {
-  if (buffer.length <= CHROME_MCP_STDERR_MAX_BYTES) {
-    return buffer.toString("utf8").trim();
-  }
-
-  let start = buffer.length - CHROME_MCP_STDERR_MAX_BYTES;
-  while (start < buffer.length && (buffer[start] & 0xc0) === 0x80) {
-    start++;
-  }
-  return buffer.subarray(start).toString("utf8").trim();
+  return decodeBoundedUtf8Tail(buffer, CHROME_MCP_STDERR_MAX_BYTES).trim();
 }
 
 function asPages(value: unknown): ChromeMcpStructuredPage[] {
@@ -480,25 +473,12 @@ function drainStderr(transport: StdioClientTransport): () => string {
   if (!stream) {
     return () => "";
   }
-  const chunks: Buffer[] = [];
-  let totalBytes = 0;
+  const tail = createBoundedUtf8Tail(CHROME_MCP_STDERR_MAX_BYTES);
   stream.on("data", (chunk: Buffer | string) => {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    const capped =
-      buffer.length > CHROME_MCP_STDERR_MAX_BYTES
-        ? buffer.subarray(buffer.length - CHROME_MCP_STDERR_MAX_BYTES)
-        : buffer;
-    chunks.push(capped);
-    totalBytes += capped.length;
-    while (totalBytes > CHROME_MCP_STDERR_MAX_BYTES && chunks.length > 1) {
-      const dropped = chunks.shift();
-      if (dropped) {
-        totalBytes -= dropped.length;
-      }
-    }
+    tail.append(chunk);
   });
   stream.on("error", () => {});
-  return () => decodeChromeMcpStderrTail(Buffer.concat(chunks));
+  return () => tail.text().trim();
 }
 
 function redactChromeMcpDiagnosticText(text: string): string {
@@ -1330,9 +1310,7 @@ async function callTargetTool(
 }
 
 async function withTempFile<T>(fn: (filePath: string) => Promise<T>): Promise<T> {
-  const dir = await fs.mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-chrome-mcp-"),
-  );
+  const dir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-chrome-mcp-"));
   const filePath = path.join(dir, randomUUID());
   try {
     return await fn(filePath);
