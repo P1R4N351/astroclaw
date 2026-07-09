@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
 import { Logger as TsLogger } from "tslog";
 import type { OpenClawConfig } from "../config/types.js";
 import {
@@ -19,9 +20,9 @@ import { expandHomePrefix } from "../infra/home-dir.js";
 import { isBlockedObjectKey } from "../infra/prototype-keys.js";
 import { appendRegularFileSync } from "../infra/regular-file.js";
 import {
-  POSIX_ASTROCLAW_TMP_DIR,
-  resolvePreferredAstroclawTmpDir,
-} from "../infra/tmp-astroclaw-dir.js";
+  POSIX_OPENCLAW_TMP_DIR,
+  resolvePreferredOpenClawTmpDir,
+} from "../infra/tmp-openclaw-dir.js";
 import { readLoggingConfig, shouldSkipMutatingLoggingConfigRead } from "./config.js";
 import { resolveEnvLogLevelOverride } from "./env-log-level.js";
 import { type LogLevel, levelToMinLevel, normalizeLogLevel } from "./levels.js";
@@ -33,13 +34,13 @@ import type { LoggerSettings } from "./types.js";
 export type { LoggerSettings } from "./types.js";
 
 function resolveDefaultLogDir(): string {
-  return canUseNodeFs() ? resolvePreferredAstroclawTmpDir() : POSIX_ASTROCLAW_TMP_DIR;
+  return canUseNodeFs() ? resolvePreferredOpenClawTmpDir() : POSIX_OPENCLAW_TMP_DIR;
 }
 
 function resolveDefaultLogFile(defaultLogDir: string): string {
   return canUseNodeFs()
     ? path.join(defaultLogDir, "openclaw.log")
-    : `${POSIX_ASTROCLAW_TMP_DIR}/openclaw.log`;
+    : `${POSIX_OPENCLAW_TMP_DIR}/openclaw.log`;
 }
 
 export const DEFAULT_LOG_DIR = resolveDefaultLogDir();
@@ -90,7 +91,7 @@ let cachedHostname: string | null = null;
 type DiagnosticLogAttributes = Record<string, string | number | boolean>;
 
 function clampDiagnosticLogText(value: string, maxChars: number): string {
-  return value.length > maxChars ? `${value.slice(0, maxChars)}...(truncated)` : value;
+  return value.length > maxChars ? `${truncateUtf16Safe(value, maxChars)}...(truncated)` : value;
 }
 
 function sanitizeDiagnosticLogText(value: string, maxChars: number): string {
@@ -217,7 +218,7 @@ function getSortedNumericLogArgs(logObj: TsLogRecord): unknown[] {
 }
 
 function clampFileLogText(value: string, maxChars: number): string {
-  return value.length > maxChars ? `${value.slice(0, maxChars)}...(truncated)` : value;
+  return value.length > maxChars ? `${truncateUtf16Safe(value, maxChars)}...(truncated)` : value;
 }
 
 function normalizeFileLogContextValue(value: unknown): string | undefined {
