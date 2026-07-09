@@ -36,6 +36,7 @@ import {
   normalizeLowercaseStringOrEmpty,
   readStringValue,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import { OLLAMA_DEFAULT_BASE_URL } from "./defaults.js";
 import { shouldWrapOllamaCompatMoonshotThinking } from "./model-behavior.js";
 import { normalizeOllamaWireModelId } from "./model-id.js";
@@ -1066,7 +1067,7 @@ export async function* parseNdjsonStream(
       try {
         yield parseJsonPreservingUnsafeIntegers(trimmed) as OllamaChatResponse;
       } catch {
-        log.warn(`Skipping malformed NDJSON line: ${trimmed.slice(0, 120)}`);
+        log.warn(`Skipping malformed NDJSON line: ${truncateUtf16Safe(trimmed, 120)}`);
       }
     }
   }
@@ -1075,7 +1076,7 @@ export async function* parseNdjsonStream(
     try {
       yield parseJsonPreservingUnsafeIntegers(buffer.trim()) as OllamaChatResponse;
     } catch {
-      log.warn(`Skipping malformed trailing data: ${buffer.trim().slice(0, 120)}`);
+      log.warn(`Skipping malformed trailing data: ${truncateUtf16Safe(buffer.trim(), 120)}`);
     }
   }
 }
