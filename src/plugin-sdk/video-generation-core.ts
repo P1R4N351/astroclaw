@@ -5,6 +5,7 @@ export type { FallbackAttempt } from "../agents/model-fallback.types.js";
 export type { VideoGenerationProviderPlugin } from "../plugins/types.js";
 export type {
   GeneratedVideoAsset,
+  VideoGenerationCatalogModelEntry,
   VideoGenerationIgnoredOverride,
   VideoGenerationMode,
   VideoGenerationModeCapabilities,
@@ -18,7 +19,7 @@ export type {
   VideoGenerationSourceAsset,
   VideoGenerationTransformCapabilities,
 } from "../video-generation/types.js";
-export type { AstroclawConfig } from "../config/types.astroclaw.js";
+export type { OpenClawConfig } from "../config/types.openclaw.js";
 
 export { describeFailoverError, isFailoverError } from "../agents/failover-error.js";
 export {
