@@ -110,6 +110,16 @@ describe("sandbox/tool-policy", () => {
         "browser",
       ),
     ).toBe(true);
+    expect(resolved.deny).toContain("computer");
+    expect(
+      isToolAllowed(
+        {
+          allow: resolved.allow,
+          deny: resolved.deny,
+        },
+        "computer",
+      ),
+    ).toBe(false);
   });
 
   it("keeps canonical sandbox config and runtime status aligned with the effective resolver", () => {
