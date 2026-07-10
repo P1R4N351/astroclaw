@@ -48,13 +48,14 @@ describe("refreshQueuedFollowupSession", () => {
     queue.summaryElisions.push({
       contextKey: "context",
       count: 2,
-      source: {
-        prompt: "elided summary",
-        enqueuedAt: Date.now(),
-        run: makeRun(),
-      },
-      sourceRefs: new WeakSet(),
-      allRoomEvents: false,
+      sources: [
+        {
+          prompt: "elided summary",
+          enqueuedAt: Date.now(),
+          run: makeRun(),
+        },
+      ],
+      sourceRefs: new WeakMap(),
     });
 
     refreshQueuedFollowupSession({
@@ -86,7 +87,7 @@ describe("refreshQueuedFollowupSession", () => {
       authProfileId: undefined,
       authProfileIdSource: undefined,
     });
-    expect(queue.summaryElisions[0]?.source.run).toEqual({
+    expect(queue.summaryElisions[0]?.sources[0]?.run).toEqual({
       ...makeRun(),
       provider: "openai",
       model: "gpt-4o",
@@ -119,6 +120,69 @@ describe("refreshQueuedFollowupSession", () => {
       modelOverrideSource: "user",
     });
   });
+
+  it("clamps queued Sol Ultra work to Codex Luna Max", () => {
+    const queue = getFollowupQueue(QUEUE_KEY, { mode: "followup" });
+    queue.items.push({
+      prompt: "queued message",
+      enqueuedAt: Date.now(),
+      run: {
+        ...makeRun(),
+        provider: "openai",
+        model: "gpt-5.6-sol",
+        thinkLevel: "ultra",
+      },
+    });
+
+    refreshQueuedFollowupSession({
+      key: QUEUE_KEY,
+      nextProvider: "openai",
+      nextModel: "gpt-5.6-luna",
+      nextThinking: { level: "ultra", agentRuntime: "codex" },
+    });
+
+    expect(queue.items[0]?.run).toMatchObject({
+      provider: "openai",
+      model: "gpt-5.6-luna",
+      thinkLevel: "max",
+    });
+  });
+
+  it("uses the highest supported non-max level when retargeting queued work", () => {
+    const queue = getFollowupQueue(QUEUE_KEY, { mode: "followup" });
+    queue.items.push({
+      prompt: "queued message",
+      enqueuedAt: Date.now(),
+      run: { ...makeRun(), thinkLevel: "ultra" },
+    });
+
+    refreshQueuedFollowupSession({
+      key: QUEUE_KEY,
+      nextProvider: "custom",
+      nextModel: "reasoner",
+      nextThinking: { level: "ultra", agentRuntime: "openclaw" },
+    });
+
+    expect(queue.items[0]?.run.thinkLevel).toBe("high");
+  });
+
+  it("recomputes the retargeted model default when the session has no thinking override", () => {
+    const queue = getFollowupQueue(QUEUE_KEY, { mode: "followup" });
+    queue.items.push({
+      prompt: "queued message",
+      enqueuedAt: Date.now(),
+      run: { ...makeRun(), thinkLevel: "ultra" },
+    });
+
+    refreshQueuedFollowupSession({
+      key: QUEUE_KEY,
+      nextProvider: "openai",
+      nextModel: "gpt-5.6-sol",
+      nextThinking: { agentRuntime: "codex" },
+    });
+
+    expect(queue.items[0]?.run.thinkLevel).toBe("low");
+  });
 });
 
 describe("getFollowupQueue", () => {
@@ -145,13 +209,12 @@ describe("getFollowupQueue", () => {
       queue.summaryElisions.push({
         contextKey,
         count,
-        source: {
+        sources: Array.from({ length: count }, () => ({
           prompt: contextKey,
           enqueuedAt: Date.now(),
           run: makeRun(),
-        },
-        sourceRefs: new WeakSet(),
-        allRoomEvents: false,
+        })),
+        sourceRefs: new WeakMap(),
       });
     }
     queue.evictedSummaryCount = 5;
@@ -159,6 +222,7 @@ describe("getFollowupQueue", () => {
     const updated = getFollowupQueue(QUEUE_KEY, { mode: "followup", cap: 1 });
 
     expect(updated.summaryElisions.map((entry) => entry.contextKey)).toEqual(["newest"]);
-    expect(updated.evictedSummaryCount).toBe(10);
+    expect(updated.summaryElisions[0]?.sources).toHaveLength(1);
+    expect(updated.evictedSummaryCount).toBe(13);
   });
 });
