@@ -39,7 +39,8 @@ function resolveLiveStreamFn() {
 
 describeLive("meta plugin live", () => {
   it("lists muse-spark-1.1 via the /models endpoint", async () => {
-    const response = await fetch("https://api.ai.meta.com/v1/models", {
+    const provider = buildMetaProvider();
+    const response = await fetch(`${provider.baseUrl}/models`, {
       headers: { Authorization: `Bearer ${MODEL_API_KEY}` },
     });
     expect(response.ok).toBe(true);
