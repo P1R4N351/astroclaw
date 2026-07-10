@@ -43,7 +43,7 @@ describe("gateway hook runner methods", () => {
   const gatewayCtx = {
     port: 18789,
     config: {} as never,
-    workspaceDir: "/tmp/astroclaw-workspace",
+    workspaceDir: "/tmp/openclaw-workspace",
     getCron: () => undefined,
   };
 
@@ -76,6 +76,28 @@ describe("gateway hook runner methods", () => {
         agentId: "main",
         sessionTarget: "main",
         state: { nextRunAtMs: 123 },
+      },
+    };
+
+    await runner.runCronChanged(event, gatewayCtx);
+
+    expect(handler).toHaveBeenCalledWith(event, gatewayCtx);
+  });
+
+  it("runCronChanged passes scheduled events with the durable wake snapshot", async () => {
+    const handler = vi.fn();
+    const { runner } = createHookRunnerWithRegistry([{ hookName: "cron_changed", handler }]);
+    const event: PluginHookCronChangedEvent = {
+      action: "scheduled",
+      jobId: "job-scheduled",
+      nextRunAtMs: 456,
+      sessionTarget: "session:ops",
+      agentId: "reporter",
+      job: {
+        id: "job-scheduled",
+        agentId: "reporter",
+        sessionTarget: "session:ops",
+        state: { nextRunAtMs: 456 },
       },
     };
 
