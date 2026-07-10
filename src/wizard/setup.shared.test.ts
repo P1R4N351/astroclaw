@@ -6,8 +6,8 @@ const mocks = vi.hoisted(() => ({
   commitConfigWriteWithPendingPluginInstalls: vi.fn(),
 }));
 
-vi.mock("../cli/plugins-install-record-commit.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../cli/plugins-install-record-commit.js")>()),
+vi.mock("../plugins/install-record-commit.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../plugins/install-record-commit.js")>()),
   commitConfigWriteWithPendingPluginInstalls: mocks.commitConfigWriteWithPendingPluginInstalls,
 }));
 
