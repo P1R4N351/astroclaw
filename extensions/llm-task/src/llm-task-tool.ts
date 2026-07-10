@@ -5,6 +5,7 @@ import {
   optionalFiniteNumberSchema,
   optionalPositiveIntegerSchema,
 } from "openclaw/plugin-sdk/channel-actions";
+import { resolveEffectiveAgentRuntime } from "openclaw/plugin-sdk/command-auth-native";
 import {
   type JsonSchemaObject,
   validateJsonSchemaValue,
@@ -15,7 +16,7 @@ import {
   normalizeOptionalString,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { Type } from "typebox";
-import { resolvePreferredAstroclawTmpDir, withTempWorkspace } from "../api.js";
+import { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "../api.js";
 import type { OpenClawPluginApi } from "../api.js";
 
 function stripCodeFences(s: string): string {
@@ -210,12 +211,22 @@ export function createLlmTaskTool(api: OpenClawPluginApi) {
         );
       }
 
+      const agentRuntime = resolveEffectiveAgentRuntime({
+        cfg: api.config ?? {},
+        provider,
+        modelId: model,
+      });
+
       const thinkingRaw =
         typeof params.thinking === "string" && params.thinking.trim() ? params.thinking : undefined;
       let thinkLevel: ReturnType<OpenClawPluginApi["runtime"]["agent"]["normalizeThinkingLevel"]> =
         undefined;
       if (thinkingRaw) {
-        const thinkingPolicy = api.runtime.agent.resolveThinkingPolicy({ provider, model });
+        const thinkingPolicy = api.runtime.agent.resolveThinkingPolicy({
+          provider,
+          model,
+          agentRuntime,
+        });
         const thinkingLevelsHint = formatThinkingPolicy(thinkingPolicy);
         thinkLevel = api.runtime.agent.normalizeThinkingLevel(thinkingRaw);
         if (!thinkLevel) {
@@ -261,7 +272,7 @@ export function createLlmTaskTool(api: OpenClawPluginApi) {
       const fullPrompt = `${system}\n\nTASK:\n${prompt}\n\nINPUT_JSON:\n${inputJson}\n`;
 
       return await withTempWorkspace(
-        { rootDir: resolvePreferredAstroclawTmpDir(), prefix: "openclaw-llm-task-" },
+        { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "openclaw-llm-task-" },
         async ({ dir: tmpDir }) => {
           const sessionId = `llm-task-${Date.now()}`;
           const sessionFile = path.join(tmpDir, "session.json");
@@ -278,6 +289,7 @@ export function createLlmTaskTool(api: OpenClawPluginApi) {
             model,
             authProfileId,
             authProfileIdSource: authProfileId ? "user" : "auto",
+            agentHarnessRuntimeOverride: agentRuntime,
             thinkLevel,
             streamParams,
             disableTools: true,
