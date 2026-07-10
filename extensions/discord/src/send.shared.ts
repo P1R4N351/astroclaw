@@ -53,6 +53,7 @@ export {
   SUPPRESS_EMBEDS_FLAG,
   SUPPRESS_NOTIFICATIONS_FLAG,
   type DiscordSendComponentFactory,
+  type DiscordAllowedMentions,
   type DiscordSendComponents,
   type DiscordSendEmbeds,
 } from "./send.message-request.js";
@@ -61,6 +62,7 @@ import {
   resolveDiscordMessageFlags,
   resolveDiscordSendComponents,
   resolveDiscordSendEmbeds,
+  type DiscordAllowedMentions,
   type DiscordSendComponents,
   type DiscordSendEmbeds,
 } from "./send.message-request.js";
@@ -276,13 +278,12 @@ async function resolveDiscordTargetChannelId(
   return await resolveChannelId(rest, recipient, request);
 }
 
-export async function resolveDiscordChannelType(
+export async function resolveDiscordChannel(
   rest: RequestClient,
   channelId: string,
-): Promise<number | undefined> {
+): Promise<APIChannel | undefined> {
   try {
-    const channel = (await getChannel(rest, channelId)) as APIChannel | undefined;
-    return channel?.type;
+    return await getChannel(rest, channelId);
   } catch {
     return undefined;
   }
@@ -327,6 +328,7 @@ type DiscordTextSendParams = {
   maxLinesPerMessage?: number;
   components?: DiscordSendComponents;
   embeds?: DiscordSendEmbeds;
+  allowedMentions?: DiscordAllowedMentions;
   chunkMode?: ChunkMode;
   silent?: boolean;
   suppressEmbeds?: boolean;
@@ -344,6 +346,7 @@ async function sendDiscordText(params: DiscordTextSendParams) {
     maxLinesPerMessage,
     components,
     embeds,
+    allowedMentions,
     chunkMode,
     silent,
     suppressEmbeds,
@@ -370,6 +373,7 @@ async function sendDiscordText(params: DiscordTextSendParams) {
       text: chunk,
       components: chunkComponents,
       embeds: chunkEmbeds,
+      allowedMentions,
       flags,
       replyTo: chunkReplyTo,
     });
@@ -425,6 +429,7 @@ async function sendDiscordMedia(params: DiscordMediaSendParams) {
     maxLinesPerMessage,
     components,
     embeds,
+    allowedMentions,
     chunkMode,
     silent,
     suppressEmbeds,
@@ -460,6 +465,7 @@ async function sendDiscordMedia(params: DiscordMediaSendParams) {
     text: caption,
     components: captionComponents,
     embeds: captionEmbeds,
+    allowedMentions,
     flags,
     replyTo: resolveDiscordReplyMessageId(reply, true),
     files: [
@@ -491,6 +497,7 @@ async function sendDiscordMedia(params: DiscordMediaSendParams) {
       chunkMode,
       silent,
       suppressEmbeds,
+      allowedMentions,
       maxChars,
       onResult,
     });
@@ -512,6 +519,7 @@ async function sendDiscordMedia(params: DiscordMediaSendParams) {
       chunkMode,
       silent,
       suppressEmbeds,
+      allowedMentions,
       maxChars,
       onResult,
     });
