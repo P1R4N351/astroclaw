@@ -1,6 +1,7 @@
 /** Builds the ACP available-command list exposed to compatible clients. */
 import type { AvailableCommand } from "@agentclientprotocol/sdk";
 import { getChatCommands } from "../auto-reply/commands-registry.data.js";
+import { THINKING_LEVELS_HELP } from "../auto-reply/thinking.shared.js";
 
 const BASE_AVAILABLE_COMMANDS: AvailableCommand[] = [
   { name: "help", description: "Show help and common commands." },
@@ -29,7 +30,7 @@ const BASE_AVAILABLE_COMMANDS: AvailableCommand[] = [
   { name: "new", description: "Reset the session (/reset)." },
   {
     name: "think",
-    description: "Set thinking level (off|minimal|low|medium|high|xhigh).",
+    description: `Set thinking level (${THINKING_LEVELS_HELP}).`,
   },
   { name: "verbose", description: "Set verbose mode (on|full|off)." },
   { name: "trace", description: "Set plugin trace mode (on|off)." },
