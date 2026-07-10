@@ -6,12 +6,13 @@ import type { ChannelRuntimeSurface } from "openclaw/plugin-sdk/channel-contract
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { createPluginRuntimeMock } from "openclaw/plugin-sdk/plugin-test-runtime";
 import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import type { SlackChannelConfigEntries } from "../channel-config.js";
 import { createSlackMonitorContext } from "../context.js";
 
 export function createInboundSlackTestContext(params: {
+  app?: App;
   cfg: OpenClawConfig;
   appClient?: App["client"];
   defaultRequireMention?: boolean;
@@ -19,13 +20,14 @@ export function createInboundSlackTestContext(params: {
   channelsConfig?: SlackChannelConfigEntries;
   threadRequireExplicitMention?: boolean;
   dmHistoryLimit?: number;
+  groupDmEnabled?: boolean;
   channelRuntime?: ChannelRuntimeSurface;
 }) {
   return createSlackMonitorContext({
     cfg: params.cfg,
     accountId: "default",
     botToken: "token",
-    app: { client: params.appClient ?? {} } as App,
+    app: params.app ?? ({ client: params.appClient ?? {} } as App),
     runtime: {} as RuntimeEnv,
     channelRuntime: params.channelRuntime ?? createPluginRuntimeMock().channel,
     botUserId: "B1",
@@ -40,7 +42,7 @@ export function createInboundSlackTestContext(params: {
     dmPolicy: "open",
     allowFrom: ["*"],
     allowNameMatching: false,
-    groupDmEnabled: true,
+    groupDmEnabled: params.groupDmEnabled ?? true,
     groupDmChannels: [],
     defaultRequireMention: params.defaultRequireMention ?? true,
     channelsConfig: params.channelsConfig,
@@ -88,7 +90,7 @@ export function createSlackSessionStoreFixture(prefix: string) {
 
   return {
     setup() {
-      fixtureRoot = fs.mkdtempSync(path.join(resolvePreferredAstroclawTmpDir(), prefix));
+      fixtureRoot = fs.mkdtempSync(path.join(resolvePreferredOpenClawTmpDir(), prefix));
     },
     cleanup() {
       if (!fixtureRoot) {
