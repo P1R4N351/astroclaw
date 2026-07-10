@@ -62,6 +62,8 @@ export async function handleMcpJsonRpc(params: {
   toolSchema: McpToolSchemaEntry[];
   hookContext?: HookContext;
   signal?: AbortSignal;
+  /** Revalidate short-lived client authority immediately before side effects. */
+  authorizeToolCall?: () => boolean;
   onToolCallResult?: (
     call: {
       toolName: string;
@@ -136,11 +138,20 @@ export async function handleMcpJsonRpc(params: {
         }
       };
       try {
+        const preparedToolArgs = tool.prepareBeforeToolCallParams
+          ? await tool.prepareBeforeToolCallParams(toolArgs, {
+              toolCallId,
+              hookContext: params.hookContext,
+              signal: params.signal,
+            })
+          : toolArgs;
+        executedToolArgs = preparedToolArgs as Record<string, unknown>;
         // Gateway before-tool hooks still run for loopback MCP calls so policy
         // and audit behavior matches native tool calls from normal chat runs.
+        // Preserve prepared params so exec can restore private workdir/env state after hooks.
         const hookResult = await runBeforeToolCallHook({
           toolName,
-          params: toolArgs,
+          params: preparedToolArgs,
           toolCallId,
           ctx: params.hookContext,
           signal: params.signal,
@@ -160,13 +171,23 @@ export async function handleMcpJsonRpc(params: {
             isError: true,
           });
         }
-        executedToolArgs = hookResult.params as Record<string, unknown>;
+        const finalizedToolArgs =
+          tool.finalizeBeforeToolCallParams?.(hookResult.params, preparedToolArgs) ??
+          hookResult.params;
+        executedToolArgs = finalizedToolArgs as Record<string, unknown>;
         try {
           params.onToolCallPrepared?.({ toolName, args: executedToolArgs });
         } catch {
           // Observability callbacks must never alter the tool result returned to the MCP client.
         }
-        const result = await tool.execute(toolCallId, hookResult.params, params.signal);
+        if (params.authorizeToolCall && !params.authorizeToolCall()) {
+          reportToolCallResult({ outcome: "blocked", deniedReason: "client-grant-revoked" });
+          return jsonRpcResult(id, {
+            content: [{ type: "text", text: "Tool call authorization expired" }],
+            isError: true,
+          });
+        }
+        const result = await tool.execute(toolCallId, finalizedToolArgs, params.signal);
         const failureKind = resolveToolResultFailureKind(result);
         reportToolCallResult(
           failureKind === "blocked"
