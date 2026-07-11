@@ -25,7 +25,7 @@ import {
   selectApplicableRuntimeConfig,
 } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { isVerbose, logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { tempWorkspaceSync, resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/sandbox";
+import { tempWorkspaceSync, resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/sandbox";
 import { privateFileStoreSync } from "openclaw/plugin-sdk/security-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
@@ -1348,7 +1348,7 @@ export async function textToSpeech(params: {
   }
 
   const temp = tempWorkspaceSync({
-    rootDir: resolvePreferredOpenClawTmpDir(),
+    rootDir: resolvePreferredAstroclawTmpDir(),
     prefix: "tts-",
   });
   const audioPath = temp.write(`voice-${Date.now()}${fileExtension}`, audioBuffer);
@@ -1924,11 +1924,16 @@ export async function listSpeechVoices(params: {
   if (!resolvedProvider.listVoices) {
     throw new Error(`speech provider ${provider} does not support voice listing`);
   }
+  const timeoutMs = resolveSpeechProviderTimeoutMs({
+    config,
+    provider: resolvedProvider,
+  });
   return await resolvedProvider.listVoices({
     cfg,
     providerConfig: getResolvedSpeechProviderConfig(config, resolvedProvider.id, cfg),
     apiKey: params.apiKey,
     baseUrl: params.baseUrl,
+    timeoutMs,
   });
 }
 
