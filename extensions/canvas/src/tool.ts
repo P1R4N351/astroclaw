@@ -17,7 +17,8 @@ import {
 } from "openclaw/plugin-sdk/channel-actions";
 import { readFiniteNumberParam, readPositiveIntegerParam } from "openclaw/plugin-sdk/param-readers";
 import type { AnyAgentTool, OpenClawConfig } from "openclaw/plugin-sdk/plugin-entry";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { validateSupportedA2UIJsonl } from "./a2ui-jsonl.js";
 import { normalizeCanvasSnapshotFileExtension, parseCanvasSnapshotPayload } from "./cli-helpers.js";
 import { CanvasToolSchema } from "./tool-schema.js";
 
@@ -47,7 +48,7 @@ async function resolveNodeId(
 }
 
 async function writeBase64ToTempFile(params: { base64: string; ext: string }): Promise<string> {
-  const dir = resolvePreferredAstroclawTmpDir();
+  const dir = resolvePreferredOpenClawTmpDir();
   await fs.mkdir(dir, { recursive: true, mode: 0o700 });
   const ext = `.${normalizeCanvasSnapshotFileExtension(params.ext)}`;
   const filePath = path.join(dir, `openclaw-canvas-snapshot-${randomUUID()}${ext}`);
@@ -102,20 +103,17 @@ export function createCanvasTool(options?: CanvasToolOptions): AnyAgentTool {
       const params = args as Record<string, unknown>;
       const action = readStringParam(params, "action", { required: true });
       const gatewayOpts = readGatewayCallOptions(params);
+      const nodeQuery = readStringParam(params, "node", { trim: true });
 
-      const nodeId = await resolveNodeId(
-        gatewayOpts,
-        readStringParam(params, "node", { trim: true }),
-        true,
-      );
-
-      const invoke = async (command: string, invokeParams?: Record<string, unknown>) =>
-        await callGatewayTool("node.invoke", gatewayOpts, {
+      const invoke = async (command: string, invokeParams?: Record<string, unknown>) => {
+        const nodeId = await resolveNodeId(gatewayOpts, nodeQuery, true);
+        return await callGatewayTool("node.invoke", gatewayOpts, {
           nodeId,
           command,
           params: invokeParams,
           idempotencyKey: randomUUID(),
         });
+      };
 
       switch (action) {
         case "present": {
@@ -207,6 +205,7 @@ export function createCanvasTool(options?: CanvasToolOptions): AnyAgentTool {
           if (!jsonl.trim()) {
             throw new Error("jsonl or jsonlPath required");
           }
+          validateSupportedA2UIJsonl(jsonl);
           await invoke("canvas.a2ui.pushJSONL", { jsonl });
           return jsonResult({ ok: true });
         }
