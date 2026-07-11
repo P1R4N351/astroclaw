@@ -506,8 +506,7 @@ export const tr: TranslationMap = {
     pending: "{count} pending",
     allowOnce: "Allow once",
     alwaysAllow: "Always allow",
-    allowAlwaysUnavailable:
-      "Geçerli onay ilkesi her seferinde onay gerektiriyor, bu nedenle Her Zaman İzin Ver kullanılamıyor.",
+    allowAlwaysUnavailable: "Her Zaman İzin Ver bu komut için kullanılamıyor.",
     deny: "Deny",
     labels: {
       host: "Host",
@@ -804,6 +803,7 @@ export const tr: TranslationMap = {
     artifactDetails: "Control UI derleme ayrıntıları",
     version: "Sürüm",
     commit: "Commit",
+    branch: "Dal",
     built: "Derlendi",
     unavailable: "Kullanılamıyor",
     copyCommit: "Tam commit hash’ini kopyala",
