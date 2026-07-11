@@ -502,8 +502,7 @@ export const vi: TranslationMap = {
     pending: "{count} đang chờ",
     allowOnce: "Cho phép một lần",
     alwaysAllow: "Luôn cho phép",
-    allowAlwaysUnavailable:
-      "Chính sách phê duyệt có hiệu lực yêu cầu phê duyệt mọi lần, vì vậy Không cho phép Luôn cho phép.",
+    allowAlwaysUnavailable: "Luôn cho phép không khả dụng cho lệnh này.",
     deny: "Từ chối",
     labels: {
       host: "Máy chủ",
@@ -794,6 +793,7 @@ export const vi: TranslationMap = {
     artifactDetails: "Chi tiết bản dựng Control UI",
     version: "Phiên bản",
     commit: "Commit",
+    branch: "Nhánh",
     built: "Đã xây dựng",
     unavailable: "Không khả dụng",
     copyCommit: "Sao chép đầy đủ hash commit",
