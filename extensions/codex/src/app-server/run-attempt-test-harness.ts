@@ -12,7 +12,7 @@ import { resetDiagnosticEventsForTest } from "openclaw/plugin-sdk/diagnostic-run
 import { clearInternalHooks, resetGlobalHookRunner } from "openclaw/plugin-sdk/hook-runtime";
 import { clearMemoryPluginState } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
 import { clearPluginCommands } from "openclaw/plugin-sdk/plugin-runtime";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { defaultCodexAppInventoryCache } from "./app-inventory-cache.js";
 import type { CodexAppServerClient } from "./client.js";
@@ -28,7 +28,7 @@ import {
   resetCodexTestBindingStore,
   testCodexAppServerBindingStore,
 } from "./session-binding.test-helpers.js";
-import type { CodexAppServerClientFactory } from "./shared-client.js";
+import type { CodexAppServerClientFactory, CodexAppServerClientOptions } from "./shared-client.js";
 import {
   adaptCodexTestClientFactory,
   createCodexTestModel,
@@ -361,7 +361,11 @@ export function createAppServerHarness(
     options?: { signal?: AbortSignal },
   ) => Promise<unknown>,
   options: {
-    onStart?: (authProfileId: string | undefined, agentDir: string | undefined) => void;
+    onStart?: (
+      authProfileId: string | undefined,
+      agentDir: string | undefined,
+      options: CodexAppServerClientOptions | undefined,
+    ) => void;
   } = {},
 ) {
   const requests: Array<{ method: string; params: unknown }> = [];
@@ -393,10 +397,12 @@ export function createAppServerHarness(
       return () => closeHandlers.delete(handler);
     },
   } as unknown as CodexAppServerClient;
-  setCodexAppServerClientFactoryForTest(async (_startOptions, authProfileId, agentDir) => {
-    options.onStart?.(authProfileId, agentDir);
-    return client;
-  });
+  setCodexAppServerClientFactoryForTest(
+    async (_startOptions, authProfileId, agentDir, _config, clientOptions) => {
+      options.onStart?.(authProfileId, agentDir, clientOptions);
+      return client;
+    },
+  );
 
   const waitForServerRequestHandler = async () => {
     await vi.waitFor(() => expect(serverRequestHandlers.size).toBeGreaterThan(0), {
@@ -489,7 +495,11 @@ export function createStartedThreadHarness(
     options?: { signal?: AbortSignal },
   ) => Promise<unknown> = async () => undefined,
   options: {
-    onStart?: (authProfileId: string | undefined, agentDir: string | undefined) => void;
+    onStart?: (
+      authProfileId: string | undefined,
+      agentDir: string | undefined,
+      options: CodexAppServerClientOptions | undefined,
+    ) => void;
   } = {},
 ) {
   return createAppServerHarness(async (method, params, requestOptions) => {
@@ -600,7 +610,7 @@ export function setupRunAttemptTestHooks(): void {
     vi.stubEnv("OPENCLAW_TRAJECTORY", "0");
     vi.stubEnv("CODEX_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
-    tempDir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-codex-run-"));
+    tempDir = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "openclaw-codex-run-"));
   });
 
   afterEach(async () => {
