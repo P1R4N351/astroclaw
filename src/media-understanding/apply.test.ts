@@ -6,7 +6,7 @@ import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MsgContext } from "../auto-reply/templating.js";
 import type { OpenClawConfig } from "../config/types.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { CLI_OUTPUT_MAX_BUFFER } from "./defaults.constants.js";
 import { createSafeAudioFixtureBuffer } from "./runner.test-utils.js";
@@ -116,6 +116,14 @@ function getRunExecCall(index = 0) {
   const call = mockedRunExec.mock.calls[index];
   if (!call) {
     throw new Error(`expected runExec call ${index}`);
+  }
+  return call;
+}
+
+function getRunExecCallForCommand(command: string) {
+  const call = mockedRunExec.mock.calls.find(([calledCommand]) => calledCommand === command);
+  if (!call) {
+    throw new Error(`expected runExec call for ${command}`);
   }
   return call;
 }
@@ -245,7 +253,10 @@ async function setupAudioAutoDetectCase(stdout?: string): Promise<{
 }
 
 function mockWhisperCliTranscript(transcript: string) {
-  mockedRunExec.mockImplementationOnce(async (_command, args) => {
+  mockedRunExec.mockImplementation(async (command, args) => {
+    if (command === "readelf" || command === "otool") {
+      return { stdout: "", stderr: "" };
+    }
     const outputBaseIndex = args.indexOf("-of");
     const outputBase = outputBaseIndex >= 0 ? args[outputBaseIndex + 1] : undefined;
     if (typeof outputBase !== "string") {
@@ -349,7 +360,7 @@ describe("applyMediaUnderstanding", () => {
     ({ applyMediaUnderstanding } = await import("./apply.js"));
     ({ clearMediaUnderstandingBinaryCacheForTests } = await import("./runner.js"));
 
-    const baseDir = resolvePreferredOpenClawTmpDir();
+    const baseDir = resolvePreferredAstroclawTmpDir();
     await fs.mkdir(baseDir, { recursive: true });
     suiteTempMediaRootDir = await fs.mkdtemp(path.join(baseDir, TEMP_MEDIA_PREFIX));
   });
@@ -869,7 +880,7 @@ describe("applyMediaUnderstanding", () => {
     );
 
     expect(ctx.Transcript).toBe("whisper cpp ok");
-    const [command, args, options] = getRunExecCall();
+    const [command, args, options] = getRunExecCallForCommand("whisper-cli");
     expect(command).toBe("whisper-cli");
     if (!Array.isArray(args)) {
       throw new Error("expected whisper-cli args");
@@ -877,7 +888,17 @@ describe("applyMediaUnderstanding", () => {
     expect(args.slice(0, 4)).toEqual(["-m", modelPath, "-otxt", "-of"]);
     expect(typeof args[4]).toBe("string");
     expect(String(args[4]).endsWith("sample")).toBe(true);
-    expect(args.slice(5)).toEqual(["-np", "-nt", await fs.realpath(ctx.MediaPath ?? "")]);
+    expect(args.slice(5)).toEqual(["-nt", await fs.realpath(ctx.MediaPath ?? "")]);
+    if (process.platform === "linux") {
+      expect(mockedRunExec.mock.calls).toContainEqual([
+        "readelf",
+        ["-d", expect.stringContaining("whisper-cli")],
+        expect.objectContaining({ timeoutMs: 1500 }),
+      ]);
+      expect(mockedRunExec.mock.calls.some(([calledCommand]) => calledCommand === "ldd")).toBe(
+        false,
+      );
+    }
     expectCliRunOptions(options);
   });
 
@@ -935,14 +956,14 @@ describe("applyMediaUnderstanding", () => {
     expect(String(ffmpegArgs[11])).toContain("telegram-voice.wav");
     expect(String(ffmpegArgs[11]).endsWith(".part")).toBe(true);
 
-    const [command, args, options] = getRunExecCall();
+    const [command, args, options] = getRunExecCallForCommand("whisper-cli");
     expect(command).toBe("whisper-cli");
     if (!Array.isArray(args)) {
       throw new Error("expected whisper-cli transcode args");
     }
     expect(args.slice(0, 4)).toEqual(["-m", modelPath, "-otxt", "-of"]);
-    expect(args.slice(5, 7)).toEqual(["-np", "-nt"]);
-    expect(String(args[7]).endsWith("telegram-voice.wav")).toBe(true);
+    expect(args[5]).toBe("-nt");
+    expect(String(args[6]).endsWith("telegram-voice.wav")).toBe(true);
     expectCliRunOptions(options);
   });
 
