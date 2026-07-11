@@ -18,7 +18,7 @@ import { prepareOomScoreAdjustedSpawn } from "openclaw/plugin-sdk/process-runtim
 import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
 import { ensurePortAvailable } from "../infra/ports.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { redactToolPayloadText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { CONFIG_DIR } from "../utils.js";
@@ -63,6 +63,7 @@ import {
 import {
   decorateOpenClawProfile,
   ensureProfileCleanExit,
+  ensureProfileNetworkPredictionDisabled,
   isProfileDecorated,
   usesOpenClawMockKeychain,
 } from "./chrome.profile-decoration.js";
@@ -1048,7 +1049,7 @@ export async function launchOpenClawChrome(
       HOME: os.homedir(),
     };
     if (process.platform === "linux") {
-      const chromiumStateDir = path.join(resolvePreferredOpenClawTmpDir(), ".chromium");
+      const chromiumStateDir = path.join(resolvePreferredAstroclawTmpDir(), ".chromium");
       env.XDG_CONFIG_HOME ??= chromiumStateDir;
       env.XDG_CACHE_HOME ??= chromiumStateDir;
     }
@@ -1124,6 +1125,12 @@ export async function launchOpenClawChrome(
     } catch (err) {
       log.warn(`openclaw browser profile decoration failed: ${String(err)}`);
     }
+  }
+
+  try {
+    ensureProfileNetworkPredictionDisabled(userDataDir);
+  } catch (err) {
+    log.warn(`openclaw browser network-prediction prefs failed: ${String(err)}`);
   }
 
   try {
