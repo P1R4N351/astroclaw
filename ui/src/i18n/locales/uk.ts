@@ -503,8 +503,7 @@ export const uk: TranslationMap = {
     pending: "{count} pending",
     allowOnce: "Allow once",
     alwaysAllow: "Always allow",
-    allowAlwaysUnavailable:
-      "Чинна політика схвалення вимагає схвалення щоразу, тому «Дозволяти завжди» недоступно.",
+    allowAlwaysUnavailable: "«Дозволяти завжди» недоступно для цієї команди.",
     deny: "Deny",
     labels: {
       host: "Host",
@@ -794,6 +793,7 @@ export const uk: TranslationMap = {
     artifactDetails: "Відомості про збірку Control UI",
     version: "Версія",
     commit: "Коміт",
+    branch: "Гілка",
     built: "Зібрано",
     unavailable: "Недоступно",
     copyCommit: "Копіювати повний хеш коміту",
