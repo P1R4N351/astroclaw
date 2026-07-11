@@ -22,13 +22,14 @@ import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
-const LIVE_MODEL_ID = process.env.OPENCLAW_LIVE_OPENAI_PLUGIN_MODEL?.trim() || "gpt-5.5";
+const LIVE_MODEL_ID = process.env.OPENCLAW_LIVE_OPENAI_PLUGIN_MODEL?.trim() || "gpt-5.6-luna";
 const LIVE_IMAGE_MODEL = process.env.OPENCLAW_LIVE_OPENAI_IMAGE_MODEL?.trim() || "gpt-image-2";
 const LIVE_VISION_MODEL = process.env.OPENCLAW_LIVE_OPENAI_VISION_MODEL?.trim() || "gpt-5.4-mini";
 const liveEnabled = OPENAI_API_KEY.trim().length > 0 && process.env.OPENCLAW_LIVE_TEST === "1";
 const describeLive = liveEnabled ? describe : describe.skip;
 const EMPTY_AUTH_STORE = { version: 1, profiles: {} } as const;
 const LIVE_TTS_TIMEOUT_MS = 60_000;
+const LIVE_STT_FIXTURE_TTS_TIMEOUT_MS = 120_000;
 const ModelRegistryCtor = ModelRegistry as unknown as {
   new (authStorage: AuthStorage, modelsJsonPath?: string): ModelRegistry;
 };
@@ -336,7 +337,7 @@ describeLive("openai plugin live", () => {
       text: phrase,
       cfg,
       providerConfig: ttsConfig.providerConfigs.openai ?? {},
-      timeoutMs: ttsConfig.timeoutMs,
+      timeoutMs: LIVE_STT_FIXTURE_TTS_TIMEOUT_MS,
     });
     if (!telephony) {
       throw new Error("OpenAI telephony synthesis did not return audio");
@@ -357,13 +358,12 @@ describeLive("openai plugin live", () => {
       audio,
       expectedNormalizedText: /openai.*realtime.*transcription/,
     });
-
     const normalized = transcripts.join(" ").toLowerCase();
     const compact = normalizeTranscriptForMatch(normalized);
     expect(compact).toContain("openai");
     expect(normalized).toContain("transcription");
     expect(partials.length + transcripts.length).toBeGreaterThan(0);
-  }, 180_000);
+  }, 240_000);
 
   it("generates an image through the registered image provider", async () => {
     const { imageProviders } = await registerOpenAIPlugin();
