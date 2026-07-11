@@ -1,5 +1,5 @@
 /**
- * Smoke tests for the `astroclaw path` CLI handlers.
+ * Smoke tests for the `openclaw path` CLI handlers.
  *
  * Tests invoke each subcommand handler directly with a capturing
  * `OutputRuntimeEnv` — no commander wiring, no child process spawn.
@@ -49,7 +49,7 @@ function createTestRuntime(): TestRuntime {
 const stdoutText = (rt: TestRuntime): string => rt.stdout.join("\n");
 const stderrText = (rt: TestRuntime): string => rt.stderr.join("\n");
 
-describe("astroclaw path CLI", () => {
+describe("openclaw path CLI", () => {
   let workspaceDir: string;
 
   beforeEach(() => {
@@ -169,6 +169,26 @@ describe("astroclaw path CLI", () => {
       expect(readFileSync(filePath, "utf-8")).toBe(before);
     });
 
+    it("CLI-S02b --dry-run human output reports the rendered UTF-8 byte count", async () => {
+      const filePath = join(workspaceDir, "gateway.jsonc");
+      const before = '{ "version": "1.0" }';
+      writeFileSync(filePath, before, "utf-8");
+      const rt = createTestRuntime();
+      await pathSetCommand(
+        "oc://gateway.jsonc/version",
+        "中文",
+        { cwd: workspaceDir, human: true, dryRun: true },
+        rt,
+      );
+
+      const [header, ...bodyLines] = stdoutText(rt).split("\n");
+      const body = bodyLines.join("\n");
+      expect(header).toBe(
+        `--dry-run: would write ${Buffer.byteLength(body, "utf8")} bytes to ${filePath}`,
+      );
+      expect(readFileSync(filePath, "utf-8")).toBe(before);
+    });
+
     it("CLI-S05 --dry-run --diff prints a unified diff", async () => {
       const filePath = join(workspaceDir, "gateway.jsonc");
       const before = '{\n  "version": "1.0",\n  "enabled": true\n}\n';
@@ -255,6 +275,43 @@ describe("astroclaw path CLI", () => {
       expect(readFileSync(filePath, "utf-8")).toBe(before);
     });
 
+    it("CLI-S08 sets slash-deep JSONC paths and parsed JSON values", async () => {
+      const filePath = join(workspaceDir, "openclaw.json");
+      writeFileSync(
+        filePath,
+        '{ "agents": { "list": [{ "tools": { "exec": { "security": "deny" } } }] }, "gateway": { "auth": { "token": "${TOKEN}" } } }\n',
+        "utf-8",
+      );
+      const rt = createTestRuntime();
+
+      await pathSetCommand(
+        "oc://openclaw.json/gateway/auth/token",
+        '{"source":"file","provider":"secrets","id":"/test"}',
+        { cwd: workspaceDir, json: true, valueJson: true },
+        rt,
+      );
+
+      expect(rt.exitCode).toBe(0);
+      expect(JSON.parse(readFileSync(filePath, "utf8")).gateway.auth.token).toEqual({
+        source: "file",
+        provider: "secrets",
+        id: "/test",
+      });
+
+      const rt2 = createTestRuntime();
+      await pathSetCommand(
+        "oc://openclaw.json/agents/list/0/tools/exec/security",
+        "allowlist",
+        { cwd: workspaceDir, json: true },
+        rt2,
+      );
+
+      expect(rt2.exitCode).toBe(0);
+      expect(JSON.parse(readFileSync(filePath, "utf8")).agents.list[0].tools.exec.security).toBe(
+        "allowlist",
+      );
+    });
+
     it("CLI-S03 sentinel-bearing value is refused at emit", async () => {
       const filePath = join(workspaceDir, "gateway.jsonc");
       writeFileSync(filePath, '{ "token": "x" }', "utf-8");
@@ -268,7 +325,7 @@ describe("astroclaw path CLI", () => {
       // exit code 1, stable code OC_EMIT_SENTINEL, message scrubbed.
       await pathSetCommand(
         "oc://gateway.jsonc/token",
-        "__ASTROCLAW_REDACTED__",
+        "__OPENCLAW_REDACTED__",
         { cwd: workspaceDir, json: true },
         rt,
       );
@@ -375,6 +432,29 @@ describe("astroclaw path CLI", () => {
       const out = JSON.parse(stdoutText(rt));
       expect(out.kind).toBe("yaml");
       expect(out.bytes).toBe(before);
+    });
+
+    it("CLI-S07b reports accurate UTF-8 byte counts for multibyte set output", async () => {
+      const filePath = join(workspaceDir, "gateway.jsonc");
+      const before = '{\n  "version": "1.0"\n}\n';
+      writeFileSync(filePath, before, "utf-8");
+      // Replace the whole file with CJK content via the version key.
+      // CJK chars are 1 UTF-16 unit but 3 UTF-8 bytes.
+      const cjkValue = "中".repeat(30);
+      const rt = createTestRuntime();
+      await pathSetCommand(
+        "oc://gateway.jsonc/version",
+        cjkValue,
+        { cwd: workspaceDir, json: true },
+        rt,
+      );
+      expect(rt.exitCode).toBe(0);
+      const out = JSON.parse(stdoutText(rt));
+      // bytesWritten must match the file's actual UTF-8 byte size on disk
+      const onDisk = readFileSync(filePath, "utf-8");
+      expect(out.bytesWritten).toBe(Buffer.byteLength(onDisk, "utf8"));
+      // bytesWritten exceeds JS string length (50 UTF-16 units < ~110 UTF-8 bytes)
+      expect(out.bytesWritten).toBeGreaterThan(onDisk.length);
     });
 
     it("CLI-E03 emit --cwd resolves <file> against the supplied directory", async () => {
