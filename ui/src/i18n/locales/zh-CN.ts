@@ -500,7 +500,7 @@ export const zh_CN: TranslationMap = {
     pending: "{count} 个待处理",
     allowOnce: "允许一次",
     alwaysAllow: "始终允许",
-    allowAlwaysUnavailable: "有效的批准策略要求每次都批准，因此“始终允许”不可用。",
+    allowAlwaysUnavailable: "“始终允许”不可用于此命令。",
     deny: "拒绝",
     labels: {
       host: "主机",
@@ -784,6 +784,7 @@ export const zh_CN: TranslationMap = {
     artifactDetails: "Control UI 构建详细信息",
     version: "版本",
     commit: "提交",
+    branch: "分支",
     built: "构建时间",
     unavailable: "不可用",
     copyCommit: "复制完整提交哈希",
