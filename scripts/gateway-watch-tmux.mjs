@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Starts gateway watch in tmux while preserving useful dev environment state.
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
@@ -8,24 +9,33 @@ const TMUX_ATTACH_DISABLE_VALUES = new Set(["0", "false", "no", "off"]);
 const TMUX_ATTACH_FORCE_VALUES = new Set(["1", "true", "yes", "on"]);
 const DEFAULT_PROFILE_NAME = "main";
 const DEFAULT_BENCHMARK_PROFILE_DIR = ".artifacts/gateway-watch-profiles";
-const RUN_NODE_CPU_PROF_DIR_ENV = "ASTROCLAW_RUN_NODE_CPU_PROF_DIR";
-const RUN_NODE_OUTPUT_LOG_ENV = "ASTROCLAW_RUN_NODE_OUTPUT_LOG";
-const RUN_NODE_FILTER_SYNC_IO_STDERR_ENV = "ASTROCLAW_RUN_NODE_FILTER_SYNC_IO_STDERR";
+const DEFAULT_BENCHMARK_PROFILE_MAX_FILES = "40";
+const RUN_NODE_CPU_PROF_DIR_ENV = "OPENCLAW_RUN_NODE_CPU_PROF_DIR";
+const RUN_NODE_CPU_PROF_MAX_FILES_ENV = "OPENCLAW_RUN_NODE_CPU_PROF_MAX_FILES";
+const RUN_NODE_OUTPUT_LOG_ENV = "OPENCLAW_RUN_NODE_OUTPUT_LOG";
+const RUN_NODE_FILTER_SYNC_IO_STDERR_ENV = "OPENCLAW_RUN_NODE_FILTER_SYNC_IO_STDERR";
 const RAW_WATCH_SCRIPT = "scripts/watch-node.mjs";
-const TMUX_CWD_ENV_KEY = "ASTROCLAW_GATEWAY_WATCH_CWD";
-const TMUX_CWD_OPTION_KEY = "@astroclaw.gateway_watch.cwd";
+const TMUX_CWD_ENV_KEY = "OPENCLAW_GATEWAY_WATCH_CWD";
+const TMUX_CWD_OPTION_KEY = "@openclaw.gateway_watch.cwd";
 const TMUX_CHILD_ENV_KEYS = [
   "NODE_OPTIONS",
-  "ASTROCLAW_CONFIG_PATH",
-  "ASTROCLAW_GATEWAY_PORT",
-  "ASTROCLAW_HOME",
-  "ASTROCLAW_PROFILE",
+  "OPENCLAW_CONFIG_PATH",
+  "OPENCLAW_DIAGNOSTICS",
+  "OPENCLAW_DIAGNOSTICS_EVENT_LOOP",
+  "OPENCLAW_DIAGNOSTICS_TIMELINE_PATH",
+  "OPENCLAW_GATEWAY_PORT",
+  "OPENCLAW_GATEWAY_RESTART_TRACE",
+  "OPENCLAW_GATEWAY_STARTUP_TRACE",
+  "OPENCLAW_GATEWAY_WATCH_AUTO_DOCTOR",
+  "OPENCLAW_HOME",
+  "OPENCLAW_PROFILE",
   RUN_NODE_CPU_PROF_DIR_ENV,
+  RUN_NODE_CPU_PROF_MAX_FILES_ENV,
   RUN_NODE_FILTER_SYNC_IO_STDERR_ENV,
   RUN_NODE_OUTPUT_LOG_ENV,
-  "ASTROCLAW_SKIP_CHANNELS",
-  "ASTROCLAW_STATE_DIR",
-  "ASTROCLAW_TRACE_SYNC_IO",
+  "OPENCLAW_SKIP_CHANNELS",
+  "OPENCLAW_STATE_DIR",
+  "OPENCLAW_TRACE_SYNC_IO",
 ];
 
 const sanitizeSessionPart = (value) => {
@@ -106,8 +116,9 @@ const resolveGatewayWatchBenchmarkArgs = ({ args = [], env = process.env } = {})
   if (benchmarkFlagSeen) {
     nextEnv[RUN_NODE_CPU_PROF_DIR_ENV] =
       benchmarkDir || nextEnv[RUN_NODE_CPU_PROF_DIR_ENV] || DEFAULT_BENCHMARK_PROFILE_DIR;
-    nextEnv.ASTROCLAW_TRACE_SYNC_IO ??= "0";
-    if (nextEnv.ASTROCLAW_TRACE_SYNC_IO === "1") {
+    nextEnv[RUN_NODE_CPU_PROF_MAX_FILES_ENV] ??= DEFAULT_BENCHMARK_PROFILE_MAX_FILES;
+    nextEnv.OPENCLAW_TRACE_SYNC_IO ??= "0";
+    if (nextEnv.OPENCLAW_TRACE_SYNC_IO === "1") {
       nextEnv[RUN_NODE_OUTPUT_LOG_ENV] ??= joinArtifactPath(
         nextEnv[RUN_NODE_CPU_PROF_DIR_ENV],
         "gateway-watch-output.log",
@@ -129,14 +140,17 @@ const resolveGatewayWatchBenchmarkArgs = ({ args = [], env = process.env } = {})
   };
 };
 
+/**
+ * Resolves the tmux session name for gateway watch arguments/environment.
+ */
 export const resolveGatewayWatchTmuxSessionName = ({ args = [], env = process.env } = {}) => {
   const profile =
-    env.ASTROCLAW_PROFILE ||
+    env.OPENCLAW_PROFILE ||
     readArgValue(args, "--profile") ||
     (args.includes("--dev") ? "dev" : null);
-  const port = env.ASTROCLAW_GATEWAY_PORT || readArgValue(args, "--port");
+  const port = env.OPENCLAW_GATEWAY_PORT || readArgValue(args, "--port");
   const parts = [
-    "astroclaw",
+    "openclaw",
     "gateway",
     "watch",
     sanitizeSessionPart(profile ?? DEFAULT_PROFILE_NAME),
@@ -160,6 +174,9 @@ const resolveColorEnv = (env) => {
   return { assignments: [`FORCE_COLOR=${forceColor}`], options: [] };
 };
 
+/**
+ * Builds the shell command executed inside the tmux gateway watch session.
+ */
 export const buildGatewayWatchTmuxCommand = ({
   args = [],
   cwd = process.cwd(),
@@ -169,11 +186,14 @@ export const buildGatewayWatchTmuxCommand = ({
 } = {}) => {
   const shell = resolveShell(env);
   const colorEnv = resolveColorEnv(env);
+  // tmux sessions retain their own environment across respawns. Clear supported
+  // selectors before applying the invoking process's current values.
   const childEnv = [
     "env",
     ...colorEnv.options,
-    `ASTROCLAW_GATEWAY_WATCH_TMUX_CHILD=1`,
-    `ASTROCLAW_GATEWAY_WATCH_SESSION=${sessionName}`,
+    ...TMUX_CHILD_ENV_KEYS.flatMap((key) => ["-u", key]),
+    `OPENCLAW_GATEWAY_WATCH_TMUX_CHILD=1`,
+    `OPENCLAW_GATEWAY_WATCH_SESSION=${sessionName}`,
     ...colorEnv.assignments,
     ...TMUX_CHILD_ENV_KEYS.flatMap((key) =>
       env[key] == null || env[key] === "" ? [] : [`${key}=${env[key]}`],
@@ -209,7 +229,7 @@ const runTmux = (spawnSyncImpl, args, options = {}) =>
   });
 
 const log = (stderr, message) => {
-  stderr.write(`[astroclaw] ${message}\n`);
+  stderr.write(`[openclaw] ${message}\n`);
 };
 
 const getTmuxErrorText = (result) =>
@@ -219,14 +239,23 @@ const isMissingTmuxTarget = (result) =>
   /can't find (?:session|window|pane)|no current target/i.test(getTmuxErrorText(result));
 
 const shouldAttachTmux = ({ env, stdinIsTTY, stdoutIsTTY }) => {
-  const raw = String(env.ASTROCLAW_GATEWAY_WATCH_ATTACH ?? "").toLowerCase();
+  const raw = String(env.OPENCLAW_GATEWAY_WATCH_ATTACH ?? "").toLowerCase();
   if (TMUX_ATTACH_FORCE_VALUES.has(raw)) {
     return true;
   }
   if (TMUX_ATTACH_DISABLE_VALUES.has(raw)) {
     return false;
   }
-  return !env.CI && stdinIsTTY === true && stdoutIsTTY === true;
+  // TERM=dumb pseudo-TTYs cannot satisfy tmux's clear/cursor requirements.
+  const term = String(env.TERM ?? "")
+    .trim()
+    .toLowerCase();
+  return (
+    !env.CI &&
+    stdinIsTTY === true &&
+    stdoutIsTTY === true &&
+    (Boolean(env.TMUX) || (term !== "" && term !== "dumb"))
+  );
 };
 
 const attachTmux = ({ env, sessionName, spawnSyncImpl }) => {
@@ -250,6 +279,9 @@ const setTmuxSessionMetadata = ({ cwd, sessionName, spawnSyncImpl, stderr }) => 
   }
 };
 
+/**
+ * Runs the gateway-watch tmux wrapper main flow.
+ */
 export const runGatewayWatchTmuxMain = (params = {}) => {
   const resolvedArgs = resolveGatewayWatchBenchmarkArgs({
     args: params.args ?? process.argv.slice(2),
@@ -280,7 +312,7 @@ export const runGatewayWatchTmuxMain = (params = {}) => {
     log(deps.stderr, "gateway:watch benchmark running without --force");
   }
 
-  if (TMUX_DISABLE_VALUES.has((deps.env.ASTROCLAW_GATEWAY_WATCH_TMUX ?? "").toLowerCase())) {
+  if (TMUX_DISABLE_VALUES.has((deps.env.OPENCLAW_GATEWAY_WATCH_TMUX ?? "").toLowerCase())) {
     return runForegroundWatcher({
       args: deps.args,
       cwd: deps.cwd,
@@ -290,7 +322,7 @@ export const runGatewayWatchTmuxMain = (params = {}) => {
     });
   }
 
-  if (deps.env.ASTROCLAW_GATEWAY_WATCH_TMUX_CHILD === "1") {
+  if (deps.env.OPENCLAW_GATEWAY_WATCH_TMUX_CHILD === "1") {
     return runForegroundWatcher({
       args: deps.args,
       cwd: deps.cwd,
