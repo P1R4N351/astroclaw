@@ -1,10 +1,11 @@
 /**
  * Periodically refresh C2C typing state while a response is in progress.
  *
- * All I/O operations are injected via constructor parameters so this
- * module has zero external dependencies and can run in both plugin versions.
+ * Interval scheduling comes from the core typing keepalive loop; this module
+ * owns the QQ passive-reply budget accounting and token-refresh retry.
  */
 
+import { createTypingKeepaliveLoop } from "openclaw/plugin-sdk/channel-outbound";
 import { formatErrorMessage } from "../utils/format.js";
 
 /** Function that sends a typing indicator to one user. */
@@ -15,13 +16,24 @@ type SendInputNotifyFn = (
   inputSecond: number,
 ) => Promise<unknown>;
 
-/** Refresh every 50s for the QQ API's 60s input-notify window. */
-const TYPING_INTERVAL_MS = 50_000;
-export const TYPING_INPUT_SECOND = 60;
+/** Refresh every 5s for the QQ API's 10s input-notify window. */
+const TYPING_INTERVAL_MS = 5_000;
+export const TYPING_INPUT_SECOND = 10;
+const QQ_C2C_PASSIVE_REPLY_LIMIT = 5;
+const INITIAL_TYPING_NOTIFY_COUNT = 1;
+const FINAL_REPLY_RESERVE_COUNT = 1;
+export const TYPING_RENEWAL_LIMIT =
+  QQ_C2C_PASSIVE_REPLY_LIMIT - INITIAL_TYPING_NOTIFY_COUNT - FINAL_REPLY_RESERVE_COUNT;
 
 export class TypingKeepAlive {
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private renewalsRemaining = TYPING_RENEWAL_LIMIT;
   private stopped = false;
+  // Core loop owns the interval and in-flight tick suppression; budget
+  // accounting in sendAttempt() decides when it must stop for good.
+  private readonly loop = createTypingKeepaliveLoop({
+    intervalMs: TYPING_INTERVAL_MS,
+    onTick: () => this.send(),
+  });
 
   constructor(
     private readonly getToken: () => Promise<string>,
@@ -29,50 +41,57 @@ export class TypingKeepAlive {
     private readonly sendInputNotify: SendInputNotifyFn,
     private readonly openid: string,
     private readonly msgId: string | undefined,
-    private readonly log?: {
-      info: (msg: string) => void;
-      error: (msg: string) => void;
-      debug?: (msg: string) => void;
-    },
+    private readonly log?: { debug?: (msg: string) => void },
   ) {}
 
   /** Start periodic keep-alive sends. */
   start(): void {
-    if (this.stopped) {
-      return;
+    // stop() is a permanent latch: a stopped keepalive must never spend more budget.
+    if (!this.stopped) {
+      this.loop.start();
     }
-    this.timer = setInterval(() => {
-      if (this.stopped) {
-        this.stop();
-        return;
-      }
-      this.send().catch(() => {});
-    }, TYPING_INTERVAL_MS);
   }
 
   /** Stop periodic keep-alive sends. */
   stop(): void {
     this.stopped = true;
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
+    this.loop.stop();
   }
 
+  // Never rejects: the core loop does not catch onTick errors.
   private async send(): Promise<void> {
     try {
       const token = await this.getToken();
-      await this.sendInputNotify(token, this.openid, this.msgId, TYPING_INPUT_SECOND);
-      this.log?.debug?.(`Typing keep-alive sent to ${this.openid}`);
+      await this.sendAttempt(token);
     } catch (err) {
       try {
         this.clearCache();
         const token = await this.getToken();
-        await this.sendInputNotify(token, this.openid, this.msgId, TYPING_INPUT_SECOND);
+        await this.sendAttempt(token);
       } catch {
         this.log?.debug?.(
           `Typing keep-alive failed for ${this.openid}: ${formatErrorMessage(err)}`,
         );
+      }
+    }
+  }
+
+  private async sendAttempt(token: string): Promise<void> {
+    if (this.stopped || this.renewalsRemaining <= 0) {
+      this.stop();
+      return;
+    }
+
+    // Count attempts, not successes (token-refresh retries included): a failed
+    // call may still consume QQ's msg_id budget, so keep FINAL_REPLY_RESERVE_COUNT safe.
+    this.renewalsRemaining--;
+    try {
+      await this.sendInputNotify(token, this.openid, this.msgId, TYPING_INPUT_SECOND);
+      this.log?.debug?.(`Typing keep-alive sent to ${this.openid}`);
+    } finally {
+      if (this.renewalsRemaining <= 0) {
+        this.log?.debug?.(`Typing keep-alive budget exhausted for ${this.openid}`);
+        this.stop();
       }
     }
   }
