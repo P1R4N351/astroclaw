@@ -7,6 +7,7 @@
  * dispatcher needs. No decisions / gating.
  */
 
+import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { ProcessedAttachments } from "../inbound-attachments.js";
 import type { InboundGroupInfo, InboundPipelineDeps, ReplyToInfo } from "../inbound-context.js";
 import type { QueuedMessage } from "../message-queue.js";
@@ -116,6 +117,9 @@ export function classifyMedia(processed: ProcessedAttachments): MediaClassificat
   for (let i = 0; i < processed.imageUrls.length; i++) {
     const u = processed.imageUrls[i];
     const t = processed.imageMediaTypes[i] ?? "image/png";
+    if (u === undefined) {
+      continue;
+    }
     if (u.startsWith("http://") || u.startsWith("https://")) {
       remoteMediaUrls.push(u);
       remoteMediaTypes.push(t);
@@ -125,8 +129,8 @@ export function classifyMedia(processed: ProcessedAttachments): MediaClassificat
     }
   }
 
-  const uniqueVoicePaths = [...new Set(processed.voiceAttachmentPaths)];
-  const uniqueVoiceUrls = [...new Set(processed.voiceAttachmentUrls)];
+  const uniqueVoicePaths = uniqueStrings(processed.voiceAttachmentPaths);
+  const uniqueVoiceUrls = uniqueStrings(processed.voiceAttachmentUrls);
   const voiceMediaTypes = [...uniqueVoicePaths, ...uniqueVoiceUrls].map(() => "audio/wav");
 
   return {
@@ -136,7 +140,7 @@ export function classifyMedia(processed: ProcessedAttachments): MediaClassificat
     remoteMediaTypes,
     uniqueVoicePaths,
     uniqueVoiceUrls,
-    uniqueVoiceAsrReferTexts: [...new Set(processed.voiceAsrReferTexts)].filter(Boolean),
+    uniqueVoiceAsrReferTexts: uniqueStrings(processed.voiceAsrReferTexts).filter(Boolean),
     voiceMediaTypes,
     hasAsrReferFallback: processed.voiceTranscriptSources.includes("asr"),
     voiceTranscriptSources: processed.voiceTranscriptSources,
