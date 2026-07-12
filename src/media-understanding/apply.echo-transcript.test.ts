@@ -2,10 +2,11 @@
 // best-effort transcript delivery.
 import fs from "node:fs/promises";
 import path from "node:path";
+import { expectDefined } from "@openclaw/normalization-core";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MsgContext } from "../auto-reply/templating.js";
 import type { OpenClawConfig } from "../config/types.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { createSafeAudioFixtureBuffer } from "./runner.test-utils.js";
 import type { MediaUnderstandingProvider } from "./types.js";
 
@@ -230,7 +231,7 @@ describe("applyMediaUnderstanding – echo transcript", () => {
       };
     });
 
-    const baseDir = resolvePreferredAstroclawTmpDir();
+    const baseDir = resolvePreferredOpenClawTmpDir();
     await fs.mkdir(baseDir, { recursive: true });
     suiteTempMediaRootDir = await fs.mkdtemp(path.join(baseDir, TEMP_MEDIA_PREFIX));
     const mod = await import("./apply.js");
@@ -295,7 +296,9 @@ describe("applyMediaUnderstanding – echo transcript", () => {
     expect(callArgs.to).toBe("+10000000001");
     expect(callArgs.accountId).toBe("acc1");
     expect(callArgs.payloads).toHaveLength(1);
-    expect(callArgs.payloads[0].text).toBe('📝 "hello world"');
+    expect(expectDefined(callArgs.payloads[0], "callArgs.payloads[0] test invariant").text).toBe(
+      '📝 "hello world"',
+    );
   });
 
   it("does NOT echo when there are no audio attachments", async () => {
@@ -329,7 +332,7 @@ describe("applyMediaUnderstanding – echo transcript", () => {
     const mediaPath = await createTempAudioFile();
     const ctx = createAudioCtxWithProvider(mediaPath);
     const { cfg, providers } = createAudioConfigWithEcho({ echoTranscript: true });
-    providers.groq.transcribeAudio = async () => {
+    expectDefined(providers.groq, "providers.groq test invariant").transcribeAudio = async () => {
       throw new Error("transcription provider failure");
     };
 
