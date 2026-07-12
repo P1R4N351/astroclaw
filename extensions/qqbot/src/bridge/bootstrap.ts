@@ -23,13 +23,14 @@
  * vitest (which resolves bare specifiers via `resolve.alias`, not Node CJS).
  */
 
+import type { ApprovalResolveResult } from "openclaw/plugin-sdk/approval-gateway-runtime";
 import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
 import {
   hasConfiguredSecretInput,
   normalizeResolvedSecretInputString,
   normalizeSecretInputString,
 } from "openclaw/plugin-sdk/secret-input";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import {
   registerPlatformAdapter,
   registerPlatformAdapterFactory,
@@ -83,7 +84,7 @@ function createBuiltinAdapter(): PlatformAdapter {
     },
 
     getTempDir(): string {
-      return resolvePreferredAstroclawTmpDir();
+      return resolvePreferredOpenClawTmpDir();
     },
 
     hasConfiguredSecret(value: unknown): boolean {
@@ -98,22 +99,22 @@ function createBuiltinAdapter(): PlatformAdapter {
       return normalizeResolvedSecretInputString(params) ?? undefined;
     },
 
-    async resolveApproval(approvalId: string, decision: string): Promise<boolean> {
+    async resolveApproval(params): Promise<ApprovalResolveResult> {
       try {
         const { getRuntimeConfig } = await import("openclaw/plugin-sdk/runtime-config-snapshot");
         const { resolveApprovalOverGateway } =
           await import("openclaw/plugin-sdk/approval-gateway-runtime");
         const cfg = getRuntimeConfig();
-        await resolveApprovalOverGateway({
+        return await resolveApprovalOverGateway({
           cfg,
-          approvalId,
-          decision: decision as "allow-once" | "allow-always" | "deny",
+          approvalId: params.approvalId,
+          approvalKind: params.approvalKind,
+          decision: params.decision,
           clientDisplayName: "QQBot Approval Handler",
         });
-        return true;
       } catch (err) {
         getBridgeLogger().error(`[qqbot] resolveApproval failed: ${String(err)}`);
-        return false;
+        throw err;
       }
     },
   };
