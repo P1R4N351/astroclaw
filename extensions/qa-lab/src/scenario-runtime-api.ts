@@ -8,13 +8,13 @@ type QaScenarioRuntimeFunction = (...args: never[]) => unknown;
 
 type QaScenarioTransport = Pick<
   QaTransportAdapter,
-  | "capabilities"
   | "reset"
   | "sendInbound"
   | "sendNativeCommand"
   | "state"
   | "waitForNoOutbound"
   | "waitForOutbound"
+  | "waitForCondition"
 >;
 
 export type QaScenarioRuntimeEnv<
@@ -58,6 +58,7 @@ export type QaScenarioRuntimeDeps = {
   patchConfig: QaScenarioRuntimeFunction;
   applyConfig: QaScenarioRuntimeFunction;
   readConfigSnapshot: QaScenarioRuntimeFunction;
+  restartGatewayWithConfigPatch: QaScenarioRuntimeFunction;
   createSession: QaScenarioRuntimeFunction;
   readEffectiveTools: QaScenarioRuntimeFunction;
   readSkillStatus: QaScenarioRuntimeFunction;
@@ -124,7 +125,7 @@ type QaScenarioRuntimeApi<
   sleep: (ms?: number) => Promise<unknown>;
   randomUUID: () => string;
   runScenario: TDeps["runScenario"];
-  waitForCondition: TEnv["transport"]["capabilities"]["waitForCondition"];
+  waitForCondition: TEnv["transport"]["waitForCondition"];
   waitForOutboundMessage: TDeps["waitForOutboundMessage"];
   waitForTransportOutboundMessage: TDeps["waitForTransportOutboundMessage"];
   waitForChannelOutboundMessage: TDeps["waitForChannelOutboundMessage"];
@@ -153,6 +154,7 @@ type QaScenarioRuntimeApi<
   patchConfig: TDeps["patchConfig"];
   applyConfig: TDeps["applyConfig"];
   readConfigSnapshot: TDeps["readConfigSnapshot"];
+  restartGatewayWithConfigPatch: TDeps["restartGatewayWithConfigPatch"];
   createSession: TDeps["createSession"];
   readEffectiveTools: TDeps["readEffectiveTools"];
   readSkillStatus: TDeps["readSkillStatus"];
@@ -199,11 +201,11 @@ type QaScenarioRuntimeApi<
   imageUnderstandingPngBase64: string;
   imageUnderstandingLargePngBase64: string;
   imageUnderstandingValidPngBase64: string;
-  getTransportSnapshot: TEnv["transport"]["capabilities"]["getNormalizedMessageState"];
+  getTransportSnapshot: TEnv["transport"]["state"]["getSnapshot"];
   resetTransport: () => Promise<void>;
-  injectInboundMessage: TEnv["transport"]["capabilities"]["sendInboundMessage"];
-  injectOutboundMessage: TEnv["transport"]["capabilities"]["injectOutboundMessage"];
-  readTransportMessage: TEnv["transport"]["capabilities"]["readNormalizedMessage"];
+  injectInboundMessage: TEnv["transport"]["state"]["addInboundMessage"];
+  injectOutboundMessage: TEnv["transport"]["state"]["addOutboundMessage"];
+  readTransportMessage: TEnv["transport"]["state"]["readMessage"];
   resetBus: () => Promise<void>;
   reset: () => Promise<void>;
 };
@@ -217,16 +219,18 @@ export function createQaScenarioRuntimeApi<
   deps: TDeps;
   constants: QaScenarioRuntimeConstants;
 }): QaScenarioRuntimeApi<TEnv, TDeps> {
+  const transport = params.env.transport;
+  const transportState = transport.state;
   const resetTransportState = async () => {
-    await params.env.transport.capabilities.resetNormalizedMessageState();
+    await transport.reset();
     await params.deps.sleep(100);
   };
 
   return {
     env: params.env,
     lab: params.env.lab,
-    transport: params.env.transport,
-    state: params.env.transport.state,
+    transport,
+    state: transportState,
     scenario: params.scenario,
     config: params.scenario.execution.config ?? {},
     fs: params.deps.fs,
@@ -234,7 +238,7 @@ export function createQaScenarioRuntimeApi<
     sleep: params.deps.sleep,
     randomUUID: params.deps.randomUUID,
     runScenario: params.deps.runScenario,
-    waitForCondition: params.env.transport.capabilities.waitForCondition,
+    waitForCondition: transport.waitForCondition,
     waitForOutboundMessage: params.deps.waitForOutboundMessage,
     waitForTransportOutboundMessage: params.deps.waitForTransportOutboundMessage,
     waitForChannelOutboundMessage: params.deps.waitForChannelOutboundMessage,
@@ -263,6 +267,7 @@ export function createQaScenarioRuntimeApi<
     patchConfig: params.deps.patchConfig,
     applyConfig: params.deps.applyConfig,
     readConfigSnapshot: params.deps.readConfigSnapshot,
+    restartGatewayWithConfigPatch: params.deps.restartGatewayWithConfigPatch,
     createSession: params.deps.createSession,
     readEffectiveTools: params.deps.readEffectiveTools,
     readSkillStatus: params.deps.readSkillStatus,
@@ -309,11 +314,11 @@ export function createQaScenarioRuntimeApi<
     imageUnderstandingPngBase64: params.constants.imageUnderstandingPngBase64,
     imageUnderstandingLargePngBase64: params.constants.imageUnderstandingLargePngBase64,
     imageUnderstandingValidPngBase64: params.constants.imageUnderstandingValidPngBase64,
-    getTransportSnapshot: params.env.transport.capabilities.getNormalizedMessageState,
+    getTransportSnapshot: transportState.getSnapshot.bind(transportState),
     resetTransport: resetTransportState,
-    injectInboundMessage: params.env.transport.capabilities.sendInboundMessage,
-    injectOutboundMessage: params.env.transport.capabilities.injectOutboundMessage,
-    readTransportMessage: params.env.transport.capabilities.readNormalizedMessage,
+    injectInboundMessage: transportState.addInboundMessage.bind(transportState),
+    injectOutboundMessage: transportState.addOutboundMessage.bind(transportState),
+    readTransportMessage: transportState.readMessage.bind(transportState),
     resetBus: resetTransportState,
     reset: resetTransportState,
   };
