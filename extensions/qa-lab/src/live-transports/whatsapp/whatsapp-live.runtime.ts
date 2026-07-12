@@ -13,7 +13,7 @@ import { normalizeE164 } from "openclaw/plugin-sdk/account-resolution";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import { normalizeStringEntries, uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { z } from "zod";
 import { createQaArtifactRunId } from "../../artifact-run-id.js";
 import { QA_EVIDENCE_FILENAME, buildLiveTransportEvidenceSummary } from "../../evidence-summary.js";
@@ -2620,6 +2620,9 @@ async function waitForWhatsAppSutReactionSequenceToTrigger(
         continue;
       }
       const expectedEmoji = params.emojis[matched.length];
+      if (!expectedEmoji) {
+        return false;
+      }
       if (matchesWhatsAppSutReactionToTrigger(message, context, { emoji: expectedEmoji })) {
         matched.push(message);
         lastMatchedObservedAtMs = observedAtMs;
@@ -2706,24 +2709,25 @@ async function callWhatsAppGatewaySendConcurrently(
   // real Gateway overlap so this probe reaches the shared WhatsApp socket concurrently.
   const connection = resolveWhatsAppGatewayRpcConnection(context.gateway);
   const clients = await Promise.all(
-    sends.map(() =>
-      startQaGatewayRpcClient({
+    sends.map(async (send) => ({
+      send,
+      client: await startQaGatewayRpcClient({
         logs: connection.logs,
         token: connection.token,
         wsUrl: connection.wsUrl,
       }),
-    ),
+    })),
   );
   try {
     await Promise.all(
-      clients.map((client, index) =>
-        client.request("send", buildWhatsAppGatewaySendRequest(context, sends[index]), {
+      clients.map(({ client, send }) =>
+        client.request("send", buildWhatsAppGatewaySendRequest(context, send), {
           timeoutMs: 60_000,
         }),
       ),
     );
   } finally {
-    await Promise.all(clients.map((client) => client.stop()));
+    await Promise.all(clients.map(({ client }) => client.stop()));
   }
 }
 
@@ -4180,7 +4184,7 @@ export async function runWhatsAppQaLive(params: {
     };
     runtimeEnv = credentialLease.payload;
     tempAuthRoot = await fs.mkdtemp(
-      path.join(resolvePreferredAstroclawTmpDir(), "openclaw-whatsapp-qa-"),
+      path.join(resolvePreferredOpenClawTmpDir(), "openclaw-whatsapp-qa-"),
     );
     preScenarioPhase = "auth archive unpack";
     const [driverAuthDir, sutAuthDir] = await Promise.all([
