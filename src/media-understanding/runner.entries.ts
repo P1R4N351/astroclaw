@@ -2,6 +2,7 @@
 // rotation, output extraction, and decision summaries.
 import fs from "node:fs/promises";
 import path from "node:path";
+import { expectDefined } from "@openclaw/normalization-core";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeNullableString,
@@ -36,7 +37,7 @@ import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { hasErrnoCode } from "../infra/errors.js";
 import { writeExternalFileWithinRoot } from "../infra/fs-safe.js";
 import { resolveProxyFetchFromEnv } from "../infra/net/proxy-fetch.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { runFfmpeg } from "../media/media-services.js";
 import {
   getOfficialExternalPluginCatalogManifest,
@@ -1045,7 +1046,7 @@ export async function runCliEntry(params: {
     assertMinAudioSize({ size: stat.size, attachmentIndex: params.attachmentIndex });
   }
   const outputDir = await fs.mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-media-cli-"),
+    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-media-cli-"),
   );
   const mediaPath = await resolveCliMediaPath({
     capability,
@@ -1072,11 +1073,15 @@ export async function runCliEntry(params: {
     if (shouldLogVerbose()) {
       logVerbose(`Media understanding via CLI: ${argv.join(" ")}`);
     }
-    const { stdout, stderr } = await runExec(argv[0], argv.slice(1), {
-      timeoutMs,
-      maxBuffer: CLI_OUTPUT_MAX_BUFFER,
-      cwd: isAntigravityCliCommand(command) ? path.dirname(mediaPath) : undefined,
-    });
+    const { stdout, stderr } = await runExec(
+      expectDefined(argv[0], "argv entry at 0"),
+      argv.slice(1),
+      {
+        timeoutMs,
+        maxBuffer: CLI_OUTPUT_MAX_BUFFER,
+        cwd: isAntigravityCliCommand(command) ? path.dirname(mediaPath) : undefined,
+      },
+    );
     const requestedBackend =
       capability === "audio"
         ? resolveRequestedLocalAudioBackend({
