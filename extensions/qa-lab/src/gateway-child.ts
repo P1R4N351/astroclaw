@@ -17,7 +17,7 @@ import {
   normalizeStringEntries,
   uniqueStrings,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import {
   createQaBundledPluginsDir,
   resolveQaBundledPluginSourceDir,
@@ -63,6 +63,7 @@ import { stageQaMockAuthProfiles } from "./providers/shared/mock-auth.js";
 import { seedQaAgentWorkspace } from "./qa-agent-workspace.js";
 import { buildQaGatewayConfig, type QaThinkingLevel } from "./qa-gateway-config.js";
 import type { QaTransportAdapter } from "./qa-transport.js";
+import type { RuntimeId } from "./runtime-parity.js";
 import { resolveQaWindowsSystem32ExePath } from "./windows-system-tools.js";
 
 export type { QaCliBackendAuthMode } from "./providers/env.js";
@@ -868,6 +869,7 @@ export async function startQaGatewayChild(params: {
   alternateModel?: string;
   fastMode?: boolean;
   thinkingDefault?: QaThinkingLevel;
+  forcedRuntime?: RuntimeId;
   claudeCliAuthMode?: QaCliBackendAuthMode;
   controlUiEnabled?: boolean;
   enabledPluginIds?: string[];
@@ -879,7 +881,7 @@ export async function startQaGatewayChild(params: {
 }) {
   // Verified launchers may require every runtime artifact to stay inside their
   // prepared root; carry that root forward instead of rediscovering host temp policy.
-  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredAstroclawTmpDir();
+  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredOpenClawTmpDir();
   const tempRoot = await fs.mkdtemp(path.join(tempParentDir, "openclaw-qa-suite-"));
   const runtimeCwd = tempRoot;
   const distEntryPath = path.join(params.repoRoot, "dist", "index.js");
@@ -956,6 +958,7 @@ export async function startQaGatewayChild(params: {
       liveProviderConfigs,
       fastMode: params.fastMode,
       thinkingDefault: params.thinkingDefault,
+      forcedRuntime: params.forcedRuntime,
       controlUiEnabled: params.controlUiEnabled,
     });
   const buildStagedGatewayConfig = async (gatewayPort: number) => {
