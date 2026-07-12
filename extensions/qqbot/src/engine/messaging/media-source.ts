@@ -29,7 +29,7 @@
  */
 
 import type { FileHandle } from "node:fs/promises";
-import { FsSafeError, openLocalFileSafely } from "astroclaw/plugin-sdk/security-runtime";
+import { FsSafeError, openLocalFileSafely } from "openclaw/plugin-sdk/security-runtime";
 import { MAX_UPLOAD_SIZE, formatFileSize, getMimeType } from "../utils/file-utils.js";
 
 // ============ Types ============
@@ -81,7 +81,9 @@ function tryParseDataUrl(value: string): { mime: string; data: string } | null {
   if (!m) {
     return null;
   }
-  return { mime: m[1], data: m[2] };
+  const mime = m[1];
+  const data = m[2];
+  return mime === undefined || data === undefined ? null : { mime, data };
 }
 
 // ============ Local file safe open ============
