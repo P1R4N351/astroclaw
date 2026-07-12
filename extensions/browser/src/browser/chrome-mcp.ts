@@ -24,7 +24,7 @@ import {
   readStringValue,
   uniqueStrings,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { redactToolPayloadText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { asRecord } from "../record-shared.js";
@@ -77,6 +77,25 @@ type ChromeMcpTargetOperation = ChromeMcpOperationOptions & {
   userDataDir?: string;
   targetId: string;
 };
+
+export class ChromeMcpDocumentUnavailableError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "ChromeMcpDocumentUnavailableError";
+  }
+}
+
+function rethrowChromeMcpDocumentError(error: unknown): never {
+  const message = error instanceof Error ? error.message : String(error);
+  if (
+    /Element (?:with )?uid .* (?:not found|no longer exists) on (?:the )?page|Execution context was destroyed|Cannot find context with specified id|Frame (?:was |is )?detached|detached Frame|Node is detached from document/i.test(
+      message,
+    )
+  ) {
+    throw new ChromeMcpDocumentUnavailableError(message, { cause: error });
+  }
+  throw error;
+}
 
 type ChromeMcpCallOptions = ChromeMcpOperationOptions & {
   ephemeral?: boolean;
@@ -1897,9 +1916,7 @@ async function withChromeMcpTarget<T>(
 }
 
 async function withTempFile<T>(fn: (filePath: string) => Promise<T>): Promise<T> {
-  const dir = await fs.mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-chrome-mcp-"),
-  );
+  const dir = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "openclaw-chrome-mcp-"));
   const filePath = path.join(dir, randomUUID());
   try {
     return await fn(filePath);
@@ -2211,6 +2228,52 @@ export async function takeChromeMcpSnapshot(
       params.targetId,
       extractSnapshot(result),
     );
+  });
+}
+
+/** Run document-bound evaluations without releasing the target/session lock. */
+export async function withChromeMcpDocument<T>(
+  params: ChromeMcpTargetOperation,
+  task: (document: { evaluate: (fn: string) => Promise<unknown> }) => Promise<T>,
+): Promise<T> {
+  return await withChromeMcpTarget(params, async (target) => {
+    let snapshot: ChromeMcpSnapshotNode;
+    try {
+      snapshot = extractSnapshot(
+        await callTool(
+          params.profileName,
+          target.profileOptions,
+          "take_snapshot",
+          { pageId: target.pageId, verbose: true },
+          params,
+          target.lease,
+        ),
+      );
+    } catch (error) {
+      rethrowChromeMcpDocumentError(error);
+    }
+    const uid = normalizeOptionalString(snapshot.id);
+    if (!uid || snapshot.role?.trim().toLowerCase() !== "rootwebarea") {
+      throw new Error("Chrome MCP snapshot did not contain a top-level document uid");
+    }
+    return await task({
+      evaluate: async (fn) => {
+        try {
+          return extractJsonMessage(
+            await callTool(
+              params.profileName,
+              target.profileOptions,
+              "evaluate_script",
+              { pageId: target.pageId, function: fn, args: [uid] },
+              params,
+              target.lease,
+            ),
+          );
+        } catch (error) {
+          return rethrowChromeMcpDocumentError(error);
+        }
+      },
+    });
   });
 }
 
