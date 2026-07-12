@@ -12,10 +12,10 @@ import type {
 import { mulawToPcm } from "openclaw/plugin-sdk/realtime-voice";
 import { detectBinary } from "openclaw/plugin-sdk/setup-tools";
 import { resolveOAuthDir } from "openclaw/plugin-sdk/state-paths";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { Type } from "typebox";
 import { resolveWhatsAppAccount } from "./accounts.js";
-import { getRegisteredWhatsAppConnectionController } from "./connection-controller-registry.js";
+import { getWhatsAppConnectionController } from "./connection-controller-runtime-context.js";
 import { resolveJidToE164 } from "./targets-runtime.js";
 
 const MEOWCALLER_COMMAND = "meowcaller";
@@ -162,7 +162,7 @@ async function resolveRequesterE164(params: {
   }
 
   const account = resolveWhatsAppAccount({ cfg: params.cfg, accountId: params.accountId });
-  const lidLookup = getRegisteredWhatsAppConnectionController(params.accountId)?.getCurrentSock()
+  const lidLookup = getWhatsAppConnectionController(params.accountId)?.getCurrentSock()
     ?.signalRepository.lidMapping;
   return await resolveJidToE164(senderId, { authDir: account.authDir, lidLookup });
 }
@@ -171,7 +171,7 @@ async function resolveLinkedWhatsAppSelfE164(params: {
   accountId: string;
   cfg: NonNullable<OpenClawPluginToolContext["config"]>;
 }): Promise<string | null> {
-  const controller = getRegisteredWhatsAppConnectionController(params.accountId);
+  const controller = getWhatsAppConnectionController(params.accountId);
   if (!controller) {
     return null;
   }
@@ -281,7 +281,7 @@ function createWhatsAppCallToolWithDependencies(
         const pcm = normalizeTelephonyPcm(speech.audioBuffer, speech.outputFormat);
         const callWindowMs = resolveCallWindowMs(pcm.length, speech.sampleRate);
         const tempDir = await fs.mkdtemp(
-          path.join(resolvePreferredAstroclawTmpDir(), "openclaw-whatsapp-call-"),
+          path.join(resolvePreferredOpenClawTmpDir(), "openclaw-whatsapp-call-"),
         );
         const audioPath = path.join(tempDir, "message.wav");
         try {
