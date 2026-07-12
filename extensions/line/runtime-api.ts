@@ -4,28 +4,28 @@
 export type {
   ChannelAccountSnapshot,
   ChannelPlugin,
-  AstroclawConfig,
-  AstroclawPluginApi,
+  OpenClawConfig,
+  OpenClawPluginApi,
   PluginRuntime,
-} from "astroclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 export type {
   ChannelGatewayContext,
   ChannelStatusIssue,
-} from "astroclaw/plugin-sdk/channel-contract";
-export { clearAccountEntryFields } from "astroclaw/plugin-sdk/core";
-export { buildChannelConfigSchema } from "astroclaw/plugin-sdk/channel-config-schema";
-export type { ReplyPayload } from "astroclaw/plugin-sdk/reply-runtime";
-export type { ChannelSetupDmPolicy, ChannelSetupWizard } from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/channel-contract";
+export { clearAccountEntryFields } from "openclaw/plugin-sdk/core";
+export { buildChannelConfigSchema } from "openclaw/plugin-sdk/channel-config-schema";
+export type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+export type { ChannelSetupDmPolicy, ChannelSetupWizard } from "openclaw/plugin-sdk/setup";
 export {
   buildComputedAccountStatusSnapshot,
   buildTokenChannelStatusSummary,
-} from "astroclaw/plugin-sdk/status-helpers";
+} from "openclaw/plugin-sdk/status-helpers";
 export {
   DEFAULT_ACCOUNT_ID,
   formatDocsLink,
   setSetupChannelEnabled,
   splitSetupEntries,
-} from "astroclaw/plugin-sdk/setup";
+} from "openclaw/plugin-sdk/setup";
 export { setLineRuntime } from "./src/runtime.js";
 export { firstDefined, normalizeAllowFrom } from "./src/bot-access.js";
 export { downloadLineMedia } from "./src/download.js";
@@ -165,11 +165,7 @@ export {
   getRichMenu,
   getRichMenuIdOfUser,
   getRichMenuList,
-  linkRichMenuToUser,
-  linkRichMenuToUsers,
   setDefaultRichMenu,
-  unlinkRichMenuFromUser,
-  unlinkRichMenuFromUsers,
   uploadRichMenuImage,
 } from "./src/rich-menu.js";
 export type {
