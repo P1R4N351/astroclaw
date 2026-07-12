@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { expectDefined } from "@openclaw/normalization-core";
 import { truncateUtf16Safe } from "@openclaw/normalization-core/utf16-slice";
 import { Logger as TsLogger } from "tslog";
 import type { OpenClawConfig } from "../config/types.js";
@@ -20,9 +21,9 @@ import { expandHomePrefix } from "../infra/home-dir.js";
 import { isBlockedObjectKey } from "../infra/prototype-keys.js";
 import { appendRegularFileSync } from "../infra/regular-file.js";
 import {
-  POSIX_OPENCLAW_TMP_DIR,
-  resolvePreferredOpenClawTmpDir,
-} from "../infra/tmp-openclaw-dir.js";
+  POSIX_ASTROCLAW_TMP_DIR,
+  resolvePreferredAstroclawTmpDir,
+} from "../infra/tmp-astroclaw-dir.js";
 import { readLoggingConfig, shouldSkipMutatingLoggingConfigRead } from "./config.js";
 import { resolveEnvLogLevelOverride } from "./env-log-level.js";
 import { type LogLevel, levelToMinLevel, normalizeLogLevel } from "./levels.js";
@@ -34,13 +35,13 @@ import type { LoggerSettings } from "./types.js";
 export type { LoggerSettings } from "./types.js";
 
 function resolveDefaultLogDir(): string {
-  return canUseNodeFs() ? resolvePreferredOpenClawTmpDir() : POSIX_OPENCLAW_TMP_DIR;
+  return canUseNodeFs() ? resolvePreferredAstroclawTmpDir() : POSIX_ASTROCLAW_TMP_DIR;
 }
 
 function resolveDefaultLogFile(defaultLogDir: string): string {
   return canUseNodeFs()
     ? path.join(defaultLogDir, "openclaw.log")
-    : `${POSIX_OPENCLAW_TMP_DIR}/openclaw.log`;
+    : `${POSIX_ASTROCLAW_TMP_DIR}/openclaw.log`;
 }
 
 export const DEFAULT_LOG_DIR = resolveDefaultLogDir();
@@ -607,7 +608,10 @@ function buildLogger(settings: ResolvedSettings): TsLogger<LogObj> {
       const structuredFields = buildStructuredFileLogFields(logObj as TsLogRecord);
       const record = {
         ...logObj,
-        _meta: withResolvedLogMetaHostname(logObj["_meta"], structuredFields.hostname),
+        _meta: withResolvedLogMetaHostname(
+          logObj["_meta"],
+          expectDefined(structuredFields.hostname, "structured log hostname"),
+        ),
         time,
         ...structuredFields,
         ...traceFields,
