@@ -6,11 +6,11 @@ import {
   setRuntimeConfigSnapshot,
 } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import {
-  clearSessionStoreCacheForTest,
-  loadSessionStore,
-  updateSessionStore,
+  deleteSessionEntry,
+  getSessionEntry,
+  upsertSessionEntry,
 } from "openclaw/plugin-sdk/session-store-runtime";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { buildTelegramMessageContextForTest } from "./bot-message-context.test-harness.js";
 
@@ -21,7 +21,7 @@ function createSuiteTempRootTracker(params: { prefix: string }) {
   const children: string[] = [];
   return {
     async setup() {
-      root = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), params.prefix));
+      root = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), params.prefix));
     },
     async make(name: string) {
       if (!root) {
@@ -55,7 +55,6 @@ describe("Telegram direct session recreation after delete", () => {
 
   afterEach(() => {
     clearRuntimeConfigSnapshot();
-    clearSessionStoreCacheForTest();
   });
 
   afterAll(async () => {
@@ -80,25 +79,17 @@ describe("Telegram direct session recreation after delete", () => {
       },
     };
     setRuntimeConfigSnapshot(cfg as never);
-    await fs.writeFile(
+    await upsertSessionEntry({
       storePath,
-      JSON.stringify(
-        {
-          [TELEGRAM_DIRECT_KEY]: {
-            sessionId: "old-session",
-            updatedAt: 1_700_000_000_000,
-            chatType: "direct",
-            channel: "telegram",
-          },
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-    await updateSessionStore(storePath, (store) => {
-      delete store[TELEGRAM_DIRECT_KEY];
+      sessionKey: TELEGRAM_DIRECT_KEY,
+      entry: {
+        sessionId: "old-session",
+        updatedAt: 1_700_000_000_000,
+        chatType: "direct",
+        channel: "telegram",
+      },
     });
+    await deleteSessionEntry({ storePath, sessionKey: TELEGRAM_DIRECT_KEY });
 
     const context = await buildTelegramMessageContextForTest({
       cfg,
@@ -120,9 +111,9 @@ describe("Telegram direct session recreation after delete", () => {
       onRecordError: context.turn.record.onRecordError,
     });
 
-    const store = loadSessionStore(storePath, { skipCache: true });
+    const entry = getSessionEntry({ storePath, sessionKey: TELEGRAM_DIRECT_KEY });
     expect(context?.ctxPayload?.SessionKey).toBe(TELEGRAM_DIRECT_KEY);
-    expect(store[TELEGRAM_DIRECT_KEY]).toEqual(
+    expect(entry).toEqual(
       expect.objectContaining({
         lastChannel: "telegram",
         lastTo: "telegram:7463849194",
