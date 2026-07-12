@@ -5,6 +5,7 @@ import { keyed } from "lit/directives/keyed.js";
 import { styleMap } from "lit/directives/style-map.js";
 import "../../components/file-preview-modal.ts";
 import "../../components/tooltip.ts";
+import { t } from "../../i18n/index.ts";
 import {
   filterSkillWorkshopProposals,
   type SkillWorkshopActionBusy,
@@ -36,6 +37,7 @@ type SkillWorkshopProps = {
   workshopAgentName: string;
   counts: Record<SkillWorkshopStatusFilter, number>;
   onStatusFilterChange: (status: SkillWorkshopStatusFilter) => void;
+  onRetry: () => void;
   onQueryChange: (query: string) => void;
   onFilePreviewQueryChange: (query: string) => void;
   onQueueWidthChange: (width: number) => void;
@@ -103,7 +105,14 @@ export function renderSkillWorkshop(props: SkillWorkshopProps) {
 
   return html`
     <section class="skill-workshop sw-mode-${props.mode}">
-      ${props.error ? html`<div class="sw-error" role="status">${props.error}</div>` : nothing}
+      ${props.error
+        ? html`<div class="sw-error" role="status">
+            <span>${props.error}</span>
+            <button type="button" class="btn btn--sm" @click=${props.onRetry}>
+              ${t("pluginsPage.tryAgain")}
+            </button>
+          </div>`
+        : nothing}
       <div class="sw-view" data-mode=${props.mode}>
         ${keyed(props.mode, html`<div class="sw-view__pane">${body}</div>`)}
       </div>
@@ -350,6 +359,7 @@ function renderDetail(props: SkillWorkshopProps, proposal: SkillWorkshopProposal
     ? `Edited ${formatRelative(editedAt)}`
     : `Created ${formatRelative(proposal.createdAt)}`;
   const detailLoading = props.inspectingKey === proposal.key && !proposal.body;
+  const firstSupportFile = proposal.supportFiles[0];
 
   return html`
     <div class="sw-detail">
@@ -362,10 +372,10 @@ function renderDetail(props: SkillWorkshopProps, proposal: SkillWorkshopProposal
             <span>·</span>
             <span>v${proposal.version}</span>
             <span>·</span>
-            ${proposal.supportFiles.length > 0
+            ${firstSupportFile
               ? html`<button
                   class="sw-detail__meta-link"
-                  @click=${() => props.onPreviewFile(proposal.key, proposal.supportFiles[0].path)}
+                  @click=${() => props.onPreviewFile(proposal.key, firstSupportFile.path)}
                 >
                   ${proposal.supportFiles.length} support files
                 </button>`
@@ -636,6 +646,7 @@ function renderToday(
   const busy = props.actionBusy?.key === hero.key ? props.actionBusy.action : null;
   const disabled = Boolean(props.actionBusy);
   const assistantName = resolveSkillWorkshopAgentName(props, "agent");
+  const firstSupportFile = hero.supportFiles[0];
 
   return html`
     <div class="sw-today">
@@ -681,11 +692,11 @@ function renderToday(
           <span class="sw-today__avatar">v${hero.version}</span>
           <span>
             Drafted by <strong>${assistantName}</strong> · ${ageLabel}.
-            ${hero.supportFiles.length > 0
+            ${firstSupportFile
               ? html`
                   <button
                     class="sw-today__files-link"
-                    @click=${() => props.onPreviewFile(hero.key, hero.supportFiles[0].path)}
+                    @click=${() => props.onPreviewFile(hero.key, firstSupportFile.path)}
                   >
                     ${hero.supportFiles.length}
                     ${hero.supportFiles.length === 1 ? "support file" : "support files"}
@@ -861,8 +872,9 @@ function splitProposalBodySections(body: string): ProposalBodySection[] {
       inCode = !inCode;
     }
     const heading = !inCode ? /^(#{2,4})\s+(.+?)\s*$/.exec(trimmed) : null;
-    if (heading) {
-      current = { title: normalizeSectionTitle(heading[2]), lines: [] };
+    const headingText = heading?.[2];
+    if (headingText) {
+      current = { title: normalizeSectionTitle(headingText), lines: [] };
       sections.push(current);
       continue;
     }
@@ -896,8 +908,9 @@ function extractTopLevelListItems(lines: readonly string[]): string[] {
     }
     const line = raw.trim();
     const m = /^(?:[-*]|\d+\.)\s+(.+)/.exec(line);
-    if (m) {
-      out.push(cleanTodayPreviewItem(m[1]));
+    const item = m?.[1];
+    if (item) {
+      out.push(cleanTodayPreviewItem(item));
     }
   }
   return out.filter(Boolean);
@@ -992,9 +1005,10 @@ function renderProposalBody(body: string) {
       continue;
     }
     const olMatch = /^\d+\.\s+(.+)/.exec(line);
-    if (olMatch) {
+    const listItem = olMatch?.[1];
+    if (listItem) {
       flushPara();
-      list.push(olMatch[1]);
+      list.push(listItem);
       continue;
     }
     para.push(line);
