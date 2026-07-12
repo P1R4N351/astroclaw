@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { expectDefined } from "@openclaw/normalization-core";
 import {
   normalizeOptionalString,
   readStringValue,
@@ -63,10 +64,13 @@ import {
 import { resolveAgentMainSessionKey } from "../../config/sessions/main-session.js";
 import {
   applySessionPatchProjection,
+  loadTranscriptEvents,
   preflightSessionTranscriptForManualCompact,
+  resolveSessionTranscriptRuntimeTarget,
   trimSessionTranscriptForManualCompact,
 } from "../../config/sessions/session-accessor.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { disableCronJobsBoundToSession } from "../../cron/job-session-bindings.js";
 import {
   measureDiagnosticsTimelineSpan,
   measureDiagnosticsTimelineSpanSync,
@@ -135,7 +139,6 @@ import {
   resolveGatewaySessionThinkingProjection,
   resolveSessionDisplayModelIdentityRef,
   resolveSessionModelRef,
-  resolveSessionTranscriptCandidates,
   type SessionsPatchResult,
   type SessionsPreviewEntry,
   type SessionsPreviewResult,
@@ -250,6 +253,49 @@ function resolveGatewaySessionTargetFromKey(
     ...(opts?.agentId ? { agentId: opts.agentId } : {}),
   });
   return { cfg, target, storePath: target.storePath };
+}
+
+function loadAccessorSessionEntryForGatewayTarget(params: {
+  key: string;
+  cfg: OpenClawConfig;
+  agentId?: string;
+}) {
+  const target = resolveGatewaySessionStoreTargetWithStore({
+    cfg: params.cfg,
+    key: params.key,
+    clone: false,
+    ...(params.agentId ? { agentId: params.agentId } : {}),
+  });
+  let best:
+    | {
+        entry: SessionEntry;
+        sessionStoreKey: string;
+      }
+    | undefined;
+  for (const sessionStoreKey of target.storeKeys) {
+    const entry = target.store[sessionStoreKey];
+    if (entry) {
+      if (!best || (entry.updatedAt ?? 0) > (best.entry.updatedAt ?? 0)) {
+        best = { entry, sessionStoreKey };
+      }
+    }
+  }
+  if (best) {
+    return {
+      target,
+      storePath: target.storePath,
+      entry: best.entry,
+      canonicalKey: target.canonicalKey,
+      sessionStoreKey: best.sessionStoreKey,
+    };
+  }
+  return {
+    target,
+    storePath: target.storePath,
+    entry: undefined,
+    canonicalKey: target.canonicalKey,
+    sessionStoreKey: target.canonicalKey,
+  };
 }
 
 function loadSessionEntriesForTarget(params: {
@@ -368,7 +414,10 @@ async function createAgentMainSessionForSend(params: {
   let createResult:
     | { ok: boolean; payload?: { key?: string }; error?: ReturnType<typeof errorShape> }
     | undefined;
-  await sessionsHandlers["sessions.create"]({
+  await expectDefined(
+    sessionsHandlers["sessions.create"],
+    "sessions.create handler",
+  )({
     req: params.req,
     params: {
       key: params.canonicalKey,
@@ -548,7 +597,10 @@ async function interruptSessionRunIfActive(params: {
       canonicalKey: params.canonicalKey,
     });
 
-    await chatHandlers["chat.abort"]({
+    await expectDefined(
+      chatHandlers["chat.abort"],
+      "chat.abort handler",
+    )({
       req: params.req,
       params: {
         sessionKey: abortSessionKey,
@@ -651,7 +703,10 @@ async function handleSessionSend(params: {
       : undefined;
   const idempotencyKey = explicitIdempotencyKey ?? randomUUID();
   const dispatchChatSend = async (respond: RespondFn) => {
-    await chatHandlers["chat.send"]({
+    await expectDefined(
+      chatHandlers["chat.send"],
+      "chat.send handler",
+    )({
       req: params.req,
       params: {
         sessionKey: canonicalKey,
@@ -1143,7 +1198,9 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       respond(false, undefined, requestedAgent.error);
       return;
     }
-    const { entry, canonicalKey } = loadSessionEntry(key, {
+    const { entry, canonicalKey } = loadAccessorSessionEntryForGatewayTarget({
+      key,
+      cfg,
       agentId: requestedAgent.agentId,
     });
     respond(
@@ -1183,7 +1240,9 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       respond(false, undefined, requestedAgent.error);
       return;
     }
-    const { entry, canonicalKey } = loadSessionEntry(key, {
+    const { entry, canonicalKey } = loadAccessorSessionEntryForGatewayTarget({
+      key,
+      cfg,
       agentId: requestedAgent.agentId,
     });
     const checkpoint = getSessionCompactionCheckpoint({ entry, checkpointId });
@@ -1418,7 +1477,10 @@ export const sessionsHandlers: GatewayRequestHandlers = {
                 sessionKey: key,
                 storePath,
               })) + 1;
-            await chatHandlers["chat.send"]({
+            await expectDefined(
+              chatHandlers["chat.send"],
+              "chat.send handler",
+            )({
               req,
               params: {
                 sessionKey: key,
@@ -1565,13 +1627,12 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       respond(false, undefined, requestedAgent.error);
       return;
     }
-    const loaded = loadSessionEntry(key, { agentId: requestedAgent.agentId });
-    const { cfg: loadedCfg, entry, canonicalKey, legacyKey } = loaded;
-    const target = resolveGatewaySessionStoreTarget({
-      cfg: loadedCfg,
-      key: canonicalKey,
-      agentId: requestedAgent.agentId,
-    });
+    const { entry, canonicalKey, sessionStoreKey, target, storePath } =
+      loadAccessorSessionEntryForGatewayTarget({
+        key,
+        cfg,
+        agentId: requestedAgent.agentId,
+      });
     if (!entry?.sessionId) {
       respond(
         false,
@@ -1591,9 +1652,10 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     }
     const nextKey = buildDashboardSessionKey(target.agentId);
     const branchedSession = await compactionCheckpointStore.branchCheckpointSession({
-      storePath: target.storePath,
+      agentId: target.agentId,
+      storePath,
       sourceKey: canonicalKey,
-      sourceStoreKey: legacyKey,
+      sourceStoreKey: sessionStoreKey,
       nextKey,
       checkpointId,
     });
@@ -1695,8 +1757,12 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       respond(false, undefined, requestedAgent.error);
       return;
     }
-    const loaded = loadSessionEntry(key, { agentId: requestedAgent.agentId });
-    const { entry, canonicalKey, legacyKey, storePath } = loaded;
+    const { entry, canonicalKey, sessionStoreKey, storePath } =
+      loadAccessorSessionEntryForGatewayTarget({
+        key,
+        cfg,
+        agentId: requestedAgent.agentId,
+      });
     if (!entry?.sessionId) {
       respond(
         false,
@@ -1717,10 +1783,11 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     const lifecycleIdentities = [
       key,
       canonicalKey,
-      legacyKey,
+      sessionStoreKey,
       entry.sessionId,
       entry.lifecycleRevision,
     ];
+    const restoreLockIdentities = [entry.sessionId, entry.lifecycleRevision];
     let admittedWorkReleased = true;
     let restoreTargetStillCurrent = true;
     let restoreBlockedByModelLock = false;
@@ -1728,14 +1795,20 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     // compaction so neither operation can publish state from the other's obsolete session.
     await runExclusiveSessionLifecycleMutation({
       scope: storePath,
-      identities: lifecycleIdentities,
+      identities: restoreLockIdentities,
       prepare: async () => {
-        const current = loadSessionEntry(key, { agentId: requestedAgent.agentId });
-        restoreTargetStillCurrent = Boolean(
+        const current = loadAccessorSessionEntryForGatewayTarget({
+          key,
+          cfg,
+          agentId: requestedAgent.agentId,
+        });
+        const currentCheckpoint = current.entry
+          ? getSessionCompactionCheckpoint({ entry: current.entry, checkpointId })
+          : undefined;
+        restoreTargetStillCurrent =
           current.entry?.sessionId === entry.sessionId &&
           current.entry.lifecycleRevision === entry.lifecycleRevision &&
-          getSessionCompactionCheckpoint({ entry: current.entry, checkpointId }),
-        );
+          currentCheckpoint !== undefined;
         if (!restoreTargetStillCurrent) {
           return;
         }
@@ -1746,7 +1819,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         clearSessionQueues([
           key,
           current.canonicalKey,
-          current.legacyKey,
+          current.sessionStoreKey,
           current.entry?.sessionId,
         ]);
         admittedWorkReleased = await interruptSessionWorkAdmissions({
@@ -1784,7 +1857,11 @@ export const sessionsHandlers: GatewayRequestHandlers = {
           );
           return;
         }
-        const current = loadSessionEntry(key, { agentId: requestedAgent.agentId });
+        const current = loadAccessorSessionEntryForGatewayTarget({
+          key,
+          cfg,
+          agentId: requestedAgent.agentId,
+        });
         if (!current.entry?.sessionId) {
           respond(
             false,
@@ -1801,7 +1878,11 @@ export const sessionsHandlers: GatewayRequestHandlers = {
           );
           return;
         }
-        if (!getSessionCompactionCheckpoint({ entry: current.entry, checkpointId })) {
+        const currentCheckpoint = getSessionCompactionCheckpoint({
+          entry: current.entry,
+          checkpointId,
+        });
+        if (!currentCheckpoint) {
           respond(
             false,
             undefined,
@@ -1825,9 +1906,10 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         }
 
         const restoredSession = await compactionCheckpointStore.restoreCheckpointSession({
+          agentId: requestedAgent.agentId,
           storePath,
           sessionKey: current.canonicalKey,
-          sessionStoreKey: current.legacyKey,
+          sessionStoreKey: current.sessionStoreKey,
           checkpointId,
         });
         if (
@@ -2016,7 +2098,10 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       }
     }
     let abortedRunId: string | null = null;
-    await chatHandlers["chat.abort"]({
+    await expectDefined(
+      chatHandlers["chat.abort"],
+      "chat.abort handler",
+    )({
       req,
       params: {
         sessionKey: abortSessionKey,
@@ -2182,6 +2267,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         }
       }
       return await applySessionPatchProjection({
+        agentId: target.agentId,
         storePath,
         resolveTarget: ({ entries }) => {
           const store = Object.fromEntries(
@@ -2226,6 +2312,35 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       sessionKey: target.canonicalKey ?? key,
       patch: p,
     });
+
+    // Cron mutations are operator.admin surface while archive is write-scoped;
+    // only cascade for internal callers (client == null) or admin operators so
+    // write-scoped archiving cannot flip admin-managed schedules.
+    const callerScopes = client?.connect ? (client.connect.scopes ?? []) : null;
+    const callerCanManageCron = callerScopes === null || callerScopes.includes(ADMIN_SCOPE);
+    if (p.archived === true && callerCanManageCron) {
+      // Archived sessions reject new work, so schedules bound to them would
+      // only accumulate failing runs; disable them with the archive.
+      try {
+        const disabledJobIds = await disableCronJobsBoundToSession({
+          cron: context.cron,
+          cfg,
+          sessionKey: target.canonicalKey ?? key,
+        });
+        if (disabledJobIds.length > 0) {
+          log.info(
+            `sessions.patch: disabled cron jobs bound to archived session ${target.canonicalKey ?? key}: ${disabledJobIds.join(", ")}`,
+          );
+        }
+      } catch (error) {
+        // Best-effort by design: archive is the primary action and must not
+        // fail or roll back on cron-store errors. Any job left enabled fails
+        // closed at run start because archived sessions reject new work.
+        log.warn(
+          `sessions.patch: failed to disable cron jobs for archived session ${target.canonicalKey ?? key}: ${formatErrorMessage(error)}`,
+        );
+      }
+    }
 
     // Absorb ad-hoc categories into the gateway group catalog so ordering
     // covers every group an operator UI can observe.
@@ -2391,7 +2506,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       reason,
     });
   },
-  "sessions.delete": async ({ params, respond, client, isWebchatConnect, context }) => {
+  "sessions.delete": async ({ req, params, respond, client, isWebchatConnect, context }) => {
     if (!assertValidParams(params, validateSessionsDeleteParams, "sessions.delete", respond)) {
       return;
     }
@@ -2477,11 +2592,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       if (!expectedSessionId || entry?.sessionId === expectedSessionId) {
         return true;
       }
-      return (
-        entry?.sessionId === undefined &&
-        expectedLifecycleRevision !== undefined &&
-        expectedLifecycleRevisionMatches(entry)
-      );
+      return false;
     };
     const respondSessionChanged = () => {
       respond(
@@ -2516,6 +2627,34 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         respond,
       })
     ) {
+      return;
+    }
+    let abortResult:
+      | {
+          ok: boolean;
+          error?: ReturnType<typeof errorShape>;
+        }
+      | undefined;
+    const abortSessionKey = target.canonicalKey ?? key;
+    const chatAbort = chatHandlers["chat.abort"];
+    if (!chatAbort) {
+      throw new Error("chat.abort handler is not registered");
+    }
+    await chatAbort({
+      req,
+      params: {
+        sessionKey: abortSessionKey,
+        ...(requestedAgentId ? { agentId: requestedAgentId } : {}),
+      },
+      respond: (ok, _payload, error) => {
+        abortResult = { ok, ...(error ? { error } : {}) };
+      },
+      context,
+      client,
+      isWebchatConnect,
+    });
+    if (abortResult?.ok === false) {
+      respond(false, undefined, abortResult.error);
       return;
     }
     const deleteLifecycleIdentities = [
@@ -2847,6 +2986,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     // snapshot so alias promotion/pruning persists through the accessor.
     let compactPrimaryKey = target.canonicalKey;
     const compactRead = await applySessionPatchProjection({
+      agentId: target.agentId,
       storePath,
       resolveTarget: ({ entries }) => {
         const snapshot = Object.fromEntries(
@@ -2912,13 +3052,13 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         return;
       }
     } else {
-      const filePath = resolveSessionTranscriptCandidates(
+      const transcriptEvents = await loadTranscriptEvents({
+        agentId: target.agentId,
         sessionId,
+        sessionKey: compactTarget.primaryKey,
         storePath,
-        entry.sessionFile,
-        target.agentId,
-      ).find((candidate) => fs.existsSync(candidate));
-      if (!filePath) {
+      }).catch(() => []);
+      if (transcriptEvents.length === 0) {
         respond(
           true,
           {
@@ -2949,7 +3089,11 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         identities: lifecycleIdentities,
         kind: "compaction",
         prepare: async () => {
-          const latestEntry = loadSessionEntry(key, { agentId: requestedAgentId }).entry;
+          const latestEntry = loadAccessorSessionEntryForGatewayTarget({
+            key,
+            cfg,
+            agentId: requestedAgentId,
+          }).entry;
           sessionStillCurrent = Boolean(
             latestEntry &&
             latestEntry.sessionId === sessionId &&
@@ -2990,7 +3134,11 @@ export const sessionsHandlers: GatewayRequestHandlers = {
             return;
           }
 
-          const latestEntry = loadSessionEntry(key, { agentId: requestedAgentId }).entry;
+          const latestEntry = loadAccessorSessionEntryForGatewayTarget({
+            key,
+            cfg,
+            agentId: requestedAgentId,
+          }).entry;
           if (
             !latestEntry ||
             latestEntry.sessionId !== sessionId ||
@@ -3068,13 +3216,13 @@ export const sessionsHandlers: GatewayRequestHandlers = {
             return;
           }
 
-          const filePath = resolveSessionTranscriptCandidates(
+          const transcriptEvents = await loadTranscriptEvents({
+            agentId: target.agentId,
             sessionId,
+            sessionKey: compactTarget.primaryKey,
             storePath,
-            latestEntry.sessionFile,
-            target.agentId,
-          ).find((candidate) => fs.existsSync(candidate));
-          if (!filePath) {
+          }).catch(() => []);
+          if (transcriptEvents.length === 0) {
             respond(
               true,
               {
@@ -3087,6 +3235,12 @@ export const sessionsHandlers: GatewayRequestHandlers = {
             );
             return;
           }
+          const compactionTranscriptTarget = await resolveSessionTranscriptRuntimeTarget({
+            agentId: target.agentId,
+            sessionId,
+            sessionKey: compactTarget.primaryKey,
+            storePath,
+          });
 
           const resolvedModel = resolveSessionModelRef(cfg, latestEntry, target.agentId);
           const workspaceDir =
@@ -3122,14 +3276,27 @@ export const sessionsHandlers: GatewayRequestHandlers = {
               sessionId,
               sessionKey: target.canonicalKey,
               agentId: target.agentId,
+              sessionTarget: {
+                agentId: target.agentId,
+                sessionId,
+                sessionKey: target.canonicalKey,
+                storePath,
+              },
               allowGatewaySubagentBinding: true,
-              sessionFile: filePath,
+              sessionFile: compactionTranscriptTarget.sessionFile,
               workspaceDir,
               cwd: normalizeOptionalString(latestEntry.spawnedCwd),
               config: cfg,
               provider: resolvedModel.provider,
               model: resolvedModel.model,
               authProfileId: latestEntry.authProfileOverride,
+              authProfileIdSource:
+                latestEntry.authProfileOverrideSource ??
+                (latestEntry.authProfileOverride
+                  ? typeof latestEntry.authProfileOverrideCompactionCount === "number"
+                    ? "auto"
+                    : "user"
+                  : undefined),
               agentHarnessId:
                 latestEntry.modelSelectionLocked === true
                   ? resolvePersistedSessionRuntimeId(latestEntry)
@@ -3154,6 +3321,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
               // Guarded terminal persist: skip when session ownership rotated
               // while compaction ran (sessionId/lifecycleRevision/work-start).
               const persistProjection = await applySessionPatchProjection({
+                agentId: target.agentId,
                 storePath,
                 resolveTarget: () => ({ primaryKey: compactTarget.primaryKey }),
                 project: ({ existingEntry }) => {
@@ -3174,9 +3342,6 @@ export const sessionsHandlers: GatewayRequestHandlers = {
                     result.result.sessionId !== entryToUpdate.sessionId
                   ) {
                     entryToUpdate.sessionId = result.result.sessionId;
-                  }
-                  if (result.result?.sessionFile) {
-                    entryToUpdate.sessionFile = result.result.sessionFile;
                   }
                   delete entryToUpdate.inputTokens;
                   delete entryToUpdate.outputTokens;
