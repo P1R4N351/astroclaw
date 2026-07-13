@@ -10,7 +10,7 @@ import {
   type ImageMetadata,
 } from "rastermill";
 import { resolveSystemBin } from "../infra/resolve-system-bin.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { createLazyRuntimeModule } from "../shared/lazy-runtime.js";
 
 export type { ImageMetadata, ImageProbe };
@@ -32,7 +32,7 @@ export class ImageProcessorUnavailableError extends Error {
 }
 
 /** JPEG resize request passed through the media-runtime/plugin SDK surface. */
-export type ResizeToJpegParams = {
+type ResizeToJpegParams = {
   buffer: Buffer;
   maxSide: number;
   quality: number;
@@ -40,7 +40,7 @@ export type ResizeToJpegParams = {
 };
 
 /** PNG resize request passed through the media-runtime/plugin SDK surface. */
-export type ResizeToPngParams = {
+type ResizeToPngParams = {
   buffer: Buffer;
   maxSide: number;
   compressionLevel?: number;
@@ -63,7 +63,7 @@ export function createImageProcessor() {
       outputPixels: MAX_IMAGE_INPUT_PIXELS,
     },
     temp: {
-      rootDir: resolvePreferredAstroclawTmpDir(),
+      rootDir: resolvePreferredOpenClawTmpDir(),
       prefix: "openclaw-img-",
     },
     commandResolver: (command) =>
