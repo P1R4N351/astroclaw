@@ -7,10 +7,10 @@
  * while addressing and mutation dispatch are universal once callers
  * have an AST carrying its `kind` discriminator.
  *
- * @module @astroclaw/oc-path/dispatch
+ * @module @openclaw/oc-path/dispatch
  */
 
-export type OcKind = "md" | "jsonc" | "jsonl" | "yaml";
+type OcKind = "md" | "jsonc" | "jsonl" | "yaml";
 
 /**
  * Recommend a kind from a filename. Pure convention helper — returns
