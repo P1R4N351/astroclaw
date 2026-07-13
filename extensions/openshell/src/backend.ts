@@ -13,7 +13,7 @@ import type {
 import {
   createRemoteShellSandboxFsBridge,
   disposeSshSandboxSession,
-  resolvePreferredAstroclawTmpDir,
+  resolvePreferredOpenClawTmpDir,
   runSshSandboxCommand,
   sanitizeEnvVars,
   withTempWorkspace,
@@ -207,7 +207,7 @@ export function buildOpenShellSshExecEnv(): NodeJS.ProcessEnv {
   return sanitizeEnvVars(process.env).allowed;
 }
 
-export type { OpenShellFsBridgeContext, OpenShellSandboxBackend } from "./backend.types.js";
+export type { OpenShellSandboxBackend } from "./backend.types.js";
 
 export function createOpenShellSandboxBackendFactory(
   params: CreateOpenShellSandboxBackendFactoryParams,
@@ -985,7 +985,7 @@ async function restoreMaterializedSkillsShadow(params: {
 }
 
 function resolveOpenShellTmpRoot(): string {
-  return path.resolve(resolvePreferredAstroclawTmpDir());
+  return path.resolve(resolvePreferredOpenClawTmpDir());
 }
 
 function normalizeRemotePath(remotePath: string): string {
