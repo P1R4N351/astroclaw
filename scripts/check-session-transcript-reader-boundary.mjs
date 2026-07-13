@@ -49,6 +49,8 @@ const transcriptReaderNames = new Set([
   "visitSessionMessagesAsync",
 ]);
 
+const storageSpecificTranscriptReaderAliasNames = new Set(["readSessionMessagesFromFileAsync"]);
+
 export const migratedSessionTranscriptReaderFiles = new Set([
   "src/agents/main-session-restart-recovery.ts",
   "src/agents/subagent-announce-output.test.ts",
@@ -65,6 +67,7 @@ export const migratedSessionTranscriptReaderFiles = new Set([
   "src/gateway/gateway-models.profiles.live.test.ts",
   "src/gateway/managed-image-attachments.test.ts",
   "src/gateway/managed-image-attachments.ts",
+  "src/gateway/mcp-app-reconstruction.ts",
   "src/gateway/server-methods/artifacts.test.ts",
   "src/gateway/server-methods/artifacts.ts",
   "src/gateway/server-methods/chat.ts",
@@ -126,6 +129,13 @@ export function findSessionTranscriptReaderBoundaryViolations(content, fileName 
   const legacyNamespaces = new Set();
 
   const visit = (node) => {
+    if (ts.isIdentifier(node) && storageSpecificTranscriptReaderAliasNames.has(node.text)) {
+      violations.push({
+        line: toLine(sourceFile, node),
+        reason: `uses storage-specific transcript reader alias "${node.text}"`,
+      });
+    }
+
     if (ts.isImportDeclaration(node)) {
       const moduleName = importedModuleName(node);
       const namedBindings = node.importClause?.namedBindings;
