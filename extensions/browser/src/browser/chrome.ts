@@ -20,7 +20,7 @@ import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runti
 import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
 import { ensurePortAvailable } from "../infra/ports.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { redactToolPayloadText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { CONFIG_DIR } from "../utils.js";
@@ -104,25 +104,6 @@ const CHROME_HTTP_DISCOVERY_FAILURE_CODES = new Set([
   "invalid_json",
 ]);
 const TCP_LISTEN_STATE_HEX = "0A";
-
-export type { BrowserExecutable } from "./chrome.executables.js";
-export {
-  diagnoseChromeCdp,
-  formatChromeCdpDiagnostic,
-  type ChromeCdpDiagnostic,
-  type ChromeCdpDiagnosticCode,
-} from "./chrome.diagnostics.js";
-export {
-  findChromeExecutableLinux,
-  findChromeExecutableMac,
-  findChromeExecutableWindows,
-  resolveBrowserExecutableForPlatform,
-} from "./chrome.executables.js";
-export {
-  decorateOpenClawProfile,
-  ensureProfileCleanExit,
-  isProfileDecorated,
-} from "./chrome.profile-decoration.js";
 
 function exists(filePath: string) {
   try {
@@ -512,10 +493,7 @@ function clearChromeSingletonArtifacts(userDataDir: string) {
 }
 
 /** Remove stale Chrome singleton lock files from a user-data-dir. */
-export function clearStaleChromeSingletonLocks(
-  userDataDir: string,
-  hostname = os.hostname(),
-): boolean {
+function clearStaleChromeSingletonLocks(userDataDir: string, hostname = os.hostname()): boolean {
   const lockPath = path.join(userDataDir, "SingletonLock");
   let target: string;
   try {
@@ -821,7 +799,7 @@ function cdpUrlForPort(cdpPort: number) {
 }
 
 /** Build Chrome launch arguments for the managed OpenClaw browser. */
-export function buildOpenClawChromeLaunchArgs(params: {
+function buildOpenClawChromeLaunchArgs(params: {
   resolved: ResolvedBrowserConfig;
   profile: ResolvedBrowserProfile;
   userDataDir: string;
@@ -1099,7 +1077,7 @@ export async function launchOpenClawChrome(
       HOME: os.homedir(),
     };
     if (process.platform === "linux") {
-      const chromiumStateDir = path.join(resolvePreferredAstroclawTmpDir(), ".chromium");
+      const chromiumStateDir = path.join(resolvePreferredOpenClawTmpDir(), ".chromium");
       env.XDG_CONFIG_HOME ??= chromiumStateDir;
       env.XDG_CACHE_HOME ??= chromiumStateDir;
     }
