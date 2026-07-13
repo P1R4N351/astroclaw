@@ -1,3 +1,4 @@
+// Audits configured model references for risky provider or model choices.
 import { DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { modelKey } from "../agents/model-selection-normalize.js";
 import {
@@ -8,15 +9,21 @@ import {
   resolveAgentModelFallbackValues,
   resolveAgentModelPrimaryValue,
 } from "../config/model-input.js";
-import type { AstroclawConfig } from "../config/types.astroclaw.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 
-export type AuditModelRef = { id: string; source: string };
+/**
+ * Model reference used by security audit findings.
+ * `id` is the normalized provider/model key; `source` is the config path shown in diagnostics.
+ */
+type AuditModelRef = { id: string; source: string };
 
 function resolveAuditModelId(
-  cfg: AstroclawConfig,
+  cfg: OpenClawConfig,
   raw: string,
   aliasIndex: ReturnType<typeof buildModelAliasIndex>,
 ): string {
+  // Audit runs before provider/plugin runtime loading, so only config-defined aliases
+  // are normalized here; unresolved values are still reported with their original text.
   const resolved = resolveModelRefFromString({
     cfg,
     raw,
@@ -29,7 +36,7 @@ function resolveAuditModelId(
 
 function addModelRef(params: {
   out: AuditModelRef[];
-  cfg: AstroclawConfig;
+  cfg: OpenClawConfig;
   aliasIndex: ReturnType<typeof buildModelAliasIndex>;
   raw: unknown;
   source: string;
@@ -47,7 +54,11 @@ function addModelRef(params: {
   });
 }
 
-export function collectAuditModelRefs(cfg: AstroclawConfig): AuditModelRef[] {
+/**
+ * Collect every configured primary and fallback model that security audits should classify.
+ * Agent-specific refs keep source labels precise so findings point at the risky override.
+ */
+export function collectAuditModelRefs(cfg: OpenClawConfig): AuditModelRef[] {
   const aliasIndex = buildModelAliasIndex({
     cfg,
     defaultProvider: DEFAULT_PROVIDER,
