@@ -11,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { QQBOT_PLUGIN_VERSION_UNKNOWN, resolveQQBotPluginVersion } from "./plugin-version.js";
+import { resolveQQBotPluginVersion } from "./plugin-version.js";
 
 /** Create a temp directory tree for an individual test and return its root. */
 function createTempTree(): string {
@@ -54,7 +54,7 @@ describe("resolveQQBotPluginVersion", () => {
     const pluginDir = path.join(root, "extensions", "qqbot");
     const bridgeDir = path.join(pluginDir, "src", "bridge");
     writeJson(path.join(pluginDir, "package.json"), {
-      name: "@astroclaw/qqbot",
+      name: "@openclaw/qqbot",
       version: "2026.4.16",
     });
     fs.mkdirSync(bridgeDir, { recursive: true });
@@ -68,13 +68,13 @@ describe("resolveQQBotPluginVersion", () => {
     const root = newTree();
     // Parent package.json belongs to the framework, not the plugin.
     writeJson(path.join(root, "package.json"), {
-      name: "astroclaw",
+      name: "openclaw",
       version: "9.9.9",
     });
     const pluginDir = path.join(root, "extensions", "qqbot");
     const bridgeDir = path.join(pluginDir, "src", "bridge");
     writeJson(path.join(pluginDir, "package.json"), {
-      name: "@astroclaw/qqbot",
+      name: "@openclaw/qqbot",
       version: "2026.4.16",
     });
     fs.mkdirSync(bridgeDir, { recursive: true });
@@ -97,7 +97,7 @@ describe("resolveQQBotPluginVersion", () => {
 
     const version = resolveQQBotPluginVersion(fakeEntryFileUrl(startDir));
 
-    expect(version).toBe(QQBOT_PLUGIN_VERSION_UNKNOWN);
+    expect(version).toBe("unknown");
   });
 
   it("returns unknown when no package.json exists above the start directory", () => {
@@ -107,7 +107,7 @@ describe("resolveQQBotPluginVersion", () => {
 
     const version = resolveQQBotPluginVersion(fakeEntryFileUrl(startDir));
 
-    expect(version).toBe(QQBOT_PLUGIN_VERSION_UNKNOWN);
+    expect(version).toBe("unknown");
   });
 
   it("returns unknown when the matching manifest lacks a version field", () => {
@@ -115,14 +115,14 @@ describe("resolveQQBotPluginVersion", () => {
     const pluginDir = path.join(root, "extensions", "qqbot");
     const bridgeDir = path.join(pluginDir, "src", "bridge");
     writeJson(path.join(pluginDir, "package.json"), {
-      name: "@astroclaw/qqbot",
+      name: "@openclaw/qqbot",
       // version intentionally missing
     });
     fs.mkdirSync(bridgeDir, { recursive: true });
 
     const version = resolveQQBotPluginVersion(fakeEntryFileUrl(bridgeDir));
 
-    expect(version).toBe(QQBOT_PLUGIN_VERSION_UNKNOWN);
+    expect(version).toBe("unknown");
   });
 
   it("tolerates a malformed package.json and keeps walking", () => {
@@ -134,7 +134,7 @@ describe("resolveQQBotPluginVersion", () => {
     fs.writeFileSync(path.join(pluginDir, "package.json"), "{ not valid json", "utf8");
     // Valid matching manifest higher up (unusual layout but still resolvable).
     writeJson(path.join(root, "package.json"), {
-      name: "@astroclaw/qqbot",
+      name: "@openclaw/qqbot",
       version: "2026.9.9",
     });
     fs.mkdirSync(bridgeDir, { recursive: true });
