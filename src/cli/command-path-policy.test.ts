@@ -191,6 +191,7 @@ describe("command-path-policy", () => {
       bypassConfigGuard: true,
       loadPlugins: "never",
       hideBanner: true,
+      ownsProtocolStdout: true,
       networkProxy: "bypass",
     });
     expectResolvedPolicy(["configure"], {
@@ -206,10 +207,24 @@ describe("command-path-policy", () => {
       loadPlugins: "never",
       networkProxy: "bypass",
     });
-    expectResolvedPolicy(["doctor"], {
+    const doctorPolicy = resolveCliCommandPathPolicy(["doctor"]);
+    expectNetworkProxyResolver(doctorPolicy);
+    expect(doctorPolicy).toMatchObject({
       bypassConfigGuard: true,
       loadPlugins: "never",
     });
+    expect(
+      doctorPolicy.networkProxy({
+        argv: ["node", "openclaw", "doctor"],
+        commandPath: ["doctor"],
+      }),
+    ).toBe("default");
+    expect(
+      doctorPolicy.networkProxy({
+        argv: ["node", "openclaw", "doctor", "--state-sqlite=compact"],
+        commandPath: ["doctor"],
+      }),
+    ).toBe("bypass");
     expectResolvedPolicy(["config", "validate"], {
       bypassConfigGuard: true,
       loadPlugins: "never",
