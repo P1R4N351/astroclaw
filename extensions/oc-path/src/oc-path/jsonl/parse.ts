@@ -1,17 +1,17 @@
 /**
  * JSONL parser — splits on `\n`, parses each non-empty line as JSONC
  * (allowing comments/trailing-comma is harmless and matches what
- * astroclaw session logs actually emit). Soft-error policy: malformed
+ * openclaw session logs actually emit). Soft-error policy: malformed
  * lines surface as `kind: 'malformed'` AST entries plus a diagnostic.
  *
- * @module @astroclaw/oc-path/jsonl/parse
+ * @module @openclaw/oc-path/jsonl/parse
  */
 
 import type { Diagnostic } from "../ast.js";
 import { parseJsonc } from "../jsonc/parse.js";
 import type { JsonlAst, JsonlLine } from "./ast.js";
 
-export interface JsonlParseResult {
+interface JsonlParseResult {
   readonly ast: JsonlAst;
   readonly diagnostics: readonly Diagnostic[];
 }
