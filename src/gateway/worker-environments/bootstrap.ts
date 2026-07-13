@@ -429,6 +429,11 @@ case "$install" in
       exit 2
     fi
     tar -xzf "$upload" -C "$staging"
+    if ! command -v npm >/dev/null 2>&1; then
+      printf '%s\n' '${NPM_MISSING_MARKER}' >&2
+      exit ${NPM_MISSING_EXIT_CODE}
+    fi
+    OPENCLAW_DISABLE_PLUGIN_REGISTRY_MIGRATION=1 npm install --prefix "$staging" --ignore-scripts --omit=dev --no-audit --no-fund
     ;;
   npm)
     if ! command -v npm >/dev/null 2>&1; then
@@ -474,21 +479,21 @@ cat "$receipt"
 printf '\n'
 `;
 
-export type ResolvedWorkerSshIdentity = WorkerSshIdentity;
+type ResolvedWorkerSshIdentity = WorkerSshIdentity;
 
-export type WorkerBootstrapCommandRunner = (
+type WorkerBootstrapCommandRunner = (
   argv: string[],
   options: CommandOptions,
 ) => Promise<SpawnResult>;
 
-export type WorkerBootstrapRequest = {
+type WorkerBootstrapRequest = {
   ssh: WorkerSshEndpoint;
   artifact: WorkerInstallationArtifact;
   /** Provider endpoint host key copied by the gateway bootstrap adapter. */
   pinnedHostKey?: string;
 };
 
-export type WorkerBootstrapDependencies = {
+type WorkerBootstrapDependencies = {
   resolveIdentity: (keyRef: WorkerSshEndpoint["keyRef"]) => Promise<ResolvedWorkerSshIdentity>;
   runCommand?: WorkerBootstrapCommandRunner;
   timeoutMs?: number;
