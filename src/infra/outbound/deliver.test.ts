@@ -11,12 +11,12 @@ import {
 import { chunkText } from "../../auto-reply/chunk.js";
 import { createMessageReceiptFromOutboundResults } from "../../channels/message/receipt.js";
 import type { ChannelMessageSendTextContext } from "../../channels/message/types.js";
-import type { ChannelOutboundAdapter } from "../../channels/plugins/types.js";
+import type { ChannelOutboundAdapter } from "../../channels/plugins/types.public.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { SessionTranscriptAppendResult } from "../../config/sessions/transcript.js";
 import * as mediaCapabilityModule from "../../media/read-capability.js";
 import { createHookRunner } from "../../plugins/hooks.js";
-import { addTestHook } from "../../plugins/hooks.test-helpers.js";
+import { addTestHook } from "../../plugins/hooks.test-fixtures.js";
 import { createEmptyPluginRegistry } from "../../plugins/registry.js";
 import {
   pinActivePluginChannelRegistry,
@@ -36,7 +36,7 @@ import {
   type DiagnosticEventPayload,
 } from "../diagnostic-events.js";
 import { retryAsync } from "../retry.js";
-import { resolvePreferredOpenClawTmpDir } from "../tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../tmp-astroclaw-dir.js";
 import { PlatformMessageNotDispatchedError } from "./deliver-types.js";
 
 const mocks = vi.hoisted(() => ({
@@ -139,7 +139,7 @@ const matrixChunkConfig: OpenClawConfig = {
   channels: { matrix: { textChunkLimit: 4000 } } as OpenClawConfig["channels"],
 };
 
-const expectedPreferredTmpRoot = resolvePreferredOpenClawTmpDir();
+const expectedPreferredTmpRoot = resolvePreferredAstroclawTmpDir();
 
 type DeliverOutboundArgs = Parameters<DeliverModule["deliverOutboundPayloads"]>[0];
 type DeliverOutboundPayload = DeliverOutboundArgs["payloads"][number];
