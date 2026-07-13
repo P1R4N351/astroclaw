@@ -9,8 +9,9 @@ import {
   upsertSessionEntry,
 } from "../config/sessions/session-accessor.js";
 import {
-  setGatewayModelPricingForTest,
-  clearGatewayModelPricingCacheState,
+  clearGatewayModelPricingFailures,
+  replaceGatewayModelPricingCache,
+  type CachedModelPricing,
 } from "../gateway/model-pricing-cache-state.js";
 import { createSuiteTempRootTracker } from "../test-helpers/temp-dir.js";
 import { withEnvAsync } from "../test-utils/env.js";
@@ -30,6 +31,23 @@ import {
   refreshCostUsageCache,
   resolveExistingUsageSessionFile,
 } from "./session-cost-usage.js";
+
+function setGatewayModelPricing(
+  entries: Array<{
+    provider: string;
+    model: string;
+    pricing: CachedModelPricing;
+  }>,
+): void {
+  replaceGatewayModelPricingCache(
+    new Map(entries.map((entry) => [`${entry.provider}/${entry.model}`, entry.pricing])),
+  );
+}
+
+function clearGatewayModelPricingState(): void {
+  replaceGatewayModelPricingCache(new Map(), 0);
+  clearGatewayModelPricingFailures();
+}
 
 describe("session cost usage", () => {
   const suiteRootTracker = createSuiteTempRootTracker({ prefix: "openclaw-session-cost-" });
@@ -161,7 +179,7 @@ describe("session cost usage", () => {
     } as unknown as OpenClawConfig;
 
     await withStateDir(root, async () => {
-      const summary = await loadCostUsageSummary({ days: 30, config });
+      const summary = await loadCostUsageSummary({ config });
       // Daily series fills every calendar day in the requested range, even
       // days with zero activity, so the chart shows one bar per day.
       expect(summary.daily.length).toBe(summary.days);
@@ -405,7 +423,7 @@ describe("session cost usage", () => {
     const costSpy = vi.spyOn(usageFormat, "resolveModelCostConfig");
     try {
       await withStateDir(root, async () => {
-        const summary = await loadCostUsageSummary({ days: 30, config });
+        const summary = await loadCostUsageSummary({ config });
         expect(summary.totals.totalTokens).toBe(360);
         expect(summary.totals.totalCost).toBeCloseTo(0.0006, 8);
       });
@@ -449,9 +467,9 @@ describe("session cost usage", () => {
 
     // No operator-configured pricing for this model, so its all-zero cost is unknown,
     // not an intentional "free" price.
-    clearGatewayModelPricingCacheState();
+    clearGatewayModelPricingState();
     await withStateDir(root, async () => {
-      const summary = await loadCostUsageSummary({ days: 30 });
+      const summary = await loadCostUsageSummary();
       expect(summary.totals.totalTokens).toBe(23287);
       expect(summary.totals.totalCost).toBe(0);
       // Unknown pricing must be surfaced as missing rather than reported as a
@@ -509,9 +527,9 @@ describe("session cost usage", () => {
       },
     } as unknown as OpenClawConfig;
 
-    clearGatewayModelPricingCacheState();
+    clearGatewayModelPricingState();
     await withStateDir(root, async () => {
-      const summary = await loadCostUsageSummary({ days: 30, config });
+      const summary = await loadCostUsageSummary({ config });
       expect(summary.totals.totalTokens).toBe(23287);
       expect(summary.totals.totalCost).toBe(0);
       expect(summary.totals.missingCostEntries).toBe(1);
@@ -635,7 +653,7 @@ describe("session cost usage", () => {
             } as unknown as OpenClawConfig)
           : undefined;
 
-      clearGatewayModelPricingCacheState();
+      clearGatewayModelPricingState();
       await withStateDir(root, async () => {
         const summary = await loadCostUsageSummary({
           startMs: Date.UTC(2026, 1, 5),
@@ -710,7 +728,7 @@ describe("session cost usage", () => {
       },
     } as unknown as OpenClawConfig;
 
-    clearGatewayModelPricingCacheState();
+    clearGatewayModelPricingState();
     await withStateDir(root, async () => {
       const summary = await loadCostUsageSummary({
         startMs: Date.UTC(2026, 1, 5),
@@ -810,7 +828,7 @@ describe("session cost usage", () => {
     };
     await fs.writeFile(sessionFile, transcriptText("sess-upgrade", entry), "utf-8");
 
-    clearGatewayModelPricingCacheState();
+    clearGatewayModelPricingState();
     await withStateDir(root, async () => {
       // Simulate a durable cache written by a build from before the current cache
       // semantics: refresh under the current code, then stamp an older version.
@@ -1056,7 +1074,7 @@ describe("session cost usage", () => {
     );
 
     await withStateDir(root, async () => {
-      const summary = await loadCostUsageSummary({ days: 30 });
+      const summary = await loadCostUsageSummary();
       expect(summary.daily.length).toBe(summary.days);
       const populated = summary.daily.filter((d) => d.totalTokens > 0);
       expect(populated).toHaveLength(1);
@@ -1818,7 +1836,7 @@ describe("session cost usage", () => {
     );
 
     const setGatewayPricing = (input: number, output: number) =>
-      setGatewayModelPricingForTest([
+      setGatewayModelPricing([
         {
           provider: "openai",
           model: "gpt-5.4",
@@ -1849,7 +1867,7 @@ describe("session cost usage", () => {
         expect(refreshed.totals.totalCost).toBeCloseTo(0.004, 5);
         expect(refreshed.cacheStatus?.status).toBe("fresh");
       } finally {
-        clearGatewayModelPricingCacheState();
+        clearGatewayModelPricingState();
       }
     });
   });
