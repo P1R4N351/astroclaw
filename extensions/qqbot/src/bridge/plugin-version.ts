@@ -13,7 +13,7 @@
  *     as the source layout changes, which is what caused the previous
  *     `vunknown` regression.
  *   - A `name` guard prevents accidentally reading the parent
- *     `astroclaw/package.json` (the framework root) when the plugin
+ *     `openclaw/package.json` (the framework root) when the plugin
  *     lives inside the monorepo.
  *
  * The lookup is performed only once per process at startup, so the
@@ -25,10 +25,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** `name` field in this plugin's `package.json`. */
-const QQBOT_PLUGIN_PKG_NAME = "@astroclaw/qqbot";
+const QQBOT_PLUGIN_PKG_NAME = "@openclaw/qqbot";
 
 /** Sentinel used when the version cannot be resolved. */
-export const QQBOT_PLUGIN_VERSION_UNKNOWN = "unknown";
+const QQBOT_PLUGIN_VERSION_UNKNOWN = "unknown";
 
 /**
  * Resolve the QQBot plugin version from `package.json`.
