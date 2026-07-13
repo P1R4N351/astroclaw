@@ -25,7 +25,7 @@ import {
   selectApplicableRuntimeConfig,
 } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { isVerbose, logVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { tempWorkspaceSync, resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/sandbox";
+import { tempWorkspaceSync, resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/sandbox";
 import { privateFileStoreSync } from "openclaw/plugin-sdk/security-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
@@ -113,7 +113,7 @@ type TtsUserPrefs = {
   };
 };
 
-export type TtsAttemptReasonCode =
+type TtsAttemptReasonCode =
   | "success"
   | "no_provider_registered"
   | "not_configured"
@@ -122,7 +122,7 @@ export type TtsAttemptReasonCode =
   | "timeout"
   | "provider_error";
 
-export type TtsProviderAttempt = {
+type TtsProviderAttempt = {
   provider: string;
   outcome: "success" | "skipped" | "failed";
   reasonCode: TtsAttemptReasonCode;
@@ -1348,7 +1348,7 @@ export async function textToSpeech(params: {
   }
 
   const temp = tempWorkspaceSync({
-    rootDir: resolvePreferredAstroclawTmpDir(),
+    rootDir: resolvePreferredOpenClawTmpDir(),
     prefix: "tts-",
   });
   const audioPath = temp.write(`voice-${Date.now()}${fileExtension}`, audioBuffer);
@@ -2136,6 +2136,3 @@ export const testApi = {
   formatTtsProviderError,
   sanitizeTtsErrorForLog,
 };
-
-/** @deprecated Use `testApi`. */
-export { testApi as _test };
