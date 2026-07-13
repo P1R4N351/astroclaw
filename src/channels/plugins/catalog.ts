@@ -13,7 +13,7 @@ import { MANIFEST_KEY } from "../../compat/legacy-names.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
 import { tryReadJsonSync } from "../../infra/json-files.js";
 import { isPrereleaseSemverVersion, parseRegistryNpmSpec } from "../../infra/npm-registry-spec.js";
-import { resolveOpenClawPackageRootSync } from "../../infra/astroclaw-root.js";
+import { resolveOpenClawPackageRootSync } from "../../infra/openclaw-root.js";
 import { listChannelCatalogEntries } from "../../plugins/channel-catalog-registry.js";
 import type { PluginDiscoveryResult } from "../../plugins/discovery.js";
 import {
@@ -529,17 +529,6 @@ export function listRawChannelPluginCatalogEntries(
       }
       return a.meta.label.localeCompare(b.meta.label);
     });
-}
-
-/**
- * @deprecated Use `listTrustedChannelPluginCatalogEntries` for execution-facing
- * paths, or `listRawChannelPluginCatalogEntries` for internal plumbing
- * that applies its own trust filtering.
- */
-export function listChannelPluginCatalogEntries(
-  options: CatalogOptions = {},
-): ChannelPluginCatalogEntry[] {
-  return listRawChannelPluginCatalogEntries(options);
 }
 
 export function getChannelPluginCatalogEntry(
