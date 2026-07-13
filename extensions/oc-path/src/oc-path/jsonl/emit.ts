@@ -2,14 +2,14 @@
  * Emit a `JsonlAst` to bytes. Round-trip echoes `ast.raw`; render mode
  * rebuilds from line entries (preserves blank/malformed lines verbatim).
  *
- * @module @astroclaw/oc-path/jsonl/emit
+ * @module @openclaw/oc-path/jsonl/emit
  */
 
 import type { JsoncValue } from "../jsonc/ast.js";
 import { OcEmitSentinelError, REDACTED_SENTINEL } from "../sentinel.js";
 import type { JsonlAst } from "./ast.js";
 
-export interface JsonlEmitOptions {
+interface JsonlEmitOptions {
   readonly mode?: "roundtrip" | "render";
   readonly fileNameForGuard?: string;
   readonly acceptPreExistingSentinel?: boolean;
