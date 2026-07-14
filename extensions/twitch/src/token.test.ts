@@ -9,11 +9,11 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AstroclawConfig } from "../api.js";
-import { resolveTwitchToken, type TwitchTokenSource } from "./token.js";
+import type { OpenClawConfig } from "../api.js";
+import { resolveTwitchToken } from "./token.js";
 
 describe("token", () => {
-  const originalAccessToken = process.env.ASTROCLAW_TWITCH_ACCESS_TOKEN;
+  const originalAccessToken = process.env.OPENCLAW_TWITCH_ACCESS_TOKEN;
 
   // Multi-account config for testing non-default accounts
   const mockMultiAccountConfig = {
@@ -31,7 +31,7 @@ describe("token", () => {
         },
       },
     },
-  } as unknown as AstroclawConfig;
+  } as unknown as OpenClawConfig;
 
   // Simplified single-account config
   const mockSimplifiedConfig = {
@@ -41,7 +41,7 @@ describe("token", () => {
         accessToken: "oauth:config-token",
       },
     },
-  } as unknown as AstroclawConfig;
+  } as unknown as OpenClawConfig;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,9 +50,9 @@ describe("token", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     if (originalAccessToken === undefined) {
-      delete process.env.ASTROCLAW_TWITCH_ACCESS_TOKEN;
+      delete process.env.OPENCLAW_TWITCH_ACCESS_TOKEN;
     } else {
-      process.env.ASTROCLAW_TWITCH_ACCESS_TOKEN = originalAccessToken;
+      process.env.OPENCLAW_TWITCH_ACCESS_TOKEN = originalAccessToken;
     }
   });
 
@@ -84,7 +84,7 @@ describe("token", () => {
               },
             },
           },
-        } as unknown as AstroclawConfig,
+        } as unknown as OpenClawConfig,
         { accountId: "secondary" },
       );
 
@@ -93,7 +93,7 @@ describe("token", () => {
     });
 
     it("should prioritize config token over env var (simplified config)", () => {
-      process.env.ASTROCLAW_TWITCH_ACCESS_TOKEN = "oauth:env-token";
+      process.env.OPENCLAW_TWITCH_ACCESS_TOKEN = "oauth:env-token";
 
       const result = resolveTwitchToken(mockSimplifiedConfig, { accountId: "default" });
 
@@ -103,7 +103,7 @@ describe("token", () => {
     });
 
     it("should use env var when config token is empty (simplified config)", () => {
-      process.env.ASTROCLAW_TWITCH_ACCESS_TOKEN = "oauth:env-token";
+      process.env.OPENCLAW_TWITCH_ACCESS_TOKEN = "oauth:env-token";
 
       const configWithEmptyToken = {
         channels: {
@@ -112,7 +112,7 @@ describe("token", () => {
             accessToken: "",
           },
         },
-      } as unknown as AstroclawConfig;
+      } as unknown as OpenClawConfig;
 
       const result = resolveTwitchToken(configWithEmptyToken, { accountId: "default" });
 
@@ -128,7 +128,7 @@ describe("token", () => {
             accessToken: "",
           },
         },
-      } as unknown as AstroclawConfig;
+      } as unknown as OpenClawConfig;
 
       const result = resolveTwitchToken(configWithoutToken, { accountId: "default" });
 
@@ -137,7 +137,7 @@ describe("token", () => {
     });
 
     it("should not use env var for non-default accounts (multi-account)", () => {
-      process.env.ASTROCLAW_TWITCH_ACCESS_TOKEN = "oauth:env-token";
+      process.env.OPENCLAW_TWITCH_ACCESS_TOKEN = "oauth:env-token";
 
       const configWithoutToken = {
         channels: {
@@ -150,7 +150,7 @@ describe("token", () => {
             },
           },
         },
-      } as unknown as AstroclawConfig;
+      } as unknown as OpenClawConfig;
 
       const result = resolveTwitchToken(configWithoutToken, { accountId: "secondary" });
 
@@ -166,7 +166,7 @@ describe("token", () => {
             accounts: {},
           },
         },
-      } as unknown as AstroclawConfig;
+      } as unknown as OpenClawConfig;
 
       const result = resolveTwitchToken(configWithoutAccount, { accountId: "nonexistent" });
 
@@ -177,22 +177,12 @@ describe("token", () => {
     it("should handle missing Twitch config section", () => {
       const configWithoutSection = {
         channels: {},
-      } as unknown as AstroclawConfig;
+      } as unknown as OpenClawConfig;
 
       const result = resolveTwitchToken(configWithoutSection, { accountId: "default" });
 
       expect(result.token).toBe("");
       expect(result.source).toBe("none");
-    });
-  });
-
-  describe("TwitchTokenSource type", () => {
-    it("should have correct values", () => {
-      const sources: TwitchTokenSource[] = ["env", "config", "none"];
-
-      expect(sources).toContain("env");
-      expect(sources).toContain("config");
-      expect(sources).toContain("none");
     });
   });
 });
