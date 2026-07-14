@@ -15,8 +15,8 @@ import {
 } from "../infra/local-file-access.js";
 import { assertNoPathAliasEscape, type PathAliasPolicy } from "../infra/path-alias-guards.js";
 import { isPathInside } from "../infra/path-guards.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
-import { resolveConfigDir } from "../utils.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolveConfigDir, shortenHomePath } from "../utils.js";
 
 const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
 const DATA_URL_RE = /^data:/i;
@@ -80,7 +80,9 @@ export function resolveSandboxPath(params: { filePath: string; cwd: string; root
     path.isAbsolute(relative) ||
     isWindowsDrivePath(relative)
   ) {
-    throw new Error(`Path escapes sandbox root (${shortPath(rootResolved)}): ${params.filePath}`);
+    throw new Error(
+      `Path escapes sandbox root (${shortenHomePath(rootResolved)}): ${params.filePath}`,
+    );
   }
   return { resolved, relative };
 }
@@ -283,7 +285,7 @@ async function resolveAllowedTmpMediaPath(params: {
     return undefined;
   }
   const resolved = path.resolve(resolveSandboxInputPath(params.candidate, params.sandboxRoot));
-  const openClawTmpDir = path.resolve(resolvePreferredAstroclawTmpDir());
+  const openClawTmpDir = path.resolve(resolvePreferredOpenClawTmpDir());
   if (!isPathInside(openClawTmpDir, resolved)) {
     return undefined;
   }
@@ -300,11 +302,4 @@ async function assertNoTmpAliasEscape(params: {
     rootPath: params.tmpRoot,
     boundaryLabel: "tmp root",
   });
-}
-
-function shortPath(value: string) {
-  if (value.startsWith(os.homedir())) {
-    return `~${value.slice(os.homedir().length)}`;
-  }
-  return value;
 }
