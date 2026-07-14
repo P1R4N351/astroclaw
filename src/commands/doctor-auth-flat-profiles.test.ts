@@ -12,7 +12,7 @@ import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../test-utils/astroclaw-test-state.js";
+} from "../test-utils/openclaw-test-state.js";
 import {
   collectOpenAICodexAuthProfileStoreIdMap,
   maybeMigrateAuthProfileJsonStoresToSqlite,
@@ -1375,3 +1375,4 @@ describe("maybeRepairOpenAICodexAuthProfileStores", () => {
     ).toEqual(legacy);
   });
 });
+/* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
