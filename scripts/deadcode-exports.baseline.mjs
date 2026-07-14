@@ -676,11 +676,6 @@ export const KNIP_UNUSED_EXPORT_BASELINE = [
   "src/plugin-state/plugin-state-store.sqlite.ts: seedPluginStateDatabaseEntriesForTests",
   "src/plugin-state/plugin-state-store.sqlite.ts: setMaxPluginStateEntriesPerPluginForTests",
   "src/plugin-state/plugin-state-store.ts: clearPluginStateStoreForTests",
-  "src/process/command-queue.ts: CommandLaneTaskTimeoutError",
-  "src/process/command-queue.ts: resetCommandQueueStateForTest",
-  "src/process/gateway-work-admission.ts: tryBeginGatewayIndependentRootWorkAdmission",
-  "src/process/terminal-pty.ts: resolveTerminalPtyInvocation",
-  "src/process/terminal-pty.ts: TerminalPtyHandle",
   "src/proxy-capture/env.ts: OPENCLAW_DEBUG_PROXY_ENABLED",
   "src/proxy-capture/env.ts: OPENCLAW_DEBUG_PROXY_SESSION_ID",
   "src/proxy-capture/proxy-server.ts: assertDebugProxyDirectUpstreamAllowed",
@@ -721,14 +716,6 @@ export const KNIP_UNUSED_EXPORT_BASELINE = [
   "src/tasks/task-registry.ts: resetTaskRegistryForTests",
   "src/tasks/task-registry.ts: setTaskRegistryControlRuntimeForTests",
   "src/tasks/task-registry.ts: setTaskRegistryDeliveryRuntimeForTests",
-  "src/wizard/clack-navigation-prompts.ts: formatNavigationFooter",
-  "src/wizard/i18n/index.ts: listWizardI18nKeys",
-  "src/wizard/i18n/index.ts: resolveWizardLocale",
-  "src/wizard/i18n/index.ts: resolveWizardLocaleFromEnv",
-  "src/wizard/i18n/index.ts: WIZARD_SUPPORTED_LOCALES",
-  "src/wizard/setup.migration-recovery.ts: testing",
-  "src/wizard/setup.official-plugins.ts: resolveOfficialPluginOnboardingInstallEntries",
-  "src/wizard/setup.official-plugins.ts: testing",
 ];
 
 // Platform-variant findings. Allowed when present; never required.
