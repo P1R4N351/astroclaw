@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
-} from "../../test-utils/astroclaw-test-state.js";
+} from "../../test-utils/openclaw-test-state.js";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
 import { callGatewayHandler } from "./skills.test-helpers.js";
 
@@ -208,6 +208,25 @@ describe("skills proposal gateway handlers", () => {
     expect(result.ok).toBe(false);
     expect((result.error as { code?: string }).code).toBe("INVALID_REQUEST");
     await expect(fs.access(path.join(stateDir, "skill-workshop"))).rejects.toThrow();
+  });
+
+  it("reports empty historical scan coverage and validates scan direction", async () => {
+    const status = await callHandler("skills.proposals.historyStatus", {});
+    expect(status).toMatchObject({
+      ok: true,
+      response: {
+        schema: "openclaw.skill-workshop.history-scan.v1",
+        hasScanned: false,
+        reviewedSessions: 0,
+        ideasFound: 0,
+      },
+    });
+
+    const invalid = await callHandler("skills.proposals.historyScan", {
+      direction: "all-time",
+    });
+    expect(invalid.ok).toBe(false);
+    expect((invalid.error as { code?: string }).code).toBe("INVALID_REQUEST");
   });
 
   it("starts revision chat turns with visible instructions and server-built context", async () => {
