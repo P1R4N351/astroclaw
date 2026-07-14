@@ -37,7 +37,7 @@ import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { hasErrnoCode } from "../infra/errors.js";
 import { writeExternalFileWithinRoot } from "../infra/fs-safe.js";
 import { resolveProxyFetchFromEnv } from "../infra/net/proxy-fetch.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { runFfmpeg } from "../media/media-services.js";
 import {
   getOfficialExternalPluginCatalogManifest,
@@ -751,7 +751,7 @@ function assertMinAudioSize(params: { size: number; attachmentIndex: number }): 
  *   register with the official external provider catalog to receive the
  *   actionable hint.
  */
-export function formatMissingProviderHint(providerId: string): string {
+function formatMissingProviderHint(providerId: string): string {
   const trimmed = providerId.trim();
   if (!trimmed) {
     return "";
@@ -1046,7 +1046,7 @@ export async function runCliEntry(params: {
     assertMinAudioSize({ size: stat.size, attachmentIndex: params.attachmentIndex });
   }
   const outputDir = await fs.mkdtemp(
-    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-media-cli-"),
+    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-media-cli-"),
   );
   const mediaPath = await resolveCliMediaPath({
     capability,
