@@ -272,6 +272,7 @@ export function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: options.cwd,
     encoding: "utf8",
+    env: options.env ? { ...process.env, ...options.env } : process.env,
     maxBuffer: COMMAND_CAPTURE_MAX_BUFFER_BYTES,
     stdio: options.capture ? ["ignore", "pipe", "pipe"] : "inherit",
   });
@@ -515,6 +516,11 @@ function runFromTrustedTooling(argv, { targetRoot, workflowRef }) {
       cwd: targetRoot,
     });
     worktreeAdded = true;
+    // Build an isolated trusted dependency tree. Lifecycle scripts stay disabled;
+    // the frozen lockfile and prefer-offline store keep setup deterministic.
+    run("pnpm", ["install", "--frozen-lockfile", "--ignore-scripts", "--prefer-offline"], {
+      cwd: toolingRoot,
+    });
     const result = spawnSync(
       process.execPath,
       [join(toolingRoot, "scripts/release-candidate-checklist.mjs"), ...argv],
@@ -1194,10 +1200,15 @@ export function validateFullManifest(manifest, params) {
   }
 }
 
-export function candidateParallelsArgs(tarballPath, dependencyTarballPaths = []) {
+export function candidateParallelsArgs(
+  tarballPath,
+  dependencyTarballPaths = [],
+  toolingRoot = TOOLING_ROOT,
+) {
   return [
-    "test:parallels:npm-update",
-    "--",
+    "exec",
+    "tsx",
+    join(toolingRoot, "scripts/e2e/parallels/npm-update-smoke.ts"),
     "--target-tarball",
     tarballPath,
     ...dependencyTarballPaths.flatMap((dependency) => ["--dependency-tarball", dependency]),
@@ -1233,7 +1244,11 @@ async function runParallelsIfNeeded(options, tarballPath, dependencyTarballPaths
     capture: true,
   }).trim();
   const command = candidateParallelsShellCommand(tarballPath, timeoutBin, dependencyTarballPaths);
-  run("bash", ["-lc", command]);
+  run("bash", ["-lc", command], {
+    env: {
+      OPENCLAW_PARALLELS_ARTIFACT_ROOT: join(process.cwd(), ".artifacts", "parallels"),
+    },
+  });
   return {
     status: "passed",
     command,
