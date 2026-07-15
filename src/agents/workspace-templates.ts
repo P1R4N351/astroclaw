@@ -5,7 +5,7 @@
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveOpenClawPackageRoot } from "../infra/astroclaw-root.js";
+import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
 import { pathExists } from "../utils.js";
 
 const FALLBACK_TEMPLATE_DIR = path.resolve(
@@ -62,12 +62,6 @@ export async function resolveWorkspaceTemplateDir(opts?: {
   } finally {
     resolvingTemplateDir = undefined;
   }
-}
-
-/** Clears cached workspace-template directory resolution for tests or package moves. */
-export function resetWorkspaceTemplateDirCache() {
-  cachedTemplateDir = undefined;
-  resolvingTemplateDir = undefined;
 }
 
 function buildTemplateDirCandidates(params: {
