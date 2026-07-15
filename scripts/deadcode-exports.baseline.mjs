@@ -2,8 +2,6 @@
 // New entries fail CI. After deleting dead code, run `pnpm deadcode:exports:update`.
 // Do not add entries to avoid fixing new findings.
 export const KNIP_UNUSED_EXPORT_BASELINE = [
-  "src/acp/control-plane/active-turns.ts: resetAcpActiveTurnsForTests",
-  "src/acp/runtime/registry.ts: AcpRuntimeBackend",
   "src/agents/agent-hooks/compaction-safeguard.ts: testing",
   "src/agents/agent-tools.before-tool-call.ts: BeforeToolCallBlockedError",
   "src/agents/agent-tools.before-tool-call.ts: testing",
@@ -213,7 +211,6 @@ export const KNIP_UNUSED_EXPORT_BASELINE = [
   "src/entry.compile-cache.ts: shouldEnableOpenClawCompileCache",
   "src/flows/doctor-health-contributions.ts: createDoctorHealthContribution",
   "src/flows/doctor-health-contributions.ts: resolveDoctorHealthContributions",
-  "src/hooks/gmail-setup-utils.ts: resetGmailSetupUtilsCachesForTest",
   "src/logging/diagnostic-run-activity.ts: markDiagnosticModelStartedForTest",
   "src/logging/diagnostic-run-activity.ts: markDiagnosticRunProgressForTest",
   "src/logging/diagnostic-run-activity.ts: markDiagnosticToolStartedForTest",
@@ -224,8 +221,6 @@ export const KNIP_UNUSED_EXPORT_BASELINE = [
   "src/plugin-state/plugin-state-store.sqlite.ts: seedPluginStateDatabaseEntriesForTests",
   "src/plugin-state/plugin-state-store.sqlite.ts: setMaxPluginStateEntriesPerPluginForTests",
   "src/plugin-state/plugin-state-store.ts: clearPluginStateStoreForTests",
-  "src/proxy-capture/proxy-server.ts: assertDebugProxyDirectUpstreamAllowed",
-  "src/proxy-capture/proxy-server.ts: parseConnectTarget",
   "src/sessions/session-key-utils.ts: isCasePreservingPeer",
   "src/sessions/session-lifecycle-admission.ts: runExclusiveSessionLifecycle",
   "src/sessions/session-state-events.ts: pruneSessionStateEvents",
