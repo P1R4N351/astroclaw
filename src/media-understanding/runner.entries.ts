@@ -37,7 +37,7 @@ import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { hasErrnoCode } from "../infra/errors.js";
 import { writeExternalFileWithinRoot } from "../infra/fs-safe.js";
 import { resolveProxyFetchFromEnv } from "../infra/net/proxy-fetch.js";
-import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
+import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
 import { runFfmpeg } from "../media/media-services.js";
 import {
   getOfficialExternalPluginCatalogManifest,
@@ -1046,7 +1046,7 @@ export async function runCliEntry(params: {
     assertMinAudioSize({ size: stat.size, attachmentIndex: params.attachmentIndex });
   }
   const outputDir = await fs.mkdtemp(
-    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-media-cli-"),
+    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-media-cli-"),
   );
   const mediaPath = await resolveCliMediaPath({
     capability,
@@ -1120,3 +1120,4 @@ export async function runCliEntry(params: {
     await fs.rm(outputDir, { recursive: true, force: true }).catch(() => {});
   }
 }
+/* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
