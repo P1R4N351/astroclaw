@@ -707,7 +707,7 @@ function resolveInfraShardName(file) {
     name.startsWith("json") ||
     name.startsWith("path") ||
     name.startsWith("shell") ||
-    name.startsWith("tmp-astroclaw-dir")
+    name.startsWith("tmp-openclaw-dir")
   ) {
     return "core-runtime-infra-files-commands";
   }
