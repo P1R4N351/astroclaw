@@ -97,6 +97,7 @@ import {
   resolveManagedUnsetPathsForWrite,
   resolveWriteEnvSnapshotForPath,
 } from "./io.write-prepare.js";
+import { warnIfJSON5CommentsWillBeStripped } from "./json5-comments.js";
 import {
   asResolvedSourceConfig,
   asRuntimeConfig,
@@ -2724,6 +2725,13 @@ export function createConfigIO(
             assertBaseSnapshotStillCurrent(snapshot, configPath, deps.fs);
           }
           options.assertConfigPathForWrite?.();
+          // Warn only after final guards pass, with no later await before rename.
+          warnIfJSON5CommentsWillBeStripped({
+            raw: snapshot.raw,
+            filePath: configPath,
+            warn: deps.logger?.warn,
+            skipOutputLogs: options.skipOutputLogs,
+          });
         },
       });
       configCommitted = true;
@@ -3251,3 +3259,4 @@ export async function writeConfigFile(
   }
   return { ...writeResult, persistedConfig: canonicalSourceConfig };
 }
+/* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
