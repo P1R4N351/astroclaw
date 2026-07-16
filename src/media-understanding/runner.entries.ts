@@ -37,7 +37,7 @@ import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { hasErrnoCode } from "../infra/errors.js";
 import { writeExternalFileWithinRoot } from "../infra/fs-safe.js";
 import { resolveProxyFetchFromEnv } from "../infra/net/proxy-fetch.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { runFfmpeg } from "../media/media-services.js";
 import {
   getOfficialExternalPluginCatalogManifest,
@@ -978,6 +978,16 @@ export async function runProviderEntry(params: {
     workspaceDir: params.workspaceDir,
   });
   const authSource = auth.source ?? `provider:${providerId}`;
+  const model =
+    entry.model?.trim() ||
+    (await import("./defaults.js")).resolveDefaultMediaModel({
+      cfg,
+      providerId,
+      capability: "video",
+      workspaceDir: params.workspaceDir,
+      providerRegistry: params.providerRegistry,
+    }) ||
+    entry.model;
   const buildRequest = (requestAuth: { kind: "api-key"; apiKey: string } | { kind: "none" }) => ({
     buffer: media.buffer,
     fileName: media.fileName,
@@ -990,7 +1000,7 @@ export async function runProviderEntry(params: {
     baseUrl,
     headers,
     request,
-    model: entry.model,
+    model,
     prompt,
     timeoutMs,
     fetchFn,
@@ -1009,7 +1019,7 @@ export async function runProviderEntry(params: {
     attachmentIndex: params.attachmentIndex,
     text: trimOutput(result.text, maxChars),
     provider: providerId,
-    model: result.model ?? entry.model,
+    model: result.model ?? model,
   };
 }
 
@@ -1046,7 +1056,7 @@ export async function runCliEntry(params: {
     assertMinAudioSize({ size: stat.size, attachmentIndex: params.attachmentIndex });
   }
   const outputDir = await fs.mkdtemp(
-    path.join(resolvePreferredOpenClawTmpDir(), "openclaw-media-cli-"),
+    path.join(resolvePreferredAstroclawTmpDir(), "openclaw-media-cli-"),
   );
   const mediaPath = await resolveCliMediaPath({
     capability,
