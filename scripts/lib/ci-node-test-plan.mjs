@@ -42,9 +42,9 @@ const COMPACT_GROUP_SECONDS_HINTS = new Map([
   ["agentic-agents-core-auth", 32],
   ["agentic-agents-core-isolated", 10],
   ["agentic-agents-core-models", 66],
-  ["agentic-agents-core-runner-cli-1", 110],
-  ["agentic-agents-core-runner-cli-2", 110],
-  ["agentic-agents-core-runner-cli-3", 110],
+  ["agentic-agents-core-runner-cli-1", 60],
+  ["agentic-agents-core-runner-cli-2", 190],
+  ["agentic-agents-core-runner-cli-3", 60],
   ["agentic-agents-core-runner-commands", 30],
   ["agentic-agents-core-runner-embedded", 20],
   ["agentic-agents-core-runner-sessions", 18],
@@ -752,7 +752,7 @@ function resolveInfraShardName(file) {
     name.startsWith("json") ||
     name.startsWith("path") ||
     name.startsWith("shell") ||
-    name.startsWith("tmp-openclaw-dir")
+    name.startsWith("tmp-astroclaw-dir")
   ) {
     return "core-runtime-infra-files-commands";
   }
