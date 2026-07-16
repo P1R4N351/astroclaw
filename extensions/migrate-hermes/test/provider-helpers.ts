@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { MigrationProviderContext } from "openclaw/plugin-sdk/plugin-entry";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/provider-auth";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 
 const tempRoots = new Set<string>();
 const TEMP_ROOT_PREFIX = "openclaw-migrate-hermes-";
@@ -18,7 +18,7 @@ const logger: MigrationProviderContext["logger"] = {
 };
 
 export async function makeTempRoot() {
-  const root = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), TEMP_ROOT_PREFIX));
+  const root = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), TEMP_ROOT_PREFIX));
   tempRoots.add(root);
   return root;
 }
@@ -88,6 +88,8 @@ export function makeContext(params: {
   config?: OpenClawConfig;
   includeSecrets?: boolean;
   overwrite?: boolean;
+  itemKinds?: string[];
+  targetAgentId?: string;
   model?: NonNullable<NonNullable<OpenClawConfig["agents"]>["defaults"]>["model"];
   reportDir?: string;
   runtime?: MigrationProviderContext["runtime"];
@@ -108,6 +110,8 @@ export function makeContext(params: {
     source: params.source,
     includeSecrets: params.includeSecrets,
     overwrite: params.overwrite,
+    itemKinds: params.itemKinds,
+    targetAgentId: params.targetAgentId,
     reportDir: params.reportDir,
     runtime: params.runtime,
     logger,
