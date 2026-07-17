@@ -17,7 +17,8 @@ import {
   normalizeStringEntries,
   uniqueStrings,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { sliceUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
 import {
   createQaBundledPluginsDir,
   resolveQaBundledPluginSourceDir,
@@ -493,7 +494,10 @@ function monitorQaGatewayChildFailure(child: ChildProcess, output: { push(chunk:
 const QA_GATEWAY_PROCESS_BOUNDARY_LOG_TAIL_CHARS = 8_192;
 
 function formatQaGatewayProcessBoundaryStartupFailure(error: unknown, logs: string) {
-  const logTail = redactQaGatewayDebugText(logs).slice(-QA_GATEWAY_PROCESS_BOUNDARY_LOG_TAIL_CHARS);
+  const logTail = sliceUtf16Safe(
+    redactQaGatewayDebugText(logs),
+    -QA_GATEWAY_PROCESS_BOUNDARY_LOG_TAIL_CHARS,
+  );
   return `${formatErrorMessage(error)}${formatQaGatewayLogsForError(logTail)}`;
 }
 
@@ -635,6 +639,7 @@ function signalQaGatewayWindowsProcessTree(
   const result = runTaskkill(taskkillPath, args, {
     stdio: "ignore",
     windowsHide: true,
+    timeout: 5_000,
   });
   if (!result.error && result.status === 0) {
     return true;
@@ -643,6 +648,7 @@ function signalQaGatewayWindowsProcessTree(
     const forceResult = runTaskkill(taskkillPath, [...args, "/F"], {
       stdio: "ignore",
       windowsHide: true,
+      timeout: 5_000,
     });
     return !forceResult.error && forceResult.status === 0;
   }
@@ -922,7 +928,7 @@ export async function startQaGatewayChild(params: {
 }) {
   // Verified launchers may require every runtime artifact to stay inside their
   // prepared root; carry that root forward instead of rediscovering host temp policy.
-  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredOpenClawTmpDir();
+  const tempParentDir = params.command?.tempParentDir ?? resolvePreferredAstroclawTmpDir();
   const tempRoot = await fs.mkdtemp(path.join(tempParentDir, "openclaw-qa-suite-"));
   const runtimeCwd = tempRoot;
   const distEntryPath = path.join(params.repoRoot, "dist", "index.js");
