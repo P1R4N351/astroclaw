@@ -1,8 +1,12 @@
+import { setTimeout as wait } from "node:timers/promises";
 import { readBoundedResponseText } from "../lib/bounded-response.mjs";
 
 export const GITHUB_ERROR_BODY_MAX_BYTES = 64 * 1024;
 export const GITHUB_RESPONSE_BODY_MAX_BYTES = 4 * 1024 * 1024;
 export const GITHUB_API_REQUEST_TIMEOUT_MS = 30_000;
+
+const githubApiRetryStatuses = new Set([502, 503, 504]);
+const githubApiRetryDelaysMs = [1_000, 2_000, 4_000];
 
 export function guardTrustedActorCandidates({ pullRequest, event, currentHeadSha }) {
   const eventHeadSha = event?.pull_request?.head?.sha;
@@ -38,32 +42,20 @@ export function isCommentNewerThan(comment, newerThan) {
   return Number.isFinite(commentTime) && Number.isFinite(barrierTime) && commentTime > barrierTime;
 }
 
-// Each guard sticky-comment body emits exactly one canonical head-SHA line,
-// always at the start of its own line:
-//   - `- Approved SHA: ` + backtick-fenced SHA (authorized override body)
-//   - `- Current SHA: `  + backtick-fenced SHA (trusted/cleared/awaiting body)
-//   - prose `The action will approve the current head SHA (`...`)` (blocked body)
-// Anchor every pattern to the line start (multiline `^\s*`) so an arbitrary
-// 40-hex token appearing mid-line elsewhere in the body — a quoted SHA in a
-// prior section, a pasted SHA, or a `/allow` `Reason:` value — cannot latch.
-// Scan in BODY order (first matching canonical line wins), not pattern-priority
-// order, so the result never depends on the relative ordering of the patterns.
-const GUARD_HEAD_SHA_PATTERNS = [
-  /^\s*-\s+Approved SHA:\s+`([a-f0-9]{40})`/imu,
-  /^\s*The action will approve the current head SHA\s+\(`([a-f0-9]{40})`\)/imu,
-  /^\s*-\s+Current SHA:\s+`([a-f0-9]{40})`/imu,
-];
-
 export function guardCommentHeadSha(comment) {
   const body = comment?.body ?? "";
-  let best = null;
-  for (const pattern of GUARD_HEAD_SHA_PATTERNS) {
+  const patterns = [
+    /Approved SHA:\s+`([a-f0-9]{40})`/iu,
+    /current head SHA\s+\(`([a-f0-9]{40})`\)/iu,
+    /Current SHA:\s+`([a-f0-9]{40})`/iu,
+  ];
+  for (const pattern of patterns) {
     const match = body.match(pattern);
-    if (match?.[1] && (best === null || match.index < best.index)) {
-      best = { sha: match[1], index: match.index };
+    if (match?.[1]) {
+      return match[1];
     }
   }
-  return best?.sha ?? null;
+  return null;
 }
 
 export function createIssueMutationHelpers({
@@ -242,6 +234,7 @@ function combineAbortSignals(signals) {
 export function createGitHubApi(token, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? GITHUB_API_REQUEST_TIMEOUT_MS;
+  const retryDelaysMs = options.retryDelaysMs ?? githubApiRetryDelaysMs;
   const responseMaxBodyBytes = options.responseMaxBodyBytes ?? GITHUB_RESPONSE_BODY_MAX_BYTES;
   const baseHeaders = {
     accept: "application/vnd.github+json",
@@ -250,8 +243,9 @@ export function createGitHubApi(token, options = {}) {
     "x-github-api-version": "2022-11-28",
   };
   const request = async (path, requestOptions = {}) => {
-    const method = requestOptions.method ?? "GET";
+    const method = (requestOptions.method ?? "GET").toUpperCase();
     const timeoutController = new AbortController();
+    const requestSignal = combineAbortSignals([requestOptions.signal, timeoutController.signal]);
     let timeout;
     const timeoutPromise = new Promise((_, reject) => {
       timeout = setTimeout(() => {
@@ -261,32 +255,43 @@ export function createGitHubApi(token, options = {}) {
       timeout.unref?.();
     });
     const operationPromise = (async () => {
-      const response = await fetchImpl(`https://api.github.com${path}`, {
-        ...requestOptions,
-        signal: combineAbortSignals([requestOptions.signal, timeoutController.signal]),
-        headers: { ...baseHeaders, ...requestOptions.headers },
-      });
-      if (response.status === 204) {
-        return null;
-      }
-      if (!response.ok) {
-        let errorText;
-        try {
-          errorText = await readBoundedGitHubErrorText(response, GITHUB_ERROR_BODY_MAX_BYTES, {
-            signal: timeoutController.signal,
-            timeoutPromise,
-          });
-        } catch (bodyError) {
-          errorText = bodyError instanceof Error ? bodyError.message : String(bodyError);
+      for (let attempt = 0; ; attempt += 1) {
+        const response = await fetchImpl(`https://api.github.com${path}`, {
+          ...requestOptions,
+          signal: requestSignal,
+          headers: { ...baseHeaders, ...requestOptions.headers },
+        });
+        if (response.status === 204) {
+          return null;
         }
-        const error = new Error(`${response.status} ${response.statusText}: ${errorText}`);
-        error.status = response.status;
-        throw error;
+        if (!response.ok) {
+          if (
+            (method === "GET" || method === "HEAD") &&
+            githubApiRetryStatuses.has(response.status) &&
+            attempt < retryDelaysMs.length
+          ) {
+            await response.body?.cancel().catch(() => {});
+            await wait(retryDelaysMs[attempt], undefined, { signal: requestSignal });
+            continue;
+          }
+          let errorText;
+          try {
+            errorText = await readBoundedGitHubErrorText(response, GITHUB_ERROR_BODY_MAX_BYTES, {
+              signal: timeoutController.signal,
+              timeoutPromise,
+            });
+          } catch (bodyError) {
+            errorText = bodyError instanceof Error ? bodyError.message : String(bodyError);
+          }
+          const error = new Error(`${response.status} ${response.statusText}: ${errorText}`);
+          error.status = response.status;
+          throw error;
+        }
+        return await readBoundedGitHubJson(response, responseMaxBodyBytes, {
+          signal: timeoutController.signal,
+          timeoutPromise,
+        });
       }
-      return await readBoundedGitHubJson(response, responseMaxBodyBytes, {
-        signal: timeoutController.signal,
-        timeoutPromise,
-      });
     })();
     operationPromise.catch(() => {});
     try {
