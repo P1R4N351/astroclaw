@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import "./test-helpers/fast-coding-tools.js";
-import "./test-helpers/fast-astroclaw-tools.js";
+import "./test-helpers/fast-openclaw-tools.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { createCanonicalFixtureSkill } from "../skills/test-support/test-helpers.js";
 import { createOpenClawCodingTools } from "./agent-tools.js";
@@ -117,6 +117,28 @@ describe("workspace path resolution", () => {
       });
     });
   });
+
+  it.runIf(process.platform === "win32")(
+    "preserves mixed-case and Unicode names for workspace-only writes on Windows",
+    async () => {
+      await withTempDir("openclaw-windows-case-", async (workspaceDir) => {
+        const cfg: OpenClawConfig = { tools: { fs: { workspaceOnly: true } } };
+        const tools = createOpenClawCodingTools({ workspaceDir, config: cfg });
+        const { writeTool } = expectReadWriteEditTools(tools);
+
+        await writeTool.execute("windows-case-write", {
+          path: "Source/İstanbul/Widget.ts",
+          content: "export const Widget = true;",
+        });
+
+        await expect(fs.readdir(workspaceDir)).resolves.toEqual(["Source"]);
+        await expect(fs.readdir(path.join(workspaceDir, "Source"))).resolves.toEqual(["İstanbul"]);
+        await expect(fs.readdir(path.join(workspaceDir, "Source", "İstanbul"))).resolves.toEqual([
+          "Widget.ts",
+        ]);
+      });
+    },
+  );
 
   it("allows deletion edits with empty newText", async () => {
     await withTempDir("openclaw-ws-", async (workspaceDir) => {
