@@ -266,6 +266,7 @@ class InvokeDispatcherTest {
       photosHandler = PhotosHandler.forTesting(appContext, InvokeDispatcherFakePhotosDataSource()),
       contactsHandler = ContactsHandler.forTesting(appContext, InvokeDispatcherFakeContactsDataSource()),
       calendarHandler = CalendarHandler.forTesting(appContext, InvokeDispatcherFakeCalendarDataSource()),
+      alarmsHandler = AlarmsHandler.forTesting(appContext, InvokeDispatcherFakeAlarmLauncher()),
       motionHandler = MotionHandler.forTesting(appContext, InvokeDispatcherFakeMotionDataSource()),
       smsHandler = SmsHandler(SmsManager(appContext)),
       a2uiHandler =
@@ -404,6 +405,25 @@ private class InvokeDispatcherFakeCalendarDataSource : CalendarDataSource {
   ): CalendarEventRecord {
     error("unused in InvokeDispatcherTest")
   }
+}
+
+private class InvokeDispatcherFakeAlarmLauncher : AlarmLauncher {
+  override fun set(
+    context: Context,
+    request: AlarmSetRequest,
+  ) = Unit
+
+  override fun setTimer(
+    context: Context,
+    request: AlarmTimerRequest,
+  ) = Unit
+
+  override fun show(context: Context) = Unit
+
+  override fun dismiss(
+    context: Context,
+    request: AlarmDismissRequest,
+  ) = Unit
 }
 
 private class InvokeDispatcherFakeMotionDataSource : MotionDataSource {

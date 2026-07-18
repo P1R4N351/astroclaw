@@ -1,6 +1,7 @@
 package ai.astroclaw.app.node
 
 import ai.astroclaw.app.gateway.GatewaySession
+import ai.astroclaw.app.protocol.AstroclawAlarmsCommand
 import ai.astroclaw.app.protocol.AstroclawCalendarCommand
 import ai.astroclaw.app.protocol.AstroclawCallLogCommand
 import ai.astroclaw.app.protocol.AstroclawCameraCommand
@@ -64,6 +65,7 @@ class InvokeDispatcher(
   private val photosHandler: PhotosHandler,
   private val contactsHandler: ContactsHandler,
   private val calendarHandler: CalendarHandler,
+  private val alarmsHandler: AlarmsHandler,
   private val motionHandler: MotionHandler,
   private val smsHandler: SmsHandler,
   private val a2uiHandler: A2UIHandler,
@@ -209,6 +211,12 @@ class InvokeDispatcher(
       // Calendar command
       AstroclawCalendarCommand.Events.rawValue -> calendarHandler.handleCalendarEvents(paramsJson)
       AstroclawCalendarCommand.Add.rawValue -> calendarHandler.handleCalendarAdd(paramsJson)
+
+      // Alarms command
+      AstroclawAlarmsCommand.Set.rawValue -> alarmsHandler.handleAlarmsSet(paramsJson)
+      AstroclawAlarmsCommand.SetTimer.rawValue -> alarmsHandler.handleAlarmsSetTimer(paramsJson)
+      AstroclawAlarmsCommand.Show.rawValue -> alarmsHandler.handleAlarmsShow()
+      AstroclawAlarmsCommand.Dismiss.rawValue -> alarmsHandler.handleAlarmsDismiss(paramsJson)
 
       // Motion command
       AstroclawMotionCommand.Activity.rawValue -> motionHandler.handleMotionActivity(paramsJson)

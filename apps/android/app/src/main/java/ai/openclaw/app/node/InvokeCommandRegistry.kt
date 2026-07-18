@@ -1,5 +1,6 @@
 package ai.astroclaw.app.node
 
+import ai.astroclaw.app.protocol.AstroclawAlarmsCommand
 import ai.astroclaw.app.protocol.AstroclawCalendarCommand
 import ai.astroclaw.app.protocol.AstroclawCallLogCommand
 import ai.astroclaw.app.protocol.AstroclawCameraCommand
@@ -90,6 +91,7 @@ object InvokeCommandRegistry {
       NodeCapabilitySpec(name = AstroclawCapability.Photos.rawValue),
       NodeCapabilitySpec(name = AstroclawCapability.Contacts.rawValue),
       NodeCapabilitySpec(name = AstroclawCapability.Calendar.rawValue),
+      NodeCapabilitySpec(name = AstroclawCapability.Alarms.rawValue),
       NodeCapabilitySpec(
         name = AstroclawCapability.Motion.rawValue,
         availability = NodeCapabilityAvailability.MotionAvailable,
@@ -200,6 +202,18 @@ object InvokeCommandRegistry {
       ),
       InvokeCommandSpec(
         name = AstroclawCalendarCommand.Add.rawValue,
+      ),
+      InvokeCommandSpec(
+        name = AstroclawAlarmsCommand.Set.rawValue,
+      ),
+      InvokeCommandSpec(
+        name = AstroclawAlarmsCommand.SetTimer.rawValue,
+      ),
+      InvokeCommandSpec(
+        name = AstroclawAlarmsCommand.Show.rawValue,
+      ),
+      InvokeCommandSpec(
+        name = AstroclawAlarmsCommand.Dismiss.rawValue,
       ),
       InvokeCommandSpec(
         name = AstroclawMotionCommand.Activity.rawValue,

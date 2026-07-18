@@ -336,6 +336,7 @@ Available families:
 - `callLog.search`
 - `sms.search`
 - `motion.activity`, `motion.pedometer`
+- `alarms.set`, `alarms.setTimer`, `alarms.show` (`alarms.dismiss` is dangerous — opt in via `gateway.nodes.allowCommands`)
 
 Example invokes:
 

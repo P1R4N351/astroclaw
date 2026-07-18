@@ -1,5 +1,6 @@
 package ai.astroclaw.app.node
 
+import ai.astroclaw.app.protocol.AstroclawAlarmsCommand
 import ai.astroclaw.app.protocol.AstroclawCalendarCommand
 import ai.astroclaw.app.protocol.AstroclawCallLogCommand
 import ai.astroclaw.app.protocol.AstroclawCameraCommand
@@ -31,6 +32,7 @@ class InvokeCommandRegistryTest {
       AstroclawCapability.Photos.rawValue,
       AstroclawCapability.Contacts.rawValue,
       AstroclawCapability.Calendar.rawValue,
+      AstroclawCapability.Alarms.rawValue,
     )
 
   private val optionalCapabilities =
@@ -61,6 +63,10 @@ class InvokeCommandRegistryTest {
       AstroclawContactsCommand.Add.rawValue,
       AstroclawCalendarCommand.Events.rawValue,
       AstroclawCalendarCommand.Add.rawValue,
+      AstroclawAlarmsCommand.Set.rawValue,
+      AstroclawAlarmsCommand.SetTimer.rawValue,
+      AstroclawAlarmsCommand.Show.rawValue,
+      AstroclawAlarmsCommand.Dismiss.rawValue,
     )
 
   private val optionalCommands =

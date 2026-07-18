@@ -22,7 +22,13 @@ import { resolveNodeCommandAllowlist } from "./node-command-policy.js";
 const LIVE = isLiveTestEnabled();
 const LIVE_ANDROID_NODE = isTruthyEnvValue(process.env.OPENCLAW_LIVE_ANDROID_NODE);
 const describeLive = LIVE && LIVE_ANDROID_NODE ? describe : describe.skip;
-const SKIPPED_INTERACTIVE_COMMANDS = new Set<string>();
+// alarms.* mutate device state (a scheduled alarm/timer that later rings) or
+// open the clock UI, so the live device suite must not invoke them on every run.
+const SKIPPED_INTERACTIVE_COMMANDS = new Set<string>([
+  "alarms.set",
+  "alarms.setTimer",
+  "alarms.show",
+]);
 
 type CommandOutcome = "success" | "error";
 

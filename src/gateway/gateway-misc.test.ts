@@ -963,12 +963,32 @@ describe("resolveNodeCommandAllowlist", () => {
       "device.apps",
       "callLog.search",
       "system.notify",
+      "alarms.set",
+      "alarms.setTimer",
+      "alarms.show",
     ]);
-    expectDenied(allow, ["sms.search"]);
+    expectDenied(allow, ["sms.search", "alarms.dismiss"]);
   });
 
   it("treats sms.search as dangerous by default", () => {
     expect(DEFAULT_DANGEROUS_NODE_COMMANDS).toContain("sms.search");
+  });
+
+  it("allows setting alarms/timers by default but keeps alarms.dismiss gated", () => {
+    const allow = resolveNodeCommandAllowlist(
+      {},
+      {
+        platform: "Android 16",
+        deviceFamily: "Android",
+      },
+    );
+
+    expect(DEFAULT_DANGEROUS_NODE_COMMANDS).not.toContain("alarms.set");
+    expect(DEFAULT_DANGEROUS_NODE_COMMANDS).not.toContain("alarms.setTimer");
+    expect(DEFAULT_DANGEROUS_NODE_COMMANDS).toContain("alarms.dismiss");
+    expect(allow.has("alarms.set")).toBe(true);
+    expect(allow.has("alarms.setTimer")).toBe(true);
+    expect(allow.has("alarms.dismiss")).toBe(false);
   });
 
   it("allows macOS screen.snapshot by default but keeps screen.record gated", () => {

@@ -227,6 +227,7 @@ See [Camera node](/nodes/camera) for parameters and CLI helpers.
   - `callLog.search`
   - `sms.search`
   - `motion.activity`, `motion.pedometer`
+  - `alarms.set`, `alarms.setTimer`, `alarms.show` (via the device clock app; `alarms.dismiss` is gated as dangerous and must be opted into through `gateway.nodes.allowCommands`)
 
 ## Assistant entrypoints
 

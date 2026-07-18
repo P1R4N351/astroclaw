@@ -14,6 +14,7 @@ import ai.astroclaw.app.gateway.GatewayTlsProbeFailure
 import ai.astroclaw.app.gateway.GatewayTlsProbeResult
 import ai.astroclaw.app.gateway.probeGatewayTlsFingerprint
 import ai.astroclaw.app.node.A2UIHandler
+import ai.astroclaw.app.node.AlarmsHandler
 import ai.astroclaw.app.node.CalendarHandler
 import ai.astroclaw.app.node.CallLogHandler
 import ai.astroclaw.app.node.CameraCaptureManager
@@ -159,6 +160,11 @@ class NodeRuntime(
       appContext = appContext,
     )
 
+  private val alarmsHandler: AlarmsHandler =
+    AlarmsHandler(
+      appContext = appContext,
+    )
+
   private val callLogHandler: CallLogHandler =
     CallLogHandler(
       appContext = appContext,
@@ -219,6 +225,7 @@ class NodeRuntime(
       photosHandler = photosHandler,
       contactsHandler = contactsHandler,
       calendarHandler = calendarHandler,
+      alarmsHandler = alarmsHandler,
       motionHandler = motionHandler,
       smsHandler = smsHandlerImpl,
       a2uiHandler = a2uiHandler,

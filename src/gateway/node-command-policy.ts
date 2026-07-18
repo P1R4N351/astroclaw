@@ -46,6 +46,14 @@ const CALL_LOG_COMMANDS = ["callLog.search"];
 const REMINDERS_COMMANDS = ["reminders.list"];
 const REMINDERS_DANGEROUS_COMMANDS = ["reminders.add"];
 
+// Android alarms/timers via the AlarmClock intent API. Creating an alarm or
+// timer is device-local, ephemeral, and the canonical voice-assistant action,
+// so it is default-allowed alongside opening the alarm list. Dismissing alarms
+// can silence an alarm the user relies on (mode=all clears every alarm), so it
+// is gated as dangerous and must be opted into via gateway.nodes.allowCommands.
+const ALARMS_COMMANDS = ["alarms.set", "alarms.setTimer", "alarms.show"];
+const ALARMS_DANGEROUS_COMMANDS = ["alarms.dismiss"];
+
 const PHOTOS_COMMANDS = ["photos.latest"];
 
 const MOTION_COMMANDS = ["motion.activity", "motion.pedometer"];
@@ -84,6 +92,7 @@ export const DEFAULT_DANGEROUS_NODE_COMMANDS = [
   ...CONTACTS_DANGEROUS_COMMANDS,
   ...CALENDAR_DANGEROUS_COMMANDS,
   ...REMINDERS_DANGEROUS_COMMANDS,
+  ...ALARMS_DANGEROUS_COMMANDS,
   ...SMS_DANGEROUS_COMMANDS,
 ];
 
@@ -110,6 +119,7 @@ const PLATFORM_DEFAULTS: Record<string, string[]> = {
     ...CALENDAR_COMMANDS,
     ...CALL_LOG_COMMANDS,
     ...REMINDERS_COMMANDS,
+    ...ALARMS_COMMANDS,
     ...PHOTOS_COMMANDS,
     ...MOTION_COMMANDS,
   ],

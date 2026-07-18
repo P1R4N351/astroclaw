@@ -17,6 +17,7 @@ enum class AstroclawCapability(
   Calendar("calendar"),
   Motion("motion"),
   CallLog("callLog"),
+  Alarms("alarms"),
 }
 
 enum class AstroclawCanvasCommand(
@@ -166,6 +167,20 @@ enum class AstroclawCalendarCommand(
 
   companion object {
     const val NamespacePrefix: String = "calendar."
+  }
+}
+
+enum class AstroclawAlarmsCommand(
+  val rawValue: String,
+) {
+  Set("alarms.set"),
+  SetTimer("alarms.setTimer"),
+  Show("alarms.show"),
+  Dismiss("alarms.dismiss"),
+  ;
+
+  companion object {
+    const val NamespacePrefix: String = "alarms."
   }
 }
 
