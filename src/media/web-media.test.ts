@@ -8,7 +8,7 @@ import JSZip from "jszip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSolidPngBuffer } from "../../test/helpers/image-fixtures.js";
 import { resolveStateDir } from "../config/paths.js";
-import { resolvePreferredOpenClawTmpDir } from "../infra/tmp-openclaw-dir.js";
+import { resolvePreferredAstroclawTmpDir } from "../infra/tmp-astroclaw-dir.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import { resetPluginRuntimeStateForTest, setActivePluginRegistry } from "../plugins/runtime.js";
 import { withEnvAsync } from "../test-utils/env.js";
@@ -33,21 +33,6 @@ let canvasPngFile = "";
 let workspaceDir = "";
 let workspacePngFile = "";
 
-function installCanvasMediaResolver() {
-  const registry = createEmptyPluginRegistry();
-  registry.hostedMediaResolvers = [
-    {
-      pluginId: "canvas",
-      resolver: (mediaUrl) =>
-        mediaUrl === `${CANVAS_HOST_PATH}/documents/cv_test/collection.media/tiny.png`
-          ? canvasPngFile
-          : null,
-      source: "test",
-    },
-  ];
-  setActivePluginRegistry(registry);
-}
-
 beforeAll(async () => {
   ({
     effectiveImageBytesCap,
@@ -57,7 +42,7 @@ beforeAll(async () => {
     optimizeImageToJpeg,
     resolveImageCompressionGrid,
   } = await import("./web-media.js"));
-  fixtureRoot = await fs.mkdtemp(path.join(resolvePreferredOpenClawTmpDir(), "web-media-core-"));
+  fixtureRoot = await fs.mkdtemp(path.join(resolvePreferredAstroclawTmpDir(), "web-media-core-"));
   tinyPngFile = path.join(fixtureRoot, "tiny.png");
   await fs.writeFile(tinyPngFile, Buffer.from(TINY_PNG_BASE64, "base64"));
   workspaceDir = path.join(fixtureRoot, "workspace");
@@ -75,7 +60,6 @@ beforeAll(async () => {
   );
   await fs.mkdir(path.dirname(canvasPngFile), { recursive: true });
   await fs.writeFile(canvasPngFile, Buffer.from(TINY_PNG_BASE64, "base64"));
-  installCanvasMediaResolver();
 });
 
 afterAll(async () => {
@@ -329,7 +313,6 @@ describe("loadWebMedia", () => {
   });
 
   it("loads browser-style canvas media paths as managed local files", async () => {
-    installCanvasMediaResolver();
     const result = await loadWebMedia(
       `${CANVAS_HOST_PATH}/documents/cv_test/collection.media/tiny.png`,
       { maxBytes: 1024 * 1024 },
@@ -349,20 +332,14 @@ describe("loadWebMedia", () => {
         source: "test",
       },
       {
-        pluginId: "canvas",
-        resolver: (mediaUrl) =>
-          mediaUrl === `${CANVAS_HOST_PATH}/documents/cv_test/collection.media/tiny.png`
-            ? canvasPngFile
-            : null,
+        pluginId: "hosted-media",
+        resolver: (mediaUrl) => (mediaUrl === "/__test__/hosted/tiny.png" ? canvasPngFile : null),
         source: "test",
       },
     ];
     setActivePluginRegistry(registry);
 
-    const result = await loadWebMedia(
-      `${CANVAS_HOST_PATH}/documents/cv_test/collection.media/tiny.png`,
-      { maxBytes: 1024 * 1024 },
-    );
+    const result = await loadWebMedia("/__test__/hosted/tiny.png", { maxBytes: 1024 * 1024 });
 
     expect(result.kind).toBe("image");
     expect(result.buffer.length).toBeGreaterThan(0);
@@ -758,7 +735,7 @@ describe("loadWebMedia", () => {
 
   it("rejects trusted host-read HTML hardlinks to files outside OpenClaw temp root", async () => {
     const outsideRoot = await fs.mkdtemp(
-      path.join(path.dirname(resolvePreferredOpenClawTmpDir()), "web-media-host-html-"),
+      path.join(path.dirname(resolvePreferredAstroclawTmpDir()), "web-media-host-html-"),
     );
     const outsideHtml = path.join(outsideRoot, "report.html");
     const htmlLink = path.join(fixtureRoot, "hardlinked-report.html");
