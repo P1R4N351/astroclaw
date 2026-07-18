@@ -2,7 +2,7 @@
  * Twitch channel plugin types.
  *
  * This file defines Twitch-specific types. Generic channel types are imported
- * from Astroclaw core.
+ * from OpenClaw core.
  */
 
 import type {
@@ -74,9 +74,9 @@ export interface TwitchChatMessage {
   /** Display name (may include special characters) */
   displayName?: string;
   /** Message ID */
-  id?: string;
-  /** Timestamp */
-  timestamp?: Date;
+  id: string;
+  /** Receive timestamp in milliseconds */
+  timestamp?: number;
   /** Whether the sender is a moderator */
   isMod?: boolean;
   /** Whether the sender is the channel owner/broadcaster */
