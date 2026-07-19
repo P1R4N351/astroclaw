@@ -3,7 +3,7 @@ function fe(t) {
   let e = t.trim();
   return e ? e.replace(/[A-Z]/g, (n) => String.fromCharCode(n.charCodeAt(0) + 32)) : "";
 }
-function ye(t) {
+function he(t) {
   let e = t.scopes.join(","),
     n = t.token ?? "",
     o = fe(t.platform),
@@ -22,7 +22,7 @@ function ye(t) {
     i,
   ].join("|");
 }
-var g = {
+var _ = {
   AUTH_REQUIRED: "AUTH_REQUIRED",
   AUTH_UNAUTHORIZED: "AUTH_UNAUTHORIZED",
   AUTH_TOKEN_MISSING: "AUTH_TOKEN_MISSING",
@@ -53,32 +53,32 @@ var g = {
   PAIRING_REQUIRED: "PAIRING_REQUIRED",
   CLIENT_VERSION_MISMATCH: "CLIENT_VERSION_MISMATCH",
 };
-function b(t) {
+function v(t) {
   return (typeof t == "string" && t.trim()) || void 0;
 }
-function he(t) {
-  let e = b(t.token),
-    n = b(t.bootstrapToken),
-    o = b(t.deviceToken),
-    i = b(t.password),
-    r = b(t.storedToken),
+function Te(t) {
+  let e = v(t.token),
+    n = v(t.bootstrapToken),
+    o = v(t.deviceToken),
+    i = v(t.password),
+    r = v(t.storedToken),
     s = { storedToken: r, storedScopes: t.storedScopes };
   if (t.preferBootstrapToken && n) return { authBootstrapToken: n, authPassword: i, ...s };
-  let l = t.pendingDeviceTokenRetry === !0 && !o && !!(e && r && t.trustedDeviceTokenRetry),
-    d = o ?? (l || (!(e || i) && (!n || r)) ? r : void 0),
-    c = !!(d && !o && r) && d === r,
-    u = e ?? d,
-    p = !e && !d && !i ? n : void 0;
+  let d = t.pendingDeviceTokenRetry === !0 && !o && !!(e && r && t.trustedDeviceTokenRetry),
+    u = o ?? (d || (!(e || i) && (!n || r)) ? r : void 0),
+    a = !!(u && !o && r) && u === r,
+    l = e ?? u,
+    p = !e && !u && !i ? n : void 0;
   return {
-    authToken: u,
+    authToken: l,
     authBootstrapToken: p,
-    authDeviceToken: l ? r : void 0,
+    authDeviceToken: d ? r : void 0,
     authPassword: i,
-    authApprovalRuntimeToken: b(t.approvalRuntimeToken),
-    authAgentRuntimeIdentityToken: b(t.agentRuntimeIdentityToken),
-    signatureToken: u ?? p,
-    resolvedDeviceToken: d,
-    usingStoredDeviceToken: c,
+    authApprovalRuntimeToken: v(t.approvalRuntimeToken),
+    authAgentRuntimeIdentityToken: v(t.agentRuntimeIdentityToken),
+    signatureToken: l ?? p,
+    resolvedDeviceToken: u,
+    usingStoredDeviceToken: a,
     ...s,
   };
 }
@@ -93,7 +93,7 @@ function Z(t) {
   };
   return Object.values(e).some(Boolean) ? e : void 0;
 }
-function Te(t) {
+function ye(t) {
   return (
     t.requestedScopes ??
     (t.usingStoredDeviceToken && t.storedScopes?.length ? t.storedScopes : [...t.defaultScopes])
@@ -113,7 +113,7 @@ var Q = class {
           })
         : null,
       i = o?.token,
-      r = he({
+      r = Te({
         token: e.token,
         bootstrapToken: e.bootstrapToken,
         password: e.password,
@@ -124,7 +124,7 @@ var Q = class {
         preferBootstrapToken: e.preferBootstrapToken,
       }),
       { usingStoredDeviceToken: s } = r,
-      l = Te({
+      d = ye({
         requestedScopes:
           r.authBootstrapToken && e.bootstrapScopes ? [...e.bootstrapScopes] : void 0,
         usingStoredDeviceToken: s,
@@ -137,23 +137,23 @@ var Q = class {
         role: e.role,
         identity: n,
         selectedAuth: r,
-        scopes: l,
+        scopes: d,
         auth: Z(r),
       };
-    let d = this.deps.nowMs?.() ?? Date.now(),
-      c = e.nonce ?? "",
-      { authBootstrapToken: u, signatureToken: p } = r,
+    let u = this.deps.nowMs?.() ?? Date.now(),
+      a = e.nonce ?? "",
+      { authBootstrapToken: l, signatureToken: p } = r,
       f = null;
-    u ? (f = u) : p && (f = p);
-    let h = ye({
+    l ? (f = l) : p && (f = p);
+    let T = he({
       deviceId: n.deviceId,
       clientId: e.client.id,
       clientMode: e.client.mode,
       role: e.role,
-      scopes: l,
-      signedAtMs: d,
+      scopes: d,
+      signedAtMs: u,
       token: f,
-      nonce: c,
+      nonce: a,
       platform: e.client.platform,
       deviceFamily: e.client.deviceFamily,
     });
@@ -162,14 +162,14 @@ var Q = class {
       role: e.role,
       identity: n,
       selectedAuth: r,
-      scopes: l,
+      scopes: d,
       auth: Z(r),
       device: {
         id: n.deviceId,
         publicKey: n.publicKey,
-        signature: await n.sign(h),
-        signedAt: d,
-        nonce: c,
+        signature: await n.sign(T),
+        signedAt: u,
+        nonce: a,
       },
     };
   }
@@ -197,7 +197,7 @@ var Q = class {
 function $(t) {
   return !!t && typeof t == "object" && !Array.isArray(t);
 }
-function B(t) {
+function F(t) {
   return typeof t == "string" && t.length > 0;
 }
 function me(t) {
@@ -205,17 +205,17 @@ function me(t) {
 }
 function Ke(t) {
   return !$(t) ||
-    !B(t.code) ||
-    !B(t.message) ||
+    !F(t.code) ||
+    !F(t.message) ||
     (t.retryable !== void 0 && typeof t.retryable != "boolean")
     ? !1
     : t.retryAfterMs === void 0 || me(t.retryAfterMs);
 }
 function Ee(t) {
-  return !$(t) || t.type !== "event" || !B(t.event) ? !1 : t.seq === void 0 || me(t.seq);
+  return !$(t) || t.type !== "event" || !F(t.event) ? !1 : t.seq === void 0 || me(t.seq);
 }
 function Ae(t) {
-  return !$(t) || t.type !== "res" || !B(t.id) || typeof t.ok != "boolean"
+  return !$(t) || t.type !== "res" || !F(t.id) || typeof t.ok != "boolean"
     ? !1
     : t.error === void 0 || Ke(t.error);
 }
@@ -224,33 +224,33 @@ function Xe(t, e) {
     o = n * t.jitter * Math.random();
   return Math.min(t.maxMs, Math.round(n + o));
 }
-async function ge(t, e, n = {}) {
+async function _e(t, e, n = {}) {
   if (!Number.isFinite(t) || t <= 0) return;
   let o = Math.min(Math.max(Math.floor(t), 1), 2147e6);
   await new Promise((i, r) => {
     let s = !1,
-      l = null,
-      d = () => e?.removeEventListener("abort", c),
-      c = () => {
+      d = null,
+      u = () => e?.removeEventListener("abort", a),
+      a = () => {
         s ||
           ((s = !0),
-          l && clearTimeout(l),
-          (l = null),
-          d(),
+          d && clearTimeout(d),
+          (d = null),
+          u(),
           r(new Error("aborted", { cause: e?.reason ?? new Error("aborted") })));
       };
-    if ((e?.addEventListener("abort", c, { once: !0 }), e?.aborted)) {
-      c();
+    if ((e?.addEventListener("abort", a, { once: !0 }), e?.aborted)) {
+      a();
       return;
     }
-    ((l = setTimeout(() => {
-      ((s = !0), d(), (l = null), i());
+    ((d = setTimeout(() => {
+      ((s = !0), u(), (d = null), i());
     }, o)),
-      n.ref === !1 && l.unref?.(),
-      e?.aborted && c());
+      n.ref === !1 && d.unref?.(),
+      e?.aborted && a());
   });
 }
-var F = class {
+var B = class {
     constructor(e, n = Number.POSITIVE_INFINITY) {
       this.policy = e;
       this.maxAttempts = n;
@@ -297,10 +297,10 @@ function ee(t, e, n, o) {
     ? e
     : Math.min(Math.max(i, n ?? Number.NEGATIVE_INFINITY), o ?? Number.POSITIVE_INFINITY);
 }
-function _e(t, e) {
+function ge(t, e) {
   return Math.max(1, Math.round(V(t) ?? e));
 }
-function q(t) {
+function H(t) {
   let e = t === Number.POSITIVE_INFINITY ? 2147e6 : (V(t) ?? 0);
   return Math.min(Math.max(Math.round(e), 0), 2147e6);
 }
@@ -310,9 +310,9 @@ function je(t, e) {
   return n === void 0 ? e : Math.min(Math.max(n, 0), 1);
 }
 function Ze(t = J, e) {
-  let n = _e(e?.attempts, t.attempts),
-    o = q(ee(e?.minDelayMs, t.minDelayMs, 0)),
-    i = Math.max(o, q(ee(e?.maxDelayMs, t.maxDelayMs, 0)));
+  let n = ge(e?.attempts, t.attempts),
+    o = H(ee(e?.minDelayMs, t.minDelayMs, 0)),
+    i = Math.max(o, H(ee(e?.maxDelayMs, t.maxDelayMs, 0)));
   return { attempts: n, minDelayMs: o, maxDelayMs: i, jitter: je(e?.jitter, t.jitter) };
 }
 function Qe(t, e, n, o) {
@@ -338,49 +338,49 @@ function Je(t = {}) {
   let e = t.sleep ?? ze,
     n = t.random ?? Math.random,
     o = t.createFailure ?? ((i) => $e(i.at(-1) ?? new Error("Retry failed")));
-  return async function (r, s = 3, l = 300) {
-    let d = [];
+  return async function (r, s = 3, d = 300) {
+    let u = [];
     if (typeof s == "number") {
-      let E = _e(s, J.attempts);
+      let E = ge(s, J.attempts);
       for (let A = 0; A < E; A += 1)
         try {
           return await r();
-        } catch (N) {
-          if ((d.push(N), A === E - 1)) break;
-          await e(q(l * 2 ** A));
+        } catch (D) {
+          if ((u.push(D), A === E - 1)) break;
+          await e(H(d * 2 ** A));
         }
-      throw o(d);
+      throw o(u);
     }
-    let c = s,
-      u = Ze(J, c),
-      p = u.attempts,
-      f = u.minDelayMs,
-      h = u.maxDelayMs > 0 ? u.maxDelayMs : Number.POSITIVE_INFINITY,
-      m = c.retryAfterMaxDelayMs === void 0 ? h : Math.max(f, q(ee(c.retryAfterMaxDelayMs, h, 0))),
-      C = c.random ?? n,
-      S = c.sleep ?? e,
-      D = c.shouldRetry ?? (() => !0);
+    let a = s,
+      l = Ze(J, a),
+      p = l.attempts,
+      f = l.minDelayMs,
+      T = l.maxDelayMs > 0 ? l.maxDelayMs : Number.POSITIVE_INFINITY,
+      m = a.retryAfterMaxDelayMs === void 0 ? T : Math.max(f, H(ee(a.retryAfterMaxDelayMs, T, 0))),
+      C = a.random ?? n,
+      S = a.sleep ?? e,
+      N = a.shouldRetry ?? (() => !0);
     for (let E = 1; E <= p; E += 1)
       try {
         return await r();
       } catch (A) {
-        if ((d.push(A), E >= p || !D(A, E))) break;
-        let N = { attempt: E, maxAttempts: p, err: A, label: c.label },
-          x = c.retryAfterMs?.(A),
+        if ((u.push(A), E >= p || !N(A, E))) break;
+        let D = { attempt: E, maxAttempts: p, err: A, label: a.label },
+          x = a.retryAfterMs?.(A),
           O = typeof x == "number" && Number.isFinite(x),
-          L = typeof c.delayMs == "function" ? c.delayMs(N) : c.delayMs,
-          ue = L === void 0 ? void 0 : q(L),
-          Ve = O ? Math.max(x, f) : ue === void 0 ? f * 2 ** (E - 1) : Math.max(ue, f),
-          j = O ? m : h,
-          v = Math.min(Ve, j),
+          L = typeof a.delayMs == "function" ? a.delayMs(D) : a.delayMs,
+          le = L === void 0 ? void 0 : H(L),
+          Ve = O ? Math.max(x, f) : le === void 0 ? f * 2 ** (E - 1) : Math.max(le, f),
+          j = O ? m : T,
+          b = Math.min(Ve, j),
           pe = O && (x ?? 0) <= j,
-          Ye = (u.jitter === "full" && !O) || pe;
-        ((v = Qe(v, u.jitter, Ye ? "positive" : "symmetric", C)),
-          (v = Math.min(Math.max(v, f), j)),
-          await c.onRetry?.({ ...N, delayMs: v }),
-          v > 0 && (await S(v)));
+          Ye = (l.jitter === "full" && !O) || pe;
+        ((b = Qe(b, l.jitter, Ye ? "positive" : "symmetric", C)),
+          (b = Math.min(Math.max(b, f), j)),
+          await a.onRetry?.({ ...D, delayMs: b }),
+          b > 0 && (await S(b)));
       }
-    throw o(d);
+    throw o(u);
   };
 }
 var xt = Je();
@@ -411,7 +411,7 @@ var G = class extends Error {
       this.socketOpened = !1;
       this.helloReceived = !1;
       this.connectTiming = null;
-      this.reconnectSupervisor = new F({
+      this.reconnectSupervisor = new B({
         initialMs: e.reconnect.initialMs,
         maxMs: e.reconnect.maxMs,
         factor: e.reconnect.multiplier,
@@ -454,11 +454,11 @@ var G = class extends Error {
         );
       let r = this.opts.createRequestId(),
         s = o?.timeoutMs === null ? void 0 : (o?.timeoutMs ?? this.opts.requestTimeoutMs);
-      return new Promise((l, d) => {
-        let c,
-          u = {
-            resolve: (h) => l(h),
-            reject: d,
+      return new Promise((d, u) => {
+        let a,
+          l = {
+            resolve: (T) => d(T),
+            reject: u,
             expectFinal: o?.expectFinal === !0,
             acceptedNotified: !1,
             onAccepted: o?.onAccepted,
@@ -468,44 +468,44 @@ var G = class extends Error {
           },
           p = () => {
             (this.pending.delete(r),
-              c && clearTimeout(c),
-              this.finishRequestTiming(r, u, !1, "CLIENT_ABORTED"),
-              d(
+              a && clearTimeout(a),
+              this.finishRequestTiming(r, l, !1, "CLIENT_ABORTED"),
+              u(
                 this.opts.createRequestAbortError?.(e) ??
                   new Error(`gateway request aborted for ${e}`),
               ));
           },
           f = () => {
-            (c && clearTimeout(c), o?.signal?.removeEventListener("abort", p));
+            (a && clearTimeout(a), o?.signal?.removeEventListener("abort", p));
           };
         if (o?.signal?.aborted) {
-          d(
+          u(
             this.opts.createRequestAbortError?.(e) ?? new Error(`gateway request aborted for ${e}`),
           );
           return;
         }
-        ((u.cleanup = f),
+        ((l.cleanup = f),
           s !== void 0 &&
             s >= 0 &&
-            ((c = setTimeout(() => {
+            ((a = setTimeout(() => {
               (this.pending.delete(r),
                 o?.signal?.removeEventListener("abort", p),
-                this.finishRequestTiming(r, u, !1, "CLIENT_TIMEOUT"),
-                d(
+                this.finishRequestTiming(r, l, !1, "CLIENT_TIMEOUT"),
+                u(
                   this.opts.createRequestTimeoutError?.(e, s) ??
                     new Error(`gateway request timed out after ${s}ms: ${e}`),
                 ));
             }, s)),
-            c.unref?.()),
+            a.unref?.()),
           o?.signal?.addEventListener("abort", p, { once: !0 }),
-          this.pending.set(r, u));
+          this.pending.set(r, l));
         try {
           i.send(JSON.stringify({ type: "req", id: r, method: e, params: n }));
-        } catch (h) {
+        } catch (T) {
           (this.pending.delete(r),
             f(),
-            this.finishRequestTiming(r, u, !1, "CLIENT_SEND_ERROR"),
-            d(h instanceof Error ? h : new Error(String(h))));
+            this.finishRequestTiming(r, l, !1, "CLIENT_SEND_ERROR"),
+            u(T instanceof Error ? T : new Error(String(T))));
         }
       });
     }
@@ -650,13 +650,13 @@ var G = class extends Error {
           .catch((r) => {
             if (!this.isActive(e, n)) return;
             let s = r instanceof G ? r : new G({ message: String(r) }),
-              l = this.opts.onConnectFailure?.(s, i) ?? {
+              d = this.opts.onConnectFailure?.(s, i) ?? {
                 closeCode: 1008,
                 closeReason: "connect failed",
               };
-            ((this.connectFailure = { error: s, reconnectDelayMs: l.reconnectDelayMs }),
-              l.stop && (this.stopped = !0),
-              e.close(l.closeCode, l.closeReason));
+            ((this.connectFailure = { error: s, reconnectDelayMs: d.reconnectDelayMs }),
+              d.stop && (this.stopped = !0),
+              e.close(d.closeCode, d.closeReason));
           }));
     }
     handleMessage(e, n, o) {
@@ -671,15 +671,15 @@ var G = class extends Error {
       if (Ee(i)) {
         if ((this.opts.onActivity?.(), i.event === "connect.challenge")) {
           let s = i.payload,
-            l = typeof s?.nonce == "string" ? s.nonce.trim() : "";
-          if (!l) {
+            d = typeof s?.nonce == "string" ? s.nonce.trim() : "";
+          if (!d) {
             if (this.opts.handshake.mode === "require-challenge") {
-              let d = new Error("gateway connect challenge missing nonce");
-              (this.opts.onConnectError?.(d), e.close(1008, "connect challenge missing nonce"));
+              let u = new Error("gateway connect challenge missing nonce");
+              (this.opts.onConnectError?.(u), e.close(1008, "connect challenge missing nonce"));
             }
             return;
           }
-          ((this.connectNonce = l), this.recordTiming("challenge", n), this.sendConnect(e, n));
+          ((this.connectNonce = d), this.recordTiming("challenge", n), this.sendConnect(e, n));
           return;
         }
         let r = typeof i.seq == "number" ? i.seq : null;
@@ -715,9 +715,9 @@ var G = class extends Error {
     handleClose(e, n, o, i) {
       if (this.socket !== e) {
         if (this.stoppedSocket?.socket === e) {
-          let l = { ...this.stoppedSocket.context, code: o, reason: i };
+          let d = { ...this.stoppedSocket.context, code: o, reason: i };
           ((this.stoppedSocket = void 0),
-            this.invoke("close", () => this.opts.onClose?.(l, { retry: !1, notify: !0 })));
+            this.invoke("close", () => this.opts.onClose?.(d, { retry: !1, notify: !0 })));
         }
         return;
       }
@@ -759,7 +759,7 @@ var G = class extends Error {
       e !== void 0 && (this.reconnectSupervisor.nextDelayOverrideMs = e);
       let n = this.reconnectSupervisor.next();
       n &&
-        ge(n.delayMs, n.signal).then(
+        _e(n.delayMs, n.signal).then(
           () => this.connect(),
           () => {},
         );
@@ -790,19 +790,19 @@ var G = class extends Error {
       }
     }
   };
-var Bt = new Set([
-  g.AUTH_TOKEN_MISSING,
-  g.AUTH_BOOTSTRAP_TOKEN_INVALID,
-  g.AUTH_PASSWORD_MISSING,
-  g.AUTH_PASSWORD_MISMATCH,
-  g.AUTH_RATE_LIMITED,
-  g.AUTH_DEVICE_TOKEN_MISMATCH,
-  g.AUTH_SCOPE_MISMATCH,
-  g.PAIRING_REQUIRED,
-  g.CONTROL_UI_DEVICE_IDENTITY_REQUIRED,
-  g.DEVICE_IDENTITY_REQUIRED,
+var Ft = new Set([
+  _.AUTH_TOKEN_MISSING,
+  _.AUTH_BOOTSTRAP_TOKEN_INVALID,
+  _.AUTH_PASSWORD_MISSING,
+  _.AUTH_PASSWORD_MISMATCH,
+  _.AUTH_RATE_LIMITED,
+  _.AUTH_DEVICE_TOKEN_MISMATCH,
+  _.AUTH_SCOPE_MISMATCH,
+  _.PAIRING_REQUIRED,
+  _.CONTROL_UI_DEVICE_IDENTITY_REQUIRED,
+  _.DEVICE_IDENTITY_REQUIRED,
 ]);
-var Re = {
+var Ie = {
   WEBCHAT_UI: "webchat-ui",
   CONTROL_UI: "openclaw-control-ui",
   BROWSER_COPILOT: "openclaw-browser-copilot",
@@ -811,6 +811,7 @@ var Re = {
   CLI: "cli",
   GATEWAY_CLIENT: "gateway-client",
   MACOS_APP: "openclaw-macos",
+  LINUX_APP: "openclaw-linux",
   IOS_APP: "openclaw-ios",
   WATCHOS_APP: "openclaw-watchos",
   ANDROID_APP: "openclaw-android",
@@ -820,7 +821,7 @@ var Re = {
   FINGERPRINT: "fingerprint",
   PROBE: "openclaw-probe",
 };
-var Ie = {
+var Re = {
     WEBCHAT: "webchat",
     CLI: "cli",
     UI: "ui",
@@ -842,11 +843,11 @@ var Ie = {
     TOOL_EVENTS: "tool-events",
     UI_COMMANDS: "ui-commands",
   },
-  Vt = new Set(Object.values(Re)),
-  Yt = new Set(Object.values(Ie));
+  Yt = new Set(Object.values(Ie)),
+  Wt = new Set(Object.values(Re));
 var tt = 4,
   nt = 4;
-/*! noble-ed25519 - MIT License (c) 2019 Paul Miller (paulmillr.com) */ var Pe = Object.freeze({
+/*! noble-ed25519 - MIT License (c) 2019 Paul Miller (paulmillr.com) */ var ke = Object.freeze({
     p: 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffedn,
     n: 0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3edn,
     h: 8n,
@@ -855,71 +856,71 @@ var tt = 4,
     Gx: 0x216936d3cd6e53fec0a4e231fdd6dc5c692cc7609525a7b2c9562d608f25d51an,
     Gy: 0x6666666666666666666666666666666666666666666666666666666666666658n,
   }),
-  { p: W, n: Y, Gx: Ce, Gy: Se, a: ne, d: oe, h: ot } = Pe,
+  { p: W, n: Y, Gx: Ce, Gy: Se, a: ne, d: oe, h: ot } = ke,
   U = 32,
   rt = (...t) => {
     "captureStackTrace" in Error &&
       typeof Error.captureStackTrace == "function" &&
       Error.captureStackTrace(...t);
   },
-  T = (t = "") => {
+  y = (t = "") => {
     let e = new Error(t);
-    throw (rt(e, T), e);
+    throw (rt(e, y), e);
   },
   it = (t) => typeof t == "bigint",
   st = (t) => typeof t == "string",
-  at = (t) =>
+  ct = (t) =>
     t instanceof Uint8Array ||
     (ArrayBuffer.isView(t) &&
       t.constructor.name === "Uint8Array" &&
       "BYTES_PER_ELEMENT" in t &&
       t.BYTES_PER_ELEMENT === 1),
-  R = (t, e, n = "") => {
-    let o = at(t),
+  I = (t, e, n = "") => {
+    let o = ct(t),
       i = t?.length,
       r = e !== void 0;
     if (!o || (r && i !== e)) {
       let s = n && `"${n}" `,
-        l = r ? ` of length ${e}` : "",
-        d = o ? `length=${i}` : `type=${typeof t}`,
-        c = s + "expected Uint8Array" + l + ", got " + d;
-      throw o ? new RangeError(c) : new TypeError(c);
+        d = r ? ` of length ${e}` : "",
+        u = o ? `length=${i}` : `type=${typeof t}`,
+        a = s + "expected Uint8Array" + d + ", got " + u;
+      throw o ? new RangeError(a) : new TypeError(a);
     }
     return t;
   },
   z = (t) => new Uint8Array(t),
-  ce = (t) => Uint8Array.from(t),
-  De = (t, e) => t.toString(16).padStart(e, "0"),
-  Ne = (t) =>
-    Array.from(R(t))
-      .map((e) => De(e, 2))
+  ae = (t) => Uint8Array.from(t),
+  Ne = (t, e) => t.toString(16).padStart(e, "0"),
+  De = (t) =>
+    Array.from(I(t))
+      .map((e) => Ne(e, 2))
       .join(""),
-  I = { _0: 48, _9: 57, A: 65, F: 70, a: 97, f: 102 },
-  ve = (t) => {
-    if (t >= I._0 && t <= I._9) return t - I._0;
-    if (t >= I.A && t <= I.F) return t - (I.A - 10);
-    if (t >= I.a && t <= I.f) return t - (I.a - 10);
+  R = { _0: 48, _9: 57, A: 65, F: 70, a: 97, f: 102 },
+  be = (t) => {
+    if (t >= R._0 && t <= R._9) return t - R._0;
+    if (t >= R.A && t <= R.F) return t - (R.A - 10);
+    if (t >= R.a && t <= R.f) return t - (R.a - 10);
   },
   xe = (t) => {
     let e = "hex invalid";
-    if (!st(t)) return T(e);
+    if (!st(t)) return y(e);
     let n = t.length,
       o = n / 2;
-    if (n % 2) return T(e);
+    if (n % 2) return y(e);
     let i = z(o);
     for (let r = 0, s = 0; r < o; r++, s += 2) {
-      let l = ve(t.charCodeAt(s)),
-        d = ve(t.charCodeAt(s + 1));
-      if (l === void 0 || d === void 0) return T(e);
-      i[r] = l * 16 + d;
+      let d = be(t.charCodeAt(s)),
+        u = be(t.charCodeAt(s + 1));
+      if (d === void 0 || u === void 0) return y(e);
+      i[r] = d * 16 + u;
     }
     return i;
   },
   Oe = () => globalThis?.crypto,
-  ct = () => Oe()?.subtle ?? T("crypto.subtle must be defined, consider polyfill"),
-  H = (...t) => {
+  at = () => Oe()?.subtle ?? y("crypto.subtle must be defined, consider polyfill"),
+  q = (...t) => {
     let e = 0;
-    for (let i of t) e += R(i).length;
+    for (let i of t) e += I(i).length;
     let n = z(e),
       o = 0;
     return (
@@ -929,49 +930,49 @@ var tt = 4,
       n
     );
   },
-  dt = (t = U) => Oe().getRandomValues(z(t)),
+  ut = (t = U) => Oe().getRandomValues(z(t)),
   K = BigInt,
   w = (t, e, n, o = "bad number: out of range") => {
     if (!it(t)) throw new TypeError(o);
     if (e <= t && t < n) return t;
     throw new RangeError(o);
   },
-  y = (t, e = W) => {
+  h = (t, e = W) => {
     let n = t % e;
     return n >= 0n ? n : e + n;
   },
-  be = (1n << 255n) - 1n,
-  a = (t) => {
-    t < 0n && T("negative coordinate");
-    let e = (t >> 255n) * 19n + (t & be);
-    return ((e = (e >> 255n) * 19n + (e & be)), e % W);
+  ve = (1n << 255n) - 1n,
+  c = (t) => {
+    t < 0n && y("negative coordinate");
+    let e = (t >> 255n) * 19n + (t & ve);
+    return ((e = (e >> 255n) * 19n + (e & ve)), e % W);
   },
-  Ge = (t) => y(t, Y),
-  lt = (t, e) => {
-    (t === 0n || e <= 0n) && T("no inverse n=" + t + " mod=" + e);
-    let n = y(t, e),
+  Ge = (t) => h(t, Y),
+  dt = (t, e) => {
+    (t === 0n || e <= 0n) && y("no inverse n=" + t + " mod=" + e);
+    let n = h(t, e),
       o = e,
       i = 0n,
       r = 1n,
       s = 1n,
-      l = 0n;
+      d = 0n;
     for (; n !== 0n; ) {
-      let d = o / n,
-        c = o % n,
-        u = i - s * d,
-        p = r - l * d;
-      ((o = n), (n = c), (i = s), (r = l), (s = u), (l = p));
+      let u = o / n,
+        a = o % n,
+        l = i - s * u,
+        p = r - d * u;
+      ((o = n), (n = a), (i = s), (r = d), (s = l), (d = p));
     }
-    return o === 1n ? y(i, e) : T("no inverse");
+    return o === 1n ? h(i, e) : y("no inverse");
   },
   Ue = (t) => {
     let e = At[t];
-    return (typeof e != "function" && T("hashes." + t + " not set"), e);
+    return (typeof e != "function" && y("hashes." + t + " not set"), e);
   },
-  qe = (t) => R(t, 64, "digest");
-var re = (t) => (t instanceof k ? t : T("Point expected")),
+  He = (t) => I(t, 64, "digest");
+var re = (t) => (t instanceof P ? t : y("Point expected")),
   ie = 2n ** 256n,
-  k = class t {
+  P = class t {
     static BASE;
     static ZERO;
     X;
@@ -987,29 +988,29 @@ var re = (t) => (t instanceof k ? t : T("Point expected")),
         Object.freeze(this));
     }
     static CURVE() {
-      return Pe;
+      return ke;
     }
     static fromAffine(e) {
-      return new t(e.x, e.y, 1n, a(e.x * e.y));
+      return new t(e.x, e.y, 1n, c(e.x * e.y));
     }
     static fromBytes(e, n = !1) {
       let o = oe,
-        i = ce(R(e, U)),
+        i = ae(I(e, U)),
         r = e[31];
       i[31] = r & -129;
       let s = Le(i);
       w(s, 0n, n ? ie : W);
-      let d = a(s * s),
-        c = y(d - 1n),
-        u = a(o * d + 1n),
-        { isValid: p, value: f } = pt(c, u);
-      p || T("bad point: y not sqrt");
-      let h = (f & 1n) === 1n,
+      let u = c(s * s),
+        a = h(u - 1n),
+        l = c(o * u + 1n),
+        { isValid: p, value: f } = pt(a, l);
+      p || y("bad point: y not sqrt");
+      let T = (f & 1n) === 1n,
         m = (r & 128) !== 0;
       return (
-        !n && f === 0n && m && T("bad point: x==0, isLastByteOdd"),
-        m !== h && (f = y(-f)),
-        new t(f, s, 1n, a(f * s))
+        !n && f === 0n && m && y("bad point: x==0, isLastByteOdd"),
+        m !== T && (f = h(-f)),
+        new t(f, s, 1n, c(f * s))
       );
     }
     static fromHex(e, n) {
@@ -1025,71 +1026,71 @@ var re = (t) => (t instanceof k ? t : T("Point expected")),
       let e = ne,
         n = oe,
         o = this;
-      if (o.is0()) return T("bad point: ZERO");
-      let { X: i, Y: r, Z: s, T: l } = o,
-        d = a(i * i),
-        c = a(r * r),
-        u = a(s * s),
-        p = a(u * u),
-        f = a(d * e),
-        h = a(u * (f + c)),
-        m = y(p + a(n * a(d * c)));
-      if (h !== m) return T("bad point: equation left != right (1)");
-      let C = a(i * r),
-        S = a(s * l);
-      return C !== S ? T("bad point: equation left != right (2)") : this;
+      if (o.is0()) return y("bad point: ZERO");
+      let { X: i, Y: r, Z: s, T: d } = o,
+        u = c(i * i),
+        a = c(r * r),
+        l = c(s * s),
+        p = c(l * l),
+        f = c(u * e),
+        T = c(l * (f + a)),
+        m = h(p + c(n * c(u * a)));
+      if (T !== m) return y("bad point: equation left != right (1)");
+      let C = c(i * r),
+        S = c(s * d);
+      return C !== S ? y("bad point: equation left != right (2)") : this;
     }
     equals(e) {
       let { X: n, Y: o, Z: i } = this,
-        { X: r, Y: s, Z: l } = re(e),
-        d = a(n * l),
-        c = a(r * i),
-        u = a(o * l),
-        p = a(s * i);
-      return d === c && u === p;
+        { X: r, Y: s, Z: d } = re(e),
+        u = c(n * d),
+        a = c(r * i),
+        l = c(o * d),
+        p = c(s * i);
+      return u === a && l === p;
     }
     is0() {
       return this.equals(M);
     }
     negate() {
-      return new t(y(-this.X), this.Y, this.Z, y(-this.T));
+      return new t(h(-this.X), this.Y, this.Z, h(-this.T));
     }
     double() {
       let { X: e, Y: n, Z: o } = this,
         i = ne,
-        r = a(e * e),
-        s = a(n * n),
-        l = a(2n * o * o),
-        d = a(i * r),
-        c = y(e + n),
-        u = y(a(c * c) - r - s),
-        p = y(d + s),
-        f = y(p - l),
-        h = y(d - s),
-        m = a(u * f),
-        C = a(p * h),
-        S = a(u * h),
-        D = a(f * p);
-      return new t(m, C, D, S);
+        r = c(e * e),
+        s = c(n * n),
+        d = c(2n * o * o),
+        u = c(i * r),
+        a = h(e + n),
+        l = h(c(a * a) - r - s),
+        p = h(u + s),
+        f = h(p - d),
+        T = h(u - s),
+        m = c(l * f),
+        C = c(p * T),
+        S = c(l * T),
+        N = c(f * p);
+      return new t(m, C, N, S);
     }
     add(e) {
       let { X: n, Y: o, Z: i, T: r } = this,
-        { X: s, Y: l, Z: d, T: c } = re(e),
-        u = ne,
+        { X: s, Y: d, Z: u, T: a } = re(e),
+        l = ne,
         p = oe,
-        f = a(n * s),
-        h = a(o * l),
-        m = a(a(r * p) * c),
-        C = a(i * d),
-        S = y(a(y(n + o) * y(s + l)) - f - h),
-        D = y(C - m),
-        E = y(C + m),
-        A = y(h - a(u * f)),
-        N = a(S * D),
-        x = a(E * A),
-        O = a(S * A),
-        L = a(D * E);
-      return new t(N, x, L, O);
+        f = c(n * s),
+        T = c(o * d),
+        m = c(c(r * p) * a),
+        C = c(i * u),
+        S = h(c(h(n + o) * h(s + d)) - f - T),
+        N = h(C - m),
+        E = h(C + m),
+        A = h(T - c(l * f)),
+        D = c(S * N),
+        x = c(E * A),
+        O = c(S * A),
+        L = c(N * E);
+      return new t(D, x, L, O);
     }
     subtract(e) {
       return this.add(re(e).negate());
@@ -1097,9 +1098,9 @@ var re = (t) => (t instanceof k ? t : T("Point expected")),
     multiply(e, n = !0) {
       if ((!n && e === 0n) || (w(e, 1n, Y), !n && this.is0())) return M;
       if (e === 1n) return this;
-      if (this.equals(P)) return Ct(e).p;
+      if (this.equals(k)) return Ct(e).p;
       let o = M,
-        i = P;
+        i = k;
       for (let r = this; e > 0n; r = r.double(), e >>= 1n)
         e & 1n ? (o = o.add(r)) : n && (i = i.add(r));
       return o;
@@ -1110,19 +1111,19 @@ var re = (t) => (t instanceof k ? t : T("Point expected")),
     toAffine() {
       let { X: e, Y: n, Z: o } = this;
       if (this.equals(M)) return { x: 0n, y: 1n };
-      let i = lt(o, W);
-      a(o * i) !== 1n && T("invalid inverse");
-      let r = a(e * i),
-        s = a(n * i);
+      let i = dt(o, W);
+      c(o * i) !== 1n && y("invalid inverse");
+      let r = c(e * i),
+        s = c(n * i);
       return { x: r, y: s };
     }
     toBytes() {
       let { x: e, y: n } = this.toAffine(),
-        o = He(n);
+        o = qe(n);
       return ((o[31] |= e & 1n ? 128 : 0), o);
     }
     toHex() {
-      return Ne(this.toBytes());
+      return De(this.toBytes());
     }
     clearCofactor() {
       return this.multiply(K(ot), !1);
@@ -1135,149 +1136,149 @@ var re = (t) => (t instanceof k ? t : T("Point expected")),
       return (Y % 2n && (e = e.add(this)), e.is0());
     }
   },
-  P = new k(Ce, Se, 1n, y(Ce * Se)),
-  M = new k(0n, 1n, 1n, 0n);
-k.BASE = P;
-k.ZERO = M;
-var He = (t) => xe(De(w(t, 0n, ie), 64)).reverse(),
-  Le = (t) => K("0x" + Ne(ce(R(t)).reverse())),
-  _ = (t, e) => {
+  k = new P(Ce, Se, 1n, h(Ce * Se)),
+  M = new P(0n, 1n, 1n, 0n);
+P.BASE = k;
+P.ZERO = M;
+var qe = (t) => xe(Ne(w(t, 0n, ie), 64)).reverse(),
+  Le = (t) => K("0x" + De(ae(I(t)).reverse())),
+  g = (t, e) => {
     let n = t;
-    for (; e-- > 0n; ) n = a(n * n);
+    for (; e-- > 0n; ) n = c(n * n);
     return n;
   },
-  ut = (t) => {
-    let e = a(t * t),
-      n = a(e * t),
-      o = a(_(n, 2n) * n),
-      i = a(_(o, 1n) * t),
-      r = a(_(i, 5n) * i),
-      s = a(_(r, 10n) * r),
-      l = a(_(s, 20n) * s),
-      d = a(_(l, 40n) * l),
-      c = a(_(d, 80n) * d),
-      u = a(_(c, 80n) * d),
-      p = a(_(u, 10n) * r);
-    return { pow_p_5_8: a(_(p, 2n) * t), b2: n };
+  lt = (t) => {
+    let e = c(t * t),
+      n = c(e * t),
+      o = c(g(n, 2n) * n),
+      i = c(g(o, 1n) * t),
+      r = c(g(i, 5n) * i),
+      s = c(g(r, 10n) * r),
+      d = c(g(s, 20n) * s),
+      u = c(g(d, 40n) * d),
+      a = c(g(u, 80n) * u),
+      l = c(g(a, 80n) * u),
+      p = c(g(l, 10n) * r);
+    return { pow_p_5_8: c(g(p, 2n) * t), b2: n };
   },
   we = 0x2b8324804fc1df0b2b4d00993dfbd7a72f431806ad2fe478c4ee1b274a0ea0b0n,
   pt = (t, e) => {
-    let n = a(e * a(e * e)),
-      o = a(a(n * n) * e),
-      i = ut(a(t * o)).pow_p_5_8,
-      r = a(t * a(n * i)),
-      s = a(e * a(r * r)),
-      l = r,
-      d = a(r * we),
-      c = s === t,
-      u = s === y(-t),
-      p = s === y(-t * we);
+    let n = c(e * c(e * e)),
+      o = c(c(n * n) * e),
+      i = lt(c(t * o)).pow_p_5_8,
+      r = c(t * c(n * i)),
+      s = c(e * c(r * r)),
+      d = r,
+      u = c(r * we),
+      a = s === t,
+      l = s === h(-t),
+      p = s === h(-t * we);
     return (
-      c && (r = l),
-      (u || p) && (r = d),
-      (y(r) & 1n) === 1n && (r = y(-r)),
-      { isValid: c || u, value: r }
+      a && (r = d),
+      (l || p) && (r = u),
+      (h(r) & 1n) === 1n && (r = h(-r)),
+      { isValid: a || l, value: r }
     );
   },
   se = (t) => Ge(Le(t)),
-  de = (...t) => Promise.resolve(Ue("sha512Async")(H(...t))).then(qe),
-  ft = (...t) => qe(Ue("sha512")(H(...t))),
-  Be = (t) => {
-    let e = ce(t),
+  ue = (...t) => Promise.resolve(Ue("sha512Async")(q(...t))).then(He),
+  ft = (...t) => He(Ue("sha512")(q(...t))),
+  Fe = (t) => {
+    let e = ae(t),
       n = e.slice(0, 32);
     ((n[0] &= 248), (n[31] &= 127), (n[31] |= 64));
     let o = e.slice(32, 64),
       i = se(n),
-      r = P.multiply(i),
+      r = k.multiply(i),
       s = r.toBytes();
     return { head: n, prefix: o, scalar: i, point: r, pointBytes: s };
   },
-  le = (t) => de(R(t, U)).then(Be),
-  yt = (t) => Be(ft(R(t, U))),
-  ht = (t) => le(t).then((e) => e.pointBytes);
-var Tt = (t) => de(t.hashable).then(t.finish);
+  de = (t) => ue(I(t, U)).then(Fe),
+  ht = (t) => Fe(ft(I(t, U))),
+  Tt = (t) => de(t).then((e) => e.pointBytes);
+var yt = (t) => ue(t.hashable).then(t.finish);
 var mt = (t, e, n) => {
     let { pointBytes: o, scalar: i } = t,
       r = se(e),
-      s = P.multiply(r).toBytes();
+      s = k.multiply(r).toBytes();
     return {
-      hashable: H(s, o, n),
-      finish: (c) => {
-        let u = Ge(r + se(c) * i);
-        return R(H(s, He(u)), 64);
+      hashable: q(s, o, n),
+      finish: (a) => {
+        let l = Ge(r + se(a) * i);
+        return I(q(s, qe(l)), 64);
       },
     };
   },
   Et = async (t, e) => {
-    let n = R(t),
-      o = await le(e),
-      i = await de(o.prefix, n);
-    return Tt(mt(o, i, n));
+    let n = I(t),
+      o = await de(e),
+      i = await ue(o.prefix, n);
+    return yt(mt(o, i, n));
   };
 var At = {
     sha512Async: async (t) => {
-      let e = ct(),
-        n = H(t);
+      let e = at(),
+        n = q(t);
       return z(await e.digest("SHA-512", n.buffer));
     },
     sha512: void 0,
   },
-  gt = (t) => ((t = t === void 0 ? dt(U) : t), R(t, U));
-var _t = Object.freeze({
-    getExtendedPublicKeyAsync: le,
-    getExtendedPublicKey: yt,
-    randomSecretKey: gt,
+  _t = (t) => ((t = t === void 0 ? ut(U) : t), I(t, U));
+var gt = Object.freeze({
+    getExtendedPublicKeyAsync: de,
+    getExtendedPublicKey: ht,
+    randomSecretKey: _t,
   }),
   X = 8,
-  Rt = 256,
-  Fe = Math.ceil(Rt / X) + 1,
-  ae = 2 ** (X - 1),
-  It = () => {
+  It = 256,
+  Be = Math.ceil(It / X) + 1,
+  ce = 2 ** (X - 1),
+  Rt = () => {
     let t = [],
-      e = P,
+      e = k,
       n = e;
-    for (let o = 0; o < Fe; o++) {
+    for (let o = 0; o < Be; o++) {
       ((n = e), t.push(n));
-      for (let i = 1; i < ae; i++) ((n = n.add(e)), t.push(n));
+      for (let i = 1; i < ce; i++) ((n = n.add(e)), t.push(n));
       e = n.double();
     }
     return t;
   },
   Me,
-  ke = (t, e) => {
+  Pe = (t, e) => {
     let n = e.negate();
     return t ? n : e;
   },
   Ct = (t) => {
-    let e = Me || (Me = It()),
+    let e = Me || (Me = Rt()),
       n = M,
-      o = P,
+      o = k,
       i = 2 ** X,
       r = i,
       s = K(i - 1),
-      l = K(X);
-    for (let d = 0; d < Fe; d++) {
-      let c = Number(t & s);
-      ((t >>= l), c > ae && ((c -= r), (t += 1n)));
-      let u = d * ae,
-        p = u,
-        f = u + Math.abs(c) - 1,
-        h = d % 2 !== 0,
-        m = c < 0;
-      c === 0 ? (o = o.add(ke(h, e[p]))) : (n = n.add(ke(m, e[f])));
+      d = K(X);
+    for (let u = 0; u < Be; u++) {
+      let a = Number(t & s);
+      ((t >>= d), a > ce && ((a -= r), (t += 1n)));
+      let l = u * ce,
+        p = l,
+        f = l + Math.abs(a) - 1,
+        T = u % 2 !== 0,
+        m = a < 0;
+      a === 0 ? (o = o.add(Pe(T, e[p]))) : (n = n.add(Pe(m, e[f])));
     }
-    return (t !== 0n && T("invalid wnaf"), { p: n, f: o });
+    return (t !== 0n && y("invalid wnaf"), { p: n, f: o });
   };
 export {
   et as GATEWAY_CLIENT_CAPS,
-  Re as GATEWAY_CLIENT_IDS,
-  Ie as GATEWAY_CLIENT_MODES,
+  Ie as GATEWAY_CLIENT_IDS,
+  Re as GATEWAY_CLIENT_MODES,
   Q as GatewayBrowserDeviceAuthLifecycle,
   te as GatewayProtocolClient,
   G as GatewayProtocolRequestError,
   nt as MIN_CLIENT_PROTOCOL_VERSION,
   tt as PROTOCOL_VERSION,
-  _t as ed25519Utils,
-  ht as getPublicKeyAsync,
+  gt as ed25519Utils,
+  Tt as getPublicKeyAsync,
   Et as signAsync,
 };
