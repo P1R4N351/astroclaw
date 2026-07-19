@@ -1,49 +1,30 @@
-// Diagnostic session recovery types describe session recovery diagnostic payloads.
-import type {
-  DiagnosticSessionActiveWorkKind,
-  DiagnosticSessionState,
-} from "../infra/diagnostic-events.js";
+import type { DiagnosticSessionActiveWorkKind } from "../infra/diagnostic-events.js";
 
-type DiagnosticSessionRecoverySkipReason =
+export type DiagnosticSessionRecoveryStatus =
+  | "aborted"
+  | "released"
+  | "skipped"
+  | "noop"
+  | "failed";
+
+export type DiagnosticSessionRecoverySkipReason =
   | "active_embedded_run"
   | "active_reply_work"
-  | "deferred_maintenance_wait"
   | "active_lane_task"
   | "already_in_flight"
   | "missing_session_ref"
   | "stale_session_state";
 
-type DiagnosticSessionRecoveryNoopReason = "no_active_work";
+export type DiagnosticSessionRecoveryNoopReason = "no_active_work";
 
 export type StuckSessionRecoveryRequest = {
   sessionId?: string;
   sessionKey?: string;
-  sessionFile?: string;
   ageMs: number;
   queueDepth?: number;
   allowActiveAbort?: boolean;
-  expectedState?: DiagnosticSessionState;
   stateGeneration?: number;
-  /**
-   * Resolved no-forward-progress age (from `diagnostics.stuckSessionAbortMs`) after
-   * which an "active" run with queued work is treated as a leaked/dead handle and
-   * reclaimed. Honors an operator-raised threshold; falls back to a safe floor.
-   */
-  staleActiveProgressAbortMs?: number;
-  /**
-   * Resolved compaction safety timeout. Ownerless lane recovery waits at least
-   * this long plus settle grace so queued compaction cannot be double-run.
-   */
-  compactionSafetyTimeoutMs?: number;
 };
-
-export function resolveStuckSessionRecoveryRef(
-  params: Pick<StuckSessionRecoveryRequest, "sessionId" | "sessionKey">,
-): string | undefined {
-  // In-flight recovery gates must key by logical session only; generation is
-  // stale-state evidence, not concurrency identity.
-  return params.sessionKey?.trim() || params.sessionId?.trim() || undefined;
-}
 
 type DiagnosticSessionRecoveryBaseOutcome = {
   sessionId?: string;
@@ -61,14 +42,11 @@ export type StuckSessionRecoveryOutcome =
       drained: boolean;
       forceCleared: boolean;
       released: number;
-      queuedCount?: number;
     })
   | (DiagnosticSessionRecoveryBaseOutcome & {
       status: "released";
       action: "release_lane";
-      reason?: "stale_lane_task";
       released: number;
-      queuedCount?: number;
     })
   | (DiagnosticSessionRecoveryBaseOutcome & {
       status: "skipped";
@@ -107,7 +85,6 @@ export function recoveryOutcomeClearsQueuedSessionState(
 ): boolean {
   return (
     outcome.status === "released" ||
-    (outcome.status === "aborted" && outcome.released > 0 && (outcome.queuedCount ?? 0) === 0) ||
     (outcome.status === "noop" && outcome.reason === "no_active_work")
   );
 }
@@ -145,16 +122,10 @@ export function formatRecoveryOutcome(outcome: StuckSessionRecoveryOutcome): str
   if ("released" in outcome) {
     fields.push(`released=${outcome.released}`);
   }
-  if (
-    (outcome.status === "aborted" || outcome.status === "released") &&
-    outcome.queuedCount !== undefined
-  ) {
-    fields.push(`queuedCount=${outcome.queuedCount}`);
-  }
   if ("activeCount" in outcome && outcome.activeCount !== undefined) {
     fields.push(`laneActive=${outcome.activeCount}`);
   }
-  if (outcome.status === "skipped" && outcome.queuedCount !== undefined) {
+  if ("queuedCount" in outcome && outcome.queuedCount !== undefined) {
     fields.push(`laneQueued=${outcome.queuedCount}`);
   }
   if ("error" in outcome) {
