@@ -78,6 +78,57 @@ export const SystemAgentChatResultSchema = closedObject({
   question: Type.Optional(SystemAgentChatQuestionSchema),
 });
 
+export const SystemAgentChatHistoryParamsSchema = closedObject({
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 500, default: 100 })),
+});
+
+export const SystemAgentChatHistoryTurnSchema = closedObject({
+  role: Type.Union([Type.Literal("user"), Type.Literal("assistant")]),
+  text: Type.String(),
+  at: Type.Number(),
+});
+
+export const SystemAgentChatHistoryResultSchema = closedObject({
+  turns: Type.Array(SystemAgentChatHistoryTurnSchema),
+});
+
+export const SystemChangeKindSchema = Type.Union([
+  Type.Literal("operation"),
+  Type.Literal("config-write"),
+  Type.Literal("external-edit"),
+]);
+
+export const SystemChangeSourceSchema = Type.Union([
+  Type.Literal("system-agent"),
+  Type.Literal("doctor"),
+  Type.Literal("config-rpc"),
+  Type.Literal("cli"),
+  Type.Literal("plugin-install"),
+  Type.Literal("external"),
+  Type.Literal("unknown"),
+]);
+
+export const SystemChangeEntrySchema = closedObject({
+  id: NonEmptyString,
+  at: Type.Number(),
+  kind: SystemChangeKindSchema,
+  source: SystemChangeSourceSchema,
+  summary: Type.String(),
+  changedPaths: Type.Optional(Type.Array(Type.String())),
+  invalid: Type.Optional(Type.Boolean()),
+  opaqueChange: Type.Optional(Type.Boolean()),
+});
+
+export const SystemChangesListParamsSchema = closedObject({
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200, default: 50 })),
+  beforeCursor: Type.Optional(NonEmptyString),
+});
+
+export const SystemChangesListResultSchema = closedObject({
+  entries: Type.Array(SystemChangeEntrySchema),
+  nextCursor: Type.Optional(NonEmptyString),
+});
+
 /**
  * Structured first-run inference setup for GUI clients: detect reusable AI
  * access (CLI logins, env keys, existing config), then activate one choice.
@@ -258,6 +309,14 @@ export const SystemAgentSetupAuthStartResultSchema = WizardStartResultSchema;
 export type SystemAgentChatParams = Static<typeof SystemAgentChatParamsSchema>;
 export type SystemAgentChatQuestion = Static<typeof SystemAgentChatQuestionSchema>;
 export type SystemAgentChatResult = Static<typeof SystemAgentChatResultSchema>;
+export type SystemAgentChatHistoryParams = Static<typeof SystemAgentChatHistoryParamsSchema>;
+export type SystemAgentChatHistoryTurn = Static<typeof SystemAgentChatHistoryTurnSchema>;
+export type SystemAgentChatHistoryResult = Static<typeof SystemAgentChatHistoryResultSchema>;
+export type SystemChangeEntry = Static<typeof SystemChangeEntrySchema>;
+export type SystemChangeKind = Static<typeof SystemChangeKindSchema>;
+export type SystemChangeSource = Static<typeof SystemChangeSourceSchema>;
+export type SystemChangesListParams = Static<typeof SystemChangesListParamsSchema>;
+export type SystemChangesListResult = Static<typeof SystemChangesListResultSchema>;
 export type SystemAgentSetupDetectParams = Static<typeof SystemAgentSetupDetectParamsSchema>;
 export type SystemAgentSetupDetectResult = Static<typeof SystemAgentSetupDetectResultSchema>;
 export type SystemAgentSetupActivateParams = Static<typeof SystemAgentSetupActivateParamsSchema>;
