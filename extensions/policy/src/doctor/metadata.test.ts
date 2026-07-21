@@ -1,12 +1,8 @@
 // Policy doctor metadata tests cover rule metadata.
 import { describe, expect, it } from "vitest";
+import { CHECK_IDS, POLICY_CHECK_IDS } from "./check-ids.js";
 import { POLICY_FIX_METADATA_BY_CHECK_ID } from "./fix-metadata.js";
-import {
-  CHECK_IDS,
-  POLICY_CHECK_IDS,
-  POLICY_RULE_METADATA,
-  type PolicyRuleMetadata,
-} from "./metadata.js";
+import { POLICY_RULE_METADATA, type PolicyRuleMetadata } from "./metadata.js";
 
 const POLICY_FIX_METADATA = [...POLICY_FIX_METADATA_BY_CHECK_ID.values()];
 type PolicyFixMetadata = (typeof POLICY_FIX_METADATA)[number];
@@ -269,6 +265,10 @@ describe("policy doctor metadata", () => {
         "policy/models-denied-provider",
         "policy/models-unapproved-provider",
         "policy/network-private-access-enabled",
+        "policy/routing-agent-mismatch",
+        "policy/routing-binding-channel-unconfigured",
+        "policy/routing-bindings-required",
+        "policy/routing-match-kind-mismatch",
         "policy/sandbox-backend-unapproved",
         "policy/sandbox-container-host-network-denied",
         "policy/sandbox-container-mount-mode-required",
