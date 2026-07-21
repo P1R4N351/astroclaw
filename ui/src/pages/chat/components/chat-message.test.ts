@@ -224,6 +224,66 @@ function createMessageGroup(message: unknown, role: string): MessageGroup {
   };
 }
 
+describe("cloud workspace conflict transcript messages", () => {
+  it("renders the custom event as a bounded structured status card", () => {
+    const container = document.createElement("div");
+    renderGroupedMessage(
+      container,
+      {
+        role: "custom",
+        customType: "cloud-workspace-conflict",
+        content: "fallback summary that should not render as plain text",
+        details: {
+          paths: [
+            "src/one.ts",
+            "src/two.ts",
+            "src/three.ts",
+            "src/four.ts",
+            "src/five.ts",
+            "src/six.ts",
+          ],
+          stagedResultRef: "refs/openclaw/worker-results/claim-456",
+          totalCount: 7,
+        },
+        timestamp: 1,
+      },
+      "custom",
+    );
+
+    expect(container.querySelector(".chat-group.workspace-conflict")).not.toBeNull();
+    const card = expectElement(container, ".chat-workspace-conflict-event", HTMLDivElement);
+    expect(card.textContent).toContain("Cloud result applied with 7 conflicts");
+    expect(card.querySelectorAll(".chat-workspace-conflict-paths li")).toHaveLength(5);
+    expect(card.textContent).toContain("+2 more paths");
+    expect(card.textContent).toContain("refs/openclaw/worker-results/claim-456");
+    expect(card.querySelector(".chat-text")).toBeNull();
+    expect(container.querySelector(".chat-sender-name")?.textContent).toBe("Cloud workspace");
+  });
+
+  it("renders terminal-control filenames as escaped durable history", () => {
+    const container = document.createElement("div");
+    renderGroupedMessage(
+      container,
+      {
+        role: "custom",
+        customType: "cloud-workspace-conflict",
+        content: "fallback summary",
+        details: {
+          paths: ["src/line\nbreak.ts"],
+          stagedResultRef: "refs/openclaw/worker-results/claim-control",
+        },
+        timestamp: 1,
+      },
+      "custom",
+    );
+
+    expect(container.querySelector(".chat-workspace-conflict-paths code")?.textContent).toBe(
+      "src/line\\u{000a}break.ts",
+    );
+    expect(container.textContent).toContain("refs/openclaw/worker-results/claim-control");
+  });
+});
+
 function createAssistantCanvasBlock(params: {
   suffix: string;
   title?: string;
@@ -1282,6 +1342,41 @@ describe("grouped chat rendering", () => {
     });
   });
 
+  it("uses the current profile display name for the signed-in user's historical messages", () => {
+    const container = document.createElement("div");
+    render(
+      renderMessageGroup(
+        {
+          kind: "group",
+          key: "current-user-group",
+          role: "user",
+          senderLabel: "fullerstackd",
+          sender: { id: "profile-1", username: "fullerstackd" },
+          messages: [
+            {
+              key: "current-user-message",
+              message: { role: "user", content: "hello", timestamp: 1000 },
+            },
+          ],
+          timestamp: 1000,
+          isStreaming: false,
+        },
+        {
+          showReasoning: true,
+          showToolCalls: true,
+          assistantName: "OpenClaw",
+          userId: "profile-1",
+          userName: "Fuller Stack",
+        },
+      ),
+      container,
+    );
+
+    expect(
+      container.querySelector<HTMLElement>(".chat-group.user .chat-sender-name")?.textContent,
+    ).toBe("Fuller Stack");
+  });
+
   it("renders an author avatar for a user group with sender identity", async () => {
     const container = document.createElement("div");
     render(
@@ -1424,6 +1519,20 @@ describe("grouped chat rendering", () => {
 
     const sender = container.querySelector<HTMLElement>(".chat-group.assistant .chat-sender-name");
     expect(sender?.textContent).toBe("Forwarded from main");
+  });
+
+  it("uses the assistant name when an assistant group has no sender label", () => {
+    const container = document.createElement("div");
+    renderGroupedMessage(
+      container,
+      { role: "assistant", content: "hello", timestamp: 1000 },
+      "assistant",
+      { assistantName: "OpenClaw", userName: "Fuller Stack" },
+    );
+
+    expect(
+      container.querySelector<HTMLElement>(".chat-group.assistant .chat-sender-name")?.textContent,
+    ).toBe("OpenClaw");
   });
 
   it("collapses consecutive tool results into an activity group", () => {
