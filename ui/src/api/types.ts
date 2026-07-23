@@ -1,5 +1,6 @@
 export type UpdateAvailable = import("../../../src/infra/update-startup.js").UpdateAvailable;
 import type { FastMode } from "@openclaw/normalization-core/string-coerce";
+import type { SessionObserverDigest } from "../../../packages/gateway-protocol/src/schema/sessions.js";
 import type { SessionAgentStatus } from "../../../packages/gateway-protocol/src/session-icon.js";
 import type { SessionGoal } from "../../../src/config/sessions/types.js";
 import type { CronJobBase } from "../../../src/cron/types-shared.js";
@@ -15,6 +16,14 @@ import type {
 export type { ConfigUiHint, ConfigUiHints } from "../../../src/shared/config-ui-hints-types.js";
 export type { SessionGoal } from "../../../src/config/sessions/types.js";
 export type { FastMode } from "@openclaw/normalization-core/string-coerce";
+export type ChannelsPairingAccount =
+  import("../../../packages/gateway-protocol/src/index.js").ChannelsPairingAccount;
+export type ChannelsPairingApproveResult =
+  import("../../../packages/gateway-protocol/src/index.js").ChannelsPairingApproveResult;
+export type ChannelsPairingListResult =
+  import("../../../packages/gateway-protocol/src/index.js").ChannelsPairingListResult;
+export type ChannelsPairingRequest =
+  import("../../../packages/gateway-protocol/src/index.js").ChannelsPairingRequest;
 export type ChannelsStatusSnapshot = {
   ts: number;
   channelOrder: string[];
@@ -484,6 +493,7 @@ type SessionCompactionCheckpointPreview = Pick<
 export type GatewaySessionRow = {
   key: string;
   spawnedBy?: string;
+  controlOwnerSessionKey?: string;
   /** Collector swarm group that owns this child session, when applicable. */
   swarmGroupId?: string;
   parentSessionKey?: string;
@@ -494,8 +504,17 @@ export type GatewaySessionRow = {
   spawnedWorkspaceDir?: string;
   spawnedCwd?: string;
   execCwd?: string;
+  forkedFromParent?: boolean;
+  spawnDepth?: number;
+  subagentRole?: "orchestrator" | "leaf";
+  subagentControlScope?: "children" | "none";
+  createdVia?: "operator" | "spawn" | "channel" | "cron" | "talk" | "run" | "plugin" | "internal";
+  createdActor?: import("../../../packages/gateway-protocol/src/schema/sessions.js").SessionCreatedActor;
+  createdAt?: number;
+  forkSource?: { sessionKey: string; sessionId: string; entryId?: string };
+  previousSessionId?: string;
   placement?: import("../../../packages/gateway-protocol/src/index.js").SessionPlacement;
-  kind: "cron" | "direct" | "group" | "global" | "unknown";
+  kind: "direct" | "group" | "global" | "unknown";
   label?: string;
   /** User-defined organization bucket; unrelated to chat-group kind/groupChannel. */
   category?: string;
@@ -510,6 +529,10 @@ export type GatewaySessionRow = {
   unread?: boolean;
   lastReadAt?: number;
   agentStatus?: SessionAgentStatus;
+  observerDigest?: Pick<
+    SessionObserverDigest,
+    "runId" | "headline" | "health" | "updatedAt" | "revision"
+  >;
   lastActivityAt?: number;
   archived?: boolean;
   archivedAt?: number;
