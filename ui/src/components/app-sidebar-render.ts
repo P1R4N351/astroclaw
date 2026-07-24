@@ -7,9 +7,7 @@ import {
 } from "../app-navigation.ts";
 import { pathForRoute } from "../app-route-paths.ts";
 import { sessionHasPendingApproval } from "../app/approval-presentation.ts";
-import { controlUiPublicAssetPath } from "../app/public-assets.ts";
 import { readPresenceEntries, resolveCurrentSelfUser } from "../app/user-profile.ts";
-import { CONTROL_UI_BUILD_INFO } from "../build-info.ts";
 import { t } from "../i18n/index.ts";
 import { normalizeAgentLabel, resolveAgentTextAvatar } from "../lib/agents/display.ts";
 import { resolveAgentAvatarUrl } from "../lib/avatar.ts";
@@ -22,48 +20,18 @@ import type { AppSidebarSessionNavigationElement } from "./app-sidebar-session-n
 import type { SidebarRecentSession } from "./app-sidebar-session-types.ts";
 import type { SidebarWorkboardBoard } from "./app-sidebar-workboard.ts";
 import { icons } from "./icons.ts";
-import type { LobsterLogoVisitDetail } from "./lobster-pet-contract.ts";
-import { redactLoginFailureError } from "./login-gate.ts";
-import { renderOfflineSidebarStatus, renderSessionRowBadges } from "./session-row-badges.ts";
-
-const PALETTE_SHORTCUT = /Mac|iP(hone|ad|od)/i.test(globalThis.navigator?.platform ?? "")
-  ? "⌘K"
-  : "Ctrl K";
+import { renderSessionRowBadges } from "./session-row-badges.ts";
 
 type AppSidebarRenderHost = AppSidebarSessionNavigationElement & {
   activePluginTabId: string;
   activeWorkboardBoardId: string;
   offline: boolean;
-  queuedOutboxCount: number;
-  lastError: string | null;
-  gatewayVersion: string | null;
-  onOpenPalette?: () => void;
   onOpenApprovals?: () => void;
-  onToggleSidebar?: () => void;
-  onRetryConnect?: () => void;
   getRouteSessionKey(): string;
   renderPinnedSidebarSession(session: SidebarRecentSession): unknown;
 };
 
-function renderSearch(host: AppSidebarRenderHost) {
-  const tooltip = `${t("chat.openCommandPalette")} (${PALETTE_SHORTCUT})`;
-  return html`
-    <openclaw-tooltip .content=${tooltip}>
-      <button
-        type="button"
-        class="sidebar-brand__icon sidebar-search"
-        ?disabled=${!host.onOpenPalette}
-        aria-label=${t("chat.openCommandPalette")}
-        @click=${() => host.onOpenPalette?.()}
-      >
-        ${icons.search}
-      </button>
-    </openclaw-tooltip>
-  `;
-}
-
 export function renderAppSidebarBrand(host: AppSidebarRenderHost) {
-  const collapseLabel = t("nav.collapse");
   const { activeId: cardAgentId, agent: cardAgent, agents: cardAgents } = host.activeChipAgent();
   const menuUnread = cardAgents.some((entry) => {
     const agentId = normalizeAgentId(entry.id);
@@ -103,18 +71,6 @@ export function renderAppSidebarBrand(host: AppSidebarRenderHost) {
             ?disabled=${!host.connected}
           >
             ${icons.plus}
-          </button>
-        </openclaw-tooltip>
-        ${renderSearch(host)}
-        <openclaw-tooltip .content=${`${collapseLabel} (⌘B)`}>
-          <button
-            class="sidebar-brand__icon sidebar-brand__collapse"
-            type="button"
-            @click=${() => host.onToggleSidebar?.()}
-            aria-label=${collapseLabel}
-            aria-expanded="true"
-          >
-            ${icons.panelLeftClose}
           </button>
         </openclaw-tooltip>
       </div>
@@ -214,77 +170,46 @@ export function renderAppSidebarPagesHead(host: AppSidebarRenderHost) {
 }
 
 /** Zone 5: product chrome recedes to one slim footer bar. */
-export function renderAppSidebarFooterBar(
-  host: AppSidebarRenderHost,
-  logoVisit: LobsterLogoVisitDetail | null,
-) {
-  const reconnecting = t("connection.reconnecting");
-  const selfUser = host.connected
-    ? resolveCurrentSelfUser({
-        snapshotUser: host.sessionDataContext?.gateway.snapshot.selfUser,
-        presenceEntries: readPresenceEntries(host.sessionData.presencePayload),
-        presenceInstanceId: host.sessionData.presenceInstanceId,
-      })
-    : null;
-  const selfLabel = selfUser?.name ?? selfUser?.email ?? selfUser?.id;
+export function renderAppSidebarFooterBar(host: AppSidebarRenderHost) {
+  const selfUser = resolveCurrentSelfUser({
+    snapshotUser: host.sessionDataContext?.gateway.snapshot.selfUser,
+    presenceEntries: readPresenceEntries(host.sessionData.presencePayload),
+    presenceInstanceId: host.sessionData.presenceInstanceId,
+  });
+  const selfLabel = selfUser?.name ?? selfUser?.email ?? t("nav.account");
+  const avatarUser = {
+    ...(selfUser ?? { id: "account", name: selfLabel }),
+    watchedSessions: [],
+  };
   return html`
     <div class="sidebar-footer-bar">
-      <span class="sidebar-brand__logo-slot sidebar-footer-bar__logo">
-        <img
-          class="sidebar-brand__logo ${logoVisit ? "sidebar-brand__logo--vacated" : ""}"
-          src=${controlUiPublicAssetPath("apple-touch-icon.png", host.basePath)}
-          alt=""
-          aria-hidden="true"
-        />
-        <openclaw-lobster-logo-standin .visit=${logoVisit}></openclaw-lobster-logo-standin>
-      </span>
-      ${selfUser && selfLabel
-        ? html`<openclaw-tooltip .content=${selfLabel}>
-            <button
-              type="button"
-              class="sidebar-footer-bar__identity"
-              aria-label=${t("profilePage.identity.openSettings", { name: selfLabel })}
-              @click=${() => host.onNavigate?.("profile", { hash: "#settings-profile-identity" })}
-            >
-              <openclaw-viewer-avatar
-                .user=${{ ...selfUser, watchedSessions: [] }}
-                variant="footer"
-              ></openclaw-viewer-avatar>
-              <span class="sidebar-footer-bar__identity-name">${selfLabel}</span>
-            </button>
-          </openclaw-tooltip>`
-        : nothing}
-      <openclaw-viewer-facepile
-        .presencePayload=${host.sessionData.presencePayload}
-        .selfInstanceId=${host.sessionData.presenceInstanceId}
-        .buildInfo=${CONTROL_UI_BUILD_INFO}
-        .gatewayVersion=${host.gatewayVersion}
-        .maxVisible=${5}
-        variant="footer"
-      ></openclaw-viewer-facepile>
-      <openclaw-sidebar-build-chip
-        .basePath=${host.basePath}
-        .gatewayVersion=${host.gatewayVersion}
-        .onNavigate=${(routeId: "about") => host.onNavigate?.(routeId)}
-      ></openclaw-sidebar-build-chip>
-      ${host.offline
-        ? renderOfflineSidebarStatus({
-            queuedOutboxCount: host.queuedOutboxCount,
-            reconnecting,
-            title: host.lastError ? redactLoginFailureError(host.lastError) : reconnecting,
-            onRetry: () => host.onRetryConnect?.(),
-          })
-        : nothing}
-      <openclaw-tooltip .content=${t("nav.settings")}>
+      <openclaw-tooltip .content=${selfLabel}>
         <button
           type="button"
-          class="sidebar-footer-bar__settings"
-          aria-label=${t("nav.settings")}
-          @click=${() => host.onNavigate?.("config")}
+          class="sidebar-identity-card"
+          aria-haspopup="menu"
+          aria-expanded=${String(host.sidebarMenus.identityMenuPosition !== null)}
+          aria-label=${t("profilePage.identity.menuButtonLabel", { name: selfLabel })}
+          @click=${(event: MouseEvent) =>
+            host.sidebarMenus.toggleIdentityMenu(event.currentTarget as HTMLElement)}
         >
-          ${icons.settings}
+          <openclaw-viewer-avatar .user=${avatarUser} variant="footer"></openclaw-viewer-avatar>
+          <span class="sidebar-identity-card__text">
+            <span class="sidebar-identity-card__name">${selfLabel}</span>
+            ${host.offline
+              ? html`<span class="sidebar-identity-card__subtitle" aria-hidden="true"
+                  >${t("connection.reconnecting")}</span
+                >`
+              : nothing}
+          </span>
+          <span class="sidebar-identity-card__chevron" aria-hidden="true"
+            >${icons.chevronDown}</span
+          >
         </button>
       </openclaw-tooltip>
+      <span class="sidebar-identity-card__status" role="status" aria-live="polite"
+        >${host.offline ? t("connection.reconnecting") : ""}</span
+      >
     </div>
   `;
 }
