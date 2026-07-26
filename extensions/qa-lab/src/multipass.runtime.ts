@@ -4,11 +4,11 @@ import fs from "node:fs";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { OpenClawCrablineChannelDriverSelection } from "@openclaw/crabline";
-import { runExec } from "openclaw/plugin-sdk/process-runtime";
-import { sleep } from "openclaw/plugin-sdk/runtime-env";
-import { appendRegularFile } from "openclaw/plugin-sdk/security-runtime";
-import { uniqueStrings } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { resolvePreferredAstroclawTmpDir } from "openclaw/plugin-sdk/temp-path";
+import { runExec } from "astroclaw/plugin-sdk/process-runtime";
+import { sleep } from "astroclaw/plugin-sdk/runtime-env";
+import { appendRegularFile } from "astroclaw/plugin-sdk/security-runtime";
+import { uniqueStrings } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { resolvePreferredAstroclawTmpDir } from "astroclaw/plugin-sdk/temp-path";
 import type { QaProviderMode } from "./model-selection.js";
 import { resolveQaForwardedLiveEnv, resolveQaLiveProviderConfigPath } from "./providers/env.js";
 import { DEFAULT_QA_LIVE_PROVIDER_MODE, getQaProvider } from "./providers/index.js";
@@ -242,6 +242,7 @@ function createQaMultipassPlan(params: {
   fastMode?: boolean;
   thinkingDefault?: string;
   allowFailures?: boolean;
+  failFast?: boolean;
   scenarioIds?: string[];
   concurrency?: number;
   runtimePair?: [RuntimeId, RuntimeId];
@@ -288,6 +289,7 @@ function createQaMultipassPlan(params: {
       ...(params.fastMode ? ["--fast"] : []),
       ...(params.thinkingDefault ? ["--thinking", params.thinkingDefault] : []),
       ...(params.allowFailures ? ["--allow-failures"] : []),
+      ...(params.failFast ? ["--fail-fast"] : []),
       ...(params.concurrency ? ["--concurrency", String(params.concurrency)] : []),
       ...(params.runtimePair ? ["--runtime-pair", params.runtimePair.join(",")] : []),
       ...(params.channelDriverSelection
@@ -572,6 +574,7 @@ export async function runQaMultipass(params: {
   alternateModel?: string;
   fastMode?: boolean;
   allowFailures?: boolean;
+  failFast?: boolean;
   scenarioIds?: string[];
   concurrency?: number;
   runtimePair?: [RuntimeId, RuntimeId];
