@@ -2,8 +2,8 @@
  * Anthropic provider runtime registration. It owns API-key/setup-token/Claude
  * CLI auth, dynamic model normalization, usage auth, media, and stream wrappers.
  */
-import { formatCliCommand, parseDurationMs } from "astroclaw/plugin-sdk/cli-runtime";
-import { resolveExpiresAtMsFromDurationMs } from "astroclaw/plugin-sdk/number-runtime";
+import { formatCliCommand, parseDurationMs } from "openclaw/plugin-sdk/cli-runtime";
+import { resolveExpiresAtMsFromDurationMs } from "openclaw/plugin-sdk/number-runtime";
 import type {
   OpenClawPluginApi,
   ProviderAuthContext,
@@ -12,7 +12,7 @@ import type {
   ProviderResolveDynamicModelContext,
   ProviderNormalizeResolvedModelContext,
   ProviderRuntimeModel,
-} from "astroclaw/plugin-sdk/plugin-entry";
+} from "openclaw/plugin-sdk/plugin-entry";
 import {
   applyAuthProfileConfig,
   type AuthProfileStore,
@@ -24,9 +24,12 @@ import {
   suggestOAuthProfileIdForLegacyDefault,
   upsertAuthProfileWithLock,
   validateAnthropicSetupToken,
-} from "astroclaw/plugin-sdk/provider-auth";
-import { buildOpenAICompatibleProviderCatalog } from "astroclaw/plugin-sdk/provider-catalog-live-runtime";
-import { buildManifestModelProviderConfig } from "astroclaw/plugin-sdk/provider-catalog-shared";
+} from "openclaw/plugin-sdk/provider-auth";
+import { buildOpenAICompatibleProviderCatalog } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
+import {
+  buildManifestModelProviderConfig,
+  type ProviderCatalogResult,
+} from "openclaw/plugin-sdk/provider-catalog-shared";
 import {
   buildProviderReplayFamilyHooks,
   cloneFirstTemplateModel,
@@ -42,8 +45,8 @@ import {
   supportsClaudeAdaptiveThinking,
   supportsClaudeNativeMaxEffort,
   supportsClaudeNativeXhighEffort,
-} from "astroclaw/plugin-sdk/provider-model-shared";
-import { normalizeLowercaseStringOrEmpty } from "astroclaw/plugin-sdk/string-coerce-runtime";
+} from "openclaw/plugin-sdk/provider-model-shared";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import * as claudeCliAuth from "./cli-auth-seam.js";
 import { buildAnthropicCliBackend } from "./cli-backend.js";
 import { buildClaudeCliCatalogEntries } from "./cli-catalog.js";
@@ -64,7 +67,7 @@ import manifest from "./openclaw.plugin.json" with { type: "json" };
 import { resolveClaudeCliSyntheticAuth } from "./provider-discovery.js";
 import { createClaudeSessionNodeInvokePolicies } from "./session-catalog-node-commands.js";
 import { registerClaudeSessionDiscovery } from "./session-catalog-registration.js";
-import { wrapAnthropicProviderStream } from "./stream-wrappers.js";
+import { isAnthropicOAuthApiKey, wrapAnthropicProviderStream } from "./stream-wrappers.js";
 import { fetchAnthropicUsage, resolveAnthropicUsageAuth } from "./usage.js";
 
 type ProviderAuthMethodNonInteractiveValidationContext = Parameters<
@@ -132,6 +135,50 @@ function buildAnthropicCatalogProvider() {
     providerId: PROVIDER_ID,
     catalog: manifest.modelCatalog.providers.anthropic,
   });
+}
+
+/**
+ * Discovery credentials arrive as either an API key or a Claude subscription
+ * OAuth access token. Anthropic rejects an OAuth token sent as `x-api-key`, and
+ * rejects the request outright when both auth headers are present, so the two
+ * shapes must select mutually exclusive headers.
+ */
+function buildAnthropicDiscoveryAuthHeaders(key: string | undefined): Record<string, string> {
+  if (!key) {
+    return {};
+  }
+  return isAnthropicOAuthApiKey(key) ? { authorization: `Bearer ${key}` } : { "x-api-key": key };
+}
+
+/**
+ * Live discovery replaces the seed catalog with whatever `/v1/models` returns.
+ * Anthropic does not publish every model it serves, so replacement alone would
+ * hide shipped entries that have no live row. Re-add the manifest models the
+ * live response omitted; discovered rows still win on shared ids.
+ */
+function restoreUnpublishedAnthropicModels(result: ProviderCatalogResult): ProviderCatalogResult {
+  if (!result || !("provider" in result)) {
+    return result;
+  }
+  const discovered = result.provider.models ?? [];
+  if (discovered.length === 0) {
+    return result;
+  }
+  const discoveredIds = new Set(discovered.map((model) => model.id));
+  const unpublished = (buildAnthropicCatalogProvider().models ?? []).filter(
+    (model) => !discoveredIds.has(model.id),
+  );
+  if (unpublished.length === 0) {
+    return result;
+  }
+  // Discovered rows arrive id-sorted; keep the appended tail sorted too so the
+  // catalog stays byte-stable for prompt caching.
+  return {
+    provider: {
+      ...result.provider,
+      models: [...discovered, ...unpublished.toSorted((a, b) => a.id.localeCompare(b.id))],
+    },
+  };
 }
 
 function resolveAnthropicSonnet5Cost(nowMs: number = Date.now()) {
@@ -937,23 +984,22 @@ export function buildAnthropicProvider(): ProviderPlugin {
     ],
     catalog: {
       order: "simple",
-      run: (ctx) =>
-        buildOpenAICompatibleProviderCatalog({
-          ctx,
-          providerId,
-          buildProvider: buildAnthropicCatalogProvider,
-          modelDiscovery: {
-            endpointPath: "v1/models",
-            buildRequestHeaders: ({ apiKey, discoveryApiKey }) => {
-              const key = discoveryApiKey ?? apiKey;
-              return {
+      run: async (ctx) =>
+        restoreUnpublishedAnthropicModels(
+          await buildOpenAICompatibleProviderCatalog({
+            ctx,
+            providerId,
+            buildProvider: buildAnthropicCatalogProvider,
+            modelDiscovery: {
+              endpointPath: "v1/models",
+              buildRequestHeaders: ({ apiKey, discoveryApiKey }) => ({
                 "anthropic-version": "2023-06-01",
-                ...(key ? { "x-api-key": key } : {}),
-              };
+                ...buildAnthropicDiscoveryAuthHeaders(discoveryApiKey ?? apiKey),
+              }),
+              acceptUnknownModel: acceptsAnthropicLiveModelContract,
             },
-            acceptUnknownModel: acceptsAnthropicLiveModelContract,
-          },
-        }),
+          }),
+        ),
     },
     staticCatalog: {
       order: "simple",
