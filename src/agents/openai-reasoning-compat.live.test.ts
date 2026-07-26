@@ -1,10 +1,9 @@
 // Live checks for OpenAI reasoning compatibility and repaired tool replay payloads.
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
-import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
-import type { Model } from "openclaw/plugin-sdk/llm";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import { SessionManager } from "astroclaw/plugin-sdk/agent-sessions";
+import type { Model } from "astroclaw/plugin-sdk/llm";
 import { Type } from "typebox";
 import { describe, expect, it } from "vitest";
-import { getRuntimeConfig } from "../config/config.js";
 import { discoverAuthStorage, discoverModels } from "./agent-model-discovery.js";
 import { resolveDefaultAgentDir } from "./agent-scope.js";
 import { sanitizeSessionHistory } from "./embedded-agent-runner/replay-history.js";
@@ -14,6 +13,7 @@ import {
   isLiveTestEnabled,
   logLiveProgress,
   requiresLiveProfileCredential,
+  readLiveTestConfig,
   resolveLiveCredentialPrecedence,
 } from "./live-test-helpers.js";
 import { getApiKeyForModel, requireApiKey } from "./model-auth.js";
@@ -103,7 +103,7 @@ describeLive("openai reasoning compat live", () => {
     "remaps low reasoning for the configured OpenAI mini target",
     async () => {
       const { provider, modelId } = resolveTargetModelRef();
-      const cfg = getRuntimeConfig();
+      const cfg = await readLiveTestConfig();
       await ensureOpenClawModelsJson(cfg);
 
       const agentDir = resolveDefaultAgentDir(cfg);
@@ -163,7 +163,7 @@ describeLive("openai reasoning compat live", () => {
     "accepts repaired OpenAI Codex parallel tool replay with aborted missing results",
     async () => {
       const { provider, modelId } = resolveTargetModelRef();
-      const cfg = getRuntimeConfig();
+      const cfg = await readLiveTestConfig();
       await ensureOpenClawModelsJson(cfg);
 
       const agentDir = resolveDefaultAgentDir(cfg);
