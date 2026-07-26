@@ -1,5 +1,5 @@
 // Zalouser tests cover probe plugin behavior.
-import { MAX_TIMER_TIMEOUT_MS } from "openclaw/plugin-sdk/number-runtime";
+import { MAX_TIMER_TIMEOUT_MS } from "astroclaw/plugin-sdk/number-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { probeZalouser } from "./probe.js";
 import { getZaloUserInfo } from "./zalo-js.js";
@@ -28,6 +28,7 @@ describe("probeZalouser", () => {
     await expect(probeZalouser("default")).resolves.toEqual({
       ok: true,
       user: { userId: "123", displayName: "Alice" },
+      elapsedMs: expect.any(Number),
     });
   });
 
@@ -36,6 +37,7 @@ describe("probeZalouser", () => {
     await expect(probeZalouser("default")).resolves.toEqual({
       ok: false,
       error: "Not authenticated",
+      elapsedMs: expect.any(Number),
     });
   });
 
@@ -44,6 +46,7 @@ describe("probeZalouser", () => {
     await expect(probeZalouser("default")).resolves.toEqual({
       ok: false,
       error: "network down",
+      elapsedMs: expect.any(Number),
     });
   });
 
@@ -57,6 +60,7 @@ describe("probeZalouser", () => {
     await expect(pending).resolves.toEqual({
       ok: false,
       error: "Not authenticated",
+      elapsedMs: expect.any(Number),
     });
   });
 
@@ -71,6 +75,7 @@ describe("probeZalouser", () => {
     await expect(probeZalouser("default", 10)).resolves.toEqual({
       ok: true,
       user: { userId: "123", displayName: "Alice" },
+      elapsedMs: expect.any(Number),
     });
 
     expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
