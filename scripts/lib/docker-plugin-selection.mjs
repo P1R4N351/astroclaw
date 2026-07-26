@@ -1,12 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { findPluginManifestPath } from "./plugin-manifest-filenames.mjs";
 
 const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9-]*$/u;
 
 function readManifestId(pluginDir) {
-  const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
-  if (!fs.existsSync(manifestPath)) {
+  const manifestPath = findPluginManifestPath(pluginDir);
+  if (!manifestPath) {
     return null;
   }
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));

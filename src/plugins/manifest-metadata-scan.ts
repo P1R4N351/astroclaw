@@ -31,7 +31,18 @@ type CandidateDir = {
   origin?: string;
 };
 
-const PLUGIN_MANIFEST_FILENAME = "openclaw.plugin.json";
+const PLUGIN_MANIFEST_FILENAMES = ["astroclaw.plugin.json", "openclaw.plugin.json"] as const;
+const PLUGIN_MANIFEST_FILENAME = PLUGIN_MANIFEST_FILENAMES[0];
+
+function resolveExistingPluginManifestPath(pluginDir: string): string {
+  for (const filename of PLUGIN_MANIFEST_FILENAMES) {
+    const candidate = path.join(pluginDir, filename);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return path.join(pluginDir, PLUGIN_MANIFEST_FILENAME);
+}
 let manifestMetadataCache:
   | {
       key: string;
@@ -81,11 +92,11 @@ function readJsonObject(filePath: string): Record<string, unknown> | undefined {
 }
 
 function readManifestObject(pluginDir: string): Record<string, unknown> | undefined {
-  return readJsonObject(path.join(pluginDir, PLUGIN_MANIFEST_FILENAME));
+  return readJsonObject(resolveExistingPluginManifestPath(pluginDir));
 }
 
 function manifestFileFingerprint(pluginDir: string): string {
-  const manifestPath = path.join(pluginDir, PLUGIN_MANIFEST_FILENAME);
+  const manifestPath = resolveExistingPluginManifestPath(pluginDir);
   try {
     const stat = fs.statSync(manifestPath);
     return `${manifestPath}:${stat.mtimeMs}:${stat.size}`;

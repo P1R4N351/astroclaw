@@ -2,6 +2,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { resolvePluginManifestPath } from "./plugin-manifest-filenames.mjs";
 import { pathToFileURL } from "node:url";
 import JSON5 from "json5";
 import { packageJsonForShrinkwrap, readShrinkwrapOverrides } from "../generate-npm-shrinkwrap.mjs";
@@ -584,7 +585,7 @@ export function mergeGeneratedChannelConfigs(manifest, generatedChannelConfigs) 
 export function resolveAugmentedPluginNpmManifest(params) {
   const repoRoot = path.resolve(params.repoRoot ?? ".");
   const packageDir = resolvePackageDir(repoRoot, params.packageDir);
-  const manifestPath = path.join(packageDir, "openclaw.plugin.json");
+  const manifestPath = resolvePluginManifestPath(packageDir);
   if (!fs.existsSync(manifestPath)) {
     return {
       manifestPath,

@@ -2,6 +2,7 @@
 // Generates the plugin inventory documentation page.
 import fs from "node:fs";
 import path from "node:path";
+import { findPluginManifestPath } from "./lib/plugin-manifest-filenames.mjs";
 import process from "node:process";
 import { resolvePluginSurface } from "./lib/plugin-inventory-doc.mjs";
 
@@ -493,7 +494,7 @@ title: "Plugin reference"
 # Plugin reference
 
 This page is generated from \`extensions/*/package.json\` and
-\`openclaw.plugin.json\`. Regenerate it with:
+\`astroclaw.plugin.json\`. Regenerate it with:
 
 \`\`\`bash
 pnpm plugins:inventory:gen
@@ -510,8 +511,8 @@ function collectPluginSourceEntries() {
     .readdirSync(EXTENSIONS_DIR)
     .toSorted((left, right) => left.localeCompare(right))) {
     const packagePath = path.join(EXTENSIONS_DIR, dirName, "package.json");
-    const manifestPath = path.join(EXTENSIONS_DIR, dirName, "openclaw.plugin.json");
-    if (!fs.existsSync(packagePath) || !fs.existsSync(manifestPath)) {
+    const manifestPath = findPluginManifestPath(path.join(EXTENSIONS_DIR, dirName));
+    if (!fs.existsSync(packagePath) || !manifestPath) {
       continue;
     }
     const packageJson = readJsonPath(packagePath);
@@ -613,7 +614,7 @@ title: "Plugin inventory"
 
 # Plugin inventory
 
-This page is generated from \`extensions/*/package.json\`, \`openclaw.plugin.json\`,
+This page is generated from \`extensions/*/package.json\`, \`astroclaw.plugin.json\`,
 and the root npm package \`files\` exclusions. Regenerate it with:
 
 \`\`\`bash

@@ -4,6 +4,7 @@
 // plugin ownership so extension-owned deps can move out of root.
 import fs from "node:fs";
 import path from "node:path";
+import { findPluginManifestPath } from "./lib/plugin-manifest-filenames.mjs";
 import { pathToFileURL } from "node:url";
 import { packageNameFromSpecifier } from "./lib/plugin-package-dependencies.mjs";
 
@@ -171,8 +172,8 @@ function collectInternalizedBundledExtensionRuntimeDependencies(repoRoot, rootPa
       continue;
     }
     const packageJsonPath = path.join(extensionsRoot, entry.name, "package.json");
-    const manifestPath = path.join(extensionsRoot, entry.name, "openclaw.plugin.json");
-    if (!fs.existsSync(packageJsonPath) || !fs.existsSync(manifestPath)) {
+    const manifestPath = findPluginManifestPath(path.join(extensionsRoot, entry.name));
+    if (!fs.existsSync(packageJsonPath) || !manifestPath) {
       continue;
     }
     const packageJson = readJson(packageJsonPath);

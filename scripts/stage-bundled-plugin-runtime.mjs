@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { PLUGIN_MANIFEST_FILENAMES } from "./lib/plugin-manifest-filenames.mjs";
 import { removePathIfExists } from "./runtime-postbuild-shared.mjs";
 
 function relativeSymlinkTarget(sourcePath, targetPath) {
@@ -222,7 +223,7 @@ function shouldCopyRuntimeFile(relativePath) {
   return (
     isBundledSkillRuntimePath(relativePath) ||
     isPathOrNestedPath(relativePath, "package.json") ||
-    isPathOrNestedPath(relativePath, "openclaw.plugin.json") ||
+    PLUGIN_MANIFEST_FILENAMES.some((filename) => isPathOrNestedPath(relativePath, filename)) ||
     isPathOrNestedPath(relativePath, ".codex-plugin/plugin.json") ||
     isPathOrNestedPath(relativePath, ".claude-plugin/plugin.json") ||
     isPathOrNestedPath(relativePath, ".cursor-plugin/plugin.json") ||

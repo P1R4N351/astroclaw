@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { PLUGIN_MANIFEST_FILENAME } from "./lib/plugin-manifest-filenames.mjs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { installProcessWarningFilter } from "./process-warning-filter.mjs";
 import { stageBundledPluginRuntime } from "./stage-bundled-plugin-runtime.mjs";
@@ -60,7 +61,7 @@ fs.writeFileSync(
   "utf8",
 );
 fs.writeFileSync(
-  path.join(distPluginDir, "openclaw.plugin.json"),
+  path.join(distPluginDir, PLUGIN_MANIFEST_FILENAME),
   JSON.stringify(
     {
       id: pluginId,

@@ -21,6 +21,7 @@ import {
   writeBuildStamp as writeDistBuildStamp,
   writeRuntimePostBuildStamp as writeDistRuntimePostBuildStamp,
 } from "./lib/local-build-metadata.mjs";
+import { PLUGIN_MANIFEST_FILENAME } from "./lib/plugin-manifest-filenames.mjs";
 import { sleep } from "./lib/sleep.mjs";
 import {
   discoverStaticExtensionAssets,
@@ -356,14 +357,14 @@ const listBuiltBundledPluginRuntimeOverlayDirs = (deps) => {
 };
 
 const listRequiredBundledPluginMetadataOutputs = (pluginEntries, deps) =>
-  pluginEntries.flatMap(({ id, hasManifest, hasPackageJson }) => {
+  pluginEntries.flatMap(({ id, hasManifest, manifestFilename, hasPackageJson }) => {
     const builtPluginDir = path.join(resolveRuntimePostBuildDistRoot(deps), "extensions", id);
     const requiredPaths = [];
     if (hasPackageJson) {
       requiredPaths.push(path.join(builtPluginDir, "package.json"));
     }
     if (hasManifest) {
-      requiredPaths.push(path.join(builtPluginDir, "openclaw.plugin.json"));
+      requiredPaths.push(path.join(builtPluginDir, manifestFilename ?? PLUGIN_MANIFEST_FILENAME));
     }
     return requiredPaths;
   });

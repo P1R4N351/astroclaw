@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { findPluginManifestPath } from "./lib/plugin-manifest-filenames.mjs";
 import { listGeneratedExtensionAssetSources } from "./lib/static-extension-assets.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -40,8 +41,8 @@ function packagePluginAliases(packageName) {
 
 async function resolvePluginAliases(pluginDir, packageJson) {
   const aliases = new Set([path.basename(pluginDir), ...packagePluginAliases(packageJson.name)]);
-  const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
-  if (await pathExists(manifestPath)) {
+  const manifestPath = findPluginManifestPath(pluginDir);
+  if (manifestPath) {
     const manifest = await readJsonFile(manifestPath);
     if (typeof manifest.id === "string" && manifest.id) {
       aliases.add(manifest.id);

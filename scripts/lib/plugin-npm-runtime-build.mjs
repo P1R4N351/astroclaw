@@ -1,6 +1,7 @@
 // Builds package-local runtime dist files for publishable bundled plugins.
 import fs from "node:fs";
 import path from "node:path";
+import { PLUGIN_MANIFEST_FILENAMES } from "./plugin-manifest-filenames.mjs";
 import { pathToFileURL } from "node:url";
 import { build } from "tsdown";
 import {
@@ -214,8 +215,10 @@ function resolvePluginNpmRuntimePackageFiles(plan) {
       : [],
   );
   merged.add("dist/**");
-  if (packageRelativePathExists(plan.packageDir, "openclaw.plugin.json")) {
-    merged.add("openclaw.plugin.json");
+  for (const manifestFilename of PLUGIN_MANIFEST_FILENAMES) {
+    if (packageRelativePathExists(plan.packageDir, manifestFilename)) {
+      merged.add(manifestFilename);
+    }
   }
   if (packageRelativePathExists(plan.packageDir, "npm-shrinkwrap.json")) {
     merged.add("npm-shrinkwrap.json");

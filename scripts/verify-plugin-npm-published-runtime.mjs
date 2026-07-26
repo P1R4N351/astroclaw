@@ -6,6 +6,10 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import {
+  PLUGIN_MANIFEST_FILENAME,
+  PLUGIN_MANIFEST_FILENAMES,
+} from "./lib/plugin-manifest-filenames.mjs";
 import { pathToFileURL } from "node:url";
 import * as tar from "tar";
 import { sleep } from "./lib/sleep.mjs";
@@ -129,8 +133,8 @@ export function collectPluginNpmPublishedRuntimeErrors(params) {
   if (errors.length > 0) {
     return errors;
   }
-  if (!hasPackedFile(packageFiles, "openclaw.plugin.json")) {
-    errors.push(`${packageLabel} plugin npm package must include openclaw.plugin.json`);
+  if (!PLUGIN_MANIFEST_FILENAMES.some((filename) => hasPackedFile(packageFiles, filename))) {
+    errors.push(`${packageLabel} plugin npm package must include ${PLUGIN_MANIFEST_FILENAME}`);
     return errors;
   }
   const extensions = extensionsResult.entries;

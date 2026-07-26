@@ -1,5 +1,6 @@
 // Defines source/config paths that pnpm dev watches for rebuilds and restarts.
 import path from "node:path";
+import { PLUGIN_MANIFEST_FILENAMES } from "./lib/plugin-manifest-filenames.mjs";
 import {
   BUNDLED_PLUGIN_PATH_PREFIX,
   BUNDLED_PLUGIN_ROOT_DIR,
@@ -35,7 +36,10 @@ export const runNodeConfigFiles = ["tsconfig.json", "package.json", "tsdown.conf
 /** Combined watch list used by the run-node wrapper. */
 export const runNodeWatchedPaths = [...runNodeSourceRoots, ...runNodeConfigFiles];
 /** Plugin metadata files that require a runtime restart even without source edits. */
-export const extensionRestartMetadataFiles = new Set(["openclaw.plugin.json", "package.json"]);
+export const extensionRestartMetadataFiles = new Set([
+  ...PLUGIN_MANIFEST_FILENAMES,
+  "package.json",
+]);
 
 const ignoredRunNodeRepoPathPatterns = [
   /^extensions\/[^/]+\/src\/host\/.+\/\.bundle\.hash$/u,
