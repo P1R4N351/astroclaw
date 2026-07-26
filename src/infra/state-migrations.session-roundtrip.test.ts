@@ -10,7 +10,7 @@
  * "agent:ops:work". Without canonicalization, writes and reads diverge.
  */
 import { describe, expect, it } from "vitest";
-import type { AstroclawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { canonicalizeMainSessionAlias } from "../config/sessions/main-session.js";
 import { resolveMainSessionKey } from "../config/sessions/main-session.js";
 import { resolveSessionKey } from "../config/sessions/session-key.js";
@@ -18,12 +18,12 @@ import { resolveCronAgentSessionKey } from "../cron/isolated-agent/session-key.j
 import { resolveSessionStoreKey } from "../gateway/session-store-key.js";
 import { normalizeMainKey } from "../routing/session-key.js";
 
-function makeNonDefaultAgentCfg(overrides?: Partial<AstroclawConfig>): AstroclawConfig {
+function makeNonDefaultAgentCfg(overrides?: Partial<OpenClawConfig>): OpenClawConfig {
   return {
     session: { mainKey: "work", scope: "per-sender" },
     agents: { list: [{ id: "ops", default: true }] },
     ...overrides,
-  } as AstroclawConfig;
+  } as OpenClawConfig;
 }
 
 describe("session key write/read round-trip (#29683)", () => {
@@ -34,7 +34,12 @@ describe("session key write/read round-trip (#29683)", () => {
       const mainKey = normalizeMainKey(cfg.session?.mainKey);
 
       // Write path: resolveSessionKey + canonicalize (as in initSessionState)
-      const rawWriteKey = resolveSessionKey("per-sender", { From: "+1234567890" }, mainKey);
+      const rawWriteKey = resolveSessionKey(
+        "per-sender",
+        { From: "+1234567890" },
+        mainKey,
+        agentId,
+      );
       const writeKey = canonicalizeMainSessionAlias({
         cfg,
         agentId,
@@ -53,7 +58,12 @@ describe("session key write/read round-trip (#29683)", () => {
       const agentId = "ops";
       const mainKey = normalizeMainKey(cfg.session?.mainKey);
 
-      const rawWriteKey = resolveSessionKey("per-sender", { From: "+1234567890" }, mainKey);
+      const rawWriteKey = resolveSessionKey(
+        "per-sender",
+        { From: "+1234567890" },
+        mainKey,
+        agentId,
+      );
       const writeKey = canonicalizeMainSessionAlias({
         cfg,
         agentId,
@@ -99,6 +109,7 @@ describe("session key write/read round-trip (#29683)", () => {
         "per-sender",
         { From: "group:discord:group:123456789" },
         mainKey,
+        agentId,
       );
       const writeKey = canonicalizeMainSessionAlias({
         cfg,
@@ -116,10 +127,13 @@ describe("session key write/read round-trip (#29683)", () => {
 
   describe("no-op when default agent is main", () => {
     it("write and gateway canonical keys match when agent is main", () => {
-      const cfg = { session: { scope: "per-sender" } } as AstroclawConfig;
+      const cfg = {
+        agents: { entries: { main: { default: true } } },
+        session: { scope: "per-sender" },
+      } as OpenClawConfig;
       const mainKey = normalizeMainKey(cfg.session?.mainKey);
 
-      const rawWriteKey = resolveSessionKey("per-sender", { From: "+1234567890" }, mainKey);
+      const rawWriteKey = resolveSessionKey("per-sender", { From: "+1234567890" }, mainKey, "main");
       const writeKey = canonicalizeMainSessionAlias({
         cfg,
         agentId: "main",
