@@ -7,17 +7,18 @@
  */
 
 import nodePath from "node:path";
-import { resolveFetch } from "openclaw/plugin-sdk/fetch-runtime";
-import { detectMime, parseMediaContentLength } from "openclaw/plugin-sdk/media-runtime";
+import { toErrorObject } from "astroclaw/plugin-sdk/error-runtime";
+import { resolveFetch } from "astroclaw/plugin-sdk/fetch-runtime";
+import { detectMime, parseMediaContentLength } from "astroclaw/plugin-sdk/media-runtime";
 import {
   parseStrictNonNegativeInteger,
   resolveTimerTimeoutMs,
-} from "openclaw/plugin-sdk/number-runtime";
+} from "astroclaw/plugin-sdk/number-runtime";
 import {
   readResponseTextPrefix,
   readResponseWithLimit,
-} from "openclaw/plugin-sdk/response-limit-runtime";
-import { readRegularFile } from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/response-limit-runtime";
+import { readRegularFile } from "astroclaw/plugin-sdk/security-runtime";
 import WebSocket from "ws";
 
 type ContainerRpcOptions = {
@@ -461,7 +462,7 @@ export async function streamContainerEvents(params: {
       }
       settled = true;
       cleanup();
-      reject(toLintErrorObject(error, "Signal WebSocket receive handler failed"));
+      reject(toErrorObject(error, "Signal WebSocket receive handler failed"));
     };
 
     try {
@@ -470,7 +471,7 @@ export async function streamContainerEvents(params: {
       logError(
         `[signal-ws] failed to create WebSocket: ${err instanceof Error ? err.message : String(err)}`,
       );
-      reject(toLintErrorObject(err, "Non-Error rejection"));
+      reject(toErrorObject(err, "Non-Error rejection"));
       return;
     }
 
@@ -947,19 +948,5 @@ export async function containerRpcRequest<T = unknown>(
     default:
       throw new Error(`Unsupported container RPC method: ${method}`);
   }
-}
-
-function toLintErrorObject(value: unknown, fallbackMessage: string): Error {
-  if (value instanceof Error) {
-    return value;
-  }
-  if (typeof value === "string") {
-    return new Error(value);
-  }
-  const error = new Error(fallbackMessage, { cause: value });
-  if ((typeof value === "object" && value !== null) || typeof value === "function") {
-    Object.assign(error, value);
-  }
-  return error;
 }
 /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
