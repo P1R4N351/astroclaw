@@ -2,10 +2,10 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import type { Context, Model } from "openclaw/plugin-sdk/llm";
-import { registerSingleProviderPlugin } from "openclaw/plugin-sdk/plugin-test-runtime";
-import { buildOpenAICompletionsParams } from "openclaw/plugin-sdk/provider-transport-runtime";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import type { Context, Model } from "astroclaw/plugin-sdk/llm";
+import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
+import { buildOpenAICompletionsParams } from "astroclaw/plugin-sdk/provider-transport-runtime";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
@@ -106,8 +106,8 @@ describe("zai provider plugin", () => {
           baseUrl: "https://api.z.ai/api/paas/v4",
           input: ["text"],
           reasoning: true,
-          contextWindow: 202800,
-          maxTokens: 131100,
+          contextWindow: 200_000,
+          maxTokens: 131_072,
         },
       },
       {
@@ -117,8 +117,8 @@ describe("zai provider plugin", () => {
           baseUrl: "https://api.z.ai/api/paas/v4",
           input: ["text", "image"],
           reasoning: true,
-          contextWindow: 202800,
-          maxTokens: 131100,
+          contextWindow: 200_000,
+          maxTokens: 131_072,
         },
       },
     ] as const;
@@ -194,13 +194,13 @@ describe("zai provider plugin", () => {
 
     const resolved = provider.resolveDynamicModel?.({
       provider: "zai",
-      modelId: "glm-5-turbo",
+      modelId: "glm-5.3",
       modelRegistry: {
         find: () => null,
       },
     } as never) as Record<string, unknown> | undefined;
     expectModelFields(resolved, {
-      id: "glm-5-turbo",
+      id: "glm-5.3",
       provider: "zai",
       api: "openai-completions",
       baseUrl: "https://api.z.ai/api/paas/v4",
@@ -215,14 +215,13 @@ describe("zai provider plugin", () => {
 
     const resolved = provider.resolveDynamicModel?.({
       provider: "zai",
-      modelId: "glm-5-turbo",
+      modelId: "glm-5.3",
       modelRegistry: {
         find: (_provider: string, modelId: string) => (modelId === "glm-4.7" ? template : null),
       },
     } as never) as Record<string, unknown> | undefined;
     expectModelFields(resolved, {
-      id: "glm-5-turbo",
-      name: "GLM-5 Turbo",
+      id: "glm-5.3",
       provider: "zai",
       api: "openai-completions",
       baseUrl: "https://api.z.ai/api/paas/v4",
