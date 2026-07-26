@@ -1,7 +1,7 @@
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
+import { parseStrictPositiveInteger } from "astroclaw/plugin-sdk/number-runtime";
 // Qa Lab plugin module implements cli behavior.
 import type { Command } from "commander";
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
-import { parseStrictPositiveInteger } from "openclaw/plugin-sdk/number-runtime";
 import { collectString } from "./cli-options.js";
 import type {
   QaLabSelfCheckCommandOptions,
@@ -31,6 +31,7 @@ type QaScenarioRunCliOptions = {
   altModel?: QaSuiteCommandOptions["alternateModel"];
   concurrency?: QaSuiteCommandOptions["concurrency"];
   allowFailures?: QaSuiteCommandOptions["allowFailures"];
+  failFast?: QaSuiteCommandOptions["failFast"];
   fast?: QaSuiteCommandOptions["fastMode"];
 };
 
@@ -57,6 +58,7 @@ const QA_RUN_PROFILE_ONLY_OPTIONS = [
   { optionName: "altModel", flag: "--alt-model" },
   { optionName: "concurrency", flag: "--concurrency" },
   { optionName: "allowFailures", flag: "--allow-failures" },
+  { optionName: "failFast", flag: "--fail-fast" },
   { optionName: "fast", flag: "--fast" },
 ] as const;
 
@@ -433,6 +435,7 @@ export function registerQaLabCli(program: Command) {
       "Write artifacts without setting a failing exit code when scenarios fail",
       false,
     )
+    .option("--fail-fast", "Stop after the first failed QA scenario")
     .option("--fast", "Enable provider fast mode where supported", false);
   qaRun.action(async (opts: QaRunCliOptions, command: Command) => {
     validateQaRunMode(opts, command);
@@ -451,6 +454,7 @@ export function registerQaLabCli(program: Command) {
         alternateModel: opts.altModel,
         concurrency: opts.concurrency,
         allowFailures: opts.allowFailures,
+        ...(opts.failFast ? { failFast: true } : {}),
         fastMode: opts.fast,
       });
       return;
@@ -497,6 +501,7 @@ export function registerQaLabCli(program: Command) {
       "Write artifacts without setting a failing exit code when scenarios fail",
       false,
     )
+    .option("--fail-fast", "Stop after the first failed QA scenario")
     .option("--fast", "Enable provider fast mode where supported", false)
     .option(
       "--thinking <level>",
@@ -535,6 +540,7 @@ export function registerQaLabCli(program: Command) {
         enabledPluginIds: opts.enablePlugin,
         concurrency: opts.concurrency,
         allowFailures: opts.allowFailures,
+        ...(opts.failFast ? { failFast: true } : {}),
         image: opts.image,
         cpus: opts.cpus,
         memory: opts.memory,
