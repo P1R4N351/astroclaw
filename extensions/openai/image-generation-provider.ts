@@ -1,28 +1,31 @@
 // Openai provider module implements model/runtime integration.
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import type {
   ImageGenerationOutputFormat,
   ImageGenerationProvider,
   ImageGenerationResult,
-} from "openclaw/plugin-sdk/image-generation";
+} from "astroclaw/plugin-sdk/image-generation";
 import {
   parseOpenAiCompatibleImageResponse,
   resolveInlineImageJsonResponseMaxBytes,
   toImageDataUrl,
-} from "openclaw/plugin-sdk/image-generation";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/logging-core";
-import { resolveClosestSize } from "openclaw/plugin-sdk/media-generation-runtime";
-import { extensionForMime } from "openclaw/plugin-sdk/media-mime";
-import { canonicalizeBase64, MAX_IMAGE_BYTES } from "openclaw/plugin-sdk/media-runtime";
+} from "astroclaw/plugin-sdk/image-generation";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/logging-core";
+import {
+  resolveClosestSize,
+  resolveGeneratedMediaMaxBytes,
+} from "astroclaw/plugin-sdk/media-generation-runtime";
+import { extensionForMime } from "astroclaw/plugin-sdk/media-mime";
+import { canonicalizeBase64 } from "astroclaw/plugin-sdk/media-runtime";
 import {
   ensureAuthProfileStore,
   hasConfiguredSecretInput,
   isProviderApiKeyConfigured,
   listProfilesForProvider,
   type AuthProfileStore,
-} from "openclaw/plugin-sdk/provider-auth";
-import { resolveApiKeyForProvider } from "openclaw/plugin-sdk/provider-auth-runtime";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { resolveApiKeyForProvider } from "astroclaw/plugin-sdk/provider-auth-runtime";
 import {
   assertOkOrThrowHttpError,
   postJsonRequest,
@@ -30,9 +33,9 @@ import {
   readProviderJsonResponse,
   resolveProviderHttpRequestConfig,
   sanitizeConfiguredModelProviderRequest,
-} from "openclaw/plugin-sdk/provider-http";
-import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/provider-http";
+import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import {
   canonicalizeCodexResponsesBaseUrl,
   isOpenAICodexBaseUrl,
@@ -72,7 +75,6 @@ const MOCK_OPENAI_PROVIDER_ID = "mock-openai";
 const OPENAI_OUTPUT_FORMATS = ["png", "jpeg", "webp"] as const;
 const OPENAI_BACKGROUNDS = ["transparent", "opaque", "auto"] as const;
 const OPENAI_QUALITIES = ["low", "medium", "high", "auto"] as const;
-const MB = 1024 * 1024;
 const OPENAI_IMAGE_MODELS = [
   DEFAULT_OPENAI_IMAGE_MODEL,
   OPENAI_TRANSPARENT_BACKGROUND_IMAGE_MODEL,
@@ -125,14 +127,6 @@ function resolveOpenAIImageCount(count: number | undefined): number {
     return 1;
   }
   return Math.max(1, Math.min(OPENAI_MAX_IMAGE_RESULTS, Math.trunc(count)));
-}
-
-function resolveGeneratedImageMaxBytes(cfg: OpenClawConfig): number {
-  const configured = cfg.agents?.defaults?.mediaMaxMb;
-  if (typeof configured === "number" && Number.isFinite(configured) && configured > 0) {
-    return Math.floor(configured * MB);
-  }
-  return MAX_IMAGE_BYTES;
 }
 
 function isPublicOpenAIImageBaseUrl(baseUrl: string): boolean {
@@ -1060,7 +1054,7 @@ export function buildOpenAIImageGenerationProvider(): ImageGenerationProvider {
         const data = await readProviderJsonResponse(response, "openai.image-generation", {
           maxBytes: resolveInlineImageJsonResponseMaxBytes(
             count,
-            resolveGeneratedImageMaxBytes(req.cfg),
+            resolveGeneratedMediaMaxBytes(req.cfg, "image"),
           ),
         });
         const output = resolveOutputMime(req.outputFormat);
