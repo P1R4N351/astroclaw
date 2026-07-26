@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ModelProviderConfig } from "../config/types.models.js";
 import {
@@ -142,10 +142,16 @@ describe("provider public artifacts", () => {
       }),
     ).toEqual({
       levels: [
-        { id: "off", label: "off" },
-        { id: "max", label: "max" },
+        { id: "off" },
+        { id: "minimal" },
+        { id: "low" },
+        { id: "medium" },
+        { id: "high" },
+        { id: "adaptive" },
+        { id: "xhigh" },
+        { id: "max" },
       ],
-      defaultLevel: "max",
+      defaultLevel: "high",
       preserveWhenCatalogReasoningFalse: true,
     });
   });
