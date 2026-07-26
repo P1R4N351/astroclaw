@@ -29,13 +29,14 @@ import type {
   SimpleStreamOptions,
   TextContent,
   ToolResultMessage,
-} from "openclaw/plugin-sdk/llm";
+} from "astroclaw/plugin-sdk/llm";
 import type { Static, TSchema } from "typebox";
 import type { Theme } from "../../modes/interactive/theme/theme.js";
 import type {
   AgentMessage,
   AgentToolResult,
   AgentToolUpdateCallback,
+  StreamFn,
   ThinkingLevel,
   ToolExecutionMode,
 } from "../../runtime/index.js";
@@ -280,7 +281,7 @@ export interface ExtensionUIContext {
    *
    * @example
    * ```ts
-   * import { CustomEditor } from "openclaw/plugin-sdk/agent-sessions";
+   * import { CustomEditor } from "astroclaw/plugin-sdk/agent-sessions";
    *
    * class VimEditor extends CustomEditor {
    *   private mode: "normal" | "insert" = "insert";
@@ -614,6 +615,10 @@ interface SessionBeforeCompactEvent {
   branchEntries: SessionEntry[];
   customInstructions?: string;
   signal: AbortSignal;
+  /** Prepared reasoning level for extension-owned summarization. */
+  thinkingLevel?: ThinkingLevel;
+  /** Prepared provider stream for extension-owned summarization. */
+  streamFn?: StreamFn;
 }
 
 /** Fired after context compaction */
