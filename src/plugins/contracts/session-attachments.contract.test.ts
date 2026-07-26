@@ -5,7 +5,7 @@ import { FILE_TYPE_SNIFF_MAX_BYTES } from "@openclaw/media-core/mime";
 import {
   createPluginRegistryFixture,
   registerTestPlugin,
-} from "openclaw/plugin-sdk/plugin-test-contracts";
+} from "astroclaw/plugin-sdk/plugin-test-contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../../config/sessions.js";
 import { replaceSessionEntry } from "../../config/sessions/session-accessor.js";
@@ -259,7 +259,7 @@ describe("plugin session attachments", () => {
         config: {
           session: { store: storePath },
           agents: {
-            list: [{ id: "main", workspace: workspaceDir }],
+            list: [{ id: "main", default: true, workspace: workspaceDir }],
           },
         },
       });
