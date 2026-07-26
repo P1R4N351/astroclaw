@@ -1,7 +1,7 @@
 // Ollama plugin entrypoint registers its OpenClaw integration.
 import { collectConfiguredModelRefValues } from "@openclaw/model-catalog-core/configured-model-refs";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { resolvePluginConfigObject } from "openclaw/plugin-sdk/plugin-config-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { resolvePluginConfigObject } from "astroclaw/plugin-sdk/plugin-config-runtime";
 import {
   definePluginEntry,
   type OpenClawPluginApi,
@@ -13,23 +13,23 @@ import {
   type ProviderCatalogContext,
   type ProviderReplayPolicy,
   type ProviderRuntimeModel,
-} from "openclaw/plugin-sdk/plugin-entry";
+} from "astroclaw/plugin-sdk/plugin-entry";
 import {
   buildApiKeyCredential,
   coerceSecretRef,
   isNonSecretApiKeyMarker,
-} from "openclaw/plugin-sdk/provider-auth";
-import { createProviderApiKeyAuthMethod } from "openclaw/plugin-sdk/provider-auth-api-key";
+} from "astroclaw/plugin-sdk/provider-auth";
+import { createProviderApiKeyAuthMethod } from "astroclaw/plugin-sdk/provider-auth-api-key";
 import type {
   ModelDefinitionConfig,
   ModelProviderConfig,
-} from "openclaw/plugin-sdk/provider-model-shared";
+} from "astroclaw/plugin-sdk/provider-model-shared";
 import {
   buildOpenAICompatibleReplayPolicy,
   buildProviderReplayFamilyHooks,
   selectPreferredLocalModelId,
-} from "openclaw/plugin-sdk/provider-model-shared";
-import { resolveConfiguredSecretInputString } from "openclaw/plugin-sdk/secret-input-runtime";
+} from "astroclaw/plugin-sdk/provider-model-shared";
+import { resolveConfiguredSecretInputString } from "astroclaw/plugin-sdk/secret-input-runtime";
 import {
   buildOllamaModelDefinition,
   buildOllamaProvider,
@@ -68,6 +68,7 @@ import {
 } from "./src/node-inference.js";
 import { readProviderBaseUrl } from "./src/provider-base-url.js";
 import {
+  buildDefaultOllamaCloudModelDefinition,
   capLocalOllamaModelContext,
   capLocalOllamaProviderContext,
 } from "./src/provider-models.js";
@@ -101,7 +102,7 @@ function classifyOllamaFailoverReason(errorMessage: string): "server_error" | un
 }
 
 const dynamicModelCache = new Map<string, ProviderRuntimeModel[]>();
-const OLLAMA_CLOUD_DEFAULT_MODEL_REF = `${OLLAMA_CLOUD_PROVIDER_ID}/${OLLAMA_CLOUD_DEFAULT_MODELS[0]}`;
+const OLLAMA_CLOUD_DEFAULT_MODEL_REF = `${OLLAMA_CLOUD_PROVIDER_ID}/${OLLAMA_CLOUD_DEFAULT_MODELS[0].id}`;
 const OLLAMA_CONFIGURED_SHOW_CONCURRENCY = 4;
 const OLLAMA_CONFIGURED_SHOW_MAX_MODELS = 8;
 const OLLAMA_APP_GUIDED_MIN_CONTEXT_TOKENS = 16_384;
@@ -445,7 +446,7 @@ function buildStaticOllamaCloudProvider(): ModelProviderConfig {
   return {
     baseUrl: OLLAMA_CLOUD_BASE_URL,
     api: "ollama",
-    models: OLLAMA_CLOUD_DEFAULT_MODELS.map((model) => buildOllamaModelDefinition(model)),
+    models: OLLAMA_CLOUD_DEFAULT_MODELS.map(buildDefaultOllamaCloudModelDefinition),
   };
 }
 
@@ -468,16 +469,15 @@ async function buildOllamaCloudProvider(apiKey?: string): Promise<ModelProviderC
   if (typeof showInfo.contextWindow !== "number" && (showInfo.capabilities?.length ?? 0) === 0) {
     return discovered;
   }
+  const defaultModel = OLLAMA_CLOUD_DEFAULT_MODELS.find(
+    (model) => model.id === OLLAMA_GLM52_CLOUD_MODEL_ID,
+  );
+  if (!defaultModel) {
+    return discovered;
+  }
   return {
     ...discovered,
-    models: [
-      ...discovered.models,
-      buildOllamaModelDefinition(
-        OLLAMA_GLM52_CLOUD_MODEL_ID,
-        showInfo.contextWindow,
-        showInfo.capabilities,
-      ),
-    ],
+    models: [...discovered.models, buildDefaultOllamaCloudModelDefinition(defaultModel)],
   };
 }
 
