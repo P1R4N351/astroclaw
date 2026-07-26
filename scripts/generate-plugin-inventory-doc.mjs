@@ -2,9 +2,9 @@
 // Generates the plugin inventory documentation page.
 import fs from "node:fs";
 import path from "node:path";
-import { findPluginManifestPath } from "./lib/plugin-manifest-filenames.mjs";
 import process from "node:process";
 import { resolvePluginSurface } from "./lib/plugin-inventory-doc.mjs";
+import { findPluginManifestPath, pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
 
 const DOC_PATH = "docs/plugins/plugin-inventory.md";
 const REFERENCE_INDEX_PATH = "docs/plugins/reference.md";
@@ -280,7 +280,7 @@ function resolveDocs({ dirName, manifest, packageJson }) {
     pushUniqueDocLink(links, { href: pluginAlias, label: pluginAliasLabel });
   }
 
-  const channelDoc = normalizeDocPath(packageJson.openclaw?.channel?.docsPath);
+  const channelDoc = normalizeDocPath(pluginPackageMetadata(packageJson)?.channel?.docsPath);
   if (channelDoc) {
     pushUniqueDocLink(links, {
       href: channelDoc,
@@ -348,14 +348,14 @@ function resolveInstallRoute(packageJson, status) {
     return "source checkout only";
   }
   if (status === "core") {
-    const release = packageJson.openclaw?.release;
+    const release = pluginPackageMetadata(packageJson)?.release;
     if (release?.publishToClawHub === true || release?.publishToNpm === true) {
       return `included in OpenClaw; ${resolveInstallRoute(packageJson, "external")}`;
     }
     return "included in OpenClaw";
   }
-  const install = packageJson.openclaw?.install;
-  const release = packageJson.openclaw?.release;
+  const install = pluginPackageMetadata(packageJson)?.install;
+  const release = pluginPackageMetadata(packageJson)?.release;
   const clawhubSpec =
     typeof install?.clawhubSpec === "string" ? `: \`${install.clawhubSpec}\`` : "";
   const npmSpec =
@@ -378,10 +378,10 @@ function resolveInstallRoute(packageJson, status) {
 }
 
 function resolveStatus({ dirName, packageJson, excludedDirs }) {
-  const release = packageJson.openclaw?.release;
+  const release = pluginPackageMetadata(packageJson)?.release;
   const hasInstallSpec =
-    typeof packageJson.openclaw?.install?.clawhubSpec === "string" ||
-    typeof packageJson.openclaw?.install?.npmSpec === "string";
+    typeof pluginPackageMetadata(packageJson)?.install?.clawhubSpec === "string" ||
+    typeof pluginPackageMetadata(packageJson)?.install?.npmSpec === "string";
   if (!excludedDirs.has(dirName)) {
     return "core";
   }

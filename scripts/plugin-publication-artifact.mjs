@@ -16,11 +16,12 @@ import {
   validateActionsArtifactBinding,
   validateActionsArtifactProducerJob,
 } from "./lib/actions-artifact-archive.mjs";
+import { resolveNpmPublishPlan } from "./lib/npm-publish-plan.mjs";
 import {
   PLUGIN_MANIFEST_FILENAME,
   PLUGIN_MANIFEST_FILENAMES,
+  pluginPackageMetadata,
 } from "./lib/plugin-manifest-filenames.mjs";
-import { resolveNpmPublishPlan } from "./lib/npm-publish-plan.mjs";
 
 export {
   downloadActionsArtifactArchive,
@@ -640,7 +641,7 @@ export function validatePluginPackageManifest(params, packageManifest) {
       `${params.packageName}: packed package.json must not override the approved publication tag.`,
     );
   }
-  const release = packageManifest.openclaw?.release;
+  const release = pluginPackageMetadata(packageManifest)?.release;
   const referencesMetaIdentity =
     params.packageName === META_PACKAGE || params.packageDir === META_PACKAGE_DIR;
   if (

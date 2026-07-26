@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { collectRootPackageExcludedExtensionDirs } from "./lib/bundled-plugin-build-entries.mjs";
 import { parsePackageRootArg } from "./lib/package-root-args.mjs";
+import { pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
 import { installProcessWarningFilter } from "./process-warning-filter.mjs";
 
 installProcessWarningFilter();
@@ -107,7 +108,8 @@ function collectBundledChannelEntryFiles() {
       continue;
     }
     const packageJson = readJson(packageJsonPath);
-    if (!packageJson.openclaw?.channel) {
+    const packageMetadata = pluginPackageMetadata(packageJson) ?? {};
+    if (!packageMetadata.channel) {
       continue;
     }
     if (excludedPackageExtensionDirs.has(dirent.name)) {
@@ -115,8 +117,8 @@ function collectBundledChannelEntryFiles() {
     }
 
     const extensionEntries =
-      Array.isArray(packageJson.openclaw.extensions) && packageJson.openclaw.extensions.length > 0
-        ? packageJson.openclaw.extensions
+      Array.isArray(packageMetadata.extensions) && packageMetadata.extensions.length > 0
+        ? packageMetadata.extensions
         : ["./index.ts"];
     for (const entry of extensionEntries) {
       if (typeof entry !== "string" || entry.trim().length === 0) {
@@ -129,7 +131,7 @@ function collectBundledChannelEntryFiles() {
       });
     }
 
-    const setupEntry = packageJson.openclaw.setupEntry;
+    const setupEntry = packageMetadata.setupEntry;
     if (typeof setupEntry === "string" && setupEntry.trim().length > 0) {
       files.push({
         id: dirent.name,

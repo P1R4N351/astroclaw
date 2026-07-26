@@ -7,15 +7,22 @@ import fs from "node:fs";
 import path from "node:path";
 import { normalizeOptionalLowercaseString } from "@openclaw/normalization-core/string-coerce";
 import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
-import { tryReadJsonSync } from "../infra/json-files.js";
 import { resolveAstroclawPackageRootSync } from "../infra/astroclaw-root.js";
+import { tryReadJsonSync } from "../infra/json-files.js";
 import { resolveBundledPluginsDir } from "../plugins/bundled-dir.js";
 import type { PluginPackageChannel } from "../plugins/manifest.js";
 
+type ChannelCatalogMetadata = {
+  channel?: PluginPackageChannel;
+};
+
+// The 2026-05-17 rebrand moved the catalog metadata block from `openclaw` to
+// `astroclaw` (scripts/lib/official-external-channel-catalog.json already ships
+// the new key), so readers must accept both or external channel entries resolve
+// as absent.
 type ChannelCatalogEntryLike = {
-  openclaw?: {
-    channel?: PluginPackageChannel;
-  };
+  astroclaw?: ChannelCatalogMetadata;
+  openclaw?: ChannelCatalogMetadata;
 };
 
 type BundledChannelCatalogEntry = {
@@ -96,14 +103,14 @@ function readOfficialCatalogFileSync(): ChannelCatalogEntryLike[] {
 function isChannelCatalogEntryLike(
   entry: ChannelCatalogEntryLike | PluginPackageChannel,
 ): entry is ChannelCatalogEntryLike {
-  return "openclaw" in entry;
+  return "astroclaw" in entry || "openclaw" in entry;
 }
 
 function toBundledChannelEntry(
   entry: ChannelCatalogEntryLike | PluginPackageChannel,
 ): BundledChannelCatalogEntry | null {
   const channel: PluginPackageChannel | undefined = isChannelCatalogEntryLike(entry)
-    ? entry.openclaw?.channel
+    ? (entry.astroclaw ?? entry.openclaw)?.channel
     : entry;
   const id = normalizeOptionalLowercaseString(channel?.id);
   if (!id || !channel) {

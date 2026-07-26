@@ -2,10 +2,11 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
 import { discoverStaticExtensionAssets } from "./static-extension-assets.mjs";
 
 function resolvePackageAssetBuildCommand(packageJson) {
-  const command = packageJson.openclaw?.assetScripts?.build;
+  const command = pluginPackageMetadata(packageJson)?.assetScripts?.build;
   return typeof command === "string" && command.trim() ? command.trim() : null;
 }
 

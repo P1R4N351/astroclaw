@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import officialExternalChannelCatalog from "./lib/official-external-channel-catalog.json" with { type: "json" };
+import { pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
 import { isRecord, trimString } from "./lib/record-shared.mjs";
 import { writeTextFileIfChanged } from "./runtime-postbuild-shared.mjs";
 
@@ -39,7 +40,8 @@ function buildCatalogEntry(packageJson) {
     return null;
   }
   const packageName = trimString(packageJson.name);
-  const manifest = isRecord(packageJson.openclaw) ? packageJson.openclaw : null;
+  const packageMetadata = pluginPackageMetadata(packageJson);
+  const manifest = isRecord(packageMetadata) ? packageMetadata : null;
   const release = manifest && isRecord(manifest.release) ? manifest.release : null;
   const channel = manifest && isRecord(manifest.channel) ? manifest.channel : null;
   if (!packageName || !channel || release?.publishToNpm !== true) {
@@ -63,7 +65,7 @@ function buildCatalogEntry(packageJson) {
 }
 
 function getCatalogChannelId(entry) {
-  return trimString(entry?.openclaw?.channel?.id) || trimString(entry?.name);
+  return trimString(pluginPackageMetadata(entry)?.channel?.id) || trimString(entry?.name);
 }
 
 /**
@@ -104,8 +106,8 @@ export function buildOfficialChannelCatalog(params = {}) {
   }
 
   entries.sort((left, right) => {
-    const leftId = trimString(left.openclaw?.channel?.id) || left.name;
-    const rightId = trimString(right.openclaw?.channel?.id) || right.name;
+    const leftId = trimString(pluginPackageMetadata(left)?.channel?.id) || left.name;
+    const rightId = trimString(pluginPackageMetadata(right)?.channel?.id) || right.name;
     return leftId.localeCompare(rightId);
   });
 

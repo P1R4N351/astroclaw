@@ -73,3 +73,29 @@ export function pluginPackageMetadata(packageJson) {
   const legacy = packageJson?.[LEGACY_PLUGIN_PACKAGE_METADATA_KEY];
   return legacy && typeof legacy === "object" ? legacy : undefined;
 }
+
+/**
+ * The metadata key a writer should use for `packageJson`: whichever key the
+ * source already carries (canonical first), defaulting to the canonical key.
+ *
+ * Writing back through this key keeps a package.json single-keyed — rewriting a
+ * legacy package under the canonical key would leave a stale `openclaw` block
+ * behind that later readers could still resolve.
+ */
+export function pluginPackageMetadataKey(packageJson) {
+  for (const key of [PLUGIN_PACKAGE_METADATA_KEY, LEGACY_PLUGIN_PACKAGE_METADATA_KEY]) {
+    const value = packageJson?.[key];
+    if (value && typeof value === "object") {
+      return key;
+    }
+  }
+  return PLUGIN_PACKAGE_METADATA_KEY;
+}
+
+/**
+ * Shallow-copy `packageJson` with its plugin metadata block replaced, written
+ * under whichever metadata key the source used.
+ */
+export function withPluginPackageMetadata(packageJson, metadata) {
+  return { ...packageJson, [pluginPackageMetadataKey(packageJson)]: metadata };
+}

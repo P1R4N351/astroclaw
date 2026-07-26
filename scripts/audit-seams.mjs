@@ -11,6 +11,7 @@ import {
 } from "./lib/bundled-plugin-paths.mjs";
 import { visitModuleSpecifiers } from "./lib/guard-inventory-utils.mjs";
 import { optionalBundledClusterSet } from "./lib/optional-bundled-clusters.mjs";
+import { pluginPackageMetadata } from "./lib/plugin-manifest-filenames.mjs";
 import { escapeRegExp } from "./lib/regexp.mjs";
 import { toLine } from "./lib/ts-guard-utils.mjs";
 
@@ -480,7 +481,7 @@ async function buildMissingPackages(params = {}) {
       decisionReason: classification.reason,
       packageName: pkg.name ?? meta.packageName,
       packagePath: relativePackagePath,
-      npmSpec: redactNpmSpec(pkg.openclaw?.install?.npmSpec),
+      npmSpec: redactNpmSpec(pluginPackageMetadata(pkg)?.install?.npmSpec),
       private: pkg.private === true,
       pluginSdkReachability:
         pluginSdkEntries.length > 0 ? { staticEntryPoints: pluginSdkEntries } : undefined,

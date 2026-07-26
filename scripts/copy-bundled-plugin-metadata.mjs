@@ -6,8 +6,12 @@ import {
   collectBundledPluginBuildEntries,
   NON_PACKAGED_BUNDLED_PLUGIN_DIRS,
 } from "./lib/bundled-plugin-build-entries.mjs";
-import { resolvePluginManifestPath } from "./lib/plugin-manifest-filenames.mjs";
 import { shouldBuildBundledCluster } from "./lib/optional-bundled-clusters.mjs";
+import {
+  pluginPackageMetadata,
+  pluginPackageMetadataKey,
+  resolvePluginManifestPath,
+} from "./lib/plugin-manifest-filenames.mjs";
 import {
   mergeGeneratedChannelConfigs,
   readGeneratedBundledChannelConfigs,
@@ -318,12 +322,13 @@ export function copyBundledPluginMetadata(params = {}) {
       removeFileIfExists(distPackageJsonPath);
       continue;
     }
-    if (packageJson.openclaw && "extensions" in packageJson.openclaw) {
-      packageJson.openclaw = {
-        ...packageJson.openclaw,
-        extensions: rewritePackageExtensions(packageJson.openclaw.extensions),
-        ...(typeof packageJson.openclaw.setupEntry === "string"
-          ? { setupEntry: rewritePackageEntry(packageJson.openclaw.setupEntry) }
+    const packageMetadata = pluginPackageMetadata(packageJson);
+    if (packageMetadata && "extensions" in packageMetadata) {
+      packageJson[pluginPackageMetadataKey(packageJson)] = {
+        ...packageMetadata,
+        extensions: rewritePackageExtensions(packageMetadata.extensions),
+        ...(typeof packageMetadata.setupEntry === "string"
+          ? { setupEntry: rewritePackageEntry(packageMetadata.setupEntry) }
           : {}),
       };
     }

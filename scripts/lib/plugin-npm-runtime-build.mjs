@@ -1,13 +1,13 @@
 // Builds package-local runtime dist files for publishable bundled plugins.
 import fs from "node:fs";
 import path from "node:path";
-import { PLUGIN_MANIFEST_FILENAMES } from "./plugin-manifest-filenames.mjs";
 import { pathToFileURL } from "node:url";
 import { build } from "tsdown";
 import {
   collectPluginSourceEntries,
   collectTopLevelPublicSurfaceEntries,
 } from "./bundled-plugin-build-entries.mjs";
+import { PLUGIN_MANIFEST_FILENAMES, pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
 import {
   listMissingPackageStaticAssetSources,
   runPackageAssetBuild,
@@ -25,8 +25,8 @@ function readJsonFile(filePath) {
 /** Return whether a plugin package publishes through an artifact release workflow. */
 function isPublishablePluginPackage(packageJson) {
   return (
-    packageJson.openclaw?.release?.publishToNpm === true ||
-    packageJson.openclaw?.release?.publishToClawHub === true
+    pluginPackageMetadata(packageJson)?.release?.publishToNpm === true ||
+    pluginPackageMetadata(packageJson)?.release?.publishToClawHub === true
   );
 }
 
@@ -39,7 +39,7 @@ function isTypeScriptEntry(entry) {
 }
 
 function resolveRuntimeBuildFormat(packageJson) {
-  return packageJson.openclaw?.build?.runtimeFormat === "cjs" ? "cjs" : "esm";
+  return pluginPackageMetadata(packageJson)?.build?.runtimeFormat === "cjs" ? "cjs" : "esm";
 }
 
 function runtimeBuildExtension(runtimeFormat) {
@@ -247,9 +247,9 @@ function normalizeOpenClawPeerRange(value) {
 
 function resolveOpenClawPeerRange(packageJson, rootPackageJson) {
   return (
-    normalizeOpenClawPeerRange(packageJson.openclaw?.compat?.pluginApi) ||
+    normalizeOpenClawPeerRange(pluginPackageMetadata(packageJson)?.compat?.pluginApi) ||
     normalizeOpenClawPeerRange(packageJson.peerDependencies?.openclaw) ||
-    normalizeOpenClawPeerRange(packageJson.openclaw?.build?.openclawVersion) ||
+    normalizeOpenClawPeerRange(pluginPackageMetadata(packageJson)?.build?.openclawVersion) ||
     normalizeOpenClawPeerRange(rootPackageJson?.version) ||
     normalizeOpenClawPeerRange(packageJson.version)
   );
@@ -329,15 +329,15 @@ export function resolvePluginNpmRuntimeBuildPlan(params) {
     entry,
     outDir: path.join(packageDir, "dist"),
     runtimeFormat,
-    runtimeExtensions: (Array.isArray(packageJson.openclaw?.extensions)
-      ? packageJson.openclaw.extensions
+    runtimeExtensions: (Array.isArray(pluginPackageMetadata(packageJson)?.extensions)
+      ? pluginPackageMetadata(packageJson).extensions
       : []
     )
       .map(normalizePackageEntry)
       .filter(Boolean)
       .map((runtimeEntry) => toPackageRuntimeEntry(runtimeEntry, runtimeFormat)),
-    runtimeSetupEntry: normalizePackageEntry(packageJson.openclaw?.setupEntry)
-      ? toPackageRuntimeEntry(packageJson.openclaw.setupEntry, runtimeFormat)
+    runtimeSetupEntry: normalizePackageEntry(pluginPackageMetadata(packageJson)?.setupEntry)
+      ? toPackageRuntimeEntry(pluginPackageMetadata(packageJson).setupEntry, runtimeFormat)
       : undefined,
   };
   return {

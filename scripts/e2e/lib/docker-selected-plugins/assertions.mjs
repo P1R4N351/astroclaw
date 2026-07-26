@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { pluginPackageMetadata } from "../../../lib/plugin-manifest-filenames.mjs";
 
 function assert(condition, message) {
   if (!condition) {
@@ -58,12 +59,12 @@ for (const [pluginId, expected] of Object.entries(selected)) {
   const packageJson = readJson(path.join(pluginRoot, "package.json"));
   assert(manifest.id === pluginId, `unexpected ${pluginId} manifest id: ${manifest.id}`);
   assert(
-    packageJson.openclaw?.extensions?.includes("./index.js"),
+    pluginPackageMetadata(packageJson)?.extensions?.includes("./index.js"),
     `${pluginId} package entry was not rewritten to ./index.js`,
   );
   if (expected.entries.includes("setup-entry.js")) {
     assert(
-      packageJson.openclaw?.setupEntry === "./setup-entry.js",
+      pluginPackageMetadata(packageJson)?.setupEntry === "./setup-entry.js",
       `${pluginId} setup entry was not rewritten to ./setup-entry.js`,
     );
   }
@@ -83,7 +84,7 @@ for (const [pluginId, expected] of Object.entries(selected)) {
 for (const pluginId of ["clickclack", "slack"]) {
   const packageJson = readJson(`/app/dist/extensions/${pluginId}/package.json`);
   assert(
-    packageJson.openclaw?.build?.bundledDist === false,
+    pluginPackageMetadata(packageJson)?.build?.bundledDist === false,
     `${pluginId} bundledDist release metadata changed`,
   );
 }

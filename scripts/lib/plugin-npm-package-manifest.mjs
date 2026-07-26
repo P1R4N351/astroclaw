@@ -2,11 +2,15 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { resolvePluginManifestPath } from "./plugin-manifest-filenames.mjs";
 import { pathToFileURL } from "node:url";
 import JSON5 from "json5";
 import { packageJsonForShrinkwrap, readShrinkwrapOverrides } from "../generate-npm-shrinkwrap.mjs";
 import { resolveNpmRunner } from "../npm-runner.mjs";
+import {
+  pluginPackageMetadata,
+  resolvePluginManifestPath,
+  withPluginPackageMetadata,
+} from "./plugin-manifest-filenames.mjs";
 import {
   listPluginNpmRuntimeBuildOutputs,
   resolvePluginNpmRuntimeBuildPlan,
@@ -323,7 +327,7 @@ function installMissingOptionalBundledDependencies(params) {
 }
 
 function packageOptsOutOfBundledRuntimeDependencies(packageJson) {
-  return packageJson?.openclaw?.release?.bundleRuntimeDependencies === false;
+  return pluginPackageMetadata(packageJson)?.release?.bundleRuntimeDependencies === false;
 }
 
 function shouldBundleDependencies(value, packageJson) {
@@ -443,13 +447,15 @@ export function resolveAugmentedPluginNpmPackageJson(params) {
   }
   assertPluginNpmRuntimeBuildExists(plan);
 
-  const packageJson = {
-    ...plan.packageJson,
-    files: plan.packageFiles,
-    peerDependencies: plan.packagePeerMetadata.peerDependencies,
-    peerDependenciesMeta: plan.packagePeerMetadata.peerDependenciesMeta,
-    openclaw: {
-      ...plan.packageJson.openclaw,
+  const packageJson = withPluginPackageMetadata(
+    {
+      ...plan.packageJson,
+      files: plan.packageFiles,
+      peerDependencies: plan.packagePeerMetadata.peerDependencies,
+      peerDependenciesMeta: plan.packagePeerMetadata.peerDependenciesMeta,
+    },
+    {
+      ...pluginPackageMetadata(plan.packageJson),
       runtimeExtensions: plan.runtimeExtensions,
       ...(plan.runtimeSetupEntry
         ? {
@@ -458,7 +464,7 @@ export function resolveAugmentedPluginNpmPackageJson(params) {
           }
         : {}),
     },
-  };
+  );
   if (shouldBundleDependencies(params.bundleDependencies, plan.packageJson)) {
     packageJson.bundledDependencies = listPackageRuntimeDependencyNames(packageJson);
     delete packageJson.bundleDependencies;

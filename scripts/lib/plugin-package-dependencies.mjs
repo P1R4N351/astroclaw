@@ -1,6 +1,7 @@
 // Collects runtime dependency specs from bundled plugin packages.
 import fs from "node:fs";
 import path from "node:path";
+import { pluginPackageMetadata } from "./plugin-manifest-filenames.mjs";
 
 /** Collect dependencies and optionalDependencies needed at plugin runtime. */
 export function collectRuntimeDependencySpecs(packageJson = {}) {
@@ -52,7 +53,7 @@ export function collectBundledPluginPackageDependencySpecs(bundledPluginsDir) {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
     // External official plugins own isolated npm projects, so their dependency
     // specs do not need to match packages bundled into the root distribution.
-    if (packageJson.openclaw?.build?.bundledDist === false) {
+    if (pluginPackageMetadata(packageJson)?.build?.bundledDist === false) {
       continue;
     }
     const pluginId = path.basename(path.dirname(packageJsonPath));
