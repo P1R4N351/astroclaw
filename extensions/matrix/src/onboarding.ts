@@ -1,8 +1,7 @@
 // Matrix setup module handles plugin onboarding behavior.
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/account-id";
-import type { DmPolicy } from "openclaw/plugin-sdk/config-contracts";
+import { DEFAULT_ACCOUNT_ID } from "astroclaw/plugin-sdk/account-id";
+import { createChannelDmPolicy } from "astroclaw/plugin-sdk/channel-dm-policy";
 import {
-  type ChannelSetupDmPolicy,
   type ChannelSetupWizardAdapter,
   formatDocsLink,
   hasConfiguredSecretInput,
@@ -11,13 +10,13 @@ import {
   promptAccountId,
   promptChannelAccessConfig,
   splitSetupEntries,
-} from "openclaw/plugin-sdk/setup";
-import { isPrivateNetworkOptInEnabled } from "openclaw/plugin-sdk/ssrf-policy";
+} from "astroclaw/plugin-sdk/setup";
+import { isPrivateNetworkOptInEnabled } from "astroclaw/plugin-sdk/ssrf-policy";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { requiresExplicitMatrixDefaultAccount } from "./account-selection.js";
 import {
   listMatrixAccountIds,
@@ -76,22 +75,6 @@ function resolveMatrixOnboardingAccountId(cfg: CoreConfig, accountId?: string): 
   return normalizeAccountId(
     normalizeOptionalString(accountId) || resolveDefaultMatrixAccountId(cfg) || DEFAULT_ACCOUNT_ID,
   );
-}
-
-function setMatrixDmPolicy(cfg: CoreConfig, policy: DmPolicy, accountId?: string) {
-  const resolvedAccountId = resolveMatrixOnboardingAccountId(cfg, accountId);
-  const existing = resolveMatrixAccountConfig({
-    cfg,
-    accountId: resolvedAccountId,
-  });
-  const allowFrom = resolveMatrixSetupDmAllowFrom(policy, existing.dm?.allowFrom);
-  return updateMatrixAccountConfig(cfg, resolvedAccountId, {
-    dm: {
-      ...existing.dm,
-      policy,
-      allowFrom,
-    },
-  });
 }
 
 async function noteMatrixAuthHelp(prompter: WizardPrompter): Promise<void> {
@@ -416,30 +399,43 @@ async function configureMatrixAccessPrompts(params: {
   });
 }
 
-const dmPolicy: ChannelSetupDmPolicy = {
+const dmPolicy = createChannelDmPolicy({
   label: "Matrix",
   channel,
-  policyKey: "channels.matrix.dm.policy",
-  allowFromKey: "channels.matrix.dm.allowFrom",
-  resolveConfigKeys: (cfg, accountId) => {
-    const effectiveAccountId = resolveMatrixOnboardingAccountId(cfg as CoreConfig, accountId);
+  policyPath: "dm.policy",
+  allowFromPath: "dm.allowFrom",
+  resolveAccount: (cfg, accountId) => {
+    const accountIdResolved = resolveMatrixOnboardingAccountId(cfg as CoreConfig, accountId);
+    const config = resolveMatrixAccountConfig({
+      cfg: cfg as CoreConfig,
+      accountId: accountIdResolved,
+    });
     return {
-      policyKey: resolveMatrixConfigFieldPath(cfg as CoreConfig, effectiveAccountId, "dm.policy"),
-      allowFromKey: resolveMatrixConfigFieldPath(
-        cfg as CoreConfig,
-        effectiveAccountId,
-        "dm.allowFrom",
-      ),
+      accountId: accountIdResolved,
+      config: { dmPolicy: config.dm?.policy, allowFrom: config.dm?.allowFrom, dm: config.dm },
     };
   },
-  getCurrent: (cfg, accountId) =>
-    resolveMatrixAccountConfig({
-      cfg: cfg as CoreConfig,
-      accountId: resolveMatrixOnboardingAccountId(cfg as CoreConfig, accountId),
-    }).dm?.policy ?? "pairing",
-  setPolicy: (cfg, policy, accountId) => setMatrixDmPolicy(cfg as CoreConfig, policy, accountId),
+  resolveConfigKeys: ({ cfg, account }) => ({
+    policyKey: resolveMatrixConfigFieldPath(cfg as CoreConfig, account.accountId, "dm.policy"),
+    allowFromKey: resolveMatrixConfigFieldPath(
+      cfg as CoreConfig,
+      account.accountId,
+      "dm.allowFrom",
+    ),
+  }),
+  resolveAllowFrom: ({ policy, account }) =>
+    resolveMatrixSetupDmAllowFrom(policy, account.config.allowFrom),
+  buildPatch: ({ account, policy, allowFrom }) => ({
+    dm: { ...account.config.dm, policy, allowFrom },
+  }),
+  applyPatch: ({ cfg, account, patch }) =>
+    updateMatrixAccountConfig(
+      cfg as CoreConfig,
+      account.accountId,
+      patch as Parameters<typeof updateMatrixAccountConfig>[2],
+    ),
   promptAllowFrom: promptMatrixAllowFrom,
-};
+});
 
 type MatrixConfigureIntent = "update" | "add-account";
 
