@@ -89,7 +89,6 @@ describe("plugin npm runtime build planning", () => {
     expect(diffsRuntimePlan.packageFiles).toEqual([
       "dist/**",
       "openclaw.plugin.json",
-      "npm-shrinkwrap.json",
       "README.md",
       "skills/**",
     ]);
@@ -213,8 +212,8 @@ describe("plugin npm runtime build planning", () => {
     writeFileSync(
       path.join(outDir, "index.js"),
       [
-        'import "openclaw/plugin-sdk/not-exported";',
-        'const runtime = __require("openclaw/plugin-sdk/not-exported-from-require");',
+        'import "astroclaw/plugin-sdk/not-exported";',
+        'const runtime = __require("astroclaw/plugin-sdk/not-exported-from-require");',
         "void runtime;",
         "",
       ].join("\n"),
@@ -227,8 +226,8 @@ describe("plugin npm runtime build planning", () => {
     );
 
     expect(listMissingPluginNpmRuntimeHostExports({ ...plan, outDir })).toEqual([
-      "openclaw/plugin-sdk/not-exported",
-      "openclaw/plugin-sdk/not-exported-from-require",
+      "astroclaw/plugin-sdk/not-exported",
+      "astroclaw/plugin-sdk/not-exported-from-require",
     ]);
   });
 
