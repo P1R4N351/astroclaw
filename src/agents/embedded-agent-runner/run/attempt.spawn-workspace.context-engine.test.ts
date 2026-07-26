@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { HEARTBEAT_TRANSCRIPT_PROMPT } from "../../../auto-reply/heartbeat.js";
 import {
@@ -3576,7 +3576,7 @@ describe("runEmbeddedAttempt tool-result guard budget wiring", () => {
 
     expect(submittedMessages.filter((message) => message.role === "user")).toEqual([
       expect.objectContaining({
-        content: expect.stringContaining('"name": "Alice"'),
+        content: expect.stringContaining('"name":"Alice"'),
         role: "user",
       }),
     ]);
