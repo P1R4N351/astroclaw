@@ -1,5 +1,5 @@
 // Kimi Coding tests cover implicit provider plugin behavior.
-import { registerSingleProviderPlugin } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
@@ -89,6 +89,24 @@ describe("Kimi implicit provider (#22409)", () => {
           input: ["text", "image"],
           cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 0 },
           contextWindow: 1048576,
+          maxTokens: 131072,
+        },
+        {
+          id: "k3-256k",
+          name: "Kimi K3 (256k)",
+          reasoning: true,
+          thinkingLevelMap: {
+            off: null,
+            minimal: "low",
+            low: "low",
+            medium: "high",
+            high: "high",
+            xhigh: "max",
+            max: "max",
+          },
+          input: ["text", "image"],
+          cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 0 },
+          contextWindow: 262144,
           maxTokens: 131072,
         },
       ],
