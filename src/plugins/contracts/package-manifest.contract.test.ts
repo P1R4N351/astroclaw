@@ -1,9 +1,14 @@
 // Package manifest contract tests cover plugin package manifest requirements.
-import { describePackageManifestContract } from "openclaw/plugin-sdk/plugin-test-contracts";
+import { describePackageManifestContract } from "astroclaw/plugin-sdk/plugin-test-contracts";
 
 type PackageManifestContractParams = Parameters<typeof describePackageManifestContract>[0];
 
 const packageManifestContractTests: PackageManifestContractParams[] = [
+  {
+    pluginId: "buzz",
+    pluginLocalRuntimeDeps: ["nostr-tools"],
+    minHostVersionBaseline: "2026.7.2",
+  },
   {
     pluginId: "discord",
     pluginLocalRuntimeDeps: ["@discordjs/voice", "discord-api-types", "libopus-wasm"],
