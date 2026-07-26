@@ -1,8 +1,8 @@
 // Verifies session tool-result guard inserts, truncates, and repairs tool results.
 
 import { expectDefined } from "@openclaw/normalization-core";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
-import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import { SessionManager } from "astroclaw/plugin-sdk/agent-sessions";
 import { describe, expect, it } from "vitest";
 import { installSessionToolResultGuard } from "./session-tool-result-guard.js";
 import { castAgentMessage } from "./test-helpers/agent-message-fixtures.js";
@@ -478,6 +478,44 @@ describe("installSessionToolResultGuard", () => {
     expect(getPersistedMessages(sm)).toHaveLength(0);
     expect(blockedUserMessages).toHaveLength(1);
     expect(blockedUserMessages[0]).toMatchObject({ role: "user", content: "hidden" });
+  });
+
+  it("repairs a blocked real tool result before the next user message", () => {
+    const sm = SessionManager.inMemory();
+    const guard = installSessionToolResultGuard(sm, {
+      beforeMessageWriteHook: ({ message }) =>
+        message.role === "toolResult" && !message.isError ? { block: true } : undefined,
+    });
+
+    sm.appendMessage(toolCallMessage);
+    expect(
+      sm.appendMessage(
+        asAppendMessage({
+          role: "toolResult",
+          toolCallId: "call_1",
+          toolName: "read",
+          content: [{ type: "text", text: "blocked real result" }],
+          isError: false,
+        }),
+      ),
+    ).toBeUndefined();
+    expect(guard.getPendingIds()).toStrictEqual(["call_1"]);
+
+    sm.appendMessage(
+      asAppendMessage({
+        role: "user",
+        content: "next user message",
+        timestamp: Date.now(),
+      }),
+    );
+
+    const messages = expectPersistedRoles(sm, ["assistant", "toolResult", "user"]);
+    expect(messages[1]).toMatchObject({
+      toolCallId: "call_1",
+      toolName: "read",
+      isError: true,
+    });
+    expect(guard.getPendingIds()).toStrictEqual([]);
   });
 
   it("applies before_message_write message mutations before persistence", () => {
