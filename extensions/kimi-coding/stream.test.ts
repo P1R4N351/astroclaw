@@ -1,6 +1,6 @@
 // Kimi Coding tests cover stream plugin behavior.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import type { Context, Model } from "openclaw/plugin-sdk/llm";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import type { Context, Model } from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import { wrapKimiProviderStream } from "./stream.js";
 
@@ -274,7 +274,7 @@ describe("kimi tool-call markup wrapper", () => {
     });
   });
 
-  it.each(["k3", "k3[1m]"])("defaults %s to adaptive high thinking", (modelId) => {
+  it.each(["k3", "k3-256k"])("defaults %s to adaptive high thinking", (modelId) => {
     const {
       streamFn: baseStreamFn,
       getCapturedModel,
@@ -346,8 +346,8 @@ describe("kimi tool-call markup wrapper", () => {
   it.each([
     { modelId: "k3", extraParams: undefined, thinkingLevel: "off" },
     { modelId: "k3", extraParams: { thinking: "off" }, thinkingLevel: "max" },
-    { modelId: "k3[1m]", extraParams: undefined, thinkingLevel: "off" },
-    { modelId: "k3[1m]", extraParams: { thinking: "off" }, thinkingLevel: "max" },
+    { modelId: "k3-256k", extraParams: undefined, thinkingLevel: "off" },
+    { modelId: "k3-256k", extraParams: { thinking: "off" }, thinkingLevel: "max" },
   ] as const)("honors $modelId thinking off", ({ modelId, extraParams, thinkingLevel }) => {
     const { streamFn: baseStreamFn, getCapturedPayload } = createPayloadCapturingStream({
       thinking: { type: "adaptive" },
@@ -381,7 +381,7 @@ describe("kimi tool-call markup wrapper", () => {
     });
   });
 
-  it.each(["k3", "k3[1m]"])(
+  it.each(["k3", "k3-256k"])(
     "lets explicit %s thinking enablement override session off",
     (modelId) => {
       const { streamFn: baseStreamFn, getCapturedPayload } = createPayloadCapturingStream();
