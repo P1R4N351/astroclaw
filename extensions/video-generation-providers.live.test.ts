@@ -2,13 +2,12 @@
 import {
   resolveApiKeyForProvider,
   resolveDefaultAgentDir,
-} from "openclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   registerProviderPlugin,
   requireRegisteredProvider,
-} from "openclaw/plugin-sdk/plugin-test-runtime";
-import { getRuntimeConfig } from "openclaw/plugin-sdk/runtime-config-snapshot";
+} from "astroclaw/plugin-sdk/plugin-test-runtime";
 import {
   isAuthErrorMessage,
   isBillingErrorMessage,
@@ -19,8 +18,12 @@ import {
   isServerErrorMessage,
   isTimeoutErrorMessage,
   isTruthyEnvValue,
-} from "openclaw/plugin-sdk/test-live";
-import { collectProviderApiKeys, getShellEnvAppliedKeys } from "openclaw/plugin-sdk/test-live-auth";
+  readLiveTestConfig,
+} from "astroclaw/plugin-sdk/test-live";
+import {
+  collectProviderApiKeys,
+  getShellEnvAppliedKeys,
+} from "astroclaw/plugin-sdk/test-live-auth";
 import {
   DEFAULT_LIVE_VIDEO_MODELS,
   canRunBufferBackedImageToVideoLiveLane,
@@ -35,14 +38,14 @@ import {
   resolveConfiguredLiveVideoModels,
   resolveLiveVideoAuthStore,
   resolveLiveVideoResolution,
-} from "openclaw/plugin-sdk/test-media-generation";
+} from "astroclaw/plugin-sdk/test-media-generation";
 import type {
   GeneratedVideoAsset,
   VideoGenerationMode,
   VideoGenerationModeCapabilities,
   VideoGenerationProvider,
   VideoGenerationRequest,
-} from "openclaw/plugin-sdk/test-media-generation";
+} from "astroclaw/plugin-sdk/test-media-generation";
 import { describe, expect, it } from "vitest";
 import alibabaPlugin from "./alibaba/index.js";
 import byteplusPlugin from "./byteplus/index.js";
@@ -401,7 +404,7 @@ function resolveLiveSmokeDurationSeconds(params: {
 }
 
 async function runLiveVideoProviderCase(testCase: LiveProviderCase): Promise<void> {
-  const cfg = withPluginsEnabled(getRuntimeConfig());
+  const cfg = withPluginsEnabled(await readLiveTestConfig());
   const configuredModels = resolveConfiguredLiveVideoModels(cfg);
   const agentDir = resolveDefaultAgentDir(cfg as never);
   const attempted: string[] = [];
