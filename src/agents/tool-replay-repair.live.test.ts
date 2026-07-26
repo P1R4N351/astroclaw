@@ -2,12 +2,11 @@
 // selected real model providers.
 
 import { expectDefined } from "@openclaw/normalization-core";
-import type { AgentMessage } from "openclaw/plugin-sdk/agent-core";
-import { SessionManager } from "openclaw/plugin-sdk/agent-sessions";
-import type { Context, Model } from "openclaw/plugin-sdk/llm";
+import type { AgentMessage } from "astroclaw/plugin-sdk/agent-core";
+import { SessionManager } from "astroclaw/plugin-sdk/agent-sessions";
+import type { Context, Model } from "astroclaw/plugin-sdk/llm";
 import { Type } from "typebox";
 import { describe, expect, it } from "vitest";
-import { getRuntimeConfig } from "../config/config.js";
 import { discoverAuthStorage, discoverModels } from "./agent-model-discovery.js";
 import { resolveDefaultAgentDir } from "./agent-scope.js";
 import { sanitizeSessionHistory } from "./embedded-agent-runner/replay-history.js";
@@ -17,6 +16,7 @@ import {
   isLiveTestEnabled,
   logLiveProgress,
   requiresLiveProfileCredential,
+  readLiveTestConfig,
   resolveLiveCredentialPrecedence,
   type CompleteSimpleContent,
 } from "./live-test-helpers.js";
@@ -244,7 +244,7 @@ describeLive("tool replay repair live", () => {
     it(
       `accepts repaired displaced and missing tool results with ${target.ref}`,
       async () => {
-        const cfg = getRuntimeConfig();
+        const cfg = await readLiveTestConfig();
         await ensureOpenClawModelsJson(cfg);
 
         const agentDir = resolveDefaultAgentDir(cfg);
@@ -357,7 +357,7 @@ describeLive("tool replay repair live", () => {
     it(
       `accepts transport replay after dropping aborted assistant tool calls with ${target.ref}`,
       async () => {
-        const cfg = getRuntimeConfig();
+        const cfg = await readLiveTestConfig();
         await ensureOpenClawModelsJson(cfg);
 
         const agentDir = resolveDefaultAgentDir(cfg);
