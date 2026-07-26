@@ -6,15 +6,15 @@ import path from "node:path";
 import type {
   ChannelDoctorConfigMutation,
   ChannelDoctorLegacyConfigRule,
-} from "openclaw/plugin-sdk/channel-contract";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
+} from "astroclaw/plugin-sdk/channel-contract";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
 import {
   archiveLegacyStateSource,
   defineChannelAliasMigration,
   type PluginDoctorStateMigration,
-} from "openclaw/plugin-sdk/runtime-doctor";
-import { resolveStorePath } from "openclaw/plugin-sdk/session-store-runtime";
-import { isRecord } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/runtime-doctor";
+import { resolveStorePath } from "astroclaw/plugin-sdk/session-store-runtime";
+import { isRecord } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { normalizeStoredConversationId } from "./src/conversation-store-helpers.js";
 import {
   buildMSTeamsConversationStateKey,
@@ -147,8 +147,15 @@ function resolveLegacySanitizedSessionKey(
   return matches.length === 1 && match ? match : null;
 }
 
-function listAgentIds(config: { agents?: { list?: Array<{ id?: unknown }> } }): string[] {
+function listAgentIds(config: OpenClawConfig): string[] {
   const ids = new Set<string>(["main"]);
+  if (isRecord(config.agents?.entries)) {
+    for (const agentId of Object.keys(config.agents.entries)) {
+      if (agentId.trim()) {
+        ids.add(agentId.trim());
+      }
+    }
+  }
   for (const agent of config.agents?.list ?? []) {
     if (typeof agent.id === "string" && agent.id.trim()) {
       ids.add(agent.id.trim());
@@ -162,7 +169,6 @@ function listCandidateStorePaths(params: {
   env: NodeJS.ProcessEnv;
 }): string[] {
   const paths = new Set<string>();
-  paths.add(resolveStorePath(params.config.session?.store, { env: params.env }));
   for (const agentId of listAgentIds(params.config)) {
     paths.add(resolveStorePath(params.config.session?.store, { agentId, env: params.env }));
   }
