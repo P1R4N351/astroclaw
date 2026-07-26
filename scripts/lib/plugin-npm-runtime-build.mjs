@@ -248,7 +248,7 @@ function normalizeOpenClawPeerRange(value) {
 function resolveOpenClawPeerRange(packageJson, rootPackageJson) {
   return (
     normalizeOpenClawPeerRange(pluginPackageMetadata(packageJson)?.compat?.pluginApi) ||
-    normalizeOpenClawPeerRange(packageJson.peerDependencies?.openclaw) ||
+    normalizeOpenClawPeerRange(packageJson.peerDependencies?.astroclaw) ||
     normalizeOpenClawPeerRange(pluginPackageMetadata(packageJson)?.build?.openclawVersion) ||
     normalizeOpenClawPeerRange(rootPackageJson?.version) ||
     normalizeOpenClawPeerRange(packageJson.version)
@@ -260,20 +260,20 @@ function resolvePluginNpmRuntimePackagePeerMetadata(plan) {
   const openclawPeerRange = resolveOpenClawPeerRange(plan.packageJson, plan.rootPackageJson);
   if (!openclawPeerRange) {
     throw new Error(
-      `cannot infer openclaw peerDependency range for ${plan.pluginDir}; set openclaw.compat.pluginApi or package version`,
+      `cannot infer astroclaw peerDependency range for ${plan.pluginDir}; set astroclaw.compat.pluginApi or package version`,
     );
   }
   const existingPeerDependencies = getStringRecord(plan.packageJson.peerDependencies);
   const existingPeerDependenciesMeta = getRecord(plan.packageJson.peerDependenciesMeta);
-  const existingOpenClawMeta = getRecord(existingPeerDependenciesMeta.openclaw);
+  const existingOpenClawMeta = getRecord(existingPeerDependenciesMeta.astroclaw);
   return {
     peerDependencies: {
       ...existingPeerDependencies,
-      openclaw: openclawPeerRange,
+      astroclaw: openclawPeerRange,
     },
     peerDependenciesMeta: {
       ...existingPeerDependenciesMeta,
-      openclaw: {
+      astroclaw: {
         ...existingOpenClawMeta,
         optional: true,
       },

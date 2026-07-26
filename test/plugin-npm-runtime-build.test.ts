@@ -48,10 +48,10 @@ describe("plugin npm runtime build planning", () => {
       expectDistRelativePaths(plan.runtimeExtensions);
       expectDistRelativePaths(plan.runtimeBuildOutputs);
       expect(plan.packageFiles).toContain("dist/**");
-      expect(plan.packagePeerMetadata.peerDependencies.openclaw).toBe(
+      expect(plan.packagePeerMetadata.peerDependencies.astroclaw).toBe(
         plan.packageJson.openclaw.compat.pluginApi,
       );
-      expect(plan.packagePeerMetadata.peerDependenciesMeta.openclaw.optional).toBe(true);
+      expect(plan.packagePeerMetadata.peerDependenciesMeta.astroclaw.optional).toBe(true);
     }
   });
 
