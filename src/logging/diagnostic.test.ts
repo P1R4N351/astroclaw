@@ -1,6 +1,6 @@
 // Diagnostic logger tests cover event emission, metrics, and support output.
 import fs from "node:fs";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   emitDiagnosticEvent,
@@ -369,7 +369,7 @@ describe("stuck session diagnostics threshold", () => {
     );
   });
 
-  it("keeps queued stale sessions eligible for lane recovery", () => {
+  it("does not count a single in-flight turn as queued work without an active run", () => {
     const events: DiagnosticEventPayload[] = [];
     const recoverStuckSession = vi.fn();
     const unsubscribe = onDiagnosticEvent((event) => {
@@ -396,12 +396,12 @@ describe("stuck session diagnostics threshold", () => {
     expect(stuckEvents).toHaveLength(1);
     expectRecordFields(requireRecord(stuckEvents[0], "stuck event"), {
       classification: "stale_session_state",
-      reason: "queued_work_without_active_run",
-      queueDepth: 1,
+      reason: "stale_session_state",
+      queueDepth: 0,
     });
     expectRecoveryCall(
       recoverStuckSession,
-      { sessionId: "s1", sessionKey: "main", queueDepth: 1 },
+      { sessionId: "s1", sessionKey: "main", queueDepth: 0 },
       ["ageMs", "stateGeneration"],
     );
   });
@@ -1980,9 +1980,9 @@ describe("stuck session diagnostics threshold", () => {
     expect(longRunningEvents).toHaveLength(1);
     expectRecordFields(requireRecord(longRunningEvents[0], "long-running event"), {
       classification: "long_running",
-      reason: "queued_behind_active_work",
+      reason: "active_work",
       activeWorkKind: "embedded_run",
-      queueDepth: 1,
+      queueDepth: 0,
     });
     expect(recoverStuckSession).not.toHaveBeenCalled();
   });
@@ -2031,13 +2031,13 @@ describe("stuck session diagnostics threshold", () => {
       classification: "stalled_agent_run",
       reason: "queued_behind_terminal_active_work",
       activeWorkKind: "embedded_run",
-      queueDepth: 2,
+      queueDepth: 1,
       terminalProgressStale: true,
       lastProgressReason: terminalReason,
     });
     expectRecoveryCall(
       recoverStuckSession,
-      { sessionId: "s1", sessionKey: "main", queueDepth: 2, allowActiveAbort: true },
+      { sessionId: "s1", sessionKey: "main", queueDepth: 1, allowActiveAbort: true },
       ["ageMs", "stateGeneration"],
     );
   });
