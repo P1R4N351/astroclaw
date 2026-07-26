@@ -2,16 +2,17 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { readJsonFileWithFallback } from "openclaw/plugin-sdk/json-store";
-import { resolveAgentIdFromSessionKey } from "openclaw/plugin-sdk/session-key-runtime";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
+import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { readJsonFileWithFallback } from "astroclaw/plugin-sdk/json-store";
+import { resolveAgentIdFromSessionKey } from "astroclaw/plugin-sdk/session-key-runtime";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import {
   registerSessionBindingAdapter,
   resolveThreadBindingFarewellText,
   type SessionBindingAdapter,
   unregisterSessionBindingAdapter,
-} from "openclaw/plugin-sdk/thread-bindings-session-runtime";
+} from "astroclaw/plugin-sdk/thread-bindings-session-runtime";
 import { getMatrixRuntime } from "../runtime.js";
 import { claimCurrentTokenStorageState, resolveMatrixStateFilePath } from "./client/storage.js";
 import type { MatrixAuth } from "./client/types.js";
@@ -586,7 +587,7 @@ export async function createMatrixThreadBindingManager(params: {
         targetSessionKey,
         agentId:
           normalizeOptionalString(input.metadata?.agentId) ||
-          resolveAgentIdFromSessionKey(targetSessionKey),
+          resolveAgentIdFromSessionKey(targetSessionKey, resolveDefaultAgentId(params.cfg)),
         label: normalizeOptionalString(input.metadata?.label) || undefined,
         boundBy: normalizeOptionalString(input.metadata?.boundBy) || "system",
         boundAt: now,
