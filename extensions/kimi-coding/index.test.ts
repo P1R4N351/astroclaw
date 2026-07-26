@@ -1,5 +1,5 @@
 // Kimi Coding tests cover index plugin behavior.
-import { registerSingleProviderPlugin } from "openclaw/plugin-sdk/plugin-test-runtime";
+import { registerSingleProviderPlugin } from "astroclaw/plugin-sdk/plugin-test-runtime";
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
 
@@ -48,7 +48,7 @@ describe("kimi provider plugin", () => {
     });
   });
 
-  it.each(["k3", "k3[1m]"])("exposes %s adaptive thinking levels", async (modelId) => {
+  it.each(["k3", "k3-256k"])("exposes %s adaptive thinking levels", async (modelId) => {
     const provider = await registerSingleProviderPlugin(plugin);
 
     expect(
