@@ -1,4 +1,5 @@
-import { createLazyRuntimeModule } from "openclaw/plugin-sdk/lazy-runtime";
+import { createChannelDmPolicy } from "astroclaw/plugin-sdk/channel-dm-policy";
+import { createLazyRuntimeModule } from "astroclaw/plugin-sdk/lazy-runtime";
 // Feishu plugin module implements setup surface behavior.
 import {
   DEFAULT_ACCOUNT_ID,
@@ -15,8 +16,8 @@ import {
   type DmPolicy,
   type OpenClawConfig,
   type SecretInput,
-} from "openclaw/plugin-sdk/setup";
-import { normalizeOptionalString as normalizeString } from "openclaw/plugin-sdk/string-coerce-runtime";
+} from "astroclaw/plugin-sdk/setup";
+import { normalizeOptionalString as normalizeString } from "astroclaw/plugin-sdk/string-coerce-runtime";
 import { resolveDefaultFeishuAccountId, resolveFeishuAccount } from "./accounts.js";
 import type { AppRegistrationResult } from "./app-registration.js";
 import type { FeishuConfig, FeishuDomain } from "./types.js";
@@ -180,45 +181,30 @@ async function promptFeishuAppId(params: {
   ).trim();
 }
 
-const feishuDmPolicy: ChannelSetupDmPolicy = {
+const feishuDmPolicy = createChannelDmPolicy({
   label: "Feishu",
   channel,
-  policyKey: "channels.feishu.dmPolicy",
-  allowFromKey: "channels.feishu.allowFrom",
-  resolveConfigKeys: (_cfg, accountId) => {
-    const resolvedAccountId = accountId ?? resolveDefaultFeishuAccountId(_cfg);
-    return resolvedAccountId !== DEFAULT_ACCOUNT_ID
-      ? {
-          policyKey: `channels.feishu.accounts.${resolvedAccountId}.dmPolicy`,
-          allowFromKey: `channels.feishu.accounts.${resolvedAccountId}.allowFrom`,
-        }
-      : {
-          policyKey: "channels.feishu.dmPolicy",
-          allowFromKey: "channels.feishu.allowFrom",
-        };
-  },
-  getCurrent: (cfg, accountId) => {
+  resolveAccount: (cfg, accountId) => {
     const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
     const resolvedAccountId = accountId ?? resolveDefaultFeishuAccountId(cfg);
-    if (resolvedAccountId !== DEFAULT_ACCOUNT_ID) {
-      const account = feishuCfg?.accounts?.[resolvedAccountId] as
-        | Record<string, unknown>
-        | undefined;
-      if (account?.dmPolicy) {
-        return account.dmPolicy as DmPolicy;
-      }
-    }
-    return (feishuCfg?.dmPolicy as DmPolicy | undefined) ?? "pairing";
+    const account =
+      resolvedAccountId === DEFAULT_ACCOUNT_ID
+        ? undefined
+        : (feishuCfg?.accounts?.[resolvedAccountId] as Record<string, unknown> | undefined);
+    return {
+      accountId: resolvedAccountId,
+      config: {
+        dmPolicy: (account?.dmPolicy ?? feishuCfg?.dmPolicy) as DmPolicy | undefined,
+        allowFrom: (account?.allowFrom ?? feishuCfg?.allowFrom) as
+          | Array<string | number>
+          | undefined,
+      },
+    };
   },
-  setPolicy: (cfg, policy, accountId) => {
-    const resolvedAccountId = accountId ?? resolveDefaultFeishuAccountId(cfg);
-    return patchFeishuConfig(cfg, resolvedAccountId, {
-      dmPolicy: policy,
-      ...(policy === "open" ? { allowFrom: mergeAllowFromEntries([], ["*"]) } : {}),
-    });
-  },
+  resolveAllowFrom: ({ policy }) => (policy === "open" ? ["*"] : undefined),
+  applyPatch: ({ cfg, account, patch }) => patchFeishuConfig(cfg, account.accountId, patch),
   promptAllowFrom: promptFeishuAllowFrom,
-};
+});
 
 type WizardPrompter = Parameters<NonNullable<ChannelSetupWizard["finalize"]>>[0]["prompter"];
 type FeishuSetupMethod = "manual" | "scan";
