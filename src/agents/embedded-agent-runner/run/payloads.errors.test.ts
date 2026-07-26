@@ -1,6 +1,6 @@
 // Error payload tests ensure embedded runs convert provider/tool failures into
 // concise user-facing replies without leaking raw provider bodies or secrets.
-import type { AssistantMessage } from "openclaw/plugin-sdk/llm";
+import type { AssistantMessage } from "astroclaw/plugin-sdk/llm";
 import { describe, expect, it } from "vitest";
 import { getReplyPayloadMetadata } from "../../../auto-reply/reply-payload.js";
 import { formatBillingErrorMessage } from "../../embedded-agent-helpers.js";
@@ -919,6 +919,23 @@ describe("buildEmbeddedRunPayloads", () => {
 
     expectSinglePayloadSummary(payloads, {
       text: "⚠️ 🛠️ Exec failed: ``node -e 'console.log(1, `x`)'`` (exit 1)",
+      isError: true,
+    });
+  });
+
+  it("leaves exec metadata unwrapped for plain tool results", () => {
+    const payloads = buildPayloads({
+      lastToolError: {
+        toolName: "exec",
+        meta: "run node inline script, `node -e 'console.log(1, `x`)'`",
+        error: "Command exited with code 1",
+        mutatingAction: true,
+      },
+      toolResultFormat: "plain",
+    });
+
+    expectSinglePayloadSummary(payloads, {
+      text: "⚠️ 🛠️ Exec failed: node -e 'console.log(1, `x`)' (exit 1)",
       isError: true,
     });
   });
