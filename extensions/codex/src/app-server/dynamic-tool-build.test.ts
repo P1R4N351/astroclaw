@@ -8,7 +8,7 @@ import {
   isToolWrappedWithBeforeToolCallHook,
   type EmbeddedRunAttemptParams,
   wrapToolWithBeforeToolCallHook,
-} from "openclaw/plugin-sdk/agent-harness-runtime";
+} from "astroclaw/plugin-sdk/agent-harness-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dynamicToolBuildState } from "./dynamic-tool-build-state.js";
 import {
@@ -31,8 +31,8 @@ const hoisted = vi.hoisted(() => ({
   resolveWebSearchToolPolicy: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-harness", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-harness")>();
+vi.mock("astroclaw/plugin-sdk/agent-harness", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/agent-harness")>();
 
   return {
     ...actual,
@@ -459,6 +459,7 @@ describe("Codex app-server dynamic tool build", () => {
       sourceSessionKey: "agent:main:subagent:codex-child",
       sourceTool: "subagent_announce",
     };
+    params.config = {};
     params.trustedInternalHandoff = true;
     params.scheduledToolPolicy = {
       version: 1,
