@@ -1,6 +1,6 @@
 // Discord tests cover message handler.inbound context plugin behavior.
-import { expectChannelInboundContextContract as expectInboundContextContract } from "openclaw/plugin-sdk/channel-contract-testing";
-import { finalizeInboundContext } from "openclaw/plugin-sdk/reply-dispatch-runtime";
+import { expectChannelInboundContextContract as expectInboundContextContract } from "astroclaw/plugin-sdk/channel-contract-testing";
+import { finalizeInboundContext } from "astroclaw/plugin-sdk/reply-dispatch-runtime";
 import { describe, expect, it } from "vitest";
 import { buildDiscordInboundAccessContext } from "./inbound-context.js";
 import { buildFinalizedDiscordDirectInboundContext } from "./inbound-context.test-helpers.js";
@@ -13,7 +13,7 @@ describe("discord processDiscordMessage inbound context", () => {
   });
 
   it("keeps channel metadata out of GroupSystemPrompt", () => {
-    const { groupSystemPrompt, untrustedContext } = buildDiscordInboundAccessContext({
+    const { groupSystemPrompt, channelStructuredContext } = buildDiscordInboundAccessContext({
       channelConfig: { systemPrompt: "Config prompt" } as never,
       guildInfo: { id: "g1" } as never,
       sender: { id: "U1", name: "Alice", tag: "alice" },
@@ -36,7 +36,7 @@ describe("discord processDiscordMessage inbound context", () => {
       SenderId: "U1",
       SenderUsername: "alice",
       GroupSystemPrompt: groupSystemPrompt,
-      UntrustedStructuredContext: untrustedContext,
+      ChannelStructuredContext: channelStructuredContext,
       GroupChannel: "#general",
       GroupSubject: "#general",
       Provider: "discord",
@@ -49,8 +49,8 @@ describe("discord processDiscordMessage inbound context", () => {
     });
 
     expect(ctx.GroupSystemPrompt).toBe("Config prompt");
-    expect(ctx.UntrustedContext).toBeUndefined();
-    expect(ctx.UntrustedStructuredContext).toEqual([
+    expect(ctx.ChannelPromptContext).toBeUndefined();
+    expect(ctx.ChannelStructuredContext).toEqual([
       {
         label: "Discord channel metadata",
         source: "discord",
