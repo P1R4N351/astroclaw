@@ -1,6 +1,6 @@
 // Lmstudio tests cover stream plugin behavior.
-import type { StreamFn } from "openclaw/plugin-sdk/agent-core";
-import { createAssistantMessageEventStream } from "openclaw/plugin-sdk/llm";
+import type { StreamFn } from "astroclaw/plugin-sdk/agent-core";
+import { createAssistantMessageEventStream } from "astroclaw/plugin-sdk/llm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 let wrapLmstudioInferencePreload: typeof import("./stream.js").wrapLmstudioInferencePreload;
@@ -637,6 +637,94 @@ describe("lmstudio stream wrapper", () => {
     expectRecordFields(requireRecord(requireRecord(model, "base stream model").compat, "compat"), {
       supportsDeveloperRole: false,
       supportsUsageInStreaming: true,
+    });
+  });
+
+  it("marks regex tool patterns as unsupported before LM Studio inference", async () => {
+    const baseStream = buildDoneStreamFn();
+    const wrapped = createWrappedLmstudioStream(baseStream);
+
+    expectSingleDoneEvent(await collectEvents(runWrappedLmstudioStream(wrapped, {})));
+
+    const [model] = requireMockCallArg(
+      baseStream as unknown as { mock: { calls: unknown[][] } },
+      "base stream",
+    );
+    expectRecordFields(requireRecord(requireRecord(model, "base stream model").compat, "compat"), {
+      supportsUsageInStreaming: true,
+      unsupportedToolSchemaKeywords: ["pattern"],
+    });
+  });
+
+  it("preserves and deduplicates configured unsupported tool-schema keywords", async () => {
+    const baseStream = buildDoneStreamFn();
+    const wrapped = createWrappedLmstudioStream(baseStream);
+    const originalCompat = {
+      supportsDeveloperRole: false,
+      unsupportedToolSchemaKeywords: ["format", "pattern", "minimum", "pattern"],
+    };
+
+    expectSingleDoneEvent(
+      await collectEvents(runWrappedLmstudioStream(wrapped, { compat: originalCompat })),
+    );
+
+    const [model] = requireMockCallArg(
+      baseStream as unknown as { mock: { calls: unknown[][] } },
+      "base stream",
+    );
+    expectRecordFields(requireRecord(requireRecord(model, "base stream model").compat, "compat"), {
+      supportsDeveloperRole: false,
+      supportsUsageInStreaming: true,
+      unsupportedToolSchemaKeywords: ["format", "pattern", "minimum"],
+    });
+    expect(originalCompat).toEqual({
+      supportsDeveloperRole: false,
+      unsupportedToolSchemaKeywords: ["format", "pattern", "minimum", "pattern"],
+    });
+  });
+
+  it("applies regex tool-schema compatibility when LM Studio preload is disabled", async () => {
+    const baseStream = buildDoneStreamFn();
+    const wrapped = wrapLmstudioInferencePreload({
+      provider: "lmstudio",
+      modelId: "qwen3-8b-instruct",
+      config: {
+        models: {
+          providers: {
+            lmstudio: {
+              baseUrl: "http://localhost:1234",
+              params: { preload: false },
+              models: [],
+            },
+          },
+        },
+      },
+      streamFn: baseStream,
+    } as never);
+
+    expectSingleDoneEvent(
+      await collectEvents(
+        wrapped(
+          {
+            provider: "lmstudio",
+            api: "openai-completions",
+            id: "qwen3-8b-instruct",
+            compat: { unsupportedToolSchemaKeywords: ["format"] },
+          } as never,
+          { messages: [] } as never,
+          undefined as never,
+        ),
+      ),
+    );
+
+    expect(ensureLmstudioModelLoadedMock).not.toHaveBeenCalled();
+    const [model] = requireMockCallArg(
+      baseStream as unknown as { mock: { calls: unknown[][] } },
+      "base stream",
+    );
+    expectRecordFields(requireRecord(requireRecord(model, "base stream model").compat, "compat"), {
+      supportsUsageInStreaming: true,
+      unsupportedToolSchemaKeywords: ["format", "pattern"],
     });
   });
 
