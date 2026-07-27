@@ -46,8 +46,8 @@ const {
   sourceReplyDeliveryModeContexts: [] as unknown[],
 }));
 
-vi.mock("openclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-outbound")>();
+vi.mock("astroclaw/plugin-sdk/channel-outbound", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/channel-outbound")>();
   return {
     ...actual,
     deliverInboundReplyWithMessageSendContext: deliverInboundReplyWithMessageSendContextMock,
@@ -692,7 +692,7 @@ describe("whatsapp inbound dispatch", () => {
       msg: makeMsg({
         payload: {
           body: "<contact>",
-          untrustedStructuredContext: [
+          channelStructuredContext: [
             {
               label: "WhatsApp contact",
               source: "whatsapp",
@@ -708,7 +708,7 @@ describe("whatsapp inbound dispatch", () => {
       },
     });
 
-    expect(ctx.UntrustedStructuredContext).toEqual([
+    expect(ctx.ChannelStructuredContext).toEqual([
       {
         label: "WhatsApp contact",
         source: "whatsapp",
