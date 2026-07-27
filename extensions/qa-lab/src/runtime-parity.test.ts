@@ -2,12 +2,12 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
-import { resolveStorePath, upsertSessionEntry } from "openclaw/plugin-sdk/session-store-runtime";
-import { appendSessionTranscriptMessageByIdentity } from "openclaw/plugin-sdk/session-transcript-runtime";
+import { resolveStorePath, upsertSessionEntry } from "astroclaw/plugin-sdk/session-store-runtime";
+import { appendSessionTranscriptMessageByIdentity } from "astroclaw/plugin-sdk/session-transcript-runtime";
 import {
   appendSqliteTrajectoryRuntimeEvents,
   formatSqliteSessionFileMarker,
-} from "openclaw/plugin-sdk/sqlite-runtime-testing";
+} from "astroclaw/plugin-sdk/sqlite-runtime-testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { stableHash } from "./parity-shared.js";
 import {
@@ -644,7 +644,7 @@ describe("runtime parity", () => {
     const result = await runRuntimeParityScenario({
       scenarioId: "resolved-tool",
       runCell: async (runtime) => ({
-        scenarioStatus: "pass",
+        status: "pass",
         cell: { ...cell, runtime },
       }),
     });
@@ -663,7 +663,7 @@ describe("runtime parity", () => {
         reason: " Local fixture only; no assistant turn runs. ",
       },
       runCell: async (runtime) => ({
-        scenarioStatus: "pass",
+        status: "pass",
         cell: makeRuntimeParityCell(runtime, []),
       }),
     });
@@ -691,7 +691,7 @@ describe("runtime parity", () => {
     const result = await runRuntimeParityScenario({
       scenarioId: "planned-only-tool",
       runCell: async (runtime) => ({
-        scenarioStatus: "pass",
+        status: "pass",
         cell: { ...cell, runtime },
       }),
     });
@@ -704,7 +704,7 @@ describe("runtime parity", () => {
     const result = await runRuntimeParityScenario({
       scenarioId: "matching-tool-errors",
       runCell: async (runtime) => ({
-        scenarioStatus: "pass",
+        status: "pass",
         cell: {
           ...makeRuntimeParityCell(runtime, [
             {
@@ -727,7 +727,7 @@ describe("runtime parity", () => {
     const result = await runRuntimeParityScenario({
       scenarioId: "failed-cell-with-drift",
       runCell: async (runtime) => ({
-        scenarioStatus: runtime === "codex" ? "fail" : "pass",
+        status: runtime === "codex" ? "fail" : "pass",
         cell: makeRuntimeParityCell(runtime, [
           {
             tool: "web_search",
@@ -740,7 +740,7 @@ describe("runtime parity", () => {
 
     expect(result).toMatchObject({
       drift: "failure-mode",
-      driftDetails: "scenario status differs (pass vs fail)",
+      driftDetails: "runtime-pair cell status differs (pass vs fail)",
     });
     expect(isRuntimeParityResultPass(result)).toBe(false);
   });
