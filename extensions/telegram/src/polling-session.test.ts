@@ -2,13 +2,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
-import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
-import { DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS as TELEGRAM_SPOOLED_RETRY_MAX_ATTEMPTS } from "openclaw/plugin-sdk/channel-outbound";
+import type { ChannelAccountSnapshot } from "astroclaw/plugin-sdk/channel-contract";
+import { DEFAULT_INGRESS_RETRY_MAX_ATTEMPTS as TELEGRAM_SPOOLED_RETRY_MAX_ATTEMPTS } from "astroclaw/plugin-sdk/channel-outbound";
 import {
   isIngressClaimOwnedByOtherLiveProcess as isTelegramSpooledUpdateClaimOwnedByOtherLiveProcess,
   resolveIngressRetryDelayMs,
   shouldDeadLetterRetryableIngressEvent,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import {
   closeOpenClawStateDatabaseForTest,
   createChannelIngressQueueForTests as createChannelIngressQueue,
@@ -16,7 +16,7 @@ import {
   getNodeSqliteKysely,
   openOpenClawStateDatabase,
   type OpenClawStateKyselyDatabaseForTests,
-} from "openclaw/plugin-sdk/plugin-state-test-runtime";
+} from "astroclaw/plugin-sdk/plugin-state-test-runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { commitTelegramMessageDispatchReplay } from "./message-dispatch-dedupe.js";
 import {
@@ -68,7 +68,7 @@ vi.mock("./network-errors.js", () => ({
   isRecoverableTelegramNetworkError: isRecoverableTelegramNetworkErrorMock,
 }));
 
-vi.mock("openclaw/plugin-sdk/delivery-queue-runtime", () => ({
+vi.mock("astroclaw/plugin-sdk/delivery-queue-runtime", () => ({
   drainPendingDeliveries: drainPendingDeliveriesMock,
 }));
 
@@ -76,7 +76,7 @@ vi.mock("./api-logging.js", () => ({
   withTelegramApiErrorLogging: async ({ fn }: { fn: () => Promise<unknown> }) => await fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", () => ({
+vi.mock("astroclaw/plugin-sdk/runtime-env", () => ({
   computeBackoff: computeBackoffMock,
   createSubsystemLogger: vi.fn(() => {
     const logger = {
@@ -139,7 +139,7 @@ async function claimSpooledUpdateById(spoolDir: string, updateId: number) {
 
 async function createTelegramMessageDispatchReplayForgetError(): Promise<unknown> {
   type ReplayGuard = Parameters<typeof commitTelegramMessageDispatchReplay>[0]["guard"];
-  type ReplayClaim = import("openclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle;
+  type ReplayClaim = import("astroclaw/plugin-sdk/persistent-dedupe").ChannelReplayClaimHandle;
   const diskError = new Error("dedupe disk write failed");
   const guard: ReplayGuard = {
     claim: async () => ({ kind: "invalid" }),
@@ -477,6 +477,7 @@ function createPollingSession(params: {
   telegramTransport?: ReturnType<typeof makeTelegramTransport>;
   createTelegramTransport?: () => ReturnType<typeof makeTelegramTransport>;
   getLastUpdateId?: () => number | null;
+  persistUpdateId?: ConstructorParameters<typeof TelegramPollingSession>[0]["persistUpdateId"];
   stallThresholdMs?: number;
   setStatus?: (patch: Omit<ChannelAccountSnapshot, "accountId">) => void;
   isolatedIngress?: ConstructorParameters<typeof TelegramPollingSession>[0]["isolatedIngress"];
@@ -490,7 +491,7 @@ function createPollingSession(params: {
     abortSignal: params.abortSignal,
     runnerOptions: {},
     getLastUpdateId: params.getLastUpdateId ?? (() => null),
-    persistUpdateId: async () => undefined,
+    persistUpdateId: params.persistUpdateId ?? (async () => undefined),
     log: params.log ?? (() => undefined),
     telegramTransport: params.telegramTransport,
     stallThresholdMs: params.stallThresholdMs,
@@ -789,6 +790,7 @@ function startIsolatedIngressSession(params: {
   getLastUpdateId?: () => number | null;
   init?: AsyncVoidFn;
   log?: (message: string) => void;
+  persistUpdateId?: ConstructorParameters<typeof TelegramPollingSession>[0]["persistUpdateId"];
   stop?: () => Promise<void>;
   spooledUpdateHandlerTimeoutMs?: number;
   spooledUpdateHandlerAbortGraceMs?: number;
@@ -806,6 +808,7 @@ function startIsolatedIngressSession(params: {
     abortSignal: params.abort.signal,
     getLastUpdateId: params.getLastUpdateId,
     log: params.log,
+    persistUpdateId: params.persistUpdateId,
     stallThresholdMs: params.stallThresholdMs,
     isolatedIngress: {
       enabled: true,
@@ -1080,7 +1083,6 @@ describe("TelegramPollingSession", () => {
       expect(mockObjectArg(createTelegramBotMock, "createTelegramBot").updateOffset).toEqual({
         lastUpdateId: null,
         persistenceFloorUpdateId: null,
-        onUpdateId: expect.any(Function),
       });
       expect(init).toHaveBeenCalledBefore(handleUpdate);
       expect(handleUpdate).toHaveBeenCalledWith({ update_id: 42, message: { text: "hello" } });
@@ -1118,6 +1120,120 @@ describe("TelegramPollingSession", () => {
         await waitForTelegramTestState(async () =>
           expect(await pendingUpdateIds(tempDir, "all")).toEqual([]),
         );
+      } finally {
+        abort.abort();
+        await runPromise;
+      }
+    });
+  });
+
+  it("spools, persists the actual update id, then acknowledges", async () => {
+    await withTempSpool(async (tempDir) => {
+      const abort = new AbortController();
+      const persistUpdateId = vi.fn(async (updateId: number) => {
+        expect(updateId).toBe(42);
+        expect(await pendingUpdateIds(tempDir, "all")).toEqual([42]);
+      });
+      const worker = createListeningIngressWorker();
+      const { runPromise } = startIsolatedIngressSession({
+        abort,
+        spoolDir: tempDir,
+        handleUpdate: vi.fn(async () => undefined),
+        createWorker: worker.createWorker,
+        drainIntervalMs: 60_000,
+        getLastUpdateId: () => 40,
+        persistUpdateId,
+      });
+      try {
+        await waitForTelegramTestState(() => expect(worker.hasListener()).toBe(true));
+        worker.emit({
+          type: "update",
+          requestId: "offset-gap",
+          update: { update_id: 42, message: { text: "hello" } },
+          queued: 1,
+        });
+        await waitForTelegramTestState(() =>
+          expect(worker.ackSpooledUpdate).toHaveBeenCalledWith("offset-gap", {
+            ok: true,
+            updateId: 42,
+          }),
+        );
+        expect(
+          expectDefined(persistUpdateId.mock.invocationCallOrder[0], "offset persistence order"),
+        ).toBeLessThan(
+          expectDefined(worker.ackSpooledUpdate.mock.invocationCallOrder[0], "worker ack order"),
+        );
+      } finally {
+        abort.abort();
+        await runPromise;
+      }
+    });
+  });
+
+  it("acknowledges a durable update when offset persistence fails", async () => {
+    await withTempSpool(async (tempDir) => {
+      const abort = new AbortController();
+      const log = vi.fn();
+      const worker = createListeningIngressWorker();
+      const { runPromise } = startIsolatedIngressSession({
+        abort,
+        spoolDir: tempDir,
+        handleUpdate: vi.fn(async () => undefined),
+        createWorker: worker.createWorker,
+        log,
+        persistUpdateId: vi.fn(async () => {
+          throw new Error("offset store unavailable");
+        }),
+      });
+      try {
+        await waitForTelegramTestState(() => expect(worker.hasListener()).toBe(true));
+        worker.emit({
+          type: "update",
+          requestId: "offset-failure",
+          update: { update_id: 43, message: { text: "hello" } },
+          queued: 1,
+        });
+        await waitForTelegramTestState(() =>
+          expect(worker.ackSpooledUpdate).toHaveBeenCalledWith("offset-failure", {
+            ok: true,
+            updateId: 43,
+          }),
+        );
+        expectLogIncludes(log, "isolated polling offset persist failed updateId=43");
+      } finally {
+        abort.abort();
+        await runPromise;
+      }
+    });
+  });
+
+  it("does not persist or acknowledge success when spooling fails", async () => {
+    await withTempSpool(async (tempDir) => {
+      const abort = new AbortController();
+      const persistUpdateId = vi.fn(async () => undefined);
+      const worker = createListeningIngressWorker();
+      const { runPromise } = startIsolatedIngressSession({
+        abort,
+        spoolDir: tempDir,
+        handleUpdate: vi.fn(async () => undefined),
+        createWorker: worker.createWorker,
+        persistUpdateId,
+      });
+      try {
+        await waitForTelegramTestState(() => expect(worker.hasListener()).toBe(true));
+        worker.emit({
+          type: "update",
+          requestId: "spool-failure",
+          update: { message: { text: "missing update id" } },
+          queued: 1,
+        });
+        await waitForTelegramTestState(() =>
+          expect(worker.ackSpooledUpdate).toHaveBeenCalledWith("spool-failure", {
+            ok: false,
+            message: "Telegram update missing numeric update_id.",
+          }),
+        );
+        expect(persistUpdateId).not.toHaveBeenCalled();
       } finally {
         abort.abort();
         await runPromise;
@@ -1292,7 +1408,6 @@ describe("TelegramPollingSession", () => {
       expect(mockObjectArg(createTelegramBotMock, "createTelegramBot").updateOffset).toEqual({
         lastUpdateId: null,
         persistenceFloorUpdateId: 42,
-        onUpdateId: expect.any(Function),
       });
       expect(handleUpdate).toHaveBeenCalledWith({
         update_id: 42,
