@@ -20,8 +20,8 @@ vi.mock("./google-genai-runtime.js", () => ({
   createGoogleGenAI: createGoogleGenAIMock,
 }));
 
-import * as providerAuthRuntime from "openclaw/plugin-sdk/provider-auth-runtime";
-import { expectExplicitMusicGenerationCapabilities } from "openclaw/plugin-sdk/provider-test-contracts";
+import * as providerAuthRuntime from "astroclaw/plugin-sdk/provider-auth-runtime";
+import { expectExplicitMusicGenerationCapabilities } from "astroclaw/plugin-sdk/provider-test-contracts";
 import { buildGoogleMusicGenerationProvider } from "./music-generation-provider.js";
 
 type GoogleGenAIConfig = {
@@ -147,6 +147,32 @@ describe("google music generation provider", () => {
     expect(result.tracks[0]?.mimeType).toBe("audio/mpeg");
     expect(result.lyrics).toEqual(["wake the city up"]);
     expect(lastGoogleGenAIConfig().apiKey).toBe("google-key");
+  });
+
+  it.each([
+    ["invalid alphabet", "not-base64!"],
+    ["non-canonical pad bits", "ZE=="],
+  ])("rejects %s in inline audio", async (_scenario, data) => {
+    mockGoogleAuth();
+    generateContentMock.mockResolvedValue({
+      candidates: [
+        {
+          content: { parts: [{ inlineData: { data, mimeType: "audio/mpeg" } }] },
+          finishReason: "STOP",
+        },
+      ],
+    });
+
+    await expect(
+      buildGoogleMusicGenerationProvider().generateMusic({
+        provider: "google",
+        model: "lyria-3-clip-preview",
+        prompt: "upbeat synthpop anthem",
+        cfg: {},
+      }),
+    ).rejects.toThrow("Generated music asset contains malformed base64 audio data");
+
+    expect(generateContentMock).toHaveBeenCalledTimes(1);
   });
 
   it("retries once when Lyria returns an unblocked text-only response", async () => {
