@@ -1,7 +1,7 @@
 // Telegram tests cover accounts plugin behavior.
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
-import { withEnv } from "openclaw/plugin-sdk/test-env";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { createSubsystemLogger } from "astroclaw/plugin-sdk/runtime-env";
+import { withEnv } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTelegramActionGate,
@@ -19,7 +19,7 @@ const { warnMock } = vi.hoisted(() => ({
   warnMock: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/runtime-env", { spy: true });
+vi.mock("astroclaw/plugin-sdk/runtime-env", { spy: true });
 
 function warningLines(): string[] {
   return warnMock.mock.calls.map(([line]) => String(line));
@@ -147,6 +147,28 @@ describe("resolveTelegramAccount", () => {
 
     expect(accounts.map((account) => account.accountId)).toEqual(["work"]);
     expect(accounts[0]?.token).toBe("tok-work");
+  });
+
+  it("preserves normalized agent-bound accounts and default-agent selection", () => {
+    const cfg = {
+      agents: { list: [{ id: "primary", default: true }] },
+      channels: {
+        telegram: {
+          botToken: "tok-default",
+          accounts: { Alerts: { botToken: "tok-alerts" } },
+        },
+      },
+      bindings: [
+        { agentId: "primary", match: { channel: "telegram", accountId: " Ops Team " } },
+        { agentId: "another", match: { channel: "telegram", accountId: "ops-team" } },
+        { agentId: "ignored", match: { channel: "telegram", accountId: "*" } },
+        { agentId: "ignored", match: { channel: "slack", accountId: "slack-only" } },
+      ],
+    } as unknown as OpenClawConfig;
+
+    expect(listTelegramAccountIds(cfg)).toEqual(["alerts", "default", "ops-team"]);
+    expect(resolveDefaultTelegramAccountId(cfg)).toBe("ops-team");
+    expectNoMissingDefaultWarning();
   });
 
   it("keeps the implicit default account when named accounts are added to top-level credentials (#82780)", () => {
