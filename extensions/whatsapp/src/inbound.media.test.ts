@@ -83,10 +83,10 @@ let currentMockSocket:
     }
   | undefined;
 
-vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", async () => {
+vi.mock("astroclaw/plugin-sdk/runtime-config-snapshot", async () => {
   const actual = await vi.importActual<
-    typeof import("openclaw/plugin-sdk/runtime-config-snapshot")
-  >("openclaw/plugin-sdk/runtime-config-snapshot");
+    typeof import("astroclaw/plugin-sdk/runtime-config-snapshot")
+  >("astroclaw/plugin-sdk/runtime-config-snapshot");
   return {
     ...actual,
     getRuntimeConfig: vi.fn().mockReturnValue({
@@ -103,9 +103,9 @@ vi.mock("openclaw/plugin-sdk/runtime-config-snapshot", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/conversation-runtime")>(
-    "openclaw/plugin-sdk/conversation-runtime",
+vi.mock("astroclaw/plugin-sdk/conversation-runtime", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/conversation-runtime")>(
+    "astroclaw/plugin-sdk/conversation-runtime",
   );
   return {
     ...actual,
@@ -118,9 +118,9 @@ vi.mock("openclaw/plugin-sdk/conversation-runtime", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/channel-pairing", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/channel-pairing")>(
-    "openclaw/plugin-sdk/channel-pairing",
+vi.mock("astroclaw/plugin-sdk/channel-pairing", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/channel-pairing")>(
+    "astroclaw/plugin-sdk/channel-pairing",
   );
   return {
     ...actual,
@@ -130,9 +130,9 @@ vi.mock("openclaw/plugin-sdk/channel-pairing", async () => {
   };
 });
 
-vi.mock("openclaw/plugin-sdk/media-store", async () => {
-  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/media-store")>(
-    "openclaw/plugin-sdk/media-store",
+vi.mock("astroclaw/plugin-sdk/media-store", async () => {
+  const actual = await vi.importActual<typeof import("astroclaw/plugin-sdk/media-store")>(
+    "astroclaw/plugin-sdk/media-store",
   );
   return {
     ...actual,
@@ -145,8 +145,8 @@ vi.mock("openclaw/plugin-sdk/media-store", async () => {
 
 vi.mock("./runtime.js", async () => {
   const { createChannelIngressQueueForTests: createChannelIngressQueue } = await Promise.resolve(
-    vi.importActual<typeof import("openclaw/plugin-sdk/plugin-state-test-runtime")>(
-      "openclaw/plugin-sdk/plugin-state-test-runtime",
+    vi.importActual<typeof import("astroclaw/plugin-sdk/plugin-state-test-runtime")>(
+      "astroclaw/plugin-sdk/plugin-state-test-runtime",
     ),
   );
   const stateDir = `/tmp/openclaw-whatsapp-inbound-media-${Date.now()}-${Math.random()}`;
@@ -452,7 +452,7 @@ describe("web inbound media saves with extension", () => {
       fileName: undefined,
       kind: "image",
     });
-    expect(inbound.payload.untrustedStructuredContext).toContainEqual({
+    expect(inbound.payload.channelStructuredContext).toContainEqual({
       label: "WhatsApp media",
       source: "whatsapp",
       type: "media",
