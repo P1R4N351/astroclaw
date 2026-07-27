@@ -2,8 +2,9 @@
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
+import { defaultRuntime as cliRuntime } from "astroclaw/plugin-sdk/runtime";
+import { clearConfigCache } from "astroclaw/plugin-sdk/runtime-config-snapshot";
 import { Command } from "commander";
-import { clearConfigCache } from "openclaw/plugin-sdk/runtime-config-snapshot";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerPolicyCli } from "./cli.js";
 import { createPolicyAttestation, policyDocumentHash } from "./policy-state.js";
@@ -33,6 +34,9 @@ async function runPolicyCli(args: readonly string[]) {
     output.push(String(chunk));
     return true;
   }) as typeof process.stderr.write);
+  const consoleError = vi.spyOn(console, "error").mockImplementation((...values: unknown[]) => {
+    output.push(`${values.map(String).join(" ")}\n`);
+  });
   const previousExitCode = process.exitCode;
   process.exitCode = undefined;
   try {
@@ -46,6 +50,7 @@ async function runPolicyCli(args: readonly string[]) {
     process.exitCode = previousExitCode;
     stdout.mockRestore();
     stderr.mockRestore();
+    consoleError.mockRestore();
   }
 }
 
@@ -474,12 +479,20 @@ describe("policy commands", () => {
   });
 
   it("rejects invalid severity thresholds", async () => {
-    const { exitCode, output } = await runPolicyCheckJson({ severityMin: "warnng" });
+    const errorSpy = vi.spyOn(cliRuntime, "error");
+    try {
+      const { exitCode, output } = await runPolicyCheckJson({ severityMin: "warnng" });
 
-    expect(exitCode).toBe(2);
-    expect(output).toEqual([
-      "Invalid --severity-min value. Expected one of: info, warning, error.\n",
-    ]);
+      expect(exitCode).toBe(2);
+      expect(errorSpy).toHaveBeenCalledWith(
+        "Invalid --severity-min value. Expected one of: info, warning, error.",
+      );
+      expect(output).toEqual([
+        "Invalid --severity-min value. Expected one of: info, warning, error.\n",
+      ]);
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it("fails closed when the OpenClaw config is invalid", async () => {
