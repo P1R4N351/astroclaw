@@ -17,6 +17,7 @@ import type { GetReplyOptions, MsgContext } from "astroclaw/plugin-sdk/reply-run
 import { withEnvAsync } from "astroclaw/plugin-sdk/test-env";
 import { sanitizeTerminalText } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { telegramBotInfoForTest } from "./bot.create-telegram-bot.test-support.js";
 import {
   createTelegramCallbackContext,
   runTelegramTestMiddlewareChain,
@@ -435,6 +436,7 @@ describe("createTelegramBot", () => {
     throttlerSpy.mockReset();
     createTelegramBot = (opts) =>
       createTelegramBotBase({
+        botInfo: telegramBotInfoForTest,
         ...opts,
         telegramDeps: telegramBotDepsForTest,
       });
