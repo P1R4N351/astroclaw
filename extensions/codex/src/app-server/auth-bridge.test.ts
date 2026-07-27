@@ -6,9 +6,9 @@ import {
   clearRuntimeAuthProfileStoreSnapshots,
   loadAuthProfileStoreForSecretsRuntime,
   replaceRuntimeAuthProfileStoreSnapshots,
-} from "openclaw/plugin-sdk/agent-runtime";
-import { upsertAuthProfile } from "openclaw/plugin-sdk/provider-auth";
-import { withTempDir } from "openclaw/plugin-sdk/test-env";
+} from "astroclaw/plugin-sdk/agent-runtime";
+import { upsertAuthProfile } from "astroclaw/plugin-sdk/provider-auth";
+import { withTempDir } from "astroclaw/plugin-sdk/test-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   applyCodexAppServerAuthProfile,
@@ -54,8 +54,8 @@ const providerRuntimeMocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("openclaw/plugin-sdk/agent-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/agent-runtime")>();
+vi.mock("astroclaw/plugin-sdk/agent-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("astroclaw/plugin-sdk/agent-runtime")>();
   return {
     ...actual,
     resolveApiKeyForProfile: async (
@@ -602,6 +602,44 @@ describe("bridgeCodexAppServerStartOptions", () => {
       nativeAuthProfile: false,
       preparedAuth: { kind: "api-key", apiKey: "prepared-platform-key" },
     });
+  });
+
+  it("declines every prepared handoff for a user-home app-server", async () => {
+    const authProfileStore: AuthProfileStore = {
+      version: 1,
+      profiles: {
+        "openai:work": {
+          type: "token",
+          provider: "openai",
+          token: "prepared-subscription-token",
+          email: "prepared@example.test",
+        },
+      },
+    };
+
+    await expect(
+      resolveCodexAppServerPreparedAuthHandoff({
+        authRequirement: "subscription",
+        authProfileId: "openai:work",
+        authProfileStore,
+        agentDir: "/tmp/openclaw-agent",
+        homeScope: "user",
+        subscriptionProfileRequiredError: "profile required",
+        subscriptionProfileUnusableError: "profile unusable",
+      }),
+    ).resolves.toEqual({ authProfileId: "openai:work", nativeAuthProfile: true });
+
+    await expect(
+      resolveCodexAppServerPreparedAuthHandoff({
+        authRequirement: "api-key",
+        authProfileId: "openai:work",
+        authProfileStore,
+        agentDir: "/tmp/openclaw-agent",
+        homeScope: "user",
+        subscriptionProfileRequiredError: "profile required",
+        subscriptionProfileUnusableError: "profile unusable",
+      }),
+    ).resolves.toEqual({ authProfileId: "openai:work", nativeAuthProfile: true });
   });
 
   it("materializes one prepared subscription profile snapshot", async () => {
