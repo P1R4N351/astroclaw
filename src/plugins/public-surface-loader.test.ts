@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { importFreshModule } from "openclaw/plugin-sdk/test-fixtures";
+import { importFreshModule } from "astroclaw/plugin-sdk/test-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { withMockedWindowsPlatform } from "../test-utils/vitest-spies.js";
 
@@ -41,6 +41,8 @@ afterEach(() => {
 
 describe("bundled plugin public surface loader", () => {
   it("keeps auto-resolved bundled roots on built public artifacts", async () => {
+    // The non-isolated plugin shard may have already imported the native loader.
+    vi.resetModules();
     const tempRoot = createTempDir();
     const bundledPluginsDir = path.join(tempRoot, "dist", "extensions");
     const modulePath = path.join(bundledPluginsDir, "demo", "provider-policy-api.js");
