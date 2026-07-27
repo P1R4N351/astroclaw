@@ -2,13 +2,13 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { Command } from "commander";
 import {
   firstWrittenJsonArg,
   spyRuntimeErrors,
   spyRuntimeJson,
   spyRuntimeLogs,
-} from "openclaw/plugin-sdk/test-fixtures";
+} from "astroclaw/plugin-sdk/test-fixtures";
+import { Command } from "commander";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { readShortTermRecallEntries, recordShortTermRecalls } from "./short-term-promotion.js";
 import {
@@ -54,9 +54,9 @@ vi.mock("./cli.host.runtime.js", async () => {
     { resolveSessionTranscriptsDirForAgent, resolveStateDir },
     { listMemoryFiles, normalizeExtraMemoryPaths },
   ] = await Promise.all([
-    import("openclaw/plugin-sdk/memory-core-host-runtime-cli"),
-    import("openclaw/plugin-sdk/memory-core-host-runtime-core"),
-    import("openclaw/plugin-sdk/memory-core-host-runtime-files"),
+    import("astroclaw/plugin-sdk/memory-core-host-runtime-cli"),
+    import("astroclaw/plugin-sdk/memory-core-host-runtime-core"),
+    import("astroclaw/plugin-sdk/memory-core-host-runtime-files"),
   ]);
   return {
     defaultRuntime,
@@ -80,9 +80,9 @@ vi.mock("./cli.host.runtime.js", async () => {
 });
 
 let registerMemoryCli: typeof import("./cli.js").registerMemoryCli;
-let defaultRuntime: typeof import("openclaw/plugin-sdk/memory-core-host-runtime-cli").defaultRuntime;
-let isVerbose: typeof import("openclaw/plugin-sdk/memory-core-host-runtime-cli").isVerbose;
-let setVerbose: typeof import("openclaw/plugin-sdk/memory-core-host-runtime-cli").setVerbose;
+let defaultRuntime: typeof import("astroclaw/plugin-sdk/memory-core-host-runtime-cli").defaultRuntime;
+let isVerbose: typeof import("astroclaw/plugin-sdk/memory-core-host-runtime-cli").isVerbose;
+let setVerbose: typeof import("astroclaw/plugin-sdk/memory-core-host-runtime-cli").setVerbose;
 let fixtureRoot = "";
 let workspaceFixtureRoot = "";
 let qmdFixtureRoot = "";
@@ -96,7 +96,7 @@ beforeAll(async () => {
     defaultRuntime: loadedDefaultRuntime,
     isVerbose: loadedIsVerbose,
     setVerbose: loadedSetVerbose,
-  } = await import("openclaw/plugin-sdk/memory-core-host-runtime-cli");
+  } = await import("astroclaw/plugin-sdk/memory-core-host-runtime-cli");
   defaultRuntime = loadedDefaultRuntime;
   isVerbose = loadedIsVerbose;
   setVerbose = loadedSetVerbose;
@@ -1010,6 +1010,12 @@ describe("memory cli", () => {
 
   it("repairs invalid recall metadata and stale locks with status --fix", async () => {
     await withTempWorkspace(async (workspaceDir) => {
+      await fs.mkdir(path.join(workspaceDir, "memory"), { recursive: true });
+      await fs.writeFile(
+        path.join(workspaceDir, "memory", "2026-04-03.md"),
+        "QMD router cache note\n",
+        "utf-8",
+      );
       await shortTermTesting.writeRawRecallStore(workspaceDir, {
         version: 1,
         updatedAt: "2026-04-04T00:00:00.000Z",
