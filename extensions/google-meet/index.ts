@@ -1,12 +1,16 @@
 // Google Meet plugin entrypoint registers its OpenClaw integration.
-import { readPositiveIntegerParam } from "openclaw/plugin-sdk/channel-actions";
-import { ErrorCodes, type GatewayRequestHandlerOptions } from "openclaw/plugin-sdk/gateway-runtime";
-import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import { normalizeAgentId, parseAgentSessionKey } from "openclaw/plugin-sdk/routing";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { jsonResult as json } from "openclaw/plugin-sdk/tool-results";
-import { createMeetingTranscriptSourceProvider } from "openclaw/plugin-sdk/transcripts";
+import { readPositiveIntegerParam } from "astroclaw/plugin-sdk/channel-actions";
+import {
+  ErrorCodes,
+  type GatewayRequestHandlerOptions,
+} from "astroclaw/plugin-sdk/gateway-runtime";
+import { definePluginEntry, type OpenClawPluginApi } from "astroclaw/plugin-sdk/plugin-entry";
+import { normalizeAgentId, parseAgentSessionKey } from "astroclaw/plugin-sdk/routing";
+import { normalizeOptionalString } from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { jsonResult as json } from "astroclaw/plugin-sdk/tool-results";
+import { createMeetingTranscriptSourceProvider } from "astroclaw/plugin-sdk/transcripts";
 import { buildGoogleMeetCalendarDayWindow, listGoogleMeetCalendarEvents } from "./src/calendar.js";
+import { GOOGLE_MEET_CLI_DESCRIPTOR } from "./src/cli-output-mode.js";
 import {
   buildGoogleMeetPreflightReport,
   endGoogleMeetActiveConference,
@@ -628,13 +632,7 @@ export default definePluginEntry({
       },
       {
         commands: ["googlemeet"],
-        descriptors: [
-          {
-            name: "googlemeet",
-            description: "Join and manage Google Meet calls",
-            hasSubcommands: true,
-          },
-        ],
+        descriptors: [GOOGLE_MEET_CLI_DESCRIPTOR],
       },
     );
   },
