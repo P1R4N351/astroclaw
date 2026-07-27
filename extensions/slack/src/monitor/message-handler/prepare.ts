@@ -3,7 +3,7 @@ import {
   resolveAckReaction,
   shouldAckReaction as shouldAckReactionGate,
   type AckReactionScope,
-} from "openclaw/plugin-sdk/channel-feedback";
+} from "astroclaw/plugin-sdk/channel-feedback";
 import {
   buildChannelInboundEventContext,
   buildMentionRegexes,
@@ -17,27 +17,27 @@ import {
   resolveEnvelopeFormatOptions,
   resolveUnmentionedGroupInboundPolicy,
   toInboundMediaFacts,
-} from "openclaw/plugin-sdk/channel-inbound";
-import { resolveChannelImplicitMentions } from "openclaw/plugin-sdk/channel-ingress-runtime";
-import { resolveChannelMessageSourceReplyDeliveryMode } from "openclaw/plugin-sdk/channel-outbound";
-import { hasControlCommand } from "openclaw/plugin-sdk/command-detection";
-import { isAbortRequestText } from "openclaw/plugin-sdk/command-primitives-runtime";
-import { shouldHandleTextCommands } from "openclaw/plugin-sdk/command-surface";
-import { ensureConfiguredBindingRouteReady } from "openclaw/plugin-sdk/conversation-runtime";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
-import { mimeTypeFromFilePath } from "openclaw/plugin-sdk/media-mime";
-import { createChannelHistoryWindow } from "openclaw/plugin-sdk/reply-history";
-import type { FinalizedMsgContext } from "openclaw/plugin-sdk/reply-runtime";
-import { resolveInboundLastRouteSessionKey } from "openclaw/plugin-sdk/routing";
-import { logVerbose, shouldLogVerbose } from "openclaw/plugin-sdk/runtime-env";
-import { resolvePinnedMainDmOwnerFromAllowlist } from "openclaw/plugin-sdk/security-runtime";
+} from "astroclaw/plugin-sdk/channel-inbound";
+import { resolveChannelImplicitMentions } from "astroclaw/plugin-sdk/channel-ingress-runtime";
+import { resolveChannelMessageSourceReplyDeliveryMode } from "astroclaw/plugin-sdk/channel-outbound";
+import { hasControlCommand } from "astroclaw/plugin-sdk/command-detection";
+import { isAbortRequestText } from "astroclaw/plugin-sdk/command-primitives-runtime";
+import { shouldHandleTextCommands } from "astroclaw/plugin-sdk/command-surface";
+import { ensureConfiguredBindingRouteReady } from "astroclaw/plugin-sdk/conversation-runtime";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
+import { mimeTypeFromFilePath } from "astroclaw/plugin-sdk/media-mime";
+import { createChannelHistoryWindow } from "astroclaw/plugin-sdk/reply-history";
+import type { FinalizedMsgContext } from "astroclaw/plugin-sdk/reply-runtime";
+import { resolveInboundLastRouteSessionKey } from "astroclaw/plugin-sdk/routing";
+import { logVerbose, shouldLogVerbose } from "astroclaw/plugin-sdk/runtime-env";
+import { resolvePinnedMainDmOwnerFromAllowlist } from "astroclaw/plugin-sdk/security-runtime";
 import {
   asOptionalRecord as asRecord,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/string-coerce-runtime";
-import { enqueueSystemEvent } from "openclaw/plugin-sdk/system-event-runtime";
-import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+} from "astroclaw/plugin-sdk/string-coerce-runtime";
+import { enqueueSystemEvent } from "astroclaw/plugin-sdk/system-event-runtime";
+import { truncateUtf16Safe } from "astroclaw/plugin-sdk/text-utility-runtime";
 import { resolveSlackReplyToMode } from "../../account-reply-mode.js";
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import { reactSlackMessage } from "../../actions.js";
@@ -1494,7 +1494,7 @@ export async function prepareSlackMessage(params: {
 
   const slackTo = isDirectMessage ? `user:${message.user}` : `channel:${message.channel}`;
 
-  const { untrustedChannelMetadata, groupSystemPrompt } = resolveSlackRoomContextHints({
+  const { channelMetadata, groupSystemPrompt } = resolveSlackRoomContextHints({
     isRoomish,
     channelInfo,
     channelConfig,
@@ -1621,8 +1621,8 @@ export async function prepareSlackMessage(params: {
     },
     extra: {
       GroupSubject: isRoomish ? roomLabel : undefined,
-      UntrustedContext: untrustedChannelMetadata ? [untrustedChannelMetadata] : undefined,
-      UntrustedStructuredContext:
+      ChannelPromptContext: channelMetadata ? [channelMetadata] : undefined,
+      ChannelStructuredContext:
         agentContextEntities.length > 0
           ? [
               {
