@@ -1,12 +1,13 @@
 // Mattermost tests cover reply delivery plugin behavior.
 import path from "node:path";
-import type { ChunkMode } from "openclaw/plugin-sdk/reply-runtime";
-import { createOpenClawTestState } from "openclaw/plugin-sdk/test-state";
+import type { ChunkMode } from "astroclaw/plugin-sdk/reply-runtime";
+import { createOpenClawTestState } from "astroclaw/plugin-sdk/test-state";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig, PluginRuntime } from "../../runtime-api.js";
 import {
   createMattermostReplyDeliveryBarrier,
   deliverMattermostReplyPayload,
+  toMattermostChannelDeliveryResult,
 } from "./reply-delivery.js";
 
 type DeliverMattermostReplyPayloadParams = Parameters<typeof deliverMattermostReplyPayload>[0];
@@ -39,6 +40,22 @@ function createReplyDeliveryCore(): DeliverMattermostReplyPayloadParams["core"] 
     },
   } as unknown as PluginRuntime;
 }
+
+describe("toMattermostChannelDeliveryResult", () => {
+  it.each(["text", "media"] as const)("marks %s delivery as visible", (outcome) => {
+    expect(toMattermostChannelDeliveryResult(outcome)).toEqual({ visibleReplySent: true });
+  });
+
+  it.each(["reasoning_skipped", "empty"] as const)(
+    "marks %s delivery as intentionally non-visible",
+    (outcome) => {
+      expect(toMattermostChannelDeliveryResult(outcome)).toEqual({
+        visibleReplySent: false,
+        suppression: { reason: "no_visible_result" },
+      });
+    },
+  );
+});
 
 describe("createMattermostReplyDeliveryBarrier", () => {
   it("extends while direct deliveries or DM resolution remain unsettled", async () => {
