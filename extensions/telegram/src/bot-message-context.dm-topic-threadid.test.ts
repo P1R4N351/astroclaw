@@ -29,7 +29,7 @@ vi.mock("./bot-message-context.body.js", () => ({
 }));
 
 let buildTelegramMessageContextForTest: typeof import("./bot-message-context.test-harness.js").buildTelegramMessageContextForTest;
-let clearRuntimeConfigSnapshot: typeof import("openclaw/plugin-sdk/runtime-config-snapshot").clearRuntimeConfigSnapshot;
+let clearRuntimeConfigSnapshot: typeof import("astroclaw/plugin-sdk/runtime-config-snapshot").clearRuntimeConfigSnapshot;
 
 describe("buildTelegramMessageContext DM topic threadId in deliveryContext (#8891)", () => {
   async function buildCtx(params: {
@@ -87,7 +87,8 @@ describe("buildTelegramMessageContext DM topic threadId in deliveryContext (#889
   });
 
   it("builds Telegram payloads through the shared channel turn context", async () => {
-    const { buildChannelInboundEventContext } = await import("openclaw/plugin-sdk/channel-inbound");
+    const { buildChannelInboundEventContext } =
+      await import("astroclaw/plugin-sdk/channel-inbound");
     const buildChannelInboundEventContextMock = vi.fn(buildChannelInboundEventContext);
 
     const ctx = await buildCtx({
@@ -178,7 +179,7 @@ describe("buildTelegramMessageContext DM topic threadId in deliveryContext (#889
     expectRecordedRoute({ to: "telegram:-1001234567890:topic:99", threadId: "99" });
   });
 
-  it("passes threadId to updateLastRoute for the forum General topic", async () => {
+  it("keeps the forum General topic target aligned with live routing", async () => {
     const ctx = await buildCtx({
       message: {
         chat: { id: -1001234567890, type: "supergroup", title: "Test Group", is_forum: true },
@@ -193,6 +194,6 @@ describe("buildTelegramMessageContext DM topic threadId in deliveryContext (#889
     }
     expect(recordInboundSessionMock).toHaveBeenCalled();
 
-    expectRecordedRoute({ to: "telegram:-1001234567890:topic:1", threadId: "1" });
+    expectRecordedRoute({ to: "telegram:-1001234567890", threadId: "1" });
   });
 });
