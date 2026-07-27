@@ -1,18 +1,19 @@
-import { resolveDefaultAgentId } from "openclaw/plugin-sdk/agent-runtime";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
-import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import { resolveDefaultAgentId } from "astroclaw/plugin-sdk/agent-runtime";
+import type { OpenClawConfig } from "astroclaw/plugin-sdk/config-contracts";
+import { formatErrorMessage } from "astroclaw/plugin-sdk/error-runtime";
 import {
   createMeetingSession,
+  MeetingPlatformAdapter,
   MeetingSessionRuntime,
   type MeetingSessionRuntimeHandles,
   type MeetingSessionRuntimeJoinContext,
-} from "openclaw/plugin-sdk/meeting-runtime";
-import type { PluginRuntime, RuntimeLogger } from "openclaw/plugin-sdk/plugin-runtime";
-import { normalizeAgentId } from "openclaw/plugin-sdk/routing";
+} from "astroclaw/plugin-sdk/meeting-runtime";
+import type { PluginRuntime, RuntimeLogger } from "astroclaw/plugin-sdk/plugin-runtime";
+import { normalizeAgentId } from "astroclaw/plugin-sdk/routing";
 import type {
   TranscriptStartRequest,
   TranscriptStopRequest,
-} from "openclaw/plugin-sdk/transcripts";
+} from "astroclaw/plugin-sdk/transcripts";
 import type { ZoomMeetingsConfig, ZoomMeetingsMode, ZoomMeetingsTransport } from "./config.js";
 import {
   testZoomMeetingListening,
@@ -34,11 +35,7 @@ import type {
   ZoomMeetingsJoinResult,
   ZoomMeetingsSession,
 } from "./transports/types.js";
-import {
-  ZOOM_MEETINGS_PLATFORM_ADAPTER,
-  isZoomMeetingsRealtimeRouteReady,
-  isZoomMeetingsTalkBackMode,
-} from "./transports/zoom-meetings-platform-adapter.js";
+import { ZOOM_MEETINGS_PLATFORM_ADAPTER } from "./transports/zoom-meetings-platform-adapter.js";
 import { hasSameZoomMeetingJoinCredential } from "./transports/zoom-meetings-urls.js";
 
 type ManualActionReason = NonNullable<ZoomMeetingsChromeHealth["manualActionReason"]>;
@@ -164,7 +161,7 @@ export class ZoomMeetingsRuntime {
       resolveSpeechInstructions: (request) =>
         request.message ?? params.config.realtime.introMessage,
       isBrowserTransport: () => true,
-      isTalkBackMode: isZoomMeetingsTalkBackMode,
+      isTalkBackMode: (mode) => MeetingPlatformAdapter.isTalkBackMode(mode),
       isTranscribeMode: (mode) => mode === "transcribe",
       sameMeetingUrl: (left, right) =>
         ZOOM_MEETINGS_PLATFORM_ADAPTER.urls.isSameMeeting(left, right),
@@ -439,11 +436,11 @@ export class ZoomMeetingsRuntime {
   ): Promise<MeetingSessionRuntimeHandles<ZoomMeetingsChromeHealth> | undefined> {
     const bridgeClosed = session.chrome?.health?.bridgeClosed === true;
     if (
-      !isZoomMeetingsTalkBackMode(session.mode) ||
+      !MeetingPlatformAdapter.isTalkBackMode(session.mode) ||
       session.state !== "active" ||
       !session.chrome ||
       (session.chrome.audioBridge && !bridgeClosed) ||
-      !isZoomMeetingsRealtimeRouteReady(session.mode, session.chrome.health)
+      !MeetingPlatformAdapter.isRealtimeRouteReady(session.mode, session.chrome.health)
     ) {
       return undefined;
     }
